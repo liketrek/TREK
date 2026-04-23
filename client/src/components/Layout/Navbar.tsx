@@ -8,6 +8,7 @@ import { useTranslation } from '../../i18n'
 import { Plane, LogOut, Settings, ChevronDown, Shield, ArrowLeft, Users, Moon, Sun, Monitor, CalendarDays, Briefcase, Globe, Compass } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import InAppNotificationBell from './InAppNotificationBell.tsx'
+import { withBase } from '../../api/basePath'
 
 const ADDON_ICONS: Record<string, LucideIcon> = { CalendarDays, Briefcase, Globe, Compass }
 
@@ -119,8 +120,8 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
         )}
 
         <Link to="/dashboard" className="flex items-center transition-colors flex-shrink-0">
-          <img src={dark ? '/icons/icon-white.svg' : '/icons/icon-dark.svg'} alt="TREK" className="sm:hidden" style={{ height: 22, width: 22 }} />
-          <img src={dark ? '/logo-light.svg' : '/logo-dark.svg'} alt="TREK" className="hidden sm:block" style={{ height: 28 }} />
+          <img src={withBase(dark ? '/icons/icon-white.svg' : '/icons/icon-dark.svg')} alt="TREK" className="sm:hidden" style={{ height: 22, width: 22 }} />
+          <img src={withBase(dark ? '/logo-light.svg' : '/logo-dark.svg')} alt="TREK" className="hidden sm:block" style={{ height: 28 }} />
         </Link>
 
         {/* Global addon nav items */}

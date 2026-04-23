@@ -180,7 +180,7 @@ Open `http://localhost:3000`. On first boot TREK seeds an admin account — if y
 
 <div align="center">
 
-&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#docker-compose-production">Docker Compose</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#helm-kubernetes">Helm / Kubernetes</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#install-as-app-pwa">Install as PWA</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#reverse-proxy">Reverse Proxy</a>&nbsp;&nbsp;·&nbsp;&nbsp;
+&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#docker-compose-production">Docker Compose</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#helm-kubernetes">Helm / Kubernetes</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#install-as-ha-addon">Home Assistant</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#install-as-app-pwa">Install as PWA</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#reverse-proxy">Reverse Proxy</a>&nbsp;&nbsp;·&nbsp;&nbsp;
 
 </div>
 
@@ -278,6 +278,14 @@ helm install trek trek/trek
 ```
 
 See [`charts/README.md`](https://github.com/mauriceboe/TREK/blob/main/charts/README.md) for values.
+
+<h2 id="install-as-ha-addon">Home Assistant Add-on</h2>
+
+Running Home Assistant OS or Supervised? Install TREK directly from the Add-on Store:
+
+[![Open your Home Assistant instance and show the add add-on repository dialog with a specific repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fmauriceboe%2FTREK)
+
+See [`ha-addon/README.md`](https://github.com/mauriceboe/TREK/blob/main/ha-addon/README.md) for details.
 
 <h2 id="install-as-app-pwa">Install as App (PWA)</h2>
 

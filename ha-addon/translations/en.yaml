@@ -1,0 +1,45 @@
+---
+configuration:
+  log_level:
+    name: Log level
+    description: >-
+      info prints concise user actions; debug adds verbose details useful
+      when reporting a bug.
+  tz:
+    name: Timezone
+    description: >-
+      IANA timezone for logs, scheduled reminders and cron jobs (for
+      example Europe/Berlin). Leave empty to inherit the host timezone.
+  app_url:
+    name: Public base URL
+    description: >-
+      Externally reachable base URL for this TREK instance. Required for
+      OIDC and email notification links. Supervisor cannot auto-detect
+      this under Ingress.
+  default_language:
+    name: Default login language
+    description: >-
+      Language used on the login page for users whose browser language is
+      not one of the 15 supported locales. Per-user preferences override
+      this after sign-in.
+  admin_email:
+    name: Initial admin email
+    description: >-
+      Applied only on first boot. Pair with Initial admin password.
+      Ignored once any TREK user exists.
+  admin_password:
+    name: Initial admin password
+    description: >-
+      Applied only on first boot. If either this or the email is empty,
+      TREK prints a random password to the add-on log.
+  demo_mode:
+    name: Demo mode
+    description: >-
+      Wipes all data every hour and re-seeds a demo trip. Do not enable on
+      a real install.
+  ha_sso:
+    name: Home Assistant SSO
+    description: >-
+      When enabled (default), users signed into Home Assistant are auto-
+      logged into TREK on first Ingress open — no separate password needed.
+      Turn off to require explicit TREK login even from the HA sidebar.

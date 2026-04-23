@@ -3,6 +3,13 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  // Relative base so asset URLs emitted into index.html (<script src="...">,
+  // <link href="...">) resolve against <base href> at runtime — required for
+  // Home Assistant Ingress where the SPA is mounted under a dynamic subpath.
+  // In standalone deployments base stays `./` which the browser resolves
+  // against `document.baseURI === location.origin + '/'`, yielding the same
+  // absolute paths as the previous default.
+  base: './',
   plugins: [
     react(),
     VitePWA({

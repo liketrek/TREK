@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios'
 import { getSocketId } from './websocket'
+import { API_BASE, withBase, stripBase } from './basePath'
 import en from '../i18n/translations/en'
 import br from '../i18n/translations/br'
 import de from '../i18n/translations/de'
@@ -31,7 +32,7 @@ function translateRateLimit(): string {
 }
 
 export const apiClient: AxiosInstance = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
@@ -63,9 +64,10 @@ apiClient.interceptors.request.use(
 )
 
 export function isAuthPublicPath(pathname: string): boolean {
+  const p = stripBase(pathname)
   const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password']
   const publicPrefixes = ['/shared/', '/public/']
-  return publicPaths.includes(pathname) || publicPrefixes.some((p) => pathname.startsWith(p))
+  return publicPaths.includes(p) || publicPrefixes.some((prefix) => p.startsWith(prefix))
 }
 
 // Response interceptor - handle 401, 403 MFA, 429 rate limit
@@ -76,15 +78,15 @@ apiClient.interceptors.response.use(
       const { pathname } = window.location
       if (!isAuthPublicPath(pathname)) {
         const currentPath = pathname + window.location.search
-        window.location.href = '/login?redirect=' + encodeURIComponent(currentPath)
+        window.location.href = withBase('/login') + '?redirect=' + encodeURIComponent(currentPath)
       }
     }
     if (
       error.response?.status === 403 &&
       (error.response?.data as { code?: string } | undefined)?.code === 'MFA_REQUIRED' &&
-      !window.location.pathname.startsWith('/settings')
+      !stripBase(window.location.pathname).startsWith('/settings')
     ) {
-      window.location.href = '/settings?mfa=required'
+      window.location.href = withBase('/settings?mfa=required')
     }
     if (error.response?.status === 429) {
       const translated = translateRateLimit()

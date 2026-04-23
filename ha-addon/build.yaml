@@ -1,0 +1,11 @@
+---
+build_from:
+  # TEMP (pre-upstream-merge): ghcr image built from this fork's
+  # feat/home-assistant-addon branch. Switch back to mauriceboe/trek:<ver>
+  # once PRs 1-2 land upstream and a new release is published.
+  amd64: ghcr.io/trudenboy/trek:feat-ha-addon
+  aarch64: ghcr.io/trudenboy/trek:feat-ha-addon
+  armv7: ghcr.io/trudenboy/trek:feat-ha-addon
+labels:
+  org.opencontainers.image.source: https://github.com/mauriceboe/TREK
+  org.opencontainers.image.licenses: AGPL-3.0-only

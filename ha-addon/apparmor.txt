@@ -1,0 +1,32 @@
+#include <tunables/global>
+
+profile trek flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+
+  # TREK is a standard Node.js process: read-only code, read-write data,
+  # outbound TCP, no Bluetooth/audio/dbus/raw-network.
+  file,
+  signal,
+
+  /app/** r,
+  /data/** rwk,
+  /share/** rwk,
+  /backup/** rwk,
+  /tmp/** rwk,
+
+  # su-exec drops privileges to the node user.
+  capability chown,
+  capability setgid,
+  capability setuid,
+  capability dac_override,
+
+  network inet stream,
+  network inet dgram,
+  network inet6 stream,
+  network inet6 dgram,
+  network unix stream,
+  network unix dgram,
+
+  # Docker signalling.
+  signal (receive) set=(kill,term,int,hup,quit) peer=/usr/bin/docker,
+}

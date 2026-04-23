@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import { logDebug, logWarn, logError } from './services/auditLog';
 import { enforceGlobalMfaPolicy } from './middleware/mfaPolicy';
 import { authenticate, verifyJwtAndLoadUser } from './middleware/auth';
+import { ingressPath } from './middleware/ingress';
 import { db } from './db/database';
 
 import authRoutes from './routes/auth';
@@ -118,7 +119,11 @@ export function createApp(): express.Application {
         fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
         objectSrc: ["'none'"],
         frameSrc: ["'none'"],
-        frameAncestors: ["'self'"],
+        // Default 'self' blocks iframe embedding. Home Assistant Ingress
+        // proxies TREK inside its own iframe, so the add-on wrapper sets
+        // CSP_FRAME_ANCESTORS="*" to opt in. Standalone deployments are
+        // unaffected when the env var is unset.
+        frameAncestors: (process.env.CSP_FRAME_ANCESTORS || "'self'").split(/\s+/).filter(Boolean),
         upgradeInsecureRequests: shouldForceHttps ? [] : null
       }
     },
@@ -352,17 +357,52 @@ export function createApp(): express.Application {
   // Production static file serving
   if (process.env.NODE_ENV === 'production') {
     const publicPath = path.join(__dirname, '../public');
+    const indexHtmlPath = path.join(publicPath, 'index.html');
+    // Cache the template so the regex replace runs on an in-memory string.
+    // Restarts on addon upgrades refresh this automatically.
+    let indexTemplate: string | null = null;
+    const getIndexTemplate = (): string => {
+      if (indexTemplate === null) indexTemplate = fs.readFileSync(indexHtmlPath, 'utf8');
+      return indexTemplate;
+    };
+    const INGRESS_BASE_RE = /<base\s+href="\/"\s+data-trek-base\s*\/?>/;
+    // vite-plugin-pwa injects a registerSW.js <script> tag that would 404
+    // under Ingress (we intentionally reject SW registration there).
+    // Strip it from the HTML so the browser console stays clean.
+    const PWA_REGISTER_SCRIPT_RE = /<script[^>]+src=["']\.?\/?registerSW\.js["'][^>]*><\/script>\s*/;
+    const sendIndex = (req: Request, res: Response): void => {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      const ip = ingressPath(req);
+      const html = ip
+        ? getIndexTemplate()
+            .replace(INGRESS_BASE_RE, `<base href="${ip}/" data-trek-base />`)
+            .replace(PWA_REGISTER_SCRIPT_RE, '')
+        : getIndexTemplate();
+      res.type('html').send(html);
+    };
+
+    // Gate /index.html and the PWA registration scripts BEFORE express.static
+    // so (a) HTML navigations always pick up the Ingress-aware <base href>
+    // rewrite (express.static ignores `index: false` for explicit index.html
+    // requests like the ones the service worker issues via navigateFallback),
+    // and (b) Ingress requests cannot register a service worker — its scope
+    // would collide with the rotating Ingress subpath. Standalone requests
+    // (no X-Ingress-Path) still get the SW-enabled PWA.
+    app.get(['/', '/index.html'], (req: Request, res: Response) => sendIndex(req, res));
+    app.get(['/sw.js', '/registerSW.js', '/workbox-*.js'], (req: Request, res: Response, next: NextFunction) => {
+      if (ingressPath(req)) { res.status(404).send('Not found (PWA disabled under Home Assistant Ingress)'); return; }
+      next();
+    });
+
     app.use(express.static(publicPath, {
+      index: false,
       setHeaders: (res, filePath) => {
         if (filePath.endsWith('index.html')) {
           res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         }
       },
     }));
-    app.get('*', (_req: Request, res: Response) => {
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.sendFile(path.join(publicPath, 'index.html'));
-    });
+    app.get('*', (req: Request, res: Response) => sendIndex(req, res));
   }
 
   // Global error handler

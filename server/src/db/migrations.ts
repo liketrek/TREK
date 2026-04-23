@@ -2107,6 +2107,12 @@ function runMigrations(db: Database.Database): void {
               != substr(reservations.reservation_time, 1, 10)
       `);
     },
+    () => {
+      // Link TREK users to their Home Assistant identity for Ingress SSO.
+      // Partial unique index so multiple non-HA users remain valid.
+      db.exec('ALTER TABLE users ADD COLUMN ha_user_id TEXT');
+      db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_ha_user_id ON users(ha_user_id) WHERE ha_user_id IS NOT NULL');
+    },
   ];
 
   if (currentVersion < migrations.length) {

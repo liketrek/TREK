@@ -1,0 +1,51 @@
+---
+name: "TREK — Travel Planner"
+version: "3.0.3"
+slug: "trek"
+description: "Self-hosted collaborative travel planner with maps, budgets, packing lists and real-time sync."
+url: "https://github.com/mauriceboe/TREK"
+homeassistant: "2024.6.0"
+arch:
+  - amd64
+  - aarch64
+  - armv7
+startup: application
+boot: auto
+init: false
+ingress: true
+# Must match the port TREK listens on (set in ha-addon/run.sh via PORT=3000).
+ingress_port: 3000
+panel_icon: mdi:map-marker-path
+panel_admin: false
+hassio_api: true
+homeassistant_api: false
+auth_api: false
+host_network: false
+apparmor: true
+map:
+  - share:rw
+  - backup:rw
+backup_exclude:
+  - "data/logs/*"
+  - "data/tmp/*"
+options:
+  log_level: info
+  tz: ""
+  app_url: ""
+  default_language: en
+  admin_email: ""
+  admin_password: ""
+  demo_mode: false
+  ha_sso: true
+schema:
+  log_level: "list(trace|debug|info|warn|error)?"
+  tz: str?
+  app_url: str?
+  default_language: "list(en|br|de|es|fr|it|nl|pl|cs|hu|ru|zh|zh-TW|ar)?"
+  # str? (not email?) so the empty default passes Supervisor validation
+  # when SSO is the primary login path. TREK itself validates the format
+  # once a non-empty value is used for first-boot admin creation.
+  admin_email: str?
+  admin_password: str?
+  demo_mode: bool?
+  ha_sso: bool?

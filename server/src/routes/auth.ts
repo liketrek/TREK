@@ -2,11 +2,15 @@ import express, { Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 import { v4 as uuid } from 'uuid';
 import { authenticate, optionalAuth, demoUploadBlock } from '../middleware/auth';
+import { ingressPath } from '../middleware/ingress';
 import { AuthRequest, OptionalAuthRequest } from '../types';
 import { writeAudit, getClientIp } from '../services/auditLog';
 import { setAuthCookie, clearAuthCookie } from '../services/cookie';
+import { db } from '../db/database';
 import {
   getAppConfig,
   demoLogin,
@@ -38,6 +42,7 @@ import {
   createResourceToken,
   requestPasswordReset,
   resetPassword,
+  generateToken,
 } from '../services/authService';
 import { sendPasswordResetEmail, getAppUrl } from '../services/notifications';
 
@@ -157,6 +162,97 @@ router.post('/login', authLimiter, (req: Request, res: Response) => {
   if (result.mfa_required) return res.json({ mfa_required: true, mfa_token: result.mfa_token });
   setAuthCookie(res, result.token!, req);
   res.json({ token: result.token, user: result.user });
+});
+
+// Home Assistant Ingress SSO.
+//
+// When this server runs as a Home Assistant add-on, Supervisor proxies
+// every request with trusted `X-Remote-User-*` headers that identify the
+// signed-in HA user. We translate that identity into a TREK session
+// (find-or-create user, issue cookie) so the sidebar "Open Web UI" lands
+// the user straight on the dashboard with no password prompt.
+//
+// Hard preconditions (any miss → 4xx):
+//   - The request carries an `X-Ingress-Path` header (set by Supervisor).
+//     A non-ingress caller cannot forge this because external traffic
+//     never reaches the addon directly — only via Supervisor.
+//   - `HA_SSO_ENABLED` is not explicitly `false` (set by the addon shim
+//     from the `ha_sso` option).
+router.post('/ha-sso', (req: Request, res: Response) => {
+  if (!ingressPath(req)) return res.status(404).json({ error: 'Not found' });
+  if (process.env.HA_SSO_ENABLED === 'false') {
+    return res.status(403).json({ error: 'HA SSO is disabled' });
+  }
+  const haUserId = String(req.header('X-Remote-User-Id') || '').trim();
+  if (!haUserId) return res.status(400).json({ error: 'Missing X-Remote-User-Id header' });
+
+  const rawName = String(req.header('X-Remote-User-Name') || '').trim();
+  const baseName = (rawName.replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 32) || 'ha_user') || 'ha_user';
+
+  let user = db.prepare(
+    'SELECT id, username, email, role, password_version, mfa_enabled, avatar FROM users WHERE ha_user_id = ?'
+  ).get(haUserId) as {
+    id: number; username: string; email: string; role: string;
+    password_version: number; mfa_enabled: number | boolean; avatar: string | null;
+  } | undefined;
+
+  if (!user) {
+    const userCount = (db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number }).count;
+    const role = userCount === 0 ? 'admin' : 'user';
+
+    let username = baseName;
+    let suffix = 0;
+    while (db.prepare('SELECT id FROM users WHERE LOWER(username) = LOWER(?)').get(username)) {
+      suffix += 1;
+      username = `${baseName}_${suffix}`;
+    }
+    const email = `${username}@ha.local`;
+    const randomPassword = crypto.randomBytes(32).toString('hex');
+    const password_hash = bcrypt.hashSync(randomPassword, 12);
+
+    try {
+      const result = db.prepare(
+        'INSERT INTO users (username, email, password_hash, role, ha_user_id, first_seen_version, login_count) VALUES (?, ?, ?, ?, ?, ?, 0)'
+      ).run(username, email, password_hash, role, haUserId, process.env.APP_VERSION || '0.0.0');
+
+      writeAudit({
+        userId: Number(result.lastInsertRowid),
+        action: 'user.ha_sso_register',
+        ip: getClientIp(req),
+        details: { username, email, role, ha_user_id: haUserId },
+      });
+
+      user = db.prepare(
+        'SELECT id, username, email, role, password_version, mfa_enabled, avatar FROM users WHERE id = ?'
+      ).get(result.lastInsertRowid) as typeof user;
+    } catch (err) {
+      console.error('[ha-sso] insert failed:', err);
+      return res.status(500).json({ error: 'Failed to create HA-linked user' });
+    }
+  }
+
+  if (!user) return res.status(500).json({ error: 'HA SSO user lookup failed' });
+
+  db.prepare(
+    'UPDATE users SET last_login = CURRENT_TIMESTAMP, login_count = login_count + 1 WHERE id = ?'
+  ).run(user.id);
+
+  const token = generateToken({ id: user.id, password_version: user.password_version });
+  setAuthCookie(res, token, req);
+  writeAudit({ userId: user.id, action: 'user.ha_sso_login', ip: getClientIp(req), details: { ha_user_id: haUserId } });
+
+  res.json({
+    token,
+    user: {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      avatar: user.avatar,
+      avatar_url: user.avatar,
+      mfa_enabled: !!user.mfa_enabled,
+    },
+  });
 });
 
 // ---------------------------------------------------------------------------

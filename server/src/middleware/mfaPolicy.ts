@@ -12,6 +12,7 @@ export function isPublicApiPath(method: string, pathNoQuery: string): boolean {
   if (method === 'POST' && pathNoQuery === '/api/auth/demo-login') return true;
   if (method === 'GET' && pathNoQuery.startsWith('/api/auth/invite/')) return true;
   if (method === 'POST' && pathNoQuery === '/api/auth/mfa/verify-login') return true;
+  if (method === 'POST' && pathNoQuery === '/api/auth/ha-sso') return true;
   if (pathNoQuery.startsWith('/api/auth/oidc/')) return true;
   return false;
 }

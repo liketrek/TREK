@@ -3,7 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { SUPPORTED_LANGUAGES, useTranslation, detectBrowserLanguage } from '../i18n'
-import { authApi, configApi } from '../api/client'
+import { authApi, configApi, apiClient } from '../api/client'
+import { isIngress, withBase, API_BASE } from '../api/basePath'
 import { hasStoredLanguage } from '../store/settingsStore'
 import { getApiErrorMessage } from '../types'
 import { Plane, Eye, EyeOff, Mail, Lock, MapPin, Calendar, Package, User, Globe, Zap, Users, Wallet, Map, CheckSquare, BookMarked, FolderOpen, Route, Shield, KeyRound, ChevronDown } from 'lucide-react'
@@ -36,6 +37,8 @@ export default function LoginPage(): React.ReactElement {
   const [inviteToken, setInviteToken] = useState<string>('')
   const [inviteValid, setInviteValid] = useState<boolean>(false)
   const exchangeInitiated = useRef(false)
+  const haSsoAttempted = useRef(false)
+  const [haSsoInFlight, setHaSsoInFlight] = useState<boolean>(isIngress())
 
   const [langDropdownOpen, setLangDropdownOpen] = useState<boolean>(false)
 
@@ -54,6 +57,24 @@ export default function LoginPage(): React.ReactElement {
     }
     return '/dashboard'
   }, [])
+
+  // Home Assistant Ingress auto-login. Runs once on mount: if Supervisor
+  // passed an X-Remote-User-Id header to the server, it will issue a TREK
+  // session cookie and we navigate straight to the dashboard. Any failure
+  // gracefully falls back to the normal login flow below.
+  useEffect(() => {
+    if (!isIngress() || haSsoAttempted.current) return
+    haSsoAttempted.current = true
+    apiClient.post('/auth/ha-sso')
+      .then(async () => {
+        await loadUser()
+        navigate(redirectTarget, { replace: true })
+      })
+      .catch(() => {
+        // HA SSO disabled or header missing — reveal the regular form.
+      })
+      .finally(() => setHaSsoInFlight(false))
+  }, [loadUser, navigate, redirectTarget])
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -77,10 +98,10 @@ export default function LoginPage(): React.ReactElement {
       if (exchangeInitiated.current) return
       exchangeInitiated.current = true
       setIsLoading(true)
-      fetch('/api/auth/oidc/exchange?code=' + encodeURIComponent(oidcCode), { credentials: 'include' })
+      fetch(`${API_BASE}/auth/oidc/exchange?code=` + encodeURIComponent(oidcCode), { credentials: 'include' })
         .then(r => r.json())
         .then(async data => {
-          window.history.replaceState({}, '', '/login')
+          window.history.replaceState({}, '', withBase('/login'))
           if (data.token) {
             await loadUser()
             navigate('/dashboard', { replace: true })
@@ -89,7 +110,7 @@ export default function LoginPage(): React.ReactElement {
           }
         })
         .catch(() => {
-          window.history.replaceState({}, '', '/login')
+          window.history.replaceState({}, '', withBase('/login'))
           setError(t('login.oidcFailed'))
         })
         .finally(() => setIsLoading(false))
@@ -104,7 +125,7 @@ export default function LoginPage(): React.ReactElement {
         invalid_state: t('login.oidc.invalidState'),
       }
       setError(errorMessages[oidcError] || oidcError)
-      window.history.replaceState({}, '', '/login')
+      window.history.replaceState({}, '', withBase('/login'))
       return
     }
 
@@ -113,7 +134,7 @@ export default function LoginPage(): React.ReactElement {
         setAppConfig(config)
         if (!config.has_users) setMode('register')
         if (!config.password_login && config.oidc_login && config.oidc_configured && config.has_users && !invite && !noRedirect) {
-          window.location.href = '/api/auth/oidc/login'
+          window.location.href = `${API_BASE}/auth/oidc/login`
         }
       }
     })
@@ -239,6 +260,19 @@ export default function LoginPage(): React.ReactElement {
     color: '#111827', background: 'white', boxSizing: 'border-box', transition: 'border-color 0.15s',
   }
 
+  // Suppress the login UI while the Home Assistant SSO probe is in
+  // flight to avoid a flash of the password form on addon first load.
+  if (haSsoInFlight) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
+          <p className="text-slate-500 text-sm">{t('common.loading')}</p>
+        </div>
+      </div>
+    )
+  }
+
   if (showTakeoff) {
     return (
       <div className="takeoff-overlay" style={{ position: 'fixed', inset: 0, zIndex: 99999, overflow: 'hidden' }}>
@@ -313,7 +347,7 @@ export default function LoginPage(): React.ReactElement {
           position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
         }}>
-          <img src="/logo-light.svg" alt="TREK" style={{ height: 72 }} />
+          <img src={withBase('/logo-light.svg')} alt="TREK" style={{ height: 72 }} />
           <p style={{ margin: 0, fontSize: 20, color: 'rgba(255,255,255,0.6)', fontFamily: "'MuseoModerno', sans-serif", textTransform: 'lowercase', whiteSpace: 'nowrap' }}>{t('login.tagline')}</p>
         </div>
 
@@ -553,7 +587,7 @@ export default function LoginPage(): React.ReactElement {
         <div style={{ position: 'relative', zIndex: 1, maxWidth: 560, textAlign: 'center' }}>
           {/* Logo */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 48 }}>
-            <img src="/logo-light.svg" alt="TREK" style={{ height: 64 }} />
+            <img src={withBase('/logo-light.svg')} alt="TREK" style={{ height: 64 }} />
           </div>
 
           <h2 style={{ margin: '0 0 12px', fontSize: 36, fontWeight: 700, color: 'white', lineHeight: 1.15, letterSpacing: '-0.02em', fontFamily: "'MuseoModerno', sans-serif", textTransform: 'lowercase' }}>
@@ -598,7 +632,7 @@ export default function LoginPage(): React.ReactElement {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, marginBottom: 36 }}
             className="mobile-logo">
             <style>{`@media(min-width:1024px){.mobile-logo{display:none!important}}`}</style>
-            <img src="/logo-dark.svg" alt="TREK" style={{ height: 48 }} />
+            <img src={withBase('/logo-dark.svg')} alt="TREK" style={{ height: 48 }} />
             <p style={{ margin: 0, fontSize: 16, color: '#9ca3af', fontFamily: "'MuseoModerno', sans-serif", textTransform: 'lowercase', whiteSpace: 'nowrap' }}>{t('login.tagline')}</p>
           </div>
 
