@@ -389,6 +389,24 @@ export interface JourneyPhoto {
   height?: number | null;
 }
 
+export interface GalleryPhoto {
+  id: number;
+  journey_id: number;
+  photo_id: number;
+  caption?: string | null;
+  shared: number;
+  sort_order: number;
+  created_at: number;
+  // Joined from trek_photos for API responses
+  provider?: string;
+  asset_id?: string | null;
+  owner_id?: number | null;
+  file_path?: string | null;
+  thumbnail_path?: string | null;
+  width?: number | null;
+  height?: number | null;
+}
+
 export interface JourneyTrip {
   journey_id: number;
   trip_id: number;

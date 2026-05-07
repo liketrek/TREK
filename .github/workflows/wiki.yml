@@ -23,4 +23,4 @@ jobs:
       - name: Publish to GitHub wiki
         uses: Andrew-Chen-Wang/github-wiki-action@v5
         with:
-          strategy: init
+          strategy: clone

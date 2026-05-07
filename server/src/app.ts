@@ -124,6 +124,7 @@ export function createApp(): express.Application {
     },
     crossOriginEmbedderPolicy: false,
     hsts: hstsActive ? { maxAge: 31536000, includeSubDomains: hstsIncludeSubdomains } : false,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   }));
 
   if (shouldForceHttps) {
@@ -372,8 +373,10 @@ export function createApp(): express.Application {
     } else {
       console.error('Unhandled error:', err);
     }
-    const status = err.statusCode || 500;
-    res.status(status).json({ error: 'Internal server error' });
+    const status = err.statusCode || err.status || 500;
+    // Expose the message for client errors (4xx); keep 'Internal server error' for 5xx.
+    const message = status < 500 ? err.message : 'Internal server error';
+    res.status(status).json({ error: message });
   });
 
   return app;

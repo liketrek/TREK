@@ -56,6 +56,21 @@ vi.mock('../components/Journey/PhotoLightbox', () => ({
   ),
 }));
 
+vi.mock('../components/Journey/MobileMapTimeline', () => ({
+  default: ({ onEntryClick }: any) => (
+    <div data-testid="mobile-map-timeline">
+      <button onClick={() => onEntryClick({ id: 10, title: 'Shibuya Crossing', story: 'The most famous crossing in the world.', entry_date: '2026-03-15', entry_time: '14:00', location_name: 'Shibuya, Tokyo', photos: [] })}>
+        Open Entry
+      </button>
+    </div>
+  ),
+}));
+
+const mockIsMobile = { value: false };
+vi.mock('../hooks/useIsMobile', () => ({
+  useIsMobile: () => mockIsMobile.value,
+}));
+
 import JourneyPublicPage from './JourneyPublicPage';
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
@@ -106,6 +121,9 @@ const mockJourneyData = {
     share_gallery: true,
     share_map: true,
   },
+  gallery: [
+    { id: 100, journey_id: 1, photo_id: 100, provider: 'local', asset_id: null, owner_id: null, file_path: 'journey/temple.jpg', caption: 'Temple entrance', shared: 1, sort_order: 0, created_at: 0 },
+  ],
   stats: {
     entries: 2,
     photos: 1,
@@ -136,6 +154,7 @@ function setup404() {
 beforeEach(() => {
   resetAllStores();
   vi.clearAllMocks();
+  mockIsMobile.value = false;
 });
 
 // ── Tests ────────────────────────────────────────────────────────────────────
@@ -340,6 +359,11 @@ describe('JourneyPublicPage', () => {
           ],
         },
       ],
+      gallery: [
+        { id: 200, journey_id: 1, photo_id: 200, provider: 'local', asset_id: null, owner_id: null, file_path: 'journey/a.jpg', caption: 'Photo A', shared: 1, sort_order: 0, created_at: 0 },
+        { id: 201, journey_id: 1, photo_id: 201, provider: 'local', asset_id: null, owner_id: null, file_path: 'journey/b.jpg', caption: 'Photo B', shared: 1, sort_order: 1, created_at: 0 },
+        { id: 202, journey_id: 1, photo_id: 202, provider: 'local', asset_id: null, owner_id: null, file_path: 'journey/c.jpg', caption: 'Photo C', shared: 1, sort_order: 2, created_at: 0 },
+      ],
       stats: { entries: 1, photos: 3, places: 0 },
     };
 
@@ -389,6 +413,40 @@ describe('JourneyPublicPage', () => {
     expect(statsContainer!.textContent).toContain('14');
     expect(statsContainer!.textContent).toContain('83');
     expect(statsContainer!.textContent).toContain('7');
+  });
+
+  // FE-PAGE-PUBLICJOURNEY-019 — bug #828
+  it('FE-PAGE-PUBLICJOURNEY-019: mobile public share does not show standalone Map tab', async () => {
+    mockIsMobile.value = true;
+    setupSuccess();
+    render(<JourneyPublicPage />);
+    await waitFor(() => {
+      expect(screen.getByText('Tokyo 2026')).toBeInTheDocument();
+    });
+
+    const buttons = screen.getAllByRole('button');
+    const mapBtn = buttons.find(btn => btn.textContent && /^map$/i.test(btn.textContent.trim()));
+    expect(mapBtn).toBeUndefined();
+  });
+
+  // FE-PAGE-PUBLICJOURNEY-020 — bug #826
+  it('FE-PAGE-PUBLICJOURNEY-020: mobile public share opens entry details on card click', async () => {
+    const user = userEvent.setup();
+    mockIsMobile.value = true;
+    setupSuccess();
+    render(<JourneyPublicPage />);
+    await waitFor(() => {
+      expect(screen.getByText('Tokyo 2026')).toBeInTheDocument();
+    });
+
+    // The MobileMapTimeline mock fires onEntryClick when "Open Entry" is clicked
+    const openBtn = screen.getByText('Open Entry');
+    await user.click(openBtn);
+
+    // MobileEntryView should slide in with the entry title
+    await waitFor(() => {
+      expect(screen.getByText('Shibuya Crossing')).toBeInTheDocument();
+    });
   });
 
   // FE-PAGE-PUBLICJOURNEY-016

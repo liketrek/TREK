@@ -4,6 +4,8 @@
  * discover caching, and the ReDoS-sensitive issuer trailing-slash regex.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
+import { generateKeyPairSync } from 'crypto';
+import jwtLib from 'jsonwebtoken';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
 
@@ -50,6 +52,7 @@ import {
   frontendUrl,
   findOrCreateUser,
   discover,
+  verifyIdToken,
 } from '../../../src/services/oidcService';
 
 const MOCK_CONFIG = {
@@ -215,6 +218,59 @@ describe('discover', () => {
   it('OIDC-SVC-018: throws when provider returns non-ok response', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
     await expect(discover('https://bad-issuer.example.com')).rejects.toThrow();
+  });
+
+  it('OIDC-SVC-037: accepts mismatched doc issuer when discoveryUrl is explicit', async () => {
+    const doc = {
+      issuer: 'https://auth.example.com/application/o/myapp/',
+      authorization_endpoint: 'https://auth.example.com/application/o/myapp/authorize/',
+      token_endpoint: 'https://auth.example.com/application/o/token/',
+      userinfo_endpoint: 'https://auth.example.com/application/o/userinfo/',
+    };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => doc }));
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const result = await discover(
+      'https://auth.example.com',
+      'https://auth.example.com/application/o/myapp/.well-known/openid-configuration',
+    );
+
+    expect(result.issuer).toBe(doc.issuer);
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('differs from configured OIDC_ISSUER'));
+    warnSpy.mockRestore();
+  });
+
+  it('OIDC-SVC-038: throws on mismatched doc issuer when discoveryUrl is omitted', async () => {
+    const doc = {
+      issuer: 'https://evil.example.com',
+      authorization_endpoint: 'https://unique-2.example.com/auth',
+      token_endpoint: 'https://unique-2.example.com/token',
+      userinfo_endpoint: 'https://unique-2.example.com/userinfo',
+    };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => doc }));
+
+    await expect(discover('https://unique-2.example.com')).rejects.toThrow(
+      'OIDC discovery issuer mismatch',
+    );
+  });
+
+  it('OIDC-SVC-039: trailing-slash-only mismatch with explicit discoveryUrl does not warn', async () => {
+    const doc = {
+      issuer: 'https://auth.example.com/',
+      authorization_endpoint: 'https://auth.example.com/auth',
+      token_endpoint: 'https://auth.example.com/token',
+      userinfo_endpoint: 'https://auth.example.com/userinfo',
+    };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => doc }));
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await discover(
+      'https://auth.example.com',
+      'https://auth.example.com/.well-known/openid-configuration',
+    );
+
+    expect(warnSpy).not.toHaveBeenCalled();
+    warnSpy.mockRestore();
   });
 });
 
@@ -458,5 +514,68 @@ describe('getUserInfo', () => {
 
     const fetchCall = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(fetchCall[1].headers.Authorization).toBe('Bearer access-token-123');
+  });
+});
+
+// ── verifyIdToken ─────────────────────────────────────────────────────────────
+
+describe('verifyIdToken', () => {
+  const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+  const jwk = publicKey.export({ format: 'jwk' }) as Record<string, unknown>;
+  const ISSUER = 'https://auth.example.com/application/o/trek';
+  const CLIENT_ID = 'trek-client';
+  const JWKS_URI = 'https://auth.example.com/.well-known/jwks.json';
+
+  function mockJwks() {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ keys: [jwk] }),
+    }));
+  }
+
+  function makeToken(iss: string, overrides: object = {}) {
+    return jwtLib.sign(
+      { sub: 'user-sub', email: 'user@example.com', ...overrides },
+      privateKey,
+      { algorithm: 'RS256', audience: CLIENT_ID, issuer: iss, expiresIn: '1h' }
+    );
+  }
+
+  const doc = { jwks_uri: JWKS_URI } as any;
+
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it('OIDC-SVC-033: accepts token whose iss matches expectedIssuer exactly', async () => {
+    mockJwks();
+    const token = makeToken(ISSUER);
+    const result = await verifyIdToken(token, doc, CLIENT_ID, ISSUER);
+    expect(result.ok).toBe(true);
+  });
+
+  it('OIDC-SVC-034: accepts token whose iss has a trailing slash (Authentik)', async () => {
+    mockJwks();
+    const token = makeToken(ISSUER + '/');
+    const result = await verifyIdToken(token, doc, CLIENT_ID, ISSUER);
+    expect(result.ok).toBe(true);
+  });
+
+  it('OIDC-SVC-035: rejects token with wrong issuer', async () => {
+    mockJwks();
+    const token = makeToken('https://evil.example.com');
+    const result = await verifyIdToken(token, doc, CLIENT_ID, ISSUER);
+    expect(result.ok).toBe(false);
+    expect((result as any).error).toMatch('jwt issuer invalid');
+  });
+
+  it('OIDC-SVC-036: rejects token with wrong audience', async () => {
+    mockJwks();
+    const token = makeToken(ISSUER, {});
+    const wrongAudToken = jwtLib.sign(
+      { sub: 'user-sub', iss: ISSUER },
+      privateKey,
+      { algorithm: 'RS256', audience: 'wrong-client', expiresIn: '1h' }
+    );
+    const result = await verifyIdToken(wrongAudToken, doc, CLIENT_ID, ISSUER);
+    expect(result.ok).toBe(false);
   });
 });

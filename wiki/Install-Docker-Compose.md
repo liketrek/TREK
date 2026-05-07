@@ -93,7 +93,7 @@ ALLOWED_ORIGINS=https://trek.example.com
 APP_URL=https://trek.example.com
 ```
 
-Uncomment and fill in the OIDC, initial setup, or MCP variables as needed. For a full description of every variable, see [Environment-Variables].
+Uncomment and fill in the OIDC, initial setup, or MCP variables as needed. For a full description of every variable, see [Environment-Variables](Environment-Variables).
 
 ## Start TREK
 
@@ -111,10 +111,10 @@ docker compose logs -f
 
 This compose file is designed for deployments where a reverse proxy (nginx, Caddy, Traefik) terminates TLS in front of TREK. To enable HTTPS redirects and secure cookies, uncomment `FORCE_HTTPS=true` and `TRUST_PROXY=1`.
 
-See [Reverse-Proxy] for complete proxy configuration examples.
+See [Reverse-Proxy](Reverse-Proxy) for complete proxy configuration examples.
 
 ## Next Steps
 
-- [Environment-Variables] — full variable reference
-- [Reverse-Proxy] — HTTPS configuration
-- [Updating] — how to pull a new image
+- [Environment-Variables](Environment-Variables) — full variable reference
+- [Reverse-Proxy](Reverse-Proxy) — HTTPS configuration
+- [Updating](Updating) — how to pull a new image

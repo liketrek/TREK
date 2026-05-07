@@ -25,20 +25,22 @@ const WEATHER_CONFIG: Record<string, { icon: typeof Sun; label: string }> = {
   cold:   { icon: Snowflake,     label: 'Cold' },
 }
 
-function photoUrl(p: JourneyPhoto, size: 'thumbnail' | 'original' = 'original'): string {
+function photoUrl(p: JourneyPhoto, size: 'thumbnail' | 'original' = 'original', builder?: (id: number) => string): string {
+  if (builder) return builder(p.photo_id)
   return `/api/photos/${p.photo_id}/${size}`
 }
 
 interface Props {
   entry: JourneyEntry
   readOnly?: boolean
+  publicPhotoUrl?: (photoId: number) => string
   onClose: () => void
   onEdit: () => void
   onDelete: () => void
   onPhotoClick: (photos: JourneyPhoto[], index: number) => void
 }
 
-export default function MobileEntryView({ entry, readOnly, onClose, onEdit, onDelete, onPhotoClick }: Props) {
+export default function MobileEntryView({ entry, readOnly, publicPhotoUrl, onClose, onEdit, onDelete, onPhotoClick }: Props) {
   const photos = entry.photos || []
   const mood = entry.mood ? MOOD_CONFIG[entry.mood] : null
   const weather = entry.weather ? WEATHER_CONFIG[entry.weather] : null
@@ -85,7 +87,7 @@ export default function MobileEntryView({ entry, readOnly, onClose, onEdit, onDe
         {photos.length > 0 && (
           <div className="relative">
             <img
-              src={photoUrl(photos[0])}
+              src={photoUrl(photos[0], 'original', publicPhotoUrl)}
               alt=""
               className="w-full max-h-[50vh] object-cover cursor-pointer"
               onClick={() => onPhotoClick(photos, 0)}
@@ -102,7 +104,7 @@ export default function MobileEntryView({ entry, readOnly, onClose, onEdit, onDe
                 {photos.map((p, i) => (
                   <img
                     key={p.id || i}
-                    src={photoUrl(p, 'thumbnail')}
+                    src={photoUrl(p, 'thumbnail', publicPhotoUrl)}
                     alt=""
                     className="w-16 h-16 rounded-lg object-cover flex-shrink-0 cursor-pointer hover:ring-2 ring-zinc-900/30 dark:ring-white/30 transition-all"
                     onClick={() => onPhotoClick(photos, i)}

@@ -98,9 +98,9 @@ Four variables control how TREK behaves behind a proxy. They work as a group:
 
 If you access TREK directly on `http://<host>:3000` without a proxy, leave `FORCE_HTTPS` unset and do not set `TRUST_PROXY`.
 
-See [Environment-Variables] for full documentation of these and all other variables.
+See [Environment-Variables](Environment-Variables) for full documentation of these and all other variables.
 
 ## Next Steps
 
-- [Environment-Variables] — full variable reference including OIDC
-- [Install-Docker-Compose] — production compose file with proxy-ready env vars
+- [Environment-Variables](Environment-Variables) — full variable reference including OIDC
+- [Install-Docker-Compose](Install-Docker-Compose) — production compose file with proxy-ready env vars

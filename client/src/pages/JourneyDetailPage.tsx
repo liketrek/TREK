@@ -27,7 +27,7 @@ import {
 import MobileMapTimeline from '../components/Journey/MobileMapTimeline'
 import MobileEntryView from '../components/Journey/MobileEntryView'
 import { useIsMobile } from '../hooks/useIsMobile'
-import type { JourneyEntry, JourneyPhoto, JourneyDetail } from '../store/journeyStore'
+import type { JourneyEntry, JourneyPhoto, GalleryPhoto, JourneyTrip, JourneyDetail } from '../store/journeyStore'
 import { computeJourneyLifecycle } from '../utils/journeyLifecycle'
 
 const GRADIENTS = [
@@ -80,7 +80,7 @@ function formatDate(d: string, locale?: string): { weekday: string; month: strin
   }
 }
 
-function photoUrl(p: JourneyPhoto, size: 'thumbnail' | 'original' = 'thumbnail'): string {
+function photoUrl(p: { photo_id: number }, size: 'thumbnail' | 'original' = 'thumbnail'): string {
   return `/api/photos/${p.photo_id}/${size}`
 }
 
@@ -341,7 +341,7 @@ export default function JourneyDetailPage() {
     )
   }
 
-  const timelineEntries = current.entries.filter(e => e.title !== 'Gallery' && e.title !== '[Trip Photos]' && (!hideSkeletons || e.type !== 'skeleton'))
+  const timelineEntries = current.entries.filter(e => (!hideSkeletons || e.type !== 'skeleton'))
   const dayGroups = groupByDate(timelineEntries)
   const sortedDates = [...dayGroups.keys()].sort()
 
@@ -458,7 +458,7 @@ export default function JourneyDetailPage() {
             className={
               isMobile
                 ? ''
-                : 'flex-1 overflow-y-auto journey-feed-scroll'
+                : 'flex-1 xl:max-w-[50%] overflow-y-auto journey-feed-scroll'
             }
           >
             <div className={isMobile ? '' : 'w-full px-8 py-6'}>
@@ -693,10 +693,11 @@ export default function JourneyDetailPage() {
               >
                 <GalleryView
                   entries={current.entries}
+                  gallery={current.gallery || []}
                   journeyId={current.id}
                   userId={useAuthStore.getState().user?.id || 0}
                   trips={current.trips}
-                  onPhotoClick={(photos, idx) => setLightbox({ photos: photos.map(p => ({ id: p.id, src: photoUrl(p, 'original'), caption: p.caption, provider: p.provider, asset_id: p.asset_id, owner_id: p.owner_id })), index: idx })}
+                  onPhotoClick={(photos, idx) => setLightbox({ photos: photos.map(p => ({ id: p.id, src: photoUrl(p, 'original'), caption: p.caption ?? null, provider: p.provider, asset_id: p.asset_id, owner_id: p.owner_id })), index: idx })}
                   onRefresh={() => loadJourney(Number(id))}
                 />
               </div>
@@ -733,7 +734,7 @@ export default function JourneyDetailPage() {
           entry={editingEntry}
           journeyId={current.id}
           tripDates={tripDates}
-          galleryPhotos={current.entries.flatMap(e => e.photos || [])}
+          galleryPhotos={current.gallery || []}
           onClose={() => setEditingEntry(null)}
           onSave={async (data) => {
             let entryId = editingEntry.id
@@ -971,12 +972,13 @@ function MapView({ entries, mapEntries, sortedDates, activeLocationId, fullMapRe
 
 // ── Gallery View ──────────────────────────────────────────────────────────
 
-function GalleryView({ entries, journeyId, userId, trips, onPhotoClick, onRefresh }: {
+function GalleryView({ entries, gallery, journeyId, userId, trips, onPhotoClick, onRefresh }: {
   entries: JourneyEntry[]
+  gallery: GalleryPhoto[]
   journeyId: number
   userId: number
   trips: JourneyTrip[]
-  onPhotoClick: (photos: JourneyPhoto[], index: number) => void
+  onPhotoClick: (photos: GalleryPhoto[], index: number) => void
   onRefresh: () => void
 }) {
   const { t } = useTranslation()
@@ -1009,19 +1011,7 @@ function GalleryView({ entries, journeyId, userId, trips, onPhotoClick, onRefres
     })()
   }, [])
 
-  const allPhotos: { photo: JourneyPhoto; entry: JourneyEntry }[] = []
-  const seenPhotoIds = new Map<number, number>() // photo_id → index in allPhotos
-  for (const e of entries) {
-    for (const p of e.photos) {
-      const existing = seenPhotoIds.get(p.photo_id)
-      if (existing === undefined) {
-        seenPhotoIds.set(p.photo_id, allPhotos.length)
-        allPhotos.push({ photo: p, entry: e })
-      } else if (e.title === 'Gallery' && allPhotos[existing].entry.title !== 'Gallery') {
-        allPhotos[existing] = { photo: p, entry: e }
-      }
-    }
-  }
+  const allPhotos = gallery
 
   const entriesWithContent = entries.filter(e => e.type !== 'skeleton' || e.title)
 
@@ -1037,22 +1027,9 @@ function GalleryView({ entries, journeyId, userId, trips, onPhotoClick, onRefres
     if (!files?.length) return
     setGalleryUploading(true)
     try {
-      // find existing "Gallery" entry or create one. The stored title is the
-      // literal 'Gallery' (server-side checks look for this exact string) —
-      // do not send a translated label here.
-      let galleryEntry = entries.find(e => e.title === 'Gallery' && e.type === 'entry')
-      let entryId = galleryEntry?.id
-      if (!entryId) {
-        const entry = await journeyApi.createEntry(journeyId, {
-          title: 'Gallery',
-          entry_date: new Date().toISOString().split('T')[0],
-          type: 'entry',
-        })
-        entryId = entry.id
-      }
       const formData = new FormData()
       for (const f of files) formData.append('photos', f)
-      await journeyApi.uploadPhotos(entryId, formData)
+      await journeyApi.uploadGalleryPhotos(journeyId, formData)
       toast.success(t('journey.photosUploaded', { count: files.length }))
       onRefresh()
     } catch {
@@ -1063,25 +1040,24 @@ function GalleryView({ entries, journeyId, userId, trips, onPhotoClick, onRefres
     e.target.value = ''
   }
 
-  const handleDeletePhoto = async (photoId: number) => {
+  const handleDeletePhoto = async (galleryPhotoId: number) => {
     const store = useJourneyStore.getState()
     if (!store.current) return
-    const target = store.current.entries.flatMap(e => e.photos).find(p => p.id === photoId)
-    if (!target) return
-    const siblingIds = store.current.entries.flatMap(e => e.photos).filter(p => p.photo_id === target.photo_id).map(p => p.id)
 
-    // Optimistic update — remove every row with this photo_id
-    const updated = {
-      ...store.current,
-      entries: store.current.entries.map(e => ({
-        ...e,
-        photos: e.photos.filter(p => p.photo_id !== target.photo_id),
-      })).filter(e => e.type !== 'entry' || e.title !== 'Gallery' || e.photos.length > 0 || e.story),
-    }
-    useJourneyStore.setState({ current: updated })
+    // Optimistic update — remove from gallery and all entry photo lists
+    useJourneyStore.setState({
+      current: {
+        ...store.current,
+        gallery: (store.current.gallery || []).filter(p => p.id !== galleryPhotoId),
+        entries: store.current.entries.map(e => ({
+          ...e,
+          photos: e.photos.filter(p => p.id !== galleryPhotoId),
+        })),
+      },
+    })
 
     try {
-      await Promise.all(siblingIds.map(id => journeyApi.deletePhoto(id)))
+      await journeyApi.deleteGalleryPhoto(journeyId, galleryPhotoId)
     } catch {
       toast.error(t('common.error'))
       onRefresh()
@@ -1132,11 +1108,11 @@ function GalleryView({ entries, journeyId, userId, trips, onPhotoClick, onRefres
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5 pb-24 md:pb-6">
-          {allPhotos.map(({ photo, entry }, i) => (
+          {allPhotos.map((photo, i) => (
             <div
               key={photo.id}
               className="relative aspect-square rounded-lg overflow-hidden cursor-pointer group"
-              onClick={() => onPhotoClick(allPhotos.map(a => a.photo), i)}
+              onClick={() => onPhotoClick(allPhotos, i)}
             >
               <img
                 src={photoUrl(photo, 'thumbnail')}
@@ -1165,11 +1141,6 @@ function GalleryView({ entries, journeyId, userId, trips, onPhotoClick, onRefres
                   <p className="text-[10px] text-white truncate">{photo.caption}</p>
                 </div>
               )}
-              <div className="absolute bottom-1.5 left-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-black/50 backdrop-blur text-white">
-                  {new Date(entry.entry_date + 'T12:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
-                </span>
-              </div>
             </div>
           ))}
         </div>
@@ -1182,25 +1153,19 @@ function GalleryView({ entries, journeyId, userId, trips, onPhotoClick, onRefres
           userId={userId}
           entries={entriesWithContent}
           trips={trips}
-          existingAssetIds={new Set(entries.flatMap(e => (e.photos || []).filter(p => p.asset_id).map(p => p.asset_id!)))}
+          existingAssetIds={new Set(gallery.filter(p => p.asset_id).map(p => p.asset_id!))}
           onClose={() => setShowPicker(false)}
           onAdd={async (groups, entryId) => {
-            let targetId = entryId
-            if (!targetId) {
-              try {
-                const entry = await journeyApi.createEntry(journeyId, {
-                  title: 'Gallery',
-                  entry_date: new Date().toISOString().split('T')[0],
-                  type: 'entry',
-                })
-                targetId = entry.id
-              } catch { return }
-            }
             let added = 0
             for (const group of groups) {
               try {
-                const result = await journeyApi.addProviderPhotos(targetId, pickerProvider!, group.assetIds, undefined, group.passphrase)
-                added += result.added || 0
+                if (entryId) {
+                  const result = await journeyApi.addProviderPhotos(entryId, pickerProvider!, group.assetIds, undefined, group.passphrase)
+                  added += result.added || 0
+                } else {
+                  const result = await journeyApi.addProviderPhotosToGallery(journeyId, pickerProvider!, group.assetIds, group.passphrase)
+                  added += result.added || 0
+                }
               } catch {}
             }
             if (added > 0) {
@@ -2201,7 +2166,7 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
   entry: JourneyEntry
   journeyId: number
   tripDates: Set<string>
-  galleryPhotos: JourneyPhoto[]
+  galleryPhotos: GalleryPhoto[]
   onClose: () => void
   onSave: (data: Record<string, unknown>) => Promise<number>
   onUploadPhotos: (entryId: number, formData: FormData) => Promise<JourneyPhoto[]>
@@ -2227,7 +2192,7 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
   const [cons, setCons] = useState<string[]>(entry.pros_cons?.cons?.length ? entry.pros_cons.cons : [''])
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [photos, setPhotos] = useState<JourneyPhoto[]>(entry.photos || [])
+  const [photos, setPhotos] = useState<(JourneyPhoto | GalleryPhoto)[]>(entry.photos || [])
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [pendingLinkIds, setPendingLinkIds] = useState<number[]>([])
   const [showGalleryPick, setShowGalleryPick] = useState(false)
@@ -2254,8 +2219,7 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
     pendingLinkIds.length > 0
   )
 
-  const uniqueGalleryPhotos = Array.from(new Map(galleryPhotos.map(gp => [gp.photo_id, gp])).values())
-  const availableGalleryPhotos = uniqueGalleryPhotos.filter(gp => !photos.some(p => p.photo_id === gp.photo_id))
+  const availableGalleryPhotos = galleryPhotos.filter(gp => !photos.some(p => p.id === gp.id))
 
   const handleClose = () => {
     if (isDirty && !window.confirm(t('journey.editor.discardChangesConfirm'))) return
@@ -2421,8 +2385,13 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
                       <button
                         onClick={async (e) => {
                           e.stopPropagation()
-                          await journeyApi.deletePhoto(p.id)
                           setPhotos(prev => prev.filter(x => x.id !== p.id))
+                          if (entry.id > 0) {
+                            // unlink from entry; gallery row is preserved
+                            try { await journeyApi.unlinkPhoto(entry.id, p.id) } catch {}
+                          } else {
+                            setPendingLinkIds(prev => prev.filter(id => id !== p.id))
+                          }
                         }}
                         className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                       >

@@ -66,11 +66,10 @@ export function validateShareTokenForPhoto(token: string, photoId: number): { jo
   const row = db.prepare('SELECT journey_id FROM journey_share_tokens WHERE token = ?').get(token) as any;
   if (!row) return null;
   const photo = db.prepare(`
-    SELECT jp.photo_id, tkp.owner_id, je.journey_id
-    FROM journey_photos jp
-    JOIN trek_photos tkp ON tkp.id = jp.photo_id
-    JOIN journey_entries je ON jp.entry_id = je.id
-    WHERE jp.photo_id = ? AND je.journey_id = ?
+    SELECT gp.photo_id, tkp.owner_id, gp.journey_id
+    FROM journey_photos gp
+    JOIN trek_photos tkp ON tkp.id = gp.photo_id
+    WHERE gp.photo_id = ? AND gp.journey_id = ?
   `).get(photoId, row.journey_id) as any;
   if (!photo) return null;
   const journey = db.prepare('SELECT user_id FROM journeys WHERE id = ?').get(row.journey_id) as any;
@@ -81,10 +80,9 @@ export function validateShareTokenForAsset(token: string, assetId: string): { ow
   const row = db.prepare('SELECT journey_id FROM journey_share_tokens WHERE token = ?').get(token) as any;
   if (!row) return null;
   const photo = db.prepare(`
-    SELECT tkp.owner_id FROM journey_photos jp
-    JOIN trek_photos tkp ON tkp.id = jp.photo_id
-    JOIN journey_entries je ON jp.entry_id = je.id
-    WHERE tkp.asset_id = ? AND je.journey_id = ?
+    SELECT tkp.owner_id FROM journey_photos gp
+    JOIN trek_photos tkp ON tkp.id = gp.photo_id
+    WHERE tkp.asset_id = ? AND gp.journey_id = ?
   `).get(assetId, row.journey_id) as any;
   if (!photo) {
     const journey = db.prepare('SELECT user_id FROM journeys WHERE id = ?').get(row.journey_id) as any;
@@ -108,13 +106,13 @@ export function getPublicJourney(token: string) {
   `).all(row.journey_id) as any[];
 
   const photos = db.prepare(`
-    SELECT jp.id, jp.entry_id, jp.photo_id, jp.caption, jp.sort_order, jp.shared, jp.created_at,
+    SELECT gp.id, jep.entry_id, gp.photo_id, gp.caption, jep.sort_order, gp.shared, gp.created_at,
            tkp.provider, tkp.asset_id, tkp.owner_id, tkp.file_path, tkp.thumbnail_path, tkp.width, tkp.height
-    FROM journey_photos jp
-    JOIN trek_photos tkp ON tkp.id = jp.photo_id
-    JOIN journey_entries je ON jp.entry_id = je.id
-    WHERE je.journey_id = ?
-    ORDER BY jp.sort_order
+    FROM journey_entry_photos jep
+    JOIN journey_photos gp ON gp.id = jep.journey_photo_id
+    JOIN trek_photos tkp ON tkp.id = gp.photo_id
+    WHERE gp.journey_id = ?
+    ORDER BY jep.sort_order
   `).all(row.journey_id) as any[];
 
   const photosByEntry: Record<number, any[]> = {};
@@ -122,12 +120,16 @@ export function getPublicJourney(token: string) {
     (photosByEntry[p.entry_id] ||= []).push(p);
   }
 
+  const gallery = db.prepare(`
+    SELECT gp.id, gp.journey_id, gp.photo_id, gp.caption, gp.shared, gp.sort_order, gp.created_at,
+           tkp.provider, tkp.asset_id, tkp.owner_id, tkp.file_path, tkp.thumbnail_path, tkp.width, tkp.height
+    FROM journey_photos gp
+    JOIN trek_photos tkp ON tkp.id = gp.photo_id
+    WHERE gp.journey_id = ?
+    ORDER BY gp.sort_order
+  `).all(row.journey_id) as any[];
+
   const enrichedEntries = entries
-    .filter(e => {
-      // hide empty Gallery entries (no photos, no story)
-      if (e.title === 'Gallery' && !e.story && !(photosByEntry[e.id]?.length)) return false;
-      return true;
-    })
     .map(e => ({
       ...e,
       tags: e.tags ? JSON.parse(e.tags) : [],
@@ -138,7 +140,7 @@ export function getPublicJourney(token: string) {
   // Stats
   const stats = {
     entries: entries.length,
-    photos: photos.length,
+    photos: gallery.length,
     places: new Set(entries.filter(e => e.location_name).map(e => e.location_name)).size,
   };
 
@@ -150,6 +152,7 @@ export function getPublicJourney(token: string) {
       status: journey.status,
     },
     entries: enrichedEntries,
+    gallery,
     stats,
     permissions: {
       share_timeline: !!row.share_timeline,

@@ -127,19 +127,23 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 
 #### 🧩 Addons (admin-toggleable)
 
+- **Lists** — packing lists + to-dos with templates, member assignments, optional bag tracking
+- **Budget** — expense tracker with splits, pie chart, multi-currency
+- **Documents** — file attachments on trips, places, and reservations
+- **Collab** — chat, notes, polls, day-by-day attendance
 - **Vacay** — personal vacation planner with calendar, 100+ country holidays, carry-over tracking
 - **Atlas** — world map of visited countries, bucket list, travel stats, streak tracking, liquid-glass UI
-- **Collab** — chat, notes, polls, day-by-day attendance
-- **Journey** — magazine-style travel journal with entries, photos, maps, moods
-- **Dashboard widgets** — currency converter and timezone clocks
+- **Journey** — magazine-style travel journal with entries, photos (Immich/Synology), maps, moods
+- **Naver List Import** — one-click import from shared Naver Maps lists
+- **MCP** — expose TREK to AI assistants via OAuth 2.1
 
 </td>
 <td width="50%" valign="top">
 
 #### 🤖 AI / MCP
 
-- **Built-in MCP server** — OAuth 2.1 authenticated. 80+ tools, 27 resources
-- **Granular scopes** — 24 OAuth scopes across 13 permission groups
+- **Built-in MCP server** — OAuth 2.1 authenticated. 150+ tools, 30 resources
+- **Granular scopes** — 27 OAuth scopes across 13 permission groups
 - **Full automation** — AI can create trips, plan days, build packing lists, manage budgets, mark countries visited
 - **Pre-built prompts** — `trip-summary`, `packing-list`, `budget-overview`
 - **Addon-aware** — exposes Atlas, Collab, Vacay when those addons are on
@@ -152,7 +156,7 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 #### ⚙️ Admin & customisation
 
 - **Dashboard views** — card grid or compact list · **Dark mode** — full theme with matching status bar
-- **14 languages** — EN, DE, ES, FR, IT, NL, HU, RU, ZH, ZH-TW, PL, CS, AR (RTL), BR, ID
+- **15 languages** — EN, DE, ES, FR, IT, NL, HU, RU, ZH, ZH-TW, PL, CS, AR (RTL), BR, ID
 - **Admin panel** — users, invites, packing templates, categories, addons, API keys, backups, GitHub history
 - **Auto-backups** — scheduled with configurable retention · **Units** — °C/°F, 12h/24h, map tile sources, default coordinates
 
@@ -172,7 +176,7 @@ ENCRYPTION_KEY=$(openssl rand -hex 32) docker run -d -p 3000:3000 \
   -v ./data:/app/data -v ./uploads:/app/uploads mauriceboe/trek
 ```
 
-Open `http://localhost:3000`. The first user to register becomes admin.
+Open `http://localhost:3000`. On first boot TREK seeds an admin account — if you set `ADMIN_EMAIL`/`ADMIN_PASSWORD` those are used, otherwise the credentials are printed to the container log (`docker logs trek`).
 
 <div align="center">
 
@@ -338,7 +342,8 @@ server {
     ssl_certificate     /etc/ssl/fullchain.pem;
     ssl_certificate_key /etc/ssl/privkey.pem;
 
-    client_max_body_size 50m;
+    # 500 MB covers backup-restore uploads (capped at 500 MB server-side).
+    client_max_body_size 500m;
 
     location / {
         proxy_pass http://localhost:3000;
@@ -355,6 +360,7 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
         proxy_set_header Host $host;
+        proxy_read_timeout 86400;
     }
 }
 ```
@@ -394,6 +400,7 @@ Caddy handles TLS and WebSockets automatically.
 | `DEFAULT_LANGUAGE` | Default language on the login page for users with no saved preference. Browser/OS language is auto-detected first; this is the fallback. Supported: `de`, `en`, `es`, `fr`, `hu`, `nl`, `br`, `cs`, `pl`, `ru`, `zh`, `zh-TW`, `it`, `ar` | `en` |
 | `ALLOWED_ORIGINS` | Comma-separated origins for CORS and email links | same-origin |
 | `FORCE_HTTPS` | Optional. When `true`: 301-redirects HTTP to HTTPS, sends HSTS, adds CSP `upgrade-insecure-requests`, forces the session cookie `secure` flag. Useful behind a TLS-terminating reverse proxy. Requires `TRUST_PROXY`. | `false` |
+| `HSTS_INCLUDE_SUBDOMAINS` | When `true`: adds the `includeSubDomains` directive to the HSTS header, extending HTTPS enforcement to all subdomains. Only effective when HSTS is active (`FORCE_HTTPS=true` or `NODE_ENV=production`). Leave `false` if you run other services on sibling subdomains over plain HTTP. | `false` |
 | `COOKIE_SECURE` | Controls the `secure` flag on the `trek_session` cookie. Auto-derived: on when `NODE_ENV=production` or `FORCE_HTTPS=true`. Escape hatch: set `false` to allow session cookies over plain HTTP. Not recommended in production. | auto |
 | `TRUST_PROXY` | Number of trusted reverse proxies. Tells Express to read client IP from `X-Forwarded-For` and protocol from `X-Forwarded-Proto`. Defaults to `1` in production; off in dev unless set. | `1` |
 | `ALLOW_INTERNAL_NETWORK` | Allow outbound requests to private/RFC-1918 IPs (e.g. Immich on your LAN). Loopback and link-local addresses remain blocked. | `false` |

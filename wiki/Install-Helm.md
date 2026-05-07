@@ -191,5 +191,5 @@ See the [`charts/README.md`](https://github.com/mauriceboe/TREK/blob/main/charts
 
 ## Next Steps
 
-- [Environment-Variables] — full variable reference
-- [Reverse-Proxy] — proxy configuration for non-Kubernetes deployments
+- [Environment-Variables](Environment-Variables) — full variable reference
+- [Reverse-Proxy](Reverse-Proxy) — proxy configuration for non-Kubernetes deployments

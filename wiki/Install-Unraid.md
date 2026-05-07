@@ -69,5 +69,5 @@ On first boot, TREK automatically creates an admin account. The credentials are 
 
 ## Next Steps
 
-- [Environment-Variables] — complete variable reference
-- [Updating] — how to pull a new image on Unraid
+- [Environment-Variables](Environment-Variables) — complete variable reference
+- [Updating](Updating) — how to pull a new image on Unraid

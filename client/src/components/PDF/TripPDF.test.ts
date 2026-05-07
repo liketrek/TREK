@@ -78,6 +78,7 @@ const transportReservation = {
   id: 400,
   title: 'Flight to Rome',
   type: 'flight',
+  day_id: 10,
   reservation_time: '2025-06-01T14:30:00',
   confirmation_number: 'ABC123',
   metadata: JSON.stringify({ airline: 'Air Italia', flight_number: 'AI123', departure_airport: 'CDG', arrival_airport: 'FCO' }),

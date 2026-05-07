@@ -59,7 +59,7 @@ If a toggle fails (e.g., network error), it rolls back to its previous state.
 
 Some addons require credentials or environment variables before they are functional:
 
-- **Journey** — requires photo provider credentials (Immich or Synology Photos) configured per-user in their personal Settings. See [Photo-Providers](Photo-Providers).
+- **Journey** — works without any external integration. To embed photos from Immich or Synology Photos, enable the corresponding photo-provider toggle listed under Journey, then configure credentials per-user in **Settings → Integrations**. See [Photo-Providers](Photo-Providers).
 - **MCP** — requires `APP_URL` to be set so OAuth redirect URIs resolve correctly.
 
 ## Related pages

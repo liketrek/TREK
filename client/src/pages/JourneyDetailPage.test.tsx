@@ -177,6 +177,24 @@ const mockJourneyDetail = {
     },
   ],
   stats: { entries: 2, photos: 1, places: 2 },
+  gallery: [
+    {
+      id: 100,
+      journey_id: 1,
+      photo_id: 100,
+      provider: 'local',
+      file_path: 'photos/test.jpg',
+      asset_id: null,
+      owner_id: null,
+      thumbnail_path: null,
+      caption: 'Colosseum',
+      sort_order: 0,
+      width: 800,
+      height: 600,
+      shared: 1,
+      created_at: now,
+    },
+  ],
 };
 
 // ── MSW Handlers ─────────────────────────────────────────────────────────────
@@ -1724,13 +1742,14 @@ describe('JourneyDetailPage', () => {
     it('renders the empty gallery state when journey has no photos', async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-      // Override with entries that have no photos
+      // Override with entries that have no photos and empty gallery
       const emptyEntry = {
         ...mockJourneyDetail.entries[0],
         photos: [],
       };
       setupDefaultHandlers({
         entries: [emptyEntry],
+        gallery: [],
         stats: { entries: 1, photos: 0, places: 1 },
       });
 
@@ -1981,10 +2000,9 @@ describe('JourneyDetailPage', () => {
         expect(screen.getByText(/1 photos/i)).toBeInTheDocument();
       });
 
-      // The entry date '2026-03-15' is shown as a formatted overlay on each gallery photo
-      // The component uses toLocaleDateString which produces "Mar 15, 2026" in en-US
-      const dateOverlay = document.querySelector('[class*="opacity-0"]');
-      expect(dateOverlay).toBeTruthy();
+      // Gallery photos render in a grid; each photo has a group container
+      const photos = document.querySelectorAll('[class*="aspect-square"]');
+      expect(photos.length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -2022,6 +2040,11 @@ describe('JourneyDetailPage', () => {
       setupDefaultHandlers({
         entries: [immichEntry, mockJourneyDetail.entries[1]],
         stats: { entries: 2, photos: 1, places: 2 },
+        gallery: [{
+          id: 200, journey_id: 1, photo_id: 200, provider: 'immich', file_path: null,
+          asset_id: 'asset-123', owner_id: 1, thumbnail_path: null,
+          caption: null, sort_order: 0, width: 800, height: 600, shared: 1, created_at: now,
+        }],
       });
 
       render(<JourneyDetailPage />);
@@ -2056,6 +2079,11 @@ describe('JourneyDetailPage', () => {
       setupDefaultHandlers({
         entries: [synologyEntry, mockJourneyDetail.entries[1]],
         stats: { entries: 2, photos: 1, places: 2 },
+        gallery: [{
+          id: 201, journey_id: 1, photo_id: 201, provider: 'synology', file_path: null,
+          asset_id: 'syn-456', owner_id: 1, thumbnail_path: null,
+          caption: null, sort_order: 0, width: 800, height: 600, shared: 1, created_at: now,
+        }],
       });
 
       render(<JourneyDetailPage />);
@@ -3265,25 +3293,14 @@ describe('JourneyDetailPage', () => {
 
   // ── FE-PAGE-JOURNEYDETAIL-141 ──────────────────────────────────────────
   describe('FE-PAGE-JOURNEYDETAIL-141: Gallery upload triggers file input and calls API', () => {
-    it('uploading files in gallery creates an entry and uploads photos', async () => {
+    it('uploading files in gallery calls gallery upload API', async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-      let createCalled = false;
       let uploadCalled = false;
 
       server.use(
-        http.post('/api/journeys/1/entries', () => {
-          createCalled = true;
-          return HttpResponse.json({
-            id: 99, journey_id: 1, author_id: 1, type: 'entry',
-            entry_date: '2026-04-11', title: 'Gallery', story: null, location_name: null,
-            location_lat: null, location_lng: null, mood: null, weather: null,
-            tags: [], pros_cons: null, visibility: 'private', sort_order: 0,
-            entry_time: null, photos: [], created_at: now, updated_at: now,
-          });
-        }),
-        http.post('/api/journeys/entries/99/photos', () => {
+        http.post('/api/journeys/1/gallery/photos', () => {
           uploadCalled = true;
-          return HttpResponse.json([]);
+          return HttpResponse.json({ photos: [] });
         }),
       );
 
@@ -3305,9 +3322,6 @@ describe('JourneyDetailPage', () => {
       await user.upload(fileInput, testFile);
 
       await waitFor(() => {
-        expect(createCalled).toBe(true);
-      });
-      await waitFor(() => {
         expect(uploadCalled).toBe(true);
       });
     });
@@ -3320,9 +3334,9 @@ describe('JourneyDetailPage', () => {
       let deleteCalled = false;
 
       server.use(
-        http.delete('/api/journeys/photos/100', () => {
+        http.delete('/api/journeys/1/gallery/100', () => {
           deleteCalled = true;
-          return HttpResponse.json({ success: true });
+          return new HttpResponse(null, { status: 204 });
         }),
       );
 

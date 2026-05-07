@@ -7,12 +7,22 @@ function ts(): number {
   return Date.now();
 }
 
-// Joined SELECT for journey_photos + trek_photos — returns fields matching JourneyPhoto interface
+// Per-entry photo view: join journey_entry_photos → journey_photos (gallery) → trek_photos.
+// id = gp.id (gallery photo id) — used by clients for linkPhoto/updatePhoto/unlink/delete.
 const JP_SELECT = `
-  jp.id, jp.entry_id, jp.photo_id, jp.caption, jp.sort_order, jp.shared, jp.created_at,
-  tkp.provider, tkp.asset_id, tkp.owner_id, tkp.file_path, tkp.thumbnail_path, tkp.width, tkp.height
+  gp.id, jep.entry_id, gp.photo_id, gp.caption, jep.sort_order, gp.shared, gp.created_at,
+  tp.provider, tp.asset_id, tp.owner_id, tp.file_path, tp.thumbnail_path, tp.width, tp.height
 `;
-const JP_JOIN = 'journey_photos jp JOIN trek_photos tkp ON tkp.id = jp.photo_id';
+const JP_JOIN = `journey_entry_photos jep
+  JOIN journey_photos gp ON gp.id  = jep.journey_photo_id
+  JOIN trek_photos    tp ON tp.id  = gp.photo_id`;
+
+// Per-journey gallery view: journey_photos → trek_photos (no entry context).
+const GALLERY_SELECT = `
+  gp.id, gp.journey_id, gp.photo_id, gp.caption, gp.shared, gp.sort_order, gp.created_at,
+  tp.provider, tp.asset_id, tp.owner_id, tp.file_path, tp.thumbnail_path, tp.width, tp.height
+`;
+const GALLERY_JOIN = 'journey_photos gp JOIN trek_photos tp ON tp.id = gp.photo_id';
 
 function broadcastJourneyEvent(journeyId: number, event: string, data: Record<string, unknown>, excludeSocketId?: string | number) {
   const contributors = db.prepare(
@@ -58,7 +68,7 @@ export function listJourneys(userId: number) {
   return db.prepare(`
     SELECT DISTINCT j.*,
       (SELECT COUNT(*) FROM journey_entries je WHERE je.journey_id = j.id AND je.type != 'skeleton') as entry_count,
-      (SELECT COUNT(DISTINCT jp.photo_id) FROM journey_photos jp JOIN journey_entries je2 ON jp.entry_id = je2.id WHERE je2.journey_id = j.id) as photo_count,
+      (SELECT COUNT(*) FROM journey_photos jp WHERE jp.journey_id = j.id) as photo_count,
       (SELECT COUNT(DISTINCT je3.location_name) FROM journey_entries je3 WHERE je3.journey_id = j.id AND je3.location_name IS NOT NULL AND je3.location_name != '') as place_count,
       (SELECT MIN(t.start_date) FROM journey_trips jt JOIN trips t ON jt.trip_id = t.id WHERE jt.journey_id = j.id) as trip_date_min,
       (SELECT MAX(t.end_date) FROM journey_trips jt JOIN trips t ON jt.trip_id = t.id WHERE jt.journey_id = j.id) as trip_date_max
@@ -110,11 +120,11 @@ export function getJourneyFull(journeyId: number, userId: number) {
   if (!journey) return null;
 
   const entries = db.prepare(
-    'SELECT * FROM journey_entries WHERE journey_id = ? ORDER BY entry_date ASC, entry_time ASC, sort_order ASC'
+    'SELECT * FROM journey_entries WHERE journey_id = ? ORDER BY entry_date ASC, sort_order ASC, id ASC'
   ).all(journeyId) as JourneyEntry[];
 
   const photos = db.prepare(
-    `SELECT ${JP_SELECT} FROM ${JP_JOIN} WHERE jp.entry_id IN (SELECT id FROM journey_entries WHERE journey_id = ?) ORDER BY jp.sort_order ASC`
+    `SELECT ${JP_SELECT} FROM ${JP_JOIN} WHERE jep.entry_id IN (SELECT id FROM journey_entries WHERE journey_id = ?) ORDER BY jep.sort_order ASC`
   ).all(journeyId) as JourneyPhoto[];
 
   // group photos by entry
@@ -123,12 +133,11 @@ export function getJourneyFull(journeyId: number, userId: number) {
     (photosByEntry[p.entry_id] ||= []).push(p);
   }
 
+  const gallery = db.prepare(
+    `SELECT ${GALLERY_SELECT} FROM ${GALLERY_JOIN} WHERE gp.journey_id = ? ORDER BY gp.sort_order ASC, gp.id ASC`
+  ).all(journeyId);
+
   const enrichedEntries = entries
-    .filter(e => {
-      // hide empty Gallery entries (no photos, no story)
-      if (e.title === 'Gallery' && !e.story && !(photosByEntry[e.id]?.length)) return false;
-      return true;
-    })
     .map(e => ({
       ...e,
       tags: e.tags ? JSON.parse(e.tags) : [],
@@ -160,7 +169,7 @@ export function getJourneyFull(journeyId: number, userId: number) {
 
   // stats
   const entryCount = entries.filter(e => e.type === 'entry').length;
-  const photoCount = new Set(photos.map(p => p.photo_id)).size;
+  const photoCount = (gallery as any[]).length;
   const places = [...new Set(entries.map(e => e.location_name).filter(Boolean))];
 
   const userPrefs = db.prepare(
@@ -183,6 +192,7 @@ export function getJourneyFull(journeyId: number, userId: number) {
   return {
     ...journey,
     entries: enrichedEntries,
+    gallery,
     trips,
     contributors,
     stats: { entries: entryCount, photos: photoCount, places: places.length },
@@ -296,12 +306,21 @@ export function syncTripPlaces(journeyId: number, tripId: number, authorId: numb
   ).all(journeyId, tripId) as { source_place_id: number }[];
   const existingPlaceIds = new Set(existing.map(e => e.source_place_id));
 
+  // Track next sort_order per date so synced skeletons get unique, sequential positions.
+  const dateMaxOrder = new Map<string, number>();
+  const maxRows = db.prepare(
+    'SELECT entry_date, COALESCE(MAX(sort_order), -1) AS m FROM journey_entries WHERE journey_id = ? GROUP BY entry_date'
+  ).all(journeyId) as { entry_date: string; m: number }[];
+  for (const row of maxRows) dateMaxOrder.set(row.entry_date, row.m);
+
   for (const place of places) {
     if (existingPlaceIds.has(place.id)) continue;
     existingPlaceIds.add(place.id);
 
     const entryDate = place.day_date || new Date().toISOString().split('T')[0];
     const entryTime = place.assignment_time || place.place_time || null;
+    const nextOrder = (dateMaxOrder.get(entryDate) ?? -1) + 1;
+    dateMaxOrder.set(entryDate, nextOrder);
 
     db.prepare(`
       INSERT INTO journey_entries (journey_id, source_trip_id, source_place_id, author_id, type, title, entry_date, entry_time, location_name, location_lat, location_lng, sort_order, created_at, updated_at)
@@ -310,51 +329,27 @@ export function syncTripPlaces(journeyId: number, tripId: number, authorId: numb
       journeyId, tripId, place.id, authorId,
       place.name, entryDate, entryTime,
       place.address || place.name, place.lat || null, place.lng || null,
-      place.day_number || 0, now, now
+      nextOrder, now, now
     );
   }
 }
 
-// import trip_photos into journey when a trip is linked
+// import trip_photos into journey gallery when a trip is linked
 function syncTripPhotos(journeyId: number, tripId: number) {
   const tripPhotos = db.prepare(
-    'SELECT tp.photo_id, tp.user_id, tp.shared FROM trip_photos tp WHERE tp.trip_id = ?'
-  ).all(tripId) as { photo_id: number; user_id: number; shared: number }[];
+    'SELECT tp.photo_id, tp.shared FROM trip_photos tp WHERE tp.trip_id = ?'
+  ).all(tripId) as { photo_id: number; shared: number }[];
   if (!tripPhotos.length) return;
 
   const now = ts();
+  const maxOrderRow = db.prepare('SELECT MAX(sort_order) as m FROM journey_photos WHERE journey_id = ?').get(journeyId) as { m: number | null };
+  let nextOrder = (maxOrderRow?.m ?? -1) + 1;
 
-  // find or create a "Photos" entry for this trip's photos
-  let photoEntry = db.prepare(`
-    SELECT id FROM journey_entries
-    WHERE journey_id = ? AND source_trip_id = ? AND title = '[Trip Photos]' AND type = 'entry'
-  `).get(journeyId, tripId) as { id: number } | undefined;
-
-  if (!photoEntry) {
-    const trip = db.prepare('SELECT start_date FROM trips WHERE id = ?').get(tripId) as { start_date: string } | undefined;
-    const entryDate = trip?.start_date || new Date().toISOString().split('T')[0];
-    const owner = db.prepare('SELECT user_id FROM journeys WHERE id = ?').get(journeyId) as { user_id: number };
-
-    const res = db.prepare(`
-      INSERT INTO journey_entries (journey_id, source_trip_id, author_id, type, title, entry_date, sort_order, created_at, updated_at)
-      VALUES (?, ?, ?, 'entry', '[Trip Photos]', ?, 999, ?, ?)
-    `).run(journeyId, tripId, owner.user_id, entryDate, now, now);
-    photoEntry = { id: Number(res.lastInsertRowid) };
-  }
-
-  // import each trip photo, skip duplicates (by photo_id)
   for (const tp of tripPhotos) {
-    const exists = db.prepare(
-      'SELECT 1 FROM journey_photos WHERE entry_id = ? AND photo_id = ?'
-    ).get(photoEntry.id, tp.photo_id);
-    if (exists) continue;
-
-    const maxOrder = db.prepare('SELECT MAX(sort_order) as m FROM journey_photos WHERE entry_id = ?').get(photoEntry.id) as { m: number | null };
-
     db.prepare(`
-      INSERT INTO journey_photos (entry_id, photo_id, shared, sort_order, created_at)
+      INSERT OR IGNORE INTO journey_photos (journey_id, photo_id, shared, sort_order, created_at)
       VALUES (?, ?, ?, ?, ?)
-    `).run(photoEntry.id, tp.photo_id, tp.shared, (maxOrder?.m ?? -1) + 1, now);
+    `).run(journeyId, tp.photo_id, tp.shared, nextOrder++, now);
   }
 }
 
@@ -381,15 +376,19 @@ export function onPlaceCreated(tripId: number, placeId: number) {
 
     const journey = db.prepare('SELECT user_id FROM journeys WHERE id = ?').get(link.journey_id) as { user_id: number };
     const entryDate = place.day_date;
+    const maxOrder = db.prepare(
+      'SELECT MAX(sort_order) AS m FROM journey_entries WHERE journey_id = ? AND entry_date = ?'
+    ).get(link.journey_id, entryDate) as { m: number | null };
+    const nextOrder = (maxOrder?.m ?? -1) + 1;
 
     db.prepare(`
       INSERT INTO journey_entries (journey_id, source_trip_id, source_place_id, author_id, type, title, entry_date, entry_time, location_name, location_lat, location_lng, sort_order, created_at, updated_at)
-      VALUES (?, ?, ?, ?, 'skeleton', ?, ?, ?, ?, ?, ?, 0, ?, ?)
+      VALUES (?, ?, ?, ?, 'skeleton', ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       link.journey_id, tripId, placeId, journey.user_id,
       place.name, entryDate, place.assignment_time || place.place_time || null,
       place.address || place.name, place.lat || null, place.lng || null,
-      now, now
+      nextOrder, now, now
     );
   }
 }
@@ -444,7 +443,7 @@ export function onPlaceDeleted(placeId: number) {
   for (const entry of entries) {
     if (entry.type === 'skeleton') {
       // no content: just delete
-      const hasPhotos = db.prepare('SELECT 1 FROM journey_photos WHERE entry_id = ?').get(entry.id);
+      const hasPhotos = db.prepare('SELECT 1 FROM journey_entry_photos WHERE entry_id = ?').get(entry.id);
       if (!hasPhotos && !entry.story) {
         db.prepare('DELETE FROM journey_entries WHERE id = ?').run(entry.id);
         continue;
@@ -465,11 +464,11 @@ export function listEntries(journeyId: number, userId: number) {
   if (!canAccessJourney(journeyId, userId)) return null;
 
   const entries = db.prepare(
-    'SELECT * FROM journey_entries WHERE journey_id = ? ORDER BY entry_date ASC, entry_time ASC, sort_order ASC'
+    'SELECT * FROM journey_entries WHERE journey_id = ? ORDER BY entry_date ASC, sort_order ASC, id ASC'
   ).all(journeyId) as JourneyEntry[];
 
   const photos = db.prepare(
-    `SELECT ${JP_SELECT} FROM ${JP_JOIN} WHERE jp.entry_id IN (SELECT id FROM journey_entries WHERE journey_id = ?) ORDER BY jp.sort_order ASC`
+    `SELECT ${JP_SELECT} FROM ${JP_JOIN} WHERE jep.entry_id IN (SELECT id FROM journey_entries WHERE journey_id = ?) ORDER BY jep.sort_order ASC`
   ).all(journeyId) as JourneyPhoto[];
 
   const photosByEntry: Record<number, JourneyPhoto[]> = {};
@@ -628,9 +627,6 @@ export function deleteEntry(entryId: number, userId: number, sid?: string): bool
   if (!entry) return false;
   if (!canEdit(entry.journey_id, userId)) return false;
 
-  // delete photos along with the entry — no more orphan Gallery entries
-  db.prepare('DELETE FROM journey_photos WHERE entry_id = ?').run(entryId);
-
   if (entry.source_trip_id && entry.source_place_id && entry.type !== 'skeleton') {
     // Revert filled entry back to skeleton instead of deleting
     db.prepare(`
@@ -645,12 +641,6 @@ export function deleteEntry(entryId: number, userId: number, sid?: string): bool
     broadcastJourneyEvent(entry.journey_id, 'journey:entry:deleted', { entryId }, sid);
   }
 
-  // clean up any empty Gallery entries in this journey
-  db.prepare(`
-    DELETE FROM journey_entries WHERE journey_id = ? AND title = 'Gallery'
-    AND id NOT IN (SELECT DISTINCT entry_id FROM journey_photos)
-  `).run(entry.journey_id);
-
   return true;
 }
 
@@ -664,23 +654,40 @@ function promoteSkeletonIfNeeded(entry: JourneyEntry): void {
   db.prepare('UPDATE journey_entries SET type = ?, updated_at = ? WHERE id = ?').run('entry', ts(), entry.id);
 }
 
+// Ensure a trek_photo_id is in the journey gallery; return its gallery row id.
+function ensureInGallery(journeyId: number, trekPhotoId: number, caption?: string, shared?: number): number {
+  const now = ts();
+  const maxOrderRow = db.prepare('SELECT MAX(sort_order) as m FROM journey_photos WHERE journey_id = ?').get(journeyId) as { m: number | null };
+  db.prepare(`
+    INSERT OR IGNORE INTO journey_photos (journey_id, photo_id, caption, shared, sort_order, created_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(journeyId, trekPhotoId, caption || null, shared ?? 0, (maxOrderRow?.m ?? -1) + 1, now);
+  const row = db.prepare('SELECT id FROM journey_photos WHERE journey_id = ? AND photo_id = ?').get(journeyId, trekPhotoId) as { id: number };
+  return row.id;
+}
+
+// Link a gallery photo to an entry (idempotent). Returns the junction JP_SELECT row.
+function linkGalleryPhotoToEntry(galleryId: number, entryId: number): JourneyPhoto | null {
+  const now = ts();
+  const maxOrderRow = db.prepare('SELECT MAX(sort_order) as m FROM journey_entry_photos WHERE entry_id = ?').get(entryId) as { m: number | null };
+  db.prepare(`
+    INSERT OR IGNORE INTO journey_entry_photos (entry_id, journey_photo_id, sort_order, created_at)
+    VALUES (?, ?, ?, ?)
+  `).run(entryId, galleryId, (maxOrderRow?.m ?? -1) + 1, now);
+  return db.prepare(`SELECT ${JP_SELECT} FROM ${JP_JOIN} WHERE jep.entry_id = ? AND jep.journey_photo_id = ?`)
+    .get(entryId, galleryId) as JourneyPhoto | null;
+}
+
 export function addPhoto(entryId: number, userId: number, filePath: string, thumbnailPath?: string, caption?: string): JourneyPhoto | null {
   const entry = db.prepare('SELECT * FROM journey_entries WHERE id = ?').get(entryId) as JourneyEntry | undefined;
   if (!entry) return null;
   if (!canEdit(entry.journey_id, userId)) return null;
 
   const trekPhotoId = getOrCreateLocalTrekPhoto(filePath, thumbnailPath);
-  const maxOrder = db.prepare('SELECT MAX(sort_order) as m FROM journey_photos WHERE entry_id = ?').get(entryId) as { m: number | null };
-  const now = ts();
-
-  const res = db.prepare(`
-    INSERT INTO journey_photos (entry_id, photo_id, caption, sort_order, created_at)
-    VALUES (?, ?, ?, ?, ?)
-  `).run(entryId, trekPhotoId, caption || null, (maxOrder?.m ?? -1) + 1, now);
-
+  const galleryId = db.transaction(() => ensureInGallery(entry.journey_id, trekPhotoId, caption))();
+  const result = linkGalleryPhotoToEntry(galleryId, entryId);
   promoteSkeletonIfNeeded(entry);
-
-  return db.prepare(`SELECT ${JP_SELECT} FROM ${JP_JOIN} WHERE jp.id = ?`).get(Number(res.lastInsertRowid)) as JourneyPhoto;
+  return result;
 }
 
 export function addProviderPhoto(entryId: number, userId: number, provider: string, assetId: string, caption?: string, passphrase?: string): JourneyPhoto | null {
@@ -690,119 +697,127 @@ export function addProviderPhoto(entryId: number, userId: number, provider: stri
 
   const trekPhotoId = getOrCreateTrekPhoto(provider, assetId, userId, passphrase);
 
-  // skip if already added
-  const exists = db.prepare('SELECT 1 FROM journey_photos WHERE entry_id = ? AND photo_id = ?').get(entryId, trekPhotoId);
-  if (exists) return null;
+  // skip if this photo is already linked to this entry
+  const alreadyLinked = db.prepare(`
+    SELECT 1 FROM journey_entry_photos jep
+    JOIN journey_photos gp ON gp.id = jep.journey_photo_id
+    WHERE jep.entry_id = ? AND gp.photo_id = ?
+  `).get(entryId, trekPhotoId);
+  if (alreadyLinked) return null;
 
-  const maxOrder = db.prepare('SELECT MAX(sort_order) as m FROM journey_photos WHERE entry_id = ?').get(entryId) as { m: number | null };
-  const now = ts();
-
-  const res = db.prepare(`
-    INSERT INTO journey_photos (entry_id, photo_id, caption, sort_order, created_at)
-    VALUES (?, ?, ?, ?, ?)
-  `).run(entryId, trekPhotoId, caption || null, (maxOrder?.m ?? -1) + 1, now);
-
+  const galleryId = db.transaction(() => ensureInGallery(entry.journey_id, trekPhotoId, caption))();
+  const result = linkGalleryPhotoToEntry(galleryId, entryId);
   promoteSkeletonIfNeeded(entry);
-
-  return db.prepare(`SELECT ${JP_SELECT} FROM ${JP_JOIN} WHERE jp.id = ?`).get(Number(res.lastInsertRowid)) as JourneyPhoto;
+  return result;
 }
 
-export function linkPhotoToEntry(entryId: number, photoId: number, userId: number): JourneyPhoto | null {
+// Link a gallery photo (by its journey_photos.id) to an entry — idempotent.
+export function linkPhotoToEntry(entryId: number, journeyPhotoId: number, userId: number): JourneyPhoto | null {
   const entry = db.prepare('SELECT * FROM journey_entries WHERE id = ?').get(entryId) as JourneyEntry | undefined;
   if (!entry) return null;
   if (!canEdit(entry.journey_id, userId)) return null;
 
-  const source = db.prepare(`SELECT ${JP_SELECT} FROM ${JP_JOIN} WHERE jp.id = ?`).get(photoId) as JourneyPhoto | undefined;
-  if (!source) return null;
+  // Verify the gallery photo belongs to this journey
+  const galleryRow = db.prepare('SELECT id, journey_id FROM journey_photos WHERE id = ?').get(journeyPhotoId) as { id: number; journey_id: number } | undefined;
+  if (!galleryRow || galleryRow.journey_id !== entry.journey_id) return null;
 
-  if (source.entry_id === entryId) return source;
-
-  const oldEntry = db.prepare('SELECT * FROM journey_entries WHERE id = ?').get(source.entry_id) as JourneyEntry | undefined;
-  const sourceIsGallery = oldEntry?.title === 'Gallery';
-
-  // skip if target already has this photo (by trek_photo_id)
-  const dupe = db.prepare('SELECT id FROM journey_photos WHERE entry_id = ? AND photo_id = ?').get(entryId, source.photo_id) as { id: number } | undefined;
-  if (dupe) return db.prepare(`SELECT ${JP_SELECT} FROM ${JP_JOIN} WHERE jp.id = ?`).get(dupe.id) as JourneyPhoto;
-
-  const maxOrder = db.prepare('SELECT MAX(sort_order) as m FROM journey_photos WHERE entry_id = ?').get(entryId) as { m: number | null };
-  let resultId: number;
-
-  if (sourceIsGallery) {
-    // Copy so the photo stays in the gallery even after being used in an entry.
-    const res = db.prepare(`
-      INSERT INTO journey_photos (entry_id, photo_id, caption, sort_order, created_at)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(entryId, source.photo_id, source.caption || null, (maxOrder?.m ?? -1) + 1, ts());
-    resultId = Number(res.lastInsertRowid);
-  } else {
-    // Non-gallery source: keep existing move behavior.
-    db.prepare('UPDATE journey_photos SET entry_id = ? WHERE id = ?').run(entryId, photoId);
-    resultId = photoId;
-  }
-
+  const result = linkGalleryPhotoToEntry(galleryRow.id, entryId);
   promoteSkeletonIfNeeded(entry);
+  return result;
+}
 
-  // If we moved out of a Gallery entry (shouldn't happen with the guard above,
-  // but kept for any legacy data), clean up the Gallery wrapper if emptied.
-  if (!sourceIsGallery && oldEntry && oldEntry.title === 'Gallery') {
-    const remaining = db.prepare('SELECT COUNT(*) as c FROM journey_photos WHERE entry_id = ?').get(source.entry_id) as { c: number };
-    if (remaining.c === 0) {
-      db.prepare('DELETE FROM journey_entries WHERE id = ?').run(source.entry_id);
-    }
+// Upload photos to the journey gallery only (no entry association).
+export function uploadGalleryPhotos(journeyId: number, userId: number, filePaths: { path: string; thumbnail?: string }[]): JourneyPhoto[] {
+  if (!canEdit(journeyId, userId)) return [];
+  const results: any[] = [];
+  const now = ts();
+  const maxOrderRow = db.prepare('SELECT MAX(sort_order) as m FROM journey_photos WHERE journey_id = ?').get(journeyId) as { m: number | null };
+  let nextOrder = (maxOrderRow?.m ?? -1) + 1;
+
+  for (const f of filePaths) {
+    const trekPhotoId = getOrCreateLocalTrekPhoto(f.path, f.thumbnail);
+    db.prepare(`
+      INSERT OR IGNORE INTO journey_photos (journey_id, photo_id, shared, sort_order, created_at)
+      VALUES (?, ?, 0, ?, ?)
+    `).run(journeyId, trekPhotoId, nextOrder++, now);
+    const row = db.prepare(`SELECT ${GALLERY_SELECT} FROM ${GALLERY_JOIN} WHERE gp.journey_id = ? AND gp.photo_id = ?`).get(journeyId, trekPhotoId);
+    if (row) results.push(row);
   }
+  return results;
+}
 
-  return db.prepare(`SELECT ${JP_SELECT} FROM ${JP_JOIN} WHERE jp.id = ?`).get(resultId) as JourneyPhoto;
+// Add a provider photo to the gallery only (no entry link).
+export function addProviderPhotoToGallery(journeyId: number, userId: number, provider: string, assetId: string, caption?: string, passphrase?: string): any | null {
+  if (!canEdit(journeyId, userId)) return null;
+  const trekPhotoId = getOrCreateTrekPhoto(provider, assetId, userId, passphrase);
+  const galleryId = db.transaction(() => ensureInGallery(journeyId, trekPhotoId, caption))();
+  return db.prepare(`SELECT ${GALLERY_SELECT} FROM ${GALLERY_JOIN} WHERE gp.id = ?`).get(galleryId) ?? null;
+}
+
+// Unlink a photo from a specific entry; gallery row is preserved.
+export function unlinkPhotoFromEntry(entryId: number, journeyPhotoId: number, userId: number): boolean {
+  const entry = db.prepare('SELECT * FROM journey_entries WHERE id = ?').get(entryId) as JourneyEntry | undefined;
+  if (!entry) return false;
+  if (!canEdit(entry.journey_id, userId)) return false;
+
+  const result = db.prepare('DELETE FROM journey_entry_photos WHERE entry_id = ? AND journey_photo_id = ?').run(entryId, journeyPhotoId);
+  return result.changes > 0;
+}
+
+// Hard-delete a gallery photo (removes from all entries and the gallery).
+export function deleteGalleryPhoto(journeyPhotoId: number, userId: number): { photo_id: number; file_path?: string | null } | null {
+  const row = db.prepare('SELECT * FROM journey_photos WHERE id = ?').get(journeyPhotoId) as { id: number; journey_id: number; photo_id: number } | undefined;
+  if (!row) return null;
+  if (!canEdit(row.journey_id, userId)) return null;
+
+  const trekRow = db.prepare('SELECT file_path, provider FROM trek_photos WHERE id = ?').get(row.photo_id) as { file_path?: string; provider?: string } | undefined;
+
+  // cascade on journey_entry_photos.journey_photo_id handles junction cleanup
+  db.prepare('DELETE FROM journey_photos WHERE id = ?').run(journeyPhotoId);
+  deleteTrekPhotoIfOrphan(row.photo_id);
+
+  return { photo_id: row.photo_id, file_path: trekRow?.file_path ?? null };
 }
 
 export function setPhotoProvider(photoId: number, provider: string, assetId: string, ownerId: number) {
-  // Get the trek_photo_id from the journey_photo, then update the central registry
+  // photoId = journey_photos.id (gallery row); look up the trek_photo_id
   const jp = db.prepare('SELECT photo_id FROM journey_photos WHERE id = ?').get(photoId) as { photo_id: number } | undefined;
   if (!jp) return;
   setTrekPhotoProvider(jp.photo_id, provider, assetId, ownerId);
+  // also denorm on gallery row for fast reads
+  db.prepare('UPDATE journey_photos SET provider = ?, asset_id = ?, owner_id = ? WHERE id = ?').run(provider, assetId, ownerId, photoId);
 }
 
 export function updatePhoto(photoId: number, userId: number, data: { caption?: string; sort_order?: number }): JourneyPhoto | null {
-  const photo = db.prepare(`
-    SELECT ${JP_SELECT}, je.journey_id FROM ${JP_JOIN}
-    JOIN journey_entries je ON jp.entry_id = je.id
-    WHERE jp.id = ?
-  `).get(photoId) as (JourneyPhoto & { journey_id: number }) | undefined;
-  if (!photo) return null;
-  if (!canEdit(photo.journey_id, userId)) return null;
+  // photoId = journey_photos.id (gallery row)
+  const row = db.prepare('SELECT id, journey_id FROM journey_photos WHERE id = ?').get(photoId) as { id: number; journey_id: number } | undefined;
+  if (!row) return null;
+  if (!canEdit(row.journey_id, userId)) return null;
 
-  const fields: string[] = [];
-  const values: unknown[] = [];
-  if (data.caption !== undefined) { fields.push('caption = ?'); values.push(data.caption); }
-  if (data.sort_order !== undefined) { fields.push('sort_order = ?'); values.push(data.sort_order); }
-  if (!fields.length) return photo;
-
-  values.push(photoId);
-  db.prepare(`UPDATE journey_photos SET ${fields.join(', ')} WHERE id = ?`).run(...values);
-  return db.prepare(`SELECT ${JP_SELECT} FROM ${JP_JOIN} WHERE jp.id = ?`).get(photoId) as JourneyPhoto;
+  // caption lives on the gallery row; sort_order lives on the junction table
+  // (JP_SELECT reads jep.sort_order, so updating journey_photos.sort_order
+  // would not be reflected in the returned row).
+  if (data.caption !== undefined) {
+    db.prepare('UPDATE journey_photos SET caption = ? WHERE id = ?').run(data.caption, photoId);
+  }
+  if (data.sort_order !== undefined) {
+    db.prepare('UPDATE journey_entry_photos SET sort_order = ? WHERE journey_photo_id = ?').run(data.sort_order, photoId);
+  }
+  return db.prepare(`SELECT ${JP_SELECT} FROM ${JP_JOIN} WHERE gp.id = ? LIMIT 1`).get(photoId) as JourneyPhoto | null;
 }
 
-export function deletePhoto(photoId: number, userId: number): (JourneyPhoto & { journey_id: number }) | null {
-  const photo = db.prepare(`
-    SELECT ${JP_SELECT}, je.journey_id FROM ${JP_JOIN}
-    JOIN journey_entries je ON jp.entry_id = je.id
-    WHERE jp.id = ?
-  `).get(photoId) as (JourneyPhoto & { journey_id: number }) | undefined;
-  if (!photo) return null;
-  if (!canEdit(photo.journey_id, userId)) return null;
+// deletePhoto: hard-delete (backwards compat name used by old route).
+export function deletePhoto(photoId: number, userId: number): { id: number; photo_id: number; file_path?: string | null; journey_id: number } | null {
+  const row = db.prepare('SELECT id, journey_id, photo_id FROM journey_photos WHERE id = ?').get(photoId) as { id: number; journey_id: number; photo_id: number } | undefined;
+  if (!row) return null;
+  if (!canEdit(row.journey_id, userId)) return null;
+
+  const trekRow = db.prepare('SELECT file_path, provider FROM trek_photos WHERE id = ?').get(row.photo_id) as { file_path?: string; provider?: string } | undefined;
 
   db.prepare('DELETE FROM journey_photos WHERE id = ?').run(photoId);
-  deleteTrekPhotoIfOrphan(photo.photo_id);
+  deleteTrekPhotoIfOrphan(row.photo_id);
 
-  // clean up empty Gallery entries left behind
-  const remaining = db.prepare('SELECT 1 FROM journey_photos WHERE entry_id = ?').get(photo.entry_id);
-  if (!remaining) {
-    const entry = db.prepare('SELECT * FROM journey_entries WHERE id = ?').get(photo.entry_id) as JourneyEntry | undefined;
-    if (entry && entry.title === 'Gallery' && !entry.story) {
-      db.prepare('DELETE FROM journey_entries WHERE id = ?').run(photo.entry_id);
-    }
-  }
-
-  return photo;
+  return { id: row.id, photo_id: row.photo_id, file_path: trekRow?.file_path ?? null, journey_id: row.journey_id };
 }
 
 // ── Contributors ─────────────────────────────────────────────────────────

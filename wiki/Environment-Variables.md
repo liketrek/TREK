@@ -48,11 +48,12 @@ Verified in `server/src/config.ts` (line 107):
 
 ## HTTPS / Proxy
 
-These three variables work together behind a TLS-terminating reverse proxy. See [Reverse-Proxy] for the full explanation.
+These three variables work together behind a TLS-terminating reverse proxy. See [Reverse-Proxy](Reverse-Proxy) for the full explanation.
 
 | Variable | Description | Default |
 |---|---|---|
 | `FORCE_HTTPS` | When `true`: 301-redirects HTTP→HTTPS, sends HSTS (`max-age=31536000`), adds CSP `upgrade-insecure-requests`, forces cookie `secure` flag. Only useful behind a TLS proxy. Requires `TRUST_PROXY`. | `false` |
+| `HSTS_INCLUDE_SUBDOMAINS` | When `true`: adds the `includeSubDomains` directive to the HSTS header, extending HTTPS enforcement to all subdomains. Only effective when HSTS is active (`FORCE_HTTPS=true` or `NODE_ENV=production`). Leave `false` if you run other services on sibling subdomains over plain HTTP. | `false` |
 | `TRUST_PROXY` | Number of trusted proxy hops. Tells Express to read the real client IP from `X-Forwarded-For` and protocol from `X-Forwarded-Proto`. Defaults to `1` automatically in production. Required for `FORCE_HTTPS` to detect the forwarded protocol. | `1` (production) |
 | `COOKIE_SECURE` | Controls the `secure` flag on the `trek_session` cookie. Auto-derived as `true` when `NODE_ENV=production` or `FORCE_HTTPS=true`. Set to `false` only as an escape hatch for LAN testing without TLS — not recommended in production. | auto |
 
@@ -62,7 +63,7 @@ These three variables work together behind a TLS-terminating reverse proxy. See 
 
 ## OIDC / SSO
 
-For setup instructions, see [OIDC-SSO].
+For setup instructions, see [OIDC-SSO](OIDC-SSO).
 
 | Variable | Description | Default |
 |---|---|---|
@@ -110,7 +111,7 @@ Both variables must be set together. If either is omitted, the account is create
 
 ## MCP
 
-For setup instructions, see [MCP-Overview].
+For setup instructions, see [MCP-Overview](MCP-Overview).
 
 | Variable | Description | Default |
 |---|---|---|
@@ -129,7 +130,7 @@ For setup instructions, see [MCP-Overview].
 
 ## Related Pages
 
-- [Reverse-Proxy] — HTTPS proxy setup and the `FORCE_HTTPS` / `TRUST_PROXY` / `COOKIE_SECURE` trio
-- [OIDC-SSO] — complete OIDC configuration guide
-- [MCP-Overview] — MCP server setup and rate limiting
-- [Encryption-Key-Rotation] — rotating the `ENCRYPTION_KEY` without losing data
+- [Reverse-Proxy](Reverse-Proxy) — HTTPS proxy setup and the `FORCE_HTTPS` / `TRUST_PROXY` / `COOKIE_SECURE` trio
+- [OIDC-SSO](OIDC-SSO) — complete OIDC configuration guide
+- [MCP-Overview](MCP-Overview) — MCP server setup and rate limiting
+- [Encryption-Key-Rotation](Encryption-Key-Rotation) — rotating the `ENCRYPTION_KEY` without losing data

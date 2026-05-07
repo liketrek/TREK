@@ -1,6 +1,6 @@
 {
   "name": "trek-client",
-  "version": "2.9.14",
+  "version": "3.0.9",
   "private": true,
   "type": "module",
   "scripts": {

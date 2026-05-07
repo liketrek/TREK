@@ -60,7 +60,7 @@ You will be prompted to change the password on first login.
 
 ## Next Steps
 
-- [Install-Docker-Compose] — production setup with security hardening
-- [Reverse-Proxy] — put TREK behind HTTPS (required for PWA install and secure cookies)
-- [Environment-Variables] — full configuration reference
-- [Admin-Panel-Overview] — explore what the admin panel can do
+- [Install-Docker-Compose](Install-Docker-Compose) — production setup with security hardening
+- [Reverse-Proxy](Reverse-Proxy) — put TREK behind HTTPS (required for PWA install and secure cookies)
+- [Environment-Variables](Environment-Variables) — full configuration reference
+- [Admin-Panel-Overview](Admin-Panel-Overview) — explore what the admin panel can do

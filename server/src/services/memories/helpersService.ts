@@ -129,15 +129,14 @@ export function canAccessUserPhoto(requestingUserId: number, ownerUserId: number
     // Journey photos use tripId=0 — check journey_photos + journey_contributors
     if (tripId === '0') {
         const journeyPhoto = db.prepare(`
-            SELECT jp.entry_id, je.journey_id
-            FROM journey_photos jp
-            JOIN trek_photos tkp ON tkp.id = jp.photo_id
-            JOIN journey_entries je ON je.id = jp.entry_id
+            SELECT gp.journey_id
+            FROM journey_photos gp
+            JOIN trek_photos tkp ON tkp.id = gp.photo_id
             WHERE tkp.asset_id = ?
               AND tkp.provider = ?
               AND tkp.owner_id = ?
             LIMIT 1
-        `).get(assetId, provider, ownerUserId) as { entry_id: number; journey_id: number } | undefined;
+        `).get(assetId, provider, ownerUserId) as { journey_id: number } | undefined;
         if (!journeyPhoto) return false;
 
         const access = db.prepare(`
@@ -194,13 +193,12 @@ export function canAccessTrekPhoto(requestingUserId: number, trekPhotoId: number
 
     // Check journey_photos — is this photo in a journey the user can access?
     const journeyAccess = db.prepare(`
-        SELECT 1 FROM journey_photos jp
-        JOIN journey_entries je ON je.id = jp.entry_id
-        WHERE jp.photo_id = ?
+        SELECT 1 FROM journey_photos gp
+        WHERE gp.photo_id = ?
           AND EXISTS (
-            SELECT 1 FROM journeys j WHERE j.id = je.journey_id AND j.user_id = ?
+            SELECT 1 FROM journeys j WHERE j.id = gp.journey_id AND j.user_id = ?
             UNION ALL
-            SELECT 1 FROM journey_contributors jc WHERE jc.journey_id = je.journey_id AND jc.user_id = ?
+            SELECT 1 FROM journey_contributors jc WHERE jc.journey_id = gp.journey_id AND jc.user_id = ?
           )
         LIMIT 1
     `).get(trekPhotoId, requestingUserId, requestingUserId);

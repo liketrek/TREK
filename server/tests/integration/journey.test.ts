@@ -649,7 +649,7 @@ describe('Link photo to entry', () => {
       .send({});
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe('photo_id required');
+    expect(res.body.error).toBe('journey_photo_id required');
   });
 });
 

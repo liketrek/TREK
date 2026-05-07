@@ -68,6 +68,7 @@ import {
   removeContributor,
   getSuggestions,
   syncTripPlaces,
+  reorderEntries,
   onPlaceCreated,
   onPlaceUpdated,
   onPlaceDeleted,
@@ -1325,9 +1326,10 @@ describe('Edge cases', () => {
     const result = deleteEntry(entry.id, user.id);
     expect(result).toBe(true);
 
-    // Photo should be deleted with the entry
-    const deletedPhoto = testDb.prepare('SELECT * FROM journey_photos WHERE id = ?').get(photo!.id) as any;
-    expect(deletedPhoto).toBeUndefined();
+    // Junction row must be gone (ON DELETE CASCADE from journey_entries).
+    // Gallery row (journey_photos) is preserved — photo may belong to other entries.
+    const junctionRow = testDb.prepare('SELECT * FROM journey_entry_photos WHERE entry_id = ?').get(entry.id) as any;
+    expect(junctionRow).toBeUndefined();
   });
 
   it('JOURNEY-SVC-082: updateJourney can set cover_gradient', () => {
@@ -1395,17 +1397,12 @@ describe('Edge cases', () => {
 
     addTripToJourney(journey.id, trip.id, user.id);
 
-    // Should have a [Trip Photos] entry with the imported photo
-    const photoEntry = testDb.prepare(
-      "SELECT * FROM journey_entries WHERE journey_id = ? AND title = '[Trip Photos]'"
-    ).get(journey.id) as any;
-    expect(photoEntry).toBeDefined();
-
+    // Trip photos now go straight into the journey gallery (no wrapper entry).
     const photos = testDb.prepare(`
       SELECT jp.*, tkp.asset_id FROM journey_photos jp
       JOIN trek_photos tkp ON tkp.id = jp.photo_id
-      WHERE jp.entry_id = ?
-    `).all(photoEntry.id);
+      WHERE jp.journey_id = ?
+    `).all(journey.id);
     expect(photos.length).toBe(1);
     expect((photos[0] as any).asset_id).toBe('immich-photo-1');
   });
@@ -1467,5 +1464,110 @@ describe('addProviderPhoto — passphrase', () => {
     expect(typeof row?.passphrase).toBe('string');
     // stored value must be encrypted (not plaintext)
     expect(row?.passphrase).not.toBe('secret-pp');
+  });
+});
+
+// -- reorderEntries (#846) ----------------------------------------------------
+
+function insertEntry(journeyId: number, authorId: number, opts: { entry_date: string; entry_time?: string | null; sort_order?: number }): { id: number } {
+  const now = Date.now();
+  const res = testDb.prepare(`
+    INSERT INTO journey_entries (journey_id, author_id, type, entry_date, entry_time, sort_order, visibility, created_at, updated_at)
+    VALUES (?, ?, 'entry', ?, ?, ?, 'private', ?, ?)
+  `).run(journeyId, authorId, opts.entry_date, opts.entry_time ?? null, opts.sort_order ?? 0, now, now);
+  return { id: Number(res.lastInsertRowid) };
+}
+
+describe('reorderEntries', () => {
+  it('JOURNEY-SVC-089: reorder persists and listEntries returns requested order regardless of entry_time', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const e1 = insertEntry(journey.id, user.id, { entry_date: '2026-08-01', entry_time: '09:00', sort_order: 0 });
+    const e2 = insertEntry(journey.id, user.id, { entry_date: '2026-08-01', entry_time: '14:00', sort_order: 1 });
+
+    const ok = reorderEntries(journey.id, user.id, [e2.id, e1.id]);
+    expect(ok).toBe(true);
+
+    const entries = listEntries(journey.id, user.id)!;
+    const dayEntries = entries.filter(e => e.entry_date === '2026-08-01');
+    expect(dayEntries.map(e => e.id)).toEqual([e2.id, e1.id]);
+  });
+
+  it('JOURNEY-SVC-090: reorderEntries rejects ids from another journey', () => {
+    const { user } = createUser(testDb);
+    const j1 = createJourney(testDb, user.id);
+    const j2 = createJourney(testDb, user.id);
+    const entry = createJourneyEntry(testDb, j2.id, user.id, { entry_date: '2026-08-02' });
+
+    const ok = reorderEntries(j1.id, user.id, [entry.id]);
+    expect(ok).toBe(false);
+  });
+
+  it('JOURNEY-SVC-091: reorderEntries does not affect entries on other days', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const day1a = insertEntry(journey.id, user.id, { entry_date: '2026-08-01', sort_order: 0 });
+    const day1b = insertEntry(journey.id, user.id, { entry_date: '2026-08-01', sort_order: 1 });
+    const day2 = insertEntry(journey.id, user.id, { entry_date: '2026-08-02', sort_order: 0 });
+
+    reorderEntries(journey.id, user.id, [day1b.id, day1a.id]);
+
+    const entries = listEntries(journey.id, user.id)!;
+    const day2Entry = entries.find(e => e.id === day2.id)!;
+    expect(day2Entry.sort_order).toBe(0);
+  });
+});
+
+describe('syncTripPlaces sort_order', () => {
+  it('JOURNEY-SVC-092: assigns unique sequential sort_order per date for same-day places', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const trip = createTrip(testDb, user.id, {
+      title: 'Order Trip',
+      start_date: '2026-09-01',
+      end_date: '2026-09-02',
+    });
+    const day = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 1').get(trip.id) as { id: number };
+    const p1 = createPlace(testDb, trip.id, { name: 'Place A' });
+    const p2 = createPlace(testDb, trip.id, { name: 'Place B' });
+    const p3 = createPlace(testDb, trip.id, { name: 'Place C' });
+    createDayAssignment(testDb, day.id, p1.id);
+    createDayAssignment(testDb, day.id, p2.id);
+    createDayAssignment(testDb, day.id, p3.id);
+
+    syncTripPlaces(journey.id, trip.id, user.id);
+
+    const rows = testDb.prepare(
+      'SELECT sort_order FROM journey_entries WHERE journey_id = ? ORDER BY sort_order ASC'
+    ).all(journey.id) as { sort_order: number }[];
+    const orders = rows.map(r => r.sort_order);
+    expect(new Set(orders).size).toBe(orders.length);
+    expect(orders).toEqual([0, 1, 2]);
+  });
+});
+
+describe('onPlaceCreated sort_order', () => {
+  it('JOURNEY-SVC-093: assigns MAX+1 sort_order when entries already exist on the target date', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const trip = createTrip(testDb, user.id, {
+      title: 'Append Trip',
+      start_date: '2026-10-01',
+      end_date: '2026-10-02',
+    });
+    addTripToJourney(journey.id, trip.id, user.id);
+
+    const day = testDb.prepare('SELECT id, date FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 1').get(trip.id) as { id: number; date: string };
+    insertEntry(journey.id, user.id, { entry_date: day.date, sort_order: 5 });
+
+    const place = createPlace(testDb, trip.id, { name: 'Late Addition' });
+    createDayAssignment(testDb, day.id, place.id);
+    onPlaceCreated(trip.id, place.id);
+
+    const newEntry = testDb.prepare(
+      'SELECT sort_order FROM journey_entries WHERE journey_id = ? AND source_place_id = ?'
+    ).get(journey.id, place.id) as { sort_order: number } | undefined;
+    expect(newEntry).toBeDefined();
+    expect(newEntry!.sort_order).toBe(6);
   });
 });

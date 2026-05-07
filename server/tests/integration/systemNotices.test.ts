@@ -84,8 +84,9 @@ describe('GET /api/system-notices/active', () => {
 
   it('returns empty array for non-first-login user with no applicable notices', async () => {
     const { user } = createUser(testDb);
-    // login_count > 1 means firstLogin condition does not match for any notice
-    testDb.prepare('UPDATE users SET login_count = 5 WHERE id = ?').run(user.id);
+    // login_count > 1 means firstLogin condition does not match for any notice;
+    // first_seen_version >= 3.0.0 means existingUserBeforeVersion('3.0.0') also does not match
+    testDb.prepare('UPDATE users SET login_count = 5, first_seen_version = ? WHERE id = ?').run('3.0.0', user.id);
     const res = await request(app)
       .get('/api/system-notices/active')
       .set('Cookie', authCookie(user.id));
@@ -122,7 +123,7 @@ describe('GET /api/system-notices/active', () => {
     SYSTEM_NOTICES.push(TEST_NOTICE);
     try {
       const { user } = createUser(testDb);
-      testDb.prepare('UPDATE users SET login_count = 5 WHERE id = ?').run(user.id);
+      testDb.prepare('UPDATE users SET login_count = 5, first_seen_version = ? WHERE id = ?').run('3.0.0', user.id);
 
       const res = await request(app)
         .get('/api/system-notices/active')

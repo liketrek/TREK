@@ -32,7 +32,7 @@ Pass additional `-e` flags for timezone and CORS/email link support:
   -e ALLOWED_ORIGINS=https://trek.example.com \
 ```
 
-See [Environment-Variables] for the full list.
+See [Environment-Variables](Environment-Variables) for the full list.
 
 ## Volume Reference
 
@@ -66,11 +66,11 @@ docker logs trek
 
 ## Limitations of `docker run`
 
-A bare `docker run` command has no built-in secret management and is harder to reproduce after a system reboot. For production, see [Install-Docker-Compose], which adds security hardening (`read_only`, `cap_drop`, `cap_add`, `no-new-privileges`, `tmpfs`) and makes it easy to manage environment variables through a `.env` file.
+A bare `docker run` command has no built-in secret management and is harder to reproduce after a system reboot. For production, see [Install-Docker-Compose](Install-Docker-Compose), which adds security hardening (`read_only`, `cap_drop`, `cap_add`, `no-new-privileges`, `tmpfs`) and makes it easy to manage environment variables through a `.env` file.
 
 ## Next Steps
 
-- [Reverse-Proxy] — HTTPS is required for PWA install and the `trek_session` cookie `secure` flag
-- [Install-Docker-Compose] — recommended for production
-- [Environment-Variables] — full list of configurable variables
-- [Updating] — how to pull a new image without losing data
+- [Reverse-Proxy](Reverse-Proxy) — HTTPS is required for PWA install and the `trek_session` cookie `secure` flag
+- [Install-Docker-Compose](Install-Docker-Compose) — recommended for production
+- [Environment-Variables](Environment-Variables) — full list of configurable variables
+- [Updating](Updating) — how to pull a new image without losing data

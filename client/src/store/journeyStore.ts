@@ -57,6 +57,24 @@ export interface JourneyPhoto {
   height?: number | null
 }
 
+export interface GalleryPhoto {
+  id: number
+  journey_id: number
+  photo_id: number
+  caption?: string | null
+  shared: number
+  sort_order: number
+  created_at: number
+  // Joined from trek_photos for display
+  provider?: string
+  asset_id?: string | null
+  owner_id?: number | null
+  file_path?: string | null
+  thumbnail_path?: string | null
+  width?: number | null
+  height?: number | null
+}
+
 export interface JourneyTrip {
   trip_id: number
   added_at: number
@@ -79,6 +97,7 @@ export interface JourneyContributor {
 
 export interface JourneyDetail extends Journey {
   entries: JourneyEntry[]
+  gallery: GalleryPhoto[]
   trips: JourneyTrip[]
   contributors: JourneyContributor[]
   stats: { entries: number; photos: number; places: number }
@@ -103,6 +122,9 @@ interface JourneyState {
   reorderEntries: (journeyId: number, orderedIds: number[]) => Promise<void>
 
   uploadPhotos: (entryId: number, formData: FormData) => Promise<JourneyPhoto[]>
+  uploadGalleryPhotos: (journeyId: number, formData: FormData) => Promise<GalleryPhoto[]>
+  unlinkPhoto: (entryId: number, journeyPhotoId: number) => Promise<void>
+  deleteGalleryPhoto: (journeyId: number, journeyPhotoId: number) => Promise<void>
   deletePhoto: (photoId: number) => Promise<void>
 
   clear: () => void
@@ -201,10 +223,8 @@ export const useJourneyStore = create<JourneyState>((set, get) => ({
       )
       entries.sort((a, b) => {
         if (a.entry_date !== b.entry_date) return a.entry_date.localeCompare(b.entry_date)
-        const atime = a.entry_time || ''
-        const btime = b.entry_time || ''
-        if (atime !== btime) return atime.localeCompare(btime)
-        return (a.sort_order || 0) - (b.sort_order || 0)
+        if (a.sort_order !== b.sort_order) return (a.sort_order || 0) - (b.sort_order || 0)
+        return a.id - b.id
       })
       return { current: { ...s.current, entries } }
     })
@@ -228,10 +248,53 @@ export const useJourneyStore = create<JourneyState>((set, get) => ({
           entries: s.current.entries.map(e =>
             e.id === entryId ? { ...e, photos: [...(e.photos || []), ...photos] } : e
           ),
+          gallery: [...(s.current.gallery || []), ...(data.gallery || [])],
         },
       }
     })
     return photos
+  },
+
+  uploadGalleryPhotos: async (journeyId, formData) => {
+    const data = await journeyApi.uploadGalleryPhotos(journeyId, formData)
+    const photos: GalleryPhoto[] = data.photos || []
+    set(s => {
+      if (!s.current || s.current.id !== journeyId) return s
+      return { current: { ...s.current, gallery: [...(s.current.gallery || []), ...photos] } }
+    })
+    return photos
+  },
+
+  unlinkPhoto: async (entryId, journeyPhotoId) => {
+    await journeyApi.unlinkPhoto(entryId, journeyPhotoId)
+    set(s => {
+      if (!s.current) return s
+      return {
+        current: {
+          ...s.current,
+          entries: s.current.entries.map(e =>
+            e.id === entryId ? { ...e, photos: (e.photos || []).filter(p => p.id !== journeyPhotoId) } : e
+          ),
+        },
+      }
+    })
+  },
+
+  deleteGalleryPhoto: async (journeyId, journeyPhotoId) => {
+    await journeyApi.deleteGalleryPhoto(journeyId, journeyPhotoId)
+    set(s => {
+      if (!s.current) return s
+      return {
+        current: {
+          ...s.current,
+          gallery: (s.current.gallery || []).filter(p => p.id !== journeyPhotoId),
+          entries: s.current.entries.map(e => ({
+            ...e,
+            photos: (e.photos || []).filter(p => p.id !== journeyPhotoId),
+          })),
+        },
+      }
+    })
   },
 
   deletePhoto: async (photoId) => {

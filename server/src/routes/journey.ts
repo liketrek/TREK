@@ -9,6 +9,7 @@ import * as svc from '../services/journeyService';
 import { db } from '../db/database';
 import { createOrUpdateJourneyShareLink, getJourneyShareLink, deleteJourneyShareLink, getPublicJourney } from '../services/journeyShareService';
 import { uploadToImmich } from '../services/memories/immichService';
+import { getAllowedExtensions } from '../services/fileService';
 
 const router = express.Router();
 
@@ -25,9 +26,26 @@ const storage = multer.diskStorage({
   },
 });
 
+const imageFilter: multer.Options['fileFilter'] = (_req, file, cb) => {
+  if (!file.mimetype.startsWith('image/') || file.mimetype.includes('svg')) {
+    const err: Error & { statusCode?: number } = new Error('Only image files are allowed');
+    err.statusCode = 400;
+    return cb(err);
+  }
+  const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
+  const allowed = getAllowedExtensions().split(',').map(e => e.trim().toLowerCase());
+  if (!allowed.includes('*') && !allowed.includes(ext)) {
+    const err: Error & { statusCode?: number } = new Error(`File type .${ext} is not allowed`);
+    err.statusCode = 400;
+    return cb(err);
+  }
+  cb(null, true);
+};
+
 const upload = multer({
   storage,
   limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: imageFilter,
 });
 
 // ── Static prefix routes (MUST come before /:id) ─────────────────────────
@@ -104,10 +122,11 @@ router.post('/entries/:entryId/photos', authenticate, upload.array('photos', 10)
         try {
           const immichId = await uploadToImmich(authReq.user.id, relativePath, file.originalname);
           if (immichId) {
+            // photo.id is now the gallery photo id (journey_photos.id)
             svc.setPhotoProvider(photo.id, 'immich', immichId, authReq.user.id);
-            photo.provider = 'immich' as any;
-            photo.asset_id = immichId;
-            photo.owner_id = authReq.user.id;
+            (photo as any).provider = 'immich';
+            (photo as any).asset_id = immichId;
+            (photo as any).owner_id = authReq.user.id;
           }
         } catch {}
       }
@@ -141,14 +160,23 @@ router.post('/entries/:entryId/provider-photos', authenticate, (req: Request, re
   res.status(201).json(photo);
 });
 
-// Link an existing photo to a (different) entry
+// Link a gallery photo to an entry
 router.post('/entries/:entryId/link-photo', authenticate, (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
-  const { photo_id } = req.body || {};
-  if (!photo_id) return res.status(400).json({ error: 'photo_id required' });
-  const result = svc.linkPhotoToEntry(Number(req.params.entryId), Number(photo_id), authReq.user.id);
+  // Accept journey_photo_id (new) or photo_id (legacy alias) for backwards compat
+  const journeyPhotoId = (req.body || {}).journey_photo_id ?? (req.body || {}).photo_id;
+  if (!journeyPhotoId) return res.status(400).json({ error: 'journey_photo_id required' });
+  const result = svc.linkPhotoToEntry(Number(req.params.entryId), Number(journeyPhotoId), authReq.user.id);
   if (!result) return res.status(403).json({ error: 'Not allowed' });
   res.status(201).json(result);
+});
+
+// Unlink a photo from a specific entry (gallery row is preserved)
+router.delete('/entries/:entryId/photos/:journeyPhotoId', authenticate, (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const ok = svc.unlinkPhotoFromEntry(Number(req.params.entryId), Number(req.params.journeyPhotoId), authReq.user.id);
+  if (!ok) return res.status(404).json({ error: 'Not found or not allowed' });
+  res.status(204).end();
 });
 
 router.patch('/photos/:photoId', authenticate, (req: Request, res: Response) => {
@@ -158,32 +186,63 @@ router.patch('/photos/:photoId', authenticate, (req: Request, res: Response) => 
   res.json(result);
 });
 
+// Hard-delete: removes gallery row + cascades to all entry links + deletes file if unreferenced
 router.delete('/photos/:photoId', authenticate, async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const photo = svc.deletePhoto(Number(req.params.photoId), authReq.user.id);
   if (!photo) return res.status(404).json({ error: 'Photo not found' });
-  // delete local file
   if (photo.file_path) {
     const fullPath = path.join(__dirname, '../../uploads', photo.file_path);
     try { fs.unlinkSync(fullPath); } catch {}
   }
-  // only delete from Immich if the photo was UPLOADED through TREK (has local file)
-  // photos imported from Immich (no file_path) are just references — don't touch Immich
-  if (photo.provider === 'immich' && photo.asset_id && photo.file_path) {
-    try {
-      const { getImmichCredentials } = await import('../services/memories/immichService');
-      const creds = getImmichCredentials(authReq.user.id);
-      if (creds) {
-        const { safeFetch } = await import('../utils/ssrfGuard');
-        await safeFetch(`${creds.immich_url}/api/assets`, {
-          method: 'DELETE',
-          headers: { 'x-api-key': creds.immich_api_key, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ids: [photo.asset_id] }),
-        });
-      }
-    } catch {}
-  }
   res.json({ success: true });
+});
+
+// ── Gallery (prefix /:id/gallery — before /:id) ──────────────────────────
+
+// Upload photos directly to the journey gallery (no entry association)
+router.post('/:id/gallery/photos', authenticate, upload.array('photos', 20), async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const files = req.files as Express.Multer.File[];
+  if (!files?.length) return res.status(400).json({ error: 'No files uploaded' });
+
+  const filePaths = files.map(f => ({ path: `journey/${f.filename}` }));
+  const photos = svc.uploadGalleryPhotos(Number(req.params.id), authReq.user.id, filePaths);
+  if (!photos.length) return res.status(403).json({ error: 'Not allowed' });
+  res.status(201).json({ photos });
+});
+
+// Add provider photos to gallery only (no entry link)
+router.post('/:id/gallery/provider-photos', authenticate, (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const { provider, asset_id, asset_ids, passphrase } = req.body || {};
+  const pp = passphrase && typeof passphrase === 'string' ? passphrase : undefined;
+
+  if (Array.isArray(asset_ids) && provider) {
+    const added: any[] = [];
+    for (const id of asset_ids) {
+      const photo = svc.addProviderPhotoToGallery(Number(req.params.id), authReq.user.id, provider, String(id), undefined, pp);
+      if (photo) added.push(photo);
+    }
+    return res.status(201).json({ photos: added, added: added.length });
+  }
+
+  if (!provider || !asset_id) return res.status(400).json({ error: 'provider and asset_id required' });
+  const photo = svc.addProviderPhotoToGallery(Number(req.params.id), authReq.user.id, provider, asset_id, undefined, pp);
+  if (!photo) return res.status(403).json({ error: 'Not allowed or duplicate' });
+  res.status(201).json(photo);
+});
+
+// Hard-delete a gallery photo (removes from all entries)
+router.delete('/:id/gallery/:journeyPhotoId', authenticate, async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const photo = svc.deleteGalleryPhoto(Number(req.params.journeyPhotoId), authReq.user.id);
+  if (!photo) return res.status(404).json({ error: 'Photo not found or not allowed' });
+  if (photo.file_path) {
+    const fullPath = path.join(__dirname, '../../uploads', photo.file_path);
+    try { fs.unlinkSync(fullPath); } catch {}
+  }
+  res.status(204).end();
 });
 
 // ── Journeys /:id (parameterized routes AFTER static prefixes) ───────────

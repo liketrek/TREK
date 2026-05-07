@@ -30,17 +30,23 @@ TREK is a self-hosted, real-time collaborative travel planner licensed under AGP
 - **Public Share Links** — share a read-only view of any trip
 
 ### Addons _(admin-toggleable)_
+- **Lists** — packing lists and to-dos with templates, member assignments, optional bag tracking
+- **Budget Planner** — expense tracker with category breakdown, splits, multi-currency
+- **Documents** — file manager for trips, places, and reservations
+- **Collab** — group chat, shared notes, polls, day-by-day attendance
 - **Vacay** — personal vacation day planner with calendar view, public holidays, and carry-over tracking
 - **Atlas** — interactive world map, bucket list, travel stats, continent breakdown
-- **Journey** — travel journal linking entries to trips, with contributor roles
-- **Memories** — photo-focused trip memories
-- **Collab** — group chat, shared notes, polls, and activity sign-ups
-- **Dashboard Widgets** — currency converter and timezone clock, toggled per user
+- **Journey** — magazine-style travel journal with entries, photos (via Immich/Synology Photos), maps, and moods
+- **Naver List Import** — import places from shared Naver Maps lists
+- **MCP** — expose TREK to AI assistants via the Model Context Protocol (OAuth 2.1)
+
+> Dashboard widgets (currency converter and timezone clock) are per-user preferences, not an admin-toggleable addon — see [Dashboard-Widgets](Dashboard-Widgets).
 
 ### AI / MCP Integration
 - **MCP Server** — built-in Model Context Protocol server with OAuth 2.1 authentication
-- **80+ Tools** — create trips, plan itineraries, manage budgets, send messages, and more
-- **24 OAuth Scopes** — granular permissions across 13 permission groups
+- **150+ Tools** — create trips, plan itineraries, manage budgets, send messages, and more
+- **30 Resources** — read-only `trek://` URIs for trips, days, places, budget, packing, journeys, and more
+- **27 OAuth Scopes** — granular permissions across 13 permission groups
 - **Pre-built Prompts** — `trip-summary`, `packing-list`, and `budget-overview` context loaders
 
 ### Admin
@@ -48,7 +54,7 @@ TREK is a self-hosted, real-time collaborative travel planner licensed under AGP
 - Addon management, API key storage, scheduled auto-backups
 - System notices for onboarding and announcements
 
-> **Admin:** Most configuration lives in the Admin Panel. The first user to register becomes the admin automatically.
+> **Admin:** Most configuration lives in the Admin Panel. On first boot TREK seeds an admin account automatically — credentials come from `ADMIN_EMAIL` / `ADMIN_PASSWORD` if set, otherwise a random password is printed to the container log.
 
 ## Get Started
 

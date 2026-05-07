@@ -355,6 +355,37 @@ describe('journeyStore', () => {
     expect(useJourneyStore.getState().loading).toBe(false);
   });
 
+  // ── reorderEntries ───────────────────────────────────────────────────────
+
+  it('FE-STORE-JOURNEY-018: reorderEntries reorders by sort_order not entry_time', async () => {
+    const a = buildEntry({ id: 201, entry_date: '2026-04-01', entry_time: '09:00', sort_order: 0 });
+    const b = buildEntry({ id: 202, entry_date: '2026-04-01', entry_time: '11:00', sort_order: 1 });
+    const c = buildEntry({ id: 203, entry_date: '2026-04-01', entry_time: '14:00', sort_order: 2 });
+    const detail = buildJourneyDetail({ id: 55, entries: [a, b, c] });
+    useJourneyStore.setState({ current: detail });
+
+    server.use(
+      http.put('/api/journeys/55/entries/reorder', () => HttpResponse.json({ success: true }))
+    );
+    await useJourneyStore.getState().reorderEntries(55, [202, 201, 203]);
+    const ids = useJourneyStore.getState().current?.entries.map(e => e.id);
+    expect(ids).toEqual([202, 201, 203]);
+  });
+
+  it('FE-STORE-JOURNEY-019: reorderEntries rolls back on API failure', async () => {
+    const a = buildEntry({ id: 211, entry_date: '2026-04-01', sort_order: 0 });
+    const b = buildEntry({ id: 212, entry_date: '2026-04-01', sort_order: 1 });
+    const detail = buildJourneyDetail({ id: 56, entries: [a, b] });
+    useJourneyStore.setState({ current: detail });
+
+    server.use(
+      http.put('/api/journeys/56/entries/reorder', () => HttpResponse.json({}, { status: 403 }))
+    );
+    await expect(useJourneyStore.getState().reorderEntries(56, [212, 211])).rejects.toBeTruthy();
+    const ids = useJourneyStore.getState().current?.entries.map(e => e.id);
+    expect(ids).toEqual([211, 212]);
+  });
+
   // ── clear ────────────────────────────────────────────────────────────────
 
   it('FE-STORE-JOURNEY-015: clear resets state', () => {

@@ -14,6 +14,7 @@ import type { JourneyMapHandle } from '../components/Journey/JourneyMap'
 import JournalBody from '../components/Journey/JournalBody'
 import PhotoLightbox from '../components/Journey/PhotoLightbox'
 import MobileMapTimeline from '../components/Journey/MobileMapTimeline'
+import MobileEntryView from '../components/Journey/MobileEntryView'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { formatLocationName } from '../utils/formatters'
 import { DAY_COLORS } from '../components/Journey/dayColors'
@@ -44,6 +45,17 @@ interface PublicPhoto {
   caption?: string | null
 }
 
+interface PublicGalleryPhoto {
+  id: number
+  journey_id: number
+  photo_id: number
+  provider?: string
+  asset_id?: string | null
+  owner_id?: number | null
+  file_path?: string | null
+  caption?: string | null
+}
+
 const MOOD_CONFIG: Record<string, { icon: typeof Smile; label: string; bg: string; text: string }> = {
   amazing: { icon: Laugh,  label: 'Amazing', bg: 'bg-pink-50 dark:bg-pink-900/20',   text: 'text-pink-600 dark:text-pink-400' },
   good:    { icon: Smile,  label: 'Good',    bg: 'bg-amber-50 dark:bg-amber-900/20',  text: 'text-amber-600 dark:text-amber-400' },
@@ -60,7 +72,7 @@ const WEATHER_CONFIG: Record<string, { icon: typeof Sun; label: string }> = {
   cold:   { icon: Snowflake,       label: 'Cold' },
 }
 
-function photoUrl(p: PublicPhoto, shareToken: string, kind: 'thumbnail' | 'original' = 'original'): string {
+function photoUrl(p: { photo_id: number }, shareToken: string, kind: 'thumbnail' | 'original' = 'original'): string {
   return `/api/public/journey/${shareToken}/photos/${p.photo_id}/${kind}`
 }
 
@@ -96,6 +108,7 @@ export default function JourneyPublicPage() {
   const locale = useSettingsStore(s => s.settings.language) || 'en'
   const mapRef = useRef<JourneyMapHandle>(null)
   const [activeEntryId, setActiveEntryId] = useState<string | null>(null)
+  const [viewingEntry, setViewingEntry] = useState<PublicEntry | null>(null)
 
   const handleMarkerClick = useCallback((entryId: string) => {
     setActiveEntryId(entryId)
@@ -113,21 +126,19 @@ export default function JourneyPublicPage() {
   }, [token])
 
   const entries = (data?.entries || []) as PublicEntry[]
+  const gallery = (data?.gallery || []) as PublicGalleryPhoto[]
   const perms = data?.permissions || {}
   const journey = data?.journey || {}
   const stats = data?.stats || {}
 
-  const timelineEntries = useMemo(
-    () => entries.filter(e => e.title !== '[Trip Photos]' && e.title !== 'Gallery'),
-    [entries],
-  )
+  const timelineEntries = useMemo(() => entries, [entries])
   const groupedEntries = useMemo(() => groupByDate(timelineEntries), [timelineEntries])
   const sortedDates = useMemo(() => [...groupedEntries.keys()].sort(), [groupedEntries])
   const mapEntries = useMemo(
     () => timelineEntries.filter(e => e.location_lat && e.location_lng),
     [timelineEntries],
   )
-  const allPhotos = useMemo(() => entries.flatMap(e => (e.photos || []).map(p => ({ photo: p, entry: e }))), [entries])
+  const allPhotos = gallery
 
   // Map entries with day color/label for colored markers.
   // dayIdx is derived from sortedDates (ALL timeline dates) so marker colors
@@ -189,7 +200,7 @@ export default function JourneyPublicPage() {
   const availableViews = [
     perms.share_timeline && { id: 'timeline' as const, icon: List, label: t('journey.share.timeline') },
     perms.share_gallery && { id: 'gallery' as const, icon: Grid, label: t('journey.share.gallery') },
-    !desktopTwoColumn && perms.share_map && { id: 'map' as const, icon: MapPin, label: t('journey.share.map') },
+    !desktopTwoColumn && !isMobile && perms.share_map && { id: 'map' as const, icon: MapPin, label: t('journey.share.map') },
   ].filter(Boolean) as { id: 'timeline' | 'gallery' | 'map'; icon: any; label: string }[]
 
   // Shared timeline renderer used in both layout modes
@@ -306,7 +317,7 @@ export default function JourneyPublicPage() {
                     )}
 
                     {/* Content */}
-                    <div className="px-5 pt-4 pb-5">
+                    <div className="px-5 pt-4 pb-5 cursor-pointer" onClick={() => setViewingEntry(entry)}>
                       {/* Title (only when no single photo — photo has it in overlay) */}
                       {photos.length !== 1 && entry.title && (
                         <h3 className="text-[16px] font-semibold text-zinc-900 dark:text-white tracking-tight leading-snug mb-2">{entry.title}</h3>
@@ -402,11 +413,11 @@ export default function JourneyPublicPage() {
   // Shared gallery renderer
   const renderGallery = () => (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5">
-      {allPhotos.map(({ photo }, idx) => (
+      {allPhotos.map((photo, idx) => (
         <div
           key={photo.id}
           className="aspect-square rounded-lg overflow-hidden cursor-pointer"
-          onClick={() => setLightbox({ photos: allPhotos.map(({ photo: p }) => ({ id: String(p.id), src: photoUrl(p, token!, 'original'), caption: p.caption })), index: idx })}
+          onClick={() => setLightbox({ photos: allPhotos.map(p => ({ id: String(p.id), src: photoUrl(p, token!, 'original'), caption: p.caption })), index: idx })}
         >
           <img src={photoUrl(photo, token!, 'thumbnail')} className="w-full h-full object-cover hover:scale-105 transition-transform" alt="" loading="lazy" />
         </div>
@@ -437,7 +448,7 @@ export default function JourneyPublicPage() {
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       {/* Hero */}
-      <div className="relative text-center text-white" style={{ background: 'linear-gradient(135deg, #000 0%, #0f172a 50%, #1e293b 100%)', padding: '32px 20px 28px' }}>
+      <div className="relative text-center text-white" style={{ background: 'linear-gradient(135deg, #000 0%, #0f172a 50%, #1e293b 100%)', padding: '32px 20px 28px', overflow: 'hidden' }}>
         {journey.cover_image && (
           <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(/uploads/${journey.cover_image})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.15 }} />
         )}
@@ -499,7 +510,7 @@ export default function JourneyPublicPage() {
         // ── Desktop two-column: scrollable timeline feed + sticky map ──────────
         <div className="max-w-[1440px] mx-auto flex" style={{ alignItems: 'flex-start' }}>
           {/* Left: feed */}
-          <div className="flex-1 min-w-0 px-8 py-6">
+          <div className="flex-1 xl:max-w-[50%] min-w-0 px-8 py-6">
             {renderTabs(availableViews)}
             {view === 'timeline' && perms.share_timeline && renderTimeline()}
             {view === 'gallery' && perms.share_gallery && renderGallery()}
@@ -563,7 +574,7 @@ export default function JourneyPublicPage() {
               mapEntries={sidebarMapItems as any}
               dark={document.documentElement.classList.contains('dark')}
               readOnly
-              onEntryClick={() => {}}
+              onEntryClick={(entry) => setViewingEntry(entry as any)}
               publicPhotoUrl={(photoId) => `/api/public/journey/${token}/photos/${photoId}/original`}
               carouselBottom="calc(env(safe-area-inset-bottom, 16px) + 8px)"
             />
@@ -605,6 +616,26 @@ export default function JourneyPublicPage() {
           photos={lightbox.photos}
           startIndex={lightbox.index}
           onClose={() => setLightbox(null)}
+        />
+      )}
+
+      {/* Mobile entry detail view (public share) */}
+      {viewingEntry && (
+        <MobileEntryView
+          entry={viewingEntry as any}
+          readOnly
+          publicPhotoUrl={(photoId) => `/api/public/journey/${token}/photos/${photoId}/original`}
+          onClose={() => setViewingEntry(null)}
+          onEdit={() => {}}
+          onDelete={() => {}}
+          onPhotoClick={(photos, idx) => setLightbox({
+            photos: photos.map(p => ({
+              id: String(p.id),
+              src: photoUrl(p as any, token!, 'original'),
+              caption: (p as any).caption ?? null,
+            })),
+            index: idx,
+          })}
         />
       )}
     </div>

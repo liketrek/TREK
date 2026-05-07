@@ -58,7 +58,7 @@ afterAll(() => {
 
 // -- Helpers ------------------------------------------------------------------
 
-/** Insert a trek_photos + journey_photos row and return the trek_photos id (used as photoId in public URLs). */
+/** Insert a trek_photos + journey_photos (gallery) + journey_entry_photos row and return the trek_photos id (used as photoId in public URLs). */
 function insertJourneyPhoto(
   entryId: number,
   opts: { filePath?: string; assetId?: string; ownerId?: number } = {}
@@ -70,10 +70,24 @@ function insertJourneyPhoto(
     VALUES (?, ?, ?, ?, ?)
   `).run(provider, opts.assetId ?? null, filePath, opts.ownerId ?? null, Date.now());
   const trekId = trekResult.lastInsertRowid as number;
+
+  // Look up journey_id from entry so gallery row is keyed to the journey (not entry).
+  const entryRow = testDb.prepare('SELECT journey_id FROM journey_entries WHERE id = ?').get(entryId) as { journey_id: number };
+  const journeyId = entryRow.journey_id;
+  const now = Date.now();
+
   testDb.prepare(`
-    INSERT INTO journey_photos (entry_id, photo_id, caption, sort_order, created_at)
+    INSERT OR IGNORE INTO journey_photos (journey_id, photo_id, caption, sort_order, created_at)
     VALUES (?, ?, NULL, 0, ?)
-  `).run(entryId, trekId, Date.now());
+  `).run(journeyId, trekId, now);
+
+  const galleryRow = testDb.prepare('SELECT id FROM journey_photos WHERE journey_id = ? AND photo_id = ?').get(journeyId, trekId) as { id: number };
+
+  testDb.prepare(`
+    INSERT OR IGNORE INTO journey_entry_photos (entry_id, journey_photo_id, sort_order, created_at)
+    VALUES (?, ?, 0, ?)
+  `).run(entryId, galleryRow.id, now);
+
   // Return trek_photos.id — this is p.photo_id in the public API response
   // and the value the client sends to /api/public/journey/:token/photos/:photoId/:kind
   return trekId;
