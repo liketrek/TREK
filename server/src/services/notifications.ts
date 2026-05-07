@@ -81,7 +81,7 @@ export function getMcpSafeUrl(): string {
   } catch {
     // candidate was somehow invalid — fall through to localhost
   }
-  const port = process.env.PORT || '3000';
+  const port = Number(process.env.PORT) || 3001;
   return `http://localhost:${port}`;
 }
 

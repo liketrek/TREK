@@ -19,7 +19,7 @@ const tmpDir = path.join(__dirname, '../data/tmp');
 const app = createApp();
 
 import * as scheduler from './scheduler';
-import { getMcpSafeUrl } from './services/notifications';
+import { getAppUrl, getMcpSafeUrl } from './services/notifications';
 
 const PORT = Number(process.env.PORT) || 3001;
 const HOST = process.env.HOST;
@@ -30,6 +30,7 @@ const onListen = () => {
   const LOG_LVL = (process.env.LOG_LEVEL || 'info').toLowerCase();
   const tz = process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
   const origins = process.env.ALLOWED_ORIGINS || '(same-origin)';
+  const appUrl = getAppUrl();
   const resolvedAppUrl = getMcpSafeUrl();
   const banner = [
     '──────────────────────────────────────',
@@ -37,7 +38,7 @@ const onListen = () => {
     `  Version         ${APP_VERSION}`,
     ...(HOST ? [`  Host:           ${HOST}`] : []),
     `  Container Port: ${PORT}`,
-    `  App URL:        ${resolvedAppUrl}`,
+    `  App URL:        ${appUrl}`,
     `  Environment:    ${process.env.NODE_ENV?.toLowerCase() || 'development'}`,
     `  Timezone:       ${tz}`,
     `  Origins:        ${origins}`,
@@ -48,9 +49,22 @@ const onListen = () => {
     '──────────────────────────────────────',
   ];
   banner.forEach(l => console.log(l));
-  const rawAppUrl = process.env.APP_URL?.replace(/\/+$/, '');
-  if (rawAppUrl && rawAppUrl !== resolvedAppUrl) {
-    sLogWarn(`APP_URL="${process.env.APP_URL}" is not usable (must be https:// or http://localhost) — using ${resolvedAppUrl} instead.`);
+  if (process.env.APP_URL) {
+    let parsedAppUrl: URL | null = null;
+    try { parsedAppUrl = new URL(process.env.APP_URL); } catch { /* invalid */ }
+
+    if (!parsedAppUrl) {
+      sLogWarn(`APP_URL: "${process.env.APP_URL}" is not a valid URL — it will be ignored.`);
+    }
+
+    const mcpSafe = parsedAppUrl !== null && (
+      parsedAppUrl.protocol === 'https:' ||
+      parsedAppUrl.hostname === 'localhost' ||
+      parsedAppUrl.hostname === '127.0.0.1'
+    );
+    if (!mcpSafe) {
+      sLogWarn(`APP_URL: not MCP-safe (requires https:// or http://localhost) — MCP will use ${resolvedAppUrl}.`);
+    }
   }
   if (process.env.DEMO_MODE?.toLowerCase() === 'true') sLogInfo('Demo mode: ENABLED');
   if (process.env.DEMO_MODE?.toLowerCase() === 'true' && process.env.NODE_ENV?.toLowerCase() === 'production') {
