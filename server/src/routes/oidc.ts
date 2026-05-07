@@ -14,8 +14,8 @@ import {
   touchLastLogin,
   generateToken,
   frontendUrl,
-  getAppUrl,
 } from '../services/oidcService';
+import { getAppUrl } from '../services/notifications';
 import { resolveAuthToggles } from '../services/authService';
 
 const router = express.Router();
