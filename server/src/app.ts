@@ -50,11 +50,11 @@ import { getCollabFeatures } from './services/adminService';
 import { isAddonEnabled } from './services/adminService';
 import { ADDON_IDS } from './addons';
 import { ALL_SCOPES } from './mcp/scopes';
-import { getAppUrl } from './services/oidcService';
 import { mcpAuthMetadataRouter } from '@modelcontextprotocol/sdk/server/auth/router';
 import { authorizationHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/authorize';
 import { clientRegistrationHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/register';
 import type { OAuthMetadata } from '@modelcontextprotocol/sdk/shared/auth';
+import { getMcpSafeUrl } from './services/notifications';
 
 export function createApp(): express.Application {
   const app = express();
@@ -388,7 +388,7 @@ export function createApp(): express.Application {
 
   function getOAuthMetadata(): OAuthMetadata {
     if (_oauthMetadata) return _oauthMetadata;
-    const base = (getAppUrl() || 'http://localhost:3001').replace(/\/+$/, '');
+    const base = getMcpSafeUrl().replace(/\/+$/, '');
     _oauthMetadata = {
       issuer:                                base,
       authorization_endpoint:                `${base}/oauth/authorize`,
@@ -416,14 +416,11 @@ export function createApp(): express.Application {
     return _sdkMetaRouter;
   }
 
-  // Path-aware gate: only /.well-known/* returns 404 when disabled; other paths pass through
-  // so static files and SPA routes are unaffected when MCP is off.
+  // Only invoke the SDK metadata router for /.well-known/* paths.
+  // Calling getMetaRouter() on every request triggers lazy init (new URL(...)) which
+  // throws "Invalid URL" when APP_URL lacks a protocol — breaking all page loads.
   app.use((req: Request, res: Response, next: NextFunction) => {
-    const isMetadataPath =
-        req.path === '/.well-known/oauth-authorization-server' ||
-        req.path === '/.well-known/openid-configuration' ||
-        req.path.startsWith('/.well-known/oauth-protected-resource');
-    if (isMetadataPath && !isAddonEnabled(ADDON_IDS.MCP)) return res.status(404).end();
+    if (req.path.startsWith('/.well-known/') && !isAddonEnabled(ADDON_IDS.MCP)) return res.status(404).end();
     getMetaRouter()(req, res, next);
   });
 

@@ -46,11 +46,40 @@ function getSmtpConfig(): SmtpConfig | null {
 
 // Exported for use by notificationService
 export function getAppUrl(): string {
-  if (process.env.APP_URL) return process.env.APP_URL;
+  if (process.env.APP_URL) {
+    try {
+      const _ = new URL(process.env.APP_URL);
+      return process.env.APP_URL.replace(/\/+$/, '');
+    } catch (_ignored) {
+    }
+  }
   const origins = process.env.ALLOWED_ORIGINS;
   if (origins) {
     const first = origins.split(',')[0]?.trim();
-    if (first) return first.replace(/\/+$/, '');
+    if (first) {
+      try {
+        const _ = new URL(first);
+        return first.replace(/\/+$/, '');
+      } catch (_ignored) {
+      }
+    }
+  }
+  const port = Number(process.env.PORT) || 3001;
+  return `http://localhost:${port}`;
+}
+
+/** Returns a URL guaranteed to satisfy the MCP SDK's issuer requirements (HTTPS or localhost).
+ *  Falls back to http://localhost:{PORT} when APP_URL/ALLOWED_ORIGINS use a non-HTTPS, non-localhost scheme
+ *  that would cause checkIssuerUrl to throw "Issuer URL must be HTTPS". */
+export function getMcpSafeUrl(): string {
+  const candidate = getAppUrl();
+  try {
+    const u = new URL(candidate);
+    if (u.protocol === 'https:' || u.hostname === 'localhost' || u.hostname === '127.0.0.1') {
+      return candidate;
+    }
+  } catch {
+    // candidate was somehow invalid — fall through to localhost
   }
   const port = process.env.PORT || '3000';
   return `http://localhost:${port}`;

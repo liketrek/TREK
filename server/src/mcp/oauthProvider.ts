@@ -16,7 +16,7 @@ import {
     getUserByAccessToken,
 } from '../services/oauthService';
 import { ALL_SCOPES } from './scopes';
-import { getAppUrl } from '../services/oidcService';
+import { getMcpSafeUrl } from '../services/notifications';
 import { writeAudit } from '../services/auditLog';
 
 // ---------------------------------------------------------------------------
@@ -125,7 +125,7 @@ export const trekOAuthProvider: OAuthServerProvider = {
 
     // Redirects browser to the SPA consent page with OAuth params forwarded.
     async authorize(client: OAuthClientInformationFull, params: AuthorizationParams, res: Response): Promise<void> {
-        const mcpResource = `${(getAppUrl() || '').replace(/\/+$/, '')}/mcp`;
+        const mcpResource = `${getMcpSafeUrl().replace(/\/+$/, '')}/mcp`;
         const resource = params.resource ? params.resource.href.replace(/\/+$/, '') : mcpResource;
 
         if (resource !== mcpResource) {

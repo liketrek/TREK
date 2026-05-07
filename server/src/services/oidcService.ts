@@ -194,14 +194,6 @@ export function generateToken(user: { id: number }): string {
   return jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '24h', algorithm: 'HS256' });
 }
 
-export function getAppUrl(): string | null {
-  return (
-    process.env.APP_URL ||
-    (db.prepare("SELECT value FROM app_settings WHERE key = 'app_url'").get() as { value: string } | undefined)?.value ||
-    null
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Token exchange with OIDC provider
 // ---------------------------------------------------------------------------

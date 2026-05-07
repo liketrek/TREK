@@ -11,7 +11,7 @@ import { registerResources } from './resources';
 import { registerTools } from './tools';
 import { McpSession, sessions, revokeUserSessions, revokeUserSessionsForClient } from './sessionManager';
 import { writeAudit, getClientIp } from '../services/auditLog';
-import { getAppUrl } from '../services/oidcService';
+import { getMcpSafeUrl } from '../services/notifications';
 
 export { revokeUserSessions, revokeUserSessionsForClient };
 
@@ -153,7 +153,7 @@ const sessionSweepInterval = setInterval(() => {
 sessionSweepInterval.unref();
 
 function setAuthChallenge(res: Response, error = 'invalid_token'): void {
-  const base = (getAppUrl() || '').replace(/\/+$/, '');
+  const base = (getMcpSafeUrl() || '').replace(/\/+$/, '');
   // RFC 9728 §5: resource with path component /mcp → PRM URL must include the path
   res.set('WWW-Authenticate',
       `Bearer realm="TREK MCP", resource_metadata="${base}/.well-known/oauth-protected-resource/mcp", error="${error}"`);
@@ -183,7 +183,7 @@ function verifyToken(authHeader: string | undefined): VerifyTokenResult | null {
     if (!result) return null;
     // RFC 8707: audience must always match this resource endpoint.
     // Pre-audit tokens with audience=null are revoked by the SEC-H6 migration.
-    const expected = `${(getAppUrl() || '').replace(/\/+$/, '')}/mcp`;
+    const expected = `${(getMcpSafeUrl() || '').replace(/\/+$/, '')}/mcp`;
     if (result.audience !== expected) return null;
     return { user: result.user, scopes: result.scopes, clientId: result.clientId, isStaticToken: false };
   }

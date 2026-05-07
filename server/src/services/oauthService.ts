@@ -6,7 +6,7 @@ import { ADDON_IDS } from '../addons';
 import { User } from '../types';
 import { writeAudit, logWarn } from './auditLog';
 import { revokeUserSessionsForClient } from '../mcp/sessionManager';
-import { getAppUrl } from './oidcService';
+import { getMcpSafeUrl } from './notifications';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -587,7 +587,7 @@ export function validateAuthorizeRequest(
   // bind the token to the MCP endpoint by default — previously this
   // left `audience = null`, and the audience-bind check on MCP requests
   // then treated a null audience as "valid for any resource".
-  const mcpResource = `${(getAppUrl() || '').replace(/\/+$/, '')}/mcp`;
+  const mcpResource = `${getMcpSafeUrl().replace(/\/+$/, '')}/mcp`;
   const resource = params.resource
     ? params.resource.replace(/\/+$/, '')
     : mcpResource;

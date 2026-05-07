@@ -48,7 +48,10 @@ vi.mock('../../src/services/adminService', async (importOriginal) => {
     return { ...actual, isAddonEnabled: isAddonEnabledMock };
 });
 
-vi.mock('../../src/services/oidcService', () => ({ getAppUrl: () => 'https://trek.example.com' }));
+vi.mock('../../src/services/notifications', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../../src/services/notifications')>();
+    return { ...actual, getMcpSafeUrl: () => 'https://trek.example.com' };
+});
 
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 vi.mock('../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn(), revokeUserSessionsForClient: vi.fn(), sessions: new Map() }));
