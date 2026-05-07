@@ -18,12 +18,20 @@ const router = express.Router();
 // POST /search
 router.post('/search', authenticate, async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
-  const { query } = req.body;
+  const { query, lat, lng, radius } = req.body as {
+    query?: string; lat?: number; lng?: number; radius?: number;
+  };
 
   if (!query) return res.status(400).json({ error: 'Search query is required' });
 
+  // Optional location bias for searchText (constrain results to a circle).
+  const bias = (typeof lat === 'number' && typeof lng === 'number'
+                && Number.isFinite(lat) && Number.isFinite(lng))
+    ? { lat, lng, radius }
+    : undefined;
+
   try {
-    const result = await searchPlaces(authReq.user.id, query, req.query.lang as string);
+    const result = await searchPlaces(authReq.user.id, query, req.query.lang as string, bias);
     res.json(result);
   } catch (err: unknown) {
     const status = (err as { status?: number }).status || 500;

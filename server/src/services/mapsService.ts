@@ -322,12 +322,34 @@ export async function fetchWikimediaPhoto(lat: number, lng: number, name?: strin
 
 // ── Search places (Google or Nominatim fallback) ─────────────────────────────
 
-export async function searchPlaces(userId: number, query: string, lang?: string): Promise<{ places: Record<string, unknown>[]; source: string }> {
+export async function searchPlaces(
+  userId: number,
+  query: string,
+  lang?: string,
+  locationBias?: { lat: number; lng: number; radius?: number },
+): Promise<{ places: Record<string, unknown>[]; source: string }> {
   const apiKey = getMapsKey(userId);
 
   if (!apiKey) {
     const places = await searchNominatim(query, lang);
     return { places, source: 'openstreetmap' };
+  }
+
+  // Build optional location bias — when supplied, restricts results to a
+  // circle around the given point. Without this, Google's searchText
+  // applies the API key's billing-region bias, which yields useless
+  // results for queries like "park near <foreign coords>".
+  const body: Record<string, unknown> = {
+    textQuery: query,
+    languageCode: lang || 'en',
+  };
+  if (locationBias && Number.isFinite(locationBias.lat) && Number.isFinite(locationBias.lng)) {
+    body.locationBias = {
+      circle: {
+        center: { latitude: locationBias.lat, longitude: locationBias.lng },
+        radius: Math.max(1, Math.min(locationBias.radius ?? 1000, 50000)),
+      },
+    };
   }
 
   const response = await googleFetch('https://places.googleapis.com/v1/places:searchText', 'searchText', {
@@ -337,7 +359,7 @@ export async function searchPlaces(userId: number, query: string, lang?: string)
       'X-Goog-Api-Key': apiKey,
       'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.websiteUri,places.nationalPhoneNumber,places.types',
     },
-    body: JSON.stringify({ textQuery: query, languageCode: lang || 'en' }),
+    body: JSON.stringify(body),
   });
 
   const data = await response.json() as { places?: GooglePlaceResult[]; error?: { message?: string } };
@@ -357,6 +379,7 @@ export async function searchPlaces(userId: number, query: string, lang?: string)
     rating: p.rating || null,
     website: p.websiteUri || null,
     phone: p.nationalPhoneNumber || null,
+    types: p.types || [],
     source: 'google',
   }));
 
