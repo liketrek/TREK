@@ -15,6 +15,7 @@ WORKDIR /app
 COPY server/package*.json ./
 RUN apk add --no-cache tzdata dumb-init su-exec python3 make g++ && \
     npm ci --production && \
+    rm package-lock.json && \
     apk del python3 make g++
 
 COPY server/ ./
