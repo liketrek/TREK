@@ -43,7 +43,6 @@
     "hono": "^4.12.16",
     "@hono/node-server": "^1.19.13",
     "picomatch": "^4.0.4",
-    "brace-expansion": "^2.0.3",
     "ip-address": "^10.1.1"
   },
   "devDependencies": {
