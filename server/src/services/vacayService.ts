@@ -101,6 +101,29 @@ export function getActivePlanId(userId: number): number {
   return getActivePlan(userId).id;
 }
 
+export function shiftOwnerEntriesForTripWindow(
+  ownerId: number,
+  oldStart: string,
+  oldEnd: string,
+  newStart: string
+): void {
+  const row = db.prepare(
+    'SELECT CAST(julianday(?) - julianday(?) AS INTEGER) AS days'
+  ).get(newStart, oldStart) as { days: number } | undefined;
+  const offset = row?.days ?? 0;
+  if (offset === 0) return;
+
+  const plan = getOwnPlan(ownerId);
+
+  db.prepare(
+    `UPDATE OR IGNORE vacay_entries
+        SET date = date(date, ? || ' days')
+      WHERE plan_id = ?
+        AND user_id = ?
+        AND date BETWEEN ? AND ?`
+  ).run(`${offset >= 0 ? '+' : ''}${offset}`, plan.id, ownerId, oldStart, oldEnd);
+}
+
 export function getPlanUsers(planId: number): VacayUser[] {
   const plan = db.prepare('SELECT * FROM vacay_plans WHERE id = ?').get(planId) as VacayPlan | undefined;
   if (!plan) return [];
