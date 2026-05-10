@@ -1,4 +1,10 @@
+function looksLikeHeic(file: File): boolean {
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+  return ext === 'heic' || ext === 'heif' || file.type === 'image/heic' || file.type === 'image/heif'
+}
+
 export async function normalizeImageFile(file: File): Promise<File> {
+  if (!looksLikeHeic(file)) return file
   const { isHeic, heicTo } = await import('heic-to')
   if (!(await isHeic(file))) return file
   const blob = await heicTo({ blob: file, type: 'image/jpeg', quality: 0.92 })
