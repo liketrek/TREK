@@ -23,6 +23,11 @@ import { useCanDo } from '../../store/permissionsStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTranslation } from '../../i18n'
 import { isDayInAccommodationRange } from '../../utils/dayOrder'
+import {
+  TRANSPORT_TYPES, parseTimeToMinutes, getSpanPhase, getDisplayTimeForDay,
+  getTransportForDay as _getTransportForDay, getMergedItems as _getMergedItems,
+  type MergedItem,
+} from '../../utils/dayMerge'
 import { formatDate, formatTime, dayTotalCost, currencyDecimals } from '../../utils/formatters'
 import { useDayNotes } from '../../hooks/useDayNotes'
 import Tooltip from '../shared/Tooltip'
@@ -362,26 +367,6 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
     })
   }
 
-  const TRANSPORT_TYPES = new Set(['flight', 'train', 'bus', 'car', 'cruise'])
-
-  // Get span phase: how a reservation relates to a specific day (by id)
-  const getSpanPhase = (r: Reservation, dayId: number): 'single' | 'start' | 'middle' | 'end' => {
-    const startDayId = r.day_id
-    const endDayId = r.end_day_id ?? startDayId
-    if (!startDayId || startDayId === endDayId) return 'single'
-    if (dayId === startDayId) return 'start'
-    if (dayId === endDayId) return 'end'
-    return 'middle'
-  }
-
-  // Get the appropriate display time for a reservation on a specific day
-  const getDisplayTimeForDay = (r: Reservation, dayId: number): string | null => {
-    const phase = getSpanPhase(r, dayId)
-    if (phase === 'end') return r.reservation_end_time || null
-    if (phase === 'middle') return null
-    return r.reservation_time || null
-  }
-
   // Get phase label for multi-day badge
   const getSpanLabel = (r: Reservation, phase: string): string | null => {
     if (phase === 'single') return null
@@ -406,27 +391,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
     return { day_id: startId, end_day_id: targetDayId }
   }
 
-  const getTransportForDay = (dayId: number) => {
-    const dayAssignmentIds = (assignments[String(dayId)] || []).map(a => a.id)
-    return reservations.filter(r => {
-      if (!TRANSPORT_TYPES.has(r.type)) return false
-      if (r.assignment_id && dayAssignmentIds.includes(r.assignment_id)) return false
-
-      const startDayId = r.day_id
-      const endDayId = r.end_day_id ?? startDayId
-
-      if (startDayId == null) return false
-
-      if (endDayId !== startDayId) {
-        const startDay = days.find(d => d.id === startDayId)
-        const endDay = days.find(d => d.id === endDayId)
-        const thisDay = days.find(d => d.id === dayId)
-        if (!startDay || !endDay || !thisDay) return false
-        return getDayOrder(thisDay) >= getDayOrder(startDay) && getDayOrder(thisDay) <= getDayOrder(endDay)
-      }
-      return startDayId === dayId
-    })
-  }
+  const getTransportForDay = (dayId: number) =>
+    _getTransportForDay({ reservations, dayId, dayAssignmentIds: (assignments[String(dayId)] || []).map(a => a.id), days })
 
   // Get car rentals that are in "active" (middle) phase for a day — shown in day header, not timeline
   const getActiveRentalsForDay = (dayId: number) => {
@@ -445,20 +411,6 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
 
   const getDayAssignments = (dayId) =>
     (assignments[String(dayId)] || []).slice().sort((a, b) => a.order_index - b.order_index)
-
-  // Helper: parse time string ("HH:MM" or ISO) to minutes since midnight, or null
-  const parseTimeToMinutes = (time?: string | null): number | null => {
-    if (!time) return null
-    // ISO-Format "2025-03-30T09:00:00"
-    if (time.includes('T')) {
-      const [h, m] = time.split('T')[1].split(':').map(Number)
-      return h * 60 + m
-    }
-    // Einfaches "HH:MM" Format
-    const parts = time.split(':').map(Number)
-    if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) return parts[0] * 60 + parts[1]
-    return null
-  }
 
   // Compute initial day_plan_position for a transport based on time
   const computeTransportPosition = (r, da) => {
@@ -501,64 +453,14 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
     reservationsApi.updatePositions(tripId, positions).catch(() => {})
   }
 
-  const getMergedItems = (dayId) => {
-    const da = getDayAssignments(dayId)
-    const dn = (dayNotes[String(dayId)] || []).slice().sort((a, b) => a.sort_order - b.sort_order)
-    const transport = getTransportForDay(dayId)
-
-    // All places keep their order_index — untimed can be freely moved, timed auto-sort when time is set
-    const baseItems = [
-      ...da.map(a => ({ type: 'place' as const, sortKey: a.order_index, data: a })),
-      ...dn.map(n => ({ type: 'note' as const, sortKey: n.sort_order, data: n })),
-    ].sort((a, b) => a.sortKey - b.sortKey)
-
-    // Transports are inserted among places based on time
-    const timedTransports = transport.map(r => ({
-      type: 'transport' as const,
-      data: r,
-      minutes: parseTimeToMinutes(getDisplayTimeForDay(r, dayId)) ?? 0,
-    })).sort((a, b) => a.minutes - b.minutes)
-
-    if (timedTransports.length === 0) return baseItems
-    if (baseItems.length === 0) {
-      return timedTransports.map((item, i) => ({ ...item, sortKey: i }))
-    }
-
-    // Insert transports among places based on per-day position or time
-    const result = [...baseItems]
-    for (let ti = 0; ti < timedTransports.length; ti++) {
-      const timed = timedTransports[ti]
-      const minutes = timed.minutes
-
-      // Use per-day position if explicitly set by user reorder
-      const perDayPos = timed.data.day_positions?.[dayId] ?? timed.data.day_positions?.[String(dayId)]
-      if (perDayPos != null) {
-        result.push({ type: timed.type, sortKey: perDayPos, data: timed.data })
-        continue
-      }
-
-      // Find insertion position: after the last place with time <= this transport's time
-      let insertAfterKey = -Infinity
-      for (const item of result) {
-        if (item.type === 'place') {
-          const pm = parseTimeToMinutes(item.data?.place?.place_time)
-          if (pm !== null && pm <= minutes) insertAfterKey = item.sortKey
-        } else if (item.type === 'transport') {
-          const tm = parseTimeToMinutes(item.data?.reservation_time)
-          if (tm !== null && tm <= minutes) insertAfterKey = item.sortKey
-        }
-      }
-
-      const lastKey = result.length > 0 ? Math.max(...result.map(i => i.sortKey)) : 0
-      const sortKey = insertAfterKey === -Infinity
-        ? lastKey + 0.5 + ti * 0.01
-        : insertAfterKey + 0.01 + ti * 0.001
-
-      result.push({ type: timed.type, sortKey, data: timed.data })
-    }
-
-    return result.sort((a, b) => a.sortKey - b.sortKey)
-  }
+  const getMergedItems = (dayId: number): MergedItem[] =>
+    _getMergedItems({
+      dayAssignments: getDayAssignments(dayId),
+      dayNotes: (dayNotes[String(dayId)] || []).slice().sort((a, b) => a.sort_order - b.sort_order),
+      dayTransports: getTransportForDay(dayId),
+      dayId,
+      getDisplayTime: getDisplayTimeForDay,
+    })
 
   // Pre-compute merged items for all days so the render loop doesn't recompute on unrelated state changes (e.g. hover)
   // eslint-disable-next-line react-hooks/exhaustive-deps
