@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { formatLocationName } from '../utils/formatters'
+import { normalizeImageFiles } from '../utils/convertHeic'
 import { createPortal } from 'react-dom'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useJourneyStore } from '../store/journeyStore'
@@ -1027,8 +1028,9 @@ function GalleryView({ entries, gallery, journeyId, userId, trips, onPhotoClick,
     if (!files?.length) return
     setGalleryUploading(true)
     try {
+      const normalized = await normalizeImageFiles(files)
       const formData = new FormData()
-      for (const f of files) formData.append('photos', f)
+      for (const f of normalized) formData.append('photos', f)
       await journeyApi.uploadGalleryPhotos(journeyId, formData)
       toast.success(t('journey.photosUploaded', { count: files.length }))
       onRefresh()
@@ -2265,7 +2267,8 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
     if (!files?.length) return
     // Queue files locally until Save so cancel/close actually discards. This
     // keeps photo behavior consistent with text fields — no silent persistence.
-    setPendingFiles(prev => [...prev, ...Array.from(files)])
+    const normalized = await normalizeImageFiles(files)
+    setPendingFiles(prev => [...prev, ...normalized])
   }
 
   return (
