@@ -26,6 +26,11 @@ import { DEMO_EMAIL_PRIMARY, isDemoEmail } from './demo';
 
 authenticator.options = { window: 1 };
 
+// Pre-computed bcrypt hash to equalise timing of "unknown email" and
+// "OIDC-only account" branches with the real verification path (CWE-208).
+// Cost factor 12 matches register/changePassword/resetPassword — must stay in sync.
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync('__trek_no_such_user__', 12);
+
 const MFA_SETUP_TTL_MS = 15 * 60 * 1000;
 const mfaSetupPending = new Map<number, { secret: string; exp: number }>();
 const MFA_BACKUP_CODE_COUNT = 10;
@@ -437,14 +442,24 @@ export function loginUser(body: {
   }
 
   const user = db.prepare('SELECT * FROM users WHERE LOWER(email) = LOWER(?)').get(email) as User | undefined;
+
+  // Always run bcrypt — even for unknown/OIDC-only users — so response time
+  // does not reveal whether the email exists in the database (CWE-203/208).
+  const hashToCheck = user?.password_hash ?? DUMMY_PASSWORD_HASH;
+  const validPassword = bcrypt.compareSync(password, hashToCheck);
+
   if (!user) {
     return {
       error: 'Invalid email or password', status: 401,
       auditUserId: null, auditAction: 'user.login_failed', auditDetails: { email, reason: 'unknown_email' },
     };
   }
-
-  const validPassword = bcrypt.compareSync(password, user.password_hash!);
+  if (!user.password_hash) {
+    return {
+      error: 'Invalid email or password', status: 401,
+      auditUserId: Number(user.id), auditAction: 'user.login_failed', auditDetails: { email, reason: 'oidc_only' },
+    };
+  }
   if (!validPassword) {
     return {
       error: 'Invalid email or password', status: 401,
