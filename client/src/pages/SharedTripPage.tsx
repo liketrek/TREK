@@ -11,8 +11,8 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { Clock, MapPin, FileText, Train, Plane, Bus, Car, Ship, Ticket, Hotel, Map, Luggage, Wallet, MessageCircle } from 'lucide-react'
 import { isDayInAccommodationRange } from '../utils/dayOrder'
+import { getTransportForDay, getMergedItems } from '../utils/dayMerge'
 
-const TRANSPORT_TYPES = new Set(['flight', 'train', 'bus', 'car', 'cruise'])
 const TRANSPORT_ICONS = { flight: Plane, train: Train, bus: Bus, car: Car, cruise: Ship }
 
 function createMarkerIcon(place: any) {
@@ -184,14 +184,16 @@ export default function SharedTripPage() {
           {sortedDays.map((day: any, di: number) => {
             const da = assignments[String(day.id)] || []
             const notes = (dayNotes[String(day.id)] || [])
-            const dayTransport = (reservations || []).filter((r: any) => TRANSPORT_TYPES.has(r.type) && r.reservation_time?.split('T')[0] === day.date)
+            const dayAssignmentIds: number[] = da.map((a: any) => a.id)
+            const dayTransport = getTransportForDay({ reservations: reservations || [], dayId: day.id, dayAssignmentIds, days: sortedDays })
             const dayAccs = (accommodations || []).filter((a: any) => isDayInAccommodationRange(day, a.start_day_id, a.end_day_id, sortedDays))
 
-            const merged = [
-              ...da.map((a: any) => ({ type: 'place', k: a.order_index, data: a })),
-              ...notes.map((n: any) => ({ type: 'note', k: n.sort_order ?? 0, data: n })),
-              ...dayTransport.map((r: any) => ({ type: 'transport', k: r.day_plan_position ?? 999, data: r })),
-            ].sort((a, b) => a.k - b.k)
+            const merged = getMergedItems({
+              dayAssignments: da,
+              dayNotes: notes,
+              dayTransports: dayTransport,
+              dayId: day.id,
+            })
 
             return (
               <div key={day.id} style={{ background: 'var(--bg-card, white)', borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border-faint, #e5e7eb)' }}>
@@ -212,7 +214,7 @@ export default function SharedTripPage() {
 
                 {selectedDay === day.id && merged.length > 0 && (
                   <div style={{ padding: '0 16px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {merged.map((item: any, idx: number) => {
+                    {merged.map((item: any) => {
                       if (item.type === 'transport') {
                         const r = item.data
                         const TIcon = TRANSPORT_ICONS[r.type] || Ticket
