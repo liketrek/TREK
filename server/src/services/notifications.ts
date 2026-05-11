@@ -316,12 +316,12 @@ export function getEventText(lang: string, event: NotifEventType, params: Record
 
 // ── Email HTML builder ─────────────────────────────────────────────────────
 
-export function buildEmailHtml(subject: string, body: string, lang: string, navigateTarget?: string): string {
+export function buildEmailHtml(subject: string, body: string, lang: string, navigateTarget?: string, rawBody = false): string {
   const s = I18N[lang] || I18N.en;
   const appUrl = getAppUrl();
   const ctaHref = escapeHtml(navigateTarget ? `${appUrl}${navigateTarget}` : (appUrl || ''));
   const safeSubject = escapeHtml(subject);
-  const safeBody = escapeHtml(body);
+  const safeBody = rawBody ? body : escapeHtml(body);
 
   return `<!DOCTYPE html>
 <html>
@@ -396,7 +396,7 @@ function buildPasswordResetHtml(subject: string, strings: PasswordResetStrings, 
     <p style="margin:0 0 10px 0; font-size:13px; color:#6B7280;">${safeExpiry}</p>
     <p style="margin:0; font-size:13px; color:#6B7280;">${safeIgnore}</p>
   `;
-  return buildEmailHtml(subject, block, lang);
+  return buildEmailHtml(subject, block, lang, undefined, true);
 }
 
 /**
