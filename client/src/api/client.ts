@@ -460,6 +460,10 @@ export const budgetApi = {
   togglePaid: (tripId: number | string, id: number, userId: number, paid: boolean) => apiClient.put(`/trips/${tripId}/budget/${id}/members/${userId}/paid`, { paid }).then(r => r.data),
   perPersonSummary: (tripId: number | string) => apiClient.get(`/trips/${tripId}/budget/summary/per-person`).then(r => r.data),
   settlement: (tripId: number | string) => apiClient.get(`/trips/${tripId}/budget/settlement`).then(r => r.data),
+  transfers: (tripId: number | string) => apiClient.get(`/trips/${tripId}/budget/transfers`).then(r => r.data),
+  createTransfer: (tripId: number | string, data: Record<string, unknown>) => apiClient.post(`/trips/${tripId}/budget/transfers`, data).then(r => r.data),
+  updateTransfer: (tripId: number | string, id: number, data: Record<string, unknown>) => apiClient.put(`/trips/${tripId}/budget/transfers/${id}`, data).then(r => r.data),
+  deleteTransfer: (tripId: number | string, id: number) => apiClient.delete(`/trips/${tripId}/budget/transfers/${id}`).then(r => r.data),
   reorderItems: (tripId: number | string, orderedIds: number[]) => apiClient.put(`/trips/${tripId}/budget/reorder/items`, { orderedIds }).then(r => r.data),
   reorderCategories: (tripId: number | string, orderedCategories: string[]) => apiClient.put(`/trips/${tripId}/budget/reorder/categories`, { orderedCategories }).then(r => r.data),
 }

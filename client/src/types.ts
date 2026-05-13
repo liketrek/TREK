@@ -138,6 +138,22 @@ export interface BudgetMember {
   paid: boolean
 }
 
+export interface BudgetTransfer {
+  id: number
+  trip_id: number
+  from_user_id: number
+  to_user_id: number
+  amount: number
+  transfer_date: string
+  note: string | null
+  created_at?: string
+  updated_at?: string
+  from_username?: string
+  from_avatar_url?: string | null
+  to_username?: string
+  to_avatar_url?: string | null
+}
+
 export interface ReservationEndpoint {
   id?: number
   reservation_id?: number

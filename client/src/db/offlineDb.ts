@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { Trip, Day, Place, PackingItem, TodoItem, BudgetItem, Reservation, TripFile, Accommodation, TripMember, Tag, Category } from '../types';
+import type { Trip, Day, Place, PackingItem, TodoItem, BudgetItem, BudgetTransfer, Reservation, TripFile, Accommodation, TripMember, Tag, Category } from '../types';
 
 /** TripMember enriched with tripId so we can index by trip. */
 export interface CachedTripMember extends TripMember {
@@ -55,6 +55,7 @@ class TrekOfflineDb extends Dexie {
   packingItems!: Table<PackingItem, number>;
   todoItems!: Table<TodoItem, number>;
   budgetItems!: Table<BudgetItem, number>;
+  budgetTransfers!: Table<BudgetTransfer, number>;
   reservations!: Table<Reservation, number>;
   tripFiles!: Table<TripFile, number>;
   accommodations!: Table<Accommodation, number>;
@@ -88,6 +89,10 @@ class TrekOfflineDb extends Dexie {
       tags:           'id',
       categories:     'id',
     });
+
+    this.version(3).stores({
+      budgetTransfers: 'id, trip_id, transfer_date',
+    });
   }
 }
 
@@ -117,6 +122,13 @@ export async function upsertTodoItems(items: TodoItem[]): Promise<void> {
 
 export async function upsertBudgetItems(items: BudgetItem[]): Promise<void> {
   await offlineDb.budgetItems.bulkPut(items);
+}
+
+export async function replaceBudgetTransfersForTrip(tripId: number, transfers: BudgetTransfer[]): Promise<void> {
+  await offlineDb.transaction('rw', offlineDb.budgetTransfers, async () => {
+    await offlineDb.budgetTransfers.where('trip_id').equals(tripId).delete();
+    if (transfers.length > 0) await offlineDb.budgetTransfers.bulkPut(transfers);
+  });
 }
 
 export async function upsertReservations(items: Reservation[]): Promise<void> {
@@ -160,6 +172,7 @@ export async function clearTripData(tripId: number): Promise<void> {
       offlineDb.packingItems,
       offlineDb.todoItems,
       offlineDb.budgetItems,
+      offlineDb.budgetTransfers,
       offlineDb.reservations,
       offlineDb.tripFiles,
       offlineDb.accommodations,
@@ -173,6 +186,7 @@ export async function clearTripData(tripId: number): Promise<void> {
       await offlineDb.packingItems.where('trip_id').equals(tripId).delete();
       await offlineDb.todoItems.where('trip_id').equals(tripId).delete();
       await offlineDb.budgetItems.where('trip_id').equals(tripId).delete();
+      await offlineDb.budgetTransfers.where('trip_id').equals(tripId).delete();
       await offlineDb.reservations.where('trip_id').equals(tripId).delete();
       await offlineDb.tripFiles.where('trip_id').equals(tripId).delete();
       await offlineDb.accommodations.where('trip_id').equals(tripId).delete();

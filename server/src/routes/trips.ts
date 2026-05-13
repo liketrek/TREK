@@ -33,7 +33,7 @@ import { listDays, listAccommodations } from '../services/dayService';
 import { listPlaces } from '../services/placeService';
 import { listItems as listPackingItems } from '../services/packingService';
 import { listItems as listTodoItems } from '../services/todoService';
-import { listBudgetItems } from '../services/budgetService';
+import { listBudgetItems, listBudgetTransfers } from '../services/budgetService';
 import { listReservations } from '../services/reservationService';
 import { listFiles } from '../services/fileService';
 
@@ -309,7 +309,7 @@ router.get('/:id/bundle', authenticate, (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const tripId = req.params.id;
 
-  const trip = getTrip(tripId, authReq.user.id);
+  const trip = getTrip(tripId, authReq.user.id) as { user_id: number } | undefined;
   if (!trip) return res.status(404).json({ error: 'Trip not found' });
 
   const { days } = listDays(tripId);
@@ -317,6 +317,7 @@ router.get('/:id/bundle', authenticate, (req: Request, res: Response) => {
   const packingItems = listPackingItems(tripId);
   const todoItems = listTodoItems(tripId);
   const budgetItems = listBudgetItems(tripId);
+  const budgetTransfers = listBudgetTransfers(tripId);
   const reservations = listReservations(tripId);
   const files = listFiles(tripId, false);
   const accommodations = listAccommodations(tripId);
@@ -330,6 +331,7 @@ router.get('/:id/bundle', authenticate, (req: Request, res: Response) => {
     packingItems,
     todoItems,
     budgetItems,
+    budgetTransfers,
     reservations,
     files,
     accommodations,
