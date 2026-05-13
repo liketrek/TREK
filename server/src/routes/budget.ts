@@ -14,6 +14,10 @@ import {
   toggleMemberPaid,
   getPerPersonSummary,
   calculateSettlement,
+  listBudgetTransfers,
+  createBudgetTransfer,
+  updateBudgetTransfer,
+  deleteBudgetTransfer,
   reorderBudgetItems,
   reorderBudgetCategories,
 } from '../services/budgetService';
@@ -88,6 +92,67 @@ router.put('/reorder/categories', authenticate, (req: Request, res: Response) =>
   reorderBudgetCategories(tripId, orderedCategories);
   res.json({ success: true });
   broadcast(tripId, 'budget:reordered', { orderedCategories }, req.headers['x-socket-id'] as string);
+});
+
+router.get('/transfers', authenticate, (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const { tripId } = req.params;
+
+  const trip = verifyTripAccess(tripId, authReq.user.id);
+  if (!trip) return res.status(404).json({ error: 'Trip not found' });
+
+  res.json({ transfers: listBudgetTransfers(tripId) });
+});
+
+router.post('/transfers', authenticate, (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const { tripId } = req.params;
+
+  const trip = verifyTripAccess(tripId, authReq.user.id);
+  if (!trip) return res.status(404).json({ error: 'Trip not found' });
+
+  if (!checkPermission('budget_edit', authReq.user.role, trip.user_id, authReq.user.id, trip.user_id !== authReq.user.id))
+    return res.status(403).json({ error: 'No permission' });
+
+  const result = createBudgetTransfer(tripId, req.body);
+  if ('error' in result) return res.status(result.status).json({ error: result.error });
+
+  res.status(201).json(result);
+  broadcast(tripId, 'budget:transfer-created', { tripId: Number(tripId), transferId: result.transfer.id }, req.headers['x-socket-id'] as string);
+});
+
+router.put('/transfers/:transferId', authenticate, (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const { tripId, transferId } = req.params;
+
+  const trip = verifyTripAccess(tripId, authReq.user.id);
+  if (!trip) return res.status(404).json({ error: 'Trip not found' });
+
+  if (!checkPermission('budget_edit', authReq.user.role, trip.user_id, authReq.user.id, trip.user_id !== authReq.user.id))
+    return res.status(403).json({ error: 'No permission' });
+
+  const result = updateBudgetTransfer(transferId, tripId, req.body);
+  if ('error' in result) return res.status(result.status).json({ error: result.error });
+
+  res.json(result);
+  broadcast(tripId, 'budget:transfer-updated', { tripId: Number(tripId), transferId: result.transfer.id }, req.headers['x-socket-id'] as string);
+});
+
+router.delete('/transfers/:transferId', authenticate, (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const { tripId, transferId } = req.params;
+
+  const trip = verifyTripAccess(tripId, authReq.user.id);
+  if (!trip) return res.status(404).json({ error: 'Trip not found' });
+
+  if (!checkPermission('budget_edit', authReq.user.role, trip.user_id, authReq.user.id, trip.user_id !== authReq.user.id))
+    return res.status(403).json({ error: 'No permission' });
+
+  const result = deleteBudgetTransfer(transferId, tripId);
+  if ('error' in result) return res.status(result.status).json({ error: result.error });
+
+  res.json(result);
+  broadcast(tripId, 'budget:transfer-deleted', { tripId: Number(tripId), transferId: Number(transferId) }, req.headers['x-socket-id'] as string);
 });
 
 router.put('/:id', authenticate, (req: Request, res: Response) => {
