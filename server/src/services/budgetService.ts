@@ -1,5 +1,5 @@
 import { db, canAccessTrip } from '../db/database';
-import { BudgetItem, BudgetItemMember } from '../types';
+import { BudgetItem, BudgetItemMember, BudgetTransfer } from '../types';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -21,6 +21,98 @@ function loadItemMembers(itemId: number | string) {
     WHERE bm.budget_item_id = ?
   `).all(itemId) as BudgetItemMember[];
   return rows.map(m => ({ ...m, avatar_url: avatarUrl(m) }));
+}
+
+type ServiceResult<T> = T | { error: string; status: number };
+
+type Participant = { user_id: number; username: string; avatar: string | null };
+
+function isErrorResult<T>(result: ServiceResult<T>): result is { error: string; status: number } {
+  return typeof result === 'object' && result !== null && 'error' in result;
+}
+
+function todayDateOnly(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function normalizeNote(note: unknown): string | null {
+  if (note === undefined || note === null) return null;
+  const value = String(note).trim();
+  return value ? value : null;
+}
+
+export function normalizeTransferAmount(value: unknown): number | { error: string; status: number } {
+  if (typeof value !== 'number' && typeof value !== 'string') {
+    return { error: 'Amount is required', status: 400 };
+  }
+
+  if (typeof value === 'number' && !Number.isFinite(value)) {
+    return { error: 'Amount must be a finite number', status: 400 };
+  }
+
+  const raw = typeof value === 'number' ? String(value) : value.trim();
+  if (!/^\d+(?:\.\d+)?$/.test(raw)) {
+    return { error: 'Amount must be a non-negative decimal number', status: 400 };
+  }
+
+  const [wholeRaw, fracRaw = ''] = raw.split('.');
+  const whole = BigInt(wholeRaw);
+  const frac = (fracRaw + '000').slice(0, 3);
+  const cents = whole * 100n + BigInt(frac.slice(0, 2)) + (Number(frac[2]) >= 5 ? 1n : 0n);
+
+  if (cents <= 0n) {
+    return { error: 'Amount must round to at least 0.01', status: 400 };
+  }
+
+  return Number(cents) / 100;
+}
+
+function validateTransferDate(value: unknown, required: boolean): string | { error: string; status: number } {
+  if ((value === undefined || value === null || value === '') && !required) return todayDateOnly();
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return { error: 'transfer_date must be YYYY-MM-DD', status: 400 };
+  }
+  const [year, month, day] = value.split('-').map(Number);
+  const d = new Date(Date.UTC(year, month - 1, day));
+  if (d.getUTCFullYear() !== year || d.getUTCMonth() !== month - 1 || d.getUTCDate() !== day) {
+    return { error: 'transfer_date must be a valid date', status: 400 };
+  }
+  return value;
+}
+
+function listTripParticipants(tripId: string | number): Participant[] {
+  return db.prepare(`
+    SELECT u.id as user_id, u.username, u.avatar
+    FROM users u
+    JOIN trips t ON t.user_id = u.id
+    WHERE t.id = ?
+    UNION
+    SELECT u.id as user_id, u.username, u.avatar
+    FROM trip_members tm
+    JOIN users u ON u.id = tm.user_id
+    WHERE tm.trip_id = ?
+  `).all(tripId, tripId) as Participant[];
+}
+
+function participantMap(tripId: string | number): Map<number, Participant> {
+  return new Map(listTripParticipants(tripId).map(p => [p.user_id, p]));
+}
+
+function getTransferRow(id: number | bigint | string): BudgetTransfer | null {
+  const row = db.prepare(`
+    SELECT bt.*, fu.username as from_username, fu.avatar as from_avatar, tu.username as to_username, tu.avatar as to_avatar
+    FROM budget_transfers bt
+    JOIN users fu ON fu.id = bt.from_user_id
+    JOIN users tu ON tu.id = bt.to_user_id
+    WHERE bt.id = ?
+  `).get(id) as (BudgetTransfer & { from_avatar?: string | null; to_avatar?: string | null }) | undefined;
+  if (!row) return null;
+  const { from_avatar, to_avatar, ...transfer } = row;
+  return {
+    ...transfer,
+    from_avatar_url: avatarUrl({ avatar: from_avatar }),
+    to_avatar_url: avatarUrl({ avatar: to_avatar }),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -150,6 +242,98 @@ export function deleteBudgetItem(id: string | number, tripId: string | number): 
 }
 
 // ---------------------------------------------------------------------------
+// Settlement transfers
+// ---------------------------------------------------------------------------
+
+export function listBudgetTransfers(tripId: string | number): BudgetTransfer[] {
+  const rows = db.prepare(`
+    SELECT bt.*, fu.username as from_username, fu.avatar as from_avatar, tu.username as to_username, tu.avatar as to_avatar
+    FROM budget_transfers bt
+    JOIN users fu ON fu.id = bt.from_user_id
+    JOIN users tu ON tu.id = bt.to_user_id
+    WHERE bt.trip_id = ?
+    ORDER BY bt.transfer_date DESC, bt.created_at DESC, bt.id DESC
+  `).all(tripId) as (BudgetTransfer & { from_avatar?: string | null; to_avatar?: string | null })[];
+
+  return rows.map(({ from_avatar, to_avatar, ...transfer }) => ({
+    ...transfer,
+    from_avatar_url: avatarUrl({ avatar: from_avatar }),
+    to_avatar_url: avatarUrl({ avatar: to_avatar }),
+  }));
+}
+
+function validateTransferPayload(
+  tripId: string | number,
+  data: { from_user_id?: unknown; to_user_id?: unknown; amount?: unknown; transfer_date?: unknown; note?: unknown },
+  options: { dateRequired: boolean },
+): ServiceResult<{ from_user_id: number; to_user_id: number; amount: number; transfer_date: string; note: string | null }> {
+  const fromUserId = Number(data.from_user_id);
+  const toUserId = Number(data.to_user_id);
+  if (!Number.isInteger(fromUserId) || fromUserId <= 0) return { error: 'from_user_id is required', status: 400 };
+  if (!Number.isInteger(toUserId) || toUserId <= 0) return { error: 'to_user_id is required', status: 400 };
+  if (fromUserId === toUserId) return { error: 'Payer and recipient must be different users', status: 400 };
+
+  const amount = normalizeTransferAmount(data.amount);
+  if (isErrorResult(amount)) return amount;
+
+  const transferDate = validateTransferDate(data.transfer_date, options.dateRequired);
+  if (isErrorResult(transferDate)) return transferDate;
+
+  const participants = participantMap(tripId);
+  if (!participants.has(fromUserId)) return { error: 'Payer must be a current trip participant', status: 400 };
+  if (!participants.has(toUserId)) return { error: 'Recipient must be a current trip participant', status: 400 };
+
+  return {
+    from_user_id: fromUserId,
+    to_user_id: toUserId,
+    amount,
+    transfer_date: transferDate,
+    note: normalizeNote(data.note),
+  };
+}
+
+export function createBudgetTransfer(
+  tripId: string | number,
+  data: { from_user_id?: unknown; to_user_id?: unknown; amount?: unknown; transfer_date?: unknown; note?: unknown },
+): ServiceResult<{ transfer: BudgetTransfer }> {
+  const validated = validateTransferPayload(tripId, data, { dateRequired: false });
+  if (isErrorResult(validated)) return validated;
+
+  const result = db.prepare(`
+    INSERT INTO budget_transfers (trip_id, from_user_id, to_user_id, amount, transfer_date, note)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(tripId, validated.from_user_id, validated.to_user_id, validated.amount, validated.transfer_date, validated.note);
+
+  return { transfer: getTransferRow(result.lastInsertRowid)! };
+}
+
+export function updateBudgetTransfer(
+  transferId: string | number,
+  tripId: string | number,
+  data: { from_user_id?: unknown; to_user_id?: unknown; amount?: unknown; transfer_date?: unknown; note?: unknown },
+): ServiceResult<{ transfer: BudgetTransfer }> {
+  const existing = db.prepare('SELECT id FROM budget_transfers WHERE id = ? AND trip_id = ?').get(transferId, tripId);
+  if (!existing) return { error: 'Budget transfer not found', status: 404 };
+
+  const validated = validateTransferPayload(tripId, data, { dateRequired: true });
+  if (isErrorResult(validated)) return validated;
+
+  db.prepare(`
+    UPDATE budget_transfers
+    SET from_user_id = ?, to_user_id = ?, amount = ?, transfer_date = ?, note = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ? AND trip_id = ?
+  `).run(validated.from_user_id, validated.to_user_id, validated.amount, validated.transfer_date, validated.note, transferId, tripId);
+
+  return { transfer: getTransferRow(transferId)! };
+}
+
+export function deleteBudgetTransfer(transferId: string | number, tripId: string | number): ServiceResult<{ success: true }> {
+  const result = db.prepare('DELETE FROM budget_transfers WHERE id = ? AND trip_id = ?').run(transferId, tripId);
+  if (result.changes === 0) return { error: 'Budget transfer not found', status: 404 };
+  return { success: true };
+}
+
+// ---------------------------------------------------------------------------
 // Members
 // ---------------------------------------------------------------------------
 
@@ -244,6 +428,35 @@ export function calculateSettlement(tripId: string | number) {
       // Payers get credited what they paid
       if (m.paid) balances[m.user_id].balance += paidPerPayer;
     }
+  }
+
+  const participants = participantMap(tripId);
+  const transfers = db.prepare(`
+    SELECT from_user_id, to_user_id, amount
+    FROM budget_transfers
+    WHERE trip_id = ?
+  `).all(tripId) as { from_user_id: number; to_user_id: number; amount: number }[];
+
+  const ensureBalance = (userId: number) => {
+    if (balances[userId]) return balances[userId];
+    const participant = participants.get(userId);
+    if (!participant) return null;
+    balances[userId] = {
+      user_id: userId,
+      username: participant.username,
+      avatar_url: avatarUrl(participant),
+      balance: 0,
+    };
+    return balances[userId];
+  };
+
+  for (const transfer of transfers) {
+    if (!participants.has(transfer.from_user_id) || !participants.has(transfer.to_user_id)) continue;
+    const from = ensureBalance(transfer.from_user_id);
+    const to = ensureBalance(transfer.to_user_id);
+    if (!from || !to) continue;
+    from.balance += transfer.amount;
+    to.balance -= transfer.amount;
   }
 
   // Calculate optimized payment flows (greedy algorithm)

@@ -231,6 +231,18 @@ function createTables(db: Database.Database): void {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS budget_transfers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+      from_user_id INTEGER NOT NULL REFERENCES users(id),
+      to_user_id INTEGER NOT NULL REFERENCES users(id),
+      amount REAL NOT NULL,
+      transfer_date TEXT NOT NULL,
+      note TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
     -- Addon system
     CREATE TABLE IF NOT EXISTS addons (
       id TEXT PRIMARY KEY,
@@ -416,6 +428,9 @@ function createTables(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_trip_members_user_id ON trip_members(user_id);
     CREATE INDEX IF NOT EXISTS idx_packing_items_trip_id ON packing_items(trip_id);
     CREATE INDEX IF NOT EXISTS idx_budget_items_trip_id ON budget_items(trip_id);
+    CREATE INDEX IF NOT EXISTS idx_budget_transfers_trip_id ON budget_transfers(trip_id);
+    CREATE INDEX IF NOT EXISTS idx_budget_transfers_from_user ON budget_transfers(from_user_id);
+    CREATE INDEX IF NOT EXISTS idx_budget_transfers_to_user ON budget_transfers(to_user_id);
     CREATE INDEX IF NOT EXISTS idx_reservations_trip_id ON reservations(trip_id);
     CREATE INDEX IF NOT EXISTS idx_trip_files_trip_id ON trip_files(trip_id);
     CREATE INDEX IF NOT EXISTS idx_day_notes_day_id ON day_notes(day_id);

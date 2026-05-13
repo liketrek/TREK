@@ -2229,6 +2229,25 @@ function runMigrations(db: Database.Database): void {
       db.exec(`ALTER TABLE schema_version_new RENAME TO schema_version`)
       db.exec(`UPDATE app_settings SET value = '${process.env.APP_VERSION || '3.0.15'}' WHERE key = 'app_version'`);
     },
+    // Budget settlement transfers: real repayments recorded between trip participants.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS budget_transfers (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+          from_user_id INTEGER NOT NULL REFERENCES users(id),
+          to_user_id INTEGER NOT NULL REFERENCES users(id),
+          amount REAL NOT NULL,
+          transfer_date TEXT NOT NULL,
+          note TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_budget_transfers_trip_id ON budget_transfers(trip_id);
+        CREATE INDEX IF NOT EXISTS idx_budget_transfers_from_user ON budget_transfers(from_user_id);
+        CREATE INDEX IF NOT EXISTS idx_budget_transfers_to_user ON budget_transfers(to_user_id);
+      `);
+    },
   ];
 
   if (currentVersion < migrations.length) {

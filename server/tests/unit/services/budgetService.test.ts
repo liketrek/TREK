@@ -29,7 +29,7 @@ const mockDb = vi.hoisted(() => {
 
 vi.mock('../../../src/db/database', () => mockDb);
 
-import { calculateSettlement } from '../../../src/services/budgetService';
+import { calculateSettlement, normalizeTransferAmount } from '../../../src/services/budgetService';
 import type { BudgetItem, BudgetItemMember } from '../../../src/types';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -48,13 +48,28 @@ function makeMember(budget_item_id: number, user_id: number, paid: boolean | 0 |
   } as BudgetItemMember & { budget_item_id: number };
 }
 
-function setupDb(items: BudgetItem[], members: (BudgetItemMember & { budget_item_id: number })[]) {
+function setupDb(
+  items: BudgetItem[],
+  members: (BudgetItemMember & { budget_item_id: number })[],
+  transfers: { from_user_id: number; to_user_id: number; amount: number }[] = [],
+  participants = [
+    { user_id: 1, username: 'alice', avatar: null },
+    { user_id: 2, username: 'bob', avatar: null },
+    { user_id: 3, username: 'carol', avatar: null },
+  ],
+) {
   mockDb.db.prepare.mockImplementation((sql: string) => {
     if (sql.includes('SELECT * FROM budget_items')) {
       return { all: vi.fn(() => items), get: vi.fn(), run: vi.fn() };
     }
     if (sql.includes('budget_item_members')) {
       return { all: vi.fn(() => members), get: vi.fn(), run: vi.fn() };
+    }
+    if (sql.includes('FROM budget_transfers')) {
+      return { all: vi.fn(() => transfers), get: vi.fn(), run: vi.fn() };
+    }
+    if (sql.includes('JOIN trips t') && sql.includes('trip_members')) {
+      return { all: vi.fn(() => participants), get: vi.fn(), run: vi.fn() };
     }
     return { all: vi.fn(() => []), get: vi.fn(), run: vi.fn() };
   });
@@ -187,5 +202,56 @@ describe('calculateSettlement', () => {
     expect(bob.balance).toBe(-20);
     expect(result.flows).toHaveLength(1);
     expect(result.flows[0].amount).toBe(20);
+  });
+
+  it('applies a partial recorded transfer to settlement balances', () => {
+    setupDb(
+      [makeItem(1, 100)],
+      [makeMember(1, 1, 1, 'alice'), makeMember(1, 2, 0, 'bob')],
+      [{ from_user_id: 2, to_user_id: 1, amount: 20 }],
+    );
+    const result = calculateSettlement(1);
+    expect(result.balances.find(b => b.user_id === 1)?.balance).toBe(30);
+    expect(result.balances.find(b => b.user_id === 2)?.balance).toBe(-30);
+    expect(result.flows[0].amount).toBe(30);
+  });
+
+  it('clears settlement flows after a full recorded transfer', () => {
+    setupDb(
+      [makeItem(1, 100)],
+      [makeMember(1, 1, 1, 'alice'), makeMember(1, 2, 0, 'bob')],
+      [{ from_user_id: 2, to_user_id: 1, amount: 50 }],
+    );
+    const result = calculateSettlement(1);
+    expect(result.flows).toHaveLength(0);
+    expect(result.balances.find(b => b.user_id === 1)?.balance).toBe(0);
+    expect(result.balances.find(b => b.user_id === 2)?.balance).toBe(0);
+  });
+
+  it('allows overpayment to flip settlement direction', () => {
+    setupDb(
+      [makeItem(1, 100)],
+      [makeMember(1, 1, 1, 'alice'), makeMember(1, 2, 0, 'bob')],
+      [{ from_user_id: 2, to_user_id: 1, amount: 70 }],
+    );
+    const result = calculateSettlement(1);
+    expect(result.balances.find(b => b.user_id === 1)?.balance).toBe(-20);
+    expect(result.balances.find(b => b.user_id === 2)?.balance).toBe(20);
+    expect(result.flows[0].from.user_id).toBe(1);
+    expect(result.flows[0].to.user_id).toBe(2);
+    expect(result.flows[0].amount).toBe(20);
+  });
+});
+
+describe('normalizeTransferAmount', () => {
+  it('accepts decimal strings and rounds to two decimals', () => {
+    expect(normalizeTransferAmount('12.345')).toBe(12.35);
+  });
+
+  it('rejects malformed, negative, non-finite, and rounded-zero values', () => {
+    expect(normalizeTransferAmount('12,34')).toMatchObject({ status: 400 });
+    expect(normalizeTransferAmount('-1')).toMatchObject({ status: 400 });
+    expect(normalizeTransferAmount(Number.POSITIVE_INFINITY)).toMatchObject({ status: 400 });
+    expect(normalizeTransferAmount('0.004')).toMatchObject({ status: 400 });
   });
 });
