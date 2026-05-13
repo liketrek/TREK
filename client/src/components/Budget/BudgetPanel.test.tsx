@@ -21,6 +21,9 @@ beforeEach(() => {
     http.get('/api/trips/:id/budget/per-person', () =>
       HttpResponse.json({ summary: [] })
     ),
+    http.get('/api/trips/:id/budget/transfers', () =>
+      HttpResponse.json({ transfers: [] })
+    ),
   );
   seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
   seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'EUR' }) });

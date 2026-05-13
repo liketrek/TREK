@@ -69,8 +69,10 @@ function hexLighten(hex: string, amount: number): string {
 }
 import CustomSelect from '../shared/CustomSelect'
 import { budgetApi } from '../../api/client'
+import { addListener, removeListener } from '../../api/websocket'
+import { budgetTransferRepo } from '../../repo/budgetTransferRepo'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
-import type { BudgetItem, BudgetMember } from '../../types'
+import type { BudgetItem, BudgetMember, BudgetTransfer } from '../../types'
 import { currencyDecimals } from '../../utils/formatters'
 
 interface TripMember {
@@ -121,6 +123,7 @@ const fmtNum = (v, locale, cur) => {
 const calcPP = (p, n) => (n > 0 ? p / n : null)
 const calcPD = (p, d) => (d > 0 ? p / d : null)
 const calcPPD = (p, n, d) => (n > 0 && d > 0 ? p / (n * d) : null)
+const todayDate = () => new Date().toISOString().slice(0, 10)
 
 // ── Inline Edit Cell ─────────────────────────────────────────────────────────
 function InlineEditCell({ value, onSave, type = 'text', style = {}, placeholder = '', decimals = 2, locale, editTooltip, readOnly = false }) {
@@ -568,6 +571,13 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
   const [editingCat, setEditingCat] = useState(null) // { name, value }
   const [settlement, setSettlement] = useState<{ balances: any[]; flows: any[] } | null>(null)
   const [settlementOpen, setSettlementOpen] = useState(false)
+  const [transfers, setTransfers] = useState<BudgetTransfer[]>([])
+  const [transferForm, setTransferForm] = useState({ from_user_id: '', to_user_id: '', amount: '', transfer_date: todayDate(), note: '' })
+  const [showTransferForm, setShowTransferForm] = useState(false)
+  const [editingTransferId, setEditingTransferId] = useState<number | null>(null)
+  const [editTransferForm, setEditTransferForm] = useState({ from_user_id: '', to_user_id: '', amount: '', transfer_date: todayDate(), note: '' })
+  const [transferError, setTransferError] = useState('')
+  const [online, setOnline] = useState(() => typeof navigator === 'undefined' ? true : navigator.onLine)
   const currency = trip?.currency || 'EUR'
   const canEdit = can('budget_edit', trip)
 
@@ -582,11 +592,40 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
   const [dragOverItem, setDragOverItem] = useState<number | null>(null)
   const [dragItemCat, setDragItemCat] = useState<string | null>(null)
 
-  // Load settlement data whenever budget items change
-  useEffect(() => {
+  const refreshSettlementAndTransfers = useCallback(async () => {
     if (!hasMultipleMembers) return
-    budgetApi.settlement(tripId).then(setSettlement).catch(() => {})
-  }, [tripId, budgetItems, hasMultipleMembers])
+    if (navigator.onLine) {
+      budgetApi.settlement(tripId).then(setSettlement).catch(() => {})
+    } else {
+      setSettlement(null)
+    }
+    budgetTransferRepo.list(tripId).then(d => setTransfers(d.transfers)).catch(() => {})
+  }, [tripId, hasMultipleMembers])
+
+  useEffect(() => {
+    const update = () => setOnline(navigator.onLine)
+    window.addEventListener('online', update)
+    window.addEventListener('offline', update)
+    return () => {
+      window.removeEventListener('online', update)
+      window.removeEventListener('offline', update)
+    }
+  }, [])
+
+  // Load settlement and transfer data whenever budget items change.
+  useEffect(() => {
+    refreshSettlementAndTransfers()
+  }, [refreshSettlementAndTransfers, budgetItems])
+
+  useEffect(() => {
+    const handler = (event: Record<string, unknown>) => {
+      if (!String(event.type || '').startsWith('budget:transfer-')) return
+      if (String(event.tripId) !== String(tripId)) return
+      refreshSettlementAndTransfers()
+    }
+    addListener(handler)
+    return () => removeListener(handler)
+  }, [tripId, refreshSettlementAndTransfers])
 
   const setCurrency = (cur) => {
     if (tripId) updateTrip(tripId, { currency: cur })
@@ -628,6 +667,62 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
   const handleAddItem = async (category, data) => { try { await addBudgetItem(tripId, { ...data, category }) } catch {} }
   const handleUpdateField = async (id, field, value) => { try { await updateBudgetItem(tripId, id, { [field]: value }) } catch {} }
   const handleDeleteItem = async (id) => { try { await deleteBudgetItem(tripId, id) } catch {} }
+  const participantOptions = tripMembers
+  const updateTransferForm = (field: string, value: string) => setTransferForm(f => ({ ...f, [field]: value }))
+  const updateEditTransferForm = (field: string, value: string) => setEditTransferForm(f => ({ ...f, [field]: value }))
+  const handleCreateTransfer = async () => {
+    if (!canEdit || !online) return
+    setTransferError('')
+    try {
+      await budgetApi.createTransfer(tripId, {
+        from_user_id: Number(transferForm.from_user_id),
+        to_user_id: Number(transferForm.to_user_id),
+        amount: transferForm.amount,
+        transfer_date: transferForm.transfer_date || undefined,
+        note: transferForm.note,
+      })
+      setTransferForm({ from_user_id: '', to_user_id: '', amount: '', transfer_date: todayDate(), note: '' })
+      await refreshSettlementAndTransfers()
+    } catch (err: any) {
+      setTransferError(err?.response?.data?.error || t('budget.transferSaveFailed'))
+    }
+  }
+  const startEditTransfer = (transfer: BudgetTransfer) => {
+    setEditingTransferId(transfer.id)
+    setEditTransferForm({
+      from_user_id: String(transfer.from_user_id),
+      to_user_id: String(transfer.to_user_id),
+      amount: String(transfer.amount),
+      transfer_date: transfer.transfer_date,
+      note: transfer.note || '',
+    })
+  }
+  const handleUpdateTransfer = async (transferId: number) => {
+    if (!canEdit || !online) return
+    setTransferError('')
+    try {
+      await budgetApi.updateTransfer(tripId, transferId, {
+        from_user_id: Number(editTransferForm.from_user_id),
+        to_user_id: Number(editTransferForm.to_user_id),
+        amount: editTransferForm.amount,
+        transfer_date: editTransferForm.transfer_date,
+        note: editTransferForm.note,
+      })
+      setEditingTransferId(null)
+      await refreshSettlementAndTransfers()
+    } catch (err: any) {
+      setTransferError(err?.response?.data?.error || t('budget.transferSaveFailed'))
+    }
+  }
+  const handleDeleteTransfer = async (transferId: number) => {
+    if (!canEdit || !online) return
+    try {
+      await budgetApi.deleteTransfer(tripId, transferId)
+      await refreshSettlementAndTransfers()
+    } catch (err: any) {
+      setTransferError(err?.response?.data?.error || t('budget.transferDeleteFailed'))
+    }
+  }
   const handleDeleteCategory = async (cat) => {
     const items = grouped.get(cat) || []
     for (const item of Array.from(items)) await deleteBudgetItem(tripId, item.id)
@@ -1024,7 +1119,7 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
             )}
 
             {/* Settlement dropdown inside the total card */}
-            {hasMultipleMembers && settlement && settlement.flows.length > 0 && (
+            {hasMultipleMembers && (settlement || transfers.length > 0 || canEdit) && (
               <div style={{ marginTop: 16, borderTop: `1px solid ${theme.divider}`, paddingTop: 12 }}>
                 <button onClick={() => setSettlementOpen(v => !v)} style={{
                   display: 'flex', alignItems: 'center', gap: 6, width: '100%',
@@ -1055,7 +1150,7 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
 
                 {settlementOpen && (
                   <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {settlement.flows.map((flow, i) => (
+                    {(settlement?.flows || []).map((flow, i) => (
                       <div key={i} style={{
                         display: 'flex', alignItems: 'center', gap: 14,
                         padding: '12px 14px', borderRadius: 14,
@@ -1079,7 +1174,7 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
                       </div>
                     ))}
 
-                    {settlement.balances.filter(b => Math.abs(b.balance) > 0.01).length > 0 && (
+                    {settlement && settlement.balances.filter(b => Math.abs(b.balance) > 0.01).length > 0 && (
                       <div style={{ marginTop: 8, borderTop: `1px solid ${theme.divider}`, paddingTop: 12 }}>
                         <div style={{ fontSize: 10, fontWeight: 700, color: theme.faint, textTransform: 'uppercase', letterSpacing: '0.11em', marginBottom: 10 }}>
                           {t('budget.netBalances')}
@@ -1110,6 +1205,96 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
                         </div>
                       </div>
                     )}
+
+                    <div style={{ marginTop: 8, borderTop: `1px solid ${theme.divider}`, paddingTop: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: theme.faint, textTransform: 'uppercase', letterSpacing: '0.11em' }}>
+                          {t('budget.transferHistory')}
+                        </div>
+                        {!online && <span style={{ fontSize: 10, color: theme.faint }}>{t('budget.unavailableOffline')}</span>}
+                      </div>
+
+                      {canEdit && !showTransferForm && (
+                        <button onClick={() => setShowTransferForm(true)} disabled={!online} title={!online ? t('budget.unavailableOffline') : undefined}
+                          style={{ width: '100%', border: `1px solid ${theme.flowBorder}`, borderRadius: 8, padding: '8px 10px', background: 'transparent', color: online ? theme.text : theme.faint, fontSize: 12, fontWeight: 700, cursor: online ? 'pointer' : 'default', marginBottom: 10 }}>
+                          {t('budget.addTransfer')}
+                        </button>
+                      )}
+
+                      {canEdit && showTransferForm && (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10 }}>
+                          <select value={transferForm.from_user_id} onChange={e => updateTransferForm('from_user_id', e.target.value)} disabled={!online}
+                            style={{ minWidth: 0, border: `1px solid ${theme.flowBorder}`, borderRadius: 8, padding: '7px 8px', background: theme.flowBg, color: theme.text, fontSize: 12 }}>
+                            <option value="">{t('budget.transferFrom')}</option>
+                            {participantOptions.map(p => <option key={p.id} value={p.id}>{p.username}</option>)}
+                          </select>
+                          <select value={transferForm.to_user_id} onChange={e => updateTransferForm('to_user_id', e.target.value)} disabled={!online}
+                            style={{ minWidth: 0, border: `1px solid ${theme.flowBorder}`, borderRadius: 8, padding: '7px 8px', background: theme.flowBg, color: theme.text, fontSize: 12 }}>
+                            <option value="">{t('budget.transferTo')}</option>
+                            {participantOptions.map(p => <option key={p.id} value={p.id}>{p.username}</option>)}
+                          </select>
+                          <input value={transferForm.amount} onChange={e => updateTransferForm('amount', e.target.value)} disabled={!online} placeholder={t('budget.transferAmount')} inputMode="decimal"
+                            style={{ minWidth: 0, border: `1px solid ${theme.flowBorder}`, borderRadius: 8, padding: '7px 8px', background: theme.flowBg, color: theme.text, fontSize: 12 }} />
+                          <CustomDatePicker value={transferForm.transfer_date} onChange={v => updateTransferForm('transfer_date', v || todayDate())} placeholder={t('budget.transferDate')} compact />
+                          <input value={transferForm.note} onChange={e => updateTransferForm('note', e.target.value)} disabled={!online} placeholder={t('budget.transferNote')}
+                            style={{ gridColumn: '1 / span 2', minWidth: 0, border: `1px solid ${theme.flowBorder}`, borderRadius: 8, padding: '7px 8px', background: theme.flowBg, color: theme.text, fontSize: 12 }} />
+                          <button onClick={handleCreateTransfer} disabled={!online || !transferForm.from_user_id || !transferForm.to_user_id || transferForm.from_user_id === transferForm.to_user_id || !transferForm.amount}
+                            title={!online ? t('budget.unavailableOffline') : undefined}
+                            style={{ border: 'none', borderRadius: 8, padding: '8px 10px', background: online ? 'var(--accent)' : theme.flowBg, color: online ? 'var(--accent-text)' : theme.faint, fontSize: 12, fontWeight: 700, cursor: online ? 'pointer' : 'default' }}>
+                            {t('budget.addTransfer')}
+                          </button>
+                          <button onClick={() => setShowTransferForm(false)} style={{ border: `1px solid ${theme.flowBorder}`, borderRadius: 8, padding: '8px 10px', background: 'transparent', color: theme.text, fontSize: 12, fontWeight: 700 }}>
+                            {t('common.cancel')}
+                          </button>
+                        </div>
+                      )}
+
+                      {transferError && <div style={{ color: '#ef4444', fontSize: 11, marginBottom: 8 }}>{transferError}</div>}
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {transfers.length === 0 && <div style={{ color: theme.faint, fontSize: 12 }}>{t('budget.noTransfers')}</div>}
+                        {transfers.map(transfer => {
+                          const editing = editingTransferId === transfer.id
+                          return (
+                            <div key={transfer.id} style={{ padding: 9, borderRadius: 10, background: theme.flowBg, border: `1px solid ${theme.flowBorder}` }}>
+                              {editing ? (
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                                  <select value={editTransferForm.from_user_id} onChange={e => updateEditTransferForm('from_user_id', e.target.value)} style={{ minWidth: 0, border: `1px solid ${theme.flowBorder}`, borderRadius: 8, padding: '6px', background: theme.centerBg, color: theme.text, fontSize: 12 }}>
+                                    {participantOptions.map(p => <option key={p.id} value={p.id}>{p.username}</option>)}
+                                  </select>
+                                  <select value={editTransferForm.to_user_id} onChange={e => updateEditTransferForm('to_user_id', e.target.value)} style={{ minWidth: 0, border: `1px solid ${theme.flowBorder}`, borderRadius: 8, padding: '6px', background: theme.centerBg, color: theme.text, fontSize: 12 }}>
+                                    {participantOptions.map(p => <option key={p.id} value={p.id}>{p.username}</option>)}
+                                  </select>
+                                  <input value={editTransferForm.amount} onChange={e => updateEditTransferForm('amount', e.target.value)} inputMode="decimal" style={{ minWidth: 0, border: `1px solid ${theme.flowBorder}`, borderRadius: 8, padding: '6px', background: theme.centerBg, color: theme.text, fontSize: 12 }} />
+                                  <CustomDatePicker value={editTransferForm.transfer_date} onChange={v => updateEditTransferForm('transfer_date', v || '')} placeholder={t('budget.transferDate')} compact />
+                                  <input value={editTransferForm.note} onChange={e => updateEditTransferForm('note', e.target.value)} placeholder={t('budget.transferNote')} style={{ gridColumn: '1 / span 2', minWidth: 0, border: `1px solid ${theme.flowBorder}`, borderRadius: 8, padding: '6px', background: theme.centerBg, color: theme.text, fontSize: 12 }} />
+                                  <button onClick={() => handleUpdateTransfer(transfer.id)} style={{ border: 'none', borderRadius: 8, padding: '7px', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 12, fontWeight: 700 }}>{t('common.save')}</button>
+                                  <button onClick={() => setEditingTransferId(null)} style={{ border: `1px solid ${theme.flowBorder}`, borderRadius: 8, padding: '7px', background: 'transparent', color: theme.text, fontSize: 12 }}>{t('common.cancel')}</button>
+                                </div>
+                              ) : (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ color: theme.text, fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                      {transfer.from_username || transfer.from_user_id} → {transfer.to_username || transfer.to_user_id}
+                                    </div>
+                                    <div style={{ color: theme.faint, fontSize: 11, marginTop: 2 }}>
+                                      {transfer.transfer_date}{transfer.note ? ` · ${transfer.note}` : ''}
+                                    </div>
+                                  </div>
+                                  <div style={{ color: '#10b981', fontSize: 12, fontWeight: 700 }}>{fmt(transfer.amount, currency)}</div>
+                                  {canEdit && (
+                                    <div style={{ display: 'flex', gap: 2 }}>
+                                      <button onClick={() => startEditTransfer(transfer)} disabled={!online} title={!online ? t('budget.unavailableOffline') : t('budget.editTransfer')} style={{ background: 'none', border: 'none', color: theme.faint, cursor: online ? 'pointer' : 'default', padding: 3 }}><Pencil size={12} /></button>
+                                      <button onClick={() => handleDeleteTransfer(transfer.id)} disabled={!online} title={!online ? t('budget.unavailableOffline') : t('budget.deleteTransfer')} style={{ background: 'none', border: 'none', color: theme.faint, cursor: online ? 'pointer' : 'default', padding: 3 }}><Trash2 size={12} /></button>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
