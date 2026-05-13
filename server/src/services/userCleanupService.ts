@@ -12,10 +12,20 @@ function cleanupUserReferences(userId: number): void {
   db.prepare('DELETE FROM journey_contributors WHERE user_id = ?').run(userId);
 }
 
-export function deleteUserCompletely(userId: number): void {
+export function deleteUserCompletely(userId: number): { error: string; status: number } | { success: true } {
+  const transferCount = (db.prepare(`
+    SELECT COUNT(*) as count
+    FROM budget_transfers
+    WHERE from_user_id = ? OR to_user_id = ?
+  `).get(userId, userId) as { count: number }).count;
+  if (transferCount > 0) {
+    return { error: `Cannot delete user because they are referenced by ${transferCount} budget transfer${transferCount === 1 ? '' : 's'}.`, status: 409 };
+  }
+
   const tx = db.transaction((id: number) => {
     cleanupUserReferences(id);
     db.prepare('DELETE FROM users WHERE id = ?').run(id);
   });
   tx(userId);
+  return { success: true };
 }

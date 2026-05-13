@@ -297,8 +297,9 @@ router.delete('/:id/members/:userId', authenticate, (req: Request, res: Response
       return res.status(403).json({ error: 'No permission to remove members' });
   }
 
-  removeMember(req.params.id, targetId);
-  res.json({ success: true });
+  const result = removeMember(req.params.id, targetId);
+  if ('error' in result) return res.status(result.status).json({ error: result.error });
+  res.json(result);
 });
 
 // ── Offline bundle ────────────────────────────────────────────────────────

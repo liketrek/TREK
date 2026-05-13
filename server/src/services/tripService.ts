@@ -382,8 +382,18 @@ export function addMember(tripId: string | number, identifier: string, tripOwner
   };
 }
 
-export function removeMember(tripId: string | number, targetUserId: number) {
+export function removeMember(tripId: string | number, targetUserId: number): { error: string; status: number } | { success: true } {
+  const transferCount = (db.prepare(`
+    SELECT COUNT(*) as count
+    FROM budget_transfers
+    WHERE trip_id = ? AND (from_user_id = ? OR to_user_id = ?)
+  `).get(tripId, targetUserId, targetUserId) as { count: number }).count;
+  if (transferCount > 0) {
+    return { error: `Cannot remove member because they are referenced by ${transferCount} budget transfer${transferCount === 1 ? '' : 's'} for this trip.`, status: 400 };
+  }
+
   db.prepare('DELETE FROM trip_members WHERE trip_id = ? AND user_id = ?').run(tripId, targetUserId);
+  return { success: true };
 }
 
 // ── ICS export ────────────────────────────────────────────────────────────

@@ -545,8 +545,7 @@ export function deleteAccount(userId: number, userEmail: string, userRole: strin
       return { error: 'Cannot delete the last admin account', status: 400 };
     }
   }
-  deleteUserCompletely(userId);
-  return { success: true };
+  return deleteUserCompletely(userId);
 }
 
 // ---------------------------------------------------------------------------

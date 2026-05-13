@@ -173,7 +173,8 @@ export function deleteUser(id: string, currentUserId: number) {
   const userToDel = db.prepare('SELECT id, email FROM users WHERE id = ?').get(id) as { id: number; email: string } | undefined;
   if (!userToDel) return { error: 'User not found', status: 404 };
 
-  deleteUserCompletely(userToDel.id);
+  const result = deleteUserCompletely(userToDel.id);
+  if ('error' in result) return result;
   return { email: userToDel.email };
 }
 
