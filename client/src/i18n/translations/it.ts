@@ -1216,6 +1216,19 @@ const it: Record<string, string | { name: string; category: string }[]> = {
   'budget.settlement': 'Regolamento',
   'budget.settlementInfo': 'Clicca sull\'avatar di un membro su una voce di budget per contrassegnarlo in verde — significa che ha pagato. Il regolamento mostra poi chi deve quanto a chi.',
   'budget.netBalances': 'Saldi netti',
+  'budget.transferHistory': 'Transfer history',
+  'budget.transferFrom': 'From',
+  'budget.transferTo': 'To',
+  'budget.transferAmount': 'Amount',
+  'budget.transferDate': 'Date',
+  'budget.transferNote': 'Note',
+  'budget.addTransfer': 'Record transfer',
+  'budget.noTransfers': 'No transfers recorded yet.',
+  'budget.editTransfer': 'Edit transfer',
+  'budget.deleteTransfer': 'Delete transfer',
+  'budget.unavailableOffline': 'Unavailable offline',
+  'budget.transferSaveFailed': 'Could not save transfer',
+  'budget.transferDeleteFailed': 'Could not delete transfer',
 
   // Files
   'files.title': 'File',
@@ -2358,4 +2371,3 @@ const it: Record<string, string | { name: string; category: string }[]> = {
 }
 
 export default it
-

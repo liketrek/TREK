@@ -1217,6 +1217,19 @@ const cs: Record<string, string | { name: string; category: string }[]> = {
   'budget.settlement': 'Vyúčtování',
   'budget.settlementInfo': 'Klikněte na avatar člena u rozpočtové položky pro zelené označení – to znamená, že zaplatil. Vyúčtování pak ukazuje, kdo komu a kolik dluží.',
   'budget.netBalances': 'Čisté zůstatky',
+  'budget.transferHistory': 'Transfer history',
+  'budget.transferFrom': 'From',
+  'budget.transferTo': 'To',
+  'budget.transferAmount': 'Amount',
+  'budget.transferDate': 'Date',
+  'budget.transferNote': 'Note',
+  'budget.addTransfer': 'Record transfer',
+  'budget.noTransfers': 'No transfers recorded yet.',
+  'budget.editTransfer': 'Edit transfer',
+  'budget.deleteTransfer': 'Delete transfer',
+  'budget.unavailableOffline': 'Unavailable offline',
+  'budget.transferSaveFailed': 'Could not save transfer',
+  'budget.transferDeleteFailed': 'Could not delete transfer',
 
   // Soubory (Files)
   'files.title': 'Soubory',
@@ -2361,4 +2374,3 @@ const cs: Record<string, string | { name: string; category: string }[]> = {
 }
 
 export default cs
-

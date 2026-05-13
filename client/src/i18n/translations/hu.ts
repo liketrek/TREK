@@ -1216,6 +1216,19 @@ const hu: Record<string, string | { name: string; category: string }[]> = {
   'budget.settlement': 'Elszámolás',
   'budget.settlementInfo': 'Kattints egy tag avatárjára egy költségvetési tételen a zöld jelöléshez — ez azt jelenti, hogy fizetett. Az elszámolás ezután mutatja, ki kinek mennyivel tartozik.',
   'budget.netBalances': 'Nettó egyenlegek',
+  'budget.transferHistory': 'Transfer history',
+  'budget.transferFrom': 'From',
+  'budget.transferTo': 'To',
+  'budget.transferAmount': 'Amount',
+  'budget.transferDate': 'Date',
+  'budget.transferNote': 'Note',
+  'budget.addTransfer': 'Record transfer',
+  'budget.noTransfers': 'No transfers recorded yet.',
+  'budget.editTransfer': 'Edit transfer',
+  'budget.deleteTransfer': 'Delete transfer',
+  'budget.unavailableOffline': 'Unavailable offline',
+  'budget.transferSaveFailed': 'Could not save transfer',
+  'budget.transferDeleteFailed': 'Could not delete transfer',
 
   // Fájlok
   'files.title': 'Fájlok',
@@ -2358,4 +2371,3 @@ const hu: Record<string, string | { name: string; category: string }[]> = {
 }
 
 export default hu
-

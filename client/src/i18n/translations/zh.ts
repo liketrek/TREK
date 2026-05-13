@@ -1215,6 +1215,19 @@ const zh: Record<string, string> = {
   'budget.settlement': '结算',
   'budget.settlementInfo': '点击预算项目上的成员头像将其标记为绿色——表示该成员已付款。结算会显示谁欠谁多少。',
   'budget.netBalances': '净余额',
+  'budget.transferHistory': 'Transfer history',
+  'budget.transferFrom': 'From',
+  'budget.transferTo': 'To',
+  'budget.transferAmount': 'Amount',
+  'budget.transferDate': 'Date',
+  'budget.transferNote': 'Note',
+  'budget.addTransfer': 'Record transfer',
+  'budget.noTransfers': 'No transfers recorded yet.',
+  'budget.editTransfer': 'Edit transfer',
+  'budget.deleteTransfer': 'Delete transfer',
+  'budget.unavailableOffline': 'Unavailable offline',
+  'budget.transferSaveFailed': 'Could not save transfer',
+  'budget.transferDeleteFailed': 'Could not delete transfer',
 
   // Files
   'files.title': '文件',
@@ -2357,4 +2370,3 @@ const zh: Record<string, string> = {
 }
 
 export default zh
-

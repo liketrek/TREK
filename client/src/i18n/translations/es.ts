@@ -1165,6 +1165,19 @@ const es: Record<string, string> = {
   'budget.settlement': 'Liquidación',
   'budget.settlementInfo': 'Haz clic en el avatar de un miembro en una partida del presupuesto para marcarlo en verde — esto significa que ha pagado. La liquidación muestra quién debe cuánto a quién.',
   'budget.netBalances': 'Saldos netos',
+  'budget.transferHistory': 'Transfer history',
+  'budget.transferFrom': 'From',
+  'budget.transferTo': 'To',
+  'budget.transferAmount': 'Amount',
+  'budget.transferDate': 'Date',
+  'budget.transferNote': 'Note',
+  'budget.addTransfer': 'Record transfer',
+  'budget.noTransfers': 'No transfers recorded yet.',
+  'budget.editTransfer': 'Edit transfer',
+  'budget.deleteTransfer': 'Delete transfer',
+  'budget.unavailableOffline': 'Unavailable offline',
+  'budget.transferSaveFailed': 'Could not save transfer',
+  'budget.transferDeleteFailed': 'Could not delete transfer',
 
   // Files
   'files.title': 'Archivos',
@@ -2363,4 +2376,3 @@ const es: Record<string, string> = {
 }
 
 export default es
-

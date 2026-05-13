@@ -1219,6 +1219,19 @@ const ar: Record<string, string | { name: string; category: string }[]> = {
   'budget.settlement': 'التسوية',
   'budget.settlementInfo': 'انقر على صورة العضو في بند الميزانية لتحديده باللون الأخضر — وهذا يعني أنه دفع. ثم تُظهر التسوية من يدين لمن وبكم.',
   'budget.netBalances': 'الأرصدة الصافية',
+  'budget.transferHistory': 'Transfer history',
+  'budget.transferFrom': 'From',
+  'budget.transferTo': 'To',
+  'budget.transferAmount': 'Amount',
+  'budget.transferDate': 'Date',
+  'budget.transferNote': 'Note',
+  'budget.addTransfer': 'Record transfer',
+  'budget.noTransfers': 'No transfers recorded yet.',
+  'budget.editTransfer': 'Edit transfer',
+  'budget.deleteTransfer': 'Delete transfer',
+  'budget.unavailableOffline': 'Unavailable offline',
+  'budget.transferSaveFailed': 'Could not save transfer',
+  'budget.transferDeleteFailed': 'Could not delete transfer',
 
   // Files
   'files.title': 'الملفات',
@@ -2154,4 +2167,3 @@ const ar: Record<string, string | { name: string; category: string }[]> = {
 }
 
 export default ar
-

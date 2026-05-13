@@ -1215,6 +1215,19 @@ const ru: Record<string, string> = {
   'budget.settlement': 'Взаиморасчёт',
   'budget.settlementInfo': 'Нажмите на аватар участника в строке бюджета, чтобы отметить его зелёным — это значит, что он заплатил. Взаиморасчёт покажет, кто кому и сколько должен.',
   'budget.netBalances': 'Чистые балансы',
+  'budget.transferHistory': 'Transfer history',
+  'budget.transferFrom': 'From',
+  'budget.transferTo': 'To',
+  'budget.transferAmount': 'Amount',
+  'budget.transferDate': 'Date',
+  'budget.transferNote': 'Note',
+  'budget.addTransfer': 'Record transfer',
+  'budget.noTransfers': 'No transfers recorded yet.',
+  'budget.editTransfer': 'Edit transfer',
+  'budget.deleteTransfer': 'Delete transfer',
+  'budget.unavailableOffline': 'Unavailable offline',
+  'budget.transferSaveFailed': 'Could not save transfer',
+  'budget.transferDeleteFailed': 'Could not delete transfer',
 
   // Files
   'files.title': 'Файлы',
@@ -2357,4 +2370,3 @@ const ru: Record<string, string> = {
 }
 
 export default ru
-

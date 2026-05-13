@@ -1215,6 +1215,19 @@ const nl: Record<string, string> = {
   'budget.settlement': 'Afrekening',
   'budget.settlementInfo': 'Klik op de avatar van een lid bij een budgetpost om deze groen te markeren — dit betekent dat diegene heeft betaald. De afrekening toont vervolgens wie wie hoeveel verschuldigd is.',
   'budget.netBalances': 'Nettosaldi',
+  'budget.transferHistory': 'Transfer history',
+  'budget.transferFrom': 'From',
+  'budget.transferTo': 'To',
+  'budget.transferAmount': 'Amount',
+  'budget.transferDate': 'Date',
+  'budget.transferNote': 'Note',
+  'budget.addTransfer': 'Record transfer',
+  'budget.noTransfers': 'No transfers recorded yet.',
+  'budget.editTransfer': 'Edit transfer',
+  'budget.deleteTransfer': 'Delete transfer',
+  'budget.unavailableOffline': 'Unavailable offline',
+  'budget.transferSaveFailed': 'Could not save transfer',
+  'budget.transferDeleteFailed': 'Could not delete transfer',
 
   // Files
   'files.title': 'Bestanden',
@@ -2357,4 +2370,3 @@ const nl: Record<string, string> = {
 }
 
 export default nl
-

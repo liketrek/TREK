@@ -1221,6 +1221,19 @@ const de: Record<string, string | { name: string; category: string }[]> = {
   'budget.settlement': 'Ausgleich',
   'budget.settlementInfo': 'Klicke auf ein Mitglied-Bild bei einem Eintrag, um es grün zu markieren — das bedeutet, diese Person hat bezahlt. Der Ausgleich zeigt dann, wer wem wie viel schuldet.',
   'budget.netBalances': 'Netto-Salden',
+  'budget.transferHistory': 'Transfer history',
+  'budget.transferFrom': 'From',
+  'budget.transferTo': 'To',
+  'budget.transferAmount': 'Amount',
+  'budget.transferDate': 'Date',
+  'budget.transferNote': 'Note',
+  'budget.addTransfer': 'Record transfer',
+  'budget.noTransfers': 'No transfers recorded yet.',
+  'budget.editTransfer': 'Edit transfer',
+  'budget.deleteTransfer': 'Delete transfer',
+  'budget.unavailableOffline': 'Unavailable offline',
+  'budget.transferSaveFailed': 'Could not save transfer',
+  'budget.transferDeleteFailed': 'Could not delete transfer',
 
   // Files
   'files.title': 'Dateien',
@@ -2367,4 +2380,3 @@ const de: Record<string, string | { name: string; category: string }[]> = {
 }
 
 export default de
-
