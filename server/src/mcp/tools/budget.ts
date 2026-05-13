@@ -6,21 +6,121 @@ import {
   createBudgetItem, updateBudgetItem, deleteBudgetItem,
   updateMembers as updateBudgetMembers,
   toggleMemberPaid,
+  listBudgetTransfers,
+  createBudgetTransfer,
+  updateBudgetTransfer,
+  deleteBudgetTransfer,
 } from '../../services/budgetService';
 import {
   safeBroadcast, TOOL_ANNOTATIONS_WRITE, TOOL_ANNOTATIONS_DELETE,
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   demoDenied, noAccess, ok,
 } from './_shared';
-import { canWrite } from '../scopes';
+import { canRead, canWrite } from '../scopes';
 import { isAddonEnabled } from '../../services/adminService';
 import { ADDON_IDS } from '../../addons';
+import { checkPermission } from '../../services/permissions';
 
 export function registerBudgetTools(server: McpServer, userId: number, scopes: string[] | null): void {
+  const R = canRead(scopes, 'budget');
   const W = canWrite(scopes, 'budget');
+
+  const canEditBudget = (tripId: number): boolean => {
+    const trip = canAccessTrip(tripId, userId) as { user_id: number } | undefined;
+    if (!trip) return false;
+    const user = db.prepare('SELECT role FROM users WHERE id = ?').get(userId) as { role: string } | undefined;
+    return checkPermission('budget_edit', user?.role || 'user', trip.user_id, userId, trip.user_id !== userId);
+  };
 
   if (isAddonEnabled(ADDON_IDS.BUDGET)) {
   // --- BUDGET ---
+
+  if (R) server.registerTool(
+    'list_budget_transfers',
+    {
+      description: 'List recorded settlement transfers for a trip budget.',
+      inputSchema: {
+        tripId: z.number().int().positive(),
+      },
+      annotations: {},
+    },
+    async ({ tripId }) => {
+      if (!canAccessTrip(tripId, userId)) return noAccess();
+      return ok({ transfers: listBudgetTransfers(tripId) });
+    }
+  );
+
+  if (W) server.registerTool(
+    'create_budget_transfer',
+    {
+      description: 'Record a settlement repayment between trip participants. from_user_id paid to_user_id.',
+      inputSchema: {
+        tripId: z.number().int().positive(),
+        from_user_id: z.number().int().positive(),
+        to_user_id: z.number().int().positive(),
+        amount: z.union([z.number(), z.string()]),
+        transfer_date: z.string().optional(),
+        note: z.string().nullable().optional(),
+      },
+      annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+    },
+    async ({ tripId, from_user_id, to_user_id, amount, transfer_date, note }) => {
+      if (isDemoUser(userId)) return demoDenied();
+      if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!canEditBudget(tripId)) return { content: [{ type: 'text' as const, text: 'No permission.' }], isError: true };
+      const result = createBudgetTransfer(tripId, { from_user_id, to_user_id, amount, transfer_date, note });
+      if ('error' in result) return { content: [{ type: 'text' as const, text: result.error }], isError: true };
+      safeBroadcast(tripId, 'budget:transfer-created', { tripId, transferId: result.transfer.id });
+      return ok(result);
+    }
+  );
+
+  if (W) server.registerTool(
+    'update_budget_transfer',
+    {
+      description: 'Fully replace a recorded settlement transfer.',
+      inputSchema: {
+        tripId: z.number().int().positive(),
+        transferId: z.number().int().positive(),
+        from_user_id: z.number().int().positive(),
+        to_user_id: z.number().int().positive(),
+        amount: z.union([z.number(), z.string()]),
+        transfer_date: z.string(),
+        note: z.string().nullable().optional(),
+      },
+      annotations: TOOL_ANNOTATIONS_WRITE,
+    },
+    async ({ tripId, transferId, from_user_id, to_user_id, amount, transfer_date, note }) => {
+      if (isDemoUser(userId)) return demoDenied();
+      if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!canEditBudget(tripId)) return { content: [{ type: 'text' as const, text: 'No permission.' }], isError: true };
+      const result = updateBudgetTransfer(transferId, tripId, { from_user_id, to_user_id, amount, transfer_date, note });
+      if ('error' in result) return { content: [{ type: 'text' as const, text: result.error }], isError: true };
+      safeBroadcast(tripId, 'budget:transfer-updated', { tripId, transferId });
+      return ok(result);
+    }
+  );
+
+  if (W) server.registerTool(
+    'delete_budget_transfer',
+    {
+      description: 'Delete a recorded settlement transfer.',
+      inputSchema: {
+        tripId: z.number().int().positive(),
+        transferId: z.number().int().positive(),
+      },
+      annotations: TOOL_ANNOTATIONS_DELETE,
+    },
+    async ({ tripId, transferId }) => {
+      if (isDemoUser(userId)) return demoDenied();
+      if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!canEditBudget(tripId)) return { content: [{ type: 'text' as const, text: 'No permission.' }], isError: true };
+      const result = deleteBudgetTransfer(transferId, tripId);
+      if ('error' in result) return { content: [{ type: 'text' as const, text: result.error }], isError: true };
+      safeBroadcast(tripId, 'budget:transfer-deleted', { tripId, transferId });
+      return ok(result);
+    }
+  );
 
   if (W) server.registerTool(
     'create_budget_item',
