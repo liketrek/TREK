@@ -8,13 +8,15 @@ export function isStandardFamily(style: string): boolean {
   return style === 'mapbox://styles/mapbox/standard' || style === 'mapbox://styles/mapbox/standard-satellite'
 }
 
-// Terrain is only genuinely useful for the satellite imagery styles — on
-// clean flat styles like streets/light/dark it nudges route lines onto
-// the DEM while our HTML markers stay at Z=0, which causes the visible
-// offset when the map is pitched. Restrict terrain to satellite.
+// Terrain is only genuinely useful for styles that benefit from elevation
+// data. On flat vector styles (streets/light/dark) it nudges route lines
+// onto the DEM while HTML markers stay at Z=0, causing a visible drift
+// when the map is pitched. Satellite and Outdoors are the intended styles
+// for terrain; markers are re-pinned by syncMarkerAltitudes().
 export function wantsTerrain(style: string): boolean {
   return style === 'mapbox://styles/mapbox/satellite-v9'
       || style === 'mapbox://styles/mapbox/satellite-streets-v12'
+      || style === 'mapbox://styles/mapbox/outdoors-v12'
 }
 
 // 3D can be added to every style now — the standard family has it built-in
