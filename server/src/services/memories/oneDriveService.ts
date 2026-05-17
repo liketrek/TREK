@@ -219,56 +219,80 @@ export async function browseTimeline(userId: number) {
 }
 
 // ── Search photos by date range ──────────────────────────────────────────────
-// ── Search photos by date range ──────────────────────────────────────────────
 export async function searchPhotos(userId: number, from?: string, to?: string, page = 1, size = 50) {
-  // Graph no soporta $skip en /drive/special/photos — hay que paginar con nextLink
-  // Cargamos hasta (page * size) items siguiendo nextLinks y devolvemos la página pedida
-  const target = page * size;
+  const from_ = from ? new Date(from).toISOString() : undefined;
+  const to_   = to   ? new Date(to).toISOString()   : undefined;
   const collected: any[] = [];
 
-  let url: string | null =
-    `/me/drive/special/photos/children?$select=id,name,photo,image,thumbnails,createdDateTime&$top=200&$expand=thumbnails`;
-
-  while (url && collected.length < target) {
-    const result = await graphGet(userId, url);
-    if (result.error) return { error: result.error, status: result.status };
-
-    const items = (result.data?.value || []).filter((i: any) => i.photo || i.image);
-    for (const item of items) {
-      const taken = item.photo?.takenDateTime || item.createdDateTime;
-      if (from && taken < from) continue;
-      if (to   && taken > to)   continue;
-      collected.push(item);
-    }
-
-    // Si hay filtro de fechas y ya pasamos el rango, paramos
-    if (to && items.length > 0) {
-      const lastTaken = items[items.length - 1]?.photo?.takenDateTime || items[items.length - 1]?.createdDateTime;
-      if (lastTaken && lastTaken < (from || '')) break;
-    }
-
-    const nextLink: string | undefined = result.data?.['@odata.nextLink'];
-    if (!nextLink) break;
-    // nextLink es URL absoluta — extraemos el path+query para graphGet
-    try {
-      const u = new URL(nextLink);
-      url = u.pathname.replace('/v1.0', '') + u.search;
-    } catch {
-      break;
+  // Obtener subcarpetas de /Fotos
+  const foldersRes = await graphGet(userId, `/me/drive/root:/Fotos:/children?$select=id,name,folder&$top=100`);
+  console.log('[OD folders]', JSON.stringify(foldersRes.data?.value?.map((f:any) => ({ name: f.name, isFolder: !!f.folder, count: f.folder?.childCount }))));
+  const folderIds: string[] = [];
+  if (!foldersRes.error) {
+    for (const f of foldersRes.data?.value || []) {
+      if (f.folder) folderIds.push(f.id);
     }
   }
 
-  const start = (page - 1) * size;
-  const pageItems = collected.slice(start, start + size);
+  // Buscar fotos en cada subcarpeta
+  console.log('[OD folderIds]', folderIds);
+// Expandir subcarpetas de segundo nivel (ej: Camera Roll/2026/04)
+  const allFolderIds: string[] = [];
+  for (const folderId of folderIds) {
+    allFolderIds.push(folderId);
+    const subRes = await graphGet(userId, `/me/drive/items/${folderId}/children?$select=id,name,folder&$top=100`);
+    if (!subRes.error) {
+      for (const f of subRes.data?.value || []) {
+        if (f.folder) {
+          allFolderIds.push(f.id);
+          // Tercer nivel (ej: Camera Roll/2026/04)
+          const subSubRes = await graphGet(userId, `/me/drive/items/${f.id}/children?$select=id,name,folder&$top=100`);
+          if (!subSubRes.error) {
+            for (const ff of subSubRes.data?.value || []) {
+              if (ff.folder) allFolderIds.push(ff.id);
+            }
+          }
+        }
+      }
+    }
+  }
 
+  // Buscar fotos en cada subcarpeta
+  for (const folderId of allFolderIds) {
+     let url: string | null = `/me/drive/items/${folderId}/children?$select=id,name,photo,image,file,thumbnails,createdDateTime&$top=200&$expand=thumbnails`;
+    while (url) {
+      const result = await graphGet(userId, url);
+      if (result.error) break;
+      console.log('[OD items]', folderId, result.data?.value?.length, result.data?.value?.slice(0,2)?.map((i:any) => ({ name: i.name, taken: i.photo?.takenDateTime || i.createdDateTime, mime: i.file?.mimeType })));
+      const items = (result.data?.value || []).filter((i: any) =>
+        i.photo || i.image || i.file?.mimeType?.startsWith('image/')
+      );
+      for (const p of items) {
+        const taken = p.photo?.takenDateTime || p.createdDateTime;
+        if (from_ && taken < from_) continue;
+        if (to_   && taken > to_)   continue;
+        collected.push(p);
+      }
+      const next = result.data?.['@odata.nextLink'];
+      if (!next) break;
+      try { const u = new URL(next); url = u.pathname.replace('/v1.0', '') + u.search; }
+      catch { break; }
+    }
+  }
+
+  collected.sort((a, b) => {
+    const ta = a.photo?.takenDateTime || a.createdDateTime;
+    const tb = b.photo?.takenDateTime || b.createdDateTime;
+    return tb.localeCompare(ta);
+  });
+
+  const start = (page - 1) * size;
   return {
-    assets: pageItems.map((p: any) => ({
+    assets: collected.slice(start, start + size).map((p: any) => ({
       id:        p.id,
       name:      p.name,
       takenAt:   p.photo?.takenDateTime || p.createdDateTime,
       thumbnail: p.thumbnails?.[0]?.medium?.url || p.thumbnails?.[0]?.small?.url,
-      width:     p.image?.width,
-      height:    p.image?.height,
     })),
     hasMore: collected.length > start + size,
   };
