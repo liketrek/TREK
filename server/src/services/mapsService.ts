@@ -1,6 +1,7 @@
 import { db } from '../db/database';
 import { decrypt_api_key } from './apiKeyCrypto';
 import { checkSsrf } from '../utils/ssrfGuard';
+import { getAppUrl } from './notifications';
 
 // ── Google API call counter ───────────────────────────────────────────────────
 
@@ -12,7 +13,11 @@ export function resetGoogleApiCallCount(): void { googleApiCallCount = 0; }
 function googleFetch(endpoint: string, label: string, init?: RequestInit): Promise<Response> {
   googleApiCallCount++;
   console.debug(`[Google API] #${googleApiCallCount} ${label} → ${endpoint}`);
-  return fetch(endpoint, init);
+  const referer = process.env.APP_URL ? getAppUrl() : undefined;
+  return fetch(endpoint, {
+    ...init,
+    headers: { ...(referer ? { Referer: referer } : {}), ...(init?.headers as Record<string, string> ?? {}) },
+  });
 }
 
 // ── Interfaces ───────────────────────────────────────────────────────────────

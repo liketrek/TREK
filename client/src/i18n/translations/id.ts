@@ -2094,6 +2094,7 @@ const id: Record<string, string | { name: string; category: string }[]> = {
 
   // Journey Entry Editor
   'journey.editor.discardChangesConfirm': 'Anda memiliki perubahan yang belum disimpan. Buang?',
+  'journey.editor.uploadFailed': 'Gagal mengunggah foto',
   'journey.editor.uploadPhotos': 'Unggah foto',
   'journey.editor.uploading': 'Mengunggah...',
   'journey.editor.fromGallery': 'Dari Galeri',
@@ -2198,6 +2199,7 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   'journey.settings.failedToDelete': 'Gagal menghapus',
   'journey.entries.deleteTitle': 'Hapus Entri',
   'journey.photosUploaded': '{count} foto diunggah',
+  'journey.photosUploadFailed': 'Beberapa foto gagal diunggah',
   'journey.photosAdded': '{count} foto ditambahkan',
 
   // Journey — Public Page

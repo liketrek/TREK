@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import path from 'node:path';
 import fs from 'node:fs';
 
+import multer from 'multer';
 import { logDebug, logWarn, logError } from './services/auditLog';
 import { enforceGlobalMfaPolicy } from './middleware/mfaPolicy';
 import { authenticate, verifyJwtAndLoadUser } from './middleware/auth';
@@ -516,6 +517,10 @@ app.use((_req: any, res: any, next: any) => {
       console.error('Unhandled error:', err.message);
     } else {
       console.error('Unhandled error:', err);
+    }
+    if (err instanceof multer.MulterError) {
+      const status = err.code === 'LIMIT_FILE_SIZE' ? 413 : 400;
+      return res.status(status).json({ error: err.message });
     }
     const status = err.statusCode || err.status || 500;
     // Expose the message for client errors (4xx); keep 'Internal server error' for 5xx.

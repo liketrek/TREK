@@ -30,6 +30,7 @@ import MobileEntryView from '../components/Journey/MobileEntryView'
 import { useIsMobile } from '../hooks/useIsMobile'
 import type { JourneyEntry, JourneyPhoto, GalleryPhoto, JourneyTrip, JourneyDetail } from '../store/journeyStore'
 import { computeJourneyLifecycle } from '../utils/journeyLifecycle'
+import { getApiErrorMessage } from '../types'
 
 const GRADIENTS = [
   'linear-gradient(135deg, #0F172A 0%, #6366F1 45%, #EC4899 100%)',
@@ -1043,8 +1044,8 @@ function GalleryView({ entries, gallery, journeyId, userId, trips, onPhotoClick,
       await journeyApi.uploadGalleryPhotos(journeyId, formData)
       toast.success(t('journey.photosUploaded', { count: files.length }))
       onRefresh()
-    } catch {
-      toast.error(t('journey.settings.coverFailed'))
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('journey.photosUploadFailed')))
     } finally {
       setGalleryUploading(false)
     }
@@ -2184,6 +2185,7 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
   onDone: () => void
 }) {
   const { t } = useTranslation()
+  const toast = useToast()
   const isMobile = useIsMobile()
   const [title, setTitle] = useState(entry.title || '')
   const [story, setStory] = useState(entry.story || '')
@@ -2257,7 +2259,11 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
       if (pendingFiles.length > 0 && entryId) {
         const formData = new FormData()
         for (const f of pendingFiles) formData.append('photos', f)
-        await onUploadPhotos(entryId, formData)
+        try {
+          await onUploadPhotos(entryId, formData)
+        } catch (err) {
+          toast.error(getApiErrorMessage(err, t('journey.editor.uploadFailed')))
+        }
       }
       // link gallery photos that were picked before save
       if (pendingLinkIds.length > 0 && entryId) {
