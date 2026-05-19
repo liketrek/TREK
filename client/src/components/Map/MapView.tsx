@@ -43,7 +43,7 @@ function createPlaceIcon(place, orderNumbers, isSelected) {
   const cached = iconCache.get(cacheKey)
   if (cached) return cached
   const size = isSelected ? 44 : 36
-  const borderColor = isSelected ? '#111827' : 'white'
+  const borderColor = isSelected ? '#111827' : (place.category_color || 'white')
   const borderWidth = isSelected ? 3 : 2.5
   const shadow = isSelected
     ? '0 0 0 3px rgba(17,24,39,0.25), 0 4px 14px rgba(0,0,0,0.3)'
