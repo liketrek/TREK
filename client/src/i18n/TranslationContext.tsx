@@ -6,6 +6,7 @@ import es from './translations/es'
 import fr from './translations/fr'
 import hu from './translations/hu'
 import it from './translations/it'
+import tr from './translations/tr'
 import ru from './translations/ru'
 import zh from './translations/zh'
 import zhTw from './translations/zhTw'
@@ -23,7 +24,7 @@ type TranslationStrings = Record<string, string | { name: string; category: stri
 
 // Keyed by SupportedLanguageCode so TypeScript enforces all languages have a translation.
 const translations: Record<SupportedLanguageCode, TranslationStrings> = {
-  de, en, es, fr, hu, it, ru, zh, 'zh-TW': zhTw, nl, id, ar, br, cs, pl,
+  de, en, es, fr, hu, it, tr, ru, zh, 'zh-TW': zhTw, nl, id, ar, br, cs, pl,
 }
 
 // Derived from SUPPORTED_LANGUAGES — add new languages there, not here.
@@ -38,7 +39,7 @@ export function getLocaleForLanguage(language: string): string {
 
 export function getIntlLanguage(language: string): string {
   if (language === 'br') return 'pt-BR'
-  return ['de', 'es', 'fr', 'hu', 'it', 'ru', 'zh', 'zh-TW', 'nl', 'ar', 'cs', 'pl', 'id'].includes(language) ? language : 'en'
+  return ['de', 'es', 'fr', 'hu', 'it', 'tr', 'ru', 'zh', 'zh-TW', 'nl', 'ar', 'cs', 'pl', 'id'].includes(language) ? language : 'en'
 }
 
 export function isRtlLanguage(language: string): boolean {
