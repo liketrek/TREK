@@ -179,7 +179,7 @@ export default function JourneyPublicPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
+      <div className="min-h-screen page-bg flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
         <div className="w-6 h-6 border-2 border-zinc-300 border-t-zinc-900 rounded-full animate-spin" />
       </div>
     )
@@ -187,7 +187,7 @@ export default function JourneyPublicPage() {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
+      <div className="min-h-screen page-bg flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
         <div className="text-center">
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">{t('journey.public.notFound')}</h1>
           <p className="text-zinc-500">{t('journey.public.notFoundMessage')}</p>
@@ -446,7 +446,7 @@ export default function JourneyPublicPage() {
   )
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+    <div className="min-h-screen page-bg" style={{ background: 'var(--bg-secondary)' }}>
       {/* Hero */}
       <div className="relative text-center text-white" style={{ background: 'linear-gradient(135deg, #000 0%, #0f172a 50%, #1e293b 100%)', padding: '32px 20px 28px', overflow: 'hidden' }}>
         {journey.cover_image && (

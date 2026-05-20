@@ -1954,11 +1954,18 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
         <div key={dayId} style={{
           position: 'fixed', inset: 0, zIndex: 10000,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(3px)',
+          background: 'var(--modal-backdrop)',
+          backdropFilter: 'blur(12px) saturate(150%)',
+          WebkitBackdropFilter: 'blur(12px) saturate(150%)',
         }} onClick={() => cancelNote(Number(dayId))}>
           <div style={{
-            width: 340, background: 'var(--bg-card)', borderRadius: 16,
-            boxShadow: '0 16px 48px rgba(0,0,0,0.22)', padding: '22px 22px 18px',
+            width: 340,
+            background: 'var(--modal-bg)',
+            backdropFilter: 'var(--glass-blur-lg)',
+            WebkitBackdropFilter: 'var(--glass-blur-lg)',
+            border: '1px solid var(--modal-border)',
+            borderRadius: 16,
+            boxShadow: 'var(--modal-shadow)', padding: '22px 22px 18px',
             display: 'flex', flexDirection: 'column', gap: 12,
           }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
@@ -2010,11 +2017,18 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
         <div style={{
           position: 'fixed', inset: 0, zIndex: 1000,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(3px)',
+          background: 'var(--modal-backdrop)',
+          backdropFilter: 'blur(12px) saturate(150%)',
+          WebkitBackdropFilter: 'blur(12px) saturate(150%)',
         }} onClick={() => setTimeConfirm(null)}>
           <div style={{
-            width: 340, background: 'var(--bg-card)', borderRadius: 16,
-            boxShadow: '0 16px 48px rgba(0,0,0,0.22)', padding: '22px 22px 18px',
+            width: 340,
+            background: 'var(--modal-bg)',
+            backdropFilter: 'var(--glass-blur-lg)',
+            WebkitBackdropFilter: 'var(--glass-blur-lg)',
+            border: '1px solid var(--modal-border)',
+            borderRadius: 16,
+            boxShadow: 'var(--modal-shadow)', padding: '22px 22px 18px',
             display: 'flex', flexDirection: 'column', gap: 12,
           }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -2051,12 +2065,18 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
         <div style={{
           position: 'fixed', inset: 0, zIndex: 1000,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(3px)',
+          background: 'var(--modal-backdrop)',
+          backdropFilter: 'blur(12px) saturate(150%)',
+          WebkitBackdropFilter: 'blur(12px) saturate(150%)',
         }} onClick={() => setTransportDetail(null)}>
           <div style={{
             width: 380, maxHeight: '80vh', overflowY: 'auto',
-            background: 'var(--bg-card)', borderRadius: 16,
-            boxShadow: '0 16px 48px rgba(0,0,0,0.22)', padding: '22px 22px 18px',
+            background: 'var(--modal-bg)',
+            backdropFilter: 'var(--glass-blur-lg)',
+            WebkitBackdropFilter: 'var(--glass-blur-lg)',
+            border: '1px solid var(--modal-border)',
+            borderRadius: 16,
+            boxShadow: 'var(--modal-shadow)', padding: '22px 22px 18px',
             display: 'flex', flexDirection: 'column', gap: 14,
           }} onClick={e => e.stopPropagation()}>
             {(() => {

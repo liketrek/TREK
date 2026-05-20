@@ -187,11 +187,25 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
   return ReactDOM.createPortal(
     <div
       onClick={handleClose}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 99999,
+        background: 'var(--modal-backdrop)',
+        backdropFilter: 'blur(12px) saturate(150%)',
+        WebkitBackdropFilter: 'blur(12px) saturate(150%)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+      }}
     >
       <div
         onClick={e => e.stopPropagation()}
-        style={{ background: 'var(--bg-card)', borderRadius: 16, width: '100%', maxWidth: 520, padding: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.2)', fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }}
+        style={{
+          background: 'var(--modal-bg)',
+          backdropFilter: 'var(--glass-blur-lg)',
+          WebkitBackdropFilter: 'var(--glass-blur-lg)',
+          border: '1px solid var(--modal-border)',
+          borderRadius: 16, width: '100%', maxWidth: 520, padding: 24,
+          boxShadow: 'var(--modal-shadow)',
+          fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+        }}
       >
         <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
           {t('places.importFile')}

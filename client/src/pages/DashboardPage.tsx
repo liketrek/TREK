@@ -296,8 +296,15 @@ function MobileTripCard({ trip, onEdit, onCopy, onDelete, onArchive, onClick, t,
   return (
     <div
       onClick={() => onClick?.(trip)}
-      className="group rounded-2xl border border-zinc-200 dark:border-zinc-700 overflow-hidden cursor-pointer transition-[transform,box-shadow,border-color] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-0.5 hover:shadow-md"
-      style={{ background: 'var(--bg-card)', isolation: 'isolate' }}
+      className="group rounded-2xl overflow-hidden cursor-pointer transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-1 hover:shadow-[var(--glass-shadow-lg)]"
+      style={{
+        background: 'var(--glass-bg)',
+        backdropFilter: 'var(--glass-blur)',
+        WebkitBackdropFilter: 'var(--glass-blur)',
+        border: '1px solid var(--glass-border)',
+        boxShadow: 'var(--glass-shadow)',
+        isolation: 'isolate',
+      }}
     >
       {/* Cover */}
       <div className="relative h-[120px] overflow-hidden" style={{ background: trip.cover_image ? undefined : tripGradient(trip.id) }}>
@@ -388,8 +395,15 @@ function TripCard({ trip, onEdit, onCopy, onDelete, onArchive, onClick, t, local
   return (
     <div
       onClick={() => onClick(trip)}
-      className="group rounded-2xl border border-zinc-200 dark:border-zinc-700 overflow-hidden cursor-pointer transition-[transform,box-shadow,border-color] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-0.5 hover:shadow-lg hover:border-zinc-300 dark:hover:border-zinc-600"
-      style={{ background: 'var(--bg-card)', isolation: 'isolate' }}
+      className="group rounded-2xl overflow-hidden cursor-pointer transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-1 hover:shadow-[var(--glass-shadow-lg)]"
+      style={{
+        background: 'var(--glass-bg)',
+        backdropFilter: 'var(--glass-blur)',
+        WebkitBackdropFilter: 'var(--glass-blur)',
+        border: '1px solid var(--glass-border)',
+        boxShadow: 'var(--glass-shadow)',
+        isolation: 'isolate',
+      }}
     >
       {/* Cover */}
       <div className="relative h-[140px] overflow-hidden" style={{ background: trip.cover_image ? undefined : tripGradient(trip.id) }}>
@@ -487,10 +501,14 @@ function TripListItem({ trip, onEdit, onCopy, onDelete, onArchive, onClick, t, l
       onClick={() => onClick(trip)}
       style={{
         display: 'flex', alignItems: 'center', gap: 14, padding: '10px 16px',
-        background: hovered ? 'var(--bg-tertiary)' : 'var(--bg-card)', borderRadius: 14,
-        border: `1px solid ${hovered ? 'var(--text-faint)' : 'var(--border-primary)'}`,
-        cursor: 'pointer', transition: 'all 0.15s',
-        boxShadow: hovered ? '0 4px 16px rgba(0,0,0,0.08)' : '0 1px 3px rgba(0,0,0,0.03)',
+        background: hovered ? 'var(--glass-bg-strong)' : 'var(--glass-bg)',
+        backdropFilter: 'var(--glass-blur)',
+        WebkitBackdropFilter: 'var(--glass-blur)',
+        borderRadius: 14,
+        border: `1px solid ${hovered ? 'var(--glass-border)' : 'var(--glass-border-inner)'}`,
+        cursor: 'pointer', transition: 'all 0.2s var(--ease-out-quint)',
+        boxShadow: hovered ? 'var(--glass-shadow)' : 'none',
+        transform: hovered ? 'translateY(-1px)' : 'none',
       }}
     >
       {/* Cover thumbnail */}
@@ -589,11 +607,22 @@ function ArchivedRow({ trip, onEdit, onCopy, onUnarchive, onDelete, onClick, t, 
   return (
     <div onClick={() => onClick(trip)} style={{
       display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px',
-      borderRadius: 12, border: '1px solid var(--border-faint)', background: 'var(--bg-card)', cursor: 'pointer',
-      transition: 'border-color 0.12s',
+      borderRadius: 12,
+      background: 'var(--glass-bg-subtle)',
+      backdropFilter: 'var(--glass-blur)',
+      WebkitBackdropFilter: 'var(--glass-blur)',
+      border: '1px solid var(--glass-border-inner)',
+      cursor: 'pointer',
+      transition: 'all 0.15s var(--ease-out-quint)',
     }}
-      onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border-primary)'}
-      onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-faint)'}>
+      onMouseEnter={e => {
+        e.currentTarget.style.background = 'var(--glass-bg)'
+        e.currentTarget.style.borderColor = 'var(--glass-border)'
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.background = 'var(--glass-bg-subtle)'
+        e.currentTarget.style.borderColor = 'var(--glass-border-inner)'
+      }}>
       {/* Mini cover */}
       <div style={{
         width: 40, height: 40, borderRadius: 10, flexShrink: 0,
@@ -677,8 +706,13 @@ function IconBtn({ onClick, title, danger, loading, children }: { onClick: () =>
 function SkeletonCard(): React.ReactElement {
   return (
     <div
-      className="rounded-2xl border border-zinc-200 dark:border-zinc-700 overflow-hidden"
-      style={{ background: 'var(--bg-card)' }}
+      className="rounded-2xl overflow-hidden"
+      style={{
+        background: 'var(--glass-bg)',
+        backdropFilter: 'var(--glass-blur)',
+        WebkitBackdropFilter: 'var(--glass-blur)',
+        border: '1px solid var(--glass-border)',
+      }}
     >
       <div className="trek-skeleton" style={{ height: 120, borderRadius: 0 }} />
       <div style={{ padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -839,7 +873,7 @@ export default function DashboardPage(): React.ReactElement {
   const rest = spotlight ? trips.filter(t => t.id !== spotlight.id) : trips
 
   return (
-    <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary)', ...font }}>
+    <div className="page-bg" style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary)', ...font }}>
       <Navbar />
       {demoMode && <DemoBanner />}
       <div style={{ flex: 1, overflow: 'auto', overscrollBehavior: 'contain', marginTop: 'var(--nav-h)' }}>
@@ -892,8 +926,14 @@ export default function DashboardPage(): React.ReactElement {
             {can('trip_create') && (
               <button
                 onClick={() => { setEditingTrip(null); setShowForm(true) }}
-                className="flex flex-col items-center gap-2 py-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-700"
-                style={{ background: 'var(--bg-card)' }}
+                className="flex flex-col items-center gap-2 py-3.5 rounded-2xl"
+                style={{
+                  background: 'var(--glass-bg)',
+                  backdropFilter: 'var(--glass-blur)',
+                  WebkitBackdropFilter: 'var(--glass-blur)',
+                  border: '1px solid var(--glass-border)',
+                  boxShadow: 'var(--glass-shadow)',
+                }}
               >
                 <div className="w-9 h-9 rounded-[11px] flex items-center justify-center" style={{ background: '#FEF3C7', color: '#B45309' }}>
                   <Plus size={16} />
@@ -903,8 +943,14 @@ export default function DashboardPage(): React.ReactElement {
             )}
             <button
               onClick={() => setShowWidgetSettings('mobile-currency')}
-              className="flex flex-col items-center gap-2 py-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-700"
-              style={{ background: 'var(--bg-card)' }}
+              className="flex flex-col items-center gap-2 py-3.5 rounded-2xl"
+              style={{
+                background: 'var(--glass-bg)',
+                backdropFilter: 'var(--glass-blur)',
+                WebkitBackdropFilter: 'var(--glass-blur)',
+                border: '1px solid var(--glass-border)',
+                boxShadow: 'var(--glass-shadow)',
+              }}
             >
               <div className="w-9 h-9 rounded-[11px] flex items-center justify-center" style={{ background: '#DBEAFE', color: '#1E40AF' }}>
                 <ArrowRightLeft size={16} />
@@ -913,8 +959,14 @@ export default function DashboardPage(): React.ReactElement {
             </button>
             <button
               onClick={() => setShowWidgetSettings('mobile-timezone')}
-              className="flex flex-col items-center gap-2 py-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-700"
-              style={{ background: 'var(--bg-card)' }}
+              className="flex flex-col items-center gap-2 py-3.5 rounded-2xl"
+              style={{
+                background: 'var(--glass-bg)',
+                backdropFilter: 'var(--glass-blur)',
+                WebkitBackdropFilter: 'var(--glass-blur)',
+                border: '1px solid var(--glass-border)',
+                boxShadow: 'var(--glass-shadow)',
+              }}
             >
               <div className="w-9 h-9 rounded-[11px] flex items-center justify-center" style={{ background: '#DCFCE7', color: '#15803D' }}>
                 <Clock size={16} />
@@ -926,9 +978,12 @@ export default function DashboardPage(): React.ReactElement {
           {/* Desktop header — unified toolbar */}
           <div className="hidden md:block" style={{ marginBottom: 20 }}>
             <div style={{
-              background: 'var(--bg-tertiary)', borderRadius: 18,
-              border: '1px solid var(--border-primary)',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
+              background: 'var(--glass-bg)',
+              backdropFilter: 'var(--glass-blur)',
+              WebkitBackdropFilter: 'var(--glass-blur)',
+              borderRadius: 18,
+              border: '1px solid var(--glass-border)',
+              boxShadow: 'var(--glass-shadow)',
               padding: '14px 16px 14px 22px',
               display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
             }}>
@@ -996,7 +1051,15 @@ export default function DashboardPage(): React.ReactElement {
 
           {/* Widget settings dropdown */}
           {showWidgetSettings && (
-            <div className="rounded-xl border p-3 mb-4 flex items-center gap-4" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+            <div
+              className="rounded-xl p-3 mb-4 flex items-center gap-4"
+              style={{
+                background: 'var(--glass-bg)',
+                backdropFilter: 'var(--glass-blur)',
+                WebkitBackdropFilter: 'var(--glass-blur)',
+                border: '1px solid var(--glass-border)',
+              }}
+            >
               <span className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>Widgets:</span>
               <label className="flex items-center gap-2 cursor-pointer">
                 <button onClick={() => updateSetting('dashboard_currency', showCurrency ? 'off' : 'on')}
@@ -1172,10 +1235,32 @@ export default function DashboardPage(): React.ReactElement {
 
       {/* Mobile widgets bottom sheet */}
       {(showWidgetSettings === 'mobile' || showWidgetSettings === 'mobile-currency' || showWidgetSettings === 'mobile-timezone') && (
-        <div className="lg:hidden fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.3)', touchAction: 'none' }} onClick={() => setShowWidgetSettings(false)}>
+        <div
+          className="lg:hidden fixed inset-0 z-50"
+          style={{
+            background: 'var(--modal-backdrop)',
+            backdropFilter: 'blur(12px) saturate(150%)',
+            WebkitBackdropFilter: 'blur(12px) saturate(150%)',
+            touchAction: 'none',
+          }}
+          onClick={() => setShowWidgetSettings(false)}
+        >
           <div className="absolute left-0 right-0 flex flex-col overflow-hidden"
-            style={{ bottom: 'calc(84px + env(safe-area-inset-bottom, 0px))', maxHeight: '70vh', background: 'var(--bg-card)', borderRadius: '20px 20px 0 0', overscrollBehavior: 'contain', animation: 'slideUp 0.25s ease-out' }}
-            onClick={e => e.stopPropagation()}>
+            style={{
+              bottom: 'calc(84px + env(safe-area-inset-bottom, 0px))',
+              maxHeight: '70vh',
+              background: 'var(--modal-bg)',
+              backdropFilter: 'var(--glass-blur-lg)',
+              WebkitBackdropFilter: 'var(--glass-blur-lg)',
+              border: '1px solid var(--modal-border)',
+              borderBottomWidth: 0,
+              borderRadius: '20px 20px 0 0',
+              boxShadow: 'var(--glass-shadow-lg)',
+              overscrollBehavior: 'contain',
+              animation: 'slideUp 0.28s cubic-bezier(0.32, 0.72, 0, 1)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
             <div className="flex justify-center pt-3 pb-2">
               <div className="w-10 h-1 rounded-full" style={{ background: 'var(--border-primary)' }} />
             </div>

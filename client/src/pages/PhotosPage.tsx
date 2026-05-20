@@ -64,14 +64,14 @@ export default function PhotosPage(): React.ReactElement {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center page-bg" style={{ background: 'var(--bg-secondary)' }}>
         <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-700 rounded-full animate-spin"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen page-bg" style={{ background: 'var(--bg-secondary)' }}>
       <Navbar tripTitle={trip?.name} tripId={tripId} showBack onBack={() => navigate(`/trips/${tripId}`)} />
 
       <div style={{ paddingTop: 'var(--nav-h)' }}>

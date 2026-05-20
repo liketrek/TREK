@@ -108,7 +108,7 @@ export default function JourneyPage() {
   }, [availableTrips, selectedTripIds])
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+    <div className="min-h-screen page-bg" style={{ background: 'var(--bg-secondary)' }}>
       <Navbar />
       <div style={{ paddingTop: 'var(--nav-h, 56px)' }}>
         <div className="max-w-[1440px] mx-auto">
@@ -333,7 +333,13 @@ export default function JourneyPage() {
                 {/* Create card */}
                 <button
                   onClick={() => openCreateModal()}
-                  className="group min-h-[320px] rounded-2xl border-[1.5px] border-dashed border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 flex flex-col items-center justify-center gap-2.5 hover:border-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-[border-color,background-color,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] cursor-pointer hover:-translate-y-0.5"
+                  className="group min-h-[320px] rounded-2xl flex flex-col items-center justify-center gap-2.5 cursor-pointer hover:-translate-y-0.5 transition-[transform,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
+                  style={{
+                    background: 'var(--glass-bg-subtle)',
+                    backdropFilter: 'var(--glass-blur)',
+                    WebkitBackdropFilter: 'var(--glass-blur)',
+                    border: '1.5px dashed var(--glass-border)',
+                  }}
                 >
                   <div className="w-14 h-14 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:bg-white dark:group-hover:bg-zinc-700 transition-[background-color,transform] group-hover:rotate-90 duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]">
                     <Plus size={22} />
@@ -349,13 +355,23 @@ export default function JourneyPage() {
 
       {/* Create Modal */}
       {showCreate && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-5" style={{ background: 'rgba(9,9,11,0.6)', backdropFilter: 'blur(6px)' }}>
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] max-w-[640px] w-full max-h-[90vh] flex flex-col overflow-hidden" style={{ paddingBottom: 'var(--bottom-nav-h)' }}>
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center p-5"
+          style={{
+            background: 'var(--modal-backdrop)',
+            backdropFilter: 'blur(12px) saturate(150%)',
+            WebkitBackdropFilter: 'blur(12px) saturate(150%)',
+          }}
+        >
+          <div
+            className="modal-glass rounded-2xl max-w-[640px] w-full max-h-[90vh] flex flex-col overflow-hidden"
+            style={{ paddingBottom: 'var(--bottom-nav-h)' }}
+          >
 
             {/* Header */}
-            <div className="px-7 pt-6 pb-5 border-b border-zinc-200 dark:border-zinc-700">
-              <h2 className="text-[18px] font-bold tracking-[-0.01em] text-zinc-900 dark:text-white">{t("journey.frontpage.createJourney")}</h2>
-              <p className="text-[13px] text-zinc-500 mt-1">{t('journey.frontpage.createNewSub')}</p>
+            <div className="px-7 pt-6 pb-5" style={{ borderBottom: '1px solid var(--modal-border)' }}>
+              <h2 className="text-[18px] font-bold tracking-[-0.01em]" style={{ color: 'var(--text-primary)' }}>{t("journey.frontpage.createJourney")}</h2>
+              <p className="text-[13px] mt-1" style={{ color: 'var(--text-muted)' }}>{t('journey.frontpage.createNewSub')}</p>
             </div>
 
             {/* Body */}
@@ -429,7 +445,7 @@ export default function JourneyPage() {
             </div>
 
             {/* Footer */}
-            <div className="px-7 py-4 border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between">
+            <div className="px-7 py-4 flex items-center justify-between" style={{ borderTop: '1px solid var(--modal-border)' }}>
               <div className="text-[12px] text-zinc-500">
                 <strong className="text-zinc-900 dark:text-white">{selectedTripIds.size}</strong> <span className="hidden md:inline">{t('journey.frontpage.tripsSelected')}</span><span className="md:hidden">{t('journey.frontpage.trips')}</span>
                 {selectedTripIds.size > 0 && <> · <strong className="text-zinc-900 dark:text-white">{totalPlaces}</strong> <span className="hidden md:inline">{t('journey.frontpage.placesImported')}</span><span className="md:hidden">{t('journey.frontpage.places')}</span></>}
@@ -468,7 +484,16 @@ function JourneyCard({ journey, onClick }: { journey: Journey & { entry_count?: 
   return (
     <div
       onClick={onClick}
-      className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 overflow-hidden cursor-pointer transition-[transform,box-shadow,border-color] duration-250 ease-[cubic-bezier(0.23,1,0.32,1)] hover:border-zinc-400 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)] flex flex-col"
+      className="rounded-2xl overflow-hidden cursor-pointer transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-1 flex flex-col"
+      style={{
+        background: 'var(--glass-bg)',
+        backdropFilter: 'var(--glass-blur)',
+        WebkitBackdropFilter: 'var(--glass-blur)',
+        border: '1px solid var(--glass-border)',
+        boxShadow: 'var(--glass-shadow)',
+      }}
+      onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--glass-shadow-lg)' }}
+      onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--glass-shadow)' }}
     >
       {/* Cover */}
       <div className="h-[170px] relative overflow-hidden" style={{ background: pickGradient(j.id) }}>
