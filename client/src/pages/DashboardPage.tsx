@@ -1051,7 +1051,15 @@ export default function DashboardPage(): React.ReactElement {
 
           {/* Widget settings dropdown */}
           {showWidgetSettings && (
-            <div className="rounded-xl border p-3 mb-4 flex items-center gap-4" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+            <div
+              className="rounded-xl p-3 mb-4 flex items-center gap-4"
+              style={{
+                background: 'var(--glass-bg)',
+                backdropFilter: 'var(--glass-blur)',
+                WebkitBackdropFilter: 'var(--glass-blur)',
+                border: '1px solid var(--glass-border)',
+              }}
+            >
               <span className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>Widgets:</span>
               <label className="flex items-center gap-2 cursor-pointer">
                 <button onClick={() => updateSetting('dashboard_currency', showCurrency ? 'off' : 'on')}
@@ -1227,10 +1235,32 @@ export default function DashboardPage(): React.ReactElement {
 
       {/* Mobile widgets bottom sheet */}
       {(showWidgetSettings === 'mobile' || showWidgetSettings === 'mobile-currency' || showWidgetSettings === 'mobile-timezone') && (
-        <div className="lg:hidden fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.3)', touchAction: 'none' }} onClick={() => setShowWidgetSettings(false)}>
+        <div
+          className="lg:hidden fixed inset-0 z-50"
+          style={{
+            background: 'var(--modal-backdrop)',
+            backdropFilter: 'blur(12px) saturate(150%)',
+            WebkitBackdropFilter: 'blur(12px) saturate(150%)',
+            touchAction: 'none',
+          }}
+          onClick={() => setShowWidgetSettings(false)}
+        >
           <div className="absolute left-0 right-0 flex flex-col overflow-hidden"
-            style={{ bottom: 'calc(84px + env(safe-area-inset-bottom, 0px))', maxHeight: '70vh', background: 'var(--bg-card)', borderRadius: '20px 20px 0 0', overscrollBehavior: 'contain', animation: 'slideUp 0.25s ease-out' }}
-            onClick={e => e.stopPropagation()}>
+            style={{
+              bottom: 'calc(84px + env(safe-area-inset-bottom, 0px))',
+              maxHeight: '70vh',
+              background: 'var(--modal-bg)',
+              backdropFilter: 'var(--glass-blur-lg)',
+              WebkitBackdropFilter: 'var(--glass-blur-lg)',
+              border: '1px solid var(--modal-border)',
+              borderBottomWidth: 0,
+              borderRadius: '20px 20px 0 0',
+              boxShadow: 'var(--glass-shadow-lg)',
+              overscrollBehavior: 'contain',
+              animation: 'slideUp 0.28s cubic-bezier(0.32, 0.72, 0, 1)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
             <div className="flex justify-center pt-3 pb-2">
               <div className="w-10 h-1 rounded-full" style={{ background: 'var(--border-primary)' }} />
             </div>

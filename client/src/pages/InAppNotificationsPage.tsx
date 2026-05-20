@@ -44,7 +44,7 @@ export default function InAppNotificationsPage(): React.ReactElement {
   const displayed = unreadOnly ? notifications.filter(n => !n.is_read) : notifications
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+    <div className="min-h-screen page-bg" style={{ background: 'var(--bg-secondary)' }}>
       <Navbar />
       <div style={{ paddingTop: 'var(--nav-h)' }}>
         <div className="max-w-2xl mx-auto px-4 py-8">

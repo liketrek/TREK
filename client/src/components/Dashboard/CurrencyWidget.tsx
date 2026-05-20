@@ -51,7 +51,16 @@ export default function CurrencyWidget() {
   const result = rawResult
 
   return (
-    <div className="rounded-2xl border p-4" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+    <div
+      className="rounded-2xl p-4"
+      style={{
+        background: 'var(--glass-bg)',
+        backdropFilter: 'var(--glass-blur)',
+        WebkitBackdropFilter: 'var(--glass-blur)',
+        border: '1px solid var(--glass-border)',
+        boxShadow: 'var(--glass-shadow)',
+      }}
+    >
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-faint)' }}>{t('dashboard.currency')}</span>
         <button onClick={fetchRate} className="p-1 rounded-md transition-colors" style={{ color: 'var(--text-faint)' }}>

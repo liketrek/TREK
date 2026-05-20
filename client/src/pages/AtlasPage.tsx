@@ -764,7 +764,7 @@ export default function AtlasPage(): React.ReactElement {
 
   if (loading) {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+      <div className="min-h-screen page-bg" style={{ background: 'var(--bg-secondary)' }}>
         <Navbar />
         <div className="flex items-center justify-center" style={{ paddingTop: 'var(--nav-h)', minHeight: 'calc(100vh - var(--nav-h))' }}>
           <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--border-primary)', borderTopColor: 'var(--text-primary)' }} />
