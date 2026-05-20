@@ -67,10 +67,12 @@ export function ContextMenu({ menu, onClose }: ContextMenuProps) {
   return ReactDOM.createPortal(
     <div ref={ref} className="trek-popover-enter" style={{
       position: 'fixed', left: menu.x, top: menu.y, zIndex: 999999,
-      background: 'var(--bg-card)', borderRadius: 10, padding: '4px',
-      border: '1px solid var(--border-primary)',
-      boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
-      backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+      background: 'var(--modal-bg)',
+      backdropFilter: 'var(--glass-blur-lg)',
+      WebkitBackdropFilter: 'var(--glass-blur-lg)',
+      border: '1px solid var(--modal-border)',
+      boxShadow: 'var(--glass-shadow-lg)',
+      borderRadius: 12, padding: '4px',
       minWidth: 160,
       fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
       transformOrigin: 'top left',

@@ -333,7 +333,7 @@ export default function JourneyDetailPage() {
 
   if (loading || !current) {
     return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+      <div className="min-h-screen page-bg" style={{ background: 'var(--bg-secondary)' }}>
         <Navbar />
         <div style={{ paddingTop: 'var(--nav-h, 0px)' }} className="flex justify-center py-20">
           <div className="w-6 h-6 border-2 border-zinc-300 border-t-zinc-900 rounded-full animate-spin" />
@@ -359,7 +359,7 @@ export default function JourneyDetailPage() {
   const isMobileChromeless = showMobileCombined || showMobileGallery
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+    <div className="min-h-screen page-bg" style={{ background: 'var(--bg-secondary)' }}>
       <Navbar />
 
       {/* Mobile combined map+timeline (Polarsteps-style) — renders as fullscreen overlay */}
@@ -398,13 +398,30 @@ export default function JourneyDetailPage() {
           <button
             onClick={() => navigate('/journey')}
             aria-label={t('journey.detail.backToJourney')}
-            className="w-10 h-10 flex-shrink-0 rounded-lg bg-white/90 dark:bg-zinc-800/90 backdrop-blur-lg border border-zinc-200 dark:border-zinc-700 shadow-lg text-zinc-700 dark:text-zinc-200 flex items-center justify-center hover:bg-white dark:hover:bg-zinc-800 active:scale-95 transition-transform"
+            className="w-10 h-10 flex-shrink-0 rounded-xl flex items-center justify-center active:scale-95 transition-transform"
+            style={{
+              background: 'var(--glass-bg)',
+              backdropFilter: 'var(--glass-blur)',
+              WebkitBackdropFilter: 'var(--glass-blur)',
+              border: '1px solid var(--glass-border)',
+              boxShadow: 'var(--glass-shadow)',
+              color: 'var(--text-secondary)',
+            }}
           >
             <ArrowLeft size={16} />
           </button>
 
           <div className="flex-1 min-w-0 flex justify-center">
-            <div className="flex bg-white/90 dark:bg-zinc-800/90 backdrop-blur-lg border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden shadow-lg">
+            <div
+              className="flex rounded-xl overflow-hidden"
+              style={{
+                background: 'var(--glass-bg)',
+                backdropFilter: 'var(--glass-blur)',
+                WebkitBackdropFilter: 'var(--glass-blur)',
+                border: '1px solid var(--glass-border)',
+                boxShadow: 'var(--glass-shadow)',
+              }}
+            >
               <button
                 onClick={() => setView('timeline')}
                 className={`flex items-center gap-1.5 px-3 py-[7px] text-[12px] font-medium ${
@@ -434,7 +451,15 @@ export default function JourneyDetailPage() {
             <button
               onClick={() => setShowSettings(true)}
               aria-label={t('journey.settings.title')}
-              className="w-10 h-10 flex-shrink-0 rounded-lg bg-white/90 dark:bg-zinc-800/90 backdrop-blur-lg border border-zinc-200 dark:border-zinc-700 shadow-lg text-zinc-700 dark:text-zinc-200 flex items-center justify-center hover:bg-white dark:hover:bg-zinc-800 active:scale-95 transition-transform"
+              className="w-10 h-10 flex-shrink-0 rounded-xl flex items-center justify-center active:scale-95 transition-transform"
+              style={{
+                background: 'var(--glass-bg)',
+                backdropFilter: 'var(--glass-blur)',
+                WebkitBackdropFilter: 'var(--glass-blur)',
+                border: '1px solid var(--glass-border)',
+                boxShadow: 'var(--glass-shadow)',
+                color: 'var(--text-secondary)',
+              }}
             >
               <MoreHorizontal size={16} />
             </button>

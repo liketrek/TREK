@@ -221,7 +221,13 @@ function NoticeContent({ notice, title, body, ctaLabel, titleId, bodyId, isDark,
 
       {/* Sticky footer — pager + CTA, always anchored at the bottom of the slot */}
       <div
-        className="sticky bottom-0 px-8 pt-4 flex flex-col gap-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800"
+        className="sticky bottom-0 px-8 pt-4 flex flex-col gap-3"
+        style={{
+          background: 'var(--modal-bg)',
+          backdropFilter: 'var(--glass-blur)',
+          WebkitBackdropFilter: 'var(--glass-blur)',
+          borderTop: '1px solid var(--modal-border)',
+        }}
         style={{ paddingBottom: 'calc(var(--bottom-nav-h) + 1rem)' }}
       >
         {/* Pager — dots, arrows, counter (only when multiple notices) */}
@@ -646,7 +652,12 @@ export function ModalRenderer({ notices }: Props) {
         <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{pageAnnouncement}</span>
         {/* Backdrop */}
         <div
-          className={`absolute inset-0 bg-slate-950/40 backdrop-blur-[2px] transition-opacity ${dur} ${ease} ${visible ? 'opacity-100' : 'opacity-0'}`}
+          className={`absolute inset-0 transition-opacity ${dur} ${ease} ${visible ? 'opacity-100' : 'opacity-0'}`}
+          style={{
+            background: 'var(--modal-backdrop)',
+            backdropFilter: 'blur(12px) saturate(150%)',
+            WebkitBackdropFilter: 'blur(12px) saturate(150%)',
+          }}
           onClick={notice.dismissible ? animatedDismissAll : undefined}
         />
         {/* Bottom sheet */}
@@ -656,7 +667,15 @@ export function ModalRenderer({ notices }: Props) {
           aria-modal="true"
           aria-labelledby={titleId}
           aria-describedby={bodyId}
-          className={`absolute bottom-0 left-0 right-0 rounded-t-3xl overflow-hidden h-[85dvh] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl transition-[opacity,transform] ${dur} ${ease} ${mobileMotion}`}
+          className={`absolute bottom-0 left-0 right-0 rounded-t-3xl overflow-hidden h-[85dvh] flex flex-col transition-[opacity,transform] ${dur} ${ease} ${mobileMotion}`}
+          style={{
+            background: 'var(--modal-bg)',
+            backdropFilter: 'var(--glass-blur-lg)',
+            WebkitBackdropFilter: 'var(--glass-blur-lg)',
+            border: '1px solid var(--modal-border)',
+            borderBottomWidth: 0,
+            boxShadow: 'var(--glass-shadow-lg)',
+          }}
           style={{ touchAction: 'pan-y' }}
           onTouchStart={e => {
             touchStartX.current = e.touches[0].clientX;
@@ -805,7 +824,12 @@ export function ModalRenderer({ notices }: Props) {
 
   return (
     <div
-      className={`fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-[2px] transition-opacity ${dur} ${ease} ${visible ? 'opacity-100' : 'opacity-0'}`}
+      className={`fixed inset-0 z-50 transition-opacity ${dur} ${ease} ${visible ? 'opacity-100' : 'opacity-0'}`}
+      style={{
+        background: 'var(--modal-backdrop)',
+        backdropFilter: 'blur(12px) saturate(150%)',
+        WebkitBackdropFilter: 'blur(12px) saturate(150%)',
+      }}
       role="presentation"
       onClick={notice.dismissible && isLastPage ? handleDismissAll : undefined}
     >
@@ -817,7 +841,14 @@ export function ModalRenderer({ notices }: Props) {
           aria-modal="true"
           aria-labelledby={titleId}
           aria-describedby={bodyId}
-          className={`w-full ${maxWidth} rounded-2xl overflow-hidden overflow-y-auto max-h-[90vh] shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all ${dur} ${ease} ${desktopMotion}`}
+          className={`w-full ${maxWidth} rounded-2xl overflow-hidden overflow-y-auto max-h-[90vh] transition-all ${dur} ${ease} ${desktopMotion}`}
+          style={{
+            background: 'var(--modal-bg)',
+            backdropFilter: 'var(--glass-blur-lg)',
+            WebkitBackdropFilter: 'var(--glass-blur-lg)',
+            border: '1px solid var(--modal-border)',
+            boxShadow: 'var(--modal-shadow)',
+          }}
           onClick={e => e.stopPropagation()}
         >
           <div ref={contentWrapperRef}>

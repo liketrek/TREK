@@ -15,28 +15,31 @@ const SEVERITY_ICONS: Record<string, React.ElementType> = {
 
 const SEVERITY = {
   info: {
-    bg:       'bg-white dark:bg-slate-900',
+    bg:       '',
     border:   'border-blue-500 dark:border-blue-400',
-    text:     'text-slate-900 dark:text-slate-100',
+    text:     '',
     icon:     'text-blue-500 dark:text-blue-400',
     ariaLive: 'polite' as const,
     role:     'status' as const,
+    glassStyle: { background: 'var(--glass-bg)', backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)' },
   },
   warn: {
-    bg:       'bg-amber-50 dark:bg-amber-950',
+    bg:       '',
     border:   'border-amber-500 dark:border-amber-400',
     text:     'text-amber-900 dark:text-amber-100',
     icon:     'text-amber-500 dark:text-amber-400',
     ariaLive: 'polite' as const,
     role:     'status' as const,
+    glassStyle: { background: 'rgba(245,158,11,0.08)', backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)' },
   },
   critical: {
-    bg:       'bg-rose-50 dark:bg-rose-950',
+    bg:       '',
     border:   'border-rose-600 dark:border-rose-400',
     text:     'text-rose-900 dark:text-rose-100',
     icon:     'text-rose-600 dark:text-rose-400',
     ariaLive: 'assertive' as const,
     role:     'alert' as const,
+    glassStyle: { background: 'rgba(239,68,68,0.08)', backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)' },
   },
 } as const;
 
@@ -108,7 +111,8 @@ function BannerItem({ notice, onDismiss, language }: BannerItemProps) {
       role={s.role}
       aria-live={s.ariaLive}
       aria-atomic="true"
-      className={`flex items-start gap-x-3 py-3 px-4 ${accentBorder} ${s.bg} ${s.border} ${s.text}`}
+      className={`flex items-start gap-x-3 py-3 px-4 ${accentBorder} ${s.border} ${s.text}`}
+      style={s.glassStyle}
     >
       {React.createElement(
         (SEVERITY_ICONS[notice.severity] ?? Info) as React.ElementType,

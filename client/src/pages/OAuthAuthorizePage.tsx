@@ -148,7 +148,7 @@ export default function OAuthAuthorizePage(): React.ReactElement {
 
   if (pageState === 'loading' || pageState === 'auto_approving') {
     return (
-        <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
+        <div className="page-bg min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
           <div className="flex flex-col items-center gap-3">
             <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--accent-primary, #4f46e5)' }} />
             <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
@@ -161,8 +161,12 @@ export default function OAuthAuthorizePage(): React.ReactElement {
 
   if (pageState === 'error') {
     return (
-        <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--bg-primary)' }}>
-          <div className="w-full max-w-sm rounded-xl shadow-lg p-8 space-y-4 text-center" style={{ background: 'var(--bg-card)' }}>
+        <div className="page-bg min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--bg-secondary)' }}>
+          <div className="w-full max-w-sm rounded-xl p-8 space-y-4 text-center" style={{
+            background: 'var(--modal-bg)', backdropFilter: 'var(--glass-blur-lg)',
+            WebkitBackdropFilter: 'var(--glass-blur-lg)', border: '1px solid var(--modal-border)',
+            boxShadow: 'var(--modal-shadow)',
+          }}>
             <AlertTriangle className="w-10 h-10 mx-auto text-red-500" />
             <h1 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>Authorization Error</h1>
             <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{errorMsg}</p>
@@ -173,8 +177,12 @@ export default function OAuthAuthorizePage(): React.ReactElement {
 
   if (pageState === 'login_required') {
     return (
-        <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--bg-primary)' }}>
-          <div className="w-full max-w-sm rounded-xl shadow-lg p-8 space-y-5" style={{ background: 'var(--bg-card)' }}>
+        <div className="page-bg min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--bg-secondary)' }}>
+          <div className="w-full max-w-sm rounded-xl p-8 space-y-5" style={{
+            background: 'var(--modal-bg)', backdropFilter: 'var(--glass-blur-lg)',
+            WebkitBackdropFilter: 'var(--glass-blur-lg)', border: '1px solid var(--modal-border)',
+            boxShadow: 'var(--modal-shadow)',
+          }}>
             <div className="text-center space-y-2">
               <Lock className="w-10 h-10 mx-auto" style={{ color: 'var(--accent-primary, #4f46e5)' }} />
               <h1 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>Sign in to continue</h1>
@@ -196,8 +204,12 @@ export default function OAuthAuthorizePage(): React.ReactElement {
 
   // pageState === 'consent'
   return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--bg-primary)' }}>
-        <div className="w-full max-w-2xl rounded-xl shadow-lg overflow-hidden flex flex-col sm:flex-row" style={{ background: 'var(--bg-card)' }}>
+      <div className="page-bg min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--bg-secondary)' }}>
+        <div className="w-full max-w-2xl rounded-xl overflow-hidden flex flex-col sm:flex-row" style={{
+          background: 'var(--modal-bg)', backdropFilter: 'var(--glass-blur-lg)',
+          WebkitBackdropFilter: 'var(--glass-blur-lg)', border: '1px solid var(--modal-border)',
+          boxShadow: 'var(--modal-shadow)',
+        }}>
 
           {/* Left panel — app identity + actions */}
           <div className="sm:w-64 sm:flex-shrink-0 flex flex-col px-8 py-8 sm:border-r" style={{ borderColor: 'var(--border-primary)' }}>

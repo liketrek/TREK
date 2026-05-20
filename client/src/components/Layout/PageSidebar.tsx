@@ -49,8 +49,11 @@ export default function PageSidebar({
     <div
       className="rounded-2xl overflow-hidden flex flex-col lg:flex-row relative"
       style={{
-        background: 'var(--bg-card)',
-        border: '1px solid var(--border-primary)',
+        background: 'var(--modal-bg)',
+        backdropFilter: 'var(--glass-blur)',
+        WebkitBackdropFilter: 'var(--glass-blur)',
+        border: '1px solid var(--modal-border)',
+        boxShadow: 'var(--glass-shadow)',
         minHeight: 'min(820px, calc(100vh - var(--nav-h) - 120px))',
       }}
     >
@@ -78,8 +81,10 @@ export default function PageSidebar({
         className="hidden lg:flex flex-col shrink-0 relative"
         style={{
           width: 260,
-          background: 'var(--bg-secondary)',
-          borderRight: '1px solid var(--border-primary)',
+          background: 'var(--glass-bg-subtle)',
+          backdropFilter: 'var(--glass-blur)',
+          WebkitBackdropFilter: 'var(--glass-blur)',
+          borderRight: '1px solid var(--modal-border)',
           padding: '24px 14px',
         }}
       >
@@ -102,10 +107,14 @@ export default function PageSidebar({
           />
           <aside
             ref={drawerRef}
-            className="lg:hidden fixed top-0 left-0 bottom-0 z-50 flex flex-col shadow-2xl"
+            className="lg:hidden fixed top-0 left-0 bottom-0 z-50 flex flex-col"
             style={{
               width: 280,
-              background: 'var(--bg-secondary)',
+              background: 'var(--modal-bg)',
+              backdropFilter: 'var(--glass-blur-lg)',
+              WebkitBackdropFilter: 'var(--glass-blur-lg)',
+              borderRight: '1px solid var(--modal-border)',
+              boxShadow: 'var(--glass-shadow-lg)',
               padding: '18px 14px',
             }}
           >

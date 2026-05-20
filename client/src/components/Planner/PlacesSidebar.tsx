@@ -690,11 +690,25 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
       {dayPickerPlace && ReactDOM.createPortal(
         <div
           onClick={() => { setDayPickerPlace(null); setMobileShowDays(false) }}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 99999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 99999,
+            background: 'var(--modal-backdrop)',
+            backdropFilter: 'blur(12px) saturate(150%)',
+            WebkitBackdropFilter: 'blur(12px) saturate(150%)',
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          }}
         >
           <div
             onClick={e => e.stopPropagation()}
-            style={{ background: 'var(--bg-card)', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 500, maxHeight: '70vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', paddingBottom: 'var(--bottom-nav-h)' }}
+            style={{
+              background: 'var(--modal-bg)',
+              backdropFilter: 'var(--glass-blur-lg)',
+              WebkitBackdropFilter: 'var(--glass-blur-lg)',
+              border: '1px solid var(--modal-border)',
+              borderBottom: 'none',
+              boxShadow: 'var(--glass-shadow-lg)',
+              borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 500, maxHeight: '70vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', paddingBottom: 'var(--bottom-nav-h)',
+            }}
           >
             <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid var(--border-secondary)' }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{dayPickerPlace.name}</div>
@@ -764,11 +778,24 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
       {listImportOpen && ReactDOM.createPortal(
         <div
           onClick={() => { setListImportOpen(false); setListImportUrl('') }}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 99999,
+            background: 'var(--modal-backdrop)',
+            backdropFilter: 'blur(12px) saturate(150%)',
+            WebkitBackdropFilter: 'blur(12px) saturate(150%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+          }}
         >
           <div
             onClick={e => e.stopPropagation()}
-            style={{ background: 'var(--bg-card)', borderRadius: 16, width: '100%', maxWidth: 440, padding: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}
+            style={{
+              background: 'var(--modal-bg)',
+              backdropFilter: 'var(--glass-blur-lg)',
+              WebkitBackdropFilter: 'var(--glass-blur-lg)',
+              border: '1px solid var(--modal-border)',
+              borderRadius: 16, width: '100%', maxWidth: 440, padding: 24,
+              boxShadow: 'var(--modal-shadow)',
+            }}
           >
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
               {t('places.importList')}

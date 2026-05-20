@@ -235,8 +235,18 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
           {userMenuOpen && ReactDOM.createPortal(
             <>
               <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }} onClick={() => setUserMenuOpen(false)} />
-              <div className="trek-menu-enter w-52 rounded-xl shadow-xl border overflow-hidden" style={{ position: 'fixed', top: 'var(--nav-h)', right: 8, zIndex: 9999, background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-                <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border-secondary)' }}>
+              <div
+                className="trek-menu-enter w-52 rounded-xl overflow-hidden"
+                style={{
+                  position: 'fixed', top: 'var(--nav-h)', right: 8, zIndex: 9999,
+                  background: 'var(--modal-bg)',
+                  backdropFilter: 'var(--glass-blur-lg)',
+                  WebkitBackdropFilter: 'var(--glass-blur-lg)',
+                  border: '1px solid var(--modal-border)',
+                  boxShadow: 'var(--glass-shadow-lg)',
+                }}
+              >
+                <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--modal-border)' }}>
                   <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{user.username}</p>
                   <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{user.email}</p>
                   {user.role === 'admin' && (
@@ -268,7 +278,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
                   )}
                 </div>
 
-                <div className="py-1 border-t" style={{ borderColor: 'var(--border-secondary)' }}>
+                <div className="py-1" style={{ borderTop: '1px solid var(--modal-border)' }}>
                   <button onClick={handleLogout}
                     className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-500 hover:bg-red-500/10 transition-colors">
                     <LogOut className="w-4 h-4" />
