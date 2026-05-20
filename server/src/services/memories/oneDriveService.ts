@@ -196,7 +196,7 @@ export async function getAlbumPhotos(userId: number, albumId: string) {
       id:          p.id,
       name:        p.name,
       takenAt:     p.photo?.takenDateTime || p.createdDateTime,
-      thumbnail:   p.thumbnails?.[0]?.medium?.url || p.thumbnails?.[0]?.small?.url,
+      thumbnail:   p.thumbnails?.[0]?.large?.url || p.thumbnails?.[0]?.medium?.url || p.thumbnails?.[0]?.small?.url,
       width:       p.image?.width,
       height:      p.image?.height,
     })),
@@ -214,7 +214,7 @@ export async function browseTimeline(userId: number) {
       id:        p.id,
       name:      p.name,
       takenAt:   p.photo?.takenDateTime || p.createdDateTime,
-      thumbnail: p.thumbnails?.[0]?.medium?.url || p.thumbnails?.[0]?.small?.url,
+      thumbnail: p.thumbnails?.[0]?.large?.url || p.thumbnails?.[0]?.medium?.url || p.thumbnails?.[0]?.small?.url,
     })),
   };
 }
@@ -306,7 +306,7 @@ export async function searchPhotos(userId: number, from?: string, to?: string, p
       id:        p.id,
       name:      p.name,
       takenAt:   p.photo?.takenDateTime || p.createdDateTime,
-      thumbnail: p.thumbnails?.[0]?.medium?.url || p.thumbnails?.[0]?.small?.url,
+      thumbnail: p.thumbnails?.[0]?.large?.url || p.thumbnails?.[0]?.medium?.url || p.thumbnails?.[0]?.small?.url,
     })),
     hasMore: collected.length > start + size,
   };
@@ -329,7 +329,7 @@ export async function streamOneDriveAsset(
       if (meta.error || !meta.data?.value?.length) {
         res.status(404).json({ error: 'Thumbnail not found' }); return;
       }
-      url = meta.data.value[0]?.medium?.url || meta.data.value[0]?.small?.url;
+      url = meta.data.value[0]?.large?.url || meta.data.value[0]?.medium?.url || meta.data.value[0]?.small?.url;
       if (!url) { res.status(404).json({ error: 'Thumbnail URL not found' }); return; }
       // Thumbnails from Graph are pre-signed URLs, no auth needed
       const r = await fetch(url);
