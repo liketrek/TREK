@@ -685,9 +685,22 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
       {/* Confirm share popup (inside picker) */}
       {showConfirmShare && (
         <div onClick={() => setShowConfirmShare(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'var(--modal-backdrop)',
+            backdropFilter: 'blur(12px) saturate(150%)',
+            WebkitBackdropFilter: 'blur(12px) saturate(150%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+          }}>
           <div onClick={e => e.stopPropagation()}
-            style={{ background: 'var(--bg-card)', borderRadius: 16, padding: 24, maxWidth: 360, width: '100%', boxShadow: '0 16px 48px rgba(0,0,0,0.2)', textAlign: 'center' }}>
+            style={{
+              background: 'var(--modal-bg)',
+              backdropFilter: 'var(--glass-blur-lg)',
+              WebkitBackdropFilter: 'var(--glass-blur-lg)',
+              border: '1px solid var(--modal-border)',
+              boxShadow: 'var(--modal-shadow)',
+              borderRadius: 16, padding: 24, maxWidth: 360, width: '100%', textAlign: 'center',
+            }}>
             <Share2 size={28} style={{ color: 'var(--text-primary)', marginBottom: 12 }} />
             <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>
               {t('memories.confirmShareTitle')}
@@ -930,9 +943,22 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
       {/* Confirm share popup */}
       {showConfirmShare && (
         <div onClick={() => setShowConfirmShare(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'var(--modal-backdrop)',
+            backdropFilter: 'blur(12px) saturate(150%)',
+            WebkitBackdropFilter: 'blur(12px) saturate(150%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+          }}>
           <div onClick={e => e.stopPropagation()}
-            style={{ background: 'var(--bg-card)', borderRadius: 16, padding: 24, maxWidth: 360, width: '100%', boxShadow: '0 16px 48px rgba(0,0,0,0.2)', textAlign: 'center' }}>
+            style={{
+              background: 'var(--modal-bg)',
+              backdropFilter: 'var(--glass-blur-lg)',
+              WebkitBackdropFilter: 'var(--glass-blur-lg)',
+              border: '1px solid var(--modal-border)',
+              boxShadow: 'var(--modal-shadow)',
+              borderRadius: 16, padding: 24, maxWidth: 360, width: '100%', textAlign: 'center',
+            }}>
             <Share2 size={28} style={{ color: 'var(--text-primary)', marginBottom: 12 }} />
             <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>
               {t('memories.confirmShareTitle')}

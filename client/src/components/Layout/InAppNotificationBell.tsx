@@ -72,7 +72,7 @@ export default function InAppNotificationBell(): React.ReactElement {
         <>
           <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }} onClick={() => setOpen(false)} />
           <div
-            className="rounded-xl shadow-xl border overflow-hidden"
+            className="trek-menu-enter rounded-xl overflow-hidden"
             style={{
               position: 'fixed',
               top: 'var(--nav-h)',
@@ -81,8 +81,11 @@ export default function InAppNotificationBell(): React.ReactElement {
               maxWidth: 'calc(100vw - 16px)',
               maxHeight: 'min(480px, calc(100vh - var(--nav-h) - 16px))',
               zIndex: 9999,
-              background: 'var(--bg-card)',
-              borderColor: 'var(--border-primary)',
+              background: 'var(--modal-bg)',
+              backdropFilter: 'var(--glass-blur-lg)',
+              WebkitBackdropFilter: 'var(--glass-blur-lg)',
+              border: '1px solid var(--modal-border)',
+              boxShadow: 'var(--glass-shadow-lg)',
               display: 'flex',
               flexDirection: 'column',
             }}
@@ -90,7 +93,7 @@ export default function InAppNotificationBell(): React.ReactElement {
             {/* Header */}
             <div
               className="flex items-center justify-between px-4 py-3 flex-shrink-0"
-              style={{ borderBottom: '1px solid var(--border-secondary)' }}
+              style={{ borderBottom: '1px solid var(--modal-border)' }}
             >
               <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                 {t('notifications.title')}
