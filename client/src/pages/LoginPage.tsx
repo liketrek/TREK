@@ -446,9 +446,12 @@ export default function LoginPage(): React.ReactElement {
             onClick={(e) => e.stopPropagation()}
             style={{
               position: 'absolute', top: '100%', right: 0, marginTop: 4,
-              background: 'white', borderRadius: 12,
-              boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
-              border: '1px solid rgba(0,0,0,0.08)',
+              background: 'rgba(255,255,255,0.90)',
+              backdropFilter: 'blur(24px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+              borderRadius: 12,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.14), 0 1px 0 rgba(255,255,255,0.8) inset',
+              border: '1px solid rgba(255,255,255,0.60)',
               minWidth: 190, maxHeight: 320, overflowY: 'auto',
             }}
           >
@@ -614,7 +617,10 @@ export default function LoginPage(): React.ReactElement {
       </div>
 
       {/* Right — form */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 24px', background: '#f9fafb' }}>
+      <div
+        className="page-bg"
+        style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 24px', background: '#f9fafb' }}
+      >
         <div style={{ width: '100%', maxWidth: 400 }}>
 
           {/* Mobile logo */}
@@ -625,7 +631,15 @@ export default function LoginPage(): React.ReactElement {
             <p style={{ margin: 0, fontSize: 16, color: '#9ca3af', fontFamily: "'MuseoModerno', sans-serif", textTransform: 'lowercase', whiteSpace: 'nowrap' }}>{t('login.tagline')}</p>
           </div>
 
-          <div style={{ background: 'white', borderRadius: 20, border: '1px solid #e5e7eb', padding: '36px 32px', boxShadow: '0 2px 16px rgba(0,0,0,0.06)' }}>
+          <div style={{
+            background: 'rgba(255,255,255,0.90)',
+            backdropFilter: 'blur(40px) saturate(200%)',
+            WebkitBackdropFilter: 'blur(40px) saturate(200%)',
+            borderRadius: 20,
+            border: '1px solid rgba(255,255,255,0.70)',
+            boxShadow: '0 24px 80px rgba(0,0,0,0.10), 0 1px 0 rgba(255,255,255,0.80) inset',
+            padding: '36px 32px',
+          }}>
             {oidcOnly ? (
               <>
                 <h2 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 800, color: '#111827' }}>{t('login.title')}</h2>
