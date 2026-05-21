@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
-  <path d="M 11,37 C 16,31 20,27 24.5,23 C 29,19 32,15 35.5,10.5"
-        fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" opacity="0.95"/>
-  <circle cx="11" cy="37" r="3.5" fill="white" opacity="0.95"/>
-  <circle cx="11" cy="37" r="1.6" fill="white" opacity="0.30"/>
-  <circle cx="24.5" cy="23" r="2.1" fill="white" opacity="0.80"/>
-  <path d="M35.5,6 C32,6 29.5,8.8 29.5,12 C29.5,16.8 35.5,22.5 35.5,22.5 C35.5,22.5 41.5,16.8 41.5,12 C41.5,8.8 39,6 35.5,6 Z"
-        fill="white" opacity="0.96"/>
-  <circle cx="35.5" cy="12" r="2.4" fill="white" opacity="0.35"/>
+  <!-- Route: clean straight diagonal line, white on transparent -->
+  <line x1="11" y1="37" x2="35" y2="15" stroke="white" stroke-width="2.8" stroke-linecap="round" opacity="0.88"/>
+  <!-- Origin dot (bottom-left) -->
+  <circle cx="11" cy="37" r="5" fill="white" opacity="0.97"/>
+  <!-- Destination pin (top-right) -->
+  <path d="M35,9 C31,9 28.5,12 28.5,15.5 C28.5,20.5 35,26 35,26 C35,26 41.5,20.5 41.5,15.5 C41.5,12 39,9 35,9 Z"
+        fill="white" opacity="0.97"/>
+  <circle cx="35" cy="15.5" r="3.5" fill="white" opacity="0.30"/>
 </svg>

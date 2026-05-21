@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 28">
-  <!-- Route mark (28x28, white) -->
-  <path d="M 6,22 C 10,17.5 13,15 16,12.5 C 19,10 21.5,7.5 23.5,5.5"
-        fill="none" stroke="white" stroke-width="1.9" stroke-linecap="round" opacity="0.95"/>
-  <circle cx="6" cy="22" r="2.4" fill="white" opacity="0.95"/>
-  <circle cx="16" cy="12.5" r="1.4" fill="white" opacity="0.75"/>
-  <path d="M23.5,2 C21,2 19,4 19,6.5 C19,9.8 23.5,14 23.5,14 C23.5,14 28,9.8 28,6.5 C28,4 26,2 23.5,2 Z"
-        fill="white" opacity="0.95"/>
-  <circle cx="23.5" cy="6.5" r="1.8" fill="white" opacity="0.30"/>
-  <!-- Wordmark (white) -->
+  <!-- Route mark — white, for dark backgrounds -->
+  <line x1="4.5" y1="23" x2="22" y2="8" stroke="white" stroke-width="2.2" stroke-linecap="round" opacity="0.92"/>
+  <!-- Origin dot -->
+  <circle cx="4.5" cy="23" r="3.2" fill="white" opacity="0.96"/>
+  <!-- Destination pin -->
+  <path d="M22,4 C19,4 16.5,6.5 16.5,9.5 C16.5,14 22,19 22,19 C22,19 27.5,14 27.5,9.5 C27.5,6.5 25,4 22,4 Z"
+        fill="white" opacity="0.97"/>
+  <circle cx="22" cy="9.5" r="2.8" fill="white" opacity="0.25"/>
+  <!-- Wordmark -->
   <text y="20" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif" fill="white">
     <tspan x="36" font-size="20" font-weight="800" letter-spacing="-0.4">Trek</tspan><tspan font-size="20" font-weight="300" letter-spacing="0.1"> Wanderer</tspan>
   </text>
