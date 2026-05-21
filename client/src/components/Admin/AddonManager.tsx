@@ -162,7 +162,7 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
         <div className="px-6 py-4 border-b" style={{ borderColor: 'var(--border-secondary)' }}>
           <h2 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{t('admin.addons.title')}</h2>
           <p className="text-xs mt-1" style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
-            {t('admin.addons.subtitleBefore')}<img src={dark ? '/text-light.svg' : '/text-dark.svg'} alt="TREK" style={{ height: 11, display: 'inline', verticalAlign: 'middle', opacity: 0.7 }} />{t('admin.addons.subtitleAfter')}
+            {t('admin.addons.subtitleBefore')}<img src={dark ? '/text-light.svg' : '/text-dark.svg'} alt="Trek Wanderer" style={{ height: 11, display: 'inline', verticalAlign: 'middle', opacity: 0.7 }} />{t('admin.addons.subtitleAfter')}
           </p>
         </div>
 

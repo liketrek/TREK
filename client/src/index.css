@@ -728,7 +728,7 @@ body {
 }
 
 /* Brand images: no save/copy/drag */
-img[alt="TREK"] {
+img[alt="Trek Wanderer"] {
   pointer-events: none;
   user-select: none;
   -webkit-user-select: none;

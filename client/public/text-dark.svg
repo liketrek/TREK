@@ -1,1 +1,12 @@
-﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 45" width="220" height="45"><text x="0" y="26" font-family="Georgia,serif" font-size="24" font-weight="700" fill="#e8e4d8" letter-spacing="2">TREK</text><text x="2" y="40" font-family="Georgia,serif" font-size="10" fill="#8fba5e" letter-spacing="5">WANDERER</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 178 30">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="178" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="48%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+  </defs>
+  <text y="22" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif" fill="url(#g)">
+    <tspan font-size="22" font-weight="800" letter-spacing="-0.3">Trek</tspan><tspan font-size="22" font-weight="300" letter-spacing="0.2"> Wanderer</tspan>
+  </text>
+</svg>

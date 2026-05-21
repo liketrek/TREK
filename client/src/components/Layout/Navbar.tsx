@@ -119,8 +119,8 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
         )}
 
         <Link to="/dashboard" className="flex items-center transition-colors flex-shrink-0">
-          <img src={dark ? '/icons/icon-white.svg' : '/icons/icon-dark.svg'} alt="TREK" className="sm:hidden" style={{ height: 22, width: 22 }} />
-          <img src={dark ? '/logo-light.svg' : '/logo-dark.svg'} alt="TREK" className="hidden sm:block" style={{ height: 28 }} />
+          <img src={dark ? '/icons/icon-white.svg' : '/icons/icon-dark.svg'} alt="Trek Wanderer" className="sm:hidden" style={{ height: 22, width: 22 }} />
+          <img src={dark ? '/logo-light.svg' : '/logo-dark.svg'} alt="Trek Wanderer" className="hidden sm:block" style={{ height: 28 }} />
         </Link>
 
         {/* Global addon nav items */}
@@ -288,7 +288,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
                     <div className="px-4 pt-2 pb-2.5 text-center" style={{ marginTop: 4, borderTop: '1px solid var(--border-secondary)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--bg-tertiary)', borderRadius: 99, padding: '4px 12px' }}>
-                          <img src={dark ? '/text-light.svg' : '/text-dark.svg'} alt="TREK" style={{ height: 10, opacity: 0.5 }} />
+                          <img src={dark ? '/text-light.svg' : '/text-dark.svg'} alt="Trek Wanderer" style={{ height: 10, opacity: 0.5 }} />
                           <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-faint)' }}>v{appVersion}</span>
                         </div>
                         <a href="https://discord.gg/NhZBDSd4qW" target="_blank" rel="noopener noreferrer"
