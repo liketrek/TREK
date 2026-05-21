@@ -90,14 +90,10 @@ function buildPrompt(
 
   let routeFrom: string | null = null;
   let routeTo:   string | null = null;
-  let trackLabel: string | null = null;
 
   if (allWaypoints.length >= 2) {
-    routeFrom  = allWaypoints[0];
-    routeTo    = allWaypoints[allWaypoints.length - 1];
-  }
-  if (allTracks.length > 0) {
-    trackLabel = allTracks.map(t => t.track_name).join(' + ');
+    routeFrom = allWaypoints[0];
+    routeTo   = allWaypoints[allWaypoints.length - 1];
   }
 
   // Fallback: use day anchor places
@@ -120,8 +116,7 @@ function buildPrompt(
 
   let question: string;
   if (routeFrom && routeTo && routeFrom !== routeTo) {
-    const via = trackLabel ? ` along the "${trackLabel}" route` : '';
-    question = `What are the top ${total} must-see places, villages, monuments, or experiences for a trip from ${routeFrom} to ${routeTo}${via}? Only include places that are actually located on or very close to this route — do not suggest places from other regions or countries.`;
+    question = `What are the top ${total} must-see places, villages, monuments, or experiences for a trip from ${routeFrom} to ${routeTo}? Only include places that are actually located on or very close to this route — do not suggest places from other regions or countries.`;
   } else if (routeFrom) {
     question = `What are the top ${total} must-see places or experiences near ${routeFrom}? Only include places within or very close to this area.`;
   } else {
