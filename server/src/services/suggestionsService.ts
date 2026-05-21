@@ -116,7 +116,15 @@ function buildPrompt(
 
   let question: string;
   if (routeFrom && routeTo && routeFrom !== routeTo) {
-    question = `What are the top ${total} must-see places, villages, monuments, or experiences for a trip from ${routeFrom} to ${routeTo}? Only include places that are actually located on or very close to this route — do not suggest places from other regions or countries.`;
+    // Include intermediate waypoints so the AI knows the actual path taken,
+    // not the straight line between start and end.
+    const midWaypoints = allWaypoints.slice(1, -1); // strip first and last
+    const viaClause = midWaypoints.length > 0
+      ? ` following the GPS route via ${midWaypoints.slice(0, 8).join(' → ')}`
+      : allTracks.length > 0
+        ? ' following the GPS track loaded for this trip (not the straight-line path)'
+        : '';
+    question = `What are the top ${total} must-see places, villages, monuments, or experiences for a trip from ${routeFrom} to ${routeTo}${viaClause}? Only include places that are actually located on or very close to this specific route — do not suggest places from other regions or countries.`;
   } else if (routeFrom) {
     question = `What are the top ${total} must-see places or experiences near ${routeFrom}? Only include places within or very close to this area.`;
   } else {
