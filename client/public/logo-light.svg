@@ -1,13 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 190 32">
-  <!-- Icon (white/glass) -->
-  <rect x="0" y="0" width="32" height="32" rx="8" fill="rgba(255,255,255,0.15)"/>
-  <rect x="0" y="0" width="32" height="17" rx="8" fill="rgba(255,255,255,0.08)"/>
-  <circle cx="16" cy="16" r="8.5" fill="none" stroke="white" stroke-width="0.7" opacity="0.35"/>
-  <path d="M16,7 L12,16 L16,15 L20,16 Z" fill="white"/>
-  <path d="M16,25 L20,16 L16,17 L12,16 Z" fill="white" opacity="0.35"/>
-  <circle cx="16" cy="16" r="1.8" fill="white" opacity="0.9"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 28">
+  <!-- Route mark (28x28, white) -->
+  <path d="M 6,22 C 10,17.5 13,15 16,12.5 C 19,10 21.5,7.5 23.5,5.5"
+        fill="none" stroke="white" stroke-width="1.9" stroke-linecap="round" opacity="0.95"/>
+  <circle cx="6" cy="22" r="2.4" fill="white" opacity="0.95"/>
+  <circle cx="16" cy="12.5" r="1.4" fill="white" opacity="0.75"/>
+  <path d="M23.5,2 C21,2 19,4 19,6.5 C19,9.8 23.5,14 23.5,14 C23.5,14 28,9.8 28,6.5 C28,4 26,2 23.5,2 Z"
+        fill="white" opacity="0.95"/>
+  <circle cx="23.5" cy="6.5" r="1.8" fill="white" opacity="0.30"/>
   <!-- Wordmark (white) -->
-  <text y="22" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif" fill="white">
-    <tspan x="42" font-size="20" font-weight="800" letter-spacing="-0.3">Trek</tspan><tspan font-size="20" font-weight="300" letter-spacing="0.1"> Wanderer</tspan>
+  <text y="20" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif" fill="white">
+    <tspan x="36" font-size="20" font-weight="800" letter-spacing="-0.4">Trek</tspan><tspan font-size="20" font-weight="300" letter-spacing="0.1"> Wanderer</tspan>
   </text>
 </svg>

@@ -3,7 +3,7 @@
     <linearGradient id="g" x1="0" y1="0" x2="178" y2="0" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#6366f1"/>
       <stop offset="48%" stop-color="#8b5cf6"/>
-      <stop offset="100%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
     </linearGradient>
   </defs>
   <text y="22" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif" fill="url(#g)">

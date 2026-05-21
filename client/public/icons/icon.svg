@@ -4,15 +4,27 @@
       <stop offset="0%" stop-color="#6366f1"/>
       <stop offset="100%" stop-color="#8b5cf6"/>
     </linearGradient>
-    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="white" stop-opacity="0.22"/>
+    <linearGradient id="sh" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0%" stop-color="white" stop-opacity="0.30"/>
+      <stop offset="70%" stop-color="white" stop-opacity="0.05"/>
       <stop offset="100%" stop-color="white" stop-opacity="0"/>
     </linearGradient>
+    <radialGradient id="glow" cx="0.28" cy="0.22" r="0.65">
+      <stop offset="0%" stop-color="white" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0"/>
+    </radialGradient>
   </defs>
-  <rect width="48" height="48" rx="11" fill="url(#bg)"/>
-  <rect width="48" height="26" rx="11" fill="url(#shine)"/>
-  <circle cx="24" cy="24" r="12.5" fill="none" stroke="white" stroke-width="0.8" opacity="0.18"/>
-  <path d="M24,11 L18,24 L24,22 L30,24 Z" fill="white"/>
-  <path d="M24,37 L30,24 L24,26 L18,24 Z" fill="white" opacity="0.3"/>
-  <circle cx="24" cy="24" r="2.5" fill="white" opacity="0.95"/>
+  <rect width="48" height="48" rx="12" fill="url(#bg)"/>
+  <rect width="48" height="48" rx="12" fill="url(#glow)"/>
+  <rect width="48" height="26" rx="12" fill="url(#sh)"/>
+  <rect x="0.6" y="0.6" width="46.8" height="46.8" rx="11.4" fill="none" stroke="white" stroke-width="1.2" opacity="0.24"/>
+  <rect x="1.8" y="1.8" width="44.4" height="44.4" rx="10.2" fill="none" stroke="white" stroke-width="0.5" opacity="0.10"/>
+  <path d="M 11,37 C 16,31 20,27 24.5,23 C 29,19 32,15 35.5,10.5"
+        fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" opacity="0.92"/>
+  <circle cx="11" cy="37" r="3.5" fill="white" opacity="0.95"/>
+  <circle cx="11" cy="37" r="1.6" fill="#6366f1" opacity="0.55"/>
+  <circle cx="24.5" cy="23" r="2.1" fill="white" opacity="0.80"/>
+  <path d="M35.5,6 C32,6 29.5,8.8 29.5,12 C29.5,16.8 35.5,22.5 35.5,22.5 C35.5,22.5 41.5,16.8 41.5,12 C41.5,8.8 39,6 35.5,6 Z"
+        fill="white" opacity="0.96"/>
+  <circle cx="35.5" cy="12" r="2.4" fill="#7c3aed"/>
 </svg>
