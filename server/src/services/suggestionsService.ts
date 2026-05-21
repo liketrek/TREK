@@ -34,7 +34,8 @@ interface GpxTrackInfo {
   total_distance: number | null;
   start_lat: number | null; start_lng: number | null;
   end_lat:   number | null; end_lng:   number | null;
-  waypoint_names: string[]; // parsed from waypoints_json
+  waypoint_names: string[];
+  sampled_pts: Array<{ lat: number; lng: number }>; // evenly spaced route points
 }
 
 // One entry per day that has at least one assigned place
@@ -57,15 +58,36 @@ export interface Suggestion {
   photo_url?: string | null;
 }
 
-// ── Shared prompt builder ────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
 // Extract the most meaningful city/country label from a full address string.
-// "Albergue, Rua X, 4000-001 Porto, Portugal" → "Porto, Portugal"
 function extractCity(address: string | null, fallback: string): string {
   if (!address) return fallback;
   const parts = address.split(',').map(p => p.trim()).filter(p => p && !/^\d{4,}/.test(p));
   if (parts.length >= 2) return parts.slice(-2).join(', ');
   return parts[0] || fallback;
+}
+
+// Sample up to `n` evenly-spaced points from a GPX points_json string.
+// Always includes the very first and very last point.
+function sampleTrackPoints(pointsJson: string, n = 10): Array<{ lat: number; lng: number }> {
+  try {
+    const pts = JSON.parse(pointsJson) as Array<{ lat: number; lng: number }>;
+    if (pts.length === 0) return [];
+    if (pts.length <= n) return pts.map(p => ({ lat: p.lat, lng: p.lng }));
+    const step = (pts.length - 1) / (n - 1);
+    const out: Array<{ lat: number; lng: number }> = [];
+    for (let i = 0; i < n; i++) {
+      const idx = Math.round(i * step);
+      out.push({ lat: pts[idx].lat, lng: pts[idx].lng });
+    }
+    return out;
+  } catch { return []; }
+}
+
+// Format a coordinate pair for the AI prompt
+function fmtCoord(p: { lat: number; lng: number }): string {
+  return `${p.lat.toFixed(3)}°${p.lat >= 0 ? 'N' : 'S'} ${Math.abs(p.lng).toFixed(3)}°${p.lng <= 0 ? 'W' : 'E'}`;
 }
 
 function buildPrompt(
@@ -78,32 +100,13 @@ function buildPrompt(
 
   const system = `You are a world-class travel expert. Respond ONLY with valid JSON — no markdown, no explanation. Language for names and descriptions: ${lang}.`;
 
-  // ── Determine route start and end (clearest geographic signal) ───────────
-  // Priority: GPX waypoints → day anchor addresses → trip title
+  // ── Collect all GPS context from tracks ──────────────────────────────────
   const allTracks = [
     ...tripTracks,
     ...daySegments.flatMap(d => d.tracks),
   ];
-
-  // Collect all waypoint names across every track, in order
-  const allWaypoints = allTracks.flatMap(t => t.waypoint_names);
-
-  let routeFrom: string | null = null;
-  let routeTo:   string | null = null;
-
-  if (allWaypoints.length >= 2) {
-    routeFrom = allWaypoints[0];
-    routeTo   = allWaypoints[allWaypoints.length - 1];
-  }
-
-  // Fallback: use day anchor places
-  if (!routeFrom && daySegments.length > 0) {
-    routeFrom = extractCity(daySegments[0].first.address, daySegments[0].first.name);
-  }
-  if (!routeTo && daySegments.length > 0) {
-    const last = daySegments[daySegments.length - 1];
-    routeTo = extractCity(last.last.address, last.last.name);
-  }
+  const allWaypoints  = allTracks.flatMap(t => t.waypoint_names);
+  const allSampledPts = allTracks.flatMap(t => t.sampled_pts);
 
   // ── Build the question ───────────────────────────────────────────────────
   const total = daySegments.length > 0
@@ -115,20 +118,50 @@ function buildPrompt(
     : '';
 
   let question: string;
-  if (routeFrom && routeTo && routeFrom !== routeTo) {
-    // Include intermediate waypoints so the AI knows the actual path taken,
-    // not the straight line between start and end.
-    const midWaypoints = allWaypoints.slice(1, -1); // strip first and last
-    const viaClause = midWaypoints.length > 0
-      ? ` following the GPS route via ${midWaypoints.slice(0, 8).join(' → ')}`
-      : allTracks.length > 0
-        ? ' following the GPS track loaded for this trip (not the straight-line path)'
+
+  if (allSampledPts.length >= 2) {
+    // ── Best case: real GPS coordinates available ─────────────────────────
+    // Use first/last for from→to, intermediate for path context.
+    // If waypoints also available, prefer their names for start/end labels.
+    const fromLabel = allWaypoints.length >= 2
+      ? allWaypoints[0]
+      : fmtCoord(allSampledPts[0]);
+    const toLabel = allWaypoints.length >= 2
+      ? allWaypoints[allWaypoints.length - 1]
+      : fmtCoord(allSampledPts[allSampledPts.length - 1]);
+
+    // Show ~6 intermediate coordinate points so AI understands actual path
+    const midPts = allSampledPts.slice(1, -1);
+    const step   = Math.max(1, Math.floor(midPts.length / 6));
+    const viaCoords = midPts
+      .filter((_, i) => i % step === 0)
+      .slice(0, 6)
+      .map(fmtCoord)
+      .join(' → ');
+    const viaClause = allWaypoints.length > 2
+      ? ` via ${allWaypoints.slice(1, -1).slice(0, 6).join(' → ')}`
+      : viaCoords
+        ? ` passing through coordinates ${viaCoords}`
         : '';
-    question = `What are the top ${total} must-see places, villages, monuments, or experiences for a trip from ${routeFrom} to ${routeTo}${viaClause}? Only include places that are actually located on or very close to this specific route — do not suggest places from other regions or countries.`;
-  } else if (routeFrom) {
-    question = `What are the top ${total} must-see places or experiences near ${routeFrom}? Only include places within or very close to this area.`;
+
+    question = `What are the top ${total} must-see places, villages, monuments, or experiences for a trip from ${fromLabel} to ${toLabel}${viaClause}? Only suggest places that are actually on or very close to this GPS route — do not suggest places from other regions or countries.`;
+
   } else {
-    question = `What are the top ${total} must-see places or experiences for the trip "${tripCtx.title}"?`;
+    // ── Fallback: no GPS data, use day anchors or trip title ─────────────
+    let routeFrom: string | null = null;
+    let routeTo:   string | null = null;
+    if (daySegments.length > 0) {
+      routeFrom = extractCity(daySegments[0].first.address, daySegments[0].first.name);
+      const last = daySegments[daySegments.length - 1];
+      routeTo   = extractCity(last.last.address, last.last.name);
+    }
+    if (routeFrom && routeTo && routeFrom !== routeTo) {
+      question = `What are the top ${total} must-see places, villages, monuments, or experiences for a trip from ${routeFrom} to ${routeTo}? Only include places on or very close to this route.`;
+    } else if (routeFrom) {
+      question = `What are the top ${total} must-see places or experiences near ${routeFrom}?`;
+    } else {
+      question = `What are the top ${total} must-see places or experiences for the trip "${tripCtx.title}"?`;
+    }
   }
 
   const user = `${question}${skipSection}
@@ -260,8 +293,6 @@ async function askAI(tripCtx: TripContext, daySegments: DaySegment[], tripTracks
   throw new Error('NO_AI_KEY: No AI API key configured. Set GROQ_API_KEY (free), GEMINI_API_KEY (free) or ANTHROPIC_API_KEY in your .env file.');
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
 // Bounding box of all day-anchor coordinates, used to reject suggestions that
@@ -366,7 +397,7 @@ export async function getMustSeeSuggestions(tripId: number, userId: number, lang
   const gpxRows = db.prepare(`
     SELECT track_name, day_id, total_distance,
            start_lat, start_lng, end_lat, end_lng,
-           waypoints_json
+           waypoints_json, points_json
     FROM gpx_tracks
     WHERE trip_id = ? AND is_active = 1
     ORDER BY day_id, sort_order
@@ -374,7 +405,7 @@ export async function getMustSeeSuggestions(tripId: number, userId: number, lang
     track_name: string; day_id: number | null; total_distance: number | null;
     start_lat: number | null; start_lng: number | null;
     end_lat:   number | null; end_lng:   number | null;
-    waypoints_json: string;
+    waypoints_json: string; points_json: string;
   }>;
 
   const parseTrack = (row: typeof gpxRows[0]): GpxTrackInfo => {
@@ -383,7 +414,13 @@ export async function getMustSeeSuggestions(tripId: number, userId: number, lang
       const wpts = JSON.parse(row.waypoints_json || '[]') as Array<{ name?: string }>;
       waypoint_names = wpts.map(w => w.name ?? '').filter(Boolean);
     } catch { /* ignore */ }
-    return { ...row, waypoint_names };
+    const sampled_pts = sampleTrackPoints(row.points_json || '[]', 10);
+    // If start/end aren't in DB, derive them from sampled points
+    const start_lat = row.start_lat ?? sampled_pts[0]?.lat ?? null;
+    const start_lng = row.start_lng ?? sampled_pts[0]?.lng ?? null;
+    const end_lat   = row.end_lat   ?? sampled_pts[sampled_pts.length - 1]?.lat ?? null;
+    const end_lng   = row.end_lng   ?? sampled_pts[sampled_pts.length - 1]?.lng ?? null;
+    return { ...row, start_lat, start_lng, end_lat, end_lng, waypoint_names, sampled_pts };
   };
 
   // Split tracks: day-assigned vs trip-level (day_id = null)
