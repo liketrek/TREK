@@ -27,6 +27,15 @@ interface ExistingPlace {
   address: string | null;
 }
 
+// One entry per day that has at least one assigned place
+interface DaySegment {
+  day_number: number;
+  date: string | null;
+  day_title: string | null;
+  first: { name: string; address: string | null };
+  last: { name: string; address: string | null };
+}
+
 export interface Suggestion {
   name: string;
   description: string;
@@ -39,21 +48,47 @@ export interface Suggestion {
 
 // ── Shared prompt builder ────────────────────────────────────────────────────
 
-function buildPrompt(tripCtx: TripContext, existingPlaces: ExistingPlace[], lang: string): { system: string; user: string } {
+function buildPrompt(
+  tripCtx: TripContext,
+  daySegments: DaySegment[],
+  skipNames: string[],
+  lang: string,
+): { system: string; user: string } {
   const dateRange = [tripCtx.start_date, tripCtx.end_date].filter(Boolean).join(' → ');
-
-  // Show the full route with locations so the AI understands geographic spread
-  let routeSection = '';
-  if (existingPlaces.length) {
-    const routeLines = existingPlaces.map(p => p.address ? `${p.name} (${p.address})` : p.name);
-    routeSection = `\nCurrent itinerary (places already planned, in route order):\n${routeLines.join('\n')}\nDo NOT suggest any of these places again.`;
-  }
 
   const system = `You are a world-class travel expert. When asked for must-see places for a trip, you respond ONLY with valid JSON — no markdown, no explanation. Language for names and descriptions: ${lang}.`;
 
-  const user = `Trip: "${tripCtx.title}"${tripCtx.description ? `\nDetails: ${tripCtx.description}` : ''}${dateRange ? `\nDates: ${dateRange}` : ''}${routeSection}
+  let contextSection: string;
+  let instruction: string;
 
-List the top 8 must-see places or experiences for this trip. IMPORTANT: if the trip visits multiple cities or regions, spread your suggestions proportionally across ALL of them — do not focus on just one location. Focus on iconic, unique, or highly recommended spots that define each destination.
+  if (daySegments.length > 0) {
+    // ── Day-by-day route: suggest 2-3 places per day ──────────────────────
+    const dayLines = daySegments.map(d => {
+      const dateLabel = d.date ? ` (${d.date})` : '';
+      const titleLabel = d.day_title ? ` — ${d.day_title}` : '';
+      const fmt = (p: { name: string; address: string | null }) =>
+        p.address ? `"${p.name}" (${p.address})` : `"${p.name}"`;
+      const geo = d.first.name === d.last.name
+        ? `near ${fmt(d.first)}`
+        : `from ${fmt(d.first)} to ${fmt(d.last)}`;
+      return `  Day ${d.day_number}${dateLabel}${titleLabel}: ${geo}`;
+    });
+    contextSection = `\nTrip itinerary by day:\n${dayLines.join('\n')}`;
+    const total = daySegments.length <= 3 ? daySegments.length * 3 : daySegments.length * 2;
+    instruction = `For EACH day listed above, suggest 2-3 must-see places or experiences that are geographically close to that day's locations. Aim for ${total} suggestions total, evenly distributed across all days.`;
+  } else {
+    // ── No day assignments yet: fall back to generic top-8 ───────────────
+    contextSection = '';
+    instruction = `List the top 8 must-see places or experiences for this trip. If the trip visits multiple cities or regions, spread suggestions proportionally across ALL of them.`;
+  }
+
+  const skipSection = skipNames.length
+    ? `\nDo NOT suggest any of these (already in itinerary): ${skipNames.join(', ')}`
+    : '';
+
+  const user = `Trip: "${tripCtx.title}"${tripCtx.description ? `\nDetails: ${tripCtx.description}` : ''}${dateRange ? `\nDates: ${dateRange}` : ''}${contextSection}${skipSection}
+
+${instruction} Focus on iconic, unique, or highly recommended spots.
 
 Respond ONLY with a JSON array, no other text:
 [
@@ -71,16 +106,16 @@ function parseAIJson(raw: string): Array<{ name: string; description: string; ca
   const clean = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
   const parsed = JSON.parse(clean) as Array<{ name: string; description: string; category: string }>;
   if (!Array.isArray(parsed)) throw new Error('AI returned non-array response');
-  return parsed.filter(p => p.name && p.description && p.category).slice(0, 10);
+  return parsed.filter(p => p.name && p.description && p.category).slice(0, 20);
 }
 
 // ── Groq (OpenAI-compatible, free) ──────────────────────────────────────────
 
-async function askGroq(tripCtx: TripContext, existingPlaces: ExistingPlace[], lang: string): Promise<Array<{ name: string; description: string; category: string }>> {
+async function askGroq(tripCtx: TripContext, daySegments: DaySegment[], skipNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string }>> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) throw new Error('GROQ_API_KEY is not configured');
 
-  const { system, user } = buildPrompt(tripCtx, existingPlaces, lang);
+  const { system, user } = buildPrompt(tripCtx, daySegments, skipNames, lang);
 
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
@@ -90,7 +125,7 @@ async function askGroq(tripCtx: TripContext, existingPlaces: ExistingPlace[], la
     },
     body: JSON.stringify({
       model: 'llama-3.3-70b-versatile',
-      max_tokens: 1024,
+      max_tokens: 2048,
       temperature: 0.7,
       messages: [
         { role: 'system', content: system },
@@ -111,11 +146,11 @@ async function askGroq(tripCtx: TripContext, existingPlaces: ExistingPlace[], la
 
 // ── Google Gemini ────────────────────────────────────────────────────────────
 
-async function askGemini(tripCtx: TripContext, existingPlaces: ExistingPlace[], lang: string): Promise<Array<{ name: string; description: string; category: string }>> {
+async function askGemini(tripCtx: TripContext, daySegments: DaySegment[], skipNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string }>> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY is not configured');
 
-  const { system, user } = buildPrompt(tripCtx, existingPlaces, lang);
+  const { system, user } = buildPrompt(tripCtx, daySegments, skipNames, lang);
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
   const response = await fetch(url, {
@@ -123,7 +158,7 @@ async function askGemini(tripCtx: TripContext, existingPlaces: ExistingPlace[], 
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents: [{ parts: [{ text: `${system}\n\n${user}` }] }],
-      generationConfig: { maxOutputTokens: 1024, temperature: 0.7 },
+      generationConfig: { maxOutputTokens: 2048, temperature: 0.7 },
     }),
   });
 
@@ -141,11 +176,11 @@ async function askGemini(tripCtx: TripContext, existingPlaces: ExistingPlace[], 
 
 // ── Anthropic Claude ─────────────────────────────────────────────────────────
 
-async function askClaude(tripCtx: TripContext, existingPlaces: ExistingPlace[], lang: string): Promise<Array<{ name: string; description: string; category: string }>> {
+async function askClaude(tripCtx: TripContext, daySegments: DaySegment[], skipNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string }>> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not configured');
 
-  const { system, user } = buildPrompt(tripCtx, existingPlaces, lang);
+  const { system, user } = buildPrompt(tripCtx, daySegments, skipNames, lang);
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -156,7 +191,7 @@ async function askClaude(tripCtx: TripContext, existingPlaces: ExistingPlace[], 
     },
     body: JSON.stringify({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
+      max_tokens: 2048,
       system,
       messages: [{ role: 'user', content: user }],
     }),
@@ -174,10 +209,10 @@ async function askClaude(tripCtx: TripContext, existingPlaces: ExistingPlace[], 
 
 // ── AI router: Groq → Gemini → Claude ───────────────────────────────────────
 
-async function askAI(tripCtx: TripContext, existingPlaces: ExistingPlace[], lang: string): Promise<Array<{ name: string; description: string; category: string }>> {
-  if (process.env.GROQ_API_KEY) return askGroq(tripCtx, existingPlaces, lang);
-  if (process.env.GEMINI_API_KEY) return askGemini(tripCtx, existingPlaces, lang);
-  if (process.env.ANTHROPIC_API_KEY) return askClaude(tripCtx, existingPlaces, lang);
+async function askAI(tripCtx: TripContext, daySegments: DaySegment[], skipNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string }>> {
+  if (process.env.GROQ_API_KEY) return askGroq(tripCtx, daySegments, skipNames, lang);
+  if (process.env.GEMINI_API_KEY) return askGemini(tripCtx, daySegments, skipNames, lang);
+  if (process.env.ANTHROPIC_API_KEY) return askClaude(tripCtx, daySegments, skipNames, lang);
   throw new Error('NO_AI_KEY: No AI API key configured. Set GROQ_API_KEY (free), GEMINI_API_KEY (free) or ANTHROPIC_API_KEY in your .env file.');
 }
 
@@ -247,18 +282,50 @@ export async function getMustSeeSuggestions(tripId: number, userId: number, lang
   const trip = db.prepare('SELECT id, title, description, start_date, end_date FROM trips WHERE id = ?').get(tripId) as TripContext | undefined;
   if (!trip) throw new Error('Trip not found');
 
-  // Query existing places WITH addresses, ordered by day/route so the AI sees
-  // the full geographic spread and distributes suggestions across all stops.
-  const existingPlaces = db.prepare(`
-    SELECT DISTINCT p.name, p.address
-    FROM places p
-    LEFT JOIN day_assignments da ON da.place_id = p.id
-    LEFT JOIN days d ON d.id = da.day_id
-    WHERE p.trip_id = ?
+  // ── Build day segments: first + last place of each day with assignments ──
+  const dayRows = db.prepare(`
+    SELECT
+      d.day_number,
+      d.date,
+      d.title          AS day_title,
+      p.name,
+      p.address,
+      da.order_index
+    FROM days d
+    JOIN day_assignments da ON da.day_id = d.id
+    JOIN places p           ON p.id = da.place_id
+    WHERE d.trip_id = ?
     ORDER BY d.day_number, da.order_index
-  `).all(tripId) as ExistingPlace[];
+  `).all(tripId) as Array<{
+    day_number: number; date: string | null; day_title: string | null;
+    name: string; address: string | null; order_index: number;
+  }>;
 
-  const rawSuggestions = await askAI(trip, existingPlaces, lang);
+  // Group rows by day_number, preserving insertion order
+  const byDay = new Map<number, typeof dayRows>();
+  for (const row of dayRows) {
+    if (!byDay.has(row.day_number)) byDay.set(row.day_number, []);
+    byDay.get(row.day_number)!.push(row);
+  }
+
+  const daySegments: DaySegment[] = [];
+  for (const [, rows] of byDay) {
+    const first = rows[0];
+    const last = rows[rows.length - 1];
+    daySegments.push({
+      day_number: first.day_number,
+      date: first.date,
+      day_title: first.day_title,
+      first: { name: first.name, address: first.address },
+      last:  { name: last.name,  address: last.address  },
+    });
+  }
+
+  // All place names already in the trip (for the "skip" list)
+  const skipNames = (db.prepare('SELECT name FROM places WHERE trip_id = ?').all(tripId) as Array<{ name: string }>)
+    .map(p => p.name);
+
+  const rawSuggestions = await askAI(trip, daySegments, skipNames, lang);
 
   // Process sequentially: Nominatim enforces 1 req/sec — parallel bursts cause
   // silent failures. 800 ms gap stays within policy and keeps total latency low.
@@ -271,7 +338,11 @@ export async function getMustSeeSuggestions(tripId: number, userId: number, lang
     if (i > 0) await sleep(800);
 
     try {
-      const geo = await geocode(s.name, trip.title, userId);
+      // Use the closest day's area as geocoding context (much better than trip title)
+      const dayIdx = Math.floor(i / Math.max(1, Math.ceil(rawSuggestions.length / Math.max(1, daySegments.length))));
+      const dayAnchor = daySegments[Math.min(dayIdx, daySegments.length - 1)];
+      const geoContext = dayAnchor?.first.address ?? dayAnchor?.first.name ?? trip.title;
+      const geo = await geocode(s.name, geoContext, userId);
 
       let photo_url: string | null = null;
       if (geo.lat != null && geo.lng != null) {
