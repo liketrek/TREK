@@ -121,8 +121,6 @@ function buildPrompt(
 
   if (allSampledPts.length >= 2) {
     // ── Best case: real GPS coordinates available ─────────────────────────
-    // Use first/last for from→to, intermediate for path context.
-    // If waypoints also available, prefer their names for start/end labels.
     const fromLabel = allWaypoints.length >= 2
       ? allWaypoints[0]
       : fmtCoord(allSampledPts[0]);
@@ -130,21 +128,22 @@ function buildPrompt(
       ? allWaypoints[allWaypoints.length - 1]
       : fmtCoord(allSampledPts[allSampledPts.length - 1]);
 
-    // Show ~6 intermediate coordinate points so AI understands actual path
-    const midPts = allSampledPts.slice(1, -1);
-    const step   = Math.max(1, Math.floor(midPts.length / 6));
-    const viaCoords = midPts
-      .filter((_, i) => i % step === 0)
-      .slice(0, 6)
-      .map(fmtCoord)
-      .join(' → ');
-    const viaClause = allWaypoints.length > 2
-      ? ` via ${allWaypoints.slice(1, -1).slice(0, 6).join(' → ')}`
-      : viaCoords
-        ? ` passing through coordinates ${viaCoords}`
+    // All intermediate waypoints (named stops along the route — up to 20)
+    const midWaypoints = allWaypoints.slice(1, -1).slice(0, 20);
+    // Fallback: sampled coordinates if no named waypoints
+    const midPts  = allSampledPts.slice(1, -1);
+    const step    = Math.max(1, Math.floor(midPts.length / 8));
+    const midCoords = midPts.filter((_, i) => i % step === 0).slice(0, 8).map(fmtCoord);
+
+    const viaClause = midWaypoints.length > 0
+      ? ` via the following route stops: ${midWaypoints.join(' → ')}`
+      : midCoords.length > 0
+        ? ` passing through GPS coordinates ${midCoords.join(' → ')}`
         : '';
 
-    question = `What are the top ${total} must-see places, villages, monuments, or experiences for a trip from ${fromLabel} to ${toLabel}${viaClause}? Only suggest places that are actually on or very close to this GPS route — do not suggest places from other regions or countries.`;
+    // Trip title gives crucial cultural context (e.g. "Camino del Cid",
+    // "Via de la Plata") that the AI uses to recall specific historic places.
+    question = `I am doing the trip "${tripCtx.title}", travelling from ${fromLabel} to ${toLabel}${viaClause}. What are the top ${total} must-see places, villages, monuments, or experiences along this specific route? Prioritise places that are physically on or very close to the route — iconic stops, historic towns, viewpoints, monasteries, castles, or natural landmarks that define this journey. Do not suggest places from other regions or countries.`;
 
   } else {
     // ── Fallback: no GPS data, use day anchors or trip title ─────────────
@@ -156,9 +155,9 @@ function buildPrompt(
       routeTo   = extractCity(last.last.address, last.last.name);
     }
     if (routeFrom && routeTo && routeFrom !== routeTo) {
-      question = `What are the top ${total} must-see places, villages, monuments, or experiences for a trip from ${routeFrom} to ${routeTo}? Only include places on or very close to this route.`;
+      question = `I am doing the trip "${tripCtx.title}", travelling from ${routeFrom} to ${routeTo}. What are the top ${total} must-see places, villages, monuments, or experiences along this route? Only include places on or very close to this route.`;
     } else if (routeFrom) {
-      question = `What are the top ${total} must-see places or experiences near ${routeFrom}?`;
+      question = `I am doing the trip "${tripCtx.title}" near ${routeFrom}. What are the top ${total} must-see places or experiences in this area?`;
     } else {
       question = `What are the top ${total} must-see places or experiences for the trip "${tripCtx.title}"?`;
     }
