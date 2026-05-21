@@ -30,10 +30,12 @@ services:
       - ONEDRIVE_REDIRECT_URI=${ONEDRIVE_REDIRECT_URI}
       # IBP API key (obtener en https://www.ibpindex.com/index.php/es/ibp-services/ibp-index-api-v2-0)
       # - IBP_API_KEY=tu_clave_ibp_aqui
-      # IA "Lugares imprescindibles" — usar UNA de las dos claves:
-      # Google Gemini (GRATIS): https://aistudio.google.com/apikey
+      # IA "Lugares imprescindibles" — configurar UNA clave (en orden de preferencia):
+      # 1. Groq — GRATIS: https://console.groq.com (recomendado)
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      # 2. Google Gemini — GRATIS: https://aistudio.google.com/apikey
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      # Anthropic Claude (de pago): https://console.anthropic.com/settings/keys
+      # 3. Anthropic Claude — de pago: https://console.anthropic.com/settings/keys
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
     volumes:
       - //c/003Trek/trek-main/data:/app/data

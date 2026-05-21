@@ -6,8 +6,9 @@
 // to get coordinates + a photo URL.
 //
 // Supported AI providers (in priority order):
-//   1. Google Gemini  — GEMINI_API_KEY   (free tier: 1500 req/day)
-//   2. Anthropic      — ANTHROPIC_API_KEY (paid)
+//   1. Groq            — GROQ_API_KEY      (free: console.groq.com)
+//   2. Google Gemini   — GEMINI_API_KEY    (free: aistudio.google.com/apikey)
+//   3. Anthropic       — ANTHROPIC_API_KEY (paid)
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { db } from '../db/database';
@@ -62,6 +63,41 @@ function parseAIJson(raw: string): Array<{ name: string; description: string; ca
   const parsed = JSON.parse(clean) as Array<{ name: string; description: string; category: string }>;
   if (!Array.isArray(parsed)) throw new Error('AI returned non-array response');
   return parsed.filter(p => p.name && p.description && p.category).slice(0, 10);
+}
+
+// ── Groq (OpenAI-compatible, free) ──────────────────────────────────────────
+
+async function askGroq(tripCtx: TripContext, existingPlaceNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string }>> {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error('GROQ_API_KEY is not configured');
+
+  const { system, user } = buildPrompt(tripCtx, existingPlaceNames, lang);
+
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      max_tokens: 1024,
+      temperature: 0.7,
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: user },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(`Groq API error ${response.status}: ${text.slice(0, 200)}`);
+  }
+
+  const data = await response.json() as { choices: Array<{ message: { content: string } }> };
+  const raw = data.choices?.[0]?.message?.content ?? '';
+  return parseAIJson(raw);
 }
 
 // ── Google Gemini ────────────────────────────────────────────────────────────
@@ -127,16 +163,13 @@ async function askClaude(tripCtx: TripContext, existingPlaceNames: string[], lan
   return parseAIJson(raw);
 }
 
-// ── AI router (Gemini first, Claude fallback) ────────────────────────────────
+// ── AI router: Groq → Gemini → Claude ───────────────────────────────────────
 
 async function askAI(tripCtx: TripContext, existingPlaceNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string }>> {
-  if (process.env.GEMINI_API_KEY) {
-    return askGemini(tripCtx, existingPlaceNames, lang);
-  }
-  if (process.env.ANTHROPIC_API_KEY) {
-    return askClaude(tripCtx, existingPlaceNames, lang);
-  }
-  throw new Error('NO_AI_KEY: No AI API key configured. Set GEMINI_API_KEY or ANTHROPIC_API_KEY.');
+  if (process.env.GROQ_API_KEY) return askGroq(tripCtx, existingPlaceNames, lang);
+  if (process.env.GEMINI_API_KEY) return askGemini(tripCtx, existingPlaceNames, lang);
+  if (process.env.ANTHROPIC_API_KEY) return askClaude(tripCtx, existingPlaceNames, lang);
+  throw new Error('NO_AI_KEY: No AI API key configured. Set GROQ_API_KEY (free), GEMINI_API_KEY (free) or ANTHROPIC_API_KEY in your .env file.');
 }
 
 // ── Geocode a single suggestion ───────────────────────────────────────────────
