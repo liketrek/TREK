@@ -22,6 +22,11 @@ interface TripContext {
   end_date?: string | null;
 }
 
+interface ExistingPlace {
+  name: string;
+  address: string | null;
+}
+
 export interface Suggestion {
   name: string;
   description: string;
@@ -34,17 +39,21 @@ export interface Suggestion {
 
 // ── Shared prompt builder ────────────────────────────────────────────────────
 
-function buildPrompt(tripCtx: TripContext, existingPlaceNames: string[], lang: string): { system: string; user: string } {
+function buildPrompt(tripCtx: TripContext, existingPlaces: ExistingPlace[], lang: string): { system: string; user: string } {
   const dateRange = [tripCtx.start_date, tripCtx.end_date].filter(Boolean).join(' → ');
-  const existing = existingPlaceNames.length
-    ? `\nAlready in itinerary (skip these): ${existingPlaceNames.join(', ')}`
-    : '';
+
+  // Show the full route with locations so the AI understands geographic spread
+  let routeSection = '';
+  if (existingPlaces.length) {
+    const routeLines = existingPlaces.map(p => p.address ? `${p.name} (${p.address})` : p.name);
+    routeSection = `\nCurrent itinerary (places already planned, in route order):\n${routeLines.join('\n')}\nDo NOT suggest any of these places again.`;
+  }
 
   const system = `You are a world-class travel expert. When asked for must-see places for a trip, you respond ONLY with valid JSON — no markdown, no explanation. Language for names and descriptions: ${lang}.`;
 
-  const user = `Trip: "${tripCtx.title}"${tripCtx.description ? `\nDetails: ${tripCtx.description}` : ''}${dateRange ? `\nDates: ${dateRange}` : ''}${existing}
+  const user = `Trip: "${tripCtx.title}"${tripCtx.description ? `\nDetails: ${tripCtx.description}` : ''}${dateRange ? `\nDates: ${dateRange}` : ''}${routeSection}
 
-List the top 8 must-see places or experiences for this trip. Focus on iconic, unique, or highly recommended spots that define the destination.
+List the top 8 must-see places or experiences for this trip. IMPORTANT: if the trip visits multiple cities or regions, spread your suggestions proportionally across ALL of them — do not focus on just one location. Focus on iconic, unique, or highly recommended spots that define each destination.
 
 Respond ONLY with a JSON array, no other text:
 [
@@ -67,11 +76,11 @@ function parseAIJson(raw: string): Array<{ name: string; description: string; ca
 
 // ── Groq (OpenAI-compatible, free) ──────────────────────────────────────────
 
-async function askGroq(tripCtx: TripContext, existingPlaceNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string }>> {
+async function askGroq(tripCtx: TripContext, existingPlaces: ExistingPlace[], lang: string): Promise<Array<{ name: string; description: string; category: string }>> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) throw new Error('GROQ_API_KEY is not configured');
 
-  const { system, user } = buildPrompt(tripCtx, existingPlaceNames, lang);
+  const { system, user } = buildPrompt(tripCtx, existingPlaces, lang);
 
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
@@ -102,11 +111,11 @@ async function askGroq(tripCtx: TripContext, existingPlaceNames: string[], lang:
 
 // ── Google Gemini ────────────────────────────────────────────────────────────
 
-async function askGemini(tripCtx: TripContext, existingPlaceNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string }>> {
+async function askGemini(tripCtx: TripContext, existingPlaces: ExistingPlace[], lang: string): Promise<Array<{ name: string; description: string; category: string }>> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY is not configured');
 
-  const { system, user } = buildPrompt(tripCtx, existingPlaceNames, lang);
+  const { system, user } = buildPrompt(tripCtx, existingPlaces, lang);
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
   const response = await fetch(url, {
@@ -132,11 +141,11 @@ async function askGemini(tripCtx: TripContext, existingPlaceNames: string[], lan
 
 // ── Anthropic Claude ─────────────────────────────────────────────────────────
 
-async function askClaude(tripCtx: TripContext, existingPlaceNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string }>> {
+async function askClaude(tripCtx: TripContext, existingPlaces: ExistingPlace[], lang: string): Promise<Array<{ name: string; description: string; category: string }>> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not configured');
 
-  const { system, user } = buildPrompt(tripCtx, existingPlaceNames, lang);
+  const { system, user } = buildPrompt(tripCtx, existingPlaces, lang);
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -165,10 +174,10 @@ async function askClaude(tripCtx: TripContext, existingPlaceNames: string[], lan
 
 // ── AI router: Groq → Gemini → Claude ───────────────────────────────────────
 
-async function askAI(tripCtx: TripContext, existingPlaceNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string }>> {
-  if (process.env.GROQ_API_KEY) return askGroq(tripCtx, existingPlaceNames, lang);
-  if (process.env.GEMINI_API_KEY) return askGemini(tripCtx, existingPlaceNames, lang);
-  if (process.env.ANTHROPIC_API_KEY) return askClaude(tripCtx, existingPlaceNames, lang);
+async function askAI(tripCtx: TripContext, existingPlaces: ExistingPlace[], lang: string): Promise<Array<{ name: string; description: string; category: string }>> {
+  if (process.env.GROQ_API_KEY) return askGroq(tripCtx, existingPlaces, lang);
+  if (process.env.GEMINI_API_KEY) return askGemini(tripCtx, existingPlaces, lang);
+  if (process.env.ANTHROPIC_API_KEY) return askClaude(tripCtx, existingPlaces, lang);
   throw new Error('NO_AI_KEY: No AI API key configured. Set GROQ_API_KEY (free), GEMINI_API_KEY (free) or ANTHROPIC_API_KEY in your .env file.');
 }
 
@@ -238,10 +247,18 @@ export async function getMustSeeSuggestions(tripId: number, userId: number, lang
   const trip = db.prepare('SELECT id, title, description, start_date, end_date FROM trips WHERE id = ?').get(tripId) as TripContext | undefined;
   if (!trip) throw new Error('Trip not found');
 
-  const existingPlaces = db.prepare('SELECT name FROM places WHERE trip_id = ?').all(tripId) as Array<{ name: string }>;
-  const existingNames = existingPlaces.map(p => p.name);
+  // Query existing places WITH addresses, ordered by day/route so the AI sees
+  // the full geographic spread and distributes suggestions across all stops.
+  const existingPlaces = db.prepare(`
+    SELECT DISTINCT p.name, p.address
+    FROM places p
+    LEFT JOIN day_assignments da ON da.place_id = p.id
+    LEFT JOIN days d ON d.id = da.day_id
+    WHERE p.trip_id = ?
+    ORDER BY d.day_number, da.order_index
+  `).all(tripId) as ExistingPlace[];
 
-  const rawSuggestions = await askAI(trip, existingNames, lang);
+  const rawSuggestions = await askAI(trip, existingPlaces, lang);
 
   // Process sequentially: Nominatim enforces 1 req/sec — parallel bursts cause
   // silent failures. 800 ms gap stays within policy and keeps total latency low.
