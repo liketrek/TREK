@@ -172,14 +172,25 @@ async function askAI(tripCtx: TripContext, existingPlaceNames: string[], lang: s
   throw new Error('NO_AI_KEY: No AI API key configured. Set GROQ_API_KEY (free), GEMINI_API_KEY (free) or ANTHROPIC_API_KEY in your .env file.');
 }
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
+
 // ── Geocode a single suggestion ───────────────────────────────────────────────
+//
+// Strategy:
+//   1. Google Places (if user has a key) — most accurate, uses full context
+//   2. Nominatim with place name only — more reliable than name+tripTitle
+//   3. Nominatim with name + tripTitle as fallback
+//
+// Nominatim policy: max 1 req/sec. Callers must add delay between invocations.
 
 async function geocode(name: string, tripTitle: string, userId: number): Promise<{ lat: number | null; lng: number | null; address: string | null }> {
-  const query = `${name}, ${tripTitle}`;
-
+  // ── 1. Google Places ───────────────────────────────────────────────────────
   try {
     const mapsKey = getMapsKey(userId);
     if (mapsKey) {
+      const query = `${name}, ${tripTitle}`;
       const googleRes = await fetch(
         `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${mapsKey}&fields=geometry,formatted_address`,
       );
@@ -199,8 +210,19 @@ async function geocode(name: string, tripTitle: string, userId: number): Promise
     }
   } catch { /* fall through to Nominatim */ }
 
+  // ── 2. Nominatim: place name only (most reliable) ─────────────────────────
   try {
-    const nResults = await searchNominatim(query);
+    const nResults = await searchNominatim(name);
+    const first = nResults[0];
+    if (first && first.lat != null && first.lng != null) {
+      return { lat: first.lat, lng: first.lng, address: first.address ?? null };
+    }
+  } catch { /* fall through */ }
+
+  // ── 3. Nominatim: name + trip title as context ────────────────────────────
+  try {
+    await sleep(1100); // respect 1 req/sec policy
+    const nResults = await searchNominatim(`${name}, ${tripTitle}`);
     const first = nResults[0];
     if (first && first.lat != null && first.lng != null) {
       return { lat: first.lat, lng: first.lng, address: first.address ?? null };
@@ -221,39 +243,38 @@ export async function getMustSeeSuggestions(tripId: number, userId: number, lang
 
   const rawSuggestions = await askAI(trip, existingNames, lang);
 
+  // Process sequentially: Nominatim enforces 1 req/sec — parallel bursts cause
+  // silent failures. A 1.1 s gap between calls keeps us within the policy.
   const results: Suggestion[] = [];
-  const chunks: typeof rawSuggestions[] = [];
-  for (let i = 0; i < rawSuggestions.length; i += 3) {
-    chunks.push(rawSuggestions.slice(i, i + 3));
-  }
 
-  for (const chunk of chunks) {
-    const settled = await Promise.allSettled(
-      chunk.map(async (s) => {
-        const geo = await geocode(s.name, trip.title, userId);
+  for (let i = 0; i < rawSuggestions.length; i++) {
+    const s = rawSuggestions[i];
 
-        let photo_url: string | null = null;
-        if (geo.lat != null && geo.lng != null) {
-          try {
-            const wikiResult = await fetchWikimediaPhoto(geo.lat, geo.lng, s.name);
-            photo_url = wikiResult?.photoUrl ?? null;
-          } catch { /* no photo — no problem */ }
-        }
+    // Delay before every Nominatim geocode call except the first
+    if (i > 0) await sleep(1100);
 
-        return {
-          name: s.name,
-          description: s.description,
-          category: s.category,
-          lat: geo.lat,
-          lng: geo.lng,
-          address: geo.address,
-          photo_url,
-        } satisfies Suggestion;
-      }),
-    );
+    try {
+      const geo = await geocode(s.name, trip.title, userId);
 
-    for (const r of settled) {
-      if (r.status === 'fulfilled') results.push(r.value);
+      let photo_url: string | null = null;
+      if (geo.lat != null && geo.lng != null) {
+        try {
+          const wikiResult = await fetchWikimediaPhoto(geo.lat, geo.lng, s.name);
+          photo_url = wikiResult?.photoUrl ?? null;
+        } catch { /* no photo — no problem */ }
+      }
+
+      results.push({
+        name: s.name,
+        description: s.description,
+        category: s.category,
+        lat: geo.lat,
+        lng: geo.lng,
+        address: geo.address,
+        photo_url,
+      });
+    } catch (err) {
+      console.warn(`[suggestions] geocode failed for "${s.name}":`, err);
     }
   }
 
