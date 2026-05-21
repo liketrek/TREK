@@ -80,30 +80,40 @@ async function reverseGeocode(lat: number, lng: number): Promise<string | null> 
 
 // Resolve named stops for a set of tracks.
 // If waypoints exist → use them directly.
-// If not → reverse-geocode sampled track points (up to 6) to get town names.
-// Returns the resolved stop names in route order.
+// If not → reverse-geocode sampled track points (up to 10) to get town names.
+// Returns the resolved stop names in route order, deduplicated.
 async function resolveTrackStops(
   allTracks: GpxTrackInfo[],
 ): Promise<string[]> {
   const allWaypoints = allTracks.flatMap(t => t.waypoint_names);
-  if (allWaypoints.length > 0) return allWaypoints;
+  if (allWaypoints.length > 0) {
+    // Deduplicate while preserving route order
+    return [...new Set(allWaypoints)];
+  }
 
   // No named waypoints — reverse-geocode sampled points
   const allPts = allTracks.flatMap(t => t.sampled_pts);
   if (allPts.length === 0) return [];
 
-  // Pick 6 evenly-spaced points (first, ~4 intermediate, last)
+  // Pick up to 10 evenly-spaced points (more = better town coverage on long routes)
+  const maxPts = Math.min(10, allPts.length);
   const indices: number[] = [0];
-  const step = Math.max(1, Math.floor((allPts.length - 1) / 5));
-  for (let i = step; i < allPts.length - 1; i += step) indices.push(i);
-  indices.push(allPts.length - 1);
-  const pts = [...new Set(indices)].map(i => allPts[i]);
+  if (allPts.length > 1) {
+    const step = Math.max(1, Math.floor((allPts.length - 1) / (maxPts - 1)));
+    for (let i = step; i < allPts.length - 1; i += step) indices.push(i);
+    indices.push(allPts.length - 1);
+  }
+  const pts = [...new Set(indices)].slice(0, maxPts).map(i => allPts[i]);
 
   const stops: string[] = [];
+  const seen = new Set<string>();
   for (let i = 0; i < pts.length; i++) {
     if (i > 0) await sleep(800); // Nominatim 1 req/sec policy
     const name = await reverseGeocode(pts[i].lat, pts[i].lng);
-    if (name) stops.push(name);
+    if (name && !seen.has(name)) {
+      seen.add(name);
+      stops.push(name);
+    }
   }
   return stops;
 }
@@ -164,22 +174,20 @@ function buildPrompt(
 
   let question: string;
 
-  if (resolvedStops.length >= 2 || allSampledPts.length >= 2) {
-    // ── Use named stops (waypoints or reverse-geocoded towns) ─────────────
-    const fromLabel = resolvedStops.length >= 1
-      ? resolvedStops[0]
-      : fmtCoord(allSampledPts[0]);
-    const toLabel = resolvedStops.length >= 2
-      ? resolvedStops[resolvedStops.length - 1]
-      : fmtCoord(allSampledPts[allSampledPts.length - 1]);
+  if (resolvedStops.length >= 2) {
+    // ── Per-town landmark extraction ──────────────────────────────────────
+    // Asking "what are the top N places on this route?" causes the AI to run a
+    // global competition where small-town gems (Monasterio de Silos, Palacio de
+    // Avellaneda) lose to larger cities. Instead, we ask for the most famous
+    // landmark IN EACH specific town — the AI knows exactly what it is.
+    const townList = resolvedStops.map((s, i) => `${i + 1}. ${s}`).join('\n');
+    question = `I am doing the trip "${tripCtx.title}". My GPS route passes through these specific places, in order:\n${townList}\n\nFor EACH place listed above, give me the 1-2 most famous, iconic, and unmissable landmarks, monuments, or natural sites that define that specific place (the monastery, castle, gorge, palace, viewpoint, etc. that the place is best known for). Be specific — name the actual site, not just the town. Cover all the places listed. Do not suggest places from other regions.`;
 
-    // Show ALL intermediate named stops (towns give far better context than coords)
-    const midStops = resolvedStops.slice(1, -1);
-    const viaClause = midStops.length > 0
-      ? ` via ${midStops.join(' → ')}`
-      : '';
-
-    question = `I am doing the trip "${tripCtx.title}", travelling from ${fromLabel} to ${toLabel}${viaClause}. What are the top ${total} must-see places, villages, monuments, or experiences along this specific route? Prioritise places that are physically on or very close to the route — iconic stops, historic towns, viewpoints, monasteries, castles, or natural landmarks that define this journey. Do not suggest places from other regions or countries.`;
+  } else if (allSampledPts.length >= 2) {
+    // ── GPS coords but no named stops ────────────────────────────────────
+    const fromLabel = fmtCoord(allSampledPts[0]);
+    const toLabel   = fmtCoord(allSampledPts[allSampledPts.length - 1]);
+    question = `I am doing the trip "${tripCtx.title}", travelling from ${fromLabel} to ${toLabel}. What are the top ${total} must-see places, villages, monuments, or experiences along this specific route? Prioritise places physically on or very close to the route. Do not suggest places from other regions.`;
 
   } else {
     // ── Fallback: no GPS data, use day anchors or trip title ─────────────
