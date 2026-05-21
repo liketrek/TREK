@@ -497,7 +497,7 @@ export default function AdminPage(): React.ReactElement {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg-secondary)' }}>
+    <div className="min-h-screen page-bg" style={{ background: 'var(--bg-secondary)' }}>
       <Navbar />
 
       <div style={{ paddingTop: 'var(--nav-h)' }}>

@@ -51,7 +51,14 @@ export default function Modal({
   return (
     <div
       className="fixed inset-0 z-[200] flex items-start sm:items-center justify-center px-4 modal-backdrop trek-backdrop-enter"
-      style={{ backgroundColor: 'rgba(5,5,15,0.6)', paddingTop: 70, paddingBottom: 'calc(20px + var(--bottom-nav-h))', overflow: 'hidden' }}
+      style={{
+        backgroundColor: 'var(--modal-backdrop)',
+        backdropFilter: 'blur(12px) saturate(150%)',
+        WebkitBackdropFilter: 'blur(12px) saturate(150%)',
+        paddingTop: 70,
+        paddingBottom: 'calc(20px + var(--bottom-nav-h))',
+        overflow: 'hidden',
+      }}
       onMouseDown={e => { mouseDownTarget.current = e.target }}
       onClick={e => {
         if (e.target === e.currentTarget && mouseDownTarget.current === e.currentTarget) onClose()
@@ -60,30 +67,38 @@ export default function Modal({
     >
       <div
         className={`
-          trek-modal-enter
+          trek-modal-enter modal-glass
           rounded-2xl overflow-hidden w-full ${sizeClasses[size] || sizeClasses.md}
           flex flex-col
           max-h-[calc(100dvh-var(--bottom-nav-h)-90px)] sm:max-h-[calc(100dvh-90px)]
         `}
-        style={{
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border-primary)',
-          boxShadow: '0 24px 64px rgba(0,0,0,0.25), 0 0 0 1px var(--border-faint)',
-        }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-secondary)' }}>
-          <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</h2>
+        <div
+          className="flex items-center justify-between px-6 py-4 flex-shrink-0"
+          style={{ borderBottom: '1px solid var(--modal-border)' }}
+        >
+          <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</h2>
           {!hideCloseButton && (
             <button
               onClick={onClose}
-              className="p-2 rounded-lg transition-colors"
-              style={{ color: 'var(--text-faint)' }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-faint)' }}
+              className="w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-150"
+              style={{
+                color: 'var(--text-muted)',
+                background: 'var(--glass-bg-subtle)',
+                border: '1px solid var(--glass-border-inner)',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'var(--bg-hover)'
+                e.currentTarget.style.color = 'var(--text-primary)'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'var(--glass-bg-subtle)'
+                e.currentTarget.style.color = 'var(--text-muted)'
+              }}
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           )}
         </div>
@@ -95,12 +110,14 @@ export default function Modal({
 
         {/* Footer */}
         {footer && (
-          <div className="p-6 flex-shrink-0" style={{ borderTop: '1px solid var(--border-secondary)' }}>
+          <div
+            className="px-6 py-4 flex-shrink-0"
+            style={{ borderTop: '1px solid var(--modal-border)' }}
+          >
             {footer}
           </div>
         )}
       </div>
-
     </div>
   )
 }

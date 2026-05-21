@@ -33,9 +33,16 @@ export async function ensureLocalThumbnail(
     }
 
     await fs.mkdir(path.dirname(thumbAbs), { recursive: true })
-
-    // Jimp auto-applies EXIF orientation on read, matching sharp's .rotate() behavior.
-    const img = await Jimp.read(originalAbs)
+    // Convert HEIC to JPEG buffer before Jimp (Jimp doesn't support HEIC)
+    const ext = path.extname(originalAbs).toLowerCase()
+    let imgBuffer: Buffer | string = originalAbs
+    if (ext === '.heic' || ext === '.heif') {
+      const heicConvert = (await import('heic-convert')).default
+      const rawBuf = await fs.readFile(originalAbs)
+      const jpeg = await heicConvert({ buffer: rawBuf, format: 'JPEG', quality: 0.9 })
+      imgBuffer = Buffer.from(jpeg)
+    }
+    const img = await Jimp.read(imgBuffer)
     const { width: w, height: h } = img.bitmap
     if (w > THUMB_MAX || h > THUMB_MAX) {
       img.scaleToFit({ w: THUMB_MAX, h: THUMB_MAX })

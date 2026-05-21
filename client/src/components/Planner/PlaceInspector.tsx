@@ -169,7 +169,10 @@ export default function PlaceInspector({
 
   const category = categories?.find(c => c.id === place.category_id)
   const dayAssignments = selectedDayId ? (assignments[String(selectedDayId)] || []) : []
-  const assignmentInDay = selectedDayId ? dayAssignments.find(a => a.place?.id === place.id) : null
+  const assignmentInDay = selectedDayId
+    ? ((selectedAssignmentId ? dayAssignments.find(a => a.id === selectedAssignmentId) : null)
+      ?? dayAssignments.find(a => a.place?.id === place.id))
+    : null
 
   const openingHours = googleDetails?.opening_hours || null
   const openNow = googleDetails?.open_now ?? null

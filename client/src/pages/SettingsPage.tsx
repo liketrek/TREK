@@ -53,14 +53,23 @@ export default function SettingsPage(): React.ReactElement {
   ]
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg-secondary)' }}>
+    <div className="min-h-screen page-bg" style={{ background: 'var(--bg-secondary)' }}>
       <Navbar />
 
       <div style={{ paddingTop: 'var(--nav-h)' }}>
         <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'var(--bg-tertiary)' }}>
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center"
+              style={{
+                background: 'var(--glass-bg)',
+                backdropFilter: 'var(--glass-blur)',
+                WebkitBackdropFilter: 'var(--glass-blur)',
+                border: '1px solid var(--glass-border)',
+                boxShadow: 'var(--glass-shadow)',
+              }}
+            >
               <Settings className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
             </div>
             <div>

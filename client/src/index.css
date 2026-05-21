@@ -439,17 +439,35 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --safe-top: env(safe-area-inset-top, 0px);
   --nav-h: 0px;
   --bottom-nav-h: 0px;
-  --font-system: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-6: 24px;
-  --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 20px;
-  --shadow-card: 0 1px 3px rgba(99,102,241,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-elevated: 0 4px 20px rgba(99,102,241,0.10), 0 2px 6px rgba(0,0,0,0.06);
+  --font-system: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-6: 24px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-elevated: 0 4px 16px rgba(0,0,0,0.1);
 
-  /* Backgrounds — light */
-  --bg-primary: #fafaff;
-  --bg-secondary: #f2f2fa;
-  --bg-tertiary: #eaeaf5;
-  --bg-elevated: rgba(255,255,255,0.85);
+  /* Glassmorphism tokens */
+  --glass-bg: rgba(255,255,255,0.72);
+  --glass-bg-strong: rgba(255,255,255,0.88);
+  --glass-bg-subtle: rgba(255,255,255,0.45);
+  --glass-border: rgba(255,255,255,0.60);
+  --glass-border-inner: rgba(255,255,255,0.90);
+  --glass-shadow: 0 8px 32px rgba(0,0,0,0.10), 0 1px 0 rgba(255,255,255,0.70) inset;
+  --glass-shadow-lg: 0 20px 60px rgba(0,0,0,0.12), 0 1px 0 rgba(255,255,255,0.60) inset;
+  --glass-blur: blur(24px) saturate(180%);
+  --glass-blur-lg: blur(40px) saturate(200%);
+
+  /* Theme colors */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+  --bg-elevated: rgba(250,250,250,0.82);
   --bg-card: #ffffff;
   --bg-input: #ffffff;
   --bg-hover: rgba(99,102,241,0.05);
@@ -485,6 +503,12 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --scrollbar-track: #f2f2fa;
   --scrollbar-thumb: rgba(99,102,241,0.2);
   --scrollbar-hover: rgba(99,102,241,0.35);
+
+  /* Modal / overlay */
+  --modal-backdrop: rgba(15,23,42,0.45);
+  --modal-bg: rgba(255,255,255,0.90);
+  --modal-border: rgba(255,255,255,0.80);
+  --modal-shadow: 0 24px 80px rgba(0,0,0,0.14), 0 1px 0 rgba(255,255,255,0.80) inset;
 
   /* Journey design tokens */
   --journal-bg: #fafaff;
@@ -540,6 +564,23 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --scrollbar-thumb: rgba(129,140,248,0.2);
   --scrollbar-hover: rgba(129,140,248,0.35);
 
+  /* Glassmorphism tokens (dark) */
+  --glass-bg: rgba(18,18,21,0.70);
+  --glass-bg-strong: rgba(24,24,28,0.90);
+  --glass-bg-subtle: rgba(18,18,21,0.45);
+  --glass-border: rgba(255,255,255,0.10);
+  --glass-border-inner: rgba(255,255,255,0.06);
+  --glass-shadow: 0 8px 32px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.06) inset;
+  --glass-shadow-lg: 0 20px 60px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.05) inset;
+  --glass-blur: blur(24px) saturate(180%);
+  --glass-blur-lg: blur(40px) saturate(200%);
+
+  /* Modal / overlay (dark) */
+  --modal-backdrop: rgba(0,0,0,0.60);
+  --modal-bg: rgba(19,19,22,0.88);
+  --modal-border: rgba(255,255,255,0.09);
+  --modal-shadow: 0 24px 80px rgba(0,0,0,0.50), 0 1px 0 rgba(255,255,255,0.06) inset;
+
   /* Journey design tokens (dark) */
   --journal-bg: #0a0a14;
   --journal-card: #0d0d1e;
@@ -565,6 +606,32 @@ body {
   -moz-osx-font-smoothing: grayscale;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 }
+
+/* ── Glassmorphism mesh background ─────────────── */
+/* Applied to full-page wrappers via .page-bg class.
+   A subtle noise/gradient gives the frosted glass something to blur over. */
+.page-bg {
+  position: relative;
+}
+.page-bg::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(99,102,241,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 10%,  rgba(139,92,246,0.06) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 50% at 50% 90%,  rgba(14,165,233,0.05) 0%, transparent 60%);
+}
+.dark .page-bg::before {
+  background:
+    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(99,102,241,0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 10%,  rgba(139,92,246,0.10) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 50% at 50% 90%,  rgba(14,165,233,0.08) 0%, transparent 60%);
+}
+/* All direct children get positioned above the pseudo-element */
+.page-bg > * { position: relative; z-index: 1; }
 
 /* ── Marker cluster custom styling ────────────── */
 .marker-cluster-wrapper {
@@ -696,7 +763,7 @@ body {
 }
 
 /* Brand images: no save/copy/drag */
-img[alt="TREK"] {
+img[alt="Trek Wanderer"] {
   pointer-events: none;
   user-select: none;
   -webkit-user-select: none;
@@ -798,3 +865,50 @@ img[alt="TREK"] {
 .collab-note-md-full table { border-collapse: collapse; width: 100%; margin: 0.5em 0; }
 .collab-note-md-full th, .collab-note-md-full td { border: 1px solid var(--border-primary); padding: 4px 8px; font-size: 0.9em; }
 .collab-note-md-full hr { border: none; border-top: 1px solid var(--border-primary); margin: 0.8em 0; }
+
+/* ── Glassmorphism utilities ───────────────────── */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-strong {
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-blur-lg);
+  -webkit-backdrop-filter: var(--glass-blur-lg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow-lg);
+}
+
+.glass-subtle {
+  background: var(--glass-bg-subtle);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border-inner);
+}
+
+/* Modal glass panel */
+.modal-glass {
+  background: var(--modal-bg);
+  backdrop-filter: var(--glass-blur-lg);
+  -webkit-backdrop-filter: var(--glass-blur-lg);
+  border: 1px solid var(--modal-border);
+  box-shadow: var(--modal-shadow);
+}
+
+/* Card with lift animation */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  transition: transform 300ms var(--ease-out-quint), box-shadow 300ms var(--ease-out-quint);
+}
+.glass-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--glass-shadow-lg);
+}

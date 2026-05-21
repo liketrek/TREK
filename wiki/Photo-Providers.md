@@ -44,6 +44,7 @@ When generating the API key in Immich (**Account Settings → API Keys**), grant
 | `asset.read` | Read photo metadata and search results |
 | `asset.view` | Load thumbnails and preview images |
 | `album.read` | List owned + shared albums and their contents |
+| `asset.download` | Download the assets |
 | `asset.upload` | *Only if you enable "Mirror journey photos to Immich on upload"* — push TREK uploads back to your library |
 
 TREK never modifies or deletes anything in Immich, so no `update`, `delete`, or admin scopes are needed.

@@ -223,6 +223,45 @@ If `ALLOWED_ORIGINS` is not set, TREK allows all origins (development default). 
 
 ---
 
+## Place photos not loading / place thumbnail shows default map pin (Google Maps API key configured)
+
+**Cause:** When a Google Maps API key is set, TREK fetches photo references and image bytes from the Google Places API on the server side. If the server-side call is rejected or returns no photos, the `/place-photo/:id` endpoint returns 404 and the place falls back to the default map-pin thumbnail. The most common causes are:
+
+1. **HTTP referrer restriction on the API key.** Google Cloud Console lets you restrict a key to specific HTTP referrers. Because TREK calls Google from the server (not the browser), it sends a `Referer` header derived from `APP_URL`. If `APP_URL` is not set, the fallback is `http://localhost:<PORT>`, which will not match any domain whitelist in GCP.
+
+2. **Wrong key restriction type.** API keys restricted by **HTTP referrers** are designed for browser-side JavaScript. For a self-hosted server application, use **IP address** restrictions instead — add the public IP of your TREK server and no `APP_URL` configuration is needed.
+
+3. **Places API (New) not enabled.** The key must have **Places API (New)** enabled in Google Cloud Console under APIs & Services → Enabled APIs. Enabling only the legacy Places API is not sufficient.
+
+4. **Billing not set up.** Google requires a billing account to be linked to the project even within the free tier. Without it, photo and details requests return `REQUEST_DENIED`.
+
+**Fix for HTTP referrer restriction:**
+
+Set `APP_URL` to the public URL of your instance and add that URL (or its domain with a wildcard, e.g. `https://trek.example.com/*`) to the allowed referrers in GCP:
+
+```yaml
+environment:
+  - APP_URL=https://trek.example.com
+```
+
+**Fix for wrong restriction type:**
+
+Switch the key's "Application restrictions" from **HTTP referrers** to **IP addresses** in Google Cloud Console, and add your server's public IP. No `APP_URL` change needed.
+
+**Verifying the issue:**
+
+Run the following curl command using your key to check whether Google returns photo references:
+
+```bash
+curl "https://places.googleapis.com/v1/places/<PLACE_ID>" \
+  -H "X-Goog-Api-Key: YOUR_API_KEY" \
+  -H "X-Goog-FieldMask: photos"
+```
+
+If the response is `{}` or `{"error": {...}}`, the key or its restrictions are blocking the request. If it returns a `photos` array, the key is valid and the issue is elsewhere.
+
+---
+
 ## MCP OAuth flow does not initiate / "Connect" redirects but authentication never starts
 
 **Cause:** TREK builds the OAuth 2.1 redirect URI from `APP_URL`. If `APP_URL` is not set, the authorization URL is constructed from a localhost fallback that external clients (Claude.ai, Claude Desktop) cannot reach, so the OAuth handshake never completes.

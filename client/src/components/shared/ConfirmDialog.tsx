@@ -41,18 +41,28 @@ export default function ConfirmDialog({
   return (
     <div
       className="fixed inset-0 z-[10000] flex items-center justify-center px-4 trek-backdrop-enter"
-      style={{ backgroundColor: 'rgba(15, 23, 42, 0.5)', paddingBottom: 'var(--bottom-nav-h)' }}
+      style={{
+        backgroundColor: 'var(--modal-backdrop)',
+        backdropFilter: 'blur(12px) saturate(150%)',
+        WebkitBackdropFilter: 'blur(12px) saturate(150%)',
+        paddingBottom: 'var(--bottom-nav-h)',
+      }}
       onClick={onClose}
     >
       <div
-        className="trek-modal-enter rounded-2xl shadow-2xl w-full max-w-sm p-6"
-        style={{ background: 'var(--bg-card)' }}
+        className="trek-modal-enter modal-glass rounded-2xl w-full max-w-sm p-6"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-start gap-4">
           {danger && (
-            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5 text-red-600" />
+            <div
+              className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
+              style={{
+                background: 'rgba(239,68,68,0.12)',
+                border: '1px solid rgba(239,68,68,0.20)',
+              }}
+            >
+              <AlertTriangle className="w-5 h-5" style={{ color: '#ef4444' }} />
             </div>
           )}
           <div className="flex-1">
@@ -65,28 +75,32 @@ export default function ConfirmDialog({
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 mt-6">
+        <div className="flex justify-end gap-2.5 mt-6">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+            className="px-4 py-2 text-sm font-medium rounded-xl transition-all duration-150"
             style={{
               color: 'var(--text-secondary)',
-              border: '1px solid var(--border-secondary)',
+              background: 'var(--glass-bg-subtle)',
+              border: '1px solid var(--glass-border)',
             }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--glass-bg-subtle)' }}
           >
             {cancelLabel || t('common.cancel')}
           </button>
           <button
             onClick={() => { onConfirm(); onClose() }}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors text-white ${
-              danger ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
+            className={`px-4 py-2 text-sm font-medium rounded-xl transition-all duration-150 text-white ${
+              danger
+                ? 'bg-red-600 hover:bg-red-700 shadow-[0_4px_14px_rgba(239,68,68,0.35)]'
+                : 'bg-blue-600 hover:bg-blue-700 shadow-[0_4px_14px_rgba(59,130,246,0.35)]'
             }`}
           >
             {confirmLabel || t('common.delete')}
           </button>
         </div>
       </div>
-
     </div>
   )
 }

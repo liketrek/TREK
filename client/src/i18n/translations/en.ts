@@ -2111,6 +2111,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
 
   // Journey Entry Editor
   'journey.editor.discardChangesConfirm': 'You have unsaved changes. Discard them?',
+  'journey.editor.uploadFailed': 'Photo upload failed',
   'journey.editor.uploadPhotos': 'Upload photos',
   'journey.editor.uploading': 'Uploading...',
   'journey.editor.fromGallery': 'From Gallery',
@@ -2219,6 +2220,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'journey.settings.failedToDelete': 'Failed to delete',
   'journey.entries.deleteTitle': 'Delete Entry',
   'journey.photosUploaded': '{count} photos uploaded',
+  'journey.photosUploadFailed': 'Some photos failed to upload',
   'journey.photosAdded': '{count} photos added',
 
   // Journey — Public Page

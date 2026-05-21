@@ -84,14 +84,14 @@ export function bulkImport(tripId: string | number, items: ImportItem[]) {
   const maxOrder = db.prepare('SELECT MAX(sort_order) as max FROM packing_items WHERE trip_id = ?').get(tripId) as { max: number | null };
   let sortOrder = (maxOrder.max !== null ? maxOrder.max : -1) + 1;
 
-  const stmt = db.prepare('INSERT INTO packing_items (trip_id, name, checked, category, weight_grams, bag_id, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)');
+  const stmt = db.prepare('INSERT INTO packing_items (trip_id, name, checked, category, weight_grams, bag_id, sort_order, quantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
   const created: any[] = [];
 
   const insertAll = db.transaction(() => {
     for (const item of items) {
       if (!item.name?.trim()) continue;
       const checked = item.checked ? 1 : 0;
-      const weight = item.weight_grams ? parseInt(String(item.weight_grams)) || null : null;
+      const weight = item.weight_grams != null ? parseInt(String(item.weight_grams)) : null;
 
       // Resolve bag by name if provided
       let bagId = null;
@@ -107,7 +107,8 @@ export function bulkImport(tripId: string | number, items: ImportItem[]) {
         }
       }
 
-      const result = stmt.run(tripId, item.name.trim(), checked, item.category?.trim() || 'Other', weight, bagId, sortOrder++);
+      const qty = item.quantity && item.quantity > 0 ? parseInt(String(item.quantity)) : 1;
+      const result = stmt.run(tripId, item.name.trim(), checked, item.category?.trim() || 'Other', weight, bagId, sortOrder++, qty);
       created.push(db.prepare('SELECT * FROM packing_items WHERE id = ?').get(result.lastInsertRowid));
     }
   });

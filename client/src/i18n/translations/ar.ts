@@ -1674,6 +1674,7 @@ const ar: Record<string, string | { name: string; category: string }[]> = {
   'journey.settings.failedToDelete': 'فشل في الحذف',
   'journey.entries.deleteTitle': 'حذف الإدخال',
   'journey.photosUploaded': 'تم رفع {count} صورة',
+  'journey.photosUploadFailed': 'فشل رفع بعض الصور',
   'journey.photosAdded': 'تمت إضافة {count} صورة',
   'journey.picker.tripPeriod': 'فترة الرحلة',
   'journey.picker.dateRange': 'نطاق التاريخ',
@@ -1705,6 +1706,7 @@ const ar: Record<string, string | { name: string; category: string }[]> = {
 
   // Journey Entry Editor
   'journey.editor.discardChangesConfirm': 'لديك تغييرات غير محفوظة. هل تريد تجاهلها؟',
+  'journey.editor.uploadFailed': 'فشل رفع الصور',
   'journey.editor.uploadPhotos': 'رفع صور',
   'journey.editor.uploading': '...جارٍ الرفع',
   'journey.editor.fromGallery': 'من المعرض',

@@ -90,16 +90,27 @@ function ProfileSheet({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[300] md:hidden" onClick={onClose}>
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      <div
+        className="absolute inset-0"
+        style={{
+          background: 'var(--modal-backdrop)',
+          backdropFilter: 'blur(12px) saturate(150%)',
+          WebkitBackdropFilter: 'blur(12px) saturate(150%)',
+        }}
+      />
 
       {/* Sheet */}
       <div
-        className="absolute bottom-0 left-0 right-0 rounded-t-2xl overflow-hidden"
+        className="absolute bottom-0 left-0 right-0 rounded-t-3xl overflow-hidden"
         style={{
-          background: 'var(--bg-card)',
-          borderTop: '1px solid var(--border-primary)',
-          animation: 'slideUp 0.25s ease-out',
+          animation: 'slideUp 0.28s cubic-bezier(0.32, 0.72, 0, 1)',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          background: 'var(--modal-bg)',
+          backdropFilter: 'var(--glass-blur-lg)',
+          WebkitBackdropFilter: 'var(--glass-blur-lg)',
+          border: '1px solid var(--modal-border)',
+          borderBottomWidth: 0,
+          boxShadow: 'var(--glass-shadow-lg)',
         }}
         onClick={e => e.stopPropagation()}
       >
@@ -111,8 +122,14 @@ function ProfileSheet({ onClose }: { onClose: () => void }) {
         {/* User info */}
         <div className="px-6 pb-4 pt-1">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full flex items-center justify-center text-[16px] font-bold"
-              style={{ background: 'var(--accent)', color: 'var(--accent-text)' }}>
+            <div
+              className="w-11 h-11 rounded-2xl flex items-center justify-center text-[16px] font-bold flex-shrink-0"
+              style={{
+                background: 'var(--accent)',
+                color: 'var(--accent-text)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              }}
+            >
               {(user?.username || '?')[0].toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
@@ -120,15 +137,21 @@ function ProfileSheet({ onClose }: { onClose: () => void }) {
               <p className="text-[12px] truncate" style={{ color: 'var(--text-muted)' }}>{user?.email}</p>
             </div>
             {user?.role === 'admin' && (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide"
-                style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>
+              <span
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide"
+                style={{
+                  background: 'var(--glass-bg-subtle)',
+                  border: '1px solid var(--glass-border)',
+                  color: 'var(--text-muted)',
+                }}
+              >
                 <Shield size={10} /> Admin
               </span>
             )}
           </div>
         </div>
 
-        <div className="h-px mx-4" style={{ background: 'var(--border-secondary)' }} />
+        <div className="h-px mx-4" style={{ background: 'var(--modal-border)' }} />
 
         {/* Links */}
         <div className="py-2 px-2">
@@ -157,7 +180,7 @@ function ProfileSheet({ onClose }: { onClose: () => void }) {
           )}
         </div>
 
-        <div className="h-px mx-4" style={{ background: 'var(--border-secondary)' }} />
+        <div className="h-px mx-4" style={{ background: 'var(--modal-border)' }} />
 
         {/* Logout */}
         <div className="py-2 px-2">

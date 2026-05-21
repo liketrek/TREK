@@ -1009,11 +1009,11 @@ export default function TripPlannerPage(): React.ReactElement | null {
             {activeTab === 'plan' && !mobileSidebarOpen && !showPlaceForm && !showMembersModal && !showReservationModal && ReactDOM.createPortal(
               <div className="flex md:hidden" style={{ position: 'fixed', top: 'calc(var(--nav-h) + 44px + 12px)', left: 12, right: 12, justifyContent: 'space-between', zIndex: 100, pointerEvents: 'none' }}>
                 <button onClick={() => setMobileSidebarOpen('left')}
-                  style={{ pointerEvents: 'auto', background: 'var(--bg-card)', color: 'var(--text-primary)', backdropFilter: 'blur(12px)', border: '1px solid var(--border-primary)', borderRadius: 24, padding: '11px 24px', fontSize: 15, fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.15)', minHeight: 44, fontFamily: 'inherit', touchAction: 'manipulation' }}>
+                  style={{ pointerEvents: 'auto', background: 'var(--glass-bg)', backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', borderRadius: 24, padding: '11px 24px', fontSize: 15, fontWeight: 600, cursor: 'pointer', boxShadow: 'var(--glass-shadow)', minHeight: 44, fontFamily: 'inherit', touchAction: 'manipulation' }}>
                   {t('trip.mobilePlan')}
                 </button>
                 <button onClick={() => setMobileSidebarOpen('right')}
-                  style={{ pointerEvents: 'auto', background: 'var(--bg-card)', color: 'var(--text-primary)', backdropFilter: 'blur(12px)', border: '1px solid var(--border-primary)', borderRadius: 24, padding: '11px 24px', fontSize: 15, fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.15)', minHeight: 44, fontFamily: 'inherit', touchAction: 'manipulation' }}>
+                  style={{ pointerEvents: 'auto', background: 'var(--glass-bg)', backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', borderRadius: 24, padding: '11px 24px', fontSize: 15, fontWeight: 600, cursor: 'pointer', boxShadow: 'var(--glass-shadow)', minHeight: 44, fontFamily: 'inherit', touchAction: 'manipulation' }}>
                   {t('trip.mobilePlaces')}
                 </button>
               </div>,
@@ -1144,8 +1144,26 @@ export default function TripPlannerPage(): React.ReactElement | null {
             )}
 
             {mobileSidebarOpen && ReactDOM.createPortal(
-              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 9999 }} onClick={() => setMobileSidebarOpen(null)}>
-                <div style={{ position: 'absolute', top: 'var(--nav-h)', left: 0, right: 0, bottom: 0, background: 'var(--bg-card)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+              <div
+                style={{
+                  position: 'fixed', inset: 0, zIndex: 9999,
+                  background: 'var(--modal-backdrop)',
+                  backdropFilter: 'blur(12px) saturate(150%)',
+                  WebkitBackdropFilter: 'blur(12px) saturate(150%)',
+                }}
+                onClick={() => setMobileSidebarOpen(null)}
+              >
+                <div
+                  style={{
+                    position: 'absolute', top: 'var(--nav-h)', left: 0, right: 0, bottom: 0,
+                    background: 'var(--modal-bg)',
+                    backdropFilter: 'var(--glass-blur-lg)',
+                    WebkitBackdropFilter: 'var(--glass-blur-lg)',
+                    borderTop: '1px solid var(--modal-border)',
+                    display: 'flex', flexDirection: 'column', overflow: 'hidden',
+                  }}
+                  onClick={e => e.stopPropagation()}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid var(--border-secondary)' }}>
                     <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)' }}>{mobileSidebarOpen === 'left' ? t('trip.mobilePlan') : t('trip.mobilePlaces')}</span>
                     <button onClick={() => setMobileSidebarOpen(null)} style={{ background: 'var(--bg-tertiary)', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)' }}>

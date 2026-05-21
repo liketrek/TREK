@@ -75,7 +75,7 @@ export default function RegisterPage(): React.ReactElement {
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center gap-2 mb-8 justify-center">
             <Map className="w-8 h-8 text-slate-900" />
-            <span className="text-2xl font-bold text-slate-900">TREK</span>
+            <span className="text-2xl font-bold text-slate-900">Trek Wanderer</span>
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
