@@ -32,24 +32,25 @@ export default function BottomNav() {
   return (
     <>
       <nav
-        className="md:hidden sticky bottom-0 border-t border-zinc-200 dark:border-zinc-800 flex justify-around items-start pt-3 z-50 mt-auto flex-shrink-0"
+        className="md:hidden sticky bottom-0 flex justify-around items-start pt-3 z-50 mt-auto flex-shrink-0"
         style={{
           height: 'calc(84px + env(safe-area-inset-bottom, 0px))',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          background: dark ? 'rgba(9,9,11,0.96)' : 'rgba(255,255,255,0.96)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
+          background: dark ? 'rgba(10,10,20,0.94)' : 'rgba(250,250,255,0.94)',
+          backdropFilter: 'blur(24px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(160%)',
+          borderTop: `1px solid ${dark ? 'rgba(129,140,248,0.1)' : 'rgba(99,102,241,0.1)'}`,
         }}
       >
         {items.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
-            className={({ isActive }) =>
-              `flex flex-col items-center gap-1 px-3 py-1 min-w-[60px] ${
-                isActive ? 'text-zinc-900 dark:text-white' : 'text-zinc-400 dark:text-zinc-500'
-              }`
-            }
+            className="flex flex-col items-center gap-1 px-3 py-1 min-w-[60px]"
+            style={({ isActive }) => ({
+              color: isActive ? 'var(--accent)' : 'var(--text-faint)',
+              transition: 'color 180ms cubic-bezier(0.23,1,0.32,1)',
+            })}
           >
             <Icon size={22} strokeWidth={2} />
             <span className="text-[10px] font-medium">{label}</span>
@@ -57,7 +58,8 @@ export default function BottomNav() {
         ))}
         <button
           onClick={() => setShowProfile(true)}
-          className="flex flex-col items-center gap-1 px-3 py-1 min-w-[60px] text-zinc-400 dark:text-zinc-500"
+          className="flex flex-col items-center gap-1 px-3 py-1 min-w-[60px]"
+          style={{ color: 'var(--text-faint)' }}
         >
           <User size={22} strokeWidth={2} />
           <span className="text-[10px] font-medium">{t("nav.profile")}</span>
@@ -114,7 +116,7 @@ function ProfileSheet({ onClose }: { onClose: () => void }) {
       >
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-2">
-          <div className="w-10 h-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+          <div className="w-10 h-1 rounded-full" style={{ background: 'var(--border-primary)' }} />
         </div>
 
         {/* User info */}
@@ -189,7 +191,7 @@ function ProfileSheet({ onClose }: { onClose: () => void }) {
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
           >
             <LogOut size={18} className="text-red-500" />
-            <span className="text-[14px] font-medium text-red-600 dark:text-red-400">{t("nav.bottomLogout")}</span>
+            <span className="text-[14px] font-medium text-red-500">{t("nav.bottomLogout")}</span>
           </button>
         </div>
 

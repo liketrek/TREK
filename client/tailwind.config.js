@@ -7,6 +7,9 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+      },
       colors: {
         primary: {
           50: '#eef2ff',
@@ -36,6 +39,8 @@ export default {
         'day-column': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
         'place-card': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
         'drag-overlay': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+        'glass': '0 8px 32px rgba(99,102,241,0.08), 0 0 0 1px rgba(255,255,255,0.5)',
+        'glass-dark': '0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(129,140,248,0.1)',
       },
     },
   },

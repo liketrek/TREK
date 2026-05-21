@@ -12,7 +12,7 @@ import { packingApi } from '../../api/client'
 import { useToast } from '../shared/Toast'
 
 // URL base de Bikepack — ajustar si cambia el puerto
-const BIKEPACK_URL = 'https://rodadas.info:448'
+const BIKEPACK_URL = 'https://trekwanderer.info:448'
 const BIKEPACK_USER_ID = '0563db31-017c-4b3f-8705-a373b34577d5'
 
 interface BikepackGroup  { id: number; name: string; color: string }

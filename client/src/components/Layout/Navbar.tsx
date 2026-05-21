@@ -92,14 +92,14 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
   return (
     <nav style={{
       background: dark
-        ? (scrolled ? 'rgba(9,9,11,0.78)' : 'rgba(9,9,11,0.95)')
-        : (scrolled ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.95)'),
-      backdropFilter: scrolled ? 'blur(28px) saturate(180%)' : 'blur(20px)',
-      WebkitBackdropFilter: scrolled ? 'blur(28px) saturate(180%)' : 'blur(20px)',
-      borderBottom: `1px solid ${dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'}`,
+        ? (scrolled ? 'rgba(10,10,20,0.82)' : 'rgba(10,10,20,0.94)')
+        : (scrolled ? 'rgba(250,250,255,0.78)' : 'rgba(250,250,255,0.94)'),
+      backdropFilter: scrolled ? 'blur(32px) saturate(180%)' : 'blur(24px) saturate(160%)',
+      WebkitBackdropFilter: scrolled ? 'blur(32px) saturate(180%)' : 'blur(24px) saturate(160%)',
+      borderBottom: `1px solid ${dark ? 'rgba(129,140,248,0.1)' : 'rgba(99,102,241,0.1)'}`,
       boxShadow: scrolled
-        ? (dark ? '0 4px 24px rgba(0,0,0,0.35)' : '0 4px 24px rgba(0,0,0,0.08)')
-        : (dark ? '0 1px 12px rgba(0,0,0,0.2)' : '0 1px 12px rgba(0,0,0,0.05)'),
+        ? (dark ? '0 4px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(129,140,248,0.06)' : '0 4px 24px rgba(99,102,241,0.08), 0 0 0 1px rgba(99,102,241,0.06)')
+        : (dark ? '0 1px 16px rgba(0,0,0,0.25)' : '0 1px 12px rgba(99,102,241,0.05)'),
       touchAction: 'manipulation',
       paddingTop: 'env(safe-area-inset-top, 0px)',
       height: 'var(--nav-h)',
@@ -222,7 +222,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
               <img src={user.avatar_url} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
             ) : (
               <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
-                style={{ background: dark ? '#e2e8f0' : '#111827', color: dark ? '#0f172a' : '#ffffff' }}>
+                style={{ background: 'var(--accent)', color: 'var(--accent-text)' }}>
                 {user.username?.charAt(0).toUpperCase()}
               </div>
             )}

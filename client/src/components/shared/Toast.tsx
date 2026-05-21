@@ -86,19 +86,19 @@ export function ToastContainer() {
           to { opacity: 0; transform: translateY(8px) scale(0.95); }
         }
         .nomad-toast {
-          background: rgba(255, 255, 255, 0.65);
-          border: 1px solid rgba(0, 0, 0, 0.06);
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), inset 0 0.5px 0 rgba(255,255,255,0.5);
+          background: rgba(255, 255, 255, 0.78);
+          border: 1px solid rgba(99, 102, 241, 0.12);
+          box-shadow: 0 8px 32px rgba(99, 102, 241, 0.1), inset 0 0.5px 0 rgba(255,255,255,0.6);
         }
-        .nomad-toast span { color: rgba(0, 0, 0, 0.8) !important; }
+        .nomad-toast span { color: rgba(15, 14, 26, 0.9) !important; }
         .dark .nomad-toast {
-          background: rgba(30, 30, 40, 0.55);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 0.5px 0 rgba(255,255,255,0.08);
+          background: rgba(12, 12, 28, 0.82);
+          border: 1px solid rgba(129, 140, 248, 0.14);
+          box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4), inset 0 0.5px 0 rgba(255,255,255,0.06);
         }
-        .dark .nomad-toast span { color: rgba(255, 255, 255, 0.9) !important; }
-        .nomad-toast-close { color: rgba(0, 0, 0, 0.4); }
-        .dark .nomad-toast-close { color: rgba(255, 255, 255, 0.4); }
+        .dark .nomad-toast span { color: rgba(237, 237, 244, 0.9) !important; }
+        .nomad-toast-close { color: rgba(107, 104, 128, 0.6); }
+        .dark .nomad-toast-close { color: rgba(90, 90, 120, 0.6); }
       `}</style>
       <div style={{
         position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
@@ -123,7 +123,7 @@ export function ToastContainer() {
             <span style={{
               flex: 1, fontSize: 13, fontWeight: 500, color: 'rgba(255, 255, 255, 0.9)',
               lineHeight: 1.4,
-              fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+              fontFamily: "inherit",
             }}>
               {toast.message}
             </span>
