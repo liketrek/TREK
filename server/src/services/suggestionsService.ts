@@ -59,69 +59,76 @@ export interface Suggestion {
 
 // ── Shared prompt builder ────────────────────────────────────────────────────
 
+// Extract the most meaningful city/country label from a full address string.
+// "Albergue, Rua X, 4000-001 Porto, Portugal" → "Porto, Portugal"
+function extractCity(address: string | null, fallback: string): string {
+  if (!address) return fallback;
+  const parts = address.split(',').map(p => p.trim()).filter(p => p && !/^\d{4,}/.test(p));
+  if (parts.length >= 2) return parts.slice(-2).join(', ');
+  return parts[0] || fallback;
+}
+
 function buildPrompt(
   tripCtx: TripContext,
   daySegments: DaySegment[],
-  tripTracks: GpxTrackInfo[],  // tracks NOT assigned to any day (trip-level)
+  tripTracks: GpxTrackInfo[],
   skipNames: string[],
   lang: string,
 ): { system: string; user: string } {
-  const dateRange = [tripCtx.start_date, tripCtx.end_date].filter(Boolean).join(' → ');
 
-  const system = `You are a world-class travel expert. When asked for must-see places for a trip, you respond ONLY with valid JSON — no markdown, no explanation. Language for names and descriptions: ${lang}.`;
+  const system = `You are a world-class travel expert. Respond ONLY with valid JSON — no markdown, no explanation. Language for names and descriptions: ${lang}.`;
 
-  const fmtTrack = (t: GpxTrackInfo): string => {
-    const km = t.total_distance != null ? ` (${t.total_distance.toFixed(1)} km)` : '';
-    const via = t.waypoint_names.length
-      ? ` via ${t.waypoint_names.slice(0, 5).join(' → ')}` // cap at 5 waypoints
-      : '';
-    return `GPS track: "${t.track_name}"${km}${via}`;
-  };
+  // ── Determine route start and end (clearest geographic signal) ───────────
+  // Priority: GPX waypoints → day anchor addresses → trip title
+  const allTracks = [
+    ...tripTracks,
+    ...daySegments.flatMap(d => d.tracks),
+  ];
 
-  let contextSection: string;
-  let instruction: string;
+  // Collect all waypoint names across every track, in order
+  const allWaypoints = allTracks.flatMap(t => t.waypoint_names);
 
-  if (daySegments.length > 0) {
-    // ── Day-by-day route: suggest 2-3 places per day ──────────────────────
-    const dayLines = daySegments.map(d => {
-      const dateLabel  = d.date      ? ` (${d.date})`       : '';
-      const titleLabel = d.day_title ? ` — ${d.day_title}` : '';
-      const fmt = (p: { name: string; address: string | null }) =>
-        p.address ? `"${p.name}" (${p.address})` : `"${p.name}"`;
-      const geo = d.first.name === d.last.name
-        ? `near ${fmt(d.first)}`
-        : `from ${fmt(d.first)} to ${fmt(d.last)}`;
-      const trackPart = d.tracks.length
-        ? `\n    ${d.tracks.map(fmtTrack).join('\n    ')}`
-        : '';
-      return `  Day ${d.day_number}${dateLabel}${titleLabel}: ${geo}${trackPart}`;
-    });
+  let routeFrom: string | null = null;
+  let routeTo:   string | null = null;
+  let trackLabel: string | null = null;
 
-    // Trip-level tracks (not assigned to a specific day)
-    const tripTrackLines = tripTracks.length
-      ? `\nOverall trip GPS route:\n${tripTracks.map(t => `  ${fmtTrack(t)}`).join('\n')}`
-      : '';
-
-    contextSection = `\nTrip itinerary by day:\n${dayLines.join('\n')}${tripTrackLines}`;
-    const total = daySegments.length <= 3 ? daySegments.length * 3 : daySegments.length * 2;
-    instruction = `For EACH day listed above, suggest 2-3 must-see places that are in the SAME city or within a very short distance of that day's anchor locations${daySegments.some(d => d.tracks.length) ? ' and along its GPS track' : ''}. CRITICAL: do NOT suggest places from other cities, regions, or countries that are not part of this itinerary. Every suggestion must be physically reachable from that day's start/end point. Aim for ${total} suggestions total, evenly distributed across all days.`;
-  } else if (tripTracks.length > 0) {
-    // ── Only GPX tracks, no day assignments ───────────────────────────────
-    contextSection = `\nTrip GPS routes:\n${tripTracks.map(t => `  ${fmtTrack(t)}`).join('\n')}`;
-    instruction = `Based on the GPS route(s) above, suggest 8 must-see places or experiences along or very close to the route. CRITICAL: only suggest places that are on or near the GPS route.`;
-  } else {
-    // ── No context at all ─────────────────────────────────────────────────
-    contextSection = '';
-    instruction = `List the top 8 must-see places or experiences for this trip. If the trip visits multiple cities or regions, spread suggestions proportionally across ALL of them.`;
+  if (allWaypoints.length >= 2) {
+    routeFrom  = allWaypoints[0];
+    routeTo    = allWaypoints[allWaypoints.length - 1];
+  }
+  if (allTracks.length > 0) {
+    trackLabel = allTracks.map(t => t.track_name).join(' + ');
   }
 
+  // Fallback: use day anchor places
+  if (!routeFrom && daySegments.length > 0) {
+    routeFrom = extractCity(daySegments[0].first.address, daySegments[0].first.name);
+  }
+  if (!routeTo && daySegments.length > 0) {
+    const last = daySegments[daySegments.length - 1];
+    routeTo = extractCity(last.last.address, last.last.name);
+  }
+
+  // ── Build the question ───────────────────────────────────────────────────
+  const total = daySegments.length > 0
+    ? Math.max(8, Math.min(daySegments.length * 2, 12))
+    : 10;
+
   const skipSection = skipNames.length
-    ? `\nDo NOT suggest any of these (already in itinerary): ${skipNames.join(', ')}`
+    ? `\nDo NOT suggest any of these (already visited): ${skipNames.join(', ')}.`
     : '';
 
-  const user = `Trip: "${tripCtx.title}"${tripCtx.description ? `\nDetails: ${tripCtx.description}` : ''}${dateRange ? `\nDates: ${dateRange}` : ''}${contextSection}${skipSection}
+  let question: string;
+  if (routeFrom && routeTo && routeFrom !== routeTo) {
+    const via = trackLabel ? ` along the "${trackLabel}" route` : '';
+    question = `What are the top ${total} must-see places, villages, monuments, or experiences for a trip from ${routeFrom} to ${routeTo}${via}? Only include places that are actually located on or very close to this route — do not suggest places from other regions or countries.`;
+  } else if (routeFrom) {
+    question = `What are the top ${total} must-see places or experiences near ${routeFrom}? Only include places within or very close to this area.`;
+  } else {
+    question = `What are the top ${total} must-see places or experiences for the trip "${tripCtx.title}"?`;
+  }
 
-${instruction} Focus on iconic, unique, or highly recommended spots.
+  const user = `${question}${skipSection}
 
 Respond ONLY with a JSON array, no other text:
 [
@@ -129,7 +136,7 @@ Respond ONLY with a JSON array, no other text:
     "name": "exact place name in the local language or English",
     "description": "1-2 sentences on why this is unmissable",
     "category": "one of: Nature, Museum, Monument, Viewpoint, Food, Market, Beach, Architecture, Park, Religious, Entertainment, Other",
-    "location": "City and Country where this place is, e.g. 'Porto, Portugal' or 'Kyoto, Japan'"
+    "location": "City and Country, e.g. 'Porto, Portugal'"
   }
 ]`;
 
