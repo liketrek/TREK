@@ -32,8 +32,8 @@ interface DaySegment {
   day_number: number;
   date: string | null;
   day_title: string | null;
-  first: { name: string; address: string | null };
-  last: { name: string; address: string | null };
+  first: { name: string; address: string | null; lat: number | null; lng: number | null };
+  last:  { name: string; address: string | null; lat: number | null; lng: number | null };
 }
 
 export interface Suggestion {
@@ -75,7 +75,7 @@ function buildPrompt(
     });
     contextSection = `\nTrip itinerary by day:\n${dayLines.join('\n')}`;
     const total = daySegments.length <= 3 ? daySegments.length * 3 : daySegments.length * 2;
-    instruction = `For EACH day listed above, suggest 2-3 must-see places or experiences that are geographically close to that day's locations. Aim for ${total} suggestions total, evenly distributed across all days.`;
+    instruction = `For EACH day listed above, suggest 2-3 must-see places that are in the SAME city or within a very short distance of that day's anchor locations. CRITICAL: do NOT suggest places from other cities, regions, or countries that are not part of this itinerary. Every suggestion must be physically reachable from that day's start/end point. Aim for ${total} suggestions total, evenly distributed across all days.`;
   } else {
     // ── No day assignments yet: fall back to generic top-8 ───────────────
     contextSection = '';
@@ -221,6 +221,28 @@ async function askAI(tripCtx: TripContext, daySegments: DaySegment[], skipNames:
 
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
+// Bounding box of all day-anchor coordinates, used to reject suggestions that
+// fall outside the trip's geographic area.
+interface TripBounds { minLat: number; maxLat: number; minLng: number; maxLng: number }
+
+function getTripBounds(daySegments: DaySegment[]): TripBounds | null {
+  const lats: number[] = [];
+  const lngs: number[] = [];
+  for (const d of daySegments) {
+    if (d.first.lat != null && d.first.lng != null) { lats.push(d.first.lat); lngs.push(d.first.lng); }
+    if (d.last.lat  != null && d.last.lng  != null) { lats.push(d.last.lat);  lngs.push(d.last.lng);  }
+  }
+  if (lats.length === 0) return null;
+  return { minLat: Math.min(...lats), maxLat: Math.max(...lats), minLng: Math.min(...lngs), maxLng: Math.max(...lngs) };
+}
+
+function isWithinTripBounds(lat: number, lng: number, bounds: TripBounds): boolean {
+  // 1.5° ≈ 130–167 km buffer around the bounding box of all day anchors.
+  const B = 1.5;
+  return lat >= bounds.minLat - B && lat <= bounds.maxLat + B
+      && lng >= bounds.minLng - B && lng <= bounds.maxLng + B;
+}
+
 // ── Geocode a single suggestion ───────────────────────────────────────────────
 //
 // locationHint — city + country supplied by the AI, e.g. "Sevilla, Spain".
@@ -290,7 +312,7 @@ export async function getMustSeeSuggestions(tripId: number, userId: number, lang
   const trip = db.prepare('SELECT id, title, description, start_date, end_date FROM trips WHERE id = ?').get(tripId) as TripContext | undefined;
   if (!trip) throw new Error('Trip not found');
 
-  // ── Build day segments: first + last place of each day with assignments ──
+  // ── Build day segments: first + last place per day, with coordinates ────
   const dayRows = db.prepare(`
     SELECT
       d.day_number,
@@ -298,6 +320,8 @@ export async function getMustSeeSuggestions(tripId: number, userId: number, lang
       d.title          AS day_title,
       p.name,
       p.address,
+      p.lat,
+      p.lng,
       da.order_index
     FROM days d
     JOIN day_assignments da ON da.day_id = d.id
@@ -306,7 +330,8 @@ export async function getMustSeeSuggestions(tripId: number, userId: number, lang
     ORDER BY d.day_number, da.order_index
   `).all(tripId) as Array<{
     day_number: number; date: string | null; day_title: string | null;
-    name: string; address: string | null; order_index: number;
+    name: string; address: string | null; lat: number | null; lng: number | null;
+    order_index: number;
   }>;
 
   // Group rows by day_number, preserving insertion order
@@ -318,16 +343,19 @@ export async function getMustSeeSuggestions(tripId: number, userId: number, lang
 
   const daySegments: DaySegment[] = [];
   for (const [, rows] of byDay) {
-    const first = rows[0];
-    const last = rows[rows.length - 1];
+    const f = rows[0];
+    const l = rows[rows.length - 1];
     daySegments.push({
-      day_number: first.day_number,
-      date: first.date,
-      day_title: first.day_title,
-      first: { name: first.name, address: first.address },
-      last:  { name: last.name,  address: last.address  },
+      day_number: f.day_number,
+      date:       f.date,
+      day_title:  f.day_title,
+      first: { name: f.name, address: f.address, lat: f.lat, lng: f.lng },
+      last:  { name: l.name, address: l.address, lat: l.lat, lng: l.lng },
     });
   }
+
+  // Bounding box of the whole trip (for post-geocoding validation)
+  const tripBounds = getTripBounds(daySegments);
 
   // All place names already in the trip (for the "skip" list)
   const skipNames = (db.prepare('SELECT name FROM places WHERE trip_id = ?').all(tripId) as Array<{ name: string }>)
@@ -347,9 +375,19 @@ export async function getMustSeeSuggestions(tripId: number, userId: number, lang
 
     try {
       // The AI knows where each place is — use its "location" field directly.
-      // Fall back to trip title only if AI didn't provide one.
       const locationHint = s.location || trip.title;
       const geo = await geocode(s.name, locationHint, userId);
+
+      // ── Geographic sanity check ─────────────────────────────────────────
+      // Reject suggestions that geocode outside the trip's bounding box
+      // + 1.5° buffer (~130–170 km). Catches AI hallucinations like
+      // "Catedral de Salamanca" in a Porto → Figueira da Foz trip.
+      if (tripBounds && geo.lat != null && geo.lng != null) {
+        if (!isWithinTripBounds(geo.lat, geo.lng, tripBounds)) {
+          console.warn(`[suggestions] "${s.name}" (${geo.lat.toFixed(2)},${geo.lng.toFixed(2)}) is outside trip bounds — skipped`);
+          continue;
+        }
+      }
 
       let photo_url: string | null = null;
       if (geo.lat != null && geo.lng != null) {
