@@ -139,7 +139,7 @@ export function createApp(): express.Application {
           "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson",
           "https://router.project-osrm.org/route/v1/",
           "https://api.mapbox.com", "https://*.tiles.mapbox.com", "https://events.mapbox.com",
-          "https://rodadas.info:448"
+          "https://trekwanderer.info:448"
         ],
         workerSrc: ["'self'", "blob:"],
         objectSrc: ["'self'", "blob:", "data:"],
@@ -148,7 +148,7 @@ export function createApp(): express.Application {
         formAction: ["'self'"],
         scriptSrcAttr: ["'none'"],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
-        frameSrc: ["'self'", "blob:", "data:", "https://rodadas.info:448"],
+        frameSrc: ["'self'", "blob:", "data:", "https://trekwanderer.info:448"],
         frameAncestors: ["'self'"],
         upgradeInsecureRequests: shouldForceHttps ? [] : null
       }

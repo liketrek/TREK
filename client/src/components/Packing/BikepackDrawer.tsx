@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react'
 import { X, Download, ExternalLink, Loader2 } from 'lucide-react'
 import ReactDOM from 'react-dom'
 
-const BIKEPACK_URL = 'https://rodadas.info:448'
+const BIKEPACK_URL = 'https://trekwanderer.info:448'
 
 interface Props {
   onClose: () => void

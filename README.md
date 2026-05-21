@@ -6,13 +6,13 @@
 
 # Trek Wanderer
 
-**My personal self-hosted travel planner — running at [rodadas.info](https://rodadas.info:446)**
+**My personal self-hosted travel planner — running at [trekwanderer.info](https://trekwanderer.info:446)**
 
 A fork of [TREK](https://github.com/mauriceboe/TREK) with a glassmorphism redesign and custom branding.
 
 <br />
 
-[![Live](https://img.shields.io/badge/Live-rodadas.info-6366f1?style=for-the-badge)](https://rodadas.info:446)
+[![Live](https://img.shields.io/badge/Live-trekwanderer.info-6366f1?style=for-the-badge)](https://trekwanderer.info:446)
 [![Based on TREK](https://img.shields.io/badge/Based%20on-TREK-8b5cf6?style=for-the-badge)](https://github.com/mauriceboe/TREK)
 [![License](https://img.shields.io/badge/license-AGPL_v3-6B7280?style=for-the-badge)](LICENSE)
 
@@ -93,7 +93,7 @@ See `.env.example` for all available options including:
 
 ## My setup
 
-Running on a home server behind a reverse proxy at **[rodadas.info:446](https://rodadas.info:446)**.
+Running on a home server behind a reverse proxy at **[trekwanderer.info:446](https://trekwanderer.info:446)**.
 
 - Docker Compose on a Linux server
 - Nginx reverse proxy with SSL
@@ -111,5 +111,5 @@ If you're looking for the original project to self-host, head over to the upstre
 ---
 
 <div align="center">
-  <sub>Built with ❤️ on top of TREK · Running at <a href="https://rodadas.info:446">rodadas.info</a></sub>
+  <sub>Built with ❤️ on top of TREK · Running at <a href="https://trekwanderer.info:446">trekwanderer.info</a></sub>
 </div>
