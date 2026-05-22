@@ -10,6 +10,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { getCategoryIcon } from '../shared/categoryIcons'
 import { useTranslation } from '../../i18n'
 import type { Place, Category, Day, Assignment, Reservation, TripFile, AssignmentsMap } from '../../types'
+import { splitReservationDateTime } from '../../utils/formatters'
 
 const detailsCache = new Map()
 
@@ -381,21 +382,29 @@ export default function PlaceInspector({
                         <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{res.title}</span>
                       </div>
                       <div style={{ padding: '6px 10px', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                        {res.reservation_time && (
-                          <div>
-                            <div style={{ fontSize: 8, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase' }}>{t('reservations.date')}</div>
-                            <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-primary)', marginTop: 1 }}>{new Date((res.reservation_time.includes('T') ? res.reservation_time.split('T')[0] : res.reservation_time) + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })}</div>
-                          </div>
-                        )}
-                        {res.reservation_time?.includes('T') && (
-                          <div>
-                            <div style={{ fontSize: 8, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase' }}>{t('reservations.time')}</div>
-                            <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-primary)', marginTop: 1 }}>
-                              {new Date(res.reservation_time).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: timeFormat === '12h' })}
-                              {res.reservation_end_time && ` – ${res.reservation_end_time}`}
-                            </div>
-                          </div>
-                        )}
+                        {(() => {
+                          const { date, time: startTime } = splitReservationDateTime(res.reservation_time)
+                          const { time: endTime } = splitReservationDateTime(res.reservation_end_time)
+                          return (
+                            <>
+                              {date && (
+                                <div>
+                                  <div style={{ fontSize: 8, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase' }}>{t('reservations.date')}</div>
+                                  <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-primary)', marginTop: 1 }}>{new Date(date + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })}</div>
+                                </div>
+                              )}
+                              {(startTime || endTime) && (
+                                <div>
+                                  <div style={{ fontSize: 8, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase' }}>{t('reservations.time')}</div>
+                                  <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-primary)', marginTop: 1 }}>
+                                    {startTime ? formatTime(startTime, locale, timeFormat) : ''}
+                                    {endTime ? ` – ${formatTime(endTime, locale, timeFormat)}` : ''}
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          )
+                        })()}
                         {res.confirmation_number && (
                           <div>
                             <div style={{ fontSize: 8, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase' }}>{t('reservations.confirmationCode')}</div>

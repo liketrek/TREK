@@ -389,4 +389,51 @@ describe('ReservationsPanel', () => {
     expect(screen.getByText('Pending 2')).toBeInTheDocument();
     expect(screen.getByText('Pending 3')).toBeInTheDocument();
   });
+
+  it('FE-PLANNER-RESP-041: dateless transport with legacy T-prefix shows time without "Invalid Date"', () => {
+    const day = buildDay({ date: null, day_number: 25 } as any);
+    const r = buildReservation({
+      title: 'Cruise test',
+      type: 'cruise',
+      status: 'pending',
+      reservation_time: 'T10:00',
+      reservation_end_time: 'T18:00',
+      day_id: day.id,
+      end_day_id: day.id,
+    } as any);
+    render(<ReservationsPanel {...defaultProps} reservations={[r]} days={[day]} />);
+    expect(screen.queryByText(/Invalid Date/)).not.toBeInTheDocument();
+    expect(screen.getByText(/10:00/)).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-RESP-042: dateless transport with bare time format shows time without "Invalid Date"', () => {
+    const day = buildDay({ date: null, day_number: 3 } as any);
+    const r = buildReservation({
+      title: 'Car rental',
+      type: 'car',
+      status: 'pending',
+      reservation_time: '09:00',
+      reservation_end_time: '17:00',
+      day_id: day.id,
+      end_day_id: day.id,
+    } as any);
+    render(<ReservationsPanel {...defaultProps} reservations={[r]} days={[day]} />);
+    expect(screen.queryByText(/Invalid Date/)).not.toBeInTheDocument();
+    expect(screen.getByText(/09:00/)).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-RESP-043: dated transport still shows date and time correctly', () => {
+    const day = buildDay({ date: '2026-07-15', day_number: 1 });
+    const r = buildReservation({
+      title: 'Flight out',
+      type: 'flight',
+      status: 'confirmed',
+      reservation_time: '2026-07-15T08:30',
+      reservation_end_time: '2026-07-15T10:45',
+      day_id: day.id,
+    } as any);
+    render(<ReservationsPanel {...defaultProps} reservations={[r]} days={[day]} />);
+    expect(screen.queryByText(/Invalid Date/)).not.toBeInTheDocument();
+    expect(screen.getByText(/08:30/)).toBeInTheDocument();
+  });
 });

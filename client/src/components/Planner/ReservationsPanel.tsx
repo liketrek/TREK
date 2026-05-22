@@ -15,6 +15,7 @@ import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import type { Reservation, Day, TripFile, AssignmentsMap } from '../../types'
+import { splitReservationDateTime, formatTime } from '../../utils/formatters'
 
 interface AssignmentLookupEntry {
   dayNumber: number
@@ -99,17 +100,13 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
   }
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
-  const fmtDate = (str) => {
-    const dateOnly = str.includes('T') ? str.split('T')[0] : str
-    return new Date(dateOnly + 'T00:00:00Z').toLocaleDateString(locale, { ...(isMobile ? {} : { weekday: 'short' }), day: 'numeric', month: 'short', timeZone: 'UTC' })
-  }
-  const fmtTime = (str) => {
-    const d = new Date(str)
-    return d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: timeFormat === '12h' })
-  }
+  const startDt = splitReservationDateTime(r.reservation_time)
+  const endDt = splitReservationDateTime(r.reservation_end_time)
+  const fmtDate = (date: string) =>
+    new Date(date + 'T00:00:00Z').toLocaleDateString(locale, { ...(isMobile ? {} : { weekday: 'short' }), day: 'numeric', month: 'short', timeZone: 'UTC' })
 
-  const hasDate = !!r.reservation_time
-  const hasTime = r.reservation_time?.includes('T')
+  const hasDate = !!startDt.date
+  const hasTime = !!(startDt.time || endDt.time)
   const hasCode = !!r.confirmation_number
   const dateCols = [hasDate, hasTime, hasCode].filter(Boolean).length
 
@@ -233,31 +230,25 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
           </div>
         )}
         {/* Date / Time row */}
-        {hasDate && (
-          <div style={{ display: 'grid', gap: 10, gridTemplateColumns: hasTime ? '1fr 1fr' : '1fr' }}>
-            <div>
-              <div style={fieldLabelStyle}>{t('reservations.date')}</div>
-              <div style={{ ...fieldValueStyle, textAlign: 'center' }}>
-                {fmtDate(r.reservation_time)}
-                {(() => {
-                  const endDatePart = r.reservation_end_time
-                    ? r.reservation_end_time.includes('T')
-                        ? r.reservation_end_time.split('T')[0]
-                        : /^\d{4}-\d{2}-\d{2}$/.test(r.reservation_end_time)
-                            ? r.reservation_end_time
-                            : null
-                    : null
-                  return endDatePart && endDatePart !== r.reservation_time.split('T')[0]
-                })() && (
-                  <> – {fmtDate(r.reservation_end_time)}</>
-                )}
+        {(hasDate || hasTime) && (
+          <div style={{ display: 'grid', gap: 10, gridTemplateColumns: hasDate && hasTime ? '1fr 1fr' : '1fr' }}>
+            {hasDate && (
+              <div>
+                <div style={fieldLabelStyle}>{t('reservations.date')}</div>
+                <div style={{ ...fieldValueStyle, textAlign: 'center' }}>
+                  {fmtDate(startDt.date!)}
+                  {endDt.date && endDt.date !== startDt.date && (
+                    <> – {fmtDate(endDt.date)}</>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
             {hasTime && (
               <div>
                 <div style={fieldLabelStyle}>{t('reservations.time')}</div>
                 <div style={{ ...fieldValueStyle, textAlign: 'center' }}>
-                  {fmtTime(r.reservation_time)}{r.reservation_end_time ? ` – ${r.reservation_end_time.includes('T') ? fmtTime(r.reservation_end_time) : fmtTime(r.reservation_time.split('T')[0] + 'T' + r.reservation_end_time)}` : ''}
+                  {formatTime(startDt.time, locale, timeFormat)}
+                  {endDt.time ? ` – ${formatTime(endDt.time, locale, timeFormat)}` : ''}
                 </div>
               </div>
             )}
@@ -316,8 +307,8 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
           if (meta.train_number) cells.push({ label: t('reservations.meta.trainNumber'), value: meta.train_number })
           if (meta.platform) cells.push({ label: t('reservations.meta.platform'), value: meta.platform })
           if (meta.seat) cells.push({ label: t('reservations.meta.seat'), value: meta.seat })
-          if (meta.check_in_time) cells.push({ label: t('reservations.meta.checkIn'), value: fmtTime('2000-01-01T' + meta.check_in_time) + (meta.check_in_end_time ? ` – ${fmtTime('2000-01-01T' + meta.check_in_end_time)}` : '') })
-          if (meta.check_out_time) cells.push({ label: t('reservations.meta.checkOut'), value: fmtTime('2000-01-01T' + meta.check_out_time) })
+          if (meta.check_in_time) cells.push({ label: t('reservations.meta.checkIn'), value: formatTime(meta.check_in_time, locale, timeFormat) + (meta.check_in_end_time ? ` – ${formatTime(meta.check_in_end_time, locale, timeFormat)}` : '') })
+          if (meta.check_out_time) cells.push({ label: t('reservations.meta.checkOut'), value: formatTime(meta.check_out_time, locale, timeFormat) })
           if (cells.length === 0) return null
           return (
             <div style={{ display: 'grid', gap: 10, gridTemplateColumns: cells.length > 1 ? `repeat(${Math.min(cells.length, 3)}, 1fr)` : '1fr' }}>

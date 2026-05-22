@@ -12,6 +12,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { Clock, MapPin, FileText, Train, Plane, Bus, Car, Ship, Ticket, Hotel, Map, Luggage, Wallet, MessageCircle } from 'lucide-react'
 import { isDayInAccommodationRange } from '../utils/dayOrder'
 import { getTransportForDay, getMergedItems } from '../utils/dayMerge'
+import { splitReservationDateTime } from '../utils/formatters'
 
 const TRANSPORT_ICONS = { flight: Plane, train: Train, bus: Bus, car: Car, cruise: Ship }
 
@@ -219,7 +220,7 @@ export default function SharedTripPage() {
                         const r = item.data
                         const TIcon = TRANSPORT_ICONS[r.type] || Ticket
                         const meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata || '{}') : (r.metadata || {})
-                        const time = r.reservation_time?.includes('T') ? r.reservation_time.split('T')[1]?.substring(0, 5) : ''
+                        const time = splitReservationDateTime(r.reservation_time).time ?? ''
                         let sub = ''
                         if (r.type === 'flight') sub = [meta.airline, meta.flight_number, meta.departure_airport && meta.arrival_airport ? `${meta.departure_airport} → ${meta.arrival_airport}` : ''].filter(Boolean).join(' · ')
                         else if (r.type === 'train') sub = [meta.train_number, meta.platform ? `Gl. ${meta.platform}` : ''].filter(Boolean).join(' · ')
@@ -276,8 +277,9 @@ export default function SharedTripPage() {
             {(reservations || []).map((r: any) => {
               const meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata || '{}') : (r.metadata || {})
               const TIcon = TRANSPORT_ICONS[r.type] || Ticket
-              const time = r.reservation_time?.includes('T') ? r.reservation_time.split('T')[1]?.substring(0, 5) : ''
-              const date = r.reservation_time ? new Date((r.reservation_time.includes('T') ? r.reservation_time.split('T')[0] : r.reservation_time) + 'T00:00:00Z').toLocaleDateString(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }) : ''
+              const { date: rDate, time: rTime } = splitReservationDateTime(r.reservation_time)
+              const time = rTime ?? ''
+              const date = rDate ? new Date(rDate + 'T00:00:00Z').toLocaleDateString(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }) : ''
               return (
                 <div key={r.id} style={{ background: 'var(--bg-card, white)', borderRadius: 10, padding: '12px 16px', border: '1px solid var(--border-faint, #e5e7eb)', display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

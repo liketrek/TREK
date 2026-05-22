@@ -10,7 +10,7 @@ import { useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
 import { useTripStore } from '../../store/tripStore'
 import { useAddonStore } from '../../store/addonStore'
-import { formatDate } from '../../utils/formatters'
+import { formatDate, splitReservationDateTime } from '../../utils/formatters'
 import { openFile } from '../../utils/fileDownload'
 import apiClient from '../../api/client'
 import type { Day, Reservation, ReservationEndpoint, TripFile } from '../../types'
@@ -141,8 +141,8 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         status: reservation.status || 'pending',
         start_day_id: reservation.day_id ?? '',
         end_day_id: reservation.end_day_id ?? '',
-        departure_time: reservation.reservation_time?.split('T')[1]?.slice(0, 5) ?? '',
-        arrival_time: reservation.reservation_end_time?.split('T')[1]?.slice(0, 5) ?? '',
+        departure_time: splitReservationDateTime(reservation.reservation_time).time ?? '',
+        arrival_time: splitReservationDateTime(reservation.reservation_end_time).time ?? '',
         confirmation_number: reservation.confirmation_number || '',
         notes: reservation.notes || '',
         meta_airline: meta.airline || '',
@@ -179,7 +179,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
 
       const buildTime = (day: Day | undefined, time: string): string | null => {
         if (!time) return null
-        return day?.date ? `${day.date}T${time}` : `T${time}`
+        return day?.date ? `${day.date}T${time}` : time
       }
 
       const metadata: Record<string, string> = {}

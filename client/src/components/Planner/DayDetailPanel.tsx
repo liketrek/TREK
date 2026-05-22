@@ -13,6 +13,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { getLocaleForLanguage, useTranslation } from '../../i18n'
 import type { Day, Place, Category, Reservation, AssignmentsMap } from '../../types'
 import { isDayInAccommodationRange } from '../../utils/dayOrder'
+import { splitReservationDateTime } from '../../utils/formatters'
 
 const WEATHER_ICON_MAP = {
   Clear: Sun, Clouds: Cloud, Rain: CloudRain, Drizzle: CloudDrizzle,
@@ -309,12 +310,17 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
                           <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.title}</span>
                           {linkedAssignment?.place && <span style={{ fontSize: 9, color: 'var(--text-faint)', whiteSpace: 'nowrap' }}>· {linkedAssignment.place.name}</span>}
                         </div>
-                        {r.reservation_time?.includes('T') && (
-                          <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                            {new Date(r.reservation_time).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: is12h })}
-                            {r.reservation_end_time && ` – ${fmtTime(r.reservation_end_time)}`}
-                          </span>
-                        )}
+                        {(() => {
+                          const { time: startTime } = splitReservationDateTime(r.reservation_time)
+                          const { time: endTime } = splitReservationDateTime(r.reservation_end_time)
+                          if (!startTime && !endTime) return null
+                          return (
+                            <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                              {startTime ? formatTime12(startTime, is12h) : ''}
+                              {endTime ? ` – ${formatTime12(endTime, is12h)}` : ''}
+                            </span>
+                          )
+                        })()}
                       </div>
                     )
                   })}
