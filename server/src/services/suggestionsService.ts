@@ -210,43 +210,66 @@ async function fetchFromOverpass(query: string): Promise<OverpassElement[]> {
 // ── Source B: Wikipedia GeoSearch (fallback) ──────────────────────────────────
 
 /**
- * Wikipedia GeoSearch returns all Wikipedia articles whose coordinates fall
- * inside the bounding box.  Only genuinely notable places have Wikipedia
- * articles, so the quality is high — and the API is accessible from any
- * network (Wikimedia CDN, not a community-run server).
+ * Wikipedia GeoSearch using multiple gscoord+gsradius queries (NOT gsbbox).
+ *
+ * Reason: the gsbbox parameter has a known bug in the GeoData extension when
+ * both longitudes are negative (e.g. Spain), consistently returning 0 results.
+ *
+ * Fix: sample up to 10 evenly-spaced points along the route and issue one
+ * gscoord query per point with gsradius=10000 (the API maximum = 10 km).
+ * All queries run in parallel via Promise.allSettled → fast (~1-2 s).
  *
  * API docs: https://www.mediawiki.org/wiki/API:Geosearch
- * gsbbox format: north|west|south|east
  */
 async function fetchFromWikipedia(
-  bbox: ReturnType<typeof routeBBox>,
+  routePoints: Array<{ lat: number; lng: number }>,
   lang = 'es',
 ): Promise<Array<{ title: string; lat: number; lng: number }>> {
-  const { south, north, west, east } = bbox;
-  const params = new URLSearchParams({
-    action:  'query',
-    list:    'geosearch',
-    gsbbox:  `${north.toFixed(5)}|${west.toFixed(5)}|${south.toFixed(5)}|${east.toFixed(5)}`,
-    gslimit: '50',
-    format:  'json',
-    origin:  '*',
+
+  // Sample up to 10 evenly-spaced points (API max radius = 10 km, so ~10 circles cover ~200 km)
+  const N = Math.min(10, routePoints.length);
+  const step = routePoints.length > 1 ? (routePoints.length - 1) / (N - 1) : 0;
+  const pts = Array.from({ length: N }, (_, i) => {
+    const idx = Math.min(Math.round(i * step), routePoints.length - 1);
+    return routePoints[idx];
   });
 
-  // Try requested language first, fall back to English
+  const queryOne = async (l: string, pt: { lat: number; lng: number }) => {
+    const params = new URLSearchParams({
+      action:   'query',
+      list:     'geosearch',
+      gscoord:  `${pt.lat}|${pt.lng}`,
+      gsradius: '10000',  // 10 km — API maximum
+      gslimit:  '20',
+      format:   'json',
+      origin:   '*',
+    });
+    const res = await fetch(`https://${l}.wikipedia.org/w/api.php?${params}`, {
+      headers: { 'User-Agent': 'TrekApp/1.0 (https://trekwanderer.info)' },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json() as {
+      query?: { geosearch?: Array<{ title: string; lat: number; lon: number }> };
+    };
+    return data.query?.geosearch ?? [];
+  };
+
   for (const l of [lang, lang === 'es' ? 'en' : 'es']) {
     try {
-      const res = await fetch(
-        `https://${l}.wikipedia.org/w/api.php?${params}`,
-        { headers: { 'User-Agent': 'TrekApp/1.0 (https://trekwanderer.info)' } },
-      );
-      if (!res.ok) { console.warn(`[suggestions] Wikipedia ${l} → HTTP ${res.status}`); continue; }
-
-      const data = await res.json() as {
-        query?: { geosearch?: Array<{ title: string; lat: number; lon: number }> };
-      };
-      const items = data.query?.geosearch ?? [];
-      console.log(`[suggestions] Wikipedia ${l} → ${items.length} articles ✓`);
-      if (items.length > 0) return items.map(i => ({ title: i.title, lat: i.lat, lng: i.lon }));
+      const settled = await Promise.allSettled(pts.map(pt => queryOne(l, pt)));
+      const seen = new Set<string>();
+      const merged: Array<{ title: string; lat: number; lng: number }> = [];
+      for (const r of settled) {
+        if (r.status !== 'fulfilled') continue;
+        for (const item of r.value) {
+          if (!seen.has(item.title)) {
+            seen.add(item.title);
+            merged.push({ title: item.title, lat: item.lat, lng: item.lon });
+          }
+        }
+      }
+      console.log(`[suggestions] Wikipedia ${l} (${N} gscoord queries) → ${merged.length} articles`);
+      if (merged.length > 0) return merged;
     } catch (err: any) {
       console.warn(`[suggestions] Wikipedia ${l} → ${err?.message}`);
     }
@@ -380,7 +403,108 @@ function wikiToPOIs(
   return result;
 }
 
-// ── POI discovery: Overpass first, Wikipedia fallback ─────────────────────────
+// ── Source C: Nominatim category search (last resort) ────────────────────────
+
+/**
+ * Nominatim /search with bounded viewbox, queried for each of several
+ * category terms.  Nominatim uses the same OSM database as Overpass but is
+ * a different service — confirmed reachable from the Docker container.
+ *
+ * Rate limit: 1 req/sec → sequential with 800 ms sleep.
+ * With 8 terms: ~7 s.  Returns real places with real coordinates.
+ */
+const NOMINATIM_TERMS: Record<string, string[]> = {
+  es: ['monasterio', 'castillo', 'ermita', 'mirador', 'museo', 'ruinas', 'palacio', 'torre'],
+  en: ['monastery',  'castle',   'chapel', 'viewpoint', 'museum', 'ruins', 'palace', 'tower'],
+};
+
+async function searchNominatimCategories(
+  bbox: ReturnType<typeof routeBBox>,
+  routePoints: Array<{ lat: number; lng: number }>,
+  corridorKm: number,
+  skipNames: string[],
+  lang: string,
+  maxResults = 20,
+): Promise<RankedPOI[]> {
+  // Nominatim viewbox: left,top,right,bottom = minLng, maxLat, maxLng, minLat
+  const viewbox = [
+    bbox.west.toFixed(4),
+    bbox.north.toFixed(4),
+    bbox.east.toFixed(4),
+    bbox.south.toFixed(4),
+  ].join(',');
+
+  const terms = NOMINATIM_TERMS[lang === 'es' ? 'es' : 'en'];
+  const skipSet   = new Set(skipNames.map(n => n.toLowerCase()));
+  const seenName  = new Set<string>();
+  const seenCoord: Array<{ lat: number; lng: number }> = [];
+  const results: RankedPOI[] = [];
+
+  for (let i = 0; i < terms.length && results.length < maxResults; i++) {
+    if (i > 0) await sleep(800); // Nominatim ≤ 1 req/s policy
+
+    try {
+      const params = new URLSearchParams({
+        q:                terms[i],
+        format:           'json',
+        limit:            '15',
+        viewbox,
+        bounded:          '1',
+        namedetails:      '1',
+        addressdetails:   '0',
+        'accept-language': lang === 'es' ? 'es,en' : 'en,es',
+      });
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?${params}`,
+        { headers: { 'User-Agent': 'trek-app/1.0 (https://trekwanderer.info)' } },
+      );
+      if (!res.ok) { console.warn(`[suggestions] Nominatim "${terms[i]}" → HTTP ${res.status}`); continue; }
+
+      const items = await res.json() as Array<{
+        lat: string; lon: string;
+        display_name?: string;
+        namedetails?: { name?: string };
+        class?: string; type?: string;
+        importance?: number;
+      }>;
+
+      for (const item of items) {
+        const lat = parseFloat(item.lat);
+        const lng = parseFloat(item.lon);
+        if (isNaN(lat) || isNaN(lng)) continue;
+        if (!isNearRoute(lat, lng, routePoints, corridorKm)) continue;
+
+        const name = item.namedetails?.name ?? item.display_name?.split(',')[0]?.trim() ?? '';
+        if (name.length < 3) continue;
+
+        const nameKey = name.toLowerCase();
+        if (skipSet.has(nameKey) || seenName.has(nameKey)) continue;
+        if (seenCoord.some(c => haversineKm(lat, lng, c.lat, c.lng) < 0.2)) continue;
+
+        seenName.add(nameKey);
+        seenCoord.push({ lat, lng });
+
+        const tags: Record<string, string> = { [item.class ?? 'tourism']: item.type ?? 'attraction' };
+        results.push({
+          name,
+          lat,
+          lng,
+          category: osmTagToCategory(tags),
+          osmType:  item.type ?? item.class ?? 'attraction',
+          address:  item.display_name ?? null,
+          score:    Math.round((item.importance ?? 0.5) * 10),
+        });
+      }
+    } catch (err: any) {
+      console.warn(`[suggestions] Nominatim "${terms[i]}" → ${err?.message}`);
+    }
+  }
+
+  console.log(`[suggestions] Nominatim → ${results.length} POIs`);
+  return results.sort((a, b) => b.score - a.score).slice(0, maxResults);
+}
+
+// ── POI discovery: Overpass → Wikipedia → Nominatim ──────────────────────────
 
 async function discoverRoutePOIs(
   routePoints: Array<{ lat: number; lng: number }>,
@@ -390,22 +514,25 @@ async function discoverRoutePOIs(
 ): Promise<RankedPOI[]> {
   const bbox = routeBBox(routePoints, corridorKm + 1);
 
-  // ── A: Overpass (multiple endpoints) ──────────────────────────────────────
-  const overpassQuery = buildOverpassQuery(bbox);
-  const overpassElements = await fetchFromOverpass(overpassQuery);
+  // ── A: Overpass (4 mirrors in parallel, 8 s each) ─────────────────────────
+  const overpassElements = await fetchFromOverpass(buildOverpassQuery(bbox));
   if (overpassElements.length > 0) {
     const pois = filterAndRankPOIs(overpassElements, skipNames, routePoints, corridorKm);
-    if (pois.length > 0) return pois;
+    if (pois.length > 0) { console.log(`[suggestions] Source: Overpass (${pois.length} POIs)`); return pois; }
   }
 
-  // ── B: Wikipedia GeoSearch ────────────────────────────────────────────────
-  console.log('[suggestions] Overpass returned nothing — trying Wikipedia GeoSearch…');
-  const wikiItems = await fetchFromWikipedia(bbox, lang);
-  const wikiPOIs  = wikiToPOIs(wikiItems, skipNames, routePoints, corridorKm);
-  if (wikiPOIs.length > 0) {
-    console.log(`[suggestions] Wikipedia fallback → ${wikiPOIs.length} POIs`);
-    return wikiPOIs;
+  // ── B: Wikipedia multi-point gscoord (10 queries in parallel) ────────────
+  console.log('[suggestions] Overpass failed → Wikipedia GeoSearch…');
+  const wikiItems = await fetchFromWikipedia(routePoints, lang);
+  if (wikiItems.length > 0) {
+    const pois = wikiToPOIs(wikiItems, skipNames, routePoints, corridorKm);
+    if (pois.length > 0) { console.log(`[suggestions] Source: Wikipedia (${pois.length} POIs)`); return pois; }
   }
+
+  // ── C: Nominatim category search (sequential, 1 req/s) ───────────────────
+  console.log('[suggestions] Wikipedia failed → Nominatim category search…');
+  const nominatimPOIs = await searchNominatimCategories(bbox, routePoints, corridorKm, skipNames, lang);
+  if (nominatimPOIs.length > 0) { console.log(`[suggestions] Source: Nominatim (${nominatimPOIs.length} POIs)`); return nominatimPOIs; }
 
   console.warn('[suggestions] No POIs found from any source');
   return [];
