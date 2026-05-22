@@ -1,6 +1,7 @@
 // FE-STORE-JOURNEY-001 to FE-STORE-JOURNEY-015
 import { http, HttpResponse } from 'msw';
 import { server } from '../../tests/helpers/msw/server';
+import { journeyApi } from '../api/client';
 import { useJourneyStore } from './journeyStore';
 import type { JourneyDetail, JourneyEntry, JourneyPhoto } from './journeyStore';
 
@@ -282,11 +283,10 @@ describe('journeyStore', () => {
     useJourneyStore.setState({ current: detail });
 
     const newPhoto = buildPhoto({ id: 91, entry_id: 100 });
-    server.use(
-      http.post('/api/journeys/entries/100/photos', () =>
-        HttpResponse.json({ photos: [newPhoto] })
-      )
-    );
+    // MSW's XHR interceptor calls request.arrayBuffer() on FormData bodies to
+    // emit upload progress events, which hangs in jsdom+Node. Spy on the API
+    // layer directly so this test exercises store state management only.
+    const spy = vi.spyOn(journeyApi, 'uploadPhotos').mockResolvedValue({ photos: [newPhoto] } as any);
     const file = new File(['x'], 'photo.jpg', { type: 'image/jpeg' });
     const result = await useJourneyStore.getState().uploadPhotos(100, [file]);
     expect(result.succeeded).toHaveLength(1);
@@ -294,6 +294,7 @@ describe('journeyStore', () => {
     expect(result.failed).toHaveLength(0);
     const storedEntry = useJourneyStore.getState().current?.entries.find(e => e.id === 100);
     expect(storedEntry?.photos).toHaveLength(2);
+    spy.mockRestore();
   });
 
   it('FE-STORE-JOURNEY-017: uploadPhotos returns failed files and merges only succeeded on network error', async () => {
@@ -323,16 +324,15 @@ describe('journeyStore', () => {
     const photo1 = buildPhoto({ id: 91, entry_id: 100 });
     const photo2 = buildPhoto({ id: 92, entry_id: 100 });
     let callCount = 0;
-    server.use(
-      http.post('/api/journeys/entries/100/photos', () => {
-        callCount++;
-        if (callCount === 1) return HttpResponse.json({ photos: [photo1] });
-        return HttpResponse.error();
-      })
-    );
+    // Spy on the API layer to avoid MSW's FormData body hang (see FE-STORE-JOURNEY-013).
+    // Use a 4xx-shaped error for file2 so isRetryable returns false and the test runs instantly.
+    const spy = vi.spyOn(journeyApi, 'uploadPhotos').mockImplementation(async () => {
+      callCount++;
+      if (callCount === 1) return { photos: [photo1] } as any;
+      throw Object.assign(new Error('Bad Request'), { response: { status: 400 } });
+    });
     const file1 = new File(['a'], 'ok.jpg', { type: 'image/jpeg' });
     const file2 = new File(['b'], 'fail.jpg', { type: 'image/jpeg' });
-    // concurrency:1 so order is deterministic
     const result = await useJourneyStore.getState().uploadPhotos(100, [file1, file2], undefined);
     expect(result.succeeded).toHaveLength(1);
     expect(result.succeeded[0].id).toBe(photo1.id);
@@ -340,6 +340,7 @@ describe('journeyStore', () => {
     const storedEntry = useJourneyStore.getState().current?.entries.find(e => e.id === 100);
     expect(storedEntry?.photos).toHaveLength(1);
     void photo2; // referenced to avoid lint warning
+    spy.mockRestore();
   });
 
   // ── deletePhoto ──────────────────────────────────────────────────────────
