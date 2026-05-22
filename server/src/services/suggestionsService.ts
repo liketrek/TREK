@@ -160,14 +160,18 @@ function buildOverpassQuery(bbox: ReturnType<typeof routeBBox>): string {
 out center tags qt;`;
 }
 
-/** Try each Overpass mirror until one responds with 200. */
+/**
+ * Try all Overpass mirrors IN PARALLEL with a short per-request timeout.
+ * Returns the first successful result; if all fail, returns [].
+ * Running in parallel means total wait = slowest-that-succeeds, not sum-of-all.
+ */
 async function fetchFromOverpass(query: string): Promise<OverpassElement[]> {
   const body = new URLSearchParams({ data: query }).toString();
 
-  for (const endpoint of OVERPASS_ENDPOINTS) {
+  const tryEndpoint = async (endpoint: string): Promise<OverpassElement[]> => {
     const host = endpoint.replace(/^https?:\/\//, '').split('/')[0];
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 28_000);
+    const timer = setTimeout(() => controller.abort(), 8_000); // 8 s per mirror
     try {
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -180,23 +184,27 @@ async function fetchFromOverpass(query: string): Promise<OverpassElement[]> {
         signal: controller.signal,
       });
       clearTimeout(timer);
-
-      if (!res.ok) {
-        console.warn(`[suggestions] Overpass ${host} → HTTP ${res.status}`);
-        continue;
-      }
-
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json() as { elements?: OverpassElement[] };
       const n = data.elements?.length ?? 0;
       console.log(`[suggestions] Overpass ${host} → ${n} elements ✓`);
-      return data.elements ?? [];
+      if (n === 0) throw new Error('empty'); // treat empty as failure so others are tried
+      return data.elements!;
     } catch (err: any) {
       clearTimeout(timer);
       const reason = err?.name === 'AbortError' ? 'timeout' : (err?.message ?? 'failed');
       console.warn(`[suggestions] Overpass ${host} → ${reason}`);
+      throw err; // re-throw so Promise.any can skip it
     }
+  };
+
+  try {
+    // Promise.any resolves with the FIRST mirror that returns results
+    return await Promise.any(OVERPASS_ENDPOINTS.map(tryEndpoint));
+  } catch {
+    // AggregateError: every mirror failed
+    return [];
   }
-  return [];
 }
 
 // ── Source B: Wikipedia GeoSearch (fallback) ──────────────────────────────────
