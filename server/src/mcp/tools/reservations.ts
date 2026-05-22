@@ -6,6 +6,7 @@ import {
   createReservation, getReservation, updateReservation, deleteReservation,
   updatePositions as updateReservationPositions,
 } from '../../services/reservationService';
+import { linkBudgetItemToReservation } from '../../services/budgetService';
 import { getDay } from '../../services/dayService';
 import { placeExists, getAssignmentForTrip } from '../../services/assignmentService';
 import {
@@ -22,7 +23,7 @@ export function registerReservationTools(server: McpServer, userId: number, scop
   server.registerTool(
     'create_reservation',
     {
-      description: 'Recommend a reservation for a trip. Created as pending — the user must confirm it. For flights, trains, cars, and cruises, use create_transport instead. Linking: hotel → use place_id + start_day_id + end_day_id (all three required to create the accommodation link); restaurant/event/tour/activity/other → use assignment_id.',
+      description: 'Recommend a reservation for a trip. Created as pending — the user must confirm it. For flights, trains, cars, and cruises, use create_transport instead. Linking: hotel → use place_id + start_day_id + end_day_id (all three required to create the accommodation link); restaurant/event/tour/activity/other → use assignment_id. Set price to record the cost; it will appear on the booking and in the Budget tab.',
       inputSchema: {
         tripId: z.number().int().positive(),
         title: z.string().min(1).max(200),
@@ -38,10 +39,12 @@ export function registerReservationTools(server: McpServer, userId: number, scop
         check_in: z.string().max(10).optional().describe('Check-in time (e.g. "15:00", hotel type only)'),
         check_out: z.string().max(10).optional().describe('Check-out time (e.g. "11:00", hotel type only)'),
         assignment_id: z.number().int().positive().optional().describe('Link to a day assignment (restaurant, train, car, cruise, event, tour, activity, other)'),
+        price: z.number().nonnegative().optional().describe('Reservation cost — shown on the booking and linked in the Budget tab'),
+        budget_category: z.string().max(100).optional().describe('Budget category for the price entry (defaults to reservation type)'),
       },
       annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     },
-    async ({ tripId, title, type, reservation_time, location, confirmation_number, notes, day_id, place_id, start_day_id, end_day_id, check_in, check_out, assignment_id }) => {
+    async ({ tripId, title, type, reservation_time, location, confirmation_number, notes, day_id, place_id, start_day_id, end_day_id, check_in, check_out, assignment_id, price, budget_category }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
 
@@ -61,15 +64,28 @@ export function registerReservationTools(server: McpServer, userId: number, scop
         ? { place_id, start_day_id, end_day_id, check_in: check_in || undefined, check_out: check_out || undefined, confirmation: confirmation_number || undefined }
         : undefined;
 
+      const metadata = price != null ? { price: String(price) } : undefined;
+
       const { reservation, accommodationCreated } = createReservation(tripId, {
         title, type, reservation_time, location, confirmation_number,
         notes, day_id, place_id, assignment_id,
         create_accommodation: createAccommodation,
+        metadata,
       });
 
       if (accommodationCreated) {
         safeBroadcast(tripId, 'accommodation:created', {});
       }
+
+      if (price != null && price > 0) {
+        const item = linkBudgetItemToReservation(tripId, reservation.id, {
+          name: title,
+          category: budget_category || type,
+          total_price: price,
+        });
+        safeBroadcast(tripId, 'budget:created', { item });
+      }
+
       safeBroadcast(tripId, 'reservation:created', { reservation });
       return ok({ reservation });
     }

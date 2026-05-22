@@ -96,6 +96,17 @@ export function createBudgetItem(
   return item;
 }
 
+export function linkBudgetItemToReservation(
+  tripId: string | number,
+  reservationId: number,
+  data: { name: string; category?: string; total_price: number },
+) {
+  const item = createBudgetItem(tripId, data) as BudgetItem & { reservation_id?: number | null };
+  db.prepare('UPDATE budget_items SET reservation_id = ? WHERE id = ?').run(reservationId, item.id);
+  item.reservation_id = reservationId;
+  return item;
+}
+
 export function updateBudgetItem(
   id: string | number,
   tripId: string | number,

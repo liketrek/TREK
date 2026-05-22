@@ -13,7 +13,7 @@ import {
   updateReservation,
   deleteReservation,
 } from '../services/reservationService';
-import { createBudgetItem, updateBudgetItem, deleteBudgetItem } from '../services/budgetService';
+import { createBudgetItem, updateBudgetItem, deleteBudgetItem, linkBudgetItemToReservation } from '../services/budgetService';
 
 const router = express.Router({ mergeParams: true });
 
@@ -55,13 +55,11 @@ router.post('/', authenticate, (req: Request, res: Response) => {
   // Auto-create budget entry if price was provided
   if (create_budget_entry && create_budget_entry.total_price > 0) {
     try {
-      const budgetItem = createBudgetItem(tripId, {
+      const budgetItem = linkBudgetItemToReservation(tripId, reservation.id, {
         name: title,
         category: create_budget_entry.category || type || 'Other',
         total_price: create_budget_entry.total_price,
       });
-      db.prepare('UPDATE budget_items SET reservation_id = ? WHERE id = ?').run(reservation.id, budgetItem.id);
-      budgetItem.reservation_id = reservation.id;
       broadcast(tripId, 'budget:created', { item: budgetItem }, req.headers['x-socket-id'] as string);
     } catch (err) {
       console.error('[reservations] Failed to create budget entry:', err);
