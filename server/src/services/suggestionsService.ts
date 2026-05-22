@@ -104,40 +104,41 @@ function sampleTrackPoints(
 // ── Overpass API corridor query ───────────────────────────────────────────────
 
 /**
- * Query Overpass API for POIs within `radiusMeters` of the route polyline.
+ * Query Overpass API for POIs near the route.
  *
- * Uses the `around:radius,lat1,lon1,lat2,lon2,...` syntax to define a corridor
- * around the entire GPS track — the same technique used by Komoot and AllTrails.
- * A POST request handles long polylines without URL-length limits.
+ * Strategy: use a global `[bbox:...]` filter — a compact bounding-box that
+ * covers the whole route + buffer.  This produces a tiny query (~300 chars)
+ * that every Overpass instance accepts, unlike the multi-kilobyte
+ * `around:radius,lat1,lon1,...` polyline form which can trigger HTTP 406.
+ *
+ * After fetching, we post-filter in-memory: only keep elements within
+ * `corridorKm` of at least one route point, recreating the corridor effect.
  */
 async function queryOverpassPOIs(
   routePoints: Array<{ lat: number; lng: number }>,
-  radiusMeters = 2000,
+  corridorKm = 2,
 ): Promise<OverpassElement[]> {
   if (routePoints.length === 0) return [];
 
-  // Sample to at most 40 points to keep query size manageable
-  const n = Math.min(40, routePoints.length);
-  const step = routePoints.length > 1 ? (routePoints.length - 1) / (n - 1) : 0;
-  const pts = Array.from({ length: n }, (_, i) => {
-    const idx = Math.min(Math.round(i * step), routePoints.length - 1);
-    return routePoints[idx];
-  });
+  // Bounding box of all route points + buffer
+  const lats = routePoints.map(p => p.lat);
+  const lngs = routePoints.map(p => p.lng);
+  const bufDeg = (corridorKm + 1) / 111; // 1° ≈ 111 km
+  const south = (Math.min(...lats) - bufDeg).toFixed(5);
+  const north = (Math.max(...lats) + bufDeg).toFixed(5);
+  const west  = (Math.min(...lngs) - bufDeg).toFixed(5);
+  const east  = (Math.max(...lngs) + bufDeg).toFixed(5);
 
-  const polyline = pts.map(p => `${p.lat},${p.lng}`).join(',');
-  const around = `around:${radiusMeters},${polyline}`;
-
-  // QL query: nodes, ways and relations with relevant OSM tags
-  // We deliberately avoid generic "tourism=hotel" or "amenity=*" to reduce noise
-  const query = `[out:json][timeout:30];
+  // Short QL query — global bbox replaces per-element (around:...,polyline)
+  const query = `[out:json][timeout:30][bbox:${south},${west},${north},${east}];
 (
-  node["tourism"~"^(attraction|museum|viewpoint)$"](${around});
-  node["historic"]["name"](${around});
-  node["natural"~"^(peak|waterfall|gorge|cave_entrance|cliff)$"]["name"](${around});
-  way["tourism"~"^(attraction|museum|viewpoint)$"]["name"](${around});
-  way["historic"]["name"](${around});
-  relation["historic"]["name"](${around});
-  relation["tourism"~"^(attraction|museum|viewpoint)$"]["name"](${around});
+  node["tourism"~"^(attraction|museum|viewpoint)$"];
+  node["historic"]["name"];
+  node["natural"~"^(peak|waterfall|gorge|cave_entrance|cliff)$"]["name"];
+  way["tourism"~"^(attraction|museum|viewpoint)$"]["name"];
+  way["historic"]["name"];
+  relation["historic"]["name"];
+  relation["tourism"~"^(attraction|museum|viewpoint)$"]["name"];
 );
 out center tags qt;`;
 
@@ -148,7 +149,7 @@ out center tags qt;`;
     const res = await fetch('https://overpass-api.de/api/interpreter', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `data=${encodeURIComponent(query)}`,
+      body: new URLSearchParams({ data: query }).toString(),
       signal: controller.signal,
     });
     clearTimeout(timer);
@@ -160,7 +161,20 @@ out center tags qt;`;
     }
 
     const data = await res.json() as { elements?: OverpassElement[] };
-    return data.elements ?? [];
+    const all = data.elements ?? [];
+
+    // Post-filter: discard POIs that are more than corridorKm away from every route point
+    // (the bbox may include features on the far side of a mountain range, etc.)
+    return all.filter(el => {
+      let lat: number, lng: number;
+      if (el.type === 'node' && el.lat != null && el.lon != null) {
+        lat = el.lat; lng = el.lon;
+      } else if (el.center) {
+        lat = el.center.lat; lng = el.center.lon;
+      } else return false;
+      return routePoints.some(p => haversineKm(lat, lng, p.lat, p.lng) <= corridorKm);
+    });
+
   } catch (err: any) {
     clearTimeout(timer);
     const reason = err?.name === 'AbortError' ? 'timeout' : (err?.message ?? String(err));
