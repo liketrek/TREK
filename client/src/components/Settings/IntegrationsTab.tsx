@@ -69,6 +69,7 @@ interface OAuthClient {
   client_id: string
   redirect_uris: string[]
   allowed_scopes: string[]
+  allows_client_credentials: boolean
   created_at: string
   client_secret?: string // only present on create
 }
@@ -117,6 +118,7 @@ export default function IntegrationsTab(): React.ReactElement {
   const [oauthRotating, setOauthRotating] = useState(false)
   // oauthScopesOpen is managed internally by ScopeGroupPicker
   const [oauthScopesExpanded, setOauthScopesExpanded] = useState<Record<string, boolean>>({})
+  const [oauthIsMachine, setOauthIsMachine] = useState(false)
 
   // MCP sub-tab state
   const [activeMcpTab, setActiveMcpTab] = useState<'oauth' | 'apitokens'>('oauth')
@@ -214,16 +216,23 @@ export default function IntegrationsTab(): React.ReactElement {
   }, [mcpEnabled])
 
   const handleCreateOAuthClient = async () => {
-    if (!oauthNewName.trim() || !oauthNewUris.trim()) return
+    if (!oauthNewName.trim()) return
+    if (!oauthIsMachine && !oauthNewUris.trim()) return
     setOauthCreating(true)
     try {
-      const uris = oauthNewUris.split('\n').map(u => u.trim()).filter(Boolean)
-      const d = await oauthApi.clients.create({ name: oauthNewName.trim(), redirect_uris: uris, allowed_scopes: oauthNewScopes })
+      const uris = oauthIsMachine ? [] : oauthNewUris.split('\n').map(u => u.trim()).filter(Boolean)
+      const d = await oauthApi.clients.create({
+        name: oauthNewName.trim(),
+        redirect_uris: uris,
+        allowed_scopes: oauthNewScopes,
+        ...(oauthIsMachine ? { allows_client_credentials: true } : {}),
+      })
       setOauthCreatedClient(d.client)
       setOauthClients(prev => [...prev, { ...d.client, client_secret: undefined }])
       setOauthNewName('')
       setOauthNewUris('')
       setOauthNewScopes([])
+      setOauthIsMachine(false)
     } catch {
       toast.error(t('settings.oauth.toast.createError'))
     } finally {
@@ -342,7 +351,7 @@ export default function IntegrationsTab(): React.ReactElement {
                 <p className="text-xs mb-3" style={{ color: 'var(--text-tertiary)' }}>{t('settings.oauth.clientsHint')}</p>
 
                 <div className="flex justify-end mb-2">
-                  <button onClick={() => { setOauthCreateOpen(true); setOauthCreatedClient(null); setOauthNewName(''); setOauthNewUris(''); setOauthNewScopes([]) }}
+                  <button onClick={() => { setOauthCreateOpen(true); setOauthCreatedClient(null); setOauthNewName(''); setOauthNewUris(''); setOauthNewScopes([]); setOauthIsMachine(false) }}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-slate-900 text-white hover:bg-slate-700">
                     <Plus className="w-3.5 h-3.5" /> {t('settings.oauth.createClient')}
                   </button>
@@ -360,7 +369,15 @@ export default function IntegrationsTab(): React.ReactElement {
                         <div className="flex items-center gap-3">
                           <KeyRound className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{client.name}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{client.name}</p>
+                              {client.allows_client_credentials && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0"
+                                  style={{ background: 'rgba(99,102,241,0.12)', color: '#4f46e5', border: '1px solid rgba(99,102,241,0.3)' }}>
+                                  {t('settings.oauth.badge.machine')}
+                                </span>
+                              )}
+                            </div>
                             <p className="text-xs font-mono mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
                               {t('settings.oauth.clientId')}: {client.client_id}
                               <span className="ml-3 font-sans">{t('settings.mcp.tokenCreatedAt')} {new Date(client.created_at).toLocaleDateString(locale)}</span>
@@ -616,15 +633,26 @@ export default function IntegrationsTab(): React.ReactElement {
                     autoFocus />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>{t('settings.oauth.modal.redirectUris')}</label>
-                  <textarea value={oauthNewUris} onChange={e => setOauthNewUris(e.target.value)}
-                    placeholder={t('settings.oauth.modal.redirectUrisPlaceholder')}
-                    rows={3}
-                    className="w-full px-3 py-2.5 border rounded-lg text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-slate-400"
-                    style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
-                  <p className="mt-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('settings.oauth.modal.redirectUrisHint')}</p>
-                </div>
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input type="checkbox" checked={oauthIsMachine} onChange={e => setOauthIsMachine(e.target.checked)}
+                    className="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+                  <div>
+                    <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{t('settings.oauth.modal.machineClient')}</span>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{t('settings.oauth.modal.machineClientHint')}</p>
+                  </div>
+                </label>
+
+                {!oauthIsMachine && (
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>{t('settings.oauth.modal.redirectUris')}</label>
+                    <textarea value={oauthNewUris} onChange={e => setOauthNewUris(e.target.value)}
+                      placeholder={t('settings.oauth.modal.redirectUrisPlaceholder')}
+                      rows={3}
+                      className="w-full px-3 py-2.5 border rounded-lg text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-slate-400"
+                      style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
+                    <p className="mt-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('settings.oauth.modal.redirectUrisHint')}</p>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{t('settings.oauth.modal.scopes')}</label>
@@ -638,7 +666,7 @@ export default function IntegrationsTab(): React.ReactElement {
                     {t('common.cancel')}
                   </button>
                   <button onClick={handleCreateOAuthClient}
-                    disabled={!oauthNewName.trim() || !oauthNewUris.trim() || oauthCreating}
+                    disabled={!oauthNewName.trim() || (!oauthIsMachine && !oauthNewUris.trim()) || oauthCreating}
                     className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-slate-900 hover:bg-slate-700 disabled:opacity-50">
                     {oauthCreating ? t('settings.oauth.modal.creating') : t('settings.oauth.modal.create')}
                   </button>
@@ -680,6 +708,12 @@ export default function IntegrationsTab(): React.ReactElement {
                     </div>
                   </div>
                 </div>
+
+                {oauthCreatedClient?.allows_client_credentials && (
+                  <div className="p-3 rounded-lg border text-xs font-mono" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-tertiary)' }}>
+                    {t('settings.oauth.modal.machineClientUsage')}
+                  </div>
+                )}
 
                 <div className="flex justify-end">
                   <button onClick={() => { setOauthCreateOpen(false); setOauthCreatedClient(null) }}

@@ -63,7 +63,7 @@ import { resetTestDb } from '../helpers/test-db';
 import { createUser } from '../helpers/factories';
 import { authCookie } from '../helpers/auth';
 import { loginAttempts, mfaAttempts } from '../../src/routes/auth';
-import { createOAuthClient, createAuthCode } from '../../src/services/oauthService';
+import { createOAuthClient, createAuthCode, getUserByAccessToken } from '../../src/services/oauthService';
 
 const app: Application = createApp();
 
@@ -1284,5 +1284,142 @@ describe('C3 — Refresh token replay detection', () => {
         });
         expect(t4.status).toBe(400);
         expect(t4.body.error).toBe('invalid_grant');
+    });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /oauth/token — client_credentials grant
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('POST /oauth/token — client_credentials grant', () => {
+    it('OAUTH-CC-001 — happy path: issues access token with no refresh_token', async () => {
+        const { user } = createUser(testDb);
+        const r = createOAuthClient(user.id, 'Machine', [], ['trips:read'], null, { allowsClientCredentials: true });
+
+        const res = await request(app)
+            .post('/oauth/token')
+            .send({
+                grant_type: 'client_credentials',
+                client_id: r.client!.client_id,
+                client_secret: r.client!.client_secret,
+            });
+
+        expect(res.status).toBe(200);
+        expect(res.body.access_token).toBeDefined();
+        expect(res.body.token_type).toBe('Bearer');
+        expect(typeof res.body.expires_in).toBe('number');
+        expect(res.body.scope).toBe('trips:read');
+        expect(res.body.refresh_token).toBeUndefined();
+    });
+
+    it('OAUTH-CC-002 — issued token resolves to the client owner user', async () => {
+        const { user } = createUser(testDb);
+        const r = createOAuthClient(user.id, 'Machine', [], ['trips:read'], null, { allowsClientCredentials: true });
+
+        const res = await request(app)
+            .post('/oauth/token')
+            .send({
+                grant_type: 'client_credentials',
+                client_id: r.client!.client_id,
+                client_secret: r.client!.client_secret,
+            });
+
+        expect(res.status).toBe(200);
+        const info = getUserByAccessToken(res.body.access_token);
+        expect(info).not.toBeNull();
+        expect(info!.user.id).toBe(user.id);
+        expect(info!.scopes).toEqual(['trips:read']);
+    });
+
+    it('OAUTH-CC-003 — wrong client_secret returns 401 invalid_client', async () => {
+        const { user } = createUser(testDb);
+        const r = createOAuthClient(user.id, 'Machine', [], ['trips:read'], null, { allowsClientCredentials: true });
+
+        const res = await request(app)
+            .post('/oauth/token')
+            .send({
+                grant_type: 'client_credentials',
+                client_id: r.client!.client_id,
+                client_secret: 'trekcs_wrong',
+            });
+
+        expect(res.status).toBe(401);
+        expect(res.body.error).toBe('invalid_client');
+    });
+
+    it('OAUTH-CC-004 — missing client_secret returns 401 invalid_client', async () => {
+        const { user } = createUser(testDb);
+        const r = createOAuthClient(user.id, 'Machine', [], ['trips:read'], null, { allowsClientCredentials: true });
+
+        const res = await request(app)
+            .post('/oauth/token')
+            .send({
+                grant_type: 'client_credentials',
+                client_id: r.client!.client_id,
+            });
+
+        expect(res.status).toBe(401);
+        expect(res.body.error).toBe('invalid_client');
+    });
+
+    it('OAUTH-CC-005 — non-machine client returns 400 unauthorized_client', async () => {
+        const { user } = createUser(testDb);
+        const r = createOAuthClient(user.id, 'BrowserApp', ['https://app.example.com/cb'], ['trips:read']);
+
+        const res = await request(app)
+            .post('/oauth/token')
+            .send({
+                grant_type: 'client_credentials',
+                client_id: r.client!.client_id,
+                client_secret: r.client!.client_secret,
+            });
+
+        expect(res.status).toBe(400);
+        expect(res.body.error).toBe('unauthorized_client');
+    });
+
+    it('OAUTH-CC-006 — scope narrowing: requested subset is honoured', async () => {
+        const { user } = createUser(testDb);
+        const r = createOAuthClient(user.id, 'Machine', [], ['trips:read', 'places:read'], null, { allowsClientCredentials: true });
+
+        const res = await request(app)
+            .post('/oauth/token')
+            .send({
+                grant_type: 'client_credentials',
+                client_id: r.client!.client_id,
+                client_secret: r.client!.client_secret,
+                scope: 'trips:read',
+            });
+
+        expect(res.status).toBe(200);
+        expect(res.body.scope).toBe('trips:read');
+    });
+
+    it('OAUTH-CC-007 — scope outside allowed_scopes returns 400 invalid_scope', async () => {
+        const { user } = createUser(testDb);
+        const r = createOAuthClient(user.id, 'Machine', [], ['trips:read'], null, { allowsClientCredentials: true });
+
+        const res = await request(app)
+            .post('/oauth/token')
+            .send({
+                grant_type: 'client_credentials',
+                client_id: r.client!.client_id,
+                client_secret: r.client!.client_secret,
+                scope: 'places:write',
+            });
+
+        expect(res.status).toBe(400);
+        expect(res.body.error).toBe('invalid_scope');
+    });
+
+    it('OAUTH-CC-008 — createOAuthClient with allowsClientCredentials succeeds without redirect URIs', () => {
+        const { user } = createUser(testDb);
+        const r = createOAuthClient(user.id, 'Machine', [], ['trips:read'], null, { allowsClientCredentials: true });
+
+        expect(r.error).toBeUndefined();
+        expect(r.client).toBeDefined();
+        expect(r.client!.allows_client_credentials).toBe(true);
+        expect((r.client!.redirect_uris as string[]).length).toBe(0);
+        expect(r.client!.client_secret).toBeDefined();
     });
 });

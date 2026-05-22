@@ -2229,6 +2229,14 @@ function runMigrations(db: Database.Database): void {
       db.exec(`ALTER TABLE schema_version_new RENAME TO schema_version`)
       db.exec(`UPDATE app_settings SET value = '${process.env.APP_VERSION || '3.0.15'}' WHERE key = 'app_version'`);
     },
+    // Migration: OAuth 2.0 client_credentials grant — allow user-owned confidential
+    // clients to skip the browser consent flow entirely and obtain tokens directly
+    // via client_id + client_secret. Flag is immutable after creation so existing
+    // authorization-code clients are not silently upgraded.
+    () => {
+      try { db.exec('ALTER TABLE oauth_clients ADD COLUMN allows_client_credentials INTEGER NOT NULL DEFAULT 0'); }
+      catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+    },
   ];
 
   if (currentVersion < migrations.length) {

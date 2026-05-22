@@ -18,6 +18,7 @@ interface PlaceAvatarProps {
 export default React.memo(function PlaceAvatar({ place, size = 32, category }: PlaceAvatarProps) {
   const [photoSrc, setPhotoSrc] = useState<string | null>(place.image_url || null)
   const [visible, setVisible] = useState(false)
+  const imageUrlFailed = useRef(false)
   const ref = useRef<HTMLDivElement>(null)
   const placesPhotosEnabled = useAuthStore(s => s.placesPhotosEnabled)
 
@@ -86,7 +87,18 @@ export default React.memo(function PlaceAvatar({ place, size = 32, category }: P
           alt={place.name}
           decoding="async"
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          onError={() => setPhotoSrc(null)}
+          onError={() => {
+            if (!imageUrlFailed.current && photoSrc === place.image_url && (place.google_place_id || place.osm_id)) {
+              imageUrlFailed.current = true
+              const photoId = place.google_place_id || place.osm_id!
+              const cacheKey = `refetch:${photoId}`
+              fetchPhoto(cacheKey, photoId, place.lat ?? undefined, place.lng ?? undefined, place.name,
+                entry => { setPhotoSrc(entry.thumbDataUrl || entry.photoUrl) }
+              )
+            } else {
+              setPhotoSrc(null)
+            }
+          }}
         />
       </div>
     )

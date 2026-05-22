@@ -397,7 +397,7 @@ export function createApp(): express.Application {
       revocation_endpoint:                   `${base}/oauth/revoke`,
       registration_endpoint:                 `${base}/oauth/register`,
       response_types_supported:              ['code'],
-      grant_types_supported:                 ['authorization_code', 'refresh_token'],
+      grant_types_supported:                 ['authorization_code', 'refresh_token', 'client_credentials'],
       code_challenge_methods_supported:      ['S256'],
       token_endpoint_auth_methods_supported: ['client_secret_post', 'none'],
       scopes_supported:                      ALL_SCOPES,

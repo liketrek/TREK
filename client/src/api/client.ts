@@ -209,7 +209,7 @@ export const oauthApi = {
 
   clients: {
     list: () => apiClient.get('/oauth/clients').then(r => r.data),
-    create: (data: { name: string; redirect_uris: string[]; allowed_scopes: string[] }) =>
+    create: (data: { name: string; redirect_uris?: string[]; allowed_scopes: string[]; allows_client_credentials?: boolean }) =>
         apiClient.post('/oauth/clients', data).then(r => r.data),
     rotate: (id: string) => apiClient.post(`/oauth/clients/${id}/rotate`).then(r => r.data),
     delete: (id: string) => apiClient.delete(`/oauth/clients/${id}`).then(r => r.data),
