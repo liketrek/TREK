@@ -57,8 +57,24 @@ describe('getTransportForDay', () => {
     { id: 3, day_number: 3 },
   ]
 
-  it('excludes non-transport types', () => {
+  it('excludes hotel (rendered via accommodation path)', () => {
     const reservations = [{ id: 10, type: 'hotel', day_id: 1 }]
+    expect(getTransportForDay({ reservations, dayId: 1, dayAssignmentIds: [], days })).toHaveLength(0)
+  })
+
+  it('includes tour booking on the correct day', () => {
+    const reservations = [{ id: 20, type: 'tour', day_id: 1 }]
+    expect(getTransportForDay({ reservations, dayId: 1, dayAssignmentIds: [], days })).toHaveLength(1)
+    expect(getTransportForDay({ reservations, dayId: 2, dayAssignmentIds: [], days })).toHaveLength(0)
+  })
+
+  it('includes restaurant, event, and other bookings by day_id', () => {
+    const reservations = [
+      { id: 30, type: 'restaurant', day_id: 2 },
+      { id: 31, type: 'event', day_id: 2 },
+      { id: 32, type: 'other', day_id: 2 },
+    ]
+    expect(getTransportForDay({ reservations, dayId: 2, dayAssignmentIds: [], days })).toHaveLength(3)
     expect(getTransportForDay({ reservations, dayId: 1, dayAssignmentIds: [], days })).toHaveLength(0)
   })
 

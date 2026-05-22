@@ -288,7 +288,11 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
           {/* ── Reservations for this day's assignments ── */}
           {(() => {
             const dayAssignments = assignments[String(day.id)] || []
-            const dayReservations = reservations.filter(r => dayAssignments.some(a => a.id === r.assignment_id))
+            const dayReservations = reservations.filter(r => {
+              if (r.type === 'hotel') return false
+              if (r.assignment_id && dayAssignments.some(a => a.id === r.assignment_id)) return true
+              return r.day_id === day.id
+            })
             if (dayReservations.length === 0) return null
             return (
               <div style={{ marginBottom: 0 }}>
