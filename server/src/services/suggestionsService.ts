@@ -155,7 +155,7 @@ async function findIntermediateStops(
   confirmed: ConfirmedPlace[],
   maxDistFromPlaceKm = 2,   // track point must be within 2 km of the place centroid
   minDistFromConfirmedKm = 8,
-  maxPoints = 12,
+  maxPoints = 6,            // 6 pts × 0.8 s = 4.8 s budget (was 12 = 9.6 s)
 ): Promise<IntermediateStop[]> {
   const allPts = allTracks.flatMap(t => t.sampled_pts);
   if (allPts.length === 0) return [];
@@ -286,7 +286,7 @@ function parseAIJson(raw: string): AISuggestion[] {
   if (!Array.isArray(parsed)) throw new Error('AI returned non-array');
   return parsed
     .filter(p => p.name && p.description && p.category)
-    .slice(0, 25);
+    .slice(0, 16); // cap: 8 stops × 2 suggestions = 16 max to stay within 60 s
 }
 
 // ── AI providers ──────────────────────────────────────────────────────────────
@@ -436,7 +436,7 @@ async function geocode(
 ): Promise<{ lat: number | null; lng: number | null; address: string | null }> {
   const fullQuery = locationHint ? `${name}, ${locationHint}` : name;
 
-  // 1. Google Places (if user has a key)
+  // 1. Google Places (if user has a key) — no rate-limit concerns
   try {
     const mapsKey = getMapsKey(userId);
     if (mapsKey) {
@@ -454,28 +454,20 @@ async function geocode(
     }
   } catch { /* fall through */ }
 
-  // 2. Nominatim bounded to the trip area (most reliable — prevents wrong-country results)
+  // 2. Nominatim bounded to the trip area (most accurate — avoids wrong-country results)
+  //    This is the primary geocoding path; the viewbox ensures we get a Spanish monument
+  //    rather than a same-named place in Mexico.
   if (viewbox) {
-    const r = await nominatimSearch(fullQuery, viewbox);
-    if (r[0]) return { lat: r[0].lat, lng: r[0].lng, address: r[0].address };
-
-    // 2b. Name only within viewbox (locationHint might confuse the query)
-    await sleep(800);
-    const r2 = await nominatimSearch(name, viewbox);
-    if (r2[0]) return { lat: r2[0].lat, lng: r2[0].lng, address: r2[0].address };
-
-    await sleep(800);
+    const bounded = await nominatimSearch(fullQuery, viewbox);
+    if (bounded[0]) return { lat: bounded[0].lat, lng: bounded[0].lng, address: bounded[0].address };
   }
 
-  // 3. Nominatim unbounded fallback (catches places just outside the viewbox buffer)
-  const r3 = await nominatimSearch(fullQuery);
-  if (r3[0]) return { lat: r3[0].lat, lng: r3[0].lng, address: r3[0].address };
-
-  if (locationHint) {
-    await sleep(800);
-    const r4 = await nominatimSearch(name);
-    if (r4[0]) return { lat: r4[0].lat, lng: r4[0].lng, address: r4[0].address };
-  }
+  // 3. Nominatim unbounded fallback — one extra call, one extra sleep.
+  //    The outer loop already waits 800 ms between suggestions, so this
+  //    extra sleep only fires when the bounded search returned nothing.
+  await sleep(800);
+  const unbounded = await nominatimSearch(fullQuery);
+  if (unbounded[0]) return { lat: unbounded[0].lat, lng: unbounded[0].lng, address: unbounded[0].address };
 
   return { lat: null, lng: null, address: null };
 }
