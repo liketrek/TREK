@@ -237,11 +237,12 @@ function buildPrompt(
     question =
       `I am doing the cycling trip "${tripCtx.title}". ` +
       `The route makes confirmed stops at:\n${stopList}${interSection}\n\n` +
-      `For EACH confirmed stop AND each intermediate town, ` +
-      `give me the 1–2 most iconic, unmissable things to see or do at that exact location ` +
-      `(the specific monument, gorge, castle, viewpoint, monastery, palace, museum, etc. ` +
-      `the place is best known for). Name the actual site — not just the town. ` +
-      `If a location has nothing remarkable, skip it. ` +
+      `For EACH confirmed stop AND each intermediate town, give me EXACTLY 2 iconic, ` +
+      `unmissable things to see or do at that specific location — the actual named site ` +
+      `(monastery, castle, gorge, palace, viewpoint, museum, bridge, etc.) ` +
+      `that defines the place. Be specific: name the real site, not just the town. ` +
+      `Give 2 per location even for small villages — if a place is on this historic route ` +
+      `it has at least 2 things worth seeing. ` +
       `Do not suggest anything more than 5 km from the given coordinates.`;
   } else {
     // No confirmed places — fall back to a simple route question
@@ -391,12 +392,49 @@ async function askAI(
 
 // ── Geocoding ─────────────────────────────────────────────────────────────────
 
+interface Viewbox { minLat: number; maxLat: number; minLng: number; maxLng: number }
+
+/**
+ * Nominatim /search with an optional geographic bounding box.
+ * When `viewbox` is supplied the search is bounded to that area (bounded=1),
+ * which prevents returning a same-named place in the wrong country.
+ * Uses a separate User-Agent from mapsService to avoid sharing rate-limit state.
+ */
+async function nominatimSearch(
+  query: string,
+  viewbox?: Viewbox,
+): Promise<Array<{ lat: number; lng: number; address: string }>> {
+  const params = new URLSearchParams({
+    q: query,
+    format: 'json',
+    limit: '5',
+    addressdetails: '1',
+    'accept-language': 'en',
+  });
+  if (viewbox) {
+    // Nominatim viewbox format: left,top,right,bottom = minLng,maxLat,maxLng,minLat
+    params.set('viewbox', `${viewbox.minLng},${viewbox.maxLat},${viewbox.maxLng},${viewbox.minLat}`);
+    params.set('bounded', '1');
+  }
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+      headers: { 'User-Agent': 'trek-app/1.0' },
+    });
+    if (!res.ok) return [];
+    const data = await res.json() as Array<{ lat: string; lon: string; display_name?: string }>;
+    return data
+      .map(item => ({ lat: parseFloat(item.lat), lng: parseFloat(item.lon), address: item.display_name ?? '' }))
+      .filter(item => !isNaN(item.lat) && !isNaN(item.lng));
+  } catch { return []; }
+}
+
 async function geocode(
   name: string,
   locationHint: string,
   userId: number,
+  viewbox?: Viewbox,
 ): Promise<{ lat: number | null; lng: number | null; address: string | null }> {
-  const query = locationHint ? `${name}, ${locationHint}` : name;
+  const fullQuery = locationHint ? `${name}, ${locationHint}` : name;
 
   // 1. Google Places (if user has a key)
   try {
@@ -404,7 +442,7 @@ async function geocode(
     if (mapsKey) {
       const r = await fetch(
         `https://maps.googleapis.com/maps/api/place/textsearch/json` +
-        `?query=${encodeURIComponent(query)}&key=${mapsKey}&fields=geometry,formatted_address`,
+        `?query=${encodeURIComponent(fullQuery)}&key=${mapsKey}&fields=geometry,formatted_address`,
       );
       if (r.ok) {
         const g = await r.json() as {
@@ -416,23 +454,27 @@ async function geocode(
     }
   } catch { /* fall through */ }
 
-  // 2. Nominatim: name + location hint
-  try {
-    const results = await searchNominatim(query);
-    const first = results[0];
-    if (first?.lat != null && first?.lng != null)
-      return { lat: first.lat, lng: first.lng, address: first.address ?? null };
-  } catch { /* fall through */ }
+  // 2. Nominatim bounded to the trip area (most reliable — prevents wrong-country results)
+  if (viewbox) {
+    const r = await nominatimSearch(fullQuery, viewbox);
+    if (r[0]) return { lat: r[0].lat, lng: r[0].lng, address: r[0].address };
 
-  // 3. Nominatim: name only (last resort)
+    // 2b. Name only within viewbox (locationHint might confuse the query)
+    await sleep(800);
+    const r2 = await nominatimSearch(name, viewbox);
+    if (r2[0]) return { lat: r2[0].lat, lng: r2[0].lng, address: r2[0].address };
+
+    await sleep(800);
+  }
+
+  // 3. Nominatim unbounded fallback (catches places just outside the viewbox buffer)
+  const r3 = await nominatimSearch(fullQuery);
+  if (r3[0]) return { lat: r3[0].lat, lng: r3[0].lng, address: r3[0].address };
+
   if (locationHint) {
-    try {
-      await sleep(800);
-      const results = await searchNominatim(name);
-      const first = results[0];
-      if (first?.lat != null && first?.lng != null)
-        return { lat: first.lat, lng: first.lng, address: first.address ?? null };
-    } catch { /* fall through */ }
+    await sleep(800);
+    const r4 = await nominatimSearch(name);
+    if (r4[0]) return { lat: r4[0].lat, lng: r4[0].lng, address: r4[0].address };
   }
 
   return { lat: null, lng: null, address: null };
@@ -535,7 +577,7 @@ export async function getMustSeeSuggestions(
     stopCoords.set(s.name.toLowerCase(), { lat: s.lat, lng: s.lng });
   }
 
-  // Fallback bounding box (track + confirmed places)
+  // Bounding box from confirmed places + GPX (used for geocode viewbox + validation)
   const allLats = [
     ...confirmed.filter(p => p.lat != null).map(p => p.lat as number),
     ...allTracks.flatMap(t => t.sampled_pts.map(p => p.lat)),
@@ -551,6 +593,16 @@ export async function getMustSeeSuggestions(
       }
     : null;
 
+  // Geocode viewbox: trip bounds + 0.5° buffer (~50 km).
+  // Passed to Nominatim so it only returns places within the trip's geographic area,
+  // preventing same-named places in the wrong country from being returned.
+  const geocodeViewbox: Viewbox | undefined = tripBounds
+    ? {
+        minLat: tripBounds.minLat - 0.5, maxLat: tripBounds.maxLat + 0.5,
+        minLng: tripBounds.minLng - 0.5, maxLng: tripBounds.maxLng + 0.5,
+      }
+    : undefined;
+
   // ── 7. Geocode + validate each suggestion ─────────────────────────────────
   const results: Suggestion[] = [];
 
@@ -560,7 +612,7 @@ export async function getMustSeeSuggestions(
 
     try {
       const locationHint = s.location || s.near_place || trip.title;
-      const geo = await geocode(s.name, locationHint, userId);
+      const geo = await geocode(s.name, locationHint, userId, geocodeViewbox);
 
       // ── Validate: tight check against the near_place coordinates ──────────
       const nearCoords = resolveNearCoords(s.near_place, stopCoords);
