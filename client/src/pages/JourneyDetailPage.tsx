@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { formatLocationName } from '../utils/formatters'
 import { normalizeImageFiles } from '../utils/convertHeic'
+import { type ResilientResult, type UploadProgress } from '../utils/uploadQueue'
 import { createPortal } from 'react-dom'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useJourneyStore } from '../store/journeyStore'
@@ -748,8 +749,8 @@ export default function JourneyDetailPage() {
             }
             return entryId
           }}
-          onUploadPhotos={async (entryId, formData) => {
-            return await uploadPhotos(entryId, formData)
+          onUploadPhotos={async (entryId, files, cbs) => {
+            return await uploadPhotos(entryId, files, cbs)
           }}
           onDone={() => {
             setEditingEntry(null)
@@ -987,7 +988,8 @@ function GalleryView({ entries, gallery, journeyId, userId, trips, onPhotoClick,
   const [showPicker, setShowPicker] = useState(false)
   const [pickerProvider, setPickerProvider] = useState<string | null>(null)
   const [availableProviders, setAvailableProviders] = useState<{ id: string; name: string }[]>([])
-  const [galleryUploading, setGalleryUploading] = useState(false)
+  const [galleryProgress, setGalleryProgress] = useState<{ done: number; total: number } | null>(null)
+  const galleryUploading = galleryProgress !== null
   const toast = useToast()
 
   // check which providers are enabled AND connected for the current user
@@ -1027,18 +1029,22 @@ function GalleryView({ entries, gallery, journeyId, userId, trips, onPhotoClick,
   const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files?.length) return
-    setGalleryUploading(true)
+    setGalleryProgress({ done: 0, total: files.length })
     try {
       const normalized = await normalizeImageFiles(files)
-      const formData = new FormData()
-      for (const f of normalized) formData.append('photos', f)
-      await journeyApi.uploadGalleryPhotos(journeyId, formData)
-      toast.success(t('journey.photosUploaded', { count: files.length }))
+      const { failed } = await useJourneyStore.getState().uploadGalleryPhotos(journeyId, normalized, {
+        onProgress: p => setGalleryProgress({ done: p.done, total: p.total }),
+      })
+      if (failed.length > 0) {
+        toast.error(t('journey.editor.uploadPartialFailed', { failed: String(failed.length), total: String(normalized.length) }))
+      } else {
+        toast.success(t('journey.photosUploaded', { count: String(files.length) }))
+      }
       onRefresh()
     } catch (err) {
       toast.error(getApiErrorMessage(err, t('journey.photosUploadFailed')))
     } finally {
-      setGalleryUploading(false)
+      setGalleryProgress(null)
     }
     e.target.value = ''
   }
@@ -1083,7 +1089,7 @@ function GalleryView({ entries, gallery, journeyId, userId, trips, onPhotoClick,
             className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[11px] font-medium hover:bg-zinc-800 dark:hover:bg-zinc-100 disabled:opacity-50"
           >
             {galleryUploading ? (
-              <><div className="w-3 h-3 border-2 border-white/30 dark:border-zinc-900/30 border-t-white dark:border-t-zinc-900 rounded-full animate-spin" /> {t('journey.editor.uploading')}</>
+              <><div className="w-3 h-3 border-2 border-white/30 dark:border-zinc-900/30 border-t-white dark:border-t-zinc-900 rounded-full animate-spin" /> {galleryProgress ? t('journey.editor.uploadingProgress', { done: String(galleryProgress.done), total: String(galleryProgress.total) }) : t('journey.editor.uploading')}</>
             ) : (
               <><Plus size={12} /> {t('common.upload')}</>
             )}
@@ -2172,7 +2178,7 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
   galleryPhotos: GalleryPhoto[]
   onClose: () => void
   onSave: (data: Record<string, unknown>) => Promise<number>
-  onUploadPhotos: (entryId: number, formData: FormData) => Promise<JourneyPhoto[]>
+  onUploadPhotos: (entryId: number, files: File[], cbs?: { onProgress?: (p: UploadProgress) => void }) => Promise<ResilientResult<JourneyPhoto>>
   onDone: () => void
 }) {
   const { t } = useTranslation()
@@ -2195,7 +2201,7 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
   const [pros, setPros] = useState<string[]>(entry.pros_cons?.pros?.length ? entry.pros_cons.pros : [''])
   const [cons, setCons] = useState<string[]>(entry.pros_cons?.cons?.length ? entry.pros_cons.cons : [''])
   const [saving, setSaving] = useState(false)
-  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null)
   const [photos, setPhotos] = useState<(JourneyPhoto | GalleryPhoto)[]>(entry.photos || [])
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [pendingLinkIds, setPendingLinkIds] = useState<number[]>([])
@@ -2248,12 +2254,20 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
       })
       // upload queued files after entry is created
       if (pendingFiles.length > 0 && entryId) {
-        const formData = new FormData()
-        for (const f of pendingFiles) formData.append('photos', f)
+        const filesToUpload = pendingFiles
+        setUploadProgress({ done: 0, total: filesToUpload.length })
         try {
-          await onUploadPhotos(entryId, formData)
+          const { failed } = await onUploadPhotos(entryId, filesToUpload, {
+            onProgress: p => setUploadProgress({ done: p.done, total: p.total }),
+          })
+          setPendingFiles(failed)
+          if (failed.length > 0) {
+            toast.error(t('journey.editor.uploadPartialFailed', { failed: String(failed.length), total: String(filesToUpload.length) }))
+          }
         } catch (err) {
           toast.error(getApiErrorMessage(err, t('journey.editor.uploadFailed')))
+        } finally {
+          setUploadProgress(null)
         }
       }
       // link gallery photos that were picked before save
@@ -2309,11 +2323,11 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
             <div className="flex gap-2">
               <button
                 onClick={() => fileRef.current?.click()}
-                disabled={uploading}
+                disabled={saving}
                 className="flex-1 border border-dashed border-zinc-200 dark:border-zinc-700 rounded-lg py-4 text-[12px] text-zinc-500 hover:border-zinc-400 dark:hover:border-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
-                {uploading ? (
-                  <><div className="w-3.5 h-3.5 border-2 border-zinc-300 border-t-zinc-600 rounded-full animate-spin" /> {t('journey.editor.uploading')}</>
+                {uploadProgress ? (
+                  <><div className="w-3.5 h-3.5 border-2 border-zinc-300 border-t-zinc-600 rounded-full animate-spin" /> {t('journey.editor.uploadingProgress', { done: String(uploadProgress.done), total: String(uploadProgress.total) })}</>
                 ) : (
                   <><Plus size={13} /> {t('journey.editor.uploadPhotos')}</>
                 )}

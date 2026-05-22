@@ -2085,6 +2085,8 @@ const fr: Record<string, string> = {
   'journey.editor.uploadFailed': 'Échec du téléversement des photos',
   'journey.editor.uploadPhotos': 'Téléverser des photos',
   'journey.editor.uploading': 'Envoi...',
+  'journey.editor.uploadingProgress': 'Téléversement {done}/{total}…',
+  'journey.editor.uploadPartialFailed': '{failed} sur {total} photos ont échoué — sauvegardez à nouveau pour réessayer',
   'journey.editor.fromGallery': 'Depuis la galerie',
   'journey.editor.allPhotosAdded': 'Toutes les photos ont déjà été ajoutées',
   'journey.editor.writeStory': 'Écrivez votre histoire...',

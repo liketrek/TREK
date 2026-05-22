@@ -2086,6 +2086,8 @@ const hu: Record<string, string | { name: string; category: string }[]> = {
   'journey.editor.uploadFailed': 'A fotók feltöltése sikertelen',
   'journey.editor.uploadPhotos': 'Fotók feltöltése',
   'journey.editor.uploading': 'Feltöltés...',
+  'journey.editor.uploadingProgress': 'Feltöltés {done}/{total}…',
+  'journey.editor.uploadPartialFailed': '{failed} / {total} fotó sikertelen — mentsd el újra a próbálkozáshoz',
   'journey.editor.fromGallery': 'Galériából',
   'journey.editor.allPhotosAdded': 'Minden fotó már hozzáadva',
   'journey.editor.writeStory': 'Írd meg a történeted...',

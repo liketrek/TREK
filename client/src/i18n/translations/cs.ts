@@ -2089,6 +2089,8 @@ const cs: Record<string, string | { name: string; category: string }[]> = {
   'journey.editor.uploadFailed': 'Nahrávání fotek selhalo',
   'journey.editor.uploadPhotos': 'Nahrát fotky',
   'journey.editor.uploading': 'Nahrávání...',
+  'journey.editor.uploadingProgress': 'Nahrávání {done}/{total}…',
+  'journey.editor.uploadPartialFailed': '{failed} z {total} fotek selhalo — uložte znovu pro opakování',
   'journey.editor.fromGallery': 'Z galerie',
   'journey.editor.allPhotosAdded': 'Všechny fotky již přidány',
   'journey.editor.writeStory': 'Napište svůj příběh...',

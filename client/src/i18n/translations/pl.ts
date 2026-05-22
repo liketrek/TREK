@@ -2078,6 +2078,8 @@ const pl: Record<string, string | { name: string; category: string }[]> = {
   'journey.editor.uploadFailed': 'Przesyłanie zdjęć nie powiodło się',
   'journey.editor.uploadPhotos': 'Prześlij zdjęcia',
   'journey.editor.uploading': 'Przesyłanie...',
+  'journey.editor.uploadingProgress': 'Przesyłanie {done}/{total}…',
+  'journey.editor.uploadPartialFailed': '{failed} z {total} zdjęć nie powiodło się — zapisz ponownie, aby spróbować',
   'journey.editor.fromGallery': 'Z galerii',
   'journey.editor.allPhotosAdded': 'Wszystkie zdjęcia już dodane',
   'journey.editor.writeStory': 'Napisz swoją historię...',

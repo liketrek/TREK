@@ -287,11 +287,59 @@ describe('journeyStore', () => {
         HttpResponse.json({ photos: [newPhoto] })
       )
     );
-    const result = await useJourneyStore.getState().uploadPhotos(100, new FormData());
-    expect(result).toHaveLength(1);
-    expect(result[0].id).toBe(91);
+    const file = new File(['x'], 'photo.jpg', { type: 'image/jpeg' });
+    const result = await useJourneyStore.getState().uploadPhotos(100, [file]);
+    expect(result.succeeded).toHaveLength(1);
+    expect(result.succeeded[0].id).toBe(91);
+    expect(result.failed).toHaveLength(0);
     const storedEntry = useJourneyStore.getState().current?.entries.find(e => e.id === 100);
     expect(storedEntry?.photos).toHaveLength(2);
+  });
+
+  it('FE-STORE-JOURNEY-017: uploadPhotos returns failed files and merges only succeeded on network error', async () => {
+    const entry = buildEntry({ id: 100, photos: [] });
+    const detail = buildJourneyDetail({ id: 50, entries: [entry] });
+    useJourneyStore.setState({ current: detail });
+
+    server.use(
+      http.post('/api/journeys/entries/100/photos', () =>
+        HttpResponse.error()
+      )
+    );
+    const file = new File(['x'], 'fail.jpg', { type: 'image/jpeg' });
+    const result = await useJourneyStore.getState().uploadPhotos(100, [file]);
+    expect(result.succeeded).toHaveLength(0);
+    expect(result.failed).toHaveLength(1);
+    expect(result.failed[0]).toBe(file);
+    const storedEntry = useJourneyStore.getState().current?.entries.find(e => e.id === 100);
+    expect(storedEntry?.photos).toHaveLength(0);
+  });
+
+  it('FE-STORE-JOURNEY-018: uploadPhotos merges each file result incrementally on partial success', async () => {
+    const entry = buildEntry({ id: 100, photos: [] });
+    const detail = buildJourneyDetail({ id: 50, entries: [entry] });
+    useJourneyStore.setState({ current: detail });
+
+    const photo1 = buildPhoto({ id: 91, entry_id: 100 });
+    const photo2 = buildPhoto({ id: 92, entry_id: 100 });
+    let callCount = 0;
+    server.use(
+      http.post('/api/journeys/entries/100/photos', () => {
+        callCount++;
+        if (callCount === 1) return HttpResponse.json({ photos: [photo1] });
+        return HttpResponse.error();
+      })
+    );
+    const file1 = new File(['a'], 'ok.jpg', { type: 'image/jpeg' });
+    const file2 = new File(['b'], 'fail.jpg', { type: 'image/jpeg' });
+    // concurrency:1 so order is deterministic
+    const result = await useJourneyStore.getState().uploadPhotos(100, [file1, file2], undefined);
+    expect(result.succeeded).toHaveLength(1);
+    expect(result.succeeded[0].id).toBe(photo1.id);
+    expect(result.failed).toHaveLength(1);
+    const storedEntry = useJourneyStore.getState().current?.entries.find(e => e.id === 100);
+    expect(storedEntry?.photos).toHaveLength(1);
+    void photo2; // referenced to avoid lint warning
   });
 
   // ── deletePhoto ──────────────────────────────────────────────────────────

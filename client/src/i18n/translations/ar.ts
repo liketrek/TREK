@@ -1713,6 +1713,8 @@ const ar: Record<string, string | { name: string; category: string }[]> = {
   'journey.editor.uploadFailed': 'فشل رفع الصور',
   'journey.editor.uploadPhotos': 'رفع صور',
   'journey.editor.uploading': '...جارٍ الرفع',
+  'journey.editor.uploadingProgress': 'جارٍ الرفع {done}/{total}…',
+  'journey.editor.uploadPartialFailed': 'فشل رفع {failed} من {total} — احفظ مجدداً للمحاولة',
   'journey.editor.fromGallery': 'من المعرض',
   'journey.editor.addAnother': 'إضافة آخر',
   'journey.editor.makeFirst': 'جعله الأول',

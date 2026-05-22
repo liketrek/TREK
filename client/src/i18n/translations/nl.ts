@@ -2085,6 +2085,8 @@ const nl: Record<string, string> = {
   'journey.editor.uploadFailed': 'Foto uploaden mislukt',
   'journey.editor.uploadPhotos': 'Foto\'s uploaden',
   'journey.editor.uploading': 'Uploaden...',
+  'journey.editor.uploadingProgress': 'Uploaden {done}/{total}…',
+  'journey.editor.uploadPartialFailed': '{failed} van {total} foto\'s mislukt — sla opnieuw op om het opnieuw te proberen',
   'journey.editor.fromGallery': 'Uit galerij',
   'journey.editor.allPhotosAdded': 'Alle foto\'s al toegevoegd',
   'journey.editor.writeStory': 'Schrijf je verhaal...',

@@ -2043,6 +2043,8 @@ const zhTw: Record<string, string> = {
   'journey.editor.uploadFailed': '照片上傳失敗',
   'journey.editor.uploadPhotos': '上傳照片',
   'journey.editor.uploading': '上傳中...',
+  'journey.editor.uploadingProgress': '上傳中 {done}/{total}…',
+  'journey.editor.uploadPartialFailed': '{total} 張中有 {failed} 張上傳失敗 — 再次儲存以重試',
   'journey.editor.fromGallery': '從相簿',
   'journey.editor.allPhotosAdded': '所有照片已新增',
   'journey.editor.writeStory': '寫下你的故事...',

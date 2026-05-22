@@ -2091,6 +2091,8 @@ const es: Record<string, string> = {
   'journey.editor.uploadFailed': 'Error al subir fotos',
   'journey.editor.uploadPhotos': 'Subir fotos',
   'journey.editor.uploading': 'Subiendo...',
+  'journey.editor.uploadingProgress': 'Subiendo {done}/{total}…',
+  'journey.editor.uploadPartialFailed': '{failed} de {total} fotos fallaron — guarda de nuevo para reintentar',
   'journey.editor.fromGallery': 'Desde galería',
   'journey.editor.allPhotosAdded': 'Todas las fotos ya fueron añadidas',
   'journey.editor.writeStory': 'Escribe tu historia...',

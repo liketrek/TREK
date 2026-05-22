@@ -2086,6 +2086,8 @@ const it: Record<string, string | { name: string; category: string }[]> = {
   'journey.editor.uploadFailed': 'Caricamento foto non riuscito',
   'journey.editor.uploadPhotos': 'Carica foto',
   'journey.editor.uploading': 'Caricamento...',
+  'journey.editor.uploadingProgress': 'Caricamento {done}/{total}…',
+  'journey.editor.uploadPartialFailed': '{failed} di {total} foto non riuscite — salva di nuovo per riprovare',
   'journey.editor.fromGallery': 'Dalla galleria',
   'journey.editor.allPhotosAdded': 'Tutte le foto sono già state aggiunte',
   'journey.editor.writeStory': 'Scrivi la tua storia...',

@@ -2101,6 +2101,8 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   'journey.editor.uploadFailed': 'Gagal mengunggah foto',
   'journey.editor.uploadPhotos': 'Unggah foto',
   'journey.editor.uploading': 'Mengunggah...',
+  'journey.editor.uploadingProgress': 'Mengunggah {done}/{total}…',
+  'journey.editor.uploadPartialFailed': '{failed} dari {total} foto gagal — simpan lagi untuk mencoba ulang',
   'journey.editor.fromGallery': 'Dari Galeri',
   'journey.editor.allPhotosAdded': 'Semua foto sudah ditambahkan',
   'journey.editor.writeStory': 'Tulis kisahmu...',

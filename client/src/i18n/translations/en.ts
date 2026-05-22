@@ -2118,6 +2118,8 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'journey.editor.uploadFailed': 'Photo upload failed',
   'journey.editor.uploadPhotos': 'Upload photos',
   'journey.editor.uploading': 'Uploading...',
+  'journey.editor.uploadingProgress': 'Uploading {done}/{total}…',
+  'journey.editor.uploadPartialFailed': '{failed} of {total} photos failed — save again to retry',
   'journey.editor.fromGallery': 'From Gallery',
   'journey.editor.allPhotosAdded': 'All photos already added',
   'journey.editor.writeStory': 'Write your story...',

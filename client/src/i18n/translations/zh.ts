@@ -2085,6 +2085,8 @@ const zh: Record<string, string> = {
   'journey.editor.uploadFailed': '照片上传失败',
   'journey.editor.uploadPhotos': '上传照片',
   'journey.editor.uploading': '上传中...',
+  'journey.editor.uploadingProgress': '上传中 {done}/{total}…',
+  'journey.editor.uploadPartialFailed': '{total} 张中有 {failed} 张上传失败 — 再次保存以重试',
   'journey.editor.fromGallery': '从相册',
   'journey.editor.allPhotosAdded': '所有照片已添加',
   'journey.editor.writeStory': '写下你的故事...',

@@ -2092,6 +2092,8 @@ const de: Record<string, string | { name: string; category: string }[]> = {
   'journey.editor.uploadFailed': 'Foto-Upload fehlgeschlagen',
   'journey.editor.uploadPhotos': 'Fotos hochladen',
   'journey.editor.uploading': 'Hochladen...',
+  'journey.editor.uploadingProgress': 'Hochladen {done}/{total}…',
+  'journey.editor.uploadPartialFailed': '{failed} von {total} Fotos fehlgeschlagen — erneut speichern zum Wiederholen',
   'journey.editor.fromGallery': 'Aus Galerie',
   'journey.editor.allPhotosAdded': 'Alle Fotos bereits hinzugefügt',
   'journey.editor.writeStory': 'Erzähle deine Geschichte...',

@@ -2085,6 +2085,8 @@ const ru: Record<string, string> = {
   'journey.editor.uploadFailed': 'Не удалось загрузить фото',
   'journey.editor.uploadPhotos': 'Загрузить фото',
   'journey.editor.uploading': 'Загрузка...',
+  'journey.editor.uploadingProgress': 'Загрузка {done}/{total}…',
+  'journey.editor.uploadPartialFailed': '{failed} из {total} фото не удалось загрузить — сохраните снова для повтора',
   'journey.editor.fromGallery': 'Из галереи',
   'journey.editor.allPhotosAdded': 'Все фото уже добавлены',
   'journey.editor.writeStory': 'Напишите свою историю...',
