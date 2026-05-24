@@ -376,11 +376,17 @@ export async function getStats(userId: number) {
   for (const place of places) {
     if (place.address) {
       const parts = place.address.split(',').map((s: string) => s.trim()).filter(Boolean);
-      let raw = parts.length >= 2 ? parts[parts.length - 2] : parts[0];
-      if (raw) {
-        const city = raw.replace(/[\d\-\u2212\u3012]+/g, '').trim().toLowerCase();
-        if (city) citySet.add(city);
+      // The last part is the country; the city is usually right before it, but a
+      // full formatted address can have a postal code sitting between them
+      // (e.g. "Bucharest, 010071, Romania"). Walk back from the country and take
+      // the first part that still has letters once digits/postal noise is stripped.
+      const candidates = parts.length >= 2 ? parts.slice(0, -1) : parts;
+      let city = '';
+      for (let i = candidates.length - 1; i >= 0; i--) {
+        const cleaned = candidates[i].replace(/[\d\-\u2212\u3012]+/g, '').trim();
+        if (cleaned) { city = cleaned.toLowerCase(); break; }
       }
+      if (city) citySet.add(city);
     }
   }
   const totalCities = citySet.size;
