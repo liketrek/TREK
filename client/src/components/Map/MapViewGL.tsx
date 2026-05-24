@@ -132,6 +132,7 @@ export function MapViewGL({
   places = [],
   dayPlaces = [],
   route = null,
+  routeSegments = [],
   selectedPlaceId = null,
   onMarkerClick,
   onMapClick,
@@ -162,6 +163,7 @@ export function MapViewGL({
   const markersRef = useRef<Map<number, mapboxgl.Marker>>(new Map())
   const locationMarkerRef = useRef<LocationMarkerHandle | null>(null)
   const reservationOverlayRef = useRef<ReservationMapboxOverlay | null>(null)
+  const routeLabelMarkersRef = useRef<mapboxgl.Marker[]>([])
   // Refs so the reservation overlay always sees the latest callback /
   // options without forcing a full overlay rebuild on every prop change.
   const onReservationClickRef = useRef(onReservationClick)
@@ -441,6 +443,35 @@ export function MapViewGL({
     }))
     src.setData({ type: 'FeatureCollection', features })
   }, [route])
+
+  // Travel-time pills between consecutive places. The GL map accepted the
+  // routeSegments prop but never drew anything, so the labels that Leaflet
+  // shows were missing here (#850). Render them as HTML markers, matching the
+  // Leaflet pill styling.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+    routeLabelMarkersRef.current.forEach(m => m.remove())
+    routeLabelMarkersRef.current = []
+    for (const seg of routeSegments) {
+      if (!seg.mid || (!seg.walkingText && !seg.drivingText)) continue
+      const el = document.createElement('div')
+      el.style.pointerEvents = 'none'
+      el.innerHTML = `<div style="display:flex;align-items:center;gap:5px;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);color:#fff;border-radius:99px;padding:3px 9px;font-size:9px;font-weight:600;white-space:nowrap;font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;box-shadow:0 2px 12px rgba(0,0,0,0.3);">
+        <span style="display:flex;align-items:center;gap:2px"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4" r="2"/><path d="M7 21l3-7"/><path d="M10 14l5-5"/><path d="M15 9l-4 7"/><path d="M18 18l-3-7"/></svg>${seg.walkingText ?? ''}</span>
+        <span style="opacity:0.3">|</span>
+        <span style="display:flex;align-items:center;gap:2px"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9L18 10l-2-4H7L5 10l-2.5 1.1C1.7 11.3 1 12.1 1 13v3c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>${seg.drivingText ?? ''}</span>
+      </div>`
+      const m = new mapboxgl.Marker({ element: el, anchor: 'center' })
+        .setLngLat([seg.mid[1], seg.mid[0]])
+        .addTo(map)
+      routeLabelMarkersRef.current.push(m)
+    }
+    return () => {
+      routeLabelMarkersRef.current.forEach(m => m.remove())
+      routeLabelMarkersRef.current = []
+    }
+  }, [routeSegments, mapReady])
 
   // Update GPX geometries
   useEffect(() => {
