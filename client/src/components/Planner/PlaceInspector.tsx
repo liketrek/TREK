@@ -348,7 +348,7 @@ export default function PlaceInspector({
           {/* Description / Summary */}
           {(place.description || googleDetails?.summary) && (
             <div className="collab-note-md" style={{ background: 'var(--bg-hover)', borderRadius: 10, overflow: 'hidden', fontSize: 12, color: 'var(--text-muted)', lineHeight: '1.5', padding: '8px 12px' }}>
-              <Markdown remarkPlugins={[remarkGfm]}>{place.description || googleDetails?.summary || ''}</Markdown>
+              <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{place.description || googleDetails?.summary || ''}</Markdown>
             </div>
           )}
 
