@@ -1786,8 +1786,17 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                           onDragOver={e => { e.preventDefault(); e.stopPropagation(); if (dropTargetKey !== `note-${note.id}`) setDropTargetKey(`note-${note.id}`) }}
                           onDrop={e => {
                             e.preventDefault(); e.stopPropagation()
-                            const { noteId: fromNoteId, assignmentId: fromAssignmentId, reservationId: fromReservationId, fromDayId, phase } = getDragData(e)
-                            if (fromReservationId && fromDayId !== day.id) {
+                            const { placeId, noteId: fromNoteId, assignmentId: fromAssignmentId, reservationId: fromReservationId, fromDayId, phase } = getDragData(e)
+                            if (placeId) {
+                              // New place dropped onto a note: insert it among the
+                              // assignments at the note's position (after the places
+                              // above it), so it lands right where the note sits.
+                              const tm = getMergedItems(day.id)
+                              const noteIdx = tm.findIndex(i => i.type === 'note' && i.data.id === note.id)
+                              const pos = tm.slice(0, noteIdx).filter(i => i.type === 'place').length
+                              onAssignToDay?.(parseInt(placeId), day.id, pos)
+                              setDropTargetKey(null); window.__dragData = null
+                            } else if (fromReservationId && fromDayId !== day.id) {
                               const r = reservations.find(x => x.id === Number(fromReservationId))
                               if (r) { const update = computeMultiDayMove(r, day.id, phase); tripActions.updateReservation(tripId, r.id, update).catch((err: unknown) => toast.error(err instanceof Error ? err.message : t('common.unknownError'))) }
                               setDraggingId(null); setDropTargetKey(null); dragDataRef.current = null
