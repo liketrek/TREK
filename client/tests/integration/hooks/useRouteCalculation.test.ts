@@ -9,13 +9,13 @@ import type { RouteSegment } from '../../../src/types';
 
 // Mock the RouteCalculator module to avoid real OSRM fetch calls
 vi.mock('../../../src/components/Map/RouteCalculator', () => ({
-  calculateSegments: vi.fn(),
+  calculateRouteWithLegs: vi.fn(),
   calculateRoute: vi.fn(),
   optimizeRoute: vi.fn((waypoints: unknown[]) => waypoints),
   generateGoogleMapsUrl: vi.fn(),
 }));
 
-const { calculateSegments } = await import('../../../src/components/Map/RouteCalculator');
+const { calculateRouteWithLegs } = await import('../../../src/components/Map/RouteCalculator');
 
 function buildMockStore(assignments: Record<string, ReturnType<typeof buildAssignment>[]> = {}): Partial<TripStoreState> {
   // Also populate the real Zustand store so updateRouteForDay (which reads from
@@ -27,13 +27,22 @@ function buildMockStore(assignments: Record<string, ReturnType<typeof buildAssig
 
 const MOCK_SEGMENTS: RouteSegment[] = [
   {
-    from: [48.8566, 2.3522],
-    to: [51.5074, -0.1278],
-    mid: [50.182, 1.1122],
-    walkingText: '120 min',
-    drivingText: '90 min',
+    distance: 343000,
+    duration: 12600,
+    distanceText: '343 km',
+    durationText: '3 h 30 min',
   },
 ];
+
+// Empty coordinates make the hook fall back to the straight-line geometry,
+// so the `route` assertions keep checking the raw waypoints while the legs
+// still flow through to `routeSegments`.
+const MOCK_ROUTE_WITH_LEGS = {
+  coordinates: [] as [number, number][],
+  distance: 343000,
+  duration: 12600,
+  legs: MOCK_SEGMENTS,
+};
 
 describe('useRouteCalculation', () => {
   beforeEach(() => {
@@ -42,7 +51,7 @@ describe('useRouteCalculation', () => {
     useSettingsStore.setState({ settings: { route_calculation: false } as any });
     // Reset trip store assignments so each test starts clean
     useTripStore.setState({ assignments: {} } as any);
-    (calculateSegments as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_SEGMENTS);
+    (calculateRouteWithLegs as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_ROUTE_WITH_LEGS);
   });
 
   it('FE-HOOK-ROUTE-001: with no selectedDayId, route is null', () => {
@@ -84,7 +93,7 @@ describe('useRouteCalculation', () => {
     ]);
   });
 
-  it('FE-HOOK-ROUTE-004: with route_calculation enabled, calls calculateSegments', async () => {
+  it('FE-HOOK-ROUTE-004: with route_calculation enabled, calls calculateRouteWithLegs', async () => {
     useSettingsStore.setState({ settings: { route_calculation: true } as any });
 
     const p1 = buildPlace({ lat: 48.8566, lng: 2.3522 });
@@ -99,11 +108,11 @@ describe('useRouteCalculation', () => {
 
     await act(async () => {});
 
-    expect(calculateSegments).toHaveBeenCalled();
+    expect(calculateRouteWithLegs).toHaveBeenCalled();
     expect(result.current.routeSegments).toEqual(MOCK_SEGMENTS);
   });
 
-  it('FE-HOOK-ROUTE-005: with route_calculation disabled, does not call calculateSegments', async () => {
+  it('FE-HOOK-ROUTE-005: with route_calculation disabled, does not call calculateRouteWithLegs', async () => {
     useSettingsStore.setState({ settings: { route_calculation: false } as any });
 
     const p1 = buildPlace({ lat: 48.8566, lng: 2.3522 });
@@ -118,7 +127,7 @@ describe('useRouteCalculation', () => {
 
     await act(async () => {});
 
-    expect(calculateSegments).not.toHaveBeenCalled();
+    expect(calculateRouteWithLegs).not.toHaveBeenCalled();
     expect(result.current.routeSegments).toEqual([]);
   });
 
@@ -163,13 +172,13 @@ describe('useRouteCalculation', () => {
   it('FE-HOOK-ROUTE-008: AbortController.abort() is called when selectedDayId changes', async () => {
     useSettingsStore.setState({ settings: { route_calculation: true } as any });
 
-    // Make calculateSegments resolve slowly
-    let resolveSegments!: (val: RouteSegment[]) => void;
-    (calculateSegments as ReturnType<typeof vi.fn>).mockImplementationOnce(
+    // Make calculateRouteWithLegs resolve slowly
+    let resolveSegments!: (val: typeof MOCK_ROUTE_WITH_LEGS) => void;
+    (calculateRouteWithLegs as ReturnType<typeof vi.fn>).mockImplementationOnce(
       (_waypoints: unknown[], options: { signal?: AbortSignal }) => {
-        return new Promise<RouteSegment[]>((resolve) => {
+        return new Promise<typeof MOCK_ROUTE_WITH_LEGS>((resolve) => {
           resolveSegments = resolve;
-          options?.signal?.addEventListener('abort', () => resolve([]));
+          options?.signal?.addEventListener('abort', () => resolve(MOCK_ROUTE_WITH_LEGS));
         });
       }
     );
@@ -191,12 +200,12 @@ describe('useRouteCalculation', () => {
       rerender({ dayId: 6 });
     });
 
-    // calculateSegments should have been called at least once for day 5
+    // calculateRouteWithLegs should have been called at least once for day 5
     // and once more for day 6
-    expect((calculateSegments as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThanOrEqual(1);
+    expect((calculateRouteWithLegs as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThanOrEqual(1);
 
     // Cleanup
-    resolveSegments?.([]);
+    resolveSegments?.(MOCK_ROUTE_WITH_LEGS);
   });
 
   it('FE-HOOK-ROUTE-009: AbortError from calculateSegments does not set routeSegments to []', async () => {
@@ -204,7 +213,7 @@ describe('useRouteCalculation', () => {
 
     const abortError = new Error('Aborted');
     abortError.name = 'AbortError';
-    (calculateSegments as ReturnType<typeof vi.fn>).mockRejectedValueOnce(abortError);
+    (calculateRouteWithLegs as ReturnType<typeof vi.fn>).mockRejectedValueOnce(abortError);
 
     const p1 = buildPlace({ lat: 10, lng: 10 });
     const p2 = buildPlace({ lat: 20, lng: 20 });
@@ -224,7 +233,7 @@ describe('useRouteCalculation', () => {
   it('FE-HOOK-ROUTE-010: non-AbortError from calculateSegments sets routeSegments to []', async () => {
     useSettingsStore.setState({ settings: { route_calculation: true } as any });
 
-    (calculateSegments as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Network error'));
+    (calculateRouteWithLegs as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Network error'));
 
     const p1 = buildPlace({ lat: 10, lng: 10 });
     const p2 = buildPlace({ lat: 20, lng: 20 });
