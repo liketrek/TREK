@@ -38,20 +38,23 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      // MCP SDK's exports map uses extension-less wildcard targets that neither
+      // Node nor Vite can resolve. Point directly at the CJS dist files.
+      // Paths are relative to the monorepo root (packages are hoisted there).
       '@modelcontextprotocol/sdk/server/mcp': new URL(
-          './node_modules/@modelcontextprotocol/sdk/dist/cjs/server/mcp.js',
+          '../node_modules/@modelcontextprotocol/sdk/dist/cjs/server/mcp.js',
           import.meta.url
       ).pathname,
       '@modelcontextprotocol/sdk/server/streamableHttp': new URL(
-          './node_modules/@modelcontextprotocol/sdk/dist/cjs/server/streamableHttp.js',
+          '../node_modules/@modelcontextprotocol/sdk/dist/cjs/server/streamableHttp.js',
           import.meta.url
       ).pathname,
       '@modelcontextprotocol/sdk/inMemory': new URL(
-          './node_modules/@modelcontextprotocol/sdk/dist/cjs/inMemory.js',
+          '../node_modules/@modelcontextprotocol/sdk/dist/cjs/inMemory.js',
           import.meta.url
       ).pathname,
       '@modelcontextprotocol/sdk/client/index': new URL(
-          './node_modules/@modelcontextprotocol/sdk/dist/cjs/client/index.js',
+          '../node_modules/@modelcontextprotocol/sdk/dist/cjs/client/index.js',
           import.meta.url
       ).pathname,
     },
