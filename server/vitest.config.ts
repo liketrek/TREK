@@ -1,6 +1,18 @@
 import { defineConfig } from 'vitest/config';
+import swc from 'unplugin-swc';
 
 export default defineConfig({
+  // SWC transform so NestJS decorator metadata is emitted in tests
+  // (vitest's default esbuild does not emit it -> type-based DI would break).
+  plugins: [
+    swc.vite({
+      jsc: {
+        parser: { syntax: 'typescript', decorators: true },
+        transform: { legacyDecorator: true, decoratorMetadata: true },
+        keepClassNames: true,
+      },
+    }),
+  ],
   test: {
     root: '.',
     include: ['tests/**/*.test.ts'],
@@ -16,10 +28,18 @@ export default defineConfig({
       reporter: ['lcov', 'text'],
       reportsDirectory: './coverage',
       include: ['src/**/*.ts'],
+      // Coverage gate scoped to the new NestJS code only — the legacy codebase
+      // is intentionally ungated. Ratchet these up as more modules are migrated.
+      thresholds: {
+        'src/nest/**/*.ts': { statements: 60, branches: 55, functions: 55, lines: 60 },
+      },
     },
   },
   resolve: {
     alias: {
+      // @trek/shared — Zod contract package (tests resolve it to TS source,
+      // mirroring the tsconfig `paths` the tsx runtime uses).
+      '@trek/shared': new URL('../shared/src/index.ts', import.meta.url).pathname,
       '@modelcontextprotocol/sdk/server/mcp': new URL(
           './node_modules/@modelcontextprotocol/sdk/dist/cjs/server/mcp.js',
           import.meta.url

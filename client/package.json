@@ -35,6 +35,7 @@
     "remark-breaks": "^4.0.0",
     "remark-gfm": "^4.0.1",
     "topojson-client": "^3.1.0",
+    "zod": "^4.3.6",
     "zustand": "^4.5.2"
   },
   "devDependencies": {
