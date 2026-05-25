@@ -49,8 +49,8 @@ COPY --from=server-builder /app/server/dist ./server/dist
 # tsconfig-paths/register reads this at runtime to resolve MCP SDK paths.
 COPY server/tsconfig.json ./server/
 COPY --from=shared-builder /app/shared/dist ./shared/dist
-COPY --from=client-builder /app/client/dist ./public
-COPY --from=client-builder /app/client/public/fonts ./public/fonts
+COPY --from=client-builder /app/client/dist ./server/public
+COPY --from=client-builder /app/client/public/fonts ./server/public/fonts
 
 RUN mkdir -p /app/data/logs /app/uploads/files /app/uploads/covers /app/uploads/avatars /app/uploads/photos && \
     ln -s /app/uploads /app/server/uploads && \
