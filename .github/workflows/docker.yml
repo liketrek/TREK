@@ -45,6 +45,12 @@ jobs:
       - name: Determine bump type and update version
         id: bump
         run: |
+          # When running locally with act, skip tag logic and use a dummy version.
+          if [ -n "$ACT" ]; then
+            echo "VERSION=0.0.0-act" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
           git fetch --tags
 
           # Derive version from git tags — no package.json dependency
