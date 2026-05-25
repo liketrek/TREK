@@ -44,14 +44,18 @@
     "undici": "^7.0.0",
     "unzipper": "^0.12.3",
     "uuid": "^14.0.0",
-    "ws": "^8.19.0",
+    "ws": "^8.21.0",
     "zod": "^4.3.6"
   },
   "overrides": {
     "hono": "^4.12.16",
     "@hono/node-server": "^1.19.13",
     "picomatch": "^4.0.4",
-    "ip-address": "^10.1.1"
+    "ip-address": "^10.1.1",
+    "multer": "^2.1.1",
+    "ws": "^8.21.0",
+    "qs": "^6.15.2",
+    "file-type": "^21.3.4"
   },
   "devDependencies": {
     "@nestjs/testing": "^10.4.22",
