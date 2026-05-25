@@ -812,3 +812,21 @@ img[alt="TREK"] {
 .collab-note-md-full table { border-collapse: collapse; width: 100%; margin: 0.5em 0; }
 .collab-note-md-full th, .collab-note-md-full td { border: 1px solid var(--border-primary); padding: 4px 8px; font-size: 0.9em; }
 .collab-note-md-full hr { border: none; border-top: 1px solid var(--border-primary); margin: 0.8em 0; }
+
+/* Day-plan header action grid (edit / +transport / note / collapse) */
+.dp-day-actions button {
+  color: var(--text-faint);
+  background: transparent;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+.dp-day-actions button:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+/* Reveal the action grid only when hovering the day row (pointer devices).
+   Touch devices (hover: none) keep it visible; the selected day stays visible too. */
+@media (hover: hover) {
+  .dp-day-actions { opacity: 0; transition: opacity 0.12s ease; }
+  .dp-day-header:hover .dp-day-actions,
+  .dp-day-header[data-selected="true"] .dp-day-actions { opacity: 1; }
+}

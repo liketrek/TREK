@@ -237,8 +237,19 @@ export interface RouteSegment {
   mid: [number, number]
   from: [number, number]
   to: [number, number]
+  distance: number
+  duration: number
   walkingText: string
   drivingText: string
+  distanceText: string
+  durationText?: string
+}
+
+export interface RouteWithLegs {
+  coordinates: [number, number][]
+  distance: number
+  duration: number
+  legs: RouteSegment[]
 }
 
 export interface RouteResult {

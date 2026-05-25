@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useSettingsStore } from '../store/settingsStore'
 import { useTripStore } from '../store/tripStore'
-import { calculateSegments } from '../components/Map/RouteCalculator'
+import { calculateRouteWithLegs } from '../components/Map/RouteCalculator'
 import type { TripStoreState } from '../store/tripStore'
 import type { RouteSegment, RouteResult } from '../types'
 
@@ -12,7 +12,7 @@ const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'cruise']
  * day assignments, draws a straight-line route, and optionally fetches per-segment
  * driving/walking durations via OSRM. Aborts in-flight requests when the day changes.
  */
-export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: number | null) {
+export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: number | null, enabled: boolean = true, profile: 'driving' | 'walking' | 'cycling' = 'driving') {
   const [route, setRoute] = useState<[number, number][][] | null>(null)
   const [routeInfo, setRouteInfo] = useState<RouteResult | null>(null)
   const [routeSegments, setRouteSegments] = useState<RouteSegment[]>([])
@@ -22,7 +22,8 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
 
   const updateRouteForDay = useCallback(async (dayId: number | null) => {
     if (routeAbortRef.current) routeAbortRef.current.abort()
-    if (!dayId) { setRoute(null); setRouteSegments([]); return }
+    // Route is manual: only compute when explicitly enabled (the "show route" toggle).
+    if (!dayId || !enabled) { setRoute(null); setRouteSegments([]); return }
     // Read directly from store (not a render-phase ref) so callers after optimistic
     // updates or non-optimistic deletes always see the latest assignments.
     const currentAssignments = useTripStore.getState().assignments || {}
@@ -67,35 +68,52 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
       })),
     ].sort((a, b) => a.pos - b.pos)
 
-    const segments: [number, number][][] = []
-    let currentSeg: [number, number][] = []
+    // Group consecutive located places into runs, resetting whenever a transport
+    // appears (you don't drive between a flight's endpoints) — mirrors getMergedItems order.
+    const runs: { lat: number; lng: number }[][] = []
+    let currentRun: { lat: number; lng: number }[] = []
     for (const entry of entries) {
       if (entry.kind === 'place') {
-        currentSeg.push([entry.lat, entry.lng])
+        currentRun.push({ lat: entry.lat, lng: entry.lng })
       } else {
-        if (currentSeg.length >= 2) segments.push([...currentSeg])
-        currentSeg = []
+        if (currentRun.length >= 2) runs.push(currentRun)
+        currentRun = []
       }
     }
-    if (currentSeg.length >= 2) segments.push(currentSeg)
+    if (currentRun.length >= 2) runs.push(currentRun)
 
-    const geocodedWaypoints = da.map(a => a.place).filter(p => p?.lat && p?.lng) as { lat: number; lng: number }[]
+    const straightLines = (): [number, number][][] =>
+      runs.map(r => r.map(p => [p.lat, p.lng] as [number, number]))
 
-    if (segments.length === 0 && geocodedWaypoints.length < 2) {
-      setRoute(null); setRouteSegments([]); return
-    }
-    setRoute(segments.length > 0 ? segments : null)
+    if (runs.length === 0) { setRoute(null); setRouteSegments([]); return }
+
+    // Draw straight lines immediately for snappiness, then upgrade to the real
+    // OSRM road geometry. If route calc is disabled, keep the straight lines.
+    setRoute(straightLines())
     if (!routeCalcEnabled) { setRouteSegments([]); return }
+
     const controller = new AbortController()
     routeAbortRef.current = controller
     try {
-      const calcSegments = await calculateSegments(geocodedWaypoints, { signal: controller.signal })
-      if (!controller.signal.aborted) setRouteSegments(calcSegments)
+      const polylines: [number, number][][] = []
+      const allLegs: RouteSegment[] = []
+      for (const run of runs) {
+        try {
+          const r = await calculateRouteWithLegs(run, { signal: controller.signal, profile })
+          polylines.push(r.coordinates.length >= 2 ? r.coordinates : run.map(p => [p.lat, p.lng] as [number, number]))
+          allLegs.push(...r.legs)
+        } catch (err) {
+          if (err instanceof Error && err.name === 'AbortError') throw err
+          // OSRM failed for this run — fall back to a straight line, no times.
+          polylines.push(run.map(p => [p.lat, p.lng] as [number, number]))
+        }
+      }
+      if (!controller.signal.aborted) { setRoute(polylines); setRouteSegments(allLegs) }
     } catch (err: unknown) {
-      if (err instanceof Error && err.name !== 'AbortError') setRouteSegments([])
-      else if (!(err instanceof Error)) setRouteSegments([])
+      // Aborted (day changed) — newer call owns the state. Anything else: keep straight lines.
+      if (!(err instanceof Error) || err.name !== 'AbortError') setRouteSegments([])
     }
-  }, [routeCalcEnabled])
+  }, [routeCalcEnabled, enabled, profile])
 
   // Stable signature for transport reservations on the selected day — changes when a transport
   // is added, removed, or repositioned, ensuring route recalc fires even on transport-only reorders.
@@ -117,7 +135,7 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
     if (!selectedDayId) { setRoute(null); setRouteSegments([]); return }
     updateRouteForDay(selectedDayId)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDayId, selectedDayAssignments, transportSignature])
+  }, [selectedDayId, selectedDayAssignments, transportSignature, enabled, profile])
 
   return { route, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay }
 }

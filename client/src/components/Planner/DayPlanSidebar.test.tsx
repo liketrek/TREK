@@ -268,14 +268,7 @@ describe('DayPlanSidebar', () => {
     const user = userEvent.setup()
     const day = buildDay({ id: 10, date: '2025-06-01', title: 'Original Title' })
     render(<DayPlanSidebar {...makeDefaultProps({ days: [day] })} />)
-    // Find the pencil/edit button next to the title
-    const editButtons = screen.getAllByRole('button')
-    const editBtn = editButtons.find(btn => btn.querySelector('svg') && btn.closest('[style]')?.textContent?.includes('Original Title'))
-    // Click the edit (pencil) button — it's the small one near the title
-    // The pencil button is inside the title area with opacity 0.35
-    const titleEl = screen.getByText('Original Title')
-    const pencilBtn = titleEl.parentElement?.querySelector('button')
-    if (pencilBtn) await user.click(pencilBtn)
+    await user.click(screen.getByLabelText('Edit'))
     await waitFor(() => {
       expect(screen.getByDisplayValue('Original Title')).toBeInTheDocument()
     })
@@ -287,9 +280,7 @@ describe('DayPlanSidebar', () => {
     const onUpdateDayTitle = vi.fn()
     render(<DayPlanSidebar {...makeDefaultProps({ days: [day], onUpdateDayTitle })} />)
     // Enter edit mode
-    const titleEl = screen.getByText('Original Title')
-    const pencilBtn = titleEl.parentElement?.querySelector('button')
-    if (pencilBtn) await user.click(pencilBtn)
+    await user.click(screen.getByLabelText('Edit'))
     const input = await screen.findByDisplayValue('Original Title')
     await user.clear(input)
     await user.type(input, 'New Title')
@@ -301,9 +292,7 @@ describe('DayPlanSidebar', () => {
     const user = userEvent.setup()
     const day = buildDay({ id: 10, date: '2025-06-01', title: 'Original Title' })
     render(<DayPlanSidebar {...makeDefaultProps({ days: [day] })} />)
-    const titleEl = screen.getByText('Original Title')
-    const pencilBtn = titleEl.parentElement?.querySelector('button')
-    if (pencilBtn) await user.click(pencilBtn)
+    await user.click(screen.getByLabelText('Edit'))
     const input = await screen.findByDisplayValue('Original Title')
     await user.keyboard('{Escape}')
     expect(screen.queryByDisplayValue('Original Title')).not.toBeInTheDocument()
@@ -625,9 +614,7 @@ describe('DayPlanSidebar', () => {
     const onUpdateDayTitle = vi.fn()
     const day = buildDay({ id: 10, date: '2025-06-01', title: 'Old Title' })
     render(<DayPlanSidebar {...makeDefaultProps({ days: [day], onUpdateDayTitle })} />)
-    const titleEl = screen.getByText('Old Title')
-    const pencilBtn = titleEl.parentElement?.querySelector('button')
-    if (pencilBtn) await user.click(pencilBtn)
+    await user.click(screen.getByLabelText('Edit'))
     const input = await screen.findByDisplayValue('Old Title')
     await user.clear(input)
     await user.type(input, 'New Title')

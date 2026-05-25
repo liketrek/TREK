@@ -1,6 +1,20 @@
-import type { RouteResult, RouteSegment, Waypoint } from '../../types'
+import type { RouteResult, RouteSegment, RouteWithLegs, Waypoint } from '../../types'
 
 const OSRM_BASE = 'https://router.project-osrm.org/route/v1'
+
+// FOSSGIS hosts OSRM with real per-profile routing (car/foot/bike) — the
+// project-osrm.org demo is car-only (it ignores the profile in the URL). Use
+// the matching profile so walking routes follow footpaths, not the road network.
+const OSRM_PROFILE_BASE: Record<'driving' | 'walking' | 'cycling', string> = {
+  driving: 'https://routing.openstreetmap.de/routed-car/route/v1/driving',
+  walking: 'https://routing.openstreetmap.de/routed-foot/route/v1/foot',
+  cycling: 'https://routing.openstreetmap.de/routed-bike/route/v1/bike',
+}
+
+// Cache route responses keyed by the exact waypoint list. Routes are stable, so
+// this avoids re-hitting the public OSRM demo server on every day switch / reorder.
+const routeCache = new Map<string, RouteWithLegs>()
+const ROUTE_CACHE_MAX = 200
 
 /** Fetches a full route via OSRM and returns coordinates, distance, and duration estimates for driving/walking. */
 export async function calculateRoute(
@@ -116,10 +130,70 @@ export async function calculateSegments(
     const walkingDuration = leg.distance / (5000 / 3600)
     return {
       mid, from, to,
+      distance: leg.distance,
+      duration: leg.duration,
       walkingText: formatDuration(walkingDuration),
       drivingText: formatDuration(leg.duration),
+      distanceText: formatDistance(leg.distance),
     }
   })
+}
+
+/**
+ * One OSRM call per waypoint-run that returns BOTH the real road geometry (for the
+ * map) and per-leg distance/duration (for the sidebar connectors). Results are cached
+ * by the exact waypoint list. Throws on OSRM failure so callers can fall back to a
+ * straight line.
+ */
+export async function calculateRouteWithLegs(
+  waypoints: Waypoint[],
+  { signal, profile = 'driving' }: { signal?: AbortSignal; profile?: 'driving' | 'walking' | 'cycling' } = {}
+): Promise<RouteWithLegs> {
+  if (!waypoints || waypoints.length < 2) {
+    return { coordinates: [], distance: 0, duration: 0, legs: [] }
+  }
+
+  const coords = waypoints.map((p) => `${p.lng},${p.lat}`).join(';')
+  const cacheKey = `${profile}:${coords}`
+  const cached = routeCache.get(cacheKey)
+  if (cached) return cached
+
+  const url = `${OSRM_PROFILE_BASE[profile]}/${coords}?overview=full&geometries=geojson&annotations=distance,duration`
+  const response = await fetch(url, { signal })
+  if (!response.ok) throw new Error('Route could not be calculated')
+
+  const data = await response.json()
+  if (data.code !== 'Ok' || !data.routes?.[0]) throw new Error('No route found')
+
+  const route = data.routes[0]
+  const coordinates: [number, number][] = route.geometry.coordinates.map(
+    ([lng, lat]: [number, number]) => [lat, lng]
+  )
+  const legs: RouteSegment[] = (route.legs || []).map(
+    (leg: { distance: number; duration: number }, i: number): RouteSegment => {
+      const from: [number, number] = [waypoints[i].lat, waypoints[i].lng]
+      const to: [number, number] = [waypoints[i + 1].lat, waypoints[i + 1].lng]
+      const mid: [number, number] = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2]
+      const walkingDuration = leg.distance / (5000 / 3600)
+      return {
+        mid, from, to,
+        distance: leg.distance,
+        duration: leg.duration,
+        walkingText: formatDuration(walkingDuration),
+        drivingText: formatDuration(leg.duration),
+        distanceText: formatDistance(leg.distance),
+        durationText: formatDuration(leg.duration),
+      }
+    }
+  )
+
+  const result: RouteWithLegs = { coordinates, distance: route.distance, duration: route.duration, legs }
+  routeCache.set(cacheKey, result)
+  if (routeCache.size > ROUTE_CACHE_MAX) {
+    const oldest = routeCache.keys().next().value
+    if (oldest !== undefined) routeCache.delete(oldest)
+  }
+  return result
 }
 
 function formatDistance(meters: number): string {
