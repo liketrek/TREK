@@ -58,5 +58,12 @@ export default defineConfig({
           import.meta.url
       ).pathname,
     },
+    // The server build emits @trek/shared next to its source (shared/src/*.js,
+    // needed by the prod dist via tsc-alias). Vite's default extension order
+    // prefers .js over .ts, so after a build the tests would load that compiled
+    // CJS instead of the source — and its `require('zod')` is unresolvable from
+    // the shared/ dir on CI (only server deps are installed there). Resolve .ts
+    // first so tests always run the source, whose zod import resolves via Vite.
+    extensions: ['.ts', '.mts', '.mjs', '.js', '.cts', '.cjs', '.tsx', '.jsx', '.json'],
   },
 });
