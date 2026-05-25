@@ -22,12 +22,12 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
-          cache-dependency-path: shared/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: cd shared && npm ci
+        run: npm ci --workspace shared
 
       - name: Typecheck
         run: cd shared && npm run typecheck
@@ -44,12 +44,12 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
-          cache-dependency-path: server/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: cd server && npm ci
+        run: npm ci --workspace server
 
       - name: Build (tsc + tsc-alias -> dist)
         run: cd server && npm run build
@@ -80,12 +80,12 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
-          cache-dependency-path: client/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: cd client && npm ci
+        run: npm ci --workspace client
 
       - name: Run tests
         run: cd client && npm run test:coverage
