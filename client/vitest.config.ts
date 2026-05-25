@@ -1,8 +1,16 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import { fileURLToPath } from 'node:url';
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      // @trek/shared — Zod contract package (tests resolve it to TS source,
+      // mirroring the alias in vite.config.js used by the dev server / build).
+      '@trek/shared': fileURLToPath(new URL('../shared/src/index.ts', import.meta.url)),
+    },
+  },
   test: {
     root: '.',
     globals: true,

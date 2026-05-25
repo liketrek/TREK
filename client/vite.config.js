@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { fileURLToPath } from 'node:url'
 
 export default defineConfig({
   plugins: [
@@ -88,6 +89,12 @@ export default defineConfig({
       },
     }),
   ],
+  resolve: {
+    alias: {
+      // @trek/shared — Zod contract package (dev: resolved to TS source).
+      '@trek/shared': fileURLToPath(new URL('../shared/src/index.ts', import.meta.url)),
+    },
+  },
   build: {
     sourcemap: false,
     modulePreload: { polyfill: true },

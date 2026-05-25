@@ -19,6 +19,8 @@
     // (e.g. "./*": "./dist/esm/*") which TypeScript cannot resolve — it only strips .js suffixes.
     // These paths manually redirect to the CJS dist until the SDK fixes its exports map.
     "paths": {
+      "@trek/shared": ["../shared/src/index.ts"],
+      "@trek/shared/*": ["../shared/src/*"],
       "@modelcontextprotocol/sdk/server/mcp": ["./node_modules/@modelcontextprotocol/sdk/dist/cjs/server/mcp"],
       "@modelcontextprotocol/sdk/server/streamableHttp": ["./node_modules/@modelcontextprotocol/sdk/dist/cjs/server/streamableHttp"],
       "@modelcontextprotocol/sdk/server/auth/router": ["./node_modules/@modelcontextprotocol/sdk/dist/cjs/server/auth/router"],

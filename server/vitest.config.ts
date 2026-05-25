@@ -20,6 +20,9 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      // @trek/shared — Zod contract package (tests resolve it to TS source,
+      // mirroring the tsconfig `paths` the tsx runtime uses).
+      '@trek/shared': new URL('../shared/src/index.ts', import.meta.url).pathname,
       '@modelcontextprotocol/sdk/server/mcp': new URL(
           './node_modules/@modelcontextprotocol/sdk/dist/cjs/server/mcp.js',
           import.meta.url
