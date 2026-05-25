@@ -1,7 +1,7 @@
 import { db, canAccessTrip } from '../db/database';
 import { avatarUrl } from './authService';
 
-const BAG_COLORS = ['#6366f1', '#ec4899', '#f97316', '#10b981', '#06b6d4', '#8b5cf6', '#ef4444', '#f59e0b'];
+const BAG_COLORS = ['#6366f1', '#ec4899', '#f97316', '#10b981', '#06b6d4', '#32049e', '#ef4444', '#f59e0b', '#1106aa', '#99f70e', '#04463e', '#7f0e91', '#64748b' ];
 
 export function verifyTripAccess(tripId: string | number, userId: number) {
   return canAccessTrip(tripId, userId);
