@@ -10,6 +10,7 @@ import { ExpressAdapter } from '@nestjs/platform-express';
 import type { INestApplication } from '@nestjs/common';
 import { createApp } from './app';
 import { AppModule } from './nest/app.module';
+import { getNestPrefixes, makeNestPathMatcher } from './nest/strangler';
 
 // Create upload and data directories on startup
 const uploadsDir = path.join(__dirname, '../uploads');
@@ -60,6 +61,11 @@ const onListen = () => {
     '──────────────────────────────────────',
   ];
   banner.forEach(l => console.log(l));
+  sLogInfo(
+    NEST_PREFIXES.length
+      ? `NestJS handling prefixes: ${NEST_PREFIXES.join(', ')} (override via NEST_PREFIXES)`
+      : 'NestJS prefixes: none — all routes served by the legacy Express app',
+  );
   if (process.env.APP_URL) {
     let parsedAppUrl: URL | null = null;
     try { parsedAppUrl = new URL(process.env.APP_URL); } catch { /* invalid */ }
@@ -98,14 +104,9 @@ const onListen = () => {
 let server: http.Server;
 let nestApp: INestApplication;
 
-// Path prefixes served by NestJS. Everything else falls through to the legacy
-// Express app. This list is the strangler toggle (F7): add a prefix here once
-// its module has been migrated to Nest.
-const NEST_PREFIXES = ['/api/_nest'];
-
-function isNestPath(p: string): boolean {
-  return NEST_PREFIXES.some((prefix) => p === prefix || p.startsWith(prefix + '/'));
-}
+// Strangler toggle: prefixes served by Nest (env-overridable, instant rollback).
+const NEST_PREFIXES = getNestPrefixes();
+const isNestPath = makeNestPathMatcher(NEST_PREFIXES);
 
 async function bootstrap(): Promise<void> {
   // Nest runs on its own Express instance (bodyParser off so request bodies reach
