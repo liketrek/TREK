@@ -4,6 +4,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import http from 'node:http';
 import express from 'express';
+import cookieParser from 'cookie-parser';
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import type { INestApplication } from '@nestjs/common';
@@ -110,6 +111,9 @@ async function bootstrap(): Promise<void> {
   // Nest runs on its own Express instance (bodyParser off so request bodies reach
   // the legacy app untouched — it has its own parsers; /mcp relies on raw body).
   nestApp = await NestFactory.create(AppModule, new ExpressAdapter(), { bodyParser: false });
+  // Nest only sees migrated prefixes and has no parsers of its own — it needs
+  // cookie-parser so the auth guard can read the existing `trek_session` cookie.
+  nestApp.use(cookieParser());
   await nestApp.init();
   const nestInstance = nestApp.getHttpAdapter().getInstance();
 
