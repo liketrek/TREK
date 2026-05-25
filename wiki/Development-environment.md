@@ -58,6 +58,7 @@ git rebase upstream/dev  # or: git merge upstream/dev
 Working on a dedicated branch keeps your changes isolated and makes PRs easier to review:
 
 ```bash
+# Create a new branch off of dev
 git checkout -b fix/my-changes origin/dev
 ```
 
@@ -194,7 +195,7 @@ git add .
 git commit -m "fix: describe your change"
 
 # Push to your fork's dev branch
-git push origin fix/my-changes:dev
+git push origin fix/my-changes
 
 # Or if working directly on dev
 git push origin dev
