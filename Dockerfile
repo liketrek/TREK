@@ -6,7 +6,18 @@ RUN npm ci
 COPY client/ ./
 RUN npm run build
 
-# Stage 2: Production server
+# Stage 2: Build server (TypeScript -> dist via tsc + tsc-alias)
+# --ignore-scripts: tsc only transpiles, so we skip native builds (better-sqlite3)
+# here; the production stage builds the native module.
+FROM node:24-alpine AS server-builder
+WORKDIR /app
+COPY server/package*.json ./
+RUN npm ci --ignore-scripts
+COPY server/ ./
+RUN npm run build
+
+# Stage 3: Production server (runs the compiled JS — NestJS DI needs the
+# decorator metadata that tsc emits; the old tsx runtime did not).
 FROM node:24-alpine
 
 WORKDIR /app
@@ -19,12 +30,11 @@ RUN apk add --no-cache tzdata dumb-init su-exec python3 make g++ && \
     apk del python3 make g++ && \
     rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
-COPY server/ ./
+COPY --from=server-builder /app/dist ./dist
 COPY --from=client-builder /app/client/dist ./public
 COPY --from=client-builder /app/client/public/fonts ./public/fonts
 
-RUN rm -f package-lock.json && \
-    mkdir -p /app/data/logs /app/uploads/files /app/uploads/covers /app/uploads/avatars /app/uploads/photos && \
+RUN mkdir -p /app/data/logs /app/uploads/files /app/uploads/covers /app/uploads/avatars /app/uploads/photos && \
     mkdir -p /app/server && ln -s /app/uploads /app/server/uploads && ln -s /app/data /app/server/data && \
     chown -R node:node /app
 
@@ -39,4 +49,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD wget -qO- http://localhost:3000/api/health || exit 1
 
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["sh", "-c", "chown -R node:node /app/data /app/uploads 2>/dev/null || true; exec su-exec node node --import tsx src/index.ts"]
+CMD ["sh", "-c", "chown -R node:node /app/data /app/uploads 2>/dev/null || true; exec su-exec node node dist/index.js"]
