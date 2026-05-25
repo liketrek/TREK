@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { DatabaseModule } from './database/database.module';
 import { HealthController } from './health/health.controller';
 import { HealthService } from './health/health.service';
 
@@ -7,6 +8,7 @@ import { HealthService } from './health/health.service';
  * (weather, notifications, ...) get registered here as they are migrated.
  */
 @Module({
+  imports: [DatabaseModule],
   controllers: [HealthController],
   providers: [HealthService],
 })

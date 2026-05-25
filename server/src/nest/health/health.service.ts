@@ -1,13 +1,21 @@
 import { Injectable } from '@nestjs/common';
+import { DatabaseService } from '../database/database.service';
 
 /**
- * Trivial service used to prove that NestJS dependency injection works under
- * the chosen runtime (SWC dev / tsc build). If DI fails, `info()` is never
- * reached because the controller cannot be constructed.
+ * Smoke service proving NestJS DI works under the chosen runtime AND that the
+ * injected DatabaseService talks to TREK's existing SQLite connection.
  */
 @Injectable()
 export class HealthService {
+  constructor(private readonly database: DatabaseService) {}
+
   info() {
-    return { runtime: 'nestjs', diInjected: true };
+    const row = this.database.get<{ n: number }>('SELECT COUNT(*) AS n FROM users');
+    return {
+      runtime: 'nestjs',
+      diInjected: true,
+      // Proof the shared connection works: real row count from the existing DB.
+      userCount: row?.n ?? null,
+    };
   }
 }
