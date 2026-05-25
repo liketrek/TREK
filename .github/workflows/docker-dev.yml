@@ -31,13 +31,6 @@ jobs:
       - name: Determine prerelease version
         id: bump
         run: |
-          # When running locally with act, skip tag logic and use a dummy version.
-          if [ -n "$ACT" ]; then
-            echo "VERSION=0.0.0-act" >> $GITHUB_OUTPUT
-            echo "SHA=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
           git fetch --tags
 
           # Capture the exact commit we're building so build/merge jobs are pinned to it
