@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios'
+import type { WeatherResult } from '@trek/shared'
 import { getSocketId } from './websocket'
 import { isReachable, probeNow } from '../sync/connectivity'
 import en from '../i18n/translations/en'
@@ -501,8 +502,8 @@ export const reservationsApi = {
 }
 
 export const weatherApi = {
-  get: (lat: number, lng: number, date: string) => apiClient.get('/weather', { params: { lat, lng, date } }).then(r => r.data),
-  getDetailed: (lat: number, lng: number, date: string, lang?: string) => apiClient.get('/weather/detailed', { params: { lat, lng, date, lang } }).then(r => r.data),
+  get: (lat: number, lng: number, date: string): Promise<WeatherResult> => apiClient.get('/weather', { params: { lat, lng, date } }).then(r => r.data),
+  getDetailed: (lat: number, lng: number, date: string, lang?: string): Promise<WeatherResult> => apiClient.get('/weather/detailed', { params: { lat, lng, date, lang } }).then(r => r.data),
 }
 
 export const configApi = {
