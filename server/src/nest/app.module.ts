@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
+import { APP_FILTER } from '@nestjs/core';
 import { DatabaseModule } from './database/database.module';
 import { HealthController } from './health/health.controller';
 import { HealthService } from './health/health.service';
+import { TrekExceptionFilter } from './common/trek-exception.filter';
 
 /**
  * Root NestJS module for the incremental migration. Domain modules
@@ -10,6 +12,11 @@ import { HealthService } from './health/health.service';
 @Module({
   imports: [DatabaseModule],
   controllers: [HealthController],
-  providers: [HealthService],
+  providers: [
+    HealthService,
+    // Global error-envelope normaliser (DI-registered so it also catches
+    // framework-level exceptions like the not-found handler).
+    { provide: APP_FILTER, useClass: TrekExceptionFilter },
+  ],
 })
 export class AppModule {}

@@ -110,10 +110,13 @@ function isNestPath(p: string): boolean {
 async function bootstrap(): Promise<void> {
   // Nest runs on its own Express instance (bodyParser off so request bodies reach
   // the legacy app untouched — it has its own parsers; /mcp relies on raw body).
-  nestApp = await NestFactory.create(AppModule, new ExpressAdapter(), { bodyParser: false });
-  // Nest only sees migrated prefixes and has no parsers of its own — it needs
+  // Nest body parsing is safe here: the dispatcher only forwards migrated
+  // prefixes to this instance, so the legacy app (and raw-body routes like /mcp)
+  // is reached separately and never passes through Nest's parser.
+  nestApp = await NestFactory.create(AppModule, new ExpressAdapter());
   // cookie-parser so the auth guard can read the existing `trek_session` cookie.
   nestApp.use(cookieParser());
+  // (TrekExceptionFilter is registered globally via APP_FILTER in AppModule.)
   await nestApp.init();
   const nestInstance = nestApp.getHttpAdapter().getInstance();
 
