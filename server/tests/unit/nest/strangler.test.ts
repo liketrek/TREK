@@ -8,9 +8,9 @@ describe('strangler toggle', () => {
     else process.env.NEST_PREFIXES = original;
   });
 
-  it('defaults to /api/_nest when NEST_PREFIXES is unset', () => {
+  it('defaults to the migrated prefixes (/api/_nest + /api/weather) when NEST_PREFIXES is unset', () => {
     delete process.env.NEST_PREFIXES;
-    expect(getNestPrefixes()).toEqual(['/api/_nest']);
+    expect(getNestPrefixes()).toEqual(['/api/_nest', '/api/weather']);
   });
 
   it('parses NEST_PREFIXES (comma-separated, trimmed)', () => {

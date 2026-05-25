@@ -3,6 +3,7 @@ import { APP_FILTER } from '@nestjs/core';
 import { DatabaseModule } from './database/database.module';
 import { HealthController } from './health/health.controller';
 import { HealthService } from './health/health.service';
+import { WeatherModule } from './weather/weather.module';
 import { TrekExceptionFilter } from './common/trek-exception.filter';
 
 /**
@@ -10,7 +11,7 @@ import { TrekExceptionFilter } from './common/trek-exception.filter';
  * (weather, notifications, ...) get registered here as they are migrated.
  */
 @Module({
-  imports: [DatabaseModule],
+  imports: [DatabaseModule, WeatherModule],
   controllers: [HealthController],
   providers: [
     HealthService,

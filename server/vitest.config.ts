@@ -29,9 +29,10 @@ export default defineConfig({
       reportsDirectory: './coverage',
       include: ['src/**/*.ts'],
       // Coverage gate scoped to the new NestJS code only — the legacy codebase
-      // is intentionally ungated. Ratchet these up as more modules are migrated.
+      // is intentionally ungated. Raised to the DoD's >=80% bar once the first
+      // module (weather) landed; ratchet further as more modules are migrated.
       thresholds: {
-        'src/nest/**/*.ts': { statements: 60, branches: 55, functions: 55, lines: 60 },
+        'src/nest/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },
       },
     },
   },

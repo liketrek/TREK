@@ -8,7 +8,7 @@
  * rollback — no redeploy, no code change. Setting `NEST_PREFIXES=` (empty) routes
  * everything back to the legacy app.
  */
-const DEFAULT_NEST_PREFIXES = ['/api/_nest'];
+const DEFAULT_NEST_PREFIXES = ['/api/_nest', '/api/weather'];
 
 export function getNestPrefixes(): string[] {
   const raw = process.env.NEST_PREFIXES;
