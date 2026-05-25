@@ -174,15 +174,16 @@ jobs:
           retention-days: 1
 
   merge:
-    if: ${{ !env.ACT }}
     runs-on: ubuntu-latest
     needs: [version-bump, build]
     steps:
       - uses: actions/checkout@v4
+        if: ${{ !env.ACT }}
         with:
           ref: main
 
       - name: Download build digests
+        if: ${{ !env.ACT }}
         uses: actions/download-artifact@v4
         with:
           path: /tmp/digests
@@ -190,13 +191,16 @@ jobs:
           merge-multiple: true
 
       - uses: docker/setup-buildx-action@v3
+        if: ${{ !env.ACT }}
 
       - uses: docker/login-action@v3
+        if: ${{ !env.ACT }}
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Create and push multi-arch manifest
+        if: ${{ !env.ACT }}
         working-directory: /tmp/digests
         run: |
           VERSION="${{ needs.version-bump.outputs.version }}"
@@ -209,19 +213,21 @@ jobs:
             "${digests[@]}"
 
       - name: Inspect manifest
+        if: ${{ !env.ACT }}
         run: docker buildx imagetools inspect mauriceboe/trek:latest
 
   release-helm:
-    if: ${{ !env.ACT }}
     runs-on: ubuntu-latest
     needs: version-bump
     steps:
       - name: Checkout
+        if: ${{ !env.ACT }}
         uses: actions/checkout@v4
         with:
           ref: main
 
       - name: Publish Helm chart
+        if: ${{ !env.ACT }}
         uses: stefanprodan/helm-gh-pages@v1.7.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
