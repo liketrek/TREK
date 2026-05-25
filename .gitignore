@@ -4,6 +4,7 @@ node_modules/
 # Build output
 client/dist/
 server/dist/
+shared/dist/
 server/public/*
 !server/public/.gitkeep
 

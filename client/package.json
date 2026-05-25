@@ -1,5 +1,5 @@
 {
-  "name": "trek-client",
+  "name": "@trek/client",
   "version": "3.0.22",
   "private": true,
   "type": "module",
@@ -12,9 +12,13 @@
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration src/**/*.test.{ts,tsx}",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint .",
+    "format": "prettier --write \"src/**/*.tsx\" \"src/**/*.css\"",
+    "format:check": "prettier --check \"src/**/*.tsx\" \"src/**/*.css\""
   },
   "dependencies": {
+    "@trek/shared": "*",
     "@react-pdf/renderer": "^4.3.2",
     "axios": "^1.6.7",
     "dexie": "^4.4.2",
@@ -58,6 +62,14 @@
     "typescript": "^6.0.2",
     "vite": "^5.1.4",
     "vite-plugin-pwa": "^0.21.0",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "@trivago/prettier-plugin-sort-imports": "^6.0.2",
+    "prettier": "^3.8.3",
+    "prettier-plugin-organize-imports": "^4.3.0",
+    "prettier-plugin-tailwindcss": "^0.8.0",
+    "eslint": "^10.2.1",
+    "eslint-config-flat-gitignore": "^2.3.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2"
   }
 }

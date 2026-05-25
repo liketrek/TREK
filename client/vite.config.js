@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
-import { fileURLToPath } from 'node:url'
 
 export default defineConfig({
   plugins: [
@@ -89,15 +88,6 @@ export default defineConfig({
       },
     }),
   ],
-  resolve: {
-    alias: {
-      // @trek/shared — Zod contract package (dev: resolved to TS source).
-      '@trek/shared': fileURLToPath(new URL('../shared/src/index.ts', import.meta.url)),
-    },
-    // @trek/shared imports zod from its own source; it lives outside this root,
-    // so pin zod to the client's copy (one instance, resolvable from anywhere).
-    dedupe: ['zod'],
-  },
   build: {
     sourcemap: false,
     modulePreload: { polyfill: true },
