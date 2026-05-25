@@ -10,6 +10,9 @@ export default defineConfig({
       // mirroring the alias in vite.config.js used by the dev server / build).
       '@trek/shared': fileURLToPath(new URL('../shared/src/index.ts', import.meta.url)),
     },
+    // Mirror vite.config.js: keep a single zod instance resolvable from the
+    // shared source, which lives outside this project root.
+    dedupe: ['zod'],
   },
   test: {
     root: '.',
