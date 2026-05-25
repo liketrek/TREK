@@ -16,6 +16,8 @@ export const SUPPORTED_LANGUAGES = [
   { value: 'ar',    label: 'العربية',              locale: 'ar-SA' },
   { value: 'id',    label: 'Bahasa Indonesia',     locale: 'id-ID' },
   { value: 'ja',    label: '日本語',                locale: 'ja-JP' },
+  { value: 'ko',    label: '한국어',                 locale: 'ko-KR' },
+  { value: 'uk',    label: 'Українська',           locale: 'uk-UA' },
 ] as const
 
 export type SupportedLanguageCode = typeof SUPPORTED_LANGUAGES[number]['value']
