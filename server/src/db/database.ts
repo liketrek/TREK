@@ -6,12 +6,20 @@ import { runMigrations } from './migrations';
 import { runSeeds } from './seeds';
 import { Place, Tag } from '../types';
 
-const dataDir = path.join(__dirname, '../../data');
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-}
+// In test mode each vitest worker gets an isolated in-memory DB so that
+// parallel forks can't race on the same file or share migration state.
+const isTest = process.env.NODE_ENV === 'test';
 
-const dbPath = path.join(dataDir, 'travel.db');
+let dbPath: string;
+if (isTest) {
+  dbPath = ':memory:';
+} else {
+  const dataDir = path.join(__dirname, '../../data');
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+  dbPath = path.join(dataDir, 'travel.db');
+}
 
 let _db: Database.Database | null = null;
 
