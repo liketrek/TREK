@@ -3,8 +3,11 @@
   "version": "3.0.22",
   "main": "src/index.ts",
   "scripts": {
-    "start": "node --import tsx src/index.ts",
-    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "dev": "node scripts/dev.mjs",
+    "build": "node scripts/build.mjs",
+    "start:prod": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:unit": "vitest run tests/unit",
@@ -14,6 +17,9 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.28.0",
+    "@nestjs/common": "^10.4.22",
+    "@nestjs/core": "^10.4.22",
+    "@nestjs/platform-express": "^10.4.22",
     "archiver": "^6.0.1",
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^12.8.0",
@@ -30,6 +36,8 @@
     "nodemailer": "^8.0.5",
     "otplib": "^12.0.1",
     "qrcode": "^1.5.4",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
     "semver": "^7.7.4",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
@@ -66,6 +74,7 @@
     "@vitest/coverage-v8": "^3.2.4",
     "nodemon": "^3.1.0",
     "supertest": "^7.2.2",
+    "tsc-alias": "^1.8.17",
     "tz-lookup": "^6.1.25",
     "vitest": "^3.2.4"
   }
