@@ -54,6 +54,8 @@
     "ip-address": "^10.1.1"
   },
   "devDependencies": {
+    "@nestjs/testing": "^10.4.22",
+    "@swc/core": "^1.15.40",
     "@types/archiver": "^7.0.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^7.6.13",
@@ -76,6 +78,7 @@
     "supertest": "^7.2.2",
     "tsc-alias": "^1.8.17",
     "tz-lookup": "^6.1.25",
+    "unplugin-swc": "^1.5.9",
     "vitest": "^3.2.4"
   }
 }
