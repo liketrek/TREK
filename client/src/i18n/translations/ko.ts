@@ -2414,6 +2414,16 @@ const ko: Record<string, string | { name: string; category: string }[]> = {
   'transport.modalTitle.edit': '교통 편집',
   'transport.title': '교통',
   'transport.addManual': '직접 교통 입력',
+
+  // Added to match EN keys
+  'journey.editor.uploadingProgress': '업로드 중 {done}/{total}…',
+  'journey.editor.uploadFailed': '사진 업로드 실패',
+  'journey.editor.uploadPartialFailed': '{total}개 중 {failed}개의 사진을 업로드하지 못했습니다 — 다시 저장하여 재시도하세요',
+  'journey.photosUploadFailed': '일부 사진을 업로드하지 못했습니다',
+  'settings.oauth.modal.machineClient': '머신 클라이언트(브라우저 로그인 없음)',
+  'settings.oauth.modal.machineClientHint': 'client_credentials 권한 부여를 사용합니다 — 리디렉션 URI가 필요하지 않습니다. 토큰은 client_id + client_secret을 통해 직접 발급되며 선택한 범위 내에서 사용자로 작동합니다.',
+  'settings.oauth.modal.machineClientUsage': '토큰 받기: grant_type=client_credentials, client_id, client_secret으로 POST /oauth/token을 호출하세요. 브라우저도 새로 고침 토큰도 필요 없습니다.',
+  'settings.oauth.badge.machine': '머신',
 }
 
 export default ko
