@@ -1,7 +1,16 @@
+import 'reflect-metadata';
 import 'dotenv/config';
 import path from 'node:path';
 import fs from 'node:fs';
+import http from 'node:http';
+import express from 'express';
+import cookieParser from 'cookie-parser';
+import { NestFactory } from '@nestjs/core';
+import { ExpressAdapter } from '@nestjs/platform-express';
+import type { INestApplication } from '@nestjs/common';
 import { createApp } from './app';
+import { AppModule } from './nest/app.module';
+import { getNestPrefixes, makeNestPathMatcher } from './nest/strangler';
 
 // Create upload and data directories on startup
 const uploadsDir = path.join(__dirname, '../uploads');
@@ -16,7 +25,10 @@ const tmpDir = path.join(__dirname, '../data/tmp');
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
-const app = createApp();
+// Legacy Express app — unchanged. NestJS (its own Express 5 instance) is mounted
+// in front of it (strangler pattern): migrated route prefixes are served by Nest,
+// everything else falls through to this app via a fallback middleware.
+const legacyApp = createApp();
 
 import * as scheduler from './scheduler';
 import { getAppUrl, getMcpSafeUrl } from './services/notifications';
@@ -49,6 +61,11 @@ const onListen = () => {
     '──────────────────────────────────────',
   ];
   banner.forEach(l => console.log(l));
+  sLogInfo(
+    NEST_PREFIXES.length
+      ? `NestJS handling prefixes: ${NEST_PREFIXES.join(', ')} (override via NEST_PREFIXES)`
+      : 'NestJS prefixes: none — all routes served by the legacy Express app',
+  );
   if (process.env.APP_URL) {
     let parsedAppUrl: URL | null = null;
     try { parsedAppUrl = new URL(process.env.APP_URL); } catch { /* invalid */ }
@@ -84,9 +101,42 @@ const onListen = () => {
   });
 };
 
-const server = HOST
-  ? app.listen(PORT, HOST, onListen)
-  : app.listen(PORT, onListen);
+let server: http.Server;
+let nestApp: INestApplication;
+
+// Strangler toggle: prefixes served by Nest (env-overridable, instant rollback).
+const NEST_PREFIXES = getNestPrefixes();
+const isNestPath = makeNestPathMatcher(NEST_PREFIXES);
+
+async function bootstrap(): Promise<void> {
+  // Nest runs on its own Express instance (bodyParser off so request bodies reach
+  // the legacy app untouched — it has its own parsers; /mcp relies on raw body).
+  // Nest body parsing is safe here: the dispatcher only forwards migrated
+  // prefixes to this instance, so the legacy app (and raw-body routes like /mcp)
+  // is reached separately and never passes through Nest's parser.
+  nestApp = await NestFactory.create(AppModule, new ExpressAdapter());
+  // cookie-parser so the auth guard can read the existing `trek_session` cookie.
+  nestApp.use(cookieParser());
+  // (TrekExceptionFilter is registered globally via APP_FILTER in AppModule.)
+  await nestApp.init();
+  const nestInstance = nestApp.getHttpAdapter().getInstance();
+
+  // Top-level dispatcher: migrated prefixes -> Nest, everything else -> legacy
+  // Express (unchanged). Nest never sees non-migrated paths, so its 404 handler
+  // only applies within migrated prefixes.
+  const top = express();
+  top.use((req, res, next) => (isNestPath(req.path) ? nestInstance(req, res, next) : next()));
+  top.use(legacyApp);
+
+  server = http.createServer(top);
+  if (HOST) server.listen(PORT, HOST, onListen);
+  else server.listen(PORT, onListen);
+}
+
+bootstrap().catch((err) => {
+  console.error('Fatal: failed to bootstrap server', err);
+  process.exit(1);
+});
 
 // Graceful shutdown
 function shutdown(signal: string): void {
@@ -95,6 +145,7 @@ function shutdown(signal: string): void {
   sLogInfo(`${signal} received — shutting down gracefully...`);
   scheduler.stop();
   closeMcpSessions();
+  void nestApp?.close();
   server.close(() => {
     sLogInfo('HTTP server closed');
     const { closeDb } = require('./db/database');
@@ -111,4 +162,4 @@ function shutdown(signal: string): void {
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
-export default app;
+export default legacyApp;

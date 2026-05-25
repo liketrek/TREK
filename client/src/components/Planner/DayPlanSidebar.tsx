@@ -28,7 +28,7 @@ import {
   getTransportForDay as _getTransportForDay, getMergedItems as _getMergedItems,
   type MergedItem,
 } from '../../utils/dayMerge'
-import { formatDate, formatTime, dayTotalCost, currencyDecimals } from '../../utils/formatters'
+import { formatDate, formatTime, dayTotalCost, currencyDecimals, splitReservationDateTime } from '../../utils/formatters'
 import { useDayNotes } from '../../hooks/useDayNotes'
 import Tooltip from '../shared/Tooltip'
 import type { Trip, Day, Place, Category, Assignment, Reservation, AssignmentsMap, RouteResult } from '../../types'
@@ -1487,15 +1487,17 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                                     }}>
                                       {(() => { const RI = RES_ICONS[res.type] || Ticket; return <RI size={8} /> })()}
                                       <span className="hidden sm:inline">{confirmed ? t('planner.resConfirmed') : t('planner.resPending')}</span>
-                                      {res.reservation_time?.includes('T') && (
-                                        <span style={{ fontWeight: 400 }}>
-                                          {new Date(res.reservation_time).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: timeFormat === '12h' })}
-                                          {res.reservation_end_time && ` – ${(() => {
-                                            const endStr = res.reservation_end_time.includes('T') ? res.reservation_end_time : (res.reservation_time.split('T')[0] + 'T' + res.reservation_end_time)
-                                            return new Date(endStr).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: timeFormat === '12h' })
-                                          })()}`}
-                                        </span>
-                                      )}
+                                      {(() => {
+                                        const { time: st } = splitReservationDateTime(res.reservation_time)
+                                        const { time: et } = splitReservationDateTime(res.reservation_end_time)
+                                        if (!st && !et) return null
+                                        return (
+                                          <span style={{ fontWeight: 400 }}>
+                                            {st ? formatTime(st, locale, timeFormat) : ''}
+                                            {et ? ` – ${formatTime(et, locale, timeFormat)}` : ''}
+                                          </span>
+                                        )
+                                      })()}
                                       {(() => {
                                         const meta = typeof res.metadata === 'string' ? JSON.parse(res.metadata || '{}') : (res.metadata || {})
                                         if (!meta) return null
@@ -1722,18 +1724,20 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                                 <span style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {res.title}
                                 </span>
-                                {displayTime?.includes('T') && (
-                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 10, color: 'var(--text-faint)', fontWeight: 400, marginLeft: 6 }}>
-                                    <Clock size={9} strokeWidth={2} />
-                                    {new Date(displayTime).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: timeFormat === '12h' })}
-                                    {spanPhase === 'single' && res.reservation_end_time && (() => {
-                                      const endStr = res.reservation_end_time.includes('T') ? res.reservation_end_time : (displayTime.split('T')[0] + 'T' + res.reservation_end_time)
-                                      return ` – ${new Date(endStr).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: timeFormat === '12h' })}`
-                                    })()}
-                                    {meta.departure_timezone && spanPhase === 'start' && ` ${meta.departure_timezone}`}
-                                    {meta.arrival_timezone && spanPhase === 'end' && ` ${meta.arrival_timezone}`}
-                                  </span>
-                                )}
+                                {(() => {
+                                  const { time: dispTime } = splitReservationDateTime(displayTime)
+                                  const { time: endTime } = splitReservationDateTime(res.reservation_end_time)
+                                  if (!dispTime && !endTime) return null
+                                  return (
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 10, color: 'var(--text-faint)', fontWeight: 400, marginLeft: 6 }}>
+                                      <Clock size={9} strokeWidth={2} />
+                                      {dispTime ? formatTime(dispTime, locale, timeFormat) : ''}
+                                      {spanPhase === 'single' && endTime ? ` – ${formatTime(endTime, locale, timeFormat)}` : ''}
+                                      {meta.departure_timezone && spanPhase === 'start' && ` ${meta.departure_timezone}`}
+                                      {meta.arrival_timezone && spanPhase === 'end' && ` ${meta.arrival_timezone}`}
+                                    </span>
+                                  )
+                                })()}
                               </div>
                               {subtitle && (
                                 <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -1782,8 +1786,17 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                           onDragOver={e => { e.preventDefault(); e.stopPropagation(); if (dropTargetKey !== `note-${note.id}`) setDropTargetKey(`note-${note.id}`) }}
                           onDrop={e => {
                             e.preventDefault(); e.stopPropagation()
-                            const { noteId: fromNoteId, assignmentId: fromAssignmentId, reservationId: fromReservationId, fromDayId, phase } = getDragData(e)
-                            if (fromReservationId && fromDayId !== day.id) {
+                            const { placeId, noteId: fromNoteId, assignmentId: fromAssignmentId, reservationId: fromReservationId, fromDayId, phase } = getDragData(e)
+                            if (placeId) {
+                              // New place dropped onto a note: insert it among the
+                              // assignments at the note's position (after the places
+                              // above it), so it lands right where the note sits.
+                              const tm = getMergedItems(day.id)
+                              const noteIdx = tm.findIndex(i => i.type === 'note' && i.data.id === note.id)
+                              const pos = tm.slice(0, noteIdx).filter(i => i.type === 'place').length
+                              onAssignToDay?.(parseInt(placeId), day.id, pos)
+                              setDropTargetKey(null); window.__dragData = null
+                            } else if (fromReservationId && fromDayId !== day.id) {
                               const r = reservations.find(x => x.id === Number(fromReservationId))
                               if (r) { const update = computeMultiDayMove(r, day.id, phase); tripActions.updateReservation(tripId, r.id, update).catch((err: unknown) => toast.error(err instanceof Error ? err.message : t('common.unknownError'))) }
                               setDraggingId(null); setDropTargetKey(null); dragDataRef.current = null
@@ -2094,13 +2107,19 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{res.title}</div>
                       <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 2 }}>
-                        {res.reservation_time?.includes('T')
-                          ? new Date(res.reservation_time).toLocaleString(locale, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: timeFormat === '12h' })
-                          : res.reservation_time
-                            ? new Date(res.reservation_time + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
+                        {(() => {
+                          const { date, time } = splitReservationDateTime(res.reservation_time)
+                          const { time: endTime } = splitReservationDateTime(res.reservation_end_time)
+                          const dateStr = date
+                            ? new Date(date + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
                             : ''
-                        }
-                        {res.reservation_end_time?.includes('T') && ` – ${new Date(res.reservation_end_time).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: timeFormat === '12h' })}`}
+                          const timeStr = time ? formatTime(time, locale, timeFormat) : ''
+                          const endStr = endTime ? formatTime(endTime, locale, timeFormat) : ''
+                          const parts: string[] = []
+                          if (dateStr) parts.push(dateStr)
+                          if (timeStr) parts.push(timeStr + (endStr ? ` – ${endStr}` : ''))
+                          return parts.join(', ')
+                        })()}
                       </div>
                     </div>
                     <div style={{

@@ -1,19 +1,27 @@
 {
   "name": "trek-server",
-  "version": "3.0.18",
+  "version": "3.0.22",
   "main": "src/index.ts",
   "scripts": {
-    "start": "node --import tsx src/index.ts",
-    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "dev": "node scripts/dev.mjs",
+    "build": "node scripts/build.mjs",
+    "start:prod": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "test:ws": "vitest run tests/websocket",
+    "test:parity": "vitest run tests/parity",
+    "test:e2e": "vitest run tests/e2e",
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.28.0",
+    "@nestjs/common": "^11.1.24",
+    "@nestjs/core": "^11.1.24",
+    "@nestjs/platform-express": "^11.1.24",
     "archiver": "^6.0.1",
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^12.8.0",
@@ -30,22 +38,30 @@
     "nodemailer": "^8.0.5",
     "otplib": "^12.0.1",
     "qrcode": "^1.5.4",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
     "semver": "^7.7.4",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
     "undici": "^7.0.0",
     "unzipper": "^0.12.3",
     "uuid": "^14.0.0",
-    "ws": "^8.19.0",
+    "ws": "^8.21.0",
     "zod": "^4.3.6"
   },
   "overrides": {
     "hono": "^4.12.16",
     "@hono/node-server": "^1.19.13",
     "picomatch": "^4.0.4",
-    "ip-address": "^10.1.1"
+    "ip-address": "^10.1.1",
+    "multer": "^2.1.1",
+    "ws": "^8.21.0",
+    "qs": "^6.15.2",
+    "file-type": "^21.3.4"
   },
   "devDependencies": {
+    "@nestjs/testing": "^11.1.24",
+    "@swc/core": "^1.15.40",
     "@types/archiver": "^7.0.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^7.6.13",
@@ -66,7 +82,9 @@
     "@vitest/coverage-v8": "^3.2.4",
     "nodemon": "^3.1.0",
     "supertest": "^7.2.2",
+    "tsc-alias": "^1.8.17",
     "tz-lookup": "^6.1.25",
+    "unplugin-swc": "^1.5.9",
     "vitest": "^3.2.4"
   }
 }

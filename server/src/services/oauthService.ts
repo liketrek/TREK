@@ -60,6 +60,7 @@ interface OAuthClientRow {
   created_at: string;
   is_public: number;       // 0 | 1 (SQLite boolean)
   created_via: string;     // 'settings_ui' | 'browser-registration'
+  allows_client_credentials: number; // 0 | 1
 }
 
 interface OAuthTokenRow {
@@ -106,11 +107,12 @@ function generateRefreshToken(): string {
 
 export function listOAuthClients(userId: number): Record<string, unknown>[] {
   const rows = db.prepare(
-    'SELECT id, user_id, name, client_id, redirect_uris, allowed_scopes, created_at, is_public, created_via FROM oauth_clients WHERE user_id = ? ORDER BY created_at DESC'
+    'SELECT id, user_id, name, client_id, redirect_uris, allowed_scopes, created_at, is_public, created_via, allows_client_credentials FROM oauth_clients WHERE user_id = ? ORDER BY created_at DESC'
   ).all(userId) as OAuthClientRow[];
   return rows.map(r => ({
     ...r,
     is_public: Boolean(r.is_public),
+    allows_client_credentials: Boolean(r.allows_client_credentials),
     redirect_uris: JSON.parse(r.redirect_uris),
     allowed_scopes: JSON.parse(r.allowed_scopes),
   }));
@@ -132,11 +134,12 @@ export function createOAuthClient(
   redirectUris: string[],
   allowedScopes: string[],
   ip?: string | null,
-  options?: { isPublic?: boolean; createdVia?: string },
+  options?: { isPublic?: boolean; createdVia?: string; allowsClientCredentials?: boolean },
 ): { error?: string; status?: number; client?: Record<string, unknown> } {
   if (!name?.trim()) return { error: 'Name is required', status: 400 };
   if (name.trim().length > 100) return { error: 'Name must be 100 characters or less', status: 400 };
-  if (!redirectUris || redirectUris.length === 0) return { error: 'At least one redirect URI is required', status: 400 };
+  const isMachineClient = Boolean(options?.allowsClientCredentials);
+  if (!isMachineClient && (!redirectUris || redirectUris.length === 0)) return { error: 'At least one redirect URI is required', status: 400 };
   if (redirectUris.length > 10) return { error: 'Maximum 10 redirect URIs per client', status: 400 };
 
   for (const uri of redirectUris) {
@@ -164,7 +167,8 @@ export function createOAuthClient(
     if (count >= 500) return { error: 'server_error', status: 503 };
   }
 
-  const isPublic    = options?.isPublic ?? false;
+  // Machine clients (client_credentials) must always be confidential — ignore isPublic for them.
+  const isPublic    = isMachineClient ? false : (options?.isPublic ?? false);
   const createdVia  = options?.createdVia ?? 'settings_ui';
   const id          = randomUUID();
   const clientId    = randomUUID();
@@ -173,14 +177,14 @@ export function createOAuthClient(
   const secretHash  = rawSecret ? hashToken(rawSecret) : randomBytes(32).toString('hex');
 
   db.prepare(
-    'INSERT INTO oauth_clients (id, user_id, name, client_id, client_secret_hash, redirect_uris, allowed_scopes, is_public, created_via) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).run(id, userId, name.trim(), clientId, secretHash, JSON.stringify(redirectUris), JSON.stringify(allowedScopes), isPublic ? 1 : 0, createdVia);
+    'INSERT INTO oauth_clients (id, user_id, name, client_id, client_secret_hash, redirect_uris, allowed_scopes, is_public, created_via, allows_client_credentials) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(id, userId, name.trim(), clientId, secretHash, JSON.stringify(redirectUris), JSON.stringify(allowedScopes), isPublic ? 1 : 0, createdVia, isMachineClient ? 1 : 0);
 
   const row = db.prepare(
-    'SELECT id, user_id, name, client_id, redirect_uris, allowed_scopes, created_at, is_public, created_via FROM oauth_clients WHERE id = ?'
+    'SELECT id, user_id, name, client_id, redirect_uris, allowed_scopes, created_at, is_public, created_via, allows_client_credentials FROM oauth_clients WHERE id = ?'
   ).get(id) as OAuthClientRow;
 
-  writeAudit({ userId, action: 'oauth.client.create', details: { client_id: clientId, name: name.trim(), is_public: isPublic }, ip });
+  writeAudit({ userId, action: 'oauth.client.create', details: { client_id: clientId, name: name.trim(), is_public: isPublic, allows_client_credentials: isMachineClient }, ip });
 
   return {
     client: {
@@ -192,6 +196,7 @@ export function createOAuthClient(
       allowed_scopes: JSON.parse(row.allowed_scopes),
       created_at: row.created_at,
       is_public: Boolean(row.is_public),
+      allows_client_credentials: Boolean(row.allows_client_credentials),
       created_via: row.created_via,
       // client_secret only present for confidential clients — shown once, not stored in plain text
       ...(rawSecret ? { client_secret: rawSecret } : {}),
@@ -327,6 +332,43 @@ export function issueTokens(
     token_type:    'Bearer',
     expires_in:    ACCESS_TOKEN_TTL_S,
     scope:         scopes.join(' '),
+  };
+}
+
+// Issues an access token only — no refresh token (RFC 6749 §4.4.3).
+// Used exclusively for the client_credentials grant. A random opaque hash is
+// stored in refresh_token_hash to satisfy the NOT NULL/UNIQUE constraint; it
+// can never be presented as a valid refresh token (same precedent as public
+// client secret hashes stored in client_secret_hash).
+export function issueClientCredentialsToken(
+  clientId: string,
+  userId: number,
+  scopes: string[],
+  audience: string,
+): {
+  access_token: string;
+  token_type: 'Bearer';
+  expires_in: number;
+  scope: string;
+} {
+  const rawAccess       = generateAccessToken();
+  const accessHash      = hashToken(rawAccess);
+  const placeholderHash = randomBytes(32).toString('hex');
+
+  const now         = new Date();
+  const accessExpiry = new Date(now.getTime() + ACCESS_TOKEN_TTL_S * 1000);
+
+  db.prepare(`
+    INSERT INTO oauth_tokens
+      (client_id, user_id, access_token_hash, refresh_token_hash, scopes, audience, access_token_expires_at, refresh_token_expires_at, parent_token_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(clientId, userId, accessHash, placeholderHash, JSON.stringify(scopes), audience, accessExpiry.toISOString(), now.toISOString(), null);
+
+  return {
+    access_token: rawAccess,
+    token_type:   'Bearer',
+    expires_in:   ACCESS_TOKEN_TTL_S,
+    scope:        scopes.join(' '),
   };
 }
 

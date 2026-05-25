@@ -506,6 +506,11 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
   // Reservations as events
   for (const r of reservations) {
     if (!r.reservation_time) continue;
+    // Skip time-only values (no calendar date — occurs on relative "Day N" trips)
+    const hasDate = r.reservation_time.includes('T')
+      ? /^\d{4}-\d{2}-\d{2}$/.test(r.reservation_time.split('T')[0])
+      : /^\d{4}-\d{2}-\d{2}$/.test(r.reservation_time);
+    if (!hasDate) continue;
     const hasTime = r.reservation_time.includes('T');
     const meta = r.metadata ? (typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata) : {};
 

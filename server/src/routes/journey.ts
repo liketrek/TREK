@@ -98,7 +98,7 @@ router.delete('/entries/:entryId', authenticate, (req: Request, res: Response) =
 
 // ── Photos (prefix /photos and /entries — before /:id) ───────────────────
 
-router.post('/entries/:entryId/photos', authenticate, upload.array('photos', 10), async (req: Request, res: Response) => {
+router.post('/entries/:entryId/photos', authenticate, upload.array('photos'), async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const files = req.files as Express.Multer.File[];
   if (!files?.length) return res.status(400).json({ error: 'No files uploaded' });
@@ -201,7 +201,7 @@ router.delete('/photos/:photoId', authenticate, async (req: Request, res: Respon
 // ── Gallery (prefix /:id/gallery — before /:id) ──────────────────────────
 
 // Upload photos directly to the journey gallery (no entry association)
-router.post('/:id/gallery/photos', authenticate, upload.array('photos', 20), async (req: Request, res: Response) => {
+router.post('/:id/gallery/photos', authenticate, upload.array('photos'), async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const files = req.files as Express.Multer.File[];
   if (!files?.length) return res.status(400).json({ error: 'No files uploaded' });

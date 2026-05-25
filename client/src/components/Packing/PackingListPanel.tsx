@@ -69,6 +69,10 @@ function katColor(kat, allCategories) {
 
 interface PackingBag { id: number; trip_id: number; name: string; color: string; weight_limit_grams: number | null; user_id?: number | null; assigned_username?: string | null }
 
+/** Weight an item contributes to a total: unit weight times quantity (defaults: 0 g, qty 1). */
+export const itemWeight = (i: { weight_grams?: number | null; quantity?: number | null }): number =>
+  (i.weight_grams || 0) * (i.quantity || 1)
+
 // ── Bag Card ──────────────────────────────────────────────────────────────
 
 interface BagCardProps {
@@ -1311,8 +1315,8 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
 
           {bags.map(bag => {
             const bagItems = items.filter(i => i.bag_id === bag.id)
-            const totalWeight = bagItems.reduce((sum, i) => sum + (i.weight_grams || 0), 0)
-            const maxWeight = bag.weight_limit_grams || Math.max(...bags.map(b => items.filter(i => i.bag_id === b.id).reduce((s, i) => s + (i.weight_grams || 0), 0)), 1)
+            const totalWeight = bagItems.reduce((sum, i) => sum + itemWeight(i), 0)
+            const maxWeight = bag.weight_limit_grams || Math.max(...bags.map(b => items.filter(i => i.bag_id === b.id).reduce((s, i) => s + itemWeight(i), 0)), 1)
             const pct = Math.min(100, Math.round((totalWeight / maxWeight) * 100))
             return (
               <BagCard key={bag.id} bag={bag} bagItems={bagItems} totalWeight={totalWeight} pct={pct} tripId={tripId} tripMembers={tripMembers} canEdit={canEdit} onDelete={() => handleDeleteBag(bag.id)} onUpdate={handleUpdateBag} onSetMembers={handleSetBagMembers} t={t} compact />
@@ -1322,7 +1326,7 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
           {/* Unassigned */}
           {(() => {
             const unassigned = items.filter(i => !i.bag_id)
-            const unassignedWeight = unassigned.reduce((s, i) => s + (i.weight_grams || 0), 0)
+            const unassignedWeight = unassigned.reduce((s, i) => s + itemWeight(i), 0)
             if (unassigned.length === 0) return null
             return (
               <div style={{ marginBottom: 14, opacity: 0.6 }}>
@@ -1342,7 +1346,7 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
           <div style={{ borderTop: '1px solid var(--border-secondary)', paddingTop: 10, marginTop: 6 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>
               <span>{t('packing.totalWeight')}</span>
-              <span>{(() => { const w = items.reduce((s, i) => s + (i.weight_grams || 0), 0); return w >= 1000 ? `${(w / 1000).toFixed(1)} kg` : `${w} g` })()}</span>
+              <span>{(() => { const w = items.reduce((s, i) => s + itemWeight(i), 0); return w >= 1000 ? `${(w / 1000).toFixed(1)} kg` : `${w} g` })()}</span>
             </div>
           </div>
 
@@ -1380,8 +1384,8 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
 
             {bags.map(bag => {
               const bagItems = items.filter(i => i.bag_id === bag.id)
-              const totalWeight = bagItems.reduce((sum, i) => sum + (i.weight_grams || 0), 0)
-              const maxWeight = Math.max(...bags.map(b => items.filter(i => i.bag_id === b.id).reduce((s, i) => s + (i.weight_grams || 0), 0)), 1)
+              const totalWeight = bagItems.reduce((sum, i) => sum + itemWeight(i), 0)
+              const maxWeight = Math.max(...bags.map(b => items.filter(i => i.bag_id === b.id).reduce((s, i) => s + itemWeight(i), 0)), 1)
               const pct = Math.min(100, Math.round((totalWeight / maxWeight) * 100))
               return (
                 <BagCard key={bag.id} bag={bag} bagItems={bagItems} totalWeight={totalWeight} pct={pct} tripId={tripId} tripMembers={tripMembers} canEdit={canEdit} onDelete={() => handleDeleteBag(bag.id)} onUpdate={handleUpdateBag} onSetMembers={handleSetBagMembers} t={t} />
@@ -1391,7 +1395,7 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
             {/* Unassigned */}
             {(() => {
               const unassigned = items.filter(i => !i.bag_id)
-              const unassignedWeight = unassigned.reduce((s, i) => s + (i.weight_grams || 0), 0)
+              const unassignedWeight = unassigned.reduce((s, i) => s + itemWeight(i), 0)
               if (unassigned.length === 0) return null
               return (
                 <div style={{ marginBottom: 16, opacity: 0.6 }}>
@@ -1411,7 +1415,7 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
             <div style={{ borderTop: '1px solid var(--border-secondary)', paddingTop: 12, marginTop: 8 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
                 <span>{t('packing.totalWeight')}</span>
-                <span>{(() => { const w = items.reduce((s, i) => s + (i.weight_grams || 0), 0); return w >= 1000 ? `${(w / 1000).toFixed(1)} kg` : `${w} g` })()}</span>
+                <span>{(() => { const w = items.reduce((s, i) => s + itemWeight(i), 0); return w >= 1000 ? `${(w / 1000).toFixed(1)} kg` : `${w} g` })()}</span>
               </div>
             </div>
 

@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios'
+import type { WeatherResult } from '@trek/shared'
 import { getSocketId } from './websocket'
 import { isReachable, probeNow } from '../sync/connectivity'
 import en from '../i18n/translations/en'
@@ -209,7 +210,7 @@ export const oauthApi = {
 
   clients: {
     list: () => apiClient.get('/oauth/clients').then(r => r.data),
-    create: (data: { name: string; redirect_uris: string[]; allowed_scopes: string[] }) =>
+    create: (data: { name: string; redirect_uris?: string[]; allowed_scopes: string[]; allows_client_credentials?: boolean }) =>
         apiClient.post('/oauth/clients', data).then(r => r.data),
     rotate: (id: string) => apiClient.post(`/oauth/clients/${id}/rotate`).then(r => r.data),
     delete: (id: string) => apiClient.delete(`/oauth/clients/${id}`).then(r => r.data),
@@ -407,8 +408,20 @@ export const journeyApi = {
   reorderEntries: (journeyId: number, orderedIds: number[]) => apiClient.put(`/journeys/${journeyId}/entries/reorder`, { orderedIds }).then(r => r.data),
 
   // Photos
-  uploadPhotos: (entryId: number, formData: FormData) => apiClient.post(`/journeys/entries/${entryId}/photos`, formData, { headers: { 'Content-Type': undefined as any } }).then(r => r.data),
-  uploadGalleryPhotos: (journeyId: number, formData: FormData) => apiClient.post(`/journeys/${journeyId}/gallery/photos`, formData, { headers: { 'Content-Type': undefined as any } }).then(r => r.data),
+  uploadPhotos: (entryId: number, formData: FormData, opts?: { onUploadProgress?: (e: import('axios').AxiosProgressEvent) => void; idempotencyKey?: string; signal?: AbortSignal }) =>
+    apiClient.post(`/journeys/entries/${entryId}/photos`, formData, {
+      headers: { 'Content-Type': undefined as any, ...(opts?.idempotencyKey ? { 'X-Idempotency-Key': opts.idempotencyKey } : {}) },
+      timeout: 0,
+      onUploadProgress: opts?.onUploadProgress,
+      signal: opts?.signal,
+    }).then(r => r.data),
+  uploadGalleryPhotos: (journeyId: number, formData: FormData, opts?: { onUploadProgress?: (e: import('axios').AxiosProgressEvent) => void; idempotencyKey?: string; signal?: AbortSignal }) =>
+    apiClient.post(`/journeys/${journeyId}/gallery/photos`, formData, {
+      headers: { 'Content-Type': undefined as any, ...(opts?.idempotencyKey ? { 'X-Idempotency-Key': opts.idempotencyKey } : {}) },
+      timeout: 0,
+      onUploadProgress: opts?.onUploadProgress,
+      signal: opts?.signal,
+    }).then(r => r.data),
   addProviderPhotosToGallery: (journeyId: number, provider: string, assetIds: string[], passphrase?: string) => apiClient.post(`/journeys/${journeyId}/gallery/provider-photos`, { provider, asset_ids: assetIds, ...(passphrase ? { passphrase } : {}) }).then(r => r.data),
   addProviderPhoto: (entryId: number, provider: string, assetId: string, caption?: string, passphrase?: string) => apiClient.post(`/journeys/entries/${entryId}/provider-photos`, { provider, asset_id: assetId, caption, ...(passphrase ? { passphrase } : {}) }).then(r => r.data),
   addProviderPhotos: (entryId: number, provider: string, assetIds: string[], caption?: string, passphrase?: string) => apiClient.post(`/journeys/entries/${entryId}/provider-photos`, { provider, asset_ids: assetIds, caption, ...(passphrase ? { passphrase } : {}) }).then(r => r.data),
@@ -489,8 +502,8 @@ export const reservationsApi = {
 }
 
 export const weatherApi = {
-  get: (lat: number, lng: number, date: string) => apiClient.get('/weather', { params: { lat, lng, date } }).then(r => r.data),
-  getDetailed: (lat: number, lng: number, date: string, lang?: string) => apiClient.get('/weather/detailed', { params: { lat, lng, date, lang } }).then(r => r.data),
+  get: (lat: number, lng: number, date: string): Promise<WeatherResult> => apiClient.get('/weather', { params: { lat, lng, date } }).then(r => r.data),
+  getDetailed: (lat: number, lng: number, date: string, lang?: string): Promise<WeatherResult> => apiClient.get('/weather/detailed', { params: { lat, lng, date, lang } }).then(r => r.data),
 }
 
 export const configApi = {

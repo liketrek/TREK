@@ -37,6 +37,7 @@ Each entry corresponds to a day in your journey. The entry editor provides:
 
 - **Weather** — choose one of six values: Sunny, Partly cloudy, Cloudy, Rainy, Stormy, Cold.
 - **Photos** — attach photos to the entry. The first photo becomes the card thumbnail in list views.
+  > **Note on HEIC files:** HEIC is an Apple-only format that many browsers and platforms do not recognise as an image. To ensure broad compatibility, HEIC/HEIF files are automatically converted to JPEG before upload. This conversion may result in the loss of embedded metadata (EXIF data such as GPS coordinates, camera information, etc.).
 - **Pros / Cons** — optional verdict cards. Add items to a **Pros** list (thumbs-up) or a **Cons** list (thumbs-down) to summarise what you loved or what could have been better. These are stored in the `pros_cons.pros` and `pros_cons.cons` arrays on the entry.
 - **Tags** — free-form labels (e.g. "hidden gem", "best meal").
 - **Location** — pin the entry to a map location.

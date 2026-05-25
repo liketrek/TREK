@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import path from 'node:path';
 import fs from 'node:fs';
 
+import multer from 'multer';
 import { logDebug, logWarn, logError } from './services/auditLog';
 import { enforceGlobalMfaPolicy } from './middleware/mfaPolicy';
 import { authenticate, verifyJwtAndLoadUser } from './middleware/auth';
@@ -25,7 +26,6 @@ import airportsRoutes from './routes/airports';
 import filesRoutes from './routes/files';
 import reservationsRoutes from './routes/reservations';
 import dayNotesRoutes from './routes/dayNotes';
-import weatherRoutes from './routes/weather';
 import settingsRoutes from './routes/settings';
 import budgetRoutes from './routes/budget';
 import collabRoutes from './routes/collab';
@@ -122,7 +122,7 @@ export function createApp(): express.Application {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'wasm-unsafe-eval'"],
+        scriptSrc: ["'self'", "'wasm-unsafe-eval'", "'unsafe-eval'"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://unpkg.com"],
         imgSrc: ["'self'", "data:", "blob:", "https:"],
         connectSrc: [
@@ -360,7 +360,8 @@ export function createApp(): express.Application {
   app.use('/api/photos', photoRoutes);
   app.use('/api/maps', mapsRoutes);
   app.use('/api/airports', airportsRoutes);
-  app.use('/api/weather', weatherRoutes);
+  // /api/weather is served by the NestJS weather module (see src/nest/weather);
+  // the legacy Express route was decommissioned after the migration (L1).
   app.use('/api/settings', settingsRoutes);
   app.use('/api/system-notices', systemNoticesRoutes);
   app.use('/api/backup', backupRoutes);
@@ -396,7 +397,7 @@ export function createApp(): express.Application {
       revocation_endpoint:                   `${base}/oauth/revoke`,
       registration_endpoint:                 `${base}/oauth/register`,
       response_types_supported:              ['code'],
-      grant_types_supported:                 ['authorization_code', 'refresh_token'],
+      grant_types_supported:                 ['authorization_code', 'refresh_token', 'client_credentials'],
       code_challenge_methods_supported:      ['S256'],
       token_endpoint_auth_methods_supported: ['client_secret_post', 'none'],
       scopes_supported:                      ALL_SCOPES,
@@ -506,6 +507,10 @@ export function createApp(): express.Application {
       console.error('Unhandled error:', err.message);
     } else {
       console.error('Unhandled error:', err);
+    }
+    if (err instanceof multer.MulterError) {
+      const status = err.code === 'LIMIT_FILE_SIZE' ? 413 : 400;
+      return res.status(status).json({ error: err.message });
     }
     const status = err.statusCode || err.status || 500;
     // Expose the message for client errors (4xx); keep 'Internal server error' for 5xx.

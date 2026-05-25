@@ -10,6 +10,7 @@ import {
   consumeAuthCode,
   saveConsent,
   issueTokens,
+  issueClientCredentialsToken,
   refreshTokens,
   revokeToken,
   verifyPKCE,
@@ -24,6 +25,7 @@ import {
   AuthorizeParams,
 } from '../services/oauthService';
 import { writeAudit, getClientIp, logWarn } from '../services/auditLog';
+import { getMcpSafeUrl } from '../services/notifications';
 
 // ---------------------------------------------------------------------------
 // Minimal in-file rate limiter (same pattern as auth.ts)
@@ -149,6 +151,48 @@ oauthPublicRouter.post('/oauth/token', tokenLimiter, (req: Request, res: Respons
     }
 
     return res.json(result.tokens);
+  }
+
+  // ---- client_credentials grant ----
+  if (grant_type === 'client_credentials') {
+    if (!client_secret) {
+      return res.status(401).json({ error: 'invalid_client', error_description: 'client_secret is required for client_credentials grant' });
+    }
+
+    const client = authenticateClient(client_id, client_secret);
+    if (!client) {
+      logWarn(`[OAuth] Invalid client credentials for client_id=${client_id} ip=${ip ?? '-'}`);
+      writeAudit({ userId: null, action: 'oauth.token.client_auth_failed', details: { client_id }, ip });
+      return res.status(401).json({ error: 'invalid_client', error_description: 'Invalid client credentials' });
+    }
+
+    // Public clients and DCR-anonymous clients are ineligible for client_credentials.
+    if (client.is_public || !client.allows_client_credentials || client.user_id == null) {
+      writeAudit({ userId: client.user_id ?? null, action: 'oauth.token.grant_failed', details: { client_id, reason: 'unauthorized_client' }, ip });
+      return res.status(400).json({ error: 'unauthorized_client', error_description: 'This client is not authorized for the client_credentials grant' });
+    }
+
+    // Scope: use requested subset or fall back to all allowed scopes.
+    const allowedScopes: string[] = JSON.parse(client.allowed_scopes);
+    let grantedScopes: string[];
+    if (body.scope) {
+      const requested = body.scope.split(' ').filter(Boolean);
+      const invalid = requested.filter(s => !allowedScopes.includes(s));
+      if (invalid.length > 0) {
+        return res.status(400).json({ error: 'invalid_scope', error_description: `Scopes not allowed for this client: ${invalid.join(', ')}` });
+      }
+      grantedScopes = requested;
+    } else {
+      grantedScopes = allowedScopes;
+    }
+
+    // Audience: honour RFC 8707 resource param; default to the MCP endpoint so the
+    // token passes audience binding in mcp/index.ts without extra configuration.
+    const audience = resource ? resource.replace(/\/+$/, '') : `${getMcpSafeUrl().replace(/\/+$/, '')}/mcp`;
+
+    const tokens = issueClientCredentialsToken(client_id, client.user_id, grantedScopes, audience);
+    writeAudit({ userId: client.user_id, action: 'oauth.token.issue', details: { client_id, scopes: grantedScopes, audience, grant: 'client_credentials' }, ip });
+    return res.json(tokens);
   }
 
   return res.status(400).json({ error: 'unsupported_grant_type', error_description: `Unsupported grant_type: ${grant_type}` });
@@ -327,13 +371,14 @@ oauthApiRouter.get('/clients', authenticate, (req: Request, res: Response) => {
 oauthApiRouter.post('/clients', requireCookieAuth, (req: Request, res: Response) => {
   if (!isAddonEnabled(ADDON_IDS.MCP)) return res.status(403).json({ error: 'MCP is not enabled' });
   const { user } = req as AuthRequest;
-  const { name, redirect_uris, allowed_scopes } = req.body as {
+  const { name, redirect_uris, allowed_scopes, allows_client_credentials } = req.body as {
     name: string;
-    redirect_uris: string[];
+    redirect_uris?: string[];
     allowed_scopes: string[];
+    allows_client_credentials?: boolean;
   };
 
-  const result = createOAuthClient(user.id, name, redirect_uris, allowed_scopes, getClientIp(req));
+  const result = createOAuthClient(user.id, name, redirect_uris ?? [], allowed_scopes, getClientIp(req), { allowsClientCredentials: allows_client_credentials });
   if (result.error) return res.status(result.status || 400).json({ error: result.error });
   return res.status(201).json(result);
 });

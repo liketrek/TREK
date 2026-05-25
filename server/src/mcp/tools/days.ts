@@ -116,7 +116,7 @@ export function registerDayTools(server: McpServer, userId: number, scopes: stri
   server.registerTool(
     'create_place_accommodation',
     {
-      description: 'Create a new place and immediately set it as an accommodation for a date range in one atomic operation. Use place details from search_place results. Only use when the place does not yet exist — if it already exists, use create_accommodation directly.',
+      description: 'Create a new place and immediately set it as an accommodation for a date range in one atomic operation. Use place details from search_place results. Only use when the place does not yet exist — if it already exists, use create_accommodation directly. Set price + currency to record the accommodation cost so it shows on the item.',
       inputSchema: {
         tripId: z.number().int().positive(),
         name: z.string().min(1).max(200),
@@ -136,17 +136,19 @@ export function registerDayTools(server: McpServer, userId: number, scopes: stri
         check_out: z.string().max(10).optional().describe('Check-out time e.g. "11:00"'),
         confirmation: z.string().max(100).optional(),
         accommodation_notes: z.string().max(1000).optional().describe('Notes for the accommodation'),
+        price: z.number().nonnegative().optional().describe('Total accommodation cost (shown on the item)'),
+        currency: z.string().length(3).optional().describe('ISO 4217 currency code (e.g. "EUR", "USD")'),
       },
       annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     },
-    async ({ tripId, name, description, lat, lng, address, category_id, google_place_id, osm_id, place_notes, website, phone, start_day_id, end_day_id, check_in, check_out, confirmation, accommodation_notes }) => {
+    async ({ tripId, name, description, lat, lng, address, category_id, google_place_id, osm_id, place_notes, website, phone, start_day_id, end_day_id, check_in, check_out, confirmation, accommodation_notes, price, currency }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
       const dayErrors = validateAccommodationRefs(tripId, undefined, start_day_id, end_day_id);
       if (dayErrors.length > 0) return { content: [{ type: 'text' as const, text: dayErrors.map(e => e.message).join(', ') }], isError: true };
       try {
         const run = db.transaction(() => {
-          const place = createPlace(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, osm_id, notes: place_notes, website, phone });
+          const place = createPlace(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, osm_id, notes: place_notes, website, phone, price, currency });
           const accommodation = createAccommodation(tripId, { place_id: place.id, start_day_id, end_day_id, check_in, check_out, confirmation, notes: accommodation_notes });
           return { place, accommodation };
         });

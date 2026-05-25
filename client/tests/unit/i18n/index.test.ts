@@ -91,9 +91,10 @@ describe('isRtlLanguage', () => {
 describe('SUPPORTED_LANGUAGES', () => {
   it('FE-COMP-I18N-009: contains expected entries with value/label shape', () => {
     expect(Array.isArray(SUPPORTED_LANGUAGES)).toBe(true)
-    expect(SUPPORTED_LANGUAGES).toHaveLength(16)
+    expect(SUPPORTED_LANGUAGES).toHaveLength(17)
     expect(SUPPORTED_LANGUAGES).toContainEqual(expect.objectContaining({ value: 'en', label: 'English' }))
     expect(SUPPORTED_LANGUAGES).toContainEqual(expect.objectContaining({ value: 'tr', label: 'Türkçe' }))
+    expect(SUPPORTED_LANGUAGES).toContainEqual(expect.objectContaining({ value: 'ja', label: '日本語' }))
     expect(SUPPORTED_LANGUAGES).toContainEqual(expect.objectContaining({ value: 'ar', label: 'العربية' }))
   })
 })

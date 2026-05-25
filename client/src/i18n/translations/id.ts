@@ -387,6 +387,10 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   'settings.oauth.toast.revoked': 'Sesi dicabut',
   'settings.oauth.toast.revokeError': 'Gagal mencabut sesi',
   'settings.oauth.toast.rotateError': 'Gagal memutar ulang client secret',
+  'settings.oauth.modal.machineClient': 'Klien mesin (tanpa login browser)',
+  'settings.oauth.modal.machineClientHint': 'Menggunakan grant client_credentials — tidak perlu URI pengalihan. Token diterbitkan langsung melalui client_id + client_secret dan bertindak sebagai Anda dalam cakupan yang dipilih.',
+  'settings.oauth.modal.machineClientUsage': 'Dapatkan token: POST /oauth/token dengan grant_type=client_credentials, client_id, dan client_secret. Tanpa browser, tanpa refresh token.',
+  'settings.oauth.badge.machine': 'mesin',
   'settings.account': 'Akun',
   'settings.about': 'Tentang',
   'settings.about.reportBug': 'Laporkan Bug',
@@ -2094,8 +2098,11 @@ const id: Record<string, string | { name: string; category: string }[]> = {
 
   // Journey Entry Editor
   'journey.editor.discardChangesConfirm': 'Anda memiliki perubahan yang belum disimpan. Buang?',
+  'journey.editor.uploadFailed': 'Gagal mengunggah foto',
   'journey.editor.uploadPhotos': 'Unggah foto',
   'journey.editor.uploading': 'Mengunggah...',
+  'journey.editor.uploadingProgress': 'Mengunggah {done}/{total}…',
+  'journey.editor.uploadPartialFailed': '{failed} dari {total} foto gagal — simpan lagi untuk mencoba ulang',
   'journey.editor.fromGallery': 'Dari Galeri',
   'journey.editor.allPhotosAdded': 'Semua foto sudah ditambahkan',
   'journey.editor.writeStory': 'Tulis kisahmu...',
@@ -2198,6 +2205,7 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   'journey.settings.failedToDelete': 'Gagal menghapus',
   'journey.entries.deleteTitle': 'Hapus Entri',
   'journey.photosUploaded': '{count} foto diunggah',
+  'journey.photosUploadFailed': 'Beberapa foto gagal diunggah',
   'journey.photosAdded': '{count} foto ditambahkan',
 
   // Journey — Public Page

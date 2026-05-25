@@ -147,7 +147,8 @@ export const trekOAuthProvider: OAuthServerProvider = {
         if (params.state) qs.set('state', params.state);
         if (params.resource) qs.set('resource', params.resource.href);
 
-        res.redirect(302, `/oauth/consent?${qs.toString()}`);
+        const base = getMcpSafeUrl().replace(/\/+$/, '');
+        res.redirect(302, `${base}/oauth/consent?${qs.toString()}`);
     },
 
     // Not called because skipLocalPkceValidation = true.

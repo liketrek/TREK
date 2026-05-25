@@ -2229,6 +2229,42 @@ function runMigrations(db: Database.Database): void {
       db.exec(`ALTER TABLE schema_version_new RENAME TO schema_version`)
       db.exec(`UPDATE app_settings SET value = '${process.env.APP_VERSION || '3.0.15'}' WHERE key = 'app_version'`);
     },
+    // Migration: OAuth 2.0 client_credentials grant — allow user-owned confidential
+    // clients to skip the browser consent flow entirely and obtain tokens directly
+    // via client_id + client_secret. Flag is immutable after creation so existing
+    // authorization-code clients are not silently upgraded.
+    () => {
+      try { db.exec('ALTER TABLE oauth_clients ADD COLUMN allows_client_credentials INTEGER NOT NULL DEFAULT 0'); }
+      catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+    },
+    // Drop stale atlas cache rows for territories that used to resolve to their
+    // surrounding country (Hong Kong/Macau as China, San Marino/Vatican as Italy,
+    // etc.) before their own bounding boxes existed. The next atlas stats request
+    // re-resolves any place inside these boxes with the corrected country code.
+    () => {
+      const enclaveBoxes: [number, number, number, number][] = [
+        [113.83, 22.15, 114.43, 22.56], // HK
+        [113.53, 22.10, 113.60, 22.21], // MO
+        [12.40, 43.89, 12.52, 43.99],   // SM
+        [12.44, 41.90, 12.46, 41.91],   // VA
+        [7.40, 43.72, 7.44, 43.75],     // MC
+        [9.47, 47.05, 9.64, 47.27],     // LI
+        [-5.36, 36.11, -5.33, 36.16],   // GI
+        [-67.30, 17.88, -65.22, 18.53], // PR
+      ];
+      try {
+        const del = db.prepare(
+          `DELETE FROM place_regions WHERE place_id IN (
+             SELECT id FROM places WHERE lat BETWEEN ? AND ? AND lng BETWEEN ? AND ?
+           )`
+        );
+        for (const [minLng, minLat, maxLng, maxLat] of enclaveBoxes) {
+          del.run(minLat, maxLat, minLng, maxLng);
+        }
+      } catch (err: any) {
+        if (!err.message?.includes('no such table')) throw err;
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {

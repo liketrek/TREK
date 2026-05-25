@@ -403,6 +403,10 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'settings.oauth.toast.revoked': 'Session revoked',
   'settings.oauth.toast.revokeError': 'Failed to revoke session',
   'settings.oauth.toast.rotateError': 'Failed to rotate client secret',
+  'settings.oauth.modal.machineClient': 'Machine client (no browser login)',
+  'settings.oauth.modal.machineClientHint': 'Use client_credentials grant — no redirect URIs needed. The token is issued directly via client_id + client_secret and acts as you within the selected scopes.',
+  'settings.oauth.modal.machineClientUsage': 'Get a token: POST /oauth/token with grant_type=client_credentials, client_id, and client_secret. No browser, no refresh token.',
+  'settings.oauth.badge.machine': 'machine',
   'settings.account': 'Account',
   'settings.about': 'About',
   'settings.about.reportBug': 'Report a Bug',
@@ -2111,8 +2115,11 @@ const en: Record<string, string | { name: string; category: string }[]> = {
 
   // Journey Entry Editor
   'journey.editor.discardChangesConfirm': 'You have unsaved changes. Discard them?',
+  'journey.editor.uploadFailed': 'Photo upload failed',
   'journey.editor.uploadPhotos': 'Upload photos',
   'journey.editor.uploading': 'Uploading...',
+  'journey.editor.uploadingProgress': 'Uploading {done}/{total}…',
+  'journey.editor.uploadPartialFailed': '{failed} of {total} photos failed — save again to retry',
   'journey.editor.fromGallery': 'From Gallery',
   'journey.editor.allPhotosAdded': 'All photos already added',
   'journey.editor.writeStory': 'Write your story...',
@@ -2219,6 +2226,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'journey.settings.failedToDelete': 'Failed to delete',
   'journey.entries.deleteTitle': 'Delete Entry',
   'journey.photosUploaded': '{count} photos uploaded',
+  'journey.photosUploadFailed': 'Some photos failed to upload',
   'journey.photosAdded': '{count} photos added',
 
   // Journey — Public Page
