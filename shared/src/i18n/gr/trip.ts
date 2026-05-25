@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const trip: TranslationStrings = {
+  'trip.tabs.plan': 'Πλάνο',
+  'trip.tabs.transports': 'Μεταφορές',
+  'trip.tabs.reservations': 'Κρατήσεις',
+  'trip.tabs.reservationsShort': 'Κράτ.',
+  'trip.tabs.packing': 'Λίστα Αποσκευών',
+  'trip.tabs.packingShort': 'Αποσκευές',
+  'trip.tabs.lists': 'Λίστες',
+  'trip.tabs.listsShort': 'Λίστες',
+  'trip.tabs.budget': 'Προϋπολογισμός',
+  'trip.tabs.files': 'Αρχεία',
+  'trip.loading': 'Φόρτωση ταξιδιού...',
+  'trip.loadingPhotos': 'Φόρτωση φωτογραφιών μέρους...',
+  'trip.mobilePlan': 'Πλάνο',
+  'trip.mobilePlaces': 'Μέρη',
+  'trip.toast.placeUpdated': 'Το μέρος ενημερώθηκε',
+  'trip.toast.placeAdded': 'Το μέρος προστέθηκε',
+  'trip.toast.placeDeleted': 'Το μέρος διαγράφηκε',
+  'trip.toast.selectDay': 'Παρακαλώ επιλέξτε πρώτα μια ημέρα',
+  'trip.toast.assignedToDay': 'Το μέρος ανατέθηκε στην ημέρα',
+  'trip.toast.reorderError': 'Η αναδιάταξη απέτυχε',
+  'trip.toast.reservationUpdated': 'Η κράτηση ενημερώθηκε',
+  'trip.toast.reservationAdded': 'Η κράτηση προστέθηκε',
+  'trip.toast.deleted': 'Διαγράφηκε',
+  'trip.confirm.deletePlace': 'Είστε σίγουροι ότι θέλετε να διαγράψετε αυτό το μέρος;',
+  'trip.confirm.deletePlaces': 'Διαγραφή {count} μερών;',
+  'trip.toast.placesDeleted': '{count} μέρη διαγράφηκαν',
+};
+export default trip;

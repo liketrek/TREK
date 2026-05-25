@@ -18,6 +18,7 @@ export const SUPPORTED_LANGUAGES = [
   { value: 'ja', label: '日本語', locale: 'ja-JP' },
   { value: 'ko', label: '한국어', locale: 'ko-KR' },
   { value: 'uk', label: 'Українська', locale: 'uk-UA' },
+  { value: 'gr', label: 'Ελληνικά', locale: 'el-GR' },
 ] as const;
 
 export type SupportedLanguageCode =
