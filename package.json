@@ -26,5 +26,11 @@
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-musl": "4.60.4",
+    "@rollup/rollup-linux-arm64-musl": "4.60.4",
+    "@img/sharp-linuxmusl-x64": "0.33.5",
+    "@img/sharp-linuxmusl-arm64": "0.33.5"
   }
 }
