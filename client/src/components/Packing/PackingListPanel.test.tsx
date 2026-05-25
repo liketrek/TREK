@@ -8,7 +8,21 @@ import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildTrip, buildPackingItem } from '../../../tests/helpers/factories';
-import PackingListPanel from './PackingListPanel';
+import PackingListPanel, { itemWeight } from './PackingListPanel';
+
+describe('itemWeight (bag total weight calc)', () => {
+  it('FE-COMP-PACKING-030: multiplies unit weight by quantity', () => {
+    expect(itemWeight({ weight_grams: 120, quantity: 3 })).toBe(360);
+  });
+  it('FE-COMP-PACKING-031: defaults quantity to 1 when missing', () => {
+    expect(itemWeight({ weight_grams: 250 })).toBe(250);
+  });
+  it('FE-COMP-PACKING-032: contributes 0 when weight is missing or zero', () => {
+    expect(itemWeight({ quantity: 5 })).toBe(0);
+    expect(itemWeight({ weight_grams: 0, quantity: 5 })).toBe(0);
+    expect(itemWeight({})).toBe(0);
+  });
+});
 
 beforeEach(() => {
   resetAllStores();
