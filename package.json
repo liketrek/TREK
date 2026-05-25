@@ -14,7 +14,7 @@
     "version:premajor": "npm version premajor --preid=rc --workspaces --include-workspace-root --no-git-tag-version",
     "version:preminor": "npm version preminor --preid=beta --workspaces --include-workspace-root --no-git-tag-version",
     "version:prepatch": "npm version prepatch --preid=alpha --workspaces --include-workspace-root --no-git-tag-version",
-    "version:prerelease": "npm version prerelease --preid=alpha --workspaces --include-workspace-root --no-git-tag-version",
+    "version:prerelease": "npm version prerelease --preid=pre --workspaces --include-workspace-root --no-git-tag-version",
     "dev": "npm run build --workspace=shared && concurrently --names shared,server,client \"npm run build:watch --workspace=shared\" \"npm run dev --workspace=server\" \"npm run dev --workspace=client\"",
     "build": "npm run build --workspace=shared && npm run build --workspace=server && npm run build --workspace=client",
     "test": "npm run test --workspace=shared && npm run test --workspace=server && npm run test --workspace=client",
