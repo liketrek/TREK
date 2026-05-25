@@ -8,10 +8,33 @@ on:
     branches: [main, dev]
     paths:
       - 'server/**'
-      - '.github/workflows/test.yml'
       - 'client/**'
+      - 'shared/**'
+      - '.github/workflows/test.yml'
 
 jobs:
+  shared-contracts:
+    name: Shared Contracts (Zod)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: shared/package-lock.json
+
+      - name: Install dependencies
+        run: cd shared && npm ci
+
+      - name: Typecheck
+        run: cd shared && npm run typecheck
+
+      - name: Run tests
+        run: cd shared && npm test
+
   server-tests:
     name: Server Tests
     runs-on: ubuntu-latest
@@ -27,6 +50,15 @@ jobs:
 
       - name: Install dependencies
         run: cd server && npm ci
+
+      - name: Build (tsc + tsc-alias -> dist)
+        run: cd server && npm run build
+
+      - name: Typecheck (informational)
+        # Legacy code still has pre-existing type errors; this surfaces them
+        # without blocking the migration. Ratchet to blocking once cleaned up.
+        continue-on-error: true
+        run: cd server && npm run typecheck
 
       - name: Run tests
         run: cd server && npm run test:coverage
