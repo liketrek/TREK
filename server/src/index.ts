@@ -19,29 +19,55 @@ const tmpDir = path.join(__dirname, '../data/tmp');
 const app = createApp();
 
 import * as scheduler from './scheduler';
+import { getAppUrl, getMcpSafeUrl } from './services/notifications';
 
-const PORT = process.env.PORT || 3001;
-const server = app.listen(PORT, () => {
+const PORT = Number(process.env.PORT) || 3001;
+const HOST = process.env.HOST;
+const APP_VERSION: string = process.env.APP_VERSION || (require('../package.json') as { version: string }).version;
+
+const onListen = () => {
   const { logInfo: sLogInfo, logWarn: sLogWarn } = require('./services/auditLog');
   const LOG_LVL = (process.env.LOG_LEVEL || 'info').toLowerCase();
   const tz = process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
   const origins = process.env.ALLOWED_ORIGINS || '(same-origin)';
+  const appUrl = getAppUrl();
+  const resolvedAppUrl = getMcpSafeUrl();
   const banner = [
     '──────────────────────────────────────',
     '  TREK API started',
-    `  Port:        ${PORT}`,
-    `  Environment: ${process.env.NODE_ENV || 'development'}`,
-    `  Timezone:    ${tz}`,
-    `  Origins:     ${origins}`,
-    `  Log level:   ${LOG_LVL}`,
-    `  Log file:    /app/data/logs/trek.log`,
-    `  PID:         ${process.pid}`,
-    `  User:        uid=${process.getuid?.()} gid=${process.getgid?.()}`,
+    `  Version         ${APP_VERSION}`,
+    ...(HOST ? [`  Host:           ${HOST}`] : []),
+    `  Container Port: ${PORT}`,
+    `  App URL:        ${appUrl}`,
+    `  Environment:    ${process.env.NODE_ENV?.toLowerCase() || 'development'}`,
+    `  Timezone:       ${tz}`,
+    `  Origins:        ${origins}`,
+    `  Log level:      ${LOG_LVL}`,
+    `  Log file:       /app/data/logs/trek.log`,
+    `  PID:            ${process.pid}`,
+    `  User:           uid=${process.getuid?.()} gid=${process.getgid?.()}`,
     '──────────────────────────────────────',
   ];
   banner.forEach(l => console.log(l));
-  if (process.env.DEMO_MODE === 'true') sLogInfo('Demo mode: ENABLED');
-  if (process.env.DEMO_MODE === 'true' && process.env.NODE_ENV === 'production') {
+  if (process.env.APP_URL) {
+    let parsedAppUrl: URL | null = null;
+    try { parsedAppUrl = new URL(process.env.APP_URL); } catch { /* invalid */ }
+
+    if (!parsedAppUrl) {
+      sLogWarn(`APP_URL: "${process.env.APP_URL}" is not a valid URL — it will be ignored.`);
+    }
+
+    const mcpSafe = parsedAppUrl !== null && (
+      parsedAppUrl.protocol === 'https:' ||
+      parsedAppUrl.hostname === 'localhost' ||
+      parsedAppUrl.hostname === '127.0.0.1'
+    );
+    if (!mcpSafe) {
+      sLogWarn(`APP_URL: not MCP-safe (requires https:// or http://localhost) — MCP will use ${resolvedAppUrl}.`);
+    }
+  }
+  if (process.env.DEMO_MODE?.toLowerCase() === 'true') sLogInfo('Demo mode: ENABLED');
+  if (process.env.DEMO_MODE?.toLowerCase() === 'true' && process.env.NODE_ENV?.toLowerCase() === 'production') {
     sLogWarn('SECURITY WARNING: DEMO_MODE is enabled in production!');
   }
   scheduler.start();
@@ -56,7 +82,11 @@ const server = app.listen(PORT, () => {
   import('./websocket').then(({ setupWebSocket }) => {
     setupWebSocket(server);
   });
-});
+};
+
+const server = HOST
+  ? app.listen(PORT, HOST, onListen)
+  : app.listen(PORT, onListen);
 
 // Graceful shutdown
 function shutdown(signal: string): void {

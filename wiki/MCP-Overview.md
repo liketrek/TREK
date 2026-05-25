@@ -18,6 +18,16 @@ Once connected, an AI assistant can work with your TREK data in a single convers
 
 Changes made through MCP are broadcast to all connected clients in real-time — exactly like changes made in the web UI.
 
+## Authentication options
+
+| Use case | Method |
+|---|---|
+| Interactive client (Claude.ai, Cursor, VS Code…) | OAuth 2.1 with browser consent — TREK issues tokens after you approve scopes in a consent screen |
+| AI agent or script running unattended | Machine client (client_credentials) — token obtained directly via `client_id` + `client_secret`, no browser ever opened |
+| Legacy setups | Static API token — deprecated, full access, no scopes |
+
+See [MCP-Setup](MCP-Setup) for step-by-step instructions for each method.
+
 ## Requirements
 
 - **MCP addon enabled** — an administrator must enable the MCP addon (`mcp`) from the Admin Panel before the `/mcp` endpoint becomes available and the MCP section appears in user settings.

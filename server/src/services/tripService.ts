@@ -7,6 +7,7 @@ import { listBudgetItems } from './budgetService';
 import { listItems as listPackingItems } from './packingService';
 import { listReservations } from './reservationService';
 import { listNotes as listCollabNotes } from './collabService';
+import { shiftOwnerEntriesForTripWindow } from './vacayService';
 
 export const MS_PER_DAY = 86400000;
 export const MAX_TRIP_DAYS = 365;
@@ -117,10 +118,11 @@ export function generateDays(tripId: number | bigint | string, startDate: string
     }
   }
 
-  // Overflow dated days (trip shrunk): convert to dateless instead of deleting
-  const nullify = db.prepare('UPDATE days SET date = NULL, day_number = ? WHERE id = ?');
+  // Overflow dated days (trip shrunk): delete them (issue #909).
+  // Cascade removes their assignments, notes, and accommodations.
+  const del = db.prepare('DELETE FROM days WHERE id = ?');
   for (let i = targetDates.length; i < dated.length; i++) {
-    nullify.run(targetDates.length + (i - targetDates.length) + 1, dated[i].id);
+    del.run(dated[i].id);
   }
 
   // Any remaining unused dateless days: keep as dateless, just renumber.
@@ -238,6 +240,9 @@ export function updateTrip(tripId: string | number, userId: number, data: Update
       currency=?, is_archived=?, cover_image=?, reminder_days=?, updated_at=CURRENT_TIMESTAMP
     WHERE id=?
   `).run(newTitle, newDesc, newStart || null, newEnd || null, newCurrency, newArchived, newCover, newReminder, tripId);
+
+  if (trip.start_date && trip.end_date && newStart && newStart !== trip.start_date)
+    shiftOwnerEntriesForTripWindow(trip.user_id, trip.start_date, trip.end_date, newStart);
 
   const dayCount = data.day_count ? Math.min(Math.max(Number(data.day_count) || 7, 1), MAX_TRIP_DAYS) : undefined;
   if (newStart !== trip.start_date || newEnd !== trip.end_date || dayCount)
@@ -501,6 +506,11 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
   // Reservations as events
   for (const r of reservations) {
     if (!r.reservation_time) continue;
+    // Skip time-only values (no calendar date — occurs on relative "Day N" trips)
+    const hasDate = r.reservation_time.includes('T')
+      ? /^\d{4}-\d{2}-\d{2}$/.test(r.reservation_time.split('T')[0])
+      : /^\d{4}-\d{2}-\d{2}$/.test(r.reservation_time);
+    if (!hasDate) continue;
     const hasTime = r.reservation_time.includes('T');
     const meta = r.metadata ? (typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata) : {};
 

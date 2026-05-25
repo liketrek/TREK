@@ -5,6 +5,7 @@ import { isDemoUser } from '../../services/authService';
 import {
   createReservation, deleteReservation, getReservation, updateReservation,
 } from '../../services/reservationService';
+import { linkBudgetItemToReservation } from '../../services/budgetService';
 import { getDay } from '../../services/dayService';
 import {
   safeBroadcast, TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
@@ -32,7 +33,7 @@ export function registerTransportTools(server: McpServer, userId: number, scopes
   server.registerTool(
     'create_transport',
     {
-      description: 'Create a transport booking (flight, train, car, or cruise) for a trip. Use endpoints[] to record origin/destination and intermediate stops — for flights, set code to the IATA airport code (use search_airports first). Created as pending — confirm with update_transport.',
+      description: 'Create a transport booking (flight, train, car, or cruise) for a trip. Use endpoints[] to record origin/destination and intermediate stops — for flights, set code to the IATA airport code (use search_airports first). Created as pending — confirm with update_transport. Set price to record the cost; it will appear on the booking and in the Budget tab.',
       inputSchema: {
         tripId: z.number().int().positive(),
         type: z.enum(['flight', 'train', 'car', 'cruise']),
@@ -47,10 +48,12 @@ export function registerTransportTools(server: McpServer, userId: number, scopes
         metadata: z.record(z.string(), z.string()).optional().describe('Type-specific metadata: flights → { airline, flight_number, departure_airport, arrival_airport }; trains → { train_number, platform, seat }'),
         endpoints: endpointSchema,
         needs_review: z.boolean().optional(),
+        price: z.number().nonnegative().optional().describe('Transport cost — shown on the booking and linked in the Budget tab'),
+        budget_category: z.string().max(100).optional().describe('Budget category for the price entry (defaults to transport type)'),
       },
       annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     },
-    async ({ tripId, type, title, status, start_day_id, end_day_id, reservation_time, reservation_end_time, confirmation_number, notes, metadata, endpoints, needs_review }) => {
+    async ({ tripId, type, title, status, start_day_id, end_day_id, reservation_time, reservation_end_time, confirmation_number, notes, metadata, endpoints, needs_review, price, budget_category }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
 
@@ -58,6 +61,9 @@ export function registerTransportTools(server: McpServer, userId: number, scopes
         return { content: [{ type: 'text' as const, text: 'start_day_id does not belong to this trip.' }], isError: true };
       if (end_day_id && !getDay(end_day_id, tripId))
         return { content: [{ type: 'text' as const, text: 'end_day_id does not belong to this trip.' }], isError: true };
+
+      const meta: Record<string, string> = { ...(metadata ?? {}) };
+      if (price != null) meta.price = String(price);
 
       const { reservation } = createReservation(tripId, {
         title,
@@ -70,10 +76,20 @@ export function registerTransportTools(server: McpServer, userId: number, scopes
         day_id: start_day_id,
         end_day_id: end_day_id ?? start_day_id,
         status: status ?? 'pending',
-        metadata,
+        metadata: Object.keys(meta).length > 0 ? meta : undefined,
         endpoints,
         needs_review,
       });
+
+      if (price != null && price > 0) {
+        const item = linkBudgetItemToReservation(tripId, reservation.id, {
+          name: title,
+          category: budget_category || type,
+          total_price: price,
+        });
+        safeBroadcast(tripId, 'budget:created', { item });
+      }
+
       safeBroadcast(tripId, 'reservation:created', { reservation });
       return ok({ reservation });
     }

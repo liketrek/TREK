@@ -15,7 +15,7 @@
 ## Checklist
 - [ ] I have read the [Contributing Guidelines](https://github.com/mauriceboe/TREK/wiki/Contributing)
 - [ ] My branch is [up to date with `dev`](https://github.com/mauriceboe/TREK/wiki/Development-environment#3-keep-your-fork-up-to-date)
-- [ ] This PR targets the `dev` branch, not `main`
+- [ ] This PR targets the `dev` branch, not `main` *(wiki-only PRs are exempt)*
 - [ ] I have tested my changes locally
 - [ ] I have added/updated tests that prove my fix is effective or that my feature works
 - [ ] I have updated documentation if needed

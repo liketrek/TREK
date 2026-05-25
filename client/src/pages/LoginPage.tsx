@@ -56,6 +56,12 @@ export default function LoginPage(): React.ReactElement {
   }, [])
 
   useEffect(() => {
+    if (redirectTarget !== '/dashboard') {
+      sessionStorage.setItem('oidc_redirect', redirectTarget)
+    }
+  }, [redirectTarget])
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search)
 
     const invite = params.get('invite')
@@ -83,7 +89,9 @@ export default function LoginPage(): React.ReactElement {
           window.history.replaceState({}, '', '/login')
           if (data.token) {
             await loadUser()
-            navigate('/dashboard', { replace: true })
+            const savedRedirect = sessionStorage.getItem('oidc_redirect') || '/dashboard'
+            sessionStorage.removeItem('oidc_redirect')
+            navigate(savedRedirect, { replace: true })
           } else {
             setError(data.error || t('login.oidcFailed'))
           }
@@ -104,19 +112,34 @@ export default function LoginPage(): React.ReactElement {
         invalid_state: t('login.oidc.invalidState'),
       }
       setError(errorMessages[oidcError] || oidcError)
+      sessionStorage.removeItem('oidc_redirect')
       window.history.replaceState({}, '', '/login')
       return
     }
 
-    authApi.getAppConfig?.().catch(() => null).then((config: AppConfig | null) => {
-      if (config) {
-        setAppConfig(config)
-        if (!config.has_users) setMode('register')
-        if (!config.password_login && config.oidc_login && config.oidc_configured && config.has_users && !invite && !noRedirect) {
-          window.location.href = '/api/auth/oidc/login'
+    const CONFIG_CACHE_KEY = 'trek_app_config_cache'
+    authApi.getAppConfig?.()
+      .then((config: AppConfig) => {
+        try { localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify(config)) } catch { /* ignore quota errors */ }
+        return { config, fromCache: false }
+      })
+      .catch(() => {
+        try {
+          const raw = localStorage.getItem(CONFIG_CACHE_KEY)
+          return raw ? { config: JSON.parse(raw) as AppConfig, fromCache: true } : { config: null as AppConfig | null, fromCache: false }
+        } catch { return { config: null as AppConfig | null, fromCache: false } }
+      })
+      .then(({ config, fromCache }) => {
+        if (config) {
+          setAppConfig(config)
+          if (!config.has_users) setMode('register')
+          // Skip auto-redirect when config is from cache — network is unreliable
+          // and auto-redirecting to the IdP could loop if the proxy changed.
+          if (!fromCache && !config.password_login && config.oidc_login && config.oidc_configured && config.has_users && !invite && !noRedirect) {
+            window.location.href = '/api/auth/oidc/login'
+          }
         }
-      }
-    })
+      })
   }, [navigate, t, noRedirect])
 
   // Language detection chain (runs once on mount, only if user has no saved preference):

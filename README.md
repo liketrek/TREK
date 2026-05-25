@@ -18,7 +18,7 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 
 <br />
 
-<a href="https://demo-nomad.pakulat.org"><img alt="Demo" src="https://img.shields.io/badge/Demo-try-111827?style=for-the-badge" /></a>
+<a href="https://demo.liketrek.com"><img alt="Demo" src="https://img.shields.io/badge/Demo-try-111827?style=for-the-badge" /></a>
 &nbsp;
 <a href="https://hub.docker.com/r/mauriceboe/trek"><img alt="Docker" src="https://img.shields.io/badge/Docker-ready-2496ED?style=for-the-badge" /></a>
 &nbsp;

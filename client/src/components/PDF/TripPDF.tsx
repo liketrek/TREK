@@ -4,6 +4,8 @@ import { getCategoryIcon } from '../shared/categoryIcons'
 import { FileText, Info, Clock, MapPin, Navigation, Train, Plane, Bus, Car, Ship, Coffee, Ticket, Star, Heart, Camera, Flag, Lightbulb, AlertTriangle, ShoppingBag, Bookmark, Hotel, LogIn, LogOut, KeyRound, BedDouble, Utensils, Users, LucideIcon } from 'lucide-react'
 import { accommodationsApi, mapsApi } from '../../api/client'
 import type { Trip, Day, Place, Category, AssignmentsMap, DayNotesMap } from '../../types'
+import { isDayInAccommodationRange, getDayOrder } from '../../utils/dayOrder'
+import { splitReservationDateTime } from '../../utils/formatters'
 
 function renderLucideIcon(icon:LucideIcon, props = {}) {
   if (!_renderToStaticMarkup) return ''
@@ -215,7 +217,7 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
             const phase = pdfGetSpanPhase(r, day.id)
             const spanLabel = pdfGetSpanLabel(r, phase)
             const displayTime = pdfGetDisplayTime(r, day.id)
-            const time = displayTime?.includes('T') ? displayTime.split('T')[1]?.substring(0, 5) : ''
+            const time = splitReservationDateTime(displayTime).time ?? ''
             const titleHtml = `${spanLabel ? escHtml(spanLabel) + ': ' : ''}${escHtml(r.title)}`
             return `
               <div class="note-card" style="border-left: 3px solid ${color};">
@@ -285,8 +287,12 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
       }).join('')
 
     const accommodationsForDay = (accommodations.accommodations || []).filter(a =>
-      days.some(d => d.id >= a.start_day_id && d.id <= a.end_day_id && d.id === day?.id)
-    ).sort((a, b) => a.start_day_id - b.start_day_id)
+      day ? isDayInAccommodationRange(day, a.start_day_id, a.end_day_id, days) : false
+    ).sort((a, b) => {
+      const startA = days.find(d => d.id === a.start_day_id)
+      const startB = days.find(d => d.id === b.start_day_id)
+      return (startA ? getDayOrder(startA, days) : 0) - (startB ? getDayOrder(startB, days) : 0)
+    })
 
     const accommodationDetails = accommodationsForDay.map(item => {
       const isCheckIn = day.id === item.start_day_id

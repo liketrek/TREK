@@ -58,7 +58,7 @@ function ProtectedRoute({ children, adminRequired = false, addonId }: ProtectedR
   }
 
   if (!isAuthenticated) {
-    const redirectParam = encodeURIComponent(location.pathname + location.search)
+    const redirectParam = encodeURIComponent(location.pathname + location.search + location.hash)
     return <Navigate to={`/login?redirect=${redirectParam}`} replace />
   }
 
@@ -218,7 +218,7 @@ export default function App() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         {/* OAuth 2.1 consent page — intentionally outside ProtectedRoute */}
-        <Route path="/oauth/authorize" element={<OAuthAuthorizePage />} />
+        <Route path="/oauth/consent" element={<OAuthAuthorizePage />} />
         <Route
           path="/dashboard"
           element={

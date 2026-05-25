@@ -15,6 +15,7 @@ import { decrypt_api_key, maybe_encrypt_api_key, encrypt_api_key } from './apiKe
 import { createEphemeralToken } from './ephemeralTokens';
 import { revokeUserSessions } from '../mcp';
 import { startTripReminders } from '../scheduler';
+import { deleteUserCompletely } from './userCleanupService';
 import { verifyJwtAndLoadUser } from '../middleware/auth';
 import { User } from '../types';
 import { DEMO_EMAIL_PRIMARY, isDemoEmail } from './demo';
@@ -24,6 +25,11 @@ import { DEMO_EMAIL_PRIMARY, isDemoEmail } from './demo';
 // ---------------------------------------------------------------------------
 
 authenticator.options = { window: 1 };
+
+// Pre-computed bcrypt hash to equalise timing of "unknown email" and
+// "OIDC-only account" branches with the real verification path (CWE-208).
+// Cost factor 12 matches register/changePassword/resetPassword — must stay in sync.
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync('__trek_no_such_user__', 12);
 
 const MFA_SETUP_TTL_MS = 15 * 60 * 1000;
 const mfaSetupPending = new Map<number, { secret: string; exp: number }>();
@@ -130,7 +136,7 @@ export function resolveAuthToggles(): {
       oidc_login: get('oidc_login') !== 'false',
       oidc_registration: get('oidc_registration') !== 'false',
     };
-    if (process.env.OIDC_ONLY === 'true') {
+    if (process.env.OIDC_ONLY?.toLowerCase() === 'true') {
       result.password_login = false;
       result.password_registration = false;
     }
@@ -138,7 +144,7 @@ export function resolveAuthToggles(): {
   }
 
   // Legacy fallback
-  const oidcOnlyEnabled = process.env.OIDC_ONLY === 'true' || get('oidc_only') === 'true';
+  const oidcOnlyEnabled = process.env.OIDC_ONLY?.toLowerCase() === 'true' || get('oidc_only') === 'true';
   const oidcConfigured = !!(
     (process.env.OIDC_ISSUER || get('oidc_issuer')) &&
     (process.env.OIDC_CLIENT_ID || get('oidc_client_id'))
@@ -252,7 +258,7 @@ export function getPendingMfaSecret(userId: number): string | null {
 
 export function getAppConfig(authenticatedUser: { id: number } | null) {
   const userCount = (db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number }).count;
-  const isDemo = process.env.DEMO_MODE === 'true';
+  const isDemo = process.env.DEMO_MODE?.toLowerCase() === 'true';
   const toggles = resolveAuthToggles();
   const version: string = process.env.APP_VERSION ?? require('../../package.json').version;
   const hasGoogleKey = !!db.prepare("SELECT maps_api_key FROM users WHERE role = 'admin' AND maps_api_key IS NOT NULL AND maps_api_key != '' LIMIT 1").get();
@@ -342,7 +348,9 @@ export function registerUser(body: {
   password?: string;
   invite_token?: string;
 }): { error?: string; status?: number; token?: string; user?: Record<string, unknown>; auditUserId?: number; auditDetails?: Record<string, unknown> } {
-  const { username, email, password, invite_token } = body;
+  const username = typeof body.username === 'string' ? body.username.trim() : '';
+  const email = typeof body.email === 'string' ? body.email.trim() : '';
+  const { password, invite_token } = body;
 
   const userCount = (db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number }).count;
 
@@ -434,14 +442,24 @@ export function loginUser(body: {
   }
 
   const user = db.prepare('SELECT * FROM users WHERE LOWER(email) = LOWER(?)').get(email) as User | undefined;
+
+  // Always run bcrypt — even for unknown/OIDC-only users — so response time
+  // does not reveal whether the email exists in the database (CWE-203/208).
+  const hashToCheck = user?.password_hash ?? DUMMY_PASSWORD_HASH;
+  const validPassword = bcrypt.compareSync(password, hashToCheck);
+
   if (!user) {
     return {
       error: 'Invalid email or password', status: 401,
       auditUserId: null, auditAction: 'user.login_failed', auditDetails: { email, reason: 'unknown_email' },
     };
   }
-
-  const validPassword = bcrypt.compareSync(password, user.password_hash!);
+  if (!user.password_hash) {
+    return {
+      error: 'Invalid email or password', status: 401,
+      auditUserId: Number(user.id), auditAction: 'user.login_failed', auditDetails: { email, reason: 'oidc_only' },
+    };
+  }
   if (!validPassword) {
     return {
       error: 'Invalid email or password', status: 401,
@@ -527,7 +545,7 @@ export function deleteAccount(userId: number, userEmail: string, userRole: strin
       return { error: 'Cannot delete the last admin account', status: 400 };
     }
   }
-  db.prepare('DELETE FROM users WHERE id = ?').run(userId);
+  deleteUserCompletely(userId);
   return { success: true };
 }
 

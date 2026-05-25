@@ -7,7 +7,7 @@ Thanks for your interest in contributing! Please read these guidelines before op
 1. **Ask in Discord first** — Before writing any code, pitch your idea in the `#github-pr` channel on our [Discord server](https://discord.gg/NhZBDSd4qW). We'll let you know if the PR is wanted and give direction. PRs that show up without prior discussion will be closed
 2. **One change per PR** — Keep it focused. Don't bundle unrelated fixes or refactors
 3. **No breaking changes** — Backwards compatibility is non-negotiable
-4. **Target the `dev` branch** — All PRs must be opened against `dev`, not `main`
+4. **Target the `dev` branch** — All PRs must be opened against `dev`, not `main`. Exception: PRs that only modify files under `wiki/` may target any branch
 5. **Match the existing style** — No reformatting, no linter config changes, no "while I'm here" cleanups
 6. **Tests** — Your changes must include tests. The project maintains 80%+ coverage; PRs that drop it will be closed
 7. **Branch up to date** — Your branch must be [up to date with `dev`](https://github.com/mauriceboe/TREK/wiki/Development-environment#3-keep-your-fork-up-to-date) before submitting a PR

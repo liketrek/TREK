@@ -10,8 +10,10 @@ import { getCategoryIcon } from '../components/shared/categoryIcons'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { Clock, MapPin, FileText, Train, Plane, Bus, Car, Ship, Ticket, Hotel, Map, Luggage, Wallet, MessageCircle } from 'lucide-react'
+import { isDayInAccommodationRange } from '../utils/dayOrder'
+import { getTransportForDay, getMergedItems } from '../utils/dayMerge'
+import { splitReservationDateTime } from '../utils/formatters'
 
-const TRANSPORT_TYPES = new Set(['flight', 'train', 'bus', 'car', 'cruise'])
 const TRANSPORT_ICONS = { flight: Plane, train: Train, bus: Bus, car: Car, cruise: Ship }
 
 function createMarkerIcon(place: any) {
@@ -183,14 +185,16 @@ export default function SharedTripPage() {
           {sortedDays.map((day: any, di: number) => {
             const da = assignments[String(day.id)] || []
             const notes = (dayNotes[String(day.id)] || [])
-            const dayTransport = (reservations || []).filter((r: any) => TRANSPORT_TYPES.has(r.type) && r.reservation_time?.split('T')[0] === day.date)
-            const dayAccs = (accommodations || []).filter((a: any) => day.id >= a.start_day_id && day.id <= a.end_day_id)
+            const dayAssignmentIds: number[] = da.map((a: any) => a.id)
+            const dayTransport = getTransportForDay({ reservations: reservations || [], dayId: day.id, dayAssignmentIds, days: sortedDays })
+            const dayAccs = (accommodations || []).filter((a: any) => isDayInAccommodationRange(day, a.start_day_id, a.end_day_id, sortedDays))
 
-            const merged = [
-              ...da.map((a: any) => ({ type: 'place', k: a.order_index, data: a })),
-              ...notes.map((n: any) => ({ type: 'note', k: n.sort_order ?? 0, data: n })),
-              ...dayTransport.map((r: any) => ({ type: 'transport', k: r.day_plan_position ?? 999, data: r })),
-            ].sort((a, b) => a.k - b.k)
+            const merged = getMergedItems({
+              dayAssignments: da,
+              dayNotes: notes,
+              dayTransports: dayTransport,
+              dayId: day.id,
+            })
 
             return (
               <div key={day.id} style={{ background: 'var(--bg-card, white)', borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border-faint, #e5e7eb)' }}>
@@ -211,12 +215,12 @@ export default function SharedTripPage() {
 
                 {selectedDay === day.id && merged.length > 0 && (
                   <div style={{ padding: '0 16px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {merged.map((item: any, idx: number) => {
+                    {merged.map((item: any) => {
                       if (item.type === 'transport') {
                         const r = item.data
                         const TIcon = TRANSPORT_ICONS[r.type] || Ticket
                         const meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata || '{}') : (r.metadata || {})
-                        const time = r.reservation_time?.includes('T') ? r.reservation_time.split('T')[1]?.substring(0, 5) : ''
+                        const time = splitReservationDateTime(r.reservation_time).time ?? ''
                         let sub = ''
                         if (r.type === 'flight') sub = [meta.airline, meta.flight_number, meta.departure_airport && meta.arrival_airport ? `${meta.departure_airport} → ${meta.arrival_airport}` : ''].filter(Boolean).join(' · ')
                         else if (r.type === 'train') sub = [meta.train_number, meta.platform ? `Gl. ${meta.platform}` : ''].filter(Boolean).join(' · ')
@@ -273,8 +277,9 @@ export default function SharedTripPage() {
             {(reservations || []).map((r: any) => {
               const meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata || '{}') : (r.metadata || {})
               const TIcon = TRANSPORT_ICONS[r.type] || Ticket
-              const time = r.reservation_time?.includes('T') ? r.reservation_time.split('T')[1]?.substring(0, 5) : ''
-              const date = r.reservation_time ? new Date((r.reservation_time.includes('T') ? r.reservation_time.split('T')[0] : r.reservation_time) + 'T00:00:00Z').toLocaleDateString(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }) : ''
+              const { date: rDate, time: rTime } = splitReservationDateTime(r.reservation_time)
+              const time = rTime ?? ''
+              const date = rDate ? new Date(rDate + 'T00:00:00Z').toLocaleDateString(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }) : ''
               return (
                 <div key={r.id} style={{ background: 'var(--bg-card, white)', borderRadius: 10, padding: '12px 16px', border: '1px solid var(--border-faint, #e5e7eb)', display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

@@ -1,6 +1,74 @@
 import Database from 'better-sqlite3';
 import { encrypt_api_key } from '../services/apiKeyCrypto';
 
+/** Returns true if any collision was encountered (renamed row). */
+export function trimUserWhitespace(db: Database.Database): boolean {
+  type DirtyRow = { id: number; username?: string; email?: string };
+  let hadCollision = false;
+
+  const dirtyUsernames = db.prepare(
+    `SELECT id, username FROM users WHERE username != TRIM(username)`
+  ).all() as DirtyRow[];
+
+  for (const row of dirtyUsernames) {
+    const trimmed = row.username!.trim();
+    const collision = db.prepare(
+      `SELECT id FROM users WHERE LOWER(username) = LOWER(?) AND id != ?`
+    ).get(trimmed, row.id) as { id: number } | undefined;
+
+    const final = collision ? `${trimmed}__migrated_${row.id}` : trimmed;
+    if (collision) {
+      hadCollision = true;
+      console.warn(
+        `[migration] WHITESPACE COLLISION username: user id=${row.id} ` +
+        `original=${JSON.stringify(row.username)} trimmed="${trimmed}" ` +
+        `collides with user id=${collision.id}. Renamed to "${final}". ` +
+        `Manual review required.`
+      );
+    } else {
+      console.warn(
+        `[migration] Trimmed username for user id=${row.id}: ` +
+        `${JSON.stringify(row.username)} → "${final}"`
+      );
+    }
+    db.prepare(`UPDATE users SET username = ? WHERE id = ?`).run(final, row.id);
+  }
+
+  const dirtyEmails = db.prepare(
+    `SELECT id, email FROM users WHERE email != TRIM(email)`
+  ).all() as DirtyRow[];
+
+  for (const row of dirtyEmails) {
+    const trimmed = row.email!.trim();
+    const collision = db.prepare(
+      `SELECT id FROM users WHERE LOWER(email) = LOWER(?) AND id != ?`
+    ).get(trimmed, row.id) as { id: number } | undefined;
+
+    let final = trimmed;
+    if (collision) {
+      hadCollision = true;
+      const at = trimmed.lastIndexOf('@');
+      final = at > 0
+        ? `${trimmed.slice(0, at)}__migrated_${row.id}${trimmed.slice(at)}`
+        : `${trimmed}__migrated_${row.id}`;
+      console.warn(
+        `[migration] WHITESPACE COLLISION email: user id=${row.id} ` +
+        `original=${JSON.stringify(row.email)} trimmed="${trimmed}" ` +
+        `collides with user id=${collision.id}. Renamed to "${final}". ` +
+        `User cannot sign in with this email until manually corrected.`
+      );
+    } else {
+      console.warn(
+        `[migration] Trimmed email for user id=${row.id}: ` +
+        `${JSON.stringify(row.email)} → "${final}"`
+      );
+    }
+    db.prepare(`UPDATE users SET email = ? WHERE id = ?`).run(final, row.id);
+  }
+
+  return hadCollision;
+}
+
 function runMigrations(db: Database.Database): void {
   db.exec('CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)');
   const versionRow = db.prepare('SELECT version FROM schema_version').get() as { version: number } | undefined;
@@ -2129,6 +2197,73 @@ function runMigrations(db: Database.Database): void {
         'CREATE INDEX IF NOT EXISTS idx_journey_entries_order ' +
         'ON journey_entries(journey_id, entry_date, sort_order)'
       );
+    },
+    // Swap inverted start_day_id/end_day_id pairs in day_accommodations caused
+    // by the old Math.min/Math.max picker bug (pre-8e05ba7) which used raw IDs
+    // instead of positional order on trips with non-monotonic day ID layouts.
+    () => {
+      db.exec(`
+        UPDATE day_accommodations
+        SET start_day_id = end_day_id, end_day_id = start_day_id
+        WHERE (SELECT day_number FROM days WHERE id = start_day_id)
+            > (SELECT day_number FROM days WHERE id = end_day_id)
+      `);
+    },
+    // prepare migration to nest + typeorm
+    () => {
+      db.exec(`CREATE TABLE IF NOT EXISTS migrations (id integer PRIMARY KEY AUTOINCREMENT NOT NULL, timestamp bigint NOT NULL, name varchar NOT NULL);`);
+      db.exec(`INSERT INTO migrations (timestamp, name) VALUES (1777810195344, 'InitialSchema1777810195344');`);
+      db.exec(`INSERT INTO app_settings (key, value) VALUES ('app_version', '${process.env.APP_VERSION || '3.0.14'}')`);
+    },
+    // trim leading/trailing whitespace from stored usernames and emails
+    () => {
+      const hadCollision = trimUserWhitespace(db);
+      if (hadCollision) {
+        db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('whitespace_migration_collision', 'true')").run();
+      }
+    },
+    () => {
+      db.exec(`CREATE TABLE IF NOT EXISTS schema_version_new (id INTEGER PRIMARY KEY AUTOINCREMENT,version INTEGER NOT NULL)`)
+      db.exec(`INSERT INTO schema_version_new (version) SELECT version FROM schema_version`)
+      db.exec(`DROP TABLE schema_version`)
+      db.exec(`ALTER TABLE schema_version_new RENAME TO schema_version`)
+      db.exec(`UPDATE app_settings SET value = '${process.env.APP_VERSION || '3.0.15'}' WHERE key = 'app_version'`);
+    },
+    // Migration: OAuth 2.0 client_credentials grant — allow user-owned confidential
+    // clients to skip the browser consent flow entirely and obtain tokens directly
+    // via client_id + client_secret. Flag is immutable after creation so existing
+    // authorization-code clients are not silently upgraded.
+    () => {
+      try { db.exec('ALTER TABLE oauth_clients ADD COLUMN allows_client_credentials INTEGER NOT NULL DEFAULT 0'); }
+      catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+    },
+    // Drop stale atlas cache rows for territories that used to resolve to their
+    // surrounding country (Hong Kong/Macau as China, San Marino/Vatican as Italy,
+    // etc.) before their own bounding boxes existed. The next atlas stats request
+    // re-resolves any place inside these boxes with the corrected country code.
+    () => {
+      const enclaveBoxes: [number, number, number, number][] = [
+        [113.83, 22.15, 114.43, 22.56], // HK
+        [113.53, 22.10, 113.60, 22.21], // MO
+        [12.40, 43.89, 12.52, 43.99],   // SM
+        [12.44, 41.90, 12.46, 41.91],   // VA
+        [7.40, 43.72, 7.44, 43.75],     // MC
+        [9.47, 47.05, 9.64, 47.27],     // LI
+        [-5.36, 36.11, -5.33, 36.16],   // GI
+        [-67.30, 17.88, -65.22, 18.53], // PR
+      ];
+      try {
+        const del = db.prepare(
+          `DELETE FROM place_regions WHERE place_id IN (
+             SELECT id FROM places WHERE lat BETWEEN ? AND ? AND lng BETWEEN ? AND ?
+           )`
+        );
+        for (const [minLng, minLat, maxLng, maxLat] of enclaveBoxes) {
+          del.run(minLat, maxLat, minLng, maxLng);
+        }
+      } catch (err: any) {
+        if (!err.message?.includes('no such table')) throw err;
+      }
     },
   ];
 

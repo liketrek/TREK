@@ -148,10 +148,15 @@ router.post('/register', authLimiter, (req: Request, res: Response) => {
   res.status(201).json({ token: result.token, user: result.user });
 });
 
-router.post('/login', authLimiter, (req: Request, res: Response) => {
+router.post('/login', authLimiter, async (req: Request, res: Response) => {
+  const started = Date.now();
   const result = loginUser(req.body);
   if (result.auditAction) {
     writeAudit({ userId: result.auditUserId ?? null, action: result.auditAction, ip: getClientIp(req), details: result.auditDetails });
+  }
+  const elapsed = Date.now() - started;
+  if (elapsed < LOGIN_MIN_LATENCY_MS) {
+    await new Promise((r) => setTimeout(r, LOGIN_MIN_LATENCY_MS - elapsed));
   }
   if (result.error) return res.status(result.status!).json({ error: result.error });
   if (result.mfa_required) return res.json({ mfa_required: true, mfa_token: result.mfa_token });
@@ -166,9 +171,10 @@ router.post('/login', authLimiter, (req: Request, res: Response) => {
 // Generic OK response — identical regardless of email existence, to
 // prevent enumeration via response body OR status code.
 const GENERIC_FORGOT_RESPONSE = { ok: true };
-// Minimum time we spend inside the forgot handler so a "no such user"
-// path does not complete noticeably faster than a real reset.
+// Minimum time we spend inside the forgot/login handlers so a "no such
+// user" path does not complete noticeably faster than a real operation.
 const FORGOT_MIN_LATENCY_MS = 350;
+const LOGIN_MIN_LATENCY_MS = 350;
 
 router.post('/forgot-password', forgotLimiter, async (req: Request, res: Response) => {
   const started = Date.now();

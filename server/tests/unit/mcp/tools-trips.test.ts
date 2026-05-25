@@ -184,6 +184,88 @@ describe('Tool: update_trip', () => {
       expect(result.isError).toBe(true);
     });
   });
+
+  it('shifts owner vacay entries when update_trip moves trip window by fixed offset', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { start_date: '2026-08-01', end_date: '2026-08-09' });
+
+    // Materialize active vacay plan for owner and entries in old trip window.
+    const planRes = testDb.prepare('INSERT INTO vacay_plans (owner_id) VALUES (?)').run(user.id);
+    const planId = Number(planRes.lastInsertRowid);
+    testDb.prepare('INSERT INTO vacay_years (plan_id, year) VALUES (?, ?)').run(planId, 2026);
+    testDb.prepare(
+        'INSERT INTO vacay_user_years (user_id, plan_id, year, vacation_days, carried_over) VALUES (?, ?, ?, 30, 0)'
+    ).run(user.id, planId, 2026);
+    for (const d of ['2026-08-03', '2026-08-04', '2026-08-05', '2026-08-06', '2026-08-07']) {
+      testDb.prepare('INSERT INTO vacay_entries (plan_id, user_id, date, note) VALUES (?, ?, ?, ?)').run(planId, user.id, d, '');
+    }
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'update_trip',
+        arguments: { tripId: trip.id, start_date: '2026-08-08', end_date: '2026-08-16' },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.trip.start_date).toBe('2026-08-08');
+      expect(data.trip.end_date).toBe('2026-08-16');
+    });
+
+    const oldWindow = testDb.prepare(
+        "SELECT date FROM vacay_entries WHERE plan_id = ? AND user_id = ? AND date BETWEEN '2026-08-01' AND '2026-08-09'"
+    ).all(planId, user.id) as { date: string }[];
+    expect(oldWindow).toHaveLength(0);
+
+    const shifted = testDb.prepare(
+        "SELECT date FROM vacay_entries WHERE plan_id = ? AND user_id = ? AND date BETWEEN '2026-08-08' AND '2026-08-16' ORDER BY date"
+    ).all(planId, user.id) as { date: string }[];
+    expect(shifted.map(r => r.date)).toEqual([
+      '2026-08-10',
+      '2026-08-11',
+      '2026-08-12',
+      '2026-08-13',
+      '2026-08-14',
+    ]);
+  });
+
+  it('shifts entries from the owners own plan even if another vacay plan is active', async () => {
+    const { user } = createUser(testDb);
+    const { user: otherOwner } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { start_date: '2026-09-01', end_date: '2026-09-07' });
+
+    // Own plan with entries that should be shifted.
+    const ownPlanRes = testDb.prepare('INSERT INTO vacay_plans (owner_id) VALUES (?)').run(user.id);
+    const ownPlanId = Number(ownPlanRes.lastInsertRowid);
+    testDb.prepare('INSERT INTO vacay_years (plan_id, year) VALUES (?, ?)').run(ownPlanId, 2026);
+    testDb.prepare(
+        'INSERT INTO vacay_user_years (user_id, plan_id, year, vacation_days, carried_over) VALUES (?, ?, ?, 30, 0)'
+    ).run(user.id, ownPlanId, 2026);
+    for (const d of ['2026-09-02', '2026-09-03']) {
+      testDb.prepare('INSERT INTO vacay_entries (plan_id, user_id, date, note) VALUES (?, ?, ?, ?)').run(ownPlanId, user.id, d, '');
+    }
+
+    // Different accepted plan becomes "active" for the owner.
+    const foreignPlanRes = testDb.prepare('INSERT INTO vacay_plans (owner_id) VALUES (?)').run(otherOwner.id);
+    const foreignPlanId = Number(foreignPlanRes.lastInsertRowid);
+    testDb.prepare('INSERT INTO vacay_plan_members (plan_id, user_id, status) VALUES (?, ?, ?)').run(foreignPlanId, user.id, 'accepted');
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'update_trip',
+        arguments: { tripId: trip.id, start_date: '2026-09-08', end_date: '2026-09-14' },
+      });
+      expect(result.isError).toBeFalsy();
+    });
+
+    const oldWindow = testDb.prepare(
+        "SELECT date FROM vacay_entries WHERE plan_id = ? AND user_id = ? AND date BETWEEN '2026-09-01' AND '2026-09-07' ORDER BY date"
+    ).all(ownPlanId, user.id) as { date: string }[];
+    expect(oldWindow).toHaveLength(0);
+
+    const shifted = testDb.prepare(
+        "SELECT date FROM vacay_entries WHERE plan_id = ? AND user_id = ? AND date BETWEEN '2026-09-08' AND '2026-09-14' ORDER BY date"
+    ).all(ownPlanId, user.id) as { date: string }[];
+    expect(shifted.map(r => r.date)).toEqual(['2026-09-09', '2026-09-10']);
+  });
 });
 
 // ---------------------------------------------------------------------------

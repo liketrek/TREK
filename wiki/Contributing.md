@@ -6,7 +6,7 @@ Thanks for your interest in contributing to TREK! Here are the guidelines for su
 
 - **Ask in Discord first** — Before writing any code, pitch your idea in the `#github-pr` channel on our [Discord server](https://discord.gg/NhZBDSd4qW). We'll let you know if the PR is wanted and give direction. PRs without prior approval will be closed
 - **Check existing issues** — Look for open issues or discussions before starting work
-- **Target the `dev` branch** — All PRs must be opened against `dev`, not `main`
+- **Target the `dev` branch** — All PRs must be opened against `dev`, not `main`. Exception: PRs that only modify files under `wiki/` may target any branch
 - **One thing per PR** — Keep PRs focused on a single change. Don't bundle unrelated fixes
 
 ## Pull Request Guidelines

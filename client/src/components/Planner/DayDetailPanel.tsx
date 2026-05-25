@@ -12,6 +12,8 @@ import CustomTimePicker from '../shared/CustomTimePicker'
 import { useSettingsStore } from '../../store/settingsStore'
 import { getLocaleForLanguage, useTranslation } from '../../i18n'
 import type { Day, Place, Category, Reservation, AssignmentsMap } from '../../types'
+import { isDayInAccommodationRange } from '../../utils/dayOrder'
+import { splitReservationDateTime } from '../../utils/formatters'
 
 const WEATHER_ICON_MAP = {
   Clear: Sun, Clouds: Cloud, Rain: CloudRain, Drizzle: CloudDrizzle,
@@ -56,9 +58,10 @@ interface DayDetailPanelProps {
   rightWidth?: number
   collapsed?: boolean
   onToggleCollapse?: () => void
+  mobile?: boolean
 }
 
-export default function DayDetailPanel({ day, days, places, categories = [], tripId, assignments, reservations = [], lat, lng, onClose, onAccommodationChange, leftWidth = 0, rightWidth = 0, collapsed: collapsedProp = false, onToggleCollapse }: DayDetailPanelProps) {
+export default function DayDetailPanel({ day, days, places, categories = [], tripId, assignments, reservations = [], lat, lng, onClose, onAccommodationChange, leftWidth = 0, rightWidth = 0, collapsed: collapsedProp = false, onToggleCollapse, mobile = false }: DayDetailPanelProps) {
   const { t, language, locale } = useTranslation()
   const can = useCanDo()
   const tripObj = useTripStore((s) => s.trip)
@@ -99,7 +102,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
       .then(data => {
         setAccommodations(data.accommodations || [])
         const allForDay = (data.accommodations || []).filter(a =>
-          days.some(d => d.id >= a.start_day_id && d.id <= a.end_day_id && d.id === day?.id)
+          day ? isDayInAccommodationRange(day, a.start_day_id, a.end_day_id, days) : false
         )
         setDayAccommodations(allForDay)
         setAccommodation(allForDay[0] || null)
@@ -130,7 +133,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
       setAccommodations(updated)
       setAccommodation(newAcc)
       setDayAccommodations(updated.filter(a =>
-        days.some(d => d.id >= a.start_day_id && d.id <= a.end_day_id && d.id === day?.id)
+        day ? isDayInAccommodationRange(day, a.start_day_id, a.end_day_id, days) : false
       ))
       setShowHotelPicker(false)
       setHotelForm({ check_in: '', check_in_end: '', check_out: '', confirmation: '', place_id: null })
@@ -154,7 +157,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
       const updated = accommodations.filter(a => a.id !== accommodation.id)
       setAccommodations(updated)
       setDayAccommodations(updated.filter(a =>
-        days.some(d => d.id >= a.start_day_id && d.id <= a.end_day_id && d.id === day?.id)
+        day ? isDayInAccommodationRange(day, a.start_day_id, a.end_day_id, days) : false
       ))
       setAccommodation(null)
       onAccommodationChange?.()
@@ -172,7 +175,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
   const font = { fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }
 
   return (
-    <div className="fixed z-50" style={{ bottom: 'calc(var(--bottom-nav-h) + 20px)', left: `calc(${leftWidth}px + (100vw - ${leftWidth}px - ${rightWidth}px) / 2)`, transform: 'translateX(-50%)', width: `min(800px, calc(100vw - ${leftWidth}px - ${rightWidth}px - 32px))`, ...font }}>
+    <div className="fixed z-50" style={{ bottom: 'calc(var(--bottom-nav-h) + 20px)', left: `calc(${leftWidth}px + (100vw - ${leftWidth}px - ${rightWidth}px) / 2)`, transform: 'translateX(-50%)', width: `min(800px, calc(100vw - ${leftWidth}px - ${rightWidth}px - 32px))`, ...(mobile ? { zIndex: 10000 } : null), ...font }}>
       <div style={{
         background: 'var(--bg-elevated)',
         backdropFilter: 'blur(40px) saturate(180%)',
@@ -287,7 +290,11 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
           {/* ── Reservations for this day's assignments ── */}
           {(() => {
             const dayAssignments = assignments[String(day.id)] || []
-            const dayReservations = reservations.filter(r => dayAssignments.some(a => a.id === r.assignment_id))
+            const dayReservations = reservations.filter(r => {
+              if (r.type === 'hotel') return false
+              if (r.assignment_id && dayAssignments.some(a => a.id === r.assignment_id)) return true
+              return r.day_id === day.id
+            })
             if (dayReservations.length === 0) return null
             return (
               <div style={{ marginBottom: 0 }}>
@@ -304,12 +311,17 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
                           <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.title}</span>
                           {linkedAssignment?.place && <span style={{ fontSize: 9, color: 'var(--text-faint)', whiteSpace: 'nowrap' }}>· {linkedAssignment.place.name}</span>}
                         </div>
-                        {r.reservation_time?.includes('T') && (
-                          <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                            {new Date(r.reservation_time).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: is12h })}
-                            {r.reservation_end_time && ` – ${fmtTime(r.reservation_end_time)}`}
-                          </span>
-                        )}
+                        {(() => {
+                          const { time: startTime } = splitReservationDateTime(r.reservation_time)
+                          const { time: endTime } = splitReservationDateTime(r.reservation_end_time)
+                          if (!startTime && !endTime) return null
+                          return (
+                            <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                              {startTime ? formatTime12(startTime, is12h) : ''}
+                              {endTime ? ` – ${formatTime12(endTime, is12h)}` : ''}
+                            </span>
+                          )
+                        })()}
                       </div>
                     )
                   })}
@@ -463,7 +475,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <CustomSelect
                           value={hotelDayRange.start}
-                          onChange={v => setHotelDayRange(prev => ({ start: v, end: Math.max(v, prev.end) }))}
+                          onChange={v => setHotelDayRange(prev => ({ start: v, end: days.findIndex(d => d.id === v) > days.findIndex(d => d.id === prev.end) ? v : prev.end }))}
                           options={days.map((d, i) => ({
                             value: d.id,
                             label: d.title || t('planner.dayN', { n: i + 1 }),
@@ -478,7 +490,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <CustomSelect
                           value={hotelDayRange.end}
-                          onChange={v => setHotelDayRange(prev => ({ start: Math.min(prev.start, v), end: v }))}
+                          onChange={v => setHotelDayRange(prev => ({ start: days.findIndex(d => d.id === v) < days.findIndex(d => d.id === prev.start) ? v : prev.start, end: v }))}
                           options={days.map((d, i) => ({
                             value: d.id,
                             label: d.title || t('planner.dayN', { n: i + 1 }),
@@ -598,9 +610,9 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
                         const all = d.accommodations || []
                         setAccommodations(all)
                         setDayAccommodations(all.filter(a =>
-                          days.some(dd => dd.id >= a.start_day_id && dd.id <= a.end_day_id && dd.id === day?.id)
+                          day ? isDayInAccommodationRange(day, a.start_day_id, a.end_day_id, days) : false
                         ))
-                        const acc = all.find(a => days.some(dd => dd.id >= a.start_day_id && dd.id <= a.end_day_id && dd.id === day?.id))
+                        const acc = all.find(a => day ? isDayInAccommodationRange(day, a.start_day_id, a.end_day_id, days) : false)
                         setAccommodation(acc || null)
                       })
                       onAccommodationChange?.()

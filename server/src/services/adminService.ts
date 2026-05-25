@@ -8,6 +8,7 @@ import { updateJwtSecret } from '../config';
 import { maybe_encrypt_api_key, decrypt_api_key } from './apiKeyCrypto';
 import { getAllPermissions, savePermissions as savePerms, PERMISSION_ACTIONS } from './permissions';
 import { revokeUserSessions, revokeUserSessionsForClient } from '../mcp';
+import { deleteUserCompletely } from './userCleanupService';
 import { validatePassword } from './passwordPolicy';
 import { getPhotoProviderConfig } from './memories/helpersService';
 import { send as sendNotification } from './notificationService';
@@ -111,7 +112,9 @@ export function createUser(data: { username: string; email: string; password: st
 }
 
 export function updateUser(id: string, data: { username?: string; email?: string; role?: string; password?: string }) {
-  const { username, email, role, password } = data;
+  const username = typeof data.username === 'string' ? data.username.trim() : data.username;
+  const email = typeof data.email === 'string' ? data.email.trim() : data.email;
+  const { role, password } = data;
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as User | undefined;
 
   if (!user) return { error: 'User not found', status: 404 };
@@ -170,7 +173,7 @@ export function deleteUser(id: string, currentUserId: number) {
   const userToDel = db.prepare('SELECT id, email FROM users WHERE id = ?').get(id) as { id: number; email: string } | undefined;
   if (!userToDel) return { error: 'User not found', status: 404 };
 
-  db.prepare('DELETE FROM users WHERE id = ?').run(id);
+  deleteUserCompletely(userToDel.id);
   return { email: userToDel.email };
 }
 
@@ -287,7 +290,7 @@ export function updateOidcSettings(data: {
 // ── Demo Baseline ──────────────────────────────────────────────────────────
 
 export function saveDemoBaseline(): { error?: string; status?: number; message?: string } {
-  if (process.env.DEMO_MODE !== 'true') {
+  if (process.env.DEMO_MODE?.toLowerCase() !== 'true') {
     return { error: 'Not found', status: 404 };
   }
   try {

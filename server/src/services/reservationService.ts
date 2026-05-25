@@ -61,16 +61,24 @@ function resolveDayIdFromTime(
   return row?.id ?? null;
 }
 
-const saveEndpoints = db.transaction((reservationId: number, endpoints: EndpointInput[]) => {
-  db.prepare('DELETE FROM reservation_endpoints WHERE reservation_id = ?').run(reservationId);
-  const insert = db.prepare(`
-    INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  endpoints.forEach((e, i) => {
-    insert.run(reservationId, e.role, e.sequence ?? i, e.name, e.code ?? null, e.lat, e.lng, e.timezone ?? null, e.local_time ?? null, e.local_date ?? null);
+function saveEndpoints(reservationId: number, endpoints: EndpointInput[]): void {
+  // Bind the transaction lazily on each call. Binding at module load time
+  // captures the DB connection that was open then, which becomes invalid
+  // after demo-reset / restore-from-backup closes and reinitialises the
+  // connection — every later endpoint save would throw
+  // "The database connection is not open".
+  const tx = db.transaction((rid: number, eps: EndpointInput[]) => {
+    db.prepare('DELETE FROM reservation_endpoints WHERE reservation_id = ?').run(rid);
+    const insert = db.prepare(`
+      INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    eps.forEach((e, i) => {
+      insert.run(rid, e.role, e.sequence ?? i, e.name, e.code ?? null, e.lat, e.lng, e.timezone ?? null, e.local_time ?? null, e.local_date ?? null);
+    });
   });
-});
+  tx(reservationId, endpoints);
+}
 
 export function listReservations(tripId: string | number) {
   const reservations = db.prepare(`
@@ -410,9 +418,9 @@ export function updateReservation(id: string | number, tripId: string | number, 
   return { reservation, accommodationChanged };
 }
 
-export function deleteReservation(id: string | number, tripId: string | number): { deleted: { id: number; title: string; type: string; accommodation_id: number | null } | undefined; accommodationDeleted: boolean } {
+export function deleteReservation(id: string | number, tripId: string | number): { deleted: { id: number; title: string; type: string; accommodation_id: number | null } | undefined; accommodationDeleted: boolean; deletedBudgetItemId: number | null } {
   const reservation = db.prepare('SELECT id, title, type, accommodation_id FROM reservations WHERE id = ? AND trip_id = ?').get(id, tripId) as { id: number; title: string; type: string; accommodation_id: number | null } | undefined;
-  if (!reservation) return { deleted: undefined, accommodationDeleted: false };
+  if (!reservation) return { deleted: undefined, accommodationDeleted: false, deletedBudgetItemId: null };
 
   let accommodationDeleted = false;
   if (reservation.accommodation_id) {
@@ -420,6 +428,11 @@ export function deleteReservation(id: string | number, tripId: string | number):
     accommodationDeleted = true;
   }
 
+  const linkedBudget = db.prepare('SELECT id FROM budget_items WHERE trip_id = ? AND reservation_id = ?').get(tripId, id) as { id: number } | undefined;
+  if (linkedBudget) {
+    db.prepare('DELETE FROM budget_items WHERE id = ?').run(linkedBudget.id);
+  }
+
   db.prepare('DELETE FROM reservations WHERE id = ?').run(id);
-  return { deleted: reservation, accommodationDeleted };
+  return { deleted: reservation, accommodationDeleted, deletedBudgetItemId: linkedBudget ? linkedBudget.id : null };
 }

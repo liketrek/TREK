@@ -34,6 +34,16 @@ Pass additional `-e` flags for timezone and CORS/email link support:
 
 See [Environment-Variables](Environment-Variables) for the full list.
 
+## Image Tags
+
+| Tag | Example | Behavior |
+|---|---|---|
+| `latest` | `mauriceboe/trek:latest` | Always the newest release across all major versions |
+| Major version | `mauriceboe/trek:3` | Latest release pinned to that major version |
+| Full version | `mauriceboe/trek:3.0.15` | Exact release; never changes |
+
+Replace `mauriceboe/trek:latest` in the run command with your chosen tag to pin to a major version or exact release.
+
 ## Volume Reference
 
 | Volume | Container path | What lives there |
@@ -42,6 +52,23 @@ See [Environment-Variables](Environment-Variables) for the full list.
 | `./uploads` | `/app/uploads` | Uploaded files (photos, documents, covers, avatars) |
 
 Both volumes must survive container replacement — they are your persistent state. Never remove them before pulling a new image.
+
+### Named Volumes
+
+The run command above uses bind mounts (`./data`, `./uploads`). You can use Docker named volumes instead, which are fully managed by Docker and not tied to a host path:
+
+```bash
+docker run -d \
+  --name trek \
+  -p 3000:3000 \
+  -v trek_data:/app/data \
+  -v trek_uploads:/app/uploads \
+  -e ENCRYPTION_KEY=<your-32-byte-hex-key> \
+  --restart unless-stopped \
+  mauriceboe/trek:latest
+```
+
+Docker creates `trek_data` and `trek_uploads` automatically on first run. Named volumes are easier to manage with `docker volume` commands and work better in some NAS or container-management environments.
 
 ## Health Check
 

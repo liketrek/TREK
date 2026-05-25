@@ -403,6 +403,10 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'settings.oauth.toast.revoked': 'Session revoked',
   'settings.oauth.toast.revokeError': 'Failed to revoke session',
   'settings.oauth.toast.rotateError': 'Failed to rotate client secret',
+  'settings.oauth.modal.machineClient': 'Machine client (no browser login)',
+  'settings.oauth.modal.machineClientHint': 'Use client_credentials grant — no redirect URIs needed. The token is issued directly via client_id + client_secret and acts as you within the selected scopes.',
+  'settings.oauth.modal.machineClientUsage': 'Get a token: POST /oauth/token with grant_type=client_credentials, client_id, and client_secret. No browser, no refresh token.',
+  'settings.oauth.badge.machine': 'machine',
   'settings.account': 'Account',
   'settings.about': 'About',
   'settings.about.reportBug': 'Report a Bug',
@@ -1322,6 +1326,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'files.toast.deleteError': 'Failed to delete file',
   'files.sourcePlan': 'Day Plan',
   'files.sourceBooking': 'Booking',
+  'files.sourceTransport': 'Transport',
   'files.attach': 'Attach',
   'files.pasteHint': 'You can also paste images from clipboard (Ctrl+V)',
   'files.trash': 'Trash',
@@ -1334,6 +1339,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'files.assignTitle': 'Assign File',
   'files.assignPlace': 'Place',
   'files.assignBooking': 'Booking',
+  'files.assignTransport': 'Transport',
   'files.unassigned': 'Unassigned',
   'files.unlink': 'Remove link',
   'files.toast.trashed': 'Moved to trash',
@@ -2109,8 +2115,11 @@ const en: Record<string, string | { name: string; category: string }[]> = {
 
   // Journey Entry Editor
   'journey.editor.discardChangesConfirm': 'You have unsaved changes. Discard them?',
+  'journey.editor.uploadFailed': 'Photo upload failed',
   'journey.editor.uploadPhotos': 'Upload photos',
   'journey.editor.uploading': 'Uploading...',
+  'journey.editor.uploadingProgress': 'Uploading {done}/{total}…',
+  'journey.editor.uploadPartialFailed': '{failed} of {total} photos failed — save again to retry',
   'journey.editor.fromGallery': 'From Gallery',
   'journey.editor.allPhotosAdded': 'All photos already added',
   'journey.editor.writeStory': 'Write your story...',
@@ -2217,6 +2226,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'journey.settings.failedToDelete': 'Failed to delete',
   'journey.entries.deleteTitle': 'Delete Entry',
   'journey.photosUploaded': '{count} photos uploaded',
+  'journey.photosUploadFailed': 'Some photos failed to upload',
   'journey.photosAdded': '{count} photos added',
 
   // Journey — Public Page
@@ -2390,6 +2400,10 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   // System notices — personal thank you
   'system_notice.v3_thankyou.title': 'A personal note from me',
   'system_notice.v3_thankyou.body': 'Before you go — I want to take a moment.\n\nTREK started as a side project I built for my own trips. I never imagined it would grow into something that 4,000 of you now trust to plan your adventures. Every star, every issue, every feature request — I read them all, and they keep me going through late nights between a full-time job and university.\n\nI want you to know: TREK will always be open source, always self-hosted, always yours. No tracking, no subscriptions, no strings attached. Just a tool built by someone who loves traveling as much as you do.\n\nSpecial thanks to [jubnl](https://github.com/jubnl) — you have become an incredible collaborator. So much of what makes 3.0 great carries your fingerprints. Thank you for believing in this project when it was still rough around the edges.\n\nAnd to every single one of you who filed a bug, translated a string, shared TREK with a friend, or simply used it to plan a trip — **thank you**. You are the reason this exists.\n\nHere\'s to many more adventures together.\n\n— Maurice\n\n---\n\n[Join the community on Discord](https://discord.gg/7Q6M6jDwzf)\n\nIf TREK makes your travels better, a [small coffee](https://ko-fi.com/mauriceboe) always keeps the lights on.',
+
+  // System notices — 3.0.14
+  'system_notice.v3014_whitespace_collision.title': 'Action required: user account conflict',
+  'system_notice.v3014_whitespace_collision.body': 'The 3.0.14 upgrade detected one or more username or email collisions caused by leading/trailing whitespace in stored accounts. Affected accounts were renamed automatically. Check the server logs for lines starting with **[migration] WHITESPACE COLLISION** to identify which accounts need review.',
 
   // System notices — onboarding
   'system_notice.welcome_v1.title': 'Welcome to TREK',

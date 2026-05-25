@@ -387,6 +387,10 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   'settings.oauth.toast.revoked': 'Sesi dicabut',
   'settings.oauth.toast.revokeError': 'Gagal mencabut sesi',
   'settings.oauth.toast.rotateError': 'Gagal memutar ulang client secret',
+  'settings.oauth.modal.machineClient': 'Klien mesin (tanpa login browser)',
+  'settings.oauth.modal.machineClientHint': 'Menggunakan grant client_credentials — tidak perlu URI pengalihan. Token diterbitkan langsung melalui client_id + client_secret dan bertindak sebagai Anda dalam cakupan yang dipilih.',
+  'settings.oauth.modal.machineClientUsage': 'Dapatkan token: POST /oauth/token dengan grant_type=client_credentials, client_id, dan client_secret. Tanpa browser, tanpa refresh token.',
+  'settings.oauth.badge.machine': 'mesin',
   'settings.account': 'Akun',
   'settings.about': 'Tentang',
   'settings.about.reportBug': 'Laporkan Bug',
@@ -1306,6 +1310,7 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   'files.toast.deleteError': 'Gagal menghapus file',
   'files.sourcePlan': 'Rencana Harian',
   'files.sourceBooking': 'Pemesanan',
+  'files.sourceTransport': 'Transportasi',
   'files.attach': 'Lampirkan',
   'files.pasteHint': 'Kamu juga bisa menempel gambar dari clipboard (Ctrl+V)',
   'files.trash': 'Sampah',
@@ -1318,6 +1323,7 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   'files.assignTitle': 'Tugaskan File',
   'files.assignPlace': 'Tempat',
   'files.assignBooking': 'Pemesanan',
+  'files.assignTransport': 'Transportasi',
   'files.unassigned': 'Tidak ditugaskan',
   'files.unlink': 'Hapus tautan',
   'files.toast.trashed': 'Dipindahkan ke sampah',
@@ -2092,8 +2098,11 @@ const id: Record<string, string | { name: string; category: string }[]> = {
 
   // Journey Entry Editor
   'journey.editor.discardChangesConfirm': 'Anda memiliki perubahan yang belum disimpan. Buang?',
+  'journey.editor.uploadFailed': 'Gagal mengunggah foto',
   'journey.editor.uploadPhotos': 'Unggah foto',
   'journey.editor.uploading': 'Mengunggah...',
+  'journey.editor.uploadingProgress': 'Mengunggah {done}/{total}…',
+  'journey.editor.uploadPartialFailed': '{failed} dari {total} foto gagal — simpan lagi untuk mencoba ulang',
   'journey.editor.fromGallery': 'Dari Galeri',
   'journey.editor.allPhotosAdded': 'Semua foto sudah ditambahkan',
   'journey.editor.writeStory': 'Tulis kisahmu...',
@@ -2196,6 +2205,7 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   'journey.settings.failedToDelete': 'Gagal menghapus',
   'journey.entries.deleteTitle': 'Hapus Entri',
   'journey.photosUploaded': '{count} foto diunggah',
+  'journey.photosUploadFailed': 'Beberapa foto gagal diunggah',
   'journey.photosAdded': '{count} foto ditambahkan',
 
   // Journey — Public Page
@@ -2386,6 +2396,9 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   // System notices — personal thank you
   'system_notice.v3_thankyou.title': 'Catatan pribadi dari saya',
   'system_notice.v3_thankyou.body': 'Sebelum kamu lanjut — saya ingin berhenti sejenak.\n\nTREK dimulai sebagai proyek sampingan yang saya buat untuk perjalanan saya sendiri. Saya tidak pernah membayangkan ia akan tumbuh menjadi sesuatu yang dipercaya oleh 4.000 dari kalian untuk merencanakan petualangan. Setiap bintang, setiap issue, setiap permintaan fitur — saya membaca semuanya, dan itulah yang membuat saya terus bertahan di malam-malam larut antara pekerjaan penuh waktu dan kuliah.\n\nSaya ingin kalian tahu: TREK akan selalu open source, selalu self-hosted, selalu milik kalian. Tanpa pelacakan, tanpa langganan, tanpa syarat tersembunyi. Hanya sebuah alat yang dibuat oleh seseorang yang mencintai traveling sama seperti kalian.\n\nTerima kasih khusus untuk [jubnl](https://github.com/jubnl) — kamu telah menjadi kolaborator yang luar biasa. Begitu banyak hal yang membuat versi 3.0 hebat memiliki jejakmu. Terima kasih telah percaya pada proyek ini ketika masih kasar.\n\nDan untuk setiap dari kalian yang melaporkan bug, menerjemahkan string, membagikan TREK kepada teman, atau sekadar menggunakannya untuk merencanakan perjalanan — **terima kasih**. Kalianlah alasan semua ini ada.\n\nUntuk lebih banyak petualangan bersama.\n\n— Maurice\n\n---\n\n[Bergabunglah dengan komunitas di Discord](https://discord.gg/7Q6M6jDwzf)\n\nJika TREK membuat perjalananmu lebih baik, [secangkir kopi kecil](https://ko-fi.com/mauriceboe) selalu membantu menjaga lampu tetap menyala.',
+  // System notices — 3.0.14
+  'system_notice.v3014_whitespace_collision.title': 'Tindakan diperlukan: konflik akun pengguna',
+  'system_notice.v3014_whitespace_collision.body': 'Pembaruan 3.0.14 mendeteksi satu atau lebih konflik nama pengguna atau email yang disebabkan oleh spasi di awal atau akhir nilai yang tersimpan. Akun yang terpengaruh telah diganti nama secara otomatis. Periksa log server untuk baris yang dimulai dengan **[migration] WHITESPACE COLLISION** guna mengidentifikasi akun mana yang perlu ditinjau.',
   'transport.addTransport': 'Tambah transportasi',
   'transport.modalTitle.create': 'Tambah transportasi',
   'transport.modalTitle.edit': 'Edit transportasi',

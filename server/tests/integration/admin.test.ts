@@ -41,7 +41,7 @@ import { createApp } from '../../src/app';
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
 import { resetTestDb } from '../helpers/test-db';
-import { createUser, createAdmin, createInviteToken } from '../helpers/factories';
+import { createUser, createAdmin, createInviteToken, createTrip, createBudgetItem, createJourney, createJourneyEntry, addJourneyContributor, addTripPhoto, createCategory, createTag, createTodoItem, createMcpToken, createBucketListItem, createVisitedCountry, createCollabNote, addTripMember } from '../helpers/factories';
 import { authCookie } from '../helpers/auth';
 import { loginAttempts, mfaAttempts } from '../../src/routes/auth';
 
@@ -148,6 +148,216 @@ describe('Admin user management', () => {
     expect(deleted).toBeUndefined();
   });
 
+  it('ADMIN-005b — DELETE /admin/users/:id succeeds when user has FK references', async () => {
+    const { user: admin } = createAdmin(testDb);
+    const { user: target } = createUser(testDb);
+    const { user: otherUser } = createUser(testDb);
+    const { user: thirdUser } = createUser(testDb);
+
+    // trip_members.invited_by: target invited thirdUser to otherUser's trip
+    // (trip survives deletion; only invited_by should become NULL)
+    const otherTrip = createTrip(testDb, otherUser.id);
+    testDb.prepare('INSERT INTO trip_members (trip_id, user_id, invited_by) VALUES (?, ?, ?)').run(otherTrip.id, thirdUser.id, target.id);
+
+    // share_tokens.created_by: target created a share token for otherUser's trip
+    testDb.prepare("INSERT INTO share_tokens (trip_id, token, created_by) VALUES (?, 'tok-admin-test', ?)").run(otherTrip.id, target.id);
+
+    // budget_items.paid_by_user_id: target paid for an expense on otherUser's trip
+    const budgetItem = createBudgetItem(testDb, otherTrip.id);
+    testDb.prepare('UPDATE budget_items SET paid_by_user_id = ? WHERE id = ?').run(target.id, budgetItem.id);
+
+    // journey_contributors: target is a contributor on otherUser's journey
+    const otherJourney = createJourney(testDb, otherUser.id);
+    addJourneyContributor(testDb, otherJourney.id, target.id);
+
+    // journey_entries: target authored an entry on otherUser's journey
+    createJourneyEntry(testDb, otherJourney.id, target.id);
+
+    // journey_share_tokens: target created a share token for otherUser's journey
+    testDb.prepare("INSERT INTO journey_share_tokens (journey_id, token, created_by) VALUES (?, 'jst-admin-test', ?)").run(otherJourney.id, target.id);
+
+    // notifications.sender_id (SET NULL): target sent a notification to otherUser
+    const sentNotif = testDb.prepare(
+      "INSERT INTO notifications (type, scope, target, sender_id, recipient_id, title_key, text_key) VALUES ('simple', 'trip', ?, ?, ?, 'k', 'k')"
+    ).run(otherTrip.id, target.id, otherUser.id);
+    // notifications.recipient_id (CASCADE): otherUser sent a notification to target
+    testDb.prepare(
+      "INSERT INTO notifications (type, scope, target, sender_id, recipient_id, title_key, text_key) VALUES ('simple', 'trip', ?, ?, ?, 'k', 'k')"
+    ).run(otherTrip.id, otherUser.id, target.id);
+
+    // user_notice_dismissals (CASCADE): target dismissed a notice
+    testDb.prepare(
+      "INSERT INTO user_notice_dismissals (user_id, notice_id, dismissed_at) VALUES (?, 'test-notice', ?)"
+    ).run(target.id, Date.now());
+
+    // owned journey: target owns a journey with an entry (cascade-deletes on journey deletion)
+    const ownedJourney = createJourney(testDb, target.id);
+    createJourneyEntry(testDb, ownedJourney.id, target.id);
+
+    // trip_files.uploaded_by (SET NULL): target uploaded a file to otherUser's trip
+    const fileRow = testDb.prepare(
+      "INSERT INTO trip_files (trip_id, filename, original_name, uploaded_by) VALUES (?, 'f.pdf', 'file.pdf', ?)"
+    ).run(otherTrip.id, target.id);
+
+    // trek_photos.owner_id (SET NULL): target owns a photo in the central registry
+    const trekPhotoRow = testDb.prepare(
+      "INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'asset-admin-test', ?)"
+    ).run(target.id);
+
+    // trip_photos.user_id (CASCADE): target added a photo to otherUser's trip
+    addTripPhoto(testDb, otherTrip.id, target.id, 'asset-tp-admin', 'immich');
+
+    // trips.user_id (CASCADE): target owns a trip
+    const ownedTrip = createTrip(testDb, target.id);
+
+    // trip_members.user_id (CASCADE): target is a member of otherUser's trip
+    addTripMember(testDb, otherTrip.id, target.id);
+
+    // categories.user_id (SET NULL): target created a category
+    const userCategory = createCategory(testDb, { user_id: target.id });
+
+    // tags.user_id (CASCADE): target created a tag
+    const userTag = createTag(testDb, target.id);
+
+    // todo_items.assigned_user_id (SET NULL): target is assigned to a todo on otherUser's trip
+    const todoItem = createTodoItem(testDb, otherTrip.id);
+    testDb.prepare('UPDATE todo_items SET assigned_user_id = ? WHERE id = ?').run(target.id, todoItem.id);
+
+    // packing_bags.user_id (SET NULL): target owns a packing bag on otherUser's trip
+    const packBagRow = testDb.prepare(
+      "INSERT INTO packing_bags (trip_id, name, color, user_id) VALUES (?, 'Bag', '#ff0000', ?)"
+    ).run(otherTrip.id, target.id);
+
+    // mcp_tokens.user_id (CASCADE): target has an MCP API token
+    createMcpToken(testDb, target.id);
+
+    // oauth_tokens/consents.user_id (CASCADE): target has tokens from otherUser's OAuth client
+    testDb.prepare(
+      "INSERT INTO oauth_clients (id, user_id, name, client_id, client_secret_hash) VALUES ('cl-admin-test', ?, 'App', 'cid-admin-test', 'h')"
+    ).run(otherUser.id);
+    testDb.prepare(
+      "INSERT INTO oauth_tokens (client_id, user_id, access_token_hash, refresh_token_hash, access_token_expires_at, refresh_token_expires_at) VALUES ('cid-admin-test', ?, 'ath-admin', 'rth-admin', datetime('now','+1 hour'), datetime('now','+30 days'))"
+    ).run(target.id);
+    testDb.prepare(
+      "INSERT INTO oauth_consents (client_id, user_id) VALUES ('cid-admin-test', ?)"
+    ).run(target.id);
+
+    // vacay_plans.owner_id (CASCADE): target owns a vacation plan
+    const vacayPlanRow = testDb.prepare("INSERT INTO vacay_plans (owner_id) VALUES (?)").run(target.id);
+
+    // vacay_plan_members.user_id (CASCADE): target is a member of otherUser's vacay plan
+    const otherVacayPlanRow = testDb.prepare("INSERT INTO vacay_plans (owner_id) VALUES (?)").run(otherUser.id);
+    testDb.prepare("INSERT INTO vacay_plan_members (plan_id, user_id) VALUES (?, ?)").run(otherVacayPlanRow.lastInsertRowid, target.id);
+
+    // bucket_list.user_id (CASCADE): target has a bucket list item
+    createBucketListItem(testDb, target.id);
+
+    // visited_countries.user_id (CASCADE): target has visited a country
+    createVisitedCountry(testDb, target.id, 'JP');
+
+    // visited_regions.user_id (CASCADE): target has visited a region
+    testDb.prepare(
+      "INSERT INTO visited_regions (user_id, region_code, region_name, country_code) VALUES (?, 'JP-13', 'Tokyo', 'JP')"
+    ).run(target.id);
+
+    // packing_templates.created_by (CASCADE): target created a packing template
+    const packTemplateRow = testDb.prepare(
+      "INSERT INTO packing_templates (name, created_by) VALUES ('My Template', ?)"
+    ).run(target.id);
+
+    // invite_tokens.created_by (CASCADE): target created an invite token
+    createInviteToken(testDb, { created_by: target.id });
+
+    // collab_notes.user_id (CASCADE): target authored a collab note on otherUser's trip
+    createCollabNote(testDb, otherTrip.id, target.id);
+
+    // settings.user_id (CASCADE): target has a user setting
+    testDb.prepare("INSERT INTO settings (user_id, key, value) VALUES (?, 'theme', 'dark')").run(target.id);
+
+    // password_reset_tokens.user_id (CASCADE): target has a pending password reset
+    testDb.prepare(
+      "INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES (?, 'prt-hash-admin', datetime('now','+1 hour'))"
+    ).run(target.id);
+
+    // audit_log.user_id (SET NULL): target performed an audited action
+    const auditRow = testDb.prepare(
+      "INSERT INTO audit_log (user_id, action, ip) VALUES (?, 'test.action', '127.0.0.1')"
+    ).run(target.id);
+
+    // notification_channel_preferences.user_id (CASCADE): target has notification preferences
+    testDb.prepare("INSERT OR IGNORE INTO notification_channel_preferences (user_id, event_type, channel) VALUES (?, 'trip_invite', 'email')").run(target.id);
+
+    const res = await request(app)
+      .delete(`/api/admin/users/${target.id}`)
+      .set('Cookie', authCookie(admin.id));
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+
+    expect(testDb.prepare('SELECT id FROM users WHERE id = ?').get(target.id)).toBeUndefined();
+    // trip_members row survives but invited_by is now NULL
+    expect((testDb.prepare('SELECT invited_by FROM trip_members WHERE trip_id = ? AND user_id = ?').get(otherTrip.id, thirdUser.id) as any).invited_by).toBeNull();
+    expect(testDb.prepare('SELECT id FROM share_tokens WHERE created_by = ?').get(target.id)).toBeUndefined();
+    expect((testDb.prepare('SELECT paid_by_user_id FROM budget_items WHERE id = ?').get(budgetItem.id) as any).paid_by_user_id).toBeNull();
+    expect(testDb.prepare('SELECT user_id FROM journey_contributors WHERE journey_id = ? AND user_id = ?').get(otherJourney.id, target.id)).toBeUndefined();
+    expect(testDb.prepare('SELECT id FROM journey_entries WHERE author_id = ?').get(target.id)).toBeUndefined();
+    expect(testDb.prepare('SELECT id FROM journey_share_tokens WHERE created_by = ?').get(target.id)).toBeUndefined();
+    // sent notification survives but sender_id becomes NULL
+    expect((testDb.prepare('SELECT sender_id FROM notifications WHERE id = ?').get(sentNotif.lastInsertRowid) as any).sender_id).toBeNull();
+    // received notification is cascade-deleted
+    expect(testDb.prepare('SELECT id FROM notifications WHERE recipient_id = ?').get(target.id)).toBeUndefined();
+    // notice dismissals are cascade-deleted
+    expect(testDb.prepare("SELECT user_id FROM user_notice_dismissals WHERE user_id = ? AND notice_id = 'test-notice'").get(target.id)).toBeUndefined();
+    // owned journey and its entries are cascade-deleted
+    expect(testDb.prepare('SELECT id FROM journeys WHERE user_id = ?').get(target.id)).toBeUndefined();
+    expect(testDb.prepare('SELECT id FROM journey_entries WHERE journey_id = ?').get(ownedJourney.id)).toBeUndefined();
+    // uploaded file survives but uploaded_by is now NULL
+    expect((testDb.prepare('SELECT uploaded_by FROM trip_files WHERE id = ?').get(fileRow.lastInsertRowid) as any).uploaded_by).toBeNull();
+    // trek_photos row survives but owner_id is now NULL
+    expect((testDb.prepare('SELECT owner_id FROM trek_photos WHERE id = ?').get(trekPhotoRow.lastInsertRowid) as any).owner_id).toBeNull();
+    // trip_photos row for target is cascade-deleted
+    expect(testDb.prepare("SELECT id FROM trip_photos WHERE trip_id = ? AND user_id = ?").get(otherTrip.id, target.id)).toBeUndefined();
+    // owned trip is cascade-deleted
+    expect(testDb.prepare('SELECT id FROM trips WHERE id = ?').get(ownedTrip.id)).toBeUndefined();
+    // trip membership on others' trips is removed
+    expect(testDb.prepare('SELECT id FROM trip_members WHERE trip_id = ? AND user_id = ?').get(otherTrip.id, target.id)).toBeUndefined();
+    // category survives but user_id is NULL
+    expect((testDb.prepare('SELECT user_id FROM categories WHERE id = ?').get(userCategory.id) as any).user_id).toBeNull();
+    // tag is deleted
+    expect(testDb.prepare('SELECT id FROM tags WHERE id = ?').get(userTag.id)).toBeUndefined();
+    // todo assigned_user_id is NULL
+    expect((testDb.prepare('SELECT assigned_user_id FROM todo_items WHERE id = ?').get(todoItem.id) as any).assigned_user_id).toBeNull();
+    // packing bag survives but user_id is NULL
+    expect((testDb.prepare('SELECT user_id FROM packing_bags WHERE id = ?').get(packBagRow.lastInsertRowid) as any).user_id).toBeNull();
+    // MCP tokens are deleted
+    expect(testDb.prepare('SELECT id FROM mcp_tokens WHERE user_id = ?').get(target.id)).toBeUndefined();
+    // OAuth tokens and consents are deleted
+    expect(testDb.prepare('SELECT id FROM oauth_tokens WHERE user_id = ?').get(target.id)).toBeUndefined();
+    expect(testDb.prepare('SELECT id FROM oauth_consents WHERE user_id = ?').get(target.id)).toBeUndefined();
+    // owned vacay plan is deleted
+    expect(testDb.prepare('SELECT id FROM vacay_plans WHERE id = ?').get(vacayPlanRow.lastInsertRowid)).toBeUndefined();
+    // vacay plan membership on others' plans is removed
+    expect(testDb.prepare('SELECT id FROM vacay_plan_members WHERE plan_id = ? AND user_id = ?').get(otherVacayPlanRow.lastInsertRowid, target.id)).toBeUndefined();
+    // bucket list items are deleted
+    expect(testDb.prepare('SELECT id FROM bucket_list WHERE user_id = ?').get(target.id)).toBeUndefined();
+    // travel history is deleted
+    expect(testDb.prepare('SELECT user_id FROM visited_countries WHERE user_id = ? AND country_code = ?').get(target.id, 'JP')).toBeUndefined();
+    expect(testDb.prepare('SELECT id FROM visited_regions WHERE user_id = ?').get(target.id)).toBeUndefined();
+    // packing template is deleted
+    expect(testDb.prepare('SELECT id FROM packing_templates WHERE id = ?').get(packTemplateRow.lastInsertRowid)).toBeUndefined();
+    // invite tokens created by target are deleted
+    expect(testDb.prepare('SELECT id FROM invite_tokens WHERE created_by = ?').get(target.id)).toBeUndefined();
+    // collab content is deleted
+    expect(testDb.prepare('SELECT id FROM collab_notes WHERE user_id = ? AND trip_id = ?').get(target.id, otherTrip.id)).toBeUndefined();
+    // user settings are deleted
+    expect(testDb.prepare("SELECT id FROM settings WHERE user_id = ?").get(target.id)).toBeUndefined();
+    // password reset tokens are deleted
+    expect(testDb.prepare('SELECT id FROM password_reset_tokens WHERE user_id = ?').get(target.id)).toBeUndefined();
+    // audit log entry survives but user_id is NULL
+    expect((testDb.prepare('SELECT user_id FROM audit_log WHERE id = ?').get(auditRow.lastInsertRowid) as any).user_id).toBeNull();
+    // notification channel preferences are deleted
+    expect(testDb.prepare("SELECT user_id FROM notification_channel_preferences WHERE user_id = ? AND event_type = 'trip_invite'").get(target.id)).toBeUndefined();
+  });
+
   it('ADMIN-006 — admin cannot delete their own account', async () => {
     const { user: admin } = createAdmin(testDb);
 
@@ -155,6 +365,53 @@ describe('Admin user management', () => {
       .delete(`/api/admin/users/${admin.id}`)
       .set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(400);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Admin user management — whitespace normalization
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('Admin user management — whitespace normalization', () => {
+  it('ADMIN-UPDATE-TRIM-1 — PUT /admin/users/:id trims username before storing', async () => {
+    const { user: admin } = createAdmin(testDb);
+    const { user } = createUser(testDb);
+
+    const res = await request(app)
+      .put(`/api/admin/users/${user.id}`)
+      .set('Cookie', authCookie(admin.id))
+      .send({ username: '  trimmedadmin  ' });
+
+    expect(res.status).toBe(200);
+    const row = testDb.prepare('SELECT username FROM users WHERE id = ?').get(user.id) as { username: string };
+    expect(row.username).toBe('trimmedadmin');
+  });
+
+  it('ADMIN-UPDATE-TRIM-2 — PUT /admin/users/:id trims email before storing', async () => {
+    const { user: admin } = createAdmin(testDb);
+    const { user } = createUser(testDb);
+
+    const res = await request(app)
+      .put(`/api/admin/users/${user.id}`)
+      .set('Cookie', authCookie(admin.id))
+      .send({ email: '  newemail@example.com  ' });
+
+    expect(res.status).toBe(200);
+    const row = testDb.prepare('SELECT email FROM users WHERE id = ?').get(user.id) as { email: string };
+    expect(row.email).toBe('newemail@example.com');
+  });
+
+  it('ADMIN-UPDATE-TRIM-3 — PUT /admin/users/:id with whitespace-padded username that trims to existing returns 409', async () => {
+    const { user: admin } = createAdmin(testDb);
+    const { user: existing } = createUser(testDb, { username: 'carol' });
+    const { user: target } = createUser(testDb);
+
+    const res = await request(app)
+      .put(`/api/admin/users/${target.id}`)
+      .set('Cookie', authCookie(admin.id))
+      .send({ username: `  ${existing.username}  ` });
+
+    expect(res.status).toBe(409);
   });
 });
 

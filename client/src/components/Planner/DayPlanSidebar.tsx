@@ -2,7 +2,7 @@
 interface DragDataPayload { placeId?: string; assignmentId?: string; noteId?: string; reservationId?: string; fromDayId?: string; phase?: 'single' | 'start' | 'middle' | 'end' }
 declare global { interface Window { __dragData: DragDataPayload | null } }
 
-import React, { useState, useEffect, useRef, useMemo } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
 import ReactDOM from 'react-dom'
 import { ChevronDown, ChevronRight, ChevronUp, ChevronsDownUp, ChevronsUpDown, Navigation, RotateCcw, ExternalLink, Clock, Pencil, GripVertical, Ticket, Plus, FileText, Check, Trash2, Info, MapPin, Star, Heart, Camera, Lightbulb, Flag, Bookmark, Train, Bus, Plane, Car, Ship, Coffee, ShoppingBag, AlertTriangle, FileDown, Lock, Hotel, Utensils, Users, Undo2, X, Route as RouteIcon } from 'lucide-react'
 
@@ -14,6 +14,7 @@ import PlaceAvatar from '../shared/PlaceAvatar'
 import { useContextMenu, ContextMenu } from '../shared/ContextMenu'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
 import WeatherWidget from '../Weather/WeatherWidget'
 import { useToast } from '../shared/Toast'
 import { getCategoryIcon } from '../shared/categoryIcons'
@@ -21,7 +22,13 @@ import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTranslation } from '../../i18n'
-import { formatDate, formatTime, dayTotalCost, currencyDecimals } from '../../utils/formatters'
+import { isDayInAccommodationRange } from '../../utils/dayOrder'
+import {
+  TRANSPORT_TYPES, parseTimeToMinutes, getSpanPhase, getDisplayTimeForDay,
+  getTransportForDay as _getTransportForDay, getMergedItems as _getMergedItems,
+  type MergedItem,
+} from '../../utils/dayMerge'
+import { formatDate, formatTime, dayTotalCost, currencyDecimals, splitReservationDateTime } from '../../utils/formatters'
 import { useDayNotes } from '../../hooks/useDayNotes'
 import Tooltip from '../shared/Tooltip'
 import type { Trip, Day, Place, Category, Assignment, Reservation, AssignmentsMap, RouteResult } from '../../types'
@@ -189,6 +196,8 @@ interface DayPlanSidebarProps {
   onEditTransport?: (reservation: Reservation) => void
   onEditReservation?: (reservation: Reservation) => void
   onAddBookingToAssignment?: (dayId: number, assignmentId: number) => void
+  initialScrollTop?: number
+  onScrollTopChange?: (top: number) => void
 }
 
 const DayPlanSidebar = React.memo(function DayPlanSidebar({
@@ -217,6 +226,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
   onEditTransport,
   onEditReservation,
   onAddBookingToAssignment,
+  initialScrollTop,
+  onScrollTopChange,
 }: DayPlanSidebarProps) {
   const toast = useToast()
   const { t, language, locale } = useTranslation()
@@ -269,6 +280,12 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
   } | null>(null)
   const inputRef = useRef(null)
   const dragDataRef = useRef(null)
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null)
+  useLayoutEffect(() => {
+    if (scrollContainerRef.current && initialScrollTop) {
+      scrollContainerRef.current.scrollTop = initialScrollTop
+    }
+  }, [])
   const initedTransportIds = useRef(new Set<number>()) // Speichert Drag-Daten als Backup (dataTransfer geht bei Re-Render verloren)
   // Remember which assignment we last auto-scrolled into view so we don't
   // keep yanking the user back whenever they scroll away while the same
@@ -350,26 +367,6 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
     })
   }
 
-  const TRANSPORT_TYPES = new Set(['flight', 'train', 'bus', 'car', 'cruise'])
-
-  // Get span phase: how a reservation relates to a specific day (by id)
-  const getSpanPhase = (r: Reservation, dayId: number): 'single' | 'start' | 'middle' | 'end' => {
-    const startDayId = r.day_id
-    const endDayId = r.end_day_id ?? startDayId
-    if (!startDayId || startDayId === endDayId) return 'single'
-    if (dayId === startDayId) return 'start'
-    if (dayId === endDayId) return 'end'
-    return 'middle'
-  }
-
-  // Get the appropriate display time for a reservation on a specific day
-  const getDisplayTimeForDay = (r: Reservation, dayId: number): string | null => {
-    const phase = getSpanPhase(r, dayId)
-    if (phase === 'end') return r.reservation_end_time || null
-    if (phase === 'middle') return null
-    return r.reservation_time || null
-  }
-
   // Get phase label for multi-day badge
   const getSpanLabel = (r: Reservation, phase: string): string | null => {
     if (phase === 'single') return null
@@ -394,27 +391,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
     return { day_id: startId, end_day_id: targetDayId }
   }
 
-  const getTransportForDay = (dayId: number) => {
-    const dayAssignmentIds = (assignments[String(dayId)] || []).map(a => a.id)
-    return reservations.filter(r => {
-      if (r.type === 'hotel') return false
-      if (r.assignment_id && dayAssignmentIds.includes(r.assignment_id)) return false
-
-      const startDayId = r.day_id
-      const endDayId = r.end_day_id ?? startDayId
-
-      if (startDayId == null) return false
-
-      if (endDayId !== startDayId) {
-        const startDay = days.find(d => d.id === startDayId)
-        const endDay = days.find(d => d.id === endDayId)
-        const thisDay = days.find(d => d.id === dayId)
-        if (!startDay || !endDay || !thisDay) return false
-        return getDayOrder(thisDay) >= getDayOrder(startDay) && getDayOrder(thisDay) <= getDayOrder(endDay)
-      }
-      return startDayId === dayId
-    })
-  }
+  const getTransportForDay = (dayId: number) =>
+    _getTransportForDay({ reservations, dayId, dayAssignmentIds: (assignments[String(dayId)] || []).map(a => a.id), days })
 
   // Get car rentals that are in "active" (middle) phase for a day — shown in day header, not timeline
   const getActiveRentalsForDay = (dayId: number) => {
@@ -433,20 +411,6 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
 
   const getDayAssignments = (dayId) =>
     (assignments[String(dayId)] || []).slice().sort((a, b) => a.order_index - b.order_index)
-
-  // Helper: parse time string ("HH:MM" or ISO) to minutes since midnight, or null
-  const parseTimeToMinutes = (time?: string | null): number | null => {
-    if (!time) return null
-    // ISO-Format "2025-03-30T09:00:00"
-    if (time.includes('T')) {
-      const [h, m] = time.split('T')[1].split(':').map(Number)
-      return h * 60 + m
-    }
-    // Einfaches "HH:MM" Format
-    const parts = time.split(':').map(Number)
-    if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) return parts[0] * 60 + parts[1]
-    return null
-  }
 
   // Compute initial day_plan_position for a transport based on time
   const computeTransportPosition = (r, da) => {
@@ -489,64 +453,14 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
     reservationsApi.updatePositions(tripId, positions).catch(() => {})
   }
 
-  const getMergedItems = (dayId) => {
-    const da = getDayAssignments(dayId)
-    const dn = (dayNotes[String(dayId)] || []).slice().sort((a, b) => a.sort_order - b.sort_order)
-    const transport = getTransportForDay(dayId)
-
-    // All places keep their order_index — untimed can be freely moved, timed auto-sort when time is set
-    const baseItems = [
-      ...da.map(a => ({ type: 'place' as const, sortKey: a.order_index, data: a })),
-      ...dn.map(n => ({ type: 'note' as const, sortKey: n.sort_order, data: n })),
-    ].sort((a, b) => a.sortKey - b.sortKey)
-
-    // Transports are inserted among places based on time
-    const timedTransports = transport.map(r => ({
-      type: 'transport' as const,
-      data: r,
-      minutes: parseTimeToMinutes(getDisplayTimeForDay(r, dayId)) ?? 0,
-    })).sort((a, b) => a.minutes - b.minutes)
-
-    if (timedTransports.length === 0) return baseItems
-    if (baseItems.length === 0) {
-      return timedTransports.map((item, i) => ({ ...item, sortKey: i }))
-    }
-
-    // Insert transports among places based on per-day position or time
-    const result = [...baseItems]
-    for (let ti = 0; ti < timedTransports.length; ti++) {
-      const timed = timedTransports[ti]
-      const minutes = timed.minutes
-
-      // Use per-day position if explicitly set by user reorder
-      const perDayPos = timed.data.day_positions?.[dayId] ?? timed.data.day_positions?.[String(dayId)]
-      if (perDayPos != null) {
-        result.push({ type: timed.type, sortKey: perDayPos, data: timed.data })
-        continue
-      }
-
-      // Find insertion position: after the last place with time <= this transport's time
-      let insertAfterKey = -Infinity
-      for (const item of result) {
-        if (item.type === 'place') {
-          const pm = parseTimeToMinutes(item.data?.place?.place_time)
-          if (pm !== null && pm <= minutes) insertAfterKey = item.sortKey
-        } else if (item.type === 'transport') {
-          const tm = parseTimeToMinutes(item.data?.reservation_time)
-          if (tm !== null && tm <= minutes) insertAfterKey = item.sortKey
-        }
-      }
-
-      const lastKey = result.length > 0 ? Math.max(...result.map(i => i.sortKey)) : 0
-      const sortKey = insertAfterKey === -Infinity
-        ? lastKey + 0.5 + ti * 0.01
-        : insertAfterKey + 0.01 + ti * 0.001
-
-      result.push({ type: timed.type, sortKey, data: timed.data })
-    }
-
-    return result.sort((a, b) => a.sortKey - b.sortKey)
-  }
+  const getMergedItems = (dayId: number): MergedItem[] =>
+    _getMergedItems({
+      dayAssignments: getDayAssignments(dayId),
+      dayNotes: (dayNotes[String(dayId)] || []).slice().sort((a, b) => a.sort_order - b.sort_order),
+      dayTransports: getTransportForDay(dayId),
+      dayId,
+      getDisplayTime: getDisplayTimeForDay,
+    })
 
   // Pre-compute merged items for all days so the render loop doesn't recompute on unrelated state changes (e.g. hover)
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1116,7 +1030,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
       </div>
 
       {/* Tagesliste */}
-      <div className={`scroll-container${draggingId ? '' : ' trek-stagger'}`} style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+      <div className={`scroll-container${draggingId ? '' : ' trek-stagger'}`} style={{ flex: 1, overflowY: 'auto', minHeight: 0 }} ref={scrollContainerRef} onScroll={(e) => onScrollTopChange?.((e.currentTarget as HTMLElement).scrollTop)}>
         {days.map((day, index) => {
           const isSelected = selectedDayId === day.id
           const isExpanded = expandedDays.has(day.id)
@@ -1214,7 +1128,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                         </Tooltip>
                       )}
                       {(() => {
-                        const dayAccs = accommodations.filter(a => day.id >= a.start_day_id && day.id <= a.end_day_id)
+                        const dayAccs = accommodations.filter(a => isDayInAccommodationRange(day, a.start_day_id, a.end_day_id, days))
                           // Sort: check-out first, then ongoing stays, then check-in last
                           .sort((a, b) => {
                             const aIsOut = a.end_day_id === day.id && a.start_day_id !== day.id
@@ -1573,15 +1487,17 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                                     }}>
                                       {(() => { const RI = RES_ICONS[res.type] || Ticket; return <RI size={8} /> })()}
                                       <span className="hidden sm:inline">{confirmed ? t('planner.resConfirmed') : t('planner.resPending')}</span>
-                                      {res.reservation_time?.includes('T') && (
-                                        <span style={{ fontWeight: 400 }}>
-                                          {new Date(res.reservation_time).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: timeFormat === '12h' })}
-                                          {res.reservation_end_time && ` – ${(() => {
-                                            const endStr = res.reservation_end_time.includes('T') ? res.reservation_end_time : (res.reservation_time.split('T')[0] + 'T' + res.reservation_end_time)
-                                            return new Date(endStr).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: timeFormat === '12h' })
-                                          })()}`}
-                                        </span>
-                                      )}
+                                      {(() => {
+                                        const { time: st } = splitReservationDateTime(res.reservation_time)
+                                        const { time: et } = splitReservationDateTime(res.reservation_end_time)
+                                        if (!st && !et) return null
+                                        return (
+                                          <span style={{ fontWeight: 400 }}>
+                                            {st ? formatTime(st, locale, timeFormat) : ''}
+                                            {et ? ` – ${formatTime(et, locale, timeFormat)}` : ''}
+                                          </span>
+                                        )
+                                      })()}
                                       {(() => {
                                         const meta = typeof res.metadata === 'string' ? JSON.parse(res.metadata || '{}') : (res.metadata || {})
                                         if (!meta) return null
@@ -1725,7 +1641,11 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                         return (
                           <React.Fragment key={`transport-${res.id}-${day.id}`}>
                           <div
-                            onClick={() => canEditDays && onEditTransport?.(res)}
+                            onClick={() => {
+                              if (!canEditDays) return
+                              if (TRANSPORT_TYPES.has(res.type)) onEditTransport?.(res)
+                              else onEditReservation?.(res)
+                            }}
                             onDragOver={e => {
                               e.preventDefault(); e.stopPropagation()
                               const rect = e.currentTarget.getBoundingClientRect()
@@ -1804,18 +1724,20 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                                 <span style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {res.title}
                                 </span>
-                                {displayTime?.includes('T') && (
-                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 10, color: 'var(--text-faint)', fontWeight: 400, marginLeft: 6 }}>
-                                    <Clock size={9} strokeWidth={2} />
-                                    {new Date(displayTime).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: timeFormat === '12h' })}
-                                    {spanPhase === 'single' && res.reservation_end_time && (() => {
-                                      const endStr = res.reservation_end_time.includes('T') ? res.reservation_end_time : (displayTime.split('T')[0] + 'T' + res.reservation_end_time)
-                                      return ` – ${new Date(endStr).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: timeFormat === '12h' })}`
-                                    })()}
-                                    {meta.departure_timezone && spanPhase === 'start' && ` ${meta.departure_timezone}`}
-                                    {meta.arrival_timezone && spanPhase === 'end' && ` ${meta.arrival_timezone}`}
-                                  </span>
-                                )}
+                                {(() => {
+                                  const { time: dispTime } = splitReservationDateTime(displayTime)
+                                  const { time: endTime } = splitReservationDateTime(res.reservation_end_time)
+                                  if (!dispTime && !endTime) return null
+                                  return (
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 10, color: 'var(--text-faint)', fontWeight: 400, marginLeft: 6 }}>
+                                      <Clock size={9} strokeWidth={2} />
+                                      {dispTime ? formatTime(dispTime, locale, timeFormat) : ''}
+                                      {spanPhase === 'single' && endTime ? ` – ${formatTime(endTime, locale, timeFormat)}` : ''}
+                                      {meta.departure_timezone && spanPhase === 'start' && ` ${meta.departure_timezone}`}
+                                      {meta.arrival_timezone && spanPhase === 'end' && ` ${meta.arrival_timezone}`}
+                                    </span>
+                                  )
+                                })()}
                               </div>
                               {subtitle && (
                                 <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -1864,8 +1786,17 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                           onDragOver={e => { e.preventDefault(); e.stopPropagation(); if (dropTargetKey !== `note-${note.id}`) setDropTargetKey(`note-${note.id}`) }}
                           onDrop={e => {
                             e.preventDefault(); e.stopPropagation()
-                            const { noteId: fromNoteId, assignmentId: fromAssignmentId, reservationId: fromReservationId, fromDayId, phase } = getDragData(e)
-                            if (fromReservationId && fromDayId !== day.id) {
+                            const { placeId, noteId: fromNoteId, assignmentId: fromAssignmentId, reservationId: fromReservationId, fromDayId, phase } = getDragData(e)
+                            if (placeId) {
+                              // New place dropped onto a note: insert it among the
+                              // assignments at the note's position (after the places
+                              // above it), so it lands right where the note sits.
+                              const tm = getMergedItems(day.id)
+                              const noteIdx = tm.findIndex(i => i.type === 'note' && i.data.id === note.id)
+                              const pos = tm.slice(0, noteIdx).filter(i => i.type === 'place').length
+                              onAssignToDay?.(parseInt(placeId), day.id, pos)
+                              setDropTargetKey(null); window.__dragData = null
+                            } else if (fromReservationId && fromDayId !== day.id) {
                               const r = reservations.find(x => x.id === Number(fromReservationId))
                               if (r) { const update = computeMultiDayMove(r, day.id, phase); tripActions.updateReservation(tripId, r.id, update).catch((err: unknown) => toast.error(err instanceof Error ? err.message : t('common.unknownError'))) }
                               setDraggingId(null); setDropTargetKey(null); dragDataRef.current = null
@@ -2176,13 +2107,19 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{res.title}</div>
                       <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 2 }}>
-                        {res.reservation_time?.includes('T')
-                          ? new Date(res.reservation_time).toLocaleString(locale, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: timeFormat === '12h' })
-                          : res.reservation_time
-                            ? new Date(res.reservation_time + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
+                        {(() => {
+                          const { date, time } = splitReservationDateTime(res.reservation_time)
+                          const { time: endTime } = splitReservationDateTime(res.reservation_end_time)
+                          const dateStr = date
+                            ? new Date(date + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
                             : ''
-                        }
-                        {res.reservation_end_time?.includes('T') && ` – ${new Date(res.reservation_end_time).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: timeFormat === '12h' })}`}
+                          const timeStr = time ? formatTime(time, locale, timeFormat) : ''
+                          const endStr = endTime ? formatTime(endTime, locale, timeFormat) : ''
+                          const parts: string[] = []
+                          if (dateStr) parts.push(dateStr)
+                          if (timeStr) parts.push(timeStr + (endStr ? ` – ${endStr}` : ''))
+                          return parts.join(', ')
+                        })()}
                       </div>
                     </div>
                     <div style={{
@@ -2223,7 +2160,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                   {res.notes && (
                     <div style={{ padding: '8px 10px', background: 'var(--bg-tertiary)', borderRadius: 8 }}>
                       <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 3 }}>{t('reservations.notes')}</div>
-                      <div className="collab-note-md" style={{ fontSize: 12, color: 'var(--text-primary)', wordBreak: 'break-word' }}><Markdown remarkPlugins={[remarkGfm]}>{res.notes}</Markdown></div>
+                      <div className="collab-note-md" style={{ fontSize: 12, color: 'var(--text-primary)', wordBreak: 'break-word', overflowWrap: 'anywhere' }}><Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{res.notes}</Markdown></div>
                     </div>
                   )}
 

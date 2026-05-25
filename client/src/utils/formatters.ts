@@ -65,6 +65,18 @@ export function formatTime(timeStr: string | null | undefined, locale: string, t
   } catch { return timeStr }
 }
 
+export function splitReservationDateTime(value?: string | null): { date: string | null; time: string | null } {
+  if (!value) return { date: null, time: null }
+  const isoDate = /^\d{4}-\d{2}-\d{2}$/
+  if (value.includes('T')) {
+    const [d, t] = value.split('T')
+    return { date: isoDate.test(d) ? d : null, time: t ? t.slice(0, 5) : null }
+  }
+  if (isoDate.test(value)) return { date: value, time: null }
+  if (/^\d{1,2}:\d{2}/.test(value)) return { date: null, time: value.slice(0, 5) }
+  return { date: null, time: null }
+}
+
 export function dayTotalCost(dayId: number, assignments: AssignmentsMap, currency: string): string | null {
   const da = assignments[String(dayId)] || []
   const total = da.reduce((s, a) => s + (parseFloat(a.place?.price || '') || 0), 0)

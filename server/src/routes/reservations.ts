@@ -13,7 +13,7 @@ import {
   updateReservation,
   deleteReservation,
 } from '../services/reservationService';
-import { createBudgetItem, updateBudgetItem, deleteBudgetItem } from '../services/budgetService';
+import { createBudgetItem, updateBudgetItem, deleteBudgetItem, linkBudgetItemToReservation } from '../services/budgetService';
 
 const router = express.Router({ mergeParams: true });
 
@@ -55,13 +55,11 @@ router.post('/', authenticate, (req: Request, res: Response) => {
   // Auto-create budget entry if price was provided
   if (create_budget_entry && create_budget_entry.total_price > 0) {
     try {
-      const budgetItem = createBudgetItem(tripId, {
+      const budgetItem = linkBudgetItemToReservation(tripId, reservation.id, {
         name: title,
         category: create_budget_entry.category || type || 'Other',
         total_price: create_budget_entry.total_price,
       });
-      db.prepare('UPDATE budget_items SET reservation_id = ? WHERE id = ?').run(reservation.id, budgetItem.id);
-      budgetItem.reservation_id = reservation.id;
       broadcast(tripId, 'budget:created', { item: budgetItem }, req.headers['x-socket-id'] as string);
     } catch (err) {
       console.error('[reservations] Failed to create budget entry:', err);
@@ -129,7 +127,7 @@ router.put('/:id', authenticate, (req: Request, res: Response) => {
     const linked = db.prepare('SELECT id FROM budget_items WHERE trip_id = ? AND reservation_id = ?').get(tripId, id) as { id: number } | undefined;
     if (linked) {
       deleteBudgetItem(linked.id, tripId);
-      broadcast(tripId, 'budget:deleted', { id: linked.id }, req.headers['x-socket-id'] as string);
+      broadcast(tripId, 'budget:deleted', { itemId: linked.id }, req.headers['x-socket-id'] as string);
     }
   }
 
@@ -179,11 +177,14 @@ router.delete('/:id', authenticate, (req: Request, res: Response) => {
   if (!checkPermission('reservation_edit', authReq.user.role, trip.user_id, authReq.user.id, trip.user_id !== authReq.user.id))
     return res.status(403).json({ error: 'No permission' });
 
-  const { deleted: reservation, accommodationDeleted } = deleteReservation(id, tripId);
+  const { deleted: reservation, accommodationDeleted, deletedBudgetItemId } = deleteReservation(id, tripId);
   if (!reservation) return res.status(404).json({ error: 'Reservation not found' });
 
   if (accommodationDeleted) {
     broadcast(tripId, 'accommodation:deleted', { accommodationId: reservation.accommodation_id }, req.headers['x-socket-id'] as string);
+  }
+  if (deletedBudgetItemId) {
+    broadcast(tripId, 'budget:deleted', { itemId: deletedBudgetItemId }, req.headers['x-socket-id'] as string);
   }
 
   res.json({ success: true });

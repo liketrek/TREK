@@ -100,6 +100,12 @@ export const COUNTRY_BOXES: Record<string, [number, number, number, number]> = {
   UG:[29.6,-1.5,35.0,4.2],UY:[-58.4,-34.9,-53.1,-30.1],UZ:[55.9,37.2,73.1,45.6],VE:[-73.4,0.7,-59.8,12.2],
   AE:[51.6,22.6,56.4,26.1],GB:[-8,49.9,2,60.9],US:[-125,24.5,-66.9,49.4],VN:[102.1,8.6,109.5,23.4],XK:[20.0,41.9,21.8,43.3],
   YE:[42.5,12.1,54.0,19.0],ZM:[21.9,-18.1,33.7,-8.2],ZW:[25.2,-22.4,33.1,-15.6],
+  // Territories with their own ISO code that sit inside a larger country's box.
+  // Listed so getCountryFromCoords()'s smallest-box match picks them over the host
+  // (e.g. Hong Kong/Macau over China, San Marino/Vatican over Italy).
+  HK:[113.83,22.15,114.43,22.56],MO:[113.53,22.10,113.60,22.21],SM:[12.40,43.89,12.52,43.99],
+  VA:[12.44,41.90,12.46,41.91],MC:[7.40,43.72,7.44,43.75],LI:[9.47,47.05,9.64,47.27],
+  GI:[-5.36,36.11,-5.33,36.16],PR:[-67.30,17.88,-65.22,18.53],
 };
 
 export const NAME_TO_CODE: Record<string, string> = {
@@ -144,6 +150,9 @@ export const NAME_TO_CODE: Record<string, string> = {
   'angola':'AO','namibia':'NA','botswana':'BW','zimbabwe':'ZW','zambia':'ZM','malawi':'MW',
   'mozambique':'MZ','mozambik':'MZ','madagascar':'MG','rwanda':'RW','burundi':'BI',
   'somalia':'SO','papua new guinea':'PG','brunei':'BN',
+  'hong kong':'HK','hong kong sar':'HK','macau':'MO','macao':'MO','macau sar':'MO',
+  'san marino':'SM','vatican':'VA','vatican city':'VA','holy see':'VA','monaco':'MC',
+  'liechtenstein':'LI','gibraltar':'GI','puerto rico':'PR',
 };
 
 export const CONTINENT_MAP: Record<string, string> = {
@@ -167,6 +176,7 @@ export const CONTINENT_MAP: Record<string, string> = {
   ZA:'Africa',SE:'Europe',CH:'Europe',TH:'Asia',TR:'Europe',UA:'Europe',UG:'Africa',UY:'South America',
   UZ:'Asia',VE:'South America',AE:'Asia',GB:'Europe',US:'North America',VN:'Asia',XK:'Europe',
   YE:'Asia',ZM:'Africa',ZW:'Africa',NG:'Africa',
+  HK:'Asia',MO:'Asia',SM:'Europe',VA:'Europe',MC:'Europe',LI:'Europe',GI:'Europe',PR:'North America',
 };
 
 // ── Geocoding helpers ───────────────────────────────────────────────────────
@@ -366,11 +376,17 @@ export async function getStats(userId: number) {
   for (const place of places) {
     if (place.address) {
       const parts = place.address.split(',').map((s: string) => s.trim()).filter(Boolean);
-      let raw = parts.length >= 2 ? parts[parts.length - 2] : parts[0];
-      if (raw) {
-        const city = raw.replace(/[\d\-\u2212\u3012]+/g, '').trim().toLowerCase();
-        if (city) citySet.add(city);
+      // The last part is the country; the city is usually right before it, but a
+      // full formatted address can have a postal code sitting between them
+      // (e.g. "Bucharest, 010071, Romania"). Walk back from the country and take
+      // the first part that still has letters once digits/postal noise is stripped.
+      const candidates = parts.length >= 2 ? parts.slice(0, -1) : parts;
+      let city = '';
+      for (let i = candidates.length - 1; i >= 0; i--) {
+        const cleaned = candidates[i].replace(/[\d\-\u2212\u3012]+/g, '').trim();
+        if (cleaned) { city = cleaned.toLowerCase(); break; }
       }
+      if (city) citySet.add(city);
     }
   }
   const totalCities = citySet.size;

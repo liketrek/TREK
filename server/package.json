@@ -1,6 +1,6 @@
 {
   "name": "trek-server",
-  "version": "3.0.8",
+  "version": "3.0.22",
   "main": "src/index.ts",
   "scripts": {
     "start": "node --import tsx src/index.ts",
@@ -23,6 +23,7 @@
     "express": "^4.18.3",
     "fast-xml-parser": "^5.5.10",
     "helmet": "^8.1.0",
+    "jimp": "^1.6.1",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.1.1",
     "node-cron": "^4.2.1",
@@ -30,7 +31,6 @@
     "otplib": "^12.0.1",
     "qrcode": "^1.5.4",
     "semver": "^7.7.4",
-    "sharp": "^0.34.5",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
     "undici": "^7.0.0",
@@ -40,8 +40,10 @@
     "zod": "^4.3.6"
   },
   "overrides": {
-    "hono": "^4.12.12",
-    "@hono/node-server": "^1.19.13"
+    "hono": "^4.12.16",
+    "@hono/node-server": "^1.19.13",
+    "picomatch": "^4.0.4",
+    "ip-address": "^10.1.1"
   },
   "devDependencies": {
     "@types/archiver": "^7.0.0",

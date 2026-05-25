@@ -31,6 +31,7 @@ export interface Trip {
 export interface Day {
   id: number
   trip_id: number
+  day_number?: number
   date: string
   title: string | null
   notes: string | null
@@ -174,6 +175,7 @@ export interface Reservation {
   accommodation_start_day_id?: number | null
   accommodation_end_day_id?: number | null
   day_plan_position?: number | null
+  day_positions?: Record<number, number> | null
   metadata?: Record<string, string> | string | null
   needs_review?: number
   endpoints?: ReservationEndpoint[]

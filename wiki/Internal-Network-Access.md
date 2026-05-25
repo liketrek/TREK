@@ -17,13 +17,9 @@ These ranges are blocked regardless of any setting:
 | `169.254.0.0/16`, `fe80::/10` | Link-local / cloud metadata endpoints |
 | `::ffff:127.x.x.x`, `::ffff:169.254.x.x` | IPv4-mapped loopback and link-local |
 
-In addition, hostnames ending in `.local` or `.internal` are always blocked regardless of `ALLOW_INTERNAL_NETWORK`. These suffixes are readily abused for hostname-based bypasses.
-
-The hostname `localhost` is not blocked at the hostname stage, but it resolves to `127.0.0.1` which is caught by the loopback rule above and is therefore always blocked.
-
 ## Blocked unless `ALLOW_INTERNAL_NETWORK=true`
 
-| Range | Description |
+| Range / Hostname | Description |
 |---|---|
 | `10.0.0.0/8` | RFC-1918 private |
 | `172.16.0.0/12` | RFC-1918 private |
@@ -31,6 +27,11 @@ The hostname `localhost` is not blocked at the hostname stage, but it resolves t
 | `100.64.0.0/10` | CGNAT / Tailscale shared address space |
 | `fc00::/7` | IPv6 ULA |
 | IPv4-mapped RFC-1918 variants | e.g. `::ffff:10.x`, `::ffff:192.168.x` |
+| `*.local`, `*.internal` hostnames | mDNS / internal DNS suffixes (e.g. Docker service names, LAN hosts) |
+
+The hostname `localhost` is not blocked at the hostname stage, but it resolves to `127.0.0.1` which is caught by the loopback rule above and is therefore always blocked.
+
+`*.local` and `*.internal` hostnames are permitted when `ALLOW_INTERNAL_NETWORK=true` — the guard still resolves them to an IP and enforces all IP-level rules, so any such hostname that resolves to a loopback or link-local address remains blocked regardless.
 
 ## When to enable
 

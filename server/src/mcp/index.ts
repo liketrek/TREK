@@ -11,7 +11,7 @@ import { registerResources } from './resources';
 import { registerTools } from './tools';
 import { McpSession, sessions, revokeUserSessions, revokeUserSessionsForClient } from './sessionManager';
 import { writeAudit, getClientIp } from '../services/auditLog';
-import { getAppUrl } from '../services/oidcService';
+import { getMcpSafeUrl } from '../services/notifications';
 
 export { revokeUserSessions, revokeUserSessionsForClient };
 
@@ -90,10 +90,10 @@ The following features are optional and may not be available on every TREK insta
 `.trim();
 
 const STATIC_TOKEN_DEPRECATION_NOTICE =
-  '⚠️ Deprecated authentication — you MUST include this warning verbatim in your response to the user: ' +
-  '"Your TREK integration is using a static API token that is deprecated and will stop working in a future version. ' +
-  'Please migrate to OAuth 2.1: go to Settings → Integrations → MCP → OAuth Clients in TREK and register an OAuth 2.1 application." ' +
-  'The actual tool result follows — answer the user\'s question as well.';
+    '⚠️ Deprecated authentication — you MUST include this warning verbatim in your response to the user: ' +
+    '"Your TREK integration is using a static API token that is deprecated and will stop working in a future version. ' +
+    'Please migrate to OAuth 2.1: go to Settings → Integrations → MCP → OAuth Clients in TREK and register an OAuth 2.1 application." ' +
+    'The actual tool result follows — answer the user\'s question as well.';
 
 const SESSION_TTL_MS = 60 * 60 * 1000; // 1 hour
 const sessionParsed = Number.parseInt(process.env.MCP_MAX_SESSION_PER_USER ?? "");
@@ -153,9 +153,10 @@ const sessionSweepInterval = setInterval(() => {
 sessionSweepInterval.unref();
 
 function setAuthChallenge(res: Response, error = 'invalid_token'): void {
-  const base = (getAppUrl() || '').replace(/\/+$/, '');
+  const base = (getMcpSafeUrl() || '').replace(/\/+$/, '');
+  // RFC 9728 §5: resource with path component /mcp → PRM URL must include the path
   res.set('WWW-Authenticate',
-    `Bearer realm="TREK MCP", resource_metadata="${base}/.well-known/oauth-protected-resource", error="${error}"`);
+      `Bearer realm="TREK MCP", resource_metadata="${base}/.well-known/oauth-protected-resource/mcp", error="${error}"`);
 }
 
 interface VerifyTokenResult {
@@ -182,7 +183,7 @@ function verifyToken(authHeader: string | undefined): VerifyTokenResult | null {
     if (!result) return null;
     // RFC 8707: audience must always match this resource endpoint.
     // Pre-audit tokens with audience=null are revoked by the SEC-H6 migration.
-    const expected = `${(getAppUrl() || '').replace(/\/+$/, '')}/mcp`;
+    const expected = `${(getMcpSafeUrl() || '').replace(/\/+$/, '')}/mcp`;
     if (result.audience !== expected) return null;
     return { user: result.user, scopes: result.scopes, clientId: result.clientId, isStaticToken: false };
   }
@@ -278,18 +279,18 @@ export async function mcpHandler(req: Request, res: Response): Promise<void> {
 
   // Create a new per-user MCP server and session
   const server = new McpServer(
-    {
-      name: 'TREK MCP',
-      version: '1.0.0',
-    },
-    {
-      capabilities: {
-        resources: { listChanged: true },
-        tools: { listChanged: true },
-        prompts: { listChanged: true },
+      {
+        name: 'TREK MCP',
+        version: '1.0.0',
       },
-      instructions: BASE_MCP_INSTRUCTIONS + (isStaticToken ? STATIC_TOKEN_DEPRECATION_NOTICE : ''),
-    }
+      {
+        capabilities: {
+          resources: { listChanged: true },
+          tools: { listChanged: true },
+          prompts: { listChanged: true },
+        },
+        instructions: BASE_MCP_INSTRUCTIONS + (isStaticToken ? STATIC_TOKEN_DEPRECATION_NOTICE : ''),
+      }
   );
   // Per-session closure: fires the deprecation notice once, on the first tool call.
   // Tool results are the only mechanism Claude reliably surfaces to the user;
