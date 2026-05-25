@@ -2417,6 +2417,16 @@ const ja: Record<string, string | { name: string; category: string }[]> = {
  'transport.modalTitle.edit': '移動手段を編集',
  'transport.title': '移動手段',
  'transport.addManual': '手動で追加',
+
+ // Added to match EN keys
+ 'journey.editor.uploadingProgress': 'アップロード中 {done}/{total}…',
+ 'journey.editor.uploadFailed': '写真のアップロードに失敗しました',
+ 'journey.editor.uploadPartialFailed': '{total}枚中{failed}枚の写真がアップロードに失敗しました — もう一度保存して再試行してください',
+ 'journey.photosUploadFailed': '一部の写真をアップロードできませんでした',
+ 'settings.oauth.modal.machineClient': 'マシンクライアント（ブラウザログインなし）',
+ 'settings.oauth.modal.machineClientHint': 'client_credentials グラントを使用します — リダイレクト URI は不要です。トークンは client_id + client_secret を介して直接発行され、選択したスコープ内であなたとして動作します。',
+ 'settings.oauth.modal.machineClientUsage': 'トークンを取得するには、grant_type=client_credentials、client_id、client_secret を指定して POST /oauth/token を呼び出します。ブラウザもリフレッシュトークンも不要です。',
+ 'settings.oauth.badge.machine': 'マシン',
 }
 
 export default ja
