@@ -1,6 +1,12 @@
-import { describe, it, expect } from 'vitest';
-import { idSchema, idParamSchema, nonEmptyString, isoDateTime } from './primitives.schema';
 import { paginationQuerySchema } from './pagination.schema';
+import {
+  idSchema,
+  idParamSchema,
+  nonEmptyString,
+  isoDateTime,
+} from './primitives.schema';
+
+import { describe, it, expect } from 'vitest';
 
 describe('@trek/shared primitives', () => {
   it('idSchema accepts positive integers, rejects others', () => {
@@ -29,11 +35,16 @@ describe('@trek/shared primitives', () => {
 describe('@trek/shared pagination', () => {
   it('applies defaults and coerces', () => {
     expect(paginationQuerySchema.parse({})).toEqual({ page: 1, perPage: 50 });
-    expect(paginationQuerySchema.parse({ page: '2', perPage: '10' })).toEqual({ page: 2, perPage: 10 });
+    expect(paginationQuerySchema.parse({ page: '2', perPage: '10' })).toEqual({
+      page: 2,
+      perPage: 10,
+    });
   });
 
   it('enforces bounds', () => {
     expect(paginationQuerySchema.safeParse({ perPage: 0 }).success).toBe(false);
-    expect(paginationQuerySchema.safeParse({ perPage: 999 }).success).toBe(false);
+    expect(paginationQuerySchema.safeParse({ perPage: 999 }).success).toBe(
+      false,
+    );
   });
 });

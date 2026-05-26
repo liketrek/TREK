@@ -1,44 +1,44 @@
-import common from './common'
-import trips from './trips'
-import nav from './nav'
-import dashboard from './dashboard'
-import settings from './settings'
-import admin from './admin'
-import dayplan from './dayplan'
-import share from './share'
-import shared from './shared'
-import login from './login'
-import register from './register'
-import vacay from './vacay'
-import atlas from './atlas'
-import trip from './trip'
-import places from './places'
-import inspector from './inspector'
-import reservations from './reservations'
-import airport from './airport'
-import map from './map'
-import budget from './budget'
-import files from './files'
-import packing from './packing'
-import members from './members'
-import categories from './categories'
-import backup from './backup'
-import photos from './photos'
-import pdf from './pdf'
-import planner from './planner'
-import stats from './stats'
-import day from './day'
-import memories from './memories'
-import collab from './collab'
-import perm from './perm'
-import undo from './undo'
-import notifications from './notifications'
-import todo from './todo'
-import notif from './notif'
-import journey from './journey'
-import oauth from './oauth'
-import system_notice from './system_notice'
-import transport from './transport'
+import admin from './admin';
+import airport from './airport';
+import atlas from './atlas';
+import backup from './backup';
+import budget from './budget';
+import categories from './categories';
+import collab from './collab';
+import common from './common';
+import dashboard from './dashboard';
+import day from './day';
+import dayplan from './dayplan';
+import files from './files';
+import inspector from './inspector';
+import journey from './journey';
+import login from './login';
+import map from './map';
+import members from './members';
+import memories from './memories';
+import nav from './nav';
+import notif from './notif';
+import notifications from './notifications';
+import oauth from './oauth';
+import packing from './packing';
+import pdf from './pdf';
+import perm from './perm';
+import photos from './photos';
+import places from './places';
+import planner from './planner';
+import register from './register';
+import reservations from './reservations';
+import settings from './settings';
+import share from './share';
+import shared from './shared';
+import stats from './stats';
+import system_notice from './system_notice';
+import todo from './todo';
+import transport from './transport';
+import trip from './trip';
+import trips from './trips';
+import undo from './undo';
+import vacay from './vacay';
 
 const locale = {
   ...common,
@@ -82,5 +82,5 @@ const locale = {
   ...oauth,
   ...system_notice,
   ...transport,
-}
-export default locale
+};
+export default locale;

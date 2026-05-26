@@ -26,8 +26,12 @@
   },
   "typesVersions": {
     "*": {
-      "i18n": ["./dist/i18n/index.d.ts"],
-      "i18n/*": ["./dist/i18n/*/index.d.ts"]
+      "i18n": [
+        "./dist/i18n/index.d.ts"
+      ],
+      "i18n/*": [
+        "./dist/i18n/*/index.d.ts"
+      ]
     }
   },
   "scripts": {
@@ -54,6 +58,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
     "prettier": "3.8.3",
-    "prettier-plugin-organize-imports": "^4.3.0"
+    "prettier-plugin-organize-imports": "^4.3.0",
+    "typescript-eslint": "^8.58.2"
   }
 }

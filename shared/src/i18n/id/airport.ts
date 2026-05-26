@@ -1,6 +1,6 @@
-import type { TranslationStrings } from '../types'
+import type { TranslationStrings } from '../types';
 
 const airport: TranslationStrings = {
-  "airport.searchPlaceholder": "Kode bandara atau kota (mis. FRA)",
-}
-export default airport
+  'airport.searchPlaceholder': 'Kode bandara atau kota (mis. FRA)',
+};
+export default airport;

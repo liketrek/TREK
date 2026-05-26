@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react'
 import { useSettingsStore } from '../store/settingsStore'
 import en from '@trek/shared/i18n/en'
+import type { SupportedLanguageCode } from '@trek/shared'
 import {
   SUPPORTED_LANGUAGES,
-  SupportedLanguageCode,
   getLocaleForLanguage,
   getIntlLanguage,
   isRtlLanguage,
