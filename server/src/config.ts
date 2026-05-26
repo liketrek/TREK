@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { SUPPORTED_LANGUAGE_CODES as SUPPORTED_LANG_CODES } from '@trek/shared';
 
 const dataDir = path.resolve(__dirname, '../data');
 
@@ -101,10 +102,6 @@ export const ENCRYPTION_KEY = _encryptionKey;
 
 // DEFAULT_LANGUAGE sets the language shown on the login page before the user
 // selects one. Only applies when the user has no saved language preference.
-// Supported values: de, en, es, fr, hu, nl, br, cs, pl, ru, zh, zh-TW, it, ar
-// Must stay in sync with client/src/i18n/supportedLanguages.ts (canonical source).
-// Kept duplicated here because server and client are separate npm packages.
-const SUPPORTED_LANG_CODES = ['de', 'en', 'es', 'fr', 'hu', 'nl', 'br', 'cs', 'pl', 'ru', 'zh', 'zh-TW', 'it', 'ar'];
 const rawDefaultLang = process.env.DEFAULT_LANGUAGE?.toLowerCase() || 'en';
 if (!SUPPORTED_LANG_CODES.includes(rawDefaultLang)) {
   console.warn(`DEFAULT_LANGUAGE="${rawDefaultLang}" is not supported. Falling back to "en". Supported: ${SUPPORTED_LANG_CODES.join(', ')}`);

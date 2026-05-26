@@ -2,31 +2,33 @@ import axios, { AxiosInstance } from 'axios'
 import type { WeatherResult } from '@trek/shared'
 import { getSocketId } from './websocket'
 import { isReachable, probeNow } from '../sync/connectivity'
-import en from '../i18n/translations/en'
-import br from '../i18n/translations/br'
-import de from '../i18n/translations/de'
-import es from '../i18n/translations/es'
-import fr from '../i18n/translations/fr'
-import it from '../i18n/translations/it'
-import nl from '../i18n/translations/nl'
-import pl from '../i18n/translations/pl'
-import cs from '../i18n/translations/cs'
-import hu from '../i18n/translations/hu'
-import ru from '../i18n/translations/ru'
-import zh from '../i18n/translations/zh'
-import zhTw from '../i18n/translations/zhTw'
-import ar from '../i18n/translations/ar'
-
-const rateLimitTranslations: Record<string, Record<string, string | unknown>> = {
-  en, br, de, es, fr, it, nl, pl, cs, hu, ru, zh, 'zh-TW': zhTw, ar,
+const RATE_LIMIT_MESSAGES: Record<string, string> = {
+  en:      'Too many attempts. Please try again later.',
+  de:      'Zu viele Versuche. Bitte versuchen Sie es später erneut.',
+  es:      'Demasiados intentos. Inténtelo de nuevo más tarde.',
+  fr:      'Trop de tentatives. Veuillez réessayer plus tard.',
+  hu:      'Túl sok próbálkozás. Kérjük, próbálja újra később.',
+  nl:      'Te veel pogingen. Probeer het later opnieuw.',
+  br:      'Muitas tentativas. Tente novamente mais tarde.',
+  cs:      'Příliš mnoho pokusů. Zkuste to prosím znovu.',
+  pl:      'Zbyt wiele prób. Spróbuj ponownie później.',
+  ru:      'Слишком много попыток. Попробуйте позже.',
+  zh:      '尝试次数过多，请稍后再试。',
+  'zh-TW': '嘗試次數過多，請稍後再試。',
+  it:      'Troppi tentativi. Riprova più tardi.',
+  tr:      'Çok fazla deneme. Lütfen daha sonra tekrar deneyin.',
+  ar:      'محاولات كثيرة جدًا. يرجى المحاولة لاحقًا.',
+  id:      'Terlalu banyak percobaan. Coba lagi nanti.',
+  ja:      '試行回数が多すぎます。時間をおいて再度お試しください。',
+  ko:      '시도 횟수가 너무 많습니다. 잠시 후 다시 시도해 주세요.',
+  uk:      'Занадто багато спроб. Спробуйте пізніше.',
 }
 
 function translateRateLimit(): string {
-  const fallback = 'Too many attempts. Please try again later.'
+  const fallback = RATE_LIMIT_MESSAGES['en']!
   try {
     const lang = localStorage.getItem('app_language') || 'en'
-    const table = rateLimitTranslations[lang] || rateLimitTranslations.en
-    return (table['common.tooManyAttempts'] as string) || (rateLimitTranslations.en['common.tooManyAttempts'] as string) || fallback
+    return RATE_LIMIT_MESSAGES[lang] ?? fallback
   } catch {
     return fallback
   }

@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types'
+
+const trip: TranslationStrings = {
+  "trip.tabs.plan": "計画",
+  "trip.tabs.transports": "移動",
+  "trip.tabs.reservations": "予約",
+  "trip.tabs.reservationsShort": "予約",
+  "trip.tabs.packing": "持ち物リスト",
+  "trip.tabs.packingShort": "持ち物",
+  "trip.tabs.lists": "リスト",
+  "trip.tabs.listsShort": "リスト",
+  "trip.tabs.budget": "予算",
+  "trip.tabs.files": "ファイル",
+  "trip.loading": "旅行を読み込み中...",
+  "trip.loadingPhotos": "場所の写真を読み込み中...",
+  "trip.mobilePlan": "計画",
+  "trip.mobilePlaces": "場所",
+  "trip.toast.placeUpdated": "場所を更新しました",
+  "trip.toast.placeAdded": "場所を追加しました",
+  "trip.toast.placeDeleted": "場所を削除しました",
+  "trip.toast.selectDay": "まず日を選択してください",
+  "trip.toast.assignedToDay": "場所を日に割り当てました",
+  "trip.toast.reorderError": "並び替えに失敗しました",
+  "trip.toast.reservationUpdated": "予約を更新しました",
+  "trip.toast.reservationAdded": "予約を追加しました",
+  "trip.toast.deleted": "削除しました",
+  "trip.confirm.deletePlace": "この場所を削除してもよろしいですか？",
+  "trip.confirm.deletePlaces": "{count}件の場所を削除してもよろしいですか?",
+  "trip.toast.placesDeleted": "{count}件の場所を削除しました",
+}
+export default trip

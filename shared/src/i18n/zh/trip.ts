@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types'
+
+const trip: TranslationStrings = {
+  "trip.tabs.plan": "计划",
+  "trip.tabs.transports": "交通",
+  "trip.tabs.reservations": "预订",
+  "trip.tabs.reservationsShort": "预订",
+  "trip.tabs.packing": "行李清单",
+  "trip.tabs.packingShort": "行李",
+  "trip.tabs.lists": "列表",
+  "trip.tabs.listsShort": "列表",
+  "trip.tabs.budget": "预算",
+  "trip.tabs.files": "文件",
+  "trip.loading": "加载旅行中...",
+  "trip.loadingPhotos": "正在加载地点照片...",
+  "trip.mobilePlan": "计划",
+  "trip.mobilePlaces": "地点",
+  "trip.toast.placeUpdated": "地点已更新",
+  "trip.toast.placeAdded": "地点已添加",
+  "trip.toast.placeDeleted": "地点已删除",
+  "trip.toast.selectDay": "请先选择一天",
+  "trip.toast.assignedToDay": "地点已分配到当天",
+  "trip.toast.reorderError": "排序失败",
+  "trip.toast.reservationUpdated": "预订已更新",
+  "trip.toast.reservationAdded": "预订已添加",
+  "trip.toast.deleted": "已删除",
+  "trip.confirm.deletePlace": "确定要删除这个地点吗？",
+  "trip.confirm.deletePlaces": "删除 {count} 个地点？",
+  "trip.toast.placesDeleted": "已删除 {count} 个地点",
+}
+export default trip

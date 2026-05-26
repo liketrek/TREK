@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types'
+
+const trip: TranslationStrings = {
+  "trip.tabs.plan": "Plano",
+  "trip.tabs.transports": "Transportes",
+  "trip.tabs.reservations": "Reservas",
+  "trip.tabs.reservationsShort": "Reservas",
+  "trip.tabs.packing": "Lista de mala",
+  "trip.tabs.packingShort": "Mala",
+  "trip.tabs.lists": "Listas",
+  "trip.tabs.listsShort": "Listas",
+  "trip.tabs.budget": "Orçamento",
+  "trip.tabs.files": "Arquivos",
+  "trip.loading": "Carregando viagem...",
+  "trip.mobilePlan": "Plano",
+  "trip.mobilePlaces": "Lugares",
+  "trip.toast.placeUpdated": "Lugar atualizado",
+  "trip.toast.placeAdded": "Lugar adicionado",
+  "trip.toast.placeDeleted": "Lugar excluído",
+  "trip.toast.selectDay": "Selecione um dia primeiro",
+  "trip.toast.assignedToDay": "Lugar atribuído ao dia",
+  "trip.toast.reorderError": "Falha ao reordenar",
+  "trip.toast.reservationUpdated": "Reserva atualizada",
+  "trip.toast.reservationAdded": "Reserva adicionada",
+  "trip.toast.deleted": "Excluído",
+  "trip.confirm.deletePlace": "Tem certeza de que deseja excluir este lugar?",
+  "trip.confirm.deletePlaces": "Excluir {count} lugares?",
+  "trip.toast.placesDeleted": "{count} lugares excluídos",
+  "trip.loadingPhotos": "Carregando fotos dos lugares...",
+}
+export default trip

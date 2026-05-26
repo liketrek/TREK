@@ -13,3 +13,6 @@ export * from './common/pagination.schema';
 
 // Domain contracts
 export * from './weather/weather.schema';
+
+// i18n registry (language list + pure helpers — no locale data)
+export * from './i18n/languages';
