@@ -16,6 +16,7 @@ import { createEphemeralToken } from './ephemeralTokens';
 import { revokeUserSessions } from '../mcp';
 import { startTripReminders } from '../scheduler';
 import { deleteUserCompletely } from './userCleanupService';
+import { getFlightDistanceKm } from './distanceService';
 import { verifyJwtAndLoadUser } from '../middleware/auth';
 import { User } from '../types';
 import { DEMO_EMAIL_PRIMARY, isDemoEmail } from './demo';
@@ -892,7 +893,6 @@ export function getTravelStats(userId: number) {
     WHERE (t.user_id = ? OR tm.user_id = ?) AND t.is_archived = 0
   `).get(userId, userId) as { trips: number; days: number } | undefined;
 
-  const countries = new Set<string>();
   const cities = new Set<string>();
   const coords: { lat: number; lng: number }[] = [];
 
@@ -900,21 +900,37 @@ export function getTravelStats(userId: number) {
     if (p.lat && p.lng) coords.push({ lat: p.lat, lng: p.lng });
     if (p.address) {
       const parts = p.address.split(',').map(s => s.trim().replace(/\d{3,}/g, '').trim());
-      for (const part of parts) {
-        if (KNOWN_COUNTRIES.has(part)) { countries.add(part); break; }
-      }
       const cityPart = parts.find(s => !KNOWN_COUNTRIES.has(s) && /^[A-Za-z\u00C0-\u00FF\s-]{2,}$/.test(s));
       if (cityPart) cities.add(cityPart);
     }
   });
 
+  // Visited countries \u2014 same source the Atlas page uses: ISO-2 codes from
+  // auto-resolved place regions plus countries the user marked manually.
+  const countryCodes = new Set<string>();
+  const manualCountries = db.prepare(
+    'SELECT country_code FROM visited_countries WHERE user_id = ?'
+  ).all(userId) as { country_code: string }[];
+  manualCountries.forEach(m => { if (m.country_code) countryCodes.add(m.country_code.toUpperCase()); });
+
+  const placeRegionCodes = db.prepare(`
+    SELECT DISTINCT pr.country_code
+    FROM place_regions pr
+    JOIN places p ON p.id = pr.place_id
+    JOIN trips t ON p.trip_id = t.id
+    LEFT JOIN trip_members tm ON t.id = tm.trip_id
+    WHERE (t.user_id = ? OR tm.user_id = ?) AND pr.country_code IS NOT NULL
+  `).all(userId, userId) as { country_code: string }[];
+  placeRegionCodes.forEach(r => { if (r.country_code) countryCodes.add(r.country_code.toUpperCase()); });
+
   return {
-    countries: [...countries],
+    countries: [...countryCodes],
     cities: [...cities],
     coords,
     totalTrips: tripStats?.trips || 0,
     totalDays: tripStats?.days || 0,
     totalPlaces: places.length,
+    totalDistanceKm: getFlightDistanceKm(userId),
   };
 }
 

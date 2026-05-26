@@ -117,6 +117,40 @@ export function listReservations(tripId: string | number) {
   return reservations;
 }
 
+/**
+ * Upcoming reservations across all of a user's active trips, soonest first.
+ * Used by the dashboard's "Upcoming reservations" widget. A reservation counts
+ * as upcoming when its own time is in the future, or — for timeless entries —
+ * when its day falls on or after today. Cancelled bookings are skipped.
+ */
+export function getUpcomingReservations(userId: number, limit = 6) {
+  const today = new Date().toISOString().slice(0, 10);
+  const now = new Date().toISOString();
+
+  const reservations = db.prepare(`
+    SELECT r.id, r.trip_id, r.title, r.type, r.status, r.location,
+           r.reservation_time, r.confirmation_number,
+           t.title as trip_title, t.cover_image as trip_cover,
+           d.date as day_date, p.name as place_name, p.image_url as place_image
+    FROM reservations r
+    JOIN trips t ON t.id = r.trip_id
+    LEFT JOIN trip_members tm ON tm.trip_id = t.id AND tm.user_id = ?
+    LEFT JOIN days d ON r.day_id = d.id
+    LEFT JOIN places p ON r.place_id = p.id
+    WHERE (t.user_id = ? OR tm.user_id IS NOT NULL)
+      AND t.is_archived = 0
+      AND r.status != 'cancelled'
+      AND (
+        (r.reservation_time IS NOT NULL AND r.reservation_time >= ?)
+        OR (r.reservation_time IS NULL AND d.date IS NOT NULL AND d.date >= ?)
+      )
+    ORDER BY COALESCE(r.reservation_time, d.date) ASC
+    LIMIT ?
+  `).all(userId, userId, now, today, limit) as any[];
+
+  return reservations;
+}
+
 export function getReservationWithJoins(id: string | number) {
   const row = db.prepare(`
     SELECT r.*, d.day_number, p.name as place_name, r.assignment_id,
