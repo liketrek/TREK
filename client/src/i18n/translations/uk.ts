@@ -209,7 +209,6 @@ const uk: Record<string, string> = {
   'settings.language': 'Мова',
   'settings.temperature': 'Одиниця температури',
   'settings.timeFormat': 'Формат часу',
-  'settings.routeCalculation': 'Розрахунок маршруту',
   'settings.blurBookingCodes': 'Приховати коди бронювання',
   'settings.notifications': 'Сповіщення',
   'settings.notifyTripInvite': 'Запрошення до поїздки',

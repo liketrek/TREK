@@ -195,7 +195,6 @@ const hu: Record<string, string | { name: string; category: string }[]> = {
   'settings.language': 'Nyelv',
   'settings.temperature': 'Hőmérséklet egység',
   'settings.timeFormat': 'Időformátum',
-  'settings.routeCalculation': 'Útvonalszámítás',
   'settings.blurBookingCodes': 'Foglalási kódok elrejtése',
   'settings.notifications': 'Értesítések',
   'settings.notifyTripInvite': 'Utazási meghívók',

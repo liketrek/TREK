@@ -195,7 +195,6 @@ const ru: Record<string, string> = {
   'settings.language': 'Язык',
   'settings.temperature': 'Единица температуры',
   'settings.timeFormat': 'Формат времени',
-  'settings.routeCalculation': 'Расчёт маршрута',
   'settings.blurBookingCodes': 'Скрыть коды бронирования',
   'settings.notifications': 'Уведомления',
   'settings.notifyTripInvite': 'Приглашения в поездку',

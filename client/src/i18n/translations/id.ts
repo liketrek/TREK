@@ -198,7 +198,6 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   'settings.language': 'Bahasa',
   'settings.temperature': 'Satuan Suhu',
   'settings.timeFormat': 'Format Waktu',
-  'settings.routeCalculation': 'Perhitungan Rute',
   'settings.blurBookingCodes': 'Sembunyikan Kode Pemesanan',
   'settings.notifications': 'Notifikasi',
   'settings.notifyTripInvite': 'Undangan perjalanan',

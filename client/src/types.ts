@@ -215,7 +215,6 @@ export interface Settings {
   temperature_unit: string
   time_format: string
   show_place_description: boolean
-  route_calculation?: boolean
   blur_booking_codes?: boolean
   map_booking_labels?: boolean
   map_provider?: 'leaflet' | 'mapbox-gl'

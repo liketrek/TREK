@@ -830,7 +830,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
               hasInspector={!!selectedPlace}
               hasDayDetail={!!showDayDetail && !selectedPlace}
               reservations={reservations}
-              showReservationStats={settings.route_calculation !== false}
+              showReservationStats={true}
               visibleConnectionIds={visibleConnections}
               onReservationClick={(rid) => {
                 const r = reservations.find(x => x.id === rid)

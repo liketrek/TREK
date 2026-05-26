@@ -1,7 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useRouteCalculation } from '../../../src/hooks/useRouteCalculation';
-import { useSettingsStore } from '../../../src/store/settingsStore';
 import { useTripStore } from '../../../src/store/tripStore';
 import { buildAssignment, buildPlace } from '../../helpers/factories';
 import type { TripStoreState } from '../../../src/store/tripStore';
@@ -47,8 +46,6 @@ const MOCK_ROUTE_WITH_LEGS = {
 describe('useRouteCalculation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default: route_calculation disabled
-    useSettingsStore.setState({ settings: { route_calculation: false } as any });
     // Reset trip store assignments so each test starts clean
     useTripStore.setState({ assignments: {} } as any);
     (calculateRouteWithLegs as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_ROUTE_WITH_LEGS);
@@ -93,9 +90,7 @@ describe('useRouteCalculation', () => {
     ]);
   });
 
-  it('FE-HOOK-ROUTE-004: with route_calculation enabled, calls calculateRouteWithLegs', async () => {
-    useSettingsStore.setState({ settings: { route_calculation: true } as any });
-
+  it('FE-HOOK-ROUTE-004: calls calculateRouteWithLegs and exposes the returned segments', async () => {
     const p1 = buildPlace({ lat: 48.8566, lng: 2.3522 });
     const p2 = buildPlace({ lat: 51.5074, lng: -0.1278 });
     const a1 = buildAssignment({ day_id: 5, order_index: 0, place: p1 });
@@ -112,28 +107,7 @@ describe('useRouteCalculation', () => {
     expect(result.current.routeSegments).toEqual(MOCK_SEGMENTS);
   });
 
-  it('FE-HOOK-ROUTE-005: with route_calculation disabled, does not call calculateRouteWithLegs', async () => {
-    useSettingsStore.setState({ settings: { route_calculation: false } as any });
-
-    const p1 = buildPlace({ lat: 48.8566, lng: 2.3522 });
-    const p2 = buildPlace({ lat: 51.5074, lng: -0.1278 });
-    const a1 = buildAssignment({ day_id: 5, order_index: 0, place: p1 });
-    const a2 = buildAssignment({ day_id: 5, order_index: 1, place: p2 });
-    const store = buildMockStore({ '5': [a1, a2] });
-
-    const { result } = renderHook(() =>
-      useRouteCalculation(store as TripStoreState, 5)
-    );
-
-    await act(async () => {});
-
-    expect(calculateRouteWithLegs).not.toHaveBeenCalled();
-    expect(result.current.routeSegments).toEqual([]);
-  });
-
   it('FE-HOOK-ROUTE-006: assignments are sorted by order_index before extracting waypoints', async () => {
-    useSettingsStore.setState({ settings: { route_calculation: true } as any });
-
     const p1 = buildPlace({ lat: 10, lng: 10 });
     const p2 = buildPlace({ lat: 20, lng: 20 });
     // order_index 1 comes before 0 in the array, but should be sorted
@@ -170,7 +144,6 @@ describe('useRouteCalculation', () => {
   });
 
   it('FE-HOOK-ROUTE-008: AbortController.abort() is called when selectedDayId changes', async () => {
-    useSettingsStore.setState({ settings: { route_calculation: true } as any });
 
     // Make calculateRouteWithLegs resolve slowly
     let resolveSegments!: (val: typeof MOCK_ROUTE_WITH_LEGS) => void;
@@ -209,7 +182,6 @@ describe('useRouteCalculation', () => {
   });
 
   it('FE-HOOK-ROUTE-009: AbortError from calculateSegments does not set routeSegments to []', async () => {
-    useSettingsStore.setState({ settings: { route_calculation: true } as any });
 
     const abortError = new Error('Aborted');
     abortError.name = 'AbortError';
@@ -231,7 +203,6 @@ describe('useRouteCalculation', () => {
   });
 
   it('FE-HOOK-ROUTE-010: non-AbortError from calculateSegments sets routeSegments to []', async () => {
-    useSettingsStore.setState({ settings: { route_calculation: true } as any });
 
     (calculateRouteWithLegs as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Network error'));
 
@@ -282,7 +253,6 @@ describe('useRouteCalculation', () => {
   });
 
   it('FE-HOOK-ROUTE-013: route recalculates when assignments change via store update', async () => {
-    useSettingsStore.setState({ settings: { route_calculation: true } as any });
 
     const p1 = buildPlace({ lat: 10, lng: 10 });
     const p2 = buildPlace({ lat: 20, lng: 20 });

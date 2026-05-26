@@ -258,7 +258,6 @@ export function buildSettings(overrides: Partial<Settings> = {}): Settings {
     temperature_unit: 'fahrenheit',
     time_format: '12h',
     show_place_description: false,
-    route_calculation: false,
     blur_booking_codes: false,
     ...overrides,
   };

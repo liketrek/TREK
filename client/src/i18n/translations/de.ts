@@ -198,7 +198,6 @@ const de: Record<string, string | { name: string; category: string }[]> = {
   'settings.language': 'Sprache',
   'settings.temperature': 'Temperatureinheit',
   'settings.timeFormat': 'Zeitformat',
-  'settings.routeCalculation': 'Routenberechnung',
   'settings.bookingLabels': 'Orts-Labels auf Buchungsrouten',
   'settings.bookingLabelsHint': 'Zeigt Bahnhofs-/Flughafennamen auf der Karte. Wenn aus, wird nur das Icon angezeigt.',
   'settings.blurBookingCodes': 'Buchungscodes verbergen',

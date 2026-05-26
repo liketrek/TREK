@@ -212,7 +212,6 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'settings.language': 'Language',
   'settings.temperature': 'Temperature Unit',
   'settings.timeFormat': 'Time Format',
-  'settings.routeCalculation': 'Route Calculation',
   'settings.bookingLabels': 'Booking route labels',
   'settings.bookingLabelsHint': 'Show station / airport names on the map. When off, only the icon is shown.',
   'settings.blurBookingCodes': 'Blur Booking Codes',

@@ -196,7 +196,6 @@ const es: Record<string, string> = {
   'settings.language': 'Idioma',
   'settings.temperature': 'Unidad de temperatura',
   'settings.timeFormat': 'Formato de hora',
-  'settings.routeCalculation': 'Cálculo de ruta',
   'settings.blurBookingCodes': 'Difuminar códigos de reserva',
   'settings.notifications': 'Notificaciones',
   'settings.notifyTripInvite': 'Invitaciones de viaje',

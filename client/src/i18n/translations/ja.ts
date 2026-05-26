@@ -212,7 +212,6 @@ const ja: Record<string, string | { name: string; category: string }[]> = {
  'settings.language': '言語',
  'settings.temperature': '温度単位',
  'settings.timeFormat': '時刻形式',
- 'settings.routeCalculation': '経路計算',
  'settings.bookingLabels': '予約ルートのラベル',
  'settings.bookingLabelsHint': '地図に駅・空港名を表示。オフ時はアイコンのみ。',
  'settings.blurBookingCodes': '予約コードをぼかす',

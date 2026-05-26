@@ -20,7 +20,6 @@ type Defaults = {
   temperature_unit?: string
   dark_mode?: string | boolean
   time_format?: string
-  route_calculation?: boolean
   blur_booking_codes?: boolean
   map_tile_url?: string
 }
@@ -202,22 +201,6 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
             key={opt.value}
             active={defaults.time_format === opt.value}
             onClick={() => save({ time_format: opt.value })}
-          >
-            {opt.label}
-          </OptionButton>
-        ))}
-      </OptionRow>
-
-      {/* Route Calculation */}
-      <OptionRow label={<>{t('settings.routeCalculation')} <ResetButton field="route_calculation" /></>}>
-        {([
-          { value: true, label: t('settings.on') || 'On' },
-          { value: false, label: t('settings.off') || 'Off' },
-        ] as const).map(opt => (
-          <OptionButton
-            key={String(opt.value)}
-            active={defaults.route_calculation === opt.value}
-            onClick={() => save({ route_calculation: opt.value })}
           >
             {opt.label}
           </OptionButton>
