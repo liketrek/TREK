@@ -857,7 +857,6 @@ describe('DashboardPage', () => {
           temperature_unit: 'fahrenheit',
           time_format: '12h',
           show_place_description: false,
-          route_calculation: false,
           blur_booking_codes: false,
           dashboard_currency: 'on',
           dashboard_timezone: 'on',

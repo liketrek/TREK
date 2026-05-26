@@ -196,7 +196,6 @@ const cs: Record<string, string | { name: string; category: string }[]> = {
   'settings.language': 'Jazyk',
   'settings.temperature': 'Jednotky teploty',
   'settings.timeFormat': 'Formát času',
-  'settings.routeCalculation': 'Výpočet trasy',
   'settings.blurBookingCodes': 'Skrýt rezervační kódy',
   'settings.notifications': 'Oznámení',
   'settings.notifyTripInvite': 'Pozvánky na cesty',

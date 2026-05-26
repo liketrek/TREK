@@ -195,7 +195,6 @@ const br: Record<string, string | { name: string; category: string }[]> = {
   'settings.language': 'Idioma',
   'settings.temperature': 'Unidade de temperatura',
   'settings.timeFormat': 'Formato de hora',
-  'settings.routeCalculation': 'Cálculo de rota',
   'settings.blurBookingCodes': 'Ocultar códigos de reserva',
   'settings.notifications': 'Notificações',
   'settings.notifyTripInvite': 'Convites de viagem',

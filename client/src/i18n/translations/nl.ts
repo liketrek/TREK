@@ -195,7 +195,6 @@ const nl: Record<string, string> = {
   'settings.language': 'Taal',
   'settings.temperature': 'Temperatuureenheid',
   'settings.timeFormat': 'Tijdnotatie',
-  'settings.routeCalculation': 'Routeberekening',
   'settings.blurBookingCodes': 'Boekingscodes vervagen',
   'settings.notifications': 'Meldingen',
   'settings.notifyTripInvite': 'Reisuitnodigingen',

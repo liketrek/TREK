@@ -1,5 +1,4 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
-import { useSettingsStore } from '../store/settingsStore'
 import { useTripStore } from '../store/tripStore'
 import { calculateRouteWithLegs } from '../components/Map/RouteCalculator'
 import type { TripStoreState } from '../store/tripStore'
@@ -9,14 +8,13 @@ const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'cruise']
 
 /**
  * Manages route calculation state for a selected day. Extracts geo-coded waypoints from
- * day assignments, draws a straight-line route, and optionally fetches per-segment
- * driving/walking durations via OSRM. Aborts in-flight requests when the day changes.
+ * day assignments, draws a straight-line route immediately, then upgrades it to real OSRM
+ * road geometry with per-segment durations. Aborts in-flight requests when the day changes.
  */
 export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: number | null, enabled: boolean = true, profile: 'driving' | 'walking' | 'cycling' = 'driving') {
   const [route, setRoute] = useState<[number, number][][] | null>(null)
   const [routeInfo, setRouteInfo] = useState<RouteResult | null>(null)
   const [routeSegments, setRouteSegments] = useState<RouteSegment[]>([])
-  const routeCalcEnabled = useSettingsStore((s) => s.settings.route_calculation) !== false
   const routeAbortRef = useRef<AbortController | null>(null)
   const reservationsForSignature = useTripStore((s) => s.reservations)
 
@@ -88,9 +86,8 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
     if (runs.length === 0) { setRoute(null); setRouteSegments([]); return }
 
     // Draw straight lines immediately for snappiness, then upgrade to the real
-    // OSRM road geometry. If route calc is disabled, keep the straight lines.
+    // OSRM road geometry.
     setRoute(straightLines())
-    if (!routeCalcEnabled) { setRouteSegments([]); return }
 
     const controller = new AbortController()
     routeAbortRef.current = controller
@@ -113,7 +110,7 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
       // Aborted (day changed) — newer call owns the state. Anything else: keep straight lines.
       if (!(err instanceof Error) || err.name !== 'AbortError') setRouteSegments([])
     }
-  }, [routeCalcEnabled, enabled, profile])
+  }, [enabled, profile])
 
   // Stable signature for transport reservations on the selected day — changes when a transport
   // is added, removed, or repositioned, ensuring route recalc fires even on transport-only reorders.

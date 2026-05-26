@@ -200,7 +200,6 @@ const ar: Record<string, string | { name: string; category: string }[]> = {
   'settings.language': 'اللغة',
   'settings.temperature': 'وحدة الحرارة',
   'settings.timeFormat': 'تنسيق الوقت',
-  'settings.routeCalculation': 'حساب المسار',
   'settings.blurBookingCodes': 'إخفاء رموز الحجز',
   'settings.notifications': 'الإشعارات',
   'settings.notifyTripInvite': 'دعوات الرحلات',

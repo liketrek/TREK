@@ -195,7 +195,6 @@ const zh: Record<string, string> = {
   'settings.language': '语言',
   'settings.temperature': '温度单位',
   'settings.timeFormat': '时间格式',
-  'settings.routeCalculation': '路线计算',
   'settings.blurBookingCodes': '模糊预订代码',
   'settings.notifications': '通知',
   'settings.notifyTripInvite': '旅行邀请',

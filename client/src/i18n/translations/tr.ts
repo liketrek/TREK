@@ -212,7 +212,6 @@ const tr: Record<string, string | { name: string; category: string }[]> = {
   'settings.language': 'Dil',
   'settings.temperature': 'Sıcaklık birimi',
   'settings.timeFormat': 'Saat biçimi',
-  'settings.routeCalculation': 'Route Calculation',
   'settings.bookingLabels': 'Booking route labels',
   'settings.bookingLabelsHint': 'Show station / airport names on the map. When off, only the icon is shown.',
   'settings.blurBookingCodes': 'Blur Booking Codes',

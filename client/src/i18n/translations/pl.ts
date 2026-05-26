@@ -178,7 +178,6 @@ const pl: Record<string, string | { name: string; category: string }[]> = {
   'settings.language': 'Język',
   'settings.temperature': 'Jednostka temperatury',
   'settings.timeFormat': 'Format czasu',
-  'settings.routeCalculation': 'Obliczanie trasy',
   'settings.blurBookingCodes': 'Rozmyj kody rezerwacji',
   'settings.notifications': 'Powiadomienia',
   'settings.notifyTripInvite': 'Zaproszenia do podróży',

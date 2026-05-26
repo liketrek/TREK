@@ -260,7 +260,6 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
   const { t, language, locale } = useTranslation()
   const ctxMenu = useContextMenu()
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
-  const routeCalcEnabled = useSettingsStore(s => s.settings.route_calculation) !== false
   const tripActions = useRef(useTripStore.getState()).current
   const can = useCanDo()
   const canEditDays = can('day_edit', trip)
@@ -507,7 +506,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
   // the start place's assignment id. Shares RouteCalculator's cache with the map.
   useEffect(() => {
     if (legsAbortRef.current) legsAbortRef.current.abort()
-    if (!selectedDayId || !routeCalcEnabled || !routeShown) { setRouteLegs({}); return }
+    if (!selectedDayId || !routeShown) { setRouteLegs({}); return }
     const merged = mergedItemsMap[selectedDayId] || []
     const runs: { id: number; lat: number; lng: number }[][] = []
     let cur: { id: number; lat: number; lng: number }[] = []
@@ -536,7 +535,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
       }
       if (!controller.signal.aborted) setRouteLegs(map)
     })()
-  }, [selectedDayId, routeCalcEnabled, routeShown, routeProfile, mergedItemsMap])
+  }, [selectedDayId, routeShown, routeProfile, mergedItemsMap])
 
   const openAddNote = (dayId, e) => {
     e?.stopPropagation()

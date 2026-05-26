@@ -10,7 +10,6 @@ export const DEFAULTABLE_USER_SETTING_KEYS = [
   'temperature_unit',
   'dark_mode',
   'time_format',
-  'route_calculation',
   'blur_booking_codes',
   'map_tile_url',
 ] as const;
@@ -23,7 +22,7 @@ const VALID_VALUES: Partial<Record<DefaultableKey, unknown[]>> = {
   dark_mode: [true, false, 'light', 'dark', 'auto'],
 };
 
-const BOOLEAN_KEYS = new Set<DefaultableKey>(['route_calculation', 'blur_booking_codes']);
+const BOOLEAN_KEYS = new Set<DefaultableKey>(['blur_booking_codes']);
 
 function parseValue(raw: string): unknown {
   try { return JSON.parse(raw); } catch { return raw; }

@@ -195,7 +195,6 @@ const it: Record<string, string | { name: string; category: string }[]> = {
   'settings.language': 'Lingua',
   'settings.temperature': 'Unità di Temperatura',
   'settings.timeFormat': 'Formato Ora',
-  'settings.routeCalculation': 'Calcolo Percorso',
   'settings.blurBookingCodes': 'Nascondi codici di prenotazione',
   'settings.notifications': 'Notifiche',
   'settings.notifyTripInvite': 'Inviti di viaggio',
