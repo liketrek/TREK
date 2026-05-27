@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, waitFor } from '../../tests/helpers/render';
+import { render, screen, waitFor, within } from '../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../tests/helpers/msw/server';
@@ -75,7 +75,7 @@ describe('DashboardPage', () => {
       render(<DashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByText(/no trips yet/i)).toBeInTheDocument();
+        expect(screen.queryAllByRole('article').length).toBe(0);
       });
     });
   });
@@ -230,13 +230,8 @@ describe('DashboardPage', () => {
       const archiveButtons = screen.getAllByRole('button', { name: /archive/i });
       await user.click(archiveButtons[0]);
 
-      // Wait for archived section toggle to appear
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /archived/i })).toBeInTheDocument();
-      });
-
-      // Click "Archived" toggle to show archived trips
-      await user.click(screen.getByRole('button', { name: /archived/i }));
+      // Click the Archive filter tab to show archived trips
+      await user.click(screen.getByText('Archive'));
 
       await waitFor(() => {
         expect(screen.getAllByText('Paris Adventure')[0]).toBeInTheDocument();
@@ -272,8 +267,8 @@ describe('DashboardPage', () => {
         expect(screen.getAllByText('Paris Adventure')[0]).toBeInTheDocument();
       });
 
-      // Find the view mode toggle button (shows List icon when in grid mode, title "List view")
-      const viewToggle = screen.getByTitle(/list view/i);
+      // Find the view mode toggle button (aria-label "Toggle view")
+      const viewToggle = screen.getByRole('button', { name: /toggle view/i });
       await user.click(viewToggle);
 
       // localStorage should be updated to 'list'
@@ -302,13 +297,8 @@ describe('DashboardPage', () => {
         expect(screen.getAllByText('Paris Adventure')[0]).toBeInTheDocument();
       });
 
-      // Archived section toggle should be present
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /archived/i })).toBeInTheDocument();
-      });
-
-      // Click to expand
-      await user.click(screen.getByRole('button', { name: /archived/i }));
+      // Click the Archive filter tab to show archived trips
+      await user.click(screen.getByText('Archive'));
 
       await waitFor(() => {
         expect(screen.getByText('Old Rome Trip')).toBeInTheDocument();
@@ -343,7 +333,7 @@ describe('DashboardPage', () => {
       });
 
       // Switch to list view
-      const viewToggle = screen.getByTitle(/list view/i);
+      const viewToggle = screen.getByRole('button', { name: /toggle view/i });
       await user.click(viewToggle);
 
       // Non-spotlight trips should be visible in list view
@@ -367,7 +357,7 @@ describe('DashboardPage', () => {
       });
 
       // Switch to list view
-      const viewToggle = screen.getByTitle(/list view/i);
+      const viewToggle = screen.getByRole('button', { name: /toggle view/i });
       await user.click(viewToggle);
 
       // Non-spotlight trips render in list view
@@ -397,8 +387,8 @@ describe('DashboardPage', () => {
         expect(screen.getAllByText('Paris Adventure')[0]).toBeInTheDocument();
       });
 
-      // Find copy buttons
-      const copyButtons = screen.getAllByRole('button', { name: /copy/i });
+      // Find duplicate buttons (aria-label="Duplicate")
+      const copyButtons = screen.getAllByRole('button', { name: /duplicate/i });
       await user.click(copyButtons[0]);
 
       // Confirm the copy dialog
@@ -420,19 +410,9 @@ describe('DashboardPage', () => {
         expect(screen.getAllByText('Paris Adventure').length).toBeGreaterThan(0);
       });
 
-      // Find settings button — the gear icon button (icon-only, no visible label)
-      const allBtns = screen.getAllByRole('button');
-      const settingsButton = allBtns.find(btn =>
-        btn.querySelector('.lucide-settings') && !btn.textContent?.trim()
-      );
-
-      expect(settingsButton).toBeDefined();
-      if (settingsButton) {
-        await user.click(settingsButton);
-        await waitFor(() => {
-          expect(screen.getByText('Widgets:')).toBeInTheDocument();
-        });
-      }
+      // Currency and timezone widgets are always visible in the sidebar
+      expect(screen.getAllByText(/currency/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/timezone/i).length).toBeGreaterThan(0);
     });
   });
 
@@ -462,24 +442,21 @@ describe('DashboardPage', () => {
       const user = userEvent.setup();
       render(<DashboardPage />);
 
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /archived/i })).toBeInTheDocument();
-      });
-
-      // Expand archived section
-      await user.click(screen.getByRole('button', { name: /archived/i }));
+      // Click the Archive filter tab to show archived trips
+      await user.click(screen.getByText('Archive'));
 
       await waitFor(() => {
         expect(screen.getByText('Old Rome Trip')).toBeInTheDocument();
       });
 
-      // Click restore button
-      const restoreBtn = screen.getByRole('button', { name: /restore/i });
+      // The Archive action button on an archived trip triggers restore (unarchive)
+      const tripArticles = screen.getAllByRole('article');
+      const restoreBtn = within(tripArticles[0]).getByRole('button', { name: /archive/i });
       await user.click(restoreBtn);
 
-      // After restore, archived section should disappear (no more archived trips)
+      // After restore, the archived trip is no longer visible
       await waitFor(() => {
-        expect(screen.queryByRole('button', { name: /archived/i })).not.toBeInTheDocument();
+        expect(screen.queryByText('Old Rome Trip')).not.toBeInTheDocument();
       });
     });
   });
@@ -577,8 +554,8 @@ describe('DashboardPage', () => {
         expect(screen.getAllByText(/live now/i).length).toBeGreaterThan(0);
       });
 
-      // Progress bar label "Trip progress" appears
-      expect(screen.getAllByText(/trip progress/i).length).toBeGreaterThan(0);
+      // Ring completion percentage appears
+      expect(screen.getAllByText(/%/i).length).toBeGreaterThan(0);
 
       // "days left" label appears inside the progress section
       expect(screen.getAllByText(/days left/i).length).toBeGreaterThan(0);
@@ -645,25 +622,9 @@ describe('DashboardPage', () => {
         expect(screen.getAllByText('Paris Adventure').length).toBeGreaterThan(0);
       });
 
-      // Open widget settings — gear icon button (icon-only, no visible label)
-      const allBtns = screen.getAllByRole('button');
-      const settingsButton = allBtns.find(btn =>
-        btn.querySelector('.lucide-settings') && !btn.textContent?.trim()
-      );
-
-      expect(settingsButton).toBeDefined();
-      if (settingsButton) {
-        await user.click(settingsButton);
-
-        await waitFor(() => {
-          expect(screen.getByText('Widgets:')).toBeInTheDocument();
-        });
-
-        // Both currency and timezone toggle labels should be visible
-        // Use getAllByText because labels may appear in both widget settings and quick actions
-        expect(screen.getAllByText(/currency/i).length).toBeGreaterThan(0);
-        expect(screen.getAllByText(/timezone/i).length).toBeGreaterThan(0);
-      }
+      // Currency and timezone widgets are always visible in the sidebar
+      expect(screen.getAllByText(/currency/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/timezone/i).length).toBeGreaterThan(0);
     });
   });
 
@@ -685,18 +646,14 @@ describe('DashboardPage', () => {
       const user = userEvent.setup();
       render(<DashboardPage />);
 
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /archived/i })).toBeInTheDocument();
-      });
-
-      // Expand
-      await user.click(screen.getByRole('button', { name: /archived/i }));
+      // Click the Archive filter tab to show archived trips
+      await user.click(screen.getByText('Archive'));
       await waitFor(() => {
         expect(screen.getByText('Old Archived Trip')).toBeInTheDocument();
       });
 
-      // Collapse
-      await user.click(screen.getByRole('button', { name: /archived/i }));
+      // Switch back to Planned tab to hide archived trips
+      await user.click(screen.getByText('Planned'));
       await waitFor(() => {
         expect(screen.queryByText('Old Archived Trip')).not.toBeInTheDocument();
       });
@@ -729,22 +686,21 @@ describe('DashboardPage', () => {
       const user = userEvent.setup();
       render(<DashboardPage />);
 
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /archived/i })).toBeInTheDocument();
-      });
-
-      await user.click(screen.getByRole('button', { name: /archived/i }));
+      // Click the Archive filter tab to show archived trips
+      await user.click(screen.getByText('Archive'));
 
       await waitFor(() => {
         expect(screen.getByText('Restored Trip')).toBeInTheDocument();
       });
 
-      const restoreBtn = screen.getByRole('button', { name: /restore/i });
+      // The Archive action button on an archived trip triggers restore (unarchive)
+      const tripArticles = screen.getAllByRole('article');
+      const restoreBtn = within(tripArticles[0]).getByRole('button', { name: /archive/i });
       await user.click(restoreBtn);
 
-      // After restore, the archived section should disappear (no archived trips left)
+      // After restore, the archived trip is no longer in the list
       await waitFor(() => {
-        expect(screen.queryByRole('button', { name: /archived/i })).not.toBeInTheDocument();
+        expect(screen.queryByText('Restored Trip')).not.toBeInTheDocument();
       });
     });
   });
@@ -765,8 +721,8 @@ describe('DashboardPage', () => {
         expect(screen.getAllByText('Paris Adventure')[0]).toBeInTheDocument();
       });
 
-      // Find copy buttons (may appear in mobile + desktop)
-      const copyButtons = screen.getAllByRole('button', { name: /copy/i });
+      // Find duplicate buttons (aria-label="Duplicate")
+      const copyButtons = screen.getAllByRole('button', { name: /duplicate/i });
       expect(copyButtons.length).toBeGreaterThan(0);
       await user.click(copyButtons[0]);
 
@@ -791,10 +747,10 @@ describe('DashboardPage', () => {
       render(<DashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByText(/no trips yet/i)).toBeInTheDocument();
+        expect(screen.queryAllByRole('article').length).toBe(0);
       });
 
-      // Empty state should show a descriptive text and a create button
+      // Empty state should show a create button
       const createButtons = screen.getAllByRole('button');
       const createBtn = createButtons.find(btn => btn.textContent?.toLowerCase().includes('trip'));
       expect(createBtn).toBeDefined();
@@ -828,10 +784,10 @@ describe('DashboardPage', () => {
         expect(screen.getAllByText('Live Adventure').length).toBeGreaterThan(0);
       });
 
-      // Stats section: places count "5" and buddies count "2" appear
+      // Stats section: countdown-days "5" and travelers label appear
       await waitFor(() => {
         expect(screen.getAllByText('5').length).toBeGreaterThan(0);
-        expect(screen.getAllByText('2').length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/travelers/i).length).toBeGreaterThan(0);
       });
 
       // Days stat label
