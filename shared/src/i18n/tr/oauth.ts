@@ -1,99 +1,72 @@
 import type { TranslationStrings } from '../types';
 
 const oauth: TranslationStrings = {
-  'oauth.scope.group.trips': 'Trips',
-  'oauth.scope.group.places': 'Places',
+  'oauth.scope.group.trips': 'Geziler',
+  'oauth.scope.group.places': 'Yer',
   'oauth.scope.group.atlas': 'Atlas',
-  'oauth.scope.group.packing': 'Packing',
-  'oauth.scope.group.todos': 'To-dos',
-  'oauth.scope.group.budget': 'Budget',
-  'oauth.scope.group.reservations': 'Reservations',
-  'oauth.scope.group.collab': 'Collaboration',
-  'oauth.scope.group.notifications': 'Notifications',
-  'oauth.scope.group.vacay': 'Vacation',
-  'oauth.scope.group.geo': 'Geo',
-  'oauth.scope.group.weather': 'Weather',
-  'oauth.scope.group.journey': 'Journey',
-  'oauth.scope.trips:read.label': 'View trips & itineraries',
-  'oauth.scope.trips:read.description':
-    'Read trips, days, day notes, and members',
-  'oauth.scope.trips:write.label': 'Edit trips & itineraries',
-  'oauth.scope.trips:write.description':
-    'Create and update trips, days, notes, and manage members',
-  'oauth.scope.trips:delete.label': 'Delete trips',
-  'oauth.scope.trips:delete.description':
-    'Permanently delete entire trips — this action is irreversible',
-  'oauth.scope.trips:share.label': 'Manage share links',
-  'oauth.scope.trips:share.description':
-    'Create, update, and revoke public share links for trips',
-  'oauth.scope.places:read.label': 'View places & map data',
-  'oauth.scope.places:read.description':
-    'Read places, day assignments, tags, and categories',
-  'oauth.scope.places:write.label': 'Manage places',
-  'oauth.scope.places:write.description':
-    'Create, update, and delete places, assignments, and tags',
-  'oauth.scope.atlas:read.label': 'View Atlas',
-  'oauth.scope.atlas:read.description':
-    'Read visited countries, regions, and bucket list',
-  'oauth.scope.atlas:write.label': 'Manage Atlas',
-  'oauth.scope.atlas:write.description':
-    'Mark countries and regions visited, manage bucket list',
-  'oauth.scope.packing:read.label': 'View packing lists',
-  'oauth.scope.packing:read.description':
-    'Read packing items, bags, and category assignees',
-  'oauth.scope.packing:write.label': 'Manage packing lists',
-  'oauth.scope.packing:write.description':
-    'Add, update, delete, toggle, and reorder packing items and bags',
-  'oauth.scope.todos:read.label': 'View to-do lists',
-  'oauth.scope.todos:read.description':
-    'Read trip to-do items and category assignees',
-  'oauth.scope.todos:write.label': 'Manage to-do lists',
-  'oauth.scope.todos:write.description':
-    'Create, update, toggle, delete, and reorder to-do items',
-  'oauth.scope.budget:read.label': 'View budget',
-  'oauth.scope.budget:read.description':
-    'Read budget items and expense breakdown',
-  'oauth.scope.budget:write.label': 'Manage budget',
-  'oauth.scope.budget:write.description':
-    'Create, update, and delete budget items',
-  'oauth.scope.reservations:read.label': 'View reservations',
-  'oauth.scope.reservations:read.description':
-    'Read reservations and accommodation details',
-  'oauth.scope.reservations:write.label': 'Manage reservations',
-  'oauth.scope.reservations:write.description':
-    'Create, update, delete, and reorder reservations',
-  'oauth.scope.collab:read.label': 'View collaboration',
-  'oauth.scope.collab:read.description':
-    'Read collab notes, polls, and messages',
-  'oauth.scope.collab:write.label': 'Manage collaboration',
-  'oauth.scope.collab:write.description':
-    'Create, update, and delete collab notes, polls, and messages',
-  'oauth.scope.notifications:read.label': 'View notifications',
-  'oauth.scope.notifications:read.description':
-    'Read in-app notifications and unread counts',
-  'oauth.scope.notifications:write.label': 'Manage notifications',
-  'oauth.scope.notifications:write.description':
-    'Mark notifications as read and respond to them',
-  'oauth.scope.vacay:read.label': 'View vacation plans',
-  'oauth.scope.vacay:read.description':
-    'Read vacation planning data, entries, and stats',
-  'oauth.scope.vacay:write.label': 'Manage vacation plans',
-  'oauth.scope.vacay:write.description':
-    'Create and manage vacation entries, holidays, and team plans',
-  'oauth.scope.geo:read.label': 'Maps & geocoding',
-  'oauth.scope.geo:read.description':
-    'Search locations, resolve map URLs, and reverse geocode coordinates',
-  'oauth.scope.weather:read.label': 'Weather forecasts',
-  'oauth.scope.weather:read.description':
-    'Fetch weather forecasts for trip locations and dates',
-  'oauth.scope.journey:read.label': 'View journeys',
-  'oauth.scope.journey:read.description':
-    'Read journeys, entries, and contributor list',
-  'oauth.scope.journey:write.label': 'Manage journeys',
-  'oauth.scope.journey:write.description':
-    'Create, update, and delete journeys and their entries',
-  'oauth.scope.journey:share.label': 'Manage journey links',
-  'oauth.scope.journey:share.description':
-    'Create, update, and revoke public share links for journeys',
+  'oauth.scope.group.packing': 'Ambalaj',
+  'oauth.scope.group.todos': 'Yapılacaklar',
+  'oauth.scope.group.budget': 'Bütçe',
+  'oauth.scope.group.reservations': 'Rezervasyonlar',
+  'oauth.scope.group.collab': 'İşbirliği',
+  'oauth.scope.group.notifications': 'Bildirimler',
+  'oauth.scope.group.vacay': 'Tatil',
+  'oauth.scope.group.geo': 'Coğrafi',
+  'oauth.scope.group.weather': 'Hava durumu',
+  'oauth.scope.group.journey': 'Seyahat',
+  'oauth.scope.trips:read.label': 'Seyahatleri ve programları görüntüle',
+  'oauth.scope.trips:read.description': 'Seyahatleri, günleri, gün notlarını ve üyeleri oku',
+  'oauth.scope.trips:write.label': 'Seyahatleri ve programları düzenle',
+  'oauth.scope.trips:write.description': 'Seyahatleri, günleri, notları oluştur ve güncelle; üyeleri yönet',
+  'oauth.scope.trips:delete.label': 'Seyahatleri sil',
+  'oauth.scope.trips:delete.description': 'Tüm seyahatleri kalıcı olarak sil — bu işlem geri alınamaz',
+  'oauth.scope.trips:share.label': 'Paylaşım bağlantılarını yönet',
+  'oauth.scope.trips:share.description': 'Seyahatler için herkese açık paylaşım bağlantıları oluştur, güncelle ve iptal et',
+  'oauth.scope.places:read.label': 'Yerleri ve harita verilerini görüntüle',
+  'oauth.scope.places:read.description': 'Yerleri, gün atamalarını, etiketleri ve kategorileri oku',
+  'oauth.scope.places:write.label': 'Yerleri yönet',
+  'oauth.scope.places:write.description': 'Yerleri, atamaları ve etiketleri oluştur, güncelle ve sil',
+  'oauth.scope.atlas:read.label': 'Atlas\'ı Görüntüle',
+  'oauth.scope.atlas:read.description': 'Ziyaret edilen ülkeleri, bölgeleri ve yapılacaklar listesini oku',
+  'oauth.scope.atlas:write.label': 'Atlas\'ı Yönet',
+  'oauth.scope.atlas:write.description': 'Ülke ve bölgeleri ziyaret edildi olarak işaretle, yapılacaklar listesini yönet',
+  'oauth.scope.packing:read.label': 'Paket listelerini görüntüle',
+  'oauth.scope.packing:read.description': 'Paket öğelerini, çantaları ve kategori atamalarını oku',
+  'oauth.scope.packing:write.label': 'Paket listelerini yönet',
+  'oauth.scope.packing:write.description': 'Paket öğelerini ve çantaları ekle, güncelle, sil, işaretle ve yeniden sırala',
+  'oauth.scope.todos:read.label': 'Yapılacak listelerini görüntüle',
+  'oauth.scope.todos:read.description': 'Seyahat yapılacak öğelerini ve kategori atamalarını oku',
+  'oauth.scope.todos:write.label': 'Yapılacak listelerini yönet',
+  'oauth.scope.todos:write.description': 'Yapılacak öğeleri oluştur, güncelle, işaretle, sil ve yeniden sırala',
+  'oauth.scope.budget:read.label': 'Bütçeyi görüntüle',
+  'oauth.scope.budget:read.description': 'Bütçe kalemlerini ve harcama dökümünü oku',
+  'oauth.scope.budget:write.label': 'Bütçeyi yönet',
+  'oauth.scope.budget:write.description': 'Bütçe kalemlerini oluştur, güncelle ve sil',
+  'oauth.scope.reservations:read.label': 'Rezervasyonları görüntüle',
+  'oauth.scope.reservations:read.description': 'Rezervasyonları ve konaklama ayrıntılarını oku',
+  'oauth.scope.reservations:write.label': 'Rezervasyonları yönet',
+  'oauth.scope.reservations:write.description': 'Rezervasyonları oluştur, güncelle, sil ve yeniden sırala',
+  'oauth.scope.collab:read.label': 'İşbirliğini görüntüle',
+  'oauth.scope.collab:read.description': 'İşbirliği notlarını, anketleri ve mesajları oku',
+  'oauth.scope.collab:write.label': 'İşbirliğini yönet',
+  'oauth.scope.collab:write.description': 'İşbirliği notlarını, anketleri ve mesajları oluştur, güncelle ve sil',
+  'oauth.scope.notifications:read.label': 'Bildirimleri görüntüle',
+  'oauth.scope.notifications:read.description': 'Uygulama içi bildirimleri ve okunmamış sayıları oku',
+  'oauth.scope.notifications:write.label': 'Bildirimleri yönet',
+  'oauth.scope.notifications:write.description': 'Bildirimleri okundu işaretle ve yanıtla',
+  'oauth.scope.vacay:read.label': 'Tatil planlarını görüntüle',
+  'oauth.scope.vacay:read.description': 'Tatil planlama verilerini, kayıtları ve istatistikleri oku',
+  'oauth.scope.vacay:write.label': 'Tatil planlarını yönet',
+  'oauth.scope.vacay:write.description': 'Tatil kayıtlarını, resmi tatilleri ve ekip planlarını oluştur ve yönet',
+  'oauth.scope.geo:read.label': 'Haritalar ve coğrafi kodlama',
+  'oauth.scope.geo:read.description': 'Konum ara, harita URL\'lerini çöz ve koordinatları ters coğrafi kodla',
+  'oauth.scope.weather:read.label': 'Hava durumu tahminleri',
+  'oauth.scope.weather:read.description': 'Seyahat konumları ve tarihleri için hava durumu tahminlerini getir',
+  'oauth.scope.journey:read.label': 'Journey\'leri görüntüle',
+  'oauth.scope.journey:read.description': 'Journey\'leri, kayıtları ve katkıda bulunan listesini oku',
+  'oauth.scope.journey:write.label': 'Journey\'leri yönet',
+  'oauth.scope.journey:write.description': 'Journey\'leri ve kayıtlarını oluştur, güncelle ve sil',
+  'oauth.scope.journey:share.label': 'Journey bağlantılarını yönet',
+  'oauth.scope.journey:share.description': 'Journey\'ler için herkese açık paylaşım bağlantıları oluştur, güncelle ve iptal et',
 };
 export default oauth;

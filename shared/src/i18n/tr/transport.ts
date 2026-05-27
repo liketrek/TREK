@@ -1,10 +1,10 @@
 import type { TranslationStrings } from '../types';
 
 const transport: TranslationStrings = {
-  'transport.addTransport': 'Add transport',
-  'transport.modalTitle.create': 'Add transport',
-  'transport.modalTitle.edit': 'Edit transport',
-  'transport.title': 'Transports',
-  'transport.addManual': 'Manual Transport',
+  'transport.addTransport': 'Ulaşım ekle',
+  'transport.modalTitle.create': 'Ulaşım ekle',
+  'transport.modalTitle.edit': 'Ulaşımı düzenle',
+  'transport.title': 'Ulaşım',
+  'transport.addManual': 'Manuel Ulaşım',
 };
 export default transport;

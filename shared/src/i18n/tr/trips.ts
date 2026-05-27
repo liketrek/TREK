@@ -5,13 +5,12 @@ const trips: TranslationStrings = {
   'trips.memberRemoveError': 'Kaldırılamadı',
   'trips.memberAdded': '{username} eklendi',
   'trips.memberAddError': 'Eklenemedi',
-  'trips.reminder': 'Hatırlatma',
+  'trips.reminder': 'Hatırlatıcı',
   'trips.reminderNone': 'Yok',
   'trips.reminderDay': 'gün',
   'trips.reminderDays': 'gün',
   'trips.reminderCustom': 'Özel',
-  'trips.reminderDaysBefore': 'kalkıştan önceki gün sayısı',
-  'trips.reminderDisabledHint':
-    'Gezi hatırlatmaları devre dışı. Yönetim > Ayarlar > Bildirimler bölümünden etkinleştirin.',
+  'trips.reminderDaysBefore': 'hareketten önce gün',
+  'trips.reminderDisabledHint': 'Seyahat hatırlatıcıları kapalı. Yönetici > Ayarlar > Bildirimler bölümünden açın.',
 };
 export default trips;
