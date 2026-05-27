@@ -3,7 +3,7 @@ import { formatLocationName } from '../utils/formatters'
 import { normalizeImageFiles } from '../utils/convertHeic'
 import { type ResilientResult, type UploadProgress } from '../utils/uploadQueue'
 import { createPortal } from 'react-dom'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useJourneyStore } from '../store/journeyStore'
 import { useAuthStore } from '../store/authStore'
 import { useTranslation } from '../i18n'
@@ -113,6 +113,16 @@ export default function JourneyDetailPage() {
   const [deleteTarget, setDeleteTarget] = useState<JourneyEntry | null>(null)
   const [showInvite, setShowInvite] = useState(false)
   const [showAddTrip, setShowAddTrip] = useState(false)
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // The bottom-nav "+" starts a new entry via ?create=entry.
+  useEffect(() => {
+    if (searchParams.get('create') === 'entry' && current && canEditEntries) {
+      const today = new Date().toISOString().slice(0, 10)
+      setEditingEntry({ id: 0, journey_id: current.id, author_id: 0, type: 'entry', entry_date: today, visibility: 'private', sort_order: 0, photos: [], created_at: 0, updated_at: 0 } as JourneyEntry)
+      setSearchParams(p => { p.delete('create'); return p }, { replace: true })
+    }
+  }, [searchParams, current, canEditEntries])
   const [unlinkTrip, setUnlinkTrip] = useState<{ trip_id: number; title: string } | null>(null)
   const [showSettings, setShowSettings] = useState(false)
   const [hideSkeletons, setHideSkeletons] = useState(false)

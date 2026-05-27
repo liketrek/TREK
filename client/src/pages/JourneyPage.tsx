@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useJourneyStore } from '../store/journeyStore'
 import { journeyApi } from '../api/client'
 import Navbar from '../components/Layout/Navbar'
@@ -52,10 +52,20 @@ export default function JourneyPage() {
   const [suggestions, setSuggestions] = useState<any[]>([])
   const [dismissedSuggestions, setDismissedSuggestions] = useState<Set<number>>(new Set())
 
+  const [searchParams, setSearchParams] = useSearchParams()
+
   useEffect(() => {
     loadJourneys()
     journeyApi.suggestions().then(d => setSuggestions(d.trips || [])).catch(() => {})
   }, [])
+
+  // The bottom-nav "+" opens the new-journey modal via ?create=1.
+  useEffect(() => {
+    if (searchParams.get('create') === '1') {
+      openCreateModal()
+      setSearchParams(p => { p.delete('create'); return p }, { replace: true })
+    }
+  }, [searchParams])
 
   const activeSuggestion = suggestions.find(s => !dismissedSuggestions.has(s.id))
 

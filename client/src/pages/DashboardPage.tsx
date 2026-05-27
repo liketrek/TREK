@@ -11,6 +11,8 @@ import TripFormModal from '../components/Trips/TripFormModal'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
 import CopyTripDialog from '../components/shared/CopyTripDialog'
 import CustomSelect from '../components/shared/CustomSelect'
+import PlaceAvatar from '../components/shared/PlaceAvatar'
+import MobileTopBar from '../components/Layout/MobileTopBar'
 import { useToast } from '../components/shared/Toast'
 import {
   Plus, Edit2, Trash2, Archive, Copy, ArrowRight, MapPin,
@@ -110,7 +112,11 @@ function initials(name: string | null | undefined): string {
 }
 
 interface Member { id: number; username: string; avatar_url?: string | null }
-interface Place { id: number; name: string; image_url?: string | null }
+interface Place {
+  id: number; name: string; image_url: string | null; lat: number | null; lng: number | null
+  google_place_id: string | null; osm_id: string | null
+  category_color?: string | null; category_icon?: string | null
+}
 interface HeroBundle { members: Member[]; places: Place[] }
 interface TravelStats { totalTrips?: number; totalDays?: number; totalPlaces?: number; totalDistanceKm?: number; countries?: string[] }
 interface UpcomingReservation {
@@ -123,6 +129,18 @@ const RES_ICON: Record<string, React.ReactElement> = {
   flight: <Plane size={16} />, hotel: <Hotel size={16} />, restaurant: <Utensils size={16} />,
 }
 const RES_TYPE_CLASS: Record<string, string> = { flight: 'flight', hotel: 'hotel', restaurant: 'food' }
+
+// Mobile gets a different boarding-pass treatment (separate card under the hero).
+function useIsMobile(): boolean {
+  const [mobile, setMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 720px)').matches)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 720px)')
+    const onChange = () => setMobile(mq.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+  return mobile
+}
 
 export default function DashboardPage(): React.ReactElement {
   const [trips, setTrips] = useState<DashboardTrip[]>([])
@@ -274,10 +292,11 @@ export default function DashboardPage(): React.ReactElement {
     : rest.filter(t => getTripStatus(t) !== 'past')
 
   return (
-    <div className="trek-dash" style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column' }}>
+    <div className="trek-dash trek-dash-shell">
       <Navbar />
       {demoMode && <DemoBanner />}
-      <div style={{ flex: 1, overflow: 'auto', overscrollBehavior: 'contain', marginTop: 'var(--nav-h)' }}>
+      <div className="trek-dash-scroll">
+        <MobileTopBar />
         <main className="page">
           <div className="page-main">
             {spotlight && (
@@ -304,10 +323,10 @@ export default function DashboardPage(): React.ReactElement {
                     <button className={tripFilter === 'archive' ? 'on' : ''} onClick={() => setTripFilter('archive')}>{t('dashboard.archive')}</button>
                     <button className={tripFilter === 'completed' ? 'on' : ''} onClick={() => setTripFilter('completed')}>{t('dashboard.mobile.completed')}</button>
                   </div>
-                  <button className="tool-action" aria-label="Toggle view" onClick={toggleViewMode} style={{ width: 38, height: 38, borderRadius: 11 }}>
+                  <button className="tool-action" aria-label={t('dashboard.aria.toggleView')} onClick={toggleViewMode} style={{ width: 38, height: 38, borderRadius: 11 }}>
                     {viewMode === 'grid' ? <List size={17} /> : <LayoutGrid size={17} />}
                   </button>
-                  <button className="tool-action" aria-label="Filter" style={{ width: 38, height: 38, borderRadius: 11 }}>
+                  <button className="tool-action" aria-label={t('dashboard.aria.filter')} style={{ width: 38, height: 38, borderRadius: 11 }}>
                     <SlidersHorizontal size={17} />
                   </button>
                 </div>
@@ -395,45 +414,36 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
   onEdit: () => void; onCopy: () => void; onArchive: () => void; onDelete: () => void
 }): React.ReactElement {
   const { t } = useTranslation()
+  const mobile = useIsMobile()
   const stop = (e: React.MouseEvent, fn: () => void) => { e.stopPropagation(); fn() }
   const status = getTripStatus(trip)
   const start = splitDate(trip.start_date, locale)
   const end = splitDate(trip.end_date, locale)
-  const dayCount = trip.day_count || (trip.start_date && trip.end_date
-    ? Math.round((new Date(trip.end_date).getTime() - new Date(trip.start_date).getTime()) / MS_PER_DAY) + 1
-    : null)
 
+  // Countdown cell — plain text in the same style as the trip-dates cell:
+  // days remaining while the trip runs, days until departure before it starts.
   const until = daysUntil(trip.start_date)
   const ongoing = status === 'ongoing'
-  let ringFraction = 0
+  let countdownTop = ''
   let countdownNumber = ''
   let countdownLabel = ''
   if (ongoing && trip.end_date) {
     const todayMid = new Date(); todayMid.setHours(0, 0, 0, 0)
     const endMid = new Date(trip.end_date + 'T00:00:00')
     const daysLeft = Math.max(0, Math.round((endMid.getTime() - todayMid.getTime()) / MS_PER_DAY))
-    // Ring tracks progress through the trip; the number shows what's left.
-    if (trip.start_date && dayCount) {
-      const elapsed = Math.round((Date.now() - new Date(trip.start_date + 'T00:00:00').getTime()) / MS_PER_DAY) + 1
-      ringFraction = Math.min(1, Math.max(0.04, elapsed / dayCount))
-    } else {
-      ringFraction = 0.5
-    }
+    countdownTop = t('dashboard.status.ongoing')
     countdownNumber = String(daysLeft)
     countdownLabel = daysLeft === 0 ? t('dashboard.hero.lastDay') : daysLeft === 1 ? t('dashboard.hero.dayLeft') : t('dashboard.hero.daysLeft')
   } else if (until !== null && until >= 0) {
-    // Closer trips fill more of the ring (1-year horizon).
-    ringFraction = Math.min(1, Math.max(0.04, 1 - until / 365))
+    countdownTop = t('dashboard.hero.startsIn')
     countdownNumber = String(until)
-    countdownLabel = until === 1 ? t('dashboard.hero.dayLeft') : t('dashboard.hero.daysLeft')
+    countdownLabel = until === 1 ? t('dashboard.hero.dayUnitOne') : t('dashboard.hero.dayUnitMany')
   }
-  const RING_LEN = 170
-  const dashOffset = RING_LEN * (1 - ringFraction)
 
   const members = bundle?.members || []
-  const places = (bundle?.places || []).filter(p => p.image_url)
+  const places = bundle?.places || []
   const buddyCount = trip.shared_count != null ? trip.shared_count + 1 : members.length
-  const placeCount = trip.place_count || (bundle?.places.length ?? 0)
+  const placeCount = trip.place_count || places.length
 
   const badge = status === 'ongoing' ? t('dashboard.hero.badgeLive')
     : status === 'today' ? t('dashboard.hero.badgeToday')
@@ -441,7 +451,61 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
     : status === 'future' ? t('dashboard.hero.badgeNext')
     : t('dashboard.hero.badgeRecent')
 
+  const passCells = (
+    <>
+      <div className="pass-cell buddies">
+        <div className="pass-label">{t('dashboard.members')}</div>
+        <div className="buddies-avatars">
+          {members.slice(0, 4).map((m, i) => (
+            m.avatar_url
+              ? <img key={m.id} className="buddy-avatar" src={m.avatar_url} alt={m.username} style={{ objectFit: 'cover' }} />
+              : <div key={m.id} className="buddy-avatar" style={{ background: buddyColor(i) }}>{initials(m.username)}</div>
+          ))}
+          {members.length > 4 && <div className="buddy-more">+{members.length - 4}</div>}
+          {members.length === 0 && <div className="buddy-avatar" style={{ background: buddyColor(0) }}>{initials(trip.owner_username)}</div>}
+        </div>
+        <div className="date-month">{buddyCount === 1 ? t('dashboard.hero.travelerOne', { count: buddyCount }) : t('dashboard.hero.travelerMany', { count: buddyCount })}</div>
+      </div>
+
+      <div className="pass-cell dates-combined">
+        <div className="pass-label">{t('dashboard.hero.tripDates')}</div>
+        <div className="dates-row">
+          {start ? <div className="date-block"><div className="date-num mono">{start.d}</div><div className="date-month">{start.m}</div></div>
+            : <div className="date-block"><div className="date-num">—</div></div>}
+          <div className="date-arrow"><ArrowRight /></div>
+          {end ? <div className="date-block"><div className="date-num mono">{end.d}</div><div className="date-month">{end.m}</div></div>
+            : <div className="date-block"><div className="date-num">—</div></div>}
+        </div>
+      </div>
+
+      <div className="pass-cell countdown">
+        {countdownNumber && (
+          <>
+            <div className="pass-label">{countdownTop}</div>
+            <div className="date-num mono">{countdownNumber}</div>
+            <div className="date-month">{countdownLabel}</div>
+          </>
+        )}
+      </div>
+
+      <div className="pass-cell places">
+        <div className="pass-label">{t('dashboard.places')}</div>
+        <div className="places-preview">
+          {places.slice(0, 3).map(p => (
+            <div key={p.id} className="place-av">
+              <PlaceAvatar place={p} size={mobile ? 24 : 32} category={{ color: p.category_color ?? undefined, icon: p.category_icon ?? undefined }} />
+            </div>
+          ))}
+          {places.length === 0 && <div className="place-more"><MapPin size={15} /></div>}
+          {places.length > 3 && <div className="place-more">+{places.length - 3}</div>}
+        </div>
+        <div className="date-month">{placeCount === 1 ? t('dashboard.hero.destinationOne', { count: placeCount }) : t('dashboard.hero.destinationMany', { count: placeCount })}</div>
+      </div>
+    </>
+  )
+
   return (
+    <>
     <section className="hero-trip" onClick={onOpen}>
       {trip.cover_image
         ? <img className="bg" src={trip.cover_image} alt={trip.title} />
@@ -454,10 +518,10 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
             {badge}
           </div>
           <div className="hero-tools">
-            <button className="hero-tool" aria-label="Edit" onClick={(e) => stop(e, onEdit)}><Edit2 size={16} /></button>
-            <button className="hero-tool" aria-label="Duplicate" onClick={(e) => stop(e, onCopy)}><Copy size={16} /></button>
-            <button className="hero-tool" aria-label="Archive" onClick={(e) => stop(e, onArchive)}><Archive size={16} /></button>
-            <button className="hero-tool" aria-label="Delete" onClick={(e) => stop(e, onDelete)}><Trash2 size={16} /></button>
+            <button className="hero-tool" aria-label={t('common.edit')} onClick={(e) => stop(e, onEdit)}><Edit2 size={16} /></button>
+            <button className="hero-tool" aria-label={t('dashboard.aria.duplicate')} onClick={(e) => stop(e, onCopy)}><Copy size={16} /></button>
+            <button className="hero-tool" aria-label={trip.is_archived ? t('dashboard.restore') : t('dashboard.archive')} onClick={(e) => stop(e, onArchive)}><Archive size={16} /></button>
+            <button className="hero-tool" aria-label={t('common.delete')} onClick={(e) => stop(e, onDelete)}><Trash2 size={16} /></button>
           </div>
         </div>
 
@@ -465,66 +529,13 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
           <h2 className="hero-title">{trip.title}</h2>
         </div>
 
-        <div className="hero-pass" onClick={(e) => { e.stopPropagation(); onOpen() }}>
-          <div className="pass-cell buddies">
-            <div className="pass-label">{t('dashboard.members')}</div>
-            <div className="buddies-avatars">
-              {members.slice(0, 4).map((m, i) => (
-                m.avatar_url
-                  ? <img key={m.id} className="buddy-avatar" src={m.avatar_url} alt={m.username} style={{ objectFit: 'cover' }} />
-                  : <div key={m.id} className="buddy-avatar" style={{ background: buddyColor(i) }}>{initials(m.username)}</div>
-              ))}
-              {members.length > 4 && <div className="buddy-more">+{members.length - 4}</div>}
-              {members.length === 0 && <div className="buddy-avatar" style={{ background: buddyColor(0) }}>{initials(trip.owner_username)}</div>}
-            </div>
-            <div className="pass-sub">{buddyCount === 1 ? t('dashboard.hero.travelerOne', { count: buddyCount }) : t('dashboard.hero.travelerMany', { count: buddyCount })}</div>
-          </div>
-
-          <div className="pass-cell dates-combined">
-            <div className="pass-label">{t('dashboard.hero.tripDates')}</div>
-            <div className="dates-row">
-              {start ? <div className="date-block"><div className="date-num mono">{start.d}</div><div className="date-month">{start.m}</div></div>
-                : <div className="date-block"><div className="date-num">—</div></div>}
-              <div className="date-arrow"><ArrowRight /></div>
-              {end ? <div className="date-block"><div className="date-num mono">{end.d}</div><div className="date-month">{end.m}</div></div>
-                : <div className="date-block"><div className="date-num">—</div></div>}
-            </div>
-            <div className="pass-sub">{dayCount ? `${dayCount} ${dayCount === 1 ? t('dashboard.hero.dayUnitOne') : t('dashboard.hero.dayUnitMany')}` : t('dashboard.hero.noDates')}</div>
-          </div>
-
-          <div className="pass-cell countdown">
-            {countdownNumber && (
-              <>
-                <div className="countdown-ring">
-                  <svg viewBox="0 0 64 64">
-                    <circle className="track" cx="32" cy="32" r="27" fill="none" />
-                    <circle className="glow" cx="32" cy="32" r="27" fill="none" strokeDasharray={RING_LEN} strokeDashoffset={dashOffset} />
-                    <circle className="fill" cx="32" cy="32" r="27" fill="none" strokeDasharray={RING_LEN} strokeDashoffset={dashOffset} />
-                  </svg>
-                  <div className="pct mono">{Math.round(ringFraction * 100)}%</div>
-                </div>
-                <div className="countdown-info">
-                  <div className="countdown-days mono">{countdownNumber}</div>
-                  <div className="countdown-label">{countdownLabel}</div>
-                </div>
-              </>
-            )}
-          </div>
-
-          <div className="pass-cell places">
-            <div className="pass-label">{t('dashboard.places')}</div>
-            <div className="places-preview">
-              {places.slice(0, 4).map(p => (
-                <img key={p.id} className="place-thumb" src={p.image_url as string} alt={p.name} />
-              ))}
-              {places.length === 0 && <div className="place-more"><MapPin size={15} /></div>}
-              {placeCount > 4 && <div className="place-more">+{placeCount - 4}</div>}
-            </div>
-            <div className="pass-sub">{placeCount === 1 ? t('dashboard.hero.destinationOne', { count: placeCount }) : t('dashboard.hero.destinationMany', { count: placeCount })}</div>
-          </div>
-        </div>
+        {!mobile && (
+          <div className="hero-pass" onClick={(e) => { e.stopPropagation(); onOpen() }}>{passCells}</div>
+        )}
       </div>
     </section>
+    {mobile && <section className="pass-card" onClick={onOpen}>{passCells}</section>}
+    </>
   )
 }
 
@@ -612,10 +623,10 @@ function TripCard({ trip, locale, onOpen, onEdit, onCopy, onArchive, onDelete }:
           : <div style={{ width: '100%', height: '100%', background: tripGradient(trip.id) }} />}
         <div className={`trip-status ${statusClass}`}><span className="indicator" /> {statusLabel}</div>
         <div className="trip-actions">
-          <button className="trip-action-btn" aria-label="Edit" onClick={(e) => stop(e, onEdit)}><Edit2 size={16} /></button>
-          <button className="trip-action-btn" aria-label="Duplicate" onClick={(e) => stop(e, onCopy)}><Copy size={16} /></button>
-          <button className="trip-action-btn" aria-label="Archive" onClick={(e) => stop(e, onArchive)}><Archive size={16} /></button>
-          <button className="trip-action-btn" aria-label="Delete" onClick={(e) => stop(e, onDelete)}><Trash2 size={16} /></button>
+          <button className="trip-action-btn" aria-label={t('common.edit')} onClick={(e) => stop(e, onEdit)}><Edit2 size={16} /></button>
+          <button className="trip-action-btn" aria-label={t('dashboard.aria.duplicate')} onClick={(e) => stop(e, onCopy)}><Copy size={16} /></button>
+          <button className="trip-action-btn" aria-label={trip.is_archived ? t('dashboard.restore') : t('dashboard.archive')} onClick={(e) => stop(e, onArchive)}><Archive size={16} /></button>
+          <button className="trip-action-btn" aria-label={t('common.delete')} onClick={(e) => stop(e, onDelete)}><Trash2 size={16} /></button>
         </div>
         <div className="trip-cover-content">
           <h3 className="trip-name">{trip.title}</h3>
@@ -672,7 +683,7 @@ function CurrencyTool(): React.ReactElement {
     <div className="tool">
       <div className="tool-head">
         <div className="tool-title"><RefreshCw size={14} /> {t('dashboard.currency')}</div>
-        <button className="tool-action" aria-label="Refresh" onClick={fetchRate}><RefreshCw size={14} /></button>
+        <button className="tool-action" aria-label={t('dashboard.aria.refreshRates')} onClick={fetchRate}><RefreshCw size={14} /></button>
       </div>
       <div className="fx-input">
         <div className="fx-field">
@@ -680,7 +691,7 @@ function CurrencyTool(): React.ReactElement {
           <input className="amt mono" value={amount} onChange={e => setAmount(e.target.value)} inputMode="decimal" />
           <CustomSelect value={from} onChange={setFrom} options={ccyOptions} searchable size="sm" style={{ marginTop: 6 }} />
         </div>
-        <button className="fx-swap" aria-label="Swap" onClick={swap}><ArrowRightLeft size={14} /></button>
+        <button className="fx-swap" aria-label={t('dashboard.aria.swapCurrencies')} onClick={swap}><ArrowRightLeft size={14} /></button>
         <div className="fx-field">
           <div className="lbl">{t('dashboard.fx.to')}</div>
           <input className="amt mono" value={converted != null ? converted.toFixed(2) : '—'} readOnly />
@@ -753,7 +764,7 @@ function TimezoneTool({ locale }: { locale: string }): React.ReactElement {
     <div className="tool">
       <div className="tool-head">
         <div className="tool-title"><Clock size={14} /> {t('dashboard.timezone')}</div>
-        <button className="tool-action" aria-label="Add timezone" onClick={() => setAdding(a => !a)}>
+        <button className="tool-action" aria-label={t('dashboard.aria.addTimezone')} onClick={() => setAdding(a => !a)}>
           {adding ? <X size={14} /> : <Plus size={14} />}
         </button>
       </div>
@@ -771,7 +782,7 @@ function TimezoneTool({ locale }: { locale: string }): React.ReactElement {
               <div className="tz-sub">{offsetLabel(tz)}</div>
             </div>
             <div className="tz-time mono">{timeIn(tz)}</div>
-            <button className="tz-del" aria-label={`Remove ${shortZone(tz)}`} onClick={() => removeZone(tz)}><X size={13} /></button>
+            <button className="tz-del" aria-label={t('dashboard.aria.removeTimezone', { city: shortZone(tz) })} onClick={() => removeZone(tz)}><X size={13} /></button>
           </div>
         ))}
         {zones.length === 0 && (

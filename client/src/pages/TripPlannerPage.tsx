@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import ReactDOM from 'react-dom'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTripStore } from '../store/tripStore'
 import { useCanDo } from '../store/permissionsStore'
 import { useSettingsStore } from '../store/settingsStore'
@@ -261,6 +261,15 @@ export default function TripPlannerPage(): React.ReactElement | null {
   const [editingPlace, setEditingPlace] = useState<Place | null>(null)
   const [prefillCoords, setPrefillCoords] = useState<{ lat: number; lng: number; name?: string; address?: string } | null>(null)
   const [editingAssignmentId, setEditingAssignmentId] = useState<number | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // The bottom-nav "+" opens the new-place form via ?create=place.
+  useEffect(() => {
+    if (searchParams.get('create') === 'place') {
+      setEditingPlace(null); setEditingAssignmentId(null); setShowPlaceForm(true)
+      setSearchParams(p => { p.delete('create'); return p }, { replace: true })
+    }
+  }, [searchParams])
   const [showTripForm, setShowTripForm] = useState<boolean>(false)
   const [showMembersModal, setShowMembersModal] = useState<boolean>(false)
   const [showReservationModal, setShowReservationModal] = useState<boolean>(false)

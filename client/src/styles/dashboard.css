@@ -42,19 +42,27 @@
   font-feature-settings: "ss01", "cv11";
   letter-spacing: -0.005em;
   min-height: 100%;
+
+  /* liquid-glass surface tokens (shared by all tiles) */
+  --glass-bg: linear-gradient(135deg, oklch(1 0 0 / .72) 0%, oklch(0.99 0.006 75 / .5) 100%);
+  --glass-border: oklch(0.88 0.008 70 / .7);
+  --glass-shadow: 0 1px 2px oklch(0.4 0.02 60 / .05), 0 12px 32px -14px oklch(0.3 0.02 60 / .2);
+  --glass-shadow-hover: 0 2px 6px oklch(0.4 0.02 60 / .07), 0 26px 56px -20px oklch(0.25 0.04 60 / .32);
+  --glass-highlight: inset 0 1px 0 oklch(1 0 0 / .8);
+  --glass-blur: blur(22px) saturate(1.7);
 }
 
 /* dark variant — same geometry, dark surfaces, accent kept */
 .dark .trek-dash {
-  --bg: oklch(0.17 0.012 65);
-  --bg-2: oklch(0.21 0.012 65);
-  --surface: oklch(0.225 0.012 65);
-  --surface-2: oklch(0.255 0.012 65);
-  --ink: oklch(0.96 0.006 70);
-  --ink-2: oklch(0.78 0.008 70);
-  --ink-3: oklch(0.6 0.008 70);
-  --line: oklch(0.32 0.01 65);
-  --line-2: oklch(0.38 0.012 65);
+  --bg: oklch(0.17 0 0);
+  --bg-2: oklch(0.21 0 0);
+  --surface: oklch(0.225 0 0);
+  --surface-2: oklch(0.255 0 0);
+  --ink: oklch(0.96 0 0);
+  --ink-2: oklch(0.78 0 0);
+  --ink-3: oklch(0.6 0 0);
+  --line: oklch(0.32 0 0);
+  --line-2: oklch(0.38 0 0);
   --accent: oklch(0.7 0.16 40);
   --accent-ink: oklch(0.82 0.13 50);
   --accent-soft: oklch(0.32 0.07 45);
@@ -65,7 +73,19 @@
   --sh-sm: 0 1px 2px oklch(0 0 0 / .3), 0 2px 6px oklch(0 0 0 / .35);
   --sh-md: 0 1px 2px oklch(0 0 0 / .35), 0 8px 24px -8px oklch(0 0 0 / .5);
   --sh-lg: 0 2px 4px oklch(0 0 0 / .4), 0 20px 50px -16px oklch(0 0 0 / .7);
+
+  /* liquid-glass surface tokens — dark */
+  --glass-bg: linear-gradient(135deg, oklch(0.31 0 0 / .58) 0%, oklch(0.25 0 0 / .42) 100%);
+  --glass-border: oklch(1 0 0 / .1);
+  --glass-shadow: 0 1px 2px oklch(0 0 0 / .3), 0 12px 32px -14px oklch(0 0 0 / .55);
+  --glass-shadow-hover: 0 2px 6px oklch(0 0 0 / .4), 0 26px 56px -20px oklch(0 0 0 / .72);
+  --glass-highlight: inset 0 1px 0 oklch(1 0 0 / .09);
 }
+
+/* App shell: desktop is a fixed full-height column with its own scroll area.
+   On mobile (see media query) it flows normally inside the global chrome. */
+.trek-dash-shell { position: fixed; inset: 0; display: flex; flex-direction: column; }
+.trek-dash-scroll { flex: 1; overflow: auto; overscroll-behavior: contain; margin-top: var(--nav-h); }
 
 .trek-dash * { box-sizing: border-box; }
 .trek-dash .mono { font-family: "Poppins", -apple-system, BlinkMacSystemFont, system-ui, sans-serif; font-feature-settings: "tnum"; }
@@ -224,7 +244,7 @@
   transform: translateZ(0);
 }
 .dark .trek-dash .hero-pass {
-  background: linear-gradient(135deg, oklch(0.28 0.012 65 / .8) 0%, oklch(0.25 0.012 65 / .85) 50%, oklch(0.23 0.012 65 / .8) 100%);
+  background: linear-gradient(135deg, oklch(0.28 0 0 / .8) 0%, oklch(0.25 0 0 / .85) 50%, oklch(0.23 0 0 / .8) 100%);
   border: 1px solid oklch(1 0 0 / .1);
   box-shadow:
     0 2px 8px -2px oklch(0 0 0 / .3), 0 8px 24px -6px oklch(0 0 0 / .4),
@@ -280,33 +300,39 @@
 .dark .trek-dash .buddy-avatar,
 .dark .trek-dash .place-thumb,
 .dark .trek-dash .buddy-more,
-.dark .trek-dash .place-more { border-color: oklch(0.25 0.012 65 / .95); }
+.dark .trek-dash .place-more { border-color: oklch(0.25 0 0 / .95); }
 .dark .trek-dash .buddy-more,
-.dark .trek-dash .place-more { background: oklch(0.32 0.01 70); }
+.dark .trek-dash .place-more { background: oklch(0.32 0 0); }
 .trek-dash .place-thumb {
   width: 36px; height: 36px; border-radius: 50%; object-fit: cover;
   border: 2px solid oklch(0.985 0.008 75 / .95); box-shadow: 0 2px 6px rgba(0,0,0,0.1); margin-left: -8px;
 }
 .trek-dash .place-thumb:first-child { margin-left: 0; }
+.trek-dash .places-preview .place-av {
+  border-radius: 50%; line-height: 0; margin-left: -8px;
+  border: 2px solid oklch(0.985 0.008 75 / .95); box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+.trek-dash .places-preview .place-av:first-child { margin-left: 0; }
+.dark .trek-dash .places-preview .place-av { border-color: oklch(0.25 0 0 / .95); }
 
-.trek-dash .pass-cell.countdown { flex-direction: row; align-items: center; text-align: left; gap: 12px; }
-.trek-dash .countdown-ring { position: relative; width: 64px; height: 64px; flex-shrink: 0; }
-.trek-dash .countdown-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-.trek-dash .countdown-ring .track { stroke: oklch(0.92 0.01 70); stroke-width: 5; }
-.dark .trek-dash .countdown-ring .track { stroke: oklch(0.4 0.01 70); }
-.trek-dash .countdown-ring .fill { stroke: var(--ink); stroke-linecap: round; stroke-width: 5; }
-.trek-dash .countdown-ring .glow { stroke: var(--ink); stroke-width: 5; stroke-linecap: round; opacity: 0.15; filter: blur(3px); }
-.trek-dash .countdown-ring .pct { position: absolute; inset: 0; display: grid; place-items: center; font-size: 14px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; }
-.trek-dash .countdown-info { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; }
-.trek-dash .countdown-days { font-size: 28px; font-weight: 700; letter-spacing: -0.03em; color: var(--ink); line-height: 1; }
-.trek-dash .countdown-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-3); font-weight: 500; }
+.trek-dash .pass-cell.countdown { gap: 6px; }
 
 /* ----------------- atlas / stats ----------------- */
 .trek-dash .atlas { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 16px; margin-bottom: 56px; }
 .trek-dash .atlas-card {
-  background: var(--surface); border-radius: var(--r-lg); padding: 24px 26px;
-  box-shadow: var(--sh-sm); position: relative; overflow: hidden;
+  background: var(--glass-bg); border-radius: var(--r-lg); padding: 24px 26px;
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+  position: relative; overflow: hidden;
+  transition: transform .3s cubic-bezier(.2,.7,.2,1), box-shadow .3s, border-color .3s;
 }
+.trek-dash .atlas-card:not(.passport):hover {
+  transform: translateY(-3px);
+  box-shadow: var(--glass-shadow-hover), var(--glass-highlight);
+  border-color: oklch(0.8 0.01 70 / .8);
+}
+.dark .trek-dash .atlas-card:not(.passport):hover { border-color: oklch(1 0 0 / .2); }
 .trek-dash .atlas-card .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); font-weight: 500; }
 .trek-dash .atlas-card .value { font-size: 44px; font-weight: 600; letter-spacing: -0.035em; line-height: 1; margin-top: 16px; display: flex; align-items: baseline; gap: 8px; }
 .trek-dash .atlas-card .value .unit { font-size: 17px; color: var(--ink-3); font-weight: 500; letter-spacing: -0.01em; }
@@ -315,7 +341,7 @@
 .trek-dash .atlas-card.passport {
   background:
     linear-gradient(135deg, oklch(0.95 0.01 70 / .15) 0%, oklch(0.98 0.005 70 / .08) 50%, oklch(1 0 0 / .12) 100%),
-    linear-gradient(180deg, oklch(0.15 0.02 65), oklch(0.08 0.01 70));
+    linear-gradient(180deg, oklch(0.16 0 0), oklch(0.09 0 0));
   color: #fff; border: 1px solid oklch(1 0 0 / .12);
   box-shadow: 0 8px 32px oklch(0 0 0 / .15), inset 0 1px 0 oklch(1 0 0 / .15), inset 0 -1px 0 oklch(0 0 0 / .3);
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
@@ -355,11 +381,18 @@
 .trek-dash .trips.list-view .trip-body { display: flex; align-items: center; justify-content: space-between; padding: 20px 32px; gap: 48px; }
 .trek-dash .trips.list-view .trip-meta { display: flex; gap: 32px; padding: 0; border: none; }
 .trek-dash .trip-card {
-  position: relative; border-radius: var(--r-xl); overflow: hidden; background: var(--surface);
-  box-shadow: var(--sh-md); transition: transform .25s cubic-bezier(.2,.7,.2,1), box-shadow .25s;
+  position: relative; border-radius: var(--r-xl); overflow: hidden; background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  transition: transform .25s cubic-bezier(.2,.7,.2,1), box-shadow .25s, border-color .25s;
   cursor: pointer; isolation: isolate;
 }
-.trek-dash .trip-card:hover { transform: translateY(-4px); box-shadow: var(--sh-lg); }
+.trek-dash .trip-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--glass-shadow-hover), var(--glass-highlight);
+  border-color: oklch(0.8 0.01 70 / .8);
+}
+.dark .trek-dash .trip-card:hover { border-color: oklch(1 0 0 / .2); }
 .trek-dash .trip-cover { position: relative; aspect-ratio: 4 / 3; overflow: hidden; }
 .trek-dash .trip-cover img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s cubic-bezier(.2,.7,.2,1); }
 .trek-dash .trip-card:hover .trip-cover img { transform: scale(1.04); }
@@ -399,11 +432,16 @@
 .trek-dash .trip-meta .k { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); font-weight: 500; }
 .trek-dash .add-trip-card {
   border-radius: var(--r-xl); border: 1.5px dashed var(--line-2);
-  background: oklch(0.97 0.008 75 / .5); display: grid; place-items: center;
-  text-align: center; padding: 32px; transition: background .15s, border-color .15s; cursor: pointer; min-height: 240px;
+  background: var(--glass-bg); display: grid; place-items: center;
+  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-highlight);
+  text-align: center; padding: 32px; cursor: pointer; min-height: 240px;
+  transition: transform .3s cubic-bezier(.2,.7,.2,1), box-shadow .3s, border-color .3s, color .15s;
 }
-.dark .trek-dash .add-trip-card { background: oklch(0.22 0.01 65 / .5); }
-.trek-dash .add-trip-card:hover { background: var(--surface-2); border-color: var(--ink); color: var(--ink); }
+.trek-dash .add-trip-card:hover {
+  transform: translateY(-3px); border-color: var(--ink); color: var(--ink);
+  box-shadow: var(--glass-shadow-hover), var(--glass-highlight);
+}
 .trek-dash .add-trip-card .circ {
   width: 48px; height: 48px; border-radius: 50%; background: #111827; color: #fff;
   display: grid; place-items: center; margin: 0 auto 14px; box-shadow: var(--sh-sm);
@@ -415,7 +453,19 @@
 .trek-dash .add-trip-card .sub { font-size: 13px; color: var(--ink-3); }
 
 /* ----------------- tools sidebar ----------------- */
-.trek-dash .tool { background: var(--surface); border-radius: var(--r-xl); padding: 24px 26px; box-shadow: var(--sh-sm); }
+.trek-dash .tool {
+  background: var(--glass-bg); border-radius: var(--r-xl); padding: 24px 26px;
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+  transition: transform .3s cubic-bezier(.2,.7,.2,1), box-shadow .3s, border-color .3s;
+}
+.trek-dash .tool:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--glass-shadow-hover), var(--glass-highlight);
+  border-color: oklch(0.8 0.01 70 / .8);
+}
+.dark .trek-dash .tool:hover { border-color: oklch(1 0 0 / .2); }
 .trek-dash .tool-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
 .trek-dash .tool-title { font-size: 13px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); font-weight: 500; display: flex; align-items: center; gap: 8px; }
 .trek-dash .tool-title svg { width: 14px; height: 14px; }
@@ -467,14 +517,72 @@
   .trek-dash .atlas { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 720px) {
-  .trek-dash .page { padding: 24px 16px 96px; }
+  /* Flow inside the global chrome (top bar + floating tab bar) instead of fixed */
+  .trek-dash-shell { position: static; inset: auto; display: block; min-height: 100%; }
+  .trek-dash-scroll { overflow: visible; margin-top: 0; }
+  .trek-dash .page { padding: 16px 16px 120px; gap: 0; }
   .trek-dash .greeting { grid-template-columns: 1fr; }
   .trek-dash .hello { font-size: 40px; }
-  .trek-dash .hero-trip { height: 420px; }
-  .trek-dash .hero-title { font-size: 52px; }
-  .trek-dash .hero-pass { grid-template-columns: 1fr 1fr; gap: 16px 0; }
-  .trek-dash .trips { grid-template-columns: 1fr; }
-  .trek-dash .atlas { grid-template-columns: 1fr 1fr; }
+
+  /* Hero — immersive cover, title only (the pass is its own card below) */
+  .trek-dash .hero-trip { height: 340px; margin-bottom: 16px; border-radius: var(--r-xl); }
+  .trek-dash .hero-content { padding: 18px; }
+  /* the page already opens with the notification/profile strip, trim its top gap */
+  .trek-dash .page { padding-top: 4px; }
+  .trek-dash .hero-title { font-size: 48px; }
+
+  /* Boarding pass — separate 2×2 glass card under the hero (mockup) */
+  .trek-dash .pass-card {
+    display: grid; grid-template-columns: 1fr 1fr;
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border); border-radius: 20px; overflow: hidden;
+    box-shadow: var(--glass-shadow), var(--glass-highlight);
+    margin-bottom: 22px; cursor: pointer;
+  }
+  .trek-dash .pass-card .pass-cell {
+    padding: 14px 12px; gap: 8px; flex: none;
+    border-right: 1px dashed var(--line-2); border-bottom: 1px dashed var(--line-2);
+  }
+  .trek-dash .pass-card .pass-cell:nth-child(2n) { border-right: 0; }
+  .trek-dash .pass-card .pass-cell:nth-last-child(-n+2) { border-bottom: 0; }
+  .trek-dash .pass-card .pass-cell + .pass-cell::before { display: none; }
+  .trek-dash .pass-card .date-num { font-size: 22px; }
+  /* Buddies + places circles: identical size, ring and overlap */
+  .trek-dash .pass-card .buddies-avatars,
+  .trek-dash .pass-card .places-preview { display: flex; justify-content: center; align-items: center; }
+  .trek-dash .pass-card .buddy-avatar,
+  .trek-dash .pass-card .buddy-more,
+  .trek-dash .pass-card .place-av,
+  .trek-dash .pass-card .place-more {
+    width: 28px; height: 28px; border-radius: 50%; flex: none;
+    border: 2px solid var(--surface); margin-left: -8px;
+    box-shadow: 0 1px 3px oklch(0 0 0 / .12);
+    font-size: 10px; font-weight: 700; line-height: 0;
+  }
+  .trek-dash .pass-card .buddy-avatar:first-child,
+  .trek-dash .pass-card .place-av:first-child { margin-left: 0; }
+
+  /* Atlas → single row of stat cards. Passport (countries) and distance are
+     hidden on mobile; only Trips total + Days traveled remain. */
+  .trek-dash .atlas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 26px; }
+  .trek-dash .atlas-card.passport,
+  .trek-dash .atlas-card:last-child { display: none; }
+  .trek-dash .atlas .spark { display: none; }
+  .trek-dash .atlas-card .value { font-size: 30px; margin-top: 10px; }
+
+  /* Trips — stacked header + full-width cards */
+  .trek-dash .sec-head { flex-direction: column; align-items: stretch; gap: 14px; margin-bottom: 16px; }
+  .trek-dash .sec-title { font-size: 24px; }
+  .trek-dash .sec-tools { gap: 8px; }
+  .trek-dash .seg { flex: 1; }
+  .trek-dash .seg button { flex: 1; text-align: center; padding: 9px 8px; }
+  .trek-dash .trips { grid-template-columns: 1fr; gap: 16px; margin-bottom: 28px; }
+  .trek-dash .add-trip-card { min-height: 180px; }
+
+  /* Tools — stacked full-width cards (mockup) */
+  .trek-dash .page-sidebar { flex-direction: column; flex-wrap: nowrap; gap: 14px; margin: 0; padding: 0; }
+  .trek-dash .page-sidebar .tool { flex: none; width: auto; }
 }
 
 /* Floating action button — Neuer Trip */
@@ -496,10 +604,6 @@
 .trek-dash .fab-new-trip svg { flex-shrink: 0; }
 
 @media (max-width: 768px) {
-  /* collapse to a round button and lift above the bottom nav */
-  .trek-dash .fab-new-trip {
-    right: 18px; bottom: calc(84px + env(safe-area-inset-bottom, 0px) + 16px);
-    width: 56px; padding: 0; justify-content: center; gap: 0;
-  }
-  .trek-dash .fab-new-trip .fab-label { display: none; }
+  /* The bottom tab bar's centre "+" replaces the floating FAB on mobile */
+  .trek-dash .fab-new-trip { display: none; }
 }
