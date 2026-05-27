@@ -1,19 +1,19 @@
 import type { TranslationStrings } from '../types';
 
 const nav: TranslationStrings = {
-  'nav.trip': 'Gezi',
+  'nav.trip': 'Seyahat',
   'nav.share': 'Paylaş',
   'nav.settings': 'Ayarlar',
-  'nav.admin': 'Yönetim',
+  'nav.admin': 'Yönetici',
   'nav.logout': 'Çıkış yap',
-  'nav.lightMode': 'Açık tema',
-  'nav.darkMode': 'Koyu tema',
-  'nav.autoMode': 'Otomatik tema',
+  'nav.lightMode': 'Açık Tema',
+  'nav.darkMode': 'Koyu Tema',
+  'nav.autoMode': 'Otomatik Tema',
   'nav.administrator': 'Yönetici',
-  'nav.myTrips': 'Gezilerim',
+  'nav.myTrips': 'Seyahatlerim',
   'nav.profile': 'Profil',
   'nav.bottomSettings': 'Ayarlar',
-  'nav.bottomAdmin': 'Yönetim ayarları',
+  'nav.bottomAdmin': 'Yönetici Ayarları',
   'nav.bottomLogout': 'Çıkış',
   'nav.bottomAdminBadge': 'Yönetici',
 };

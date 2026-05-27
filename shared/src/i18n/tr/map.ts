@@ -1,8 +1,8 @@
 import type { TranslationStrings } from '../types';
 
 const map: TranslationStrings = {
-  'map.connections': 'Connections',
-  'map.showConnections': 'Show booking routes',
-  'map.hideConnections': 'Hide booking routes',
+  'map.connections': 'Bağlantılar',
+  'map.showConnections': 'Rezervasyon rotalarını göster',
+  'map.hideConnections': 'Rezervasyon rotalarını gizle',
 };
 export default map;

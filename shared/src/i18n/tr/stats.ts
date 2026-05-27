@@ -1,13 +1,13 @@
 import type { TranslationStrings } from '../types';
 
 const stats: TranslationStrings = {
-  'stats.countries': 'Countries',
-  'stats.cities': 'Cities',
-  'stats.trips': 'Trips',
-  'stats.places': 'Places',
-  'stats.worldProgress': 'World Progress',
-  'stats.visited': 'visited',
-  'stats.remaining': 'remaining',
-  'stats.visitedCountries': 'Visited Countries',
+  'stats.countries': 'Ülkeler',
+  'stats.cities': 'Şehirler',
+  'stats.trips': 'Seyahatler',
+  'stats.places': 'Yerler',
+  'stats.worldProgress': 'Dünya İlerlemesi',
+  'stats.visited': 'ziyaret edildi',
+  'stats.remaining': 'kalan',
+  'stats.visitedCountries': 'Ziyaret Edilen Ülkeler',
 };
 export default stats;

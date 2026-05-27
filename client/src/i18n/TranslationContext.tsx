@@ -34,6 +34,7 @@ const localeLoaders: Record<SupportedLanguageCode, () => Promise<{ default: Tran
   ja:      () => import('@trek/shared/i18n/ja'),
   ko:      () => import('@trek/shared/i18n/ko'),
   uk:      () => import('@trek/shared/i18n/uk'),
+  gr:      () => import('@trek/shared/i18n/gr'),
 }
 
 // Re-export pure helpers that live in shared so downstream consumers can import them

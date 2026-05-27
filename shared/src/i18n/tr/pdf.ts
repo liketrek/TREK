@@ -1,10 +1,10 @@
 import type { TranslationStrings } from '../types';
 
 const pdf: TranslationStrings = {
-  'pdf.travelPlan': 'Travel Plan',
-  'pdf.planned': 'Planned',
-  'pdf.costLabel': 'Cost EUR',
-  'pdf.preview': 'PDF Preview',
-  'pdf.saveAsPdf': 'Save as PDF',
+  'pdf.travelPlan': 'Seyahat Planı',
+  'pdf.planned': 'Planlandı',
+  'pdf.costLabel': 'Maliyet EUR',
+  'pdf.preview': 'PDF Önizleme',
+  'pdf.saveAsPdf': 'PDF olarak Kaydet',
 };
 export default pdf;
