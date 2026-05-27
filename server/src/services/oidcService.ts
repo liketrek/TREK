@@ -57,7 +57,7 @@ const DISCOVERY_TTL = 60 * 60 * 1000; // 1 hour
 // State management – pending OIDC states
 // ---------------------------------------------------------------------------
 
-const pendingStates = new Map<string, { createdAt: number; redirectUri: string; inviteToken?: string }>();
+const pendingStates = new Map<string, { createdAt: number; redirectUri: string; inviteToken?: string; codeVerifier: string }>();
 
 setInterval(() => {
   const now = Date.now();
@@ -66,10 +66,19 @@ setInterval(() => {
   }
 }, STATE_CLEANUP);
 
-export function createState(redirectUri: string, inviteToken?: string): string {
+function base64url(buf: Buffer): string {
+  return buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+// Creates the login state and a matching PKCE pair. The verifier stays server
+// side (in pendingStates); the S256 challenge goes to the provider so PKCE-
+// required setups (e.g. Pocket ID with PKCE = required) work.
+export function createState(redirectUri: string, inviteToken?: string): { state: string; codeChallenge: string } {
   const state = crypto.randomBytes(32).toString('hex');
-  pendingStates.set(state, { createdAt: Date.now(), redirectUri, inviteToken });
-  return state;
+  const codeVerifier = base64url(crypto.randomBytes(32));
+  const codeChallenge = base64url(crypto.createHash('sha256').update(codeVerifier).digest());
+  pendingStates.set(state, { createdAt: Date.now(), redirectUri, inviteToken, codeVerifier });
+  return { state, codeChallenge };
 }
 
 export function consumeState(state: string) {
@@ -204,17 +213,20 @@ export async function exchangeCodeForToken(
   redirectUri: string,
   clientId: string,
   clientSecret: string,
+  codeVerifier?: string,
 ): Promise<OidcTokenResponse & { _ok: boolean; _status: number }> {
+  const body = new URLSearchParams({
+    grant_type: 'authorization_code',
+    code,
+    redirect_uri: redirectUri,
+    client_id: clientId,
+    client_secret: clientSecret,
+  });
+  if (codeVerifier) body.set('code_verifier', codeVerifier);
   const tokenRes = await fetch(doc.token_endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'authorization_code',
-      code,
-      redirect_uri: redirectUri,
-      client_id: clientId,
-      client_secret: clientSecret,
-    }),
+    body,
   });
   const tokenData = (await tokenRes.json()) as OidcTokenResponse;
   return { ...tokenData, _ok: tokenRes.ok, _status: tokenRes.status };

@@ -160,7 +160,7 @@ describe('GET /api/auth/oidc/callback', () => {
     });
 
     // Create a valid state token
-    const state = oidcService.createState('http://localhost:3001/api/auth/oidc/callback');
+    const { state } = oidcService.createState('http://localhost:3001/api/auth/oidc/callback');
 
     const res = await request(app).get(`/api/auth/oidc/callback?code=authcode123&state=${state}`);
 
@@ -178,7 +178,7 @@ describe('GET /api/auth/oidc/callback', () => {
       name: 'New User',
     });
 
-    const state = oidcService.createState('http://localhost:3001/api/auth/oidc/callback');
+    const { state } = oidcService.createState('http://localhost:3001/api/auth/oidc/callback');
 
     const res = await request(app).get(`/api/auth/oidc/callback?code=code999&state=${state}`);
 
@@ -215,7 +215,7 @@ describe('GET /api/auth/oidc/callback', () => {
     mockDiscover.mockResolvedValueOnce(MOCK_DISCOVERY_DOC);
     mockExchangeCode.mockResolvedValueOnce({ _ok: false, _status: 400 });
 
-    const state = oidcService.createState('http://localhost:3001/api/auth/oidc/callback');
+    const { state } = oidcService.createState('http://localhost:3001/api/auth/oidc/callback');
 
     const res = await request(app).get(`/api/auth/oidc/callback?code=badcode&state=${state}`);
 
@@ -227,7 +227,7 @@ describe('GET /api/auth/oidc/callback', () => {
     mockDiscover.mockResolvedValueOnce(MOCK_DISCOVERY_DOC);
     mockExchangeCode.mockResolvedValueOnce({ access_token: 'tok', _ok: true, _status: 200 }); // no id_token
 
-    const state = oidcService.createState('http://localhost:3001/api/auth/oidc/callback');
+    const { state } = oidcService.createState('http://localhost:3001/api/auth/oidc/callback');
 
     const res = await request(app).get(`/api/auth/oidc/callback?code=anycode&state=${state}`);
 
@@ -240,7 +240,7 @@ describe('GET /api/auth/oidc/callback', () => {
     mockExchangeCode.mockResolvedValueOnce({ access_token: 'tok', id_token: 'bad.id.token', _ok: true, _status: 200 });
     mockVerifyIdToken.mockResolvedValueOnce({ ok: false, error: 'signature_or_claim_mismatch: invalid signature' });
 
-    const state = oidcService.createState('http://localhost:3001/api/auth/oidc/callback');
+    const { state } = oidcService.createState('http://localhost:3001/api/auth/oidc/callback');
 
     const res = await request(app).get(`/api/auth/oidc/callback?code=anycode&state=${state}`);
 
@@ -258,7 +258,7 @@ describe('GET /api/auth/oidc/callback', () => {
       name: 'Alice',
     });
 
-    const state = oidcService.createState('http://localhost:3001/api/auth/oidc/callback');
+    const { state } = oidcService.createState('http://localhost:3001/api/auth/oidc/callback');
 
     const res = await request(app).get(`/api/auth/oidc/callback?code=anycode&state=${state}`);
 
@@ -281,7 +281,7 @@ describe('GET /api/auth/oidc/callback', () => {
       name: 'Blocked',
     });
 
-    const state = oidcService.createState('http://localhost:3001/api/auth/oidc/callback');
+    const { state } = oidcService.createState('http://localhost:3001/api/auth/oidc/callback');
 
     const res = await request(app).get(`/api/auth/oidc/callback?code=anycode&state=${state}`);
 

@@ -83,17 +83,20 @@ afterAll(() => {
 // ── createState / consumeState ────────────────────────────────────────────────
 
 describe('createState / consumeState', () => {
-  it('OIDC-SVC-001: createState returns a hex token', () => {
-    const state = createState('https://example.com/callback');
+  it('OIDC-SVC-001: createState returns a hex token + PKCE S256 challenge', () => {
+    const { state, codeChallenge } = createState('https://example.com/callback');
     expect(state).toMatch(/^[0-9a-f]{64}$/);
+    expect(codeChallenge).toMatch(/^[A-Za-z0-9_-]{43}$/); // base64url SHA-256, no padding
   });
 
-  it('OIDC-SVC-002: consumeState returns stored data and deletes state', () => {
-    const state = createState('https://example.com/callback', 'invite-abc');
+  it('OIDC-SVC-002: consumeState returns stored data (incl. verifier) and deletes state', () => {
+    const { state } = createState('https://example.com/callback', 'invite-abc');
     const data = consumeState(state);
     expect(data).not.toBeNull();
     expect(data!.redirectUri).toBe('https://example.com/callback');
     expect(data!.inviteToken).toBe('invite-abc');
+    expect(typeof data!.codeVerifier).toBe('string');
+    expect(data!.codeVerifier.length).toBeGreaterThan(20);
     // State is consumed — second call returns null
     expect(consumeState(state)).toBeNull();
   });
@@ -103,8 +106,8 @@ describe('createState / consumeState', () => {
   });
 
   it('OIDC-SVC-004: two different states do not conflict', () => {
-    const s1 = createState('http://a.example.com');
-    const s2 = createState('http://b.example.com');
+    const { state: s1 } = createState('http://a.example.com');
+    const { state: s2 } = createState('http://b.example.com');
     expect(s1).not.toBe(s2);
     expect(consumeState(s1)!.redirectUri).toBe('http://a.example.com');
     expect(consumeState(s2)!.redirectUri).toBe('http://b.example.com');

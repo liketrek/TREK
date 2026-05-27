@@ -43,7 +43,7 @@ router.get('/login', async (req: Request, res: Response) => {
 
     const redirectUri = `${appUrl.replace(/\/+$/, '')}/api/auth/oidc/callback`;
     const inviteToken = req.query.invite as string | undefined;
-    const state = createState(redirectUri, inviteToken);
+    const { state, codeChallenge } = createState(redirectUri, inviteToken);
 
     const params = new URLSearchParams({
       response_type: 'code',
@@ -51,6 +51,8 @@ router.get('/login', async (req: Request, res: Response) => {
       redirect_uri: redirectUri,
       scope: process.env.OIDC_SCOPE || 'openid email profile',
       state,
+      code_challenge: codeChallenge,
+      code_challenge_method: 'S256',
     });
 
     res.redirect(`${doc.authorization_endpoint}?${params}`);
@@ -92,7 +94,7 @@ router.get('/callback', async (req: Request, res: Response) => {
   try {
     const doc = await discover(config.issuer, config.discoveryUrl);
 
-    const tokenData = await exchangeCodeForToken(doc, code, pending.redirectUri, config.clientId, config.clientSecret);
+    const tokenData = await exchangeCodeForToken(doc, code, pending.redirectUri, config.clientId, config.clientSecret, pending.codeVerifier);
     if (!tokenData._ok || !tokenData.access_token) {
       console.error('[OIDC] Token exchange failed: status', tokenData._status);
       return res.redirect(frontendUrl('/login?oidc_error=token_failed'));
