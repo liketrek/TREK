@@ -135,6 +135,8 @@ const dashboard: TranslationStrings = {
   'dashboard.hero.dayLeft': 'Day left',
   'dashboard.hero.daysLeft': 'Days left',
   'dashboard.hero.lastDay': 'Last day',
+  'dashboard.hero.untilStart': 'Until start',
+  'dashboard.hero.startsIn': 'Trip starts in',
   'dashboard.atlas.countriesVisited': 'Atlas · Countries visited',
   'dashboard.atlas.ofTotal': 'of {total}',
   'dashboard.atlas.tripsTotal': 'Trips total',
@@ -154,5 +156,12 @@ const dashboard: TranslationStrings = {
   'dashboard.tz.empty': 'No other timezones yet — add one with +',
   'dashboard.upcoming.title': 'Upcoming reservations',
   'dashboard.upcoming.empty': 'Nothing booked yet.',
+  'dashboard.aria.toggleView': 'Toggle view',
+  'dashboard.aria.filter': 'Filter',
+  'dashboard.aria.duplicate': 'Duplicate',
+  'dashboard.aria.refreshRates': 'Refresh rates',
+  'dashboard.aria.swapCurrencies': 'Swap currencies',
+  'dashboard.aria.addTimezone': 'Add timezone',
+  'dashboard.aria.removeTimezone': 'Remove {city}',
 };
 export default dashboard;

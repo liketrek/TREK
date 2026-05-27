@@ -11,5 +11,10 @@ const nav: TranslationStrings = {
   'nav.autoMode': 'الوضع التلقائي',
   'nav.administrator': 'المسؤول',
   'nav.myTrips': 'رحلاتي',
+  'nav.profile': 'الملف الشخصي',
+  'nav.bottomSettings': 'الإعدادات',
+  'nav.bottomAdmin': 'إعدادات المسؤول',
+  'nav.bottomLogout': 'تسجيل الخروج',
+  'nav.bottomAdminBadge': 'مسؤول',
 };
 export default nav;

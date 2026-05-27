@@ -122,6 +122,8 @@ const dashboard: TranslationStrings = {
   'dashboard.hero.dayLeft': 'Tag übrig',
   'dashboard.hero.daysLeft': 'Tage übrig',
   'dashboard.hero.lastDay': 'Letzter Tag',
+  'dashboard.hero.untilStart': 'Bis Start',
+  'dashboard.hero.startsIn': 'Reise beginnt in',
   'dashboard.atlas.countriesVisited': 'Atlas · Besuchte Länder',
   'dashboard.atlas.ofTotal': 'von {total}',
   'dashboard.atlas.tripsTotal': 'Reisen gesamt',
@@ -155,5 +157,12 @@ const dashboard: TranslationStrings = {
   'dashboard.confirm.copy.wont3': 'Dateien & Fotos',
   'dashboard.confirm.copy.wont4': 'Freigabe-Tokens',
   'dashboard.confirm.copy.confirm': 'Reise kopieren',
+  'dashboard.aria.toggleView': 'Ansicht wechseln',
+  'dashboard.aria.filter': 'Filter',
+  'dashboard.aria.duplicate': 'Duplizieren',
+  'dashboard.aria.refreshRates': 'Kurse aktualisieren',
+  'dashboard.aria.swapCurrencies': 'Währungen tauschen',
+  'dashboard.aria.addTimezone': 'Zeitzone hinzufügen',
+  'dashboard.aria.removeTimezone': '{city} entfernen',
 };
 export default dashboard;
