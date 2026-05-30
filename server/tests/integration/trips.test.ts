@@ -488,6 +488,32 @@ describe('Update trip', () => {
     const all = testDb.prepare('SELECT * FROM day_assignments WHERE id IN (?, ?)').all(a4.id, a5.id) as { id: number }[];
     expect(all).toHaveLength(0);
   });
+
+  it('TRIP-028 — dateless(7) updated to dated(2) reports day_count=2 and removes stale placeholders', async () => {
+    const { user } = createUser(testDb);
+
+    const createRes = await request(app)
+      .post('/api/trips')
+      .set('Cookie', authCookie(user.id))
+      .send({ title: 'Open-ended', day_count: 7 });
+
+    expect(createRes.status).toBe(201);
+    expect(createRes.body.trip.day_count).toBe(7);
+
+    const tripId = createRes.body.trip.id;
+
+    const updateRes = await request(app)
+      .put(`/api/trips/${tripId}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ start_date: '2026-10-01', end_date: '2026-10-02' });
+
+    expect(updateRes.status).toBe(200);
+    expect(updateRes.body.trip.day_count).toBe(2);
+
+    const daysAfter = testDb.prepare('SELECT * FROM days WHERE trip_id = ? ORDER BY day_number').all(tripId) as { date: string | null }[];
+    expect(daysAfter).toHaveLength(2);
+    expect(daysAfter.map(d => d.date)).toEqual(['2026-10-01', '2026-10-02']);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -125,13 +125,42 @@ export function generateDays(tripId: number | bigint | string, startDate: string
     del.run(dated[i].id);
   }
 
-  // Any remaining unused dateless days: keep as dateless, just renumber.
-  // Base must be max(targetDates.length, dated.length) to avoid colliding with
-  // positives already assigned by the main loop or the overflow loop above.
-  const maxAssigned = Math.max(targetDates.length, dated.length);
-  for (let i = datelessIdx; i < dateless.length; i++) {
-    setDayNumber.run(maxAssigned + (i - datelessIdx) + 1, dateless[i].id);
+  // Any remaining unused dateless days are stale once explicit dates are set.
+  // To avoid destroying user-entered data, only delete unused dateless days that
+  // are empty (no assignments, notes, or accommodations). Keep non-empty ones.
+  const unusedDatelessIds = dateless.slice(datelessIdx).map(d => d.id);
+  const idsPlaceholders = unusedDatelessIds.map(() => '?').join(', ');
+
+  const datelessWithContent = new Set<number>();
+  if (unusedDatelessIds.length > 0) {
+    const contentRows = db.prepare(
+      `SELECT DISTINCT day_id as id FROM day_assignments WHERE day_id IN (${idsPlaceholders})
+       UNION
+       SELECT DISTINCT day_id as id FROM day_notes WHERE day_id IN (${idsPlaceholders})
+       UNION
+       SELECT DISTINCT start_day_id as id FROM day_accommodations WHERE start_day_id IN (${idsPlaceholders})
+       UNION
+       SELECT DISTINCT end_day_id as id FROM day_accommodations WHERE end_day_id IN (${idsPlaceholders})`
+    ).all(...unusedDatelessIds, ...unusedDatelessIds, ...unusedDatelessIds, ...unusedDatelessIds) as { id: number }[];
+
+    contentRows.forEach(r => datelessWithContent.add(r.id));
   }
+
+  const keptDateless: { id: number }[] = [];
+  for (let i = datelessIdx; i < dateless.length; i++) {
+    const dayId = dateless[i].id;
+    const hasContent = datelessWithContent.has(dayId);
+    if (hasContent) {
+      keptDateless.push({ id: dayId });
+    } else {
+      del.run(dayId);
+    }
+  }
+
+  // Renumber retained dateless days after dated range, if any remain.
+  // Base must be max(targetDates.length, dated.length) to avoid collisions.
+  const maxAssigned = Math.max(targetDates.length, dated.length);
+  keptDateless.forEach((d, i) => setDayNumber.run(maxAssigned + i + 1, d.id));
 
   // Final renumber to compact and eliminate any gaps/negatives
   const remaining = db.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number').all(tripId) as { id: number }[];

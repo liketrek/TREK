@@ -208,7 +208,7 @@ describe('generateDays', () => {
     // Main loop: dated[0..2] → positions 1-3, dateless[0] → position 4 (consumed).
     // Unused dateless: dateless[1] should land at position 5, NOT 4 (collision bug).
     const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { start_date: '2025-11-01', end_date: '2025-11-03' });
+    const trip = createTrip(testDb, user.id, { start_date: '2025-01-01', end_date: '2025-01-03' });
 
     // Insert 2 dateless days directly
     const daysBefore = getDays(trip.id);
@@ -224,7 +224,7 @@ describe('generateDays', () => {
 
     // Grow from 3 to 4 dated days — consumes dateless[0], leaves dateless[1] unused
     // This is the scenario that triggered the UNIQUE collision bug
-    generateDays(trip.id, '2025-11-01', '2025-11-04');
+    generateDays(trip.id, '2025-01-01', '2025-01-04');
 
     const daysAfter = getDays(trip.id);
     expect(daysAfter).toHaveLength(5);
@@ -241,6 +241,66 @@ describe('generateDays', () => {
     // All day_numbers are unique 1..5
     const nums = daysAfter.map(d => d.day_number).sort((a, b) => a - b);
     expect(nums).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it('TRIP-SVC-017: dateless(7) -> dated(2) removes stale empty dateless placeholders', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Open-ended' });
+    const insert = testDb.prepare('INSERT INTO days (trip_id, day_number, date) VALUES (?, ?, NULL)');
+    for (let i = 1; i <= 7; i++) insert.run(trip.id, i);
+    expect(getDays(trip.id)).toHaveLength(7);
+
+    generateDays(trip.id, '2025-12-01', '2025-12-02');
+
+    const daysAfter = getDays(trip.id);
+    expect(daysAfter).toHaveLength(2);
+    expect(daysAfter.map(d => d.date)).toEqual(['2025-12-01', '2025-12-02']);
+  });
+
+  it('TRIP-SVC-018: dated -> dateless(day_count=X) trims trailing empty days to requested count', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { start_date: '2025-12-01', end_date: '2025-12-05' });
+    expect(getDays(trip.id)).toHaveLength(5);
+
+    // Clear dates and explicitly reduce to 3 dateless days.
+    generateDays(trip.id, null, null, undefined, 3);
+
+    const daysAfter = getDays(trip.id);
+    expect(daysAfter).toHaveLength(3);
+    expect(daysAfter.every(d => d.date === null)).toBe(true);
+  });
+
+  it('TRIP-SVC-019: unused non-empty dateless day is retained and renumbered for dated trips', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { start_date: '2026-01-01', end_date: '2026-01-03' });
+
+    // Add two dateless days after the dated range.
+    testDb.prepare('INSERT INTO days (trip_id, day_number, date) VALUES (?, ?, NULL)').run(trip.id, 4);
+    testDb.prepare('INSERT INTO days (trip_id, day_number, date) VALUES (?, ?, NULL)').run(trip.id, 5);
+
+    const allDays = getDays(trip.id);
+    const datelessDay4 = allDays.find(d => d.day_number === 4)!;
+    const datelessDay5 = allDays.find(d => d.day_number === 5)!;
+
+    // Make day 5 non-empty so it must be kept if unused.
+    createDayNote(testDb, datelessDay5.id, trip.id, { text: 'keep me' });
+
+    // Grow to 4 dated days: day 4 gets consumed and dated, day 5 remains unused dateless.
+    generateDays(trip.id, '2026-01-01', '2026-01-04');
+
+    const daysAfter = getDays(trip.id);
+    expect(daysAfter).toHaveLength(5);
+
+    const remainingDay4 = daysAfter.find(d => d.id === datelessDay4.id)!;
+    const remainingDay5 = daysAfter.find(d => d.id === datelessDay5.id)!;
+
+    // Consumed dateless day became dated day 4.
+    expect(remainingDay4.date).toBe('2026-01-04');
+
+    // Unused non-empty dateless day is retained and renumbered after dated range.
+    expect(remainingDay5.date).toBeNull();
+    expect(remainingDay5.day_number).toBe(5);
+    expect(getNotes(remainingDay5.id)).toHaveLength(1);
   });
 });
 
