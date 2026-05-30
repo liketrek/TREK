@@ -1,64 +1,31 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React from 'react'
 import ReactDOM from 'react-dom'
 import { useTranslation } from '../i18n'
-import { useVacayStore } from '../store/vacayStore'
-import { addListener, removeListener } from '../api/websocket'
-import Navbar from '../components/Layout/Navbar'
+import PageShell from '../components/Layout/PageShell'
 import VacayCalendar from '../components/Vacay/VacayCalendar'
 import VacayPersons from '../components/Vacay/VacayPersons'
 import VacayStats from '../components/Vacay/VacayStats'
 import VacaySettings from '../components/Vacay/VacaySettings'
 import { Plus, Minus, ChevronLeft, ChevronRight, Settings, CalendarDays, AlertTriangle, Users, Eye, Pencil, Trash2, Unlink, ShieldCheck, SlidersHorizontal } from 'lucide-react'
 import Modal from '../components/shared/Modal'
+import { useVacay } from './vacay/useVacay'
 
 export default function VacayPage(): React.ReactElement {
   const { t } = useTranslation()
-  const { years, selectedYear, setSelectedYear, addYear, removeYear, loadAll, loadPlan, loadEntries, loadStats, loadHolidays, loading, incomingInvites, acceptInvite, declineInvite, plan } = useVacayStore()
-  const [showSettings, setShowSettings] = useState<boolean>(false)
-  const [deleteYear, setDeleteYear] = useState<number | null>(null)
-  const [showMobileSidebar, setShowMobileSidebar] = useState<boolean>(false)
-
-  useEffect(() => { loadAll() }, [])
-
-  // Live sync via WebSocket
-  const handleWsMessage = useCallback((msg: { type: string }) => {
-    if (msg.type === 'vacay:update' || msg.type === 'vacay:settings') {
-      loadPlan()
-      loadEntries(selectedYear)
-      loadStats(selectedYear)
-      if (msg.type === 'vacay:settings') loadAll()
-    }
-    if (msg.type === 'vacay:invite' || msg.type === 'vacay:accepted' || msg.type === 'vacay:declined' || msg.type === 'vacay:cancelled' || msg.type === 'vacay:dissolved') {
-      loadAll()
-    }
-  }, [selectedYear])
-
-  useEffect(() => {
-    addListener(handleWsMessage)
-    return () => removeListener(handleWsMessage)
-  }, [handleWsMessage])
-  useEffect(() => {
-    if (selectedYear) { loadEntries(selectedYear); loadStats(selectedYear); loadHolidays(selectedYear) }
-  }, [selectedYear])
-
-  const handleAddNextYear = () => {
-    const nextYear = years.length > 0 ? Math.max(...years) + 1 : new Date().getFullYear()
-    addYear(nextYear)
-  }
-
-  const handleAddPrevYear = () => {
-    const prevYear = years.length > 0 ? Math.min(...years) - 1 : new Date().getFullYear()
-    addYear(prevYear)
-  }
+  // Page = wiring container: vacay store, live sync + UI state live in the hook.
+  const {
+    years, selectedYear, setSelectedYear, removeYear, loading,
+    incomingInvites, acceptInvite, declineInvite, plan,
+    showSettings, setShowSettings, deleteYear, setDeleteYear,
+    showMobileSidebar, setShowMobileSidebar,
+    handleAddNextYear, handleAddPrevYear,
+  } = useVacay()
 
   if (loading) {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
-        <Navbar />
-        <div className="flex items-center justify-center" style={{ paddingTop: 'var(--nav-h)', minHeight: 'calc(100vh - var(--nav-h))' }}>
-          <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--border-primary)', borderTopColor: 'var(--text-primary)' }} />
-        </div>
-      </div>
+      <PageShell background="var(--bg-primary)" contentClassName="flex items-center justify-center" contentStyle={{ minHeight: 'calc(100vh - var(--nav-h))' }}>
+        <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--border-primary)', borderTopColor: 'var(--text-primary)' }} />
+      </PageShell>
     )
   }
 
@@ -133,10 +100,7 @@ export default function VacayPage(): React.ReactElement {
   )
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
-      <Navbar />
-
-      <div style={{ paddingTop: 'var(--nav-h)' }}>
+    <PageShell background="var(--bg-primary)">
         <div className="max-w-[1800px] mx-auto px-3 sm:px-4 py-4 sm:py-6">
           {/* Mobile + tablet header (filter toggle lives here) */}
           <div className="lg:hidden flex items-center justify-between mb-4">
@@ -213,7 +177,6 @@ export default function VacayPage(): React.ReactElement {
             </div>
           </div>
         </div>
-      </div>
 
       {/* Mobile Sidebar Drawer */}
       {showMobileSidebar && ReactDOM.createPortal(
@@ -307,7 +270,7 @@ export default function VacayPage(): React.ReactElement {
           to { transform: translateX(0); }
         }
       `}</style>
-    </div>
+    </PageShell>
   )
 }
 

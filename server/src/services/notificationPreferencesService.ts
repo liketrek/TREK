@@ -1,3 +1,4 @@
+import type Database from 'better-sqlite3';
 import { db } from '../db/database';
 import { decrypt_api_key } from './apiKeyCrypto';
 
@@ -187,8 +188,8 @@ function setAdminGlobalPref(event: NotifEventType, channel: 'email' | 'webhook' 
 function applyUserChannelPrefs(
   userId: number,
   prefs: Partial<Record<string, Partial<Record<string, boolean>>>>,
-  upsert: ReturnType<typeof db.prepare>,
-  del: ReturnType<typeof db.prepare>
+  upsert: Database.Statement<unknown[]>,
+  del: Database.Statement<unknown[]>
 ): void {
   for (const [eventType, channels] of Object.entries(prefs)) {
     if (!channels) continue;

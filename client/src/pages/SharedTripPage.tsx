@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useEffect } from 'react'
 import { MapContainer, TileLayer, Marker, Tooltip, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { useTranslation, SUPPORTED_LANGUAGES } from '../i18n'
 import { useSettingsStore } from '../store/settingsStore'
 import { getLocaleForLanguage } from '../i18n'
-import { shareApi } from '../api/client'
+import { useSharedTrip } from './sharedTrip/useSharedTrip'
 import { getCategoryIcon } from '../components/shared/categoryIcons'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -40,18 +39,9 @@ function FitBoundsToPlaces({ places }: { places: any[] }) {
 }
 
 export default function SharedTripPage() {
-  const { token } = useParams<{ token: string }>()
   const { t, locale } = useTranslation()
-  const [data, setData] = useState<any>(null)
-  const [error, setError] = useState(false)
-  const [selectedDay, setSelectedDay] = useState<number | null>(null)
-  const [activeTab, setActiveTab] = useState('plan')
-  const [showLangPicker, setShowLangPicker] = useState(false)
-
-  useEffect(() => {
-    if (!token) return
-    shareApi.getSharedTrip(token).then(setData).catch(() => setError(true))
-  }, [token])
+  // Page = wiring container: share fetch + view state live in the hook.
+  const { data, error, selectedDay, setSelectedDay, activeTab, setActiveTab, showLangPicker, setShowLangPicker } = useSharedTrip()
 
   if (error) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f3f4f6' }}>

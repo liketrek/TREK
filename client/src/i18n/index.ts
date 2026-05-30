@@ -7,3 +7,4 @@ export {
   detectBrowserLanguage,
   SUPPORTED_LANGUAGES,
 } from './TranslationContext'
+export { TransHtml } from './TransHtml'

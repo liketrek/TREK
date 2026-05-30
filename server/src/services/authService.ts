@@ -494,13 +494,15 @@ export function loginUser(body: {
 // Session
 // ---------------------------------------------------------------------------
 
-export function getCurrentUser(userId: number) {
+export function getCurrentUser(
+  userId: number
+): (Record<string, unknown> & Pick<User, 'id' | 'username' | 'email' | 'role'> & { avatar_url: string }) | null {
   const user = db.prepare(
     'SELECT id, username, email, role, avatar, oidc_issuer, created_at, mfa_enabled, must_change_password FROM users WHERE id = ?'
   ).get(userId) as User | undefined;
   if (!user) return null;
   const base = stripUserForClient(user as User) as Record<string, unknown>;
-  return { ...base, avatar_url: avatarUrl(user) };
+  return { ...base, id: user.id, username: user.username, email: user.email, role: user.role, avatar_url: avatarUrl(user) };
 }
 
 // ---------------------------------------------------------------------------

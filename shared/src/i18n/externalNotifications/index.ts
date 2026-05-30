@@ -5,6 +5,7 @@ import de from '../de/externalNotifications';
 import en from '../en/externalNotifications';
 import es from '../es/externalNotifications';
 import fr from '../fr/externalNotifications';
+import gr from '../gr/externalNotifications';
 import hu from '../hu/externalNotifications';
 import id from '../id/externalNotifications';
 import it from '../it/externalNotifications';
@@ -47,6 +48,7 @@ const LOCALES = {
   ja,
   ko,
   uk,
+  gr,
 } satisfies Record<string, NotificationLocale>;
 
 export const EMAIL_I18N: Record<string, EmailStrings> = Object.fromEntries(

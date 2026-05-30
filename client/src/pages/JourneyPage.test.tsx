@@ -194,6 +194,40 @@ describe('JourneyPage', () => {
     });
   });
 
+  // FE-PAGE-JOURNEY-007b — XSS regression: the suggestion banner interpolates
+  // a user-controlled trip title into an HTML template that is later passed to
+  // dangerouslySetInnerHTML. The sanitiser in @trek/shared must drop any script
+  // payload, otherwise renaming a trip is a one-click XSS for anyone visiting
+  // the Journey page.
+  it('FE-PAGE-JOURNEY-007b: sanitises script payloads in suggestion title', async () => {
+    const malicious = {
+      id: 1337,
+      title: '<img src=x onerror=alert(1)><script>window.__pwned=true</script>',
+      start_date: '2026-03-01',
+      end_date: '2026-04-01',
+      place_count: 3,
+    };
+    server.use(
+      http.get('/api/journeys', () =>
+        HttpResponse.json({ journeys: [] })
+      ),
+      http.get('/api/journeys/suggestions', () =>
+        HttpResponse.json({ trips: [malicious] })
+      ),
+    );
+
+    render(<JourneyPage />);
+    await waitFor(() => {
+      expect(screen.getByText(/Trip just ended/i)).toBeInTheDocument();
+    });
+
+    // The script tag must not survive the sanitiser anywhere in the rendered DOM.
+    expect(document.querySelector('script')).toBeNull();
+    expect(document.querySelector('img[onerror]')).toBeNull();
+    // And the side effect would only fire if onerror executed.
+    expect((window as unknown as { __pwned?: boolean }).__pwned).toBeUndefined();
+  });
+
   // FE-PAGE-JOURNEY-008
   it('FE-PAGE-JOURNEY-008: shows active journey hero when active journey exists', async () => {
     const active = buildJourneyListItem({ id: 10, title: 'Active Trip', status: 'active', trip_date_min: '2020-01-01', trip_date_max: '2099-12-31' });

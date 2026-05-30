@@ -1,10 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { tripsApi, authApi, reservationsApi } from '../api/client'
-import { tripRepo } from '../repo/tripRepo'
-import { useAuthStore } from '../store/authStore'
 import { useTranslation } from '../i18n'
-import { getApiErrorMessage } from '../types'
 import Navbar from '../components/Layout/Navbar'
 import DemoBanner from '../components/Layout/DemoBanner'
 import TripFormModal from '../components/Trips/TripFormModal'
@@ -13,65 +8,17 @@ import CopyTripDialog from '../components/shared/CopyTripDialog'
 import CustomSelect from '../components/shared/CustomSelect'
 import PlaceAvatar from '../components/shared/PlaceAvatar'
 import MobileTopBar from '../components/Layout/MobileTopBar'
-import { useToast } from '../components/shared/Toast'
+import { useDashboard } from './dashboard/useDashboard'
+import {
+  type DashboardTrip, type HeroBundle, type TravelStats, type UpcomingReservation,
+  MS_PER_DAY, daysUntil, getTripStatus,
+} from './dashboard/dashboardModel'
 import {
   Plus, Edit2, Trash2, Archive, Copy, ArrowRight, MapPin,
   Plane, Hotel, Utensils, Clock, RefreshCw, ArrowRightLeft, Calendar,
   LayoutGrid, List, SlidersHorizontal, Ticket, X,
 } from 'lucide-react'
 import '../styles/dashboard.css'
-
-interface DashboardTrip {
-  id: number
-  title: string
-  description?: string | null
-  start_date?: string | null
-  end_date?: string | null
-  cover_image?: string | null
-  is_archived?: boolean
-  is_owner?: boolean
-  owner_username?: string
-  day_count?: number
-  place_count?: number
-  shared_count?: number
-  [key: string]: string | number | boolean | null | undefined
-}
-
-const MS_PER_DAY = 86400000
-
-function daysUntil(dateStr: string | null | undefined): number | null {
-  if (!dateStr) return null
-  const today = new Date(); today.setHours(0, 0, 0, 0)
-  const d = new Date(dateStr + 'T00:00:00'); d.setHours(0, 0, 0, 0)
-  return Math.round((d.getTime() - today.getTime()) / MS_PER_DAY)
-}
-
-function getTripStatus(trip: DashboardTrip): 'ongoing' | 'today' | 'tomorrow' | 'future' | 'past' | null {
-  const today = new Date().toISOString().split('T')[0]
-  if (trip.start_date && trip.end_date && trip.start_date <= today && trip.end_date >= today) return 'ongoing'
-  const until = daysUntil(trip.start_date)
-  if (until === null) return null
-  if (until === 0) return 'today'
-  if (until === 1) return 'tomorrow'
-  if (until > 1) return 'future'
-  return 'past'
-}
-
-function sortTrips(trips: DashboardTrip[]): DashboardTrip[] {
-  const today = new Date().toISOString().split('T')[0]
-  const rank = (t: DashboardTrip) => {
-    if (t.start_date && t.end_date && t.start_date <= today && t.end_date >= today) return 0
-    if (t.start_date && t.start_date >= today) return 1
-    return 2
-  }
-  return [...trips].sort((a, b) => {
-    const ra = rank(a), rb = rank(b)
-    if (ra !== rb) return ra - rb
-    const ad = a.start_date || '', bd = b.start_date || ''
-    if (ra <= 1) return ad.localeCompare(bd)
-    return bd.localeCompare(ad)
-  })
-}
 
 const GRADIENTS = [
   'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -111,20 +58,6 @@ function initials(name: string | null | undefined): string {
   return name.slice(0, 2).toUpperCase()
 }
 
-interface Member { id: number; username: string; avatar_url?: string | null }
-interface Place {
-  id: number; name: string; image_url: string | null; lat: number | null; lng: number | null
-  google_place_id: string | null; osm_id: string | null
-  category_color?: string | null; category_icon?: string | null
-}
-interface HeroBundle { members: Member[]; places: Place[] }
-interface TravelStats { totalTrips?: number; totalDays?: number; totalPlaces?: number; totalDistanceKm?: number; countries?: string[] }
-interface UpcomingReservation {
-  id: number; trip_id: number; title: string; type: string
-  reservation_time?: string | null; day_date?: string | null
-  location?: string | null; place_name?: string | null; trip_title?: string | null
-}
-
 const RES_ICON: Record<string, React.ReactElement> = {
   flight: <Plane size={16} />, hotel: <Hotel size={16} />, restaurant: <Utensils size={16} />,
 }
@@ -143,157 +76,24 @@ function useIsMobile(): boolean {
 }
 
 export default function DashboardPage(): React.ReactElement {
-  const [trips, setTrips] = useState<DashboardTrip[]>([])
-  const [archivedTrips, setArchivedTrips] = useState<DashboardTrip[]>([])
-  const [isLoading, setIsLoading] = useState<boolean>(true)
-  const [showForm, setShowForm] = useState<boolean>(false)
-  const [editingTrip, setEditingTrip] = useState<DashboardTrip | null>(null)
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => (localStorage.getItem('trek_dashboard_view') as 'grid' | 'list') || 'grid')
-  const [deleteTrip, setDeleteTrip] = useState<DashboardTrip | null>(null)
-  const [copyTrip, setCopyTrip] = useState<DashboardTrip | null>(null)
-  const [tripFilter, setTripFilter] = useState<'planned' | 'archive' | 'completed'>('planned')
-
-  const [stats, setStats] = useState<TravelStats | null>(null)
-  const [upcoming, setUpcoming] = useState<UpcomingReservation[]>([])
-  const [heroBundle, setHeroBundle] = useState<HeroBundle | null>(null)
-
-  const navigate = useNavigate()
-  const [searchParams, setSearchParams] = useSearchParams()
-  const toast = useToast()
-  const { t, locale } = useTranslation()
-  const { demoMode } = useAuthStore()
-
-  const toggleViewMode = () => {
-    setViewMode(prev => {
-      const next = prev === 'grid' ? 'list' : 'grid'
-      localStorage.setItem('trek_dashboard_view', next)
-      return next
-    })
-  }
-
-  useEffect(() => {
-    if (searchParams.get('create') === '1') {
-      setShowForm(true)
-      setSearchParams({}, { replace: true })
-    }
-  }, [searchParams])
-
-  useEffect(() => { loadTrips() }, [])
-
-  // Travel stats + upcoming reservations power the atlas row and the sidebar.
-  // Both are best-effort: a failure just leaves that section empty.
-  useEffect(() => {
-    authApi.travelStats().then(setStats).catch(() => {})
-    reservationsApi.upcoming().then((r: { reservations: UpcomingReservation[] }) => setUpcoming(r.reservations || [])).catch(() => {})
-  }, [])
-
-  const loadTrips = async () => {
-    setIsLoading(true)
-    try {
-      const { trips, archivedTrips } = await tripRepo.list()
-      setTrips(sortTrips(trips))
-      setArchivedTrips(sortTrips(archivedTrips))
-    } catch {
-      toast.error(t('dashboard.toast.loadError'))
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const today = new Date().toISOString().split('T')[0]
-  const spotlight = trips.find(t => t.start_date && t.end_date && t.start_date <= today && t.end_date >= today)
-    || trips.find(t => t.start_date && t.start_date >= today)
-    || trips[0]
-    || null
-  const rest = spotlight ? trips.filter(t => t.id !== spotlight.id) : trips
-
-  // Pull the spotlight trip's members + places so the boarding pass can show
-  // real buddies and place thumbnails instead of placeholders.
-  useEffect(() => {
-    if (!spotlight) { setHeroBundle(null); return }
-    let cancelled = false
-    tripsApi.bundle(spotlight.id)
-      .then((b: HeroBundle) => { if (!cancelled) setHeroBundle({ members: b.members || [], places: b.places || [] }) })
-      .catch(() => { if (!cancelled) setHeroBundle(null) })
-    return () => { cancelled = true }
-  }, [spotlight?.id])
-
-  const handleCreate = async (tripData: Record<string, unknown>) => {
-    try {
-      const data = await tripsApi.create(tripData)
-      setTrips(prev => sortTrips([data.trip, ...prev]))
-      toast.success(t('dashboard.toast.created'))
-      return data
-    } catch (err: unknown) {
-      throw new Error(getApiErrorMessage(err, t('dashboard.toast.createError')))
-    }
-  }
-
-  const handleUpdate = async (tripData: Record<string, unknown>) => {
-    if (!editingTrip) return
-    try {
-      const data = await tripsApi.update(editingTrip.id, tripData)
-      setTrips(prev => sortTrips(prev.map(t => t.id === editingTrip.id ? data.trip : t)))
-      toast.success(t('dashboard.toast.updated'))
-    } catch (err: unknown) {
-      throw new Error(getApiErrorMessage(err, t('dashboard.toast.updateError')))
-    }
-  }
-
-  const confirmDelete = async () => {
-    if (!deleteTrip) return
-    try {
-      await tripsApi.delete(deleteTrip.id)
-      setTrips(prev => prev.filter(t => t.id !== deleteTrip.id))
-      setArchivedTrips(prev => prev.filter(t => t.id !== deleteTrip.id))
-      toast.success(t('dashboard.toast.deleted'))
-    } catch {
-      toast.error(t('dashboard.toast.deleteError'))
-    }
-    setDeleteTrip(null)
-  }
-
-  const handleArchive = async (id: number) => {
-    try {
-      const data = await tripsApi.archive(id)
-      setTrips(prev => prev.filter(t => t.id !== id))
-      setArchivedTrips(prev => sortTrips([data.trip, ...prev]))
-      toast.success(t('dashboard.toast.archived'))
-    } catch {
-      toast.error(t('dashboard.toast.archiveError'))
-    }
-  }
-
-  const handleUnarchive = async (id: number) => {
-    try {
-      const data = await tripsApi.unarchive(id)
-      setArchivedTrips(prev => prev.filter(t => t.id !== id))
-      setTrips(prev => sortTrips([data.trip, ...prev]))
-      toast.success(t('dashboard.toast.restored'))
-    } catch {
-      toast.error(t('dashboard.toast.restoreError'))
-    }
-  }
-
-  const confirmCopy = async () => {
-    if (!copyTrip) return
-    try {
-      const data = await tripsApi.copy(copyTrip.id, { title: `${copyTrip.title} (${t('dashboard.copySuffix')})` })
-      setTrips(prev => sortTrips([data.trip, ...prev]))
-      toast.success(t('dashboard.toast.copied'))
-    } catch {
-      toast.error(t('dashboard.toast.copyError'))
-    }
-    setCopyTrip(null)
-  }
-
-  const gridTrips = tripFilter === 'archive' ? archivedTrips
-    : tripFilter === 'completed' ? rest.filter(t => getTripStatus(t) === 'past')
-    : rest.filter(t => getTripStatus(t) !== 'past')
+  // Page = wiring container: all state, data loading and mutations live in the
+  // useDashboard data hook; this component only renders what it returns.
+  const {
+    demoMode, locale, t, navigate,
+    spotlight, heroBundle, stats, upcoming, gridTrips, isLoading,
+    tripFilter, setTripFilter, viewMode, toggleViewMode,
+    showForm, setShowForm, editingTrip, setEditingTrip,
+    deleteTrip, setDeleteTrip, copyTrip, setCopyTrip, setTrips,
+    handleCreate, handleUpdate, confirmDelete, handleArchive, handleUnarchive, confirmCopy,
+  } = useDashboard()
 
   return (
-    <div className="trek-dash trek-dash-shell">
+    <>
+      {/* Navbar lives outside .trek-dash so it keeps the app-wide font + button
+          styling instead of inheriting the dashboard scope's Geist font and the
+          `.trek-dash button` reset (which shifted the bell icon + menu items). */}
       <Navbar />
+      <div className="trek-dash trek-dash-shell">
       {demoMode && <DemoBanner />}
       <div className="trek-dash-scroll">
         <MobileTopBar />
@@ -404,7 +204,8 @@ export default function DashboardPage(): React.ReactElement {
           onClose={() => setCopyTrip(null)}
         />
       )}
-    </div>
+      </div>
+    </>
   )
 }
 

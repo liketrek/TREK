@@ -1,53 +1,23 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React from 'react'
 import { Bell, CheckCheck, Trash2 } from 'lucide-react'
 import { useTranslation } from '../i18n'
-import { useInAppNotificationStore } from '../store/inAppNotificationStore.ts'
-import { useSettingsStore } from '../store/settingsStore'
-import Navbar from '../components/Layout/Navbar'
+import PageShell from '../components/Layout/PageShell'
+import { Spinner } from '../components/shared/Spinner'
 import InAppNotificationItem from '../components/Notifications/InAppNotificationItem.tsx'
+import { useInAppNotifications } from './inAppNotifications/useInAppNotifications'
 
 export default function InAppNotificationsPage(): React.ReactElement {
   const { t } = useTranslation()
-  const { settings } = useSettingsStore()
-  const darkMode = settings.dark_mode
-  const dark = darkMode === true || darkMode === 'dark' || (darkMode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)
-
-  const { notifications, unreadCount, total, isLoading, hasMore, fetchNotifications, markAllRead, deleteAll } = useInAppNotificationStore()
-  const [unreadOnly, setUnreadOnly] = useState(false)
-  const loaderRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    fetchNotifications(true)
-  }, [])
-
-  // Reload when filter changes
-  useEffect(() => {
-    // We need to fetch with the unreadOnly filter — re-fetch from scratch
-    // The store fetchNotifications doesn't take a filter param directly,
-    // so we use the API directly for filtered view via a side channel.
-    // For now, reset and fetch — store always loads all, filter is client-side.
-    fetchNotifications(true)
-  }, [unreadOnly])
-
-  // Infinite scroll
-  useEffect(() => {
-    if (!loaderRef.current) return
-    const observer = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore && !isLoading) {
-        fetchNotifications(false)
-      }
-    }, { threshold: 0.1 })
-    observer.observe(loaderRef.current)
-    return () => observer.disconnect()
-  }, [hasMore, isLoading])
-
-  const displayed = unreadOnly ? notifications.filter(n => !n.is_read) : notifications
+  // Page = wiring container: store, filter, fetch + infinite scroll live in the hook.
+  const {
+    notifications, unreadCount, total, isLoading, hasMore,
+    unreadOnly, setUnreadOnly, loaderRef, displayed,
+    markAllRead, deleteAll,
+  } = useInAppNotifications()
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
-      <Navbar />
-      <div style={{ paddingTop: 'var(--nav-h)' }}>
-        <div className="max-w-2xl mx-auto px-4 py-8">
+    <PageShell background="var(--bg-primary)">
+      <div className="max-w-2xl mx-auto px-4 py-8">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -122,7 +92,7 @@ export default function InAppNotificationsPage(): React.ReactElement {
           >
             {isLoading && displayed.length === 0 ? (
               <div className="flex items-center justify-center py-16">
-                <div className="w-6 h-6 border-2 border-slate-200 border-t-current rounded-full animate-spin" />
+                <Spinner className="w-6 h-6 border-2 border-slate-200 border-t-current" />
               </div>
             ) : displayed.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 px-4 text-center gap-3">
@@ -139,12 +109,11 @@ export default function InAppNotificationsPage(): React.ReactElement {
             {/* Infinite scroll trigger */}
             {hasMore && (
               <div ref={loaderRef} className="flex items-center justify-center py-4">
-                {isLoading && <div className="w-5 h-5 border-2 border-slate-200 border-t-current rounded-full animate-spin" />}
+                {isLoading && <Spinner className="w-5 h-5 border-2 border-slate-200 border-t-current" />}
               </div>
             )}
           </div>
         </div>
-      </div>
-    </div>
+    </PageShell>
   )
 }

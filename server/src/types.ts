@@ -125,6 +125,7 @@ export interface BudgetItem {
   persons?: number | null;
   days?: number | null;
   note?: string | null;
+  reservation_id?: number | null;
   sort_order: number;
   created_at?: string;
   members?: BudgetItemMember[];
@@ -284,12 +285,12 @@ export interface Setting {
 }
 
 export interface AuthRequest extends Request {
-  user: { id: number; username: string; email: string; role: string };
+  user: User;
   trip?: { id: number; user_id: number };
 }
 
 export interface OptionalAuthRequest extends Request {
-  user: { id: number; username: string; email: string; role: string } | null;
+  user: User | null;
 }
 
 export interface AssignmentRow extends DayAssignment {
@@ -352,6 +353,7 @@ export interface JourneyEntry {
   mood?: string | null;
   weather?: string | null;
   tags?: string | null;
+  pros_cons?: string | null;
   visibility: 'private' | 'shared' | 'public';
   sort_order: number;
   created_at: number;

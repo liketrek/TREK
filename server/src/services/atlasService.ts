@@ -12,7 +12,7 @@ async function loadAdmin1Geo(): Promise<any> {
   admin1GeoLoading = fetch(
     'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_1_states_provinces.geojson',
     { headers: { 'User-Agent': 'TREK Travel Planner' } }
-  ).then(r => r.json()).then(geo => {
+  ).then(r => r.json()).then((geo: any) => {
     admin1GeoCache = geo;
     admin1GeoLoading = null;
     console.log(`[Atlas] Cached admin-1 GeoJSON: ${geo.features?.length || 0} features`);

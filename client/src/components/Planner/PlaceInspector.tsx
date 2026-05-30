@@ -226,90 +226,10 @@ export default function PlaceInspector({
         flexDirection: 'column',
       }}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: openNow !== null ? 26 : 14, padding: openNow !== null ? '18px 16px 14px 28px' : '18px 16px 14px', borderBottom: '1px solid var(--border-faint)' }}>
-          {/* Avatar with open/closed ring + tag */}
-          <div style={{ position: 'relative', flexShrink: 0, marginBottom: openNow !== null ? 8 : 0 }}>
-            <div style={{
-              borderRadius: '50%', padding: 2.5,
-              background: openNow === true ? '#22c55e' : openNow === false ? '#ef4444' : 'transparent',
-            }}>
-              <PlaceAvatar place={place} category={category} size={52} />
-            </div>
-            {openNow !== null && (
-              <span style={{
-                position: 'absolute', bottom: -7, left: '50%', transform: 'translateX(-50%)',
-                fontSize: 9, fontWeight: 500, letterSpacing: '0.02em',
-                color: 'white',
-                background: openNow ? '#16a34a' : '#dc2626',
-                padding: '1.5px 7px', borderRadius: 99,
-                whiteSpace: 'nowrap',
-                boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
-              }}>
-                {openNow ? t('inspector.opened') : t('inspector.closed')}
-              </span>
-            )}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              {editingName ? (
-                <input
-                  ref={nameInputRef}
-                  value={nameValue}
-                  onChange={e => setNameValue(e.target.value)}
-                  onBlur={commitNameEdit}
-                  onKeyDown={handleNameKeyDown}
-                  style={{ fontWeight: 600, fontSize: 15, color: 'var(--text-primary)', lineHeight: '1.3', background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '1px 6px', fontFamily: 'inherit', outline: 'none', width: '100%' }}
-                />
-              ) : (
-                <span
-                  onDoubleClick={startNameEdit}
-                  style={{ fontWeight: 600, fontSize: 15, color: 'var(--text-primary)', lineHeight: '1.3', cursor: onUpdatePlace ? 'text' : 'default' }}
-                >{place.name}</span>
-              )}
-              {category && (() => {
-                const CatIcon = getCategoryIcon(category.icon)
-                return (
-                  <span style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 4,
-                    fontSize: 11, fontWeight: 500,
-                    color: category.color || '#6b7280',
-                    background: category.color ? `${category.color}18` : 'rgba(0,0,0,0.06)',
-                    border: `1px solid ${category.color ? `${category.color}30` : 'transparent'}`,
-                    padding: '2px 8px', borderRadius: 99,
-                  }}>
-                    <CatIcon size={10} />
-                    <span className="hidden sm:inline">{category.name}</span>
-                  </span>
-                )
-              })()}
-            </div>
-            {place.address && (
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 4, marginTop: 6 }}>
-                <MapPin size={11} color="var(--text-faint)" style={{ flexShrink: 0, marginTop: 2 }} />
-                <span style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: '1.4', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{place.address}</span>
-              </div>
-            )}
-            {place.place_time && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
-                <Clock size={10} color="var(--text-faint)" style={{ flexShrink: 0 }} />
-                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatTime(place.place_time, locale, timeFormat)}{place.end_time ? ` – ${formatTime(place.end_time, locale, timeFormat)}` : ''}</span>
-              </div>
-            )}
-            {place.lat && place.lng && (
-              <div className="hidden sm:block" style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>
-                {Number(place.lat).toFixed(6)}, {Number(place.lng).toFixed(6)}
-              </div>
-            )}
-          </div>
-          <button
-            onClick={onClose}
-            style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--bg-hover)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, alignSelf: 'flex-start', transition: 'background 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-          >
-            <X size={14} strokeWidth={2} color="var(--text-secondary)" />
-          </button>
-        </div>
+        <PlaceInspectorHeader openNow={openNow} place={place} category={category} t={t} editingName={editingName}
+          nameInputRef={nameInputRef} nameValue={nameValue} setNameValue={setNameValue} commitNameEdit={commitNameEdit}
+          handleNameKeyDown={handleNameKeyDown} startNameEdit={startNameEdit} onUpdatePlace={onUpdatePlace}
+          locale={locale} timeFormat={timeFormat} onClose={onClose} />
 
         {/* Content — scrollable */}
         <div style={{ overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -360,259 +280,15 @@ export default function PlaceInspector({
           )}
 
           {/* Reservation + Participants — side by side */}
-          {(() => {
-            const res = selectedAssignmentId ? reservations.find(r => r.assignment_id === selectedAssignmentId) : null
-            const assignment = selectedAssignmentId ? (assignments[String(selectedDayId)] || []).find(a => a.id === selectedAssignmentId) : null
-            const currentParticipants = assignment?.participants || []
-            const participantIds = currentParticipants.map(p => p.user_id)
-            const allJoined = currentParticipants.length === 0
-            const showParticipants = selectedAssignmentId && tripMembers.length > 1
-            if (!res && !showParticipants) return null
-            return (
-              <div className={`grid ${res && showParticipants ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'} gap-2`}>
-                {/* Reservation */}
-                {res && (() => {
-                  const confirmed = res.status === 'confirmed'
-                  return (
-                    <div style={{ borderRadius: 12, overflow: 'hidden', border: `1px solid ${confirmed ? 'rgba(22,163,74,0.2)' : 'rgba(217,119,6,0.2)'}` }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: confirmed ? 'rgba(22,163,74,0.08)' : 'rgba(217,119,6,0.08)' }}>
-                        <div style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: confirmed ? '#16a34a' : '#d97706' }} />
-                        <span style={{ fontSize: 10, fontWeight: 700, color: confirmed ? '#16a34a' : '#d97706' }}>{confirmed ? t('reservations.confirmed') : t('reservations.pending')}</span>
-                        <span style={{ flex: 1 }} />
-                        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{res.title}</span>
-                      </div>
-                      <div style={{ padding: '6px 10px', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                        {(() => {
-                          const { date, time: startTime } = splitReservationDateTime(res.reservation_time)
-                          const { time: endTime } = splitReservationDateTime(res.reservation_end_time)
-                          return (
-                            <>
-                              {date && (
-                                <div>
-                                  <div style={{ fontSize: 8, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase' }}>{t('reservations.date')}</div>
-                                  <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-primary)', marginTop: 1 }}>{new Date(date + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })}</div>
-                                </div>
-                              )}
-                              {(startTime || endTime) && (
-                                <div>
-                                  <div style={{ fontSize: 8, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase' }}>{t('reservations.time')}</div>
-                                  <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-primary)', marginTop: 1 }}>
-                                    {startTime ? formatTime(startTime, locale, timeFormat) : ''}
-                                    {endTime ? ` – ${formatTime(endTime, locale, timeFormat)}` : ''}
-                                  </div>
-                                </div>
-                              )}
-                            </>
-                          )
-                        })()}
-                        {res.confirmation_number && (
-                          <div>
-                            <div style={{ fontSize: 8, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase' }}>{t('reservations.confirmationCode')}</div>
-                            <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-primary)', marginTop: 1 }}>{res.confirmation_number}</div>
-                          </div>
-                        )}
-                      </div>
-                      {res.notes && <div className="collab-note-md" style={{ padding: '0 10px 6px', fontSize: 10, color: 'var(--text-faint)', lineHeight: 1.4, wordBreak: 'break-word', overflowWrap: 'anywhere' }}><Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{res.notes}</Markdown></div>}
-                      {(() => {
-                        const meta = typeof res.metadata === 'string' ? JSON.parse(res.metadata || '{}') : (res.metadata || {})
-                        if (!meta || Object.keys(meta).length === 0) return null
-                        const parts: string[] = []
-                        if (meta.airline && meta.flight_number) parts.push(`${meta.airline} ${meta.flight_number}`)
-                        else if (meta.flight_number) parts.push(meta.flight_number)
-                        if (meta.departure_airport && meta.arrival_airport) parts.push(`${meta.departure_airport} → ${meta.arrival_airport}`)
-                        if (meta.train_number) parts.push(meta.train_number)
-                        if (meta.platform) parts.push(`Gl. ${meta.platform}`)
-                        if (meta.check_in_time) parts.push(`Check-in ${meta.check_in_time}`)
-                        if (meta.check_out_time) parts.push(`Check-out ${meta.check_out_time}`)
-                        if (parts.length === 0) return null
-                        return <div style={{ padding: '0 10px 6px', fontSize: 10, color: 'var(--text-muted)', fontWeight: 500 }}>{parts.join(' · ')}</div>
-                      })()}
-                    </div>
-                  )
-                })()}
-
-                {/* Participants */}
-                {showParticipants && (
-                  <ParticipantsBox
-                    tripMembers={tripMembers}
-                    participantIds={participantIds}
-                    allJoined={allJoined}
-                    onSetParticipants={onSetParticipants}
-                    selectedAssignmentId={selectedAssignmentId}
-                    selectedDayId={selectedDayId}
-                    t={t}
-                  />
-                )}
-              </div>
-            )
-          })()}
+          <PlaceReservationParticipants selectedAssignmentId={selectedAssignmentId} reservations={reservations}
+            assignments={assignments} selectedDayId={selectedDayId} tripMembers={tripMembers} locale={locale}
+            timeFormat={timeFormat} t={t} onSetParticipants={onSetParticipants} />
 
           {/* Opening hours + Files — side by side on desktop only if both exist */}
-          <div className={`grid grid-cols-1 ${openingHours?.length > 0 ? 'sm:grid-cols-2' : ''} gap-2`}>
-          {openingHours && openingHours.length > 0 && (
-            <div style={{ background: 'var(--bg-hover)', borderRadius: 10, overflow: 'hidden' }}>
-              <button
-                onClick={() => setHoursExpanded(h => !h)}
-                style={{
-                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '8px 12px', background: 'none', border: 'none', cursor: 'pointer',
-                  fontFamily: 'inherit',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Clock size={13} color="#9ca3af" />
-                  <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>
-                    {hoursExpanded ? t('inspector.openingHours') : (convertHoursLine(openingHours[weekdayIndex] || '', timeFormat) || t('inspector.showHours'))}
-                  </span>
-                </div>
-                {hoursExpanded ? <ChevronUp size={13} color="#9ca3af" /> : <ChevronDown size={13} color="#9ca3af" />}
-              </button>
-              {hoursExpanded && (
-                <div style={{ padding: '0 12px 10px' }}>
-                  {openingHours.map((line, i) => (
-                    <div key={i} style={{
-                      fontSize: 12, color: i === weekdayIndex ? 'var(--text-primary)' : 'var(--text-muted)',
-                      fontWeight: i === weekdayIndex ? 600 : 400,
-                      padding: '2px 0',
-                    }}>{convertHoursLine(line, timeFormat)}</div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-
-          {/* GPX Track stats */}
-          {place.route_geometry && (() => {
-            try {
-              const pts: number[][] = JSON.parse(place.route_geometry)
-              if (!pts || pts.length < 2) return null
-              const hasEle = pts[0].length >= 3
-
-              // Haversine distance
-              const toRad = (d: number) => d * Math.PI / 180
-              let totalDist = 0
-              for (let i = 1; i < pts.length; i++) {
-                const [lat1, lng1] = pts[i - 1], [lat2, lng2] = pts[i]
-                const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1)
-                const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2
-                totalDist += 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-              }
-              const distKm = totalDist / 1000
-
-              // Elevation stats
-              let minEle = Infinity, maxEle = -Infinity, totalUp = 0, totalDown = 0
-              if (hasEle) {
-                for (let i = 0; i < pts.length; i++) {
-                  const e = pts[i][2]
-                  if (e < minEle) minEle = e
-                  if (e > maxEle) maxEle = e
-                  if (i > 0) {
-                    const diff = e - pts[i - 1][2]
-                    if (diff > 0) totalUp += diff; else totalDown += Math.abs(diff)
-                  }
-                }
-              }
-
-              // Elevation profile SVG
-              const chartW = 280, chartH = 60
-              const elevations = hasEle ? pts.map(p => p[2]) : []
-              let pathD = ''
-              if (elevations.length > 1) {
-                const step = Math.max(1, Math.floor(elevations.length / chartW))
-                const sampled = elevations.filter((_, i) => i % step === 0)
-                const eMin = Math.min(...sampled), eMax = Math.max(...sampled)
-                const range = eMax - eMin || 1
-                pathD = sampled.map((e, i) => {
-                  const x = (i / (sampled.length - 1)) * chartW
-                  const y = chartH - ((e - eMin) / range) * (chartH - 4) - 2
-                  return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`
-                }).join(' ')
-              }
-
-              return (
-                <div style={{ background: 'var(--bg-hover)', borderRadius: 10, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <TrendingUp size={13} color="#9ca3af" />
-                    <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>{t('inspector.trackStats')}</span>
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-primary)', fontWeight: 600 }}>
-                      <MapPin size={12} color="#3b82f6" />
-                      {distKm < 1 ? `${Math.round(totalDist)} m` : `${distKm.toFixed(1)} km`}
-                    </div>
-                    {hasEle && (
-                      <>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-primary)', fontWeight: 600 }}>
-                          <Mountain size={12} color="#22c55e" />
-                          {Math.round(maxEle)} m
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-primary)', fontWeight: 600 }}>
-                          <Mountain size={12} color="#ef4444" />
-                          {Math.round(minEle)} m
-                        </div>
-                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                          ↑{Math.round(totalUp)} m &nbsp;↓{Math.round(totalDown)} m
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  {pathD && (
-                    <svg width="100%" viewBox={`0 0 ${chartW} ${chartH}`} preserveAspectRatio="none" style={{ display: 'block', borderRadius: 6, background: 'var(--bg-tertiary)' }}>
-                      <defs>
-                        <linearGradient id={`ele-grad-${place.id}`} x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.25" />
-                          <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.02" />
-                        </linearGradient>
-                      </defs>
-                      <path d={`${pathD} L${chartW},${chartH} L0,${chartH} Z`} fill={`url(#ele-grad-${place.id})`} />
-                      <path d={pathD} fill="none" stroke="#3b82f6" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
-                    </svg>
-                  )}
-                </div>
-              )
-            } catch { return null }
-          })()}
-
-          {/* Files section */}
-          {(placeFiles.length > 0 || onFileUpload) && (
-            <div style={{ background: 'var(--bg-hover)', borderRadius: 10, overflow: 'hidden' }}>
-              <div style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', gap: 6 }}>
-                <button
-                  onClick={() => setFilesExpanded(f => !f)}
-                  style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit', textAlign: 'left' }}
-                >
-                  <FileText size={13} color="#9ca3af" />
-                  <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>
-                    {placeFiles.length > 0 ? t('inspector.filesCount', { count: placeFiles.length }) : t('inspector.files')}
-                  </span>
-                  {filesExpanded ? <ChevronUp size={12} color="#9ca3af" /> : <ChevronDown size={12} color="#9ca3af" />}
-                </button>
-                {onFileUpload && (
-                  <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text-muted)', padding: '2px 6px', borderRadius: 6, background: 'var(--bg-tertiary)' }}>
-                    <input ref={fileInputRef} type="file" multiple style={{ display: 'none' }} onChange={handleFileUpload} />
-                    {isUploading ? (
-                      <span style={{ fontSize: 11 }}>…</span>
-                    ) : (
-                      <><Upload size={11} strokeWidth={2} /> {t('common.upload')}</>
-                    )}
-                  </label>
-                )}
-              </div>
-              {filesExpanded && placeFiles.length > 0 && (
-                <div style={{ padding: '0 12px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {placeFiles.map(f => (
-                    <button key={f.id} onClick={() => openFile(f.url).catch(() => {})} style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', cursor: 'pointer', background: 'none', border: 'none', width: '100%', textAlign: 'left' }}>
-                      {(f.mime_type || '').startsWith('image/') ? <FileImage size={12} color="#6b7280" /> : <File size={12} color="#6b7280" />}
-                      <span style={{ fontSize: 12, color: 'var(--text-secondary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.original_name}</span>
-                      {f.file_size && <span style={{ fontSize: 11, color: 'var(--text-faint)', flexShrink: 0 }}>{formatFileSize(f.file_size)}</span>}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-          </div>
+          <PlaceExtras openingHours={openingHours} weekdayIndex={weekdayIndex} hoursExpanded={hoursExpanded}
+            setHoursExpanded={setHoursExpanded} timeFormat={timeFormat} t={t} place={place} placeFiles={placeFiles}
+            onFileUpload={onFileUpload} filesExpanded={filesExpanded} setFilesExpanded={setFilesExpanded}
+            fileInputRef={fileInputRef} handleFileUpload={handleFileUpload} isUploading={isUploading} />
 
         </div>
 
@@ -829,5 +505,361 @@ function ParticipantsBox({ tripMembers, participantIds, allJoined, onSetParticip
         )}
       </div>
     </div>
+  )
+}
+
+
+function PlaceInspectorHeader({ openNow, place, category, t, editingName, nameInputRef, nameValue, setNameValue,
+  commitNameEdit, handleNameKeyDown, startNameEdit, onUpdatePlace, locale, timeFormat, onClose }: any) {
+  return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: openNow !== null ? 26 : 14, padding: openNow !== null ? '18px 16px 14px 28px' : '18px 16px 14px', borderBottom: '1px solid var(--border-faint)' }}>
+          {/* Avatar with open/closed ring + tag */}
+          <div style={{ position: 'relative', flexShrink: 0, marginBottom: openNow !== null ? 8 : 0 }}>
+            <div style={{
+              borderRadius: '50%', padding: 2.5,
+              background: openNow === true ? '#22c55e' : openNow === false ? '#ef4444' : 'transparent',
+            }}>
+              <PlaceAvatar place={place} category={category} size={52} />
+            </div>
+            {openNow !== null && (
+              <span style={{
+                position: 'absolute', bottom: -7, left: '50%', transform: 'translateX(-50%)',
+                fontSize: 9, fontWeight: 500, letterSpacing: '0.02em',
+                color: 'white',
+                background: openNow ? '#16a34a' : '#dc2626',
+                padding: '1.5px 7px', borderRadius: 99,
+                whiteSpace: 'nowrap',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+              }}>
+                {openNow ? t('inspector.opened') : t('inspector.closed')}
+              </span>
+            )}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              {editingName ? (
+                <input
+                  ref={nameInputRef}
+                  value={nameValue}
+                  onChange={e => setNameValue(e.target.value)}
+                  onBlur={commitNameEdit}
+                  onKeyDown={handleNameKeyDown}
+                  style={{ fontWeight: 600, fontSize: 15, color: 'var(--text-primary)', lineHeight: '1.3', background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '1px 6px', fontFamily: 'inherit', outline: 'none', width: '100%' }}
+                />
+              ) : (
+                <span
+                  onDoubleClick={startNameEdit}
+                  style={{ fontWeight: 600, fontSize: 15, color: 'var(--text-primary)', lineHeight: '1.3', cursor: onUpdatePlace ? 'text' : 'default' }}
+                >{place.name}</span>
+              )}
+              {category && (() => {
+                const CatIcon = getCategoryIcon(category.icon)
+                return (
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    fontSize: 11, fontWeight: 500,
+                    color: category.color || '#6b7280',
+                    background: category.color ? `${category.color}18` : 'rgba(0,0,0,0.06)',
+                    border: `1px solid ${category.color ? `${category.color}30` : 'transparent'}`,
+                    padding: '2px 8px', borderRadius: 99,
+                  }}>
+                    <CatIcon size={10} />
+                    <span className="hidden sm:inline">{category.name}</span>
+                  </span>
+                )
+              })()}
+            </div>
+            {place.address && (
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 4, marginTop: 6 }}>
+                <MapPin size={11} color="var(--text-faint)" style={{ flexShrink: 0, marginTop: 2 }} />
+                <span style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: '1.4', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{place.address}</span>
+              </div>
+            )}
+            {place.place_time && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
+                <Clock size={10} color="var(--text-faint)" style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatTime(place.place_time, locale, timeFormat)}{place.end_time ? ` – ${formatTime(place.end_time, locale, timeFormat)}` : ''}</span>
+              </div>
+            )}
+            {place.lat && place.lng && (
+              <div className="hidden sm:block" style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>
+                {Number(place.lat).toFixed(6)}, {Number(place.lng).toFixed(6)}
+              </div>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--bg-hover)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, alignSelf: 'flex-start', transition: 'background 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+          >
+            <X size={14} strokeWidth={2} color="var(--text-secondary)" />
+          </button>
+        </div>
+  )
+}
+
+function PlaceReservationParticipants({ selectedAssignmentId, reservations, assignments, selectedDayId,
+  tripMembers, locale, timeFormat, t, onSetParticipants }: any) {
+  return (
+    <>
+          {(() => {
+            const res = selectedAssignmentId ? reservations.find(r => r.assignment_id === selectedAssignmentId) : null
+            const assignment = selectedAssignmentId ? (assignments[String(selectedDayId)] || []).find(a => a.id === selectedAssignmentId) : null
+            const currentParticipants = assignment?.participants || []
+            const participantIds = currentParticipants.map(p => p.user_id)
+            const allJoined = currentParticipants.length === 0
+            const showParticipants = selectedAssignmentId && tripMembers.length > 1
+            if (!res && !showParticipants) return null
+            return (
+              <div className={`grid ${res && showParticipants ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'} gap-2`}>
+                {/* Reservation */}
+                {res && (() => {
+                  const confirmed = res.status === 'confirmed'
+                  return (
+                    <div style={{ borderRadius: 12, overflow: 'hidden', border: `1px solid ${confirmed ? 'rgba(22,163,74,0.2)' : 'rgba(217,119,6,0.2)'}` }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: confirmed ? 'rgba(22,163,74,0.08)' : 'rgba(217,119,6,0.08)' }}>
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: confirmed ? '#16a34a' : '#d97706' }} />
+                        <span style={{ fontSize: 10, fontWeight: 700, color: confirmed ? '#16a34a' : '#d97706' }}>{confirmed ? t('reservations.confirmed') : t('reservations.pending')}</span>
+                        <span style={{ flex: 1 }} />
+                        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{res.title}</span>
+                      </div>
+                      <div style={{ padding: '6px 10px', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                        {(() => {
+                          const { date, time: startTime } = splitReservationDateTime(res.reservation_time)
+                          const { time: endTime } = splitReservationDateTime(res.reservation_end_time)
+                          return (
+                            <>
+                              {date && (
+                                <div>
+                                  <div style={{ fontSize: 8, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase' }}>{t('reservations.date')}</div>
+                                  <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-primary)', marginTop: 1 }}>{new Date(date + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })}</div>
+                                </div>
+                              )}
+                              {(startTime || endTime) && (
+                                <div>
+                                  <div style={{ fontSize: 8, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase' }}>{t('reservations.time')}</div>
+                                  <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-primary)', marginTop: 1 }}>
+                                    {startTime ? formatTime(startTime, locale, timeFormat) : ''}
+                                    {endTime ? ` – ${formatTime(endTime, locale, timeFormat)}` : ''}
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          )
+                        })()}
+                        {res.confirmation_number && (
+                          <div>
+                            <div style={{ fontSize: 8, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase' }}>{t('reservations.confirmationCode')}</div>
+                            <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-primary)', marginTop: 1 }}>{res.confirmation_number}</div>
+                          </div>
+                        )}
+                      </div>
+                      {res.notes && <div className="collab-note-md" style={{ padding: '0 10px 6px', fontSize: 10, color: 'var(--text-faint)', lineHeight: 1.4, wordBreak: 'break-word', overflowWrap: 'anywhere' }}><Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{res.notes}</Markdown></div>}
+                      {(() => {
+                        const meta = typeof res.metadata === 'string' ? JSON.parse(res.metadata || '{}') : (res.metadata || {})
+                        if (!meta || Object.keys(meta).length === 0) return null
+                        const parts: string[] = []
+                        if (meta.airline && meta.flight_number) parts.push(`${meta.airline} ${meta.flight_number}`)
+                        else if (meta.flight_number) parts.push(meta.flight_number)
+                        if (meta.departure_airport && meta.arrival_airport) parts.push(`${meta.departure_airport} → ${meta.arrival_airport}`)
+                        if (meta.train_number) parts.push(meta.train_number)
+                        if (meta.platform) parts.push(`Gl. ${meta.platform}`)
+                        if (meta.check_in_time) parts.push(`Check-in ${meta.check_in_time}`)
+                        if (meta.check_out_time) parts.push(`Check-out ${meta.check_out_time}`)
+                        if (parts.length === 0) return null
+                        return <div style={{ padding: '0 10px 6px', fontSize: 10, color: 'var(--text-muted)', fontWeight: 500 }}>{parts.join(' · ')}</div>
+                      })()}
+                    </div>
+                  )
+                })()}
+
+                {/* Participants */}
+                {showParticipants && (
+                  <ParticipantsBox
+                    tripMembers={tripMembers}
+                    participantIds={participantIds}
+                    allJoined={allJoined}
+                    onSetParticipants={onSetParticipants}
+                    selectedAssignmentId={selectedAssignmentId}
+                    selectedDayId={selectedDayId}
+                    t={t}
+                  />
+                )}
+              </div>
+            )
+          })()}
+    </>
+  )
+}
+
+function PlaceExtras({ openingHours, weekdayIndex, hoursExpanded, setHoursExpanded, timeFormat, t, place,
+  placeFiles, onFileUpload, filesExpanded, setFilesExpanded, fileInputRef, handleFileUpload, isUploading }: any) {
+  return (
+          <div className={`grid grid-cols-1 ${openingHours?.length > 0 ? 'sm:grid-cols-2' : ''} gap-2`}>
+          {openingHours && openingHours.length > 0 && (
+            <div style={{ background: 'var(--bg-hover)', borderRadius: 10, overflow: 'hidden' }}>
+              <button
+                onClick={() => setHoursExpanded(h => !h)}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '8px 12px', background: 'none', border: 'none', cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Clock size={13} color="#9ca3af" />
+                  <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>
+                    {hoursExpanded ? t('inspector.openingHours') : (convertHoursLine(openingHours[weekdayIndex] || '', timeFormat) || t('inspector.showHours'))}
+                  </span>
+                </div>
+                {hoursExpanded ? <ChevronUp size={13} color="#9ca3af" /> : <ChevronDown size={13} color="#9ca3af" />}
+              </button>
+              {hoursExpanded && (
+                <div style={{ padding: '0 12px 10px' }}>
+                  {openingHours.map((line, i) => (
+                    <div key={i} style={{
+                      fontSize: 12, color: i === weekdayIndex ? 'var(--text-primary)' : 'var(--text-muted)',
+                      fontWeight: i === weekdayIndex ? 600 : 400,
+                      padding: '2px 0',
+                    }}>{convertHoursLine(line, timeFormat)}</div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+
+          {/* GPX Track stats */}
+          {place.route_geometry && (() => {
+            try {
+              const pts: number[][] = JSON.parse(place.route_geometry)
+              if (!pts || pts.length < 2) return null
+              const hasEle = pts[0].length >= 3
+
+              // Haversine distance
+              const toRad = (d: number) => d * Math.PI / 180
+              let totalDist = 0
+              for (let i = 1; i < pts.length; i++) {
+                const [lat1, lng1] = pts[i - 1], [lat2, lng2] = pts[i]
+                const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1)
+                const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2
+                totalDist += 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+              }
+              const distKm = totalDist / 1000
+
+              // Elevation stats
+              let minEle = Infinity, maxEle = -Infinity, totalUp = 0, totalDown = 0
+              if (hasEle) {
+                for (let i = 0; i < pts.length; i++) {
+                  const e = pts[i][2]
+                  if (e < minEle) minEle = e
+                  if (e > maxEle) maxEle = e
+                  if (i > 0) {
+                    const diff = e - pts[i - 1][2]
+                    if (diff > 0) totalUp += diff; else totalDown += Math.abs(diff)
+                  }
+                }
+              }
+
+              // Elevation profile SVG
+              const chartW = 280, chartH = 60
+              const elevations = hasEle ? pts.map(p => p[2]) : []
+              let pathD = ''
+              if (elevations.length > 1) {
+                const step = Math.max(1, Math.floor(elevations.length / chartW))
+                const sampled = elevations.filter((_, i) => i % step === 0)
+                const eMin = Math.min(...sampled), eMax = Math.max(...sampled)
+                const range = eMax - eMin || 1
+                pathD = sampled.map((e, i) => {
+                  const x = (i / (sampled.length - 1)) * chartW
+                  const y = chartH - ((e - eMin) / range) * (chartH - 4) - 2
+                  return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`
+                }).join(' ')
+              }
+
+              return (
+                <div style={{ background: 'var(--bg-hover)', borderRadius: 10, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <TrendingUp size={13} color="#9ca3af" />
+                    <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>{t('inspector.trackStats')}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-primary)', fontWeight: 600 }}>
+                      <MapPin size={12} color="#3b82f6" />
+                      {distKm < 1 ? `${Math.round(totalDist)} m` : `${distKm.toFixed(1)} km`}
+                    </div>
+                    {hasEle && (
+                      <>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-primary)', fontWeight: 600 }}>
+                          <Mountain size={12} color="#22c55e" />
+                          {Math.round(maxEle)} m
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-primary)', fontWeight: 600 }}>
+                          <Mountain size={12} color="#ef4444" />
+                          {Math.round(minEle)} m
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                          ↑{Math.round(totalUp)} m &nbsp;↓{Math.round(totalDown)} m
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  {pathD && (
+                    <svg width="100%" viewBox={`0 0 ${chartW} ${chartH}`} preserveAspectRatio="none" style={{ display: 'block', borderRadius: 6, background: 'var(--bg-tertiary)' }}>
+                      <defs>
+                        <linearGradient id={`ele-grad-${place.id}`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.25" />
+                          <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.02" />
+                        </linearGradient>
+                      </defs>
+                      <path d={`${pathD} L${chartW},${chartH} L0,${chartH} Z`} fill={`url(#ele-grad-${place.id})`} />
+                      <path d={pathD} fill="none" stroke="#3b82f6" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+                    </svg>
+                  )}
+                </div>
+              )
+            } catch { return null }
+          })()}
+
+          {/* Files section */}
+          {(placeFiles.length > 0 || onFileUpload) && (
+            <div style={{ background: 'var(--bg-hover)', borderRadius: 10, overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', gap: 6 }}>
+                <button
+                  onClick={() => setFilesExpanded(f => !f)}
+                  style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit', textAlign: 'left' }}
+                >
+                  <FileText size={13} color="#9ca3af" />
+                  <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>
+                    {placeFiles.length > 0 ? t('inspector.filesCount', { count: placeFiles.length }) : t('inspector.files')}
+                  </span>
+                  {filesExpanded ? <ChevronUp size={12} color="#9ca3af" /> : <ChevronDown size={12} color="#9ca3af" />}
+                </button>
+                {onFileUpload && (
+                  <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text-muted)', padding: '2px 6px', borderRadius: 6, background: 'var(--bg-tertiary)' }}>
+                    <input ref={fileInputRef} type="file" multiple style={{ display: 'none' }} onChange={handleFileUpload} />
+                    {isUploading ? (
+                      <span style={{ fontSize: 11 }}>…</span>
+                    ) : (
+                      <><Upload size={11} strokeWidth={2} /> {t('common.upload')}</>
+                    )}
+                  </label>
+                )}
+              </div>
+              {filesExpanded && placeFiles.length > 0 && (
+                <div style={{ padding: '0 12px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {placeFiles.map(f => (
+                    <button key={f.id} onClick={() => openFile(f.url).catch(() => {})} style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', cursor: 'pointer', background: 'none', border: 'none', width: '100%', textAlign: 'left' }}>
+                      {(f.mime_type || '').startsWith('image/') ? <FileImage size={12} color="#6b7280" /> : <File size={12} color="#6b7280" />}
+                      <span style={{ fontSize: 12, color: 'var(--text-secondary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.original_name}</span>
+                      {f.file_size && <span style={{ fontSize: 11, color: 'var(--text-faint)', flexShrink: 0 }}>{formatFileSize(f.file_size)}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          </div>
   )
 }

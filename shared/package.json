@@ -42,15 +42,15 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
-    "lint": "eslint --fix \"src/**/*.ts\""
+    "lint": "eslint --fix \"src/**/*.ts\"",
+    "i18n:parity": "node scripts/i18n-parity.mjs",
+    "i18n:parity:strict": "node scripts/i18n-parity.mjs --strict --files-only"
   },
   "dependencies": {
+    "isomorphic-dompurify": "^3.15.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "tsup": "^8.5.1",
-    "typescript": "^6.0.2",
-    "vitest": "^3.2.4",
     "@eslint/js": "^10.0.1",
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
     "eslint": "^10.3.0",
@@ -59,6 +59,9 @@
     "eslint-plugin-prettier": "^5.5.5",
     "prettier": "3.8.3",
     "prettier-plugin-organize-imports": "^4.3.0",
-    "typescript-eslint": "^8.58.2"
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.2",
+    "typescript-eslint": "^8.58.2",
+    "vitest": "^3.2.4"
   }
 }

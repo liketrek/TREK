@@ -144,11 +144,16 @@ const MemoPlaceRow = React.memo(function MemoPlaceRow({
   )
 })
 
-const PlacesSidebar = React.memo(function PlacesSidebar({
-  tripId, places, categories, assignments, selectedDayId, selectedPlaceId,
-  onPlaceClick, onAddPlace, onAssignToDay, onEditPlace, onDeletePlace, onBulkDeletePlaces, onBulkDeleteConfirm, days, isMobile, onCategoryFilterChange, onPlacesFilterChange, pushUndo,
-  initialScrollTop, onScrollTopChange,
-}: PlacesSidebarProps) {
+/**
+ * Sidebar state: file/list import, search + filter + category multi-select,
+ * multi-select/bulk-delete and the mobile day-picker sheet. Kept in one hook so
+ * PlacesSidebar stays a thin layout shell over the sub-sections below.
+ */
+function usePlacesSidebar(props: PlacesSidebarProps) {
+  const {
+    tripId, places, assignments, selectedDayId,
+    onCategoryFilterChange, onPlacesFilterChange, pushUndo, initialScrollTop, onScrollTopChange,
+  } = props
   const { t } = useTranslation()
   const toast = useToast()
   const ctxMenu = useContextMenu()
@@ -313,15 +318,581 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
   const openContextMenu = useCallback((e: React.MouseEvent, place: Place) => {
     const selDayId = selectedDayIdRef.current
     ctxMenu.open(e, [
-      canEditPlaces && { label: t('common.edit'), icon: Pencil, onClick: () => onEditPlace(place) },
-      selDayId && { label: t('planner.addToDay'), icon: CalendarDays, onClick: () => onAssignToDay(place.id, selDayId) },
+      canEditPlaces && { label: t('common.edit'), icon: Pencil, onClick: () => props.onEditPlace(place) },
+      selDayId && { label: t('planner.addToDay'), icon: CalendarDays, onClick: () => props.onAssignToDay(place.id, selDayId) },
       place.website && { label: t('inspector.website'), icon: ExternalLink, onClick: () => window.open(place.website, '_blank') },
       (place.lat && place.lng) && { label: 'Google Maps', icon: Navigation, onClick: () => window.open(`https://www.google.com/maps/search/?api=1&query=${(place as any).google_place_id ? encodeURIComponent(place.name) + '&query_place_id=' + (place as any).google_place_id : place.lat + ',' + place.lng}`, '_blank') },
       { divider: true },
-      canEditPlaces && { label: t('common.delete'), icon: Trash2, danger: true, onClick: () => onDeletePlace(place.id) },
+      canEditPlaces && { label: t('common.delete'), icon: Trash2, danger: true, onClick: () => props.onDeletePlace(place.id) },
     ])
-  }, [ctxMenu.open, canEditPlaces, t, onEditPlace, onAssignToDay, onDeletePlace])
+  }, [ctxMenu.open, canEditPlaces, t, props.onEditPlace, props.onAssignToDay, props.onDeletePlace])
 
+  return {
+    ...props,
+    t, toast, ctxMenu, trip, canEditPlaces,
+    fileImportOpen, setFileImportOpen, sidebarDropFile, setSidebarDropFile,
+    sidebarDragOver, handleSidebarDragEnter, handleSidebarDragOver, handleSidebarDragLeave, handleSidebarDrop,
+    scrollContainerRef, onScrollTopChange,
+    listImportOpen, setListImportOpen, listImportUrl, setListImportUrl,
+    listImportLoading, listImportProvider, setListImportProvider,
+    availableListImportProviders, hasMultipleListImportProviders, handleListImport,
+    search, setSearch, filter, setFilter, categoryFilters, setCategoryFiltersLocal,
+    selectMode, setSelectMode, selectedIds, setSelectedIds, pendingDeleteIds, setPendingDeleteIds,
+    exitSelectMode, toggleSelected, toggleCategoryFilter, dayPickerPlace, setDayPickerPlace,
+    catDropOpen, setCatDropOpen, mobileShowDays, setMobileShowDays,
+    hasTracks, plannedIds, filtered, isAssignedToSelectedDay, inDaySet, openContextMenu,
+  }
+}
+
+type SidebarState = ReturnType<typeof usePlacesSidebar>
+
+function PlacesDropOverlay({ t }: SidebarState) {
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: 10,
+      background: 'color-mix(in srgb, var(--accent) 12%, transparent)',
+      border: '2px dashed var(--accent)',
+      borderRadius: 4,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      gap: 10, pointerEvents: 'none',
+    }}>
+      <Upload size={28} strokeWidth={1.5} color="var(--accent)" />
+      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>{t('places.sidebarDrop')}</span>
+    </div>
+  )
+}
+
+function PlacesHeader(S: SidebarState) {
+  const {
+    canEditPlaces, onAddPlace, t, setFileImportOpen, setListImportOpen, hasMultipleListImportProviders,
+    places, categories, categoryFilters, search, setSearch, plannedIds, hasTracks,
+    filter, setFilter, onPlacesFilterChange, setSelectedIds, selectMode, setSelectMode,
+    catDropOpen, setCatDropOpen, toggleCategoryFilter, setCategoryFiltersLocal, onCategoryFilterChange,
+  } = S
+  return (
+    <div style={{ padding: '14px 16px 10px', borderBottom: '1px solid var(--border-faint)', flexShrink: 0 }}>
+      {canEditPlaces && <button
+        onClick={onAddPlace}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          width: '100%', padding: '8px 12px', borderRadius: 12, border: 'none',
+          background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 13, fontWeight: 500,
+          cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10,
+        }}
+      >
+        <Plus size={14} strokeWidth={2} /> {t('places.addPlace')}
+      </button>}
+      {canEditPlaces && <>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+        <button
+          onClick={() => setFileImportOpen(true)}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+            flex: 1, padding: '5px 12px', borderRadius: 8,
+            border: '1px dashed var(--border-primary)', background: 'none',
+            color: 'var(--text-faint)', fontSize: 11, fontWeight: 500,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}
+        >
+          <Upload size={11} strokeWidth={2} /> {t('places.importFile')}
+        </button>
+        <button
+          onClick={() => setListImportOpen(true)}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+            flex: 1, padding: '5px 12px', borderRadius: 8,
+            border: '1px dashed var(--border-primary)', background: 'none',
+            color: 'var(--text-faint)', fontSize: 11, fontWeight: 500,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}
+        >
+          <MapPin size={11} strokeWidth={2} /> {t(hasMultipleListImportProviders ? 'places.importList' : 'places.importGoogleList')}
+        </button>
+      </div>
+      <div style={{ height: 1, background: 'var(--border-primary)', margin: '2px 0 10px' }} />
+      </>}
+
+      {/* Filter-Tabs */}
+      {(() => {
+        const baseFiltered = places.filter(p => {
+          if (categoryFilters.size > 0) {
+            if (p.category_id == null) {
+              if (!categoryFilters.has('uncategorized')) return false
+            } else if (!categoryFilters.has(String(p.category_id))) return false
+          }
+          if (search && !p.name.toLowerCase().includes(search.toLowerCase()) &&
+              !(p.address || '').toLowerCase().includes(search.toLowerCase())) return false
+          return true
+        })
+        const counts = {
+          all: baseFiltered.length,
+          unplanned: baseFiltered.filter(p => !plannedIds.has(p.id)).length,
+          tracks: baseFiltered.filter(p => p.route_geometry).length,
+        }
+        const tabs = ([
+          { id: 'all', label: t('places.all') },
+          { id: 'unplanned', label: t('places.unplanned') },
+          hasTracks ? { id: 'tracks', label: t('places.filterTracks') } : null,
+        ] as const).filter(Boolean) as Array<{ id: 'all' | 'unplanned' | 'tracks'; label: string }>
+        return (
+          <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
+            {tabs.map(f => {
+              const active = filter === f.id
+              return (
+                <button
+                  key={f.id}
+                  onClick={() => { setFilter(f.id); onPlacesFilterChange?.(f.id); setSelectedIds(new Set()) }}
+                  style={{
+                    appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    padding: '4px 9px', borderRadius: 99,
+                    fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap',
+                    background: active ? 'var(--accent)' : 'var(--bg-card)',
+                    color: active ? 'var(--accent-text)' : 'var(--text-primary)',
+                    boxShadow: active ? 'none' : '0 1px 2px rgba(0,0,0,0.06)',
+                    transition: 'background 0.15s, color 0.15s, box-shadow 0.15s',
+                  }}
+                >
+                  {f.label}
+                  <span style={{
+                    fontSize: 9, fontWeight: 600, lineHeight: 1,
+                    background: active ? 'color-mix(in srgb, var(--accent-text) 22%, transparent)' : 'var(--bg-tertiary)',
+                    color: active ? 'var(--accent-text)' : 'var(--text-faint)',
+                    padding: '1px 5px', borderRadius: 99, minWidth: 14, textAlign: 'center',
+                  }}>
+                    {counts[f.id]}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        )
+      })()}
+
+      {/* Suchfeld */}
+      <div style={{ position: 'relative' }}>
+        <Search size={13} strokeWidth={1.8} color="var(--text-faint)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+        <input
+          type="text"
+          value={search}
+          onChange={e => { setSearch(e.target.value); if (selectMode) setSelectedIds(new Set()) }}
+          placeholder={t('places.search')}
+          style={{
+            width: '100%', padding: '7px 30px 7px 30px', borderRadius: 10,
+            border: 'none', background: 'var(--bg-tertiary)', fontSize: 12, color: 'var(--text-primary)',
+            outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+          }}
+        />
+        {search && (
+          <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+            <X size={12} strokeWidth={2} color="var(--text-faint)" />
+          </button>
+        )}
+      </div>
+
+      {/* Category multi-select dropdown */}
+      {categories.length > 0 && (() => {
+        const label = categoryFilters.size === 0
+          ? t('places.allCategories')
+          : categoryFilters.size === 1
+            ? (categoryFilters.has('uncategorized') ? t('places.noCategory') : categories.find(c => categoryFilters.has(String(c.id)))?.name || t('places.allCategories'))
+            : `${categoryFilters.size} ${t('places.categoriesSelected')}`
+        return (
+          <div style={{ marginTop: 6, position: 'relative', display: 'flex', gap: 6, alignItems: 'stretch' }}>
+            <button onClick={() => setCatDropOpen(v => !v)} style={{
+              flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border-primary)',
+              background: 'var(--bg-card)', fontSize: 12, color: 'var(--text-primary)',
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+              <ChevronDown size={12} style={{ flexShrink: 0, color: 'var(--text-faint)', transform: catDropOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+            </button>
+            {canEditPlaces && (
+              <Tooltip label={t('common.select')} placement="bottom">
+              <button
+                onClick={() => { setSelectMode(v => !v); setSelectedIds(new Set()) }}
+                aria-label={t('common.select')}
+                aria-pressed={selectMode}
+                style={{
+                  position: 'relative', width: 30, flexShrink: 0, borderRadius: 8,
+                  border: `1px solid ${selectMode ? 'var(--accent)' : 'var(--border-primary)'}`,
+                  background: selectMode ? 'color-mix(in srgb, var(--accent) 14%, transparent)' : 'var(--bg-card)',
+                  color: selectMode ? 'var(--accent)' : 'var(--text-faint)',
+                  cursor: 'pointer', fontFamily: 'inherit', padding: 0,
+                  transition: 'background 0.18s, color 0.18s, border-color 0.18s',
+                  overflow: 'hidden',
+                }}
+              >
+                <span style={{
+                  position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'opacity 0.18s ease, transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  opacity: selectMode ? 0 : 1,
+                  transform: selectMode ? 'rotate(-90deg) scale(0.6)' : 'rotate(0) scale(1)',
+                }}>
+                  <Check size={13} strokeWidth={2.4} />
+                </span>
+                <span style={{
+                  position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'opacity 0.18s ease, transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  opacity: selectMode ? 1 : 0,
+                  transform: selectMode ? 'rotate(0) scale(1)' : 'rotate(90deg) scale(0.6)',
+                }}>
+                  <X size={13} strokeWidth={2.4} />
+                </span>
+              </button>
+              </Tooltip>
+            )}
+            {catDropOpen && (
+              <div style={{
+                position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, marginTop: 4,
+                background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10,
+                boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 4, maxHeight: 200, overflowY: 'auto',
+              }}>
+                {categories.map(c => {
+                  const active = categoryFilters.has(String(c.id))
+                  const CatIcon = getCategoryIcon(c.icon)
+                  return (
+                    <button key={c.id} onClick={() => toggleCategoryFilter(String(c.id))} style={{
+                      display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                      padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                      background: active ? 'var(--bg-hover)' : 'transparent',
+                      fontFamily: 'inherit', fontSize: 12, color: 'var(--text-primary)',
+                      textAlign: 'left',
+                    }}>
+                      <div style={{
+                        width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+                        border: active ? 'none' : '1.5px solid var(--border-primary)',
+                        background: active ? (c.color || 'var(--accent)') : 'transparent',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        {active && <Check size={10} strokeWidth={3} color="white" />}
+                      </div>
+                      <CatIcon size={12} strokeWidth={2} color={c.color || 'var(--text-muted)'} />
+                      <span style={{ flex: 1 }}>{c.name}</span>
+                    </button>
+                  )
+                })}
+                {places.some(p => p.category_id == null) && (() => {
+                  const active = categoryFilters.has('uncategorized')
+                  return (
+                    <button onClick={() => toggleCategoryFilter('uncategorized')} style={{
+                      display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                      padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                      background: active ? 'var(--bg-hover)' : 'transparent',
+                      fontFamily: 'inherit', fontSize: 12, color: 'var(--text-muted)',
+                      textAlign: 'left', borderTop: '1px solid var(--border-faint)', marginTop: 2,
+                    }}>
+                      <div style={{
+                        width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+                        border: active ? 'none' : '1.5px solid var(--border-primary)',
+                        background: active ? 'var(--text-faint)' : 'transparent',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        {active && <Check size={10} strokeWidth={3} color="white" />}
+                      </div>
+                      <MapPin size={12} strokeWidth={2} color="var(--text-faint)" />
+                      <span style={{ flex: 1 }}>{t('places.noCategory')}</span>
+                    </button>
+                  )
+                })()}
+                {categoryFilters.size > 0 && (
+                  <button onClick={() => { setCategoryFiltersLocal(new Set()); onCategoryFilterChange?.(new Set()) }} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                    width: '100%', padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                    background: 'transparent', fontFamily: 'inherit', fontSize: 11, color: 'var(--text-faint)',
+                    marginTop: 2, borderTop: '1px solid var(--border-faint)',
+                  }}>
+                    <X size={10} /> {t('places.clearFilter')}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )
+      })()}
+    </div>
+  )
+}
+
+function PlacesSelectionBar(S: SidebarState) {
+  const { t, selectedIds, filtered, setSelectedIds, isMobile, setPendingDeleteIds, onBulkDeletePlaces } = S
+  return (
+    <div style={{
+      margin: '6px 16px', padding: '5px 8px 5px 10px', borderRadius: 8,
+      background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
+      display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, fontSize: 11,
+    }}>
+      <span style={{ flex: 1, color: 'var(--accent)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        {t('places.selectionCount', { count: selectedIds.size })}
+      </span>
+      <Tooltip label={selectedIds.size === filtered.length && filtered.length > 0 ? t('common.deselectAll') : t('common.selectAll')} placement="bottom">
+      <button
+        onClick={() => {
+          if (selectedIds.size === filtered.length) setSelectedIds(new Set())
+          else setSelectedIds(new Set(filtered.map(p => p.id)))
+        }}
+        aria-label={selectedIds.size === filtered.length && filtered.length > 0 ? t('common.deselectAll') : t('common.selectAll')}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: 24, height: 24, borderRadius: 6, border: 'none',
+          background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', padding: 0,
+        }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+      >
+        <Check size={13} strokeWidth={2.2} />
+      </button>
+      </Tooltip>
+      <Tooltip label={t('places.deleteSelected')} placement="bottom">
+      <button
+        onClick={() => {
+          if (selectedIds.size === 0) return
+          if (isMobile) setPendingDeleteIds(Array.from(selectedIds))
+          else onBulkDeletePlaces?.(Array.from(selectedIds))
+        }}
+        disabled={selectedIds.size === 0}
+        aria-label={t('places.deleteSelected')}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: 24, height: 24, borderRadius: 6, border: 'none',
+          background: 'transparent',
+          color: selectedIds.size > 0 ? '#ef4444' : 'var(--text-faint)',
+          cursor: selectedIds.size > 0 ? 'pointer' : 'default', padding: 0,
+        }}
+        onMouseEnter={e => { if (selectedIds.size > 0) e.currentTarget.style.background = 'color-mix(in srgb, #ef4444 14%, transparent)' }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+      >
+        <Trash2 size={13} strokeWidth={2} />
+      </button>
+      </Tooltip>
+    </div>
+  )
+}
+
+function PlacesList(S: SidebarState) {
+  const {
+    filtered, scrollContainerRef, onScrollTopChange, filter, t, canEditPlaces, onAddPlace,
+    categories, selectedPlaceId, plannedIds, inDaySet, selectedIds, selectMode, selectedDayId,
+    isMobile, onPlaceClick, openContextMenu, onAssignToDay, toggleSelected, setDayPickerPlace,
+  } = S
+  return (
+    <div className="trek-stagger" style={{ flex: 1, overflowY: 'auto', minHeight: 0 }} ref={scrollContainerRef} onScroll={(e) => onScrollTopChange?.((e.currentTarget as HTMLElement).scrollTop)}>
+      {filtered.length === 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 16px', gap: 8 }}>
+          <span style={{ fontSize: 13, color: 'var(--text-faint)' }}>
+            {filter === 'unplanned' ? t('places.allPlanned') : t('places.noneFound')}
+          </span>
+          {canEditPlaces && <button onClick={onAddPlace} style={{ fontSize: 12, color: 'var(--text-primary)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit' }}>
+            {t('places.addPlace')}
+          </button>}
+        </div>
+      ) : (
+        filtered.map(place => {
+          const cat = categories.find(c => c.id === place.category_id)
+          const isSelected = place.id === selectedPlaceId
+          const isPlanned = plannedIds.has(place.id)
+          const inDay = inDaySet.has(place.id)
+          const isChecked = selectedIds.has(place.id)
+          return (
+            <MemoPlaceRow
+              key={place.id}
+              place={place}
+              category={cat}
+              isSelected={isSelected}
+              isPlanned={isPlanned}
+              inDay={inDay}
+              isChecked={isChecked}
+              selectMode={selectMode}
+              selectedDayId={selectedDayId}
+              canEditPlaces={canEditPlaces}
+              isMobile={isMobile}
+              t={t}
+              onPlaceClick={onPlaceClick}
+              onContextMenu={openContextMenu}
+              onAssignToDay={onAssignToDay}
+              toggleSelected={toggleSelected}
+              setDayPickerPlace={setDayPickerPlace}
+            />
+          )
+        })
+      )}
+    </div>
+  )
+}
+
+function MobileDayPickerSheet(S: SidebarState) {
+  const {
+    dayPickerPlace, setDayPickerPlace, setMobileShowDays, onPlaceClick, canEditPlaces, onEditPlace,
+    t, days, mobileShowDays, onAssignToDay, assignments, onDeletePlace,
+  } = S
+  return ReactDOM.createPortal(
+    <div
+      onClick={() => { setDayPickerPlace(null); setMobileShowDays(false) }}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 99999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ background: 'var(--bg-card)', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 500, maxHeight: '70vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', paddingBottom: 'var(--bottom-nav-h)' }}
+      >
+        <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid var(--border-secondary)' }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{dayPickerPlace.name}</div>
+          {dayPickerPlace.address && <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 2 }}>{dayPickerPlace.address}</div>}
+        </div>
+        <div style={{ overflowY: 'auto', padding: '8px 12px' }}>
+          {/* View details */}
+          <button
+            onClick={() => { onPlaceClick(dayPickerPlace.id); setDayPickerPlace(null); setMobileShowDays(false) }}
+            style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'transparent', fontFamily: 'inherit', textAlign: 'left', fontSize: 14, color: 'var(--text-primary)' }}
+          >
+            <Eye size={18} color="var(--text-muted)" /> {t('places.viewDetails')}
+          </button>
+          {/* Edit */}
+          {canEditPlaces && (
+            <button
+              onClick={() => { onEditPlace(dayPickerPlace); setDayPickerPlace(null); setMobileShowDays(false) }}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'transparent', fontFamily: 'inherit', textAlign: 'left', fontSize: 14, color: 'var(--text-primary)' }}
+            >
+              <Pencil size={18} color="var(--text-muted)" /> {t('common.edit')}
+            </button>
+          )}
+          {/* Assign to day */}
+          {days?.length > 0 && (
+            <>
+              <button
+                onClick={() => setMobileShowDays(v => !v)}
+                style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'transparent', fontFamily: 'inherit', textAlign: 'left', fontSize: 14, color: 'var(--text-primary)' }}
+              >
+                <CalendarDays size={18} color="var(--text-muted)" /> {t('places.assignToDay')}
+                <ChevronDown size={14} style={{ marginLeft: 'auto', color: 'var(--text-faint)', transform: mobileShowDays ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+              </button>
+              {mobileShowDays && (
+                <div style={{ paddingLeft: 20 }}>
+                  {days.map((day, i) => (
+                    <button
+                      key={day.id}
+                      onClick={() => { onAssignToDay(dayPickerPlace.id, day.id); setDayPickerPlace(null); setMobileShowDays(false) }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'transparent', fontFamily: 'inherit', textAlign: 'left' }}
+                    >
+                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', flexShrink: 0 }}>{i + 1}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{day.title || t('dayplan.dayN', { n: i + 1 })}</div>
+                        {day.date && <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>{new Date(day.date + 'T00:00:00Z').toLocaleDateString(undefined, { timeZone: 'UTC' })}</div>}
+                      </div>
+                      {(assignments[String(day.id)] || []).some(a => a.place?.id === dayPickerPlace.id) && <Check size={14} color="var(--text-faint)" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+          {/* Delete */}
+          {canEditPlaces && (
+            <button
+              onClick={() => { onDeletePlace(dayPickerPlace.id); setDayPickerPlace(null); setMobileShowDays(false) }}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'transparent', fontFamily: 'inherit', textAlign: 'left', fontSize: 14, color: '#ef4444' }}
+            >
+              <Trash2 size={18} /> {t('common.delete')}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
+function ListImportModal(S: SidebarState) {
+  const {
+    setListImportOpen, setListImportUrl, t, hasMultipleListImportProviders, availableListImportProviders,
+    listImportProvider, setListImportProvider, listImportUrl, listImportLoading, handleListImport,
+  } = S
+  return ReactDOM.createPortal(
+    <div
+      onClick={() => { setListImportOpen(false); setListImportUrl('') }}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ background: 'var(--bg-card)', borderRadius: 16, width: '100%', maxWidth: 440, padding: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}
+      >
+        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
+          {t('places.importList')}
+        </div>
+        {hasMultipleListImportProviders && (
+          <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+            {availableListImportProviders.map(provider => (
+              <button
+                key={provider}
+                onClick={() => setListImportProvider(provider)}
+                style={{
+                  padding: '6px 10px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                  fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
+                  background: listImportProvider === provider ? 'var(--accent)' : 'var(--bg-tertiary)',
+                  color: listImportProvider === provider ? 'var(--accent-text)' : 'var(--text-muted)',
+                }}
+              >
+                {provider === 'google' ? t('places.importGoogleList') : t('places.importNaverList')}
+              </button>
+            ))}
+          </div>
+        )}
+        <div style={{ fontSize: 12, color: 'var(--text-faint)', marginBottom: 16 }}>
+          {t(listImportProvider === 'google' ? 'places.googleListHint' : 'places.naverListHint')}
+        </div>
+        <input
+          type="text"
+          value={listImportUrl}
+          onChange={e => setListImportUrl(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && !listImportLoading) handleListImport() }}
+          placeholder={listImportProvider === 'google' ? 'https://maps.app.goo.gl/...' : 'https://naver.me/...'}
+          autoFocus
+          style={{
+            width: '100%', padding: '10px 14px', borderRadius: 10,
+            border: '1px solid var(--border-primary)', background: 'var(--bg-tertiary)',
+            fontSize: 13, color: 'var(--text-primary)', outline: 'none',
+            fontFamily: 'inherit', boxSizing: 'border-box',
+          }}
+        />
+        <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'flex-end' }}>
+          <button
+            onClick={() => { setListImportOpen(false); setListImportUrl('') }}
+            style={{
+              padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)',
+              background: 'none', color: 'var(--text-primary)', fontSize: 13, fontWeight: 500,
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >
+            {t('common.cancel')}
+          </button>
+          <button
+            onClick={handleListImport}
+            disabled={!listImportUrl.trim() || listImportLoading}
+            style={{
+              padding: '8px 16px', borderRadius: 10, border: 'none',
+              background: !listImportUrl.trim() || listImportLoading ? 'var(--bg-tertiary)' : 'var(--accent)',
+              color: !listImportUrl.trim() || listImportLoading ? 'var(--text-faint)' : 'var(--accent-text)',
+              fontSize: 13, fontWeight: 500, cursor: !listImportUrl.trim() || listImportLoading ? 'default' : 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            {listImportLoading ? t('common.loading') : t('common.import')}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
+const PlacesSidebar = React.memo(function PlacesSidebar(props: PlacesSidebarProps) {
+  const S = usePlacesSidebar(props)
+  const {
+    sidebarDragOver, handleSidebarDragEnter, handleSidebarDragOver, handleSidebarDragLeave, handleSidebarDrop,
+    selectMode, filtered, t, dayPickerPlace, listImportOpen,
+    fileImportOpen, setFileImportOpen, sidebarDropFile, setSidebarDropFile, tripId, pushUndo,
+    ctxMenu, isMobile, pendingDeleteIds, setPendingDeleteIds, onBulkDeleteConfirm,
+  } = S
   return (
     <div
       onDragEnter={handleSidebarDragEnter}
@@ -330,314 +901,13 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
       onDrop={handleSidebarDrop}
       style={{ display: 'flex', flexDirection: 'column', height: '100%', fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif", position: 'relative' }}
     >
-      {sidebarDragOver && (
-        <div style={{
-          position: 'absolute', inset: 0, zIndex: 10,
-          background: 'color-mix(in srgb, var(--accent) 12%, transparent)',
-          border: '2px dashed var(--accent)',
-          borderRadius: 4,
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          gap: 10, pointerEvents: 'none',
-        }}>
-          <Upload size={28} strokeWidth={1.5} color="var(--accent)" />
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>{t('places.sidebarDrop')}</span>
-        </div>
-      )}
+      {sidebarDragOver && <PlacesDropOverlay {...S} />}
       {/* Kopfbereich */}
-      <div style={{ padding: '14px 16px 10px', borderBottom: '1px solid var(--border-faint)', flexShrink: 0 }}>
-        {canEditPlaces && <button
-          onClick={onAddPlace}
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            width: '100%', padding: '8px 12px', borderRadius: 12, border: 'none',
-            background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 13, fontWeight: 500,
-            cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10,
-          }}
-        >
-          <Plus size={14} strokeWidth={2} /> {t('places.addPlace')}
-        </button>}
-        {canEditPlaces && <>
-        <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-          <button
-            onClick={() => setFileImportOpen(true)}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-              flex: 1, padding: '5px 12px', borderRadius: 8,
-              border: '1px dashed var(--border-primary)', background: 'none',
-              color: 'var(--text-faint)', fontSize: 11, fontWeight: 500,
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}
-          >
-            <Upload size={11} strokeWidth={2} /> {t('places.importFile')}
-          </button>
-          <button
-            onClick={() => setListImportOpen(true)}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-              flex: 1, padding: '5px 12px', borderRadius: 8,
-              border: '1px dashed var(--border-primary)', background: 'none',
-              color: 'var(--text-faint)', fontSize: 11, fontWeight: 500,
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}
-          >
-            <MapPin size={11} strokeWidth={2} /> {t(hasMultipleListImportProviders ? 'places.importList' : 'places.importGoogleList')}
-          </button>
-        </div>
-        <div style={{ height: 1, background: 'var(--border-primary)', margin: '2px 0 10px' }} />
-        </>}
-
-        {/* Filter-Tabs */}
-        {(() => {
-          const baseFiltered = places.filter(p => {
-            if (categoryFilters.size > 0) {
-              if (p.category_id == null) {
-                if (!categoryFilters.has('uncategorized')) return false
-              } else if (!categoryFilters.has(String(p.category_id))) return false
-            }
-            if (search && !p.name.toLowerCase().includes(search.toLowerCase()) &&
-                !(p.address || '').toLowerCase().includes(search.toLowerCase())) return false
-            return true
-          })
-          const counts = {
-            all: baseFiltered.length,
-            unplanned: baseFiltered.filter(p => !plannedIds.has(p.id)).length,
-            tracks: baseFiltered.filter(p => p.route_geometry).length,
-          }
-          const tabs = ([
-            { id: 'all', label: t('places.all') },
-            { id: 'unplanned', label: t('places.unplanned') },
-            hasTracks ? { id: 'tracks', label: t('places.filterTracks') } : null,
-          ] as const).filter(Boolean) as Array<{ id: 'all' | 'unplanned' | 'tracks'; label: string }>
-          return (
-            <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
-              {tabs.map(f => {
-                const active = filter === f.id
-                return (
-                  <button
-                    key={f.id}
-                    onClick={() => { setFilter(f.id); onPlacesFilterChange?.(f.id); setSelectedIds(new Set()) }}
-                    style={{
-                      appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                      display: 'inline-flex', alignItems: 'center', gap: 5,
-                      padding: '4px 9px', borderRadius: 99,
-                      fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap',
-                      background: active ? 'var(--accent)' : 'var(--bg-card)',
-                      color: active ? 'var(--accent-text)' : 'var(--text-primary)',
-                      boxShadow: active ? 'none' : '0 1px 2px rgba(0,0,0,0.06)',
-                      transition: 'background 0.15s, color 0.15s, box-shadow 0.15s',
-                    }}
-                  >
-                    {f.label}
-                    <span style={{
-                      fontSize: 9, fontWeight: 600, lineHeight: 1,
-                      background: active ? 'color-mix(in srgb, var(--accent-text) 22%, transparent)' : 'var(--bg-tertiary)',
-                      color: active ? 'var(--accent-text)' : 'var(--text-faint)',
-                      padding: '1px 5px', borderRadius: 99, minWidth: 14, textAlign: 'center',
-                    }}>
-                      {counts[f.id]}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-          )
-        })()}
-
-        {/* Suchfeld */}
-        <div style={{ position: 'relative' }}>
-          <Search size={13} strokeWidth={1.8} color="var(--text-faint)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-          <input
-            type="text"
-            value={search}
-            onChange={e => { setSearch(e.target.value); if (selectMode) setSelectedIds(new Set()) }}
-            placeholder={t('places.search')}
-            style={{
-              width: '100%', padding: '7px 30px 7px 30px', borderRadius: 10,
-              border: 'none', background: 'var(--bg-tertiary)', fontSize: 12, color: 'var(--text-primary)',
-              outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
-            }}
-          />
-          {search && (
-            <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
-              <X size={12} strokeWidth={2} color="var(--text-faint)" />
-            </button>
-          )}
-        </div>
-
-        {/* Category multi-select dropdown */}
-        {categories.length > 0 && (() => {
-          const label = categoryFilters.size === 0
-            ? t('places.allCategories')
-            : categoryFilters.size === 1
-              ? (categoryFilters.has('uncategorized') ? t('places.noCategory') : categories.find(c => categoryFilters.has(String(c.id)))?.name || t('places.allCategories'))
-              : `${categoryFilters.size} ${t('places.categoriesSelected')}`
-          return (
-            <div style={{ marginTop: 6, position: 'relative', display: 'flex', gap: 6, alignItems: 'stretch' }}>
-              <button onClick={() => setCatDropOpen(v => !v)} style={{
-                flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border-primary)',
-                background: 'var(--bg-card)', fontSize: 12, color: 'var(--text-primary)',
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
-                <ChevronDown size={12} style={{ flexShrink: 0, color: 'var(--text-faint)', transform: catDropOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
-              </button>
-              {canEditPlaces && (
-                <Tooltip label={t('common.select')} placement="bottom">
-                <button
-                  onClick={() => { setSelectMode(v => !v); setSelectedIds(new Set()) }}
-                  aria-label={t('common.select')}
-                  aria-pressed={selectMode}
-                  style={{
-                    position: 'relative', width: 30, flexShrink: 0, borderRadius: 8,
-                    border: `1px solid ${selectMode ? 'var(--accent)' : 'var(--border-primary)'}`,
-                    background: selectMode ? 'color-mix(in srgb, var(--accent) 14%, transparent)' : 'var(--bg-card)',
-                    color: selectMode ? 'var(--accent)' : 'var(--text-faint)',
-                    cursor: 'pointer', fontFamily: 'inherit', padding: 0,
-                    transition: 'background 0.18s, color 0.18s, border-color 0.18s',
-                    overflow: 'hidden',
-                  }}
-                >
-                  <span style={{
-                    position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transition: 'opacity 0.18s ease, transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                    opacity: selectMode ? 0 : 1,
-                    transform: selectMode ? 'rotate(-90deg) scale(0.6)' : 'rotate(0) scale(1)',
-                  }}>
-                    <Check size={13} strokeWidth={2.4} />
-                  </span>
-                  <span style={{
-                    position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transition: 'opacity 0.18s ease, transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                    opacity: selectMode ? 1 : 0,
-                    transform: selectMode ? 'rotate(0) scale(1)' : 'rotate(90deg) scale(0.6)',
-                  }}>
-                    <X size={13} strokeWidth={2.4} />
-                  </span>
-                </button>
-                </Tooltip>
-              )}
-              {catDropOpen && (
-                <div style={{
-                  position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, marginTop: 4,
-                  background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10,
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 4, maxHeight: 200, overflowY: 'auto',
-                }}>
-                  {categories.map(c => {
-                    const active = categoryFilters.has(String(c.id))
-                    const CatIcon = getCategoryIcon(c.icon)
-                    return (
-                      <button key={c.id} onClick={() => toggleCategoryFilter(String(c.id))} style={{
-                        display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-                        padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                        background: active ? 'var(--bg-hover)' : 'transparent',
-                        fontFamily: 'inherit', fontSize: 12, color: 'var(--text-primary)',
-                        textAlign: 'left',
-                      }}>
-                        <div style={{
-                          width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-                          border: active ? 'none' : '1.5px solid var(--border-primary)',
-                          background: active ? (c.color || 'var(--accent)') : 'transparent',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}>
-                          {active && <Check size={10} strokeWidth={3} color="white" />}
-                        </div>
-                        <CatIcon size={12} strokeWidth={2} color={c.color || 'var(--text-muted)'} />
-                        <span style={{ flex: 1 }}>{c.name}</span>
-                      </button>
-                    )
-                  })}
-                  {places.some(p => p.category_id == null) && (() => {
-                    const active = categoryFilters.has('uncategorized')
-                    return (
-                      <button onClick={() => toggleCategoryFilter('uncategorized')} style={{
-                        display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-                        padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                        background: active ? 'var(--bg-hover)' : 'transparent',
-                        fontFamily: 'inherit', fontSize: 12, color: 'var(--text-muted)',
-                        textAlign: 'left', borderTop: '1px solid var(--border-faint)', marginTop: 2,
-                      }}>
-                        <div style={{
-                          width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-                          border: active ? 'none' : '1.5px solid var(--border-primary)',
-                          background: active ? 'var(--text-faint)' : 'transparent',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}>
-                          {active && <Check size={10} strokeWidth={3} color="white" />}
-                        </div>
-                        <MapPin size={12} strokeWidth={2} color="var(--text-faint)" />
-                        <span style={{ flex: 1 }}>{t('places.noCategory')}</span>
-                      </button>
-                    )
-                  })()}
-                  {categoryFilters.size > 0 && (
-                    <button onClick={() => { setCategoryFiltersLocal(new Set()); onCategoryFilterChange?.(new Set()) }} style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-                      width: '100%', padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                      background: 'transparent', fontFamily: 'inherit', fontSize: 11, color: 'var(--text-faint)',
-                      marginTop: 2, borderTop: '1px solid var(--border-faint)',
-                    }}>
-                      <X size={10} /> {t('places.clearFilter')}
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          )
-        })()}
-      </div>
+      <PlacesHeader {...S} />
 
       {/* Anzahl / Auswahl-Leiste */}
       {selectMode ? (
-        <div style={{
-          margin: '6px 16px', padding: '5px 8px 5px 10px', borderRadius: 8,
-          background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
-          display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, fontSize: 11,
-        }}>
-          <span style={{ flex: 1, color: 'var(--accent)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {t('places.selectionCount', { count: selectedIds.size })}
-          </span>
-          <Tooltip label={selectedIds.size === filtered.length && filtered.length > 0 ? t('common.deselectAll') : t('common.selectAll')} placement="bottom">
-          <button
-            onClick={() => {
-              if (selectedIds.size === filtered.length) setSelectedIds(new Set())
-              else setSelectedIds(new Set(filtered.map(p => p.id)))
-            }}
-            aria-label={selectedIds.size === filtered.length && filtered.length > 0 ? t('common.deselectAll') : t('common.selectAll')}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: 24, height: 24, borderRadius: 6, border: 'none',
-              background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', padding: 0,
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
-          >
-            <Check size={13} strokeWidth={2.2} />
-          </button>
-          </Tooltip>
-          <Tooltip label={t('places.deleteSelected')} placement="bottom">
-          <button
-            onClick={() => {
-              if (selectedIds.size === 0) return
-              if (isMobile) setPendingDeleteIds(Array.from(selectedIds))
-              else onBulkDeletePlaces?.(Array.from(selectedIds))
-            }}
-            disabled={selectedIds.size === 0}
-            aria-label={t('places.deleteSelected')}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: 24, height: 24, borderRadius: 6, border: 'none',
-              background: 'transparent',
-              color: selectedIds.size > 0 ? '#ef4444' : 'var(--text-faint)',
-              cursor: selectedIds.size > 0 ? 'pointer' : 'default', padding: 0,
-            }}
-            onMouseEnter={e => { if (selectedIds.size > 0) e.currentTarget.style.background = 'color-mix(in srgb, #ef4444 14%, transparent)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
-          >
-            <Trash2 size={13} strokeWidth={2} />
-          </button>
-          </Tooltip>
-        </div>
+        <PlacesSelectionBar {...S} />
       ) : (
         <div style={{ padding: '6px 16px', flexShrink: 0 }}>
           <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{filtered.length === 1 ? t('places.countSingular') : t('places.count', { count: filtered.length })}</span>
@@ -645,198 +915,10 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
       )}
 
       {/* Liste */}
-      <div className="trek-stagger" style={{ flex: 1, overflowY: 'auto', minHeight: 0 }} ref={scrollContainerRef} onScroll={(e) => onScrollTopChange?.((e.currentTarget as HTMLElement).scrollTop)}>
-        {filtered.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 16px', gap: 8 }}>
-            <span style={{ fontSize: 13, color: 'var(--text-faint)' }}>
-              {filter === 'unplanned' ? t('places.allPlanned') : t('places.noneFound')}
-            </span>
-            {canEditPlaces && <button onClick={onAddPlace} style={{ fontSize: 12, color: 'var(--text-primary)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit' }}>
-              {t('places.addPlace')}
-            </button>}
-          </div>
-        ) : (
-          filtered.map(place => {
-            const cat = categories.find(c => c.id === place.category_id)
-            const isSelected = place.id === selectedPlaceId
-            const isPlanned = plannedIds.has(place.id)
-            const inDay = inDaySet.has(place.id)
-            const isChecked = selectedIds.has(place.id)
-            return (
-              <MemoPlaceRow
-                key={place.id}
-                place={place}
-                category={cat}
-                isSelected={isSelected}
-                isPlanned={isPlanned}
-                inDay={inDay}
-                isChecked={isChecked}
-                selectMode={selectMode}
-                selectedDayId={selectedDayId}
-                canEditPlaces={canEditPlaces}
-                isMobile={isMobile}
-                t={t}
-                onPlaceClick={onPlaceClick}
-                onContextMenu={openContextMenu}
-                onAssignToDay={onAssignToDay}
-                toggleSelected={toggleSelected}
-                setDayPickerPlace={setDayPickerPlace}
-              />
-            )
-          })
-        )}
-      </div>
+      <PlacesList {...S} />
 
-      {dayPickerPlace && ReactDOM.createPortal(
-        <div
-          onClick={() => { setDayPickerPlace(null); setMobileShowDays(false) }}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 99999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{ background: 'var(--bg-card)', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 500, maxHeight: '70vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', paddingBottom: 'var(--bottom-nav-h)' }}
-          >
-            <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid var(--border-secondary)' }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{dayPickerPlace.name}</div>
-              {dayPickerPlace.address && <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 2 }}>{dayPickerPlace.address}</div>}
-            </div>
-            <div style={{ overflowY: 'auto', padding: '8px 12px' }}>
-              {/* View details */}
-              <button
-                onClick={() => { onPlaceClick(dayPickerPlace.id); setDayPickerPlace(null); setMobileShowDays(false) }}
-                style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'transparent', fontFamily: 'inherit', textAlign: 'left', fontSize: 14, color: 'var(--text-primary)' }}
-              >
-                <Eye size={18} color="var(--text-muted)" /> {t('places.viewDetails')}
-              </button>
-              {/* Edit */}
-              {canEditPlaces && (
-                <button
-                  onClick={() => { onEditPlace(dayPickerPlace); setDayPickerPlace(null); setMobileShowDays(false) }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'transparent', fontFamily: 'inherit', textAlign: 'left', fontSize: 14, color: 'var(--text-primary)' }}
-                >
-                  <Pencil size={18} color="var(--text-muted)" /> {t('common.edit')}
-                </button>
-              )}
-              {/* Assign to day */}
-              {days?.length > 0 && (
-                <>
-                  <button
-                    onClick={() => setMobileShowDays(v => !v)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'transparent', fontFamily: 'inherit', textAlign: 'left', fontSize: 14, color: 'var(--text-primary)' }}
-                  >
-                    <CalendarDays size={18} color="var(--text-muted)" /> {t('places.assignToDay')}
-                    <ChevronDown size={14} style={{ marginLeft: 'auto', color: 'var(--text-faint)', transform: mobileShowDays ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
-                  </button>
-                  {mobileShowDays && (
-                    <div style={{ paddingLeft: 20 }}>
-                      {days.map((day, i) => (
-                        <button
-                          key={day.id}
-                          onClick={() => { onAssignToDay(dayPickerPlace.id, day.id); setDayPickerPlace(null); setMobileShowDays(false) }}
-                          style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'transparent', fontFamily: 'inherit', textAlign: 'left' }}
-                        >
-                          <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', flexShrink: 0 }}>{i + 1}</div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{day.title || t('dayplan.dayN', { n: i + 1 })}</div>
-                            {day.date && <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>{new Date(day.date + 'T00:00:00Z').toLocaleDateString(undefined, { timeZone: 'UTC' })}</div>}
-                          </div>
-                          {(assignments[String(day.id)] || []).some(a => a.place?.id === dayPickerPlace.id) && <Check size={14} color="var(--text-faint)" />}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </>
-              )}
-              {/* Delete */}
-              {canEditPlaces && (
-                <button
-                  onClick={() => { onDeletePlace(dayPickerPlace.id); setDayPickerPlace(null); setMobileShowDays(false) }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'transparent', fontFamily: 'inherit', textAlign: 'left', fontSize: 14, color: '#ef4444' }}
-                >
-                  <Trash2 size={18} /> {t('common.delete')}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
-      {listImportOpen && ReactDOM.createPortal(
-        <div
-          onClick={() => { setListImportOpen(false); setListImportUrl('') }}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{ background: 'var(--bg-card)', borderRadius: 16, width: '100%', maxWidth: 440, padding: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}
-          >
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
-              {t('places.importList')}
-            </div>
-            {hasMultipleListImportProviders && (
-              <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-                {availableListImportProviders.map(provider => (
-                  <button
-                    key={provider}
-                    onClick={() => setListImportProvider(provider)}
-                    style={{
-                      padding: '6px 10px', borderRadius: 20, border: 'none', cursor: 'pointer',
-                      fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
-                      background: listImportProvider === provider ? 'var(--accent)' : 'var(--bg-tertiary)',
-                      color: listImportProvider === provider ? 'var(--accent-text)' : 'var(--text-muted)',
-                    }}
-                  >
-                    {provider === 'google' ? t('places.importGoogleList') : t('places.importNaverList')}
-                  </button>
-                ))}
-              </div>
-            )}
-            <div style={{ fontSize: 12, color: 'var(--text-faint)', marginBottom: 16 }}>
-              {t(listImportProvider === 'google' ? 'places.googleListHint' : 'places.naverListHint')}
-            </div>
-            <input
-              type="text"
-              value={listImportUrl}
-              onChange={e => setListImportUrl(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && !listImportLoading) handleListImport() }}
-              placeholder={listImportProvider === 'google' ? 'https://maps.app.goo.gl/...' : 'https://naver.me/...'}
-              autoFocus
-              style={{
-                width: '100%', padding: '10px 14px', borderRadius: 10,
-                border: '1px solid var(--border-primary)', background: 'var(--bg-tertiary)',
-                fontSize: 13, color: 'var(--text-primary)', outline: 'none',
-                fontFamily: 'inherit', boxSizing: 'border-box',
-              }}
-            />
-            <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => { setListImportOpen(false); setListImportUrl('') }}
-                style={{
-                  padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)',
-                  background: 'none', color: 'var(--text-primary)', fontSize: 13, fontWeight: 500,
-                  cursor: 'pointer', fontFamily: 'inherit',
-                }}
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                onClick={handleListImport}
-                disabled={!listImportUrl.trim() || listImportLoading}
-                style={{
-                  padding: '8px 16px', borderRadius: 10, border: 'none',
-                  background: !listImportUrl.trim() || listImportLoading ? 'var(--bg-tertiary)' : 'var(--accent)',
-                  color: !listImportUrl.trim() || listImportLoading ? 'var(--text-faint)' : 'var(--accent-text)',
-                  fontSize: 13, fontWeight: 500, cursor: !listImportUrl.trim() || listImportLoading ? 'default' : 'pointer',
-                  fontFamily: 'inherit',
-                }}
-              >
-                {listImportLoading ? t('common.loading') : t('common.import')}
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+      {dayPickerPlace && <MobileDayPickerSheet {...S} />}
+      {listImportOpen && <ListImportModal {...S} />}
       <FileImportModal
         isOpen={fileImportOpen}
         onClose={() => { setFileImportOpen(false); setSidebarDropFile(null) }}

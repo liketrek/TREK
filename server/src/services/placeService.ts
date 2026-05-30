@@ -683,7 +683,7 @@ export async function importGoogleList(tripId: string, url: string) {
 export async function importNaverList(
   tripId: string,
   url: string,
-): Promise<{ places: any[]; listName: string } | { error: string; status: number }> {
+): Promise<{ places: any[]; listName: string; skipped: number } | { error: string; status: number }> {
   let resolvedUrl = url;
   const limit = 20;
 

@@ -62,7 +62,6 @@ const settings: TranslationStrings = {
   'settings.language': 'Γλώσσα',
   'settings.temperature': 'Μονάδα Θερμοκρασίας',
   'settings.timeFormat': 'Μορφή Ώρας',
-  'settings.routeCalculation': 'Υπολογισμός Διαδρομής',
   'settings.bookingLabels': 'Ετικέτες διαδρομής κρατήσεων',
   'settings.bookingLabelsHint':
     'Εμφάνιση ονομάτων σταθμών / αεροδρομίων στον χάρτη. Όταν είναι απενεργοποιημένο, εμφανίζεται μόνο το εικονίδιο.',

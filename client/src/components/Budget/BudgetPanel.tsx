@@ -771,12 +771,40 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
 
       <div style={{ display: 'flex', gap: 20, padding: '24px 28px 40px', alignItems: 'flex-start', flexWrap: 'wrap' }} className="max-md:!px-4">
         <div style={{ flex: 1, minWidth: 0 }}>
-          {categoryNames.map((cat, ci) => {
-            const items = grouped.get(cat) || []
-            const subtotal = items.reduce((s, x) => s + (x.total_price || 0), 0)
-            const color = categoryColor(cat)
+          {categoryNames.map(cat => (
+            <BudgetCategoryTable key={cat} cat={cat} grouped={grouped} categoryColor={categoryColor}
+              canEdit={canEdit} editingCat={editingCat} setEditingCat={setEditingCat}
+              dragCat={dragCat} setDragCat={setDragCat} dragOverCat={dragOverCat} setDragOverCat={setDragOverCat}
+              dragItem={dragItem} setDragItem={setDragItem} dragOverItem={dragOverItem} setDragOverItem={setDragOverItem}
+              dragItemCat={dragItemCat} setDragItemCat={setDragItemCat}
+              categoryNames={categoryNames} reorderBudgetCategories={reorderBudgetCategories} reorderBudgetItems={reorderBudgetItems}
+              handleRenameCategory={handleRenameCategory} handleDeleteCategory={handleDeleteCategory} handleDeleteItem={handleDeleteItem}
+              handleUpdateField={handleUpdateField} handleAddItem={handleAddItem}
+              tripId={tripId} currency={currency} locale={locale} t={t} fmt={fmt}
+              hasMultipleMembers={hasMultipleMembers} tripMembers={tripMembers}
+              setBudgetItemMembers={setBudgetItemMembers} toggleBudgetMemberPaid={toggleBudgetMemberPaid}
+              th={th} td={td} />
+          ))}
+        </div>
 
-            return (
+        <BudgetSummary theme={theme} currency={currency} locale={locale} grandTotal={grandTotal}
+          hasMultipleMembers={hasMultipleMembers} budgetItems={budgetItems} settlement={settlement}
+          settlementOpen={settlementOpen} setSettlementOpen={setSettlementOpen} pieSegments={pieSegments}
+          isDark={isDark} tripId={tripId} t={t} fmt={fmt} />
+      </div>
+    </div>
+  )
+}
+
+function BudgetCategoryTable({ cat, grouped, categoryColor, canEdit, editingCat, setEditingCat,
+  dragCat, setDragCat, dragOverCat, setDragOverCat, dragItem, setDragItem, dragOverItem, setDragOverItem,
+  dragItemCat, setDragItemCat, categoryNames, reorderBudgetCategories, reorderBudgetItems,
+  handleRenameCategory, handleDeleteCategory, handleDeleteItem, handleUpdateField, handleAddItem,
+  tripId, currency, locale, t, fmt, hasMultipleMembers, tripMembers, setBudgetItemMembers, toggleBudgetMemberPaid, th, td }: any) {
+  const items = grouped.get(cat) || []
+  const subtotal = items.reduce((s, x) => s + (x.total_price || 0), 0)
+  const color = categoryColor(cat)
+  return (
               <div key={cat} data-drag-cat={cat} style={{
                   marginBottom: 16, opacity: dragCat === cat ? 0.4 : 1,
                   transition: 'opacity 0.15s',
@@ -975,10 +1003,12 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
                   </table>
                 </div>
               </div>
-            )
-          })}
-        </div>
+  )
+}
 
+function BudgetSummary({ theme, currency, locale, grandTotal, hasMultipleMembers, budgetItems,
+  settlement, settlementOpen, setSettlementOpen, pieSegments, isDark, tripId, t, fmt }: any) {
+  return (
         <div className="w-full md:w-[320px]" style={{ flexShrink: 0, position: 'sticky', top: 16, alignSelf: 'flex-start' }}>
 
           <div style={{
@@ -1227,7 +1257,5 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
           })()}
 
         </div>
-      </div>
-    </div>
   )
 }

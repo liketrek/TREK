@@ -1,8 +1,7 @@
-import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { ChangeEvent } from 'react'
 import { Mail, ArrowLeft, CheckCircle2, Terminal } from 'lucide-react'
 import { useTranslation } from '../i18n'
-import { authApi } from '../api/client'
+import { useForgotPassword } from './forgotPassword/useForgotPassword'
 
 const inputBase: React.CSSProperties = {
   width: '100%', padding: '11px 12px 11px 38px', borderRadius: 12,
@@ -13,36 +12,8 @@ const inputBase: React.CSSProperties = {
 
 const ForgotPasswordPage: React.FC = () => {
   const { t } = useTranslation()
-  const navigate = useNavigate()
-  const [email, setEmail] = useState('')
-  const [submitted, setSubmitted] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [smtpConfigured, setSmtpConfigured] = useState<boolean | null>(null)
-
-  useEffect(() => {
-    // Probe whether SMTP is configured so we can warn the user up-front
-    // that the link will land in the server console instead of their
-    // inbox. Null while pending — hint is hidden until we know.
-    authApi.getAppConfig?.()
-      .then((cfg: any) => {
-        const hasEmail = !!cfg?.available_channels?.email
-        setSmtpConfigured(hasEmail)
-      })
-      .catch(() => setSmtpConfigured(null))
-  }, [])
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    if (isLoading) return
-    setIsLoading(true)
-    try {
-      await authApi.forgotPassword({ email: email.trim() })
-    } catch {
-      // Enumeration-safe: success UX regardless of server outcome.
-    }
-    setSubmitted(true)
-    setIsLoading(false)
-  }
+  // Page = wiring container: form state, the SMTP probe and submit live in the hook.
+  const { navigate, email, setEmail, submitted, isLoading, smtpConfigured, handleSubmit } = useForgotPassword()
 
   return (
     <div style={{

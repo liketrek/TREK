@@ -501,6 +501,7 @@ export function createEntry(journeyId: number, userId: number, data: {
   tags?: string[];
   pros_cons?: { pros: string[]; cons: string[] };
   visibility?: string;
+  sort_order?: number;
 }, sid?: string): JourneyEntry | null {
   if (!canEdit(journeyId, userId)) return null;
 

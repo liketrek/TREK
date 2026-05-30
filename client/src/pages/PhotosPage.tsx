@@ -1,80 +1,28 @@
-import React, { useEffect, useState } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
-import { useTripStore } from '../store/tripStore'
-import { tripsApi, daysApi, placesApi } from '../api/client'
-import Navbar from '../components/Layout/Navbar'
+import React from 'react'
+import { Link } from 'react-router-dom'
+import PageShell from '../components/Layout/PageShell'
+import { PageSpinner } from '../components/shared/Spinner'
 import PhotoGallery from '../components/Photos/PhotoGallery'
 import { ArrowLeft } from 'lucide-react'
 import { useTranslation } from '../i18n'
-import type { Trip, Day, Place, Photo } from '../types'
+import { usePhotos } from './photos/usePhotos'
 
 export default function PhotosPage(): React.ReactElement {
   const { t } = useTranslation()
-  const { id: tripId } = useParams<{ id: string }>()
-  const navigate = useNavigate()
-  const tripStore = useTripStore()
-
-  const [trip, setTrip] = useState<Trip | null>(null)
-  const [days, setDays] = useState<Day[]>([])
-  const [places, setPlaces] = useState<Place[]>([])
-  const [photos, setPhotos] = useState<Photo[]>([])
-  const [isLoading, setIsLoading] = useState<boolean>(true)
-
-  useEffect(() => {
-    loadData()
-  }, [tripId])
-
-  const loadData = async (): Promise<void> => {
-    setIsLoading(true)
-    try {
-      const [tripData, daysData, placesData] = await Promise.all([
-        tripsApi.get(tripId),
-        daysApi.list(tripId),
-        placesApi.list(tripId),
-      ])
-      setTrip(tripData.trip)
-      setDays(daysData.days)
-      setPlaces(placesData.places)
-
-      // Load photos
-      await tripStore.loadPhotos(tripId)
-    } catch (err: unknown) {
-      navigate('/dashboard')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  // Sync photos from store
-  useEffect(() => {
-    setPhotos(tripStore.photos)
-  }, [tripStore.photos])
-
-  const handleUpload = async (formData: FormData): Promise<void> => {
-    await tripStore.addPhoto(tripId, formData)
-  }
-
-  const handleDelete = async (photoId: number): Promise<void> => {
-    await tripStore.deletePhoto(tripId, photoId)
-  }
-
-  const handleUpdate = async (photoId: number, data: Record<string, string | number | null>): Promise<void> => {
-    await tripStore.updatePhoto(tripId, photoId, data)
-  }
+  // Page = wiring container: trip/days/places load, photo sync + handlers live in the hook.
+  const { tripId, navigate, trip, days, places, photos, isLoading, handleUpload, handleDelete, handleUpdate } = usePhotos()
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-700 rounded-full animate-spin"></div>
-      </div>
+      <PageSpinner
+        wrapperClassName="min-h-screen flex items-center justify-center bg-slate-50"
+        className="w-10 h-10 border-4 border-slate-200 border-t-slate-700"
+      />
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Navbar tripTitle={trip?.name} tripId={tripId} showBack onBack={() => navigate(`/trips/${tripId}`)} />
-
-      <div style={{ paddingTop: 'var(--nav-h)' }}>
+    <PageShell className="bg-slate-50" navbar={{ tripTitle: trip?.name, tripId, showBack: true, onBack: () => navigate(`/trips/${tripId}`) }}>
         <div className="max-w-7xl mx-auto px-4 py-6">
           {/* Header */}
           <div className="flex items-center gap-3 mb-6">
@@ -104,7 +52,6 @@ export default function PhotosPage(): React.ReactElement {
             tripId={tripId}
           />
         </div>
-      </div>
-    </div>
+    </PageShell>
   )
 }

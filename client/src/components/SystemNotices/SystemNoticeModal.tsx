@@ -303,7 +303,14 @@ function NoticeContent({ notice, title, body, ctaLabel, titleId, bodyId, isDark,
   );
 }
 
-export function ModalRenderer({ notices }: Props) {
+
+/**
+ * Drives the system-notice modal: pager index + visibility, mobile/dark/reduced-
+ * motion detection, body-scroll lock, keyboard (ESC + arrows) and the page-slide
+ * animation refs. Exposes dismiss/CTA/pager handlers + the touch-drag refs used
+ * by the mobile bottom sheet. The two layout components below render from it.
+ */
+function useSystemNoticeModal(notices: SystemNoticeDTO[]) {
   const [idx, setIdx] = useState(0);
   const [visible, setVisible] = useState(false);
   const [pageAnnouncement, setPageAnnouncement] = useState('');
@@ -568,236 +575,231 @@ export function ModalRenderer({ notices }: Props) {
     announceIndex(i, notices.length);
   }
 
-  // No notice to show
-  if (!notice) return null;
-
-  // Pre-compute body with params interpolated
-  const rawBody = t(notice.bodyKey);
-  const body = notice.bodyParams
-    ? Object.entries(notice.bodyParams).reduce(
-        (s, [k, v]) => s.replace(new RegExp(`\\{${k}\\}`, 'g'), v),
-        rawBody
-      )
-    : rawBody;
-
-  const title = t(notice.titleKey);
-  const ctaLabel = notice.cta ? t(notice.cta.labelKey) : null;
-
-  const titleId = `notice-title-${notice.id}`;
-  const bodyId  = `notice-body-${notice.id}`;
-
   // Animation classes
   const dur = prefersReducedMotion ? 'duration-[120ms]' : 'duration-[260ms]';
   const ease = visible ? 'ease-out' : 'ease-in';
 
-  const contentProps: ContentProps = {
-    notice, title, body, ctaLabel, titleId, bodyId, isDark,
+  return {
+    notices, idx, setIdx, visible, pageAnnouncement, isMobile, isDark, prefersReducedMotion,
+    notice, canPage, isLastPage, language, t, dur, ease,
+    touchStartX, touchStartY, dragLockRef, scrollTopAtTouchStart, isPageNavRef,
+    stripRef, sheetRef, prevSlotRef, contentWrapperRef, nextSlotRef,
+    announceIndex, handleDismiss, handleDismissAll, handleCTA, animatedDismissAll,
+    handlePrev, handleNext, handleGoto,
+  };
+}
+
+type NoticeState = ReturnType<typeof useSystemNoticeModal>;
+
+// Build the NoticeContent props for a given notice + pager slot index.
+function makeContentProps(S: NoticeState, n: SystemNoticeDTO, slotIdx: number): ContentProps {
+  const { t, isDark, canPage, notices, handleDismiss, handleDismissAll, handleCTA, handlePrev, handleNext, handleGoto } = S;
+  const rawBody = t(n.bodyKey);
+  const body = n.bodyParams
+    ? Object.entries(n.bodyParams).reduce(
+        (s, [k, v]) => s.replace(new RegExp(`\\{${k}\\}`, 'g'), v),
+        rawBody
+      )
+    : rawBody;
+  return {
+    notice: n,
+    title: t(n.titleKey),
+    body,
+    ctaLabel: n.cta ? t(n.cta.labelKey) : null,
+    titleId: `notice-title-${n.id}`,
+    bodyId: `notice-body-${n.id}`,
+    isDark,
     onDismiss: handleDismiss,
     onDismissAll: handleDismissAll,
     onCTA: handleCTA,
     total: notices.length,
-    currentPage: idx,
+    currentPage: slotIdx,
     canPage,
     onPrev: handlePrev,
     onNext: handleNext,
     onGoto: handleGoto,
   };
+}
 
-  if (isMobile) {
-    const mobileMotion = prefersReducedMotion
-      ? (visible ? 'opacity-100' : 'opacity-0')
-      : (visible ? 'opacity-100 translate-y-0' : 'opacity-100 translate-y-full');
+function MobileNoticeSheet(S: NoticeState) {
+  const {
+    notice, idx, notices, visible, dur, ease, prefersReducedMotion, pageAnnouncement,
+    language, canPage, setIdx, announceIndex, isPageNavRef, animatedDismissAll,
+    touchStartX, touchStartY, dragLockRef, scrollTopAtTouchStart,
+    stripRef, sheetRef, prevSlotRef, contentWrapperRef, nextSlotRef,
+  } = S;
+  if (!notice) return null;
+  const titleId = `notice-title-${notice.id}`;
+  const bodyId  = `notice-body-${notice.id}`;
+  const mobileMotion = prefersReducedMotion
+    ? (visible ? 'opacity-100' : 'opacity-0')
+    : (visible ? 'opacity-100 translate-y-0' : 'opacity-100 translate-y-full');
 
-    // Build ContentProps for an adjacent slot so NoticeContent renders correctly
-    function buildSlotProps(n: SystemNoticeDTO, slotIdx: number): ContentProps {
-      const slotRawBody = t(n.bodyKey);
-      const slotBody = n.bodyParams
-        ? Object.entries(n.bodyParams).reduce(
-            (s, [k, v]) => s.replace(new RegExp(`\\{${k}\\}`, 'g'), v),
-            slotRawBody
-          )
-        : slotRawBody;
-      return {
-        notice: n,
-        title: t(n.titleKey),
-        body: slotBody,
-        ctaLabel: n.cta ? t(n.cta.labelKey) : null,
-        titleId: `notice-title-${n.id}`,
-        bodyId: `notice-body-${n.id}`,
-        isDark,
-        onDismiss: handleDismiss,
-        onDismissAll: handleDismissAll,
-        onCTA: handleCTA,
-        total: notices.length,
-        currentPage: slotIdx,
-        canPage,
-        onPrev: handlePrev,
-        onNext: handleNext,
-        onGoto: handleGoto,
-      };
-    }
+  const prevNotice = notices[idx - 1] ?? null;
+  const nextNotice = notices[idx + 1] ?? null;
 
-    const prevNotice = notices[idx - 1] ?? null;
-    const nextNotice = notices[idx + 1] ?? null;
-
-    return (
-      <div className="fixed inset-0 z-50" role="presentation">
-        {/* Screen-reader page announcements */}
-        <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{pageAnnouncement}</span>
-        {/* Backdrop */}
-        <div
-          className={`absolute inset-0 bg-slate-950/40 backdrop-blur-[2px] transition-opacity ${dur} ${ease} ${visible ? 'opacity-100' : 'opacity-0'}`}
-          onClick={notice.dismissible ? animatedDismissAll : undefined}
-        />
-        {/* Bottom sheet */}
-        <div
-          ref={sheetRef}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={titleId}
-          aria-describedby={bodyId}
-          className={`absolute bottom-0 left-0 right-0 rounded-t-3xl overflow-hidden h-[85dvh] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl transition-[opacity,transform] ${dur} ${ease} ${mobileMotion}`}
-          style={{ touchAction: 'pan-y' }}
-          onTouchStart={e => {
-            touchStartX.current = e.touches[0].clientX;
-            touchStartY.current = e.touches[0].clientY;
-            dragLockRef.current = null;
-            scrollTopAtTouchStart.current = contentWrapperRef.current?.scrollTop ?? 0;
-          }}
-          onTouchMove={e => {
-            if (prefersReducedMotion) return;
-            const startX = touchStartX.current;
-            const startY = touchStartY.current;
-            if (startX === null || startY === null) return;
-            const dx = e.touches[0].clientX - startX;
-            const dy = e.touches[0].clientY - startY;
-            // Classify gesture direction on first significant movement
-            if (!dragLockRef.current) {
-              if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
-                dragLockRef.current = Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v';
-                // Reset adjacent slots to top before they slide into view.
-                if (dragLockRef.current === 'h') {
-                  prevSlotRef.current?.scrollTo({ top: 0 });
-                  nextSlotRef.current?.scrollTo({ top: 0 });
-                }
+  return (
+    <div className="fixed inset-0 z-50" role="presentation">
+      {/* Screen-reader page announcements */}
+      <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{pageAnnouncement}</span>
+      {/* Backdrop */}
+      <div
+        className={`absolute inset-0 bg-slate-950/40 backdrop-blur-[2px] transition-opacity ${dur} ${ease} ${visible ? 'opacity-100' : 'opacity-0'}`}
+        onClick={notice.dismissible ? animatedDismissAll : undefined}
+      />
+      {/* Bottom sheet */}
+      <div
+        ref={sheetRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={bodyId}
+        className={`absolute bottom-0 left-0 right-0 rounded-t-3xl overflow-hidden h-[85dvh] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl transition-[opacity,transform] ${dur} ${ease} ${mobileMotion}`}
+        style={{ touchAction: 'pan-y' }}
+        onTouchStart={e => {
+          touchStartX.current = e.touches[0].clientX;
+          touchStartY.current = e.touches[0].clientY;
+          dragLockRef.current = null;
+          scrollTopAtTouchStart.current = contentWrapperRef.current?.scrollTop ?? 0;
+        }}
+        onTouchMove={e => {
+          if (prefersReducedMotion) return;
+          const startX = touchStartX.current;
+          const startY = touchStartY.current;
+          if (startX === null || startY === null) return;
+          const dx = e.touches[0].clientX - startX;
+          const dy = e.touches[0].clientY - startY;
+          // Classify gesture direction on first significant movement
+          if (!dragLockRef.current) {
+            if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+              dragLockRef.current = Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v';
+              // Reset adjacent slots to top before they slide into view.
+              if (dragLockRef.current === 'h') {
+                prevSlotRef.current?.scrollTo({ top: 0 });
+                nextSlotRef.current?.scrollTo({ top: 0 });
               }
-              return;
             }
-            if (dragLockRef.current === 'h') {
-              const strip = stripRef.current;
-              if (!strip) return;
-              strip.style.transition = 'none';
-              // Strip base = -33.333% (center slot visible); dx offsets from there
-              strip.style.transform = `translateX(calc(-33.333% + ${dx}px))`;
-            } else if (dragLockRef.current === 'v' && notice.dismissible) {
-              // Only intercept downward drag for dismiss when the sheet is scrolled to the top.
-              // If scrolled into content, let native pan-y scroll it back up.
-              if (scrollTopAtTouchStart.current > 0) return;
-              const sheet = sheetRef.current;
-              if (!sheet || dy <= 0) return;
-              sheet.style.transition = 'none';
-              sheet.style.transform = `translateY(${dy}px)`;
-            }
-          }}
-          onTouchEnd={e => {
-            const startX = touchStartX.current;
-            const startY = touchStartY.current;
-            touchStartX.current = null;
-            touchStartY.current = null;
-            const lock = dragLockRef.current;
-            dragLockRef.current = null;
+            return;
+          }
+          if (dragLockRef.current === 'h') {
+            const strip = stripRef.current;
+            if (!strip) return;
+            strip.style.transition = 'none';
+            // Strip base = -33.333% (center slot visible); dx offsets from there
+            strip.style.transform = `translateX(calc(-33.333% + ${dx}px))`;
+          } else if (dragLockRef.current === 'v' && notice.dismissible) {
+            // Only intercept downward drag for dismiss when the sheet is scrolled to the top.
+            // If scrolled into content, let native pan-y scroll it back up.
+            if (scrollTopAtTouchStart.current > 0) return;
+            const sheet = sheetRef.current;
+            if (!sheet || dy <= 0) return;
+            sheet.style.transition = 'none';
+            sheet.style.transform = `translateY(${dy}px)`;
+          }
+        }}
+        onTouchEnd={e => {
+          const startX = touchStartX.current;
+          const startY = touchStartY.current;
+          touchStartX.current = null;
+          touchStartY.current = null;
+          const lock = dragLockRef.current;
+          dragLockRef.current = null;
 
-            if (lock === 'h') {
-              if (startX === null) return;
-              const deltaX = e.changedTouches[0].clientX - startX;
-              const strip = stripRef.current;
-              if (!strip) return;
+          if (lock === 'h') {
+            if (startX === null) return;
+            const deltaX = e.changedTouches[0].clientX - startX;
+            const strip = stripRef.current;
+            if (!strip) return;
 
-              const goNext = isRtlLanguage(language) ? deltaX > 50 : deltaX < -50;
-              const goPrev = isRtlLanguage(language) ? deltaX < -50 : deltaX > 50;
-              const canGoNext = canPage && idx < notices.length - 1;
-              const canGoPrev = canPage && idx > 0;
+            const goNext = isRtlLanguage(language) ? deltaX > 50 : deltaX < -50;
+            const goPrev = isRtlLanguage(language) ? deltaX < -50 : deltaX > 50;
+            const canGoNext = canPage && idx < notices.length - 1;
+            const canGoPrev = canPage && idx > 0;
 
-              if ((goNext && canGoNext) || (goPrev && canGoPrev)) {
-                // Animate strip to the adjacent slot (-66.666% = next, 0% = prev)
-                strip.style.transition = 'transform 200ms ease-out';
-                strip.style.transform = goNext ? 'translateX(-66.666%)' : 'translateX(0%)';
-                strip.addEventListener('transitionend', function onDone() {
-                  strip.removeEventListener('transitionend', onDone);
-                  strip.style.transition = 'none';
-                  // Render new content into the center slot BEFORE moving the strip,
-                  // so the browser never paints old content at the center position.
-                  const newIdx = goNext ? idx + 1 : idx - 1;
-                  flushSync(() => {
-                    isPageNavRef.current = true;
-                    setIdx(newIdx);
-                    announceIndex(newIdx, notices.length);
-                  });
-                  // Reset all slot scrolls so the new center starts at top.
-                  prevSlotRef.current?.scrollTo({ top: 0 });
-                  contentWrapperRef.current?.scrollTo({ top: 0 });
-                  nextSlotRef.current?.scrollTo({ top: 0 });
-                  strip.style.transform = 'translateX(-33.333%)';
-                }, { once: true });
-              } else {
-                // Spring back to center
-                strip.style.transition = 'transform 300ms cubic-bezier(0.34,1.56,0.64,1)';
+            if ((goNext && canGoNext) || (goPrev && canGoPrev)) {
+              // Animate strip to the adjacent slot (-66.666% = next, 0% = prev)
+              strip.style.transition = 'transform 200ms ease-out';
+              strip.style.transform = goNext ? 'translateX(-66.666%)' : 'translateX(0%)';
+              strip.addEventListener('transitionend', function onDone() {
+                strip.removeEventListener('transitionend', onDone);
+                strip.style.transition = 'none';
+                // Render new content into the center slot BEFORE moving the strip,
+                // so the browser never paints old content at the center position.
+                const newIdx = goNext ? idx + 1 : idx - 1;
+                flushSync(() => {
+                  isPageNavRef.current = true;
+                  setIdx(newIdx);
+                  announceIndex(newIdx, notices.length);
+                });
+                // Reset all slot scrolls so the new center starts at top.
+                prevSlotRef.current?.scrollTo({ top: 0 });
+                contentWrapperRef.current?.scrollTo({ top: 0 });
+                nextSlotRef.current?.scrollTo({ top: 0 });
                 strip.style.transform = 'translateX(-33.333%)';
-                strip.addEventListener('transitionend', function onSnap() {
-                  strip.removeEventListener('transitionend', onSnap);
-                  strip.style.transition = '';
-                  strip.style.transform = 'translateX(-33.333%)';
-                }, { once: true });
-              }
-              return;
+              }, { once: true });
+            } else {
+              // Spring back to center
+              strip.style.transition = 'transform 300ms cubic-bezier(0.34,1.56,0.64,1)';
+              strip.style.transform = 'translateX(-33.333%)';
+              strip.addEventListener('transitionend', function onSnap() {
+                strip.removeEventListener('transitionend', onSnap);
+                strip.style.transition = '';
+                strip.style.transform = 'translateX(-33.333%)';
+              }, { once: true });
             }
+            return;
+          }
 
-            // Vertical drag — animated dismiss or spring back (only when at scroll top)
-            if (lock === 'v' && startY !== null && scrollTopAtTouchStart.current === 0) {
-              const deltaY = e.changedTouches[0].clientY - startY;
-              const sheet = sheetRef.current;
-              if (deltaY > 80 && notice.dismissible) {
-                animatedDismissAll();
-              } else if (sheet && deltaY > 0) {
-                sheet.style.transition = 'transform 300ms cubic-bezier(0.34,1.56,0.64,1)';
-                sheet.style.transform = 'translateY(0)';
-                sheet.addEventListener('transitionend', function onSnap() {
-                  sheet.removeEventListener('transitionend', onSnap);
-                  sheet.style.transition = '';
-                  sheet.style.transform = '';
-                }, { once: true });
-              }
+          // Vertical drag — animated dismiss or spring back (only when at scroll top)
+          if (lock === 'v' && startY !== null && scrollTopAtTouchStart.current === 0) {
+            const deltaY = e.changedTouches[0].clientY - startY;
+            const sheet = sheetRef.current;
+            if (deltaY > 80 && notice.dismissible) {
+              animatedDismissAll();
+            } else if (sheet && deltaY > 0) {
+              sheet.style.transition = 'transform 300ms cubic-bezier(0.34,1.56,0.64,1)';
+              sheet.style.transform = 'translateY(0)';
+              sheet.addEventListener('transitionend', function onSnap() {
+                sheet.removeEventListener('transitionend', onSnap);
+                sheet.style.transition = '';
+                sheet.style.transform = '';
+              }, { once: true });
             }
-          }}
-        >
-          {/* Drag handle — fixed, does not scroll */}
-          <div className="pt-3 pb-1 flex justify-center shrink-0">
-            <div className="w-9 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
-          </div>
-          {/* Clip container — fills remaining sheet height, hides adjacent slots */}
-          <div style={{ flex: '1 1 0', minHeight: 0, overflow: 'hidden', width: '100%' }}>
-            {/* 3-slot strip: [prev][current][next] — starts at -33.333% to show current */}
-            <div
-              ref={stripRef}
-              style={{ display: 'flex', width: '300%', height: '100%', alignItems: 'stretch', transform: 'translateX(-33.333%)' }}
-            >
-              <div ref={prevSlotRef} style={{ width: '33.333%', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-                {prevNotice && <NoticeContent {...buildSlotProps(prevNotice, idx - 1)} />}
-              </div>
-              <div ref={contentWrapperRef} style={{ width: '33.333%', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-                <NoticeContent {...contentProps} />
-              </div>
-              <div ref={nextSlotRef} style={{ width: '33.333%', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-                {nextNotice && <NoticeContent {...buildSlotProps(nextNotice, idx + 1)} />}
-              </div>
+          }
+        }}
+      >
+        {/* Drag handle — fixed, does not scroll */}
+        <div className="pt-3 pb-1 flex justify-center shrink-0">
+          <div className="w-9 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+        </div>
+        {/* Clip container — fills remaining sheet height, hides adjacent slots */}
+        <div style={{ flex: '1 1 0', minHeight: 0, overflow: 'hidden', width: '100%' }}>
+          {/* 3-slot strip: [prev][current][next] — starts at -33.333% to show current */}
+          <div
+            ref={stripRef}
+            style={{ display: 'flex', width: '300%', height: '100%', alignItems: 'stretch', transform: 'translateX(-33.333%)' }}
+          >
+            <div ref={prevSlotRef} style={{ width: '33.333%', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+              {prevNotice && <NoticeContent {...makeContentProps(S, prevNotice, idx - 1)} />}
+            </div>
+            <div ref={contentWrapperRef} style={{ width: '33.333%', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+              <NoticeContent {...makeContentProps(S, notice, idx)} />
+            </div>
+            <div ref={nextSlotRef} style={{ width: '33.333%', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+              {nextNotice && <NoticeContent {...makeContentProps(S, nextNotice, idx + 1)} />}
             </div>
           </div>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
-  // Desktop centered modal
+function DesktopNoticeModal(S: NoticeState) {
+  const { notice, idx, visible, dur, ease, prefersReducedMotion, pageAnnouncement, isLastPage, handleDismissAll, contentWrapperRef } = S;
+  if (!notice) return null;
+  const titleId = `notice-title-${notice.id}`;
+  const bodyId  = `notice-body-${notice.id}`;
   const maxWidth = notice.severity === 'critical' ? 'max-w-[680px]' : 'max-w-[620px]';
   const desktopMotion = prefersReducedMotion
     ? (visible ? 'opacity-100' : 'opacity-0')
@@ -821,10 +823,17 @@ export function ModalRenderer({ notices }: Props) {
           onClick={e => e.stopPropagation()}
         >
           <div ref={contentWrapperRef}>
-            <NoticeContent {...contentProps} />
+            <NoticeContent {...makeContentProps(S, notice, idx)} />
           </div>
         </div>
       </div>
     </div>
   );
+}
+
+export function ModalRenderer({ notices }: Props) {
+  const S = useSystemNoticeModal(notices);
+  // No notice to show
+  if (!S.notice) return null;
+  return S.isMobile ? <MobileNoticeSheet {...S} /> : <DesktopNoticeModal {...S} />;
 }

@@ -48,7 +48,7 @@ const FILE_SELECT = `
   LEFT JOIN users u ON f.uploaded_by = u.id
 `;
 
-export function formatFile(file: TripFile & { trip_id?: number }) {
+export function formatFile(file: TripFile & { trip_id?: number; uploaded_by_avatar?: string | null }) {
   const tripId = file.trip_id;
   return {
     ...file,

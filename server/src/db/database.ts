@@ -13,6 +13,13 @@ const isTest = process.env.NODE_ENV === 'test';
 let dbPath: string;
 if (isTest) {
   dbPath = ':memory:';
+} else if (process.env.TREK_DB_FILE) {
+  // Explicit DB file (used by the Playwright E2E harness to run against an
+  // isolated, throwaway database instead of the real data/travel.db). Purely
+  // additive — when unset the default path below is used exactly as before.
+  dbPath = process.env.TREK_DB_FILE;
+  const dir = path.dirname(dbPath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 } else {
   const dataDir = path.join(__dirname, '../../data');
   if (!fs.existsSync(dataDir)) {

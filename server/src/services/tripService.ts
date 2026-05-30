@@ -189,7 +189,7 @@ export function getTrip(tripId: string | number, userId: number) {
     ${TRIP_SELECT}
     LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = :userId
     WHERE t.id = :tripId AND (t.user_id = :userId OR m.user_id IS NOT NULL)
-  `).get({ userId, tripId });
+  `).get({ userId, tripId }) as Trip | undefined;
 }
 
 interface UpdateTripData {

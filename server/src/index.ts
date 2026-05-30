@@ -4,13 +4,13 @@ import path from 'node:path';
 import fs from 'node:fs';
 import http from 'node:http';
 import express from 'express';
-import cookieParser from 'cookie-parser';
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import type { INestApplication } from '@nestjs/common';
 import { createApp } from './app';
 import { AppModule } from './nest/app.module';
 import { getNestPrefixes, makeNestPathMatcher } from './nest/strangler';
+import { applyGlobalMiddleware } from './middleware/globalMiddleware';
 
 // Create upload and data directories on startup
 const uploadsDir = path.join(__dirname, '../uploads');
@@ -115,11 +115,15 @@ async function bootstrap(): Promise<void> {
   // prefixes to this instance, so the legacy app (and raw-body routes like /mcp)
   // is reached separately and never passes through Nest's parser.
   nestApp = await NestFactory.create(AppModule, new ExpressAdapter());
-  // cookie-parser so the auth guard can read the existing `trek_session` cookie.
-  nestApp.use(cookieParser());
+  const nestInstance = nestApp.getHttpAdapter().getInstance();
+  // Apply the SAME global request pipeline the legacy app uses (helmet/CSP, CORS,
+  // HSTS, forced-HTTPS, the global MFA policy, request logging + cookie-parser) so a
+  // migrated Nest route is protected identically to the legacy fallback. Without this
+  // the dispatcher forwards Nest paths straight to this instance, bypassing all of it.
+  // Nest does its own body parsing, so bodyParser:false avoids parsing twice.
+  applyGlobalMiddleware(nestInstance, { bodyParser: false });
   // (TrekExceptionFilter is registered globally via APP_FILTER in AppModule.)
   await nestApp.init();
-  const nestInstance = nestApp.getHttpAdapter().getInstance();
 
   // Top-level dispatcher: migrated prefixes -> Nest, everything else -> legacy
   // Express (unchanged). Nest never sees non-migrated paths, so its 404 handler

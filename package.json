@@ -27,6 +27,11 @@
   "devDependencies": {
     "concurrently": "^9.2.1"
   },
+  "comment:overrides": "Force a single React 19 across the workspace so the test renderer (@testing-library/react) and the app share one react-dom.",
+  "overrides": {
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
+  },
   "optionalDependencies": {
     "@rollup/rollup-linux-x64-musl": "4.60.4",
     "@rollup/rollup-linux-arm64-musl": "4.60.4",

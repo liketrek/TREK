@@ -71,10 +71,15 @@ interface PlaceFormModalProps {
   dayAssignments?: Assignment[]
 }
 
-export default function PlaceFormModal({
+
+/** Place create/edit form state: maps search + Google-URL resolve + autocomplete,
+ * category creation, file attachments and submit. Keeps PlaceFormModal a thin
+ * render over the form fields. */
+function usePlaceFormModal(props: PlaceFormModalProps) {
+  const {
   isOpen, onClose, onSave, place, prefillCoords, tripId, categories,
   onCategoryCreated, assignmentId, dayAssignments = [],
-}: PlaceFormModalProps) {
+  } = props
   const [form, setForm] = useState(DEFAULT_FORM)
   const [mapsSearch, setMapsSearch] = useState('')
   const [mapsResults, setMapsResults] = useState([])
@@ -354,6 +359,122 @@ export default function PlaceFormModal({
     }
   }
 
+  return {
+    isOpen,
+    onClose,
+    onSave,
+    place,
+    prefillCoords,
+    tripId,
+    categories,
+    onCategoryCreated,
+    assignmentId,
+    dayAssignments,
+    form,
+    setForm,
+    mapsSearch,
+    setMapsSearch,
+    mapsResults,
+    setMapsResults,
+    isSearchingMaps,
+    setIsSearchingMaps,
+    newCategoryName,
+    setNewCategoryName,
+    showNewCategory,
+    setShowNewCategory,
+    isSaving,
+    setIsSaving,
+    pendingFiles,
+    setPendingFiles,
+    fileRef,
+    acSuggestions,
+    setAcSuggestions,
+    acHighlight,
+    setAcHighlight,
+    acDebounceRef,
+    acAbortRef,
+    toast,
+    t,
+    language,
+    hasMapsKey,
+    can,
+    tripObj,
+    canUploadFiles,
+    places,
+    locationBias,
+    fetchSuggestions,
+    handleChange,
+    handleMapsSearch,
+    handleSelectMapsResult,
+    handleSelectSuggestion,
+    handleSearchKeyDown,
+    handleCreateCategory,
+    handleFileAdd,
+    handleRemoveFile,
+    handlePaste,
+    hasTimeError,
+    handleSubmit,
+  }
+}
+
+export default function PlaceFormModal(props: PlaceFormModalProps) {
+  const S = usePlaceFormModal(props)
+  const {
+    isOpen,
+    onClose,
+    onSave,
+    place,
+    prefillCoords,
+    tripId,
+    categories,
+    onCategoryCreated,
+    assignmentId,
+    dayAssignments,
+    form,
+    setForm,
+    mapsSearch,
+    setMapsSearch,
+    mapsResults,
+    setMapsResults,
+    isSearchingMaps,
+    setIsSearchingMaps,
+    newCategoryName,
+    setNewCategoryName,
+    showNewCategory,
+    setShowNewCategory,
+    isSaving,
+    setIsSaving,
+    pendingFiles,
+    setPendingFiles,
+    fileRef,
+    acSuggestions,
+    setAcSuggestions,
+    acHighlight,
+    setAcHighlight,
+    acDebounceRef,
+    acAbortRef,
+    toast,
+    t,
+    language,
+    hasMapsKey,
+    can,
+    tripObj,
+    canUploadFiles,
+    places,
+    locationBias,
+    fetchSuggestions,
+    handleChange,
+    handleMapsSearch,
+    handleSelectMapsResult,
+    handleSelectSuggestion,
+    handleSearchKeyDown,
+    handleCreateCategory,
+    handleFileAdd,
+    handleRemoveFile,
+    handlePaste,
+    hasTimeError,
+    handleSubmit,
+  } = S
   return (
     <Modal
       isOpen={isOpen}

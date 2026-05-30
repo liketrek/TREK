@@ -7,6 +7,8 @@ export interface ParityRequest {
   path: string;
   query?: Record<string, string>;
   body?: unknown;
+  /** Request headers (e.g. a Cookie/Authorization) applied to BOTH stacks. */
+  headers?: Record<string, string>;
 }
 
 /**
@@ -26,6 +28,7 @@ export async function expectParity(
   const fire = (target: Server | Express.Application) => {
     const method = req.method ?? 'get';
     let r = request(target as never)[method](req.path);
+    if (req.headers) for (const [k, v] of Object.entries(req.headers)) r = r.set(k, v);
     if (req.query) r = r.query(req.query);
     if (req.body !== undefined) r = r.send(req.body as object);
     return r;

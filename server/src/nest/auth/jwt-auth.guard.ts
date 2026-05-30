@@ -22,7 +22,7 @@ export class JwtAuthGuard implements CanActivate {
     if (!user) {
       throw new HttpException({ error: 'Invalid or expired token', code: 'AUTH_REQUIRED' }, 401);
     }
-    (req as Request & { user?: unknown }).user = user;
+    req.user = user;
     return true;
   }
 }

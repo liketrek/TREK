@@ -467,6 +467,31 @@ describe('Forced MFA policy', () => {
     const res = await request(app).get('/api/trips').set(authHeader(user.id));
     expect(res.status).toBe(200);
   });
+
+  it('AUTH-020 — require_mfa guards nested Nest addon controllers, not just top-level routes', async () => {
+    // The global MFA middleware runs ahead of the Express→Nest dispatch, so it
+    // must block the deeper trip-scoped controllers (budget/packing/todo) too —
+    // not only /api/trips. A regression that only guarded top-level paths would
+    // leave every addon endpoint reachable without MFA.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    testDb.prepare("INSERT INTO app_settings (key, value) VALUES ('require_mfa', 'true')").run();
+
+    for (const path of [`/api/trips/${trip.id}/budget`, `/api/trips/${trip.id}/packing`, `/api/trips/${trip.id}/todo`]) {
+      const res = await request(app).get(path).set(authHeader(user.id));
+      expect(res.status, `${path} must be MFA-gated`).toBe(403);
+      expect(res.body.code).toBe('MFA_REQUIRED');
+    }
+  });
+
+  it('AUTH-020 — MFA-enabled user reaches nested Nest addon controllers under require_mfa', async () => {
+    const { user } = createUserWithMfa(testDb);
+    const trip = createTrip(testDb, user.id);
+    testDb.prepare("INSERT INTO app_settings (key, value) VALUES ('require_mfa', 'true')").run();
+
+    const res = await request(app).get(`/api/trips/${trip.id}/budget`).set(authHeader(user.id));
+    expect(res.status).toBe(200);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
