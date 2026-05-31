@@ -8,6 +8,7 @@
     "prebuild": "node scripts/generate-icons.mjs",
     "build": "vite build",
     "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration src/**/*.test.{ts,tsx}",
