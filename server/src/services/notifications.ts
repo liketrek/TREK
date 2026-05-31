@@ -432,15 +432,6 @@ export function resolveNtfyUrl(adminCfg: NtfyConfig, userCfg: NtfyConfig | null)
   return `${base}/${encodeURIComponent(topic)}`;
 }
 
-export function isNtfyConfiguredForUser(userId: number): boolean {
-  const cfg = getUserNtfyConfig(userId);
-  return !!(cfg?.topic);
-}
-
-export function isNtfyConfiguredAdmin(): boolean {
-  return !!(getAppSetting('admin_ntfy_topic'));
-}
-
 function encodeHeaderValue(value: string): string {
   for (let i = 0; i < value.length; i++) {
     if (value.charCodeAt(i) > 0xFF) {

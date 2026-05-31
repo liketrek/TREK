@@ -1,10 +1,8 @@
-import { db, canAccessTrip } from '../db/database';
+import { db } from '../db/database';
 import { loadTagsByPlaceIds, loadParticipantsByAssignmentIds, formatAssignmentWithPlace } from './queryHelpers';
 import { AssignmentRow, Day, DayNote } from '../types';
 
-export function verifyTripAccess(tripId: string | number, userId: number) {
-  return canAccessTrip(tripId, userId);
-}
+export { verifyTripAccess } from './tripAccess';
 
 // ---------------------------------------------------------------------------
 // Day assignment helpers

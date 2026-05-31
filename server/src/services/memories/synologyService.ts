@@ -458,11 +458,12 @@ export async function listSynologyAlbums(userId: number): Promise<ServiceResult<
 
     const addAlbums = (result: PromiseSettledResult<ServiceResult<any[]>>, extractPassphrase: (a: any) => string | undefined) => {
         if (result.status === 'rejected') return;
-        if (!result.value.success) {
-            console.warn('[Synology] album list partial failure:', (result.value as any).error?.message);
+        const value = result.value;
+        if ('error' in value) {
+            console.warn('[Synology] album list partial failure:', value.error.message);
             return;
         }
-        for (const album of result.value.data ?? []) {
+        for (const album of value.data ?? []) {
             const id = String(album.id);
             const passphrase = extractPassphrase(album);
             map.set(id, { id, albumName: album.name || '', assetCount: album.item_count || 0, passphrase });

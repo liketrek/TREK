@@ -1,8 +1,9 @@
 import path from 'path';
 import fs from 'fs';
-import { db, canAccessTrip } from '../db/database';
+import { db } from '../db/database';
 import { CollabNote, CollabPoll, CollabMessage, TripFile } from '../types';
 import { checkSsrf, createPinnedDispatcher } from '../utils/ssrfGuard';
+import { avatarUrl } from './avatarUrl';
 
 /* ------------------------------------------------------------------ */
 /*  Internal row types                                                 */
@@ -48,13 +49,8 @@ export interface LinkPreviewResult {
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
-export function avatarUrl(user: { avatar?: string | null }): string | null {
-  return user.avatar ? `/uploads/avatars/${user.avatar}` : null;
-}
-
-export function verifyTripAccess(tripId: string | number, userId: number) {
-  return canAccessTrip(tripId, userId);
-}
+export { avatarUrl };
+export { verifyTripAccess } from './tripAccess';
 
 /* ------------------------------------------------------------------ */
 /*  Reactions                                                          */

@@ -16,7 +16,10 @@ import { resolveAuthToggles } from './authService';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-export function utcSuffix(ts: string | null | undefined): string | null {
+// bcrypt cost factor for user passwords — kept in sync with authService.
+const BCRYPT_COST = 12;
+
+function utcSuffix(ts: string | null | undefined): string | null {
   if (!ts) return null;
   return ts.endsWith('Z') ? ts : ts.replace(' ', 'T') + 'Z';
 }
@@ -94,7 +97,7 @@ export function createUser(data: { username: string; email: string; password: st
   const existingEmail = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
   if (existingEmail) return { error: 'Email already taken', status: 409 };
 
-  const passwordHash = bcrypt.hashSync(password, 12);
+  const passwordHash = bcrypt.hashSync(password, BCRYPT_COST);
 
   const result = db.prepare(
     'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)'
@@ -136,7 +139,7 @@ export function updateUser(id: string, data: { username?: string; email?: string
     const pwCheck = validatePassword(password);
     if (!pwCheck.ok) return { error: pwCheck.reason, status: 400 };
   }
-  const passwordHash = password ? bcrypt.hashSync(password, 12) : null;
+  const passwordHash = password ? bcrypt.hashSync(password, BCRYPT_COST) : null;
 
   db.prepare(`
     UPDATE users SET

@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import type { Request } from 'express';
-import { db, canAccessTrip } from '../db/database';
+import { db } from '../db/database';
 import { consumeEphemeralToken } from './ephemeralTokens';
 import { verifyJwtAndLoadUser } from '../middleware/auth';
 import { TripFile } from '../types';
@@ -30,9 +30,7 @@ export const filesDir = path.join(__dirname, '../../uploads/files');
 // Helpers
 // ---------------------------------------------------------------------------
 
-export function verifyTripAccess(tripId: string | number, userId: number) {
-  return canAccessTrip(tripId, userId);
-}
+export { verifyTripAccess } from './tripAccess';
 
 export function getAllowedExtensions(): string {
   try {

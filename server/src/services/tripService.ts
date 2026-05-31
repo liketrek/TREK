@@ -1,6 +1,6 @@
 import path from 'path';
 import fs from 'fs';
-import { db, canAccessTrip, isOwner } from '../db/database';
+import { db, isOwner } from '../db/database';
 import { Trip, User } from '../types';
 import { listDays, listAccommodations } from './dayService';
 import { listBudgetItems } from './budgetService';
@@ -25,10 +25,7 @@ export const TRIP_SELECT = `
 
 // ── Access helpers ────────────────────────────────────────────────────────
 
-export function verifyTripAccess(tripId: string | number, userId: number) {
-  return canAccessTrip(tripId, userId);
-}
-
+export { verifyTripAccess } from './tripAccess';
 export { isOwner };
 
 // ── Day generation ────────────────────────────────────────────────────────

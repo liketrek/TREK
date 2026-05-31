@@ -299,7 +299,7 @@ async function _notifySharedTripPhotos(
   actorUserId: number,
   added: number,
 ): Promise<ServiceResult<void>> {
-  if (added <= 0) return fail('No photos shared, skipping notifications', 200);
+  if (added <= 0) return success(undefined);
 
   try {
     const actorRow = db.prepare('SELECT username, email FROM users WHERE id = ?').get(actorUserId) as { username: string | null, email: string | null };

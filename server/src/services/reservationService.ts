@@ -1,5 +1,7 @@
-import { db, canAccessTrip } from '../db/database';
+import { db } from '../db/database';
 import { Reservation } from '../types';
+
+export { verifyTripAccess } from './tripAccess';
 
 export interface ReservationEndpoint {
   id?: number;
@@ -16,10 +18,6 @@ export interface ReservationEndpoint {
 }
 
 type EndpointInput = Omit<ReservationEndpoint, 'id' | 'reservation_id' | 'sequence'> & { sequence?: number };
-
-export function verifyTripAccess(tripId: string | number, userId: number) {
-  return canAccessTrip(tripId, userId);
-}
 
 function loadEndpointsByTrip(tripId: string | number): Map<number, ReservationEndpoint[]> {
   const rows = db.prepare(`
@@ -296,15 +294,6 @@ export function updatePositions(tripId: string | number, positions: { id: number
     });
     updateMany(positions);
   }
-}
-
-export function getDayPositions(tripId: string | number, dayId: number | string) {
-  return db.prepare(`
-    SELECT rdp.reservation_id, rdp.position
-    FROM reservation_day_positions rdp
-    JOIN reservations r ON rdp.reservation_id = r.id
-    WHERE r.trip_id = ? AND rdp.day_id = ?
-  `).all(tripId, dayId) as { reservation_id: number; position: number }[];
 }
 
 export function getReservation(id: string | number, tripId: string | number) {

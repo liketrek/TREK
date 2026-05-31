@@ -7,9 +7,6 @@ import { getAppUrl } from './notifications';
 
 let googleApiCallCount = 0;
 
-export function getGoogleApiCallCount(): number { return googleApiCallCount; }
-export function resetGoogleApiCallCount(): void { googleApiCallCount = 0; }
-
 function googleFetch(endpoint: string, label: string, init?: RequestInit): Promise<Response> {
   googleApiCallCount++;
   console.debug(`[Google API] #${googleApiCallCount} ${label} → ${endpoint}`);

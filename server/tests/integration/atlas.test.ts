@@ -51,6 +51,27 @@ let nestApp: INestApplication;
 let app: Application;
 
 beforeAll(async () => {
+  // Stub the admin-1 GeoJSON download so /regions/geo is deterministic and never
+  // hits the real network (the un-stubbed fetch of a ~4600-feature file from
+  // raw.githubusercontent.com is what made ATLAS-013 hang/time out under load).
+  // Any other outbound fetch (e.g. background reverse-geocoding) returns empty so
+  // no test depends on live network.
+  vi.stubGlobal('fetch', async (url: unknown) => {
+    if (String(url).includes('natural-earth-vector')) {
+      return new Response(
+        JSON.stringify({
+          type: 'FeatureCollection',
+          features: [
+            { type: 'Feature', properties: { iso_a2: 'DE' }, geometry: { type: 'Point', coordinates: [10, 51] } },
+            { type: 'Feature', properties: { iso_a2: 'FR' }, geometry: { type: 'Point', coordinates: [2, 47] } },
+          ],
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    }
+    return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+  });
+
   createTables(testDb);
   runMigrations(testDb);
   nestApp = await buildApp();
@@ -63,6 +84,7 @@ beforeEach(() => {
 });
 
 afterAll(async () => {
+  vi.unstubAllGlobals();
   await nestApp.close();
   testDb.close();
 });

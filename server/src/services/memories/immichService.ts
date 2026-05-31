@@ -349,42 +349,6 @@ export async function getAlbumPhotos(
   }
 }
 
-export function listAlbumLinks(tripId: string) {
-  return db.prepare(`
-    SELECT tal.*, u.username
-    FROM trip_album_links tal
-    JOIN users u ON tal.user_id = u.id
-    WHERE tal.trip_id = ?
-    ORDER BY tal.created_at ASC
-  `).all(tripId);
-}
-
-export function createAlbumLink(
-  tripId: string,
-  userId: number,
-  albumId: string,
-  albumName: string
-): { success: boolean; error?: string } {
-  try {
-    db.prepare(
-      "INSERT OR IGNORE INTO trip_album_links (trip_id, user_id, album_id, album_name, provider) VALUES (?, ?, ?, ?, 'immich')"
-    ).run(tripId, userId, albumId, albumName || '');
-    return { success: true };
-  } catch {
-    return { success: false, error: 'Album already linked' };
-  }
-}
-
-export function deleteAlbumLink(linkId: string, tripId: string, userId: number) {
-  db.transaction(() => {
-    const link = db.prepare('SELECT id FROM trip_album_links WHERE id = ? AND trip_id = ? AND user_id = ?').get(linkId, tripId, userId);
-    if (link) {
-      db.prepare('DELETE FROM trip_photos WHERE trip_id = ? AND album_link_id = ?').run(tripId, linkId);
-      db.prepare('DELETE FROM trip_album_links WHERE id = ?').run(linkId);
-    }
-  })();
-}
-
 export async function syncAlbumAssets(
   tripId: string,
   linkId: string,

@@ -1,17 +1,13 @@
-import { db, canAccessTrip } from '../db/database';
+import { db } from '../db/database';
 import { BudgetItem, BudgetItemMember } from '../types';
+import { avatarUrl } from './avatarUrl';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-export function avatarUrl(user: { avatar?: string | null }): string | null {
-  return user.avatar ? `/uploads/avatars/${user.avatar}` : null;
-}
-
-export function verifyTripAccess(tripId: string | number, userId: number) {
-  return canAccessTrip(tripId, userId);
-}
+export { avatarUrl };
+export { verifyTripAccess } from './tripAccess';
 
 function loadItemMembers(itemId: number | string) {
   const rows = db.prepare(`

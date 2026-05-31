@@ -1,6 +1,9 @@
 import Database from 'better-sqlite3';
 import crypto from 'crypto';
 
+// bcrypt cost factor for the seeded admin password — kept in sync with authService.
+const BCRYPT_COST = 12;
+
 // Seeds run at startup before the DB admin panel can be used, so only env vars
 // are checked here. The granular password_login/password_registration DB toggles
 // are only relevant after the first user exists; at that point seeds have already
@@ -40,7 +43,7 @@ function seedAdminAccount(db: Database.Database): void {
       email = 'admin@trek.local';
     }
 
-    const hash = bcrypt.hashSync(password, 12);
+    const hash = bcrypt.hashSync(password, BCRYPT_COST);
     const username = 'admin';
 
     db.prepare('INSERT INTO users (username, email, password_hash, role, must_change_password) VALUES (?, ?, ?, ?, 1)').run(username, email, hash, 'admin');

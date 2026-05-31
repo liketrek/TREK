@@ -28,9 +28,9 @@ describe('loginRequestSchema', () => {
 describe('forgot/reset/change password schemas', () => {
   it('validate their required fields', () => {
     expect(forgotPasswordRequestSchema.safeParse({ email: 'a@b.c' }).success).toBe(true);
-    expect(resetPasswordRequestSchema.safeParse({ token: 't', password: 'pw' }).success).toBe(true);
-    expect(resetPasswordRequestSchema.safeParse({ token: 't', password: 'pw', mfa_code: '123456' }).success).toBe(true);
-    expect(resetPasswordRequestSchema.safeParse({ password: 'pw' }).success).toBe(false);
+    expect(resetPasswordRequestSchema.safeParse({ token: 't', new_password: 'pw' }).success).toBe(true);
+    expect(resetPasswordRequestSchema.safeParse({ token: 't', new_password: 'pw', mfa_code: '123456' }).success).toBe(true);
+    expect(resetPasswordRequestSchema.safeParse({ new_password: 'pw' }).success).toBe(false);
     expect(changePasswordRequestSchema.safeParse({ current_password: 'a', new_password: 'b' }).success).toBe(true);
     expect(changePasswordRequestSchema.safeParse({ new_password: 'b' }).success).toBe(false);
   });

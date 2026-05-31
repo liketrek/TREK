@@ -20,6 +20,9 @@ import { getFlightDistanceKm } from './distanceService';
 import { verifyJwtAndLoadUser } from '../middleware/auth';
 import { User } from '../types';
 import { DEMO_EMAIL_PRIMARY, isDemoEmail } from './demo';
+import { avatarUrl } from './avatarUrl';
+
+export { avatarUrl };
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -27,10 +30,16 @@ import { DEMO_EMAIL_PRIMARY, isDemoEmail } from './demo';
 
 authenticator.options = { window: 1 };
 
+// bcrypt cost factor for user passwords. Shared by register/changePassword/
+// resetPassword and the dummy-hash timing equaliser below — must stay in sync.
+const BCRYPT_COST = 12;
+
+// Shape check for email input on register and profile update.
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 // Pre-computed bcrypt hash to equalise timing of "unknown email" and
 // "OIDC-only account" branches with the real verification path (CWE-208).
-// Cost factor 12 matches register/changePassword/resetPassword — must stay in sync.
-const DUMMY_PASSWORD_HASH = bcrypt.hashSync('__trek_no_such_user__', 12);
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync('__trek_no_such_user__', BCRYPT_COST);
 
 const MFA_SETUP_TTL_MS = 15 * 60 * 1000;
 const mfaSetupPending = new Map<number, { secret: string; exp: number }>();
@@ -112,10 +121,6 @@ export function maskKey(key: string | null | undefined): string | null {
 export function mask_stored_api_key(key: string | null | undefined): string | null {
   const plain = decrypt_api_key(key);
   return maskKey(plain);
-}
-
-export function avatarUrl(user: { avatar?: string | null }): string | null {
-  return user.avatar ? `/uploads/avatars/${user.avatar}` : null;
 }
 
 export function resolveAuthToggles(): {
@@ -377,8 +382,7 @@ export function registerUser(body: {
   const pwCheck = validatePassword(password);
   if (!pwCheck.ok) return { error: pwCheck.reason, status: 400 };
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
+  if (!EMAIL_REGEX.test(email)) {
     return { error: 'Invalid email format', status: 400 };
   }
 
@@ -387,7 +391,7 @@ export function registerUser(body: {
     return { error: 'Registration failed. Please try different credentials.', status: 409 };
   }
 
-  const password_hash = bcrypt.hashSync(password, 12);
+  const password_hash = bcrypt.hashSync(password, BCRYPT_COST);
   const isFirstUser = userCount === 0;
   const role = isFirstUser ? 'admin' : 'user';
 
@@ -533,7 +537,7 @@ export function changePassword(
     return { error: 'Current password is incorrect', status: 401 };
   }
 
-  const hash = bcrypt.hashSync(new_password, 12);
+  const hash = bcrypt.hashSync(new_password, BCRYPT_COST);
   db.prepare('UPDATE users SET password_hash = ?, must_change_password = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(hash, userId);
   return { success: true };
 }
@@ -608,8 +612,7 @@ export function updateSettings(
 
   if (email !== undefined) {
     const trimmed = email.trim();
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!trimmed || !emailRegex.test(trimmed)) {
+    if (!trimmed || !EMAIL_REGEX.test(trimmed)) {
       return { error: 'Invalid email format', status: 400 };
     }
     const conflict = db.prepare('SELECT id FROM users WHERE LOWER(email) = LOWER(?) AND id != ?').get(trimmed, userId);
@@ -1249,7 +1252,7 @@ export function resetPassword(body: {
     }
   }
 
-  const newHash = bcrypt.hashSync(new_password, 12);
+  const newHash = bcrypt.hashSync(new_password, BCRYPT_COST);
   const newPv = (user.password_version ?? 0) + 1;
 
   db.transaction(() => {

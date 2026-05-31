@@ -118,16 +118,6 @@ export function listOAuthClients(userId: number): Record<string, unknown>[] {
   }));
 }
 
-/** Returns true if the URI is a valid OAuth redirect target (HTTPS or localhost). */
-export function isValidRedirectUri(uri: string): boolean {
-  try {
-    const url = new URL(uri);
-    return url.protocol === 'https:' || url.hostname === 'localhost' || url.hostname === '127.0.0.1';
-  } catch {
-    return false;
-  }
-}
-
 export function createOAuthClient(
   userId: number | null,
   name: string,

@@ -29,7 +29,9 @@ export type ForgotPasswordRequest = z.infer<typeof forgotPasswordRequestSchema>;
 
 export const resetPasswordRequestSchema = z.object({
   token: z.string(),
-  password: z.string(),
+  // The client sends `new_password` and the service reads `body.new_password`;
+  // the field was misnamed `password` here, which broke the client's typing.
+  new_password: z.string(),
   mfa_code: z.string().optional(),
 });
 export type ResetPasswordRequest = z.infer<typeof resetPasswordRequestSchema>;
