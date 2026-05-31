@@ -1,6 +1,6 @@
 import { db } from '../db/database';
 import { decrypt_api_key } from './apiKeyCrypto';
-import { checkSsrf } from '../utils/ssrfGuard';
+import { safeFetchFollow, SsrfBlockedError } from '../utils/ssrfGuard';
 import { getAppUrl } from './notifications';
 
 // ── Google API call counter ───────────────────────────────────────────────────
@@ -634,10 +634,10 @@ export async function getPlacePhoto(
         try {
           const wiki = await fetchWikimediaPhoto(lat, lng, name);
           if (wiki) {
-            // Wikimedia photos: fetch bytes and cache to disk
-            const ssrf = await checkSsrf(wiki.photoUrl, true);
-            if (!ssrf.allowed) throw Object.assign(new Error('Photo URL blocked'), { status: 403 });
-            const imgRes = await fetch(wiki.photoUrl);
+            // Wikimedia photos: fetch bytes and cache to disk. Follow redirects
+            // manually so each hop (the image URL can 3xx to a CDN host) is
+            // re-validated against the SSRF guard, not just the first URL.
+            const imgRes = await safeFetchFollow(wiki.photoUrl, undefined, { bypassInternalIpAllowed: true });
             if (imgRes.ok) {
               const bytes = Buffer.from(await imgRes.arrayBuffer());
               const cached = await placePhotoCache.put(placeId, bytes, wiki.attribution);
@@ -746,13 +746,25 @@ export async function reverseGeocode(lat: string, lng: string, lang?: string): P
 export async function resolveGoogleMapsUrl(url: string): Promise<{ lat: number; lng: number; name: string | null; address: string | null }> {
   let resolvedUrl = url;
 
-  // Follow redirects for short URLs (goo.gl, maps.app.goo.gl) with SSRF protection
+  // Follow redirects for short URLs (goo.gl, maps.app.goo.gl) with SSRF protection.
+  // Redirects are followed manually so every hop is re-checked — a short link
+  // that 302s to an internal IP is blocked, while a legitimate cross-host
+  // redirect (goo.gl → maps.google.com) still resolves.
   const parsed = new URL(url);
   if (['goo.gl', 'maps.app.goo.gl'].includes(parsed.hostname)) {
-    const ssrf = await checkSsrf(url, true);
-    if (!ssrf.allowed) throw Object.assign(new Error('URL blocked by SSRF check'), { status: 403 });
-    const redirectRes = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(10000) });
-    resolvedUrl = redirectRes.url;
+    try {
+      const redirectRes = await safeFetchFollow(
+        url,
+        { signal: AbortSignal.timeout(10000) },
+        { bypassInternalIpAllowed: true },
+      );
+      resolvedUrl = redirectRes.url;
+    } catch (err) {
+      if (err instanceof SsrfBlockedError) {
+        throw Object.assign(new Error('URL blocked by SSRF check'), { status: 403 });
+      }
+      throw err;
+    }
   }
 
   // Extract coordinates from Google Maps URL patterns:

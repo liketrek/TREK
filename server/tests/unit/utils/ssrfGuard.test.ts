@@ -21,7 +21,7 @@ vi.mock('undici', () => ({
 }));
 
 import dns from 'dns/promises';
-import { checkSsrf, SsrfBlockedError, safeFetch, createPinnedDispatcher } from '../../../src/utils/ssrfGuard';
+import { checkSsrf, SsrfBlockedError, safeFetch, safeFetchFollow, createPinnedDispatcher } from '../../../src/utils/ssrfGuard';
 
 const mockLookup = vi.mocked(dns.lookup);
 
@@ -212,6 +212,117 @@ describe('safeFetch', () => {
   it('throws SsrfBlockedError with fallback message when error is undefined', async () => {
     // non-http protocol → error:'Only HTTP and HTTPS URLs are allowed'
     await expect(safeFetch('ftp://example.com')).rejects.toThrow(SsrfBlockedError);
+  });
+});
+
+describe('safeFetchFollow (manual per-hop redirect SSRF)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+    mockLookup.mockReset();
+  });
+
+  /** Build a minimal Response-like object for a given hop. */
+  function fakeResponse(opts: { status: number; location?: string; url: string; ok?: boolean }) {
+    return {
+      status: opts.status,
+      ok: opts.ok ?? (opts.status >= 200 && opts.status < 300),
+      url: opts.url,
+      headers: { get: (h: string) => (h.toLowerCase() === 'location' ? opts.location ?? null : null) },
+      body: { cancel: () => Promise.resolve() },
+    };
+  }
+
+  it('follows a legitimate cross-host redirect (goo.gl -> maps.google.com) to the final response', async () => {
+    // Both hops resolve to public IPs.
+    mockLookup.mockResolvedValue({ address: '142.250.0.0', family: 4 });
+    const mockFetch = vi.fn()
+      .mockResolvedValueOnce(fakeResponse({ status: 302, location: 'https://maps.google.com/maps/place/Foo', url: 'https://goo.gl/abc' }))
+      .mockResolvedValueOnce(fakeResponse({ status: 200, url: 'https://maps.google.com/maps/place/Foo' }));
+    vi.stubGlobal('fetch', mockFetch);
+
+    const res = await safeFetchFollow('https://goo.gl/abc');
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(res.status).toBe(200);
+    expect(res.url).toBe('https://maps.google.com/maps/place/Foo');
+  });
+
+  it('blocks a redirect whose target resolves to an internal IP', async () => {
+    vi.stubEnv('ALLOW_INTERNAL_NETWORK', 'false');
+    // First hop (public) is allowed; the redirect target resolves to a private IP.
+    mockLookup
+      .mockResolvedValueOnce({ address: '142.250.0.0', family: 4 }) // goo.gl
+      .mockResolvedValue({ address: '169.254.169.254', family: 4 }); // redirect → metadata
+    const mockFetch = vi.fn()
+      .mockResolvedValueOnce(fakeResponse({ status: 302, location: 'http://169.254.169.254/latest/meta-data/', url: 'https://goo.gl/evil' }));
+    vi.stubGlobal('fetch', mockFetch);
+
+    await expect(safeFetchFollow('https://goo.gl/evil')).rejects.toThrow(SsrfBlockedError);
+    // Only the first hop should have been fetched; the internal hop is blocked BEFORE fetch.
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('blocks a redirect to a loopback address even with ALLOW_INTERNAL_NETWORK=true', async () => {
+    mockLookup
+      .mockResolvedValueOnce({ address: '142.250.0.0', family: 4 })
+      .mockResolvedValue({ address: '127.0.0.1', family: 4 });
+    const mockFetch = vi.fn()
+      .mockResolvedValueOnce(fakeResponse({ status: 301, location: 'http://internal/', url: 'https://goo.gl/x' }));
+    vi.stubGlobal('fetch', mockFetch);
+
+    await expect(safeFetchFollow('https://goo.gl/x', undefined, { bypassInternalIpAllowed: true }))
+      .rejects.toThrow(SsrfBlockedError);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects the initial URL if it is already internal', async () => {
+    mockLookup.mockResolvedValue({ address: '10.0.0.5', family: 4 });
+    const mockFetch = vi.fn();
+    vi.stubGlobal('fetch', mockFetch);
+    await expect(safeFetchFollow('http://intranet.example')).rejects.toThrow(SsrfBlockedError);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('returns the response immediately when not a redirect', async () => {
+    mockLookup.mockResolvedValue({ address: '8.8.8.8', family: 4 });
+    const mockFetch = vi.fn().mockResolvedValue(fakeResponse({ status: 200, url: 'https://example.com' }));
+    vi.stubGlobal('fetch', mockFetch);
+    const res = await safeFetchFollow('https://example.com');
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(res.status).toBe(200);
+  });
+
+  it('returns a 3xx with no Location header as-is (nothing to follow)', async () => {
+    mockLookup.mockResolvedValue({ address: '8.8.8.8', family: 4 });
+    const mockFetch = vi.fn().mockResolvedValue(fakeResponse({ status: 304, url: 'https://example.com' }));
+    vi.stubGlobal('fetch', mockFetch);
+    const res = await safeFetchFollow('https://example.com');
+    expect(res.status).toBe(304);
+  });
+
+  it('throws after exceeding the max redirect hops', async () => {
+    mockLookup.mockResolvedValue({ address: '8.8.8.8', family: 4 });
+    // Always 302 to a new public host → loops until the hop cap.
+    let n = 0;
+    const mockFetch = vi.fn().mockImplementation(() =>
+      Promise.resolve(fakeResponse({ status: 302, location: `https://h${++n}.example.com/`, url: `https://h${n}.example.com/` })),
+    );
+    vi.stubGlobal('fetch', mockFetch);
+    await expect(safeFetchFollow('https://start.example.com', undefined, { maxRedirects: 2 }))
+      .rejects.toThrow(SsrfBlockedError);
+    // initial + 2 allowed redirects = 3 fetches, then the 4th hop is rejected before fetch
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('resolves relative redirect Location against the current URL', async () => {
+    mockLookup.mockResolvedValue({ address: '8.8.8.8', family: 4 });
+    const mockFetch = vi.fn()
+      .mockResolvedValueOnce(fakeResponse({ status: 302, location: '/resolved/path', url: 'https://example.com/start' }))
+      .mockResolvedValueOnce(fakeResponse({ status: 200, url: 'https://example.com/resolved/path' }));
+    vi.stubGlobal('fetch', mockFetch);
+    await safeFetchFollow('https://example.com/start');
+    // Second fetch must target the absolute resolution of the relative Location.
+    expect(mockFetch.mock.calls[1][0]).toBe('https://example.com/resolved/path');
   });
 });
 

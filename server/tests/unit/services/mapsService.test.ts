@@ -29,9 +29,26 @@ vi.mock('../../../src/db/database', () => ({
   },
 }));
 
-vi.mock('../../../src/utils/ssrfGuard', () => ({
-  checkSsrf: mockCheckSsrf,
-}));
+vi.mock('../../../src/utils/ssrfGuard', () => {
+  class SsrfBlockedError extends Error {
+    constructor(message: string) {
+      super(message);
+      this.name = 'SsrfBlockedError';
+    }
+  }
+  return {
+    checkSsrf: mockCheckSsrf,
+    SsrfBlockedError,
+    // Mirror the real per-hop helper closely enough for unit tests: run the
+    // (mocked) SSRF check, then fetch through the (stubbed) global fetch. The
+    // fetch stubs in these tests already return the final resolved response.
+    safeFetchFollow: vi.fn(async (url: string, init?: any) => {
+      const ssrf = await mockCheckSsrf(url);
+      if (!ssrf.allowed) throw new SsrfBlockedError(ssrf.error ?? 'Request blocked by SSRF guard');
+      return (globalThis.fetch as any)(url, init);
+    }),
+  };
+});
 
 vi.mock('../../../src/services/apiKeyCrypto', () => ({
   decrypt_api_key: (v: string | null) => v,

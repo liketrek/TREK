@@ -2,7 +2,7 @@ import { XMLParser, XMLValidator } from 'fast-xml-parser';
 import unzipper from 'unzipper';
 import { db, getPlaceWithTags } from '../db/database';
 import { loadTagsByPlaceIds } from './queryHelpers';
-import { checkSsrf } from '../utils/ssrfGuard';
+import { checkSsrf, safeFetchFollow, SsrfBlockedError } from '../utils/ssrfGuard';
 import { Place } from '../types';
 import {
   buildCategoryNameLookup,
@@ -587,10 +587,18 @@ export async function importGoogleList(tripId: string, url: string) {
   const ssrf = await checkSsrf(url);
   if (!ssrf.allowed) return { error: 'URL is not allowed', status: 400 };
 
-  // Follow redirects for short URLs (maps.app.goo.gl, goo.gl)
+  // Follow redirects for short URLs (maps.app.goo.gl, goo.gl). Redirects are
+  // followed manually so every hop is re-checked against the SSRF guard — a
+  // short link that 302s to an internal IP is blocked even though the initial
+  // host is public.
   if (url.includes('goo.gl') || url.includes('maps.app')) {
-    const redirectRes = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(10000) });
-    resolvedUrl = redirectRes.url;
+    try {
+      const redirectRes = await safeFetchFollow(url, { signal: AbortSignal.timeout(10000) });
+      resolvedUrl = redirectRes.url;
+    } catch (err) {
+      if (err instanceof SsrfBlockedError) return { error: 'URL is not allowed', status: 400 };
+      throw err;
+    }
   }
 
   // Pattern: /placelists/list/{ID}
@@ -692,11 +700,18 @@ export async function importNaverList(
   if (!ssrf.allowed) return { error: 'URL is not allowed', status: 400 };
 
   // Resolve naver.me short links to the canonical map.naver.com folder URL.
+  // Redirects are followed manually so each hop is re-validated against the
+  // SSRF guard (a short link could otherwise 302 to an internal address).
   let parsedUrl: URL;
   try { parsedUrl = new URL(url); } catch { return { error: 'Invalid URL', status: 400 }; }
   if (parsedUrl.hostname === 'naver.me') {
-    const redirectRes = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(10000) });
-    resolvedUrl = redirectRes.url;
+    try {
+      const redirectRes = await safeFetchFollow(url, { signal: AbortSignal.timeout(10000) });
+      resolvedUrl = redirectRes.url;
+    } catch (err) {
+      if (err instanceof SsrfBlockedError) return { error: 'URL is not allowed', status: 400 };
+      throw err;
+    }
   }
 
   const folderMatch = resolvedUrl.match(/favorite\/myPlace\/folder\/([A-Za-z0-9_-]+)/i);

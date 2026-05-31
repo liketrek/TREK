@@ -131,6 +131,85 @@ export async function safeFetch(url: string, init?: RequestInit, options?: SafeF
   return fetch(url, { ...init, dispatcher } as any);
 }
 
+export interface SafeFetchFollowOptions extends SafeFetchOptions {
+  /** Maximum number of redirects to follow before giving up. Defaults to 5. */
+  maxRedirects?: number;
+  /**
+   * When true, private/internal IPs that ALLOW_INTERNAL_NETWORK would normally
+   * permit are still blocked (matches `checkSsrf(url, true)`). Loopback and
+   * link-local are always blocked regardless. Defaults to false.
+   */
+  bypassInternalIpAllowed?: boolean;
+}
+
+/**
+ * SSRF-safe fetch that follows redirects MANUALLY, re-validating every hop.
+ *
+ * `safeFetch()` (and a one-shot `checkSsrf()` + `fetch(redirect:'follow')`) only
+ * guards the INITIAL URL: a validated public URL can 302-redirect to an internal
+ * IP that the platform fetch would then follow unchecked (redirect TOCTOU). This
+ * helper instead requests with `redirect: 'manual'`, and on every 3xx it resolves
+ * the `Location` header against the current URL, runs `checkSsrf()` on the new
+ * target, and only then fetches the next hop through a dispatcher pinned to THAT
+ * hop's resolved IP. Each hop is therefore SSRF-checked + DNS-pinned, while
+ * legitimate cross-host redirects (e.g. goo.gl → maps.google.com) still resolve
+ * because the dispatcher is re-pinned per hop rather than locked to the first IP.
+ *
+ * The returned Response is the first non-redirect response (or the last redirect
+ * if the hop limit is reached). `response.url` reflects the final hop so callers
+ * relying on the resolved URL keep working.
+ */
+export async function safeFetchFollow(
+  url: string,
+  init?: RequestInit,
+  options?: SafeFetchFollowOptions,
+): Promise<Response> {
+  const maxRedirects = options?.maxRedirects ?? 5;
+  const rejectUnauthorized = options?.rejectUnauthorized ?? true;
+  const bypassInternalIpAllowed = options?.bypassInternalIpAllowed ?? false;
+
+  let currentUrl = url;
+
+  for (let hop = 0; ; hop++) {
+    const ssrf = await checkSsrf(currentUrl, bypassInternalIpAllowed);
+    if (!ssrf.allowed) {
+      throw new SsrfBlockedError(ssrf.error ?? 'Request blocked by SSRF guard');
+    }
+
+    const dispatcher = createPinnedDispatcher(ssrf.resolvedIp!, rejectUnauthorized);
+    const response = await fetch(currentUrl, {
+      ...init,
+      redirect: 'manual',
+      dispatcher,
+    } as any);
+
+    // Only a 3xx WITH a Location header is a redirect we follow; anything else
+    // (2xx/4xx/5xx, or a 3xx with no Location) is the final response.
+    const status = typeof response.status === 'number' ? response.status : 0;
+    const isRedirectStatus = status >= 300 && status < 400;
+    const location = isRedirectStatus ? response.headers?.get('location') ?? null : null;
+    if (!location) {
+      return response;
+    }
+
+    if (hop >= maxRedirects) {
+      throw new SsrfBlockedError('Too many redirects');
+    }
+
+    // Resolve relative redirects against the current URL, then loop to
+    // re-check + re-pin on the next iteration. Drain the body so the
+    // connection can be reused/closed.
+    let nextUrl: string;
+    try {
+      nextUrl = new URL(location, currentUrl).toString();
+    } catch {
+      throw new SsrfBlockedError('Invalid redirect location');
+    }
+    void response.body?.cancel().catch(() => {});
+    currentUrl = nextUrl;
+  }
+}
+
 /**
  * Returns an undici Agent whose connect.lookup is pinned to the already-validated
  * IP. This prevents DNS rebinding (TOCTOU) by ensuring the outbound connection
