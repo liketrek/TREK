@@ -542,7 +542,7 @@ function runMigrations(db: Database.Database): void {
       }
     },
     () => {
-      try { db.exec('ALTER TABLE budget_items ADD COLUMN expense_date TEXT DEFAULT NULL'); } catch {}
+      try { db.exec('ALTER TABLE budget_items ADD COLUMN expense_date TEXT DEFAULT NULL'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
     },
     () => {
       db.exec(`
@@ -803,7 +803,14 @@ function runMigrations(db: Database.Database): void {
       `);
     },
     () => {
-      try {db.exec("UPDATE addons SET enabled = 0 WHERE id = 'memories'");} catch (err) {}
+      try {
+        db.exec("UPDATE addons SET enabled = 0 WHERE id = 'memories'");
+      } catch (err) {
+        // Non-fatal: the addons table may not exist yet on very old databases.
+        // Disabling the legacy memories addon is best-effort, but we no longer
+        // swallow the error silently.
+        console.warn("[migrations] Non-fatal: failed to disable legacy 'memories' addon:", err);
+      }
     },
     // Migration 69: Place region cache for sub-national Atlas regions
     () => {
@@ -1194,21 +1201,21 @@ function runMigrations(db: Database.Database): void {
     // Migration 85: Journal — richer entry fields for magazine-style design
     () => {
       // Highlight tags (JSON array), visibility control, hero photo, color accent
-      try { db.exec('ALTER TABLE journey_entries ADD COLUMN highlight_tags TEXT'); } catch {}
-      try { db.exec("ALTER TABLE journey_entries ADD COLUMN visibility TEXT NOT NULL DEFAULT 'private'"); } catch {}
-      try { db.exec('ALTER TABLE journey_entries ADD COLUMN hero_photo_id TEXT'); } catch {}
-      try { db.exec('ALTER TABLE journey_entries ADD COLUMN color_accent TEXT'); } catch {}
-      try { db.exec('ALTER TABLE journey_entries ADD COLUMN place_name TEXT'); } catch {}
-      try { db.exec('ALTER TABLE journey_entries ADD COLUMN place_id INTEGER REFERENCES places(id) ON DELETE SET NULL'); } catch {}
-      try { db.exec('ALTER TABLE journey_entries ADD COLUMN lat REAL'); } catch {}
-      try { db.exec('ALTER TABLE journey_entries ADD COLUMN lng REAL'); } catch {}
+      try { db.exec('ALTER TABLE journey_entries ADD COLUMN highlight_tags TEXT'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try { db.exec("ALTER TABLE journey_entries ADD COLUMN visibility TEXT NOT NULL DEFAULT 'private'"); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try { db.exec('ALTER TABLE journey_entries ADD COLUMN hero_photo_id TEXT'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try { db.exec('ALTER TABLE journey_entries ADD COLUMN color_accent TEXT'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try { db.exec('ALTER TABLE journey_entries ADD COLUMN place_name TEXT'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try { db.exec('ALTER TABLE journey_entries ADD COLUMN place_id INTEGER REFERENCES places(id) ON DELETE SET NULL'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try { db.exec('ALTER TABLE journey_entries ADD COLUMN lat REAL'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try { db.exec('ALTER TABLE journey_entries ADD COLUMN lng REAL'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
 
       // Check-in: allow a single cover photo reference
-      try { db.exec('ALTER TABLE journey_checkins ADD COLUMN photo_id TEXT'); } catch {}
+      try { db.exec('ALTER TABLE journey_checkins ADD COLUMN photo_id TEXT'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
 
       // Photos: add caption edit timestamp for gallery ordering
-      try { db.exec('ALTER TABLE journey_photos ADD COLUMN width INTEGER'); } catch {}
-      try { db.exec('ALTER TABLE journey_photos ADD COLUMN height INTEGER'); } catch {}
+      try { db.exec('ALTER TABLE journey_photos ADD COLUMN width INTEGER'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try { db.exec('ALTER TABLE journey_photos ADD COLUMN height INTEGER'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
     },
     // Migration 86: Journey multi-trip support + sharing/collaboration
     () => {
@@ -1239,8 +1246,8 @@ function runMigrations(db: Database.Database): void {
       db.exec('CREATE INDEX IF NOT EXISTS idx_journey_members_user ON journey_members(user_id)');
 
       // author tracking on entries and checkins
-      try { db.exec('ALTER TABLE journey_entries ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL'); } catch {}
-      try { db.exec('ALTER TABLE journey_checkins ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL'); } catch {}
+      try { db.exec('ALTER TABLE journey_entries ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try { db.exec('ALTER TABLE journey_checkins ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
     },
     // Migration 87: Journey rebuild — new schema with trip sync
     () => {
@@ -1255,9 +1262,9 @@ function runMigrations(db: Database.Database): void {
 
       if (hasOldJourneys) {
         // Save existing data before dropping
-        try { oldJourneys = db.prepare('SELECT * FROM journeys').all(); } catch {}
-        try { oldEntries = db.prepare('SELECT * FROM journey_entries').all(); } catch {}
-        try { oldPhotos = db.prepare('SELECT * FROM journey_photos').all(); } catch {}
+        try { oldJourneys = db.prepare('SELECT * FROM journeys').all(); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+        try { oldEntries = db.prepare('SELECT * FROM journey_entries').all(); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+        try { oldPhotos = db.prepare('SELECT * FROM journey_photos').all(); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
 
         // Drop all old journey tables
         db.exec('DROP TABLE IF EXISTS journey_location_trail');
@@ -1393,7 +1400,7 @@ function runMigrations(db: Database.Database): void {
                 INSERT OR IGNORE INTO journey_trips (journey_id, trip_id, added_at)
                 VALUES (?, ?, ?)
               `).run(Number(res.lastInsertRowid), j.trip_id, ts);
-            } catch {}
+            } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
           }
         }
 
@@ -1450,10 +1457,10 @@ function runMigrations(db: Database.Database): void {
     },
     // Migration 88: Journey photos — provider support (Immich/Synology)
     () => {
-      try { db.exec("ALTER TABLE journey_photos ADD COLUMN provider TEXT NOT NULL DEFAULT 'local'"); } catch {}
-      try { db.exec('ALTER TABLE journey_photos ADD COLUMN asset_id TEXT'); } catch {}
-      try { db.exec('ALTER TABLE journey_photos ADD COLUMN owner_id INTEGER REFERENCES users(id)'); } catch {}
-      try { db.exec('ALTER TABLE journey_photos ADD COLUMN shared INTEGER NOT NULL DEFAULT 1'); } catch {}
+      try { db.exec("ALTER TABLE journey_photos ADD COLUMN provider TEXT NOT NULL DEFAULT 'local'"); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try { db.exec('ALTER TABLE journey_photos ADD COLUMN asset_id TEXT'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try { db.exec('ALTER TABLE journey_photos ADD COLUMN owner_id INTEGER REFERENCES users(id)'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try { db.exec('ALTER TABLE journey_photos ADD COLUMN shared INTEGER NOT NULL DEFAULT 1'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
       // file_path was NOT NULL — recreate table to make it nullable
       const hasProvider = db.prepare("SELECT 1 FROM pragma_table_info('journey_photos') WHERE name = 'provider'").get();
       if (hasProvider) {
@@ -1481,16 +1488,16 @@ function runMigrations(db: Database.Database): void {
             ALTER TABLE journey_photos_new RENAME TO journey_photos;
             CREATE INDEX idx_journey_photos_entry ON journey_photos(entry_id);
           `);
-        } catch {}
+        } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
       }
     },
     // Migration 89: Journey cover image
     () => {
-      try { db.exec('ALTER TABLE journeys ADD COLUMN cover_image TEXT'); } catch {}
+      try { db.exec('ALTER TABLE journeys ADD COLUMN cover_image TEXT'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
     },
     // Migration 90: Pros/Cons for journey entries
     () => {
-      try { db.exec('ALTER TABLE journey_entries ADD COLUMN pros_cons TEXT'); } catch {}
+      try { db.exec('ALTER TABLE journey_entries ADD COLUMN pros_cons TEXT'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
     },
     // Migration 91: Journey share tokens
     () => {
@@ -1512,7 +1519,7 @@ function runMigrations(db: Database.Database): void {
     },
     // Migration: Vacay week_start setting (0=Sunday, 1=Monday default)
     () => {
-      try { db.exec("ALTER TABLE vacay_plans ADD COLUMN week_start INTEGER NOT NULL DEFAULT 1"); } catch {}
+      try { db.exec("ALTER TABLE vacay_plans ADD COLUMN week_start INTEGER NOT NULL DEFAULT 1"); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
     },
     // Migration: Unified Photo Provider Abstraction Layer (#584)
     // Central trek_photos registry; trip_photos + journey_photos reference via photo_id
@@ -1655,7 +1662,7 @@ function runMigrations(db: Database.Database): void {
     },
     // Migration 99: hide_skeletons per-user setting on journey_contributors
     () => {
-      try { db.exec('ALTER TABLE journey_contributors ADD COLUMN hide_skeletons INTEGER NOT NULL DEFAULT 0'); } catch {}
+      try { db.exec('ALTER TABLE journey_contributors ADD COLUMN hide_skeletons INTEGER NOT NULL DEFAULT 0'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
     },
     // Migration 100: Idempotency keys for offline mutation replay
     () => {
@@ -1895,7 +1902,10 @@ function runMigrations(db: Database.Database): void {
         const names = new Set(cols.map((c) => c.name));
         if (names.has('start_day_id')) db.exec('CREATE INDEX IF NOT EXISTS idx_day_accommodations_start_day_id ON day_accommodations(start_day_id)');
         if (names.has('end_day_id')) db.exec('CREATE INDEX IF NOT EXISTS idx_day_accommodations_end_day_id ON day_accommodations(end_day_id)');
-      } catch { /* table may not exist on very old installs */ }
+      } catch (err) {
+        // Non-fatal: day_accommodations may not exist on very old installs.
+        console.warn('[migrations] Non-fatal migration step failed:', err);
+      }
       try {
         // notifications schema has varied; probe before indexing.
         const cols = db.prepare("PRAGMA table_info('notifications')").all() as Array<{ name: string }>;
@@ -1903,7 +1913,10 @@ function runMigrations(db: Database.Database): void {
         if (names.has('target') && names.has('scope')) {
           db.exec('CREATE INDEX IF NOT EXISTS idx_notifications_target_scope ON notifications(target, scope)');
         }
-      } catch { /* notifications table may not exist on very old installs */ }
+      } catch (err) {
+        // Non-fatal: notifications table may not exist on very old installs.
+        console.warn('[migrations] Non-fatal migration step failed:', err);
+      }
     },
     // Migration: widen idempotency_keys primary key to (key, user_id,
     // method, path). The middleware lookup was widened in the same audit
