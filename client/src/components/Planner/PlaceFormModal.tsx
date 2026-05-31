@@ -10,6 +10,7 @@ import { Search, Paperclip, X, AlertTriangle, Loader2 } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import CustomTimePicker from '../shared/CustomTimePicker'
 import { DEFAULT_FORM, isGoogleMapsUrl, type PlaceFormData } from './PlaceFormModal.helpers'
+import { getApiErrorMessage } from '../../utils/apiError'
 import type { Place, Category, Assignment } from '../../types'
 
 // The submit payload mirrors the form, but lat/lng are parsed to numbers and
@@ -188,7 +189,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
       const result = await mapsApi.search(mapsSearch, language)
       setMapsResults(result.places || [])
     } catch (err: unknown) {
-      toast.error(t('places.mapsSearchError'))
+      toast.error(getApiErrorMessage(err, t('places.mapsSearchError')))
     } finally {
       setIsSearchingMaps(false)
     }
@@ -228,7 +229,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     } catch (err) {
       console.error('Failed to fetch place details:', err)
       setMapsSearch(previousSearch)
-      toast.error(t('places.mapsSearchError'))
+      toast.error(getApiErrorMessage(err, t('places.mapsSearchError')))
     } finally {
       setIsSearchingMaps(false)
     }

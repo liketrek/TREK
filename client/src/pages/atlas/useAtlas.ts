@@ -622,7 +622,7 @@ export function useAtlas() {
     try {
       const result = await mapsApi.search(bucketSearch, language)
       setBucketSearchResults(result.places || [])
-    } catch {} finally { setBucketSearching(false) }
+    } catch (err) { console.error('Bucket-list place search failed:', err) } finally { setBucketSearching(false) }
   }
 
   const handleSelectBucketPoi = (result: any) => {

@@ -225,13 +225,16 @@ describe('PlaceFormModal', () => {
     expect(screen.getByDisplayValue('48.8584')).toBeInTheDocument();
   });
 
-  it('FE-PLANNER-PLACEFORM-021: maps search error shows toast', async () => {
+  it('FE-PLANNER-PLACEFORM-021: maps search error surfaces the server-provided reason', async () => {
     const addToast = vi.fn();
     window.__addToast = addToast;
 
     const user = userEvent.setup();
+    // The backend forwards the real upstream error (e.g. a Google Places API message);
+    // the modal must show it instead of a generic "search failed" so the cause is visible.
     server.use(
-      http.post('/api/maps/search', () => HttpResponse.json({ error: 'fail' }, { status: 500 })),
+      http.post('/api/maps/search', () =>
+        HttpResponse.json({ error: 'Places API (New) has not been used in project 123 or it is disabled' }, { status: 403 })),
     );
 
     render(<PlaceFormModal {...defaultProps} />);
@@ -241,7 +244,7 @@ describe('PlaceFormModal', () => {
 
     await waitFor(() => {
       expect(addToast).toHaveBeenCalledWith(
-        expect.stringMatching(/search failed/i),
+        expect.stringMatching(/Places API \(New\) has not been used/i),
         'error',
         undefined,
       );
