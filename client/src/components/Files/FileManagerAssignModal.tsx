@@ -64,10 +64,10 @@ export function AssignModal(S: FileManagerState) {
               }
             }
             const unassigned = places.filter(p => !assignedPlaceIds.has(p.id))
-            const placeBtn = (p: Place) => {
+            const placeBtn = (p: Place, idx: number) => {
               const isLinked = file.place_id === p.id || (file.linked_place_ids || []).includes(p.id)
               return (
-                <button key={p.id} onClick={async () => {
+                <button key={`${p.id}-${idx}`} onClick={async () => {
                   if (isLinked) {
                     if (file.place_id === p.id) {
                       await handleAssign(file.id, { place_id: null })
