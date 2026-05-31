@@ -7,7 +7,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useJourneyStore } from '../store/journeyStore'
 import { useAuthStore } from '../store/authStore'
 import { useTranslation } from '../i18n'
-import { journeyApi, authApi, addonsApi, mapsApi } from '../api/client'
+import { journeyApi, addonsApi, mapsApi } from '../api/client'
 import { addListener, removeListener } from '../api/websocket'
 import Navbar from '../components/Layout/Navbar'
 import JourneyMap from '../components/Journey/JourneyMapAuto'
@@ -16,10 +16,12 @@ import type { JourneyMapAutoHandle as JourneyMapHandle } from '../components/Jou
 import JournalBody from '../components/Journey/JournalBody'
 import MarkdownToolbar from '../components/Journey/MarkdownToolbar'
 import PhotoLightbox from '../components/Journey/PhotoLightbox'
+import ContributorInviteDialog from '../components/Journey/ContributorInviteDialog'
+import JourneyShareSection from '../components/Journey/JourneyShareSection'
 import { useToast } from '../components/shared/Toast'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
 import {
-  ArrowLeft, RefreshCw, MoreHorizontal, Share2, Download, List, Grid, MapPin, Link, Copy,
+  ArrowLeft, RefreshCw, MoreHorizontal, Share2, Download, List, Grid, MapPin, Copy,
   Clock, Package, Image, ChevronRight,
   UserPlus, Plus, Minus, Calendar, Camera, BookOpen, X, Check, ImagePlus, Trash2, Pencil,
   Laugh, Smile, Meh, Annoyed, Frown,
@@ -939,6 +941,7 @@ function GalleryView({ entries, gallery, journeyId, userId, trips, onPhotoClick,
           onClose={() => setShowPicker(false)}
           onAdd={async (groups, entryId) => {
             let added = 0
+            let anyFailed = false
             for (const group of groups) {
               try {
                 if (entryId) {
@@ -948,11 +951,15 @@ function GalleryView({ entries, gallery, journeyId, userId, trips, onPhotoClick,
                   const result = await journeyApi.addProviderPhotosToGallery(journeyId, pickerProvider!, group.assetIds, group.passphrase)
                   added += result.added || 0
                 }
-              } catch {}
+              } catch {
+                anyFailed = true
+              }
             }
             if (added > 0) {
               toast.success(t('journey.photosAdded', { count: added }))
               onRefresh()
+            } else if (anyFailed) {
+              toast.error(t('common.error'))
             }
             setShowPicker(false)
           }}
@@ -2524,249 +2531,7 @@ function AddTripDialog({ journeyId, existingTripIds, onClose, onAdded }: {
   )
 }
 
-// ── Contributor Invite Dialog ─────────────────────────────────────────────
-
-function ContributorInviteDialog({ journeyId, existingUserIds, onClose, onInvited }: {
-  journeyId: number
-  existingUserIds: number[]
-  onClose: () => void
-  onInvited: () => void
-}) {
-  const { t } = useTranslation()
-  const [users, setUsers] = useState<{ id: number; username: string; email: string; avatar?: string | null }[]>([])
-  const [search, setSearch] = useState('')
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(null)
-  const [role, setRole] = useState<'editor' | 'viewer'>('viewer')
-  const [sending, setSending] = useState(false)
-  const toast = useToast()
-
-  useEffect(() => {
-    authApi.listUsers().then(d => setUsers(d.users || [])).catch(() => {})
-  }, [])
-
-  const filtered = users.filter(u => {
-    if (existingUserIds.includes(u.id)) return false
-    if (!search) return true
-    const q = search.toLowerCase()
-    return u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
-  })
-
-  const handleInvite = async () => {
-    if (!selectedUserId) return
-    setSending(true)
-    try {
-      await journeyApi.addContributor(journeyId, selectedUserId, role)
-      toast.success(t('journey.contributors.added'))
-      onInvited()
-    } catch {
-      toast.error(t('journey.contributors.addFailed'))
-    } finally {
-      setSending(false)
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-5" style={{ background: 'rgba(9,9,11,0.75)' }}>
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] max-w-[420px] w-full flex flex-col overflow-hidden">
-
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
-          <h2 className="text-[16px] font-bold text-zinc-900 dark:text-white">{t('journey.contributors.invite')}</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">
-            <X size={16} />
-          </button>
-        </div>
-
-        <div className="px-6 py-5 flex flex-col gap-4">
-          {/* Search */}
-          <div>
-            <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-1.5">{t('journey.contributors.searchUser')}</label>
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder={t('journey.contributors.searchPlaceholder')}
-              className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-700 rounded-lg text-[13px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
-            />
-          </div>
-
-          {/* User list */}
-          <div className="max-h-[200px] overflow-y-auto flex flex-col gap-1">
-            {filtered.length === 0 && (
-              <p className="text-[12px] text-zinc-400 text-center py-4">{t('journey.contributors.noUsers')}</p>
-            )}
-            {filtered.map(u => (
-              <div
-                key={u.id}
-                onClick={() => setSelectedUserId(u.id)}
-                className={`flex items-center gap-2.5 p-2.5 rounded-lg cursor-pointer transition-all ${
-                  selectedUserId === u.id
-                    ? 'bg-zinc-100 dark:bg-zinc-800 border border-zinc-900 dark:border-white'
-                    : 'hover:bg-zinc-50 dark:hover:bg-zinc-800 border border-transparent'
-                }`}
-              >
-                <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 flex items-center justify-center text-[12px] font-semibold">
-                  {u.username[0].toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-medium text-zinc-900 dark:text-white">{u.username}</div>
-                  <div className="text-[11px] text-zinc-500 truncate">{u.email}</div>
-                </div>
-                {selectedUserId === u.id && (
-                  <div className="w-5 h-5 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 flex items-center justify-center">
-                    <Check size={12} />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Role selector */}
-          <div>
-            <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-2">{t('journey.invite.role')}</label>
-            <div className="flex gap-2">
-              {(['viewer', 'editor'] as const).map(r => (
-                <button
-                  key={r}
-                  onClick={() => setRole(r)}
-                  className={`flex-1 py-2 rounded-lg text-[12px] font-medium border transition-all ${
-                    role === r
-                      ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 border-zinc-900 dark:border-white'
-                      : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:border-zinc-400'
-                  }`}
-                >
-                  {t(`journey.invite.${r}`)}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50">
-          <button onClick={onClose} className="px-3.5 py-2 rounded-lg border border-zinc-200 dark:border-zinc-600 text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700">
-            {t('common.cancel')}
-          </button>
-          <button
-            onClick={handleInvite}
-            disabled={!selectedUserId || sending}
-            className="px-3.5 py-2 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[13px] font-medium hover:bg-zinc-800 dark:hover:bg-zinc-100 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {sending ? t('journey.invite.inviting') : t('journey.invite.invite')}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ── Journey Settings Dialog ───────────────────────────────────────────────
-
-// ── Journey Share Section ─────────────────────────────────────────────────
-
-function JourneyShareSection({ journeyId }: { journeyId: number }) {
-  const { t } = useTranslation()
-  const [link, setLink] = useState<{ token: string; share_timeline: boolean; share_gallery: boolean; share_map: boolean } | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [copied, setCopied] = useState(false)
-  const toast = useToast()
-
-  useEffect(() => {
-    journeyApi.getShareLink(journeyId).then(d => setLink(d.link || null)).catch(() => {}).finally(() => setLoading(false))
-  }, [journeyId])
-
-  const createLink = async () => {
-    try {
-      const res = await journeyApi.createShareLink(journeyId, { share_timeline: true, share_gallery: true, share_map: true })
-      setLink({ token: res.token, share_timeline: true, share_gallery: true, share_map: true })
-      toast.success(t('journey.share.linkCreated'))
-    } catch { toast.error(t('journey.share.createFailed')) }
-  }
-
-  const togglePerm = async (key: 'share_timeline' | 'share_gallery' | 'share_map') => {
-    if (!link) return
-    const updated = { ...link, [key]: !link[key] }
-    setLink(updated)
-    try {
-      await journeyApi.createShareLink(journeyId, { share_timeline: updated.share_timeline, share_gallery: updated.share_gallery, share_map: updated.share_map })
-    } catch { setLink(link); toast.error(t('journey.share.updateFailed')) }
-  }
-
-  const deleteLink = async () => {
-    try {
-      await journeyApi.deleteShareLink(journeyId)
-      setLink(null)
-      toast.success(t('journey.share.linkDeleted'))
-    } catch { toast.error(t('journey.share.deleteFailed')) }
-  }
-
-  const shareUrl = link ? `${window.location.origin}/public/journey/${link.token}` : ''
-
-  const copyLink = () => {
-    navigator.clipboard.writeText(shareUrl)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  if (loading) return null
-
-  return (
-    <div>
-      <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-2">{t('journey.share.publicShare')}</label>
-
-      {!link ? (
-        <button
-          onClick={createLink}
-          className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-dashed border-zinc-300 dark:border-zinc-600 text-[12px] font-medium text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 dark:hover:border-zinc-500 dark:hover:text-zinc-300 transition-colors"
-        >
-          <Link size={14} /> {t('journey.share.createLink')}
-        </button>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {/* URL + Copy */}
-          <div className="flex items-center gap-2 p-2.5 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
-            <Link size={13} className="text-zinc-400 flex-shrink-0" />
-            <span className="flex-1 text-[11px] text-zinc-600 dark:text-zinc-400 truncate">{shareUrl}</span>
-            <button
-              onClick={copyLink}
-              className="flex-shrink-0 px-2.5 py-1 rounded-md bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[11px] font-medium hover:bg-zinc-700 dark:hover:bg-zinc-200"
-            >
-              {copied ? t('journey.share.copied') : t('journey.share.copy')}
-            </button>
-          </div>
-
-          {/* Permission toggles */}
-          <div className="flex flex-col gap-1.5">
-            {[
-              { key: 'share_timeline' as const, label: t('journey.share.timeline'), icon: List },
-              { key: 'share_gallery' as const, label: t('journey.share.gallery'), icon: Grid },
-              { key: 'share_map' as const, label: t('journey.share.map'), icon: MapPin },
-            ].map(({ key, label, icon: Icon }) => (
-              <button
-                key={key}
-                onClick={() => togglePerm(key)}
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border text-[12px] font-medium transition-all ${
-                  link[key]
-                    ? 'border-zinc-900 dark:border-white bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
-                    : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:border-zinc-400'
-                }`}
-              >
-                <Icon size={13} />
-                {label}
-                {link[key] && <Check size={12} className="ml-auto" />}
-              </button>
-            ))}
-          </div>
-
-          {/* Delete link */}
-          <button
-            onClick={deleteLink}
-            className="text-[11px] font-medium text-red-500 hover:text-red-600 self-start"
-          >
-            {t('share.deleteLink')}
-          </button>
-        </div>
-      )}
-    </div>
-  )
-}
 
 function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite, onRefresh }: {
   journey: JourneyDetail

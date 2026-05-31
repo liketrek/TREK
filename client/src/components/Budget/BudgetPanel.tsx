@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import DOM from 'react-dom'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
+import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import { Plus, Trash2, Calculator, Wallet, Pencil, Users, Check, Info, ChevronDown, ChevronRight, Download, GripVertical, TrendingUp, TrendingDown, PieChart as PieChartIcon } from 'lucide-react'
 
@@ -206,7 +207,7 @@ function AddItemRow({ onAdd, t }: AddItemRowProps) {
   const inp = { border: '1px solid var(--border-primary)', borderRadius: 4, padding: '4px 6px', fontSize: 13, outline: 'none', fontFamily: 'inherit', width: '100%', background: 'var(--bg-input)', color: 'var(--text-primary)' }
 
   return (
-    <tr style={{ background: 'var(--bg-secondary)' }}>
+    <tr className="bg-surface-secondary">
       <td style={{ padding: '4px 6px' }}>
         <input ref={nameRef} value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()}
           placeholder={t('budget.newEntry')} style={inp} />
@@ -224,9 +225,9 @@ function AddItemRow({ onAdd, t }: AddItemRowProps) {
         <input value={days} onChange={e => setDays(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()}
           placeholder="-" inputMode="numeric" style={{ ...inp, textAlign: 'center', maxWidth: 60, margin: '0 auto' }} />
       </td>
-      <td className="hidden md:table-cell" style={{ padding: '4px 6px', color: 'var(--text-faint)', fontSize: 12, textAlign: 'center' }}>-</td>
-      <td className="hidden md:table-cell" style={{ padding: '4px 6px', color: 'var(--text-faint)', fontSize: 12, textAlign: 'center' }}>-</td>
-      <td className="hidden lg:table-cell" style={{ padding: '4px 6px', color: 'var(--text-faint)', fontSize: 12, textAlign: 'center' }}>-</td>
+      <td className="hidden md:table-cell text-content-faint" style={{ padding: '4px 6px', fontSize: 12, textAlign: 'center' }}>-</td>
+      <td className="hidden md:table-cell text-content-faint" style={{ padding: '4px 6px', fontSize: 12, textAlign: 'center' }}>-</td>
+      <td className="hidden lg:table-cell text-content-faint" style={{ padding: '4px 6px', fontSize: 12, textAlign: 'center' }}>-</td>
       <td className="hidden sm:table-cell" style={{ padding: '4px 6px', textAlign: 'center' }}>
         <div style={{ maxWidth: 90, margin: '0 auto' }}>
           <CustomDatePicker value={expenseDate} onChange={setExpenseDate} placeholder="-" compact />
@@ -561,6 +562,7 @@ interface BudgetPanelProps {
 export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelProps) {
   const { trip, budgetItems, addBudgetItem, updateBudgetItem, deleteBudgetItem, loadBudgetItems, updateTrip, setBudgetItemMembers, toggleBudgetMemberPaid, reorderBudgetItems, reorderBudgetCategories } = useTripStore()
   const can = useCanDo()
+  const toast = useToast()
   const { t, locale } = useTranslation()
   const isDark = useIsDark()
   const theme = useMemo(() => widgetTheme(isDark), [isDark])
@@ -625,21 +627,24 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
     })).filter(s => s.value > 0)
   , [grouped, categoryNames])
 
-  const handleAddItem = async (category, data) => { try { await addBudgetItem(tripId, { ...data, category }) } catch {} }
-  const handleUpdateField = async (id, field, value) => { try { await updateBudgetItem(tripId, id, { [field]: value }) } catch {} }
-  const handleDeleteItem = async (id) => { try { await deleteBudgetItem(tripId, id) } catch {} }
+  const handleAddItem = async (category, data) => { try { await addBudgetItem(tripId, { ...data, category }) } catch { toast.error(t('common.error')) } }
+  const handleUpdateField = async (id, field, value) => { try { await updateBudgetItem(tripId, id, { [field]: value }) } catch { toast.error(t('common.error')) } }
+  const handleDeleteItem = async (id) => { try { await deleteBudgetItem(tripId, id) } catch { toast.error(t('common.error')) } }
   const handleDeleteCategory = async (cat) => {
     const items = grouped.get(cat) || []
-    for (const item of Array.from(items)) await deleteBudgetItem(tripId, item.id)
+    try { for (const item of Array.from(items)) await deleteBudgetItem(tripId, item.id) }
+    catch { toast.error(t('common.error')) }
   }
   const handleRenameCategory = async (oldName, newName) => {
     if (!newName.trim() || newName.trim() === oldName) return
     const items = grouped.get(oldName) || []
-    for (const item of Array.from(items)) await updateBudgetItem(tripId, item.id, { category: newName.trim() })
+    try { for (const item of Array.from(items)) await updateBudgetItem(tripId, item.id, { category: newName.trim() }) }
+    catch { toast.error(t('common.error')) }
   }
   const handleAddCategory = () => {
     if (!newCategoryName.trim()) return
-    addBudgetItem(tripId, { name: t('budget.defaultEntry'), category: newCategoryName.trim(), total_price: 0 })
+    Promise.resolve(addBudgetItem(tripId, { name: t('budget.defaultEntry'), category: newCategoryName.trim(), total_price: 0 }))
+      .catch(() => toast.error(t('common.error')))
     setNewCategoryName('')
   }
 

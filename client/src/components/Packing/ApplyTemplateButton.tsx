@@ -87,7 +87,7 @@ export default function ApplyTemplateButton({ tripId, style, className }: ApplyT
               onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
-              <Package size={13} style={{ color: 'var(--text-faint)' }} />
+              <Package size={13} className="text-content-faint" />
               <div style={{ flex: 1, textAlign: 'left' }}>
                 <div style={{ fontWeight: 600 }}>{tmpl.name}</div>
                 <div style={{ fontSize: 10, color: 'var(--text-faint)' }}>

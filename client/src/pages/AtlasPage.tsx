@@ -3,10 +3,13 @@ import { useTranslation } from '../i18n'
 import Navbar from '../components/Layout/Navbar'
 import apiClient from '../api/client'
 import CustomSelect from '../components/shared/CustomSelect'
-import { Globe, MapPin, Briefcase, Calendar, Flag, ChevronRight, PanelLeftOpen, PanelLeftClose, X, Star, Plus, Trash2, Search } from 'lucide-react'
+import { Globe, MapPin, Briefcase, Calendar, Flag, PanelLeftOpen, PanelLeftClose, X, Star, Plus, Trash2, Search } from 'lucide-react'
 import type { TranslationFn } from '../types'
 import { A2_TO_A3, countryCodeToFlag, type AtlasCountry, type AtlasStats, type AtlasData, type CountryDetail } from './atlas/atlasModel'
 import { useAtlas } from './atlas/useAtlas'
+import AtlasCountrySearch from './atlas/AtlasCountrySearch'
+import { useToast } from '../components/shared/Toast'
+import { getApiErrorMessage } from '../types'
 
 function MobileStats({ data, stats, countries, resolveName, t, dark }: { data: AtlasData | null; stats: AtlasStats; countries: AtlasCountry[]; resolveName: (code: string) => string; t: TranslationFn; dark: boolean }): React.ReactElement {
   const tp = dark ? '#f1f5f9' : '#0f172a'
@@ -80,20 +83,21 @@ export default function AtlasPage(): React.ReactElement {
     bucketPoiMonth, setBucketPoiMonth, bucketPoiYear, setBucketPoiYear,
     bucketSearching, bucketSearch, setBucketSearch,
   } = useAtlas()
+  const toast = useToast()
 
   if (loading) {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+      <div className="min-h-screen bg-surface">
         <Navbar />
         <div className="flex items-center justify-center" style={{ paddingTop: 'var(--nav-h)', minHeight: 'calc(100vh - var(--nav-h))' }}>
-          <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--border-primary)', borderTopColor: 'var(--text-primary)' }} />
+          <div className="w-8 h-8 border-2 rounded-full animate-spin border-edge border-t-content" />
         </div>
       </div>
     )
   }
 
   return (
-    <div className="h-screen overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
+    <div className="h-screen overflow-hidden bg-surface">
       <Navbar />
       <div style={{ position: 'fixed', top: 'var(--nav-h)', left: 0, right: 0, bottom: 'env(safe-area-inset-bottom, 0px)' }}>
         {/* Map */}
@@ -110,129 +114,18 @@ export default function AtlasPage(): React.ReactElement {
           border: `1px solid ${dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`,
           fontSize: 12, minWidth: 120,
         }} />
-        <div
-          className="absolute z-20 flex justify-center"
-          style={{ top: 'calc(env(safe-area-inset-top, 0px) + 14px)', left: 0, right: 0, pointerEvents: 'none' }}
-        >
-          <div style={{ width: 'min(520px, calc(100vw - 28px))', pointerEvents: 'auto' }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '10px 12px',
-              borderRadius: 16,
-              border: '1px solid ' + (dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)'),
-              background: dark ? 'rgba(10,10,15,0.55)' : 'rgba(255,255,255,0.55)',
-              backdropFilter: 'blur(18px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(18px) saturate(180%)',
-              boxShadow: dark ? '0 8px 26px rgba(0,0,0,0.25)' : '0 8px 26px rgba(0,0,0,0.10)',
-            }}>
-              <Search size={16} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
-              <input
-                value={atlas_country_search}
-                onChange={(e) => {
-                  const raw = e.target.value
-                  set_atlas_country_search(raw)
-                  const q = raw.trim().toLowerCase()
-                  if (!q) {
-                    set_atlas_country_results([])
-                    set_atlas_country_open(false)
-                    return
-                  }
-                  const results = atlas_country_options
-                    .filter(o => o.label.toLowerCase().includes(q) || o.code.toLowerCase() === q)
-                    .slice(0, 8)
-                  set_atlas_country_results(results)
-                  set_atlas_country_open(true)
-                }}
-                onFocus={() => {
-                  if (atlas_country_results.length > 0) set_atlas_country_open(true)
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') {
-                    set_atlas_country_open(false)
-                    return
-                  }
-                  if (e.key === 'Enter') {
-                    const first = atlas_country_results[0]
-                    if (first) select_country_from_search(first.code)
-                  }
-                }}
-                placeholder={t('atlas.searchCountry')}
-                autoComplete="off"
-                spellCheck={false}
-                style={{
-                  flex: 1,
-                  border: 'none',
-                  outline: 'none',
-                  background: 'transparent',
-                  fontSize: 13,
-                  fontFamily: 'inherit',
-                  color: 'var(--text-primary)',
-                }}
-              />
-              {atlas_country_search.trim() && (
-                <button
-                  onClick={() => {
-                    set_atlas_country_search('')
-                    set_atlas_country_results([])
-                    set_atlas_country_open(false)
-                  }}
-                  style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 2, display: 'flex' }}
-                  aria-label="Clear"
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-
-            {atlas_country_open && atlas_country_results.length > 0 && (
-              <div
-                style={{
-                  marginTop: 8,
-                  borderRadius: 14,
-                  overflow: 'hidden',
-                  border: '1px solid ' + (dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)'),
-                  background: dark ? 'rgba(10,10,15,0.75)' : 'rgba(255,255,255,0.75)',
-                  backdropFilter: 'blur(18px) saturate(180%)',
-                  WebkitBackdropFilter: 'blur(18px) saturate(180%)',
-                  boxShadow: dark ? '0 12px 30px rgba(0,0,0,0.35)' : '0 12px 30px rgba(0,0,0,0.12)',
-                }}
-                onMouseLeave={() => set_atlas_country_open(false)}
-              >
-                {atlas_country_results.map((r) => (
-                  <button
-                    key={r.code}
-                    onClick={() => select_country_from_search(r.code)}
-                    style={{
-                      width: '100%',
-                      border: 'none',
-                      background: 'transparent',
-                      cursor: 'pointer',
-                      padding: '10px 12px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      fontFamily: 'inherit',
-                      textAlign: 'left',
-                      borderBottom: '1px solid ' + (dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'),
-                    }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
-                  >
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                      <img src={`https://flagcdn.com/w40/${r.code.toLowerCase()}.png`} alt={r.code} style={{ width: 28, height: 20, borderRadius: 4, objectFit: 'cover' }} />
-                      <span style={{ fontSize: 13, fontWeight: 650, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {r.label}
-                      </span>
-                    </span>
-                    <ChevronRight size={16} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        <AtlasCountrySearch
+          dark={dark}
+          t={t}
+          search={atlas_country_search}
+          setSearch={set_atlas_country_search}
+          results={atlas_country_results}
+          setResults={set_atlas_country_results}
+          open={atlas_country_open}
+          setOpen={set_atlas_country_open}
+          options={atlas_country_options}
+          onSelect={select_country_from_search}
+        />
 
         {/* Mobile: Bottom bar */}
         <div className="md:hidden absolute left-0 right-0 z-10 flex justify-center" style={{ bottom: 'calc(84px + env(safe-area-inset-bottom, 0px) + 8px)', touchAction: 'manipulation' }}>
@@ -240,13 +133,13 @@ export default function AtlasPage(): React.ReactElement {
             style={{ background: dark ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.5)', backdropFilter: 'blur(16px)' }}>
             {/* Countries highlighted */}
             <div className="text-center px-3 py-1.5 rounded-xl" style={{ background: dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }}>
-              <p className="text-3xl font-black tabular-nums leading-none" style={{ color: 'var(--text-primary)' }}>{stats.totalCountries}</p>
-              <p className="text-[9px] font-semibold uppercase tracking-wide mt-1" style={{ color: 'var(--text-faint)' }}>{t('atlas.countries')}</p>
+              <p className="text-3xl font-black tabular-nums leading-none text-content">{stats.totalCountries}</p>
+              <p className="text-[9px] font-semibold uppercase tracking-wide mt-1 text-content-faint">{t('atlas.countries')}</p>
             </div>
             {[[stats.totalTrips, t('atlas.trips')], [stats.totalPlaces, t('atlas.places')], [stats.totalCities || 0, t('atlas.cities')], [stats.totalDays, t('atlas.days')]].map(([v, l], i) => (
               <div key={i} className="text-center px-1">
-                <p className="text-xl font-black tabular-nums leading-none" style={{ color: 'var(--text-primary)' }}>{v}</p>
-                <p className="text-[9px] font-semibold uppercase tracking-wide mt-1" style={{ color: 'var(--text-faint)' }}>{l}</p>
+                <p className="text-xl font-black tabular-nums leading-none text-content">{v}</p>
+                <p className="text-[9px] font-semibold uppercase tracking-wide mt-1 text-content-faint">{l}</p>
               </div>
             ))}
           </div>
@@ -303,14 +196,14 @@ export default function AtlasPage(): React.ReactElement {
       {confirmAction && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={() => setConfirmAction(null)}>
-          <div style={{ background: 'var(--bg-card)', borderRadius: 16, padding: 24, maxWidth: 340, width: '100%', boxShadow: '0 16px 48px rgba(0,0,0,0.2)', textAlign: 'center' }}
+          <div className="bg-surface-card" style={{ borderRadius: 16, padding: 24, maxWidth: 340, width: '100%', boxShadow: '0 16px 48px rgba(0,0,0,0.2)', textAlign: 'center' }}
             onClick={e => e.stopPropagation()}>
             {confirmAction.code.length === 2 ? (
               <img src={`https://flagcdn.com/w80/${confirmAction.code.toLowerCase()}.png`} alt={confirmAction.code} style={{ width: 48, height: 34, borderRadius: 6, objectFit: 'cover', marginBottom: 12, display: 'inline-block' }} />
             ) : (
               <div style={{ fontSize: 36, marginBottom: 12 }}>{countryCodeToFlag(confirmAction.code)}</div>
             )}
-            <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{confirmAction.name}</h3>
+            <h3 className="text-content" style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700 }}>{confirmAction.name}</h3>
 
             {confirmAction.type === 'choose' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -321,26 +214,30 @@ export default function AtlasPage(): React.ReactElement {
                       if (!prev || prev.countries.find(c => c.code === confirmAction.code)) return prev
                       return { ...prev, countries: [...prev.countries, { code: confirmAction.code, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null }], stats: { ...prev.stats, totalCountries: prev.stats.totalCountries + 1 } }
                     })
-                  } catch {}
+                  } catch (err) {
+                    toast.error(getApiErrorMessage(err, t('common.error')))
+                  }
                   setConfirmAction(null)
                 }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.12s' }}
+                  className="border border-edge"
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px', borderRadius: 12, background: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.12s' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                  <MapPin size={18} style={{ color: 'var(--text-primary)', flexShrink: 0 }} />
+                  <MapPin size={18} className="text-content" style={{ flexShrink: 0 }} />
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{t('atlas.markVisited')}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{t('atlas.markVisitedHint')}</div>
+                    <div className="text-content" style={{ fontSize: 13, fontWeight: 600 }}>{t('atlas.markVisited')}</div>
+                    <div className="text-content-muted" style={{ fontSize: 11, marginTop: 1 }}>{t('atlas.markVisitedHint')}</div>
                   </div>
                 </button>
                 <button onClick={() => setConfirmAction({ ...confirmAction, type: 'bucket' as any })}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.12s' }}
+                  className="border border-edge"
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px', borderRadius: 12, background: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.12s' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}>
                   <Star size={18} style={{ color: '#fbbf24', flexShrink: 0 }} />
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{t('atlas.addToBucket')}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{t('atlas.addToBucketHint')}</div>
+                    <div className="text-content" style={{ fontSize: 13, fontWeight: 600 }}>{t('atlas.addToBucket')}</div>
+                    <div className="text-content-muted" style={{ fontSize: 11, marginTop: 1 }}>{t('atlas.addToBucketHint')}</div>
                   </div>
                 </button>
               </div>
@@ -349,7 +246,7 @@ export default function AtlasPage(): React.ReactElement {
             {confirmAction.type === 'choose-region' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {confirmAction.countryName && (
-                  <p style={{ margin: '-8px 0 8px', fontSize: 12, color: 'var(--text-muted)' }}>{confirmAction.countryName}</p>
+                  <p className="text-content-muted" style={{ margin: '-8px 0 8px', fontSize: 12 }}>{confirmAction.countryName}</p>
                 )}
                 <button onClick={async () => {
                   const { code: countryCode, name: rName, regionCode: rCode } = confirmAction
@@ -365,26 +262,30 @@ export default function AtlasPage(): React.ReactElement {
                       if (!prev || prev.countries.find(c => c.code === countryCode)) return prev
                       return { ...prev, countries: [...prev.countries, { code: countryCode, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null }], stats: { ...prev.stats, totalCountries: prev.stats.totalCountries + 1 } }
                     })
-                  } catch {}
+                  } catch (err) {
+                    toast.error(getApiErrorMessage(err, t('common.error')))
+                  }
                   setConfirmAction(null)
                 }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.12s' }}
+                  className="border border-edge"
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px', borderRadius: 12, background: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.12s' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                  <MapPin size={18} style={{ color: 'var(--text-primary)', flexShrink: 0 }} />
+                  <MapPin size={18} className="text-content" style={{ flexShrink: 0 }} />
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{t('atlas.markVisited')}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{t('atlas.markRegionVisitedHint')}</div>
+                    <div className="text-content" style={{ fontSize: 13, fontWeight: 600 }}>{t('atlas.markVisited')}</div>
+                    <div className="text-content-muted" style={{ fontSize: 11, marginTop: 1 }}>{t('atlas.markRegionVisitedHint')}</div>
                   </div>
                 </button>
                 <button onClick={() => setConfirmAction({ ...confirmAction, type: 'bucket' })}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.12s' }}
+                  className="border border-edge"
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px', borderRadius: 12, background: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.12s' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}>
                   <Star size={18} style={{ color: '#fbbf24', flexShrink: 0 }} />
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{t('atlas.addToBucket')}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{t('atlas.addToBucketHint')}</div>
+                    <div className="text-content" style={{ fontSize: 13, fontWeight: 600 }}>{t('atlas.addToBucket')}</div>
+                    <div className="text-content-muted" style={{ fontSize: 11, marginTop: 1 }}>{t('atlas.addToBucketHint')}</div>
                   </div>
                 </button>
               </div>
@@ -392,10 +293,11 @@ export default function AtlasPage(): React.ReactElement {
 
             {confirmAction.type === 'unmark' && (
               <>
-                <p style={{ margin: '0 0 20px', fontSize: 13, color: 'var(--text-muted)' }}>{t('atlas.confirmUnmark')}</p>
+                <p className="text-content-muted" style={{ margin: '0 0 20px', fontSize: 13 }}>{t('atlas.confirmUnmark')}</p>
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
                   <button onClick={() => setConfirmAction(null)}
-                    style={{ padding: '8px 20px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-muted)' }}>
+                    className="border border-edge text-content-muted"
+                    style={{ padding: '8px 20px', borderRadius: 10, background: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
                     {t('common.cancel')}
                   </button>
                   <button onClick={executeConfirmAction}
@@ -409,12 +311,13 @@ export default function AtlasPage(): React.ReactElement {
             {confirmAction.type === 'unmark-region' && (
               <>
                 {confirmAction.countryName && (
-                  <p style={{ margin: '-8px 0 8px', fontSize: 12, color: 'var(--text-muted)' }}>{confirmAction.countryName}</p>
+                  <p className="text-content-muted" style={{ margin: '-8px 0 8px', fontSize: 12 }}>{confirmAction.countryName}</p>
                 )}
-                <p style={{ margin: '0 0 20px', fontSize: 13, color: 'var(--text-muted)' }}>{t('atlas.confirmUnmarkRegion')}</p>
+                <p className="text-content-muted" style={{ margin: '0 0 20px', fontSize: 13 }}>{t('atlas.confirmUnmarkRegion')}</p>
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
                   <button onClick={() => setConfirmAction(null)}
-                    style={{ padding: '8px 20px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-muted)' }}>
+                    className="border border-edge text-content-muted"
+                    style={{ padding: '8px 20px', borderRadius: 10, background: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
                     {t('common.cancel')}
                   </button>
                   <button onClick={async () => {
@@ -441,7 +344,9 @@ export default function AtlasPage(): React.ReactElement {
                           stats: { ...prev.stats, totalCountries: Math.max(0, prev.stats.totalCountries - 1) },
                         }
                       })
-                    } catch {}
+                    } catch (err) {
+                      toast.error(getApiErrorMessage(err, t('common.error')))
+                    }
                     setConfirmAction(null)
                   }}
                     style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', background: '#ef4444', color: 'white' }}>
@@ -453,7 +358,7 @@ export default function AtlasPage(): React.ReactElement {
 
             {confirmAction.type === 'bucket' && (
               <>
-                <p style={{ margin: '0 0 14px', fontSize: 13, color: 'var(--text-muted)' }}>{t('atlas.bucketWhen')}</p>
+                <p className="text-content-muted" style={{ margin: '0 0 14px', fontSize: 13 }}>{t('atlas.bucketWhen')}</p>
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16 }}>
                   <div style={{ flex: 1 }}>
                     <CustomSelect
@@ -482,7 +387,8 @@ export default function AtlasPage(): React.ReactElement {
                 </div>
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
                   <button onClick={() => setConfirmAction({ ...confirmAction, type: confirmAction.regionCode ? 'choose-region' : 'choose' })}
-                    style={{ padding: '8px 20px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-muted)' }}>
+                    className="border border-edge text-content-muted"
+                    style={{ padding: '8px 20px', borderRadius: 10, background: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
                     {t('common.back')}
                   </button>
                   <button onClick={async () => {
@@ -490,7 +396,9 @@ export default function AtlasPage(): React.ReactElement {
                     try {
                       const r = await apiClient.post('/addons/atlas/bucket-list', { name: confirmAction.name, country_code: confirmAction.code, target_date: targetDate })
                       setBucketList(prev => [r.data.item, ...prev])
-                    } catch {}
+                    } catch (err) {
+                      toast.error(getApiErrorMessage(err, t('common.error')))
+                    }
                     setBucketMonth(0); setBucketYear(0)
                     setConfirmAction(null)
                   }}
@@ -503,14 +411,16 @@ export default function AtlasPage(): React.ReactElement {
 
             {confirmAction.type === 'mark' && (
               <>
-                <p style={{ margin: '0 0 20px', fontSize: 13, color: 'var(--text-muted)' }}>{t('atlas.confirmMark')}</p>
+                <p className="text-content-muted" style={{ margin: '0 0 20px', fontSize: 13 }}>{t('atlas.confirmMark')}</p>
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
                   <button onClick={() => setConfirmAction(null)}
-                    style={{ padding: '8px 20px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-muted)' }}>
+                    className="border border-edge text-content-muted"
+                    style={{ padding: '8px 20px', borderRadius: 10, background: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
                     {t('common.cancel')}
                   </button>
                   <button onClick={executeConfirmAction}
-                    style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', background: 'var(--text-primary)', color: 'white' }}>
+                    className="bg-content"
+                    style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', color: 'white' }}>
                     {t('atlas.markVisited')}
                   </button>
                 </div>
@@ -657,27 +567,30 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
               onKeyDown={e => { if (e.key === 'Enter' && !bucketForm.name) onSearchBucket(); else if (e.key === 'Enter') onAddBucket(); if (e.key === 'Escape') setShowBucketAdd(false) }}
               placeholder={t('atlas.bucketNamePlaceholder')}
               autoFocus
-              style={{ flex: 1, padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border-primary)', fontSize: 12, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', color: 'var(--text-primary)', background: 'var(--bg-input)' }}
+              className="border border-edge text-content bg-surface-input"
+              style={{ flex: 1, padding: '6px 10px', borderRadius: 8, fontSize: 12, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
             />
             {!bucketForm.name && (
               <button onClick={onSearchBucket} disabled={bucketSearching}
-                style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                className="bg-accent text-accent-text"
+                style={{ padding: '6px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                 <Search size={12} />
               </button>
             )}
             {bucketForm.name && (
               <button onClick={() => { setBucketForm({ ...bucketForm, name: '', lat: '', lng: '' }); setBucketSearch('') }}
-                style={{ padding: '6px 8px', borderRadius: 8, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-faint)' }}>
+                className="border border-edge text-content-faint"
+                style={{ padding: '6px 8px', borderRadius: 8, background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                 <X size={12} />
               </button>
             )}
           </div>
           {bucketSearchResults.length > 0 && (
-            <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, zIndex: 50, marginBottom: 4, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.12)', maxHeight: 160, overflowY: 'auto' }}>
+            <div className="bg-surface-card border border-edge" style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, zIndex: 50, marginBottom: 4, borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.12)', maxHeight: 160, overflowY: 'auto' }}>
               {bucketSearchResults.slice(0, 6).map((r, i) => (
-                <button key={i} onClick={() => onSelectBucketPoi(r)} style={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%', padding: '6px 10px', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', borderBottom: '1px solid var(--border-faint)' }}>
-                  <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>{r.name}</span>
-                  {r.address && <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>{r.address}</span>}
+                <button key={i} onClick={() => onSelectBucketPoi(r)} className="border-b border-edge-faint" style={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%', padding: '6px 10px', borderTop: 'none', borderLeft: 'none', borderRight: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}>
+                  <span className="text-content" style={{ fontSize: 12, fontWeight: 500 }}>{r.name}</span>
+                  {r.address && <span className="text-content-faint" style={{ fontSize: 10 }}>{r.address}</span>}
                 </button>
               ))}
             </div>
@@ -685,7 +598,7 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
         </div>
         {/* Selected place indicator */}
         {bucketForm.lat && bucketForm.lng && (
-          <div style={{ fontSize: 10, color: 'var(--text-faint)', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div className="text-content-faint" style={{ fontSize: 10, display: 'flex', alignItems: 'center', gap: 4 }}>
             <MapPin size={10} /> {Number(bucketForm.lat).toFixed(4)}, {Number(bucketForm.lng).toFixed(4)}
           </div>
         )}
@@ -702,7 +615,8 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
         </div>
         <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
           <button onClick={() => { setShowBucketAdd(false); setBucketForm({ name: '', notes: '', lat: '', lng: '', target_date: '' }); setBucketSearch(''); setBucketSearchResults([]); setBucketPoiMonth(0); setBucketPoiYear(0) }}
-            style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-muted)' }}>
+            className="border border-edge text-content-muted"
+            style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, background: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
             {t('common.cancel')}
           </button>
           <button onClick={onAddBucket} disabled={!bucketForm.name.trim()}
@@ -714,7 +628,8 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
     ) : (
       <div style={{ padding: '4px 16px 8px' }}>
         <button onClick={() => setShowBucketAdd(true)}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, width: '100%', padding: '5px 0', borderRadius: 8, border: '1px dashed var(--border-primary)', background: 'none', fontSize: 11, color: tf, cursor: 'pointer', fontFamily: 'inherit' }}>
+          className="border border-dashed border-edge"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, width: '100%', padding: '5px 0', borderRadius: 8, background: 'none', fontSize: 11, color: tf, cursor: 'pointer', fontFamily: 'inherit' }}>
           <Plus size={11} /> {t('atlas.addPoi')}
         </button>
       </div>

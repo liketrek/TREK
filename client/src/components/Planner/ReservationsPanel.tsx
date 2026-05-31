@@ -617,13 +617,13 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px 80px' }} className="max-md:!px-4 max-md:!pt-4">
         {total === 0 && reservations.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-            <BookMarked size={36} style={{ color: 'var(--text-faint)', display: 'block', margin: '0 auto 12px' }} />
-            <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', margin: '0 0 4px' }}>{t('reservations.empty')}</p>
-            <p style={{ fontSize: 12, color: 'var(--text-faint)', margin: 0 }}>{t('reservations.emptyHint')}</p>
+            <BookMarked size={36} className="text-content-faint" style={{ display: 'block', margin: '0 auto 12px' }} />
+            <p className="text-content-secondary" style={{ fontSize: 14, fontWeight: 600, margin: '0 0 4px' }}>{t('reservations.empty')}</p>
+            <p className="text-content-faint" style={{ fontSize: 12, margin: 0 }}>{t('reservations.emptyHint')}</p>
           </div>
         ) : total === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-            <p style={{ fontSize: 13, color: 'var(--text-faint)' }}>{t('places.noneFound')}</p>
+            <p className="text-content-faint" style={{ fontSize: 13 }}>{t('places.noneFound')}</p>
           </div>
         ) : (
           <>

@@ -221,7 +221,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
             return (
               <div style={{ marginBottom: 0 }}>
                 {day.date && lat && lng && <div style={{ height: 1, background: 'var(--border-faint)', margin: '12px 0' }} />}
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>{t('day.reservations')}</div>
+                <div className="text-content-faint" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>{t('day.reservations')}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {dayReservations.map(r => {
                     const linkedAssignment = dayAssignments.find(a => a.id === r.assignment_id)
@@ -257,7 +257,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
 
           {/* ── Accommodation ── */}
           <div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>{t('day.accommodation')}</div>
+            <div className="text-content-faint" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>{t('day.accommodation')}</div>
 
             <AccommodationList dayAccommodations={dayAccommodations} day={day} reservations={reservations}
               canEditDays={canEditDays} fmtTime={fmtTime} blurCodes={blurCodes} t={t}
@@ -286,7 +286,7 @@ interface ChipProps {
 
 function Chip({ icon: Icon, value }: ChipProps) {
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 8, background: 'var(--bg-secondary)', fontSize: 11, color: 'var(--text-muted)' }}>
+    <div className="bg-surface-secondary text-content-muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 8, fontSize: 11 }}>
       <Icon size={11} style={{ flexShrink: 0, opacity: 0.6 }} />
       <span style={{ fontWeight: 500 }}>{value}</span>
     </div>

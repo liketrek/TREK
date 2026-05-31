@@ -21,16 +21,15 @@ export default function InAppNotificationsPage(): React.ReactElement {
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+              <h1 className="text-xl font-semibold text-content">
                 {t('notifications.title')}
                 {unreadCount > 0 && (
-                  <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium align-middle inline-flex items-center justify-center"
-                    style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}>
+                  <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium align-middle inline-flex items-center justify-center bg-content text-surface">
                     {unreadCount}
                   </span>
                 )}
               </h1>
-              <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-sm mt-0.5 text-content-muted">
                 {total} {total === 1 ? 'notification' : 'notifications'}
               </p>
             </div>
@@ -40,8 +39,8 @@ export default function InAppNotificationsPage(): React.ReactElement {
               {unreadCount > 0 && (
                 <button
                   onClick={markAllRead}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors"
-                  style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors text-content-secondary"
+                  style={{ background: 'var(--bg-hover)' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-hover)'}
                 >
@@ -86,19 +85,16 @@ export default function InAppNotificationsPage(): React.ReactElement {
           </div>
 
           {/* Notification list */}
-          <div
-            className="rounded-xl border overflow-hidden"
-            style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-card)' }}
-          >
+          <div className="rounded-xl border overflow-hidden border-edge bg-surface-card">
             {isLoading && displayed.length === 0 ? (
               <div className="flex items-center justify-center py-16">
                 <Spinner className="w-6 h-6 border-2 border-slate-200 border-t-current" />
               </div>
             ) : displayed.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 px-4 text-center gap-3">
-                <Bell className="w-12 h-12" style={{ color: 'var(--text-faint)' }} />
-                <p className="text-base font-medium" style={{ color: 'var(--text-muted)' }}>{t('notifications.empty')}</p>
-                <p className="text-sm" style={{ color: 'var(--text-faint)' }}>{t('notifications.emptyDescription')}</p>
+                <Bell className="w-12 h-12 text-content-faint" />
+                <p className="text-base font-medium text-content-muted">{t('notifications.empty')}</p>
+                <p className="text-sm text-content-faint">{t('notifications.emptyDescription')}</p>
               </div>
             ) : (
               displayed.map(n => (

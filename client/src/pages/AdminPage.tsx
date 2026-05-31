@@ -20,10 +20,11 @@ import PackingTemplateManager from '../components/Admin/PackingTemplateManager'
 import AuditLogPanel from '../components/Admin/AuditLogPanel'
 import AdminMcpTokensPanel from '../components/Admin/AdminMcpTokensPanel'
 import PermissionsPanel from '../components/Admin/PermissionsPanel'
-import { Users, Map, Briefcase, Shield, Trash2, Edit2, FileText, Eye, EyeOff, Save, CheckCircle, XCircle, Loader2, UserPlus, ArrowUpCircle, ExternalLink, Download, Sun, Link2, Copy, Plus, RefreshCw, AlertTriangle, SlidersHorizontal, UserCog, Puzzle, Settings as SettingsIcon, Bell, Database, ScrollText, KeyRound, GitBranch, Bug } from 'lucide-react'
+import { Users, Map, Briefcase, Shield, Trash2, Edit2, FileText, Eye, EyeOff, Save, CheckCircle, XCircle, Loader2, UserPlus, ArrowUpCircle, ExternalLink, Sun, Link2, Copy, Plus, RefreshCw, AlertTriangle, SlidersHorizontal, UserCog, Puzzle, Settings as SettingsIcon, Bell, Database, ScrollText, KeyRound, GitBranch, Bug } from 'lucide-react'
 import CustomSelect from '../components/shared/CustomSelect'
 import PageSidebar, { type PageSidebarTab } from '../components/Layout/PageSidebar'
 import { useAdmin } from './admin/useAdmin'
+import AdminUpdateBanner from './admin/AdminUpdateBanner'
 
 const ADMIN_EVENT_LABEL_KEYS: Record<string, string> = {
   version_available: 'settings.notifyVersionAvailable',
@@ -44,7 +45,7 @@ function AdminNotificationsPanel({ t, toast }: { t: (k: string) => string; toast
     adminApi.getNotificationPreferences().then((data: any) => setMatrix(data)).catch(() => {})
   }, [])
 
-  if (!matrix) return <p style={{ fontSize: 12, color: 'var(--text-faint)', fontStyle: 'italic', padding: 16 }}>Loading…</p>
+  if (!matrix) return <p className="text-content-faint" style={{ fontSize: 12, fontStyle: 'italic', padding: 16 }}>Loading…</p>
 
   const visibleChannels = (['inapp', 'email', 'webhook', 'ntfy'] as const).filter(ch => {
     if (!matrix.available_channels[ch]) return false
@@ -69,7 +70,7 @@ function AdminNotificationsPanel({ t, toast }: { t: (k: string) => string; toast
   if (matrix.event_types.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <p style={{ fontSize: 13, color: 'var(--text-faint)' }}>{t('settings.notificationPreferences.noChannels')}</p>
+        <p className="text-content-faint" style={{ fontSize: 13 }}>{t('settings.notificationPreferences.noChannels')}</p>
       </div>
     )
   }
@@ -82,12 +83,12 @@ function AdminNotificationsPanel({ t, toast }: { t: (k: string) => string; toast
           <p className="text-xs text-slate-400 mt-1">{t('admin.notifications.adminNotificationsHint')}</p>
         </div>
         <div className="p-6">
-          {saving && <p style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 8 }}>Saving…</p>}
+          {saving && <p className="text-content-faint" style={{ fontSize: 11, marginBottom: 8 }}>Saving…</p>}
           {/* Header row */}
-          <div style={{ display: 'grid', gridTemplateColumns: `1fr ${visibleChannels.map(() => '80px').join(' ')}`, gap: 4, paddingBottom: 6, marginBottom: 4, borderBottom: '1px solid var(--border-primary)' }}>
+          <div className="border-b border-edge" style={{ display: 'grid', gridTemplateColumns: `1fr ${visibleChannels.map(() => '80px').join(' ')}`, gap: 4, paddingBottom: 6, marginBottom: 4 }}>
             <span />
             {visibleChannels.map(ch => (
-              <span key={ch} style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <span key={ch} className="text-content-faint" style={{ fontSize: 11, fontWeight: 600, textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 {t(ADMIN_CHANNEL_LABEL_KEYS[ch]) || ch}
               </span>
             ))}
@@ -96,13 +97,13 @@ function AdminNotificationsPanel({ t, toast }: { t: (k: string) => string; toast
           {matrix.event_types.map((eventType: string) => {
             const implementedForEvent = matrix.implemented_combos[eventType] ?? []
             return (
-              <div key={eventType} style={{ display: 'grid', gridTemplateColumns: `1fr ${visibleChannels.map(() => '80px').join(' ')}`, gap: 4, alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border-primary)' }}>
-                <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>
+              <div key={eventType} className="border-b border-edge" style={{ display: 'grid', gridTemplateColumns: `1fr ${visibleChannels.map(() => '80px').join(' ')}`, gap: 4, alignItems: 'center', padding: '8px 0' }}>
+                <span className="text-content" style={{ fontSize: 13 }}>
                   {t(ADMIN_EVENT_LABEL_KEYS[eventType]) || eventType}
                 </span>
                 {visibleChannels.map(ch => {
                   if (!implementedForEvent.includes(ch)) {
-                    return <span key={ch} style={{ textAlign: 'center', color: 'var(--text-faint)', fontSize: 14 }}>—</span>
+                    return <span key={ch} className="text-content-faint" style={{ textAlign: 'center', fontSize: 14 }}>—</span>
                   }
                   const isOn = matrix.preferences[eventType]?.[ch] ?? true
                   return (
@@ -130,12 +131,12 @@ function AdminNotificationsPanel({ t, toast }: { t: (k: string) => string; toast
 function AdminStatCard({ label, value, icon: Icon }: { label: string; value: number; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }> }): React.ReactElement {
   const animated = useCountUp(value, 900)
   return (
-    <div className="rounded-xl border p-4" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+    <div className="rounded-xl border p-4 bg-surface-card border-edge">
       <div className="flex items-center gap-4">
-        <Icon className="w-5 h-5" style={{ color: 'var(--text-primary)' }} />
+        <Icon className="w-5 h-5 text-content" />
         <div>
-          <p className="text-xl font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>{animated}</p>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{label}</p>
+          <p className="text-xl font-bold tabular-nums text-content">{animated}</p>
+          <p className="text-xs text-content-muted">{label}</p>
         </div>
       </div>
     </div>
@@ -205,39 +206,7 @@ export default function AdminPage(): React.ReactElement {
 
           {/* Update Banner */}
           {updateInfo && (
-            <div className="mb-6 p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700">
-              <div className="flex items-center gap-4 flex-1 min-w-0">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-amber-500 dark:bg-amber-600">
-                  <ArrowUpCircle className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">{t('admin.update.available')}</p>
-                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-                    {t('admin.update.text').replace('{version}', `v${updateInfo.latest}`).replace('{current}', `v${updateInfo.current}`)}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {updateInfo.release_url && (
-                  <a
-                    href={updateInfo.release_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-600 hover:bg-amber-100 dark:hover:bg-amber-900/50"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    {t('admin.update.button')}
-                  </a>
-                )}
-                <button
-                  onClick={() => setShowUpdateModal(true)}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-colors bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-gray-200"
-                >
-                  <Download className="w-4 h-4" />
-                  {t('admin.update.howTo')}
-                </button>
-              </div>
-            </div>
+            <AdminUpdateBanner updateInfo={updateInfo} t={t} onHowTo={() => setShowUpdateModal(true)} />
           )}
 
           {/* Demo Baseline Button */}
@@ -332,7 +301,7 @@ export default function AdminPage(): React.ReactElement {
                                     {u.username.charAt(0).toUpperCase()}
                                   </div>
                                 )}
-                                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2" style={{ borderColor: 'var(--bg-card)', background: u.online ? '#22c55e' : '#94a3b8' }} />
+                                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-surface-card" style={{ background: u.online ? '#22c55e' : '#94a3b8' }} />
                               </div>
                               <div>
                                 <p className="text-sm font-medium text-slate-900">{u.username}</p>
@@ -1093,8 +1062,8 @@ export default function AdminPage(): React.ReactElement {
                       <h2 className="font-semibold text-slate-900">{t('admin.notifications.inappPanel.title')}</h2>
                       <p className="text-xs text-slate-400 mt-1">{t('admin.notifications.inappPanel.hint')}</p>
                     </div>
-                    <div className="relative inline-flex h-6 w-11 items-center rounded-full flex-shrink-0"
-                      style={{ background: 'var(--text-primary)', opacity: 0.5, cursor: 'not-allowed' }}>
+                    <div className="relative inline-flex h-6 w-11 items-center rounded-full flex-shrink-0 bg-content"
+                      style={{ opacity: 0.5, cursor: 'not-allowed' }}>
                       <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
                         style={{ transform: 'translateX(20px)' }} />
                     </div>

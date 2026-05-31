@@ -86,29 +86,29 @@ export default function JourneyPage() {
 
           {/* Header — desktop (unified toolbar) */}
           <div className="hidden md:block px-8 pt-10 pb-7">
-            <div style={{
-              background: 'var(--bg-tertiary)', borderRadius: 18,
-              border: '1px solid var(--border-primary)',
+            <div className="bg-surface-tertiary border border-edge" style={{
+              borderRadius: 18,
               boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
               padding: '14px 16px 14px 22px',
               display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
             }}>
-              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em', flexShrink: 0 }}>
+              <h2 className="text-content" style={{ margin: 0, fontSize: 18, fontWeight: 600, letterSpacing: '-0.01em', flexShrink: 0 }}>
                 {t('journey.title')}
               </h2>
               <div style={{ width: 1, height: 22, background: 'var(--border-faint)', flexShrink: 0 }} />
-              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+              <span className="text-content-muted" style={{ fontSize: 13 }}>
                 {t('journey.frontpage.subtitle')}
               </span>
 
               <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center', marginLeft: 'auto', flexShrink: 0 }}>
                 <button
                   onClick={() => openCreateModal()}
+                  className="bg-accent text-accent-text"
                   style={{
                     appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                     display: 'inline-flex', alignItems: 'center', gap: 6,
                     padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500,
-                    background: 'var(--accent)', color: 'var(--accent-text)', flexShrink: 0,
+                    flexShrink: 0,
                     marginLeft: 2,
                     transition: 'opacity 0.15s ease',
                   }}

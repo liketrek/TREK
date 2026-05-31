@@ -409,7 +409,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
             value={String(assignedUserId ?? '')}
             onChange={v => setAssignedUserId(v ? Number(v) : null)}
             options={[
-              { value: '', label: t('todo.unassigned'), icon: <User size={14} style={{ color: 'var(--text-faint)' }} /> },
+              { value: '', label: t('todo.unassigned'), icon: <User size={14} className="text-content-faint" /> },
               ...members.map(m => ({
                 value: String(m.id),
                 label: m.username,
@@ -600,7 +600,7 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
             value={String(assignedUserId ?? '')}
             onChange={v => setAssignedUserId(v ? Number(v) : null)}
             options={[
-              { value: '', label: t('todo.unassigned'), icon: <User size={14} style={{ color: 'var(--text-faint)' }} /> },
+              { value: '', label: t('todo.unassigned'), icon: <User size={14} className="text-content-faint" /> },
               ...members.map(m => ({
                 value: String(m.id), label: m.username,
                 icon: m.avatar ? (

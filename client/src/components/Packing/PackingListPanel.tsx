@@ -318,7 +318,7 @@ function ArtikelZeile({ item, tripId, categories, onCategoryChange, bagTrackingE
                 if (!canEdit) return
                 const raw = e.target.value.replace(/[^0-9]/g, '')
                 const v = raw === '' ? null : parseInt(raw)
-                try { await updatePackingItem(tripId, item.id, { weight_grams: v }) } catch {}
+                try { await updatePackingItem(tripId, item.id, { weight_grams: v }) } catch { toast.error(t('packing.toast.saveError')) }
               }}
               placeholder="—"
               style={{ width: 36, border: 'none', fontSize: 12, textAlign: 'right', fontFamily: 'inherit', outline: 'none', color: 'var(--text-secondary)', background: 'transparent', padding: 0 }}
@@ -334,7 +334,7 @@ function ArtikelZeile({ item, tripId, categories, onCategoryChange, bagTrackingE
                 background: item.bag_id ? `${bags.find(b => b.id === item.bag_id)?.color || 'var(--border-primary)'}30` : 'transparent',
               }}
             >
-              {!item.bag_id && <Package size={9} style={{ color: 'var(--text-faint)' }} />}
+              {!item.bag_id && <Package size={9} className="text-content-faint" />}
             </button>
             {showBagPicker && (
               <div style={{
@@ -343,14 +343,14 @@ function ArtikelZeile({ item, tripId, categories, onCategoryChange, bagTrackingE
                 boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 4, minWidth: 160,
               }}>
                 {item.bag_id && (
-                  <button onClick={async () => { setShowBagPicker(false); try { await updatePackingItem(tripId, item.id, { bag_id: null }) } catch {} }}
+                  <button onClick={async () => { setShowBagPicker(false); try { await updatePackingItem(tripId, item.id, { bag_id: null }) } catch { toast.error(t('packing.toast.saveError')) } }}
                     style={{ display: 'flex', alignItems: 'center', gap: 7, width: '100%', padding: '6px 10px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontFamily: 'inherit', color: 'var(--text-faint)', borderRadius: 7 }}>
                     <span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px dashed var(--border-primary)' }} />
                     {t('packing.noBag')}
                   </button>
                 )}
                 {bags.map(b => (
-                  <button key={b.id} onClick={async () => { setShowBagPicker(false); try { await updatePackingItem(tripId, item.id, { bag_id: b.id }) } catch {} }}
+                  <button key={b.id} onClick={async () => { setShowBagPicker(false); try { await updatePackingItem(tripId, item.id, { bag_id: b.id }) } catch { toast.error(t('packing.toast.saveError')) } }}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 7, width: '100%', padding: '6px 10px',
                       background: item.bag_id === b.id ? 'var(--bg-tertiary)' : 'none',
@@ -370,7 +370,7 @@ function ArtikelZeile({ item, tripId, categories, onCategoryChange, bagTrackingE
                         onKeyDown={async e => {
                           if (e.key === 'Enter' && bagInlineName.trim()) {
                             const newBag = await onCreateBag(bagInlineName.trim())
-                            if (newBag) { try { await updatePackingItem(tripId, item.id, { bag_id: newBag.id }) } catch {} }
+                            if (newBag) { try { await updatePackingItem(tripId, item.id, { bag_id: newBag.id }) } catch { toast.error(t('packing.toast.saveError')) } }
                             setBagInlineName(''); setBagInlineCreate(false); setShowBagPicker(false)
                           }
                           if (e.key === 'Escape') { setBagInlineCreate(false); setBagInlineName('') }
@@ -380,7 +380,7 @@ function ArtikelZeile({ item, tripId, categories, onCategoryChange, bagTrackingE
                       <button onClick={async () => {
                         if (bagInlineName.trim()) {
                           const newBag = await onCreateBag(bagInlineName.trim())
-                          if (newBag) { try { await updatePackingItem(tripId, item.id, { bag_id: newBag.id }) } catch {} }
+                          if (newBag) { try { await updatePackingItem(tripId, item.id, { bag_id: newBag.id }) } catch { toast.error(t('packing.toast.saveError')) } }
                           setBagInlineName(''); setBagInlineCreate(false); setShowBagPicker(false)
                         }
                       }}
@@ -517,14 +517,18 @@ function KategorieGruppe({ kategorie, items, tripId, allCategories, onRename, on
   }
 
   const handleCheckAll = async () => {
-    for (const item of Array.from(items)) {
-      if (!item.checked) await togglePackingItem(tripId, item.id, true)
-    }
+    try {
+      for (const item of Array.from(items)) {
+        if (!item.checked) await togglePackingItem(tripId, item.id, true)
+      }
+    } catch { toast.error(t('packing.toast.saveError')) }
   }
   const handleUncheckAll = async () => {
-    for (const item of Array.from(items)) {
-      if (item.checked) await togglePackingItem(tripId, item.id, false)
-    }
+    try {
+      for (const item of Array.from(items)) {
+        if (item.checked) await togglePackingItem(tripId, item.id, false)
+      }
+    } catch { toast.error(t('packing.toast.saveError')) }
   }
   const handleDeleteAll = async () => {
     await onDeleteAll(items)
@@ -630,7 +634,7 @@ function KategorieGruppe({ kategorie, items, tripId, allCategories, onRename, on
                         {m.username[0]}
                       </div>
                       <span style={{ flex: 1 }}>{m.username}</span>
-                      {isAssigned && <Check size={12} style={{ color: 'var(--text-muted)' }} />}
+                      {isAssigned && <Check size={12} className="text-content-muted" />}
                     </button>
                   )
                 })}
@@ -856,16 +860,20 @@ function usePackingList({ tripId, items, openImportSignal = 0, clearCheckedSigna
   }
 
   const handleDeleteCategory = async (catItems) => {
+    let failed = false
     for (const item of catItems) {
-      try { await deletePackingItem(tripId, item.id) } catch {}
+      try { await deletePackingItem(tripId, item.id) } catch { failed = true }
     }
+    if (failed) toast.error(t('packing.toast.deleteError'))
   }
 
   const handleClearChecked = async () => {
     if (!confirm(t('packing.confirm.clearChecked', { count: abgehakt }))) return
+    let failed = false
     for (const item of items.filter(i => i.checked)) {
-      try { await deletePackingItem(tripId, item.id) } catch {}
+      try { await deletePackingItem(tripId, item.id) } catch { failed = true }
     }
+    if (failed) toast.error(t('packing.toast.deleteError'))
   }
 
   // Bag tracking
@@ -1152,7 +1160,7 @@ function PackingHeader(S: PackingState) {
                       onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
-                      <Package size={13} style={{ color: 'var(--text-faint)' }} />
+                      <Package size={13} className="text-content-faint" />
                       <div style={{ flex: 1, textAlign: 'left' }}>
                         <div style={{ fontWeight: 600 }}>{tmpl.name}</div>
                         <div style={{ fontSize: 10, color: 'var(--text-faint)' }}>{tmpl.item_count} {t('admin.packingTemplates.items')}</div>

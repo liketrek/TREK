@@ -1211,7 +1211,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }}>
       {/* Toolbar */}
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-faint)', flexShrink: 0 }}>
+      <div className="border-b border-edge-faint" style={{ padding: '12px 16px', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <button
@@ -1228,10 +1228,11 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
               }}
               onMouseEnter={() => setPdfHover(true)}
               onMouseLeave={() => setPdfHover(false)}
+              className="bg-accent text-accent-text"
               style={{
                 display: 'flex', alignItems: 'center', gap: 5,
                 padding: '5px 10px', borderRadius: 8, border: 'none',
-                background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 11, fontWeight: 500,
+                fontSize: 11, fontWeight: 500,
                 cursor: 'pointer', fontFamily: 'inherit',
               }}
             >
@@ -1632,7 +1633,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                         border: dragOverDayId === day.id ? '2px dashed rgba(17,24,39,0.2)' : '2px dashed transparent',
                       }}
                     >
-                      <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>{t('dayplan.emptyDay')}</span>
+                      <span className="text-content-faint" style={{ fontSize: 12 }}>{t('dayplan.emptyDay')}</span>
                     </div>
                   ) : (
                     merged.map((item, idx) => {
@@ -2600,8 +2601,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
 
                   {/* Schließen */}
                   <div style={{ textAlign: 'right' }}>
-                    <button onClick={() => setTransportDetail(null)} style={{
-                      fontSize: 12, background: 'var(--accent)', color: 'var(--accent-text)',
+                    <button onClick={() => setTransportDetail(null)} className="bg-accent text-accent-text" style={{
+                      fontSize: 12,
                       border: 'none', borderRadius: 8, padding: '6px 16px', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
                     }}>
                       {t('common.close')}
@@ -2617,9 +2618,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
 
       {/* Budget-Fußzeile */}
       {totalCost > 0 && (
-        <div style={{ flexShrink: 0, padding: '10px 16px', borderTop: '1px solid var(--border-faint)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{t('dayplan.totalCost')}</span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{totalCost.toFixed(currencyDecimals(currency))} {currency}</span>
+        <div className="border-t border-edge-faint" style={{ flexShrink: 0, padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span className="text-content-faint" style={{ fontSize: 11 }}>{t('dayplan.totalCost')}</span>
+          <span className="text-content" style={{ fontSize: 13, fontWeight: 600 }}>{totalCost.toFixed(currencyDecimals(currency))} {currency}</span>
         </div>
       )}
       <ContextMenu menu={ctxMenu.menu} onClose={ctxMenu.close} />

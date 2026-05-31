@@ -111,12 +111,14 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
       const createdTrip = result ? result.trip : undefined
       // Add selected members for newly created trips
       if (selectedMembers.length > 0 && createdTrip?.id) {
+        let memberAddFailed = false
         for (const userId of selectedMembers) {
           const user = allUsers.find(u => u.id === userId)
           if (user) {
-            try { await tripsApi.addMember(createdTrip.id, user.username) } catch {}
+            try { await tripsApi.addMember(createdTrip.id, user.username) } catch { memberAddFailed = true }
           }
         }
+        if (memberAddFailed) toast.error(t('trips.memberAddError'))
       }
       // Upload pending cover for newly created trips
       if (pendingCoverFile && createdTrip?.id) {
@@ -126,7 +128,8 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
           const data = await tripsApi.uploadCover(createdTrip.id, fd)
           onCoverUpdate?.(createdTrip.id, data.cover_image)
         } catch {
-          // Cover upload failed but trip was created
+          // Cover upload failed but trip was created — surface it without blocking the create
+          toast.error(t('dashboard.coverUploadError'))
         }
       }
       onClose()
@@ -383,6 +386,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
                 {existingMembers.map(m => (
                   <span key={m.id}
+                    className="bg-surface-secondary text-content border border-edge"
                     onClick={async () => {
                       if (m.id === currentUser?.id) return
                       try {
@@ -393,12 +397,11 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
                     }}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 99,
-                      background: 'var(--bg-secondary)', fontSize: 12, fontWeight: 500, color: 'var(--text-primary)',
+                      fontSize: 12, fontWeight: 500,
                       cursor: m.id === currentUser?.id ? 'default' : 'pointer',
-                      border: '1px solid var(--border-primary)',
                     }}>
                     {m.username}
-                    {m.id !== currentUser?.id && <X size={11} style={{ color: 'var(--text-faint)' }} />}
+                    {m.id !== currentUser?.id && <X size={11} className="text-content-faint" />}
                   </span>
                 ))}
               </div>
@@ -411,13 +414,13 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
                   if (!user) return null
                   return (
                     <span key={uid} onClick={() => setSelectedMembers(prev => prev.filter(id => id !== uid))}
+                      className="bg-surface-secondary text-content border border-edge cursor-pointer"
                       style={{
                         display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 99,
-                        background: 'var(--bg-secondary)', fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', cursor: 'pointer',
-                        border: '1px solid var(--border-primary)',
+                        fontSize: 12, fontWeight: 500,
                       }}>
                       {user.username}
-                      <X size={11} style={{ color: 'var(--text-faint)' }} />
+                      <X size={11} className="text-content-faint" />
                     </span>
                   )
                 })}

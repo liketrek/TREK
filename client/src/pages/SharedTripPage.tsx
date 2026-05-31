@@ -71,7 +71,7 @@ export default function SharedTripPage() {
   const center = mapPlaces.length > 0 ? [mapPlaces[0].lat, mapPlaces[0].lng] : [48.85, 2.35]
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-secondary, #f3f4f6)', fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }}>
+    <div className="bg-surface-secondary" style={{ minHeight: '100vh', fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }}>
       {/* Header */}
       <div style={{ background: 'linear-gradient(135deg, #000 0%, #0f172a 50%, #1e293b 100%)', color: 'white', padding: '32px 20px 28px', textAlign: 'center', position: 'relative' }}>
         {/* Cover image background */}
@@ -187,7 +187,7 @@ export default function SharedTripPage() {
             })
 
             return (
-              <div key={day.id} style={{ background: 'var(--bg-card, white)', borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border-faint, #e5e7eb)' }}>
+              <div key={day.id} className="bg-surface-card border border-edge-faint" style={{ borderRadius: 14, overflow: 'hidden' }}>
                 <div onClick={() => setSelectedDay(selectedDay === day.id ? null : day.id)}
                   style={{ padding: '12px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ width: 28, height: 28, borderRadius: '50%', background: selectedDay === day.id ? '#111827' : '#f3f4f6', color: selectedDay === day.id ? 'white' : '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{di + 1}</div>
@@ -271,7 +271,7 @@ export default function SharedTripPage() {
               const time = rTime ?? ''
               const date = rDate ? new Date(rDate + 'T00:00:00Z').toLocaleDateString(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }) : ''
               return (
-                <div key={r.id} style={{ background: 'var(--bg-card, white)', borderRadius: 10, padding: '12px 16px', border: '1px solid var(--border-faint, #e5e7eb)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div key={r.id} className="bg-surface-card border border-edge-faint" style={{ borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <TIcon size={15} color="#6b7280" />
                   </div>
@@ -296,7 +296,7 @@ export default function SharedTripPage() {
 
         {/* Packing */}
         {activeTab === 'packing' && (packing || []).length > 0 && (
-          <div style={{ background: 'var(--bg-card, white)', borderRadius: 14, border: '1px solid var(--border-faint, #e5e7eb)', overflow: 'hidden' }}>
+          <div className="bg-surface-card border border-edge-faint" style={{ borderRadius: 14, overflow: 'hidden' }}>
             {Object.entries((packing || []).reduce((g: any, i: any) => { const c = i.category || t('shared.other'); (g[c] = g[c] || []).push(i); return g }, {})).map(([cat, items]: [string, any]) => (
               <div key={cat}>
                 <div style={{ padding: '8px 16px', background: '#f9fafb', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #f3f4f6' }}>{cat}</div>
@@ -323,7 +323,7 @@ export default function SharedTripPage() {
               </div>
               {/* By category */}
               {Object.entries(grouped).map(([cat, items]: [string, any]) => (
-                <div key={cat} style={{ background: 'var(--bg-card, white)', borderRadius: 12, border: '1px solid var(--border-faint, #e5e7eb)', overflow: 'hidden' }}>
+                <div key={cat} className="bg-surface-card border border-edge-faint" style={{ borderRadius: 12, overflow: 'hidden' }}>
                   <div style={{ padding: '10px 16px', background: '#f9fafb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f3f4f6' }}>
                     <span style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>{cat}</span>
                     <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280' }}>{items.reduce((s: number, i: any) => s + (parseFloat(i.total_price) || 0), 0).toLocaleString(locale, { minimumFractionDigits: 2 })} {trip.currency || ''}</span>
@@ -342,7 +342,7 @@ export default function SharedTripPage() {
 
         {/* Collab Chat */}
         {activeTab === 'collab' && (collab || []).length > 0 && (
-          <div style={{ background: 'var(--bg-card, white)', borderRadius: 14, border: '1px solid var(--border-faint, #e5e7eb)', overflow: 'hidden' }}>
+          <div className="bg-surface-card border border-edge-faint" style={{ borderRadius: 14, overflow: 'hidden' }}>
             <div style={{ padding: '12px 16px', background: '#f9fafb', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: 8 }}>
               <MessageCircle size={14} color="#6b7280" />
               <span style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>{t('shared.tabChat')} · {(collab || []).length} {t('shared.messages')}</span>
@@ -379,7 +379,7 @@ export default function SharedTripPage() {
 
         {/* Footer */}
         <div style={{ textAlign: 'center', padding: '40px 0 20px' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 20, background: 'var(--bg-card, white)', border: '1px solid var(--border-faint, #e5e7eb)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+          <div className="bg-surface-card border border-edge-faint" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
             <img src="/icons/icon.svg" alt="TREK" width="18" height="18" style={{ borderRadius: 4 }} />
             <span style={{ fontSize: 11, color: '#9ca3af' }}>{t('shared.sharedVia')} <strong style={{ color: '#6b7280' }}>TREK</strong></span>
           </div>

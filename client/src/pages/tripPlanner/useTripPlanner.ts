@@ -364,7 +364,7 @@ export function useTripPlanner() {
           const fd = new FormData()
           fd.append('file', file)
           fd.append('place_id', editingPlace.id)
-          try { await tripActions.addFile(tripId, fd) } catch {}
+          try { await tripActions.addFile(tripId, fd) } catch { toast.error(t('files.uploadError')) }
         }
       }
       toast.success(t('trip.toast.placeUpdated'))
@@ -375,7 +375,7 @@ export function useTripPlanner() {
           const fd = new FormData()
           fd.append('file', file)
           fd.append('place_id', place.id)
-          try { await tripActions.addFile(tripId, fd) } catch {}
+          try { await tripActions.addFile(tripId, fd) } catch { toast.error(t('files.uploadError')) }
         }
       }
       toast.success(t('trip.toast.placeAdded'))

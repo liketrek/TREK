@@ -110,8 +110,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
       <div className="flex items-center gap-3 min-w-0">
         {showBack && (
           <button onClick={onBack}
-            className="trek-back-btn p-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-sm flex-shrink-0"
-            style={{ color: 'var(--text-muted)' }}
+            className="trek-back-btn p-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-sm flex-shrink-0 text-content-muted"
             onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
             <ArrowLeft className="trek-back-icon w-4 h-4" />
@@ -126,8 +125,8 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
 
         {tripTitle && (
           <>
-            <span className="hidden sm:inline" style={{ color: 'var(--text-faint)' }}>/</span>
-            <span className="hidden sm:inline text-sm font-medium truncate max-w-48" style={{ color: 'var(--text-muted)' }}>
+            <span className="hidden sm:inline text-content-faint">/</span>
+            <span className="hidden sm:inline text-sm font-medium truncate max-w-48 text-content-muted">
               {tripTitle}
             </span>
           </>
@@ -176,8 +175,8 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
       {/* Share button */}
       {onShare && (
         <button onClick={onShare}
-          className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg border transition-colors text-sm font-medium flex-shrink-0"
-          style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)', background: 'var(--bg-card)' }}
+          className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg border transition-colors text-sm font-medium flex-shrink-0 border-edge text-content-secondary"
+          style={{ background: 'var(--bg-card)' }}
           onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
           onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-card)'}>
           <Users className="w-4 h-4" />
@@ -198,8 +197,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
 
       {/* Dark mode toggle (light ↔ dark, overrides auto) — hidden on mobile */}
       <button onClick={toggleDarkMode} title={dark ? t('nav.lightMode') : t('nav.darkMode')}
-        className="p-2 rounded-lg transition-colors flex-shrink-0 hidden sm:flex relative w-8 h-8 items-center justify-center"
-        style={{ color: 'var(--text-muted)' }}
+        className="p-2 rounded-lg transition-colors flex-shrink-0 hidden sm:flex relative w-8 h-8 items-center justify-center text-content-muted"
         onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
         <Sun className="w-4 h-4 absolute transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]"
@@ -227,21 +225,21 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
                 {user.username?.charAt(0).toUpperCase()}
               </div>
             )}
-            <span className="text-sm hidden sm:inline max-w-24 truncate" style={{ color: 'var(--text-secondary)' }}>
+            <span className="text-sm hidden sm:inline max-w-24 truncate text-content-secondary">
               {user.username}
             </span>
-            <ChevronDown className="w-4 h-4" style={{ color: 'var(--text-faint)' }} />
+            <ChevronDown className="w-4 h-4 text-content-faint" />
           </button>
 
           {userMenuOpen && ReactDOM.createPortal(
             <>
               <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }} onClick={() => setUserMenuOpen(false)} />
-              <div className="trek-menu-enter w-52 rounded-xl shadow-xl border overflow-hidden" style={{ position: 'fixed', top: 'var(--nav-h)', right: 8, zIndex: 9999, background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-                <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border-secondary)' }}>
-                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{user.username}</p>
-                  <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{user.email}</p>
+              <div className="trek-menu-enter w-52 rounded-xl shadow-xl border overflow-hidden bg-surface-card border-edge" style={{ position: 'fixed', top: 'var(--nav-h)', right: 8, zIndex: 9999 }}>
+                <div className="px-4 py-3 border-b border-edge-secondary">
+                  <p className="text-sm font-medium text-content">{user.username}</p>
+                  <p className="text-xs truncate text-content-muted">{user.email}</p>
                   {user.role === 'admin' && (
-                    <span className="inline-flex items-center gap-1 text-xs font-medium mt-1" style={{ color: 'var(--text-secondary)' }}>
+                    <span className="inline-flex items-center gap-1 text-xs font-medium mt-1 text-content-secondary">
                       <Shield className="w-3 h-3" /> {t('nav.administrator')}
                     </span>
                   )}
@@ -249,8 +247,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
 
                 <div className="py-1">
                   <Link to="/settings" onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm transition-colors"
-                    style={{ color: 'var(--text-secondary)' }}
+                    className="flex items-center gap-2 px-4 py-2 text-sm transition-colors text-content-secondary"
                     onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                     <Settings className="w-4 h-4" />
@@ -259,8 +256,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
 
                   {user.role === 'admin' && (
                     <Link to="/admin" onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2 text-sm transition-colors"
-                      style={{ color: 'var(--text-secondary)' }}
+                      className="flex items-center gap-2 px-4 py-2 text-sm transition-colors text-content-secondary"
                       onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                       <Shield className="w-4 h-4" />
@@ -269,14 +265,14 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
                   )}
                 </div>
 
-                <div className="py-1 border-t" style={{ borderColor: 'var(--border-secondary)' }}>
+                <div className="py-1 border-t border-edge-secondary">
                   <button onClick={handleLogout}
                     className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-500 hover:bg-red-500/10 transition-colors">
                     <LogOut className="w-4 h-4" />
                     {t('nav.logout')}
                   </button>
                   {appVersion && (
-                    <div className="px-4 pt-2 pb-2.5 text-center" style={{ marginTop: 4, borderTop: '1px solid var(--border-secondary)' }}>
+                    <div className="px-4 pt-2 pb-2.5 text-center border-t border-edge-secondary" style={{ marginTop: 4 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--bg-tertiary)', borderRadius: 99, padding: '4px 12px' }}>
                           <img src={dark ? '/text-light.svg' : '/text-dark.svg'} alt="TREK" style={{ height: 10, opacity: 0.5 }} />

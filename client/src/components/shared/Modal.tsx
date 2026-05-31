@@ -65,13 +65,13 @@ export default function Modal({
           rounded-2xl overflow-hidden shadow-2xl w-full ${sizeClasses[size] || sizeClasses.md}
           flex flex-col
           max-h-[calc(100dvh-var(--bottom-nav-h)-90px)] sm:max-h-[calc(100dvh-90px)]
+          bg-surface-card
         `}
-        style={{ background: 'var(--bg-card)' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header — stays put even while the body scrolls */}
-        <div className="flex items-center justify-between p-6 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-secondary)' }}>
-          <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</h2>
+        <div className="flex items-center justify-between p-6 flex-shrink-0 border-b border-edge-secondary">
+          <h2 className="text-lg font-semibold text-content">{title}</h2>
           {!hideCloseButton && (
             <button
               onClick={onClose}
@@ -89,7 +89,7 @@ export default function Modal({
 
         {/* Footer — sticky at the bottom of the modal, never compressed */}
         {footer && (
-          <div className="p-6 flex-shrink-0" style={{ borderTop: '1px solid var(--border-secondary)' }}>
+          <div className="p-6 flex-shrink-0 border-t border-edge-secondary">
             {footer}
           </div>
         )}

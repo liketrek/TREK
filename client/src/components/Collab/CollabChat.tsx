@@ -7,6 +7,7 @@ import { useCanDo } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
 import { addListener, removeListener } from '../../api/websocket'
 import { useTranslation } from '../../i18n'
+import { useToast } from '../shared/Toast'
 import type { User } from '../../types'
 
 interface ChatReaction {
@@ -367,7 +368,7 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
     <div ref={containerRef} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', position: 'relative', minHeight: 0, height: '100%' }}>
       <ChatMessages {...S} />
       {/* Composer */}
-      <div style={{ flexShrink: 0, paddingTop: 8, paddingLeft: 12, paddingRight: 12, borderTop: '1px solid var(--border-faint)', background: 'var(--bg-card)' }} className="pb-3">
+      <div style={{ flexShrink: 0, paddingTop: 8, paddingLeft: 12, paddingRight: 12, borderTop: '1px solid var(--border-faint)' }} className="pb-3 bg-surface-card">
         {/* Reply preview */}
         {replyTo && (
           <div style={{
@@ -447,6 +448,7 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
 
 function useCollabChat(tripId: any, currentUser: any) {
   const { t } = useTranslation()
+  const toast = useToast()
   const is12h = useSettingsStore(s => s.settings.time_format) === '12h'
   const can = useCanDo()
   const trip = useTripStore((s) => s.trip)
@@ -569,8 +571,8 @@ function useCollabChat(tripId: any, currentUser: any) {
       if (textareaRef.current) textareaRef.current.style.height = 'auto'
       isAtBottom.current = true
       setTimeout(() => scrollToBottom('smooth'), 50)
-    } catch {} finally { setSending(false) }
-  }, [text, sending, replyTo, tripId, scrollToBottom])
+    } catch { toast.error(t('common.error')) } finally { setSending(false) }
+  }, [text, sending, replyTo, tripId, scrollToBottom, toast, t])
 
   const handleKeyDown = useCallback((e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
@@ -581,23 +583,23 @@ function useCollabChat(tripId: any, currentUser: any) {
     requestAnimationFrame(() => {
       setDeletingIds(prev => new Set(prev).add(msgId))
     })
-    const t = setTimeout(async () => {
+    const timer = setTimeout(async () => {
       try {
         await collabApi.deleteMessage(tripId, msgId)
         setMessages(prev => prev.map(m => m.id === msgId ? { ...m, _deleted: true } : m))
-      } catch {}
+      } catch { toast.error(t('common.error')) }
       setDeletingIds(prev => { const s = new Set(prev); s.delete(msgId); return s })
     }, 400)
-    deleteTimersRef.current.push(t)
-  }, [tripId])
+    deleteTimersRef.current.push(timer)
+  }, [tripId, toast, t])
 
   const handleReact = useCallback(async (msgId, emoji) => {
     setReactMenu(null)
     try {
       const data = await collabApi.reactMessage(tripId, msgId, emoji)
       setMessages(prev => prev.map(m => m.id === msgId ? { ...m, reactions: data.reactions } : m))
-    } catch {}
-  }, [tripId])
+    } catch { toast.error(t('common.error')) }
+  }, [tripId, toast, t])
 
   const handleEmojiSelect = useCallback((emoji) => {
     setText(prev => prev + emoji)

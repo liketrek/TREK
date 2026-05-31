@@ -46,8 +46,7 @@ export default function ConfirmDialog({
       onClick={onClose}
     >
       <div
-        className="trek-modal-enter rounded-2xl shadow-2xl w-full max-w-sm p-6"
-        style={{ background: 'var(--bg-card)' }}
+        className="trek-modal-enter rounded-2xl shadow-2xl w-full max-w-sm p-6 bg-surface-card"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-start gap-4">
@@ -57,10 +56,10 @@ export default function ConfirmDialog({
             </div>
           )}
           <div className="flex-1">
-            <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+            <h3 className="text-base font-semibold text-content">
               {title || t('common.confirm')}
             </h3>
-            <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
+            <p className="mt-1 text-sm text-content-secondary">
               {message}
             </p>
           </div>
@@ -69,11 +68,7 @@ export default function ConfirmDialog({
         <div className="flex justify-end gap-3 mt-6">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
-            style={{
-              color: 'var(--text-secondary)',
-              border: '1px solid var(--border-secondary)',
-            }}
+            className="px-4 py-2 text-sm font-medium rounded-lg transition-colors text-content-secondary border border-edge-secondary"
           >
             {cancelLabel || t('common.cancel')}
           </button>

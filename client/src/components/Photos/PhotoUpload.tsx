@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Upload, X, Image } from 'lucide-react'
 import { useTranslation } from '../../i18n'
+import { useToast } from '../shared/Toast'
 import type { Place, Day } from '../../types'
 
 interface PhotoUploadProps {
@@ -14,6 +15,7 @@ interface PhotoUploadProps {
 
 export function PhotoUpload({ tripId, days, places, onUpload, onClose }: PhotoUploadProps) {
   const { t } = useTranslation()
+  const toast = useToast()
   const [files, setFiles] = useState([])
   const [dayId, setDayId] = useState('')
   const [placeId, setPlaceId] = useState('')
@@ -59,6 +61,7 @@ export function PhotoUpload({ tripId, days, places, onUpload, onClose }: PhotoUp
       setFiles([])
     } catch (err: unknown) {
       console.error('Upload failed:', err)
+      toast.error(t('common.error'))
     } finally {
       setUploading(false)
       setProgress(0)

@@ -61,15 +61,15 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
   return (
     <div>
       <div style={{ padding: '24px 28px 0' }} className="max-md:!px-4 max-md:!pt-4">
-        <div style={{
-          background: 'var(--bg-tertiary)', borderRadius: 18,
+        <div className="bg-surface-tertiary" style={{
+          borderRadius: 18,
           padding: '14px 16px 14px 22px',
           display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
         }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em', flexShrink: 0 }}>
+          <h2 className="text-content" style={{ margin: 0, fontSize: 18, fontWeight: 600, letterSpacing: '-0.01em', flexShrink: 0 }}>
             {t('trip.tabs.lists')}
           </h2>
-          <div className="hidden md:block" style={{ width: 1, height: 22, background: 'var(--border-faint)', flexShrink: 0 }} />
+          <div className="hidden md:block bg-edge-faint" style={{ width: 1, height: 22, flexShrink: 0 }} />
           <div style={{ display: 'inline-flex', gap: 4, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
             {tabs.map(tab => {
               const active = subTab === tab.id
@@ -205,9 +205,9 @@ export default function TripPlannerPage(): React.ReactElement | null {
 
   if (isLoading || !splashDone) {
     return (
-      <div style={{
+      <div className="bg-surface" style={{
         minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        background: 'var(--bg-primary)', ...fontStyle,
+        ...fontStyle,
       }}>
         <style>{`
           @keyframes dotPulse {
@@ -227,16 +227,16 @@ export default function TripPlannerPage(): React.ReactElement | null {
             height={64}
           />
         </div>
-        <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.3px', marginBottom: 6, animation: 'fadeInUp 0.5s ease-out' }}>
+        <div className="text-content" style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.3px', marginBottom: 6, animation: 'fadeInUp 0.5s ease-out' }}>
           {trip?.title || 'TREK'}
         </div>
-        <div style={{ fontSize: 12, color: 'var(--text-faint)', fontWeight: 500, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 32, animation: 'fadeInUp 0.5s ease-out 0.1s both' }}>
+        <div className="text-content-faint" style={{ fontSize: 12, fontWeight: 500, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 32, animation: 'fadeInUp 0.5s ease-out 0.1s both' }}>
           {t('trip.loadingPhotos')}
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
           {[0, 1, 2].map(i => (
-            <div key={i} style={{
-              width: 8, height: 8, borderRadius: '50%', background: 'var(--text-muted)',
+            <div key={i} className="bg-content-muted" style={{
+              width: 8, height: 8, borderRadius: '50%',
               animation: `dotPulse 1.4s ease-in-out ${i * 0.2}s infinite`,
             }} />
           ))}
@@ -250,14 +250,12 @@ export default function TripPlannerPage(): React.ReactElement | null {
     <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', ...fontStyle }}>
       <Navbar tripTitle={trip.title} tripId={tripId} showBack onBack={() => navigate('/dashboard')} onShare={() => setShowMembersModal(true)} />
 
-      <div style={{
+      <div className="bg-surface-elevated border-b border-edge-faint" style={{
         position: 'fixed', top: 'var(--nav-h)', left: 0, right: 0, zIndex: 40,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '0 12px',
-        background: 'var(--bg-elevated)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        borderBottom: '1px solid var(--border-faint)',
         height: 44,
       }}>
         <SlidingTabs
@@ -445,11 +443,13 @@ export default function TripPlannerPage(): React.ReactElement | null {
             {activeTab === 'plan' && !mobileSidebarOpen && !showPlaceForm && !showMembersModal && !showReservationModal && ReactDOM.createPortal(
               <div className="flex md:hidden" style={{ position: 'fixed', top: 'calc(var(--nav-h) + 44px + 12px)', left: 12, right: 12, justifyContent: 'space-between', zIndex: 100, pointerEvents: 'none' }}>
                 <button onClick={() => setMobileSidebarOpen('left')}
-                  style={{ pointerEvents: 'auto', background: 'var(--bg-card)', color: 'var(--text-primary)', backdropFilter: 'blur(12px)', border: '1px solid var(--border-primary)', borderRadius: 24, padding: '11px 24px', fontSize: 15, fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.15)', minHeight: 44, fontFamily: 'inherit', touchAction: 'manipulation' }}>
+                  className="bg-surface-card text-content border border-edge"
+                  style={{ pointerEvents: 'auto', backdropFilter: 'blur(12px)', borderRadius: 24, padding: '11px 24px', fontSize: 15, fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.15)', minHeight: 44, fontFamily: 'inherit', touchAction: 'manipulation' }}>
                   {t('trip.mobilePlan')}
                 </button>
                 <button onClick={() => setMobileSidebarOpen('right')}
-                  style={{ pointerEvents: 'auto', background: 'var(--bg-card)', color: 'var(--text-primary)', backdropFilter: 'blur(12px)', border: '1px solid var(--border-primary)', borderRadius: 24, padding: '11px 24px', fontSize: 15, fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.15)', minHeight: 44, fontFamily: 'inherit', touchAction: 'manipulation' }}>
+                  className="bg-surface-card text-content border border-edge"
+                  style={{ pointerEvents: 'auto', backdropFilter: 'blur(12px)', borderRadius: 24, padding: '11px 24px', fontSize: 15, fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.15)', minHeight: 44, fontFamily: 'inherit', touchAction: 'manipulation' }}>
                   {t('trip.mobilePlaces')}
                 </button>
               </div>,
@@ -520,7 +520,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
                         ),
                       }
                     }))
-                  } catch {}
+                  } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
                 }}
                 onUpdatePlace={async (placeId, data) => { try { await tripActions.updatePlace(tripId, placeId, data) } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) } }}
                 leftWidth={(isMobile || window.innerWidth < 900) ? 0 : (leftCollapsed ? 0 : leftWidth)}
@@ -569,7 +569,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
                             ),
                           }
                         }))
-                      } catch {}
+                      } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
                     }}
                     onUpdatePlace={async (placeId, data) => { try { await tripActions.updatePlace(tripId, placeId, data) } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) } }}
                     leftWidth={0}
@@ -582,10 +582,10 @@ export default function TripPlannerPage(): React.ReactElement | null {
 
             {mobileSidebarOpen && ReactDOM.createPortal(
               <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 9999 }} onClick={() => setMobileSidebarOpen(null)}>
-                <div style={{ position: 'absolute', top: 'var(--nav-h)', left: 0, right: 0, bottom: 0, background: 'var(--bg-card)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid var(--border-secondary)' }}>
-                    <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)' }}>{mobileSidebarOpen === 'left' ? t('trip.mobilePlan') : t('trip.mobilePlaces')}</span>
-                    <button onClick={() => setMobileSidebarOpen(null)} style={{ background: 'var(--bg-tertiary)', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)' }}>
+                <div className="bg-surface-card" style={{ position: 'absolute', top: 'var(--nav-h)', left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+                  <div className="border-b border-edge-secondary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px' }}>
+                    <span className="text-content" style={{ fontWeight: 600, fontSize: 14 }}>{mobileSidebarOpen === 'left' ? t('trip.mobilePlan') : t('trip.mobilePlaces')}</span>
+                    <button onClick={() => setMobileSidebarOpen(null)} className="bg-surface-tertiary text-content" style={{ border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <X size={14} />
                     </button>
                   </div>

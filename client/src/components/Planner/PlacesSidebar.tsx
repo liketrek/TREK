@@ -370,13 +370,14 @@ function PlacesHeader(S: SidebarState) {
     catDropOpen, setCatDropOpen, toggleCategoryFilter, setCategoryFiltersLocal, onCategoryFilterChange,
   } = S
   return (
-    <div style={{ padding: '14px 16px 10px', borderBottom: '1px solid var(--border-faint)', flexShrink: 0 }}>
+    <div className="border-b border-edge-faint" style={{ padding: '14px 16px 10px', flexShrink: 0 }}>
       {canEditPlaces && <button
         onClick={onAddPlace}
+        className="bg-accent text-accent-text"
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           width: '100%', padding: '8px 12px', borderRadius: 12, border: 'none',
-          background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 13, fontWeight: 500,
+          fontSize: 13, fontWeight: 500,
           cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10,
         }}
       >
@@ -386,11 +387,11 @@ function PlacesHeader(S: SidebarState) {
       <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
         <button
           onClick={() => setFileImportOpen(true)}
+          className="border border-dashed border-edge text-content-faint"
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
             flex: 1, padding: '5px 12px', borderRadius: 8,
-            border: '1px dashed var(--border-primary)', background: 'none',
-            color: 'var(--text-faint)', fontSize: 11, fontWeight: 500,
+            background: 'none', fontSize: 11, fontWeight: 500,
             cursor: 'pointer', fontFamily: 'inherit',
           }}
         >
@@ -398,18 +399,18 @@ function PlacesHeader(S: SidebarState) {
         </button>
         <button
           onClick={() => setListImportOpen(true)}
+          className="border border-dashed border-edge text-content-faint"
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
             flex: 1, padding: '5px 12px', borderRadius: 8,
-            border: '1px dashed var(--border-primary)', background: 'none',
-            color: 'var(--text-faint)', fontSize: 11, fontWeight: 500,
+            background: 'none', fontSize: 11, fontWeight: 500,
             cursor: 'pointer', fontFamily: 'inherit',
           }}
         >
           <MapPin size={11} strokeWidth={2} /> {t(hasMultipleListImportProviders ? 'places.importList' : 'places.importGoogleList')}
         </button>
       </div>
-      <div style={{ height: 1, background: 'var(--border-primary)', margin: '2px 0 10px' }} />
+      <div className="bg-edge" style={{ height: 1, margin: '2px 0 10px' }} />
       </>}
 
       {/* Filter-Tabs */}
@@ -680,10 +681,10 @@ function PlacesList(S: SidebarState) {
     <div className="trek-stagger" style={{ flex: 1, overflowY: 'auto', minHeight: 0 }} ref={scrollContainerRef} onScroll={(e) => onScrollTopChange?.((e.currentTarget as HTMLElement).scrollTop)}>
       {filtered.length === 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 16px', gap: 8 }}>
-          <span style={{ fontSize: 13, color: 'var(--text-faint)' }}>
+          <span className="text-content-faint" style={{ fontSize: 13 }}>
             {filter === 'unplanned' ? t('places.allPlanned') : t('places.noneFound')}
           </span>
-          {canEditPlaces && <button onClick={onAddPlace} style={{ fontSize: 12, color: 'var(--text-primary)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit' }}>
+          {canEditPlaces && <button onClick={onAddPlace} className="text-content" style={{ fontSize: 12, background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit' }}>
             {t('places.addPlace')}
           </button>}
         </div>
@@ -910,7 +911,7 @@ const PlacesSidebar = React.memo(function PlacesSidebar(props: PlacesSidebarProp
         <PlacesSelectionBar {...S} />
       ) : (
         <div style={{ padding: '6px 16px', flexShrink: 0 }}>
-          <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{filtered.length === 1 ? t('places.countSingular') : t('places.count', { count: filtered.length })}</span>
+          <span className="text-content-faint" style={{ fontSize: 11 }}>{filtered.length === 1 ? t('places.countSingular') : t('places.count', { count: filtered.length })}</span>
         </div>
       )}
 

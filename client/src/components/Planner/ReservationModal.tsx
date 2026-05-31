@@ -538,13 +538,13 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
                 <a href="#" onClick={(e) => { e.preventDefault(); openFile(f.url).catch(() => {}) }} style={{ color: 'var(--text-faint)', display: 'flex', flexShrink: 0, cursor: 'pointer' }}><ExternalLink size={11} /></a>
                 <button type="button" onClick={async () => {
                   if (f.reservation_id === reservation?.id) {
-                    try { await apiClient.put(`/trips/${tripId}/files/${f.id}`, { reservation_id: null }) } catch {}
+                    try { await apiClient.put(`/trips/${tripId}/files/${f.id}`, { reservation_id: null }) } catch { toast.error(t('reservations.toast.updateError')) }
                   }
                   try {
                     const linksRes = await apiClient.get(`/trips/${tripId}/files/${f.id}/links`)
                     const link = (linksRes.data.links || []).find((l: any) => l.reservation_id === reservation?.id)
                     if (link) await apiClient.delete(`/trips/${tripId}/files/${f.id}/link/${link.id}`)
-                  } catch {}
+                  } catch { toast.error(t('reservations.toast.updateError')) }
                   setLinkedFileIds(prev => prev.filter(id => id !== f.id))
                   if (tripId) loadFiles(tripId)
                 }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', padding: 0, flexShrink: 0 }}>
@@ -594,7 +594,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
                             setLinkedFileIds(prev => [...prev, f.id])
                             setShowFilePicker(false)
                             if (tripId) loadFiles(tripId)
-                          } catch {}
+                          } catch { toast.error(t('reservations.toast.updateError')) }
                         }}
                           style={{
                             display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 10px',

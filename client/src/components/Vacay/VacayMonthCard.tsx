@@ -60,12 +60,12 @@ export default function VacayMonthCard({
   }, [])
 
   return (
-    <div className="rounded-xl border overflow-hidden" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-      <div className="px-3 py-2 border-b" style={{ borderColor: 'var(--border-secondary)' }}>
-        <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)', textTransform: 'capitalize' }}>{monthName}</span>
+    <div className="rounded-xl border overflow-hidden bg-surface-card border-edge">
+      <div className="px-3 py-2 border-b border-edge-secondary">
+        <span className="text-xs font-semibold capitalize text-content">{monthName}</span>
       </div>
 
-      <div className="grid grid-cols-7 border-b" style={{ borderColor: 'var(--border-secondary)' }}>
+      <div className="grid grid-cols-7 border-b border-edge-secondary">
         {weekdays.map((wd, i) => {
           // Map column index back to JS day (0=Sun..6=Sat) to check if it's a weekend column
           const jsDay = (i + weekStart) % 7

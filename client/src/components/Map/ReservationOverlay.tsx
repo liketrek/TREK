@@ -421,7 +421,7 @@ export default function ReservationOverlay({ reservations, showConnections, show
         >
           <Tooltip direction="top" offset={[0, -8]} opacity={1} className="map-tooltip">
             <div style={{ fontWeight: 600, fontSize: 12 }}>{item.from.name}</div>
-            {item.res.title && <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{item.res.title}</div>}
+            {item.res.title && <div className="text-content-muted" style={{ fontSize: 11 }}>{item.res.title}</div>}
           </Tooltip>
         </Marker>,
         <Marker
@@ -434,7 +434,7 @@ export default function ReservationOverlay({ reservations, showConnections, show
         >
           <Tooltip direction="top" offset={[0, -8]} opacity={1} className="map-tooltip">
             <div style={{ fontWeight: 600, fontSize: 12 }}>{item.to.name}</div>
-            {item.res.title && <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{item.res.title}</div>}
+            {item.res.title && <div className="text-content-muted" style={{ fontSize: 11 }}>{item.res.title}</div>}
           </Tooltip>
         </Marker>,
       ])}

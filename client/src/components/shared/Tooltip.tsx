@@ -68,7 +68,7 @@ export function Tooltip({ label, placement = 'bottom', delay = 250, disabled, ch
         <div
           ref={tooltipRef}
           role="tooltip"
-          className="trek-popover-enter"
+          className="trek-popover-enter bg-surface-card text-content border border-edge-faint"
           style={{
             position: 'fixed',
             top: coords?.top ?? -9999,
@@ -76,15 +76,12 @@ export function Tooltip({ label, placement = 'bottom', delay = 250, disabled, ch
             visibility: coords ? 'visible' : 'hidden',
             pointerEvents: 'none',
             zIndex: 100000,
-            background: 'var(--bg-card, #ffffff)',
-            color: 'var(--text-primary, #111827)',
             fontSize: 11,
             fontWeight: 500,
             padding: '5px 10px',
             borderRadius: 8,
             whiteSpace: 'nowrap',
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            border: '1px solid var(--border-faint, #e5e7eb)',
             fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
             transformOrigin: placement === 'top' ? 'bottom center' : placement === 'bottom' ? 'top center' : placement === 'left' ? 'center right' : 'center left',
           }}

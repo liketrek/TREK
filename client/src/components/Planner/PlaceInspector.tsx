@@ -8,9 +8,10 @@ import PlaceAvatar from '../shared/PlaceAvatar'
 import { mapsApi } from '../../api/client'
 import { useSettingsStore } from '../../store/settingsStore'
 import { getCategoryIcon } from '../shared/categoryIcons'
+import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import type { Place, Category, Day, Assignment, Reservation, TripFile, AssignmentsMap } from '../../types'
-import { splitReservationDateTime } from '../../utils/formatters'
+import { splitReservationDateTime, formatTime } from '../../utils/formatters'
 
 const detailsCache = new Map()
 
@@ -76,24 +77,6 @@ function convertHoursLine(line, timeFormat) {
   return line
 }
 
-function formatTime(timeStr, locale, timeFormat) {
-  if (!timeStr) return ''
-  try {
-    const parts = timeStr.split(':')
-    const h = Number(parts[0]) || 0
-    const m = Number(parts[1]) || 0
-    if (isNaN(h)) return timeStr
-    if (timeFormat === '12h') {
-      const period = h >= 12 ? 'PM' : 'AM'
-      const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
-      return `${h12}:${String(m).padStart(2, '0')} ${period}`
-    }
-    const str = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
-    return locale?.startsWith('de') ? `${str} Uhr` : str
-  } catch { return timeStr }
-}
-
-
 function formatFileSize(bytes) {
   if (!bytes) return ''
   if (bytes < 1024) return `${bytes} B`
@@ -137,6 +120,7 @@ export default function PlaceInspector({
   leftWidth = 0, rightWidth = 0,
 }: PlaceInspectorProps) {
   const { t, locale, language } = useTranslation()
+  const toast = useToast()
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
   const [hoursExpanded, setHoursExpanded] = useState(false)
   const [filesExpanded, setFilesExpanded] = useState(false)
@@ -197,11 +181,12 @@ export default function PlaceInspector({
       setFilesExpanded(true)
     } catch (err: unknown) {
       console.error('Upload failed', err)
+      toast.error(t('files.uploadError'))
     } finally {
       setIsUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
-  }, [onFileUpload, place.id])
+  }, [onFileUpload, place.id, toast, t])
 
   return (
     <div
@@ -268,14 +253,14 @@ export default function PlaceInspector({
 
           {/* Description / Summary */}
           {(place.description || googleDetails?.summary) && (
-            <div className="collab-note-md" style={{ background: 'var(--bg-hover)', borderRadius: 10, overflow: 'hidden', fontSize: 12, color: 'var(--text-muted)', lineHeight: '1.5', padding: '8px 12px' }}>
+            <div className="collab-note-md bg-surface-hover text-content-muted" style={{ borderRadius: 10, overflow: 'hidden', fontSize: 12, lineHeight: '1.5', padding: '8px 12px' }}>
               <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{place.description || googleDetails?.summary || ''}</Markdown>
             </div>
           )}
 
           {/* Notes */}
           {place.notes && (
-            <div className="collab-note-md" style={{ background: 'var(--bg-hover)', borderRadius: 10, overflow: 'hidden', fontSize: 12, color: 'var(--text-muted)', lineHeight: '1.5', padding: '8px 12px', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+            <div className="collab-note-md bg-surface-hover text-content-muted" style={{ borderRadius: 10, overflow: 'hidden', fontSize: 12, lineHeight: '1.5', padding: '8px 12px', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
               <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{place.notes}</Markdown>
             </div>
           )}
@@ -294,7 +279,7 @@ export default function PlaceInspector({
         </div>
 
         {/* Footer actions */}
-        <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border-faint)', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="border-t border-edge-faint" style={{ padding: '10px 16px', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
           {selectedDayId && (
             assignmentInDay ? (
               <ActionButton onClick={() => onRemoveAssignment(selectedDayId, assignmentInDay.id)} variant="ghost" icon={<Minus size={13} />}

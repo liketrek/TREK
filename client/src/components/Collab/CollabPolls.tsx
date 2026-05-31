@@ -3,6 +3,7 @@ import { Plus, Trash2, X, Check, BarChart3, Lock, Clock } from 'lucide-react'
 import { collabApi } from '../../api/client'
 import { addListener, removeListener } from '../../api/websocket'
 import { useTranslation } from '../../i18n'
+import { useToast } from '../shared/Toast'
 import { useCanDo } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
 import ReactDOM from 'react-dom'
@@ -342,6 +343,7 @@ interface CollabPollsProps {
 
 export default function CollabPolls({ tripId, currentUser }: CollabPollsProps) {
   const { t } = useTranslation()
+  const toast = useToast()
   const can = useCanDo()
   const trip = useTripStore((s) => s.trip)
   const canEdit = can('collab_edit', trip)
@@ -378,33 +380,44 @@ export default function CollabPolls({ tripId, currentUser }: CollabPollsProps) {
   }, [])
 
   const handleCreate = useCallback(async (data) => {
-    const result = await collabApi.createPoll(tripId, data)
-    const created = result.poll || result
-    setPolls(prev => prev.some(p => p.id === created.id) ? prev : [created, ...prev])
-    setShowForm(false)
-  }, [tripId])
+    try {
+      const result = await collabApi.createPoll(tripId, data)
+      const created = result.poll || result
+      setPolls(prev => prev.some(p => p.id === created.id) ? prev : [created, ...prev])
+      setShowForm(false)
+    } catch (err) {
+      toast.error(t('common.error'))
+      throw err
+    }
+  }, [tripId, toast, t])
 
   const handleVote = useCallback(async (pollId, optionIndex) => {
     try {
       const result = await collabApi.votePoll(tripId, pollId, optionIndex)
       const updated = result.poll || result
       setPolls(prev => prev.map(p => p.id === updated.id ? updated : p))
-    } catch {}
-  }, [tripId])
+    } catch {
+      toast.error(t('common.error'))
+    }
+  }, [tripId, toast, t])
 
   const handleClose = useCallback(async (pollId) => {
     try {
       await collabApi.closePoll(tripId, pollId)
       setPolls(prev => prev.map(p => p.id === pollId ? { ...p, is_closed: true } : p))
-    } catch {}
-  }, [tripId])
+    } catch {
+      toast.error(t('common.error'))
+    }
+  }, [tripId, toast, t])
 
   const handleDelete = useCallback(async (pollId) => {
     try {
       await collabApi.deletePoll(tripId, pollId)
       setPolls(prev => prev.filter(p => p.id !== pollId))
-    } catch {}
-  }, [tripId])
+    } catch {
+      toast.error(t('common.error'))
+    }
+  }, [tripId, toast, t])
 
   const activePolls = polls.filter(p => !p.is_closed && !isExpired(p.deadline))
   const closedPolls = polls.filter(p => p.is_closed || isExpired(p.deadline))

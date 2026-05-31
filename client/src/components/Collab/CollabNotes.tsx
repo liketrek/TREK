@@ -12,6 +12,7 @@ import { useCanDo } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
 import { addListener, removeListener } from '../../api/websocket'
 import { useTranslation } from '../../i18n'
+import { useToast } from '../shared/Toast'
 import type { User } from '../../types'
 
 interface NoteFile {
@@ -916,6 +917,7 @@ interface CollabNotesProps {
  */
 function useCollabNotes({ tripId, currentUser }: CollabNotesProps) {
   const { t } = useTranslation()
+  const toast = useToast()
   const can = useCanDo()
   const trip = useTripStore((s) => s.trip)
   const canEdit = can('collab_edit', trip)
@@ -996,7 +998,13 @@ function useCollabNotes({ tripId, currentUser }: CollabNotesProps) {
   const handleCreateNote = useCallback(async (data) => {
     const pendingFiles = data._pendingFiles || []
     delete data._pendingFiles
-    const created = await collabApi.createNote(tripId, data)
+    let created
+    try {
+      created = await collabApi.createNote(tripId, data)
+    } catch (err) {
+      toast.error(t('common.error'))
+      throw err
+    }
     if (created) {
       const note = created.note || created
       // Upload pending files
@@ -1004,7 +1012,7 @@ function useCollabNotes({ tripId, currentUser }: CollabNotesProps) {
         for (const file of pendingFiles) {
           const fd = new FormData()
           fd.append('file', file)
-          try { await collabApi.uploadNoteFile(tripId, note.id, fd) } catch (err) { console.error('Failed to upload note attachment:', err) }
+          try { await collabApi.uploadNoteFile(tripId, note.id, fd) } catch (err) { console.error('Failed to upload note attachment:', err); toast.error(t('common.error')) }
         }
         // Reload note with attachments
         const fresh = await collabApi.getNotes(tripId)
@@ -1017,17 +1025,23 @@ function useCollabNotes({ tripId, currentUser }: CollabNotesProps) {
         return [note, ...prev]
       })
     }
-  }, [tripId])
+  }, [tripId, toast, t])
 
   const handleUpdateNote = useCallback(async (noteId, data) => {
-    const result = await collabApi.updateNote(tripId, noteId, data)
+    let result
+    try {
+      result = await collabApi.updateNote(tripId, noteId, data)
+    } catch (err) {
+      toast.error(t('common.error'))
+      throw err
+    }
     const updated = result?.note || result
     if (updated) {
       setNotes(prev =>
         prev.map(n => (n.id === noteId ? { ...n, ...updated } : n))
       )
     }
-  }, [tripId])
+  }, [tripId, toast, t])
 
   const saveCategoryColors = useCallback(async (newMap) => {
     // Update notes with changed colors
@@ -1058,24 +1072,29 @@ function useCollabNotes({ tripId, currentUser }: CollabNotesProps) {
       for (const file of pendingFiles) {
         const fd = new FormData()
         fd.append('file', file)
-        try { await collabApi.uploadNoteFile(tripId, editingNote.id, fd) } catch {}
+        try { await collabApi.uploadNoteFile(tripId, editingNote.id, fd) } catch { toast.error(t('common.error')) }
       }
       const fresh = await collabApi.getNotes(tripId)
       if (fresh?.notes) setNotes(fresh.notes)
       window.dispatchEvent(new Event('collab-files-changed'))
     }
-  }, [editingNote, tripId, handleUpdateNote])
+  }, [editingNote, tripId, handleUpdateNote, toast, t])
 
   const handleDeleteNoteFile = useCallback(async (noteId, fileId) => {
-    try { await collabApi.deleteNoteFile(tripId, noteId, fileId) } catch {}
+    try { await collabApi.deleteNoteFile(tripId, noteId, fileId) } catch { toast.error(t('common.error')) }
     window.dispatchEvent(new Event('collab-files-changed'))
-  }, [tripId])
+  }, [tripId, toast, t])
 
   const handleDeleteNote = useCallback(async (noteId) => {
-    await collabApi.deleteNote(tripId, noteId)
+    try {
+      await collabApi.deleteNote(tripId, noteId)
+    } catch (err) {
+      toast.error(t('common.error'))
+      throw err
+    }
     setNotes(prev => prev.filter(n => n.id !== noteId))
     window.dispatchEvent(new Event('collab-files-changed'))
-  }, [tripId])
+  }, [tripId, toast, t])
 
   // ── Derived data ──
   const categories = [...new Set(notes.map(n => n.category).filter(Boolean))]
