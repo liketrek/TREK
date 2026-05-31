@@ -49,7 +49,9 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm ci --workspace shared && npm ci --workspace server
+        # Full install (not workspace-scoped) so @swc/core's platform-specific
+        # native binary is present — server tests transform via unplugin-swc.
+        run: npm ci
 
       - name: Build shared
         run: npm run build --workspace=shared
