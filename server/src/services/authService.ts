@@ -1335,7 +1335,10 @@ export function deleteMcpToken(userId: number, tokenId: string): { error?: strin
 // ---------------------------------------------------------------------------
 
 export function createWsToken(userId: number): { error?: string; status?: number; token?: string } {
-  const token = createEphemeralToken(userId, 'ws');
+  // Bind the ws-token to the user's current password_version so a token minted
+  // before a password reset is rejected on connect (defence-in-depth session gate).
+  const pv = (db.prepare('SELECT password_version FROM users WHERE id = ?').get(userId) as { password_version?: number } | undefined)?.password_version ?? 0;
+  const token = createEphemeralToken(userId, 'ws', { pv });
   if (!token) return { error: 'Service unavailable', status: 503 };
   return { token };
 }

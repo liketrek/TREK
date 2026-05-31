@@ -51,6 +51,7 @@ import { createUser, createTrip } from '../helpers/factories';
 import { authCookie } from '../helpers/auth';
 import { setupWebSocket } from '../../src/websocket';
 import { createEphemeralToken } from '../../src/services/ephemeralTokens';
+import { createWsToken } from '../../src/services/authService';
 
 let server: http.Server;
 let wsUrl: string;
@@ -428,6 +429,51 @@ describe('WS auth edge cases', () => {
     } finally {
       client.close();
     }
+  });
+
+  it('WS-027 — ws-token minted before a password change is rejected (session gate)', async () => {
+    // createWsToken stamps the user's current password_version (0) into the token.
+    const { user } = createUser(testDb);
+    const result = createWsToken(user.id);
+    const token = result.token!;
+
+    // Simulate a password reset bumping the version AFTER the token was issued.
+    testDb.prepare('UPDATE users SET password_version = password_version + 1 WHERE id = ?').run(user.id);
+
+    const closeCode = await new Promise<number>((resolve) => {
+      const ws = new WebSocket(`${wsUrl}?token=${encodeURIComponent(token)}`);
+      ws.once('close', (code) => resolve(code));
+      ws.once('error', () => resolve(4001));
+    });
+    expect(closeCode).toBe(4001);
+  });
+
+  it('WS-028 — ws-token whose password_version still matches connects successfully', async () => {
+    const { user } = createUser(testDb);
+    // Bump the version first, THEN mint — the token captures the current pv.
+    testDb.prepare('UPDATE users SET password_version = 3 WHERE id = ?').run(user.id);
+    const result = createWsToken(user.id);
+    const client = await connectWs(result.token!);
+    try {
+      const msg = await client.next();
+      expect(msg.type).toBe('welcome');
+    } finally {
+      client.close();
+    }
+  });
+
+  it('WS-029 — legacy token without a pv is rejected once the user resets their password', async () => {
+    // Tokens minted via createEphemeralToken carry no pv (treated as version 0).
+    const { user } = createUser(testDb);
+    const token = createEphemeralToken(user.id, 'ws')!;
+    testDb.prepare('UPDATE users SET password_version = 1 WHERE id = ?').run(user.id);
+
+    const closeCode = await new Promise<number>((resolve) => {
+      const ws = new WebSocket(`${wsUrl}?token=${encodeURIComponent(token)}`);
+      ws.once('close', (code) => resolve(code));
+      ws.once('error', () => resolve(4001));
+    });
+    expect(closeCode).toBe(4001);
   });
 });
 
