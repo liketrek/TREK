@@ -3,18 +3,13 @@ interface DragDataPayload { placeId?: string; assignmentId?: string; noteId?: st
 declare global { interface Window { __dragData: DragDataPayload | null } }
 
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
-import ReactDOM from 'react-dom'
-import { ChevronDown, ChevronRight, ChevronUp, ChevronsDownUp, ChevronsUpDown, Navigation, RotateCcw, ExternalLink, Clock, Pencil, GripVertical, Ticket, Plus, FileText, Check, Trash2, Info, MapPin, Star, Heart, Camera, Lightbulb, Flag, Bookmark, Train, Bus, Plane, Car, Ship, Coffee, ShoppingBag, AlertTriangle, FileDown, Lock, Hotel, Utensils, Users, Undo2, X, Footprints, Route as RouteIcon } from 'lucide-react'
-
-const RES_ICONS = { flight: Plane, hotel: Hotel, restaurant: Utensils, train: Train, car: Car, cruise: Ship, event: Ticket, tour: Users, other: FileText }
+import { ChevronDown, ChevronRight, ChevronUp, Navigation, RotateCcw, ExternalLink, Clock, Pencil, GripVertical, Ticket, Plus, FileText, Trash2, Car, Lock, Hotel, Footprints, Route as RouteIcon } from 'lucide-react'
 import { assignmentsApi, reservationsApi } from '../../api/client'
-import { downloadTripPDF } from '../PDF/TripPDF'
 import { calculateRoute, calculateRouteWithLegs, optimizeRoute } from '../Map/RouteCalculator'
 import PlaceAvatar from '../shared/PlaceAvatar'
 import { useContextMenu, ContextMenu } from '../shared/ContextMenu'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import remarkBreaks from 'remark-breaks'
 import WeatherWidget from '../Weather/WeatherWidget'
 import { useToast } from '../shared/Toast'
 import { getCategoryIcon } from '../shared/categoryIcons'
@@ -28,133 +23,17 @@ import {
   getTransportForDay as _getTransportForDay, getMergedItems as _getMergedItems,
   type MergedItem,
 } from '../../utils/dayMerge'
-import { formatDate, formatTime, dayTotalCost, currencyDecimals, splitReservationDateTime } from '../../utils/formatters'
+import { formatDate, formatTime, dayTotalCost, splitReservationDateTime } from '../../utils/formatters'
 import { useDayNotes } from '../../hooks/useDayNotes'
-import Tooltip from '../shared/Tooltip'
+import { RES_ICONS, getNoteIcon } from './DayPlanSidebar.constants'
+import { RouteConnector } from './DayPlanSidebarRouteConnector'
+import { MobileAddPlaceButton } from './DayPlanSidebarMobileAddPlaceButton'
+import { DayPlanSidebarToolbar } from './DayPlanSidebarToolbar'
+import { DayPlanSidebarNoteModal } from './DayPlanSidebarNoteModal'
+import { DayPlanSidebarTimeConfirmModal } from './DayPlanSidebarTimeConfirmModal'
+import { DayPlanSidebarTransportDetailModal } from './DayPlanSidebarTransportDetailModal'
+import { DayPlanSidebarFooter } from './DayPlanSidebarFooter'
 import type { Trip, Day, Place, Category, Assignment, Accommodation, Reservation, AssignmentsMap, RouteResult, RouteSegment, DayNote } from '../../types'
-
-const NOTE_ICONS = [
-  { id: 'FileText', Icon: FileText },
-  { id: 'Info', Icon: Info },
-  { id: 'Clock', Icon: Clock },
-  { id: 'MapPin', Icon: MapPin },
-  { id: 'Navigation', Icon: Navigation },
-  { id: 'Train', Icon: Train },
-  { id: 'Plane', Icon: Plane },
-  { id: 'Bus', Icon: Bus },
-  { id: 'Car', Icon: Car },
-  { id: 'Ship', Icon: Ship },
-  { id: 'Coffee', Icon: Coffee },
-  { id: 'Ticket', Icon: Ticket },
-  { id: 'Star', Icon: Star },
-  { id: 'Heart', Icon: Heart },
-  { id: 'Camera', Icon: Camera },
-  { id: 'Flag', Icon: Flag },
-  { id: 'Lightbulb', Icon: Lightbulb },
-  { id: 'AlertTriangle', Icon: AlertTriangle },
-  { id: 'ShoppingBag', Icon: ShoppingBag },
-  { id: 'Bookmark', Icon: Bookmark },
-]
-const NOTE_ICON_MAP = Object.fromEntries(NOTE_ICONS.map(({ id, Icon }) => [id, Icon]))
-function getNoteIcon(iconId) { return NOTE_ICON_MAP[iconId] || FileText }
-
-const TYPE_ICONS = {
-  flight: '✈️', hotel: '🏨', restaurant: '🍽️', train: '🚆',
-  car: '🚗', cruise: '🚢', event: '🎫', other: '📋',
-}
-
-function MobileAddPlaceButton({ dayId, places, assignments, onAssign, onAddNew }: {
-  dayId: number
-  places: Place[]
-  assignments: AssignmentsMap
-  onAssign?: (placeId: number, dayId: number) => void
-  onAddNew?: () => void
-}) {
-  const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
-  const [search, setSearch] = useState('')
-
-  // Find places not assigned to this day
-  const assignedToDay = new Set((assignments[String(dayId)] || []).map(a => a.place_id))
-  const available = places.filter(p => !assignedToDay.has(p.id))
-  const filtered = search.trim()
-    ? available.filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
-    : available
-
-  return (
-    <div className="md:hidden" style={{ padding: '8px 12px 12px' }}>
-      {!open ? (
-        <button
-          onClick={e => { e.stopPropagation(); setOpen(true) }}
-          style={{
-            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            padding: '10px 0', borderRadius: 12,
-            border: '1.5px dashed var(--border-primary)',
-            background: 'transparent', color: 'var(--text-muted)',
-            fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
-          }}
-        >
-          <Plus size={14} />
-          Add Place
-        </button>
-      ) : (
-        <div style={{ borderRadius: 14, border: '1px solid var(--border-primary)', background: 'var(--bg-card)', overflow: 'hidden' }}>
-          <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-faint)', display: 'flex', gap: 6 }}>
-            <input
-              autoFocus
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder={t('dayplan.mobile.searchPlaces')}
-              style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 13, fontFamily: 'inherit', color: 'var(--text-primary)' }}
-            />
-            <button onClick={() => { setOpen(false); setSearch('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-faint)' }}>
-              <X size={14} />
-            </button>
-          </div>
-          <div style={{ maxHeight: 200, overflowY: 'auto' }}>
-            {filtered.length === 0 && (
-              <div style={{ padding: '16px 12px', textAlign: 'center', fontSize: 12, color: 'var(--text-faint)' }}>
-                {available.length === 0 ? t('dayplan.mobile.allAssigned') : t('dayplan.mobile.noMatch')}
-              </div>
-            )}
-            {filtered.slice(0, 20).map(p => (
-              <button
-                key={p.id}
-                onClick={() => {
-                  onAssign?.(p.id, dayId)
-                  setOpen(false)
-                  setSearch('')
-                }}
-                style={{
-                  width: '100%', display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '10px 12px', border: 'none', background: 'transparent',
-                  cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-                }}
-              >
-                <MapPin size={13} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
-                <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-              </button>
-            ))}
-          </div>
-          {onAddNew && (
-            <button
-              onClick={() => { onAddNew(); setOpen(false); setSearch('') }}
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                padding: '10px 0', borderTop: '1px solid var(--border-faint)',
-                background: 'transparent', border: 'none', color: 'var(--text-muted)',
-                fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
-              }}
-            >
-              <Plus size={13} />
-              Create new place
-            </button>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
 
 interface DayPlanSidebarProps {
   tripId: number
@@ -203,26 +82,6 @@ interface DayPlanSidebarProps {
   initialScrollTop?: number
   onScrollTopChange?: (top: number) => void
 }
-
-/** Slim travel-time connector shown between two consecutive located stops in a day. */
-function RouteConnector({ seg, profile }: { seg: RouteSegment; profile: 'driving' | 'walking' }) {
-  const driving = profile === 'driving'
-  const Icon = driving ? Car : Footprints
-  const line = { flex: 1, height: 1, minHeight: 1, alignSelf: 'center', background: 'var(--border-primary)' }
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 14px', fontSize: 10.5, color: 'var(--text-faint)', lineHeight: 1.2 }}>
-      <div style={line} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-        <Icon size={11} strokeWidth={2} />
-        <span>{seg.durationText ?? (driving ? seg.drivingText : seg.walkingText)}</span>
-        <span style={{ opacity: 0.4 }}>·</span>
-        <span>{seg.distanceText}</span>
-      </div>
-      <div style={line} />
-    </div>
-  )
-}
-
 
 /**
  * Day-plan state + behaviour: expand/collapse, inline title edit, route legs +
@@ -1211,170 +1070,30 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }}>
       {/* Toolbar */}
-      <div className="border-b border-edge-faint" style={{ padding: '12px 16px', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
-          <div style={{ position: 'relative', flexShrink: 0 }}>
-            <button
-              onClick={async () => {
-                const flatNotes = Object.entries(dayNotes).flatMap(([dayId, notes]) =>
-                  notes.map(n => ({ ...n, day_id: Number(dayId) }))
-                )
-                try {
-                  await downloadTripPDF({ trip, days, places, assignments, categories, dayNotes: flatNotes, reservations, t, locale })
-                } catch (e) {
-                  console.error('PDF error:', e)
-                  toast.error(t('dayplan.pdfError') + ': ' + (e?.message || String(e)))
-                }
-              }}
-              onMouseEnter={() => setPdfHover(true)}
-              onMouseLeave={() => setPdfHover(false)}
-              className="bg-accent text-accent-text"
-              style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                padding: '5px 10px', borderRadius: 8, border: 'none',
-                fontSize: 11, fontWeight: 500,
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}
-            >
-              <FileDown size={13} strokeWidth={2} />
-              {t('dayplan.pdf')}
-            </button>
-            {pdfHover && (
-              <div style={{
-                position: 'absolute', top: 'calc(100% + 6px)', right: 0,
-                whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 200,
-                background: 'var(--bg-card, white)', color: 'var(--text-primary, #111827)',
-                fontSize: 11, fontWeight: 500, padding: '5px 10px',
-                borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                border: '1px solid var(--border-faint, #e5e7eb)',
-              }}>
-                {t('dayplan.pdfTooltip')}
-              </div>
-            )}
-          </div>
-          <div style={{ position: 'relative', flexShrink: 0 }}>
-            <button
-              onClick={async () => {
-                try {
-                  const res = await fetch(`/api/trips/${tripId}/export.ics`, {
-                    credentials: 'include',
-                  })
-                  if (!res.ok) throw new Error()
-                  const blob = await res.blob()
-                  const url = URL.createObjectURL(blob)
-                  const a = document.createElement('a')
-                  a.href = url
-                  a.download = `${trip?.title || 'trip'}.ics`
-                  a.click()
-                  URL.revokeObjectURL(url)
-                } catch { toast.error(t('planner.icsExportFailed')) }
-              }}
-              onMouseEnter={() => setIcsHover(true)}
-              onMouseLeave={() => setIcsHover(false)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                padding: '5px 10px', borderRadius: 8,
-                border: '1px solid var(--border-primary)', background: 'none',
-                color: 'var(--text-muted)', fontSize: 11, fontWeight: 500,
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}
-            >
-              <FileDown size={13} strokeWidth={2} />
-              ICS
-            </button>
-            {icsHover && (
-              <div style={{
-                position: 'absolute', top: 'calc(100% + 6px)', right: 0,
-                whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 200,
-                background: 'var(--bg-card, white)', color: 'var(--text-primary, #111827)',
-                fontSize: 11, fontWeight: 500, padding: '5px 10px',
-                borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                border: '1px solid var(--border-faint, #e5e7eb)',
-              }}>
-                {t('dayplan.icsTooltip')}
-              </div>
-            )}
-          </div>
-          {(() => {
-            const allExpanded = days.length > 0 && days.every(d => expandedDays.has(d.id))
-            const label = allExpanded ? t('dayplan.collapseAll') : t('dayplan.expandAll')
-            return (
-              <Tooltip label={label} placement="bottom">
-                <button
-                  onClick={() => {
-                    const next = allExpanded ? new Set<number>() : new Set(days.map(d => d.id))
-                    setExpandedDays(next)
-                    try { sessionStorage.setItem(`day-expanded-${tripId}`, JSON.stringify([...next])) } catch {}
-                  }}
-                  aria-label={label}
-                  aria-pressed={allExpanded}
-                  style={{
-                    position: 'relative', flexShrink: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    width: 30, height: 30, borderRadius: 8,
-                    border: '1px solid var(--border-primary)', background: 'none',
-                    color: 'var(--text-primary)', cursor: 'pointer', fontFamily: 'inherit', padding: 0,
-                    transition: 'color 0.15s, border-color 0.15s, background 0.15s',
-                    overflow: 'hidden',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
-                >
-                  <span style={{
-                    position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transition: 'opacity 0.2s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                    opacity: allExpanded ? 0 : 1,
-                    transform: allExpanded ? 'translateY(-8px) scale(0.6)' : 'translateY(0) scale(1)',
-                  }}>
-                    <ChevronsUpDown size={14} strokeWidth={2} />
-                  </span>
-                  <span style={{
-                    position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transition: 'opacity 0.2s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                    opacity: allExpanded ? 1 : 0,
-                    transform: allExpanded ? 'translateY(0) scale(1)' : 'translateY(8px) scale(0.6)',
-                  }}>
-                    <ChevronsDownUp size={14} strokeWidth={2} />
-                  </span>
-                </button>
-              </Tooltip>
-            )
-          })()}
-          {onUndo && (
-            <div style={{ position: 'relative', flexShrink: 0 }}>
-              <button
-                onClick={onUndo}
-                disabled={!canUndo}
-                aria-label={t('undo.button')}
-                onMouseEnter={() => setUndoHover(true)}
-                onMouseLeave={() => setUndoHover(false)}
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  width: 30, height: 30, borderRadius: 8,
-                  border: '1px solid var(--border-primary)', background: 'none',
-                  color: canUndo ? 'var(--text-primary)' : 'var(--border-primary)',
-                  cursor: canUndo ? 'pointer' : 'default', fontFamily: 'inherit',
-                  transition: 'color 0.15s, border-color 0.15s',
-                }}
-              >
-                <Undo2 size={14} strokeWidth={2} />
-              </button>
-              {undoHover && (
-                <div style={{
-                  position: 'absolute', top: 'calc(100% + 6px)', right: 0,
-                  whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 200,
-                  background: 'var(--bg-card, white)', color: 'var(--text-primary, #111827)',
-                  fontSize: 11, fontWeight: 500, padding: '5px 10px',
-                  borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                  border: '1px solid var(--border-faint, #e5e7eb)',
-                }}>
-                  {canUndo && lastActionLabel ? t('undo.tooltip', { action: lastActionLabel }) : t('undo.button')}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+      <DayPlanSidebarToolbar
+        tripId={tripId}
+        trip={trip}
+        days={days}
+        places={places}
+        categories={categories}
+        assignments={assignments}
+        reservations={reservations}
+        dayNotes={dayNotes}
+        t={t}
+        locale={locale}
+        toast={toast}
+        pdfHover={pdfHover}
+        setPdfHover={setPdfHover}
+        icsHover={icsHover}
+        setIcsHover={setIcsHover}
+        expandedDays={expandedDays}
+        setExpandedDays={setExpandedDays}
+        onUndo={onUndo}
+        canUndo={canUndo}
+        undoHover={undoHover}
+        setUndoHover={setUndoHover}
+        lastActionLabel={lastActionLabel}
+      />
 
       {/* Tagesliste */}
       <div className={`scroll-container${draggingId ? '' : ' trek-stagger'}`} style={{ flex: 1, overflowY: 'auto', minHeight: 0 }} ref={scrollContainerRef} onScroll={(e) => onScrollTopChange?.((e.currentTarget as HTMLElement).scrollTop)}>
@@ -2357,270 +2076,35 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
       </div>
 
       {/* Notiz-Popup-Modal — über Portal gerendert, um den backdropFilter-Stapelkontext zu umgehen */}
-      {Object.entries(noteUi).map(([dayId, ui]) => ui && ReactDOM.createPortal(
-        <div key={dayId} className="bg-[rgba(0,0,0,0.3)]" style={{
-          position: 'fixed', inset: 0, zIndex: 10000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          backdropFilter: 'blur(3px)',
-        }} onClick={() => cancelNote(Number(dayId))}>
-          <div className="bg-surface-card" style={{
-            width: 340, borderRadius: 16,
-            boxShadow: '0 16px 48px rgba(0,0,0,0.22)', padding: '22px 22px 18px',
-            display: 'flex', flexDirection: 'column', gap: 12,
-          }} onClick={e => e.stopPropagation()}>
-            <div className="text-content" style={{ fontSize: 14, fontWeight: 600 }}>
-              {ui.mode === 'add' ? t('dayplan.noteAdd') : t('dayplan.noteEdit')}
-            </div>
-            {/* Icon-Auswahl */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-              {NOTE_ICONS.map(({ id, Icon }) => (
-                <button key={id} onClick={() => setNoteUi(prev => ({ ...prev, [dayId]: { ...prev[dayId], icon: id } }))}
-                  title={id}
-                  className={ui.icon === id ? 'bg-surface-hover' : 'bg-transparent'}
-                  style={{ width: 45, height: 45, borderRadius: 8, border: ui.icon === id ? '2px solid var(--text-primary)' : '2px solid var(--border-faint)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
-                  <Icon size={18} strokeWidth={1.8} color={ui.icon === id ? 'var(--text-primary)' : 'var(--text-muted)'} />
-                </button>
-              ))}
-            </div>
-            <input
-              ref={noteInputRef}
-              type="text"
-              value={ui.text}
-              onChange={e => setNoteUi(prev => ({ ...prev, [dayId]: { ...prev[dayId], text: e.target.value } }))}
-              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); saveNote(Number(dayId)) } if (e.key === 'Escape') cancelNote(Number(dayId)) }}
-              placeholder={t('dayplan.noteTitle') + ' *'}
-              required
-              className="text-content"
-              style={{ fontSize: 13, fontWeight: 500, border: `1px solid ${!ui.text?.trim() ? 'var(--border-primary)' : 'var(--border-primary)'}`, borderRadius: 8, padding: '8px 10px', fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box' }}
-            />
-            <textarea
-              value={ui.time}
-              maxLength={150}
-              rows={3}
-              onChange={e => setNoteUi(prev => ({ ...prev, [dayId]: { ...prev[dayId], time: e.target.value } }))}
-              onKeyDown={e => { if (e.key === 'Escape') cancelNote(Number(dayId)) }}
-              placeholder={t('dayplan.noteSubtitle')}
-              className="text-content"
-              style={{ fontSize: 12, border: '1px solid var(--border-primary)', borderRadius: 8, padding: '7px 10px', fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box', resize: 'none', lineHeight: 1.4 }}
-            />
-            <div className={(ui.time?.length || 0) >= 140 ? 'text-[#d97706]' : 'text-content-faint'} style={{ textAlign: 'right', fontSize: 11, marginTop: -2 }}>{ui.time?.length || 0}/150</div>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button onClick={() => cancelNote(Number(dayId))} className="text-content-muted" style={{ fontSize: 12, background: 'none', border: '1px solid var(--border-primary)', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontFamily: 'inherit' }}>{t('common.cancel')}</button>
-              <button onClick={() => saveNote(Number(dayId))} disabled={!ui.text?.trim()} className={!ui.text?.trim() ? 'bg-[var(--border-primary)] text-content-faint' : 'bg-accent text-accent-text'} style={{ fontSize: 12, border: 'none', borderRadius: 8, padding: '6px 16px', cursor: !ui.text?.trim() ? 'not-allowed' : 'pointer', fontWeight: 600, fontFamily: 'inherit', transition: 'background 0.15s, color 0.15s' }}>
-                {ui.mode === 'add' ? t('common.add') : t('common.save')}
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      ))}
+      <DayPlanSidebarNoteModal
+        noteUi={noteUi}
+        setNoteUi={setNoteUi}
+        noteInputRef={noteInputRef}
+        cancelNote={cancelNote}
+        saveNote={saveNote}
+        t={t}
+      />
 
       {/* Confirm: remove time when reordering a timed place */}
-      {timeConfirm && ReactDOM.createPortal(
-        <div className="bg-[rgba(0,0,0,0.3)]" style={{
-          position: 'fixed', inset: 0, zIndex: 1000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          backdropFilter: 'blur(3px)',
-        }} onClick={() => setTimeConfirm(null)}>
-          <div className="bg-surface-card" style={{
-            width: 340, borderRadius: 16,
-            boxShadow: '0 16px 48px rgba(0,0,0,0.22)', padding: '22px 22px 18px',
-            display: 'flex', flexDirection: 'column', gap: 12,
-          }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div className="bg-[rgba(239,68,68,0.12)]" style={{
-                width: 36, height: 36, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                borderRadius: '50%',
-              }}>
-                <Clock size={18} strokeWidth={1.8} color="#ef4444" />
-              </div>
-              <div className="text-content" style={{ fontSize: 14, fontWeight: 600 }}>
-                {t('dayplan.confirmRemoveTimeTitle')}
-              </div>
-            </div>
-            <div className="text-content-secondary" style={{ fontSize: 12.5, lineHeight: 1.5 }}>
-              {t('dayplan.confirmRemoveTimeBody', { time: timeConfirm.time })}
-            </div>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
-              <button onClick={() => setTimeConfirm(null)} className="text-content-muted" style={{
-                fontSize: 12, background: 'none', border: '1px solid var(--border-primary)',
-                borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontFamily: 'inherit',
-              }}>{t('common.cancel')}</button>
-              <button onClick={confirmTimeRemoval} className="bg-[#ef4444] text-white" style={{
-                fontSize: 12,
-                border: 'none', borderRadius: 8, padding: '6px 16px', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
-              }}>{t('common.confirm')}</button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+      <DayPlanSidebarTimeConfirmModal
+        timeConfirm={timeConfirm}
+        setTimeConfirm={setTimeConfirm}
+        confirmTimeRemoval={confirmTimeRemoval}
+        t={t}
+      />
 
       {/* Transport-Detail-Modal */}
-      {transportDetail && ReactDOM.createPortal(
-        <div className="bg-[rgba(0,0,0,0.3)]" style={{
-          position: 'fixed', inset: 0, zIndex: 1000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          backdropFilter: 'blur(3px)',
-        }} onClick={() => setTransportDetail(null)}>
-          <div className="bg-surface-card" style={{
-            width: 380, maxHeight: '80vh', overflowY: 'auto',
-            borderRadius: 16,
-            boxShadow: '0 16px 48px rgba(0,0,0,0.22)', padding: '22px 22px 18px',
-            display: 'flex', flexDirection: 'column', gap: 14,
-          }} onClick={e => e.stopPropagation()}>
-            {(() => {
-              const res = transportDetail
-              const TransportIcon = RES_ICONS[res.type] || Ticket
-              const TRANSPORT_COLORS = { flight: '#3b82f6', train: '#06b6d4', bus: '#f59e0b', car: '#6b7280', cruise: '#0ea5e9' }
-              const color = TRANSPORT_COLORS[res.type] || 'var(--text-muted)'
-              const meta = typeof res.metadata === 'string' ? JSON.parse(res.metadata || '{}') : (res.metadata || {})
-
-              const detailFields = []
-              if (res.type === 'flight') {
-                if (meta.airline) detailFields.push({ label: t('reservations.meta.airline'), value: meta.airline })
-                if (meta.flight_number) detailFields.push({ label: t('reservations.meta.flightNumber'), value: meta.flight_number })
-                if (meta.departure_airport) detailFields.push({ label: t('reservations.meta.from'), value: meta.departure_airport })
-                if (meta.arrival_airport) detailFields.push({ label: t('reservations.meta.to'), value: meta.arrival_airport })
-                if (meta.seat) detailFields.push({ label: t('reservations.meta.seat'), value: meta.seat })
-              } else if (res.type === 'train') {
-                if (meta.train_number) detailFields.push({ label: t('reservations.meta.trainNumber'), value: meta.train_number })
-                if (meta.platform) detailFields.push({ label: t('reservations.meta.platform'), value: meta.platform })
-                if (meta.seat) detailFields.push({ label: t('reservations.meta.seat'), value: meta.seat })
-              }
-              if (res.confirmation_number) detailFields.push({ label: t('reservations.confirmationCode'), value: res.confirmation_number, sensitive: true })
-              if (res.location) detailFields.push({ label: t('reservations.locationAddress'), value: res.location })
-
-              return (
-                <>
-                  {/* Header */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{
-                      width: 36, height: 36, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      borderRadius: '50%', background: `${color}18`,
-                    }}>
-                      <TransportIcon size={18} strokeWidth={1.8} color={color} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div className="text-content" style={{ fontSize: 15, fontWeight: 600 }}>{res.title}</div>
-                      <div className="text-content-faint" style={{ fontSize: 11, marginTop: 2 }}>
-                        {(() => {
-                          const { date, time } = splitReservationDateTime(res.reservation_time)
-                          const { time: endTime } = splitReservationDateTime(res.reservation_end_time)
-                          const dateStr = date
-                            ? new Date(date + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
-                            : ''
-                          const timeStr = time ? formatTime(time, locale, timeFormat) : ''
-                          const endStr = endTime ? formatTime(endTime, locale, timeFormat) : ''
-                          const parts: string[] = []
-                          if (dateStr) parts.push(dateStr)
-                          if (timeStr) parts.push(timeStr + (endStr ? ` – ${endStr}` : ''))
-                          return parts.join(', ')
-                        })()}
-                      </div>
-                    </div>
-                    <div className={res.status === 'confirmed' ? 'bg-[rgba(22,163,74,0.1)] text-[#16a34a]' : 'bg-[rgba(217,119,6,0.1)] text-[#d97706]'} style={{
-                      padding: '3px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600,
-                    }}>
-                      {(res.status === 'confirmed' ? t('planner.resConfirmed') : t('planner.resPending')).replace(/\s*·\s*$/, '')}
-                    </div>
-                  </div>
-
-                  {/* Detail-Felder */}
-                  {detailFields.length > 0 && (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                      {detailFields.map((f, i) => {
-                        const shouldBlur = f.sensitive && useSettingsStore.getState().settings.blur_booking_codes
-                        return (
-                          <div key={i} className="bg-surface-tertiary" style={{ padding: '8px 10px', borderRadius: 8 }}>
-                            <div className="text-content-faint" style={{ fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 3 }}>{f.label}</div>
-                            <div
-                              onMouseEnter={e => { if (shouldBlur) e.currentTarget.style.filter = 'none' }}
-                              onMouseLeave={e => { if (shouldBlur) e.currentTarget.style.filter = 'blur(5px)' }}
-                              onClick={e => { if (shouldBlur) { const el = e.currentTarget; el.style.filter = el.style.filter === 'none' ? 'blur(5px)' : 'none' } }}
-                              className="text-content"
-                              style={{
-                                fontSize: 12, fontWeight: 500, wordBreak: 'break-word',
-                                filter: shouldBlur ? 'blur(5px)' : 'none', transition: 'filter 0.2s',
-                                cursor: shouldBlur ? 'pointer' : 'default',
-                                userSelect: shouldBlur ? 'none' : 'auto',
-                              }}
-                            >{f.value}</div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-
-                  {/* Notizen */}
-                  {res.notes && (
-                    <div className="bg-surface-tertiary" style={{ padding: '8px 10px', borderRadius: 8 }}>
-                      <div className="text-content-faint" style={{ fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 3 }}>{t('reservations.notes')}</div>
-                      <div className="collab-note-md text-content" style={{ fontSize: 12, wordBreak: 'break-word', overflowWrap: 'anywhere' }}><Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{res.notes}</Markdown></div>
-                    </div>
-                  )}
-
-                  {/* Dateien */}
-                  {(() => {
-                    const resFiles = (useTripStore.getState().files || []).filter(f =>
-                      !f.deleted_at && (
-                        f.reservation_id === res.id ||
-                        (f.linked_reservation_ids && f.linked_reservation_ids.includes(res.id))
-                      )
-                    )
-                    if (resFiles.length === 0) return null
-                    return (
-                      <div>
-                        <div className="text-content-faint" style={{ fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 6 }}>{t('files.title')}</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          {resFiles.map(f => (
-                            <div key={f.id}
-                              onClick={() => { setTransportDetail(null); onNavigateToFiles?.() }}
-                              className="bg-surface-tertiary"
-                              style={{
-                                display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
-                                borderRadius: 8, cursor: 'pointer',
-                                transition: 'background 0.1s',
-                              }}
-                              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                              onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
-                            >
-                              <FileText size={14} className="text-content-muted" style={{ flexShrink: 0 }} />
-                              <span className="text-content" style={{ flex: 1, fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {f.original_name}
-                              </span>
-                              <ExternalLink size={11} className="text-content-faint" style={{ flexShrink: 0 }} />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )
-                  })()}
-
-                  {/* Schließen */}
-                  <div style={{ textAlign: 'right' }}>
-                    <button onClick={() => setTransportDetail(null)} className="bg-accent text-accent-text" style={{
-                      fontSize: 12,
-                      border: 'none', borderRadius: 8, padding: '6px 16px', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
-                    }}>
-                      {t('common.close')}
-                    </button>
-                  </div>
-                </>
-              )
-            })()}
-          </div>
-        </div>,
-        document.body
-      )}
+      <DayPlanSidebarTransportDetailModal
+        transportDetail={transportDetail}
+        setTransportDetail={setTransportDetail}
+        onNavigateToFiles={onNavigateToFiles}
+        t={t}
+        locale={locale}
+        timeFormat={timeFormat}
+      />
 
       {/* Budget-Fußzeile */}
-      {totalCost > 0 && (
-        <div className="border-t border-edge-faint" style={{ flexShrink: 0, padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span className="text-content-faint" style={{ fontSize: 11 }}>{t('dayplan.totalCost')}</span>
-          <span className="text-content" style={{ fontSize: 13, fontWeight: 600 }}>{totalCost.toFixed(currencyDecimals(currency))} {currency}</span>
-        </div>
-      )}
+      <DayPlanSidebarFooter totalCost={totalCost} currency={currency} t={t} />
       <ContextMenu menu={ctxMenu.menu} onClose={ctxMenu.close} />
     </div>
   )
