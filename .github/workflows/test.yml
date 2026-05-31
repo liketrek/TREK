@@ -57,11 +57,11 @@ jobs:
       - name: Build server (tsc -> dist)
         run: cd server && npm run build
 
-      - name: Typecheck (informational)
-        # Pre-existing type errors in the NestJS rewrite; surfaces them without
-        # blocking CI. Ratchet to blocking once the legacy code is cleaned up.
-        continue-on-error: true
+      - name: Typecheck
         run: cd server && npm run typecheck
+
+      - name: Lint
+        run: cd server && npm run lint:check
 
       - name: Run tests
         run: cd server && npm run test:coverage
@@ -92,6 +92,15 @@ jobs:
 
       - name: Build shared
         run: npm run build --workspace=shared
+
+      - name: Typecheck
+        run: cd client && npm run typecheck
+
+      - name: Lint
+        run: cd client && npm run lint:check
+
+      - name: Page pattern check
+        run: cd client && npm run lint:pages
 
       - name: Run tests
         run: cd client && npm run test:coverage
