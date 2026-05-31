@@ -1,10 +1,18 @@
+import {
+  oidcCallbackQuerySchema,
+  oidcExchangeQuerySchema,
+} from './oidc.schema';
+
 import { describe, it, expect } from 'vitest';
-import { oidcCallbackQuerySchema, oidcExchangeQuerySchema } from './oidc.schema';
 
 describe('oidcCallbackQuerySchema', () => {
   it('accepts code+state, an error, or nothing (all optional)', () => {
-    expect(oidcCallbackQuerySchema.safeParse({ code: 'c', state: 's' }).success).toBe(true);
-    expect(oidcCallbackQuerySchema.safeParse({ error: 'access_denied' }).success).toBe(true);
+    expect(
+      oidcCallbackQuerySchema.safeParse({ code: 'c', state: 's' }).success,
+    ).toBe(true);
+    expect(
+      oidcCallbackQuerySchema.safeParse({ error: 'access_denied' }).success,
+    ).toBe(true);
     expect(oidcCallbackQuerySchema.safeParse({}).success).toBe(true);
   });
 });

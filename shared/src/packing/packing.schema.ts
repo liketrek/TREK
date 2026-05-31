@@ -68,7 +68,9 @@ export const packingCreateItemRequestSchema = z.object({
   category: z.string().optional(),
   checked: z.boolean().optional(),
 });
-export type PackingCreateItemRequest = z.infer<typeof packingCreateItemRequestSchema>;
+export type PackingCreateItemRequest = z.infer<
+  typeof packingCreateItemRequestSchema
+>;
 
 export const packingUpdateItemRequestSchema = z.object({
   name: z.string().optional(),
@@ -78,7 +80,9 @@ export const packingUpdateItemRequestSchema = z.object({
   bag_id: z.number().nullable().optional(),
   quantity: z.number().optional(),
 });
-export type PackingUpdateItemRequest = z.infer<typeof packingUpdateItemRequestSchema>;
+export type PackingUpdateItemRequest = z.infer<
+  typeof packingUpdateItemRequestSchema
+>;
 
 export const packingImportRequestSchema = z.object({
   items: z.array(open),
@@ -94,7 +98,9 @@ export const packingCreateBagRequestSchema = z.object({
   name: z.string().min(1),
   color: z.string().optional(),
 });
-export type PackingCreateBagRequest = z.infer<typeof packingCreateBagRequestSchema>;
+export type PackingCreateBagRequest = z.infer<
+  typeof packingCreateBagRequestSchema
+>;
 
 export const packingUpdateBagRequestSchema = z.object({
   name: z.string().optional(),
@@ -102,19 +108,27 @@ export const packingUpdateBagRequestSchema = z.object({
   weight_limit_grams: z.number().nullable().optional(),
   user_id: z.number().nullable().optional(),
 });
-export type PackingUpdateBagRequest = z.infer<typeof packingUpdateBagRequestSchema>;
+export type PackingUpdateBagRequest = z.infer<
+  typeof packingUpdateBagRequestSchema
+>;
 
 export const packingBagMembersRequestSchema = z.object({
   user_ids: z.array(z.number()),
 });
-export type PackingBagMembersRequest = z.infer<typeof packingBagMembersRequestSchema>;
+export type PackingBagMembersRequest = z.infer<
+  typeof packingBagMembersRequestSchema
+>;
 
 export const packingSaveTemplateRequestSchema = z.object({
   name: z.string().min(1),
 });
-export type PackingSaveTemplateRequest = z.infer<typeof packingSaveTemplateRequestSchema>;
+export type PackingSaveTemplateRequest = z.infer<
+  typeof packingSaveTemplateRequestSchema
+>;
 
 export const packingCategoryAssigneesRequestSchema = z.object({
   user_ids: z.array(z.number()),
 });
-export type PackingCategoryAssigneesRequest = z.infer<typeof packingCategoryAssigneesRequestSchema>;
+export type PackingCategoryAssigneesRequest = z.infer<
+  typeof packingCategoryAssigneesRequestSchema
+>;

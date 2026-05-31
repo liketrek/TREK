@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
 // @ts-expect-error — plain .mjs script with no .d.ts; import as JS module.
 import { checkParity } from '../../scripts/i18n-parity.mjs';
+
+import { describe, it, expect } from 'vitest';
 
 /**
  * Enforces the file-set contract for the i18n migration: every non-en locale

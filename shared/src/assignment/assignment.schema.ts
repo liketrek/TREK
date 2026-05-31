@@ -1,5 +1,6 @@
-import { z } from 'zod';
 import { assignmentPlaceSchema } from '../place/place.schema';
+
+import { z } from 'zod';
 
 /**
  * Assignment API contract — single source of truth for the place↔day itinerary
@@ -48,12 +49,16 @@ export const assignmentCreateRequestSchema = z.object({
   place_id: z.union([z.number(), z.string()]),
   notes: z.string().nullable().optional(),
 });
-export type AssignmentCreateRequest = z.infer<typeof assignmentCreateRequestSchema>;
+export type AssignmentCreateRequest = z.infer<
+  typeof assignmentCreateRequestSchema
+>;
 
 export const assignmentReorderRequestSchema = z.object({
   orderedIds: z.array(z.number()),
 });
-export type AssignmentReorderRequest = z.infer<typeof assignmentReorderRequestSchema>;
+export type AssignmentReorderRequest = z.infer<
+  typeof assignmentReorderRequestSchema
+>;
 
 export const assignmentMoveRequestSchema = z.object({
   new_day_id: z.union([z.number(), z.string()]),
@@ -70,4 +75,6 @@ export type AssignmentTimeRequest = z.infer<typeof assignmentTimeRequestSchema>;
 export const assignmentParticipantsRequestSchema = z.object({
   user_ids: z.array(z.number()),
 });
-export type AssignmentParticipantsRequest = z.infer<typeof assignmentParticipantsRequestSchema>;
+export type AssignmentParticipantsRequest = z.infer<
+  typeof assignmentParticipantsRequestSchema
+>;

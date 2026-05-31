@@ -153,7 +153,8 @@ const dashboard: TranslationStrings = {
   'dashboard.fx.to': 'У',
   'dashboard.fx.unavailable': 'Курс недоступний',
   'dashboard.tz.searchPlaceholder': 'Пошук часового поясу…',
-  'dashboard.tz.empty': 'Інших часових поясів поки немає — додайте за допомогою +',
+  'dashboard.tz.empty':
+    'Інших часових поясів поки немає — додайте за допомогою +',
   'dashboard.upcoming.title': 'Найближчі бронювання',
   'dashboard.upcoming.empty': 'Поки нічого не заброньовано.',
   'dashboard.aria.toggleView': 'Перемкнути вигляд',

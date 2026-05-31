@@ -18,10 +18,14 @@ export const preferencesUpdateRequestSchema = z.record(
   z.string(),
   z.record(z.string(), z.boolean()),
 );
-export type PreferencesUpdateRequest = z.infer<typeof preferencesUpdateRequestSchema>;
+export type PreferencesUpdateRequest = z.infer<
+  typeof preferencesUpdateRequestSchema
+>;
 
 export const testSmtpRequestSchema = z.object({ email: z.string().optional() });
-export const testWebhookRequestSchema = z.object({ url: z.string().optional() });
+export const testWebhookRequestSchema = z.object({
+  url: z.string().optional(),
+});
 export const testNtfyRequestSchema = z.object({
   topic: z.string().optional(),
   server: z.string().optional(),
@@ -39,7 +43,9 @@ export type ChannelTestResult = z.infer<typeof channelTestResultSchema>;
 export const notificationRespondRequestSchema = z.object({
   response: z.enum(['positive', 'negative']),
 });
-export type NotificationRespondRequest = z.infer<typeof notificationRespondRequestSchema>;
+export type NotificationRespondRequest = z.infer<
+  typeof notificationRespondRequestSchema
+>;
 
 /** A single in-app notification row (DB-shaped; kept open). */
 export const notificationRowSchema = z.record(z.string(), z.unknown());

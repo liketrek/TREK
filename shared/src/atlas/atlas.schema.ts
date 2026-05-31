@@ -29,7 +29,9 @@ export const createBucketItemRequestSchema = z.object({
   notes: z.string().nullable().optional(),
   target_date: z.string().nullable().optional(),
 });
-export type CreateBucketItemRequest = z.infer<typeof createBucketItemRequestSchema>;
+export type CreateBucketItemRequest = z.infer<
+  typeof createBucketItemRequestSchema
+>;
 
 export const updateBucketItemRequestSchema = z.object({
   name: z.string().optional(),
@@ -39,7 +41,9 @@ export const updateBucketItemRequestSchema = z.object({
   country_code: z.string().nullable().optional(),
   target_date: z.string().nullable().optional(),
 });
-export type UpdateBucketItemRequest = z.infer<typeof updateBucketItemRequestSchema>;
+export type UpdateBucketItemRequest = z.infer<
+  typeof updateBucketItemRequestSchema
+>;
 
 /** A bucket-list item row (DB-shaped; kept open). */
 export const bucketItemSchema = open;

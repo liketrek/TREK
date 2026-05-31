@@ -1,4 +1,4 @@
-import DOMPurify from 'isomorphic-dompurify'
+import DOMPurify from 'isomorphic-dompurify';
 
 /**
  * HTML sanitisation for TREK.
@@ -18,18 +18,42 @@ import DOMPurify from 'isomorphic-dompurify'
 // expected in the surfaces we render today, so we keep the allow-list minimal
 // and rely on `sanitizeRichTextHtml` when a richer surface needs full prose.
 const INLINE_TAGS = [
-  'b', 'strong', 'i', 'em', 'u', 's', 'del', 'ins',
-  'mark', 'code', 'sub', 'sup', 'br', 'span',
-] as const
+  'b',
+  'strong',
+  'i',
+  'em',
+  'u',
+  's',
+  'del',
+  'ins',
+  'mark',
+  'code',
+  'sub',
+  'sup',
+  'br',
+  'span',
+] as const;
 
 const FULL_TAGS = [
   ...INLINE_TAGS,
-  'p', 'div', 'ul', 'ol', 'li',
-  'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-  'blockquote', 'pre', 'hr', 'a',
-] as const
+  'p',
+  'div',
+  'ul',
+  'ol',
+  'li',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'blockquote',
+  'pre',
+  'hr',
+  'a',
+] as const;
 
-const SAFE_ATTRIBUTES = ['href', 'rel', 'target'] as const
+const SAFE_ATTRIBUTES = ['href', 'rel', 'target'] as const;
 
 /**
  * Escapes the five HTML metacharacters so a raw string can be safely
@@ -45,7 +69,7 @@ export function escapeHtml(value: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
+    .replace(/'/g, '&#39;');
 }
 
 /**
@@ -58,13 +82,13 @@ export function escapeHtml(value: string): string {
  * built-in URL allow-list.
  */
 export function sanitizeInlineHtml(html: string): string {
-  if (!html) return ''
+  if (!html) return '';
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS: [...INLINE_TAGS],
     ALLOWED_ATTR: [],
     KEEP_CONTENT: true,
     ALLOW_DATA_ATTR: false,
-  })
+  });
 }
 
 /**
@@ -73,10 +97,10 @@ export function sanitizeInlineHtml(html: string): string {
  * the inline sanitiser plus block-level markup and anchors with safe attrs.
  */
 export function sanitizeRichTextHtml(html: string): string {
-  if (!html) return ''
+  if (!html) return '';
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS: [...FULL_TAGS],
     ALLOWED_ATTR: [...SAFE_ATTRIBUTES],
     ALLOW_DATA_ATTR: false,
-  })
+  });
 }

@@ -27,7 +27,9 @@ export const mapsAutocompleteRequestSchema = z.object({
   lang: z.string().optional(),
   locationBias: z.object({ low: latLng, high: latLng }).optional(),
 });
-export type MapsAutocompleteRequest = z.infer<typeof mapsAutocompleteRequestSchema>;
+export type MapsAutocompleteRequest = z.infer<
+  typeof mapsAutocompleteRequestSchema
+>;
 
 export const mapsReverseQuerySchema = z.object({
   lat: z.string().min(1),
@@ -59,13 +61,17 @@ export const mapsAutocompleteResultSchema = z.object({
   suggestions: z.array(mapsAutocompleteSuggestionSchema),
   source: z.string(),
 });
-export type MapsAutocompleteResult = z.infer<typeof mapsAutocompleteResultSchema>;
+export type MapsAutocompleteResult = z.infer<
+  typeof mapsAutocompleteResultSchema
+>;
 
 export const mapsPlaceDetailsResultSchema = z.object({
   place: placeRecord.nullable(),
   disabled: z.boolean().optional(),
 });
-export type MapsPlaceDetailsResult = z.infer<typeof mapsPlaceDetailsResultSchema>;
+export type MapsPlaceDetailsResult = z.infer<
+  typeof mapsPlaceDetailsResultSchema
+>;
 
 export const mapsPlacePhotoResultSchema = z.object({
   photoUrl: z.string().nullable(),

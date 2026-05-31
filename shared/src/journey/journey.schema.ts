@@ -28,13 +28,17 @@ export type JourneyAddTripRequest = z.infer<typeof journeyAddTripRequestSchema>;
 export const journeyReorderEntriesRequestSchema = z.object({
   orderedIds: z.array(z.union([z.string(), z.number()])).min(1),
 });
-export type JourneyReorderEntriesRequest = z.infer<typeof journeyReorderEntriesRequestSchema>;
+export type JourneyReorderEntriesRequest = z.infer<
+  typeof journeyReorderEntriesRequestSchema
+>;
 
 export const journeyContributorRequestSchema = z.object({
   user_id: z.union([z.string(), z.number()]),
   role: z.enum(['editor', 'viewer']).optional(),
 });
-export type JourneyContributorRequest = z.infer<typeof journeyContributorRequestSchema>;
+export type JourneyContributorRequest = z.infer<
+  typeof journeyContributorRequestSchema
+>;
 
 export const journeyProviderPhotosRequestSchema = z.object({
   provider: z.string().min(1),
@@ -43,11 +47,15 @@ export const journeyProviderPhotosRequestSchema = z.object({
   caption: z.string().optional(),
   passphrase: z.string().optional(),
 });
-export type JourneyProviderPhotosRequest = z.infer<typeof journeyProviderPhotosRequestSchema>;
+export type JourneyProviderPhotosRequest = z.infer<
+  typeof journeyProviderPhotosRequestSchema
+>;
 
 export const journeyShareLinkRequestSchema = z.object({
   share_timeline: z.boolean().optional(),
   share_gallery: z.boolean().optional(),
   share_map: z.boolean().optional(),
 });
-export type JourneyShareLinkRequest = z.infer<typeof journeyShareLinkRequestSchema>;
+export type JourneyShareLinkRequest = z.infer<
+  typeof journeyShareLinkRequestSchema
+>;

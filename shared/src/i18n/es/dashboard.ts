@@ -146,7 +146,8 @@ const dashboard: TranslationStrings = {
   'dashboard.confirm.copy.willCopy': 'Se copiará',
   'dashboard.confirm.copy.will1': 'Días, lugares y asignaciones por día',
   'dashboard.confirm.copy.will2': 'Alojamientos y reservas',
-  'dashboard.confirm.copy.will3': 'Partidas de presupuesto y orden de categorías',
+  'dashboard.confirm.copy.will3':
+    'Partidas de presupuesto y orden de categorías',
   'dashboard.confirm.copy.will4': 'Listas de equipaje (sin marcar)',
   'dashboard.confirm.copy.will5': 'Tareas (sin asignar ni marcar)',
   'dashboard.confirm.copy.will6': 'Notas del día',

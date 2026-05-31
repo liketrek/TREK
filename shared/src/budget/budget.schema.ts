@@ -59,7 +59,9 @@ export const budgetCreateItemRequestSchema = z.object({
   note: z.string().nullable().optional(),
   expense_date: z.string().nullable().optional(),
 });
-export type BudgetCreateItemRequest = z.infer<typeof budgetCreateItemRequestSchema>;
+export type BudgetCreateItemRequest = z.infer<
+  typeof budgetCreateItemRequestSchema
+>;
 
 /** Update accepts the same fields plus total_price changes; all optional. */
 export const budgetUpdateItemRequestSchema = z.object({
@@ -71,24 +73,34 @@ export const budgetUpdateItemRequestSchema = z.object({
   note: z.string().nullable().optional(),
   expense_date: z.string().nullable().optional(),
 });
-export type BudgetUpdateItemRequest = z.infer<typeof budgetUpdateItemRequestSchema>;
+export type BudgetUpdateItemRequest = z.infer<
+  typeof budgetUpdateItemRequestSchema
+>;
 
 export const budgetUpdateMembersRequestSchema = z.object({
   user_ids: z.array(z.number()),
 });
-export type BudgetUpdateMembersRequest = z.infer<typeof budgetUpdateMembersRequestSchema>;
+export type BudgetUpdateMembersRequest = z.infer<
+  typeof budgetUpdateMembersRequestSchema
+>;
 
 export const budgetToggleMemberPaidRequestSchema = z.object({
   paid: z.boolean(),
 });
-export type BudgetToggleMemberPaidRequest = z.infer<typeof budgetToggleMemberPaidRequestSchema>;
+export type BudgetToggleMemberPaidRequest = z.infer<
+  typeof budgetToggleMemberPaidRequestSchema
+>;
 
 export const budgetReorderItemsRequestSchema = z.object({
   orderedIds: z.array(z.number()),
 });
-export type BudgetReorderItemsRequest = z.infer<typeof budgetReorderItemsRequestSchema>;
+export type BudgetReorderItemsRequest = z.infer<
+  typeof budgetReorderItemsRequestSchema
+>;
 
 export const budgetReorderCategoriesRequestSchema = z.object({
   orderedCategories: z.array(z.string()),
 });
-export type BudgetReorderCategoriesRequest = z.infer<typeof budgetReorderCategoriesRequestSchema>;
+export type BudgetReorderCategoriesRequest = z.infer<
+  typeof budgetReorderCategoriesRequestSchema
+>;

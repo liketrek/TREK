@@ -16,4 +16,6 @@ export const autoBackupSettingsRequestSchema = z
     time: z.string().optional(),
   })
   .passthrough();
-export type AutoBackupSettingsRequest = z.infer<typeof autoBackupSettingsRequestSchema>;
+export type AutoBackupSettingsRequest = z.infer<
+  typeof autoBackupSettingsRequestSchema
+>;
