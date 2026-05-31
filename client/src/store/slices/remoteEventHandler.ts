@@ -363,7 +363,10 @@ export function handleRemoteEvent(set: SetState, get: GetState, event: WebSocket
         return {
           budgetItems: state.budgetItems.map(i =>
             i.id === payload.itemId
-              ? { ...i, members: (i.members || []).map(m => m.user_id === payload.userId ? { ...m, paid: payload.paid } : m) }
+              // `paid` arrives over the wire as the raw value the server emits;
+              // it's stored verbatim. The member type models it as a number, so
+              // narrow without changing the value.
+              ? { ...i, members: (i.members || []).map(m => m.user_id === payload.userId ? { ...m, paid: payload.paid as number } : m) }
               : i
           ),
         }
@@ -371,7 +374,7 @@ export function handleRemoteEvent(set: SetState, get: GetState, event: WebSocket
         if (payload.orderedIds) {
           const orderedIds = payload.orderedIds as number[]
           const byId = new Map(state.budgetItems.map(i => [i.id, i]))
-          const reordered = orderedIds.map((id, idx) => {
+          const reordered = orderedIds.map((id, idx): BudgetItem | null => {
             const item = byId.get(id)
             return item ? { ...item, sort_order: idx } : null
           }).filter((i): i is BudgetItem => i !== null)

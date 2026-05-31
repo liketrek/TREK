@@ -371,7 +371,7 @@ export function useAtlas() {
           }
         }
       }
-    }).addTo(mapInstance.current)
+    } as L.GeoJSONOptions & { renderer?: L.Renderer }).addTo(mapInstance.current)
 
     // Restore map view after re-render
     mapInstance.current.setView(currentCenter, currentZoom, { animate: false })
@@ -516,7 +516,7 @@ export function useAtlas() {
           if (tt) tt.style.display = 'none'
         })
       },
-    })
+    } as L.GeoJSONOptions & { renderer?: L.Renderer })
     // Only add to map if currently in region mode — otherwise hold it ready for when user zooms in
     if (mapInstance.current.getZoom() >= 6) {
       regionLayerRef.current.addTo(mapInstance.current)

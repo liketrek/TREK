@@ -141,7 +141,7 @@ export default function OfflineTab(): React.ReactElement {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)' }}>
-                    {trip.name}
+                    {trip.title}
                   </span>
                   <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                     <Wifi size={10} style={{ display: 'inline', marginRight: 3 }} />

@@ -223,16 +223,16 @@ export default function VacayPage(): React.ReactElement {
         <div className="fixed inset-0 flex items-center justify-center px-4"
           style={{ zIndex: 99995, backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}>
           {incomingInvites.map(inv => (
-            <div key={inv.id} className="trek-modal-enter w-full max-w-md rounded-2xl shadow-2xl overflow-hidden bg-surface-card">
+            <div key={inv.plan_id} className="trek-modal-enter w-full max-w-md rounded-2xl shadow-2xl overflow-hidden bg-surface-card">
               <div className="px-6 pt-6 pb-4 text-center">
                 <div className="w-14 h-14 rounded-full mx-auto mb-4 flex items-center justify-center text-lg font-bold bg-surface-secondary text-content">
-                  {inv.username?.[0]?.toUpperCase()}
+                  {inv.owner_username?.[0]?.toUpperCase()}
                 </div>
                 <h2 className="text-lg font-bold mb-1 text-content">
                   {t('vacay.inviteTitle')}
                 </h2>
                 <p className="text-sm text-content-muted">
-                  <span className="font-semibold text-content">{inv.username}</span> {t('vacay.inviteWantsToFuse')}
+                  <span className="font-semibold text-content">{inv.owner_username}</span> {t('vacay.inviteWantsToFuse')}
                 </p>
               </div>
               <div className="px-6 pb-4 space-y-2">

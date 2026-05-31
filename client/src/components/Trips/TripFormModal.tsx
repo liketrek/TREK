@@ -9,15 +9,16 @@ import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
 import type { Trip } from '../../types'
+import type { TripCreateRequest } from '@trek/shared'
 
 interface TripFormModalProps {
   isOpen: boolean
   onClose: () => void
   // Create returns the new trip (so we can attach members / upload the cover);
   // update resolves without a payload.
-  onSave: (data: Record<string, string | number | null>) => Promise<{ trip?: Trip } | void> | void
+  onSave: (data: TripCreateRequest) => Promise<{ trip?: Trip } | void> | void
   trip: Trip | null
-  onCoverUpdate: (tripId: number, coverUrl: string) => void
+  onCoverUpdate?: (tripId: number, coverUrl: string | null) => void
 }
 
 export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUpdate }: TripFormModalProps) {
@@ -190,7 +191,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   }
 
   // Paste support for cover image
-  const handlePaste = (e) => {
+  const handlePaste = (e: React.ClipboardEvent) => {
     if (!canUploadCover) return
     const items = e.clipboardData?.items
     if (!items) return
@@ -212,7 +213,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
       } else if (prev.start_date) {
         const oldStart = new Date(prev.start_date + 'T00:00:00Z')
         const oldEnd = new Date(prev.end_date + 'T00:00:00Z')
-        const duration = Math.round((oldEnd - oldStart) / 86400000)
+        const duration = Math.round((oldEnd.getTime() - oldStart.getTime()) / 86400000)
         const newEnd = new Date(value + 'T00:00:00Z')
         newEnd.setDate(newEnd.getDate() + duration)
         next.end_date = newEnd.toISOString().split('T')[0]

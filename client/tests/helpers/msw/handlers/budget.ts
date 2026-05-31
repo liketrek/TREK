@@ -26,7 +26,7 @@ export const budgetHandlers = [
 
   http.put('/api/trips/:id/budget/:itemId/members', async ({ params, request }) => {
     const body = await request.json() as { user_ids: number[] };
-    const members = body.user_ids.map(uid => ({ user_id: uid, paid: false }));
+    const members = body.user_ids.map(uid => ({ user_id: uid, paid: 0, username: `user${uid}` }));
     const item = buildBudgetItem({ id: Number(params.itemId), trip_id: Number(params.id), persons: body.user_ids.length, members });
     return HttpResponse.json({ members, item });
   }),

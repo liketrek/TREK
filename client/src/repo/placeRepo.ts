@@ -17,7 +17,7 @@ export const placeRepo = {
     return result
   },
 
-  async create(tripId: number | string, data: Record<string, unknown>): Promise<{ place: Place }> {
+  async create(tripId: number | string, data: Record<string, unknown> & { name: string }): Promise<{ place: Place }> {
     if (!navigator.onLine) {
       const tempId = -(Date.now())
       const tempPlace: Place = {

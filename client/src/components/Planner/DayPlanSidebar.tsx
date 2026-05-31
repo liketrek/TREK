@@ -31,7 +31,7 @@ import {
 import { formatDate, formatTime, dayTotalCost, currencyDecimals, splitReservationDateTime } from '../../utils/formatters'
 import { useDayNotes } from '../../hooks/useDayNotes'
 import Tooltip from '../shared/Tooltip'
-import type { Trip, Day, Place, Category, Assignment, Accommodation, Reservation, AssignmentsMap, RouteResult, RouteSegment } from '../../types'
+import type { Trip, Day, Place, Category, Assignment, Accommodation, Reservation, AssignmentsMap, RouteResult, RouteSegment, DayNote } from '../../types'
 
 const NOTE_ICONS = [
   { id: 'FileText', Icon: FileText },
@@ -166,23 +166,23 @@ interface DayPlanSidebarProps {
   selectedDayId: number | null
   selectedPlaceId: number | null
   selectedAssignmentId: number | null
-  onSelectDay: (dayId: number | null) => void
-  onPlaceClick: (placeId: number) => void
+  onSelectDay: (dayId: number | null, skipFit?: boolean) => void
+  onPlaceClick: (placeId: number | null, assignmentId?: number | null) => void
   onDayDetail: (day: Day) => void
   accommodations?: Accommodation[]
   onReorder: (dayId: number, orderedIds: number[]) => void
   onUpdateDayTitle: (dayId: number, title: string) => void
-  onRouteCalculated: (dayId: number, route: RouteResult | null) => void
-  onAssignToDay: (placeId: number, dayId: number) => void
-  onRemoveAssignment: (assignmentId: number, dayId: number) => void
-  onEditPlace: (place: Place) => void
+  onRouteCalculated: (route: RouteResult | null) => void
+  onAssignToDay: (placeId: number, dayId: number, position?: number) => void
+  onRemoveAssignment: (dayId: number, assignmentId: number) => void
+  onEditPlace: (place: Place, assignmentId?: number) => void
   onDeletePlace: (placeId: number) => void
   reservations?: Reservation[]
   visibleConnectionIds?: number[]
   onToggleConnection?: (reservationId: number) => void
   externalTransportDetail?: Reservation | null
   onExternalTransportDetailHandled?: () => void
-  onAddReservation: () => void
+  onAddReservation: (dayId: number) => void
   onNavigateToFiles?: () => void
   routeShown?: boolean
   routeProfile?: 'driving' | 'walking'
@@ -587,12 +587,12 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     return !simItems.every((item, i) => i === 0 || item.minutes >= simItems[i - 1].minutes)
   }
 
-  const openEditNote = (dayId, note, e) => {
+  const openEditNote = (dayId: number, note: DayNote, e?: React.MouseEvent) => {
     e?.stopPropagation()
     _openEditNote(dayId, note)
   }
 
-  const deleteNote = async (dayId, noteId, e) => {
+  const deleteNote = async (dayId: number, noteId: number, e?: React.MouseEvent) => {
     e?.stopPropagation()
     await _deleteNote(dayId, noteId)
   }
@@ -808,7 +808,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     try {
       const result = await calculateRoute(waypoints, 'walking')
       // Luftlinien zwischen Wegpunkten anzeigen
-      const lineCoords = waypoints.map(p => [p.lat, p.lng])
+      const lineCoords = waypoints.map(p => [p.lat, p.lng] as [number, number])
       setRouteInfo({ distance: result.distanceText, duration: result.durationText })
       onRouteCalculated?.({ ...result, coordinates: lineCoords })
     } catch { toast.error(t('dayplan.toast.routeError')) }
@@ -1302,7 +1302,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
               <Tooltip label={label} placement="bottom">
                 <button
                   onClick={() => {
-                    const next = allExpanded ? new Set() : new Set(days.map(d => d.id))
+                    const next = allExpanded ? new Set<number>() : new Set(days.map(d => d.id))
                     setExpandedDays(next)
                     try { sessionStorage.setItem(`day-expanded-${tripId}`, JSON.stringify([...next])) } catch {}
                   }}
@@ -1398,7 +1398,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                 data-selected={isSelected}
                 onClick={() => { onSelectDay(day.id); if (onDayDetail) onDayDetail(day) }}
                 onDragOver={e => { e.preventDefault(); if (dragOverDayId !== day.id) setDragOverDayId(day.id) }}
-                onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverDayId(null) }}
+                onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragOverDayId(null) }}
                 onDrop={e => handleDropOnDay(e, day.id)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 10,
@@ -1820,7 +1820,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                               <div style={{ display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden' }}>
                                 {cat && (() => {
                                   const CatIcon = getCategoryIcon(cat.icon)
-                                  return <CatIcon size={10} strokeWidth={2} color={cat.color || 'var(--text-muted)'} title={cat.name} style={{ flexShrink: 0 }} />
+                                  return <span title={cat.name} style={{ display: 'inline-flex', flexShrink: 0 }}><CatIcon size={10} strokeWidth={2} color={cat.color || 'var(--text-muted)'} /></span>
                                 })()}
                                 <span style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>
                                   {place.name}

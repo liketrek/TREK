@@ -322,8 +322,8 @@ describe('FileManager', () => {
 
   it('FE-COMP-FILEMANAGER-018: starred filter shows only starred files', async () => {
     const files = [
-      buildFile({ id: 1, original_name: 'starred.pdf', starred: true }),
-      buildFile({ id: 2, original_name: 'normal.pdf', starred: false }),
+      buildFile({ id: 1, original_name: 'starred.pdf', starred: 1 }),
+      buildFile({ id: 2, original_name: 'normal.pdf', starred: 0 }),
     ];
     render(<FileManager {...defaultProps} files={files} />);
     const user = userEvent.setup();

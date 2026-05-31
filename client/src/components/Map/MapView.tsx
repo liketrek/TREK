@@ -19,8 +19,9 @@ function categoryIconSvg(iconName: string | null | undefined, size: number): str
 }
 import type { Place } from '../../types'
 
-// Fix default marker icons for vite
-delete L.Icon.Default.prototype._getIconUrl
+// Fix default marker icons for vite. `_getIconUrl` is a Leaflet-internal field
+// not present in the public typings, so narrow to delete it.
+delete (L.Icon.Default.prototype as { _getIconUrl?: unknown })._getIconUrl
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
@@ -121,7 +122,7 @@ interface SelectionControllerProps {
   places: Place[]
   selectedPlaceId: number | null
   dayPlaces: Place[]
-  paddingOpts: Record<string, number>
+  paddingOpts: L.FitBoundsOptions
 }
 
 function SelectionController({ places, selectedPlaceId, dayPlaces, paddingOpts }: SelectionControllerProps) {
@@ -166,7 +167,7 @@ interface BoundsControllerProps {
   hasDayDetail?: boolean
   places: Place[]
   fitKey: number
-  paddingOpts: Record<string, number>
+  paddingOpts: L.FitBoundsOptions
 }
 
 function BoundsController({ places, fitKey, paddingOpts, hasDayDetail }: BoundsControllerProps) {
@@ -210,7 +211,7 @@ function MapClickHandler({ onClick }: MapClickHandlerProps) {
   useEffect(() => {
     if (!onClick) return
     map.on('click', onClick)
-    return () => map.off('click', onClick)
+    return () => { map.off('click', onClick) }
   }, [map, onClick])
   return null
 }
@@ -220,7 +221,7 @@ function MapContextMenuHandler({ onContextMenu }: { onContextMenu: ((e: L.Leafle
   useEffect(() => {
     if (!onContextMenu) return
     map.on('contextmenu', onContextMenu)
-    return () => map.off('contextmenu', onContextMenu)
+    return () => { map.off('contextmenu', onContextMenu) }
   }, [map, onContextMenu])
   return null
 }
@@ -362,7 +363,7 @@ export const MapView = memo(function MapView({
     return reservations.filter((r: Reservation) => set.has(r.id))
   }, [reservations, visibleConnectionIds])
   // Dynamic padding: account for sidebars + bottom inspector + day detail panel
-  const paddingOpts = useMemo(() => {
+  const paddingOpts = useMemo((): L.FitBoundsOptions => {
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
     if (isMobile) return { padding: [40, 20] }
     const top = 60

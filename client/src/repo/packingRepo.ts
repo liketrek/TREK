@@ -17,7 +17,7 @@ export const packingRepo = {
     return result
   },
 
-  async create(tripId: number | string, data: Record<string, unknown>): Promise<{ item: PackingItem }> {
+  async create(tripId: number | string, data: Record<string, unknown> & { name: string }): Promise<{ item: PackingItem }> {
     if (!navigator.onLine) {
       const tempId = -(Date.now())
       const tempItem: PackingItem = {

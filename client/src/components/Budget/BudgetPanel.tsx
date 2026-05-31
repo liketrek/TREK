@@ -71,7 +71,7 @@ function hexLighten(hex: string, amount: number): string {
 import CustomSelect from '../shared/CustomSelect'
 import { budgetApi } from '../../api/client'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
-import type { BudgetItem, BudgetMember } from '../../types'
+import type { BudgetItem, BudgetItemMember } from '../../types'
 import { currencyDecimals } from '../../utils/formatters'
 
 interface TripMember {
@@ -124,7 +124,7 @@ const calcPD = (p, d) => (d > 0 ? p / d : null)
 const calcPPD = (p, n, d) => (n > 0 && d > 0 ? p / (n * d) : null)
 
 // ── Inline Edit Cell ─────────────────────────────────────────────────────────
-function InlineEditCell({ value, onSave, type = 'text', style = {}, placeholder = '', decimals = 2, locale, editTooltip, readOnly = false }) {
+function InlineEditCell({ value, onSave, type = 'text', style = {} as React.CSSProperties, placeholder = '', decimals = 2, locale, editTooltip, readOnly = false }) {
   const [editing, setEditing] = useState(false)
   const [editValue, setEditValue] = useState(value ?? '')
   const inputRef = useRef(null)
@@ -314,7 +314,7 @@ function ChipWithTooltip({ label, avatarUrl, size = 20, paid, onClick }: ChipWit
 
 // ── Budget Member Chips (for Persons column) ────────────────────────────────
 interface BudgetMemberChipsProps {
-  members?: BudgetMember[]
+  members?: BudgetItemMember[]
   tripMembers?: TripMember[]
   onSetMembers: (memberIds: number[]) => void
   onTogglePaid?: (userId: number, paid: boolean) => void

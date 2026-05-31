@@ -313,7 +313,9 @@ export function MapViewGL({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const curAlt = (ll as any).alt ?? 0
         if (Math.abs(curAlt - alt) > 0.25) {
-          marker.setLngLat([ll.lng, ll.lat, alt])
+          // mapbox-gl accepts a third altitude element at runtime, but its typings
+          // only model the 2-tuple form, so cast to LngLatLike.
+          marker.setLngLat([ll.lng, ll.lat, alt] as unknown as mapboxgl.LngLatLike)
         }
       })
     }

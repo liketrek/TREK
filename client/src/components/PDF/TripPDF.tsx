@@ -93,17 +93,19 @@ function dayCost(assignments, dayId, locale) {
 }
 
 // Pre-fetch Google Place photos for all assigned places
-async function fetchPlacePhotos(assignments) {
+async function fetchPlacePhotos(assignments: AssignmentsMap) {
   const photoMap = {} // placeId → photoUrl
   const allPlaces = Object.values(assignments).flatMap(a => a.map(x => x.place)).filter(Boolean)
   const unique = [...new Map(allPlaces.map(p => [p.id, p])).values()]
 
-  const toFetch = unique.filter(p => !p.image_url && (p.google_place_id || p.osm_id))
+  // Assignment places are a server-side projection that omits osm_id, so photo
+  // pre-fetch keys off the google_place_id that the projection does carry.
+  const toFetch = unique.filter(p => !p.image_url && p.google_place_id)
 
   await Promise.allSettled(
     toFetch.map(async (place) => {
       try {
-        const data = await mapsApi.placePhoto(place.google_place_id || place.osm_id, place.lat, place.lng, place.name)
+        const data = await mapsApi.placePhoto(place.google_place_id, place.lat, place.lng, place.name)
         if (data.photoUrl) photoMap[place.id] = data.photoUrl
       } catch {}
     })
@@ -141,7 +143,7 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
     Object.values(assignments || {}).flatMap(a => a.map(x => x.place?.id)).filter(Boolean)
   ).size
   const totalCost = Object.values(assignments || {})
-    .flatMap(a => a).reduce((s, a) => s + (parseFloat(a.place?.price) || 0), 0)
+    .flatMap(a => a).reduce((s, a) => s + (Number(a.place?.price) || 0), 0)
 
   // Span helpers for multi-day transport (mirrors DayPlanSidebar logic)
   const pdfGetDayOrder = (d: Day) => d.day_number
@@ -575,6 +577,8 @@ ${daysHtml}
   overlay.appendChild(card)
   document.body.appendChild(overlay)
 
-  header.querySelector('#pdf-close-btn').onclick = () => overlay.remove()
-  header.querySelector('#pdf-print-btn').onclick = () => { iframe.contentWindow?.print() }
+  const closeBtn = header.querySelector<HTMLElement>('#pdf-close-btn')
+  if (closeBtn) closeBtn.onclick = () => overlay.remove()
+  const printBtn = header.querySelector<HTMLElement>('#pdf-print-btn')
+  if (printBtn) printBtn.onclick = () => { iframe.contentWindow?.print() }
 }

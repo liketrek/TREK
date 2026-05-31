@@ -535,7 +535,7 @@ describe('PlaceInspector', () => {
     const members = [member1, member2];
     const assignmentInDay = [{
       id: 99, place, day_id: 1, place_id: place.id, order_index: 0, notes: null,
-      participants: [{ user_id: 10 }],
+      participants: [{ user_id: 10, username: 'alice' }],
     }];
     render(
       <PlaceInspector

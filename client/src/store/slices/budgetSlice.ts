@@ -95,7 +95,7 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
     // Optimistic: reorder locally
     set(state => {
       const byId = new Map(state.budgetItems.map(i => [i.id, i]))
-      const reordered = orderedIds.map((id, idx) => {
+      const reordered = orderedIds.map((id, idx): BudgetItem | null => {
         const item = byId.get(id)
         return item ? { ...item, sort_order: idx } : null
       }).filter((i): i is BudgetItem => i !== null)

@@ -252,7 +252,7 @@ describe('TripPlannerPage', () => {
       renderPlannerPage(42);
 
       await waitFor(() => {
-        expect(mockLoadTrip).toHaveBeenCalledWith('42');
+        expect(mockLoadTrip).toHaveBeenCalledWith(42);
       });
     });
   });
@@ -298,7 +298,7 @@ describe('TripPlannerPage', () => {
       renderPlannerPage(999);
 
       await waitFor(() => {
-        expect(mockLoadTrip).toHaveBeenCalledWith('999');
+        expect(mockLoadTrip).toHaveBeenCalledWith(999);
       });
     });
   });
@@ -359,13 +359,13 @@ describe('TripPlannerPage', () => {
   });
 
   describe('FE-PAGE-PLANNER-008: WebSocket hook mounted', () => {
-    it('calls useTripWebSocket with the trip ID string', async () => {
+    it('calls useTripWebSocket with the trip ID from URL params', async () => {
       seedTripStore({ id: 15 });
 
       renderPlannerPage(15);
 
       await waitFor(() => {
-        expect(mockUseTripWebSocket).toHaveBeenCalledWith('15');
+        expect(mockUseTripWebSocket).toHaveBeenCalledWith(15);
       });
     });
   });

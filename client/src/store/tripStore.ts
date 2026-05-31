@@ -61,8 +61,8 @@ export interface TripStoreState
   loadTrip: (tripId: number | string) => Promise<void>
   refreshDays: (tripId: number | string) => Promise<void>
   updateTrip: (tripId: number | string, data: Partial<Trip>) => Promise<Trip>
-  addTag: (data: Partial<Tag>) => Promise<Tag>
-  addCategory: (data: Partial<Category>) => Promise<Category>
+  addTag: (data: Partial<Tag> & { name: string }) => Promise<Tag>
+  addCategory: (data: Partial<Category> & { name: string }) => Promise<Category>
 }
 
 export const useTripStore = create<TripStoreState>((set, get) => ({
@@ -162,7 +162,7 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
     }
   },
 
-  addTag: async (data: Partial<Tag>) => {
+  addTag: async (data: Partial<Tag> & { name: string }) => {
     try {
       const result = await tagsApi.create(data)
       set((state) => ({ tags: [...state.tags, result.tag] }))
@@ -172,7 +172,7 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
     }
   },
 
-  addCategory: async (data: Partial<Category>) => {
+  addCategory: async (data: Partial<Category> & { name: string }) => {
     try {
       const result = await categoriesApi.create(data)
       set((state) => ({ categories: [...state.categories, result.category] }))

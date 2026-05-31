@@ -500,7 +500,8 @@ describe('PackingTemplateManager', () => {
 
     // Find the X (cancel) button in the create row — it's the last button in the create row
     const createRow = screen.getByPlaceholderText('Template name (e.g. Beach Holiday)').closest('div')!;
-    const cancelBtn = Array.from(createRow.querySelectorAll('button')).at(-1) as HTMLElement;
+    const createRowButtons = Array.from(createRow.querySelectorAll('button'));
+    const cancelBtn = createRowButtons[createRowButtons.length - 1] as HTMLElement;
     await user.click(cancelBtn);
 
     await waitFor(() =>

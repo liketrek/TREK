@@ -49,14 +49,14 @@ function buildAssignmentOptions(days, assignments, t, locale) {
 interface ReservationModalProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (data: Record<string, string | number | null>) => Promise<void> | void
+  onSave: (data: Record<string, string | number | null> & { title: string }) => Promise<Reservation | undefined>
   reservation: Reservation | null
   days: Day[]
   places: Place[]
   assignments: AssignmentsMap
   selectedDayId: number | null
   files?: TripFile[]
-  onFileUpload?: (fd: FormData) => Promise<void>
+  onFileUpload?: (fd: FormData) => Promise<unknown>
   onFileDelete: (fileId: number) => Promise<void>
   accommodations?: Accommodation[]
   defaultAssignmentId?: number | null
@@ -190,7 +190,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
         if (form.budget_category) metadata.budget_category = form.budget_category
       }
 
-      const saveData: Record<string, any> = {
+      const saveData: Record<string, any> & { title: string } = {
         title: form.title, type: form.type, status: form.status,
         reservation_time: form.type === 'hotel' ? null : (form.reservation_time || null),
         reservation_end_time: form.type === 'hotel' ? null : (combinedEndTime || null),
@@ -223,7 +223,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
         for (const file of pendingFiles) {
           const fd = new FormData()
           fd.append('file', file)
-          fd.append('reservation_id', saved.id)
+          fd.append('reservation_id', String(saved.id))
           fd.append('description', form.title)
           await onFileUpload(fd)
         }
@@ -241,7 +241,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
       try {
         const fd = new FormData()
         fd.append('file', file)
-        fd.append('reservation_id', reservation.id)
+        fd.append('reservation_id', String(reservation.id))
         fd.append('description', reservation.title)
         await onFileUpload(fd)
         toast.success(t('reservations.toast.fileUploaded'))

@@ -49,7 +49,7 @@ beforeEach(() => {
     ),
   );
   seedStore(useAuthStore, { user: currentUser, isAuthenticated: true });
-  seedStore(useTripStore, { trip: buildTrip({ id: 1, owner_id: 1 }) });
+  seedStore(useTripStore, { trip: buildTrip({ id: 1, user_id: 1 }) });
 });
 
 describe('CollabPolls', () => {

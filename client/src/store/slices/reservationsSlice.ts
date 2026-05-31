@@ -10,7 +10,7 @@ type GetState = StoreApi<TripStoreState>['getState']
 
 export interface ReservationsSlice {
   loadReservations: (tripId: number | string) => Promise<void>
-  addReservation: (tripId: number | string, data: Partial<Reservation>) => Promise<Reservation>
+  addReservation: (tripId: number | string, data: Partial<Reservation> & { title: string }) => Promise<Reservation>
   updateReservation: (tripId: number | string, id: number, data: Partial<Reservation>) => Promise<Reservation>
   toggleReservationStatus: (tripId: number | string, id: number) => Promise<void>
   deleteReservation: (tripId: number | string, id: number) => Promise<void>

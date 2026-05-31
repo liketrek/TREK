@@ -13,7 +13,7 @@ const ADDON_ICONS: Record<string, LucideIcon> = { CalendarDays, Briefcase, Globe
 
 interface NavbarProps {
   tripTitle?: string
-  tripId?: string
+  tripId?: number | string
   onBack?: () => void
   showBack?: boolean
   onShare?: () => void

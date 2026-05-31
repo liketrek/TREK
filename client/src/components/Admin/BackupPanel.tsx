@@ -360,7 +360,7 @@ export default function BackupPanel() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t('backup.auto.hour')}</label>
                   <CustomSelect
                     value={String(autoSettings.hour)}
-                    onChange={v => handleAutoSettingsChange('hour', parseInt(v, 10))}
+                    onChange={v => handleAutoSettingsChange('hour', parseInt(String(v), 10))}
                     size="sm"
                     options={HOURS.map(h => {
                       let label: string
@@ -408,7 +408,7 @@ export default function BackupPanel() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t('backup.auto.dayOfMonth')}</label>
                   <CustomSelect
                     value={String(autoSettings.day_of_month)}
-                    onChange={v => handleAutoSettingsChange('day_of_month', parseInt(v, 10))}
+                    onChange={v => handleAutoSettingsChange('day_of_month', parseInt(String(v), 10))}
                     size="sm"
                     options={DAYS_OF_MONTH.map(d => ({ value: String(d), label: String(d) }))}
                   />

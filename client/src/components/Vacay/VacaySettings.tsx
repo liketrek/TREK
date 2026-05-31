@@ -336,7 +336,7 @@ function CalendarRow({ cal, countries, onUpdate, onDelete }: {
         />
         <CustomSelect
           value={selectedCountry}
-          onChange={v => onUpdate({ region: v })}
+          onChange={v => onUpdate({ region: String(v) })}
           options={countries}
           placeholder={t('vacay.selectCountry')}
           searchable
@@ -344,7 +344,7 @@ function CalendarRow({ cal, countries, onUpdate, onDelete }: {
         {regions.length > 0 && (
           <CustomSelect
             value={selectedRegion}
-            onChange={v => onUpdate({ region: v })}
+            onChange={v => onUpdate({ region: String(v) })}
             options={regions}
             placeholder={t('vacay.selectRegion')}
             searchable
@@ -419,7 +419,7 @@ function AddCalendarForm({ countries, onAdd, onCancel }: {
         />
         <CustomSelect
           value={selectedCountry}
-          onChange={v => { setRegion(v); setRegions([]) }}
+          onChange={v => { setRegion(String(v)); setRegions([]) }}
           options={countries}
           placeholder={t('vacay.selectCountry')}
           searchable
@@ -427,7 +427,7 @@ function AddCalendarForm({ countries, onAdd, onCancel }: {
         {regions.length > 0 && (
           <CustomSelect
             value={selectedRegion}
-            onChange={v => setRegion(v)}
+            onChange={v => setRegion(String(v))}
             options={regions}
             placeholder={t('vacay.selectRegion')}
             searchable

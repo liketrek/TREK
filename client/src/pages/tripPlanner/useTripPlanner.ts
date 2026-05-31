@@ -27,7 +27,11 @@ import type { Accommodation, TripMember, Day, Place, Reservation } from '../../t
  * Behaviour is identical to the previous in-component logic.
  */
 export function useTripPlanner() {
-  const { id: tripId } = useParams<{ id: string }>()
+  const { id } = useParams<{ id: string }>()
+  // The route param is a string; convert once here so every downstream component
+  // prop and store call gets a real number. An absent/invalid id becomes NaN,
+  // which stays falsy in the `if (tripId)` guards below.
+  const tripId = id ? Number(id) : NaN
   const navigate = useNavigate()
   const toast = useToast()
   const { t, language } = useTranslation()
@@ -273,7 +277,7 @@ export function useTripPlanner() {
 
   const { route, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay } = useRouteCalculation({ assignments } as any, selectedDayId, routeShown, routeProfile)
 
-  const handleSelectDay = useCallback((dayId, skipFit) => {
+  const handleSelectDay = useCallback((dayId: number | null, skipFit?: boolean) => {
     const changed = dayId !== selectedDayId
     tripActions.setSelectedDay(dayId)
     if (changed && !skipFit) setFitKey(k => k + 1)
@@ -281,7 +285,7 @@ export function useTripPlanner() {
     updateRouteForDay(dayId)
   }, [updateRouteForDay, selectedDayId])
 
-  const handlePlaceClick = useCallback((placeId, assignmentId) => {
+  const handlePlaceClick = useCallback((placeId: number | null, assignmentId?: number | null) => {
     if (assignmentId) {
       selectAssignment(assignmentId, placeId)
     } else {
@@ -290,7 +294,7 @@ export function useTripPlanner() {
     if (placeId) { setShowDayDetail(null); setLeftCollapsed(false); setRightCollapsed(false) }
   }, [selectAssignment, setSelectedPlaceId])
 
-  const handleMarkerClick = useCallback((placeId) => {
+  const handleMarkerClick = useCallback((placeId?: number) => {
     if (placeId === undefined) {
       setSelectedPlaceId(null)
       return
@@ -303,7 +307,7 @@ export function useTripPlanner() {
     const matching = allAssignments.filter(a => a?.place?.id === placeId)
 
     if (matching.length === 0) {
-      setSelectedPlaceId(prev => prev === placeId ? null : placeId)
+      setSelectedPlaceId(selectedPlaceId === placeId ? null : placeId)
     } else if (matching.length === 1) {
       const only = matching[0]
       if (selectedAssignmentId === only.id) {
@@ -323,7 +327,7 @@ export function useTripPlanner() {
       }
     }
     setLeftCollapsed(false); setRightCollapsed(false)
-  }, [selectAssignment, selectedAssignmentId, setSelectedPlaceId])
+  }, [selectAssignment, selectedAssignmentId, selectedPlaceId, setSelectedPlaceId])
 
   const handleMapClick = useCallback(() => {
     setSelectedPlaceId(null)
@@ -363,7 +367,7 @@ export function useTripPlanner() {
         for (const file of pendingFiles) {
           const fd = new FormData()
           fd.append('file', file)
-          fd.append('place_id', editingPlace.id)
+          fd.append('place_id', String(editingPlace.id))
           try { await tripActions.addFile(tripId, fd) } catch { toast.error(t('files.uploadError')) }
         }
       }
@@ -374,7 +378,7 @@ export function useTripPlanner() {
         for (const file of pendingFiles) {
           const fd = new FormData()
           fd.append('file', file)
-          fd.append('place_id', place.id)
+          fd.append('place_id', String(place.id))
           try { await tripActions.addFile(tripId, fd) } catch { toast.error(t('files.uploadError')) }
         }
       }
@@ -454,7 +458,7 @@ export function useTripPlanner() {
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
   }, [deletePlaceIds, tripId, toast, selectedPlaceId, selectedDayId, updateRouteForDay, pushUndo])
 
-  const handleAssignToDay = useCallback(async (placeId, dayId, position) => {
+  const handleAssignToDay = useCallback(async (placeId: number, dayId?: number, position?: number) => {
     const target = dayId || selectedDayId
     if (!target) { toast.error(t('trip.toast.selectDay')); return }
     try {
@@ -471,7 +475,7 @@ export function useTripPlanner() {
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
   }, [selectedDayId, tripId, toast, updateRouteForDay, pushUndo])
 
-  const handleRemoveAssignment = useCallback(async (dayId, assignmentId) => {
+  const handleRemoveAssignment = useCallback(async (dayId: number, assignmentId: number) => {
     const state = useTripStore.getState()
     const capturedAssignment = (state.assignments[String(dayId)] || []).find(a => a.id === assignmentId)
     const capturedPlaceId = capturedAssignment?.place?.id
@@ -490,7 +494,7 @@ export function useTripPlanner() {
     catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
   }, [tripId, toast, updateRouteForDay, pushUndo])
 
-  const handleReorder = useCallback((dayId, orderedIds) => {
+  const handleReorder = useCallback((dayId: number, orderedIds: number[]) => {
     const prevIds = (useTripStore.getState().assignments[String(dayId)] || [])
       .slice().sort((a, b) => a.order_index - b.order_index).map(a => a.id)
     try {
@@ -513,7 +517,7 @@ export function useTripPlanner() {
     catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
   }, [tripId, toast])
 
-  const handleSaveReservation = async (data) => {
+  const handleSaveReservation = async (data: Record<string, string | number | null> & { title: string }) => {
     try {
       if (editingReservation) {
         const r = await tripActions.updateReservation(tripId, editingReservation.id, { ...data, day_id: selectedDayId || null })
@@ -537,7 +541,7 @@ export function useTripPlanner() {
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
   }
 
-  const handleSaveTransport = async (data) => {
+  const handleSaveTransport = async (data: Record<string, any> & { title: string }) => {
     try {
       if (editingTransport) {
         const r = await tripActions.updateReservation(tripId, editingTransport.id, data)

@@ -16,7 +16,9 @@ import type { FilterType, Member } from './todoListModel'
  */
 export function useTodoList(tripId: number, items: TodoItem[], addItemSignal: number) {
   const { addTodoItem, updateTodoItem, deleteTodoItem, toggleTodoItem } = useTripStore()
-  const canEdit = useCanDo('packing_edit')
+  const trip = useTripStore((s) => s.trip)
+  const can = useCanDo()
+  const canEdit = can('packing_edit', trip)
   const toast = useToast()
   const { t, locale } = useTranslation()
   const formatDate = (d: string) => fmtDate(d, locale) || d

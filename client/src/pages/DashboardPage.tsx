@@ -490,13 +490,13 @@ function CurrencyTool(): React.ReactElement {
         <div className="fx-field">
           <div className="lbl">{t('dashboard.fx.from')}</div>
           <input className="amt mono" value={amount} onChange={e => setAmount(e.target.value)} inputMode="decimal" />
-          <CustomSelect value={from} onChange={setFrom} options={ccyOptions} searchable size="sm" style={{ marginTop: 6 }} />
+          <CustomSelect value={from} onChange={v => setFrom(String(v))} options={ccyOptions} searchable size="sm" style={{ marginTop: 6 }} />
         </div>
         <button className="fx-swap" aria-label={t('dashboard.aria.swapCurrencies')} onClick={swap}><ArrowRightLeft size={14} /></button>
         <div className="fx-field">
           <div className="lbl">{t('dashboard.fx.to')}</div>
           <input className="amt mono" value={converted != null ? converted.toFixed(2) : '—'} readOnly />
-          <CustomSelect value={to} onChange={setTo} options={ccyOptions} searchable size="sm" style={{ marginTop: 6 }} />
+          <CustomSelect value={to} onChange={v => setTo(String(v))} options={ccyOptions} searchable size="sm" style={{ marginTop: 6 }} />
         </div>
       </div>
       <div className="fx-rate">

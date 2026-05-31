@@ -589,7 +589,7 @@ interface CategorySettingsModalProps {
 
 function CategorySettingsModal({ onClose, categories, categoryColors, onSave, onRenameCategory, t }: CategorySettingsModalProps) {
   const [localColors, setLocalColors] = useState({ ...categoryColors })
-  const [renames, setRenames] = useState({}) // { oldName: newName }
+  const [renames, setRenames] = useState<Record<string, string>>({}) // { oldName: newName }
   const [newCatName, setNewCatName] = useState('')
 
   const handleColorChange = (cat, color) => {
@@ -814,8 +814,8 @@ function NoteCard({ note, currentUser, canEdit, onUpdate, onDelete, onEdit, onVi
             <div style={{ width: 1, height: 12, background: 'var(--border-faint)', flexShrink: 0, marginLeft: 1, marginRight: 1 }} />
             {/* Author avatar */}
             <div style={{ position: 'relative', flexShrink: 0 }}
-              onMouseEnter={e => { const tip = e.currentTarget.querySelector('[data-tip]'); if (tip) tip.style.opacity = '1' }}
-              onMouseLeave={e => { const tip = e.currentTarget.querySelector('[data-tip]'); if (tip) tip.style.opacity = '0' }}>
+              onMouseEnter={e => { const tip = e.currentTarget.querySelector<HTMLElement>('[data-tip]'); if (tip) tip.style.opacity = '1' }}
+              onMouseLeave={e => { const tip = e.currentTarget.querySelector<HTMLElement>('[data-tip]'); if (tip) tip.style.opacity = '0' }}>
               <UserAvatar user={author} size={16} />
               <div data-tip style={{
                 position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)',

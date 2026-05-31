@@ -62,15 +62,24 @@ const DEFAULT_FORM: PlaceFormData = {
   website: '',
 }
 
+// The submit payload mirrors the form, but lat/lng are parsed to numbers and
+// category_id is normalised, plus any files chosen before the place existed.
+export interface PlaceSubmitData extends Omit<PlaceFormData, 'lat' | 'lng' | 'category_id'> {
+  lat: number | null
+  lng: number | null
+  category_id: string | null
+  _pendingFiles?: File[]
+}
+
 interface PlaceFormModalProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (data: PlaceFormData, files?: File[]) => Promise<void> | void
+  onSave: (data: PlaceSubmitData, files?: File[]) => Promise<void> | void
   place: Place | null
   prefillCoords?: { lat: number; lng: number; name?: string; address?: string } | null
   tripId: number
   categories: Category[]
-  onCategoryCreated: (category: Category) => void
+  onCategoryCreated: (category: { name: string; color?: string; icon?: string }) => Promise<Category> | undefined
   assignmentId: number | null
   dayAssignments?: Assignment[]
 }
@@ -110,9 +119,9 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
         name: place.name || '',
         description: place.description || '',
         address: place.address || '',
-        lat: place.lat || '',
-        lng: place.lng || '',
-        category_id: place.category_id || '',
+        lat: place.lat != null ? String(place.lat) : '',
+        lng: place.lng != null ? String(place.lng) : '',
+        category_id: place.category_id != null ? String(place.category_id) : '',
         place_time: place.place_time || '',
         end_time: place.end_time || '',
         notes: place.notes || '',
@@ -200,7 +209,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     }
   }, [mapsSearch, fetchSuggestions])
 
-  const handleChange = (field, value) => {
+  const handleChange = (field: string, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }))
   }
 
@@ -305,7 +314,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     if (!newCategoryName.trim()) return
     try {
       const cat = await onCategoryCreated?.({ name: newCategoryName, color: '#6366f1', icon: 'MapPin' })
-      if (cat) setForm(prev => ({ ...prev, category_id: cat.id }))
+      if (cat) setForm(prev => ({ ...prev, category_id: String(cat.id) }))
       setNewCategoryName('')
       setShowNewCategory(false)
     } catch (err: unknown) {
@@ -313,18 +322,18 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     }
   }
 
-  const handleFileAdd = (e) => {
-    const files = Array.from((e.target as HTMLInputElement).files || [])
+  const handleFileAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
     setPendingFiles(prev => [...prev, ...files])
     e.target.value = ''
   }
 
-  const handleRemoveFile = (idx) => {
+  const handleRemoveFile = (idx: number) => {
     setPendingFiles(prev => prev.filter((_, i) => i !== idx))
   }
 
   // Paste support for files/images
-  const handlePaste = (e) => {
+  const handlePaste = (e: React.ClipboardEvent) => {
     if (!canUploadFiles) return
     const items = e.clipboardData?.items
     if (!items) return
@@ -671,7 +680,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
             <div className="flex gap-2">
               <CustomSelect
                 value={form.category_id}
-                onChange={value => handleChange('category_id', value)}
+                onChange={value => handleChange('category_id', String(value))}
                 placeholder={t('places.noCategory')}
                 options={[
                   { value: '', label: t('places.noCategory') },
@@ -764,7 +773,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
 
 interface TimeSectionProps {
   form: PlaceFormData
-  handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void
+  handleChange: (field: string, value: string) => void
   assignmentId: number | null
   dayAssignments: Assignment[]
   hasTimeError: boolean

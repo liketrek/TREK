@@ -1330,7 +1330,7 @@ export default function AdminPage(): React.ReactElement {
             <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('settings.role')}</label>
             <CustomSelect
               value={createForm.role}
-              onChange={value => setCreateForm(f => ({ ...f, role: value }))}
+              onChange={value => setCreateForm(f => ({ ...f, role: String(value) }))}
               options={[
                 { value: 'user', label: t('settings.roleUser') },
                 { value: 'admin', label: t('settings.roleAdmin') },
@@ -1397,7 +1397,7 @@ export default function AdminPage(): React.ReactElement {
               <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('settings.role')}</label>
               <CustomSelect
                 value={editForm.role}
-                onChange={value => setEditForm(f => ({ ...f, role: value }))}
+                onChange={value => setEditForm(f => ({ ...f, role: String(value) }))}
                 options={[
                   { value: 'user', label: t('settings.roleUser') },
                   { value: 'admin', label: t('settings.roleAdmin') },

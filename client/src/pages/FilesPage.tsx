@@ -22,7 +22,7 @@ export default function FilesPage(): React.ReactElement {
   }
 
   return (
-    <PageShell className="bg-slate-50" navbar={{ tripTitle: trip?.name, tripId, showBack: true, onBack: () => navigate(`/trips/${tripId}`) }}>
+    <PageShell className="bg-slate-50" navbar={{ tripTitle: trip?.title, tripId, showBack: true, onBack: () => navigate(`/trips/${tripId}`) }}>
         <div className="max-w-5xl mx-auto px-4 py-6">
           <div className="flex items-center gap-3 mb-6">
             <Link
@@ -37,7 +37,7 @@ export default function FilesPage(): React.ReactElement {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">{t('files.pageTitle')}</h1>
-              <p className="text-gray-500 text-sm">{t('files.subtitle', { count: files.length, trip: trip?.name })}</p>
+              <p className="text-gray-500 text-sm">{t('files.subtitle', { count: files.length, trip: trip?.title })}</p>
             </div>
           </div>
 

@@ -279,7 +279,7 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle }:
           <div style={{ display: 'flex', gap: 8 }}>
             <CustomSelect
               value={selectedUserId}
-              onChange={value => setSelectedUserId(value)}
+              onChange={value => setSelectedUserId(String(value))}
               placeholder={t('members.selectUser')}
               options={[
                 { value: '', label: t('members.selectUser') },

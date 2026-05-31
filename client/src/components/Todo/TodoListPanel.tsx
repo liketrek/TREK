@@ -267,7 +267,9 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
   onClose: () => void;
 }) {
   const { updateTodoItem, deleteTodoItem } = useTripStore()
-  const canEdit = useCanDo('packing_edit')
+  const trip = useTripStore((s) => s.trip)
+  const can = useCanDo()
+  const canEdit = can('packing_edit', trip)
   const toast = useToast()
   const { t } = useTranslation()
 
@@ -378,7 +380,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
           <label style={labelStyle}>{t('todo.detail.category')}</label>
           <CustomSelect
             value={category}
-            onChange={v => setCategory(v)}
+            onChange={v => setCategory(String(v))}
             options={[
               { value: '', label: t('todo.noCategory') },
               ...categories.map(c => ({
@@ -541,7 +543,7 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
               <div style={{ flex: 1, minWidth: 0 }}>
                 <CustomSelect
                   value={category}
-                  onChange={v => setCategory(v)}
+                  onChange={v => setCategory(String(v))}
                   options={[
                     { value: '', label: t('todo.noCategory') },
                     ...categories.map(c => ({

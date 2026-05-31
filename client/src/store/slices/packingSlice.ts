@@ -9,7 +9,7 @@ type SetState = StoreApi<TripStoreState>['setState']
 type GetState = StoreApi<TripStoreState>['getState']
 
 export interface PackingSlice {
-  addPackingItem: (tripId: number | string, data: Partial<PackingItem>) => Promise<PackingItem>
+  addPackingItem: (tripId: number | string, data: Partial<PackingItem> & { name: string }) => Promise<PackingItem>
   updatePackingItem: (tripId: number | string, id: number, data: Partial<PackingItem>) => Promise<PackingItem>
   deletePackingItem: (tripId: number | string, id: number) => Promise<void>
   togglePackingItem: (tripId: number | string, id: number, checked: boolean) => Promise<void>
@@ -18,7 +18,7 @@ export interface PackingSlice {
 export const createPackingSlice = (set: SetState, get: GetState): PackingSlice => ({
   addPackingItem: async (tripId, data) => {
     try {
-      const result = await packingRepo.create(tripId, data as Record<string, unknown>)
+      const result = await packingRepo.create(tripId, data as Record<string, unknown> & { name: string })
       set(state => ({ packingItems: [...state.packingItems, result.item] }))
       return result.item
     } catch (err: unknown) {

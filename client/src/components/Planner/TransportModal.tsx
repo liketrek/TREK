@@ -92,12 +92,12 @@ const defaultForm = {
 interface TransportModalProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (data: Record<string, any>) => Promise<Reservation | undefined>
+  onSave: (data: Record<string, any> & { title: string }) => Promise<Reservation | undefined>
   reservation: Reservation | null
   days: Day[]
   selectedDayId: number | null
   files?: TripFile[]
-  onFileUpload?: (fd: FormData) => Promise<void>
+  onFileUpload?: (fd: FormData) => Promise<unknown>
   onFileDelete?: (fileId: number) => Promise<void>
 }
 
@@ -138,7 +138,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
       setForm({
         title: reservation.title || '',
         type,
-        status: reservation.status || 'pending',
+        status: reservation.status === 'confirmed' ? 'confirmed' : 'pending',
         start_day_id: reservation.day_id ?? '',
         end_day_id: reservation.end_day_id ?? '',
         departure_time: splitReservationDateTime(reservation.reservation_time).time ?? '',

@@ -130,7 +130,6 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
     lng: 2.3522,
     address: null,
     category_id: null,
-    icon: null,
     price: null,
     currency: null,
     image_url: null,

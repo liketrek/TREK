@@ -73,7 +73,7 @@ function renderPhotoBlock(photos: JourneyPhoto[]): string {
 }
 
 export async function downloadJourneyBookPDF(journey: JourneyDetail) {
-  const entries = (journey.entries || []).filter(e => e.type !== 'skeleton' && e.type !== 'gallery')
+  const entries = (journey.entries || []).filter(e => e.type !== 'skeleton')
   const allPhotos = entries.flatMap(e => e.photos || [])
   const coverUrl = journey.cover_image ? abs(`/uploads/${journey.cover_image}`) : (allPhotos[0] ? pSrc(allPhotos[0]) : '')
 

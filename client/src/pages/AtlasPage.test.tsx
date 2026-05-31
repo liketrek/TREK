@@ -1426,7 +1426,7 @@ describe('AtlasPage', () => {
 
         // Find and click the Add button (should be enabled now since bucketForm.name is set)
         const addButtons = screen.queryAllByRole('button').filter(
-          (b) => !b.disabled && (b.textContent?.trim() === 'Add' || b.textContent?.includes('Add')),
+          (b) => !(b as HTMLButtonElement).disabled && (b.textContent?.trim() === 'Add' || b.textContent?.includes('Add')),
         );
         if (addButtons.length > 0) {
           await user.click(addButtons[addButtons.length - 1]);

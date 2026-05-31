@@ -26,10 +26,15 @@ function buildMockStore(assignments: Record<string, ReturnType<typeof buildAssig
 
 const MOCK_SEGMENTS: RouteSegment[] = [
   {
+    mid: [48.5, 2.5],
+    from: [48.86, 2.35],
+    to: [48.21, 16.37],
     distance: 343000,
     duration: 12600,
     distanceText: '343 km',
     durationText: '3 h 30 min',
+    walkingText: '70 h',
+    drivingText: '3 h 30 min',
   },
 ];
 

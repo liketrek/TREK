@@ -6,6 +6,7 @@ import { useAuthStore } from '../../store/authStore'
 import { useTranslation } from '../../i18n'
 import { useToast } from '../../components/shared/Toast'
 import { getApiErrorMessage } from '../../types'
+import type { TripCreateRequest } from '@trek/shared'
 import {
   type DashboardTrip,
   type TravelStats,
@@ -98,7 +99,7 @@ export function useDashboard() {
     return () => { cancelled = true }
   }, [spotlight?.id])
 
-  const handleCreate = async (tripData: Record<string, unknown>) => {
+  const handleCreate = async (tripData: TripCreateRequest) => {
     try {
       const data = await tripsApi.create(tripData)
       setTrips(prev => sortTrips([data.trip, ...prev]))
@@ -109,7 +110,7 @@ export function useDashboard() {
     }
   }
 
-  const handleUpdate = async (tripData: Record<string, unknown>) => {
+  const handleUpdate = async (tripData: TripCreateRequest) => {
     if (!editingTrip) return
     try {
       const data = await tripsApi.update(editingTrip.id, tripData)

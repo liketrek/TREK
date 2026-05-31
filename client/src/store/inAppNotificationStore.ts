@@ -79,7 +79,7 @@ export const useInAppNotificationStore = create<NotificationState>((set, get) =>
     try {
       const offset = reset ? 0 : notifications.length
       const data = await inAppNotificationsApi.list({ limit: PAGE_SIZE, offset })
-      const normalized = (data.notifications as RawNotification[]).map(normalizeNotification)
+      const normalized = (data.notifications as unknown as RawNotification[]).map(normalizeNotification)
 
       set({
         notifications: reset ? normalized : [...notifications, ...normalized],

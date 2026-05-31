@@ -607,7 +607,7 @@ describe('ReservationModal', () => {
     seedStore(useTripStore, {
       trip: buildTrip({ id: 1 }),
       budgetItems: [
-        { id: 1, trip_id: 1, name: 'Flight ticket', amount: 300, currency: 'EUR', category: 'Transport', paid_by: null, persons: 1, members: [], expense_date: null },
+        { id: 1, trip_id: 1, name: 'Flight ticket', total_price: 300, category: 'Transport', paid_by_user_id: null, persons: 1, members: [], expense_date: null },
       ],
     });
     render(<ReservationModal {...defaultProps} />);
@@ -640,7 +640,7 @@ describe('ReservationModal', () => {
     seedStore(useTripStore, {
       trip: buildTrip({ id: 1 }),
       budgetItems: [
-        { id: 1, trip_id: 1, name: 'Ticket', amount: 100, currency: 'EUR', category: 'Transport', paid_by: null, persons: 1, members: [], expense_date: null },
+        { id: 1, trip_id: 1, name: 'Ticket', total_price: 100, category: 'Transport', paid_by_user_id: null, persons: 1, members: [], expense_date: null },
       ],
     });
     render(<ReservationModal {...defaultProps} />);

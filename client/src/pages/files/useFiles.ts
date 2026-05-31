@@ -11,7 +11,8 @@ import type { Trip, Place, TripFile } from '../../types'
  * Behaviour is identical to the previous in-component logic.
  */
 export function useFiles() {
-  const { id: tripId } = useParams<{ id: string }>()
+  const { id } = useParams<{ id: string }>()
+  const tripId = Number(id)
   const navigate = useNavigate()
   const tripStore = useTripStore()
 

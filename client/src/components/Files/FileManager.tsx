@@ -249,13 +249,13 @@ interface FileManagerProps {
   files?: TripFile[]
   onUpload: (fd: FormData) => Promise<any>
   onDelete: (fileId: number) => Promise<void>
-  onUpdate: (fileId: number, data: Partial<TripFile>) => Promise<void>
+  onUpdate?: (fileId: number, data: Partial<TripFile>) => Promise<void>
   places: Place[]
   days?: Day[]
   assignments?: AssignmentsMap
   reservations?: Reservation[]
   tripId: number
-  allowedFileTypes: Record<string, string[]>
+  allowedFileTypes?: string | null
 }
 
 /**
@@ -368,11 +368,11 @@ function useFileManager({ files = [], onUpload, onDelete, onUpdate, places, days
     noClick: false,
   })
 
-  const handlePaste = useCallback((e) => {
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
     if (!can('file_upload', trip)) return
     const items = e.clipboardData?.items
     if (!items) return
-    const pastedFiles = []
+    const pastedFiles: File[] = []
     for (const item of Array.from(items)) {
       if (item.kind === 'file') {
         const file = item.getAsFile()

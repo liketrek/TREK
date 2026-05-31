@@ -167,23 +167,6 @@ export interface UserWithOidc extends User {
   oidc_issuer?: string | null
 }
 
-// Photo type — trip photo as consumed by the PhotosPage / PhotoGallery /
-// PhotoLightbox surface (photos table joined with a served `url`). file_size is
-// the photos.file_size column; url is the served upload path.
-export interface Photo {
-  id: number
-  trip_id?: number
-  url: string
-  original_name: string
-  mime_type?: string
-  file_size?: number | null
-  caption: string | null
-  place_id: number | null
-  day_id: number | null
-  taken_at?: string | null
-  created_at: string
-}
-
 // Atlas place detail
 export interface AtlasPlace {
   id: number

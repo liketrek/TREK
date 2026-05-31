@@ -732,10 +732,10 @@ interface MenuItemProps {
   icon: React.ReactNode
   label: string
   onClick: () => void
-  danger: boolean
+  danger?: boolean
 }
 
-function MenuItem({ icon, label, onClick, danger }: MenuItemProps) {
+function MenuItem({ icon, label, onClick, danger = false }: MenuItemProps) {
   return (
     <button onClick={onClick} style={{
       display: 'flex', alignItems: 'center', gap: 8, width: '100%',

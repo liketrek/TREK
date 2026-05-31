@@ -5,21 +5,13 @@
  * container + data hook" convention (see dashboard/README.md).
  */
 
-export interface DashboardTrip {
-  id: number
-  title: string
-  description?: string | null
-  start_date?: string | null
-  end_date?: string | null
-  cover_image?: string | null
-  is_archived?: boolean
-  is_owner?: boolean
-  owner_username?: string
-  day_count?: number
-  place_count?: number
-  shared_count?: number
-  [key: string]: string | number | boolean | null | undefined
-}
+import type { Trip } from '../../types'
+
+// The dashboard works with the canonical Trip shape returned by the list/get
+// endpoints (it already carries the computed day_count/place_count/is_owner/
+// owner_username/shared_count fields). Kept as a named alias so the existing
+// imports stay stable.
+export type DashboardTrip = Trip
 
 export interface Member { id: number; username: string; avatar_url?: string | null }
 export interface Place {
