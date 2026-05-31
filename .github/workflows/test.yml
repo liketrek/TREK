@@ -58,7 +58,7 @@ jobs:
         # (server/vitest.config.ts) can load.
         run: |
           SWC_VERSION=$(node -p "require('@swc/core/package.json').version")
-          npm install --no-save --no-package-lock --legacy-peer-deps "@swc/core-linux-x64-gnu@$SWC_VERSION"
+          npm install --no-save --legacy-peer-deps "@swc/core-linux-x64-gnu@$SWC_VERSION"
 
       - name: Build shared
         run: npm run build --workspace=shared
