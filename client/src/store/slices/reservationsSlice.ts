@@ -58,8 +58,11 @@ export const createReservationsSlice = (set: SetState, get: GetState): Reservati
     }))
     try {
       await reservationsApi.update(tripId, id, { status: newStatus })
-    } catch {
+    } catch (err: unknown) {
+      // Roll back the optimistic toggle and surface the failure so the caller's
+      // catch can notify the user — without it the status silently snaps back.
       set({ reservations: prev })
+      throw new Error(getApiErrorMessage(err, 'Error updating reservation'))
     }
   },
 

@@ -3,6 +3,7 @@ import type { StoreApi } from 'zustand'
 import type { TripStoreState } from '../tripStore'
 import type { PackingItem } from '../../types'
 import { getApiErrorMessage } from '../../types'
+import { notify } from '../notify'
 
 type SetState = StoreApi<TripStoreState>['setState']
 type GetState = StoreApi<TripStoreState>['getState']
@@ -56,12 +57,15 @@ export const createPackingSlice = (set: SetState, get: GetState): PackingSlice =
     }))
     try {
       await packingRepo.update(tripId, id, { checked })
-    } catch {
+    } catch (err: unknown) {
+      // The caller fires this optimistically and doesn't await, so rolling back
+      // silently would just flip the checkbox with no explanation. Surface it.
       set(state => ({
         packingItems: state.packingItems.map(item =>
           item.id === id ? { ...item, checked: checked ? 0 : 1 } : item
         )
       }))
+      notify(getApiErrorMessage(err, 'Error updating item'), 'error')
     }
   },
 })

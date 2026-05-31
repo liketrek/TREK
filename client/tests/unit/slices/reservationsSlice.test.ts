@@ -123,7 +123,7 @@ describe('reservationsSlice', () => {
       expect(useTripStore.getState().reservations[0].status).toBe('confirmed');
     });
 
-    it('FE-RESERV-007: toggleReservationStatus rolls back on API failure (silent)', async () => {
+    it('FE-RESERV-007: toggleReservationStatus rolls back and surfaces the error on API failure', async () => {
       const reservation = buildReservation({ id: 10, trip_id: 1, status: 'confirmed' });
       seedStore(useTripStore, { reservations: [reservation] });
 
@@ -133,8 +133,9 @@ describe('reservationsSlice', () => {
         ),
       );
 
-      // Does NOT throw (silent rollback)
-      await useTripStore.getState().toggleReservationStatus(1, 10);
+      // Rolls back the optimistic toggle AND rejects, so the caller's catch can
+      // show a toast (previously the failure was swallowed and the toast never fired).
+      await expect(useTripStore.getState().toggleReservationStatus(1, 10)).rejects.toThrow();
 
       expect(useTripStore.getState().reservations[0].status).toBe('confirmed');
     });
