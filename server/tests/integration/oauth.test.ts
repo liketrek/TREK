@@ -6,6 +6,7 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import request from 'supertest';
 import type { Application } from 'express';
+import type { INestApplication } from '@nestjs/common';
 import crypto from 'crypto';
 
 const { testDb, dbMock } = vi.hoisted(() => {
@@ -37,6 +38,7 @@ vi.mock('../../src/config', () => ({
     JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
     ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
     updateJwtSecret: () => {},
+  DEFAULT_LANGUAGE: 'en',
 }));
 
 const { isAddonEnabledMock } = vi.hoisted(() => {
@@ -56,16 +58,16 @@ vi.mock('../../src/services/notifications', async (importOriginal) => {
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 vi.mock('../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn(), revokeUserSessionsForClient: vi.fn(), sessions: new Map() }));
 
-import { createApp } from '../../src/app';
+import { buildApp } from '../../src/bootstrap';
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
-import { resetTestDb } from '../helpers/test-db';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import { createUser } from '../helpers/factories';
 import { authCookie } from '../helpers/auth';
-import { loginAttempts, mfaAttempts } from '../../src/routes/auth';
 import { createOAuthClient, createAuthCode, getUserByAccessToken } from '../../src/services/oauthService';
 
-const app: Application = createApp();
+let nestApp: INestApplication;
+let app: Application;
 
 // PKCE helpers
 function makePkce() {
@@ -74,19 +76,33 @@ function makePkce() {
     return { verifier, challenge };
 }
 
-beforeAll(() => {
+// A7: under the unified Nest app the adminService mock only reaches the directly
+// imported isAddonEnabled (OauthService.mcpEnabled); oauthService.ts reads the
+// addon state through its own import that the Nest module graph loads unmocked,
+// so it falls back to the real DB row. Drive BOTH so the MCP-enabled state is
+// consistent across mcpEnabled() AND validateAuthorizeRequest()/token/revoke.
+function setMcpEnabled(enabled: boolean) {
+    isAddonEnabledMock.mockReturnValue(enabled);
+    testDb.prepare(
+        "INSERT OR REPLACE INTO addons (id, name, description, type, icon, enabled, sort_order) VALUES ('mcp', 'MCP', 'AI assistant integration', 'integration', 'Terminal', ?, 12)"
+    ).run(enabled ? 1 : 0);
+}
+
+beforeAll(async () => {
     createTables(testDb);
     runMigrations(testDb);
+    nestApp = await buildApp();
+    app = nestApp.getHttpAdapter().getInstance();
 });
 
 beforeEach(() => {
     resetTestDb(testDb);
-    loginAttempts.clear();
-    mfaAttempts.clear();
-    isAddonEnabledMock.mockReturnValue(true);
+    resetRateLimits(nestApp);
+    setMcpEnabled(true);
 });
 
-afterAll(() => {
+afterAll(async () => {
+    await nestApp.close();
     testDb.close();
 });
 
@@ -156,7 +172,7 @@ describe('POST /oauth/token — authorization_code grant', () => {
     });
 
     it('OAUTH-003 — MCP addon disabled returns 404', async () => {
-        isAddonEnabledMock.mockReturnValue(false);
+        setMcpEnabled(false);
         const res = await request(app)
             .post('/oauth/token')
             .send({ grant_type: 'authorization_code', client_id: 'x', client_secret: 'y', code: 'z', redirect_uri: 'https://r.example.com/cb', code_verifier: 'v' });
@@ -511,7 +527,7 @@ describe('POST /oauth/revoke', () => {
 
 describe('GET /api/oauth/authorize/validate', () => {
     it('OAUTH-019 — returns 404 when MCP addon disabled (M2: prevents feature fingerprinting)', async () => {
-        isAddonEnabledMock.mockReturnValue(false);
+        setMcpEnabled(false);
         const res = await request(app)
             .get('/api/oauth/authorize/validate')
             .query({ response_type: 'code', client_id: 'x', redirect_uri: 'https://r.example.com/cb', scope: 'trips:read', code_challenge: 'c', code_challenge_method: 'S256' });
@@ -697,7 +713,7 @@ describe('POST /api/oauth/authorize', () => {
     });
 
     it('OAUTH-029 — 403 when MCP disabled', async () => {
-        isAddonEnabledMock.mockReturnValue(false);
+        setMcpEnabled(false);
         const { user } = createUser(testDb);
 
         const res = await request(app)
@@ -772,7 +788,7 @@ describe('POST /api/oauth/authorize', () => {
 
 describe('Client CRUD — /api/oauth/clients', () => {
     it('OAUTH-033 — GET returns 403 when addon disabled', async () => {
-        isAddonEnabledMock.mockReturnValue(false);
+        setMcpEnabled(false);
         const { user } = createUser(testDb);
 
         const res = await request(app)
@@ -809,7 +825,7 @@ describe('Client CRUD — /api/oauth/clients', () => {
     });
 
     it('OAUTH-036 — POST returns 403 when addon disabled', async () => {
-        isAddonEnabledMock.mockReturnValue(false);
+        setMcpEnabled(false);
         const { user } = createUser(testDb);
 
         const res = await request(app)
@@ -859,7 +875,7 @@ describe('Client CRUD — /api/oauth/clients', () => {
 
 describe('Sessions — /api/oauth/sessions', () => {
     it('OAUTH-040 — GET returns 403 when addon disabled', async () => {
-        isAddonEnabledMock.mockReturnValue(false);
+        setMcpEnabled(false);
         const { user } = createUser(testDb);
 
         const res = await request(app)
@@ -927,7 +943,7 @@ describe('Sessions — /api/oauth/sessions', () => {
     });
 
     it('OAUTH-044 — DELETE /sessions/:id returns 403 when addon disabled', async () => {
-        isAddonEnabledMock.mockReturnValue(false);
+        setMcpEnabled(false);
         const { user } = createUser(testDb);
 
         const res = await request(app)
@@ -952,13 +968,13 @@ describe('M1 — Cache-Control headers on /oauth/token', () => {
 
 describe('M2 — 404 when MCP disabled on discovery + revoke endpoints', () => {
     it('OAUTH-SEC-002 — /.well-known/oauth-authorization-server returns 404 when disabled', async () => {
-        isAddonEnabledMock.mockReturnValue(false);
+        setMcpEnabled(false);
         const res = await request(app).get('/.well-known/oauth-authorization-server');
         expect(res.status).toBe(404);
     });
 
     it('OAUTH-SEC-003 — /oauth/revoke returns 404 when disabled', async () => {
-        isAddonEnabledMock.mockReturnValue(false);
+        setMcpEnabled(false);
         const res = await request(app)
             .post('/oauth/revoke')
             .send({ token: 'x', client_id: 'y', client_secret: 'z' });

@@ -71,8 +71,10 @@ beforeEach(() => {
   isAddonEnabledMock.mockReturnValue(true);
 
   // Default mock: returns a trip-summary-shaped value from the real in-memory DB
-  // so that the trip title / existence match what tests insert, but budget/packing
-  // are arrays (as prompts.ts expects), not the object shape getTripSummary now returns.
+  // so the trip title / existence match what tests insert. `budget` mirrors the
+  // real getTripSummary object shape ({ items, total, ... }) that prompts.ts reads
+  // via budget.items/budget.total; packing stays an array (the packing prompt
+  // tolerates it).
   mockGetTripSummary.mockImplementation((tripId: any) => {
     const trip = testDb.prepare('SELECT * FROM trips WHERE id = ?').get(tripId) as any;
     if (!trip) return null;
@@ -87,8 +89,13 @@ beforeEach(() => {
       trip,
       days: [],
       members,
-      budget: budgetRows,   // array shape expected by prompts.ts
-      packing: packingRows, // array shape expected by prompts.ts
+      budget: {
+        items: budgetRows,
+        item_count: budgetRows.length,
+        total: budgetRows.reduce((sum, i) => sum + (i.total_price || 0), 0),
+        currency: trip.currency,
+      },
+      packing: packingRows, // array shape; packing prompt tolerates it
       reservations: [],
       collabNotes: [],
     };

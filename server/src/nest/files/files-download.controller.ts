@@ -48,6 +48,11 @@ export class FilesDownloadController {
       res.setHeader('Content-Disposition', `inline; filename="${path.basename(file.original_name || resolved)}"`);
     }
 
-    res.sendFile(resolved);
+    // Serve with an explicit { root } + basename rather than an absolute path:
+    // under the Nest ExpressAdapter, res.sendFile(absolutePath) resolves the
+    // file relative to the (rewritten) req.url and fails with a spurious
+    // "Not Found", whereas the root-relative form streams correctly. The
+    // resolveFilePath guard above already pins this to the uploads dir.
+    res.sendFile(path.basename(resolved), { root: path.dirname(resolved) });
   }
 }

@@ -17,8 +17,11 @@
  */
 
 import Database from 'better-sqlite3';
+import type { INestApplication } from '@nestjs/common';
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
+import { AuthPublicController } from '../../src/nest/auth/auth-public.controller';
+import type { RateLimitService } from '../../src/nest/auth/rate-limit.service';
 
 // Tables to clear on reset, child-before-parent to be safe (FK checks are OFF during reset).
 // Keep in sync with schema.ts + migrations.ts. Intentionally excluded: categories, addons,
@@ -236,6 +239,22 @@ export function buildDbMock(testDb: Database.Database) {
       return !!testDb.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId);
     },
   };
+}
+
+/**
+ * Resets the Nest per-IP rate-limit buckets between tests — the buildApp() drop-in
+ * for the legacy `loginAttempts.clear(); mfaAttempts.clear()`.
+ *
+ * The Nest auth path keeps its rate-limit state in a RateLimitService instance that
+ * lives inside the AuthModule injector (shared by AuthPublicController/AuthController
+ * for the login/mfa/forgot buckets). The same class is ALSO provided separately in
+ * OauthModule (its own instance, distinct oauth_* buckets), so a plain
+ * app.get(RateLimitService) is ambiguous and may hand back the wrong instance — we
+ * resolve the auth controller and clear the limiter it actually uses.
+ */
+export function resetRateLimits(app: INestApplication): void {
+  const ctrl = app.get(AuthPublicController, { strict: false }) as unknown as { rl: RateLimitService };
+  ctrl.rl.reset();
 }
 
 /** Fixed config mock — use with vi.mock('../../src/config', () => TEST_CONFIG) */

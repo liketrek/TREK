@@ -33,6 +33,7 @@ const UPLOAD = {
     filename: (_req, file, cb) => cb(null, `${uuidv4()}${path.extname(file.originalname)}`),
   }),
   limits: { fileSize: MAX_FILE_SIZE },
+  defParamCharset: 'utf8', // parity with legacy routes/files.ts — preserve non-ASCII original filenames
   fileFilter: (_req: unknown, file: Express.Multer.File, cb: (err: Error | null, accept: boolean) => void) => {
     const ext = path.extname(file.originalname).toLowerCase();
     const reject = () => {

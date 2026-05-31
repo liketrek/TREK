@@ -17,7 +17,15 @@ const { testDb, dbMock } = vi.hoisted(() => {
     closeDb: () => {},
     reinitialize: () => {},
     getPlaceWithTags: () => null,
-    canAccessTrip: () => null,
+    // Mirror the real canAccessTrip semantics against the test DB (owner or member
+    // → truthy access row, else undefined) so addTripToJourney's trip-access guard
+    // behaves as in production. (Was an unused `() => null` stub before the guard existed.)
+    canAccessTrip: (tripId: number | string, userId: number) =>
+      db
+        .prepare(
+          'SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)',
+        )
+        .get(userId, tripId, userId),
     isOwner: () => false,
   };
   return { testDb: db, dbMock: mock };
@@ -415,6 +423,22 @@ describe('addTripToJourney / removeTripFromJourney', () => {
       'SELECT * FROM journey_trips WHERE journey_id = ? AND trip_id = ?'
     ).get(journey.id, trip.id);
     expect(link).toBeDefined();
+  });
+
+  it('JOURNEY-SVC-024b: refuses to link a trip the caller cannot access (IDOR guard)', () => {
+    const { user } = createUser(testDb);
+    const { user: stranger } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    // A trip owned by someone else, that `user` is not a member of.
+    const foreignTrip = createTrip(testDb, stranger.id, { title: "Stranger's Trip" });
+
+    const result = addTripToJourney(journey.id, foreignTrip.id, user.id);
+
+    expect(result).toBe(false);
+    const link = testDb.prepare(
+      'SELECT * FROM journey_trips WHERE journey_id = ? AND trip_id = ?'
+    ).get(journey.id, foreignTrip.id);
+    expect(link).toBeUndefined();
   });
 
   it('JOURNEY-SVC-025: syncs places as skeleton entries when linking a trip', () => {

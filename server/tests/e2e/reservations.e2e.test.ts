@@ -35,7 +35,7 @@ vi.mock('../../src/services/permissions', () => ({ checkPermission }));
 const { resv, budget, day } = vi.hoisted(() => ({
   resv: {
     verifyTripAccess: vi.fn(), listReservations: vi.fn(), createReservation: vi.fn(), updatePositions: vi.fn(),
-    getReservation: vi.fn(), updateReservation: vi.fn(), deleteReservation: vi.fn(),
+    getReservation: vi.fn(), updateReservation: vi.fn(), deleteReservation: vi.fn(), getUpcomingReservations: vi.fn(),
   },
   budget: { createBudgetItem: vi.fn(), updateBudgetItem: vi.fn(), deleteBudgetItem: vi.fn(), linkBudgetItemToReservation: vi.fn() },
   day: {
@@ -72,6 +72,7 @@ describe('Reservations + accommodations e2e (real auth guard + temp SQLite)', ()
     day.listAccommodations.mockReturnValue([{ id: 1 }]);
     day.validateAccommodationRefs.mockReturnValue([]);
     day.createAccommodation.mockReturnValue({ id: 9 });
+    resv.getUpcomingReservations.mockReturnValue([{ id: 1, trip_id: 5, title: 'Flight' }]);
   });
 
   beforeEach(() => {
@@ -92,6 +93,16 @@ describe('Reservations + accommodations e2e (real auth guard + temp SQLite)', ()
     const res = await request(server).get('/api/trips/5/reservations').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ reservations: [{ id: 1, title: 'Hotel' }] });
+  });
+
+  it('401 without a cookie (upcoming feed)', async () => {
+    expect((await request(server).get('/api/reservations/upcoming')).status).toBe(401);
+  });
+
+  it('200 cross-trip upcoming reservations feed', async () => {
+    const res = await request(server).get('/api/reservations/upcoming').set('Cookie', sessionCookie(1));
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ reservations: [{ id: 1, trip_id: 5, title: 'Flight' }] });
   });
 
   it('404 when trip not accessible (reservations)', async () => {

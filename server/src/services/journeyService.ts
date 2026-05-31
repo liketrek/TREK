@@ -1,4 +1,4 @@
-import { db } from '../db/database';
+import { db, canAccessTrip } from '../db/database';
 import { broadcastToUser } from '../websocket';
 import type { Journey, JourneyEntry, JourneyPhoto, JourneyContributor } from '../types';
 import { getOrCreateTrekPhoto, getOrCreateLocalTrekPhoto, setTrekPhotoProvider, deleteTrekPhotoIfOrphan } from './memories/photoResolverService';
@@ -254,6 +254,11 @@ export function deleteJourney(journeyId: number, userId: number): boolean {
 // ── Trip management ──────────────────────────────────────────────────────
 
 export function addTripToJourney(journeyId: number, tripId: number, userId: number): boolean {
+  // Only attach a trip the caller can actually access — otherwise a journey
+  // owner could pull an arbitrary trip's places + photos into their journey
+  // (cross-tenant leak). Mirrors the trip-access gate every other trip-scoped
+  // path enforces.
+  if (!canAccessTrip(tripId, userId)) return false;
   const now = ts();
   try {
     db.prepare(

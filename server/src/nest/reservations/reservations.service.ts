@@ -34,6 +34,12 @@ export class ReservationsService {
     return svc.listReservations(tripId);
   }
 
+  // Cross-trip "upcoming reservations" feed (dashboard widget). Reuses the legacy
+  // query unchanged; the default limit (6) matches the legacy inline handler.
+  listUpcoming(userId: number) {
+    return svc.getUpcomingReservations(userId);
+  }
+
   create(tripId: string, data: Parameters<typeof svc.createReservation>[1]) {
     return svc.createReservation(tripId, data);
   }

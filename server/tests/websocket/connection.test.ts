@@ -39,27 +39,31 @@ vi.mock('../../src/config', () => ({
   JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
   ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
   updateJwtSecret: () => {},
+  DEFAULT_LANGUAGE: 'en',
 }));
 
-import { createApp } from '../../src/app';
+import type { INestApplication } from '@nestjs/common';
+import { buildApp } from '../../src/bootstrap';
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
-import { resetTestDb } from '../helpers/test-db';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import { createUser, createTrip } from '../helpers/factories';
 import { authCookie } from '../helpers/auth';
-import { loginAttempts, mfaAttempts } from '../../src/routes/auth';
 import { setupWebSocket } from '../../src/websocket';
 import { createEphemeralToken } from '../../src/services/ephemeralTokens';
 
 let server: http.Server;
 let wsUrl: string;
+let nestApp: INestApplication;
 
 beforeAll(async () => {
   createTables(testDb);
   runMigrations(testDb);
 
-  const app = createApp();
-  server = http.createServer(app);
+  // Real WebSocket against the unified NestJS app (Express is gone). buildApp owns
+  // the same composition production uses; we attach the real ws server to it.
+  nestApp = await buildApp();
+  server = http.createServer(nestApp.getHttpAdapter().getInstance());
   setupWebSocket(server);
 
   await new Promise<void>(resolve => server.listen(0, resolve));
@@ -71,13 +75,13 @@ afterAll(async () => {
   await new Promise<void>((resolve, reject) =>
     server.close(err => err ? reject(err) : resolve())
   );
+  await nestApp.close();
   testDb.close();
 });
 
 beforeEach(() => {
   resetTestDb(testDb);
-  loginAttempts.clear();
-  mfaAttempts.clear();
+  resetRateLimits(nestApp);
 });
 
 /** Buffered WebSocket wrapper that never drops messages. */

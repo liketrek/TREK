@@ -3,14 +3,8 @@ import 'dotenv/config';
 import path from 'node:path';
 import fs from 'node:fs';
 import http from 'node:http';
-import express from 'express';
-import { NestFactory } from '@nestjs/core';
-import { ExpressAdapter } from '@nestjs/platform-express';
 import type { INestApplication } from '@nestjs/common';
-import { createApp } from './app';
-import { AppModule } from './nest/app.module';
-import { getNestPrefixes, makeNestPathMatcher } from './nest/strangler';
-import { applyGlobalMiddleware } from './middleware/globalMiddleware';
+import { buildApp } from './bootstrap';
 
 // Create upload and data directories on startup
 const uploadsDir = path.join(__dirname, '../uploads');
@@ -24,11 +18,6 @@ const tmpDir = path.join(__dirname, '../data/tmp');
 [uploadsDir, photosDir, filesDir, coversDir, avatarsDir, backupsDir, tmpDir].forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
-
-// Legacy Express app — unchanged. NestJS (its own Express 5 instance) is mounted
-// in front of it (strangler pattern): migrated route prefixes are served by Nest,
-// everything else falls through to this app via a fallback middleware.
-const legacyApp = createApp();
 
 import * as scheduler from './scheduler';
 import { getAppUrl, getMcpSafeUrl } from './services/notifications';
@@ -61,11 +50,7 @@ const onListen = () => {
     '──────────────────────────────────────',
   ];
   banner.forEach(l => console.log(l));
-  sLogInfo(
-    NEST_PREFIXES.length
-      ? `NestJS handling prefixes: ${NEST_PREFIXES.join(', ')} (override via NEST_PREFIXES)`
-      : 'NestJS prefixes: none — all routes served by the legacy Express app',
-  );
+  sLogInfo('NestJS serving all routes (Express decommissioned)');
   if (process.env.APP_URL) {
     let parsedAppUrl: URL | null = null;
     try { parsedAppUrl = new URL(process.env.APP_URL); } catch { /* invalid */ }
@@ -105,34 +90,13 @@ let server: http.Server;
 let nestApp: INestApplication;
 
 // Strangler toggle: prefixes served by Nest (env-overridable, instant rollback).
-const NEST_PREFIXES = getNestPrefixes();
-const isNestPath = makeNestPathMatcher(NEST_PREFIXES);
-
 async function bootstrap(): Promise<void> {
-  // Nest runs on its own Express instance (bodyParser off so request bodies reach
-  // the legacy app untouched — it has its own parsers; /mcp relies on raw body).
-  // Nest body parsing is safe here: the dispatcher only forwards migrated
-  // prefixes to this instance, so the legacy app (and raw-body routes like /mcp)
-  // is reached separately and never passes through Nest's parser.
-  nestApp = await NestFactory.create(AppModule, new ExpressAdapter());
-  const nestInstance = nestApp.getHttpAdapter().getInstance();
-  // Apply the SAME global request pipeline the legacy app uses (helmet/CSP, CORS,
-  // HSTS, forced-HTTPS, the global MFA policy, request logging + cookie-parser) so a
-  // migrated Nest route is protected identically to the legacy fallback. Without this
-  // the dispatcher forwards Nest paths straight to this instance, bypassing all of it.
-  // Nest does its own body parsing, so bodyParser:false avoids parsing twice.
-  applyGlobalMiddleware(nestInstance, { bodyParser: false });
-  // (TrekExceptionFilter is registered globally via APP_FILTER in AppModule.)
-  await nestApp.init();
-
-  // Top-level dispatcher: migrated prefixes -> Nest, everything else -> legacy
-  // Express (unchanged). Nest never sees non-migrated paths, so its 404 handler
-  // only applies within migrated prefixes.
-  const top = express();
-  top.use((req, res, next) => (isNestPath(req.path) ? nestInstance(req, res, next) : next()));
-  top.use(legacyApp);
-
-  server = http.createServer(top);
+  // The whole surface runs on the single NestJS app now (Express decommissioned):
+  // global pipeline + /uploads + every /api domain + the platform/transport routes
+  // (/mcp, /.well-known, OAuth SDK, SPA catch-all). buildApp() owns the composition
+  // order; it is shared with the integration-test harness so they can't drift.
+  nestApp = await buildApp();
+  server = http.createServer(nestApp.getHttpAdapter().getInstance());
   if (HOST) server.listen(PORT, HOST, onListen);
   else server.listen(PORT, onListen);
 }
@@ -165,5 +129,3 @@ function shutdown(signal: string): void {
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
-
-export default legacyApp;

@@ -16,7 +16,6 @@
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "test:ws": "vitest run tests/websocket",
-    "test:parity": "vitest run tests/parity",
     "test:e2e": "vitest run tests/e2e",
     "test:coverage": "vitest run --coverage"
   },
