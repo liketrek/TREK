@@ -447,7 +447,7 @@ export function MapViewGL({
       geometry: { type: 'LineString' as const, coordinates: seg.map(([lat, lng]) => [lng, lat]) },
     }))
     src.setData({ type: 'FeatureCollection', features })
-  }, [route])
+  }, [route, mapReady])
 
   // Travel times now live in the day sidebar (per-segment connectors), not on the map.
 
@@ -470,7 +470,7 @@ export function MapViewGL({
       } catch { return [] }
     })
     src.setData({ type: 'FeatureCollection', features })
-  }, [places])
+  }, [places, mapReady])
 
   // Reservation overlay — mirrors the Leaflet ReservationOverlay: great-
   // circle arcs for flights/cruises, straight lines for trains/cars,
