@@ -31,7 +31,7 @@ import {
 import { formatDate, formatTime, dayTotalCost, currencyDecimals, splitReservationDateTime } from '../../utils/formatters'
 import { useDayNotes } from '../../hooks/useDayNotes'
 import Tooltip from '../shared/Tooltip'
-import type { Trip, Day, Place, Category, Assignment, Reservation, AssignmentsMap, RouteResult, RouteSegment } from '../../types'
+import type { Trip, Day, Place, Category, Assignment, Accommodation, Reservation, AssignmentsMap, RouteResult, RouteSegment } from '../../types'
 
 const NOTE_ICONS = [
   { id: 'FileText', Icon: FileText },
@@ -169,7 +169,7 @@ interface DayPlanSidebarProps {
   onSelectDay: (dayId: number | null) => void
   onPlaceClick: (placeId: number) => void
   onDayDetail: (day: Day) => void
-  accommodations?: Assignment[]
+  accommodations?: Accommodation[]
   onReorder: (dayId: number, orderedIds: number[]) => void
   onUpdateDayTitle: (dayId: number, title: string) => void
   onRouteCalculated: (dayId: number, route: RouteResult | null) => void
@@ -277,9 +277,9 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   const [expandedDays, setExpandedDays] = useState(() => {
     try {
       const saved = sessionStorage.getItem(`day-expanded-${tripId}`)
-      if (saved) return new Set(JSON.parse(saved))
+      if (saved) return new Set<number>(JSON.parse(saved) as number[])
     } catch {}
-    return new Set(days.map(d => d.id))
+    return new Set<number>(days.map(d => d.id))
   })
   useEffect(() => { onExpandedDaysChange?.(expandedDays) }, [expandedDays])
   const [editingDayId, setEditingDayId] = useState(null)
@@ -921,7 +921,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
 
   const totalCost = useMemo(() => days.reduce((s, d) => {
     const da = assignments[String(d.id)] || []
-    return s + da.reduce((s2, a) => s2 + (parseFloat(a.place?.price) || 0), 0)
+    return s + da.reduce((s2, a) => s2 + (Number(a.place?.price) || 0), 0)
   }, 0), [days, assignments])
 
   // Bester verfügbarer Standort für Wetter: zugewiesene Orte zuerst, dann beliebiger Reiseort
@@ -1416,8 +1416,11 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
               >
                 {/* Tages-Badge: Nummer oben, darunter (falls vorhanden) das Wetter des Tages */}
                 {(() => {
-                  const wLat = loc?.place.lat ?? anyGeoPlace?.place?.lat ?? anyGeoPlace?.lat
-                  const wLng = loc?.place.lng ?? anyGeoPlace?.place?.lng ?? anyGeoPlace?.lng
+                  // anyGeoPlace is an assignment (has .place) or a bare place — read coords from either.
+                  const geoLat = anyGeoPlace ? ('place' in anyGeoPlace ? anyGeoPlace.place?.lat : anyGeoPlace.lat) : undefined
+                  const geoLng = anyGeoPlace ? ('place' in anyGeoPlace ? anyGeoPlace.place?.lng : anyGeoPlace.lng) : undefined
+                  const wLat = loc?.place?.lat ?? geoLat
+                  const wLng = loc?.place?.lng ?? geoLng
                   const hasWeather = !!(day.date && anyGeoPlace && wLat != null && wLng != null)
                   return (
                     <div style={{

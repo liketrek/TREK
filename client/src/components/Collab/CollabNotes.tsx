@@ -19,6 +19,7 @@ interface NoteFile {
   filename: string
   original_name: string
   mime_type: string
+  file_size?: number | null
   url?: string
 }
 
@@ -39,6 +40,8 @@ interface CollabNote {
   author?: { username: string; avatar: string | null }
   user?: { username: string; avatar: string | null }
   files?: NoteFile[]
+  // Wire field: collabService embeds note files as `attachments` (with url).
+  attachments?: NoteFile[]
 }
 
 interface NoteAuthor {
@@ -180,7 +183,7 @@ const formatTimestamp = (ts, t, locale) => {
   if (!ts) return ''
   const d = new Date(ts.endsWith?.('Z') ? ts : ts + 'Z')
   const now = new Date()
-  const diffMs = now - d
+  const diffMs = now.getTime() - d.getTime()
   const diffMins = Math.floor(diffMs / 60000)
   if (diffMins < 1) return t('collab.chat.justNow') || 'just now'
   if (diffMins < 60) return t('collab.chat.minutesAgo', { n: diffMins }) || `${diffMins}m ago`
@@ -240,7 +243,7 @@ function UserAvatar({ user, size = 14 }: UserAvatarProps) {
 // ── New Note Modal (portal to body) ─────────────────────────────────────────
 interface NoteFormModalProps {
   onClose: () => void
-  onSubmit: (data: { title: string; content: string; category: string; website: string; files?: File[] }) => Promise<void>
+  onSubmit: (data: { title: string; content: string; category: string | null; website: string | null; color?: string | null; _pendingFiles?: File[]; files?: File[] }) => Promise<void>
   onDeleteFile?: (noteId: number, fileId: number) => Promise<void>
   existingCategories: string[]
   categoryColors: Record<string, string>
@@ -849,7 +852,7 @@ function NoteCard({ note, currentUser, canEdit, onUpdate, onDelete, onEdit, onVi
             )}
           </div>
               {/* Right: website + attachment thumbnails */}
-              {(note.website || note.attachments?.length > 0) && (
+              {(note.website || (note.attachments?.length ?? 0) > 0) && (
                 <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'flex-start' }}>
                   {/* Website */}
                   {note.website && (

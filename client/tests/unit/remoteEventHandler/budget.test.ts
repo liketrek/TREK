@@ -2,15 +2,15 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useTripStore } from '../../../src/store/tripStore';
 import { resetAllStores } from '../../helpers/store';
 import { buildBudgetItem } from '../../helpers/factories';
-import type { BudgetMember } from '../../../src/types';
+import type { BudgetItemMember } from '../../../src/types';
 
 beforeEach(() => {
   resetAllStores();
 });
 
 describe('remoteEventHandler > budget', () => {
-  const member1: BudgetMember = { user_id: 5, paid: false };
-  const member2: BudgetMember = { user_id: 6, paid: true };
+  const member1: BudgetItemMember = { user_id: 5, paid: 0, username: 'eve' };
+  const member2: BudgetItemMember = { user_id: 6, paid: 1, username: 'frank' };
 
   const seedData = () => {
     useTripStore.setState({
@@ -40,12 +40,12 @@ describe('remoteEventHandler > budget', () => {
 
   it('FE-WSEVT-BUDGET-003: budget:updated replaces item in array', () => {
     seedData();
-    const updated = buildBudgetItem({ id: 1, name: 'Updated Hotel', amount: 500 });
+    const updated = buildBudgetItem({ id: 1, name: 'Updated Hotel', total_price: 500 });
     useTripStore.getState().handleRemoteEvent({ type: 'budget:updated', item: updated });
     const { budgetItems } = useTripStore.getState();
     const item = budgetItems.find(i => i.id === 1);
     expect(item?.name).toBe('Updated Hotel');
-    expect(item?.amount).toBe(500);
+    expect(item?.total_price).toBe(500);
   });
 
   it('FE-WSEVT-BUDGET-004: budget:deleted removes item by ID', () => {
@@ -58,7 +58,7 @@ describe('remoteEventHandler > budget', () => {
 
   it('FE-WSEVT-BUDGET-005: budget:members-updated replaces entire members array and persons count', () => {
     seedData();
-    const newMembers: BudgetMember[] = [{ user_id: 7, paid: true }, { user_id: 8, paid: false }];
+    const newMembers: BudgetItemMember[] = [{ user_id: 7, paid: 1, username: 'grace' }, { user_id: 8, paid: 0, username: 'heidi' }];
     useTripStore.getState().handleRemoteEvent({
       type: 'budget:members-updated',
       itemId: 1,
@@ -86,8 +86,8 @@ describe('remoteEventHandler > budget', () => {
     const item = budgetItems.find(i => i.id === 1);
     const m = item?.members?.find(m => m.user_id === 5);
     expect(m?.paid).toBe(true);
-    // Other item members unchanged
+    // Other item members unchanged (member2 keeps its seeded paid value)
     const item2 = budgetItems.find(i => i.id === 2);
-    expect(item2?.members?.[0].paid).toBe(true);
+    expect(item2?.members?.[0].paid).toBe(1);
   });
 });

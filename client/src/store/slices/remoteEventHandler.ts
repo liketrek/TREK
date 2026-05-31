@@ -1,6 +1,6 @@
 import type { StoreApi } from 'zustand'
 import type { TripStoreState } from '../tripStore'
-import type { Assignment, Place, Day, DayNote, PackingItem, TodoItem, BudgetItem, BudgetMember, Reservation, Trip, TripFile, WebSocketEvent } from '../../types'
+import type { Assignment, Place, Day, DayNote, PackingItem, TodoItem, BudgetItem, BudgetItemMember, Reservation, Trip, TripFile, WebSocketEvent } from '../../types'
 import { offlineDb } from '../../db/offlineDb'
 
 type SetState = StoreApi<TripStoreState>['setState']
@@ -250,7 +250,7 @@ export function handleRemoteEvent(set: SetState, get: GetState, event: WebSocket
       case 'assignment:reordered': {
         const dayKey = String(payload.dayId)
         const currentItems = state.assignments[dayKey] || []
-        const orderedIds: number[] = payload.orderedIds || []
+        const orderedIds: number[] = (payload.orderedIds as number[] | undefined) || []
         const reordered = orderedIds.map((id, idx) => {
           const item = currentItems.find(a => a.id === id)
           return item ? { ...item, order_index: idx } : null
@@ -356,7 +356,7 @@ export function handleRemoteEvent(set: SetState, get: GetState, event: WebSocket
       case 'budget:members-updated':
         return {
           budgetItems: state.budgetItems.map(i =>
-            i.id === payload.itemId ? { ...i, members: payload.members as BudgetMember[], persons: payload.persons as number } : i
+            i.id === payload.itemId ? { ...i, members: payload.members as BudgetItemMember[], persons: payload.persons as number } : i
           ),
         }
       case 'budget:member-paid-updated':

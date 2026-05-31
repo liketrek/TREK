@@ -3,7 +3,9 @@ import ReactDOM from 'react-dom'
 import { ChevronDown, Check } from 'lucide-react'
 
 interface SelectOption {
-  value: string
+  // Callers use both string keys and numeric ids (e.g. day/place ids) as values;
+  // the component only does strict-equality lookups and key rendering, so either works.
+  value: string | number
   label: string
   icon?: React.ReactNode
   isHeader?: boolean
@@ -13,8 +15,8 @@ interface SelectOption {
 }
 
 interface CustomSelectProps {
-  value: string
-  onChange: (value: string) => void
+  value: string | number
+  onChange: (value: string | number) => void
   options?: SelectOption[]
   placeholder?: string
   searchable?: boolean

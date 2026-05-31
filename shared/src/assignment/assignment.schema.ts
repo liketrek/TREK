@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { assignmentPlaceSchema } from '../place/place.schema';
 
 /**
  * Assignment API contract — single source of truth for the place↔day itinerary
@@ -10,6 +11,38 @@ import { z } from 'zod';
  * Assignment rows carry joined place data and are kept open in responses; the
  * request schemas + the bespoke 404/400 controller messages pin the rest.
  */
+
+/**
+ * Assignment participant embedded on an assignment
+ * (server/src/services/queryHelpers.ts -> loadParticipantsByAssignmentIds).
+ */
+export const assignmentParticipantSchema = z.object({
+  user_id: z.number(),
+  username: z.string(),
+  avatar: z.string().nullable().optional(),
+});
+export type AssignmentParticipant = z.infer<typeof assignmentParticipantSchema>;
+
+/**
+ * Assignment entity as returned by the day/assignment endpoints
+ * (server/src/services/queryHelpers.ts -> formatAssignmentWithPlace, and
+ * assignmentService.getAssignmentWithPlace). The embedded `place` is the trimmed
+ * assignment-place projection, NOT the full place pool entity. `assignment_time`
+ * /`assignment_end_time` carry the per-assignment override times.
+ */
+export const assignmentSchema = z.object({
+  id: z.number(),
+  day_id: z.number(),
+  place_id: z.number(),
+  order_index: z.number(),
+  notes: z.string().nullable().optional(),
+  assignment_time: z.string().nullable().optional(),
+  assignment_end_time: z.string().nullable().optional(),
+  participants: z.array(assignmentParticipantSchema).optional(),
+  created_at: z.string().optional(),
+  place: assignmentPlaceSchema,
+});
+export type Assignment = z.infer<typeof assignmentSchema>;
 
 export const assignmentCreateRequestSchema = z.object({
   place_id: z.union([z.number(), z.string()]),

@@ -25,10 +25,10 @@ function buildPhoto(overrides: Partial<Photo> = {}): Photo {
   return {
     id: 1,
     trip_id: 1,
-    filename: 'photo1.jpg',
+    url: '/uploads/photos/photo1.jpg',
     original_name: 'photo1.jpg',
     mime_type: 'image/jpeg',
-    size: 12345,
+    file_size: 12345,
     caption: null,
     place_id: null,
     day_id: null,

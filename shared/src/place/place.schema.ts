@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { categorySchema } from '../category/category.schema';
+import { tagSchema } from '../tag/tag.schema';
 
 /**
  * Place API contract — single source of truth for the /api/trips/:tripId/places
@@ -13,6 +15,90 @@ import { z } from 'zod';
  */
 
 const open = z.record(z.string(), z.unknown());
+
+/**
+ * Embedded category as returned on a place — a trimmed projection of the
+ * categories row (id/name/color/icon), built inline by placeService and
+ * getPlaceWithTags. `null` when the place has no category_id.
+ */
+export const placeCategorySchema = z
+  .object({
+    id: z.number(),
+    name: z.string().nullable(),
+    color: z.string().nullable(),
+    icon: z.string().nullable(),
+  })
+  .nullable();
+export type PlaceCategory = z.infer<typeof placeCategorySchema>;
+
+/**
+ * Full place entity as returned by the place list / get / create / update
+ * endpoints (server/src/services/placeService.ts -> getPlaceWithTags). All
+ * columns of the `places` table (see server/data DB) plus the joined `category`
+ * projection and `tags` array. Numbers (lat/lng/price) are SQLite REAL, ids are
+ * INTEGER; provider-derived columns are nullable.
+ */
+export const placeSchema = z.object({
+  id: z.number(),
+  trip_id: z.number(),
+  name: z.string(),
+  description: z.string().nullable().optional(),
+  lat: z.number().nullable().optional(),
+  lng: z.number().nullable().optional(),
+  address: z.string().nullable().optional(),
+  category_id: z.number().nullable().optional(),
+  price: z.number().nullable().optional(),
+  currency: z.string().nullable().optional(),
+  reservation_status: z.string().nullable().optional(),
+  reservation_notes: z.string().nullable().optional(),
+  reservation_datetime: z.string().nullable().optional(),
+  place_time: z.string().nullable().optional(),
+  end_time: z.string().nullable().optional(),
+  duration_minutes: z.number().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  image_url: z.string().nullable().optional(),
+  google_place_id: z.string().nullable().optional(),
+  osm_id: z.string().nullable().optional(),
+  route_geometry: z.string().nullable().optional(),
+  website: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  transport_mode: z.string().nullable().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+  category: placeCategorySchema.optional(),
+  tags: z.array(tagSchema.partial()).optional(),
+});
+export type Place = z.infer<typeof placeSchema>;
+
+/**
+ * Trimmed place projection embedded inside a day-assignment response
+ * (server/src/services/queryHelpers.ts -> formatAssignmentWithPlace). This is a
+ * SUBSET of the full place: no trip_id / osm_id / route_geometry / created_at /
+ * reservation_* — only the fields the planner needs to render the itinerary card.
+ */
+export const assignmentPlaceSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  description: z.string().nullable().optional(),
+  lat: z.number().nullable().optional(),
+  lng: z.number().nullable().optional(),
+  address: z.string().nullable().optional(),
+  category_id: z.number().nullable().optional(),
+  price: z.number().nullable().optional(),
+  currency: z.string().nullable().optional(),
+  place_time: z.string().nullable().optional(),
+  end_time: z.string().nullable().optional(),
+  duration_minutes: z.number().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  image_url: z.string().nullable().optional(),
+  transport_mode: z.string().nullable().optional(),
+  google_place_id: z.string().nullable().optional(),
+  website: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  category: placeCategorySchema.optional(),
+  tags: z.array(tagSchema.partial()).optional(),
+});
+export type AssignmentPlace = z.infer<typeof assignmentPlaceSchema>;
 
 export const placeCreateRequestSchema = open.and(z.object({ name: z.string().min(1) }));
 export type PlaceCreateRequest = z.infer<typeof placeCreateRequestSchema>;

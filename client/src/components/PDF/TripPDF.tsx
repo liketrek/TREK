@@ -3,7 +3,7 @@ import { createElement } from 'react'
 import { getCategoryIcon } from '../shared/categoryIcons'
 import { FileText, Info, Clock, MapPin, Navigation, Train, Plane, Bus, Car, Ship, Coffee, Ticket, Star, Heart, Camera, Flag, Lightbulb, AlertTriangle, ShoppingBag, Bookmark, Hotel, LogIn, LogOut, KeyRound, BedDouble, Utensils, Users, LucideIcon } from 'lucide-react'
 import { accommodationsApi, mapsApi } from '../../api/client'
-import type { Trip, Day, Place, Category, AssignmentsMap, DayNotesMap } from '../../types'
+import type { Trip, Day, Place, Category, AssignmentsMap, DayNote } from '../../types'
 import { isDayInAccommodationRange, getDayOrder } from '../../utils/dayOrder'
 import { splitReservationDateTime } from '../../utils/formatters'
 
@@ -117,7 +117,8 @@ interface downloadTripPDFProps {
   places: Place[]
   assignments: AssignmentsMap
   categories: Category[]
-  dayNotes: DayNotesMap
+  // Flattened across days: each note carries its own day_id (see downloadTripPDF callers).
+  dayNotes: DayNote[]
   reservations?: any[]
   t: (key: string, params?: Record<string, string | number>) => string
   locale: string
@@ -190,7 +191,7 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
       .filter(r => !(r.type === 'car' && pdfGetSpanPhase(r, day.id) === 'middle'))
 
     const merged = []
-    assigned.forEach(a => merged.push({ type: 'place', k: a.order_index ?? a.sort_order ?? 0, data: a }))
+    assigned.forEach(a => merged.push({ type: 'place', k: a.order_index ?? 0, data: a }))
     notes.forEach(n    => merged.push({ type: 'note',  k: n.sort_order ?? 0, data: n }))
     dayReservations.forEach(r => {
       const pos = r.day_positions?.[day.id] ?? r.day_positions?.[String(day.id)] ?? r.day_plan_position ?? (merged.length > 0 ? Math.max(...merged.map(m => m.k)) + 0.5 : 0.5)

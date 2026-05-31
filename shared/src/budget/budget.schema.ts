@@ -12,6 +12,44 @@ import { z } from 'zod';
  * linked reservation's metadata (and broadcasts reservation:updated).
  */
 
+/**
+ * Budget item member as embedded on a budget item
+ * (server/src/services/budgetService.ts -> loadItemMembers). `paid` is the raw
+ * SQLite INTEGER (0/1); `avatar_url` is the resolved avatar (avatarUrl()).
+ */
+export const budgetItemMemberSchema = z.object({
+  user_id: z.number(),
+  paid: z.number(),
+  username: z.string(),
+  avatar_url: z.string().nullable().optional(),
+  avatar: z.string().nullable().optional(),
+  budget_item_id: z.number().optional(),
+});
+export type BudgetItemMember = z.infer<typeof budgetItemMemberSchema>;
+
+/**
+ * Budget item entity as returned by the budget list/create/update endpoints
+ * (server/src/services/budgetService.ts). Columns of the `budget_items` table
+ * plus the embedded `members` array. total_price is SQLite REAL.
+ */
+export const budgetItemSchema = z.object({
+  id: z.number(),
+  trip_id: z.number(),
+  category: z.string(),
+  name: z.string(),
+  total_price: z.number(),
+  persons: z.number().nullable().optional(),
+  days: z.number().nullable().optional(),
+  note: z.string().nullable().optional(),
+  reservation_id: z.number().nullable().optional(),
+  paid_by_user_id: z.number().nullable().optional(),
+  expense_date: z.string().nullable().optional(),
+  sort_order: z.number().optional(),
+  created_at: z.string().optional(),
+  members: z.array(budgetItemMemberSchema).optional(),
+});
+export type BudgetItem = z.infer<typeof budgetItemSchema>;
+
 export const budgetCreateItemRequestSchema = z.object({
   name: z.string().min(1),
   category: z.string().optional(),

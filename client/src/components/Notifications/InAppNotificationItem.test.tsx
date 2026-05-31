@@ -6,9 +6,10 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { useInAppNotificationStore } from '../../store/inAppNotificationStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildSettings } from '../../../tests/helpers/factories';
+import type { InAppNotification } from '../../store/inAppNotificationStore';
 import InAppNotificationItem from './InAppNotificationItem';
 
-const buildNotification = (overrides = {}) => ({
+const buildNotification = (overrides: Partial<InAppNotification> = {}): InAppNotification => ({
   id: 1,
   type: 'simple',
   scope: 'trip',
@@ -18,15 +19,15 @@ const buildNotification = (overrides = {}) => ({
   sender_avatar: null,
   recipient_id: 1,
   title_key: 'notifications.title',
-  title_params: '{}',
+  title_params: {},
   text_key: 'notifications.empty',
-  text_params: '{}',
+  text_params: {},
   positive_text_key: null,
   negative_text_key: null,
   response: null,
   navigate_text_key: null,
   navigate_target: null,
-  is_read: 0,
+  is_read: false,
   created_at: new Date().toISOString(),
   ...overrides,
 });
@@ -62,12 +63,12 @@ describe('InAppNotificationItem', () => {
   });
 
   it('FE-COMP-NOTIF-005: shows Mark as read button for unread notification', () => {
-    render(<InAppNotificationItem notification={buildNotification({ is_read: 0 })} />);
+    render(<InAppNotificationItem notification={buildNotification({ is_read: false })} />);
     expect(screen.getByTitle('Mark as read')).toBeInTheDocument();
   });
 
   it('FE-COMP-NOTIF-006: does not show Mark as read button for read notification', () => {
-    render(<InAppNotificationItem notification={buildNotification({ is_read: 1 })} />);
+    render(<InAppNotificationItem notification={buildNotification({ is_read: true })} />);
     expect(screen.queryByTitle('Mark as read')).not.toBeInTheDocument();
   });
 
@@ -80,7 +81,7 @@ describe('InAppNotificationItem', () => {
     const user = userEvent.setup();
     const markRead = vi.fn().mockResolvedValue(undefined);
     seedStore(useInAppNotificationStore, { markRead });
-    render(<InAppNotificationItem notification={buildNotification({ id: 42, is_read: 0 })} />);
+    render(<InAppNotificationItem notification={buildNotification({ id: 42, is_read: false })} />);
     await user.click(screen.getByTitle('Mark as read'));
     expect(markRead).toHaveBeenCalledWith(42);
   });
@@ -190,7 +191,7 @@ describe('InAppNotificationItem', () => {
           type: 'navigate',
           navigate_text_key: 'notifications.title',
           navigate_target: '/trips/1',
-          is_read: 0,
+          is_read: false,
         })}
         onClose={onClose}
       />

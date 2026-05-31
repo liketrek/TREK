@@ -79,6 +79,6 @@ export function splitReservationDateTime(value?: string | null): { date: string 
 
 export function dayTotalCost(dayId: number, assignments: AssignmentsMap, currency: string): string | null {
   const da = assignments[String(dayId)] || []
-  const total = da.reduce((s, a) => s + (parseFloat(a.place?.price || '') || 0), 0)
+  const total = da.reduce((s, a) => s + (parseFloat(String(a.place?.price ?? '')) || 0), 0)
   return total > 0 ? `${total.toFixed(0)} ${currency}` : null
 }

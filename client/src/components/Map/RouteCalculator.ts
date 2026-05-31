@@ -78,12 +78,12 @@ export function generateGoogleMapsUrl(places: Waypoint[]): string | null {
 }
 
 /** Reorders waypoints using a nearest-neighbor heuristic to minimize total Euclidean distance. */
-export function optimizeRoute(places: Waypoint[]): Waypoint[] {
+export function optimizeRoute<T extends Waypoint>(places: T[]): T[] {
   const valid = places.filter((p) => p.lat && p.lng)
   if (valid.length <= 2) return places
 
   const visited = new Set<number>()
-  const result: Waypoint[] = []
+  const result: T[] = []
   let current = valid[0]
   visited.add(0)
   result.push(current)

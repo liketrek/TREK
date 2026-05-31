@@ -104,6 +104,7 @@ function formatFileSize(bytes) {
 interface TripMember {
   id: number
   username: string
+  avatar?: string | null
   avatar_url?: string | null
 }
 

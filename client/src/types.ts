@@ -1,4 +1,53 @@
-// Shared types for the TREK travel planner
+// Shared types for the TREK travel planner.
+//
+// Domain entity/response types are now sourced from @trek/shared — the single
+// source of truth shared with the server. The Zod schemas there are built to
+// match the REAL server response shapes (see shared/src/<domain>/*.schema.ts,
+// each documented against the producing service). Re-exported here so the rest
+// of the client keeps importing from '../types' unchanged.
+import type {
+  Trip,
+  TripMember,
+  Day,
+  DayNote,
+  Place,
+  AssignmentPlace,
+  PlaceCategory,
+  Assignment,
+  AssignmentParticipant,
+  PackingItem,
+  PackingBag,
+  PackingBagMember,
+  BudgetItem,
+  BudgetItemMember,
+  Reservation,
+  ReservationEndpoint,
+  Accommodation,
+  Tag,
+  Category,
+} from '@trek/shared'
+
+export type {
+  Trip,
+  TripMember,
+  Day,
+  DayNote,
+  Place,
+  AssignmentPlace,
+  PlaceCategory,
+  Assignment,
+  AssignmentParticipant,
+  PackingItem,
+  PackingBag,
+  PackingBagMember,
+  BudgetItem,
+  BudgetItemMember,
+  Reservation,
+  ReservationEndpoint,
+  Accommodation,
+  Tag,
+  Category,
+}
 
 export interface User {
   id: number
@@ -14,85 +63,6 @@ export interface User {
   must_change_password?: boolean
 }
 
-export interface Trip {
-  id: number
-  name: string
-  description: string | null
-  start_date: string
-  end_date: string
-  cover_url: string | null
-  is_archived: boolean
-  reminder_days: number
-  owner_id: number
-  created_at: string
-  updated_at: string
-}
-
-export interface Day {
-  id: number
-  trip_id: number
-  day_number?: number
-  date: string
-  title: string | null
-  notes: string | null
-  assignments: Assignment[]
-  notes_items: DayNote[]
-}
-
-export interface Place {
-  id: number
-  trip_id: number
-  name: string
-  description: string | null
-  notes: string | null
-  lat: number | null
-  lng: number | null
-  address: string | null
-  category_id: number | null
-  icon: string | null
-  price: string | null
-  currency: string | null
-  image_url: string | null
-  google_place_id: string | null
-  osm_id: string | null
-  route_geometry: string | null
-  place_time: string | null
-  end_time: string | null
-  duration_minutes: number | null
-  transport_mode: string | null
-  website: string | null
-  phone: string | null
-  created_at: string
-}
-
-export interface Assignment {
-  id: number
-  day_id: number
-  place_id?: number
-  order_index: number
-  notes: string | null
-  place: Place
-}
-
-export interface DayNote {
-  id: number
-  day_id: number
-  text: string
-  time: string | null
-  icon: string | null
-  sort_order?: number
-  created_at: string
-}
-
-export interface PackingItem {
-  id: number
-  trip_id: number
-  name: string
-  category: string | null
-  checked: number
-  quantity: number
-}
-
 export interface TodoItem {
   id: number
   trip_id: number
@@ -104,82 +74,6 @@ export interface TodoItem {
   description: string | null
   assigned_user_id: number | null
   priority: number
-}
-
-export interface Tag {
-  id: number
-  name: string
-  color: string | null
-  user_id: number
-}
-
-export interface Category {
-  id: number
-  name: string
-  icon: string | null
-  user_id: number
-}
-
-export interface BudgetItem {
-  id: number
-  trip_id: number
-  name: string
-  amount: number
-  currency: string
-  category: string | null
-  paid_by: number | null
-  persons: number
-  members: BudgetMember[]
-  expense_date: string | null
-}
-
-export interface BudgetMember {
-  user_id: number
-  paid: boolean
-}
-
-export interface ReservationEndpoint {
-  id?: number
-  reservation_id?: number
-  role: 'from' | 'to' | 'stop'
-  sequence: number
-  name: string
-  code: string | null
-  lat: number
-  lng: number
-  timezone: string | null
-  local_time: string | null
-  local_date: string | null
-}
-
-export interface Reservation {
-  id: number
-  trip_id: number
-  name: string
-  title?: string
-  type: string
-  status: 'pending' | 'confirmed'
-  date: string | null
-  time: string | null
-  reservation_time?: string | null
-  reservation_end_time?: string | null
-  location?: string | null
-  confirmation_number: string | null
-  notes: string | null
-  url: string | null
-  day_id?: number | null
-  end_day_id?: number | null
-  place_id?: number | null
-  assignment_id?: number | null
-  accommodation_id?: number | null
-  accommodation_start_day_id?: number | null
-  accommodation_end_day_id?: number | null
-  day_plan_position?: number | null
-  day_positions?: Record<number, number> | null
-  metadata?: Record<string, string> | string | null
-  needs_review?: number
-  endpoints?: ReservationEndpoint[]
-  created_at: string
 }
 
 export interface TripFile {
@@ -200,8 +94,10 @@ export interface TripFile {
   deleted_at?: string | null
   created_at: string
   reservation_title?: string
-  linked_reservation_ids?: number[]
-  url?: string
+  linked_reservation_ids?: (number | null)[]
+  linked_place_ids?: (number | null)[]
+  /** Served download path — always present on list/create/update responses (formatFile). */
+  url: string
 }
 
 export interface Settings {
@@ -271,41 +167,20 @@ export interface UserWithOidc extends User {
   oidc_issuer?: string | null
 }
 
-// Accommodation type
-export interface Accommodation {
-  id: number
-  trip_id: number
-  name: string
-  address: string | null
-  check_in: string | null
-  check_in_end: string | null
-  check_out: string | null
-  confirmation_number: string | null
-  notes: string | null
-  url: string | null
-  created_at: string
-}
-
-// Trip member (owner or collaborator)
-export interface TripMember {
-  id: number
-  username: string
-  email?: string
-  avatar_url?: string | null
-  role?: string
-}
-
-// Photo type
+// Photo type — trip photo as consumed by the PhotosPage / PhotoGallery /
+// PhotoLightbox surface (photos table joined with a served `url`). file_size is
+// the photos.file_size column; url is the served upload path.
 export interface Photo {
   id: number
-  trip_id: number
-  filename: string
+  trip_id?: number
+  url: string
   original_name: string
-  mime_type: string
-  size: number
+  mime_type?: string
+  file_size?: number | null
   caption: string | null
   place_id: number | null
   day_id: number | null
+  taken_at?: string | null
   created_at: string
 }
 
@@ -381,6 +256,8 @@ export interface VacayPlan {
   block_weekends: boolean
   carry_over_enabled: boolean
   company_holidays_enabled: boolean
+  // Comma-separated weekday indices (e.g. '0,6'); stored as TEXT on vacay_plans.
+  weekend_days?: string
   week_start?: number
   name?: string
   year?: number
@@ -403,10 +280,18 @@ export interface VacayEntry {
   person_name?: string
 }
 
+// Vacay per-user stats row as returned by getStats
+// (server/src/services/vacayService.ts -> getStats).
 export interface VacayStat {
   user_id: number
+  person_name: string
+  person_color: string
+  year: number
   vacation_days: number
+  carried_over: number
+  total_available: number
   used: number
+  remaining: number
 }
 
 export interface HolidayInfo {

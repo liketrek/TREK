@@ -36,7 +36,7 @@ export default function VacayCalendar() {
   }, [selectedYear])
 
   const companyHolidaySet = useMemo(() => {
-    const s = new Set()
+    const s = new Set<string>()
     companyHolidays.forEach(h => s.add(h.date))
     return s
   }, [companyHolidays])

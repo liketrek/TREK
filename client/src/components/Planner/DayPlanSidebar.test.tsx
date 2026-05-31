@@ -1393,7 +1393,7 @@ describe('DayPlanSidebar', () => {
     const assignment = buildAssignment({ id: 11, day_id: 10, order_index: 0, place })
     const flight = buildReservation({
       id: 77, trip_id: 1, type: 'flight', status: 'confirmed',
-      date: '2025-06-01', reservation_time: '2025-06-01T10:00:00Z',
+      reservation_time: '2025-06-01T10:00:00Z',
     })
     render(<DayPlanSidebar {...makeDefaultProps({
       days: [day], places: [place],
@@ -1553,7 +1553,7 @@ describe('DayPlanSidebar', () => {
     const a2 = buildAssignment({ id: 22, day_id: 10, order_index: 1, place: placeB })
     const flight = buildReservation({
       id: 77, trip_id: 1, type: 'flight', status: 'confirmed',
-      date: '2025-06-01', reservation_time: '2025-06-01T12:00:00Z',
+      reservation_time: '2025-06-01T12:00:00Z',
     })
     render(<DayPlanSidebar {...makeDefaultProps({
       days: [day], places: [placeA, placeB],

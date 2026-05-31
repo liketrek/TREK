@@ -13,7 +13,9 @@ import type { Trip } from '../../types'
 interface TripFormModalProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (data: Record<string, string | number | null>) => Promise<void> | void
+  // Create returns the new trip (so we can attach members / upload the cover);
+  // update resolves without a payload.
+  onSave: (data: Record<string, string | number | null>) => Promise<{ trip?: Trip } | void> | void
   trip: Trip | null
   onCoverUpdate: (tripId: number, coverUrl: string) => void
 }
@@ -106,22 +108,23 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         reminder_days: formData.reminder_days,
         ...(!formData.start_date && !formData.end_date ? { day_count: formData.day_count } : {}),
       })
+      const createdTrip = result ? result.trip : undefined
       // Add selected members for newly created trips
-      if (selectedMembers.length > 0 && result?.trip?.id) {
+      if (selectedMembers.length > 0 && createdTrip?.id) {
         for (const userId of selectedMembers) {
           const user = allUsers.find(u => u.id === userId)
           if (user) {
-            try { await tripsApi.addMember(result.trip.id, user.username) } catch {}
+            try { await tripsApi.addMember(createdTrip.id, user.username) } catch {}
           }
         }
       }
       // Upload pending cover for newly created trips
-      if (pendingCoverFile && result?.trip?.id) {
+      if (pendingCoverFile && createdTrip?.id) {
         try {
           const fd = new FormData()
           fd.append('cover', pendingCoverFile)
-          const data = await tripsApi.uploadCover(result.trip.id, fd)
-          onCoverUpdate?.(result.trip.id, data.cover_image)
+          const data = await tripsApi.uploadCover(createdTrip.id, fd)
+          onCoverUpdate?.(createdTrip.id, data.cover_image)
         } catch {
           // Cover upload failed but trip was created
         }

@@ -10,13 +10,13 @@ beforeEach(() => {
 describe('remoteEventHandler > reservations', () => {
   const seedData = () => {
     useTripStore.setState({
-      reservations: [buildReservation({ id: 1, name: 'Hotel Paris' })],
+      reservations: [buildReservation({ id: 1, title: 'Hotel Paris' })],
     });
   };
 
   it('FE-WSEVT-RESERV-001: reservation:created prepends new reservation to array', () => {
     seedData();
-    const newRes = buildReservation({ id: 99, name: 'Flight' });
+    const newRes = buildReservation({ id: 99, title: 'Flight' });
     useTripStore.getState().handleRemoteEvent({ type: 'reservation:created', reservation: newRes });
     const { reservations } = useTripStore.getState();
     expect(reservations).toHaveLength(2);
@@ -25,19 +25,19 @@ describe('remoteEventHandler > reservations', () => {
 
   it('FE-WSEVT-RESERV-002: reservation:created is idempotent — no duplicate if same ID', () => {
     seedData();
-    const duplicate = buildReservation({ id: 1, name: 'Hotel Paris Dup' });
+    const duplicate = buildReservation({ id: 1, title: 'Hotel Paris Dup' });
     useTripStore.getState().handleRemoteEvent({ type: 'reservation:created', reservation: duplicate });
     const { reservations } = useTripStore.getState();
     expect(reservations).toHaveLength(1);
-    expect(reservations[0].name).toBe('Hotel Paris');
+    expect(reservations[0].title).toBe('Hotel Paris');
   });
 
   it('FE-WSEVT-RESERV-003: reservation:updated replaces reservation in array', () => {
     seedData();
-    const updated = buildReservation({ id: 1, name: 'Hotel Lyon' });
+    const updated = buildReservation({ id: 1, title: 'Hotel Lyon' });
     useTripStore.getState().handleRemoteEvent({ type: 'reservation:updated', reservation: updated });
     const { reservations } = useTripStore.getState();
-    expect(reservations[0].name).toBe('Hotel Lyon');
+    expect(reservations[0].title).toBe('Hotel Lyon');
   });
 
   it('FE-WSEVT-RESERV-004: reservation:deleted removes reservation by ID', () => {
@@ -49,8 +49,8 @@ describe('remoteEventHandler > reservations', () => {
 
   it('FE-WSEVT-RESERV-005: reservation:created ordering — newest is first', () => {
     seedData();
-    const r2 = buildReservation({ id: 2, name: 'Second' });
-    const r3 = buildReservation({ id: 3, name: 'Third' });
+    const r2 = buildReservation({ id: 2, title: 'Second' });
+    const r3 = buildReservation({ id: 3, title: 'Third' });
     useTripStore.getState().handleRemoteEvent({ type: 'reservation:created', reservation: r2 });
     useTripStore.getState().handleRemoteEvent({ type: 'reservation:created', reservation: r3 });
     const { reservations } = useTripStore.getState();

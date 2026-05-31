@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, type CSSProperties } from 'react'
 import { useAuthStore } from '../../store/authStore'
 import { useTranslation } from '../../i18n'
 import { MessageCircle, StickyNote, BarChart3, Sparkles } from 'lucide-react'
@@ -17,7 +17,7 @@ function useIsDesktop(breakpoint = 1024) {
   return isDesktop
 }
 
-const card = {
+const card: CSSProperties = {
   display: 'flex', flexDirection: 'column',
   background: 'var(--bg-card)', borderRadius: 16, border: '1px solid var(--border-faint)',
   overflow: 'hidden', minHeight: 0,

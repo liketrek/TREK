@@ -32,22 +32,23 @@ function makeAssignment(id: number, placeOverrides: Record<string, unknown> = {}
     notes: null,
     place: {
       id,
-      trip_id: 1,
       name: `Place ${id}`,
       description: null,
       lat: 0,
       lng: 0,
       address: null,
       category_id: null,
-      icon: null,
       price: null,
+      currency: null,
       image_url: null,
       google_place_id: null,
-      osm_id: null,
-      route_geometry: null,
       place_time: null,
       end_time: null,
-      created_at: '2025-01-01T00:00:00.000Z',
+      duration_minutes: 60,
+      notes: null,
+      transport_mode: 'walking',
+      website: null,
+      phone: null,
       ...placeOverrides,
     },
     participants,
@@ -83,7 +84,7 @@ describe('WhatsNextWidget', () => {
 
   it('FE-COMP-WHATSNEXT-002: shows empty state when all events are in the past', () => {
     seedStore(useTripStore, {
-      days: [{ id: 1, trip_id: 1, date: yesterday, title: 'Old Day', order: 0, assignments: [], notes_items: [], notes: null }],
+      days: [{ id: 1, trip_id: 1, date: yesterday, title: 'Old Day', day_number: 0, assignments: [], notes_items: [], notes: null }],
       assignments: {
         '1': [makeAssignment(10, { place_time: '08:00' })],
       },
@@ -95,7 +96,7 @@ describe('WhatsNextWidget', () => {
 
   it('FE-COMP-WHATSNEXT-003: shows a future-day event with place name', () => {
     seedStore(useTripStore, {
-      days: [{ id: 1, trip_id: 1, date: tomorrow, title: null, order: 0, assignments: [], notes_items: [], notes: null }],
+      days: [{ id: 1, trip_id: 1, date: tomorrow, title: null, day_number: 0, assignments: [], notes_items: [], notes: null }],
       assignments: {
         '1': [makeAssignment(20, { name: 'Eiffel Tower' })],
       },
@@ -106,7 +107,7 @@ describe('WhatsNextWidget', () => {
 
   it('FE-COMP-WHATSNEXT-004: shows "Tomorrow" label for next-day group', () => {
     seedStore(useTripStore, {
-      days: [{ id: 1, trip_id: 1, date: tomorrow, title: null, order: 0, assignments: [], notes_items: [], notes: null }],
+      days: [{ id: 1, trip_id: 1, date: tomorrow, title: null, day_number: 0, assignments: [], notes_items: [], notes: null }],
       assignments: {
         '1': [makeAssignment(21, { name: 'Museum' })],
       },
@@ -118,7 +119,7 @@ describe('WhatsNextWidget', () => {
 
   it('FE-COMP-WHATSNEXT-005: shows "Today" label for today\'s events with future time', () => {
     seedStore(useTripStore, {
-      days: [{ id: 1, trip_id: 1, date: today, title: null, order: 0, assignments: [], notes_items: [], notes: null }],
+      days: [{ id: 1, trip_id: 1, date: today, title: null, day_number: 0, assignments: [], notes_items: [], notes: null }],
       assignments: {
         '1': [makeAssignment(22, { name: 'Night Dinner', place_time: '23:59' })],
       },
@@ -130,7 +131,7 @@ describe('WhatsNextWidget', () => {
   it('FE-COMP-WHATSNEXT-006: renders event time in 24h format', () => {
     seedStore(useSettingsStore, { settings: { time_format: '24h' } })
     seedStore(useTripStore, {
-      days: [{ id: 1, trip_id: 1, date: tomorrow, title: null, order: 0, assignments: [], notes_items: [], notes: null }],
+      days: [{ id: 1, trip_id: 1, date: tomorrow, title: null, day_number: 0, assignments: [], notes_items: [], notes: null }],
       assignments: {
         '1': [makeAssignment(30, { name: 'Gallery', place_time: '14:30' })],
       },
@@ -142,7 +143,7 @@ describe('WhatsNextWidget', () => {
   it('FE-COMP-WHATSNEXT-007: renders event time in 12h format', () => {
     seedStore(useSettingsStore, { settings: { time_format: '12h' } })
     seedStore(useTripStore, {
-      days: [{ id: 1, trip_id: 1, date: tomorrow, title: null, order: 0, assignments: [], notes_items: [], notes: null }],
+      days: [{ id: 1, trip_id: 1, date: tomorrow, title: null, day_number: 0, assignments: [], notes_items: [], notes: null }],
       assignments: {
         '1': [makeAssignment(31, { name: 'Gallery', place_time: '14:30' })],
       },
@@ -153,7 +154,7 @@ describe('WhatsNextWidget', () => {
 
   it('FE-COMP-WHATSNEXT-008: shows "TBD" when event has no time', () => {
     seedStore(useTripStore, {
-      days: [{ id: 1, trip_id: 1, date: tomorrow, title: null, order: 0, assignments: [], notes_items: [], notes: null }],
+      days: [{ id: 1, trip_id: 1, date: tomorrow, title: null, day_number: 0, assignments: [], notes_items: [], notes: null }],
       assignments: {
         '1': [makeAssignment(32, { name: 'Free Time', place_time: null })],
       },
@@ -164,7 +165,7 @@ describe('WhatsNextWidget', () => {
 
   it('FE-COMP-WHATSNEXT-009: renders address when provided', () => {
     seedStore(useTripStore, {
-      days: [{ id: 1, trip_id: 1, date: tomorrow, title: null, order: 0, assignments: [], notes_items: [], notes: null }],
+      days: [{ id: 1, trip_id: 1, date: tomorrow, title: null, day_number: 0, assignments: [], notes_items: [], notes: null }],
       assignments: {
         '1': [makeAssignment(33, { name: 'Café', address: '123 Rue de Rivoli' })],
       },
@@ -179,7 +180,7 @@ describe('WhatsNextWidget', () => {
       trip_id: 1,
       date: getFutureDate(i + 1),
       title: null,
-      order: i,
+      day_number: i,
       assignments: [],
       notes_items: [],
       notes: null,
@@ -207,7 +208,7 @@ describe('WhatsNextWidget', () => {
 
   it('FE-COMP-WHATSNEXT-011: shows participant username chip', () => {
     seedStore(useTripStore, {
-      days: [{ id: 1, trip_id: 1, date: tomorrow, title: null, order: 0, assignments: [], notes_items: [], notes: null }],
+      days: [{ id: 1, trip_id: 1, date: tomorrow, title: null, day_number: 0, assignments: [], notes_items: [], notes: null }],
       assignments: {
         '1': [makeAssignment(40, { name: 'Louvre' }, [{ user_id: 3, username: 'alice', avatar: null }])],
       },
@@ -218,7 +219,7 @@ describe('WhatsNextWidget', () => {
 
   it('FE-COMP-WHATSNEXT-012: falls back to tripMembers when assignment has no participants', () => {
     seedStore(useTripStore, {
-      days: [{ id: 1, trip_id: 1, date: tomorrow, title: null, order: 0, assignments: [], notes_items: [], notes: null }],
+      days: [{ id: 1, trip_id: 1, date: tomorrow, title: null, day_number: 0, assignments: [], notes_items: [], notes: null }],
       assignments: {
         '1': [makeAssignment(41, { name: 'Park' }, [])],
       },
@@ -229,7 +230,7 @@ describe('WhatsNextWidget', () => {
 
   it('FE-COMP-WHATSNEXT-013: renders end time when provided', () => {
     seedStore(useTripStore, {
-      days: [{ id: 1, trip_id: 1, date: tomorrow, title: null, order: 0, assignments: [], notes_items: [], notes: null }],
+      days: [{ id: 1, trip_id: 1, date: tomorrow, title: null, day_number: 0, assignments: [], notes_items: [], notes: null }],
       assignments: {
         '1': [makeAssignment(50, { name: 'Concert', place_time: '19:00', end_time: '21:30' })],
       },
@@ -241,7 +242,7 @@ describe('WhatsNextWidget', () => {
 
   it('FE-COMP-WHATSNEXT-014: multiple events on same day share one day header', () => {
     seedStore(useTripStore, {
-      days: [{ id: 1, trip_id: 1, date: tomorrow, title: null, order: 0, assignments: [], notes_items: [], notes: null }],
+      days: [{ id: 1, trip_id: 1, date: tomorrow, title: null, day_number: 0, assignments: [], notes_items: [], notes: null }],
       assignments: {
         '1': [
           makeAssignment(60, { name: 'Breakfast', place_time: '08:00' }),
@@ -263,7 +264,7 @@ describe('WhatsNextWidget', () => {
     if (now.getHours() > 0) {
       const pastTime = '00:01' // Very early — will be past for most of the day
       seedStore(useTripStore, {
-        days: [{ id: 1, trip_id: 1, date: today, title: null, order: 0, assignments: [], notes_items: [], notes: null }],
+        days: [{ id: 1, trip_id: 1, date: today, title: null, day_number: 0, assignments: [], notes_items: [], notes: null }],
         assignments: {
           '1': [makeAssignment(70, { name: 'Early Bird', place_time: pastTime })],
         },

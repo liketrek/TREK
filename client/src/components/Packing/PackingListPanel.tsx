@@ -9,7 +9,7 @@ import {
   CheckSquare, Square, Trash2, Plus, ChevronDown, ChevronRight,
   X, Pencil, Check, MoreHorizontal, CheckCheck, RotateCcw, Luggage, UserPlus, Package, FolderPlus, Upload,
 } from 'lucide-react'
-import type { PackingItem } from '../../types'
+import type { PackingItem, PackingBag } from '../../types'
 
 const VORSCHLAEGE = [
   { name: 'Passport', category: 'Documents' },
@@ -66,8 +66,6 @@ function katColor(kat, allCategories) {
   for (let i = 0; i < kat.length; i++) h = ((h << 5) - h + kat.charCodeAt(i)) | 0
   return KAT_COLORS[Math.abs(h) % KAT_COLORS.length]
 }
-
-interface PackingBag { id: number; trip_id: number; name: string; color: string; weight_limit_grams: number | null; user_id?: number | null; assigned_username?: string | null }
 
 /** Weight an item contributes to a total: unit weight times quantity (defaults: 0 g, qty 1). */
 export const itemWeight = (i: { weight_grams?: number | null; quantity?: number | null }): number =>
@@ -818,7 +816,7 @@ function usePackingList({ tripId, items, openImportSignal = 0, clearCheckedSigna
       if (filter === 'erledigt') return i.checked
       return true
     })
-    const groups = {}
+    const groups: Record<string, PackingItem[]> = {}
     for (const item of filtered) {
       const kat = item.category || t('packing.defaultCategory')
       if (!groups[kat]) groups[kat] = []

@@ -33,14 +33,15 @@ import type { Trip, Day, Place, PackingItem, TodoItem, BudgetItem, Reservation, 
 
 const makeTrip = (id = 1): Trip => ({
   id,
-  name: `Trip ${id}`,
+  user_id: 42,
+  title: `Trip ${id}`,
   description: null,
   start_date: '2026-07-01',
   end_date: '2026-07-05',
-  cover_url: null,
-  is_archived: false,
+  currency: 'EUR',
+  cover_image: null,
+  is_archived: 0,
   reminder_days: 3,
-  owner_id: 42,
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
 });
@@ -65,7 +66,6 @@ const makePlace = (id: number, tripId = 1): Place => ({
   lng: 2.3522,
   address: null,
   category_id: null,
-  icon: null,
   price: null,
   currency: null,
   image_url: null,
@@ -102,14 +102,14 @@ describe('offlineDb — trips', () => {
     await upsertTrip(trip);
     const stored = await offlineDb.trips.get(10);
     expect(stored).toBeDefined();
-    expect(stored!.name).toBe('Trip 10');
+    expect(stored!.title).toBe('Trip 10');
   });
 
   it('upsertTrip overwrites an existing trip (put semantics)', async () => {
     await upsertTrip(makeTrip(1));
-    await upsertTrip({ ...makeTrip(1), name: 'Updated' });
+    await upsertTrip({ ...makeTrip(1), title: 'Updated' });
     const stored = await offlineDb.trips.get(1);
-    expect(stored!.name).toBe('Updated');
+    expect(stored!.title).toBe('Updated');
   });
 });
 
@@ -133,7 +133,7 @@ describe('offlineDb — places', () => {
 
 describe('offlineDb — packing / todo / budget / reservations / files', () => {
   it('upserts packing items', async () => {
-    const item: PackingItem = { id: 1, trip_id: 1, name: 'Passport', category: null, checked: 0, quantity: 1 };
+    const item: PackingItem = { id: 1, trip_id: 1, name: 'Passport', category: null, checked: 0, sort_order: 0, quantity: 1 };
     await upsertPackingItems([item]);
     expect(await offlineDb.packingItems.count()).toBe(1);
   });
@@ -149,8 +149,8 @@ describe('offlineDb — packing / todo / budget / reservations / files', () => {
 
   it('upserts budget items', async () => {
     const item: BudgetItem = {
-      id: 1, trip_id: 1, name: 'Flight', amount: 500, currency: 'EUR',
-      category: 'Transport', paid_by: null, persons: 1, members: [], expense_date: null,
+      id: 1, trip_id: 1, name: 'Flight', total_price: 500,
+      category: 'Transport', persons: 1, members: [], expense_date: null, sort_order: 0,
     };
     await upsertBudgetItems([item]);
     expect(await offlineDb.budgetItems.count()).toBe(1);
@@ -158,8 +158,8 @@ describe('offlineDb — packing / todo / budget / reservations / files', () => {
 
   it('upserts reservations', async () => {
     const item: Reservation = {
-      id: 1, trip_id: 1, name: 'Hotel', type: 'hotel', status: 'confirmed',
-      date: null, time: null, confirmation_number: null, notes: null, url: null, created_at: '2026-01-01T00:00:00Z',
+      id: 1, trip_id: 1, title: 'Hotel', type: 'hotel', status: 'confirmed',
+      reservation_time: null, confirmation_number: null, notes: null, created_at: '2026-01-01T00:00:00Z',
     };
     await upsertReservations([item]);
     expect(await offlineDb.reservations.count()).toBe(1);
@@ -168,7 +168,7 @@ describe('offlineDb — packing / todo / budget / reservations / files', () => {
   it('upserts trip files', async () => {
     const file: TripFile = {
       id: 1, trip_id: 1, filename: 'ticket.pdf', original_name: 'Ticket.pdf',
-      mime_type: 'application/pdf', created_at: '2026-01-01T00:00:00Z',
+      mime_type: 'application/pdf', url: '/api/trips/1/files/1/download', created_at: '2026-01-01T00:00:00Z',
     };
     await upsertTripFiles([file]);
     expect(await offlineDb.tripFiles.count()).toBe(1);
@@ -238,7 +238,7 @@ describe('offlineDb — clearTripData', () => {
     await upsertTrip(makeTrip(1));
     await upsertDays([makeDay(1, 1), makeDay(2, 1)]);
     await upsertPlaces([makePlace(10, 1)]);
-    const item: PackingItem = { id: 5, trip_id: 1, name: 'Towel', category: null, checked: 0, quantity: 1 };
+    const item: PackingItem = { id: 5, trip_id: 1, name: 'Towel', category: null, checked: 0, sort_order: 0, quantity: 1 };
     await upsertPackingItems([item]);
 
     // Also add data for a different trip — should NOT be removed

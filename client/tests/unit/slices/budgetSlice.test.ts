@@ -43,7 +43,7 @@ describe('budgetSlice', () => {
       const existing = buildBudgetItem({ trip_id: 1 });
       seedStore(useTripStore, { budgetItems: [existing] });
 
-      const result = await useTripStore.getState().addBudgetItem(1, { name: 'Hotel', amount: 200 });
+      const result = await useTripStore.getState().addBudgetItem(1, { name: 'Hotel', total_price: 200 });
 
       expect(result.name).toBe('Hotel');
       expect(useTripStore.getState().budgetItems).toHaveLength(2);
@@ -64,7 +64,7 @@ describe('budgetSlice', () => {
 
   describe('updateBudgetItem', () => {
     it('FE-BUDGET-004: updateBudgetItem replaces item in array', async () => {
-      const item = buildBudgetItem({ id: 10, trip_id: 1, name: 'Old', amount: 100 });
+      const item = buildBudgetItem({ id: 10, trip_id: 1, name: 'Old', total_price: 100 });
       seedStore(useTripStore, { budgetItems: [item] });
 
       server.use(
@@ -74,16 +74,16 @@ describe('budgetSlice', () => {
         }),
       );
 
-      const result = await useTripStore.getState().updateBudgetItem(1, 10, { name: 'Updated', amount: 150 });
+      const result = await useTripStore.getState().updateBudgetItem(1, 10, { name: 'Updated', total_price: 150 });
 
       expect(result.name).toBe('Updated');
       expect(useTripStore.getState().budgetItems[0].name).toBe('Updated');
     });
 
     it('FE-BUDGET-005: updateBudgetItem with total_price triggers loadReservations when reservation_id present', async () => {
-      const item = buildBudgetItem({ id: 10, trip_id: 1, amount: 100 });
+      const item = buildBudgetItem({ id: 10, trip_id: 1, total_price: 100 });
       const initialReservation = buildReservation({ trip_id: 1 });
-      const newReservation = buildReservation({ trip_id: 1, name: 'Refreshed Reservation' });
+      const newReservation = buildReservation({ trip_id: 1, title: 'Refreshed Reservation' });
       seedStore(useTripStore, {
         budgetItems: [item],
         reservations: [initialReservation],
@@ -106,7 +106,7 @@ describe('budgetSlice', () => {
       await new Promise(resolve => setTimeout(resolve, 50));
 
       expect(useTripStore.getState().reservations).toHaveLength(1);
-      expect(useTripStore.getState().reservations[0].name).toBe('Refreshed Reservation');
+      expect(useTripStore.getState().reservations[0].title).toBe('Refreshed Reservation');
     });
   });
 
@@ -162,7 +162,7 @@ describe('budgetSlice', () => {
 
   describe('toggleBudgetMemberPaid', () => {
     it('FE-BUDGET-008: toggleBudgetMemberPaid updates paid status after API success', async () => {
-      const member = { user_id: 5, paid: false };
+      const member = { user_id: 5, paid: 0, username: 'dave' };
       const item = buildBudgetItem({ id: 10, trip_id: 1, members: [member] });
       seedStore(useTripStore, { budgetItems: [item] });
 

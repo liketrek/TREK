@@ -25,9 +25,17 @@ export function resetAllStores(): void {
   usePermissionsStore.setState(initialPermsState, true);
 }
 
+/**
+ * Tests routinely seed a store with a partially-populated slice of state,
+ * including partial nested objects (e.g. only `settings.time_format`). The
+ * store's own setState wants the exact field types, so seeding accepts a
+ * deep-partial view and casts at the boundary.
+ */
+type DeepPartial<T> = T extends object ? { [P in keyof T]?: DeepPartial<T[P]> } : T;
+
 export function seedStore<T extends object>(
   store: { setState: (partial: Partial<T>, replace?: boolean) => void },
-  state: Partial<T>,
+  state: DeepPartial<T>,
 ): void {
-  store.setState(state);
+  store.setState(state as Partial<T>);
 }

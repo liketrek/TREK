@@ -35,7 +35,7 @@ interface VacayYearsResponse {
 
 interface VacayEntriesResponse {
   entries: VacayEntry[]
-  companyHolidays: string[]
+  companyHolidays: { date: string; note?: string }[]
 }
 
 interface VacayStatsResponse {
@@ -109,7 +109,7 @@ interface VacayState {
   isFused: boolean
   years: number[]
   entries: VacayEntry[]
-  companyHolidays: string[]
+  companyHolidays: { date: string; note?: string }[]
   stats: VacayStat[]
   selectedYear: number
   selectedUserId: number | null

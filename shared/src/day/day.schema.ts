@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { assignmentSchema } from '../assignment/assignment.schema';
 
 /**
  * Day + day-note API contract — single source of truth for the
@@ -10,6 +11,39 @@ import { z } from 'zod';
  * list responses stay open. Day notes cap text at 500 and time at 150 chars
  * (the legacy validateStringLengths middleware) — reproduced in the controller.
  */
+
+/**
+ * Day note entity (server day_notes table / dayNoteService). `sort_order` is
+ * SQLite REAL; `icon` defaults to a note emoji.
+ */
+export const dayNoteSchema = z.object({
+  id: z.number(),
+  day_id: z.number(),
+  trip_id: z.number().optional(),
+  text: z.string(),
+  time: z.string().nullable().optional(),
+  icon: z.string().nullable().optional(),
+  sort_order: z.number().optional(),
+  created_at: z.string().optional(),
+});
+export type DayNote = z.infer<typeof dayNoteSchema>;
+
+/**
+ * Day entity as returned by the day list/get endpoints
+ * (server/src/services/dayService.ts -> listDays). Columns of the `days` table
+ * plus the embedded `assignments` and `notes_items` arrays.
+ */
+export const daySchema = z.object({
+  id: z.number(),
+  trip_id: z.number(),
+  day_number: z.number().optional(),
+  date: z.string().nullable().optional(),
+  title: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  assignments: z.array(assignmentSchema).optional(),
+  notes_items: z.array(dayNoteSchema).optional(),
+});
+export type Day = z.infer<typeof daySchema>;
 
 export const dayCreateRequestSchema = z.object({
   date: z.string().optional(),

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, type CSSProperties } from 'react'
 import { useParams } from 'react-router-dom'
 import apiClient from '../../api/client'
 import { useTripStore } from '../../store/tripStore'
@@ -265,12 +265,12 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
       )
     : []
 
-  const inputStyle = {
+  const inputStyle: CSSProperties = {
     width: '100%', border: '1px solid var(--border-primary)', borderRadius: 10,
     padding: '8px 12px', fontSize: 13, fontFamily: 'inherit',
     outline: 'none', boxSizing: 'border-box', color: 'var(--text-primary)', background: 'var(--bg-input)',
   }
-  const labelStyle = { display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.03em' }
+  const labelStyle: CSSProperties = { display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.03em' }
 
   return (
     <Modal

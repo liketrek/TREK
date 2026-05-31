@@ -209,7 +209,7 @@ describe('DashboardPage', () => {
 
   describe('FE-PAGE-DASH-011: Archive trip moves it to the archive filter', () => {
     it('archiving a trip removes it from active and shows it under the archive filter', async () => {
-      const archivedTrip = buildTrip({ title: 'Paris Adventure', start_date: '2026-07-01', end_date: '2026-07-10', is_archived: true });
+      const archivedTrip = buildTrip({ title: 'Paris Adventure', start_date: '2026-07-01', end_date: '2026-07-10', is_archived: 1 });
       server.use(
         http.put('/api/trips/:id', () => HttpResponse.json({ trip: archivedTrip })),
       );
@@ -273,7 +273,7 @@ describe('DashboardPage', () => {
 
   describe('FE-PAGE-DASH-014: Archive filter reveals archived trips', () => {
     it('shows archived trips when the archive filter is selected', async () => {
-      const oldTrip = buildTrip({ title: 'Old Rome Trip', start_date: '2024-01-01', end_date: '2024-01-07', is_archived: true });
+      const oldTrip = buildTrip({ title: 'Old Rome Trip', start_date: '2024-01-01', end_date: '2024-01-07', is_archived: 1 });
       server.use(
         http.get('/api/trips', ({ request }) => {
           const url = new URL(request.url);
@@ -414,8 +414,8 @@ describe('DashboardPage', () => {
   describe('FE-PAGE-DASH-020: Archived section - restore trip', () => {
     it('clicking restore in archived section moves trip back to active list', async () => {
       const activeTrip = buildTrip({ title: 'Paris Adventure', start_date: '2026-07-01', end_date: '2026-07-10' });
-      const archivedTrip = buildTrip({ title: 'Old Rome Trip', start_date: '2024-01-01', end_date: '2024-01-07', is_archived: true });
-      const restoredTrip = { ...archivedTrip, is_archived: false };
+      const archivedTrip = buildTrip({ title: 'Old Rome Trip', start_date: '2024-01-01', end_date: '2024-01-07', is_archived: 1 });
+      const restoredTrip = { ...archivedTrip, is_archived: 0 };
 
       server.use(
         http.get('/api/trips', ({ request }) => {
@@ -624,7 +624,7 @@ describe('DashboardPage', () => {
   describe('FE-PAGE-DASH-027: Archive filter toggles archived trips in and out of view', () => {
     it('shows archived trips under the archive filter and hides them under planned', async () => {
       const activeTrip = buildTrip({ title: 'Active Trip', start_date: '2026-08-01', end_date: '2026-08-10' });
-      const archivedTrip = buildTrip({ title: 'Old Archived Trip', start_date: '2024-03-01', end_date: '2024-03-07', is_archived: true });
+      const archivedTrip = buildTrip({ title: 'Old Archived Trip', start_date: '2024-03-01', end_date: '2024-03-07', is_archived: 1 });
 
       server.use(
         http.get('/api/trips', ({ request }) => {
@@ -660,8 +660,8 @@ describe('DashboardPage', () => {
   describe('FE-PAGE-DASH-028: Unarchive action restores trip to active list', () => {
     it('clicking restore on an archived trip removes it from archived section', async () => {
       const activeTrip = buildTrip({ title: 'My Active Trip', start_date: '2026-08-01', end_date: '2026-08-10' });
-      const archivedTrip = buildTrip({ title: 'Restored Trip', start_date: '2024-06-01', end_date: '2024-06-07', is_archived: true });
-      const restoredTrip = { ...archivedTrip, is_archived: false };
+      const archivedTrip = buildTrip({ title: 'Restored Trip', start_date: '2024-06-01', end_date: '2024-06-07', is_archived: 1 });
+      const restoredTrip = { ...archivedTrip, is_archived: 0 };
 
       server.use(
         http.get('/api/trips', ({ request }) => {

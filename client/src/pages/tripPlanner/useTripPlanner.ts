@@ -72,7 +72,7 @@ export function useTripPlanner() {
 
   useEffect(() => {
     addonsApi.enabled().then(data => {
-      const map = {}
+      const map: Record<string, boolean> = {}
       data.addons.forEach(a => { map[a.id] = true })
       setEnabledAddons({ packing: !!map.packing, budget: !!map.budget, documents: !!map.documents, collab: !!map.collab })
       if (data.collabFeatures) setCollabFeatures(data.collabFeatures)
@@ -413,7 +413,6 @@ export function useTripPlanner() {
             lng: capturedPlace.lng,
             address: capturedPlace.address,
             category_id: capturedPlace.category_id,
-            icon: capturedPlace.icon,
             price: capturedPlace.price,
           })
           for (const { dayId, orderIndex } of capturedAssignments) {
@@ -444,7 +443,7 @@ export function useTripPlanner() {
             const newPlace = await tripActions.addPlace(tripId, {
               name: place.name, description: place.description,
               lat: place.lat, lng: place.lng, address: place.address,
-              category_id: place.category_id, icon: place.icon, price: place.price,
+              category_id: place.category_id, price: place.price,
             })
             for (const a of capturedAssignments.filter(x => x.placeId === place.id)) {
               await tripActions.assignPlaceToDay(tripId, a.dayId, newPlace.id, a.orderIndex)

@@ -125,7 +125,7 @@ describe('budgetSlice', () => {
     const item = buildBudgetItem({
       id: 8,
       trip_id: 1,
-      members: [{ user_id: 3, paid: false }],
+      members: [{ user_id: 3, paid: 0, username: 'carol' }],
     });
     seedStore(useTripStore, { budgetItems: [item] });
 

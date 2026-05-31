@@ -23,6 +23,10 @@ interface PlaceFormData {
   notes: string
   transport_mode: string
   website: string
+  // Populated from a maps-search pick (not part of the initial blank form).
+  phone?: string
+  google_place_id?: string
+  osm_id?: string
 }
 
 function isGoogleMapsUrl(input: string): boolean {

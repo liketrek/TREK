@@ -7,9 +7,10 @@ import { useInAppNotificationStore } from '../../store/inAppNotificationStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser } from '../../../tests/helpers/factories';
 import InAppNotificationBell from './InAppNotificationBell';
+import type { InAppNotification } from '../../store/inAppNotificationStore';
 
 let _notifId = 1;
-function buildNotification(overrides: Record<string, unknown> = {}) {
+function buildNotification(overrides: Partial<InAppNotification> = {}): InAppNotification {
   return {
     id: _notifId++,
     type: 'simple',
@@ -20,15 +21,15 @@ function buildNotification(overrides: Record<string, unknown> = {}) {
     sender_avatar: null,
     recipient_id: 1,
     title_key: 'test',
-    title_params: '{}',
+    title_params: {},
     text_key: 'test.text',
-    text_params: '{}',
+    text_params: {},
     positive_text_key: null,
     negative_text_key: null,
     response: null,
     navigate_text_key: null,
     navigate_target: null,
-    is_read: 0,
+    is_read: false,
     created_at: '2025-01-01T00:00:00.000Z',
     ...overrides,
   };
@@ -92,14 +93,7 @@ describe('InAppNotificationBell', () => {
 
   it('FE-COMP-BELL-007: panel shows Mark all read button when panel is open', async () => {
     const user = userEvent.setup();
-    const notification = {
-      id: 1, type: 'simple', scope: 'trip', target: 1, sender_id: 2,
-      sender_username: 'alice', sender_avatar: null, recipient_id: 1,
-      title_key: 'test', title_params: '{}', text_key: 'test.text', text_params: '{}',
-      positive_text_key: null, negative_text_key: null, response: null,
-      navigate_text_key: null, navigate_target: null, is_read: 0,
-      created_at: '2025-01-01T00:00:00.000Z',
-    };
+    const notification = buildNotification({ id: 1, title_key: 'test', text_key: 'test.text' });
     seedStore(useInAppNotificationStore, { notifications: [notification], unreadCount: 1, isLoading: false });
     render(<InAppNotificationBell />);
     const bell = screen.getAllByRole('button')[0];
@@ -153,7 +147,7 @@ describe('InAppNotificationBell', () => {
 
   it('FE-COMP-BELL-013: Mark all read button NOT shown when unreadCount is 0', async () => {
     const user = userEvent.setup();
-    seedStore(useInAppNotificationStore, { notifications: [buildNotification({ is_read: 1 })], unreadCount: 0, isLoading: false, fetchNotifications: vi.fn(), fetchUnreadCount: vi.fn() });
+    seedStore(useInAppNotificationStore, { notifications: [buildNotification({ is_read: true })], unreadCount: 0, isLoading: false, fetchNotifications: vi.fn(), fetchUnreadCount: vi.fn() });
     render(<InAppNotificationBell />);
     await user.click(screen.getAllByRole('button')[0]);
     await screen.findByText('Notifications');

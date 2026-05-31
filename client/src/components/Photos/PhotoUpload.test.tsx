@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { vi, describe, it, expect, beforeEach, beforeAll } from 'vitest'
 import { render } from '../../../tests/helpers/render'
 import { resetAllStores } from '../../../tests/helpers/store'
+import type { Day, Place } from '../../types'
 import { PhotoUpload } from './PhotoUpload'
 
 beforeAll(() => {
@@ -12,8 +13,8 @@ beforeAll(() => {
 
 const defaultProps = {
   tripId: 1,
-  days: [{ id: 1, day_number: 1, date: null }],
-  places: [{ id: 1, name: 'Eiffel Tower' }],
+  days: [{ id: 1, trip_id: 1, day_number: 1, date: null }] as Day[],
+  places: [{ id: 1, trip_id: 1, name: 'Eiffel Tower' }] as Place[],
   onUpload: vi.fn().mockResolvedValue(undefined),
   onClose: vi.fn(),
 }
