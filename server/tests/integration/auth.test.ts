@@ -835,6 +835,18 @@ describe('Rate limiting', () => {
     }
     expect(lastStatus).toBe(429);
   });
+
+  it('AUTH-019 — reset-password endpoint rate-limits after 5 attempts (parity with the legacy resetLimiter)', async () => {
+    let lastStatus = 0;
+    for (let i = 0; i <= 5; i++) {
+      const res = await request(app)
+        .post('/api/auth/reset-password')
+        .send({ token: 'badtoken', new_password: 'NewPassw0rd!' });
+      lastStatus = res.status;
+      if (lastStatus === 429) break;
+    }
+    expect(lastStatus).toBe(429);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

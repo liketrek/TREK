@@ -121,6 +121,9 @@ export class AuthPublicController {
   @Post('reset-password')
   @HttpCode(200)
   resetPassword(@Body() body: unknown, @Req() req: Request) {
+    // Per-IP brute-force guard, parity with the legacy resetLimiter (5 / 15 min on
+    // a dedicated bucket) — without it reset tokens could be guessed unthrottled.
+    this.limit('reset', req, 5);
     const ip = getClientIp(req);
     const result = this.auth.resetPassword(body);
     if (result.error) {

@@ -636,19 +636,22 @@ export function copyTripById(sourceTripId: string | number, newOwnerId: number, 
 
     const oldReservations = db.prepare('SELECT * FROM reservations WHERE trip_id = ?').all(sourceTripId) as any[];
     const insertReservation = db.prepare(`
-      INSERT INTO reservations (trip_id, day_id, place_id, assignment_id, accommodation_id, title, reservation_time, reservation_end_time,
-        location, confirmation_number, notes, status, type, metadata, day_plan_position)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO reservations (trip_id, day_id, end_day_id, place_id, assignment_id, accommodation_id, title, reservation_time, reservation_end_time,
+        location, confirmation_number, notes, status, type, metadata, day_plan_position, needs_review)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     for (const r of oldReservations) {
       insertReservation.run(newTripId,
         r.day_id ? (dayMap.get(r.day_id) ?? null) : null,
+        // end_day_id is a day reference too (multi-day transport) — remap it like
+        // day_id, otherwise the duplicated trip loses the reservation's end-day link.
+        r.end_day_id ? (dayMap.get(r.end_day_id) ?? null) : null,
         r.place_id ? (placeMap.get(r.place_id) ?? null) : null,
         r.assignment_id ? (assignmentMap.get(r.assignment_id) ?? null) : null,
         r.accommodation_id ? (accomMap.get(r.accommodation_id) ?? null) : null,
         r.title, r.reservation_time, r.reservation_end_time,
         r.location, r.confirmation_number, r.notes, r.status, r.type,
-        r.metadata, r.day_plan_position);
+        r.metadata, r.day_plan_position, r.needs_review ?? 0);
     }
 
     const oldBudget = db.prepare('SELECT * FROM budget_items WHERE trip_id = ?').all(sourceTripId) as any[];
