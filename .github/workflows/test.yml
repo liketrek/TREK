@@ -49,9 +49,11 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        # Full install (not workspace-scoped) so @swc/core's platform-specific
-        # native binary is present — server tests transform via unplugin-swc.
-        run: npm ci
+        # npm install (not ci) so npm re-resolves and installs @swc/core's
+        # platform-specific native binary for the Linux runner — server tests
+        # transform via unplugin-swc, and the committed lockfile omits the
+        # Linux optional dep that `npm ci` would otherwise need.
+        run: npm install
 
       - name: Build shared
         run: npm run build --workspace=shared
