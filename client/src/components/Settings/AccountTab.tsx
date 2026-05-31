@@ -211,8 +211,7 @@ export default function AccountTab(): React.ReactElement {
                     toast.error(getApiErrorMessage(err, t('common.error')))
                   }
                 }}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                style={{ border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-secondary)' }}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-edge bg-surface-card text-content-secondary"
                 onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-card)'}
               >
@@ -374,7 +373,7 @@ export default function AccountTab(): React.ReactElement {
                     <p className="text-sm font-semibold m-0 text-content">{t('settings.mfa.backupTitle')}</p>
                     <p className="text-xs m-0 text-content-muted">{t('settings.mfa.backupDescription')}</p>
                     <pre className="text-xs m-0 p-2 rounded border overflow-auto border-edge bg-surface-card text-content" style={{ maxHeight: 220 }}>{backupCodesText}</pre>
-                    <p className="text-xs m-0" style={{ color: '#b45309' }}>{t('settings.mfa.backupWarning')}</p>
+                    <p className="text-xs m-0 text-[#b45309]">{t('settings.mfa.backupWarning')}</p>
                     <div className="flex flex-wrap gap-2">
                       <button type="button" onClick={copyBackupCodes} className="px-3 py-2 rounded-lg text-xs border flex items-center gap-1.5 border-edge text-content-secondary">
                         <Copy size={13} /> {t('settings.mfa.backupCopy')}
@@ -429,10 +428,10 @@ export default function AccountTab(): React.ReactElement {
             {user?.avatar_url && (
               <button
                 onClick={handleAvatarRemove}
+                className="bg-[#ef4444] text-white"
                 style={{
                   position: 'absolute', top: -2, right: -2,
                   width: 20, height: 20, borderRadius: '50%',
-                  background: '#ef4444', color: 'white',
                   border: '2px solid var(--bg-card)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   cursor: 'pointer', padding: 0,
@@ -448,10 +447,10 @@ export default function AccountTab(): React.ReactElement {
                 {user?.role === 'admin' ? <><Shield size={13} /> {t('settings.roleAdmin')}</> : t('settings.roleUser')}
               </span>
               {(user as UserWithOidc)?.oidc_issuer && (
-                <span style={{
+                <span className="bg-[#dbeafe] text-[#1d4ed8]" style={{
                   display: 'inline-flex', alignItems: 'center', gap: 4,
                   fontSize: 10, fontWeight: 500, padding: '1px 8px', borderRadius: 99,
-                  background: '#dbeafe', color: '#1d4ed8', marginLeft: 6,
+                  marginLeft: 6,
                 }}>
                   SSO
                 </span>
@@ -489,8 +488,7 @@ export default function AccountTab(): React.ReactElement {
               }
               setShowDeleteConfirm(true)
             }}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors text-red-500 hover:bg-red-50"
-            style={{ border: '1px solid #fecaca' }}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors text-red-500 hover:bg-red-50 border border-[#fecaca]"
           >
             <Trash2 size={14} />
             <span className="hidden sm:inline">{t('settings.deleteAccount')}</span>
@@ -501,9 +499,9 @@ export default function AccountTab(): React.ReactElement {
 
       {/* Delete Account Blocked */}
       {showDeleteConfirm === 'blocked' && (
-        <div style={{
+        <div className="bg-[rgba(0,0,0,0.5)]" style={{
           position: 'fixed', inset: 0, zIndex: 9999,
-          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+          backdropFilter: 'blur(4px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
         }} onClick={() => setShowDeleteConfirm(false)}>
           <div className="bg-surface-card" style={{
@@ -511,8 +509,8 @@ export default function AccountTab(): React.ReactElement {
             maxWidth: 400, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
           }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Shield size={18} style={{ color: '#d97706' }} />
+              <div className="bg-[#fef3c7]" style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Shield size={18} className="text-[#d97706]" />
               </div>
               <h3 className="text-content" style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{t('settings.deleteBlockedTitle')}</h3>
             </div>
@@ -537,9 +535,9 @@ export default function AccountTab(): React.ReactElement {
 
       {/* Delete Account Confirm */}
       {showDeleteConfirm === true && (
-        <div style={{
+        <div className="bg-[rgba(0,0,0,0.5)]" style={{
           position: 'fixed', inset: 0, zIndex: 9999,
-          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+          backdropFilter: 'blur(4px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
         }} onClick={() => setShowDeleteConfirm(false)}>
           <div className="bg-surface-card" style={{
@@ -547,8 +545,8 @@ export default function AccountTab(): React.ReactElement {
             maxWidth: 400, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
           }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Trash2 size={18} style={{ color: '#ef4444' }} />
+              <div className="bg-[#fef2f2]" style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Trash2 size={18} className="text-[#ef4444]" />
               </div>
               <h3 className="text-content" style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{t('settings.deleteAccountTitle')}</h3>
             </div>
@@ -577,9 +575,10 @@ export default function AccountTab(): React.ReactElement {
                     setShowDeleteConfirm(false)
                   }
                 }}
+                className="bg-[#ef4444] text-white"
                 style={{
                   padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600,
-                  border: 'none', background: '#ef4444', color: 'white',
+                  border: 'none',
                   cursor: 'pointer', fontFamily: 'inherit',
                 }}
               >

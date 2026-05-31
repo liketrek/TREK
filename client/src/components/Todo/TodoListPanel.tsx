@@ -315,7 +315,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.error')) }
   }
 
-  const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 4, display: 'block' }
+  const labelClass = 'block text-xs font-medium text-content-secondary mb-1'
   const inputStyle: React.CSSProperties = {
     width: '100%', fontSize: 13, padding: '8px 10px', border: '1px solid var(--border-primary)',
     borderRadius: 8, background: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: 'inherit',
@@ -345,7 +345,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
 
         {/* Description */}
         <div>
-          <label style={labelStyle}>{t('todo.detail.description')}</label>
+          <label className={labelClass}>{t('todo.detail.description')}</label>
           <textarea value={desc} onChange={e => setDesc(e.target.value)} disabled={!canEdit} rows={4}
             placeholder={t('todo.descriptionPlaceholder')}
             style={{ ...inputStyle, resize: 'vertical', minHeight: 80 }} />
@@ -353,7 +353,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
 
         {/* Priority */}
         <div>
-          <label style={labelStyle}>{t('todo.detail.priority')}</label>
+          <label className={labelClass}>{t('todo.detail.priority')}</label>
           <div style={{ display: 'flex', gap: 4 }}>
             {[0, 1, 2, 3].map(p => {
               const cfg = PRIO_CONFIG[p]
@@ -377,7 +377,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
 
         {/* Category */}
         <div>
-          <label style={labelStyle}>{t('todo.detail.category')}</label>
+          <label className={labelClass}>{t('todo.detail.category')}</label>
           <CustomSelect
             value={category}
             onChange={v => setCategory(String(v))}
@@ -397,7 +397,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
 
         {/* Due date */}
         <div>
-          <label style={labelStyle}>{t('todo.detail.dueDate')}</label>
+          <label className={labelClass}>{t('todo.detail.dueDate')}</label>
           <CustomDatePicker
             value={dueDate}
             onChange={v => setDueDate(v)}
@@ -406,7 +406,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
 
         {/* Assigned to */}
         <div>
-          <label style={labelStyle}>{t('todo.detail.assignedTo')}</label>
+          <label className={labelClass}>{t('todo.detail.assignedTo')}</label>
           <CustomSelect
             value={String(assignedUserId ?? '')}
             onChange={v => setAssignedUserId(v ? Number(v) : null)}
@@ -477,7 +477,7 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
   const [priority, setPriority] = useState(0)
   const [saving, setSaving] = useState(false)
 
-  const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 4, display: 'block' }
+  const labelClass = 'block text-xs font-medium text-content-secondary mb-1'
 
   const create = async () => {
     if (!name.trim()) return
@@ -515,14 +515,14 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
         </div>
 
         <div>
-          <label style={labelStyle}>{t('todo.detail.description')}</label>
+          <label className={labelClass}>{t('todo.detail.description')}</label>
           <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={4}
             placeholder={t('todo.descriptionPlaceholder')}
             style={{ width: '100%', fontSize: 13, padding: '8px 10px', border: '1px solid var(--border-primary)', borderRadius: 8, background: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: 'inherit', resize: 'vertical', minHeight: 80 }} />
         </div>
 
         <div>
-          <label style={labelStyle}>{t('todo.detail.category')}</label>
+          <label className={labelClass}>{t('todo.detail.category')}</label>
           {addingCategory ? (
             <div style={{ display: 'flex', gap: 4 }}>
               <input
@@ -569,7 +569,7 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
         </div>
 
         <div>
-          <label style={labelStyle}>{t('todo.detail.priority')}</label>
+          <label className={labelClass}>{t('todo.detail.priority')}</label>
           <div style={{ display: 'flex', gap: 4 }}>
             {[0, 1, 2, 3].map(p => {
               const cfg = PRIO_CONFIG[p]
@@ -592,12 +592,12 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
         </div>
 
         <div>
-          <label style={labelStyle}>{t('todo.detail.dueDate')}</label>
+          <label className={labelClass}>{t('todo.detail.dueDate')}</label>
           <CustomDatePicker value={dueDate} onChange={v => setDueDate(v)} />
         </div>
 
         <div>
-          <label style={labelStyle}>{t('todo.detail.assignedTo')}</label>
+          <label className={labelClass}>{t('todo.detail.assignedTo')}</label>
           <CustomSelect
             value={String(assignedUserId ?? '')}
             onChange={v => setAssignedUserId(v ? Number(v) : null)}

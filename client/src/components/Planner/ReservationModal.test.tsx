@@ -120,7 +120,7 @@ describe('ReservationModal', () => {
     render(<ReservationModal {...defaultProps} />);
     const eventBtn = screen.getByRole('button', { name: /Event/i });
     await userEvent.click(eventBtn);
-    expect(eventBtn).toHaveStyle({ background: 'var(--text-primary)' });
+    expect(eventBtn).toHaveClass('bg-[var(--text-primary)]');
   });
 
   it('FE-PLANNER-RESMODAL-008: hotel type shows check-in/check-out time fields', async () => {

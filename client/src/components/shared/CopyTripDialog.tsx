@@ -42,8 +42,8 @@ export default function CopyTripDialog({ isOpen, tripTitle, onClose, onConfirm }
 
   return ReactDOM.createPortal(
     <div
-      className="fixed inset-0 z-[10000] flex items-center justify-center px-4 trek-backdrop-enter"
-      style={{ backgroundColor: 'rgba(15, 23, 42, 0.5)', paddingBottom: 'var(--bottom-nav-h)' }}
+      className="fixed inset-0 z-[10000] flex items-center justify-center px-4 trek-backdrop-enter bg-[rgba(15,23,42,0.5)]"
+      style={{ paddingBottom: 'var(--bottom-nav-h)' }}
       onClick={onClose}
     >
       <div
@@ -59,13 +59,13 @@ export default function CopyTripDialog({ isOpen, tripTitle, onClose, onConfirm }
 
         <div className="flex flex-col gap-3">
           <div className="rounded-xl p-3 border border-edge-secondary" style={{ background: 'var(--bg-subtle)' }}>
-            <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#16a34a' }}>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-2 text-[#16a34a]">
               {t('dashboard.confirm.copy.willCopy')}
             </p>
             <ul className="flex flex-col gap-1">
               {WILL_COPY_KEYS.map(key => (
                 <li key={key} className="flex items-center gap-2 text-sm text-content-secondary">
-                  <Check size={13} className="flex-shrink-0" style={{ color: '#16a34a' }} />
+                  <Check size={13} className="flex-shrink-0 text-[#16a34a]" />
                   {t(key)}
                 </li>
               ))}
@@ -96,8 +96,7 @@ export default function CopyTripDialog({ isOpen, tripTitle, onClose, onConfirm }
           </button>
           <button
             onClick={() => { onConfirm(); onClose() }}
-            className="px-4 py-2 text-sm font-medium rounded-lg transition-opacity hover:opacity-90"
-            style={{ background: 'var(--text-primary)', color: 'var(--bg-card)' }}
+            className="px-4 py-2 text-sm font-medium rounded-lg transition-opacity hover:opacity-90 bg-content text-surface-card"
           >
             {t('dashboard.confirm.copy.confirm')}
           </button>

@@ -96,10 +96,9 @@ const MemoPlaceRow = React.memo(function MemoPlaceRow({
       onMouseLeave={e => { if (!isSelected && !isChecked) e.currentTarget.style.background = 'transparent' }}
     >
       {selectMode && (
-        <div style={{
+        <div className={isChecked ? 'bg-accent' : 'bg-transparent'} style={{
           width: 16, height: 16, borderRadius: 4, flexShrink: 0,
           border: isChecked ? 'none' : '1.5px solid var(--border-primary)',
-          background: isChecked ? 'var(--accent)' : 'transparent',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           {isChecked && <Check size={10} strokeWidth={3} color="white" />}
@@ -113,13 +112,13 @@ const MemoPlaceRow = React.memo(function MemoPlaceRow({
             const CatIcon = getCategoryIcon(cat.icon)
             return <span title={cat.name} style={{ display: 'inline-flex', flexShrink: 0 }}><CatIcon size={11} strokeWidth={2} color={cat.color || '#6366f1'} /></span>
           })()}
-          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>
+          <span className="text-content" style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>
             {place.name}
           </span>
         </div>
         {(place.description || place.address || cat?.name) && (
           <div style={{ marginTop: 2 }}>
-            <span style={{ fontSize: 11, color: 'var(--text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', lineHeight: 1.2 }}>
+            <span className="text-content-faint" style={{ fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', lineHeight: 1.2 }}>
               {place.description || place.address || cat?.name}
             </span>
           </div>
@@ -129,11 +128,12 @@ const MemoPlaceRow = React.memo(function MemoPlaceRow({
         {!selectMode && !inDay && selectedDayId && (
           <button
             onClick={e => { e.stopPropagation(); onAssignToDay(place.id) }}
+            className="bg-surface-hover text-content-faint"
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               width: 20, height: 20, borderRadius: 6,
-              background: 'var(--bg-hover)', border: 'none', cursor: 'pointer',
-              color: 'var(--text-faint)', padding: 0, transition: 'background 0.15s, color 0.15s',
+              border: 'none', cursor: 'pointer',
+              padding: 0, transition: 'background 0.15s, color 0.15s',
             }}
             onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent-text)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-faint)' }}
@@ -357,7 +357,7 @@ function PlacesDropOverlay({ t }: SidebarState) {
       gap: 10, pointerEvents: 'none',
     }}>
       <Upload size={28} strokeWidth={1.5} color="var(--accent)" />
-      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>{t('places.sidebarDrop')}</span>
+      <span className="text-accent" style={{ fontSize: 13, fontWeight: 600 }}>{t('places.sidebarDrop')}</span>
     </div>
   )
 }
@@ -443,22 +443,20 @@ function PlacesHeader(S: SidebarState) {
                 <button
                   key={f.id}
                   onClick={() => { setFilter(f.id); onPlacesFilterChange?.(f.id); setSelectedIds(new Set()) }}
+                  className={active ? 'bg-accent text-accent-text' : 'bg-surface-card text-content'}
                   style={{
                     appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                     display: 'inline-flex', alignItems: 'center', gap: 5,
                     padding: '4px 9px', borderRadius: 99,
                     fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap',
-                    background: active ? 'var(--accent)' : 'var(--bg-card)',
-                    color: active ? 'var(--accent-text)' : 'var(--text-primary)',
                     boxShadow: active ? 'none' : '0 1px 2px rgba(0,0,0,0.06)',
                     transition: 'background 0.15s, color 0.15s, box-shadow 0.15s',
                   }}
                 >
                   {f.label}
-                  <span style={{
+                  <span className={active ? 'text-accent-text' : 'text-content-faint'} style={{
                     fontSize: 9, fontWeight: 600, lineHeight: 1,
                     background: active ? 'color-mix(in srgb, var(--accent-text) 22%, transparent)' : 'var(--bg-tertiary)',
-                    color: active ? 'var(--accent-text)' : 'var(--text-faint)',
                     padding: '1px 5px', borderRadius: 99, minWidth: 14, textAlign: 'center',
                   }}>
                     {counts[f.id]}
@@ -478,9 +476,10 @@ function PlacesHeader(S: SidebarState) {
           value={search}
           onChange={e => { setSearch(e.target.value); if (selectMode) setSelectedIds(new Set()) }}
           placeholder={t('places.search')}
+          className="bg-surface-tertiary text-content"
           style={{
             width: '100%', padding: '7px 30px 7px 30px', borderRadius: 10,
-            border: 'none', background: 'var(--bg-tertiary)', fontSize: 12, color: 'var(--text-primary)',
+            border: 'none', fontSize: 12,
             outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
           }}
         />
@@ -500,14 +499,14 @@ function PlacesHeader(S: SidebarState) {
             : `${categoryFilters.size} ${t('places.categoriesSelected')}`
         return (
           <div style={{ marginTop: 6, position: 'relative', display: 'flex', gap: 6, alignItems: 'stretch' }}>
-            <button onClick={() => setCatDropOpen(v => !v)} style={{
+            <button onClick={() => setCatDropOpen(v => !v)} className="bg-surface-card text-content" style={{
               flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border-primary)',
-              background: 'var(--bg-card)', fontSize: 12, color: 'var(--text-primary)',
+              fontSize: 12,
               cursor: 'pointer', fontFamily: 'inherit',
             }}>
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
-              <ChevronDown size={12} style={{ flexShrink: 0, color: 'var(--text-faint)', transform: catDropOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+              <ChevronDown size={12} className="text-content-faint" style={{ flexShrink: 0, transform: catDropOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
             </button>
             {canEditPlaces && (
               <Tooltip label={t('common.select')} placement="bottom">
@@ -515,11 +514,11 @@ function PlacesHeader(S: SidebarState) {
                 onClick={() => { setSelectMode(v => !v); setSelectedIds(new Set()) }}
                 aria-label={t('common.select')}
                 aria-pressed={selectMode}
+                className={selectMode ? 'text-accent' : 'text-content-faint'}
                 style={{
                   position: 'relative', width: 30, flexShrink: 0, borderRadius: 8,
                   border: `1px solid ${selectMode ? 'var(--accent)' : 'var(--border-primary)'}`,
                   background: selectMode ? 'color-mix(in srgb, var(--accent) 14%, transparent)' : 'var(--bg-card)',
-                  color: selectMode ? 'var(--accent)' : 'var(--text-faint)',
                   cursor: 'pointer', fontFamily: 'inherit', padding: 0,
                   transition: 'background 0.18s, color 0.18s, border-color 0.18s',
                   overflow: 'hidden',
@@ -545,20 +544,19 @@ function PlacesHeader(S: SidebarState) {
               </Tooltip>
             )}
             {catDropOpen && (
-              <div style={{
+              <div className="bg-surface-card" style={{
                 position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, marginTop: 4,
-                background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10,
+                border: '1px solid var(--border-primary)', borderRadius: 10,
                 boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 4, maxHeight: 200, overflowY: 'auto',
               }}>
                 {categories.map(c => {
                   const active = categoryFilters.has(String(c.id))
                   const CatIcon = getCategoryIcon(c.icon)
                   return (
-                    <button key={c.id} onClick={() => toggleCategoryFilter(String(c.id))} style={{
+                    <button key={c.id} onClick={() => toggleCategoryFilter(String(c.id))} className={`text-content ${active ? 'bg-surface-hover' : 'bg-transparent'}`} style={{
                       display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                       padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                      background: active ? 'var(--bg-hover)' : 'transparent',
-                      fontFamily: 'inherit', fontSize: 12, color: 'var(--text-primary)',
+                      fontFamily: 'inherit', fontSize: 12,
                       textAlign: 'left',
                     }}>
                       <div style={{
@@ -577,17 +575,15 @@ function PlacesHeader(S: SidebarState) {
                 {places.some(p => p.category_id == null) && (() => {
                   const active = categoryFilters.has('uncategorized')
                   return (
-                    <button onClick={() => toggleCategoryFilter('uncategorized')} style={{
+                    <button onClick={() => toggleCategoryFilter('uncategorized')} className={`text-content-muted ${active ? 'bg-surface-hover' : 'bg-transparent'}`} style={{
                       display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                       padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                      background: active ? 'var(--bg-hover)' : 'transparent',
-                      fontFamily: 'inherit', fontSize: 12, color: 'var(--text-muted)',
+                      fontFamily: 'inherit', fontSize: 12,
                       textAlign: 'left', borderTop: '1px solid var(--border-faint)', marginTop: 2,
                     }}>
-                      <div style={{
+                      <div className={active ? 'bg-[var(--text-faint)]' : 'bg-transparent'} style={{
                         width: 16, height: 16, borderRadius: 4, flexShrink: 0,
                         border: active ? 'none' : '1.5px solid var(--border-primary)',
-                        background: active ? 'var(--text-faint)' : 'transparent',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}>
                         {active && <Check size={10} strokeWidth={3} color="white" />}
@@ -598,10 +594,10 @@ function PlacesHeader(S: SidebarState) {
                   )
                 })()}
                 {categoryFilters.size > 0 && (
-                  <button onClick={() => { setCategoryFiltersLocal(new Set()); onCategoryFilterChange?.(new Set()) }} style={{
+                  <button onClick={() => { setCategoryFiltersLocal(new Set()); onCategoryFilterChange?.(new Set()) }} className="bg-transparent text-content-faint" style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
                     width: '100%', padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                    background: 'transparent', fontFamily: 'inherit', fontSize: 11, color: 'var(--text-faint)',
+                    fontFamily: 'inherit', fontSize: 11,
                     marginTop: 2, borderTop: '1px solid var(--border-faint)',
                   }}>
                     <X size={10} /> {t('places.clearFilter')}
@@ -624,7 +620,7 @@ function PlacesSelectionBar(S: SidebarState) {
       background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
       display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, fontSize: 11,
     }}>
-      <span style={{ flex: 1, color: 'var(--accent)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+      <span className="text-accent" style={{ flex: 1, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
         {t('places.selectionCount', { count: selectedIds.size })}
       </span>
       <Tooltip label={selectedIds.size === filtered.length && filtered.length > 0 ? t('common.deselectAll') : t('common.selectAll')} placement="bottom">
@@ -634,10 +630,11 @@ function PlacesSelectionBar(S: SidebarState) {
           else setSelectedIds(new Set(filtered.map(p => p.id)))
         }}
         aria-label={selectedIds.size === filtered.length && filtered.length > 0 ? t('common.deselectAll') : t('common.selectAll')}
+        className="bg-transparent text-content-muted"
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           width: 24, height: 24, borderRadius: 6, border: 'none',
-          background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', padding: 0,
+          cursor: 'pointer', padding: 0,
         }}
         onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
         onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
@@ -654,11 +651,10 @@ function PlacesSelectionBar(S: SidebarState) {
         }}
         disabled={selectedIds.size === 0}
         aria-label={t('places.deleteSelected')}
+        className={selectedIds.size > 0 ? 'bg-transparent text-[#ef4444]' : 'bg-transparent text-content-faint'}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           width: 24, height: 24, borderRadius: 6, border: 'none',
-          background: 'transparent',
-          color: selectedIds.size > 0 ? '#ef4444' : 'var(--text-faint)',
           cursor: selectedIds.size > 0 ? 'pointer' : 'default', padding: 0,
         }}
         onMouseEnter={e => { if (selectedIds.size > 0) e.currentTarget.style.background = 'color-mix(in srgb, #ef4444 14%, transparent)' }}
@@ -734,17 +730,19 @@ function MobileDayPickerSheet(S: SidebarState) {
     >
       <div
         onClick={e => e.stopPropagation()}
-        style={{ background: 'var(--bg-card)', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 500, maxHeight: '70vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', paddingBottom: 'var(--bottom-nav-h)' }}
+        className="bg-surface-card"
+        style={{ borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 500, maxHeight: '70vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', paddingBottom: 'var(--bottom-nav-h)' }}
       >
         <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid var(--border-secondary)' }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{dayPickerPlace.name}</div>
-          {dayPickerPlace.address && <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 2 }}>{dayPickerPlace.address}</div>}
+          <div className="text-content" style={{ fontSize: 15, fontWeight: 700 }}>{dayPickerPlace.name}</div>
+          {dayPickerPlace.address && <div className="text-content-faint" style={{ fontSize: 12, marginTop: 2 }}>{dayPickerPlace.address}</div>}
         </div>
         <div style={{ overflowY: 'auto', padding: '8px 12px' }}>
           {/* View details */}
           <button
             onClick={() => { onPlaceClick(dayPickerPlace.id); setDayPickerPlace(null); setMobileShowDays(false) }}
-            style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'transparent', fontFamily: 'inherit', textAlign: 'left', fontSize: 14, color: 'var(--text-primary)' }}
+            className="bg-transparent text-content"
+            style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', fontSize: 14 }}
           >
             <Eye size={18} color="var(--text-muted)" /> {t('places.viewDetails')}
           </button>
@@ -752,7 +750,8 @@ function MobileDayPickerSheet(S: SidebarState) {
           {canEditPlaces && (
             <button
               onClick={() => { onEditPlace(dayPickerPlace); setDayPickerPlace(null); setMobileShowDays(false) }}
-              style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'transparent', fontFamily: 'inherit', textAlign: 'left', fontSize: 14, color: 'var(--text-primary)' }}
+              className="bg-transparent text-content"
+              style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', fontSize: 14 }}
             >
               <Pencil size={18} color="var(--text-muted)" /> {t('common.edit')}
             </button>
@@ -762,7 +761,8 @@ function MobileDayPickerSheet(S: SidebarState) {
             <>
               <button
                 onClick={() => setMobileShowDays(v => !v)}
-                style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'transparent', fontFamily: 'inherit', textAlign: 'left', fontSize: 14, color: 'var(--text-primary)' }}
+                className="bg-transparent text-content"
+              style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', fontSize: 14 }}
               >
                 <CalendarDays size={18} color="var(--text-muted)" /> {t('places.assignToDay')}
                 <ChevronDown size={14} style={{ marginLeft: 'auto', color: 'var(--text-faint)', transform: mobileShowDays ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
@@ -775,10 +775,10 @@ function MobileDayPickerSheet(S: SidebarState) {
                       onClick={() => { onAssignToDay(dayPickerPlace.id, day.id); setDayPickerPlace(null); setMobileShowDays(false) }}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'transparent', fontFamily: 'inherit', textAlign: 'left' }}
                     >
-                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', flexShrink: 0 }}>{i + 1}</div>
+                      <div className="bg-surface-tertiary text-content" style={{ width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{i + 1}</div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{day.title || t('dayplan.dayN', { n: i + 1 })}</div>
-                        {day.date && <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>{new Date(day.date + 'T00:00:00Z').toLocaleDateString(undefined, { timeZone: 'UTC' })}</div>}
+                        <div className="text-content" style={{ fontSize: 13, fontWeight: 500 }}>{day.title || t('dayplan.dayN', { n: i + 1 })}</div>
+                        {day.date && <div className="text-content-faint" style={{ fontSize: 11 }}>{new Date(day.date + 'T00:00:00Z').toLocaleDateString(undefined, { timeZone: 'UTC' })}</div>}
                       </div>
                       {(assignments[String(day.id)] || []).some(a => a.place?.id === dayPickerPlace.id) && <Check size={14} color="var(--text-faint)" />}
                     </button>
@@ -811,13 +811,15 @@ function ListImportModal(S: SidebarState) {
   return ReactDOM.createPortal(
     <div
       onClick={() => { setListImportOpen(false); setListImportUrl('') }}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+      className="bg-[rgba(0,0,0,0.4)]"
+      style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
     >
       <div
         onClick={e => e.stopPropagation()}
-        style={{ background: 'var(--bg-card)', borderRadius: 16, width: '100%', maxWidth: 440, padding: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}
+        className="bg-surface-card"
+        style={{ borderRadius: 16, width: '100%', maxWidth: 440, padding: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}
       >
-        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
+        <div className="text-content" style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>
           {t('places.importList')}
         </div>
         {hasMultipleListImportProviders && (
@@ -826,11 +828,10 @@ function ListImportModal(S: SidebarState) {
               <button
                 key={provider}
                 onClick={() => setListImportProvider(provider)}
+                className={listImportProvider === provider ? 'bg-accent text-accent-text' : 'bg-surface-tertiary text-content-muted'}
                 style={{
                   padding: '6px 10px', borderRadius: 20, border: 'none', cursor: 'pointer',
                   fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
-                  background: listImportProvider === provider ? 'var(--accent)' : 'var(--bg-tertiary)',
-                  color: listImportProvider === provider ? 'var(--accent-text)' : 'var(--text-muted)',
                 }}
               >
                 {provider === 'google' ? t('places.importGoogleList') : t('places.importNaverList')}
@@ -838,7 +839,7 @@ function ListImportModal(S: SidebarState) {
             ))}
           </div>
         )}
-        <div style={{ fontSize: 12, color: 'var(--text-faint)', marginBottom: 16 }}>
+        <div className="text-content-faint" style={{ fontSize: 12, marginBottom: 16 }}>
           {t(listImportProvider === 'google' ? 'places.googleListHint' : 'places.naverListHint')}
         </div>
         <input
@@ -848,19 +849,21 @@ function ListImportModal(S: SidebarState) {
           onKeyDown={e => { if (e.key === 'Enter' && !listImportLoading) handleListImport() }}
           placeholder={listImportProvider === 'google' ? 'https://maps.app.goo.gl/...' : 'https://naver.me/...'}
           autoFocus
+          className="bg-surface-tertiary text-content"
           style={{
             width: '100%', padding: '10px 14px', borderRadius: 10,
-            border: '1px solid var(--border-primary)', background: 'var(--bg-tertiary)',
-            fontSize: 13, color: 'var(--text-primary)', outline: 'none',
+            border: '1px solid var(--border-primary)',
+            fontSize: 13, outline: 'none',
             fontFamily: 'inherit', boxSizing: 'border-box',
           }}
         />
         <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'flex-end' }}>
           <button
             onClick={() => { setListImportOpen(false); setListImportUrl('') }}
+            className="text-content"
             style={{
               padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)',
-              background: 'none', color: 'var(--text-primary)', fontSize: 13, fontWeight: 500,
+              background: 'none', fontSize: 13, fontWeight: 500,
               cursor: 'pointer', fontFamily: 'inherit',
             }}
           >
@@ -869,10 +872,9 @@ function ListImportModal(S: SidebarState) {
           <button
             onClick={handleListImport}
             disabled={!listImportUrl.trim() || listImportLoading}
+            className={!listImportUrl.trim() || listImportLoading ? 'bg-surface-tertiary text-content-faint' : 'bg-accent text-accent-text'}
             style={{
               padding: '8px 16px', borderRadius: 10, border: 'none',
-              background: !listImportUrl.trim() || listImportLoading ? 'var(--bg-tertiary)' : 'var(--accent)',
-              color: !listImportUrl.trim() || listImportLoading ? 'var(--text-faint)' : 'var(--accent-text)',
               fontSize: 13, fontWeight: 500, cursor: !listImportUrl.trim() || listImportLoading ? 'default' : 'pointer',
               fontFamily: 'inherit',
             }}

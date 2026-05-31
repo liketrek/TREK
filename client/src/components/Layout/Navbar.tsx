@@ -175,8 +175,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
       {/* Share button */}
       {onShare && (
         <button onClick={onShare}
-          className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg border transition-colors text-sm font-medium flex-shrink-0 border-edge text-content-secondary"
-          style={{ background: 'var(--bg-card)' }}
+          className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg border transition-colors text-sm font-medium flex-shrink-0 border-edge text-content-secondary bg-surface-card"
           onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
           onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-card)'}>
           <Users className="w-4 h-4" />
@@ -187,10 +186,9 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
       {/* Prerelease badge */}
       {isPrerelease && appVersion && (
         <span
-          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold flex-shrink-0"
-          style={{ background: 'rgba(245,158,11,0.15)', color: '#d97706', border: '1px solid rgba(245,158,11,0.3)' }}
+          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold flex-shrink-0 bg-[rgba(245,158,11,0.15)] text-[#d97706] border border-[rgba(245,158,11,0.3)]"
         >
-          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#f59e0b' }} />
+          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-[#f59e0b]" />
           {appVersion}
         </span>
       )}

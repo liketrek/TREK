@@ -450,7 +450,7 @@ export default function LoginPage(): React.ReactElement {
                   <div>
                     <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#374151', marginBottom: 6 }}>{t('settings.newPassword')}</label>
                     <div style={{ position: 'relative' }}>
-                      <Lock size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
+                      <Lock size={15} className="text-[#9ca3af]" style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                       <input
                         type="password" value={newPassword} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)} required
                         placeholder={t('settings.newPassword')} style={inputBase}
@@ -462,7 +462,7 @@ export default function LoginPage(): React.ReactElement {
                   <div>
                     <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#374151', marginBottom: 6 }}>{t('settings.confirmPassword')}</label>
                     <div style={{ position: 'relative' }}>
-                      <Lock size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
+                      <Lock size={15} className="text-[#9ca3af]" style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                       <input
                         type="password" value={confirmPassword} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)} required
                         placeholder={t('settings.confirmPassword')} style={inputBase}
@@ -478,7 +478,7 @@ export default function LoginPage(): React.ReactElement {
                 <div>
                   <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#374151', marginBottom: 6 }}>{t('login.mfaCodeLabel')}</label>
                   <div style={{ position: 'relative' }}>
-                    <KeyRound size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
+                    <KeyRound size={15} className="text-[#9ca3af]" style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                     <input
                       type="text"
                       inputMode="text"
@@ -508,7 +508,7 @@ export default function LoginPage(): React.ReactElement {
                 <div>
                   <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#374151', marginBottom: 6 }}>{t('login.username')}</label>
                   <div style={{ position: 'relative' }}>
-                    <User size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
+                    <User size={15} className="text-[#9ca3af]" style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                     <input
                       type="text" value={username} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)} required
                       placeholder="admin" style={inputBase}
@@ -524,7 +524,7 @@ export default function LoginPage(): React.ReactElement {
               <div>
                 <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#374151', marginBottom: 6 }}>{t('common.email')}</label>
                 <div style={{ position: 'relative' }}>
-                  <Mail size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
+                  <Mail size={15} className="text-[#9ca3af]" style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                   <input
                     type="email" value={email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)} required
                     placeholder={t('login.emailPlaceholder')} style={inputBase}
@@ -540,7 +540,7 @@ export default function LoginPage(): React.ReactElement {
               <div>
                 <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#374151', marginBottom: 6 }}>{t('common.password')}</label>
                 <div style={{ position: 'relative' }}>
-                  <Lock size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
+                  <Lock size={15} className="text-[#9ca3af]" style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                   <input
                     type={showPassword ? 'text' : 'password'} value={password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)} required
                     placeholder="••••••••" style={{ ...inputBase, paddingRight: 44 }}

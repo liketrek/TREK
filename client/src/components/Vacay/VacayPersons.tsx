@@ -79,10 +79,8 @@ export default function VacayPersons() {
           return (
             <div key={u.id}
               onClick={() => { if (isFused) setSelectedUserId(u.id) }}
-              className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg group transition-all"
+              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg group transition-all border ${isSelected ? 'bg-surface-hover border-edge' : 'bg-transparent border-transparent'}`}
               style={{
-                background: isSelected ? 'var(--bg-hover)' : 'transparent',
-                border: isSelected ? '1px solid var(--border-primary)' : '1px solid transparent',
                 cursor: isFused ? 'pointer' : 'default',
               }}>
               <button
@@ -120,7 +118,7 @@ export default function VacayPersons() {
 
       {/* Invite Modal — Portal to body to avoid z-index issues */}
       {showInvite && ReactDOM.createPortal(
-        <div className="fixed inset-0 flex items-center justify-center px-4 trek-backdrop-enter" style={{ zIndex: 99990, backgroundColor: 'rgba(15,23,42,0.5)', paddingTop: 70 }}
+        <div className="fixed inset-0 flex items-center justify-center px-4 trek-backdrop-enter bg-[rgba(15,23,42,0.5)]" style={{ zIndex: 99990, paddingTop: 70 }}
           onClick={() => setShowInvite(false)}>
           <div className="trek-modal-enter rounded-2xl shadow-2xl w-full max-w-sm bg-surface-card"
             onClick={e => e.stopPropagation()}>
@@ -148,8 +146,7 @@ export default function VacayPersons() {
                   {t('common.cancel')}
                 </button>
                 <button onClick={handleInvite} disabled={!selectedInviteUser || inviting}
-                  className="px-4 py-2 text-sm rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-40"
-                  style={{ background: 'var(--text-primary)', color: 'var(--bg-card)' }}>
+                  className="px-4 py-2 text-sm rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-40 bg-content text-surface-card">
                   {inviting && <Loader2 size={13} className="animate-spin" />}
                   {t('vacay.sendInvite')}
                 </button>
@@ -162,7 +159,7 @@ export default function VacayPersons() {
 
       {/* Color Picker Modal — Portal to body */}
       {showColorPicker && ReactDOM.createPortal(
-        <div className="fixed inset-0 flex items-center justify-center px-4 trek-backdrop-enter" style={{ zIndex: 99990, backgroundColor: 'rgba(15,23,42,0.5)', paddingTop: 70 }}
+        <div className="fixed inset-0 flex items-center justify-center px-4 trek-backdrop-enter bg-[rgba(15,23,42,0.5)]" style={{ zIndex: 99990, paddingTop: 70 }}
           onClick={() => { setShowColorPicker(false); setColorEditUserId(null) }}>
           <div className="trek-modal-enter rounded-2xl shadow-2xl w-full max-w-xs bg-surface-card"
             onClick={e => e.stopPropagation()}>

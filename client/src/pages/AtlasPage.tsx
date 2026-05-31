@@ -194,7 +194,7 @@ export default function AtlasPage(): React.ReactElement {
 
       {/* Country action popup */}
       {confirmAction && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+        <div className="bg-[rgba(0,0,0,0.4)]" style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={() => setConfirmAction(null)}>
           <div className="bg-surface-card" style={{ borderRadius: 16, padding: 24, maxWidth: 340, width: '100%', boxShadow: '0 16px 48px rgba(0,0,0,0.2)', textAlign: 'center' }}
             onClick={e => e.stopPropagation()}>
@@ -234,7 +234,7 @@ export default function AtlasPage(): React.ReactElement {
                   style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px', borderRadius: 12, background: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.12s' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                  <Star size={18} style={{ color: '#fbbf24', flexShrink: 0 }} />
+                  <Star size={18} className="text-[#fbbf24]" style={{ flexShrink: 0 }} />
                   <div>
                     <div className="text-content" style={{ fontSize: 13, fontWeight: 600 }}>{t('atlas.addToBucket')}</div>
                     <div className="text-content-muted" style={{ fontSize: 11, marginTop: 1 }}>{t('atlas.addToBucketHint')}</div>
@@ -282,7 +282,7 @@ export default function AtlasPage(): React.ReactElement {
                   style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px', borderRadius: 12, background: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.12s' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                  <Star size={18} style={{ color: '#fbbf24', flexShrink: 0 }} />
+                  <Star size={18} className="text-[#fbbf24]" style={{ flexShrink: 0 }} />
                   <div>
                     <div className="text-content" style={{ fontSize: 13, fontWeight: 600 }}>{t('atlas.addToBucket')}</div>
                     <div className="text-content-muted" style={{ fontSize: 11, marginTop: 1 }}>{t('atlas.addToBucketHint')}</div>
@@ -301,7 +301,8 @@ export default function AtlasPage(): React.ReactElement {
                     {t('common.cancel')}
                   </button>
                   <button onClick={executeConfirmAction}
-                    style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', background: '#ef4444', color: 'white' }}>
+                    className="bg-[#ef4444] text-white"
+                    style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                     {t('atlas.unmark')}
                   </button>
                 </div>
@@ -349,7 +350,8 @@ export default function AtlasPage(): React.ReactElement {
                     }
                     setConfirmAction(null)
                   }}
-                    style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', background: '#ef4444', color: 'white' }}>
+                    className="bg-[#ef4444] text-white"
+                    style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                     {t('atlas.unmark')}
                   </button>
                 </div>
@@ -402,7 +404,8 @@ export default function AtlasPage(): React.ReactElement {
                     setBucketMonth(0); setBucketYear(0)
                     setConfirmAction(null)
                   }}
-                    style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', background: '#fbbf24', color: '#1a1a1a' }}>
+                    className="bg-[#fbbf24] text-[#1a1a1a]"
+                    style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                     {t('atlas.addToBucket')}
                   </button>
                 </div>
@@ -419,8 +422,8 @@ export default function AtlasPage(): React.ReactElement {
                     {t('common.cancel')}
                   </button>
                   <button onClick={executeConfirmAction}
-                    className="bg-content"
-                    style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', color: 'white' }}>
+                    className="bg-content text-white"
+                    style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                     {t('atlas.markVisited')}
                   </button>
                 </div>
@@ -535,7 +538,7 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
             const code = item.country_code?.length === 2 ? item.country_code : (Object.entries(A2_TO_A3).find(([, v]) => v === item.country_code)?.[0] || '')
             return code ? (
               <img src={`https://flagcdn.com/w40/${code.toLowerCase()}.png`} alt={code} style={{ width: 28, height: 20, borderRadius: 4, objectFit: 'cover', marginBottom: 4 }} />
-            ) : <Star size={16} style={{ color: '#fbbf24', marginBottom: 4 }} fill="#fbbf24" />
+            ) : <Star size={16} className="text-[#fbbf24]" style={{ marginBottom: 4 }} fill="#fbbf24" />
           })()}
           <span className="text-xs font-semibold text-center leading-tight" style={{ color: tp, maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
           {item.target_date && (() => {
@@ -620,7 +623,8 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
             {t('common.cancel')}
           </button>
           <button onClick={onAddBucket} disabled={!bucketForm.name.trim()}
-            style={{ fontSize: 11, padding: '4px 12px', borderRadius: 6, border: 'none', background: '#fbbf24', color: '#1a1a1a', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: bucketForm.name.trim() ? 1 : 0.5 }}>
+            className="bg-[#fbbf24] text-[#1a1a1a]"
+            style={{ fontSize: 11, padding: '4px 12px', borderRadius: 6, border: 'none', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: bucketForm.name.trim() ? 1 : 0.5 }}>
             {t('common.add')}
           </button>
         </div>
@@ -733,8 +737,7 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
                 ))}
                 {countryDetail.manually_marked && onUnmarkCountry && (
                   <button onClick={() => onUnmarkCountry(selectedCountry!)}
-                    className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold transition-opacity hover:opacity-75"
-                    style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>
+                    className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold transition-opacity hover:opacity-75 bg-[rgba(239,68,68,0.1)] text-[#ef4444]">
                     <X size={9} />
                     {t('atlas.unmark')}
                   </button>

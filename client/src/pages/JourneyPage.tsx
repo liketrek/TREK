@@ -95,7 +95,7 @@ export default function JourneyPage() {
               <h2 className="text-content" style={{ margin: 0, fontSize: 18, fontWeight: 600, letterSpacing: '-0.01em', flexShrink: 0 }}>
                 {t('journey.title')}
               </h2>
-              <div style={{ width: 1, height: 22, background: 'var(--border-faint)', flexShrink: 0 }} />
+              <div className="bg-edge-faint" style={{ width: 1, height: 22, flexShrink: 0 }} />
               <span className="text-content-muted" style={{ fontSize: 13 }}>
                 {t('journey.frontpage.subtitle')}
               </span>

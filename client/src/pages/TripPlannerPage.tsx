@@ -76,23 +76,20 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
               const Icon = tab.icon
               return (
                 <button key={tab.id} onClick={() => setSubTabPersist(tab.id)}
+                  className={active ? 'bg-surface-card text-content' : 'bg-transparent text-content-muted'}
                   style={{
                     appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                     display: 'inline-flex', alignItems: 'center', gap: 6,
                     padding: '6px 12px', borderRadius: 99, fontSize: 13, whiteSpace: 'nowrap',
-                    background: active ? 'var(--bg-card)' : 'transparent',
-                    color: active ? 'var(--text-primary)' : 'var(--text-muted)',
                     fontWeight: active ? 500 : 400,
                     boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                     transition: 'background 180ms cubic-bezier(0.23,1,0.32,1), color 180ms cubic-bezier(0.23,1,0.32,1), box-shadow 180ms cubic-bezier(0.23,1,0.32,1)',
                   }}
                 >
-                  <Icon size={13} style={{ color: active ? 'var(--text-primary)' : 'var(--text-faint)' }} />
+                  <Icon size={13} className={active ? 'text-content' : 'text-content-faint'} />
                   <span className="hidden sm:inline">{tab.label}</span>
-                  <span style={{
+                  <span className={`text-content-faint ${active ? 'bg-surface-tertiary' : 'bg-[rgba(0,0,0,0.06)]'}`} style={{
                     fontSize: 10, fontWeight: 600,
-                    background: active ? 'var(--bg-tertiary)' : 'rgba(0,0,0,0.06)',
-                    color: 'var(--text-faint)',
                     padding: '1px 6px', borderRadius: 99, minWidth: 16, textAlign: 'center',
                   }}>{tab.count}</span>
                 </button>
@@ -111,8 +108,8 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
               <div style={{ display: 'flex', gap: 6, flexShrink: 0, marginLeft: 'auto', flexWrap: 'wrap' }}>
                 {packingAbgehakt > 0 && (
                   <button onClick={() => setClearCheckedSignal(s => s + 1)}
-                    className={`hidden sm:inline-flex items-center gap-1.5 px-[14px] py-[9px] hover:opacity-[0.88]`}
-                    style={{ ...sharedBtnStyle, background: 'rgba(239,68,68,0.14)', color: '#ef4444' }}
+                    className={`hidden sm:inline-flex items-center gap-1.5 px-[14px] py-[9px] hover:opacity-[0.88] bg-[rgba(239,68,68,0.14)] text-[#ef4444]`}
+                    style={sharedBtnStyle}
                   >
                     <Trash2 size={14} strokeWidth={2.5} />
                     <span>{t('packing.clearChecked', { count: packingAbgehakt })}</span>
@@ -120,21 +117,21 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
                 )}
                 <ApplyTemplateButton
                   tripId={tripId}
-                  className={sharedBtnClass}
-                  style={{ ...sharedBtnStyle, background: 'var(--accent)', color: 'var(--accent-text)' }}
+                  className={`${sharedBtnClass} bg-accent text-accent-text`}
+                  style={sharedBtnStyle}
                 />
                 {packingItems.length > 0 && (
                   <button onClick={() => setSaveTemplateSignal(s => s + 1)}
-                    className={sharedBtnClass}
-                    style={{ ...sharedBtnStyle, background: 'var(--accent)', color: 'var(--accent-text)' }}
+                    className={`${sharedBtnClass} bg-accent text-accent-text`}
+                    style={sharedBtnStyle}
                   >
                     <FolderPlus size={14} strokeWidth={2.5} />
                     <span className="hidden sm:inline">{t('packing.saveAsTemplate')}</span>
                   </button>
                 )}
                 <button onClick={() => setImportPackingSignal(s => s + 1)}
-                  className={sharedBtnClass}
-                  style={{ ...sharedBtnStyle, background: 'var(--accent)', color: 'var(--accent-text)' }}
+                  className={`${sharedBtnClass} bg-accent text-accent-text`}
+                  style={sharedBtnStyle}
                 >
                   <Upload size={14} strokeWidth={2.5} />
                   <span className="hidden sm:inline">{t('packing.import')}</span>
@@ -144,12 +141,12 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
           })()}
           {subTab === 'todo' && (
             <button onClick={() => setAddTodoSignal(s => s + 1)}
-              className="hover:opacity-[0.88]"
+              className="hover:opacity-[0.88] bg-accent text-accent-text"
               style={{
                 appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500,
-                background: 'var(--accent)', color: 'var(--accent-text)', flexShrink: 0,
+                flexShrink: 0,
                 marginLeft: 'auto',
               }}
             >
@@ -531,7 +528,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
             )}
 
             {selectedPlace && isMobile && ReactDOM.createPortal(
-              <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: 'rgba(0,0,0,0.3)', paddingBottom: 'var(--bottom-nav-h)' }} onClick={() => setSelectedPlaceId(null)}>
+              <div className="bg-[rgba(0,0,0,0.3)]" style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 'var(--bottom-nav-h)' }} onClick={() => setSelectedPlaceId(null)}>
                 <div style={{ width: '100%', maxHeight: '85vh' }} onClick={e => e.stopPropagation()}>
                   <PlaceInspector
                     place={selectedPlace}
@@ -583,7 +580,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
             )}
 
             {mobileSidebarOpen && ReactDOM.createPortal(
-              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 9999 }} onClick={() => setMobileSidebarOpen(null)}>
+              <div className="bg-[rgba(0,0,0,0.3)]" style={{ position: 'fixed', inset: 0, zIndex: 9999 }} onClick={() => setMobileSidebarOpen(null)}>
                 <div className="bg-surface-card" style={{ position: 'absolute', top: 'var(--nav-h)', left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
                   <div className="border-b border-edge-secondary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px' }}>
                     <span className="text-content" style={{ fontWeight: 600, fontSize: 14 }}>{mobileSidebarOpen === 'left' ? t('trip.mobilePlan') : t('trip.mobilePlaces')}</span>

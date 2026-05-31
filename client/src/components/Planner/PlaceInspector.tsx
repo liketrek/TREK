@@ -200,8 +200,7 @@ export default function PlaceInspector({
         fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
       }}
     >
-      <div style={{
-        background: 'var(--bg-elevated)',
+      <div className="bg-surface-elevated" style={{
         backdropFilter: 'blur(40px) saturate(180%)',
         WebkitBackdropFilter: 'blur(40px) saturate(180%)',
         borderRadius: 20,
@@ -245,7 +244,8 @@ export default function PlaceInspector({
           {(place.phone || googleDetails?.phone) && (
             <div style={{ display: 'flex', gap: 12 }}>
               <a href={`tel:${place.phone || googleDetails.phone}`}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-primary)', textDecoration: 'none' }}>
+                className="text-content"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, textDecoration: 'none' }}>
                 <Phone size={12} /> {place.phone || googleDetails.phone}
               </a>
             </div>
@@ -414,7 +414,7 @@ function ParticipantsBox({ tripMembers, participantIds, allJoined, onSetParticip
 
   return (
     <div style={{ borderRadius: 12, border: '1px solid var(--border-faint)', padding: '8px 10px' }}>
-      <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+      <div className="text-content-faint" style={{ fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
         <Users size={10} /> {t('inspector.participants')}
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
@@ -426,19 +426,18 @@ function ParticipantsBox({ tripMembers, participantIds, allJoined, onSetParticip
               onMouseEnter={() => setHoveredId(member.id)}
               onMouseLeave={() => setHoveredId(null)}
               onClick={() => { if (canRemove) handleRemove(member.id) }}
+              className={isHovered && canRemove ? 'bg-[rgba(239,68,68,0.06)] text-[#ef4444]' : 'bg-surface-hover text-content'}
               style={{
                 display: 'flex', alignItems: 'center', gap: 4, padding: '2px 7px 2px 3px', borderRadius: 99,
                 border: `1.5px solid ${isHovered && canRemove ? 'rgba(239,68,68,0.4)' : 'var(--accent)'}`,
-                background: isHovered && canRemove ? 'rgba(239,68,68,0.06)' : 'var(--bg-hover)',
                 fontSize: 10, fontWeight: 500,
-                color: isHovered && canRemove ? '#ef4444' : 'var(--text-primary)',
                 cursor: canRemove ? 'pointer' : 'default',
                 transition: 'all 0.15s',
               }}>
-              <div style={{
-                width: 16, height: 16, borderRadius: '50%', background: 'var(--bg-tertiary)',
+              <div className="bg-surface-tertiary text-content-muted" style={{
+                width: 16, height: 16, borderRadius: '50%',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, fontWeight: 700,
-                color: 'var(--text-muted)', overflow: 'hidden', flexShrink: 0,
+                overflow: 'hidden', flexShrink: 0,
               }}>
                 {(member.avatar_url || member.avatar) ? <img src={member.avatar_url || `/uploads/avatars/${member.avatar}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : member.username?.[0]?.toUpperCase()}
               </div>
@@ -450,35 +449,35 @@ function ParticipantsBox({ tripMembers, participantIds, allJoined, onSetParticip
         {/* Add button */}
         {availableToAdd.length > 0 && (
           <div style={{ position: 'relative' }}>
-            <button onClick={() => setShowAdd(!showAdd)} style={{
+            <button onClick={() => setShowAdd(!showAdd)} className="text-content-faint" style={{
               width: 22, height: 22, borderRadius: '50%', border: '1.5px dashed var(--border-primary)',
               background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'var(--text-faint)', fontSize: 12, transition: 'all 0.12s',
+              fontSize: 12, transition: 'all 0.12s',
             }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--text-muted)'; e.currentTarget.style.color = 'var(--text-primary)' }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-primary)'; e.currentTarget.style.color = 'var(--text-faint)' }}
             >+</button>
 
             {showAdd && (
-              <div style={{
+              <div className="bg-surface-card" style={{
                 position: 'absolute', top: 26, left: 0, zIndex: 100,
-                background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10,
+                border: '1px solid var(--border-primary)', borderRadius: 10,
                 boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 4, minWidth: 140,
               }}>
                 {availableToAdd.map(member => (
-                  <button key={member.id} onClick={() => handleAdd(member.id)} style={{
+                  <button key={member.id} onClick={() => handleAdd(member.id)} className="text-content" style={{
                     display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: '5px 8px',
                     borderRadius: 6, border: 'none', background: 'none', cursor: 'pointer',
-                    fontFamily: 'inherit', fontSize: 11, color: 'var(--text-primary)', textAlign: 'left',
+                    fontFamily: 'inherit', fontSize: 11, textAlign: 'left',
                     transition: 'background 0.1s',
                   }}
                     onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'none'}
                   >
-                    <div style={{
-                      width: 18, height: 18, borderRadius: '50%', background: 'var(--bg-tertiary)',
+                    <div className="bg-surface-tertiary text-content-muted" style={{
+                      width: 18, height: 18, borderRadius: '50%',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700,
-                      color: 'var(--text-muted)', overflow: 'hidden', flexShrink: 0,
+                      overflow: 'hidden', flexShrink: 0,
                     }}>
                       {(member.avatar_url || member.avatar) ? <img src={member.avatar_url || `/uploads/avatars/${member.avatar}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : member.username?.[0]?.toUpperCase()}
                     </div>
@@ -530,12 +529,14 @@ function PlaceInspectorHeader({ openNow, place, category, t, editingName, nameIn
                   onChange={e => setNameValue(e.target.value)}
                   onBlur={commitNameEdit}
                   onKeyDown={handleNameKeyDown}
-                  style={{ fontWeight: 600, fontSize: 15, color: 'var(--text-primary)', lineHeight: '1.3', background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '1px 6px', fontFamily: 'inherit', outline: 'none', width: '100%' }}
+                  className="text-content bg-surface-secondary"
+                  style={{ fontWeight: 600, fontSize: 15, lineHeight: '1.3', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '1px 6px', fontFamily: 'inherit', outline: 'none', width: '100%' }}
                 />
               ) : (
                 <span
                   onDoubleClick={startNameEdit}
-                  style={{ fontWeight: 600, fontSize: 15, color: 'var(--text-primary)', lineHeight: '1.3', cursor: onUpdatePlace ? 'text' : 'default' }}
+                  className="text-content"
+                  style={{ fontWeight: 600, fontSize: 15, lineHeight: '1.3', cursor: onUpdatePlace ? 'text' : 'default' }}
                 >{place.name}</span>
               )}
               {category && (() => {
@@ -558,24 +559,25 @@ function PlaceInspectorHeader({ openNow, place, category, t, editingName, nameIn
             {place.address && (
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 4, marginTop: 6 }}>
                 <MapPin size={11} color="var(--text-faint)" style={{ flexShrink: 0, marginTop: 2 }} />
-                <span style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: '1.4', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{place.address}</span>
+                <span className="text-content-muted" style={{ fontSize: 12, lineHeight: '1.4', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{place.address}</span>
               </div>
             )}
             {place.place_time && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
                 <Clock size={10} color="var(--text-faint)" style={{ flexShrink: 0 }} />
-                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatTime(place.place_time, locale, timeFormat)}{place.end_time ? ` – ${formatTime(place.end_time, locale, timeFormat)}` : ''}</span>
+                <span className="text-content-muted" style={{ fontSize: 12 }}>{formatTime(place.place_time, locale, timeFormat)}{place.end_time ? ` – ${formatTime(place.end_time, locale, timeFormat)}` : ''}</span>
               </div>
             )}
             {place.lat && place.lng && (
-              <div className="hidden sm:block" style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>
+              <div className="hidden sm:block text-content-faint" style={{ fontSize: 11, marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>
                 {Number(place.lat).toFixed(6)}, {Number(place.lng).toFixed(6)}
               </div>
             )}
           </div>
           <button
             onClick={onClose}
-            style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--bg-hover)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, alignSelf: 'flex-start', transition: 'background 0.15s' }}
+            className="bg-surface-hover"
+            style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, alignSelf: 'flex-start', transition: 'background 0.15s' }}
             onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
             onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-hover)'}
           >
@@ -604,11 +606,11 @@ function PlaceReservationParticipants({ selectedAssignmentId, reservations, assi
                   const confirmed = res.status === 'confirmed'
                   return (
                     <div style={{ borderRadius: 12, overflow: 'hidden', border: `1px solid ${confirmed ? 'rgba(22,163,74,0.2)' : 'rgba(217,119,6,0.2)'}` }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: confirmed ? 'rgba(22,163,74,0.08)' : 'rgba(217,119,6,0.08)' }}>
-                        <div style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: confirmed ? '#16a34a' : '#d97706' }} />
-                        <span style={{ fontSize: 10, fontWeight: 700, color: confirmed ? '#16a34a' : '#d97706' }}>{confirmed ? t('reservations.confirmed') : t('reservations.pending')}</span>
+                      <div className={confirmed ? 'bg-[rgba(22,163,74,0.08)]' : 'bg-[rgba(217,119,6,0.08)]'} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px' }}>
+                        <div className={confirmed ? 'bg-[#16a34a]' : 'bg-[#d97706]'} style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0 }} />
+                        <span className={confirmed ? 'text-[#16a34a]' : 'text-[#d97706]'} style={{ fontSize: 10, fontWeight: 700 }}>{confirmed ? t('reservations.confirmed') : t('reservations.pending')}</span>
                         <span style={{ flex: 1 }} />
-                        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{res.title}</span>
+                        <span className="text-content" style={{ fontSize: 11, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{res.title}</span>
                       </div>
                       <div style={{ padding: '6px 10px', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                         {(() => {
@@ -618,14 +620,14 @@ function PlaceReservationParticipants({ selectedAssignmentId, reservations, assi
                             <>
                               {date && (
                                 <div>
-                                  <div style={{ fontSize: 8, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase' }}>{t('reservations.date')}</div>
-                                  <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-primary)', marginTop: 1 }}>{new Date(date + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })}</div>
+                                  <div className="text-content-faint" style={{ fontSize: 8, fontWeight: 600, textTransform: 'uppercase' }}>{t('reservations.date')}</div>
+                                  <div className="text-content" style={{ fontSize: 10, fontWeight: 500, marginTop: 1 }}>{new Date(date + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })}</div>
                                 </div>
                               )}
                               {(startTime || endTime) && (
                                 <div>
-                                  <div style={{ fontSize: 8, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase' }}>{t('reservations.time')}</div>
-                                  <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-primary)', marginTop: 1 }}>
+                                  <div className="text-content-faint" style={{ fontSize: 8, fontWeight: 600, textTransform: 'uppercase' }}>{t('reservations.time')}</div>
+                                  <div className="text-content" style={{ fontSize: 10, fontWeight: 500, marginTop: 1 }}>
                                     {startTime ? formatTime(startTime, locale, timeFormat) : ''}
                                     {endTime ? ` – ${formatTime(endTime, locale, timeFormat)}` : ''}
                                   </div>
@@ -636,12 +638,12 @@ function PlaceReservationParticipants({ selectedAssignmentId, reservations, assi
                         })()}
                         {res.confirmation_number && (
                           <div>
-                            <div style={{ fontSize: 8, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase' }}>{t('reservations.confirmationCode')}</div>
-                            <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-primary)', marginTop: 1 }}>{res.confirmation_number}</div>
+                            <div className="text-content-faint" style={{ fontSize: 8, fontWeight: 600, textTransform: 'uppercase' }}>{t('reservations.confirmationCode')}</div>
+                            <div className="text-content" style={{ fontSize: 10, fontWeight: 500, marginTop: 1 }}>{res.confirmation_number}</div>
                           </div>
                         )}
                       </div>
-                      {res.notes && <div className="collab-note-md" style={{ padding: '0 10px 6px', fontSize: 10, color: 'var(--text-faint)', lineHeight: 1.4, wordBreak: 'break-word', overflowWrap: 'anywhere' }}><Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{res.notes}</Markdown></div>}
+                      {res.notes && <div className="collab-note-md text-content-faint" style={{ padding: '0 10px 6px', fontSize: 10, lineHeight: 1.4, wordBreak: 'break-word', overflowWrap: 'anywhere' }}><Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{res.notes}</Markdown></div>}
                       {(() => {
                         const meta = typeof res.metadata === 'string' ? JSON.parse(res.metadata || '{}') : (res.metadata || {})
                         if (!meta || Object.keys(meta).length === 0) return null
@@ -654,7 +656,7 @@ function PlaceReservationParticipants({ selectedAssignmentId, reservations, assi
                         if (meta.check_in_time) parts.push(`Check-in ${meta.check_in_time}`)
                         if (meta.check_out_time) parts.push(`Check-out ${meta.check_out_time}`)
                         if (parts.length === 0) return null
-                        return <div style={{ padding: '0 10px 6px', fontSize: 10, color: 'var(--text-muted)', fontWeight: 500 }}>{parts.join(' · ')}</div>
+                        return <div className="text-content-muted" style={{ padding: '0 10px 6px', fontSize: 10, fontWeight: 500 }}>{parts.join(' · ')}</div>
                       })()}
                     </div>
                   )
@@ -684,7 +686,7 @@ function PlaceExtras({ openingHours, weekdayIndex, hoursExpanded, setHoursExpand
   return (
           <div className={`grid grid-cols-1 ${openingHours?.length > 0 ? 'sm:grid-cols-2' : ''} gap-2`}>
           {openingHours && openingHours.length > 0 && (
-            <div style={{ background: 'var(--bg-hover)', borderRadius: 10, overflow: 'hidden' }}>
+            <div className="bg-surface-hover" style={{ borderRadius: 10, overflow: 'hidden' }}>
               <button
                 onClick={() => setHoursExpanded(h => !h)}
                 style={{
@@ -695,7 +697,7 @@ function PlaceExtras({ openingHours, weekdayIndex, hoursExpanded, setHoursExpand
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Clock size={13} color="#9ca3af" />
-                  <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>
+                  <span className="text-content-secondary" style={{ fontSize: 12, fontWeight: 500 }}>
                     {hoursExpanded ? t('inspector.openingHours') : (convertHoursLine(openingHours[weekdayIndex] || '', timeFormat) || t('inspector.showHours'))}
                   </span>
                 </div>
@@ -704,8 +706,8 @@ function PlaceExtras({ openingHours, weekdayIndex, hoursExpanded, setHoursExpand
               {hoursExpanded && (
                 <div style={{ padding: '0 12px 10px' }}>
                   {openingHours.map((line, i) => (
-                    <div key={i} style={{
-                      fontSize: 12, color: i === weekdayIndex ? 'var(--text-primary)' : 'var(--text-muted)',
+                    <div key={i} className={i === weekdayIndex ? 'text-content' : 'text-content-muted'} style={{
+                      fontSize: 12,
                       fontWeight: i === weekdayIndex ? 600 : 400,
                       padding: '2px 0',
                     }}>{convertHoursLine(line, timeFormat)}</div>
@@ -765,34 +767,34 @@ function PlaceExtras({ openingHours, weekdayIndex, hoursExpanded, setHoursExpand
               }
 
               return (
-                <div style={{ background: 'var(--bg-hover)', borderRadius: 10, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div className="bg-surface-hover" style={{ borderRadius: 10, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <TrendingUp size={13} color="#9ca3af" />
-                    <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>{t('inspector.trackStats')}</span>
+                    <span className="text-content-secondary" style={{ fontSize: 12, fontWeight: 500 }}>{t('inspector.trackStats')}</span>
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-primary)', fontWeight: 600 }}>
+                    <div className="text-content" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600 }}>
                       <MapPin size={12} color="#3b82f6" />
                       {distKm < 1 ? `${Math.round(totalDist)} m` : `${distKm.toFixed(1)} km`}
                     </div>
                     {hasEle && (
                       <>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-primary)', fontWeight: 600 }}>
+                        <div className="text-content" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600 }}>
                           <Mountain size={12} color="#22c55e" />
                           {Math.round(maxEle)} m
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-primary)', fontWeight: 600 }}>
+                        <div className="text-content" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600 }}>
                           <Mountain size={12} color="#ef4444" />
                           {Math.round(minEle)} m
                         </div>
-                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                        <div className="text-content-muted" style={{ fontSize: 12 }}>
                           ↑{Math.round(totalUp)} m &nbsp;↓{Math.round(totalDown)} m
                         </div>
                       </>
                     )}
                   </div>
                   {pathD && (
-                    <svg width="100%" viewBox={`0 0 ${chartW} ${chartH}`} preserveAspectRatio="none" style={{ display: 'block', borderRadius: 6, background: 'var(--bg-tertiary)' }}>
+                    <svg width="100%" viewBox={`0 0 ${chartW} ${chartH}`} preserveAspectRatio="none" className="bg-surface-tertiary" style={{ display: 'block', borderRadius: 6 }}>
                       <defs>
                         <linearGradient id={`ele-grad-${place.id}`} x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.25" />
@@ -810,20 +812,20 @@ function PlaceExtras({ openingHours, weekdayIndex, hoursExpanded, setHoursExpand
 
           {/* Files section */}
           {(placeFiles.length > 0 || onFileUpload) && (
-            <div style={{ background: 'var(--bg-hover)', borderRadius: 10, overflow: 'hidden' }}>
+            <div className="bg-surface-hover" style={{ borderRadius: 10, overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', gap: 6 }}>
                 <button
                   onClick={() => setFilesExpanded(f => !f)}
                   style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit', textAlign: 'left' }}
                 >
                   <FileText size={13} color="#9ca3af" />
-                  <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>
+                  <span className="text-content-secondary" style={{ fontSize: 12, fontWeight: 500 }}>
                     {placeFiles.length > 0 ? t('inspector.filesCount', { count: placeFiles.length }) : t('inspector.files')}
                   </span>
                   {filesExpanded ? <ChevronUp size={12} color="#9ca3af" /> : <ChevronDown size={12} color="#9ca3af" />}
                 </button>
                 {onFileUpload && (
-                  <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text-muted)', padding: '2px 6px', borderRadius: 6, background: 'var(--bg-tertiary)' }}>
+                  <label className="text-content-muted bg-surface-tertiary" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, padding: '2px 6px', borderRadius: 6 }}>
                     <input ref={fileInputRef} type="file" multiple style={{ display: 'none' }} onChange={handleFileUpload} />
                     {isUploading ? (
                       <span style={{ fontSize: 11 }}>…</span>
@@ -838,8 +840,8 @@ function PlaceExtras({ openingHours, weekdayIndex, hoursExpanded, setHoursExpand
                   {placeFiles.map(f => (
                     <button key={f.id} onClick={() => openFile(f.url).catch(() => {})} style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', cursor: 'pointer', background: 'none', border: 'none', width: '100%', textAlign: 'left' }}>
                       {(f.mime_type || '').startsWith('image/') ? <FileImage size={12} color="#6b7280" /> : <File size={12} color="#6b7280" />}
-                      <span style={{ fontSize: 12, color: 'var(--text-secondary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.original_name}</span>
-                      {f.file_size && <span style={{ fontSize: 11, color: 'var(--text-faint)', flexShrink: 0 }}>{formatFileSize(f.file_size)}</span>}
+                      <span className="text-content-secondary" style={{ fontSize: 12, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.original_name}</span>
+                      {f.file_size && <span className="text-content-faint" style={{ fontSize: 11, flexShrink: 0 }}>{formatFileSize(f.file_size)}</span>}
                     </button>
                   ))}
                 </div>

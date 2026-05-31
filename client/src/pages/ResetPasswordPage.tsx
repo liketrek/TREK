@@ -101,7 +101,7 @@ const ResetPasswordPage: React.FC = () => {
                 {t('login.newPassword')}
               </label>
               <div style={{ position: 'relative' }}>
-                <Lock size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
+                <Lock size={15} className="text-[#9ca3af]" style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                 <input
                   type={showPw ? 'text' : 'password'} value={pw}
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setPw(e.target.value)}
@@ -120,7 +120,7 @@ const ResetPasswordPage: React.FC = () => {
                 {t('login.confirmPassword')}
               </label>
               <div style={{ position: 'relative' }}>
-                <Lock size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
+                <Lock size={15} className="text-[#9ca3af]" style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                 <input
                   type={showPw ? 'text' : 'password'} value={pw2}
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setPw2(e.target.value)}
@@ -138,7 +138,7 @@ const ResetPasswordPage: React.FC = () => {
               {t('login.mfaCode')}
             </label>
             <div style={{ position: 'relative' }}>
-              <KeyRound size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
+              <KeyRound size={15} className="text-[#9ca3af]" style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
               <input
                 type="text" inputMode="numeric" value={mfaCode}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setMfaCode(e.target.value)}

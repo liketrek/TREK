@@ -39,8 +39,7 @@ export default function InAppNotificationsPage(): React.ReactElement {
               {unreadCount > 0 && (
                 <button
                   onClick={markAllRead}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors text-content-secondary"
-                  style={{ background: 'var(--bg-hover)' }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors text-content-secondary bg-surface-hover"
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-hover)'}
                 >
@@ -64,21 +63,13 @@ export default function InAppNotificationsPage(): React.ReactElement {
           <div className="flex gap-2 mb-4">
             <button
               onClick={() => setUnreadOnly(false)}
-              className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-              style={{
-                background: !unreadOnly ? 'var(--text-primary)' : 'var(--bg-hover)',
-                color: !unreadOnly ? 'var(--bg-primary)' : 'var(--text-secondary)',
-              }}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${!unreadOnly ? 'bg-content text-surface' : 'bg-surface-hover text-content-secondary'}`}
             >
               {t('notifications.all')}
             </button>
             <button
               onClick={() => setUnreadOnly(true)}
-              className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-              style={{
-                background: unreadOnly ? 'var(--text-primary)' : 'var(--bg-hover)',
-                color: unreadOnly ? 'var(--bg-primary)' : 'var(--text-secondary)',
-              }}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${unreadOnly ? 'bg-content text-surface' : 'bg-surface-hover text-content-secondary'}`}
             >
               {t('notifications.unreadOnly')}
             </button>

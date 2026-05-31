@@ -90,8 +90,7 @@ export default function PageSidebar({
       {mobileOpen && (
         <>
           <div
-            className="lg:hidden fixed inset-0 z-40"
-            style={{ background: 'rgba(0,0,0,0.35)' }}
+            className="lg:hidden fixed inset-0 z-40 bg-[rgba(0,0,0,0.35)]"
             onClick={() => setMobileOpen(false)}
           />
           <aside
@@ -168,11 +167,9 @@ function SidebarInner({
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left transition-colors"
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left transition-colors ${active ? 'text-content font-semibold' : 'text-content-secondary font-medium'}`}
               style={{
                 background: active ? 'var(--bg-hover)' : 'transparent',
-                color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
-                fontWeight: active ? 600 : 500,
               }}
               onMouseEnter={(e) => {
                 if (!active) e.currentTarget.style.background = 'var(--bg-hover)'

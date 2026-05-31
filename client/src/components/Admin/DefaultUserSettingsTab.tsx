@@ -35,10 +35,10 @@ function OptionRow({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+      <label className="block text-sm font-medium mb-2 text-content-secondary">
         {label}
       </label>
-      {hint && <p className="text-xs mb-2" style={{ color: 'var(--text-faint)' }}>{hint}</p>}
+      {hint && <p className="text-xs mb-2 text-content-faint">{hint}</p>}
       <div className="flex gap-3 flex-wrap">{children}</div>
     </div>
   )
@@ -113,8 +113,8 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
     isSet(field) ? (
       <button
         onClick={() => reset(field)}
-        className="text-xs ml-2"
-        style={{ color: 'var(--text-faint)', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer' }}
+        className="text-xs ml-2 text-content-faint underline"
+        style={{ background: 'none', border: 'none', cursor: 'pointer' }}
       >
         {t('admin.defaultSettings.resetToBuiltIn')}
       </button>
@@ -146,14 +146,14 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
   }], [])
 
   if (!loaded) {
-    return <p style={{ fontSize: 12, color: 'var(--text-faint)', fontStyle: 'italic', padding: 16 }}>Loading…</p>
+    return <p className="text-content-faint" style={{ fontSize: 12, fontStyle: 'italic', padding: 16 }}>Loading…</p>
   }
 
   const darkMode = defaults.dark_mode
 
   return (
     <Section title={t('admin.defaultSettings.title')} icon={Settings2}>
-      <p className="text-sm" style={{ color: 'var(--text-faint)', marginTop: -8 }}>
+      <p className="text-sm text-content-faint" style={{ marginTop: -8 }}>
         {t('admin.defaultSettings.description')}
       </p>
 
@@ -224,7 +224,7 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
 
       {/* Map Tile URL */}
       <div>
-        <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+        <label className="block text-sm font-medium mb-1.5 text-content-secondary">
           {t('settings.mapTemplate')}
           <ResetButton field="map_tile_url" />
         </label>
@@ -244,7 +244,7 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
           placeholder="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
         />
-        <p className="text-xs mt-1" style={{ color: 'var(--text-faint)' }}>{t('settings.mapDefaultHint')}</p>
+        <p className="text-xs mt-1 text-content-faint">{t('settings.mapDefaultHint')}</p>
         <div style={{ position: 'relative', height: '200px', width: '100%', marginTop: 12 }}>
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           {React.createElement(MapView as any, {

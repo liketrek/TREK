@@ -191,9 +191,9 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
       {/* Dissolve fusion */}
       {isFused && (
         <div className="pt-4 mt-2 border-t border-edge-secondary">
-          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(239,68,68,0.2)' }}>
-            <div className="px-4 py-3 flex items-center gap-3" style={{ background: 'rgba(239,68,68,0.06)' }}>
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.1)' }}>
+          <div className="rounded-xl overflow-hidden border border-[rgba(239,68,68,0.2)]">
+            <div className="px-4 py-3 flex items-center gap-3 bg-[rgba(239,68,68,0.06)]">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[rgba(239,68,68,0.1)]">
                 <Unlink size={16} className="text-red-500" />
               </div>
               <div>
@@ -201,7 +201,7 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
                 <p className="text-[11px] text-content-faint">{t('vacay.dissolveHint')}</p>
               </div>
             </div>
-            <div className="px-4 py-3 flex items-center gap-2 flex-wrap" style={{ borderTop: '1px solid rgba(239,68,68,0.1)' }}>
+            <div className="px-4 py-3 flex items-center gap-2 flex-wrap border-t border-t-[rgba(239,68,68,0.1)]">
               {users.map(u => (
                 <div key={u.id} className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-surface-secondary">
                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: u.color || '#6366f1' }} />
@@ -209,7 +209,7 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
                 </div>
               ))}
             </div>
-            <div className="px-4 py-3" style={{ borderTop: '1px solid rgba(239,68,68,0.1)' }}>
+            <div className="px-4 py-3 border-t border-t-[rgba(239,68,68,0.1)]">
               <button
                 onClick={async () => {
                   await dissolve()
@@ -247,8 +247,7 @@ function SettingToggle({ icon: Icon, label, hint, value, onChange }: SettingTogg
         </div>
       </div>
       <button onClick={onChange}
-        className="relative shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-colors"
-        style={{ background: value ? 'var(--text-primary)' : 'var(--border-primary)' }}>
+        className={`relative shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-colors ${value ? 'bg-content' : 'bg-edge'}`}>
         <span className="absolute left-1 h-4 w-4 rounded-full transition-transform duration-200 bg-surface-card"
           style={{ transform: value ? 'translateX(20px)' : 'translateX(0)' }} />
       </button>
@@ -353,8 +352,7 @@ function CalendarRow({ cal, countries, onUpdate, onDelete }: {
       </div>
       <button
         onClick={onDelete}
-        className="shrink-0 p-1.5 rounded-md transition-colors"
-        style={{ color: 'var(--text-faint)' }}
+        className="shrink-0 p-1.5 rounded-md transition-colors text-content-faint"
         onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.1)' }}
         onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
       >
@@ -437,15 +435,13 @@ function AddCalendarForm({ countries, onAdd, onCancel }: {
           <button
             disabled={!canAdd}
             onClick={() => onAdd({ region: region || selectedCountry, color, label: label.trim() || null })}
-            className="flex-1 text-xs px-2 py-1.5 rounded-md font-medium transition-colors disabled:opacity-40"
-            style={{ background: 'var(--text-primary)', color: 'var(--bg-card)' }}
+            className="flex-1 text-xs px-2 py-1.5 rounded-md font-medium transition-colors disabled:opacity-40 bg-content text-surface-card"
           >
             {t('vacay.add')}
           </button>
           <button
             onClick={onCancel}
-            className="text-xs px-2 py-1.5 rounded-md transition-colors"
-            style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}
+            className="text-xs px-2 py-1.5 rounded-md transition-colors bg-surface-secondary text-content-muted"
           >
             ✕
           </button>

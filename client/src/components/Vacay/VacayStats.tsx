@@ -91,10 +91,8 @@ function StatCard({ stat: s, isMe, canEdit, selectedYear, onSave, t }: StatCardP
       <div className="grid grid-cols-3 gap-1.5">
         {/* Days — editable */}
         <div
-          className="rounded-md px-2 py-2 group/days"
+          className={`rounded-md px-2 py-2 group/days border ${canEdit ? 'bg-surface-card border-edge' : 'bg-surface-secondary border-transparent'}`}
           style={{
-            background: canEdit ? 'var(--bg-card)' : 'var(--bg-secondary)',
-            border: canEdit ? '1px solid var(--border-primary)' : '1px solid transparent',
             cursor: canEdit ? 'pointer' : 'default',
           }}
           onClick={() => { if (canEdit && !editing) setEditing(true) }}
@@ -131,8 +129,8 @@ function StatCard({ stat: s, isMe, canEdit, selectedYear, onSave, t }: StatCardP
         </div>
       </div>
       {s.carried_over > 0 && (
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.15)' }}>
-          <span className="text-[10px]" style={{ color: '#d97706' }}>+{s.carried_over} {t('vacay.carriedOver', { year: selectedYear - 1 })}</span>
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-[rgba(245,158,11,0.08)] border border-[rgba(245,158,11,0.15)]">
+          <span className="text-[10px] text-[#d97706]">+{s.carried_over} {t('vacay.carriedOver', { year: selectedYear - 1 })}</span>
         </div>
       )}
     </div>

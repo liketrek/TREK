@@ -62,7 +62,7 @@ export default function ScopeGroupPicker({ selected, onChange }: Props): React.R
                 />
               </div>
               {open[group] && (
-                <div className="divide-y" style={{ borderColor: 'var(--border-primary)' }}>
+                <div className="divide-y border-edge">
                   {groupScopes.map(({ scope, label, description }) => (
                     <label
                       key={scope}

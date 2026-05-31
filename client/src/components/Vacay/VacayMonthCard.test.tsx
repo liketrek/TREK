@@ -88,7 +88,7 @@ describe('VacayMonthCard', () => {
     const cell = daySpan.closest('div') as HTMLElement
     // Company overlay is a direct child div with amber background
     const overlayDivs = Array.from(cell.querySelectorAll(':scope > div')) as HTMLElement[]
-    const companyOverlay = overlayDivs.find(el => el.style.background.includes('245'))
+    const companyOverlay = overlayDivs.find(el => el.className.includes('bg-[rgba(245,158,11'))
     expect(companyOverlay).toBeTruthy()
   })
 

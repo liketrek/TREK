@@ -110,8 +110,7 @@ function AdminNotificationsPanel({ t, toast }: { t: (k: string) => string; toast
                     <div key={ch} style={{ display: 'flex', justifyContent: 'center' }}>
                       <button
                         onClick={() => toggle(eventType, ch)}
-                        className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0"
-                        style={{ background: isOn ? 'var(--text-primary)' : 'var(--border-primary)' }}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 ${isOn ? 'bg-content' : 'bg-edge'}`}
                       >
                         <span className="absolute left-0.5 h-4 w-4 rounded-full bg-white transition-transform duration-200"
                           style={{ transform: isOn ? 'translateX(16px)' : 'translateX(0)' }} />
@@ -301,7 +300,7 @@ export default function AdminPage(): React.ReactElement {
                                     {u.username.charAt(0).toUpperCase()}
                                   </div>
                                 )}
-                                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-surface-card" style={{ background: u.online ? '#22c55e' : '#94a3b8' }} />
+                                <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-surface-card ${u.online ? 'bg-[#22c55e]' : 'bg-[#94a3b8]'}`} />
                               </div>
                               <div>
                                 <p className="text-sm font-medium text-slate-900">{u.username}</p>
@@ -383,7 +382,7 @@ export default function AdminPage(): React.ReactElement {
                     const isActive = !isExpired && !isUsedUp
                     return (
                       <div key={inv.id} className="px-5 py-3 flex items-center gap-4">
-                        <Link2 className="w-4 h-4 flex-shrink-0" style={{ color: isActive ? 'var(--text-primary)' : '#d1d5db' }} />
+                        <Link2 className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-content' : 'text-[#d1d5db]'}`} />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <code className="text-xs font-mono text-slate-600 truncate">{inv.token.slice(0, 12)}...</code>
@@ -505,8 +504,7 @@ export default function AdminPage(): React.ReactElement {
                       disabled={envOverrideOidcOnly || (!passwordLogin && !oidcLogin)}
                       onClick={() => handleToggleAuthSetting('password_login', !passwordLogin, setPasswordLogin)}
                       title={!passwordLogin && !oidcLogin ? t('admin.lockoutWarning') : undefined}
-                      className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
-                      style={{ background: passwordLogin ? 'var(--text-primary)' : 'var(--border-primary)' }}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${passwordLogin ? 'bg-content' : 'bg-edge'}`}
                     >
                       <span
                         className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
@@ -523,8 +521,7 @@ export default function AdminPage(): React.ReactElement {
                     <button
                       disabled={envOverrideOidcOnly}
                       onClick={() => handleToggleAuthSetting('password_registration', !passwordRegistration, setPasswordRegistration)}
-                      className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
-                      style={{ background: passwordRegistration ? 'var(--text-primary)' : 'var(--border-primary)' }}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${passwordRegistration ? 'bg-content' : 'bg-edge'}`}
                     >
                       <span
                         className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
@@ -543,8 +540,7 @@ export default function AdminPage(): React.ReactElement {
                         disabled={!passwordLogin && oidcLogin}
                         onClick={() => handleToggleAuthSetting('oidc_login', !oidcLogin, setOidcLogin)}
                         title={!passwordLogin && oidcLogin ? t('admin.lockoutWarning') : undefined}
-                        className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
-                        style={{ background: oidcLogin ? 'var(--text-primary)' : 'var(--border-primary)' }}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${oidcLogin ? 'bg-content' : 'bg-edge'}`}
                       >
                         <span
                           className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
@@ -562,8 +558,7 @@ export default function AdminPage(): React.ReactElement {
                       </div>
                       <button
                         onClick={() => handleToggleAuthSetting('oidc_registration', !oidcRegistration, setOidcRegistration)}
-                        className="relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors"
-                        style={{ background: oidcRegistration ? 'var(--text-primary)' : 'var(--border-primary)' }}
+                        className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${oidcRegistration ? 'bg-content' : 'bg-edge'}`}
                       >
                         <span
                           className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
@@ -589,8 +584,7 @@ export default function AdminPage(): React.ReactElement {
                     <button
                       type="button"
                       onClick={() => handleToggleRequireMfa(!requireMfa)}
-                      className="relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors"
-                      style={{ background: requireMfa ? 'var(--text-primary)' : 'var(--border-primary)' }}
+                      className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${requireMfa ? 'bg-content' : 'bg-edge'}`}
                     >
                       <span
                         className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
@@ -707,8 +701,7 @@ export default function AdminPage(): React.ReactElement {
                         setPlacesPhotosEnabled(next)
                         try { await adminApi.updatePlacesPhotos(next) } catch { setPlacesPhotosEnabledState(!next); setPlacesPhotosEnabled(!next) }
                       }}
-                      className="relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors"
-                      style={{ background: placesPhotosEnabled ? 'var(--text-primary)' : 'var(--border-primary)' }}
+                      className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${placesPhotosEnabled ? 'bg-content' : 'bg-edge'}`}
                     >
                       <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200" style={{ transform: placesPhotosEnabled ? 'translateX(20px)' : 'translateX(0)' }} />
                     </button>
@@ -727,8 +720,7 @@ export default function AdminPage(): React.ReactElement {
                         setPlacesAutocompleteEnabled(next)
                         try { await adminApi.updatePlacesAutocomplete(next) } catch { setPlacesAutocompleteEnabledState(!next); setPlacesAutocompleteEnabled(!next) }
                       }}
-                      className="relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors"
-                      style={{ background: placesAutocompleteEnabled ? 'var(--text-primary)' : 'var(--border-primary)' }}
+                      className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${placesAutocompleteEnabled ? 'bg-content' : 'bg-edge'}`}
                     >
                       <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200" style={{ transform: placesAutocompleteEnabled ? 'translateX(20px)' : 'translateX(0)' }} />
                     </button>
@@ -747,8 +739,7 @@ export default function AdminPage(): React.ReactElement {
                         setPlacesDetailsEnabled(next)
                         try { await adminApi.updatePlacesDetails(next) } catch { setPlacesDetailsEnabledState(!next); setPlacesDetailsEnabled(!next) }
                       }}
-                      className="relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors"
-                      style={{ background: placesDetailsEnabled ? 'var(--text-primary)' : 'var(--border-primary)' }}
+                      className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${placesDetailsEnabled ? 'bg-content' : 'bg-edge'}`}
                     >
                       <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200" style={{ transform: placesDetailsEnabled ? 'translateX(20px)' : 'translateX(0)' }} />
                     </button>
@@ -952,8 +943,7 @@ export default function AdminPage(): React.ReactElement {
                     </div>
                     <button
                       onClick={() => setChannels(!emailActive, webhookActive, ntfyActive)}
-                      className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0"
-                      style={{ background: emailActive ? 'var(--text-primary)' : 'var(--border-primary)' }}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${emailActive ? 'bg-content' : 'bg-edge'}`}
                     >
                       <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
                         style={{ transform: emailActive ? 'translateX(20px)' : 'translateX(0)' }} />
@@ -987,8 +977,7 @@ export default function AdminPage(): React.ReactElement {
                         const newVal = smtpValues.smtp_skip_tls_verify === 'true' ? 'false' : 'true'
                         setSmtpValues(prev => ({ ...prev, smtp_skip_tls_verify: newVal }))
                       }}
-                        className="relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors"
-                        style={{ background: smtpValues.smtp_skip_tls_verify === 'true' ? 'var(--text-primary)' : 'var(--border-primary)' }}>
+                        className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${smtpValues.smtp_skip_tls_verify === 'true' ? 'bg-content' : 'bg-edge'}`}>
                         <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
                           style={{ transform: smtpValues.smtp_skip_tls_verify === 'true' ? 'translateX(20px)' : 'translateX(0)' }} />
                       </button>
@@ -1028,8 +1017,7 @@ export default function AdminPage(): React.ReactElement {
                     </div>
                     <button
                       onClick={() => setChannels(emailActive, !webhookActive, ntfyActive)}
-                      className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0"
-                      style={{ background: webhookActive ? 'var(--text-primary)' : 'var(--border-primary)' }}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${webhookActive ? 'bg-content' : 'bg-edge'}`}
                     >
                       <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
                         style={{ transform: webhookActive ? 'translateX(20px)' : 'translateX(0)' }} />
@@ -1046,8 +1034,7 @@ export default function AdminPage(): React.ReactElement {
                     </div>
                     <button
                       onClick={() => setChannels(emailActive, webhookActive, !ntfyActive)}
-                      className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0"
-                      style={{ background: ntfyActive ? 'var(--text-primary)' : 'var(--border-primary)' }}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${ntfyActive ? 'bg-content' : 'bg-edge'}`}
                     >
                       <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
                         style={{ transform: ntfyActive ? 'translateX(20px)' : 'translateX(0)' }} />
@@ -1092,8 +1079,7 @@ export default function AdminPage(): React.ReactElement {
                           toast.error(t('common.error'))
                         }
                       }}
-                      className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0"
-                      style={{ background: tripRemindersActive ? 'var(--text-primary)' : 'var(--border-primary)' }}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${tripRemindersActive ? 'bg-content' : 'bg-edge'}`}
                     >
                       <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
                         style={{ transform: tripRemindersActive ? 'translateX(20px)' : 'translateX(0)' }} />
@@ -1420,12 +1406,12 @@ export default function AdminPage(): React.ReactElement {
             className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
           >
             <div style={{ background: 'linear-gradient(135deg, #0f172a, #1e293b)', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <ArrowUpCircle size={20} style={{ color: 'white' }} />
+              <div className="bg-[rgba(255,255,255,0.2)]" style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <ArrowUpCircle size={20} className="text-white" />
               </div>
               <div>
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'white' }}>{t('admin.update.howTo')}</h3>
-                <p style={{ margin: '2px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.8)' }}>
+                <h3 className="text-white" style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{t('admin.update.howTo')}</h3>
+                <p className="text-[rgba(255,255,255,0.8)]" style={{ margin: '2px 0 0', fontSize: 12 }}>
                   v{updateInfo?.current} → v{updateInfo?.latest}
                 </p>
               </div>

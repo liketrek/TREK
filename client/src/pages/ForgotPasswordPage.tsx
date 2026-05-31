@@ -55,7 +55,7 @@ const ForgotPasswordPage: React.FC = () => {
                 borderRadius: 10, textAlign: 'left',
                 display: 'flex', alignItems: 'flex-start', gap: 10,
               }}>
-                <Terminal size={16} style={{ color: '#92400e', marginTop: 1, flexShrink: 0 }} />
+                <Terminal size={16} className="text-[#92400e]" style={{ marginTop: 1, flexShrink: 0 }} />
                 <p style={{ fontSize: 12.5, color: '#92400e', lineHeight: 1.55, margin: 0 }}>
                   {t('login.forgotPasswordSmtpHintOff')}
                 </p>
@@ -81,7 +81,7 @@ const ForgotPasswordPage: React.FC = () => {
                 background: '#fffbeb', border: '1px solid #fde68a',
                 borderRadius: 10, display: 'flex', alignItems: 'flex-start', gap: 10,
               }}>
-                <Terminal size={15} style={{ color: '#92400e', marginTop: 1, flexShrink: 0 }} />
+                <Terminal size={15} className="text-[#92400e]" style={{ marginTop: 1, flexShrink: 0 }} />
                 <p style={{ fontSize: 12.5, color: '#92400e', lineHeight: 1.5, margin: 0 }}>
                   {t('login.forgotPasswordSmtpHintOff')}
                 </p>
@@ -93,7 +93,7 @@ const ForgotPasswordPage: React.FC = () => {
                   {t('common.email')}
                 </label>
                 <div style={{ position: 'relative' }}>
-                  <Mail size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
+                  <Mail size={15} className="text-[#9ca3af]" style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                   <input
                     type="email" value={email}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}

@@ -125,7 +125,7 @@ function FilePreviewPortal({ file, onClose }: FilePreviewPortalProps) {
         <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }} onClick={e => e.stopPropagation()}>
           {authUrl
             ? <img src={authUrl} alt={file.original_name} style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: 8, display: 'block' }} />
-            : <Loader2 size={32} className="animate-spin" style={{ color: 'rgba(255,255,255,0.5)' }} />
+            : <Loader2 size={32} className="animate-spin text-[rgba(255,255,255,0.5)]" />
           }
           <div style={{ position: 'absolute', top: -36, left: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }}>
             <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>{file.original_name}</span>

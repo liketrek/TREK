@@ -187,11 +187,13 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
   return ReactDOM.createPortal(
     <div
       onClick={handleClose}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+      className="bg-[rgba(0,0,0,0.4)]"
+      style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
     >
       <div
         onClick={e => e.stopPropagation()}
-        style={{ background: 'var(--bg-card)', borderRadius: 16, width: '100%', maxWidth: 520, padding: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.2)', fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }}
+        className="bg-surface-card"
+        style={{ borderRadius: 16, width: '100%', maxWidth: 520, padding: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.2)', fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }}
       >
         <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
           {t('places.importFile')}
@@ -214,12 +216,12 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
           onDragEnter={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
+          className={isDragOver ? 'bg-surface-tertiary' : 'bg-transparent'}
           style={{
             width: '100%',
             minHeight: 88,
             borderRadius: 12,
             border: `2px dashed ${isDragOver ? 'var(--accent)' : 'var(--border-primary)'}`,
-            background: isDragOver ? 'var(--bg-tertiary)' : 'transparent',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -237,7 +239,7 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
         >
           <Upload size={18} strokeWidth={1.8} color={isDragOver ? 'var(--accent)' : 'var(--text-faint)'} style={{ pointerEvents: 'none' }} />
           {isDragOver ? (
-            <span style={{ color: 'var(--accent)', pointerEvents: 'none' }}>{t('places.importFileDropActive')}</span>
+            <span className="text-accent" style={{ pointerEvents: 'none' }}>{t('places.importFileDropActive')}</span>
           ) : file ? (
             <span style={{ color: 'var(--text-primary)', textAlign: 'center', wordBreak: 'break-all', pointerEvents: 'none' }}>{file.name}</span>
           ) : (
@@ -252,10 +254,9 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
             </div>
             {(['waypoints', 'routes', 'tracks'] as const).map(key => (
               <label key={key} onClick={() => setGpxOpts(prev => ({ ...prev, [key]: !prev[key] }))} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', cursor: 'pointer' }}>
-                <div style={{
+                <div className={gpxOpts[key] ? 'bg-accent' : 'bg-transparent'} style={{
                   width: 16, height: 16, borderRadius: 4, flexShrink: 0,
                   border: gpxOpts[key] ? 'none' : '1.5px solid var(--border-primary)',
-                  background: gpxOpts[key] ? 'var(--accent)' : 'transparent',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   {gpxOpts[key] && <svg width="10" height="10" viewBox="0 0 10 10"><polyline points="1.5,5 4,7.5 8.5,2" stroke="white" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>}
@@ -266,7 +267,7 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
               </label>
             ))}
             {gpxNoneSelected && (
-              <div style={{ fontSize: 11, color: '#b45309', marginTop: 4 }}>{t('places.gpxImportNoneSelected')}</div>
+              <div className="text-[#b45309]" style={{ fontSize: 11, marginTop: 4 }}>{t('places.gpxImportNoneSelected')}</div>
             )}
           </div>
         )}
@@ -278,10 +279,9 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
             </div>
             {(['points', 'paths'] as const).map(key => (
               <label key={key} onClick={() => setKmlOpts(prev => ({ ...prev, [key]: !prev[key] }))} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', cursor: 'pointer' }}>
-                <div style={{
+                <div className={kmlOpts[key] ? 'bg-accent' : 'bg-transparent'} style={{
                   width: 16, height: 16, borderRadius: 4, flexShrink: 0,
                   border: kmlOpts[key] ? 'none' : '1.5px solid var(--border-primary)',
-                  background: kmlOpts[key] ? 'var(--accent)' : 'transparent',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   {kmlOpts[key] && <svg width="10" height="10" viewBox="0 0 10 10"><polyline points="1.5,5 4,7.5 8.5,2" stroke="white" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>}
@@ -292,7 +292,7 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
               </label>
             ))}
             {kmlNoneSelected && (
-              <div style={{ fontSize: 11, color: '#b45309', marginTop: 4 }}>{t('places.kmlImportNoneSelected')}</div>
+              <div className="text-[#b45309]" style={{ fontSize: 11, marginTop: 4 }}>{t('places.kmlImportNoneSelected')}</div>
             )}
           </div>
         )}
@@ -310,7 +310,7 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
               })}
             </div>
             {summary.warnings?.length > 0 && (
-              <div style={{ marginTop: 8, fontSize: 12, color: '#b45309', whiteSpace: 'pre-wrap' }}>
+              <div className="text-[#b45309]" style={{ marginTop: 8, fontSize: 12, whiteSpace: 'pre-wrap' }}>
                 {summary.warnings.join('\n')}
               </div>
             )}
@@ -318,10 +318,10 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
         )}
 
         {error && (
-          <div style={{
+          <div className="bg-[rgba(239,68,68,0.08)] text-[#b91c1c]" style={{
             border: '1px solid rgba(239,68,68,0.35)', borderRadius: 10,
-            background: 'rgba(239,68,68,0.08)', padding: '8px 10px',
-            fontSize: 12, color: '#b91c1c', whiteSpace: 'pre-wrap', marginBottom: 10,
+            padding: '8px 10px',
+            fontSize: 12, whiteSpace: 'pre-wrap', marginBottom: 10,
           }}>
             {error}
           </div>
@@ -341,10 +341,9 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
           <button
             onClick={handleImport}
             disabled={!canImport}
+            className={canImport ? 'bg-accent text-accent-text' : 'bg-surface-tertiary text-content-faint'}
             style={{
               padding: '8px 16px', borderRadius: 10, border: 'none',
-              background: canImport ? 'var(--accent)' : 'var(--bg-tertiary)',
-              color: canImport ? 'var(--accent-text)' : 'var(--text-faint)',
               fontSize: 13, fontWeight: 500, cursor: canImport ? 'pointer' : 'default',
               fontFamily: 'inherit',
             }}

@@ -30,7 +30,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
     <Section title={t('settings.display')} icon={Palette}>
       {/* Color Mode */}
       <div>
-        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.colorMode')}</label>
+        <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.colorMode')}</label>
         <div className="flex gap-3" style={{ flexWrap: 'wrap' }}>
           {[
             { value: 'light', label: t('settings.light'), icon: Sun },
@@ -72,7 +72,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
 
       {/* Language */}
       <div>
-        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.language')}</label>
+        <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.language')}</label>
         {/* Desktop: Button grid */}
         <div className="hidden sm:flex flex-wrap gap-3">
           {SUPPORTED_LANGUAGES.map(opt => (
@@ -113,7 +113,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
                 }}
               >
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{current?.label}</span>
-                <ChevronDown size={14} style={{ flexShrink: 0, color: 'var(--text-faint)', transform: langOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+                <ChevronDown size={14} className="text-content-faint" style={{ flexShrink: 0, transform: langOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
               </button>
             )
           })()}
@@ -154,7 +154,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
 
       {/* Temperature */}
       <div>
-        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.temperature')}</label>
+        <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.temperature')}</label>
         <div className="flex gap-3">
           {[
             { value: 'celsius', label: '°C Celsius' },
@@ -185,7 +185,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
 
       {/* Time Format */}
       <div>
-        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.timeFormat')}</label>
+        <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.timeFormat')}</label>
         <div className="flex gap-3">
           {[
             { value: '24h', short: '24h', example: '14:30' },
@@ -216,7 +216,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
 
       {/* Booking route labels */}
       <div>
-        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.bookingLabels')}</label>
+        <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.bookingLabels')}</label>
         <div className="flex gap-3">
           {[
             { value: true, label: t('settings.on') || 'On' },
@@ -242,12 +242,12 @@ export default function DisplaySettingsTab(): React.ReactElement {
             </button>
           ))}
         </div>
-        <p className="text-xs mt-1" style={{ color: 'var(--text-faint)' }}>{t('settings.bookingLabelsHint')}</p>
+        <p className="text-xs mt-1 text-content-faint">{t('settings.bookingLabelsHint')}</p>
       </div>
 
       {/* Blur Booking Codes */}
       <div>
-        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.blurBookingCodes')}</label>
+        <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.blurBookingCodes')}</label>
         <div className="flex gap-3">
           {[
             { value: true, label: t('settings.on') || 'On' },

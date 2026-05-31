@@ -515,8 +515,7 @@ export const MapView = memo(function MapView({
       center={center}
       zoom={zoom}
       zoomControl={false}
-      className="w-full h-full"
-      style={{ background: '#e5e7eb' }}
+      className="w-full h-full bg-[#e5e7eb]"
     >
       <TileLayer
         url={tileUrl}

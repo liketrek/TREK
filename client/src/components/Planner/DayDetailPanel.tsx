@@ -98,8 +98,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
 
   return (
     <div className="fixed z-50" style={{ bottom: 'calc(var(--bottom-nav-h) + 20px)', left: `calc(${leftWidth}px + (100vw - ${leftWidth}px - ${rightWidth}px) / 2)`, transform: 'translateX(-50%)', width: `min(800px, calc(100vw - ${leftWidth}px - ${rightWidth}px - 32px))`, ...(mobile ? { zIndex: 10000 } : null), ...font }}>
-      <div style={{
-        background: 'var(--bg-elevated)',
+      <div className="bg-surface-elevated" style={{
         backdropFilter: 'blur(40px) saturate(180%)',
         WebkitBackdropFilter: 'blur(40px) saturate(180%)',
         borderRadius: 20,
@@ -109,26 +108,27 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: collapsed ? '12px 16px 12px 20px' : '18px 16px 14px 20px', borderBottom: collapsed ? 'none' : '1px solid var(--border-faint)', cursor: 'pointer' }}
           onClick={() => toggleCollapse()}>
-          <div style={{ width: collapsed ? 36 : 44, height: collapsed ? 36 : 44, borderRadius: 12, background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s ease' }}>
-            <Calendar size={collapsed ? 16 : 20} style={{ color: 'var(--text-primary)' }} />
+          <div className="bg-surface-secondary" style={{ width: collapsed ? 36 : 44, height: collapsed ? 36 : 44, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s ease' }}>
+            <Calendar size={collapsed ? 16 : 20} className="text-content" />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: collapsed ? 13 : 15, fontWeight: 700, color: 'var(--text-primary)', transition: 'font-size 0.15s ease' }}>
+            <div className="text-content" style={{ fontSize: collapsed ? 13 : 15, fontWeight: 700, transition: 'font-size 0.15s ease' }}>
               {day.title || t('planner.dayN', { n: (days.indexOf(day) + 1) || '?' })}
-              {collapsed && formattedDate && <span style={{ fontWeight: 500, color: 'var(--text-muted)', marginLeft: 8 }}>{formattedDate}</span>}
+              {collapsed && formattedDate && <span className="text-content-muted" style={{ fontWeight: 500, marginLeft: 8 }}>{formattedDate}</span>}
             </div>
-            {!collapsed && formattedDate && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>{formattedDate}</div>}
+            {!collapsed && formattedDate && <div className="text-content-muted" style={{ fontSize: 12, marginTop: 1 }}>{formattedDate}</div>}
           </div>
           <button onClick={(e) => { e.stopPropagation(); toggleCollapse() }} title={collapsed ? t('common.expand') : t('common.collapse')}
-            style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, transition: 'all 0.15s ease' }}
+            className="bg-surface-secondary"
+            style={{ border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, transition: 'all 0.15s ease' }}
             onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
             onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-secondary)'}>
-            {collapsed ? <ChevronsUp size={14} style={{ color: 'var(--text-muted)' }} /> : <ChevronsDown size={14} style={{ color: 'var(--text-muted)' }} />}
+            {collapsed ? <ChevronsUp size={14} className="text-content-muted" /> : <ChevronsDown size={14} className="text-content-muted" />}
           </button>
-          <button onClick={(e) => { e.stopPropagation(); onClose() }} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+          <button onClick={(e) => { e.stopPropagation(); onClose() }} className="bg-surface-secondary" style={{ border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
             onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
             onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-secondary)'}>
-            <X size={14} style={{ color: 'var(--text-muted)' }} />
+            <X size={14} className="text-content-muted" />
           </button>
         </div>
 

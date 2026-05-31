@@ -518,7 +518,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
         {/* Place Search */}
         <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
           {!hasMapsKey && (
-            <p className="mb-2 text-xs" style={{ color: 'var(--text-faint)' }}>
+            <p className="mb-2 text-xs text-content-faint">
               {t('places.osmActive')}
             </p>
           )}

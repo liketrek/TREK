@@ -186,13 +186,13 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
                     <AddonRow addon={addon} onToggle={handleToggle} t={t} />
                     {addon.id === 'packing' && addon.enabled && onToggleBagTracking && (
                       <div className="flex items-center gap-4 px-6 py-3 border-b border-edge-secondary bg-surface-secondary" style={{ paddingLeft: 70 }}>
-                        <Luggage size={14} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
+                        <Luggage size={14} className="text-content-faint" style={{ flexShrink: 0 }} />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div className="text-sm font-medium text-content-secondary">{t('admin.bagTracking.title')}</div>
                           <div className="text-xs mt-0.5 text-content-faint">{t('admin.bagTracking.subtitle')}</div>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className="hidden sm:inline text-xs font-medium" style={{ color: bagTrackingEnabled ? 'var(--text-primary)' : 'var(--text-faint)' }}>
+                          <span className={`hidden sm:inline text-xs font-medium ${bagTrackingEnabled ? 'text-content' : 'text-content-faint'}`}>
                             {bagTrackingEnabled ? t('admin.addons.enabled') : t('admin.addons.disabled')}
                           </span>
                           <button onClick={onToggleBagTracking}
@@ -212,13 +212,13 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
                             const Icon = feat.icon
                             return (
                               <div key={feat.key} className="flex items-center gap-4" style={{ minHeight: 32 }}>
-                                <Icon size={14} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
+                                <Icon size={14} className="text-content-faint" style={{ flexShrink: 0 }} />
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                   <div className="text-sm font-medium text-content-secondary">{t(feat.titleKey)}</div>
                                   <div className="text-xs mt-0.5 text-content-faint">{t(feat.subtitleKey)}</div>
                                 </div>
                                 <div className="flex items-center gap-2 shrink-0">
-                                  <span className="hidden sm:inline text-xs font-medium" style={{ color: enabled ? 'var(--text-primary)' : 'var(--text-faint)' }}>
+                                  <span className={`hidden sm:inline text-xs font-medium ${enabled ? 'text-content' : 'text-content-faint'}`}>
                                     {enabled ? t('admin.addons.enabled') : t('admin.addons.disabled')}
                                   </span>
                                   <button onClick={() => onToggleCollabFeature(feat.key)}
@@ -259,13 +259,13 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
                             const ProviderIcon = PROVIDER_ICONS[provider.key]
                             return (
                             <div key={provider.key} className="flex items-center gap-4" style={{ minHeight: 32 }}>
-                              {ProviderIcon && <span style={{ color: 'var(--text-faint)' }}><ProviderIcon size={14} /></span>}
+                              {ProviderIcon && <span className="text-content-faint"><ProviderIcon size={14} /></span>}
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div className="text-sm font-medium text-content-secondary">{provider.label}</div>
                                 <div className="text-xs mt-0.5 text-content-faint">{provider.description}</div>
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
-                                <span className="hidden sm:inline text-xs font-medium" style={{ color: provider.enabled ? 'var(--text-primary)' : 'var(--text-faint)' }}>
+                                <span className={`hidden sm:inline text-xs font-medium ${provider.enabled ? 'text-content' : 'text-content-faint'}`}>
                                   {provider.enabled ? t('admin.addons.enabled') : t('admin.addons.disabled')}
                                 </span>
                                 <button
@@ -347,7 +347,7 @@ function AddonRow({ addon, onToggle, t, nameOverride, descriptionOverride, statu
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-content">{displayName}</span>
           {isComingSoon && (
-            <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full text-content-faint" style={{ background: 'var(--bg-tertiary)' }}>
+            <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full text-content-faint bg-surface-tertiary">
               Coming Soon
             </span>
           )}
@@ -360,7 +360,7 @@ function AddonRow({ addon, onToggle, t, nameOverride, descriptionOverride, statu
 
       {/* Toggle */}
       <div className="flex items-center gap-2 shrink-0">
-        <span className="hidden sm:inline text-xs font-medium" style={{ color: (enabledState && !isComingSoon) ? 'var(--text-primary)' : 'var(--text-faint)' }}>
+        <span className={`hidden sm:inline text-xs font-medium ${(enabledState && !isComingSoon) ? 'text-content' : 'text-content-faint'}`}>
           {isComingSoon ? t('admin.addons.disabled') : enabledState ? t('admin.addons.enabled') : t('admin.addons.disabled')}
         </span>
         {!hideToggle && (

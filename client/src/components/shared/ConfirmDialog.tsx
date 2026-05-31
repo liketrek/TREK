@@ -41,8 +41,8 @@ export default function ConfirmDialog({
 
   return ReactDOM.createPortal(
     <div
-      className="fixed inset-0 z-[10000] flex items-center justify-center px-4 trek-backdrop-enter"
-      style={{ backgroundColor: 'rgba(15, 23, 42, 0.5)', paddingBottom: 'var(--bottom-nav-h)' }}
+      className="fixed inset-0 z-[10000] flex items-center justify-center px-4 trek-backdrop-enter bg-[rgba(15,23,42,0.5)]"
+      style={{ paddingBottom: 'var(--bottom-nav-h)' }}
       onClick={onClose}
     >
       <div

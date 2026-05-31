@@ -1504,9 +1504,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                           const isCheckOut = acc.end_day_id === day.id
                           const iconColor = isCheckOut && !isCheckIn ? '#ef4444' : isCheckIn ? '#22c55e' : 'var(--text-faint)'
                           return (
-                            <span key={acc.id} onClick={e => { e.stopPropagation(); if ((acc as any).place_id) onPlaceClick((acc as any).place_id) }} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 1, minWidth: 0, cursor: (acc as any).place_id ? 'pointer' : 'default', background: 'var(--bg-hover)', borderRadius: 7, padding: '2px 7px 2px 6px' }}>
+                            <span key={acc.id} onClick={e => { e.stopPropagation(); if ((acc as any).place_id) onPlaceClick((acc as any).place_id) }} className="bg-surface-hover" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 1, minWidth: 0, cursor: (acc as any).place_id ? 'pointer' : 'default', borderRadius: 7, padding: '2px 7px 2px 6px' }}>
                               <Hotel size={11} strokeWidth={1.8} style={{ color: iconColor, flexShrink: 0 }} />
-                              <span style={{ fontSize: 10.5, color: 'var(--text-muted)', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(acc as any).place_name || (acc as any).reservation_title}</span>
+                              <span className="text-content-muted" style={{ fontSize: 10.5, fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(acc as any).place_name || (acc as any).reservation_title}</span>
                             </span>
                           )
                         })
@@ -1516,9 +1516,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                         const activeRentals = getActiveRentalsForDay(day.id)
                         if (activeRentals.length === 0) return null
                         return activeRentals.map(r => (
-                          <span key={`rental-${r.id}`} onClick={e => { e.stopPropagation(); setTransportDetail(r) }} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 1, minWidth: 0, cursor: 'pointer', background: 'var(--bg-hover)', borderRadius: 7, padding: '2px 7px 2px 6px' }}>
-                            <Car size={11} strokeWidth={1.8} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
-                            <span style={{ fontSize: 10.5, color: 'var(--text-muted)', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</span>
+                          <span key={`rental-${r.id}`} onClick={e => { e.stopPropagation(); setTransportDetail(r) }} className="bg-surface-hover" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 1, minWidth: 0, cursor: 'pointer', borderRadius: 7, padding: '2px 7px 2px 6px' }}>
+                            <Car size={11} strokeWidth={1.8} className="text-content-faint" style={{ flexShrink: 0 }} />
+                            <span className="text-content-muted" style={{ fontSize: 10.5, fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</span>
                           </span>
                         ))
                       })()}
@@ -1527,7 +1527,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                   )}
                   {cost && (
                     <div style={{ marginTop: 2 }}>
-                      <span style={{ fontSize: 11, color: '#059669' }}>{cost}</span>
+                      <span className="text-[#059669]" style={{ fontSize: 11 }}>{cost}</span>
                     </div>
                   )}
                 </div>
@@ -1556,7 +1556,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                     )
                   })()
                 ) : (
-                  <button onClick={e => toggleDay(day.id, e)} style={{ alignSelf: 'flex-start', flexShrink: 0, background: 'none', border: 'none', padding: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-faint)' }}>
+                  <button onClick={e => toggleDay(day.id, e)} className="text-content-faint" style={{ alignSelf: 'flex-start', flexShrink: 0, background: 'none', border: 'none', padding: 6, cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                     {isExpanded ? <ChevronDown size={16} strokeWidth={1.8} /> : <ChevronRight size={16} strokeWidth={1.8} />}
                   </button>
                 )}
@@ -1628,8 +1628,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                     <div
                       onDragOver={e => { e.preventDefault(); if (dragOverDayId !== day.id) setDragOverDayId(day.id) }}
                       onDrop={e => handleDropOnDay(e, day.id)}
+                      className={dragOverDayId === day.id ? 'bg-[rgba(17,24,39,0.05)]' : 'bg-transparent'}
                       style={{ padding: '16px', textAlign: 'center', borderRadius: 8,
-                        background: dragOverDayId === day.id ? 'rgba(17,24,39,0.05)' : 'transparent',
                         border: dragOverDayId === day.id ? '2px dashed rgba(17,24,39,0.2)' : '2px dashed transparent',
                       }}
                     >
@@ -1845,9 +1845,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                 const active = hasEndpoints ? visibleConnectionIds.includes(res.id) : false
                                 return (
                                   <div style={{ marginTop: 3, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '1px 6px', borderRadius: 5, fontSize: 9, fontWeight: 600,
-                                      background: confirmed ? 'rgba(22,163,74,0.1)' : 'rgba(217,119,6,0.1)',
-                                      color: confirmed ? '#16a34a' : '#d97706',
+                                    <div className={confirmed ? 'bg-[rgba(22,163,74,0.1)] text-[#16a34a]' : 'bg-[rgba(217,119,6,0.1)] text-[#d97706]'} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '1px 6px', borderRadius: 5, fontSize: 9, fontWeight: 600,
                                     }}>
                                       {(() => { const RI = RES_ICONS[res.type] || Ticket; return <RI size={8} /> })()}
                                       <span className="hidden sm:inline">{confirmed ? t('planner.resConfirmed') : t('planner.resPending')}</span>
@@ -1876,13 +1874,12 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                         type="button"
                                         onClick={e => { e.stopPropagation(); onToggleConnection!(res.id) }}
                                         title={t(active ? 'map.hideConnections' : 'map.showConnections')}
+                                        className={active ? 'bg-[#3b82f6] text-[#fff]' : 'bg-transparent text-content-faint'}
                                         style={{
                                           flexShrink: 0, appearance: 'none',
                                           width: 20, height: 20, borderRadius: 4,
                                           display: 'grid', placeItems: 'center', cursor: 'pointer',
                                           border: 'none',
-                                          background: active ? '#3b82f6' : 'transparent',
-                                          color: active ? '#fff' : 'var(--text-faint)',
                                           transition: 'color 120ms cubic-bezier(0.23,1,0.32,1), background 120ms cubic-bezier(0.23,1,0.32,1)',
                                         }}
                                         onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--text-primary)' }}
@@ -1900,12 +1897,12 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                           type="button"
                                           onClick={e => { e.stopPropagation(); handler(res) }}
                                           title={t('common.edit')}
+                                          className="bg-transparent text-content-faint"
                                           style={{
                                             flexShrink: 0, appearance: 'none',
                                             width: 20, height: 20, borderRadius: 4,
                                             display: 'grid', placeItems: 'center', cursor: 'pointer',
-                                            border: 'none', background: 'transparent',
-                                            color: 'var(--text-faint)',
+                                            border: 'none',
                                             transition: 'color 120ms cubic-bezier(0.23,1,0.32,1), background 120ms cubic-bezier(0.23,1,0.32,1)',
                                           }}
                                           onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)' }}
@@ -1921,9 +1918,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                               {assignment.participants?.length > 0 && (
                                 <div style={{ marginTop: 3, display: 'flex', alignItems: 'center', gap: -4 }}>
                                   {assignment.participants.slice(0, 5).map((p, pi) => (
-                                    <div key={p.user_id} style={{
-                                      width: 16, height: 16, borderRadius: '50%', background: 'var(--bg-tertiary)', border: '1.5px solid var(--bg-card)',
-                                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, fontWeight: 700, color: 'var(--text-muted)',
+                                    <div key={p.user_id} className="bg-surface-tertiary text-content-muted" style={{
+                                      width: 16, height: 16, borderRadius: '50%', border: '1.5px solid var(--bg-card)',
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, fontWeight: 700,
                                       marginLeft: pi > 0 ? -4 : 0, flexShrink: 0,
                                       overflow: 'hidden',
                                     }}>
@@ -1931,16 +1928,16 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                     </div>
                                   ))}
                                   {assignment.participants.length > 5 && (
-                                    <span style={{ fontSize: 8, color: 'var(--text-faint)', marginLeft: 2 }}>+{assignment.participants.length - 5}</span>
+                                    <span className="text-content-faint" style={{ fontSize: 8, marginLeft: 2 }}>+{assignment.participants.length - 5}</span>
                                   )}
                                 </div>
                               )}
                             </div>
                             {canEditDays && <div className="reorder-buttons" style={{ flexShrink: 0, display: 'flex', gap: 1, transition: 'opacity 0.15s' }}>
-                              <button onClick={moveUp} disabled={idx === 0} style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: idx === 0 ? 'default' : 'pointer', color: idx === 0 ? 'var(--border-primary)' : 'var(--text-faint)', display: 'flex', lineHeight: 1 }}>
+                              <button onClick={moveUp} disabled={idx === 0} className={idx === 0 ? 'text-[var(--border-primary)]' : 'text-content-faint'} style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: idx === 0 ? 'default' : 'pointer', display: 'flex', lineHeight: 1 }}>
                                 <ChevronUp size={12} strokeWidth={2} />
                               </button>
-                              <button onClick={moveDown} disabled={idx === merged.length - 1} style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: idx === merged.length - 1 ? 'default' : 'pointer', color: idx === merged.length - 1 ? 'var(--border-primary)' : 'var(--text-faint)', display: 'flex', lineHeight: 1 }}>
+                              <button onClick={moveDown} disabled={idx === merged.length - 1} className={idx === merged.length - 1 ? 'text-[var(--border-primary)]' : 'text-content-faint'} style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: idx === merged.length - 1 ? 'default' : 'pointer', display: 'flex', lineHeight: 1 }}>
                                 <ChevronDown size={12} strokeWidth={2} />
                               </button>
                             </div>}
@@ -2233,12 +2230,12 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                             )}
                           </div>
                           {canEditDays && <div className="note-edit-buttons" style={{ display: 'flex', gap: 1, flexShrink: 0, opacity: 0, transition: 'opacity 0.15s' }}>
-                            <button onClick={e => openEditNote(day.id, note, e)} style={{ background: 'none', border: 'none', padding: 2, cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}><Pencil size={10} /></button>
-                            <button onClick={e => deleteNote(day.id, note.id, e)} style={{ background: 'none', border: 'none', padding: 2, cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}><Trash2 size={10} /></button>
+                            <button onClick={e => openEditNote(day.id, note, e)} className="text-content-faint" style={{ background: 'none', border: 'none', padding: 2, cursor: 'pointer', display: 'flex' }}><Pencil size={10} /></button>
+                            <button onClick={e => deleteNote(day.id, note.id, e)} className="text-content-faint" style={{ background: 'none', border: 'none', padding: 2, cursor: 'pointer', display: 'flex' }}><Trash2 size={10} /></button>
                           </div>}
                           {canEditDays && <div className="reorder-buttons" style={{ flexShrink: 0, display: 'flex', gap: 1, transition: 'opacity 0.15s' }}>
-                            <button onClick={e => { e.stopPropagation(); moveNote(day.id, note.id, 'up') }} disabled={noteIdx === 0} style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: noteIdx === 0 ? 'default' : 'pointer', color: noteIdx === 0 ? 'var(--border-primary)' : 'var(--text-faint)', display: 'flex', lineHeight: 1 }}><ChevronUp size={12} strokeWidth={2} /></button>
-                            <button onClick={e => { e.stopPropagation(); moveNote(day.id, note.id, 'down') }} disabled={noteIdx === merged.length - 1} style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: noteIdx === merged.length - 1 ? 'default' : 'pointer', color: noteIdx === merged.length - 1 ? 'var(--border-primary)' : 'var(--text-faint)', display: 'flex', lineHeight: 1 }}><ChevronDown size={12} strokeWidth={2} /></button>
+                            <button onClick={e => { e.stopPropagation(); moveNote(day.id, note.id, 'up') }} disabled={noteIdx === 0} className={noteIdx === 0 ? 'text-[var(--border-primary)]' : 'text-content-faint'} style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: noteIdx === 0 ? 'default' : 'pointer', display: 'flex', lineHeight: 1 }}><ChevronUp size={12} strokeWidth={2} /></button>
+                            <button onClick={e => { e.stopPropagation(); moveNote(day.id, note.id, 'down') }} disabled={noteIdx === merged.length - 1} className={noteIdx === merged.length - 1 ? 'text-[var(--border-primary)]' : 'text-content-faint'} style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: noteIdx === merged.length - 1 ? 'default' : 'pointer', display: 'flex', lineHeight: 1 }}><ChevronDown size={12} strokeWidth={2} /></button>
                           </div>}
                         </div>
                         </React.Fragment>
@@ -2294,22 +2291,21 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                       <div style={{ display: 'flex', gap: 6, alignItems: 'stretch' }}>
                         <button
                           onClick={() => onToggleRoute?.()}
+                          className={routeShown ? 'bg-accent text-accent-text' : 'bg-transparent text-content-secondary'}
                           style={{
                             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                             padding: '6px 0', fontSize: 11, fontWeight: 600, borderRadius: 8,
                             border: routeShown ? 'none' : '1px solid var(--border-faint)',
-                            background: routeShown ? 'var(--accent)' : 'transparent',
-                            color: routeShown ? 'var(--accent-text)' : 'var(--text-secondary)',
                             cursor: 'pointer', fontFamily: 'inherit',
                           }}
                         >
                           <RouteIcon size={12} strokeWidth={2} />
                           {t('dayplan.route')}
                         </button>
-                        <button onClick={handleOptimize} style={{
+                        <button onClick={handleOptimize} className="bg-surface-hover text-content-secondary" style={{
                           flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                           padding: '6px 0', fontSize: 11, fontWeight: 500, borderRadius: 8, border: 'none',
-                          background: 'var(--bg-hover)', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit',
+                          cursor: 'pointer', fontFamily: 'inherit',
                         }}>
                           <RotateCcw size={12} strokeWidth={2} />
                           {t('dayplan.optimize')}
@@ -2323,11 +2319,10 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                 key={p}
                                 onClick={() => onSetRouteProfile?.(p)}
                                 aria-label={p === 'driving' ? 'Driving' : 'Walking'}
+                                className={active ? 'bg-accent text-accent-text' : 'bg-transparent text-content-secondary'}
                                 style={{
                                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                                   padding: '6px 10px', border: 'none', cursor: 'pointer',
-                                  background: active ? 'var(--accent)' : 'transparent',
-                                  color: active ? 'var(--accent-text)' : 'var(--text-secondary)',
                                 }}
                               >
                                 <ModeIcon size={13} strokeWidth={2} />
@@ -2337,9 +2332,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                         </div>
                       </div>
                       {routeInfo && (
-                        <div style={{ display: 'flex', justifyContent: 'center', gap: 12, fontSize: 12, color: 'var(--text-secondary)', background: 'var(--bg-hover)', borderRadius: 8, padding: '5px 10px' }}>
+                        <div className="text-content-secondary bg-surface-hover" style={{ display: 'flex', justifyContent: 'center', gap: 12, fontSize: 12, borderRadius: 8, padding: '5px 10px' }}>
                           <span>{routeInfo.distance}</span>
-                          <span style={{ color: 'var(--text-faint)' }}>·</span>
+                          <span className="text-content-faint">·</span>
                           <span>{routeInfo.duration}</span>
                         </div>
                       )}
@@ -2363,17 +2358,17 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
 
       {/* Notiz-Popup-Modal — über Portal gerendert, um den backdropFilter-Stapelkontext zu umgehen */}
       {Object.entries(noteUi).map(([dayId, ui]) => ui && ReactDOM.createPortal(
-        <div key={dayId} style={{
+        <div key={dayId} className="bg-[rgba(0,0,0,0.3)]" style={{
           position: 'fixed', inset: 0, zIndex: 10000,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(3px)',
+          backdropFilter: 'blur(3px)',
         }} onClick={() => cancelNote(Number(dayId))}>
-          <div style={{
-            width: 340, background: 'var(--bg-card)', borderRadius: 16,
+          <div className="bg-surface-card" style={{
+            width: 340, borderRadius: 16,
             boxShadow: '0 16px 48px rgba(0,0,0,0.22)', padding: '22px 22px 18px',
             display: 'flex', flexDirection: 'column', gap: 12,
           }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+            <div className="text-content" style={{ fontSize: 14, fontWeight: 600 }}>
               {ui.mode === 'add' ? t('dayplan.noteAdd') : t('dayplan.noteEdit')}
             </div>
             {/* Icon-Auswahl */}
@@ -2381,7 +2376,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
               {NOTE_ICONS.map(({ id, Icon }) => (
                 <button key={id} onClick={() => setNoteUi(prev => ({ ...prev, [dayId]: { ...prev[dayId], icon: id } }))}
                   title={id}
-                  style={{ width: 45, height: 45, borderRadius: 8, border: ui.icon === id ? '2px solid var(--text-primary)' : '2px solid var(--border-faint)', background: ui.icon === id ? 'var(--bg-hover)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+                  className={ui.icon === id ? 'bg-surface-hover' : 'bg-transparent'}
+                  style={{ width: 45, height: 45, borderRadius: 8, border: ui.icon === id ? '2px solid var(--text-primary)' : '2px solid var(--border-faint)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
                   <Icon size={18} strokeWidth={1.8} color={ui.icon === id ? 'var(--text-primary)' : 'var(--text-muted)'} />
                 </button>
               ))}
@@ -2394,7 +2390,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); saveNote(Number(dayId)) } if (e.key === 'Escape') cancelNote(Number(dayId)) }}
               placeholder={t('dayplan.noteTitle') + ' *'}
               required
-              style={{ fontSize: 13, fontWeight: 500, border: `1px solid ${!ui.text?.trim() ? 'var(--border-primary)' : 'var(--border-primary)'}`, borderRadius: 8, padding: '8px 10px', fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box', color: 'var(--text-primary)' }}
+              className="text-content"
+              style={{ fontSize: 13, fontWeight: 500, border: `1px solid ${!ui.text?.trim() ? 'var(--border-primary)' : 'var(--border-primary)'}`, borderRadius: 8, padding: '8px 10px', fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box' }}
             />
             <textarea
               value={ui.time}
@@ -2403,12 +2400,13 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
               onChange={e => setNoteUi(prev => ({ ...prev, [dayId]: { ...prev[dayId], time: e.target.value } }))}
               onKeyDown={e => { if (e.key === 'Escape') cancelNote(Number(dayId)) }}
               placeholder={t('dayplan.noteSubtitle')}
-              style={{ fontSize: 12, border: '1px solid var(--border-primary)', borderRadius: 8, padding: '7px 10px', fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box', color: 'var(--text-primary)', resize: 'none', lineHeight: 1.4 }}
+              className="text-content"
+              style={{ fontSize: 12, border: '1px solid var(--border-primary)', borderRadius: 8, padding: '7px 10px', fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box', resize: 'none', lineHeight: 1.4 }}
             />
-            <div style={{ textAlign: 'right', fontSize: 11, color: (ui.time?.length || 0) >= 140 ? '#d97706' : 'var(--text-faint)', marginTop: -2 }}>{ui.time?.length || 0}/150</div>
+            <div className={(ui.time?.length || 0) >= 140 ? 'text-[#d97706]' : 'text-content-faint'} style={{ textAlign: 'right', fontSize: 11, marginTop: -2 }}>{ui.time?.length || 0}/150</div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button onClick={() => cancelNote(Number(dayId))} style={{ fontSize: 12, background: 'none', border: '1px solid var(--border-primary)', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'inherit' }}>{t('common.cancel')}</button>
-              <button onClick={() => saveNote(Number(dayId))} disabled={!ui.text?.trim()} style={{ fontSize: 12, background: !ui.text?.trim() ? 'var(--border-primary)' : 'var(--accent)', color: !ui.text?.trim() ? 'var(--text-faint)' : 'var(--accent-text)', border: 'none', borderRadius: 8, padding: '6px 16px', cursor: !ui.text?.trim() ? 'not-allowed' : 'pointer', fontWeight: 600, fontFamily: 'inherit', transition: 'background 0.15s, color 0.15s' }}>
+              <button onClick={() => cancelNote(Number(dayId))} className="text-content-muted" style={{ fontSize: 12, background: 'none', border: '1px solid var(--border-primary)', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontFamily: 'inherit' }}>{t('common.cancel')}</button>
+              <button onClick={() => saveNote(Number(dayId))} disabled={!ui.text?.trim()} className={!ui.text?.trim() ? 'bg-[var(--border-primary)] text-content-faint' : 'bg-accent text-accent-text'} style={{ fontSize: 12, border: 'none', borderRadius: 8, padding: '6px 16px', cursor: !ui.text?.trim() ? 'not-allowed' : 'pointer', fontWeight: 600, fontFamily: 'inherit', transition: 'background 0.15s, color 0.15s' }}>
                 {ui.mode === 'add' ? t('common.add') : t('common.save')}
               </button>
             </div>
@@ -2419,37 +2417,37 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
 
       {/* Confirm: remove time when reordering a timed place */}
       {timeConfirm && ReactDOM.createPortal(
-        <div style={{
+        <div className="bg-[rgba(0,0,0,0.3)]" style={{
           position: 'fixed', inset: 0, zIndex: 1000,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(3px)',
+          backdropFilter: 'blur(3px)',
         }} onClick={() => setTimeConfirm(null)}>
-          <div style={{
-            width: 340, background: 'var(--bg-card)', borderRadius: 16,
+          <div className="bg-surface-card" style={{
+            width: 340, borderRadius: 16,
             boxShadow: '0 16px 48px rgba(0,0,0,0.22)', padding: '22px 22px 18px',
             display: 'flex', flexDirection: 'column', gap: 12,
           }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{
+              <div className="bg-[rgba(239,68,68,0.12)]" style={{
                 width: 36, height: 36, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                borderRadius: '50%', background: 'rgba(239,68,68,0.12)',
+                borderRadius: '50%',
               }}>
                 <Clock size={18} strokeWidth={1.8} color="#ef4444" />
               </div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+              <div className="text-content" style={{ fontSize: 14, fontWeight: 600 }}>
                 {t('dayplan.confirmRemoveTimeTitle')}
               </div>
             </div>
-            <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+            <div className="text-content-secondary" style={{ fontSize: 12.5, lineHeight: 1.5 }}>
               {t('dayplan.confirmRemoveTimeBody', { time: timeConfirm.time })}
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
-              <button onClick={() => setTimeConfirm(null)} style={{
+              <button onClick={() => setTimeConfirm(null)} className="text-content-muted" style={{
                 fontSize: 12, background: 'none', border: '1px solid var(--border-primary)',
-                borderRadius: 8, padding: '6px 14px', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'inherit',
+                borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontFamily: 'inherit',
               }}>{t('common.cancel')}</button>
-              <button onClick={confirmTimeRemoval} style={{
-                fontSize: 12, background: '#ef4444', color: 'white',
+              <button onClick={confirmTimeRemoval} className="bg-[#ef4444] text-white" style={{
+                fontSize: 12,
                 border: 'none', borderRadius: 8, padding: '6px 16px', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
               }}>{t('common.confirm')}</button>
             </div>
@@ -2460,14 +2458,14 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
 
       {/* Transport-Detail-Modal */}
       {transportDetail && ReactDOM.createPortal(
-        <div style={{
+        <div className="bg-[rgba(0,0,0,0.3)]" style={{
           position: 'fixed', inset: 0, zIndex: 1000,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(3px)',
+          backdropFilter: 'blur(3px)',
         }} onClick={() => setTransportDetail(null)}>
-          <div style={{
+          <div className="bg-surface-card" style={{
             width: 380, maxHeight: '80vh', overflowY: 'auto',
-            background: 'var(--bg-card)', borderRadius: 16,
+            borderRadius: 16,
             boxShadow: '0 16px 48px rgba(0,0,0,0.22)', padding: '22px 22px 18px',
             display: 'flex', flexDirection: 'column', gap: 14,
           }} onClick={e => e.stopPropagation()}>
@@ -2504,8 +2502,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                       <TransportIcon size={18} strokeWidth={1.8} color={color} />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{res.title}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 2 }}>
+                      <div className="text-content" style={{ fontSize: 15, fontWeight: 600 }}>{res.title}</div>
+                      <div className="text-content-faint" style={{ fontSize: 11, marginTop: 2 }}>
                         {(() => {
                           const { date, time } = splitReservationDateTime(res.reservation_time)
                           const { time: endTime } = splitReservationDateTime(res.reservation_end_time)
@@ -2521,10 +2519,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                         })()}
                       </div>
                     </div>
-                    <div style={{
+                    <div className={res.status === 'confirmed' ? 'bg-[rgba(22,163,74,0.1)] text-[#16a34a]' : 'bg-[rgba(217,119,6,0.1)] text-[#d97706]'} style={{
                       padding: '3px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600,
-                      background: res.status === 'confirmed' ? 'rgba(22,163,74,0.1)' : 'rgba(217,119,6,0.1)',
-                      color: res.status === 'confirmed' ? '#16a34a' : '#d97706',
                     }}>
                       {(res.status === 'confirmed' ? t('planner.resConfirmed') : t('planner.resPending')).replace(/\s*·\s*$/, '')}
                     </div>
@@ -2536,14 +2532,15 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                       {detailFields.map((f, i) => {
                         const shouldBlur = f.sensitive && useSettingsStore.getState().settings.blur_booking_codes
                         return (
-                          <div key={i} style={{ padding: '8px 10px', background: 'var(--bg-tertiary)', borderRadius: 8 }}>
-                            <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 3 }}>{f.label}</div>
+                          <div key={i} className="bg-surface-tertiary" style={{ padding: '8px 10px', borderRadius: 8 }}>
+                            <div className="text-content-faint" style={{ fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 3 }}>{f.label}</div>
                             <div
                               onMouseEnter={e => { if (shouldBlur) e.currentTarget.style.filter = 'none' }}
                               onMouseLeave={e => { if (shouldBlur) e.currentTarget.style.filter = 'blur(5px)' }}
                               onClick={e => { if (shouldBlur) { const el = e.currentTarget; el.style.filter = el.style.filter === 'none' ? 'blur(5px)' : 'none' } }}
+                              className="text-content"
                               style={{
-                                fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', wordBreak: 'break-word',
+                                fontSize: 12, fontWeight: 500, wordBreak: 'break-word',
                                 filter: shouldBlur ? 'blur(5px)' : 'none', transition: 'filter 0.2s',
                                 cursor: shouldBlur ? 'pointer' : 'default',
                                 userSelect: shouldBlur ? 'none' : 'auto',
@@ -2557,9 +2554,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
 
                   {/* Notizen */}
                   {res.notes && (
-                    <div style={{ padding: '8px 10px', background: 'var(--bg-tertiary)', borderRadius: 8 }}>
-                      <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 3 }}>{t('reservations.notes')}</div>
-                      <div className="collab-note-md" style={{ fontSize: 12, color: 'var(--text-primary)', wordBreak: 'break-word', overflowWrap: 'anywhere' }}><Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{res.notes}</Markdown></div>
+                    <div className="bg-surface-tertiary" style={{ padding: '8px 10px', borderRadius: 8 }}>
+                      <div className="text-content-faint" style={{ fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 3 }}>{t('reservations.notes')}</div>
+                      <div className="collab-note-md text-content" style={{ fontSize: 12, wordBreak: 'break-word', overflowWrap: 'anywhere' }}><Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{res.notes}</Markdown></div>
                     </div>
                   )}
 
@@ -2574,24 +2571,25 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                     if (resFiles.length === 0) return null
                     return (
                       <div>
-                        <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 6 }}>{t('files.title')}</div>
+                        <div className="text-content-faint" style={{ fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 6 }}>{t('files.title')}</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                           {resFiles.map(f => (
                             <div key={f.id}
                               onClick={() => { setTransportDetail(null); onNavigateToFiles?.() }}
+                              className="bg-surface-tertiary"
                               style={{
                                 display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
-                                background: 'var(--bg-tertiary)', borderRadius: 8, cursor: 'pointer',
+                                borderRadius: 8, cursor: 'pointer',
                                 transition: 'background 0.1s',
                               }}
                               onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
                               onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
                             >
-                              <FileText size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                              <span style={{ flex: 1, fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              <FileText size={14} className="text-content-muted" style={{ flexShrink: 0 }} />
+                              <span className="text-content" style={{ flex: 1, fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {f.original_name}
                               </span>
-                              <ExternalLink size={11} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
+                              <ExternalLink size={11} className="text-content-faint" style={{ flexShrink: 0 }} />
                             </div>
                           ))}
                         </div>

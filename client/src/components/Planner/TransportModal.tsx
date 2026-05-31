@@ -284,15 +284,8 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
       )
     : []
 
-  const inputStyle = {
-    width: '100%', border: '1px solid var(--border-primary)', borderRadius: 10,
-    padding: '8px 12px', fontSize: 13, fontFamily: 'inherit',
-    outline: 'none', boxSizing: 'border-box' as const, color: 'var(--text-primary)', background: 'var(--bg-input)',
-  }
-  const labelStyle = {
-    display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-faint)',
-    marginBottom: 5, textTransform: 'uppercase' as const, letterSpacing: '0.03em',
-  }
+  const inputClass = 'w-full border border-edge rounded-[10px] px-[12px] py-[8px] text-[13px] font-[inherit] outline-none box-border text-content bg-surface-input'
+  const labelClass = 'block text-[11px] font-semibold text-content-faint mb-[5px] uppercase tracking-[0.03em]'
 
   const dayOptions = [
     { value: '', label: '—' },
@@ -315,10 +308,10 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
       size="2xl"
       footer={
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <button type="button" onClick={onClose} style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-muted)' }}>
+          <button type="button" onClick={onClose} className="text-content-muted" style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
             {t('common.cancel')}
           </button>
-          <button type="button" onClick={handleSubmit} disabled={isSaving || !form.title.trim()} style={{ padding: '8px 20px', borderRadius: 10, border: 'none', background: 'var(--text-primary)', color: 'var(--bg-primary)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: isSaving || !form.title.trim() ? 0.5 : 1 }}>
+          <button type="button" onClick={handleSubmit} disabled={isSaving || !form.title.trim()} className="bg-[var(--text-primary)] text-[var(--bg-primary)]" style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: isSaving || !form.title.trim() ? 0.5 : 1 }}>
             {isSaving ? t('common.saving') : reservation ? t('common.update') : t('common.add')}
           </button>
         </div>
@@ -328,16 +321,14 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
 
         {/* Type selector */}
         <div>
-          <label style={labelStyle}>{t('reservations.bookingType')}</label>
+          <label className={labelClass}>{t('reservations.bookingType')}</label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
             {TYPE_OPTIONS.map(({ value, labelKey, Icon }) => (
-              <button key={value} type="button" onClick={() => set('type', value)} style={{
+              <button key={value} type="button" onClick={() => set('type', value)} className={form.type === value ? 'bg-[var(--text-primary)] text-[var(--bg-primary)]' : 'bg-surface-card text-content-muted'} style={{
                 display: 'flex', alignItems: 'center', gap: 4,
                 padding: '5px 10px', borderRadius: 99, border: '1px solid',
                 fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s',
-                background: form.type === value ? 'var(--text-primary)' : 'var(--bg-card)',
                 borderColor: form.type === value ? 'var(--text-primary)' : 'var(--border-primary)',
-                color: form.type === value ? 'var(--bg-primary)' : 'var(--text-muted)',
               }}>
                 <Icon size={11} /> {t(labelKey)}
               </button>
@@ -347,15 +338,15 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
 
         {/* Title */}
         <div>
-          <label style={labelStyle}>{t('reservations.titleLabel')} *</label>
+          <label className={labelClass}>{t('reservations.titleLabel')} *</label>
           <input type="text" value={form.title} onChange={e => set('title', e.target.value)} required
-            placeholder={t('reservations.titlePlaceholder')} style={inputStyle} />
+            placeholder={t('reservations.titlePlaceholder')} className={inputClass} />
         </div>
 
         {/* From / To endpoints */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label style={labelStyle}>{t('reservations.meta.from')}</label>
+            <label className={labelClass}>{t('reservations.meta.from')}</label>
             {form.type === 'flight' ? (
               <AirportSelect value={fromPick.airport || null} onChange={a => setFromPick({ airport: a || undefined })} />
             ) : (
@@ -363,7 +354,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
             )}
           </div>
           <div>
-            <label style={labelStyle}>{t('reservations.meta.to')}</label>
+            <label className={labelClass}>{t('reservations.meta.to')}</label>
             {form.type === 'flight' ? (
               <AirportSelect value={toPick.airport || null} onChange={a => setToPick({ airport: a || undefined })} />
             ) : (
@@ -375,7 +366,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         {/* Departure row */}
         <div style={{ display: 'flex', gap: 8 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <label style={labelStyle}>
+            <label className={labelClass}>
               {form.type === 'flight' ? t('reservations.departureDate') : form.type === 'car' ? t('reservations.pickupDate') : t('reservations.date')}
             </label>
             <CustomSelect
@@ -387,15 +378,15 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
             />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <label style={labelStyle}>
+            <label className={labelClass}>
               {form.type === 'flight' ? t('reservations.departureTime') : form.type === 'car' ? t('reservations.pickupTime') : t('reservations.startTime')}
             </label>
             <CustomTimePicker value={form.departure_time} onChange={v => set('departure_time', v)} />
           </div>
           {form.type === 'flight' && fromPick.airport && (
             <div style={{ flex: 1, minWidth: 0 }}>
-              <label style={labelStyle}>{t('reservations.meta.departureTimezone')}</label>
-              <div style={{ ...inputStyle, padding: '8px 12px', color: 'var(--text-muted)', fontSize: 12, background: 'var(--bg-tertiary)' }}>
+              <label className={labelClass}>{t('reservations.meta.departureTimezone')}</label>
+              <div className={inputClass} style={{ padding: '8px 12px', color: 'var(--text-muted)', fontSize: 12, background: 'var(--bg-tertiary)' }}>
                 {fromPick.airport.tz}
               </div>
             </div>
@@ -405,7 +396,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         {/* Arrival row */}
         <div style={{ display: 'flex', gap: 8 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <label style={labelStyle}>
+            <label className={labelClass}>
               {form.type === 'flight' ? t('reservations.arrivalDate') : form.type === 'car' ? t('reservations.returnDate') : t('reservations.endDate')}
             </label>
             <CustomSelect
@@ -417,15 +408,15 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
             />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <label style={labelStyle}>
+            <label className={labelClass}>
               {form.type === 'flight' ? t('reservations.arrivalTime') : form.type === 'car' ? t('reservations.returnTime') : t('reservations.endTime')}
             </label>
             <CustomTimePicker value={form.arrival_time} onChange={v => set('arrival_time', v)} />
           </div>
           {form.type === 'flight' && toPick.airport && (
             <div style={{ flex: 1, minWidth: 0 }}>
-              <label style={labelStyle}>{t('reservations.meta.arrivalTimezone')}</label>
-              <div style={{ ...inputStyle, padding: '8px 12px', color: 'var(--text-muted)', fontSize: 12, background: 'var(--bg-tertiary)' }}>
+              <label className={labelClass}>{t('reservations.meta.arrivalTimezone')}</label>
+              <div className={inputClass} style={{ padding: '8px 12px', color: 'var(--text-muted)', fontSize: 12, background: 'var(--bg-tertiary)' }}>
                 {toPick.airport.tz}
               </div>
             </div>
@@ -436,14 +427,14 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         {form.type === 'flight' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label style={labelStyle}>{t('reservations.meta.airline')}</label>
+              <label className={labelClass}>{t('reservations.meta.airline')}</label>
               <input type="text" value={form.meta_airline} onChange={e => set('meta_airline', e.target.value)}
-                placeholder="Lufthansa" style={inputStyle} />
+                placeholder="Lufthansa" className={inputClass} />
             </div>
             <div>
-              <label style={labelStyle}>{t('reservations.meta.flightNumber')}</label>
+              <label className={labelClass}>{t('reservations.meta.flightNumber')}</label>
               <input type="text" value={form.meta_flight_number} onChange={e => set('meta_flight_number', e.target.value)}
-                placeholder="LH 123" style={inputStyle} />
+                placeholder="LH 123" className={inputClass} />
             </div>
           </div>
         )}
@@ -452,19 +443,19 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         {form.type === 'train' && (
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label style={labelStyle}>{t('reservations.meta.trainNumber')}</label>
+              <label className={labelClass}>{t('reservations.meta.trainNumber')}</label>
               <input type="text" value={form.meta_train_number} onChange={e => set('meta_train_number', e.target.value)}
-                placeholder="ICE 123" style={inputStyle} />
+                placeholder="ICE 123" className={inputClass} />
             </div>
             <div>
-              <label style={labelStyle}>{t('reservations.meta.platform')}</label>
+              <label className={labelClass}>{t('reservations.meta.platform')}</label>
               <input type="text" value={form.meta_platform} onChange={e => set('meta_platform', e.target.value)}
-                placeholder="12" style={inputStyle} />
+                placeholder="12" className={inputClass} />
             </div>
             <div>
-              <label style={labelStyle}>{t('reservations.meta.seat')}</label>
+              <label className={labelClass}>{t('reservations.meta.seat')}</label>
               <input type="text" value={form.meta_seat} onChange={e => set('meta_seat', e.target.value)}
-                placeholder="42A" style={inputStyle} />
+                placeholder="42A" className={inputClass} />
             </div>
           </div>
         )}
@@ -472,12 +463,12 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         {/* Booking Code + Status */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label style={labelStyle}>{t('reservations.confirmationCode')}</label>
+            <label className={labelClass}>{t('reservations.confirmationCode')}</label>
             <input type="text" value={form.confirmation_number} onChange={e => set('confirmation_number', e.target.value)}
-              placeholder={t('reservations.confirmationPlaceholder')} style={inputStyle} />
+              placeholder={t('reservations.confirmationPlaceholder')} className={inputClass} />
           </div>
           <div>
-            <label style={labelStyle}>{t('reservations.status')}</label>
+            <label className={labelClass}>{t('reservations.status')}</label>
             <CustomSelect
               value={form.status}
               onChange={value => set('status', value)}
@@ -492,21 +483,21 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
 
         {/* Notes */}
         <div>
-          <label style={labelStyle}>{t('reservations.notes')}</label>
+          <label className={labelClass}>{t('reservations.notes')}</label>
           <textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={2}
             placeholder={t('reservations.notesPlaceholder')}
-            style={{ ...inputStyle, resize: 'none', lineHeight: 1.5 }} />
+            className={inputClass} style={{ resize: 'none', lineHeight: 1.5 }} />
         </div>
 
         {/* Files */}
         <div>
-          <label style={labelStyle}>{t('files.title')}</label>
+          <label className={labelClass}>{t('files.title')}</label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {attachedFiles.map(f => (
-              <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', background: 'var(--bg-secondary)', borderRadius: 8 }}>
-                <FileText size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                <span style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.original_name}</span>
-                <a href="#" onClick={(e) => { e.preventDefault(); openFile(f.url).catch(() => {}) }} style={{ color: 'var(--text-faint)', display: 'flex', flexShrink: 0, cursor: 'pointer' }}><ExternalLink size={11} /></a>
+              <div key={f.id} className="bg-surface-secondary" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', borderRadius: 8 }}>
+                <FileText size={12} className="text-content-muted" style={{ flexShrink: 0 }} />
+                <span className="text-content-secondary" style={{ flex: 1, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.original_name}</span>
+                <a href="#" onClick={(e) => { e.preventDefault(); openFile(f.url).catch(() => {}) }} className="text-content-faint" style={{ display: 'flex', flexShrink: 0, cursor: 'pointer' }}><ExternalLink size={11} /></a>
                 <button type="button" onClick={async () => {
                   if (f.reservation_id === reservation?.id) {
                     try { await apiClient.put(`/trips/${tripId}/files/${f.id}`, { reservation_id: null }) } catch { toast.error(t('reservations.toast.updateError')) }
@@ -518,44 +509,44 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
                   } catch { toast.error(t('reservations.toast.updateError')) }
                   setLinkedFileIds(prev => prev.filter(id => id !== f.id))
                   if (tripId) loadFiles(tripId)
-                }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', padding: 0, flexShrink: 0 }}>
+                }} className="text-content-faint" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0, flexShrink: 0 }}>
                   <X size={11} />
                 </button>
               </div>
             ))}
             {pendingFiles.map((f, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', background: 'var(--bg-secondary)', borderRadius: 8 }}>
-                <FileText size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                <span style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+              <div key={i} className="bg-surface-secondary" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', borderRadius: 8 }}>
+                <FileText size={12} className="text-content-muted" style={{ flexShrink: 0 }} />
+                <span className="text-content-secondary" style={{ flex: 1, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
                 <button type="button" onClick={() => setPendingFiles(prev => prev.filter((_, j) => j !== i))}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', padding: 0, flexShrink: 0 }}>
+                  className="text-content-faint" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0, flexShrink: 0 }}>
                   <X size={11} />
                 </button>
               </div>
             ))}
             <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt,image/*" style={{ display: 'none' }} onChange={handleFileChange} />
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {onFileUpload && <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingFile} style={{
+              {onFileUpload && <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingFile} className="text-content-faint" style={{
                 display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px',
                 border: '1px dashed var(--border-primary)', borderRadius: 8, background: 'none',
-                fontSize: 11, color: 'var(--text-faint)', cursor: uploadingFile ? 'default' : 'pointer', fontFamily: 'inherit',
+                fontSize: 11, cursor: uploadingFile ? 'default' : 'pointer', fontFamily: 'inherit',
               }}>
                 <Paperclip size={11} />
                 {uploadingFile ? t('reservations.uploading') : t('reservations.attachFile')}
               </button>}
               {reservation?.id && files.filter(f => !f.deleted_at && !attachedFiles.some(af => af.id === f.id)).length > 0 && (
                 <div style={{ position: 'relative' }}>
-                  <button type="button" onClick={() => setShowFilePicker(v => !v)} style={{
+                  <button type="button" onClick={() => setShowFilePicker(v => !v)} className="text-content-faint" style={{
                     display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px',
                     border: '1px dashed var(--border-primary)', borderRadius: 8, background: 'none',
-                    fontSize: 11, color: 'var(--text-faint)', cursor: 'pointer', fontFamily: 'inherit',
+                    fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
                   }}>
                     <Link2 size={11} /> {t('reservations.linkExisting')}
                   </button>
                   {showFilePicker && (
-                    <div style={{
+                    <div className="bg-surface-card" style={{
                       position: 'absolute', bottom: '100%', left: 0, marginBottom: 4, zIndex: 50,
-                      background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10,
+                      border: '1px solid var(--border-primary)', borderRadius: 10,
                       boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 4, minWidth: 220, maxHeight: 200, overflowY: 'auto',
                     }}>
                       {files.filter(f => !f.deleted_at && !attachedFiles.some(af => af.id === f.id)).map(f => (
@@ -567,14 +558,15 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
                             if (tripId) loadFiles(tripId)
                           } catch { toast.error(t('reservations.toast.updateError')) }
                         }}
+                          className="text-content-secondary"
                           style={{
                             display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 10px',
                             background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontFamily: 'inherit',
-                            color: 'var(--text-secondary)', borderRadius: 7, textAlign: 'left',
+                            borderRadius: 7, textAlign: 'left',
                           }}
                           onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
                           onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                          <FileText size={12} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
+                          <FileText size={12} className="text-content-faint" style={{ flexShrink: 0 }} />
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.original_name}</span>
                         </button>
                       ))}
@@ -591,15 +583,15 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
           <>
             <div style={{ display: 'flex', gap: 8 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <label style={labelStyle}>{t('reservations.price')}</label>
+                <label className={labelClass}>{t('reservations.price')}</label>
                 <input type="text" inputMode="decimal" value={form.price}
                   onChange={e => { const v = e.target.value; if (v === '' || /^\d*[.,]?\d{0,2}$/.test(v)) set('price', v.replace(',', '.')) }}
                   onPaste={e => { e.preventDefault(); let txt = e.clipboardData.getData('text').trim().replace(/[^\d.,-]/g, ''); const lc = txt.lastIndexOf(','), ld = txt.lastIndexOf('.'), dp = Math.max(lc, ld); if (dp > -1) { txt = txt.substring(0, dp).replace(/[.,]/g, '') + '.' + txt.substring(dp + 1) } else { txt = txt.replace(/[.,]/g, '') } set('price', txt) }}
                   placeholder="0.00"
-                  style={inputStyle} />
+                  className={inputClass} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <label style={labelStyle}>{t('reservations.budgetCategory')}</label>
+                <label className={labelClass}>{t('reservations.budgetCategory')}</label>
                 <CustomSelect
                   value={form.budget_category}
                   onChange={v => set('budget_category', v)}
@@ -613,7 +605,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
               </div>
             </div>
             {form.price && parseFloat(form.price) > 0 && (
-              <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: -4 }}>
+              <div className="text-content-faint" style={{ fontSize: 11, marginTop: -4 }}>
                 {t('reservations.budgetHint')}
               </div>
             )}
