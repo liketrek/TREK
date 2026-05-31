@@ -49,11 +49,16 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        # npm install (not ci) so npm re-resolves and installs @swc/core's
-        # platform-specific native binary for the Linux runner — server tests
-        # transform via unplugin-swc, and the committed lockfile omits the
-        # Linux optional dep that `npm ci` would otherwise need.
-        run: npm install
+        run: npm ci
+
+      - name: Ensure @swc/core's Linux binary for unplugin-swc
+        # The lockfile was generated on Windows and omits @swc/core's Linux
+        # optional native binary, so npm ci/install skips it on the runner.
+        # Install the matching version explicitly so the server's SWC transform
+        # (server/vitest.config.ts) can load.
+        run: |
+          SWC_VERSION=$(node -p "require('@swc/core/package.json').version")
+          npm install --no-save --no-package-lock "@swc/core-linux-x64-gnu@$SWC_VERSION"
 
       - name: Build shared
         run: npm run build --workspace=shared
