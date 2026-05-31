@@ -47,5 +47,8 @@ const system_notice: TranslationStrings = {
   'system_notice.pager.next': 'الإشعار التالي',
   'system_notice.pager.goto': 'الانتقال إلى الإشعار {n}',
   'system_notice.pager.position': 'الإشعار {current} من {total}',
+  'system_notice.dev_test_modal.title': '[Dev] Test notice', // en-fallback
+  'system_notice.dev_test_modal.body': 'This is a dev-only test notice.', // en-fallback
+  'system_notice.pager.counter': '{current} / {total}', // en-fallback
 };
 export default system_notice;

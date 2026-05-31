@@ -42,5 +42,7 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.allAssigned': 'Všechna místa přiřazena',
   'dayplan.mobile.noMatch': 'Žádná shoda',
   'dayplan.mobile.createNew': 'Vytvořit nové místo',
+  'dayplan.expandAll': 'Expand all days', // en-fallback
+  'dayplan.collapseAll': 'Collapse all days', // en-fallback
 };
 export default dayplan;

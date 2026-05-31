@@ -237,5 +237,10 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Aucun album trouvé',
   'journey.picker.selectDate': 'Sélectionner une date',
   'journey.picker.search': 'Rechercher',
+  'journey.detail.journeyTab': 'Journey', // en-fallback
+  'journey.contributors.remove': 'Remove contributor', // en-fallback
+  'journey.contributors.removeConfirm': 'Remove {username} from this journey?', // en-fallback
+  'journey.contributors.removed': 'Contributor removed', // en-fallback
+  'journey.contributors.removeFailed': 'Failed to remove contributor', // en-fallback
 };
 export default journey;

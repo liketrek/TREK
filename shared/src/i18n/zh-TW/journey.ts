@@ -225,5 +225,10 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': '未找到相簿',
   'journey.picker.selectDate': '選擇日期',
   'journey.picker.search': '搜尋',
+  'journey.detail.journeyTab': 'Journey', // en-fallback
+  'journey.contributors.remove': 'Remove contributor', // en-fallback
+  'journey.contributors.removeConfirm': 'Remove {username} from this journey?', // en-fallback
+  'journey.contributors.removed': 'Contributor removed', // en-fallback
+  'journey.contributors.removeFailed': 'Failed to remove contributor', // en-fallback
 };
 export default journey;

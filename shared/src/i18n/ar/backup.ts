@@ -71,5 +71,6 @@ const backup: TranslationStrings = {
   'backup.restoreTip':
     'نصيحة: أنشئ نسخة احتياطية للحالة الحالية قبل الاستعادة.',
   'backup.restoreConfirm': 'نعم، استعادة',
+  'backup.auto.envLocked': 'Docker', // en-fallback
 };
 export default backup;

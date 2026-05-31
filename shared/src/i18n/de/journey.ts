@@ -242,5 +242,6 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Keine Alben gefunden',
   'journey.picker.selectDate': 'Datum wählen',
   'journey.picker.search': 'Suchen',
+  'journey.detail.journeyTab': 'Journey', // en-fallback
 };
 export default journey;

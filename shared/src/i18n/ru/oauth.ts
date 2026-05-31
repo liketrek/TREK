@@ -95,5 +95,29 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:share.label': 'Управление ссылками на путешествия',
   'oauth.scope.journey:share.description':
     'Создание, обновление и отзыв публичных ссылок для путешествий',
+  'oauth.authorize.authorizing': 'Authorizing…', // en-fallback
+  'oauth.authorize.loading': 'Loading…', // en-fallback
+  'oauth.authorize.errorTitle': 'Authorization Error', // en-fallback
+  'oauth.authorize.loginTitle': 'Sign in to continue', // en-fallback
+  'oauth.authorize.loginDescription':
+    '{client} wants access to your TREK account. Please sign in first.', // en-fallback
+  'oauth.authorize.loginButton': 'Sign in to TREK', // en-fallback
+  'oauth.authorize.requestLabel': 'Authorization Request', // en-fallback
+  'oauth.authorize.requestDescription':
+    'This application is requesting access to your TREK account.', // en-fallback
+  'oauth.authorize.trustNote':
+    'Only grant access to applications you trust. Your data stays on your server.', // en-fallback
+  'oauth.authorize.selectScope': 'Select at least one scope', // en-fallback
+  'oauth.authorize.approveOneScope': 'Approve ({count} scope)', // en-fallback
+  'oauth.authorize.approveManyScopes': 'Approve ({count} scopes)', // en-fallback
+  'oauth.authorize.approveAccess': 'Approve Access', // en-fallback
+  'oauth.authorize.deny': 'Deny', // en-fallback
+  'oauth.authorize.choosePermissions': 'Choose which permissions to grant', // en-fallback
+  'oauth.authorize.permissionsRequested': 'Permissions requested', // en-fallback
+  'oauth.authorize.alwaysIncluded': 'Always included', // en-fallback
+  'oauth.authorize.alwaysTool.listTrips':
+    'List your trips so the AI can discover trip IDs', // en-fallback
+  'oauth.authorize.alwaysTool.getTripSummary':
+    'Read a trip overview needed to use any other tool', // en-fallback
 };
 export default oauth;

@@ -20,7 +20,7 @@ export default function OAuthAuthorizePage(): React.ReactElement {
           <div className="flex flex-col items-center gap-3">
             <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--accent-primary, #4f46e5)' }} />
             <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              {pageState === 'auto_approving' ? 'Authorizing…' : 'Loading…'}
+              {pageState === 'auto_approving' ? t('oauth.authorize.authorizing') : t('oauth.authorize.loading')}
             </p>
           </div>
         </div>
@@ -32,7 +32,7 @@ export default function OAuthAuthorizePage(): React.ReactElement {
         <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--bg-primary)' }}>
           <div className="w-full max-w-sm rounded-xl shadow-lg p-8 space-y-4 text-center" style={{ background: 'var(--bg-card)' }}>
             <AlertTriangle className="w-10 h-10 mx-auto text-red-500" />
-            <h1 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>Authorization Error</h1>
+            <h1 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>{t('oauth.authorize.errorTitle')}</h1>
             <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{errorMsg}</p>
           </div>
         </div>
@@ -45,9 +45,9 @@ export default function OAuthAuthorizePage(): React.ReactElement {
           <div className="w-full max-w-sm rounded-xl shadow-lg p-8 space-y-5" style={{ background: 'var(--bg-card)' }}>
             <div className="text-center space-y-2">
               <Lock className="w-10 h-10 mx-auto" style={{ color: 'var(--accent-primary, #4f46e5)' }} />
-              <h1 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>Sign in to continue</h1>
+              <h1 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>{t('oauth.authorize.loginTitle')}</h1>
               <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                <strong>{validation?.client?.name || clientId}</strong> wants access to your TREK account. Please sign in first.
+                {t('oauth.authorize.loginDescription', { client: validation?.client?.name || clientId })}
               </p>
             </div>
             <button
@@ -55,7 +55,7 @@ export default function OAuthAuthorizePage(): React.ReactElement {
                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white"
                 style={{ background: 'var(--accent-primary, #4f46e5)' }}>
               <LogIn className="w-4 h-4" />
-              Sign in to TREK
+              {t('oauth.authorize.loginButton')}
             </button>
           </div>
         </div>
@@ -74,19 +74,19 @@ export default function OAuthAuthorizePage(): React.ReactElement {
                 <ShieldCheck className="w-6 h-6" style={{ color: 'var(--accent-primary, #4f46e5)' }} />
               </div>
               <div>
-                <p className="text-xs font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--text-tertiary)' }}>Authorization Request</p>
+                <p className="text-xs font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--text-tertiary)' }}>{t('oauth.authorize.requestLabel')}</p>
                 <h1 className="text-lg font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
                   {validation?.client?.name || clientId}
                 </h1>
                 <p className="text-sm mt-2" style={{ color: 'var(--text-secondary)' }}>
-                  This application is requesting access to your TREK account.
+                  {t('oauth.authorize.requestDescription')}
                 </p>
               </div>
             </div>
 
             <div className="mt-8 space-y-2">
               <p className="text-xs mb-3" style={{ color: 'var(--text-tertiary)' }}>
-                Only grant access to applications you trust. Your data stays on your server.
+                {t('oauth.authorize.trustNote')}
               </p>
               <button
                   onClick={() => submitConsent(true)}
@@ -94,19 +94,24 @@ export default function OAuthAuthorizePage(): React.ReactElement {
                   className="w-full px-4 py-2.5 rounded-lg text-sm font-medium text-white disabled:opacity-60 transition-opacity"
                   style={{ background: 'var(--accent-primary, #4f46e5)' }}>
                 {submitting
-                    ? 'Authorizing…'
+                    ? t('oauth.authorize.authorizing')
                     : validation?.scopeSelectable && selectedScopes.length === 0
-                        ? 'Select at least one scope'
+                        ? t('oauth.authorize.selectScope')
                         : validation?.scopeSelectable
-                            ? `Approve (${selectedScopes.length} scope${selectedScopes.length !== 1 ? 's' : ''})`
-                            : 'Approve Access'}
+                            ? t(
+                                selectedScopes.length !== 1
+                                    ? 'oauth.authorize.approveManyScopes'
+                                    : 'oauth.authorize.approveOneScope',
+                                { count: selectedScopes.length },
+                            )
+                            : t('oauth.authorize.approveAccess')}
               </button>
               <button
                   onClick={() => submitConsent(false)}
                   disabled={submitting}
                   className="w-full px-4 py-2.5 rounded-lg text-sm font-medium border transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60"
                   style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
-                Deny
+                {t('oauth.authorize.deny')}
               </button>
             </div>
           </div>
@@ -117,7 +122,7 @@ export default function OAuthAuthorizePage(): React.ReactElement {
               {Object.keys(scopesByGroup).length > 0 && (
                   <div>
                     <p className="text-xs font-medium uppercase tracking-wide mb-4" style={{ color: 'var(--text-tertiary)' }}>
-                      {validation?.scopeSelectable ? 'Choose which permissions to grant' : 'Permissions requested'}
+                      {validation?.scopeSelectable ? t('oauth.authorize.choosePermissions') : t('oauth.authorize.permissionsRequested')}
                     </p>
 
                     {validation?.scopeSelectable ? (
@@ -201,12 +206,12 @@ export default function OAuthAuthorizePage(): React.ReactElement {
               {/* Always-available tools — granted regardless of scopes */}
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide mb-3" style={{ color: 'var(--text-tertiary)' }}>
-                  Always included
+                  {t('oauth.authorize.alwaysIncluded')}
                 </p>
                 <div className="space-y-1.5">
                   {[
-                    { name: 'list_trips',       desc: 'List your trips so the AI can discover trip IDs' },
-                    { name: 'get_trip_summary', desc: 'Read a trip overview needed to use any other tool' },
+                    { name: 'list_trips',       desc: t('oauth.authorize.alwaysTool.listTrips') },
+                    { name: 'get_trip_summary', desc: t('oauth.authorize.alwaysTool.getTripSummary') },
                   ].map(({ name, desc }) => (
                       <div key={name} className="flex items-start gap-2.5 px-3 py-2 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
                         <span className="mt-0.5 text-base leading-none flex-shrink-0">👁️</span>

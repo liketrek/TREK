@@ -120,5 +120,51 @@ const dashboard: TranslationStrings = {
   'dashboard.mobile.inMonths': 'Σε {count} μήνες',
   'dashboard.mobile.completed': 'Ολοκληρώθηκε',
   'dashboard.mobile.currencyConverter': 'Μετατροπέας Νομισμάτων',
+  'dashboard.newTripSub': 'Plan a new trip from scratch', // en-fallback
+  'dashboard.filter.planned': 'Planned', // en-fallback
+  'dashboard.hero.badgeLive': 'LIVE NOW', // en-fallback
+  'dashboard.hero.badgeToday': 'STARTS TODAY', // en-fallback
+  'dashboard.hero.badgeTomorrow': 'TOMORROW', // en-fallback
+  'dashboard.hero.badgeNext': 'UP NEXT', // en-fallback
+  'dashboard.hero.badgeRecent': 'RECENT', // en-fallback
+  'dashboard.hero.tripDates': 'Trip dates', // en-fallback
+  'dashboard.hero.noDates': 'No dates set', // en-fallback
+  'dashboard.hero.travelerOne': '{count} traveler', // en-fallback
+  'dashboard.hero.travelerMany': '{count} travelers', // en-fallback
+  'dashboard.hero.destinationOne': '{count} destination', // en-fallback
+  'dashboard.hero.destinationMany': '{count} destinations', // en-fallback
+  'dashboard.hero.dayUnitOne': 'day', // en-fallback
+  'dashboard.hero.dayUnitMany': 'days', // en-fallback
+  'dashboard.hero.dayLeft': 'Day left', // en-fallback
+  'dashboard.hero.daysLeft': 'Days left', // en-fallback
+  'dashboard.hero.lastDay': 'Last day', // en-fallback
+  'dashboard.hero.untilStart': 'Until start', // en-fallback
+  'dashboard.hero.startsIn': 'Trip starts in', // en-fallback
+  'dashboard.atlas.countriesVisited': 'Atlas · Countries visited', // en-fallback
+  'dashboard.atlas.ofTotal': 'of {total}', // en-fallback
+  'dashboard.atlas.tripsTotal': 'Trips total', // en-fallback
+  'dashboard.atlas.placesMapped': '{count} places mapped', // en-fallback
+  'dashboard.atlas.daysTraveled': 'Days traveled', // en-fallback
+  'dashboard.atlas.daysUnit': 'days', // en-fallback
+  'dashboard.atlas.acrossAllTrips': 'across all trips', // en-fallback
+  'dashboard.atlas.distanceFlown': 'Distance flown', // en-fallback
+  'dashboard.atlas.kmUnit': 'km', // en-fallback
+  'dashboard.atlas.aroundEquator': '≈ {count}× around the equator', // en-fallback
+  'dashboard.card.idea': 'Idea', // en-fallback
+  'dashboard.card.buddyOne': 'Buddy', // en-fallback
+  'dashboard.fx.from': 'From', // en-fallback
+  'dashboard.fx.to': 'To', // en-fallback
+  'dashboard.fx.unavailable': 'Rate unavailable', // en-fallback
+  'dashboard.tz.searchPlaceholder': 'Search timezone…', // en-fallback
+  'dashboard.tz.empty': 'No other timezones yet — add one with +', // en-fallback
+  'dashboard.upcoming.title': 'Upcoming reservations', // en-fallback
+  'dashboard.upcoming.empty': 'Nothing booked yet.', // en-fallback
+  'dashboard.aria.toggleView': 'Toggle view', // en-fallback
+  'dashboard.aria.filter': 'Filter', // en-fallback
+  'dashboard.aria.duplicate': 'Duplicate', // en-fallback
+  'dashboard.aria.refreshRates': 'Refresh rates', // en-fallback
+  'dashboard.aria.swapCurrencies': 'Swap currencies', // en-fallback
+  'dashboard.aria.addTimezone': 'Add timezone', // en-fallback
+  'dashboard.aria.removeTimezone': 'Remove {city}', // en-fallback
 };
 export default dashboard;

@@ -315,5 +315,31 @@ const admin: TranslationStrings = {
     'يعمل TREK الخاص بك في Docker. للتحديث إلى {version}، نفّذ الأوامر التالية على الخادم:',
   'admin.update.reloadHint': 'يرجى إعادة تحميل الصفحة بعد بضع ثوانٍ.',
   'admin.tabs.permissions': 'الصلاحيات',
+  'admin.notifications.webhook': 'Webhook', // en-fallback
+  'admin.notifications.ntfy': 'Ntfy', // en-fallback
+  'admin.notifications.emailPanel.title': 'Email (SMTP)', // en-fallback
+  'admin.notifications.webhookPanel.title': 'Webhook', // en-fallback
+  'admin.notifications.inappPanel.title': 'In-App', // en-fallback
+  'admin.notifications.adminNtfyPanel.serverPlaceholder': 'https://ntfy.sh', // en-fallback
+  'admin.notifications.adminNtfyPanel.topicPlaceholder': 'trek-admin-alerts', // en-fallback
+  'admin.authMethods': 'Authentication Methods', // en-fallback
+  'admin.passwordLogin': 'Password Login', // en-fallback
+  'admin.passwordLoginHint': 'Allow users to sign in with email and password', // en-fallback
+  'admin.passwordRegistration': 'Password Registration', // en-fallback
+  'admin.passwordRegistrationHint':
+    'Allow new users to register with email and password', // en-fallback
+  'admin.oidcLogin': 'SSO Login', // en-fallback
+  'admin.oidcLoginHint': 'Allow users to sign in with SSO', // en-fallback
+  'admin.oidcRegistration': 'SSO Auto-Provisioning', // en-fallback
+  'admin.oidcRegistrationHint':
+    'Automatically create accounts for new SSO users', // en-fallback
+  'admin.envOverrideHint':
+    'Password login settings are controlled by the OIDC_ONLY environment variable and cannot be changed here.', // en-fallback
+  'admin.lockoutWarning': 'At least one login method must remain enabled', // en-fallback
+  'admin.addons.catalog.mcp.name': 'MCP', // en-fallback
+  'admin.tabs.github': 'GitHub', // en-fallback
+  'admin.addons.catalog.journey.name': 'Journey', // en-fallback
+  'admin.addons.catalog.journey.description':
+    'Trip tracking & travel journal with check-ins, photos, and daily stories', // en-fallback
 };
 export default admin;

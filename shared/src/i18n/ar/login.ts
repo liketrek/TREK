@@ -87,5 +87,6 @@ const login: TranslationStrings = {
   'login.resetPasswordInvalidLinkBody':
     'هذا الرابط مفقود أو تالف. اطلب رابطًا جديدًا للمتابعة.',
   'login.resetPasswordFailed': 'فشلت إعادة التعيين. ربما انتهت صلاحية الرابط.',
+  'login.emailPlaceholder': 'your@email.com', // en-fallback
 };
 export default login;

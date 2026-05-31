@@ -42,5 +42,7 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.allAssigned': 'Minden helyszín kiosztva',
   'dayplan.mobile.noMatch': 'Nincs találat',
   'dayplan.mobile.createNew': 'Új helyszín létrehozása',
+  'dayplan.expandAll': 'Expand all days', // en-fallback
+  'dayplan.collapseAll': 'Collapse all days', // en-fallback
 };
 export default dayplan;

@@ -37,5 +37,7 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.allAssigned': '所有地点已分配',
   'dayplan.mobile.noMatch': '无匹配',
   'dayplan.mobile.createNew': '创建新地点',
+  'dayplan.expandAll': 'Expand all days', // en-fallback
+  'dayplan.collapseAll': 'Collapse all days', // en-fallback
 };
 export default dayplan;

@@ -270,5 +270,23 @@ const settings: TranslationStrings = {
   'settings.mfa.toastEnabled': 'تم تفعيل المصادقة الثنائية',
   'settings.mfa.toastDisabled': 'تم تعطيل المصادقة الثنائية',
   'settings.mfa.demoBlocked': 'غير متاح في الوضع التجريبي',
+  'settings.tabs.offline': 'Offline', // en-fallback
+  'settings.mapTemplatePlaceholder':
+    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', // en-fallback
+  'settings.notificationPreferences.email': 'Email', // en-fallback
+  'settings.notificationPreferences.webhook': 'Webhook', // en-fallback
+  'settings.notificationPreferences.inapp': 'In-App', // en-fallback
+  'settings.notificationPreferences.ntfy': 'Ntfy', // en-fallback
+  'settings.webhookUrl.placeholder': 'https://discord.com/api/webhooks/...', // en-fallback
+  'settings.ntfyUrl.topicPlaceholder': 'my-trek-alerts', // en-fallback
+  'settings.ntfyUrl.serverPlaceholder': 'https://ntfy.sh', // en-fallback
+  'settings.oauth.modal.redirectUrisPlaceholder':
+    'https://your-app.com/callback\nhttps://your-app.com/auth', // en-fallback
+  'settings.about.supporter.tier.noReturnTicket': 'No Return Ticket', // en-fallback
+  'settings.about.supporter.tier.lostLuggageVip': 'Lost Luggage VIP', // en-fallback
+  'settings.about.supporter.tier.businessClassDreamer':
+    'Business Class Dreamer', // en-fallback
+  'settings.about.supporter.tier.budgetTraveller': 'Budget Traveller', // en-fallback
+  'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate', // en-fallback
 };
 export default settings;

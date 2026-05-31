@@ -68,5 +68,6 @@ const collab: TranslationStrings = {
   'collab.polls.options': 'الخيارات',
   'collab.polls.delete': 'حذف',
   'collab.polls.closedSection': 'مغلق',
+  'collab.notes.websitePlaceholder': 'https://...', // en-fallback
 };
 export default collab;

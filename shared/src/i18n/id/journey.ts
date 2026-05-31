@@ -237,5 +237,10 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Tidak ada album ditemukan',
   'journey.picker.selectDate': 'Pilih tanggal',
   'journey.picker.search': 'Cari',
+  'journey.detail.journeyTab': 'Journey', // en-fallback
+  'journey.contributors.remove': 'Remove contributor', // en-fallback
+  'journey.contributors.removeConfirm': 'Remove {username} from this journey?', // en-fallback
+  'journey.contributors.removed': 'Contributor removed', // en-fallback
+  'journey.contributors.removeFailed': 'Failed to remove contributor', // en-fallback
 };
 export default journey;

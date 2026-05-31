@@ -47,5 +47,8 @@ const common: TranslationStrings = {
   'common.collapse': 'طي',
   'common.copy': 'نسخ',
   'common.copied': 'تم النسخ',
+  'common.justNow': 'just now', // en-fallback
+  'common.hoursAgo': '{count}h ago', // en-fallback
+  'common.daysAgo': '{count}d ago', // en-fallback
 };
 export default common;

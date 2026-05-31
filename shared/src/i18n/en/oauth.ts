@@ -95,5 +95,29 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:share.label': 'Manage journey links',
   'oauth.scope.journey:share.description':
     'Create, update, and revoke public share links for journeys',
+  'oauth.authorize.authorizing': 'Authorizing…',
+  'oauth.authorize.loading': 'Loading…',
+  'oauth.authorize.errorTitle': 'Authorization Error',
+  'oauth.authorize.loginTitle': 'Sign in to continue',
+  'oauth.authorize.loginDescription':
+    '{client} wants access to your TREK account. Please sign in first.',
+  'oauth.authorize.loginButton': 'Sign in to TREK',
+  'oauth.authorize.requestLabel': 'Authorization Request',
+  'oauth.authorize.requestDescription':
+    'This application is requesting access to your TREK account.',
+  'oauth.authorize.trustNote':
+    'Only grant access to applications you trust. Your data stays on your server.',
+  'oauth.authorize.selectScope': 'Select at least one scope',
+  'oauth.authorize.approveOneScope': 'Approve ({count} scope)',
+  'oauth.authorize.approveManyScopes': 'Approve ({count} scopes)',
+  'oauth.authorize.approveAccess': 'Approve Access',
+  'oauth.authorize.deny': 'Deny',
+  'oauth.authorize.choosePermissions': 'Choose which permissions to grant',
+  'oauth.authorize.permissionsRequested': 'Permissions requested',
+  'oauth.authorize.alwaysIncluded': 'Always included',
+  'oauth.authorize.alwaysTool.listTrips':
+    'List your trips so the AI can discover trip IDs',
+  'oauth.authorize.alwaysTool.getTripSummary':
+    'Read a trip overview needed to use any other tool',
 };
 export default oauth;

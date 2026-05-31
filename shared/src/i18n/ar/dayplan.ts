@@ -34,5 +34,13 @@ const dayplan: TranslationStrings = {
   'dayplan.pendingRes': 'قيد الانتظار',
   'dayplan.pdfTooltip': 'تصدير خطة اليوم بصيغة PDF',
   'dayplan.pdfError': 'فشل تصدير PDF',
+  'dayplan.expandAll': 'Expand all days', // en-fallback
+  'dayplan.collapseAll': 'Collapse all days', // en-fallback
+  'dayplan.pdf': 'PDF', // en-fallback
+  'dayplan.mobile.addPlace': 'Add Place', // en-fallback
+  'dayplan.mobile.searchPlaces': 'Search places...', // en-fallback
+  'dayplan.mobile.allAssigned': 'All places assigned', // en-fallback
+  'dayplan.mobile.noMatch': 'No match', // en-fallback
+  'dayplan.mobile.createNew': 'Create new place', // en-fallback
 };
 export default dayplan;

@@ -42,5 +42,7 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.allAssigned': 'Wszystkie miejsca przypisane',
   'dayplan.mobile.noMatch': 'Brak wyników',
   'dayplan.mobile.createNew': 'Utwórz nowe miejsce',
+  'dayplan.expandAll': 'Expand all days', // en-fallback
+  'dayplan.collapseAll': 'Collapse all days', // en-fallback
 };
 export default dayplan;
