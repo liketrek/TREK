@@ -7,12 +7,19 @@ import { buildUser, buildTrip, buildDay, buildPlace, buildAssignment } from '../
 import { useAuthStore } from '../store/authStore';
 import { useTripStore } from '../store/tripStore';
 import TripPlannerPage from './TripPlannerPage';
+import { DAY_COLORS } from '../components/Journey/dayColors';
 import { server } from '../../tests/helpers/msw/server';
 import { http, HttpResponse } from 'msw';
 
+// Prop-capturing ref for MapView — populated on each render
+const capturedMapViewProps: { current: Record<string, any> } = { current: {} };
+
 // Mock Leaflet-dependent components
 vi.mock('../components/Map/MapView', () => ({
-  MapView: () => React.createElement('div', { 'data-testid': 'map-view' }),
+  MapView: (props: Record<string, any>) => {
+    capturedMapViewProps.current = props;
+    return React.createElement('div', { 'data-testid': 'map-view' });
+  },
 }));
 
 vi.mock('react-leaflet', () => ({
@@ -237,6 +244,7 @@ beforeEach(() => {
   capturedTripMembersModalProps.current = {};
   capturedFileManagerProps.current = {};
   capturedPlaceInspectorProps.current = {};
+  capturedMapViewProps.current = {};
   seedStore(useAuthStore, { isAuthenticated: true, user: buildUser() });
 });
 
@@ -1521,6 +1529,98 @@ describe('TripPlannerPage', () => {
       expect(screen.getAllByTestId('day-plan-sidebar').length).toBe(2);
 
       Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1024 });
+    });
+  });
+
+  describe('FE-PAGE-PLANNER-052: Trip overview coloredRoute computed correctly per day', () => {
+    it('splits and colors routes by day, excluding days with fewer than 2 geocoded places', async () => {
+      vi.useFakeTimers();
+
+      const trip = { ...buildTrip({ id: 42 }), title: 'Overview Trip' };
+
+      // day_number controls sort order in overviewColoredRoute useMemo
+      const day1 = { ...buildDay({ trip_id: 42 }), day_number: 1 };
+      const day2 = { ...buildDay({ trip_id: 42 }), day_number: 2 };
+      const day3 = { ...buildDay({ trip_id: 42 }), day_number: 3 };
+
+      // Day 1: 2 geocoded places
+      const place1a = buildPlace({ trip_id: 42, lat: 48.8566, lng: 2.3522 });
+      const place1b = buildPlace({ trip_id: 42, lat: 51.5074, lng: -0.1278 });
+
+      // Day 2: 3 geocoded places
+      const place2a = buildPlace({ trip_id: 42, lat: 52.5200, lng: 13.4050 });
+      const place2b = buildPlace({ trip_id: 42, lat: 48.2082, lng: 16.3738 });
+      const place2c = buildPlace({ trip_id: 42, lat: 47.3769, lng: 8.5417 });
+
+      // Day 3: only 1 geocoded place - must be excluded (< 2 points)
+      const place3a = buildPlace({ trip_id: 42, lat: 40.7128, lng: -74.0060 });
+
+      const assign1a = buildAssignment({ day_id: day1.id, place: place1a, order_index: 0 });
+      const assign1b = buildAssignment({ day_id: day1.id, place: place1b, order_index: 1 });
+      const assign2a = buildAssignment({ day_id: day2.id, place: place2a, order_index: 0 });
+      const assign2b = buildAssignment({ day_id: day2.id, place: place2b, order_index: 1 });
+      const assign2c = buildAssignment({ day_id: day2.id, place: place2c, order_index: 2 });
+      const assign3a = buildAssignment({ day_id: day3.id, place: place3a, order_index: 0 });
+
+      seedStore(useTripStore, {
+        trip,
+        isLoading: false,
+        days: [day1, day2, day3],
+        places: [place1a, place1b, place2a, place2b, place2c, place3a],
+        assignments: {
+          [String(day1.id)]: [assign1a, assign1b],
+          [String(day2.id)]: [assign2a, assign2b, assign2c],
+          [String(day3.id)]: [assign3a],
+        },
+        packingItems: [],
+        todoItems: [],
+        categories: [],
+        reservations: [],
+        budgetItems: [],
+        files: [],
+        loadTrip: vi.fn().mockResolvedValue(undefined),
+        loadFiles: vi.fn().mockResolvedValue(undefined),
+        loadReservations: vi.fn().mockResolvedValue(undefined),
+      } as any);
+
+      renderPlannerPage(42);
+
+      act(() => { vi.runAllTimers(); });
+      vi.useRealTimers();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('day-plan-sidebar')).toBeInTheDocument();
+      });
+
+      // Enable overview mode via the sidebar callback
+      await act(async () => {
+        capturedDayPlanSidebarProps.current.onShowOverview?.();
+      });
+
+      // coloredRoute should now be set on the MapView
+      await waitFor(() => {
+        expect(capturedMapViewProps.current.coloredRoute).not.toBeNull();
+      });
+
+      const coloredRoute = capturedMapViewProps.current.coloredRoute as { points: [number, number][]; color: string }[];
+
+      // Day 3 has only 1 place → filtered out; expect exactly 2 segments
+      expect(coloredRoute).toHaveLength(2);
+
+      // Segment 0 = Day 1 (day_number 1 → index 0 after sort)
+      expect(coloredRoute[0].color).toBe(DAY_COLORS[0]);
+      expect(coloredRoute[0].points).toEqual([
+        [place1a.lat, place1a.lng],
+        [place1b.lat, place1b.lng],
+      ]);
+
+      // Segment 1 = Day 2 (day_number 2 → index 1 after sort), places in order_index order
+      expect(coloredRoute[1].color).toBe(DAY_COLORS[1]);
+      expect(coloredRoute[1].points).toEqual([
+        [place2a.lat, place2a.lng],
+        [place2b.lat, place2b.lng],
+        [place2c.lat, place2c.lng],
+      ]);
     });
   });
 

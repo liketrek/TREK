@@ -1,4 +1,4 @@
-import { ChevronsDownUp, ChevronsUpDown, FileDown, Undo2 } from 'lucide-react'
+import { ChevronsDownUp, ChevronsUpDown, FileDown, Route as RouteIcon, Undo2 } from 'lucide-react'
 import { downloadTripPDF } from '../PDF/TripPDF'
 import Tooltip from '../shared/Tooltip'
 import { useToast } from '../shared/Toast'
@@ -27,12 +27,17 @@ interface DayPlanSidebarToolbarProps {
   undoHover: boolean
   setUndoHover: (v: boolean) => void
   lastActionLabel: string | null
+  onShowOverview?: () => void
+  isOverviewMode?: boolean
+  overviewHover?: boolean
+  setOverviewHover?: (v: boolean) => void
 }
 
 export function DayPlanSidebarToolbar({
   tripId, trip, days, places, categories, assignments, reservations, dayNotes,
   t, locale, toast, pdfHover, setPdfHover, icsHover, setIcsHover,
   expandedDays, setExpandedDays, onUndo, canUndo, undoHover, setUndoHover, lastActionLabel,
+  onShowOverview, isOverviewMode = false, overviewHover = false, setOverviewHover,
 }: DayPlanSidebarToolbarProps) {
   return (
     <div className="border-b border-edge-faint" style={{ padding: '12px 16px', flexShrink: 0 }}>
@@ -119,6 +124,39 @@ export function DayPlanSidebarToolbar({
             </div>
           )}
         </div>
+        {onShowOverview && (
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <button
+              onClick={onShowOverview}
+              onMouseEnter={() => setOverviewHover?.(true)}
+              onMouseLeave={() => setOverviewHover?.(false)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '5px 10px', borderRadius: 8,
+                border: isOverviewMode ? 'none' : '1px solid var(--border-primary)',
+                background: isOverviewMode ? 'var(--accent)' : 'none',
+                color: isOverviewMode ? 'var(--accent-text)' : 'var(--text-muted)',
+                fontSize: 11, fontWeight: 500,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              <RouteIcon size={13} strokeWidth={2} />
+              {t('dayplan.overview')}
+            </button>
+            {overviewHover && (
+              <div style={{
+                position: 'absolute', top: 'calc(100% + 6px)', right: 0,
+                whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 200,
+                background: 'var(--bg-card, white)', color: 'var(--text-primary, #111827)',
+                fontSize: 11, fontWeight: 500, padding: '5px 10px',
+                borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                border: '1px solid var(--border-faint, #e5e7eb)',
+              }}>
+                {t('dayplan.overviewTooltip')}
+              </div>
+            )}
+          </div>
+        )}
         {(() => {
           const allExpanded = days.length > 0 && days.every(d => expandedDays.has(d.id))
           const label = allExpanded ? t('dayplan.collapseAll') : t('dayplan.expandAll')

@@ -177,13 +177,15 @@ function BoundsController({ places, fitKey, paddingOpts, hasDayDetail }: BoundsC
   useEffect(() => {
     if (fitKey === prevFitKey.current) return
     prevFitKey.current = fitKey
-    if (places.length === 0) return
+    const valid = places.filter(p => p.lat != null && p.lng != null)
+    if (valid.length === 0) return
     try {
-      const bounds = L.latLngBounds(places.map(p => [p.lat, p.lng]))
+      const bounds = L.latLngBounds(valid.map(p => [p.lat!, p.lng!]))
       if (bounds.isValid()) {
+        map.stop()
         map.fitBounds(bounds, { ...paddingOpts, maxZoom: 16, animate: true })
         if (hasDayDetail) {
-          setTimeout(() => map.panBy([0, 150], { animate: true }), 300)
+          setTimeout(() => { try { map.panBy([0, 150], { animate: true }) } catch {} }, 300)
         }
       }
     } catch {}
@@ -226,7 +228,46 @@ function MapContextMenuHandler({ onContextMenu }: { onContextMenu: ((e: L.Leafle
   return null
 }
 
-// Travel times are shown in the day sidebar (per-segment connectors), not on the map.
+// ── Route travel time label ──
+interface RouteLabelProps {
+  midpoint: [number, number]
+  from?: string
+  to?: string
+  walkingText: string
+  drivingText: string
+}
+
+function RouteLabel({ midpoint, walkingText, drivingText }: RouteLabelProps) {
+  if (!midpoint) return null
+
+  const icon = L.divIcon({
+    className: 'route-info-pill',
+    html: `<div style="
+      display:flex;align-items:center;gap:5px;
+      background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);
+      color:#fff;border-radius:99px;padding:3px 9px;
+      font-size:9px;font-weight:600;white-space:nowrap;
+      font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+      box-shadow:0 2px 12px rgba(0,0,0,0.3);
+      pointer-events:none;
+      position:relative;left:-50%;top:-50%;
+    ">
+      <span style="display:flex;align-items:center;gap:2px">
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4" r="2"/><path d="M7 21l3-7"/><path d="M10 14l5-5"/><path d="M15 9l-4 7"/><path d="M18 18l-3-7"/></svg>
+        ${walkingText}
+      </span>
+      <span style="opacity:0.3">|</span>
+      <span style="display:flex;align-items:center;gap:2px">
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9L18 10l-2-4H7L5 10l-2.5 1.1C1.7 11.3 1 12.1 1 13v3c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
+        ${drivingText}
+      </span>
+    </div>`,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+  })
+
+  return <Marker position={midpoint} icon={icon} interactive={false} zIndexOffset={2000} />
+}
 
 // Module-level photo cache shared with PlaceAvatar
 import { getCached, isLoading, fetchPhoto, onThumbReady, getAllThumbs } from '../../services/photoService'
@@ -339,6 +380,7 @@ export const MapView = memo(function MapView({
   dayPlaces = [],
   route = null,
   routeSegments = [],
+  coloredRoute = null,
   selectedPlaceId = null,
   onMarkerClick,
   onMapClick,
@@ -549,6 +591,19 @@ export const MapView = memo(function MapView({
         {markers}
       </MarkerClusterGroup>
 
+      {coloredRoute && coloredRoute.map((seg: { points: [number, number][]; color: string }, i: number) =>
+        seg.points.length >= 2 && (
+          <Polyline
+            key={`cr-${i}`}
+            positions={seg.points}
+            color={seg.color}
+            weight={3}
+            opacity={0.9}
+            dashArray="6, 5"
+          />
+        )
+      )}
+
       {/* Apple-Maps style: darker-blue casing under a bright-blue core, rounded. */}
       {route && route.length > 0 && route.flatMap((seg, i) => seg.length > 1 ? [
         <Polyline
@@ -562,6 +617,10 @@ export const MapView = memo(function MapView({
           pathOptions={{ color: '#0a84ff', weight: 5, opacity: 1, lineCap: 'round', lineJoin: 'round' }}
         />,
       ] : [])}
+
+      {routeSegments.map((seg, i) => (
+        <RouteLabel key={i} midpoint={seg.mid} from={seg.from} to={seg.to} walkingText={seg.walkingText} drivingText={seg.drivingText} />
+      ))}
 
       {/* GPX imported route geometries */}
       {gpxPolylines}

@@ -5,7 +5,9 @@ declare global { interface Window { __dragData: DragDataPayload | null } }
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
 import { ChevronDown, ChevronRight, ChevronUp, Navigation, RotateCcw, ExternalLink, Clock, Pencil, GripVertical, Ticket, Plus, FileText, Trash2, Car, Lock, Hotel, Footprints, Route as RouteIcon } from 'lucide-react'
 import { assignmentsApi, reservationsApi } from '../../api/client'
+import { downloadTripPDF } from '../PDF/TripPDF'
 import { calculateRoute, calculateRouteWithLegs, optimizeRoute } from '../Map/RouteCalculator'
+import { DAY_COLORS } from '../Journey/dayColors'
 import PlaceAvatar from '../shared/PlaceAvatar'
 import { useContextMenu, ContextMenu } from '../shared/ContextMenu'
 import Markdown from 'react-markdown'
@@ -81,6 +83,8 @@ interface DayPlanSidebarProps {
   onAddBookingToAssignment?: (dayId: number, assignmentId: number) => void
   initialScrollTop?: number
   onScrollTopChange?: (top: number) => void
+  onShowOverview?: () => void
+  isOverviewMode?: boolean
 }
 
 /**
@@ -122,6 +126,8 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   onAddBookingToAssignment,
   initialScrollTop,
   onScrollTopChange,
+  onShowOverview,
+  isOverviewMode = false,
   } = props
   const toast = useToast()
   const { t, language, locale } = useTranslation()
@@ -153,6 +159,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   const [undoHover, setUndoHover] = useState(false)
   const [pdfHover, setPdfHover] = useState(false)
   const [icsHover, setIcsHover] = useState(false)
+  const [overviewHover, setOverviewHover] = useState(false)
   const [hoveredAssignmentId, setHoveredAssignmentId] = useState<number | null>(null)
   const [dropTargetKey, _setDropTargetKey] = useState(null)
   const dropTargetRef = useRef(null)
@@ -924,6 +931,10 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     totalCost,
     anyGeoAssignment,
     anyGeoPlace,
+    onShowOverview,
+    isOverviewMode,
+    overviewHover,
+    setOverviewHover,
   }
 }
 
@@ -1066,6 +1077,10 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
     totalCost,
     anyGeoAssignment,
     anyGeoPlace,
+    onShowOverview,
+    isOverviewMode,
+    overviewHover,
+    setOverviewHover,
   } = S
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }}>
@@ -1093,6 +1108,10 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
         undoHover={undoHover}
         setUndoHover={setUndoHover}
         lastActionLabel={lastActionLabel}
+        onShowOverview={onShowOverview}
+        isOverviewMode={isOverviewMode}
+        overviewHover={overviewHover}
+        setOverviewHover={setOverviewHover}
       />
 
       {/* Tagesliste */}
@@ -1150,6 +1169,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                       background: isSelected ? 'var(--accent)' : 'var(--bg-hover)',
                       color: isSelected ? 'var(--accent-text)' : 'var(--text-muted)',
                       display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'hidden',
+                      boxShadow: isOverviewMode ? `0 0 0 2px ${DAY_COLORS[index % DAY_COLORS.length]}` : 'none',
                     }}>
                       <div style={{ width: '100%', height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>
                         {index + 1}

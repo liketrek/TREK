@@ -27,6 +27,7 @@ import CollabPanel from '../components/Collab/CollabPanel'
 import Navbar from '../components/Layout/Navbar'
 import { useToast } from '../components/shared/Toast'
 import { Map, X, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Ticket, PackageCheck, Wallet, FolderOpen, Users, Train } from 'lucide-react'
+import { DAY_COLORS } from '../components/Journey/dayColors'
 import { useTranslation } from '../i18n'
 import { addonsApi, accommodationsApi, authApi, tripsApi, assignmentsApi, mapsApi } from '../api/client'
 import { accommodationRepo } from '../repo/accommodationRepo'
@@ -38,7 +39,8 @@ import { useTripWebSocket } from '../hooks/useTripWebSocket'
 import { useRouteCalculation } from '../hooks/useRouteCalculation'
 import { usePlaceSelection } from '../hooks/usePlaceSelection'
 import { usePlannerHistory } from '../hooks/usePlannerHistory'
-import type { Accommodation, TripMember, Day, Place, Reservation, PackingItem, TodoItem } from '../types'
+import { calculateSegments } from '../components/Map/RouteCalculator'
+import type { Accommodation, TripMember, Day, Place, Reservation, PackingItem, TodoItem, RouteSegment } from '../types'
 import { ListTodo, Upload, Plus, Trash2, FolderPlus } from 'lucide-react'
 import { useTripPlanner } from './tripPlanner/useTripPlanner'
 
@@ -192,13 +194,59 @@ export default function TripPlannerPage(): React.ReactElement | null {
     isMobile, mapCategoryFilter, setMapCategoryFilter, mapPlacesFilter, setMapPlacesFilter,
     expandedDayIds, setExpandedDayIds, mapPlaces,
     route, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay,
-    handleSelectDay, handlePlaceClick, handleMarkerClick, handleMapClick, handleMapContextMenu,
+    handleSelectDay: baseHandleSelectDay, handlePlaceClick, handleMarkerClick, handleMapClick, handleMapContextMenu,
     handleSavePlace, handleDeletePlace, confirmDeletePlace, confirmDeletePlaces,
     handleAssignToDay, handleRemoveAssignment, handleReorder, handleUpdateDayTitle,
     handleSaveReservation, handleSaveTransport, handleDeleteReservation,
     selectedPlace, dayOrderMap, dayPlaces,
     mapTileUrl, defaultCenter, defaultZoom, fontStyle, splashDone,
   } = useTripPlanner()
+
+  // Trip overview state (not in useTripPlanner — feature-specific to this branch)
+  const [overviewMode, setOverviewMode] = useState(false)
+  const [overviewRouteSegments, setOverviewRouteSegments] = useState<RouteSegment[]>([])
+  const overviewSegAbortRef = useRef<AbortController | null>(null)
+
+  const handleSelectDay = useCallback((dayId: number | null, skipFit?: boolean) => {
+    if (dayId !== null) setOverviewMode(false)
+    baseHandleSelectDay(dayId, skipFit)
+  }, [baseHandleSelectDay])
+
+  const overviewColoredRoute = useMemo(() => {
+    if (!overviewMode) return null
+    const sortedDays = [...days].sort((a, b) => ((a as any).day_number ?? 0) - ((b as any).day_number ?? 0))
+    return sortedDays
+      .map((day, dayIdx) => {
+        const da = (assignments[String(day.id)] || [])
+          .slice().sort((a, b) => a.order_index - b.order_index)
+        const points = da
+          .map(a => a.place)
+          .filter(p => p?.lat && p?.lng)
+          .map(p => [p!.lat!, p!.lng!] as [number, number])
+        return { points, color: DAY_COLORS[dayIdx % DAY_COLORS.length] }
+      })
+      .filter(s => s.points.length >= 2)
+  }, [overviewMode, days, assignments])
+
+  const routeCalcEnabled = useSettingsStore(s => s.settings.route_calculation) !== false
+  useEffect(() => {
+    if (overviewSegAbortRef.current) overviewSegAbortRef.current.abort()
+    if (!overviewMode || !routeCalcEnabled) { setOverviewRouteSegments([]); return }
+    const controller = new AbortController()
+    overviewSegAbortRef.current = controller
+    const sortedDays = [...days].sort((a, b) => ((a as any).day_number ?? 0) - ((b as any).day_number ?? 0))
+    const promises = sortedDays.map(day => {
+      const da = (assignments[String(day.id)] || []).slice().sort((a, b) => a.order_index - b.order_index)
+      const waypoints = da.map(a => a.place).filter(p => p?.lat && p?.lng).map(p => ({ lat: p!.lat!, lng: p!.lng! }))
+      if (waypoints.length < 2) return Promise.resolve<RouteSegment[]>([])
+      return calculateSegments(waypoints, { signal: controller.signal }).catch(() => [] as RouteSegment[])
+    })
+    Promise.all(promises).then(results => {
+      if (!controller.signal.aborted) setOverviewRouteSegments(results.flat())
+    })
+    return () => controller.abort()
+  }, [overviewMode, routeCalcEnabled, days, assignments])
+
 
   if (isLoading || !splashDone) {
     return (
@@ -274,9 +322,10 @@ export default function TripPlannerPage(): React.ReactElement | null {
           <div style={{ position: 'absolute', inset: 0 }}>
             <MapView
               places={mapPlaces}
-              dayPlaces={dayPlaces}
-              route={route}
-              routeSegments={routeSegments}
+              dayPlaces={overviewMode ? [] : dayPlaces}
+              route={overviewMode ? null : route}
+              routeSegments={overviewMode ? overviewRouteSegments : routeSegments}
+              coloredRoute={overviewColoredRoute}
               selectedPlaceId={selectedPlaceId}
               onMarkerClick={handleMarkerClick}
               onMapClick={handleMapClick}
@@ -368,6 +417,18 @@ export default function TripPlannerPage(): React.ReactElement | null {
                   onUndo={handleUndo}
                   onRouteRefresh={() => { if (selectedDayId) updateRouteForDay(selectedDayId) }}
                   onAddBookingToAssignment={can('day_edit', trip) ? (dayId, assignmentId) => { tripActions.setSelectedDay(dayId); setBookingForAssignmentId(assignmentId); setEditingReservation(null); setShowReservationModal(true) } : undefined}
+                  onShowOverview={() => {
+                    setOverviewMode(o => {
+                      const next = !o
+                      if (next) {
+                        tripActions.setSelectedDay(null)
+                        updateRouteForDay(null)
+                        setFitKey(k => k + 1)
+                      }
+                      return next
+                    })
+                  }}
+                  isOverviewMode={overviewMode}
                 />
                 {!leftCollapsed && (
                   <div

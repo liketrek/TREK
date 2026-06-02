@@ -28,11 +28,17 @@ interface RouteSegment {
   drivingText?: string
 }
 
+interface ColoredSegment {
+  points: [number, number][]
+  color: string
+}
+
 interface Props {
   places: Place[]
   dayPlaces?: Place[]
   route?: [number, number][][] | null
   routeSegments?: RouteSegment[]
+  coloredRoute?: ColoredSegment[] | null
   selectedPlaceId?: number | null
   onMarkerClick?: (id: number) => void
   onMapClick?: (info: { latlng: { lat: number; lng: number } }) => void
@@ -132,6 +138,7 @@ export function MapViewGL({
   places = [],
   dayPlaces = [],
   route = null,
+  coloredRoute = null,
   routeSegments = [],
   selectedPlaceId = null,
   onMarkerClick,
@@ -245,6 +252,22 @@ export function MapViewGL({
             'line-color': ['coalesce', ['get', 'color'], '#3b82f6'],
             'line-width': 3.5,
             'line-opacity': 0.75,
+          },
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+        })
+      }
+      // per-day colored overview route
+      if (!map.getSource('trip-overview')) {
+        map.addSource('trip-overview', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+        map.addLayer({
+          id: 'trip-overview-line',
+          type: 'line',
+          source: 'trip-overview',
+          paint: {
+            'line-color': ['coalesce', ['get', 'color'], '#6366f1'],
+            'line-width': 3,
+            'line-opacity': 0.9,
+            'line-dasharray': [2, 1.5],
           },
           layout: { 'line-cap': 'round', 'line-join': 'round' },
         })
@@ -471,6 +494,20 @@ export function MapViewGL({
     })
     src.setData({ type: 'FeatureCollection', features })
   }, [places, mapReady])
+
+  // Update per-day colored overview route
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    const src = map.getSource('trip-overview') as mapboxgl.GeoJSONSource | undefined
+    if (!src) return
+    const features = (coloredRoute || []).filter(s => s.points.length >= 2).map(s => ({
+      type: 'Feature' as const,
+      properties: { color: s.color },
+      geometry: { type: 'LineString' as const, coordinates: s.points.map(([lat, lng]) => [lng, lat]) },
+    }))
+    src.setData({ type: 'FeatureCollection', features })
+  }, [coloredRoute])
 
   // Reservation overlay — mirrors the Leaflet ReservationOverlay: great-
   // circle arcs for flights/cruises, straight lines for trains/cars,

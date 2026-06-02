@@ -44,5 +44,7 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.allAssigned': 'All places assigned',
   'dayplan.mobile.noMatch': 'No match',
   'dayplan.mobile.createNew': 'Create new place',
+  'dayplan.overview': 'Overview',
+  'dayplan.overviewTooltip': 'Display trip overview',
 };
 export default dayplan;

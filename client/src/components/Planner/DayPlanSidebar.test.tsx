@@ -1703,4 +1703,37 @@ describe('DayPlanSidebar', () => {
     expect(onEditTransport).toHaveBeenCalledWith(res)
     expect(onEditReservation).not.toHaveBeenCalled()
   })
+
+  it('FE-PLANNER-DAYPLAN-099: Overview button not rendered when onShowOverview prop is absent', () => {
+    render(<DayPlanSidebar {...makeDefaultProps()} />)
+    expect(screen.queryByRole('button', { name: /overview/i })).not.toBeInTheDocument()
+  })
+
+  it('FE-PLANNER-DAYPLAN-100: Overview button appears in toolbar and calls onShowOverview on click', async () => {
+    const user = userEvent.setup()
+    const onShowOverview = vi.fn()
+    render(<DayPlanSidebar {...makeDefaultProps({ onShowOverview })} />)
+    const btn = screen.getByRole('button', { name: /overview/i })
+    expect(btn).toBeInTheDocument()
+    await user.click(btn)
+    expect(onShowOverview).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-PLANNER-DAYPLAN-101: Overview button shows tooltip text "Display trip overview" on hover', async () => {
+    const user = userEvent.setup()
+    const onShowOverview = vi.fn()
+    render(<DayPlanSidebar {...makeDefaultProps({ onShowOverview })} />)
+    const btn = screen.getByRole('button', { name: /overview/i })
+    await user.hover(btn)
+    expect(await screen.findByText('Display trip overview')).toBeInTheDocument()
+  })
+
+  it('FE-PLANNER-DAYPLAN-102: Overview button reflects isOverviewMode active state', () => {
+    const onShowOverview = vi.fn()
+    render(<DayPlanSidebar {...makeDefaultProps({ onShowOverview, isOverviewMode: true })} />)
+    const btn = screen.getByRole('button', { name: /overview/i })
+    // When active the button uses accent background; jsdom expands border:none → borderStyle:none
+    expect(btn).toHaveStyle({ background: 'var(--accent)', color: 'var(--accent-text)' })
+    expect(btn.style.borderStyle).toBe('none')
+  })
 })
