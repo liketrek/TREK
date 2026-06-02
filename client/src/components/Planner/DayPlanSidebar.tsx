@@ -280,6 +280,11 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
 
   const getDayOrder = (day: (typeof days)[number]) => (day as any).day_number ?? days.indexOf(day)
 
+  const dayColorIndexMap = useMemo(() => {
+    const sorted = [...days].sort((a, b) => getDayOrder(a) - getDayOrder(b))
+    return Object.fromEntries(sorted.map((d, i) => [d.id, i]))
+  }, [days])
+
   const computeMultiDayMove = (r: Reservation, targetDayId: number, phase: 'single' | 'start' | 'middle' | 'end') => {
     const startId = r.day_id ?? targetDayId
     const endId = r.end_day_id ?? startId
@@ -935,6 +940,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     isOverviewMode,
     overviewHover,
     setOverviewHover,
+    dayColorIndexMap,
   }
 }
 
@@ -1081,6 +1087,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
     isOverviewMode,
     overviewHover,
     setOverviewHover,
+    dayColorIndexMap,
   } = S
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }}>
@@ -1169,7 +1176,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                       background: isSelected ? 'var(--accent)' : 'var(--bg-hover)',
                       color: isSelected ? 'var(--accent-text)' : 'var(--text-muted)',
                       display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'hidden',
-                      boxShadow: isOverviewMode ? `0 0 0 2px ${DAY_COLORS[index % DAY_COLORS.length]}` : 'none',
+                      boxShadow: isOverviewMode ? `0 0 0 2px ${DAY_COLORS[(dayColorIndexMap[day.id] ?? index) % DAY_COLORS.length]}` : 'none',
                     }}>
                       <div style={{ width: '100%', height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>
                         {index + 1}

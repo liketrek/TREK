@@ -221,7 +221,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
           .slice().sort((a, b) => a.order_index - b.order_index)
         const points = da
           .map(a => a.place)
-          .filter(p => p?.lat && p?.lng)
+          .filter(p => p?.lat != null && p?.lng != null)
           .map(p => [p!.lat!, p!.lng!] as [number, number])
         return { points, color: DAY_COLORS[dayIdx % DAY_COLORS.length] }
       })
@@ -237,7 +237,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
     const sortedDays = [...days].sort((a, b) => ((a as any).day_number ?? 0) - ((b as any).day_number ?? 0))
     const promises = sortedDays.map(day => {
       const da = (assignments[String(day.id)] || []).slice().sort((a, b) => a.order_index - b.order_index)
-      const waypoints = da.map(a => a.place).filter(p => p?.lat && p?.lng).map(p => ({ lat: p!.lat!, lng: p!.lng! }))
+      const waypoints = da.map(a => a.place).filter(p => p?.lat != null && p?.lng != null).map(p => ({ lat: p!.lat!, lng: p!.lng! }))
       if (waypoints.length < 2) return Promise.resolve<RouteSegment[]>([])
       return calculateSegments(waypoints, { signal: controller.signal }).catch(() => [] as RouteSegment[])
     })

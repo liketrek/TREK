@@ -127,9 +127,11 @@ export function DayPlanSidebarToolbar({
         {onShowOverview && (
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <button
+              type="button"
               onClick={onShowOverview}
               onMouseEnter={() => setOverviewHover?.(true)}
               onMouseLeave={() => setOverviewHover?.(false)}
+              aria-pressed={isOverviewMode}
               style={{
                 display: 'flex', alignItems: 'center', gap: 5,
                 padding: '5px 10px', borderRadius: 8,
