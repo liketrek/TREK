@@ -141,3 +141,66 @@ export const accommodationUpdateRequestSchema = open;
 export type AccommodationUpdateRequest = z.infer<
   typeof accommodationUpdateRequestSchema
 >;
+
+// ---------------------------------------------------------------------------
+// Booking import (KItinerary)
+// ---------------------------------------------------------------------------
+
+const bookingImportEndpointSchema = z.object({
+  role: z.enum(['from', 'to', 'stop']),
+  sequence: z.number(),
+  name: z.string(),
+  code: z.string().nullable(),
+  lat: z.number(),
+  lng: z.number(),
+  timezone: z.string().nullable(),
+  local_time: z.string().nullable(),
+  local_date: z.string().nullable(),
+});
+
+const bookingImportVenueSchema = z.object({
+  name: z.string(),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
+  address: z.string().optional(),
+  website: z.string().optional(),
+  phone: z.string().optional(),
+});
+
+const bookingImportAccommodationSchema = z.object({
+  check_in: z.string().optional(),
+  check_out: z.string().optional(),
+  confirmation: z.string().optional(),
+});
+
+export const bookingImportPreviewItemSchema = z.object({
+  type: z.string(),
+  title: z.string().min(1),
+  reservation_time: z.string().nullable().optional(),
+  reservation_end_time: z.string().nullable().optional(),
+  confirmation_number: z.string().nullable().optional(),
+  location: z.string().nullable().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+  endpoints: z.array(bookingImportEndpointSchema).optional(),
+  needs_review: z.boolean().optional(),
+  _venue: bookingImportVenueSchema.optional(),
+  _accommodation: bookingImportAccommodationSchema.optional(),
+  source: z.object({ fileName: z.string(), index: z.number() }),
+});
+export type BookingImportPreviewItem = z.infer<typeof bookingImportPreviewItemSchema>;
+
+export const bookingImportPreviewResponseSchema = z.object({
+  items: z.array(bookingImportPreviewItemSchema),
+  warnings: z.array(z.string()),
+});
+export type BookingImportPreviewResponse = z.infer<typeof bookingImportPreviewResponseSchema>;
+
+export const bookingImportConfirmRequestSchema = z.object({
+  items: z.array(bookingImportPreviewItemSchema).min(1),
+});
+export type BookingImportConfirmRequest = z.infer<typeof bookingImportConfirmRequestSchema>;
+
+export const bookingImportConfirmResponseSchema = z.object({
+  created: z.array(reservationSchema),
+});
+export type BookingImportConfirmResponse = z.infer<typeof bookingImportConfirmResponseSchema>;

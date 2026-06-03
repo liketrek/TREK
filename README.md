@@ -89,7 +89,7 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 
 #### 🧳 Travel management
 
-- **Reservations** — flights, accommodations, restaurants with status, confirmation numbers, files
+- **Reservations** — flights, accommodations, restaurants with status, confirmation numbers, files; import from booking confirmation emails and PDFs ([KDE Itinerary](https://invent.kde.org/pim/kitinerary))
 - **Budget tracking** — category-based expenses with pie chart, per-person / per-day splits, multi-currency
 - **Packing lists** — categories, templates, user assignment, progress tracking
 - **Bag tracking** — optional weight tracking with iOS-style distribution

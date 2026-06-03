@@ -15,6 +15,7 @@ const undo: TranslationStrings = {
   'undo.importKeyholeMarkup': 'KMZ/KML import',
   'undo.importGoogleList': 'Google Maps import',
   'undo.importNaverList': 'Naver Maps import',
+  'undo.importBooking': 'Booking confirmation import',
   'undo.addPlace': 'Place added',
   'undo.done': 'Undone: {action}',
 };

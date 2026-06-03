@@ -7,7 +7,7 @@ import { getCached, fetchPhoto } from '../../services/photoService'
 import { useToast } from '../../components/shared/Toast'
 import { Map, Ticket, PackageCheck, Wallet, FolderOpen, Users, Train } from 'lucide-react'
 import { useTranslation } from '../../i18n'
-import { addonsApi, accommodationsApi, authApi, tripsApi, assignmentsApi } from '../../api/client'
+import { addonsApi, accommodationsApi, authApi, tripsApi, assignmentsApi, healthApi } from '../../api/client'
 import { accommodationRepo } from '../../repo/accommodationRepo'
 import { offlineDb } from '../../db/offlineDb'
 import { useAuthStore } from '../../store/authStore'
@@ -138,6 +138,8 @@ export function useTripPlanner() {
   const [showMembersModal, setShowMembersModal] = useState<boolean>(false)
   const [showReservationModal, setShowReservationModal] = useState<boolean>(false)
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null)
+  const [showBookingImport, setShowBookingImport] = useState<boolean>(false)
+  const [bookingImportAvailable, setBookingImportAvailable] = useState<boolean>(false)
   const [bookingForAssignmentId, setBookingForAssignmentId] = useState<number | null>(null)
   const [showTransportModal, setShowTransportModal] = useState<boolean>(false)
   const [editingTransport, setEditingTransport] = useState<Reservation | null>(null)
@@ -162,6 +164,10 @@ export function useTripPlanner() {
     initialFitTripId.current = trip.id
     setFitKey(k => k + 1)
   }, [trip, places])
+
+  useEffect(() => {
+    healthApi.features().then(f => setBookingImportAvailable(f.bookingImport)).catch(() => {})
+  }, [])
 
   const connectionsStorageKey = tripId ? `trek:visible-connections:${tripId}` : null
   const [visibleConnections, setVisibleConnections] = useState<number[]>(() => {
@@ -624,6 +630,7 @@ export function useTripPlanner() {
     prefillCoords, setPrefillCoords, editingAssignmentId, setEditingAssignmentId,
     showTripForm, setShowTripForm, showMembersModal, setShowMembersModal,
     showReservationModal, setShowReservationModal, editingReservation, setEditingReservation,
+    showBookingImport, setShowBookingImport, bookingImportAvailable,
     bookingForAssignmentId, setBookingForAssignmentId,
     showTransportModal, setShowTransportModal, editingTransport, setEditingTransport,
     transportModalDayId, setTransportModalDayId,

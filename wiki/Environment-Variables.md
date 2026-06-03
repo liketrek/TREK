@@ -137,6 +137,16 @@ For setup instructions, see [MCP-Overview](MCP-Overview).
 
 ---
 
+## Booking Import (KDE Itinerary)
+
+| Variable | Description | Default |
+|---|---|---|
+| `KITINERARY_EXTRACTOR_PATH` | Full path to the `kitinerary-extractor` binary. When unset, TREK searches `/usr/lib/*/libexec/kf6/kitinerary-extractor` and then `PATH`. Set this if you install the binary to a non-standard location. | auto-detected |
+
+The official TREK Docker image bundles the binary automatically: on amd64 it downloads the static release from `https://cdn.kde.org/ci-builds/pim/kitinerary/`; on arm64 it installs `libkitinerary-bin` via apt (Debian trixie). When running TREK from source, install `libkitinerary-bin` (Debian trixie / Ubuntu 25.04+) or download the static binary directly and place it anywhere on `PATH`. The `GET /api/health/features` endpoint returns `{ "bookingImport": true }` when the binary is found, and the Import button in the Reservations panel is hidden when it is not.
+
+---
+
 ## Other
 
 | Variable | Description | Default |

@@ -38,6 +38,9 @@ import {
   type CreateTagRequest, type UpdateTagRequest,
   type CreateCategoryRequest, type UpdateCategoryRequest,
   type PlaceImportListRequest,
+  type BookingImportPreviewItem,
+  type BookingImportPreviewResponse,
+  type BookingImportConfirmResponse,
 } from '@trek/shared'
 import { getSocketId } from './websocket'
 import { isReachable, probeNow } from '../sync/connectivity'
@@ -577,6 +580,17 @@ export const reservationsApi = {
   update: (tripId: number | string, id: number, data: ReservationUpdateRequest) => apiClient.put(`/trips/${tripId}/reservations/${id}`, data).then(r => r.data),
   delete: (tripId: number | string, id: number) => apiClient.delete(`/trips/${tripId}/reservations/${id}`).then(r => r.data),
   updatePositions: (tripId: number | string, positions: { id: number; day_plan_position: number }[], dayId?: number) => apiClient.put(`/trips/${tripId}/reservations/positions`, { positions, day_id: dayId }).then(r => r.data),
+  importBookingPreview: (tripId: number | string, files: File[]): Promise<BookingImportPreviewResponse> => {
+    const fd = new FormData()
+    for (const f of files) fd.append('files', f)
+    return apiClient.post(`/trips/${tripId}/reservations/import/booking`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data)
+  },
+  importBookingConfirm: (tripId: number | string, items: BookingImportPreviewItem[]): Promise<BookingImportConfirmResponse> =>
+    apiClient.post(`/trips/${tripId}/reservations/import/booking/confirm`, { items }).then(r => r.data),
+}
+
+export const healthApi = {
+  features: (): Promise<{ bookingImport: boolean }> => apiClient.get('/health/features').then(r => r.data),
 }
 
 export const weatherApi = {

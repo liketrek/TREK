@@ -1,6 +1,6 @@
 services:
   app:
-    image: mauriceboe/trek:latest
+    image: mauriceboe/trek:dev
     container_name: trek
     read_only: true
     security_opt:
@@ -12,7 +12,7 @@ services:
       - SETUID
       - SETGID
     tmpfs:
-      - /tmp:noexec,nosuid,size=64m
+      - /tmp:noexec,nosuid,size=128m
     ports:
       - "3000:3000"
     environment:
@@ -42,6 +42,7 @@ services:
 #      - ADMIN_PASSWORD=changeme      # Initial admin password — only used on first boot when no users exist
 #      - MCP_RATE_LIMIT=300 # Max MCP API requests per user per minute (default: 300)
 #      - MCP_MAX_SESSION_PER_USER=20 # Max concurrent MCP sessions per user (default: 20)
+#      - KITINERARY_EXTRACTOR_PATH= # Optional. Full path to kitinerary-extractor binary. Auto-detected from PATH and /usr/lib/*/libexec/kf6/ when unset.
     volumes:
       - ./data:/app/data
       - ./uploads:/app/uploads
