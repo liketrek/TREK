@@ -44,7 +44,7 @@
     "format:check": "prettier --check \"src/**/*.ts\"",
     "lint": "eslint --fix \"src/**/*.ts\"",
     "i18n:parity": "node scripts/i18n-parity.mjs",
-    "i18n:parity:strict": "node scripts/i18n-parity.mjs --strict --files-only"
+    "i18n:parity:strict": "node scripts/i18n-parity.mjs --strict"
   },
   "dependencies": {
     "isomorphic-dompurify": "^3.15.0",
