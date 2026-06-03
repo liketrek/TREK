@@ -116,5 +116,22 @@ const reservations: TranslationStrings = {
   'reservations.validation.endBeforeStart':
     'La data/ora di fine deve essere successiva alla data/ora di inizio',
   'reservations.addBooking': 'Aggiungi prenotazione',
+  'reservations.import.title': 'Importa conferme di prenotazione',
+  'reservations.import.cta': 'Importa da file',
+  'reservations.import.dropHere': 'Trascina i file di conferma prenotazione qui o clicca per selezionare',
+  'reservations.import.dropActive': 'Rilascia i file per importare',
+  'reservations.import.acceptedFormats': 'Accettati: EML, PDF, PKPass, HTML, TXT (max 10 MB ciascuno, fino a 5 file)',
+  'reservations.import.parsing': 'Analisi dei file in corso…',
+  'reservations.import.previewHeading': '{count} prenotazione/i trovata/e',
+  'reservations.import.previewEmpty': 'Nessuna prenotazione è stata estratta dai file caricati.',
+  'reservations.import.removeItem': 'Rimuovi',
+  'reservations.import.confirm': 'Importa {count} prenotazione/i',
+  'reservations.import.back': 'Indietro',
+  'reservations.import.success': '{count} prenotazione/i importata/e',
+  'reservations.import.partialFailure': '{created} importata/e, {failed} fallita/e',
+  'reservations.import.error': "Analisi fallita. Assicurati che il file sia una conferma di prenotazione valida.",
+  'reservations.import.unavailable': "L'importazione di prenotazioni non è disponibile su questo server.",
+  'reservations.import.unsupportedFormat': 'Formato file non supportato. Usa EML, PDF, PKPass, HTML o TXT.',
+  'reservations.import.fileTooLarge': 'Il file "{name}" supera il limite di 10 MB.',
 };
 export default reservations;

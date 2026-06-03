@@ -17,5 +17,6 @@ const undo: TranslationStrings = {
   'undo.importNaverList': 'استيراد خرائط Naver',
   'undo.addPlace': 'تمت إضافة المكان',
   'undo.done': 'تم التراجع: {action}',
+  'undo.importBooking': 'استيراد تأكيد الحجز',
 };
 export default undo;

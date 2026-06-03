@@ -17,5 +17,6 @@ const undo: TranslationStrings = {
   'undo.importNaverList': '네이버 지도 가져오기',
   'undo.addPlace': '장소가 추가되었습니다',
   'undo.done': '실행 취소됨: {action}',
+  'undo.importBooking': '예약 확인서 가져오기',
 };
 export default undo;

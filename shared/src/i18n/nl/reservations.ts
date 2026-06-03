@@ -115,5 +115,22 @@ const reservations: TranslationStrings = {
   'reservations.validation.endBeforeStart':
     'Einddatum/-tijd moet na de startdatum/-tijd liggen',
   'reservations.addBooking': 'Boeking toevoegen',
+  'reservations.import.title': 'Boekingsbevestigingen importeren',
+  'reservations.import.cta': 'Importeren vanuit bestand',
+  'reservations.import.dropHere': 'Zet hier bevestigingsbestanden neer of klik om te selecteren',
+  'reservations.import.dropActive': 'Laat bestanden los om te importeren',
+  'reservations.import.acceptedFormats': 'Geaccepteerd: EML, PDF, PKPass, HTML, TXT (max. 10 MB per stuk, tot 5 bestanden)',
+  'reservations.import.parsing': 'Bestanden verwerken…',
+  'reservations.import.previewHeading': '{count} reservering(en) gevonden',
+  'reservations.import.previewEmpty': 'Er konden geen reserveringen worden geëxtraheerd uit de geüploade bestanden.',
+  'reservations.import.removeItem': 'Verwijderen',
+  'reservations.import.confirm': '{count} reservering(en) importeren',
+  'reservations.import.back': 'Terug',
+  'reservations.import.success': '{count} reservering(en) geïmporteerd',
+  'reservations.import.partialFailure': '{created} geïmporteerd, {failed} mislukt',
+  'reservations.import.error': 'Verwerking mislukt. Zorg ervoor dat het bestand een geldige boekingsbevestiging is.',
+  'reservations.import.unavailable': 'Boeking importeren is niet beschikbaar op deze server.',
+  'reservations.import.unsupportedFormat': 'Niet-ondersteund bestandsformaat. Gebruik EML, PDF, PKPass, HTML of TXT.',
+  'reservations.import.fileTooLarge': 'Bestand "{name}" overschrijdt de limiet van 10 MB.',
 };
 export default reservations;

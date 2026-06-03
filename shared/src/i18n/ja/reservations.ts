@@ -112,5 +112,22 @@ const reservations: TranslationStrings = {
   'reservations.validation.endBeforeStart':
     '終了日時は開始日時より後である必要があります',
   'reservations.addBooking': '予約を追加',
+  'reservations.import.title': '予約確認書のインポート',
+  'reservations.import.cta': 'ファイルからインポート',
+  'reservations.import.dropHere': '予約確認ファイルをここにドロップするか、クリックして選択',
+  'reservations.import.dropActive': 'ファイルをドロップしてインポート',
+  'reservations.import.acceptedFormats': '対応形式：EML、PDF、PKPass、HTML、TXT（各最大 10 MB、最大 5 ファイル）',
+  'reservations.import.parsing': 'ファイルを解析中…',
+  'reservations.import.previewHeading': '{count} 件の予約が見つかりました',
+  'reservations.import.previewEmpty': 'アップロードされたファイルから予約を抽出できませんでした。',
+  'reservations.import.removeItem': '削除',
+  'reservations.import.confirm': '{count} 件の予約をインポート',
+  'reservations.import.back': '戻る',
+  'reservations.import.success': '{count} 件の予約をインポートしました',
+  'reservations.import.partialFailure': '{created} 件インポート済み、{failed} 件失敗',
+  'reservations.import.error': '解析に失敗しました。ファイルが有効な予約確認書であることを確認してください。',
+  'reservations.import.unavailable': 'このサーバーでは予約インポート機能が利用できません。',
+  'reservations.import.unsupportedFormat': '対応していないファイル形式です。EML、PDF、PKPass、HTML、または TXT を使用してください。',
+  'reservations.import.fileTooLarge': 'ファイル「{name}」は 10 MB の制限を超えています。',
 };
 export default reservations;

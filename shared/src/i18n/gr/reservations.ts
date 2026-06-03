@@ -116,5 +116,22 @@ const reservations: TranslationStrings = {
   'reservations.validation.endBeforeStart':
     'Η ημερομηνία/ώρα λήξης πρέπει να είναι μετά την ημερομηνία/ώρα έναρξης',
   'reservations.addBooking': 'Προσθήκη κράτησης',
+  'reservations.import.title': 'Εισαγωγή επιβεβαιώσεων κράτησης',
+  'reservations.import.cta': 'Εισαγωγή από αρχείο',
+  'reservations.import.dropHere': 'Αποθέστε αρχεία επιβεβαίωσης κράτησης εδώ ή κάντε κλικ για επιλογή',
+  'reservations.import.dropActive': 'Αποθέστε αρχεία για εισαγωγή',
+  'reservations.import.acceptedFormats': 'Αποδεκτά: EML, PDF, PKPass, HTML, TXT (μέγιστο 10 MB το καθένα, έως 5 αρχεία)',
+  'reservations.import.parsing': 'Επεξεργασία αρχείων…',
+  'reservations.import.previewHeading': 'Βρέθηκαν {count} κράτηση/κρατήσεις',
+  'reservations.import.previewEmpty': 'Δεν ήταν δυνατή η εξαγωγή κρατήσεων από τα μεταφορτωμένα αρχεία.',
+  'reservations.import.removeItem': 'Αφαίρεση',
+  'reservations.import.confirm': 'Εισαγωγή {count} κράτησης/κρατήσεων',
+  'reservations.import.back': 'Πίσω',
+  'reservations.import.success': '{count} κράτηση/κρατήσεις εισήχθησαν',
+  'reservations.import.partialFailure': '{created} εισήχθησαν, {failed} απέτυχαν',
+  'reservations.import.error': 'Η επεξεργασία απέτυχε. Βεβαιωθείτε ότι το αρχείο είναι έγκυρη επιβεβαίωση κράτησης.',
+  'reservations.import.unavailable': 'Η εισαγωγή κρατήσεων δεν είναι διαθέσιμη σε αυτόν τον διακομιστή.',
+  'reservations.import.unsupportedFormat': 'Μη υποστηριζόμενη μορφή αρχείου. Χρησιμοποιήστε EML, PDF, PKPass, HTML ή TXT.',
+  'reservations.import.fileTooLarge': 'Το αρχείο «{name}» υπερβαίνει το όριο των 10 MB.',
 };
 export default reservations;

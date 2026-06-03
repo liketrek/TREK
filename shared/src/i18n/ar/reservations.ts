@@ -113,5 +113,22 @@ const reservations: TranslationStrings = {
   'reservations.validation.endBeforeStart':
     'يجب أن يكون تاريخ/وقت الانتهاء بعد تاريخ/وقت البدء',
   'reservations.addBooking': 'إضافة حجز',
+  'reservations.import.title': 'استيراد تأكيدات الحجز',
+  'reservations.import.cta': 'استيراد من ملف',
+  'reservations.import.dropHere': 'أسقط ملفات تأكيد الحجز هنا أو انقر للتحديد',
+  'reservations.import.dropActive': 'أسقط الملفات للاستيراد',
+  'reservations.import.acceptedFormats': 'المقبول: EML، PDF، PKPass، HTML، TXT (بحد أقصى 10 ميغابايت لكل ملف، حتى 5 ملفات)',
+  'reservations.import.parsing': 'جارٍ معالجة الملفات…',
+  'reservations.import.previewHeading': 'تم العثور على {count} حجز/حجوزات',
+  'reservations.import.previewEmpty': 'تعذّر استخراج أي حجوزات من الملفات المُحمَّلة.',
+  'reservations.import.removeItem': 'إزالة',
+  'reservations.import.confirm': 'استيراد {count} حجز/حجوزات',
+  'reservations.import.back': 'رجوع',
+  'reservations.import.success': 'تم استيراد {count} حجز/حجوزات',
+  'reservations.import.partialFailure': 'تم استيراد {created}، فشل {failed}',
+  'reservations.import.error': 'فشلت المعالجة. تأكد من أن الملف تأكيد حجز صالح.',
+  'reservations.import.unavailable': 'استيراد الحجوزات غير متاح على هذا الخادم.',
+  'reservations.import.unsupportedFormat': 'صيغة ملف غير مدعومة. استخدم EML أو PDF أو PKPass أو HTML أو TXT.',
+  'reservations.import.fileTooLarge': 'الملف "{name}" يتجاوز حد 10 ميغابايت.',
 };
 export default reservations;

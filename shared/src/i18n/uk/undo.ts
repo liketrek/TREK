@@ -17,5 +17,6 @@ const undo: TranslationStrings = {
   'undo.importNaverList': 'Імпорт з Naver Maps',
   'undo.addPlace': 'Місце додано',
   'undo.done': 'Відмінено: {action}',
+  'undo.importBooking': 'Імпорт підтвердження бронювання',
 };
 export default undo;

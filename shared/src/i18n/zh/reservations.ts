@@ -111,5 +111,22 @@ const reservations: TranslationStrings = {
   'reservations.validation.endBeforeStart':
     '结束日期/时间必须晚于开始日期/时间',
   'reservations.addBooking': '添加预订',
+  'reservations.import.title': '导入预订确认',
+  'reservations.import.cta': '从文件导入',
+  'reservations.import.dropHere': '将预订确认文件拖放到此处，或点击选择',
+  'reservations.import.dropActive': '松开文件以导入',
+  'reservations.import.acceptedFormats': '支持格式：EML、PDF、PKPass、HTML、TXT（每个最大 10 MB，最多 5 个文件）',
+  'reservations.import.parsing': '正在解析文件…',
+  'reservations.import.previewHeading': '找到 {count} 个预订',
+  'reservations.import.previewEmpty': '无法从上传的文件中提取任何预订信息。',
+  'reservations.import.removeItem': '移除',
+  'reservations.import.confirm': '导入 {count} 个预订',
+  'reservations.import.back': '返回',
+  'reservations.import.success': '已导入 {count} 个预订',
+  'reservations.import.partialFailure': '已导入 {created} 个，{failed} 个失败',
+  'reservations.import.error': '解析失败。请确保文件是有效的预订确认。',
+  'reservations.import.unavailable': '此服务器上的预订导入功能不可用。',
+  'reservations.import.unsupportedFormat': '不支持的文件格式。请使用 EML、PDF、PKPass、HTML 或 TXT。',
+  'reservations.import.fileTooLarge': '文件"{name}"超过 10 MB 限制。',
 };
 export default reservations;

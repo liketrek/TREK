@@ -115,5 +115,22 @@ const reservations: TranslationStrings = {
   'reservations.validation.endBeforeStart':
     'A befejezés dátuma/időpontja a kezdés utáni kell legyen',
   'reservations.addBooking': 'Foglalás hozzáadása',
+  'reservations.import.title': 'Foglalási visszaigazolások importálása',
+  'reservations.import.cta': 'Importálás fájlból',
+  'reservations.import.dropHere': 'Dobja ide a foglalási visszaigazolás fájlokat, vagy kattintson a kiválasztáshoz',
+  'reservations.import.dropActive': 'Dobja ide a fájlokat az importáláshoz',
+  'reservations.import.acceptedFormats': 'Elfogadott: EML, PDF, PKPass, HTML, TXT (max. 10 MB darabonként, legfeljebb 5 fájl)',
+  'reservations.import.parsing': 'Fájlok feldolgozása…',
+  'reservations.import.previewHeading': '{count} foglalás találva',
+  'reservations.import.previewEmpty': 'A feltöltött fájlokból nem sikerült foglalásokat kinyerni.',
+  'reservations.import.removeItem': 'Eltávolítás',
+  'reservations.import.confirm': '{count} foglalás importálása',
+  'reservations.import.back': 'Vissza',
+  'reservations.import.success': '{count} foglalás importálva',
+  'reservations.import.partialFailure': '{created} importálva, {failed} sikertelen',
+  'reservations.import.error': 'A feldolgozás sikertelen. Győződjön meg arról, hogy a fájl érvényes foglalási visszaigazolás.',
+  'reservations.import.unavailable': 'A foglalásimportálás nem érhető el ezen a kiszolgálón.',
+  'reservations.import.unsupportedFormat': 'Nem támogatott fájlformátum. Használjon EML, PDF, PKPass, HTML vagy TXT formátumot.',
+  'reservations.import.fileTooLarge': 'A(z) „{name}" fájl meghaladja a 10 MB-os korlátot.',
 };
 export default reservations;

@@ -111,5 +111,22 @@ const reservations: TranslationStrings = {
   'reservations.validation.endBeforeStart':
     '結束日期/時間必須晚於開始日期/時間',
   'reservations.addBooking': '新增預訂',
+  'reservations.import.title': '匯入訂位確認',
+  'reservations.import.cta': '從檔案匯入',
+  'reservations.import.dropHere': '將訂位確認檔案拖放到此處，或點擊選擇',
+  'reservations.import.dropActive': '放開檔案以匯入',
+  'reservations.import.acceptedFormats': '支援格式：EML、PDF、PKPass、HTML、TXT（每個最大 10 MB，最多 5 個檔案）',
+  'reservations.import.parsing': '正在解析檔案…',
+  'reservations.import.previewHeading': '找到 {count} 筆預訂',
+  'reservations.import.previewEmpty': '無法從上傳的檔案中提取任何預訂資訊。',
+  'reservations.import.removeItem': '移除',
+  'reservations.import.confirm': '匯入 {count} 筆預訂',
+  'reservations.import.back': '返回',
+  'reservations.import.success': '已匯入 {count} 筆預訂',
+  'reservations.import.partialFailure': '已匯入 {created} 筆，{failed} 筆失敗',
+  'reservations.import.error': '解析失敗。請確保檔案是有效的訂位確認。',
+  'reservations.import.unavailable': '此伺服器上的預訂匯入功能不可用。',
+  'reservations.import.unsupportedFormat': '不支援的檔案格式。請使用 EML、PDF、PKPass、HTML 或 TXT。',
+  'reservations.import.fileTooLarge': '檔案「{name}」超過 10 MB 限制。',
 };
 export default reservations;

@@ -17,5 +17,6 @@ const undo: TranslationStrings = {
   'undo.importNaverList': 'Naver Maps importálás',
   'undo.addPlace': 'Hely hozzáadva',
   'undo.done': 'Visszavonva: {action}',
+  'undo.importBooking': 'Foglalási visszaigazolás importálása',
 };
 export default undo;

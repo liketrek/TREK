@@ -113,5 +113,22 @@ const reservations: TranslationStrings = {
   'reservations.validation.endBeforeStart':
     'Datum/čas konce musí být po datu/čase začátku',
   'reservations.addBooking': 'Přidat rezervaci',
+  'reservations.import.title': 'Importovat potvrzení rezervace',
+  'reservations.import.cta': 'Importovat ze souboru',
+  'reservations.import.dropHere': 'Přetáhněte soubory s potvrzením rezervace sem nebo klikněte pro výběr',
+  'reservations.import.dropActive': 'Pusťte soubory pro import',
+  'reservations.import.acceptedFormats': 'Přijímané formáty: EML, PDF, PKPass, HTML, TXT (max. 10 MB každý, až 5 souborů)',
+  'reservations.import.parsing': 'Zpracování souborů…',
+  'reservations.import.previewHeading': 'Nalezeno {count} rezervace/í',
+  'reservations.import.previewEmpty': 'Z nahraných souborů se nepodařilo extrahovat žádné rezervace.',
+  'reservations.import.removeItem': 'Odebrat',
+  'reservations.import.confirm': 'Importovat {count} rezervaci/í',
+  'reservations.import.back': 'Zpět',
+  'reservations.import.success': '{count} rezervace/í importováno',
+  'reservations.import.partialFailure': '{created} importováno, {failed} selhalo',
+  'reservations.import.error': 'Zpracování selhalo. Ujistěte se, že soubor je platným potvrzením rezervace.',
+  'reservations.import.unavailable': 'Import rezervací není na tomto serveru k dispozici.',
+  'reservations.import.unsupportedFormat': 'Nepodporovaný formát souboru. Použijte EML, PDF, PKPass, HTML nebo TXT.',
+  'reservations.import.fileTooLarge': 'Soubor „{name}" překračuje limit 10 MB.',
 };
 export default reservations;

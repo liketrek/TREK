@@ -112,5 +112,22 @@ const reservations: TranslationStrings = {
   'reservations.validation.endBeforeStart':
     '종료 날짜/시간은 시작 날짜/시간 이후여야 합니다',
   'reservations.addBooking': '예약 추가',
+  'reservations.import.title': '예약 확인서 가져오기',
+  'reservations.import.cta': '파일에서 가져오기',
+  'reservations.import.dropHere': '예약 확인 파일을 여기에 끌어다 놓거나 클릭하여 선택',
+  'reservations.import.dropActive': '가져올 파일을 여기에 놓으세요',
+  'reservations.import.acceptedFormats': '허용 형식: EML, PDF, PKPass, HTML, TXT (파일당 최대 10 MB, 최대 5개)',
+  'reservations.import.parsing': '파일 분석 중…',
+  'reservations.import.previewHeading': '{count}개 예약 발견',
+  'reservations.import.previewEmpty': '업로드된 파일에서 예약을 추출할 수 없었습니다.',
+  'reservations.import.removeItem': '제거',
+  'reservations.import.confirm': '{count}개 예약 가져오기',
+  'reservations.import.back': '뒤로',
+  'reservations.import.success': '{count}개 예약을 가져왔습니다',
+  'reservations.import.partialFailure': '{created}개 가져옴, {failed}개 실패',
+  'reservations.import.error': '분석 실패. 파일이 유효한 예약 확인서인지 확인하세요.',
+  'reservations.import.unavailable': '이 서버에서는 예약 가져오기를 사용할 수 없습니다.',
+  'reservations.import.unsupportedFormat': '지원하지 않는 파일 형식입니다. EML, PDF, PKPass, HTML 또는 TXT를 사용하세요.',
+  'reservations.import.fileTooLarge': '파일 "{name}"이(가) 10 MB 제한을 초과합니다.',
 };
 export default reservations;

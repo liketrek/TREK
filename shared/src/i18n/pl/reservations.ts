@@ -115,5 +115,22 @@ const reservations: TranslationStrings = {
   'reservations.validation.endBeforeStart':
     'Data/godzina zakończenia musi być późniejsza niż data/godzina rozpoczęcia',
   'reservations.addBooking': 'Dodaj rezerwację',
+  'reservations.import.title': 'Importuj potwierdzenia rezerwacji',
+  'reservations.import.cta': 'Importuj z pliku',
+  'reservations.import.dropHere': 'Upuść pliki potwierdzeń rezerwacji tutaj lub kliknij, aby wybrać',
+  'reservations.import.dropActive': 'Upuść pliki, aby zaimportować',
+  'reservations.import.acceptedFormats': 'Akceptowane: EML, PDF, PKPass, HTML, TXT (maks. 10 MB każdy, do 5 plików)',
+  'reservations.import.parsing': 'Przetwarzanie plików…',
+  'reservations.import.previewHeading': 'Znaleziono {count} rezerwację/rezerwacje',
+  'reservations.import.previewEmpty': 'Nie udało się wyodrębnić rezerwacji z przesłanych plików.',
+  'reservations.import.removeItem': 'Usuń',
+  'reservations.import.confirm': 'Importuj {count} rezerwację/rezerwacje',
+  'reservations.import.back': 'Wstecz',
+  'reservations.import.success': 'Zaimportowano {count} rezerwację/rezerwacje',
+  'reservations.import.partialFailure': '{created} zaimportowano, {failed} nieudane',
+  'reservations.import.error': 'Przetwarzanie nieudane. Upewnij się, że plik jest prawidłowym potwierdzeniem rezerwacji.',
+  'reservations.import.unavailable': 'Import rezerwacji nie jest dostępny na tym serwerze.',
+  'reservations.import.unsupportedFormat': 'Nieobsługiwany format pliku. Użyj EML, PDF, PKPass, HTML lub TXT.',
+  'reservations.import.fileTooLarge': 'Plik „{name}" przekracza limit 10 MB.',
 };
 export default reservations;

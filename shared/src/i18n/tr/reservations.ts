@@ -115,5 +115,22 @@ const reservations: TranslationStrings = {
   'reservations.validation.endBeforeStart':
     'Bitiş tarihi/saati başlangıçtan sonra olmalı',
   'reservations.addBooking': 'Rezervasyon ekle',
+  'reservations.import.title': 'Rezervasyon onaylarını içe aktar',
+  'reservations.import.cta': 'Dosyadan içe aktar',
+  'reservations.import.dropHere': 'Rezervasyon onay dosyalarını buraya sürükleyin veya seçmek için tıklayın',
+  'reservations.import.dropActive': 'İçe aktarmak için dosyaları bırakın',
+  'reservations.import.acceptedFormats': 'Kabul edilenler: EML, PDF, PKPass, HTML, TXT (her biri maks. 10 MB, en fazla 5 dosya)',
+  'reservations.import.parsing': 'Dosyalar işleniyor…',
+  'reservations.import.previewHeading': '{count} rezervasyon bulundu',
+  'reservations.import.previewEmpty': 'Yüklenen dosyalardan hiçbir rezervasyon çıkarılamadı.',
+  'reservations.import.removeItem': 'Kaldır',
+  'reservations.import.confirm': '{count} rezervasyonu içe aktar',
+  'reservations.import.back': 'Geri',
+  'reservations.import.success': '{count} rezervasyon içe aktarıldı',
+  'reservations.import.partialFailure': '{created} içe aktarıldı, {failed} başarısız',
+  'reservations.import.error': 'İşlem başarısız. Dosyanın geçerli bir rezervasyon onayı olduğundan emin olun.',
+  'reservations.import.unavailable': 'Rezervasyon içe aktarma bu sunucuda mevcut değil.',
+  'reservations.import.unsupportedFormat': 'Desteklenmeyen dosya biçimi. EML, PDF, PKPass, HTML veya TXT kullanın.',
+  'reservations.import.fileTooLarge': '"{name}" dosyası 10 MB sınırını aşıyor.',
 };
 export default reservations;

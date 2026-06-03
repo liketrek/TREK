@@ -114,5 +114,22 @@ const reservations: TranslationStrings = {
   'reservations.validation.endBeforeStart':
     'Tanggal/waktu selesai harus setelah tanggal/waktu mulai',
   'reservations.addBooking': 'Tambah pemesanan',
+  'reservations.import.title': 'Impor konfirmasi pemesanan',
+  'reservations.import.cta': 'Impor dari file',
+  'reservations.import.dropHere': 'Seret file konfirmasi pemesanan ke sini atau klik untuk memilih',
+  'reservations.import.dropActive': 'Lepaskan file untuk mengimpor',
+  'reservations.import.acceptedFormats': 'Diterima: EML, PDF, PKPass, HTML, TXT (maks. 10 MB per file, hingga 5 file)',
+  'reservations.import.parsing': 'Memproses file…',
+  'reservations.import.previewHeading': '{count} pemesanan ditemukan',
+  'reservations.import.previewEmpty': 'Tidak ada pemesanan yang dapat diekstrak dari file yang diunggah.',
+  'reservations.import.removeItem': 'Hapus',
+  'reservations.import.confirm': 'Impor {count} pemesanan',
+  'reservations.import.back': 'Kembali',
+  'reservations.import.success': '{count} pemesanan berhasil diimpor',
+  'reservations.import.partialFailure': '{created} berhasil diimpor, {failed} gagal',
+  'reservations.import.error': 'Pemrosesan gagal. Pastikan file adalah konfirmasi pemesanan yang valid.',
+  'reservations.import.unavailable': 'Impor pemesanan tidak tersedia di server ini.',
+  'reservations.import.unsupportedFormat': 'Format file tidak didukung. Gunakan EML, PDF, PKPass, HTML, atau TXT.',
+  'reservations.import.fileTooLarge': 'File "{name}" melebihi batas 10 MB.',
 };
 export default reservations;

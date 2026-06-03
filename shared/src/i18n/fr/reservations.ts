@@ -115,5 +115,22 @@ const reservations: TranslationStrings = {
   'reservations.validation.endBeforeStart':
     'La date/heure de fin doit être postérieure à la date/heure de début',
   'reservations.addBooking': 'Ajouter une réservation',
+  'reservations.import.title': 'Importer des confirmations de réservation',
+  'reservations.import.cta': 'Importer depuis un fichier',
+  'reservations.import.dropHere': 'Déposez les fichiers de confirmation de réservation ici ou cliquez pour sélectionner',
+  'reservations.import.dropActive': 'Déposez les fichiers pour importer',
+  'reservations.import.acceptedFormats': "Acceptés : EML, PDF, PKPass, HTML, TXT (max. 10 Mo chacun, jusqu'à 5 fichiers)",
+  'reservations.import.parsing': 'Analyse des fichiers…',
+  'reservations.import.previewHeading': '{count} réservation(s) trouvée(s)',
+  'reservations.import.previewEmpty': "Aucune réservation n'a pu être extraite des fichiers envoyés.",
+  'reservations.import.removeItem': 'Supprimer',
+  'reservations.import.confirm': 'Importer {count} réservation(s)',
+  'reservations.import.back': 'Retour',
+  'reservations.import.success': '{count} réservation(s) importée(s)',
+  'reservations.import.partialFailure': '{created} importée(s), {failed} échouée(s)',
+  'reservations.import.error': 'Analyse échouée. Assurez-vous que le fichier est une confirmation de réservation valide.',
+  'reservations.import.unavailable': "L'import de réservations n'est pas disponible sur ce serveur.",
+  'reservations.import.unsupportedFormat': 'Format de fichier non pris en charge. Utilisez EML, PDF, PKPass, HTML ou TXT.',
+  'reservations.import.fileTooLarge': 'Le fichier « {name} » dépasse la limite de 10 Mo.',
 };
 export default reservations;

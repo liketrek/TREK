@@ -115,5 +115,22 @@ const reservations: TranslationStrings = {
   'reservations.validation.endBeforeStart':
     'Дата/час закінчення повинен бути пізніше дати/часу початку',
   'reservations.addBooking': 'Добавить бронирование',
+  'reservations.import.title': 'Імпорт підтверджень бронювання',
+  'reservations.import.cta': 'Імпортувати з файлу',
+  'reservations.import.dropHere': 'Перетягніть файли підтверджень бронювання сюди або натисніть для вибору',
+  'reservations.import.dropActive': 'Відпустіть файли для імпорту',
+  'reservations.import.acceptedFormats': 'Підтримуються: EML, PDF, PKPass, HTML, TXT (макс. 10 МБ кожен, до 5 файлів)',
+  'reservations.import.parsing': 'Обробка файлів…',
+  'reservations.import.previewHeading': 'Знайдено {count} бронювання(нь)',
+  'reservations.import.previewEmpty': 'З завантажених файлів не вдалося витягти бронювання.',
+  'reservations.import.removeItem': 'Видалити',
+  'reservations.import.confirm': 'Імпортувати {count} бронювання(нь)',
+  'reservations.import.back': 'Назад',
+  'reservations.import.success': '{count} бронювання(нь) імпортовано',
+  'reservations.import.partialFailure': '{created} імпортовано, {failed} не вдалося',
+  'reservations.import.error': 'Обробка не вдалася. Переконайтесь, що файл є дійсним підтвердженням бронювання.',
+  'reservations.import.unavailable': 'Імпорт бронювань недоступний на цьому сервері.',
+  'reservations.import.unsupportedFormat': 'Непідтримуваний формат файлу. Використовуйте EML, PDF, PKPass, HTML або TXT.',
+  'reservations.import.fileTooLarge': 'Файл «{name}» перевищує обмеження в 10 МБ.',
 };
 export default reservations;
