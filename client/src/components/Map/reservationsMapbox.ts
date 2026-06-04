@@ -167,7 +167,7 @@ function endpointMarkerHtml(type: TransportType, label: string | null): string {
     padding:0 8px;border-radius:999px;
     background:${TRANSPORT_COLOR};box-shadow:0 2px 6px rgba(0,0,0,0.25);
     border:1.5px solid #fff;color:#fff;
-    font-family:-apple-system,system-ui,sans-serif;font-size:11px;font-weight:600;letter-spacing:0.3px;line-height:1;
+    font-family:var(--font-system);font-size:11px;font-weight:600;letter-spacing:0.3px;line-height:1;
     box-sizing:border-box;height:22px;white-space:nowrap;cursor:pointer;
   "><span style="display:inline-flex;align-items:center;">${svg}</span>${labelHtml}</div>`
 }
@@ -188,7 +188,7 @@ function buildStatsHtml(mainLabel: string | null, subLabel: string | null): { ht
     background:rgba(17,24,39,0.92);color:#fff;
     box-shadow:0 2px 6px rgba(0,0,0,0.25);
     border:1px solid ${TRANSPORT_COLOR}aa;
-    font-family:-apple-system,system-ui,'SF Pro Text',sans-serif;
+    font-family:var(--font-system);
     white-space:nowrap;box-sizing:border-box;pointer-events:none;
     transform-origin:center;will-change:transform;
   ">${main}${sub}</div>`

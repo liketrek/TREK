@@ -32,7 +32,7 @@ interface Poll {
   created_at: string
 }
 
-const FONT = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
+const FONT = "var(--font-system)"
 
 function timeRemaining(deadline) {
   if (!deadline) return null

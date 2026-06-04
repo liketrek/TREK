@@ -295,5 +295,8 @@ const settings: TranslationStrings = {
   'settings.bookingLabels': 'Label rute pemesanan',
   'settings.bookingLabelsHint':
     'Menampilkan nama stasiun / bandara di peta. Jika mati, hanya ikon ditampilkan.',
+  "settings.currency": "Currency",
+  "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
 };
+
 export default settings;

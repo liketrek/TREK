@@ -4,6 +4,7 @@ import { broadcast } from '../../websocket';
 import { checkPermission } from '../../services/permissions';
 import type { User } from '../../types';
 import * as svc from '../../services/budgetService';
+import { getRates } from '../../services/exchangeRateService';
 
 type Trip = NonNullable<ReturnType<typeof svc.verifyTripAccess>>;
 
@@ -34,8 +35,10 @@ export class BudgetService {
     return svc.getPerPersonSummary(tripId);
   }
 
-  settlement(tripId: string) {
-    return svc.calculateSettlement(tripId);
+  async settlement(tripId: string, base: string | undefined, tripCurrency: string) {
+    const effectiveBase = (base || tripCurrency || 'EUR').toUpperCase();
+    const rates = await getRates(effectiveBase);
+    return svc.calculateSettlement(tripId, { base: effectiveBase, rates, tripCurrency });
   }
 
   create(tripId: string, data: Parameters<typeof svc.createBudgetItem>[1]) {
@@ -56,6 +59,22 @@ export class BudgetService {
 
   toggleMemberPaid(id: string, userId: string, paid: boolean) {
     return svc.toggleMemberPaid(id, userId, paid);
+  }
+
+  setPayers(id: string, tripId: string, payers: { user_id: number; amount: number }[]) {
+    return svc.setItemPayers(id, tripId, payers);
+  }
+
+  listSettlements(tripId: string) {
+    return svc.listSettlements(tripId);
+  }
+
+  createSettlement(tripId: string, data: { from_user_id: number; to_user_id: number; amount: number }, userId: number) {
+    return svc.createSettlement(tripId, data, userId);
+  }
+
+  deleteSettlement(id: string, tripId: string): boolean {
+    return svc.deleteSettlement(id, tripId);
   }
 
   reorderItems(tripId: string, orderedIds: number[]): void {

@@ -90,7 +90,7 @@ export default function DashboardPage(): React.ReactElement {
   return (
     <>
       {/* Navbar lives outside .trek-dash so it keeps the app-wide font + button
-          styling instead of inheriting the dashboard scope's Geist font and the
+          styling instead of inheriting the dashboard scope's font and the
           `.trek-dash button` reset (which shifted the bell icon + menu items). */}
       <Navbar />
       <div className="trek-dash trek-dash-shell">

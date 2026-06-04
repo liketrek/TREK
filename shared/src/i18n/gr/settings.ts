@@ -301,5 +301,8 @@ const settings: TranslationStrings = {
   'settings.mfa.toastDisabled':
     'Ο έλεγχος ταυτότητας δύο παραγόντων απενεργοποιήθηκε',
   'settings.mfa.demoBlocked': 'Δεν είναι διαθέσιμο σε λειτουργία demo',
+  "settings.currency": "Currency",
+  "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
 };
+
 export default settings;

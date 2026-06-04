@@ -288,5 +288,8 @@ const settings: TranslationStrings = {
   'settings.mfa.toastEnabled': 'Two-factor authentication enabled',
   'settings.mfa.toastDisabled': 'Two-factor authentication disabled',
   'settings.mfa.demoBlocked': 'Not available in demo mode',
+  "settings.currency": "Currency",
+  "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
 };
+
 export default settings;

@@ -23,7 +23,7 @@ const PlacesSidebar = React.memo(function PlacesSidebar(props: PlacesSidebarProp
       onDragOver={handleSidebarDragOver}
       onDragLeave={handleSidebarDragLeave}
       onDrop={handleSidebarDrop}
-      style={{ display: 'flex', flexDirection: 'column', height: '100%', fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif", position: 'relative' }}
+      style={{ display: 'flex', flexDirection: 'column', height: '100%', fontFamily: "var(--font-system)", position: 'relative' }}
     >
       {sidebarDragOver && <PlacesDropOverlay {...S} />}
       {/* Kopfbereich */}

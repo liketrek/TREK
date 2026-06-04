@@ -8,6 +8,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import type { User } from '../../types';
@@ -57,9 +58,56 @@ export class BudgetController {
   }
 
   @Get('settlement')
-  settlement(@CurrentUser() user: User, @Param('tripId') tripId: string) {
+  settlement(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Query('base') base?: string,
+  ) {
+    const trip = this.requireTrip(tripId, user);
+    return this.budget.settlement(tripId, base, (trip as { currency?: string }).currency || 'EUR');
+  }
+
+  @Get('settlements')
+  listSettlements(@CurrentUser() user: User, @Param('tripId') tripId: string) {
     this.requireTrip(tripId, user);
-    return this.budget.settlement(tripId);
+    return { settlements: this.budget.listSettlements(tripId) };
+  }
+
+  @Post('settlements')
+  createSettlement(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Body() body: { from_user_id?: number; to_user_id?: number; amount?: number },
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    const trip = this.requireTrip(tripId, user);
+    this.requireEdit(trip, user);
+    if (body.from_user_id == null || body.to_user_id == null || body.amount == null) {
+      throw new HttpException({ error: 'from_user_id, to_user_id and amount are required' }, 400);
+    }
+    const settlement = this.budget.createSettlement(
+      tripId,
+      { from_user_id: body.from_user_id, to_user_id: body.to_user_id, amount: body.amount },
+      user.id,
+    );
+    this.budget.broadcast(tripId, 'budget:settlement-created', { settlement }, socketId);
+    return { settlement };
+  }
+
+  @Delete('settlements/:settlementId')
+  deleteSettlement(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Param('settlementId') settlementId: string,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    const trip = this.requireTrip(tripId, user);
+    this.requireEdit(trip, user);
+    if (!this.budget.deleteSettlement(settlementId, tripId)) {
+      throw new HttpException({ error: 'Settlement not found' }, 404);
+    }
+    this.budget.broadcast(tripId, 'budget:settlement-deleted', { settlementId: Number(settlementId) }, socketId);
+    return { success: true };
   }
 
   @Post()
@@ -147,6 +195,27 @@ export class BudgetController {
     }
     this.budget.broadcast(tripId, 'budget:members-updated', { itemId: Number(id), members: result.members, persons: result.item.persons }, socketId);
     return { members: result.members, item: result.item };
+  }
+
+  @Put(':id/payers')
+  setPayers(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Param('id') id: string,
+    @Body('payers') payers: unknown,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    const trip = this.requireTrip(tripId, user);
+    this.requireEdit(trip, user);
+    if (!Array.isArray(payers)) {
+      throw new HttpException({ error: 'payers must be an array' }, 400);
+    }
+    const item = this.budget.setPayers(id, tripId, payers as { user_id: number; amount: number }[]);
+    if (!item) {
+      throw new HttpException({ error: 'Budget item not found' }, 404);
+    }
+    this.budget.broadcast(tripId, 'budget:updated', { item }, socketId);
+    return { item };
   }
 
   @Put(':id/members/:userId/paid')

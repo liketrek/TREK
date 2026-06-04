@@ -12,10 +12,10 @@ export function ChatMessages(props: any) {
     <>
       {/* Messages */}
       {messages.length === 0 ? (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: 'var(--text-faint)', padding: 32 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: 'var(--text-faint)', padding: 32, textAlign: 'center' }}>
           <MessageCircle size={40} strokeWidth={1.2} style={{ opacity: 0.4 }} />
           <span style={{ fontSize: 14, fontWeight: 600 }}>{t('collab.chat.empty')}</span>
-          <span style={{ fontSize: 12, opacity: 0.6 }}>{t('collab.chat.emptyDesc') || ''}</span>
+          <span style={{ fontSize: 12, opacity: 0.6, fontFamily: 'var(--font-subtext)' }}>{t('collab.chat.emptyDesc') || ''}</span>
         </div>
       ) : (
         <div ref={scrollRef} onScroll={checkAtBottom} className="chat-scroll" style={{

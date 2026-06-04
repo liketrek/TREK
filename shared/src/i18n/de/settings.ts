@@ -298,5 +298,8 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',
+  "settings.currency": "Währung",
+  "settings.currencyHint": "Alle Beträge in Costs werden in diese Währung umgerechnet und angezeigt.",
 };
+
 export default settings;

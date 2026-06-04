@@ -23,6 +23,8 @@
     "format:check": "prettier --check \"src/**/*.tsx\" \"src/**/*.css\""
   },
   "dependencies": {
+    "@fontsource/geist-sans": "^5.2.5",
+    "@fontsource/poppins": "^5.2.7",
     "@react-pdf/renderer": "^4.5.1",
     "@trek/shared": "*",
     "axios": "^1.6.7",

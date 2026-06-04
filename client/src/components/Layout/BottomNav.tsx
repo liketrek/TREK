@@ -25,6 +25,11 @@ function useCreateAction(): { label: string; run: () => void } {
   const onJourneyList = useMatch('/journey')
 
   if (inTrip) {
+    // On the Costs tab the "+" adds an expense; otherwise it adds a place.
+    const tripTab = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(`trip-tab-${inTrip.params.id}`) : null
+    if (tripTab === 'finanzplan') {
+      return { label: t('costs.addExpense'), run: () => navigate(`/trips/${inTrip.params.id}?create=expense`) }
+    }
     return { label: t('places.addPlace'), run: () => navigate(`/trips/${inTrip.params.id}?create=place`) }
   }
   if (inJourney) {

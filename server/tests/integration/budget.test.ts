@@ -347,10 +347,12 @@ describe('Budget summary and settlement', () => {
       .put(`/api/trips/${trip.id}/budget/${item.id}/members`)
       .set('Cookie', authCookie(user.id))
       .send({ user_ids: [user.id, user2.id] });
+    // New model: who actually paid is recorded as an explicit payer (amount in
+    // the expense currency), not a per-member "paid" toggle.
     await request(app)
-      .put(`/api/trips/${trip.id}/budget/${item.id}/members/${user.id}/paid`)
+      .put(`/api/trips/${trip.id}/budget/${item.id}/payers`)
       .set('Cookie', authCookie(user.id))
-      .send({ paid: true });
+      .send({ payers: [{ user_id: user.id, amount: 60 }] });
 
     const res = await request(app)
       .get(`/api/trips/${trip.id}/budget/settlement`)

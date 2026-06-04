@@ -10,7 +10,7 @@ export default function FileManager(props: FileManagerProps) {
   const S = useFileManager(props)
   const { lightboxIndex, setLightboxIndex, imageFiles, assignFileId, previewFile, handlePaste, showTrash } = S
   return (
-    <div className="flex flex-col h-full" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }} onPaste={handlePaste} tabIndex={-1}>
+    <div className="flex flex-col h-full" style={{ fontFamily: "var(--font-system)" }} onPaste={handlePaste} tabIndex={-1}>
       {/* Lightbox */}
       {lightboxIndex !== null && <ImageLightbox files={imageFiles} initialIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />}
 

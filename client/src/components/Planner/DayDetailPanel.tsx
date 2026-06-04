@@ -94,7 +94,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
   ) : null
 
   const placesWithCoords = places.filter(p => p.lat && p.lng)
-  const font = { fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }
+  const font = { fontFamily: "var(--font-system)" }
 
   return (
     <div className="fixed z-50" style={{ bottom: 'calc(var(--bottom-nav-h) + 20px)', left: `calc(${leftWidth}px + (100vw - ${leftWidth}px - ${rightWidth}px) / 2)`, transform: 'translateX(-50%)', width: `min(800px, calc(100vw - ${leftWidth}px - ${rightWidth}px - 32px))`, ...(mobile ? { zIndex: 10000 } : null), ...font }}>

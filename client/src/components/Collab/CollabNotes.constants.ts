@@ -1,4 +1,4 @@
-export const FONT = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
+export const FONT = "var(--font-system)"
 
 export const NOTE_COLORS = [
   { value: '#6366f1', label: 'Indigo' },

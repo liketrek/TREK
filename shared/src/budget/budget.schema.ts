@@ -28,9 +28,48 @@ export const budgetItemMemberSchema = z.object({
 export type BudgetItemMember = z.infer<typeof budgetItemMemberSchema>;
 
 /**
+ * The fixed "Costs" expense categories. Unlike the old budget, users cannot
+ * create their own categories — every expense maps to one of these keys. The
+ * label/icon/colour per key live in the client; the server only stores the key.
+ * Pre-rework rows used free-text categories; those are shown as `other`.
+ */
+export const COST_CATEGORIES = [
+  'accommodation',
+  'food',
+  'groceries',
+  'transport',
+  'flights',
+  'activities',
+  'sightseeing',
+  'shopping',
+  'fees',
+  'health',
+  'tips',
+  'other',
+] as const;
+export type CostCategory = (typeof COST_CATEGORIES)[number];
+
+/**
+ * One payer of an expense — a row of budget_item_payers. `amount` is in the
+ * expense's own currency (budget_items.currency). Several payers can split who
+ * actually paid one bill. Username/avatar are joined for display.
+ */
+export const budgetItemPayerSchema = z.object({
+  user_id: z.number(),
+  amount: z.number(),
+  username: z.string().optional(),
+  avatar_url: z.string().nullable().optional(),
+  avatar: z.string().nullable().optional(),
+  budget_item_id: z.number().optional(),
+});
+export type BudgetItemPayer = z.infer<typeof budgetItemPayerSchema>;
+
+/**
  * Budget item entity as returned by the budget list/create/update endpoints
  * (server/src/services/budgetService.ts). Columns of the `budget_items` table
- * plus the embedded `members` array. total_price is SQLite REAL.
+ * plus the embedded `members` (equal-split participants) and `payers` arrays.
+ * total_price is the sum of payer amounts in `currency`; `exchange_rate` converts
+ * that to the trip base currency (NULL currency + rate 1 = base currency).
  */
 export const budgetItemSchema = z.object({
   id: z.number(),
@@ -38,6 +77,8 @@ export const budgetItemSchema = z.object({
   category: z.string(),
   name: z.string(),
   total_price: z.number(),
+  currency: z.string().nullable().optional(),
+  exchange_rate: z.number().optional(),
   persons: z.number().nullable().optional(),
   days: z.number().nullable().optional(),
   note: z.string().nullable().optional(),
@@ -47,13 +88,26 @@ export const budgetItemSchema = z.object({
   sort_order: z.number().optional(),
   created_at: z.string().optional(),
   members: z.array(budgetItemMemberSchema).optional(),
+  payers: z.array(budgetItemPayerSchema).optional(),
 });
 export type BudgetItem = z.infer<typeof budgetItemSchema>;
+
+const payerInputSchema = z.object({
+  user_id: z.number(),
+  amount: z.number(),
+});
 
 export const budgetCreateItemRequestSchema = z.object({
   name: z.string().min(1),
   category: z.string().optional(),
   total_price: z.number().optional(),
+  currency: z.string().nullable().optional(),
+  exchange_rate: z.number().optional(),
+  // Multi-payer: who paid how much (in the expense currency). When omitted, the
+  // server falls back to total_price with no explicit payer.
+  payers: z.array(payerInputSchema).optional(),
+  // Equal-split participants. When omitted, the item has no split (planning-only).
+  member_ids: z.array(z.number()).optional(),
   persons: z.number().nullable().optional(),
   days: z.number().nullable().optional(),
   note: z.string().nullable().optional(),
@@ -68,6 +122,10 @@ export const budgetUpdateItemRequestSchema = z.object({
   name: z.string().optional(),
   category: z.string().optional(),
   total_price: z.number().optional(),
+  currency: z.string().nullable().optional(),
+  exchange_rate: z.number().optional(),
+  payers: z.array(payerInputSchema).optional(),
+  member_ids: z.array(z.number()).optional(),
   persons: z.number().nullable().optional(),
   days: z.number().nullable().optional(),
   note: z.string().nullable().optional(),
@@ -75,6 +133,43 @@ export const budgetUpdateItemRequestSchema = z.object({
 });
 export type BudgetUpdateItemRequest = z.infer<
   typeof budgetUpdateItemRequestSchema
+>;
+
+/** Replace the explicit payers of an expense (amounts in expense currency). */
+export const budgetUpdatePayersRequestSchema = z.object({
+  payers: z.array(payerInputSchema),
+});
+export type BudgetUpdatePayersRequest = z.infer<
+  typeof budgetUpdatePayersRequestSchema
+>;
+
+/**
+ * A persisted settle-up transfer (budget_settlements row): "from paid to" a
+ * given amount in the trip base currency. Creating one marks a suggested flow as
+ * paid; deleting it (undo) brings the flow back. Names joined for display.
+ */
+export const budgetSettlementSchema = z.object({
+  id: z.number(),
+  trip_id: z.number(),
+  from_user_id: z.number(),
+  to_user_id: z.number(),
+  amount: z.number(),
+  created_at: z.string().optional(),
+  created_by_user_id: z.number().nullable().optional(),
+  from_username: z.string().optional(),
+  from_avatar_url: z.string().nullable().optional(),
+  to_username: z.string().optional(),
+  to_avatar_url: z.string().nullable().optional(),
+});
+export type BudgetSettlement = z.infer<typeof budgetSettlementSchema>;
+
+export const budgetCreateSettlementRequestSchema = z.object({
+  from_user_id: z.number(),
+  to_user_id: z.number(),
+  amount: z.number(),
+});
+export type BudgetCreateSettlementRequest = z.infer<
+  typeof budgetCreateSettlementRequestSchema
 >;
 
 export const budgetUpdateMembersRequestSchema = z.object({

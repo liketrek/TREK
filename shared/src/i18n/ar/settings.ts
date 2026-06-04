@@ -288,5 +288,8 @@ const settings: TranslationStrings = {
     'Business Class Dreamer', // en-fallback
   'settings.about.supporter.tier.budgetTraveller': 'Budget Traveller', // en-fallback
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate', // en-fallback
+  "settings.currency": "Currency",
+  "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
 };
+
 export default settings;

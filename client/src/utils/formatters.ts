@@ -39,6 +39,32 @@ export function currencyDecimals(currency: string): number {
   return ZERO_DECIMAL_CURRENCIES.has(currency.toUpperCase()) ? 0 : 2
 }
 
+/**
+ * Locale- and currency-correct money formatting via Intl: the symbol position,
+ * thousands/decimal separators and decimal count all follow the user's locale
+ * and the currency itself (e.g. de-DE EUR → "1.234,56 €", en-US USD → "$1,234.56",
+ * ja-JP JPY → "￥1,235"). Falls back to a "<number> CODE" suffix for unknown codes.
+ */
+export function formatMoney(
+  value: number,
+  currency: string,
+  locale: string,
+  opts?: { decimals?: number },
+): string {
+  const cur = (currency || 'EUR').toUpperCase()
+  const decimals = opts?.decimals ?? currencyDecimals(cur)
+  try {
+    return new Intl.NumberFormat(locale || 'en-US', {
+      style: 'currency',
+      currency: cur,
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    }).format(value || 0)
+  } catch {
+    return `${(value || 0).toLocaleString(locale || 'en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })} ${cur}`
+  }
+}
+
 export function formatDate(dateStr: string | null | undefined, locale: string, timeZone?: string): string | null {
   if (!dateStr) return null
   const opts: Intl.DateTimeFormatOptions = {

@@ -294,7 +294,7 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
     reader.readAsText(file)
   }
 
-  const font = { fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }
+  const font = { fontFamily: "var(--font-system)" }
 
   return {
     tripId, items, inlineHeader, t, canEdit, font,

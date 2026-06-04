@@ -38,7 +38,7 @@
 
   background: var(--bg);
   color: var(--ink);
-  font-family: "Geist", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-family: "Poppins", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   font-feature-settings: "ss01", "cv11";
   letter-spacing: -0.005em;
   min-height: 100%;

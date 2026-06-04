@@ -194,7 +194,7 @@ export default function BookingImportModal({ isOpen, onClose, tripId, pushUndo }
       <div
         onClick={e => e.stopPropagation()}
         className="bg-surface-card"
-        style={{ borderRadius: 16, width: '100%', maxWidth: 540, padding: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.2)', fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif", maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
+        style={{ borderRadius: 16, width: '100%', maxWidth: 540, padding: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.2)', fontFamily: "var(--font-system)", maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
       >
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>

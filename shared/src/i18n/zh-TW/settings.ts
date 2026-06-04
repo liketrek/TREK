@@ -282,5 +282,8 @@ const settings: TranslationStrings = {
   'settings.bookingLabels': '預訂路線標籤',
   'settings.bookingLabelsHint':
     '在地圖上顯示車站 / 機場名稱。關閉時僅顯示圖示。',
+  "settings.currency": "Currency",
+  "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
 };
+
 export default settings;

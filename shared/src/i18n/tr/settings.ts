@@ -295,5 +295,8 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.machineClientUsage':
     'Bir jeton alın: grant_type=client_credentials, client_id ve client_secret ile POST /oauth/token. Tarayıcı yok, yenileme belirteci yok.',
   'settings.oauth.badge.machine': 'makine',
+  "settings.currency": "Currency",
+  "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
 };
+
 export default settings;

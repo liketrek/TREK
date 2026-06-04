@@ -519,7 +519,7 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
   }, [reservations])
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', fontFamily: "var(--font-system)" }}>
       {/* Unified toolbar */}
       <div style={{ padding: '24px 28px 0' }} className="max-md:!px-4 max-md:!pt-4">
         <div className="bg-surface-tertiary" style={{

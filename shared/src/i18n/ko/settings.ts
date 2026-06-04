@@ -291,5 +291,8 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.machineClientUsage':
     '토큰 받기: grant_type=client_credentials, client_id, client_secret으로 POST /oauth/token을 호출하세요. 브라우저도 새로 고침 토큰도 필요 없습니다.',
   'settings.oauth.badge.machine': '머신',
+  "settings.currency": "Currency",
+  "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
 };
+
 export default settings;

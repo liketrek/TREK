@@ -79,7 +79,7 @@ function createMarkerElement(place: Place & { category_color?: string; category_
       box-shadow:0 1px 4px rgba(0,0,0,0.18);
       display:flex;align-items:center;justify-content:center;
       font-size:${orderNumbers.length > 1 ? 7.5 : 9}px;font-weight:800;color:#111827;
-      font-family:-apple-system,system-ui,sans-serif;line-height:1;
+      font-family:var(--font-system);line-height:1;
       box-sizing:border-box;white-space:nowrap;
     ">${label}</span>`
   }

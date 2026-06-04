@@ -224,7 +224,7 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
       <div
         onClick={e => e.stopPropagation()}
         className="bg-surface-card"
-        style={{ borderRadius: 16, width: '100%', maxWidth: 520, padding: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.2)', fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }}
+        style={{ borderRadius: 16, width: '100%', maxWidth: 520, padding: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.2)', fontFamily: "var(--font-system)" }}
       >
         <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
           {t('places.importFile')}

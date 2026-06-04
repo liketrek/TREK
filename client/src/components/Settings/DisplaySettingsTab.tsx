@@ -3,6 +3,8 @@ import { Palette, Sun, Moon, Monitor, ChevronDown, Check } from 'lucide-react'
 import { SUPPORTED_LANGUAGES, useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
+import CustomSelect from '../shared/CustomSelect'
+import { CURRENCIES, SYMBOLS } from '../Budget/BudgetPanel.constants'
 import Section from './Section'
 
 export default function DisplaySettingsTab(): React.ReactElement {
@@ -28,6 +30,21 @@ export default function DisplaySettingsTab(): React.ReactElement {
 
   return (
     <Section title={t('settings.display')} icon={Palette}>
+      {/* Display currency */}
+      <div>
+        <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.currency')}</label>
+        <CustomSelect
+          value={settings.default_currency || 'EUR'}
+          onChange={async v => {
+            try { await updateSetting('default_currency', String(v)) }
+            catch (e: unknown) { toast.error(e instanceof Error ? e.message : t('common.error')) }
+          }}
+          options={CURRENCIES.map(c => ({ value: c, label: `${c} — ${SYMBOLS[c] || c}` }))}
+          searchable
+        />
+        <p className="text-xs text-content-faint mt-2">{t('settings.currencyHint')}</p>
+      </div>
+
       {/* Color Mode */}
       <div>
         <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.colorMode')}</label>

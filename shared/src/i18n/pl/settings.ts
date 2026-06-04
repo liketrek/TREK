@@ -296,5 +296,8 @@ const settings: TranslationStrings = {
   'settings.notificationsManagedByAdmin':
     'Zdarzenia konfigurowane przez administratora.',
   'settings.mustChangePassword': 'Musisz zmienić hasło przed kontynuowaniem.',
+  "settings.currency": "Currency",
+  "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
 };
+
 export default settings;

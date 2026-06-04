@@ -64,7 +64,7 @@ function createPlaceIcon(place, orderNumbers, isSelected) {
       box-shadow:0 1px 4px rgba(0,0,0,0.18);
       display:flex;align-items:center;justify-content:center;
       font-size:${orderNumbers.length > 1 ? 7.5 : 9}px;font-weight:800;color:#111827;
-      font-family:-apple-system,system-ui,sans-serif;line-height:1;
+      font-family:var(--font-system);line-height:1;
       box-sizing:border-box;white-space:nowrap;
     ">${label}</span>`
   }
@@ -592,7 +592,7 @@ export const MapView = memo(function MapView({
         borderRadius: 8,
         boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
         padding: '6px 10px',
-        fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+        fontFamily: "var(--font-system)",
         maxWidth: 220,
         whiteSpace: 'nowrap',
       }}>

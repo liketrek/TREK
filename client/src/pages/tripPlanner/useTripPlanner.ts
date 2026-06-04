@@ -604,7 +604,7 @@ export function useTripPlanner() {
   const defaultCenter = [settings.default_lat || 48.8566, settings.default_lng || 2.3522]
   const defaultZoom = settings.default_zoom || 10
 
-  const fontStyle = { fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif" }
+  const fontStyle = { fontFamily: "var(--font-system)" }
 
   // Splash screen — show for initial load + a brief moment for photos to start loading
   const [splashDone, setSplashDone] = useState(false)
