@@ -120,7 +120,7 @@ const DEFAULT_CATEGORIES = [
 
 const DEFAULT_ADDONS = [
   { id: 'packing',   name: 'Packing List',    description: 'Pack your bags',            type: 'trip',        icon: 'ListChecks',  enabled: 1, sort_order: 0  },
-  { id: 'budget',    name: 'Budget Planner',  description: 'Track expenses',             type: 'trip',        icon: 'Wallet',      enabled: 1, sort_order: 1  },
+  { id: 'budget',    name: 'Costs',           description: 'Track and split trip expenses', type: 'trip',     icon: 'Wallet',      enabled: 1, sort_order: 1  },
   { id: 'documents', name: 'Documents',       description: 'Manage travel documents',    type: 'trip',        icon: 'FileText',    enabled: 1, sort_order: 2  },
   { id: 'vacay',     name: 'Vacay',           description: 'Vacation day planner',       type: 'global',      icon: 'CalendarDays',enabled: 1, sort_order: 10 },
   { id: 'atlas',     name: 'Atlas',           description: 'Visited countries map',      type: 'global',      icon: 'Globe',       enabled: 1, sort_order: 11 },

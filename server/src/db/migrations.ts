@@ -2332,6 +2332,14 @@ function runMigrations(db: Database.Database): void {
         if (!err.message?.includes('no such column')) throw err;
       }
     },
+    // Rename the "Budget Planner" addon to "Costs" in the admin add-on list. This
+    // is a display rename only — the addon id, tables, permissions and MCP tools
+    // all stay 'budget'. Scoped to the default name so a customised one is kept.
+    () => {
+      db.prepare(
+        "UPDATE addons SET name = 'Costs', description = 'Track and split trip expenses' WHERE id = 'budget' AND name = 'Budget Planner'",
+      ).run();
+    },
   ];
 
   if (currentVersion < migrations.length) {

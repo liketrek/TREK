@@ -10,8 +10,10 @@ import { useTranslation } from '../../i18n'
 import { budgetApi } from '../../api/client'
 import { useExchangeRates } from '../../hooks/useExchangeRates'
 import { useIsMobile } from '../../hooks/useIsMobile'
-import { formatMoney, currencyDecimals } from '../../utils/formatters'
+import { formatMoney, currencyDecimals, currencyLocale } from '../../utils/formatters'
 import Modal from '../shared/Modal'
+import CustomSelect from '../shared/CustomSelect'
+import { CustomDatePicker } from '../shared/CustomDateTimePicker'
 import { SYMBOLS, CURRENCIES, SPLIT_COLORS } from './BudgetPanel.constants'
 import { COST_CATEGORY_LIST, catMeta } from './costsCategories'
 import type { BudgetItem } from '../../types'
@@ -184,7 +186,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     let parts: Intl.NumberFormatPart[] | null = null
     try {
       const d = currencyDecimals(base)
-      parts = new Intl.NumberFormat(locale || 'en-US', { style: 'currency', currency: base, minimumFractionDigits: d, maximumFractionDigits: d }).formatToParts(amount || 0)
+      parts = new Intl.NumberFormat(currencyLocale(base), { style: 'currency', currency: base, minimumFractionDigits: d, maximumFractionDigits: d }).formatToParts(amount || 0)
     } catch { return <>{formatMoney(amount, base, locale)}</> }
     const isBig = (p: Intl.NumberFormatPart) => p.type === 'integer' || p.type === 'group' || p.type === 'minusSign'
     return <>{parts.map((p, i) => <span key={i} style={isBig(p) ? undefined : { fontSize: smallSize, fontWeight: 500, color: mutedColor }}>{p.value}</span>)}</>
@@ -594,7 +596,7 @@ function SummaryCard({ label, sub, amount, currency, locale, icon, foot, tone }:
   let parts: Intl.NumberFormatPart[] | null = null
   try {
     const d = currencyDecimals(currency)
-    parts = new Intl.NumberFormat(locale || 'en-US', { style: 'currency', currency: (currency || 'EUR').toUpperCase(), minimumFractionDigits: d, maximumFractionDigits: d }).formatToParts(amount || 0)
+    parts = new Intl.NumberFormat(currencyLocale(currency), { style: 'currency', currency: (currency || 'EUR').toUpperCase(), minimumFractionDigits: d, maximumFractionDigits: d }).formatToParts(amount || 0)
   } catch { parts = null }
   const big = (p: Intl.NumberFormatPart) => p.type === 'integer' || p.type === 'group' || p.type === 'minusSign'
   return (
@@ -732,15 +734,13 @@ function ExpenseModal({ tripId, base, people, me, editing, onClose, onSaved }: {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div style={{ minWidth: 0 }}>
             <label className={labelCls}>{t('costs.currency')}</label>
-            <select value={currency} onChange={e => setCurrency(e.target.value)}
-              className="bg-surface-input border border-edge text-content"
-              style={{ height: FIELD_H, boxSizing: 'border-box', width: '100%', minWidth: 0, borderRadius: 10, padding: '0 10px', fontSize: 13, fontWeight: 500, outline: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-              {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+            <CustomSelect value={currency} onChange={v => setCurrency(String(v))} searchable
+              options={CURRENCIES.map(c => ({ value: c, label: SYMBOLS[c] ? `${c}  ${SYMBOLS[c]}` : c }))}
+              style={{ width: '100%' }} />
           </div>
           <div style={{ minWidth: 0 }}>
             <label className={labelCls}>{t('costs.day')}</label>
-            <input type="date" value={day} onChange={e => setDay(e.target.value)} className={inputCls} style={{ height: FIELD_H, boxSizing: 'border-box', width: '100%', minWidth: 0, borderRadius: 10, padding: '0 11px', fontSize: 13, outline: 'none' }} />
+            <CustomDatePicker value={day} onChange={setDay} style={{ width: '100%' }} />
           </div>
         </div>
 

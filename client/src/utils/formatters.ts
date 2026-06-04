@@ -39,6 +39,28 @@ export function currencyDecimals(currency: string): number {
   return ZERO_DECIMAL_CURRENCIES.has(currency.toUpperCase()) ? 0 : 2
 }
 
+// Each currency formats in its own home convention (symbol position, grouping and
+// decimal separators) regardless of the app language — so EUR is always "1.234,56 €"
+// and USD always "$1,234.56". Intl derives all of that from the locale, so we map
+// each supported currency to a representative locale (Latin-digit variants for the
+// Arabic/Bengali ones to avoid non-Latin numerals).
+const CURRENCY_LOCALE: Record<string, string> = {
+  EUR: 'de-DE', USD: 'en-US', GBP: 'en-GB', JPY: 'ja-JP', CHF: 'de-CH',
+  CZK: 'cs-CZ', PLN: 'pl-PL', SEK: 'sv-SE', NOK: 'nb-NO', DKK: 'da-DK',
+  TRY: 'tr-TR', THB: 'th-TH', AUD: 'en-AU', CAD: 'en-CA', NZD: 'en-NZ',
+  BRL: 'pt-BR', MXN: 'es-MX', INR: 'en-IN', IDR: 'id-ID', MYR: 'ms-MY',
+  PHP: 'en-PH', SGD: 'en-SG', KRW: 'ko-KR', CNY: 'zh-CN', HKD: 'en-HK',
+  TWD: 'zh-TW', ZAR: 'en-ZA', AED: 'en-AE', SAR: 'en-SA', ILS: 'he-IL',
+  EGP: 'en-EG', MAD: 'fr-MA', HUF: 'hu-HU', RON: 'ro-RO', BGN: 'bg-BG',
+  HRK: 'hr-HR', ISK: 'is-IS', RUB: 'ru-RU', UAH: 'uk-UA', BDT: 'en-BD',
+  LKR: 'en-LK', VND: 'vi-VN', CLP: 'es-CL', COP: 'es-CO', PEN: 'es-PE',
+  ARS: 'es-AR',
+}
+
+export function currencyLocale(currency: string): string {
+  return CURRENCY_LOCALE[(currency || '').toUpperCase()] || 'en-US'
+}
+
 /**
  * Locale- and currency-correct money formatting via Intl: the symbol position,
  * thousands/decimal separators and decimal count all follow the user's locale
@@ -53,15 +75,19 @@ export function formatMoney(
 ): string {
   const cur = (currency || 'EUR').toUpperCase()
   const decimals = opts?.decimals ?? currencyDecimals(cur)
+  // Format in the currency's home convention, not the app language, so the symbol
+  // position and separators are always correct for that currency. `locale` stays
+  // as a last-resort fallback for the error path.
+  const fmtLocale = currencyLocale(cur)
   try {
-    return new Intl.NumberFormat(locale || 'en-US', {
+    return new Intl.NumberFormat(fmtLocale, {
       style: 'currency',
       currency: cur,
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals,
     }).format(value || 0)
   } catch {
-    return `${(value || 0).toLocaleString(locale || 'en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })} ${cur}`
+    return `${(value || 0).toLocaleString(locale || fmtLocale, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })} ${cur}`
   }
 }
 
