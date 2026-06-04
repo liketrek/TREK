@@ -1608,7 +1608,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                       </button>
                                     )}
                                     {canEditDays && (() => {
-                                      const isTransport = ['flight','train','car','cruise','bus'].includes(res.type)
+                                      const isTransport = TRANSPORT_TYPES.has(res.type)
                                       const handler = isTransport ? onEditTransport : onEditReservation
                                       if (!handler) return null
                                       return (

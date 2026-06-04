@@ -54,6 +54,11 @@ const reservations: TranslationStrings = {
   'reservations.type.event': 'Заходи',
   'reservations.type.tour': 'Екскурсія',
   'reservations.type.other': 'Інше',
+  'reservations.type.bus': 'Автобус',
+  'reservations.type.ferry': 'Пором',
+  'reservations.type.bicycle': 'Велосипед',
+  'reservations.type.taxi': 'Таксі',
+  'reservations.type.transport_other': 'Інше',
   'reservations.confirm.delete':
     'Ви впевнені, що хочете видалити бронювання «{name}»?',
   'reservations.confirm.deleteTitle': 'Видалити бронювання?',

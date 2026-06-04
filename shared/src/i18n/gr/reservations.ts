@@ -55,6 +55,11 @@ const reservations: TranslationStrings = {
   'reservations.type.event': 'Εκδήλωση',
   'reservations.type.tour': 'Περιήγηση',
   'reservations.type.other': 'Άλλο',
+  'reservations.type.bus': 'Λεωφορείο',
+  'reservations.type.ferry': 'Φέρι',
+  'reservations.type.bicycle': 'Ποδήλατο',
+  'reservations.type.taxi': 'Ταξί',
+  'reservations.type.transport_other': 'Άλλο',
   'reservations.confirm.delete':
     'Είστε σίγουροι ότι θέλετε να διαγράψετε την κράτηση "{name}";',
   'reservations.confirm.deleteTitle': 'Διαγραφή κράτησης;',

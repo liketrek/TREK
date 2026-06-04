@@ -56,6 +56,11 @@ const reservations: TranslationStrings = {
   'reservations.type.event': 'Esemény',
   'reservations.type.tour': 'Túra',
   'reservations.type.other': 'Egyéb',
+  'reservations.type.bus': 'Busz',
+  'reservations.type.ferry': 'Komp',
+  'reservations.type.bicycle': 'Kerékpár',
+  'reservations.type.taxi': 'Taxi',
+  'reservations.type.transport_other': 'Egyéb',
   'reservations.confirm.delete':
     'Biztosan törölni szeretnéd a(z) "{name}" foglalást?',
   'reservations.confirm.deleteTitle': 'Foglalás törlése?',

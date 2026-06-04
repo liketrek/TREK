@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { Plane, Train, Car, Ship, Paperclip, FileText, X, ExternalLink, Link2 } from 'lucide-react'
+import { Plane, Train, Car, Ship, Bus, Sailboat, Bike, CarTaxiFront, Route, Paperclip, FileText, X, ExternalLink, Link2 } from 'lucide-react'
 import Modal from '../shared/Modal'
 import CustomSelect from '../shared/CustomSelect'
 import CustomTimePicker from '../shared/CustomTimePicker'
@@ -15,7 +15,7 @@ import { openFile } from '../../utils/fileDownload'
 import apiClient from '../../api/client'
 import type { Day, Reservation, ReservationEndpoint, TripFile } from '../../types'
 
-const TRANSPORT_TYPES = ['flight', 'train', 'car', 'cruise'] as const
+const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transport_other'] as const
 type TransportType = typeof TRANSPORT_TYPES[number]
 
 interface EndpointPick {
@@ -64,10 +64,15 @@ function locationFromEndpoint(e: ReservationEndpoint | undefined): LocationPoint
 }
 
 const TYPE_OPTIONS = [
-  { value: 'flight', labelKey: 'reservations.type.flight', Icon: Plane },
-  { value: 'train',  labelKey: 'reservations.type.train',  Icon: Train },
-  { value: 'car',    labelKey: 'reservations.type.car',    Icon: Car },
-  { value: 'cruise', labelKey: 'reservations.type.cruise', Icon: Ship },
+  { value: 'flight',          labelKey: 'reservations.type.flight',          Icon: Plane },
+  { value: 'train',           labelKey: 'reservations.type.train',           Icon: Train },
+  { value: 'bus',             labelKey: 'reservations.type.bus',             Icon: Bus },
+  { value: 'car',             labelKey: 'reservations.type.car',             Icon: Car },
+  { value: 'taxi',            labelKey: 'reservations.type.taxi',            Icon: CarTaxiFront },
+  { value: 'bicycle',         labelKey: 'reservations.type.bicycle',         Icon: Bike },
+  { value: 'cruise',          labelKey: 'reservations.type.cruise',          Icon: Ship },
+  { value: 'ferry',           labelKey: 'reservations.type.ferry',           Icon: Sailboat },
+  { value: 'transport_other', labelKey: 'reservations.type.transport_other', Icon: Route },
 ]
 
 const defaultForm = {

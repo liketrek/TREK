@@ -6,7 +6,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import {
-  Plane, Hotel, Utensils, Train, Car, Ship, Ticket, FileText, MapPin,
+  Plane, Hotel, Utensils, Train, Car, Ship, Bus, Sailboat, Bike, CarTaxiFront, Route, Ticket, FileText, MapPin,
   Calendar, Hash, CheckCircle2, Circle, Pencil, Trash2, Plus, ChevronDown, ChevronRight, Users,
   ExternalLink, BookMarked, Lightbulb, Link2, Clock, ArrowRight, AlertCircle,
 } from 'lucide-react'
@@ -31,8 +31,13 @@ const TYPE_OPTIONS = [
   { value: 'hotel',       labelKey: 'reservations.type.hotel',       Icon: Hotel, color: '#8b5cf6' },
   { value: 'restaurant',  labelKey: 'reservations.type.restaurant',  Icon: Utensils, color: '#ef4444' },
   { value: 'train',       labelKey: 'reservations.type.train',       Icon: Train, color: '#06b6d4' },
+  { value: 'bus',         labelKey: 'reservations.type.bus',         Icon: Bus, color: '#059669' },
   { value: 'car',         labelKey: 'reservations.type.car',         Icon: Car, color: '#6b7280' },
+  { value: 'taxi',        labelKey: 'reservations.type.taxi',        Icon: CarTaxiFront, color: '#ca8a04' },
+  { value: 'bicycle',     labelKey: 'reservations.type.bicycle',     Icon: Bike, color: '#84cc16' },
   { value: 'cruise',      labelKey: 'reservations.type.cruise',      Icon: Ship, color: '#0ea5e9' },
+  { value: 'ferry',       labelKey: 'reservations.type.ferry',       Icon: Sailboat, color: '#0d9488' },
+  { value: 'transport_other', labelKey: 'reservations.type.transport_other', Icon: Route, color: '#6b7280' },
   { value: 'event',       labelKey: 'reservations.type.event',       Icon: Ticket, color: '#f59e0b' },
   { value: 'tour',        labelKey: 'reservations.type.tour',        Icon: Users, color: '#10b981' },
   { value: 'other',       labelKey: 'reservations.type.other',       Icon: FileText, color: '#6b7280' },
@@ -104,7 +109,7 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
   const hasCode = !!r.confirmation_number
   const dateCols = [hasDate, hasTime, hasCode].filter(Boolean).length
 
-  const TRANSPORT_TYPES_SET = new Set(['flight', 'train', 'bus', 'car', 'cruise'])
+  const TRANSPORT_TYPES_SET = new Set(['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transport_other'])
   const isTransportType = TRANSPORT_TYPES_SET.has(r.type)
   const isHotel = r.type === 'hotel'
   const startDay = r.day_id ? days.find(d => d.id === r.day_id)

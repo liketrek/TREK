@@ -54,6 +54,11 @@ const reservations: TranslationStrings = {
   'reservations.type.event': 'Event',
   'reservations.type.tour': 'Tour',
   'reservations.type.other': 'Other',
+  'reservations.type.bus': 'Bus',
+  'reservations.type.ferry': 'Ferry',
+  'reservations.type.bicycle': 'Bicycle',
+  'reservations.type.taxi': 'Taxi',
+  'reservations.type.transport_other': 'Other',
   'reservations.confirm.delete':
     'Are you sure you want to delete the reservation "{name}"?',
   'reservations.confirm.deleteTitle': 'Delete booking?',

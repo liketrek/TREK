@@ -4,7 +4,7 @@ import { calculateRouteWithLegs } from '../components/Map/RouteCalculator'
 import type { TripStoreState } from '../store/tripStore'
 import type { RouteSegment, RouteResult } from '../types'
 
-const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'cruise']
+const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transport_other']
 
 /**
  * Manages route calculation state for a selected day. Extracts geo-coded waypoints from

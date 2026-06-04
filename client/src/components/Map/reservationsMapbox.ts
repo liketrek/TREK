@@ -9,14 +9,14 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import mapboxgl from 'mapbox-gl'
-import { Plane, Train, Ship, Car } from 'lucide-react'
+import { Plane, Train, Ship, Car, Bus, Sailboat, Bike, CarTaxiFront, Route } from 'lucide-react'
 import type { Reservation, ReservationEndpoint } from '../../types'
 
 export const RESERVATION_SOURCE_ID = 'trek-reservations'
 export const RESERVATION_LINE_LAYER_ID = 'trek-reservations-lines'
 
-type TransportType = 'flight' | 'train' | 'cruise' | 'car'
-const TRANSPORT_TYPES: TransportType[] = ['flight', 'train', 'cruise', 'car']
+type TransportType = 'flight' | 'train' | 'cruise' | 'car' | 'bus' | 'taxi' | 'bicycle' | 'ferry' | 'transport_other'
+const TRANSPORT_TYPES: TransportType[] = ['flight', 'train', 'cruise', 'car', 'bus', 'taxi', 'bicycle', 'ferry', 'transport_other']
 const TRANSPORT_COLOR = '#3b82f6'
 
 const TYPE_META: Record<TransportType, { icon: typeof Plane; geodesic: boolean }> = {
@@ -24,6 +24,11 @@ const TYPE_META: Record<TransportType, { icon: typeof Plane; geodesic: boolean }
   train: { icon: Train, geodesic: false },
   cruise: { icon: Ship, geodesic: true },
   car: { icon: Car, geodesic: false },
+  bus: { icon: Bus, geodesic: false },
+  taxi: { icon: CarTaxiFront, geodesic: false },
+  bicycle: { icon: Bike, geodesic: false },
+  ferry: { icon: Sailboat, geodesic: true },
+  transport_other: { icon: Route, geodesic: false },
 }
 
 // ── geometry helpers (ported from ReservationOverlay.tsx) ────────────────

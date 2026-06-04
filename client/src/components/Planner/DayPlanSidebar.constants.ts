@@ -1,10 +1,10 @@
 import {
   FileText, Info, Clock, MapPin, Navigation, Train, Plane, Bus, Car, Ship,
   Coffee, Ticket, Star, Heart, Camera, Flag, Lightbulb, AlertTriangle,
-  ShoppingBag, Bookmark, Hotel, Utensils, Users,
+  ShoppingBag, Bookmark, Hotel, Utensils, Users, Sailboat, Bike, CarTaxiFront, Route,
 } from 'lucide-react'
 
-export const RES_ICONS = { flight: Plane, hotel: Hotel, restaurant: Utensils, train: Train, car: Car, cruise: Ship, event: Ticket, tour: Users, other: FileText }
+export const RES_ICONS = { flight: Plane, hotel: Hotel, restaurant: Utensils, train: Train, car: Car, cruise: Ship, bus: Bus, ferry: Sailboat, bicycle: Bike, taxi: CarTaxiFront, transport_other: Route, event: Ticket, tour: Users, other: FileText }
 
 export const NOTE_ICONS = [
   { id: 'FileText', Icon: FileText },
@@ -33,7 +33,8 @@ export function getNoteIcon(iconId) { return NOTE_ICON_MAP[iconId] || FileText }
 
 export const TYPE_ICONS = {
   flight: '✈️', hotel: '🏨', restaurant: '🍽️', train: '🚆',
-  car: '🚗', cruise: '🚢', event: '🎫', other: '📋',
+  car: '🚗', cruise: '🚢', bus: '🚌', ferry: '⛴️', bicycle: '🚲', taxi: '🚕',
+  transport_other: '🧭', event: '🎫', other: '📋',
 }
 
-export const TRANSPORT_DETAIL_COLORS = { flight: '#3b82f6', train: '#06b6d4', bus: '#f59e0b', car: '#6b7280', cruise: '#0ea5e9' }
+export const TRANSPORT_DETAIL_COLORS = { flight: '#3b82f6', train: '#06b6d4', bus: '#059669', ferry: '#0d9488', bicycle: '#84cc16', taxi: '#ca8a04', car: '#6b7280', cruise: '#0ea5e9', transport_other: '#6b7280' }

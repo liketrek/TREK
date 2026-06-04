@@ -1,4 +1,4 @@
-import { FileText, FileImage, File, Plane, Train, Car, Ship } from 'lucide-react'
+import { FileText, FileImage, File, Plane, Train, Car, Ship, Bus, Sailboat, Bike, CarTaxiFront, Route } from 'lucide-react'
 import { downloadFile } from '../../utils/fileDownload'
 
 export function isImage(mimeType?: string | null) {
@@ -33,7 +33,12 @@ export function formatDateWithLocale(dateStr?: string | null, locale?: string) {
 
 export function transportIcon(type: string) {
   if (type === 'train') return Train
+  if (type === 'bus') return Bus
   if (type === 'car') return Car
+  if (type === 'taxi') return CarTaxiFront
+  if (type === 'bicycle') return Bike
   if (type === 'cruise') return Ship
+  if (type === 'ferry') return Sailboat
+  if (type === 'transport_other') return Route
   return Plane
 }
