@@ -253,7 +253,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
             <h3 className="text-content" style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-0.025em', margin: 0 }}>
-              {t('costs.expenses')} <span className="bg-surface-secondary border border-edge text-content-muted" style={{ fontSize: 12.5, fontWeight: 600, padding: '3px 11px', borderRadius: 999, alignSelf: 'center' }}>{t('costs.entries', { count: budgetItems.length })}</span>
+              {t('costs.expenses')}
             </h3>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <div className="bg-surface-input border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 6, borderRadius: 10, padding: '0 10px', height: 34 }}>
@@ -361,9 +361,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
         .costs-root .text-content { color: var(--c-ink) !important; }
         .costs-root .text-content-muted { color: var(--c-ink2) !important; }
         .costs-root .text-content-faint { color: var(--c-ink3) !important; }
-        .costs-root .exp-actions { opacity: 0; transition: opacity .12s ease; }
-        .costs-root .exp-row:hover .exp-actions { opacity: 1; }
-        @media (hover: none) { .costs-root .exp-actions { opacity: 1; } }
+        .costs-root .exp-actions { opacity: 1; }
         @media (max-width: 1100px) {
           .costs-root .costs-summary { grid-template-columns: 1fr !important; }
           .costs-root .costs-grid { grid-template-columns: 1fr !important; }
@@ -445,7 +443,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
 
         {/* Expenses */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div className="text-content" style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-0.02em', display: 'flex', alignItems: 'baseline', gap: 8 }}>{t('costs.expenses')} <span className="bg-surface-secondary border border-edge text-content-muted" style={{ fontSize: 11.5, fontWeight: 600, padding: '3px 10px', borderRadius: 999, alignSelf: 'center' }}>{t('costs.entries', { count: budgetItems.length })}</span></div>
+          <div className="text-content" style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-0.02em' }}>{t('costs.expenses')}</div>
           <div className="bg-surface-card border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 12, padding: '0 12px', height: 42 }}>
             <Search size={16} className="text-content-faint" />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('costs.searchPlaceholder')} className="text-content" style={{ border: 0, background: 'none', outline: 'none', fontSize: 14, width: '100%', fontFamily: 'inherit' }} />
