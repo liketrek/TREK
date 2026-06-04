@@ -24,6 +24,7 @@ COPY --from=client-builder /app/client/dist ./public
 COPY --from=client-builder /app/client/public/fonts ./public/fonts
 
 RUN rm -f package-lock.json && \
+    mkdir -p /tmp/tsx-1000 && \
     mkdir -p /app/data/logs /app/uploads/files /app/uploads/covers /app/uploads/avatars /app/uploads/photos && \
     mkdir -p /app/server && ln -s /app/uploads /app/server/uploads && ln -s /app/data /app/server/data && \
     chown -R node:node /app
