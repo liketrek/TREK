@@ -7,7 +7,7 @@ import { authenticator } from 'otplib';
 import QRCode from 'qrcode';
 import { randomBytes, createHash } from 'crypto';
 import { db } from '../db/database';
-import { JWT_SECRET } from '../config';
+import { JWT_SECRET, SESSION_DURATION_SECONDS } from '../config';
 import { validatePassword } from './passwordPolicy';
 import { encryptMfaSecret, decryptMfaSecret } from './mfaCrypto';
 import { getAllPermissions } from './permissions';
@@ -177,7 +177,7 @@ export function generateToken(user: { id: number | bigint; password_version?: nu
   return jwt.sign(
     { id: user.id, pv },
     JWT_SECRET,
-    { expiresIn: '24h', algorithm: 'HS256' }
+    { expiresIn: SESSION_DURATION_SECONDS, algorithm: 'HS256' }
   );
 }
 

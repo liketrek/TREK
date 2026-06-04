@@ -22,6 +22,7 @@ Complete reference for all environment variables TREK reads.
 | `TZ` | Timezone for logs, reminders, and cron jobs (e.g. `Europe/Berlin`) | `UTC` |
 | `LOG_LEVEL` | `info` = concise user actions; `debug` = verbose details | `info` |
 | `DEFAULT_LANGUAGE` | Default language on the login page — see supported codes below | `en` |
+| `SESSION_DURATION` | How long a login session stays valid before re-login is required. Applies to both the `trek_session` JWT `exp` claim and the cookie `maxAge`, so they never drift apart. Accepts `ms`-style strings: `1h`, `12h`, `7d`, `30d`, `90d`. Invalid values warn at startup and fall back to the default. Does not affect the short-lived MFA challenge token or MCP OAuth tokens (those keep their own TTL). | `24h` |
 | `ALLOWED_ORIGINS` | Comma-separated origins for CORS and email notification links | same-origin |
 | `ALLOW_INTERNAL_NETWORK` | Allow outbound requests to private/RFC-1918 IPs. Set `true` if Immich or other integrated services are on your local network. Loopback (`127.x`) and link-local (`169.254.x`) addresses remain blocked regardless. | `false` |
 | `APP_URL` | Public base URL (e.g. `https://trek.example.com`). Required when OIDC is enabled — must match the redirect URI registered with your IdP. Also used as the base URL for email notification links. | — |

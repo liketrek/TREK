@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { db } from '../db/database';
-import { JWT_SECRET } from '../config';
+import { JWT_SECRET, SESSION_DURATION_SECONDS } from '../config';
 import { User } from '../types';
 import { decrypt_api_key } from './apiKeyCrypto';
 import { resolveAuthToggles } from './authService';
@@ -200,7 +200,7 @@ export function frontendUrl(path: string): string {
 }
 
 export function generateToken(user: { id: number }): string {
-  return jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '24h', algorithm: 'HS256' });
+  return jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: SESSION_DURATION_SECONDS, algorithm: 'HS256' });
 }
 
 // ---------------------------------------------------------------------------

@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { SESSION_DURATION_MS } from '../config';
 
 const COOKIE_NAME = 'trek_session';
 
@@ -32,7 +33,7 @@ function buildOptions(clear: boolean, secure: boolean) {
     secure,
     sameSite: 'lax' as const,
     path: '/',
-    ...(clear ? {} : { maxAge: 24 * 60 * 60 * 1000 }), // 24h — matches JWT expiry
+    ...(clear ? {} : { maxAge: SESSION_DURATION_MS }), // matches the JWT expiry (SESSION_DURATION)
   };
 }
 
