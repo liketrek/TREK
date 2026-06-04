@@ -392,7 +392,7 @@ export class JourneyController {
   // ── Share Link ──────────────────────────────────────────────────────────
   @Get(':id/share-link')
   getShareLink(@CurrentUser() user: User, @Param('id') id: string) {
-    return { link: this.journey.getJourneyShareLink(Number(id)) };
+    return { link: this.journey.getJourneyShareLink(Number(id), user.id) };
   }
 
   @Post(':id/share-link')

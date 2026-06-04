@@ -61,7 +61,13 @@ export class JourneyService {
   removeContributor(id: number, userId: number, targetUserId: number) { return svc.removeContributor(id, userId, targetUserId); }
 
   // Share links
-  getJourneyShareLink(id: number) { return share.getJourneyShareLink(id); }
+  // Authorization: only someone with access to the journey may read its public
+  // share token — same access model as create/delete here and the
+  // get_journey_share_link MCP tool.
+  getJourneyShareLink(id: number, userId: number) {
+    if (!svc.canAccessJourney(id, userId)) return null;
+    return share.getJourneyShareLink(id);
+  }
   createOrUpdateJourneyShareLink(id: number, userId: number, data: Parameters<typeof share.createOrUpdateJourneyShareLink>[2]) { return share.createOrUpdateJourneyShareLink(id, userId, data); }
   deleteJourneyShareLink(id: number, userId: number) { return share.deleteJourneyShareLink(id, userId); }
 
