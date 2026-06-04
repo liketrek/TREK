@@ -193,7 +193,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
   return (
     <div className="costs-root" style={{ minHeight: '100%', background: 'var(--c-bg)', padding: isMobile ? '6px 14px 28px' : '40px 24px 48px' }}>
      {isMobile ? <MobileBody /> : (
-     <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+     <div style={{ maxWidth: '100%', margin: '0 auto' }}>
       {/* ── Header bar ── */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, marginBottom: 28, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -253,7 +253,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
             <h3 className="text-content" style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-0.025em', margin: 0 }}>
-              {t('costs.expenses')} <span className="text-content-faint" style={{ fontSize: 13, fontWeight: 500 }}>{t('costs.entries', { count: budgetItems.length })}</span>
+              {t('costs.expenses')} <span className="bg-surface-secondary border border-edge text-content-muted" style={{ fontSize: 12.5, fontWeight: 600, padding: '3px 11px', borderRadius: 999, alignSelf: 'center' }}>{t('costs.entries', { count: budgetItems.length })}</span>
             </h3>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <div className="bg-surface-input border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 6, borderRadius: 10, padding: '0 10px', height: 34 }}>
@@ -340,14 +340,24 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
           --c-line: oklch(0.92 0.008 70);
         }
         html.dark .costs-root {
-          --c-bg: oklch(0.205 0.008 65); --c-bg2: oklch(0.255 0.008 65);
-          --c-surface: oklch(0.255 0.008 65); --c-surface2: oklch(0.295 0.008 65);
-          --c-ink: oklch(0.96 0.005 78); --c-ink2: oklch(0.74 0.008 65); --c-ink3: oklch(0.56 0.008 65);
-          --c-line: oklch(0.34 0.008 65);
+          --c-bg: #121215; --c-bg2: #18181c;
+          --c-surface: #1a1a1e; --c-surface2: #202027;
+          --c-ink: #f4f4f5; --c-ink2: #a1a1aa; --c-ink3: #71717a;
+          --c-line: #2a2a31;
         }
         .costs-root .bg-surface-card { background: var(--c-surface) !important; }
         .costs-root .bg-surface-secondary, .costs-root .bg-surface-input { background: var(--c-surface2) !important; }
         .costs-root .border-edge { border-color: var(--c-line) !important; }
+        /* dark = neutral zinc + a touch of liquid glass, matching the dashboard */
+        html.dark .costs-root .bg-surface-card {
+          background: rgba(255,255,255,0.035) !important;
+          border-color: rgba(255,255,255,0.08) !important;
+          backdrop-filter: blur(20px) saturate(1.4);
+          -webkit-backdrop-filter: blur(20px) saturate(1.4);
+        }
+        html.dark .costs-root .bg-surface-secondary,
+        html.dark .costs-root .bg-surface-input { background: rgba(255,255,255,0.05) !important; }
+        html.dark .costs-root .border-edge { border-color: rgba(255,255,255,0.08) !important; }
         .costs-root .text-content { color: var(--c-ink) !important; }
         .costs-root .text-content-muted { color: var(--c-ink2) !important; }
         .costs-root .text-content-faint { color: var(--c-ink3) !important; }
@@ -435,7 +445,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
 
         {/* Expenses */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div className="text-content" style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-0.02em', display: 'flex', alignItems: 'baseline', gap: 8 }}>{t('costs.expenses')} <span className="text-content-faint" style={{ fontSize: 12, fontWeight: 500 }}>{t('costs.entries', { count: budgetItems.length })}</span></div>
+          <div className="text-content" style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-0.02em', display: 'flex', alignItems: 'baseline', gap: 8 }}>{t('costs.expenses')} <span className="bg-surface-secondary border border-edge text-content-muted" style={{ fontSize: 11.5, fontWeight: 600, padding: '3px 10px', borderRadius: 999, alignSelf: 'center' }}>{t('costs.entries', { count: budgetItems.length })}</span></div>
           <div className="bg-surface-card border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 12, padding: '0 12px', height: 42 }}>
             <Search size={16} className="text-content-faint" />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('costs.searchPlaceholder')} className="text-content" style={{ border: 0, background: 'none', outline: 'none', fontSize: 14, width: '100%', fontFamily: 'inherit' }} />

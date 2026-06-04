@@ -88,7 +88,7 @@ describe('Tool: create_budget_item', () => {
         arguments: { tripId: trip.id, name: 'Misc', total_price: 10 },
       });
       const data = parseToolResult(result) as any;
-      expect(data.item.category).toBe('Other');
+      expect(data.item.category).toBe('other');
     });
   });
 
