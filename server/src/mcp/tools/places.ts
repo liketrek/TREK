@@ -10,7 +10,7 @@ import { searchPlaces } from '../../services/mapsService';
 import {
   safeBroadcast, TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, noAccess, ok,
+  demoDenied, noAccess, ok, hasTripPermission, permissionDenied,
 } from './_shared';
 import { canRead, canWrite } from '../scopes';
 
@@ -45,6 +45,7 @@ export function registerPlaceTools(server: McpServer, userId: number, scopes: st
     async ({ tripId, name, description, lat, lng, address, category_id, google_place_id, osm_id, notes, website, phone, price, currency }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('place_edit', tripId, userId)) return permissionDenied();
       const place = createPlace(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, osm_id, notes, website, phone, price, currency });
       safeBroadcast(tripId, 'place:created', { place });
       return ok({ place });
@@ -78,6 +79,7 @@ export function registerPlaceTools(server: McpServer, userId: number, scopes: st
     async ({ tripId, dayId, name, description, lat, lng, address, category_id, google_place_id, osm_id, place_notes, website, phone, assignment_notes, price, currency }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('place_edit', tripId, userId)) return permissionDenied();
       if (!dayExists(dayId, tripId)) return { content: [{ type: 'text' as const, text: 'Day not found.' }], isError: true };
       try {
         const run = db.transaction(() => {
@@ -125,6 +127,7 @@ export function registerPlaceTools(server: McpServer, userId: number, scopes: st
     async ({ tripId, placeId, name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, transport_mode, osm_id, google_place_id }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('place_edit', tripId, userId)) return permissionDenied();
       const place = updatePlace(String(tripId), String(placeId), { name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, transport_mode, osm_id, google_place_id });
       if (!place) return { content: [{ type: 'text' as const, text: 'Place not found.' }], isError: true };
       safeBroadcast(tripId, 'place:updated', { place });
@@ -145,6 +148,7 @@ export function registerPlaceTools(server: McpServer, userId: number, scopes: st
     async ({ tripId, placeId }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('place_edit', tripId, userId)) return permissionDenied();
       const deleted = deletePlace(String(tripId), String(placeId));
       if (!deleted) return { content: [{ type: 'text' as const, text: 'Place not found.' }], isError: true };
       safeBroadcast(tripId, 'place:deleted', { placeId });
@@ -222,6 +226,7 @@ export function registerPlaceTools(server: McpServer, userId: number, scopes: st
     async ({ tripId, url, source }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('place_edit', tripId, userId)) return permissionDenied();
 
       const result = source === 'google-list'
         ? await importGoogleList(String(tripId), url)
@@ -251,6 +256,7 @@ export function registerPlaceTools(server: McpServer, userId: number, scopes: st
     async ({ tripId, placeIds }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('place_edit', tripId, userId)) return permissionDenied();
 
       const deleted = deletePlacesMany(String(tripId), placeIds);
       for (const id of deleted) {

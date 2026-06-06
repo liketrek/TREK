@@ -229,7 +229,7 @@ export class BudgetController {
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    const member = this.budget.toggleMemberPaid(id, userId, paid);
+    const member = this.budget.toggleMemberPaid(id, tripId, userId, paid);
     this.budget.broadcast(tripId, 'budget:member-paid-updated', { itemId: Number(id), userId: Number(userId), paid: paid ? 1 : 0 }, socketId);
     return { member };
   }

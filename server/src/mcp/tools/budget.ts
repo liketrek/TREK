@@ -10,7 +10,7 @@ import {
 import {
   safeBroadcast, TOOL_ANNOTATIONS_WRITE, TOOL_ANNOTATIONS_DELETE,
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, noAccess, ok,
+  demoDenied, noAccess, ok, hasTripPermission, permissionDenied,
 } from './_shared';
 import { canWrite } from '../scopes';
 import { isAddonEnabled } from '../../services/adminService';
@@ -38,6 +38,7 @@ export function registerBudgetTools(server: McpServer, userId: number, scopes: s
     async ({ tripId, name, category, total_price, note }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('budget_edit', tripId, userId)) return permissionDenied();
       const item = createBudgetItem(tripId, { category, name, total_price, note });
       safeBroadcast(tripId, 'budget:created', { item });
       return ok({ item });
@@ -57,6 +58,7 @@ export function registerBudgetTools(server: McpServer, userId: number, scopes: s
     async ({ tripId, itemId }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('budget_edit', tripId, userId)) return permissionDenied();
       const deleted = deleteBudgetItem(itemId, tripId);
       if (!deleted) return { content: [{ type: 'text' as const, text: 'Budget item not found.' }], isError: true };
       safeBroadcast(tripId, 'budget:deleted', { itemId });
@@ -85,6 +87,7 @@ export function registerBudgetTools(server: McpServer, userId: number, scopes: s
     async ({ tripId, itemId, name, category, total_price, persons, days, note }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('budget_edit', tripId, userId)) return permissionDenied();
       const item = updateBudgetItem(itemId, tripId, { name, category, total_price, persons, days, note });
       if (!item) return { content: [{ type: 'text' as const, text: 'Budget item not found.' }], isError: true };
       safeBroadcast(tripId, 'budget:updated', { item });
@@ -111,6 +114,7 @@ export function registerBudgetTools(server: McpServer, userId: number, scopes: s
     async ({ tripId, name, category, total_price, note, userIds }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('budget_edit', tripId, userId)) return permissionDenied();
       const hasMembers = userIds && userIds.length > 0;
       try {
         const run = db.transaction(() => {
@@ -144,6 +148,7 @@ export function registerBudgetTools(server: McpServer, userId: number, scopes: s
     async ({ tripId, itemId, userIds }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('budget_edit', tripId, userId)) return permissionDenied();
       const item = updateBudgetMembers(itemId, tripId, userIds);
       safeBroadcast(tripId, 'budget:members-updated', { item });
       return ok({ item });
@@ -165,7 +170,8 @@ export function registerBudgetTools(server: McpServer, userId: number, scopes: s
     async ({ tripId, itemId, memberId, paid }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
-      const member = toggleMemberPaid(itemId, memberId, paid);
+      if (!hasTripPermission('budget_edit', tripId, userId)) return permissionDenied();
+      const member = toggleMemberPaid(itemId, tripId, memberId, paid);
       safeBroadcast(tripId, 'budget:member-paid-updated', { itemId, member });
       return ok({ member });
     }

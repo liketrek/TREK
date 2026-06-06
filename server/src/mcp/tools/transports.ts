@@ -9,7 +9,7 @@ import { linkBudgetItemToReservation } from '../../services/budgetService';
 import { getDay } from '../../services/dayService';
 import {
   safeBroadcast, TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  TOOL_ANNOTATIONS_WRITE, demoDenied, noAccess, ok,
+  TOOL_ANNOTATIONS_WRITE, demoDenied, noAccess, ok, hasTripPermission, permissionDenied,
 } from './_shared';
 import { canWrite } from '../scopes';
 
@@ -56,6 +56,7 @@ export function registerTransportTools(server: McpServer, userId: number, scopes
     async ({ tripId, type, title, status, start_day_id, end_day_id, reservation_time, reservation_end_time, confirmation_number, notes, metadata, endpoints, needs_review, price, budget_category }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('reservation_edit', tripId, userId)) return permissionDenied();
 
       if (start_day_id && !getDay(start_day_id, tripId))
         return { content: [{ type: 'text' as const, text: 'start_day_id does not belong to this trip.' }], isError: true };
@@ -120,6 +121,7 @@ export function registerTransportTools(server: McpServer, userId: number, scopes
     async ({ tripId, reservationId, type, title, status, start_day_id, end_day_id, reservation_time, reservation_end_time, confirmation_number, notes, metadata, endpoints, needs_review }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('reservation_edit', tripId, userId)) return permissionDenied();
 
       const existing = getReservation(reservationId, tripId);
       if (!existing) return { content: [{ type: 'text' as const, text: 'Transport not found.' }], isError: true };
@@ -165,6 +167,7 @@ export function registerTransportTools(server: McpServer, userId: number, scopes
     async ({ tripId, reservationId }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('reservation_edit', tripId, userId)) return permissionDenied();
       const { deleted } = deleteReservation(reservationId, tripId);
       if (!deleted) return { content: [{ type: 'text' as const, text: 'Transport not found.' }], isError: true };
       safeBroadcast(tripId, 'reservation:deleted', { reservationId });

@@ -57,8 +57,8 @@ export class BudgetService {
     return svc.updateMembers(id, tripId, userIds);
   }
 
-  toggleMemberPaid(id: string, userId: string, paid: boolean) {
-    return svc.toggleMemberPaid(id, userId, paid);
+  toggleMemberPaid(id: string, tripId: string, userId: string, paid: boolean) {
+    return svc.toggleMemberPaid(id, tripId, userId, paid);
   }
 
   setPayers(id: string, tripId: string, payers: { user_id: number; amount: number }[]) {

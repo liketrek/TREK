@@ -280,7 +280,11 @@ export function updateMembers(id: string | number, tripId: string | number, user
   return { members, item: updated };
 }
 
-export function toggleMemberPaid(id: string | number, userId: string | number, paid: boolean) {
+export function toggleMemberPaid(id: string | number, tripId: string | number, userId: string | number, paid: boolean) {
+  // Resolve the item within the caller's trip before updating.
+  const item = db.prepare('SELECT id FROM budget_items WHERE id = ? AND trip_id = ?').get(id, tripId);
+  if (!item) return null;
+
   db.prepare('UPDATE budget_item_members SET paid = ? WHERE budget_item_id = ? AND user_id = ?')
     .run(paid ? 1 : 0, id, userId);
 

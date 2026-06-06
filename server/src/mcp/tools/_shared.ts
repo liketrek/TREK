@@ -1,4 +1,6 @@
 import { broadcast } from '../../websocket';
+import { db } from '../../db/database';
+import { checkPermission } from '../../services/permissions';
 
 export function safeBroadcast(tripId: number, event: string, payload: Record<string, unknown>): void {
   try {
@@ -44,6 +46,24 @@ export function demoDenied() {
 
 export function noAccess() {
   return { content: [{ type: 'text' as const, text: 'Trip not found or access denied.' }], isError: true };
+}
+
+export function permissionDenied() {
+  return { content: [{ type: 'text' as const, text: 'You do not have permission to perform this action on this trip.' }], isError: true };
+}
+
+/**
+ * RBAC gate for MCP tools, mirroring the checkPermission() calls the REST/Nest
+ * routes run. Call this after canAccessTrip() with the same action key the
+ * matching REST route uses. Returns true when the user may perform `action`
+ * on `tripId`.
+ */
+export function hasTripPermission(action: string, tripId: number | string, userId: number): boolean {
+  const trip = db.prepare('SELECT user_id FROM trips WHERE id = ?').get(tripId) as { user_id?: number } | undefined;
+  if (!trip) return false;
+  const userRow = db.prepare('SELECT role FROM users WHERE id = ?').get(userId) as { role?: string } | undefined;
+  const tripOwnerId = typeof trip.user_id === 'number' ? trip.user_id : null;
+  return checkPermission(action, userRow?.role ?? 'user', tripOwnerId, userId, tripOwnerId !== userId);
 }
 
 export function ok(data: unknown) {

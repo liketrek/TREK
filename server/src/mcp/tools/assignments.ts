@@ -13,7 +13,7 @@ import { getDay } from '../../services/dayService';
 import {
   safeBroadcast, TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE, TOOL_ANNOTATIONS_DELETE,
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, noAccess, ok,
+  demoDenied, noAccess, ok, hasTripPermission, permissionDenied,
 } from './_shared';
 import { canRead, canWrite } from '../scopes';
 
@@ -38,6 +38,7 @@ export function registerAssignmentTools(server: McpServer, userId: number, scope
     async ({ tripId, dayId, placeId, notes }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('day_edit', tripId, userId)) return permissionDenied();
       if (!dayExists(dayId, tripId)) return { content: [{ type: 'text' as const, text: 'Day not found.' }], isError: true };
       if (!placeExists(placeId, tripId)) return { content: [{ type: 'text' as const, text: 'Place not found.' }], isError: true };
       const assignment = createAssignment(dayId, placeId, notes || null);
@@ -60,6 +61,7 @@ export function registerAssignmentTools(server: McpServer, userId: number, scope
     async ({ tripId, dayId, assignmentId }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('day_edit', tripId, userId)) return permissionDenied();
       if (!assignmentExistsInDay(assignmentId, dayId, tripId))
         return { content: [{ type: 'text' as const, text: 'Assignment not found.' }], isError: true };
       deleteAssignment(assignmentId);
@@ -83,6 +85,7 @@ export function registerAssignmentTools(server: McpServer, userId: number, scope
     async ({ tripId, assignmentId, place_time, end_time }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('day_edit', tripId, userId)) return permissionDenied();
       const existing = getAssignmentForTrip(assignmentId, tripId);
       if (!existing) return { content: [{ type: 'text' as const, text: 'Assignment not found.' }], isError: true };
       const assignment = updateTime(
@@ -111,6 +114,7 @@ export function registerAssignmentTools(server: McpServer, userId: number, scope
     async ({ tripId, assignmentId, newDayId, oldDayId, orderIndex }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('day_edit', tripId, userId)) return permissionDenied();
       if (!getAssignmentForTrip(assignmentId, tripId)) return { content: [{ type: 'text' as const, text: 'Assignment not found.' }], isError: true };
       if (!getDay(newDayId, tripId)) return { content: [{ type: 'text' as const, text: 'Day not found.' }], isError: true };
       const result = moveAssignment(assignmentId, newDayId, orderIndex ?? 0, oldDayId);
@@ -151,6 +155,7 @@ export function registerAssignmentTools(server: McpServer, userId: number, scope
     async ({ tripId, assignmentId, userIds }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('day_edit', tripId, userId)) return permissionDenied();
       if (!getAssignmentForTrip(assignmentId, tripId)) return { content: [{ type: 'text' as const, text: 'Assignment not found.' }], isError: true };
       const participants = setAssignmentParticipants(assignmentId, userIds);
       safeBroadcast(tripId, 'assignment:participants', { assignmentId, participants });
@@ -174,6 +179,7 @@ export function registerAssignmentTools(server: McpServer, userId: number, scope
     async ({ tripId, dayId, assignmentIds }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('day_edit', tripId, userId)) return permissionDenied();
       if (!getDay(dayId, tripId)) return { content: [{ type: 'text' as const, text: 'Day not found.' }], isError: true };
       reorderAssignments(dayId, assignmentIds);
       safeBroadcast(tripId, 'assignment:reordered', { dayId, assignmentIds });
