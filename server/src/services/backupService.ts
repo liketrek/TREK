@@ -15,7 +15,10 @@ const dataDir = path.join(__dirname, '../../data');
 const backupsDir = path.join(dataDir, 'backups');
 const uploadsDir = path.join(__dirname, '../../uploads');
 
-export const MAX_BACKUP_UPLOAD_SIZE = 500 * 1024 * 1024; // 500 MB
+export const MAX_BACKUP_UPLOAD_SIZE = 500 * 1024 * 1024; // 500 MB compressed
+// Upper bound on the TOTAL decompressed size of a restore archive (the upload
+// limit only caps the compressed bytes). Generous enough for any real backup.
+export const MAX_BACKUP_DECOMPRESSED_SIZE = 5 * 1024 * 1024 * 1024; // 5 GB
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -187,6 +190,14 @@ export async function restoreFromZip(zipPath: string): Promise<RestoreResult> {
   const extractDir = path.join(dataDir, `restore-${Date.now()}`);
   let reinitFailed: unknown = null;
   try {
+    // Check the declared uncompressed size from the central directory and bail
+    // if it exceeds the cap, before extracting anything.
+    const directory = await unzipper.Open.file(zipPath);
+    const claimedSize = directory.files.reduce((sum, f) => sum + (f.uncompressedSize || 0), 0);
+    if (claimedSize > MAX_BACKUP_DECOMPRESSED_SIZE) {
+      return { success: false, error: 'Backup exceeds the maximum decompressed size.', status: 400 };
+    }
+
     await fs.createReadStream(zipPath)
       .pipe(unzipper.Extract({ path: extractDir }))
       .promise();

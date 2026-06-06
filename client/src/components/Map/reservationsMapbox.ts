@@ -10,6 +10,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import mapboxgl from 'mapbox-gl'
 import { Plane, Train, Ship, Car, Bus, Sailboat, Bike, CarTaxiFront, Route } from 'lucide-react'
+import { escapeHtml } from '@trek/shared'
 import type { Reservation, ReservationEndpoint } from '../../types'
 
 export const RESERVATION_SOURCE_ID = 'trek-reservations'
@@ -161,7 +162,7 @@ function buildItems(reservations: Reservation[]): TransportItem[] {
 function endpointMarkerHtml(type: TransportType, label: string | null): string {
   const { icon: IconCmp } = TYPE_META[type]
   const svg = renderToStaticMarkup(createElement(IconCmp, { size: 13, color: 'white', strokeWidth: 2.5 }))
-  const labelHtml = label ? `<span style="display:inline-flex;align-items:center;line-height:1">${label}</span>` : ''
+  const labelHtml = label ? `<span style="display:inline-flex;align-items:center;line-height:1">${escapeHtml(label)}</span>` : ''
   return `<div style="
     display:inline-flex;align-items:center;justify-content:center;gap:4px;
     padding:0 8px;border-radius:999px;
@@ -179,8 +180,8 @@ function buildStatsHtml(mainLabel: string | null, subLabel: string | null): { ht
   ) + 22
   const hasBoth = !!mainLabel && !!subLabel
   const height = hasBoth ? 36 : 22
-  const main = mainLabel ? `<span style="font-size:12px;font-weight:700;line-height:1;display:block">${mainLabel}</span>` : ''
-  const sub = subLabel ? `<span style="font-size:10px;font-weight:500;line-height:1;opacity:0.85;display:block${hasBoth ? ';margin-top:4px' : ''}">${subLabel}</span>` : ''
+  const main = mainLabel ? `<span style="font-size:12px;font-weight:700;line-height:1;display:block">${escapeHtml(mainLabel)}</span>` : ''
+  const sub = subLabel ? `<span style="font-size:10px;font-weight:500;line-height:1;opacity:0.85;display:block${hasBoth ? ';margin-top:4px' : ''}">${escapeHtml(subLabel)}</span>` : ''
   const html = `<div class="trek-stats-inner" style="
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     width:100%;height:100%;

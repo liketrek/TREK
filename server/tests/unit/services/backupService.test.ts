@@ -33,6 +33,9 @@ const archiverMock = vi.hoisted(() => vi.fn());
 
 const unzipperMock = vi.hoisted(() => ({
   Extract: vi.fn(),
+  // Central-directory reader used for the pre-extract zip-bomb size check.
+  // Default to an empty archive so existing restore tests proceed to Extract.
+  Open: { file: vi.fn().mockResolvedValue({ files: [] }) },
 }));
 
 const dbMock = vi.hoisted(() => ({
@@ -531,6 +534,19 @@ describe('BACKUP-038 restoreFromZip', () => {
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/travel\.db not found/i);
     expect(result.status).toBe(400);
+  });
+
+  it('BACKUP-038b — rejects a zip bomb whose declared decompressed size exceeds the cap', async () => {
+    unzipperMock.Open.file.mockResolvedValueOnce({
+      files: [{ uncompressedSize: 6 * 1024 * 1024 * 1024 }], // 6 GB > 5 GB cap
+    });
+
+    const result = await restoreFromZip('/data/tmp/bomb.zip');
+
+    expect(result.success).toBe(false);
+    expect(result.status).toBe(400);
+    expect(result.error).toMatch(/decompressed size/i);
+    expect(unzipperMock.Extract).not.toHaveBeenCalled(); // bailed before extracting
   });
 });
 

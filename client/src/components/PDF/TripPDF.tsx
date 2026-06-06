@@ -569,7 +569,9 @@ ${daysHtml}
 
   const iframe = document.createElement('iframe')
   iframe.style.cssText = 'flex:1;width:100%;border:none;'
-  iframe.sandbox = 'allow-same-origin allow-modals allow-scripts'
+  // No script runs inside the document (print is parent-initiated), so withhold
+  // allow-scripts to keep the sandbox tight.
+  iframe.sandbox = 'allow-same-origin allow-modals'
   iframe.srcdoc = html
 
   card.appendChild(header)

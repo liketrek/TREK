@@ -107,6 +107,9 @@ export function applyGlobalMiddleware(
         objectSrc: ["'none'"],
         frameSrc: ["'none'"],
         frameAncestors: ["'self'"],
+        // Restrict <form> submission targets (form-action has no default-src
+        // fallback, so it must be set explicitly).
+        formAction: ["'self'"],
         upgradeInsecureRequests: shouldForceHttps ? [] : null
       }
     },

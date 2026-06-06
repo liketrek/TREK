@@ -318,10 +318,12 @@ export function deleteTrip(tripId: string | number, userId: number, userRole: st
 
 export function deleteOldCover(coverImage: string | null | undefined) {
   if (!coverImage) return;
-  const oldPath = path.join(__dirname, '../../', coverImage.replace(/^\//, ''));
-  const resolvedPath = path.resolve(oldPath);
-  const uploadsDir = path.resolve(__dirname, '../../uploads');
-  if (resolvedPath.startsWith(uploadsDir) && fs.existsSync(resolvedPath)) {
+  // cover_image is client-supplied, so treat it as untrusted: covers live in
+  // uploads/covers as a flat filename — use basename() and confine the unlink
+  // to that directory.
+  const coversDir = path.resolve(__dirname, '../../uploads/covers');
+  const resolvedPath = path.resolve(path.join(coversDir, path.basename(coverImage)));
+  if (resolvedPath.startsWith(coversDir + path.sep) && fs.existsSync(resolvedPath)) {
     fs.unlinkSync(resolvedPath);
   }
 }

@@ -34,7 +34,8 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createReservation, createPlace, createDay, createDayAssignment, createDayNote } from '../../helpers/factories';
-import { exportICS, generateDays } from '../../../src/services/tripService';
+import { exportICS, generateDays, deleteOldCover } from '../../../src/services/tripService';
+import fs from 'fs';
 
 beforeAll(() => {
   createTables(testDb);
@@ -395,5 +396,43 @@ describe('exportICS', () => {
     const { ics } = exportICS(trip.id);
 
     expect(ics).toContain('DTEND:20250602T160000');
+  });
+});
+
+// ── deleteOldCover — path containment ──────────────────────────────────────────
+
+describe('deleteOldCover', () => {
+  it('TRIP-SVC-COVER-001: never unlinks outside uploads/covers for a crafted cover_image', () => {
+    const existsSpy = vi.spyOn(fs, 'existsSync').mockReturnValue(true);
+    const unlinkSpy = vi.spyOn(fs, 'unlinkSync').mockImplementation(() => {});
+    try {
+      // Attacker-controlled values aimed at auth-gated sibling upload dirs.
+      deleteOldCover('/uploads/files/victim.pdf');
+      deleteOldCover('/uploads/covers/../files/secret.pdf');
+      deleteOldCover('/uploads/avatars/someone.png');
+
+      for (const call of unlinkSpy.mock.calls) {
+        const target = String(call[0]);
+        expect(target).toMatch(/[\\/]uploads[\\/]covers[\\/]/); // stays in covers
+        expect(target).not.toMatch(/[\\/]files[\\/]/);
+        expect(target).not.toMatch(/[\\/]avatars[\\/]/);
+      }
+    } finally {
+      existsSpy.mockRestore();
+      unlinkSpy.mockRestore();
+    }
+  });
+
+  it('TRIP-SVC-COVER-002: deletes a legitimate cover file', () => {
+    const existsSpy = vi.spyOn(fs, 'existsSync').mockReturnValue(true);
+    const unlinkSpy = vi.spyOn(fs, 'unlinkSync').mockImplementation(() => {});
+    try {
+      deleteOldCover('/uploads/covers/abc123.jpg');
+      expect(unlinkSpy).toHaveBeenCalledTimes(1);
+      expect(String(unlinkSpy.mock.calls[0][0])).toMatch(/[\\/]covers[\\/]abc123\.jpg$/);
+    } finally {
+      existsSpy.mockRestore();
+      unlinkSpy.mockRestore();
+    }
   });
 });

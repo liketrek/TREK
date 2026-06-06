@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { Marker, Polyline, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import { Plane, Train, Ship, Car, Bus, Sailboat, Bike, CarTaxiFront, Route } from 'lucide-react'
+import { escapeHtml } from '@trek/shared'
 import { useSettingsStore } from '../../store/settingsStore'
 import type { Reservation, ReservationEndpoint } from '../../types'
 
@@ -42,7 +43,7 @@ function useEndpointPane() {
 function endpointIcon(type: TransportType, label: string | null): L.DivIcon {
   const { icon: IconCmp, color } = TYPE_META[type]
   const svg = renderToStaticMarkup(createElement(IconCmp, { size: 13, color: 'white', strokeWidth: 2.5 }))
-  const labelHtml = label ? `<span>${label}</span>` : ''
+  const labelHtml = label ? `<span>${escapeHtml(label)}</span>` : ''
   const estWidth = label ? Math.max(40, label.length * 6 + 28) : 26
   return L.divIcon({
     className: 'trek-endpoint-marker',
@@ -53,7 +54,7 @@ function endpointIcon(type: TransportType, label: string | null): L.DivIcon {
       border:1.5px solid #fff;color:#fff;
       font-family:var(--font-system);font-size:11px;font-weight:600;letter-spacing:0.3px;line-height:1;
       box-sizing:border-box;height:22px;white-space:nowrap;
-    "><span style="display:inline-flex;align-items:center;">${svg}</span>${labelHtml ? `<span style="display:inline-flex;align-items:center;line-height:1">${label}</span>` : ''}</div>`,
+    "><span style="display:inline-flex;align-items:center;">${svg}</span>${labelHtml ? `<span style="display:inline-flex;align-items:center;line-height:1">${escapeHtml(label)}</span>` : ''}</div>`,
     iconSize: [estWidth, 22],
     iconAnchor: [estWidth / 2, 11],
     popupAnchor: [0, -11],
@@ -172,8 +173,8 @@ function buildStatsHtml(color: string, mainLabel: string | null, subLabel: strin
   ) + 22
   const hasBoth = !!mainLabel && !!subLabel
   const height = hasBoth ? 36 : 22
-  const main = mainLabel ? `<span style="font-size:12px;font-weight:700;line-height:1;display:block">${mainLabel}</span>` : ''
-  const sub = subLabel ? `<span style="font-size:10px;font-weight:500;line-height:1;opacity:0.85;display:block${hasBoth ? ';margin-top:4px' : ''}">${subLabel}</span>` : ''
+  const main = mainLabel ? `<span style="font-size:12px;font-weight:700;line-height:1;display:block">${escapeHtml(mainLabel)}</span>` : ''
+  const sub = subLabel ? `<span style="font-size:10px;font-weight:500;line-height:1;opacity:0.85;display:block${hasBoth ? ';margin-top:4px' : ''}">${escapeHtml(subLabel)}</span>` : ''
   const html = `<div class="trek-stats-inner" style="
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     width:100%;height:100%;
