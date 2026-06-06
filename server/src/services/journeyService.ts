@@ -568,8 +568,18 @@ export function updateEntry(entryId: number, userId: number, data: Partial<{
   const fields: string[] = [];
   const values: unknown[] = [];
 
+  // Allow-list the columns a client may set: keys come from the request body
+  // and are interpolated as SQL column names, so restrict them to the known
+  // entry fields. Keep this in sync with the data type above.
+  const allowed = new Set([
+    'type', 'title', 'story', 'entry_date', 'entry_time',
+    'location_name', 'location_lat', 'location_lng',
+    'mood', 'weather', 'tags', 'pros_cons', 'visibility', 'sort_order',
+  ]);
+
   for (const [key, val] of Object.entries(data)) {
     if (val === undefined) continue;
+    if (!allowed.has(key)) continue;
     if (key === 'tags') {
       fields.push('tags = ?');
       values.push(Array.isArray(val) ? JSON.stringify(val) : val);

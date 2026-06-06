@@ -300,15 +300,17 @@ describe('validateShareTokenForAsset', () => {
     expect(result).toBeNull();
   });
 
-  it('JOURNEY-SHARE-015: falls back to journey owner when asset not found in photos', () => {
+  it('JOURNEY-SHARE-015: denies (returns null) when the asset is not part of the shared journey', () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
     const { token } = createOrUpdateJourneyShareLink(journey.id, user.id, {});
 
+    // A valid share token must NOT resolve arbitrary asset IDs to the owner —
+    // otherwise it could proxy any asset out of the owner's Immich/Synology
+    // library (IDOR). Only assets actually in the journey may resolve.
     const result = validateShareTokenForAsset(token, 'nonexistent-asset');
 
-    expect(result).not.toBeNull();
-    expect(result!.ownerId).toBe(user.id);
+    expect(result).toBeNull();
   });
 });
 
@@ -413,5 +415,77 @@ describe('getPublicJourney', () => {
     expect(result!.stats.entries).toBe(0);
     expect(result!.stats.photos).toBe(0);
     expect(result!.stats.places).toBe(0);
+  });
+
+  it('JOURNEY-SHARE-021: withholds timeline, gallery and GPS when all flags are off', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id, { title: 'Secret' });
+    const entry = createJourneyEntry(testDb, journey.id, user.id, {
+      type: 'entry', title: 'Day 1', story: 'private notes', entry_date: '2026-05-01', location_name: 'Paris',
+    });
+    testDb.prepare('UPDATE journey_entries SET location_lat = ?, location_lng = ? WHERE id = ?').run(48.8566, 2.3522, entry.id);
+    insertJourneyPhoto(entry.id);
+    const { token } = createOrUpdateJourneyShareLink(journey.id, user.id, {
+      share_timeline: false, share_gallery: false, share_map: false,
+    });
+
+    const result = getPublicJourney(token)!;
+    expect(result.entries).toEqual([]); // no timeline / story / GPS leaked
+    expect(result.gallery).toEqual([]); // no gallery leaked
+    expect(result.stats.entries).toBe(1); // counts stay accurate
+  });
+
+  it('JOURNEY-SHARE-022: shares the timeline but strips GPS when the map flag is off', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = createJourneyEntry(testDb, journey.id, user.id, {
+      type: 'entry', title: 'Day 1', story: 'notes', entry_date: '2026-05-01', location_name: 'Paris',
+    });
+    testDb.prepare('UPDATE journey_entries SET location_lat = ?, location_lng = ? WHERE id = ?').run(48.8566, 2.3522, entry.id);
+    const { token } = createOrUpdateJourneyShareLink(journey.id, user.id, {
+      share_timeline: true, share_gallery: true, share_map: false,
+    });
+
+    const result = getPublicJourney(token)!;
+    expect(result.entries).toHaveLength(1);
+    const e = result.entries[0] as Record<string, unknown>;
+    expect(e.story).toBe('notes'); // narrative present
+    expect(e.location_lat).toBeNull(); // GPS withheld
+    expect(e.location_lng).toBeNull();
+  });
+
+  it('JOURNEY-SHARE-023: map-only share exposes coordinates but not the story', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = createJourneyEntry(testDb, journey.id, user.id, {
+      type: 'entry', title: 'Day 1', story: 'private notes', entry_date: '2026-05-01', location_name: 'Paris',
+    });
+    testDb.prepare('UPDATE journey_entries SET location_lat = ?, location_lng = ? WHERE id = ?').run(48.8566, 2.3522, entry.id);
+    const { token } = createOrUpdateJourneyShareLink(journey.id, user.id, {
+      share_timeline: false, share_gallery: false, share_map: true,
+    });
+
+    const result = getPublicJourney(token)!;
+    expect(result.entries).toHaveLength(1);
+    const e = result.entries[0] as Record<string, unknown>;
+    expect(e.location_lat).toBe(48.8566); // coords for the map
+    expect(e.story).toBeUndefined(); // narrative withheld
+  });
+
+  it('JOURNEY-SHARE-024: strips inline entry photos (and their asset metadata) when the gallery is off', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = createJourneyEntry(testDb, journey.id, user.id, {
+      type: 'entry', title: 'Day 1', story: 'notes', entry_date: '2026-05-01',
+    });
+    insertJourneyPhoto(entry.id, { ownerId: user.id });
+    const { token } = createOrUpdateJourneyShareLink(journey.id, user.id, {
+      share_timeline: true, share_gallery: false, share_map: true,
+    });
+
+    const result = getPublicJourney(token)!;
+    expect(result.gallery).toEqual([]); // gallery array withheld
+    expect(result.entries).toHaveLength(1);
+    expect((result.entries[0] as Record<string, unknown>).photos).toEqual([]); // inline photos withheld too
   });
 });

@@ -52,9 +52,11 @@ export class JourneyPublicController {
     const wantThumb = kind === 'thumbnail' ? 'thumbnail' : 'original';
 
     if (provider === 'local') {
-      const resolved = path.resolve(path.join(__dirname, '../../../uploads/journey', assetId));
-      const uploadsDir = path.resolve(__dirname, '../../../uploads');
-      if (!resolved.startsWith(uploadsDir) || !fs.existsSync(resolved)) {
+      // Local journey assets are flat filenames; use basename() and confine the
+      // resolved path to the journey upload directory.
+      const journeyDir = path.resolve(__dirname, '../../../uploads/journey');
+      const resolved = path.resolve(path.join(journeyDir, path.basename(assetId)));
+      if (!resolved.startsWith(journeyDir + path.sep) || !fs.existsSync(resolved)) {
         throw new HttpException({ error: 'Not found' }, 404);
       }
       res.set('Cache-Control', 'public, max-age=86400');

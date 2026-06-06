@@ -596,6 +596,32 @@ describe('updateEntry', () => {
 
     expect(result).toBeNull();
   });
+
+  it('JOURNEY-SVC-034b: ignores injection column keys and mass-assignment attempts', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = createJourneyEntry(testDb, journey.id, user.id, {
+      title: 'Safe',
+      story: 'original',
+      entry_date: '2026-03-01',
+    });
+
+    // The keys come straight from the request body. A crafted key was previously
+    // interpolated as a raw SQL column name (`${key} = ?`), enabling subquery
+    // injection (full DB read) and mass-assignment of protected columns.
+    const malicious: Record<string, unknown> = {
+      title: 'Updated',
+      [`story = (SELECT password_hash FROM users WHERE id = ${user.id}), updated_at`]: 'x',
+      author_id: 999999,
+    };
+
+    const updated = updateEntry(entry.id, user.id, malicious as Parameters<typeof updateEntry>[2]);
+
+    expect(updated).not.toBeNull();
+    expect(updated!.title).toBe('Updated'); // legit field still applied
+    expect(updated!.story).toBe('original'); // injection key dropped — no hash leaked into story
+    expect(updated!.author_id).toBe(user.id); // mass-assignment blocked
+  });
 });
 
 describe('deleteEntry', () => {

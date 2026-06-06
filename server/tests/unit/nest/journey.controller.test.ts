@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { HttpException } from '@nestjs/common';
 import type { Response } from 'express';
+import path from 'node:path';
+import fs from 'node:fs';
 
 import { JourneyController } from '../../../src/nest/journey/journey.controller';
 import { JourneyPublicController } from '../../../src/nest/journey/journey-public.controller';
@@ -163,5 +165,28 @@ describe('JourneyPublicController', () => {
     const s = svc({ validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 5 }), streamImmichAsset } as Partial<JourneyService>);
     await new JourneyPublicController(s).legacyPhoto('tok', 'immich', 'a1', '2', 'original', {} as Response);
     expect(streamImmichAsset).toHaveBeenCalledWith({}, 5, 'a1', 'original', 5);
+  });
+
+  it('legacy photo proxy: local provider cannot escape uploads/journey via a traversal asset id', async () => {
+    // Pretend any path exists so we can inspect exactly what would be served.
+    const existsSpy = vi.spyOn(fs, 'existsSync').mockReturnValue(true);
+    try {
+      const sendFile = vi.fn();
+      const res = { set: vi.fn(), sendFile } as unknown as Response;
+      const s = svc({ validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 5 }) } as Partial<JourneyService>);
+
+      // Express decodes %2F in a single path param to '/', so the handler sees this.
+      await new JourneyPublicController(s).legacyPhoto('tok', 'local', '../../files/secret.pdf', '2', 'original', res);
+
+      expect(sendFile).toHaveBeenCalledTimes(1);
+      const served = sendFile.mock.calls[0][0] as string;
+      // basename() collapses the traversal: the served file stays inside
+      // uploads/journey and never reaches the sibling /uploads/files dir.
+      expect(path.basename(served)).toBe('secret.pdf');
+      expect(served).toMatch(/[\\/]journey[\\/]secret\.pdf$/);
+      expect(served).not.toMatch(/[\\/]files[\\/]/);
+    } finally {
+      existsSpy.mockRestore();
+    }
   });
 });
