@@ -9,13 +9,14 @@ import {
   Post,
   Put,
   Req,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
 import { v4 as uuid } from 'uuid';
@@ -76,12 +77,15 @@ export class AuthController {
   }
 
   @Put('me/password')
-  changePassword(@CurrentUser() user: User, @Body() body: unknown, @Req() req: Request) {
+  changePassword(@CurrentUser() user: User, @Body() body: unknown, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     this.limit('login', req, 5);
     const result = this.auth.changePassword(user.id, user.email, body);
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status!);
     }
+    // Refresh this device's cookie with the new password_version so the user
+    // stays logged in here while all other sessions are invalidated.
+    if (result.token) this.auth.setAuthCookie(res, result.token, req);
     writeAudit({ userId: user.id, action: 'user.password_change', ip: getClientIp(req) });
     return { success: true };
   }

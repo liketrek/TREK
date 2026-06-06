@@ -134,6 +134,23 @@ describe('authenticate', () => {
     expect(next).not.toHaveBeenCalled();
     expect(status).toHaveBeenCalledWith(401);
   });
+
+  it('AUTH-MW-007: rejects a purpose-scoped mfa_login token even when the user is valid', () => {
+    // The token issued after the password check but before TOTP is signed with
+    // the same secret. It must never authenticate a normal request, otherwise
+    // password alone grants full access and MFA is bypassed.
+    const mockUser = { id: 1, username: 'alice', email: 'alice@example.com', role: 'user', password_version: 0 };
+    vi.mocked(db.prepare).mockReturnValue({ get: vi.fn(() => mockUser), all: vi.fn() } as any);
+
+    const mfaToken = jwt.sign({ id: 1, purpose: 'mfa_login', pv: 0 }, 'test-secret', { algorithm: 'HS256' });
+    const next = vi.fn() as unknown as NextFunction;
+    const { res, status } = makeRes();
+
+    authenticate(makeReq({ headers: { authorization: `Bearer ${mfaToken}` } }), res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(status).toHaveBeenCalledWith(401);
+  });
 });
 
 // ── adminOnly ─────────────────────────────────────────────────────────────────

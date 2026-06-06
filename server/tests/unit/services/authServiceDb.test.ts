@@ -36,6 +36,7 @@ vi.mock('../../../src/db/database', () => dbMock);
 vi.mock('../../../src/config', () => ({
   JWT_SECRET: 'test-secret',
   ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
+  SESSION_DURATION_SECONDS: 86400,
   updateJwtSecret: () => {},
 }));
 vi.mock('../../../src/services/mfaCrypto', () => ({
@@ -88,7 +89,9 @@ import {
   verifyMfaLogin,
   createMcpToken,
   deleteMcpToken,
+  generateToken,
 } from '../../../src/services/authService';
+import { verifyJwtAndLoadUser } from '../../../src/middleware/auth';
 
 // ---------------------------------------------------------------------------
 // Lifecycle
@@ -570,6 +573,39 @@ describe('changePassword — OIDC-only mode', () => {
 
     const result = changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' });
     expect(result.status).toBe(403);
+  });
+});
+
+describe('changePassword — session invalidation', () => {
+  const pvOf = (id: number) =>
+    (testDb.prepare('SELECT password_version FROM users WHERE id = ?').get(id) as { password_version: number }).password_version;
+  const mcpCount = (id: number) =>
+    (testDb.prepare('SELECT COUNT(*) c FROM mcp_tokens WHERE user_id = ?').get(id) as { c: number }).c;
+
+  it('AUTH-DB-036b: bumps password_version, prunes MCP tokens, and re-issues a session', () => {
+    const { user, password } = createUser(testDb);
+    createMcpToken(user.id, 'cli');
+
+    expect(pvOf(user.id)).toBe(0);
+    expect(mcpCount(user.id)).toBe(1);
+
+    const result = changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' });
+
+    expect(result.success).toBe(true);
+    expect(typeof result.token).toBe('string'); // fresh session for the current device
+    expect(pvOf(user.id)).toBe(1); // old JWT/cookie sessions now rejected by the pv gate
+    expect(mcpCount(user.id)).toBe(0); // static MCP tokens revoked
+  });
+
+  it('AUTH-DB-036c: a token minted before the change no longer validates afterwards', () => {
+    const { user, password } = createUser(testDb);
+    const stolen = generateToken({ id: user.id }); // pv=0 at mint time
+
+    expect(verifyJwtAndLoadUser(stolen)).not.toBeNull();
+
+    changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' });
+
+    expect(verifyJwtAndLoadUser(stolen)).toBeNull(); // invalidated by the pv bump
   });
 });
 

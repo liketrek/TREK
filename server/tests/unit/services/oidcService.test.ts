@@ -313,7 +313,7 @@ describe('findOrCreateUser', () => {
     const { user } = createUser(testDb, { email: 'bob@example.com' });
 
     const result = findOrCreateUser(
-      { sub: 'sub-bob-new', email: 'bob@example.com', name: 'Bob' },
+      { sub: 'sub-bob-new', email: 'bob@example.com', name: 'Bob', email_verified: true },
       MOCK_CONFIG
     );
     expect('user' in result).toBe(true);
@@ -352,18 +352,35 @@ describe('findOrCreateUser', () => {
     expect((result as { error: string }).error).toBe('registration_disabled');
   });
 
-  it('OIDC-SVC-025: links oidc_sub when existing user has none', () => {
+  it('OIDC-SVC-025: links oidc_sub when existing user has none (verified email)', () => {
     const { user } = createUser(testDb, { email: 'charlie@example.com' });
     // Ensure no oidc_sub set
     testDb.prepare('UPDATE users SET oidc_sub = NULL, oidc_issuer = NULL WHERE id = ?').run(user.id);
 
     findOrCreateUser(
-      { sub: 'sub-charlie-linked', email: 'charlie@example.com', name: 'Charlie' },
+      { sub: 'sub-charlie-linked', email: 'charlie@example.com', name: 'Charlie', email_verified: true },
       MOCK_CONFIG
     );
 
     const updated = testDb.prepare('SELECT oidc_sub FROM users WHERE id = ?').get(user.id) as any;
     expect(updated.oidc_sub).toBe('sub-charlie-linked');
+  });
+
+  it('OIDC-SVC-025b: refuses to link an unverified email to an existing local account', () => {
+    const { user } = createUser(testDb, { email: 'dora@example.com' });
+    testDb.prepare('UPDATE users SET oidc_sub = NULL, oidc_issuer = NULL WHERE id = ?').run(user.id);
+
+    // No email_verified claim — an IdP that lets users set arbitrary emails must
+    // not be able to take over a pre-existing password account.
+    const result = findOrCreateUser(
+      { sub: 'sub-dora-attacker', email: 'dora@example.com', name: 'Dora' },
+      MOCK_CONFIG
+    );
+
+    expect('error' in result).toBe(true);
+    expect((result as { error: string }).error).toBe('email_not_verified');
+    const updated = testDb.prepare('SELECT oidc_sub FROM users WHERE id = ?').get(user.id) as any;
+    expect(updated.oidc_sub).toBeNull(); // account not linked / not hijacked
   });
 
   it('OIDC-SVC-026: existing user role is updated when OIDC claim mapping changes it', () => {

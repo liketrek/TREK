@@ -1,6 +1,9 @@
 import { Controller, Get, Query, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { OidcService } from './oidc.service';
+import { cookieOptions } from '../../services/cookie';
+
+const OIDC_STATE_COOKIE = 'trek_oidc_state';
 
 /**
  * /api/auth/oidc — OIDC SSO login flow (Authorization Code + PKCE).
@@ -40,6 +43,11 @@ export class OidcController {
       const redirectUri = `${appUrl.replace(/\/+$/, '')}/api/auth/oidc/callback`;
       const inviteToken = req.query.invite as string | undefined;
       const { state, codeChallenge } = this.oidc.createState(redirectUri, inviteToken);
+      // Bind the state to THIS browser. The callback requires a matching cookie,
+      // so an attacker-initiated login (whose callback URL carries a valid state
+      // from the shared server map) cannot be replayed in a victim's browser to
+      // log them into the attacker's account (OIDC login CSRF / session fixation).
+      res.cookie(OIDC_STATE_COOKIE, state, { ...cookieOptions(false, req), maxAge: 10 * 60 * 1000 });
       const params = new URLSearchParams({
         response_type: 'code',
         client_id: config.clientId,
@@ -61,9 +69,14 @@ export class OidcController {
     @Query('code') code: string | undefined,
     @Query('state') state: string | undefined,
     @Query('error') oidcError: string | undefined,
+    @Req() req: Request,
     @Res() res: Response,
   ): Promise<void> {
     const f = (p: string) => res.redirect(this.oidc.frontendUrl(p));
+
+    // The state cookie is single-use — clear it regardless of the outcome.
+    const boundState = (req.cookies as Record<string, string> | undefined)?.[OIDC_STATE_COOKIE];
+    res.clearCookie(OIDC_STATE_COOKIE, cookieOptions(true, req));
 
     if (!this.oidc.oidcLoginEnabled()) return f('/login?oidc_error=sso_disabled');
     if (oidcError) {
@@ -71,6 +84,9 @@ export class OidcController {
       return f('/login?oidc_error=' + encodeURIComponent(oidcError));
     }
     if (!code || !state) return f('/login?oidc_error=missing_params');
+
+    // Require the callback to come from the browser that started the flow.
+    if (!boundState || boundState !== state) return f('/login?oidc_error=invalid_state');
 
     const pending = this.oidc.consumeState(state);
     if (!pending) return f('/login?oidc_error=invalid_state');

@@ -28,6 +28,8 @@ export interface OidcTokenResponse {
 export interface OidcUserInfo {
   sub: string;
   email?: string;
+  // Standard OIDC claim. Some IdPs send it as the string "true"/"false".
+  email_verified?: boolean | string;
   name?: string;
   preferred_username?: string;
   groups?: string[];
@@ -200,7 +202,11 @@ export function frontendUrl(path: string): string {
 }
 
 export function generateToken(user: { id: number }): string {
-  return jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: SESSION_DURATION_SECONDS, algorithm: 'HS256' });
+  // Embed the current password_version so an OIDC-issued session is invalidated
+  // by a password change/reset exactly like a password-login session (the auth
+  // middleware compares this `pv` against users.password_version).
+  const pv = (db.prepare('SELECT password_version FROM users WHERE id = ?').get(user.id) as { password_version?: number } | undefined)?.password_version ?? 0;
+  return jwt.sign({ id: user.id, pv }, JWT_SECRET, { expiresIn: SESSION_DURATION_SECONDS, algorithm: 'HS256' });
 }
 
 // ---------------------------------------------------------------------------
@@ -365,8 +371,14 @@ export function findOrCreateUser(
   }
 
   if (user) {
-    // Link OIDC identity if not yet linked
+    // Reaching here without an oidc_sub means we matched an existing local
+    // account by email. Only auto-link the OIDC identity when the IdP asserts
+    // the email is verified; an unverified email must not auto-link.
     if (!user.oidc_sub) {
+      const emailVerified = userInfo.email_verified === true || userInfo.email_verified === 'true';
+      if (!emailVerified) {
+        return { error: 'email_not_verified' };
+      }
       db.prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ? WHERE id = ?').run(sub, config.issuer, user.id);
     }
     // Update role based on OIDC claims on every login (if claim mapping is configured)

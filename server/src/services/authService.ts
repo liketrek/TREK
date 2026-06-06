@@ -490,8 +490,9 @@ export function loginUser(body: {
   }
 
   if (user.mfa_enabled === 1 || user.mfa_enabled === true) {
+    const pv = (user as User & { password_version?: number }).password_version ?? 0;
     const mfa_token = jwt.sign(
-      { id: Number(user.id), purpose: 'mfa_login' },
+      { id: Number(user.id), purpose: 'mfa_login', pv },
       JWT_SECRET,
       { expiresIn: '5m', algorithm: 'HS256' }
     );
@@ -534,7 +535,7 @@ export function changePassword(
   userId: number,
   userEmail: string,
   body: { current_password?: string; new_password?: string }
-): { error?: string; status?: number; success?: boolean } {
+): { error?: string; status?: number; success?: boolean; token?: string } {
   if (isOidcOnlyMode()) {
     return { error: 'Password authentication is disabled.', status: 403 };
   }
@@ -549,14 +550,32 @@ export function changePassword(
   const pwCheck = validatePassword(new_password);
   if (!pwCheck.ok) return { error: pwCheck.reason, status: 400 };
 
-  const user = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(userId) as { password_hash: string } | undefined;
+  const user = db.prepare('SELECT password_hash, password_version FROM users WHERE id = ?').get(userId) as { password_hash: string; password_version?: number } | undefined;
   if (!user || !bcrypt.compareSync(current_password, user.password_hash)) {
     return { error: 'Current password is incorrect', status: 401 };
   }
 
   const hash = bcrypt.hashSync(new_password, BCRYPT_COST);
-  db.prepare('UPDATE users SET password_hash = ?, must_change_password = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(hash, userId);
-  return { success: true };
+  const newPv = (user.password_version ?? 0) + 1;
+
+  db.transaction(() => {
+    db.prepare('UPDATE users SET password_hash = ?, must_change_password = 0, password_version = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(hash, newPv, userId);
+    // A password change rotates the user's sessions: bumping password_version
+    // invalidates existing JWT cookie sessions, and the separate MCP static
+    // token and OAuth bearer-token stores are pruned to match (same set the
+    // password-reset path already revokes).
+    db.prepare('DELETE FROM mcp_tokens WHERE user_id = ?').run(userId);
+    try {
+      db.prepare("UPDATE oauth_tokens SET revoked_at = CURRENT_TIMESTAMP WHERE user_id = ? AND revoked_at IS NULL").run(userId);
+    } catch { /* oauth_tokens table may not exist in very old installs */ }
+  })();
+
+  try { revokeUserSessions?.(userId); } catch { /* best-effort */ }
+
+  // Re-issue a session bound to the new password_version so the current device
+  // stays logged in while other existing sessions are rotated out by the pv gate.
+  const token = generateToken({ id: userId, password_version: newPv });
+  return { success: true, token };
 }
 
 export function deleteAccount(userId: number, userEmail: string, userRole: string): { error?: string; status?: number; success?: boolean } {

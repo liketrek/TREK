@@ -34,11 +34,16 @@ function makeRes() {
     status: vi.fn((c: number) => { res.statusCode = c; return res; }),
     json: vi.fn((b: unknown) => { res.body = b; return res; }),
     redirect: vi.fn((u: string) => { res.redirectedTo = u; }),
+    cookie: vi.fn(),
+    clearCookie: vi.fn(),
   };
   return res as unknown as Response & { statusCode: number; redirectedTo: string; body: unknown };
 }
 
 const req = { query: {}, headers: {} } as Request;
+// Callback request carrying the state-binding cookie a real browser would send
+// after going through /login.
+const reqCb = (state = 's') => ({ query: {}, headers: {}, cookies: { trek_oidc_state: state } } as unknown as Request);
 
 beforeEach(() => vi.clearAllMocks());
 afterEach(() => { delete process.env.NODE_ENV; });
@@ -71,29 +76,29 @@ describe('OidcController /login', () => {
 describe('OidcController /callback', () => {
   it('redirects with sso_disabled when SSO is off', async () => {
     const res = makeRes();
-    await new OidcController(svc({ oidcLoginEnabled: vi.fn().mockReturnValue(false) })).callback('c', 's', undefined, res);
+    await new OidcController(svc({ oidcLoginEnabled: vi.fn().mockReturnValue(false) })).callback('c', 's', undefined, reqCb('s'), res);
     expect(res.redirectedTo).toBe('https://app/login?oidc_error=sso_disabled');
   });
 
   it('redirects with the provider error', async () => {
     const res = makeRes();
-    await new OidcController(svc()).callback(undefined, undefined, 'access_denied', res);
+    await new OidcController(svc()).callback(undefined, undefined, 'access_denied', reqCb('s'), res);
     expect(res.redirectedTo).toBe('https://app/login?oidc_error=access_denied');
   });
 
   it('redirects missing_params / invalid_state', async () => {
     const r1 = makeRes();
-    await new OidcController(svc()).callback(undefined, 's', undefined, r1);
+    await new OidcController(svc()).callback(undefined, 's', undefined, reqCb('s'), r1);
     expect(r1.redirectedTo).toBe('https://app/login?oidc_error=missing_params');
     const r2 = makeRes();
-    await new OidcController(svc({ consumeState: vi.fn().mockReturnValue(null) })).callback('c', 's', undefined, r2);
+    await new OidcController(svc({ consumeState: vi.fn().mockReturnValue(null) })).callback('c', 's', undefined, reqCb('s'), r2);
     expect(r2.redirectedTo).toBe('https://app/login?oidc_error=invalid_state');
   });
 
   it('rejects a missing id_token, then completes with an auth code on success', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const noId = makeRes();
-    await new OidcController(svc({ exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at' }) })).callback('c', 's', undefined, noId);
+    await new OidcController(svc({ exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at' }) })).callback('c', 's', undefined, reqCb('s'), noId);
     expect(noId.redirectedTo).toBe('https://app/login?oidc_error=no_id_token');
 
     const ok = makeRes();
@@ -103,8 +108,16 @@ describe('OidcController /callback', () => {
       getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'u1' }),
       findOrCreateUser: vi.fn().mockReturnValue({ user: { id: 1 } }),
     }));
-    await c.callback('c', 's', undefined, ok);
+    await c.callback('c', 's', undefined, reqCb('s'), ok);
     expect(ok.redirectedTo).toBe('https://app/login?oidc_code=ac');
+  });
+
+  it('rejects a callback whose state cookie does not match the query state', async () => {
+    const res = makeRes();
+    // Browser presents a different (or no) state cookie than the callback URL —
+    // an attacker-initiated flow replayed in the victim's browser.
+    await new OidcController(svc()).callback('c', 's', undefined, reqCb('attacker-state'), res);
+    expect(res.redirectedTo).toBe('https://app/login?oidc_error=invalid_state');
   });
 
   it('rejects a userinfo subject mismatch', async () => {
@@ -115,7 +128,7 @@ describe('OidcController /callback', () => {
       verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
       getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'OTHER' }),
     }));
-    await c.callback('c', 's', undefined, res);
+    await c.callback('c', 's', undefined, reqCb('s'), res);
     expect(res.redirectedTo).toBe('https://app/login?oidc_error=subject_mismatch');
   });
 });
