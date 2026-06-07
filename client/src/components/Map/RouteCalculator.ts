@@ -1,4 +1,4 @@
-import type { RouteResult, RouteSegment, RouteWithLegs, Waypoint } from '../../types'
+import type { RouteResult, RouteSegment, RouteWithLegs, Waypoint, RouteAnchors } from '../../types'
 
 const OSRM_BASE = 'https://router.project-osrm.org/route/v1'
 
@@ -77,33 +77,96 @@ export function generateGoogleMapsUrl(places: Waypoint[]): string | null {
   return `https://www.google.com/maps/dir/${stops}`
 }
 
-/** Reorders waypoints using a nearest-neighbor heuristic to minimize total Euclidean distance. */
-export function optimizeRoute<T extends Waypoint>(places: T[]): T[] {
-  const valid = places.filter((p) => p.lat && p.lng)
-  if (valid.length <= 2) return places
+// Squared planar distance — enough for nearest-neighbor comparisons and cheaper than a full haversine.
+function sqDist(a: Waypoint, b: Waypoint): number {
+  return (a.lat - b.lat) ** 2 + (a.lng - b.lng) ** 2
+}
 
+// Length of visiting `order` in sequence, optionally pinned to a fixed start and/or end anchor.
+// With start === end this is a closed loop back to the anchor (a day out from and back to the hotel).
+function tourLength(order: Waypoint[], start?: Waypoint, end?: Waypoint): number {
+  if (order.length === 0) return 0
+  let total = 0
+  if (start) total += Math.sqrt(sqDist(start, order[0]))
+  for (let i = 0; i < order.length - 1; i++) total += Math.sqrt(sqDist(order[i], order[i + 1]))
+  if (end) total += Math.sqrt(sqDist(order[order.length - 1], end))
+  return total
+}
+
+// Greedy nearest-neighbor ordering, seeded at the start anchor when there is one.
+function nearestNeighborOrder<T extends Waypoint>(valid: T[], start?: Waypoint): T[] {
   const visited = new Set<number>()
   const result: T[] = []
-  let current = valid[0]
-  visited.add(0)
-  result.push(current)
-
+  let current: Waypoint
+  if (start) {
+    current = start
+  } else {
+    current = valid[0]
+    visited.add(0)
+    result.push(valid[0])
+  }
   while (result.length < valid.length) {
     let nearestIdx = -1
     let minDist = Infinity
     for (let i = 0; i < valid.length; i++) {
       if (visited.has(i)) continue
-      const d = Math.sqrt(
-        Math.pow(valid[i].lat - current.lat, 2) + Math.pow(valid[i].lng - current.lng, 2)
-      )
+      const d = sqDist(valid[i], current)
       if (d < minDist) { minDist = d; nearestIdx = i }
     }
     if (nearestIdx === -1) break
     visited.add(nearestIdx)
     current = valid[nearestIdx]
-    result.push(current)
+    result.push(valid[nearestIdx])
   }
   return result
+}
+
+// 2-opt: repeatedly reverse a sub-segment whenever it shortens the tour. This removes the crossings
+// a pure nearest-neighbor pass leaves behind. The start/end anchors stay fixed, so a round trip
+// (start === end) is untangled into a clean loop rather than an open path.
+function twoOptImprove<T extends Waypoint>(order: T[], start?: Waypoint, end?: Waypoint): T[] {
+  if (order.length < 3) return order
+  let best = order
+  let bestLen = tourLength(best, start, end)
+  let improved = true
+  while (improved) {
+    improved = false
+    for (let i = 0; i < best.length - 1; i++) {
+      for (let j = i + 1; j < best.length; j++) {
+        const candidate = best.slice(0, i).concat(best.slice(i, j + 1).reverse(), best.slice(j + 1))
+        const len = tourLength(candidate, start, end)
+        if (len < bestLen - 1e-12) {
+          best = candidate
+          bestLen = len
+          improved = true
+        }
+      }
+    }
+  }
+  return best
+}
+
+/**
+ * Reorders waypoints to minimize travel distance: a nearest-neighbor pass for a good starting order,
+ * then 2-opt to untangle crossings. Optional anchors (e.g. the day's accommodation) pin the route's
+ * ends — start === end makes it a loop out from and back to the hotel; a transfer day runs start → end.
+ */
+export function optimizeRoute<T extends Waypoint>(places: T[], anchors: RouteAnchors = {}): T[] {
+  const { start, end } = anchors
+  const valid = places.filter((p) => p.lat && p.lng)
+  if (valid.length <= 1) return places
+  // Two unanchored stops have no meaningful order to optimize; anchors can still flip them.
+  if (valid.length === 2 && !start && !end) return places
+
+  const order = twoOptImprove(nearestNeighborOrder(valid, start), start, end)
+
+  // A round trip's loop direction is arbitrary, so orient it to begin at the stop nearest the hotel —
+  // that reads naturally as "leave the hotel, head to the closest place, …, come back".
+  if (start && end && start.lat === end.lat && start.lng === end.lng && order.length > 1) {
+    if (sqDist(order[order.length - 1], start) < sqDist(order[0], start)) order.reverse()
+  }
+
+  return order
 }
 
 /** Fetches per-leg distance/duration from OSRM and returns segment metadata (midpoints, walking/driving times). */

@@ -19,6 +19,7 @@ const dayplan: TranslationStrings = {
   'dayplan.routeError': '路线计算失败',
   'dayplan.toast.needTwoPlaces': '路线优化至少需要两个地点',
   'dayplan.toast.routeOptimized': '路线已优化',
+  'dayplan.toast.routeOptimizedFromHotel': '已根据您的住宿优化路线',
   'dayplan.toast.noGeoPlaces': '未找到有坐标的地点用于路线计算',
   'dayplan.confirmed': '已确认',
   'dayplan.pendingRes': '待确认',
@@ -30,6 +31,8 @@ const dayplan: TranslationStrings = {
   'dayplan.confirmRemoveTimeBody':
     '此地点有固定时间（{time}）。移动后将移除时间并允许自由排序。',
   'dayplan.confirmRemoveTimeAction': '移除时间并移动',
+  'dayplan.confirmDeleteNoteTitle': '删除备注？',
+  'dayplan.confirmDeleteNoteBody': '此备注将被永久删除。',
   'dayplan.cannotDropOnTimed': '无法将项目放置在有固定时间的条目之间',
   'dayplan.cannotBreakChronology': '这将打乱已计划项目和预订的时间顺序',
   'dayplan.mobile.addPlace': '添加地点',

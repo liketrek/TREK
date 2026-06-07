@@ -9,6 +9,9 @@ const dayplan: TranslationStrings = {
   'dayplan.confirmRemoveTimeBody':
     'Αυτό το μέρος έχει σταθερή ώρα ({time}). Η μετακίνησή του θα αφαιρέσει την ώρα και θα επιτρέψει ελεύθερη ταξινόμηση.',
   'dayplan.confirmRemoveTimeAction': 'Αφαίρεση ώρας & μετακίνηση',
+  'dayplan.confirmDeleteNoteTitle': 'Διαγραφή σημείωσης;',
+  'dayplan.confirmDeleteNoteBody':
+    'Αυτή η σημείωση θα διαγραφεί οριστικά.',
   'dayplan.cannotDropOnTimed':
     'Τα στοιχεία δεν μπορούν να τοποθετηθούν μεταξύ καταχωρήσεων με ώρα',
   'dayplan.cannotBreakChronology':
@@ -32,6 +35,8 @@ const dayplan: TranslationStrings = {
   'dayplan.toast.needTwoPlaces':
     'Χρειάζονται τουλάχιστον δύο μέρη για βελτιστοποίηση διαδρομής',
   'dayplan.toast.routeOptimized': 'Η διαδρομή βελτιστοποιήθηκε',
+  'dayplan.toast.routeOptimizedFromHotel':
+    'Η διαδρομή βελτιστοποιήθηκε από το κατάλυμά σας',
   'dayplan.toast.noGeoPlaces':
     'Δεν βρέθηκαν μέρη με συντεταγμένες για τον υπολογισμό διαδρομής',
   'dayplan.confirmed': 'Επιβεβαιωμένο',

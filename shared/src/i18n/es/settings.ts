@@ -62,6 +62,9 @@ const settings: TranslationStrings = {
   'settings.temperature': 'Unidad de temperatura',
   'settings.timeFormat': 'Formato de hora',
   'settings.blurBookingCodes': 'Difuminar códigos de reserva',
+  'settings.optimizeFromAccommodation': 'Optimizar la ruta desde el alojamiento',
+  'settings.optimizeFromAccommodationHint':
+    'Al optimizar un día, comienza la ruta en el hotel donde despiertas y termínala en aquel en el que te registras esa noche.',
   'settings.notifications': 'Notificaciones',
   'settings.notifyTripInvite': 'Invitaciones de viaje',
   'settings.notifyBookingChange': 'Cambios en reservas',

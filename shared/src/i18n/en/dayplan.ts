@@ -9,6 +9,8 @@ const dayplan: TranslationStrings = {
   'dayplan.confirmRemoveTimeBody':
     'This place has a fixed time ({time}). Moving it will remove the time and allow free sorting.',
   'dayplan.confirmRemoveTimeAction': 'Remove time & move',
+  'dayplan.confirmDeleteNoteTitle': 'Delete note?',
+  'dayplan.confirmDeleteNoteBody': 'This note will be permanently deleted.',
   'dayplan.cannotDropOnTimed':
     'Items cannot be placed between time-bound entries',
   'dayplan.cannotBreakChronology':
@@ -32,6 +34,7 @@ const dayplan: TranslationStrings = {
   'dayplan.toast.needTwoPlaces':
     'At least two places needed for route optimization',
   'dayplan.toast.routeOptimized': 'Route optimized',
+  'dayplan.toast.routeOptimizedFromHotel': 'Route optimized from your accommodation',
   'dayplan.toast.noGeoPlaces':
     'No places with coordinates found for route calculation',
   'dayplan.confirmed': 'Confirmed',

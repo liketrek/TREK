@@ -982,7 +982,7 @@ describe('DayPlanSidebar', () => {
     }
   })
 
-  it('FE-PLANNER-DAYPLAN-065: note card delete button calls deleteNote', async () => {
+  it('FE-PLANNER-DAYPLAN-065: deleting a note asks for confirmation before calling deleteNote', async () => {
     const user = userEvent.setup()
     const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
     const note = buildDayNote({ id: 55, day_id: 10, text: 'My note' })
@@ -992,6 +992,11 @@ describe('DayPlanSidebar', () => {
     const noteEditBtns = document.querySelectorAll('.note-edit-buttons button')
     if (noteEditBtns.length > 1) {
       await user.click(noteEditBtns[1] as HTMLElement)
+      // Clicking delete opens a confirmation dialog rather than deleting immediately.
+      expect(mockDayNotesState.deleteNote).not.toHaveBeenCalled()
+      expect(screen.getByText('Delete note?')).toBeInTheDocument()
+      // Confirming triggers the actual delete.
+      await user.click(screen.getByRole('button', { name: /^delete$/i }))
       expect(mockDayNotesState.deleteNote).toHaveBeenCalled()
     }
   })

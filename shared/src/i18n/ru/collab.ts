@@ -41,6 +41,8 @@ const collab: TranslationStrings = {
   'collab.notes.cancel': 'Отмена',
   'collab.notes.edit': 'Редактировать',
   'collab.notes.delete': 'Удалить',
+  'collab.notes.confirmDeleteTitle': 'Удалить заметку?',
+  'collab.notes.confirmDeleteBody': 'Эта заметка будет удалена безвозвратно.',
   'collab.notes.pin': 'Закрепить',
   'collab.notes.unpin': 'Открепить',
   'collab.notes.daysAgo': '{n} дн. назад',

@@ -40,6 +40,8 @@ const collab: TranslationStrings = {
   'collab.notes.cancel': 'Batal',
   'collab.notes.edit': 'Edit',
   'collab.notes.delete': 'Hapus',
+  'collab.notes.confirmDeleteTitle': 'Hapus catatan?',
+  'collab.notes.confirmDeleteBody': 'Catatan ini akan dihapus secara permanen.',
   'collab.notes.pin': 'Sematkan',
   'collab.notes.unpin': 'Lepas sematan',
   'collab.notes.daysAgo': '{n}h lalu',

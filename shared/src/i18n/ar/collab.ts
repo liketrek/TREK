@@ -39,6 +39,8 @@ const collab: TranslationStrings = {
   'collab.notes.cancel': 'إلغاء',
   'collab.notes.edit': 'تعديل',
   'collab.notes.delete': 'حذف',
+  'collab.notes.confirmDeleteTitle': 'حذف الملاحظة؟',
+  'collab.notes.confirmDeleteBody': 'سيتم حذف هذه الملاحظة نهائيًا.',
   'collab.notes.pin': 'تثبيت',
   'collab.notes.unpin': 'إلغاء التثبيت',
   'collab.notes.daysAgo': 'منذ {n} يوم',

@@ -9,6 +9,8 @@ const dayplan: TranslationStrings = {
   'dayplan.confirmRemoveTimeBody':
     'Dieser Ort hat eine feste Uhrzeit ({time}). Durch das Verschieben wird die Uhrzeit entfernt und der Ort kann frei sortiert werden.',
   'dayplan.confirmRemoveTimeAction': 'Uhrzeit entfernen & verschieben',
+  'dayplan.confirmDeleteNoteTitle': 'Notiz löschen?',
+  'dayplan.confirmDeleteNoteBody': 'Diese Notiz wird dauerhaft gelöscht.',
   'dayplan.cannotDropOnTimed':
     'Orte können nicht zwischen zeitgebundene Einträge geschoben werden',
   'dayplan.cannotBreakChronology':
@@ -32,6 +34,7 @@ const dayplan: TranslationStrings = {
   'dayplan.toast.needTwoPlaces':
     'Mindestens zwei Orte für Routenoptimierung nötig',
   'dayplan.toast.routeOptimized': 'Route optimiert',
+  'dayplan.toast.routeOptimizedFromHotel': 'Route ab deiner Unterkunft optimiert',
   'dayplan.toast.noGeoPlaces':
     'Keine Orte mit Koordinaten für Routenberechnung gefunden',
   'dayplan.confirmed': 'Bestätigt',

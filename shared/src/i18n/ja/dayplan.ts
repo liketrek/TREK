@@ -8,6 +8,8 @@ const dayplan: TranslationStrings = {
   'dayplan.confirmRemoveTimeBody':
     'この場所には固定時刻（{time}）があります。移動すると時刻が削除され、自由に並び替えできます。',
   'dayplan.confirmRemoveTimeAction': '時刻を削除して移動',
+  'dayplan.confirmDeleteNoteTitle': 'メモを削除しますか？',
+  'dayplan.confirmDeleteNoteBody': 'このメモは完全に削除されます。',
   'dayplan.cannotDropOnTimed': '時刻指定の項目の間には配置できません',
   'dayplan.cannotBreakChronology': '時刻指定の項目や予約の時系列が崩れます',
   'dayplan.addNote': 'メモを追加',
@@ -28,6 +30,7 @@ const dayplan: TranslationStrings = {
   'dayplan.routeError': 'ルートの計算に失敗しました',
   'dayplan.toast.needTwoPlaces': 'ルート最適化には2つ以上の場所が必要です',
   'dayplan.toast.routeOptimized': 'ルートを最適化しました',
+  'dayplan.toast.routeOptimizedFromHotel': '宿泊先を起点にルートを最適化しました',
   'dayplan.toast.noGeoPlaces': '座標付きの場所がありません',
   'dayplan.confirmed': '確定',
   'dayplan.pendingRes': '保留',

@@ -39,6 +39,8 @@ const collab: TranslationStrings = {
   'collab.notes.cancel': '取消',
   'collab.notes.edit': '編輯',
   'collab.notes.delete': '刪除',
+  'collab.notes.confirmDeleteTitle': '刪除筆記？',
+  'collab.notes.confirmDeleteBody': '此筆記將被永久刪除。',
   'collab.notes.pin': '置頂',
   'collab.notes.unpin': '取消置頂',
   'collab.notes.daysAgo': '{n} 天前',

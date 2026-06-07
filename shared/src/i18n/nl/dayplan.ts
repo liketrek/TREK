@@ -20,6 +20,8 @@ const dayplan: TranslationStrings = {
   'dayplan.toast.needTwoPlaces':
     'Minimaal twee plaatsen nodig voor route-optimalisatie',
   'dayplan.toast.routeOptimized': 'Route geoptimaliseerd',
+  'dayplan.toast.routeOptimizedFromHotel':
+    'Route geoptimaliseerd vanaf je accommodatie',
   'dayplan.toast.noGeoPlaces':
     'Geen plaatsen met coördinaten gevonden voor routeberekening',
   'dayplan.confirmed': 'Bevestigd',
@@ -33,6 +35,8 @@ const dayplan: TranslationStrings = {
   'dayplan.confirmRemoveTimeBody':
     'Deze plek heeft een vast tijdstip ({time}). Verplaatsen verwijdert het tijdstip en maakt vrije sortering mogelijk.',
   'dayplan.confirmRemoveTimeAction': 'Tijd verwijderen en verplaatsen',
+  'dayplan.confirmDeleteNoteTitle': 'Notitie verwijderen?',
+  'dayplan.confirmDeleteNoteBody': 'Deze notitie wordt definitief verwijderd.',
   'dayplan.cannotDropOnTimed':
     'Items kunnen niet tussen tijdgebonden items worden geplaatst',
   'dayplan.cannotBreakChronology':

@@ -41,6 +41,8 @@ const collab: TranslationStrings = {
   'collab.notes.cancel': 'Annulla',
   'collab.notes.edit': 'Modifica',
   'collab.notes.delete': 'Elimina',
+  'collab.notes.confirmDeleteTitle': 'Eliminare la nota?',
+  'collab.notes.confirmDeleteBody': 'Questa nota verrà eliminata definitivamente.',
   'collab.notes.pin': 'Fissa',
   'collab.notes.unpin': 'Rimuovi',
   'collab.notes.daysAgo': '{n}g fa',

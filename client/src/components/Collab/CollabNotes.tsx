@@ -10,6 +10,7 @@ import { useTripStore } from '../../store/tripStore'
 import { addListener, removeListener } from '../../api/websocket'
 import { useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
+import ConfirmDialog from '../shared/ConfirmDialog'
 import type { User } from '../../types'
 import type { CollabNote } from './CollabNotes.types'
 import { FONT, NOTE_COLORS } from './CollabNotes.constants'
@@ -44,6 +45,7 @@ function useCollabNotes({ tripId, currentUser }: CollabNotesProps) {
   const [previewFile, setPreviewFile] = useState(null)
   const [showSettings, setShowSettings] = useState(false)
   const [activeCategory, setActiveCategory] = useState(null)
+  const [pendingDeleteNoteId, setPendingDeleteNoteId] = useState<number | null>(null)
 
   // Empty categories (no notes yet) stored in localStorage
   const [emptyCategories, setEmptyCategories] = useState(() => {
@@ -231,6 +233,7 @@ function useCollabNotes({ tripId, currentUser }: CollabNotesProps) {
     activeCategory, setActiveCategory, categoryColors, getCategoryColor,
     handleCreateNote, handleUpdateNote, saveCategoryColors, handleEditSubmit,
     handleDeleteNoteFile, handleDeleteNote, categories, sortedNotes,
+    pendingDeleteNoteId, setPendingDeleteNoteId,
   }
 }
 
@@ -319,7 +322,7 @@ function CollabCategoryPills({ categories, activeCategory, setActiveCategory, t 
 
 function CollabNotesGrid(S: NotesState) {
   const {
-    sortedNotes, currentUser, canEdit, handleUpdateNote, handleDeleteNote,
+    sortedNotes, currentUser, canEdit, handleUpdateNote, setPendingDeleteNoteId,
     setEditingNote, setViewingNote, setPreviewFile, getCategoryColor, tripId, t,
   } = S
   return (
@@ -352,7 +355,7 @@ function CollabNotesGrid(S: NotesState) {
               currentUser={currentUser}
               canEdit={canEdit}
               onUpdate={handleUpdateNote}
-              onDelete={handleDeleteNote}
+              onDelete={setPendingDeleteNoteId}
               onEdit={setEditingNote}
               onView={setViewingNote}
               onPreviewFile={setPreviewFile}
@@ -470,6 +473,7 @@ export default function CollabNotes(props: CollabNotesProps) {
     viewingNote, showNewModal, editingNote, previewFile, showSettings,
     setShowNewModal, setEditingNote, setPreviewFile, setShowSettings,
     handleCreateNote, handleEditSubmit, handleDeleteNoteFile, saveCategoryColors, handleUpdateNote,
+    handleDeleteNote, pendingDeleteNoteId, setPendingDeleteNoteId,
   } = S
 
   if (loading) return <CollabNotesLoading {...S} />
@@ -527,6 +531,15 @@ export default function CollabNotes(props: CollabNotesProps) {
           t={t}
         />
       )}
+
+      {/* Confirm: delete a collab note — guards against accidental deletion */}
+      <ConfirmDialog
+        isOpen={pendingDeleteNoteId !== null}
+        onClose={() => setPendingDeleteNoteId(null)}
+        onConfirm={() => { if (pendingDeleteNoteId !== null) handleDeleteNote(pendingDeleteNoteId) }}
+        title={t('collab.notes.confirmDeleteTitle')}
+        message={t('collab.notes.confirmDeleteBody')}
+      />
     </div>
   )
 }

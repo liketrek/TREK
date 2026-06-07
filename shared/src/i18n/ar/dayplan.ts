@@ -9,6 +9,8 @@ const dayplan: TranslationStrings = {
   'dayplan.confirmRemoveTimeBody':
     'هذا المكان له وقت ثابت ({time}). نقله سيزيل الوقت ويسمح بالترتيب الحر.',
   'dayplan.confirmRemoveTimeAction': 'إزالة الوقت ونقل',
+  'dayplan.confirmDeleteNoteTitle': 'حذف الملاحظة؟',
+  'dayplan.confirmDeleteNoteBody': 'سيتم حذف هذه الملاحظة نهائيًا.',
   'dayplan.cannotDropOnTimed':
     'لا يمكن وضع العناصر بين الإدخالات المرتبطة بوقت',
   'dayplan.cannotBreakChronology':
@@ -29,6 +31,7 @@ const dayplan: TranslationStrings = {
   'dayplan.routeError': 'فشل حساب المسار',
   'dayplan.toast.needTwoPlaces': 'يلزم مكانان على الأقل لتحسين المسار',
   'dayplan.toast.routeOptimized': 'تم تحسين المسار',
+  'dayplan.toast.routeOptimizedFromHotel': 'تم تحسين المسار انطلاقًا من مكان إقامتك',
   'dayplan.toast.noGeoPlaces': 'لم يتم العثور على أماكن بإحداثيات لحساب المسار',
   'dayplan.confirmed': 'مؤكد',
   'dayplan.pendingRes': 'قيد الانتظار',

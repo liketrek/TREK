@@ -63,6 +63,9 @@ const settings: TranslationStrings = {
   'settings.temperature': 'Jednotky teploty',
   'settings.timeFormat': 'Formát času',
   'settings.blurBookingCodes': 'Skrýt rezervační kódy',
+  'settings.optimizeFromAccommodation': 'Optimalizovat trasu od ubytování',
+  'settings.optimizeFromAccommodationHint':
+    'Při optimalizaci dne začne trasa v hotelu, ve kterém se ráno probudíte, a skončí v hotelu, do kterého se večer ubytujete.',
   'settings.notifications': 'Oznámení',
   'settings.notifyTripInvite': 'Pozvánky na cesty',
   'settings.notifyBookingChange': 'Změny rezervací',

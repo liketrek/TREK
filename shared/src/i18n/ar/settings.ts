@@ -60,6 +60,9 @@ const settings: TranslationStrings = {
   'settings.bookingLabelsHint':
     'عرض أسماء المحطات/المطارات على الخريطة. عند الإيقاف، يتم عرض الرمز فقط.',
   'settings.blurBookingCodes': 'إخفاء رموز الحجز',
+  'settings.optimizeFromAccommodation': 'تحسين المسار انطلاقًا من مكان الإقامة',
+  'settings.optimizeFromAccommodationHint':
+    'عند تحسين يوم ما، يبدأ المسار من الفندق الذي تستيقظ فيه وينتهي عند الفندق الذي تسجّل الوصول إليه في تلك الليلة.',
   'settings.notifications': 'الإشعارات',
   'settings.notifyTripInvite': 'دعوات الرحلات',
   'settings.notifyBookingChange': 'تغييرات الحجز',

@@ -63,6 +63,9 @@ const settings: TranslationStrings = {
   'settings.temperature': 'Hőmérséklet egység',
   'settings.timeFormat': 'Időformátum',
   'settings.blurBookingCodes': 'Foglalási kódok elrejtése',
+  'settings.optimizeFromAccommodation': 'Útvonal optimalizálása a szállástól',
+  'settings.optimizeFromAccommodationHint':
+    'A nap optimalizálásakor az útvonal annál a szállásnál kezdődjön, ahol felébredsz, és annál érjen véget, ahova este bejelentkezel.',
   'settings.notifications': 'Értesítések',
   'settings.notifyTripInvite': 'Utazási meghívók',
   'settings.notifyBookingChange': 'Foglalási változások',

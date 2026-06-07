@@ -22,6 +22,7 @@ const dayplan: TranslationStrings = {
   'dayplan.toast.needTwoPlaces':
     'Для оптимизации маршрута нужно минимум два места',
   'dayplan.toast.routeOptimized': 'Маршрут оптимизирован',
+  'dayplan.toast.routeOptimizedFromHotel': 'Маршрут оптимізовано від вашого житла',
   'dayplan.toast.noGeoPlaces':
     'Не знайдено місць з координатами для розрахунку маршруту',
   'dayplan.confirmed': 'Подтверждено',
@@ -35,6 +36,8 @@ const dayplan: TranslationStrings = {
   'dayplan.confirmRemoveTimeBody':
     'У цього місця фіксований час ({time}). При переміщенні час буде видалено, і стане доступне вільне сортування.',
   'dayplan.confirmRemoveTimeAction': 'Видалити час і перемістити',
+  'dayplan.confirmDeleteNoteTitle': 'Видалити нотатку?',
+  'dayplan.confirmDeleteNoteBody': 'Цю нотатку буде видалено назавжди.',
   'dayplan.cannotDropOnTimed':
     'Елементи не можна розміщувати між записами з фіксованим часом',
   'dayplan.cannotBreakChronology':

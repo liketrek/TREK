@@ -9,6 +9,8 @@ const dayplan: TranslationStrings = {
   'dayplan.confirmRemoveTimeBody':
     'To miejsce ma określoną godzinę ({time}). Przeniesienie go usunie godzinę i umożliwi swobodne sortowanie.',
   'dayplan.confirmRemoveTimeAction': 'Usuń godzinę i przenieś',
+  'dayplan.confirmDeleteNoteTitle': 'Usunąć notatkę?',
+  'dayplan.confirmDeleteNoteBody': 'Ta notatka zostanie trwale usunięta.',
   'dayplan.cannotDropOnTimed':
     'Nie można umieszczać elementów pomiędzy wpisami z określoną godziną',
   'dayplan.cannotBreakChronology':
@@ -30,6 +32,8 @@ const dayplan: TranslationStrings = {
   'dayplan.toast.needTwoPlaces':
     'Potrzeba co najmniej dwóch miejsc, aby zoptymalizować trasę',
   'dayplan.toast.routeOptimized': 'Trasa została zoptymalizowana',
+  'dayplan.toast.routeOptimizedFromHotel':
+    'Trasa została zoptymalizowana względem Twojego zakwaterowania',
   'dayplan.toast.noGeoPlaces':
     'Nie znaleziono miejsc ze współrzędnymi do obliczenia trasy',
   'dayplan.confirmed': 'Potwierdzono',

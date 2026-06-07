@@ -40,6 +40,8 @@ const collab: TranslationStrings = {
   'collab.notes.cancel': 'キャンセル',
   'collab.notes.edit': '編集',
   'collab.notes.delete': '削除',
+  'collab.notes.confirmDeleteTitle': 'メモを削除しますか？',
+  'collab.notes.confirmDeleteBody': 'このメモは完全に削除されます。',
   'collab.notes.pin': '固定',
   'collab.notes.unpin': '固定を解除',
   'collab.notes.daysAgo': '{n}日前',

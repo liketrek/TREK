@@ -59,6 +59,9 @@ const settings: TranslationStrings = {
   'settings.temperature': '溫度單位',
   'settings.timeFormat': '時間格式',
   'settings.blurBookingCodes': '模糊預訂程式碼',
+  'settings.optimizeFromAccommodation': '從住宿地點最佳化路線',
+  'settings.optimizeFromAccommodationHint':
+    '最佳化某一天的行程時,路線從你早上起床的飯店出發,並在你當晚入住的飯店結束。',
   'settings.notifications': '通知',
   'settings.notifyTripInvite': '旅行邀請',
   'settings.notifyBookingChange': '預訂變更',

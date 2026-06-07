@@ -36,6 +36,8 @@ const collab: TranslationStrings = {
   'collab.notes.cancel': 'Zrušit',
   'collab.notes.edit': 'Upravit',
   'collab.notes.delete': 'Smazat',
+  'collab.notes.confirmDeleteTitle': 'Smazat poznámku?',
+  'collab.notes.confirmDeleteBody': 'Tato poznámka bude trvale smazána.',
   'collab.notes.pin': 'Připnout',
   'collab.notes.unpin': 'Odepnout',
   'collab.notes.daysAgo': 'před {n} dny',

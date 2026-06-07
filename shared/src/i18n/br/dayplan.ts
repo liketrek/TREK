@@ -20,6 +20,8 @@ const dayplan: TranslationStrings = {
   'dayplan.toast.needTwoPlaces':
     'São necessários pelo menos dois lugares para otimizar a rota',
   'dayplan.toast.routeOptimized': 'Rota otimizada',
+  'dayplan.toast.routeOptimizedFromHotel':
+    'Rota otimizada a partir da sua hospedagem',
   'dayplan.toast.noGeoPlaces':
     'Nenhum lugar com coordenadas para calcular a rota',
   'dayplan.confirmed': 'Confirmada',
@@ -33,6 +35,8 @@ const dayplan: TranslationStrings = {
   'dayplan.confirmRemoveTimeBody':
     'Este lugar tem um horário fixo ({time}). Movê-lo removerá o horário e permitirá ordenação livre.',
   'dayplan.confirmRemoveTimeAction': 'Remover horário e mover',
+  'dayplan.confirmDeleteNoteTitle': 'Excluir nota?',
+  'dayplan.confirmDeleteNoteBody': 'Esta nota será excluída permanentemente.',
   'dayplan.cannotDropOnTimed':
     'Itens não podem ser colocados entre entradas com horário fixo',
   'dayplan.cannotBreakChronology':

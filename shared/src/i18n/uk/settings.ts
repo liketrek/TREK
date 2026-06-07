@@ -63,6 +63,9 @@ const settings: TranslationStrings = {
   'settings.temperature': 'Одиниця температури',
   'settings.timeFormat': 'Формат часу',
   'settings.blurBookingCodes': 'Приховати коди бронювання',
+  'settings.optimizeFromAccommodation': 'Оптимізувати маршрут від житла',
+  'settings.optimizeFromAccommodationHint':
+    'Під час оптимізації дня починайте маршрут від готелю, у якому ви прокидаєтеся, і завершуйте його тим, у який ви заселяєтеся ввечері.',
   'settings.notifications': 'Сповіщення',
   'settings.notifyTripInvite': 'Запрошення до поїздки',
   'settings.notifyBookingChange': 'Зміни бронювань',

@@ -62,6 +62,9 @@ const settings: TranslationStrings = {
   'settings.temperature': 'Satuan Suhu',
   'settings.timeFormat': 'Format Waktu',
   'settings.blurBookingCodes': 'Sembunyikan Kode Pemesanan',
+  'settings.optimizeFromAccommodation': 'Optimalkan rute dari akomodasi',
+  'settings.optimizeFromAccommodationHint':
+    'Saat mengoptimalkan suatu hari, mulai rute dari hotel tempatmu bangun pagi dan akhiri di hotel tempatmu check-in malam itu.',
   'settings.notifications': 'Notifikasi',
   'settings.notifyTripInvite': 'Undangan perjalanan',
   'settings.notifyBookingChange': 'Perubahan pemesanan',

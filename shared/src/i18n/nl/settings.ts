@@ -62,6 +62,9 @@ const settings: TranslationStrings = {
   'settings.temperature': 'Temperatuureenheid',
   'settings.timeFormat': 'Tijdnotatie',
   'settings.blurBookingCodes': 'Boekingscodes vervagen',
+  'settings.optimizeFromAccommodation': 'Route optimaliseren vanaf accommodatie',
+  'settings.optimizeFromAccommodationHint':
+    'Begin bij het optimaliseren van een dag de route bij het hotel waar je wakker wordt en eindig bij het hotel waar je die avond incheckt.',
   'settings.notifications': 'Meldingen',
   'settings.notifyTripInvite': 'Reisuitnodigingen',
   'settings.notifyBookingChange': 'Boekingswijzigingen',

@@ -7,6 +7,7 @@ import { ChevronDown, ChevronRight, ChevronUp, Navigation, RotateCcw, ExternalLi
 import { assignmentsApi, reservationsApi } from '../../api/client'
 import { calculateRoute, calculateRouteWithLegs, optimizeRoute } from '../Map/RouteCalculator'
 import PlaceAvatar from '../shared/PlaceAvatar'
+import ConfirmDialog from '../shared/ConfirmDialog'
 import { useContextMenu, ContextMenu } from '../shared/ContextMenu'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -17,7 +18,7 @@ import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTranslation } from '../../i18n'
-import { isDayInAccommodationRange } from '../../utils/dayOrder'
+import { isDayInAccommodationRange, getAccommodationAnchors } from '../../utils/dayOrder'
 import {
   TRANSPORT_TYPES, parseTimeToMinutes, getSpanPhase, getDisplayTimeForDay,
   getTransportForDay as _getTransportForDay, getMergedItems as _getMergedItems,
@@ -451,6 +452,10 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     _openEditNote(dayId, note)
   }
 
+  // Deleting a note asks for confirmation first — the edit/delete icons sit close together and are
+  // easy to mis-tap on touch devices, where an accidental delete was previously unrecoverable.
+  const [pendingDeleteNote, setPendingDeleteNote] = useState<{ dayId: number; noteId: number } | null>(null)
+
   const deleteNote = async (dayId: number, noteId: number, e?: React.MouseEvent) => {
     e?.stopPropagation()
     await _deleteNote(dayId, noteId)
@@ -703,8 +708,14 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     // Optimize only unlocked assignments (work on assignments, not places)
     const unlockedWithCoords = unlocked.filter(a => a.place?.lat && a.place?.lng)
     const unlockedNoCoords = unlocked.filter(a => !a.place?.lat || !a.place?.lng)
+    // Anchor the route on the day's accommodation (when enabled): a loop out from and back to the
+    // hotel, or — on a transfer day — a run from the hotel you leave to the one you arrive at.
+    const day = days.find(d => d.id === selectedDayId)
+    const anchors = day && useSettingsStore.getState().settings.optimize_from_accommodation !== false
+      ? getAccommodationAnchors(day, days, accommodations)
+      : {}
     const optimizedAssignments = unlockedWithCoords.length >= 2
-      ? optimizeRoute(unlockedWithCoords.map(a => ({ ...a.place, _assignmentId: a.id }))).map(p => unlockedWithCoords.find(a => a.id === p._assignmentId)).filter(Boolean)
+      ? optimizeRoute(unlockedWithCoords.map(a => ({ ...a.place, _assignmentId: a.id })), anchors).map(p => unlockedWithCoords.find(a => a.id === p._assignmentId)).filter(Boolean)
       : unlockedWithCoords
     const optimizedQueue = [...optimizedAssignments, ...unlockedNoCoords]
 
@@ -717,7 +728,8 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     }
 
     await onReorder(selectedDayId, result.map(a => a.id))
-    toast.success(t('dayplan.toast.routeOptimized'))
+    const usedHotel = !!(anchors.start || anchors.end)
+    toast.success(usedHotel ? t('dayplan.toast.routeOptimizedFromHotel') : t('dayplan.toast.routeOptimized'))
     const capturedDayId = selectedDayId
     pushUndo?.(t('undo.optimize'), async () => {
       await tripActions.reorderAssignments(tripId, capturedDayId, prevIds)
@@ -851,6 +863,8 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     cancelNote,
     saveNote,
     deleteNote,
+    pendingDeleteNote,
+    setPendingDeleteNote,
     moveNote,
     expandedDays,
     setExpandedDays,
@@ -993,6 +1007,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
     cancelNote,
     saveNote,
     deleteNote,
+    pendingDeleteNote,
+    setPendingDeleteNote,
     moveNote,
     expandedDays,
     setExpandedDays,
@@ -1908,7 +1924,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                           onContextMenu={canEditDays ? e => ctxMenu.open(e, [
                             { label: t('common.edit'), icon: Pencil, onClick: () => openEditNote(day.id, note) },
                             { divider: true },
-                            { label: t('common.delete'), icon: Trash2, danger: true, onClick: () => deleteNote(day.id, note.id) },
+                            { label: t('common.delete'), icon: Trash2, danger: true, onClick: () => setPendingDeleteNote({ dayId: day.id, noteId: note.id }) },
                           ]) : undefined}
                           onMouseEnter={e => {
                             const grip = e.currentTarget.querySelector('.dp-grip') as HTMLElement | null
@@ -1950,7 +1966,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                           </div>
                           {canEditDays && <div className="note-edit-buttons" style={{ display: 'flex', gap: 1, flexShrink: 0, opacity: 0, transition: 'opacity 0.15s' }}>
                             <button onClick={e => openEditNote(day.id, note, e)} className="text-content-faint" style={{ background: 'none', border: 'none', padding: 2, cursor: 'pointer', display: 'flex' }}><Pencil size={10} /></button>
-                            <button onClick={e => deleteNote(day.id, note.id, e)} className="text-content-faint" style={{ background: 'none', border: 'none', padding: 2, cursor: 'pointer', display: 'flex' }}><Trash2 size={10} /></button>
+                            <button onClick={e => { e.stopPropagation(); setPendingDeleteNote({ dayId: day.id, noteId: note.id }) }} className="text-content-faint" style={{ background: 'none', border: 'none', padding: 2, cursor: 'pointer', display: 'flex' }}><Trash2 size={10} /></button>
                           </div>}
                           {canEditDays && <div className="reorder-buttons" style={{ flexShrink: 0, display: 'flex', gap: 1, transition: 'opacity 0.15s' }}>
                             <button onClick={e => { e.stopPropagation(); moveNote(day.id, note.id, 'up') }} disabled={noteIdx === 0} className={noteIdx === 0 ? 'text-[var(--border-primary)]' : 'text-content-faint'} style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: noteIdx === 0 ? 'default' : 'pointer', display: 'flex', lineHeight: 1 }}><ChevronUp size={12} strokeWidth={2} /></button>
@@ -2091,6 +2107,15 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
         setTimeConfirm={setTimeConfirm}
         confirmTimeRemoval={confirmTimeRemoval}
         t={t}
+      />
+
+      {/* Confirm: delete a day note — guards against accidental taps on touch devices */}
+      <ConfirmDialog
+        isOpen={!!pendingDeleteNote}
+        onClose={() => setPendingDeleteNote(null)}
+        onConfirm={() => { if (pendingDeleteNote) deleteNote(pendingDeleteNote.dayId, pendingDeleteNote.noteId) }}
+        title={t('dayplan.confirmDeleteNoteTitle')}
+        message={t('dayplan.confirmDeleteNoteBody')}
       />
 
       {/* Transport-Detail-Modal */}

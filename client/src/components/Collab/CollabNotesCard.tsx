@@ -16,7 +16,7 @@ interface NoteCardProps {
   currentUser: User
   canEdit: boolean
   onUpdate: (noteId: number, data: Partial<CollabNote>) => Promise<void>
-  onDelete: (noteId: number) => Promise<void>
+  onDelete: (noteId: number) => void
   onEdit: (note: CollabNote) => void
   onView: (note: CollabNote) => void
   onPreviewFile: (file: NoteFile) => void

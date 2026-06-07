@@ -39,6 +39,8 @@ const collab: TranslationStrings = {
   'collab.notes.cancel': '취소',
   'collab.notes.edit': '편집',
   'collab.notes.delete': '삭제',
+  'collab.notes.confirmDeleteTitle': '메모를 삭제할까요?',
+  'collab.notes.confirmDeleteBody': '이 메모가 영구적으로 삭제됩니다.',
   'collab.notes.pin': '고정',
   'collab.notes.unpin': '고정 해제',
   'collab.notes.daysAgo': '{n}일 전',

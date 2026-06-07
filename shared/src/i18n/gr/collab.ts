@@ -41,6 +41,8 @@ const collab: TranslationStrings = {
   'collab.notes.cancel': 'Ακύρωση',
   'collab.notes.edit': 'Επεξεργασία',
   'collab.notes.delete': 'Διαγραφή',
+  'collab.notes.confirmDeleteTitle': 'Διαγραφή σημείωσης;',
+  'collab.notes.confirmDeleteBody': 'Αυτή η σημείωση θα διαγραφεί οριστικά.',
   'collab.notes.pin': 'Καρφίτσωμα',
   'collab.notes.unpin': 'Ξεκαρφίτσωμα',
   'collab.notes.daysAgo': '{n}η πριν',

@@ -9,6 +9,8 @@ const dayplan: TranslationStrings = {
   'dayplan.confirmRemoveTimeBody':
     'Bu yerin sabit bir saati var ({time}). Taşımak saati kaldırır ve serbest sıralamaya izin verir.',
   'dayplan.confirmRemoveTimeAction': 'Saati kaldır ve taşı',
+  'dayplan.confirmDeleteNoteTitle': 'Not silinsin mi?',
+  'dayplan.confirmDeleteNoteBody': 'Bu not kalıcı olarak silinecek.',
   'dayplan.cannotDropOnTimed':
     'Öğeler saate bağlı girişler arasına yerleştirilemez',
   'dayplan.cannotBreakChronology':
@@ -32,6 +34,8 @@ const dayplan: TranslationStrings = {
   'dayplan.toast.needTwoPlaces':
     'Rota optimizasyonu için en az iki yer gerekli',
   'dayplan.toast.routeOptimized': 'Rota optimize edildi',
+  'dayplan.toast.routeOptimizedFromHotel':
+    'Rota konakladığınız yerden optimize edildi',
   'dayplan.toast.noGeoPlaces': 'Rota için koordinatlı yer bulunamadı',
   'dayplan.confirmed': 'Onaylandı',
   'dayplan.pendingRes': 'Beklemede',

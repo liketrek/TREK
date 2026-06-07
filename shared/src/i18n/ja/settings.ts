@@ -64,6 +64,9 @@ const settings: TranslationStrings = {
   'settings.bookingLabelsHint':
     '地図に駅・空港名を表示。オフ時はアイコンのみ。',
   'settings.blurBookingCodes': '予約コードをぼかす',
+  'settings.optimizeFromAccommodation': '宿泊先を起点にルートを最適化',
+  'settings.optimizeFromAccommodationHint':
+    'その日を最適化する際、朝に目覚める宿泊先を起点にし、その晩にチェックインする宿泊先を終点としてルートを組みます。',
   'settings.notifications': '通知',
   'settings.notifyTripInvite': '旅行の招待',
   'settings.notifyBookingChange': '予約の変更',

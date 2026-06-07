@@ -64,6 +64,9 @@ const settings: TranslationStrings = {
   'settings.bookingLabelsHint':
     'Show station / airport names on the map. When off, only the icon is shown.',
   'settings.blurBookingCodes': 'Blur Booking Codes',
+  'settings.optimizeFromAccommodation': 'Optimize route from accommodation',
+  'settings.optimizeFromAccommodationHint':
+    'When optimizing a day, start the route at the hotel you wake up in and end it at the one you check into that evening.',
   'settings.notifications': 'Notifications',
   'settings.notifyTripInvite': 'Trip invitations',
   'settings.notifyBookingChange': 'Booking changes',

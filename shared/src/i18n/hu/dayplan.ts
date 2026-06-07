@@ -20,6 +20,8 @@ const dayplan: TranslationStrings = {
   'dayplan.toast.needTwoPlaces':
     'Legalább két hely szükséges az útvonal-optimalizáláshoz',
   'dayplan.toast.routeOptimized': 'Útvonal optimalizálva',
+  'dayplan.toast.routeOptimizedFromHotel':
+    'Útvonal optimalizálva a szállásodtól',
   'dayplan.toast.noGeoPlaces':
     'Nem találhatók koordinátákkal rendelkező helyek az útvonalszámításhoz',
   'dayplan.confirmed': 'Megerősítve',
@@ -33,6 +35,8 @@ const dayplan: TranslationStrings = {
   'dayplan.confirmRemoveTimeBody':
     'Ennek a helynek rögzített időpontja van ({time}). Az áthelyezéssel az időpont eltávolítódik és szabad rendezés válik lehetővé.',
   'dayplan.confirmRemoveTimeAction': 'Időpont eltávolítása és áthelyezés',
+  'dayplan.confirmDeleteNoteTitle': 'Törli a jegyzetet?',
+  'dayplan.confirmDeleteNoteBody': 'Ez a jegyzet véglegesen törlődik.',
   'dayplan.cannotDropOnTimed':
     'Elemek nem helyezhetők rögzített időpontú bejegyzések közé',
   'dayplan.cannotBreakChronology':

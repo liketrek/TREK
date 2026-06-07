@@ -20,6 +20,8 @@ const dayplan: TranslationStrings = {
   'dayplan.toast.needTwoPlaces':
     'Pro optimalizaci trasy jsou potřeba alespoň dvě místa',
   'dayplan.toast.routeOptimized': 'Trasa byla optimalizována',
+  'dayplan.toast.routeOptimizedFromHotel':
+    'Trasa byla optimalizována od vašeho ubytování',
   'dayplan.toast.noGeoPlaces':
     'Nebyla nalezena žádná místa se souřadnicemi pro výpočet trasy',
   'dayplan.confirmed': 'Potvrzeno',
@@ -33,6 +35,8 @@ const dayplan: TranslationStrings = {
   'dayplan.confirmRemoveTimeBody':
     'Toto místo má pevný čas ({time}). Přesunutím se čas odebere a povolí se volné řazení.',
   'dayplan.confirmRemoveTimeAction': 'Odebrat čas a přesunout',
+  'dayplan.confirmDeleteNoteTitle': 'Smazat poznámku?',
+  'dayplan.confirmDeleteNoteBody': 'Tato poznámka bude trvale smazána.',
   'dayplan.cannotDropOnTimed':
     'Položky nelze umístit mezi záznamy s pevným časem',
   'dayplan.cannotBreakChronology':

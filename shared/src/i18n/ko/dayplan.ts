@@ -9,6 +9,8 @@ const dayplan: TranslationStrings = {
   'dayplan.confirmRemoveTimeBody':
     '이 장소에 고정된 시간 ({time})이 있습니다. 이동하면 시간이 제거되고 자유 정렬이 허용됩니다.',
   'dayplan.confirmRemoveTimeAction': '시간 제거 및 이동',
+  'dayplan.confirmDeleteNoteTitle': '메모를 삭제할까요?',
+  'dayplan.confirmDeleteNoteBody': '이 메모가 영구적으로 삭제됩니다.',
   'dayplan.cannotDropOnTimed': '시간이 고정된 항목 사이에 배치할 수 없습니다',
   'dayplan.cannotBreakChronology':
     '이 작업은 시간 고정 항목과 예약의 시간 순서를 깨뜨립니다',
@@ -31,6 +33,7 @@ const dayplan: TranslationStrings = {
   'dayplan.toast.needTwoPlaces':
     '경로 최적화에는 최소 두 개의 장소가 필요합니다',
   'dayplan.toast.routeOptimized': '경로가 최적화되었습니다',
+  'dayplan.toast.routeOptimizedFromHotel': '숙소를 기준으로 경로가 최적화되었습니다',
   'dayplan.toast.noGeoPlaces': '경로 계산을 위한 좌표가 있는 장소가 없습니다',
   'dayplan.confirmed': '확정됨',
   'dayplan.pendingRes': '대기 중',

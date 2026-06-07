@@ -42,6 +42,8 @@ const collab: TranslationStrings = {
   'collab.notes.cancel': 'Mégse',
   'collab.notes.edit': 'Szerkesztés',
   'collab.notes.delete': 'Törlés',
+  'collab.notes.confirmDeleteTitle': 'Törli a jegyzetet?',
+  'collab.notes.confirmDeleteBody': 'Ez a jegyzet véglegesen törlődik.',
   'collab.notes.pin': 'Kitűzés',
   'collab.notes.unpin': 'Kitűzés eltávolítása',
   'collab.notes.daysAgo': '{n} napja',

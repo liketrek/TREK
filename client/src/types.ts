@@ -113,6 +113,7 @@ export interface Settings {
   show_place_description: boolean
   blur_booking_codes?: boolean
   map_booking_labels?: boolean
+  optimize_from_accommodation?: boolean
   map_provider?: 'leaflet' | 'mapbox-gl'
   mapbox_access_token?: string
   mapbox_style?: string
@@ -160,6 +161,12 @@ export interface RouteResult {
 export interface Waypoint {
   lat: number
   lng: number
+}
+
+// Optional fixed start/end points for route optimization (e.g. the day's accommodation).
+export interface RouteAnchors {
+  start?: Waypoint
+  end?: Waypoint
 }
 
 // User with optional OIDC fields

@@ -9,6 +9,8 @@ const dayplan: TranslationStrings = {
   'dayplan.confirmRemoveTimeBody':
     'Tempat ini memiliki waktu tetap ({time}). Memindahkannya akan menghapus waktu dan mengizinkan pengurutan bebas.',
   'dayplan.confirmRemoveTimeAction': 'Hapus waktu & pindahkan',
+  'dayplan.confirmDeleteNoteTitle': 'Hapus catatan?',
+  'dayplan.confirmDeleteNoteBody': 'Catatan ini akan dihapus secara permanen.',
   'dayplan.cannotDropOnTimed':
     'Item tidak dapat ditempatkan di antara entri yang terikat waktu',
   'dayplan.cannotBreakChronology':
@@ -30,6 +32,8 @@ const dayplan: TranslationStrings = {
   'dayplan.toast.needTwoPlaces':
     'Diperlukan minimal dua tempat untuk optimasi rute',
   'dayplan.toast.routeOptimized': 'Rute dioptimalkan',
+  'dayplan.toast.routeOptimizedFromHotel':
+    'Rute dioptimalkan dari akomodasimu',
   'dayplan.toast.noGeoPlaces':
     'Tidak ditemukan tempat dengan koordinat untuk kalkulasi rute',
   'dayplan.confirmed': 'Dikonfirmasi',

@@ -40,6 +40,8 @@ const collab: TranslationStrings = {
   'collab.notes.cancel': 'İptal etmek',
   'collab.notes.edit': 'Düzenle',
   'collab.notes.delete': 'Sil',
+  'collab.notes.confirmDeleteTitle': 'Not silinsin mi?',
+  'collab.notes.confirmDeleteBody': 'Bu not kalıcı olarak silinecek.',
   'collab.notes.pin': 'Sabitle',
   'collab.notes.unpin': 'Sabitlemeyi kaldır',
   'collab.notes.daysAgo': '{n} gün önce',

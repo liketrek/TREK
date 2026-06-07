@@ -66,6 +66,9 @@ const settings: TranslationStrings = {
   'settings.bookingLabelsHint':
     'Haritada istasyon / havalimanı adlarını göster. Kapalıyken yalnızca simge görünür.',
   'settings.blurBookingCodes': 'Rezervasyon Kodlarını Bulanıklaştır',
+  'settings.optimizeFromAccommodation': 'Rotayı konaklamadan optimize et',
+  'settings.optimizeFromAccommodationHint':
+    'Bir günü optimize ederken rotaya o sabah uyandığınız otelden başlayın ve akşam giriş yaptığınız otelde sonlandırın.',
   'settings.notifications': 'Bildirimler',
   'settings.notifyTripInvite': 'Seyahat davetleri',
   'settings.notifyBookingChange': 'Rezervasyon değişiklikleri',
