@@ -26,4 +26,5 @@ export class ShareService {
   get(tripId: string) { return svc.getShareLink(tripId); }
   remove(tripId: string) { return svc.deleteShareLink(tripId); }
   getSharedTripData(token: string) { return svc.getSharedTripData(token); }
+  getSharedPlacePhotoPath(token: string, placeId: string) { return svc.getSharedPlacePhotoPath(token, placeId); }
 }

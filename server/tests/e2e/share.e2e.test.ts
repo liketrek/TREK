@@ -8,6 +8,9 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import cookieParser from 'cookie-parser';
+import os from 'node:os';
+import path from 'node:path';
+import fs from 'node:fs';
 import type { Server } from 'http';
 import { Test } from '@nestjs/testing';
 import { seedUser, sessionCookie } from './harness';
@@ -28,7 +31,7 @@ const { checkPermission } = vi.hoisted(() => ({ checkPermission: vi.fn() }));
 vi.mock('../../src/services/permissions', () => ({ checkPermission }));
 
 const { shareSvc } = vi.hoisted(() => ({
-  shareSvc: { createOrUpdateShareLink: vi.fn(), getShareLink: vi.fn(), deleteShareLink: vi.fn(), getSharedTripData: vi.fn() },
+  shareSvc: { createOrUpdateShareLink: vi.fn(), getShareLink: vi.fn(), deleteShareLink: vi.fn(), getSharedTripData: vi.fn(), getSharedPlacePhotoPath: vi.fn() },
 }));
 vi.mock('../../src/services/shareService', () => shareSvc);
 
@@ -105,5 +108,30 @@ describe('Share-link e2e (real auth guard + temp SQLite)', () => {
     const res = await request(server).get('/api/shared/bad');
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Invalid or expired link' });
+  });
+
+  describe('public place-photo proxy (/api/shared/:token/place-photo/:placeId/bytes)', () => {
+    const photoFile = path.join(os.tmpdir(), 'trek-share-photo.e2e.jpg');
+    const photoBytes = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]); // JPEG-ish header
+
+    beforeAll(() => fs.writeFileSync(photoFile, photoBytes));
+    afterAll(() => { try { fs.unlinkSync(photoFile); } catch { /* ignore */ } });
+
+    it('streams cached bytes with no cookie (unguarded) for a valid token + place', async () => {
+      shareSvc.getSharedPlacePhotoPath.mockReturnValueOnce(photoFile);
+      const res = await request(server).get('/api/shared/tok/place-photo/ChIJabc/bytes');
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toContain('image/jpeg');
+      expect(res.headers['cache-control']).toContain('immutable');
+      expect(Buffer.from(res.body)).toEqual(photoBytes);
+      expect(shareSvc.getSharedPlacePhotoPath).toHaveBeenCalledWith('tok', 'ChIJabc');
+    });
+
+    it('404 when the token/place does not resolve to a cached photo', async () => {
+      shareSvc.getSharedPlacePhotoPath.mockReturnValueOnce(null);
+      const res = await request(server).get('/api/shared/bad/place-photo/ChIJabc/bytes');
+      expect(res.status).toBe(404);
+      expect(res.body).toEqual({ error: 'Photo not cached' });
+    });
   });
 });

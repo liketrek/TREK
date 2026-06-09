@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, HttpException, Param, Post, Res, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
+import { createReadStream } from 'node:fs';
 import type { User } from '../../types';
 import { ShareService } from './share.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -71,6 +72,30 @@ export class TripShareController {
 @Controller('api/shared')
 export class SharedController {
   constructor(private readonly share: ShareService) {}
+
+  /**
+   * Public, token-scoped place-photo proxy. The shared payload rewrites place
+   * image URLs to this route so thumbnails load without a session cookie (the
+   * /api/maps bytes endpoint is JwtAuthGuard'd). The service validates the token
+   * and that the place belongs to its trip; a miss streams nothing and answers
+   * 404. Declared before the bare ':token' read route. Streaming mirrors
+   * MapsController.placePhotoBytes (cached photos are always JPEG).
+   */
+  @Get(':token/place-photo/:placeId/bytes')
+  placePhotoBytes(@Param('token') token: string, @Param('placeId') placeId: string, @Res() res: Response): void {
+    const fp = this.share.getSharedPlacePhotoPath(token, placeId);
+    if (!fp) {
+      res.status(404).json({ error: 'Photo not cached' });
+      return;
+    }
+    res.set('Cache-Control', 'public, max-age=2592000, immutable');
+    res.type('image/jpeg');
+    const stream = createReadStream(fp);
+    stream.on('error', () => {
+      if (!res.headersSent) res.status(404).json({ error: 'Photo not cached' });
+    });
+    stream.pipe(res);
+  }
 
   @Get(':token')
   read(@Param('token') token: string) {
