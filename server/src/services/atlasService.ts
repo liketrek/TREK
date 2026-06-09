@@ -1,32 +1,45 @@
+import fs from 'fs';
+import path from 'path';
+import zlib from 'zlib';
 import { db } from '../db/database';
 import { Trip, Place } from '../types';
 
-// ── Admin-1 GeoJSON cache (sub-national regions) ─────────────────────────
+// ── Bundled boundary GeoJSON (admin-0 countries + admin-1 regions) ─────────
+//
+// Sourced from geoBoundaries (CC BY 4.0), normalized + quantized offline by
+// scripts/build-atlas-geo.mjs into gzipped FeatureCollections under server/assets.
+// They are read + decompressed once and cached in memory — no network at runtime.
+// (Replaces the previous runtime fetch of Natural Earth, which was stale for recent
+// sub-national reforms and depicts some contested borders in unwanted ways.)
+//
+// __dirname is server/dist/services at runtime and server/src/services under vitest;
+// both resolve ../../assets to server/assets.
 
-let admin1GeoCache: any = null;
-let admin1GeoLoading: Promise<any> | null = null;
+const geoBundleCache = new Map<string, any>();
 
-async function loadAdmin1Geo(): Promise<any> {
-  if (admin1GeoCache) return admin1GeoCache;
-  if (admin1GeoLoading) return admin1GeoLoading;
-  admin1GeoLoading = fetch(
-    'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_1_states_provinces.geojson',
-    { headers: { 'User-Agent': 'TREK Travel Planner' } }
-  ).then(r => r.json()).then((geo: any) => {
-    admin1GeoCache = geo;
-    admin1GeoLoading = null;
-    console.log(`[Atlas] Cached admin-1 GeoJSON: ${geo.features?.length || 0} features`);
-    return geo;
-  }).catch(err => {
-    admin1GeoLoading = null;
-    console.error('[Atlas] Failed to load admin-1 GeoJSON:', err);
-    return null;
-  });
-  return admin1GeoLoading;
+function loadGeoBundle(name: 'admin0' | 'admin1'): any {
+  const cached = geoBundleCache.get(name);
+  if (cached) return cached;
+  const file = path.join(__dirname, '..', '..', 'assets', 'atlas', `${name}.geojson.gz`);
+  if (!fs.existsSync(file)) {
+    console.warn(`[Atlas] ${name}.geojson.gz missing — run \`node scripts/build-atlas-geo.mjs\``);
+    const empty = { type: 'FeatureCollection', features: [] };
+    geoBundleCache.set(name, empty);
+    return empty;
+  }
+  const geo = JSON.parse(zlib.gunzipSync(fs.readFileSync(file)).toString('utf8'));
+  geoBundleCache.set(name, geo);
+  console.log(`[Atlas] Loaded ${name} GeoJSON: ${geo.features?.length || 0} features`);
+  return geo;
+}
+
+/** Full admin-0 country-border FeatureCollection (for the client map's country layer). */
+export function getCountryGeo(): any {
+  return loadGeoBundle('admin0');
 }
 
 export async function getRegionGeo(countryCodes: string[]): Promise<any> {
-  const geo = await loadAdmin1Geo();
+  const geo = loadGeoBundle('admin1');
   if (!geo) return { type: 'FeatureCollection', features: [] };
   const codes = new Set(countryCodes.map(c => c.toUpperCase()));
   const features = geo.features.filter((f: any) => codes.has(f.properties?.iso_a2?.toUpperCase()));

@@ -132,18 +132,19 @@ export function useAtlas() {
     }).catch(() => setLoading(false))
   }, [])
 
-  // Load GeoJSON world data (direct GeoJSON, no conversion needed)
+  // Load country-border GeoJSON from our API (geoBoundaries, served server-side —
+  // no third-party fetch from the browser).
   useEffect(() => {
-    fetch('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson')
-      .then(r => r.json())
-      .then(geo => {
+    apiClient.get('/addons/atlas/countries/geo')
+      .then(res => {
+        const geo = res.data
         // Dynamically build A2→A3 mapping from GeoJSON
         for (const f of geo.features) {
           const a2 = f.properties?.ISO_A2
           const a3 = f.properties?.ADM0_A3 || f.properties?.ISO_A3
-          // Only real 2-letter ISO codes: natural-earth uses subdivision-style
-          // values like "CN-TW" for Taiwan, which would otherwise overwrite the
-          // legitimate TWN->TW reverse mapping and break the country (#1049).
+          // Only accept clean 2-letter ISO codes and never overwrite an existing
+          // mapping: some datasets carry subdivision-style values like "CN-TW" for
+          // Taiwan, which would clobber the legitimate TWN->TW entry (#1049).
           if (a2 && a3 && a2.length === 2 && a2 !== '-99' && a3 !== '-99' && !A2_TO_A3[a2]) {
             A2_TO_A3[a2] = a3
           }

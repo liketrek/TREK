@@ -135,6 +135,8 @@ const ALLOWED_DESTRUCTIVE: Record<string, string> = {
     "Migration 121: DELETE ... WHERE title IN ('Gallery','[Trip Photos]') — remove synthetic wrapper entries replaced by the gallery model.",
   'DELETE FROM place_regions':
     'Atlas enclave fix: DELETE ... WHERE place_id IN (places inside specific enclave boxes) — invalidate stale region cache; re-resolved on next request.',
+  'DELETE FROM visited_regions':
+    'Atlas geoBoundaries swap (#1119): DELETE ... WHERE id = ? — after UPDATE OR IGNORE re-codes a manually-marked region to its current code, drop only the single leftover row whose UNIQUE(user_id, region_code) collision caused the update to be skipped (a duplicate of a region the user already has).',
 };
 
 describe('migration hygiene — destructive operation guard', () => {

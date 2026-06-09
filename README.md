@@ -437,6 +437,13 @@ Caddy handles TLS and WebSockets automatically.
 
 <br />
 
+## Data sources
+
+The Atlas map's country and sub-national (province/county) boundaries come from
+[**geoBoundaries**](https://www.geoboundaries.org/) (Runfola et al., 2020), licensed
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). See [NOTICE.md](NOTICE.md)
+for full third-party attributions.
+
 ## License
 
 TREK is [AGPL v3](LICENSE). Self-host freely for personal or internal company use. If you modify and offer TREK as a network service to third parties, your modifications must be open-sourced under the same licence.

@@ -53,6 +53,13 @@ describe('AtlasController (parity with the legacy /api/addons/atlas route)', () 
     });
   });
 
+  it('GET /countries/geo delegates to the service', () => {
+    const fc = { type: 'FeatureCollection', features: [{ id: 'NO' }] };
+    const countryGeo = vi.fn().mockReturnValue(fc);
+    expect(makeController({ countryGeo }).countryGeo()).toBe(fc);
+    expect(countryGeo).toHaveBeenCalledWith();
+  });
+
   describe('country', () => {
     it('GET /country/:code upper-cases the code', () => {
       const countryPlaces = vi.fn().mockReturnValue([]);

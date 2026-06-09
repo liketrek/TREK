@@ -33,6 +33,7 @@ const { mocks } = vi.hoisted(() => ({
     unmarkRegionVisited: vi.fn(),
     getVisitedRegions: vi.fn(),
     getRegionGeo: vi.fn(),
+    getCountryGeo: vi.fn(),
     listBucketList: vi.fn(),
     createBucketItem: vi.fn(),
     updateBucketItem: vi.fn(),
@@ -73,6 +74,14 @@ describe('Atlas e2e (real auth guard + temp SQLite)', () => {
   it('401 without a session cookie', async () => {
     const res = await request(server).get('/api/addons/atlas/stats');
     expect(res.status).toBe(401);
+  });
+
+  it('200 countries/geo returns the admin-0 FeatureCollection', async () => {
+    mocks.getCountryGeo.mockReturnValue({ type: 'FeatureCollection', features: [{ id: 'NO' }] });
+    const res = await request(server).get('/api/addons/atlas/countries/geo').set('Cookie', sessionCookie(1));
+    expect(res.status).toBe(200);
+    expect(res.body.type).toBe('FeatureCollection');
+    expect(res.headers['cache-control']).toContain('max-age=86400');
   });
 
   it('200 stats for an authenticated user', async () => {

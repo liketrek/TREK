@@ -62,6 +62,12 @@ export class AtlasController {
     return geo;
   }
 
+  @Get('countries/geo')
+  @Header('Cache-Control', 'public, max-age=86400')
+  countryGeo(): RegionGeo {
+    return this.atlas.countryGeo();
+  }
+
   @Get('country/:code')
   countryPlaces(@CurrentUser() user: User, @Param('code') code: string) {
     return this.atlas.countryPlaces(user.id, code.toUpperCase());

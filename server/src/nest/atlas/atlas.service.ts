@@ -8,6 +8,7 @@ import {
   unmarkRegionVisited,
   getVisitedRegions,
   getRegionGeo,
+  getCountryGeo,
   listBucketList,
   createBucketItem,
   updateBucketItem,
@@ -35,6 +36,10 @@ export class AtlasService {
 
   regionGeo(countries: string[]) {
     return getRegionGeo(countries);
+  }
+
+  countryGeo() {
+    return getCountryGeo();
   }
 
   countryPlaces(userId: number, code: string) {
