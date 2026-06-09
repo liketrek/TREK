@@ -30,11 +30,12 @@ vi.mock('../../src/db/database', () => ({
   db, canAccessTrip: vi.fn(), isOwner: vi.fn(), getPlaceWithTags: vi.fn(), closeDb: () => {}, reinitialize: () => {},
 }));
 
-const { getCollabFeatures, getPhotoProviderConfig } = vi.hoisted(() => ({
+const { getCollabFeatures, getBagTracking, getPhotoProviderConfig } = vi.hoisted(() => ({
   getCollabFeatures: vi.fn(() => ({ chat: true, notes: true, polls: true, whatsnext: true })),
+  getBagTracking: vi.fn(() => ({ enabled: true })),
   getPhotoProviderConfig: vi.fn(() => ({ url: 'https://immich.example' })),
 }));
-vi.mock('../../src/services/adminService', () => ({ getCollabFeatures }));
+vi.mock('../../src/services/adminService', () => ({ getCollabFeatures, getBagTracking }));
 vi.mock('../../src/services/memories/helpersService', () => ({ getPhotoProviderConfig }));
 
 import { AddonsModule } from '../../src/nest/addons/addons.module';
@@ -72,11 +73,15 @@ describe('GET /api/addons e2e (real auth guard + temp SQLite)', () => {
     expect((await request(server).get('/api/addons')).status).toBe(401);
   });
 
+  // Session 1 is a default-role ('user') account — i.e. a non-admin. Asserting the
+  // global bagTracking flag here is present is the #1124 regression guard: reading the
+  // toggle must not require admin.
   it('200 returns enabled addons + photo providers (disabled addon excluded)', async () => {
     const res = await request(server).get('/api/addons').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       collabFeatures: { chat: true, notes: true, polls: true, whatsnext: true },
+      bagTracking: true,
       addons: [
         { id: 'packing', name: 'Packing', type: 'trip', icon: 'Backpack', enabled: true },
         {

@@ -5,7 +5,8 @@ import { useCanDo } from '../../store/permissionsStore'
 import { useAuthStore } from '../../store/authStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
-import { packingApi, tripsApi, adminApi } from '../../api/client'
+import { packingApi, tripsApi } from '../../api/client'
+import { useAddonStore } from '../../store/addonStore'
 import type { PackingItem, PackingBag } from '../../types'
 import { BAG_COLORS } from './packingListPanel.constants'
 import { parseImportLines } from './packingListPanel.helpers'
@@ -147,19 +148,24 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
     if (failed) toast.error(t('packing.toast.deleteError'))
   }
 
-  // Bag tracking
-  const [bagTrackingEnabled, setBagTrackingEnabled] = useState(false)
+  // Bag tracking — the global toggle is a packing sub-flag surfaced to every
+  // authenticated user via the addon store (loaded on app start), not the
+  // admin-only endpoint, so non-admin members see weights/bags too.
+  const bagTrackingEnabled = useAddonStore(s => s.bagTracking)
+  const addonsLoaded = useAddonStore(s => s.loaded)
+  const loadAddons = useAddonStore(s => s.loadAddons)
   const [bags, setBags] = useState<PackingBag[]>([])
   const [newBagName, setNewBagName] = useState('')
   const [showAddBag, setShowAddBag] = useState(false)
   const [showBagModal, setShowBagModal] = useState(false)
 
   useEffect(() => {
-    adminApi.getBagTracking().then(d => {
-      setBagTrackingEnabled(d.enabled)
-      if (d.enabled) packingApi.listBags(tripId).then(r => setBags(r.bags || [])).catch(() => {})
-    }).catch(() => {})
-  }, [tripId])
+    if (!addonsLoaded) loadAddons()
+  }, [addonsLoaded, loadAddons])
+
+  useEffect(() => {
+    if (bagTrackingEnabled) packingApi.listBags(tripId).then(r => setBags(r.bags || [])).catch(() => {})
+  }, [tripId, bagTrackingEnabled])
 
   const handleCreateBag = async () => {
     if (!newBagName.trim()) return

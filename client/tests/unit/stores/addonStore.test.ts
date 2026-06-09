@@ -18,6 +18,18 @@ describe('addonStore', () => {
       expect(state.addons.length).toBeGreaterThan(0);
       expect(state.addons[0]).toHaveProperty('id');
       expect(state.addons[0]).toHaveProperty('enabled', true);
+      expect(state.bagTracking).toBe(false);
+    });
+
+    it('captures the global bagTracking flag from the response', async () => {
+      server.use(
+        http.get('/api/addons', () =>
+          HttpResponse.json({ bagTracking: true, addons: [] })
+        )
+      );
+
+      await useAddonStore.getState().loadAddons();
+      expect(useAddonStore.getState().bagTracking).toBe(true);
     });
   });
 

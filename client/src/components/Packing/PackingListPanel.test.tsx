@@ -34,8 +34,8 @@ beforeEach(() => {
     http.get('/api/trips/:id/packing/category-assignees', () =>
       HttpResponse.json({ assignees: {} })
     ),
-    http.get('/api/admin/bag-tracking', () =>
-      HttpResponse.json({ enabled: false })
+    http.get('/api/addons', () =>
+      HttpResponse.json({ bagTracking: false, addons: [] })
     ),
     http.get('/api/trips/:id/packing/templates', () =>
       HttpResponse.json({ templates: [] })
@@ -457,8 +457,8 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-034: bag tracking enabled shows Bags button and bag sidebar', async () => {
     server.use(
-      http.get('/api/admin/bag-tracking', () =>
-        HttpResponse.json({ enabled: true })
+      http.get('/api/addons', () =>
+        HttpResponse.json({ bagTracking: true, addons: [] })
       ),
       http.get('/api/trips/:id/packing/bags', () =>
         HttpResponse.json({ bags: [{ id: 1, name: 'Carry-on', color: '#6366f1', weight_limit_grams: null, members: [] }] })
@@ -556,8 +556,8 @@ describe('PackingListPanel', () => {
   it('FE-COMP-PACKING-039: bag modal opens when Bags button clicked with bag tracking enabled', async () => {
     const user = userEvent.setup();
     server.use(
-      http.get('/api/admin/bag-tracking', () =>
-        HttpResponse.json({ enabled: true })
+      http.get('/api/addons', () =>
+        HttpResponse.json({ bagTracking: true, addons: [] })
       ),
       http.get('/api/trips/:id/packing/bags', () =>
         HttpResponse.json({ bags: [{ id: 1, name: 'Main Bag', color: '#6366f1', weight_limit_grams: null, members: [] }] })
@@ -585,8 +585,8 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-040: bag sidebar renders BagCard with bag name when enabled and bags exist', async () => {
     server.use(
-      http.get('/api/admin/bag-tracking', () =>
-        HttpResponse.json({ enabled: true })
+      http.get('/api/addons', () =>
+        HttpResponse.json({ bagTracking: true, addons: [] })
       ),
       http.get('/api/trips/:id/packing/bags', () =>
         HttpResponse.json({ bags: [{ id: 5, name: 'Backpack', color: '#10b981', weight_limit_grams: 10000, members: [] }] })
@@ -668,8 +668,8 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-044: bag item row shows weight input and bag button when bag tracking enabled', async () => {
     server.use(
-      http.get('/api/admin/bag-tracking', () =>
-        HttpResponse.json({ enabled: true })
+      http.get('/api/addons', () =>
+        HttpResponse.json({ bagTracking: true, addons: [] })
       ),
       http.get('/api/trips/:id/packing/bags', () =>
         HttpResponse.json({ bags: [] })
@@ -747,8 +747,8 @@ describe('PackingListPanel', () => {
   it('FE-COMP-PACKING-047: bag picker in item row opens when clicked with bag tracking enabled', async () => {
     const user = userEvent.setup();
     server.use(
-      http.get('/api/admin/bag-tracking', () =>
-        HttpResponse.json({ enabled: true })
+      http.get('/api/addons', () =>
+        HttpResponse.json({ bagTracking: true, addons: [] })
       ),
       http.get('/api/trips/:id/packing/bags', () =>
         HttpResponse.json({ bags: [{ id: 3, name: 'Carry-on', color: '#ec4899', weight_limit_grams: null, members: [] }] })
@@ -776,8 +776,8 @@ describe('PackingListPanel', () => {
   it('FE-COMP-PACKING-048: add bag in bag modal opens form when "Add bag" clicked', async () => {
     const user = userEvent.setup();
     server.use(
-      http.get('/api/admin/bag-tracking', () =>
-        HttpResponse.json({ enabled: true })
+      http.get('/api/addons', () =>
+        HttpResponse.json({ bagTracking: true, addons: [] })
       ),
       http.get('/api/trips/:id/packing/bags', () =>
         HttpResponse.json({ bags: [{ id: 1, name: 'Main Bag', color: '#6366f1', weight_limit_grams: null, members: [] }] })
@@ -816,8 +816,8 @@ describe('PackingListPanel', () => {
     let putBody: Record<string, unknown> | null = null;
     const itemId = 120;
     server.use(
-      http.get('/api/admin/bag-tracking', () =>
-        HttpResponse.json({ enabled: true })
+      http.get('/api/addons', () =>
+        HttpResponse.json({ bagTracking: true, addons: [] })
       ),
       http.get('/api/trips/:id/packing/bags', () =>
         HttpResponse.json({ bags: [] })
@@ -872,8 +872,8 @@ describe('PackingListPanel', () => {
     const itemId = 130;
     let putBody: Record<string, unknown> | null = null;
     server.use(
-      http.get('/api/admin/bag-tracking', () =>
-        HttpResponse.json({ enabled: true })
+      http.get('/api/addons', () =>
+        HttpResponse.json({ bagTracking: true, addons: [] })
       ),
       http.get('/api/trips/:id/packing/bags', () =>
         HttpResponse.json({ bags: [{ id: 7, name: 'Trolley', color: '#10b981', weight_limit_grams: null, members: [] }] })
@@ -941,8 +941,8 @@ describe('PackingListPanel', () => {
   it('FE-COMP-PACKING-054: item with assigned bag shows "Unassigned" option in bag picker', async () => {
     const itemId = 140;
     server.use(
-      http.get('/api/admin/bag-tracking', () =>
-        HttpResponse.json({ enabled: true })
+      http.get('/api/addons', () =>
+        HttpResponse.json({ bagTracking: true, addons: [] })
       ),
       http.get('/api/trips/:id/packing/bags', () =>
         HttpResponse.json({ bags: [{ id: 5, name: 'MyBag', color: '#ec4899', weight_limit_grams: null, members: [] }] })
@@ -1188,7 +1188,7 @@ describe('PackingListPanel', () => {
     const user = userEvent.setup();
     let createBody: Record<string, unknown> | null = null;
     server.use(
-      http.get('/api/admin/bag-tracking', () => HttpResponse.json({ enabled: true })),
+      http.get('/api/addons', () => HttpResponse.json({ bagTracking: true, addons: [] })),
       // Start with one bag so the sidebar renders (sidebar requires bags.length > 0)
       http.get('/api/trips/:id/packing/bags', () =>
         HttpResponse.json({ bags: [{ id: 1, name: 'Existing Bag', color: '#6366f1', weight_limit_grams: null, members: [] }] })
@@ -1218,7 +1218,7 @@ describe('PackingListPanel', () => {
     const user = userEvent.setup();
     let deleteCalled = false;
     server.use(
-      http.get('/api/admin/bag-tracking', () => HttpResponse.json({ enabled: true })),
+      http.get('/api/addons', () => HttpResponse.json({ bagTracking: true, addons: [] })),
       http.get('/api/trips/:id/packing/bags', () =>
         HttpResponse.json({ bags: [{ id: 9, name: 'Old Bag', color: '#6366f1', weight_limit_grams: null, members: [] }] })
       ),
@@ -1246,7 +1246,7 @@ describe('PackingListPanel', () => {
     const user = userEvent.setup();
     let updateBody: Record<string, unknown> | null = null;
     server.use(
-      http.get('/api/admin/bag-tracking', () => HttpResponse.json({ enabled: true })),
+      http.get('/api/addons', () => HttpResponse.json({ bagTracking: true, addons: [] })),
       http.get('/api/trips/:id/packing/bags', () =>
         HttpResponse.json({ bags: [{ id: 11, name: 'Carry-on', color: '#10b981', weight_limit_grams: null, members: [] }] })
       ),
@@ -1284,7 +1284,7 @@ describe('PackingListPanel', () => {
           current_user_id: 1,
         })
       ),
-      http.get('/api/admin/bag-tracking', () => HttpResponse.json({ enabled: true })),
+      http.get('/api/addons', () => HttpResponse.json({ bagTracking: true, addons: [] })),
       http.get('/api/trips/:id/packing/bags', () =>
         HttpResponse.json({ bags: [{ id: 12, name: 'Day Pack', color: '#ec4899', weight_limit_grams: null, members: [] }] })
       )
@@ -1325,7 +1325,7 @@ describe('PackingListPanel', () => {
           current_user_id: 1,
         })
       ),
-      http.get('/api/admin/bag-tracking', () => HttpResponse.json({ enabled: true })),
+      http.get('/api/addons', () => HttpResponse.json({ bagTracking: true, addons: [] })),
       http.get('/api/trips/:id/packing/bags', () =>
         HttpResponse.json({ bags: [{ id: 13, name: 'Weekend Bag', color: '#f97316', weight_limit_grams: null, members: [] }] })
       ),
@@ -1363,7 +1363,7 @@ describe('PackingListPanel', () => {
   it('FE-COMP-PACKING-068: inline bag create in item row picker creates bag and assigns it', async () => {
     let createBody: Record<string, unknown> | null = null;
     server.use(
-      http.get('/api/admin/bag-tracking', () => HttpResponse.json({ enabled: true })),
+      http.get('/api/addons', () => HttpResponse.json({ bagTracking: true, addons: [] })),
       http.get('/api/trips/:id/packing/bags', () => HttpResponse.json({ bags: [] })),
       http.post('/api/trips/1/packing/bags', async ({ request }) => {
         createBody = await request.json() as Record<string, unknown>;

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { db } from '../../db/database';
 import type { Addon } from '../../types';
-import { getCollabFeatures } from '../../services/adminService';
+import { getBagTracking, getCollabFeatures } from '../../services/adminService';
 import { getPhotoProviderConfig } from '../../services/memories/helpersService';
 
 /**
@@ -53,6 +53,7 @@ export class AddonsService {
 
     return {
       collabFeatures: getCollabFeatures(),
+      bagTracking: getBagTracking().enabled,
       addons: [
         ...addons.map((a) => ({ ...a, enabled: !!a.enabled })),
         ...providers.map((p) => ({
