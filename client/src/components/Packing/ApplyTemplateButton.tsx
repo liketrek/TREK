@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Package } from 'lucide-react'
-import { adminApi, packingApi } from '../../api/client'
+import { packingApi } from '../../api/client'
 import { useTripStore } from '../../store/tripStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
@@ -28,7 +28,7 @@ export default function ApplyTemplateButton({ tripId, style, className }: ApplyT
   const { t } = useTranslation()
 
   useEffect(() => {
-    adminApi.packingTemplates().then(d => setTemplates(d.templates || [])).catch(() => {})
+    packingApi.listTemplates(tripId).then(d => setTemplates(d.templates || [])).catch(() => {})
   }, [tripId])
 
   useEffect(() => {

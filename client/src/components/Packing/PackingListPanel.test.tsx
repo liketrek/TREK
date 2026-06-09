@@ -7,7 +7,7 @@ import { server } from '../../../tests/helpers/msw/server';
 import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildUser, buildTrip, buildPackingItem } from '../../../tests/helpers/factories';
+import { buildUser, buildAdmin, buildTrip, buildPackingItem } from '../../../tests/helpers/factories';
 import PackingListPanel, { itemWeight } from './PackingListPanel';
 
 describe('itemWeight (bag total weight calc)', () => {
@@ -37,7 +37,7 @@ beforeEach(() => {
     http.get('/api/admin/bag-tracking', () =>
       HttpResponse.json({ enabled: false })
     ),
-    http.get('/api/admin/packing-templates', () =>
+    http.get('/api/trips/:id/packing/templates', () =>
       HttpResponse.json({ templates: [] })
     ),
   );
@@ -381,7 +381,7 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-030: packing template button present when templates available', async () => {
     server.use(
-      http.get('/api/admin/packing-templates', () =>
+      http.get('/api/trips/:id/packing/templates', () =>
         HttpResponse.json({ templates: [{ id: 1, name: 'Beach Trip', item_count: 5 }] })
       )
     );
@@ -601,26 +601,36 @@ describe('PackingListPanel', () => {
     });
   });
 
-  it('FE-COMP-PACKING-041: save-as-template button present when items exist', async () => {
+  it('FE-COMP-PACKING-041: save-as-template button present for admins when items exist', async () => {
+    seedStore(useAuthStore, { user: buildAdmin(), isAuthenticated: true });
     const user = userEvent.setup();
     const items = [buildPackingItem({ name: 'Sunscreen', category: 'Toiletries' })];
-    const { container } = render(<PackingListPanel tripId={1} items={items} />);
+    render(<PackingListPanel tripId={1} items={items} />);
 
-    // Save-as-template button uses FolderPlus icon and "Save as template" text
-    const folderPlusBtn = container.querySelector('svg.lucide-folder-plus')?.closest('button');
-    expect(folderPlusBtn).toBeTruthy();
+    // Save-as-template button shows its label "Save as template"
+    const saveBtn = screen.getByText('Save as template').closest('button');
+    expect(saveBtn).toBeTruthy();
 
     // Click to show the name input
-    await user.click(folderPlusBtn!);
+    await user.click(saveBtn!);
 
     // Template name input appears
     expect(await screen.findByPlaceholderText('Template name')).toBeInTheDocument();
   });
 
+  it('FE-COMP-PACKING-041b: save-as-template button hidden for non-admins', () => {
+    // Default seeded user (beforeEach) is a non-admin trip owner with edit rights.
+    const items = [buildPackingItem({ name: 'Sunscreen', category: 'Toiletries' })];
+    render(<PackingListPanel tripId={1} items={items} />);
+
+    // The "Save as template" action must not be available to normal users.
+    expect(screen.queryByText('Save as template')).not.toBeInTheDocument();
+  });
+
   it('FE-COMP-PACKING-042: apply template dropdown opens when template button clicked', async () => {
     const user = userEvent.setup();
     server.use(
-      http.get('/api/admin/packing-templates', () =>
+      http.get('/api/trips/:id/packing/templates', () =>
         HttpResponse.json({ templates: [{ id: 2, name: 'Summer Packing', item_count: 10 }] })
       )
     );
@@ -706,6 +716,7 @@ describe('PackingListPanel', () => {
   });
 
   it('FE-COMP-PACKING-046: save-as-template form submission calls saveAsTemplate API', async () => {
+    seedStore(useAuthStore, { user: buildAdmin(), isAuthenticated: true });
     const user = userEvent.setup();
     let savedTemplateName = '';
     server.use(
@@ -714,16 +725,16 @@ describe('PackingListPanel', () => {
         savedTemplateName = String(body.name);
         return HttpResponse.json({ success: true });
       }),
-      http.get('/api/admin/packing-templates', () =>
+      http.get('/api/trips/:id/packing/templates', () =>
         HttpResponse.json({ templates: [] })
       )
     );
     const items = [buildPackingItem({ name: 'Item', category: 'Test' })];
-    const { container } = render(<PackingListPanel tripId={1} items={items} />);
+    render(<PackingListPanel tripId={1} items={items} />);
 
-    // Click the FolderPlus "Save as template" button
-    const folderPlusBtn = container.querySelector('svg.lucide-folder-plus')?.closest('button');
-    await user.click(folderPlusBtn!);
+    // Click the "Save as template" button
+    const saveBtn = screen.getByText('Save as template').closest('button');
+    await user.click(saveBtn!);
 
     // Type template name
     const nameInput = await screen.findByPlaceholderText('Template name');
@@ -957,7 +968,7 @@ describe('PackingListPanel', () => {
   it('FE-COMP-PACKING-055: apply template button click opens template dropdown and shows template', async () => {
     const user = userEvent.setup();
     server.use(
-      http.get('/api/admin/packing-templates', () =>
+      http.get('/api/trips/:id/packing/templates', () =>
         HttpResponse.json({ templates: [{ id: 3, name: 'Weekend Pack', item_count: 8 }] })
       )
     );
@@ -1124,7 +1135,7 @@ describe('PackingListPanel', () => {
     const user = userEvent.setup();
     let applyCalled = false;
     server.use(
-      http.get('/api/admin/packing-templates', () =>
+      http.get('/api/trips/:id/packing/templates', () =>
         HttpResponse.json({ templates: [{ id: 5, name: 'Beach Trip', item_count: 12 }] })
       ),
       http.post('/api/trips/1/packing/apply-template/5', () => {

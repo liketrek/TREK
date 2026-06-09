@@ -126,6 +126,22 @@ export type PackingSaveTemplateRequest = z.infer<
   typeof packingSaveTemplateRequestSchema
 >;
 
+export const packingTemplateSummarySchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  item_count: z.number(),
+});
+export type PackingTemplateSummary = z.infer<
+  typeof packingTemplateSummarySchema
+>;
+
+export const packingTemplatesResponseSchema = z.object({
+  templates: z.array(packingTemplateSummarySchema),
+});
+export type PackingTemplatesResponse = z.infer<
+  typeof packingTemplatesResponseSchema
+>;
+
 export const packingCategoryAssigneesRequestSchema = z.object({
   user_ids: z.array(z.number()),
 });

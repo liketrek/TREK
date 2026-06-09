@@ -5,6 +5,7 @@ import type { PackingService } from '../../../src/nest/packing/packing.service';
 import type { User } from '../../../src/types';
 
 const user = { id: 1, role: 'user', email: 'u@example.test' } as User;
+const admin = { id: 1, role: 'admin', email: 'a@example.test' } as User;
 const trip = { id: 5, user_id: 1 };
 
 /** Service mock with trip access granted + edit allowed by default. */
@@ -119,6 +120,14 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
   });
 
   describe('templates', () => {
+    it('GET /templates returns the template list for an accessible trip', () => {
+      const listTemplates = vi.fn().mockReturnValue([{ id: 1, name: 'Beach', item_count: 4 }]);
+      const svc = makeService({ listTemplates } as Partial<PackingService>);
+      expect(new PackingController(svc).listTemplates(user, '5')).toEqual({
+        templates: [{ id: 1, name: 'Beach', item_count: 4 }],
+      });
+    });
+
     it('404 when applying a missing/empty template (POST stays 200 otherwise)', () => {
       const svc = makeService({ applyTemplate: vi.fn().mockReturnValue(null) } as Partial<PackingService>);
       expect(thrown(() => new PackingController(svc).applyTemplate(user, '5', 't1'))).toEqual({
@@ -126,11 +135,29 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
       });
     });
 
-    it('400 saving a template with no items', () => {
-      const svc = makeService({ saveAsTemplate: vi.fn().mockReturnValue(null) } as Partial<PackingService>);
+    it('403 when a non-admin tries to save a template', () => {
+      const saveAsTemplate = vi.fn();
+      const svc = makeService({ saveAsTemplate } as Partial<PackingService>);
       expect(thrown(() => new PackingController(svc).saveAsTemplate(user, '5', 'My template'))).toEqual({
+        status: 403, body: { error: 'Admin access required' },
+      });
+      expect(saveAsTemplate).not.toHaveBeenCalled();
+    });
+
+    it('400 when an admin saves a template with no items', () => {
+      const svc = makeService({ saveAsTemplate: vi.fn().mockReturnValue(null) } as Partial<PackingService>);
+      expect(thrown(() => new PackingController(svc).saveAsTemplate(admin, '5', 'My template'))).toEqual({
         status: 400, body: { error: 'No items to save' },
       });
+    });
+
+    it('saves a template for an admin', () => {
+      const saveAsTemplate = vi.fn().mockReturnValue({ id: 7, name: 'My template' });
+      const svc = makeService({ saveAsTemplate } as Partial<PackingService>);
+      expect(new PackingController(svc).saveAsTemplate(admin, '5', 'My template')).toEqual({
+        template: { id: 7, name: 'My template' },
+      });
+      expect(saveAsTemplate).toHaveBeenCalledWith('5', admin.id, 'My template');
     });
   });
 

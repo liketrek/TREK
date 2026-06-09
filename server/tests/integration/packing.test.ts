@@ -448,8 +448,8 @@ describe('Packing — apply-template, bag members, save-as-template', () => {
     expect(res.body.error).toBeDefined();
   });
 
-  it('PACK-017 — POST /save-as-template saves packing list as a template', async () => {
-    const { user } = createUser(testDb);
+  it('PACK-017 — POST /save-as-template saves packing list as a template (admin)', async () => {
+    const { user } = createUser(testDb, { role: 'admin' });
     const trip = createTrip(testDb, user.id);
 
     // Add an item so the trip has something to save
@@ -465,8 +465,8 @@ describe('Packing — apply-template, bag members, save-as-template', () => {
     expect(res.body.template.name).toBe('My Summer Template');
   });
 
-  it('PACK-017b — POST /save-as-template without name returns 400', async () => {
-    const { user } = createUser(testDb);
+  it('PACK-017b — POST /save-as-template without name returns 400 (admin)', async () => {
+    const { user } = createUser(testDb, { role: 'admin' });
     const trip = createTrip(testDb, user.id);
 
     const res = await request(app)
@@ -478,8 +478,8 @@ describe('Packing — apply-template, bag members, save-as-template', () => {
     expect(res.body.error).toBeDefined();
   });
 
-  it('PACK-017c — POST /save-as-template when trip has no items returns 400', async () => {
-    const { user } = createUser(testDb);
+  it('PACK-017c — POST /save-as-template when trip has no items returns 400 (admin)', async () => {
+    const { user } = createUser(testDb, { role: 'admin' });
     const trip = createTrip(testDb, user.id);
 
     const res = await request(app)
@@ -489,5 +489,38 @@ describe('Packing — apply-template, bag members, save-as-template', () => {
 
     expect(res.status).toBe(400);
     expect(res.body.error).toBeDefined();
+  });
+
+  it('PACK-017d — POST /save-as-template is forbidden for non-admins (403)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    createPackingItem(testDb, trip.id);
+
+    const res = await request(app)
+      .post(`/api/trips/${trip.id}/packing/save-as-template`)
+      .set('Cookie', authCookie(user.id))
+      .send({ name: 'My Summer Template' });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe('Admin access required');
+  });
+
+  it('PACK-017e — GET /packing/templates lists templates for a trip member', async () => {
+    const { user: admin } = createUser(testDb, { role: 'admin' });
+    const trip = createTrip(testDb, admin.id);
+    createPackingItem(testDb, trip.id);
+    await request(app)
+      .post(`/api/trips/${trip.id}/packing/save-as-template`)
+      .set('Cookie', authCookie(admin.id))
+      .send({ name: 'Shared Template' });
+
+    const res = await request(app)
+      .get(`/api/trips/${trip.id}/packing/templates`)
+      .set('Cookie', authCookie(admin.id));
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body.templates)).toBe(true);
+    expect(res.body.templates.some((t: { name: string }) => t.name === 'Shared Template')).toBe(true);
+    expect(res.body.templates[0]).toHaveProperty('item_count');
   });
 });

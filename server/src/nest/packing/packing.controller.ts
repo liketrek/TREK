@@ -195,6 +195,12 @@ export class PackingController {
     return { success: true };
   }
 
+  @Get('templates')
+  listTemplates(@CurrentUser() user: User, @Param('tripId') tripId: string) {
+    this.requireTrip(tripId, user);
+    return { templates: this.packing.listTemplates() };
+  }
+
   @Post('apply-template/:templateId')
   @HttpCode(200)
   applyTemplate(
@@ -238,6 +244,9 @@ export class PackingController {
     @Body('name') name?: string,
   ) {
     this.requireTrip(tripId, user);
+    if (user.role !== 'admin') {
+      throw new HttpException({ error: 'Admin access required' }, 403);
+    }
     if (!name?.trim()) {
       throw new HttpException({ error: 'Template name is required' }, 400);
     }

@@ -37,6 +37,7 @@ import { createUser, createTrip } from '../../helpers/factories';
 import {
   saveAsTemplate,
   applyTemplate,
+  listTemplates,
   setBagMembers,
   createBag,
   deleteBag,
@@ -89,6 +90,27 @@ describe('saveAsTemplate', () => {
     const result = saveAsTemplate(trip.id, user.id, 'Empty');
 
     expect(result).toBeNull();
+  });
+});
+
+// ── listTemplates ───────────────────────────────────────────────────────────────
+
+describe('listTemplates', () => {
+  it('PACK-SVC-LIST-001: returns templates with id, name and item_count', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    testDb.prepare('INSERT INTO packing_items (trip_id, name, category, checked, sort_order) VALUES (?, ?, ?, 0, ?)').run(trip.id, 'Shirt', 'Clothes', 0);
+    testDb.prepare('INSERT INTO packing_items (trip_id, name, category, checked, sort_order) VALUES (?, ?, ?, 0, ?)').run(trip.id, 'Toothbrush', 'Toiletries', 1);
+    const saved = saveAsTemplate(trip.id, user.id, 'Weekend');
+
+    const templates = listTemplates();
+    expect(templates).toHaveLength(1);
+    expect(templates[0]).toMatchObject({ id: saved!.id, name: 'Weekend', item_count: 2 });
+  });
+
+  it('PACK-SVC-LIST-002: returns an empty array when no templates exist', () => {
+    expect(listTemplates()).toEqual([]);
   });
 });
 

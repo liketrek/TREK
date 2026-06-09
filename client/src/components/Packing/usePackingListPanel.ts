@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import type { ChangeEvent } from 'react'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
+import { useAuthStore } from '../../store/authStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import { packingApi, tripsApi, adminApi } from '../../api/client'
@@ -46,6 +47,7 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
   const can = useCanDo()
   const trip = useTripStore((s) => s.trip)
   const canEdit = can('packing_edit', trip)
+  const isAdmin = useAuthStore((s) => s.user?.role === 'admin')
   const toast = useToast()
   const { t } = useTranslation()
 
@@ -234,7 +236,7 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
   const templateDropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    adminApi.packingTemplates().then(d => setAvailableTemplates(d.templates || [])).catch(() => {})
+    packingApi.listTemplates(tripId).then(d => setAvailableTemplates(d.templates || [])).catch(() => {})
   }, [tripId])
 
   useEffect(() => {
@@ -267,7 +269,7 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
       toast.success(t('packing.templateSaved'))
       setShowSaveTemplate(false)
       setSaveTemplateName('')
-      adminApi.packingTemplates().then(d => setAvailableTemplates(d.templates || [])).catch(() => {})
+      packingApi.listTemplates(tripId).then(d => setAvailableTemplates(d.templates || [])).catch(() => {})
     } catch {
       toast.error(t('common.error'))
     }
@@ -297,7 +299,7 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
   const font = { fontFamily: "var(--font-system)" }
 
   return {
-    tripId, items, inlineHeader, t, canEdit, font,
+    tripId, items, inlineHeader, t, canEdit, isAdmin, font,
     filter, setFilter, addingCategory, setAddingCategory, newCatName, setNewCatName,
     tripMembers, categoryAssignees, handleSetAssignees, allCategories, gruppiert, abgehakt, fortschritt,
     handleAddItemToCategory, handleAddNewCategory, handleRenameCategory, handleDeleteCategory, handleClearChecked,

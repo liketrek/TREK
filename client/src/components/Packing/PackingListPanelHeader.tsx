@@ -5,7 +5,7 @@ import type { PackingState } from './usePackingListPanel'
 
 export function PackingHeader(S: PackingState) {
   const {
-    inlineHeader, t, items, abgehakt, fortschritt, canEdit,
+    inlineHeader, t, items, abgehakt, fortschritt, canEdit, isAdmin,
     showSaveTemplate, saveTemplateName, setSaveTemplateName, handleSaveAsTemplate, setShowSaveTemplate,
     setShowImportModal, handleClearChecked, availableTemplates, templateDropdownRef,
     showTemplateDropdown, setShowTemplateDropdown, applyingTemplate, handleApplyTemplate,
@@ -26,7 +26,7 @@ export function PackingHeader(S: PackingState) {
           </div>
         ) : <span />}
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          {canEdit && items.length > 0 && showSaveTemplate && (
+          {canEdit && isAdmin && items.length > 0 && showSaveTemplate && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <input
                 type="text" autoFocus
@@ -97,7 +97,7 @@ export function PackingHeader(S: PackingState) {
               )}
             </div>
           )}
-          {inlineHeader && canEdit && items.length > 0 && !showSaveTemplate && (
+          {inlineHeader && canEdit && isAdmin && items.length > 0 && !showSaveTemplate && (
             <button onClick={() => setShowSaveTemplate(true)} style={{
               display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 99,
               border: '1px solid var(--border-primary)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',

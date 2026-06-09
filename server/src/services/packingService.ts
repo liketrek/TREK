@@ -191,6 +191,22 @@ export function deleteBag(tripId: string | number, bagId: string | number) {
   return true;
 }
 
+// ── List Templates ─────────────────────────────────────────────────────────
+
+/**
+ * Read-only template list for trip members (name + item count), so non-admins
+ * can pick a template to apply. Management (create/edit/delete) stays admin-only
+ * under /api/admin/packing-templates.
+ */
+export function listTemplates() {
+  return db.prepare(`
+    SELECT pt.id, pt.name,
+      (SELECT COUNT(*) FROM packing_template_items ti JOIN packing_template_categories tc ON ti.category_id = tc.id WHERE tc.template_id = pt.id) as item_count
+    FROM packing_templates pt
+    ORDER BY pt.created_at DESC
+  `).all() as { id: number; name: string; item_count: number }[];
+}
+
 // ── Apply Template ─────────────────────────────────────────────────────────
 
 export function applyTemplate(tripId: string | number, templateId: string | number) {

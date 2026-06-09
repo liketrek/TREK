@@ -53,6 +53,7 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
   const [saveTemplateSignal, setSaveTemplateSignal] = useState(0)
   const [addTodoSignal, setAddTodoSignal] = useState(0)
   const { t } = useTranslation()
+  const isAdmin = useAuthStore(s => s.user?.role === 'admin')
 
   const tabs = [
     { id: 'packing' as const, label: t('todo.subtab.packing'), icon: PackageCheck, count: packingItems.length },
@@ -121,7 +122,7 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
                   className={`${sharedBtnClass} bg-accent text-accent-text`}
                   style={sharedBtnStyle}
                 />
-                {packingItems.length > 0 && (
+                {isAdmin && packingItems.length > 0 && (
                   <button onClick={() => setSaveTemplateSignal(s => s + 1)}
                     className={`${sharedBtnClass} bg-accent text-accent-text`}
                     style={sharedBtnStyle}

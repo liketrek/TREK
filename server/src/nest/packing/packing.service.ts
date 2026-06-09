@@ -71,6 +71,10 @@ export class PackingService {
     return svc.setBagMembers(tripId, bagId, userIds);
   }
 
+  listTemplates() {
+    return svc.listTemplates();
+  }
+
   applyTemplate(tripId: string, templateId: string) {
     return svc.applyTemplate(tripId, templateId);
   }
