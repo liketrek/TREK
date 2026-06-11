@@ -55,6 +55,10 @@ function absUrl(url) {
 function safeImg(url) {
   if (!url) return null
   if (url.startsWith('https://') || url.startsWith('http://')) return url
+  // The in-app place-photo proxy always streams a JPEG but has no file extension
+  // (it ends in …/bytes), so the extension check below would wrongly reject it —
+  // which is why persisted place photos showed as category icons in the PDF.
+  if (url.startsWith('/api/maps/place-photo/')) return absUrl(url)
   return /\.(jpe?g|png|webp|bmp|tiff?)(\?.*)?$/i.test(url) ? absUrl(url) : null
 }
 
@@ -254,9 +258,10 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
           const cat = categories.find(c => c.id === place.category_id)
           const color = cat?.color || '#6366f1'
 
-          // Image: direct > google photo > fallback icon
+          // Image: direct > google photo > fallback icon. Both go through safeImg
+          // so the proxy path is resolved to an absolute URL the PDF can load.
           const directImg = safeImg(place.image_url)
-          const googleImg = photoMap[place.id] || null
+          const googleImg = safeImg(photoMap[place.id])
           const img = directImg || googleImg
 
           const iconSvg = categoryIconSvg(cat?.icon, color, 24)
