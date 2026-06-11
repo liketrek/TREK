@@ -388,5 +388,15 @@ const admin: TranslationStrings = {
     'Elimina todas las passkeys de este usuario (p. ej. tras perder un dispositivo). Aún podrá iniciar sesión con su contraseña.',
   'admin.passkey.resetConfirm': '¿Eliminar todas las passkeys de {name}?',
   'admin.passkey.resetDone': 'Se eliminaron {count} passkey(s)',
+  'admin.defaultSettings.mapProvider': 'Motor de mapas',
+  'admin.defaultSettings.mapProviderHint': 'El mapa predeterminado para todos en esta instancia. Cada usuario puede cambiarlo en sus propios ajustes.',
+  'admin.defaultSettings.providerLeaflet': 'Estándar (gratis)',
+  'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
+  'admin.defaultSettings.mapboxToken': 'Token de Mapbox compartido',
+  'admin.defaultSettings.mapboxTokenHint': 'Se usa para cada usuario que no haya introducido su propio token, de modo que toda la instancia obtenga Mapbox sin compartir la clave individualmente. Se almacena cifrado.',
+  'admin.defaultSettings.mapboxStyle': 'Estilo de mapa',
+  'admin.defaultSettings.mapboxStylePlaceholder': 'Elige un estilo…',
+  'admin.defaultSettings.mapbox3d': 'Edificios y terreno en 3D',
+  'admin.defaultSettings.mapboxQuality': 'Modo de alta calidad',
 };
 export default admin;

@@ -388,5 +388,15 @@ const admin: TranslationStrings = {
     "Supprime toutes les passkeys de cet utilisateur (ex. en cas d'appareil perdu). Il pourra toujours se connecter avec son mot de passe.",
   'admin.passkey.resetConfirm': 'Supprimer toutes les passkeys de {name} ?',
   'admin.passkey.resetDone': '{count} passkey(s) supprimée(s)',
+  'admin.defaultSettings.mapProvider': 'Moteur cartographique',
+  'admin.defaultSettings.mapProviderHint': 'La carte par défaut pour tous les utilisateurs de cette instance. Chaque utilisateur peut toujours la remplacer dans ses propres paramètres.',
+  'admin.defaultSettings.providerLeaflet': 'Standard (gratuit)',
+  'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
+  'admin.defaultSettings.mapboxToken': 'Jeton Mapbox partagé',
+  'admin.defaultSettings.mapboxTokenHint': 'Utilisé pour chaque utilisateur n\'ayant pas saisi son propre jeton — ainsi toute l\'instance bénéficie de Mapbox sans partager la clé individuellement. Stocké de façon chiffrée.',
+  'admin.defaultSettings.mapboxStyle': 'Style de carte',
+  'admin.defaultSettings.mapboxStylePlaceholder': 'Choisissez un style…',
+  'admin.defaultSettings.mapbox3d': 'Bâtiments & terrain en 3D',
+  'admin.defaultSettings.mapboxQuality': 'Mode haute qualité',
 };
 export default admin;

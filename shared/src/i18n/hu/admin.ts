@@ -381,5 +381,15 @@ const admin: TranslationStrings = {
     'Eltávolítja a felhasználó összes passkey-jét (pl. elveszett eszköz esetén). A jelszavukkal továbbra is be tudnak jelentkezni.',
   'admin.passkey.resetConfirm': 'Eltávolítod {name} összes passkey-jét?',
   'admin.passkey.resetDone': '{count} passkey eltávolítva',
+  'admin.defaultSettings.mapProvider': 'Térképmotor',
+  'admin.defaultSettings.mapProviderHint': 'Az alapértelmezett térkép mindenkinek ezen a példányon. Minden felhasználó felülírhatja a saját beállításaiban.',
+  'admin.defaultSettings.providerLeaflet': 'Alapértelmezett (ingyenes)',
+  'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
+  'admin.defaultSettings.mapboxToken': 'Megosztott Mapbox-token',
+  'admin.defaultSettings.mapboxTokenHint': 'Minden olyan felhasználóhoz használatos, aki nem adta meg a saját tokenjét — így az egész példány eléri a Mapboxot anélkül, hogy egyenként kellene megosztani a kulcsot. Titkosítva tárolódik.',
+  'admin.defaultSettings.mapboxStyle': 'Térképstílus',
+  'admin.defaultSettings.mapboxStylePlaceholder': 'Válassz stílust…',
+  'admin.defaultSettings.mapbox3d': '3D épületek & domborzat',
+  'admin.defaultSettings.mapboxQuality': 'Kiváló minőségű mód',
 };
 export default admin;

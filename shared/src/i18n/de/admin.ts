@@ -380,5 +380,15 @@ const admin: TranslationStrings = {
     'Entfernt alle Passkeys dieses Benutzers (z. B. bei einem verlorenen Gerät). Die Anmeldung mit Passwort bleibt weiterhin möglich.',
   'admin.passkey.resetConfirm': 'Alle Passkeys von {name} entfernen?',
   'admin.passkey.resetDone': '{count} Passkey(s) entfernt',
+  'admin.defaultSettings.mapProvider': 'Kartendienst',
+  'admin.defaultSettings.mapProviderHint': 'Die Standardkarte für alle auf dieser Instanz. Jeder Nutzer kann sie weiterhin in den eigenen Einstellungen überschreiben.',
+  'admin.defaultSettings.providerLeaflet': 'Standard (kostenlos)',
+  'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
+  'admin.defaultSettings.mapboxToken': 'Gemeinsames Mapbox-Token',
+  'admin.defaultSettings.mapboxTokenHint': 'Wird für jeden Nutzer verwendet, der kein eigenes Token eingegeben hat — so erhält die gesamte Instanz Mapbox, ohne den Schlüssel einzeln teilen zu müssen. Verschlüsselt gespeichert.',
+  'admin.defaultSettings.mapboxStyle': 'Kartenstil',
+  'admin.defaultSettings.mapboxStylePlaceholder': 'Stil auswählen…',
+  'admin.defaultSettings.mapbox3d': '3D-Gebäude & Gelände',
+  'admin.defaultSettings.mapboxQuality': 'Hochqualitätsmodus',
 };
 export default admin;

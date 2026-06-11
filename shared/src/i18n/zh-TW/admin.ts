@@ -345,5 +345,15 @@ const admin: TranslationStrings = {
     '移除此使用者的所有 Passkey（例如裝置遺失時）。他們仍可使用密碼登入。',
   'admin.passkey.resetConfirm': '要移除 {name} 的所有 Passkey 嗎？',
   'admin.passkey.resetDone': '已移除 {count} 個 Passkey',
+  'admin.defaultSettings.mapProvider': '地圖引擎',
+  'admin.defaultSettings.mapProviderHint': '此執行個體上所有人的預設地圖。每位使用者仍可在自己的設定中覆寫此項。',
+  'admin.defaultSettings.providerLeaflet': '標準（免費）',
+  'admin.defaultSettings.providerMapbox': 'Mapbox（3D）',
+  'admin.defaultSettings.mapboxToken': '共用的 Mapbox 權杖',
+  'admin.defaultSettings.mapboxTokenHint': '用於每一位尚未輸入自己權杖的使用者 — 如此整個執行個體都能使用 Mapbox，而無需個別共享金鑰。以加密方式儲存。',
+  'admin.defaultSettings.mapboxStyle': '地圖樣式',
+  'admin.defaultSettings.mapboxStylePlaceholder': '選擇樣式…',
+  'admin.defaultSettings.mapbox3d': '3D 建築物與地形',
+  'admin.defaultSettings.mapboxQuality': '高品質模式',
 };
 export default admin;

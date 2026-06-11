@@ -368,5 +368,15 @@ const admin: TranslationStrings = {
     '이 사용자의 모든 패스키를 삭제합니다 (예: 기기 분실 시). 사용자는 비밀번호로 계속 로그인할 수 있습니다.',
   'admin.passkey.resetConfirm': '{name}의 모든 패스키를 삭제할까요?',
   'admin.passkey.resetDone': '패스키 {count}개를 삭제했습니다',
+  'admin.defaultSettings.mapProvider': '지도 엔진',
+  'admin.defaultSettings.mapProviderHint': '이 인스턴스의 모든 사용자에게 적용되는 기본 지도입니다. 각 사용자는 자신의 설정에서 이를 변경할 수 있습니다.',
+  'admin.defaultSettings.providerLeaflet': '표준 (무료)',
+  'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
+  'admin.defaultSettings.mapboxToken': '공유 Mapbox 토큰',
+  'admin.defaultSettings.mapboxTokenHint': '자신의 토큰을 입력하지 않은 모든 사용자에게 사용됩니다 — 키를 개별적으로 공유하지 않아도 인스턴스 전체에서 Mapbox를 사용할 수 있습니다. 암호화하여 저장됩니다.',
+  'admin.defaultSettings.mapboxStyle': '지도 스타일',
+  'admin.defaultSettings.mapboxStylePlaceholder': '스타일을 선택하세요…',
+  'admin.defaultSettings.mapbox3d': '3D 건물 & 지형',
+  'admin.defaultSettings.mapboxQuality': '고품질 모드',
 };
 export default admin;
