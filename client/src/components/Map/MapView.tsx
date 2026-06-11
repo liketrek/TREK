@@ -134,17 +134,7 @@ function SelectionController({ places, selectedPlaceId, dayPlaces, paddingOpts }
       // Pan to the selected place without changing zoom
       const selected = places.find(p => p.id === selectedPlaceId)
       if (selected?.lat && selected?.lng) {
-        const latlng: [number, number] = [selected.lat, selected.lng]
-        const tl = (paddingOpts as { paddingTopLeft?: [number, number] }).paddingTopLeft
-        const br = (paddingOpts as { paddingBottomRight?: [number, number] }).paddingBottomRight
-        if (tl && br && typeof map.project === 'function' && typeof map.unproject === 'function') {
-          // Bias the place into the area above the bottom inspector panel instead of
-          // dead-centre, so it doesn't sit behind the detail card.
-          const point = map.project(latlng).add([(br[0] - tl[0]) / 2, (br[1] - tl[1]) / 2])
-          map.panTo(map.unproject(point), { animate: true })
-        } else {
-          map.panTo(latlng, { animate: true })
-        }
+        map.panTo([selected.lat, selected.lng], { animate: true })
       }
     }
     prev.current = selectedPlaceId
