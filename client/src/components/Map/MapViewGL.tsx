@@ -553,6 +553,10 @@ export function MapViewGL({
         zoom: Math.max(map.getZoom(), 14),
         pitch: mapbox3d ? 45 : 0,
         duration: 400,
+        // Account for the side panels and the bottom inspector / day-detail panel
+        // so the selected pin lands in the centre of the *visible* map area rather
+        // than the geometric centre (where the bottom panel would cover it).
+        padding: paddingOpts,
       })
     } catch { /* noop */ }
   }, [selectedPlaceId, mapbox3d]) // eslint-disable-line react-hooks/exhaustive-deps

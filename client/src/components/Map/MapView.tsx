@@ -131,10 +131,21 @@ function SelectionController({ places, selectedPlaceId, dayPlaces, paddingOpts }
 
   useEffect(() => {
     if (selectedPlaceId && selectedPlaceId !== prev.current) {
-      // Pan to the selected place without changing zoom
+      // Pan to the selected place without changing zoom. Offset the centre by the
+      // side-panel + bottom-inspector padding so the pin lands in the middle of the
+      // *visible* map area rather than the geometric centre (where the bottom panel
+      // would cover it). Reuses the same paddingOpts the fit-bounds path uses.
       const selected = places.find(p => p.id === selectedPlaceId)
-      if (selected?.lat && selected?.lng) {
-        map.panTo([selected.lat, selected.lng], { animate: true })
+      if (selected?.lat != null && selected?.lng != null) {
+        const latlng: [number, number] = [selected.lat, selected.lng]
+        const tl = paddingOpts.paddingTopLeft as [number, number] | undefined
+        const br = paddingOpts.paddingBottomRight as [number, number] | undefined
+        if (tl && br && typeof map.project === 'function' && typeof map.unproject === 'function') {
+          const point = map.project(latlng).add([(br[0] - tl[0]) / 2, (br[1] - tl[1]) / 2])
+          map.panTo(map.unproject(point), { animate: true })
+        } else {
+          map.panTo(latlng, { animate: true })
+        }
       }
     }
     prev.current = selectedPlaceId
