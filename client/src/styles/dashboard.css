@@ -580,6 +580,23 @@
   .trek-dash .trips { grid-template-columns: 1fr; gap: 16px; margin-bottom: 28px; }
   .trek-dash .add-trip-card { min-height: 180px; }
 
+  /* Compact list row on mobile — keeps the list view distinct from the grid. The
+     desktop list row uses a 520px cover, which overflowed the phone width: the
+     cover was clipped, the body pushed off-screen, and the fixed 100px cover
+     height left a white strip beneath it. Use a fitting cover that stretches to
+     the row, and show just the title + dates (the counts live in grid view and
+     on the trip itself). */
+  .trek-dash .trips.list-view .trip-card { grid-template-columns: 42% 1fr; min-height: 92px; }
+  .trek-dash .trips.list-view .trip-cover { height: auto; aspect-ratio: unset; }
+  .trek-dash .trips.list-view .trip-cover-content { left: 14px; right: 14px; bottom: 12px; }
+  .trek-dash .trips.list-view .trip-name {
+    font-size: 17px; overflow: hidden; text-overflow: ellipsis;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  }
+  .trek-dash .trips.list-view .trip-body { display: flex; align-items: center; justify-content: flex-start; padding: 12px 16px; }
+  .trek-dash .trips.list-view .trip-dates { margin-bottom: 0; justify-content: flex-start; }
+  .trek-dash .trips.list-view .trip-meta { display: none; }
+
   /* Tools — stacked full-width cards (mockup) */
   .trek-dash .page-sidebar { flex-direction: column; flex-wrap: nowrap; gap: 14px; margin: 0; padding: 0; }
   .trek-dash .page-sidebar .tool { flex: none; width: auto; }
