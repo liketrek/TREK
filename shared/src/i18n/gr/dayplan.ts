@@ -49,5 +49,14 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.allAssigned': 'Όλες οι τοποθεσίες έχουν ανατεθεί',
   'dayplan.mobile.noMatch': 'Καμία αντιστοιχία',
   'dayplan.mobile.createNew': 'Δημιουργία νέας τοποθεσίας',
+  'dayplan.reorderDays': 'Αναδιάταξη ημερών',
+  'dayplan.reorderTitle': 'Αναδιάταξη ημερών',
+  'dayplan.reorderHint': 'Τα μέρη, οι σημειώσεις και οι κρατήσεις μιας ημέρας μετακινούνται μαζί της.',
+  'dayplan.addDay': 'Προσθήκη ημέρας',
+  'dayplan.moveUp': 'Μετακίνηση πάνω',
+  'dayplan.moveDown': 'Μετακίνηση κάτω',
+  'dayplan.reorderUndo': 'Αναδιάταξη ημερών',
+  'dayplan.reorderError': 'Η αναδιάταξη των ημερών απέτυχε',
+  'dayplan.addDayError': 'Η προσθήκη ημέρας απέτυχε',
 };
 export default dayplan;

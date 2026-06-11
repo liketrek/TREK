@@ -47,5 +47,14 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.allAssigned': 'Усі місця розподілені',
   'dayplan.mobile.noMatch': 'Немає збігів',
   'dayplan.mobile.createNew': 'Створити нове місце',
+  'dayplan.reorderDays': 'Змінити порядок днів',
+  'dayplan.reorderTitle': 'Змінити порядок днів',
+  'dayplan.reorderHint': 'Місця, нотатки та бронювання дня переміщуються разом із ним.',
+  'dayplan.addDay': 'Додати день',
+  'dayplan.moveUp': 'Перемістити вгору',
+  'dayplan.moveDown': 'Перемістити вниз',
+  'dayplan.reorderUndo': 'Змінити порядок днів',
+  'dayplan.reorderError': 'Не вдалося змінити порядок днів',
+  'dayplan.addDayError': 'Не вдалося додати день',
 };
 export default dayplan;

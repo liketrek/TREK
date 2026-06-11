@@ -45,5 +45,14 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.allAssigned': 'All places assigned', // en-fallback
   'dayplan.mobile.noMatch': 'No match', // en-fallback
   'dayplan.mobile.createNew': 'Create new place', // en-fallback
+  'dayplan.reorderDays': 'إعادة ترتيب الأيام',
+  'dayplan.reorderTitle': 'إعادة ترتيب الأيام',
+  'dayplan.reorderHint': 'تنتقل أماكن اليوم وملاحظاته وحجوزاته معه.',
+  'dayplan.addDay': 'إضافة يوم',
+  'dayplan.moveUp': 'تحريك لأعلى',
+  'dayplan.moveDown': 'تحريك لأسفل',
+  'dayplan.reorderUndo': 'إعادة ترتيب الأيام',
+  'dayplan.reorderError': 'تعذّر إعادة ترتيب الأيام',
+  'dayplan.addDayError': 'تعذّر إضافة يوم',
 };
 export default dayplan;

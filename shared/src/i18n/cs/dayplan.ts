@@ -48,5 +48,14 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.createNew': 'Vytvořit nové místo',
   'dayplan.expandAll': 'Expand all days', // en-fallback
   'dayplan.collapseAll': 'Collapse all days', // en-fallback
+  'dayplan.reorderDays': 'Změnit pořadí dnů',
+  'dayplan.reorderTitle': 'Změnit pořadí dnů',
+  'dayplan.reorderHint': 'Místa, poznámky a rezervace daného dne se přesunou spolu s ním.',
+  'dayplan.addDay': 'Přidat den',
+  'dayplan.moveUp': 'Posunout nahoru',
+  'dayplan.moveDown': 'Posunout dolů',
+  'dayplan.reorderUndo': 'Změnit pořadí dnů',
+  'dayplan.reorderError': 'Nepodařilo se změnit pořadí dnů',
+  'dayplan.addDayError': 'Nepodařilo se přidat den',
 };
 export default dayplan;

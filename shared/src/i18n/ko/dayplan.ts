@@ -45,5 +45,14 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.allAssigned': '모든 장소가 배정되었습니다',
   'dayplan.mobile.noMatch': '일치 없음',
   'dayplan.mobile.createNew': '새 장소 만들기',
+  'dayplan.reorderDays': '날짜 순서 변경',
+  'dayplan.reorderTitle': '날짜 순서 변경',
+  'dayplan.reorderHint': '해당 날짜의 장소, 메모, 예약이 함께 이동합니다.',
+  'dayplan.addDay': '날짜 추가',
+  'dayplan.moveUp': '위로 이동',
+  'dayplan.moveDown': '아래로 이동',
+  'dayplan.reorderUndo': '날짜 순서 변경',
+  'dayplan.reorderError': '날짜 순서를 변경하지 못했습니다',
+  'dayplan.addDayError': '날짜를 추가하지 못했습니다',
 };
 export default dayplan;

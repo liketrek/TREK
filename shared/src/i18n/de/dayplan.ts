@@ -47,5 +47,14 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.allAssigned': 'Alle Orte zugeordnet',
   'dayplan.mobile.noMatch': 'Kein Treffer',
   'dayplan.mobile.createNew': 'Neuen Ort erstellen',
+  'dayplan.reorderDays': 'Tage neu anordnen',
+  'dayplan.reorderTitle': 'Tage neu anordnen',
+  'dayplan.reorderHint': 'Orte, Notizen und Buchungen eines Tages werden mitverschoben.',
+  'dayplan.addDay': 'Tag hinzufügen',
+  'dayplan.moveUp': 'Nach oben',
+  'dayplan.moveDown': 'Nach unten',
+  'dayplan.reorderUndo': 'Tage neu anordnen',
+  'dayplan.reorderError': 'Tage konnten nicht neu angeordnet werden',
+  'dayplan.addDayError': 'Tag konnte nicht hinzugefügt werden',
 };
 export default dayplan;
