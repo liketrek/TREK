@@ -90,6 +90,90 @@ function mapFlight(r: KiReservation, source: ParsedBookingItem['source']): Parse
   };
 }
 
+/** True when flight `b` is a short layover connection that continues flight `a`. */
+function sameConnection(a: KiReservation, b: KiReservation): boolean {
+  const fa = a.reservationFor as KiFlight | undefined;
+  const fb = b.reservationFor as KiFlight | undefined;
+  if (!fa || !fb) return false;
+  const arrIata = fa.arrivalAirport?.iataCode?.toUpperCase();
+  const depIata = fb.departureAirport?.iataCode?.toUpperCase();
+  if (!arrIata || !depIata || arrIata !== depIata) return false; // must connect at the same airport
+  const arrIso = toIsoString(fa.arrivalTime);
+  const depIso = toIsoString(fb.departureTime);
+  if (arrIso && depIso) {
+    const gapMs = new Date(depIso).getTime() - new Date(arrIso).getTime();
+    // A real layover is forward in time and short — anything longer (e.g. a
+    // round-trip return days later) stays a separate booking.
+    if (gapMs < 0 || gapMs > 24 * 3600 * 1000) return false;
+  }
+  return true;
+}
+
+/** Collapse several connecting flight legs (same PNR) into one multi-leg booking. */
+function mapFlightGroup(legs: KiReservation[], source: ParsedBookingItem['source']): ParsedBookingItem | null {
+  const flights = legs.map(l => l.reservationFor as KiFlight | undefined);
+  if (flights.some(f => !f)) return mapFlight(legs[0], source); // malformed → fall back to single
+  const fs = flights as KiFlight[];
+
+  const iataOf = (ap: KiFlight['departureAirport']) => ap?.iataCode?.toUpperCase() ?? null;
+  const makeEndpoint = (
+    ap: KiFlight['departureAirport'], role: 'from' | 'stop' | 'to', time: string | null, date: string | null,
+  ): ParsedEndpoint | null => {
+    const iata = iataOf(ap);
+    const found = iata ? findByIata(iata) : null;
+    const label = found ? (found.city ? `${found.city} (${found.iata})` : found.name) : (ap?.name ?? iata ?? 'Unknown');
+    if (found) return { role, sequence: 0, name: label, code: found.iata, lat: found.lat, lng: found.lng, timezone: found.tz, local_time: time, local_date: date };
+    const c = coords(ap?.geo);
+    if (c) return { role, sequence: 0, name: label, code: iata, lat: c.lat, lng: c.lng, timezone: null, local_time: time, local_date: date };
+    return null;
+  };
+
+  const endpoints: ParsedEndpoint[] = [];
+  const metaLegs: Record<string, unknown>[] = [];
+  const first = fs[0];
+  const firstDep = splitIso(first.departureTime);
+  const originEp = makeEndpoint(first.departureAirport, 'from', firstDep.time, firstDep.date);
+  if (originEp) endpoints.push(originEp);
+
+  fs.forEach((f, i) => {
+    const isLast = i === fs.length - 1;
+    const arr = splitIso(f.arrivalTime);
+    const arrEp = makeEndpoint(f.arrivalAirport, isLast ? 'to' : 'stop', arr.time, arr.date);
+    if (arrEp) endpoints.push(arrEp);
+    const airline = f.airline?.name ?? f.airline?.iataCode ?? '';
+    metaLegs.push({
+      from: iataOf(f.departureAirport),
+      to: iataOf(f.arrivalAirport),
+      ...(airline ? { airline } : {}),
+      ...(f.flightNumber ? { flight_number: f.flightNumber } : {}),
+      dep_time: splitIso(f.departureTime).time,
+      arr_time: arr.time,
+    });
+  });
+  endpoints.forEach((e, i) => { e.sequence = i; });
+
+  const last = fs[fs.length - 1];
+  const airline = first.airline?.name ?? first.airline?.iataCode ?? '';
+  const route = [iataOf(first.departureAirport), ...fs.map(f => iataOf(f.arrivalAirport))].filter(Boolean).join(' → ');
+  return {
+    type: 'flight',
+    title: airline ? `${airline} ${route}` : `Flight ${route}`,
+    reservation_time: toIsoString(first.departureTime),
+    reservation_end_time: toIsoString(last.arrivalTime),
+    confirmation_number: legs[0].reservationNumber ?? null,
+    metadata: {
+      ...(airline ? { airline } : {}),
+      ...(first.flightNumber ? { flight_number: first.flightNumber } : {}),
+      ...(iataOf(first.departureAirport) ? { departure_airport: iataOf(first.departureAirport) } : {}),
+      ...(iataOf(last.arrivalAirport) ? { arrival_airport: iataOf(last.arrivalAirport) } : {}),
+      legs: metaLegs,
+    },
+    endpoints,
+    needs_review: endpoints.length < fs.length + 1,
+    source,
+  };
+}
+
 function mapTrain(r: KiReservation, source: ParsedBookingItem['source']): ParsedBookingItem | null {
   const t = r.reservationFor as KiTrainTrip | undefined;
   if (!t) return null;
@@ -233,8 +317,25 @@ export function mapReservations(kiItems: KiReservation[], fileName: string): { i
     const source = { fileName, index: i };
     let item: ParsedBookingItem | null = null;
 
+    // Group consecutive connecting flight legs that share a PNR into one booking.
+    if (r['@type'] === 'FlightReservation') {
+      const pnr = r.reservationNumber ?? null;
+      const group = [r];
+      while (
+        i + 1 < kiItems.length &&
+        kiItems[i + 1]['@type'] === 'FlightReservation' &&
+        pnr != null &&
+        (kiItems[i + 1].reservationNumber ?? null) === pnr &&
+        sameConnection(group[group.length - 1], kiItems[i + 1])
+      ) {
+        group.push(kiItems[++i]);
+      }
+      item = group.length > 1 ? mapFlightGroup(group, source) : mapFlight(r, source);
+      if (item) items.push(item);
+      continue;
+    }
+
     switch (r['@type']) {
-      case 'FlightReservation':            item = mapFlight(r, source);  break;
       case 'TrainReservation':             item = mapTrain(r, source);   break;
       case 'BusReservation':              item = mapBus(r, source);     break;
       case 'BoatReservation':             item = mapBoat(r, source);    break;
