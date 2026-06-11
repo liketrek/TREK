@@ -53,29 +53,44 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
       return pos != null
     })
 
-    // Build a unified list of places + transports sorted by effective position,
-    // then derive segments by resetting whenever a transport appears — mirrors getMergedItems order.
-    type Entry = { kind: 'place'; lat: number; lng: number } | { kind: 'transport' }
-    const entries: (Entry & { pos: number })[] = [
+    // The departure/arrival coordinate of a transport, if its endpoints carry one.
+    const epLoc = (r: any, role: 'from' | 'to'): { lat: number; lng: number } | null => {
+      const e = (r.endpoints || []).find((x: any) => x.role === role)
+      return e && e.lat != null && e.lng != null ? { lat: e.lat, lng: e.lng } : null
+    }
+
+    // Build a unified list of places + transports sorted by effective position.
+    type Entry =
+      | { kind: 'place'; lat: number; lng: number; pos: number }
+      | { kind: 'transport'; from: { lat: number; lng: number } | null; to: { lat: number; lng: number } | null; pos: number }
+    const entries: Entry[] = [
       ...da.filter(a => a.place?.lat && a.place?.lng).map(a => ({
         kind: 'place' as const, lat: a.place.lat!, lng: a.place.lng!, pos: a.order_index,
       })),
       ...dayTransports.map(r => ({
         kind: 'transport' as const,
+        from: epLoc(r, 'from'),
+        to: epLoc(r, 'to'),
         pos: (r.day_positions?.[dayId] ?? r.day_positions?.[String(dayId)] ?? r.day_plan_position) as number,
       })),
     ].sort((a, b) => a.pos - b.pos)
 
-    // Group consecutive located places into runs, resetting whenever a transport
-    // appears (you don't drive between a flight's endpoints) — mirrors getMergedItems order.
+    // Group located places into driving runs.
+    // - A transport WITH a location anchors the route to its departure point (you
+    //   travel there), then breaks the run (you don't drive the flight/train); its
+    //   arrival point starts the next run.
+    // - A transport WITHOUT a location is ignored entirely — the places around it
+    //   connect directly, as if the booking weren't there.
     const runs: { lat: number; lng: number }[][] = []
     let currentRun: { lat: number; lng: number }[] = []
     for (const entry of entries) {
       if (entry.kind === 'place') {
         currentRun.push({ lat: entry.lat, lng: entry.lng })
-      } else {
+      } else if (entry.from || entry.to) {
+        if (entry.from) currentRun.push(entry.from)
         if (currentRun.length >= 2) runs.push(currentRun)
         currentRun = []
+        if (entry.to) currentRun.push(entry.to)
       }
     }
     if (currentRun.length >= 2) runs.push(currentRun)
@@ -120,7 +135,9 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
       .filter(r => TRANSPORT_TYPES.includes(r.type))
       .map(r => {
         const pos = r.day_positions?.[selectedDayId] ?? r.day_positions?.[String(selectedDayId)] ?? r.day_plan_position
-        return `${r.id}:${r.day_id ?? ''}:${r.end_day_id ?? ''}:${r.reservation_time ?? ''}:${pos ?? ''}`
+        // Include endpoints so adding/moving a departure/arrival location re-routes.
+        const eps = (r.endpoints || []).map(e => `${e.role}@${e.lat ?? ''},${e.lng ?? ''}`).join(';')
+        return `${r.id}:${r.day_id ?? ''}:${r.end_day_id ?? ''}:${r.reservation_time ?? ''}:${pos ?? ''}:${eps}`
       })
       .sort()
       .join('|')

@@ -376,14 +376,30 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     if (legsAbortRef.current) legsAbortRef.current.abort()
     if (!selectedDayId || !routeShown) { setRouteLegs({}); return }
     const merged = mergedItemsMap[selectedDayId] || []
+    const epLoc = (r: any, role: 'from' | 'to'): { lat: number; lng: number } | null => {
+      const e = (r.endpoints || []).find((x: any) => x.role === role)
+      return e && e.lat != null && e.lng != null ? { lat: e.lat, lng: e.lng } : null
+    }
     const runs: { id: number; lat: number; lng: number }[][] = []
     let cur: { id: number; lat: number; lng: number }[] = []
     for (const it of merged) {
       if (it.type === 'place' && it.data.place?.lat && it.data.place?.lng) {
         cur.push({ id: it.data.id, lat: it.data.place.lat, lng: it.data.place.lng })
       } else if (it.type === 'transport') {
-        if (cur.length >= 2) runs.push(cur)
-        cur = []
+        const r = it.data
+        const from = epLoc(r, 'from'), to = epLoc(r, 'to')
+        if (from || to) {
+          // Located transport: route to its departure point, break the run (the
+          // flight/train itself isn't driven), and let its arrival start the next.
+          if (from) cur.push({ id: r.id, lat: from.lat, lng: from.lng })
+          if (cur.length >= 2) runs.push(cur)
+          cur = []
+          if (to) cur.push({ id: r.id, lat: to.lat, lng: to.lng })
+        } else if (cur.length > 0) {
+          // No location: ignore for routing, but attribute the through-leg to the
+          // booking so its distance/duration shows under it (purely cosmetic).
+          cur[cur.length - 1] = { ...cur[cur.length - 1], id: r.id }
+        }
       }
     }
     if (cur.length >= 2) runs.push(cur)
@@ -697,11 +713,13 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
 
     const prevIds = da.map(a => a.id)
 
-    // Separate locked (stay at their index) and unlocked assignments
+    // Separate fixed (stay at their index) and movable assignments. A place is
+    // fixed if it's locked OR has a set time — timed places are anchored by their
+    // time, so the optimizer must not reshuffle them.
     const locked = new Map() // index -> assignment
     const unlocked = []
     da.forEach((a, i) => {
-      if (lockedIds.has(a.id)) locked.set(i, a)
+      if (lockedIds.has(a.id) || a.place?.place_time) locked.set(i, a)
       else unlocked.push(a)
     })
 
@@ -1870,6 +1888,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                               )
                             })()}
                           </div>
+                          {routeLegs[res.id] && <RouteConnector seg={routeLegs[res.id]} profile={routeProfile} />}
                           </React.Fragment>
                         )
                       }
