@@ -317,6 +317,8 @@ const settings: TranslationStrings = {
   'settings.passkey.deviceBound': 'هذا الجهاز',
   'settings.passkey.lastUsed': 'آخر استخدام',
   'settings.passkey.neverUsed': 'لم يُستخدم قط',
+  'settings.mapPoiPill': 'استكشاف الأماكن على الخريطة',
+  'settings.mapPoiPillHint': 'أظهر شريط فئات على خريطة الرحلة للعثور على المطاعم والفنادق والمزيد القريبة من OpenStreetMap.',
 };
 
 export default settings;

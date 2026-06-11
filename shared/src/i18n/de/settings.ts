@@ -327,6 +327,8 @@ const settings: TranslationStrings = {
   'settings.passkey.deviceBound': 'Dieses Gerät',
   'settings.passkey.lastUsed': 'Zuletzt verwendet',
   'settings.passkey.neverUsed': 'Noch nie verwendet',
+  'settings.mapPoiPill': 'Orte auf der Karte entdecken',
+  'settings.mapPoiPillHint': 'Zeigt auf der Reisekarte eine Kategorie-Pille an, um Restaurants, Hotels und mehr aus OpenStreetMap in der Nähe zu finden.',
 };
 
 export default settings;

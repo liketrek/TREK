@@ -308,6 +308,8 @@ const settings: TranslationStrings = {
   'settings.passkey.deviceBound': '此设备',
   'settings.passkey.lastUsed': '上次使用',
   'settings.passkey.neverUsed': '从未使用',
+  'settings.mapPoiPill': '在地图上探索地点',
+  'settings.mapPoiPillHint': '在行程地图上显示分类标签，从 OpenStreetMap 查找附近的餐厅、酒店等。',
 };
 
 export default settings;

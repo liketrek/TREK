@@ -42,6 +42,8 @@ import { usePlannerHistory } from '../hooks/usePlannerHistory'
 import type { Accommodation, TripMember, Day, Place, Reservation, PackingItem, TodoItem } from '../types'
 import { ListTodo, Upload, Plus, Trash2, FolderPlus } from 'lucide-react'
 import { useTripPlanner } from './tripPlanner/useTripPlanner'
+import { usePoiExplore } from '../components/Map/usePoiExplore'
+import PoiCategoryPill from '../components/Map/PoiCategoryPill'
 
 function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; packingItems: PackingItem[]; todoItems: TodoItem[] }) {
   const [subTab, setSubTab] = useState<'packing' | 'todo'>(() => {
@@ -195,13 +197,16 @@ export default function TripPlannerPage(): React.ReactElement | null {
     isMobile, mapCategoryFilter, setMapCategoryFilter, mapPlacesFilter, setMapPlacesFilter,
     expandedDayIds, setExpandedDayIds, mapPlaces,
     route, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay,
-    handleSelectDay, handlePlaceClick, handleMarkerClick, handleMapClick, handleMapContextMenu,
+    handleSelectDay, handlePlaceClick, handleMarkerClick, handleMapClick, handleMapContextMenu, openAddPlaceFromPoi,
     handleSavePlace, handleDeletePlace, confirmDeletePlace, confirmDeletePlaces,
     handleAssignToDay, handleRemoveAssignment, handleReorder, handleUpdateDayTitle,
     handleSaveReservation, handleSaveTransport, handleDeleteReservation,
     selectedPlace, dayOrderMap, dayPlaces,
     mapTileUrl, defaultCenter, defaultZoom, fontStyle, splashDone,
   } = useTripPlanner()
+
+  const poi = usePoiExplore()
+  const poiPillEnabled = useSettingsStore(s => s.settings.map_poi_pill_enabled) !== false
 
   if (isLoading || !splashDone) {
     return (
@@ -300,8 +305,16 @@ export default function TripPlannerPage(): React.ReactElement | null {
                 const r = reservations.find(x => x.id === rid)
                 if (r) setMapTransportDetail(r)
               }}
+              pois={poi.pois}
+              onPoiClick={openAddPlaceFromPoi}
+              onViewportChange={poi.onViewportChange}
             />
 
+            {poiPillEnabled && (
+              <div className="hidden md:flex" style={{ position: 'absolute', top: 14, left: '50%', transform: 'translateX(-50%)', zIndex: 25, pointerEvents: 'none' }}>
+                <PoiCategoryPill active={poi.active} onToggle={poi.toggle} loadingKeys={poi.loadingKeys} moved={poi.moved} onSearchArea={poi.searchArea} />
+              </div>
+            )}
 
             <div className="hidden md:block" style={{ position: 'absolute', left: 10, top: 10, bottom: 10, zIndex: 20 }}>
               <button onClick={() => setLeftCollapsed(c => !c)}

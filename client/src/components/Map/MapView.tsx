@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useMemo, useCallback, createElement, memo } from 'react'
 import DOM from 'react-dom'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { MapContainer, TileLayer, Marker, Polyline, CircleMarker, Circle, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Polyline, CircleMarker, Circle, useMap, Tooltip } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-cluster'
 import L from 'leaflet'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
@@ -10,6 +10,7 @@ import { mapsApi } from '../../api/client'
 import { getCategoryIcon, CATEGORY_ICON_MAP } from '../shared/categoryIcons'
 import ReservationOverlay from './ReservationOverlay'
 import type { Reservation } from '../../types'
+import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
 
 function categoryIconSvg(iconName: string | null | undefined, size: number): string {
   const IconComponent = (iconName && CATEGORY_ICON_MAP[iconName]) || CATEGORY_ICON_MAP['MapPin']
@@ -116,6 +117,44 @@ function createPlaceIcon(place, orderNumbers, isSelected) {
   })
   iconCache.set(cacheKey, fallbackIcon)
   return fallbackIcon
+}
+
+// Small coloured pin for an OSM "explore" POI — distinct from the photo-circle
+// markers of planned places; the colour matches its pill category.
+const poiIconCache = new Map<string, L.DivIcon>()
+function createPoiIcon(category: string) {
+  const cached = poiIconCache.get(category)
+  if (cached) return cached
+  const cat = POI_CATEGORY_BY_KEY[category]
+  const color = cat?.color || '#6b7280'
+  const svg = cat ? renderToStaticMarkup(createElement(cat.Icon, { size: 13, color: 'white', strokeWidth: 2.5 })) : ''
+  const icon = L.divIcon({
+    className: '',
+    html: `<div style="width:26px;height:26px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 5px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;">${svg}</div>`,
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
+    tooltipAnchor: [0, -14],
+  })
+  poiIconCache.set(category, icon)
+  return icon
+}
+
+// Emits the current viewport bbox on pan/zoom so the POI-explore pill can fetch
+// OSM places for the visible area.
+function ViewportController({ onViewportChange }: { onViewportChange?: (b: { south: number; west: number; north: number; east: number }) => void }) {
+  const map = useMap()
+  useEffect(() => {
+    if (!onViewportChange) return
+    const emit = () => {
+      const b = map.getBounds()
+      onViewportChange({ south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() })
+    }
+    map.whenReady(emit) // ensure the first bbox is captured once the map is laid out
+    map.on('moveend', emit)
+    map.on('zoomend', emit)
+    return () => { map.off('moveend', emit); map.off('zoomend', emit) }
+  }, [map, onViewportChange])
+  return null
 }
 
 interface SelectionControllerProps {
@@ -367,7 +406,21 @@ export const MapView = memo(function MapView({
   showReservationStats = false,
   visibleConnectionIds = [] as number[],
   onReservationClick,
+  pois = [] as Poi[],
+  onPoiClick,
+  onViewportChange,
 }: any) {
+  const poiMarkers = useMemo(() => (pois as Poi[]).map((poi: Poi) => (
+    <Marker
+      key={`poi-${poi.osm_id}`}
+      position={[poi.lat, poi.lng]}
+      icon={createPoiIcon(poi.category)}
+      zIndexOffset={500}
+      eventHandlers={{ click: () => onPoiClick?.(poi) }}
+    >
+      <Tooltip direction="top" offset={[0, -10]} opacity={1} className="map-tooltip">{poi.name}</Tooltip>
+    </Marker>
+  )), [pois, onPoiClick])
   const visibleReservations = useMemo(() => {
     if (!visibleConnectionIds || visibleConnectionIds.length === 0) return []
     const set = new Set(visibleConnectionIds)
@@ -543,6 +596,7 @@ export const MapView = memo(function MapView({
       <SelectionController places={places} selectedPlaceId={selectedPlaceId} dayPlaces={dayPlaces} paddingOpts={paddingOpts} />
       <MapClickHandler onClick={onMapClick} />
       <MapContextMenuHandler onContextMenu={onMapContextMenu} />
+      <ViewportController onViewportChange={onViewportChange} />
       <LeafletLocationLayer position={userPosition} mode={trackingMode} />
 
       <MarkerClusterGroup
@@ -583,6 +637,8 @@ export const MapView = memo(function MapView({
         showStats={showReservationStats}
         onEndpointClick={onReservationClick}
       />
+
+      {poiMarkers}
     </MapContainer>
     {isMobile && <LocationButton
       mode={trackingMode}

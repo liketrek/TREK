@@ -322,6 +322,8 @@ const settings: TranslationStrings = {
   'settings.passkey.deviceBound': 'Цей пристрій',
   'settings.passkey.lastUsed': 'Останнє використання',
   'settings.passkey.neverUsed': 'Не використовувався',
+  'settings.mapPoiPill': 'Досліджуйте місця на карті',
+  'settings.mapPoiPillHint': 'Показувати на карті подорожі плашку категорій, щоб знаходити поблизу ресторани, готелі та інше з OpenStreetMap.',
 };
 
 export default settings;

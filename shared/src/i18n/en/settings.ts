@@ -63,6 +63,9 @@ const settings: TranslationStrings = {
   'settings.bookingLabels': 'Booking route labels',
   'settings.bookingLabelsHint':
     'Show station / airport names on the map. When off, only the icon is shown.',
+  'settings.mapPoiPill': 'Explore places on the map',
+  'settings.mapPoiPillHint':
+    'Show a category pill on the trip map to find nearby restaurants, hotels and more from OpenStreetMap.',
   'settings.blurBookingCodes': 'Blur Booking Codes',
   'settings.optimizeFromAccommodation': 'Optimize route from accommodation',
   'settings.optimizeFromAccommodationHint':

@@ -324,6 +324,8 @@ const settings: TranslationStrings = {
   'settings.passkey.deviceBound': 'Perangkat ini',
   'settings.passkey.lastUsed': 'Terakhir digunakan',
   'settings.passkey.neverUsed': 'Belum pernah digunakan',
+  'settings.mapPoiPill': 'Jelajahi tempat di peta',
+  'settings.mapPoiPillHint': 'Tampilkan pil kategori di peta perjalanan untuk menemukan restoran, hotel, dan lainnya di sekitar dari OpenStreetMap.',
 };
 
 export default settings;

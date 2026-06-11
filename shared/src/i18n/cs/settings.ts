@@ -324,6 +324,8 @@ const settings: TranslationStrings = {
   'settings.passkey.deviceBound': 'Toto zařízení',
   'settings.passkey.lastUsed': 'Naposledy použito',
   'settings.passkey.neverUsed': 'Nikdy nepoužito',
+  'settings.mapPoiPill': 'Objevovat místa na mapě',
+  'settings.mapPoiPillHint': 'Zobrazit na mapě výletu kategorie pro hledání restaurací, hotelů a dalšího v okolí z OpenStreetMap.',
 };
 
 export default settings;

@@ -325,6 +325,8 @@ const settings: TranslationStrings = {
   'settings.passkey.deviceBound': 'To urządzenie',
   'settings.passkey.lastUsed': 'Ostatnio użyty',
   'settings.passkey.neverUsed': 'Nigdy nieużywany',
+  'settings.mapPoiPill': 'Odkrywaj miejsca na mapie',
+  'settings.mapPoiPillHint': 'Pokaż na mapie wyprawy pasek z kategoriami, aby znaleźć pobliskie restauracje, hotele i więcej z OpenStreetMap.',
 };
 
 export default settings;

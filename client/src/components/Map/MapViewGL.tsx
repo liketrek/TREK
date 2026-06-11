@@ -12,6 +12,7 @@ import { ReservationMapboxOverlay } from './reservationsMapbox'
 import LocationButton from './LocationButton'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import type { Place, Reservation } from '../../types'
+import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
 
 function categoryIconSvg(iconName: string | null | undefined, size: number): string {
   const IconComponent = (iconName && CATEGORY_ICON_MAP[iconName]) || CATEGORY_ICON_MAP['MapPin']
@@ -49,6 +50,9 @@ interface Props {
   visibleConnectionIds?: number[]
   showReservationStats?: boolean
   onReservationClick?: (reservationId: number) => void
+  pois?: Poi[]
+  onPoiClick?: (poi: Poi) => void
+  onViewportChange?: (bbox: { south: number; west: number; north: number; east: number }) => void
 }
 
 function createMarkerElement(place: Place & { category_color?: string; category_icon?: string }, photoUrl: string | null, orderNumbers: number[] | null, selected: boolean): HTMLDivElement {
@@ -128,6 +132,17 @@ function createMarkerElement(place: Place & { category_color?: string; category_
   return wrap
 }
 
+// Small coloured pin for an OSM "explore" POI (matches the pill category colour).
+function createPoiMarkerElement(category: string): HTMLDivElement {
+  const cat = POI_CATEGORY_BY_KEY[category]
+  const color = cat?.color || '#6b7280'
+  const svg = cat ? renderToStaticMarkup(createElement(cat.Icon, { size: 13, color: 'white', strokeWidth: 2.5 })) : ''
+  const el = document.createElement('div')
+  el.style.cssText = 'width:26px;height:26px;cursor:pointer;'
+  el.innerHTML = `<div style="width:26px;height:26px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;box-sizing:border-box;">${svg}</div>`
+  return el
+}
+
 export function MapViewGL({
   places = [],
   dayPlaces = [],
@@ -149,6 +164,9 @@ export function MapViewGL({
   visibleConnectionIds = [],
   showReservationStats = false,
   onReservationClick,
+  pois = [],
+  onPoiClick,
+  onViewportChange,
 }: Props) {
   const mapboxStyle = useSettingsStore(s => s.settings.mapbox_style || 'mapbox://styles/mapbox/standard')
   const mapboxToken = useSettingsStore(s => s.settings.mapbox_access_token || '')
@@ -167,6 +185,11 @@ export function MapViewGL({
   // options without forcing a full overlay rebuild on every prop change.
   const onReservationClickRef = useRef(onReservationClick)
   onReservationClickRef.current = onReservationClick
+  const poiMarkersRef = useRef<mapboxgl.Marker[]>([])
+  const onPoiClickRef = useRef(onPoiClick)
+  onPoiClickRef.current = onPoiClick
+  const onViewportChangeRef = useRef(onViewportChange)
+  onViewportChangeRef.current = onViewportChange
   const { position: userPosition, mode: trackingMode, error: trackingError, cycleMode: cycleTrackingMode, setMode: setTrackingMode } = useGeolocation()
   const onClickRefs = useRef({ marker: onMarkerClick, map: onMapClick, context: onMapContextMenu })
   onClickRefs.current.marker = onMarkerClick
@@ -260,6 +283,14 @@ export function MapViewGL({
       if (t.closest('.mapboxgl-marker')) return // markers handle their own click
       onClickRefs.current.map?.({ latlng: { lat: e.lngLat.lat, lng: e.lngLat.lng } })
     })
+    // Emit the viewport bbox (pan/zoom + once on first idle) so the POI-explore
+    // pill can fetch OSM places for the visible area.
+    const emitViewport = () => {
+      const b = map.getBounds()
+      onViewportChangeRef.current?.({ south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() })
+    }
+    map.on('moveend', emitViewport)
+    map.once('idle', emitViewport)
     // In the mapbox-gl map the right mouse button is reserved for the
     // built-in rotate/pitch gesture, so we bind the "add place" action
     // to the middle mouse button (button === 1) instead.
@@ -434,6 +465,22 @@ export function MapViewGL({
       markersRef.current.set(place.id, m)
     })
   }, [places, selectedPlaceId, dayOrderMap, photoUrls])
+
+  // Reconcile OSM "explore" POI markers (imperative, kept separate from the
+  // planned-place markers so they don't cluster or get confused with them).
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+    poiMarkersRef.current.forEach(m => m.remove())
+    poiMarkersRef.current = []
+    for (const poi of (pois as Poi[])) {
+      const el = createPoiMarkerElement(poi.category)
+      el.title = poi.name
+      el.addEventListener('click', (ev) => { ev.stopPropagation(); onPoiClickRef.current?.(poi) })
+      const m = new mapboxgl.Marker({ element: el, anchor: 'center' }).setLngLat([poi.lng, poi.lat]).addTo(map)
+      poiMarkersRef.current.push(m)
+    }
+  }, [pois, mapReady])
 
   // Update route geojson
   useEffect(() => {

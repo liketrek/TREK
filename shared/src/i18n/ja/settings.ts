@@ -303,6 +303,8 @@ const settings: TranslationStrings = {
   'settings.passkey.deviceBound': 'このデバイス',
   'settings.passkey.lastUsed': '最終使用',
   'settings.passkey.neverUsed': '未使用',
+  'settings.mapPoiPill': '地図でスポットを探す',
+  'settings.mapPoiPillHint': '旅行の地図にカテゴリピルを表示して、OpenStreetMapから近くのレストランや宿泊施設などを見つけられます。',
 };
 
 export default settings;
