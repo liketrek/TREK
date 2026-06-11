@@ -67,6 +67,27 @@ export class MapsController {
     }
   }
 
+  // OSM-only POI explore: places of a category within the current map viewport.
+  @Get('pois')
+  async pois(
+    @Query('category') category?: string,
+    @Query('south') south?: string,
+    @Query('west') west?: string,
+    @Query('north') north?: string,
+    @Query('east') east?: string,
+  ) {
+    if (!category) throw new HttpException({ error: 'A category is required' }, 400);
+    const bbox = { south: Number(south), west: Number(west), north: Number(north), east: Number(east) };
+    if (Object.values(bbox).some(v => !Number.isFinite(v))) {
+      throw new HttpException({ error: 'A valid bbox (south, west, north, east) is required' }, 400);
+    }
+    try {
+      return await this.maps.pois(category, bbox);
+    } catch (err: unknown) {
+      throw toHttpException(err, 'POI search error', 500);
+    }
+  }
+
   @Post('autocomplete')
   @HttpCode(200)
   async autocomplete(

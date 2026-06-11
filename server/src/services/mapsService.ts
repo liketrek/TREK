@@ -204,6 +204,114 @@ export async function fetchOverpassDetails(osmType: string, osmId: string): Prom
   } catch { return null; }
 }
 
+// ── Overpass POI search (by category within a viewport bbox) ─────────────────
+// Powers the "explore places on the map" pill. OSM-ONLY by design — this never
+// calls Google, even when a Google key is configured.
+
+export interface OverpassPoi {
+  osm_id: string; // 'node:123' | 'way:123' | 'relation:123' (matches the placeId format elsewhere)
+  name: string;
+  lat: number;
+  lng: number;
+  category: string; // the requested pill category key, e.g. 'restaurant'
+  poi_type: string; // the raw OSM tag that matched, e.g. 'amenity=restaurant'
+  address: string | null;
+  website: string | null;
+  phone: string | null;
+  opening_hours: string | null;
+  cuisine: string | null;
+  source: 'openstreetmap';
+}
+
+// Each pill category → the OSM tag selectors it searches. Keys here are the
+// contract with the client's POI_CATEGORIES (same keys, label/icon/colour live
+// client-side).
+const CATEGORY_OSM_FILTERS: Record<string, string[]> = {
+  restaurant: ['amenity=restaurant', 'amenity=fast_food'],
+  cafe: ['amenity=cafe'],
+  bar: ['amenity=bar', 'amenity=pub', 'amenity=nightclub'],
+  hotel: ['tourism=hotel', 'tourism=hostel', 'tourism=guest_house', 'tourism=apartment', 'tourism=motel'],
+  sights: ['tourism=attraction', 'tourism=viewpoint', 'historic=monument', 'historic=castle', 'historic=memorial', 'historic=ruins'],
+  museum: ['tourism=museum', 'tourism=gallery', 'tourism=artwork', 'amenity=theatre'],
+  nature: ['leisure=park', 'leisure=garden', 'natural=beach', 'natural=peak'],
+  activity: ['tourism=theme_park', 'tourism=zoo', 'tourism=aquarium', 'leisure=water_park'],
+  shopping: ['shop=mall', 'shop=department_store', 'amenity=marketplace'],
+  supermarket: ['shop=supermarket', 'shop=convenience'],
+};
+
+export const POI_CATEGORY_KEYS = Object.keys(CATEGORY_OSM_FILTERS);
+
+interface OverpassPoiElement {
+  type: string;
+  id: number;
+  lat?: number;
+  lon?: number;
+  center?: { lat: number; lon: number };
+  tags?: Record<string, string>;
+}
+
+export async function searchOverpassPois(
+  category: string,
+  bbox: { south: number; west: number; north: number; east: number },
+  limit = 60,
+): Promise<{ pois: OverpassPoi[]; source: 'openstreetmap'; truncated: boolean }> {
+  const filters = CATEGORY_OSM_FILTERS[category];
+  if (!filters) throw Object.assign(new Error('Unknown POI category'), { status: 400 });
+
+  // Overpass wants the box as (south,west,north,east) = (minLat,minLng,maxLat,maxLng).
+  const box = `(${bbox.south},${bbox.west},${bbox.north},${bbox.east})`;
+  const selectors = filters.map(f => {
+    const [k, v] = f.split('=');
+    return `  nwr["${k}"="${v}"]${box};`;
+  }).join('\n');
+  // `out center tags <n>` returns ways/relations with a computed center and caps
+  // the result count in one round-trip.
+  const query = `[out:json][timeout:25];\n(\n${selectors}\n);\nout center tags ${limit + 25};`;
+
+  let elements: OverpassPoiElement[] = [];
+  try {
+    const res = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      headers: { 'User-Agent': UA, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `data=${encodeURIComponent(query)}`,
+    });
+    if (!res.ok) throw Object.assign(new Error('Overpass request failed'), { status: 502 });
+    const data = await res.json() as { elements?: OverpassPoiElement[] };
+    elements = data.elements || [];
+  } catch (err: any) {
+    if (err?.status) throw err;
+    throw Object.assign(new Error('Overpass request failed'), { status: 502 });
+  }
+
+  const pois: OverpassPoi[] = [];
+  for (const el of elements) {
+    const tags = el.tags || {};
+    const name = tags.name || tags['name:en'] || tags.brand || null;
+    if (!name) continue; // unnamed POIs aren't useful to add to a plan
+    const lat = el.lat ?? el.center?.lat;
+    const lng = el.lon ?? el.center?.lon;
+    if (lat == null || lng == null) continue;
+    const matched = filters.find(f => { const [k, v] = f.split('='); return tags[k] === v; }) || filters[0];
+    const addr = [tags['addr:street'], tags['addr:housenumber'], tags['addr:postcode'], tags['addr:city']].filter(Boolean).join(' ') || null;
+    pois.push({
+      osm_id: `${el.type}:${el.id}`,
+      name,
+      lat,
+      lng,
+      category,
+      poi_type: matched,
+      address: addr,
+      website: tags.website || tags['contact:website'] || null,
+      phone: tags.phone || tags['contact:phone'] || null,
+      opening_hours: tags.opening_hours || null,
+      cuisine: tags.cuisine || null,
+      source: 'openstreetmap',
+    });
+  }
+  const truncated = pois.length > limit;
+  return { pois: pois.slice(0, limit), source: 'openstreetmap', truncated };
+}
+
 // ── Opening hours parsing ────────────────────────────────────────────────────
 
 export function parseOpeningHours(ohString: string): { weekdayDescriptions: string[]; openNow: boolean | null } {
