@@ -51,6 +51,8 @@ interface DayPlanSidebarProps {
   onDayDetail: (day: Day) => void
   accommodations?: Accommodation[]
   onReorder: (dayId: number, orderedIds: number[]) => void
+  onReorderDays?: (orderedIds: number[]) => void
+  onAddDay?: (position?: number) => void
   onUpdateDayTitle: (dayId: number, title: string) => void
   onRouteCalculated: (route: RouteResult | null) => void
   onAssignToDay: (placeId: number, dayId: number, position?: number) => void
@@ -96,7 +98,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   trip, days, places, categories, assignments,
   selectedDayId, selectedPlaceId, selectedAssignmentId,
   onSelectDay, onPlaceClick, onDayDetail, accommodations = [],
-  onReorder, onUpdateDayTitle, onRouteCalculated,
+  onReorder, onReorderDays, onAddDay, onUpdateDayTitle, onRouteCalculated,
   onAssignToDay, onRemoveAssignment, onEditPlace, onDeletePlace,
   reservations = [],
   visibleConnectionIds = [],
@@ -866,6 +868,8 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     onDayDetail,
     accommodations,
     onReorder,
+    onReorderDays,
+    onAddDay,
     onUpdateDayTitle,
     onRouteCalculated,
     onAssignToDay,
@@ -1010,6 +1014,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
     onDayDetail,
     accommodations,
     onReorder,
+    onReorderDays,
+    onAddDay,
     onUpdateDayTitle,
     onRouteCalculated,
     onAssignToDay,
@@ -1161,6 +1167,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
         undoHover={undoHover}
         setUndoHover={setUndoHover}
         lastActionLabel={lastActionLabel}
+        canEditDays={canEditDays}
+        onReorderDays={onReorderDays}
+        onAddDay={onAddDay}
       />
 
       {/* Tagesliste */}

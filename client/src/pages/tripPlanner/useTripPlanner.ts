@@ -541,6 +541,23 @@ export function useTripPlanner() {
     catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
   }, [tripId, toast])
 
+  const handleReorderDays = useCallback((orderedIds: number[]) => {
+    const prevIds = (useTripStore.getState().days || [])
+      .slice().sort((a, b) => (a.day_number ?? 0) - (b.day_number ?? 0)).map(d => d.id)
+    tripActions.reorderDays(tripId, orderedIds)
+      .then(() => {
+        pushUndo(t('dayplan.reorderUndo'), async () => {
+          await tripActions.reorderDays(tripId, prevIds)
+        })
+      })
+      .catch(err => toast.error(err instanceof Error ? err.message : t('dayplan.reorderError')))
+  }, [tripId, toast, pushUndo])
+
+  const handleAddDay = useCallback((position?: number) => {
+    tripActions.insertDay(tripId, position)
+      .catch(err => toast.error(err instanceof Error ? err.message : t('dayplan.addDayError')))
+  }, [tripId, toast])
+
   const handleSaveReservation = async (data: Record<string, string | number | null> & { title: string }) => {
     try {
       if (editingReservation) {
@@ -661,7 +678,7 @@ export function useTripPlanner() {
     route, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay,
     handleSelectDay, handlePlaceClick, handleMarkerClick, handleMapClick, handleMapContextMenu, openAddPlaceFromPoi,
     handleSavePlace, handleDeletePlace, confirmDeletePlace, confirmDeletePlaces,
-    handleAssignToDay, handleRemoveAssignment, handleReorder, handleUpdateDayTitle,
+    handleAssignToDay, handleRemoveAssignment, handleReorder, handleReorderDays, handleAddDay, handleUpdateDayTitle,
     handleSaveReservation, handleSaveTransport, handleDeleteReservation,
     selectedPlace, dayOrderMap, dayPlaces,
     mapTileUrl, defaultCenter, defaultZoom, fontStyle, splashDone,
