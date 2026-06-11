@@ -1,3 +1,5 @@
+import { getCachedBlob } from '../db/offlineDb'
+
 // MIME types safe to open inline (will not execute script in any browser).
 // Everything else (text/html, image/svg+xml, text/javascript, …) is forced to
 // download so a maliciously-named upload cannot run code in the TREK origin.
@@ -40,16 +42,45 @@ function isIosStandalone(): boolean {
 }
 
 /**
+ * Resolves a protected file to a Blob, preferring the live server but falling
+ * back to the offline cache (pre-downloaded by the trip sync manager). This is
+ * what lets attachments open in a PWA / airplane mode. When offline we go
+ * straight to the cache; when online we fetch live and only fall back if the
+ * network actually fails — which also covers flaky links where navigator.onLine
+ * still reports true ("sometimes it works, sometimes it doesn't").
+ */
+async function getFileBlob(url: string): Promise<Blob> {
+  assertRelativeUrl(url)
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    const cached = await getCachedBlob(url)
+    if (cached) return cached
+    throw new Error('File not available offline')
+  }
+  let resp: Response
+  try {
+    resp = await fetch(url, { credentials: 'include' })
+  } catch (err) {
+    // Genuine network failure — the fetch itself rejected (offline, or a flaky
+    // link even though navigator.onLine is true). Serve the pre-downloaded copy.
+    const cached = await getCachedBlob(url)
+    if (cached) return cached
+    throw err
+  }
+  // The server answered: a non-ok status (401/403/404/…) is a real error and must
+  // surface, not be masked by a stale cached copy.
+  if (!resp.ok) throw new Error(resp.status === 401 ? 'Unauthorized' : `HTTP ${resp.status}`)
+  return await resp.blob()
+}
+
+/**
  * Fetches a protected file using cookie auth (credentials: include) and
  * triggers a browser download. Works inside PWA standalone mode because the
  * fetch stays in the PWA's WebView rather than handing off to the system
- * browser (which would lose the session cookie).
+ * browser (which would lose the session cookie). Falls back to the offline
+ * cache when the network is unavailable.
  */
 export async function downloadFile(url: string, filename?: string): Promise<void> {
-  assertRelativeUrl(url)
-  const resp = await fetch(url, { credentials: 'include' })
-  if (!resp.ok) throw new Error(resp.status === 401 ? 'Unauthorized' : `HTTP ${resp.status}`)
-  const blob = await resp.blob()
+  const blob = await getFileBlob(url)
   const blobUrl = URL.createObjectURL(blob)
   triggerAnchorDownload(blobUrl, filename)
 }
@@ -72,10 +103,7 @@ export async function downloadFile(url: string, filename?: string): Promise<void
  * spurious in-page download is triggered.
  */
 export async function openFile(url: string, filename?: string): Promise<void> {
-  assertRelativeUrl(url)
-  const resp = await fetch(url, { credentials: 'include' })
-  if (!resp.ok) throw new Error(resp.status === 401 ? 'Unauthorized' : `HTTP ${resp.status}`)
-  const blob = await resp.blob()
+  const blob = await getFileBlob(url)
   const blobUrl = URL.createObjectURL(blob)
 
   // Force download for MIME types that can execute script when rendered inline
