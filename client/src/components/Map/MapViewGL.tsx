@@ -553,6 +553,8 @@ export function MapViewGL({
         zoom: Math.max(map.getZoom(), 14),
         pitch: mapbox3d ? 45 : 0,
         duration: 400,
+        // Bias the place above the bottom inspector panel instead of dead-centre.
+        padding: paddingOpts,
       })
     } catch { /* noop */ }
   }, [selectedPlaceId, mapbox3d]) // eslint-disable-line react-hooks/exhaustive-deps
