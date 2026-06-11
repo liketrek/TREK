@@ -70,6 +70,24 @@ interface GooglePlaceDetails extends GooglePlaceResult {
 
 const UA = 'TREK Travel Planner (https://github.com/mauriceboe/TREK)';
 
+// TREK's internal language codes mostly coincide with valid BCP-47 codes, but a
+// couple don't: 'br' is Brazilian Portuguese here (BCP-47 'pt-BR'; bare 'br' is
+// Breton) and 'gr' is Greek (BCP-47 'el'). Outbound geo APIs (Google Places,
+// Nominatim) expect BCP-47, so normalise before sending — otherwise names and
+// opening hours come back in the wrong language. Codes not listed here pass
+// through unchanged (they are already valid), as do locale forms the client
+// sometimes sends (e.g. 'pt-BR').
+const API_LANG_OVERRIDES: Record<string, string> = {
+  br: 'pt-BR',
+  gr: 'el',
+  'el-GR': 'el',
+};
+function toApiLang(lang: string | undefined, fallback = 'en'): string {
+  const code = (lang || '').trim();
+  if (!code) return fallback;
+  return API_LANG_OVERRIDES[code] ?? code;
+}
+
 // ── Photo cache (disk-backed) ────────────────────────────────────────────────
 import * as placePhotoCache from './placePhotoCache';
 
@@ -115,7 +133,7 @@ export async function searchNominatim(query: string, lang?: string) {
     format: 'json',
     addressdetails: '1',
     limit: '10',
-    'accept-language': lang || 'en',
+    'accept-language': toApiLang(lang),
   });
   const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
     headers: { 'User-Agent': UA },
@@ -148,7 +166,7 @@ export async function lookupNominatim(osmType: string, osmId: string, lang?: str
   const params = new URLSearchParams({
     osm_ids: `${typePrefix}${osmId}`,
     format: 'json',
-    'accept-language': lang || 'en',
+    'accept-language': toApiLang(lang),
   });
   try {
     const res = await fetch(`https://nominatim.openstreetmap.org/lookup?${params}`, {
@@ -339,7 +357,7 @@ export async function searchPlaces(userId: number, query: string, lang?: string)
       'X-Goog-Api-Key': apiKey,
       'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.websiteUri,places.nationalPhoneNumber,places.types',
     },
-    body: JSON.stringify({ textQuery: query, languageCode: lang || 'en' }),
+    body: JSON.stringify({ textQuery: query, languageCode: toApiLang(lang) }),
   });
 
   const data = await response.json() as { places?: GooglePlaceResult[]; error?: { message?: string } };
@@ -381,7 +399,7 @@ export async function autocompletePlaces(
 
   const body: Record<string, unknown> = {
     input,
-    languageCode: lang || 'en',
+    languageCode: toApiLang(lang),
   };
   if (locationBias) {
     body.locationBias = {
@@ -472,7 +490,7 @@ export async function getPlaceDetails(userId: number, placeId: string, lang?: st
   }
 
   // Google details
-  const langKey = lang || 'de';
+  const langKey = toApiLang(lang, 'de');
   const apiKey = getMapsKey(userId);
   if (!apiKey) {
     throw Object.assign(new Error('Google Maps API key not configured'), { status: 400 });
@@ -532,7 +550,7 @@ export async function getPlaceDetails(userId: number, placeId: string, lang?: st
 }
 
 export async function getPlaceDetailsExpanded(userId: number, placeId: string, lang?: string, refresh = false): Promise<{ place: Record<string, unknown> }> {
-  const langKey = lang || 'de';
+  const langKey = toApiLang(lang, 'de');
   const apiKey = getMapsKey(userId);
   if (!apiKey) throw Object.assign(new Error('Google Maps API key not configured'), { status: 400 });
 
@@ -628,90 +646,93 @@ export async function getPlacePhoto(
     const apiKey = getMapsKey(userId);
     const isCoordLookup = placeId.startsWith('coords:');
 
-    // No Google key or coordinate-only lookup → try Wikimedia (URL-based, not byte-cached)
-    if (!apiKey || isCoordLookup) {
-      if (!isNaN(lat) && !isNaN(lng)) {
-        try {
-          const wiki = await fetchWikimediaPhoto(lat, lng, name);
-          if (wiki) {
-            // Wikimedia photos: fetch bytes and cache to disk. Follow redirects
-            // manually so each hop (the image URL can 3xx to a CDN host) is
-            // re-validated against the SSRF guard, not just the first URL.
-            const imgRes = await safeFetchFollow(wiki.photoUrl, undefined, { bypassInternalIpAllowed: true });
-            if (imgRes.ok) {
-              const bytes = Buffer.from(await imgRes.arrayBuffer());
-              const cached = await placePhotoCache.put(placeId, bytes, wiki.attribution);
-              return { filePath: cached.filePath, attribution: cached.attribution };
-            }
-          }
-        } catch { /* fall through */ }
+    // Coordinate-based Wikipedia/Wikimedia lookup. Used for coordinate-only
+    // (right-click) places and as a fallback when a Google place yields no photo,
+    // so a place added via search still gets a marker image when Google returns
+    // nothing. Returns null (without marking an error) so the caller decides.
+    const fetchWikimediaFallback = async (): Promise<{ filePath: string; attribution: string | null } | null> => {
+      if (isNaN(lat) || isNaN(lng)) return null;
+      try {
+        const wiki = await fetchWikimediaPhoto(lat, lng, name);
+        if (!wiki) return null;
+        // Follow redirects manually so each hop (the image URL can 3xx to a CDN
+        // host) is re-validated against the SSRF guard, not just the first URL.
+        const imgRes = await safeFetchFollow(wiki.photoUrl, undefined, { bypassInternalIpAllowed: true });
+        if (!imgRes.ok) return null;
+        const bytes = Buffer.from(await imgRes.arrayBuffer());
+        const cached = await placePhotoCache.put(placeId, bytes, wiki.attribution);
+        return { filePath: cached.filePath, attribution: cached.attribution };
+      } catch {
+        return null;
       }
-      placePhotoCache.markError(placeId);
-      return null;
+    };
+
+    // Google Places photo for a Google place_id. Returns null (without marking an
+    // error) on any miss — no key, URL-shaped id, request rejected, no photos, or
+    // a failed media download — so the caller can fall back to Wikimedia.
+    const fetchGooglePhoto = async (): Promise<{ filePath: string; attribution: string | null } | null> => {
+      // URL-shaped placeIds aren't Google IDs — legacy DBs may store raw photo URLs in image_url
+      if (!apiKey || /^https?:\/\//i.test(placeId)) return null;
+
+      // Fetch details to get the photo name
+      const detailsRes = await googleFetch(`https://places.googleapis.com/v1/places/${placeId}`, `getPlacePhoto/details(${placeId})`, {
+        headers: {
+          'X-Goog-Api-Key': apiKey,
+          'X-Goog-FieldMask': 'photos',
+        },
+      });
+      const body = await detailsRes.text();
+      if (!detailsRes.ok) {
+        console.error('Google Places photo details error:', detailsRes.status, body.slice(0, 200));
+        return null;
+      }
+      let details: GooglePlaceDetails & { error?: { message?: string } };
+      try { details = body ? JSON.parse(body) : { photos: [] }; }
+      catch { return null; }
+      if (!details.photos?.length) return null;
+
+      const photo = details.photos[0];
+      const photoName = photo.name;
+      const attribution = photo.authorAttributions?.[0]?.displayName || null;
+
+      // Fetch actual image bytes
+      const mediaRes = await googleFetch(
+        `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=400`,
+        `getPlacePhoto/media(${placeId})`,
+        { headers: { 'X-Goog-Api-Key': apiKey } }
+      );
+      if (!mediaRes.ok) return null;
+
+      const bytes = Buffer.from(await mediaRes.arrayBuffer());
+      if (!bytes.length) return null;
+
+      const cached = await placePhotoCache.put(placeId, bytes, attribution);
+
+      // Persist stable proxy URL to database
+      try {
+        db.prepare(
+          'UPDATE places SET image_url = ?, updated_at = CURRENT_TIMESTAMP WHERE google_place_id = ? AND (image_url IS NULL OR image_url = \'\')'
+        ).run(cached.photoUrl, placeId);
+      } catch (dbErr) {
+        console.error('Failed to persist photo URL to database:', dbErr);
+      }
+
+      return { filePath: cached.filePath, attribution };
+    };
+
+    // Prefer the Google photo (higher quality); if Google yields nothing, fall
+    // back to the same coordinate-based Wikipedia/OSM lookup that right-click
+    // places use. Coordinate-only ids skip Google entirely.
+    if (!isCoordLookup) {
+      const googlePhoto = await fetchGooglePhoto();
+      if (googlePhoto) return googlePhoto;
     }
 
-    // Reject URL-shaped placeIds — legacy DBs may store raw photo URLs in image_url
-    if (/^https?:\/\//i.test(placeId)) {
-      placePhotoCache.markError(placeId);
-      return null;
-    }
+    const fallback = await fetchWikimediaFallback();
+    if (fallback) return fallback;
 
-    // Google Photos — fetch details to get photo name
-    const detailsRes = await googleFetch(`https://places.googleapis.com/v1/places/${placeId}`, `getPlacePhoto/details(${placeId})`, {
-      headers: {
-        'X-Goog-Api-Key': apiKey,
-        'X-Goog-FieldMask': 'photos',
-      },
-    });
-    const body = await detailsRes.text();
-    if (!detailsRes.ok) {
-      console.error('Google Places photo details error:', detailsRes.status, body.slice(0, 200));
-      placePhotoCache.markError(placeId);
-      return null;
-    }
-    let details: GooglePlaceDetails & { error?: { message?: string } };
-    try { details = body ? JSON.parse(body) : { photos: [] }; }
-    catch { placePhotoCache.markError(placeId); return null; }
-
-    if (!details.photos?.length) {
-      placePhotoCache.markError(placeId);
-      return null;
-    }
-
-    const photo = details.photos[0];
-    const photoName = photo.name;
-    const attribution = photo.authorAttributions?.[0]?.displayName || null;
-
-    // Fetch actual image bytes
-    const mediaRes = await googleFetch(
-      `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=400`,
-      `getPlacePhoto/media(${placeId})`,
-      { headers: { 'X-Goog-Api-Key': apiKey } }
-    );
-
-    if (!mediaRes.ok) {
-      placePhotoCache.markError(placeId);
-      return null;
-    }
-
-    const bytes = Buffer.from(await mediaRes.arrayBuffer());
-    if (!bytes.length) {
-      placePhotoCache.markError(placeId);
-      return null;
-    }
-
-    const cached = await placePhotoCache.put(placeId, bytes, attribution);
-
-    // Persist stable proxy URL to database
-    try {
-      db.prepare(
-        'UPDATE places SET image_url = ?, updated_at = CURRENT_TIMESTAMP WHERE google_place_id = ? AND (image_url IS NULL OR image_url = \'\')'
-      ).run(cached.photoUrl, placeId);
-    } catch (dbErr) {
-      console.error('Failed to persist photo URL to database:', dbErr);
-    }
-
-    return { filePath: cached.filePath, attribution };
+    placePhotoCache.markError(placeId);
+    return null;
     } finally {
       releasePhotoFetchSlot();
     }
@@ -729,7 +750,7 @@ export async function getPlacePhoto(
 export async function reverseGeocode(lat: string, lng: string, lang?: string): Promise<{ name: string | null; address: string | null }> {
   const params = new URLSearchParams({
     lat, lon: lng, format: 'json', addressdetails: '1', zoom: '18',
-    'accept-language': lang || 'en',
+    'accept-language': toApiLang(lang),
   });
   const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params}`, {
     headers: { 'User-Agent': UA },
