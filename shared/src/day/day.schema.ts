@@ -49,8 +49,16 @@ export type Day = z.infer<typeof daySchema>;
 export const dayCreateRequestSchema = z.object({
   date: z.string().optional(),
   notes: z.string().optional(),
+  // 1-based slot to insert a new empty day at (omit to append at the end).
+  position: z.number().int().positive().optional(),
 });
 export type DayCreateRequest = z.infer<typeof dayCreateRequestSchema>;
+
+/** Reorder whole days: the desired full sequence of this trip's day ids. */
+export const dayReorderRequestSchema = z.object({
+  orderedIds: z.array(z.number()),
+});
+export type DayReorderRequest = z.infer<typeof dayReorderRequestSchema>;
 
 export const dayUpdateRequestSchema = z.object({
   notes: z.string().optional(),

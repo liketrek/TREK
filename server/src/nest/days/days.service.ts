@@ -39,6 +39,14 @@ export class DaysService {
     return dayService.createDay(tripId, date, notes);
   }
 
+  insert(tripId: string, position?: number) {
+    return dayService.insertDay(tripId, position);
+  }
+
+  reorder(tripId: string, orderedIds: number[]) {
+    return dayService.reorderDays(tripId, orderedIds);
+  }
+
   update(id: string, current: Parameters<typeof dayService.updateDay>[1], fields: { notes?: string; title?: string | null }) {
     return dayService.updateDay(id, current, fields);
   }

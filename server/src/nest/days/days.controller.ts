@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import type { User } from '../../types';
 import { DaysService } from './days.service';
+import { DayReorderError } from '../../services/dayService';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 
@@ -52,14 +53,45 @@ export class DaysController {
   create(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body() body: { date?: string; notes?: string },
+    @Body() body: { date?: string; notes?: string; position?: number },
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    const day = this.days.create(tripId, body.date, body.notes);
-    this.days.broadcast(tripId, 'day:created', { day }, socketId);
+    // A `position` means "insert a new empty day here" (which on a dated trip
+    // extends the trip and re-pins dates); without it, the legacy append.
+    const day = body.position !== undefined
+      ? this.days.insert(tripId, body.position)
+      : this.days.create(tripId, body.date, body.notes);
+    // An insert can shuffle dates/positions of other days, so collaborators
+    // refetch the whole list; a plain append only needs the new day.
+    const event = body.position !== undefined ? 'day:reordered' : 'day:created';
+    this.days.broadcast(tripId, event, { day }, socketId);
     return { day };
+  }
+
+  @Put('reorder')
+  reorder(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Body() body: { orderedIds?: number[] },
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    const trip = this.requireTrip(tripId, user);
+    this.requireEdit(trip, user);
+    if (!Array.isArray(body.orderedIds)) {
+      throw new HttpException({ error: 'orderedIds must be an array' }, 400);
+    }
+    try {
+      this.days.reorder(tripId, body.orderedIds);
+    } catch (err) {
+      if (err instanceof DayReorderError) {
+        throw new HttpException({ error: err.message }, 400);
+      }
+      throw err;
+    }
+    this.days.broadcast(tripId, 'day:reordered', { orderedIds: body.orderedIds }, socketId);
+    return { success: true };
   }
 
   @Put(':id')
