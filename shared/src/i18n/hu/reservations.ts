@@ -29,6 +29,11 @@ const reservations: TranslationStrings = {
   'reservations.meta.flightNumber': 'Járatszám',
   'reservations.meta.from': 'Honnan',
   'reservations.meta.to': 'Hová',
+  'reservations.layover.route': 'Útvonal',
+  'reservations.layover.stop': 'Megálló',
+  'reservations.layover.addStop': 'Megálló hozzáadása',
+  'reservations.layover.connection': 'Csatlakozás',
+  'reservations.layover.layover': 'Átszállás',
   'reservations.needsReview': 'Ellenőrzés',
   'reservations.needsReviewHint':
     'A repülőteret nem sikerült automatikusan azonosítani — erősítsd meg a helyet.',

@@ -28,6 +28,11 @@ const reservations: TranslationStrings = {
   'reservations.meta.flightNumber': 'Uçuş No.',
   'reservations.meta.from': 'İtibaren',
   'reservations.meta.to': 'İle',
+  'reservations.layover.route': 'Rota',
+  'reservations.layover.stop': 'Durak',
+  'reservations.layover.addStop': 'Durak ekle',
+  'reservations.layover.connection': 'Aktarma',
+  'reservations.layover.layover': 'Aktarma bekleme süresi',
   'reservations.needsReview': 'Gözden geçirmek',
   'reservations.needsReviewHint':
     'Havaalanı otomatik olarak eşleştirilemedi; lütfen konumu onaylayın.',

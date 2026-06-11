@@ -27,6 +27,11 @@ const reservations: TranslationStrings = {
   'reservations.meta.flightNumber': '便名',
   'reservations.meta.from': '出発地',
   'reservations.meta.to': '到着地',
+  'reservations.layover.route': '経路',
+  'reservations.layover.stop': '経由地',
+  'reservations.layover.addStop': '経由地を追加',
+  'reservations.layover.connection': '乗り継ぎ便',
+  'reservations.layover.layover': '乗り継ぎ',
   'reservations.needsReview': '要確認',
   'reservations.needsReviewHint':
     '空港を自動で特定できませんでした。場所を確認してください。',

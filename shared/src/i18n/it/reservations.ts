@@ -27,6 +27,11 @@ const reservations: TranslationStrings = {
   'reservations.meta.flightNumber': 'N. volo',
   'reservations.meta.from': 'Da',
   'reservations.meta.to': 'A',
+  'reservations.layover.route': 'Itinerario',
+  'reservations.layover.stop': 'Scalo',
+  'reservations.layover.addStop': 'Aggiungi scalo',
+  'reservations.layover.connection': 'Coincidenza',
+  'reservations.layover.layover': 'Sosta',
   'reservations.needsReview': 'Verifica',
   'reservations.needsReviewHint':
     "L'aeroporto non è stato riconosciuto automaticamente — conferma la posizione.",

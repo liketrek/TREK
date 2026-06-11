@@ -28,6 +28,11 @@ const reservations: TranslationStrings = {
   'reservations.meta.flightNumber': 'N° de vol',
   'reservations.meta.from': 'De',
   'reservations.meta.to': 'À',
+  'reservations.layover.route': 'Itinéraire',
+  'reservations.layover.stop': 'Escale',
+  'reservations.layover.addStop': 'Ajouter une escale',
+  'reservations.layover.connection': 'Correspondance',
+  'reservations.layover.layover': 'Escale',
   'reservations.needsReview': 'Vérifier',
   'reservations.needsReviewHint':
     "L'aéroport n'a pas pu être identifié automatiquement — veuillez confirmer l'emplacement.",

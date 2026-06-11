@@ -27,6 +27,11 @@ const reservations: TranslationStrings = {
   'reservations.meta.flightNumber': 'رقم الرحلة',
   'reservations.meta.from': 'من',
   'reservations.meta.to': 'إلى',
+  'reservations.layover.route': 'المسار',
+  'reservations.layover.stop': 'محطة توقف',
+  'reservations.layover.addStop': 'إضافة محطة توقف',
+  'reservations.layover.connection': 'رحلة متّصلة',
+  'reservations.layover.layover': 'توقف بيني',
   'reservations.needsReview': 'مراجعة',
   'reservations.needsReviewHint':
     'تعذّر مطابقة المطار تلقائياً — يرجى تأكيد الموقع.',

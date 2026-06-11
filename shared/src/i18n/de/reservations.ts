@@ -28,6 +28,11 @@ const reservations: TranslationStrings = {
   'reservations.meta.flightNumber': 'Flugnr.',
   'reservations.meta.from': 'Von',
   'reservations.meta.to': 'Nach',
+  'reservations.layover.route': 'Route',
+  'reservations.layover.stop': 'Zwischenstopp',
+  'reservations.layover.addStop': 'Zwischenstopp hinzufügen',
+  'reservations.layover.connection': 'Anschlussflug',
+  'reservations.layover.layover': 'Zwischenstopp',
   'reservations.needsReview': 'Prüfen',
   'reservations.needsReviewHint':
     'Flughafen konnte nicht automatisch erkannt werden — bitte Ort bestätigen.',
