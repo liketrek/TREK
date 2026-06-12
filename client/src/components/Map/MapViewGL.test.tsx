@@ -40,6 +40,12 @@ vi.mock('mapbox-gl', () => ({
     })),
     LngLatBounds: vi.fn(() => ({ extend: vi.fn().mockReturnThis() })),
     NavigationControl: vi.fn(),
+    Popup: vi.fn(() => ({
+      setLngLat: vi.fn().mockReturnThis(),
+      setHTML: vi.fn().mockReturnThis(),
+      addTo: vi.fn().mockReturnThis(),
+      remove: vi.fn(),
+    })),
   },
 }))
 vi.mock('mapbox-gl/dist/mapbox-gl.css', () => ({}))

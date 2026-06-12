@@ -226,7 +226,7 @@ describe('DashboardPage', () => {
       await user.click(archiveButtons[0]);
 
       // Switch to the archive filter segment
-      await user.click(screen.getByText('Archive'));
+      await user.click(screen.getByText('Archived'));
 
       await waitFor(() => {
         expect(screen.getAllByText('Paris Adventure')[0]).toBeInTheDocument();
@@ -293,7 +293,7 @@ describe('DashboardPage', () => {
       });
 
       // Switch to the archive filter
-      await user.click(screen.getByText('Archive'));
+      await user.click(screen.getByText('Archived'));
 
       await waitFor(() => {
         expect(screen.getByText('Old Rome Trip')).toBeInTheDocument();
@@ -442,7 +442,7 @@ describe('DashboardPage', () => {
       });
 
       // Switch to the archive filter
-      await user.click(screen.getByText('Archive'));
+      await user.click(screen.getByText('Archived'));
 
       await waitFor(() => {
         expect(screen.getByText('Old Rome Trip')).toBeInTheDocument();
@@ -644,7 +644,7 @@ describe('DashboardPage', () => {
       });
 
       // Archive filter reveals the archived trip
-      await user.click(screen.getByText('Archive'));
+      await user.click(screen.getByText('Archived'));
       await waitFor(() => {
         expect(screen.getByText('Old Archived Trip')).toBeInTheDocument();
       });
@@ -687,7 +687,7 @@ describe('DashboardPage', () => {
         expect(screen.getAllByText('My Active Trip')[0]).toBeInTheDocument();
       });
 
-      await user.click(screen.getByText('Archive'));
+      await user.click(screen.getByText('Archived'));
 
       await waitFor(() => {
         expect(screen.getByText('Restored Trip')).toBeInTheDocument();

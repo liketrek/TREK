@@ -54,8 +54,8 @@ export class MapsController {
   async search(
     @CurrentUser() user: User,
     @Body('query') query: unknown,
-    @Body('locationBias') locationBias?: { lat: number; lng: number; radius?: number },
     @Query('lang') lang?: string,
+    @Body('locationBias') locationBias?: { lat: number; lng: number; radius?: number },
   ): Promise<MapsSearchResult> {
     if (!query) {
       throw new HttpException({ error: 'Search query is required' }, 400);

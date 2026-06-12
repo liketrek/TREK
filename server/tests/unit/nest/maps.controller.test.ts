@@ -47,7 +47,7 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
       const search = vi.fn().mockResolvedValue({ places: [], source: 'osm' });
       const res = await makeController({ search }).search(user, 'berlin', 'de');
       expect(res).toEqual({ places: [], source: 'osm' });
-      expect(search).toHaveBeenCalledWith(3, 'berlin', 'de');
+      expect(search).toHaveBeenCalledWith(3, 'berlin', 'de', undefined);
     });
 
     it('maps a service error to its status + message', async () => {
