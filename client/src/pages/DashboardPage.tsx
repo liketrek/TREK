@@ -16,7 +16,7 @@ import {
 import {
   Plus, Edit2, Trash2, Archive, Copy, ArrowRight, MapPin,
   Plane, Hotel, Utensils, Clock, RefreshCw, ArrowRightLeft, Calendar,
-  LayoutGrid, List, SlidersHorizontal, Ticket, X,
+  LayoutGrid, List, Ticket, X,
 } from 'lucide-react'
 import '../styles/dashboard.css'
 
@@ -120,14 +120,11 @@ export default function DashboardPage(): React.ReactElement {
                 <div className="sec-tools">
                   <div className="seg">
                     <button className={tripFilter === 'planned' ? 'on' : ''} onClick={() => setTripFilter('planned')}>{t('dashboard.filter.planned')}</button>
-                    <button className={tripFilter === 'archive' ? 'on' : ''} onClick={() => setTripFilter('archive')}>{t('dashboard.archive')}</button>
+                    <button className={tripFilter === 'archive' ? 'on' : ''} onClick={() => setTripFilter('archive')}>{t('dashboard.archived')}</button>
                     <button className={tripFilter === 'completed' ? 'on' : ''} onClick={() => setTripFilter('completed')}>{t('dashboard.mobile.completed')}</button>
                   </div>
                   <button className="tool-action" aria-label={t('dashboard.aria.toggleView')} onClick={toggleViewMode} style={{ width: 38, height: 38, borderRadius: 11 }}>
                     {viewMode === 'grid' ? <List size={17} /> : <LayoutGrid size={17} />}
-                  </button>
-                  <button className="tool-action" aria-label={t('dashboard.aria.filter')} style={{ width: 38, height: 38, borderRadius: 11 }}>
-                    <SlidersHorizontal size={17} />
                   </button>
                 </div>
               </div>

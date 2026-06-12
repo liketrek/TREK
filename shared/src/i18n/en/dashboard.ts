@@ -125,7 +125,7 @@ const dashboard: TranslationStrings = {
   'dashboard.hero.badgeNext': 'UP NEXT',
   'dashboard.hero.badgeRecent': 'RECENT',
   'dashboard.hero.tripDates': 'Trip dates',
-  'dashboard.hero.noDates': 'No dates set',
+  'dashboard.hero.noDates': 'Open dates',
   'dashboard.hero.travelerOne': '{count} traveler',
   'dashboard.hero.travelerMany': '{count} travelers',
   'dashboard.hero.destinationOne': '{count} destination',

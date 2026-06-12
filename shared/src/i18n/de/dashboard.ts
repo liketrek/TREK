@@ -112,7 +112,7 @@ const dashboard: TranslationStrings = {
   'dashboard.hero.badgeNext': 'ALS NÄCHSTES',
   'dashboard.hero.badgeRecent': 'KÜRZLICH',
   'dashboard.hero.tripDates': 'Reisedaten',
-  'dashboard.hero.noDates': 'Keine Daten gesetzt',
+  'dashboard.hero.noDates': 'Freie Planung',
   'dashboard.hero.travelerOne': '{count} Reisender',
   'dashboard.hero.travelerMany': '{count} Reisende',
   'dashboard.hero.destinationOne': '{count} Ziel',
