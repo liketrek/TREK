@@ -381,5 +381,15 @@ const admin: TranslationStrings = {
     'Usuń wszystkie klucze dostępu tego użytkownika (np. po utracie urządzenia). Nadal będzie mógł logować się hasłem.',
   'admin.passkey.resetConfirm': 'Usunąć wszystkie klucze dostępu dla {name}?',
   'admin.passkey.resetDone': 'Usunięto {count} kluczy dostępu',
+  'admin.defaultSettings.mapProvider': 'Silnik map',
+  'admin.defaultSettings.mapProviderHint': 'Domyślna mapa dla wszystkich na tej instancji. Każdy użytkownik może ją zmienić we własnych ustawieniach.',
+  'admin.defaultSettings.providerLeaflet': 'Standardowa (bezpłatna)',
+  'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
+  'admin.defaultSettings.mapboxToken': 'Współdzielony token Mapbox',
+  'admin.defaultSettings.mapboxTokenHint': 'Używany dla każdego użytkownika, który nie wprowadził własnego tokena — dzięki temu cała instancja korzysta z Mapbox bez udostępniania klucza każdemu z osobna. Przechowywany w postaci zaszyfrowanej.',
+  'admin.defaultSettings.mapboxStyle': 'Styl mapy',
+  'admin.defaultSettings.mapboxStylePlaceholder': 'Wybierz styl…',
+  'admin.defaultSettings.mapbox3d': 'Budynki i teren 3D',
+  'admin.defaultSettings.mapboxQuality': 'Tryb wysokiej jakości',
 };
 export default admin;

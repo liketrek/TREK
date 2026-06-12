@@ -49,5 +49,14 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.createNew': 'Créer un nouveau lieu',
   'dayplan.expandAll': 'Expand all days', // en-fallback
   'dayplan.collapseAll': 'Collapse all days', // en-fallback
+  'dayplan.reorderDays': 'Réorganiser les jours',
+  'dayplan.reorderTitle': 'Réorganiser les jours',
+  'dayplan.reorderHint': 'Les lieux, notes et réservations d\'un jour le suivent.',
+  'dayplan.addDay': 'Ajouter un jour',
+  'dayplan.moveUp': 'Monter',
+  'dayplan.moveDown': 'Descendre',
+  'dayplan.reorderUndo': 'Réorganiser les jours',
+  'dayplan.reorderError': 'Échec de la réorganisation des jours',
+  'dayplan.addDayError': 'Échec de l\'ajout du jour',
 };
 export default dayplan;

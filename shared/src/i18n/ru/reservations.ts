@@ -28,6 +28,11 @@ const reservations: TranslationStrings = {
   'reservations.meta.flightNumber': 'Номер рейса',
   'reservations.meta.from': 'Откуда',
   'reservations.meta.to': 'Куда',
+  'reservations.layover.route': 'Маршрут',
+  'reservations.layover.stop': 'Остановка',
+  'reservations.layover.addStop': 'Добавить остановку',
+  'reservations.layover.connection': 'Стыковка',
+  'reservations.layover.layover': 'Пересадка',
   'reservations.needsReview': 'Проверить',
   'reservations.needsReviewHint':
     'Аэропорт не удалось определить автоматически — подтвердите местоположение.',

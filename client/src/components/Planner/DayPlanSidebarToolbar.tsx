@@ -1,5 +1,7 @@
-import { ChevronsDownUp, ChevronsUpDown, FileDown, Undo2 } from 'lucide-react'
+import { useState } from 'react'
+import { ChevronsDownUp, ChevronsUpDown, FileDown, Undo2, ArrowUpDown } from 'lucide-react'
 import { downloadTripPDF } from '../PDF/TripPDF'
+import { DayReorderPopup } from './DayReorderPopup'
 import Tooltip from '../shared/Tooltip'
 import { useToast } from '../shared/Toast'
 import type { Trip, Day, Place, Category, AssignmentsMap, Reservation, DayNote } from '../../types'
@@ -27,13 +29,18 @@ interface DayPlanSidebarToolbarProps {
   undoHover: boolean
   setUndoHover: (v: boolean) => void
   lastActionLabel: string | null
+  canEditDays?: boolean
+  onReorderDays?: (orderedIds: number[]) => void
+  onAddDay?: (position?: number) => void
 }
 
 export function DayPlanSidebarToolbar({
   tripId, trip, days, places, categories, assignments, reservations, dayNotes,
   t, locale, toast, pdfHover, setPdfHover, icsHover, setIcsHover,
   expandedDays, setExpandedDays, onUndo, canUndo, undoHover, setUndoHover, lastActionLabel,
+  canEditDays, onReorderDays, onAddDay,
 }: DayPlanSidebarToolbarProps) {
+  const [reorderOpen, setReorderOpen] = useState(false)
   return (
     <div className="border-b border-edge-faint" style={{ padding: '12px 16px', flexShrink: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
@@ -194,6 +201,39 @@ export function DayPlanSidebarToolbar({
               }}>
                 {canUndo && lastActionLabel ? t('undo.tooltip', { action: lastActionLabel }) : t('undo.button')}
               </div>
+            )}
+          </div>
+        )}
+        {canEditDays && onReorderDays && onAddDay && days.length > 0 && (
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <Tooltip label={t('dayplan.reorderDays')} placement="bottom">
+              <button
+                onClick={() => setReorderOpen(v => !v)}
+                aria-label={t('dayplan.reorderDays')}
+                aria-pressed={reorderOpen}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 30, height: 30, borderRadius: 8,
+                  border: '1px solid var(--border-primary)',
+                  background: reorderOpen ? 'var(--bg-hover)' : 'none',
+                  color: 'var(--text-primary)', cursor: 'pointer', fontFamily: 'inherit', padding: 0,
+                  transition: 'color 0.15s, border-color 0.15s, background 0.15s',
+                }}
+                onMouseEnter={e => { if (!reorderOpen) e.currentTarget.style.background = 'var(--bg-hover)' }}
+                onMouseLeave={e => { if (!reorderOpen) e.currentTarget.style.background = 'transparent' }}
+              >
+                <ArrowUpDown size={14} strokeWidth={2} />
+              </button>
+            </Tooltip>
+            {reorderOpen && (
+              <DayReorderPopup
+                days={days}
+                t={t}
+                locale={locale}
+                onReorder={onReorderDays}
+                onAddDay={() => onAddDay()}
+                onClose={() => setReorderOpen(false)}
+              />
             )}
           </div>
         )}

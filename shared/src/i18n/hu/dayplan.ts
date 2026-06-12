@@ -48,5 +48,14 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.createNew': 'Új helyszín létrehozása',
   'dayplan.expandAll': 'Expand all days', // en-fallback
   'dayplan.collapseAll': 'Collapse all days', // en-fallback
+  'dayplan.reorderDays': 'Napok átrendezése',
+  'dayplan.reorderTitle': 'Napok átrendezése',
+  'dayplan.reorderHint': 'A nap helyei, jegyzetei és foglalásai együtt mozognak vele.',
+  'dayplan.addDay': 'Nap hozzáadása',
+  'dayplan.moveUp': 'Mozgatás felfelé',
+  'dayplan.moveDown': 'Mozgatás lefelé',
+  'dayplan.reorderUndo': 'Napok átrendezése',
+  'dayplan.reorderError': 'Nem sikerült átrendezni a napokat',
+  'dayplan.addDayError': 'Nem sikerült napot hozzáadni',
 };
 export default dayplan;

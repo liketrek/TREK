@@ -324,6 +324,8 @@ const settings: TranslationStrings = {
   'settings.passkey.deviceBound': 'Bu cihaz',
   'settings.passkey.lastUsed': 'Son kullanım',
   'settings.passkey.neverUsed': 'Hiç kullanılmadı',
+  'settings.mapPoiPill': 'Haritada yerleri keşfet',
+  'settings.mapPoiPillHint': 'Yakındaki restoranları, otelleri ve daha fazlasını OpenStreetMap\'ten bulmak için gezi haritasında bir kategori etiketi göster.',
 };
 
 export default settings;

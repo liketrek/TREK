@@ -113,6 +113,7 @@ export interface Settings {
   show_place_description: boolean
   blur_booking_codes?: boolean
   map_booking_labels?: boolean
+  map_poi_pill_enabled?: boolean
   optimize_from_accommodation?: boolean
   map_provider?: 'leaflet' | 'mapbox-gl'
   mapbox_access_token?: string

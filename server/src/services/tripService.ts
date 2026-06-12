@@ -543,8 +543,14 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
     if (r.confirmation_number) desc += `\nConfirmation: ${r.confirmation_number}`;
     if (meta.airline) desc += `\nAirline: ${meta.airline}`;
     if (meta.flight_number) desc += `\nFlight: ${meta.flight_number}`;
-    if (meta.departure_airport) desc += `\nFrom: ${meta.departure_airport}`;
-    if (meta.arrival_airport) desc += `\nTo: ${meta.arrival_airport}`;
+    if (Array.isArray(meta.legs) && meta.legs.length > 1) {
+      // Multi-leg flight: show the whole route (FRA → BER → HND) on one event.
+      const stops = [meta.legs[0]?.from, ...meta.legs.map((l: { to?: string }) => l.to)].filter(Boolean);
+      if (stops.length) desc += `\nRoute: ${stops.join(' → ')}`;
+    } else {
+      if (meta.departure_airport) desc += `\nFrom: ${meta.departure_airport}`;
+      if (meta.arrival_airport) desc += `\nTo: ${meta.arrival_airport}`;
+    }
     if (meta.train_number) desc += `\nTrain: ${meta.train_number}`;
     if (r.notes) desc += `\n${r.notes}`;
     if (desc) ics += `DESCRIPTION:${esc(desc)}\r\n`;

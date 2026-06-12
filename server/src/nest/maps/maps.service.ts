@@ -16,6 +16,7 @@ import {
   getPlacePhoto,
   reverseGeocode,
   resolveGoogleMapsUrl,
+  searchOverpassPois,
 } from '../../services/mapsService';
 import { serveFilePath } from '../../services/placePhotoCache';
 
@@ -85,5 +86,10 @@ export class MapsService {
 
   resolveUrl(url: string): Promise<MapsResolveUrlResult> {
     return resolveGoogleMapsUrl(url) as Promise<MapsResolveUrlResult>;
+  }
+
+  // OSM-only POI search by category within a viewport bbox (never calls Google).
+  pois(category: string, bbox: { south: number; west: number; north: number; east: number }) {
+    return searchOverpassPois(category, bbox);
   }
 }

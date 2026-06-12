@@ -12,6 +12,13 @@ export const DEFAULTABLE_USER_SETTING_KEYS = [
   'time_format',
   'blur_booking_codes',
   'map_tile_url',
+  // Instance-wide Mapbox defaults: an admin can set a shared token + style so the
+  // whole instance uses Mapbox without each user pasting their own key (#920).
+  'map_provider',
+  'mapbox_access_token',
+  'mapbox_style',
+  'mapbox_3d_enabled',
+  'mapbox_quality_mode',
 ] as const;
 
 type DefaultableKey = typeof DEFAULTABLE_USER_SETTING_KEYS[number];
@@ -20,9 +27,10 @@ const VALID_VALUES: Partial<Record<DefaultableKey, unknown[]>> = {
   temperature_unit: ['fahrenheit', 'celsius'],
   time_format: ['12h', '24h'],
   dark_mode: [true, false, 'light', 'dark', 'auto'],
+  map_provider: ['leaflet', 'mapbox-gl'],
 };
 
-const BOOLEAN_KEYS = new Set<DefaultableKey>(['blur_booking_codes']);
+const BOOLEAN_KEYS = new Set<DefaultableKey>(['blur_booking_codes', 'mapbox_3d_enabled', 'mapbox_quality_mode']);
 
 function parseValue(raw: string): unknown {
   try { return JSON.parse(raw); } catch { return raw; }
@@ -35,7 +43,11 @@ export function getAdminUserDefaults(): Record<string, unknown> {
   const defaults: Record<string, unknown> = {};
   for (const row of rows) {
     const settingKey = row.key.slice('default_user_setting_'.length);
-    defaults[settingKey] = parseValue(row.value);
+    if (ENCRYPTED_SETTING_KEYS.has(settingKey)) {
+      defaults[settingKey] = row.value ? (decrypt_api_key(row.value) ?? '') : '';
+    } else {
+      defaults[settingKey] = parseValue(row.value);
+    }
   }
   return defaults;
 }
@@ -70,7 +82,12 @@ export function setAdminUserDefaults(partial: Record<string, unknown>): void {
         throw new Error(`Invalid value for ${key}: ${value}`);
       }
 
-      upsert.run(appKey, JSON.stringify(value));
+      // Encrypt sensitive defaults (the shared Mapbox token) at rest, like the
+      // per-user equivalents; everything else is stored as plain JSON.
+      const stored = ENCRYPTED_SETTING_KEYS.has(key)
+        ? (maybe_encrypt_api_key(String(value)) ?? String(value))
+        : JSON.stringify(value);
+      upsert.run(appKey, stored);
     }
     db.exec('COMMIT');
   } catch (err) {

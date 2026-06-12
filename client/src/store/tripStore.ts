@@ -9,6 +9,7 @@ import { packingRepo } from '../repo/packingRepo'
 import { todoRepo } from '../repo/todoRepo'
 import { createPlacesSlice } from './slices/placesSlice'
 import { createAssignmentsSlice } from './slices/assignmentsSlice'
+import { createDaysSlice } from './slices/daysSlice'
 import { createDayNotesSlice } from './slices/dayNotesSlice'
 import { createPackingSlice } from './slices/packingSlice'
 import { createTodoSlice } from './slices/todoSlice'
@@ -24,6 +25,7 @@ import type {
 import { getApiErrorMessage } from '../types'
 import type { PlacesSlice } from './slices/placesSlice'
 import type { AssignmentsSlice } from './slices/assignmentsSlice'
+import type { DaysSlice } from './slices/daysSlice'
 import type { DayNotesSlice } from './slices/dayNotesSlice'
 import type { PackingSlice } from './slices/packingSlice'
 import type { TodoSlice } from './slices/todoSlice'
@@ -34,6 +36,7 @@ import type { FilesSlice } from './slices/filesSlice'
 export interface TripStoreState
   extends PlacesSlice,
     AssignmentsSlice,
+    DaysSlice,
     DayNotesSlice,
     PackingSlice,
     TodoSlice,
@@ -184,6 +187,7 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
 
   ...createPlacesSlice(set, get),
   ...createAssignmentsSlice(set, get),
+  ...createDaysSlice(set, get),
   ...createDayNotesSlice(set, get),
   ...createPackingSlice(set, get),
   ...createTodoSlice(set, get),

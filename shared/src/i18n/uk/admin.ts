@@ -389,5 +389,15 @@ const admin: TranslationStrings = {
     'Видалити всі passkeys цього користувача (напр. у разі втрати пристрою). Він зможе входити за допомогою свого пароля.',
   'admin.passkey.resetConfirm': 'Видалити всі passkeys для {name}?',
   'admin.passkey.resetDone': 'Видалено passkeys: {count}',
+  'admin.defaultSettings.mapProvider': 'Картографічний рушій',
+  'admin.defaultSettings.mapProviderHint': 'Карта за замовчуванням для всіх на цьому екземплярі. Кожен користувач може змінити її у власних налаштуваннях.',
+  'admin.defaultSettings.providerLeaflet': 'Стандартна (безкоштовна)',
+  'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
+  'admin.defaultSettings.mapboxToken': 'Спільний токен Mapbox',
+  'admin.defaultSettings.mapboxTokenHint': 'Використовується для кожного користувача, який не ввів власний токен — щоб увесь екземпляр отримав Mapbox без потреби ділитися ключем окремо. Зберігається в зашифрованому вигляді.',
+  'admin.defaultSettings.mapboxStyle': 'Стиль карти',
+  'admin.defaultSettings.mapboxStylePlaceholder': 'Виберіть стиль…',
+  'admin.defaultSettings.mapbox3d': '3D-будівлі та рельєф',
+  'admin.defaultSettings.mapboxQuality': 'Режим високої якості',
 };
 export default admin;

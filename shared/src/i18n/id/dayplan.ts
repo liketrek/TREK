@@ -48,5 +48,14 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.createNew': 'Buat tempat baru',
   'dayplan.expandAll': 'Expand all days', // en-fallback
   'dayplan.collapseAll': 'Collapse all days', // en-fallback
+  'dayplan.reorderDays': 'Atur ulang hari',
+  'dayplan.reorderTitle': 'Atur ulang hari',
+  'dayplan.reorderHint': 'Tempat, catatan, dan pesanan pada suatu hari ikut berpindah.',
+  'dayplan.addDay': 'Tambah hari',
+  'dayplan.moveUp': 'Pindah ke atas',
+  'dayplan.moveDown': 'Pindah ke bawah',
+  'dayplan.reorderUndo': 'Atur ulang hari',
+  'dayplan.reorderError': 'Gagal mengatur ulang hari',
+  'dayplan.addDayError': 'Gagal menambah hari',
 };
 export default dayplan;

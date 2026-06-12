@@ -271,19 +271,21 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
         )}
 
         {(() => {
-          const eps = r.endpoints || []
-          const from = eps.find(e => e.role === 'from')
-          const to = eps.find(e => e.role === 'to')
-          if (!from || !to) return null
+          // Full route over all waypoints (from · stops · to), ordered by sequence.
+          const eps = (r.endpoints || []).slice().sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0))
+          if (eps.length < 2) return null
           return (
             <div className="bg-surface-tertiary text-content" style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               padding: '8px 12px', borderRadius: 10,
-              fontSize: 12.5,
+              fontSize: 12.5, flexWrap: 'wrap',
             }}>
-              <span style={{ fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{from.name}</span>
-              <TypeIcon size={14} style={{ color: typeInfo.color, flexShrink: 0 }} />
-              <span style={{ fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{to.name}</span>
+              {eps.map((ep, i) => (
+                <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                  {i > 0 && <TypeIcon size={14} style={{ color: typeInfo.color, flexShrink: 0 }} />}
+                  <span style={{ fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ep.name}</span>
+                </span>
+              ))}
             </div>
           )
         })()}

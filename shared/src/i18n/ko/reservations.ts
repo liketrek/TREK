@@ -27,6 +27,11 @@ const reservations: TranslationStrings = {
   'reservations.meta.flightNumber': '항공편 번호',
   'reservations.meta.from': '출발',
   'reservations.meta.to': '도착',
+  'reservations.layover.route': '경로',
+  'reservations.layover.stop': '경유',
+  'reservations.layover.addStop': '경유지 추가',
+  'reservations.layover.connection': '연결편',
+  'reservations.layover.layover': '경유 대기',
   'reservations.needsReview': '검토 필요',
   'reservations.needsReviewHint':
     '공항이 자동으로 매칭되지 않았습니다 — 위치를 확인해 주세요.',

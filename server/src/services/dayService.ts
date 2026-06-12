@@ -158,6 +158,220 @@ export function deleteDay(id: string | number) {
 }
 
 // ---------------------------------------------------------------------------
+// Day reorder / insert (#589)
+//
+// Reordering keeps every day ROW stable (so assignments, notes, accommodations,
+// photos and multi-day reservation positions ride along by id) and only changes
+// each row's day_number — its position. On a dated trip the calendar dates stay
+// pinned to their slots (position i keeps the i-th date) and the day's content
+// moves across them. Because a booking's day is derived from the date part of
+// reservation_time, every booking on a day whose date changed gets that date
+// re-stamped onto the day's new date (time-of-day preserved), so day_id stays
+// consistent and the booking moves with its day.
+// ---------------------------------------------------------------------------
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+function addDays(date: string, n: number): string {
+  const [y, m, d] = date.split('-').map(Number);
+  const t = Date.UTC(y, m - 1, d) + n * MS_PER_DAY;
+  const dt = new Date(t);
+  const yyyy = dt.getUTCFullYear();
+  const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(dt.getUTCDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function dayDelta(from: string, to: string): number {
+  const [fy, fm, fd] = from.split('-').map(Number);
+  const [ty, tm, td] = to.split('-').map(Number);
+  return Math.round((Date.UTC(ty, tm - 1, td) - Date.UTC(fy, fm - 1, fd)) / MS_PER_DAY);
+}
+
+/** Replace the date part of an ISO-ish timestamp, keeping any time suffix. */
+function withDatePart(timestamp: string, date: string): string {
+  return date + (timestamp.length > 10 ? timestamp.slice(10) : '');
+}
+
+/**
+ * After day dates have been re-pinned, re-stamp the date of every booking on a
+ * moved day so reservation_time/reservation_end_time follow their day's new
+ * date (time-of-day preserved). Transport endpoints (flight legs) shift by the
+ * same per-booking day delta so multi-leg timing stays internally consistent.
+ */
+function restampReservationDates(
+  tripId: string | number,
+  oldDateById: Map<number, string | null>,
+  newDateById: Map<number, string | null>,
+): void {
+  const reservations = db.prepare(
+    'SELECT id, day_id, end_day_id, reservation_time, reservation_end_time FROM reservations WHERE trip_id = ?'
+  ).all(tripId) as {
+    id: number; day_id: number | null; end_day_id: number | null;
+    reservation_time: string | null; reservation_end_time: string | null;
+  }[];
+
+  const setTime = db.prepare('UPDATE reservations SET reservation_time = ? WHERE id = ?');
+  const setEndTime = db.prepare('UPDATE reservations SET reservation_end_time = ? WHERE id = ?');
+  const endpoints = db.prepare('SELECT id, local_date FROM reservation_endpoints WHERE reservation_id = ?');
+  const setEndpointDate = db.prepare('UPDATE reservation_endpoints SET local_date = ? WHERE id = ?');
+
+  for (const r of reservations) {
+    if (r.day_id != null && r.reservation_time) {
+      const oldDate = oldDateById.get(r.day_id);
+      const newDate = newDateById.get(r.day_id);
+      if (oldDate && newDate && oldDate !== newDate) {
+        setTime.run(withDatePart(r.reservation_time, newDate), r.id);
+        // Shift each transport leg's local_date by the same number of days.
+        const delta = dayDelta(oldDate, newDate);
+        if (delta !== 0) {
+          for (const ep of endpoints.all(r.id) as { id: number; local_date: string | null }[]) {
+            if (ep.local_date) setEndpointDate.run(addDays(ep.local_date, delta), ep.id);
+          }
+        }
+      }
+    }
+    if (r.end_day_id != null && r.reservation_end_time) {
+      const oldDate = oldDateById.get(r.end_day_id);
+      const newDate = newDateById.get(r.end_day_id);
+      if (oldDate && newDate && oldDate !== newDate) {
+        setEndTime.run(withDatePart(r.reservation_end_time, newDate), r.id);
+      }
+    }
+  }
+}
+
+/** A stay must not end before it begins after a reorder/insert. */
+function assertNoInvertedAccommodation(tripId: string | number): void {
+  const spans = db.prepare(`
+    SELECT a.id, s.day_number AS start_no, e.day_number AS end_no
+    FROM day_accommodations a
+    JOIN days s ON a.start_day_id = s.id
+    JOIN days e ON a.end_day_id = e.id
+    WHERE a.trip_id = ?
+  `).all(tripId) as { id: number; start_no: number; end_no: number }[];
+  for (const span of spans) {
+    if (span.start_no > span.end_no) {
+      throw new DayReorderError('This move would make an accommodation end before it starts.');
+    }
+  }
+}
+
+/** Thrown for invalid reorder/insert requests; mapped to HTTP 400 by the controller. */
+export class DayReorderError extends Error {}
+
+/**
+ * Reorder whole days. `orderedIds` is the desired full sequence of this trip's
+ * day ids (a permutation of the current ids).
+ */
+export function reorderDays(tripId: string | number, orderedIds: number[]) {
+  const rows = db.prepare(
+    'SELECT id, day_number, date FROM days WHERE trip_id = ? ORDER BY day_number'
+  ).all(tripId) as { id: number; day_number: number; date: string | null }[];
+
+  const existingIds = new Set(rows.map(r => r.id));
+  if (orderedIds.length !== rows.length || !orderedIds.every(id => existingIds.has(id))) {
+    throw new DayReorderError('orderedIds must be a permutation of the trip day ids.');
+  }
+
+  const oldDateById = new Map(rows.map(r => [r.id, r.date]));
+  // Dates stay pinned to slots: position i keeps the i-th date (ascending).
+  const sortedDates = rows.map(r => r.date).filter((d): d is string => !!d).sort();
+  const isDated = sortedDates.length > 0;
+
+  const setDayNumber = db.prepare('UPDATE days SET day_number = ? WHERE id = ?');
+  const setDayNumberAndDate = db.prepare('UPDATE days SET day_number = ?, date = ? WHERE id = ?');
+
+  db.exec('BEGIN');
+  try {
+    // Two-phase renumber to dodge UNIQUE(trip_id, day_number) collisions.
+    orderedIds.forEach((id, i) => setDayNumber.run(-(i + 1), id));
+    const newDateById = new Map<number, string | null>();
+    orderedIds.forEach((id, i) => {
+      const date = isDated ? (sortedDates[i] ?? null) : null;
+      setDayNumberAndDate.run(i + 1, date, id);
+      newDateById.set(id, date);
+    });
+
+    if (isDated) restampReservationDates(tripId, oldDateById, newDateById);
+    assertNoInvertedAccommodation(tripId);
+
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  }
+
+  return listDays(tripId);
+}
+
+/**
+ * Insert a new empty day at a 1-based position (default: append at the end).
+ * On a dated trip the trip gains one calendar day: dates re-pin so the slots
+ * stay contiguous, the trip's end_date extends by one day, and bookings on
+ * shifted days have their dates re-stamped (same rules as reorderDays).
+ */
+export function insertDay(tripId: string | number, position?: number) {
+  const rows = db.prepare(
+    'SELECT id, day_number, date FROM days WHERE trip_id = ? ORDER BY day_number'
+  ).all(tripId) as { id: number; day_number: number; date: string | null }[];
+  const n = rows.length;
+  const pos = Math.min(Math.max(position ?? n + 1, 1), n + 1);
+  const datedRows = rows.filter(r => r.date) as { id: number; day_number: number; date: string }[];
+  const isDated = datedRows.length > 0;
+
+  const setDayNumber = db.prepare('UPDATE days SET day_number = ? WHERE id = ?');
+
+  if (!isDated) {
+    db.exec('BEGIN');
+    try {
+      const toShift = rows.filter(r => r.day_number >= pos);
+      toShift.forEach(r => setDayNumber.run(-r.day_number, r.id));
+      const result = db.prepare('INSERT INTO days (trip_id, day_number, date) VALUES (?, ?, NULL)').run(tripId, pos);
+      toShift.forEach(r => setDayNumber.run(r.day_number + 1, r.id));
+      db.exec('COMMIT');
+      const day = db.prepare('SELECT * FROM days WHERE id = ?').get(result.lastInsertRowid) as Day;
+      return { ...day, assignments: [], notes_items: [] };
+    } catch (e) {
+      db.exec('ROLLBACK');
+      throw e;
+    }
+  }
+
+  // Dated trip: rebuild N+1 contiguous dates from the earliest date.
+  const start = datedRows.map(r => r.date).sort()[0];
+  const dates = Array.from({ length: n + 1 }, (_, i) => addDays(start, i));
+  const oldDateById = new Map(rows.map(r => [r.id, r.date]));
+  const setDayNumberAndDate = db.prepare('UPDATE days SET day_number = ?, date = ? WHERE id = ?');
+
+  db.exec('BEGIN');
+  try {
+    rows.forEach((r, i) => setDayNumber.run(-(i + 1), r.id));
+    const result = db.prepare('INSERT INTO days (trip_id, day_number, date) VALUES (?, ?, ?)').run(tripId, pos, dates[pos - 1]);
+    const newId = Number(result.lastInsertRowid);
+
+    const orderedIds = rows.map(r => r.id);
+    orderedIds.splice(pos - 1, 0, newId);
+    const newDateById = new Map<number, string | null>();
+    orderedIds.forEach((id, i) => {
+      setDayNumberAndDate.run(i + 1, dates[i], id);
+      newDateById.set(id, dates[i]);
+    });
+
+    restampReservationDates(tripId, oldDateById, newDateById);
+    assertNoInvertedAccommodation(tripId);
+    db.prepare('UPDATE trips SET end_date = ? WHERE id = ?').run(dates[dates.length - 1], tripId);
+
+    db.exec('COMMIT');
+    const day = db.prepare('SELECT * FROM days WHERE id = ?').get(newId) as Day;
+    return { ...day, assignments: [], notes_items: [] };
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Accommodation helpers
 // ---------------------------------------------------------------------------
 

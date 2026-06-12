@@ -355,5 +355,15 @@ const admin: TranslationStrings = {
     'このユーザーのパスキーをすべて削除します（例：デバイスを紛失した場合）。パスワードでのサインインは引き続き可能です。',
   'admin.passkey.resetConfirm': '{name} のパスキーをすべて削除しますか？',
   'admin.passkey.resetDone': '{count} 件のパスキーを削除しました',
+  'admin.defaultSettings.mapProvider': '地図エンジン',
+  'admin.defaultSettings.mapProviderHint': 'このインスタンスの全員に適用される既定の地図です。各ユーザーは自分の設定でこれを上書きできます。',
+  'admin.defaultSettings.providerLeaflet': '標準（無料）',
+  'admin.defaultSettings.providerMapbox': 'Mapbox（3D）',
+  'admin.defaultSettings.mapboxToken': '共有 Mapbox トークン',
+  'admin.defaultSettings.mapboxTokenHint': '自分のトークンを入力していないすべてのユーザーに使用されます。これにより、キーを個別に共有しなくてもインスタンス全体で Mapbox を利用できます。暗号化して保存されます。',
+  'admin.defaultSettings.mapboxStyle': '地図スタイル',
+  'admin.defaultSettings.mapboxStylePlaceholder': 'スタイルを選択…',
+  'admin.defaultSettings.mapbox3d': '3D の建物と地形',
+  'admin.defaultSettings.mapboxQuality': '高品質モード',
 };
 export default admin;

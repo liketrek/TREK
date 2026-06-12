@@ -389,5 +389,15 @@ const admin: TranslationStrings = {
     'Αφαιρέστε όλα τα passkeys αυτού του χρήστη (π.χ. σε περίπτωση χαμένης συσκευής). Μπορούν ακόμη να συνδεθούν με τον κωδικό τους.',
   'admin.passkey.resetConfirm': 'Αφαίρεση όλων των passkeys για τον/την {name};',
   'admin.passkey.resetDone': 'Αφαιρέθηκαν {count} passkey(s)',
+  'admin.defaultSettings.mapProvider': 'Μηχανή χάρτη',
+  'admin.defaultSettings.mapProviderHint': 'Ο προεπιλεγμένος χάρτης για όλους σε αυτή την εγκατάσταση. Κάθε χρήστης μπορεί να τον αλλάξει στις δικές του ρυθμίσεις.',
+  'admin.defaultSettings.providerLeaflet': 'Τυπικός (δωρεάν)',
+  'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
+  'admin.defaultSettings.mapboxToken': 'Κοινόχρηστο διακριτικό Mapbox',
+  'admin.defaultSettings.mapboxTokenHint': 'Χρησιμοποιείται για κάθε χρήστη που δεν έχει εισαγάγει το δικό του διακριτικό — έτσι ολόκληρη η εγκατάσταση αποκτά Mapbox χωρίς να μοιράζεται το κλειδί ξεχωριστά. Αποθηκεύεται κρυπτογραφημένο.',
+  'admin.defaultSettings.mapboxStyle': 'Στυλ χάρτη',
+  'admin.defaultSettings.mapboxStylePlaceholder': 'Επιλέξτε ένα στυλ…',
+  'admin.defaultSettings.mapbox3d': 'Κτίρια & ανάγλυφο 3D',
+  'admin.defaultSettings.mapboxQuality': 'Λειτουργία υψηλής ποιότητας',
 };
 export default admin;

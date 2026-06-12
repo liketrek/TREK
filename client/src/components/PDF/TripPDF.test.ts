@@ -259,6 +259,23 @@ describe('downloadTripPDF', () => {
     expect(iframe!.srcdoc).toContain('colosseum.jpg')
   })
 
+  it('FE-COMP-TRIPPDF-018b: renders a persisted place-photo proxy image_url as an <img>, not the category icon (#1130)', async () => {
+    const args = {
+      ...richArgs,
+      assignments: {
+        '10': [{
+          ...assignmentForDay,
+          place: { ...placeWithDetails, image_url: '/api/maps/place-photo/ChIJabc/bytes' },
+        }],
+      } as any,
+    }
+    await downloadTripPDF(args)
+    const iframe = getIframe()
+    // The proxy path (no file extension) must still embed as an absolute <img>.
+    expect(iframe!.srcdoc).toContain('http://localhost:3000/api/maps/place-photo/ChIJabc/bytes')
+    expect(iframe!.srcdoc).toContain('class="place-thumb"')
+  })
+
   it('FE-COMP-TRIPPDF-019: fetches google place photos for places with google_place_id', async () => {
     let photoCalled = false
     server.use(

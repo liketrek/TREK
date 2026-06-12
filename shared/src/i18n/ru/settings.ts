@@ -323,6 +323,8 @@ const settings: TranslationStrings = {
   'settings.passkey.deviceBound': 'Это устройство',
   'settings.passkey.lastUsed': 'Последнее использование',
   'settings.passkey.neverUsed': 'Не использовался',
+  'settings.mapPoiPill': 'Поиск мест на карте',
+  'settings.mapPoiPillHint': 'Показывать на карте поездки кнопку категорий, чтобы находить рядом рестораны, отели и другие места из OpenStreetMap.',
 };
 
 export default settings;

@@ -15,7 +15,7 @@
   <Category>Productivity: Tools:</Category>
   <WebUI>http://[IP]:[PORT:3000]</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/mauriceboe/TREK/main/unraid-template.xml</TemplateURL>
-  <Icon>https://raw.githubusercontent.com/mauriceboe/TREK/main/client/public/icons/icon-dark.svg</Icon>
+  <Icon>https://raw.githubusercontent.com/mauriceboe/TREK/main/docs/trek-icon.png</Icon>
   <ExtraParams/>
   <PostArgs/>
   <DonateText>Support TREK development</DonateText>

@@ -47,5 +47,14 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.allAssigned': 'Tüm yerler atandı',
   'dayplan.mobile.noMatch': 'Eşleşme yok',
   'dayplan.mobile.createNew': 'Yeni yer oluştur',
+  'dayplan.reorderDays': 'Günleri yeniden sırala',
+  'dayplan.reorderTitle': 'Günleri yeniden sırala',
+  'dayplan.reorderHint': 'Bir günün yerleri, notları ve rezervasyonları onunla birlikte taşınır.',
+  'dayplan.addDay': 'Gün ekle',
+  'dayplan.moveUp': 'Yukarı taşı',
+  'dayplan.moveDown': 'Aşağı taşı',
+  'dayplan.reorderUndo': 'Günleri yeniden sırala',
+  'dayplan.reorderError': 'Günler yeniden sıralanamadı',
+  'dayplan.addDayError': 'Gün eklenemedi',
 };
 export default dayplan;

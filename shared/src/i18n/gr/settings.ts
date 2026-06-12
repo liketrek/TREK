@@ -330,6 +330,8 @@ const settings: TranslationStrings = {
   'settings.passkey.deviceBound': 'Αυτή η συσκευή',
   'settings.passkey.lastUsed': 'Τελευταία χρήση',
   'settings.passkey.neverUsed': 'Δεν χρησιμοποιήθηκε ποτέ',
+  'settings.mapPoiPill': 'Εξερεύνηση μερών στον χάρτη',
+  'settings.mapPoiPillHint': 'Εμφάνιση ετικέτας κατηγορίας στον χάρτη του ταξιδιού για εύρεση κοντινών εστιατορίων, ξενοδοχείων και άλλων από το OpenStreetMap.',
 };
 
 export default settings;

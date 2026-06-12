@@ -48,5 +48,14 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.createNew': 'Создать новое место',
   'dayplan.expandAll': 'Expand all days', // en-fallback
   'dayplan.collapseAll': 'Collapse all days', // en-fallback
+  'dayplan.reorderDays': 'Изменить порядок дней',
+  'dayplan.reorderTitle': 'Изменить порядок дней',
+  'dayplan.reorderHint': 'Места, заметки и бронирования дня перемещаются вместе с ним.',
+  'dayplan.addDay': 'Добавить день',
+  'dayplan.moveUp': 'Вверх',
+  'dayplan.moveDown': 'Вниз',
+  'dayplan.reorderUndo': 'Изменить порядок дней',
+  'dayplan.reorderError': 'Не удалось изменить порядок дней',
+  'dayplan.addDayError': 'Не удалось добавить день',
 };
 export default dayplan;

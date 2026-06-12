@@ -68,6 +68,11 @@ ENV QT_QPA_PLATFORM=offscreen
 ENV KITINERARY_EXTRACTOR_PATH=/usr/local/bin/kitinerary-extractor
 
 COPY --from=server-builder /app/server/dist ./server/dist
+# Runtime data assets read from server/assets at runtime: airports.json (flight
+# transport search) and atlas/*.geojson.gz (Atlas country/region map). The build
+# only emits dist, so these must be copied explicitly or the features silently
+# degrade to empty in the image.
+COPY --from=server-builder /app/server/assets ./server/assets
 # tsconfig-paths/register reads this at runtime to resolve MCP SDK paths.
 COPY server/tsconfig.json ./server/
 COPY --from=shared-builder /app/shared/dist ./shared/dist

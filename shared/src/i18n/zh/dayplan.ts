@@ -42,5 +42,14 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.createNew': '创建新地点',
   'dayplan.expandAll': 'Expand all days', // en-fallback
   'dayplan.collapseAll': 'Collapse all days', // en-fallback
+  'dayplan.reorderDays': '调整日期顺序',
+  'dayplan.reorderTitle': '调整日期顺序',
+  'dayplan.reorderHint': '该天的地点、备注和预订会随之一起移动。',
+  'dayplan.addDay': '添加一天',
+  'dayplan.moveUp': '上移',
+  'dayplan.moveDown': '下移',
+  'dayplan.reorderUndo': '调整日期顺序',
+  'dayplan.reorderError': '调整日期顺序失败',
+  'dayplan.addDayError': '添加一天失败',
 };
 export default dayplan;

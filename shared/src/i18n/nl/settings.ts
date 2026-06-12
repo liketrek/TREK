@@ -323,6 +323,8 @@ const settings: TranslationStrings = {
   'settings.passkey.deviceBound': 'Dit apparaat',
   'settings.passkey.lastUsed': 'Laatst gebruikt',
   'settings.passkey.neverUsed': 'Nooit gebruikt',
+  'settings.mapPoiPill': 'Plaatsen op de kaart ontdekken',
+  'settings.mapPoiPillHint': 'Toon een categorielabel op de reiskaart om restaurants, hotels en meer in de buurt te vinden via OpenStreetMap.',
 };
 
 export default settings;

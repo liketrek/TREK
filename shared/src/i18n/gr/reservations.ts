@@ -28,6 +28,11 @@ const reservations: TranslationStrings = {
   'reservations.meta.flightNumber': 'Αρ. Πτήσης',
   'reservations.meta.from': 'Από',
   'reservations.meta.to': 'Προς',
+  'reservations.layover.route': 'Διαδρομή',
+  'reservations.layover.stop': 'Στάση',
+  'reservations.layover.addStop': 'Προσθήκη στάσης',
+  'reservations.layover.connection': 'Ανταπόκριση',
+  'reservations.layover.layover': 'Ενδιάμεση στάση',
   'reservations.needsReview': 'Έλεγχος',
   'reservations.needsReviewHint':
     'Δεν ήταν δυνατή η αυτόματη αντιστοίχιση του αεροδρομίου — παρακαλώ επιβεβαιώστε την τοποθεσία.',

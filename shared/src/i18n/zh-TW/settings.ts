@@ -309,6 +309,8 @@ const settings: TranslationStrings = {
   'settings.passkey.deviceBound': '此裝置',
   'settings.passkey.lastUsed': '上次使用',
   'settings.passkey.neverUsed': '從未使用',
+  'settings.mapPoiPill': '在地圖上探索地點',
+  'settings.mapPoiPillHint': '在行程地圖上顯示分類標籤，透過 OpenStreetMap 尋找附近的餐廳、住宿等地點。',
 };
 
 export default settings;

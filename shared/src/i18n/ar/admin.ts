@@ -360,5 +360,15 @@ const admin: TranslationStrings = {
     'إزالة جميع مفاتيح المرور لهذا المستخدم (مثلًا عند فقدان جهاز). سيظل بإمكانه تسجيل الدخول بكلمة المرور.',
   'admin.passkey.resetConfirm': 'إزالة جميع مفاتيح المرور لـ {name}؟',
   'admin.passkey.resetDone': 'تمت إزالة {count} من مفاتيح المرور',
+  'admin.defaultSettings.mapProvider': 'محرك الخرائط',
+  'admin.defaultSettings.mapProviderHint': 'الخريطة الافتراضية لجميع المستخدمين على هذا الخادم. لا يزال بإمكان كل مستخدم تجاوزها في إعداداته الخاصة.',
+  'admin.defaultSettings.providerLeaflet': 'قياسي (مجاني)',
+  'admin.defaultSettings.providerMapbox': 'Mapbox (ثلاثي الأبعاد)',
+  'admin.defaultSettings.mapboxToken': 'رمز Mapbox المشترك',
+  'admin.defaultSettings.mapboxTokenHint': 'يُستخدم لكل مستخدم لم يُدخل رمزه الخاص — حتى يحصل الخادم بأكمله على Mapbox دون مشاركة المفتاح بشكل فردي. يُخزَّن مشفّرًا.',
+  'admin.defaultSettings.mapboxStyle': 'نمط الخريطة',
+  'admin.defaultSettings.mapboxStylePlaceholder': 'اختر نمطًا…',
+  'admin.defaultSettings.mapbox3d': 'المباني والتضاريس ثلاثية الأبعاد',
+  'admin.defaultSettings.mapboxQuality': 'وضع الجودة العالية',
 };
 export default admin;

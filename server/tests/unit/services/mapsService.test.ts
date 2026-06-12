@@ -1049,6 +1049,26 @@ describe('getPlaceDetails (fetch stubbed)', () => {
     expect(place.summary).toBeNull();
   });
 
+  it('MAPS-041b2: normalises non-standard TREK language codes for Google (br→pt-BR, gr→el)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: 'ChIJ1', displayName: { text: 'X' }, location: { latitude: 0, longitude: 0 } }),
+    });
+    mockDbGet.mockReturnValue({ maps_api_key: 'gkey' });
+    vi.stubGlobal('fetch', fetchMock);
+    const { getPlaceDetails } = await import('../../../src/services/mapsService');
+
+    await getPlaceDetails(1, 'ChIJ-br', 'br');
+    expect(String(fetchMock.mock.calls[0][0])).toContain('languageCode=pt-BR');
+
+    await getPlaceDetails(1, 'ChIJ-gr', 'gr');
+    expect(String(fetchMock.mock.calls[1][0])).toContain('languageCode=el');
+
+    // A code that is already valid passes through unchanged.
+    await getPlaceDetails(1, 'ChIJ-de', 'de');
+    expect(String(fetchMock.mock.calls[2][0])).toContain('languageCode=de');
+  });
+
   it('MAPS-041c: throws with status when Google API returns non-ok response', async () => {
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'gkey' });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
@@ -1352,6 +1372,38 @@ describe('getPlacePhoto (fetch stubbed)', () => {
     const uniqueId = `coords:44f-test-${Date.now()}`;
     const result = await getPlacePhoto(1, uniqueId, 48.8, 2.3, 'Coords Place');
     expect(result.photoUrl).toBe(`/api/maps/place-photo/${encodeURIComponent(uniqueId)}/bytes`);
+    expect(mockCachePut).toHaveBeenCalledOnce();
+  });
+
+  it('MAPS-044g: falls back to Wikipedia/OSM for a Google place_id when the Google photo call fails', async () => {
+    // A key is present and the placeId is a Google id, but Google rejects the
+    // photo request (e.g. 403). The lookup must still return an image via the
+    // coordinate-based Wikipedia fallback instead of giving up with a 404 —
+    // matching what right-click (coords:) places already do.
+    mockDbGet.mockReturnValueOnce({ maps_api_key: 'gkey' });
+    vi.stubGlobal('fetch', vi.fn()
+      // 1) Google photo details → 403
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        text: async () => JSON.stringify({ error: { message: 'PERMISSION_DENIED' } }),
+      })
+      // 2) Wikipedia pageimages → thumbnail
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ query: { pages: { '1': { thumbnail: { source: 'https://wiki.org/guinness.jpg' } } } } }),
+      })
+      // 3) image bytes
+      .mockResolvedValueOnce({
+        ok: true,
+        arrayBuffer: async () => new ArrayBuffer(200),
+      })
+    );
+    const { getPlacePhoto } = await import('../../../src/services/mapsService');
+    const placeId = `ChIJFallback-${Date.now()}`;
+    const result = await getPlacePhoto(1, placeId, 53.34, -6.28, 'Guinness Storehouse');
+    expect(result.photoUrl).toBe(`/api/maps/place-photo/${encodeURIComponent(placeId)}/bytes`);
+    expect(result.attribution).toBe('Wikipedia');
     expect(mockCachePut).toHaveBeenCalledOnce();
   });
 });

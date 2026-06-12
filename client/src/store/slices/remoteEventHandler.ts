@@ -283,6 +283,15 @@ export function handleRemoteEvent(set: SetState, get: GetState, event: WebSocket
           dayNotes: newDayNotes,
         }
       }
+      case 'day:reordered': {
+        // Apply the new order instantly when we know all ids; the authoritative
+        // dates + re-stamped booking times are pulled by the refresh below.
+        const orderedIds = payload.orderedIds as number[] | undefined
+        if (!orderedIds || orderedIds.length !== state.days.length) return {}
+        const byId = new Map(state.days.map(d => [d.id, d]))
+        if (!orderedIds.every(id => byId.has(id))) return {}
+        return { days: orderedIds.map((id, i) => ({ ...byId.get(id)!, day_number: i + 1 })) }
+      }
 
       // Day Notes
       case 'dayNote:created': {
@@ -441,6 +450,16 @@ export function handleRemoteEvent(set: SetState, get: GetState, event: WebSocket
         return {}
     }
   })
+
+  // A reorder/insert re-pins dates and re-stamps booking times server-side, so
+  // pull the authoritative days + reservations for collaborators.
+  if (type === 'day:reordered') {
+    const tripId = get().trip?.id
+    if (tripId) {
+      get().refreshDays(tripId)
+      get().loadReservations(tripId)
+    }
+  }
 
   // Write the change through to IndexedDB using the post-update state
   writeToDexie(type, payload as Record<string, unknown>, get())

@@ -28,6 +28,11 @@ const reservations: TranslationStrings = {
   'reservations.meta.flightNumber': 'No. Penerbangan',
   'reservations.meta.from': 'Dari',
   'reservations.meta.to': 'Ke',
+  'reservations.layover.route': 'Rute',
+  'reservations.layover.stop': 'Persinggahan',
+  'reservations.layover.addStop': 'Tambah persinggahan',
+  'reservations.layover.connection': 'Sambungan',
+  'reservations.layover.layover': 'Transit',
   'reservations.needsReview': 'Tinjau',
   'reservations.needsReviewHint':
     'Bandara tidak dapat dicocokkan otomatis — konfirmasi lokasi.',

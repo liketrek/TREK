@@ -323,6 +323,8 @@ const settings: TranslationStrings = {
   'settings.passkey.deviceBound': 'Este dispositivo',
   'settings.passkey.lastUsed': 'Último uso',
   'settings.passkey.neverUsed': 'Nunca usada',
+  'settings.mapPoiPill': 'Explorar lugares no mapa',
+  'settings.mapPoiPillHint': 'Mostrar uma etiqueta de categoria no mapa da viagem para encontrar restaurantes, hotéis e mais por perto a partir do OpenStreetMap.',
 };
 
 export default settings;

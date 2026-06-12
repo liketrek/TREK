@@ -85,6 +85,7 @@ import {
   validateInviteToken,
   registerUser,
   loginUser,
+  requestPasswordReset,
   changePassword,
   verifyMfaLogin,
   createMcpToken,
@@ -105,6 +106,35 @@ beforeAll(() => {
 beforeEach(() => resetTestDb(testDb));
 
 afterAll(() => testDb.close());
+
+// ---------------------------------------------------------------------------
+// requestPasswordReset — OIDC/SSO accounts (#1129)
+// ---------------------------------------------------------------------------
+
+describe('requestPasswordReset — OIDC/SSO accounts', () => {
+  it('AUTH-DB-PR1: refuses a reset for an OIDC-linked account that has a (random) password hash', () => {
+    const { user } = createUser(testDb);
+    // OIDC users are created with a random bcrypt hash, so password_hash is set —
+    // the old guard keyed off a missing hash and therefore let the reset through.
+    testDb.prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ? WHERE id = ?')
+      .run('sub-1129', 'https://idp.example', user.id);
+
+    const result = requestPasswordReset(user.email, null);
+
+    expect(result.reason).toBe('oidc_only');
+    expect(result.tokenForDelivery).toBeNull();
+    const { n } = testDb.prepare('SELECT COUNT(*) AS n FROM password_reset_tokens WHERE user_id = ?')
+      .get(user.id) as { n: number };
+    expect(n).toBe(0);
+  });
+
+  it('AUTH-DB-PR2: still issues a reset for a normal local (non-SSO) account', () => {
+    const { user } = createUser(testDb);
+    const result = requestPasswordReset(user.email, null);
+    expect(result.reason).toBe('issued');
+    expect(result.tokenForDelivery).toBeTruthy();
+  });
+});
 
 // ---------------------------------------------------------------------------
 // updateSettings

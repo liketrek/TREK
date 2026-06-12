@@ -42,5 +42,14 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.allAssigned': 'すべて割り当て済み',
   'dayplan.mobile.noMatch': '一致なし',
   'dayplan.mobile.createNew': '新しい場所を作成',
+  'dayplan.reorderDays': '日付を並べ替え',
+  'dayplan.reorderTitle': '日付を並べ替え',
+  'dayplan.reorderHint': 'その日のスポット、メモ、予約も一緒に移動します。',
+  'dayplan.addDay': '日付を追加',
+  'dayplan.moveUp': '上へ移動',
+  'dayplan.moveDown': '下へ移動',
+  'dayplan.reorderUndo': '日付を並べ替え',
+  'dayplan.reorderError': '日付の並べ替えに失敗しました',
+  'dayplan.addDayError': '日付の追加に失敗しました',
 };
 export default dayplan;

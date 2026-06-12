@@ -27,6 +27,11 @@ const reservations: TranslationStrings = {
   'reservations.meta.flightNumber': 'Číslo letu',
   'reservations.meta.from': 'Z',
   'reservations.meta.to': 'Do',
+  'reservations.layover.route': 'Trasa',
+  'reservations.layover.stop': 'Zastávka',
+  'reservations.layover.addStop': 'Přidat zastávku',
+  'reservations.layover.connection': 'Přípoj',
+  'reservations.layover.layover': 'Mezipřistání',
   'reservations.needsReview': 'Zkontrolovat',
   'reservations.needsReviewHint':
     'Letiště nebylo možné automaticky rozpoznat — potvrďte prosím místo.',

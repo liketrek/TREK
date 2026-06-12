@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { downloadFile, openFile } from '../../../src/utils/fileDownload'
+import { getCachedBlob } from '../../../src/db/offlineDb'
+
+// Mock the offline DB so these tests never touch Dexie/IndexedDB.
+vi.mock('../../../src/db/offlineDb', () => ({ getCachedBlob: vi.fn() }))
 
 function makeFetchMock(status: number, blob: Blob = new Blob(['data'], { type: 'application/pdf' })) {
   return vi.fn().mockResolvedValue({
@@ -168,5 +172,54 @@ describe('openFile', () => {
       // Clean up the non-standard iOS-only property we forced above.
       delete (navigator as any).standalone
     }
+  })
+})
+
+describe('offline fallback (#1046)', () => {
+  function setOnline(value: boolean) {
+    Object.defineProperty(navigator, 'onLine', { value, configurable: true })
+  }
+  beforeEach(() => vi.mocked(getCachedBlob).mockReset())
+  afterEach(() => setOnline(true))
+
+  it('serves the cached blob without a network call when offline', async () => {
+    setOnline(false)
+    const blob = new Blob(['x'], { type: 'application/pdf' })
+    vi.mocked(getCachedBlob).mockResolvedValue(blob)
+    const fetchSpy = vi.fn()
+    vi.stubGlobal('fetch', fetchSpy)
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+    await downloadFile('/uploads/files/cached.pdf')
+
+    expect(fetchSpy).not.toHaveBeenCalled()
+    expect(getCachedBlob).toHaveBeenCalledWith('/uploads/files/cached.pdf')
+    expect(URL.createObjectURL).toHaveBeenCalledWith(blob)
+  })
+
+  it('falls back to the cache when a live fetch rejects (network error) while online', async () => {
+    setOnline(true)
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')))
+    const blob = new Blob(['x'], { type: 'application/pdf' })
+    vi.mocked(getCachedBlob).mockResolvedValue(blob)
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+    await downloadFile('/uploads/files/cached.pdf')
+
+    expect(getCachedBlob).toHaveBeenCalledWith('/uploads/files/cached.pdf')
+    expect(URL.createObjectURL).toHaveBeenCalledWith(blob)
+  })
+
+  it('throws when offline and the file was never cached', async () => {
+    setOnline(false)
+    vi.mocked(getCachedBlob).mockResolvedValue(null)
+    await expect(downloadFile('/uploads/files/missing.pdf')).rejects.toThrow(/offline/i)
+  })
+
+  it('does not consult the cache on an HTTP error — a 401 still surfaces', async () => {
+    setOnline(true)
+    vi.stubGlobal('fetch', makeFetchMock(401))
+    await expect(downloadFile('/uploads/files/secret.pdf')).rejects.toThrow('Unauthorized')
+    expect(getCachedBlob).not.toHaveBeenCalled()
   })
 })

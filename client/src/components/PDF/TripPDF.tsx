@@ -55,6 +55,10 @@ function absUrl(url) {
 function safeImg(url) {
   if (!url) return null
   if (url.startsWith('https://') || url.startsWith('http://')) return url
+  // The in-app place-photo proxy always streams a JPEG but has no file extension
+  // (it ends in …/bytes), so the extension check below would wrongly reject it —
+  // which is why persisted place photos showed as category icons in the PDF.
+  if (url.startsWith('/api/maps/place-photo/')) return absUrl(url)
   return /\.(jpe?g|png|webp|bmp|tiff?)(\?.*)?$/i.test(url) ? absUrl(url) : null
 }
 
@@ -211,7 +215,13 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
             const icon = reservationIconSvg(r.type)
             const color = RESERVATION_COLOR_MAP[r.type] || '#3b82f6'
             let subtitle = ''
-            if (r.type === 'flight') subtitle = [meta.airline, meta.flight_number, meta.departure_airport && meta.arrival_airport ? `${meta.departure_airport} → ${meta.arrival_airport}` : ''].filter(Boolean).join(' · ')
+            if (r.type === 'flight') {
+              // Full route over all waypoints (FRA → BER → HND), falling back to the
+              // flat metadata pair for legacy single-leg flights without endpoints.
+              const stops = (r.endpoints || []).slice().sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0)).map(e => e.code || e.name)
+              const route = stops.length >= 2 ? stops.join(' → ') : (meta.departure_airport && meta.arrival_airport ? `${meta.departure_airport} → ${meta.arrival_airport}` : '')
+              subtitle = [meta.airline, meta.flight_number, route].filter(Boolean).join(' · ')
+            }
             else if (r.type === 'train') subtitle = [meta.train_number, meta.platform ? `Gl. ${meta.platform}` : '', meta.seat ? `Seat ${meta.seat}` : ''].filter(Boolean).join(' · ')
             else if (r.type === 'restaurant') subtitle = [meta.party_size ? `${meta.party_size} guests` : ''].filter(Boolean).join(' · ')
             else if (r.type === 'event') subtitle = [meta.venue].filter(Boolean).join(' · ')
@@ -254,9 +264,10 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
           const cat = categories.find(c => c.id === place.category_id)
           const color = cat?.color || '#6366f1'
 
-          // Image: direct > google photo > fallback icon
+          // Image: direct > google photo > fallback icon. Both go through safeImg
+          // so the proxy path is resolved to an absolute URL the PDF can load.
           const directImg = safeImg(place.image_url)
-          const googleImg = photoMap[place.id] || null
+          const googleImg = safeImg(photoMap[place.id])
           const img = directImg || googleImg
 
           const iconSvg = categoryIconSvg(cat?.icon, color, 24)

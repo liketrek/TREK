@@ -47,5 +47,14 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.allAssigned': 'All places assigned',
   'dayplan.mobile.noMatch': 'No match',
   'dayplan.mobile.createNew': 'Create new place',
+  'dayplan.reorderDays': 'Reorder days',
+  'dayplan.reorderTitle': 'Reorder days',
+  'dayplan.reorderHint': "A day's places, notes and bookings move with it.",
+  'dayplan.addDay': 'Add day',
+  'dayplan.moveUp': 'Move up',
+  'dayplan.moveDown': 'Move down',
+  'dayplan.reorderUndo': 'Reorder days',
+  'dayplan.reorderError': 'Failed to reorder days',
+  'dayplan.addDayError': 'Failed to add day',
 };
 export default dayplan;

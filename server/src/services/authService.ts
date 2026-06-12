@@ -1194,9 +1194,13 @@ export function requestPasswordReset(rawEmail: string, createdIp: string | null)
   if (!user) {
     return { tokenForDelivery: null, userId: null, userEmail: null, reason: 'no_user' };
   }
-  // OIDC-only account (no local password) — we can't reset what isn't there.
+  // SSO-linked account — refuse a reset. OIDC users are created with a random
+  // bcrypt hash (so password_hash is never empty), which is why we must key off
+  // oidc_sub rather than a missing hash. Letting the reset proceed would set a
+  // local password and revoke session/credential state, which breaks the SSO
+  // login; admins (or the user, with their current password) can still set one.
   // The client still gets the generic "if that email exists…" response.
-  if (!user.password_hash && user.oidc_sub) {
+  if (user.oidc_sub) {
     return { tokenForDelivery: null, userId: user.id, userEmail: user.email, reason: 'oidc_only' };
   }
 

@@ -270,6 +270,18 @@ describe('PlaceFormModal', () => {
     expect(screen.getByText(/No category/i)).toBeInTheDocument();
   });
 
+  it('FE-PLANNER-PLACEFORM-023b: editing a place shows its assigned category, not the placeholder (#1134)', () => {
+    // Regression: form.category_id is a string but the option values were numbers,
+    // so CustomSelect's strict-equality match failed and the trigger fell back to
+    // "No category". With string option values the chosen category renders.
+    const cat = buildCategory({ name: 'Museums' });
+    const place = buildPlace({ name: 'Louvre', category_id: cat.id });
+    render(<PlaceFormModal {...defaultProps} place={place} categories={[cat]} />);
+    // Dropdown is closed, so the only place the category name can appear is the trigger.
+    expect(screen.getByText('Museums')).toBeInTheDocument();
+    expect(screen.queryByText(/No category/i)).not.toBeInTheDocument();
+  });
+
   it('FE-PLANNER-PLACEFORM-024: onCategoryCreated is called when creating a category', async () => {
     const onCategoryCreated = vi.fn().mockResolvedValue({ id: 99, name: 'Beaches', color: '#6366f1', icon: 'MapPin' });
     // Directly invoke handleCreateCategory by setting showNewCategory via the category name input

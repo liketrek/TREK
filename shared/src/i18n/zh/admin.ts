@@ -344,5 +344,15 @@ const admin: TranslationStrings = {
     '移除该用户的所有通行密钥（如设备丢失时）。他们仍可使用密码登录。',
   'admin.passkey.resetConfirm': '移除 {name} 的所有通行密钥？',
   'admin.passkey.resetDone': '已移除 {count} 个通行密钥',
+  'admin.defaultSettings.mapProvider': '地图引擎',
+  'admin.defaultSettings.mapProviderHint': '本实例中所有用户的默认地图。每位用户仍可在自己的设置中更改此项。',
+  'admin.defaultSettings.providerLeaflet': '标准（免费）',
+  'admin.defaultSettings.providerMapbox': 'Mapbox（3D）',
+  'admin.defaultSettings.mapboxToken': '共享 Mapbox 令牌',
+  'admin.defaultSettings.mapboxTokenHint': '用于所有未输入自己令牌的用户 — 这样无需逐个分享密钥，整个实例即可使用 Mapbox。以加密方式存储。',
+  'admin.defaultSettings.mapboxStyle': '地图样式',
+  'admin.defaultSettings.mapboxStylePlaceholder': '选择一种样式…',
+  'admin.defaultSettings.mapbox3d': '3D 建筑与地形',
+  'admin.defaultSettings.mapboxQuality': '高质量模式',
 };
 export default admin;

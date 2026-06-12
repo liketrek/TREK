@@ -379,5 +379,15 @@ const admin: TranslationStrings = {
     'Verwijder alle passkeys van deze gebruiker (bijv. bij een verloren apparaat). Ze kunnen nog steeds inloggen met hun wachtwoord.',
   'admin.passkey.resetConfirm': 'Alle passkeys voor {name} verwijderen?',
   'admin.passkey.resetDone': '{count} passkey(s) verwijderd',
+  'admin.defaultSettings.mapProvider': 'Kaartmotor',
+  'admin.defaultSettings.mapProviderHint': 'De standaardkaart voor iedereen op deze instantie. Elke gebruiker kan dit nog steeds aanpassen in zijn eigen instellingen.',
+  'admin.defaultSettings.providerLeaflet': 'Standaard (gratis)',
+  'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
+  'admin.defaultSettings.mapboxToken': 'Gedeeld Mapbox-token',
+  'admin.defaultSettings.mapboxTokenHint': 'Wordt gebruikt voor elke gebruiker die nog geen eigen token heeft ingevoerd — zo krijgt de hele instantie Mapbox zonder de sleutel apart te delen. Versleuteld opgeslagen.',
+  'admin.defaultSettings.mapboxStyle': 'Kaartstijl',
+  'admin.defaultSettings.mapboxStylePlaceholder': 'Kies een stijl…',
+  'admin.defaultSettings.mapbox3d': '3D-gebouwen & terrein',
+  'admin.defaultSettings.mapboxQuality': 'Hogekwaliteitsmodus',
 };
 export default admin;

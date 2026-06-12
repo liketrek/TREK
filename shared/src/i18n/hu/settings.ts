@@ -326,6 +326,8 @@ const settings: TranslationStrings = {
   'settings.passkey.deviceBound': 'Ez az eszköz',
   'settings.passkey.lastUsed': 'Utoljára használva',
   'settings.passkey.neverUsed': 'Még nem használt',
+  'settings.mapPoiPill': 'Helyek felfedezése a térképen',
+  'settings.mapPoiPillHint': 'Megjelenít egy kategóriasávot az utazási térképen, hogy az OpenStreetMap segítségével közeli éttermeket, szállásokat és továbbiakat találj.',
 };
 
 export default settings;

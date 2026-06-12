@@ -158,6 +158,7 @@ interface TransportItem {
   res: Reservation
   from: ReservationEndpoint
   to: ReservationEndpoint
+  waypoints: ReservationEndpoint[]
   type: TransportType
   arcs: [number, number][][]
   primaryArc: [number, number][]
@@ -353,15 +354,29 @@ export default function ReservationOverlay({ reservations, showConnections, show
     const out: TransportItem[] = []
     for (const r of reservations) {
       if (!TRANSPORT_TYPES.includes(r.type as TransportType)) continue
-      const eps = r.endpoints || []
-      const from = eps.find(e => e.role === 'from')
-      const to = eps.find(e => e.role === 'to')
-      if (!from || !to) continue
+      // Ordered waypoints (from · stops · to). A single-leg booking has exactly two,
+      // so the arc + markers below are byte-identical to before for it.
+      const waypoints = (r.endpoints || [])
+        .filter(e => e.role === 'from' || e.role === 'to' || e.role === 'stop')
+        .slice()
+        .sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0))
+      if (waypoints.length < 2) continue
+      const from = waypoints[0]
+      const to = waypoints[waypoints.length - 1]
       const type = r.type as TransportType
       const isGeo = TYPE_META[type].geodesic
-      const arcs = isGeo
-        ? splitAntimeridian(greatCircle([from.lat, from.lng], [to.lat, to.lng]))
-        : [[[from.lat, from.lng], [to.lat, to.lng]] as [number, number][]]
+      // One arc per leg (between consecutive waypoints), concatenated.
+      const arcs: [number, number][][] = []
+      let distanceKm = 0
+      for (let i = 0; i < waypoints.length - 1; i++) {
+        const a = waypoints[i]
+        const b = waypoints[i + 1]
+        const segArcs = isGeo
+          ? splitAntimeridian(greatCircle([a.lat, a.lng], [b.lat, b.lng]))
+          : [[[a.lat, a.lng], [b.lat, b.lng]] as [number, number][]]
+        arcs.push(...segArcs)
+        distanceKm += haversineKm([a.lat, a.lng], [b.lat, b.lng])
+      }
       const primaryIdx = arcs.reduce((best, seg, idx, all) => seg.length > all[best].length ? idx : best, 0)
       const primaryArc = arcs[primaryIdx] ?? []
       const fallback: [number, number] = primaryArc.length > 0
@@ -369,12 +384,15 @@ export default function ReservationOverlay({ reservations, showConnections, show
         : [(from.lat + to.lat) / 2, (from.lng + to.lng) / 2]
 
       const duration = computeDuration(from, to, r.reservation_time || null, r.reservation_end_time || null)
-      const distance = `${Math.round(haversineKm([from.lat, from.lng], [to.lat, to.lng]))} km`
-      const mainLabel = from.code && to.code ? `${from.code} → ${to.code}` : null
+      const distance = `${Math.round(distanceKm)} km`
+      // Show the full route (FRA → BER → HND) when every waypoint has a code.
+      const mainLabel = waypoints.every(w => w.code)
+        ? waypoints.map(w => w.code).join(' → ')
+        : (from.code && to.code ? `${from.code} → ${to.code}` : null)
       const subParts = [duration, distance].filter(Boolean) as string[]
       const subLabel = subParts.length > 0 ? subParts.join(' · ') : null
 
-      out.push({ res: r, from, to, type, arcs, primaryArc, fallback, mainLabel, subLabel })
+      out.push({ res: r, from, to, waypoints, type, arcs, primaryArc, fallback, mainLabel, subLabel })
     }
     return out
   }, [reservations])
@@ -416,38 +434,21 @@ export default function ReservationOverlay({ reservations, showConnections, show
         />
       )))}
 
-      {visibleItems.flatMap(item => [
+      {visibleItems.flatMap(item => item.waypoints.map((wp, wi) => (
         <Marker
-          key={`from-${item.res.id}`}
-          position={[item.from.lat, item.from.lng]}
-          icon={endpointIcon(item.type, showEndpointLabels && labelVisibleIds.has(item.res.id) ? (item.from.code || cleanName(item.from.name)) : null)}
+          key={`wp-${item.res.id}-${wi}`}
+          position={[wp.lat, wp.lng]}
+          icon={endpointIcon(item.type, showEndpointLabels && labelVisibleIds.has(item.res.id) ? (wp.code || cleanName(wp.name)) : null)}
           pane={ENDPOINT_PANE}
           zIndexOffset={1000}
           eventHandlers={{ click: () => onEndpointClick?.(item.res.id) }}
         >
           <Tooltip direction="top" offset={[0, -8]} opacity={1} className="map-tooltip">
-            <div style={{ fontWeight: 600, fontSize: 12 }}>{item.from.name}</div>
+            <div style={{ fontWeight: 600, fontSize: 12 }}>{wp.name}</div>
             {item.res.title && <div className="text-content-muted" style={{ fontSize: 11 }}>{item.res.title}</div>}
           </Tooltip>
-        </Marker>,
-        <Marker
-          key={`to-${item.res.id}`}
-          position={[item.to.lat, item.to.lng]}
-          icon={endpointIcon(item.type, showEndpointLabels && labelVisibleIds.has(item.res.id) ? (item.to.code || cleanName(item.to.name)) : null)}
-          pane={ENDPOINT_PANE}
-          zIndexOffset={1000}
-          eventHandlers={{ click: () => onEndpointClick?.(item.res.id) }}
-        >
-          <Tooltip direction="top" offset={[0, -8]} opacity={1} className="map-tooltip">
-            <div style={{ fontWeight: 600, fontSize: 12 }}>{item.to.name}</div>
-            {item.res.title && <div className="text-content-muted" style={{ fontSize: 11 }}>{item.res.title}</div>}
-          </Tooltip>
-        </Marker>,
-      ])}
-
-      {showStats && visibleItems.map(item => item.type === 'flight' && (item.mainLabel || item.subLabel) && labelVisibleIds.has(item.res.id) && (
-        <StatsLabel key={`stats-${item.res.id}`} item={item} />
-      ))}
+        </Marker>
+      )))}
     </>
   )
 }

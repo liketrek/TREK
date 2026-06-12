@@ -320,6 +320,8 @@ const settings: TranslationStrings = {
   'settings.passkey.deviceBound': '이 기기',
   'settings.passkey.lastUsed': '마지막 사용',
   'settings.passkey.neverUsed': '사용한 적 없음',
+  'settings.mapPoiPill': '지도에서 장소 탐색',
+  'settings.mapPoiPillHint': '여행 지도에 카테고리 칩을 표시하여 OpenStreetMap에서 주변 음식점, 숙소 등을 찾아보세요.',
 };
 
 export default settings;

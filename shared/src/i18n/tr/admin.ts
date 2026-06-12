@@ -382,5 +382,15 @@ const admin: TranslationStrings = {
     'Bu kullanıcının tüm passkey’lerini kaldırın (ör. kaybolan bir cihazda). Yine de şifreleriyle oturum açabilirler.',
   'admin.passkey.resetConfirm': '{name} için tüm passkey’ler kaldırılsın mı?',
   'admin.passkey.resetDone': '{count} passkey kaldırıldı',
+  'admin.defaultSettings.mapProvider': 'Harita motoru',
+  'admin.defaultSettings.mapProviderHint': 'Bu örnekteki herkes için varsayılan harita. Her kullanıcı bunu yine de kendi ayarlarında değiştirebilir.',
+  'admin.defaultSettings.providerLeaflet': 'Standart (ücretsiz)',
+  'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
+  'admin.defaultSettings.mapboxToken': 'Paylaşılan Mapbox jetonu',
+  'admin.defaultSettings.mapboxTokenHint': 'Kendi jetonunu girmemiş her kullanıcı için kullanılır — böylece anahtarı tek tek paylaşmadan tüm örnek Mapbox\'ı kullanır. Şifrelenmiş olarak saklanır.',
+  'admin.defaultSettings.mapboxStyle': 'Harita stili',
+  'admin.defaultSettings.mapboxStylePlaceholder': 'Bir stil seçin…',
+  'admin.defaultSettings.mapbox3d': '3D binalar & arazi',
+  'admin.defaultSettings.mapboxQuality': 'Yüksek kalite modu',
 };
 export default admin;

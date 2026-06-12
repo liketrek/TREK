@@ -28,6 +28,11 @@ const reservations: TranslationStrings = {
   'reservations.meta.flightNumber': 'Vluchtnr.',
   'reservations.meta.from': 'Van',
   'reservations.meta.to': 'Naar',
+  'reservations.layover.route': 'Route',
+  'reservations.layover.stop': 'Tussenstop',
+  'reservations.layover.addStop': 'Tussenstop toevoegen',
+  'reservations.layover.connection': 'Aansluiting',
+  'reservations.layover.layover': 'Overstap',
   'reservations.needsReview': 'Controleren',
   'reservations.needsReviewHint':
     'Luchthaven kon niet automatisch worden herkend — bevestig de locatie.',

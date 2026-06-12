@@ -123,7 +123,7 @@ export function useTripPlanner() {
   const [dayDetailCollapsed, setDayDetailCollapsed] = useState(false)
   const [showPlaceForm, setShowPlaceForm] = useState<boolean>(false)
   const [editingPlace, setEditingPlace] = useState<Place | null>(null)
-  const [prefillCoords, setPrefillCoords] = useState<{ lat: number; lng: number; name?: string; address?: string } | null>(null)
+  const [prefillCoords, setPrefillCoords] = useState<{ lat: number; lng: number; name?: string; address?: string; website?: string; phone?: string; osm_id?: string } | null>(null)
   const [editingAssignmentId, setEditingAssignmentId] = useState<number | null>(null)
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -356,6 +356,24 @@ export function useTripPlanner() {
     } catch { /* best effort */ }
   }, [language])
 
+  // Open the Add-Place form pre-filled from an OSM "explore" POI marker — all the
+  // data already comes from the POI, so no reverse-geocode is needed.
+  const openAddPlaceFromPoi = useCallback((poi: { lat: number; lng: number; name: string; address: string | null; website: string | null; phone: string | null; osm_id: string }) => {
+    if (!can('place_edit', trip)) return
+    setPrefillCoords({
+      lat: poi.lat,
+      lng: poi.lng,
+      name: poi.name,
+      address: poi.address || '',
+      website: poi.website || undefined,
+      phone: poi.phone || undefined,
+      osm_id: poi.osm_id,
+    })
+    setEditingPlace(null)
+    setEditingAssignmentId(null)
+    setShowPlaceForm(true)
+  }, [trip])
+
   const handleSavePlace = useCallback(async (data) => {
     const pendingFiles = data._pendingFiles
     delete data._pendingFiles
@@ -523,6 +541,23 @@ export function useTripPlanner() {
     catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
   }, [tripId, toast])
 
+  const handleReorderDays = useCallback((orderedIds: number[]) => {
+    const prevIds = (useTripStore.getState().days || [])
+      .slice().sort((a, b) => (a.day_number ?? 0) - (b.day_number ?? 0)).map(d => d.id)
+    tripActions.reorderDays(tripId, orderedIds)
+      .then(() => {
+        pushUndo(t('dayplan.reorderUndo'), async () => {
+          await tripActions.reorderDays(tripId, prevIds)
+        })
+      })
+      .catch(err => toast.error(err instanceof Error ? err.message : t('dayplan.reorderError')))
+  }, [tripId, toast, pushUndo])
+
+  const handleAddDay = useCallback((position?: number) => {
+    tripActions.insertDay(tripId, position)
+      .catch(err => toast.error(err instanceof Error ? err.message : t('dayplan.addDayError')))
+  }, [tripId, toast])
+
   const handleSaveReservation = async (data: Record<string, string | number | null> & { title: string }) => {
     try {
       if (editingReservation) {
@@ -641,9 +676,9 @@ export function useTripPlanner() {
     isMobile, mapCategoryFilter, setMapCategoryFilter, mapPlacesFilter, setMapPlacesFilter,
     expandedDayIds, setExpandedDayIds, mapPlaces,
     route, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay,
-    handleSelectDay, handlePlaceClick, handleMarkerClick, handleMapClick, handleMapContextMenu,
+    handleSelectDay, handlePlaceClick, handleMarkerClick, handleMapClick, handleMapContextMenu, openAddPlaceFromPoi,
     handleSavePlace, handleDeletePlace, confirmDeletePlace, confirmDeletePlaces,
-    handleAssignToDay, handleRemoveAssignment, handleReorder, handleUpdateDayTitle,
+    handleAssignToDay, handleRemoveAssignment, handleReorder, handleReorderDays, handleAddDay, handleUpdateDayTitle,
     handleSaveReservation, handleSaveTransport, handleDeleteReservation,
     selectedPlace, dayOrderMap, dayPlaces,
     mapTileUrl, defaultCenter, defaultZoom, fontStyle, splashDone,

@@ -51,6 +51,8 @@ interface DayPlanSidebarProps {
   onDayDetail: (day: Day) => void
   accommodations?: Accommodation[]
   onReorder: (dayId: number, orderedIds: number[]) => void
+  onReorderDays?: (orderedIds: number[]) => void
+  onAddDay?: (position?: number) => void
   onUpdateDayTitle: (dayId: number, title: string) => void
   onRouteCalculated: (route: RouteResult | null) => void
   onAssignToDay: (placeId: number, dayId: number, position?: number) => void
@@ -98,7 +100,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   trip, days, places, categories, assignments,
   selectedDayId, selectedPlaceId, selectedAssignmentId,
   onSelectDay, onPlaceClick, onDayDetail, accommodations = [],
-  onReorder, onUpdateDayTitle, onRouteCalculated,
+  onReorder, onReorderDays, onAddDay, onUpdateDayTitle, onRouteCalculated,
   onAssignToDay, onRemoveAssignment, onEditPlace, onDeletePlace,
   reservations = [],
   visibleConnectionIds = [],
@@ -174,7 +176,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   const [timeConfirm, setTimeConfirm] = useState<{
     dayId: number; fromId: number; time: string;
     // For drag & drop reorder
-    fromType?: string; toType?: string; toId?: number; insertAfter?: boolean;
+    fromType?: string; toType?: string; toId?: number; insertAfter?: boolean; toLegIndex?: number | null;
     // For arrow reorder
     reorderIds?: number[];
   } | null>(null)
@@ -379,14 +381,30 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     if (legsAbortRef.current) legsAbortRef.current.abort()
     if (!selectedDayId || !routeShown) { setRouteLegs({}); return }
     const merged = mergedItemsMap[selectedDayId] || []
+    const epLoc = (r: any, role: 'from' | 'to'): { lat: number; lng: number } | null => {
+      const e = (r.endpoints || []).find((x: any) => x.role === role)
+      return e && e.lat != null && e.lng != null ? { lat: e.lat, lng: e.lng } : null
+    }
     const runs: { id: number; lat: number; lng: number }[][] = []
     let cur: { id: number; lat: number; lng: number }[] = []
     for (const it of merged) {
       if (it.type === 'place' && it.data.place?.lat && it.data.place?.lng) {
         cur.push({ id: it.data.id, lat: it.data.place.lat, lng: it.data.place.lng })
       } else if (it.type === 'transport') {
-        if (cur.length >= 2) runs.push(cur)
-        cur = []
+        const r = it.data
+        const from = epLoc(r, 'from'), to = epLoc(r, 'to')
+        if (from || to) {
+          // Located transport: route to its departure point, break the run (the
+          // flight/train itself isn't driven), and let its arrival start the next.
+          if (from) cur.push({ id: r.id, lat: from.lat, lng: from.lng })
+          if (cur.length >= 2) runs.push(cur)
+          cur = []
+          if (to) cur.push({ id: r.id, lat: to.lat, lng: to.lng })
+        } else if (cur.length > 0) {
+          // No location: ignore for routing, but attribute the through-leg to the
+          // booking so its distance/duration shows under it (purely cosmetic).
+          cur[cur.length - 1] = { ...cur[cur.length - 1], id: r.id }
+        }
       }
     }
     if (cur.length >= 2) runs.push(cur)
@@ -474,6 +492,9 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     const assignmentIds: number[] = []
     const noteUpdates: { id: number; sort_order: number }[] = []
     const transportUpdates: { id: number; day_plan_position: number }[] = []
+    // Multi-leg flight legs share a reservation id, so their positions can't live in
+    // the single per-booking slot — collect them per leg, keyed reservationId → legIndex → pos.
+    const legPosUpdates: Record<number, Record<number, number>> = {}
 
     let placeCount = 0
     let i = 0
@@ -494,7 +515,10 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
         group.forEach((g, idx) => {
           const pos = base + (idx + 1) / (group.length + 1)
           if (g.type === 'note') noteUpdates.push({ id: g.data.id, sort_order: pos })
-          else if (g.type === 'transport') transportUpdates.push({ id: g.data.id, day_plan_position: pos })
+          else if (g.type === 'transport') {
+            if (g.data.__leg) ((legPosUpdates[g.data.id] ??= {})[g.data.__leg.index] = pos)
+            else transportUpdates.push({ id: g.data.id, day_plan_position: pos })
+          }
         })
       }
     }
@@ -511,6 +535,30 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
             return { ...r, day_plan_position: tu.day_plan_position, day_positions }
           })
         }))
+        setTransportPosVersion(v => v + 1)
+      }
+      // Per-leg positions of multi-leg flights live in metadata.legs[i].day_positions
+      // (the single per-booking slot can't hold one position per leg).
+      const legResIds = Object.keys(legPosUpdates)
+      if (legResIds.length) {
+        for (const ridStr of legResIds) {
+          const rid = Number(ridStr)
+          const r = useTripStore.getState().reservations.find(x => x.id === rid)
+          if (!r) continue
+          let parsed: any = {}
+          try { parsed = typeof r.metadata === 'string' ? JSON.parse(r.metadata || '{}') : (r.metadata || {}) } catch { parsed = {} }
+          if (!Array.isArray(parsed.legs)) continue
+          const legs = parsed.legs.map((leg: any, i: number) => {
+            const pos = legPosUpdates[rid][i]
+            return pos == null ? leg : { ...leg, day_positions: { ...(leg.day_positions || {}), [dayId]: pos } }
+          })
+          // Send metadata as an OBJECT (like the form does) — passing a JSON string
+          // here double-encodes it on the server, which wipes metadata.legs on read
+          // and collapses the flight back to a single span.
+          const newMeta = { ...parsed, legs }
+          useTripStore.setState(state => ({ reservations: state.reservations.map(x => (x.id === rid ? { ...x, metadata: newMeta } : x)) }))
+          await tripActions.updateReservation(tripId, rid, { metadata: newMeta })
+        }
         setTransportPosVersion(v => v + 1)
       }
       if (assignmentIds.length) await onReorder(dayId, assignmentIds)
@@ -531,8 +579,11 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
   }
 
-  const handleMergedDrop = async (dayId, fromType, fromId, toType, toId, insertAfter = false) => {
+  const handleMergedDrop = async (dayId, fromType, fromId, toType, toId, insertAfter = false, toLegIndex = null) => {
     const m = getMergedItems(dayId)
+    // Multi-leg flights expose one item per leg sharing the same reservation id;
+    // disambiguate the drop target by leg index so you can drop BETWEEN legs.
+    const matchTo = (i: any) => i.type === toType && i.data.id === toId && (toLegIndex == null || i.data?.__leg?.index === toLegIndex)
 
     // Check if a timed place is being moved → would it break chronological order?
     if (fromType === 'place') {
@@ -540,11 +591,11 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
       const fromMinutes = parseTimeToMinutes(fromItem?.data?.place?.place_time)
       if (fromItem && fromMinutes !== null) {
         const fromIdx = m.findIndex(i => i.type === fromType && i.data.id === fromId)
-        const toIdx = m.findIndex(i => i.type === toType && i.data.id === toId)
+        const toIdx = m.findIndex(matchTo)
         if (fromIdx !== -1 && toIdx !== -1) {
           const simulated = [...m]
           const [moved] = simulated.splice(fromIdx, 1)
-          let insertIdx = simulated.findIndex(i => i.type === toType && i.data.id === toId)
+          let insertIdx = simulated.findIndex(matchTo)
           if (insertIdx === -1) insertIdx = simulated.length
           if (insertAfter) insertIdx += 1
           simulated.splice(insertIdx, 0, moved)
@@ -561,7 +612,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
           if (!isChronological) {
             const placeTime = fromItem.data.place.place_time
             const timeStr = placeTime.includes(':') ? placeTime.substring(0, 5) : placeTime
-            setTimeConfirm({ dayId, fromType, fromId, toType, toId, insertAfter, time: timeStr })
+            setTimeConfirm({ dayId, fromType, fromId, toType, toId, insertAfter, toLegIndex, time: timeStr })
             setDraggingId(null); setDropTargetKey(null); dragDataRef.current = null
             return
           }
@@ -571,7 +622,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
 
     // Build new order: remove the dragged item, insert at target position
     const fromIdx = m.findIndex(i => i.type === fromType && i.data.id === fromId)
-    const toIdx = m.findIndex(i => i.type === toType && i.data.id === toId)
+    const toIdx = m.findIndex(matchTo)
     if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) {
       setDraggingId(null); setDropTargetKey(null); dragDataRef.current = null
       return
@@ -579,7 +630,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
 
     const newOrder = [...m]
     const [moved] = newOrder.splice(fromIdx, 1)
-    let adjustedTo = newOrder.findIndex(i => i.type === toType && i.data.id === toId)
+    let adjustedTo = newOrder.findIndex(matchTo)
     if (adjustedTo === -1) adjustedTo = newOrder.length
     if (insertAfter) adjustedTo += 1
     newOrder.splice(adjustedTo, 0, moved)
@@ -593,7 +644,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   const confirmTimeRemoval = async () => {
     if (!timeConfirm) return
     const saved = { ...timeConfirm }
-    const { dayId, fromId, reorderIds, fromType, toType, toId, insertAfter } = saved
+    const { dayId, fromId, reorderIds, fromType, toType, toId, insertAfter, toLegIndex } = saved
     setTimeConfirm(null)
 
     // Remove time from assignment
@@ -636,13 +687,14 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
 
     // Drag & drop reorder
     if (fromType && toType) {
+      const matchTo = (i: any) => i.type === toType && i.data.id === toId && (toLegIndex == null || i.data?.__leg?.index === toLegIndex)
       const fromIdx = m.findIndex(i => i.type === fromType && i.data.id === fromId)
-      const toIdx = m.findIndex(i => i.type === toType && i.data.id === toId)
+      const toIdx = m.findIndex(matchTo)
       if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return
 
       const newOrder = [...m]
       const [moved] = newOrder.splice(fromIdx, 1)
-      let adjustedTo = newOrder.findIndex(i => i.type === toType && i.data.id === toId)
+      let adjustedTo = newOrder.findIndex(matchTo)
       if (adjustedTo === -1) adjustedTo = newOrder.length
       if (insertAfter) adjustedTo += 1
       newOrder.splice(adjustedTo, 0, moved)
@@ -700,11 +752,13 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
 
     const prevIds = da.map(a => a.id)
 
-    // Separate locked (stay at their index) and unlocked assignments
+    // Separate fixed (stay at their index) and movable assignments. A place is
+    // fixed if it's locked OR has a set time — timed places are anchored by their
+    // time, so the optimizer must not reshuffle them.
     const locked = new Map() // index -> assignment
     const unlocked = []
     da.forEach((a, i) => {
-      if (lockedIds.has(a.id)) locked.set(i, a)
+      if (lockedIds.has(a.id) || a.place?.place_time) locked.set(i, a)
       else unlocked.push(a)
     })
 
@@ -817,6 +871,8 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     onDayDetail,
     accommodations,
     onReorder,
+    onReorderDays,
+    onAddDay,
     onUpdateDayTitle,
     onRouteCalculated,
     onAssignToDay,
@@ -962,6 +1018,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
     onDayDetail,
     accommodations,
     onReorder,
+    onReorderDays,
+    onAddDay,
     onUpdateDayTitle,
     onRouteCalculated,
     onAssignToDay,
@@ -1114,6 +1172,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
         undoHover={undoHover}
         setUndoHover={setUndoHover}
         lastActionLabel={lastActionLabel}
+        canEditDays={canEditDays}
+        onReorderDays={onReorderDays}
+        onAddDay={onAddDay}
       />
 
       {/* Tagesliste */}
@@ -1316,6 +1377,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                       const isAfter = dropTargetRef.current.startsWith('transport-after-')
                       const parts = dropTargetRef.current.replace('transport-after-', '').replace('transport-', '').split('-')
                       const transportId = Number(parts[0])
+                      const legPart = parts.find(p => /^leg\d+$/.test(p))
+                      const toLegIndex = legPart ? Number(legPart.slice(3)) : null
 
                       if (placeId) {
                         onAssignToDay?.(parseInt(placeId), day.id)
@@ -1323,15 +1386,15 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                         const r = reservations.find(x => x.id === Number(fromReservationId))
                         if (r) { const update = computeMultiDayMove(r, day.id, phase); tripActions.updateReservation(tripId, r.id, update).catch((err: unknown) => toast.error(err instanceof Error ? err.message : t('common.unknownError'))) }
                       } else if (fromReservationId) {
-                        handleMergedDrop(day.id, 'transport', Number(fromReservationId), 'transport', transportId, isAfter)
+                        handleMergedDrop(day.id, 'transport', Number(fromReservationId), 'transport', transportId, isAfter, toLegIndex)
                       } else if (assignmentId && fromDayId !== day.id) {
                         tripActions.moveAssignment(tripId, Number(assignmentId), fromDayId, day.id).catch((err: unknown) => toast.error(err instanceof Error ? err.message : t('common.unknownError')))
                       } else if (assignmentId) {
-                        handleMergedDrop(day.id, 'place', Number(assignmentId), 'transport', transportId, isAfter)
+                        handleMergedDrop(day.id, 'place', Number(assignmentId), 'transport', transportId, isAfter, toLegIndex)
                       } else if (noteId && fromDayId !== day.id) {
                         tripActions.moveDayNote(tripId, fromDayId, day.id, Number(noteId)).catch((err: unknown) => toast.error(err instanceof Error ? err.message : t('common.unknownError')))
                       } else if (noteId) {
-                        handleMergedDrop(day.id, 'note', Number(noteId), 'transport', transportId, isAfter)
+                        handleMergedDrop(day.id, 'note', Number(noteId), 'transport', transportId, isAfter, toLegIndex)
                       }
                       setDraggingId(null); setDropTargetKey(null); dragDataRef.current = null; window.__dragData = null
                       return
@@ -1377,9 +1440,10 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                     </div>
                   ) : (
                     merged.map((item, idx) => {
-                      const itemKey = item.type === 'transport' ? `transport-${item.data.id}-${day.id}` : (item.type === 'place' ? `place-${item.data.id}` : `note-${item.data.id}`)
+                      const legSuffix = item.data?.__leg ? `-leg${item.data.__leg.index}` : ''
+                      const itemKey = item.type === 'transport' ? `transport-${item.data.id}${legSuffix}-${day.id}` : (item.type === 'place' ? `place-${item.data.id}` : `note-${item.data.id}`)
                       const showDropLine = (!!draggingId || !!dropTargetKey) && dropTargetKey === itemKey
-                      const showDropLineAfter = item.type === 'transport' && (!!draggingId || !!dropTargetKey) && dropTargetKey === `transport-after-${item.data.id}-${day.id}`
+                      const showDropLineAfter = item.type === 'transport' && (!!draggingId || !!dropTargetKey) && dropTargetKey === `transport-after-${item.data.id}${legSuffix}-${day.id}`
 
                       if (item.type === 'place') {
                         const assignment = item.data
@@ -1727,7 +1791,13 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
 
                         // Subtitle aus Metadaten zusammensetzen
                         let subtitle = ''
-                        if (res.type === 'flight') {
+                        if (res.__leg) {
+                          // One leg of a multi-leg flight — show this segment's own route.
+                          const parts = [res.__leg.airline, res.__leg.flight_number].filter(Boolean)
+                          if (res.__leg.from || res.__leg.to)
+                            parts.push([res.__leg.from, res.__leg.to].filter(Boolean).join(' → '))
+                          subtitle = parts.join(' · ')
+                        } else if (res.type === 'flight') {
                           const parts = [meta.airline, meta.flight_number].filter(Boolean)
                           if (meta.departure_airport || meta.arrival_airport)
                             parts.push([meta.departure_airport, meta.arrival_airport].filter(Boolean).join(' → '))
@@ -1736,28 +1806,32 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                           subtitle = [meta.train_number, meta.platform ? `Gl. ${meta.platform}` : '', meta.seat ? `Sitz ${meta.seat}` : ''].filter(Boolean).join(' · ')
                         }
 
-                        // Multi-day span phase
-                        const spanLabel = getSpanLabel(res, spanPhase)
+                        // Multi-day span phase (single-leg / non-flight only — a
+                        // multi-leg flight is shown as one row per leg, see below).
+                        const spanLabel = res.__leg ? null : getSpanLabel(res, spanPhase)
                         const displayTime = getDisplayTimeForDay(res, day.id)
+                        const legKey = res.__leg ? `leg${res.__leg.index}` : 'x'
 
                         return (
-                          <React.Fragment key={`transport-${res.id}-${day.id}`}>
+                          <React.Fragment key={`transport-${res.id}-${legKey}-${day.id}`}>
                           <div
                             onClick={() => {
                               if (!canEditDays) return
-                              if (TRANSPORT_TYPES.has(res.type)) onEditTransport?.(res)
-                              else onEditReservation?.(res)
+                              const target = reservations.find(x => x.id === res.id) ?? res
+                              if (TRANSPORT_TYPES.has(res.type)) onEditTransport?.(target)
+                              else onEditReservation?.(target)
                             }}
                             onDragOver={e => {
                               e.preventDefault(); e.stopPropagation()
                               const rect = e.currentTarget.getBoundingClientRect()
                               const inBottom = e.clientY > rect.top + rect.height / 2
-                              const key = inBottom ? `transport-after-${res.id}-${day.id}` : `transport-${res.id}-${day.id}`
+                              const ls = res.__leg ? `-leg${res.__leg.index}` : ''
+                              const key = inBottom ? `transport-after-${res.id}${ls}-${day.id}` : `transport-${res.id}${ls}-${day.id}`
                               if (dropTargetRef.current !== key) setDropTargetKey(key)
                             }}
-                            draggable={canEditDays && spanPhase !== 'middle'}
+                            draggable={canEditDays && spanPhase !== 'middle' && !res.__leg}
                             onDragStart={e => {
-                              if (!canEditDays || spanPhase === 'middle') { e.preventDefault(); return }
+                              if (!canEditDays || spanPhase === 'middle' || res.__leg) { e.preventDefault(); return }
                               // setData is required for the drag to start reliably (Firefox) and
                               // matches how place/note items initiate their drag.
                               e.dataTransfer.setData('reservationId', String(res.id))
@@ -1778,15 +1852,15 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                 const r2 = reservations.find(x => x.id === Number(fromReservationId))
                                 if (r2) { const update = computeMultiDayMove(r2, day.id, phase); tripActions.updateReservation(tripId, r2.id, update).catch((err: unknown) => toast.error(err instanceof Error ? err.message : t('common.unknownError'))) }
                               } else if (fromReservationId) {
-                                handleMergedDrop(day.id, 'transport', Number(fromReservationId), 'transport', res.id, insertAfter)
+                                handleMergedDrop(day.id, 'transport', Number(fromReservationId), 'transport', res.id, insertAfter, res.__leg?.index ?? null)
                               } else if (fromAssignmentId && fromDayId !== day.id) {
                                 tripActions.moveAssignment(tripId, Number(fromAssignmentId), fromDayId, day.id).catch((err: unknown) => toast.error(err instanceof Error ? err.message : t('common.unknownError')))
                               } else if (fromAssignmentId) {
-                                handleMergedDrop(day.id, 'place', Number(fromAssignmentId), 'transport', res.id, insertAfter)
+                                handleMergedDrop(day.id, 'place', Number(fromAssignmentId), 'transport', res.id, insertAfter, res.__leg?.index ?? null)
                               } else if (noteId && fromDayId !== day.id) {
                                 tripActions.moveDayNote(tripId, fromDayId, day.id, Number(noteId)).catch((err: unknown) => toast.error(err instanceof Error ? err.message : t('common.unknownError')))
                               } else if (noteId) {
-                                handleMergedDrop(day.id, 'note', Number(noteId), 'transport', res.id, insertAfter)
+                                handleMergedDrop(day.id, 'note', Number(noteId), 'transport', res.id, insertAfter, res.__leg?.index ?? null)
                               }
                               setDraggingId(null); setDropTargetKey(null); dragDataRef.current = null; window.__dragData = null
                             }}
@@ -1806,7 +1880,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                               opacity: draggingId === res.id ? 0.4 : spanPhase === 'middle' ? 0.65 : 1,
                             }}
                           >
-                            {canEditDays && spanPhase !== 'middle' && (
+                            {canEditDays && spanPhase !== 'middle' && !res.__leg && (
                               <div className="dp-grip" style={{ flexShrink: 0, color: 'var(--text-faint)', display: 'flex', alignItems: 'center', opacity: 0.3, transition: 'opacity 0.15s', cursor: 'grab' }}>
                                 <GripVertical size={13} strokeWidth={1.8} />
                               </div>
@@ -1851,7 +1925,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                 </div>
                               )}
                             </div>
-                            {onToggleConnection && (res.endpoints || []).length >= 2 && (() => {
+                            {onToggleConnection && (!res.__leg || res.__leg.index === 0) && (res.endpoints || []).length >= 2 && (() => {
                               const active = visibleConnectionIds.includes(res.id)
                               return (
                                 <button
@@ -1875,6 +1949,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                               )
                             })()}
                           </div>
+                          {routeLegs[res.id] && <RouteConnector seg={routeLegs[res.id]} profile={routeProfile} />}
                           </React.Fragment>
                         )
                       }

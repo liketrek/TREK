@@ -148,6 +148,24 @@ export async function upsertSyncMeta(meta: SyncMeta): Promise<void> {
   await offlineDb.syncMeta.put(meta);
 }
 
+/**
+ * Read a pre-downloaded file blob for offline use. Returns null when the file
+ * was never cached (or on any read error). The stored MIME is reapplied so the
+ * caller's inline-vs-download decision stays correct even if the persisted Blob
+ * lost its type.
+ */
+export async function getCachedBlob(url: string): Promise<Blob | null> {
+  try {
+    const entry = await offlineDb.blobCache.get(url);
+    if (!entry) return null;
+    return entry.blob.type
+      ? entry.blob
+      : new Blob([entry.blob], { type: entry.mime || 'application/octet-stream' });
+  } catch {
+    return null;
+  }
+}
+
 // ── Eviction / cleanup ────────────────────────────────────────────────────────
 
 /** Delete all cached data for one trip (eviction or explicit clear). */

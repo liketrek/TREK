@@ -377,5 +377,15 @@ const admin: TranslationStrings = {
     'Odebere všechny přístupové klíče tohoto uživatele (např. při ztrátě zařízení). Stále se může přihlásit svým heslem.',
   'admin.passkey.resetConfirm': 'Odebrat všechny přístupové klíče uživatele {name}?',
   'admin.passkey.resetDone': 'Odebráno {count} přístupových klíčů',
+  'admin.defaultSettings.mapProvider': 'Mapový engine',
+  'admin.defaultSettings.mapProviderHint': 'Výchozí mapa pro všechny uživatele na této instanci. Každý uživatel ji může i nadále změnit ve svém vlastním nastavení.',
+  'admin.defaultSettings.providerLeaflet': 'Standardní (zdarma)',
+  'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
+  'admin.defaultSettings.mapboxToken': 'Sdílený token Mapbox',
+  'admin.defaultSettings.mapboxTokenHint': 'Použije se pro každého uživatele, který nezadal vlastní token — takže celá instance získá Mapbox, aniž byste klíč sdíleli s každým zvlášť. Ukládá se šifrovaně.',
+  'admin.defaultSettings.mapboxStyle': 'Styl mapy',
+  'admin.defaultSettings.mapboxStylePlaceholder': 'Vyberte styl…',
+  'admin.defaultSettings.mapbox3d': '3D budovy & terén',
+  'admin.defaultSettings.mapboxQuality': 'Režim vysoké kvality',
 };
 export default admin;

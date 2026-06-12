@@ -27,7 +27,7 @@ interface PlaceFormModalProps {
   onClose: () => void
   onSave: (data: PlaceSubmitData, files?: File[]) => Promise<void> | void
   place: Place | null
-  prefillCoords?: { lat: number; lng: number; name?: string; address?: string } | null
+  prefillCoords?: { lat: number; lng: number; name?: string; address?: string; website?: string; phone?: string; osm_id?: string } | null
   tripId: number
   categories: Category[]
   onCategoryCreated: (category: { name: string; color?: string; icon?: string }) => Promise<Category> | undefined
@@ -86,6 +86,9 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
         lng: String(prefillCoords.lng),
         name: prefillCoords.name || '',
         address: prefillCoords.address || '',
+        website: prefillCoords.website || '',
+        phone: prefillCoords.phone || '',
+        osm_id: prefillCoords.osm_id,
       })
     } else {
       setForm(DEFAULT_FORM)
@@ -636,7 +639,10 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
                 options={[
                   { value: '', label: t('places.noCategory') },
                   ...(categories || []).map(c => ({
-                    value: c.id,
+                    // form.category_id is a string; CustomSelect matches options by
+                    // strict equality, so the option value must be a string too —
+                    // otherwise the chosen category never renders in the trigger.
+                    value: String(c.id),
                     label: c.name,
                   })),
                 ]}

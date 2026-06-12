@@ -27,6 +27,11 @@ const reservations: TranslationStrings = {
   'reservations.meta.flightNumber': 'Flight No.',
   'reservations.meta.from': 'From',
   'reservations.meta.to': 'To',
+  'reservations.layover.route': 'Route',
+  'reservations.layover.stop': 'Stop',
+  'reservations.layover.addStop': 'Add stop',
+  'reservations.layover.connection': 'Connection',
+  'reservations.layover.layover': 'Layover',
   'reservations.needsReview': 'Review',
   'reservations.needsReviewHint':
     'Airport could not be matched automatically — please confirm the location.',
