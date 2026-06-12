@@ -17,7 +17,7 @@ describe('dayCreateRequestSchema', () => {
 });
 
 describe('dayNoteCreateRequestSchema', () => {
-  it('requires non-empty text capped at 500, time capped at 150', () => {
+  it('requires non-empty text capped at 500, time capped at 250', () => {
     expect(
       dayNoteCreateRequestSchema.safeParse({ text: 'Lunch' }).success,
     ).toBe(true);
@@ -30,7 +30,7 @@ describe('dayNoteCreateRequestSchema', () => {
     expect(
       dayNoteCreateRequestSchema.safeParse({
         text: 'ok',
-        time: 'y'.repeat(151),
+        time: 'y'.repeat(251),
       }).success,
     ).toBe(false);
   });
