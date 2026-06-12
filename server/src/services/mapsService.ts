@@ -250,38 +250,130 @@ interface OverpassPoiElement {
   tags?: Record<string, string>;
 }
 
+interface PoiSearchResult {
+  pois: OverpassPoi[];
+  source: 'openstreetmap';
+  truncated: boolean;
+  // True when the requested viewport was too large and got shrunk to a centred
+  // window before querying — the results then cover the middle of the view only.
+  clamped: boolean;
+}
+
+// Public Overpass mirrors, queried in PARALLEL (first valid response wins).
+// Reachability and load vary a lot by network/region — the canonical instance is
+// frequently overloaded (504s) and some community mirrors are unreachable from
+// certain networks. Racing them means whichever mirror is fastest-reachable for
+// this user answers, and an overloaded or blocked one never blocks the others.
+const OVERPASS_MIRRORS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
+];
+// Per-mirror cap. Because mirrors race in parallel this is also the worst-case
+// total wait before every mirror is given up on and a 502 is returned.
+const OVERPASS_TIMEOUT_MS = 12000;
+// Largest viewport side we send to Overpass. A country/continent-sized bbox makes
+// Overpass scan millions of elements and time out; clamping to a centred window
+// keeps the query cheap so the explore pill returns fast at ANY zoom level.
+const MAX_BBOX_SPAN_DEG = 0.5;
+
+// Short-lived cache so panning back over / re-toggling the same area doesn't
+// re-hit Overpass. Keyed by category + rounded (post-clamp) bbox.
+const POI_CACHE = new Map<string, { at: number; value: PoiSearchResult }>();
+const POI_CACHE_TTL_MS = 5 * 60 * 1000;
+// Cap the number of cached areas so panning across the globe can't grow the map
+// without bound (entries are evicted oldest-first once the cap is reached).
+const POI_CACHE_MAX = 500;
+
+// POST the query to all mirrors at once and return the first one that answers with
+// valid JSON. Throws {status:502} only if every mirror fails. Racing (rather than
+// trying one-by-one) keeps latency at the fastest reachable mirror instead of the
+// sum of every dead mirror's timeout.
+async function overpassFetch(query: string): Promise<OverpassPoiElement[]> {
+  const body = `data=${encodeURIComponent(query)}`;
+  const controllers: AbortController[] = [];
+
+  const attempt = async (url: string): Promise<OverpassPoiElement[]> => {
+    const ctrl = new AbortController();
+    controllers.push(ctrl);
+    const timer = setTimeout(() => ctrl.abort(), OVERPASS_TIMEOUT_MS);
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'User-Agent': UA, 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+        signal: ctrl.signal,
+      });
+      if (!res.ok) throw new Error(`Overpass ${res.status} @ ${url}`);
+      const data = await res.json() as { elements?: OverpassPoiElement[]; remark?: string };
+      // Overpass signals an internal timeout / runtime error via `remark` while
+      // still answering HTTP 200 — often fast, with an empty or partial element
+      // set. Treat that as a failed attempt so a healthy mirror wins the race
+      // instead of this fast-but-empty answer, and so the all-mirrors-failed path
+      // still surfaces a real error to the client instead of a silent "no places".
+      if (data.remark) throw new Error(`Overpass remark @ ${url}: ${data.remark}`);
+      if (!Array.isArray(data.elements)) throw new Error(`Overpass non-OSM body @ ${url}`);
+      return data.elements;
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+
+  try {
+    // Promise.any resolves with the first mirror to return valid JSON, and only
+    // rejects (AggregateError) once every mirror has failed.
+    return await Promise.any(OVERPASS_MIRRORS.map(attempt));
+  } catch {
+    throw Object.assign(new Error('Overpass request failed'), { status: 502 });
+  } finally {
+    // Cancel the slower/losing requests — we already have (or have given up on) a result.
+    controllers.forEach(c => { try { c.abort(); } catch { /* noop */ } });
+  }
+}
+
 export async function searchOverpassPois(
   category: string,
   bbox: { south: number; west: number; north: number; east: number },
   limit = 60,
-): Promise<{ pois: OverpassPoi[]; source: 'openstreetmap'; truncated: boolean }> {
+): Promise<PoiSearchResult> {
   const filters = CATEGORY_OSM_FILTERS[category];
   if (!filters) throw Object.assign(new Error('Unknown POI category'), { status: 400 });
 
+  // Clamp an oversized viewport to a centred window so the query stays cheap and
+  // returns fast at any zoom, instead of timing out / 502-ing on a huge area.
+  let { south, west, north, east } = bbox;
+  let clamped = false;
+  if (north - south > MAX_BBOX_SPAN_DEG) {
+    const c = (north + south) / 2;
+    south = c - MAX_BBOX_SPAN_DEG / 2;
+    north = c + MAX_BBOX_SPAN_DEG / 2;
+    clamped = true;
+  }
+  if (east - west > MAX_BBOX_SPAN_DEG) {
+    const c = (east + west) / 2;
+    west = c - MAX_BBOX_SPAN_DEG / 2;
+    east = c + MAX_BBOX_SPAN_DEG / 2;
+    clamped = true;
+  }
+
+  // Serve repeat pans/toggles of the same area straight from the cache.
+  const cacheKey = `${category}|${south.toFixed(2)},${west.toFixed(2)},${north.toFixed(2)},${east.toFixed(2)}|${limit}`;
+  const cached = POI_CACHE.get(cacheKey);
+  if (cached && Date.now() - cached.at < POI_CACHE_TTL_MS) return cached.value;
+  if (cached) POI_CACHE.delete(cacheKey); // expired — drop it before refetching
+
   // Overpass wants the box as (south,west,north,east) = (minLat,minLng,maxLat,maxLng).
-  const box = `(${bbox.south},${bbox.west},${bbox.north},${bbox.east})`;
+  const box = `(${south},${west},${north},${east})`;
   const selectors = filters.map(f => {
     const [k, v] = f.split('=');
     return `  nwr["${k}"="${v}"]${box};`;
   }).join('\n');
   // `out center tags <n>` returns ways/relations with a computed center and caps
   // the result count in one round-trip.
-  const query = `[out:json][timeout:25];\n(\n${selectors}\n);\nout center tags ${limit + 25};`;
+  const query = `[out:json][timeout:20];\n(\n${selectors}\n);\nout center tags ${limit + 25};`;
 
-  let elements: OverpassPoiElement[] = [];
-  try {
-    const res = await fetch('https://overpass-api.de/api/interpreter', {
-      method: 'POST',
-      headers: { 'User-Agent': UA, 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `data=${encodeURIComponent(query)}`,
-    });
-    if (!res.ok) throw Object.assign(new Error('Overpass request failed'), { status: 502 });
-    const data = await res.json() as { elements?: OverpassPoiElement[] };
-    elements = data.elements || [];
-  } catch (err: any) {
-    if (err?.status) throw err;
-    throw Object.assign(new Error('Overpass request failed'), { status: 502 });
-  }
+  const elements = await overpassFetch(query);
 
   const pois: OverpassPoi[] = [];
   for (const el of elements) {
@@ -309,7 +401,11 @@ export async function searchOverpassPois(
     });
   }
   const truncated = pois.length > limit;
-  return { pois: pois.slice(0, limit), source: 'openstreetmap', truncated };
+  const value: PoiSearchResult = { pois: pois.slice(0, limit), source: 'openstreetmap', truncated, clamped };
+  // FIFO eviction: a Map preserves insertion order, so the first key is the oldest.
+  if (POI_CACHE.size >= POI_CACHE_MAX) POI_CACHE.delete(POI_CACHE.keys().next().value as string);
+  POI_CACHE.set(cacheKey, { at: Date.now(), value });
+  return value;
 }
 
 // ── Opening hours parsing ────────────────────────────────────────────────────
@@ -450,12 +546,24 @@ export async function fetchWikimediaPhoto(lat: number, lng: number, name?: strin
 
 // ── Search places (Google or Nominatim fallback) ─────────────────────────────
 
-export async function searchPlaces(userId: number, query: string, lang?: string): Promise<{ places: Record<string, unknown>[]; source: string }> {
+export async function searchPlaces(userId: number, query: string, lang?: string, locationBias?: { lat: number; lng: number; radius?: number }): Promise<{ places: Record<string, unknown>[]; source: string }> {
   const apiKey = getMapsKey(userId);
 
   if (!apiKey) {
     const places = await searchNominatim(query, lang);
     return { places, source: 'openstreetmap' };
+  }
+
+  const searchBody: Record<string, unknown> = { textQuery: query, languageCode: toApiLang(lang) };
+  // Bias results toward the caller's area when supplied — without it Google Text
+  // Search falls back to the API key's billing region, which skews foreign-region queries.
+  if (locationBias) {
+    searchBody.locationBias = {
+      circle: {
+        center: { latitude: locationBias.lat, longitude: locationBias.lng },
+        radius: locationBias.radius ?? 50000,
+      },
+    };
   }
 
   const response = await googleFetch('https://places.googleapis.com/v1/places:searchText', 'searchText', {
@@ -465,7 +573,7 @@ export async function searchPlaces(userId: number, query: string, lang?: string)
       'X-Goog-Api-Key': apiKey,
       'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.websiteUri,places.nationalPhoneNumber,places.types',
     },
-    body: JSON.stringify({ textQuery: query, languageCode: toApiLang(lang) }),
+    body: JSON.stringify(searchBody),
   });
 
   const data = await response.json() as { places?: GooglePlaceResult[]; error?: { message?: string } };
@@ -485,6 +593,7 @@ export async function searchPlaces(userId: number, query: string, lang?: string)
     rating: p.rating || null,
     website: p.websiteUri || null,
     phone: p.nationalPhoneNumber || null,
+    types: p.types || [],
     source: 'google',
   }));
 

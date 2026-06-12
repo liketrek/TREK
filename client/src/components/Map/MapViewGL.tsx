@@ -13,6 +13,7 @@ import LocationButton from './LocationButton'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import type { Place, Reservation } from '../../types'
 import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
+import { buildPlacePopupHtml, buildPoiPopupHtml } from './placePopup'
 
 function categoryIconSvg(iconName: string | null | undefined, size: number): string {
   const IconComponent = (iconName && CATEGORY_ICON_MAP[iconName]) || CATEGORY_ICON_MAP['MapPin']
@@ -53,6 +54,7 @@ interface Props {
   pois?: Poi[]
   onPoiClick?: (poi: Poi) => void
   onViewportChange?: (bbox: { south: number; west: number; north: number; east: number }) => void
+  onMapReady?: (map: mapboxgl.Map | null) => void
 }
 
 function createMarkerElement(place: Place & { category_color?: string; category_icon?: string }, photoUrl: string | null, orderNumbers: number[] | null, selected: boolean): HTMLDivElement {
@@ -167,6 +169,7 @@ export function MapViewGL({
   pois = [],
   onPoiClick,
   onViewportChange,
+  onMapReady,
 }: Props) {
   const mapboxStyle = useSettingsStore(s => s.settings.mapbox_style || 'mapbox://styles/mapbox/standard')
   const mapboxToken = useSettingsStore(s => s.settings.mapbox_access_token || '')
@@ -186,10 +189,15 @@ export function MapViewGL({
   const onReservationClickRef = useRef(onReservationClick)
   onReservationClickRef.current = onReservationClick
   const poiMarkersRef = useRef<mapboxgl.Marker[]>([])
+  // Single reusable hover popup (name/category/address card) shared by planned
+  // places and POI markers — mirrors the Leaflet map's hover tooltip.
+  const popupRef = useRef<mapboxgl.Popup | null>(null)
   const onPoiClickRef = useRef(onPoiClick)
   onPoiClickRef.current = onPoiClick
   const onViewportChangeRef = useRef(onViewportChange)
   onViewportChangeRef.current = onViewportChange
+  const onMapReadyRef = useRef(onMapReady)
+  onMapReadyRef.current = onMapReady
   const { position: userPosition, mode: trackingMode, error: trackingError, cycleMode: cycleTrackingMode, setMode: setTrackingMode } = useGeolocation()
   const onClickRefs = useRef({ marker: onMarkerClick, map: onMapClick, context: onMapContextMenu })
   onClickRefs.current.marker = onMarkerClick
@@ -212,6 +220,16 @@ export function MapViewGL({
       projection: mapboxQuality ? 'globe' : 'mercator',
     })
     mapRef.current = map
+    popupRef.current = new mapboxgl.Popup({
+      closeButton: false,
+      closeOnClick: false,
+      offset: 18,
+      maxWidth: '240px',
+      className: 'trek-map-popup',
+    })
+    // Hand the map out so the trip planner can render its own compass pill next to
+    // the POI pill (a custom round control instead of Mapbox's default top-right one).
+    onMapReadyRef.current?.(map)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(window as any).__trek_map = map
 
@@ -357,6 +375,8 @@ export function MapViewGL({
       canvas.removeEventListener('auxclick', onAuxClick)
       markersRef.current.forEach(m => m.remove())
       markersRef.current.clear()
+      if (popupRef.current) { popupRef.current.remove(); popupRef.current = null }
+      onMapReadyRef.current?.(null)
       if (reservationOverlayRef.current) {
         reservationOverlayRef.current.destroy()
         reservationOverlayRef.current = null
@@ -430,6 +450,10 @@ export function MapViewGL({
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
+    // Markers are about to be rebuilt; drop any open hover popup first. A marker
+    // recreated under the pointer (e.g. when its photo streams in) never fires
+    // mouseleave, which would otherwise leave the popup orphaned on the map.
+    popupRef.current?.remove()
     const ids = new Set(places.map(p => p.id))
 
     markersRef.current.forEach((marker, id) => {
@@ -450,6 +474,12 @@ export function MapViewGL({
         ev.stopPropagation()
         onClickRefs.current.marker?.(place.id)
       })
+      el.addEventListener('mouseenter', () => {
+        popupRef.current?.setLngLat([place.lng, place.lat])
+          .setHTML(buildPlacePopupHtml(place as Place & { category_color?: string; category_icon?: string; category_name?: string }, photoUrl))
+          .addTo(map)
+      })
+      el.addEventListener('mouseleave', () => { popupRef.current?.remove() })
       // Recreate marker each time rather than patching internal state —
       // mapbox-gl's internal _element bookkeeping breaks under DOM swaps.
       const existing = markersRef.current.get(place.id)
@@ -471,11 +501,15 @@ export function MapViewGL({
   useEffect(() => {
     const map = mapRef.current
     if (!map || !mapReady) return
+    popupRef.current?.remove() // same orphan-popup guard as the place markers
     poiMarkersRef.current.forEach(m => m.remove())
     poiMarkersRef.current = []
     for (const poi of (pois as Poi[])) {
       const el = createPoiMarkerElement(poi.category)
-      el.title = poi.name
+      el.addEventListener('mouseenter', () => {
+        popupRef.current?.setLngLat([poi.lng, poi.lat]).setHTML(buildPoiPopupHtml(poi)).addTo(map)
+      })
+      el.addEventListener('mouseleave', () => { popupRef.current?.remove() })
       el.addEventListener('click', (ev) => { ev.stopPropagation(); onPoiClickRef.current?.(poi) })
       const m = new mapboxgl.Marker({ element: el, anchor: 'center' }).setLngLat([poi.lng, poi.lat]).addTo(map)
       poiMarkersRef.current.push(m)

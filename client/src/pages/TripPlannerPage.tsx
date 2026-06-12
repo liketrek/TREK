@@ -5,6 +5,7 @@ import { useTripStore } from '../store/tripStore'
 import { useCanDo } from '../store/permissionsStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { MapViewAuto as MapView } from '../components/Map/MapViewAuto'
+import { MapCompassPill } from '../components/Map/MapCompassPill'
 import { getCached, fetchPhoto } from '../services/photoService'
 import DayPlanSidebar from '../components/Planner/DayPlanSidebar'
 import PlacesSidebar from '../components/Planner/PlacesSidebar'
@@ -206,6 +207,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
   } = useTripPlanner()
 
   const poi = usePoiExplore()
+  const [glMap, setGlMap] = useState<import('mapbox-gl').Map | null>(null)
   const poiPillEnabled = useSettingsStore(s => s.settings.map_poi_pill_enabled) !== false
 
   if (isLoading || !splashDone) {
@@ -308,11 +310,15 @@ export default function TripPlannerPage(): React.ReactElement | null {
               pois={poi.pois}
               onPoiClick={openAddPlaceFromPoi}
               onViewportChange={poi.onViewportChange}
+              onMapReady={setGlMap}
             />
 
-            {poiPillEnabled && (
-              <div className="hidden md:flex" style={{ position: 'absolute', top: 14, left: '50%', transform: 'translateX(-50%)', zIndex: 25, pointerEvents: 'none' }}>
-                <PoiCategoryPill active={poi.active} onToggle={poi.toggle} loadingKeys={poi.loadingKeys} moved={poi.moved} onSearchArea={poi.searchArea} />
+            {(poiPillEnabled || glMap) && (
+              <div className="hidden md:flex" style={{ position: 'absolute', top: 14, left: '50%', transform: 'translateX(-50%)', zIndex: 25, pointerEvents: 'none', alignItems: 'flex-start', gap: 8 }}>
+                {poiPillEnabled && (
+                  <PoiCategoryPill active={poi.active} onToggle={poi.toggle} loadingKeys={poi.loadingKeys} errorKeys={poi.errorKeys} moved={poi.moved} onSearchArea={poi.searchArea} />
+                )}
+                {glMap && <MapCompassPill map={glMap} />}
               </div>
             )}
 

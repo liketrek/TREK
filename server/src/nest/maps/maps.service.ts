@@ -56,8 +56,8 @@ export class MapsService {
     return this.isSettingDisabled('places_photos_enabled');
   }
 
-  search(userId: number, query: string, lang?: string): Promise<MapsSearchResult> {
-    return searchPlaces(userId, query, lang) as Promise<MapsSearchResult>;
+  search(userId: number, query: string, lang?: string, locationBias?: { lat: number; lng: number; radius?: number }): Promise<MapsSearchResult> {
+    return searchPlaces(userId, query, lang, locationBias) as Promise<MapsSearchResult>;
   }
 
   autocomplete(userId: number, input: string, lang?: string, locationBias?: LocationBias): Promise<MapsAutocompleteResult> {

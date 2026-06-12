@@ -1,4 +1,4 @@
-import { RotateCw } from 'lucide-react'
+import { RotateCw, AlertTriangle } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { Tooltip } from '../shared/Tooltip'
 import { POI_CATEGORIES } from './poiCategories'
@@ -7,6 +7,8 @@ interface Props {
   active: Set<string>
   onToggle: (key: string) => void
   loadingKeys?: Set<string>
+  /** categories whose last fetch failed → show a retry affordance */
+  errorKeys?: Set<string>
   /** true when the map moved since the last search → offer "search this area" */
   moved?: boolean
   onSearchArea?: () => void
@@ -15,8 +17,9 @@ interface Props {
 // Frosted, icon-only segmented control that floats over the map. Active segments
 // fill with the category colour (matching their markers); the label shows in a
 // custom tooltip on hover so the pill stays compact and never needs to scroll.
-export default function PoiCategoryPill({ active, onToggle, loadingKeys, moved, onSearchArea }: Props) {
+export default function PoiCategoryPill({ active, onToggle, loadingKeys, errorKeys, moved, onSearchArea }: Props) {
   const { t } = useTranslation()
+  const anyError = !!errorKeys && Array.from(active).some(k => errorKeys.has(k))
 
   const frosted: React.CSSProperties = {
     background: 'var(--sidebar-bg)',
@@ -40,6 +43,7 @@ export default function PoiCategoryPill({ active, onToggle, loadingKeys, moved, 
                 aria-label={t(cat.labelKey)}
                 className={on ? '' : 'text-content-muted'}
                 style={{
+                  position: 'relative',
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                   width: 34, height: 34, borderRadius: 999, border: 'none', cursor: 'pointer',
                   background: on ? cat.color : 'transparent',
@@ -61,13 +65,19 @@ export default function PoiCategoryPill({ active, onToggle, loadingKeys, moved, 
                 ) : (
                   <cat.Icon size={16} strokeWidth={2} />
                 )}
+                {on && !loading && errorKeys?.has(cat.key) && (
+                  <span style={{
+                    position: 'absolute', top: 2, right: 2, width: 8, height: 8,
+                    borderRadius: 999, background: '#ef4444', border: '1.5px solid var(--sidebar-bg)',
+                  }} />
+                )}
               </button>
             </Tooltip>
           )
         })}
       </div>
 
-      {moved && active.size > 0 && (
+      {(moved || anyError) && active.size > 0 && (
         <button
           type="button"
           onClick={onSearchArea}
@@ -76,10 +86,14 @@ export default function PoiCategoryPill({ active, onToggle, loadingKeys, moved, 
             display: 'inline-flex', alignItems: 'center', gap: 6,
             padding: '6px 13px', borderRadius: 999, border: 'none', cursor: 'pointer',
             fontSize: 12, fontWeight: 600, fontFamily: 'inherit', pointerEvents: 'auto',
+            color: anyError ? '#ef4444' : undefined,
             ...frosted,
           }}
         >
-          <RotateCw size={13} strokeWidth={2.4} /> {t('poi.searchThisArea')}
+          {anyError
+            ? <AlertTriangle size={13} strokeWidth={2.4} />
+            : <RotateCw size={13} strokeWidth={2.4} />}
+          {t('poi.searchThisArea')}
         </button>
       )}
     </div>

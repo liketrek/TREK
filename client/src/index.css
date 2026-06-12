@@ -35,6 +35,23 @@ body { height: 100%; overflow: auto; overscroll-behavior: none; -webkit-overflow
   color: var(--text-primary) !important;
 }
 
+/* Mapbox GL hover popup — the name/category/address card on marker hover.
+   Matches the Leaflet map's white hover tooltip. pointer-events:none so moving
+   onto the popup never steals the marker's mouseleave and causes flicker. */
+.trek-map-popup { pointer-events: none; }
+.trek-map-popup .mapboxgl-popup-content {
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.16);
+}
+.trek-map-popup .mapboxgl-popup-tip {
+  border-top-color: #fff;
+  border-bottom-color: #fff;
+  border-left-color: #fff;
+  border-right-color: #fff;
+}
+
 .atlas-tooltip {
   background: rgba(10, 10, 20, 0.6) !important;
   backdrop-filter: blur(20px) saturate(180%) !important;
