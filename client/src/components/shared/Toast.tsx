@@ -123,7 +123,7 @@ export function ToastContainer() {
             <span style={{
               flex: 1, fontSize: 13, fontWeight: 500, color: 'rgba(255, 255, 255, 0.9)',
               lineHeight: 1.4,
-              fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+              fontFamily: "var(--font-system)",
             }}>
               {toast.message}
             </span>

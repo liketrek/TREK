@@ -230,10 +230,3 @@ export function deleteTrekPhotoIfOrphan(photoId: number): void {
   db.prepare("DELETE FROM trek_photos WHERE id = ? AND provider != 'local'").run(photoId);
 }
 
-// ── Delete local file for a trek_photo ──────────────────────────────────
-
-export function getTrekPhotoFilePath(photoId: number): string | null {
-  const photo = resolveTrekPhoto(photoId);
-  if (!photo || photo.provider !== 'local' || !photo.file_path) return null;
-  return path.join(__dirname, '../../../uploads', photo.file_path);
-}

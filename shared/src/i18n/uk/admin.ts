@@ -1,0 +1,403 @@
+import type { TranslationStrings } from '../types';
+
+const admin: TranslationStrings = {
+  'admin.notifications.title': 'n',
+  'admin.notifications.hint':
+    'Виберіть канал сповіщень. Одночасно може бути активним лише один.',
+  'admin.notifications.none': 'Вимкнено',
+  'admin.notifications.email': 'Ел. пошта (SMTP)',
+  'admin.notifications.webhook': 'Webhook',
+  'admin.notifications.save': 'Зберегти налаштування сповіщень',
+  'admin.notifications.saved': 'Налаштування сповіщень збережені',
+  'admin.notifications.testWebhook': 'Відправити тестовий webhook',
+  'admin.notifications.testWebhookSuccess':
+    'Тестовий webhook успішно відправлено',
+  'admin.notifications.testWebhookFailed':
+    "Помилка відправки тестового webhook'а",
+  'admin.smtp.title': 'Пошта та сповіщення',
+  'admin.smtp.hint':
+    'Налаштування SMTP для відправки сповіщень електронною поштою.',
+  'admin.smtp.testButton': 'Відправити тестовий лист',
+  'admin.webhook.hint':
+    'Відправляти сповіщення через зовнішній webhook (Discord, Slack тощо).',
+  'admin.smtp.testSuccess': 'Тестовий лист успішно відправлено',
+  'admin.smtp.testFailed': 'Помилка відправки тестового листа',
+  'admin.title': 'Адміністрування',
+  'admin.subtitle': 'Управління користувачами та системні налаштування',
+  'admin.tabs.users': 'Користувачі',
+  'admin.tabs.categories': 'Категорії',
+  'admin.tabs.backup': 'Резервна копія',
+  'admin.tabs.audit': 'Аудит',
+  'admin.stats.users': 'Користувачі',
+  'admin.stats.trips': 'Подорожі',
+  'admin.stats.places': 'Місця',
+  'admin.stats.photos': 'Фото',
+  'admin.stats.files': 'Файли',
+  'admin.table.user': 'Користувач',
+  'admin.table.email': 'Ел. пошта',
+  'admin.table.role': 'Роль',
+  'admin.table.created': 'Створено',
+  'admin.table.lastLogin': 'Останній вхід',
+  'admin.table.actions': 'Дії',
+  'admin.you': '(Ви)',
+  'admin.editUser': 'Редагувати користувача',
+  'admin.newPassword': 'Новий пароль',
+  'admin.newPasswordHint': 'Залиште порожнім, щоб зберегти поточний пароль',
+  'admin.deleteUser':
+    'Видалити користувача «{name}»? Усі подорожі будуть безповоротно видалені.',
+  'admin.deleteUserTitle': 'Видалити користувача',
+  'admin.newPasswordPlaceholder': 'Введіть новий пароль…',
+  'admin.toast.loadError': 'Не вдалося завантажити дані адміністрування',
+  'admin.toast.userUpdated': 'Користувача оновлено',
+  'admin.toast.updateError': 'Помилка оновлення',
+  'admin.toast.userDeleted': 'Користувача видалено',
+  'admin.toast.deleteError': 'Помилка видалення',
+  'admin.toast.cannotDeleteSelf': 'Неможливо видалити власний акаунт',
+  'admin.toast.userCreated': 'Користувача створено',
+  'admin.toast.createError': 'Помилка створення користувача',
+  'admin.toast.fieldsRequired':
+    'Ім’я користувача, ел. пошта та пароль обов’язкові',
+  'admin.createUser': 'Створити користувача',
+  'admin.invite.title': 'Запрошення за посиланням',
+  'admin.invite.subtitle': 'Створення одноразових посилань для реєстрації',
+  'admin.invite.create': 'Створити посилання',
+  'admin.invite.createAndCopy': 'Створити та скопіювати',
+  'admin.invite.empty': 'Посилання-запрошення ще не створені',
+  'admin.invite.maxUses': 'Макс. використань',
+  'admin.invite.expiry': 'Дійсне',
+  'admin.invite.uses': 'використано',
+  'admin.invite.expiresAt': 'закінчується',
+  'admin.invite.createdBy': 'від',
+  'admin.invite.active': 'Активне',
+  'admin.invite.expired': 'Закінчилося',
+  'admin.invite.usedUp': 'Вичерпано',
+  'admin.invite.copied': 'Посилання-запрошення скопійовано',
+  'admin.invite.copyLink': 'Скопіювати посилання',
+  'admin.invite.deleted': 'Посилання-запрошення видалено',
+  'admin.invite.createError': 'Помилка створення посилання',
+  'admin.invite.deleteError': 'Помилка видалення посилання',
+  'admin.tabs.settings': 'Налаштування',
+  'admin.allowRegistration': 'Дозволити реєстрацію',
+  'admin.allowRegistrationHint':
+    'Нові користувачі можуть реєструватися самостійно',
+  'admin.authMethods': 'Методи автентифікації',
+  'admin.passwordLogin': 'Вхід за паролем',
+  'admin.passwordLoginHint':
+    'Дозволити користувачам входити за ел. поштою та паролем',
+  'admin.passwordRegistration': 'Реєстрація за паролем',
+  'admin.passwordRegistrationHint':
+    'Дозволити новим користувачам реєструватися за ел. поштою та паролем',
+  'admin.oidcLogin': 'Вхід через SSO',
+  'admin.oidcLoginHint': 'Дозволити користувачам входити через SSO',
+  'admin.oidcRegistration': 'Автоматичне створення SSO-акаунтів',
+  'admin.oidcRegistrationHint':
+    'Автоматично створювати акаунти для нових SSO-користувачів',
+  'admin.envOverrideHint':
+    'Налаштування входу за паролем контролюються змінною середовища OIDC_ONLY і не можуть бути змінені тут.',
+  'admin.lockoutWarning':
+    'Потрібно залишити увімкненим принаймні один метод входу',
+  'admin.requireMfa': 'Вимагати двофакторну автентифікацію (2FA)',
+  'admin.requireMfaHint':
+    'Користувачі без 2FA повинні завершити налаштування в розділі «Налаштування» перед використанням програми.',
+  'admin.apiKeys': 'API-ключі',
+  'admin.apiKeysHint':
+    'Необов’язково. Включає розширені дані про місця, такі як фото та погода.',
+  'admin.mapsKey': 'API-ключ Google Maps',
+  'admin.mapsKeyHint':
+    'Необхідний для пошуку місць. Отримайте на console.cloud.google.com',
+  'admin.mapsKeyHintLong':
+    'Без API-ключа для пошуку місць використовується OpenStreetMap. З ключем Google API можна завантажувати фото, рейтинги та години роботи. Отримайте ключ на console.cloud.google.com.',
+  'admin.recommended': 'Рекомендується',
+  'admin.weatherKey': 'API-ключ OpenWeatherMap',
+  'admin.weatherKeyHint':
+    'Для даних про погоду. Безкоштовно на openweathermap.org',
+  'admin.validateKey': 'Перевірити',
+  'admin.keyValid': 'Підключено',
+  'admin.keyInvalid': 'Недійсний',
+  'admin.keySaved': 'API-ключі збережено',
+  'admin.oidcTitle': 'Єдиний вхід (OIDC)',
+  'admin.oidcSubtitle':
+    'Дозволити вхід через зовнішніх провайдерів, таких як Google, Apple, Authentik або Keycloak.',
+  'admin.oidcDisplayName': 'Відображуване ім’я',
+  'admin.oidcIssuer': 'URL видавця',
+  'admin.oidcIssuerHint':
+    'URL видавця OpenID Connect провайдера. Напр. https://accounts.google.com',
+  'admin.oidcSaved': 'Конфігурацію OIDC збережено',
+  'admin.oidcOnlyMode': 'Вимкнути вхід за паролем',
+  'admin.oidcOnlyModeHint':
+    'При ввімкненні дозволено тільки вхід через SSO. Вхід та реєстрація за паролем будуть заблоковані.',
+  'admin.fileTypes': 'Дозволені типи файлів',
+  'admin.fileTypesHint':
+    'Налаштуйте, які типи файлів можуть завантажувати користувачі.',
+  'admin.fileTypesFormat':
+    'Розширення через кому (напр. jpg,png,pdf,doc). Використовуйте * для дозволу всіх типів.',
+  'admin.fileTypesSaved': 'Налаштування типів файлів збережено',
+  'admin.placesPhotos.title': 'Фотографії місць',
+  'admin.placesPhotos.subtitle':
+    'Завантаження фотографій з Google Places API. Вимкніть для економії квоти API. Фотографії Wikimedia не зачіпаються.',
+  'admin.placesAutocomplete.title': 'Автодоповнення місць',
+  'admin.placesAutocomplete.subtitle':
+    'Використання Google Places API для підказок пошуку. Вимкніть для економії квоти API.',
+  'admin.placesDetails.title': 'Відомості про місце',
+  'admin.placesDetails.subtitle':
+    'Завантаження детальної інформації про місце (години роботи, рейтинг, веб-сайт) з Google Places API. Вимкніть для економії квоти API.',
+  'admin.bagTracking.title': 'Відстеження багажу',
+  'admin.bagTracking.subtitle':
+    'Увімкнути вагу та прив’язку до багажу для речей',
+  'admin.collab.chat.title': 'Чат',
+  'admin.collab.chat.subtitle': 'Обмін повідомленнями для спільної роботи',
+  'admin.collab.notes.title': 'Нотатки',
+  'admin.collab.notes.subtitle': 'Спільні нотатки та документи',
+  'admin.collab.polls.title': 'Опитування',
+  'admin.collab.polls.subtitle': 'Групові опитування та голосування',
+  'admin.collab.whatsnext.title': 'Що далі',
+  'admin.collab.whatsnext.subtitle': 'Пропозиції активностей та наступні кроки',
+  'admin.tabs.config': 'Персоналізація',
+  'admin.tabs.defaults': 'Налаштування за замовчуванням',
+  'admin.defaultSettings.title': 'Налаштування користувачів за замовчуванням',
+  'admin.defaultSettings.description':
+    'Визначте значення за замовчуванням для всієї інстанції. Користувачі, які не змінювали параметр, побачать ці значення. Їхні власні зміни завжди мають пріоритет.',
+  'admin.defaultSettings.saved': 'Значення за замовчуванням збережено',
+  'admin.defaultSettings.reset': 'Скинути до вбудованого значення',
+  'admin.defaultSettings.resetToBuiltIn': 'скинути',
+  'admin.tabs.templates': 'Шаблони пакування',
+  'admin.packingTemplates.title': 'Шаблони пакування',
+  'admin.packingTemplates.subtitle':
+    'Створюйте багаторазові списки речей для подорожей',
+  'admin.packingTemplates.create': 'Новий шаблон',
+  'admin.packingTemplates.namePlaceholder':
+    'Назва шаблону (наприклад, Відпочинок на пляжі)',
+  'admin.packingTemplates.empty': 'Шаблони ще не створені',
+  'admin.packingTemplates.items': 'речей',
+  'admin.packingTemplates.categories': 'категорії(й)',
+  'admin.packingTemplates.itemName': 'Назва речі',
+  'admin.packingTemplates.itemCategory': 'Категорія',
+  'admin.packingTemplates.categoryName': 'Назва категорії (наприклад, Одяг)',
+  'admin.packingTemplates.addCategory': 'Додати категорію',
+  'admin.packingTemplates.created': 'Шаблон створено',
+  'admin.packingTemplates.deleted': 'Шаблон видалено',
+  'admin.packingTemplates.loadError': 'Помилка завантаження шаблонів',
+  'admin.packingTemplates.createError': 'Помилка створення шаблону',
+  'admin.packingTemplates.deleteError': 'Помилка видалення шаблону',
+  'admin.packingTemplates.saveError': 'Помилка збереження',
+  'admin.tabs.addons': 'Дополнения',
+  'admin.addons.title': 'Доповнення',
+  'admin.addons.subtitle':
+    'Увімкніть або вимкніть функції, щоб налаштувати TREK під себе.',
+  'admin.addons.catalog.memories.name': 'Фото (Immich)',
+  'admin.addons.catalog.memories.description':
+    'Діліться фотографіями з подорожей через Immich',
+  'admin.addons.catalog.mcp.name': 'MCP',
+  'admin.addons.catalog.mcp.description':
+    'Протокол контексту моделі для інтеграції з ІІ-асистентами',
+  'admin.addons.catalog.packing.name': 'Списки',
+  'admin.addons.catalog.packing.description':
+    'Списки речей та завдання для ваших подорожей',
+  'admin.addons.catalog.budget.name': 'Бюджет',
+  'admin.addons.catalog.budget.description':
+    'Відстежуйте витрати та плануйте бюджет подорожі',
+  'admin.addons.catalog.documents.name': 'Документи',
+  'admin.addons.catalog.documents.description':
+    'Зберігайте та керуйте документами для подорожей',
+  'admin.addons.catalog.vacay.name': 'Vacay',
+  'admin.addons.catalog.vacay.description':
+    'Особистий планувальник відпусток з календарем',
+  'admin.addons.catalog.atlas.name': 'Atlas',
+  'admin.addons.catalog.atlas.description':
+    'Карта світу з відвіданими країнами та статистикою подорожей',
+  'admin.addons.catalog.collab.name': 'Collab',
+  'admin.addons.catalog.collab.description':
+    'Нотатки в реальному часі, опитування та чат для планування подорожей',
+  'admin.addons.subtitleBefore':
+    'Увімкніть або вимкніть функції для налаштування ',
+  'admin.addons.subtitleAfter': ' під себе.',
+  'admin.addons.enabled': 'Увімкнено',
+  'admin.addons.disabled': 'Вимкнено',
+  'admin.addons.type.trip': 'Поїздка',
+  'admin.addons.type.global': 'Глобально',
+  'admin.addons.type.integration': 'Інтеграція',
+  'admin.addons.tripHint': 'Доступно як вкладка всередині кожної подорожі',
+  'admin.addons.globalHint': 'Доступно як окремий розділ у головній навігації',
+  'admin.addons.integrationHint':
+    'Фонові сервіси та API-інтеграції без окремої сторінки',
+  'admin.addons.toast.updated': 'Доповнення оновлено',
+  'admin.addons.toast.error': 'Не вдалося оновити доповнення',
+  'admin.addons.noAddons': 'Немає доступних доповнень',
+  'admin.weather.title': 'Дані про погоду',
+  'admin.weather.badge': 'З 24 березня 2026',
+  'admin.weather.description':
+    'TREK використовує Open-Meteo як джерело даних про погоду. Open-Meteo — безкоштовний сервіс з відкритим кодом, API-ключ не потрібен.',
+  'admin.weather.forecast': 'Прогноз на 16 днів',
+  'admin.weather.forecastDesc': 'Раніше 5 днів (OpenWeatherMap)',
+  'admin.weather.climate': 'Історичні кліматичні дані',
+  'admin.weather.climateDesc':
+    'Середні значення за останні 85 років для днів поза межами 16-денного прогнозу',
+  'admin.weather.requests': '10 000 запитів / день',
+  'admin.weather.requestsDesc': 'Безкоштовно, API-ключ не потрібен',
+  'admin.weather.locationHint':
+    'Погода базується на першому місці з координатами в кожному дні. Якщо жодне місце не призначено на день, як орієнтир використовується будь-яке місце зі списку.',
+  'admin.tabs.mcpTokens': 'MCP-доступ',
+  'admin.mcpTokens.title': 'MCP-доступ',
+  'admin.mcpTokens.subtitle':
+    'Управління OAuth-сеансами та API-токенами всіх користувачів',
+  'admin.mcpTokens.sectionTitle': 'API-токени',
+  'admin.mcpTokens.owner': 'Власник',
+  'admin.mcpTokens.tokenName': 'Назва токена',
+  'admin.mcpTokens.created': 'Створено',
+  'admin.mcpTokens.lastUsed': 'Останнє використання',
+  'admin.mcpTokens.never': 'Ніколи',
+  'admin.mcpTokens.empty': 'MCP-токени ще не створені',
+  'admin.mcpTokens.deleteTitle': 'Видалити токен',
+  'admin.mcpTokens.deleteMessage':
+    'Токен буде негайно відкликано. Користувач втратить доступ до MCP через цей токен.',
+  'admin.mcpTokens.deleteSuccess': 'Токен видалено',
+  'admin.mcpTokens.deleteError': 'Не вдалося видалити токен',
+  'admin.mcpTokens.loadError': 'Не вдалося завантажити токени',
+  'admin.oauthSessions.sectionTitle': 'OAuth-сеанси',
+  'admin.oauthSessions.clientName': 'Клієнт',
+  'admin.oauthSessions.owner': 'Власник',
+  'admin.oauthSessions.scopes': 'Права доступу',
+  'admin.oauthSessions.created': 'Створено',
+  'admin.oauthSessions.empty': 'Немає активних OAuth-сеансів',
+  'admin.oauthSessions.revokeTitle': 'Відкликати сеанс',
+  'admin.oauthSessions.revokeMessage':
+    'Цей OAuth-сеанс буде негайно відкликаний. Клієнт втратить доступ до MCP.',
+  'admin.oauthSessions.revokeSuccess': 'Сеанс відкликано',
+  'admin.oauthSessions.revokeError': 'Не вдалося відкликати сеанс',
+  'admin.oauthSessions.loadError': 'Не вдалося завантажити OAuth-сеанси',
+  'admin.tabs.github': 'GitHub',
+  'admin.audit.subtitle':
+    'Події, пов’язані з безпекою та адмініструванням (резервні копії, користувачі, MFA, налаштування).',
+  'admin.audit.empty': 'Записів аудиту поки немає.',
+  'admin.audit.refresh': 'Оновити',
+  'admin.audit.loadMore': 'Завантажити ще',
+  'admin.audit.showing': 'Завантажено: {count} · всього {total}',
+  'admin.audit.col.time': 'Час',
+  'admin.audit.col.user': 'Користувач',
+  'admin.audit.col.action': 'Дія',
+  'admin.audit.col.resource': 'Об’єкт',
+  'admin.audit.col.ip': 'IP',
+  'admin.audit.col.details': 'Деталі',
+  'admin.github.title': 'Історія релізів',
+  'admin.github.subtitle': 'Останні оновлення з {repo}',
+  'admin.github.latest': 'Останній',
+  'admin.github.prerelease': 'Пререліз',
+  'admin.github.showDetails': 'Показати деталі',
+  'admin.github.hideDetails': 'Сховати деталі',
+  'admin.github.loadMore': 'Завантажити ще',
+  'admin.github.loading': 'Завантаження...',
+  'admin.github.support': 'Допомагає продовжувати розробку TREK',
+  'admin.github.error': 'Не вдалося завантажити релізи',
+  'admin.github.by': 'від',
+  'admin.update.available': 'Доступне оновлення',
+  'admin.update.text':
+    'Доступна версія TREK {version}. У вас встановлено {current}.',
+  'admin.update.button': 'Переглянути на GitHub',
+  'admin.update.install': 'Встановити оновлення',
+  'admin.update.confirmTitle': 'Встановити оновлення?',
+  'admin.update.confirmText':
+    'TREK буде оновлено з {current} до {version}. Сервер перезапуститься автоматично.',
+  'admin.update.dataInfo':
+    'Усі ваші дані (поїздки, користувачі, API-ключі, завантаження, Vacay, Atlas, бюджети) будуть збережені.',
+  'admin.update.warning':
+    'Застосунок буде тимчасово недоступний під час перезапуску.',
+  'admin.update.confirm': 'Оновити зараз',
+  'admin.update.installing': 'Оновлення…',
+  'admin.update.success': 'Оновлення встановлено! Сервер перезапускається…',
+  'admin.update.failed': 'Помилка оновлення',
+  'admin.update.backupHint':
+    'Рекомендуємо створити резервну копію перед оновленням.',
+  'admin.update.backupLink': 'Перейти до резервних копій',
+  'admin.update.howTo': 'Як оновити',
+  'admin.update.dockerText':
+    'Ваш екземпляр TREK працює в Docker. Для оновлення до {version} виконайте ці команди на сервері:',
+  'admin.update.reloadHint': 'Перезавантажте сторінку через кілька секунд.',
+  'admin.tabs.permissions': 'Дозволи',
+  'admin.notifications.emailPanel.title': 'Email (SMTP)',
+  'admin.notifications.webhookPanel.title': 'Webhook',
+  'admin.notifications.inappPanel.title': 'In-App',
+  'admin.notifications.inappPanel.hint':
+    'Сповіщення в додатку завжди активні і не можуть бути вимкнені глобально.',
+  'admin.notifications.adminWebhookPanel.title': 'Webhook адміністратора',
+  'admin.notifications.adminWebhookPanel.hint':
+    'Цей webhook використовується виключно для сповіщень адміністратора (наприклад, повідомлень про версії). Він незалежить від користувацьких вебхуків і надсилається автоматично при наявності URL.',
+  'admin.notifications.adminWebhookPanel.saved':
+    'URL вебхука адміністратора збережено',
+  'admin.notifications.adminWebhookPanel.testSuccess':
+    'Тестовий webhook успішно надіслано',
+  'admin.notifications.adminWebhookPanel.testFailed':
+    'Помилка тестового вебхука',
+  'admin.notifications.adminWebhookPanel.alwaysOnHint':
+    'Webhook адміністратора надсилається автоматично при наявності URL',
+  'admin.notifications.ntfy': 'Ntfy',
+  'admin.ntfy.hint':
+    'Дозволяє користувачам налаштовувати власні теми Ntfy для push-сповіщень. Встановіть сервер за замовчуванням нижче, щоб попередньо заповнити налаштування користувачів.',
+  'admin.notifications.testNtfy': 'Надіслати тестовий Ntfy',
+  'admin.notifications.testNtfySuccess': 'Тестовий Ntfy успішно надіслано',
+  'admin.notifications.testNtfyFailed': 'Помилка надсилання тестового Ntfy',
+  'admin.notifications.adminNtfyPanel.title': 'Ntfy адміністратора',
+  'admin.notifications.adminNtfyPanel.hint':
+    'Ця тема Ntfy використовується виключно для сповіщень адміністратора (наприклад, повідомлень про версії). Вона незалежна від тем користувачів і завжди надсилається при наявності налаштування.',
+  'admin.notifications.adminNtfyPanel.serverLabel': 'URL сервера Ntfy',
+  'admin.notifications.adminNtfyPanel.serverHint':
+    'Також використовується як сервер за замовчуванням для ntfy-сповіщень користувачів. Залиште пустим, щоб використовувати ntfy.sh. Користувачі можуть змінити це в своїх налаштуваннях.',
+  'admin.notifications.adminNtfyPanel.serverPlaceholder': 'https://ntfy.sh',
+  'admin.notifications.adminNtfyPanel.topicLabel': 'Тема адміністратора',
+  'admin.notifications.adminNtfyPanel.topicPlaceholder': 'trek-admin-alerts',
+  'admin.notifications.adminNtfyPanel.tokenLabel':
+    'Токен доступу (необов’язково)',
+  'admin.notifications.adminNtfyPanel.tokenCleared':
+    'Токен доступу адміністратора очищено',
+  'admin.notifications.adminNtfyPanel.saved':
+    'Налаштування Ntfy адміністратора збережено',
+  'admin.notifications.adminNtfyPanel.test': 'Надіслати тестовий Ntfy',
+  'admin.notifications.adminNtfyPanel.testSuccess':
+    'Тестовий Ntfy успішно надіслано',
+  'admin.notifications.adminNtfyPanel.testFailed':
+    'Помилка надсилання тестового Ntfy',
+  'admin.notifications.adminNtfyPanel.alwaysOnHint':
+    'Ntfy адміністратора завжди надсилається при наявності налаштованої теми',
+  'admin.notifications.adminNotificationsHint':
+    'Налаштуйте, які канали доставляють сповіщення адміністратора (наприклад, повідомлення про версії). Вебхук надсилається автоматично, якщо задано URL вебхука адміністратора.',
+  'admin.notifications.tripReminders.title': 'Нагадування про поїздки',
+  'admin.notifications.tripReminders.hint':
+    'Надсилає нагадування перед початком поїздки (необхідно вказати дні нагадування в параметрах поїздки).',
+  'admin.notifications.tripReminders.enabled':
+    'Нагадування про поїздки увімкнено',
+  'admin.notifications.tripReminders.disabled':
+    'Нагадування про поїздки вимкнено',
+  'admin.tabs.notifications': 'Сповіщення',
+  'admin.addons.catalog.journey.name': 'Journey',
+  'admin.addons.catalog.journey.description':
+    'Відстеження поїздок і щоденник подорожей з позначками, фото та щоденними історіями',
+  'admin.passkey.title': 'Вхід за допомогою passkey',
+  'admin.passkey.cardHint':
+    'Дозволити користувачам входити за допомогою passkey (WebAuthn). За замовчуванням вимкнено.',
+  'admin.passkey.login': 'Увімкнути вхід за допомогою passkey',
+  'admin.passkey.loginHint':
+    'Показувати опцію «Увійти за допомогою passkey» та дозволити користувачам реєструвати passkeys у своїх налаштуваннях.',
+  'admin.passkey.notConfigured':
+    'Для цього розгортання поки не визначено жодного домену WebAuthn. Вкажіть APP_URL або Relying Party ID нижче — до того часу passkeys залишатимуться прихованими.',
+  'admin.passkey.rpId': 'Relying Party ID (домен)',
+  'admin.passkey.rpIdHint':
+    'Чистий домен, до якого прив’язані passkeys, напр. trek.example.org. Залиште порожнім, щоб визначити його з APP_URL. Подальша зміна робить наявні passkeys недійсними.',
+  'admin.passkey.origins': 'Дозволені джерела (origins)',
+  'admin.passkey.originsHint':
+    'Повні джерела через кому, напр. https://trek.example.org. Залиште порожнім, щоб використати APP_URL.',
+  'admin.passkey.reset': 'Скинути passkeys',
+  'admin.passkey.resetHint':
+    'Видалити всі passkeys цього користувача (напр. у разі втрати пристрою). Він зможе входити за допомогою свого пароля.',
+  'admin.passkey.resetConfirm': 'Видалити всі passkeys для {name}?',
+  'admin.passkey.resetDone': 'Видалено passkeys: {count}',
+  'admin.defaultSettings.mapProvider': 'Картографічний рушій',
+  'admin.defaultSettings.mapProviderHint': 'Карта за замовчуванням для всіх на цьому екземплярі. Кожен користувач може змінити її у власних налаштуваннях.',
+  'admin.defaultSettings.providerLeaflet': 'Стандартна (безкоштовна)',
+  'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
+  'admin.defaultSettings.mapboxToken': 'Спільний токен Mapbox',
+  'admin.defaultSettings.mapboxTokenHint': 'Використовується для кожного користувача, який не ввів власний токен — щоб увесь екземпляр отримав Mapbox без потреби ділитися ключем окремо. Зберігається в зашифрованому вигляді.',
+  'admin.defaultSettings.mapboxStyle': 'Стиль карти',
+  'admin.defaultSettings.mapboxStylePlaceholder': 'Виберіть стиль…',
+  'admin.defaultSettings.mapbox3d': '3D-будівлі та рельєф',
+  'admin.defaultSettings.mapboxQuality': 'Режим високої якості',
+};
+export default admin;

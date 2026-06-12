@@ -1,0 +1,66 @@
+import type { TranslationStrings } from '../types';
+
+const perm: TranslationStrings = {
+  'perm.title': 'Pengaturan Izin',
+  'perm.subtitle': 'Kendalikan siapa yang bisa melakukan tindakan di aplikasi',
+  'perm.saved': 'Pengaturan izin disimpan',
+  'perm.resetDefaults': 'Kembalikan ke default',
+  'perm.customized': 'dikustomisasi',
+  'perm.level.admin': 'Hanya Admin',
+  'perm.level.tripOwner': 'Pemilik perjalanan',
+  'perm.level.tripMember': 'Anggota perjalanan',
+  'perm.level.everybody': 'Semua orang',
+  'perm.cat.trip': 'Manajemen Perjalanan',
+  'perm.cat.members': 'Manajemen Anggota',
+  'perm.cat.files': 'File',
+  'perm.cat.content': 'Konten & Jadwal',
+  'perm.cat.extras': 'Anggaran, Perlengkapan & Kolaborasi',
+  'perm.action.trip_create': 'Buat perjalanan',
+  'perm.action.trip_edit': 'Edit detail perjalanan',
+  'perm.action.trip_delete': 'Hapus perjalanan',
+  'perm.action.trip_archive': 'Arsipkan / batalkan arsip perjalanan',
+  'perm.action.trip_cover_upload': 'Unggah gambar sampul',
+  'perm.action.member_manage': 'Tambah / hapus anggota',
+  'perm.action.file_upload': 'Unggah file',
+  'perm.action.file_edit': 'Edit metadata file',
+  'perm.action.file_delete': 'Hapus file',
+  'perm.action.place_edit': 'Tambah / edit / hapus tempat',
+  'perm.action.day_edit': 'Edit hari, catatan & penugasan',
+  'perm.action.reservation_edit': 'Kelola reservasi',
+  'perm.action.budget_edit': 'Kelola anggaran',
+  'perm.action.packing_edit': 'Kelola daftar perlengkapan',
+  'perm.action.collab_edit': 'Kolaborasi (catatan, polling, chat)',
+  'perm.action.share_manage': 'Kelola tautan berbagi',
+  'perm.actionHint.trip_create': 'Siapa yang bisa membuat perjalanan baru',
+  'perm.actionHint.trip_edit':
+    'Siapa yang bisa mengubah nama, tanggal, deskripsi, dan mata uang perjalanan',
+  'perm.actionHint.trip_delete':
+    'Siapa yang bisa menghapus perjalanan secara permanen',
+  'perm.actionHint.trip_archive':
+    'Siapa yang bisa mengarsipkan atau membatalkan arsip perjalanan',
+  'perm.actionHint.trip_cover_upload':
+    'Siapa yang bisa mengunggah atau mengganti gambar sampul',
+  'perm.actionHint.member_manage':
+    'Siapa yang bisa mengundang atau menghapus anggota perjalanan',
+  'perm.actionHint.file_upload':
+    'Siapa yang bisa mengunggah file ke perjalanan',
+  'perm.actionHint.file_edit':
+    'Siapa yang bisa mengedit deskripsi dan tautan file',
+  'perm.actionHint.file_delete':
+    'Siapa yang bisa memindahkan file ke sampah atau menghapusnya secara permanen',
+  'perm.actionHint.place_edit':
+    'Siapa yang bisa menambah, mengedit, atau menghapus tempat',
+  'perm.actionHint.day_edit':
+    'Siapa yang bisa mengedit hari, catatan hari, dan penugasan tempat',
+  'perm.actionHint.reservation_edit':
+    'Siapa yang bisa membuat, mengedit, atau menghapus reservasi',
+  'perm.actionHint.budget_edit':
+    'Siapa yang bisa membuat, mengedit, atau menghapus item anggaran',
+  'perm.actionHint.packing_edit':
+    'Siapa yang bisa mengelola item perlengkapan dan tas',
+  'perm.actionHint.collab_edit':
+    'Siapa yang bisa membuat catatan, polling, dan mengirim pesan',
+  'perm.actionHint.share_manage':
+    'Siapa yang bisa membuat atau menghapus tautan berbagi publik',
+};
+export default perm;

@@ -1,4 +1,4 @@
-export const TRANSPORT_TYPES = new Set(['flight', 'train', 'bus', 'car', 'cruise'])
+export const TRANSPORT_TYPES = new Set(['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transport_other'])
 
 export interface MergedItem {
   type: 'place' | 'note' | 'transport'
@@ -39,12 +39,66 @@ export function getDisplayTimeForDay(
   return r.reservation_time || null
 }
 
+/** Per-leg detail of a multi-leg flight, or null for single-leg / non-flight. */
+function parseFlightLegs(r: any): any[] | null {
+  if (r?.type !== 'flight') return null
+  let meta = r.metadata
+  if (typeof meta === 'string') { try { meta = JSON.parse(meta || '{}') } catch { meta = {} } }
+  // Defensive: recover metadata that was accidentally double-encoded by an earlier
+  // bug (a JSON string of a JSON string) so already-saved flights heal on read.
+  if (typeof meta === 'string') { try { meta = JSON.parse(meta || '{}') } catch { meta = {} } }
+  if (meta && Array.isArray(meta.legs) && meta.legs.length > 1) return meta.legs
+  return null
+}
+
+/**
+ * Expand a multi-leg flight into one synthetic reservation per leg that touches
+ * `dayId`, each with its own day span + departure/arrival time so it slots into
+ * the timeline independently. A single-leg flight (or any other reservation) is
+ * returned untouched, so existing behaviour is unchanged.
+ */
+export function expandFlightLegsForDay(
+  r: any,
+  dayId: number,
+  getDayOrder: (id: number) => number,
+  days: Array<{ id: number; date?: string | null }>
+): any[] {
+  const legs = parseFlightLegs(r)
+  if (!legs) return [r]
+  const dateOf = (id: number | null): string | null => (id == null ? null : (days.find(d => d.id === id)?.date ?? null))
+  const thisOrder = getDayOrder(dayId)
+  const out: any[] = []
+  legs.forEach((leg, i) => {
+    const dep = leg.dep_day_id ?? r.day_id ?? null
+    const arr = leg.arr_day_id ?? dep
+    if (dep == null) return
+    const depOrder = getDayOrder(dep)
+    const arrOrder = getDayOrder(arr ?? dep)
+    if (!(thisOrder >= depOrder && thisOrder <= arrOrder)) return
+    const depDate = dateOf(dep)
+    const arrDate = dateOf(arr ?? dep)
+    out.push({
+      ...r,
+      day_id: dep,
+      end_day_id: arr ?? dep,
+      reservation_time: leg.dep_time ? (depDate ? `${depDate}T${leg.dep_time}` : leg.dep_time) : null,
+      reservation_end_time: leg.arr_time ? (arrDate ? `${arrDate}T${leg.arr_time}` : leg.arr_time) : null,
+      // Each leg carries its OWN saved position (not the booking's) so items can be
+      // dropped between legs and persist; absent → falls back to time ordering.
+      day_positions: leg.day_positions || undefined,
+      day_plan_position: undefined,
+      __leg: { index: i, total: legs.length, from: leg.from ?? null, to: leg.to ?? null, airline: leg.airline ?? null, flight_number: leg.flight_number ?? null },
+    })
+  })
+  return out
+}
+
 /** Filter reservations that are active transports for the given day, excluding assignment-linked ones. */
 export function getTransportForDay(opts: {
   reservations: any[]
   dayId: number
   dayAssignmentIds: number[]
-  days: Array<{ id: number; day_number?: number }>
+  days: Array<{ id: number; day_number?: number; date?: string | null }>
 }): any[] {
   const { reservations, dayId, dayAssignmentIds, days } = opts
 
@@ -69,7 +123,34 @@ export function getTransportForDay(opts: {
       return thisDayOrder >= startOrder && thisDayOrder <= endOrder
     }
     return startDayId === dayId
-  })
+  }).flatMap(r => expandFlightLegsForDay(r, dayId, getDayOrder, days))
+}
+
+/**
+ * Order items chronologically: anything with a time (a place's place_time, a
+ * transport/leg display time, a timed note) sorts by that time. An item WITHOUT a
+ * time inherits the time of the timed item before it, so untimed items stay where
+ * they were manually placed. Stable on the incoming order for ties.
+ */
+function applyChronoOrder(
+  items: MergedItem[],
+  dayId: number,
+  getDisplayTime: (r: any, dayId: number) => string | null
+): MergedItem[] {
+  const timeOf = (it: MergedItem): number | null => {
+    if (it.type === 'place') return parseTimeToMinutes(it.data?.place?.place_time)
+    if (it.type === 'note') return parseTimeToMinutes(it.data?.time)
+    return parseTimeToMinutes(getDisplayTime(it.data, dayId))
+  }
+  let last = -Infinity
+  return items
+    .map((it, i) => {
+      const t = timeOf(it)
+      if (t != null) last = t
+      return { it, i, eff: t != null ? t : last }
+    })
+    .sort((a, b) => a.eff - b.eff || a.i - b.i)
+    .map(k => k.it)
 }
 
 /** Merge places, notes, and transports into a single ordered day timeline. */
@@ -94,9 +175,9 @@ export function getMergedItems(opts: {
     minutes: parseTimeToMinutes(getDisplayTime(r, dayId)) ?? 0,
   })).sort((a, b) => a.minutes - b.minutes)
 
-  if (timedTransports.length === 0) return baseItems
+  if (timedTransports.length === 0) return applyChronoOrder(baseItems, dayId, getDisplayTime)
   if (baseItems.length === 0) {
-    return timedTransports.map((item, i) => ({ type: item.type, sortKey: i, data: item.data }))
+    return applyChronoOrder(timedTransports.map((item, i) => ({ type: item.type, sortKey: i, data: item.data })), dayId, getDisplayTime)
   }
 
   // Insert transports among base items based on per-day position or time
@@ -132,5 +213,5 @@ export function getMergedItems(opts: {
     result.push({ type: timed.type, sortKey, data: timed.data })
   }
 
-  return result.sort((a, b) => a.sortKey - b.sortKey)
+  return applyChronoOrder(result.sort((a, b) => a.sortKey - b.sortKey), dayId, getDisplayTime)
 }

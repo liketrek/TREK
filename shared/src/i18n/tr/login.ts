@@ -1,0 +1,103 @@
+import type { TranslationStrings } from '../types';
+
+const login: TranslationStrings = {
+  'login.error':
+    'Giriş başarısız oldu. Lütfen kimlik bilgilerinizi kontrol edin.',
+  'login.tagline': 'Gezileriniz.\\nPlanınız.',
+  'login.description':
+    'Etkileşimli haritalar, bütçeler ve gerçek zamanlı senkronizasyonla gezileri işbirliği içinde planlayın.',
+  'login.features.maps': 'İnteraktif Haritalar',
+  'login.features.mapsDesc': 'Google Rehber, rotalar ve kümeleme',
+  'login.features.realtime': 'Gerçek Zamanlı Senkronizasyon',
+  'login.features.realtimeDesc': 'WebSocket aracılığıyla birlikte plan yapın',
+  'login.features.budget': 'Bütçe Takibi',
+  'login.features.budgetDesc': 'Kategoriler, grafikler ve kişi başı maliyetler',
+  'login.features.collab': 'İşbirliği',
+  'login.features.collabDesc': 'Paylaşılan gezilerle çok kullanıcılı',
+  'login.features.packing': 'Paketleme Listeleri',
+  'login.features.packingDesc': 'Kategoriler, ilerleme ve öneriler',
+  'login.features.bookings': 'Rezervasyonlar',
+  'login.features.bookingsDesc':
+    'Uçuşlar, oteller, restoranlar ve daha fazlası',
+  'login.features.files': 'Belgeler',
+  'login.features.filesDesc': 'Belgeleri yükleyin ve yönetin',
+  'login.features.routes': 'Akıllı Rotalar',
+  'login.features.routesDesc':
+    "Otomatik optimize etme ve Google Haritalar'ı dışa aktarma",
+  'login.selfHosted':
+    'Kendi kendine barındırılan \\u00B7 Açık Kaynak \\u00B7 Verileriniz size ait kalır',
+  'login.title': 'Oturum Aç',
+  'login.subtitle': 'Tekrar hoş geldiniz',
+  'login.signingIn': 'Oturum açılıyor…',
+  'login.signIn': 'Oturum Aç',
+  'login.createAdmin': 'Yönetici Hesabı Oluştur',
+  'login.createAdminHint': 'TREK için ilk yönetici hesabını kurun.',
+  'login.setNewPassword': 'Yeni Şifre Belirle',
+  'login.setNewPasswordHint': 'Devam etmeden önce şifrenizi değiştirmelisiniz.',
+  'login.createAccount': 'Hesap Oluşturmak',
+  'login.createAccountHint': 'Yeni bir hesap kaydedin.',
+  'login.creating': 'Oluşturuluyor…',
+  'login.noAccount': "Don't have an account?",
+  'login.hasAccount': 'Zaten bir hesabınız var mı?',
+  'login.register': 'Kayıt olmak',
+  'login.emailPlaceholder': 'sizin@e-postanız.com',
+  'login.username': 'Kullanıcı adı',
+  'login.oidc.registrationDisabled':
+    'Kayıt devre dışı bırakıldı. Yöneticinizle iletişime geçin.',
+  'login.oidc.noEmail': 'Sağlayıcıdan e-posta alınmadı.',
+  'login.oidc.tokenFailed': 'Kimlik doğrulama başarısız oldu.',
+  'login.oidc.invalidState': 'Geçersiz oturum. Lütfen tekrar deneyin.',
+  'login.demoFailed': 'Demo girişi başarısız oldu',
+  'login.oidcSignIn': '{name} ile oturum açın',
+  'login.oidcOnly':
+    'Parola kimlik doğrulaması devre dışı. Lütfen SSO sağlayıcınızı kullanarak oturum açın.',
+  'login.oidcLoggedOut':
+    'Çıkış yaptınız. SSO sağlayıcınızı kullanarak tekrar oturum açın.',
+  'login.demoHint': 'Demoyu deneyin; kayıt olmanıza gerek yok',
+  'login.mfaTitle': 'İki faktörlü kimlik doğrulama',
+  'login.mfaSubtitle': 'Kimlik doğrulayıcı uygulamanızdan 6 haneli kodu girin.',
+  'login.mfaCodeLabel': 'Doğrulama kodu',
+  'login.mfaCodeRequired': 'Kimlik doğrulayıcı uygulamanızdan kodu girin.',
+  'login.mfaHint':
+    "Google Authenticator'ı, Authy'yi veya başka bir TOTP uygulamasını açın.",
+  'login.mfaBack': '← Oturum açmaya geri dön',
+  'login.mfaVerify': 'Doğrula',
+  'login.invalidInviteLink': 'Geçersiz veya süresi dolmuş davet bağlantısı',
+  'login.oidcFailed': 'OIDC girişi başarısız oldu',
+  'login.usernameRequired': 'Kullanıcı adı gerekli',
+  'login.passwordMinLength': 'Şifre en az 8 karakter olmalıdır',
+  'login.forgotPassword': 'Parolanızı mı unuttunuz?',
+  'login.forgotPasswordTitle': 'Şifrenizi sıfırlayın',
+  'login.forgotPasswordBody':
+    "Enter the email address you signed up with. If an account exists, we'll send a reset link.",
+  'login.forgotPasswordSubmit': 'Sıfırlama bağlantısını gönder',
+  'login.forgotPasswordSentTitle': 'E-postanızı kontrol edin',
+  'login.forgotPasswordSentBody':
+    'Söz konusu e-posta için bir hesap mevcutsa sıfırlama bağlantısı yolda olacaktır. 60 dakika içinde sona erer.',
+  'login.forgotPasswordSmtpHintOff':
+    "Heads up: your administrator hasn't configured SMTP, so the reset link will be written to the server console instead of being emailed.",
+  'login.backToLogin': 'Oturum açmak için geri dön',
+  'login.newPassword': 'Yeni Şifre',
+  'login.confirmPassword': 'Yeni şifreyi onayla',
+  'login.passwordsDontMatch': 'Şifreler eşleşmiyor',
+  'login.mfaCode': '2FA kodu',
+  'login.resetPasswordTitle': 'Yeni bir şifre belirleyin',
+  'login.resetPasswordBody':
+    'Daha önce burada kullanmadığınız güçlü bir şifre seçin. Minimum 8 karakter.',
+  'login.resetPasswordMfaBody':
+    'Sıfırlamayı tamamlamak için 2FA kodunuzu veya yedek kodu girin.',
+  'login.resetPasswordSubmit': 'Şifreyi sıfırla',
+  'login.resetPasswordVerify': 'Doğrula ve sıfırla',
+  'login.resetPasswordSuccessTitle': 'Şifre güncellendi',
+  'login.resetPasswordSuccessBody':
+    'Artık yeni şifrenizle giriş yapabilirsiniz.',
+  'login.resetPasswordInvalidLink': 'Geçersiz sıfırlama bağlantısı',
+  'login.resetPasswordInvalidLinkBody':
+    'Bu bağlantı eksik veya bozuk. Devam etmek için yeni bir tane isteyin.',
+  'login.resetPasswordFailed':
+    'Sıfırlama başarısız oldu. Bağlantının süresi dolmuş olabilir.',
+  'login.passkey.signIn': 'Passkey ile oturum açın',
+  'login.passkey.failed':
+    'Passkey ile oturum açma başarısız oldu. Lütfen tekrar deneyin.',
+};
+export default login;

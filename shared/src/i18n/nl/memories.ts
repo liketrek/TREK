@@ -1,0 +1,82 @@
+import type { TranslationStrings } from '../types';
+
+const memories: TranslationStrings = {
+  'memories.title': "Foto's",
+  'memories.notConnected': 'Immich niet verbonden',
+  'memories.notConnectedHint':
+    "Verbind je Immich-instantie in Instellingen om je reisfoto's hier te zien.",
+  'memories.notConnectedMultipleHint':
+    "Verbind een van deze fotoproviders: {provider_names} in Instellingen om foto's aan dit reisplan toe te voegen.",
+  'memories.noDates': "Voeg data toe aan je reis om foto's te laden.",
+  'memories.noPhotos': "Geen foto's gevonden",
+  'memories.noPhotosHint':
+    "Geen foto's gevonden in Immich voor de datumreeks van deze reis.",
+  'memories.photosFound': "foto's",
+  'memories.fromOthers': 'van anderen',
+  'memories.sharePhotos': "Foto's delen",
+  'memories.sharing': 'Wordt gedeeld',
+  'memories.reviewTitle': "Je foto's bekijken",
+  'memories.reviewHint': "Klik op foto's om ze uit te sluiten van delen.",
+  'memories.shareCount': "{count} foto's delen",
+  'memories.providerUrl': 'Server-URL',
+  'memories.providerApiKey': 'API-sleutel',
+  'memories.providerUsername': 'Gebruikersnaam',
+  'memories.providerPassword': 'Wachtwoord',
+  'memories.providerOTP': 'MFA-code (indien ingeschakeld)',
+  'memories.skipSSLVerification': 'SSL-certificaatverificatie overslaan',
+  'memories.immichAutoUpload':
+    "Journey-foto's bij upload ook naar Immich spiegelen",
+  'memories.providerUrlHintSynology':
+    'Voeg het pad van de Photos-app toe aan de URL, bijv. https://nas:5001/photo',
+  'memories.testConnection': 'Verbinding testen',
+  'memories.testShort': 'Testen',
+  'memories.testFirst': 'Test eerst de verbinding',
+  'memories.connected': 'Verbonden',
+  'memories.disconnected': 'Niet verbonden',
+  'memories.connectionSuccess': 'Verbonden met Immich',
+  'memories.connectionError': 'Kon niet verbinden met Immich',
+  'memories.saved': '{provider_name}-instellingen opgeslagen',
+  'memories.providerDisconnectedBanner':
+    "Je {provider_name}-verbinding is verbroken. Maak opnieuw verbinding in Instellingen om foto's te bekijken.",
+  'memories.saveError':
+    '{provider_name}-instellingen konden niet worden opgeslagen',
+  'memories.saveRouteNotConfigured':
+    'Opslagroute is niet geconfigureerd voor deze provider',
+  'memories.testRouteNotConfigured':
+    'Testroute is niet geconfigureerd voor deze provider',
+  'memories.fillRequiredFields': 'Vul alle verplichte velden in',
+  'memories.oldest': 'Oudste eerst',
+  'memories.newest': 'Nieuwste eerst',
+  'memories.allLocations': 'Alle locaties',
+  'memories.addPhotos': "Foto's toevoegen",
+  'memories.linkAlbum': 'Album koppelen',
+  'memories.selectAlbum': 'Immich-album selecteren',
+  'memories.selectAlbumMultiple': 'Album selecteren',
+  'memories.noAlbums': 'Geen albums gevonden',
+  'memories.syncAlbum': 'Album synchroniseren',
+  'memories.unlinkAlbum': 'Ontkoppelen',
+  'memories.photos': 'fotos',
+  'memories.selectPhotos': "Selecteer foto's uit Immich",
+  'memories.selectPhotosMultiple': "Foto's selecteren",
+  'memories.selectHint': "Tik op foto's om ze te selecteren.",
+  'memories.selected': 'geselecteerd',
+  'memories.addSelected': "{count} foto's toevoegen",
+  'memories.alreadyAdded': 'Toegevoegd',
+  'memories.private': 'Privé',
+  'memories.stopSharing': 'Delen stoppen',
+  'memories.tripDates': 'Reisdata',
+  'memories.allPhotos': "Alle foto's",
+  'memories.confirmShareTitle': 'Delen met reisgenoten?',
+  'memories.confirmShareHint':
+    "{count} foto's worden zichtbaar voor alle leden van deze reis. Je kunt individuele foto's later privé maken.",
+  'memories.confirmShareButton': "Foto's delen",
+  'memories.error.loadAlbums': 'Albums laden mislukt',
+  'memories.error.linkAlbum': 'Album koppelen mislukt',
+  'memories.error.unlinkAlbum': 'Album ontkoppelen mislukt',
+  'memories.error.syncAlbum': 'Album synchroniseren mislukt',
+  'memories.error.loadPhotos': "Foto's laden mislukt",
+  'memories.error.addPhotos': "Foto's toevoegen mislukt",
+  'memories.error.removePhoto': 'Foto verwijderen mislukt',
+  'memories.error.toggleSharing': 'Delen bijwerken mislukt',
+};
+export default memories;

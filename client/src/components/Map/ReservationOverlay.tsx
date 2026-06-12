@@ -2,7 +2,8 @@ import { createElement, useEffect, useMemo, useRef, useState } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { Marker, Polyline, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
-import { Plane, Train, Ship, Car } from 'lucide-react'
+import { Plane, Train, Ship, Car, Bus, Sailboat, Bike, CarTaxiFront, Route } from 'lucide-react'
+import { escapeHtml } from '@trek/shared'
 import { useSettingsStore } from '../../store/settingsStore'
 import type { Reservation, ReservationEndpoint } from '../../types'
 
@@ -10,8 +11,8 @@ const ENDPOINT_PANE = 'reservation-endpoints'
 const AIRPORT_BADGE_HALF_PX = 16
 const BADGE_GAP_PX = 5
 
-type TransportType = 'flight' | 'train' | 'cruise' | 'car'
-const TRANSPORT_TYPES: TransportType[] = ['flight', 'train', 'cruise', 'car']
+type TransportType = 'flight' | 'train' | 'cruise' | 'car' | 'bus' | 'taxi' | 'bicycle' | 'ferry' | 'transport_other'
+const TRANSPORT_TYPES: TransportType[] = ['flight', 'train', 'cruise', 'car', 'bus', 'taxi', 'bicycle', 'ferry', 'transport_other']
 
 const TRANSPORT_COLOR = '#3b82f6'
 
@@ -20,6 +21,11 @@ const TYPE_META: Record<TransportType, { color: string; icon: typeof Plane; geod
   train: { color: TRANSPORT_COLOR, icon: Train, geodesic: false },
   cruise: { color: TRANSPORT_COLOR, icon: Ship, geodesic: true },
   car: { color: TRANSPORT_COLOR, icon: Car, geodesic: false },
+  bus: { color: TRANSPORT_COLOR, icon: Bus, geodesic: false },
+  taxi: { color: TRANSPORT_COLOR, icon: CarTaxiFront, geodesic: false },
+  bicycle: { color: TRANSPORT_COLOR, icon: Bike, geodesic: false },
+  ferry: { color: TRANSPORT_COLOR, icon: Sailboat, geodesic: true },
+  transport_other: { color: TRANSPORT_COLOR, icon: Route, geodesic: false },
 }
 
 function useEndpointPane() {
@@ -37,7 +43,7 @@ function useEndpointPane() {
 function endpointIcon(type: TransportType, label: string | null): L.DivIcon {
   const { icon: IconCmp, color } = TYPE_META[type]
   const svg = renderToStaticMarkup(createElement(IconCmp, { size: 13, color: 'white', strokeWidth: 2.5 }))
-  const labelHtml = label ? `<span>${label}</span>` : ''
+  const labelHtml = label ? `<span>${escapeHtml(label)}</span>` : ''
   const estWidth = label ? Math.max(40, label.length * 6 + 28) : 26
   return L.divIcon({
     className: 'trek-endpoint-marker',
@@ -46,9 +52,9 @@ function endpointIcon(type: TransportType, label: string | null): L.DivIcon {
       padding:0 8px;border-radius:999px;
       background:${color};box-shadow:0 2px 6px rgba(0,0,0,0.25);
       border:1.5px solid #fff;color:#fff;
-      font-family:-apple-system,system-ui,sans-serif;font-size:11px;font-weight:600;letter-spacing:0.3px;line-height:1;
+      font-family:var(--font-system);font-size:11px;font-weight:600;letter-spacing:0.3px;line-height:1;
       box-sizing:border-box;height:22px;white-space:nowrap;
-    "><span style="display:inline-flex;align-items:center;">${svg}</span>${labelHtml ? `<span style="display:inline-flex;align-items:center;line-height:1">${label}</span>` : ''}</div>`,
+    "><span style="display:inline-flex;align-items:center;">${svg}</span>${labelHtml ? `<span style="display:inline-flex;align-items:center;line-height:1">${escapeHtml(label)}</span>` : ''}</div>`,
     iconSize: [estWidth, 22],
     iconAnchor: [estWidth / 2, 11],
     popupAnchor: [0, -11],
@@ -152,6 +158,7 @@ interface TransportItem {
   res: Reservation
   from: ReservationEndpoint
   to: ReservationEndpoint
+  waypoints: ReservationEndpoint[]
   type: TransportType
   arcs: [number, number][][]
   primaryArc: [number, number][]
@@ -167,8 +174,8 @@ function buildStatsHtml(color: string, mainLabel: string | null, subLabel: strin
   ) + 22
   const hasBoth = !!mainLabel && !!subLabel
   const height = hasBoth ? 36 : 22
-  const main = mainLabel ? `<span style="font-size:12px;font-weight:700;line-height:1;display:block">${mainLabel}</span>` : ''
-  const sub = subLabel ? `<span style="font-size:10px;font-weight:500;line-height:1;opacity:0.85;display:block${hasBoth ? ';margin-top:4px' : ''}">${subLabel}</span>` : ''
+  const main = mainLabel ? `<span style="font-size:12px;font-weight:700;line-height:1;display:block">${escapeHtml(mainLabel)}</span>` : ''
+  const sub = subLabel ? `<span style="font-size:10px;font-weight:500;line-height:1;opacity:0.85;display:block${hasBoth ? ';margin-top:4px' : ''}">${escapeHtml(subLabel)}</span>` : ''
   const html = `<div class="trek-stats-inner" style="
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     width:100%;height:100%;
@@ -176,7 +183,7 @@ function buildStatsHtml(color: string, mainLabel: string | null, subLabel: strin
     background:rgba(17,24,39,0.92);color:#fff;
     box-shadow:0 2px 6px rgba(0,0,0,0.25);
     border:1px solid ${color}aa;
-    font-family:-apple-system,system-ui,'SF Pro Text',sans-serif;
+    font-family:var(--font-system);
     white-space:nowrap;box-sizing:border-box;
     transform-origin:center;
     will-change:transform;
@@ -347,15 +354,29 @@ export default function ReservationOverlay({ reservations, showConnections, show
     const out: TransportItem[] = []
     for (const r of reservations) {
       if (!TRANSPORT_TYPES.includes(r.type as TransportType)) continue
-      const eps = r.endpoints || []
-      const from = eps.find(e => e.role === 'from')
-      const to = eps.find(e => e.role === 'to')
-      if (!from || !to) continue
+      // Ordered waypoints (from · stops · to). A single-leg booking has exactly two,
+      // so the arc + markers below are byte-identical to before for it.
+      const waypoints = (r.endpoints || [])
+        .filter(e => e.role === 'from' || e.role === 'to' || e.role === 'stop')
+        .slice()
+        .sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0))
+      if (waypoints.length < 2) continue
+      const from = waypoints[0]
+      const to = waypoints[waypoints.length - 1]
       const type = r.type as TransportType
       const isGeo = TYPE_META[type].geodesic
-      const arcs = isGeo
-        ? splitAntimeridian(greatCircle([from.lat, from.lng], [to.lat, to.lng]))
-        : [[[from.lat, from.lng], [to.lat, to.lng]] as [number, number][]]
+      // One arc per leg (between consecutive waypoints), concatenated.
+      const arcs: [number, number][][] = []
+      let distanceKm = 0
+      for (let i = 0; i < waypoints.length - 1; i++) {
+        const a = waypoints[i]
+        const b = waypoints[i + 1]
+        const segArcs = isGeo
+          ? splitAntimeridian(greatCircle([a.lat, a.lng], [b.lat, b.lng]))
+          : [[[a.lat, a.lng], [b.lat, b.lng]] as [number, number][]]
+        arcs.push(...segArcs)
+        distanceKm += haversineKm([a.lat, a.lng], [b.lat, b.lng])
+      }
       const primaryIdx = arcs.reduce((best, seg, idx, all) => seg.length > all[best].length ? idx : best, 0)
       const primaryArc = arcs[primaryIdx] ?? []
       const fallback: [number, number] = primaryArc.length > 0
@@ -363,12 +384,15 @@ export default function ReservationOverlay({ reservations, showConnections, show
         : [(from.lat + to.lat) / 2, (from.lng + to.lng) / 2]
 
       const duration = computeDuration(from, to, r.reservation_time || null, r.reservation_end_time || null)
-      const distance = `${Math.round(haversineKm([from.lat, from.lng], [to.lat, to.lng]))} km`
-      const mainLabel = from.code && to.code ? `${from.code} → ${to.code}` : null
+      const distance = `${Math.round(distanceKm)} km`
+      // Show the full route (FRA → BER → HND) when every waypoint has a code.
+      const mainLabel = waypoints.every(w => w.code)
+        ? waypoints.map(w => w.code).join(' → ')
+        : (from.code && to.code ? `${from.code} → ${to.code}` : null)
       const subParts = [duration, distance].filter(Boolean) as string[]
       const subLabel = subParts.length > 0 ? subParts.join(' · ') : null
 
-      out.push({ res: r, from, to, type, arcs, primaryArc, fallback, mainLabel, subLabel })
+      out.push({ res: r, from, to, waypoints, type, arcs, primaryArc, fallback, mainLabel, subLabel })
     }
     return out
   }, [reservations])
@@ -410,38 +434,21 @@ export default function ReservationOverlay({ reservations, showConnections, show
         />
       )))}
 
-      {visibleItems.flatMap(item => [
+      {visibleItems.flatMap(item => item.waypoints.map((wp, wi) => (
         <Marker
-          key={`from-${item.res.id}`}
-          position={[item.from.lat, item.from.lng]}
-          icon={endpointIcon(item.type, showEndpointLabels && labelVisibleIds.has(item.res.id) ? (item.from.code || cleanName(item.from.name)) : null)}
+          key={`wp-${item.res.id}-${wi}`}
+          position={[wp.lat, wp.lng]}
+          icon={endpointIcon(item.type, showEndpointLabels && labelVisibleIds.has(item.res.id) ? (wp.code || cleanName(wp.name)) : null)}
           pane={ENDPOINT_PANE}
           zIndexOffset={1000}
           eventHandlers={{ click: () => onEndpointClick?.(item.res.id) }}
         >
           <Tooltip direction="top" offset={[0, -8]} opacity={1} className="map-tooltip">
-            <div style={{ fontWeight: 600, fontSize: 12 }}>{item.from.name}</div>
-            {item.res.title && <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{item.res.title}</div>}
+            <div style={{ fontWeight: 600, fontSize: 12 }}>{wp.name}</div>
+            {item.res.title && <div className="text-content-muted" style={{ fontSize: 11 }}>{item.res.title}</div>}
           </Tooltip>
-        </Marker>,
-        <Marker
-          key={`to-${item.res.id}`}
-          position={[item.to.lat, item.to.lng]}
-          icon={endpointIcon(item.type, showEndpointLabels && labelVisibleIds.has(item.res.id) ? (item.to.code || cleanName(item.to.name)) : null)}
-          pane={ENDPOINT_PANE}
-          zIndexOffset={1000}
-          eventHandlers={{ click: () => onEndpointClick?.(item.res.id) }}
-        >
-          <Tooltip direction="top" offset={[0, -8]} opacity={1} className="map-tooltip">
-            <div style={{ fontWeight: 600, fontSize: 12 }}>{item.to.name}</div>
-            {item.res.title && <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{item.res.title}</div>}
-          </Tooltip>
-        </Marker>,
-      ])}
-
-      {showStats && visibleItems.map(item => item.type === 'flight' && (item.mainLabel || item.subLabel) && labelVisibleIds.has(item.res.id) && (
-        <StatsLabel key={`stats-${item.res.id}`} item={item} />
-      ))}
+        </Marker>
+      )))}
     </>
   )
 }

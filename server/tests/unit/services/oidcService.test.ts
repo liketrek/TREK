@@ -83,17 +83,20 @@ afterAll(() => {
 // ── createState / consumeState ────────────────────────────────────────────────
 
 describe('createState / consumeState', () => {
-  it('OIDC-SVC-001: createState returns a hex token', () => {
-    const state = createState('https://example.com/callback');
+  it('OIDC-SVC-001: createState returns a hex token + PKCE S256 challenge', () => {
+    const { state, codeChallenge } = createState('https://example.com/callback');
     expect(state).toMatch(/^[0-9a-f]{64}$/);
+    expect(codeChallenge).toMatch(/^[A-Za-z0-9_-]{43}$/); // base64url SHA-256, no padding
   });
 
-  it('OIDC-SVC-002: consumeState returns stored data and deletes state', () => {
-    const state = createState('https://example.com/callback', 'invite-abc');
+  it('OIDC-SVC-002: consumeState returns stored data (incl. verifier) and deletes state', () => {
+    const { state } = createState('https://example.com/callback', 'invite-abc');
     const data = consumeState(state);
     expect(data).not.toBeNull();
     expect(data!.redirectUri).toBe('https://example.com/callback');
     expect(data!.inviteToken).toBe('invite-abc');
+    expect(typeof data!.codeVerifier).toBe('string');
+    expect(data!.codeVerifier.length).toBeGreaterThan(20);
     // State is consumed — second call returns null
     expect(consumeState(state)).toBeNull();
   });
@@ -103,8 +106,8 @@ describe('createState / consumeState', () => {
   });
 
   it('OIDC-SVC-004: two different states do not conflict', () => {
-    const s1 = createState('http://a.example.com');
-    const s2 = createState('http://b.example.com');
+    const { state: s1 } = createState('http://a.example.com');
+    const { state: s2 } = createState('http://b.example.com');
     expect(s1).not.toBe(s2);
     expect(consumeState(s1)!.redirectUri).toBe('http://a.example.com');
     expect(consumeState(s2)!.redirectUri).toBe('http://b.example.com');
@@ -310,7 +313,7 @@ describe('findOrCreateUser', () => {
     const { user } = createUser(testDb, { email: 'bob@example.com' });
 
     const result = findOrCreateUser(
-      { sub: 'sub-bob-new', email: 'bob@example.com', name: 'Bob' },
+      { sub: 'sub-bob-new', email: 'bob@example.com', name: 'Bob', email_verified: true },
       MOCK_CONFIG
     );
     expect('user' in result).toBe(true);
@@ -349,18 +352,35 @@ describe('findOrCreateUser', () => {
     expect((result as { error: string }).error).toBe('registration_disabled');
   });
 
-  it('OIDC-SVC-025: links oidc_sub when existing user has none', () => {
+  it('OIDC-SVC-025: links oidc_sub when existing user has none (verified email)', () => {
     const { user } = createUser(testDb, { email: 'charlie@example.com' });
     // Ensure no oidc_sub set
     testDb.prepare('UPDATE users SET oidc_sub = NULL, oidc_issuer = NULL WHERE id = ?').run(user.id);
 
     findOrCreateUser(
-      { sub: 'sub-charlie-linked', email: 'charlie@example.com', name: 'Charlie' },
+      { sub: 'sub-charlie-linked', email: 'charlie@example.com', name: 'Charlie', email_verified: true },
       MOCK_CONFIG
     );
 
     const updated = testDb.prepare('SELECT oidc_sub FROM users WHERE id = ?').get(user.id) as any;
     expect(updated.oidc_sub).toBe('sub-charlie-linked');
+  });
+
+  it('OIDC-SVC-025b: refuses to link an unverified email to an existing local account', () => {
+    const { user } = createUser(testDb, { email: 'dora@example.com' });
+    testDb.prepare('UPDATE users SET oidc_sub = NULL, oidc_issuer = NULL WHERE id = ?').run(user.id);
+
+    // No email_verified claim — an IdP that lets users set arbitrary emails must
+    // not be able to take over a pre-existing password account.
+    const result = findOrCreateUser(
+      { sub: 'sub-dora-attacker', email: 'dora@example.com', name: 'Dora' },
+      MOCK_CONFIG
+    );
+
+    expect('error' in result).toBe(true);
+    expect((result as { error: string }).error).toBe('email_not_verified');
+    const updated = testDb.prepare('SELECT oidc_sub FROM users WHERE id = ?').get(user.id) as any;
+    expect(updated.oidc_sub).toBeNull(); // account not linked / not hijacked
   });
 
   it('OIDC-SVC-026: existing user role is updated when OIDC claim mapping changes it', () => {

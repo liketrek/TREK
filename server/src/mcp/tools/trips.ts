@@ -22,7 +22,7 @@ import {
   safeBroadcast, MAX_MCP_TRIP_DAYS,
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, noAccess, ok,
+  demoDenied, noAccess, ok, hasTripPermission, permissionDenied,
 } from './_shared';
 import { canRead, canReadTrips, canWrite, canDeleteTrips, canShareTrips } from '../scopes';
 
@@ -84,6 +84,7 @@ export function registerTripTools(server: McpServer, userId: number, scopes: str
     async ({ tripId, title, description, start_date, end_date, currency }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('trip_edit', tripId, userId)) return permissionDenied();
       if (start_date) {
         const d = new Date(start_date + 'T00:00:00Z');
         if (isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== start_date)
@@ -321,6 +322,8 @@ export function registerTripTools(server: McpServer, userId: number, scopes: str
       annotations: TOOL_ANNOTATIONS_READONLY,
     },
     async ({ tripId }) => {
+      // Read parity with the REST route GET /api/trips/:tripId/share-link, which
+      // only requires trip membership (share_manage gates create/delete, not read).
       if (!canAccessTrip(tripId, userId)) return noAccess();
       const link = getShareLink(String(tripId));
       return ok({ link });
@@ -344,6 +347,7 @@ export function registerTripTools(server: McpServer, userId: number, scopes: str
     async ({ tripId, share_map, share_bookings, share_packing, share_budget, share_collab }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('share_manage', tripId, userId)) return permissionDenied();
       const { token, created } = createOrUpdateShareLink(String(tripId), userId, {
         share_map: share_map ?? true,
         share_bookings: share_bookings ?? true,
@@ -367,6 +371,7 @@ export function registerTripTools(server: McpServer, userId: number, scopes: str
     async ({ tripId }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('share_manage', tripId, userId)) return permissionDenied();
       deleteShareLink(String(tripId));
       return ok({ success: true });
     }

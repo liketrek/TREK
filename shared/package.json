@@ -1,0 +1,67 @@
+{
+  "name": "@trek/shared",
+  "version": "3.0.22",
+  "private": true,
+  "description": "Shared API contracts (Zod schemas) — single source of truth for TREK server and client.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./i18n": {
+      "types": "./dist/i18n/index.d.ts",
+      "import": "./dist/i18n/index.js",
+      "require": "./dist/i18n/index.cjs"
+    },
+    "./i18n/*": {
+      "types": "./dist/i18n/*/index.d.ts",
+      "import": "./dist/i18n/*/index.js",
+      "require": "./dist/i18n/*/index.cjs"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "i18n": [
+        "./dist/i18n/index.d.ts"
+      ],
+      "i18n/*": [
+        "./dist/i18n/*/index.d.ts"
+      ]
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "build:watch": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "lint": "eslint --fix \"src/**/*.ts\"",
+    "i18n:parity": "node scripts/i18n-parity.mjs",
+    "i18n:parity:strict": "node scripts/i18n-parity.mjs --strict"
+  },
+  "dependencies": {
+    "isomorphic-dompurify": "^3.15.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@trivago/prettier-plugin-sort-imports": "^6.0.2",
+    "eslint": "^10.3.0",
+    "eslint-config-flat-gitignore": "^2.3.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "prettier": "3.8.3",
+    "prettier-plugin-organize-imports": "^4.3.0",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.2",
+    "typescript-eslint": "^8.58.2",
+    "vitest": "^3.2.4"
+  }
+}

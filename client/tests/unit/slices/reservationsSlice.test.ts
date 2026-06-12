@@ -42,20 +42,20 @@ describe('reservationsSlice', () => {
 
   describe('addReservation', () => {
     it('FE-RESERV-002: addReservation prepends to reservations array', async () => {
-      const existing = buildReservation({ trip_id: 1, name: 'Existing' });
+      const existing = buildReservation({ trip_id: 1, title: 'Existing' });
       seedStore(useTripStore, { reservations: [existing] });
 
       const result = await useTripStore.getState().addReservation(1, {
-        name: 'New Hotel',
+        title: 'New Hotel',
         type: 'hotel',
         status: 'pending',
       });
 
-      expect(result.name).toBe('New Hotel');
+      expect(result.title).toBe('New Hotel');
       const reservations = useTripStore.getState().reservations;
       expect(reservations).toHaveLength(2);
       // addReservation prepends
-      expect(reservations[0].name).toBe('New Hotel');
+      expect(reservations[0].title).toBe('New Hotel');
     });
 
     it('FE-RESERV-003: addReservation on failure throws', async () => {
@@ -66,14 +66,14 @@ describe('reservationsSlice', () => {
       );
 
       await expect(
-        useTripStore.getState().addReservation(1, { name: 'Fail' })
+        useTripStore.getState().addReservation(1, { title: 'Fail' })
       ).rejects.toThrow();
     });
   });
 
   describe('updateReservation', () => {
     it('FE-RESERV-004: updateReservation replaces item in array by id', async () => {
-      const reservation = buildReservation({ id: 10, trip_id: 1, name: 'Old', status: 'pending' });
+      const reservation = buildReservation({ id: 10, trip_id: 1, title: 'Old', status: 'pending' });
       seedStore(useTripStore, { reservations: [reservation] });
 
       server.use(
@@ -83,10 +83,10 @@ describe('reservationsSlice', () => {
         }),
       );
 
-      const result = await useTripStore.getState().updateReservation(1, 10, { name: 'Updated Hotel' });
+      const result = await useTripStore.getState().updateReservation(1, 10, { title: 'Updated Hotel' });
 
-      expect(result.name).toBe('Updated Hotel');
-      expect(useTripStore.getState().reservations[0].name).toBe('Updated Hotel');
+      expect(result.title).toBe('Updated Hotel');
+      expect(useTripStore.getState().reservations[0].title).toBe('Updated Hotel');
     });
   });
 
@@ -123,7 +123,7 @@ describe('reservationsSlice', () => {
       expect(useTripStore.getState().reservations[0].status).toBe('confirmed');
     });
 
-    it('FE-RESERV-007: toggleReservationStatus rolls back on API failure (silent)', async () => {
+    it('FE-RESERV-007: toggleReservationStatus rolls back and surfaces the error on API failure', async () => {
       const reservation = buildReservation({ id: 10, trip_id: 1, status: 'confirmed' });
       seedStore(useTripStore, { reservations: [reservation] });
 
@@ -133,8 +133,9 @@ describe('reservationsSlice', () => {
         ),
       );
 
-      // Does NOT throw (silent rollback)
-      await useTripStore.getState().toggleReservationStatus(1, 10);
+      // Rolls back the optimistic toggle AND rejects, so the caller's catch can
+      // show a toast (previously the failure was swallowed and the toast never fired).
+      await expect(useTripStore.getState().toggleReservationStatus(1, 10)).rejects.toThrow();
 
       expect(useTripStore.getState().reservations[0].status).toBe('confirmed');
     });

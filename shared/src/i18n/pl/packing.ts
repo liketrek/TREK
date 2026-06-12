@@ -1,0 +1,186 @@
+import type { TranslationStrings } from '../types';
+
+const packing: TranslationStrings = {
+  'packing.title': 'Lista pakowania',
+  'packing.empty': 'Lista pakowania jest pusta',
+  'packing.import': 'Importuj',
+  'packing.importTitle': 'Importuj listę pakowania',
+  'packing.importHint':
+    'Jedna pozycja w wierszu. Format: kategoria, nazwa, waga w gramach (opcjonalnie), Torba (opcjonalnie), checked/unchecked (opcjonalnie)',
+  'packing.importPlaceholder':
+    'Higiena, Szczoteczka do zębów\nOdzież, Koszulki, 200\nDokumenty, Paszport, , Podręczny\nElektronika, Ładowarka, 50, Walizka, checked',
+  'packing.importCsv': 'Załaduj CSV/TXT',
+  'packing.importAction': 'Importuj {count}',
+  'packing.importSuccess': '{count} pozycji zaimportowanych',
+  'packing.importError': 'Import nie powiódł się',
+  'packing.importEmpty': 'Brak pozycji do zaimportowania',
+  'packing.progress': '{packed} z {total} spakowanych ({percent}%)',
+  'packing.clearChecked': 'Usuń {count} spakowanych',
+  'packing.clearCheckedShort': 'Usuń {count}',
+  'packing.suggestions': 'Sugestie',
+  'packing.suggestionsTitle': 'Dodaj sugestie',
+  'packing.allSuggested': 'Dodano wszystkie sugestie',
+  'packing.allPacked': 'Wszystko spakowane!',
+  'packing.addPlaceholder': 'Dodaj nowy przedmiot...',
+  'packing.categoryPlaceholder': 'Kategoria...',
+  'packing.filterAll': 'Wszystkie',
+  'packing.filterOpen': 'Do spakowania',
+  'packing.filterDone': 'Spakowane',
+  'packing.emptyTitle': 'Lista pakowania jest pusta',
+  'packing.emptyHint': 'Dodaj przedmioty lub użyj sugestii',
+  'packing.emptyFiltered': 'Brak przedmiotów pasujących do filtra',
+  'packing.menuRename': 'Zmień nazwę',
+  'packing.menuCheckAll': 'Zaznacz wszystko',
+  'packing.menuUncheckAll': 'Odznacz wszystko',
+  'packing.menuDeleteCat': 'Usuń kategorię',
+  'packing.saveAsTemplate': 'Zapisz jako szablon',
+  'packing.templateName': 'Nazwa szablonu',
+  'packing.templateSaved': 'Lista pakowania zapisana jako szablon',
+  'packing.noMembers': 'Brak członków podróży',
+  'packing.addItem': 'Dodaj przedmiot',
+  'packing.addItemPlaceholder': 'Nazwa przedmiotu...',
+  'packing.addCategory': 'Dodaj kategorię',
+  'packing.newCategoryPlaceholder': 'Nazwa kategorii (np. Odzież)',
+  'packing.applyTemplate': 'Zastosuj szablon',
+  'packing.template': 'Szablon',
+  'packing.templateApplied': '{count} przedmiotów dodanych z szablonu',
+  'packing.templateError': 'Nie udało się zastosować szablonu',
+  'packing.bags': 'Torby',
+  'packing.noBag': 'Nieprzypisane',
+  'packing.totalWeight': 'Waga całkowita',
+  'packing.bagName': 'Nazwa torby...',
+  'packing.addBag': 'Dodaj torbę',
+  'packing.changeCategory': 'Zmień kategorię',
+  'packing.confirm.clearChecked':
+    'Czy na pewno chcesz usunąć {count} spakowanych przedmiotów?',
+  'packing.confirm.deleteCat':
+    'Czy na pewno chcesz usunąć kategorię "{name}" z {count} przedmiotami?',
+  'packing.defaultCategory': 'Inne',
+  'packing.toast.saveError': 'Nie udało się zapisać',
+  'packing.toast.deleteError': 'Nie udało się usunąć',
+  'packing.toast.renameError': 'Nie udało się zmienić nazwy',
+  'packing.toast.addError': 'Nie udało się dodać',
+  'packing.suggestions.items': [
+    {
+      name: 'Paszport',
+      category: 'Dokumenty',
+    },
+    {
+      name: 'Dowód osobisty',
+      category: 'Dokumenty',
+    },
+    {
+      name: 'Ubezpieczenie turystyczne',
+      category: 'Dokumenty',
+    },
+    {
+      name: 'Bilety lotnicze',
+      category: 'Dokumenty',
+    },
+    {
+      name: 'Karta kredytowa',
+      category: 'Finanse',
+    },
+    {
+      name: 'Gotówka',
+      category: 'Finanse',
+    },
+    {
+      name: 'Wiza',
+      category: 'Dokumenty',
+    },
+    {
+      name: 'Koszulki',
+      category: 'Odzież',
+    },
+    {
+      name: 'Spodnie',
+      category: 'Odzież',
+    },
+    {
+      name: 'Bielizna',
+      category: 'Odzież',
+    },
+    {
+      name: 'Skarpetki',
+      category: 'Odzież',
+    },
+    {
+      name: 'Kurtka',
+      category: 'Odzież',
+    },
+    {
+      name: 'Piżama',
+      category: 'Odzież',
+    },
+    {
+      name: 'Strój kąpielowy',
+      category: 'Odzież',
+    },
+    {
+      name: 'Kurtka przeciwdeszczowa',
+      category: 'Odzież',
+    },
+    {
+      name: 'Wygodne buty',
+      category: 'Obuwie',
+    },
+    {
+      name: 'Szczoteczka do zębów',
+      category: 'Higiena',
+    },
+    {
+      name: 'Pasta do zębów',
+      category: 'Higiena',
+    },
+    {
+      name: 'Szampon',
+      category: 'Higiena',
+    },
+    {
+      name: 'Dezodorant',
+      category: 'Higiena',
+    },
+    {
+      name: 'Krem z filtrem',
+      category: 'Higiena',
+    },
+    {
+      name: 'Maszynka do golenia',
+      category: 'Higiena',
+    },
+    {
+      name: 'Ładowarka',
+      category: 'Elektronika',
+    },
+    {
+      name: 'Powerbank',
+      category: 'Elektronika',
+    },
+    {
+      name: 'Słuchawki',
+      category: 'Elektronika',
+    },
+    {
+      name: 'Adapter podróżny',
+      category: 'Elektronika',
+    },
+    {
+      name: 'Aparat',
+      category: 'Elektronika',
+    },
+    {
+      name: 'Leki',
+      category: 'Zdrowie',
+    },
+    {
+      name: 'Plastry',
+      category: 'Zdrowie',
+    },
+    {
+      name: 'Środek dezynfekujący',
+      category: 'Zdrowie',
+    },
+  ],
+};
+export default packing;

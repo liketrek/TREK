@@ -1,6 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { db, canAccessTrip } from './db/database';
-import { consumeEphemeralToken } from './services/ephemeralTokens';
+import { consumeEphemeralTokenWithMeta } from './services/ephemeralTokens';
 import { User } from './types';
 import http from 'node:http';
 
@@ -69,20 +69,33 @@ function setupWebSocket(server: http.Server): void {
       return;
     }
 
-    const userId = consumeEphemeralToken(token, 'ws');
-    if (!userId) {
+    const consumed = consumeEphemeralTokenWithMeta(token, 'ws');
+    if (!consumed) {
       nws.close(4001, 'Invalid or expired token');
       return;
     }
+    const { userId } = consumed;
 
-    let user: User | undefined;
-    user = db.prepare(
-      'SELECT id, username, email, role, mfa_enabled FROM users WHERE id = ?'
-    ).get(userId) as User | undefined;
-    if (!user) {
+    let row: (User & { password_version?: number }) | undefined;
+    row = db.prepare(
+      'SELECT id, username, email, role, mfa_enabled, password_version FROM users WHERE id = ?'
+    ).get(userId) as (User & { password_version?: number }) | undefined;
+    if (!row) {
       nws.close(4001, 'User not found');
       return;
     }
+    // Session gate (defence-in-depth): reject a ws-token minted before a
+    // password change. Tokens carry the pv they were issued with; tokens
+    // minted without a pv (legacy) are treated as version 0, matching the
+    // JWT `pv` claim semantics in verifyJwtAndLoadUser.
+    const tokenPv = typeof consumed.pv === 'number' ? consumed.pv : 0;
+    const currentPv = typeof row.password_version === 'number' ? row.password_version : 0;
+    if (tokenPv !== currentPv) {
+      nws.close(4001, 'Invalid or expired token');
+      return;
+    }
+    // Don't leak password_version beyond the handshake.
+    const { password_version: _pv, ...user } = row;
     const requireMfa = (db.prepare("SELECT value FROM app_settings WHERE key = 'require_mfa'").get() as { value: string } | undefined)?.value === 'true';
     const mfaOk = user.mfa_enabled === 1 || user.mfa_enabled === true;
     if (requireMfa && !mfaOk) {

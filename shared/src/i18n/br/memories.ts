@@ -1,0 +1,83 @@
+import type { TranslationStrings } from '../types';
+
+const memories: TranslationStrings = {
+  'memories.title': 'Fotos',
+  'memories.notConnected': 'Immich não conectado',
+  'memories.notConnectedHint':
+    'Conecte sua instância Immich nas Configurações para ver suas fotos de viagem aqui.',
+  'memories.notConnectedMultipleHint':
+    'Conecte um destes provedores de fotos: {provider_names} nas Configurações para poder adicionar fotos a esta viagem.',
+  'memories.noDates': 'Adicione datas à sua viagem para carregar fotos.',
+  'memories.noPhotos': 'Nenhuma foto encontrada',
+  'memories.noPhotosHint':
+    'Nenhuma foto encontrada no Immich para o período desta viagem.',
+  'memories.photosFound': 'fotos',
+  'memories.fromOthers': 'de outros',
+  'memories.sharePhotos': 'Compartilhar fotos',
+  'memories.sharing': 'Compartilhando',
+  'memories.reviewTitle': 'Revise suas fotos',
+  'memories.reviewHint':
+    'Clique nas fotos para excluí-las do compartilhamento.',
+  'memories.shareCount': 'Compartilhar {count} fotos',
+  'memories.providerUrl': 'URL do servidor',
+  'memories.providerApiKey': 'Chave de API',
+  'memories.providerUsername': 'Nome de usuário',
+  'memories.providerPassword': 'Senha',
+  'memories.providerOTP': 'Código MFA (se habilitado)',
+  'memories.skipSSLVerification': 'Pular verificação de certificado SSL',
+  'memories.immichAutoUpload': 'Espelhar fotos da jornada no Immich ao enviar',
+  'memories.providerUrlHintSynology':
+    'Inclua o caminho do aplicativo Photos na URL, ex. https://nas:5001/photo',
+  'memories.testConnection': 'Testar conexão',
+  'memories.testShort': 'Testar',
+  'memories.testFirst': 'Teste a conexão primeiro',
+  'memories.connected': 'Conectado',
+  'memories.disconnected': 'Não conectado',
+  'memories.connectionSuccess': 'Conectado ao Immich',
+  'memories.connectionError': 'Não foi possível conectar ao Immich',
+  'memories.saved': 'Configurações do {provider_name} salvas',
+  'memories.providerDisconnectedBanner':
+    'Sua conexão com {provider_name} foi perdida. Reconecte nas Configurações para ver as fotos.',
+  'memories.saveError':
+    'Não foi possível salvar as configurações de {provider_name}',
+  'memories.addPhotos': 'Adicionar fotos',
+  'memories.linkAlbum': 'Vincular álbum',
+  'memories.selectAlbum': 'Selecionar álbum do Immich',
+  'memories.selectAlbumMultiple': 'Selecionar álbum',
+  'memories.noAlbums': 'Nenhum álbum encontrado',
+  'memories.syncAlbum': 'Sincronizar álbum',
+  'memories.unlinkAlbum': 'Desvincular',
+  'memories.photos': 'fotos',
+  'memories.selectPhotos': 'Selecionar fotos do Immich',
+  'memories.selectPhotosMultiple': 'Selecionar fotos',
+  'memories.selectHint': 'Toque nas fotos para selecioná-las.',
+  'memories.selected': 'selecionadas',
+  'memories.addSelected': 'Adicionar {count} fotos',
+  'memories.alreadyAdded': 'Já adicionada',
+  'memories.private': 'Privado',
+  'memories.stopSharing': 'Parar de compartilhar',
+  'memories.oldest': 'Mais antigas',
+  'memories.newest': 'Mais recentes',
+  'memories.allLocations': 'Todos os locais',
+  'memories.tripDates': 'Datas da viagem',
+  'memories.allPhotos': 'Todas as fotos',
+  'memories.confirmShareTitle': 'Compartilhar com membros da viagem?',
+  'memories.confirmShareHint':
+    '{count} fotos serão visíveis para todos os membros desta viagem. Você pode tornar fotos individuais privadas depois.',
+  'memories.confirmShareButton': 'Compartilhar fotos',
+  'memories.error.loadAlbums': 'Falha ao carregar álbuns',
+  'memories.error.linkAlbum': 'Falha ao vincular álbum',
+  'memories.error.unlinkAlbum': 'Falha ao desvincular álbum',
+  'memories.error.syncAlbum': 'Falha ao sincronizar álbum',
+  'memories.error.loadPhotos': 'Falha ao carregar fotos',
+  'memories.error.addPhotos': 'Falha ao adicionar fotos',
+  'memories.error.removePhoto': 'Falha ao remover foto',
+  'memories.error.toggleSharing': 'Falha ao atualizar compartilhamento',
+  'memories.saveRouteNotConfigured':
+    'A rota de salvamento não está configurada para este provedor',
+  'memories.testRouteNotConfigured':
+    'A rota de teste não está configurada para este provedor',
+  'memories.fillRequiredFields':
+    'Por favor preencha todos os campos obrigatórios',
+};
+export default memories;

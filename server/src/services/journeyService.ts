@@ -1,4 +1,4 @@
-import { db } from '../db/database';
+import { db, canAccessTrip } from '../db/database';
 import { broadcastToUser } from '../websocket';
 import type { Journey, JourneyEntry, JourneyPhoto, JourneyContributor } from '../types';
 import { getOrCreateTrekPhoto, getOrCreateLocalTrekPhoto, setTrekPhotoProvider, deleteTrekPhotoIfOrphan } from './memories/photoResolverService';
@@ -254,6 +254,11 @@ export function deleteJourney(journeyId: number, userId: number): boolean {
 // ── Trip management ──────────────────────────────────────────────────────
 
 export function addTripToJourney(journeyId: number, tripId: number, userId: number): boolean {
+  // Only attach a trip the caller can actually access — otherwise a journey
+  // owner could pull an arbitrary trip's places + photos into their journey
+  // (cross-tenant leak). Mirrors the trip-access gate every other trip-scoped
+  // path enforces.
+  if (!canAccessTrip(tripId, userId)) return false;
   const now = ts();
   try {
     db.prepare(
@@ -501,6 +506,7 @@ export function createEntry(journeyId: number, userId: number, data: {
   tags?: string[];
   pros_cons?: { pros: string[]; cons: string[] };
   visibility?: string;
+  sort_order?: number;
 }, sid?: string): JourneyEntry | null {
   if (!canEdit(journeyId, userId)) return null;
 
@@ -562,8 +568,18 @@ export function updateEntry(entryId: number, userId: number, data: Partial<{
   const fields: string[] = [];
   const values: unknown[] = [];
 
+  // Allow-list the columns a client may set: keys come from the request body
+  // and are interpolated as SQL column names, so restrict them to the known
+  // entry fields. Keep this in sync with the data type above.
+  const allowed = new Set([
+    'type', 'title', 'story', 'entry_date', 'entry_time',
+    'location_name', 'location_lat', 'location_lng',
+    'mood', 'weather', 'tags', 'pros_cons', 'visibility', 'sort_order',
+  ]);
+
   for (const [key, val] of Object.entries(data)) {
     if (val === undefined) continue;
+    if (!allowed.has(key)) continue;
     if (key === 'tags') {
       fields.push('tags = ?');
       values.push(Array.isArray(val) ? JSON.stringify(val) : val);

@@ -1,0 +1,185 @@
+import type { TranslationStrings } from '../types';
+
+const packing: TranslationStrings = {
+  'packing.title': '짐 목록',
+  'packing.empty': '짐 목록이 비어 있습니다',
+  'packing.import': '가져오기',
+  'packing.importTitle': '짐 목록 가져오기',
+  'packing.importHint':
+    '한 줄에 하나의 항목. 형식: 카테고리, 이름, 무게(g, 선택), 가방(선택), checked/unchecked(선택)',
+  'packing.importPlaceholder':
+    '위생, 칫솔\n의류, 티셔츠, 200\n서류, 여권, , 기내 수하물\n전자기기, 충전기, 50, 캐리어, checked',
+  'packing.importCsv': 'CSV/TXT 불러오기',
+  'packing.importAction': '{count}개 가져오기',
+  'packing.importSuccess': '{count}개 항목을 가져왔습니다',
+  'packing.importError': '가져오기 실패',
+  'packing.importEmpty': '가져올 항목이 없습니다',
+  'packing.progress': '{total}개 중 {packed}개 완료 ({percent}%)',
+  'packing.clearChecked': '체크된 {count}개 제거',
+  'packing.clearCheckedShort': '{count}개 제거',
+  'packing.suggestions': '제안',
+  'packing.suggestionsTitle': '제안 추가',
+  'packing.allSuggested': '모든 제안이 추가되었습니다',
+  'packing.allPacked': '모두 완료!',
+  'packing.addPlaceholder': '새 항목 추가...',
+  'packing.categoryPlaceholder': '카테고리...',
+  'packing.filterAll': '전체',
+  'packing.filterOpen': '미완료',
+  'packing.filterDone': '완료',
+  'packing.emptyTitle': '짐 목록이 비어 있습니다',
+  'packing.emptyHint': '항목을 추가하거나 제안을 사용하세요',
+  'packing.emptyFiltered': '이 필터와 일치하는 항목이 없습니다',
+  'packing.menuRename': '이름 변경',
+  'packing.menuCheckAll': '전체 체크',
+  'packing.menuUncheckAll': '전체 체크 해제',
+  'packing.menuDeleteCat': '카테고리 삭제',
+  'packing.noMembers': '여행 멤버가 없습니다',
+  'packing.addItem': '항목 추가',
+  'packing.addItemPlaceholder': '항목 이름...',
+  'packing.addCategory': '카테고리 추가',
+  'packing.newCategoryPlaceholder': '카테고리 이름 (예: 의류)',
+  'packing.applyTemplate': '템플릿 적용',
+  'packing.template': '템플릿',
+  'packing.templateApplied': '템플릿에서 {count}개 항목이 추가되었습니다',
+  'packing.templateError': '템플릿 적용 실패',
+  'packing.saveAsTemplate': '템플릿으로 저장',
+  'packing.templateName': '템플릿 이름',
+  'packing.templateSaved': '짐 목록이 템플릿으로 저장되었습니다',
+  'packing.bags': '가방',
+  'packing.noBag': '미배정',
+  'packing.totalWeight': '총 무게',
+  'packing.bagName': '가방 이름...',
+  'packing.addBag': '가방 추가',
+  'packing.changeCategory': '카테고리 변경',
+  'packing.confirm.clearChecked': '체크된 {count}개 항목을 제거할까요?',
+  'packing.confirm.deleteCat':
+    '카테고리 "{name}"을(를) {count}개 항목과 함께 삭제할까요?',
+  'packing.defaultCategory': '기타',
+  'packing.toast.saveError': '저장 실패',
+  'packing.toast.deleteError': '삭제 실패',
+  'packing.toast.renameError': '이름 변경 실패',
+  'packing.toast.addError': '추가 실패',
+  'packing.suggestions.items': [
+    {
+      name: '여권',
+      category: '서류',
+    },
+    {
+      name: '신분증',
+      category: '서류',
+    },
+    {
+      name: '여행자 보험',
+      category: '서류',
+    },
+    {
+      name: '항공권',
+      category: '서류',
+    },
+    {
+      name: '신용카드',
+      category: '금융',
+    },
+    {
+      name: '현금',
+      category: '금융',
+    },
+    {
+      name: '비자',
+      category: '서류',
+    },
+    {
+      name: '티셔츠',
+      category: '의류',
+    },
+    {
+      name: '바지',
+      category: '의류',
+    },
+    {
+      name: '속옷',
+      category: '의류',
+    },
+    {
+      name: '양말',
+      category: '의류',
+    },
+    {
+      name: '재킷',
+      category: '의류',
+    },
+    {
+      name: '잠옷',
+      category: '의류',
+    },
+    {
+      name: '수영복',
+      category: '의류',
+    },
+    {
+      name: '우비',
+      category: '의류',
+    },
+    {
+      name: '편한 신발',
+      category: '의류',
+    },
+    {
+      name: '칫솔',
+      category: '세면도구',
+    },
+    {
+      name: '치약',
+      category: '세면도구',
+    },
+    {
+      name: '샴푸',
+      category: '세면도구',
+    },
+    {
+      name: '데오도란트',
+      category: '세면도구',
+    },
+    {
+      name: '자외선 차단제',
+      category: '세면도구',
+    },
+    {
+      name: '면도기',
+      category: '세면도구',
+    },
+    {
+      name: '충전기',
+      category: '전자기기',
+    },
+    {
+      name: '보조 배터리',
+      category: '전자기기',
+    },
+    {
+      name: '헤드폰',
+      category: '전자기기',
+    },
+    {
+      name: '여행용 어댑터',
+      category: '전자기기',
+    },
+    {
+      name: '카메라',
+      category: '전자기기',
+    },
+    {
+      name: '진통제',
+      category: '건강',
+    },
+    {
+      name: '반창고',
+      category: '건강',
+    },
+    {
+      name: '소독제',
+      category: '건강',
+    },
+  ],
+};
+export default packing;

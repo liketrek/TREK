@@ -1,32 +1,45 @@
+import fs from 'fs';
+import path from 'path';
+import zlib from 'zlib';
 import { db } from '../db/database';
 import { Trip, Place } from '../types';
 
-// ── Admin-1 GeoJSON cache (sub-national regions) ─────────────────────────
+// ── Bundled boundary GeoJSON (admin-0 countries + admin-1 regions) ─────────
+//
+// Sourced from geoBoundaries (CC BY 4.0), normalized + quantized offline by
+// scripts/build-atlas-geo.mjs into gzipped FeatureCollections under server/assets.
+// They are read + decompressed once and cached in memory — no network at runtime.
+// (Replaces the previous runtime fetch of Natural Earth, which was stale for recent
+// sub-national reforms and depicts some contested borders in unwanted ways.)
+//
+// __dirname is server/dist/services at runtime and server/src/services under vitest;
+// both resolve ../../assets to server/assets.
 
-let admin1GeoCache: any = null;
-let admin1GeoLoading: Promise<any> | null = null;
+const geoBundleCache = new Map<string, any>();
 
-async function loadAdmin1Geo(): Promise<any> {
-  if (admin1GeoCache) return admin1GeoCache;
-  if (admin1GeoLoading) return admin1GeoLoading;
-  admin1GeoLoading = fetch(
-    'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_1_states_provinces.geojson',
-    { headers: { 'User-Agent': 'TREK Travel Planner' } }
-  ).then(r => r.json()).then(geo => {
-    admin1GeoCache = geo;
-    admin1GeoLoading = null;
-    console.log(`[Atlas] Cached admin-1 GeoJSON: ${geo.features?.length || 0} features`);
-    return geo;
-  }).catch(err => {
-    admin1GeoLoading = null;
-    console.error('[Atlas] Failed to load admin-1 GeoJSON:', err);
-    return null;
-  });
-  return admin1GeoLoading;
+function loadGeoBundle(name: 'admin0' | 'admin1'): any {
+  const cached = geoBundleCache.get(name);
+  if (cached) return cached;
+  const file = path.join(__dirname, '..', '..', 'assets', 'atlas', `${name}.geojson.gz`);
+  if (!fs.existsSync(file)) {
+    console.warn(`[Atlas] ${name}.geojson.gz missing — run \`node scripts/build-atlas-geo.mjs\``);
+    const empty = { type: 'FeatureCollection', features: [] };
+    geoBundleCache.set(name, empty);
+    return empty;
+  }
+  const geo = JSON.parse(zlib.gunzipSync(fs.readFileSync(file)).toString('utf8'));
+  geoBundleCache.set(name, geo);
+  console.log(`[Atlas] Loaded ${name} GeoJSON: ${geo.features?.length || 0} features`);
+  return geo;
+}
+
+/** Full admin-0 country-border FeatureCollection (for the client map's country layer). */
+export function getCountryGeo(): any {
+  return loadGeoBundle('admin0');
 }
 
 export async function getRegionGeo(countryCodes: string[]): Promise<any> {
-  const geo = await loadAdmin1Geo();
+  const geo = loadGeoBundle('admin1');
   if (!geo) return { type: 'FeatureCollection', features: [] };
   const codes = new Set(countryCodes.map(c => c.toUpperCase()));
   const features = geo.features.filter((f: any) => codes.has(f.properties?.iso_a2?.toUpperCase()));
@@ -534,13 +547,18 @@ const geocodingInFlight = new Set<number>();
 
 const regionCache = new Map<string, RegionInfo | null>();
 
-async function reverseGeocodeRegion(lat: number, lng: number): Promise<RegionInfo | null> {
-  const key = roundKey(lat, lng);
-  if (regionCache.has(key)) return regionCache.get(key)!;
+// A zoom-8 reverse geocode of a GB place only resolves to the constituent country
+// (England/Scotland/Wales/Northern Ireland). Natural Earth's admin-1 polygons for GB
+// are counties and boroughs, so those four codes match no polygon and never highlight.
+const GB_CONSTITUENT_CODES = new Set(['GB-ENG', 'GB-SCT', 'GB-WLS', 'GB-NIR']);
+
+// Returns the OSM address object, {} for an "ok but empty" response (so it is cached as
+// a definitive miss), or null for a transient failure (so it is retried next time).
+async function fetchNominatimAddress(lat: number, lng: number, zoom: number): Promise<Record<string, string> | null> {
   await throttleNominatim();
   try {
     const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=8&accept-language=en`,
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=${zoom}&accept-language=en`,
       {
         headers: { 'User-Agent': 'TREK Travel Planner (https://github.com/mauriceboe/TREK)' },
         signal: AbortSignal.timeout(10_000),
@@ -548,25 +566,50 @@ async function reverseGeocodeRegion(lat: number, lng: number): Promise<RegionInf
     );
     if (!res.ok) return null;
     const data = await res.json() as { address?: Record<string, string> };
-    const countryCode = data.address?.country_code?.toUpperCase() || null;
-    // Try finest ISO level first (lvl6 = departments/provinces), then lvl5, then lvl4 (states/regions)
-    let regionCode = data.address?.['ISO3166-2-lvl6'] || data.address?.['ISO3166-2-lvl5'] || data.address?.['ISO3166-2-lvl4'] || null;
-    // Normalize: FR-75C → FR-75 (strip trailing letter suffixes for GeoJSON compatibility)
-    if (regionCode && /^[A-Z]{2}-\d+[A-Z]$/i.test(regionCode)) {
-      regionCode = regionCode.replace(/[A-Z]$/i, '');
-    }
-    const regionName = data.address?.state || data.address?.province || data.address?.region || data.address?.county || data.address?.city || null;
-    if (!countryCode || !regionName) { regionCache.set(key, null); return null; }
-    const info: RegionInfo = {
-      country_code: countryCode,
-      region_code: regionCode || `${countryCode}-${regionName.substring(0, 3).toUpperCase()}`,
-      region_name: regionName,
-    };
-    regionCache.set(key, info);
-    return info;
+    return data.address ?? {};
   } catch {
     return null;
   }
+}
+
+function buildRegionInfo(address: Record<string, string>, preferFinest: boolean): RegionInfo | null {
+  const countryCode = address.country_code?.toUpperCase() || null;
+  // Coarse path (almost every country) lands on the admin-1 level that matches Natural
+  // Earth directly; the finest path is used only to rescue codes that are too broad.
+  let regionCode = preferFinest
+    ? (address['ISO3166-2-lvl8'] || address['ISO3166-2-lvl7'] || address['ISO3166-2-lvl6'] || address['ISO3166-2-lvl5'] || null)
+    : (address['ISO3166-2-lvl6'] || address['ISO3166-2-lvl5'] || address['ISO3166-2-lvl4'] || null);
+  // Normalize: FR-75C → FR-75 (strip trailing letter suffixes for GeoJSON compatibility)
+  if (regionCode && /^[A-Z]{2}-\d+[A-Z]$/i.test(regionCode)) {
+    regionCode = regionCode.replace(/[A-Z]$/i, '');
+  }
+  const regionName = preferFinest
+    ? (address.city || address.county || address.state_district || address.borough || address.state || address.province || address.region || null)
+    : (address.state || address.province || address.region || address.county || address.city || null);
+  if (!countryCode || !regionName) return null;
+  return {
+    country_code: countryCode,
+    region_code: regionCode || `${countryCode}-${regionName.substring(0, 3).toUpperCase()}`,
+    region_name: regionName,
+  };
+}
+
+async function reverseGeocodeRegion(lat: number, lng: number): Promise<RegionInfo | null> {
+  const key = roundKey(lat, lng);
+  if (regionCache.has(key)) return regionCache.get(key)!;
+  const address = await fetchNominatimAddress(lat, lng, 8);
+  if (!address) return null; // transient failure — leave uncached so a later call retries
+  let info = buildRegionInfo(address, false);
+  // GB constituent-country codes map to no admin-1 polygon, so re-resolve them at a finer
+  // zoom where Nominatim exposes the county/borough code (GB-LND, GB-MAN, GB-CON, …) that
+  // the polygons actually carry.
+  if (info && info.country_code === 'GB' && GB_CONSTITUENT_CODES.has(info.region_code)) {
+    const finerAddress = await fetchNominatimAddress(lat, lng, 10);
+    const finer = finerAddress ? buildRegionInfo(finerAddress, true) : null;
+    if (finer && !GB_CONSTITUENT_CODES.has(finer.region_code)) info = finer;
+  }
+  regionCache.set(key, info);
+  return info;
 }
 
 export async function getVisitedRegions(userId: number): Promise<{ regions: Record<string, { code: string; name: string; placeCount: number }[]> }> {

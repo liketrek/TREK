@@ -1,0 +1,44 @@
+import type { TranslationStrings } from '../types';
+
+const notif: TranslationStrings = {
+  'notif.test.title': '[テスト] 通知',
+  'notif.test.simple.text': 'これはシンプルなテスト通知です。',
+  'notif.test.boolean.text': 'このテスト通知を承認しますか？',
+  'notif.test.navigate.text':
+    '下をクリックしてダッシュボードに移動してください。',
+  'notif.trip_invite.title': '旅行への招待',
+  'notif.trip_invite.text': '{actor}が「{trip}」に招待しました',
+  'notif.booking_change.title': '予約が更新されました',
+  'notif.booking_change.text': '{actor}が「{trip}」の予約を更新しました',
+  'notif.trip_reminder.title': '旅行リマインド',
+  'notif.trip_reminder.text': '旅行「{trip}」がまもなく始まります！',
+  'notif.todo_due.title': 'ToDoの期限',
+  'notif.todo_due.text': '「{trip}」の{todo}は{due}が期限です',
+  'notif.vacay_invite.title': 'Vacay Fusionへの招待',
+  'notif.vacay_invite.text': '{actor}から旅行プランの統合に招待されました',
+  'notif.photos_shared.title': '写真が共有されました',
+  'notif.photos_shared.text':
+    '{actor}が「{trip}」で{count}枚の写真を共有しました',
+  'notif.collab_message.title': '新しいメッセージ',
+  'notif.collab_message.text': '{actor}が「{trip}」でメッセージを送りました',
+  'notif.packing_tagged.title': '持ち物の割り当て',
+  'notif.packing_tagged.text':
+    '{actor}が「{trip}」の{category}をあなたに割り当てました',
+  'notif.version_available.title': '新しいバージョンがあります',
+  'notif.version_available.text': 'TREK {version}が利用可能です',
+  'notif.action.view_trip': '旅行を見る',
+  'notif.action.view_collab': 'メッセージを見る',
+  'notif.action.view_packing': '持ち物を見る',
+  'notif.action.view_photos': '写真を見る',
+  'notif.action.view_vacay': 'Vacayを見る',
+  'notif.action.view_admin': '管理画面へ',
+  'notif.action.view': '表示',
+  'notif.action.accept': '承認',
+  'notif.action.decline': '拒否',
+  'notif.generic.title': '通知',
+  'notif.generic.text': '新しい通知があります',
+  'notif.dev.unknown_event.title': '[DEV] 不明なイベント',
+  'notif.dev.unknown_event.text':
+    'イベントタイプ「{event}」はEVENT_NOTIFICATION_CONFIGに登録されていません',
+};
+export default notif;

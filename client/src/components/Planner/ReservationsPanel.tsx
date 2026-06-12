@@ -6,9 +6,9 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import {
-  Plane, Hotel, Utensils, Train, Car, Ship, Ticket, FileText, MapPin,
+  Plane, Hotel, Utensils, Train, Car, Ship, Bus, Sailboat, Bike, CarTaxiFront, Route, Ticket, FileText, MapPin,
   Calendar, Hash, CheckCircle2, Circle, Pencil, Trash2, Plus, ChevronDown, ChevronRight, Users,
-  ExternalLink, BookMarked, Lightbulb, Link2, Clock, ArrowRight, AlertCircle,
+  ExternalLink, BookMarked, Lightbulb, Link2, Clock, ArrowRight, AlertCircle, Download,
 } from 'lucide-react'
 import { openFile } from '../../utils/fileDownload'
 import Markdown from 'react-markdown'
@@ -31,8 +31,13 @@ const TYPE_OPTIONS = [
   { value: 'hotel',       labelKey: 'reservations.type.hotel',       Icon: Hotel, color: '#8b5cf6' },
   { value: 'restaurant',  labelKey: 'reservations.type.restaurant',  Icon: Utensils, color: '#ef4444' },
   { value: 'train',       labelKey: 'reservations.type.train',       Icon: Train, color: '#06b6d4' },
+  { value: 'bus',         labelKey: 'reservations.type.bus',         Icon: Bus, color: '#059669' },
   { value: 'car',         labelKey: 'reservations.type.car',         Icon: Car, color: '#6b7280' },
+  { value: 'taxi',        labelKey: 'reservations.type.taxi',        Icon: CarTaxiFront, color: '#ca8a04' },
+  { value: 'bicycle',     labelKey: 'reservations.type.bicycle',     Icon: Bike, color: '#84cc16' },
   { value: 'cruise',      labelKey: 'reservations.type.cruise',      Icon: Ship, color: '#0ea5e9' },
+  { value: 'ferry',       labelKey: 'reservations.type.ferry',       Icon: Sailboat, color: '#0d9488' },
+  { value: 'transport_other', labelKey: 'reservations.type.transport_other', Icon: Route, color: '#6b7280' },
   { value: 'event',       labelKey: 'reservations.type.event',       Icon: Ticket, color: '#f59e0b' },
   { value: 'tour',        labelKey: 'reservations.type.tour',        Icon: Users, color: '#10b981' },
   { value: 'other',       labelKey: 'reservations.type.other',       Icon: FileText, color: '#6b7280' },
@@ -54,15 +59,9 @@ function buildAssignmentLookup(days, assignments) {
   return map
 }
 
-/* ── Shared field label style ── */
-const fieldLabelStyle: React.CSSProperties = {
-  fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em',
-  color: 'var(--text-faint)', marginBottom: 5,
-}
-const fieldValueStyle: React.CSSProperties = {
-  fontSize: 13, fontWeight: 500, color: 'var(--text-primary)',
-  padding: '8px 10px', background: 'var(--bg-tertiary)', borderRadius: 10,
-}
+/* ── Shared field label/value styles ── */
+const fieldLabelClass = 'text-[10px] font-semibold uppercase tracking-[0.08em] text-content-faint mb-[5px]'
+const fieldValueClass = 'text-[13px] font-medium text-content px-[10px] py-[8px] bg-surface-tertiary rounded-[10px]'
 
 interface ReservationCardProps {
   r: Reservation
@@ -110,7 +109,7 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
   const hasCode = !!r.confirmation_number
   const dateCols = [hasDate, hasTime, hasCode].filter(Boolean).length
 
-  const TRANSPORT_TYPES_SET = new Set(['flight', 'train', 'bus', 'car', 'cruise'])
+  const TRANSPORT_TYPES_SET = new Set(['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transport_other'])
   const isTransportType = TRANSPORT_TYPES_SET.has(r.type)
   const isHotel = r.type === 'hotel'
   const startDay = r.day_id ? days.find(d => d.id === r.day_id)
@@ -129,9 +128,9 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
         <span>{name}</span>
         {badge && (
-          <span style={{
-            fontSize: 10, fontWeight: 600, color: 'var(--text-faint)',
-            background: 'var(--bg-secondary)', padding: '1px 6px', borderRadius: 999,
+          <span className="text-content-faint bg-surface-secondary" style={{
+            fontSize: 10, fontWeight: 600,
+            padding: '1px 6px', borderRadius: 999,
           }}>{badge}</span>
         )}
       </span>
@@ -139,10 +138,9 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
   }
 
   return (
-    <div style={{
+    <div className="bg-surface-card" style={{
       borderRadius: 12, overflow: 'hidden', display: 'flex', flexDirection: 'column',
       border: `1px solid ${confirmed ? 'rgba(22,163,74,0.25)' : 'rgba(217,119,6,0.25)'}`,
-      background: 'var(--bg-card)',
       transition: 'box-shadow 0.15s ease',
     }}
       onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.06)'}
@@ -150,35 +148,32 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
     >
       {/* Header — wraps to a second row on narrow screens so the status/category chips
           never collide with the title. */}
-      <div style={{
+      <div className={confirmed ? 'bg-[rgba(22,163,74,0.06)]' : 'bg-[rgba(217,119,6,0.06)]'} style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
         flexWrap: 'wrap',
         padding: '12px 14px',
-        background: confirmed ? 'rgba(22,163,74,0.06)' : 'rgba(217,119,6,0.06)',
       }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, minWidth: 0, flexWrap: 'wrap' }}>
-          <span style={{
+          <span className={confirmed ? 'text-[#16a34a]' : 'text-[#d97706]'} style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
-            fontSize: 12, fontWeight: 600, color: confirmed ? '#16a34a' : '#d97706',
+            fontSize: 12, fontWeight: 600,
           }}>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, background: confirmed ? '#16a34a' : '#d97706' }} />
+            <span className={confirmed ? 'bg-[#16a34a]' : 'bg-[#d97706]'} style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0 }} />
             {confirmed ? t('reservations.confirmed') : t('reservations.pending')}
           </span>
-          <span style={{
+          <span className="text-content-muted bg-surface-secondary" style={{
             display: 'inline-flex', alignItems: 'center', gap: 5,
-            fontSize: 12, color: 'var(--text-muted)',
+            fontSize: 12,
             padding: '3px 8px', borderRadius: 6,
-            background: 'var(--bg-secondary)',
           }}>
             <TypeIcon size={12} style={{ color: typeInfo.color }} />
             {t(typeInfo.labelKey)}
           </span>
           {r.needs_review ? (
-            <span style={{
+            <span className="text-[#b45309] bg-[rgba(245,158,11,0.12)]" style={{
               display: 'inline-flex', alignItems: 'center', gap: 4,
-              fontSize: 11, fontWeight: 600, color: '#b45309',
+              fontSize: 11, fontWeight: 600,
               padding: '3px 8px', borderRadius: 6,
-              background: 'rgba(245,158,11,0.12)',
             }} title={t('reservations.needsReviewHint')}>
               <AlertCircle size={11} />
               {t('reservations.needsReview')}
@@ -186,15 +181,15 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
           ) : null}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <span style={{
-            fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginRight: 6,
+          <span className="text-content" style={{
+            fontSize: 13, fontWeight: 600, marginRight: 6,
             maxWidth: 140, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>{r.title}</span>
           {canEdit && (
-            <button onClick={() => onEdit(r)} title={t('common.edit')} style={{
-              appearance: 'none', border: 'none', background: 'transparent',
+            <button onClick={() => onEdit(r)} title={t('common.edit')} className="bg-transparent text-content-faint" style={{
+              appearance: 'none', border: 'none',
               width: 26, height: 26, borderRadius: 6, display: 'grid', placeItems: 'center',
-              cursor: 'pointer', color: 'var(--text-faint)', flexShrink: 0,
+              cursor: 'pointer', flexShrink: 0,
             }}
               onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.05)'; e.currentTarget.style.color = 'var(--text-primary)' }}
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-faint)' }}>
@@ -202,10 +197,10 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
             </button>
           )}
           {canEdit && (
-            <button onClick={() => setShowDeleteConfirm(true)} title={t('common.delete')} style={{
-              appearance: 'none', border: 'none', background: 'transparent',
+            <button onClick={() => setShowDeleteConfirm(true)} title={t('common.delete')} className="bg-transparent text-content-faint" style={{
+              appearance: 'none', border: 'none',
               width: 26, height: 26, borderRadius: 6, display: 'grid', placeItems: 'center',
-              cursor: 'pointer', color: 'var(--text-faint)', flexShrink: 0,
+              cursor: 'pointer', flexShrink: 0,
             }}
               onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.color = '#ef4444' }}
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-faint)' }}>
@@ -220,11 +215,11 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
         {/* Day label for transport/hotel reservations linked to days */}
         {(isTransportType || isHotel) && startDay && (
           <div>
-            <div style={fieldLabelStyle}>{t('reservations.date')}</div>
-            <div style={{ ...fieldValueStyle, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <div className={fieldLabelClass}>{t('reservations.date')}</div>
+            <div className={fieldValueClass} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexWrap: 'wrap' }}>
               <DayLabel day={startDay} />
               {endDay && endDay.id !== startDay.id && (
-                <><span style={{ color: 'var(--text-faint)' }}>–</span><DayLabel day={endDay} /></>
+                <><span className="text-content-faint">–</span><DayLabel day={endDay} /></>
               )}
             </div>
           </div>
@@ -234,8 +229,8 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
           <div style={{ display: 'grid', gap: 10, gridTemplateColumns: hasDate && hasTime ? '1fr 1fr' : '1fr' }}>
             {hasDate && (
               <div>
-                <div style={fieldLabelStyle}>{t('reservations.date')}</div>
-                <div style={{ ...fieldValueStyle, textAlign: 'center' }}>
+                <div className={fieldLabelClass}>{t('reservations.date')}</div>
+                <div className={`${fieldValueClass} text-center`}>
                   {fmtDate(startDt.date!)}
                   {endDt.date && endDt.date !== startDt.date && (
                     <> – {fmtDate(endDt.date)}</>
@@ -245,8 +240,8 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
             )}
             {hasTime && (
               <div>
-                <div style={fieldLabelStyle}>{t('reservations.time')}</div>
-                <div style={{ ...fieldValueStyle, textAlign: 'center' }}>
+                <div className={fieldLabelClass}>{t('reservations.time')}</div>
+                <div className={`${fieldValueClass} text-center`}>
                   {formatTime(startDt.time, locale, timeFormat)}
                   {endDt.time ? ` – ${formatTime(endDt.time, locale, timeFormat)}` : ''}
                 </div>
@@ -257,13 +252,13 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
         {/* Booking code */}
         {hasCode && (
           <div>
-            <div style={fieldLabelStyle}>{t('reservations.confirmationCode')}</div>
+            <div className={fieldLabelClass}>{t('reservations.confirmationCode')}</div>
             <div
               onMouseEnter={() => blurCodes && setCodeRevealed(true)}
               onMouseLeave={() => blurCodes && setCodeRevealed(false)}
               onClick={() => blurCodes && setCodeRevealed(v => !v)}
+              className={`${fieldValueClass} text-center`}
               style={{
-                ...fieldValueStyle, textAlign: 'center',
                 fontFamily: '"SF Mono", "JetBrains Mono", Menlo, monospace', fontSize: 12.5,
                 filter: blurCodes && !codeRevealed ? 'blur(5px)' : 'none',
                 cursor: blurCodes ? 'pointer' : 'default',
@@ -276,20 +271,21 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
         )}
 
         {(() => {
-          const eps = r.endpoints || []
-          const from = eps.find(e => e.role === 'from')
-          const to = eps.find(e => e.role === 'to')
-          if (!from || !to) return null
+          // Full route over all waypoints (from · stops · to), ordered by sequence.
+          const eps = (r.endpoints || []).slice().sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0))
+          if (eps.length < 2) return null
           return (
-            <div style={{
+            <div className="bg-surface-tertiary text-content" style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               padding: '8px 12px', borderRadius: 10,
-              background: 'var(--bg-tertiary)',
-              fontSize: 12.5, color: 'var(--text-primary)',
+              fontSize: 12.5, flexWrap: 'wrap',
             }}>
-              <span style={{ fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{from.name}</span>
-              <TypeIcon size={14} style={{ color: typeInfo.color, flexShrink: 0 }} />
-              <span style={{ fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{to.name}</span>
+              {eps.map((ep, i) => (
+                <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                  {i > 0 && <TypeIcon size={14} style={{ color: typeInfo.color, flexShrink: 0 }} />}
+                  <span style={{ fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ep.name}</span>
+                </span>
+              ))}
             </div>
           )
         })()}
@@ -314,8 +310,8 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
             <div style={{ display: 'grid', gap: 10, gridTemplateColumns: cells.length > 1 ? `repeat(${Math.min(cells.length, 3)}, 1fr)` : '1fr' }}>
               {cells.map((c, i) => (
                 <div key={i}>
-                  <div style={fieldLabelStyle}>{c.label}</div>
-                  <div style={{ ...fieldValueStyle, textAlign: 'center' }}>{c.value}</div>
+                  <div className={fieldLabelClass}>{c.label}</div>
+                  <div className={`${fieldValueClass} text-center`}>{c.value}</div>
                 </div>
               ))}
             </div>
@@ -325,27 +321,27 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
         {/* Location / Accommodation / Assignment */}
         {r.location && (
           <div>
-            <div style={fieldLabelStyle}>{t('reservations.locationAddress')}</div>
-            <div style={{ ...fieldValueStyle, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 400 }}>
-              <MapPin size={13} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
+            <div className={fieldLabelClass}>{t('reservations.locationAddress')}</div>
+            <div className={fieldValueClass} style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 400 }}>
+              <MapPin size={13} className="text-content-faint" style={{ flexShrink: 0 }} />
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.location}</span>
             </div>
           </div>
         )}
         {r.accommodation_name && (
           <div>
-            <div style={fieldLabelStyle}>{t('reservations.meta.linkAccommodation')}</div>
-            <div style={{ ...fieldValueStyle, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 400 }}>
-              <Hotel size={13} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
+            <div className={fieldLabelClass}>{t('reservations.meta.linkAccommodation')}</div>
+            <div className={fieldValueClass} style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 400 }}>
+              <Hotel size={13} className="text-content-faint" style={{ flexShrink: 0 }} />
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.accommodation_name}</span>
             </div>
           </div>
         )}
         {linked && (
           <div>
-            <div style={fieldLabelStyle}>{t('reservations.linkAssignment')}</div>
-            <div style={{ ...fieldValueStyle, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 400 }}>
-              <Link2 size={13} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
+            <div className={fieldLabelClass}>{t('reservations.linkAssignment')}</div>
+            <div className={fieldValueClass} style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 400 }}>
+              <Link2 size={13} className="text-content-faint" style={{ flexShrink: 0 }} />
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {linked.dayTitle || t('dayplan.dayN', { n: linked.dayNumber })} — {linked.placeName}
                 {linked.startTime ? ` · ${linked.startTime}${linked.endTime ? ' – ' + linked.endTime : ''}` : ''}
@@ -357,8 +353,8 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
         {/* Notes */}
         {r.notes && (
           <div>
-            <div style={fieldLabelStyle}>{t('reservations.notes')}</div>
-            <div className="collab-note-md" style={{ ...fieldValueStyle, fontWeight: 400, lineHeight: 1.5, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+            <div className={fieldLabelClass}>{t('reservations.notes')}</div>
+            <div className={`collab-note-md ${fieldValueClass}`} style={{ fontWeight: 400, lineHeight: 1.5, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
               <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{r.notes}</Markdown>
             </div>
           </div>
@@ -367,11 +363,11 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
         {/* Files */}
         {attachedFiles.length > 0 && (
           <div>
-            <div style={fieldLabelStyle}>{t('files.title')}</div>
-            <div style={{ ...fieldValueStyle, display: 'flex', flexDirection: 'column', gap: 4, padding: '6px 10px' }}>
+            <div className={fieldLabelClass}>{t('files.title')}</div>
+            <div className={fieldValueClass} style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '6px 10px' }}>
               {attachedFiles.map(f => (
                 <a key={f.id} href="#" onClick={(e) => { e.preventDefault(); openFile(f.url).catch(() => {}) }} style={{ display: 'flex', alignItems: 'center', gap: 5, textDecoration: 'none', cursor: 'pointer' }}>
-                  <FileText size={11} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
+                  <FileText size={11} className="text-content-faint" style={{ flexShrink: 0 }} />
                   <span style={{ fontSize: 12, color: 'var(--text-muted)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.original_name}</span>
                 </a>
               ))}
@@ -382,37 +378,37 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
 
       {/* Delete confirmation */}
       {showDeleteConfirm && ReactDOM.createPortal(
-        <div style={{
+        <div className="bg-[rgba(0,0,0,0.3)]" style={{
           position: 'fixed', inset: 0, zIndex: 1000,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(3px)',
+          backdropFilter: 'blur(3px)',
         }} onClick={() => setShowDeleteConfirm(false)}>
-          <div style={{
-            width: 340, background: 'var(--bg-card)', borderRadius: 16,
+          <div className="bg-surface-card" style={{
+            width: 340, borderRadius: 16,
             boxShadow: '0 16px 48px rgba(0,0,0,0.22)', padding: '22px 22px 18px',
             display: 'flex', flexDirection: 'column', gap: 12,
           }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{
+              <div className="bg-[rgba(239,68,68,0.12)]" style={{
                 width: 36, height: 36, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                borderRadius: '50%', background: 'rgba(239,68,68,0.12)',
+                borderRadius: '50%',
               }}>
                 <Trash2 size={18} strokeWidth={1.8} color="#ef4444" />
               </div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+              <div className="text-content" style={{ fontSize: 14, fontWeight: 600 }}>
                 {t('reservations.confirm.deleteTitle')}
               </div>
             </div>
-            <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+            <div className="text-content-secondary" style={{ fontSize: 12.5, lineHeight: 1.5 }}>
               {t('reservations.confirm.deleteBody', { name: r.title })}
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
-              <button onClick={() => setShowDeleteConfirm(false)} style={{
+              <button onClick={() => setShowDeleteConfirm(false)} className="text-content-muted" style={{
                 fontSize: 12, background: 'none', border: '1px solid var(--border-primary)',
-                borderRadius: 8, padding: '6px 14px', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'inherit',
+                borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontFamily: 'inherit',
               }}>{t('common.cancel')}</button>
-              <button onClick={handleDelete} style={{
-                fontSize: 12, background: '#ef4444', color: 'white',
+              <button onClick={handleDelete} className="bg-[#ef4444] text-white" style={{
+                fontSize: 12,
                 border: 'none', borderRadius: 8, padding: '6px 16px', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
               }}>{t('common.confirm')}</button>
             </div>
@@ -452,10 +448,9 @@ function Section({ title, count, children, defaultOpen = true, accent, storageKe
         userSelect: 'none',
       }}>
         {open ? <ChevronDown size={14} style={{ color: 'var(--text-faint)' }} /> : <ChevronRight size={14} style={{ color: 'var(--text-faint)' }} />}
-        <span style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{title}</span>
-        <span style={{
+        <span className="text-content-muted" style={{ fontWeight: 600, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{title}</span>
+        <span className="bg-surface-tertiary text-content-faint" style={{
           fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 99,
-          background: 'var(--bg-tertiary)', color: 'var(--text-faint)',
           minWidth: 20, textAlign: 'center',
         }}>{count}</span>
       </button>
@@ -475,6 +470,8 @@ interface ReservationsPanelProps {
   assignments: AssignmentsMap
   files?: TripFile[]
   onAdd: () => void
+  onImport?: () => void
+  bookingImportAvailable?: boolean
   onEdit: (reservation: Reservation) => void
   onDelete: (id: number) => void
   onNavigateToFiles: () => void
@@ -482,7 +479,7 @@ interface ReservationsPanelProps {
   addManualKey?: string
 }
 
-export default function ReservationsPanel({ tripId, reservations, days, assignments, files = [], onAdd, onEdit, onDelete, onNavigateToFiles, titleKey = 'reservations.title', addManualKey = 'reservations.addManual' }: ReservationsPanelProps) {
+export default function ReservationsPanel({ tripId, reservations, days, assignments, files = [], onAdd, onImport, bookingImportAvailable, onEdit, onDelete, onNavigateToFiles, titleKey = 'reservations.title', addManualKey = 'reservations.addManual' }: ReservationsPanelProps) {
   const { t, locale } = useTranslation()
   const can = useCanDo()
   const trip = useTripStore((s) => s.trip)
@@ -524,15 +521,15 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
   }, [reservations])
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', fontFamily: "var(--font-system)" }}>
       {/* Unified toolbar */}
       <div style={{ padding: '24px 28px 0' }} className="max-md:!px-4 max-md:!pt-4">
-        <div style={{
-          background: 'var(--bg-tertiary)', borderRadius: 18,
+        <div className="bg-surface-tertiary" style={{
+          borderRadius: 18,
           padding: '14px 16px 14px 22px',
           display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
         }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em', flexShrink: 0 }}>
+          <h2 className="text-content" style={{ margin: 0, fontSize: 18, fontWeight: 600, letterSpacing: '-0.01em', flexShrink: 0 }}>
             {t(titleKey)}
           </h2>
 
@@ -542,22 +539,19 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
               <div className="hidden md:inline-flex" style={{ gap: 4, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
                 <button
                   onClick={() => { setTypeFilters(new Set()); sessionStorage.removeItem(storageKey) }}
+                  className={typeFilters.size === 0 ? 'bg-surface-card text-content' : 'bg-transparent text-content-muted'}
                   style={{
                     appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                     display: 'inline-flex', alignItems: 'center', gap: 6,
                     padding: '6px 12px', borderRadius: 99, fontSize: 13, whiteSpace: 'nowrap',
-                    background: typeFilters.size === 0 ? 'var(--bg-card)' : 'transparent',
-                    color: typeFilters.size === 0 ? 'var(--text-primary)' : 'var(--text-muted)',
                     fontWeight: typeFilters.size === 0 ? 500 : 400,
                     boxShadow: typeFilters.size === 0 ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                     transition: 'all 0.15s ease',
                   }}
                 >
                   {t('common.all')}
-                  <span style={{
+                  <span className={`text-content-faint ${typeFilters.size === 0 ? 'bg-surface-tertiary' : 'bg-[rgba(0,0,0,0.06)]'}`} style={{
                     fontSize: 10, fontWeight: 600,
-                    background: typeFilters.size === 0 ? 'var(--bg-tertiary)' : 'rgba(0,0,0,0.06)',
-                    color: 'var(--text-faint)',
                     padding: '1px 6px', borderRadius: 99, minWidth: 16, textAlign: 'center',
                   }}>{reservations.length}</span>
                 </button>
@@ -568,12 +562,11 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
                     <button
                       key={opt.value}
                       onClick={() => toggleTypeFilter(opt.value)}
+                      className={active ? 'bg-surface-card text-content' : 'bg-transparent text-content-muted'}
                       style={{
                         appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                         display: 'inline-flex', alignItems: 'center', gap: 6,
                         padding: '6px 12px', borderRadius: 99, fontSize: 13, whiteSpace: 'nowrap',
-                        background: active ? 'var(--bg-card)' : 'transparent',
-                        color: active ? 'var(--text-primary)' : 'var(--text-muted)',
                         fontWeight: active ? 500 : 400,
                         boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                         transition: 'all 0.15s ease',
@@ -581,10 +574,8 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
                     >
                       <Icon size={13} style={{ color: active ? opt.color : 'var(--text-faint)' }} />
                       {t(opt.labelKey)}
-                      <span style={{
+                      <span className={`text-content-faint ${active ? 'bg-surface-tertiary' : 'bg-[rgba(0,0,0,0.06)]'}`} style={{
                         fontSize: 10, fontWeight: 600,
-                        background: active ? 'var(--bg-tertiary)' : 'rgba(0,0,0,0.06)',
-                        color: 'var(--text-faint)',
                         padding: '1px 6px', borderRadius: 99, minWidth: 16, textAlign: 'center',
                       }}>{typeCounts[opt.value] || 0}</span>
                     </button>
@@ -595,20 +586,35 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
           )}
 
           {canEdit && (
-            <button onClick={onAdd} style={{
-              appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500,
-              background: 'var(--accent)', color: 'var(--accent-text)', flexShrink: 0,
-              marginLeft: 'auto',
-              transition: 'opacity 0.15s ease',
-            }}
-              onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
-              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-            >
-              <Plus size={14} strokeWidth={2.5} />
-              <span className="hidden sm:inline">{t(addManualKey)}</span>
-            </button>
+            <div style={{ display: 'flex', gap: 6, marginLeft: 'auto', flexShrink: 0 }}>
+              {onImport && bookingImportAvailable && (
+                <button onClick={onImport} className="bg-surface-card text-content" style={{
+                  appearance: 'none', border: '1px solid var(--border-primary)', cursor: 'pointer', fontFamily: 'inherit',
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '8px 13px', borderRadius: 10, fontSize: 13, fontWeight: 500,
+                  transition: 'opacity 0.15s ease',
+                }}
+                  onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
+                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                  title={t('reservations.import.title')}
+                >
+                  <Download size={14} strokeWidth={2} />
+                  <span className="hidden sm:inline">{t('reservations.import.cta')}</span>
+                </button>
+              )}
+              <button onClick={onAdd} className="bg-accent text-accent-text" style={{
+                appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500,
+                transition: 'opacity 0.15s ease',
+              }}
+                onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
+                onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+              >
+                <Plus size={14} strokeWidth={2.5} />
+                <span className="hidden sm:inline">{t(addManualKey)}</span>
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -617,13 +623,13 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px 80px' }} className="max-md:!px-4 max-md:!pt-4">
         {total === 0 && reservations.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-            <BookMarked size={36} style={{ color: 'var(--text-faint)', display: 'block', margin: '0 auto 12px' }} />
-            <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', margin: '0 0 4px' }}>{t('reservations.empty')}</p>
-            <p style={{ fontSize: 12, color: 'var(--text-faint)', margin: 0 }}>{t('reservations.emptyHint')}</p>
+            <BookMarked size={36} className="text-content-faint" style={{ display: 'block', margin: '0 auto 12px' }} />
+            <p className="text-content-secondary" style={{ fontSize: 14, fontWeight: 600, margin: '0 0 4px' }}>{t('reservations.empty')}</p>
+            <p className="text-content-faint" style={{ fontSize: 12, margin: 0 }}>{t('reservations.emptyHint')}</p>
           </div>
         ) : total === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-            <p style={{ fontSize: 13, color: 'var(--text-faint)' }}>{t('places.noneFound')}</p>
+            <p className="text-content-faint" style={{ fontSize: 13 }}>{t('places.noneFound')}</p>
           </div>
         ) : (
           <>

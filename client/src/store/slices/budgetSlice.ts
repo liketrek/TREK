@@ -2,8 +2,10 @@ import { budgetApi } from '../../api/client'
 import { budgetRepo } from '../../repo/budgetRepo'
 import type { StoreApi } from 'zustand'
 import type { TripStoreState } from '../tripStore'
-import type { BudgetItem, BudgetMember } from '../../types'
+import type { BudgetItem, BudgetItemMember } from '../../types'
+import type { BudgetCreateItemRequest, BudgetUpdateItemRequest } from '@trek/shared'
 import { getApiErrorMessage } from '../../types'
+import { notify } from '../notify'
 
 type SetState = StoreApi<TripStoreState>['setState']
 type GetState = StoreApi<TripStoreState>['getState']
@@ -13,7 +15,7 @@ export interface BudgetSlice {
   addBudgetItem: (tripId: number | string, data: Partial<BudgetItem>) => Promise<BudgetItem>
   updateBudgetItem: (tripId: number | string, id: number, data: Partial<BudgetItem>) => Promise<BudgetItem>
   deleteBudgetItem: (tripId: number | string, id: number) => Promise<void>
-  setBudgetItemMembers: (tripId: number | string, itemId: number, userIds: number[]) => Promise<{ members: BudgetMember[]; item: BudgetItem }>
+  setBudgetItemMembers: (tripId: number | string, itemId: number, userIds: number[]) => Promise<{ members: BudgetItemMember[]; item: BudgetItem }>
   toggleBudgetMemberPaid: (tripId: number | string, itemId: number, userId: number, paid: boolean) => Promise<void>
   reorderBudgetItems: (tripId: number | string, orderedIds: number[]) => Promise<void>
   reorderBudgetCategories: (tripId: number | string, orderedCategories: string[]) => Promise<void>
@@ -31,7 +33,7 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
 
   addBudgetItem: async (tripId, data) => {
     try {
-      const result = await budgetApi.create(tripId, data)
+      const result = await budgetApi.create(tripId, data as BudgetCreateItemRequest)
       set(state => ({ budgetItems: [...state.budgetItems, result.item] }))
       return result.item
     } catch (err: unknown) {
@@ -41,7 +43,7 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
 
   updateBudgetItem: async (tripId, id, data) => {
     try {
-      const result = await budgetApi.update(tripId, id, data)
+      const result = await budgetApi.update(tripId, id, data as BudgetUpdateItemRequest)
       set(state => ({
         budgetItems: state.budgetItems.map(item => item.id === id ? result.item : item)
       }))
@@ -80,7 +82,10 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
     set(state => ({
       budgetItems: state.budgetItems.map(item =>
         item.id === itemId
-          ? { ...item, members: (item.members || []).map(m => m.user_id === userId ? { ...m, paid } : m) }
+          // The server persists `paid` as 0/1; the optimistic update stores the
+          // boolean toggle value (truthy-compatible) — narrow it to the member's
+          // numeric type without changing the stored runtime value.
+          ? { ...item, members: (item.members || []).map(m => m.user_id === userId ? { ...m, paid: paid as unknown as number } : m) }
           : item
       )
     }));
@@ -90,7 +95,7 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
     // Optimistic: reorder locally
     set(state => {
       const byId = new Map(state.budgetItems.map(i => [i.id, i]))
-      const reordered = orderedIds.map((id, idx) => {
+      const reordered = orderedIds.map((id, idx): BudgetItem | null => {
         const item = byId.get(id)
         return item ? { ...item, sort_order: idx } : null
       }).filter((i): i is BudgetItem => i !== null)
@@ -100,10 +105,12 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
     })
     try {
       await budgetApi.reorderItems(tripId, orderedIds)
-    } catch {
-      // Reload on failure
+    } catch (err: unknown) {
+      // Reload on failure to restore the server's ordering, and tell the user
+      // their reorder didn't stick (the caller fires this without awaiting).
       const data = await budgetApi.list(tripId)
       set({ budgetItems: data.items })
+      notify(getApiErrorMessage(err, 'Error reordering budget items'), 'error')
     }
   },
 
@@ -128,9 +135,12 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
     })
     try {
       await budgetApi.reorderCategories(tripId, orderedCategories)
-    } catch {
+    } catch (err: unknown) {
+      // Reload on failure to restore the server's ordering, and tell the user
+      // their reorder didn't stick (the caller fires this without awaiting).
       const data = await budgetApi.list(tripId)
       set({ budgetItems: data.items })
+      notify(getApiErrorMessage(err, 'Error reordering budget items'), 'error')
     }
   },
 })

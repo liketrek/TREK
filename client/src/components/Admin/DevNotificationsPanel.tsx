@@ -68,8 +68,7 @@ export default function DevNotificationsPanel(): React.ReactElement {
     <button
       onClick={onClick}
       disabled={sending !== null}
-      className="flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors text-left w-full"
-      style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-card)' }}
+      className="flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors text-left w-full border-edge bg-surface-card"
       onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
       onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-card)' }}
     >
@@ -78,8 +77,8 @@ export default function DevNotificationsPanel(): React.ReactElement {
         <Icon className="w-4 h-4" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{label}</p>
-        <p className="text-xs truncate" style={{ color: 'var(--text-faint)' }}>{sub}</p>
+        <p className="text-sm font-medium text-content">{label}</p>
+        <p className="text-xs truncate text-content-faint">{sub}</p>
       </div>
       {sending === id && (
         <div className="w-4 h-4 border-2 border-slate-200 border-t-indigo-500 rounded-full animate-spin flex-shrink-0" />
@@ -88,15 +87,14 @@ export default function DevNotificationsPanel(): React.ReactElement {
   )
 
   const SectionTitle = ({ children }: { children: React.ReactNode }) => (
-    <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>{children}</h3>
+    <h3 className="text-sm font-semibold mb-3 text-content-secondary">{children}</h3>
   )
 
   const TripSelector = () => (
     <select
       value={selectedTripId ?? ''}
       onChange={e => setSelectedTripId(Number(e.target.value))}
-      className="w-full px-3 py-2 rounded-lg border text-sm mb-3"
-      style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+      className="w-full px-3 py-2 rounded-lg border text-sm mb-3 border-edge bg-surface-card text-content"
     >
       {trips.map(trip => <option key={trip.id} value={trip.id}>{trip.title}</option>)}
     </select>
@@ -106,8 +104,7 @@ export default function DevNotificationsPanel(): React.ReactElement {
     <select
       value={selectedUserId ?? ''}
       onChange={e => setSelectedUserId(Number(e.target.value))}
-      className="w-full px-3 py-2 rounded-lg border text-sm mb-3"
-      style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+      className="w-full px-3 py-2 rounded-lg border text-sm mb-3 border-edge bg-surface-card text-content"
     >
       {users.map(u => <option key={u.id} value={u.id}>{u.username} ({u.email})</option>)}
     </select>
@@ -116,10 +113,10 @@ export default function DevNotificationsPanel(): React.ReactElement {
   return (
     <div className="space-y-8">
       <div className="flex items-center gap-2">
-        <div className="px-2 py-0.5 rounded text-xs font-mono font-bold" style={{ background: '#fbbf24', color: '#000' }}>
+        <div className="px-2 py-0.5 rounded text-xs font-mono font-bold bg-[#fbbf24] text-[#000]">
           DEV ONLY
         </div>
-        <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+        <span className="text-sm font-medium text-content">
           Notification Testing
         </span>
       </div>
@@ -127,7 +124,7 @@ export default function DevNotificationsPanel(): React.ReactElement {
       {/* ── Type Testing ─────────────────────────────────────────────────── */}
       <div>
         <SectionTitle>Type Testing</SectionTitle>
-        <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-xs mb-3 text-content-muted">
           Test how each in-app notification type renders, sent to yourself.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -175,7 +172,7 @@ export default function DevNotificationsPanel(): React.ReactElement {
       {trips.length > 0 && (
         <div>
           <SectionTitle>Trip-Scoped Events</SectionTitle>
-          <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-xs mb-3 text-content-muted">
             Fires each trip event to all members of the selected trip (excluding yourself).
           </p>
           <TripSelector />
@@ -228,7 +225,7 @@ export default function DevNotificationsPanel(): React.ReactElement {
       {users.length > 0 && (
         <div>
           <SectionTitle>User-Scoped Events</SectionTitle>
-          <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-xs mb-3 text-content-muted">
             Fires each user event to the selected recipient.
           </p>
           <UserSelector />
@@ -266,7 +263,7 @@ export default function DevNotificationsPanel(): React.ReactElement {
       {/* ── Admin-Scoped Events ──────────────────────────────────────────── */}
       <div>
         <SectionTitle>Admin-Scoped Events</SectionTitle>
-        <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-xs mb-3 text-content-muted">
           Fires to all admin users.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

@@ -1,0 +1,61 @@
+import type { TranslationStrings } from '../types';
+
+const dayplan: TranslationStrings = {
+  'dayplan.icsTooltip': 'Eksportuj kalendarz (ICS)',
+  'dayplan.emptyDay': 'Brak miejsc zaplanowanych na ten dzień',
+  'dayplan.cannotReorderTransport':
+    'Nie można zmieniać kolejności dla rezerwacji z określoną godziną',
+  'dayplan.confirmRemoveTimeTitle': 'Usunąć godzinę?',
+  'dayplan.confirmRemoveTimeBody':
+    'To miejsce ma określoną godzinę ({time}). Przeniesienie go usunie godzinę i umożliwi swobodne sortowanie.',
+  'dayplan.confirmRemoveTimeAction': 'Usuń godzinę i przenieś',
+  'dayplan.confirmDeleteNoteTitle': 'Usunąć notatkę?',
+  'dayplan.confirmDeleteNoteBody': 'Ta notatka zostanie trwale usunięta.',
+  'dayplan.cannotDropOnTimed':
+    'Nie można umieszczać elementów pomiędzy wpisami z określoną godziną',
+  'dayplan.cannotBreakChronology':
+    'Spowodowałoby to naruszenie chronologicznej kolejności elementów i rezerwacji z określoną godziną',
+  'dayplan.addNote': 'Dodaj notatkę',
+  'dayplan.editNote': 'Edytuj notatkę',
+  'dayplan.noteAdd': 'Dodaj notatkę',
+  'dayplan.noteEdit': 'Edytuj notatkę',
+  'dayplan.noteTitle': 'Notatka',
+  'dayplan.noteSubtitle': 'Notatka dnia',
+  'dayplan.totalCost': 'Łączny koszt',
+  'dayplan.days': 'Dni',
+  'dayplan.dayN': 'Dzień {n}',
+  'dayplan.calculating': 'Obliczanie...',
+  'dayplan.route': 'Trasa',
+  'dayplan.optimize': 'Optymalizuj',
+  'dayplan.optimized': 'Trasa została zoptymalizowana',
+  'dayplan.routeError': 'Nie udało się obliczyć trasy',
+  'dayplan.toast.needTwoPlaces':
+    'Potrzeba co najmniej dwóch miejsc, aby zoptymalizować trasę',
+  'dayplan.toast.routeOptimized': 'Trasa została zoptymalizowana',
+  'dayplan.toast.routeOptimizedFromHotel':
+    'Trasa została zoptymalizowana względem Twojego zakwaterowania',
+  'dayplan.toast.noGeoPlaces':
+    'Nie znaleziono miejsc ze współrzędnymi do obliczenia trasy',
+  'dayplan.confirmed': 'Potwierdzono',
+  'dayplan.pendingRes': 'Oczekujące',
+  'dayplan.pdf': 'PDF',
+  'dayplan.pdfTooltip': 'Eksportuj plan dnia jako PDF',
+  'dayplan.pdfError': 'Nie udało się wyeksportować pliku PDF',
+  'dayplan.mobile.addPlace': 'Dodaj miejsce',
+  'dayplan.mobile.searchPlaces': 'Szukaj miejsc...',
+  'dayplan.mobile.allAssigned': 'Wszystkie miejsca przypisane',
+  'dayplan.mobile.noMatch': 'Brak wyników',
+  'dayplan.mobile.createNew': 'Utwórz nowe miejsce',
+  'dayplan.expandAll': 'Expand all days', // en-fallback
+  'dayplan.collapseAll': 'Collapse all days', // en-fallback
+  'dayplan.reorderDays': 'Zmień kolejność dni',
+  'dayplan.reorderTitle': 'Zmień kolejność dni',
+  'dayplan.reorderHint': 'Miejsca, notatki i rezerwacje danego dnia przenoszą się razem z nim.',
+  'dayplan.addDay': 'Dodaj dzień',
+  'dayplan.moveUp': 'Przenieś w górę',
+  'dayplan.moveDown': 'Przenieś w dół',
+  'dayplan.reorderUndo': 'Zmień kolejność dni',
+  'dayplan.reorderError': 'Nie udało się zmienić kolejności dni',
+  'dayplan.addDayError': 'Nie udało się dodać dnia',
+};
+export default dayplan;

@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { formatDate, formatTime, dayTotalCost, currencyDecimals } from '../../../src/utils/formatters';
+import type { AssignmentsMap } from '../../../src/types';
+
+// dayTotalCost intentionally exercises edge-case price inputs (string / non-numeric),
+// which are looser than the canonical AssignmentsMap shape — hence the casts below.
+const asMap = (m: unknown): AssignmentsMap => m as AssignmentsMap;
 
 describe('currencyDecimals', () => {
   it('returns 0 for zero-decimal currencies', () => {
@@ -68,7 +73,7 @@ describe('dayTotalCost', () => {
         { id: 1, day_id: 1, order_index: 0, notes: null, place: { id: 1, trip_id: 1, name: 'P', lat: null, lng: null, description: null, address: null, category_id: null, icon: null, price: null, image_url: null, google_place_id: null, osm_id: null, route_geometry: null, place_time: null, end_time: null, created_at: '' } },
       ],
     };
-    expect(dayTotalCost(1, assignments, 'EUR')).toBeNull();
+    expect(dayTotalCost(1, asMap(assignments), 'EUR')).toBeNull();
   });
 
   it('sums prices across assignments', () => {
@@ -78,7 +83,7 @@ describe('dayTotalCost', () => {
         { id: 2, day_id: 1, order_index: 1, notes: null, place: { id: 2, trip_id: 1, name: 'B', lat: null, lng: null, description: null, address: null, category_id: null, icon: null, price: '30', image_url: null, google_place_id: null, osm_id: null, route_geometry: null, place_time: null, end_time: null, created_at: '' } },
       ],
     };
-    expect(dayTotalCost(1, assignments, 'EUR')).toBe('50 EUR');
+    expect(dayTotalCost(1, asMap(assignments), 'EUR')).toBe('50 EUR');
   });
 
   it('ignores non-numeric price strings', () => {
@@ -87,7 +92,7 @@ describe('dayTotalCost', () => {
         { id: 1, day_id: 1, order_index: 0, notes: null, place: { id: 1, trip_id: 1, name: 'A', lat: null, lng: null, description: null, address: null, category_id: null, icon: null, price: 'free', image_url: null, google_place_id: null, osm_id: null, route_geometry: null, place_time: null, end_time: null, created_at: '' } },
       ],
     };
-    expect(dayTotalCost(1, assignments, 'EUR')).toBeNull();
+    expect(dayTotalCost(1, asMap(assignments), 'EUR')).toBeNull();
   });
 
   it('uses the dayId key to look up assignments', () => {
@@ -96,7 +101,7 @@ describe('dayTotalCost', () => {
         { id: 3, day_id: 2, order_index: 0, notes: null, place: { id: 3, trip_id: 1, name: 'C', lat: null, lng: null, description: null, address: null, category_id: null, icon: null, price: '10', image_url: null, google_place_id: null, osm_id: null, route_geometry: null, place_time: null, end_time: null, created_at: '' } },
       ],
     };
-    expect(dayTotalCost(1, assignments, 'USD')).toBeNull();
-    expect(dayTotalCost(2, assignments, 'USD')).toBe('10 USD');
+    expect(dayTotalCost(1, asMap(assignments), 'USD')).toBeNull();
+    expect(dayTotalCost(2, asMap(assignments), 'USD')).toBe('10 USD');
   });
 });

@@ -17,7 +17,15 @@ const { testDb, dbMock } = vi.hoisted(() => {
     closeDb: () => {},
     reinitialize: () => {},
     getPlaceWithTags: () => null,
-    canAccessTrip: () => null,
+    // Mirror the real canAccessTrip semantics against the test DB (owner or member
+    // → truthy access row, else undefined) so addTripToJourney's trip-access guard
+    // behaves as in production. (Was an unused `() => null` stub before the guard existed.)
+    canAccessTrip: (tripId: number | string, userId: number) =>
+      db
+        .prepare(
+          'SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)',
+        )
+        .get(userId, tripId, userId),
     isOwner: () => false,
   };
   return { testDb: db, dbMock: mock };
@@ -417,6 +425,22 @@ describe('addTripToJourney / removeTripFromJourney', () => {
     expect(link).toBeDefined();
   });
 
+  it('JOURNEY-SVC-024b: refuses to link a trip the caller cannot access (IDOR guard)', () => {
+    const { user } = createUser(testDb);
+    const { user: stranger } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    // A trip owned by someone else, that `user` is not a member of.
+    const foreignTrip = createTrip(testDb, stranger.id, { title: "Stranger's Trip" });
+
+    const result = addTripToJourney(journey.id, foreignTrip.id, user.id);
+
+    expect(result).toBe(false);
+    const link = testDb.prepare(
+      'SELECT * FROM journey_trips WHERE journey_id = ? AND trip_id = ?'
+    ).get(journey.id, foreignTrip.id);
+    expect(link).toBeUndefined();
+  });
+
   it('JOURNEY-SVC-025: syncs places as skeleton entries when linking a trip', () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
@@ -571,6 +595,32 @@ describe('updateEntry', () => {
     const result = updateEntry(99999, user.id, { title: 'No Such Entry' });
 
     expect(result).toBeNull();
+  });
+
+  it('JOURNEY-SVC-034b: ignores injection column keys and mass-assignment attempts', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = createJourneyEntry(testDb, journey.id, user.id, {
+      title: 'Safe',
+      story: 'original',
+      entry_date: '2026-03-01',
+    });
+
+    // The keys come straight from the request body. A crafted key was previously
+    // interpolated as a raw SQL column name (`${key} = ?`), enabling subquery
+    // injection (full DB read) and mass-assignment of protected columns.
+    const malicious: Record<string, unknown> = {
+      title: 'Updated',
+      [`story = (SELECT password_hash FROM users WHERE id = ${user.id}), updated_at`]: 'x',
+      author_id: 999999,
+    };
+
+    const updated = updateEntry(entry.id, user.id, malicious as Parameters<typeof updateEntry>[2]);
+
+    expect(updated).not.toBeNull();
+    expect(updated!.title).toBe('Updated'); // legit field still applied
+    expect(updated!.story).toBe('original'); // injection key dropped — no hash leaked into story
+    expect(updated!.author_id).toBe(user.id); // mass-assignment blocked
   });
 });
 

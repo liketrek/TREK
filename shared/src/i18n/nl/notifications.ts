@@ -1,0 +1,37 @@
+import type { TranslationStrings } from '../types';
+
+const notifications: TranslationStrings = {
+  'notifications.title': 'Meldingen',
+  'notifications.markAllRead': 'Alles als gelezen markeren',
+  'notifications.deleteAll': 'Alles verwijderen',
+  'notifications.showAll': 'Alle meldingen weergeven',
+  'notifications.empty': 'Geen meldingen',
+  'notifications.emptyDescription': 'Je bent helemaal bijgewerkt!',
+  'notifications.all': 'Alle',
+  'notifications.unreadOnly': 'Ongelezen',
+  'notifications.markRead': 'Markeren als gelezen',
+  'notifications.markUnread': 'Markeren als ongelezen',
+  'notifications.delete': 'Verwijderen',
+  'notifications.system': 'Systeem',
+  'notifications.synologySessionCleared.title': 'Synology Photos verbroken',
+  'notifications.synologySessionCleared.text':
+    'Je server of account is gewijzigd — ga naar Instellingen om je verbinding opnieuw te testen.',
+  'notifications.test.title': 'Testmelding van {actor}',
+  'notifications.test.text': 'Dit is een eenvoudige testmelding.',
+  'notifications.test.booleanTitle': '{actor} vraagt om uw goedkeuring',
+  'notifications.test.booleanText': 'Booleaanse testmelding.',
+  'notifications.test.accept': 'Goedkeuren',
+  'notifications.test.decline': 'Afwijzen',
+  'notifications.test.navigateTitle': 'Bekijk iets',
+  'notifications.test.navigateText': 'Navigatie-testmelding.',
+  'notifications.test.goThere': 'Ga erheen',
+  'notifications.test.adminTitle': 'Admin-broadcast',
+  'notifications.test.adminText':
+    '{actor} heeft een testmelding naar alle admins gestuurd.',
+  'notifications.test.tripTitle': '{actor} heeft gepost in uw reis',
+  'notifications.test.tripText': 'Testmelding voor reis "{trip}".',
+  'notifications.versionAvailable.title': 'Update beschikbaar',
+  'notifications.versionAvailable.text': 'TREK {version} is nu beschikbaar.',
+  'notifications.versionAvailable.button': 'Details bekijken',
+};
+export default notifications;

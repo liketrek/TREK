@@ -1,0 +1,57 @@
+import type { TranslationStrings } from '../types';
+
+const perm: TranslationStrings = {
+  'perm.title': 'Permission Settings',
+  'perm.subtitle': 'Control who can perform actions across the application',
+  'perm.saved': 'Permission settings saved',
+  'perm.resetDefaults': 'Reset to defaults',
+  'perm.customized': 'customized',
+  'perm.level.admin': 'Admin only',
+  'perm.level.tripOwner': 'Trip owner',
+  'perm.level.tripMember': 'Trip members',
+  'perm.level.everybody': 'Everyone',
+  'perm.cat.trip': 'Trip Management',
+  'perm.cat.members': 'Member Management',
+  'perm.cat.files': 'Files',
+  'perm.cat.content': 'Content & Schedule',
+  'perm.cat.extras': 'Budget, Packing & Collaboration',
+  'perm.action.trip_create': 'Create trips',
+  'perm.action.trip_edit': 'Edit trip details',
+  'perm.action.trip_delete': 'Delete trips',
+  'perm.action.trip_archive': 'Archive / unarchive trips',
+  'perm.action.trip_cover_upload': 'Upload cover image',
+  'perm.action.member_manage': 'Add / remove members',
+  'perm.action.file_upload': 'Upload files',
+  'perm.action.file_edit': 'Edit file metadata',
+  'perm.action.file_delete': 'Delete files',
+  'perm.action.place_edit': 'Add / edit / delete places',
+  'perm.action.day_edit': 'Edit days, notes & assignments',
+  'perm.action.reservation_edit': 'Manage reservations',
+  'perm.action.budget_edit': 'Manage budget',
+  'perm.action.packing_edit': 'Manage packing lists',
+  'perm.action.collab_edit': 'Collaboration (notes, polls, chat)',
+  'perm.action.share_manage': 'Manage share links',
+  'perm.actionHint.trip_create': 'Who can create new trips',
+  'perm.actionHint.trip_edit':
+    'Who can change trip name, dates, description and currency',
+  'perm.actionHint.trip_delete': 'Who can permanently delete a trip',
+  'perm.actionHint.trip_archive': 'Who can archive or unarchive a trip',
+  'perm.actionHint.trip_cover_upload':
+    'Who can upload or change the cover image',
+  'perm.actionHint.member_manage': 'Who can invite or remove trip members',
+  'perm.actionHint.file_upload': 'Who can upload files to a trip',
+  'perm.actionHint.file_edit': 'Who can edit file descriptions and links',
+  'perm.actionHint.file_delete':
+    'Who can move files to trash or permanently delete them',
+  'perm.actionHint.place_edit': 'Who can add, edit or delete places',
+  'perm.actionHint.day_edit':
+    'Who can edit days, day notes and place assignments',
+  'perm.actionHint.reservation_edit':
+    'Who can create, edit or delete reservations',
+  'perm.actionHint.budget_edit': 'Who can create, edit or delete budget items',
+  'perm.actionHint.packing_edit': 'Who can manage packing items and bags',
+  'perm.actionHint.collab_edit':
+    'Who can create notes, polls and send messages',
+  'perm.actionHint.share_manage': 'Who can create or delete public share links',
+};
+export default perm;

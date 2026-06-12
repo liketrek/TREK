@@ -125,7 +125,7 @@ describe('VacayCalendar', () => {
 
     await user.click(companyBtn)
 
-    expect(companyBtn).toHaveStyle({ background: '#d97706' })
+    expect(companyBtn).toHaveClass('bg-[#d97706]')
   })
 
   it('FE-COMP-VACAYCALENDAR-006: cell click in vacation mode calls toggleEntry', async () => {

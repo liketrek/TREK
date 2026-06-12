@@ -1,6 +1,9 @@
 import Database from 'better-sqlite3';
 import crypto from 'crypto';
 
+// bcrypt cost factor for the seeded admin password — kept in sync with authService.
+const BCRYPT_COST = 12;
+
 // Seeds run at startup before the DB admin panel can be used, so only env vars
 // are checked here. The granular password_login/password_registration DB toggles
 // are only relevant after the first user exists; at that point seeds have already
@@ -40,7 +43,7 @@ function seedAdminAccount(db: Database.Database): void {
       email = 'admin@trek.local';
     }
 
-    const hash = bcrypt.hashSync(password, 12);
+    const hash = bcrypt.hashSync(password, BCRYPT_COST);
     const username = 'admin';
 
     db.prepare('INSERT INTO users (username, email, password_hash, role, must_change_password) VALUES (?, ?, ?, ?, 1)').run(username, email, hash, 'admin');
@@ -87,7 +90,7 @@ function seedAddons(db: Database.Database): void {
   try {
     const defaultAddons = [
       { id: 'packing', name: 'Lists', description: 'Packing lists and to-do tasks for your trips', type: 'trip', icon: 'ListChecks', enabled: 1, sort_order: 0 },
-      { id: 'budget', name: 'Budget Planner', description: 'Track expenses and plan your travel budget', type: 'trip', icon: 'Wallet', enabled: 1, sort_order: 1 },
+      { id: 'budget', name: 'Costs', description: 'Track and split trip expenses', type: 'trip', icon: 'Wallet', enabled: 1, sort_order: 1 },
       { id: 'documents', name: 'Documents', description: 'Store and manage travel documents', type: 'trip', icon: 'FileText', enabled: 1, sort_order: 2 },
       { id: 'vacay', name: 'Vacay', description: 'Personal vacation day planner with calendar view', type: 'global', icon: 'CalendarDays', enabled: 1, sort_order: 10 },
       { id: 'atlas', name: 'Atlas', description: 'World map of your visited countries with travel stats', type: 'global', icon: 'Globe', enabled: 1, sort_order: 11 },

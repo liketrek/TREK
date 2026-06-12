@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Package } from 'lucide-react'
-import { adminApi, packingApi } from '../../api/client'
+import { packingApi } from '../../api/client'
 import { useTripStore } from '../../store/tripStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
@@ -28,7 +28,7 @@ export default function ApplyTemplateButton({ tripId, style, className }: ApplyT
   const { t } = useTranslation()
 
   useEffect(() => {
-    adminApi.packingTemplates().then(d => setTemplates(d.templates || [])).catch(() => {})
+    packingApi.listTemplates(tripId).then(d => setTemplates(d.templates || [])).catch(() => {})
   }, [tripId])
 
   useEffect(() => {
@@ -87,7 +87,7 @@ export default function ApplyTemplateButton({ tripId, style, className }: ApplyT
               onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
-              <Package size={13} style={{ color: 'var(--text-faint)' }} />
+              <Package size={13} className="text-content-faint" />
               <div style={{ flex: 1, textAlign: 'left' }}>
                 <div style={{ fontWeight: 600 }}>{tmpl.name}</div>
                 <div style={{ fontSize: 10, color: 'var(--text-faint)' }}>

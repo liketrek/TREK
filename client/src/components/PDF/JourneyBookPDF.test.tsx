@@ -146,4 +146,20 @@ describe('downloadJourneyBookPDF', () => {
     expect(html).toContain('Journey Book');
     expect(html).toContain('The End');
   });
+
+  it('FE-COMP-JOURNEYPDF-007: sanitises HTML injected via an entry story and keeps the iframe script-free', async () => {
+    const journey = buildJourney();
+    journey.entries[0].story = 'Hello <script>alert(1)</script> <img src=x onerror="alert(2)"> world';
+    await downloadJourneyBookPDF(journey);
+    const iframe = getIframe()!;
+    const html = iframe.srcdoc;
+
+    // The script tag, image beacon and event handler are stripped from the story.
+    expect(html).not.toContain('<script');
+    expect(html).not.toContain('onerror');
+    expect(html).not.toContain('alert(2)');
+    // Benign prose survives.
+    expect(html).toContain('Hello');
+    expect(html).toContain('world');
+  });
 });

@@ -92,10 +92,10 @@ export default function OfflineTab(): React.ReactElement {
           <button
             onClick={handleResync}
             disabled={syncing || !navigator.onLine}
+            className="border border-edge bg-surface-secondary text-content"
             style={{
               display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px',
-              borderRadius: 8, border: '1px solid var(--border-primary)',
-              background: 'var(--bg-secondary)', color: 'var(--text-primary)',
+              borderRadius: 8,
               cursor: syncing || !navigator.onLine ? 'not-allowed' : 'pointer',
               fontSize: 13, fontWeight: 500, opacity: !navigator.onLine ? 0.5 : 1,
             }}
@@ -107,10 +107,10 @@ export default function OfflineTab(): React.ReactElement {
           <button
             onClick={handleClear}
             disabled={clearing || rows.length === 0}
+            className="border border-edge bg-surface-secondary text-[#ef4444]"
             style={{
               display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px',
-              borderRadius: 8, border: '1px solid var(--border-primary)',
-              background: 'var(--bg-secondary)', color: '#ef4444',
+              borderRadius: 8,
               cursor: clearing || rows.length === 0 ? 'not-allowed' : 'pointer',
               fontSize: 13, fontWeight: 500, opacity: rows.length === 0 ? 0.5 : 1,
             }}
@@ -122,9 +122,9 @@ export default function OfflineTab(): React.ReactElement {
 
         {/* Cached trip list */}
         {loading ? (
-          <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading…</p>
+          <p className="text-content-muted" style={{ fontSize: 13 }}>Loading…</p>
         ) : rows.length === 0 ? (
-          <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+          <p className="text-content-muted" style={{ fontSize: 13 }}>
             No trips cached yet. Connect to internet to sync.
           </p>
         ) : (
@@ -132,25 +132,24 @@ export default function OfflineTab(): React.ReactElement {
             {rows.map(({ trip, meta, placeCount, fileCount }) => (
               <div
                 key={trip.id}
+                className="border border-edge bg-surface-secondary"
                 style={{
                   padding: '10px 14px', borderRadius: 8,
-                  border: '1px solid var(--border-primary)',
-                  background: 'var(--bg-secondary)',
                   display: 'flex', flexDirection: 'column', gap: 2,
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)' }}>
-                    {trip.name}
+                  <span className="text-content" style={{ fontWeight: 600, fontSize: 14 }}>
+                    {trip.title}
                   </span>
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                  <span className="text-content-muted" style={{ fontSize: 11 }}>
                     <Wifi size={10} style={{ display: 'inline', marginRight: 3 }} />
                     {meta.lastSyncedAt
                       ? new Date(meta.lastSyncedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
                       : '—'}
                   </span>
                 </div>
-                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                <span className="text-content-muted" style={{ fontSize: 12 }}>
                   {formatDate(trip.start_date)} – {formatDate(trip.end_date)}
                   {' · '}
                   {placeCount} place{placeCount !== 1 ? 's' : ''}
@@ -168,13 +167,12 @@ export default function OfflineTab(): React.ReactElement {
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div style={{
+    <div className="border border-edge bg-surface-secondary" style={{
       padding: '8px 14px', borderRadius: 8,
-      border: '1px solid var(--border-primary)',
-      background: 'var(--bg-secondary)', minWidth: 100,
+      minWidth: 100,
     }}>
-      <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>{value}</div>
-      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{label}</div>
+      <div className="text-content" style={{ fontSize: 20, fontWeight: 700 }}>{value}</div>
+      <div className="text-content-muted" style={{ fontSize: 11 }}>{label}</div>
     </div>
   )
 }

@@ -1,0 +1,62 @@
+import type { TranslationStrings } from '../types';
+
+const perm: TranslationStrings = {
+  'perm.title': 'Rechtinstellingen',
+  'perm.subtitle': 'Bepaal wie welke acties mag uitvoeren in de applicatie',
+  'perm.saved': 'Rechtinstellingen opgeslagen',
+  'perm.resetDefaults': 'Standaardwaarden herstellen',
+  'perm.customized': 'aangepast',
+  'perm.level.admin': 'Alleen beheerder',
+  'perm.level.tripOwner': 'Reiseigenaar',
+  'perm.level.tripMember': 'Reisleden',
+  'perm.level.everybody': 'Iedereen',
+  'perm.cat.trip': 'Reisbeheer',
+  'perm.cat.members': 'Ledenbeheer',
+  'perm.cat.files': 'Bestanden',
+  'perm.cat.content': 'Inhoud & planning',
+  'perm.cat.extras': 'Budget, paklijsten & samenwerking',
+  'perm.action.trip_create': 'Reizen aanmaken',
+  'perm.action.trip_edit': 'Reisdetails bewerken',
+  'perm.action.trip_delete': 'Reizen verwijderen',
+  'perm.action.trip_archive': 'Reizen archiveren / dearchiveren',
+  'perm.action.trip_cover_upload': 'Omslagfoto uploaden',
+  'perm.action.member_manage': 'Leden toevoegen / verwijderen',
+  'perm.action.file_upload': 'Bestanden uploaden',
+  'perm.action.file_edit': 'Bestandsmetadata bewerken',
+  'perm.action.file_delete': 'Bestanden verwijderen',
+  'perm.action.place_edit': 'Plaatsen toevoegen / bewerken / verwijderen',
+  'perm.action.day_edit': 'Dagen, notities & toewijzingen bewerken',
+  'perm.action.reservation_edit': 'Reserveringen beheren',
+  'perm.action.budget_edit': 'Budget beheren',
+  'perm.action.packing_edit': 'Paklijsten beheren',
+  'perm.action.collab_edit': 'Samenwerking (notities, polls, chat)',
+  'perm.action.share_manage': 'Deellinks beheren',
+  'perm.actionHint.trip_create': 'Wie kan nieuwe reizen aanmaken',
+  'perm.actionHint.trip_edit':
+    'Wie kan reisnaam, data, beschrijving en valuta wijzigen',
+  'perm.actionHint.trip_delete': 'Wie kan een reis permanent verwijderen',
+  'perm.actionHint.trip_archive': 'Wie kan een reis archiveren of dearchiveren',
+  'perm.actionHint.trip_cover_upload':
+    'Wie kan de omslagfoto uploaden of wijzigen',
+  'perm.actionHint.member_manage':
+    'Wie kan reisleden uitnodigen of verwijderen',
+  'perm.actionHint.file_upload': 'Wie kan bestanden uploaden naar een reis',
+  'perm.actionHint.file_edit':
+    'Wie kan bestandsbeschrijvingen en links bewerken',
+  'perm.actionHint.file_delete':
+    'Wie kan bestanden naar de prullenbak verplaatsen of permanent verwijderen',
+  'perm.actionHint.place_edit':
+    'Wie kan plaatsen toevoegen, bewerken of verwijderen',
+  'perm.actionHint.day_edit':
+    'Wie kan dagen, dagnotities en plaatstoewijzingen bewerken',
+  'perm.actionHint.reservation_edit':
+    'Wie kan reserveringen aanmaken, bewerken of verwijderen',
+  'perm.actionHint.budget_edit':
+    'Wie kan budgetposten aanmaken, bewerken of verwijderen',
+  'perm.actionHint.packing_edit': 'Wie kan pakitems en tassen beheren',
+  'perm.actionHint.collab_edit':
+    'Wie kan notities, polls aanmaken en berichten versturen',
+  'perm.actionHint.share_manage':
+    'Wie kan openbare deellinks aanmaken of verwijderen',
+};
+export default perm;

@@ -53,10 +53,9 @@ export default function InAppNotificationItem({ notification, onClose }: Notific
 
   return (
     <div
-      className="relative px-4 py-3 transition-colors"
+      className="relative px-4 py-3 transition-colors border-b border-edge-secondary"
       style={{
         background: notification.is_read ? 'transparent' : (dark ? 'rgba(99,102,241,0.07)' : 'rgba(99,102,241,0.05)'),
-        borderBottom: '1px solid var(--border-secondary)',
       }}
     >
 
@@ -71,8 +70,8 @@ export default function InAppNotificationItem({ notification, onClose }: Notific
             />
           ) : (
             <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
-              style={{ background: dark ? '#27272a' : '#f1f5f9', color: 'var(--text-muted)' }}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-content-muted"
+              style={{ background: dark ? '#27272a' : '#f1f5f9' }}
             >
               {notification.sender_username
                 ? notification.sender_username.charAt(0).toUpperCase()
@@ -85,11 +84,11 @@ export default function InAppNotificationItem({ notification, onClose }: Notific
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <p className="text-sm font-medium leading-snug" style={{ color: 'var(--text-primary)' }}>
+            <p className="text-sm font-medium leading-snug text-content">
               {hasUnknownTitle ? notification.title_key : titleText}
             </p>
             <div className="flex items-center gap-0.5 flex-shrink-0">
-              <span className="text-xs mr-1" style={{ color: 'var(--text-faint)' }}>
+              <span className="text-xs mr-1 text-content-faint">
                 {relativeTime(notification.created_at, locale)}
               </span>
               {!notification.is_read && (
@@ -117,7 +116,7 @@ export default function InAppNotificationItem({ notification, onClose }: Notific
             </div>
           </div>
 
-          <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-xs mt-0.5 leading-relaxed text-content-muted">
             {hasUnknownBody ? notification.text_key : bodyText}
           </p>
 

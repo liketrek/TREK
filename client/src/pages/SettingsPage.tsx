@@ -1,10 +1,7 @@
-import React, { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import React from 'react'
 import { Settings, Palette, Map, Bell, Plug, CloudOff, User, Info } from 'lucide-react'
 import { useTranslation } from '../i18n'
-import { authApi } from '../api/client'
-import { useAddonStore } from '../store/addonStore'
-import Navbar from '../components/Layout/Navbar'
+import PageShell from '../components/Layout/PageShell'
 import PageSidebar, { type PageSidebarTab } from '../components/Layout/PageSidebar'
 import DisplaySettingsTab from '../components/Settings/DisplaySettingsTab'
 import MapSettingsTab from '../components/Settings/MapSettingsTab'
@@ -13,30 +10,12 @@ import IntegrationsTab from '../components/Settings/IntegrationsTab'
 import AccountTab from '../components/Settings/AccountTab'
 import AboutTab from '../components/Settings/AboutTab'
 import OfflineTab from '../components/Settings/OfflineTab'
+import { useSettings } from './settings/useSettings'
 
 export default function SettingsPage(): React.ReactElement {
   const { t } = useTranslation()
-  const [searchParams] = useSearchParams()
-  const { isEnabled: addonEnabled, loadAddons } = useAddonStore()
-
-  const memoriesEnabled = addonEnabled('memories')
-  const mcpEnabled = addonEnabled('mcp')
-  const hasIntegrations = memoriesEnabled || mcpEnabled
-
-  const [appVersion, setAppVersion] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState('display')
-
-  useEffect(() => {
-    loadAddons()
-    authApi.getAppConfig?.().then(c => setAppVersion(c?.version)).catch(() => {})
-  }, [])
-
-  // Auto-switch to account tab when MFA is required
-  useEffect(() => {
-    if (searchParams.get('mfa') === 'required') {
-      setActiveTab('account')
-    }
-  }, [searchParams])
+  // Page = wiring container: addon/version loading + active-tab state in the hook.
+  const { hasIntegrations, appVersion, activeTab, setActiveTab } = useSettings()
 
   const tabs: PageSidebarTab[] = [
     { id: 'display', label: t('settings.tabs.display'), icon: Palette },
@@ -53,19 +32,16 @@ export default function SettingsPage(): React.ReactElement {
   ]
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg-secondary)' }}>
-      <Navbar />
-
-      <div style={{ paddingTop: 'var(--nav-h)' }}>
-        <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
+    <PageShell background="var(--bg-secondary)">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'var(--bg-tertiary)' }}>
-              <Settings className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-surface-tertiary">
+              <Settings className="w-5 h-5 text-content-secondary" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{t('settings.title')}</h1>
-              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{t('settings.subtitle')}</p>
+              <h1 className="text-2xl font-bold text-content">{t('settings.title')}</h1>
+              <p className="text-sm text-content-muted">{t('settings.subtitle')}</p>
             </div>
           </div>
 
@@ -86,7 +62,6 @@ export default function SettingsPage(): React.ReactElement {
             {activeTab === 'about' && appVersion && <AboutTab appVersion={appVersion} />}
           </PageSidebar>
         </div>
-      </div>
-    </div>
+    </PageShell>
   )
 }

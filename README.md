@@ -89,7 +89,7 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 
 #### 🧳 Travel management
 
-- **Reservations** — flights, accommodations, restaurants with status, confirmation numbers, files
+- **Reservations** — flights, accommodations, restaurants with status, confirmation numbers, files; import from booking confirmation emails and PDFs ([KDE Itinerary](https://invent.kde.org/pim/kitinerary))
 - **Budget tracking** — category-based expenses with pie chart, per-person / per-day splits, multi-currency
 - **Packing lists** — categories, templates, user assignment, progress tracking
 - **Bag tracking** — optional weight tracking with iOS-style distribution
@@ -436,6 +436,13 @@ Caddy handles TLS and WebSockets automatically.
 - **Auto-Backups** — configurable schedule and retention in Admin Panel
 
 <br />
+
+## Data sources
+
+The Atlas map's country and sub-national (province/county) boundaries come from
+[**geoBoundaries**](https://www.geoboundaries.org/) (Runfola et al., 2020), licensed
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). See [NOTICE.md](NOTICE.md)
+for full third-party attributions.
 
 ## License
 

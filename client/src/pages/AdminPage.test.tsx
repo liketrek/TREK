@@ -360,7 +360,7 @@ describe('AdminPage', () => {
       fireEvent.click(screen.getByRole('button', { name: /settings/i }));
 
       const heading = await screen.findByRole('heading', { name: /authentication methods/i });
-      const card = heading.closest('.bg-white');
+      const card = heading.closest<HTMLElement>('.bg-white');
       const toggles = within(card!).getAllByRole('button');
       fireEvent.click(toggles[0]); // First toggle = password_login
 
@@ -474,7 +474,7 @@ describe('AdminPage', () => {
       fireEvent.click(screen.getByRole('button', { name: /settings/i }));
 
       const mfaHeading = await screen.findByRole('heading', { name: /require two-factor/i });
-      const mfaCard = mfaHeading.closest('.bg-white');
+      const mfaCard = mfaHeading.closest<HTMLElement>('.bg-white');
       const mfaToggle = within(mfaCard!).getByRole('button');
       fireEvent.click(mfaToggle);
 
@@ -739,7 +739,7 @@ describe('AdminPage', () => {
 
       // Find and click the Save button in the file types section
       const fileTypesHeading = screen.getByRole('heading', { name: /allowed file types/i });
-      const fileTypesCard = fileTypesHeading.closest('.bg-white');
+      const fileTypesCard = fileTypesHeading.closest<HTMLElement>('.bg-white');
       const saveBtn = within(fileTypesCard!).getByRole('button', { name: /save/i });
       fireEvent.click(saveBtn);
 
@@ -765,7 +765,7 @@ describe('AdminPage', () => {
 
       // Wait for OIDC section to appear
       const oidcHeading = await screen.findByRole('heading', { name: /single sign-on/i });
-      const oidcCard = oidcHeading.closest('.bg-white');
+      const oidcCard = oidcHeading.closest<HTMLElement>('.bg-white');
 
       // Type in the display name field (placeholder is 'z.B. Google, Authentik, Keycloak')
       const displayNameInput = within(oidcCard!).getByPlaceholderText('z.B. Google, Authentik, Keycloak');
@@ -800,7 +800,7 @@ describe('AdminPage', () => {
 
       // The Email (SMTP) panel header has the enable toggle
       const emailHeading = await screen.findByRole('heading', { name: /email \(smtp\)/i });
-      const emailPanel = emailHeading.closest('.bg-white');
+      const emailPanel = emailHeading.closest<HTMLElement>('.bg-white');
       const emailToggle = within(emailPanel!).getAllByRole('button')[0];
       fireEvent.click(emailToggle);
 
@@ -842,7 +842,7 @@ describe('AdminPage', () => {
 
       // Click Save in the email panel
       const emailHeading = screen.getByRole('heading', { name: /email \(smtp\)/i });
-      const emailPanel = emailHeading.closest('.bg-white');
+      const emailPanel = emailHeading.closest<HTMLElement>('.bg-white');
       const saveBtn = within(emailPanel!).getByRole('button', { name: /^save$/i });
       fireEvent.click(saveBtn);
 
@@ -964,7 +964,7 @@ describe('AdminPage', () => {
 
       // Wait for the API Keys section to appear
       const apiKeysHeading = await screen.findByRole('heading', { name: /^api keys$/i });
-      const apiKeysCard = apiKeysHeading.closest('.bg-white');
+      const apiKeysCard = apiKeysHeading.closest<HTMLElement>('.bg-white');
 
       // Type in the maps key field (type="password" by default)
       const keyInputs = within(apiKeysCard!).getAllByPlaceholderText('Enter key...');
@@ -999,7 +999,7 @@ describe('AdminPage', () => {
 
       // Wait for the API Keys section
       const apiKeysHeading = await screen.findByRole('heading', { name: /^api keys$/i });
-      const apiKeysCard = apiKeysHeading.closest('.bg-white');
+      const apiKeysCard = apiKeysHeading.closest<HTMLElement>('.bg-white');
 
       // Type a key value to enable the Test button
       const keyInputs = within(apiKeysCard!).getAllByPlaceholderText('Enter key...');
@@ -1126,7 +1126,7 @@ describe('AdminPage', () => {
 
       // Click the TLS toggle (skip TLS certificate check)
       const tlsToggleText = screen.getByText('Skip TLS certificate check');
-      const tlsCard = tlsToggleText.closest('div');
+      const tlsCard = tlsToggleText.closest<HTMLElement>('div');
       // The toggle button is a sibling container
       const allToggles = screen.getAllByRole('button');
       // Find toggle near the TLS text
@@ -1170,7 +1170,7 @@ describe('AdminPage', () => {
 
       // Find the email panel and click its "Send test email" button (scoped to avoid admin webhook panel)
       const emailHeading = screen.getByRole('heading', { name: /email \(smtp\)/i });
-      const emailPanel = emailHeading.closest('.bg-white');
+      const emailPanel = emailHeading.closest<HTMLElement>('.bg-white');
       const testBtn = within(emailPanel!).getByRole('button', { name: /send test email/i });
       fireEvent.click(testBtn);
 
@@ -1207,7 +1207,7 @@ describe('AdminPage', () => {
 
       // Find the webhook panel heading ('Webhook') — exact match to avoid 'Admin Webhook'
       const webhookHeading = screen.getByRole('heading', { name: /^webhook$/i });
-      const webhookCard = webhookHeading.closest('.bg-white');
+      const webhookCard = webhookHeading.closest<HTMLElement>('.bg-white');
       // Find the toggle button in webhook card
       const webhookToggle = within(webhookCard!).getByRole('button');
       fireEvent.click(webhookToggle);
@@ -1245,7 +1245,7 @@ describe('AdminPage', () => {
 
       // Find the Save button in the admin webhook panel
       const adminWebhookHeading = screen.getByRole('heading', { name: /admin webhook/i });
-      const adminWebhookCard = adminWebhookHeading.closest('.bg-white');
+      const adminWebhookCard = adminWebhookHeading.closest<HTMLElement>('.bg-white');
       const saveBtn = within(adminWebhookCard!).getByRole('button', { name: /save/i });
       fireEvent.click(saveBtn);
 
@@ -1284,7 +1284,7 @@ describe('AdminPage', () => {
       // The channel column header is t('settings.notificationPreferences.email') = 'Email' (CSS uppercases it)
       // Find the AdminNotificationsPanel by its h2 heading role='heading'
       const matrixHeading = await screen.findByRole('heading', { name: /^notifications$/i });
-      const matrixCard = matrixHeading.closest('.bg-white');
+      const matrixCard = matrixHeading.closest<HTMLElement>('.bg-white');
 
       // The matrix toggle button is inside the card (not a checkbox — it's a button toggle)
       const matrixToggle = matrixCard?.querySelector('button');
@@ -1308,7 +1308,7 @@ describe('AdminPage', () => {
 
       // Wait for the OIDC section — heading is 'Single Sign-On (OIDC)'
       const oidcHeading = await screen.findByRole('heading', { name: /single sign-on/i });
-      const oidcCard = oidcHeading.closest('.bg-white');
+      const oidcCard = oidcHeading.closest<HTMLElement>('.bg-white');
 
       // Issuer field (placeholder: https://accounts.google.com)
       const issuerInput = within(oidcCard!).getByPlaceholderText('https://accounts.google.com');
@@ -1320,12 +1320,12 @@ describe('AdminPage', () => {
 
       // Client ID field
       const clientIdLabel = within(oidcCard!).getByText('Client ID');
-      const clientIdInput = clientIdLabel.closest('div')!.querySelector('input')!;
+      const clientIdInput = clientIdLabel.closest<HTMLElement>('div')!.querySelector('input')!;
       fireEvent.change(clientIdInput, { target: { value: 'my-client-id' } });
 
       // Client Secret field
       const clientSecretLabel = within(oidcCard!).getByText('Client Secret');
-      const clientSecretInput = clientSecretLabel.closest('div')!.querySelector('input')!;
+      const clientSecretInput = clientSecretLabel.closest<HTMLElement>('div')!.querySelector('input')!;
       fireEvent.change(clientSecretInput, { target: { value: 'my-client-secret' } });
 
       // Verify the inputs updated

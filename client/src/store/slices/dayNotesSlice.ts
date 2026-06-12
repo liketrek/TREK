@@ -10,7 +10,7 @@ type GetState = StoreApi<TripStoreState>['getState']
 export interface DayNotesSlice {
   updateDayNotes: (tripId: number | string, dayId: number | string, notes: string) => Promise<void>
   updateDayTitle: (tripId: number | string, dayId: number | string, title: string) => Promise<void>
-  addDayNote: (tripId: number | string, dayId: number | string, data: Partial<DayNote>) => Promise<DayNote>
+  addDayNote: (tripId: number | string, dayId: number | string, data: Partial<DayNote> & { text: string }) => Promise<DayNote>
   updateDayNote: (tripId: number | string, dayId: number | string, id: number, data: Partial<DayNote>) => Promise<DayNote>
   deleteDayNote: (tripId: number | string, dayId: number | string, id: number) => Promise<void>
   moveDayNote: (tripId: number | string, fromDayId: number | string, toDayId: number | string, noteId: number, sort_order?: number) => Promise<void>

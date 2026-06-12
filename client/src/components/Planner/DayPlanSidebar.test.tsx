@@ -268,14 +268,7 @@ describe('DayPlanSidebar', () => {
     const user = userEvent.setup()
     const day = buildDay({ id: 10, date: '2025-06-01', title: 'Original Title' })
     render(<DayPlanSidebar {...makeDefaultProps({ days: [day] })} />)
-    // Find the pencil/edit button next to the title
-    const editButtons = screen.getAllByRole('button')
-    const editBtn = editButtons.find(btn => btn.querySelector('svg') && btn.closest('[style]')?.textContent?.includes('Original Title'))
-    // Click the edit (pencil) button — it's the small one near the title
-    // The pencil button is inside the title area with opacity 0.35
-    const titleEl = screen.getByText('Original Title')
-    const pencilBtn = titleEl.parentElement?.querySelector('button')
-    if (pencilBtn) await user.click(pencilBtn)
+    await user.click(screen.getByLabelText('Edit'))
     await waitFor(() => {
       expect(screen.getByDisplayValue('Original Title')).toBeInTheDocument()
     })
@@ -287,9 +280,7 @@ describe('DayPlanSidebar', () => {
     const onUpdateDayTitle = vi.fn()
     render(<DayPlanSidebar {...makeDefaultProps({ days: [day], onUpdateDayTitle })} />)
     // Enter edit mode
-    const titleEl = screen.getByText('Original Title')
-    const pencilBtn = titleEl.parentElement?.querySelector('button')
-    if (pencilBtn) await user.click(pencilBtn)
+    await user.click(screen.getByLabelText('Edit'))
     const input = await screen.findByDisplayValue('Original Title')
     await user.clear(input)
     await user.type(input, 'New Title')
@@ -301,9 +292,7 @@ describe('DayPlanSidebar', () => {
     const user = userEvent.setup()
     const day = buildDay({ id: 10, date: '2025-06-01', title: 'Original Title' })
     render(<DayPlanSidebar {...makeDefaultProps({ days: [day] })} />)
-    const titleEl = screen.getByText('Original Title')
-    const pencilBtn = titleEl.parentElement?.querySelector('button')
-    if (pencilBtn) await user.click(pencilBtn)
+    await user.click(screen.getByLabelText('Edit'))
     const input = await screen.findByDisplayValue('Original Title')
     await user.keyboard('{Escape}')
     expect(screen.queryByDisplayValue('Original Title')).not.toBeInTheDocument()
@@ -354,7 +343,7 @@ describe('DayPlanSidebar', () => {
     render(<DayPlanSidebar {...makeDefaultProps({ canUndo: true, lastActionLabel: 'Removed place', onUndo })} />)
     // The undo button should be present (Undo2 icon)
     const undoButtons = screen.getAllByRole('button')
-    const undoBtn = undoButtons.find(btn => !btn.disabled && btn.querySelector('svg'))
+    const undoBtn = undoButtons.find(btn => !(btn as HTMLButtonElement).disabled && btn.querySelector('svg'))
     expect(undoBtn).toBeDefined()
   })
 
@@ -513,7 +502,7 @@ describe('DayPlanSidebar', () => {
   // ── Budget footer ───────────────────────────────────────────────────────
 
   it('FE-PLANNER-DAYPLAN-037: budget footer shows total cost when places have prices', () => {
-    const place = buildPlace({ name: 'Eiffel Tower', price: '25.00' })
+    const place = buildPlace({ name: 'Eiffel Tower', price: 25 })
     const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
     const assignment = buildAssignment({ id: 99, day_id: 10, order_index: 0, place })
     render(<DayPlanSidebar {...makeDefaultProps({
@@ -625,9 +614,7 @@ describe('DayPlanSidebar', () => {
     const onUpdateDayTitle = vi.fn()
     const day = buildDay({ id: 10, date: '2025-06-01', title: 'Old Title' })
     render(<DayPlanSidebar {...makeDefaultProps({ days: [day], onUpdateDayTitle })} />)
-    const titleEl = screen.getByText('Old Title')
-    const pencilBtn = titleEl.parentElement?.querySelector('button')
-    if (pencilBtn) await user.click(pencilBtn)
+    await user.click(screen.getByLabelText('Edit'))
     const input = await screen.findByDisplayValue('Old Title')
     await user.clear(input)
     await user.type(input, 'New Title')
@@ -995,7 +982,7 @@ describe('DayPlanSidebar', () => {
     }
   })
 
-  it('FE-PLANNER-DAYPLAN-065: note card delete button calls deleteNote', async () => {
+  it('FE-PLANNER-DAYPLAN-065: deleting a note asks for confirmation before calling deleteNote', async () => {
     const user = userEvent.setup()
     const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
     const note = buildDayNote({ id: 55, day_id: 10, text: 'My note' })
@@ -1005,6 +992,11 @@ describe('DayPlanSidebar', () => {
     const noteEditBtns = document.querySelectorAll('.note-edit-buttons button')
     if (noteEditBtns.length > 1) {
       await user.click(noteEditBtns[1] as HTMLElement)
+      // Clicking delete opens a confirmation dialog rather than deleting immediately.
+      expect(mockDayNotesState.deleteNote).not.toHaveBeenCalled()
+      expect(screen.getByText('Delete note?')).toBeInTheDocument()
+      // Confirming triggers the actual delete.
+      await user.click(screen.getByRole('button', { name: /^delete$/i }))
       expect(mockDayNotesState.deleteNote).toHaveBeenCalled()
     }
   })
@@ -1406,7 +1398,7 @@ describe('DayPlanSidebar', () => {
     const assignment = buildAssignment({ id: 11, day_id: 10, order_index: 0, place })
     const flight = buildReservation({
       id: 77, trip_id: 1, type: 'flight', status: 'confirmed',
-      date: '2025-06-01', reservation_time: '2025-06-01T10:00:00Z',
+      reservation_time: '2025-06-01T10:00:00Z',
     })
     render(<DayPlanSidebar {...makeDefaultProps({
       days: [day], places: [place],
@@ -1566,7 +1558,7 @@ describe('DayPlanSidebar', () => {
     const a2 = buildAssignment({ id: 22, day_id: 10, order_index: 1, place: placeB })
     const flight = buildReservation({
       id: 77, trip_id: 1, type: 'flight', status: 'confirmed',
-      date: '2025-06-01', reservation_time: '2025-06-01T12:00:00Z',
+      reservation_time: '2025-06-01T12:00:00Z',
     })
     render(<DayPlanSidebar {...makeDefaultProps({
       days: [day], places: [placeA, placeB],

@@ -1,4 +1,5 @@
 import React, { useEffect, useCallback } from 'react'
+import ReactDOM from 'react-dom'
 import { AlertTriangle } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 
@@ -38,15 +39,14 @@ export default function ConfirmDialog({
 
   if (!isOpen) return null
 
-  return (
+  return ReactDOM.createPortal(
     <div
-      className="fixed inset-0 z-[10000] flex items-center justify-center px-4 trek-backdrop-enter"
-      style={{ backgroundColor: 'rgba(15, 23, 42, 0.5)', paddingBottom: 'var(--bottom-nav-h)' }}
+      className="fixed inset-0 z-[10000] flex items-center justify-center px-4 trek-backdrop-enter bg-[rgba(15,23,42,0.5)]"
+      style={{ paddingBottom: 'var(--bottom-nav-h)' }}
       onClick={onClose}
     >
       <div
-        className="trek-modal-enter rounded-2xl shadow-2xl w-full max-w-sm p-6"
-        style={{ background: 'var(--bg-card)' }}
+        className="trek-modal-enter rounded-2xl shadow-2xl w-full max-w-sm p-6 bg-surface-card"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-start gap-4">
@@ -56,10 +56,10 @@ export default function ConfirmDialog({
             </div>
           )}
           <div className="flex-1">
-            <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+            <h3 className="text-base font-semibold text-content">
               {title || t('common.confirm')}
             </h3>
-            <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
+            <p className="mt-1 text-sm text-content-secondary">
               {message}
             </p>
           </div>
@@ -68,11 +68,7 @@ export default function ConfirmDialog({
         <div className="flex justify-end gap-3 mt-6">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
-            style={{
-              color: 'var(--text-secondary)',
-              border: '1px solid var(--border-secondary)',
-            }}
+            className="px-4 py-2 text-sm font-medium rounded-lg transition-colors text-content-secondary border border-edge-secondary"
           >
             {cancelLabel || t('common.cancel')}
           </button>
@@ -87,6 +83,7 @@ export default function ConfirmDialog({
         </div>
       </div>
 
-    </div>
+    </div>,
+    document.body
   )
 }

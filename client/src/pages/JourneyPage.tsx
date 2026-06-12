@@ -1,16 +1,12 @@
-import { useEffect, useState, useMemo, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useJourneyStore } from '../store/journeyStore'
-import { journeyApi } from '../api/client'
-import Navbar from '../components/Layout/Navbar'
-import { useToast } from '../components/shared/Toast'
-import { useTranslation } from '../i18n'
+import PageShell from '../components/Layout/PageShell'
+import { useTranslation, TransHtml } from '../i18n'
 import {
   Plus, Search, Sparkles, Calendar, MapPin, BookOpen, Camera,
   Check, X, ChevronRight, RefreshCw, Users,
 } from 'lucide-react'
 import type { Journey } from '../store/journeyStore'
 import { computeJourneyLifecycle } from '../utils/journeyLifecycle'
+import { useJourney } from './journey/useJourney'
 
 const GRADIENTS = [
   'linear-gradient(135deg, #0F172A 0%, #6366F1 45%, #EC4899 100%)',
@@ -35,82 +31,20 @@ function timeAgo(timestamp: number, t: (k: string, p?: any) => string): string {
 }
 
 export default function JourneyPage() {
-  const navigate = useNavigate()
-  const toast = useToast()
   const { t } = useTranslation()
-  const { journeys, loading, loadJourneys, createJourney } = useJourneyStore()
-
-  const [showCreate, setShowCreate] = useState(false)
-  const [newTitle, setNewTitle] = useState('')
-  const [availableTrips, setAvailableTrips] = useState<any[]>([])
-  const [selectedTripIds, setSelectedTripIds] = useState<Set<number>>(new Set())
-  const [searchOpen, setSearchOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const searchInputRef = useRef<HTMLInputElement>(null)
-
-  // suggestion
-  const [suggestions, setSuggestions] = useState<any[]>([])
-  const [dismissedSuggestions, setDismissedSuggestions] = useState<Set<number>>(new Set())
-
-  useEffect(() => {
-    loadJourneys()
-    journeyApi.suggestions().then(d => setSuggestions(d.trips || [])).catch(() => {})
-  }, [])
-
-  const activeSuggestion = suggestions.find(s => !dismissedSuggestions.has(s.id))
-
-  const activeJourney = useMemo(() => {
-    if (searchQuery.trim()) return null
-    return journeys.find(j => {
-      const j2 = j as any
-      return computeJourneyLifecycle(j.status, j2.trip_date_min, j2.trip_date_max) === 'live'
-    }) || null
-  }, [journeys, searchQuery])
-
-  const filteredJourneys = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase()
-    if (!q) return journeys.filter(j => j.id !== activeJourney?.id)
-    return journeys.filter(j => {
-      const inTitle = j.title.toLowerCase().includes(q)
-      const inSubtitle = j.subtitle?.toLowerCase().includes(q) ?? false
-      return inTitle || inSubtitle
-    })
-  }, [journeys, activeJourney, searchQuery])
-
-  const openCreateModal = async (preSelectedTripId?: number) => {
-    setShowCreate(true)
-    setNewTitle('')
-    const initial = new Set<number>()
-    if (preSelectedTripId) initial.add(preSelectedTripId)
-    setSelectedTripIds(initial)
-    try {
-      const data = await journeyApi.availableTrips()
-      setAvailableTrips(data.trips || [])
-    } catch {}
-  }
-
-  const handleCreate = async () => {
-    if (!newTitle.trim()) return
-    try {
-      const j = await createJourney({
-        title: newTitle.trim(),
-        trip_ids: [...selectedTripIds],
-      })
-      setShowCreate(false)
-      navigate(`/journey/${j.id}`)
-    } catch {
-      toast.error(t('journey.createError'))
-    }
-  }
-
-  const totalPlaces = useMemo(() => {
-    return availableTrips.filter(t => selectedTripIds.has(t.id)).reduce((sum: number, t: any) => sum + (t.place_count || 0), 0)
-  }, [availableTrips, selectedTripIds])
+  // Page = wiring container: store load, create modal, search + suggestions in the hook.
+  const {
+    navigate, journeys, loading,
+    showCreate, setShowCreate, newTitle, setNewTitle,
+    availableTrips, selectedTripIds, setSelectedTripIds,
+    searchOpen, setSearchOpen, searchQuery, setSearchQuery, searchInputRef,
+    activeSuggestion, setDismissedSuggestions,
+    activeJourney, filteredJourneys,
+    openCreateModal, handleCreate, totalPlaces,
+  } = useJourney()
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
-      <Navbar />
-      <div style={{ paddingTop: 'var(--nav-h, 56px)' }}>
+    <PageShell className="bg-zinc-50 dark:bg-zinc-950" navOffset="var(--nav-h, 56px)">
         <div className="max-w-[1440px] mx-auto">
 
           {/* Header — mobile */}
@@ -152,29 +86,29 @@ export default function JourneyPage() {
 
           {/* Header — desktop (unified toolbar) */}
           <div className="hidden md:block px-8 pt-10 pb-7">
-            <div style={{
-              background: 'var(--bg-tertiary)', borderRadius: 18,
-              border: '1px solid var(--border-primary)',
+            <div className="bg-surface-tertiary border border-edge" style={{
+              borderRadius: 18,
               boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
               padding: '14px 16px 14px 22px',
               display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
             }}>
-              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em', flexShrink: 0 }}>
+              <h2 className="text-content" style={{ margin: 0, fontSize: 18, fontWeight: 600, letterSpacing: '-0.01em', flexShrink: 0 }}>
                 {t('journey.title')}
               </h2>
-              <div style={{ width: 1, height: 22, background: 'var(--border-faint)', flexShrink: 0 }} />
-              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+              <div className="bg-edge-faint" style={{ width: 1, height: 22, flexShrink: 0 }} />
+              <span className="text-content-muted" style={{ fontSize: 13 }}>
                 {t('journey.frontpage.subtitle')}
               </span>
 
               <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center', marginLeft: 'auto', flexShrink: 0 }}>
                 <button
                   onClick={() => openCreateModal()}
+                  className="bg-accent text-accent-text"
                   style={{
                     appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                     display: 'inline-flex', alignItems: 'center', gap: 6,
                     padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500,
-                    background: 'var(--accent)', color: 'var(--accent-text)', flexShrink: 0,
+                    flexShrink: 0,
                     marginLeft: 2,
                     transition: 'opacity 0.15s ease',
                   }}
@@ -203,7 +137,7 @@ export default function JourneyPage() {
                     <div>
                       <div className="text-[10px] font-semibold tracking-[0.12em] uppercase opacity-70">{t("journey.frontpage.suggestionLabel")}</div>
                       <div className="text-[13px] mt-0.5">
-                        <span dangerouslySetInnerHTML={{ __html: t('journey.frontpage.suggestionText', { title: activeSuggestion.title }) }} />
+                        <TransHtml html="journey.frontpage.suggestionText" params={{ title: activeSuggestion.title }} />
                       </div>
                     </div>
                   </div>
@@ -345,7 +279,6 @@ export default function JourneyPage() {
             )}
           </div>
         </div>
-      </div>
 
       {/* Create Modal */}
       {showCreate && (
@@ -453,7 +386,7 @@ export default function JourneyPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   )
 }
 

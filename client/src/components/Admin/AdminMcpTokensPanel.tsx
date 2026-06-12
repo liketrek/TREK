@@ -83,14 +83,14 @@ export default function AdminMcpTokensPanel() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t('admin.mcpTokens.title')}</h2>
+        <h2 className="text-lg font-semibold text-content">{t('admin.mcpTokens.title')}</h2>
         <p className="text-sm mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{t('admin.mcpTokens.subtitle')}</p>
       </div>
 
       {/* OAuth Sessions */}
       <div>
-        <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>{t('admin.oauthSessions.sectionTitle')}</h3>
-        <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-card)' }}>
+        <h3 className="text-sm font-semibold mb-2 text-content-secondary">{t('admin.oauthSessions.sectionTitle')}</h3>
+        <div className="rounded-xl border overflow-hidden border-edge bg-surface-card">
           {sessionsLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-tertiary)' }} />
@@ -102,8 +102,8 @@ export default function AdminMcpTokensPanel() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-6 px-4 py-2.5 text-xs font-medium border-b"
-                style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-primary)', background: 'var(--bg-secondary)' }}>
+              <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-6 px-4 py-2.5 text-xs font-medium border-b border-edge bg-surface-secondary"
+                style={{ color: 'var(--text-tertiary)' }}>
                 <span>{t('admin.oauthSessions.clientName')}</span>
                 <span>{t('admin.oauthSessions.owner')}</span>
                 <span className="text-right">{t('admin.oauthSessions.created')}</span>
@@ -115,34 +115,31 @@ export default function AdminMcpTokensPanel() {
                 const hidden = session.scopes.length - SCOPES_PREVIEW
                 return (
                   <div key={session.id}
-                    className="grid grid-cols-[1fr_auto_auto_auto] items-start gap-x-6 px-4 py-3"
-                    style={{ borderBottom: i < sessions.length - 1 ? '1px solid var(--border-primary)' : undefined }}>
+                    className={`grid grid-cols-[1fr_auto_auto_auto] items-start gap-x-6 px-4 py-3 ${i < sessions.length - 1 ? 'border-b border-edge' : ''}`}>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{session.client_name}</p>
+                      <p className="text-sm font-medium truncate text-content">{session.client_name}</p>
                       <div className="flex flex-wrap gap-1 mt-1.5">
                         {visible.map(scope => (
-                          <span key={scope} className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-mono"
-                            style={{ background: 'var(--bg-secondary)', color: 'var(--text-tertiary)', border: '1px solid var(--border-primary)' }}>
+                          <span key={scope} className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-mono bg-surface-secondary border border-edge"
+                            style={{ color: 'var(--text-tertiary)' }}>
                             {scope}
                           </span>
                         ))}
                         {!expanded && hidden > 0 && (
                           <button onClick={() => toggleScopes(session.id)}
-                            className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium transition-colors hover:opacity-80"
-                            style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-primary)' }}>
+                            className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium transition-colors hover:opacity-80 bg-surface-secondary text-content-secondary border border-edge">
                             +{hidden} more
                           </button>
                         )}
                         {expanded && hidden > 0 && (
                           <button onClick={() => toggleScopes(session.id)}
-                            className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium transition-colors hover:opacity-80"
-                            style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-primary)' }}>
+                            className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium transition-colors hover:opacity-80 bg-surface-secondary text-content-secondary border border-edge">
                             show less
                           </button>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5 text-sm pt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                    <div className="flex items-center gap-1.5 text-sm pt-0.5 text-content-secondary">
                       <User className="w-3.5 h-3.5 flex-shrink-0" />
                       <span className="whitespace-nowrap">{session.username}</span>
                     </div>
@@ -164,8 +161,8 @@ export default function AdminMcpTokensPanel() {
 
       {/* MCP Tokens */}
       <div>
-        <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>{t('admin.mcpTokens.sectionTitle')}</h3>
-        <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-card)' }}>
+        <h3 className="text-sm font-semibold mb-2 text-content-secondary">{t('admin.mcpTokens.sectionTitle')}</h3>
+        <div className="rounded-xl border overflow-hidden border-edge bg-surface-card">
           {tokensLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-tertiary)' }} />
@@ -177,8 +174,8 @@ export default function AdminMcpTokensPanel() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-4 px-4 py-2.5 text-xs font-medium border-b"
-                style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-primary)', background: 'var(--bg-secondary)' }}>
+              <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-4 px-4 py-2.5 text-xs font-medium border-b border-edge bg-surface-secondary"
+                style={{ color: 'var(--text-tertiary)' }}>
                 <span>{t('admin.mcpTokens.tokenName')}</span>
                 <span>{t('admin.mcpTokens.owner')}</span>
                 <span className="text-right">{t('admin.mcpTokens.created')}</span>
@@ -187,13 +184,12 @@ export default function AdminMcpTokensPanel() {
               </div>
               {tokens.map((token, i) => (
                 <div key={token.id}
-                  className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-x-4 px-4 py-3"
-                  style={{ borderBottom: i < tokens.length - 1 ? '1px solid var(--border-primary)' : undefined }}>
+                  className={`grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-x-4 px-4 py-3 ${i < tokens.length - 1 ? 'border-b border-edge' : ''}`}>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{token.name}</p>
+                    <p className="text-sm font-medium truncate text-content">{token.name}</p>
                     <p className="text-xs font-mono mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{token.token_prefix}...</p>
                   </div>
-                  <div className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  <div className="flex items-center gap-1.5 text-sm text-content-secondary">
                     <User className="w-3.5 h-3.5 flex-shrink-0" />
                     <span className="whitespace-nowrap">{token.username}</span>
                   </div>
@@ -217,14 +213,14 @@ export default function AdminMcpTokensPanel() {
 
       {/* Revoke OAuth session modal */}
       {revokeConfirmId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(0,0,0,0.5)]"
           onClick={e => { if (e.target === e.currentTarget) setRevokeConfirmId(null) }}>
-          <div className="rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4" style={{ background: 'var(--bg-card)' }}>
-            <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{t('admin.oauthSessions.revokeTitle')}</h3>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin.oauthSessions.revokeMessage')}</p>
+          <div className="rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4 bg-surface-card">
+            <h3 className="text-base font-semibold text-content">{t('admin.oauthSessions.revokeTitle')}</h3>
+            <p className="text-sm text-content-secondary">{t('admin.oauthSessions.revokeMessage')}</p>
             <div className="flex gap-2 justify-end">
               <button onClick={() => setRevokeConfirmId(null)}
-                className="px-4 py-2 rounded-lg text-sm border" style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
+                className="px-4 py-2 rounded-lg text-sm border border-edge text-content-secondary">
                 {t('common.cancel')}
               </button>
               <button onClick={() => handleRevoke(revokeConfirmId)}
@@ -238,14 +234,14 @@ export default function AdminMcpTokensPanel() {
 
       {/* Delete MCP token modal */}
       {deleteConfirmId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(0,0,0,0.5)]"
           onClick={e => { if (e.target === e.currentTarget) setDeleteConfirmId(null) }}>
-          <div className="rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4" style={{ background: 'var(--bg-card)' }}>
-            <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{t('admin.mcpTokens.deleteTitle')}</h3>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin.mcpTokens.deleteMessage')}</p>
+          <div className="rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4 bg-surface-card">
+            <h3 className="text-base font-semibold text-content">{t('admin.mcpTokens.deleteTitle')}</h3>
+            <p className="text-sm text-content-secondary">{t('admin.mcpTokens.deleteMessage')}</p>
             <div className="flex gap-2 justify-end">
               <button onClick={() => setDeleteConfirmId(null)}
-                className="px-4 py-2 rounded-lg text-sm border" style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
+                className="px-4 py-2 rounded-lg text-sm border border-edge text-content-secondary">
                 {t('common.cancel')}
               </button>
               <button onClick={() => handleDelete(deleteConfirmId)}

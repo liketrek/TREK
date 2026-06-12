@@ -7,6 +7,12 @@
     "skipLibCheck": true,
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    "paths": {
+      "@trek/shared": ["../shared/src/index.ts"],
+      "@trek/shared/*": ["../shared/src/*"]
+    },
     "isolatedModules": true,
     "moduleDetection": "force",
     "noEmit": true,

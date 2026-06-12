@@ -12,6 +12,9 @@ export function isPublicApiPath(method: string, pathNoQuery: string): boolean {
   if (method === 'POST' && pathNoQuery === '/api/auth/demo-login') return true;
   if (method === 'GET' && pathNoQuery.startsWith('/api/auth/invite/')) return true;
   if (method === 'POST' && pathNoQuery === '/api/auth/mfa/verify-login') return true;
+  // Unauthenticated passkey (primary) login ceremony.
+  if (method === 'POST' && pathNoQuery === '/api/auth/passkey/login/options') return true;
+  if (method === 'POST' && pathNoQuery === '/api/auth/passkey/login/verify') return true;
   if (pathNoQuery.startsWith('/api/auth/oidc/')) return true;
   return false;
 }
@@ -21,6 +24,11 @@ export function isMfaSetupExemptPath(method: string, pathNoQuery: string): boole
   if (method === 'GET' && pathNoQuery === '/api/auth/me') return true;
   if (method === 'POST' && pathNoQuery === '/api/auth/mfa/setup') return true;
   if (method === 'POST' && pathNoQuery === '/api/auth/mfa/enable') return true;
+  // Allow enrolling a passkey as the second factor (a user-verified passkey
+  // satisfies require_mfa), so a fresh user under the policy isn't stuck.
+  if (method === 'POST' && pathNoQuery === '/api/auth/passkey/register/options') return true;
+  if (method === 'POST' && pathNoQuery === '/api/auth/passkey/register/verify') return true;
+  if (method === 'GET' && pathNoQuery === '/api/auth/passkey/credentials') return true;
   if ((method === 'GET' || method === 'PUT') && pathNoQuery === '/api/auth/app-settings') return true;
   return false;
 }
@@ -81,8 +89,12 @@ export function enforceGlobalMfaPolicy(req: Request, res: Response, next: NextFu
     return;
   }
 
+  // A user-verified passkey is phishing-resistant and inherently two-factor, so
+  // owning at least one satisfies the require_mfa policy exactly like TOTP does.
+  // (All stored passkeys were registered with userVerification required.)
   const mfaOk = row.mfa_enabled === 1 || row.mfa_enabled === true;
-  if (mfaOk) {
+  const passkeyOk = !!db.prepare('SELECT 1 FROM webauthn_credentials WHERE user_id = ? LIMIT 1').get(userId);
+  if (mfaOk || passkeyOk) {
     next();
     return;
   }

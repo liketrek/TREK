@@ -1,0 +1,60 @@
+import type { TranslationStrings } from '../types';
+
+const dayplan: TranslationStrings = {
+  'dayplan.icsTooltip': 'Експорт календаря (ICS)',
+  'dayplan.emptyDay': 'На цей день місць не заплановано',
+  'dayplan.addNote': 'Додати нотатку',
+  'dayplan.editNote': 'Редагувати нотатку',
+  'dayplan.noteAdd': 'Додати нотатку',
+  'dayplan.noteEdit': 'Редагувати нотатку',
+  'dayplan.noteTitle': 'Нотатка',
+  'dayplan.noteSubtitle': 'Нотатка на день',
+  'dayplan.collapseAll': 'Згорнути всі дні',
+  'dayplan.expandAll': 'Розгорнути всі дні',
+  'dayplan.totalCost': 'Загальна вартість',
+  'dayplan.days': 'Дни',
+  'dayplan.dayN': 'День {n}',
+  'dayplan.calculating': 'Розрахунок...',
+  'dayplan.route': 'Маршрут',
+  'dayplan.optimize': 'Оптимізувати',
+  'dayplan.optimized': 'Маршрут оптимізовано',
+  'dayplan.routeError': 'Не вдалося розрахувати маршрут',
+  'dayplan.toast.needTwoPlaces':
+    'Для оптимизации маршрута нужно минимум два места',
+  'dayplan.toast.routeOptimized': 'Маршрут оптимизирован',
+  'dayplan.toast.routeOptimizedFromHotel': 'Маршрут оптимізовано від вашого житла',
+  'dayplan.toast.noGeoPlaces':
+    'Не знайдено місць з координатами для розрахунку маршруту',
+  'dayplan.confirmed': 'Подтверждено',
+  'dayplan.pendingRes': 'Ожидание',
+  'dayplan.pdf': 'PDF',
+  'dayplan.pdfTooltip': 'Експортувати план дня в PDF',
+  'dayplan.pdfError': 'Помилка експорту PDF',
+  'dayplan.cannotReorderTransport':
+    'Бронювання з фіксованим часом не можна переміщувати',
+  'dayplan.confirmRemoveTimeTitle': 'Видалити час?',
+  'dayplan.confirmRemoveTimeBody':
+    'У цього місця фіксований час ({time}). При переміщенні час буде видалено, і стане доступне вільне сортування.',
+  'dayplan.confirmRemoveTimeAction': 'Видалити час і перемістити',
+  'dayplan.confirmDeleteNoteTitle': 'Видалити нотатку?',
+  'dayplan.confirmDeleteNoteBody': 'Цю нотатку буде видалено назавжди.',
+  'dayplan.cannotDropOnTimed':
+    'Елементи не можна розміщувати між записами з фіксованим часом',
+  'dayplan.cannotBreakChronology':
+    'Це порушить хронологічний порядок запланованих елементів і бронювань',
+  'dayplan.mobile.addPlace': 'Додати місце',
+  'dayplan.mobile.searchPlaces': 'Пошук місць...',
+  'dayplan.mobile.allAssigned': 'Усі місця розподілені',
+  'dayplan.mobile.noMatch': 'Немає збігів',
+  'dayplan.mobile.createNew': 'Створити нове місце',
+  'dayplan.reorderDays': 'Змінити порядок днів',
+  'dayplan.reorderTitle': 'Змінити порядок днів',
+  'dayplan.reorderHint': 'Місця, нотатки та бронювання дня переміщуються разом із ним.',
+  'dayplan.addDay': 'Додати день',
+  'dayplan.moveUp': 'Перемістити вгору',
+  'dayplan.moveDown': 'Перемістити вниз',
+  'dayplan.reorderUndo': 'Змінити порядок днів',
+  'dayplan.reorderError': 'Не вдалося змінити порядок днів',
+  'dayplan.addDayError': 'Не вдалося додати день',
+};
+export default dayplan;

@@ -22,6 +22,7 @@ Complete reference for all environment variables TREK reads.
 | `TZ` | Timezone for logs, reminders, and cron jobs (e.g. `Europe/Berlin`) | `UTC` |
 | `LOG_LEVEL` | `info` = concise user actions; `debug` = verbose details | `info` |
 | `DEFAULT_LANGUAGE` | Default language on the login page — see supported codes below | `en` |
+| `SESSION_DURATION` | How long a login session stays valid before re-login is required. Applies to both the `trek_session` JWT `exp` claim and the cookie `maxAge`, so they never drift apart. Accepts `ms`-style strings: `1h`, `12h`, `7d`, `30d`, `90d`. Invalid values warn at startup and fall back to the default. Does not affect the short-lived MFA challenge token or MCP OAuth tokens (those keep their own TTL). | `24h` |
 | `ALLOWED_ORIGINS` | Comma-separated origins for CORS and email notification links | same-origin |
 | `ALLOW_INTERNAL_NETWORK` | Allow outbound requests to private/RFC-1918 IPs. Set `true` if Immich or other integrated services are on your local network. Loopback (`127.x`) and link-local (`169.254.x`) addresses remain blocked regardless. | `false` |
 | `APP_URL` | Public base URL (e.g. `https://trek.example.com`). Required when OIDC is enabled — must match the redirect URI registered with your IdP. Also used as the base URL for email notification links. | — |
@@ -134,6 +135,16 @@ For setup instructions, see [MCP-Overview](MCP-Overview).
 |---|---|---|
 | `MCP_RATE_LIMIT` | Max MCP API requests per user per minute | `300` |
 | `MCP_MAX_SESSION_PER_USER` | Max concurrent MCP sessions per user | `20` |
+
+---
+
+## Booking Import (KDE Itinerary)
+
+| Variable | Description | Default |
+|---|---|---|
+| `KITINERARY_EXTRACTOR_PATH` | Full path to the `kitinerary-extractor` binary. When unset, TREK searches `/usr/lib/*/libexec/kf6/kitinerary-extractor` and then `PATH`. Set this if you install the binary to a non-standard location. | auto-detected |
+
+The official TREK Docker image bundles the binary automatically: on amd64 it downloads the static release from `https://cdn.kde.org/ci-builds/pim/kitinerary/`; on arm64 it installs `libkitinerary-bin` via apt (Debian trixie). When running TREK from source, install `libkitinerary-bin` (Debian trixie / Ubuntu 25.04+) or download the static binary directly and place it anywhere on `PATH`. The `GET /api/health/features` endpoint returns `{ "bookingImport": true }` when the binary is found, and the Import button in the Reservations panel is hidden when it is not.
 
 ---
 

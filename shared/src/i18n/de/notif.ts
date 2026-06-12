@@ -1,0 +1,44 @@
+import type { TranslationStrings } from '../types';
+
+const notif: TranslationStrings = {
+  'notif.test.title': '[Test] Benachrichtigung',
+  'notif.test.simple.text': 'Dies ist eine einfache Testbenachrichtigung.',
+  'notif.test.boolean.text': 'Akzeptierst du diese Testbenachrichtigung?',
+  'notif.test.navigate.text': 'Klicke unten, um zum Dashboard zu navigieren.',
+  'notif.trip_invite.title': 'Reiseeinladung',
+  'notif.trip_invite.text': '{actor} hat dich zu {trip} eingeladen',
+  'notif.booking_change.title': 'Buchung aktualisiert',
+  'notif.booking_change.text':
+    '{actor} hat eine Buchung in {trip} aktualisiert',
+  'notif.trip_reminder.title': 'Reiseerinnerung',
+  'notif.trip_reminder.text': 'Deine Reise {trip} steht bald an!',
+  'notif.todo_due.title': 'Aufgabe fällig',
+  'notif.todo_due.text': '{todo} in {trip} ist am {due} fällig',
+  'notif.vacay_invite.title': 'Vacay Fusion-Einladung',
+  'notif.vacay_invite.text':
+    '{actor} hat dich zum Fusionieren von Urlaubsplänen eingeladen',
+  'notif.photos_shared.title': 'Fotos geteilt',
+  'notif.photos_shared.text': '{actor} hat {count} Foto(s) in {trip} geteilt',
+  'notif.collab_message.title': 'Neue Nachricht',
+  'notif.collab_message.text': '{actor} hat eine Nachricht in {trip} gesendet',
+  'notif.packing_tagged.title': 'Packlistenzuweisung',
+  'notif.packing_tagged.text':
+    '{actor} hat dich zu {category} in {trip} zugewiesen',
+  'notif.version_available.title': 'Neue Version verfügbar',
+  'notif.version_available.text': 'TREK {version} ist jetzt verfügbar',
+  'notif.action.view_trip': 'Reise ansehen',
+  'notif.action.view_collab': 'Nachrichten ansehen',
+  'notif.action.view_packing': 'Packliste ansehen',
+  'notif.action.view_photos': 'Fotos ansehen',
+  'notif.action.view_vacay': 'Vacay ansehen',
+  'notif.action.view_admin': 'Zum Admin',
+  'notif.action.view': 'Ansehen',
+  'notif.action.accept': 'Annehmen',
+  'notif.action.decline': 'Ablehnen',
+  'notif.generic.title': 'Benachrichtigung',
+  'notif.generic.text': 'Du hast eine neue Benachrichtigung',
+  'notif.dev.unknown_event.title': '[DEV] Unbekanntes Ereignis',
+  'notif.dev.unknown_event.text':
+    'Ereignistyp "{event}" ist nicht in EVENT_NOTIFICATION_CONFIG registriert',
+};
+export default notif;

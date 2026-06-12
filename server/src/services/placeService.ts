@@ -2,7 +2,7 @@ import { XMLParser, XMLValidator } from 'fast-xml-parser';
 import unzipper from 'unzipper';
 import { db, getPlaceWithTags } from '../db/database';
 import { loadTagsByPlaceIds } from './queryHelpers';
-import { checkSsrf } from '../utils/ssrfGuard';
+import { checkSsrf, safeFetchFollow, SsrfBlockedError } from '../utils/ssrfGuard';
 import { Place } from '../types';
 import {
   buildCategoryNameLookup,
@@ -346,6 +346,8 @@ export interface GpxImportOptions {
   importWaypoints?: boolean;
   importRoutes?: boolean;
   importTracks?: boolean;
+  /** Source filename used to name unnamed routes/tracks (keeps multiple imports distinct). */
+  defaultName?: string;
 }
 
 export interface KmlImportOptions {
@@ -354,7 +356,7 @@ export interface KmlImportOptions {
 }
 
 export function importGpx(tripId: string, fileBuffer: Buffer, opts: GpxImportOptions = {}) {
-  const { importWaypoints = true, importRoutes = true, importTracks = true } = opts;
+  const { importWaypoints = true, importRoutes = true, importTracks = true, defaultName } = opts;
 
   const parsed = gpxParser.parse(fileBuffer.toString('utf-8'));
   const gpx = parsed?.gpx;
@@ -362,6 +364,20 @@ export function importGpx(tripId: string, fileBuffer: Buffer, opts: GpxImportOpt
 
   const str = (v: unknown) => (v != null ? String(v).trim() : null);
   const num = (v: unknown) => { const n = parseFloat(String(v)); return isNaN(n) ? null : n; };
+
+  // Routes and tracks rarely carry their own <name>. Without one they all fall back to the
+  // same generic label, so name-based dedup drops every import after the first. Derive a
+  // base from the source filename (the requested behaviour) and suffix an index so multiple
+  // geometries from one file stay distinct.
+  const rawName = str(defaultName);
+  const baseName = rawName ? rawName.replace(/\.[^.]+$/, '').trim() || rawName : null;
+  let geoSeq = 0;
+  const geoName = (explicit: string | null, fallback: string): string => {
+    if (explicit) return explicit;
+    geoSeq++;
+    const base = baseName || fallback;
+    return geoSeq === 1 ? base : `${base} ${geoSeq}`;
+  };
 
   type WaypointEntry = { name: string; lat: number; lng: number; description: string | null; routeGeometry?: string };
   const waypoints: WaypointEntry[] = [];
@@ -385,7 +401,7 @@ export function importGpx(tripId: string, fileBuffer: Buffer, opts: GpxImportOpt
       if (pts.length === 0) continue;
       const hasAllEle = pts.every(p => p.ele !== null);
       const routeGeometry = pts.map(p => hasAllEle ? [p.lat, p.lng, p.ele] : [p.lat, p.lng]);
-      waypoints.push({ lat: pts[0].lat, lng: pts[0].lng, name: str(rte.name) || 'GPX Route', description: str(rte.desc), routeGeometry: JSON.stringify(routeGeometry) });
+      waypoints.push({ lat: pts[0].lat, lng: pts[0].lng, name: geoName(str(rte.name), 'GPX Route'), description: str(rte.desc), routeGeometry: JSON.stringify(routeGeometry) });
     }
   }
 
@@ -405,7 +421,7 @@ export function importGpx(tripId: string, fileBuffer: Buffer, opts: GpxImportOpt
       const start = trackPoints[0];
       const hasAllEle = trackPoints.every(p => p.ele !== null);
       const routeGeometry = trackPoints.map(p => hasAllEle ? [p.lat, p.lng, p.ele] : [p.lat, p.lng]);
-      waypoints.push({ lat: start.lat, lng: start.lng, name: str(trk.name) || 'GPX Track', description: str(trk.desc), routeGeometry: JSON.stringify(routeGeometry) });
+      waypoints.push({ lat: start.lat, lng: start.lng, name: geoName(str(trk.name), 'GPX Track'), description: str(trk.desc), routeGeometry: JSON.stringify(routeGeometry) });
     }
   }
 
@@ -587,10 +603,18 @@ export async function importGoogleList(tripId: string, url: string) {
   const ssrf = await checkSsrf(url);
   if (!ssrf.allowed) return { error: 'URL is not allowed', status: 400 };
 
-  // Follow redirects for short URLs (maps.app.goo.gl, goo.gl)
+  // Follow redirects for short URLs (maps.app.goo.gl, goo.gl). Redirects are
+  // followed manually so every hop is re-checked against the SSRF guard — a
+  // short link that 302s to an internal IP is blocked even though the initial
+  // host is public.
   if (url.includes('goo.gl') || url.includes('maps.app')) {
-    const redirectRes = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(10000) });
-    resolvedUrl = redirectRes.url;
+    try {
+      const redirectRes = await safeFetchFollow(url, { signal: AbortSignal.timeout(10000) });
+      resolvedUrl = redirectRes.url;
+    } catch (err) {
+      if (err instanceof SsrfBlockedError) return { error: 'URL is not allowed', status: 400 };
+      throw err;
+    }
   }
 
   // Pattern: /placelists/list/{ID}
@@ -683,7 +707,7 @@ export async function importGoogleList(tripId: string, url: string) {
 export async function importNaverList(
   tripId: string,
   url: string,
-): Promise<{ places: any[]; listName: string } | { error: string; status: number }> {
+): Promise<{ places: any[]; listName: string; skipped: number } | { error: string; status: number }> {
   let resolvedUrl = url;
   const limit = 20;
 
@@ -692,11 +716,18 @@ export async function importNaverList(
   if (!ssrf.allowed) return { error: 'URL is not allowed', status: 400 };
 
   // Resolve naver.me short links to the canonical map.naver.com folder URL.
+  // Redirects are followed manually so each hop is re-validated against the
+  // SSRF guard (a short link could otherwise 302 to an internal address).
   let parsedUrl: URL;
   try { parsedUrl = new URL(url); } catch { return { error: 'Invalid URL', status: 400 }; }
   if (parsedUrl.hostname === 'naver.me') {
-    const redirectRes = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(10000) });
-    resolvedUrl = redirectRes.url;
+    try {
+      const redirectRes = await safeFetchFollow(url, { signal: AbortSignal.timeout(10000) });
+      resolvedUrl = redirectRes.url;
+    } catch (err) {
+      if (err instanceof SsrfBlockedError) return { error: 'URL is not allowed', status: 400 };
+      throw err;
+    }
   }
 
   const folderMatch = resolvedUrl.match(/favorite\/myPlace\/folder\/([A-Za-z0-9_-]+)/i);

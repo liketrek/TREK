@@ -201,14 +201,14 @@ describe('tripStore', () => {
 
   describe('updateTrip', () => {
     it('FE-TRIP-008: updateTrip persists and refreshes trip + days', async () => {
-      const updatedTrip = buildTrip({ id: 1, name: 'Updated Trip' });
+      const updatedTrip = buildTrip({ id: 1, title: 'Updated Trip' });
 
       server.use(
         http.put('/api/trips/1', () => HttpResponse.json({ trip: updatedTrip })),
         http.get('/api/trips/1/days', () => HttpResponse.json({ days: [] })),
       );
 
-      const result = await useTripStore.getState().updateTrip(1, { name: 'Updated Trip' });
+      const result = await useTripStore.getState().updateTrip(1, { title: 'Updated Trip' });
 
       expect(result).toEqual(updatedTrip);
       expect(useTripStore.getState().trip).toEqual(updatedTrip);

@@ -81,4 +81,8 @@ See [Day-Plans-and-Notes](Day-Plans-and-Notes) for details.
 
 ---
 
+> **Faster: import the confirmation** — If you have a booking confirmation email or PDF, you can skip the form entirely. See [Import from booking confirmation](Reservations-and-Bookings#import-from-booking-confirmation) in the Reservations guide.
+
+---
+
 **See also:** [Reservations-and-Bookings](Reservations-and-Bookings) · [Accommodations](Accommodations) · [Map-Features](Map-Features) · [Day-Plans-and-Notes](Day-Plans-and-Notes)

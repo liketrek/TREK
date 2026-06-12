@@ -3,6 +3,7 @@ import { Plus, Trash2, X, Check, BarChart3, Lock, Clock } from 'lucide-react'
 import { collabApi } from '../../api/client'
 import { addListener, removeListener } from '../../api/websocket'
 import { useTranslation } from '../../i18n'
+import { useToast } from '../shared/Toast'
 import { useCanDo } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
 import ReactDOM from 'react-dom'
@@ -31,7 +32,7 @@ interface Poll {
   created_at: string
 }
 
-const FONT = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
+const FONT = "var(--font-system)"
 
 function timeRemaining(deadline) {
   if (!deadline) return null
@@ -78,7 +79,7 @@ function CreatePollModal({ onClose, onCreate, t }: CreatePollModalProps) {
     if (!canSubmit) return
     setSubmitting(true)
     try {
-      await onCreate({ question: question.trim(), options: options.filter(o => o.trim()), multiple_choice: multiChoice })
+      await onCreate({ question: question.trim(), options: options.filter(o => o.trim()), multi_choice: multiChoice })
       onClose()
     } catch {} finally { setSubmitting(false) }
   }
@@ -230,7 +231,7 @@ function PollCard({ poll, currentUser, canEdit, onVote, onClose, onDelete, t }: 
                 <Clock size={8} /> {remaining}
               </span>
             )}
-            {poll.multiple_choice && (
+            {poll.multi_choice && (
               <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', background: 'var(--bg-tertiary)', padding: '2px 7px', borderRadius: 99 }}>
                 {t('collab.polls.multiChoice')}
               </span>
@@ -305,7 +306,7 @@ function PollCard({ poll, currentUser, canEdit, onVote, onClose, onDelete, t }: 
                 flex: 1, fontSize: 13, fontWeight: myVote || isWinner ? 600 : 400,
                 color: 'var(--text-primary)', position: 'relative', zIndex: 1,
               }}>
-                {typeof opt === 'string' ? opt : opt.label || opt}
+                {typeof opt === 'string' ? opt : opt.text}
               </span>
 
               {/* Voter avatars */}
@@ -342,6 +343,7 @@ interface CollabPollsProps {
 
 export default function CollabPolls({ tripId, currentUser }: CollabPollsProps) {
   const { t } = useTranslation()
+  const toast = useToast()
   const can = useCanDo()
   const trip = useTripStore((s) => s.trip)
   const canEdit = can('collab_edit', trip)
@@ -378,33 +380,44 @@ export default function CollabPolls({ tripId, currentUser }: CollabPollsProps) {
   }, [])
 
   const handleCreate = useCallback(async (data) => {
-    const result = await collabApi.createPoll(tripId, data)
-    const created = result.poll || result
-    setPolls(prev => prev.some(p => p.id === created.id) ? prev : [created, ...prev])
-    setShowForm(false)
-  }, [tripId])
+    try {
+      const result = await collabApi.createPoll(tripId, data)
+      const created = result.poll || result
+      setPolls(prev => prev.some(p => p.id === created.id) ? prev : [created, ...prev])
+      setShowForm(false)
+    } catch (err) {
+      toast.error(t('common.error'))
+      throw err
+    }
+  }, [tripId, toast, t])
 
   const handleVote = useCallback(async (pollId, optionIndex) => {
     try {
       const result = await collabApi.votePoll(tripId, pollId, optionIndex)
       const updated = result.poll || result
       setPolls(prev => prev.map(p => p.id === updated.id ? updated : p))
-    } catch {}
-  }, [tripId])
+    } catch {
+      toast.error(t('common.error'))
+    }
+  }, [tripId, toast, t])
 
   const handleClose = useCallback(async (pollId) => {
     try {
       await collabApi.closePoll(tripId, pollId)
       setPolls(prev => prev.map(p => p.id === pollId ? { ...p, is_closed: true } : p))
-    } catch {}
-  }, [tripId])
+    } catch {
+      toast.error(t('common.error'))
+    }
+  }, [tripId, toast, t])
 
   const handleDelete = useCallback(async (pollId) => {
     try {
       await collabApi.deletePoll(tripId, pollId)
       setPolls(prev => prev.filter(p => p.id !== pollId))
-    } catch {}
-  }, [tripId])
+    } catch {
+      toast.error(t('common.error'))
+    }
+  }, [tripId, toast, t])
 
   const activePolls = polls.filter(p => !p.is_closed && !isExpired(p.deadline))
   const closedPolls = polls.filter(p => p.is_closed || isExpired(p.deadline))

@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const trip: TranslationStrings = {
+  'trip.tabs.plan': 'Terv',
+  'trip.tabs.transports': 'Közlekedés',
+  'trip.tabs.reservations': 'Foglalások',
+  'trip.tabs.reservationsShort': 'Foglalás',
+  'trip.tabs.packing': 'Csomagolási lista',
+  'trip.tabs.packingShort': 'Csomag',
+  'trip.tabs.lists': 'Listák',
+  'trip.tabs.listsShort': 'Listák',
+  'trip.tabs.budget': "Costs",
+  'trip.tabs.files': 'Fájlok',
+  'trip.loading': 'Utazás betöltése...',
+  'trip.mobilePlan': 'Tervezés',
+  'trip.mobilePlaces': 'Helyek',
+  'trip.toast.placeUpdated': 'Hely frissítve',
+  'trip.toast.placeAdded': 'Hely hozzáadva',
+  'trip.toast.placeDeleted': 'Hely törölve',
+  'trip.toast.selectDay': 'Kérjük, először válassz egy napot',
+  'trip.toast.assignedToDay': 'Hely hozzárendelve a naphoz',
+  'trip.toast.reorderError': 'Nem sikerült átrendezni',
+  'trip.toast.reservationUpdated': 'Foglalás frissítve',
+  'trip.toast.reservationAdded': 'Foglalás hozzáadva',
+  'trip.toast.deleted': 'Törölve',
+  'trip.confirm.deletePlace': 'Biztosan törölni szeretnéd ezt a helyet?',
+  'trip.confirm.deletePlaces': '{count} helyet töröl?',
+  'trip.toast.placesDeleted': '{count} hely törölve',
+  'trip.loadingPhotos': 'Helyek fotóinak betöltése...',
+};
+export default trip;

@@ -1,0 +1,37 @@
+import type { TranslationStrings } from '../types';
+
+const notifications: TranslationStrings = {
+  'notifications.title': 'Oznámení',
+  'notifications.markAllRead': 'Označit vše jako přečtené',
+  'notifications.deleteAll': 'Smazat vše',
+  'notifications.showAll': 'Zobrazit všechna oznámení',
+  'notifications.empty': 'Žádná oznámení',
+  'notifications.emptyDescription': 'Vše máte přečteno!',
+  'notifications.all': 'Vše',
+  'notifications.unreadOnly': 'Nepřečtené',
+  'notifications.markRead': 'Označit jako přečtené',
+  'notifications.markUnread': 'Označit jako nepřečtené',
+  'notifications.delete': 'Smazat',
+  'notifications.system': 'Systém',
+  'notifications.synologySessionCleared.title': 'Synology Photos odpojeno',
+  'notifications.synologySessionCleared.text':
+    'Váš server nebo účet se změnil — přejděte do Nastavení a znovu otestujte připojení.',
+  'notifications.test.title': 'Testovací oznámení od {actor}',
+  'notifications.test.text': 'Toto je jednoduché testovací oznámení.',
+  'notifications.test.booleanTitle': '{actor} žádá o vaše schválení',
+  'notifications.test.booleanText': 'Testovací oznámení s volbou.',
+  'notifications.test.accept': 'Schválit',
+  'notifications.test.decline': 'Odmítnout',
+  'notifications.test.navigateTitle': 'Podívejte se na toto',
+  'notifications.test.navigateText': 'Testovací navigační oznámení.',
+  'notifications.test.goThere': 'Přejít tam',
+  'notifications.test.adminTitle': 'Hromadná zpráva pro správce',
+  'notifications.test.adminText':
+    '{actor} odeslal testovací oznámení všem správcům.',
+  'notifications.test.tripTitle': '{actor} přispěl do vašeho výletu',
+  'notifications.test.tripText': 'Testovací oznámení pro výlet "{trip}".',
+  'notifications.versionAvailable.title': 'Dostupná aktualizace',
+  'notifications.versionAvailable.text': 'TREK {version} je nyní k dispozici.',
+  'notifications.versionAvailable.button': 'Zobrazit podrobnosti',
+};
+export default notifications;

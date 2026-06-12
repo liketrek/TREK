@@ -260,7 +260,9 @@ describe('TripFormModal', () => {
         items: [{ type: 'image/png', getAsFile: () => file }],
       },
     });
-    expect(mockCreateObjectURL).toHaveBeenCalledWith(file);
+    // Cover selection now normalizes the file (HEIC -> JPEG) before previewing, so the
+    // createObjectURL call lands a microtask later; a non-HEIC file passes through unchanged.
+    await waitFor(() => expect(mockCreateObjectURL).toHaveBeenCalledWith(file));
 
     Object.defineProperty(URL, 'createObjectURL', { writable: true, configurable: true, value: original });
   });

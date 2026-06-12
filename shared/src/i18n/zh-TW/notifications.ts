@@ -1,0 +1,36 @@
+import type { TranslationStrings } from '../types';
+
+const notifications: TranslationStrings = {
+  'notifications.title': '通知',
+  'notifications.markAllRead': '全部標為已讀',
+  'notifications.deleteAll': '全部刪除',
+  'notifications.showAll': '檢視所有通知',
+  'notifications.empty': '暫無通知',
+  'notifications.emptyDescription': '您已全部查閱！',
+  'notifications.all': '全部',
+  'notifications.unreadOnly': '未讀',
+  'notifications.markRead': '標為已讀',
+  'notifications.markUnread': '標為未讀',
+  'notifications.delete': '刪除',
+  'notifications.system': '系統',
+  'notifications.synologySessionCleared.title': 'Synology Photos 已斷線',
+  'notifications.synologySessionCleared.text':
+    '您的伺服器或帳號已更改 — 請前往設定重新測試連線。',
+  'notifications.test.title': '來自 {actor} 的測試通知',
+  'notifications.test.text': '這是一條簡單的測試通知。',
+  'notifications.test.booleanTitle': '{actor} 請求您的審批',
+  'notifications.test.booleanText': '測試布林通知。',
+  'notifications.test.accept': '批准',
+  'notifications.test.decline': '拒絕',
+  'notifications.test.navigateTitle': '檢視詳情',
+  'notifications.test.navigateText': '測試跳轉通知。',
+  'notifications.test.goThere': '前往',
+  'notifications.test.adminTitle': '管理員廣播',
+  'notifications.test.adminText': '{actor} 向所有管理員傳送了測試通知。',
+  'notifications.test.tripTitle': '{actor} 在您的行程中發帖',
+  'notifications.test.tripText': '行程"{trip}"的測試通知。',
+  'notifications.versionAvailable.title': '有可用更新',
+  'notifications.versionAvailable.text': 'TREK {version} 現已推出。',
+  'notifications.versionAvailable.button': '查看詳情',
+};
+export default notifications;

@@ -9,7 +9,7 @@ type GetState = StoreApi<TripStoreState>['getState']
 
 export interface PlacesSlice {
   refreshPlaces: (tripId: number | string) => Promise<void>
-  addPlace: (tripId: number | string, placeData: Partial<Place>) => Promise<Place>
+  addPlace: (tripId: number | string, placeData: Partial<Place> & { name: string }) => Promise<Place>
   updatePlace: (tripId: number | string, placeId: number, placeData: Partial<Place>) => Promise<Place>
   deletePlace: (tripId: number | string, placeId: number) => Promise<void>
   deletePlacesMany: (tripId: number | string, placeIds: number[]) => Promise<void>
@@ -27,7 +27,7 @@ export const createPlacesSlice = (set: SetState, get: GetState): PlacesSlice => 
 
   addPlace: async (tripId, placeData) => {
     try {
-      const data = await placeRepo.create(tripId, placeData as Record<string, unknown>)
+      const data = await placeRepo.create(tripId, placeData as Record<string, unknown> & { name: string })
       set(state => ({ places: [data.place, ...state.places] }))
       return data.place
     } catch (err: unknown) {

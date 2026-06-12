@@ -66,7 +66,7 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose }: Props
   return (
     <div
       style={{
-        position: 'fixed', inset: 0, zIndex: 500,
+        position: 'fixed', inset: 0, zIndex: 10000,
         background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(20px)',
         display: 'flex', flexDirection: 'column',
         paddingBottom: 'var(--bottom-nav-h)',

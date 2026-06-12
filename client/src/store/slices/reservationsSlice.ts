@@ -10,7 +10,7 @@ type GetState = StoreApi<TripStoreState>['getState']
 
 export interface ReservationsSlice {
   loadReservations: (tripId: number | string) => Promise<void>
-  addReservation: (tripId: number | string, data: Partial<Reservation>) => Promise<Reservation>
+  addReservation: (tripId: number | string, data: Partial<Reservation> & { title: string }) => Promise<Reservation>
   updateReservation: (tripId: number | string, id: number, data: Partial<Reservation>) => Promise<Reservation>
   toggleReservationStatus: (tripId: number | string, id: number) => Promise<void>
   deleteReservation: (tripId: number | string, id: number) => Promise<void>
@@ -58,8 +58,11 @@ export const createReservationsSlice = (set: SetState, get: GetState): Reservati
     }))
     try {
       await reservationsApi.update(tripId, id, { status: newStatus })
-    } catch {
+    } catch (err: unknown) {
+      // Roll back the optimistic toggle and surface the failure so the caller's
+      // catch can notify the user — without it the status silently snaps back.
       set({ reservations: prev })
+      throw new Error(getApiErrorMessage(err, 'Error updating reservation'))
     }
   },
 

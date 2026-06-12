@@ -5,6 +5,7 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import request from 'supertest';
 import type { Application } from 'express';
+import type { INestApplication } from '@nestjs/common';
 
 const { testDb, dbMock } = vi.hoisted(() => {
   const Database = require('better-sqlite3');
@@ -35,30 +36,59 @@ vi.mock('../../src/config', () => ({
   JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
   ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
   updateJwtSecret: () => {},
+  SESSION_DURATION: '24h',
+  SESSION_DURATION_MS: 86400000,
+  SESSION_DURATION_SECONDS: 86400,
+  DEFAULT_LANGUAGE: 'en',
 }));
+vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 
-import { createApp } from '../../src/app';
+import { buildApp } from '../../src/bootstrap';
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
-import { resetTestDb } from '../helpers/test-db';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import { createUser } from '../helpers/factories';
 import { authCookie } from '../helpers/auth';
-import { loginAttempts, mfaAttempts } from '../../src/routes/auth';
 
-const app: Application = createApp();
+let nestApp: INestApplication;
+let app: Application;
 
-beforeAll(() => {
+beforeAll(async () => {
+  // Stub the admin-1 GeoJSON download so /regions/geo is deterministic and never
+  // hits the real network (the un-stubbed fetch of a ~4600-feature file from
+  // raw.githubusercontent.com is what made ATLAS-013 hang/time out under load).
+  // Any other outbound fetch (e.g. background reverse-geocoding) returns empty so
+  // no test depends on live network.
+  vi.stubGlobal('fetch', async (url: unknown) => {
+    if (String(url).includes('natural-earth-vector')) {
+      return new Response(
+        JSON.stringify({
+          type: 'FeatureCollection',
+          features: [
+            { type: 'Feature', properties: { iso_a2: 'DE' }, geometry: { type: 'Point', coordinates: [10, 51] } },
+            { type: 'Feature', properties: { iso_a2: 'FR' }, geometry: { type: 'Point', coordinates: [2, 47] } },
+          ],
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    }
+    return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+  });
+
   createTables(testDb);
   runMigrations(testDb);
+  nestApp = await buildApp();
+  app = nestApp.getHttpAdapter().getInstance();
 });
 
 beforeEach(() => {
   resetTestDb(testDb);
-  loginAttempts.clear();
-  mfaAttempts.clear();
+  resetRateLimits(nestApp);
 });
 
-afterAll(() => {
+afterAll(async () => {
+  vi.unstubAllGlobals();
+  await nestApp.close();
   testDb.close();
 });
 

@@ -2,26 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ── DB mock setup ────────────────────────────────────────────────────────────
 
-interface MockPrepared {
-  all: ReturnType<typeof vi.fn>;
-  get: ReturnType<typeof vi.fn>;
-  run: ReturnType<typeof vi.fn>;
-}
-
-const preparedMap: Record<string, MockPrepared> = {};
-let defaultAll: ReturnType<typeof vi.fn>;
-let defaultGet: ReturnType<typeof vi.fn>;
-
 const mockDb = vi.hoisted(() => {
   return {
     db: {
-      prepare: vi.fn((sql: string) => {
-        return {
-          all: vi.fn(() => []),
-          get: vi.fn(() => undefined),
-          run: vi.fn(),
-        };
-      }),
+      prepare: vi.fn(() => ({
+        all: vi.fn(() => []),
+        get: vi.fn(() => undefined),
+        run: vi.fn(),
+      })),
     },
     canAccessTrip: vi.fn(() => true),
   };
@@ -30,25 +18,29 @@ const mockDb = vi.hoisted(() => {
 vi.mock('../../../src/db/database', () => mockDb);
 
 import { calculateSettlement } from '../../../src/services/budgetService';
-import type { BudgetItem, BudgetItemMember } from '../../../src/types';
+import type { BudgetItem, BudgetItemMember, BudgetItemPayer } from '../../../src/types';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+// Who actually paid is recorded as explicit payers (budget_item_payers); members
+// are only the equal-split participants.
 
 function makeItem(id: number, total_price: number, trip_id = 1): BudgetItem {
-  return { id, trip_id, name: `Item ${id}`, total_price, category: 'Other' } as BudgetItem;
+  return { id, trip_id, name: `Item ${id}`, total_price, category: 'other' } as BudgetItem;
 }
 
-function makeMember(budget_item_id: number, user_id: number, paid: boolean | 0 | 1, username: string): BudgetItemMember & { budget_item_id: number } {
-  return {
-    budget_item_id,
-    user_id,
-    paid: paid ? 1 : 0,
-    username,
-    avatar: null,
-  } as BudgetItemMember & { budget_item_id: number };
+function makeMember(budget_item_id: number, user_id: number, username: string): BudgetItemMember & { budget_item_id: number } {
+  return { budget_item_id, user_id, paid: 0, username, avatar: null } as BudgetItemMember & { budget_item_id: number };
 }
 
-function setupDb(items: BudgetItem[], members: (BudgetItemMember & { budget_item_id: number })[]) {
+function makePayer(budget_item_id: number, user_id: number, amount: number, username: string): BudgetItemPayer & { budget_item_id: number } {
+  return { budget_item_id, user_id, amount, username, avatar: null } as BudgetItemPayer & { budget_item_id: number };
+}
+
+function setupDb(
+  items: BudgetItem[],
+  members: (BudgetItemMember & { budget_item_id: number })[],
+  payers: (BudgetItemPayer & { budget_item_id: number })[] = [],
+) {
   mockDb.db.prepare.mockImplementation((sql: string) => {
     if (sql.includes('SELECT * FROM budget_items')) {
       return { all: vi.fn(() => items), get: vi.fn(), run: vi.fn() };
@@ -56,45 +48,51 @@ function setupDb(items: BudgetItem[], members: (BudgetItemMember & { budget_item
     if (sql.includes('budget_item_members')) {
       return { all: vi.fn(() => members), get: vi.fn(), run: vi.fn() };
     }
+    if (sql.includes('budget_item_payers')) {
+      return { all: vi.fn(() => payers), get: vi.fn(), run: vi.fn() };
+    }
+    // budget_settlements and anything else → empty
     return { all: vi.fn(() => []), get: vi.fn(), run: vi.fn() };
   });
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
-  setupDb([], []);
+  setupDb([], [], []);
 });
 
 // ── calculateSettlement ──────────────────────────────────────────────────────
 
 describe('calculateSettlement', () => {
   it('returns empty balances and flows when trip has no items', () => {
-    setupDb([], []);
+    setupDb([], [], []);
     const result = calculateSettlement(1);
     expect(result.balances).toEqual([]);
     expect(result.flows).toEqual([]);
   });
 
   it('returns no flows when there are items but no members', () => {
-    setupDb([makeItem(1, 100)], []);
+    setupDb([makeItem(1, 100)], [], [makePayer(1, 1, 100, 'alice')]);
     const result = calculateSettlement(1);
     expect(result.flows).toEqual([]);
   });
 
-  it('returns no flows when no one is marked as paid', () => {
+  it('returns no flows when no one has paid', () => {
     setupDb(
       [makeItem(1, 100)],
-      [makeMember(1, 1, 0, 'alice'), makeMember(1, 2, 0, 'bob')],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob')],
+      [],
     );
     const result = calculateSettlement(1);
     expect(result.flows).toEqual([]);
   });
 
   it('2 members, 1 payer: payer is owed half, non-payer owes half', () => {
-    // Item: $100. Alice paid, Bob did not. Each owes $50. Alice net: +$50. Bob net: -$50.
+    // Item: $100. Alice paid all, [Alice, Bob] split. Each owes $50. Alice net: +$50. Bob: -$50.
     setupDb(
       [makeItem(1, 100)],
-      [makeMember(1, 1, 1, 'alice'), makeMember(1, 2, 0, 'bob')],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob')],
+      [makePayer(1, 1, 100, 'alice')],
     );
     const result = calculateSettlement(1);
     const alice = result.balances.find(b => b.user_id === 1)!;
@@ -111,7 +109,8 @@ describe('calculateSettlement', () => {
     // Item: $90. Alice paid. Each of 3 owes $30. Alice net: +$60. Bob: -$30. Carol: -$30.
     setupDb(
       [makeItem(1, 90)],
-      [makeMember(1, 1, 1, 'alice'), makeMember(1, 2, 0, 'bob'), makeMember(1, 3, 0, 'carol')],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob'), makeMember(1, 3, 'carol')],
+      [makePayer(1, 1, 90, 'alice')],
     );
     const result = calculateSettlement(1);
     const alice = result.balances.find(b => b.user_id === 1)!;
@@ -124,12 +123,11 @@ describe('calculateSettlement', () => {
   });
 
   it('all paid equally: all balances are zero, no flows', () => {
-    // Item: $60. 3 members, all paid equally (each paid $20, each owes $20). Net: 0.
-    // Actually with "paid" flag it means: paidPerPayer = item.total / numPayers.
-    // If all 3 paid: each gets +20 credit, each owes -20 = net 0 for everyone.
+    // Item: $60. 3 members, each paid $20 and owes $20. Net: 0 for everyone.
     setupDb(
       [makeItem(1, 60)],
-      [makeMember(1, 1, 1, 'alice'), makeMember(1, 2, 1, 'bob'), makeMember(1, 3, 1, 'carol')],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob'), makeMember(1, 3, 'carol')],
+      [makePayer(1, 1, 20, 'alice'), makePayer(1, 2, 20, 'bob'), makePayer(1, 3, 20, 'carol')],
     );
     const result = calculateSettlement(1);
     for (const b of result.balances) {
@@ -142,7 +140,8 @@ describe('calculateSettlement', () => {
     // Alice paid $100 for 2 people. Bob owes Alice $50.
     setupDb(
       [makeItem(1, 100)],
-      [makeMember(1, 1, 1, 'alice'), makeMember(1, 2, 0, 'bob')],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob')],
+      [makePayer(1, 1, 100, 'alice')],
     );
     const result = calculateSettlement(1);
     const flow = result.flows[0];
@@ -154,7 +153,8 @@ describe('calculateSettlement', () => {
     // Item: $10. 3 members, 1 payer. Share = 3.333... Each rounded to 3.33.
     setupDb(
       [makeItem(1, 10)],
-      [makeMember(1, 1, 1, 'alice'), makeMember(1, 2, 0, 'bob'), makeMember(1, 3, 0, 'carol')],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob'), makeMember(1, 3, 'carol')],
+      [makePayer(1, 1, 10, 'alice')],
     );
     const result = calculateSettlement(1);
     for (const b of result.balances) {
@@ -176,9 +176,10 @@ describe('calculateSettlement', () => {
     setupDb(
       [makeItem(1, 100), makeItem(2, 60)],
       [
-        makeMember(1, 1, 1, 'alice'), makeMember(1, 2, 0, 'bob'),
-        makeMember(2, 1, 0, 'alice'), makeMember(2, 2, 1, 'bob'),
+        makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob'),
+        makeMember(2, 1, 'alice'), makeMember(2, 2, 'bob'),
       ],
+      [makePayer(1, 1, 100, 'alice'), makePayer(2, 2, 60, 'bob')],
     );
     const result = calculateSettlement(1);
     const alice = result.balances.find(b => b.user_id === 1)!;

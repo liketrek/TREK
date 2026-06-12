@@ -1,10 +1,8 @@
-import { useState } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation, useMatch } from 'react-router-dom'
 import { useAddonStore } from '../../store/addonStore'
-import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTranslation } from '../../i18n'
-import { Plane, CalendarDays, Globe, Compass, User, Settings, Shield, LogOut, X } from 'lucide-react'
+import { LayoutGrid, CalendarDays, Globe, Compass, Plus } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 const ADDON_NAV: Record<string, { icon: LucideIcon; labelKey: string }> = {
@@ -13,150 +11,111 @@ const ADDON_NAV: Record<string, { icon: LucideIcon; labelKey: string }> = {
   journey: { icon: Compass,      labelKey: 'admin.addons.catalog.journey.name' },
 }
 
+interface NavItem { to: string; label: string; icon: LucideIcon }
+
+// The centre "+" means something different per context: inside a trip it adds a
+// place, on the journey list it starts a journey, inside a journey it adds an
+// entry — everywhere else it creates a new trip. Pages pick the intent up from
+// the ?create= query param.
+function useCreateAction(): { label: string; run: () => void } {
+  const navigate = useNavigate()
+  const { t } = useTranslation()
+  const inTrip = useMatch('/trips/:id')
+  const inJourney = useMatch('/journey/:id')
+  const onJourneyList = useMatch('/journey')
+
+  if (inTrip) {
+    // On the Costs tab the "+" adds an expense; otherwise it adds a place.
+    const tripTab = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(`trip-tab-${inTrip.params.id}`) : null
+    if (tripTab === 'finanzplan') {
+      return { label: t('costs.addExpense'), run: () => navigate(`/trips/${inTrip.params.id}?create=expense`) }
+    }
+    return { label: t('places.addPlace'), run: () => navigate(`/trips/${inTrip.params.id}?create=place`) }
+  }
+  if (inJourney) {
+    return { label: t('journey.detail.addEntry'), run: () => navigate(`/journey/${inJourney.params.id}?create=entry`) }
+  }
+  if (onJourneyList) {
+    return { label: t('journey.new'), run: () => navigate('/journey?create=1') }
+  }
+  return { label: t('dashboard.newTrip'), run: () => navigate('/dashboard?create=1') }
+}
+
 export default function BottomNav() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const darkMode = useSettingsStore(s => s.settings.dark_mode)
   const dark = darkMode === true || darkMode === 'dark' || (darkMode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)
   const addons = useAddonStore(s => s.addons)
   const globalAddons = addons.filter(a => a.type === 'global' && a.enabled)
-  const [showProfile, setShowProfile] = useState(false)
+  const location = useLocation()
+  const create = useCreateAction()
 
-  const items: { to: string; label: string; icon: LucideIcon }[] = [
-    { to: '/trips', label: t('nav.myTrips'), icon: Plane },
+  const items: NavItem[] = [
+    { to: '/dashboard', label: t('nav.myTrips'), icon: LayoutGrid },
     ...globalAddons.flatMap(addon => {
       const nav = ADDON_NAV[addon.id]
       return nav ? [{ to: `/${addon.id}`, label: t(nav.labelKey), icon: nav.icon }] : []
     }),
   ]
+  // Split the items so the raised "+" sits dead centre.
+  const splitAt = Math.ceil(items.length / 2)
+  const left = items.slice(0, splitAt)
+  const right = items.slice(splitAt)
+
+  const isActive = (to: string) =>
+    to === '/dashboard' ? location.pathname === '/dashboard' : location.pathname.startsWith(to)
+
+  const renderItem = ({ to, label, icon: Icon }: NavItem) => {
+    const active = isActive(to)
+    return (
+      <button
+        key={to}
+        onClick={() => navigate(to)}
+        className="flex flex-col items-center gap-1 py-1 px-1 min-w-0"
+        style={{ color: active ? (dark ? '#fff' : 'oklch(0.22 0 0)') : (dark ? 'oklch(0.6 0 0)' : 'oklch(0.62 0.01 65)') }}
+      >
+        <Icon size={21} strokeWidth={active ? 2.4 : 1.9} />
+        <span className="text-[10px] font-semibold tracking-tight truncate max-w-full">{label}</span>
+      </button>
+    )
+  }
 
   return (
-    <>
-      <nav
-        className="md:hidden sticky bottom-0 border-t border-zinc-200 dark:border-zinc-800 flex justify-around items-start pt-3 z-50 mt-auto flex-shrink-0"
+    <nav
+      className="md:hidden fixed z-[60] flex items-center"
+      style={{
+        left: 12, right: 12,
+        bottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
+        padding: '8px 8px',
+        borderRadius: 24,
+        background: dark ? 'oklch(0.2 0 0 / 0.72)' : 'rgba(255,255,255,0.78)',
+        backdropFilter: 'saturate(1.7) blur(22px)',
+        WebkitBackdropFilter: 'saturate(1.7) blur(22px)',
+        border: dark ? '1px solid oklch(1 0 0 / .1)' : '1px solid oklch(0.92 0.008 70 / .6)',
+        boxShadow: dark
+          ? '0 12px 40px -8px oklch(0 0 0 / .6), inset 0 1px 0 oklch(1 0 0 / .08)'
+          : '0 12px 40px -8px oklch(0 0 0 / .22), inset 0 1px 0 oklch(1 0 0 / .8)',
+      }}
+    >
+      <div className="flex flex-1 items-center justify-around min-w-0">{left.map(renderItem)}</div>
+
+      <button
+        onClick={create.run}
+        aria-label={create.label}
+        className="flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform"
         style={{
-          height: 'calc(84px + env(safe-area-inset-bottom, 0px))',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          background: dark ? 'rgba(9,9,11,0.96)' : 'rgba(255,255,255,0.96)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
+          width: 46, height: 46, marginInline: 8,
+          borderRadius: '50%',
+          background: dark ? '#fff' : 'oklch(0.22 0 0)',
+          color: dark ? 'oklch(0.22 0 0)' : '#fff',
+          boxShadow: '0 4px 12px oklch(0 0 0 / .22)',
         }}
       >
-        {items.map(({ to, label, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) =>
-              `flex flex-col items-center gap-1 px-3 py-1 min-w-[60px] ${
-                isActive ? 'text-zinc-900 dark:text-white' : 'text-zinc-400 dark:text-zinc-500'
-              }`
-            }
-          >
-            <Icon size={22} strokeWidth={2} />
-            <span className="text-[10px] font-medium">{label}</span>
-          </NavLink>
-        ))}
-        <button
-          onClick={() => setShowProfile(true)}
-          className="flex flex-col items-center gap-1 px-3 py-1 min-w-[60px] text-zinc-400 dark:text-zinc-500"
-        >
-          <User size={22} strokeWidth={2} />
-          <span className="text-[10px] font-medium">{t("nav.profile")}</span>
-        </button>
-      </nav>
+        <Plus size={24} strokeWidth={2.6} />
+      </button>
 
-      {showProfile && <ProfileSheet onClose={() => setShowProfile(false)} />}
-    </>
-  )
-}
-
-function ProfileSheet({ onClose }: { onClose: () => void }) {
-  const { t } = useTranslation()
-  const { user, logout } = useAuthStore()
-  const navigate = useNavigate()
-
-  const handleNav = (path: string) => {
-    onClose()
-    navigate(path)
-  }
-
-  const handleLogout = () => {
-    onClose()
-    logout()
-    navigate('/login')
-  }
-
-  return (
-    <div className="fixed inset-0 z-[300] md:hidden" onClick={onClose}>
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-
-      {/* Sheet */}
-      <div
-        className="absolute bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 rounded-t-2xl overflow-hidden"
-        style={{ animation: 'slideUp 0.25s ease-out', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Handle */}
-        <div className="flex justify-center pt-3 pb-2">
-          <div className="w-10 h-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
-        </div>
-
-        {/* User info */}
-        <div className="px-6 pb-4 pt-1">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 flex items-center justify-center text-[16px] font-bold">
-              {(user?.username || '?')[0].toUpperCase()}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[15px] font-semibold text-zinc-900 dark:text-white">{user?.username}</p>
-              <p className="text-[12px] text-zinc-500 truncate">{user?.email}</p>
-            </div>
-            {user?.role === 'admin' && (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-[10px] font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wide">
-                <Shield size={10} /> Admin
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="h-px bg-zinc-100 dark:bg-zinc-800 mx-4" />
-
-        {/* Links */}
-        <div className="py-2 px-2">
-          <button
-            onClick={() => handleNav('/settings')}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 active:bg-zinc-100 dark:active:bg-zinc-800 transition-colors"
-          >
-            <Settings size={18} className="text-zinc-500" />
-            <span className="text-[14px] font-medium text-zinc-900 dark:text-white">{t("nav.bottomSettings")}</span>
-          </button>
-
-          {user?.role === 'admin' && (
-            <button
-              onClick={() => handleNav('/admin')}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 active:bg-zinc-100 dark:active:bg-zinc-800 transition-colors"
-            >
-              <Shield size={18} className="text-zinc-500" />
-              <span className="text-[14px] font-medium text-zinc-900 dark:text-white">{t("nav.bottomAdmin")}</span>
-            </button>
-          )}
-        </div>
-
-        <div className="h-px bg-zinc-100 dark:bg-zinc-800 mx-4" />
-
-        {/* Logout */}
-        <div className="py-2 px-2">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left hover:bg-red-50 dark:hover:bg-red-900/20 active:bg-red-100 transition-colors"
-          >
-            <LogOut size={18} className="text-red-500" />
-            <span className="text-[14px] font-medium text-red-600 dark:text-red-400">{t("nav.bottomLogout")}</span>
-          </button>
-        </div>
-
-        <div className="h-4" />
-      </div>
-    </div>
+      <div className="flex flex-1 items-center justify-around min-w-0">{right.map(renderItem)}</div>
+    </nav>
   )
 }

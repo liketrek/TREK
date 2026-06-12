@@ -66,7 +66,8 @@ describe('BudgetPanel', () => {
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] }))
     );
     render(<BudgetPanel tripId={1} />);
-    await screen.findByText('Transport');
+    // 'Transport' appears in the category section header and the spend breakdown chart.
+    expect((await screen.findAllByText('Transport')).length).toBeGreaterThan(0);
   });
 
   it('FE-COMP-BUDGET-006: renders budget table headers', async () => {
@@ -76,7 +77,8 @@ describe('BudgetPanel', () => {
     );
     render(<BudgetPanel tripId={1} />);
     await screen.findByText('Name');
-    await screen.findByText('Total');
+    // 'Total' appears both as a table header and in the chart total label.
+    expect((await screen.findAllByText('Total')).length).toBeGreaterThan(0);
   });
 
   it('FE-COMP-BUDGET-007: shows Budget title heading', async () => {
@@ -169,8 +171,9 @@ describe('BudgetPanel', () => {
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item1, item2] }))
     );
     render(<BudgetPanel tripId={1} />);
-    await screen.findByText('Transport');
-    await screen.findByText('Hotels');
+    // Each category appears in its section header and again in the breakdown chart.
+    expect((await screen.findAllByText('Transport')).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('Hotels')).length).toBeGreaterThan(0);
   });
 
   it('FE-COMP-BUDGET-015: currency from settings store is used for default_currency display', async () => {
@@ -200,7 +203,8 @@ describe('BudgetPanel', () => {
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] }))
     );
     render(<BudgetPanel tripId={1} />);
-    await screen.findByText('ToDelete');
+    // 'ToDelete' appears in the category header and the breakdown chart.
+    expect((await screen.findAllByText('ToDelete')).length).toBeGreaterThan(0);
     expect(screen.getByTitle('Delete Category')).toBeInTheDocument();
   });
 
@@ -390,7 +394,7 @@ describe('BudgetPanel', () => {
     const item = {
       ...buildBudgetItem({ trip_id: 1, category: 'Food', name: 'Shared Dinner' }),
       total_price: 75,
-      members: [{ user_id: 1, username: 'testuser', avatar_url: null, paid: false }],
+      members: [{ user_id: 1, username: 'testuser', avatar_url: null, paid: 0 }],
     };
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })),
@@ -425,7 +429,7 @@ describe('BudgetPanel', () => {
     seedStore(usePermissionsStore, { permissions: { budget_edit: 'trip_owner' } });
     // Use a user with id != 1 so they're not the owner
     seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
-    seedStore(useTripStore, { trip: buildTrip({ id: 1, owner_id: 9999 }) });
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, user_id: 9999 }) });
     const item = { ...buildBudgetItem({ trip_id: 1, category: 'Food', name: 'Read Only Item' }), total_price: 50 };
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] }))
@@ -439,7 +443,7 @@ describe('BudgetPanel', () => {
   it('FE-COMP-BUDGET-034: read-only mode shows expense_date as text span', async () => {
     seedStore(usePermissionsStore, { permissions: { budget_edit: 'trip_owner' } });
     seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
-    seedStore(useTripStore, { trip: buildTrip({ id: 1, owner_id: 9999 }) });
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, user_id: 9999 }) });
     const item = { ...buildBudgetItem({ trip_id: 1, category: 'Transport', name: 'Train' }), total_price: 30, expense_date: '2025-06-15' };
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] }))
@@ -484,7 +488,7 @@ describe('BudgetPanel', () => {
   it('FE-COMP-BUDGET-036: expense_date shows dash when not set in read-only mode', async () => {
     seedStore(usePermissionsStore, { permissions: { budget_edit: 'trip_owner' } });
     seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
-    seedStore(useTripStore, { trip: buildTrip({ id: 1, owner_id: 9999 }) });
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, user_id: 9999 }) });
     const item = { ...buildBudgetItem({ trip_id: 1, category: 'Food', name: 'Snack' }), total_price: 5, expense_date: null };
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] }))

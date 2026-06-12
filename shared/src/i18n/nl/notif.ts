@@ -1,0 +1,44 @@
+import type { TranslationStrings } from '../types';
+
+const notif: TranslationStrings = {
+  'notif.test.title': '[Test] Melding',
+  'notif.test.simple.text': 'Dit is een eenvoudige testmelding.',
+  'notif.test.boolean.text': 'Accepteer je deze testmelding?',
+  'notif.test.navigate.text': 'Klik hieronder om naar het dashboard te gaan.',
+  'notif.trip_invite.title': 'Reisuitnodiging',
+  'notif.trip_invite.text': '{actor} heeft je uitgenodigd voor {trip}',
+  'notif.booking_change.title': 'Boeking bijgewerkt',
+  'notif.booking_change.text': '{actor} heeft een boeking bijgewerkt in {trip}',
+  'notif.trip_reminder.title': 'Reisherinnering',
+  'notif.trip_reminder.text': 'Je reis {trip} komt eraan!',
+  'notif.todo_due.title': 'Taak verloopt',
+  'notif.todo_due.text': '{todo} in {trip} verloopt op {due}',
+  'notif.vacay_invite.title': 'Vacay Fusion-uitnodiging',
+  'notif.vacay_invite.text':
+    '{actor} nodigt je uit om vakantieplannen te fuseren',
+  'notif.photos_shared.title': "Foto's gedeeld",
+  'notif.photos_shared.text':
+    "{actor} heeft {count} foto('s) gedeeld in {trip}",
+  'notif.collab_message.title': 'Nieuw bericht',
+  'notif.collab_message.text': '{actor} heeft een bericht gestuurd in {trip}',
+  'notif.packing_tagged.title': 'Paklijsttaak',
+  'notif.packing_tagged.text':
+    '{actor} heeft je toegewezen aan {category} in {trip}',
+  'notif.version_available.title': 'Nieuwe versie beschikbaar',
+  'notif.version_available.text': 'TREK {version} is nu beschikbaar',
+  'notif.action.view_trip': 'Reis bekijken',
+  'notif.action.view_collab': 'Berichten bekijken',
+  'notif.action.view_packing': 'Paklijst bekijken',
+  'notif.action.view_photos': "Foto's bekijken",
+  'notif.action.view_vacay': 'Vacay bekijken',
+  'notif.action.view_admin': 'Naar admin',
+  'notif.action.view': 'Bekijken',
+  'notif.action.accept': 'Accepteren',
+  'notif.action.decline': 'Weigeren',
+  'notif.generic.title': 'Melding',
+  'notif.generic.text': 'Je hebt een nieuwe melding',
+  'notif.dev.unknown_event.title': '[DEV] Onbekende gebeurtenis',
+  'notif.dev.unknown_event.text':
+    'Gebeurtenistype "{event}" is niet geregistreerd in EVENT_NOTIFICATION_CONFIG',
+};
+export default notif;

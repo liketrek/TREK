@@ -1,0 +1,37 @@
+import type { TranslationStrings } from '../types';
+
+const notifications: TranslationStrings = {
+  'notifications.title': 'Уведомления',
+  'notifications.markAllRead': 'Отметить все прочитанными',
+  'notifications.deleteAll': 'Удалить все',
+  'notifications.showAll': 'Показать все уведомления',
+  'notifications.empty': 'Нет уведомлений',
+  'notifications.emptyDescription': 'Вы в курсе всех событий!',
+  'notifications.all': 'Все',
+  'notifications.unreadOnly': 'Непрочитанные',
+  'notifications.markRead': 'Отметить как прочитанное',
+  'notifications.markUnread': 'Отметить как непрочитанное',
+  'notifications.delete': 'Удалить',
+  'notifications.system': 'Система',
+  'notifications.synologySessionCleared.title': 'Synology Photos отключено',
+  'notifications.synologySessionCleared.text':
+    'Ваш сервер или аккаунт изменился — перейдите в Настройки, чтобы проверить соединение снова.',
+  'notifications.test.title': 'Тестовое уведомление от {actor}',
+  'notifications.test.text': 'Это простое тестовое уведомление.',
+  'notifications.test.booleanTitle': '{actor} запрашивает подтверждение',
+  'notifications.test.booleanText': 'Тестовое уведомление с выбором.',
+  'notifications.test.accept': 'Подтвердить',
+  'notifications.test.decline': 'Отклонить',
+  'notifications.test.navigateTitle': 'Посмотрите на это',
+  'notifications.test.navigateText': 'Тестовое уведомление с переходом.',
+  'notifications.test.goThere': 'Перейти',
+  'notifications.test.adminTitle': 'Рассылка администратора',
+  'notifications.test.adminText':
+    '{actor} отправил тестовое уведомление всем администраторам.',
+  'notifications.test.tripTitle': '{actor} написал в вашей поездке',
+  'notifications.test.tripText': 'Тестовое уведомление для поездки "{trip}".',
+  'notifications.versionAvailable.title': 'Доступно обновление',
+  'notifications.versionAvailable.text': 'TREK {version} теперь доступен.',
+  'notifications.versionAvailable.button': 'Подробнее',
+};
+export default notifications;

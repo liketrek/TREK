@@ -158,16 +158,16 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="rounded-xl border overflow-hidden" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-        <div className="px-6 py-4 border-b" style={{ borderColor: 'var(--border-secondary)' }}>
-          <h2 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{t('admin.addons.title')}</h2>
-          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+      <div className="rounded-xl border overflow-hidden bg-surface-card border-edge">
+        <div className="px-6 py-4 border-b border-edge-secondary">
+          <h2 className="font-semibold text-content">{t('admin.addons.title')}</h2>
+          <p className="text-xs mt-1 text-content-muted" style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
             {t('admin.addons.subtitleBefore')}<img src={dark ? '/text-light.svg' : '/text-dark.svg'} alt="TREK" style={{ height: 11, display: 'inline', verticalAlign: 'middle', opacity: 0.7 }} />{t('admin.addons.subtitleAfter')}
           </p>
         </div>
 
         {addons.length === 0 ? (
-          <div className="p-8 text-center text-sm" style={{ color: 'var(--text-faint)' }}>
+          <div className="p-8 text-center text-sm text-content-faint">
             {t('admin.addons.noAddons')}
           </div>
         ) : (
@@ -175,9 +175,9 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
             {/* Trip Addons */}
             {tripAddons.length > 0 && (
               <div>
-                <div className="px-6 py-2.5 border-b flex items-center gap-2" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-secondary)' }}>
-                  <Briefcase size={13} style={{ color: 'var(--text-muted)' }} />
-                  <span className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                <div className="px-6 py-2.5 border-b flex items-center gap-2 bg-surface-secondary border-edge-secondary">
+                  <Briefcase size={13} className="text-content-muted" />
+                  <span className="text-xs font-medium uppercase tracking-wider text-content-muted">
                     {t('admin.addons.type.trip')} — {t('admin.addons.tripHint')}
                   </span>
                 </div>
@@ -185,14 +185,14 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
                   <div key={addon.id}>
                     <AddonRow addon={addon} onToggle={handleToggle} t={t} />
                     {addon.id === 'packing' && addon.enabled && onToggleBagTracking && (
-                      <div className="flex items-center gap-4 px-6 py-3 border-b" style={{ borderColor: 'var(--border-secondary)', background: 'var(--bg-secondary)', paddingLeft: 70 }}>
-                        <Luggage size={14} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
+                      <div className="flex items-center gap-4 px-6 py-3 border-b border-edge-secondary bg-surface-secondary" style={{ paddingLeft: 70 }}>
+                        <Luggage size={14} className="text-content-faint" style={{ flexShrink: 0 }} />
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{t('admin.bagTracking.title')}</div>
-                          <div className="text-xs mt-0.5" style={{ color: 'var(--text-faint)' }}>{t('admin.bagTracking.subtitle')}</div>
+                          <div className="text-sm font-medium text-content-secondary">{t('admin.bagTracking.title')}</div>
+                          <div className="text-xs mt-0.5 text-content-faint">{t('admin.bagTracking.subtitle')}</div>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className="hidden sm:inline text-xs font-medium" style={{ color: bagTrackingEnabled ? 'var(--text-primary)' : 'var(--text-faint)' }}>
+                          <span className={`hidden sm:inline text-xs font-medium ${bagTrackingEnabled ? 'text-content' : 'text-content-faint'}`}>
                             {bagTrackingEnabled ? t('admin.addons.enabled') : t('admin.addons.disabled')}
                           </span>
                           <button onClick={onToggleBagTracking}
@@ -205,20 +205,20 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
                       </div>
                     )}
                     {addon.id === 'collab' && addon.enabled && collabFeatures && onToggleCollabFeature && (
-                      <div className="px-6 py-3 border-b" style={{ borderColor: 'var(--border-secondary)', background: 'var(--bg-secondary)', paddingLeft: 70 }}>
+                      <div className="px-6 py-3 border-b border-edge-secondary bg-surface-secondary" style={{ paddingLeft: 70 }}>
                         <div className="space-y-2">
                           {COLLAB_SUB_FEATURES.map(feat => {
                             const enabled = collabFeatures[feat.key]
                             const Icon = feat.icon
                             return (
                               <div key={feat.key} className="flex items-center gap-4" style={{ minHeight: 32 }}>
-                                <Icon size={14} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
+                                <Icon size={14} className="text-content-faint" style={{ flexShrink: 0 }} />
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{t(feat.titleKey)}</div>
-                                  <div className="text-xs mt-0.5" style={{ color: 'var(--text-faint)' }}>{t(feat.subtitleKey)}</div>
+                                  <div className="text-sm font-medium text-content-secondary">{t(feat.titleKey)}</div>
+                                  <div className="text-xs mt-0.5 text-content-faint">{t(feat.subtitleKey)}</div>
                                 </div>
                                 <div className="flex items-center gap-2 shrink-0">
-                                  <span className="hidden sm:inline text-xs font-medium" style={{ color: enabled ? 'var(--text-primary)' : 'var(--text-faint)' }}>
+                                  <span className={`hidden sm:inline text-xs font-medium ${enabled ? 'text-content' : 'text-content-faint'}`}>
                                     {enabled ? t('admin.addons.enabled') : t('admin.addons.disabled')}
                                   </span>
                                   <button onClick={() => onToggleCollabFeature(feat.key)}
@@ -242,9 +242,9 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
             {/* Global Addons */}
             {globalAddons.length > 0 && (
               <div>
-                <div className="px-6 py-2.5 border-b border-t flex items-center gap-2" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-secondary)' }}>
-                  <Globe size={13} style={{ color: 'var(--text-muted)' }} />
-                  <span className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                <div className="px-6 py-2.5 border-b border-t flex items-center gap-2 bg-surface-secondary border-edge-secondary">
+                  <Globe size={13} className="text-content-muted" />
+                  <span className="text-xs font-medium uppercase tracking-wider text-content-muted">
                     {t('admin.addons.type.global')} — {t('admin.addons.globalHint')}
                   </span>
                 </div>
@@ -253,19 +253,19 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
                     <AddonRow addon={addon} onToggle={handleToggle} t={t} />
                     {/* Memories providers as sub-items under Journey addon */}
                     {addon.id === 'journey' && providerOptions.length > 0 && (
-                      <div className="px-6 py-3 border-b" style={{ borderColor: 'var(--border-secondary)', background: 'var(--bg-secondary)', paddingLeft: 70 }}>
+                      <div className="px-6 py-3 border-b border-edge-secondary bg-surface-secondary" style={{ paddingLeft: 70 }}>
                         <div className="space-y-2">
                           {providerOptions.map(provider => {
                             const ProviderIcon = PROVIDER_ICONS[provider.key]
                             return (
                             <div key={provider.key} className="flex items-center gap-4" style={{ minHeight: 32 }}>
-                              {ProviderIcon && <span style={{ color: 'var(--text-faint)' }}><ProviderIcon size={14} /></span>}
+                              {ProviderIcon && <span className="text-content-faint"><ProviderIcon size={14} /></span>}
                               <div style={{ flex: 1, minWidth: 0 }}>
-                                <div className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{provider.label}</div>
-                                <div className="text-xs mt-0.5" style={{ color: 'var(--text-faint)' }}>{provider.description}</div>
+                                <div className="text-sm font-medium text-content-secondary">{provider.label}</div>
+                                <div className="text-xs mt-0.5 text-content-faint">{provider.description}</div>
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
-                                <span className="hidden sm:inline text-xs font-medium" style={{ color: provider.enabled ? 'var(--text-primary)' : 'var(--text-faint)' }}>
+                                <span className={`hidden sm:inline text-xs font-medium ${provider.enabled ? 'text-content' : 'text-content-faint'}`}>
                                   {provider.enabled ? t('admin.addons.enabled') : t('admin.addons.disabled')}
                                 </span>
                                 <button
@@ -291,9 +291,9 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
             {/* Integration Addons */}
             {integrationAddons.length > 0 && (
               <div>
-                <div className="px-6 py-2.5 border-b border-t flex items-center gap-2" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-secondary)' }}>
-                  <Link2 size={13} style={{ color: 'var(--text-muted)' }} />
-                  <span className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                <div className="px-6 py-2.5 border-b border-t flex items-center gap-2 bg-surface-secondary border-edge-secondary">
+                  <Link2 size={13} className="text-content-muted" />
+                  <span className="text-xs font-medium uppercase tracking-wider text-content-muted">
                     {t('admin.addons.type.integration')} — {t('admin.addons.integrationHint')}
                   </span>
                 </div>
@@ -336,31 +336,31 @@ function AddonRow({ addon, onToggle, t, nameOverride, descriptionOverride, statu
   const displayDescription = descriptionOverride || label.description
   const enabledState = statusOverride ?? addon.enabled
   return (
-    <div className="flex items-center gap-4 px-6 py-4 border-b transition-colors hover:opacity-95" style={{ borderColor: 'var(--border-secondary)', opacity: isComingSoon ? 0.5 : 1, pointerEvents: isComingSoon ? 'none' : 'auto' }}>
+    <div className="flex items-center gap-4 px-6 py-4 border-b transition-colors hover:opacity-95 border-edge-secondary" style={{ opacity: isComingSoon ? 0.5 : 1, pointerEvents: isComingSoon ? 'none' : 'auto' }}>
       {/* Icon */}
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-surface-secondary text-content">
         <AddonIcon name={addon.icon} size={20} />
       </div>
 
       {/* Info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{displayName}</span>
+          <span className="text-sm font-semibold text-content">{displayName}</span>
           {isComingSoon && (
-            <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-faint)' }}>
+            <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full text-content-faint bg-surface-tertiary">
               Coming Soon
             </span>
           )}
-          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full" style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-surface-secondary text-content-muted">
             {addon.type === 'global' ? t('admin.addons.type.global') : addon.type === 'integration' ? t('admin.addons.type.integration') : t('admin.addons.type.trip')}
           </span>
         </div>
-        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{displayDescription}</p>
+        <p className="text-xs mt-0.5 text-content-muted">{displayDescription}</p>
       </div>
 
       {/* Toggle */}
       <div className="flex items-center gap-2 shrink-0">
-        <span className="hidden sm:inline text-xs font-medium" style={{ color: (enabledState && !isComingSoon) ? 'var(--text-primary)' : 'var(--text-faint)' }}>
+        <span className={`hidden sm:inline text-xs font-medium ${(enabledState && !isComingSoon) ? 'text-content' : 'text-content-faint'}`}>
           {isComingSoon ? t('admin.addons.disabled') : enabledState ? t('admin.addons.enabled') : t('admin.addons.disabled')}
         </span>
         {!hideToggle && (
@@ -371,9 +371,8 @@ function AddonRow({ addon, onToggle, t, nameOverride, descriptionOverride, statu
             style={{ background: (enabledState && !isComingSoon) ? 'var(--text-primary)' : 'var(--border-primary)', cursor: isComingSoon ? 'not-allowed' : 'pointer' }}
           >
             <span
-              className="inline-block h-4 w-4 transform rounded-full transition-transform"
+              className="inline-block h-4 w-4 transform rounded-full transition-transform bg-surface-card"
               style={{
-                background: 'var(--bg-card)',
                 transform: (enabledState && !isComingSoon) ? 'translateX(22px)' : 'translateX(4px)',
               }}
             />

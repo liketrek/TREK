@@ -380,6 +380,7 @@ export function registerJourneyTools(server: McpServer, userId: number, scopes: 
       annotations: TOOL_ANNOTATIONS_READONLY,
     },
     async ({ journeyId }) => {
+      if (!canAccessJourney(journeyId, userId)) return notFound('Journey not found or access denied.');
       const shareLink = getJourneyShareLink(journeyId);
       return ok({ shareLink });
     }

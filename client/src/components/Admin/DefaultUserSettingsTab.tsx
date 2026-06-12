@@ -20,10 +20,23 @@ type Defaults = {
   temperature_unit?: string
   dark_mode?: string | boolean
   time_format?: string
-  route_calculation?: boolean
   blur_booking_codes?: boolean
   map_tile_url?: string
+  map_provider?: string
+  mapbox_access_token?: string
+  mapbox_style?: string
+  mapbox_3d_enabled?: boolean
+  mapbox_quality_mode?: boolean
 }
+
+const MAPBOX_STYLE_PRESETS = [
+  { name: 'Standard', url: 'mapbox://styles/mapbox/standard' },
+  { name: 'Streets', url: 'mapbox://styles/mapbox/streets-v12' },
+  { name: 'Outdoors', url: 'mapbox://styles/mapbox/outdoors-v12' },
+  { name: 'Light', url: 'mapbox://styles/mapbox/light-v11' },
+  { name: 'Dark', url: 'mapbox://styles/mapbox/dark-v11' },
+  { name: 'Satellite Streets', url: 'mapbox://styles/mapbox/satellite-streets-v12' },
+]
 
 function OptionRow({
   label,
@@ -36,10 +49,10 @@ function OptionRow({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+      <label className="block text-sm font-medium mb-2 text-content-secondary">
         {label}
       </label>
-      {hint && <p className="text-xs mb-2" style={{ color: 'var(--text-faint)' }}>{hint}</p>}
+      {hint && <p className="text-xs mb-2 text-content-faint">{hint}</p>}
       <div className="flex gap-3 flex-wrap">{children}</div>
     </div>
   )
@@ -78,11 +91,15 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
   const [defaults, setDefaults] = useState<Defaults>({})
   const [loaded, setLoaded] = useState(false)
   const [mapTileUrl, setMapTileUrl] = useState('')
+  const [mapboxToken, setMapboxToken] = useState('')
+  const [mapboxStyle, setMapboxStyle] = useState('')
 
   useEffect(() => {
     adminApi.getDefaultUserSettings().then((data: Defaults) => {
       setDefaults(data)
       setMapTileUrl(data.map_tile_url || '')
+      setMapboxToken(data.mapbox_access_token || '')
+      setMapboxStyle(data.mapbox_style || '')
       setLoaded(true)
     }).catch(() => setLoaded(true))
   }, [])
@@ -102,6 +119,8 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
       const updated = await adminApi.updateDefaultUserSettings({ [key]: null })
       setDefaults(updated)
       if (key === 'map_tile_url') setMapTileUrl('')
+      if (key === 'mapbox_access_token') setMapboxToken('')
+      if (key === 'mapbox_style') setMapboxStyle('')
       toast.success(t('admin.defaultSettings.reset'))
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t('common.error'))
@@ -114,8 +133,8 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
     isSet(field) ? (
       <button
         onClick={() => reset(field)}
-        className="text-xs ml-2"
-        style={{ color: 'var(--text-faint)', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer' }}
+        className="text-xs ml-2 text-content-faint underline"
+        style={{ background: 'none', border: 'none', cursor: 'pointer' }}
       >
         {t('admin.defaultSettings.resetToBuiltIn')}
       </button>
@@ -131,7 +150,6 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
     lng: 2.3522,
     address: null,
     category_id: null,
-    icon: null,
     price: null,
     currency: null,
     image_url: null,
@@ -148,14 +166,14 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
   }], [])
 
   if (!loaded) {
-    return <p style={{ fontSize: 12, color: 'var(--text-faint)', fontStyle: 'italic', padding: 16 }}>Loading…</p>
+    return <p className="text-content-faint" style={{ fontSize: 12, fontStyle: 'italic', padding: 16 }}>Loading…</p>
   }
 
   const darkMode = defaults.dark_mode
 
   return (
     <Section title={t('admin.defaultSettings.title')} icon={Settings2}>
-      <p className="text-sm" style={{ color: 'var(--text-faint)', marginTop: -8 }}>
+      <p className="text-sm text-content-faint" style={{ marginTop: -8 }}>
         {t('admin.defaultSettings.description')}
       </p>
 
@@ -208,22 +226,6 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
         ))}
       </OptionRow>
 
-      {/* Route Calculation */}
-      <OptionRow label={<>{t('settings.routeCalculation')} <ResetButton field="route_calculation" /></>}>
-        {([
-          { value: true, label: t('settings.on') || 'On' },
-          { value: false, label: t('settings.off') || 'Off' },
-        ] as const).map(opt => (
-          <OptionButton
-            key={String(opt.value)}
-            active={defaults.route_calculation === opt.value}
-            onClick={() => save({ route_calculation: opt.value })}
-          >
-            {opt.label}
-          </OptionButton>
-        ))}
-      </OptionRow>
-
       {/* Blur Booking Codes */}
       <OptionRow label={<>{t('settings.blurBookingCodes')} <ResetButton field="blur_booking_codes" /></>}>
         {([
@@ -242,7 +244,7 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
 
       {/* Map Tile URL */}
       <div>
-        <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+        <label className="block text-sm font-medium mb-1.5 text-content-secondary">
           {t('settings.mapTemplate')}
           <ResetButton field="map_tile_url" />
         </label>
@@ -262,7 +264,7 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
           placeholder="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
         />
-        <p className="text-xs mt-1" style={{ color: 'var(--text-faint)' }}>{t('settings.mapDefaultHint')}</p>
+        <p className="text-xs mt-1 text-content-faint">{t('settings.mapDefaultHint')}</p>
         <div style={{ position: 'relative', height: '200px', width: '100%', marginTop: 12 }}>
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           {React.createElement(MapView as any, {
@@ -284,6 +286,94 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
             hasInspector: false,
           })}
         </div>
+      </div>
+
+      {/* ── Map provider / instance-wide Mapbox ───────────────────────── */}
+      <div style={{ borderTop: '1px solid var(--border-primary)', paddingTop: 20, marginTop: 4 }}>
+        <OptionRow
+          label={<>{t('admin.defaultSettings.mapProvider')} <ResetButton field="map_provider" /></>}
+          hint={t('admin.defaultSettings.mapProviderHint')}
+        >
+          {([
+            { value: 'leaflet', label: t('admin.defaultSettings.providerLeaflet') },
+            { value: 'mapbox-gl', label: t('admin.defaultSettings.providerMapbox') },
+          ] as const).map(opt => (
+            <OptionButton
+              key={opt.value}
+              active={(defaults.map_provider || 'leaflet') === opt.value}
+              onClick={() => save({ map_provider: opt.value })}
+            >
+              {opt.label}
+            </OptionButton>
+          ))}
+        </OptionRow>
+
+        {defaults.map_provider === 'mapbox-gl' && (
+          <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <div>
+              <label className="block text-sm font-medium mb-1.5 text-content-secondary">
+                {t('admin.defaultSettings.mapboxToken')}
+                <ResetButton field="mapbox_access_token" />
+              </label>
+              <input
+                type="text"
+                value={mapboxToken}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMapboxToken(e.target.value)}
+                onBlur={() => save({ mapbox_access_token: mapboxToken })}
+                placeholder="pk.eyJ…"
+                spellCheck={false}
+                autoComplete="off"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
+              />
+              <p className="text-xs mt-1 text-content-faint">{t('admin.defaultSettings.mapboxTokenHint')}</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1.5 text-content-secondary">
+                {t('admin.defaultSettings.mapboxStyle')}
+                <ResetButton field="mapbox_style" />
+              </label>
+              <CustomSelect
+                value={mapboxStyle}
+                onChange={(value: string) => { if (value) { setMapboxStyle(value); save({ mapbox_style: value }) } }}
+                placeholder={t('admin.defaultSettings.mapboxStylePlaceholder')}
+                options={MAPBOX_STYLE_PRESETS.map(p => ({ value: p.url, label: p.name }))}
+                size="sm"
+                style={{ marginBottom: 8 }}
+              />
+              <input
+                type="text"
+                value={mapboxStyle}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMapboxStyle(e.target.value)}
+                onBlur={() => save({ mapbox_style: mapboxStyle })}
+                placeholder="mapbox://styles/mapbox/standard"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
+              />
+            </div>
+
+            <OptionRow label={<>{t('admin.defaultSettings.mapbox3d')} <ResetButton field="mapbox_3d_enabled" /></>}>
+              {([
+                { value: true, label: t('settings.on') || 'On' },
+                { value: false, label: t('settings.off') || 'Off' },
+              ] as const).map(opt => (
+                <OptionButton key={String(opt.value)} active={(defaults.mapbox_3d_enabled ?? true) === opt.value} onClick={() => save({ mapbox_3d_enabled: opt.value })}>
+                  {opt.label}
+                </OptionButton>
+              ))}
+            </OptionRow>
+
+            <OptionRow label={<>{t('admin.defaultSettings.mapboxQuality')} <ResetButton field="mapbox_quality_mode" /></>}>
+              {([
+                { value: true, label: t('settings.on') || 'On' },
+                { value: false, label: t('settings.off') || 'Off' },
+              ] as const).map(opt => (
+                <OptionButton key={String(opt.value)} active={(defaults.mapbox_quality_mode ?? false) === opt.value} onClick={() => save({ mapbox_quality_mode: opt.value })}>
+                  {opt.label}
+                </OptionButton>
+              ))}
+            </OptionRow>
+          </div>
+        )}
       </div>
     </Section>
   )

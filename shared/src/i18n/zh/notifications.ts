@@ -1,0 +1,36 @@
+import type { TranslationStrings } from '../types';
+
+const notifications: TranslationStrings = {
+  'notifications.title': '通知',
+  'notifications.markAllRead': '全部标为已读',
+  'notifications.deleteAll': '全部删除',
+  'notifications.showAll': '查看所有通知',
+  'notifications.empty': '暂无通知',
+  'notifications.emptyDescription': '您已全部查阅！',
+  'notifications.all': '全部',
+  'notifications.unreadOnly': '未读',
+  'notifications.markRead': '标为已读',
+  'notifications.markUnread': '标为未读',
+  'notifications.delete': '删除',
+  'notifications.system': '系统',
+  'notifications.synologySessionCleared.title': 'Synology Photos 已断开连接',
+  'notifications.synologySessionCleared.text':
+    '您的服务器或账户已更改 — 请前往设置重新测试您的连接。',
+  'notifications.test.title': '来自 {actor} 的测试通知',
+  'notifications.test.text': '这是一条简单的测试通知。',
+  'notifications.test.booleanTitle': '{actor} 请求您的审批',
+  'notifications.test.booleanText': '测试布尔通知。',
+  'notifications.test.accept': '批准',
+  'notifications.test.decline': '拒绝',
+  'notifications.test.navigateTitle': '查看详情',
+  'notifications.test.navigateText': '测试跳转通知。',
+  'notifications.test.goThere': '前往',
+  'notifications.test.adminTitle': '管理员广播',
+  'notifications.test.adminText': '{actor} 向所有管理员发送了测试通知。',
+  'notifications.test.tripTitle': '{actor} 在您的行程中发帖',
+  'notifications.test.tripText': '行程"{trip}"的测试通知。',
+  'notifications.versionAvailable.title': '有可用更新',
+  'notifications.versionAvailable.text': 'TREK {version} 现已可用。',
+  'notifications.versionAvailable.button': '查看详情',
+};
+export default notifications;

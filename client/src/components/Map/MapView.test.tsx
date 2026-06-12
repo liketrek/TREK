@@ -128,7 +128,8 @@ describe('MapView', () => {
 
   it('FE-COMP-MAPVIEW-006: renders polyline when route has 2+ points', () => {
     render(<MapView route={[[[48.0, 2.0], [49.0, 3.0]]]} />)
-    expect(screen.getByTestId('polyline')).toBeTruthy()
+    // Apple-Maps style draws a casing + a core line per segment.
+    expect(screen.getAllByTestId('polyline').length).toBeGreaterThan(0)
   })
 
   it('FE-COMP-MAPVIEW-007: does not render polyline when route is null', () => {
@@ -155,16 +156,11 @@ describe('MapView', () => {
     expect(screen.getByTestId('cluster-group')).toBeTruthy()
   })
 
-  it('FE-COMP-MAPVIEW-011: renders RouteLabel marker when routeSegments provided with route', () => {
-    const route = [[[48.0, 2.0], [49.0, 3.0]]] as [number, number][][][]
-    const routeSegments = [
-      { mid: [48.5, 2.5] as [number, number], from: 0, to: 1, walkingText: '10 min', drivingText: '3 min' },
-    ]
-    render(<MapView route={route} routeSegments={routeSegments} />)
-    // Route polyline is rendered
-    expect(screen.getByTestId('polyline')).toBeTruthy()
-    // RouteLabel renders a Marker (mocked), but it returns null when zoom < 12
-    // so we just assert the polyline is there, exercising the routeSegments.map path
+  it('FE-COMP-MAPVIEW-011: renders the route polyline; travel times are no longer drawn on the map', () => {
+    const route = [[[48.0, 2.0], [49.0, 3.0]]] as unknown as [number, number][][]
+    render(<MapView route={route} />)
+    // The route is drawn; per-segment times now live in the day sidebar, not on the map.
+    expect(screen.getAllByTestId('polyline').length).toBeGreaterThan(0)
   })
 
   it('FE-COMP-MAPVIEW-012: invalid route_geometry JSON triggers catch and skips polyline', () => {

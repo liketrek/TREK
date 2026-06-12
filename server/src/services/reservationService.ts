@@ -1,5 +1,7 @@
-import { db, canAccessTrip } from '../db/database';
+import { db } from '../db/database';
 import { Reservation } from '../types';
+
+export { verifyTripAccess } from './tripAccess';
 
 export interface ReservationEndpoint {
   id?: number;
@@ -16,10 +18,6 @@ export interface ReservationEndpoint {
 }
 
 type EndpointInput = Omit<ReservationEndpoint, 'id' | 'reservation_id' | 'sequence'> & { sequence?: number };
-
-export function verifyTripAccess(tripId: string | number, userId: number) {
-  return canAccessTrip(tripId, userId);
-}
 
 function loadEndpointsByTrip(tripId: string | number): Map<number, ReservationEndpoint[]> {
   const rows = db.prepare(`
@@ -113,6 +111,40 @@ export function listReservations(tripId: string | number) {
     r.day_positions = posMap.get(r.id) || null;
     r.endpoints = endpointsMap.get(r.id) || [];
   }
+
+  return reservations;
+}
+
+/**
+ * Upcoming reservations across all of a user's active trips, soonest first.
+ * Used by the dashboard's "Upcoming reservations" widget. A reservation counts
+ * as upcoming when its own time is in the future, or — for timeless entries —
+ * when its day falls on or after today. Cancelled bookings are skipped.
+ */
+export function getUpcomingReservations(userId: number, limit = 6) {
+  const today = new Date().toISOString().slice(0, 10);
+  const now = new Date().toISOString();
+
+  const reservations = db.prepare(`
+    SELECT r.id, r.trip_id, r.title, r.type, r.status, r.location,
+           r.reservation_time, r.confirmation_number,
+           t.title as trip_title, t.cover_image as trip_cover,
+           d.date as day_date, p.name as place_name, p.image_url as place_image
+    FROM reservations r
+    JOIN trips t ON t.id = r.trip_id
+    LEFT JOIN trip_members tm ON tm.trip_id = t.id AND tm.user_id = ?
+    LEFT JOIN days d ON r.day_id = d.id
+    LEFT JOIN places p ON r.place_id = p.id
+    WHERE (t.user_id = ? OR tm.user_id IS NOT NULL)
+      AND t.is_archived = 0
+      AND r.status != 'cancelled'
+      AND (
+        (r.reservation_time IS NOT NULL AND r.reservation_time >= ?)
+        OR (r.reservation_time IS NULL AND d.date IS NOT NULL AND d.date >= ?)
+      )
+    ORDER BY COALESCE(r.reservation_time, d.date) ASC
+    LIMIT ?
+  `).all(userId, userId, now, today, limit) as any[];
 
   return reservations;
 }
@@ -262,15 +294,6 @@ export function updatePositions(tripId: string | number, positions: { id: number
     });
     updateMany(positions);
   }
-}
-
-export function getDayPositions(tripId: string | number, dayId: number | string) {
-  return db.prepare(`
-    SELECT rdp.reservation_id, rdp.position
-    FROM reservation_day_positions rdp
-    JOIN reservations r ON rdp.reservation_id = r.id
-    WHERE r.trip_id = ? AND rdp.day_id = ?
-  `).all(tripId, dayId) as { reservation_id: number; position: number }[];
 }
 
 export function getReservation(id: string | number, tripId: string | number) {

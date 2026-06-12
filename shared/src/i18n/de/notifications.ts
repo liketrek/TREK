@@ -1,0 +1,39 @@
+import type { TranslationStrings } from '../types';
+
+const notifications: TranslationStrings = {
+  'notifications.title': 'Benachrichtigungen',
+  'notifications.markAllRead': 'Alle als gelesen markieren',
+  'notifications.deleteAll': 'Alle löschen',
+  'notifications.showAll': 'Alle Benachrichtigungen anzeigen',
+  'notifications.empty': 'Keine Benachrichtigungen',
+  'notifications.emptyDescription': 'Sie sind auf dem neuesten Stand!',
+  'notifications.all': 'Alle',
+  'notifications.unreadOnly': 'Ungelesen',
+  'notifications.markRead': 'Als gelesen markieren',
+  'notifications.markUnread': 'Als ungelesen markieren',
+  'notifications.delete': 'Löschen',
+  'notifications.system': 'System',
+  'notifications.synologySessionCleared.title': 'Synology Photos getrennt',
+  'notifications.synologySessionCleared.text':
+    'Dein Server oder Konto hat sich geändert — gehe zu Einstellungen, um deine Verbindung erneut zu testen.',
+  'notifications.test.title': 'Testbenachrichtigung von {actor}',
+  'notifications.test.text': 'Dies ist eine einfache Testbenachrichtigung.',
+  'notifications.test.booleanTitle': '{actor} bittet um Ihre Zustimmung',
+  'notifications.test.booleanText':
+    'Dies ist eine boolesche Testbenachrichtigung.',
+  'notifications.test.accept': 'Genehmigen',
+  'notifications.test.decline': 'Ablehnen',
+  'notifications.test.navigateTitle': 'Etwas ansehen',
+  'notifications.test.navigateText':
+    'Dies ist eine Navigations-Testbenachrichtigung.',
+  'notifications.test.goThere': 'Dorthin',
+  'notifications.test.adminTitle': 'Admin-Broadcast',
+  'notifications.test.adminText':
+    '{actor} hat eine Testbenachrichtigung an alle Admins gesendet.',
+  'notifications.test.tripTitle': '{actor} hat in Ihrer Reise gepostet',
+  'notifications.test.tripText': 'Testbenachrichtigung für Reise "{trip}".',
+  'notifications.versionAvailable.title': 'Update verfügbar',
+  'notifications.versionAvailable.text': 'TREK {version} ist jetzt verfügbar.',
+  'notifications.versionAvailable.button': 'Details anzeigen',
+};
+export default notifications;

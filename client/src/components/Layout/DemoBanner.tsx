@@ -273,7 +273,7 @@ export default function DemoBanner(): React.ReactElement | null {
       paddingBottom: 'max(16px, calc(env(safe-area-inset-bottom) + 80px))',
       paddingLeft: 16, paddingRight: 16,
       overflow: 'auto',
-      fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+      fontFamily: "var(--font-system)",
     }} onClick={() => setDismissed(true)}>
       <div style={{
         background: 'white', borderRadius: 20, padding: '28px 24px 0',

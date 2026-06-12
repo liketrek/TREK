@@ -235,7 +235,7 @@ describe('PlaceInspector', () => {
   });
 
   it('FE-PLANNER-INSPECTOR-017: "Remove from day" button appears when place IS assigned to selectedDay', () => {
-    const assignmentInDay = [{ id: 99, place: { id: place.id }, day_id: 1, place_id: place.id, order_index: 0, notes: null }];
+    const assignmentInDay = [{ id: 99, place, day_id: 1, place_id: place.id, order_index: 0, notes: null }];
     render(
       <PlaceInspector
         {...defaultProps}
@@ -250,7 +250,7 @@ describe('PlaceInspector', () => {
   it('FE-PLANNER-INSPECTOR-018: clicking remove calls onRemoveAssignment with dayId and assignmentId', async () => {
     const user = userEvent.setup();
     const onRemoveAssignment = vi.fn();
-    const assignmentInDay = [{ id: 99, place: { id: place.id }, day_id: 1, place_id: place.id, order_index: 0, notes: null }];
+    const assignmentInDay = [{ id: 99, place, day_id: 1, place_id: place.id, order_index: 0, notes: null }];
     render(
       <PlaceInspector
         {...defaultProps}
@@ -406,7 +406,7 @@ describe('PlaceInspector', () => {
 
   it('FE-PLANNER-INSPECTOR-030: linked reservation shown when selectedAssignmentId has a reservation', () => {
     const reservation = buildReservation({ title: 'Museum Ticket', status: 'confirmed', assignment_id: 99 } as any);
-    const assignmentInDay = [{ id: 99, place: { id: place.id }, day_id: 1, place_id: place.id, order_index: 0, notes: null }];
+    const assignmentInDay = [{ id: 99, place, day_id: 1, place_id: place.id, order_index: 0, notes: null }];
     render(
       <PlaceInspector
         {...defaultProps}
@@ -423,7 +423,7 @@ describe('PlaceInspector', () => {
 
   it('FE-PLANNER-INSPECTOR-031: participants section shown when tripMembers > 1 and selectedAssignmentId is set', () => {
     const members = [buildUser({ id: 1 }), buildUser({ id: 2 })];
-    const assignmentInDay = [{ id: 99, place: { id: place.id }, day_id: 1, place_id: place.id, order_index: 0, notes: null }];
+    const assignmentInDay = [{ id: 99, place, day_id: 1, place_id: place.id, order_index: 0, notes: null }];
     render(
       <PlaceInspector
         {...defaultProps}
@@ -534,8 +534,8 @@ describe('PlaceInspector', () => {
     const member2 = buildUser({ id: 11, username: 'bob' });
     const members = [member1, member2];
     const assignmentInDay = [{
-      id: 99, place: { id: place.id }, day_id: 1, place_id: place.id, order_index: 0, notes: null,
-      participants: [{ user_id: 10 }],
+      id: 99, place, day_id: 1, place_id: place.id, order_index: 0, notes: null,
+      participants: [{ user_id: 10, username: 'alice' }],
     }];
     render(
       <PlaceInspector
@@ -637,7 +637,7 @@ describe('PlaceInspector', () => {
         tripMembers={[member]}
         selectedDayId={1}
         selectedAssignmentId={99}
-        assignments={{ '1': [{ id: 99, place: { id: place.id }, day_id: 1, place_id: place.id, order_index: 0, notes: null }] }}
+        assignments={{ '1': [{ id: 99, place, day_id: 1, place_id: place.id, order_index: 0, notes: null }] }}
       />
     );
     // "solo" username might be visible from other parts but participants box should not render

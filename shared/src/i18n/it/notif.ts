@@ -1,0 +1,42 @@
+import type { TranslationStrings } from '../types';
+
+const notif: TranslationStrings = {
+  'notif.test.title': '[Test] Notifica',
+  'notif.test.simple.text': 'Questa è una semplice notifica di test.',
+  'notif.test.boolean.text': 'Accetti questa notifica di test?',
+  'notif.test.navigate.text': 'Clicca qui sotto per accedere alla dashboard.',
+  'notif.trip_invite.title': 'Invito al viaggio',
+  'notif.trip_invite.text': '{actor} ti ha invitato a {trip}',
+  'notif.booking_change.title': 'Prenotazione aggiornata',
+  'notif.booking_change.text':
+    '{actor} ha aggiornato una prenotazione in {trip}',
+  'notif.trip_reminder.title': 'Promemoria viaggio',
+  'notif.trip_reminder.text': 'Il tuo viaggio {trip} si avvicina!',
+  'notif.todo_due.title': 'Attività in scadenza',
+  'notif.todo_due.text': '{todo} in {trip} scade il {due}',
+  'notif.vacay_invite.title': 'Invito Vacay Fusion',
+  'notif.vacay_invite.text': '{actor} ti ha invitato a fondere i piani vacanza',
+  'notif.photos_shared.title': 'Foto condivise',
+  'notif.photos_shared.text': '{actor} ha condiviso {count} foto in {trip}',
+  'notif.collab_message.title': 'Nuovo messaggio',
+  'notif.collab_message.text': '{actor} ha inviato un messaggio in {trip}',
+  'notif.packing_tagged.title': 'Assegnazione bagagli',
+  'notif.packing_tagged.text': '{actor} ti ha assegnato a {category} in {trip}',
+  'notif.version_available.title': 'Nuova versione disponibile',
+  'notif.version_available.text': 'TREK {version} è ora disponibile',
+  'notif.action.view_trip': 'Vedi viaggio',
+  'notif.action.view_collab': 'Vedi messaggi',
+  'notif.action.view_packing': 'Vedi bagagli',
+  'notif.action.view_photos': 'Vedi foto',
+  'notif.action.view_vacay': 'Vedi Vacay',
+  'notif.action.view_admin': "Vai all'admin",
+  'notif.action.view': 'Vedi',
+  'notif.action.accept': 'Accetta',
+  'notif.action.decline': 'Rifiuta',
+  'notif.generic.title': 'Notifica',
+  'notif.generic.text': 'Hai una nuova notifica',
+  'notif.dev.unknown_event.title': '[DEV] Evento sconosciuto',
+  'notif.dev.unknown_event.text':
+    'Il tipo di evento "{event}" non è registrato in EVENT_NOTIFICATION_CONFIG',
+};
+export default notif;

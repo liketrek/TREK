@@ -30,6 +30,7 @@ function formatDayLabel(date, t, locale) {
 interface TripMember {
   id: number
   username: string
+  avatar?: string | null
   avatar_url?: string | null
 }
 

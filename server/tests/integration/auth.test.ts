@@ -7,6 +7,7 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import request from 'supertest';
 import type { Application } from 'express';
+import type { INestApplication } from '@nestjs/common';
 import { authenticator } from 'otplib';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -46,31 +47,38 @@ vi.mock('../../src/config', () => ({
   JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
   ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
   updateJwtSecret: () => {},
+  SESSION_DURATION: '24h',
+  SESSION_DURATION_MS: 86400000,
+  SESSION_DURATION_SECONDS: 86400,
+  DEFAULT_LANGUAGE: 'en',
 }));
+vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 
-import { createApp } from '../../src/app';
+import { buildApp } from '../../src/bootstrap';
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
-import { resetTestDb } from '../helpers/test-db';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import { createUser, createAdmin, createUserWithMfa, createInviteToken, createTrip, createBudgetItem, createJourney, createJourneyEntry, addJourneyContributor, addTripPhoto, createCategory, createTag, createTodoItem, createMcpToken, createBucketListItem, createVisitedCountry, createCollabNote, addTripMember } from '../helpers/factories';
 import { authCookie, authHeader } from '../helpers/auth';
-import { loginAttempts, mfaAttempts } from '../../src/routes/auth';
 
-const app: Application = createApp();
+let nestApp: INestApplication;
+let app: Application;
 
-beforeAll(() => {
+beforeAll(async () => {
   createTables(testDb);
   runMigrations(testDb);
+  nestApp = await buildApp();
+  app = nestApp.getHttpAdapter().getInstance();
 });
 
 beforeEach(() => {
   resetTestDb(testDb);
   // Reset rate limiter state between tests so they don't interfere
-  loginAttempts.clear();
-  mfaAttempts.clear();
+  resetRateLimits(nestApp);
 });
 
-afterAll(() => {
+afterAll(async () => {
+  await nestApp.close();
   testDb.close();
 });
 
@@ -467,6 +475,31 @@ describe('Forced MFA policy', () => {
     const res = await request(app).get('/api/trips').set(authHeader(user.id));
     expect(res.status).toBe(200);
   });
+
+  it('AUTH-020 — require_mfa guards nested Nest addon controllers, not just top-level routes', async () => {
+    // The global MFA middleware runs ahead of the Express→Nest dispatch, so it
+    // must block the deeper trip-scoped controllers (budget/packing/todo) too —
+    // not only /api/trips. A regression that only guarded top-level paths would
+    // leave every addon endpoint reachable without MFA.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    testDb.prepare("INSERT INTO app_settings (key, value) VALUES ('require_mfa', 'true')").run();
+
+    for (const path of [`/api/trips/${trip.id}/budget`, `/api/trips/${trip.id}/packing`, `/api/trips/${trip.id}/todo`]) {
+      const res = await request(app).get(path).set(authHeader(user.id));
+      expect(res.status, `${path} must be MFA-gated`).toBe(403);
+      expect(res.body.code).toBe('MFA_REQUIRED');
+    }
+  });
+
+  it('AUTH-020 — MFA-enabled user reaches nested Nest addon controllers under require_mfa', async () => {
+    const { user } = createUserWithMfa(testDb);
+    const trip = createTrip(testDb, user.id);
+    testDb.prepare("INSERT INTO app_settings (key, value) VALUES ('require_mfa', 'true')").run();
+
+    const res = await request(app).get(`/api/trips/${trip.id}/budget`).set(authHeader(user.id));
+    expect(res.status).toBe(200);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -800,6 +833,18 @@ describe('Rate limiting', () => {
       const res = await request(app)
         .post('/api/auth/mfa/verify-login')
         .send({ mfa_token: 'badtoken', code: '000000' });
+      lastStatus = res.status;
+      if (lastStatus === 429) break;
+    }
+    expect(lastStatus).toBe(429);
+  });
+
+  it('AUTH-019 — reset-password endpoint rate-limits after 5 attempts (parity with the legacy resetLimiter)', async () => {
+    let lastStatus = 0;
+    for (let i = 0; i <= 5; i++) {
+      const res = await request(app)
+        .post('/api/auth/reset-password')
+        .send({ token: 'badtoken', new_password: 'NewPassw0rd!' });
       lastStatus = res.status;
       if (lastStatus === 429) break;
     }

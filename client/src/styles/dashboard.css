@@ -1,0 +1,626 @@
+/* ============================================================================
+   Dashboard rework — design tokens + layout.
+   Ported pixel-for-pixel from the design handoff (Dashboard.html) and scoped
+   under .trek-dash so none of it leaks into the rest of the app. The light
+   palette is the design's original; the dark block keeps the exact geometry
+   (radii, spacing, shadow structure) and only swaps colour values so the page
+   still feels at home when TREK's dark mode is on.
+   ============================================================================ */
+
+.trek-dash {
+  /* warm light palette (design original) */
+  --bg: #f8fafc;
+  --bg-2: oklch(0.965 0.01 70);
+  --surface: #ffffff;
+  --surface-2: oklch(0.985 0.006 78);
+  --ink: oklch(0.22 0.012 65);
+  --ink-2: oklch(0.42 0.012 65);
+  --ink-3: oklch(0.62 0.01 65);
+  --line: oklch(0.92 0.008 70);
+  --line-2: oklch(0.88 0.01 70);
+  --accent: oklch(0.66 0.17 38);
+  --accent-ink: oklch(0.32 0.13 38);
+  --accent-soft: oklch(0.95 0.04 50);
+  --success: oklch(0.58 0.12 155);
+  --warn: oklch(0.74 0.14 75);
+
+  --sh-xs: 0 1px 0 oklch(0.92 0.01 70 / .6), 0 1px 2px oklch(0.4 0.02 60 / .04);
+  --sh-sm: 0 1px 2px oklch(0.4 0.02 60 / .04), 0 2px 6px oklch(0.4 0.02 60 / .05);
+  --sh-md: 0 1px 2px oklch(0.4 0.02 60 / .05), 0 8px 24px -8px oklch(0.3 0.02 60 / .14);
+  --sh-lg: 0 2px 4px oklch(0.4 0.02 60 / .06), 0 20px 50px -16px oklch(0.25 0.04 60 / .26);
+
+  --r-xs: 10px;
+  --r-sm: 14px;
+  --r-md: 18px;
+  --r-lg: 22px;
+  --r-xl: 28px;
+  --r-2xl: 32px;
+
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Poppins", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-feature-settings: "ss01", "cv11";
+  letter-spacing: -0.005em;
+  min-height: 100%;
+
+  /* liquid-glass surface tokens (shared by all tiles) */
+  --glass-bg: linear-gradient(135deg, oklch(1 0 0 / .72) 0%, oklch(0.99 0.006 75 / .5) 100%);
+  --glass-border: oklch(0.88 0.008 70 / .7);
+  --glass-shadow: 0 1px 2px oklch(0.4 0.02 60 / .05), 0 12px 32px -14px oklch(0.3 0.02 60 / .2);
+  --glass-shadow-hover: 0 2px 6px oklch(0.4 0.02 60 / .07), 0 26px 56px -20px oklch(0.25 0.04 60 / .32);
+  --glass-highlight: inset 0 1px 0 oklch(1 0 0 / .8);
+  --glass-blur: blur(22px) saturate(1.7);
+}
+
+/* dark variant — same geometry, dark surfaces, accent kept */
+.dark .trek-dash {
+  --bg: oklch(0.17 0 0);
+  --bg-2: oklch(0.21 0 0);
+  --surface: oklch(0.225 0 0);
+  --surface-2: oklch(0.255 0 0);
+  --ink: oklch(0.96 0 0);
+  --ink-2: oklch(0.78 0 0);
+  --ink-3: oklch(0.6 0 0);
+  --line: oklch(0.32 0 0);
+  --line-2: oklch(0.38 0 0);
+  --accent: oklch(0.7 0.16 40);
+  --accent-ink: oklch(0.82 0.13 50);
+  --accent-soft: oklch(0.32 0.07 45);
+  --success: oklch(0.7 0.13 155);
+  --warn: oklch(0.78 0.14 75);
+
+  --sh-xs: 0 1px 0 oklch(0 0 0 / .4), 0 1px 2px oklch(0 0 0 / .3);
+  --sh-sm: 0 1px 2px oklch(0 0 0 / .3), 0 2px 6px oklch(0 0 0 / .35);
+  --sh-md: 0 1px 2px oklch(0 0 0 / .35), 0 8px 24px -8px oklch(0 0 0 / .5);
+  --sh-lg: 0 2px 4px oklch(0 0 0 / .4), 0 20px 50px -16px oklch(0 0 0 / .7);
+
+  /* liquid-glass surface tokens — dark */
+  --glass-bg: linear-gradient(135deg, oklch(0.31 0 0 / .58) 0%, oklch(0.25 0 0 / .42) 100%);
+  --glass-border: oklch(1 0 0 / .1);
+  --glass-shadow: 0 1px 2px oklch(0 0 0 / .3), 0 12px 32px -14px oklch(0 0 0 / .55);
+  --glass-shadow-hover: 0 2px 6px oklch(0 0 0 / .4), 0 26px 56px -20px oklch(0 0 0 / .72);
+  --glass-highlight: inset 0 1px 0 oklch(1 0 0 / .09);
+}
+
+/* App shell: desktop is a fixed full-height column with its own scroll area.
+   On mobile (see media query) it flows normally inside the global chrome. */
+.trek-dash-shell { position: fixed; inset: 0; display: flex; flex-direction: column; }
+.trek-dash-scroll { flex: 1; overflow: auto; overscroll-behavior: contain; margin-top: var(--nav-h); }
+
+.trek-dash * { box-sizing: border-box; }
+.trek-dash .mono { font-family: "Poppins", -apple-system, BlinkMacSystemFont, system-ui, sans-serif; font-feature-settings: "tnum"; }
+.trek-dash button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; }
+.trek-dash a { color: inherit; text-decoration: none; }
+
+/* ----------------- layout ----------------- */
+.trek-dash .page {
+  max-width: 1800px;
+  margin: 0 auto;
+  padding: 40px 48px 96px;
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 48px;
+  align-items: start;
+}
+.trek-dash .page-main { min-width: 0; }
+.trek-dash .page-sidebar {
+  position: sticky;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ----------------- greeting ----------------- */
+.trek-dash .greeting {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 32px;
+  margin-bottom: 36px;
+}
+.trek-dash .greeting-kicker {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-size: 12px; text-transform: uppercase; letter-spacing: 0.16em;
+  color: var(--ink-3); font-weight: 500; margin-bottom: 14px;
+}
+.trek-dash .greeting-kicker .live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 0 4px oklch(0.66 0.17 38 / .14);
+}
+.trek-dash .hello {
+  font-size: 56px; font-weight: 600; letter-spacing: -0.035em; line-height: 1.02; margin: 0;
+}
+.trek-dash .hello .accent { color: var(--accent-ink); font-weight: 600; }
+.trek-dash .hello-sub { margin-top: 18px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.trek-dash .meta-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 14px 8px 10px; background: var(--surface);
+  border-radius: 999px; font-size: 13px; color: var(--ink-2);
+  font-weight: 500; box-shadow: var(--sh-sm);
+}
+.trek-dash .meta-chip strong { color: var(--ink); font-weight: 600; }
+.trek-dash .meta-chip .ico { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; color: #fff; }
+.trek-dash .meta-chip .ico svg { width: 12px; height: 12px; }
+.trek-dash .meta-chip .ico.sun { background: linear-gradient(135deg, oklch(0.85 0.13 85), oklch(0.72 0.16 55)); }
+.trek-dash .meta-chip .ico.trip { background: linear-gradient(135deg, oklch(0.7 0.16 38), oklch(0.55 0.14 25)); }
+
+.trek-dash .cta-stack { display: flex; gap: 10px; }
+.trek-dash .btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 18px; border-radius: 12px;
+  font-size: 14px; font-weight: 500;
+  transition: transform .08s, box-shadow .15s, background .15s;
+}
+.trek-dash .btn:active { transform: translateY(1px); }
+.trek-dash .btn-primary {
+  background: var(--ink); color: var(--bg);
+  box-shadow: var(--sh-md), inset 0 1px 0 oklch(1 0 0 / .12);
+}
+.trek-dash .btn-secondary { background: var(--surface); color: var(--ink); box-shadow: var(--sh-sm); }
+.trek-dash .btn-secondary:hover { background: var(--surface-2); }
+
+/* ----------------- hero trip ----------------- */
+.trek-dash .hero-trip {
+  position: relative; border-radius: var(--r-2xl); overflow: hidden; cursor: pointer;
+  height: 520px; box-shadow: var(--sh-lg); margin-bottom: 56px; isolation: isolate;
+  transition: transform .35s cubic-bezier(0.23,1,0.32,1), box-shadow .35s cubic-bezier(0.23,1,0.32,1);
+}
+.trek-dash .hero-trip:hover { transform: translateY(-4px); box-shadow: var(--sh-xl, 0 24px 60px oklch(0 0 0 / .28)); }
+.trek-dash .hero-trip img.bg {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; z-index: 0; transition: transform 12s ease-out;
+}
+.trek-dash .hero-trip:hover img.bg { transform: scale(1.04); }
+.trek-dash .hero-trip .scrim {
+  position: absolute; inset: 0; z-index: 1;
+  background:
+    linear-gradient(180deg, oklch(0 0 0 / .35) 0%, oklch(0 0 0 / 0) 28%, oklch(0 0 0 / 0) 55%, oklch(0 0 0 / .45) 100%),
+    linear-gradient(90deg, oklch(0 0 0 / .25) 0%, oklch(0 0 0 / 0) 55%);
+}
+.trek-dash .hero-content {
+  position: absolute; inset: 0; z-index: 2; padding: 32px 32px 26px;
+  display: grid; grid-template-rows: auto 1fr auto; color: #fff;
+}
+.trek-dash .hero-top { display: flex; justify-content: space-between; align-items: start; }
+.trek-dash .hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: oklch(1 0 0 / .14);
+  backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  border: 1px solid oklch(1 0 0 / .2); padding: 8px 14px 8px 12px;
+  border-radius: 999px; font-size: 12px; font-weight: 500;
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+.trek-dash .hero-badge .pulse {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: oklch(0.84 0.18 85); box-shadow: 0 0 0 0 oklch(0.84 0.18 85 / .7);
+  animation: trek-dash-pulse 2s infinite;
+}
+@keyframes trek-dash-pulse {
+  0% { box-shadow: 0 0 0 0 oklch(0.84 0.18 85 / .7); }
+  70% { box-shadow: 0 0 0 8px oklch(0.84 0.18 85 / 0); }
+  100% { box-shadow: 0 0 0 0 oklch(0.84 0.18 85 / 0); }
+}
+.trek-dash .hero-tools { display: flex; gap: 8px; }
+.trek-dash .hero-tool {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: oklch(1 0 0 / .14);
+  backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  border: 1px solid oklch(1 0 0 / .2); color: #fff;
+  display: grid; place-items: center; transition: background .15s, transform .12s;
+}
+.trek-dash .hero-tool:hover { background: oklch(1 0 0 / .26); transform: scale(1.05); }
+.trek-dash .hero-tool svg { width: 16px; height: 16px; }
+.trek-dash .hero-title-block { align-self: end; padding-bottom: 24px; }
+.trek-dash .hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-size: 11.5px; letter-spacing: 0.22em; text-transform: uppercase;
+  opacity: .88; margin-bottom: 16px; font-weight: 500;
+}
+.trek-dash .hero-eyebrow::before { content: ""; width: 28px; height: 1px; background: oklch(1 0 0 / .6); }
+.trek-dash .hero-title { font-size: 104px; font-weight: 600; line-height: 0.9; letter-spacing: -0.045em; margin: 0; }
+
+/* ----------------- boarding pass ----------------- */
+.trek-dash .hero-pass {
+  background: linear-gradient(135deg,
+    oklch(0.99 0.006 75 / .75) 0%, oklch(0.985 0.008 70 / .85) 50%, oklch(0.98 0.01 65 / .8) 100%);
+  backdrop-filter: blur(40px) saturate(1.8) brightness(1.1);
+  -webkit-backdrop-filter: blur(40px) saturate(1.8) brightness(1.1);
+  border-radius: 24px; border: 1px solid oklch(0.92 0.008 70 / .35);
+  display: grid; grid-template-columns: 1fr 1.5fr 1fr 1fr; align-items: stretch;
+  padding: 24px 16px 24px 28px; gap: 0;
+  box-shadow:
+    0 2px 8px -2px oklch(0 0 0 / .08), 0 8px 24px -6px oklch(0 0 0 / .12),
+    0 20px 60px -16px oklch(0 0 0 / .35), inset 0 1px 1px 0 oklch(1 0 0 / .5);
+  color: var(--ink); position: relative; overflow: hidden;
+  mask-image:
+    radial-gradient(circle 8px at 0 50%, transparent 8px, black 8px),
+    radial-gradient(circle 8px at 100% 50%, transparent 8px, black 8px);
+  mask-composite: intersect;
+  -webkit-mask-image:
+    radial-gradient(circle 8px at 0 50%, transparent 8px, black 8px),
+    radial-gradient(circle 8px at 100% 50%, transparent 8px, black 8px);
+  -webkit-mask-composite: source-in;
+  transform: translateZ(0);
+}
+.dark .trek-dash .hero-pass {
+  background: linear-gradient(135deg, oklch(0.28 0 0 / .8) 0%, oklch(0.25 0 0 / .85) 50%, oklch(0.23 0 0 / .8) 100%);
+  border: 1px solid oklch(1 0 0 / .1);
+  box-shadow:
+    0 2px 8px -2px oklch(0 0 0 / .3), 0 8px 24px -6px oklch(0 0 0 / .4),
+    0 20px 60px -16px oklch(0 0 0 / .6), inset 0 1px 1px 0 oklch(1 0 0 / .08);
+}
+.trek-dash .hero-pass::before {
+  content: ""; position: absolute; inset: 0; border-radius: 24px; padding: 1px;
+  background: linear-gradient(135deg, oklch(1 0 0 / .25) 0%, oklch(1 0 0 / .08) 40%, oklch(1 0 0 / .02) 70%, oklch(1 0 0 / .15) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none;
+}
+.trek-dash .pass-cell {
+  padding: 4px 18px; position: relative; display: flex; flex-direction: column;
+  justify-content: center; align-items: center; text-align: center; gap: 6px; flex: 1; min-width: 0;
+}
+.trek-dash .pass-cell + .pass-cell::before {
+  content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 1px;
+  background-image: linear-gradient(to bottom, oklch(0.78 0.008 70) 50%, transparent 50%);
+  background-size: 1px 5px;
+}
+.dark .trek-dash .pass-cell + .pass-cell::before {
+  background-image: linear-gradient(to bottom, oklch(0.5 0.01 70) 50%, transparent 50%);
+}
+.trek-dash .pass-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.16em; color: var(--ink-3); font-weight: 500; }
+.trek-dash .pass-value { font-size: 32px; font-weight: 600; letter-spacing: -0.025em; color: var(--ink); line-height: 1; display: flex; align-items: baseline; gap: 6px; }
+.trek-dash .pass-value .unit { font-size: 16px; color: var(--ink-3); font-weight: 500; letter-spacing: -0.005em; }
+.trek-dash .pass-sub { font-size: 11.5px; color: var(--ink-3); font-weight: 500; }
+.trek-dash .pass-cell.dates-combined { gap: 10px; }
+.trek-dash .dates-row { display: flex; align-items: center; gap: 12px; justify-content: center; }
+.trek-dash .date-block { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.trek-dash .date-num { font-size: 36px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; color: var(--ink); }
+.trek-dash .date-month { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); }
+.trek-dash .date-arrow { width: 24px; height: 24px; display: grid; place-items: center; margin: 0 4px; }
+.trek-dash .date-arrow svg { width: 18px; height: 18px; color: var(--ink-2); opacity: 0.5; }
+
+.trek-dash .pass-cell.buddies,
+.trek-dash .pass-cell.places { display: flex; flex-direction: column; justify-content: center; gap: 8px; }
+.trek-dash .buddies-avatars,
+.trek-dash .places-preview { display: flex; gap: 0; justify-content: center; align-items: center; }
+.trek-dash .buddy-avatar {
+  width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 13px; font-weight: 700; color: white;
+  border: 2px solid oklch(0.985 0.008 75 / .95); margin-left: -8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+.trek-dash .buddy-avatar:first-child { margin-left: 0; }
+.trek-dash .buddy-more,
+.trek-dash .place-more {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: oklch(0.92 0.008 70); border: 2px solid oklch(0.985 0.008 75 / .95);
+  display: grid; place-items: center; font-size: 13px; font-weight: 700; color: var(--ink);
+  margin-left: -8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+.dark .trek-dash .buddy-avatar,
+.dark .trek-dash .place-thumb,
+.dark .trek-dash .buddy-more,
+.dark .trek-dash .place-more { border-color: oklch(0.25 0 0 / .95); }
+.dark .trek-dash .buddy-more,
+.dark .trek-dash .place-more { background: oklch(0.32 0 0); }
+.trek-dash .place-thumb {
+  width: 36px; height: 36px; border-radius: 50%; object-fit: cover;
+  border: 2px solid oklch(0.985 0.008 75 / .95); box-shadow: 0 2px 6px rgba(0,0,0,0.1); margin-left: -8px;
+}
+.trek-dash .place-thumb:first-child { margin-left: 0; }
+.trek-dash .places-preview .place-av {
+  border-radius: 50%; line-height: 0; margin-left: -8px;
+  border: 2px solid oklch(0.985 0.008 75 / .95); box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+.trek-dash .places-preview .place-av:first-child { margin-left: 0; }
+.dark .trek-dash .places-preview .place-av { border-color: oklch(0.25 0 0 / .95); }
+
+.trek-dash .pass-cell.countdown { gap: 6px; }
+
+/* ----------------- atlas / stats ----------------- */
+.trek-dash .atlas { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 16px; margin-bottom: 56px; }
+.trek-dash .atlas-card {
+  background: var(--glass-bg); border-radius: var(--r-lg); padding: 24px 26px;
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+  position: relative; overflow: hidden;
+  transition: transform .3s cubic-bezier(.2,.7,.2,1), box-shadow .3s, border-color .3s;
+}
+.trek-dash .atlas-card:not(.passport):hover {
+  transform: translateY(-3px);
+  box-shadow: var(--glass-shadow-hover), var(--glass-highlight);
+  border-color: oklch(0.8 0.01 70 / .8);
+}
+.dark .trek-dash .atlas-card:not(.passport):hover { border-color: oklch(1 0 0 / .2); }
+.trek-dash .atlas-card .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); font-weight: 500; }
+.trek-dash .atlas-card .value { font-size: 44px; font-weight: 600; letter-spacing: -0.035em; line-height: 1; margin-top: 16px; display: flex; align-items: baseline; gap: 8px; }
+.trek-dash .atlas-card .value .unit { font-size: 17px; color: var(--ink-3); font-weight: 500; letter-spacing: -0.01em; }
+.trek-dash .atlas-card .delta { margin-top: 12px; font-size: 12.5px; color: var(--ink-3); }
+.trek-dash .atlas-card .delta .up { color: var(--success); font-weight: 500; }
+.trek-dash .atlas-card.passport {
+  background:
+    linear-gradient(135deg, oklch(0.95 0.01 70 / .15) 0%, oklch(0.98 0.005 70 / .08) 50%, oklch(1 0 0 / .12) 100%),
+    linear-gradient(180deg, oklch(0.16 0 0), oklch(0.09 0 0));
+  color: #fff; border: 1px solid oklch(1 0 0 / .12);
+  box-shadow: 0 8px 32px oklch(0 0 0 / .15), inset 0 1px 0 oklch(1 0 0 / .15), inset 0 -1px 0 oklch(0 0 0 / .3);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+.trek-dash .atlas-card.passport .label { color: oklch(1 0 0 / .65); }
+.trek-dash .atlas-card.passport .value { font-size: 56px; }
+.trek-dash .atlas-card.passport .delta { color: oklch(1 0 0 / .65); }
+.trek-dash .passport-flags { display: flex; margin-top: 18px; }
+.trek-dash .flag {
+  width: 24px; height: 24px; border-radius: 50%; overflow: hidden;
+  background: oklch(0.4 0.06 60); border: 2px solid oklch(0.28 0.04 50);
+  margin-left: -8px; display: grid; place-items: center; font-size: 11px; font-weight: 600; color: #fff;
+}
+.trek-dash .flag img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.trek-dash .flag:first-child { margin-left: 0; }
+.trek-dash .flag.more { background: oklch(1 0 0 / .15); color: #fff; font-size: 10px; border: 2px solid oklch(0.28 0.04 50); }
+.trek-dash .spark { position: absolute; right: 18px; bottom: 18px; opacity: .55; }
+.trek-dash .spark polyline,
+.trek-dash .spark path,
+.trek-dash .spark circle:not([stroke]) { stroke: var(--ink); }
+
+/* ----------------- section heads ----------------- */
+.trek-dash .sec-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 22px; margin-top: 8px; }
+.trek-dash .sec-title { font-size: 28px; font-weight: 600; letter-spacing: -0.025em; margin: 0; display: flex; align-items: baseline; gap: 14px; }
+.trek-dash .sec-title .count { font-size: 14px; color: var(--ink-3); font-weight: 500; letter-spacing: -0.005em; font-family: "Poppins", sans-serif; }
+.trek-dash .sec-tools { display: flex; gap: 6px; align-items: center; }
+.trek-dash .seg { display: flex; background: oklch(0.94 0.008 70); border-radius: 10px; padding: 3px; }
+.dark .trek-dash .seg { background: var(--bg-2); }
+.trek-dash .seg button { padding: 7px 14px; font-size: 13px; border-radius: 8px; color: var(--ink-2); font-weight: 500; transition: background .12s, color .12s; }
+.trek-dash .seg button.on { background: var(--surface); color: var(--ink); box-shadow: var(--sh-xs); }
+
+/* ----------------- trips grid ----------------- */
+.trek-dash .trips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-bottom: 56px; transition: all 0.3s ease; }
+.trek-dash .trips.list-view { grid-template-columns: 1fr; gap: 12px; }
+.trek-dash .trips.list-view .trip-card { display: grid; grid-template-columns: 520px 1fr; gap: 0; height: auto; }
+.trek-dash .trips.list-view .trip-cover { border-radius: var(--r-lg) 0 0 var(--r-lg); height: 100px; aspect-ratio: unset; }
+.trek-dash .trips.list-view .trip-body { display: flex; align-items: center; justify-content: space-between; padding: 20px 32px; gap: 48px; }
+.trek-dash .trips.list-view .trip-meta { display: flex; gap: 32px; padding: 0; border: none; }
+.trek-dash .trip-card {
+  position: relative; border-radius: var(--r-xl); overflow: hidden; background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  transition: transform .25s cubic-bezier(.2,.7,.2,1), box-shadow .25s, border-color .25s;
+  cursor: pointer; isolation: isolate;
+}
+.trek-dash .trip-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--glass-shadow-hover), var(--glass-highlight);
+  border-color: oklch(0.8 0.01 70 / .8);
+}
+.dark .trek-dash .trip-card:hover { border-color: oklch(1 0 0 / .2); }
+.trek-dash .trip-cover { position: relative; aspect-ratio: 4 / 3; overflow: hidden; }
+.trek-dash .trip-cover img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s cubic-bezier(.2,.7,.2,1); }
+.trek-dash .trip-card:hover .trip-cover img { transform: scale(1.04); }
+.trek-dash .trip-cover::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, oklch(0 0 0 / 0) 40%, oklch(0 0 0 / .55) 100%); }
+.trek-dash .trip-status {
+  position: absolute; top: 16px; left: 16px; z-index: 1;
+  display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px 6px 9px;
+  border-radius: 999px; font-size: 11.5px; font-weight: 500; letter-spacing: 0.02em;
+  background: oklch(1 0 0 / .18); backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  border: 1px solid oklch(1 0 0 / .22); color: #fff; text-transform: uppercase;
+}
+.trek-dash .trip-status .indicator { width: 6px; height: 6px; border-radius: 50%; background: oklch(0.84 0.16 145); }
+.trek-dash .trip-status.completed .indicator { background: oklch(0.75 0.02 220); }
+.trek-dash .trip-status.upcoming .indicator { background: oklch(0.84 0.18 85); }
+.trek-dash .trip-status.idea .indicator { background: oklch(0.78 0.14 280); }
+.trek-dash .trip-actions { position: absolute; top: 14px; right: 14px; z-index: 1; display: flex; gap: 6px; opacity: 0; transition: opacity .2s; }
+.trek-dash .trip-card:hover .trip-actions { opacity: 1; }
+.trek-dash .trip-action-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: oklch(1 0 0 / .18); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid oklch(1 0 0 / .22); color: #fff; display: grid; place-items: center; transition: background .15s;
+}
+.trek-dash .trip-action-btn:hover { background: oklch(1 0 0 / .3); }
+.trek-dash .trip-action-btn svg { width: 16px; height: 16px; }
+.trek-dash .trip-cover-content { position: absolute; left: 18px; right: 18px; bottom: 16px; z-index: 1; color: #fff; }
+.trek-dash .trip-name { font-size: 26px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.05; margin: 0; }
+.trek-dash .trip-where { margin-top: 4px; font-size: 13px; opacity: .85; display: flex; align-items: center; gap: 6px; }
+.trek-dash .trip-where svg { width: 12px; height: 12px; opacity: .8; }
+.trek-dash .trip-body { padding: 18px 20px 20px; }
+.trek-dash .trip-dates { font-size: 13px; color: var(--ink); display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 14px; font-weight: 500; }
+.trek-dash .trip-dates .date-num { font-size: 13px; font-weight: 400; color: var(--ink-3); }
+.trek-dash .trip-dates .date-arrow { display: inline-flex; align-items: center; justify-content: center; opacity: 0.4; margin: 0 2px; line-height: 1; }
+.trek-dash .trip-dates .date-arrow svg { width: 11px; height: 11px; display: block; }
+.trek-dash .trip-meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding-top: 14px; border-top: 1px solid var(--line); }
+.trek-dash .trip-meta div { display: flex; flex-direction: column; gap: 3px; text-align: center; }
+.trek-dash .trip-meta .n { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
+.trek-dash .trip-meta .k { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); font-weight: 500; }
+.trek-dash .add-trip-card {
+  border-radius: var(--r-xl); border: 1.5px dashed var(--line-2);
+  background: var(--glass-bg); display: grid; place-items: center;
+  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-highlight);
+  text-align: center; padding: 32px; cursor: pointer; min-height: 240px;
+  transition: transform .3s cubic-bezier(.2,.7,.2,1), box-shadow .3s, border-color .3s, color .15s;
+}
+.trek-dash .add-trip-card:hover {
+  transform: translateY(-3px); border-color: var(--ink); color: var(--ink);
+  box-shadow: var(--glass-shadow-hover), var(--glass-highlight);
+}
+.trek-dash .add-trip-card .circ {
+  width: 48px; height: 48px; border-radius: 50%; background: #111827; color: #fff;
+  display: grid; place-items: center; margin: 0 auto 14px; box-shadow: var(--sh-sm);
+  transition: transform .4s cubic-bezier(0.34,1.56,0.64,1), background .15s;
+}
+.dark .trek-dash .add-trip-card .circ { background: #fff; color: #111827; }
+.trek-dash .add-trip-card:hover .circ { transform: rotate(180deg) scale(1.08); }
+.trek-dash .add-trip-card .ttl { font-size: 16px; font-weight: 500; margin-bottom: 4px; }
+.trek-dash .add-trip-card .sub { font-size: 13px; color: var(--ink-3); }
+
+/* ----------------- tools sidebar ----------------- */
+.trek-dash .tool {
+  background: var(--glass-bg); border-radius: var(--r-xl); padding: 24px 26px;
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+  transition: transform .3s cubic-bezier(.2,.7,.2,1), box-shadow .3s, border-color .3s;
+}
+.trek-dash .tool:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--glass-shadow-hover), var(--glass-highlight);
+  border-color: oklch(0.8 0.01 70 / .8);
+}
+.dark .trek-dash .tool:hover { border-color: oklch(1 0 0 / .2); }
+.trek-dash .tool-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+.trek-dash .tool-title { font-size: 13px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); font-weight: 500; display: flex; align-items: center; gap: 8px; }
+.trek-dash .tool-title svg { width: 14px; height: 14px; }
+.trek-dash .tool-action { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; color: var(--ink-3); transition: background .12s, color .12s; }
+.trek-dash .tool-action:hover { background: var(--bg-2); color: var(--ink); }
+.trek-dash .fx-input { display: grid; grid-template-columns: 1fr auto 1fr; align-items: stretch; gap: 8px; margin-bottom: 14px; }
+.trek-dash .fx-field { background: var(--surface-2); border-radius: 14px; padding: 12px 14px; }
+.trek-dash .fx-field .lbl { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-3); font-weight: 500; }
+.trek-dash .fx-field .amt { font-size: 26px; font-weight: 600; letter-spacing: -0.025em; margin-top: 2px; background: none; border: 0; width: 100%; outline: none; color: var(--ink); font-family: "Poppins", sans-serif; font-feature-settings: "tnum"; }
+.trek-dash .fx-field .ccy { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 12.5px; color: var(--ink-2); font-weight: 500; }
+.trek-dash .fx-swap { align-self: center; width: 36px; height: 36px; border-radius: 50%; background: var(--ink); color: var(--bg); display: grid; place-items: center; box-shadow: var(--sh-sm); transition: transform .2s; }
+.trek-dash .fx-swap:hover { transform: rotate(180deg); }
+.trek-dash .fx-swap svg { width: 14px; height: 14px; }
+.trek-dash .fx-rate { font-size: 12px; color: var(--ink-3); display: flex; justify-content: space-between; font-family: "Poppins", sans-serif; }
+.trek-dash .fx-rate .delta { color: var(--success); }
+.trek-dash .tz-list { display: flex; flex-direction: column; gap: 14px; }
+.trek-dash .tz-row { display: grid; grid-template-columns: auto 1fr auto 24px; gap: 14px; align-items: center; }
+.trek-dash .tz-dot { width: 28px; height: 28px; border-radius: 50%; background: var(--bg-2); display: grid; place-items: center; color: var(--ink-2); font-size: 11px; font-weight: 600; }
+.trek-dash .tz-city { font-size: 14px; font-weight: 500; }
+.trek-dash .tz-sub { font-size: 11.5px; color: var(--ink-3); margin-top: 2px; }
+.trek-dash .tz-time { font-size: 22px; font-weight: 600; letter-spacing: -0.025em; font-family: "Poppins", sans-serif; font-feature-settings: "tnum"; }
+.trek-dash .tz-del { width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; color: var(--ink-3); opacity: 0; transition: opacity .12s, background .12s, color .12s; }
+.trek-dash .tz-row:hover .tz-del { opacity: 1; }
+.trek-dash .tz-del:hover { background: var(--bg-2); color: #ef4444; }
+.trek-dash .tz-empty { font-size: 12px; color: var(--ink-3); }
+.trek-dash .upc-list { display: flex; flex-direction: column; gap: 12px; }
+.trek-dash .upc-item { display: grid; grid-template-columns: 56px 1fr auto; gap: 14px; padding: 12px; border-radius: 14px; align-items: center; transition: background .12s; cursor: pointer; }
+.trek-dash .upc-item:hover { background: var(--surface-2); }
+.trek-dash .upc-date { background: var(--surface-2); border-radius: 10px; padding: 8px 4px; text-align: center; }
+.trek-dash .upc-date .d { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; }
+.trek-dash .upc-date .m { font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); margin-top: 4px; font-weight: 500; }
+.trek-dash .upc-info .t { font-size: 14px; font-weight: 500; margin-bottom: 2px; }
+.trek-dash .upc-info .s { font-size: 12px; color: var(--ink-3); display: flex; align-items: center; gap: 6px; }
+.trek-dash .upc-info .s svg { width: 11px; height: 11px; }
+.trek-dash .upc-type { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; }
+.trek-dash .upc-type.flight { background: oklch(0.95 0.04 230); color: oklch(0.45 0.13 230); }
+.trek-dash .upc-type.hotel { background: oklch(0.95 0.04 145); color: oklch(0.4 0.12 155); }
+.trek-dash .upc-type.food { background: oklch(0.95 0.05 60); color: oklch(0.5 0.13 50); }
+.trek-dash .upc-type.other { background: var(--bg-2); color: var(--ink-2); }
+.trek-dash .upc-type svg { width: 16px; height: 16px; }
+
+/* ----------------- responsive ----------------- */
+@media (max-width: 1280px) {
+  .trek-dash .page { padding-left: 32px; padding-right: 32px; grid-template-columns: 1fr; }
+  .trek-dash .page-sidebar { position: static; flex-direction: row; flex-wrap: wrap; }
+  .trek-dash .page-sidebar .tool { flex: 1 1 300px; }
+  .trek-dash .hero-title { font-size: 72px; }
+  .trek-dash .trips { grid-template-columns: repeat(2, 1fr); }
+  .trek-dash .atlas { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 720px) {
+  /* Flow inside the global chrome (top bar + floating tab bar) instead of fixed */
+  .trek-dash-shell { position: static; inset: auto; display: block; min-height: 100%; }
+  .trek-dash-scroll { overflow: visible; margin-top: 0; }
+  .trek-dash .page { padding: 16px 16px 120px; gap: 0; }
+  .trek-dash .greeting { grid-template-columns: 1fr; }
+  .trek-dash .hello { font-size: 40px; }
+
+  /* Hero — immersive cover, title only (the pass is its own card below) */
+  .trek-dash .hero-trip { height: 340px; margin-bottom: 16px; border-radius: var(--r-xl); }
+  .trek-dash .hero-content { padding: 18px; }
+  /* the page already opens with the notification/profile strip, trim its top gap */
+  .trek-dash .page { padding-top: 4px; }
+  .trek-dash .hero-title { font-size: 48px; }
+
+  /* Boarding pass — separate 2×2 glass card under the hero (mockup) */
+  .trek-dash .pass-card {
+    display: grid; grid-template-columns: 1fr 1fr;
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border); border-radius: 20px; overflow: hidden;
+    box-shadow: var(--glass-shadow), var(--glass-highlight);
+    margin-bottom: 22px; cursor: pointer;
+  }
+  .trek-dash .pass-card .pass-cell {
+    padding: 14px 12px; gap: 8px; flex: none;
+    border-right: 1px dashed var(--line-2); border-bottom: 1px dashed var(--line-2);
+  }
+  .trek-dash .pass-card .pass-cell:nth-child(2n) { border-right: 0; }
+  .trek-dash .pass-card .pass-cell:nth-last-child(-n+2) { border-bottom: 0; }
+  .trek-dash .pass-card .pass-cell + .pass-cell::before { display: none; }
+  .trek-dash .pass-card .date-num { font-size: 22px; }
+  /* Buddies + places circles: identical size, ring and overlap */
+  .trek-dash .pass-card .buddies-avatars,
+  .trek-dash .pass-card .places-preview { display: flex; justify-content: center; align-items: center; }
+  .trek-dash .pass-card .buddy-avatar,
+  .trek-dash .pass-card .buddy-more,
+  .trek-dash .pass-card .place-av,
+  .trek-dash .pass-card .place-more {
+    width: 28px; height: 28px; border-radius: 50%; flex: none;
+    border: 2px solid var(--surface); margin-left: -8px;
+    box-shadow: 0 1px 3px oklch(0 0 0 / .12);
+    font-size: 10px; font-weight: 700; line-height: 0;
+  }
+  .trek-dash .pass-card .buddy-avatar:first-child,
+  .trek-dash .pass-card .place-av:first-child { margin-left: 0; }
+
+  /* Atlas → single row of stat cards. Passport (countries) and distance are
+     hidden on mobile; only Trips total + Days traveled remain. */
+  .trek-dash .atlas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 26px; }
+  .trek-dash .atlas-card.passport,
+  .trek-dash .atlas-card:last-child { display: none; }
+  .trek-dash .atlas .spark { display: none; }
+  .trek-dash .atlas-card .value { font-size: 30px; margin-top: 10px; }
+
+  /* Trips — stacked header + full-width cards */
+  .trek-dash .sec-head { flex-direction: column; align-items: stretch; gap: 14px; margin-bottom: 16px; }
+  .trek-dash .sec-title { font-size: 24px; }
+  .trek-dash .sec-tools { gap: 8px; }
+  .trek-dash .seg { flex: 1; }
+  .trek-dash .seg button { flex: 1; text-align: center; padding: 9px 8px; }
+  .trek-dash .trips { grid-template-columns: 1fr; gap: 16px; margin-bottom: 28px; }
+  .trek-dash .add-trip-card { min-height: 180px; }
+
+  /* Compact list row on mobile — keeps the list view distinct from the grid. The
+     desktop list row uses a 520px cover, which overflowed the phone width: the
+     cover was clipped, the body pushed off-screen, and the fixed 100px cover
+     height left a white strip beneath it. Use a fitting cover that stretches to
+     the row, and show just the title + dates (the counts live in grid view and
+     on the trip itself). */
+  .trek-dash .trips.list-view .trip-card { grid-template-columns: 42% 1fr; min-height: 92px; }
+  .trek-dash .trips.list-view .trip-cover { height: auto; aspect-ratio: unset; }
+  .trek-dash .trips.list-view .trip-cover-content { left: 14px; right: 14px; bottom: 12px; }
+  .trek-dash .trips.list-view .trip-name {
+    font-size: 17px; overflow: hidden; text-overflow: ellipsis;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  }
+  .trek-dash .trips.list-view .trip-body { display: flex; align-items: center; justify-content: flex-start; padding: 12px 16px; }
+  .trek-dash .trips.list-view .trip-dates { margin-bottom: 0; justify-content: flex-start; }
+  .trek-dash .trips.list-view .trip-meta { display: none; }
+
+  /* Tools — stacked full-width cards (mockup) */
+  .trek-dash .page-sidebar { flex-direction: column; flex-wrap: nowrap; gap: 14px; margin: 0; padding: 0; }
+  .trek-dash .page-sidebar .tool { flex: none; width: auto; }
+}
+
+/* Floating action button — Neuer Trip */
+.trek-dash .fab-new-trip {
+  position: fixed; right: 28px; bottom: 28px; z-index: 150;
+  display: inline-flex; align-items: center; gap: 9px;
+  height: 56px; padding: 0 24px; border: none; border-radius: 999px;
+  cursor: pointer; background: #111827; color: #fff;
+  font-size: 15px; font-weight: 600; font-family: inherit;
+  box-shadow: 0 6px 16px oklch(0 0 0 / .22), 0 12px 30px oklch(0 0 0 / .18);
+  transition: transform .28s cubic-bezier(0.23,1,0.32,1), box-shadow .28s cubic-bezier(0.23,1,0.32,1);
+}
+.dark .trek-dash .fab-new-trip { background: #fff; color: #111827; }
+.trek-dash .fab-new-trip:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 10px 24px oklch(0 0 0 / .3), 0 18px 44px oklch(0 0 0 / .22);
+}
+.trek-dash .fab-new-trip:active { transform: translateY(-1px) scale(.99); }
+.trek-dash .fab-new-trip svg { flex-shrink: 0; }
+
+@media (max-width: 768px) {
+  /* The bottom tab bar's centre "+" replaces the floating FAB on mobile */
+  .trek-dash .fab-new-trip { display: none; }
+}

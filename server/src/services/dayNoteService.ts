@@ -1,9 +1,7 @@
-import { db, canAccessTrip } from '../db/database';
+import { db } from '../db/database';
 import { DayNote } from '../types';
 
-export function verifyTripAccess(tripId: string | number, userId: number) {
-  return canAccessTrip(tripId, userId);
-}
+export { verifyTripAccess } from './tripAccess';
 
 export function listNotes(dayId: string | number, tripId: string | number) {
   return db.prepare(

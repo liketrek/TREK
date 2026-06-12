@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const trip: TranslationStrings = {
+  'trip.tabs.plan': 'Plán',
+  'trip.tabs.transports': 'Doprava',
+  'trip.tabs.reservations': 'Rezervace',
+  'trip.tabs.reservationsShort': 'Rez.',
+  'trip.tabs.packing': 'Seznam věcí',
+  'trip.tabs.packingShort': 'Balení',
+  'trip.tabs.lists': 'Seznamy',
+  'trip.tabs.listsShort': 'Seznamy',
+  'trip.tabs.budget': "Costs",
+  'trip.tabs.files': 'Soubory',
+  'trip.loading': 'Načítání cesty...',
+  'trip.loadingPhotos': 'Načítání fotek míst...',
+  'trip.mobilePlan': 'Plán',
+  'trip.mobilePlaces': 'Místa',
+  'trip.toast.placeUpdated': 'Místo bylo aktualizováno',
+  'trip.toast.placeAdded': 'Místo bylo přidáno',
+  'trip.toast.placeDeleted': 'Místo bylo smazáno',
+  'trip.toast.selectDay': 'Prosím nejdříve vyberte den',
+  'trip.toast.assignedToDay': 'Místo bylo přiřazeno ke dni',
+  'trip.toast.reorderError': 'Nepodařilo se změnit pořadí',
+  'trip.toast.reservationUpdated': 'Rezervace aktualizována',
+  'trip.toast.reservationAdded': 'Rezervace přidána',
+  'trip.toast.deleted': 'Smazáno',
+  'trip.confirm.deletePlace': 'Opravdu chcete toto místo smazat?',
+  'trip.confirm.deletePlaces': 'Smazat {count} míst?',
+  'trip.toast.placesDeleted': '{count} míst smazáno',
+};
+export default trip;

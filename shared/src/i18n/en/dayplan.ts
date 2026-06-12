@@ -1,0 +1,60 @@
+import type { TranslationStrings } from '../types';
+
+const dayplan: TranslationStrings = {
+  'dayplan.icsTooltip': 'Export calendar (ICS)',
+  'dayplan.emptyDay': 'No places planned for this day',
+  'dayplan.cannotReorderTransport':
+    'Bookings with a fixed time cannot be reordered',
+  'dayplan.confirmRemoveTimeTitle': 'Remove time?',
+  'dayplan.confirmRemoveTimeBody':
+    'This place has a fixed time ({time}). Moving it will remove the time and allow free sorting.',
+  'dayplan.confirmRemoveTimeAction': 'Remove time & move',
+  'dayplan.confirmDeleteNoteTitle': 'Delete note?',
+  'dayplan.confirmDeleteNoteBody': 'This note will be permanently deleted.',
+  'dayplan.cannotDropOnTimed':
+    'Items cannot be placed between time-bound entries',
+  'dayplan.cannotBreakChronology':
+    'This would break the chronological order of timed items and bookings',
+  'dayplan.addNote': 'Add Note',
+  'dayplan.expandAll': 'Expand all days',
+  'dayplan.collapseAll': 'Collapse all days',
+  'dayplan.editNote': 'Edit Note',
+  'dayplan.noteAdd': 'Add Note',
+  'dayplan.noteEdit': 'Edit Note',
+  'dayplan.noteTitle': 'Note',
+  'dayplan.noteSubtitle': 'Daily Note',
+  'dayplan.totalCost': 'Total Cost',
+  'dayplan.days': 'Days',
+  'dayplan.dayN': 'Day {n}',
+  'dayplan.calculating': 'Calculating...',
+  'dayplan.route': 'Route',
+  'dayplan.optimize': 'Optimize',
+  'dayplan.optimized': 'Route optimized',
+  'dayplan.routeError': 'Failed to calculate route',
+  'dayplan.toast.needTwoPlaces':
+    'At least two places needed for route optimization',
+  'dayplan.toast.routeOptimized': 'Route optimized',
+  'dayplan.toast.routeOptimizedFromHotel': 'Route optimized from your accommodation',
+  'dayplan.toast.noGeoPlaces':
+    'No places with coordinates found for route calculation',
+  'dayplan.confirmed': 'Confirmed',
+  'dayplan.pendingRes': 'Pending',
+  'dayplan.pdf': 'PDF',
+  'dayplan.pdfTooltip': 'Export day plan as PDF',
+  'dayplan.pdfError': 'Failed to export PDF',
+  'dayplan.mobile.addPlace': 'Add Place',
+  'dayplan.mobile.searchPlaces': 'Search places...',
+  'dayplan.mobile.allAssigned': 'All places assigned',
+  'dayplan.mobile.noMatch': 'No match',
+  'dayplan.mobile.createNew': 'Create new place',
+  'dayplan.reorderDays': 'Reorder days',
+  'dayplan.reorderTitle': 'Reorder days',
+  'dayplan.reorderHint': "A day's places, notes and bookings move with it.",
+  'dayplan.addDay': 'Add day',
+  'dayplan.moveUp': 'Move up',
+  'dayplan.moveDown': 'Move down',
+  'dayplan.reorderUndo': 'Reorder days',
+  'dayplan.reorderError': 'Failed to reorder days',
+  'dayplan.addDayError': 'Failed to add day',
+};
+export default dayplan;

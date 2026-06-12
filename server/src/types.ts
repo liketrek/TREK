@@ -122,18 +122,33 @@ export interface BudgetItem {
   category: string;
   name: string;
   total_price: number;
+  currency?: string | null;
+  exchange_rate?: number;
   persons?: number | null;
   days?: number | null;
   note?: string | null;
+  reservation_id?: number | null;
+  paid_by_user_id?: number | null;
+  expense_date?: string | null;
   sort_order: number;
   created_at?: string;
   members?: BudgetItemMember[];
+  payers?: BudgetItemPayer[];
 }
 
 export interface BudgetItemMember {
   user_id: number;
   paid: number;
   username: string;
+  avatar_url?: string | null;
+  avatar?: string | null;
+  budget_item_id?: number;
+}
+
+export interface BudgetItemPayer {
+  user_id: number;
+  amount: number;
+  username?: string;
   avatar_url?: string | null;
   avatar?: string | null;
   budget_item_id?: number;
@@ -284,12 +299,12 @@ export interface Setting {
 }
 
 export interface AuthRequest extends Request {
-  user: { id: number; username: string; email: string; role: string };
+  user: User;
   trip?: { id: number; user_id: number };
 }
 
 export interface OptionalAuthRequest extends Request {
-  user: { id: number; username: string; email: string; role: string } | null;
+  user: User | null;
 }
 
 export interface AssignmentRow extends DayAssignment {
@@ -352,6 +367,7 @@ export interface JourneyEntry {
   mood?: string | null;
   weather?: string | null;
   tags?: string | null;
+  pros_cons?: string | null;
   visibility: 'private' | 'shared' | 'public';
   sort_order: number;
   created_at: number;

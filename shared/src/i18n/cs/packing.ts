@@ -1,0 +1,186 @@
+import type { TranslationStrings } from '../types';
+
+const packing: TranslationStrings = {
+  'packing.title': 'Seznam věcí',
+  'packing.empty': 'Seznam věcí je prázdný',
+  'packing.import': 'Importovat',
+  'packing.importTitle': 'Importovat seznam',
+  'packing.importHint':
+    'Jedna položka na řádek. Formát: Kategorie, Název, Váha v g (volitelné), Zavazadlo (volitelné), checked/unchecked (volitelné)',
+  'packing.importPlaceholder':
+    'Hygiena, Zubní kartáček\nOblečení, Trička, 200\nDokumenty, Pas, , Příruční zavazadlo\nElektronika, Nabíječka, 50, Kufr, checked',
+  'packing.importCsv': 'Načíst CSV/TXT',
+  'packing.importAction': 'Importovat {count}',
+  'packing.importSuccess': '{count} položek importováno',
+  'packing.importError': 'Import se nezdařil',
+  'packing.importEmpty': 'Žádné položky k importu',
+  'packing.progress': '{packed} z {total} zabaleno ({percent} %)',
+  'packing.clearChecked': 'Odstranit {count} hotových',
+  'packing.clearCheckedShort': 'Odstranit {count}',
+  'packing.suggestions': 'Návrhy',
+  'packing.suggestionsTitle': 'Přidat návrhy',
+  'packing.allSuggested': 'Všechny návrhy byly přidány',
+  'packing.allPacked': 'Vše je zabaleno!',
+  'packing.addPlaceholder': 'Přidat novou položku...',
+  'packing.categoryPlaceholder': 'Kategorie...',
+  'packing.filterAll': 'Vše',
+  'packing.filterOpen': 'K zabalení',
+  'packing.filterDone': 'Hotovo',
+  'packing.emptyTitle': 'Seznam věcí je prázdný',
+  'packing.emptyHint': 'Přidejte položky nebo použijte návrhy',
+  'packing.emptyFiltered': 'Žádné položky neodpovídají filtru',
+  'packing.menuRename': 'Přejmenovat',
+  'packing.menuCheckAll': 'Označit vše',
+  'packing.menuUncheckAll': 'Odznačit vše',
+  'packing.menuDeleteCat': 'Smazat kategorii',
+  'packing.noMembers': 'Žádní členové cesty',
+  'packing.addItem': 'Přidat položku',
+  'packing.addItemPlaceholder': 'Název položky...',
+  'packing.addCategory': 'Přidat kategorii',
+  'packing.newCategoryPlaceholder': 'Název kategorie (např. Oblečení)',
+  'packing.applyTemplate': 'Použít šablonu',
+  'packing.template': 'Šablona',
+  'packing.templateApplied': '{count} položek přidáno ze šablony',
+  'packing.templateError': 'Šablonu se nepodařilo použít',
+  'packing.saveAsTemplate': 'Uložit jako šablonu',
+  'packing.templateName': 'Název šablony',
+  'packing.templateSaved': 'Seznam balení uložen jako šablona',
+  'packing.bags': 'Zavazadla',
+  'packing.noBag': 'Nepřiřazeno',
+  'packing.totalWeight': 'Celková váha',
+  'packing.bagName': 'Název zavazadla...',
+  'packing.addBag': 'Přidat zavazadlo',
+  'packing.changeCategory': 'Změnit kategorii',
+  'packing.confirm.clearChecked':
+    'Opravdu chcete odstranit {count} zabalených položek?',
+  'packing.confirm.deleteCat':
+    'Opravdu chcete smazat kategorii „{name}" s {count} položkami?',
+  'packing.defaultCategory': 'Ostatní',
+  'packing.toast.saveError': 'Uložení se nezdařilo',
+  'packing.toast.deleteError': 'Smazání se nezdařilo',
+  'packing.toast.renameError': 'Přejmenování se nezdařilo',
+  'packing.toast.addError': 'Přidání se nezdařilo',
+  'packing.suggestions.items': [
+    {
+      name: 'Pas',
+      category: 'Dokumenty',
+    },
+    {
+      name: 'Občanský průkaz',
+      category: 'Dokumenty',
+    },
+    {
+      name: 'Cestovní pojištění',
+      category: 'Dokumenty',
+    },
+    {
+      name: 'Letenky',
+      category: 'Dokumenty',
+    },
+    {
+      name: 'Platební karta',
+      category: 'Finance',
+    },
+    {
+      name: 'Hotovost',
+      category: 'Finance',
+    },
+    {
+      name: 'Víza',
+      category: 'Dokumenty',
+    },
+    {
+      name: 'Trička',
+      category: 'Oblečení',
+    },
+    {
+      name: 'Kalhoty',
+      category: 'Oblečení',
+    },
+    {
+      name: 'Spodní prádlo',
+      category: 'Oblečení',
+    },
+    {
+      name: 'Ponožky',
+      category: 'Oblečení',
+    },
+    {
+      name: 'Bunda',
+      category: 'Oblečení',
+    },
+    {
+      name: 'Pyžamo',
+      category: 'Oblečení',
+    },
+    {
+      name: 'Plavky',
+      category: 'Oblečení',
+    },
+    {
+      name: 'Pláštěnka',
+      category: 'Oblečení',
+    },
+    {
+      name: 'Pohodlné boty',
+      category: 'Oblečení',
+    },
+    {
+      name: 'Zubní kartáček',
+      category: 'Hygiena',
+    },
+    {
+      name: 'Zubní pasta',
+      category: 'Hygiena',
+    },
+    {
+      name: 'Šampón',
+      category: 'Hygiena',
+    },
+    {
+      name: 'Deodorant',
+      category: 'Hygiena',
+    },
+    {
+      name: 'Opalovací krém',
+      category: 'Hygiena',
+    },
+    {
+      name: 'Holicí strojek',
+      category: 'Hygiena',
+    },
+    {
+      name: 'Nabíječka',
+      category: 'Elektronika',
+    },
+    {
+      name: 'Powerbanka',
+      category: 'Elektronika',
+    },
+    {
+      name: 'Sluchátka',
+      category: 'Elektronika',
+    },
+    {
+      name: 'Cestovní adaptér',
+      category: 'Elektronika',
+    },
+    {
+      name: 'Fotoaparát',
+      category: 'Elektronika',
+    },
+    {
+      name: 'Léky proti bolesti',
+      category: 'Zdraví',
+    },
+    {
+      name: 'Náplasti',
+      category: 'Zdraví',
+    },
+    {
+      name: 'Dezinfekce',
+      category: 'Zdraví',
+    },
+  ],
+};
+export default packing;

@@ -1,0 +1,82 @@
+import type { TranslationStrings } from '../types';
+
+const memories: TranslationStrings = {
+  'memories.title': 'Fotók',
+  'memories.notConnected': 'Immich nincs csatlakoztatva',
+  'memories.notConnectedHint':
+    'Csatlakoztasd az Immich példányodat a Beállításokban, hogy itt lásd az utazási fotóidat.',
+  'memories.notConnectedMultipleHint':
+    'A fényképek hozzáadásához csatlakoztasson egyet a következő fényképszolgáltatók közül a Beállításokban: {provider_names}.',
+  'memories.noDates': 'Adj hozzá dátumokat az utazáshoz a fotók betöltéséhez.',
+  'memories.noPhotos': 'Nem találhatók fotók',
+  'memories.noPhotosHint':
+    'Nem találhatók fotók az Immichben erre az utazási időszakra.',
+  'memories.photosFound': 'fotó',
+  'memories.fromOthers': 'másoktól',
+  'memories.sharePhotos': 'Fotók megosztása',
+  'memories.sharing': 'Megosztás',
+  'memories.reviewTitle': 'Nézd át a fotóidat',
+  'memories.reviewHint': 'Kattints a fotókra a megosztásból való kizáráshoz.',
+  'memories.shareCount': '{count} fotó megosztása',
+  'memories.providerUrl': 'Szerver URL',
+  'memories.providerApiKey': 'API kulcs',
+  'memories.providerUsername': 'Felhasználónév',
+  'memories.providerPassword': 'Jelszó',
+  'memories.providerOTP': 'MFA kód (ha engedélyezve van)',
+  'memories.skipSSLVerification': 'SSL tanúsítvány ellenőrzésének kihagyása',
+  'memories.immichAutoUpload':
+    'Journey-fotók feltöltésekor másolat Immich-be is',
+  'memories.providerUrlHintSynology':
+    'Adja meg a Photos alkalmazás elérési útját az URL-ben, pl. https://nas:5001/photo',
+  'memories.testConnection': 'Kapcsolat tesztelése',
+  'memories.testShort': 'Teszt',
+  'memories.testFirst': 'Először teszteld a kapcsolatot',
+  'memories.connected': 'Csatlakoztatva',
+  'memories.disconnected': 'Nincs csatlakoztatva',
+  'memories.connectionSuccess': 'Csatlakozva az Immichhez',
+  'memories.connectionError': 'Nem sikerült csatlakozni az Immichhez',
+  'memories.saved': '{provider_name} beállítások mentve',
+  'memories.providerDisconnectedBanner':
+    'A {provider_name} kapcsolat megszakadt. Csatlakozzon újra a Beállításokban a fényképek megtekintéséhez.',
+  'memories.saveError':
+    'Nem sikerült menteni a(z) {provider_name} beállításait',
+  'memories.addPhotos': 'Fotók hozzáadása',
+  'memories.linkAlbum': 'Album csatolása',
+  'memories.selectAlbum': 'Immich album kiválasztása',
+  'memories.selectAlbumMultiple': 'Album kiválasztása',
+  'memories.noAlbums': 'Nem található album',
+  'memories.syncAlbum': 'Album szinkronizálása',
+  'memories.unlinkAlbum': 'Leválasztás',
+  'memories.photos': 'fotó',
+  'memories.selectPhotos': 'Fotók kiválasztása az Immichből',
+  'memories.selectPhotosMultiple': 'Fényképek kiválasztása',
+  'memories.selectHint': 'Koppints a fotókra a kijelölésükhöz.',
+  'memories.selected': 'kijelölve',
+  'memories.addSelected': '{count} fotó hozzáadása',
+  'memories.alreadyAdded': 'Hozzáadva',
+  'memories.private': 'Privát',
+  'memories.stopSharing': 'Megosztás leállítása',
+  'memories.oldest': 'Legrégebbi elöl',
+  'memories.newest': 'Legújabb elöl',
+  'memories.allLocations': 'Összes helyszín',
+  'memories.tripDates': 'Utazás dátumai',
+  'memories.allPhotos': 'Összes fotó',
+  'memories.confirmShareTitle': 'Megosztás az utazótársakkal?',
+  'memories.confirmShareHint':
+    '{count} fotó lesz látható az utazás összes tagja számára. Később egyenként is priváttá teheted őket.',
+  'memories.confirmShareButton': 'Fotók megosztása',
+  'memories.error.loadAlbums': 'Az albumok betöltése sikertelen',
+  'memories.error.linkAlbum': 'Az album csatolása sikertelen',
+  'memories.error.unlinkAlbum': 'Az album leválasztása sikertelen',
+  'memories.error.syncAlbum': 'Az album szinkronizálása sikertelen',
+  'memories.error.loadPhotos': 'A fotók betöltése sikertelen',
+  'memories.error.addPhotos': 'A fotók hozzáadása sikertelen',
+  'memories.error.removePhoto': 'A fotó eltávolítása sikertelen',
+  'memories.error.toggleSharing': 'A megosztás frissítése sikertelen',
+  'memories.saveRouteNotConfigured':
+    'A mentési útvonal nincs konfigurálva ehhez a szolgáltatóhoz',
+  'memories.testRouteNotConfigured':
+    'A tesztútvonal nincs konfigurálva ehhez a szolgáltatóhoz',
+  'memories.fillRequiredFields': 'Kérjük töltse ki az összes kötelező mezőt',
+};
+export default memories;

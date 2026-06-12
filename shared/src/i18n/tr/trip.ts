@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const trip: TranslationStrings = {
+  'trip.tabs.plan': 'Planı',
+  'trip.tabs.transports': 'Ulaşım',
+  'trip.tabs.reservations': 'Rezervasyonlar',
+  'trip.tabs.reservationsShort': 'Rezerv.',
+  'trip.tabs.packing': 'Paket Listesi',
+  'trip.tabs.packingShort': 'Paket',
+  'trip.tabs.lists': 'Listeler',
+  'trip.tabs.listsShort': 'Liste',
+  'trip.tabs.budget': "Costs",
+  'trip.tabs.files': 'Dosyalar',
+  'trip.loading': 'Seyahat yükleniyor...',
+  'trip.loadingPhotos': 'Yer fotoğrafları yükleniyor...',
+  'trip.mobilePlan': 'Planı',
+  'trip.mobilePlaces': 'Yerler',
+  'trip.toast.placeUpdated': 'Yer güncellendi',
+  'trip.toast.placeAdded': 'Yer eklendi',
+  'trip.toast.placeDeleted': 'Yer silindi',
+  'trip.toast.selectDay': 'Lütfen önce bir gün seçin',
+  'trip.toast.assignedToDay': 'Yer güne atandı',
+  'trip.toast.reorderError': 'Sıralama yapılamadı',
+  'trip.toast.reservationUpdated': 'Rezervasyon güncellendi',
+  'trip.toast.reservationAdded': 'Rezervasyon eklendi',
+  'trip.toast.deleted': 'Silindi',
+  'trip.confirm.deletePlace': 'Bu yeri silmek istediğinizden emin misiniz?',
+  'trip.confirm.deletePlaces': '{count} Yer silinsin mi?',
+  'trip.toast.placesDeleted': '{count} yer silindi',
+};
+export default trip;

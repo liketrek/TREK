@@ -12,7 +12,7 @@ import { ADDON_IDS } from '../../addons';
 import {
   safeBroadcast, TOOL_ANNOTATIONS_WRITE, TOOL_ANNOTATIONS_DELETE,
   TOOL_ANNOTATIONS_NON_IDEMPOTENT, TOOL_ANNOTATIONS_READONLY,
-  demoDenied, noAccess, ok,
+  demoDenied, noAccess, ok, hasTripPermission, permissionDenied,
 } from './_shared';
 import { canRead, canWrite } from '../scopes';
 
@@ -43,6 +43,7 @@ export function registerCollabTools(server: McpServer, userId: number, scopes: s
     async ({ tripId, title, content, category, color, pinned }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('collab_edit', tripId, userId)) return permissionDenied();
       const note = createCollabNote(tripId, userId, { title, content, category, color, pinned });
       safeBroadcast(tripId, 'collab:note:created', { note });
       return ok({ note });
@@ -67,6 +68,7 @@ export function registerCollabTools(server: McpServer, userId: number, scopes: s
     async ({ tripId, noteId, title, content, category, color, pinned }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('collab_edit', tripId, userId)) return permissionDenied();
       const note = updateCollabNote(tripId, noteId, { title, content, category, color, pinned });
       if (!note) return { content: [{ type: 'text' as const, text: 'Note not found.' }], isError: true };
       safeBroadcast(tripId, 'collab:note:updated', { note });
@@ -87,6 +89,7 @@ export function registerCollabTools(server: McpServer, userId: number, scopes: s
     async ({ tripId, noteId }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('collab_edit', tripId, userId)) return permissionDenied();
       const deleted = deleteCollabNote(tripId, noteId);
       if (!deleted) return { content: [{ type: 'text' as const, text: 'Note not found.' }], isError: true };
       safeBroadcast(tripId, 'collab:note:deleted', { noteId });
@@ -128,6 +131,7 @@ export function registerCollabTools(server: McpServer, userId: number, scopes: s
       async ({ tripId, question, options, multiple, deadline }) => {
         if (isDemoUser(userId)) return demoDenied();
         if (!canAccessTrip(tripId, userId)) return noAccess();
+        if (!hasTripPermission('collab_edit', tripId, userId)) return permissionDenied();
         const poll = createPoll(tripId, userId, { question, options, multiple, deadline });
         safeBroadcast(tripId, 'collab:poll:created', { poll });
         return ok({ poll });
@@ -147,6 +151,7 @@ export function registerCollabTools(server: McpServer, userId: number, scopes: s
       },
       async ({ tripId, pollId, optionIndex }) => {
         if (!canAccessTrip(tripId, userId)) return noAccess();
+        if (!hasTripPermission('collab_edit', tripId, userId)) return permissionDenied();
         const result = votePoll(tripId, pollId, userId, optionIndex);
         if (result.error) return { content: [{ type: 'text' as const, text: result.error }], isError: true };
         safeBroadcast(tripId, 'collab:poll:voted', { poll: result.poll });
@@ -167,6 +172,7 @@ export function registerCollabTools(server: McpServer, userId: number, scopes: s
       async ({ tripId, pollId }) => {
         if (isDemoUser(userId)) return demoDenied();
         if (!canAccessTrip(tripId, userId)) return noAccess();
+        if (!hasTripPermission('collab_edit', tripId, userId)) return permissionDenied();
         const poll = closePoll(tripId, pollId);
         if (!poll) return { content: [{ type: 'text' as const, text: 'Poll not found.' }], isError: true };
         safeBroadcast(tripId, 'collab:poll:closed', { poll });
@@ -187,6 +193,7 @@ export function registerCollabTools(server: McpServer, userId: number, scopes: s
       async ({ tripId, pollId }) => {
         if (isDemoUser(userId)) return demoDenied();
         if (!canAccessTrip(tripId, userId)) return noAccess();
+        if (!hasTripPermission('collab_edit', tripId, userId)) return permissionDenied();
         const deleted = deletePoll(tripId, pollId);
         if (!deleted) return { content: [{ type: 'text' as const, text: 'Poll not found.' }], isError: true };
         safeBroadcast(tripId, 'collab:poll:deleted', { pollId });
@@ -225,6 +232,7 @@ export function registerCollabTools(server: McpServer, userId: number, scopes: s
       async ({ tripId, text, replyTo }) => {
         if (isDemoUser(userId)) return demoDenied();
         if (!canAccessTrip(tripId, userId)) return noAccess();
+        if (!hasTripPermission('collab_edit', tripId, userId)) return permissionDenied();
         const result = createMessage(tripId, userId, text, replyTo ?? null);
         if (result.error) return { content: [{ type: 'text' as const, text: result.error }], isError: true };
         safeBroadcast(tripId, 'collab:message:created', { message: result.message });
@@ -245,6 +253,7 @@ export function registerCollabTools(server: McpServer, userId: number, scopes: s
       async ({ tripId, messageId }) => {
         if (isDemoUser(userId)) return demoDenied();
         if (!canAccessTrip(tripId, userId)) return noAccess();
+        if (!hasTripPermission('collab_edit', tripId, userId)) return permissionDenied();
         const result = deleteMessage(tripId, messageId, userId);
         if (result.error) return { content: [{ type: 'text' as const, text: result.error }], isError: true };
         safeBroadcast(tripId, 'collab:message:deleted', { messageId, username: result.username });
@@ -266,6 +275,7 @@ export function registerCollabTools(server: McpServer, userId: number, scopes: s
       async ({ tripId, messageId, emoji }) => {
         if (isDemoUser(userId)) return demoDenied();
         if (!canAccessTrip(tripId, userId)) return noAccess();
+        if (!hasTripPermission('collab_edit', tripId, userId)) return permissionDenied();
         const result = addOrRemoveReaction(messageId, tripId, userId, emoji);
         if (!result.found) return { content: [{ type: 'text' as const, text: 'Message not found.' }], isError: true };
         safeBroadcast(tripId, 'collab:message:reacted', { messageId, reactions: result.reactions });

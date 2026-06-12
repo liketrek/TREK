@@ -8,10 +8,47 @@ on:
     branches: [main, dev]
     paths:
       - 'server/**'
-      - '.github/workflows/test.yml'
       - 'client/**'
+      - 'shared/**'
+      - '.github/workflows/test.yml'
 
 jobs:
+  i18n-parity:
+    name: i18n Key Parity
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Check i18n key parity
+        run: node shared/scripts/i18n-parity.mjs --strict
+
+  shared-contracts:
+    name: Shared Contracts (Zod)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --workspace shared
+
+      - name: Typecheck
+        run: cd shared && npm run typecheck
+
+      - name: Run tests
+        run: cd shared && npm test
+
   server-tests:
     name: Server Tests
     runs-on: ubuntu-latest
@@ -21,12 +58,33 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
-          cache-dependency-path: server/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: cd server && npm ci
+        run: npm ci
+
+      - name: Ensure @swc/core's Linux binary for unplugin-swc
+        # The lockfile was generated on Windows and omits @swc/core's Linux
+        # optional native binary, so npm ci/install skips it on the runner.
+        # Install the matching version explicitly so the server's SWC transform
+        # (server/vitest.config.ts) can load.
+        run: |
+          SWC_VERSION=$(node -p "require('@swc/core/package.json').version")
+          npm install --no-save --legacy-peer-deps "@swc/core-linux-x64-gnu@$SWC_VERSION"
+
+      - name: Build shared
+        run: npm run build --workspace=shared
+
+      - name: Build server (tsc -> dist)
+        run: cd server && npm run build
+
+      - name: Typecheck
+        run: cd server && npm run typecheck
+
+      - name: Lint
+        run: cd server && npm run lint:check
 
       - name: Run tests
         run: cd server && npm run test:coverage
@@ -48,12 +106,24 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
-          cache-dependency-path: client/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: cd client && npm ci
+        run: npm ci --workspace shared && npm ci --workspace client
+
+      - name: Build shared
+        run: npm run build --workspace=shared
+
+      - name: Typecheck
+        run: cd client && npm run typecheck
+
+      - name: Lint
+        run: cd client && npm run lint:check
+
+      - name: Page pattern check
+        run: cd client && npm run lint:pages
 
       - name: Run tests
         run: cd client && npm run test:coverage

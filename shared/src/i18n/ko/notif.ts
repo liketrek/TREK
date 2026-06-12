@@ -1,0 +1,43 @@
+import type { TranslationStrings } from '../types';
+
+const notif: TranslationStrings = {
+  'notif.test.title': '[테스트] 알림',
+  'notif.test.simple.text': '간단한 테스트 알림입니다.',
+  'notif.test.boolean.text': '이 테스트 알림을 수락하시겠습니까?',
+  'notif.test.navigate.text': '아래를 클릭하여 대시보드로 이동하세요.',
+  'notif.trip_invite.title': '여행 초대',
+  'notif.trip_invite.text': '{actor}이(가) {trip}에 초대했습니다',
+  'notif.booking_change.title': '예약 업데이트됨',
+  'notif.booking_change.text': '{actor}이(가) {trip}의 예약을 업데이트했습니다',
+  'notif.trip_reminder.title': '여행 리마인더',
+  'notif.trip_reminder.text': '여행 {trip}이(가) 곧 시작됩니다!',
+  'notif.todo_due.title': '할 일 마감',
+  'notif.todo_due.text': '{trip}의 {todo}이(가) {due}에 마감됩니다',
+  'notif.vacay_invite.title': 'Vacay 퓨전 초대',
+  'notif.vacay_invite.text': '{actor}이(가) 휴가 계획 공유에 초대했습니다',
+  'notif.photos_shared.title': '사진 공유됨',
+  'notif.photos_shared.text':
+    '{actor}이(가) {trip}에서 {count}장의 사진을 공유했습니다',
+  'notif.collab_message.title': '새 메시지',
+  'notif.collab_message.text': '{actor}이(가) {trip}에서 메시지를 보냈습니다',
+  'notif.packing_tagged.title': '짐 목록 배정',
+  'notif.packing_tagged.text':
+    '{actor}이(가) {trip}의 {category}에 배정했습니다',
+  'notif.version_available.title': '새 버전 사용 가능',
+  'notif.version_available.text': 'TREK {version}이(가) 사용 가능합니다',
+  'notif.action.view_trip': '여행 보기',
+  'notif.action.view_collab': '메시지 보기',
+  'notif.action.view_packing': '짐 목록 보기',
+  'notif.action.view_photos': '사진 보기',
+  'notif.action.view_vacay': 'Vacay 보기',
+  'notif.action.view_admin': '관리자로 이동',
+  'notif.action.view': '보기',
+  'notif.action.accept': '수락',
+  'notif.action.decline': '거절',
+  'notif.generic.title': '알림',
+  'notif.generic.text': '새 알림이 있습니다',
+  'notif.dev.unknown_event.title': '[DEV] 알 수 없는 이벤트',
+  'notif.dev.unknown_event.text':
+    '이벤트 유형 "{event}"이(가) EVENT_NOTIFICATION_CONFIG에 등록되지 않았습니다',
+};
+export default notif;

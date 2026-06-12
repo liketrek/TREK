@@ -2,6 +2,11 @@ import { create } from 'zustand'
 import apiClient from '../api/client'
 import type { AxiosResponse } from 'axios'
 import type { VacayPlan, VacayUser, VacayEntry, VacayStat, HolidaysMap, HolidayInfo, VacayHolidayCalendar } from '../types'
+import type {
+  VacaySetColorRequest, VacayInviteRequest, VacayInviteActionRequest,
+  VacayAddYearRequest, VacayToggleEntryRequest, VacayCompanyHolidayRequest,
+  VacayUpdateStatsRequest,
+} from '@trek/shared'
 
 const ax = apiClient
 
@@ -30,7 +35,7 @@ interface VacayYearsResponse {
 
 interface VacayEntriesResponse {
   entries: VacayEntry[]
-  companyHolidays: string[]
+  companyHolidays: { date: string; note?: string }[]
 }
 
 interface VacayStatsResponse {
@@ -73,21 +78,21 @@ interface VacayApi {
 const api: VacayApi = {
   getPlan: () => ax.get('/addons/vacay/plan').then((r: AxiosResponse) => r.data),
   updatePlan: (data) => ax.put('/addons/vacay/plan', data).then((r: AxiosResponse) => r.data),
-  updateColor: (color, targetUserId) => ax.put('/addons/vacay/color', { color, target_user_id: targetUserId }).then((r: AxiosResponse) => r.data),
-  invite: (userId) => ax.post('/addons/vacay/invite', { user_id: userId }).then((r: AxiosResponse) => r.data),
-  acceptInvite: (planId) => ax.post('/addons/vacay/invite/accept', { plan_id: planId }).then((r: AxiosResponse) => r.data),
-  declineInvite: (planId) => ax.post('/addons/vacay/invite/decline', { plan_id: planId }).then((r: AxiosResponse) => r.data),
+  updateColor: (color, targetUserId) => ax.put('/addons/vacay/color', { color, target_user_id: targetUserId } satisfies VacaySetColorRequest).then((r: AxiosResponse) => r.data),
+  invite: (userId) => ax.post('/addons/vacay/invite', { user_id: userId } satisfies VacayInviteRequest).then((r: AxiosResponse) => r.data),
+  acceptInvite: (planId) => ax.post('/addons/vacay/invite/accept', { plan_id: planId } satisfies VacayInviteActionRequest).then((r: AxiosResponse) => r.data),
+  declineInvite: (planId) => ax.post('/addons/vacay/invite/decline', { plan_id: planId } satisfies VacayInviteActionRequest).then((r: AxiosResponse) => r.data),
   cancelInvite: (userId) => ax.post('/addons/vacay/invite/cancel', { user_id: userId }).then((r: AxiosResponse) => r.data),
   dissolve: () => ax.post('/addons/vacay/dissolve').then((r: AxiosResponse) => r.data),
   availableUsers: () => ax.get('/addons/vacay/available-users').then((r: AxiosResponse) => r.data),
   getYears: () => ax.get('/addons/vacay/years').then((r: AxiosResponse) => r.data),
-  addYear: (year) => ax.post('/addons/vacay/years', { year }).then((r: AxiosResponse) => r.data),
+  addYear: (year) => ax.post('/addons/vacay/years', { year } satisfies VacayAddYearRequest).then((r: AxiosResponse) => r.data),
   removeYear: (year) => ax.delete(`/addons/vacay/years/${year}`).then((r: AxiosResponse) => r.data),
   getEntries: (year) => ax.get(`/addons/vacay/entries/${year}`).then((r: AxiosResponse) => r.data),
-  toggleEntry: (date, targetUserId) => ax.post('/addons/vacay/entries/toggle', { date, target_user_id: targetUserId }).then((r: AxiosResponse) => r.data),
-  toggleCompanyHoliday: (date) => ax.post('/addons/vacay/entries/company-holiday', { date }).then((r: AxiosResponse) => r.data),
+  toggleEntry: (date, targetUserId) => ax.post('/addons/vacay/entries/toggle', { date, target_user_id: targetUserId } satisfies VacayToggleEntryRequest).then((r: AxiosResponse) => r.data),
+  toggleCompanyHoliday: (date) => ax.post('/addons/vacay/entries/company-holiday', { date } satisfies VacayCompanyHolidayRequest).then((r: AxiosResponse) => r.data),
   getStats: (year) => ax.get(`/addons/vacay/stats/${year}`).then((r: AxiosResponse) => r.data),
-  updateStats: (year, days, targetUserId) => ax.put(`/addons/vacay/stats/${year}`, { vacation_days: days, target_user_id: targetUserId }).then((r: AxiosResponse) => r.data),
+  updateStats: (year, days, targetUserId) => ax.put(`/addons/vacay/stats/${year}`, { vacation_days: days, target_user_id: targetUserId } satisfies VacayUpdateStatsRequest).then((r: AxiosResponse) => r.data),
   getCountries: () => ax.get('/addons/vacay/holidays/countries').then((r: AxiosResponse) => r.data),
   getHolidays: (year, country) => ax.get(`/addons/vacay/holidays/${year}/${country}`).then((r: AxiosResponse) => r.data),
   addHolidayCalendar: (data) => ax.post('/addons/vacay/plan/holiday-calendars', data).then((r: AxiosResponse) => r.data),
@@ -104,7 +109,7 @@ interface VacayState {
   isFused: boolean
   years: number[]
   entries: VacayEntry[]
-  companyHolidays: string[]
+  companyHolidays: { date: string; note?: string }[]
   stats: VacayStat[]
   selectedYear: number
   selectedUserId: number | null

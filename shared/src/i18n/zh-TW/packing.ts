@@ -1,0 +1,183 @@
+import type { TranslationStrings } from '../types';
+
+const packing: TranslationStrings = {
+  'packing.title': '行李清單',
+  'packing.empty': '行李清單為空',
+  'packing.import': '匯入',
+  'packing.importTitle': '匯入裝箱清單',
+  'packing.importHint':
+    '每行一個物品。可選用逗號、分號或製表符分隔類別和數量：名稱, 類別, 數量',
+  'packing.importPlaceholder': '牙刷\n防曬霜, 衛生\nT恤, 衣物, 5\n護照, 證件',
+  'packing.importCsv': '載入 CSV/TXT',
+  'packing.importAction': '匯入 {count}',
+  'packing.importSuccess': '已匯入 {count} 項',
+  'packing.importError': '匯入失敗',
+  'packing.importEmpty': '沒有可匯入的專案',
+  'packing.progress': '已打包 {packed}/{total}（{percent}%）',
+  'packing.clearChecked': '移除 {count} 個已勾選',
+  'packing.clearCheckedShort': '移除 {count} 個',
+  'packing.suggestions': '建議',
+  'packing.suggestionsTitle': '新增建議',
+  'packing.allSuggested': '所有建議已新增',
+  'packing.allPacked': '全部打包完成！',
+  'packing.addPlaceholder': '新增新物品...',
+  'packing.categoryPlaceholder': '分類...',
+  'packing.filterAll': '全部',
+  'packing.filterOpen': '未完成',
+  'packing.filterDone': '已完成',
+  'packing.emptyTitle': '行李清單為空',
+  'packing.emptyHint': '新增物品或使用建議',
+  'packing.emptyFiltered': '沒有匹配的物品',
+  'packing.menuRename': '重新命名',
+  'packing.menuCheckAll': '全部勾選',
+  'packing.menuUncheckAll': '取消全部勾選',
+  'packing.menuDeleteCat': '刪除分類',
+  'packing.addItem': '新增物品',
+  'packing.addItemPlaceholder': '物品名稱...',
+  'packing.addCategory': '新增分類',
+  'packing.newCategoryPlaceholder': '分類名稱（如：衣物）',
+  'packing.applyTemplate': '應用模板',
+  'packing.template': '模板',
+  'packing.templateApplied': '已從模板新增 {count} 個物品',
+  'packing.templateError': '應用模板失敗',
+  'packing.saveAsTemplate': '儲存為範本',
+  'packing.templateName': '範本名稱',
+  'packing.templateSaved': '行李清單已儲存為範本',
+  'packing.noMembers': '無成員',
+  'packing.bags': '行李',
+  'packing.noBag': '未分配',
+  'packing.totalWeight': '總重量',
+  'packing.bagName': '名稱...',
+  'packing.addBag': '新增行李',
+  'packing.changeCategory': '更改分類',
+  'packing.confirm.clearChecked': '確定移除 {count} 個已勾選的物品？',
+  'packing.confirm.deleteCat': '確定刪除分類「{name}」及其 {count} 個物品？',
+  'packing.defaultCategory': '其他',
+  'packing.toast.saveError': '儲存失敗',
+  'packing.toast.deleteError': '刪除失敗',
+  'packing.toast.renameError': '重新命名失敗',
+  'packing.toast.addError': '新增失敗',
+  'packing.suggestions.items': [
+    {
+      name: '護照',
+      category: '證件',
+    },
+    {
+      name: '身份證',
+      category: '證件',
+    },
+    {
+      name: '旅行保險',
+      category: '證件',
+    },
+    {
+      name: '機票',
+      category: '證件',
+    },
+    {
+      name: '信用卡',
+      category: '財務',
+    },
+    {
+      name: '現金',
+      category: '財務',
+    },
+    {
+      name: '簽證',
+      category: '證件',
+    },
+    {
+      name: 'T恤',
+      category: '衣物',
+    },
+    {
+      name: '褲子',
+      category: '衣物',
+    },
+    {
+      name: '內衣',
+      category: '衣物',
+    },
+    {
+      name: '襪子',
+      category: '衣物',
+    },
+    {
+      name: '外套',
+      category: '衣物',
+    },
+    {
+      name: '睡衣',
+      category: '衣物',
+    },
+    {
+      name: '泳衣',
+      category: '衣物',
+    },
+    {
+      name: '雨衣',
+      category: '衣物',
+    },
+    {
+      name: '舒適的鞋子',
+      category: '衣物',
+    },
+    {
+      name: '牙刷',
+      category: '洗漱用品',
+    },
+    {
+      name: '牙膏',
+      category: '洗漱用品',
+    },
+    {
+      name: '洗髮水',
+      category: '洗漱用品',
+    },
+    {
+      name: '除臭劑',
+      category: '洗漱用品',
+    },
+    {
+      name: '防曬霜',
+      category: '洗漱用品',
+    },
+    {
+      name: '剃鬚刀',
+      category: '洗漱用品',
+    },
+    {
+      name: '充電器',
+      category: '電子產品',
+    },
+    {
+      name: '充電寶',
+      category: '電子產品',
+    },
+    {
+      name: '耳機',
+      category: '電子產品',
+    },
+    {
+      name: '旅行轉換插頭',
+      category: '電子產品',
+    },
+    {
+      name: '相機',
+      category: '電子產品',
+    },
+    {
+      name: '止痛藥',
+      category: '健康',
+    },
+    {
+      name: '創可貼',
+      category: '健康',
+    },
+    {
+      name: '消毒液',
+      category: '健康',
+    },
+  ],
+};
+export default packing;

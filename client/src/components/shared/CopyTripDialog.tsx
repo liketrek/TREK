@@ -1,4 +1,5 @@
 import React, { useEffect, useCallback } from 'react'
+import ReactDOM from 'react-dom'
 import { Check, X } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 
@@ -39,47 +40,46 @@ export default function CopyTripDialog({ isOpen, tripTitle, onClose, onConfirm }
 
   if (!isOpen) return null
 
-  return (
+  return ReactDOM.createPortal(
     <div
-      className="fixed inset-0 z-[10000] flex items-center justify-center px-4 trek-backdrop-enter"
-      style={{ backgroundColor: 'rgba(15, 23, 42, 0.5)', paddingBottom: 'var(--bottom-nav-h)' }}
+      className="fixed inset-0 z-[10000] flex items-center justify-center px-4 trek-backdrop-enter bg-[rgba(15,23,42,0.5)]"
+      style={{ paddingBottom: 'var(--bottom-nav-h)' }}
       onClick={onClose}
     >
       <div
-        className="trek-modal-enter rounded-2xl shadow-2xl w-full max-w-md p-6"
-        style={{ background: 'var(--bg-card)' }}
+        className="trek-modal-enter rounded-2xl shadow-2xl w-full max-w-md p-6 bg-surface-card"
         onClick={e => e.stopPropagation()}
       >
-        <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+        <h3 className="text-base font-semibold mb-1 text-content">
           {t('dashboard.confirm.copy.title')}
         </h3>
-        <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+        <p className="text-sm mb-4 text-content-secondary">
           {tripTitle}
         </p>
 
         <div className="flex flex-col gap-3">
-          <div className="rounded-xl p-3" style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-secondary)' }}>
-            <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#16a34a' }}>
+          <div className="rounded-xl p-3 border border-edge-secondary" style={{ background: 'var(--bg-subtle)' }}>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-2 text-[#16a34a]">
               {t('dashboard.confirm.copy.willCopy')}
             </p>
             <ul className="flex flex-col gap-1">
               {WILL_COPY_KEYS.map(key => (
-                <li key={key} className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  <Check size={13} className="flex-shrink-0" style={{ color: '#16a34a' }} />
+                <li key={key} className="flex items-center gap-2 text-sm text-content-secondary">
+                  <Check size={13} className="flex-shrink-0 text-[#16a34a]" />
                   {t(key)}
                 </li>
               ))}
             </ul>
           </div>
 
-          <div className="rounded-xl p-3" style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-secondary)' }}>
-            <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--text-muted)' }}>
+          <div className="rounded-xl p-3 border border-edge-secondary" style={{ background: 'var(--bg-subtle)' }}>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-2 text-content-muted">
               {t('dashboard.confirm.copy.wontCopy')}
             </p>
             <ul className="flex flex-col gap-1">
               {WONT_COPY_KEYS.map(key => (
-                <li key={key} className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  <X size={13} className="flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                <li key={key} className="flex items-center gap-2 text-sm text-content-secondary">
+                  <X size={13} className="flex-shrink-0 text-content-muted" />
                   {t(key)}
                 </li>
               ))}
@@ -90,19 +90,19 @@ export default function CopyTripDialog({ isOpen, tripTitle, onClose, onConfirm }
         <div className="flex justify-end gap-3 mt-5">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
-            style={{ color: 'var(--text-secondary)', border: '1px solid var(--border-secondary)' }}
+            className="px-4 py-2 text-sm font-medium rounded-lg transition-colors text-content-secondary border border-edge-secondary"
           >
             {t('common.cancel')}
           </button>
           <button
             onClick={() => { onConfirm(); onClose() }}
-            className="px-4 py-2 text-sm font-medium rounded-lg transition-colors text-white bg-blue-600 hover:bg-blue-700"
+            className="px-4 py-2 text-sm font-medium rounded-lg transition-opacity hover:opacity-90 bg-content text-surface-card"
           >
             {t('dashboard.confirm.copy.confirm')}
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

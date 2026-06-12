@@ -1,5 +1,6 @@
 // Journey Photo Book PDF — Polarsteps-inspired, magazine-density
 import { marked } from 'marked'
+import { sanitizeRichTextHtml } from '@trek/shared'
 import type { JourneyDetail, JourneyEntry, JourneyPhoto } from '../../store/journeyStore'
 
 function esc(str: string | null | undefined): string {
@@ -9,7 +10,9 @@ function esc(str: string | null | undefined): string {
 
 function md(str: string | null | undefined): string {
   if (!str) return ''
-  return marked.parse(str, { async: false, breaks: true }) as string
+  // marked passes embedded raw HTML through by default, so sanitise the result
+  // before it goes into the srcdoc iframe (keeps prose markup, drops scripts).
+  return sanitizeRichTextHtml(marked.parse(str, { async: false, breaks: true }) as string)
 }
 
 function abs(url: string | null | undefined): string {
@@ -73,7 +76,7 @@ function renderPhotoBlock(photos: JourneyPhoto[]): string {
 }
 
 export async function downloadJourneyBookPDF(journey: JourneyDetail) {
-  const entries = (journey.entries || []).filter(e => e.type !== 'skeleton' && e.type !== 'gallery')
+  const entries = (journey.entries || []).filter(e => e.type !== 'skeleton')
   const allPhotos = entries.flatMap(e => e.photos || [])
   const coverUrl = journey.cover_image ? abs(`/uploads/${journey.cover_image}`) : (allPhotos[0] ? pSrc(allPhotos[0]) : '')
 
@@ -308,7 +311,9 @@ export async function downloadJourneyBookPDF(journey: JourneyDetail) {
 
   const iframe = document.createElement('iframe')
   iframe.style.cssText = 'flex:1;width:100%;border:none;'
-  iframe.sandbox = 'allow-same-origin allow-modals allow-scripts'
+  // No script runs inside the document (print is triggered from the parent via
+  // contentWindow.print()), so withhold allow-scripts to keep the sandbox tight.
+  iframe.sandbox = 'allow-same-origin allow-modals'
   iframe.srcdoc = html
 
   card.appendChild(header)

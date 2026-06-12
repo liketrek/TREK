@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const trip: TranslationStrings = {
+  'trip.tabs.plan': 'Plan',
+  'trip.tabs.transports': 'Transportes',
+  'trip.tabs.reservations': 'Reservas',
+  'trip.tabs.reservationsShort': 'Reservas',
+  'trip.tabs.packing': 'Lista de equipaje',
+  'trip.tabs.packingShort': 'Equipaje',
+  'trip.tabs.lists': 'Listas',
+  'trip.tabs.listsShort': 'Listas',
+  'trip.tabs.budget': "Costs",
+  'trip.tabs.files': 'Archivos',
+  'trip.loading': 'Cargando viaje...',
+  'trip.loadingPhotos': 'Cargando fotos de los lugares...',
+  'trip.mobilePlan': 'Plan',
+  'trip.mobilePlaces': 'Lugares',
+  'trip.toast.placeUpdated': 'Lugar actualizado',
+  'trip.toast.placeAdded': 'Lugar añadido',
+  'trip.toast.placeDeleted': 'Lugar eliminado',
+  'trip.toast.selectDay': 'Selecciona primero un día',
+  'trip.toast.assignedToDay': 'Lugar asignado al día',
+  'trip.toast.reorderError': 'No se pudo reordenar',
+  'trip.toast.reservationUpdated': 'Reserva actualizada',
+  'trip.toast.reservationAdded': 'Reserva añadida',
+  'trip.toast.deleted': 'Eliminado',
+  'trip.confirm.deletePlace': '¿Seguro que quieres eliminar este lugar?',
+  'trip.confirm.deletePlaces': '¿Eliminar {count} lugares?',
+  'trip.toast.placesDeleted': '{count} lugares eliminados',
+};
+export default trip;

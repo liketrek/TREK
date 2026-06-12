@@ -152,7 +152,7 @@ describe('VacayPage', () => {
   // FE-PAGE-VACAY-009
   it('shows incoming invite overlay with username and action buttons', async () => {
     seedStore(useVacayStore, makeVacayState({
-      incomingInvites: [{ id: 1, plan_id: 99, username: 'bob' }],
+      incomingInvites: [{ plan_id: 99, owner_username: 'bob' }],
     }) as any);
     render(<VacayPage />);
     await waitFor(() => {
@@ -166,7 +166,7 @@ describe('VacayPage', () => {
   it('calls acceptInvite with plan_id on accept button click', async () => {
     const mockAcceptInvite = vi.fn();
     seedStore(useVacayStore, makeVacayState({
-      incomingInvites: [{ id: 1, plan_id: 99, username: 'bob' }],
+      incomingInvites: [{ plan_id: 99, owner_username: 'bob' }],
       acceptInvite: mockAcceptInvite,
     }) as any);
     render(<VacayPage />);
@@ -181,7 +181,7 @@ describe('VacayPage', () => {
   it('calls declineInvite with plan_id on decline button click', async () => {
     const mockDeclineInvite = vi.fn();
     seedStore(useVacayStore, makeVacayState({
-      incomingInvites: [{ id: 1, plan_id: 99, username: 'bob' }],
+      incomingInvites: [{ plan_id: 99, owner_username: 'bob' }],
       declineInvite: mockDeclineInvite,
     }) as any);
     render(<VacayPage />);

@@ -1,0 +1,64 @@
+import type { TranslationStrings } from '../types';
+
+const perm: TranslationStrings = {
+  'perm.title': 'Configurações de Permissões',
+  'perm.subtitle': 'Controle quem pode realizar ações no aplicativo',
+  'perm.saved': 'Configurações de permissões salvas',
+  'perm.resetDefaults': 'Restaurar padrões',
+  'perm.customized': 'personalizado',
+  'perm.level.admin': 'Apenas administrador',
+  'perm.level.tripOwner': 'Dono da viagem',
+  'perm.level.tripMember': 'Membros da viagem',
+  'perm.level.everybody': 'Todos',
+  'perm.cat.trip': 'Gerenciamento de Viagens',
+  'perm.cat.members': 'Gerenciamento de Membros',
+  'perm.cat.files': 'Arquivos',
+  'perm.cat.content': 'Conteúdo e Cronograma',
+  'perm.cat.extras': 'Orçamento, Bagagem e Colaboração',
+  'perm.action.trip_create': 'Criar viagens',
+  'perm.action.trip_edit': 'Editar detalhes da viagem',
+  'perm.action.trip_delete': 'Excluir viagens',
+  'perm.action.trip_archive': 'Arquivar / desarquivar viagens',
+  'perm.action.trip_cover_upload': 'Enviar imagem de capa',
+  'perm.action.member_manage': 'Adicionar / remover membros',
+  'perm.action.file_upload': 'Enviar arquivos',
+  'perm.action.file_edit': 'Editar metadados do arquivo',
+  'perm.action.file_delete': 'Excluir arquivos',
+  'perm.action.place_edit': 'Adicionar / editar / excluir lugares',
+  'perm.action.day_edit': 'Editar dias, notas e atribuições',
+  'perm.action.reservation_edit': 'Gerenciar reservas',
+  'perm.action.budget_edit': 'Gerenciar orçamento',
+  'perm.action.packing_edit': 'Gerenciar listas de bagagem',
+  'perm.action.collab_edit': 'Colaboração (notas, enquetes, chat)',
+  'perm.action.share_manage': 'Gerenciar links de compartilhamento',
+  'perm.actionHint.trip_create': 'Quem pode criar novas viagens',
+  'perm.actionHint.trip_edit':
+    'Quem pode alterar nome, datas, descrição e moeda da viagem',
+  'perm.actionHint.trip_delete': 'Quem pode excluir permanentemente uma viagem',
+  'perm.actionHint.trip_archive':
+    'Quem pode arquivar ou desarquivar uma viagem',
+  'perm.actionHint.trip_cover_upload':
+    'Quem pode enviar ou alterar a imagem de capa',
+  'perm.actionHint.member_manage':
+    'Quem pode convidar ou remover membros da viagem',
+  'perm.actionHint.file_upload': 'Quem pode enviar arquivos para uma viagem',
+  'perm.actionHint.file_edit':
+    'Quem pode editar descrições e links dos arquivos',
+  'perm.actionHint.file_delete':
+    'Quem pode mover arquivos para a lixeira ou excluí-los permanentemente',
+  'perm.actionHint.place_edit':
+    'Quem pode adicionar, editar ou excluir lugares',
+  'perm.actionHint.day_edit':
+    'Quem pode editar dias, notas dos dias e atribuições de lugares',
+  'perm.actionHint.reservation_edit':
+    'Quem pode criar, editar ou excluir reservas',
+  'perm.actionHint.budget_edit':
+    'Quem pode criar, editar ou excluir itens do orçamento',
+  'perm.actionHint.packing_edit':
+    'Quem pode gerenciar itens de bagagem e malas',
+  'perm.actionHint.collab_edit':
+    'Quem pode criar notas, enquetes e enviar mensagens',
+  'perm.actionHint.share_manage':
+    'Quem pode criar ou excluir links de compartilhamento públicos',
+};
+export default perm;

@@ -1,0 +1,42 @@
+import type { TranslationStrings } from '../types';
+
+const notif: TranslationStrings = {
+  'notif.test.title': '[Тест] Сповіщення',
+  'notif.test.simple.text': 'Це просте тестове сповіщення.',
+  'notif.test.boolean.text': 'Ви приймаєте це тестове сповіщення?',
+  'notif.test.navigate.text':
+    'Натисніть нижче, щоб перейти на панель управління.',
+  'notif.trip_invite.title': 'Запрошення до поїздки',
+  'notif.trip_invite.text': '{actor} запросив вас до {trip}',
+  'notif.booking_change.title': 'Бронювання оновлено',
+  'notif.booking_change.text': '{actor} оновив бронювання в {trip}',
+  'notif.trip_reminder.title': 'Нагадування про поїздку',
+  'notif.trip_reminder.text': 'Ваша поїздка {trip} скоро почнеться!',
+  'notif.todo_due.title': 'Завдання до терміну',
+  'notif.todo_due.text': '{todo} у {trip} — термін {due}',
+  'notif.vacay_invite.title': 'Запрошення Vacay Fusion',
+  'notif.vacay_invite.text': '{actor} запрошує вас об’єднати плани відпустки',
+  'notif.photos_shared.title': 'Фото опубліковано',
+  'notif.photos_shared.text': '{actor} поділився {count} фото у {trip}',
+  'notif.collab_message.title': 'Нове повідомлення',
+  'notif.collab_message.text': '{actor} надіслав повідомлення в {trip}',
+  'notif.packing_tagged.title': 'Завдання для пакування',
+  'notif.packing_tagged.text': '{actor} призначив вас у {category} у {trip}',
+  'notif.version_available.title': 'Доступна нова версія',
+  'notif.version_available.text': 'TREK {version} тепер доступний',
+  'notif.action.view_trip': 'Відкрити поїздку',
+  'notif.action.view_collab': 'Відкрити повідомлення',
+  'notif.action.view_packing': 'Відкрити пакування',
+  'notif.action.view_photos': 'Відкрити фото',
+  'notif.action.view_vacay': 'Відкрити Vacay',
+  'notif.action.view_admin': 'Перейти в адмін',
+  'notif.action.view': 'Відкрити',
+  'notif.action.accept': 'Прийняти',
+  'notif.action.decline': 'Відхилити',
+  'notif.generic.title': 'Сповіщення',
+  'notif.generic.text': 'У вас нове сповіщення',
+  'notif.dev.unknown_event.title': '[DEV] Невідома подія',
+  'notif.dev.unknown_event.text':
+    'Тип події "{event}" не зареєстровано в EVENT_NOTIFICATION_CONFIG',
+};
+export default notif;

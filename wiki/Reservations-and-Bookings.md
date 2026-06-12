@@ -76,6 +76,47 @@ Click **Add** (or the + button) in the Reservations panel. Fill in the form:
 
 <!-- TODO: screenshot: Create Reservation modal -->
 
+## Import from booking confirmation
+
+TREK can parse booking confirmation emails, PDFs, and pass files and create reservations automatically using [KDE Itinerary](https://apps.kde.org/itinerary/).
+
+### Supported formats
+
+| Format | Extension |
+|--------|-----------|
+| Booking confirmation email | `.eml` |
+| PDF ticket or confirmation | `.pdf` |
+| Apple Wallet pass | `.pkpass` |
+| HTML confirmation page | `.html`, `.htm` |
+| Plain-text email | `.txt` |
+
+Up to 5 files, 10 MB each, per import.
+
+### How to import
+
+1. Open the **Reservations** tab.
+2. Click the **Import** (download) button in the toolbar — the button is only shown when the extractor is available on your server.
+3. Drag and drop your files onto the upload area, or click to browse.
+4. TREK parses each file and shows a **preview list** of the detected reservations with type, title, dates, endpoints, and confirmation number.
+5. Deselect any items you do not want to import by clicking the × on their card.
+6. Click **Confirm** to create the selected reservations.
+
+All created reservations appear immediately in the panel and are broadcast to all connected trip members in real time.
+
+### What gets created automatically
+
+- **Hotels** — a reservation *and* a linked accommodation row in the day plan (check-in/check-out dates are read from the confirmation).
+- **Hotels / Restaurants / Events** — the venue is auto-created as a place with coordinates when the extractor returns location data.
+- **All types** — a budget entry is created if the Budget addon is enabled and a price is present.
+
+### When the button is not visible
+
+The Import button is hidden when the `kitinerary-extractor` binary is not available. The binary ships inside the official TREK Docker image. If you run TREK from source, install the `libkitinerary-bin` package (Debian trixie / Ubuntu 25.04+) or set `KITINERARY_EXTRACTOR_PATH` to the binary's full path. See [Environment-Variables](Environment-Variables).
+
+### Needs review flag
+
+Items that the extractor could only partially parse are flagged **Needs review** — an amber badge on the card. Review these reservations after import and fill in any missing fields manually.
+
 ## Editing and deleting
 
 Each card has a pencil icon to open the edit form and a trash icon to delete. Deleting requires confirmation in a dialog before the record is removed.

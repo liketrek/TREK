@@ -1,0 +1,186 @@
+import type { TranslationStrings } from '../types';
+
+const packing: TranslationStrings = {
+  'packing.title': 'Csomagolási lista',
+  'packing.empty': 'A csomagolási lista üres',
+  'packing.import': 'Importálás',
+  'packing.importTitle': 'Csomagolási lista importálása',
+  'packing.importHint':
+    'Soronként egy tétel. Formátum: Kategória, Név, Súly g-ban (opcionális), Táska (opcionális), checked/unchecked (opcionális)',
+  'packing.importPlaceholder':
+    'Tisztálkodás, Fogkefe\nRuházat, Pólók, 200\nDokumentumok, Útlevél, , Kézipoggyász\nElektronika, Töltő, 50, Bőrönd, checked',
+  'packing.importCsv': 'CSV/TXT betöltése',
+  'packing.importAction': '{count} importálása',
+  'packing.importSuccess': '{count} tétel importálva',
+  'packing.importError': 'Importálás sikertelen',
+  'packing.importEmpty': 'Nincsenek importálható tételek',
+  'packing.progress': '{packed} / {total} becsomagolva ({percent}%)',
+  'packing.clearChecked': '{count} kipipált eltávolítása',
+  'packing.clearCheckedShort': '{count} eltávolítása',
+  'packing.suggestions': 'Javaslatok',
+  'packing.suggestionsTitle': 'Javaslatok hozzáadása',
+  'packing.allSuggested': 'Minden javaslat hozzáadva',
+  'packing.allPacked': 'Minden be van csomagolva!',
+  'packing.addPlaceholder': 'Új tárgy hozzáadása...',
+  'packing.categoryPlaceholder': 'Kategória...',
+  'packing.filterAll': 'Összes',
+  'packing.filterOpen': 'Nyitott',
+  'packing.filterDone': 'Kész',
+  'packing.emptyTitle': 'A csomagolási lista üres',
+  'packing.emptyHint': 'Adj hozzá tárgyakat vagy használd a javaslatokat',
+  'packing.emptyFiltered': 'Nincs elem ebben a szűrőben',
+  'packing.menuRename': 'Átnevezés',
+  'packing.menuCheckAll': 'Összes kipipálása',
+  'packing.menuUncheckAll': 'Összes jelölés törlése',
+  'packing.menuDeleteCat': 'Kategória törlése',
+  'packing.noMembers': 'Nincsenek utazási tagok',
+  'packing.addItem': 'Tétel hozzáadása',
+  'packing.addItemPlaceholder': 'Tétel neve...',
+  'packing.addCategory': 'Kategória hozzáadása',
+  'packing.newCategoryPlaceholder': 'Kategória neve (pl. Ruházat)',
+  'packing.applyTemplate': 'Sablon alkalmazása',
+  'packing.template': 'Sablon',
+  'packing.templateApplied': '{count} tétel hozzáadva a sablonból',
+  'packing.templateError': 'Nem sikerült alkalmazni a sablont',
+  'packing.saveAsTemplate': 'Mentés sablonként',
+  'packing.templateName': 'Sablon neve',
+  'packing.templateSaved': 'Csomaglista elmentve sablonként',
+  'packing.bags': 'Táskák',
+  'packing.noBag': 'Nincs hozzárendelve',
+  'packing.totalWeight': 'Összsúly',
+  'packing.bagName': 'Táska neve...',
+  'packing.addBag': 'Táska hozzáadása',
+  'packing.changeCategory': 'Kategória módosítása',
+  'packing.confirm.clearChecked':
+    'Biztosan el szeretnéd távolítani a(z) {count} kipipált tárgyat?',
+  'packing.confirm.deleteCat':
+    'Biztosan törölni szeretnéd a(z) "{name}" kategóriát {count} tárggyal?',
+  'packing.defaultCategory': 'Egyéb',
+  'packing.toast.saveError': 'Nem sikerült menteni',
+  'packing.toast.deleteError': 'Nem sikerült törölni',
+  'packing.toast.renameError': 'Nem sikerült átnevezni',
+  'packing.toast.addError': 'Nem sikerült hozzáadni',
+  'packing.suggestions.items': [
+    {
+      name: 'Útlevél',
+      category: 'Dokumentumok',
+    },
+    {
+      name: 'Személyi igazolvány',
+      category: 'Dokumentumok',
+    },
+    {
+      name: 'Utazási biztosítás',
+      category: 'Dokumentumok',
+    },
+    {
+      name: 'Repülőjegyek',
+      category: 'Dokumentumok',
+    },
+    {
+      name: 'Bankkártya',
+      category: 'Pénzügyek',
+    },
+    {
+      name: 'Készpénz',
+      category: 'Pénzügyek',
+    },
+    {
+      name: 'Vízum',
+      category: 'Dokumentumok',
+    },
+    {
+      name: 'Pólók',
+      category: 'Ruházat',
+    },
+    {
+      name: 'Nadrágok',
+      category: 'Ruházat',
+    },
+    {
+      name: 'Fehérnemű',
+      category: 'Ruházat',
+    },
+    {
+      name: 'Zoknik',
+      category: 'Ruházat',
+    },
+    {
+      name: 'Kabát',
+      category: 'Ruházat',
+    },
+    {
+      name: 'Hálóruha',
+      category: 'Ruházat',
+    },
+    {
+      name: 'Fürdőruha',
+      category: 'Ruházat',
+    },
+    {
+      name: 'Esőkabát',
+      category: 'Ruházat',
+    },
+    {
+      name: 'Kényelmes cipő',
+      category: 'Ruházat',
+    },
+    {
+      name: 'Fogkefe',
+      category: 'Tisztálkodás',
+    },
+    {
+      name: 'Fogkrém',
+      category: 'Tisztálkodás',
+    },
+    {
+      name: 'Sampon',
+      category: 'Tisztálkodás',
+    },
+    {
+      name: 'Dezodor',
+      category: 'Tisztálkodás',
+    },
+    {
+      name: 'Naptej',
+      category: 'Tisztálkodás',
+    },
+    {
+      name: 'Borotva',
+      category: 'Tisztálkodás',
+    },
+    {
+      name: 'Töltő',
+      category: 'Elektronika',
+    },
+    {
+      name: 'Powerbank',
+      category: 'Elektronika',
+    },
+    {
+      name: 'Fejhallgató',
+      category: 'Elektronika',
+    },
+    {
+      name: 'Úti adapter',
+      category: 'Elektronika',
+    },
+    {
+      name: 'Fényképezőgép',
+      category: 'Elektronika',
+    },
+    {
+      name: 'Fájdalomcsillapító',
+      category: 'Egészség',
+    },
+    {
+      name: 'Ragtapasz',
+      category: 'Egészség',
+    },
+    {
+      name: 'Fertőtlenítőszer',
+      category: 'Egészség',
+    },
+  ],
+};
+export default packing;

@@ -1,0 +1,42 @@
+import type { TranslationStrings } from '../types';
+
+const notif: TranslationStrings = {
+  'notif.test.title': '[Test] Oznámení',
+  'notif.test.simple.text': 'Toto je jednoduché testovací oznámení.',
+  'notif.test.boolean.text': 'Přijmete toto testovací oznámení?',
+  'notif.test.navigate.text': 'Klikněte níže pro přechod na přehled.',
+  'notif.trip_invite.title': 'Pozvánka na výlet',
+  'notif.trip_invite.text': '{actor} vás pozval na {trip}',
+  'notif.booking_change.title': 'Rezervace aktualizována',
+  'notif.booking_change.text': '{actor} aktualizoval rezervaci v {trip}',
+  'notif.trip_reminder.title': 'Připomínka výletu',
+  'notif.trip_reminder.text': 'Váš výlet {trip} se blíží!',
+  'notif.todo_due.title': 'Úkol se blíží',
+  'notif.todo_due.text': '{todo} ve výletě {trip} má termín {due}',
+  'notif.vacay_invite.title': 'Pozvánka Vacay Fusion',
+  'notif.vacay_invite.text':
+    '{actor} vás pozval ke spojení dovolenkových plánů',
+  'notif.photos_shared.title': 'Fotky sdíleny',
+  'notif.photos_shared.text': '{actor} sdílel {count} foto v {trip}',
+  'notif.collab_message.title': 'Nová zpráva',
+  'notif.collab_message.text': '{actor} poslal zprávu v {trip}',
+  'notif.packing_tagged.title': 'Přiřazení balení',
+  'notif.packing_tagged.text': '{actor} vás přiřadil k {category} v {trip}',
+  'notif.version_available.title': 'Nová verze dostupná',
+  'notif.version_available.text': 'TREK {version} je nyní dostupný',
+  'notif.action.view_trip': 'Zobrazit výlet',
+  'notif.action.view_collab': 'Zobrazit zprávy',
+  'notif.action.view_packing': 'Zobrazit balení',
+  'notif.action.view_photos': 'Zobrazit fotky',
+  'notif.action.view_vacay': 'Zobrazit Vacay',
+  'notif.action.view_admin': 'Jít do adminu',
+  'notif.action.view': 'Zobrazit',
+  'notif.action.accept': 'Přijmout',
+  'notif.action.decline': 'Odmítnout',
+  'notif.generic.title': 'Oznámení',
+  'notif.generic.text': 'Máte nové oznámení',
+  'notif.dev.unknown_event.title': '[DEV] Neznámá událost',
+  'notif.dev.unknown_event.text':
+    'Typ události "{event}" není registrován v EVENT_NOTIFICATION_CONFIG',
+};
+export default notif;

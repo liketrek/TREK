@@ -1,3 +1,6 @@
+import fs from 'fs';
+import path from 'path';
+import zlib from 'zlib';
 import Database from 'better-sqlite3';
 import { encrypt_api_key } from '../services/apiKeyCrypto';
 
@@ -542,7 +545,7 @@ function runMigrations(db: Database.Database): void {
       }
     },
     () => {
-      try { db.exec('ALTER TABLE budget_items ADD COLUMN expense_date TEXT DEFAULT NULL'); } catch {}
+      try { db.exec('ALTER TABLE budget_items ADD COLUMN expense_date TEXT DEFAULT NULL'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
     },
     () => {
       db.exec(`
@@ -803,7 +806,14 @@ function runMigrations(db: Database.Database): void {
       `);
     },
     () => {
-      try {db.exec("UPDATE addons SET enabled = 0 WHERE id = 'memories'");} catch (err) {}
+      try {
+        db.exec("UPDATE addons SET enabled = 0 WHERE id = 'memories'");
+      } catch (err) {
+        // Non-fatal: the addons table may not exist yet on very old databases.
+        // Disabling the legacy memories addon is best-effort, but we no longer
+        // swallow the error silently.
+        console.warn("[migrations] Non-fatal: failed to disable legacy 'memories' addon:", err);
+      }
     },
     // Migration 69: Place region cache for sub-national Atlas regions
     () => {
@@ -1194,21 +1204,21 @@ function runMigrations(db: Database.Database): void {
     // Migration 85: Journal — richer entry fields for magazine-style design
     () => {
       // Highlight tags (JSON array), visibility control, hero photo, color accent
-      try { db.exec('ALTER TABLE journey_entries ADD COLUMN highlight_tags TEXT'); } catch {}
-      try { db.exec("ALTER TABLE journey_entries ADD COLUMN visibility TEXT NOT NULL DEFAULT 'private'"); } catch {}
-      try { db.exec('ALTER TABLE journey_entries ADD COLUMN hero_photo_id TEXT'); } catch {}
-      try { db.exec('ALTER TABLE journey_entries ADD COLUMN color_accent TEXT'); } catch {}
-      try { db.exec('ALTER TABLE journey_entries ADD COLUMN place_name TEXT'); } catch {}
-      try { db.exec('ALTER TABLE journey_entries ADD COLUMN place_id INTEGER REFERENCES places(id) ON DELETE SET NULL'); } catch {}
-      try { db.exec('ALTER TABLE journey_entries ADD COLUMN lat REAL'); } catch {}
-      try { db.exec('ALTER TABLE journey_entries ADD COLUMN lng REAL'); } catch {}
+      try { db.exec('ALTER TABLE journey_entries ADD COLUMN highlight_tags TEXT'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try { db.exec("ALTER TABLE journey_entries ADD COLUMN visibility TEXT NOT NULL DEFAULT 'private'"); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try { db.exec('ALTER TABLE journey_entries ADD COLUMN hero_photo_id TEXT'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try { db.exec('ALTER TABLE journey_entries ADD COLUMN color_accent TEXT'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try { db.exec('ALTER TABLE journey_entries ADD COLUMN place_name TEXT'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try { db.exec('ALTER TABLE journey_entries ADD COLUMN place_id INTEGER REFERENCES places(id) ON DELETE SET NULL'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try { db.exec('ALTER TABLE journey_entries ADD COLUMN lat REAL'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try { db.exec('ALTER TABLE journey_entries ADD COLUMN lng REAL'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
 
       // Check-in: allow a single cover photo reference
-      try { db.exec('ALTER TABLE journey_checkins ADD COLUMN photo_id TEXT'); } catch {}
+      try { db.exec('ALTER TABLE journey_checkins ADD COLUMN photo_id TEXT'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
 
       // Photos: add caption edit timestamp for gallery ordering
-      try { db.exec('ALTER TABLE journey_photos ADD COLUMN width INTEGER'); } catch {}
-      try { db.exec('ALTER TABLE journey_photos ADD COLUMN height INTEGER'); } catch {}
+      try { db.exec('ALTER TABLE journey_photos ADD COLUMN width INTEGER'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try { db.exec('ALTER TABLE journey_photos ADD COLUMN height INTEGER'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
     },
     // Migration 86: Journey multi-trip support + sharing/collaboration
     () => {
@@ -1239,8 +1249,8 @@ function runMigrations(db: Database.Database): void {
       db.exec('CREATE INDEX IF NOT EXISTS idx_journey_members_user ON journey_members(user_id)');
 
       // author tracking on entries and checkins
-      try { db.exec('ALTER TABLE journey_entries ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL'); } catch {}
-      try { db.exec('ALTER TABLE journey_checkins ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL'); } catch {}
+      try { db.exec('ALTER TABLE journey_entries ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try { db.exec('ALTER TABLE journey_checkins ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
     },
     // Migration 87: Journey rebuild — new schema with trip sync
     () => {
@@ -1255,9 +1265,9 @@ function runMigrations(db: Database.Database): void {
 
       if (hasOldJourneys) {
         // Save existing data before dropping
-        try { oldJourneys = db.prepare('SELECT * FROM journeys').all(); } catch {}
-        try { oldEntries = db.prepare('SELECT * FROM journey_entries').all(); } catch {}
-        try { oldPhotos = db.prepare('SELECT * FROM journey_photos').all(); } catch {}
+        try { oldJourneys = db.prepare('SELECT * FROM journeys').all(); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+        try { oldEntries = db.prepare('SELECT * FROM journey_entries').all(); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+        try { oldPhotos = db.prepare('SELECT * FROM journey_photos').all(); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
 
         // Drop all old journey tables
         db.exec('DROP TABLE IF EXISTS journey_location_trail');
@@ -1393,7 +1403,7 @@ function runMigrations(db: Database.Database): void {
                 INSERT OR IGNORE INTO journey_trips (journey_id, trip_id, added_at)
                 VALUES (?, ?, ?)
               `).run(Number(res.lastInsertRowid), j.trip_id, ts);
-            } catch {}
+            } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
           }
         }
 
@@ -1450,10 +1460,10 @@ function runMigrations(db: Database.Database): void {
     },
     // Migration 88: Journey photos — provider support (Immich/Synology)
     () => {
-      try { db.exec("ALTER TABLE journey_photos ADD COLUMN provider TEXT NOT NULL DEFAULT 'local'"); } catch {}
-      try { db.exec('ALTER TABLE journey_photos ADD COLUMN asset_id TEXT'); } catch {}
-      try { db.exec('ALTER TABLE journey_photos ADD COLUMN owner_id INTEGER REFERENCES users(id)'); } catch {}
-      try { db.exec('ALTER TABLE journey_photos ADD COLUMN shared INTEGER NOT NULL DEFAULT 1'); } catch {}
+      try { db.exec("ALTER TABLE journey_photos ADD COLUMN provider TEXT NOT NULL DEFAULT 'local'"); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try { db.exec('ALTER TABLE journey_photos ADD COLUMN asset_id TEXT'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try { db.exec('ALTER TABLE journey_photos ADD COLUMN owner_id INTEGER REFERENCES users(id)'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try { db.exec('ALTER TABLE journey_photos ADD COLUMN shared INTEGER NOT NULL DEFAULT 1'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
       // file_path was NOT NULL — recreate table to make it nullable
       const hasProvider = db.prepare("SELECT 1 FROM pragma_table_info('journey_photos') WHERE name = 'provider'").get();
       if (hasProvider) {
@@ -1481,16 +1491,16 @@ function runMigrations(db: Database.Database): void {
             ALTER TABLE journey_photos_new RENAME TO journey_photos;
             CREATE INDEX idx_journey_photos_entry ON journey_photos(entry_id);
           `);
-        } catch {}
+        } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
       }
     },
     // Migration 89: Journey cover image
     () => {
-      try { db.exec('ALTER TABLE journeys ADD COLUMN cover_image TEXT'); } catch {}
+      try { db.exec('ALTER TABLE journeys ADD COLUMN cover_image TEXT'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
     },
     // Migration 90: Pros/Cons for journey entries
     () => {
-      try { db.exec('ALTER TABLE journey_entries ADD COLUMN pros_cons TEXT'); } catch {}
+      try { db.exec('ALTER TABLE journey_entries ADD COLUMN pros_cons TEXT'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
     },
     // Migration 91: Journey share tokens
     () => {
@@ -1512,7 +1522,7 @@ function runMigrations(db: Database.Database): void {
     },
     // Migration: Vacay week_start setting (0=Sunday, 1=Monday default)
     () => {
-      try { db.exec("ALTER TABLE vacay_plans ADD COLUMN week_start INTEGER NOT NULL DEFAULT 1"); } catch {}
+      try { db.exec("ALTER TABLE vacay_plans ADD COLUMN week_start INTEGER NOT NULL DEFAULT 1"); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
     },
     // Migration: Unified Photo Provider Abstraction Layer (#584)
     // Central trek_photos registry; trip_photos + journey_photos reference via photo_id
@@ -1655,7 +1665,7 @@ function runMigrations(db: Database.Database): void {
     },
     // Migration 99: hide_skeletons per-user setting on journey_contributors
     () => {
-      try { db.exec('ALTER TABLE journey_contributors ADD COLUMN hide_skeletons INTEGER NOT NULL DEFAULT 0'); } catch {}
+      try { db.exec('ALTER TABLE journey_contributors ADD COLUMN hide_skeletons INTEGER NOT NULL DEFAULT 0'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
     },
     // Migration 100: Idempotency keys for offline mutation replay
     () => {
@@ -1895,7 +1905,10 @@ function runMigrations(db: Database.Database): void {
         const names = new Set(cols.map((c) => c.name));
         if (names.has('start_day_id')) db.exec('CREATE INDEX IF NOT EXISTS idx_day_accommodations_start_day_id ON day_accommodations(start_day_id)');
         if (names.has('end_day_id')) db.exec('CREATE INDEX IF NOT EXISTS idx_day_accommodations_end_day_id ON day_accommodations(end_day_id)');
-      } catch { /* table may not exist on very old installs */ }
+      } catch (err) {
+        // Non-fatal: day_accommodations may not exist on very old installs.
+        console.warn('[migrations] Non-fatal migration step failed:', err);
+      }
       try {
         // notifications schema has varied; probe before indexing.
         const cols = db.prepare("PRAGMA table_info('notifications')").all() as Array<{ name: string }>;
@@ -1903,7 +1916,10 @@ function runMigrations(db: Database.Database): void {
         if (names.has('target') && names.has('scope')) {
           db.exec('CREATE INDEX IF NOT EXISTS idx_notifications_target_scope ON notifications(target, scope)');
         }
-      } catch { /* notifications table may not exist on very old installs */ }
+      } catch (err) {
+        // Non-fatal: notifications table may not exist on very old installs.
+        console.warn('[migrations] Non-fatal migration step failed:', err);
+      }
     },
     // Migration: widen idempotency_keys primary key to (key, user_id,
     // method, path). The middleware lookup was widened in the same audit
@@ -2263,6 +2279,185 @@ function runMigrations(db: Database.Database): void {
         }
       } catch (err: any) {
         if (!err.message?.includes('no such table')) throw err;
+      }
+    },
+    // Costs rework (budget → "Costs", Tricount/Splitwise style). Adds, additively
+    // and without touching existing rows:
+    //  - per-expense currency + exchange_rate, so an expense can be entered in a
+    //    foreign currency and converted to the trip base currency (NULL currency =
+    //    base currency; rate 1.0). Closes the multi-currency request (#551).
+    //  - budget_item_payers: several people can each have paid part of one expense
+    //    (amounts in the expense currency), replacing the single paid_by_user_id.
+    //  - budget_settlements: persisted "X paid Y" transfers so the settle-up
+    //    history (with undo) is shared across all trip members.
+    // The equal-split participants stay in budget_item_members. The single legacy
+    // payer is backfilled into budget_item_payers as one payer covering the total.
+    () => {
+      try { db.exec('ALTER TABLE budget_items ADD COLUMN currency TEXT'); }
+      catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      try { db.exec('ALTER TABLE budget_items ADD COLUMN exchange_rate REAL NOT NULL DEFAULT 1'); }
+      catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS budget_item_payers (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          budget_item_id INTEGER NOT NULL REFERENCES budget_items(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          amount REAL NOT NULL DEFAULT 0,
+          UNIQUE(budget_item_id, user_id)
+        )
+      `);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_budget_item_payers_item ON budget_item_payers(budget_item_id)');
+
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS budget_settlements (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+          from_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          to_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          amount REAL NOT NULL DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          created_by_user_id INTEGER REFERENCES users(id)
+        )
+      `);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_budget_settlements_trip ON budget_settlements(trip_id)');
+
+      // Backfill the legacy single payer: that person paid the full total of the
+      // expense, in the (base) currency the existing amount was already stored in.
+      try {
+        db.exec(`
+          INSERT OR IGNORE INTO budget_item_payers (budget_item_id, user_id, amount)
+          SELECT id, paid_by_user_id, total_price
+          FROM budget_items
+          WHERE paid_by_user_id IS NOT NULL
+        `);
+      } catch (err: any) {
+        if (!err.message?.includes('no such column')) throw err;
+      }
+    },
+    // Rename the "Budget Planner" addon to "Costs" in the admin add-on list. This
+    // is a display rename only — the addon id, tables, permissions and MCP tools
+    // all stay 'budget'. Scoped to the default name so a customised one is kept.
+    () => {
+      db.prepare(
+        "UPDATE addons SET name = 'Costs', description = 'Track and split trip expenses' WHERE id = 'budget' AND name = 'Budget Planner'",
+      ).run();
+    },
+    // WebAuthn / passkey support: per-user credentials + single-use login
+    // challenges. Additive (CREATE TABLE IF NOT EXISTS) so existing installs are
+    // untouched; both tables also live in schema.ts for fresh installs.
+    () => db.exec(`
+      CREATE TABLE IF NOT EXISTS webauthn_credentials (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        credential_id TEXT NOT NULL UNIQUE,
+        public_key BLOB NOT NULL,
+        counter INTEGER NOT NULL DEFAULT 0,
+        transports TEXT,
+        device_type TEXT,
+        backed_up INTEGER NOT NULL DEFAULT 0,
+        name TEXT,
+        aaguid TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        last_used_at DATETIME
+      );
+      CREATE INDEX IF NOT EXISTS idx_webauthn_credentials_user ON webauthn_credentials(user_id);
+      CREATE TABLE IF NOT EXISTS webauthn_challenges (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        challenge TEXT NOT NULL UNIQUE,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        type TEXT NOT NULL,
+        expires_at INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_webauthn_challenges_expires ON webauthn_challenges(expires_at);
+    `),
+    // Atlas dropped Natural Earth for geoBoundaries. Manually-marked sub-national
+    // regions (`visited_regions`) stored the OLD Natural Earth ISO-3166-2 codes; some no
+    // longer match any polygon in the new bundle and would stop highlighting. Reconcile
+    // every row against the ACTUAL shipped admin-1 bundle so this covers *all* countries,
+    // not just one hand-listed reform:
+    //   1. code still present in the new bundle      → leave it (already correct);
+    //   2. else a region in the same country shares  → adopt that region's code+name
+    //      the stored region_name (case-insensitive)   (handles code re-spellings, e.g.
+    //                                                    ES-AN → ES_AND, names unchanged);
+    //   3. else a curated merge crosswalk maps it    → adopt the merged region (handles
+    //      (region absorbed into a *renamed* one)       reforms where the name changed,
+    //                                                    which step 2 cannot catch);
+    //   4. else → leave as-is (cannot be resolved; the client's name fallback may still
+    //      highlight it, and nothing is destroyed).
+    // Other Atlas tables need NO remap: `visited_countries` / `bucket_list` hold only
+    // ISO-3166-1 alpha-2 codes (invariant across the swap), `bucket_list.name` is free
+    // text we must not auto-rewrite, and `place_regions` is a re-derivable Nominatim cache.
+    () => {
+      type Row = { id: number; region_code: string; region_name: string; country_code: string };
+      const rows = db.prepare(
+        'SELECT id, region_code, region_name, country_code FROM visited_regions'
+      ).all() as Row[];
+      if (rows.length === 0) return; // nothing marked → skip the bundle read entirely
+
+      // Index the shipped admin-1 bundle: valid codes, name→code per country, code→name.
+      // __dirname resolves ../../assets under both dist (dist/db) and tests (src/db).
+      let features: { properties?: { iso_a2?: string; iso_3166_2?: string; name?: string } }[] = [];
+      try {
+        const file = path.join(__dirname, '..', '..', 'assets', 'atlas', 'admin1.geojson.gz');
+        features = JSON.parse(zlib.gunzipSync(fs.readFileSync(file)).toString('utf8')).features || [];
+      } catch {
+        features = []; // bundle missing → degrade to the curated crosswalk below
+      }
+      const validCodes = new Set<string>();
+      const nameToCode = new Map<string, string>(); // `${A2}|${nameLower}` → code
+      const codeToName = new Map<string, string>();
+      for (const f of features) {
+        const a2 = (f.properties?.iso_a2 || '').toUpperCase();
+        const code = f.properties?.iso_3166_2 || '';
+        const name = f.properties?.name || '';
+        if (!code) continue;
+        validCodes.add(code);
+        if (!codeToName.has(code)) codeToName.set(code, name);
+        if (a2 && name) nameToCode.set(`${a2}|${name.toLowerCase()}`, code);
+      }
+
+      // Curated crosswalk for regions absorbed into a *renamed* successor (step 2 can't
+      // match these because the name changed). Norway's 2018/2020 reforms; extend as the
+      // pinned geoBoundaries dataset gains further reforms.
+      const MERGE_CROSSWALK: Record<string, string> = {
+        'NO-04': 'NO-34', 'NO-05': 'NO-34',            // Hedmark, Oppland → Innlandet
+        'NO-12': 'NO-46', 'NO-14': 'NO-46',            // Hordaland, Sogn og Fjordane → Vestland
+        'NO-09': 'NO-42', 'NO-10': 'NO-42',            // Aust-/Vest-Agder → Agder
+        'NO-01': 'NO-30', 'NO-02': 'NO-30', 'NO-06': 'NO-30', // Østfold/Akershus/Buskerud → Viken
+        'NO-07': 'NO-38', 'NO-08': 'NO-38',            // Vestfold, Telemark → Vestfold og Telemark
+        'NO-19': 'NO-54', 'NO-20': 'NO-54',            // Troms, Finnmark → Troms og Finnmark
+        'NO-16': 'NO-50', 'NO-17': 'NO-50',            // Sør-/Nord-Trøndelag → Trøndelag
+      };
+
+      const resolve = (row: Row): string | null => {
+        if (validCodes.has(row.region_code)) return null; // already valid
+        const a2 = (row.country_code || '').toUpperCase();
+        const byName = nameToCode.get(`${a2}|${(row.region_name || '').toLowerCase()}`);
+        if (byName) return byName;
+        const merged = MERGE_CROSSWALK[row.region_code];
+        // Only trust the crosswalk target if it actually exists in the bundle (or the
+        // bundle was unreadable, in which case we apply the curated map blindly).
+        if (merged && (validCodes.size === 0 || validCodes.has(merged))) return merged;
+        return null;
+      };
+
+      const update = db.prepare(
+        'UPDATE OR IGNORE visited_regions SET region_code = ?, region_name = ? WHERE id = ?'
+      );
+      const del = db.prepare('DELETE FROM visited_regions WHERE id = ?');
+      for (const row of rows) {
+        const newCode = resolve(row);
+        if (!newCode || newCode === row.region_code) continue;
+        const newName = codeToName.get(newCode) || row.region_name;
+        update.run(newCode, newName, row.id);
+        // UNIQUE(user_id, region_code): if the user already had the target code the
+        // UPDATE was IGNORED and this row still carries the old code → drop the duplicate.
+        const after = db.prepare('SELECT region_code FROM visited_regions WHERE id = ?').get(row.id) as
+          | { region_code: string }
+          | undefined;
+        if (after && after.region_code === row.region_code) del.run(row.id);
       }
     },
   ];

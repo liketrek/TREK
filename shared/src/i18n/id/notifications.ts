@@ -1,0 +1,38 @@
+import type { TranslationStrings } from '../types';
+
+const notifications: TranslationStrings = {
+  'notifications.title': 'Notifikasi',
+  'notifications.markAllRead': 'Tandai semua dibaca',
+  'notifications.deleteAll': 'Hapus semua',
+  'notifications.showAll': 'Tampilkan semua notifikasi',
+  'notifications.empty': 'Tidak ada notifikasi',
+  'notifications.emptyDescription': 'Semuanya sudah terbaca!',
+  'notifications.all': 'Semua',
+  'notifications.unreadOnly': 'Belum dibaca',
+  'notifications.markRead': 'Tandai sudah dibaca',
+  'notifications.markUnread': 'Tandai belum dibaca',
+  'notifications.delete': 'Hapus',
+  'notifications.system': 'Sistem',
+  'notifications.synologySessionCleared.title': 'Synology Photos terputus',
+  'notifications.synologySessionCleared.text':
+    'Server atau akun kamu berubah — buka Pengaturan untuk menguji koneksi lagi.',
+  'notifications.versionAvailable.title': 'Pembaruan Tersedia',
+  'notifications.versionAvailable.text': 'TREK {version} kini tersedia.',
+  'notifications.versionAvailable.button': 'Lihat Detail',
+  'notifications.test.title': 'Notifikasi uji dari {actor}',
+  'notifications.test.text': 'Ini adalah notifikasi uji sederhana.',
+  'notifications.test.booleanTitle': '{actor} meminta persetujuanmu',
+  'notifications.test.booleanText':
+    'Ini adalah notifikasi uji boolean. Pilih tindakan di bawah.',
+  'notifications.test.accept': 'Setujui',
+  'notifications.test.decline': 'Tolak',
+  'notifications.test.navigateTitle': 'Cek sesuatu',
+  'notifications.test.navigateText': 'Ini adalah notifikasi uji navigasi.',
+  'notifications.test.goThere': 'Ke sana',
+  'notifications.test.adminTitle': 'Siaran Admin',
+  'notifications.test.adminText':
+    '{actor} mengirim notifikasi uji ke semua admin.',
+  'notifications.test.tripTitle': '{actor} memposting di perjalananmu',
+  'notifications.test.tripText': 'Notifikasi uji untuk perjalanan "{trip}".',
+};
+export default notifications;

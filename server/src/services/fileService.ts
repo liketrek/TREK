@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import type { Request } from 'express';
-import { db, canAccessTrip } from '../db/database';
+import { db } from '../db/database';
 import { consumeEphemeralToken } from './ephemeralTokens';
 import { verifyJwtAndLoadUser } from '../middleware/auth';
 import { TripFile } from '../types';
@@ -30,9 +30,7 @@ export const filesDir = path.join(__dirname, '../../uploads/files');
 // Helpers
 // ---------------------------------------------------------------------------
 
-export function verifyTripAccess(tripId: string | number, userId: number) {
-  return canAccessTrip(tripId, userId);
-}
+export { verifyTripAccess } from './tripAccess';
 
 export function getAllowedExtensions(): string {
   try {
@@ -48,7 +46,7 @@ const FILE_SELECT = `
   LEFT JOIN users u ON f.uploaded_by = u.id
 `;
 
-export function formatFile(file: TripFile & { trip_id?: number }) {
+export function formatFile(file: TripFile & { trip_id?: number; uploaded_by_avatar?: string | null }) {
   const tripId = file.trip_id;
   return {
     ...file,
@@ -111,10 +109,6 @@ export interface FileLink {
 
 export function getFileById(id: string | number, tripId: string | number): TripFile | undefined {
   return db.prepare('SELECT * FROM trip_files WHERE id = ? AND trip_id = ?').get(id, tripId) as TripFile | undefined;
-}
-
-export function getFileByIdFull(id: string | number): TripFile {
-  return db.prepare(`${FILE_SELECT} WHERE f.id = ?`).get(id) as TripFile;
 }
 
 export function getDeletedFile(id: string | number, tripId: string | number): TripFile | undefined {

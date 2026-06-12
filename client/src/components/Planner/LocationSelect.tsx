@@ -88,8 +88,8 @@ export default function LocationSelect({ value, onChange, placeholder, style }: 
 
   return (
     <div ref={wrapRef} style={{ position: 'relative', ...style }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px', background: 'var(--bg-tertiary)', borderRadius: 10, border: '1px solid var(--border-primary)' }}>
-        <MapPin size={14} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
+      <div className="bg-surface-tertiary" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px', borderRadius: 10, border: '1px solid var(--border-primary)' }}>
+        <MapPin size={14} className="text-content-faint" style={{ flexShrink: 0 }} />
         <input
           type="text"
           value={query}
@@ -97,19 +97,20 @@ export default function LocationSelect({ value, onChange, placeholder, style }: 
           onChange={(e) => { setQuery(e.target.value); setOpen(true); if (value) onChange(null) }}
           onFocus={() => setOpen(true)}
           onKeyDown={onKey}
-          style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: 13 }}
+          className="bg-transparent text-content"
+          style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', fontSize: 13 }}
         />
         {value && (
-          <button type="button" onClick={clear} style={{ background: 'transparent', border: 'none', padding: 2, cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }} aria-label="Clear">
+          <button type="button" onClick={clear} className="bg-transparent text-content-faint" style={{ border: 'none', padding: 2, cursor: 'pointer', display: 'flex' }} aria-label="Clear">
             <X size={14} />
           </button>
         )}
       </div>
 
       {open && (loading || results.length > 0) && (
-        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.18)', maxHeight: 260, overflowY: 'auto', zIndex: 1000 }}>
+        <div className="bg-surface-card" style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, border: '1px solid var(--border-primary)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.18)', maxHeight: 260, overflowY: 'auto', zIndex: 1000 }}>
           {loading && results.length === 0 && (
-            <div style={{ padding: 10, fontSize: 12, color: 'var(--text-faint)' }}>{t('common.loading')}</div>
+            <div className="text-content-faint" style={{ padding: 10, fontSize: 12 }}>{t('common.loading')}</div>
           )}
           {results.map((r, i) => (
             <button
@@ -117,18 +118,18 @@ export default function LocationSelect({ value, onChange, placeholder, style }: 
               type="button"
               onClick={() => pick(r)}
               onMouseEnter={() => setHighlight(i)}
+              className={`text-content ${i === highlight ? 'bg-surface-hover' : 'bg-transparent'}`}
               style={{
                 display: 'flex', alignItems: 'flex-start', gap: 8, width: '100%',
                 padding: '8px 12px', border: 'none', cursor: 'pointer', textAlign: 'left',
-                background: i === highlight ? 'var(--bg-hover)' : 'transparent',
-                color: 'var(--text-primary)', fontFamily: 'inherit',
+                fontFamily: 'inherit',
               }}
             >
-              <MapPin size={12} style={{ color: 'var(--text-faint)', marginTop: 2, flexShrink: 0 }} />
+              <MapPin size={12} className="text-content-faint" style={{ marginTop: 2, flexShrink: 0 }} />
               <span style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.name || r.address}</div>
                 {r.address && r.name !== r.address && (
-                  <div style={{ fontSize: 11, color: 'var(--text-faint)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.address}</div>
+                  <div className="text-content-faint" style={{ fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.address}</div>
                 )}
               </span>
             </button>

@@ -17,11 +17,7 @@ function useIsDesktop(breakpoint = 1024) {
   return isDesktop
 }
 
-const card = {
-  display: 'flex', flexDirection: 'column',
-  background: 'var(--bg-card)', borderRadius: 16, border: '1px solid var(--border-faint)',
-  overflow: 'hidden', minHeight: 0,
-}
+const cardClass = 'flex flex-col bg-surface-card rounded-2xl border border-edge-faint overflow-hidden min-h-0'
 
 interface TripMember {
   id: number
@@ -88,7 +84,7 @@ export default function CollabPanel({ tripId, tripMembers = [], collabFeatures }
       // Only chat
       return (
         <div style={{ height: '100%', display: 'flex', gap: 12, padding: 12, overflow: 'hidden', minHeight: 0 }}>
-          <div style={{ ...card, flex: 1 }}>
+          <div className={cardClass} style={{ flex: 1 }}>
             <CollabChat tripId={tripId} currentUser={user} />
           </div>
         </div>
@@ -99,19 +95,19 @@ export default function CollabPanel({ tripId, tripMembers = [], collabFeatures }
       // Chat left (380px) + right panels
       return (
         <div style={{ height: '100%', display: 'flex', gap: 12, padding: 12, overflow: 'hidden', minHeight: 0 }}>
-          <div style={{ ...card, flex: '0 0 380px' }}>
+          <div className={cardClass} style={{ flex: '0 0 380px' }}>
             <CollabChat tripId={tripId} currentUser={user} />
           </div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden', minHeight: 0 }}>
             {rightPanels.length === 1 && (
-              <div style={{ ...card, flex: 1 }}>
+              <div className={cardClass} style={{ flex: 1 }}>
                 {rightPanels[0] === 'notes' && <CollabNotes tripId={tripId} currentUser={user} />}
                 {rightPanels[0] === 'polls' && <CollabPolls tripId={tripId} currentUser={user} />}
                 {rightPanels[0] === 'whatsnext' && <WhatsNextWidget tripMembers={tripMembers} />}
               </div>
             )}
             {rightPanels.length === 2 && rightPanels.map(p => (
-              <div key={p} style={{ ...card, flex: 1 }}>
+              <div key={p} className={cardClass} style={{ flex: 1 }}>
                 {p === 'notes' && <CollabNotes tripId={tripId} currentUser={user} />}
                 {p === 'polls' && <CollabPolls tripId={tripId} currentUser={user} />}
                 {p === 'whatsnext' && <WhatsNextWidget tripMembers={tripMembers} />}
@@ -119,14 +115,14 @@ export default function CollabPanel({ tripId, tripMembers = [], collabFeatures }
             ))}
             {rightPanels.length === 3 && (
               <>
-                <div style={{ ...card, flex: 1 }}>
+                <div className={cardClass} style={{ flex: 1 }}>
                   <CollabNotes tripId={tripId} currentUser={user} />
                 </div>
                 <div style={{ flex: 1, display: 'flex', gap: 12, overflow: 'hidden', minHeight: 0 }}>
-                  <div style={{ ...card, flex: 1 }}>
+                  <div className={cardClass} style={{ flex: 1 }}>
                     <CollabPolls tripId={tripId} currentUser={user} />
                   </div>
-                  <div style={{ ...card, flex: 1 }}>
+                  <div className={cardClass} style={{ flex: 1 }}>
                     <WhatsNextWidget tripMembers={tripMembers} />
                   </div>
                 </div>
@@ -142,7 +138,7 @@ export default function CollabPanel({ tripId, tripMembers = [], collabFeatures }
     if (panels.length === 1) {
       return (
         <div style={{ height: '100%', display: 'flex', gap: 12, padding: 12, overflow: 'hidden', minHeight: 0 }}>
-          <div style={{ ...card, flex: 1 }}>
+          <div className={cardClass} style={{ flex: 1 }}>
             {panels[0] === 'notes' && <CollabNotes tripId={tripId} currentUser={user} />}
             {panels[0] === 'polls' && <CollabPolls tripId={tripId} currentUser={user} />}
             {panels[0] === 'whatsnext' && <WhatsNextWidget tripMembers={tripMembers} />}
@@ -154,7 +150,7 @@ export default function CollabPanel({ tripId, tripMembers = [], collabFeatures }
     return (
       <div style={{ height: '100%', display: 'flex', gap: 12, padding: 12, overflow: 'hidden', minHeight: 0 }}>
         {panels.map(p => (
-          <div key={p} style={{ ...card, flex: 1 }}>
+          <div key={p} className={cardClass} style={{ flex: 1 }}>
             {p === 'notes' && <CollabNotes tripId={tripId} currentUser={user} />}
             {p === 'polls' && <CollabPolls tripId={tripId} currentUser={user} />}
             {p === 'whatsnext' && <WhatsNextWidget tripMembers={tripMembers} />}

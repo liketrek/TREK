@@ -102,16 +102,15 @@ jobs:
           echo "VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "$STABLE → $NEW_VERSION ($BUMP)"
 
-          # Update package.json files and Helm chart
-          cd server && npm version "$NEW_VERSION" --no-git-tag-version && cd ..
-          cd client && npm version "$NEW_VERSION" --no-git-tag-version && cd ..
+          # Update all workspace + root package.json files and the root lockfile in one shot
+          npm version "$NEW_VERSION" --workspaces --include-workspace-root --no-git-tag-version
           sed -i "s/^version: .*/version: $NEW_VERSION/" charts/trek/Chart.yaml
           sed -i "s/^appVersion: .*/appVersion: \"$NEW_VERSION\"/" charts/trek/Chart.yaml
 
           # Commit and tag
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add server/package.json server/package-lock.json client/package.json client/package-lock.json charts/trek/Chart.yaml
+          git add package.json package-lock.json server/package.json client/package.json shared/package.json charts/trek/Chart.yaml
           git commit -m "chore: bump version to $NEW_VERSION [skip ci]"
           git tag "v$NEW_VERSION"
           git push origin main --follow-tags

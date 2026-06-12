@@ -56,7 +56,7 @@ describe('Modal', () => {
 
   it('FE-COMP-MODAL-008: clicking the backdrop calls onClose', () => {
     render(<Modal isOpen={true} onClose={onClose}><p>inner</p></Modal>);
-    const backdrop = document.querySelector('.modal-backdrop') as HTMLElement;
+    const backdrop = document.querySelector('.trek-modal-backdrop') as HTMLElement;
     // Simulate mousedown then click on the backdrop itself
     fireEvent.mouseDown(backdrop, { target: backdrop });
     fireEvent.click(backdrop);

@@ -1,0 +1,65 @@
+import type { TranslationStrings } from '../types';
+
+const perm: TranslationStrings = {
+  'perm.title': 'Jogosultsági beállítások',
+  'perm.subtitle':
+    'Szabályozd, ki milyen műveleteket végezhet az alkalmazásban',
+  'perm.saved': 'Jogosultsági beállítások mentve',
+  'perm.resetDefaults': 'Alapértelmezések visszaállítása',
+  'perm.customized': 'testreszabott',
+  'perm.level.admin': 'Csak adminisztrátor',
+  'perm.level.tripOwner': 'Utazás tulajdonosa',
+  'perm.level.tripMember': 'Utazás tagjai',
+  'perm.level.everybody': 'Mindenki',
+  'perm.cat.trip': 'Utazáskezelés',
+  'perm.cat.members': 'Tagkezelés',
+  'perm.cat.files': 'Fájlok',
+  'perm.cat.content': 'Tartalom és menetrend',
+  'perm.cat.extras': 'Költségvetés, csomagolás és együttműködés',
+  'perm.action.trip_create': 'Utazások létrehozása',
+  'perm.action.trip_edit': 'Utazás részleteinek szerkesztése',
+  'perm.action.trip_delete': 'Utazások törlése',
+  'perm.action.trip_archive': 'Utazások archiválása / visszaállítása',
+  'perm.action.trip_cover_upload': 'Borítókép feltöltése',
+  'perm.action.member_manage': 'Tagok hozzáadása / eltávolítása',
+  'perm.action.file_upload': 'Fájlok feltöltése',
+  'perm.action.file_edit': 'Fájl metaadatok szerkesztése',
+  'perm.action.file_delete': 'Fájlok törlése',
+  'perm.action.place_edit': 'Helyek hozzáadása / szerkesztése / törlése',
+  'perm.action.day_edit': 'Napok, jegyzetek és hozzárendelések szerkesztése',
+  'perm.action.reservation_edit': 'Foglalások kezelése',
+  'perm.action.budget_edit': 'Költségvetés kezelése',
+  'perm.action.packing_edit': 'Csomagolási listák kezelése',
+  'perm.action.collab_edit': 'Együttműködés (jegyzetek, szavazások, chat)',
+  'perm.action.share_manage': 'Megosztási linkek kezelése',
+  'perm.actionHint.trip_create': 'Ki hozhat létre új utazásokat',
+  'perm.actionHint.trip_edit':
+    'Ki módosíthatja az utazás nevét, dátumait, leírását és pénznemét',
+  'perm.actionHint.trip_delete': 'Ki törölhet véglegesen egy utazást',
+  'perm.actionHint.trip_archive':
+    'Ki archiválhat vagy állíthat vissza egy utazást',
+  'perm.actionHint.trip_cover_upload':
+    'Ki tölthet fel vagy módosíthat borítóképet',
+  'perm.actionHint.member_manage':
+    'Ki hívhat meg vagy távolíthat el utazás tagokat',
+  'perm.actionHint.file_upload': 'Ki tölthet fel fájlokat egy utazáshoz',
+  'perm.actionHint.file_edit':
+    'Ki szerkesztheti a fájlok leírásait és linkjeit',
+  'perm.actionHint.file_delete':
+    'Ki helyezhet fájlokat a kukába vagy törölheti véglegesen',
+  'perm.actionHint.place_edit':
+    'Ki adhat hozzá, szerkeszthet vagy törölhet helyeket',
+  'perm.actionHint.day_edit':
+    'Ki szerkesztheti a napokat, napi jegyzeteket és hely-hozzárendeléseket',
+  'perm.actionHint.reservation_edit':
+    'Ki hozhat létre, szerkeszthet vagy törölhet foglalásokat',
+  'perm.actionHint.budget_edit':
+    'Ki hozhat létre, szerkeszthet vagy törölhet költségvetési tételeket',
+  'perm.actionHint.packing_edit':
+    'Ki kezelheti a csomagolási tételeket és táskákat',
+  'perm.actionHint.collab_edit':
+    'Ki hozhat létre jegyzeteket, szavazásokat és küldhet üzeneteket',
+  'perm.actionHint.share_manage':
+    'Ki hozhat létre vagy törölhet nyilvános megosztási linkeket',
+};
+export default perm;

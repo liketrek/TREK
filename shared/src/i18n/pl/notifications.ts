@@ -1,0 +1,36 @@
+import type { TranslationStrings } from '../types';
+
+const notifications: TranslationStrings = {
+  'notifications.title': 'Powiadomienia',
+  'notifications.markAllRead': 'Oznacz wszystkie jako przeczytane',
+  'notifications.deleteAll': 'Usuń wszystkie',
+  'notifications.showAll': 'Pokaż wszystkie',
+  'notifications.empty': 'Brak powiadomień',
+  'notifications.emptyDescription': 'Jesteś na bieżąco!',
+  'notifications.all': 'Wszystkie',
+  'notifications.unreadOnly': 'Nieprzeczytane',
+  'notifications.markRead': 'Oznacz jako przeczytane',
+  'notifications.markUnread': 'Oznacz jako nieprzeczytane',
+  'notifications.delete': 'Usuń',
+  'notifications.system': 'System',
+  'notifications.synologySessionCleared.title': 'Synology Photos rozłączone',
+  'notifications.synologySessionCleared.text':
+    'Twój serwer lub konto zostało zmienione — przejdź do Ustawień, aby ponownie przetestować połączenie.',
+  'notifications.versionAvailable.title': 'Dostępna aktualizacja',
+  'notifications.versionAvailable.text': 'TREK {version} jest już dostępny.',
+  'notifications.versionAvailable.button': 'Zobacz szczegóły',
+  'notifications.test.title': 'Testowe powiadomienie od {actor}',
+  'notifications.test.text': 'To jest powiadomienie testowe.',
+  'notifications.test.booleanTitle': '{actor} prosi o akceptację',
+  'notifications.test.booleanText': 'Testowe powiadomienie z wyborem.',
+  'notifications.test.accept': 'Zatwierdź',
+  'notifications.test.decline': 'Odrzuć',
+  'notifications.test.navigateTitle': 'Sprawdź coś',
+  'notifications.test.navigateText': 'Testowe powiadomienie nawigacyjne.',
+  'notifications.test.goThere': 'Przejdź tam',
+  'notifications.test.adminTitle': 'Komunikat administracyjny',
+  'notifications.test.adminText': '{actor} wysłał testowe powiadomienie.',
+  'notifications.test.tripTitle': '{actor} opublikował w Twojej podróży',
+  'notifications.test.tripText': 'Testowe powiadomienie dla podróży "{trip}".',
+};
+export default notifications;

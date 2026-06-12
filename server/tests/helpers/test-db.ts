@@ -17,8 +17,11 @@
  */
 
 import Database from 'better-sqlite3';
+import type { INestApplication } from '@nestjs/common';
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
+import { AuthPublicController } from '../../src/nest/auth/auth-public.controller';
+import type { RateLimitService } from '../../src/nest/auth/rate-limit.service';
 
 // Tables to clear on reset, child-before-parent to be safe (FK checks are OFF during reset).
 // Keep in sync with schema.ts + migrations.ts. Intentionally excluded: categories, addons,
@@ -117,7 +120,7 @@ const DEFAULT_CATEGORIES = [
 
 const DEFAULT_ADDONS = [
   { id: 'packing',   name: 'Packing List',    description: 'Pack your bags',            type: 'trip',        icon: 'ListChecks',  enabled: 1, sort_order: 0  },
-  { id: 'budget',    name: 'Budget Planner',  description: 'Track expenses',             type: 'trip',        icon: 'Wallet',      enabled: 1, sort_order: 1  },
+  { id: 'budget',    name: 'Costs',           description: 'Track and split trip expenses', type: 'trip',     icon: 'Wallet',      enabled: 1, sort_order: 1  },
   { id: 'documents', name: 'Documents',       description: 'Manage travel documents',    type: 'trip',        icon: 'FileText',    enabled: 1, sort_order: 2  },
   { id: 'vacay',     name: 'Vacay',           description: 'Vacation day planner',       type: 'global',      icon: 'CalendarDays',enabled: 1, sort_order: 10 },
   { id: 'atlas',     name: 'Atlas',           description: 'Visited countries map',      type: 'global',      icon: 'Globe',       enabled: 1, sort_order: 11 },
@@ -238,9 +241,28 @@ export function buildDbMock(testDb: Database.Database) {
   };
 }
 
+/**
+ * Resets the Nest per-IP rate-limit buckets between tests — the buildApp() drop-in
+ * for the legacy `loginAttempts.clear(); mfaAttempts.clear()`.
+ *
+ * The Nest auth path keeps its rate-limit state in a RateLimitService instance that
+ * lives inside the AuthModule injector (shared by AuthPublicController/AuthController
+ * for the login/mfa/forgot buckets). The same class is ALSO provided separately in
+ * OauthModule (its own instance, distinct oauth_* buckets), so a plain
+ * app.get(RateLimitService) is ambiguous and may hand back the wrong instance — we
+ * resolve the auth controller and clear the limiter it actually uses.
+ */
+export function resetRateLimits(app: INestApplication): void {
+  const ctrl = app.get(AuthPublicController, { strict: false }) as unknown as { rl: RateLimitService };
+  ctrl.rl.reset();
+}
+
 /** Fixed config mock — use with vi.mock('../../src/config', () => TEST_CONFIG) */
 export const TEST_CONFIG = {
   JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
   ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
   updateJwtSecret: () => {},
+  SESSION_DURATION: '24h',
+  SESSION_DURATION_MS: 86400000,
+  SESSION_DURATION_SECONDS: 86400,
 };

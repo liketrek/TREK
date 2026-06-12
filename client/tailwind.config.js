@@ -31,6 +31,34 @@ export default {
           dragActive: '#eef2ff',
           dragOver: '#c7d2fe',
         },
+        // Semantic theme tokens — resolve to the CSS variables in src/index.css
+        // (:root light / .dark dark). Use these utilities (bg-surface, text-content,
+        // border-edge, bg-accent) instead of inline `style={{ ... 'var(--...)' }}`.
+        surface: {
+          DEFAULT: 'var(--bg-primary)',
+          secondary: 'var(--bg-secondary)',
+          tertiary: 'var(--bg-tertiary)',
+          elevated: 'var(--bg-elevated)',
+          card: 'var(--bg-card)',
+          input: 'var(--bg-input)',
+          hover: 'var(--bg-hover)',
+          selected: 'var(--bg-selected)',
+        },
+        content: {
+          DEFAULT: 'var(--text-primary)',
+          secondary: 'var(--text-secondary)',
+          muted: 'var(--text-muted)',
+          faint: 'var(--text-faint)',
+        },
+        edge: {
+          DEFAULT: 'var(--border-primary)',
+          secondary: 'var(--border-secondary)',
+          faint: 'var(--border-faint)',
+        },
+        accent: {
+          DEFAULT: 'var(--accent)',
+          text: 'var(--accent-text)',
+        },
       },
       boxShadow: {
         'day-column': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',

@@ -45,8 +45,7 @@ export default function InAppNotificationBell(): React.ReactElement {
       <button
         onClick={handleOpen}
         title={t('notifications.title')}
-        className="relative p-2 rounded-lg transition-colors"
-        style={{ color: 'var(--text-muted)' }}
+        className="relative p-2 rounded-lg transition-colors text-content-muted"
         onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
       >
@@ -72,7 +71,7 @@ export default function InAppNotificationBell(): React.ReactElement {
         <>
           <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }} onClick={() => setOpen(false)} />
           <div
-            className="rounded-xl shadow-xl border overflow-hidden"
+            className="rounded-xl shadow-xl border overflow-hidden bg-surface-card border-edge"
             style={{
               position: 'fixed',
               top: 'var(--nav-h)',
@@ -81,22 +80,18 @@ export default function InAppNotificationBell(): React.ReactElement {
               maxWidth: 'calc(100vw - 16px)',
               maxHeight: 'min(480px, calc(100vh - var(--nav-h) - 16px))',
               zIndex: 9999,
-              background: 'var(--bg-card)',
-              borderColor: 'var(--border-primary)',
               display: 'flex',
               flexDirection: 'column',
             }}
           >
             {/* Header */}
             <div
-              className="flex items-center justify-between px-4 py-3 flex-shrink-0"
-              style={{ borderBottom: '1px solid var(--border-secondary)' }}
+              className="flex items-center justify-between px-4 py-3 flex-shrink-0 border-b border-edge-secondary"
             >
-              <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+              <span className="text-sm font-semibold text-content">
                 {t('notifications.title')}
                 {unreadCount > 0 && (
-                  <span className="ml-2 px-1.5 py-0.5 rounded-full text-xs font-medium"
-                    style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}>
+                  <span className="ml-2 px-1.5 py-0.5 rounded-full text-xs font-medium bg-content text-surface">
                     {unreadCount}
                   </span>
                 )}
@@ -106,8 +101,7 @@ export default function InAppNotificationBell(): React.ReactElement {
                   <button
                     onClick={markAllRead}
                     title={t('notifications.markAllRead')}
-                    className="p-1.5 rounded-lg transition-colors"
-                    style={{ color: 'var(--text-muted)' }}
+                    className="p-1.5 rounded-lg transition-colors text-content-muted"
                     onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
@@ -118,8 +112,7 @@ export default function InAppNotificationBell(): React.ReactElement {
                   <button
                     onClick={deleteAll}
                     title={t('notifications.deleteAll')}
-                    className="p-1.5 rounded-lg transition-colors"
-                    style={{ color: 'var(--text-muted)' }}
+                    className="p-1.5 rounded-lg transition-colors text-content-muted"
                     onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
@@ -133,13 +126,13 @@ export default function InAppNotificationBell(): React.ReactElement {
             <div className="overflow-y-auto flex-1">
               {isLoading && notifications.length === 0 ? (
                 <div className="flex items-center justify-center py-10">
-                  <div className="w-5 h-5 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--border-primary)', borderTopColor: 'var(--text-primary)' }} />
+                  <div className="w-5 h-5 border-2 rounded-full animate-spin border-edge border-t-content" />
                 </div>
               ) : notifications.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 px-4 text-center gap-2">
-                  <Bell className="w-8 h-8" style={{ color: 'var(--text-faint)' }} />
-                  <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>{t('notifications.empty')}</p>
-                  <p className="text-xs" style={{ color: 'var(--text-faint)' }}>{t('notifications.emptyDescription')}</p>
+                  <Bell className="w-8 h-8 text-content-faint" />
+                  <p className="text-sm font-medium text-content-muted">{t('notifications.empty')}</p>
+                  <p className="text-xs text-content-faint">{t('notifications.emptyDescription')}</p>
                 </div>
               ) : (
                 notifications.slice(0, 10).map(n => (
@@ -151,10 +144,8 @@ export default function InAppNotificationBell(): React.ReactElement {
             {/* Footer */}
             <button
               onClick={handleShowAll}
-              className="w-full py-2.5 text-xs font-medium transition-colors flex-shrink-0"
+              className="w-full py-2.5 text-xs font-medium transition-colors flex-shrink-0 border-t border-edge-secondary text-content"
               style={{
-                borderTop: '1px solid var(--border-secondary)',
-                color: 'var(--text-primary)',
                 background: 'transparent',
               }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}

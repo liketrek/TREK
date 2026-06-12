@@ -1,0 +1,32 @@
+import type { TranslationStrings } from '../types';
+
+const trip: TranslationStrings = {
+  'trip.tabs.plan': 'Plan',
+  'trip.tabs.transports': 'Transport',
+  'trip.tabs.reservations': 'Boekingen',
+  'trip.tabs.reservationsShort': 'Boek',
+  'trip.tabs.packing': 'Paklijst',
+  'trip.tabs.packingShort': 'Inpakken',
+  'trip.tabs.lists': 'Lijsten',
+  'trip.tabs.listsShort': 'Lijsten',
+  'trip.tabs.budget': "Costs",
+  'trip.tabs.files': 'Bestanden',
+  'trip.loading': 'Reis laden...',
+  'trip.loadingPhotos': 'Plaatsfoto laden...',
+  'trip.mobilePlan': 'Plan',
+  'trip.mobilePlaces': 'Plaatsen',
+  'trip.toast.placeUpdated': 'Plaats bijgewerkt',
+  'trip.toast.placeAdded': 'Plaats toegevoegd',
+  'trip.toast.placeDeleted': 'Plaats verwijderd',
+  'trip.toast.selectDay': 'Selecteer eerst een dag',
+  'trip.toast.assignedToDay': 'Plaats toegewezen aan dag',
+  'trip.toast.reorderError': 'Herordenen mislukt',
+  'trip.toast.reservationUpdated': 'Reservering bijgewerkt',
+  'trip.toast.reservationAdded': 'Reservering toegevoegd',
+  'trip.toast.deleted': 'Verwijderd',
+  'trip.confirm.deletePlace':
+    'Weet je zeker dat je deze plaats wilt verwijderen?',
+  'trip.confirm.deletePlaces': '{count} plaatsen verwijderen?',
+  'trip.toast.placesDeleted': '{count} plaatsen verwijderd',
+};
+export default trip;

@@ -9,21 +9,21 @@ beforeEach(() => {
 
 describe('remoteEventHandler > trip', () => {
   it('FE-WSEVT-TRIP-001: trip:updated replaces trip in state', () => {
-    const originalTrip = buildTrip({ id: 1, name: 'Paris Trip' });
+    const originalTrip = buildTrip({ id: 1, title: 'Paris Trip' });
     useTripStore.setState({ trip: originalTrip });
-    const updatedTrip = buildTrip({ id: 1, name: 'Paris & Lyon Trip' });
+    const updatedTrip = buildTrip({ id: 1, title: 'Paris & Lyon Trip' });
     useTripStore.getState().handleRemoteEvent({ type: 'trip:updated', trip: updatedTrip });
     const { trip } = useTripStore.getState();
-    expect(trip?.name).toBe('Paris & Lyon Trip');
+    expect(trip?.title).toBe('Paris & Lyon Trip');
   });
 
   it('FE-WSEVT-TRIP-002: trip:updated does not affect other state fields', () => {
     const existingPlace = buildPlace({ id: 55, name: 'Eiffel Tower' });
     useTripStore.setState({
-      trip: buildTrip({ id: 1, name: 'Original' }),
+      trip: buildTrip({ id: 1, title: 'Original' }),
       places: [existingPlace],
     });
-    const updatedTrip = buildTrip({ id: 1, name: 'Updated' });
+    const updatedTrip = buildTrip({ id: 1, title: 'Updated' });
     useTripStore.getState().handleRemoteEvent({ type: 'trip:updated', trip: updatedTrip });
     const { places } = useTripStore.getState();
     expect(places).toHaveLength(1);

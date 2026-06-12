@@ -175,7 +175,7 @@ describe('CollabNotes', () => {
     expect(document.body).toBeInTheDocument();
   });
 
-  it('FE-COMP-NOTES-013: delete note calls DELETE API and removes it from grid', async () => {
+  it('FE-COMP-NOTES-013: deleting a note asks for confirmation, then calls DELETE API and removes it', async () => {
     const user = userEvent.setup();
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
@@ -193,8 +193,11 @@ describe('CollabNotes', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Remove Me');
-    const deleteBtn = screen.getByTitle('Delete');
-    await user.click(deleteBtn);
+    await user.click(screen.getByTitle('Delete'));
+    // Deleting now asks for confirmation first — the note stays until confirmed.
+    expect(screen.getByText('Delete note?')).toBeInTheDocument();
+    expect(screen.getByText('Remove Me')).toBeInTheDocument();
+    await user.click(document.querySelector('button.bg-red-600') as HTMLElement);
     await waitFor(() => expect(screen.queryByText('Remove Me')).not.toBeInTheDocument());
   });
 

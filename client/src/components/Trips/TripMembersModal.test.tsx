@@ -179,7 +179,7 @@ describe('TripMembersModal', () => {
   it('FE-COMP-MEMBERS-016: share link section not rendered for non-owner', async () => {
     const nonOwner = buildUser({ id: 99, username: 'stranger' });
     seedStore(useAuthStore, { user: nonOwner, isAuthenticated: true });
-    seedStore(useTripStore, { trip: buildTrip({ id: 1, owner_id: 1 }) });
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, user_id: 1 }) });
     seedStore(usePermissionsStore, { permissions: { share_manage: 'trip_owner' } });
 
     render(<TripMembersModal {...defaultProps} />);
@@ -190,7 +190,7 @@ describe('TripMembersModal', () => {
 
   it('FE-COMP-MEMBERS-017: share link section visible for owner', async () => {
     seedStore(usePermissionsStore, { permissions: { share_manage: 'trip_owner' } });
-    seedStore(useTripStore, { trip: buildTrip({ id: 1, owner_id: ownerUser.id }) });
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, user_id: ownerUser.id }) });
 
     render(<TripMembersModal {...defaultProps} />);
     await screen.findByText('Public Link');
@@ -199,7 +199,7 @@ describe('TripMembersModal', () => {
   it('FE-COMP-MEMBERS-018: create share link shows URL after clicking create', async () => {
     const user = userEvent.setup();
     seedStore(usePermissionsStore, { permissions: { share_manage: 'trip_owner' } });
-    seedStore(useTripStore, { trip: buildTrip({ id: 1, owner_id: ownerUser.id }) });
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, user_id: ownerUser.id }) });
 
     // GET returns null token initially; POST returns a new token
     server.use(
@@ -229,7 +229,7 @@ describe('TripMembersModal', () => {
   it('FE-COMP-MEMBERS-019: copy share link calls clipboard.writeText', async () => {
     const user = userEvent.setup();
     seedStore(usePermissionsStore, { permissions: { share_manage: 'trip_owner' } });
-    seedStore(useTripStore, { trip: buildTrip({ id: 1, owner_id: ownerUser.id }) });
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, user_id: ownerUser.id }) });
 
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', {
@@ -261,7 +261,7 @@ describe('TripMembersModal', () => {
   it('FE-COMP-MEMBERS-020: delete share link removes URL and shows create button', async () => {
     const user = userEvent.setup();
     seedStore(usePermissionsStore, { permissions: { share_manage: 'trip_owner' } });
-    seedStore(useTripStore, { trip: buildTrip({ id: 1, owner_id: ownerUser.id }) });
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, user_id: ownerUser.id }) });
 
     let deleteHandlerCalled = false;
     server.use(
@@ -292,7 +292,7 @@ describe('TripMembersModal', () => {
   it('FE-COMP-MEMBERS-021: clicking permission toggle calls POST with updated perms', async () => {
     const user = userEvent.setup();
     seedStore(usePermissionsStore, { permissions: { share_manage: 'trip_owner' } });
-    seedStore(useTripStore, { trip: buildTrip({ id: 1, owner_id: ownerUser.id }) });
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, user_id: ownerUser.id }) });
 
     let postedPerms: Record<string, unknown> | null = null;
     server.use(
@@ -376,7 +376,7 @@ describe('TripMembersModal', () => {
     });
 
     seedStore(useAuthStore, { user: memberUser, isAuthenticated: true });
-    seedStore(useTripStore, { trip: buildTrip({ id: 1, owner_id: ownerUser.id }) });
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, user_id: ownerUser.id }) });
 
     let deleteCalledForUserId: string | null = null;
     server.use(

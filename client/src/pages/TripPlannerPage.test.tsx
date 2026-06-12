@@ -97,8 +97,8 @@ vi.mock('../components/Files/FileManager', () => ({
   },
 }));
 
-vi.mock('../components/Budget/BudgetPanel', () => ({
-  default: () => React.createElement('div', { 'data-testid': 'budget-panel' }),
+vi.mock('../components/Budget/CostsPanel', () => ({
+  default: () => React.createElement('div', { 'data-testid': 'costs-panel' }),
 }));
 
 vi.mock('../components/Packing/PackingListPanel', () => ({
@@ -252,7 +252,7 @@ describe('TripPlannerPage', () => {
       renderPlannerPage(42);
 
       await waitFor(() => {
-        expect(mockLoadTrip).toHaveBeenCalledWith('42');
+        expect(mockLoadTrip).toHaveBeenCalledWith(42);
       });
     });
   });
@@ -298,7 +298,7 @@ describe('TripPlannerPage', () => {
       renderPlannerPage(999);
 
       await waitFor(() => {
-        expect(mockLoadTrip).toHaveBeenCalledWith('999');
+        expect(mockLoadTrip).toHaveBeenCalledWith(999);
       });
     });
   });
@@ -359,13 +359,13 @@ describe('TripPlannerPage', () => {
   });
 
   describe('FE-PAGE-PLANNER-008: WebSocket hook mounted', () => {
-    it('calls useTripWebSocket with the trip ID string', async () => {
+    it('calls useTripWebSocket with the trip ID from URL params', async () => {
       seedTripStore({ id: 15 });
 
       renderPlannerPage(15);
 
       await waitFor(() => {
-        expect(mockUseTripWebSocket).toHaveBeenCalledWith('15');
+        expect(mockUseTripWebSocket).toHaveBeenCalledWith(15);
       });
     });
   });
@@ -436,8 +436,8 @@ describe('TripPlannerPage', () => {
     });
   });
 
-  describe('FE-PAGE-PLANNER-012: Budget tab renders BudgetPanel', () => {
-    it('shows BudgetPanel after clicking the Budget tab with budget addon enabled', async () => {
+  describe('FE-PAGE-PLANNER-012: Costs tab renders CostsPanel', () => {
+    it('shows CostsPanel after clicking the Costs tab with budget addon enabled', async () => {
       server.use(
         http.get('/api/addons', () =>
           HttpResponse.json({ addons: [{ id: 'budget', type: 'budget' }] })
@@ -454,11 +454,11 @@ describe('TripPlannerPage', () => {
 
       vi.useRealTimers();
 
-      const budgetTab = await screen.findByTitle('Budget');
-      fireEvent.click(budgetTab);
+      const costsTab = await screen.findByTitle('Costs');
+      fireEvent.click(costsTab);
 
       await waitFor(() => {
-        expect(screen.getByTestId('budget-panel')).toBeInTheDocument();
+        expect(screen.getByTestId('costs-panel')).toBeInTheDocument();
       });
     });
   });

@@ -1,6 +1,3 @@
-import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
-import { useParams } from 'react-router-dom'
-import { journeyApi } from '../api/client'
 import { useTranslation, SUPPORTED_LANGUAGES } from '../i18n'
 import { useSettingsStore } from '../store/settingsStore'
 import {
@@ -10,51 +7,13 @@ import {
   ThumbsUp, ThumbsDown,
 } from 'lucide-react'
 import JourneyMap from '../components/Journey/JourneyMap'
-import type { JourneyMapHandle } from '../components/Journey/JourneyMap'
 import JournalBody from '../components/Journey/JournalBody'
 import PhotoLightbox from '../components/Journey/PhotoLightbox'
 import MobileMapTimeline from '../components/Journey/MobileMapTimeline'
 import MobileEntryView from '../components/Journey/MobileEntryView'
-import { useIsMobile } from '../hooks/useIsMobile'
 import { formatLocationName } from '../utils/formatters'
 import { DAY_COLORS } from '../components/Journey/dayColors'
-
-interface PublicEntry {
-  id: number
-  title?: string | null
-  story?: string | null
-  entry_date: string
-  entry_time?: string | null
-  location_name?: string | null
-  location_lat?: number | null
-  location_lng?: number | null
-  mood?: string | null
-  weather?: string | null
-  pros_cons?: { pros: string[]; cons: string[] } | null
-  photos: PublicPhoto[]
-}
-
-interface PublicPhoto {
-  id: number
-  entry_id: number
-  photo_id: number
-  provider?: string
-  asset_id?: string | null
-  owner_id?: number | null
-  file_path?: string | null
-  caption?: string | null
-}
-
-interface PublicGalleryPhoto {
-  id: number
-  journey_id: number
-  photo_id: number
-  provider?: string
-  asset_id?: string | null
-  owner_id?: number | null
-  file_path?: string | null
-  caption?: string | null
-}
+import { useJourneyPublic } from './journeyPublic/useJourneyPublic'
 
 const MOOD_CONFIG: Record<string, { icon: typeof Smile; label: string; bg: string; text: string }> = {
   amazing: { icon: Laugh,  label: 'Amazing', bg: 'bg-pink-50 dark:bg-pink-900/20',   text: 'text-pink-600 dark:text-pink-400' },
@@ -85,97 +44,18 @@ function formatDate(d: string, locale?: string): { weekday: string; month: strin
   }
 }
 
-function groupByDate(entries: PublicEntry[]): Map<string, PublicEntry[]> {
-  const groups = new Map<string, PublicEntry[]>()
-  for (const e of entries) {
-    const d = e.entry_date
-    if (!groups.has(d)) groups.set(d, [])
-    groups.get(d)!.push(e)
-  }
-  return groups
-}
-
 export default function JourneyPublicPage() {
-  const { token } = useParams()
-  const [data, setData] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
-  const isMobile = useIsMobile()
-  const [view, setView] = useState<'timeline' | 'gallery' | 'map'>('timeline')
-  const [lightbox, setLightbox] = useState<{ photos: { id: string; src: string; caption?: string | null }[]; index: number } | null>(null)
   const { t } = useTranslation()
-  const [showLangPicker, setShowLangPicker] = useState(false)
-  const locale = useSettingsStore(s => s.settings.language) || 'en'
-  const mapRef = useRef<JourneyMapHandle>(null)
-  const [activeEntryId, setActiveEntryId] = useState<string | null>(null)
-  const [viewingEntry, setViewingEntry] = useState<PublicEntry | null>(null)
-
-  const handleMarkerClick = useCallback((entryId: string) => {
-    setActiveEntryId(entryId)
-    mapRef.current?.highlightMarker(entryId)
-    document.querySelector(`[data-entry-id="${entryId}"]`)
-      ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }, [])
-
-  useEffect(() => {
-    if (!token) return
-    journeyApi.getPublicJourney(token)
-      .then(d => setData(d))
-      .catch(() => setError(true))
-      .finally(() => setLoading(false))
-  }, [token])
-
-  const entries = (data?.entries || []) as PublicEntry[]
-  const gallery = (data?.gallery || []) as PublicGalleryPhoto[]
-  const perms = data?.permissions || {}
-  const journey = data?.journey || {}
-  const stats = data?.stats || {}
-
-  const timelineEntries = useMemo(() => entries, [entries])
-  const groupedEntries = useMemo(() => groupByDate(timelineEntries), [timelineEntries])
-  const sortedDates = useMemo(() => [...groupedEntries.keys()].sort(), [groupedEntries])
-  const mapEntries = useMemo(
-    () => timelineEntries.filter(e => e.location_lat && e.location_lng),
-    [timelineEntries],
-  )
-  const allPhotos = gallery
-
-  // Map entries with day color/label for colored markers.
-  // dayIdx is derived from sortedDates (ALL timeline dates) so marker colors
-  // stay in sync with the timeline day headers even when some days have no locations.
-  const sidebarMapItems = useMemo(() => {
-    const counters = new Map<string, number>()
-    return mapEntries.map(e => {
-      const dayIdx = sortedDates.indexOf(e.entry_date)
-      const dayLabel = (counters.get(e.entry_date) ?? 0) + 1
-      counters.set(e.entry_date, dayLabel)
-      return {
-        id: String(e.id),
-        lat: e.location_lat!,
-        lng: e.location_lng!,
-        title: e.title || '',
-        mood: e.mood,
-        created_at: e.entry_date,
-        entry_date: e.entry_date,
-        dayColor: DAY_COLORS[dayIdx % DAY_COLORS.length],
-        dayLabel,
-      }
-    })
-  }, [mapEntries, sortedDates])
-
-  // Two-column desktop layout: timeline feed left + sticky map right
-  const desktopTwoColumn = !isMobile && perms.share_timeline && perms.share_map
-
-  // Set default view based on permissions
-  useEffect(() => {
-    if (!perms.share_timeline && perms.share_gallery) setView('gallery')
-    else if (!perms.share_timeline && !perms.share_gallery && perms.share_map) setView('map')
-  }, [perms])
-
-  // When switching to desktop two-column, 'map' standalone tab no longer exists
-  useEffect(() => {
-    if (desktopTwoColumn && view === 'map') setView('timeline')
-  }, [desktopTwoColumn, view])
+  // Page = wiring container: the share fetch, view state and all timeline/map
+  // derivations live in the hook; the render helpers below stay next to the JSX.
+  const {
+    token, data, loading, error, isMobile, locale,
+    view, setView, lightbox, setLightbox, showLangPicker, setShowLangPicker,
+    mapRef, activeEntryId, setActiveEntryId, viewingEntry, setViewingEntry, handleMarkerClick,
+    perms, journey, stats,
+    timelineEntries, groupedEntries, sortedDates, sidebarMapItems, allPhotos,
+    desktopTwoColumn,
+  } = useJourneyPublic()
 
   if (loading) {
     return (

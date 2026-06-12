@@ -9,14 +9,15 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import mapboxgl from 'mapbox-gl'
-import { Plane, Train, Ship, Car } from 'lucide-react'
+import { Plane, Train, Ship, Car, Bus, Sailboat, Bike, CarTaxiFront, Route } from 'lucide-react'
+import { escapeHtml } from '@trek/shared'
 import type { Reservation, ReservationEndpoint } from '../../types'
 
 export const RESERVATION_SOURCE_ID = 'trek-reservations'
 export const RESERVATION_LINE_LAYER_ID = 'trek-reservations-lines'
 
-type TransportType = 'flight' | 'train' | 'cruise' | 'car'
-const TRANSPORT_TYPES: TransportType[] = ['flight', 'train', 'cruise', 'car']
+type TransportType = 'flight' | 'train' | 'cruise' | 'car' | 'bus' | 'taxi' | 'bicycle' | 'ferry' | 'transport_other'
+const TRANSPORT_TYPES: TransportType[] = ['flight', 'train', 'cruise', 'car', 'bus', 'taxi', 'bicycle', 'ferry', 'transport_other']
 const TRANSPORT_COLOR = '#3b82f6'
 
 const TYPE_META: Record<TransportType, { icon: typeof Plane; geodesic: boolean }> = {
@@ -24,6 +25,11 @@ const TYPE_META: Record<TransportType, { icon: typeof Plane; geodesic: boolean }
   train: { icon: Train, geodesic: false },
   cruise: { icon: Ship, geodesic: true },
   car: { icon: Car, geodesic: false },
+  bus: { icon: Bus, geodesic: false },
+  taxi: { icon: CarTaxiFront, geodesic: false },
+  bicycle: { icon: Bike, geodesic: false },
+  ferry: { icon: Sailboat, geodesic: true },
+  transport_other: { icon: Route, geodesic: false },
 }
 
 // ── geometry helpers (ported from ReservationOverlay.tsx) ────────────────
@@ -120,6 +126,7 @@ interface TransportItem {
   res: Reservation
   from: ReservationEndpoint
   to: ReservationEndpoint
+  waypoints: ReservationEndpoint[]
   type: TransportType
   arcs: [number, number][][]
   primaryArc: [number, number][]
@@ -131,23 +138,38 @@ function buildItems(reservations: Reservation[]): TransportItem[] {
   const out: TransportItem[] = []
   for (const r of reservations) {
     if (!TRANSPORT_TYPES.includes(r.type as TransportType)) continue
-    const eps = r.endpoints || []
-    const from = eps.find(e => e.role === 'from')
-    const to = eps.find(e => e.role === 'to')
-    if (!from || !to) continue
+    // Ordered waypoints (from · stops · to); a single-leg booking has exactly two.
+    const waypoints = (r.endpoints || [])
+      .filter(e => e.role === 'from' || e.role === 'to' || e.role === 'stop')
+      .slice()
+      .sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0))
+    if (waypoints.length < 2) continue
+    const from = waypoints[0]
+    const to = waypoints[waypoints.length - 1]
     const type = r.type as TransportType
     const isGeo = TYPE_META[type].geodesic
-    const arcs = isGeo
-      ? splitAntimeridian(greatCircle([from.lat, from.lng], [to.lat, to.lng]))
-      : [[[from.lat, from.lng], [to.lat, to.lng]] as [number, number][]]
+    // One arc per leg (between consecutive waypoints), concatenated.
+    const arcs: [number, number][][] = []
+    let distanceKm = 0
+    for (let i = 0; i < waypoints.length - 1; i++) {
+      const a = waypoints[i]
+      const b = waypoints[i + 1]
+      const segArcs = isGeo
+        ? splitAntimeridian(greatCircle([a.lat, a.lng], [b.lat, b.lng]))
+        : [[[a.lat, a.lng], [b.lat, b.lng]] as [number, number][]]
+      arcs.push(...segArcs)
+      distanceKm += haversineKm([a.lat, a.lng], [b.lat, b.lng])
+    }
     const primaryIdx = arcs.reduce((best, seg, idx, all) => seg.length > all[best].length ? idx : best, 0)
     const primaryArc = arcs[primaryIdx] ?? []
     const duration = computeDuration(from, to, r.reservation_time || null, r.reservation_end_time || null)
-    const distance = `${Math.round(haversineKm([from.lat, from.lng], [to.lat, to.lng]))} km`
-    const mainLabel = from.code && to.code ? `${from.code} → ${to.code}` : null
+    const distance = `${Math.round(distanceKm)} km`
+    const mainLabel = waypoints.every(w => w.code)
+      ? waypoints.map(w => w.code).join(' → ')
+      : (from.code && to.code ? `${from.code} → ${to.code}` : null)
     const subParts = [duration, distance].filter(Boolean) as string[]
     const subLabel = subParts.length > 0 ? subParts.join(' · ') : null
-    out.push({ res: r, from, to, type, arcs, primaryArc, mainLabel, subLabel })
+    out.push({ res: r, from, to, waypoints, type, arcs, primaryArc, mainLabel, subLabel })
   }
   return out
 }
@@ -156,13 +178,13 @@ function buildItems(reservations: Reservation[]): TransportItem[] {
 function endpointMarkerHtml(type: TransportType, label: string | null): string {
   const { icon: IconCmp } = TYPE_META[type]
   const svg = renderToStaticMarkup(createElement(IconCmp, { size: 13, color: 'white', strokeWidth: 2.5 }))
-  const labelHtml = label ? `<span style="display:inline-flex;align-items:center;line-height:1">${label}</span>` : ''
+  const labelHtml = label ? `<span style="display:inline-flex;align-items:center;line-height:1">${escapeHtml(label)}</span>` : ''
   return `<div style="
     display:inline-flex;align-items:center;justify-content:center;gap:4px;
     padding:0 8px;border-radius:999px;
     background:${TRANSPORT_COLOR};box-shadow:0 2px 6px rgba(0,0,0,0.25);
     border:1.5px solid #fff;color:#fff;
-    font-family:-apple-system,system-ui,sans-serif;font-size:11px;font-weight:600;letter-spacing:0.3px;line-height:1;
+    font-family:var(--font-system);font-size:11px;font-weight:600;letter-spacing:0.3px;line-height:1;
     box-sizing:border-box;height:22px;white-space:nowrap;cursor:pointer;
   "><span style="display:inline-flex;align-items:center;">${svg}</span>${labelHtml}</div>`
 }
@@ -174,8 +196,8 @@ function buildStatsHtml(mainLabel: string | null, subLabel: string | null): { ht
   ) + 22
   const hasBoth = !!mainLabel && !!subLabel
   const height = hasBoth ? 36 : 22
-  const main = mainLabel ? `<span style="font-size:12px;font-weight:700;line-height:1;display:block">${mainLabel}</span>` : ''
-  const sub = subLabel ? `<span style="font-size:10px;font-weight:500;line-height:1;opacity:0.85;display:block${hasBoth ? ';margin-top:4px' : ''}">${subLabel}</span>` : ''
+  const main = mainLabel ? `<span style="font-size:12px;font-weight:700;line-height:1;display:block">${escapeHtml(mainLabel)}</span>` : ''
+  const sub = subLabel ? `<span style="font-size:10px;font-weight:500;line-height:1;opacity:0.85;display:block${hasBoth ? ';margin-top:4px' : ''}">${escapeHtml(subLabel)}</span>` : ''
   const html = `<div class="trek-stats-inner" style="
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     width:100%;height:100%;
@@ -183,7 +205,7 @@ function buildStatsHtml(mainLabel: string | null, subLabel: string | null): { ht
     background:rgba(17,24,39,0.92);color:#fff;
     box-shadow:0 2px 6px rgba(0,0,0,0.25);
     border:1px solid ${TRANSPORT_COLOR}aa;
-    font-family:-apple-system,system-ui,'SF Pro Text',sans-serif;
+    font-family:var(--font-system);
     white-space:nowrap;box-sizing:border-box;pointer-events:none;
     transform-origin:center;will-change:transform;
   ">${main}${sub}</div>`
@@ -315,7 +337,7 @@ export class ReservationMapboxOverlay {
     if (show) {
       for (const item of visibleItems) {
         const showLabel = this.opts.showEndpointLabels && labelVisibleIds.has(item.res.id)
-        for (const ep of [item.from, item.to]) {
+        for (const ep of item.waypoints) {
           const label = showLabel ? (ep.code || cleanName(ep.name)) : null
           const el = document.createElement('div')
           el.innerHTML = endpointMarkerHtml(item.type, label)
@@ -336,29 +358,10 @@ export class ReservationMapboxOverlay {
       }
     }
 
-    // ── stats label (flights only) ──────────────────────────────────
+    // Stats badge removed — the floating route/duration label on the arc is no
+    // longer drawn; only the connection line and the airport markers remain.
     this.statsMarkers.forEach(s => s.marker.remove())
     this.statsMarkers = []
-    if (show && this.opts.showStats) {
-      for (const item of visibleItems) {
-        if (item.type !== 'flight') continue
-        if (!labelVisibleIds.has(item.res.id)) continue
-        if (!item.mainLabel && !item.subLabel) continue
-        const arc = item.primaryArc
-        if (arc.length < 2) continue
-        const mid = arc[Math.floor(arc.length / 2)]!
-        const { html, width, height } = buildStatsHtml(item.mainLabel, item.subLabel)
-        const el = document.createElement('div')
-        el.style.cssText = `width:${width}px;height:${height}px;pointer-events:none;`
-        el.innerHTML = html
-        const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
-          .setLngLat([mid[1], mid[0]])
-          .addTo(map)
-        this.statsMarkers.push({ marker, arc })
-      }
-    }
-    // Prime rotation once so labels don't flash horizontal on first paint.
-    this.updateStatsRotation()
   }
 
   // Match the Leaflet overlay's "rotate the label along the arc" look.

@@ -9,6 +9,7 @@ import { packingRepo } from '../repo/packingRepo'
 import { todoRepo } from '../repo/todoRepo'
 import { createPlacesSlice } from './slices/placesSlice'
 import { createAssignmentsSlice } from './slices/assignmentsSlice'
+import { createDaysSlice } from './slices/daysSlice'
 import { createDayNotesSlice } from './slices/dayNotesSlice'
 import { createPackingSlice } from './slices/packingSlice'
 import { createTodoSlice } from './slices/todoSlice'
@@ -24,6 +25,7 @@ import type {
 import { getApiErrorMessage } from '../types'
 import type { PlacesSlice } from './slices/placesSlice'
 import type { AssignmentsSlice } from './slices/assignmentsSlice'
+import type { DaysSlice } from './slices/daysSlice'
 import type { DayNotesSlice } from './slices/dayNotesSlice'
 import type { PackingSlice } from './slices/packingSlice'
 import type { TodoSlice } from './slices/todoSlice'
@@ -34,6 +36,7 @@ import type { FilesSlice } from './slices/filesSlice'
 export interface TripStoreState
   extends PlacesSlice,
     AssignmentsSlice,
+    DaysSlice,
     DayNotesSlice,
     PackingSlice,
     TodoSlice,
@@ -61,8 +64,8 @@ export interface TripStoreState
   loadTrip: (tripId: number | string) => Promise<void>
   refreshDays: (tripId: number | string) => Promise<void>
   updateTrip: (tripId: number | string, data: Partial<Trip>) => Promise<Trip>
-  addTag: (data: Partial<Tag>) => Promise<Tag>
-  addCategory: (data: Partial<Category>) => Promise<Category>
+  addTag: (data: Partial<Tag> & { name: string }) => Promise<Tag>
+  addCategory: (data: Partial<Category> & { name: string }) => Promise<Category>
 }
 
 export const useTripStore = create<TripStoreState>((set, get) => ({
@@ -162,7 +165,7 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
     }
   },
 
-  addTag: async (data: Partial<Tag>) => {
+  addTag: async (data: Partial<Tag> & { name: string }) => {
     try {
       const result = await tagsApi.create(data)
       set((state) => ({ tags: [...state.tags, result.tag] }))
@@ -172,7 +175,7 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
     }
   },
 
-  addCategory: async (data: Partial<Category>) => {
+  addCategory: async (data: Partial<Category> & { name: string }) => {
     try {
       const result = await categoriesApi.create(data)
       set((state) => ({ categories: [...state.categories, result.category] }))
@@ -184,6 +187,7 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
 
   ...createPlacesSlice(set, get),
   ...createAssignmentsSlice(set, get),
+  ...createDaysSlice(set, get),
   ...createDayNotesSlice(set, get),
   ...createPackingSlice(set, get),
   ...createTodoSlice(set, get),

@@ -1,0 +1,61 @@
+import type { TranslationStrings } from '../types';
+
+const dayplan: TranslationStrings = {
+  'dayplan.icsTooltip': 'Kalender exporteren (ICS)',
+  'dayplan.emptyDay': 'Geen plaatsen gepland voor deze dag',
+  'dayplan.addNote': 'Notitie toevoegen',
+  'dayplan.editNote': 'Notitie bewerken',
+  'dayplan.noteAdd': 'Notitie toevoegen',
+  'dayplan.noteEdit': 'Notitie bewerken',
+  'dayplan.noteTitle': 'Notitie',
+  'dayplan.noteSubtitle': 'Dagnotitie',
+  'dayplan.totalCost': 'Totale kosten',
+  'dayplan.days': 'Dagen',
+  'dayplan.dayN': 'Dag {n}',
+  'dayplan.calculating': 'Berekenen...',
+  'dayplan.route': 'Route',
+  'dayplan.optimize': 'Optimaliseren',
+  'dayplan.optimized': 'Route geoptimaliseerd',
+  'dayplan.routeError': 'Route berekenen mislukt',
+  'dayplan.toast.needTwoPlaces':
+    'Minimaal twee plaatsen nodig voor route-optimalisatie',
+  'dayplan.toast.routeOptimized': 'Route geoptimaliseerd',
+  'dayplan.toast.routeOptimizedFromHotel':
+    'Route geoptimaliseerd vanaf je accommodatie',
+  'dayplan.toast.noGeoPlaces':
+    'Geen plaatsen met coördinaten gevonden voor routeberekening',
+  'dayplan.confirmed': 'Bevestigd',
+  'dayplan.pendingRes': 'In behandeling',
+  'dayplan.pdf': 'PDF',
+  'dayplan.pdfTooltip': 'Dagplan exporteren als PDF',
+  'dayplan.pdfError': 'PDF-export mislukt',
+  'dayplan.cannotReorderTransport':
+    'Boekingen met een vast tijdstip kunnen niet worden verplaatst',
+  'dayplan.confirmRemoveTimeTitle': 'Tijd verwijderen?',
+  'dayplan.confirmRemoveTimeBody':
+    'Deze plek heeft een vast tijdstip ({time}). Verplaatsen verwijdert het tijdstip en maakt vrije sortering mogelijk.',
+  'dayplan.confirmRemoveTimeAction': 'Tijd verwijderen en verplaatsen',
+  'dayplan.confirmDeleteNoteTitle': 'Notitie verwijderen?',
+  'dayplan.confirmDeleteNoteBody': 'Deze notitie wordt definitief verwijderd.',
+  'dayplan.cannotDropOnTimed':
+    'Items kunnen niet tussen tijdgebonden items worden geplaatst',
+  'dayplan.cannotBreakChronology':
+    'Dit zou de chronologische volgorde van geplande items en boekingen doorbreken',
+  'dayplan.mobile.addPlace': 'Plaats toevoegen',
+  'dayplan.mobile.searchPlaces': 'Plaatsen zoeken...',
+  'dayplan.mobile.allAssigned': 'Alle plaatsen toegewezen',
+  'dayplan.mobile.noMatch': 'Geen resultaat',
+  'dayplan.mobile.createNew': 'Nieuwe plaats aanmaken',
+  'dayplan.expandAll': 'Expand all days', // en-fallback
+  'dayplan.collapseAll': 'Collapse all days', // en-fallback
+  'dayplan.reorderDays': 'Dagen herordenen',
+  'dayplan.reorderTitle': 'Dagen herordenen',
+  'dayplan.reorderHint': 'De plaatsen, notities en boekingen van een dag gaan mee.',
+  'dayplan.addDay': 'Dag toevoegen',
+  'dayplan.moveUp': 'Omhoog',
+  'dayplan.moveDown': 'Omlaag',
+  'dayplan.reorderUndo': 'Dagen herordenen',
+  'dayplan.reorderError': 'Dagen herordenen mislukt',
+  'dayplan.addDayError': 'Dag toevoegen mislukt',
+};
+export default dayplan;

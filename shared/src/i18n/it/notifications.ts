@@ -1,0 +1,37 @@
+import type { TranslationStrings } from '../types';
+
+const notifications: TranslationStrings = {
+  'notifications.title': 'Notifiche',
+  'notifications.markAllRead': 'Segna tutto come letto',
+  'notifications.deleteAll': 'Elimina tutto',
+  'notifications.showAll': 'Vedi tutte le notifiche',
+  'notifications.empty': 'Nessuna notifica',
+  'notifications.emptyDescription': 'Sei aggiornato!',
+  'notifications.all': 'Tutte',
+  'notifications.unreadOnly': 'Non lette',
+  'notifications.markRead': 'Segna come letto',
+  'notifications.markUnread': 'Segna come non letto',
+  'notifications.delete': 'Elimina',
+  'notifications.system': 'Sistema',
+  'notifications.synologySessionCleared.title': 'Synology Photos disconnesso',
+  'notifications.synologySessionCleared.text':
+    "Il server o l'account è cambiato — vai alle Impostazioni per testare nuovamente la connessione.",
+  'notifications.test.title': 'Notifica di test da {actor}',
+  'notifications.test.text': 'Questa è una semplice notifica di test.',
+  'notifications.test.booleanTitle': '{actor} richiede la tua approvazione',
+  'notifications.test.booleanText': 'Notifica di test con risposta.',
+  'notifications.test.accept': 'Approva',
+  'notifications.test.decline': 'Rifiuta',
+  'notifications.test.navigateTitle': "Dai un'occhiata",
+  'notifications.test.navigateText': 'Notifica di test con navigazione.',
+  'notifications.test.goThere': 'Vai',
+  'notifications.test.adminTitle': 'Comunicazione admin',
+  'notifications.test.adminText':
+    '{actor} ha inviato una notifica di test a tutti gli amministratori.',
+  'notifications.test.tripTitle': '{actor} ha pubblicato nel tuo viaggio',
+  'notifications.test.tripText': 'Notifica di test per il viaggio "{trip}".',
+  'notifications.versionAvailable.title': 'Aggiornamento disponibile',
+  'notifications.versionAvailable.text': 'TREK {version} è ora disponibile.',
+  'notifications.versionAvailable.button': 'Visualizza dettagli',
+};
+export default notifications;

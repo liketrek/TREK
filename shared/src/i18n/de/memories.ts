@@ -1,0 +1,82 @@
+import type { TranslationStrings } from '../types';
+
+const memories: TranslationStrings = {
+  'memories.title': 'Fotos',
+  'memories.notConnected': 'Immich nicht verbunden',
+  'memories.notConnectedHint':
+    'Verbinde deine Immich-Instanz in den Einstellungen, um deine Reisefotos hier zu sehen.',
+  'memories.notConnectedMultipleHint':
+    'Verbinde einen dieser Fotoanbieter: {provider_names} in den Einstellungen, um Fotos zu dieser Reise hinzufügen zu können.',
+  'memories.noDates': 'Füge Daten zu deiner Reise hinzu, um Fotos zu laden.',
+  'memories.noPhotos': 'Keine Fotos gefunden',
+  'memories.noPhotosHint':
+    'Keine Fotos in Immich für den Zeitraum dieser Reise gefunden.',
+  'memories.photosFound': 'Fotos',
+  'memories.fromOthers': 'von anderen',
+  'memories.sharePhotos': 'Fotos teilen',
+  'memories.sharing': 'Wird geteilt',
+  'memories.reviewTitle': 'Deine Fotos prüfen',
+  'memories.reviewHint': 'Klicke auf Fotos, um sie vom Teilen auszuschließen.',
+  'memories.shareCount': '{count} Fotos teilen',
+  'memories.providerUrl': 'Server-URL',
+  'memories.providerApiKey': 'API-Schlüssel',
+  'memories.providerUsername': 'Benutzername',
+  'memories.providerPassword': 'Passwort',
+  'memories.providerOTP': 'MFA-Code (falls aktiviert)',
+  'memories.skipSSLVerification': 'SSL-Zertifikatsprüfung überspringen',
+  'memories.immichAutoUpload':
+    'Journey-Fotos beim Upload auch zu Immich spiegeln',
+  'memories.providerUrlHintSynology':
+    'Füge den Fotos-App-Pfad in die URL ein, z.B. https://nas:5001/photo',
+  'memories.testConnection': 'Verbindung testen',
+  'memories.testShort': 'Testen',
+  'memories.testFirst': 'Verbindung zuerst testen',
+  'memories.connected': 'Verbunden',
+  'memories.disconnected': 'Nicht verbunden',
+  'memories.connectionSuccess': 'Verbindung zu Immich hergestellt',
+  'memories.connectionError': 'Verbindung zu Immich fehlgeschlagen',
+  'memories.saved': '{provider_name}-Einstellungen gespeichert',
+  'memories.providerDisconnectedBanner':
+    'Deine {provider_name}-Verbindung wurde getrennt. Verbinde erneut in den Einstellungen, um Fotos anzuzeigen.',
+  'memories.saveError':
+    '{provider_name}-Einstellungen konnten nicht gespeichert werden',
+  'memories.saveRouteNotConfigured':
+    'Speicherroute ist für diesen Anbieter nicht konfiguriert',
+  'memories.testRouteNotConfigured':
+    'Testroute ist für diesen Anbieter nicht konfiguriert',
+  'memories.fillRequiredFields': 'Bitte füllen Sie alle Pflichtfelder aus',
+  'memories.addPhotos': 'Fotos hinzufügen',
+  'memories.linkAlbum': 'Album verknüpfen',
+  'memories.selectAlbum': 'Immich-Album auswählen',
+  'memories.selectAlbumMultiple': 'Album auswählen',
+  'memories.noAlbums': 'Keine Alben gefunden',
+  'memories.syncAlbum': 'Album synchronisieren',
+  'memories.unlinkAlbum': 'Album trennen',
+  'memories.photos': 'Fotos',
+  'memories.selectPhotos': 'Fotos aus Immich auswählen',
+  'memories.selectPhotosMultiple': 'Fotos auswählen',
+  'memories.selectHint': 'Tippe auf Fotos um sie auszuwählen.',
+  'memories.selected': 'ausgewählt',
+  'memories.addSelected': '{count} Fotos hinzufügen',
+  'memories.alreadyAdded': 'Hinzugefügt',
+  'memories.private': 'Privat',
+  'memories.stopSharing': 'Nicht mehr teilen',
+  'memories.oldest': 'Älteste zuerst',
+  'memories.newest': 'Neueste zuerst',
+  'memories.allLocations': 'Alle Orte',
+  'memories.tripDates': 'Trip-Zeitraum',
+  'memories.allPhotos': 'Alle Fotos',
+  'memories.confirmShareTitle': 'Mit Reisebegleitern teilen?',
+  'memories.confirmShareHint':
+    '{count} Fotos werden für alle Mitglieder dieses Trips sichtbar. Du kannst einzelne Fotos nachträglich auf privat setzen.',
+  'memories.confirmShareButton': 'Fotos teilen',
+  'memories.error.loadAlbums': 'Alben konnten nicht geladen werden',
+  'memories.error.linkAlbum': 'Album konnte nicht verknüpft werden',
+  'memories.error.unlinkAlbum': 'Album konnte nicht getrennt werden',
+  'memories.error.syncAlbum': 'Album konnte nicht synchronisiert werden',
+  'memories.error.loadPhotos': 'Fotos konnten nicht geladen werden',
+  'memories.error.addPhotos': 'Fotos konnten nicht hinzugefügt werden',
+  'memories.error.removePhoto': 'Foto konnte nicht entfernt werden',
+  'memories.error.toggleSharing': 'Freigabe konnte nicht aktualisiert werden',
+};
+export default memories;

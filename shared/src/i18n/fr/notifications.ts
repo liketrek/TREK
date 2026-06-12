@@ -1,0 +1,39 @@
+import type { TranslationStrings } from '../types';
+
+const notifications: TranslationStrings = {
+  'notifications.title': 'Notifications',
+  'notifications.markAllRead': 'Tout marquer comme lu',
+  'notifications.deleteAll': 'Tout supprimer',
+  'notifications.showAll': 'Voir toutes les notifications',
+  'notifications.empty': 'Aucune notification',
+  'notifications.emptyDescription': 'Vous êtes à jour !',
+  'notifications.all': 'Toutes',
+  'notifications.unreadOnly': 'Non lues',
+  'notifications.markRead': 'Marquer comme lu',
+  'notifications.markUnread': 'Marquer comme non lu',
+  'notifications.delete': 'Supprimer',
+  'notifications.system': 'Système',
+  'notifications.synologySessionCleared.title': 'Synology Photos déconnecté',
+  'notifications.synologySessionCleared.text':
+    'Votre serveur ou compte a changé — allez dans Paramètres pour tester à nouveau votre connexion.',
+  'notifications.test.title': 'Notification test de {actor}',
+  'notifications.test.text': 'Ceci est une simple notification de test.',
+  'notifications.test.booleanTitle': '{actor} demande votre approbation',
+  'notifications.test.booleanText': 'Notification de test booléenne.',
+  'notifications.test.accept': 'Approuver',
+  'notifications.test.decline': 'Refuser',
+  'notifications.test.navigateTitle': 'Allez voir quelque chose',
+  'notifications.test.navigateText': 'Notification de test de navigation.',
+  'notifications.test.goThere': 'Y aller',
+  'notifications.test.adminTitle': 'Diffusion admin',
+  'notifications.test.adminText':
+    '{actor} a envoyé une notification de test à tous les admins.',
+  'notifications.test.tripTitle': '{actor} a publié dans votre voyage',
+  'notifications.test.tripText':
+    'Notification de test pour le voyage "{trip}".',
+  'notifications.versionAvailable.title': 'Mise à jour disponible',
+  'notifications.versionAvailable.text':
+    'TREK {version} est maintenant disponible.',
+  'notifications.versionAvailable.button': 'Voir les détails',
+};
+export default notifications;

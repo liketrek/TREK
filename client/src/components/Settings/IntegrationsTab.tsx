@@ -93,6 +93,18 @@ interface McpToken {
 }
 
 export default function IntegrationsTab(): React.ReactElement {
+  const S = useIntegrations()
+  return (
+    <>
+      <PhotoProvidersSection />
+      {S.mcpEnabled && <IntegrationsMcpSection {...S} />}
+      <McpTokenModals {...S} />
+      <OAuthClientModals {...S} />
+    </>
+  )
+}
+
+function useIntegrations() {
   const { t, locale } = useTranslation()
   const toast = useToast()
   const { isEnabled: addonEnabled, loadAddons } = useAddonStore()
@@ -275,28 +287,35 @@ export default function IntegrationsTab(): React.ReactElement {
     }
   }
 
+
+  return {
+    t, locale, toast, mcpEnabled, oauthClients, setOauthClients, oauthSessions, setOauthSessions, oauthCreateOpen, setOauthCreateOpen, oauthNewName, setOauthNewName, oauthNewUris, setOauthNewUris, oauthNewScopes, setOauthNewScopes, oauthCreating, oauthCreatedClient, setOauthCreatedClient, oauthDeleteId, setOauthDeleteId, oauthRevokeId, setOauthRevokeId, oauthRotateId, setOauthRotateId, oauthRotatedSecret, setOauthRotatedSecret, oauthRotating, oauthScopesExpanded, setOauthScopesExpanded, oauthIsMachine, setOauthIsMachine, activeMcpTab, setActiveMcpTab, configOpenOAuth, setConfigOpenOAuth, configOpenToken, setConfigOpenToken, mcpTokens, setMcpTokens, mcpModalOpen, setMcpModalOpen, mcpNewName, setMcpNewName, mcpCreatedToken, setMcpCreatedToken, mcpCreating, mcpDeleteId, setMcpDeleteId, copiedKey, mcpEndpoint, mcpJsonConfigOAuth, mcpJsonConfig, handleCreateMcpToken, handleDeleteMcpToken, handleCopy, handleCreateOAuthClient, handleDeleteOAuthClient, handleRotateSecret, handleRevokeSession,
+  }
+}
+
+function IntegrationsMcpSection(props: any) {
+  const {
+    t, locale, toast, mcpEnabled, oauthClients, setOauthClients, oauthSessions, setOauthSessions, oauthCreateOpen, setOauthCreateOpen, oauthNewName, setOauthNewName, oauthNewUris, setOauthNewUris, oauthNewScopes, setOauthNewScopes, oauthCreating, oauthCreatedClient, setOauthCreatedClient, oauthDeleteId, setOauthDeleteId, oauthRevokeId, setOauthRevokeId, oauthRotateId, setOauthRotateId, oauthRotatedSecret, setOauthRotatedSecret, oauthRotating, oauthScopesExpanded, setOauthScopesExpanded, oauthIsMachine, setOauthIsMachine, activeMcpTab, setActiveMcpTab, configOpenOAuth, setConfigOpenOAuth, configOpenToken, setConfigOpenToken, mcpTokens, setMcpTokens, mcpModalOpen, setMcpModalOpen, mcpNewName, setMcpNewName, mcpCreatedToken, setMcpCreatedToken, mcpCreating, mcpDeleteId, setMcpDeleteId, copiedKey, mcpEndpoint, mcpJsonConfigOAuth, mcpJsonConfig, handleCreateMcpToken, handleDeleteMcpToken, handleCopy, handleCreateOAuthClient, handleDeleteOAuthClient, handleRotateSecret, handleRevokeSession,
+  } = props
   return (
-    <>
-      <PhotoProvidersSection />
-      {mcpEnabled && (
         <Section title={t('settings.mcp.title')} icon={Terminal}>
           {/* Endpoint URL */}
           <div>
-            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>{t('settings.mcp.endpoint')}</label>
+            <label className="block text-sm font-medium mb-1.5 text-content-secondary">{t('settings.mcp.endpoint')}</label>
             <div className="flex items-center gap-2">
-              <code className="flex-1 px-3 py-2 rounded-lg text-sm font-mono border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
+              <code className="flex-1 px-3 py-2 rounded-lg text-sm font-mono border bg-surface-secondary border-edge text-content">
                 {mcpEndpoint}
               </code>
               <button onClick={() => handleCopy(mcpEndpoint, 'endpoint')}
-                className="p-2 rounded-lg border transition-colors hover:bg-slate-100 dark:hover:bg-slate-700"
-                style={{ borderColor: 'var(--border-primary)' }} title={t('settings.mcp.copy')}>
-                {copiedKey === 'endpoint' ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />}
+                className="p-2 rounded-lg border border-edge transition-colors hover:bg-slate-100 dark:hover:bg-slate-700"
+                title={t('settings.mcp.copy')}>
+                {copiedKey === 'endpoint' ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-content-secondary" />}
               </button>
             </div>
           </div>
 
           {/* Sub-tab bar */}
-          <div className="flex gap-1 rounded-lg p-1" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)' }}>
+          <div className="flex gap-1 rounded-lg p-1 border bg-surface-secondary border-edge">
             <button
               onClick={() => setActiveMcpTab('oauth')}
               className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
@@ -310,8 +329,7 @@ export default function IntegrationsTab(): React.ReactElement {
                 activeMcpTab === 'apitokens' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               }`}>
               {t('settings.mcp.apiTokens')}
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-medium"
-                style={{ background: 'rgba(245,158,11,0.15)', color: '#b45309', border: '1px solid rgba(245,158,11,0.4)' }}>
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[rgba(245,158,11,0.15)] text-[#b45309] border border-[rgba(245,158,11,0.4)]">
                 Deprecated
               </span>
             </button>
@@ -321,25 +339,23 @@ export default function IntegrationsTab(): React.ReactElement {
           {activeMcpTab === 'oauth' && (
             <>
               {/* JSON config — OAuth (collapsible) */}
-              <div className="rounded-lg border overflow-hidden" style={{ borderColor: 'var(--border-primary)' }}>
+              <div className="rounded-lg border overflow-hidden border-edge">
                 <button
                   onClick={() => setConfigOpenOAuth(o => !o)}
-                  className="w-full flex items-center justify-between px-3 py-2.5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
-                  style={{ background: 'var(--bg-secondary)' }}>
-                  <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{t('settings.mcp.clientConfig')}</span>
+                  className="w-full flex items-center justify-between px-3 py-2.5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 bg-surface-secondary">
+                  <span className="text-sm font-medium text-content-secondary">{t('settings.mcp.clientConfig')}</span>
                   {configOpenOAuth ? <ChevronDown className="w-4 h-4" style={{ color: 'var(--text-tertiary)' }} /> : <ChevronRight className="w-4 h-4" style={{ color: 'var(--text-tertiary)' }} />}
                 </button>
                 {configOpenOAuth && (
-                  <div className="p-3 border-t" style={{ borderColor: 'var(--border-primary)' }}>
+                  <div className="p-3 border-t border-edge">
                     <div className="flex justify-end mb-1.5">
                       <button onClick={() => handleCopy(mcpJsonConfigOAuth, 'json-oauth')}
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs border transition-colors hover:bg-slate-100 dark:hover:bg-slate-700"
-                        style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs border transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 border-edge text-content-secondary">
                         {copiedKey === 'json-oauth' ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
                         {copiedKey === 'json-oauth' ? t('settings.mcp.copied') : t('settings.mcp.copy')}
                       </button>
                     </div>
-                    <pre className="p-3 rounded-lg text-xs font-mono overflow-x-auto border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
+                    <pre className="p-3 rounded-lg text-xs font-mono overflow-x-auto border bg-surface-secondary border-edge text-content">
                       {mcpJsonConfigOAuth}
                     </pre>
                     <p className="mt-1.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('settings.mcp.clientConfigHintOAuth')}</p>
@@ -358,22 +374,20 @@ export default function IntegrationsTab(): React.ReactElement {
                 </div>
 
                 {oauthClients.length === 0 ? (
-                  <p className="text-sm py-3 text-center rounded-lg border" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-primary)' }}>
+                  <p className="text-sm py-3 text-center rounded-lg border border-edge" style={{ color: 'var(--text-tertiary)' }}>
                     {t('settings.oauth.noClients')}
                   </p>
                 ) : (
-                  <div className="rounded-lg border overflow-hidden" style={{ borderColor: 'var(--border-primary)' }}>
+                  <div className="rounded-lg border overflow-hidden border-edge">
                     {oauthClients.map((client, i) => (
-                      <div key={client.id} className="px-4 py-3"
-                        style={{ borderBottom: i < oauthClients.length - 1 ? '1px solid var(--border-primary)' : undefined }}>
+                      <div key={client.id} className={`px-4 py-3 ${i < oauthClients.length - 1 ? 'border-b border-edge' : ''}`}>
                         <div className="flex items-center gap-3">
                           <KeyRound className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{client.name}</p>
+                              <p className="text-sm font-medium truncate text-content">{client.name}</p>
                               {client.allows_client_credentials && (
-                                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0"
-                                  style={{ background: 'rgba(99,102,241,0.12)', color: '#4f46e5', border: '1px solid rgba(99,102,241,0.3)' }}>
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0 bg-[rgba(99,102,241,0.12)] text-[#4f46e5] border border-[rgba(99,102,241,0.3)]">
                                   {t('settings.oauth.badge.machine')}
                                 </span>
                               )}
@@ -384,13 +398,13 @@ export default function IntegrationsTab(): React.ReactElement {
                             </p>
                             <div className="flex flex-wrap gap-1 mt-1.5">
                               {(oauthScopesExpanded[client.id] ? client.allowed_scopes : client.allowed_scopes.slice(0, 5)).map(s => (
-                                <span key={s} className="px-1.5 py-0.5 rounded text-xs" style={{ background: 'var(--bg-secondary)', color: 'var(--text-tertiary)', border: '1px solid var(--border-primary)' }}>{s}</span>
+                                <span key={s} className="px-1.5 py-0.5 rounded text-xs border bg-surface-secondary border-edge" style={{ color: 'var(--text-tertiary)' }}>{s}</span>
                               ))}
                               {client.allowed_scopes.length > 5 && (
                                 <button
                                   onClick={() => setOauthScopesExpanded(prev => ({ ...prev, [client.id]: !prev[client.id] }))}
-                                  className="px-1.5 py-0.5 rounded text-xs transition-colors hover:bg-slate-100 dark:hover:bg-slate-700"
-                                  style={{ color: 'var(--text-tertiary)', border: '1px solid var(--border-primary)' }}>
+                                  className="px-1.5 py-0.5 rounded text-xs transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 border border-edge"
+                                  style={{ color: 'var(--text-tertiary)' }}>
                                   {oauthScopesExpanded[client.id] ? '−' : `+${client.allowed_scopes.length - 5}`}
                                 </button>
                               )}
@@ -416,21 +430,20 @@ export default function IntegrationsTab(): React.ReactElement {
               {/* Active OAuth Sessions */}
               {oauthSessions.length > 0 && (
                 <div>
-                  <label className="text-sm font-medium block mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.oauth.activeSessions')}</label>
-                  <div className="rounded-lg border overflow-hidden" style={{ borderColor: 'var(--border-primary)' }}>
+                  <label className="text-sm font-medium block mb-2 text-content-secondary">{t('settings.oauth.activeSessions')}</label>
+                  <div className="rounded-lg border overflow-hidden border-edge">
                     {oauthSessions.map((session, i) => (
-                      <div key={session.id} className="flex items-center gap-3 px-4 py-3"
-                        style={{ borderBottom: i < oauthSessions.length - 1 ? '1px solid var(--border-primary)' : undefined }}>
+                      <div key={session.id} className={`flex items-center gap-3 px-4 py-3 ${i < oauthSessions.length - 1 ? 'border-b border-edge' : ''}`}>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{session.client_name}</p>
+                          <p className="text-sm font-medium truncate text-content">{session.client_name}</p>
                           <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
                             {t('settings.oauth.sessionScopes')}: {session.scopes.join(', ')}
                             <span className="ml-3">{t('settings.oauth.sessionExpires')} {new Date(session.access_token_expires_at).toLocaleDateString(locale)}</span>
                           </p>
                         </div>
                         <button onClick={() => setOauthRevokeId(session.id)}
-                          className="px-2.5 py-1 rounded text-xs border transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
-                          style={{ borderColor: 'var(--border-primary)', color: 'var(--text-tertiary)' }}>
+                          className="px-2.5 py-1 rounded text-xs border transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 border-edge"
+                          style={{ color: 'var(--text-tertiary)' }}>
                           {t('settings.oauth.revoke')}
                         </button>
                       </div>
@@ -444,31 +457,29 @@ export default function IntegrationsTab(): React.ReactElement {
           {/* API Tokens tab (deprecated) */}
           {activeMcpTab === 'apitokens' && (
             <>
-              <div className="flex items-baseline gap-2 px-3 py-2.5 rounded-lg" style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.3)' }}>
+              <div className="flex items-baseline gap-2 px-3 py-2.5 rounded-lg bg-[rgba(245,158,11,0.06)] border border-[rgba(245,158,11,0.3)]">
                 <span className="text-amber-500 flex-shrink-0 leading-none">⚠</span>
-                <p className="text-xs" style={{ color: '#92400e' }}>{t('settings.mcp.apiTokensDeprecated')}</p>
+                <p className="text-xs text-[#92400e]">{t('settings.mcp.apiTokensDeprecated')}</p>
               </div>
 
               {/* JSON config — API Token (collapsible) */}
-              <div className="rounded-lg border overflow-hidden" style={{ borderColor: 'var(--border-primary)' }}>
+              <div className="rounded-lg border overflow-hidden border-edge">
                 <button
                   onClick={() => setConfigOpenToken(o => !o)}
-                  className="w-full flex items-center justify-between px-3 py-2.5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
-                  style={{ background: 'var(--bg-secondary)' }}>
-                  <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{t('settings.mcp.clientConfig')}</span>
+                  className="w-full flex items-center justify-between px-3 py-2.5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 bg-surface-secondary">
+                  <span className="text-sm font-medium text-content-secondary">{t('settings.mcp.clientConfig')}</span>
                   {configOpenToken ? <ChevronDown className="w-4 h-4" style={{ color: 'var(--text-tertiary)' }} /> : <ChevronRight className="w-4 h-4" style={{ color: 'var(--text-tertiary)' }} />}
                 </button>
                 {configOpenToken && (
-                  <div className="p-3 border-t" style={{ borderColor: 'var(--border-primary)' }}>
+                  <div className="p-3 border-t border-edge">
                     <div className="flex justify-end mb-1.5">
                       <button onClick={() => handleCopy(mcpJsonConfig, 'json-token')}
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs border transition-colors hover:bg-slate-100 dark:hover:bg-slate-700"
-                        style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs border transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 border-edge text-content-secondary">
                         {copiedKey === 'json-token' ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
                         {copiedKey === 'json-token' ? t('settings.mcp.copied') : t('settings.mcp.copy')}
                       </button>
                     </div>
-                    <pre className="p-3 rounded-lg text-xs font-mono overflow-x-auto border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
+                    <pre className="p-3 rounded-lg text-xs font-mono overflow-x-auto border bg-surface-secondary border-edge text-content">
                       {mcpJsonConfig}
                     </pre>
                     <p className="mt-1.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('settings.mcp.clientConfigHint')}</p>
@@ -478,8 +489,7 @@ export default function IntegrationsTab(): React.ReactElement {
 
               <div className="flex justify-end">
                 <button onClick={() => { setMcpModalOpen(true); setMcpCreatedToken(null); setMcpNewName('') }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors opacity-60"
-                  style={{ background: 'var(--bg-tertiary, #e5e7eb)', color: 'var(--text-secondary)' }}>
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors opacity-60 text-content-secondary bg-surface-tertiary">
                   <Plus className="w-3.5 h-3.5" /> {t('settings.mcp.createToken')}
                 </button>
               </div>
@@ -489,12 +499,11 @@ export default function IntegrationsTab(): React.ReactElement {
                   {t('settings.mcp.noTokens')}
                 </p>
               ) : (
-                <div className="rounded-lg border overflow-hidden" style={{ borderColor: 'var(--border-primary)' }}>
+                <div className="rounded-lg border overflow-hidden border-edge">
                   {mcpTokens.map((token, i) => (
-                    <div key={token.id} className="flex items-center gap-3 px-4 py-3"
-                      style={{ borderBottom: i < mcpTokens.length - 1 ? '1px solid var(--border-primary)' : undefined }}>
+                    <div key={token.id} className={`flex items-center gap-3 px-4 py-3 ${i < mcpTokens.length - 1 ? 'border-b border-edge' : ''}`}>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{token.name}</p>
+                        <p className="text-sm font-medium truncate text-content">{token.name}</p>
                         <p className="text-xs font-mono mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
                           {token.token_prefix}...
                           <span className="ml-3 font-sans">{t('settings.mcp.tokenCreatedAt')} {new Date(token.created_at).toLocaleDateString(locale)}</span>
@@ -515,28 +524,34 @@ export default function IntegrationsTab(): React.ReactElement {
             </>
           )}
         </Section>
-      )}
+  )
+}
 
+function McpTokenModals(props: any) {
+  const {
+    t, locale, toast, mcpEnabled, oauthClients, setOauthClients, oauthSessions, setOauthSessions, oauthCreateOpen, setOauthCreateOpen, oauthNewName, setOauthNewName, oauthNewUris, setOauthNewUris, oauthNewScopes, setOauthNewScopes, oauthCreating, oauthCreatedClient, setOauthCreatedClient, oauthDeleteId, setOauthDeleteId, oauthRevokeId, setOauthRevokeId, oauthRotateId, setOauthRotateId, oauthRotatedSecret, setOauthRotatedSecret, oauthRotating, oauthScopesExpanded, setOauthScopesExpanded, oauthIsMachine, setOauthIsMachine, activeMcpTab, setActiveMcpTab, configOpenOAuth, setConfigOpenOAuth, configOpenToken, setConfigOpenToken, mcpTokens, setMcpTokens, mcpModalOpen, setMcpModalOpen, mcpNewName, setMcpNewName, mcpCreatedToken, setMcpCreatedToken, mcpCreating, mcpDeleteId, setMcpDeleteId, copiedKey, mcpEndpoint, mcpJsonConfigOAuth, mcpJsonConfig, handleCreateMcpToken, handleDeleteMcpToken, handleCopy, handleCreateOAuthClient, handleDeleteOAuthClient, handleRotateSecret, handleRevokeSession,
+  } = props
+  return (
+    <>
       {/* Create MCP Token modal */}
       {mcpModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(0,0,0,0.5)]"
           onClick={e => { if (e.target === e.currentTarget && !mcpCreatedToken) setMcpModalOpen(false) }}>
-          <div className="rounded-xl shadow-xl w-full max-w-md p-6 space-y-4" style={{ background: 'var(--bg-card)' }}>
+          <div className="rounded-xl shadow-xl w-full max-w-md p-6 space-y-4 bg-surface-card">
             {!mcpCreatedToken ? (
               <>
-                <h3 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t('settings.mcp.modal.createTitle')}</h3>
+                <h3 className="text-lg font-semibold text-content">{t('settings.mcp.modal.createTitle')}</h3>
                 <div>
-                  <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>{t('settings.mcp.modal.tokenName')}</label>
+                  <label className="block text-sm font-medium mb-1.5 text-content-secondary">{t('settings.mcp.modal.tokenName')}</label>
                   <input type="text" value={mcpNewName} onChange={e => setMcpNewName(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleCreateMcpToken()}
                     placeholder={t('settings.mcp.modal.tokenNamePlaceholder')}
-                    className="w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
-                    style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                    className="w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 border-edge bg-surface-secondary text-content"
                     autoFocus />
                 </div>
                 <div className="flex gap-2 justify-end pt-1">
                   <button onClick={() => setMcpModalOpen(false)}
-                    className="px-4 py-2 rounded-lg text-sm border" style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
+                    className="px-4 py-2 rounded-lg text-sm border border-edge text-content-secondary">
                     {t('common.cancel')}
                   </button>
                   <button onClick={handleCreateMcpToken} disabled={!mcpNewName.trim() || mcpCreating}
@@ -547,18 +562,18 @@ export default function IntegrationsTab(): React.ReactElement {
               </>
             ) : (
               <>
-                <h3 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t('settings.mcp.modal.createdTitle')}</h3>
-                <div className="flex items-start gap-2 p-3 rounded-lg border border-amber-200" style={{ background: 'rgba(251,191,36,0.1)' }}>
+                <h3 className="text-lg font-semibold text-content">{t('settings.mcp.modal.createdTitle')}</h3>
+                <div className="flex items-start gap-2 p-3 rounded-lg border border-amber-200 bg-[rgba(251,191,36,0.1)]">
                   <span className="text-amber-500 mt-0.5">⚠</span>
-                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('settings.mcp.modal.createdWarning')}</p>
+                  <p className="text-sm text-content-secondary">{t('settings.mcp.modal.createdWarning')}</p>
                 </div>
                 <div className="relative">
-                  <pre className="p-3 pr-10 rounded-lg text-xs font-mono break-all border whitespace-pre-wrap" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
+                  <pre className="p-3 pr-10 rounded-lg text-xs font-mono break-all border whitespace-pre-wrap bg-surface-secondary border-edge text-content">
                     {mcpCreatedToken}
                   </pre>
                   <button onClick={() => handleCopy(mcpCreatedToken, 'new-token')}
-                    className="absolute top-2 right-2 p-1.5 rounded transition-colors hover:bg-slate-200 dark:hover:bg-slate-600"
-                    style={{ color: 'var(--text-secondary)' }} title={t('settings.mcp.copy')}>
+                    className="absolute top-2 right-2 p-1.5 rounded transition-colors hover:bg-slate-200 dark:hover:bg-slate-600 text-content-secondary"
+                    title={t('settings.mcp.copy')}>
                     {copiedKey === 'new-token' ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
                   </button>
                 </div>
@@ -576,14 +591,14 @@ export default function IntegrationsTab(): React.ReactElement {
 
       {/* Delete MCP Token confirm */}
       {mcpDeleteId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(0,0,0,0.5)]"
           onClick={e => { if (e.target === e.currentTarget) setMcpDeleteId(null) }}>
-          <div className="rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4" style={{ background: 'var(--bg-card)' }}>
-            <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{t('settings.mcp.deleteTokenTitle')}</h3>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('settings.mcp.deleteTokenMessage')}</p>
+          <div className="rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4 bg-surface-card">
+            <h3 className="text-base font-semibold text-content">{t('settings.mcp.deleteTokenTitle')}</h3>
+            <p className="text-sm text-content-secondary">{t('settings.mcp.deleteTokenMessage')}</p>
             <div className="flex gap-2 justify-end">
               <button onClick={() => setMcpDeleteId(null)}
-                className="px-4 py-2 rounded-lg text-sm border" style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
+                className="px-4 py-2 rounded-lg text-sm border border-edge text-content-secondary">
                 {t('common.cancel')}
               </button>
               <button onClick={() => handleDeleteMcpToken(mcpDeleteId)}
@@ -595,14 +610,24 @@ export default function IntegrationsTab(): React.ReactElement {
         </div>
       )}
 
+    </>
+  )
+}
+
+function OAuthClientModals(props: any) {
+  const {
+    t, locale, toast, mcpEnabled, oauthClients, setOauthClients, oauthSessions, setOauthSessions, oauthCreateOpen, setOauthCreateOpen, oauthNewName, setOauthNewName, oauthNewUris, setOauthNewUris, oauthNewScopes, setOauthNewScopes, oauthCreating, oauthCreatedClient, setOauthCreatedClient, oauthDeleteId, setOauthDeleteId, oauthRevokeId, setOauthRevokeId, oauthRotateId, setOauthRotateId, oauthRotatedSecret, setOauthRotatedSecret, oauthRotating, oauthScopesExpanded, setOauthScopesExpanded, oauthIsMachine, setOauthIsMachine, activeMcpTab, setActiveMcpTab, configOpenOAuth, setConfigOpenOAuth, configOpenToken, setConfigOpenToken, mcpTokens, setMcpTokens, mcpModalOpen, setMcpModalOpen, mcpNewName, setMcpNewName, mcpCreatedToken, setMcpCreatedToken, mcpCreating, mcpDeleteId, setMcpDeleteId, copiedKey, mcpEndpoint, mcpJsonConfigOAuth, mcpJsonConfig, handleCreateMcpToken, handleDeleteMcpToken, handleCopy, handleCreateOAuthClient, handleDeleteOAuthClient, handleRotateSecret, handleRevokeSession,
+  } = props
+  return (
+    <>
       {/* Create OAuth Client modal */}
       {oauthCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(0,0,0,0.5)]"
           onClick={e => { if (e.target === e.currentTarget && !oauthCreatedClient) setOauthCreateOpen(false) }}>
-          <div className="rounded-xl shadow-xl w-full max-w-lg p-6 space-y-4 overflow-y-auto max-h-[90vh]" style={{ background: 'var(--bg-card)' }}>
+          <div className="rounded-xl shadow-xl w-full max-w-lg p-6 space-y-4 overflow-y-auto max-h-[90vh] bg-surface-card">
             {!oauthCreatedClient ? (
               <>
-                <h3 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t('settings.oauth.modal.createTitle')}</h3>
+                <h3 className="text-lg font-semibold text-content">{t('settings.oauth.modal.createTitle')}</h3>
 
                 <div>
                   <label className="block text-xs font-medium mb-2" style={{ color: 'var(--text-tertiary)' }}>{t('settings.oauth.modal.presets')}</label>
@@ -616,8 +641,7 @@ export default function IntegrationsTab(): React.ReactElement {
                           setOauthNewUris(preset.uris)
                           setOauthNewScopes(preset.scopes)
                         }}
-                        className="px-2.5 py-1 rounded-md text-xs font-medium border transition-colors hover:bg-slate-100 dark:hover:bg-slate-700"
-                        style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)', background: 'var(--bg-secondary)' }}>
+                        className="px-2.5 py-1 rounded-md text-xs font-medium border transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 border-edge text-content-secondary bg-surface-secondary">
                         {preset.label}
                       </button>
                     ))}
@@ -625,11 +649,10 @@ export default function IntegrationsTab(): React.ReactElement {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>{t('settings.oauth.modal.clientName')}</label>
+                  <label className="block text-sm font-medium mb-1.5 text-content-secondary">{t('settings.oauth.modal.clientName')}</label>
                   <input type="text" value={oauthNewName} onChange={e => setOauthNewName(e.target.value)}
                     placeholder={t('settings.oauth.modal.clientNamePlaceholder')}
-                    className="w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
-                    style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                    className="w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 border-edge bg-surface-secondary text-content"
                     autoFocus />
                 </div>
 
@@ -637,32 +660,31 @@ export default function IntegrationsTab(): React.ReactElement {
                   <input type="checkbox" checked={oauthIsMachine} onChange={e => setOauthIsMachine(e.target.checked)}
                     className="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
                   <div>
-                    <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{t('settings.oauth.modal.machineClient')}</span>
+                    <span className="text-sm font-medium text-content-secondary">{t('settings.oauth.modal.machineClient')}</span>
                     <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{t('settings.oauth.modal.machineClientHint')}</p>
                   </div>
                 </label>
 
                 {!oauthIsMachine && (
                   <div>
-                    <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>{t('settings.oauth.modal.redirectUris')}</label>
+                    <label className="block text-sm font-medium mb-1.5 text-content-secondary">{t('settings.oauth.modal.redirectUris')}</label>
                     <textarea value={oauthNewUris} onChange={e => setOauthNewUris(e.target.value)}
                       placeholder={t('settings.oauth.modal.redirectUrisPlaceholder')}
                       rows={3}
-                      className="w-full px-3 py-2.5 border rounded-lg text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-slate-400"
-                      style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
+                      className="w-full px-3 py-2.5 border rounded-lg text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-slate-400 border-edge bg-surface-secondary text-content" />
                     <p className="mt-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('settings.oauth.modal.redirectUrisHint')}</p>
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{t('settings.oauth.modal.scopes')}</label>
+                  <label className="block text-sm font-medium mb-1 text-content-secondary">{t('settings.oauth.modal.scopes')}</label>
                   <p className="text-xs mb-2" style={{ color: 'var(--text-tertiary)' }}>{t('settings.oauth.modal.scopesHint')}</p>
                   <ScopeGroupPicker selected={oauthNewScopes} onChange={setOauthNewScopes} />
                 </div>
 
                 <div className="flex gap-2 justify-end pt-1">
                   <button onClick={() => setOauthCreateOpen(false)}
-                    className="px-4 py-2 rounded-lg text-sm border" style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
+                    className="px-4 py-2 rounded-lg text-sm border border-edge text-content-secondary">
                     {t('common.cancel')}
                   </button>
                   <button onClick={handleCreateOAuthClient}
@@ -674,43 +696,41 @@ export default function IntegrationsTab(): React.ReactElement {
               </>
             ) : (
               <>
-                <h3 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t('settings.oauth.modal.createdTitle')}</h3>
-                <div className="flex items-start gap-2 p-3 rounded-lg border border-amber-200" style={{ background: 'rgba(251,191,36,0.1)' }}>
+                <h3 className="text-lg font-semibold text-content">{t('settings.oauth.modal.createdTitle')}</h3>
+                <div className="flex items-start gap-2 p-3 rounded-lg border border-amber-200 bg-[rgba(251,191,36,0.1)]">
                   <span className="text-amber-500 mt-0.5">⚠</span>
-                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('settings.oauth.modal.createdWarning')}</p>
+                  <p className="text-sm text-content-secondary">{t('settings.oauth.modal.createdWarning')}</p>
                 </div>
 
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{t('settings.oauth.clientId')}</label>
+                    <label className="block text-xs font-medium mb-1 text-content-secondary">{t('settings.oauth.clientId')}</label>
                     <div className="flex items-center gap-2">
-                      <code className="flex-1 px-3 py-2 rounded-lg text-xs font-mono border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
+                      <code className="flex-1 px-3 py-2 rounded-lg text-xs font-mono border bg-surface-secondary border-edge text-content">
                         {oauthCreatedClient.client_id}
                       </code>
                       <button onClick={() => handleCopy(oauthCreatedClient.client_id, 'new-client-id')}
-                        className="p-2 rounded-lg border transition-colors hover:bg-slate-100 dark:hover:bg-slate-700"
-                        style={{ borderColor: 'var(--border-primary)' }}>
-                        {copiedKey === 'new-client-id' ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />}
+                        className="p-2 rounded-lg border transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 border-edge">
+                        {copiedKey === 'new-client-id' ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-content-secondary" />}
                       </button>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{t('settings.oauth.clientSecret')}</label>
+                    <label className="block text-xs font-medium mb-1 text-content-secondary">{t('settings.oauth.clientSecret')}</label>
                     <div className="flex items-center gap-2">
-                      <code className="flex-1 px-3 py-2 rounded-lg text-xs font-mono border break-all" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
+                      <code className="flex-1 px-3 py-2 rounded-lg text-xs font-mono border break-all bg-surface-secondary border-edge text-content">
                         {oauthCreatedClient.client_secret}
                       </code>
                       <button onClick={() => handleCopy(oauthCreatedClient.client_secret!, 'new-client-secret')}
-                        className="p-2 rounded-lg border transition-colors hover:bg-slate-100 dark:hover:bg-slate-700"
-                        style={{ borderColor: 'var(--border-primary)' }}>
-                        {copiedKey === 'new-client-secret' ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />}
+                        className="p-2 rounded-lg border transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 border-edge">
+                        {copiedKey === 'new-client-secret' ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-content-secondary" />}
                       </button>
                     </div>
                   </div>
                 </div>
 
                 {oauthCreatedClient?.allows_client_credentials && (
-                  <div className="p-3 rounded-lg border text-xs font-mono" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-tertiary)' }}>
+                  <div className="p-3 rounded-lg border text-xs font-mono bg-surface-secondary border-edge" style={{ color: 'var(--text-tertiary)' }}>
                     {t('settings.oauth.modal.machineClientUsage')}
                   </div>
                 )}
@@ -729,14 +749,14 @@ export default function IntegrationsTab(): React.ReactElement {
 
       {/* Delete OAuth Client confirm */}
       {oauthDeleteId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(0,0,0,0.5)]"
           onClick={e => { if (e.target === e.currentTarget) setOauthDeleteId(null) }}>
-          <div className="rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4" style={{ background: 'var(--bg-card)' }}>
-            <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{t('settings.oauth.deleteClient')}</h3>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('settings.oauth.deleteClientMessage')}</p>
+          <div className="rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4 bg-surface-card">
+            <h3 className="text-base font-semibold text-content">{t('settings.oauth.deleteClient')}</h3>
+            <p className="text-sm text-content-secondary">{t('settings.oauth.deleteClientMessage')}</p>
             <div className="flex gap-2 justify-end">
               <button onClick={() => setOauthDeleteId(null)}
-                className="px-4 py-2 rounded-lg text-sm border" style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
+                className="px-4 py-2 rounded-lg text-sm border border-edge text-content-secondary">
                 {t('common.cancel')}
               </button>
               <button onClick={() => handleDeleteOAuthClient(oauthDeleteId)}
@@ -750,14 +770,14 @@ export default function IntegrationsTab(): React.ReactElement {
 
       {/* Rotate OAuth Client Secret confirm */}
       {oauthRotateId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(0,0,0,0.5)]"
           onClick={e => { if (e.target === e.currentTarget) setOauthRotateId(null) }}>
-          <div className="rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4" style={{ background: 'var(--bg-card)' }}>
-            <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{t('settings.oauth.rotateSecret')}</h3>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('settings.oauth.rotateSecretMessage')}</p>
+          <div className="rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4 bg-surface-card">
+            <h3 className="text-base font-semibold text-content">{t('settings.oauth.rotateSecret')}</h3>
+            <p className="text-sm text-content-secondary">{t('settings.oauth.rotateSecretMessage')}</p>
             <div className="flex gap-2 justify-end">
               <button onClick={() => setOauthRotateId(null)}
-                className="px-4 py-2 rounded-lg text-sm border" style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
+                className="px-4 py-2 rounded-lg text-sm border border-edge text-content-secondary">
                 {t('common.cancel')}
               </button>
               <button onClick={() => handleRotateSecret(oauthRotateId)} disabled={oauthRotating}
@@ -771,23 +791,22 @@ export default function IntegrationsTab(): React.ReactElement {
 
       {/* Rotated Secret display */}
       {oauthRotatedSecret !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
-          <div className="rounded-xl shadow-xl w-full max-w-md p-6 space-y-4" style={{ background: 'var(--bg-card)' }}>
-            <h3 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t('settings.oauth.rotateSecretDoneTitle')}</h3>
-            <div className="flex items-start gap-2 p-3 rounded-lg border border-amber-200" style={{ background: 'rgba(251,191,36,0.1)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(0,0,0,0.5)]">
+          <div className="rounded-xl shadow-xl w-full max-w-md p-6 space-y-4 bg-surface-card">
+            <h3 className="text-lg font-semibold text-content">{t('settings.oauth.rotateSecretDoneTitle')}</h3>
+            <div className="flex items-start gap-2 p-3 rounded-lg border border-amber-200 bg-[rgba(251,191,36,0.1)]">
               <span className="text-amber-500 mt-0.5">⚠</span>
-              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('settings.oauth.rotateSecretDoneWarning')}</p>
+              <p className="text-sm text-content-secondary">{t('settings.oauth.rotateSecretDoneWarning')}</p>
             </div>
             <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{t('settings.oauth.clientSecret')}</label>
+              <label className="block text-xs font-medium mb-1 text-content-secondary">{t('settings.oauth.clientSecret')}</label>
               <div className="flex items-center gap-2">
-                <code className="flex-1 px-3 py-2 rounded-lg text-xs font-mono border break-all" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
+                <code className="flex-1 px-3 py-2 rounded-lg text-xs font-mono border break-all bg-surface-secondary border-edge text-content">
                   {oauthRotatedSecret}
                 </code>
                 <button onClick={() => handleCopy(oauthRotatedSecret, 'rotated-secret')}
-                  className="p-2 rounded-lg border transition-colors hover:bg-slate-100 dark:hover:bg-slate-700"
-                  style={{ borderColor: 'var(--border-primary)' }}>
-                  {copiedKey === 'rotated-secret' ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />}
+                  className="p-2 rounded-lg border transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 border-edge">
+                  {copiedKey === 'rotated-secret' ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-content-secondary" />}
                 </button>
               </div>
             </div>
@@ -803,14 +822,14 @@ export default function IntegrationsTab(): React.ReactElement {
 
       {/* Revoke OAuth Session confirm */}
       {oauthRevokeId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(0,0,0,0.5)]"
           onClick={e => { if (e.target === e.currentTarget) setOauthRevokeId(null) }}>
-          <div className="rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4" style={{ background: 'var(--bg-card)' }}>
-            <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{t('settings.oauth.revokeSession')}</h3>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('settings.oauth.revokeSessionMessage')}</p>
+          <div className="rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4 bg-surface-card">
+            <h3 className="text-base font-semibold text-content">{t('settings.oauth.revokeSession')}</h3>
+            <p className="text-sm text-content-secondary">{t('settings.oauth.revokeSessionMessage')}</p>
             <div className="flex gap-2 justify-end">
               <button onClick={() => setOauthRevokeId(null)}
-                className="px-4 py-2 rounded-lg text-sm border" style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
+                className="px-4 py-2 rounded-lg text-sm border border-edge text-content-secondary">
                 {t('common.cancel')}
               </button>
               <button onClick={() => handleRevokeSession(oauthRevokeId)}

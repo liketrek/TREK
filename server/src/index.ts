@@ -1,7 +1,10 @@
+import 'reflect-metadata';
 import 'dotenv/config';
 import path from 'node:path';
 import fs from 'node:fs';
-import { createApp } from './app';
+import http from 'node:http';
+import type { INestApplication } from '@nestjs/common';
+import { buildApp } from './bootstrap';
 
 // Create upload and data directories on startup
 const uploadsDir = path.join(__dirname, '../uploads');
@@ -15,8 +18,6 @@ const tmpDir = path.join(__dirname, '../data/tmp');
 [uploadsDir, photosDir, filesDir, coversDir, avatarsDir, backupsDir, tmpDir].forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
-
-const app = createApp();
 
 import * as scheduler from './scheduler';
 import { getAppUrl, getMcpSafeUrl } from './services/notifications';
@@ -49,6 +50,7 @@ const onListen = () => {
     '──────────────────────────────────────',
   ];
   banner.forEach(l => console.log(l));
+  sLogInfo('NestJS serving all routes (Express decommissioned)');
   if (process.env.APP_URL) {
     let parsedAppUrl: URL | null = null;
     try { parsedAppUrl = new URL(process.env.APP_URL); } catch { /* invalid */ }
@@ -84,9 +86,25 @@ const onListen = () => {
   });
 };
 
-const server = HOST
-  ? app.listen(PORT, HOST, onListen)
-  : app.listen(PORT, onListen);
+let server: http.Server;
+let nestApp: INestApplication;
+
+// Strangler toggle: prefixes served by Nest (env-overridable, instant rollback).
+async function bootstrap(): Promise<void> {
+  // The whole surface runs on the single NestJS app now (Express decommissioned):
+  // global pipeline + /uploads + every /api domain + the platform/transport routes
+  // (/mcp, /.well-known, OAuth SDK, SPA catch-all). buildApp() owns the composition
+  // order; it is shared with the integration-test harness so they can't drift.
+  nestApp = await buildApp();
+  server = http.createServer(nestApp.getHttpAdapter().getInstance());
+  if (HOST) server.listen(PORT, HOST, onListen);
+  else server.listen(PORT, onListen);
+}
+
+bootstrap().catch((err) => {
+  console.error('Fatal: failed to bootstrap server', err);
+  process.exit(1);
+});
 
 // Graceful shutdown
 function shutdown(signal: string): void {
@@ -95,6 +113,7 @@ function shutdown(signal: string): void {
   sLogInfo(`${signal} received — shutting down gracefully...`);
   scheduler.stop();
   closeMcpSessions();
+  void nestApp?.close();
   server.close(() => {
     sLogInfo('HTTP server closed');
     const { closeDb } = require('./db/database');
@@ -110,5 +129,3 @@ function shutdown(signal: string): void {
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
-
-export default app;

@@ -1,46 +1,17 @@
-import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { useAuthStore } from '../store/authStore'
+import React from 'react'
+import { Link } from 'react-router-dom'
 import { useTranslation } from '../i18n'
 import { Map, Eye, EyeOff, Mail, Lock, User } from 'lucide-react'
+import { useRegister } from './register/useRegister'
 
 export default function RegisterPage(): React.ReactElement {
   const { t } = useTranslation()
-  const [username, setUsername] = useState<string>('')
-  const [email, setEmail] = useState<string>('')
-  const [password, setPassword] = useState<string>('')
-  const [confirmPassword, setConfirmPassword] = useState<string>('')
-  const [showPassword, setShowPassword] = useState<boolean>(false)
-  const [isLoading, setIsLoading] = useState<boolean>(false)
-  const [error, setError] = useState<string>('')
-
-  const { register } = useAuthStore()
-  const navigate = useNavigate()
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
-    e.preventDefault()
-    setError('')
-
-    if (password !== confirmPassword) {
-      setError(t('register.passwordMismatch'))
-      return
-    }
-
-    if (password.length < 8) {
-      setError(t('register.passwordTooShort'))
-      return
-    }
-
-    setIsLoading(true)
-    try {
-      await register(username, email, password)
-      navigate('/dashboard')
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t('register.failed'))
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  // Page = wiring container: form state, validation + register flow live in the hook.
+  const {
+    username, setUsername, email, setEmail, password, setPassword,
+    confirmPassword, setConfirmPassword, showPassword, setShowPassword,
+    isLoading, error, handleSubmit,
+  } = useRegister()
 
   return (
     <div className="min-h-screen flex">

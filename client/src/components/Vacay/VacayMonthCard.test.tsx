@@ -49,7 +49,7 @@ describe('VacayMonthCard', () => {
   it('FE-COMP-VACAYMONTHCARD-004: Holiday cell has tooltip with localName', () => {
     const props = {
       ...baseProps,
-      holidays: { '2025-01-01': { localName: 'Neujahr', label: null, color: '#ef4444' } },
+      holidays: { '2025-01-01': { name: 'Neujahr', localName: 'Neujahr', label: null, color: '#ef4444' } },
     }
     render(<VacayMonthCard {...props} />)
     // Jan 1 is a Wednesday — there may be multiple "1" text nodes, find the one with a title
@@ -60,7 +60,7 @@ describe('VacayMonthCard', () => {
   it('FE-COMP-VACAYMONTHCARD-005: Holiday cell with label shows combined tooltip', () => {
     const props = {
       ...baseProps,
-      holidays: { '2025-01-01': { localName: 'New Year', label: 'DE', color: '#ef4444' } },
+      holidays: { '2025-01-01': { name: 'New Year', localName: 'New Year', label: 'DE', color: '#ef4444' } },
     }
     render(<VacayMonthCard {...props} />)
     const cell = screen.getByTitle('DE: New Year')
@@ -88,14 +88,14 @@ describe('VacayMonthCard', () => {
     const cell = daySpan.closest('div') as HTMLElement
     // Company overlay is a direct child div with amber background
     const overlayDivs = Array.from(cell.querySelectorAll(':scope > div')) as HTMLElement[]
-    const companyOverlay = overlayDivs.find(el => el.style.background.includes('245'))
+    const companyOverlay = overlayDivs.find(el => el.className.includes('bg-[rgba(245,158,11'))
     expect(companyOverlay).toBeTruthy()
   })
 
   it('FE-COMP-VACAYMONTHCARD-008: Single vacation entry renders colored overlay', () => {
     const props = {
       ...baseProps,
-      entryMap: { '2025-01-15': [{ person_color: '#6366f1' }] },
+      entryMap: { '2025-01-15': [{ date: '2025-01-15', user_id: 1, person_color: '#6366f1' }] },
     }
     render(<VacayMonthCard {...props} />)
     const daySpan = screen.getByText('15')
@@ -111,7 +111,7 @@ describe('VacayMonthCard', () => {
   it('FE-COMP-VACAYMONTHCARD-009: Day number font-weight is bold when entries exist', () => {
     const props = {
       ...baseProps,
-      entryMap: { '2025-01-20': [{ person_color: '#6366f1' }] },
+      entryMap: { '2025-01-20': [{ date: '2025-01-15', user_id: 1, person_color: '#6366f1' }] },
     }
     render(<VacayMonthCard {...props} />)
     const daySpan = screen.getByText('20')
@@ -131,7 +131,7 @@ describe('VacayMonthCard', () => {
     const props = {
       ...baseProps,
       entryMap: {
-        '2025-01-15': [{ person_color: '#6366f1' }, { person_color: '#f43f5e' }],
+        '2025-01-15': [{ date: '2025-01-15', user_id: 1, person_color: '#6366f1' }, { date: '2025-01-15', user_id: 1, person_color: '#f43f5e' }],
       },
     }
     render(<VacayMonthCard {...props} />)
@@ -149,10 +149,10 @@ describe('VacayMonthCard', () => {
       ...baseProps,
       entryMap: {
         '2025-01-15': [
-          { person_color: '#6366f1' },
-          { person_color: '#f43f5e' },
-          { person_color: '#22c55e' },
-          { person_color: '#f59e0b' },
+          { date: '2025-01-15', user_id: 1, person_color: '#6366f1' },
+          { date: '2025-01-15', user_id: 1, person_color: '#f43f5e' },
+          { date: '2025-01-15', user_id: 1, person_color: '#22c55e' },
+          { date: '2025-01-15', user_id: 1, person_color: '#f59e0b' },
         ],
       },
     }

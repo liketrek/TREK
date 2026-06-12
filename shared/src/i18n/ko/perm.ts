@@ -1,0 +1,60 @@
+import type { TranslationStrings } from '../types';
+
+const perm: TranslationStrings = {
+  'perm.title': '권한 설정',
+  'perm.subtitle': '앱 전체에서 누가 작업을 수행할 수 있는지 제어합니다',
+  'perm.saved': '권한 설정이 저장되었습니다',
+  'perm.resetDefaults': '기본값으로 초기화',
+  'perm.customized': '맞춤 설정됨',
+  'perm.level.admin': '관리자만',
+  'perm.level.tripOwner': '여행 소유자',
+  'perm.level.tripMember': '여행 멤버',
+  'perm.level.everybody': '모든 사람',
+  'perm.cat.trip': '여행 관리',
+  'perm.cat.members': '멤버 관리',
+  'perm.cat.files': '파일',
+  'perm.cat.content': '콘텐츠 및 일정',
+  'perm.cat.extras': '예산, 짐 목록 및 협업',
+  'perm.action.trip_create': '여행 만들기',
+  'perm.action.trip_edit': '여행 상세 편집',
+  'perm.action.trip_delete': '여행 삭제',
+  'perm.action.trip_archive': '여행 보관/복원',
+  'perm.action.trip_cover_upload': '커버 이미지 업로드',
+  'perm.action.member_manage': '멤버 추가/제거',
+  'perm.action.file_upload': '파일 업로드',
+  'perm.action.file_edit': '파일 메타데이터 편집',
+  'perm.action.file_delete': '파일 삭제',
+  'perm.action.place_edit': '장소 추가/편집/삭제',
+  'perm.action.day_edit': '날, 메모 및 배정 편집',
+  'perm.action.reservation_edit': '예약 관리',
+  'perm.action.budget_edit': '예산 관리',
+  'perm.action.packing_edit': '짐 목록 관리',
+  'perm.action.collab_edit': '협업 (메모, 투표, 채팅)',
+  'perm.action.share_manage': '공유 링크 관리',
+  'perm.actionHint.trip_create': '누가 새 여행을 만들 수 있는지',
+  'perm.actionHint.trip_edit':
+    '누가 여행 이름, 날짜, 설명, 통화를 변경할 수 있는지',
+  'perm.actionHint.trip_delete': '누가 여행을 영구 삭제할 수 있는지',
+  'perm.actionHint.trip_archive': '누가 여행을 보관하거나 복원할 수 있는지',
+  'perm.actionHint.trip_cover_upload':
+    '누가 커버 이미지를 업로드하거나 변경할 수 있는지',
+  'perm.actionHint.member_manage':
+    '누가 여행 멤버를 초대하거나 제거할 수 있는지',
+  'perm.actionHint.file_upload': '누가 여행에 파일을 업로드할 수 있는지',
+  'perm.actionHint.file_edit': '누가 파일 설명 및 링크를 편집할 수 있는지',
+  'perm.actionHint.file_delete':
+    '누가 파일을 휴지통으로 이동하거나 영구 삭제할 수 있는지',
+  'perm.actionHint.place_edit': '누가 장소를 추가, 편집, 삭제할 수 있는지',
+  'perm.actionHint.day_edit':
+    '누가 날, 일별 메모, 장소 배정을 편집할 수 있는지',
+  'perm.actionHint.reservation_edit':
+    '누가 예약을 만들고, 편집하고, 삭제할 수 있는지',
+  'perm.actionHint.budget_edit':
+    '누가 예산 항목을 만들고, 편집하고, 삭제할 수 있는지',
+  'perm.actionHint.packing_edit': '누가 짐 항목과 가방을 관리할 수 있는지',
+  'perm.actionHint.collab_edit':
+    '누가 메모, 투표를 만들고 메시지를 보낼 수 있는지',
+  'perm.actionHint.share_manage':
+    '누가 공개 공유 링크를 만들거나 삭제할 수 있는지',
+};
+export default perm;

@@ -42,9 +42,11 @@ interface WeatherWidgetProps {
   lng: number | null
   date: string
   compact?: boolean
+  /** Vertical icon-over-temp layout that inherits its color (for the day badge). */
+  stacked?: boolean
 }
 
-export default function WeatherWidget({ lat, lng, date, compact = false }: WeatherWidgetProps) {
+export default function WeatherWidget({ lat, lng, date, compact = false, stacked = false }: WeatherWidgetProps) {
   const [weather, setWeather] = useState(null)
   const [loading, setLoading] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -92,7 +94,7 @@ export default function WeatherWidget({ lat, lng, date, compact = false }: Weath
 
   if (!lat || !lng) return null
 
-  const fontStyle = { fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }
+  const fontStyle = { fontFamily: "var(--font-system)" }
 
   if (loading) {
     return (
@@ -110,6 +112,15 @@ export default function WeatherWidget({ lat, lng, date, compact = false }: Weath
   const temp = rawTemp !== undefined ? Math.round(isFahrenheit ? rawTemp * 9/5 + 32 : rawTemp) : null
   const unit = isFahrenheit ? '°F' : '°C'
   const isClimate = weather.type === 'climate'
+
+  if (stacked) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, fontSize: 9.5, fontWeight: 600, lineHeight: 1, color: 'inherit', ...fontStyle }}>
+        <WeatherIcon main={weather.main} size={13} />
+        {temp !== null && <span>{isClimate ? 'Ø' : ''}{temp}°</span>}
+      </div>
+    )
+  }
 
   if (compact) {
     return (

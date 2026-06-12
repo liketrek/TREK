@@ -1,11 +1,9 @@
-import { db, canAccessTrip } from '../db/database';
+import { db } from '../db/database';
 import { avatarUrl } from './authService';
 
 const BAG_COLORS = ['#6366f1', '#ec4899', '#f97316', '#10b981', '#06b6d4', '#8b5cf6', '#ef4444', '#f59e0b'];
 
-export function verifyTripAccess(tripId: string | number, userId: number) {
-  return canAccessTrip(tripId, userId);
-}
+export { verifyTripAccess } from './tripAccess';
 
 // ── Items ──────────────────────────────────────────────────────────────────
 
@@ -191,6 +189,22 @@ export function deleteBag(tripId: string | number, bagId: string | number) {
 
   db.prepare('DELETE FROM packing_bags WHERE id = ?').run(bagId);
   return true;
+}
+
+// ── List Templates ─────────────────────────────────────────────────────────
+
+/**
+ * Read-only template list for trip members (name + item count), so non-admins
+ * can pick a template to apply. Management (create/edit/delete) stays admin-only
+ * under /api/admin/packing-templates.
+ */
+export function listTemplates() {
+  return db.prepare(`
+    SELECT pt.id, pt.name,
+      (SELECT COUNT(*) FROM packing_template_items ti JOIN packing_template_categories tc ON ti.category_id = tc.id WHERE tc.template_id = pt.id) as item_count
+    FROM packing_templates pt
+    ORDER BY pt.created_at DESC
+  `).all() as { id: number; name: string; item_count: number }[];
 }
 
 // ── Apply Template ─────────────────────────────────────────────────────────

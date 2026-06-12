@@ -31,7 +31,7 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip } from '../../helpers/factories';
-import { getStats, getCached, setCache, getCountryFromCoords, getCountryFromAddress, reverseGeocodeCountry, getRegionGeo, getCountryPlaces, getVisitedRegions } from '../../../src/services/atlasService';
+import { getStats, getCached, setCache, getCountryFromCoords, getCountryFromAddress, reverseGeocodeCountry, getRegionGeo, getCountryGeo, getCountryPlaces, getVisitedRegions } from '../../../src/services/atlasService';
 
 function insertPlace(db: any, tripId: number, name: string, address: string | null = null) {
   const cat = db.prepare('SELECT id FROM categories LIMIT 1').get() as { id: number } | undefined;
@@ -243,38 +243,57 @@ describe('reverseGeocodeCountry', () => {
 
 // ── getRegionGeo ────────────────────────────────────────────────────────────
 
+// These read the committed geoBoundaries bundle (server/assets/atlas/admin1.geojson.gz),
+// so they double as a guard that the bundle ships current sub-national data (#1119).
 describe('getRegionGeo', () => {
-  it('ATLAS-SVC-017: returns empty FeatureCollection when fetch throws a network error', async () => {
-    // Override the default stub to throw so loadAdmin1Geo's .catch handler runs,
-    // returning null — which causes getRegionGeo to return the empty FeatureCollection.
-    // (The default ok:false stub does NOT trigger the catch; it still resolves json()
-    // to {}, which loadAdmin1Geo caches as a non-null truthy value.)
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network failure')));
-    const result = await getRegionGeo(['DE', 'FR']);
+  it('ATLAS-SVC-017: returns an empty FeatureCollection for a country with no admin-1 features', async () => {
+    const result = await getRegionGeo(['ZZ']);
     expect(result).toEqual({ type: 'FeatureCollection', features: [] });
   });
 
-  it('ATLAS-SVC-018: returns filtered features for matching country codes when fetch returns mock GeoJSON', async () => {
-    // ATLAS-SVC-017 ran with a throwing fetch, so admin1GeoCache is null and
-    // admin1GeoLoading is null — this test's fetch override will be called.
-    const mockGeoJson = {
-      type: 'FeatureCollection',
-      features: [
-        { type: 'Feature', properties: { iso_a2: 'DE' }, geometry: {} },
-        { type: 'Feature', properties: { iso_a2: 'FR' }, geometry: {} },
-      ],
-    };
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => mockGeoJson,
-    }));
-
-    // Pass lowercase 'de' — getRegionGeo uppercases internally for matching
-    const result = await getRegionGeo(['de']);
+  it('ATLAS-SVC-018: returns the current geoBoundaries regions for a country, case-insensitively', async () => {
+    // Pass lowercase 'no' — getRegionGeo uppercases internally for matching.
+    const result = await getRegionGeo(['no']);
 
     expect(result.type).toBe('FeatureCollection');
-    expect(result.features).toHaveLength(1);
-    expect(result.features[0].properties.iso_a2).toBe('DE');
+    expect(result.features.length).toBeGreaterThan(0);
+    expect(result.features.every((f: any) => f.properties.iso_a2 === 'NO')).toBe(true);
+
+    const names = result.features.map((f: any) => f.properties.name);
+    const codes = result.features.map((f: any) => f.properties.iso_3166_2);
+    // Post-2020 reform is present…
+    expect(codes).toContain('NO-34'); // Innlandet
+    expect(codes).toContain('NO-46'); // Vestland
+    // …and the merged-away pre-2020 counties are gone (the original #1119 bug).
+    expect(names).not.toContain('Oppland');
+    expect(names).not.toContain('Hordaland');
+    expect(names).not.toContain('Sogn og Fjordane');
+  });
+});
+
+describe('getCountryGeo', () => {
+  it('ATLAS-SVC-019: returns the admin-0 FeatureCollection with ISO_A2/ADM0_A3 properties', () => {
+    const geo = getCountryGeo();
+    expect(geo.type).toBe('FeatureCollection');
+    expect(geo.features.length).toBeGreaterThan(0);
+    const no = geo.features.find((f: any) => f.properties.ISO_A2 === 'NO');
+    expect(no).toBeDefined();
+    expect(no.properties.ADM0_A3).toBe('NOR');
+    expect(no.properties.NAME).toBe('Norway');
+  });
+
+  it('ATLAS-SVC-020: includes territories that the curated list dropped (Greenland + Svalbard)', () => {
+    const geo = getCountryGeo();
+    // Greenland is its own feature.
+    expect(geo.features.some((f: any) => f.properties.ISO_A2 === 'GL')).toBe(true);
+    // Svalbard has no separate ISO entity in geoBoundaries; it sits inside Norway's
+    // geometry (lat ~74-81°N). Guard that the country polygon reaches those latitudes.
+    const no = geo.features.find((f: any) => f.properties.ISO_A2 === 'NO');
+    const maxLat = (function max(coords: any): number {
+      if (typeof coords[0] === 'number') return coords[1];
+      return Math.max(...coords.map(max));
+    })(no.geometry.coordinates);
+    expect(maxLat).toBeGreaterThan(78);
   });
 });
 
@@ -504,5 +523,34 @@ describe('getVisitedRegions', () => {
     expect(result.regions['FR']).toBeDefined();
     const codes = result.regions['FR'].map((r: any) => r.code);
     expect(codes).toContain('FR-75');
+  });
+
+  it('ATLAS-UNIT-021: GB places resolving to a constituent country are re-resolved to the finer admin-1 code', async () => {
+    vi.useFakeTimers();
+    // A zoom-8 lookup only yields the constituent country (GB-ENG); the zoom-10 lookup
+    // exposes the borough code (GB-MAN) that Natural Earth's polygons actually carry.
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => Promise.resolve({
+      ok: true,
+      json: async () => ({
+        address: url.includes('zoom=10')
+          ? { country_code: 'gb', 'ISO3166-2-lvl8': 'GB-MAN', city: 'Manchester', state: 'England', 'ISO3166-2-lvl4': 'GB-ENG' }
+          : { country_code: 'gb', 'ISO3166-2-lvl4': 'GB-ENG', state: 'England' },
+      }),
+    })));
+
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Manchester Trip' });
+    insertPlaceWithCoords(testDb, trip.id, 'Old Trafford', 53.4631, -2.2913);
+
+    await getVisitedRegions(user.id);
+    await vi.runAllTimersAsync();
+    const result = await getVisitedRegions(user.id);
+
+    expect(result.regions['GB']).toBeDefined();
+    const codes = result.regions['GB'].map((r: any) => r.code);
+    expect(codes).toContain('GB-MAN');
+    expect(codes).not.toContain('GB-ENG');
+
+    vi.useRealTimers();
   });
 });

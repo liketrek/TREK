@@ -1,6 +1,6 @@
 import type { StoreApi } from 'zustand'
 import type { TripStoreState } from '../tripStore'
-import type { Assignment, Place, Day, DayNote, PackingItem, TodoItem, BudgetItem, BudgetMember, Reservation, Trip, TripFile, WebSocketEvent } from '../../types'
+import type { Assignment, Place, Day, DayNote, PackingItem, TodoItem, BudgetItem, BudgetItemMember, Reservation, Trip, TripFile, WebSocketEvent } from '../../types'
 import { offlineDb } from '../../db/offlineDb'
 
 type SetState = StoreApi<TripStoreState>['setState']
@@ -250,7 +250,7 @@ export function handleRemoteEvent(set: SetState, get: GetState, event: WebSocket
       case 'assignment:reordered': {
         const dayKey = String(payload.dayId)
         const currentItems = state.assignments[dayKey] || []
-        const orderedIds: number[] = payload.orderedIds || []
+        const orderedIds: number[] = (payload.orderedIds as number[] | undefined) || []
         const reordered = orderedIds.map((id, idx) => {
           const item = currentItems.find(a => a.id === id)
           return item ? { ...item, order_index: idx } : null
@@ -282,6 +282,15 @@ export function handleRemoteEvent(set: SetState, get: GetState, event: WebSocket
           assignments: newAssignments,
           dayNotes: newDayNotes,
         }
+      }
+      case 'day:reordered': {
+        // Apply the new order instantly when we know all ids; the authoritative
+        // dates + re-stamped booking times are pulled by the refresh below.
+        const orderedIds = payload.orderedIds as number[] | undefined
+        if (!orderedIds || orderedIds.length !== state.days.length) return {}
+        const byId = new Map(state.days.map(d => [d.id, d]))
+        if (!orderedIds.every(id => byId.has(id))) return {}
+        return { days: orderedIds.map((id, i) => ({ ...byId.get(id)!, day_number: i + 1 })) }
       }
 
       // Day Notes
@@ -356,14 +365,17 @@ export function handleRemoteEvent(set: SetState, get: GetState, event: WebSocket
       case 'budget:members-updated':
         return {
           budgetItems: state.budgetItems.map(i =>
-            i.id === payload.itemId ? { ...i, members: payload.members as BudgetMember[], persons: payload.persons as number } : i
+            i.id === payload.itemId ? { ...i, members: payload.members as BudgetItemMember[], persons: payload.persons as number } : i
           ),
         }
       case 'budget:member-paid-updated':
         return {
           budgetItems: state.budgetItems.map(i =>
             i.id === payload.itemId
-              ? { ...i, members: (i.members || []).map(m => m.user_id === payload.userId ? { ...m, paid: payload.paid } : m) }
+              // `paid` arrives over the wire as the raw value the server emits;
+              // it's stored verbatim. The member type models it as a number, so
+              // narrow without changing the value.
+              ? { ...i, members: (i.members || []).map(m => m.user_id === payload.userId ? { ...m, paid: payload.paid as number } : m) }
               : i
           ),
         }
@@ -371,7 +383,7 @@ export function handleRemoteEvent(set: SetState, get: GetState, event: WebSocket
         if (payload.orderedIds) {
           const orderedIds = payload.orderedIds as number[]
           const byId = new Map(state.budgetItems.map(i => [i.id, i]))
-          const reordered = orderedIds.map((id, idx) => {
+          const reordered = orderedIds.map((id, idx): BudgetItem | null => {
             const item = byId.get(id)
             return item ? { ...item, sort_order: idx } : null
           }).filter((i): i is BudgetItem => i !== null)
@@ -438,6 +450,16 @@ export function handleRemoteEvent(set: SetState, get: GetState, event: WebSocket
         return {}
     }
   })
+
+  // A reorder/insert re-pins dates and re-stamps booking times server-side, so
+  // pull the authoritative days + reservations for collaborators.
+  if (type === 'day:reordered') {
+    const tripId = get().trip?.id
+    if (tripId) {
+      get().refreshDays(tripId)
+      get().loadReservations(tripId)
+    }
+  }
 
   // Write the change through to IndexedDB using the post-update state
   writeToDexie(type, payload as Record<string, unknown>, get())

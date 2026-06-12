@@ -1,0 +1,37 @@
+import type { TranslationStrings } from '../types';
+
+const notifications: TranslationStrings = {
+  'notifications.title': 'الإشعارات',
+  'notifications.markAllRead': 'تحديد الكل كمقروء',
+  'notifications.deleteAll': 'حذف الكل',
+  'notifications.showAll': 'عرض جميع الإشعارات',
+  'notifications.empty': 'لا توجد إشعارات',
+  'notifications.emptyDescription': 'لقد اطلعت على كل شيء!',
+  'notifications.all': 'الكل',
+  'notifications.unreadOnly': 'غير مقروء',
+  'notifications.markRead': 'تحديد كمقروء',
+  'notifications.markUnread': 'تحديد كغير مقروء',
+  'notifications.delete': 'حذف',
+  'notifications.system': 'النظام',
+  'notifications.synologySessionCleared.title': 'تم قطع اتصال Synology Photos',
+  'notifications.synologySessionCleared.text':
+    'تغير خادمك أو حسابك — انتقل إلى الإعدادات لاختبار اتصالك مرة أخرى.',
+  'notifications.versionAvailable.title': 'تحديث متاح',
+  'notifications.versionAvailable.text': 'TREK {version} متاح الآن.',
+  'notifications.versionAvailable.button': 'عرض التفاصيل',
+  'notifications.test.title': 'إشعار تجريبي من {actor}',
+  'notifications.test.text': 'هذا إشعار تجريبي بسيط.',
+  'notifications.test.booleanTitle': 'يطلب منك {actor} الموافقة',
+  'notifications.test.booleanText': 'إشعار تجريبي يتطلب إجابة.',
+  'notifications.test.accept': 'موافقة',
+  'notifications.test.decline': 'رفض',
+  'notifications.test.navigateTitle': 'تحقق من شيء ما',
+  'notifications.test.navigateText': 'إشعار تجريبي للتنقل.',
+  'notifications.test.goThere': 'اذهب إلى هناك',
+  'notifications.test.adminTitle': 'إذاعة المسؤول',
+  'notifications.test.adminText':
+    'أرسل {actor} إشعاراً تجريبياً لجميع المسؤولين.',
+  'notifications.test.tripTitle': 'نشر {actor} في رحلتك',
+  'notifications.test.tripText': 'إشعار تجريبي للرحلة "{trip}".',
+};
+export default notifications;

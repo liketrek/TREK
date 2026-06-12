@@ -1,0 +1,185 @@
+import type { TranslationStrings } from '../types';
+
+const packing: TranslationStrings = {
+  'packing.title': '持ち物リスト',
+  'packing.empty': '持ち物リストは空です',
+  'packing.import': 'インポート',
+  'packing.importTitle': '持ち物リストをインポート',
+  'packing.importHint':
+    '1行につき1項目。形式：カテゴリ, 名前, 重量(g・任意), バッグ(任意), checked/unchecked(任意)',
+  'packing.importPlaceholder':
+    '衛生用品, 歯ブラシ\n衣類, Tシャツ, 200\n書類, パスポート, , 機内持ち込み\n電子機器, 充電器, 50, スーツケース, checked',
+  'packing.importCsv': 'CSV/TXTを読み込む',
+  'packing.importAction': '{count}件をインポート',
+  'packing.importSuccess': '{count}件インポートしました',
+  'packing.importError': 'インポートに失敗しました',
+  'packing.importEmpty': 'インポートする項目がありません',
+  'packing.progress': '{packed}/{total} 梱包済み（{percent}%）',
+  'packing.clearChecked': 'チェック済み{count}件を削除',
+  'packing.clearCheckedShort': '{count}件を削除',
+  'packing.suggestions': 'おすすめ',
+  'packing.suggestionsTitle': 'おすすめを追加',
+  'packing.allSuggested': 'おすすめはすべて追加済み',
+  'packing.allPacked': 'すべて梱包済み！',
+  'packing.addPlaceholder': '新しい項目を追加...',
+  'packing.categoryPlaceholder': 'カテゴリ...',
+  'packing.filterAll': 'すべて',
+  'packing.filterOpen': '未完了',
+  'packing.filterDone': '完了',
+  'packing.emptyTitle': '持ち物リストは空です',
+  'packing.emptyHint': '項目を追加するか、おすすめを使いましょう',
+  'packing.emptyFiltered': 'このフィルターに一致する項目はありません',
+  'packing.menuRename': '名前を変更',
+  'packing.menuCheckAll': 'すべてチェック',
+  'packing.menuUncheckAll': 'すべて解除',
+  'packing.menuDeleteCat': 'カテゴリを削除',
+  'packing.noMembers': '旅行メンバーがいません',
+  'packing.addItem': '項目を追加',
+  'packing.addItemPlaceholder': '項目名...',
+  'packing.addCategory': 'カテゴリを追加',
+  'packing.newCategoryPlaceholder': 'カテゴリ名（例：衣類）',
+  'packing.applyTemplate': 'テンプレートを適用',
+  'packing.template': 'テンプレート',
+  'packing.templateApplied': 'テンプレートから{count}件追加しました',
+  'packing.templateError': 'テンプレートの適用に失敗しました',
+  'packing.saveAsTemplate': 'テンプレートとして保存',
+  'packing.templateName': 'テンプレート名',
+  'packing.templateSaved': '持ち物リストをテンプレートとして保存しました',
+  'packing.bags': 'バッグ',
+  'packing.noBag': '未割り当て',
+  'packing.totalWeight': '総重量',
+  'packing.bagName': 'バッグ名...',
+  'packing.addBag': 'バッグを追加',
+  'packing.changeCategory': 'カテゴリを変更',
+  'packing.confirm.clearChecked': 'チェック済み{count}件を削除しますか？',
+  'packing.confirm.deleteCat':
+    '{count}件の項目があるカテゴリ「{name}」を削除しますか？',
+  'packing.defaultCategory': 'その他',
+  'packing.toast.saveError': '保存に失敗しました',
+  'packing.toast.deleteError': '削除に失敗しました',
+  'packing.toast.renameError': '名前の変更に失敗しました',
+  'packing.toast.addError': '追加に失敗しました',
+  'packing.suggestions.items': [
+    {
+      name: 'パスポート',
+      category: '書類',
+    },
+    {
+      name: '身分証明書',
+      category: '書類',
+    },
+    {
+      name: '海外旅行保険',
+      category: '書類',
+    },
+    {
+      name: '航空券',
+      category: '書類',
+    },
+    {
+      name: 'クレジットカード',
+      category: '金融',
+    },
+    {
+      name: '現金',
+      category: '金融',
+    },
+    {
+      name: 'ビザ',
+      category: '書類',
+    },
+    {
+      name: 'Tシャツ',
+      category: '衣類',
+    },
+    {
+      name: 'ズボン',
+      category: '衣類',
+    },
+    {
+      name: '下着',
+      category: '衣類',
+    },
+    {
+      name: '靴下',
+      category: '衣類',
+    },
+    {
+      name: '上着',
+      category: '衣類',
+    },
+    {
+      name: '寝間着',
+      category: '衣類',
+    },
+    {
+      name: '水着',
+      category: '衣類',
+    },
+    {
+      name: 'レインジャケット',
+      category: '衣類',
+    },
+    {
+      name: '歩きやすい靴',
+      category: '衣類',
+    },
+    {
+      name: '歯ブラシ',
+      category: '洗面用具',
+    },
+    {
+      name: '歯磨き粉',
+      category: '洗面用具',
+    },
+    {
+      name: 'シャンプー',
+      category: '洗面用具',
+    },
+    {
+      name: 'デオドラント',
+      category: '洗面用具',
+    },
+    {
+      name: '日焼け止め',
+      category: '洗面用具',
+    },
+    {
+      name: 'カミソリ',
+      category: '洗面用具',
+    },
+    {
+      name: '充電器',
+      category: '電子機器',
+    },
+    {
+      name: 'モバイルバッテリー',
+      category: '電子機器',
+    },
+    {
+      name: 'ヘッドホン',
+      category: '電子機器',
+    },
+    {
+      name: '変換プラグ',
+      category: '電子機器',
+    },
+    {
+      name: 'カメラ',
+      category: '電子機器',
+    },
+    {
+      name: '鎮痛薬',
+      category: '健康',
+    },
+    {
+      name: '絆創膏',
+      category: '健康',
+    },
+    {
+      name: '消毒液',
+      category: '健康',
+    },
+  ],
+};
+export default packing;

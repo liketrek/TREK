@@ -3,6 +3,8 @@ import { Palette, Sun, Moon, Monitor, ChevronDown, Check } from 'lucide-react'
 import { SUPPORTED_LANGUAGES, useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
+import CustomSelect from '../shared/CustomSelect'
+import { CURRENCIES, SYMBOLS } from '../Budget/BudgetPanel.constants'
 import Section from './Section'
 
 export default function DisplaySettingsTab(): React.ReactElement {
@@ -28,9 +30,24 @@ export default function DisplaySettingsTab(): React.ReactElement {
 
   return (
     <Section title={t('settings.display')} icon={Palette}>
+      {/* Display currency */}
+      <div>
+        <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.currency')}</label>
+        <CustomSelect
+          value={settings.default_currency || 'EUR'}
+          onChange={async v => {
+            try { await updateSetting('default_currency', String(v)) }
+            catch (e: unknown) { toast.error(e instanceof Error ? e.message : t('common.error')) }
+          }}
+          options={CURRENCIES.map(c => ({ value: c, label: `${c} — ${SYMBOLS[c] || c}` }))}
+          searchable
+        />
+        <p className="text-xs text-content-faint mt-2">{t('settings.currencyHint')}</p>
+      </div>
+
       {/* Color Mode */}
       <div>
-        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.colorMode')}</label>
+        <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.colorMode')}</label>
         <div className="flex gap-3" style={{ flexWrap: 'wrap' }}>
           {[
             { value: 'light', label: t('settings.light'), icon: Sun },
@@ -72,7 +89,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
 
       {/* Language */}
       <div>
-        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.language')}</label>
+        <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.language')}</label>
         {/* Desktop: Button grid */}
         <div className="hidden sm:flex flex-wrap gap-3">
           {SUPPORTED_LANGUAGES.map(opt => (
@@ -113,7 +130,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
                 }}
               >
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{current?.label}</span>
-                <ChevronDown size={14} style={{ flexShrink: 0, color: 'var(--text-faint)', transform: langOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+                <ChevronDown size={14} className="text-content-faint" style={{ flexShrink: 0, transform: langOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
               </button>
             )
           })()}
@@ -154,7 +171,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
 
       {/* Temperature */}
       <div>
-        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.temperature')}</label>
+        <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.temperature')}</label>
         <div className="flex gap-3">
           {[
             { value: 'celsius', label: '°C Celsius' },
@@ -185,7 +202,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
 
       {/* Time Format */}
       <div>
-        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.timeFormat')}</label>
+        <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.timeFormat')}</label>
         <div className="flex gap-3">
           {[
             { value: '24h', short: '24h', example: '14:30' },
@@ -214,39 +231,9 @@ export default function DisplaySettingsTab(): React.ReactElement {
         </div>
       </div>
 
-      {/* Route Calculation */}
-      <div>
-        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.routeCalculation')}</label>
-        <div className="flex gap-3">
-          {[
-            { value: true, label: t('settings.on') || 'On' },
-            { value: false, label: t('settings.off') || 'Off' },
-          ].map(opt => (
-            <button
-              key={String(opt.value)}
-              onClick={async () => {
-                try { await updateSetting('route_calculation', opt.value) }
-                catch (e: unknown) { toast.error(e instanceof Error ? e.message : t('common.error')) }
-              }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 14, fontWeight: 500,
-                border: (settings.route_calculation !== false) === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
-                background: (settings.route_calculation !== false) === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)',
-                color: 'var(--text-primary)',
-                transition: 'all 0.15s',
-              }}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Booking route labels */}
       <div>
-        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.bookingLabels')}</label>
+        <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.bookingLabels')}</label>
         <div className="flex gap-3">
           {[
             { value: true, label: t('settings.on') || 'On' },
@@ -272,12 +259,43 @@ export default function DisplaySettingsTab(): React.ReactElement {
             </button>
           ))}
         </div>
-        <p className="text-xs mt-1" style={{ color: 'var(--text-faint)' }}>{t('settings.bookingLabelsHint')}</p>
+        <p className="text-xs mt-1 text-content-faint">{t('settings.bookingLabelsHint')}</p>
+      </div>
+
+      {/* Explore places on the map (POI category pill) */}
+      <div>
+        <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.mapPoiPill')}</label>
+        <div className="flex gap-3">
+          {[
+            { value: true, label: t('settings.on') || 'On' },
+            { value: false, label: t('settings.off') || 'Off' },
+          ].map(opt => (
+            <button
+              key={String(opt.value)}
+              onClick={async () => {
+                try { await updateSetting('map_poi_pill_enabled', opt.value) }
+                catch (e: unknown) { toast.error(e instanceof Error ? e.message : t('common.error')) }
+              }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
+                fontFamily: 'inherit', fontSize: 14, fontWeight: 500,
+                border: (settings.map_poi_pill_enabled !== false) === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
+                background: (settings.map_poi_pill_enabled !== false) === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)',
+                color: 'var(--text-primary)',
+                transition: 'all 0.15s',
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs mt-1 text-content-faint">{t('settings.mapPoiPillHint')}</p>
       </div>
 
       {/* Blur Booking Codes */}
       <div>
-        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.blurBookingCodes')}</label>
+        <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.blurBookingCodes')}</label>
         <div className="flex gap-3">
           {[
             { value: true, label: t('settings.on') || 'On' },
@@ -303,6 +321,37 @@ export default function DisplaySettingsTab(): React.ReactElement {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Optimize route from accommodation */}
+      <div>
+        <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.optimizeFromAccommodation')}</label>
+        <div className="flex gap-3">
+          {[
+            { value: true, label: t('settings.on') || 'On' },
+            { value: false, label: t('settings.off') || 'Off' },
+          ].map(opt => (
+            <button
+              key={String(opt.value)}
+              onClick={async () => {
+                try { await updateSetting('optimize_from_accommodation', opt.value) }
+                catch (e: unknown) { toast.error(e instanceof Error ? e.message : t('common.error')) }
+              }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
+                fontFamily: 'inherit', fontSize: 14, fontWeight: 500,
+                border: (settings.optimize_from_accommodation !== false) === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
+                background: (settings.optimize_from_accommodation !== false) === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)',
+                color: 'var(--text-primary)',
+                transition: 'all 0.15s',
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs mt-1 text-content-faint">{t('settings.optimizeFromAccommodationHint')}</p>
       </div>
     </Section>
   )

@@ -173,7 +173,6 @@ export default function MapSettingsTab(): React.ReactElement {
     lng: defaultLng as number,
     address: '',
     category_id: 0,
-    icon: null,
     price: null,
     image_url: null,
     google_place_id: null,

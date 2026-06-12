@@ -1,0 +1,63 @@
+import type { TranslationStrings } from '../types';
+
+const perm: TranslationStrings = {
+  'perm.title': 'Налаштування дозволів',
+  'perm.subtitle': 'Керуйте тим, хто може виконувати дії в додатку',
+  'perm.saved': 'Налаштування дозволів збережено',
+  'perm.resetDefaults': 'Скинути за замовчуванням',
+  'perm.customized': 'змінено',
+  'perm.level.admin': 'Тільки адміністратор',
+  'perm.level.tripOwner': 'Власник поїздки',
+  'perm.level.tripMember': 'Учасники поїздки',
+  'perm.level.everybody': 'Усі',
+  'perm.cat.trip': 'Керування поїздками',
+  'perm.cat.members': 'Керування учасниками',
+  'perm.cat.files': 'Файли',
+  'perm.cat.content': 'Контент та розклад',
+  'perm.cat.extras': 'Бюджет, збори та співпраця',
+  'perm.action.trip_create': 'Створювати поїздки',
+  'perm.action.trip_edit': 'Редагувати деталі поїздки',
+  'perm.action.trip_delete': 'Видаляти поїздки',
+  'perm.action.trip_archive': 'Архівувати / розархівувати поїздки',
+  'perm.action.trip_cover_upload': 'Завантажувати обкладинку',
+  'perm.action.member_manage': 'Додавати / видаляти учасників',
+  'perm.action.file_upload': 'Завантажувати файли',
+  'perm.action.file_edit': 'Редагувати метадані файлів',
+  'perm.action.file_delete': 'Видаляти файли',
+  'perm.action.place_edit': 'Додавати / редагувати / видаляти місця',
+  'perm.action.day_edit': 'Редагувати дні, нотатки та призначення',
+  'perm.action.reservation_edit': 'Керувати бронюваннями',
+  'perm.action.budget_edit': 'Керувати бюджетом',
+  'perm.action.packing_edit': 'Керувати списками речей',
+  'perm.action.collab_edit': 'Співпраця (нотатки, опитування, чат)',
+  'perm.action.share_manage': 'Керувати посиланнями для обміну',
+  'perm.actionHint.trip_create': 'Хто може створювати нові поїздки',
+  'perm.actionHint.trip_edit':
+    'Хто може змінювати назву, дати, опис і валюту поїздки',
+  'perm.actionHint.trip_delete': 'Хто може безповоротно видалити поїздку',
+  'perm.actionHint.trip_archive':
+    'Хто може архівувати або розархівувати поїздку',
+  'perm.actionHint.trip_cover_upload':
+    'Хто може завантажувати або змінювати обкладинку',
+  'perm.actionHint.member_manage':
+    'Хто може запрошувати або видаляти учасників поїздки',
+  'perm.actionHint.file_upload': 'Хто може завантажувати файли до поїздки',
+  'perm.actionHint.file_edit': 'Хто може редагувати описи та посилання файлів',
+  'perm.actionHint.file_delete':
+    'Хто може переміщувати файли до кошика або безповоротно видаляти',
+  'perm.actionHint.place_edit':
+    'Хто може додавати, редагувати або видаляти місця',
+  'perm.actionHint.day_edit':
+    'Хто може редагувати дні, нотатки до днів та призначення місць',
+  'perm.actionHint.reservation_edit':
+    'Хто може створювати, редагувати або видаляти бронювання',
+  'perm.actionHint.budget_edit':
+    'Хто може створювати, редагувати або видаляти статті бюджету',
+  'perm.actionHint.packing_edit':
+    'Хто може керувати речами для зборів і сумками',
+  'perm.actionHint.collab_edit':
+    'Хто може створювати нотатки, опитування та надсилати повідомлення',
+  'perm.actionHint.share_manage':
+    'Хто може створювати або видаляти публічні посилання для обміну',
+};
+export default perm;

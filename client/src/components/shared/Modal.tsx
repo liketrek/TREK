@@ -1,4 +1,5 @@
 import React, { useEffect, useCallback, useRef } from 'react'
+import ReactDOM from 'react-dom'
 import { X } from 'lucide-react'
 
 const sizeClasses: Record<string, string> = {
@@ -48,10 +49,10 @@ export default function Modal({
 
   if (!isOpen) return null
 
-  return (
+  return ReactDOM.createPortal(
     <div
-      className="fixed inset-0 z-[200] flex items-start sm:items-center justify-center px-4 modal-backdrop trek-backdrop-enter"
-      style={{ backgroundColor: 'rgba(15, 23, 42, 0.5)', paddingTop: 70, paddingBottom: 'calc(20px + var(--bottom-nav-h))', overflow: 'hidden' }}
+      className="fixed inset-0 z-[200] flex items-start sm:items-center justify-center px-4 trek-modal-backdrop trek-backdrop-enter bg-[rgba(15,23,42,0.5)]"
+      style={{ paddingTop: 70, paddingBottom: 'calc(20px + var(--bottom-nav-h))', overflow: 'hidden' }}
       onMouseDown={e => { mouseDownTarget.current = e.target }}
       onClick={e => {
         if (e.target === e.currentTarget && mouseDownTarget.current === e.currentTarget) onClose()
@@ -64,13 +65,13 @@ export default function Modal({
           rounded-2xl overflow-hidden shadow-2xl w-full ${sizeClasses[size] || sizeClasses.md}
           flex flex-col
           max-h-[calc(100dvh-var(--bottom-nav-h)-90px)] sm:max-h-[calc(100dvh-90px)]
+          bg-surface-card
         `}
-        style={{ background: 'var(--bg-card)' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header — stays put even while the body scrolls */}
-        <div className="flex items-center justify-between p-6 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-secondary)' }}>
-          <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</h2>
+        <div className="flex items-center justify-between p-6 flex-shrink-0 border-b border-edge-secondary">
+          <h2 className="text-lg font-semibold text-content">{title}</h2>
           {!hideCloseButton && (
             <button
               onClick={onClose}
@@ -88,12 +89,13 @@ export default function Modal({
 
         {/* Footer — sticky at the bottom of the modal, never compressed */}
         {footer && (
-          <div className="p-6 flex-shrink-0" style={{ borderTop: '1px solid var(--border-secondary)' }}>
+          <div className="p-6 flex-shrink-0 border-t border-edge-secondary">
             {footer}
           </div>
         )}
       </div>
 
-    </div>
+    </div>,
+    document.body
   )
 }

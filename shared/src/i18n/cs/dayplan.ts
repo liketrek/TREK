@@ -1,0 +1,61 @@
+import type { TranslationStrings } from '../types';
+
+const dayplan: TranslationStrings = {
+  'dayplan.icsTooltip': 'Exportovat kalendář (ICS)',
+  'dayplan.emptyDay': 'Na tento den nejsou naplánována žádná místa',
+  'dayplan.addNote': 'Přidat poznámku',
+  'dayplan.editNote': 'Upravit poznámku',
+  'dayplan.noteAdd': 'Přidat poznámku',
+  'dayplan.noteEdit': 'Upravit poznámku',
+  'dayplan.noteTitle': 'Poznámka',
+  'dayplan.noteSubtitle': 'Poznámka ke dni',
+  'dayplan.totalCost': 'Celkové náklady',
+  'dayplan.days': 'Dny',
+  'dayplan.dayN': 'Den {n}',
+  'dayplan.calculating': 'Počítání...',
+  'dayplan.route': 'Trasa',
+  'dayplan.optimize': 'Optimalizovat',
+  'dayplan.optimized': 'Trasa optimalizována',
+  'dayplan.routeError': 'Nepodařilo se vypočítat trasu',
+  'dayplan.toast.needTwoPlaces':
+    'Pro optimalizaci trasy jsou potřeba alespoň dvě místa',
+  'dayplan.toast.routeOptimized': 'Trasa byla optimalizována',
+  'dayplan.toast.routeOptimizedFromHotel':
+    'Trasa byla optimalizována od vašeho ubytování',
+  'dayplan.toast.noGeoPlaces':
+    'Nebyla nalezena žádná místa se souřadnicemi pro výpočet trasy',
+  'dayplan.confirmed': 'Potvrzeno',
+  'dayplan.pendingRes': 'Čeká na potvrzení',
+  'dayplan.pdf': 'PDF',
+  'dayplan.pdfTooltip': 'Exportovat denní plán do PDF',
+  'dayplan.pdfError': 'Export do PDF se nezdařil',
+  'dayplan.cannotReorderTransport':
+    'Rezervace s pevným časem nelze přeuspořádat',
+  'dayplan.confirmRemoveTimeTitle': 'Odebrat čas?',
+  'dayplan.confirmRemoveTimeBody':
+    'Toto místo má pevný čas ({time}). Přesunutím se čas odebere a povolí se volné řazení.',
+  'dayplan.confirmRemoveTimeAction': 'Odebrat čas a přesunout',
+  'dayplan.confirmDeleteNoteTitle': 'Smazat poznámku?',
+  'dayplan.confirmDeleteNoteBody': 'Tato poznámka bude trvale smazána.',
+  'dayplan.cannotDropOnTimed':
+    'Položky nelze umístit mezi záznamy s pevným časem',
+  'dayplan.cannotBreakChronology':
+    'Toto by porušilo chronologické pořadí naplánovaných položek a rezervací',
+  'dayplan.mobile.addPlace': 'Přidat místo',
+  'dayplan.mobile.searchPlaces': 'Hledat místa...',
+  'dayplan.mobile.allAssigned': 'Všechna místa přiřazena',
+  'dayplan.mobile.noMatch': 'Žádná shoda',
+  'dayplan.mobile.createNew': 'Vytvořit nové místo',
+  'dayplan.expandAll': 'Expand all days', // en-fallback
+  'dayplan.collapseAll': 'Collapse all days', // en-fallback
+  'dayplan.reorderDays': 'Změnit pořadí dnů',
+  'dayplan.reorderTitle': 'Změnit pořadí dnů',
+  'dayplan.reorderHint': 'Místa, poznámky a rezervace daného dne se přesunou spolu s ním.',
+  'dayplan.addDay': 'Přidat den',
+  'dayplan.moveUp': 'Posunout nahoru',
+  'dayplan.moveDown': 'Posunout dolů',
+  'dayplan.reorderUndo': 'Změnit pořadí dnů',
+  'dayplan.reorderError': 'Nepodařilo se změnit pořadí dnů',
+  'dayplan.addDayError': 'Nepodařilo se přidat den',
+};
+export default dayplan;

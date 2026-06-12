@@ -1,6 +1,24 @@
 import { db, canAccessTrip } from '../db/database';
 import crypto from 'crypto';
 import { loadTagsByPlaceIds } from './queryHelpers';
+import { serveFilePath } from './placePhotoCache';
+
+const PLACE_PHOTO_PROXY_PREFIX = '/api/maps/place-photo/';
+
+/**
+ * Place photo proxy URLs (`/api/maps/place-photo/<id>/bytes`) are served by the
+ * JWT-guarded MapsController, so they 401 for an unauthenticated shared-trip
+ * viewer. Rewrite them to the public, token-scoped equivalent
+ * (`/api/shared/<token>/place-photo/<id>/bytes`) so thumbnails load in a shared
+ * link. A simple prefix swap keeps the already-encoded placeId segment intact, so
+ * the URL round-trips. Non-proxy URLs (data:, /uploads/, null) pass through.
+ */
+function rewritePlacePhotoUrl(url: string | null | undefined, token: string): string | null {
+  if (typeof url === 'string' && url.startsWith(PLACE_PHOTO_PROXY_PREFIX)) {
+    return `/api/shared/${token}/place-photo/${url.slice(PLACE_PHOTO_PROXY_PREFIX.length)}`;
+  }
+  return url ?? null;
+}
 
 interface SharePermissions {
   share_map?: boolean;
@@ -129,7 +147,7 @@ export function getSharedTripData(token: string): Record<string, any> | null {
           id: a.place_id, name: a.place_name, description: a.place_description,
           lat: a.lat, lng: a.lng, address: a.address, category_id: a.category_id,
           price: a.price, place_time: a.place_time, end_time: a.end_time,
-          image_url: a.image_url, transport_mode: a.transport_mode,
+          image_url: rewritePlacePhotoUrl(a.image_url, token), transport_mode: a.transport_mode,
           category: a.category_id ? { id: a.category_id, name: a.category_name, color: a.category_color, icon: a.category_icon } : null,
           tags: tagsByPlace[a.place_id] || [],
         }
@@ -147,11 +165,11 @@ export function getSharedTripData(token: string): Record<string, any> | null {
   }
 
   // Places
-  const places = db.prepare(`
+  const places = (db.prepare(`
     SELECT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon
     FROM places p LEFT JOIN categories c ON p.category_id = c.id
     WHERE p.trip_id = ? ORDER BY p.created_at DESC
-  `).all(tripId);
+  `).all(tripId) as any[]).map((p) => ({ ...p, image_url: rewritePlacePhotoUrl(p.image_url, token) }));
 
   // Reservations — include per-day positions so the client can render the same order as the planner
   const reservations = db.prepare('SELECT * FROM reservations WHERE trip_id = ? ORDER BY reservation_time ASC').all(tripId) as any[];
@@ -209,4 +227,27 @@ export function getSharedTripData(token: string): Record<string, any> | null {
     budget: permissions.share_budget ? budget : [],
     collab: collabMessages,
   };
+}
+
+/**
+ * Resolves the on-disk path for a cached place photo requested through a public
+ * share link. Validates that the token is valid + unexpired and that the place
+ * actually belongs to that token's trip (matched via the stored proxy URL, which
+ * covers both Google `placeId` and Wikimedia `coords:` pseudo-IDs without
+ * depending on google_place_id). Returns null — never throws — so the caller
+ * answers a plain 404, mirroring the authenticated bytes endpoint.
+ */
+export function getSharedPlacePhotoPath(token: string, placeId: string): string | null {
+  const shareRow = db.prepare(
+    "SELECT trip_id FROM share_tokens WHERE token = ? AND (expires_at IS NULL OR expires_at > datetime('now'))"
+  ).get(token) as { trip_id: string } | undefined;
+  if (!shareRow) return null;
+
+  const expectedUrl = `${PLACE_PHOTO_PROXY_PREFIX}${encodeURIComponent(placeId)}/bytes`;
+  const place = db.prepare(
+    'SELECT 1 FROM places WHERE trip_id = ? AND image_url = ?'
+  ).get(shareRow.trip_id, expectedUrl);
+  if (!place) return null;
+
+  return serveFilePath(placeId);
 }

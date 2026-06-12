@@ -439,9 +439,10 @@ describe('useDayNotes', () => {
   });
 });
 
-// Type augment for window.__addToast
+// Type augment for window.__addToast — must mirror the canonical declaration
+// in components/shared/Toast.tsx (a divergent signature is a merge conflict).
 declare global {
   interface Window {
-    __addToast?: (message: string, type: string, duration?: number) => void;
+    __addToast?: (message: string, type?: 'success' | 'error' | 'warning' | 'info', duration?: number) => number;
   }
 }

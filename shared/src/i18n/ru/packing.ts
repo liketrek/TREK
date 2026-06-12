@@ -1,0 +1,186 @@
+import type { TranslationStrings } from '../types';
+
+const packing: TranslationStrings = {
+  'packing.title': 'Список вещей',
+  'packing.empty': 'Список вещей пуст',
+  'packing.import': 'Импорт',
+  'packing.importTitle': 'Импорт списка вещей',
+  'packing.importHint':
+    'Один предмет на строку. Категория и количество — через запятую, точку с запятой или табуляцию: Название, Категория, Количество',
+  'packing.importPlaceholder':
+    'Зубная щётка\nСолнцезащитный крем, Гигиена\nФутболки, Одежда, 5\nПаспорт, Документы',
+  'packing.importCsv': 'Загрузить CSV/TXT',
+  'packing.importAction': 'Импортировать {count}',
+  'packing.importSuccess': '{count} предметов импортировано',
+  'packing.importError': 'Ошибка импорта',
+  'packing.importEmpty': 'Нет предметов для импорта',
+  'packing.progress': '{packed} из {total} собрано ({percent}%)',
+  'packing.clearChecked': 'Удалить {count} отмеченных',
+  'packing.clearCheckedShort': 'Удалить {count}',
+  'packing.suggestions': 'Подсказки',
+  'packing.suggestionsTitle': 'Добавить подсказки',
+  'packing.allSuggested': 'Все подсказки добавлены',
+  'packing.allPacked': 'Всё собрано!',
+  'packing.addPlaceholder': 'Добавить вещь...',
+  'packing.categoryPlaceholder': 'Категория...',
+  'packing.filterAll': 'Все',
+  'packing.filterOpen': 'Не собрано',
+  'packing.filterDone': 'Собрано',
+  'packing.emptyTitle': 'Список вещей пуст',
+  'packing.emptyHint': 'Добавьте вещи или используйте подсказки',
+  'packing.emptyFiltered': 'Нет вещей, соответствующих фильтру',
+  'packing.menuRename': 'Переименовать',
+  'packing.menuCheckAll': 'Отметить все',
+  'packing.menuUncheckAll': 'Снять отметки',
+  'packing.menuDeleteCat': 'Удалить категорию',
+  'packing.addItem': 'Добавить вещь',
+  'packing.addItemPlaceholder': 'Название...',
+  'packing.addCategory': 'Добавить категорию',
+  'packing.newCategoryPlaceholder': 'Название категории (напр. Одежда)',
+  'packing.applyTemplate': 'Применить шаблон',
+  'packing.template': 'Шаблон',
+  'packing.templateApplied': '{count} вещей добавлено из шаблона',
+  'packing.templateError': 'Ошибка применения шаблона',
+  'packing.saveAsTemplate': 'Сохранить как шаблон',
+  'packing.templateName': 'Название шаблона',
+  'packing.templateSaved': 'Список вещей сохранён как шаблон',
+  'packing.noMembers': 'Нет участников',
+  'packing.bags': 'Багаж',
+  'packing.noBag': 'Не назначено',
+  'packing.totalWeight': 'Общий вес',
+  'packing.bagName': 'Название...',
+  'packing.addBag': 'Добавить багаж',
+  'packing.changeCategory': 'Изменить категорию',
+  'packing.confirm.clearChecked':
+    'Вы уверены, что хотите удалить {count} отмеченных вещей?',
+  'packing.confirm.deleteCat':
+    'Вы уверены, что хотите удалить категорию «{name}» с {count} вещами?',
+  'packing.defaultCategory': 'Другое',
+  'packing.toast.saveError': 'Ошибка сохранения',
+  'packing.toast.deleteError': 'Ошибка удаления',
+  'packing.toast.renameError': 'Ошибка переименования',
+  'packing.toast.addError': 'Ошибка добавления',
+  'packing.suggestions.items': [
+    {
+      name: 'Паспорт',
+      category: 'Документы',
+    },
+    {
+      name: 'Удостоверение личности',
+      category: 'Документы',
+    },
+    {
+      name: 'Страховка',
+      category: 'Документы',
+    },
+    {
+      name: 'Авиабилеты',
+      category: 'Документы',
+    },
+    {
+      name: 'Банковская карта',
+      category: 'Финансы',
+    },
+    {
+      name: 'Наличные',
+      category: 'Финансы',
+    },
+    {
+      name: 'Виза',
+      category: 'Документы',
+    },
+    {
+      name: 'Футболки',
+      category: 'Одежда',
+    },
+    {
+      name: 'Брюки',
+      category: 'Одежда',
+    },
+    {
+      name: 'Нижнее бельё',
+      category: 'Одежда',
+    },
+    {
+      name: 'Носки',
+      category: 'Одежда',
+    },
+    {
+      name: 'Куртка',
+      category: 'Одежда',
+    },
+    {
+      name: 'Пижама',
+      category: 'Одежда',
+    },
+    {
+      name: 'Купальник',
+      category: 'Одежда',
+    },
+    {
+      name: 'Дождевик',
+      category: 'Одежда',
+    },
+    {
+      name: 'Удобная обувь',
+      category: 'Одежда',
+    },
+    {
+      name: 'Зубная щётка',
+      category: 'Гигиена',
+    },
+    {
+      name: 'Зубная паста',
+      category: 'Гигиена',
+    },
+    {
+      name: 'Шампунь',
+      category: 'Гигиена',
+    },
+    {
+      name: 'Дезодорант',
+      category: 'Гигиена',
+    },
+    {
+      name: 'Солнцезащитный крем',
+      category: 'Гигиена',
+    },
+    {
+      name: 'Бритва',
+      category: 'Гигиена',
+    },
+    {
+      name: 'Зарядное устройство',
+      category: 'Электроника',
+    },
+    {
+      name: 'Внешний аккумулятор',
+      category: 'Электроника',
+    },
+    {
+      name: 'Наушники',
+      category: 'Электроника',
+    },
+    {
+      name: 'Адаптер для розеток',
+      category: 'Электроника',
+    },
+    {
+      name: 'Фотоаппарат',
+      category: 'Электроника',
+    },
+    {
+      name: 'Обезболивающее',
+      category: 'Здоровье',
+    },
+    {
+      name: 'Пластыри',
+      category: 'Здоровье',
+    },
+    {
+      name: 'Антисептик',
+      category: 'Здоровье',
+    },
+  ],
+};
+export default packing;

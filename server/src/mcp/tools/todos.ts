@@ -10,7 +10,7 @@ import {
 import {
   safeBroadcast, TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, noAccess, ok,
+  demoDenied, noAccess, ok, hasTripPermission, permissionDenied,
 } from './_shared';
 import { canRead, canWrite } from '../scopes';
 import { isAddonEnabled } from '../../services/adminService';
@@ -58,6 +58,7 @@ export function registerTodoTools(server: McpServer, userId: number, scopes: str
     async ({ tripId, name, category, due_date, description, assigned_user_id, priority }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('packing_edit', tripId, userId)) return permissionDenied();
       const item = createTodoItem(tripId, { name, category, due_date, description, assigned_user_id, priority });
       safeBroadcast(tripId, 'todo:created', { item });
       return ok({ item });
@@ -83,6 +84,7 @@ export function registerTodoTools(server: McpServer, userId: number, scopes: str
     async ({ tripId, itemId, name, category, due_date, description, assigned_user_id, priority }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('packing_edit', tripId, userId)) return permissionDenied();
       // Build bodyKeys to signal which nullable fields were explicitly provided
       const bodyKeys: string[] = [];
       if (due_date !== undefined) bodyKeys.push('due_date');
@@ -110,6 +112,7 @@ export function registerTodoTools(server: McpServer, userId: number, scopes: str
     async ({ tripId, itemId, checked }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('packing_edit', tripId, userId)) return permissionDenied();
       const item = updateTodoItem(tripId, itemId, { checked: checked ? 1 : 0 }, []);
       if (!item) return { content: [{ type: 'text' as const, text: 'To-do item not found.' }], isError: true };
       safeBroadcast(tripId, 'todo:updated', { item });
@@ -130,6 +133,7 @@ export function registerTodoTools(server: McpServer, userId: number, scopes: str
     async ({ tripId, itemId }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('packing_edit', tripId, userId)) return permissionDenied();
       const deleted = deleteTodoItem(tripId, itemId);
       if (!deleted) return { content: [{ type: 'text' as const, text: 'To-do item not found.' }], isError: true };
       safeBroadcast(tripId, 'todo:deleted', { itemId });
@@ -150,6 +154,7 @@ export function registerTodoTools(server: McpServer, userId: number, scopes: str
     async ({ tripId, orderedIds }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('packing_edit', tripId, userId)) return permissionDenied();
       reorderTodoItems(tripId, orderedIds);
       return ok({ success: true });
     }
@@ -185,6 +190,7 @@ export function registerTodoTools(server: McpServer, userId: number, scopes: str
     async ({ tripId, categoryName, userIds }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('packing_edit', tripId, userId)) return permissionDenied();
       const assignees = updateTodoCategoryAssignees(tripId, categoryName, userIds);
       safeBroadcast(tripId, 'todo:assignees', { category: categoryName, assignees });
       return ok({ assignees });

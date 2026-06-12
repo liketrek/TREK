@@ -119,7 +119,7 @@ export default function App() {
       }
     }
     authApi.getAppConfig().then(async (config: { demo_mode?: boolean; dev_mode?: boolean; is_prerelease?: boolean; has_maps_key?: boolean; version?: string; timezone?: string; require_mfa?: boolean; trip_reminders_enabled?: boolean; places_photos_enabled?: boolean; places_autocomplete_enabled?: boolean; places_details_enabled?: boolean; permissions?: Record<string, PermissionLevel> }) => {
-      if (config?.demo_mode) setDemoMode(true)
+      setDemoMode(!!config?.demo_mode)
       if (config?.dev_mode) setDevMode(true)
       if (config?.is_prerelease !== undefined) setIsPrerelease(config.is_prerelease)
       if (config?.version) setAppVersion(config.version)

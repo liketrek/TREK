@@ -104,7 +104,7 @@ function ensureJourneyPopupStyle() {
       -webkit-backdrop-filter: blur(16px) saturate(180%);
       border: 1px solid rgba(0, 0, 0, 0.06);
       box-shadow: 0 10px 32px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.06);
-      font-family: -apple-system, system-ui, sans-serif;
+      font-family:var(--font-system);
       min-width: 160px;
       max-width: 280px;
     }
@@ -185,7 +185,7 @@ function markerHtml(dayColor: string, dayLabel: number, highlighted: boolean): H
   inner.innerHTML = `<svg width="${MARKER_W}" height="${MARKER_H}" viewBox="0 0 28 36" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M14 34C14 34 26 22.36 26 13C26 6.37 20.63 1 14 1C7.37 1 2 6.37 2 13C2 22.36 14 34 14 34Z" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>
     <circle cx="14" cy="13" r="8" fill="${fill}"/>
-    <text x="14" y="13" text-anchor="middle" dominant-baseline="central" fill="${textColor}" font-family="-apple-system,system-ui,sans-serif" font-size="11" font-weight="700">${label}</text>
+    <text x="14" y="13" text-anchor="middle" dominant-baseline="central" fill="${textColor}" font-family="'Poppins',system-ui,sans-serif" font-size="11" font-weight="700">${label}</text>
   </svg>`
   wrap.appendChild(inner)
   return wrap

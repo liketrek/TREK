@@ -1,0 +1,396 @@
+import type { TranslationStrings } from '../types';
+
+const admin: TranslationStrings = {
+  'admin.notifications.title': 'Bildirimler',
+  'admin.notifications.hint':
+    'Bir bildirim kanalı seçin. Aynı anda yalnızca biri etkin olabilir.',
+  'admin.notifications.none': 'Kapalı',
+  'admin.notifications.email': 'E-posta (SMTP)',
+  'admin.notifications.webhook': 'Web kancası',
+  'admin.notifications.ntfy': 'Ntfy',
+  'admin.ntfy.hint':
+    'Kullanıcıların kendi ntfy konularını yapılandırmasına izin verin. Aşağıdaki varsayılan sunucu kullanıcı ayarlarında ön doldurma için kullanılır.',
+  'admin.notifications.save': 'Bildirim ayarlarını kaydet',
+  'admin.notifications.saved': 'Bildirim ayarları kaydedildi',
+  'admin.notifications.testWebhook': 'Test webhook gönder',
+  'admin.notifications.testWebhookSuccess': 'Test webhook gönderildi',
+  'admin.notifications.testWebhookFailed': 'Test webhook başarısız',
+  'admin.notifications.testNtfy': 'Test ntfy gönder',
+  'admin.notifications.testNtfySuccess': 'Test ntfy gönderildi',
+  'admin.notifications.testNtfyFailed': 'Test ntfy başarısız',
+  'admin.notifications.emailPanel.title': 'E-posta (SMTP)',
+  'admin.notifications.webhookPanel.title': 'Web kancası',
+  'admin.notifications.inappPanel.title': 'Uygulama içi',
+  'admin.notifications.inappPanel.hint':
+    'Uygulama içi bildirimler her zaman açıktır ve genel olarak kapatılamaz.',
+  'admin.notifications.adminWebhookPanel.title': 'Yönetici Webhook',
+  'admin.notifications.adminWebhookPanel.hint':
+    "Bu webhook yalnızca yönetici bildirimleri için kullanılır (örn. sürüm uyarıları). Kullanıcı webhook'larından ayrıdır ve ayarlıysa her zaman tetiklenir.",
+  'admin.notifications.adminWebhookPanel.saved':
+    'Yönetici webhook URL kaydedildi',
+  'admin.notifications.adminWebhookPanel.testSuccess':
+    'Test webhook gönderildi',
+  'admin.notifications.adminWebhookPanel.testFailed': 'Test webhook başarısız',
+  'admin.notifications.adminWebhookPanel.alwaysOnHint':
+    'URL yapılandırıldığında yönetici webhook her zaman tetiklenir',
+  'admin.notifications.adminNtfyPanel.title': 'Yönetici Ntfy',
+  'admin.notifications.adminNtfyPanel.hint':
+    'Bu ntfy konusu yalnızca yönetici bildirimleri için kullanılır. Kullanıcı konularından ayrıdır ve yapılandırıldığında her zaman tetiklenir.',
+  'admin.notifications.adminNtfyPanel.serverLabel': "Ntfy Sunucu URL'si",
+  'admin.notifications.adminNtfyPanel.serverHint':
+    'Kullanıcı ntfy bildirimleri için varsayılan sunucu olarak da kullanılır. Boş bırakırsanız ntfy.sh olur. Kullanıcılar kendi ayarlarında geçersiz kılabilir.',
+  'admin.notifications.adminNtfyPanel.serverPlaceholder': 'https://ntfy.sh',
+  'admin.notifications.adminNtfyPanel.topicLabel': 'Yönetici Konusu',
+  'admin.notifications.adminNtfyPanel.topicPlaceholder':
+    'yürüyüş-yönetici-uyarıları',
+  'admin.notifications.adminNtfyPanel.tokenLabel':
+    'Erişim anahtarı (isteğe bağlı)',
+  'admin.notifications.adminNtfyPanel.tokenCleared':
+    'Yönetici erişim anahtarı temizlendi',
+  'admin.notifications.adminNtfyPanel.saved':
+    'Yönetici ntfy ayarları kaydedildi',
+  'admin.notifications.adminNtfyPanel.test': 'Test ntfy gönder',
+  'admin.notifications.adminNtfyPanel.testSuccess': 'Test ntfy gönderildi',
+  'admin.notifications.adminNtfyPanel.testFailed': 'Test ntfy başarısız',
+  'admin.notifications.adminNtfyPanel.alwaysOnHint':
+    'Konu yapılandırıldığında yönetici ntfy her zaman tetiklenir',
+  'admin.notifications.adminNotificationsHint':
+    'Yalnızca yönetici bildirimlerinin hangi kanallardan iletileceğini yapılandırın.',
+  'admin.notifications.tripReminders.title': 'Seyahat Hatırlatıcıları',
+  'admin.notifications.tripReminders.hint':
+    'Seyahat başlamadan önce hatırlatma gönderir (seyahatte hatırlatma günü ayarlı olmalıdır).',
+  'admin.notifications.tripReminders.enabled': 'Seyahat hatırlatıcıları açık',
+  'admin.notifications.tripReminders.disabled':
+    'Seyahat hatırlatıcıları kapalı',
+  'admin.smtp.title': 'E-posta ve Bildirimler',
+  'admin.smtp.hint': 'E-posta bildirimleri için SMTP yapılandırması.',
+  'admin.smtp.testButton': 'Test e-postası gönder',
+  'admin.webhook.hint':
+    "Kullanıcıların bildirimler için kendi webhook URL'lerini (Discord, Slack vb.) yapılandırmasına izin verin.",
+  'admin.smtp.testSuccess': 'Test e-postası gönderildi',
+  'admin.smtp.testFailed': 'Test e-postası başarısız',
+  'admin.title': 'Yönetim',
+  'admin.subtitle': 'Kullanıcı yönetimi ve sistem ayarları',
+  'admin.tabs.users': 'Kullanıcılar',
+  'admin.tabs.categories': 'Kategoriler',
+  'admin.tabs.backup': 'Yedekleme',
+  'admin.tabs.notifications': 'Bildirimler',
+  'admin.tabs.audit': 'Denetim',
+  'admin.stats.users': 'Kullanıcılar',
+  'admin.stats.trips': 'Seyahatler',
+  'admin.stats.places': 'Yerler',
+  'admin.stats.photos': 'Fotoğraflar',
+  'admin.stats.files': 'Dosyalar',
+  'admin.table.user': 'Kullanıcı',
+  'admin.table.email': 'E-posta',
+  'admin.table.role': 'Rol',
+  'admin.table.created': 'Oluşturulma',
+  'admin.table.lastLogin': 'Son Giriş',
+  'admin.table.actions': 'İşlemler',
+  'admin.you': '(Siz)',
+  'admin.editUser': 'Kullanıcıyı Düzenle',
+  'admin.newPassword': 'Yeni Şifre',
+  'admin.newPasswordHint': 'Mevcut şifreyi korumak için boş bırakın',
+  'admin.deleteUser':
+    '"{name}" kullanıcısı silinsin mi? Tüm geziler kalıcı olarak silinecek.',
+  'admin.deleteUserTitle': 'Kullanıcıyı sil',
+  'admin.newPasswordPlaceholder': 'Yeni şifreyi girin…',
+  'admin.toast.loadError': 'Yönetici verileri yüklenemedi',
+  'admin.toast.userUpdated': 'Kullanıcı güncellendi',
+  'admin.toast.updateError': 'Güncelleme başarısız oldu',
+  'admin.toast.userDeleted': 'Kullanıcı silindi',
+  'admin.toast.deleteError': 'Silinemedi',
+  'admin.toast.cannotDeleteSelf': 'Kendi hesabınızı silemiyorum',
+  'admin.toast.userCreated': 'Kullanıcı oluşturuldu',
+  'admin.toast.createError': 'Kullanıcı oluşturulamadı',
+  'admin.toast.fieldsRequired': 'Kullanıcı adı, e-posta ve şifre gerekli',
+  'admin.createUser': 'Kullanıcı Oluştur',
+  'admin.invite.title': 'Bağlantıları Davet Et',
+  'admin.invite.subtitle': 'Tek seferlik kayıt bağlantıları oluşturun',
+  'admin.invite.create': 'Bağlantı Oluştur',
+  'admin.invite.createAndCopy': 'Oluştur ve Kopyala',
+  'admin.invite.empty': 'Henüz davet bağlantısı oluşturulmadı',
+  'admin.invite.maxUses': 'Maks. Kullanım Alanları',
+  'admin.invite.expiry': 'Şu tarihten sonra sona erer:',
+  'admin.invite.uses': 'kullanılmış',
+  'admin.invite.expiresAt': 'süresi doluyor',
+  'admin.invite.createdBy': 'ile',
+  'admin.invite.active': 'Aktif',
+  'admin.invite.expired': 'Günü geçmiş',
+  'admin.invite.usedUp': 'Kullanılmış',
+  'admin.invite.copied': 'Davet bağlantısı panoya kopyalandı',
+  'admin.invite.copyLink': 'Bağlantıyı kopyala',
+  'admin.invite.deleted': 'Davet bağlantısı silindi',
+  'admin.invite.createError': 'Davet bağlantısı oluşturulamadı',
+  'admin.invite.deleteError': 'Davet bağlantısı silinemedi',
+  'admin.tabs.settings': 'Ayarlar',
+  'admin.allowRegistration': 'Kayda İzin Ver',
+  'admin.allowRegistrationHint':
+    'Yeni kullanıcılar kendileri kayıt olabilirler',
+  'admin.authMethods': 'Kimlik Doğrulama Yöntemleri',
+  'admin.passwordLogin': 'Şifre Girişi',
+  'admin.passwordLoginHint':
+    'Kullanıcıların e-posta ve şifreyle oturum açmasına izin ver',
+  'admin.passwordRegistration': 'Şifre Kaydı',
+  'admin.passwordRegistrationHint':
+    'Yeni kullanıcıların e-posta ve şifreyle kaydolmasına izin ver',
+  'admin.oidcLogin': 'TOA Girişi',
+  'admin.oidcLoginHint': 'Kullanıcıların SSO ile oturum açmasına izin Ver',
+  'admin.oidcRegistration': 'SSO Otomatik Temel Hazırlığı',
+  'admin.oidcRegistrationHint':
+    'Yeni SSO kullanıcıları için otomatik olarak hesap oluşturun',
+  'admin.envOverrideHint':
+    'Şifre oturum açma ayarları OIDC_ONLY ortam değişkeni tarafından kontrol edilir ve burada değiştirilemez.',
+  'admin.lockoutWarning': 'En az bir oturum açma yöntemi etkin kalmalıdır',
+  'admin.requireMfa': 'İki faktörlü kimlik doğrulama (2FA) gerektir',
+  'admin.requireMfaHint':
+    "2FA'sı olmayan kullanıcıların uygulamayı kullanmadan önce Ayarlar'da kurulumu tamamlaması gerekir.",
+  'admin.apiKeys': 'API Anahtarları',
+  'admin.apiKeysHint':
+    'İsteğe bağlı. Fotoğraflar ve hava durumu gibi genişletilmiş yer verilerini etkinleştirir.',
+  'admin.mapsKey': 'Google Haritalar API Anahtarı',
+  'admin.mapsKeyHint':
+    'Yer arama için gereklidir. console.cloud.google.com adresinden erişin',
+  'admin.mapsKeyHintLong':
+    'API anahtarı olmadan OpenStreetMap yer arama için kullanılır. Bir Google API anahtarıyla fotoğraflar, derecelendirmeler ve açılış saatleri de yüklenebilir. console.cloud.google.com adresinden bir tane edinin.',
+  'admin.recommended': 'Tavsiye edilen',
+  'admin.weatherKey': 'OpenWeatherMap API Anahtarı',
+  'admin.weatherKeyHint':
+    "Hava durumu verileri için. openweathermap.org'da ücretsiz",
+  'admin.validateKey': 'Test et',
+  'admin.keyValid': 'Bağlı',
+  'admin.keyInvalid': 'Geçersiz',
+  'admin.keySaved': 'API anahtarları kaydedildi',
+  'admin.oidcTitle': 'Tek Oturum Açma (OIDC)',
+  'admin.oidcSubtitle':
+    'Google, Apple, Authentik veya Keycloak gibi harici sağlayıcılar aracılığıyla oturum açmaya izin verin.',
+  'admin.oidcDisplayName': 'Ekran Adı',
+  'admin.oidcIssuer': "Veren URL'si",
+  'admin.oidcIssuerHint':
+    "Sağlayıcının OpenID Connect Veren URL'si. örneğin https://accounts.google.com",
+  'admin.oidcSaved': 'OIDC yapılandırması kaydedildi',
+  'admin.oidcOnlyMode': 'Parola kimlik doğrulamasını devre dışı bırak',
+  'admin.oidcOnlyModeHint':
+    'Etkinleştirildiğinde yalnızca SSO girişine izin verilir. Şifre tabanlı oturum açma ve kayıt engellenir.',
+  'admin.fileTypes': 'İzin Verilen Dosya Türleri',
+  'admin.fileTypesHint':
+    'Kullanıcıların hangi dosya türlerini yükleyebileceğini yapılandırın.',
+  'admin.fileTypesFormat':
+    'Virgülle ayrılmış uzantılar (ör. jpg,png,pdf,doc). Tüm türlere izin vermek için * kullanın.',
+  'admin.fileTypesSaved': 'Dosya türü ayarları kaydedildi',
+  'admin.placesPhotos.title': 'Fotoğrafları Yerleştir',
+  'admin.placesPhotos.subtitle':
+    "Fotoğrafları Google Rehber API'sinden alın. API kotasını kaydetmeyi devre dışı bırakın. Wikimedia fotoğrafları etkilenmez.",
+  'admin.placesAutocomplete.title': 'Otomatik Tamamlamayı Yerleştir',
+  'admin.placesAutocomplete.subtitle':
+    "Arama önerileri için Google Rehber API'sini kullanın. API kotasını kaydetmeyi devre dışı bırakın.",
+  'admin.placesDetails.title': 'Yer Detayları',
+  'admin.placesDetails.subtitle':
+    "Google Rehber API'sinden ayrıntılı yer bilgilerini (saat, puan, web sitesi) alın. API kotasını kaydetmeyi devre dışı bırakın.",
+  'admin.bagTracking.title': 'Çanta Takibi',
+  'admin.bagTracking.subtitle':
+    'Paketleme öğeleri için ağırlık ve torba atamasını etkinleştirin',
+  'admin.collab.chat.title': 'Sohbet',
+  'admin.collab.chat.subtitle':
+    'Seyahat işbirliği için gerçek zamanlı mesajlaşma',
+  'admin.collab.notes.title': 'Notlar',
+  'admin.collab.notes.subtitle': 'Paylaşılan notlar ve belgeler',
+  'admin.collab.polls.title': 'Anketler',
+  'admin.collab.polls.subtitle': 'Grup anketleri ve oylama',
+  'admin.collab.whatsnext.title': "What's Next",
+  'admin.collab.whatsnext.subtitle': 'Etkinlik önerileri ve sonraki adımlar',
+  'admin.tabs.config': 'Kişiselleştirme',
+  'admin.tabs.defaults': 'Kullanıcı Varsayılanları',
+  'admin.defaultSettings.title': 'Varsayılan Kullanıcı Ayarları',
+  'admin.defaultSettings.description':
+    'Örnek çapında varsayılanları ayarlayın. Herhangi bir ayarı değiştirmemiş olan kullanıcılar bu değerleri görecektir. Kendi değişiklikleri her zaman önceliklidir.',
+  'admin.defaultSettings.saved': 'Varsayılan kaydedildi',
+  'admin.defaultSettings.reset': 'Yerleşik varsayılana sıfırla',
+  'admin.defaultSettings.resetToBuiltIn': 'sıfırlama',
+  'admin.tabs.templates': 'Paketleme Şablonları',
+  'admin.packingTemplates.title': 'Paketleme Şablonları',
+  'admin.packingTemplates.subtitle':
+    'Seyahatleriniz için yeniden kullanılabilir paketleme listeleri oluşturun',
+  'admin.packingTemplates.create': 'Yeni Şablon',
+  'admin.packingTemplates.namePlaceholder': 'Şablon adı (ör. Plaj Tatili)',
+  'admin.packingTemplates.empty': 'Henüz şablon oluşturulmadı',
+  'admin.packingTemplates.items': 'öğeler',
+  'admin.packingTemplates.categories': 'kategoriler',
+  'admin.packingTemplates.itemName': 'Öğe adı',
+  'admin.packingTemplates.itemCategory': 'Kategori',
+  'admin.packingTemplates.categoryName': 'Kategori adı (ör. Giyim)',
+  'admin.packingTemplates.addCategory': 'Kategori ekle',
+  'admin.packingTemplates.created': 'Şablon oluşturuldu',
+  'admin.packingTemplates.deleted': 'Şablon silindi',
+  'admin.packingTemplates.loadError': 'Şablonlar yüklenemedi',
+  'admin.packingTemplates.createError': 'Şablon oluşturulamadı',
+  'admin.packingTemplates.deleteError': 'Şablon silinemedi',
+  'admin.packingTemplates.saveError': 'Kaydedilemedi',
+  'admin.tabs.addons': 'Eklentiler',
+  'admin.addons.title': 'Eklentiler',
+  'admin.addons.subtitle':
+    'TREK deneyiminizi özelleştirmek için özellikleri etkinleştirin veya devre dışı bırakın.',
+  'admin.addons.catalog.packing.name': 'Listeler',
+  'admin.addons.catalog.packing.description':
+    'Seyahatleriniz için paket listeleri ve yapılacak işler',
+  'admin.addons.catalog.budget.name': 'Bütçe',
+  'admin.addons.catalog.budget.description':
+    'Harcamaları takip edin ve seyahat bütçenizi planlayın',
+  'admin.addons.catalog.documents.name': 'Belgeler',
+  'admin.addons.catalog.documents.description':
+    'Seyahat belgelerini saklayın ve yönetin',
+  'admin.addons.catalog.vacay.name': 'Tatil',
+  'admin.addons.catalog.vacay.description':
+    'Takvim görünümüne sahip kişisel tatil planlayıcısı',
+  'admin.addons.catalog.atlas.name': 'Atlas',
+  'admin.addons.catalog.atlas.description':
+    'Ziyaret edilen ülkeleri ve seyahat istatistiklerini içeren dünya haritası',
+  'admin.addons.catalog.collab.name': 'İş birliği',
+  'admin.addons.catalog.collab.description':
+    'Seyahat planlaması için gerçek zamanlı notlar, anketler ve sohbet',
+  'admin.addons.catalog.memories.name': 'Fotoğraflar (Immich)',
+  'admin.addons.catalog.memories.description':
+    'Immich örneğiniz aracılığıyla gezi fotoğraflarını paylaşın',
+  'admin.addons.catalog.mcp.name': 'MCP',
+  'admin.addons.catalog.mcp.description':
+    'Yapay zeka asistanı entegrasyonu için Model Bağlam Protokolü',
+  'admin.addons.subtitleBefore':
+    'Kişiselleştirmenizi özelleştirmek için özellikleri etkinleştirin veya devre dışı bırakın.',
+  'admin.addons.subtitleAfter': 'deneyim.',
+  'admin.addons.enabled': 'Etkinleştirilmiş',
+  'admin.addons.disabled': 'Engelli',
+  'admin.addons.type.trip': 'Seyahat',
+  'admin.addons.type.global': 'Küresel',
+  'admin.addons.type.integration': 'Entegrasyon',
+  'admin.addons.tripHint': 'Her yolculukta bir sekme olarak mevcuttur',
+  'admin.addons.globalHint':
+    'Ana navigasyonda bağımsız bir bölüm olarak mevcuttur',
+  'admin.addons.integrationHint':
+    'Özel bir sayfa olmadan arka uç hizmetleri ve API entegrasyonları',
+  'admin.addons.toast.updated': 'Eklenti güncellendi',
+  'admin.addons.toast.error': 'Eklenti güncellenemedi',
+  'admin.addons.noAddons': 'Kullanılabilir eklenti yok',
+  'admin.weather.title': 'Hava Durumu Verileri',
+  'admin.weather.badge': "24 Mart 2026'dan beri",
+  'admin.weather.description':
+    "TREK, hava durumu veri kaynağı olarak Open-Meteo'yu kullanıyor. Open-Meteo ücretsiz, açık kaynaklı bir hava durumu hizmetidir; API anahtarı gerekmez.",
+  'admin.weather.forecast': '16 günlük tahmin',
+  'admin.weather.forecastDesc': 'Daha önce 5 gün (OpenWeatherMap)',
+  'admin.weather.climate': 'Geçmiş iklim verileri',
+  'admin.weather.climateDesc':
+    '16 günlük tahminin ötesindeki günler için son 85 yılın ortalamaları',
+  'admin.weather.requests': '10.000 istek / gün',
+  'admin.weather.requestsDesc': 'Ücretsiz, API anahtarı gerekmez',
+  'admin.weather.locationHint':
+    'Hava durumu her gün koordinatlarla ilk sırada yer alır. Bir güne herhangi bir yer atanmamışsa, yer listesindeki herhangi bir yer referans olarak kullanılır.',
+  'admin.tabs.mcpTokens': 'MCP Erişimi',
+  'admin.mcpTokens.title': 'MCP Erişimi',
+  'admin.mcpTokens.subtitle':
+    'Tüm Kullanıcılar genelinde OAuth Oturumlarını ve API belirteçlerini yönetin',
+  'admin.mcpTokens.sectionTitle': 'API Belirteçleri',
+  'admin.mcpTokens.owner': 'Mal sahibi',
+  'admin.mcpTokens.tokenName': 'Jeton Adı',
+  'admin.mcpTokens.created': 'Oluşturuldu',
+  'admin.mcpTokens.lastUsed': 'Son Kullanılan',
+  'admin.mcpTokens.never': 'Asla',
+  'admin.mcpTokens.empty': 'Henüz MCP tokenı oluşturulmadı',
+  'admin.mcpTokens.deleteTitle': 'Jetonu Sil',
+  'admin.mcpTokens.deleteMessage':
+    'Bu, jetonu anında iptal edecektir. Kullanıcı bu belirteç aracılığıyla MCP erişimini kaybedecektir.',
+  'admin.mcpTokens.deleteSuccess': 'Jeton silindi',
+  'admin.mcpTokens.deleteError': 'Jeton silinemedi',
+  'admin.mcpTokens.loadError': 'Jetonlar yüklenemedi',
+  'admin.oauthSessions.sectionTitle': 'OAuth Oturumları',
+  'admin.oauthSessions.clientName': 'Müşteri',
+  'admin.oauthSessions.owner': 'Mal sahibi',
+  'admin.oauthSessions.scopes': 'Kapsamlar',
+  'admin.oauthSessions.created': 'Oluşturuldu',
+  'admin.oauthSessions.empty': 'Aktif OAuth Oturumu yok',
+  'admin.oauthSessions.revokeTitle': 'Oturumu İptal Et',
+  'admin.oauthSessions.revokeMessage':
+    'Bu, OAuth oturumunu hemen iptal edecektir. İstemci MCP erişimini kaybedecek.',
+  'admin.oauthSessions.revokeSuccess': 'Oturum iptal edildi',
+  'admin.oauthSessions.revokeError': 'Oturum iptal edilemedi',
+  'admin.oauthSessions.loadError': 'OAuth oturumları yüklenemedi',
+  'admin.tabs.github': 'GitHub',
+  'admin.audit.subtitle':
+    'Güvenlik açısından hassas olaylar ve yönetim olayları (yedeklemeler, kullanıcılar, MFA, ayarlar).',
+  'admin.audit.empty': 'Henüz denetim girişi yok.',
+  'admin.audit.refresh': 'Yenile',
+  'admin.audit.loadMore': 'Daha fazlasını yükle',
+  'admin.audit.showing': '{count} yüklendi · {total} toplam',
+  'admin.audit.col.time': 'Zaman',
+  'admin.audit.col.user': 'Kullanıcı',
+  'admin.audit.col.action': 'Aksiyon',
+  'admin.audit.col.resource': 'Kaynak',
+  'admin.audit.col.ip': 'IP',
+  'admin.audit.col.details': 'Detaylar',
+  'admin.github.title': 'Sürüm Geçmişi',
+  'admin.github.subtitle': "{repo}'dan en son güncellemeler",
+  'admin.github.latest': 'En sonuncu',
+  'admin.github.prerelease': 'Ön sürüm',
+  'admin.github.showDetails': 'Ayrıntıları göster',
+  'admin.github.hideDetails': 'Ayrıntıları gizle',
+  'admin.github.loadMore': 'Daha fazlasını yükle',
+  'admin.github.loading': 'Yükleniyor...',
+  'admin.github.error': 'Sürümler yüklenemedi',
+  'admin.github.by': 'ile',
+  'admin.github.support': "TREK'i geliştirmeye devam etmeme yardımcı oluyor",
+  'admin.update.available': 'Güncelleme mevcut',
+  'admin.update.text': 'TREK {versiyon} mevcut. {current} çalıştırıyorsunuz.',
+  'admin.update.button': "GitHub'da görüntüle",
+  'admin.update.install': 'Güncellemeyi Yükle',
+  'admin.update.confirmTitle': 'Güncelleme Yüklensin mi?',
+  'admin.update.confirmText':
+    'TREK, {current} sürümünden {version} sürümüne güncellenecek. Sunucu daha sonra otomatik olarak yeniden başlatılacaktır.',
+  'admin.update.dataInfo':
+    'Tüm verileriniz (seyahatler, kullanıcılar, API anahtarları, yüklemeler, Vacay, Atlas, bütçeler) korunacaktır.',
+  'admin.update.warning':
+    'Yeniden başlatma sırasında uygulama kısa süreliğine kullanılamayacaktır.',
+  'admin.update.confirm': 'Şimdi Güncelle',
+  'admin.update.installing': 'Güncelleniyor…',
+  'admin.update.success': 'Güncelleme yüklendi! Sunucu yeniden başlatılıyor…',
+  'admin.update.failed': 'Güncelleme başarısız oldu',
+  'admin.update.backupHint':
+    'Güncellemeden önce bir yedek oluşturmanızı öneririz.',
+  'admin.update.backupLink': 'Yedeklemeye Git',
+  'admin.update.howTo': 'Nasıl Güncellenir?',
+  'admin.update.dockerText':
+    "TREK örneğiniz Docker'da çalışır. {version} sürümüne güncellemek için sunucunuzda aşağıdaki komutları çalıştırın:",
+  'admin.update.reloadHint':
+    'Lütfen birkaç saniye içinde sayfayı yeniden yükleyin.',
+  'admin.tabs.permissions': 'İzinler',
+  'admin.addons.catalog.journey.name': 'Seyahat',
+  'admin.addons.catalog.journey.description':
+    'Check-in, fotoğraf ve günlük hikâyelerle seyahat takibi ve seyahat günlüğü',
+  'admin.passkey.title': 'Passkey ile oturum açma',
+  'admin.passkey.cardHint':
+    'Kullanıcıların passkey (WebAuthn) ile oturum açmasına izin verin. Varsayılan olarak kapalı.',
+  'admin.passkey.login': 'Passkey ile oturum açmayı etkinleştir',
+  'admin.passkey.loginHint':
+    'Bir "Passkey ile oturum açın" seçeneği gösterin ve kullanıcıların ayarlarında passkey kaydetmesine izin verin.',
+  'admin.passkey.notConfigured':
+    'Bu dağıtım için henüz çözümlenen bir WebAuthn alan adı yok. Aşağıdan APP_URL veya Relying Party ID değerini ayarlayın — o ana kadar passkey’ler gizli kalır.',
+  'admin.passkey.rpId': 'Relying Party ID (alan adı)',
+  'admin.passkey.rpIdHint':
+    'Passkey’lerin bağlı olduğu yalın alan adı, ör. trek.example.org. APP_URL’den türetmek için boş bırakın. Daha sonra değiştirmek mevcut passkey’leri geçersiz kılar.',
+  'admin.passkey.origins': 'İzin verilen kaynaklar',
+  'admin.passkey.originsHint':
+    'Virgülle ayrılmış tam kaynaklar, ör. https://trek.example.org. APP_URL kullanmak için boş bırakın.',
+  'admin.passkey.reset': 'Passkey’leri sıfırla',
+  'admin.passkey.resetHint':
+    'Bu kullanıcının tüm passkey’lerini kaldırın (ör. kaybolan bir cihazda). Yine de şifreleriyle oturum açabilirler.',
+  'admin.passkey.resetConfirm': '{name} için tüm passkey’ler kaldırılsın mı?',
+  'admin.passkey.resetDone': '{count} passkey kaldırıldı',
+  'admin.defaultSettings.mapProvider': 'Harita motoru',
+  'admin.defaultSettings.mapProviderHint': 'Bu örnekteki herkes için varsayılan harita. Her kullanıcı bunu yine de kendi ayarlarında değiştirebilir.',
+  'admin.defaultSettings.providerLeaflet': 'Standart (ücretsiz)',
+  'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
+  'admin.defaultSettings.mapboxToken': 'Paylaşılan Mapbox jetonu',
+  'admin.defaultSettings.mapboxTokenHint': 'Kendi jetonunu girmemiş her kullanıcı için kullanılır — böylece anahtarı tek tek paylaşmadan tüm örnek Mapbox\'ı kullanır. Şifrelenmiş olarak saklanır.',
+  'admin.defaultSettings.mapboxStyle': 'Harita stili',
+  'admin.defaultSettings.mapboxStylePlaceholder': 'Bir stil seçin…',
+  'admin.defaultSettings.mapbox3d': '3D binalar & arazi',
+  'admin.defaultSettings.mapboxQuality': 'Yüksek kalite modu',
+};
+export default admin;

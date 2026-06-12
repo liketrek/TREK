@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const trip: TranslationStrings = {
+  'trip.tabs.plan': 'Plan',
+  'trip.tabs.transports': 'Transports',
+  'trip.tabs.reservations': 'Bookings',
+  'trip.tabs.reservationsShort': 'Book',
+  'trip.tabs.packing': 'Packing List',
+  'trip.tabs.packingShort': 'Packing',
+  'trip.tabs.lists': 'Lists',
+  'trip.tabs.listsShort': 'Lists',
+  'trip.tabs.budget': "Costs",
+  'trip.tabs.files': 'Files',
+  'trip.loading': 'Loading trip...',
+  'trip.loadingPhotos': 'Loading place photos...',
+  'trip.mobilePlan': 'Plan',
+  'trip.mobilePlaces': 'Places',
+  'trip.toast.placeUpdated': 'Place updated',
+  'trip.toast.placeAdded': 'Place added',
+  'trip.toast.placeDeleted': 'Place deleted',
+  'trip.toast.selectDay': 'Please select a day first',
+  'trip.toast.assignedToDay': 'Place assigned to day',
+  'trip.toast.reorderError': 'Failed to reorder',
+  'trip.toast.reservationUpdated': 'Reservation updated',
+  'trip.toast.reservationAdded': 'Reservation added',
+  'trip.toast.deleted': 'Deleted',
+  'trip.confirm.deletePlace': 'Are you sure you want to delete this place?',
+  'trip.confirm.deletePlaces': 'Delete {count} places?',
+  'trip.toast.placesDeleted': '{count} places deleted',
+};
+export default trip;

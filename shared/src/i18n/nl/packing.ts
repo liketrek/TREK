@@ -1,0 +1,186 @@
+import type { TranslationStrings } from '../types';
+
+const packing: TranslationStrings = {
+  'packing.title': 'Paklijst',
+  'packing.empty': 'Paklijst is leeg',
+  'packing.import': 'Importeren',
+  'packing.importTitle': 'Paklijst importeren',
+  'packing.importHint':
+    'Eén item per regel. Optioneel categorie en aantal gescheiden door komma, puntkomma of tab: Naam, Categorie, Aantal',
+  'packing.importPlaceholder':
+    'Tandenborstel\nZonnebrand, Hygiëne\nT-Shirts, Kleding, 5\nPaspoort, Documenten',
+  'packing.importCsv': 'CSV/TXT laden',
+  'packing.importAction': '{count} importeren',
+  'packing.importSuccess': '{count} items geïmporteerd',
+  'packing.importError': 'Import mislukt',
+  'packing.importEmpty': 'Geen items om te importeren',
+  'packing.progress': '{packed} van {total} ingepakt ({percent}%)',
+  'packing.clearChecked': '{count} aangevinkte verwijderen',
+  'packing.clearCheckedShort': '{count} verwijderen',
+  'packing.suggestions': 'Suggesties',
+  'packing.suggestionsTitle': 'Suggesties toevoegen',
+  'packing.allSuggested': 'Alle suggesties toegevoegd',
+  'packing.allPacked': 'Alles ingepakt!',
+  'packing.addPlaceholder': 'Nieuw item toevoegen...',
+  'packing.categoryPlaceholder': 'Categorie...',
+  'packing.filterAll': 'Alle',
+  'packing.filterOpen': 'Openstaand',
+  'packing.filterDone': 'Klaar',
+  'packing.emptyTitle': 'Paklijst is leeg',
+  'packing.emptyHint': 'Voeg items toe of gebruik de suggesties',
+  'packing.emptyFiltered': 'Geen items gevonden voor dit filter',
+  'packing.menuRename': 'Hernoemen',
+  'packing.menuCheckAll': 'Alles aanvinken',
+  'packing.menuUncheckAll': 'Alles uitvinken',
+  'packing.menuDeleteCat': 'Categorie verwijderen',
+  'packing.addItem': 'Item toevoegen',
+  'packing.addItemPlaceholder': 'Itemnaam...',
+  'packing.addCategory': 'Categorie toevoegen',
+  'packing.newCategoryPlaceholder': 'Categorienaam (bijv. Kleding)',
+  'packing.applyTemplate': 'Sjabloon toepassen',
+  'packing.template': 'Sjabloon',
+  'packing.templateApplied': '{count} items toegevoegd vanuit sjabloon',
+  'packing.templateError': 'Fout bij toepassen van sjabloon',
+  'packing.saveAsTemplate': 'Opslaan als sjabloon',
+  'packing.templateName': 'Sjabloonnaam',
+  'packing.templateSaved': 'Paklijst opgeslagen als sjabloon',
+  'packing.noMembers': 'Geen leden',
+  'packing.bags': 'Bagage',
+  'packing.noBag': 'Niet toegewezen',
+  'packing.totalWeight': 'Totaalgewicht',
+  'packing.bagName': 'Naam...',
+  'packing.addBag': 'Bagage toevoegen',
+  'packing.changeCategory': 'Categorie wijzigen',
+  'packing.confirm.clearChecked':
+    'Weet je zeker dat je {count} aangevinkte items wilt verwijderen?',
+  'packing.confirm.deleteCat':
+    'Weet je zeker dat je de categorie "{name}" met {count} items wilt verwijderen?',
+  'packing.defaultCategory': 'Overig',
+  'packing.toast.saveError': 'Opslaan mislukt',
+  'packing.toast.deleteError': 'Verwijderen mislukt',
+  'packing.toast.renameError': 'Hernoemen mislukt',
+  'packing.toast.addError': 'Toevoegen mislukt',
+  'packing.suggestions.items': [
+    {
+      name: 'Paspoort',
+      category: 'Documenten',
+    },
+    {
+      name: 'Identiteitskaart',
+      category: 'Documenten',
+    },
+    {
+      name: 'Reisverzekering',
+      category: 'Documenten',
+    },
+    {
+      name: 'Vliegtickets',
+      category: 'Documenten',
+    },
+    {
+      name: 'Creditcard',
+      category: 'Financiën',
+    },
+    {
+      name: 'Contant geld',
+      category: 'Financiën',
+    },
+    {
+      name: 'Visum',
+      category: 'Documenten',
+    },
+    {
+      name: 'T-shirts',
+      category: 'Kleding',
+    },
+    {
+      name: 'Broeken',
+      category: 'Kleding',
+    },
+    {
+      name: 'Ondergoed',
+      category: 'Kleding',
+    },
+    {
+      name: 'Sokken',
+      category: 'Kleding',
+    },
+    {
+      name: 'Jas',
+      category: 'Kleding',
+    },
+    {
+      name: 'Slaapkleding',
+      category: 'Kleding',
+    },
+    {
+      name: 'Zwemkleding',
+      category: 'Kleding',
+    },
+    {
+      name: 'Regenjas',
+      category: 'Kleding',
+    },
+    {
+      name: 'Comfortabele schoenen',
+      category: 'Kleding',
+    },
+    {
+      name: 'Tandenborstel',
+      category: 'Toiletartikelen',
+    },
+    {
+      name: 'Tandpasta',
+      category: 'Toiletartikelen',
+    },
+    {
+      name: 'Shampoo',
+      category: 'Toiletartikelen',
+    },
+    {
+      name: 'Deodorant',
+      category: 'Toiletartikelen',
+    },
+    {
+      name: 'Zonnebrandcrème',
+      category: 'Toiletartikelen',
+    },
+    {
+      name: 'Scheermesje',
+      category: 'Toiletartikelen',
+    },
+    {
+      name: 'Oplader',
+      category: 'Elektronica',
+    },
+    {
+      name: 'Powerbank',
+      category: 'Elektronica',
+    },
+    {
+      name: 'Koptelefoon',
+      category: 'Elektronica',
+    },
+    {
+      name: 'Reisadapter',
+      category: 'Elektronica',
+    },
+    {
+      name: 'Camera',
+      category: 'Elektronica',
+    },
+    {
+      name: 'Pijnstillers',
+      category: 'Gezondheid',
+    },
+    {
+      name: 'Pleisters',
+      category: 'Gezondheid',
+    },
+    {
+      name: 'Ontsmettingsmiddel',
+      category: 'Gezondheid',
+    },
+  ],
+};
+export default packing;

@@ -1,0 +1,37 @@
+import type { TranslationStrings } from '../types';
+
+const notifications: TranslationStrings = {
+  'notifications.title': 'Értesítések',
+  'notifications.markAllRead': 'Összes olvasottnak jelölése',
+  'notifications.deleteAll': 'Összes törlése',
+  'notifications.showAll': 'Összes értesítés megtekintése',
+  'notifications.empty': 'Nincsenek értesítések',
+  'notifications.emptyDescription': 'Mindennel naprakész vagy!',
+  'notifications.all': 'Összes',
+  'notifications.unreadOnly': 'Olvasatlan',
+  'notifications.markRead': 'Olvasottnak jelölés',
+  'notifications.markUnread': 'Olvasatlannak jelölés',
+  'notifications.delete': 'Törlés',
+  'notifications.system': 'Rendszer',
+  'notifications.synologySessionCleared.title': 'Synology Photos leválasztva',
+  'notifications.synologySessionCleared.text':
+    'A szerver vagy a fiók megváltozott — lépjen a Beállításokba a kapcsolat újrateszteléséhez.',
+  'notifications.test.title': 'Teszt értesítés {actor} részéről',
+  'notifications.test.text': 'Ez egy egyszerű teszt értesítés.',
+  'notifications.test.booleanTitle': '{actor} jóváhagyásodat kéri',
+  'notifications.test.booleanText': 'Teszt igen/nem értesítés.',
+  'notifications.test.accept': 'Jóváhagyás',
+  'notifications.test.decline': 'Elutasítás',
+  'notifications.test.navigateTitle': 'Nézz meg valamit',
+  'notifications.test.navigateText': 'Teszt navigációs értesítés.',
+  'notifications.test.goThere': 'Odamegyek',
+  'notifications.test.adminTitle': 'Adminisztrátor üzenet',
+  'notifications.test.adminText':
+    '{actor} teszt értesítést küldött az összes adminisztrátornak.',
+  'notifications.test.tripTitle': '{actor} üzenetet küldött az utazásodba',
+  'notifications.test.tripText': 'Teszt értesítés a(z) "{trip}" utazáshoz.',
+  'notifications.versionAvailable.title': 'Elérhető frissítés',
+  'notifications.versionAvailable.text': 'A TREK {version} már elérhető.',
+  'notifications.versionAvailable.button': 'Részletek megtekintése',
+};
+export default notifications;

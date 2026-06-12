@@ -1,0 +1,63 @@
+import type { TranslationStrings } from '../types';
+
+const perm: TranslationStrings = {
+  'perm.title': 'Impostazioni dei permessi',
+  'perm.subtitle': "Controlla chi può eseguire azioni nell'applicazione",
+  'perm.saved': 'Impostazioni dei permessi salvate',
+  'perm.resetDefaults': 'Ripristina predefiniti',
+  'perm.customized': 'personalizzato',
+  'perm.level.admin': 'Solo amministratore',
+  'perm.level.tripOwner': 'Proprietario del viaggio',
+  'perm.level.tripMember': 'Membri del viaggio',
+  'perm.level.everybody': 'Tutti',
+  'perm.cat.trip': 'Gestione viaggi',
+  'perm.cat.members': 'Gestione membri',
+  'perm.cat.files': 'File',
+  'perm.cat.content': 'Contenuti e programma',
+  'perm.cat.extras': 'Budget, bagagli e collaborazione',
+  'perm.action.trip_create': 'Creare viaggi',
+  'perm.action.trip_edit': 'Modificare dettagli del viaggio',
+  'perm.action.trip_delete': 'Eliminare viaggi',
+  'perm.action.trip_archive': 'Archiviare / dearchiviare viaggi',
+  'perm.action.trip_cover_upload': 'Caricare immagine di copertina',
+  'perm.action.member_manage': 'Aggiungere / rimuovere membri',
+  'perm.action.file_upload': 'Caricare file',
+  'perm.action.file_edit': 'Modificare metadati dei file',
+  'perm.action.file_delete': 'Eliminare file',
+  'perm.action.place_edit': 'Aggiungere / modificare / eliminare luoghi',
+  'perm.action.day_edit': 'Modificare giorni, note e assegnazioni',
+  'perm.action.reservation_edit': 'Gestire prenotazioni',
+  'perm.action.budget_edit': 'Gestire budget',
+  'perm.action.packing_edit': 'Gestire liste bagagli',
+  'perm.action.collab_edit': 'Collaborazione (note, sondaggi, chat)',
+  'perm.action.share_manage': 'Gestire link di condivisione',
+  'perm.actionHint.trip_create': 'Chi può creare nuovi viaggi',
+  'perm.actionHint.trip_edit':
+    'Chi può modificare nome, date, descrizione e valuta del viaggio',
+  'perm.actionHint.trip_delete': 'Chi può eliminare definitivamente un viaggio',
+  'perm.actionHint.trip_archive':
+    'Chi può archiviare o dearchiviare un viaggio',
+  'perm.actionHint.trip_cover_upload':
+    "Chi può caricare o modificare l'immagine di copertina",
+  'perm.actionHint.member_manage':
+    'Chi può invitare o rimuovere membri del viaggio',
+  'perm.actionHint.file_upload': 'Chi può caricare file in un viaggio',
+  'perm.actionHint.file_edit': 'Chi può modificare descrizioni e link dei file',
+  'perm.actionHint.file_delete':
+    'Chi può spostare file nel cestino o eliminarli definitivamente',
+  'perm.actionHint.place_edit':
+    'Chi può aggiungere, modificare o eliminare luoghi',
+  'perm.actionHint.day_edit':
+    'Chi può modificare giorni, note dei giorni e assegnazioni dei luoghi',
+  'perm.actionHint.reservation_edit':
+    'Chi può creare, modificare o eliminare prenotazioni',
+  'perm.actionHint.budget_edit':
+    'Chi può creare, modificare o eliminare voci di budget',
+  'perm.actionHint.packing_edit':
+    'Chi può gestire articoli da bagaglio e borse',
+  'perm.actionHint.collab_edit':
+    'Chi può creare note, sondaggi e inviare messaggi',
+  'perm.actionHint.share_manage':
+    'Chi può creare o eliminare link di condivisione pubblici',
+};
+export default perm;

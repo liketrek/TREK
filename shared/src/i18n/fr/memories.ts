@@ -1,0 +1,84 @@
+import type { TranslationStrings } from '../types';
+
+const memories: TranslationStrings = {
+  'memories.title': 'Photos',
+  'memories.notConnected': 'Immich non connecté',
+  'memories.notConnectedHint':
+    'Connectez votre instance Immich dans les paramètres pour voir vos photos de voyage ici.',
+  'memories.notConnectedMultipleHint':
+    'Connectez un de ces fournisseurs de photos : {provider_names} dans les Paramètres pour pouvoir ajouter des photos à ce voyage.',
+  'memories.noDates':
+    'Ajoutez des dates à votre voyage pour charger les photos.',
+  'memories.noPhotos': 'Aucune photo trouvée',
+  'memories.noPhotosHint':
+    'Aucune photo trouvée dans Immich pour la période de ce voyage.',
+  'memories.photosFound': 'photos',
+  'memories.fromOthers': "d'autres",
+  'memories.sharePhotos': 'Partager les photos',
+  'memories.sharing': 'Partagé',
+  'memories.reviewTitle': 'Vérifier vos photos',
+  'memories.reviewHint': 'Cliquez sur les photos pour les exclure du partage.',
+  'memories.shareCount': 'Partager {count} photos',
+  'memories.providerUrl': 'URL du serveur',
+  'memories.providerApiKey': 'Clé API',
+  'memories.providerUsername': "Nom d'utilisateur",
+  'memories.providerPassword': 'Mot de passe',
+  'memories.providerOTP': 'Code MFA (si activé)',
+  'memories.skipSSLVerification': 'Ignorer la vérification du certificat SSL',
+  'memories.immichAutoUpload':
+    'Répliquer les photos du journey vers Immich au téléversement',
+  'memories.providerUrlHintSynology':
+    "Incluez le chemin de l'application Photos dans l'URL, ex. https://nas:5001/photo",
+  'memories.testConnection': 'Tester la connexion',
+  'memories.testShort': 'Tester',
+  'memories.testFirst': 'Testez la connexion avant de sauvegarder',
+  'memories.connected': 'Connecté',
+  'memories.disconnected': 'Non connecté',
+  'memories.connectionSuccess': 'Connecté à Immich',
+  'memories.connectionError': 'Impossible de se connecter à Immich',
+  'memories.saved': 'Paramètres {provider_name} enregistrés',
+  'memories.providerDisconnectedBanner':
+    'Votre connexion {provider_name} est perdue. Reconnectez-vous dans les Paramètres pour voir les photos.',
+  'memories.saveError':
+    "Impossible d'enregistrer les paramètres de {provider_name}",
+  'memories.saveRouteNotConfigured':
+    "La route de sauvegarde n'est pas configurée pour ce fournisseur",
+  'memories.testRouteNotConfigured':
+    "La route de test n'est pas configurée pour ce fournisseur",
+  'memories.fillRequiredFields':
+    'Veuillez remplir tous les champs obligatoires',
+  'memories.oldest': 'Plus anciennes',
+  'memories.newest': 'Plus récentes',
+  'memories.allLocations': 'Tous les lieux',
+  'memories.addPhotos': 'Ajouter des photos',
+  'memories.linkAlbum': 'Lier un album',
+  'memories.selectAlbum': 'Choisir un album Immich',
+  'memories.selectAlbumMultiple': 'Sélectionner un album',
+  'memories.noAlbums': 'Aucun album trouvé',
+  'memories.syncAlbum': 'Synchroniser',
+  'memories.unlinkAlbum': 'Délier',
+  'memories.photos': 'photos',
+  'memories.selectPhotos': 'Sélectionner des photos depuis Immich',
+  'memories.selectPhotosMultiple': 'Sélectionner des photos',
+  'memories.selectHint': 'Appuyez sur les photos pour les sélectionner.',
+  'memories.selected': 'sélectionné(s)',
+  'memories.addSelected': 'Ajouter {count} photos',
+  'memories.alreadyAdded': 'Ajouté',
+  'memories.private': 'Privé',
+  'memories.stopSharing': 'Arrêter le partage',
+  'memories.tripDates': 'Dates du voyage',
+  'memories.allPhotos': 'Toutes les photos',
+  'memories.confirmShareTitle': 'Partager avec les membres du voyage ?',
+  'memories.confirmShareHint':
+    '{count} photos seront visibles par tous les membres de ce voyage. Vous pourrez rendre des photos individuelles privées plus tard.',
+  'memories.confirmShareButton': 'Partager les photos',
+  'memories.error.loadAlbums': 'Impossible de charger les albums',
+  'memories.error.linkAlbum': "Impossible de lier l'album",
+  'memories.error.unlinkAlbum': "Impossible de dissocier l'album",
+  'memories.error.syncAlbum': "Impossible de synchroniser l'album",
+  'memories.error.loadPhotos': 'Impossible de charger les photos',
+  'memories.error.addPhotos': "Impossible d'ajouter les photos",
+  'memories.error.removePhoto': 'Impossible de supprimer la photo',
+  'memories.error.toggleSharing': 'Impossible de mettre à jour le partage',
+};
+export default memories;

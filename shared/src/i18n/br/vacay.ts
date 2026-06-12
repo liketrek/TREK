@@ -1,0 +1,108 @@
+import type { TranslationStrings } from '../types';
+
+const vacay: TranslationStrings = {
+  'vacay.subtitle': 'Planeje e gerencie dias de férias',
+  'vacay.settings': 'Configurações',
+  'vacay.year': 'Ano',
+  'vacay.addYear': 'Adicionar próximo ano',
+  'vacay.addPrevYear': 'Adicionar ano anterior',
+  'vacay.removeYear': 'Remover ano',
+  'vacay.removeYearConfirm': 'Remover {year}?',
+  'vacay.removeYearHint':
+    'Todas as entradas de férias e feriados da empresa deste ano serão excluídas permanentemente.',
+  'vacay.remove': 'Remover',
+  'vacay.persons': 'Pessoas',
+  'vacay.noPersons': 'Nenhuma pessoa adicionada',
+  'vacay.addPerson': 'Adicionar pessoa',
+  'vacay.editPerson': 'Editar pessoa',
+  'vacay.removePerson': 'Remover pessoa',
+  'vacay.removePersonConfirm': 'Remover {name}?',
+  'vacay.removePersonHint':
+    'Todas as entradas de férias desta pessoa serão excluídas permanentemente.',
+  'vacay.personName': 'Nome',
+  'vacay.personNamePlaceholder': 'Digite o nome',
+  'vacay.color': 'Cor',
+  'vacay.add': 'Adicionar',
+  'vacay.legend': 'Legenda',
+  'vacay.publicHoliday': 'Feriado nacional',
+  'vacay.companyHoliday': 'Feriado da empresa',
+  'vacay.weekend': 'Fim de semana',
+  'vacay.modeVacation': 'Férias',
+  'vacay.modeCompany': 'Feriado da empresa',
+  'vacay.entitlement': 'Direito',
+  'vacay.entitlementDays': 'Dias',
+  'vacay.used': 'Usados',
+  'vacay.remaining': 'Restantes',
+  'vacay.carriedOver': 'de {year}',
+  'vacay.blockWeekends': 'Bloquear fins de semana',
+  'vacay.weekendDays': 'Dias de fim de semana',
+  'vacay.mon': 'Seg',
+  'vacay.tue': 'Ter',
+  'vacay.wed': 'Qua',
+  'vacay.thu': 'Qui',
+  'vacay.fri': 'Sex',
+  'vacay.sat': 'Sáb',
+  'vacay.sun': 'Dom',
+  'vacay.blockWeekendsHint':
+    'Impedir entradas de férias aos sábados e domingos',
+  'vacay.publicHolidays': 'Feriados nacionais',
+  'vacay.publicHolidaysHint': 'Marcar feriados nacionais no calendário',
+  'vacay.selectCountry': 'Selecione o país',
+  'vacay.selectRegion': 'Selecione a região (opcional)',
+  'vacay.addCalendar': 'Adicionar calendário',
+  'vacay.calendarLabel': 'Rótulo (opcional)',
+  'vacay.calendarColor': 'Cor',
+  'vacay.noCalendars': 'Nenhum calendário de feriados adicionado ainda',
+  'vacay.companyHolidays': 'Feriados da empresa',
+  'vacay.companyHolidaysHint':
+    'Permitir marcar dias de feriado em toda a empresa',
+  'vacay.companyHolidaysNoDeduct':
+    'Feriados da empresa não contam como dias de férias.',
+  'vacay.weekStart': 'Semana começa em',
+  'vacay.weekStartHint':
+    'Escolha se a semana começa na segunda-feira ou no domingo',
+  'vacay.carryOver': 'Acúmulo',
+  'vacay.carryOverHint':
+    'Levar automaticamente os dias de férias restantes para o ano seguinte',
+  'vacay.sharing': 'Compartilhamento',
+  'vacay.sharingHint':
+    'Compartilhe seu plano de férias com outros usuários do TREK',
+  'vacay.owner': 'Proprietário',
+  'vacay.shareEmailPlaceholder': 'E-mail do usuário TREK',
+  'vacay.shareSuccess': 'Plano compartilhado com sucesso',
+  'vacay.shareError': 'Não foi possível compartilhar o plano',
+  'vacay.dissolve': 'Encerrar fusão',
+  'vacay.dissolveHint':
+    'Separar os calendários novamente. Suas entradas serão mantidas.',
+  'vacay.dissolveAction': 'Encerrar',
+  'vacay.dissolved': 'Calendário separado',
+  'vacay.fusedWith': 'Fundido com',
+  'vacay.you': 'você',
+  'vacay.noData': 'Sem dados',
+  'vacay.changeColor': 'Alterar cor',
+  'vacay.inviteUser': 'Convidar usuário',
+  'vacay.inviteHint':
+    'Convide outro usuário TREK para compartilhar um calendário de férias combinado.',
+  'vacay.selectUser': 'Selecionar usuário',
+  'vacay.sendInvite': 'Enviar convite',
+  'vacay.inviteSent': 'Convite enviado',
+  'vacay.inviteError': 'Não foi possível enviar o convite',
+  'vacay.pending': 'pendente',
+  'vacay.noUsersAvailable': 'Nenhum usuário disponível',
+  'vacay.accept': 'Aceitar',
+  'vacay.decline': 'Recusar',
+  'vacay.acceptFusion': 'Aceitar e fundir',
+  'vacay.inviteTitle': 'Pedido de fusão',
+  'vacay.inviteWantsToFuse':
+    'quer compartilhar um calendário de férias com você.',
+  'vacay.fuseInfo1':
+    'Ambos verão todas as entradas de férias em um calendário compartilhado.',
+  'vacay.fuseInfo2': 'Ambos podem criar e editar entradas um do outro.',
+  'vacay.fuseInfo3':
+    'Ambos podem excluir entradas e alterar direitos de férias.',
+  'vacay.fuseInfo4':
+    'Configurações como feriados nacionais e da empresa são compartilhadas.',
+  'vacay.fuseInfo5':
+    'A fusão pode ser encerrada a qualquer momento por qualquer parte. Suas entradas serão preservadas.',
+};
+export default vacay;

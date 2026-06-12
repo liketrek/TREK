@@ -1,0 +1,99 @@
+import type { TranslationStrings } from '../types';
+
+const login: TranslationStrings = {
+  'login.error': 'Ошибка входа. Проверьте свои учётные данные.',
+  'login.tagline': 'Ваши поездки.\nВаш план.',
+  'login.description':
+    'Планируйте поездки совместно с интерактивными картами, бюджетами и синхронизацией в реальном времени.',
+  'login.features.maps': 'Интерактивные карты',
+  'login.features.mapsDesc': 'Google Places, маршруты и кластеризация',
+  'login.features.realtime': 'Синхронизация в реальном времени',
+  'login.features.realtimeDesc': 'Планируйте вместе через WebSocket',
+  'login.features.budget': 'Контроль бюджета',
+  'login.features.budgetDesc': 'Категории, графики и расходы на человека',
+  'login.features.collab': 'Совместная работа',
+  'login.features.collabDesc': 'Многопользовательский режим с общими поездками',
+  'login.features.packing': 'Списки вещей',
+  'login.features.packingDesc': 'Категории, прогресс и подсказки',
+  'login.features.bookings': 'Бронирования',
+  'login.features.bookingsDesc': 'Авиабилеты, отели, рестораны и многое другое',
+  'login.features.files': 'Документы',
+  'login.features.filesDesc': 'Загружайте и управляйте документами',
+  'login.features.routes': 'Умные маршруты',
+  'login.features.routesDesc': 'Автооптимизация и экспорт в Google Maps',
+  'login.selfHosted':
+    'Самостоятельный хостинг · Открытый код · Ваши данные остаются у вас',
+  'login.title': 'Вход',
+  'login.subtitle': 'С возвращением',
+  'login.signingIn': 'Вход…',
+  'login.signIn': 'Войти',
+  'login.createAdmin': 'Создать аккаунт администратора',
+  'login.createAdminHint': 'Настройте первый аккаунт администратора для TREK.',
+  'login.setNewPassword': 'Установить новый пароль',
+  'login.setNewPasswordHint':
+    'Вы должны сменить пароль, прежде чем продолжить.',
+  'login.createAccount': 'Создать аккаунт',
+  'login.createAccountHint': 'Зарегистрируйте новый аккаунт.',
+  'login.creating': 'Создание…',
+  'login.noAccount': 'Нет аккаунта?',
+  'login.hasAccount': 'Уже есть аккаунт?',
+  'login.register': 'Регистрация',
+  'login.emailPlaceholder': 'ваш@email.com',
+  'login.username': 'Имя пользователя',
+  'login.oidc.registrationDisabled':
+    'Регистрация отключена. Обратитесь к администратору.',
+  'login.oidc.noEmail': 'Провайдер не предоставил адрес эл. почты.',
+  'login.mfaTitle': 'Двухфакторная аутентификация',
+  'login.mfaSubtitle': 'Введите 6-значный код из приложения-аутентификатора.',
+  'login.mfaCodeLabel': 'Код подтверждения',
+  'login.mfaCodeRequired': 'Введите код из приложения-аутентификатора.',
+  'login.mfaHint':
+    'Откройте Google Authenticator, Authy или другое TOTP-приложение.',
+  'login.mfaBack': '← Назад к входу',
+  'login.mfaVerify': 'Подтвердить',
+  'login.invalidInviteLink': 'Недействительная или истёкшая ссылка-приглашение',
+  'login.oidcFailed': 'Ошибка входа через OIDC',
+  'login.usernameRequired': 'Имя пользователя обязательно',
+  'login.passwordMinLength': 'Пароль должен содержать не менее 8 символов',
+  'login.forgotPassword': 'Забыли пароль?',
+  'login.forgotPasswordTitle': 'Сброс пароля',
+  'login.forgotPasswordBody':
+    'Введите e-mail, с которым вы регистрировались. Если аккаунт найдём — отправим ссылку для сброса.',
+  'login.forgotPasswordSubmit': 'Отправить ссылку',
+  'login.forgotPasswordSentTitle': 'Проверьте почту',
+  'login.forgotPasswordSentBody':
+    'Если аккаунт существует, ссылка для сброса уже летит к вам. Она действительна 60 минут.',
+  'login.forgotPasswordSmtpHintOff':
+    'Обратите внимание: администратор не настроил SMTP, поэтому ссылка для сброса будет записана в консоль сервера, а не отправлена по почте.',
+  'login.backToLogin': 'Вернуться ко входу',
+  'login.newPassword': 'Новый пароль',
+  'login.confirmPassword': 'Подтвердите новый пароль',
+  'login.passwordsDontMatch': 'Пароли не совпадают',
+  'login.mfaCode': 'Код 2FA',
+  'login.resetPasswordTitle': 'Задайте новый пароль',
+  'login.resetPasswordBody':
+    'Выберите надёжный пароль, который вы здесь ещё не использовали. Минимум 8 символов.',
+  'login.resetPasswordMfaBody':
+    'Введите код 2FA или резервный код, чтобы завершить сброс.',
+  'login.resetPasswordSubmit': 'Сбросить пароль',
+  'login.resetPasswordVerify': 'Проверить и сбросить',
+  'login.resetPasswordSuccessTitle': 'Пароль обновлён',
+  'login.resetPasswordSuccessBody': 'Теперь вы можете войти с новым паролем.',
+  'login.resetPasswordInvalidLink': 'Неверная ссылка сброса',
+  'login.resetPasswordInvalidLinkBody':
+    'Ссылка отсутствует или повреждена. Запросите новую, чтобы продолжить.',
+  'login.resetPasswordFailed':
+    'Сброс не удался. Возможно, срок действия ссылки истёк.',
+  'login.oidc.tokenFailed': 'Аутентификация не удалась.',
+  'login.oidc.invalidState': 'Недействительная сессия. Попробуйте снова.',
+  'login.demoFailed': 'Ошибка демо-входа',
+  'login.oidcSignIn': 'Войти через {name}',
+  'login.oidcOnly':
+    'Вход по паролю отключён. Используйте вашего провайдера SSO для входа.',
+  'login.oidcLoggedOut':
+    'Вы вышли из системы. Войдите снова через вашего провайдера SSO.',
+  'login.demoHint': 'Попробуйте демо — регистрация не требуется',
+  'login.passkey.signIn': 'Войти с помощью passkey',
+  'login.passkey.failed': 'Не удалось войти с помощью passkey. Попробуйте ещё раз.',
+};
+export default login;

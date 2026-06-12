@@ -15,7 +15,10 @@ const dataDir = path.join(__dirname, '../../data');
 const backupsDir = path.join(dataDir, 'backups');
 const uploadsDir = path.join(__dirname, '../../uploads');
 
-export const MAX_BACKUP_UPLOAD_SIZE = 500 * 1024 * 1024; // 500 MB
+export const MAX_BACKUP_UPLOAD_SIZE = 500 * 1024 * 1024; // 500 MB compressed
+// Upper bound on the TOTAL decompressed size of a restore archive (the upload
+// limit only caps the compressed bytes). Generous enough for any real backup.
+export const MAX_BACKUP_DECOMPRESSED_SIZE = 5 * 1024 * 1024 * 1024; // 5 GB
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -185,7 +188,16 @@ export interface RestoreResult {
 
 export async function restoreFromZip(zipPath: string): Promise<RestoreResult> {
   const extractDir = path.join(dataDir, `restore-${Date.now()}`);
+  let reinitFailed: unknown = null;
   try {
+    // Check the declared uncompressed size from the central directory and bail
+    // if it exceeds the cap, before extracting anything.
+    const directory = await unzipper.Open.file(zipPath);
+    const claimedSize = directory.files.reduce((sum, f) => sum + (f.uncompressedSize || 0), 0);
+    if (claimedSize > MAX_BACKUP_DECOMPRESSED_SIZE) {
+      return { success: false, error: 'Backup exceeds the maximum decompressed size.', status: 400 };
+    }
+
     await fs.createReadStream(zipPath)
       .pipe(unzipper.Extract({ path: extractDir }))
       .promise();
@@ -246,7 +258,16 @@ export async function restoreFromZip(zipPath: string): Promise<RestoreResult> {
         fs.cpSync(extractedUploads, uploadsDir, { recursive: true, force: true });
       }
     } finally {
-      reinitialize();
+      // Reopening the DB must always run (even if the copy above threw) so the
+      // process is never left without a connection. Capture a reopen failure
+      // instead of letting it propagate as a generic error — a backup whose
+      // files already landed on disk but whose connection failed to reopen
+      // needs to be reported as "restart required", not swallowed.
+      try {
+        reinitialize();
+      } catch (reinitErr) {
+        reinitFailed = reinitErr;
+      }
       // The restored DB has different permission-override rows from
       // the pre-restore DB, but our process-local permissions cache
       // still holds the pre-restore state. Any request using a cached
@@ -256,6 +277,10 @@ export async function restoreFromZip(zipPath: string): Promise<RestoreResult> {
     }
 
     fs.rmSync(extractDir, { recursive: true, force: true });
+    if (reinitFailed) {
+      console.error('Restore: database reopen failed after file swap:', reinitFailed);
+      return { success: false, error: 'Backup files were restored but the database connection could not be reopened. Restart the server to finish the restore.', status: 500 };
+    }
     return { success: true };
   } catch (err: unknown) {
     console.error('Restore error:', err);

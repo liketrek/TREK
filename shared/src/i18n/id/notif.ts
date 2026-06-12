@@ -1,0 +1,42 @@
+import type { TranslationStrings } from '../types';
+
+const notif: TranslationStrings = {
+  'notif.test.title': '[Test] Notifikasi',
+  'notif.test.simple.text': 'Ini adalah notifikasi uji sederhana.',
+  'notif.test.boolean.text': 'Apakah kamu menerima notifikasi uji ini?',
+  'notif.test.navigate.text': 'Klik di bawah untuk pergi ke dasbor.',
+  'notif.trip_invite.title': 'Undangan Perjalanan',
+  'notif.trip_invite.text': '{actor} mengundangmu ke {trip}',
+  'notif.booking_change.title': 'Pemesanan Diperbarui',
+  'notif.booking_change.text': '{actor} memperbarui pemesanan di {trip}',
+  'notif.trip_reminder.title': 'Pengingat Perjalanan',
+  'notif.trip_reminder.text': 'Perjalananmu {trip} akan segera dimulai!',
+  'notif.todo_due.title': 'Tugas jatuh tempo',
+  'notif.todo_due.text': '{todo} di {trip} jatuh tempo pada {due}',
+  'notif.vacay_invite.title': 'Undangan Vacay Fusion',
+  'notif.vacay_invite.text':
+    '{actor} mengundangmu untuk menggabungkan rencana liburan',
+  'notif.photos_shared.title': 'Foto Dibagikan',
+  'notif.photos_shared.text': '{actor} membagikan {count} foto di {trip}',
+  'notif.collab_message.title': 'Pesan Baru',
+  'notif.collab_message.text': '{actor} mengirim pesan di {trip}',
+  'notif.packing_tagged.title': 'Penugasan Perlengkapan',
+  'notif.packing_tagged.text': '{actor} menugaskanmu ke {category} di {trip}',
+  'notif.version_available.title': 'Versi Baru Tersedia',
+  'notif.version_available.text': 'TREK {version} kini tersedia',
+  'notif.action.view_trip': 'Lihat Perjalanan',
+  'notif.action.view_collab': 'Lihat Pesan',
+  'notif.action.view_packing': 'Lihat Perlengkapan',
+  'notif.action.view_photos': 'Lihat Foto',
+  'notif.action.view_vacay': 'Lihat Vacay',
+  'notif.action.view_admin': 'Ke Admin',
+  'notif.action.view': 'Lihat',
+  'notif.action.accept': 'Terima',
+  'notif.action.decline': 'Tolak',
+  'notif.generic.title': 'Notifikasi',
+  'notif.generic.text': 'Kamu punya notifikasi baru',
+  'notif.dev.unknown_event.title': '[DEV] Event Tidak Dikenal',
+  'notif.dev.unknown_event.text':
+    'Tipe event "{event}" tidak terdaftar di EVENT_NOTIFICATION_CONFIG',
+};
+export default notif;

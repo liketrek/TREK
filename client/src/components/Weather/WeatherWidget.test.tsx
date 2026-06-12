@@ -54,7 +54,7 @@ describe('WeatherWidget', () => {
   })
 
   it('FE-COMP-WEATHERWIDGET-004: shows error dash when API returns error field', async () => {
-    vi.mocked(weatherApi.get).mockResolvedValue({ error: 'Not available' })
+    vi.mocked(weatherApi.get).mockResolvedValue({ temp: 0, main: '', description: '', type: '', error: 'Not available' })
     render(<WeatherWidget lat={48.86} lng={2.35} date="2025-06-01" />)
     await waitFor(() => {
       expect(screen.getByText('—')).toBeInTheDocument()

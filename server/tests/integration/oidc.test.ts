@@ -7,6 +7,7 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 import request from 'supertest';
 import type { Application } from 'express';
+import type { INestApplication } from '@nestjs/common';
 
 // ── DB mock (inline vi.hoisted pattern) ──────────────────────────────────────
 
@@ -34,7 +35,12 @@ vi.mock('../../src/config', () => ({
   JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
   ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
   updateJwtSecret: () => {},
+  SESSION_DURATION: '24h',
+  SESSION_DURATION_MS: 86400000,
+  SESSION_DURATION_SECONDS: 86400,
+  DEFAULT_LANGUAGE: 'en',
 }));
+vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 
 // ── Mock only the HTTP-calling functions from oidcService ────────────────────
 vi.mock('../../src/services/oidcService', async (importOriginal) => {
@@ -52,12 +58,11 @@ vi.mock('../../src/services/oidcService', async (importOriginal) => {
   };
 });
 
-import { createApp } from '../../src/app';
+import { buildApp } from '../../src/bootstrap';
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
-import { resetTestDb } from '../helpers/test-db';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import { createUser } from '../helpers/factories';
-import { loginAttempts, mfaAttempts } from '../../src/routes/auth';
 import * as oidcService from '../../src/services/oidcService';
 
 const mockDiscover = vi.mocked(oidcService.discover);
@@ -71,17 +76,19 @@ const MOCK_DISCOVERY_DOC = {
   userinfo_endpoint: 'https://oidc.example.com/userinfo',
 };
 
-const app: Application = createApp();
+let nestApp: INestApplication;
+let app: Application;
 
-beforeAll(() => {
+beforeAll(async () => {
   createTables(testDb);
   runMigrations(testDb);
+  nestApp = await buildApp();
+  app = nestApp.getHttpAdapter().getInstance();
 });
 
 beforeEach(() => {
   resetTestDb(testDb);
-  loginAttempts.clear();
-  mfaAttempts.clear();
+  resetRateLimits(nestApp);
   vi.clearAllMocks();
 
   // Set OIDC environment variables for each test
@@ -98,7 +105,8 @@ afterEach(() => {
   delete process.env.APP_URL;
 });
 
-afterAll(() => {
+afterAll(async () => {
+  await nestApp.close();
   testDb.close();
 });
 
@@ -157,12 +165,13 @@ describe('GET /api/auth/oidc/callback', () => {
       sub: 'sub-alice-123',
       email: 'alice@example.com',
       name: 'Alice',
+      email_verified: true, // verified IdP — required to auto-link onto the existing account
     });
 
     // Create a valid state token
-    const state = oidcService.createState('http://localhost:3001/api/auth/oidc/callback');
+    const { state } = oidcService.createState('http://localhost:3001/api/auth/oidc/callback');
 
-    const res = await request(app).get(`/api/auth/oidc/callback?code=authcode123&state=${state}`);
+    const res = await request(app).get(`/api/auth/oidc/callback?code=authcode123&state=${state}`).set('Cookie', `trek_oidc_state=${state}`);
 
     expect(res.status).toBe(302);
     expect(res.headers.location).toContain('/login?oidc_code=');
@@ -178,9 +187,9 @@ describe('GET /api/auth/oidc/callback', () => {
       name: 'New User',
     });
 
-    const state = oidcService.createState('http://localhost:3001/api/auth/oidc/callback');
+    const { state } = oidcService.createState('http://localhost:3001/api/auth/oidc/callback');
 
-    const res = await request(app).get(`/api/auth/oidc/callback?code=code999&state=${state}`);
+    const res = await request(app).get(`/api/auth/oidc/callback?code=code999&state=${state}`).set('Cookie', `trek_oidc_state=${state}`);
 
     expect(res.status).toBe(302);
     expect(res.headers.location).toContain('/login?oidc_code=');
@@ -215,9 +224,9 @@ describe('GET /api/auth/oidc/callback', () => {
     mockDiscover.mockResolvedValueOnce(MOCK_DISCOVERY_DOC);
     mockExchangeCode.mockResolvedValueOnce({ _ok: false, _status: 400 });
 
-    const state = oidcService.createState('http://localhost:3001/api/auth/oidc/callback');
+    const { state } = oidcService.createState('http://localhost:3001/api/auth/oidc/callback');
 
-    const res = await request(app).get(`/api/auth/oidc/callback?code=badcode&state=${state}`);
+    const res = await request(app).get(`/api/auth/oidc/callback?code=badcode&state=${state}`).set('Cookie', `trek_oidc_state=${state}`);
 
     expect(res.status).toBe(302);
     expect(res.headers.location).toContain('oidc_error=token_failed');
@@ -227,9 +236,9 @@ describe('GET /api/auth/oidc/callback', () => {
     mockDiscover.mockResolvedValueOnce(MOCK_DISCOVERY_DOC);
     mockExchangeCode.mockResolvedValueOnce({ access_token: 'tok', _ok: true, _status: 200 }); // no id_token
 
-    const state = oidcService.createState('http://localhost:3001/api/auth/oidc/callback');
+    const { state } = oidcService.createState('http://localhost:3001/api/auth/oidc/callback');
 
-    const res = await request(app).get(`/api/auth/oidc/callback?code=anycode&state=${state}`);
+    const res = await request(app).get(`/api/auth/oidc/callback?code=anycode&state=${state}`).set('Cookie', `trek_oidc_state=${state}`);
 
     expect(res.status).toBe(302);
     expect(res.headers.location).toContain('oidc_error=no_id_token');
@@ -240,9 +249,9 @@ describe('GET /api/auth/oidc/callback', () => {
     mockExchangeCode.mockResolvedValueOnce({ access_token: 'tok', id_token: 'bad.id.token', _ok: true, _status: 200 });
     mockVerifyIdToken.mockResolvedValueOnce({ ok: false, error: 'signature_or_claim_mismatch: invalid signature' });
 
-    const state = oidcService.createState('http://localhost:3001/api/auth/oidc/callback');
+    const { state } = oidcService.createState('http://localhost:3001/api/auth/oidc/callback');
 
-    const res = await request(app).get(`/api/auth/oidc/callback?code=anycode&state=${state}`);
+    const res = await request(app).get(`/api/auth/oidc/callback?code=anycode&state=${state}`).set('Cookie', `trek_oidc_state=${state}`);
 
     expect(res.status).toBe(302);
     expect(res.headers.location).toContain('oidc_error=id_token_invalid');
@@ -258,9 +267,9 @@ describe('GET /api/auth/oidc/callback', () => {
       name: 'Alice',
     });
 
-    const state = oidcService.createState('http://localhost:3001/api/auth/oidc/callback');
+    const { state } = oidcService.createState('http://localhost:3001/api/auth/oidc/callback');
 
-    const res = await request(app).get(`/api/auth/oidc/callback?code=anycode&state=${state}`);
+    const res = await request(app).get(`/api/auth/oidc/callback?code=anycode&state=${state}`).set('Cookie', `trek_oidc_state=${state}`);
 
     expect(res.status).toBe(302);
     expect(res.headers.location).toContain('oidc_error=subject_mismatch');
@@ -281,9 +290,9 @@ describe('GET /api/auth/oidc/callback', () => {
       name: 'Blocked',
     });
 
-    const state = oidcService.createState('http://localhost:3001/api/auth/oidc/callback');
+    const { state } = oidcService.createState('http://localhost:3001/api/auth/oidc/callback');
 
-    const res = await request(app).get(`/api/auth/oidc/callback?code=anycode&state=${state}`);
+    const res = await request(app).get(`/api/auth/oidc/callback?code=anycode&state=${state}`).set('Cookie', `trek_oidc_state=${state}`);
 
     expect(res.status).toBe(302);
     expect(res.headers.location).toContain('oidc_error=registration_disabled');

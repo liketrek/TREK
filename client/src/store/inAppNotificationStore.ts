@@ -1,6 +1,10 @@
 import { create } from 'zustand'
 import { inAppNotificationsApi } from '../api/client'
 
+// The server contract (@trek/shared `inAppListResultSchema`) deliberately keeps
+// each notification row as an open record — the registry-derived shape varies by
+// type. This is the client's structured view of that row; the list/unread-count
+// responses themselves are now typed + DEV-validated via inAppNotificationsApi.
 export interface InAppNotification {
   id: number
   type: 'simple' | 'boolean' | 'navigate'
@@ -75,7 +79,7 @@ export const useInAppNotificationStore = create<NotificationState>((set, get) =>
     try {
       const offset = reset ? 0 : notifications.length
       const data = await inAppNotificationsApi.list({ limit: PAGE_SIZE, offset })
-      const normalized = (data.notifications as RawNotification[]).map(normalizeNotification)
+      const normalized = (data.notifications as unknown as RawNotification[]).map(normalizeNotification)
 
       set({
         notifications: reset ? normalized : [...notifications, ...normalized],

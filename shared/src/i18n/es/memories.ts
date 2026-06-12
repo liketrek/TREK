@@ -1,0 +1,82 @@
+import type { TranslationStrings } from '../types';
+
+const memories: TranslationStrings = {
+  'memories.title': 'Fotos',
+  'memories.notConnected': 'Immich no conectado',
+  'memories.notConnectedHint':
+    'Conecta tu instancia de Immich en Ajustes para ver tus fotos de viaje aquí.',
+  'memories.notConnectedMultipleHint':
+    'Conecta alguno de estos proveedores de fotos: {provider_names} en Configuración para poder añadir fotos a este viaje.',
+  'memories.noDates': 'Añade fechas a tu viaje para cargar fotos.',
+  'memories.noPhotos': 'No se encontraron fotos',
+  'memories.noPhotosHint':
+    'No se encontraron fotos en Immich para el rango de fechas de este viaje.',
+  'memories.photosFound': 'fotos',
+  'memories.fromOthers': 'de otros',
+  'memories.sharePhotos': 'Compartir fotos',
+  'memories.sharing': 'Compartiendo',
+  'memories.reviewTitle': 'Revisar tus fotos',
+  'memories.reviewHint': 'Haz clic en las fotos para excluirlas de compartir.',
+  'memories.shareCount': 'Compartir {count} fotos',
+  'memories.providerUrl': 'URL del servidor',
+  'memories.providerApiKey': 'Clave API',
+  'memories.providerUsername': 'Nombre de usuario',
+  'memories.providerPassword': 'Contraseña',
+  'memories.providerOTP': 'Código MFA (si está habilitado)',
+  'memories.skipSSLVerification': 'Omitir verificación del certificado SSL',
+  'memories.immichAutoUpload':
+    'Duplicar las fotos del journey en Immich al subirlas',
+  'memories.providerUrlHintSynology':
+    'Incluye la ruta de la aplicación Photos en la URL, p.ej. https://nas:5001/photo',
+  'memories.testConnection': 'Probar conexión',
+  'memories.testShort': 'Probar',
+  'memories.testFirst': 'Probar conexión primero',
+  'memories.connected': 'Conectado',
+  'memories.disconnected': 'No conectado',
+  'memories.connectionSuccess': 'Conectado a Immich',
+  'memories.connectionError': 'No se pudo conectar a Immich',
+  'memories.saved': 'Configuración de {provider_name} guardada',
+  'memories.providerDisconnectedBanner':
+    'Se perdió la conexión con {provider_name}. Vuelve a conectar en Configuración para ver las fotos.',
+  'memories.saveError': 'No se pudieron guardar los ajustes de {provider_name}',
+  'memories.saveRouteNotConfigured':
+    'La ruta de guardado no está configurada para este proveedor',
+  'memories.testRouteNotConfigured':
+    'La ruta de prueba no está configurada para este proveedor',
+  'memories.fillRequiredFields':
+    'Por favor complete todos los campos requeridos',
+  'memories.oldest': 'Más antiguas',
+  'memories.newest': 'Más recientes',
+  'memories.allLocations': 'Todas las ubicaciones',
+  'memories.addPhotos': 'Añadir fotos',
+  'memories.linkAlbum': 'Vincular álbum',
+  'memories.selectAlbum': 'Seleccionar álbum de Immich',
+  'memories.selectAlbumMultiple': 'Seleccionar álbum',
+  'memories.noAlbums': 'No se encontraron álbumes',
+  'memories.syncAlbum': 'Sincronizar álbum',
+  'memories.unlinkAlbum': 'Desvincular',
+  'memories.photos': 'fotos',
+  'memories.selectPhotos': 'Seleccionar fotos de Immich',
+  'memories.selectPhotosMultiple': 'Seleccionar fotos',
+  'memories.selectHint': 'Toca las fotos para seleccionarlas.',
+  'memories.selected': 'seleccionado(s)',
+  'memories.addSelected': 'Añadir {count} fotos',
+  'memories.alreadyAdded': 'Añadido',
+  'memories.private': 'Privado',
+  'memories.stopSharing': 'Dejar de compartir',
+  'memories.tripDates': 'Fechas del viaje',
+  'memories.allPhotos': 'Todas las fotos',
+  'memories.confirmShareTitle': '¿Compartir con los miembros del viaje?',
+  'memories.confirmShareHint':
+    '{count} fotos serán visibles para todos los miembros de este viaje. Puedes hacer fotos individuales privadas más tarde.',
+  'memories.confirmShareButton': 'Compartir fotos',
+  'memories.error.loadAlbums': 'Error al cargar los álbumes',
+  'memories.error.linkAlbum': 'Error al vincular el álbum',
+  'memories.error.unlinkAlbum': 'Error al desvincular el álbum',
+  'memories.error.syncAlbum': 'Error al sincronizar el álbum',
+  'memories.error.loadPhotos': 'Error al cargar las fotos',
+  'memories.error.addPhotos': 'Error al agregar las fotos',
+  'memories.error.removePhoto': 'Error al eliminar la foto',
+  'memories.error.toggleSharing': 'Error al actualizar el uso compartido',
+};
+export default memories;

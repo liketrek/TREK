@@ -8,14 +8,18 @@ import { useCanDo } from '../../store/permissionsStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
+import { normalizeImageFile } from '../../utils/convertHeic'
 import type { Trip } from '../../types'
+import type { TripCreateRequest } from '@trek/shared'
 
 interface TripFormModalProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (data: Record<string, string | number | null>) => Promise<void> | void
+  // Create returns the new trip (so we can attach members / upload the cover);
+  // update resolves without a payload.
+  onSave: (data: TripCreateRequest) => Promise<{ trip?: Trip } | void> | void
   trip: Trip | null
-  onCoverUpdate: (tripId: number, coverUrl: string) => void
+  onCoverUpdate?: (tripId: number, coverUrl: string | null) => void
 }
 
 export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUpdate }: TripFormModalProps) {
@@ -106,24 +110,28 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         reminder_days: formData.reminder_days,
         ...(!formData.start_date && !formData.end_date ? { day_count: formData.day_count } : {}),
       })
+      const createdTrip = result ? result.trip : undefined
       // Add selected members for newly created trips
-      if (selectedMembers.length > 0 && result?.trip?.id) {
+      if (selectedMembers.length > 0 && createdTrip?.id) {
+        let memberAddFailed = false
         for (const userId of selectedMembers) {
           const user = allUsers.find(u => u.id === userId)
           if (user) {
-            try { await tripsApi.addMember(result.trip.id, user.username) } catch {}
+            try { await tripsApi.addMember(createdTrip.id, user.username) } catch { memberAddFailed = true }
           }
         }
+        if (memberAddFailed) toast.error(t('trips.memberAddError'))
       }
       // Upload pending cover for newly created trips
-      if (pendingCoverFile && result?.trip?.id) {
+      if (pendingCoverFile && createdTrip?.id) {
         try {
           const fd = new FormData()
           fd.append('cover', pendingCoverFile)
-          const data = await tripsApi.uploadCover(result.trip.id, fd)
-          onCoverUpdate?.(result.trip.id, data.cover_image)
+          const data = await tripsApi.uploadCover(createdTrip.id, fd)
+          onCoverUpdate?.(createdTrip.id, data.cover_image)
         } catch {
-          // Cover upload failed but trip was created
+          // Cover upload failed but trip was created — surface it without blocking the create
+          toast.error(t('dashboard.coverUploadError'))
         }
       }
       onClose()
@@ -134,15 +142,17 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     }
   }
 
-  const handleCoverSelect = (file) => {
+  const handleCoverSelect = async (file) => {
     if (!file) return
+    // HEIC/HEIF from iOS can't be rendered or stored as-is — convert to JPEG first
+    const normalized = await normalizeImageFile(file)
     if (isEditing && trip?.id) {
       // Existing trip: upload immediately
-      uploadCoverNow(file)
+      uploadCoverNow(normalized)
     } else {
       // New trip: stage for upload after creation
-      setPendingCoverFile(file)
-      setCoverPreview(URL.createObjectURL(file))
+      setPendingCoverFile(normalized)
+      setCoverPreview(URL.createObjectURL(normalized))
     }
   }
 
@@ -184,7 +194,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   }
 
   // Paste support for cover image
-  const handlePaste = (e) => {
+  const handlePaste = (e: React.ClipboardEvent) => {
     if (!canUploadCover) return
     const items = e.clipboardData?.items
     if (!items) return
@@ -206,7 +216,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
       } else if (prev.start_date) {
         const oldStart = new Date(prev.start_date + 'T00:00:00Z')
         const oldEnd = new Date(prev.end_date + 'T00:00:00Z')
-        const duration = Math.round((oldEnd - oldStart) / 86400000)
+        const duration = Math.round((oldEnd.getTime() - oldStart.getTime()) / 86400000)
         const newEnd = new Date(value + 'T00:00:00Z')
         newEnd.setDate(newEnd.getDate() + duration)
         next.end_date = newEnd.toISOString().split('T')[0]
@@ -380,6 +390,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
                 {existingMembers.map(m => (
                   <span key={m.id}
+                    className="bg-surface-secondary text-content border border-edge"
                     onClick={async () => {
                       if (m.id === currentUser?.id) return
                       try {
@@ -390,12 +401,11 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
                     }}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 99,
-                      background: 'var(--bg-secondary)', fontSize: 12, fontWeight: 500, color: 'var(--text-primary)',
+                      fontSize: 12, fontWeight: 500,
                       cursor: m.id === currentUser?.id ? 'default' : 'pointer',
-                      border: '1px solid var(--border-primary)',
                     }}>
                     {m.username}
-                    {m.id !== currentUser?.id && <X size={11} style={{ color: 'var(--text-faint)' }} />}
+                    {m.id !== currentUser?.id && <X size={11} className="text-content-faint" />}
                   </span>
                 ))}
               </div>
@@ -408,13 +418,13 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
                   if (!user) return null
                   return (
                     <span key={uid} onClick={() => setSelectedMembers(prev => prev.filter(id => id !== uid))}
+                      className="bg-surface-secondary text-content border border-edge cursor-pointer"
                       style={{
                         display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 99,
-                        background: 'var(--bg-secondary)', fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', cursor: 'pointer',
-                        border: '1px solid var(--border-primary)',
+                        fontSize: 12, fontWeight: 500,
                       }}>
                       {user.username}
-                      <X size={11} style={{ color: 'var(--text-faint)' }} />
+                      <X size={11} className="text-content-faint" />
                     </span>
                   )
                 })}

@@ -431,7 +431,9 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --safe-top: env(safe-area-inset-top, 0px);
   --nav-h: 0px;
   --bottom-nav-h: 0px;
-  --font-system: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+  --font-system: 'Poppins', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+  /* Secondary "subtext"/caption tier renders in Geist; primary text + headings stay Poppins. */
+  --font-subtext: 'Geist Sans', 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --sp-1: 4px;
   --sp-2: 8px;
   --sp-3: 12px;
@@ -489,7 +491,7 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
 }
 
 @media (min-width: 768px) {
-  :root { --nav-h: calc(56px + env(safe-area-inset-top, 0px)); }
+  :root { --nav-h: calc(64px + env(safe-area-inset-top, 0px)); }
 }
 
 .dark {
@@ -539,6 +541,11 @@ body {
   transition: background-color 0.2s, color 0.2s;
 }
 
+/* Subtext tier in Geist. The faint text token is TREK's caption/secondary tier;
+   a direct rule on the element beats the Poppins inherited from wrapper styles,
+   giving the design's "Geist text · Poppins numbers" hierarchy. */
+.text-content-faint { font-family: var(--font-subtext); }
+
 /* ── Marker cluster custom styling ────────────── */
 .marker-cluster-wrapper {
   background: transparent !important;
@@ -563,7 +570,7 @@ body {
 }
 
 .marker-cluster-custom span {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  font-family:var(--font-system);
   font-size: 12px;
   font-weight: 700;
   color: #ffffff;
@@ -734,7 +741,7 @@ img[alt="TREK"] {
 .dark .min-h-screen { background-color: var(--bg-primary) !important; }
 
 /* Modal-Hintergrund */
-.dark .modal-backdrop { background: rgba(0,0,0,0.6); }
+.dark .trek-modal-backdrop { background: rgba(0,0,0,0.6); }
 
 /* ── Dark: Fallback für Komponenten die noch nicht auf CSS-Variablen umgestellt sind ── */
 .dark {
@@ -766,8 +773,8 @@ img[alt="TREK"] {
   animation: slide-out-right 0.3s ease-in forwards;
 }
 
-/* Modal-Hintergrund */
-.modal-backdrop {
+/* Modal-Hintergrund (eigener Namespace, sonst blenden Content-Blocker .modal-backdrop aus) */
+.trek-modal-backdrop {
   backdrop-filter: blur(4px);
 }
 
@@ -812,3 +819,21 @@ img[alt="TREK"] {
 .collab-note-md-full table { border-collapse: collapse; width: 100%; margin: 0.5em 0; }
 .collab-note-md-full th, .collab-note-md-full td { border: 1px solid var(--border-primary); padding: 4px 8px; font-size: 0.9em; }
 .collab-note-md-full hr { border: none; border-top: 1px solid var(--border-primary); margin: 0.8em 0; }
+
+/* Day-plan header action grid (edit / +transport / note / collapse) */
+.dp-day-actions button {
+  color: var(--text-faint);
+  background: transparent;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+.dp-day-actions button:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+/* Reveal the action grid only when hovering the day row (pointer devices).
+   Touch devices (hover: none) keep it visible; the selected day stays visible too. */
+@media (hover: hover) {
+  .dp-day-actions { opacity: 0; transition: opacity 0.12s ease; }
+  .dp-day-header:hover .dp-day-actions,
+  .dp-day-header[data-selected="true"] .dp-day-actions { opacity: 1; }
+}

@@ -1,29 +1,11 @@
 import { create } from 'zustand';
-import axios from '../api/client.js';
+import axios, { parseInDev } from '../api/client';
+import { systemNoticeDtoSchema, type SystemNoticeDto } from '@trek/shared';
 
-// Type mirrors SystemNoticeDTO from the server (copy here to avoid cross-package import)
-export interface SystemNoticeDTO {
-  id: string;
-  display: 'modal' | 'banner' | 'toast';
-  severity: 'info' | 'warn' | 'critical';
-  titleKey: string;
-  bodyKey: string;
-  bodyParams?: Record<string, string>;
-  icon?: string;
-  media?: {
-    src: string;
-    srcDark?: string;
-    altKey: string;
-    placement?: 'hero' | 'inline';
-    aspectRatio?: string;
-  };
-  highlights?: Array<{ labelKey: string; iconName?: string }>;
-  cta?: (
-    | { kind: 'nav'; labelKey: string; href: string }
-    | { kind: 'action'; labelKey: string; actionId: string; dismissOnAction?: boolean }
-  );
-  dismissible: boolean;
-}
+// The notice contract lives in @trek/shared (single source of truth, shared
+// with the server). Keep the historical name as an alias so the existing
+// SystemNoticeBanner/Modal consumers don't need to change their imports.
+export type SystemNoticeDTO = SystemNoticeDto;
 
 interface SystemNoticeState {
   notices: SystemNoticeDTO[];
@@ -43,8 +25,9 @@ export const useSystemNoticeStore = create<SystemNoticeState>()((set, get) => ({
     if (get().fetching || get().loaded) return;
     set({ fetching: true });
     try {
-      const res = await axios.get<SystemNoticeDTO[]>('/system-notices/active');
-      set({ notices: res.data, loaded: true, fetching: false });
+      const res = await axios.get('/system-notices/active');
+      const notices = parseInDev(systemNoticeDtoSchema.array(), res.data, 'systemNotices.fetch');
+      set({ notices, loaded: true, fetching: false });
     } catch (err) {
       // Notices are non-critical. Fail silently; set loaded so UI doesn't hang.
       console.warn('[systemNotices] failed to fetch:', err);

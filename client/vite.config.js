@@ -76,7 +76,6 @@ export default defineConfig({
         display: 'standalone',
         scope: '/',
         start_url: '/',
-        orientation: 'any',
         categories: ['travel', 'navigation'],
         icons: [
           { src: 'icons/apple-touch-icon-180x180.png', sizes: '180x180', type: 'image/png' },

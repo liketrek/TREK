@@ -1,0 +1,59 @@
+import type { TranslationStrings } from '../types';
+
+const perm: TranslationStrings = {
+  'perm.title': 'Nastavení oprávnění',
+  'perm.subtitle': 'Určete, kdo může provádět akce v aplikaci',
+  'perm.saved': 'Nastavení oprávnění uloženo',
+  'perm.resetDefaults': 'Obnovit výchozí',
+  'perm.customized': 'upraveno',
+  'perm.level.admin': 'Pouze administrátor',
+  'perm.level.tripOwner': 'Vlastník výletu',
+  'perm.level.tripMember': 'Členové výletu',
+  'perm.level.everybody': 'Všichni',
+  'perm.cat.trip': 'Správa výletů',
+  'perm.cat.members': 'Správa členů',
+  'perm.cat.files': 'Soubory',
+  'perm.cat.content': 'Obsah a plán',
+  'perm.cat.extras': 'Rozpočet, balení a spolupráce',
+  'perm.action.trip_create': 'Vytvářet výlety',
+  'perm.action.trip_edit': 'Upravit detaily výletu',
+  'perm.action.trip_delete': 'Smazat výlety',
+  'perm.action.trip_archive': 'Archivovat / odarchivovat výlety',
+  'perm.action.trip_cover_upload': 'Nahrát titulní obrázek',
+  'perm.action.member_manage': 'Přidat / odebrat členy',
+  'perm.action.file_upload': 'Nahrát soubory',
+  'perm.action.file_edit': 'Upravit metadata souborů',
+  'perm.action.file_delete': 'Smazat soubory',
+  'perm.action.place_edit': 'Přidat / upravit / smazat místa',
+  'perm.action.day_edit': 'Upravit dny, poznámky a přiřazení',
+  'perm.action.reservation_edit': 'Spravovat rezervace',
+  'perm.action.budget_edit': 'Spravovat rozpočet',
+  'perm.action.packing_edit': 'Spravovat seznamy balení',
+  'perm.action.collab_edit': 'Spolupráce (poznámky, hlasování, chat)',
+  'perm.action.share_manage': 'Spravovat odkazy ke sdílení',
+  'perm.actionHint.trip_create': 'Kdo může vytvářet nové výlety',
+  'perm.actionHint.trip_edit':
+    'Kdo může měnit název, data, popis a měnu výletu',
+  'perm.actionHint.trip_delete': 'Kdo může trvale smazat výlet',
+  'perm.actionHint.trip_archive': 'Kdo může archivovat nebo odarchivovat výlet',
+  'perm.actionHint.trip_cover_upload':
+    'Kdo může nahrát nebo změnit titulní obrázek',
+  'perm.actionHint.member_manage': 'Kdo může pozvat nebo odebrat členy výletu',
+  'perm.actionHint.file_upload': 'Kdo může nahrávat soubory k výletu',
+  'perm.actionHint.file_edit': 'Kdo může upravovat popisy a odkazy souborů',
+  'perm.actionHint.file_delete':
+    'Kdo může přesunout soubory do koše nebo je trvale smazat',
+  'perm.actionHint.place_edit': 'Kdo může přidávat, upravovat nebo mazat místa',
+  'perm.actionHint.day_edit':
+    'Kdo může upravovat dny, poznámky ke dnům a přiřazení míst',
+  'perm.actionHint.reservation_edit':
+    'Kdo může vytvářet, upravovat nebo mazat rezervace',
+  'perm.actionHint.budget_edit':
+    'Kdo může vytvářet, upravovat nebo mazat položky rozpočtu',
+  'perm.actionHint.packing_edit': 'Kdo může spravovat položky balení a tašky',
+  'perm.actionHint.collab_edit':
+    'Kdo může vytvářet poznámky, hlasování a posílat zprávy',
+  'perm.actionHint.share_manage':
+    'Kdo může vytvářet nebo mazat veřejné odkazy ke sdílení',
+};
+export default perm;

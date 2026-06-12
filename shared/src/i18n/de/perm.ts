@@ -1,0 +1,63 @@
+import type { TranslationStrings } from '../types';
+
+const perm: TranslationStrings = {
+  'perm.title': 'Berechtigungseinstellungen',
+  'perm.subtitle': 'Steuern Sie, wer Aktionen in der Anwendung ausführen kann',
+  'perm.saved': 'Berechtigungseinstellungen gespeichert',
+  'perm.resetDefaults': 'Auf Standard zurücksetzen',
+  'perm.customized': 'angepasst',
+  'perm.level.admin': 'Nur Administrator',
+  'perm.level.tripOwner': 'Reise-Eigentümer',
+  'perm.level.tripMember': 'Reise-Mitglieder',
+  'perm.level.everybody': 'Alle',
+  'perm.cat.trip': 'Reiseverwaltung',
+  'perm.cat.members': 'Mitgliederverwaltung',
+  'perm.cat.files': 'Dateien',
+  'perm.cat.content': 'Inhalte & Zeitplan',
+  'perm.cat.extras': 'Budget, Packlisten & Zusammenarbeit',
+  'perm.action.trip_create': 'Reisen erstellen',
+  'perm.action.trip_edit': 'Reisedetails bearbeiten',
+  'perm.action.trip_delete': 'Reisen löschen',
+  'perm.action.trip_archive': 'Reisen archivieren / dearchivieren',
+  'perm.action.trip_cover_upload': 'Titelbild hochladen',
+  'perm.action.member_manage': 'Mitglieder hinzufügen / entfernen',
+  'perm.action.file_upload': 'Dateien hochladen',
+  'perm.action.file_edit': 'Datei-Metadaten bearbeiten',
+  'perm.action.file_delete': 'Dateien löschen',
+  'perm.action.place_edit': 'Orte hinzufügen / bearbeiten / löschen',
+  'perm.action.day_edit': 'Tage, Notizen & Zuweisungen bearbeiten',
+  'perm.action.reservation_edit': 'Reservierungen verwalten',
+  'perm.action.budget_edit': 'Budget verwalten',
+  'perm.action.packing_edit': 'Packlisten verwalten',
+  'perm.action.collab_edit': 'Zusammenarbeit (Notizen, Umfragen, Chat)',
+  'perm.action.share_manage': 'Freigabelinks verwalten',
+  'perm.actionHint.trip_create': 'Wer kann neue Reisen erstellen',
+  'perm.actionHint.trip_edit':
+    'Wer kann Reisename, Daten, Beschreibung und Währung ändern',
+  'perm.actionHint.trip_delete': 'Wer kann eine Reise dauerhaft löschen',
+  'perm.actionHint.trip_archive':
+    'Wer kann eine Reise archivieren oder dearchivieren',
+  'perm.actionHint.trip_cover_upload':
+    'Wer kann das Titelbild hochladen oder ändern',
+  'perm.actionHint.member_manage':
+    'Wer kann Reise-Mitglieder einladen oder entfernen',
+  'perm.actionHint.file_upload': 'Wer kann Dateien zu einer Reise hochladen',
+  'perm.actionHint.file_edit':
+    'Wer kann Dateibeschreibungen und Links bearbeiten',
+  'perm.actionHint.file_delete':
+    'Wer kann Dateien in den Papierkorb verschieben oder dauerhaft löschen',
+  'perm.actionHint.place_edit':
+    'Wer kann Orte hinzufügen, bearbeiten oder löschen',
+  'perm.actionHint.day_edit':
+    'Wer kann Tage, Tagesnotizen und Ort-Zuweisungen bearbeiten',
+  'perm.actionHint.reservation_edit':
+    'Wer kann Reservierungen erstellen, bearbeiten oder löschen',
+  'perm.actionHint.budget_edit':
+    'Wer kann Budgetposten erstellen, bearbeiten oder löschen',
+  'perm.actionHint.packing_edit': 'Wer kann Packstücke und Taschen verwalten',
+  'perm.actionHint.collab_edit':
+    'Wer kann Notizen, Umfragen erstellen und Nachrichten senden',
+  'perm.actionHint.share_manage':
+    'Wer kann öffentliche Freigabelinks erstellen oder löschen',
+};
+export default perm;

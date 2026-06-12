@@ -1,0 +1,37 @@
+import type { TranslationStrings } from '../types';
+
+const notifications: TranslationStrings = {
+  'notifications.title': '通知',
+  'notifications.markAllRead': 'すべて既読',
+  'notifications.deleteAll': 'すべて削除',
+  'notifications.showAll': 'すべて表示',
+  'notifications.empty': '通知はありません',
+  'notifications.emptyDescription': 'すべて確認済みです！',
+  'notifications.all': 'すべて',
+  'notifications.unreadOnly': '未読',
+  'notifications.markRead': '既読にする',
+  'notifications.markUnread': '未読にする',
+  'notifications.delete': '削除',
+  'notifications.system': 'システム',
+  'notifications.synologySessionCleared.title':
+    'Synology Photosが切断されました',
+  'notifications.synologySessionCleared.text':
+    'サーバーまたはアカウントが変更されました。設定で接続を再テストしてください。',
+  'notifications.versionAvailable.title': '更新があります',
+  'notifications.versionAvailable.text': 'TREK {version} が利用可能です。',
+  'notifications.versionAvailable.button': '詳細を見る',
+  'notifications.test.title': '{actor} からのテスト通知',
+  'notifications.test.text': 'これはテスト通知です。',
+  'notifications.test.booleanTitle': '{actor} が承認を求めています',
+  'notifications.test.booleanText': 'テスト用の承認通知です。',
+  'notifications.test.accept': '承認',
+  'notifications.test.decline': '却下',
+  'notifications.test.navigateTitle': '確認してください',
+  'notifications.test.navigateText': 'テスト用の遷移通知です。',
+  'notifications.test.goThere': '移動',
+  'notifications.test.adminTitle': '管理者通知',
+  'notifications.test.adminText': '{actor} が管理者全員に通知を送りました。',
+  'notifications.test.tripTitle': '{actor} が旅行に投稿しました',
+  'notifications.test.tripText': '旅行「{trip}」のテスト通知です。',
+};
+export default notifications;

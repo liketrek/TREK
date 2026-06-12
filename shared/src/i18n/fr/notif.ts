@@ -1,0 +1,45 @@
+import type { TranslationStrings } from '../types';
+
+const notif: TranslationStrings = {
+  'notif.test.title': '[Test] Notification',
+  'notif.test.simple.text': 'Ceci est une simple notification de test.',
+  'notif.test.boolean.text': 'Acceptez-vous cette notification de test ?',
+  'notif.test.navigate.text':
+    'Cliquez ci-dessous pour accéder au tableau de bord.',
+  'notif.trip_invite.title': 'Invitation au voyage',
+  'notif.trip_invite.text': '{actor} vous a invité à {trip}',
+  'notif.booking_change.title': 'Réservation mise à jour',
+  'notif.booking_change.text':
+    '{actor} a mis à jour une réservation dans {trip}',
+  'notif.trip_reminder.title': 'Rappel de voyage',
+  'notif.trip_reminder.text': 'Votre voyage {trip} approche !',
+  'notif.todo_due.title': 'Tâche à échéance',
+  'notif.todo_due.text': '{todo} dans {trip} est due le {due}',
+  'notif.vacay_invite.title': 'Invitation Vacay Fusion',
+  'notif.vacay_invite.text':
+    '{actor} vous invite à fusionner les plans de vacances',
+  'notif.photos_shared.title': 'Photos partagées',
+  'notif.photos_shared.text': '{actor} a partagé {count} photo(s) dans {trip}',
+  'notif.collab_message.title': 'Nouveau message',
+  'notif.collab_message.text': '{actor} a envoyé un message dans {trip}',
+  'notif.packing_tagged.title': 'Affectation bagages',
+  'notif.packing_tagged.text':
+    '{actor} vous a assigné à {category} dans {trip}',
+  'notif.version_available.title': 'Nouvelle version disponible',
+  'notif.version_available.text': 'TREK {version} est maintenant disponible',
+  'notif.action.view_trip': 'Voir le voyage',
+  'notif.action.view_collab': 'Voir les messages',
+  'notif.action.view_packing': 'Voir les bagages',
+  'notif.action.view_photos': 'Voir les photos',
+  'notif.action.view_vacay': 'Voir Vacay',
+  'notif.action.view_admin': "Aller à l'admin",
+  'notif.action.view': 'Voir',
+  'notif.action.accept': 'Accepter',
+  'notif.action.decline': 'Refuser',
+  'notif.generic.title': 'Notification',
+  'notif.generic.text': 'Vous avez une nouvelle notification',
+  'notif.dev.unknown_event.title': '[DEV] Événement inconnu',
+  'notif.dev.unknown_event.text':
+    'Le type d\'événement "{event}" n\'est pas enregistré dans EVENT_NOTIFICATION_CONFIG',
+};
+export default notif;

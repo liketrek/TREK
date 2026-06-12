@@ -5,6 +5,7 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import request from 'supertest';
 import type { Application } from 'express';
+import type { INestApplication } from '@nestjs/common';
 
 const { testDb, dbMock } = vi.hoisted(() => {
   const Database = require('better-sqlite3');
@@ -35,30 +36,39 @@ vi.mock('../../src/config', () => ({
   JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
   ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
   updateJwtSecret: () => {},
+  SESSION_DURATION: '24h',
+  SESSION_DURATION_MS: 86400000,
+  SESSION_DURATION_SECONDS: 86400,
+  DEFAULT_LANGUAGE: 'en',
 }));
+vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 
-import { createApp } from '../../src/app';
+import { buildApp } from '../../src/bootstrap';
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
-import { resetTestDb } from '../helpers/test-db';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import { createUser, createTrip, addTripMember, createDay, createPlace, createDayAssignment, createDayNote } from '../helpers/factories';
 import { authCookie } from '../helpers/auth';
-import { loginAttempts, mfaAttempts } from '../../src/routes/auth';
+import * as placePhotoCache from '../../src/services/placePhotoCache';
+import fs from 'node:fs';
 
-const app: Application = createApp();
+let nestApp: INestApplication;
+let app: Application;
 
-beforeAll(() => {
+beforeAll(async () => {
   createTables(testDb);
   runMigrations(testDb);
+  nestApp = await buildApp();
+  app = nestApp.getHttpAdapter().getInstance();
 });
 
 beforeEach(() => {
   resetTestDb(testDb);
-  loginAttempts.clear();
-  mfaAttempts.clear();
+  resetRateLimits(nestApp);
 });
 
-afterAll(() => {
+afterAll(async () => {
+  await nestApp.close();
   testDb.close();
 });
 
@@ -341,5 +351,80 @@ describe('Shared trip — ordering parity (issue #981)', () => {
     expect(reservation).toBeDefined();
     expect(reservation.day_positions).toBeDefined();
     expect(reservation.day_positions[day.id]).toBe(1.5);
+  });
+});
+
+describe('Shared trip — place photos in shared links (issue #1100)', () => {
+  const PLACE_ID = 'ChIJsharedPhoto1100';
+  const PROXY_URL = `/api/maps/place-photo/${encodeURIComponent(PLACE_ID)}/bytes`;
+  const photoBytes = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
+  let cachedFilePath: string;
+
+  afterAll(() => { try { if (cachedFilePath) fs.unlinkSync(cachedFilePath); } catch { /* ignore */ } });
+
+  async function setupSharedPlaceWithPhoto() {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Photo Place' });
+    testDb.prepare('UPDATE places SET image_url = ?, google_place_id = ? WHERE id = ?').run(PROXY_URL, PLACE_ID, place.id);
+
+    const { body: { token } } = await request(app)
+      .post(`/api/trips/${trip.id}/share-link`)
+      .set('Cookie', authCookie(user.id))
+      .send({});
+    return { token, place };
+  }
+
+  it('SHARE-016 — shared payload rewrites place image_url to the public token-scoped proxy', async () => {
+    const { token } = await setupSharedPlaceWithPhoto();
+    const res = await request(app).get(`/api/shared/${token}`);
+    expect(res.status).toBe(200);
+    const place = res.body.places.find((p: any) => p.image_url);
+    expect(place.image_url).toBe(`/api/shared/${token}/place-photo/${encodeURIComponent(PLACE_ID)}/bytes`);
+    expect(place.image_url.startsWith('/api/maps/')).toBe(false);
+  });
+
+  it('SHARE-017 — shared payload rewrites assignment place image_url too', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id, { date: '2025-10-01' });
+    const place = createPlace(testDb, trip.id, { name: 'Assigned Photo Place' });
+    testDb.prepare('UPDATE places SET image_url = ? WHERE id = ?').run(PROXY_URL, place.id);
+    createDayAssignment(testDb, day.id, place.id, {});
+
+    const { body: { token } } = await request(app)
+      .post(`/api/trips/${trip.id}/share-link`)
+      .set('Cookie', authCookie(user.id))
+      .send({});
+
+    const res = await request(app).get(`/api/shared/${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.assignments[day.id][0].place.image_url)
+      .toBe(`/api/shared/${token}/place-photo/${encodeURIComponent(PLACE_ID)}/bytes`);
+  });
+
+  it('SHARE-018 — public proxy streams cached bytes for a valid token + place (no cookie)', async () => {
+    const { token } = await setupSharedPlaceWithPhoto();
+    const cached = await placePhotoCache.put(PLACE_ID, photoBytes, null);
+    cachedFilePath = cached.filePath;
+
+    const res = await request(app).get(`/api/shared/${token}/place-photo/${encodeURIComponent(PLACE_ID)}/bytes`);
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toContain('image/jpeg');
+    expect(Buffer.from(res.body)).toEqual(photoBytes);
+  });
+
+  it('SHARE-019 — public proxy 404s for a placeId not in the shared trip', async () => {
+    const { token } = await setupSharedPlaceWithPhoto();
+    const res = await request(app).get(`/api/shared/${token}/place-photo/ChIJnotInTrip/bytes`);
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'Photo not cached' });
+  });
+
+  it('SHARE-020 — public proxy 404s for an invalid token', async () => {
+    await setupSharedPlaceWithPhoto();
+    const res = await request(app).get(`/api/shared/bad-token/place-photo/${encodeURIComponent(PLACE_ID)}/bytes`);
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'Photo not cached' });
   });
 });

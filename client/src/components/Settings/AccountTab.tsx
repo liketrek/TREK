@@ -8,6 +8,7 @@ import { authApi, adminApi } from '../../api/client'
 import { getApiErrorMessage } from '../../types'
 import type { UserWithOidc } from '../../types'
 import Section from './Section'
+import PasskeysSection from './PasskeysSection'
 
 const MFA_BACKUP_SESSION_KEY = 'trek_mfa_backup_codes_pending'
 
@@ -172,7 +173,7 @@ export default function AccountTab(): React.ReactElement {
 
         {/* Change Password */}
         {!oidcOnlyMode && (
-          <div style={{ paddingTop: 16, marginTop: 16, borderTop: '1px solid var(--border-secondary)' }}>
+          <div className="pt-4 mt-4 border-t border-edge-secondary">
             <label className="block text-sm font-medium text-slate-700 mb-3">{t('settings.changePassword')}</label>
             <div className="space-y-3">
               <input
@@ -211,8 +212,7 @@ export default function AccountTab(): React.ReactElement {
                     toast.error(getApiErrorMessage(err, t('common.error')))
                   }
                 }}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                style={{ border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-secondary)' }}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-edge bg-surface-card text-content-secondary"
                 onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-card)'}
               >
@@ -224,25 +224,24 @@ export default function AccountTab(): React.ReactElement {
         )}
 
         {/* MFA */}
-        <div style={{ paddingTop: 16, marginTop: 16, borderTop: '1px solid var(--border-secondary)' }}>
+        <div className="pt-4 mt-4 border-t border-edge-secondary">
           <div className="flex items-center gap-2 mb-3">
-            <KeyRound className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
-            <h3 className="font-semibold text-base m-0" style={{ color: 'var(--text-primary)' }}>{t('settings.mfa.title')}</h3>
+            <KeyRound className="w-5 h-5 text-content-secondary" />
+            <h3 className="font-semibold text-base m-0 text-content">{t('settings.mfa.title')}</h3>
           </div>
           <div className="space-y-3">
             {mfaRequiredByPolicy && (
-              <div className="flex gap-3 p-3 rounded-lg border text-sm"
-                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
+              <div className="flex gap-3 p-3 rounded-lg border text-sm bg-surface-secondary border-edge text-content">
                 <AlertTriangle className="w-5 h-5 flex-shrink-0 text-amber-600" />
                 <p className="m-0 leading-relaxed">{t('settings.mfa.requiredByPolicy')}</p>
               </div>
             )}
-            <p className="text-sm m-0" style={{ color: 'var(--text-muted)', lineHeight: 1.5 }}>{t('settings.mfa.description')}</p>
+            <p className="text-sm m-0 text-content-muted" style={{ lineHeight: 1.5 }}>{t('settings.mfa.description')}</p>
             {demoMode ? (
               <p className="text-sm text-amber-700 m-0">{t('settings.mfa.demoBlocked')}</p>
             ) : (
               <>
-                <p className="text-sm font-medium m-0" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-sm font-medium m-0 text-content-secondary">
                   {user?.mfa_enabled ? t('settings.mfa.enabled') : t('settings.mfa.disabled')}
                 </p>
 
@@ -263,8 +262,7 @@ export default function AccountTab(): React.ReactElement {
                         setMfaLoading(false)
                       }
                     }}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                    style={{ border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-edge bg-surface-card text-content"
                   >
                     {mfaLoading ? <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-700 rounded-full animate-spin" /> : <KeyRound size={14} />}
                     {t('settings.mfa.setup')}
@@ -273,11 +271,11 @@ export default function AccountTab(): React.ReactElement {
 
                 {!user?.mfa_enabled && mfaQr && (
                   <div className="space-y-3">
-                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{t('settings.mfa.scanQr')}</p>
-                    <div className="rounded-lg border mx-auto block overflow-hidden" style={{ width: 'fit-content', borderColor: 'var(--border-primary)' }} dangerouslySetInnerHTML={{ __html: mfaQr! }} />
+                    <p className="text-sm text-content-muted">{t('settings.mfa.scanQr')}</p>
+                    <div className="rounded-lg border mx-auto block overflow-hidden border-edge" style={{ width: 'fit-content' }} dangerouslySetInnerHTML={{ __html: mfaQr! }} />
                     <div>
-                      <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{t('settings.mfa.secretLabel')}</label>
-                      <code className="block text-xs p-2 rounded break-all" style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)' }}>{mfaSecret}</code>
+                      <label className="block text-xs font-medium mb-1 text-content-secondary">{t('settings.mfa.secretLabel')}</label>
+                      <code className="block text-xs p-2 rounded break-all bg-surface-hover text-content">{mfaSecret}</code>
                     </div>
                     <input
                       type="text"
@@ -318,8 +316,7 @@ export default function AccountTab(): React.ReactElement {
                       <button
                         type="button"
                         onClick={() => { setMfaQr(null); setMfaSecret(null); setMfaSetupCode('') }}
-                        className="px-4 py-2 rounded-lg text-sm border"
-                        style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}
+                        className="px-4 py-2 rounded-lg text-sm border border-edge text-content-secondary"
                       >
                         {t('settings.mfa.cancelSetup')}
                       </button>
@@ -329,8 +326,8 @@ export default function AccountTab(): React.ReactElement {
 
                 {user?.mfa_enabled && (
                   <div className="space-y-3">
-                    <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{t('settings.mfa.disableTitle')}</p>
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('settings.mfa.disableHint')}</p>
+                    <p className="text-sm font-medium text-content-secondary">{t('settings.mfa.disableTitle')}</p>
+                    <p className="text-xs text-content-muted">{t('settings.mfa.disableHint')}</p>
                     <input
                       type="password"
                       value={mfaDisablePwd}
@@ -373,22 +370,22 @@ export default function AccountTab(): React.ReactElement {
                 )}
 
                 {backupCodes && backupCodes.length > 0 && (
-                  <div className="space-y-3 p-3 rounded-lg border" style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-hover)' }}>
-                    <p className="text-sm font-semibold m-0" style={{ color: 'var(--text-primary)' }}>{t('settings.mfa.backupTitle')}</p>
-                    <p className="text-xs m-0" style={{ color: 'var(--text-muted)' }}>{t('settings.mfa.backupDescription')}</p>
-                    <pre className="text-xs m-0 p-2 rounded border overflow-auto" style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', maxHeight: 220 }}>{backupCodesText}</pre>
-                    <p className="text-xs m-0" style={{ color: '#b45309' }}>{t('settings.mfa.backupWarning')}</p>
+                  <div className="space-y-3 p-3 rounded-lg border border-edge bg-surface-hover">
+                    <p className="text-sm font-semibold m-0 text-content">{t('settings.mfa.backupTitle')}</p>
+                    <p className="text-xs m-0 text-content-muted">{t('settings.mfa.backupDescription')}</p>
+                    <pre className="text-xs m-0 p-2 rounded border overflow-auto border-edge bg-surface-card text-content" style={{ maxHeight: 220 }}>{backupCodesText}</pre>
+                    <p className="text-xs m-0 text-[#b45309]">{t('settings.mfa.backupWarning')}</p>
                     <div className="flex flex-wrap gap-2">
-                      <button type="button" onClick={copyBackupCodes} className="px-3 py-2 rounded-lg text-xs border flex items-center gap-1.5" style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
+                      <button type="button" onClick={copyBackupCodes} className="px-3 py-2 rounded-lg text-xs border flex items-center gap-1.5 border-edge text-content-secondary">
                         <Copy size={13} /> {t('settings.mfa.backupCopy')}
                       </button>
-                      <button type="button" onClick={downloadBackupCodes} className="px-3 py-2 rounded-lg text-xs border flex items-center gap-1.5" style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
+                      <button type="button" onClick={downloadBackupCodes} className="px-3 py-2 rounded-lg text-xs border flex items-center gap-1.5 border-edge text-content-secondary">
                         <Download size={13} /> {t('settings.mfa.backupDownload')}
                       </button>
-                      <button type="button" onClick={printBackupCodes} className="px-3 py-2 rounded-lg text-xs border flex items-center gap-1.5" style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
+                      <button type="button" onClick={printBackupCodes} className="px-3 py-2 rounded-lg text-xs border flex items-center gap-1.5 border-edge text-content-secondary">
                         <Printer size={13} /> {t('settings.mfa.backupPrint')}
                       </button>
-                      <button type="button" onClick={dismissBackupCodes} className="px-3 py-2 rounded-lg text-xs border" style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
+                      <button type="button" onClick={dismissBackupCodes} className="px-3 py-2 rounded-lg text-xs border border-edge text-content-secondary">
                         {t('common.ok')}
                       </button>
                     </div>
@@ -399,17 +396,19 @@ export default function AccountTab(): React.ReactElement {
           </div>
         </div>
 
+        {/* Passkeys */}
+        <PasskeysSection demoMode={demoMode} />
+
         {/* Avatar */}
         <div className="flex items-center gap-4">
           <div style={{ position: 'relative', flexShrink: 0 }}>
             {user?.avatar_url ? (
               <img src={user.avatar_url} alt="" style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover' }} />
             ) : (
-              <div style={{
+              <div className="bg-surface-hover text-content-secondary" style={{
                 width: 64, height: 64, borderRadius: '50%',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 24, fontWeight: 700,
-                background: 'var(--bg-hover)', color: 'var(--text-secondary)',
               }}>
                 {user?.username?.charAt(0).toUpperCase()}
               </div>
@@ -433,10 +432,10 @@ export default function AccountTab(): React.ReactElement {
             {user?.avatar_url && (
               <button
                 onClick={handleAvatarRemove}
+                className="bg-[#ef4444] text-white"
                 style={{
                   position: 'absolute', top: -2, right: -2,
                   width: 20, height: 20, borderRadius: '50%',
-                  background: '#ef4444', color: 'white',
                   border: '2px solid var(--bg-card)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   cursor: 'pointer', padding: 0,
@@ -447,22 +446,22 @@ export default function AccountTab(): React.ReactElement {
             )}
           </div>
           <div className="flex flex-col gap-1">
-            <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              <span className="font-medium" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--text-secondary)' }}>
+            <div className="text-sm text-content-muted">
+              <span className="font-medium text-content-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                 {user?.role === 'admin' ? <><Shield size={13} /> {t('settings.roleAdmin')}</> : t('settings.roleUser')}
               </span>
               {(user as UserWithOidc)?.oidc_issuer && (
-                <span style={{
+                <span className="bg-[#dbeafe] text-[#1d4ed8]" style={{
                   display: 'inline-flex', alignItems: 'center', gap: 4,
                   fontSize: 10, fontWeight: 500, padding: '1px 8px', borderRadius: 99,
-                  background: '#dbeafe', color: '#1d4ed8', marginLeft: 6,
+                  marginLeft: 6,
                 }}>
                   SSO
                 </span>
               )}
             </div>
             {(user as UserWithOidc)?.oidc_issuer && (
-              <p style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: -2 }}>
+              <p className="text-content-faint" style={{ fontSize: 11, marginTop: -2 }}>
                 {t('settings.oidcLinked')} {(user as UserWithOidc).oidc_issuer!.replace('https://', '').replace(/\/+$/, '')}
               </p>
             )}
@@ -493,8 +492,7 @@ export default function AccountTab(): React.ReactElement {
               }
               setShowDeleteConfirm(true)
             }}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors text-red-500 hover:bg-red-50"
-            style={{ border: '1px solid #fecaca' }}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors text-red-500 hover:bg-red-50 border border-[#fecaca]"
           >
             <Trash2 size={14} />
             <span className="hidden sm:inline">{t('settings.deleteAccount')}</span>
@@ -505,30 +503,30 @@ export default function AccountTab(): React.ReactElement {
 
       {/* Delete Account Blocked */}
       {showDeleteConfirm === 'blocked' && (
-        <div style={{
+        <div className="bg-[rgba(0,0,0,0.5)]" style={{
           position: 'fixed', inset: 0, zIndex: 9999,
-          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+          backdropFilter: 'blur(4px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
         }} onClick={() => setShowDeleteConfirm(false)}>
-          <div style={{
-            background: 'var(--bg-card)', borderRadius: 16, padding: '28px 24px',
+          <div className="bg-surface-card" style={{
+            borderRadius: 16, padding: '28px 24px',
             maxWidth: 400, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
           }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Shield size={18} style={{ color: '#d97706' }} />
+              <div className="bg-[#fef3c7]" style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Shield size={18} className="text-[#d97706]" />
               </div>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{t('settings.deleteBlockedTitle')}</h3>
+              <h3 className="text-content" style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{t('settings.deleteBlockedTitle')}</h3>
             </div>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, margin: '0 0 20px' }}>
+            <p className="text-content-muted" style={{ fontSize: 13, lineHeight: 1.6, margin: '0 0 20px' }}>
               {t('settings.deleteBlockedMessage')}
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <button
                 onClick={() => setShowDeleteConfirm(false)}
+                className="border border-edge bg-surface-card text-content-secondary"
                 style={{
                   padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 500,
-                  border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-secondary)',
                   cursor: 'pointer', fontFamily: 'inherit',
                 }}
               >
@@ -541,30 +539,30 @@ export default function AccountTab(): React.ReactElement {
 
       {/* Delete Account Confirm */}
       {showDeleteConfirm === true && (
-        <div style={{
+        <div className="bg-[rgba(0,0,0,0.5)]" style={{
           position: 'fixed', inset: 0, zIndex: 9999,
-          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+          backdropFilter: 'blur(4px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
         }} onClick={() => setShowDeleteConfirm(false)}>
-          <div style={{
-            background: 'var(--bg-card)', borderRadius: 16, padding: '28px 24px',
+          <div className="bg-surface-card" style={{
+            borderRadius: 16, padding: '28px 24px',
             maxWidth: 400, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
           }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Trash2 size={18} style={{ color: '#ef4444' }} />
+              <div className="bg-[#fef2f2]" style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Trash2 size={18} className="text-[#ef4444]" />
               </div>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{t('settings.deleteAccountTitle')}</h3>
+              <h3 className="text-content" style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{t('settings.deleteAccountTitle')}</h3>
             </div>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, margin: '0 0 20px' }}>
+            <p className="text-content-muted" style={{ fontSize: 13, lineHeight: 1.6, margin: '0 0 20px' }}>
               {t('settings.deleteAccountWarning')}
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
               <button
                 onClick={() => setShowDeleteConfirm(false)}
+                className="border border-edge bg-surface-card text-content-secondary"
                 style={{
                   padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 500,
-                  border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-secondary)',
                   cursor: 'pointer', fontFamily: 'inherit',
                 }}
               >
@@ -581,9 +579,10 @@ export default function AccountTab(): React.ReactElement {
                     setShowDeleteConfirm(false)
                   }
                 }}
+                className="bg-[#ef4444] text-white"
                 style={{
                   padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600,
-                  border: 'none', background: '#ef4444', color: 'white',
+                  border: 'none',
                   cursor: 'pointer', fontFamily: 'inherit',
                 }}
               >

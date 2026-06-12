@@ -623,13 +623,13 @@ describe('API namespace smoke tests', () => {
   // ── tripsApi additional methods ──────────────────────────────────────────────
 
   it('tripsApi.create posts new trip', async () => {
-    server.use(http.post('/api/trips', () => HttpResponse.json({ id: 1, name: 'Test' })));
-    await expect(tripsApi.create({ name: 'Test' })).resolves.toMatchObject({ id: 1 });
+    server.use(http.post('/api/trips', () => HttpResponse.json({ id: 1, title: 'Test' })));
+    await expect(tripsApi.create({ title: 'Test' })).resolves.toMatchObject({ id: 1 });
   });
 
   it('tripsApi.update puts trip data', async () => {
     server.use(http.put('/api/trips/1', () => HttpResponse.json({ id: 1 })));
-    await expect(tripsApi.update(1, { name: 'Updated' })).resolves.toMatchObject({ id: 1 });
+    await expect(tripsApi.update(1, { title: 'Updated' })).resolves.toMatchObject({ id: 1 });
   });
 
   it('tripsApi.delete deletes a trip', async () => {
@@ -765,7 +765,7 @@ describe('API namespace smoke tests', () => {
 
   it('reservationsApi.create creates a reservation', async () => {
     server.use(http.post('/api/trips/1/reservations', () => HttpResponse.json({ id: 1 })));
-    await expect(reservationsApi.create(1, { name: 'Hotel' })).resolves.toMatchObject({ id: 1 });
+    await expect(reservationsApi.create(1, { title: 'Hotel' })).resolves.toMatchObject({ id: 1 });
   });
 
   it('reservationsApi.delete deletes a reservation', async () => {
@@ -784,7 +784,7 @@ describe('API namespace smoke tests', () => {
 
   it('accommodationsApi.create creates accommodation', async () => {
     server.use(http.post('/api/trips/1/accommodations', () => HttpResponse.json({ id: 1 })));
-    await expect(accommodationsApi.create(1, { name: 'Hotel' })).resolves.toMatchObject({ id: 1 });
+    await expect(accommodationsApi.create(1, { place_id: 1, start_day_id: 1, end_day_id: 1 })).resolves.toMatchObject({ id: 1 });
   });
 
   it('accommodationsApi.delete deletes accommodation', async () => {

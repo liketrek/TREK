@@ -47,19 +47,29 @@ export function Tooltip({ label, placement = 'bottom', delay = 250, disabled, ch
     setCoords({ top, left })
   }, [open, placement, label])
 
-  const child = React.Children.only(children)
+  // The wrapped child can be any focusable/hoverable element. React's element
+  // props are typed as `unknown`, so we narrow to the handlers we chain onto.
+  type TriggerProps = {
+    ref?: React.Ref<HTMLElement>
+    onMouseEnter?: (e: React.MouseEvent) => void
+    onMouseLeave?: (e: React.MouseEvent) => void
+    onFocus?: (e: React.FocusEvent) => void
+    onBlur?: (e: React.FocusEvent) => void
+  }
+  const child = React.Children.only(children) as React.ReactElement<TriggerProps>
+  const childProps = child.props as TriggerProps
   const trigger = React.cloneElement(child, {
     ref: (node: HTMLElement | null) => {
       triggerRef.current = node
-      const r = (child as any).ref
+      const r = childProps.ref
       if (typeof r === 'function') r(node)
-      else if (r && typeof r === 'object') r.current = node
+      else if (r && typeof r === 'object') (r as React.RefObject<HTMLElement | null>).current = node
     },
-    onMouseEnter: (e: any) => { show(); child.props.onMouseEnter?.(e) },
-    onMouseLeave: (e: any) => { hide(); child.props.onMouseLeave?.(e) },
-    onFocus: (e: any) => { show(); child.props.onFocus?.(e) },
-    onBlur: (e: any) => { hide(); child.props.onBlur?.(e) },
-  })
+    onMouseEnter: (e: React.MouseEvent) => { show(); childProps.onMouseEnter?.(e) },
+    onMouseLeave: (e: React.MouseEvent) => { hide(); childProps.onMouseLeave?.(e) },
+    onFocus: (e: React.FocusEvent) => { show(); childProps.onFocus?.(e) },
+    onBlur: (e: React.FocusEvent) => { hide(); childProps.onBlur?.(e) },
+  } as TriggerProps)
 
   return (
     <>
@@ -68,7 +78,7 @@ export function Tooltip({ label, placement = 'bottom', delay = 250, disabled, ch
         <div
           ref={tooltipRef}
           role="tooltip"
-          className="trek-popover-enter"
+          className="trek-popover-enter bg-surface-card text-content border border-edge-faint"
           style={{
             position: 'fixed',
             top: coords?.top ?? -9999,
@@ -76,16 +86,13 @@ export function Tooltip({ label, placement = 'bottom', delay = 250, disabled, ch
             visibility: coords ? 'visible' : 'hidden',
             pointerEvents: 'none',
             zIndex: 100000,
-            background: 'var(--bg-card, #ffffff)',
-            color: 'var(--text-primary, #111827)',
             fontSize: 11,
             fontWeight: 500,
             padding: '5px 10px',
             borderRadius: 8,
             whiteSpace: 'nowrap',
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            border: '1px solid var(--border-faint, #e5e7eb)',
-            fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+            fontFamily: "var(--font-system)",
             transformOrigin: placement === 'top' ? 'bottom center' : placement === 'bottom' ? 'top center' : placement === 'left' ? 'center right' : 'center left',
           }}
         >

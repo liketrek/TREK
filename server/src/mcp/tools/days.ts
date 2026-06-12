@@ -15,7 +15,7 @@ import {
 import {
   safeBroadcast, TOOL_ANNOTATIONS_WRITE, TOOL_ANNOTATIONS_DELETE,
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, noAccess, ok,
+  demoDenied, noAccess, ok, hasTripPermission, permissionDenied,
 } from './_shared';
 import { canWrite } from '../scopes';
 
@@ -38,6 +38,7 @@ export function registerDayTools(server: McpServer, userId: number, scopes: stri
     async ({ tripId, dayId, title }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('day_edit', tripId, userId)) return permissionDenied();
       const current = getDay(dayId, tripId);
       if (!current) return { content: [{ type: 'text' as const, text: 'Day not found.' }], isError: true };
       const updated = updateDay(dayId, current, title !== undefined ? { title } : {});
@@ -60,6 +61,7 @@ export function registerDayTools(server: McpServer, userId: number, scopes: stri
     async ({ tripId, date, notes }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('day_edit', tripId, userId)) return permissionDenied();
       const day = createDay(tripId, date, notes);
       safeBroadcast(tripId, 'day:created', { day });
       return ok({ day });
@@ -79,6 +81,7 @@ export function registerDayTools(server: McpServer, userId: number, scopes: stri
     async ({ tripId, dayId }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('day_edit', tripId, userId)) return permissionDenied();
       if (!getDay(dayId, tripId)) return { content: [{ type: 'text' as const, text: 'Day not found.' }], isError: true };
       deleteDay(dayId);
       safeBroadcast(tripId, 'day:deleted', { id: dayId });
@@ -105,6 +108,7 @@ export function registerDayTools(server: McpServer, userId: number, scopes: stri
     async ({ tripId, place_id, start_day_id, end_day_id, check_in, check_out, confirmation, notes }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('day_edit', tripId, userId)) return permissionDenied();
       const errors = validateAccommodationRefs(tripId, place_id, start_day_id, end_day_id);
       if (errors.length > 0) return { content: [{ type: 'text' as const, text: errors.map(e => e.message).join(', ') }], isError: true };
       const accommodation = createAccommodation(tripId, { place_id, start_day_id, end_day_id, check_in, check_out, confirmation, notes });
@@ -144,6 +148,7 @@ export function registerDayTools(server: McpServer, userId: number, scopes: stri
     async ({ tripId, name, description, lat, lng, address, category_id, google_place_id, osm_id, place_notes, website, phone, start_day_id, end_day_id, check_in, check_out, confirmation, accommodation_notes, price, currency }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('day_edit', tripId, userId)) return permissionDenied();
       const dayErrors = validateAccommodationRefs(tripId, undefined, start_day_id, end_day_id);
       if (dayErrors.length > 0) return { content: [{ type: 'text' as const, text: dayErrors.map(e => e.message).join(', ') }], isError: true };
       try {
@@ -182,6 +187,7 @@ export function registerDayTools(server: McpServer, userId: number, scopes: stri
     async ({ tripId, accommodationId, place_id, start_day_id, end_day_id, check_in, check_out, confirmation, notes }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('day_edit', tripId, userId)) return permissionDenied();
       const existing = getAccommodation(accommodationId, tripId);
       if (!existing) return { content: [{ type: 'text' as const, text: 'Accommodation not found.' }], isError: true };
       const accommodation = updateAccommodation(accommodationId, existing, { place_id, start_day_id, end_day_id, check_in, check_out, confirmation, notes });
@@ -203,6 +209,7 @@ export function registerDayTools(server: McpServer, userId: number, scopes: stri
     async ({ tripId, accommodationId }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('day_edit', tripId, userId)) return permissionDenied();
       if (!getAccommodation(accommodationId, tripId)) return { content: [{ type: 'text' as const, text: 'Accommodation not found.' }], isError: true };
       const { linkedReservationId } = deleteAccommodation(accommodationId);
       safeBroadcast(tripId, 'accommodation:deleted', { id: accommodationId, linkedReservationId });
@@ -228,6 +235,7 @@ export function registerDayTools(server: McpServer, userId: number, scopes: stri
     async ({ tripId, dayId, text, time, icon }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('day_edit', tripId, userId)) return permissionDenied();
       if (!dayNoteExists(dayId, tripId)) return { content: [{ type: 'text' as const, text: 'Day not found.' }], isError: true };
       const note = createDayNote(dayId, tripId, text, time, icon);
       safeBroadcast(tripId, 'dayNote:created', { dayId, note });
@@ -252,6 +260,7 @@ export function registerDayTools(server: McpServer, userId: number, scopes: stri
     async ({ tripId, dayId, noteId, text, time, icon }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('day_edit', tripId, userId)) return permissionDenied();
       const existing = getDayNote(noteId, dayId, tripId);
       if (!existing) return { content: [{ type: 'text' as const, text: 'Note not found.' }], isError: true };
       const note = updateDayNote(noteId, existing, { text, time: time !== undefined ? time : undefined, icon });
@@ -274,6 +283,7 @@ export function registerDayTools(server: McpServer, userId: number, scopes: stri
     async ({ tripId, dayId, noteId }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('day_edit', tripId, userId)) return permissionDenied();
       const note = getDayNote(noteId, dayId, tripId);
       if (!note) return { content: [{ type: 'text' as const, text: 'Note not found.' }], isError: true };
       deleteDayNote(noteId);

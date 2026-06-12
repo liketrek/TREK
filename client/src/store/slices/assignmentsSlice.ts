@@ -27,6 +27,7 @@ export const createAssignmentsSlice = (set: SetState, get: GetState): Assignment
     const tempAssignment: Assignment = {
       id: tempId,
       day_id: parseInt(String(dayId)),
+      place_id: place.id,
       order_index: insertIdx,
       notes: null,
       place,

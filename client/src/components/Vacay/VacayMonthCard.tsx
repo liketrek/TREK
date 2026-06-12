@@ -60,18 +60,18 @@ export default function VacayMonthCard({
   }, [])
 
   return (
-    <div className="rounded-xl border overflow-hidden" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-      <div className="px-3 py-2 border-b" style={{ borderColor: 'var(--border-secondary)' }}>
-        <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)', textTransform: 'capitalize' }}>{monthName}</span>
+    <div className="rounded-xl border overflow-hidden bg-surface-card border-edge">
+      <div className="px-3 py-2 border-b border-edge-secondary">
+        <span className="text-xs font-semibold capitalize text-content">{monthName}</span>
       </div>
 
-      <div className="grid grid-cols-7 border-b" style={{ borderColor: 'var(--border-secondary)' }}>
+      <div className="grid grid-cols-7 border-b border-edge-secondary">
         {weekdays.map((wd, i) => {
           // Map column index back to JS day (0=Sun..6=Sat) to check if it's a weekend column
           const jsDay = (i + weekStart) % 7
           const isWeekendCol = weekendDays.includes(jsDay)
           return (
-            <div key={`${wd}-${i}`} className="text-center text-[10px] font-medium py-1" style={{ color: isWeekendCol ? 'var(--text-faint)' : 'var(--text-muted)' }}>
+            <div key={`${wd}-${i}`} className={`text-center text-[10px] font-medium py-1 ${isWeekendCol ? 'text-content-faint' : 'text-content-muted'}`}>
               {wd}
             </div>
           )
@@ -110,7 +110,7 @@ export default function VacayMonthCard({
                   onMouseLeave={e => { e.currentTarget.style.background = weekend ? 'var(--bg-secondary)' : 'transparent' }}
                 >
                   {holiday && <div className="absolute inset-0.5 rounded" style={{ background: hexToRgba(holiday.color, 0.12) }} />}
-                  {isCompany && <div className="absolute inset-0.5 rounded" style={{ background: 'rgba(245,158,11,0.15)' }} />}
+                  {isCompany && <div className="absolute inset-0.5 rounded bg-[rgba(245,158,11,0.15)]" />}
 
                   {dayEntries.length === 1 && (
                     <div className="absolute inset-0.5 rounded" style={{ backgroundColor: dayEntries[0].person_color, opacity: 0.4 }} />
@@ -138,7 +138,7 @@ export default function VacayMonthCard({
                   )}
 
                   {tripDates?.has(dateStr) && (
-                    <span className="absolute top-[3px] right-[3px] w-[5px] h-[5px] rounded-full z-[2]" style={{ background: '#3b82f6' }} />
+                    <span className="absolute top-[3px] right-[3px] w-[5px] h-[5px] rounded-full z-[2] bg-[#3b82f6]" />
                   )}
 
                   <span className="relative z-[1] text-[11px]" style={{

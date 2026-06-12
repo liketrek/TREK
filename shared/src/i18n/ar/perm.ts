@@ -1,0 +1,56 @@
+import type { TranslationStrings } from '../types';
+
+const perm: TranslationStrings = {
+  'perm.title': 'إعدادات الصلاحيات',
+  'perm.subtitle': 'التحكم في من يمكنه تنفيذ الإجراءات عبر التطبيق',
+  'perm.saved': 'تم حفظ إعدادات الصلاحيات',
+  'perm.resetDefaults': 'إعادة التعيين إلى الافتراضي',
+  'perm.customized': 'مخصص',
+  'perm.level.admin': 'المسؤول فقط',
+  'perm.level.tripOwner': 'مالك الرحلة',
+  'perm.level.tripMember': 'أعضاء الرحلة',
+  'perm.level.everybody': 'الجميع',
+  'perm.cat.trip': 'إدارة الرحلات',
+  'perm.cat.members': 'إدارة الأعضاء',
+  'perm.cat.files': 'الملفات',
+  'perm.cat.content': 'المحتوى والجدول الزمني',
+  'perm.cat.extras': 'الميزانية والتعبئة والتعاون',
+  'perm.action.trip_create': 'إنشاء رحلات',
+  'perm.action.trip_edit': 'تعديل تفاصيل الرحلة',
+  'perm.action.trip_delete': 'حذف الرحلات',
+  'perm.action.trip_archive': 'أرشفة / إلغاء أرشفة الرحلات',
+  'perm.action.trip_cover_upload': 'رفع صورة الغلاف',
+  'perm.action.member_manage': 'إضافة / إزالة الأعضاء',
+  'perm.action.file_upload': 'رفع الملفات',
+  'perm.action.file_edit': 'تعديل بيانات الملف',
+  'perm.action.file_delete': 'حذف الملفات',
+  'perm.action.place_edit': 'إضافة / تعديل / حذف الأماكن',
+  'perm.action.day_edit': 'تعديل الأيام والملاحظات والتعيينات',
+  'perm.action.reservation_edit': 'إدارة الحجوزات',
+  'perm.action.budget_edit': 'إدارة الميزانية',
+  'perm.action.packing_edit': 'إدارة قوائم التعبئة',
+  'perm.action.collab_edit': 'التعاون (ملاحظات، استطلاعات، دردشة)',
+  'perm.action.share_manage': 'إدارة روابط المشاركة',
+  'perm.actionHint.trip_create': 'من يمكنه إنشاء رحلات جديدة',
+  'perm.actionHint.trip_edit':
+    'من يمكنه تغيير اسم الرحلة والتواريخ والوصف والعملة',
+  'perm.actionHint.trip_delete': 'من يمكنه حذف رحلة نهائياً',
+  'perm.actionHint.trip_archive': 'من يمكنه أرشفة أو إلغاء أرشفة رحلة',
+  'perm.actionHint.trip_cover_upload': 'من يمكنه رفع أو تغيير صورة الغلاف',
+  'perm.actionHint.member_manage': 'من يمكنه دعوة أو إزالة أعضاء الرحلة',
+  'perm.actionHint.file_upload': 'من يمكنه رفع ملفات إلى رحلة',
+  'perm.actionHint.file_edit': 'من يمكنه تعديل أوصاف الملفات والروابط',
+  'perm.actionHint.file_delete':
+    'من يمكنه نقل الملفات إلى سلة المهملات أو حذفها نهائياً',
+  'perm.actionHint.place_edit': 'من يمكنه إضافة أو تعديل أو حذف الأماكن',
+  'perm.actionHint.day_edit':
+    'من يمكنه تعديل الأيام وملاحظات الأيام وتعيينات الأماكن',
+  'perm.actionHint.reservation_edit': 'من يمكنه إنشاء أو تعديل أو حذف الحجوزات',
+  'perm.actionHint.budget_edit':
+    'من يمكنه إنشاء أو تعديل أو حذف عناصر الميزانية',
+  'perm.actionHint.packing_edit': 'من يمكنه إدارة عناصر التعبئة والحقائب',
+  'perm.actionHint.collab_edit':
+    'من يمكنه إنشاء ملاحظات واستطلاعات وإرسال رسائل',
+  'perm.actionHint.share_manage': 'من يمكنه إنشاء أو حذف روابط المشاركة العامة',
+};
+export default perm;

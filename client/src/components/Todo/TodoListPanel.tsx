@@ -15,111 +15,21 @@ import {
 } from 'lucide-react'
 import type { TodoItem } from '../../types'
 
-const KAT_COLORS = [
-  '#3b82f6', '#a855f7', '#ec4899', '#22c55e', '#f97316',
-  '#06b6d4', '#ef4444', '#eab308', '#8b5cf6', '#14b8a6',
-]
-
-const PRIO_CONFIG: Record<number, { label: string; color: string }> = {
-  1: { label: 'P1', color: '#ef4444' },
-  2: { label: 'P2', color: '#f59e0b' },
-  3: { label: 'P3', color: '#3b82f6' },
-}
-
-function katColor(kat: string, allCategories: string[]) {
-  const idx = allCategories.indexOf(kat)
-  if (idx >= 0) return KAT_COLORS[idx % KAT_COLORS.length]
-  let h = 0
-  for (let i = 0; i < kat.length; i++) h = ((h << 5) - h + kat.charCodeAt(i)) | 0
-  return KAT_COLORS[Math.abs(h) % KAT_COLORS.length]
-}
-
-type FilterType = 'all' | 'my' | 'overdue' | 'done' | string
-
-interface Member { id: number; username: string; avatar: string | null }
+import { KAT_COLORS, PRIO_CONFIG, katColor, type FilterType, type Member } from './todoListModel'
+import { useTodoList } from './useTodoList'
+import TodoRow from './TodoRow'
 
 export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tripId: number; items: TodoItem[]; addItemSignal?: number }) {
-  const { addTodoItem, updateTodoItem, deleteTodoItem, toggleTodoItem } = useTripStore()
-  const canEdit = useCanDo('packing_edit')
-  const toast = useToast()
-  const { t, locale } = useTranslation()
-  const formatDate = (d: string) => fmtDate(d, locale) || d
-
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 767px)')
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
-    mq.addEventListener('change', handler)
-    return () => mq.removeEventListener('change', handler)
-  }, [])
-
-  const [filter, setFilter] = useState<FilterType>('all')
-  const [selectedId, setSelectedId] = useState<number | null>(null)
-  const [isAddingNew, setIsAddingNew] = useState(false)
-  const lastHandledAddSignal = useRef(addItemSignal)
-
-  useEffect(() => {
-    if (addItemSignal !== lastHandledAddSignal.current && addItemSignal > 0) {
-      setSelectedId(null)
-      setIsAddingNew(true)
-    }
-    lastHandledAddSignal.current = addItemSignal
-  }, [addItemSignal])
-  const [sortByPrio, setSortByPrio] = useState(false)
-  const [addingCategory, setAddingCategory] = useState(false)
-  const [newCategoryName, setNewCategoryName] = useState('')
-  const [members, setMembers] = useState<Member[]>([])
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null)
-
-  useEffect(() => {
-    apiClient.get(`/trips/${tripId}/members`).then(r => {
-      const owner = r.data?.owner
-      const mems = r.data?.members || []
-      const all = owner ? [owner, ...mems] : mems
-      setMembers(all)
-      setCurrentUserId(r.data?.current_user_id || null)
-    }).catch(() => {})
-  }, [tripId])
-
-  const categories = useMemo(() => {
-    const cats = new Set<string>()
-    items.forEach(i => { if (i.category) cats.add(i.category) })
-    return Array.from(cats).sort()
-  }, [items])
-
-  const today = new Date().toISOString().split('T')[0]
-
-  const filtered = useMemo(() => {
-    let result: TodoItem[]
-    if (filter === 'all') result = items.filter(i => !i.checked)
-    else if (filter === 'done') result = items.filter(i => !!i.checked)
-    else if (filter === 'my') result = items.filter(i => !i.checked && i.assigned_user_id === currentUserId)
-    else if (filter === 'overdue') result = items.filter(i => !i.checked && i.due_date && i.due_date < today)
-    else result = items.filter(i => i.category === filter)
-    if (sortByPrio) result = [...result].sort((a, b) => {
-      const ap = a.priority || 99
-      const bp = b.priority || 99
-      return ap - bp
-    })
-    return result
-  }, [items, filter, currentUserId, today, sortByPrio])
-
-  const selectedItem = items.find(i => i.id === selectedId) || null
-  const totalCount = items.length
-  const doneCount = items.filter(i => !!i.checked).length
-  const overdueCount = items.filter(i => !i.checked && i.due_date && i.due_date < today).length
-  const myCount = currentUserId ? items.filter(i => !i.checked && i.assigned_user_id === currentUserId).length : 0
-
-  const addCategory = () => {
-    const name = newCategoryName.trim()
-    if (!name || categories.includes(name)) { setAddingCategory(false); setNewCategoryName(''); return }
-    addTodoItem(tripId, { name: t('todo.newItem'), category: name } as any)
-      .then(() => { setAddingCategory(false); setNewCategoryName(''); setFilter(name) })
-      .catch(err => toast.error(err instanceof Error ? err.message : t('common.error')))
-  }
-
-  // Get category count (non-done items)
-  const catCount = (cat: string) => items.filter(i => i.category === cat && !i.checked).length
+  // Layout component: state/effects/derived/handlers live in useTodoList.
+  const {
+    canEdit, t, formatDate, toggleTodoItem,
+    isMobile, filter, setFilter, selectedId, setSelectedId,
+    isAddingNew, setIsAddingNew, sortByPrio, setSortByPrio,
+    addingCategory, setAddingCategory, newCategoryName, setNewCategoryName,
+    members, categories, today, filtered, selectedItem,
+    totalCount, doneCount, overdueCount, myCount,
+    addCategory, catCount,
+  } = useTodoList(tripId, items, addItemSignal)
 
   // Sidebar filter item
   const SidebarItem = ({ id, icon: Icon, label, count, color }: { id: string; icon: any; label: string; count: number; color?: string }) => (
@@ -267,109 +177,20 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
         {/* Task list */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
           {filtered.length === 0 ? null : (
-            filtered.map(item => {
-              const done = !!item.checked
-              const assignedUser = members.find(m => m.id === item.assigned_user_id)
-              const isOverdue = item.due_date && !done && item.due_date < today
-              const isSelected = selectedId === item.id
-              const catColor = item.category ? katColor(item.category, categories) : null
-
-              return (
-                <div key={item.id}
-                  onClick={() => { setSelectedId(isSelected ? null : item.id); setIsAddingNew(false) }}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 10, padding: '10px 20px',
-                    borderBottom: '1px solid var(--border-faint)', cursor: 'pointer',
-                    background: isSelected ? 'var(--bg-hover)' : 'transparent',
-                    transition: 'background 0.1s',
-                  }}
-                  onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'rgba(0,0,0,0.02)' }}
-                  onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent' }}>
-
-                  {/* Checkbox */}
-                  <button onClick={e => { e.stopPropagation(); canEdit && toggleTodoItem(tripId, item.id, !done) }}
-                    style={{ background: 'none', border: 'none', cursor: canEdit ? 'pointer' : 'default', padding: 0, flexShrink: 0,
-                      color: done ? '#22c55e' : 'var(--border-primary)' }}>
-                    {done ? <CheckSquare size={18} /> : <Square size={18} />}
-                  </button>
-
-                  {/* Content */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      fontSize: 14, color: done ? 'var(--text-faint)' : 'var(--text-primary)',
-                      textDecoration: done ? 'line-through' : 'none', lineHeight: 1.4,
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>
-                      {item.name}
-                    </div>
-                    {/* Description preview */}
-                    {item.description && (
-                      <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.4 }}>
-                        {item.description}
-                      </div>
-                    )}
-                    {/* Inline badges */}
-                    {(item.priority || item.due_date || catColor || assignedUser) && (
-                    <div style={{ display: 'flex', gap: 5, marginTop: 5, flexWrap: 'wrap' }}>
-                      {item.priority > 0 && PRIO_CONFIG[item.priority] && (
-                        <span style={{
-                          fontSize: 10, display: 'inline-flex', alignItems: 'center', gap: 3,
-                          padding: '2px 7px', borderRadius: 5, fontWeight: 600,
-                          color: PRIO_CONFIG[item.priority].color,
-                          background: `${PRIO_CONFIG[item.priority].color}10`,
-                          border: `1px solid ${PRIO_CONFIG[item.priority].color}25`,
-                        }}>
-                          <Flag size={9} />{PRIO_CONFIG[item.priority].label}
-                        </span>
-                      )}
-                      {item.due_date && (
-                        <span style={{
-                          fontSize: 10, display: 'inline-flex', alignItems: 'center', gap: 3,
-                          padding: '2px 7px', borderRadius: 5, fontWeight: 500,
-                          color: isOverdue ? '#ef4444' : 'var(--text-secondary)',
-                          background: isOverdue ? 'rgba(239,68,68,0.08)' : 'var(--bg-hover)',
-                          border: `1px solid ${isOverdue ? 'rgba(239,68,68,0.15)' : 'var(--border-faint)'}`,
-                        }}>
-                          <Calendar size={9} />{formatDate(item.due_date)}
-                        </span>
-                      )}
-                      {catColor && (
-                        <span style={{
-                          fontSize: 10, display: 'inline-flex', alignItems: 'center', gap: 4,
-                          padding: '2px 7px', borderRadius: 5, fontWeight: 500,
-                          color: 'var(--text-secondary)', background: 'var(--bg-hover)',
-                          border: '1px solid var(--border-faint)',
-                        }}>
-                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: catColor, flexShrink: 0 }} />
-                          {item.category}
-                        </span>
-                      )}
-                      {assignedUser && (
-                        <span style={{
-                          fontSize: 10, display: 'inline-flex', alignItems: 'center', gap: 4,
-                          padding: '2px 7px', borderRadius: 5, fontWeight: 500,
-                          color: 'var(--text-secondary)', background: 'var(--bg-hover)',
-                          border: '1px solid var(--border-faint)',
-                        }}>
-                          {assignedUser.avatar ? (
-                            <img src={`/uploads/avatars/${assignedUser.avatar}`} style={{ width: 13, height: 13, borderRadius: '50%', objectFit: 'cover' }} alt="" />
-                          ) : (
-                            <span style={{ width: 13, height: 13, borderRadius: '50%', background: 'var(--border-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, color: 'var(--text-faint)', fontWeight: 700 }}>
-                              {assignedUser.username.charAt(0).toUpperCase()}
-                            </span>
-                          )}
-                          {assignedUser.username}
-                        </span>
-                      )}
-                    </div>
-                    )}
-                  </div>
-
-                  {/* Chevron */}
-                  <ChevronRight size={16} color="var(--text-faint)" style={{ flexShrink: 0, opacity: 0.4 }} />
-                </div>
-              )
-            })
+            filtered.map(item => (
+              <TodoRow
+                key={item.id}
+                item={item}
+                members={members}
+                categories={categories}
+                today={today}
+                isSelected={selectedId === item.id}
+                canEdit={canEdit}
+                formatDate={formatDate}
+                onSelect={(id) => { setSelectedId(id); setIsAddingNew(false) }}
+                onToggle={(id, checked) => toggleTodoItem(tripId, id, checked)}
+              />
+            ))
           )}
         </div>
       </div>
@@ -401,7 +222,7 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
       )}
       {isAddingNew && !selectedItem && !isMobile && ReactDOM.createPortal(
         <div onClick={e => { if (e.target === e.currentTarget) setIsAddingNew(false) }}
-          className="modal-backdrop"
+          className="trek-modal-backdrop"
           style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 'calc(var(--nav-h) + 60px)', paddingBottom: 40 }}>
           <div style={{ width: 'min(520px, 92vw)', maxHeight: 'calc(100vh - var(--nav-h) - 120px)', overflow: 'auto', borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}
             ref={el => { if (el) { const child = el.firstElementChild as HTMLElement; if (child) { child.style.width = '100%'; child.style.borderLeft = 'none'; child.style.borderRadius = '16px' } } }}>
@@ -419,7 +240,7 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
       )}
       {isAddingNew && !selectedItem && isMobile && ReactDOM.createPortal(
         <div onClick={e => { if (e.target === e.currentTarget) setIsAddingNew(false) }}
-          className="modal-backdrop"
+          className="trek-modal-backdrop"
           style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'flex-end', paddingBottom: 'var(--bottom-nav-h)' }}>
           <div style={{ width: '100%', maxHeight: '85vh', borderRadius: '16px 16px 0 0', overflow: 'auto' }}
             ref={el => { if (el) { const child = el.firstElementChild as HTMLElement; if (child) { child.style.width = '100%'; child.style.borderLeft = 'none'; child.style.borderRadius = '16px 16px 0 0' } } }}>
@@ -446,7 +267,9 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
   onClose: () => void;
 }) {
   const { updateTodoItem, deleteTodoItem } = useTripStore()
-  const canEdit = useCanDo('packing_edit')
+  const trip = useTripStore((s) => s.trip)
+  const can = useCanDo()
+  const canEdit = can('packing_edit', trip)
   const toast = useToast()
   const { t } = useTranslation()
 
@@ -492,7 +315,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.error')) }
   }
 
-  const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 4, display: 'block' }
+  const labelClass = 'block text-xs font-medium text-content-secondary mb-1'
   const inputStyle: React.CSSProperties = {
     width: '100%', fontSize: 13, padding: '8px 10px', border: '1px solid var(--border-primary)',
     borderRadius: 8, background: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: 'inherit',
@@ -522,7 +345,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
 
         {/* Description */}
         <div>
-          <label style={labelStyle}>{t('todo.detail.description')}</label>
+          <label className={labelClass}>{t('todo.detail.description')}</label>
           <textarea value={desc} onChange={e => setDesc(e.target.value)} disabled={!canEdit} rows={4}
             placeholder={t('todo.descriptionPlaceholder')}
             style={{ ...inputStyle, resize: 'vertical', minHeight: 80 }} />
@@ -530,7 +353,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
 
         {/* Priority */}
         <div>
-          <label style={labelStyle}>{t('todo.detail.priority')}</label>
+          <label className={labelClass}>{t('todo.detail.priority')}</label>
           <div style={{ display: 'flex', gap: 4 }}>
             {[0, 1, 2, 3].map(p => {
               const cfg = PRIO_CONFIG[p]
@@ -554,10 +377,10 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
 
         {/* Category */}
         <div>
-          <label style={labelStyle}>{t('todo.detail.category')}</label>
+          <label className={labelClass}>{t('todo.detail.category')}</label>
           <CustomSelect
             value={category}
-            onChange={v => setCategory(v)}
+            onChange={v => setCategory(String(v))}
             options={[
               { value: '', label: t('todo.noCategory') },
               ...categories.map(c => ({
@@ -574,7 +397,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
 
         {/* Due date */}
         <div>
-          <label style={labelStyle}>{t('todo.detail.dueDate')}</label>
+          <label className={labelClass}>{t('todo.detail.dueDate')}</label>
           <CustomDatePicker
             value={dueDate}
             onChange={v => setDueDate(v)}
@@ -583,12 +406,12 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
 
         {/* Assigned to */}
         <div>
-          <label style={labelStyle}>{t('todo.detail.assignedTo')}</label>
+          <label className={labelClass}>{t('todo.detail.assignedTo')}</label>
           <CustomSelect
             value={String(assignedUserId ?? '')}
             onChange={v => setAssignedUserId(v ? Number(v) : null)}
             options={[
-              { value: '', label: t('todo.unassigned'), icon: <User size={14} style={{ color: 'var(--text-faint)' }} /> },
+              { value: '', label: t('todo.unassigned'), icon: <User size={14} className="text-content-faint" /> },
               ...members.map(m => ({
                 value: String(m.id),
                 label: m.username,
@@ -654,7 +477,7 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
   const [priority, setPriority] = useState(0)
   const [saving, setSaving] = useState(false)
 
-  const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 4, display: 'block' }
+  const labelClass = 'block text-xs font-medium text-content-secondary mb-1'
 
   const create = async () => {
     if (!name.trim()) return
@@ -692,14 +515,14 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
         </div>
 
         <div>
-          <label style={labelStyle}>{t('todo.detail.description')}</label>
+          <label className={labelClass}>{t('todo.detail.description')}</label>
           <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={4}
             placeholder={t('todo.descriptionPlaceholder')}
             style={{ width: '100%', fontSize: 13, padding: '8px 10px', border: '1px solid var(--border-primary)', borderRadius: 8, background: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: 'inherit', resize: 'vertical', minHeight: 80 }} />
         </div>
 
         <div>
-          <label style={labelStyle}>{t('todo.detail.category')}</label>
+          <label className={labelClass}>{t('todo.detail.category')}</label>
           {addingCategory ? (
             <div style={{ display: 'flex', gap: 4 }}>
               <input
@@ -720,7 +543,7 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
               <div style={{ flex: 1, minWidth: 0 }}>
                 <CustomSelect
                   value={category}
-                  onChange={v => setCategory(v)}
+                  onChange={v => setCategory(String(v))}
                   options={[
                     { value: '', label: t('todo.noCategory') },
                     ...categories.map(c => ({
@@ -746,7 +569,7 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
         </div>
 
         <div>
-          <label style={labelStyle}>{t('todo.detail.priority')}</label>
+          <label className={labelClass}>{t('todo.detail.priority')}</label>
           <div style={{ display: 'flex', gap: 4 }}>
             {[0, 1, 2, 3].map(p => {
               const cfg = PRIO_CONFIG[p]
@@ -769,17 +592,17 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
         </div>
 
         <div>
-          <label style={labelStyle}>{t('todo.detail.dueDate')}</label>
+          <label className={labelClass}>{t('todo.detail.dueDate')}</label>
           <CustomDatePicker value={dueDate} onChange={v => setDueDate(v)} />
         </div>
 
         <div>
-          <label style={labelStyle}>{t('todo.detail.assignedTo')}</label>
+          <label className={labelClass}>{t('todo.detail.assignedTo')}</label>
           <CustomSelect
             value={String(assignedUserId ?? '')}
             onChange={v => setAssignedUserId(v ? Number(v) : null)}
             options={[
-              { value: '', label: t('todo.unassigned'), icon: <User size={14} style={{ color: 'var(--text-faint)' }} /> },
+              { value: '', label: t('todo.unassigned'), icon: <User size={14} className="text-content-faint" /> },
               ...members.map(m => ({
                 value: String(m.id), label: m.username,
                 icon: m.avatar ? (

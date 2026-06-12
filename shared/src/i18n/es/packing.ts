@@ -1,0 +1,186 @@
+import type { TranslationStrings } from '../types';
+
+const packing: TranslationStrings = {
+  'packing.title': 'Lista de equipaje',
+  'packing.empty': 'La lista de equipaje está vacía',
+  'packing.import': 'Importar',
+  'packing.importTitle': 'Importar lista de equipaje',
+  'packing.importHint':
+    'Un elemento por línea. Categoría y cantidad opcionales separadas por coma, punto y coma o tabulación: Nombre, Categoría, Cantidad',
+  'packing.importPlaceholder':
+    'Cepillo de dientes\nProtector solar, Higiene\nCamisetas, Ropa, 5\nPasaporte, Documentos',
+  'packing.importCsv': 'Cargar CSV/TXT',
+  'packing.importAction': 'Importar {count}',
+  'packing.importSuccess': '{count} elementos importados',
+  'packing.importError': 'Error al importar',
+  'packing.importEmpty': 'Sin elementos para importar',
+  'packing.progress': '{packed} de {total} preparados ({percent}%)',
+  'packing.clearChecked': 'Eliminar {count} marcados',
+  'packing.clearCheckedShort': 'Eliminar {count}',
+  'packing.suggestions': 'Sugerencias',
+  'packing.suggestionsTitle': 'Añadir sugerencias',
+  'packing.allSuggested': 'Todas las sugerencias añadidas',
+  'packing.allPacked': '¡Todo preparado!',
+  'packing.addPlaceholder': 'Añadir nuevo elemento...',
+  'packing.categoryPlaceholder': 'Categoría...',
+  'packing.filterAll': 'Todo',
+  'packing.filterOpen': 'Pendientes',
+  'packing.filterDone': 'Hecho',
+  'packing.emptyTitle': 'La lista de equipaje está vacía',
+  'packing.emptyHint': 'Añade elementos o usa las sugerencias',
+  'packing.emptyFiltered': 'Ningún elemento coincide con este filtro',
+  'packing.menuRename': 'Renombrar',
+  'packing.menuCheckAll': 'Marcar todo',
+  'packing.menuUncheckAll': 'Desmarcar todo',
+  'packing.menuDeleteCat': 'Eliminar categoría',
+  'packing.addItem': 'Añadir artículo',
+  'packing.addItemPlaceholder': 'Nombre del artículo...',
+  'packing.addCategory': 'Añadir categoría',
+  'packing.newCategoryPlaceholder': 'Nombre de categoría (ej. Ropa)',
+  'packing.applyTemplate': 'Aplicar plantilla',
+  'packing.template': 'Plantilla',
+  'packing.templateApplied': '{count} artículos añadidos desde plantilla',
+  'packing.templateError': 'Error al aplicar plantilla',
+  'packing.saveAsTemplate': 'Guardar como plantilla',
+  'packing.templateName': 'Nombre de la plantilla',
+  'packing.templateSaved': 'Lista de equipaje guardada como plantilla',
+  'packing.noMembers': 'Sin miembros',
+  'packing.bags': 'Equipaje',
+  'packing.noBag': 'Sin asignar',
+  'packing.totalWeight': 'Peso total',
+  'packing.bagName': 'Nombre...',
+  'packing.addBag': 'Añadir equipaje',
+  'packing.changeCategory': 'Cambiar categoría',
+  'packing.confirm.clearChecked':
+    '¿Seguro que quieres eliminar {count} elementos marcados?',
+  'packing.confirm.deleteCat':
+    '¿Seguro que quieres eliminar la categoría "{name}" con {count} elementos?',
+  'packing.defaultCategory': 'Otros',
+  'packing.toast.saveError': 'No se pudo guardar',
+  'packing.toast.deleteError': 'No se pudo eliminar',
+  'packing.toast.renameError': 'No se pudo renombrar',
+  'packing.toast.addError': 'No se pudo añadir',
+  'packing.suggestions.items': [
+    {
+      name: 'Pasaporte',
+      category: 'Documentos',
+    },
+    {
+      name: 'Documento de identidad',
+      category: 'Documentos',
+    },
+    {
+      name: 'Seguro de viaje',
+      category: 'Documentos',
+    },
+    {
+      name: 'Billetes de vuelo',
+      category: 'Documentos',
+    },
+    {
+      name: 'Tarjeta de crédito',
+      category: 'Finanzas',
+    },
+    {
+      name: 'Efectivo',
+      category: 'Finanzas',
+    },
+    {
+      name: 'Visado',
+      category: 'Documentos',
+    },
+    {
+      name: 'Camisetas',
+      category: 'Ropa',
+    },
+    {
+      name: 'Pantalones',
+      category: 'Ropa',
+    },
+    {
+      name: 'Ropa interior',
+      category: 'Ropa',
+    },
+    {
+      name: 'Calcetines',
+      category: 'Ropa',
+    },
+    {
+      name: 'Chaqueta',
+      category: 'Ropa',
+    },
+    {
+      name: 'Pijama',
+      category: 'Ropa',
+    },
+    {
+      name: 'Ropa de baño',
+      category: 'Ropa',
+    },
+    {
+      name: 'Impermeable',
+      category: 'Ropa',
+    },
+    {
+      name: 'Zapatos cómodos',
+      category: 'Ropa',
+    },
+    {
+      name: 'Cepillo de dientes',
+      category: 'Aseo',
+    },
+    {
+      name: 'Pasta de dientes',
+      category: 'Aseo',
+    },
+    {
+      name: 'Champú',
+      category: 'Aseo',
+    },
+    {
+      name: 'Desodorante',
+      category: 'Aseo',
+    },
+    {
+      name: 'Protector solar',
+      category: 'Aseo',
+    },
+    {
+      name: 'Maquinilla de afeitar',
+      category: 'Aseo',
+    },
+    {
+      name: 'Cargador',
+      category: 'Electrónica',
+    },
+    {
+      name: 'Batería externa',
+      category: 'Electrónica',
+    },
+    {
+      name: 'Auriculares',
+      category: 'Electrónica',
+    },
+    {
+      name: 'Adaptador de viaje',
+      category: 'Electrónica',
+    },
+    {
+      name: 'Cámara',
+      category: 'Electrónica',
+    },
+    {
+      name: 'Analgésicos',
+      category: 'Salud',
+    },
+    {
+      name: 'Tiritas',
+      category: 'Salud',
+    },
+    {
+      name: 'Desinfectante',
+      category: 'Salud',
+    },
+  ],
+};
+export default packing;
