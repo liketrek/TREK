@@ -225,16 +225,15 @@ export function DayPlanSidebarToolbar({
                 <ArrowUpDown size={14} strokeWidth={2} />
               </button>
             </Tooltip>
-            {reorderOpen && (
-              <DayReorderPopup
-                days={days}
-                t={t}
-                locale={locale}
-                onReorder={onReorderDays}
-                onAddDay={() => onAddDay()}
-                onClose={() => setReorderOpen(false)}
-              />
-            )}
+            <DayReorderPopup
+              isOpen={reorderOpen}
+              days={days}
+              t={t}
+              locale={locale}
+              onReorder={onReorderDays}
+              onAddDay={() => onAddDay()}
+              onClose={() => setReorderOpen(false)}
+            />
           </div>
         )}
       </div>
