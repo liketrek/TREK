@@ -58,7 +58,7 @@ export function DayPlanSidebarNoteModal({ noteUi, setNoteUi, noteInputRef, cance
             />
             <textarea
               value={ui.time}
-              maxLength={150}
+              maxLength={250}
               rows={3}
               onChange={e => setNoteUi(prev => ({ ...prev, [dayId]: { ...prev[dayId], time: e.target.value } }))}
               onKeyDown={e => { if (e.key === 'Escape') cancelNote(Number(dayId)) }}
@@ -66,7 +66,7 @@ export function DayPlanSidebarNoteModal({ noteUi, setNoteUi, noteInputRef, cance
               className="text-content"
               style={{ fontSize: 12, border: '1px solid var(--border-primary)', borderRadius: 8, padding: '7px 10px', fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box', resize: 'none', lineHeight: 1.4 }}
             />
-            <div className={(ui.time?.length || 0) >= 140 ? 'text-[#d97706]' : 'text-content-faint'} style={{ textAlign: 'right', fontSize: 11, marginTop: -2 }}>{ui.time?.length || 0}/150</div>
+            <div className={(ui.time?.length || 0) >= 240 ? 'text-[#d97706]' : 'text-content-faint'} style={{ textAlign: 'right', fontSize: 11, marginTop: -2 }}>{ui.time?.length || 0}/250</div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button onClick={() => cancelNote(Number(dayId))} className="text-content-muted" style={{ fontSize: 12, background: 'none', border: '1px solid var(--border-primary)', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontFamily: 'inherit' }}>{t('common.cancel')}</button>
               <button onClick={() => saveNote(Number(dayId))} disabled={!ui.text?.trim()} className={!ui.text?.trim() ? 'bg-[var(--border-primary)] text-content-faint' : 'bg-accent text-accent-text'} style={{ fontSize: 12, border: 'none', borderRadius: 8, padding: '6px 16px', cursor: !ui.text?.trim() ? 'not-allowed' : 'pointer', fontWeight: 600, fontFamily: 'inherit', transition: 'background 0.15s, color 0.15s' }}>

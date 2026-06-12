@@ -68,7 +68,7 @@ export type DayUpdateRequest = z.infer<typeof dayUpdateRequestSchema>;
 
 export const dayNoteCreateRequestSchema = z.object({
   text: z.string().min(1).max(500),
-  time: z.string().max(150).optional(),
+  time: z.string().max(250).optional(),
   icon: z.string().optional(),
   sort_order: z.number().optional(),
 });
@@ -76,7 +76,7 @@ export type DayNoteCreateRequest = z.infer<typeof dayNoteCreateRequestSchema>;
 
 export const dayNoteUpdateRequestSchema = z.object({
   text: z.string().max(500).optional(),
-  time: z.string().max(150).optional(),
+  time: z.string().max(250).optional(),
   icon: z.string().optional(),
   sort_order: z.number().optional(),
 });

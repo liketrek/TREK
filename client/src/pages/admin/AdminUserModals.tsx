@@ -2,7 +2,7 @@ import React from 'react'
 import { adminApi } from '../../api/client'
 import Modal from '../../components/shared/Modal'
 import CustomSelect from '../../components/shared/CustomSelect'
-import { CheckCircle, ArrowUpCircle, ExternalLink, RefreshCw, AlertTriangle, Fingerprint } from 'lucide-react'
+import { CheckCircle, ArrowUpCircle, ExternalLink, RefreshCw, AlertTriangle, Fingerprint, Eye, EyeOff } from 'lucide-react'
 import type { TranslationFn } from '../../types'
 import type { useAdmin } from './useAdmin'
 
@@ -22,6 +22,8 @@ export default function AdminUserModals({ admin, t }: AdminUserModalsProps): Rea
     showRotateJwtModal, setShowRotateJwtModal, rotatingJwt, setRotatingJwt,
     handleCreateUser, handleSaveUser,
   } = admin
+  const [showCreatePw, setShowCreatePw] = React.useState(false)
+  const [showEditPw, setShowEditPw] = React.useState(false)
 
   return (
     <>
@@ -71,13 +73,24 @@ export default function AdminUserModals({ admin, t }: AdminUserModalsProps): Rea
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('common.password')} *</label>
-            <input
-              type="password"
-              value={createForm.password}
-              onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))}
-              placeholder={t('common.password')}
-              className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-slate-400 focus:border-transparent text-sm"
-            />
+            <div className="relative">
+              <input
+                type={showCreatePw ? 'text' : 'password'}
+                value={createForm.password}
+                onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))}
+                placeholder={t('common.password')}
+                className="w-full px-3 py-2.5 pr-10 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-slate-400 focus:border-transparent text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => setShowCreatePw(v => !v)}
+                tabIndex={-1}
+                aria-label="Show or hide password"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600"
+              >
+                {showCreatePw ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('settings.role')}</label>
@@ -138,13 +151,24 @@ export default function AdminUserModals({ admin, t }: AdminUserModalsProps): Rea
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('admin.newPassword')} <span className="text-slate-400 font-normal">({t('admin.newPasswordHint')})</span></label>
-              <input
-                type="password"
-                value={editForm.password}
-                onChange={e => setEditForm(f => ({ ...f, password: e.target.value }))}
-                placeholder={t('admin.newPasswordPlaceholder')}
-                className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-slate-400 focus:border-transparent text-sm"
-              />
+              <div className="relative">
+                <input
+                  type={showEditPw ? 'text' : 'password'}
+                  value={editForm.password}
+                  onChange={e => setEditForm(f => ({ ...f, password: e.target.value }))}
+                  placeholder={t('admin.newPasswordPlaceholder')}
+                  className="w-full px-3 py-2.5 pr-10 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-slate-400 focus:border-transparent text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowEditPw(v => !v)}
+                  tabIndex={-1}
+                  aria-label="Show or hide password"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600"
+                >
+                  {showEditPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('settings.role')}</label>

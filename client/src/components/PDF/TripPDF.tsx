@@ -293,6 +293,7 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
                   ${cat ? `<span class="cat-badge" style="background:${color}">${escHtml(cat.name)}</span>` : ''}
                 </div>
                 ${place.address ? `<div class="info-row">${svgPin}<span class="info-text">${escHtml(place.address)}</span></div>` : ''}
+                ${(place.lat != null && place.lng != null) ? `<div class="info-row"><span class="info-spacer"></span><span class="info-text muted">${Number(place.lat).toFixed(5)}, ${Number(place.lng).toFixed(5)}</span></div>` : ''}
                 ${place.description ? `<div class="info-row"><span class="info-spacer"></span><span class="info-text muted italic">${escHtml(place.description)}</span></div>` : ''}
                 ${chips ? `<div class="chips">${chips}</div>` : ''}
                 ${place.notes ? `<div class="info-row"><span class="info-spacer"></span><span class="info-text muted italic">${escHtml(place.notes)}</span></div>` : ''}

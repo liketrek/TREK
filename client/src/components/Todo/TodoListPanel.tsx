@@ -277,6 +277,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
   const [desc, setDesc] = useState(item.description || '')
   const [dueDate, setDueDate] = useState(item.due_date || '')
   const [category, setCategory] = useState(item.category || '')
+  const [addingCategory, setAddingCategoryInline] = useState(false)
   const [assignedUserId, setAssignedUserId] = useState<number | null>(item.assigned_user_id)
   const [priority, setPriority] = useState(item.priority || 0)
   const [saving, setSaving] = useState(false)
@@ -378,21 +379,52 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
         {/* Category */}
         <div>
           <label className={labelClass}>{t('todo.detail.category')}</label>
-          <CustomSelect
-            value={category}
-            onChange={v => setCategory(String(v))}
-            options={[
-              { value: '', label: t('todo.noCategory') },
-              ...categories.map(c => ({
-                value: c,
-                label: c,
-                icon: <span style={{ width: 8, height: 8, borderRadius: '50%', background: katColor(c, categories), display: 'inline-block' }} />,
-              })),
-            ]}
-            placeholder={t('todo.noCategory')}
-            size="sm"
-            disabled={!canEdit}
-          />
+          {addingCategory ? (
+            <div style={{ display: 'flex', gap: 4 }}>
+              <input
+                autoFocus
+                value={category}
+                onChange={e => setCategory(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') setAddingCategoryInline(false); if (e.key === 'Escape') { setCategory(''); setAddingCategoryInline(false) } }}
+                placeholder={t('todo.newCategory')}
+                style={{ flex: 1, fontSize: 13, padding: '8px 10px', border: '1px solid var(--border-primary)', borderRadius: 8, background: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none' }}
+              />
+              <button type="button" onClick={() => setAddingCategoryInline(false)}
+                style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-primary)', borderRadius: 8, padding: '0 10px', cursor: 'pointer', color: 'var(--text-primary)' }}>
+                <Check size={14} />
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: 4 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <CustomSelect
+                  value={category}
+                  onChange={v => setCategory(String(v))}
+                  options={[
+                    { value: '', label: t('todo.noCategory') },
+                    ...categories.map(c => ({
+                      value: c, label: c,
+                      icon: <span style={{ width: 8, height: 8, borderRadius: '50%', background: katColor(c, categories), display: 'inline-block' }} />,
+                    })),
+                    ...(category && !categories.includes(category) ? [{
+                      value: category, label: `${category} (${t('todo.newCategoryLabel') || 'new'})`,
+                      icon: <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#9ca3af', display: 'inline-block' }} />,
+                    }] : []),
+                  ]}
+                  placeholder={t('todo.noCategory')}
+                  size="sm"
+                  disabled={!canEdit}
+                />
+              </div>
+              {canEdit && (
+                <button type="button" onClick={() => { setCategory(''); setAddingCategoryInline(true) }}
+                  title={t('todo.newCategory')}
+                  style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-primary)', borderRadius: 8, padding: '0 10px', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'inherit' }}>
+                  <Plus size={14} />
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Due date */}

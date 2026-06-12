@@ -78,10 +78,12 @@ export function registerTripTools(server: McpServer, userId: number, scopes: str
         start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
         end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
         currency: z.string().length(3).optional(),
+        is_archived: z.boolean().optional().describe('Archive (true) or unarchive (false) the trip'),
+        cover_image: z.string().optional().describe('Cover image path, e.g. /uploads/covers/abc.jpg'),
       },
       annotations: TOOL_ANNOTATIONS_WRITE,
     },
-    async ({ tripId, title, description, start_date, end_date, currency }) => {
+    async ({ tripId, title, description, start_date, end_date, currency, is_archived, cover_image }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
       if (!hasTripPermission('trip_edit', tripId, userId)) return permissionDenied();
@@ -95,7 +97,7 @@ export function registerTripTools(server: McpServer, userId: number, scopes: str
         if (isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== end_date)
           return { content: [{ type: 'text' as const, text: 'end_date is not a valid calendar date.' }], isError: true };
       }
-      const { updatedTrip } = updateTrip(tripId, userId, { title, description, start_date, end_date, currency }, 'user');
+      const { updatedTrip } = updateTrip(tripId, userId, { title, description, start_date, end_date, currency, is_archived, cover_image }, 'user');
       safeBroadcast(tripId, 'trip:updated', { trip: updatedTrip });
       return ok({ trip: updatedTrip });
     }

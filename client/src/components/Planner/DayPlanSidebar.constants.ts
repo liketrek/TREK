@@ -2,6 +2,7 @@ import {
   FileText, Info, Clock, MapPin, Navigation, Train, Plane, Bus, Car, Ship,
   Coffee, Ticket, Star, Heart, Camera, Flag, Lightbulb, AlertTriangle,
   ShoppingBag, Bookmark, Hotel, Utensils, Users, Sailboat, Bike, CarTaxiFront, Route,
+  Wine, ParkingSquare, Fuel, Footprints, Mountain, Waves, Sun, Umbrella, Music, Landmark, Gift,
 } from 'lucide-react'
 
 export const RES_ICONS = { flight: Plane, hotel: Hotel, restaurant: Utensils, train: Train, car: Car, cruise: Ship, bus: Bus, ferry: Sailboat, bicycle: Bike, taxi: CarTaxiFront, transport_other: Route, event: Ticket, tour: Users, other: FileText }
@@ -27,6 +28,18 @@ export const NOTE_ICONS = [
   { id: 'AlertTriangle', Icon: AlertTriangle },
   { id: 'ShoppingBag', Icon: ShoppingBag },
   { id: 'Bookmark', Icon: Bookmark },
+  { id: 'Utensils', Icon: Utensils },
+  { id: 'Wine', Icon: Wine },
+  { id: 'ParkingSquare', Icon: ParkingSquare },
+  { id: 'Fuel', Icon: Fuel },
+  { id: 'Footprints', Icon: Footprints },
+  { id: 'Mountain', Icon: Mountain },
+  { id: 'Waves', Icon: Waves },
+  { id: 'Sun', Icon: Sun },
+  { id: 'Umbrella', Icon: Umbrella },
+  { id: 'Music', Icon: Music },
+  { id: 'Landmark', Icon: Landmark },
+  { id: 'Gift', Icon: Gift },
 ]
 const NOTE_ICON_MAP = Object.fromEntries(NOTE_ICONS.map(({ id, Icon }) => [id, Icon]))
 export function getNoteIcon(iconId) { return NOTE_ICON_MAP[iconId] || FileText }
