@@ -279,6 +279,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
             }
           })
         }
+        if (form.meta_seat) metadata.seat = form.meta_seat
       } else if (form.type === 'train') {
         if (form.meta_train_number) metadata.train_number = form.meta_train_number
         if (form.meta_platform) metadata.platform = form.meta_platform
@@ -582,6 +583,15 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
               <input type="text" value={form.meta_seat} onChange={e => set('meta_seat', e.target.value)}
                 placeholder="42A" className={inputClass} />
             </div>
+          </div>
+        )}
+
+        {/* Flight seat */}
+        {form.type === 'flight' && (
+          <div>
+            <label className={labelClass}>{t('reservations.meta.seat')}</label>
+            <input type="text" value={form.meta_seat} onChange={e => set('meta_seat', e.target.value)}
+              placeholder="12A" className={inputClass} />
           </div>
         )}
 
