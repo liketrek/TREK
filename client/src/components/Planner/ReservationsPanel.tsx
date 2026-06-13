@@ -179,6 +179,16 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
               {t('reservations.needsReview')}
             </span>
           ) : null}
+          {r.external_source === 'airtrail' ? (
+            <span
+              className={r.sync_enabled ? 'text-[#2563eb] bg-[rgba(59,130,246,0.12)]' : 'text-content-faint bg-surface-tertiary'}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 6 }}
+              title={r.sync_enabled ? t('reservations.airtrail.syncedHint') : t('reservations.airtrail.notSyncedHint')}
+            >
+              <Plane size={11} />
+              {r.sync_enabled ? t('reservations.airtrail.synced') : t('reservations.airtrail.notSynced')}
+            </span>
+          ) : null}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <span className="text-content" style={{
