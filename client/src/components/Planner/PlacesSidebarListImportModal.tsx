@@ -1,4 +1,5 @@
 import ReactDOM from 'react-dom'
+import ToggleSwitch from '../Settings/ToggleSwitch'
 import type { SidebarState } from './usePlacesSidebar'
 
 export function ListImportModal(S: SidebarState) {
@@ -57,21 +58,13 @@ export function ListImportModal(S: SidebarState) {
           }}
         />
         {canEnrichImport && (
-          <label
-            className="text-content-muted"
-            style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 12, fontSize: 12, cursor: 'pointer' }}
-          >
-            <input
-              type="checkbox"
-              checked={listImportEnrich}
-              onChange={e => setListImportEnrich(e.target.checked)}
-              style={{ marginTop: 1, flexShrink: 0, cursor: 'pointer' }}
-            />
-            <span>
-              <span className="text-content" style={{ fontWeight: 600 }}>{t('places.enrichOnImport')}</span>
-              <span className="text-content-faint" style={{ display: 'block', marginTop: 2 }}>{t('places.enrichOnImportHint')}</span>
-            </span>
-          </label>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginTop: 12 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="text-content" style={{ fontSize: 12, fontWeight: 600 }}>{t('places.enrichOnImport')}</div>
+              <div className="text-content-faint" style={{ fontSize: 12, marginTop: 2 }}>{t('places.enrichOnImportHint')}</div>
+            </div>
+            <ToggleSwitch on={listImportEnrich} onToggle={() => setListImportEnrich(!listImportEnrich)} />
+          </div>
         )}
         <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'flex-end' }}>
           <button
