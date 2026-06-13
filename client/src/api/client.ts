@@ -487,6 +487,19 @@ export const addonsApi = {
   enabled: () => apiClient.get('/addons').then(r => r.data),
 }
 
+export const airtrailApi = {
+  getSettings: () => apiClient.get('/integrations/airtrail/settings').then(r => r.data),
+  saveSettings: (data: { url: string; apiKey?: string; allowInsecureTls?: boolean }) =>
+    apiClient.put('/integrations/airtrail/settings', data).then(r => r.data),
+  status: () => apiClient.get('/integrations/airtrail/status').then(r => r.data),
+  test: (data: { url?: string; apiKey?: string; allowInsecureTls?: boolean }) =>
+    apiClient.post('/integrations/airtrail/test', data).then(r => r.data),
+  // flights + import are added with the trip-planner import (P2)
+  flights: () => apiClient.get('/integrations/airtrail/flights').then(r => r.data),
+  import: (tripId: number, flightIds: string[]) =>
+    apiClient.post(`/trips/${tripId}/reservations/import/airtrail`, { flightIds }).then(r => r.data),
+}
+
 export const journeyApi = {
   list: () => apiClient.get('/journeys').then(r => r.data),
   create: (data: JourneyCreateRequest) => apiClient.post('/journeys', data).then(r => r.data),

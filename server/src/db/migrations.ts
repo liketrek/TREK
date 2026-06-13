@@ -2470,6 +2470,12 @@ function runMigrations(db: Database.Database): void {
         console.warn('[migrations] Non-fatal migration step failed:', err);
       }
     },
+    () => {
+      // AirTrail per-user connection (mirrors the Immich integration columns).
+      try { db.exec("ALTER TABLE users ADD COLUMN airtrail_url TEXT"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      try { db.exec("ALTER TABLE users ADD COLUMN airtrail_api_key TEXT"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      try { db.exec("ALTER TABLE users ADD COLUMN airtrail_allow_insecure_tls INTEGER DEFAULT 0"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+    },
   ];
 
   if (currentVersion < migrations.length) {

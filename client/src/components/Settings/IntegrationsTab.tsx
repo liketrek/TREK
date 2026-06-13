@@ -6,6 +6,7 @@ import { Trash2, Copy, Terminal, Plus, Check, KeyRound, ChevronDown, ChevronRigh
 import { authApi, oauthApi } from '../../api/client'
 import { useAddonStore } from '../../store/addonStore'
 import PhotoProvidersSection from './PhotoProvidersSection'
+import AirTrailConnectionSection from './AirTrailConnectionSection'
 import { ALL_SCOPES } from '../../api/oauthScopes'
 import ScopeGroupPicker from '../OAuth/ScopeGroupPicker'
 
@@ -97,6 +98,7 @@ export default function IntegrationsTab(): React.ReactElement {
   return (
     <>
       <PhotoProvidersSection />
+      {S.airtrailEnabled && <AirTrailConnectionSection />}
       {S.mcpEnabled && <IntegrationsMcpSection {...S} />}
       <McpTokenModals {...S} />
       <OAuthClientModals {...S} />
@@ -109,6 +111,7 @@ function useIntegrations() {
   const toast = useToast()
   const { isEnabled: addonEnabled, loadAddons } = useAddonStore()
   const mcpEnabled = addonEnabled('mcp')
+  const airtrailEnabled = addonEnabled('airtrail')
 
   useEffect(() => {
     loadAddons()
@@ -289,7 +292,7 @@ function useIntegrations() {
 
 
   return {
-    t, locale, toast, mcpEnabled, oauthClients, setOauthClients, oauthSessions, setOauthSessions, oauthCreateOpen, setOauthCreateOpen, oauthNewName, setOauthNewName, oauthNewUris, setOauthNewUris, oauthNewScopes, setOauthNewScopes, oauthCreating, oauthCreatedClient, setOauthCreatedClient, oauthDeleteId, setOauthDeleteId, oauthRevokeId, setOauthRevokeId, oauthRotateId, setOauthRotateId, oauthRotatedSecret, setOauthRotatedSecret, oauthRotating, oauthScopesExpanded, setOauthScopesExpanded, oauthIsMachine, setOauthIsMachine, activeMcpTab, setActiveMcpTab, configOpenOAuth, setConfigOpenOAuth, configOpenToken, setConfigOpenToken, mcpTokens, setMcpTokens, mcpModalOpen, setMcpModalOpen, mcpNewName, setMcpNewName, mcpCreatedToken, setMcpCreatedToken, mcpCreating, mcpDeleteId, setMcpDeleteId, copiedKey, mcpEndpoint, mcpJsonConfigOAuth, mcpJsonConfig, handleCreateMcpToken, handleDeleteMcpToken, handleCopy, handleCreateOAuthClient, handleDeleteOAuthClient, handleRotateSecret, handleRevokeSession,
+    t, locale, toast, mcpEnabled, airtrailEnabled, oauthClients, setOauthClients, oauthSessions, setOauthSessions, oauthCreateOpen, setOauthCreateOpen, oauthNewName, setOauthNewName, oauthNewUris, setOauthNewUris, oauthNewScopes, setOauthNewScopes, oauthCreating, oauthCreatedClient, setOauthCreatedClient, oauthDeleteId, setOauthDeleteId, oauthRevokeId, setOauthRevokeId, oauthRotateId, setOauthRotateId, oauthRotatedSecret, setOauthRotatedSecret, oauthRotating, oauthScopesExpanded, setOauthScopesExpanded, oauthIsMachine, setOauthIsMachine, activeMcpTab, setActiveMcpTab, configOpenOAuth, setConfigOpenOAuth, configOpenToken, setConfigOpenToken, mcpTokens, setMcpTokens, mcpModalOpen, setMcpModalOpen, mcpNewName, setMcpNewName, mcpCreatedToken, setMcpCreatedToken, mcpCreating, mcpDeleteId, setMcpDeleteId, copiedKey, mcpEndpoint, mcpJsonConfigOAuth, mcpJsonConfig, handleCreateMcpToken, handleDeleteMcpToken, handleCopy, handleCreateOAuthClient, handleDeleteOAuthClient, handleRotateSecret, handleRevokeSession,
   }
 }
 

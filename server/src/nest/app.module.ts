@@ -25,6 +25,7 @@ import { CollabModule } from './collab/collab.module';
 import { FilesModule } from './files/files.module';
 import { PhotosModule } from './photos/photos.module';
 import { MemoriesModule } from './memories/memories.module';
+import { AirtrailModule } from './integrations/airtrail.module';
 import { JourneyModule } from './journey/journey.module';
 import { ShareModule } from './share/share.module';
 import { SettingsModule } from './settings/settings.module';
@@ -41,10 +42,11 @@ import { IdempotencyInterceptor } from './common/idempotency.interceptor';
 
 /**
  * Root NestJS module for the incremental migration. Domain modules
- * (weather, notifications, ...) get registered here as they are migrated.
+ * (weather, notifications, integrations, ...) get registered here as they are
+ * migrated.
  */
 @Module({
-  imports: [DatabaseModule, WeatherModule, AirportsModule, ConfigModule, SystemNoticesModule, MapsModule, CategoriesModule, TagsModule, NotificationsModule, AtlasModule, VacayModule, PackingModule, TodoModule, BudgetModule, ReservationsModule, DaysModule, AssignmentsModule, PlacesModule, TripsModule, CollabModule, FilesModule, PhotosModule, MemoriesModule, JourneyModule, ShareModule, SettingsModule, BackupModule, AuthModule, OidcModule, OauthModule, AdminModule, AddonsModule, BookingImportModule],
+  imports: [DatabaseModule, WeatherModule, AirportsModule, ConfigModule, SystemNoticesModule, MapsModule, CategoriesModule, TagsModule, NotificationsModule, AtlasModule, VacayModule, PackingModule, TodoModule, BudgetModule, ReservationsModule, DaysModule, AssignmentsModule, PlacesModule, TripsModule, CollabModule, FilesModule, PhotosModule, MemoriesModule, AirtrailModule, JourneyModule, ShareModule, SettingsModule, BackupModule, AuthModule, OidcModule, OauthModule, AdminModule, AddonsModule, BookingImportModule],
   controllers: [HealthController],
   providers: [
     HealthService,
