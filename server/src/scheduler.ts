@@ -334,6 +334,31 @@ function startTrekPhotoCacheCleanup(): void {
   });
 }
 
+// AirTrail sync: poll connected instances on an interval and reconcile linked
+// flights both ways (#214). The per-tick enable gate (addon + setting) lives in
+// runAirtrailSync, so toggling the addon takes effect without a restart.
+let airtrailSyncTask: ScheduledTask | null = null;
+
+function startAirTrailSync(): void {
+  if (airtrailSyncTask) { airtrailSyncTask.stop(); airtrailSyncTask = null; }
+
+  const { db } = require('./db/database');
+  const getSetting = (key: string) => (db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value: string } | undefined)?.value;
+  const raw = parseInt(getSetting('airtrail_poll_interval_minutes') || '15', 10);
+  const minutes = Number.isFinite(raw) && raw >= 1 && raw <= 59 ? raw : 15;
+  const tz = process.env.TZ || 'UTC';
+  logInfo(`AirTrail sync: scheduled every ${minutes}m`);
+
+  airtrailSyncTask = cron.schedule(`*/${minutes} * * * *`, async () => {
+    try {
+      const { runAirtrailSync } = require('./services/airtrail/airtrailSync');
+      await runAirtrailSync();
+    } catch (err: unknown) {
+      logError(`AirTrail sync tick failed: ${err instanceof Error ? err.message : err}`);
+    }
+  }, { timezone: tz });
+}
+
 function stop(): void {
   if (currentTask) { currentTask.stop(); currentTask = null; }
   if (demoTask) { demoTask.stop(); demoTask = null; }
@@ -341,6 +366,7 @@ function stop(): void {
   if (versionCheckTask) { versionCheckTask.stop(); versionCheckTask = null; }
   if (idempotencyCleanupTask) { idempotencyCleanupTask.stop(); idempotencyCleanupTask = null; }
   if (trekPhotoCacheTask) { trekPhotoCacheTask.stop(); trekPhotoCacheTask = null; }
+  if (airtrailSyncTask) { airtrailSyncTask.stop(); airtrailSyncTask = null; }
 }
 
-export { start, stop, startDemoReset, startTripReminders, startTodoReminders, startVersionCheck, startIdempotencyCleanup, startTrekPhotoCacheCleanup, loadSettings, saveSettings, VALID_INTERVALS };
+export { start, stop, startDemoReset, startTripReminders, startTodoReminders, startVersionCheck, startIdempotencyCleanup, startTrekPhotoCacheCleanup, startAirTrailSync, loadSettings, saveSettings, VALID_INTERVALS };

@@ -14,6 +14,7 @@ import type { User } from '../../types';
 import { ReservationsService } from './reservations.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { pushReservationToAirtrail } from '../../services/airtrail/airtrailSync';
 
 type ReservationBody = Record<string, unknown> & {
   title?: string;
@@ -115,6 +116,11 @@ export class ReservationsController {
     const cur = current as { title: string; type?: string };
     this.reservations.syncBudgetOnUpdate(tripId, id, body.title ?? '', body.type, cur.title, cur.type, body.create_budget_entry, socketId);
     this.reservations.broadcast(tripId, 'reservation:updated', { reservation }, socketId);
+    // Push a locally-edited AirTrail flight back to AirTrail (fire-and-forget,
+    // under the importer's credentials — see airtrailSync). #214
+    if ((reservation as any)?.external_source === 'airtrail' && (reservation as any)?.sync_enabled) {
+      void pushReservationToAirtrail(Number((reservation as any).id), Number(tripId)).catch(() => {});
+    }
     this.reservations.notifyBookingChange(tripId, user, body.title || cur.title, body.type || cur.type || '');
     return { reservation };
   }

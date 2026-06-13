@@ -85,7 +85,9 @@ export interface AirtrailSavePayload {
   from: string;
   to: string;
   departure: string;
+  departureTime?: string | null;
   arrival?: string | null;
+  arrivalTime?: string | null;
   datePrecision?: string;
   airline?: string | null;
   flightNumber?: string | null;
