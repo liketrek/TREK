@@ -30,10 +30,14 @@ function mark(db: Database.Database, userId: number, code: string, name: string,
   ).run(userId, code, name, country);
 }
 
-// Rewind one migration and re-run so only the reconciliation (the last migration) executes.
+// The visited_regions reconciliation (#1119) is pinned at schema version 135.
+// Migrations added afterwards are appended AFTER it (append-only), so it is no
+// longer the last migration. Rewind to just before the reconciliation and
+// re-run: the later migrations are idempotent, so only the reconciliation has
+// any effect on the seeded rows here.
+const RECONCILIATION_VERSION = 135;
 function rerunLastMigration(db: Database.Database) {
-  const version = (db.prepare('SELECT version FROM schema_version').get() as { version: number }).version;
-  db.prepare('UPDATE schema_version SET version = ?').run(version - 1);
+  db.prepare('UPDATE schema_version SET version = ?').run(RECONCILIATION_VERSION - 1);
   runMigrations(db);
 }
 
