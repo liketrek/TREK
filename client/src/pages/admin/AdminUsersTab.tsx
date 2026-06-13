@@ -15,7 +15,7 @@ interface AdminUsersTabProps {
 // create-invite modal. Pure layout around the useAdmin hook — no logic of its own.
 export default function AdminUsersTab({ admin, t, locale }: AdminUsersTabProps): React.ReactElement {
   const {
-    serverTimezone, hour12, currentUser,
+    hour12, currentUser,
     users, isLoading,
     setShowCreateUser,
     invites, showCreateInvite, setShowCreateInvite, inviteForm, setInviteForm,
@@ -92,10 +92,10 @@ export default function AdminUsersTab({ admin, t, locale }: AdminUsersTabProps):
                       </span>
                     </td>
                     <td className="px-5 py-3 text-sm text-slate-500">
-                      {new Date(u.created_at).toLocaleDateString(locale, { timeZone: serverTimezone })}
+                      {new Date(u.created_at).toLocaleDateString(locale)}
                     </td>
                     <td className="px-5 py-3 text-sm text-slate-500">
-                      {u.last_login ? new Date(u.last_login).toLocaleDateString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12, timeZone: serverTimezone }) : '—'}
+                      {u.last_login ? new Date(u.last_login).toLocaleDateString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12 }) : '—'}
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-2 justify-end">
@@ -162,7 +162,7 @@ export default function AdminUsersTab({ admin, t, locale }: AdminUsersTabProps):
                     </div>
                     <div className="text-xs text-slate-400 mt-0.5">
                       {inv.used_count}/{inv.max_uses === 0 ? '∞' : inv.max_uses} {t('admin.invite.uses')}
-                      {inv.expires_at && ` · ${t('admin.invite.expiresAt')} ${new Date(inv.expires_at).toLocaleDateString(locale, { timeZone: serverTimezone })}`}
+                      {inv.expires_at && ` · ${t('admin.invite.expiresAt')} ${new Date(inv.expires_at).toLocaleDateString(locale)}`}
                       {` · ${t('admin.invite.createdBy')} ${inv.created_by_name}`}
                     </div>
                   </div>

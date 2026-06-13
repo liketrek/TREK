@@ -3,6 +3,13 @@ import { broadcastToUser } from '../websocket';
 import { getAction } from './inAppNotificationActions';
 import { isEnabledForEvent, type NotifEventType } from './notificationPreferencesService';
 
+// SQLite's CURRENT_TIMESTAMP is UTC but the string ('YYYY-MM-DD HH:MM:SS') has
+// no 'T'/'Z', so `new Date(...)` parses it as LOCAL time. Normalize to ISO-UTC
+// so the client renders notification times in the viewer's own timezone (#1149).
+function toUtcIso(ts: string): string {
+  return ts.endsWith('Z') ? ts : ts.replace(' ', 'T') + 'Z';
+}
+
 type NotificationType = 'simple' | 'boolean' | 'navigate';
 type NotificationScope = 'trip' | 'user' | 'admin';
 type NotificationResponse = 'positive' | 'negative';
@@ -218,6 +225,7 @@ export function createNotificationForRecipient(
     type: 'notification:new',
     notification: {
       ...row,
+      created_at: toUtcIso(row.created_at),
       sender_username: sender?.username ?? null,
       sender_avatar: sender?.avatar ? `/uploads/avatars/${sender.avatar}` : null,
     },
@@ -251,6 +259,7 @@ function getNotifications(
 
   const mapped = rows.map(r => ({
     ...r,
+    created_at: toUtcIso(r.created_at),
     sender_avatar: r.sender_avatar ? `/uploads/avatars/${r.sender_avatar}` : null,
   }));
 
