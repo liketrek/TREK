@@ -60,7 +60,7 @@ export function normalizeFlight(raw: AirtrailFlightRaw): AirtrailFlight {
     airline: entityCode(raw.airline),
     flightNumber: raw.flightNumber ?? null,
     aircraft: entityCode(raw.aircraft),
-    seatClass: raw.seats?.[0]?.seatClass ?? null,
+    seatClass: (raw.seats?.find(s => s.userId) ?? raw.seats?.[0])?.seatClass ?? null,
   };
 }
 
@@ -138,7 +138,7 @@ export function mapFlightToReservation(raw: AirtrailFlightRaw): MappedReservatio
     needsReview = 1;
   }
 
-  const seat = raw.seats?.[0];
+  const seat = raw.seats?.find(s => s.userId) ?? raw.seats?.[0];
   const airlineCode = entityCode(raw.airline);
   const aircraftCode = entityCode(raw.aircraft);
   const metadata: Record<string, unknown> = {};

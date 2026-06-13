@@ -77,9 +77,10 @@ interface WaypointForm {
   depTime: string
   airline: string
   flight_number: string
+  seat: string
 }
 function emptyWaypoint(dayId: string | number = ''): WaypointForm {
-  return { airport: null, arrDayId: dayId, arrTime: '', depDayId: dayId, depTime: '', airline: '', flight_number: '' }
+  return { airport: null, arrDayId: dayId, arrTime: '', depDayId: dayId, depTime: '', airline: '', flight_number: '', seat: '' }
 }
 
 const TYPE_OPTIONS = [
@@ -197,6 +198,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
               depTime: legOut?.dep_time ?? (!isLast ? (ep.local_time ?? '') : ''),
               airline: legOut?.airline ?? (isFirst ? (meta.airline ?? '') : ''),
               flight_number: legOut?.flight_number ?? (isFirst ? (meta.flight_number ?? '') : ''),
+              seat: legOut?.seat ?? (isFirst ? (meta.seat ?? '') : ''),
             }
           })
         } else {
@@ -206,6 +208,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
           dep.depTime = splitReservationDateTime(reservation.reservation_time).time ?? ''
           dep.airline = meta.airline ?? ''
           dep.flight_number = meta.flight_number ?? ''
+          dep.seat = meta.seat ?? ''
           const arr = emptyWaypoint(reservation.end_day_id ?? reservation.day_id ?? '')
           arr.airport = airportFromEndpoint(to)
           arr.arrTime = splitReservationDateTime(reservation.reservation_end_time).time ?? ''
@@ -271,6 +274,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
               to: next.airport!.iata,
               ...(w.airline ? { airline: w.airline } : {}),
               ...(w.flight_number ? { flight_number: w.flight_number } : {}),
+              ...(w.seat ? { seat: w.seat } : {}),
               dep_day_id: w.depDayId ? Number(w.depDayId) : null,
               dep_time: w.depTime || null,
               arr_day_id: next.arrDayId ? Number(next.arrDayId) : null,
@@ -279,7 +283,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
             }
           })
         }
-        if (form.meta_seat) metadata.seat = form.meta_seat
+        if (firstWp?.seat) metadata.seat = firstWp.seat
       } else if (form.type === 'train') {
         if (form.meta_train_number) metadata.train_number = form.meta_train_number
         if (form.meta_platform) metadata.platform = form.meta_platform
@@ -502,7 +506,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
                             </div>
                           )}
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <div>
                             <label className={labelClass}>{t('reservations.meta.airline')}</label>
                             <input type="text" value={wp.airline} onChange={e => updateWp({ airline: e.target.value })} placeholder="Lufthansa" className={inputClass} />
@@ -510,6 +514,10 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
                           <div>
                             <label className={labelClass}>{t('reservations.meta.flightNumber')}</label>
                             <input type="text" value={wp.flight_number} onChange={e => updateWp({ flight_number: e.target.value })} placeholder="LH 123" className={inputClass} />
+                          </div>
+                          <div>
+                            <label className={labelClass}>{t('reservations.meta.seat')}</label>
+                            <input type="text" value={wp.seat} onChange={e => updateWp({ seat: e.target.value })} placeholder="12A" className={inputClass} />
                           </div>
                         </div>
                       </>
@@ -583,15 +591,6 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
               <input type="text" value={form.meta_seat} onChange={e => set('meta_seat', e.target.value)}
                 placeholder="42A" className={inputClass} />
             </div>
-          </div>
-        )}
-
-        {/* Flight seat */}
-        {form.type === 'flight' && (
-          <div>
-            <label className={labelClass}>{t('reservations.meta.seat')}</label>
-            <input type="text" value={form.meta_seat} onChange={e => set('meta_seat', e.target.value)}
-              placeholder="12A" className={inputClass} />
           </div>
         )}
 

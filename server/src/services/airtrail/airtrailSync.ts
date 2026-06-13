@@ -175,6 +175,14 @@ function buildSavePayload(reservation: any, existing: AirtrailFlightRaw): Airtra
     seats.push({ userId: '<USER_ID>', guestName: null, seat: null, seatNumber: null, seatClass: null });
   }
 
+  // Push the seat the user set in TREK onto their own AirTrail seat (the one with
+  // a userId), leaving any co-passenger seats untouched.
+  const seatNumber = typeof meta.seat === 'string' && meta.seat.trim() ? meta.seat.trim() : null;
+  if (seatNumber) {
+    const ownSeat = seats.find(s => s.userId) ?? seats[0];
+    if (ownSeat) ownSeat.seatNumber = seatNumber;
+  }
+
   return {
     id: Number(reservation.external_id),
     from: fromCode,
