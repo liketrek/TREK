@@ -142,5 +142,24 @@ const reservations: TranslationStrings = {
   'reservations.import.unavailable': 'Boeking importeren is niet beschikbaar op deze server.',
   'reservations.import.unsupportedFormat': 'Niet-ondersteund bestandsformaat. Gebruik EML, PDF, PKPass, HTML of TXT.',
   'reservations.import.fileTooLarge': 'Bestand "{name}" overschrijdt de limiet van 10 MB.',
+  'reservations.airtrail.title': 'Importeren uit AirTrail',
+  'reservations.airtrail.cta': 'AirTrail',
+  'reservations.airtrail.synced': 'AirTrail',
+  'reservations.airtrail.syncedHint':
+    'Gesynchroniseerd vanuit AirTrail — wijzigingen blijven beide kanten op gesynchroniseerd.',
+  'reservations.airtrail.notSynced': 'Niet gesynchroniseerd',
+  'reservations.airtrail.notSyncedHint':
+    'Deze vlucht is in AirTrail verwijderd en wordt niet meer gesynchroniseerd.',
+  'reservations.airtrail.loadError': 'Je AirTrail-vluchten konden niet worden geladen.',
+  'reservations.airtrail.imported': '{count} vlucht(en) geïmporteerd',
+  'reservations.airtrail.skippedDuplicate': '{count} al in deze reis, overgeslagen',
+  'reservations.airtrail.nothingImported': 'Niets om te importeren.',
+  'reservations.airtrail.importError': 'Importeren mislukt. Probeer het opnieuw.',
+  'reservations.airtrail.undo': 'Importeren uit AirTrail',
+  'reservations.airtrail.alreadyImported': 'Geïmporteerd',
+  'reservations.airtrail.duringTrip': 'Tijdens deze reis',
+  'reservations.airtrail.otherFlights': 'Andere vluchten',
+  'reservations.airtrail.empty': 'Geen vluchten gevonden in je AirTrail-account.',
+  'reservations.airtrail.importCta': '{count} importeren',
 };
 export default reservations;

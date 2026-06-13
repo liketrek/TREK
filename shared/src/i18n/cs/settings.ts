@@ -326,6 +326,21 @@ const settings: TranslationStrings = {
   'settings.passkey.neverUsed': 'Nikdy nepoužito',
   'settings.mapPoiPill': 'Objevovat místa na mapě',
   'settings.mapPoiPillHint': 'Zobrazit na mapě výletu kategorie pro hledání restaurací, hotelů a dalšího v okolí z OpenStreetMap.',
+  'settings.airtrail.title': 'AirTrail',
+  'settings.airtrail.hint': 'Připojte svou vlastní instanci AirTrail pro import a synchronizaci letů. Vytvořte API klíč v AirTrail v Nastavení → Zabezpečení.',
+  'settings.airtrail.url': 'URL instance',
+  'settings.airtrail.apiKey': 'API klíč',
+  'settings.airtrail.apiKeyPlaceholder': 'API klíč Bearer',
+  'settings.airtrail.apiKeyHint': 'Vygenerován v AirTrail v Nastavení → Zabezpečení. Uložen šifrovaně.',
+  'settings.airtrail.allowInsecureTls': 'Povolit certifikáty podepsané sebou samým',
+  'settings.airtrail.allowInsecureTlsHint': 'Povolte pouze pro důvěryhodnou instanci ve vlastní síti.',
+  'settings.airtrail.connected': 'Připojeno',
+  'settings.airtrail.notConnected': 'Nepřipojeno',
+  'settings.airtrail.toast.saved': 'Připojení k AirTrail uloženo',
+  'settings.airtrail.toast.saveError': 'Připojení se nepodařilo uložit',
+  'settings.airtrail.test.button': 'Otestovat připojení',
+  'settings.airtrail.test.success': 'Připojeno – nalezeno letů: {count}',
+  'settings.airtrail.test.failed': 'Připojení selhalo',
 };
 
 export default settings;

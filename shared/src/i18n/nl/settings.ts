@@ -325,6 +325,24 @@ const settings: TranslationStrings = {
   'settings.passkey.neverUsed': 'Nooit gebruikt',
   'settings.mapPoiPill': 'Plaatsen op de kaart ontdekken',
   'settings.mapPoiPillHint': 'Toon een categorielabel op de reiskaart om restaurants, hotels en meer in de buurt te vinden via OpenStreetMap.',
+  'settings.airtrail.title': 'AirTrail',
+  'settings.airtrail.hint':
+    'Verbind je zelf-gehoste AirTrail om vluchten te importeren en te synchroniseren. Maak een API-sleutel aan in AirTrail onder Instellingen → Beveiliging.',
+  'settings.airtrail.url': 'Instantie-URL',
+  'settings.airtrail.apiKey': 'API-sleutel',
+  'settings.airtrail.apiKeyPlaceholder': 'Bearer API-sleutel',
+  'settings.airtrail.apiKeyHint':
+    'Aangemaakt in AirTrail onder Instellingen → Beveiliging. Versleuteld opgeslagen.',
+  'settings.airtrail.allowInsecureTls': 'Zelfondertekende certificaten toestaan',
+  'settings.airtrail.allowInsecureTlsHint':
+    'Schakel dit alleen in voor een vertrouwde instantie op je eigen netwerk.',
+  'settings.airtrail.connected': 'Verbonden',
+  'settings.airtrail.notConnected': 'Niet verbonden',
+  'settings.airtrail.toast.saved': 'AirTrail-verbinding opgeslagen',
+  'settings.airtrail.toast.saveError': 'De verbinding kon niet worden opgeslagen',
+  'settings.airtrail.test.button': 'Verbinding testen',
+  'settings.airtrail.test.success': 'Verbonden — {count} vlucht(en) gevonden',
+  'settings.airtrail.test.failed': 'Verbinding mislukt',
 };
 
 export default settings;

@@ -319,6 +319,21 @@ const settings: TranslationStrings = {
   'settings.passkey.neverUsed': 'لم يُستخدم قط',
   'settings.mapPoiPill': 'استكشاف الأماكن على الخريطة',
   'settings.mapPoiPillHint': 'أظهر شريط فئات على خريطة الرحلة للعثور على المطاعم والفنادق والمزيد القريبة من OpenStreetMap.',
+  'settings.airtrail.title': 'AirTrail',
+  'settings.airtrail.hint': 'اربط نسخة AirTrail المُستضافة ذاتيًا لاستيراد الرحلات ومزامنتها. أنشئ مفتاح API في AirTrail ضمن الإعدادات ← الأمان.',
+  'settings.airtrail.url': 'رابط النسخة',
+  'settings.airtrail.apiKey': 'مفتاح API',
+  'settings.airtrail.apiKeyPlaceholder': 'مفتاح API من نوع Bearer',
+  'settings.airtrail.apiKeyHint': 'يُنشأ في AirTrail ضمن الإعدادات ← الأمان. يُخزَّن مشفّرًا.',
+  'settings.airtrail.allowInsecureTls': 'السماح بالشهادات الموقّعة ذاتيًا',
+  'settings.airtrail.allowInsecureTlsHint': 'فعّل هذا فقط لنسخة موثوقة على شبكتك الخاصة.',
+  'settings.airtrail.connected': 'متصل',
+  'settings.airtrail.notConnected': 'غير متصل',
+  'settings.airtrail.toast.saved': 'تم حفظ اتصال AirTrail',
+  'settings.airtrail.toast.saveError': 'تعذّر حفظ الاتصال',
+  'settings.airtrail.test.button': 'اختبار الاتصال',
+  'settings.airtrail.test.success': 'متصل — تم العثور على {count} رحلة/رحلات',
+  'settings.airtrail.test.failed': 'فشل الاتصال',
 };
 
 export default settings;

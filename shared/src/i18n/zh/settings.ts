@@ -310,6 +310,21 @@ const settings: TranslationStrings = {
   'settings.passkey.neverUsed': '从未使用',
   'settings.mapPoiPill': '在地图上探索地点',
   'settings.mapPoiPillHint': '在行程地图上显示分类标签，从 OpenStreetMap 查找附近的餐厅、酒店等。',
+  'settings.airtrail.title': 'AirTrail',
+  'settings.airtrail.hint': '连接您的自托管 AirTrail 以导入和同步航班。在 AirTrail 的“设置 → 安全”中创建 API 密钥。',
+  'settings.airtrail.url': '实例 URL',
+  'settings.airtrail.apiKey': 'API 密钥',
+  'settings.airtrail.apiKeyPlaceholder': 'Bearer API 密钥',
+  'settings.airtrail.apiKeyHint': '在 AirTrail 的“设置 → 安全”中生成。加密存储。',
+  'settings.airtrail.allowInsecureTls': '允许自签名证书',
+  'settings.airtrail.allowInsecureTlsHint': '仅对您自己网络中受信任的实例启用。',
+  'settings.airtrail.connected': '已连接',
+  'settings.airtrail.notConnected': '未连接',
+  'settings.airtrail.toast.saved': 'AirTrail 连接已保存',
+  'settings.airtrail.toast.saveError': '无法保存连接',
+  'settings.airtrail.test.button': '测试连接',
+  'settings.airtrail.test.success': '已连接——找到 {count} 个航班',
+  'settings.airtrail.test.failed': '连接失败',
 };
 
 export default settings;

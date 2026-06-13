@@ -305,6 +305,21 @@ const settings: TranslationStrings = {
   'settings.passkey.neverUsed': '未使用',
   'settings.mapPoiPill': '地図でスポットを探す',
   'settings.mapPoiPillHint': '旅行の地図にカテゴリピルを表示して、OpenStreetMapから近くのレストランや宿泊施設などを見つけられます。',
+  'settings.airtrail.title': 'AirTrail',
+  'settings.airtrail.hint': 'セルフホストの AirTrail を接続して、フライトをインポート・同期します。AirTrail の「設定 → セキュリティ」で API キーを作成してください。',
+  'settings.airtrail.url': 'インスタンス URL',
+  'settings.airtrail.apiKey': 'API キー',
+  'settings.airtrail.apiKeyPlaceholder': 'Bearer API キー',
+  'settings.airtrail.apiKeyHint': 'AirTrail の「設定 → セキュリティ」で生成します。暗号化して保存されます。',
+  'settings.airtrail.allowInsecureTls': '自己署名証明書を許可する',
+  'settings.airtrail.allowInsecureTlsHint': '自分のネットワーク内の信頼できるインスタンスの場合にのみ有効にしてください。',
+  'settings.airtrail.connected': '接続済み',
+  'settings.airtrail.notConnected': '未接続',
+  'settings.airtrail.toast.saved': 'AirTrail の接続を保存しました',
+  'settings.airtrail.toast.saveError': '接続を保存できませんでした',
+  'settings.airtrail.test.button': '接続をテスト',
+  'settings.airtrail.test.success': '接続成功 — {count} 件のフライトが見つかりました',
+  'settings.airtrail.test.failed': '接続に失敗しました',
 };
 
 export default settings;

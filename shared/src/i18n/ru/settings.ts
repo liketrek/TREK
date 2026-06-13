@@ -325,6 +325,21 @@ const settings: TranslationStrings = {
   'settings.passkey.neverUsed': 'Не использовался',
   'settings.mapPoiPill': 'Поиск мест на карте',
   'settings.mapPoiPillHint': 'Показывать на карте поездки кнопку категорий, чтобы находить рядом рестораны, отели и другие места из OpenStreetMap.',
+  'settings.airtrail.title': 'AirTrail',
+  'settings.airtrail.hint': 'Подключите свой self-hosted AirTrail для импорта и синхронизации рейсов. Создайте ключ API в AirTrail в разделе «Настройки → Безопасность».',
+  'settings.airtrail.url': 'URL экземпляра',
+  'settings.airtrail.apiKey': 'Ключ API',
+  'settings.airtrail.apiKeyPlaceholder': 'Bearer-ключ API',
+  'settings.airtrail.apiKeyHint': 'Создаётся в AirTrail в разделе «Настройки → Безопасность». Хранится в зашифрованном виде.',
+  'settings.airtrail.allowInsecureTls': 'Разрешить самоподписанные сертификаты',
+  'settings.airtrail.allowInsecureTlsHint': 'Включайте только для доверенного экземпляра в вашей собственной сети.',
+  'settings.airtrail.connected': 'Подключено',
+  'settings.airtrail.notConnected': 'Не подключено',
+  'settings.airtrail.toast.saved': 'Подключение к AirTrail сохранено',
+  'settings.airtrail.toast.saveError': 'Не удалось сохранить подключение',
+  'settings.airtrail.test.button': 'Проверить подключение',
+  'settings.airtrail.test.success': 'Подключено — найдено рейсов: {count}',
+  'settings.airtrail.test.failed': 'Не удалось подключиться',
 };
 
 export default settings;

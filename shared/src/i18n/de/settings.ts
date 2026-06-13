@@ -329,6 +329,21 @@ const settings: TranslationStrings = {
   'settings.passkey.neverUsed': 'Noch nie verwendet',
   'settings.mapPoiPill': 'Orte auf der Karte entdecken',
   'settings.mapPoiPillHint': 'Zeigt auf der Reisekarte eine Kategorie-Pille an, um Restaurants, Hotels und mehr aus OpenStreetMap in der Nähe zu finden.',
+  'settings.airtrail.title': 'AirTrail',
+  'settings.airtrail.hint': 'Verbinden Sie Ihr selbst gehostetes AirTrail, um Flüge zu importieren und zu synchronisieren. Erstellen Sie in AirTrail unter Einstellungen → Sicherheit einen API-Schlüssel.',
+  'settings.airtrail.url': 'Instanz-URL',
+  'settings.airtrail.apiKey': 'API-Schlüssel',
+  'settings.airtrail.apiKeyPlaceholder': 'Bearer-API-Schlüssel',
+  'settings.airtrail.apiKeyHint': 'Wird in AirTrail unter Einstellungen → Sicherheit erstellt. Verschlüsselt gespeichert.',
+  'settings.airtrail.allowInsecureTls': 'Selbstsignierte Zertifikate erlauben',
+  'settings.airtrail.allowInsecureTlsHint': 'Nur für eine vertrauenswürdige Instanz im eigenen Netzwerk aktivieren.',
+  'settings.airtrail.connected': 'Verbunden',
+  'settings.airtrail.notConnected': 'Nicht verbunden',
+  'settings.airtrail.toast.saved': 'AirTrail-Verbindung gespeichert',
+  'settings.airtrail.toast.saveError': 'Verbindung konnte nicht gespeichert werden',
+  'settings.airtrail.test.button': 'Verbindung testen',
+  'settings.airtrail.test.success': 'Verbunden — {count} Flug/Flüge gefunden',
+  'settings.airtrail.test.failed': 'Verbindung fehlgeschlagen',
 };
 
 export default settings;

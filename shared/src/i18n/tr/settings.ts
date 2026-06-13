@@ -326,6 +326,21 @@ const settings: TranslationStrings = {
   'settings.passkey.neverUsed': 'Hiç kullanılmadı',
   'settings.mapPoiPill': 'Haritada yerleri keşfet',
   'settings.mapPoiPillHint': 'Yakındaki restoranları, otelleri ve daha fazlasını OpenStreetMap\'ten bulmak için gezi haritasında bir kategori etiketi göster.',
+  'settings.airtrail.title': 'AirTrail',
+  'settings.airtrail.hint': 'Uçuşları içe aktarmak ve senkronize etmek için kendi barındırdığınız AirTrail\'i bağlayın. AirTrail\'de Ayarlar → Güvenlik altından bir API anahtarı oluşturun.',
+  'settings.airtrail.url': 'Örnek URL\'si',
+  'settings.airtrail.apiKey': 'API anahtarı',
+  'settings.airtrail.apiKeyPlaceholder': 'Bearer API anahtarı',
+  'settings.airtrail.apiKeyHint': 'AirTrail\'de Ayarlar → Güvenlik altında oluşturulur. Şifreli olarak saklanır.',
+  'settings.airtrail.allowInsecureTls': 'Kendinden imzalı sertifikalara izin ver',
+  'settings.airtrail.allowInsecureTlsHint': 'Yalnızca kendi ağınızdaki güvenilir bir örnek için etkinleştirin.',
+  'settings.airtrail.connected': 'Bağlandı',
+  'settings.airtrail.notConnected': 'Bağlı değil',
+  'settings.airtrail.toast.saved': 'AirTrail bağlantısı kaydedildi',
+  'settings.airtrail.toast.saveError': 'Bağlantı kaydedilemedi',
+  'settings.airtrail.test.button': 'Bağlantıyı test et',
+  'settings.airtrail.test.success': 'Bağlandı — {count} uçuş bulundu',
+  'settings.airtrail.test.failed': 'Bağlantı başarısız',
 };
 
 export default settings;

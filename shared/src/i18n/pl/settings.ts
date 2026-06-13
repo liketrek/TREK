@@ -327,6 +327,21 @@ const settings: TranslationStrings = {
   'settings.passkey.neverUsed': 'Nigdy nieużywany',
   'settings.mapPoiPill': 'Odkrywaj miejsca na mapie',
   'settings.mapPoiPillHint': 'Pokaż na mapie wyprawy pasek z kategoriami, aby znaleźć pobliskie restauracje, hotele i więcej z OpenStreetMap.',
+  'settings.airtrail.title': 'AirTrail',
+  'settings.airtrail.hint': 'Połącz swój własny AirTrail, aby importować i synchronizować loty. Utwórz klucz API w AirTrail w sekcji Ustawienia → Bezpieczeństwo.',
+  'settings.airtrail.url': 'Adres URL instancji',
+  'settings.airtrail.apiKey': 'Klucz API',
+  'settings.airtrail.apiKeyPlaceholder': 'Klucz API typu Bearer',
+  'settings.airtrail.apiKeyHint': 'Wygenerowany w AirTrail w sekcji Ustawienia → Bezpieczeństwo. Przechowywany w postaci zaszyfrowanej.',
+  'settings.airtrail.allowInsecureTls': 'Zezwalaj na certyfikaty samopodpisane',
+  'settings.airtrail.allowInsecureTlsHint': 'Włącz tylko dla zaufanej instancji we własnej sieci.',
+  'settings.airtrail.connected': 'Połączono',
+  'settings.airtrail.notConnected': 'Nie połączono',
+  'settings.airtrail.toast.saved': 'Zapisano połączenie z AirTrail',
+  'settings.airtrail.toast.saveError': 'Nie udało się zapisać połączenia',
+  'settings.airtrail.test.button': 'Testuj połączenie',
+  'settings.airtrail.test.success': 'Połączono — znaleziono {count} lot(y/ów)',
+  'settings.airtrail.test.failed': 'Połączenie nieudane',
 };
 
 export default settings;

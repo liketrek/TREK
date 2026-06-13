@@ -325,6 +325,21 @@ const settings: TranslationStrings = {
   'settings.passkey.neverUsed': 'Mai usata',
   'settings.mapPoiPill': 'Esplora luoghi sulla mappa',
   'settings.mapPoiPillHint': 'Mostra un selettore di categorie sulla mappa del viaggio per trovare ristoranti, hotel e altro nelle vicinanze da OpenStreetMap.',
+  'settings.airtrail.title': 'AirTrail',
+  'settings.airtrail.hint': 'Collega il tuo AirTrail self-hosted per importare e sincronizzare i voli. Crea una chiave API in AirTrail in Impostazioni → Sicurezza.',
+  'settings.airtrail.url': 'URL istanza',
+  'settings.airtrail.apiKey': 'Chiave API',
+  'settings.airtrail.apiKeyPlaceholder': 'Chiave API Bearer',
+  'settings.airtrail.apiKeyHint': 'Generata in AirTrail in Impostazioni → Sicurezza. Memorizzata crittografata.',
+  'settings.airtrail.allowInsecureTls': 'Consenti certificati autofirmati',
+  'settings.airtrail.allowInsecureTlsHint': 'Abilita solo per un\'istanza attendibile sulla tua rete.',
+  'settings.airtrail.connected': 'Connesso',
+  'settings.airtrail.notConnected': 'Non connesso',
+  'settings.airtrail.toast.saved': 'Connessione AirTrail salvata',
+  'settings.airtrail.toast.saveError': 'Impossibile salvare la connessione',
+  'settings.airtrail.test.button': 'Prova connessione',
+  'settings.airtrail.test.success': 'Connesso — {count} volo/i trovato/i',
+  'settings.airtrail.test.failed': 'Connessione fallita',
 };
 
 export default settings;

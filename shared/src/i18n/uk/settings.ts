@@ -324,6 +324,21 @@ const settings: TranslationStrings = {
   'settings.passkey.neverUsed': 'Не використовувався',
   'settings.mapPoiPill': 'Досліджуйте місця на карті',
   'settings.mapPoiPillHint': 'Показувати на карті подорожі плашку категорій, щоб знаходити поблизу ресторани, готелі та інше з OpenStreetMap.',
+  'settings.airtrail.title': 'AirTrail',
+  'settings.airtrail.hint': 'Підключіть свій самостійно розміщений AirTrail, щоб імпортувати та синхронізувати рейси. Створіть API-ключ в AirTrail у розділі Налаштування → Безпека.',
+  'settings.airtrail.url': 'URL екземпляра',
+  'settings.airtrail.apiKey': 'API-ключ',
+  'settings.airtrail.apiKeyPlaceholder': 'Bearer API-ключ',
+  'settings.airtrail.apiKeyHint': 'Згенеровано в AirTrail у розділі Налаштування → Безпека. Зберігається в зашифрованому вигляді.',
+  'settings.airtrail.allowInsecureTls': 'Дозволити самопідписані сертифікати',
+  'settings.airtrail.allowInsecureTlsHint': 'Вмикайте лише для довіреного екземпляра у вашій власній мережі.',
+  'settings.airtrail.connected': 'Підключено',
+  'settings.airtrail.notConnected': 'Не підключено',
+  'settings.airtrail.toast.saved': 'Підключення AirTrail збережено',
+  'settings.airtrail.toast.saveError': 'Не вдалося зберегти підключення',
+  'settings.airtrail.test.button': 'Перевірити підключення',
+  'settings.airtrail.test.success': 'Підключено — знайдено {count} рейс(ів)',
+  'settings.airtrail.test.failed': 'Не вдалося підключитися',
 };
 
 export default settings;

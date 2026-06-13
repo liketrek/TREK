@@ -322,6 +322,21 @@ const settings: TranslationStrings = {
   'settings.passkey.neverUsed': '사용한 적 없음',
   'settings.mapPoiPill': '지도에서 장소 탐색',
   'settings.mapPoiPillHint': '여행 지도에 카테고리 칩을 표시하여 OpenStreetMap에서 주변 음식점, 숙소 등을 찾아보세요.',
+  'settings.airtrail.title': 'AirTrail',
+  'settings.airtrail.hint': '자체 호스팅한 AirTrail을 연결하여 항공편을 가져오고 동기화하세요. AirTrail의 설정 → 보안에서 API 키를 생성하세요.',
+  'settings.airtrail.url': '인스턴스 URL',
+  'settings.airtrail.apiKey': 'API 키',
+  'settings.airtrail.apiKeyPlaceholder': 'Bearer API 키',
+  'settings.airtrail.apiKeyHint': 'AirTrail의 설정 → 보안에서 생성됩니다. 암호화하여 저장됩니다.',
+  'settings.airtrail.allowInsecureTls': '자체 서명 인증서 허용',
+  'settings.airtrail.allowInsecureTlsHint': '자체 네트워크의 신뢰할 수 있는 인스턴스에서만 활성화하세요.',
+  'settings.airtrail.connected': '연결됨',
+  'settings.airtrail.notConnected': '연결되지 않음',
+  'settings.airtrail.toast.saved': 'AirTrail 연결이 저장되었습니다',
+  'settings.airtrail.toast.saveError': '연결을 저장할 수 없습니다',
+  'settings.airtrail.test.button': '연결 테스트',
+  'settings.airtrail.test.success': '연결됨 — {count}개 항공편을 찾았습니다',
+  'settings.airtrail.test.failed': '연결에 실패했습니다',
 };
 
 export default settings;

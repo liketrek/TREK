@@ -318,6 +318,21 @@ const settings: TranslationStrings = {
   'settings.passkey.deviceBound': 'This device',
   'settings.passkey.lastUsed': 'Last used',
   'settings.passkey.neverUsed': 'Never used',
+  'settings.airtrail.title': 'AirTrail',
+  'settings.airtrail.hint': 'Connect your self-hosted AirTrail to import and sync flights. Create an API key in AirTrail under Settings → Security.',
+  'settings.airtrail.url': 'Instance URL',
+  'settings.airtrail.apiKey': 'API key',
+  'settings.airtrail.apiKeyPlaceholder': 'Bearer API key',
+  'settings.airtrail.apiKeyHint': 'Generated in AirTrail under Settings → Security. Stored encrypted.',
+  'settings.airtrail.allowInsecureTls': 'Allow self-signed certificates',
+  'settings.airtrail.allowInsecureTlsHint': 'Enable only for a trusted instance on your own network.',
+  'settings.airtrail.connected': 'Connected',
+  'settings.airtrail.notConnected': 'Not connected',
+  'settings.airtrail.toast.saved': 'AirTrail connection saved',
+  'settings.airtrail.toast.saveError': 'Could not save the connection',
+  'settings.airtrail.test.button': 'Test connection',
+  'settings.airtrail.test.success': 'Connected — {count} flight(s) found',
+  'settings.airtrail.test.failed': 'Connection failed',
 };
 
 export default settings;

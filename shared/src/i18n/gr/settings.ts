@@ -332,6 +332,21 @@ const settings: TranslationStrings = {
   'settings.passkey.neverUsed': 'Δεν χρησιμοποιήθηκε ποτέ',
   'settings.mapPoiPill': 'Εξερεύνηση μερών στον χάρτη',
   'settings.mapPoiPillHint': 'Εμφάνιση ετικέτας κατηγορίας στον χάρτη του ταξιδιού για εύρεση κοντινών εστιατορίων, ξενοδοχείων και άλλων από το OpenStreetMap.',
+  'settings.airtrail.title': 'AirTrail',
+  'settings.airtrail.hint': 'Συνδέστε το αυτο-φιλοξενούμενο AirTrail σας για εισαγωγή και συγχρονισμό πτήσεων. Δημιουργήστε ένα κλειδί API στο AirTrail από Ρυθμίσεις → Ασφάλεια.',
+  'settings.airtrail.url': 'URL της εγκατάστασης',
+  'settings.airtrail.apiKey': 'Κλειδί API',
+  'settings.airtrail.apiKeyPlaceholder': 'Κλειδί API τύπου Bearer',
+  'settings.airtrail.apiKeyHint': 'Δημιουργείται στο AirTrail από Ρυθμίσεις → Ασφάλεια. Αποθηκεύεται κρυπτογραφημένο.',
+  'settings.airtrail.allowInsecureTls': 'Να επιτρέπονται αυτο-υπογεγραμμένα πιστοποιητικά',
+  'settings.airtrail.allowInsecureTlsHint': 'Ενεργοποιήστε το μόνο για μια αξιόπιστη εγκατάσταση στο δικό σας δίκτυο.',
+  'settings.airtrail.connected': 'Συνδέθηκε',
+  'settings.airtrail.notConnected': 'Δεν συνδέθηκε',
+  'settings.airtrail.toast.saved': 'Η σύνδεση με το AirTrail αποθηκεύτηκε',
+  'settings.airtrail.toast.saveError': 'Δεν ήταν δυνατή η αποθήκευση της σύνδεσης',
+  'settings.airtrail.test.button': 'Δοκιμή σύνδεσης',
+  'settings.airtrail.test.success': 'Συνδέθηκε — βρέθηκαν {count} πτήση/πτήσεις',
+  'settings.airtrail.test.failed': 'Η σύνδεση απέτυχε',
 };
 
 export default settings;

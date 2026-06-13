@@ -326,6 +326,21 @@ const settings: TranslationStrings = {
   'settings.passkey.neverUsed': 'Belum pernah digunakan',
   'settings.mapPoiPill': 'Jelajahi tempat di peta',
   'settings.mapPoiPillHint': 'Tampilkan pil kategori di peta perjalanan untuk menemukan restoran, hotel, dan lainnya di sekitar dari OpenStreetMap.',
+  'settings.airtrail.title': 'AirTrail',
+  'settings.airtrail.hint': 'Hubungkan AirTrail yang kamu host sendiri untuk mengimpor dan menyinkronkan penerbangan. Buat kunci API di AirTrail pada Pengaturan → Keamanan.',
+  'settings.airtrail.url': 'URL Instans',
+  'settings.airtrail.apiKey': 'Kunci API',
+  'settings.airtrail.apiKeyPlaceholder': 'Kunci API Bearer',
+  'settings.airtrail.apiKeyHint': 'Dibuat di AirTrail pada Pengaturan → Keamanan. Disimpan terenkripsi.',
+  'settings.airtrail.allowInsecureTls': 'Izinkan sertifikat yang ditandatangani sendiri',
+  'settings.airtrail.allowInsecureTlsHint': 'Aktifkan hanya untuk instans tepercaya di jaringanmu sendiri.',
+  'settings.airtrail.connected': 'Terhubung',
+  'settings.airtrail.notConnected': 'Tidak terhubung',
+  'settings.airtrail.toast.saved': 'Koneksi AirTrail disimpan',
+  'settings.airtrail.toast.saveError': 'Tidak dapat menyimpan koneksi',
+  'settings.airtrail.test.button': 'Uji koneksi',
+  'settings.airtrail.test.success': 'Terhubung — {count} penerbangan ditemukan',
+  'settings.airtrail.test.failed': 'Koneksi gagal',
 };
 
 export default settings;

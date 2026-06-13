@@ -311,6 +311,21 @@ const settings: TranslationStrings = {
   'settings.passkey.neverUsed': '從未使用',
   'settings.mapPoiPill': '在地圖上探索地點',
   'settings.mapPoiPillHint': '在行程地圖上顯示分類標籤，透過 OpenStreetMap 尋找附近的餐廳、住宿等地點。',
+  'settings.airtrail.title': 'AirTrail',
+  'settings.airtrail.hint': '連接你自架的 AirTrail 以匯入及同步航班。在 AirTrail 的「設定 → 安全性」中建立 API 金鑰。',
+  'settings.airtrail.url': '執行個體網址',
+  'settings.airtrail.apiKey': 'API 金鑰',
+  'settings.airtrail.apiKeyPlaceholder': 'Bearer API 金鑰',
+  'settings.airtrail.apiKeyHint': '在 AirTrail 的「設定 → 安全性」中產生。以加密方式儲存。',
+  'settings.airtrail.allowInsecureTls': '允許自簽憑證',
+  'settings.airtrail.allowInsecureTlsHint': '僅在你自己網路上受信任的執行個體啟用。',
+  'settings.airtrail.connected': '已連接',
+  'settings.airtrail.notConnected': '未連接',
+  'settings.airtrail.toast.saved': '已儲存 AirTrail 連接',
+  'settings.airtrail.toast.saveError': '無法儲存連接',
+  'settings.airtrail.test.button': '測試連接',
+  'settings.airtrail.test.success': '已連接——找到 {count} 筆航班',
+  'settings.airtrail.test.failed': '連接失敗',
 };
 
 export default settings;

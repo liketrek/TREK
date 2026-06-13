@@ -325,6 +325,21 @@ const settings: TranslationStrings = {
   'settings.passkey.neverUsed': 'Nunca usada',
   'settings.mapPoiPill': 'Explorar lugares no mapa',
   'settings.mapPoiPillHint': 'Mostrar uma etiqueta de categoria no mapa da viagem para encontrar restaurantes, hotéis e mais por perto a partir do OpenStreetMap.',
+  'settings.airtrail.title': 'AirTrail',
+  'settings.airtrail.hint': 'Conecte seu AirTrail auto-hospedado para importar e sincronizar voos. Crie uma chave de API no AirTrail em Configurações → Segurança.',
+  'settings.airtrail.url': 'URL da instância',
+  'settings.airtrail.apiKey': 'Chave de API',
+  'settings.airtrail.apiKeyPlaceholder': 'Chave de API Bearer',
+  'settings.airtrail.apiKeyHint': 'Gerada no AirTrail em Configurações → Segurança. Armazenada de forma criptografada.',
+  'settings.airtrail.allowInsecureTls': 'Permitir certificados autoassinados',
+  'settings.airtrail.allowInsecureTlsHint': 'Ative apenas para uma instância confiável na sua própria rede.',
+  'settings.airtrail.connected': 'Conectado',
+  'settings.airtrail.notConnected': 'Não conectado',
+  'settings.airtrail.toast.saved': 'Conexão com o AirTrail salva',
+  'settings.airtrail.toast.saveError': 'Não foi possível salvar a conexão',
+  'settings.airtrail.test.button': 'Testar conexão',
+  'settings.airtrail.test.success': 'Conectado — {count} voo(s) encontrado(s)',
+  'settings.airtrail.test.failed': 'Falha na conexão',
 };
 
 export default settings;

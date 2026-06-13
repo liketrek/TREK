@@ -328,6 +328,21 @@ const settings: TranslationStrings = {
   'settings.passkey.neverUsed': 'Még nem használt',
   'settings.mapPoiPill': 'Helyek felfedezése a térképen',
   'settings.mapPoiPillHint': 'Megjelenít egy kategóriasávot az utazási térképen, hogy az OpenStreetMap segítségével közeli éttermeket, szállásokat és továbbiakat találj.',
+  'settings.airtrail.title': 'AirTrail',
+  'settings.airtrail.hint': 'Csatlakoztasd a saját üzemeltetésű AirTrail-példányodat járatok importálásához és szinkronizálásához. Hozz létre egy API-kulcsot az AirTrailben a Beállítások → Biztonság menüpontban.',
+  'settings.airtrail.url': 'Példány URL-címe',
+  'settings.airtrail.apiKey': 'API-kulcs',
+  'settings.airtrail.apiKeyPlaceholder': 'Bearer API-kulcs',
+  'settings.airtrail.apiKeyHint': 'Az AirTrailben a Beállítások → Biztonság menüpontban generálva. Titkosítva tárolva.',
+  'settings.airtrail.allowInsecureTls': 'Önaláírt tanúsítványok engedélyezése',
+  'settings.airtrail.allowInsecureTlsHint': 'Csak megbízható, saját hálózaton futó példány esetén engedélyezd.',
+  'settings.airtrail.connected': 'Csatlakoztatva',
+  'settings.airtrail.notConnected': 'Nincs csatlakoztatva',
+  'settings.airtrail.toast.saved': 'AirTrail-kapcsolat mentve',
+  'settings.airtrail.toast.saveError': 'Nem sikerült menteni a kapcsolatot',
+  'settings.airtrail.test.button': 'Kapcsolat tesztelése',
+  'settings.airtrail.test.success': 'Csatlakoztatva — {count} járat található',
+  'settings.airtrail.test.failed': 'A kapcsolat sikertelen',
 };
 
 export default settings;
