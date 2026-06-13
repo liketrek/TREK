@@ -491,6 +491,7 @@ export default function LoginPage(): React.ReactElement {
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMfaCode(e.target.value.toUpperCase().slice(0, 24))}
                       placeholder="000000 or XXXX-XXXX"
                       required
+                      autoFocus
                       style={inputBase}
                       onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor = '#111827'}
                       onBlur={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor = '#e5e7eb'}
