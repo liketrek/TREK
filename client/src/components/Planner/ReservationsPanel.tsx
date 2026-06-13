@@ -615,10 +615,10 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
                 </button>
               )}
               {onAirTrailImport && airTrailAvailable && (
-                <button onClick={onAirTrailImport} className="bg-surface-card text-content" style={{
+                <button onClick={onAirTrailImport} className="bg-surface-secondary text-content" style={{
                   appearance: 'none', border: '1px solid var(--border-primary)', cursor: 'pointer', fontFamily: 'inherit',
                   display: 'inline-flex', alignItems: 'center', gap: 6,
-                  padding: '8px 13px', borderRadius: 10, fontSize: 13, fontWeight: 500,
+                  padding: '8px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500, boxSizing: 'border-box',
                   transition: 'opacity 0.15s ease',
                 }}
                   onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
