@@ -1,10 +1,18 @@
 import * as crypto from 'node:crypto';
-import type { AirtrailAirport, AirtrailFlightRaw } from './airtrailClient';
+import type { AirtrailAirport, AirtrailFlightRaw, AirtrailNamedCode } from './airtrailClient';
 import type { AirtrailFlight } from '@trek/shared';
 
 /** Preferred display/lookup code for an airport. */
 function airportCode(a: AirtrailAirport | null): string | null {
   return a?.iata || a?.icao || null;
+}
+
+/**
+ * Airline/aircraft arrive as joined objects ({icao, iata, name, ...}); reduce
+ * them to a single code (ICAO preferred, matching AirTrail's save shape).
+ */
+function entityCode(e: AirtrailNamedCode | null | undefined): string | null {
+  return e?.icao || e?.iata || null;
 }
 
 /**
@@ -49,9 +57,9 @@ export function normalizeFlight(raw: AirtrailFlightRaw): AirtrailFlight {
     date: raw.date ?? null,
     departure: raw.departure ?? null,
     arrival: raw.arrival ?? null,
-    airline: raw.airline ?? null,
+    airline: entityCode(raw.airline),
     flightNumber: raw.flightNumber ?? null,
-    aircraft: raw.aircraft ?? null,
+    aircraft: entityCode(raw.aircraft),
     seatClass: raw.seats?.[0]?.seatClass ?? null,
   };
 }
@@ -131,16 +139,19 @@ export function mapFlightToReservation(raw: AirtrailFlightRaw): MappedReservatio
   }
 
   const seat = raw.seats?.[0];
+  const airlineCode = entityCode(raw.airline);
+  const aircraftCode = entityCode(raw.aircraft);
   const metadata: Record<string, unknown> = {};
-  if (raw.airline) metadata.airline = raw.airline;
+  if (airlineCode) metadata.airline = airlineCode;
   if (raw.flightNumber) metadata.flight_number = raw.flightNumber;
-  if (raw.aircraft) metadata.aircraft = raw.aircraft;
+  if (aircraftCode) metadata.aircraft = aircraftCode;
   if (raw.aircraftReg) metadata.aircraft_reg = raw.aircraftReg;
   if (raw.flightReason) metadata.flight_reason = raw.flightReason;
   if (seat?.seatNumber || seat?.seatClass) metadata.seat = seat.seatNumber || seat.seatClass;
 
-  const flightLabel = raw.flightNumber ? `${raw.airline ? `${raw.airline} ` : ''}${raw.flightNumber}` : '';
-  const title = flightLabel.trim() || `${fromCode || '?'} → ${toCode || '?'}`;
+  // The flight number already carries the airline prefix (e.g. "SAS983"), so it
+  // makes the clearest title; fall back to the route.
+  const title = raw.flightNumber?.trim() || `${fromCode || '?'} → ${toCode || '?'}`;
 
   return {
     title,
@@ -169,9 +180,9 @@ export function canonicalHash(raw: AirtrailFlightRaw): string {
     datePrecision: raw.datePrecision ?? 'day',
     departure: raw.departure ?? null,
     arrival: raw.arrival ?? null,
-    airline: raw.airline ?? null,
+    airline: entityCode(raw.airline),
     flightNumber: raw.flightNumber ?? null,
-    aircraft: raw.aircraft ?? null,
+    aircraft: entityCode(raw.aircraft),
     aircraftReg: raw.aircraftReg ?? null,
     flightReason: raw.flightReason ?? null,
     note: raw.note ?? null,

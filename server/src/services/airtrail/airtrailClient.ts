@@ -61,6 +61,14 @@ export interface AirtrailSeat {
   seatClass: string | null;
 }
 
+/** Airline/aircraft come back as joined objects (not bare codes) on a flight. */
+export interface AirtrailNamedCode {
+  id?: number;
+  icao?: string | null;
+  iata?: string | null;
+  name?: string | null;
+}
+
 /** A flight as returned by list/get (the fields TREK consumes). */
 export interface AirtrailFlightRaw {
   id: number;
@@ -70,9 +78,9 @@ export interface AirtrailFlightRaw {
   datePrecision: string | null;
   departure: string | null;
   arrival: string | null;
-  airline: string | null;
+  airline: AirtrailNamedCode | null;
   flightNumber: string | null;
-  aircraft: string | null;
+  aircraft: AirtrailNamedCode | null;
   aircraftReg: string | null;
   flightReason: string | null;
   note: string | null;

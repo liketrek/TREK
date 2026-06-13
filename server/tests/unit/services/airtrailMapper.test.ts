@@ -25,9 +25,9 @@ function flight(over: Partial<AirtrailFlightRaw> = {}): AirtrailFlightRaw {
     datePrecision: 'day',
     departure: '2021-09-01T23:00:00.000+00:00', // 19:00 local at JFK (EDT, UTC-4)
     arrival: '2021-09-02T07:00:00.000+00:00', // 08:00 local at LHR (BST, UTC+1)
-    airline: 'BAW',
+    airline: { id: 1, icao: 'BAW', iata: 'BA', name: 'British Airways' },
     flightNumber: 'BA178',
-    aircraft: 'B772',
+    aircraft: { id: 1, icao: 'B772', name: 'Boeing 777' },
     aircraftReg: 'G-VIIL',
     flightReason: 'leisure',
     note: 'window seat',
@@ -75,8 +75,8 @@ describe('airtrailMapper.mapFlightToReservation', () => {
     expect(m.needs_review).toBe(0);
   });
 
-  it('titles from airline + flight number, else the route', () => {
-    expect(mapFlightToReservation(flight()).title).toBe('BAW BA178');
+  it('titles from the flight number, else the route', () => {
+    expect(mapFlightToReservation(flight()).title).toBe('BA178');
     expect(mapFlightToReservation(flight({ airline: null, flightNumber: null })).title).toBe('JFK → LHR');
   });
 
