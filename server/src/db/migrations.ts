@@ -2460,6 +2460,16 @@ function runMigrations(db: Database.Database): void {
         if (after && after.region_code === row.region_code) del.run(row.id);
       }
     },
+    () => {
+      // AirTrail integration addon — disabled by default (opt-in). Per-user connection
+      // lives in Settings → Integrations; this row is only the admin-level global toggle.
+      try {
+        db.prepare("INSERT OR IGNORE INTO addons (id, name, description, type, icon, enabled, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)")
+          .run('airtrail', 'AirTrail', 'Sync flights from your self-hosted AirTrail instance', 'integration', 'Plane', 0, 14);
+      } catch (err: any) {
+        console.warn('[migrations] Non-fatal migration step failed:', err);
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {
