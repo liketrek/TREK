@@ -13,6 +13,14 @@ import {
   resolveCategoryIdForFolder,
   type KmlImportSummary,
 } from './kmlImport';
+import { enrichImportedPlaces, type EnrichablePlace } from './placeEnrichment';
+
+/** Opt-in Places-API enrichment for list imports (#886). */
+export interface ListImportOptions {
+  enrich?: boolean;
+  userId?: number;
+  lang?: string;
+}
 
 interface PlaceWithCategory extends Place {
   category_name: string | null;
@@ -595,7 +603,7 @@ export async function importMapFile(tripId: string, fileBuffer: Buffer, filename
 // Import Google Maps list
 // ---------------------------------------------------------------------------
 
-export async function importGoogleList(tripId: string, url: string) {
+export async function importGoogleList(tripId: string, url: string, opts?: ListImportOptions) {
   let listId: string | null = null;
   let resolvedUrl = url;
 
@@ -697,6 +705,10 @@ export async function importGoogleList(tripId: string, url: string) {
   });
   insertAll();
 
+  if (opts?.enrich && opts.userId && created.length) {
+    void enrichImportedPlaces(tripId, opts.userId, created as EnrichablePlace[], opts.lang);
+  }
+
   return { places: created, listName, skipped };
 }
 
@@ -707,6 +719,7 @@ export async function importGoogleList(tripId: string, url: string) {
 export async function importNaverList(
   tripId: string,
   url: string,
+  opts?: ListImportOptions,
 ): Promise<{ places: any[]; listName: string; skipped: number } | { error: string; status: number }> {
   let resolvedUrl = url;
   const limit = 20;
@@ -825,6 +838,10 @@ export async function importNaverList(
     }
   });
   insertAll();
+
+  if (opts?.enrich && opts.userId && created.length) {
+    void enrichImportedPlaces(tripId, opts.userId, created as EnrichablePlace[], opts.lang);
+  }
 
   return { places: created, listName, skipped };
 }

@@ -85,5 +85,8 @@ const places: TranslationStrings = {
   'places.saveError': '儲存失敗',
   'places.duplicateExists': "'{name}' 已在此行程中。",
   'places.addAnyway': '仍要新增',
+  'places.enrichOnImport': '透過 Google 豐富地點資訊',
+  'places.enrichOnImportHint':
+    '查詢每個匯入的地點以補上照片、地址與聯絡資訊。需要 Google Maps 金鑰。',
 };
 export default places;

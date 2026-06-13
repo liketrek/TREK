@@ -92,5 +92,8 @@ const places: TranslationStrings = {
   'places.saveError': 'Αποτυχία αποθήκευσης',
   'places.duplicateExists': "Το '{name}' υπάρχει ήδη σε αυτό το ταξίδι.",
   'places.addAnyway': 'Προσθήκη ούτως ή άλλως',
+  'places.enrichOnImport': 'Εμπλουτισμός τόπων μέσω Google',
+  'places.enrichOnImportHint':
+    'Αναζητά κάθε εισαγόμενο μέρος για να προσθέσει φωτογραφίες, διεύθυνση και στοιχεία επικοινωνίας. Απαιτεί κλειδί Google Maps.',
 };
 export default places;

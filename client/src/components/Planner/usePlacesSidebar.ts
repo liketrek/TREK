@@ -7,6 +7,7 @@ import { useContextMenu } from '../shared/ContextMenu'
 import { placesApi } from '../../api/client'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
+import { useAuthStore } from '../../store/authStore'
 import type { Place, Category, Day, AssignmentsMap } from '../../types'
 
 export interface PlacesSidebarProps {
@@ -49,6 +50,8 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
   const loadTrip = useTripStore((s) => s.loadTrip)
   const can = useCanDo()
   const canEditPlaces = can('place_edit', trip)
+  // Places-API enrichment (#886) needs a Google Maps key; gate the toggle on it.
+  const canEnrichImport = useAuthStore((s) => s.hasMapsKey)
   const isNaverListImportEnabled = true
 
   const [fileImportOpen, setFileImportOpen] = useState(false)
@@ -94,6 +97,7 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
   const [listImportUrl, setListImportUrl] = useState('')
   const [listImportLoading, setListImportLoading] = useState(false)
   const [listImportProvider, setListImportProvider] = useState<'google' | 'naver'>('google')
+  const [listImportEnrich, setListImportEnrich] = useState(false)
   const availableListImportProviders: Array<'google' | 'naver'> = isNaverListImportEnabled ? ['google', 'naver'] : ['google']
   const hasMultipleListImportProviders = availableListImportProviders.length > 1
 
@@ -108,9 +112,10 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
     setListImportLoading(true)
     const provider = listImportProvider === 'naver' && isNaverListImportEnabled ? 'naver' : 'google'
     try {
+      const enrich = listImportEnrich && canEnrichImport
       const result = provider === 'google'
-        ? await placesApi.importGoogleList(tripId, listImportUrl.trim())
-        : await placesApi.importNaverList(tripId, listImportUrl.trim())
+        ? await placesApi.importGoogleList(tripId, listImportUrl.trim(), enrich)
+        : await placesApi.importNaverList(tripId, listImportUrl.trim(), enrich)
       await loadTrip(tripId)
       if (result.count === 0 && result.skipped > 0) {
         toast.warning(t('places.importAllSkipped'))
@@ -223,6 +228,7 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
     scrollContainerRef, onScrollTopChange,
     listImportOpen, setListImportOpen, listImportUrl, setListImportUrl,
     listImportLoading, listImportProvider, setListImportProvider,
+    listImportEnrich, setListImportEnrich, canEnrichImport,
     availableListImportProviders, hasMultipleListImportProviders, handleListImport,
     search, setSearch, filter, setFilter, categoryFilters, setCategoryFiltersLocal,
     selectMode, setSelectMode, selectedIds, setSelectedIds, pendingDeleteIds, setPendingDeleteIds,

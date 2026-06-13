@@ -90,5 +90,8 @@ const places: TranslationStrings = {
   'places.saveError': 'Помилка збереження',
   'places.duplicateExists': "'{name}' вже є в цій подорожі.",
   'places.addAnyway': 'Все одно додати',
+  'places.enrichOnImport': 'Збагатити місця через Google',
+  'places.enrichOnImportHint':
+    'Знаходить кожне імпортоване місце й додає фото, адресу та контакти. Потрібен ключ Google Maps.',
 };
 export default places;

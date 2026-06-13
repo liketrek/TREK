@@ -91,5 +91,8 @@ const places: TranslationStrings = {
   'places.saveError': 'Nem sikerült menteni',
   'places.duplicateExists': "A(z) '{name}' már szerepel ebben az utazásban.",
   'places.addAnyway': 'Hozzáadás mindenképp',
+  'places.enrichOnImport': 'Helyek gazdagítása a Google-lel',
+  'places.enrichOnImportHint':
+    'Minden importált helyet megkeres, hogy fotókat, címet és elérhetőséget adjon hozzá. Google Maps-kulcs szükséges.',
 };
 export default places;

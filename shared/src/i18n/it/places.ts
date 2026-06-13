@@ -90,5 +90,8 @@ const places: TranslationStrings = {
   'places.saveError': 'Impossibile salvare',
   'places.duplicateExists': "'{name}' è già in questo viaggio.",
   'places.addAnyway': 'Aggiungi comunque',
+  'places.enrichOnImport': 'Arricchisci i luoghi con Google',
+  'places.enrichOnImportHint':
+    'Cerca ogni luogo importato per aggiungere foto, indirizzo e contatti. Usa la tua chiave Google Maps.',
 };
 export default places;

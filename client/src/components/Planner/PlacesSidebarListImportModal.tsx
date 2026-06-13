@@ -5,6 +5,7 @@ export function ListImportModal(S: SidebarState) {
   const {
     setListImportOpen, setListImportUrl, t, hasMultipleListImportProviders, availableListImportProviders,
     listImportProvider, setListImportProvider, listImportUrl, listImportLoading, handleListImport,
+    listImportEnrich, setListImportEnrich, canEnrichImport,
   } = S
   return ReactDOM.createPortal(
     <div
@@ -55,6 +56,23 @@ export function ListImportModal(S: SidebarState) {
             fontFamily: 'inherit', boxSizing: 'border-box',
           }}
         />
+        {canEnrichImport && (
+          <label
+            className="text-content-muted"
+            style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 12, fontSize: 12, cursor: 'pointer' }}
+          >
+            <input
+              type="checkbox"
+              checked={listImportEnrich}
+              onChange={e => setListImportEnrich(e.target.checked)}
+              style={{ marginTop: 1, flexShrink: 0, cursor: 'pointer' }}
+            />
+            <span>
+              <span className="text-content" style={{ fontWeight: 600 }}>{t('places.enrichOnImport')}</span>
+              <span className="text-content-faint" style={{ display: 'block', marginTop: 2 }}>{t('places.enrichOnImportHint')}</span>
+            </span>
+          </label>
+        )}
         <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'flex-end' }}>
           <button
             onClick={() => { setListImportOpen(false); setListImportUrl('') }}

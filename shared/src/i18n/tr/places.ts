@@ -89,5 +89,8 @@ const places: TranslationStrings = {
   'places.saveError': 'Kaydedilemedi',
   'places.duplicateExists': "'{name}' zaten bu gezide var.",
   'places.addAnyway': 'Yine de ekle',
+  'places.enrichOnImport': 'Yerleri Google ile zenginleştir',
+  'places.enrichOnImportHint':
+    'İçe aktarılan her yeri arayarak fotoğraf, adres ve iletişim bilgilerini ekler. Google Maps anahtarı gerekir.',
 };
 export default places;

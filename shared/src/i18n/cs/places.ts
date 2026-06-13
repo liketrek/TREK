@@ -89,5 +89,8 @@ const places: TranslationStrings = {
   'places.saveError': 'Uložení se nezdařilo',
   'places.duplicateExists': "'{name}' už v tomto výletu existuje.",
   'places.addAnyway': 'Přesto přidat',
+  'places.enrichOnImport': 'Obohatit místa přes Google',
+  'places.enrichOnImportHint':
+    'Vyhledá každé importované místo a doplní fotky, adresu a kontakty. Vyžaduje klíč Google Maps.',
 };
 export default places;

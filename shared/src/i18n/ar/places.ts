@@ -88,5 +88,8 @@ const places: TranslationStrings = {
   'places.saveError': 'فشل الحفظ',
   'places.duplicateExists': "'{name}' موجود بالفعل في هذه الرحلة.",
   'places.addAnyway': 'الإضافة على أي حال',
+  'places.enrichOnImport': 'إثراء الأماكن عبر Google',
+  'places.enrichOnImportHint':
+    'يبحث عن كل مكان مستورد لإضافة الصور والعنوان وبيانات الاتصال. يتطلب مفتاح خرائط Google.',
 };
 export default places;

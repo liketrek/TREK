@@ -89,5 +89,8 @@ const places: TranslationStrings = {
   'places.saveError': 'Failed to save',
   'places.duplicateExists': "'{name}' is already in this trip.",
   'places.addAnyway': 'Add anyway',
+  'places.enrichOnImport': 'Enrich places via Google',
+  'places.enrichOnImportHint':
+    'Look up each imported place to fill in photos, address and contact details. Uses your Google Maps key.',
 };
 export default places;

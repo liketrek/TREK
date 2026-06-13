@@ -88,5 +88,8 @@ const places: TranslationStrings = {
   'places.saveError': '저장 실패',
   'places.duplicateExists': "'{name}'은(는) 이미 이 여행에 있습니다.",
   'places.addAnyway': '그래도 추가',
+  'places.enrichOnImport': 'Google로 장소 정보 보강',
+  'places.enrichOnImportHint':
+    '가져온 각 장소를 검색해 사진, 주소, 연락처를 추가합니다. Google Maps 키가 필요합니다.',
 };
 export default places;

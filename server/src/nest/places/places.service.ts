@@ -64,12 +64,12 @@ export class PlacesService {
     return svc.importMapFile(tripId, buffer, filename, opts);
   }
 
-  importGoogleList(tripId: string, url: string) {
-    return svc.importGoogleList(tripId, url);
+  importGoogleList(tripId: string, url: string, opts?: Parameters<typeof svc.importGoogleList>[2]) {
+    return svc.importGoogleList(tripId, url, opts);
   }
 
-  importNaverList(tripId: string, url: string) {
-    return svc.importNaverList(tripId, url);
+  importNaverList(tripId: string, url: string, opts?: Parameters<typeof svc.importNaverList>[2]) {
+    return svc.importNaverList(tripId, url, opts);
   }
 
   searchImage(tripId: string, id: string, userId: number) {

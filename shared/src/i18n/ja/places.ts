@@ -91,5 +91,8 @@ const places: TranslationStrings = {
   'places.saveError': '保存に失敗しました',
   'places.duplicateExists': '「{name}」はすでにこの旅程に含まれています。',
   'places.addAnyway': 'それでも追加',
+  'places.enrichOnImport': 'Googleで場所を補完',
+  'places.enrichOnImportHint':
+    'インポートした各場所を検索して、写真・住所・連絡先を追加します。Google Maps キーが必要です。',
 };
 export default places;

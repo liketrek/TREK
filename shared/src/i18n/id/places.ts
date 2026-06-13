@@ -90,5 +90,8 @@ const places: TranslationStrings = {
   'places.saveError': 'Gagal menyimpan',
   'places.duplicateExists': "'{name}' sudah ada di perjalanan ini.",
   'places.addAnyway': 'Tetap tambahkan',
+  'places.enrichOnImport': 'Perkaya tempat via Google',
+  'places.enrichOnImportHint':
+    'Mencari setiap tempat yang diimpor untuk menambahkan foto, alamat, dan kontak. Memerlukan kunci Google Maps.',
 };
 export default places;

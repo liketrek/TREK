@@ -91,5 +91,8 @@ const places: TranslationStrings = {
   'places.saveError': 'Opslaan mislukt',
   'places.duplicateExists': "'{name}' staat al in deze reis.",
   'places.addAnyway': 'Toch toevoegen',
+  'places.enrichOnImport': 'Plaatsen verrijken via Google',
+  'places.enrichOnImportHint':
+    'Zoekt elke geïmporteerde plaats op om fotos, adres en contactgegevens toe te voegen. Gebruikt je Google Maps-sleutel.',
 };
 export default places;

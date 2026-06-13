@@ -163,27 +163,30 @@ export class PlacesController {
   }
 
   @Post('import/google-list')
-  async importGoogle(@CurrentUser() user: User, @Param('tripId') tripId: string, @Body('url') url: unknown, @Headers('x-socket-id') socketId?: string) {
-    return this.importList('google', user, tripId, url, socketId);
+  async importGoogle(@CurrentUser() user: User, @Param('tripId') tripId: string, @Body('url') url: unknown, @Body('enrich') enrich: unknown, @Headers('x-socket-id') socketId?: string) {
+    return this.importList('google', user, tripId, url, enrich, socketId);
   }
 
   @Post('import/naver-list')
-  async importNaver(@CurrentUser() user: User, @Param('tripId') tripId: string, @Body('url') url: unknown, @Headers('x-socket-id') socketId?: string) {
-    return this.importList('naver', user, tripId, url, socketId);
+  async importNaver(@CurrentUser() user: User, @Param('tripId') tripId: string, @Body('url') url: unknown, @Body('enrich') enrich: unknown, @Headers('x-socket-id') socketId?: string) {
+    return this.importList('naver', user, tripId, url, enrich, socketId);
   }
 
   /** Shared google/naver list import — identical flow, different provider + error string. */
-  private async importList(provider: 'google' | 'naver', user: User, tripId: string, url: unknown, socketId?: string) {
+  private async importList(provider: 'google' | 'naver', user: User, tripId: string, url: unknown, enrich: unknown, socketId?: string) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
     if (!url || typeof url !== 'string') {
       throw new HttpException({ error: 'URL is required' }, 400);
     }
+    // Opt-in: re-resolve each imported place via the Places API to fill in
+    // photo / address / website / phone and persist a google_place_id (#886).
+    const opts = { enrich: parseBool(enrich, false), userId: user.id };
     const label = provider === 'google' ? 'Google' : 'Naver';
     try {
       const result = provider === 'google'
-        ? await this.places.importGoogleList(tripId, url)
-        : await this.places.importNaverList(tripId, url);
+        ? await this.places.importGoogleList(tripId, url, opts)
+        : await this.places.importNaverList(tripId, url, opts);
       if ('error' in result) {
         throw new HttpException({ error: result.error }, result.status);
       }

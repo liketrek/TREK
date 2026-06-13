@@ -91,5 +91,8 @@ const places: TranslationStrings = {
   'places.saveError': "Échec de l'enregistrement",
   'places.duplicateExists': "'{name}' est déjà dans ce voyage.",
   'places.addAnyway': 'Ajouter quand même',
+  'places.enrichOnImport': 'Enrichir les lieux via Google',
+  'places.enrichOnImportHint':
+    'Recherche chaque lieu importé pour ajouter photos, adresse et coordonnées. Utilise votre clé Google Maps.',
 };
 export default places;

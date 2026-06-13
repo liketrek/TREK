@@ -117,6 +117,9 @@ export type PlaceBulkDeleteRequest = z.infer<
 
 export const placeImportListRequestSchema = z.object({
   url: z.string().min(1),
+  // Opt-in: enrich imported places via the Places API (#886). Requires a Google
+  // Maps key; runs as a background pass after the import returns.
+  enrich: z.boolean().optional(),
 });
 export type PlaceImportListRequest = z.infer<
   typeof placeImportListRequestSchema
