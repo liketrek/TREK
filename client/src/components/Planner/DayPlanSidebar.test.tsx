@@ -1708,4 +1708,49 @@ describe('DayPlanSidebar', () => {
     expect(onEditTransport).toHaveBeenCalledWith(res)
     expect(onEditReservation).not.toHaveBeenCalled()
   })
+
+  // ── showRouteToolsWhenExpanded (mobile route tools) ───────────────────────
+
+  it('FE-PLANNER-DAYPLAN-099: showRouteToolsWhenExpanded shows route tools on expanded day without selection', () => {
+    const places = [
+      buildPlace({ id: 1, name: 'A', lat: 48.85, lng: 2.35 }),
+      buildPlace({ id: 2, name: 'B', lat: 48.86, lng: 2.36 }),
+    ]
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    const assigns = {
+      '10': [
+        buildAssignment({ id: 1, day_id: 10, order_index: 0, place: places[0] }),
+        buildAssignment({ id: 2, day_id: 10, order_index: 1, place: places[1] }),
+      ],
+    }
+    render(<DayPlanSidebar {...makeDefaultProps({
+      days: [day], places, assignments: assigns, selectedDayId: null, showRouteToolsWhenExpanded: true,
+    })} />)
+    // Days are expanded by default, so route tools must be visible even with no selected day
+    expect(screen.getByRole('button', { name: /optimize/i })).toBeInTheDocument()
+  })
+
+  it('FE-PLANNER-DAYPLAN-100: optimize via showRouteToolsWhenExpanded reorders the expanded day', async () => {
+    const user = userEvent.setup()
+    const onReorder = vi.fn().mockResolvedValue(undefined)
+    const places = [
+      buildPlace({ id: 1, name: 'A', lat: 48.85, lng: 2.35 }),
+      buildPlace({ id: 2, name: 'B', lat: 48.86, lng: 2.36 }),
+      buildPlace({ id: 3, name: 'C', lat: 48.87, lng: 2.37 }),
+    ]
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    const assigns = {
+      '10': [
+        buildAssignment({ id: 1, day_id: 10, order_index: 0, place: places[0] }),
+        buildAssignment({ id: 2, day_id: 10, order_index: 1, place: places[1] }),
+        buildAssignment({ id: 3, day_id: 10, order_index: 2, place: places[2] }),
+      ],
+    }
+    render(<DayPlanSidebar {...makeDefaultProps({
+      days: [day], places, assignments: assigns, selectedDayId: null, onReorder, showRouteToolsWhenExpanded: true,
+    })} />)
+    const optimizeBtn = screen.getByRole('button', { name: /optimize/i })
+    await user.click(optimizeBtn)
+    await waitFor(() => expect(onReorder).toHaveBeenCalledWith(10, expect.any(Array)))
+  })
 })

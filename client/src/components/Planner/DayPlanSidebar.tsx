@@ -84,6 +84,8 @@ interface DayPlanSidebarProps {
   onAddBookingToAssignment?: (dayId: number, assignmentId: number) => void
   initialScrollTop?: number
   onScrollTopChange?: (top: number) => void
+  /** Mobile: show the route tools footer (Route toggle / Optimize / travel profile) on expanded days, since selecting a day closes the sheet */
+  showRouteToolsWhenExpanded?: boolean
 }
 
 /**
@@ -125,6 +127,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   onAddBookingToAssignment,
   initialScrollTop,
   onScrollTopChange,
+  showRouteToolsWhenExpanded = false,
   } = props
   const toast = useToast()
   const { t, language, locale } = useTranslation()
@@ -742,9 +745,9 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     pushUndo?.(t('undo.lock'), () => { setLockedIds(prevLocked) })
   }
 
-  const handleOptimize = async () => {
-    if (!selectedDayId) return
-    const da = getDayAssignments(selectedDayId)
+  const handleOptimize = async (dayId: number | null = selectedDayId) => {
+    if (!dayId) return
+    const da = getDayAssignments(dayId)
     if (da.length < 3) return
 
     const prevIds = da.map(a => a.id)
@@ -764,7 +767,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     const unlockedNoCoords = unlocked.filter(a => !a.place?.lat || !a.place?.lng)
     // Anchor the route on the day's accommodation (when enabled): a loop out from and back to the
     // hotel, or — on a transfer day — a run from the hotel you leave to the one you arrive at.
-    const day = days.find(d => d.id === selectedDayId)
+    const day = days.find(d => d.id === dayId)
     const anchors = day && useSettingsStore.getState().settings.optimize_from_accommodation !== false
       ? getAccommodationAnchors(day, days, accommodations)
       : {}
@@ -781,10 +784,10 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
       if (!result[i]) result[i] = optimizedQueue[qi++]
     }
 
-    await onReorder(selectedDayId, result.map(a => a.id))
+    await onReorder(dayId, result.map(a => a.id))
     const usedHotel = !!(anchors.start || anchors.end)
     toast.success(usedHotel ? t('dayplan.toast.routeOptimizedFromHotel') : t('dayplan.toast.routeOptimized'))
-    const capturedDayId = selectedDayId
+    const capturedDayId = dayId
     pushUndo?.(t('undo.optimize'), async () => {
       await tripActions.reorderAssignments(tripId, capturedDayId, prevIds)
     })
@@ -901,6 +904,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     onAddBookingToAssignment,
     initialScrollTop,
     onScrollTopChange,
+    showRouteToolsWhenExpanded,
     toast,
     t,
     language,
@@ -1047,6 +1051,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
     onAddBookingToAssignment,
     initialScrollTop,
     onScrollTopChange,
+    showRouteToolsWhenExpanded,
     toast,
     t,
     language,
@@ -2096,7 +2101,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                   </div>
 
                   {/* Routen-Werkzeuge (ausgewählter Tag, 2+ Orte) */}
-                  {isSelected && getDayAssignments(day.id).length >= 2 && (
+                  {(isSelected || (showRouteToolsWhenExpanded && isExpanded)) && getDayAssignments(day.id).length >= 2 && (
                     <div style={{ padding: '10px 16px 12px', borderTop: '1px solid var(--border-faint)', display: 'flex', flexDirection: 'column', gap: 7 }}>
                       <div style={{ display: 'flex', gap: 6, alignItems: 'stretch' }}>
                         <button
@@ -2112,7 +2117,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                           <RouteIcon size={12} strokeWidth={2} />
                           {t('dayplan.route')}
                         </button>
-                        <button onClick={handleOptimize} className="bg-surface-hover text-content-secondary" style={{
+                        <button onClick={() => handleOptimize(day.id)} className="bg-surface-hover text-content-secondary" style={{
                           flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                           padding: '6px 0', fontSize: 11, fontWeight: 500, borderRadius: 8, border: 'none',
                           cursor: 'pointer', fontFamily: 'inherit',
@@ -2141,7 +2146,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                           })}
                         </div>
                       </div>
-                      {routeInfo && (
+                      {isSelected && routeInfo && (
                         <div className="text-content-secondary bg-surface-hover" style={{ display: 'flex', justifyContent: 'center', gap: 12, fontSize: 12, borderRadius: 8, padding: '5px 10px' }}>
                           <span>{routeInfo.distance}</span>
                           <span className="text-content-faint">·</span>
