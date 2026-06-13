@@ -113,7 +113,25 @@ export interface AirtrailSavePayload {
 }
 
 function apiBase(baseUrl: string): string {
-  return baseUrl.replace(/\/+$/, '') + '/api';
+  // Tolerate a pasted trailing slash or '/api' suffix so we never build '/api/api'.
+  const origin = baseUrl.trim().replace(/\/+$/, '').replace(/\/api$/i, '');
+  return origin + '/api';
+}
+
+/**
+ * Parse a response as JSON, but turn the cryptic "Unexpected token '<'" that a
+ * misconfigured URL produces (AirTrail serving its SPA / an auth-proxy login
+ * page) into an actionable message.
+ */
+async function parseJson<T>(resp: Response): Promise<T> {
+  const text = await resp.text();
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new AirtrailRequestError(
+      'AirTrail returned a non-JSON response. Check the URL is your AirTrail base URL (e.g. https://airtrail.example.com, without /api) and that the instance is reachable without a separate login.',
+    );
+  }
 }
 
 async function request(creds: AirtrailCreds, path: string, init: RequestInit): Promise<Response> {
@@ -145,7 +163,7 @@ async function request(creds: AirtrailCreds, path: string, init: RequestInit): P
 export async function listFlights(creds: AirtrailCreds): Promise<AirtrailFlightRaw[]> {
   const resp = await request(creds, '/flight/list', { method: 'GET' });
   if (!resp.ok) throw new AirtrailRequestError(`AirTrail list failed (HTTP ${resp.status})`, resp.status);
-  const data = (await resp.json()) as { flights?: AirtrailFlightRaw[] };
+  const data = await parseJson<{ flights?: AirtrailFlightRaw[] }>(resp);
   return data.flights ?? [];
 }
 
@@ -153,7 +171,7 @@ export async function getFlight(creds: AirtrailCreds, id: number): Promise<Airtr
   const resp = await request(creds, `/flight/get/${id}`, { method: 'GET' });
   if (resp.status === 404) return null;
   if (!resp.ok) throw new AirtrailRequestError(`AirTrail get failed (HTTP ${resp.status})`, resp.status);
-  const data = (await resp.json()) as { flight?: AirtrailFlightRaw };
+  const data = await parseJson<{ flight?: AirtrailFlightRaw }>(resp);
   return data.flight ?? null;
 }
 
@@ -174,6 +192,6 @@ export async function saveFlight(creds: AirtrailCreds, payload: AirtrailSavePayl
     }
     throw new AirtrailRequestError(msg, resp.status);
   }
-  const data = (await resp.json()) as { id?: number };
+  const data = await parseJson<{ id?: number }>(resp);
   return { id: data.id };
 }
