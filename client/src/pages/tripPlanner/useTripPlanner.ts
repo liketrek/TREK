@@ -7,7 +7,7 @@ import { getCached, fetchPhoto } from '../../services/photoService'
 import { useToast } from '../../components/shared/Toast'
 import { Map, Ticket, PackageCheck, Wallet, FolderOpen, Users, Train } from 'lucide-react'
 import { useTranslation } from '../../i18n'
-import { addonsApi, accommodationsApi, authApi, tripsApi, assignmentsApi, healthApi } from '../../api/client'
+import { addonsApi, accommodationsApi, authApi, tripsApi, assignmentsApi, healthApi, airtrailApi } from '../../api/client'
 import { accommodationRepo } from '../../repo/accommodationRepo'
 import { offlineDb } from '../../db/offlineDb'
 import { useAuthStore } from '../../store/authStore'
@@ -16,6 +16,7 @@ import { useTripWebSocket } from '../../hooks/useTripWebSocket'
 import { useRouteCalculation } from '../../hooks/useRouteCalculation'
 import { usePlaceSelection } from '../../hooks/usePlaceSelection'
 import { usePlannerHistory } from '../../hooks/usePlannerHistory'
+import { useAirtrailConnection } from '../../hooks/useAirtrailConnection'
 import type { Accommodation, TripMember, Day, Place, Reservation } from '../../types'
 
 /**
@@ -140,6 +141,18 @@ export function useTripPlanner() {
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null)
   const [showBookingImport, setShowBookingImport] = useState<boolean>(false)
   const [bookingImportAvailable, setBookingImportAvailable] = useState<boolean>(false)
+  const { available: airTrailAvailable } = useAirtrailConnection()
+  const [showAirTrailImport, setShowAirTrailImport] = useState<boolean>(false)
+  // Pull this user's AirTrail edits as soon as they open the trip, so changes
+  // made in AirTrail show up without waiting for the background poll.
+  const airtrailSyncedRef = useRef<number | null>(null)
+  useEffect(() => {
+    if (!airTrailAvailable || !tripId || airtrailSyncedRef.current === tripId) return
+    airtrailSyncedRef.current = tripId
+    airtrailApi.sync()
+      .then(r => { if (r && r.changed > 0) tripActions.loadReservations(tripId) })
+      .catch(() => {})
+  }, [airTrailAvailable, tripId, tripActions])
   const [bookingForAssignmentId, setBookingForAssignmentId] = useState<number | null>(null)
   const [showTransportModal, setShowTransportModal] = useState<boolean>(false)
   const [editingTransport, setEditingTransport] = useState<Reservation | null>(null)
@@ -666,6 +679,7 @@ export function useTripPlanner() {
     showTripForm, setShowTripForm, showMembersModal, setShowMembersModal,
     showReservationModal, setShowReservationModal, editingReservation, setEditingReservation,
     showBookingImport, setShowBookingImport, bookingImportAvailable,
+    airTrailAvailable, showAirTrailImport, setShowAirTrailImport,
     bookingForAssignmentId, setBookingForAssignmentId,
     showTransportModal, setShowTransportModal, editingTransport, setEditingTransport,
     transportModalDayId, setTransportModalDayId,
