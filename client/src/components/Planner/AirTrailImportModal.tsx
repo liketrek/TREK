@@ -15,16 +15,27 @@ interface AirTrailImportModalProps {
   pushUndo?: (label: string, undoFn: () => Promise<void> | void) => void
 }
 
-function fmtDate(d: string | null): string {
-  return d ?? ''
+/** Locale-aware date (e.g. de → 13.06.2026, en-US → 06/13/2026). */
+function fmtDate(d: string | null, locale: string): string {
+  if (!d) return ''
+  try {
+    return new Date(d + 'T00:00:00Z').toLocaleDateString(locale, {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      timeZone: 'UTC',
+    })
+  } catch {
+    return d
+  }
 }
 
 export default function AirTrailImportModal({ isOpen, onClose, tripId, pushUndo }: AirTrailImportModalProps) {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const toast = useToast()
   const trip = useTripStore(s => s.trip)
   const reservations = useTripStore(s => s.reservations)
-  const loadTrip = useTripStore(s => s.loadTrip)
+  const loadReservations = useTripStore(s => s.loadReservations)
   const mouseDownTarget = useRef<EventTarget | null>(null)
 
   const [loading, setLoading] = useState(false)
@@ -92,7 +103,7 @@ export default function AirTrailImportModal({ isOpen, onClose, tripId, pushUndo 
     setError('')
     try {
       const result: AirtrailImportResult = await airtrailApi.import(tripId, ids)
-      await loadTrip(tripId)
+      await loadReservations(tripId)
 
       const imported = result.imported ?? []
       if (imported.length > 0) {
@@ -101,7 +112,7 @@ export default function AirTrailImportModal({ isOpen, onClose, tripId, pushUndo 
             r => r.external_source === 'airtrail' && r.external_id && imported.includes(String(r.external_id)),
           )
           await Promise.all(linked.map(r => reservationsApi.delete(tripId, r.id).catch(() => {})))
-          await loadTrip(tripId)
+          await loadReservations(tripId)
         })
         toast.success(t('reservations.airtrail.imported', { count: imported.length }))
       }
@@ -152,7 +163,7 @@ export default function AirTrailImportModal({ isOpen, onClose, tripId, pushUndo 
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
           <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
-            {f.fromCode ?? f.fromName ?? '?'} → {f.toCode ?? f.toName ?? '?'}{f.date ? ` · ${fmtDate(f.date)}` : ''}
+            {f.fromCode ?? f.fromName ?? '?'} → {f.toCode ?? f.toName ?? '?'}{f.date ? ` · ${fmtDate(f.date, locale)}` : ''}
           </span>
         </span>
         {already && (
