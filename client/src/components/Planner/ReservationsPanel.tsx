@@ -472,6 +472,8 @@ interface ReservationsPanelProps {
   onAdd: () => void
   onImport?: () => void
   bookingImportAvailable?: boolean
+  onAirTrailImport?: () => void
+  airTrailAvailable?: boolean
   onEdit: (reservation: Reservation) => void
   onDelete: (id: number) => void
   onNavigateToFiles: () => void
@@ -479,7 +481,7 @@ interface ReservationsPanelProps {
   addManualKey?: string
 }
 
-export default function ReservationsPanel({ tripId, reservations, days, assignments, files = [], onAdd, onImport, bookingImportAvailable, onEdit, onDelete, onNavigateToFiles, titleKey = 'reservations.title', addManualKey = 'reservations.addManual' }: ReservationsPanelProps) {
+export default function ReservationsPanel({ tripId, reservations, days, assignments, files = [], onAdd, onImport, bookingImportAvailable, onAirTrailImport, airTrailAvailable, onEdit, onDelete, onNavigateToFiles, titleKey = 'reservations.title', addManualKey = 'reservations.addManual' }: ReservationsPanelProps) {
   const { t, locale } = useTranslation()
   const can = useCanDo()
   const trip = useTripStore((s) => s.trip)
@@ -600,6 +602,21 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
                 >
                   <Download size={14} strokeWidth={2} />
                   <span className="hidden sm:inline">{t('reservations.import.cta')}</span>
+                </button>
+              )}
+              {onAirTrailImport && airTrailAvailable && (
+                <button onClick={onAirTrailImport} className="bg-surface-card text-content" style={{
+                  appearance: 'none', border: '1px solid var(--border-primary)', cursor: 'pointer', fontFamily: 'inherit',
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '8px 13px', borderRadius: 10, fontSize: 13, fontWeight: 500,
+                  transition: 'opacity 0.15s ease',
+                }}
+                  onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
+                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                  title={t('reservations.airtrail.title')}
+                >
+                  <Plane size={14} strokeWidth={2} />
+                  <span className="hidden sm:inline">{t('reservations.airtrail.cta')}</span>
                 </button>
               )}
               <button onClick={onAdd} className="bg-accent text-accent-text" style={{

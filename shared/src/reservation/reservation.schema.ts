@@ -61,6 +61,12 @@ export const reservationSchema = z.object({
   needs_review: z.number().optional(),
   day_plan_position: z.number().nullable().optional(),
   created_at: z.string().optional(),
+  // AirTrail (or future provider) linkage — drives the "synced" badge (#214).
+  external_source: z.string().nullable().optional(),
+  external_id: z.string().nullable().optional(),
+  external_owner_user_id: z.number().nullable().optional(),
+  external_synced_at: z.string().nullable().optional(),
+  sync_enabled: z.number().nullable().optional(),
   // joined / computed in listReservations
   day_number: z.number().nullable().optional(),
   place_name: z.string().nullable().optional(),

@@ -2476,6 +2476,19 @@ function runMigrations(db: Database.Database): void {
       try { db.exec("ALTER TABLE users ADD COLUMN airtrail_api_key TEXT"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
       try { db.exec("ALTER TABLE users ADD COLUMN airtrail_allow_insecure_tls INTEGER DEFAULT 0"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
     },
+    () => {
+      // AirTrail flight linkage on reservations (#214) — lets a TREK transport
+      // remember its AirTrail origin so the two-way sync can match + update it.
+      // sync_enabled flips to 0 when the AirTrail flight is deleted (row kept).
+      try { db.exec("ALTER TABLE reservations ADD COLUMN external_source TEXT"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      try { db.exec("ALTER TABLE reservations ADD COLUMN external_id TEXT"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      try { db.exec("ALTER TABLE reservations ADD COLUMN external_owner_user_id INTEGER"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      try { db.exec("ALTER TABLE reservations ADD COLUMN external_synced_at TEXT"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      try { db.exec("ALTER TABLE reservations ADD COLUMN sync_enabled INTEGER DEFAULT 1"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      try { db.exec("ALTER TABLE reservations ADD COLUMN external_hash TEXT"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      // NULLs compare distinct in SQLite, so non-linked reservations don't collide.
+      db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_reservations_external ON reservations(external_source, external_id, trip_id)");
+    },
   ];
 
   if (currentVersion < migrations.length) {

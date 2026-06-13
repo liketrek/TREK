@@ -1,8 +1,10 @@
+import type { AirtrailFlight } from '@trek/shared';
 import { db } from '../../db/database';
 import { maybe_encrypt_api_key, decrypt_api_key } from '../apiKeyCrypto';
 import { checkSsrf } from '../../utils/ssrfGuard';
 import { writeAudit } from '../auditLog';
-import { AirtrailAuthError, AirtrailCreds, listFlights } from './airtrailClient';
+import { AirtrailAuthError, AirtrailCreds, AirtrailRequestError, listFlights } from './airtrailClient';
+import { normalizeFlight } from './airtrailMapper';
 
 const KEY_MASK = '••••••••';
 
@@ -140,4 +142,12 @@ export async function testConnection(
   }
 
   return probe({ baseUrl: effectiveUrl, apiKey: effectiveKey, allowInsecureTls });
+}
+
+/** The user's AirTrail flights, normalized for the import picker. */
+export async function getFlightsForPicker(userId: number): Promise<AirtrailFlight[]> {
+  const creds = getAirtrailCredentials(userId);
+  if (!creds) throw new AirtrailRequestError('AirTrail is not connected', 400);
+  const raw = await listFlights(creds);
+  return raw.map(normalizeFlight);
 }

@@ -10,6 +10,7 @@ import { airtrailSettingsSchema, type AirtrailSettings } from '@trek/shared';
 import {
   getConnectionSettings,
   getConnectionStatus,
+  getFlightsForPicker,
   saveSettings,
   testConnection,
 } from '../../services/airtrail/airtrailService';
@@ -52,6 +53,15 @@ export class AirtrailController {
   @Get('status')
   getStatus(@CurrentUser() user: User) {
     return getConnectionStatus(user.id);
+  }
+
+  @Get('flights')
+  async flights(@CurrentUser() user: User) {
+    try {
+      return { flights: await getFlightsForPicker(user.id) };
+    } catch (err: any) {
+      throw new HttpException({ error: err?.message || 'Could not load AirTrail flights' }, err?.status === 400 ? 400 : 502);
+    }
   }
 
   @Post('test')
