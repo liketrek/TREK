@@ -14,6 +14,7 @@ import {
   saveSettings,
   testConnection,
 } from '../../services/airtrail/airtrailService';
+import { runAirtrailSyncForUser } from '../../services/airtrail/airtrailSync';
 
 /**
  * /api/integrations/airtrail — per-user AirTrail connection (#214).
@@ -62,6 +63,13 @@ export class AirtrailController {
     } catch (err: any) {
       throw new HttpException({ error: err?.message || 'Could not load AirTrail flights' }, err?.status === 400 ? 400 : 502);
     }
+  }
+
+  /** Pull this user's AirTrail edits into their linked reservations on demand. */
+  @Post('sync')
+  @HttpCode(200)
+  sync(@CurrentUser() user: User) {
+    return runAirtrailSyncForUser(user.id);
   }
 
   @Post('test')

@@ -494,6 +494,7 @@ export const airtrailApi = {
   status: () => apiClient.get('/integrations/airtrail/status').then(r => r.data),
   test: (data: { url?: string; apiKey?: string; allowInsecureTls?: boolean }) =>
     apiClient.post('/integrations/airtrail/test', data).then(r => r.data),
+  sync: (): Promise<{ changed: number }> => apiClient.post('/integrations/airtrail/sync').then(r => r.data),
   // flights + import are added with the trip-planner import (P2)
   flights: () => apiClient.get('/integrations/airtrail/flights').then(r => r.data),
   import: (tripId: number, flightIds: string[]) =>

@@ -32,7 +32,7 @@ import Navbar from '../components/Layout/Navbar'
 import { useToast } from '../components/shared/Toast'
 import { Map, X, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Ticket, PackageCheck, Wallet, FolderOpen, Users, Train } from 'lucide-react'
 import { useTranslation } from '../i18n'
-import { addonsApi, accommodationsApi, authApi, tripsApi, assignmentsApi, mapsApi } from '../api/client'
+import { addonsApi, accommodationsApi, authApi, tripsApi, assignmentsApi, mapsApi, airtrailApi } from '../api/client'
 import { accommodationRepo } from '../repo/accommodationRepo'
 import { offlineDb } from '../db/offlineDb'
 import { useAuthStore } from '../store/authStore'
@@ -213,6 +213,18 @@ export default function TripPlannerPage(): React.ReactElement | null {
   const poiPillEnabled = useSettingsStore(s => s.settings.map_poi_pill_enabled) !== false
   const { available: airTrailAvailable } = useAirtrailConnection()
   const [showAirTrailImport, setShowAirTrailImport] = useState(false)
+  // Pull this user's AirTrail edits as soon as they open the trip, so changes
+  // made in AirTrail show up without waiting for the background poll. The
+  // server broadcasts reservation:updated (which refreshes the view live);
+  // loadReservations is a fallback if anything changed.
+  const airtrailSyncedRef = useRef<number | null>(null)
+  useEffect(() => {
+    if (!airTrailAvailable || !tripId || airtrailSyncedRef.current === tripId) return
+    airtrailSyncedRef.current = tripId
+    airtrailApi.sync()
+      .then(r => { if (r && r.changed > 0) tripActions.loadReservations(tripId) })
+      .catch(() => {})
+  }, [airTrailAvailable, tripId, tripActions])
 
   if (isLoading || !splashDone) {
     return (

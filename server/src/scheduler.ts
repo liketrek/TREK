@@ -344,8 +344,8 @@ function startAirTrailSync(): void {
 
   const { db } = require('./db/database');
   const getSetting = (key: string) => (db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value: string } | undefined)?.value;
-  const raw = parseInt(getSetting('airtrail_poll_interval_minutes') || '15', 10);
-  const minutes = Number.isFinite(raw) && raw >= 1 && raw <= 59 ? raw : 15;
+  const raw = parseInt(getSetting('airtrail_poll_interval_minutes') || '5', 10);
+  const minutes = Number.isFinite(raw) && raw >= 1 && raw <= 59 ? raw : 5;
   const tz = process.env.TZ || 'UTC';
   logInfo(`AirTrail sync: scheduled every ${minutes}m`);
 

@@ -41,15 +41,65 @@ function detach(tripId: number, reservationId: number): void {
 
 // ── AirTrail → TREK (poll) ───────────────────────────────────────────────────
 
+/**
+ * Reconcile one owner's linked reservations against their current AirTrail
+ * flights: apply field changes (detected by snapshot hash, since AirTrail has no
+ * updated_at) and, when a flight is gone from AirTrail, keep the TREK row but
+ * stop syncing it. Only already-imported flights are touched — new AirTrail
+ * flights are never auto-added to a trip. Returns how many rows changed.
+ */
+async function syncOwner(uid: number): Promise<number> {
+  const creds = getAirtrailCredentials(uid);
+  if (!creds) return 0; // owner disconnected — leave their linked rows as-is
+
+  let flights: AirtrailFlightRaw[];
+  try {
+    flights = await listFlights(creds);
+  } catch (err) {
+    if (err instanceof AirtrailAuthError) logError(`AirTrail sync: invalid API key for user ${uid}`);
+    return 0;
+  }
+  const byId = new Map(flights.map(f => [String(f.id), f]));
+
+  const linked = db
+    .prepare(
+      "SELECT id, trip_id, external_id, external_hash FROM reservations WHERE external_source = 'airtrail' AND sync_enabled = 1 AND external_owner_user_id = ?",
+    )
+    .all(uid) as { id: number; trip_id: number; external_id: string; external_hash: string | null }[];
+
+  let changed = 0;
+  for (const row of linked) {
+    const flight = byId.get(String(row.external_id));
+    if (!flight) {
+      detach(row.trip_id, row.id); // deleted in AirTrail → keep row, stop syncing
+      changed++;
+      continue;
+    }
+
+    const hash = canonicalHash(flight);
+    if (hash === row.external_hash) continue;
+
+    const current = getReservation(row.id, row.trip_id);
+    if (!current) continue;
+    try {
+      updateReservation(row.id, row.trip_id, mapFlightToReservation(flight) as any, current as any);
+      db.prepare('UPDATE reservations SET external_hash = ?, external_synced_at = ? WHERE id = ?').run(
+        hash,
+        new Date().toISOString(),
+        row.id,
+      );
+      broadcastUpdated(row.trip_id, row.id);
+      changed++;
+    } catch (err) {
+      logError(`AirTrail sync: failed to update reservation ${row.id}: ${err instanceof Error ? err.message : err}`);
+    }
+  }
+  return changed;
+}
+
 let running = false;
 
-/**
- * Poll every connected owner's AirTrail flights and reconcile the linked
- * reservations: apply field changes (detected by snapshot hash, since AirTrail
- * has no updated_at) and, when a flight is gone from AirTrail, keep the TREK row
- * but stop syncing it. Only already-imported flights are touched — new AirTrail
- * flights are never auto-added to a trip.
- */
+/** Background poll across every connected owner (scheduler). */
 export async function runAirtrailSync(): Promise<void> {
   if (running) return;
   if (!syncGloballyEnabled()) return;
@@ -61,58 +111,27 @@ export async function runAirtrailSync(): Promise<void> {
         "SELECT DISTINCT external_owner_user_id AS uid FROM reservations WHERE external_source = 'airtrail' AND sync_enabled = 1 AND external_owner_user_id IS NOT NULL",
       )
       .all() as { uid: number }[];
-
-    for (const { uid } of owners) {
-      const creds = getAirtrailCredentials(uid);
-      if (!creds) continue; // owner disconnected — leave their linked rows as-is
-
-      let flights: AirtrailFlightRaw[];
-      try {
-        flights = await listFlights(creds);
-      } catch (err) {
-        if (err instanceof AirtrailAuthError) logError(`AirTrail sync: invalid API key for user ${uid}`);
-        continue;
-      }
-      const byId = new Map(flights.map(f => [String(f.id), f]));
-
-      const linked = db
-        .prepare(
-          "SELECT id, trip_id, external_id, external_hash FROM reservations WHERE external_source = 'airtrail' AND sync_enabled = 1 AND external_owner_user_id = ?",
-        )
-        .all(uid) as { id: number; trip_id: number; external_id: string; external_hash: string | null }[];
-
-      for (const row of linked) {
-        const flight = byId.get(String(row.external_id));
-        if (!flight) {
-          detach(row.trip_id, row.id); // deleted in AirTrail → keep row, stop syncing
-          changed++;
-          continue;
-        }
-
-        const hash = canonicalHash(flight);
-        if (hash === row.external_hash) continue;
-
-        const current = getReservation(row.id, row.trip_id);
-        if (!current) continue;
-        try {
-          updateReservation(row.id, row.trip_id, mapFlightToReservation(flight) as any, current as any);
-          db.prepare('UPDATE reservations SET external_hash = ?, external_synced_at = ? WHERE id = ?').run(
-            hash,
-            new Date().toISOString(),
-            row.id,
-          );
-          broadcastUpdated(row.trip_id, row.id);
-          changed++;
-        } catch (err) {
-          logError(`AirTrail sync: failed to update reservation ${row.id}: ${err instanceof Error ? err.message : err}`);
-        }
-      }
-    }
+    for (const { uid } of owners) changed += await syncOwner(uid);
     if (changed > 0) logInfo(`AirTrail sync: applied ${changed} change(s)`);
   } catch (err) {
     logError(`AirTrail sync failed: ${err instanceof Error ? err.message : err}`);
   } finally {
     running = false;
+  }
+}
+
+/**
+ * On-demand sync of just this user's linked flights — called when the user opens
+ * a trip so AirTrail-side edits show up immediately instead of waiting for the
+ * background poll.
+ */
+export async function runAirtrailSyncForUser(userId: number): Promise<{ changed: number }> {
+  if (!syncGloballyEnabled()) return { changed: 0 };
+  try {
+    return { changed: await syncOwner(userId) };
+  } catch (err) {
+    logError(`AirTrail sync (user ${userId}) failed: ${err instanceof Error ? err.message : err}`);
+    return { changed: 0 };
   }
 }
 
