@@ -78,6 +78,8 @@ const places: TranslationStrings = {
   'places.categoryCreateError': 'Nie udało się utworzyć kategorii',
   'places.nameRequired': 'Proszę podać nazwę',
   'places.saveError': 'Nie udało się zapisać',
+  'places.duplicateExists': "'{name}' jest już w tej podróży.",
+  'places.addAnyway': 'Dodaj mimo to',
   'places.importNaverList': 'Lista Naver',
   'places.importList': 'Import listy',
   'places.googleListHint': 'Wklej link do listy Google Maps.',

@@ -83,5 +83,7 @@ const places: TranslationStrings = {
   'places.categoryCreateError': '创建分类失败',
   'places.nameRequired': '请输入名称',
   'places.saveError': '保存失败',
+  'places.duplicateExists': "'{name}' 已在此行程中。",
+  'places.addAnyway': '仍然添加',
 };
 export default places;

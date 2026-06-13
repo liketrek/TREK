@@ -88,5 +88,7 @@ const places: TranslationStrings = {
   'places.categoryCreateError': 'Gagal membuat kategori',
   'places.nameRequired': 'Harap masukkan nama',
   'places.saveError': 'Gagal menyimpan',
+  'places.duplicateExists': "'{name}' sudah ada di perjalanan ini.",
+  'places.addAnyway': 'Tetap tambahkan',
 };
 export default places;

@@ -86,5 +86,7 @@ const places: TranslationStrings = {
   'places.categoryCreateError': 'فشل إنشاء الفئة',
   'places.nameRequired': 'يرجى إدخال اسم',
   'places.saveError': 'فشل الحفظ',
+  'places.duplicateExists': "'{name}' موجود بالفعل في هذه الرحلة.",
+  'places.addAnyway': 'الإضافة على أي حال',
 };
 export default places;

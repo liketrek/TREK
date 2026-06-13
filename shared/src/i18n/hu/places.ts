@@ -89,5 +89,7 @@ const places: TranslationStrings = {
   'places.categoryCreateError': 'Nem sikerült létrehozni a kategóriát',
   'places.nameRequired': 'Kérjük, adj meg egy nevet',
   'places.saveError': 'Nem sikerült menteni',
+  'places.duplicateExists': "A(z) '{name}' már szerepel ebben az utazásban.",
+  'places.addAnyway': 'Hozzáadás mindenképp',
 };
 export default places;

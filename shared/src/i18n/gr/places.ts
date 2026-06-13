@@ -90,5 +90,7 @@ const places: TranslationStrings = {
   'places.categoryCreateError': 'Αποτυχία δημιουργίας κατηγορίας',
   'places.nameRequired': 'Παρακαλώ εισαγάγετε ένα όνομα',
   'places.saveError': 'Αποτυχία αποθήκευσης',
+  'places.duplicateExists': "Το '{name}' υπάρχει ήδη σε αυτό το ταξίδι.",
+  'places.addAnyway': 'Προσθήκη ούτως ή άλλως',
 };
 export default places;

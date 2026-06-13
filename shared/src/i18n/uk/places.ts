@@ -88,5 +88,7 @@ const places: TranslationStrings = {
   'places.categoryCreateError': 'Не вдалося створити категорію',
   'places.nameRequired': 'Введіть назву',
   'places.saveError': 'Помилка збереження',
+  'places.duplicateExists': "'{name}' вже є в цій подорожі.",
+  'places.addAnyway': 'Все одно додати',
 };
 export default places;

@@ -87,5 +87,7 @@ const places: TranslationStrings = {
   'places.categoryCreateError': 'Nepodařilo se vytvořit kategorii',
   'places.nameRequired': 'Prosím zadejte název',
   'places.saveError': 'Uložení se nezdařilo',
+  'places.duplicateExists': "'{name}' už v tomto výletu existuje.",
+  'places.addAnyway': 'Přesto přidat',
 };
 export default places;

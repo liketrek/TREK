@@ -89,5 +89,7 @@ const places: TranslationStrings = {
   'places.categoryCreateError': 'カテゴリの作成に失敗しました',
   'places.nameRequired': '名前を入力してください',
   'places.saveError': '保存に失敗しました',
+  'places.duplicateExists': '「{name}」はすでにこの旅程に含まれています。',
+  'places.addAnyway': 'それでも追加',
 };
 export default places;

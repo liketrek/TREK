@@ -39,6 +39,31 @@ interface PlaceFormModalProps {
 /** Place create/edit form state: maps search + Google-URL resolve + autocomplete,
  * category creation, file attachments and submit. Keeps PlaceFormModal a thin
  * render over the form fields. */
+
+// #1152: a manually-added place is treated as a likely duplicate of an existing
+// trip place if it shares the Google Place ID, the (case-insensitive) name, or
+// near-identical coordinates (~11 m). Mirrors the server-side import dedup.
+const DUP_COORD_TOLERANCE = 0.0001
+function findDuplicatePlace(
+  form: PlaceFormData,
+  places: { name?: string | null; lat?: number | null; lng?: number | null; google_place_id?: string | null }[],
+): { name?: string | null } | null {
+  const name = (form.name || '').trim().toLowerCase()
+  const gid = (form.google_place_id || '').trim()
+  const lat = form.lat ? parseFloat(form.lat) : null
+  const lng = form.lng ? parseFloat(form.lng) : null
+  for (const p of places || []) {
+    if (gid && p.google_place_id && p.google_place_id === gid) return p
+    if (name && p.name && p.name.trim().toLowerCase() === name) return p
+    if (
+      lat != null && lng != null && p.lat != null && p.lng != null &&
+      Math.abs(Number(p.lat) - lat) <= DUP_COORD_TOLERANCE &&
+      Math.abs(Number(p.lng) - lng) <= DUP_COORD_TOLERANCE
+    ) return p
+  }
+  return null
+}
+
 function usePlaceFormModal(props: PlaceFormModalProps) {
   const {
   isOpen, onClose, onSave, place, prefillCoords, tripId, categories,
@@ -51,6 +76,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   const [newCategoryName, setNewCategoryName] = useState('')
   const [showNewCategory, setShowNewCategory] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null)
   const [pendingFiles, setPendingFiles] = useState([])
   const fileRef = useRef(null)
   const [acSuggestions, setAcSuggestions] = useState<{ placeId: string; mainText: string; secondaryText: string }[]>([])
@@ -94,6 +120,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
       setForm(DEFAULT_FORM)
     }
     setPendingFiles([])
+    setDuplicateWarning(null)
   }, [place, prefillCoords, isOpen])
 
   // Derive location bias bounding box from the trip's existing places
@@ -309,6 +336,17 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
       toast.error(t('places.nameRequired'))
       return
     }
+    // #1152: only for new places, and only on the first attempt — a second click
+    // (with the warning already showing) is the explicit "add anyway" confirmation.
+    if (!place && !duplicateWarning) {
+      const dup = findDuplicatePlace(form, places)
+      if (dup) {
+        const dupName = dup.name || form.name
+        setDuplicateWarning(dupName)
+        toast.warning(t('places.duplicateExists', { name: dupName }))
+        return
+      }
+    }
     setIsSaving(true)
     try {
       await onSave({
@@ -381,6 +419,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     handlePaste,
     hasTimeError,
     handleSubmit,
+    duplicateWarning,
   }
 }
 
@@ -441,6 +480,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
     handlePaste,
     hasTimeError,
     handleSubmit,
+    duplicateWarning,
   } = S
   return (
     <Modal
@@ -463,7 +503,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
             disabled={isSaving || hasTimeError}
             className="px-6 py-2 bg-slate-900 text-white text-sm rounded-lg hover:bg-slate-700 disabled:opacity-60 font-medium"
           >
-            {isSaving ? t('common.saving') : place ? t('common.update') : t('common.add')}
+            {isSaving ? t('common.saving') : place ? t('common.update') : duplicateWarning ? t('places.addAnyway') : t('common.add')}
           </button>
         </div>
       }

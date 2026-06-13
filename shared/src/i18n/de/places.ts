@@ -88,5 +88,7 @@ const places: TranslationStrings = {
   'places.categoryCreateError': 'Fehler beim Erstellen der Kategorie',
   'places.nameRequired': 'Bitte einen Namen eingeben',
   'places.saveError': 'Fehler beim Speichern',
+  'places.duplicateExists': "'{name}' ist bereits in dieser Reise.",
+  'places.addAnyway': 'Trotzdem hinzufügen',
 };
 export default places;

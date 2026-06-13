@@ -89,5 +89,7 @@ const places: TranslationStrings = {
   'places.categoryCreateError': 'Categorie aanmaken mislukt',
   'places.nameRequired': 'Voer een naam in',
   'places.saveError': 'Opslaan mislukt',
+  'places.duplicateExists': "'{name}' staat al in deze reis.",
+  'places.addAnyway': 'Toch toevoegen',
 };
 export default places;

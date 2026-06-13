@@ -87,5 +87,7 @@ const places: TranslationStrings = {
   'places.categoryCreateError': 'Kategori oluşturulamadı',
   'places.nameRequired': 'Lütfen bir ad girin',
   'places.saveError': 'Kaydedilemedi',
+  'places.duplicateExists': "'{name}' zaten bu gezide var.",
+  'places.addAnyway': 'Yine de ekle',
 };
 export default places;
