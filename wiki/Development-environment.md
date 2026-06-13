@@ -139,18 +139,20 @@ These commands run across all workspaces at once and are the recommended way to 
 
 ### Shared (`/shared`)
 
-The `@trek/shared` package is the single source of truth for code shared between the client and server. It currently holds **Zod schemas that define API contracts** (request/response shapes, common primitives, pagination). Both workspaces import from it so schema changes automatically propagate to both sides.
+The `@trek/shared` package is the single source of truth for code shared between the client and server. It holds the **Zod schemas that define the API contracts** (request/response shapes, common primitives, pagination) and the **i18n translation layer** (per-language keys and types). Both workspaces import from it, so schema and translation changes propagate to both sides from one place.
 
-> **Upcoming:** the i18n translation layer will be migrated into this package so that translation keys and types are enforced across the stack from one place.
+> **Tip:** run `npm run i18n:parity` (or `i18n:parity:strict`) in this package to verify every locale exposes the same translation keys — the CI parity gate runs the strict variant.
 
-| Command                | Description                        |
-|------------------------|------------------------------------|
-| `npm run build`        | Compile shared package (tsup)      |
-| `npm run build:watch`  | Compile in watch mode              |
-| `npm test`             | Run tests                          |
-| `npm run typecheck`    | Type-check without emitting        |
-| `npm run lint`         | Lint source                        |
-| `npm run format`       | Format source                      |
+| Command                     | Description                          |
+|-----------------------------|--------------------------------------|
+| `npm run build`             | Compile shared package (tsup)        |
+| `npm run build:watch`       | Compile in watch mode                |
+| `npm test`                  | Run tests                            |
+| `npm run typecheck`         | Type-check without emitting          |
+| `npm run i18n:parity`       | Check locale key parity              |
+| `npm run i18n:parity:strict`| Strict locale key parity (CI gate)   |
+| `npm run lint`              | Lint source                          |
+| `npm run format`            | Format source                        |
 
 ### Server (`/server`)
 
@@ -164,7 +166,6 @@ The `@trek/shared` package is the single source of truth for code shared between
 | `npm run test:unit`        | Run unit tests only                      |
 | `npm run test:integration` | Run integration tests                    |
 | `npm run test:ws`          | Run WebSocket tests                      |
-| `npm run test:parity`      | Run parity tests                         |
 | `npm run test:e2e`         | Run end-to-end tests                     |
 | `npm run test:watch`       | Run tests in watch mode                  |
 | `npm run test:coverage`    | Run tests with coverage report           |
