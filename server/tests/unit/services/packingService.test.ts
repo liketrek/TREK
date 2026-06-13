@@ -275,3 +275,27 @@ describe('bulkImport with bag field', () => {
     expect(items[1].bag_id).toBe(bags[0].id);
   });
 });
+
+// ── bulkImport with quantity field ────────────────────────────────────────────
+
+describe('bulkImport with quantity field', () => {
+  it('PACK-SVC-013: bulk import respects per-item quantity, defaults to 1, and clamps out-of-range', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    bulkImport(trip.id, [
+      { name: 'Socks', quantity: 5 },
+      { name: 'Toothbrush' },
+      { name: 'Batteries', quantity: 9999 },
+      { name: 'Charger', quantity: 0 },
+    ]);
+
+    const byName = (n: string) =>
+      testDb.prepare('SELECT * FROM packing_items WHERE trip_id = ? AND name = ?').get(trip.id, n) as any;
+
+    expect(byName('Socks').quantity).toBe(5);
+    expect(byName('Toothbrush').quantity).toBe(1);
+    expect(byName('Batteries').quantity).toBe(999);
+    expect(byName('Charger').quantity).toBe(1);
+  });
+});
