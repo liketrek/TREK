@@ -1,6 +1,6 @@
 import { placesApi } from '../api/client'
 import { offlineDb, upsertPlaces } from '../db/offlineDb'
-import { mutationQueue, generateUUID } from '../sync/mutationQueue'
+import { mutationQueue, generateUUID, nextTempId } from '../sync/mutationQueue'
 import type { Place } from '../types'
 
 export const placeRepo = {
@@ -19,7 +19,7 @@ export const placeRepo = {
 
   async create(tripId: number | string, data: Record<string, unknown> & { name: string }): Promise<{ place: Place }> {
     if (!navigator.onLine) {
-      const tempId = -(Date.now())
+      const tempId = nextTempId()
       const tempPlace: Place = {
         ...(data as Partial<Place>),
         id: tempId,
@@ -50,13 +50,16 @@ export const placeRepo = {
       const optimistic: Place = { ...(existing ?? {} as Place), ...(data as Partial<Place>), id: Number(id) }
       await offlineDb.places.put(optimistic)
       const mutId = generateUUID()
+      const isTemp = Number(id) < 0
       await mutationQueue.enqueue({
         id: mutId,
         tripId: Number(tripId),
         method: 'PUT',
-        url: `/trips/${tripId}/places/${id}`,
+        url: isTemp ? `/trips/${tripId}/places/{id}` : `/trips/${tripId}/places/${id}`,
         body: data,
         resource: 'places',
+        entityId: Number(id),
+        ...(isTemp ? { tempEntityId: Number(id) } : {}),
       })
       return { place: optimistic }
     }
@@ -69,14 +72,16 @@ export const placeRepo = {
     if (!navigator.onLine) {
       await offlineDb.places.delete(Number(id))
       const mutId = generateUUID()
+      const isTemp = Number(id) < 0
       await mutationQueue.enqueue({
         id: mutId,
         tripId: Number(tripId),
         method: 'DELETE',
-        url: `/trips/${tripId}/places/${id}`,
+        url: isTemp ? `/trips/${tripId}/places/{id}` : `/trips/${tripId}/places/${id}`,
         body: undefined,
         resource: 'places',
         entityId: Number(id),
+        ...(isTemp ? { tempEntityId: Number(id) } : {}),
       })
       return { success: true }
     }
@@ -90,14 +95,16 @@ export const placeRepo = {
       await offlineDb.places.bulkDelete(ids)
       for (const id of ids) {
         const mutId = generateUUID()
+        const isTemp = id < 0
         await mutationQueue.enqueue({
           id: mutId,
           tripId: Number(tripId),
           method: 'DELETE',
-          url: `/trips/${tripId}/places/${id}`,
+          url: isTemp ? `/trips/${tripId}/places/{id}` : `/trips/${tripId}/places/${id}`,
           body: undefined,
           resource: 'places',
           entityId: id,
+          ...(isTemp ? { tempEntityId: id } : {}),
         })
       }
       return { deleted: ids, count: ids.length }

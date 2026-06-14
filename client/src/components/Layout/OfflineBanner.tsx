@@ -2,6 +2,7 @@
  * OfflineBanner — connectivity + sync state indicator.
  *
  * States:
+ *   N failed            →  red pill   "N changes failed to sync" (takes priority)
  *   offline + N queued  →  amber pill "Offline · N queued"
  *   offline + 0 queued  →  amber pill "Offline"
  *   online  + N pending →  blue pill  "Syncing N…"
@@ -12,7 +13,7 @@
  * headers. On mobile it hovers just above the bottom tab bar.
  */
 import React, { useState, useEffect } from 'react'
-import { WifiOff, RefreshCw } from 'lucide-react'
+import { WifiOff, RefreshCw, AlertTriangle } from 'lucide-react'
 import { mutationQueue } from '../../sync/mutationQueue'
 
 const POLL_MS = 3_000
@@ -20,6 +21,7 @@ const POLL_MS = 3_000
 export default function OfflineBanner(): React.ReactElement | null {
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [pendingCount, setPendingCount] = useState(0)
+  const [failedCount, setFailedCount] = useState(0)
 
   useEffect(() => {
     const onOnline  = () => setIsOnline(true)
@@ -35,26 +37,36 @@ export default function OfflineBanner(): React.ReactElement | null {
   useEffect(() => {
     let cancelled = false
     async function poll() {
-      const n = await mutationQueue.pendingCount()
-      if (!cancelled) setPendingCount(n)
+      const [n, failed] = await Promise.all([
+        mutationQueue.pendingCount(),
+        mutationQueue.failedCount(),
+      ])
+      if (!cancelled) {
+        setPendingCount(n)
+        setFailedCount(failed)
+      }
     }
     poll()
     const id = setInterval(poll, POLL_MS)
     return () => { cancelled = true; clearInterval(id) }
   }, [])
 
-  const hidden = isOnline && pendingCount === 0
+  const hidden = isOnline && pendingCount === 0 && failedCount === 0
   if (hidden) return null
 
   const offline = !isOnline
-  const bg    = offline ? '#92400e' : '#1e40af'
+  // Failed mutations are the most important signal — they mean data was dropped.
+  const failed = failedCount > 0
+  const bg    = failed ? '#b91c1c' : offline ? '#92400e' : '#1e40af'
   const text  = '#fff'
 
-  const label = offline
-    ? pendingCount > 0
-      ? `Offline · ${pendingCount} queued`
-      : 'Offline'
-    : `Syncing ${pendingCount}…`
+  const label = failed
+    ? `${failedCount} change${failedCount !== 1 ? 's' : ''} failed to sync`
+    : offline
+      ? pendingCount > 0
+        ? `Offline · ${pendingCount} queued`
+        : 'Offline'
+      : `Syncing ${pendingCount}…`
 
   return (
     <div
@@ -82,9 +94,11 @@ export default function OfflineBanner(): React.ReactElement | null {
         pointerEvents: 'none',
       }}
     >
-      {offline
-        ? <WifiOff size={12} />
-        : <RefreshCw size={12} style={{ animation: 'spin 1s linear infinite' }} />
+      {failed
+        ? <AlertTriangle size={12} />
+        : offline
+          ? <WifiOff size={12} />
+          : <RefreshCw size={12} style={{ animation: 'spin 1s linear infinite' }} />
       }
       {label}
     </div>

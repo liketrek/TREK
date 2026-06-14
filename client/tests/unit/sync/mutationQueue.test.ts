@@ -8,8 +8,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import 'fake-indexeddb/auto';
 import { server } from '../../helpers/msw/server';
 import { http, HttpResponse } from 'msw';
-import { mutationQueue, generateUUID } from '../../../src/sync/mutationQueue';
+import { mutationQueue, generateUUID, nextTempId } from '../../../src/sync/mutationQueue';
 import { offlineDb, clearAll } from '../../../src/db/offlineDb';
+import { placeRepo } from '../../../src/repo/placeRepo';
 import { buildPlace, buildPackingItem } from '../../helpers/factories';
 
 beforeEach(async () => {
@@ -263,5 +264,179 @@ describe('mutationQueue.pendingCount', () => {
     await offlineDb.mutationQueue.update(id3, { status: 'failed' });
 
     expect(await mutationQueue.pendingCount()).toBe(2);
+  });
+});
+
+describe('mutationQueue.failedCount', () => {
+  it('counts only failed mutations (not pending/syncing)', async () => {
+    const id1 = generateUUID();
+    const id2 = generateUUID();
+    await mutationQueue.enqueue(makeMutation({ id: id1 }));
+    await mutationQueue.enqueue(makeMutation({ id: id2 }));
+    await offlineDb.mutationQueue.update(id2, { status: 'failed' });
+
+    expect(await mutationQueue.failedCount()).toBe(1);
+    expect(await mutationQueue.pendingCount()).toBe(1);
+  });
+});
+
+// ── B2: collision-free temp ids ────────────────────────────────────────────────
+
+describe('nextTempId (B2)', () => {
+  it('returns distinct negative ids even within the same millisecond', () => {
+    mutationQueue._resetFlushing();
+    const a = nextTempId();
+    const b = nextTempId();
+    const c = nextTempId();
+    expect(a).toBeLessThan(0);
+    expect(new Set([a, b, c]).size).toBe(3);
+  });
+
+  it('two tight offline creates produce two distinct Dexie rows', async () => {
+    Object.defineProperty(navigator, 'onLine', { value: false });
+    await placeRepo.create(1, { name: 'First' });
+    await placeRepo.create(1, { name: 'Second' });
+
+    const rows = await offlineDb.places.where('trip_id').equals(1).toArray();
+    expect(rows).toHaveLength(2);
+    expect(rows.map(r => r.name).sort()).toEqual(['First', 'Second']);
+  });
+});
+
+// ── B1: temp-id → real-id remapping ─────────────────────────────────────────────
+
+describe('mutationQueue.flush — temp-id remapping (B1)', () => {
+  it('rewrites a dependent PUT/DELETE to the real id within one flush', async () => {
+    const tempId = -1;
+    await offlineDb.places.put({ ...buildPlace({ trip_id: 1 }), id: tempId });
+
+    const createId = generateUUID();
+    const putId = generateUUID();
+    const deleteId = generateUUID();
+
+    await mutationQueue.enqueue({
+      id: createId, tripId: 1, method: 'POST', url: '/trips/1/places',
+      body: { name: 'Temp' }, resource: 'places', tempId,
+    });
+    await mutationQueue.enqueue({
+      id: putId, tripId: 1, method: 'PUT', url: '/trips/1/places/{id}',
+      body: { name: 'Edited' }, resource: 'places', entityId: tempId, tempEntityId: tempId,
+    });
+    await mutationQueue.enqueue({
+      id: deleteId, tripId: 1, method: 'DELETE', url: '/trips/1/places/{id}',
+      body: undefined, resource: 'places', entityId: tempId, tempEntityId: tempId,
+    });
+
+    const putUrls: string[] = [];
+    const deleteUrls: string[] = [];
+    server.use(
+      http.post('/api/trips/1/places', () => HttpResponse.json({ place: buildPlace({ trip_id: 1, id: 42 }) })),
+      http.put('/api/trips/1/places/:id', ({ params }) => { putUrls.push(String(params.id)); return HttpResponse.json({ place: buildPlace({ trip_id: 1, id: 42, name: 'Edited' }) }); }),
+      http.delete('/api/trips/1/places/:id', ({ params }) => { deleteUrls.push(String(params.id)); return HttpResponse.json({ success: true }); }),
+    );
+
+    await mutationQueue.flush();
+
+    expect(putUrls).toEqual(['42']);
+    expect(deleteUrls).toEqual(['42']);
+    expect(await mutationQueue.pendingCount()).toBe(0);
+    expect(await mutationQueue.failedCount()).toBe(0);
+  });
+
+  it('durably rewrites a still-queued dependent after the CREATE flushes alone', async () => {
+    const tempId = -7;
+    await offlineDb.places.put({ ...buildPlace({ trip_id: 1 }), id: tempId });
+
+    const createId = generateUUID();
+    const putId = generateUUID();
+    await mutationQueue.enqueue({
+      id: createId, tripId: 1, method: 'POST', url: '/trips/1/places',
+      body: { name: 'Temp' }, resource: 'places', tempId,
+    });
+    await mutationQueue.enqueue({
+      id: putId, tripId: 1, method: 'PUT', url: '/trips/1/places/{id}',
+      body: { name: 'Edited' }, resource: 'places', entityId: tempId, tempEntityId: tempId,
+    });
+
+    // Only the CREATE succeeds this round; the PUT errors out (network) and stays queued.
+    let putAttempts = 0;
+    server.use(
+      http.post('/api/trips/1/places', () => HttpResponse.json({ place: buildPlace({ trip_id: 1, id: 88 }) })),
+      http.put('/api/trips/1/places/:id', () => { putAttempts++; return HttpResponse.error(); }),
+    );
+
+    await mutationQueue.flush();
+
+    const queuedPut = await offlineDb.mutationQueue.get(putId);
+    expect(queuedPut).toBeDefined();
+    expect(queuedPut!.url).toBe('/trips/1/places/88');
+    expect(queuedPut!.entityId).toBe(88);
+    expect(queuedPut!.tempEntityId).toBeUndefined();
+    expect(putAttempts).toBeGreaterThanOrEqual(1);
+  });
+
+  it('marks an orphaned dependent (placeholder never resolved) as failed', async () => {
+    const putId = generateUUID();
+    await mutationQueue.enqueue({
+      id: putId, tripId: 1, method: 'PUT', url: '/trips/1/places/{id}',
+      body: { name: 'Edited' }, resource: 'places', entityId: -999, tempEntityId: -999,
+    });
+
+    await mutationQueue.flush();
+
+    const m = await offlineDb.mutationQueue.get(putId);
+    expect(m!.status).toBe('failed');
+  });
+});
+
+// ── B3: terminal rollback + retryable classification ────────────────────────────
+
+describe('mutationQueue.flush — failure handling (B3)', () => {
+  it('rolls back the phantom optimistic row on a terminal 400 CREATE', async () => {
+    const tempId = -3;
+    await offlineDb.places.put({ ...buildPlace({ trip_id: 1 }), id: tempId });
+
+    const id = generateUUID();
+    await mutationQueue.enqueue(makeMutation({ id, tempId }));
+
+    server.use(
+      http.post('/api/trips/1/places', () => HttpResponse.json({ error: 'Bad' }, { status: 400 })),
+    );
+
+    await mutationQueue.flush();
+
+    expect(await offlineDb.places.get(tempId)).toBeUndefined();
+    const m = await offlineDb.mutationQueue.get(id);
+    expect(m!.status).toBe('failed');
+  });
+
+  it('treats 429 as retryable: resets to pending and stops the flush', async () => {
+    const id = generateUUID();
+    await mutationQueue.enqueue(makeMutation({ id }));
+
+    server.use(
+      http.post('/api/trips/1/places', () => HttpResponse.json({ error: 'slow down' }, { status: 429 })),
+    );
+
+    await mutationQueue.flush();
+
+    const m = await offlineDb.mutationQueue.get(id);
+    expect(m!.status).toBe('pending');
+    expect(m!.attempts).toBe(1);
+    expect(await mutationQueue.failedCount()).toBe(0);
+  });
+
+  it('treats 401 as retryable rather than dropping the change', async () => {
+    const id = generateUUID();
+    await mutationQueue.enqueue(makeMutation({ id }));
+
+    server.use(
+      http.post('/api/trips/1/places', () => HttpResponse.json({ error: 'AUTH_REQUIRED' }, { status: 401 })),
+    );
+
+    await mutationQueue.flush();
+
+    const m = await offlineDb.mutationQueue.get(id);
+    expect(m!.status).toBe('pending');
   });
 });
