@@ -25,6 +25,7 @@ const archiverInstanceMock = vi.hoisted(() => ({
   pipe: vi.fn(),
   file: vi.fn(),
   directory: vi.fn(),
+  glob: vi.fn(),
   finalize: vi.fn(),
   on: vi.fn(),
 }));
@@ -441,7 +442,7 @@ describe('BACKUP-036 createBackup', () => {
     );
   });
 
-  it('BACKUP-036e — includes uploads directory when it exists', async () => {
+  it('BACKUP-036e — includes uploads but excludes the re-derivable photo caches', async () => {
     fsMock.existsSync.mockImplementation((p: string) => {
       if (String(p).endsWith('uploads')) return true;
       return false;
@@ -467,10 +468,16 @@ describe('BACKUP-036 createBackup', () => {
 
     await createBackup();
 
-    expect(archiverInstanceMock.directory).toHaveBeenCalledWith(
-      expect.stringContaining('uploads'),
-      'uploads'
+    expect(archiverInstanceMock.glob).toHaveBeenCalledWith(
+      '**/*',
+      expect.objectContaining({
+        cwd: expect.stringContaining('uploads'),
+        ignore: ['photos/google/**', 'photos/trek/**'],
+      }),
+      { prefix: 'uploads' },
     );
+    // The re-derivable caches must not be archived verbatim.
+    expect(archiverInstanceMock.directory).not.toHaveBeenCalled();
   });
 });
 

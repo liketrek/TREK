@@ -41,6 +41,14 @@ vi.mock('../../../src/config', () => ({
   updateJwtSecret: () => {},
 }));
 
+// Spy on the photo-cache reclaim hook so delete tests assert the wiring without
+// touching disk. The removal logic itself is covered in placePhotoCache.test.ts.
+const { removeIfUnreferencedSpy } = vi.hoisted(() => ({ removeIfUnreferencedSpy: vi.fn() }));
+vi.mock('../../../src/services/placePhotoCache', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../src/services/placePhotoCache')>()),
+  removeIfUnreferenced: removeIfUnreferencedSpy,
+}));
+
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
@@ -251,6 +259,18 @@ describe('deletePlace', () => {
     const remaining = listPlaces(String(trip.id), {}) as any[];
     expect(remaining).toHaveLength(1);
     expect(remaining[0].id).toBe(p1.id);
+  });
+
+  it('PLACE-SVC-019b — reclaims the photo cache for the deleted place', () => {
+    removeIfUnreferencedSpy.mockClear();
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'With Photo' }) as any;
+    testDb.prepare('UPDATE places SET google_place_id = ? WHERE id = ?').run('ChIJgid', place.id);
+
+    deletePlace(String(trip.id), String(place.id));
+
+    expect(removeIfUnreferencedSpy).toHaveBeenCalledWith('ChIJgid');
   });
 });
 

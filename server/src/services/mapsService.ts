@@ -33,7 +33,7 @@ interface OverpassElement {
 }
 
 interface WikiCommonsPage {
-  imageinfo?: { url?: string; extmetadata?: { Artist?: { value?: string } } }[];
+  imageinfo?: { url?: string; thumburl?: string; extmetadata?: { Artist?: { value?: string } } }[];
 }
 
 interface GooglePlaceResult {
@@ -537,7 +537,9 @@ export async function fetchWikimediaPhoto(lat: number, lng: number, name?: strin
       const mime = (info as { mime?: string })?.mime || '';
       if (info?.url && (mime.startsWith('image/jpeg') || mime.startsWith('image/png'))) {
         const attribution = info.extmetadata?.Artist?.value?.replace(/<[^>]+>/g, '').trim() || null;
-        return { photoUrl: info.url, attribution };
+        // iiurlwidth=400 makes Commons also return a scaled thumburl. Prefer it —
+        // info.url is the full-resolution original (multi-megapixel camera exports).
+        return { photoUrl: info.thumburl ?? info.url, attribution };
       }
     }
     return null;

@@ -14,6 +14,20 @@ import {
   type KmlImportSummary,
 } from './kmlImport';
 import { enrichImportedPlaces, type EnrichablePlace } from './placeEnrichment';
+import * as placePhotoCache from './placePhotoCache';
+
+// Reclaim a deleted place's cached marker photo if nothing else references it.
+// The cache key is the Google place_id, or — for coordinate-only places — the
+// pseudo-id embedded in the stored proxy URL (/api/maps/place-photo/{id}/bytes).
+function reclaimPhotoCache(googlePlaceId: string | null, imageUrl: string | null): void {
+  const candidates = new Set<string>();
+  if (googlePlaceId) candidates.add(googlePlaceId);
+  const m = imageUrl?.match(/^\/api\/maps\/place-photo\/(.+)\/bytes$/);
+  if (m) { try { candidates.add(decodeURIComponent(m[1])); } catch { /* malformed url */ } }
+  for (const id of candidates) {
+    try { placePhotoCache.removeIfUnreferenced(id); } catch { /* best-effort */ }
+  }
+}
 
 /** Opt-in Places-API enrichment for list imports (#886). */
 export interface ListImportOptions {
@@ -242,25 +256,33 @@ export function updatePlace(
 // ---------------------------------------------------------------------------
 
 export function deletePlace(tripId: string, placeId: string): boolean {
-  const place = db.prepare('SELECT id FROM places WHERE id = ? AND trip_id = ?').get(placeId, tripId);
+  const place = db.prepare(
+    'SELECT google_place_id, image_url FROM places WHERE id = ? AND trip_id = ?'
+  ).get(placeId, tripId) as { google_place_id: string | null; image_url: string | null } | undefined;
   if (!place) return false;
   db.prepare('DELETE FROM places WHERE id = ?').run(placeId);
+  reclaimPhotoCache(place.google_place_id, place.image_url);
   return true;
 }
 
 export function deletePlacesMany(tripId: string, ids: number[]): number[] {
   if (ids.length === 0) return [];
-  const selectStmt = db.prepare('SELECT id FROM places WHERE id = ? AND trip_id = ?');
+  const selectStmt = db.prepare('SELECT google_place_id, image_url FROM places WHERE id = ? AND trip_id = ?');
   const deleteStmt = db.prepare('DELETE FROM places WHERE id = ?');
   const deleted: number[] = [];
+  const reclaimable: { google_place_id: string | null; image_url: string | null }[] = [];
   const run = db.transaction((list: number[]) => {
     for (const id of list) {
-      if (!selectStmt.get(id, tripId)) continue;
+      const row = selectStmt.get(id, tripId) as { google_place_id: string | null; image_url: string | null } | undefined;
+      if (!row) continue;
       deleteStmt.run(id);
       deleted.push(id);
+      reclaimable.push(row);
     }
   });
   run(ids);
+  // Reclaim after the transaction commits so isReferenced() sees the final place set.
+  for (const row of reclaimable) reclaimPhotoCache(row.google_place_id, row.image_url);
   return deleted;
 }
 

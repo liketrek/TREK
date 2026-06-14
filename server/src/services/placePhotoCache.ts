@@ -2,10 +2,19 @@ import path from 'node:path';
 import fs from 'node:fs';
 import fsPromises from 'node:fs/promises';
 import crypto from 'node:crypto';
+import { Jimp, JimpMime } from 'jimp';
 import { db } from '../db/database';
 
-const GOOGLE_PHOTO_DIR = path.join(__dirname, '../../uploads/photos/google');
+// Overridable for tests (mirrors the TREK_DB_FILE seam) so the suite never touches
+// the real uploads tree.
+const GOOGLE_PHOTO_DIR = process.env.TREK_PLACE_PHOTO_DIR || path.join(__dirname, '../../uploads/photos/google');
 const ERROR_TTL = 5 * 60 * 1000;
+
+// Marker photos are displayed tiny — cap stored images so an oversized source
+// (e.g. a Wikimedia Commons full-res original) can't bloat the cache. Matches
+// THUMB_MAX/THUMB_QUALITY in memories/thumbnailService.ts.
+const MAX_DIM = 800;
+const JPEG_QUALITY = 80;
 
 // In-flight dedup — prevents stampedes when multiple requests hit the same uncached placeId simultaneously
 const inFlight = new Map<string, Promise<{ filePath: string; attribution: string | null } | null>>();
@@ -74,11 +83,27 @@ export function markError(placeId: string): void {
   ).run(placeId, Date.now(), Date.now());
 }
 
+// Downscale oversized images to MAX_DIM before caching, re-encoding to JPEG.
+// Defense-in-depth: keeps the cache small regardless of what the fetch path hands
+// us. Jimp auto-applies EXIF orientation on read. Falls back to the original bytes
+// on any failure (corrupt/unsupported format) so behaviour is never worse than before.
+async function downscale(bytes: Buffer): Promise<Buffer> {
+  try {
+    const img = await Jimp.read(bytes);
+    if (img.bitmap.width <= MAX_DIM && img.bitmap.height <= MAX_DIM) return bytes;
+    img.scaleToFit({ w: MAX_DIM, h: MAX_DIM });
+    return await img.getBuffer(JimpMime.jpeg, { quality: JPEG_QUALITY });
+  } catch {
+    return bytes;
+  }
+}
+
 export async function put(placeId: string, bytes: Buffer, attribution: string | null): Promise<CachedPhoto> {
   const fp = filePath(placeId);
   const tmp = fp + '.tmp';
 
-  await fsPromises.writeFile(tmp, bytes);
+  const resized = await downscale(bytes);
+  await fsPromises.writeFile(tmp, resized);
   await fsPromises.rename(tmp, fp);
 
   knownOnDisk.add(placeId);
@@ -107,4 +132,55 @@ export function serveFilePath(placeId: string): string | null {
   if (!fs.existsSync(fp)) return null;
   knownOnDisk.add(placeId);
   return fp;
+}
+
+// A cache entry is "referenced" while any place still points at it — either by the
+// Google place_id (the dedup key) or by the stable proxy URL stored in image_url
+// (covers coords: pseudo-ids, which never have a google_place_id).
+function isReferenced(placeId: string): boolean {
+  const row = db.prepare(
+    'SELECT 1 FROM places WHERE google_place_id = ? OR image_url = ? LIMIT 1'
+  ).get(placeId, proxyUrl(placeId));
+  return !!row;
+}
+
+function deleteEntry(placeId: string): void {
+  try { fs.unlinkSync(filePath(placeId)); } catch { /* already gone */ }
+  db.prepare('DELETE FROM google_place_photo_meta WHERE place_id = ?').run(placeId);
+  knownOnDisk.delete(placeId);
+}
+
+// Drop a cache entry if no place references it anymore. Called after a place delete
+// for prompt reclamation; the nightly sweep is the catch-all for every other path.
+export function removeIfUnreferenced(placeId: string): void {
+  if (isReferenced(placeId)) return;
+  deleteEntry(placeId);
+}
+
+// Reclaim orphaned cache files + meta rows. Runs on startup and nightly (scheduler).
+// Two passes: (1) meta rows no place references; (2) stray .jpg files with no meta row.
+export function sweepOrphans(): number {
+  let removed = 0;
+
+  const rows = db.prepare('SELECT place_id FROM google_place_photo_meta').all() as { place_id: string }[];
+  const keepFiles = new Set<string>();
+  for (const { place_id } of rows) {
+    if (isReferenced(place_id)) {
+      keepFiles.add(`${crypto.createHash('sha1').update(place_id).digest('hex')}.jpg`);
+    } else {
+      deleteEntry(place_id);
+      removed++;
+    }
+  }
+
+  // Pass 2: files on disk that no surviving meta row maps to (e.g. left over from a
+  // crash between writeFile and the DB upsert, or a meta row deleted out-of-band).
+  let entries: string[] = [];
+  try { entries = fs.readdirSync(GOOGLE_PHOTO_DIR); } catch { entries = []; }
+  for (const entry of entries) {
+    if (!entry.endsWith('.jpg') || keepFiles.has(entry)) continue;
+    try { fs.unlinkSync(path.join(GOOGLE_PHOTO_DIR, entry)); removed++; } catch { /* race */ }
+  }
+
+  return removed;
 }

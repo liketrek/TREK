@@ -538,6 +538,31 @@ describe('fetchWikimediaPhoto (fetch stubbed)', () => {
     expect(result!.attribution).toBe('Alice');
   });
 
+  it('MAPS-036b: geosearch prefers the scaled thumburl over the full-res original', async () => {
+    const wikiResponse = { ok: true, json: async () => ({ query: { pages: { '-1': {} } } }) };
+    const commonsResponse = {
+      ok: true,
+      json: async () => ({
+        query: { pages: { '1': {
+          imageinfo: [{
+            url: 'https://commons.org/original-16mb.jpg',
+            thumburl: 'https://commons.org/thumb-400.jpg',
+            mime: 'image/jpeg',
+            extmetadata: { Artist: { value: 'Alice' } },
+          }],
+        } } },
+      }),
+    };
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce(wikiResponse)
+      .mockResolvedValueOnce(commonsResponse));
+    const { fetchWikimediaPhoto } = await import('../../../src/services/mapsService');
+    const result = await fetchWikimediaPhoto(48.8, 2.3, 'Some Place');
+    expect(result).toBeDefined();
+    expect(result!.photoUrl).toBe('https://commons.org/thumb-400.jpg');
+    expect(result!.attribution).toBe('Alice');
+  });
+
   it('MAPS-037: returns null when both strategies find nothing', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
