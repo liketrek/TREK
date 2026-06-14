@@ -15,21 +15,25 @@ export default defineConfig({
         runtimeCaching: [
           {
             // Carto map tiles (default provider)
+            // maxEntries MUST stay >= MAX_TILES in src/sync/tilePrefetcher.ts
+            // (both are 12288) so prefetched tiles aren't evicted on arrival.
             urlPattern: /^https:\/\/[a-d]\.basemaps\.cartocdn\.com\/.*/i,
             handler: 'CacheFirst',
             options: {
               cacheName: 'map-tiles',
-              expiration: { maxEntries: 1000, maxAgeSeconds: 30 * 24 * 60 * 60 },
+              expiration: { maxEntries: 12288, maxAgeSeconds: 30 * 24 * 60 * 60 },
               cacheableResponse: { statuses: [0, 200] },
             },
           },
           {
             // OpenStreetMap tiles (fallback / alternative)
+            // Shares the 'map-tiles' cache; keep maxEntries equal to the Carto
+            // rule above and MAX_TILES in src/sync/tilePrefetcher.ts (12288).
             urlPattern: /^https:\/\/[a-c]\.tile\.openstreetmap\.org\/.*/i,
             handler: 'CacheFirst',
             options: {
               cacheName: 'map-tiles',
-              expiration: { maxEntries: 1000, maxAgeSeconds: 30 * 24 * 60 * 60 },
+              expiration: { maxEntries: 12288, maxAgeSeconds: 30 * 24 * 60 * 60 },
               cacheableResponse: { statuses: [0, 200] },
             },
           },

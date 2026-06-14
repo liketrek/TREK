@@ -17,11 +17,18 @@ import { offlineDb, upsertSyncMeta } from '../db/offlineDb'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-/** Estimated average tile size in KB (road/transit tiles ~15 KB). */
+/** Estimated average tile size in KB (raster basemap tiles ~15 KB). */
 const AVG_TILE_KB = 15
 
-/** Hard cap: ~50 MB worth of tiles. */
-export const MAX_TILES = Math.floor((50 * 1024) / AVG_TILE_KB) // ≈ 3413
+/**
+ * Hard cap on prefetched tiles (~180 MB).
+ *
+ * MUST stay in sync with the Workbox 'map-tiles' `maxEntries` in
+ * client/vite.config.js (kept equal). If this budget exceeds the SW cache size,
+ * the LRU evicts freshly-prefetched tiles on arrival and the offline map goes
+ * blank — which is exactly the bug this value was raised (from ~3413) to fix.
+ */
+export const MAX_TILES = Math.floor((180 * 1024) / AVG_TILE_KB) // = 12288
 
 const DEFAULT_TILE_URL =
   'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
@@ -177,15 +184,13 @@ export async function prefetchTilesForTrip(
   const bbox = computeBbox(places)
   if (!bbox) return
 
-  // Size guard: if total tile count across all zooms exceeds cap, skip
-  const estimated = countTiles(bbox, 10, 16)
-  if (estimated > MAX_TILES) {
-    console.warn(
-      `[tilePrefetch] trip ${tripId}: estimated ${estimated} tiles exceeds cap (${MAX_TILES}), skipping`,
-    )
-    return
-  }
-
+  // Zoom-clamp rather than skip: prefetchTiles fills zooms low→high and stops
+  // once MAX_TILES is reached, so large (region / road-trip) bboxes still get
+  // their lower zooms cached instead of being skipped entirely.
+  //
+  // NOTE: opaque (no-cors) tile responses are padded by Chromium to ~7 MB each
+  // for quota accounting, so the real on-disk budget is far below 180 MB. That
+  // (audit H8) and navigator.storage.persist() (M6) are tracked separately.
   const fetched = await prefetchTiles(bbox, template)
 
   // Update syncMeta with bbox and tile count

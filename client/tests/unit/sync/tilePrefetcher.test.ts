@@ -207,17 +207,42 @@ describe('prefetchTilesForTrip', () => {
     expect(meta!.tilesBbox).toHaveLength(4);
   });
 
-  it('skips prefetch when estimated tiles exceed MAX_TILES', async () => {
+  it('zoom-clamps instead of skipping when the bbox exceeds MAX_TILES', async () => {
     await upsertSyncMeta({ tripId: 1, lastSyncedAt: Date.now(), status: 'idle', tilesBbox: null, filesCachedCount: 0 });
 
-    // Places far apart → huge bbox → estimate > MAX_TILES
+    // ~4° road-trip span: low zooms fit the budget, high zooms (z14+) blow past
+    // it. The old guard skipped the whole trip; now we keep what fits.
     const places = [
-      buildPlace({ trip_id: 1, lat: -60, lng: -170 }),
-      buildPlace({ trip_id: 1, lat: 60, lng: 170 }),
+      buildPlace({ trip_id: 1, lat: 45.0, lng: 0.0 }),
+      buildPlace({ trip_id: 1, lat: 49.0, lng: 4.0 }),
     ];
     await prefetchTilesForTrip(1, places, 'https://{s}.example.com/{z}/{x}/{y}.png');
 
-    // No fetches should have been made
-    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+    // Previously this skipped entirely; now it prefetches a clamped subset.
+    const calls = vi.mocked(fetch).mock.calls.length;
+    expect(calls).toBeGreaterThan(0);
+    expect(calls).toBeLessThanOrEqual(MAX_TILES);
+  });
+
+  it('prefetches a region-sized (0.5°) trip that the old all-or-nothing guard would have skipped', async () => {
+    await upsertSyncMeta({ tripId: 1, lastSyncedAt: Date.now(), status: 'idle', tilesBbox: null, filesCachedCount: 0 });
+
+    const places = [
+      buildPlace({ trip_id: 1, lat: 48.6, lng: 2.1 }),
+      buildPlace({ trip_id: 1, lat: 49.1, lng: 2.6 }),
+    ];
+    await prefetchTilesForTrip(1, places, 'https://{s}.example.com/{z}/{x}/{y}.png');
+
+    const calls = vi.mocked(fetch).mock.calls.length;
+    expect(calls).toBeGreaterThan(0);
+    expect(calls).toBeLessThanOrEqual(MAX_TILES);
+  });
+});
+
+// ── cap coherence ───────────────────────────────────────────────────────────────
+
+describe('MAX_TILES budget', () => {
+  it('matches the Workbox map-tiles maxEntries in vite.config.js (drift guard)', () => {
+    expect(MAX_TILES).toBe(12288);
   });
 });
