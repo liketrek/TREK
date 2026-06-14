@@ -44,16 +44,15 @@ export default defineConfig({
             },
           },
           {
-            // API calls — prefer network, fall back to cache
-            // Exclude sensitive endpoints (auth, admin, backup, settings)
+            // API calls — network only. We deliberately do NOT cache API
+            // responses in the Service Worker: Workbox keys entries by URL and
+            // cannot vary on the httpOnly session cookie, so a shared device
+            // could serve one user's cached data to the next (cross-user leak).
+            // Offline reads are served from the per-user IndexedDB cache via the
+            // repo layer instead. The urlPattern is kept so these requests still
+            // bypass the SPA navigation fallback.
             urlPattern: /\/api\/(?!auth|admin|backup|settings|health).*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-data',
-              expiration: { maxEntries: 200, maxAgeSeconds: 24 * 60 * 60 },
-              networkTimeoutSeconds: 5,
-              cacheableResponse: { statuses: [200] },
-            },
+            handler: 'NetworkOnly',
           },
           {
             // Uploaded files (photos, covers — public assets only)

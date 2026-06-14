@@ -48,6 +48,33 @@ export interface BlobCacheEntry {
 
 // ── Dexie class ────────────────────────────────────────────────────────────────
 
+/**
+ * The offline DB is scoped per user so that one account can never read another
+ * account's cached data on a shared device. Anonymous (logged-out) state uses
+ * the base name; a logged-in user uses `trek-offline-u<userId>`.
+ */
+const ANON_DB_NAME = 'trek-offline';
+
+function userDbName(userId: number | string): string {
+  return `trek-offline-u${userId}`;
+}
+
+/**
+ * Best-effort read of the persisted auth snapshot so the very first DB opened on
+ * app load (before loadUser resolves) is already the correct per-user one — the
+ * PWA can render cached data offline without leaking across users.
+ */
+function initialDbName(): string {
+  try {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('trek_auth_snapshot') : null;
+    if (!raw) return ANON_DB_NAME;
+    const id = JSON.parse(raw)?.state?.user?.id;
+    return id != null ? userDbName(id) : ANON_DB_NAME;
+  } catch {
+    return ANON_DB_NAME;
+  }
+}
+
 class TrekOfflineDb extends Dexie {
   trips!: Table<Trip, number>;
   days!: Table<Day, number>;
@@ -65,8 +92,8 @@ class TrekOfflineDb extends Dexie {
   syncMeta!: Table<SyncMeta, number>;
   blobCache!: Table<BlobCacheEntry, string>;
 
-  constructor() {
-    super('trek-offline');
+  constructor(name: string = ANON_DB_NAME) {
+    super(name);
 
     this.version(1).stores({
       trips:        'id',
@@ -91,7 +118,53 @@ class TrekOfflineDb extends Dexie {
   }
 }
 
-export const offlineDb = new TrekOfflineDb();
+// The live instance is swapped on login/logout via reopenForUser/reopenAnonymous.
+// A Proxy keeps the exported `offlineDb` binding stable for the ~19 modules that
+// import it directly, while every access forwards to the current connection.
+let _db = new TrekOfflineDb(initialDbName());
+
+export const offlineDb = new Proxy({} as TrekOfflineDb, {
+  get(_target, prop) {
+    const value = (_db as unknown as Record<string | symbol, unknown>)[prop];
+    return typeof value === 'function' ? (value as (...args: unknown[]) => unknown).bind(_db) : value;
+  },
+  set(_target, prop, value) {
+    (_db as unknown as Record<string | symbol, unknown>)[prop] = value;
+    return true;
+  },
+}) as TrekOfflineDb;
+
+async function switchTo(name: string): Promise<void> {
+  if (_db.name === name) {
+    if (!_db.isOpen()) await _db.open();
+    return;
+  }
+  if (_db.isOpen()) _db.close();
+  _db = new TrekOfflineDb(name);
+  await _db.open();
+}
+
+/** Point the offline DB at a specific user's scoped database (call on login). */
+export async function reopenForUser(userId: number | string): Promise<void> {
+  await switchTo(userDbName(userId));
+}
+
+/** Point the offline DB at the anonymous database (call on logout). */
+export async function reopenAnonymous(): Promise<void> {
+  await switchTo(ANON_DB_NAME);
+}
+
+/**
+ * Delete the current user's scoped database entirely and return to the anonymous
+ * DB. Used on logout so no trace of the account's data remains on the device.
+ */
+export async function deleteCurrentUserDb(): Promise<void> {
+  if (_db.name !== ANON_DB_NAME) {
+    try { await _db.delete(); } catch { /* ignore — fall through to anon */ }
+  }
+  _db = new TrekOfflineDb(ANON_DB_NAME);
+  await _db.open();
+}
 
 // ── Bulk upsert helpers ────────────────────────────────────────────────────────
 

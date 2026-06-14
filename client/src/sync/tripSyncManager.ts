@@ -29,6 +29,7 @@ import {
   clearTripData,
 } from '../db/offlineDb'
 import { prefetchTilesForTrip } from './tilePrefetcher'
+import { isAuthed } from './authGate'
 import { useSettingsStore } from '../store/settingsStore'
 import type { Trip, Day, Place, PackingItem, TodoItem, BudgetItem, Reservation, TripFile, Accommodation, TripMember } from '../types'
 
@@ -134,7 +135,7 @@ export const tripSyncManager = {
    * No-ops when offline.
    */
   async syncAll(): Promise<void> {
-    if (_syncing || !navigator.onLine) return
+    if (_syncing || !navigator.onLine || !isAuthed()) return
     _syncing = true
     try {
       const { trips } = await tripsApi.list() as { trips: Trip[] }

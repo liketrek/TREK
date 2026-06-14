@@ -9,6 +9,7 @@ import 'fake-indexeddb/auto';
 import { server } from '../../helpers/msw/server';
 import { http, HttpResponse } from 'msw';
 import { tripSyncManager } from '../../../src/sync/tripSyncManager';
+import { setAuthed } from '../../../src/sync/authGate';
 import { offlineDb, clearAll, upsertTrip } from '../../../src/db/offlineDb';
 import {
   buildTrip,
@@ -45,6 +46,7 @@ function makeBundle(tripId: number) {
 beforeEach(async () => {
   await clearAll();
   tripSyncManager._resetSyncing();
+  setAuthed(true);
   Object.defineProperty(navigator, 'onLine', { value: true, writable: true, configurable: true });
   // Stub fetch for blob caching (used by cacheFilesForTrip)
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
@@ -56,6 +58,19 @@ beforeEach(async () => {
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  setAuthed(false);
+});
+
+describe('tripSyncManager.syncAll — auth gate (B4)', () => {
+  it('no-ops when logged out (gate closed)', async () => {
+    setAuthed(false);
+    let called = false;
+    server.use(
+      http.get('/api/trips', () => { called = true; return HttpResponse.json({ trips: [] }); }),
+    );
+    await tripSyncManager.syncAll();
+    expect(called).toBe(false);
+  });
 });
 
 // ── offline guard ─────────────────────────────────────────────────────────────

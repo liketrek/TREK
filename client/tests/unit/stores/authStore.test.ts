@@ -105,10 +105,10 @@ describe('authStore', () => {
   });
 
   describe('FE-AUTH-006: logout', () => {
-    it('calls disconnect() and clears user state', () => {
+    it('calls disconnect() and clears user state', async () => {
       useAuthStore.setState({ user: buildUser(), isAuthenticated: true });
 
-      useAuthStore.getState().logout();
+      await useAuthStore.getState().logout();
       const state = useAuthStore.getState();
 
       expect(disconnect).toHaveBeenCalledOnce();
@@ -441,10 +441,10 @@ describe('authStore', () => {
   });
 
   describe('FE-STORE-AUTH-PERSIST-001: logout resets persisted snapshot', () => {
-    it('snapshot has isAuthenticated:false after logout (PWA offline will redirect to login)', () => {
+    it('snapshot has isAuthenticated:false after logout (PWA offline will redirect to login)', async () => {
       useAuthStore.setState({ user: buildUser(), isAuthenticated: true });
 
-      useAuthStore.getState().logout();
+      await useAuthStore.getState().logout();
 
       const snapshot = JSON.parse(localStorage.getItem('trek_auth_snapshot') ?? '{}');
       expect(snapshot?.state?.isAuthenticated).toBe(false);

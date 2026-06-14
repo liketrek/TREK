@@ -23,6 +23,9 @@ import {
   upsertReservations,
   upsertTripFiles,
   upsertSyncMeta,
+  reopenForUser,
+  reopenAnonymous,
+  deleteCurrentUserDb,
   type QueuedMutation,
   type SyncMeta,
   type BlobCacheEntry,
@@ -268,6 +271,40 @@ describe('offlineDb — clearAll', () => {
 
     expect(await offlineDb.trips.count()).toBe(0);
     expect(await offlineDb.days.count()).toBe(0);
+    expect(await offlineDb.places.count()).toBe(0);
+  });
+});
+
+describe('offlineDb — per-user scoping (B4)', () => {
+  afterEach(async () => {
+    // Leave the suite on the anonymous DB so other tests are unaffected.
+    await reopenAnonymous();
+  });
+
+  it('isolates one user\'s cached data from another', async () => {
+    await reopenForUser(1);
+    await upsertPlaces([makePlace(10, 1)]);
+    expect(await offlineDb.places.count()).toBe(1);
+
+    // Switching users must not expose user 1's rows.
+    await reopenForUser(2);
+    expect(await offlineDb.places.count()).toBe(0);
+
+    // Switching back restores user 1's data (different physical DB).
+    await reopenForUser(1);
+    expect(await offlineDb.places.get(10)).toBeDefined();
+  });
+
+  it('deleteCurrentUserDb wipes the user DB and returns to anonymous', async () => {
+    await reopenForUser(5);
+    await upsertPlaces([makePlace(20, 1)]);
+
+    await deleteCurrentUserDb();
+    // Now on the anonymous DB — no user data.
+    expect(await offlineDb.places.count()).toBe(0);
+
+    // Re-opening user 5 starts empty (DB was deleted, not just detached).
+    await reopenForUser(5);
     expect(await offlineDb.places.count()).toBe(0);
   });
 });

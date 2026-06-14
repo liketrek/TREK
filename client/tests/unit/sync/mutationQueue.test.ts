@@ -9,17 +9,20 @@ import 'fake-indexeddb/auto';
 import { server } from '../../helpers/msw/server';
 import { http, HttpResponse } from 'msw';
 import { mutationQueue, generateUUID } from '../../../src/sync/mutationQueue';
+import { setAuthed } from '../../../src/sync/authGate';
 import { offlineDb, clearAll } from '../../../src/db/offlineDb';
 import { buildPlace, buildPackingItem } from '../../helpers/factories';
 
 beforeEach(async () => {
   await clearAll();
   mutationQueue._resetFlushing();
+  setAuthed(true);
   Object.defineProperty(navigator, 'onLine', { value: true, writable: true, configurable: true });
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
+  setAuthed(false);
 });
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -198,6 +201,25 @@ describe('mutationQueue.flush — network error', () => {
 describe('mutationQueue.flush — offline guard', () => {
   it('does nothing when offline', async () => {
     Object.defineProperty(navigator, 'onLine', { value: false });
+    const id = generateUUID();
+    await mutationQueue.enqueue(makeMutation({ id }));
+
+    let called = false;
+    server.use(
+      http.post('/api/trips/1/places', () => {
+        called = true;
+        return HttpResponse.json({ place: buildPlace({ trip_id: 1 }) });
+      }),
+    );
+
+    await mutationQueue.flush();
+    expect(called).toBe(false);
+    const m = await offlineDb.mutationQueue.get(id);
+    expect(m!.status).toBe('pending');
+  });
+
+  it('does nothing when logged out (auth gate closed)', async () => {
+    setAuthed(false);
     const id = generateUUID();
     await mutationQueue.enqueue(makeMutation({ id }));
 
