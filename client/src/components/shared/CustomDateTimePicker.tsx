@@ -1,225 +1,619 @@
-import React, { useState, useRef, useEffect } from 'react'
-import ReactDOM from 'react-dom'
-import { Calendar, Clock, ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react'
-import { useTranslation } from '../../i18n'
+import { Calendar, ChevronLeft, ChevronRight, Keyboard } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import ReactDOM from 'react-dom';
+import { useTranslation } from '../../i18n';
 
-function daysInMonth(year: number, month: number): number { return new Date(year, month + 1, 0).getDate() }
-function getWeekday(year: number, month: number, day: number): number { return new Date(year, month, day).getDay() }
+function daysInMonth(year: number, month: number): number {
+  return new Date(year, month + 1, 0).getDate();
+}
+function getWeekday(year: number, month: number, day: number): number {
+  return new Date(year, month, day).getDay();
+}
+const YEAR_PAGE_SIZE = 12;
+type CalendarView = 'days' | 'months' | 'years';
 
 interface CustomDatePickerProps {
-  value: string
-  onChange: (value: string) => void
-  placeholder?: string
-  style?: React.CSSProperties
-  compact?: boolean
-  borderless?: boolean
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  style?: React.CSSProperties;
+  compact?: boolean;
+  borderless?: boolean;
 }
 
-export function CustomDatePicker({ value, onChange, placeholder, style = {}, compact = false, borderless = false }: CustomDatePickerProps) {
-  const { locale, t } = useTranslation()
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  const dropRef = useRef<HTMLDivElement>(null)
+export function CustomDatePicker({
+  value,
+  onChange,
+  placeholder,
+  style = {},
+  compact = false,
+  borderless = false,
+}: CustomDatePickerProps) {
+  const { locale, t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [view, setView] = useState<CalendarView>('days');
+  const [yearPageStart, setYearPageStart] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+  const dropRef = useRef<HTMLDivElement>(null);
 
-  const parsed = value ? new Date(value + 'T00:00:00Z') : null
-  const [viewYear, setViewYear] = useState(parsed?.getUTCFullYear() || new Date().getFullYear())
-  const [viewMonth, setViewMonth] = useState(parsed?.getUTCMonth() ?? new Date().getMonth())
+  const parsed = value ? new Date(value + 'T00:00:00Z') : null;
+  const [viewYear, setViewYear] = useState(parsed?.getUTCFullYear() || new Date().getFullYear());
+  const [viewMonth, setViewMonth] = useState(parsed?.getUTCMonth() ?? new Date().getMonth());
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current?.contains(e.target as Node)) return
-      if (dropRef.current?.contains(e.target as Node)) return
-      setOpen(false)
-    }
-    if (open) document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
+      if (ref.current?.contains(e.target as Node)) return;
+      if (dropRef.current?.contains(e.target as Node)) return;
+      setOpen(false);
+    };
+    if (open) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
 
   useEffect(() => {
-    if (open && parsed) { setViewYear(parsed.getUTCFullYear()); setViewMonth(parsed.getUTCMonth()) }
-  }, [open])
+    if (open) {
+      if (parsed) {
+        setViewYear(parsed.getUTCFullYear());
+        setViewMonth(parsed.getUTCMonth());
+      }
+      setView('days');
+    }
+  }, [open]);
 
-  const prevMonth = () => { if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1) } else setViewMonth(m => m - 1) }
-  const nextMonth = () => { if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1) } else setViewMonth(m => m + 1) }
+  const prevMonth = () => {
+    if (viewMonth === 0) {
+      setViewMonth(11);
+      setViewYear((y) => y - 1);
+    } else setViewMonth((m) => m - 1);
+  };
+  const nextMonth = () => {
+    if (viewMonth === 11) {
+      setViewMonth(0);
+      setViewYear((y) => y + 1);
+    } else setViewMonth((m) => m + 1);
+  };
 
-  const monthLabel = new Date(viewYear, viewMonth).toLocaleDateString(locale, { month: 'long', year: 'numeric' })
-  const days = daysInMonth(viewYear, viewMonth)
-  const startDay = (getWeekday(viewYear, viewMonth, 1) + 6) % 7
-  const weekdays = Array.from({ length: 7 }, (_, i) => new Date(2024, 0, i + 1).toLocaleDateString(locale, { weekday: 'narrow' }))
+  const handlePrev = () => {
+    if (view === 'days') prevMonth();
+    else if (view === 'months') setViewYear((y) => y - 1);
+    else setYearPageStart((s) => s - YEAR_PAGE_SIZE);
+  };
+  const handleNext = () => {
+    if (view === 'days') nextMonth();
+    else if (view === 'months') setViewYear((y) => y + 1);
+    else setYearPageStart((s) => s + YEAR_PAGE_SIZE);
+  };
 
-  const displayValue = parsed ? parsed.toLocaleDateString(locale, compact ? { day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'UTC' } : { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : null
+  const prevAriaLabel = view === 'days' ? 'Previous month' : view === 'months' ? 'Previous year' : 'Previous years';
+  const nextAriaLabel = view === 'days' ? 'Next month' : view === 'months' ? 'Next year' : 'Next years';
+
+  const monthLabel = new Date(viewYear, viewMonth).toLocaleDateString(locale, { month: 'long', year: 'numeric' });
+  const yearRangeLabel = `${yearPageStart} – ${yearPageStart + YEAR_PAGE_SIZE - 1}`;
+  const headerLabel = view === 'days' ? monthLabel : view === 'months' ? String(viewYear) : yearRangeLabel;
+  const headerAriaLabel = view === 'days' ? 'Select month' : view === 'months' ? 'Select year' : undefined;
+
+  const handleHeaderClick = () => {
+    if (view === 'days') {
+      setView('months');
+    } else if (view === 'months') {
+      setYearPageStart(Math.floor(viewYear / YEAR_PAGE_SIZE) * YEAR_PAGE_SIZE);
+      setView('years');
+    }
+  };
+
+  const days = daysInMonth(viewYear, viewMonth);
+  const startDay = (getWeekday(viewYear, viewMonth, 1) + 6) % 7;
+  const weekdays = Array.from({ length: 7 }, (_, i) =>
+    new Date(2024, 0, i + 1).toLocaleDateString(locale, { weekday: 'narrow' })
+  );
+
+  const monthNames = Array.from({ length: 12 }, (_, i) =>
+    new Date(viewYear, i).toLocaleDateString(locale, { month: 'short' })
+  );
+  const years = Array.from({ length: YEAR_PAGE_SIZE }, (_, i) => yearPageStart + i);
+
+  const displayValue = parsed
+    ? parsed.toLocaleDateString(
+        locale,
+        compact
+          ? { day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'UTC' }
+          : { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }
+      )
+    : null;
+
+  const inputValue = parsed
+    ? parsed.toLocaleDateString(locale, {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        timeZone: 'UTC',
+      })
+    : '';
 
   const selectDay = (day: number) => {
-    const y = String(viewYear)
-    const m = String(viewMonth + 1).padStart(2, '0')
-    const d = String(day).padStart(2, '0')
-    onChange(`${y}-${m}-${d}`)
-    setOpen(false)
-  }
+    const y = String(viewYear);
+    const m = String(viewMonth + 1).padStart(2, '0');
+    const d = String(day).padStart(2, '0');
+    onChange(`${y}-${m}-${d}`);
+    setOpen(false);
+  };
 
-  const selectedDay = parsed && parsed.getUTCFullYear() === viewYear && parsed.getUTCMonth() === viewMonth ? parsed.getUTCDate() : null
-  const today = new Date()
-  const isToday = (d: number) => today.getFullYear() === viewYear && today.getMonth() === viewMonth && today.getDate() === d
+  const selectMonth = (month: number) => {
+    setViewMonth(month);
+    setView('days');
+  };
 
-  const [textInput, setTextInput] = useState('')
-  const [isTyping, setIsTyping] = useState(false)
+  const selectYear = (year: number) => {
+    setViewYear(year);
+    setView('months');
+  };
+
+  const selectedDay =
+    parsed && parsed.getUTCFullYear() === viewYear && parsed.getUTCMonth() === viewMonth ? parsed.getUTCDate() : null;
+  const today = new Date();
+  const isToday = (d: number) =>
+    today.getFullYear() === viewYear && today.getMonth() === viewMonth && today.getDate() === d;
+
+  const [textInput, setTextInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
 
   const handleTextSubmit = () => {
-    setIsTyping(false)
-    if (!textInput.trim()) return
+    setIsTyping(false);
+    if (!textInput.trim()) return;
     // Try to parse various date formats
-    const input = textInput.trim()
+    const input = textInput.trim();
     // ISO: 2026-03-29
-    if (/^\d{4}-\d{2}-\d{2}$/.test(input)) { onChange(input); return }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
+      onChange(input);
+      return;
+    }
     // EU: 29.03.2026 or 29/03/2026
-    const euMatch = input.match(/^(\d{1,2})[./](\d{1,2})[./](\d{2,4})$/)
+    const euMatch = input.match(/^(\d{1,2})[./](\d{1,2})[./](\d{2,4})$/);
     if (euMatch) {
-      const y = euMatch[3].length === 2 ? 2000 + parseInt(euMatch[3]) : parseInt(euMatch[3])
-      onChange(`${y}-${String(euMatch[2]).padStart(2, '0')}-${String(euMatch[1]).padStart(2, '0')}`)
-      return
+      const y = euMatch[3].length === 2 ? 2000 + parseInt(euMatch[3]) : parseInt(euMatch[3]);
+      onChange(`${y}-${String(euMatch[2]).padStart(2, '0')}-${String(euMatch[1]).padStart(2, '0')}`);
+      return;
     }
     // Try native Date parse as fallback
-    const d = new Date(input)
+    const d = new Date(input);
     if (!isNaN(d.getTime())) {
-      onChange(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)
+      onChange(
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      );
     }
-  }
+  };
+
+  const gridCellStyle = (selected: boolean, current: boolean): React.CSSProperties => ({
+    borderRadius: 8,
+    border: 'none',
+    background: selected ? 'var(--accent)' : 'transparent',
+    color: selected ? 'var(--accent-text)' : 'var(--text-primary)',
+    fontWeight: selected ? 700 : current ? 600 : 400,
+    cursor: 'pointer',
+    outline: current && !selected ? '2px solid var(--border-primary)' : 'none',
+    outlineOffset: -2,
+    transition: 'background 0.1s',
+  });
 
   return (
     <div ref={ref} style={{ position: 'relative', ...style }}>
       {isTyping ? (
-        <input autoFocus type="text" value={textInput} onChange={e => setTextInput(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') handleTextSubmit(); if (e.key === 'Escape') setIsTyping(false) }}
+        <input
+          autoFocus
+          type="text"
+          value={textInput}
+          onChange={(e) => setTextInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleTextSubmit();
+            if (e.key === 'Escape') setIsTyping(false);
+          }}
           onBlur={handleTextSubmit}
           placeholder="DD.MM.YYYY"
+          aria-label="Enter date manually"
           style={{
-            width: '100%', padding: '8px 14px', borderRadius: 10, border: '1px solid var(--text-faint)',
-            background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontFamily: 'inherit', outline: 'none',
-          }} />
+            width: '100%',
+            padding: '8px 14px',
+            borderRadius: 10,
+            border: '1px solid var(--text-faint)',
+            background: 'var(--bg-input)',
+            color: 'var(--text-primary)',
+            fontSize: 'calc(13px * var(--fs-scale-body, 1))',
+            fontFamily: 'inherit',
+            outline: 'none',
+          }}
+        />
       ) : (
-      <button type="button" onClick={() => setOpen(o => !o)} onDoubleClick={() => { setTextInput(value || ''); setIsTyping(true) }}
-        style={{
-          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: compact ? 4 : 8,
-          padding: compact ? '4px 6px' : '8px 14px', borderRadius: compact ? 4 : 10,
-          border: borderless ? 'none' : '1px solid var(--border-primary)',
-          background: borderless ? 'transparent' : 'var(--bg-input)', color: displayValue ? 'var(--text-primary)' : 'var(--text-faint)',
-          fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontFamily: 'inherit', cursor: 'pointer', outline: 'none',
-          transition: 'border-color 0.15s',
-        }}
-        onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--text-faint)'}
-        onMouseLeave={e => { if (!open) e.currentTarget.style.borderColor = 'var(--border-primary)' }}>
-        {!compact && <Calendar size={14} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />}
-        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayValue || placeholder || t('common.date')}</span>
-      </button>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          {/* Calendar trigger */}
+          <button
+            type="button"
+            onClick={() => setOpen((o) => !o)}
+            aria-label={displayValue || placeholder || t('common.date')}
+            aria-expanded={open}
+            aria-haspopup="dialog"
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: compact ? 4 : 8,
+              padding: compact ? '4px 6px' : '8px 14px',
+              borderRadius: compact ? 4 : 10,
+              border: borderless ? 'none' : '1px solid var(--border-primary)',
+              background: borderless ? 'transparent' : 'var(--bg-input)',
+              color: displayValue ? 'var(--text-primary)' : 'var(--text-faint)',
+              fontSize: 'calc(13px * var(--fs-scale-body, 1))',
+              fontFamily: 'inherit',
+              cursor: 'pointer',
+              outline: 'none',
+              transition: 'border-color 0.15s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--text-faint)')}
+            onMouseLeave={(e) => {
+              if (!open) e.currentTarget.style.borderColor = 'var(--border-primary)';
+            }}
+          >
+            {!compact && <Calendar size={14} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />}
+            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {displayValue || placeholder || t('common.date')}
+            </span>
+          </button>
+
+          {/* Keyboard / text-input trigger (non-compact only; compact gets it in the popup footer) */}
+          {!compact && !borderless && (
+            <button
+              type="button"
+              onClick={() => {
+                setTextInput(inputValue || '');
+                setIsTyping(true);
+              }}
+              aria-label="Enter date manually"
+              title="Type a date"
+              style={{
+                background: 'none',
+                border: '1px solid var(--border-primary)',
+                borderRadius: 8,
+                cursor: 'pointer',
+                padding: '7px 8px',
+                display: 'flex',
+                alignItems: 'center',
+                color: 'var(--text-faint)',
+                flexShrink: 0,
+                transition: 'color 0.15s, border-color 0.15s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--text-primary)';
+                e.currentTarget.style.borderColor = 'var(--text-faint)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--text-faint)';
+                e.currentTarget.style.borderColor = 'var(--border-primary)';
+              }}
+            >
+              <Keyboard size={13} />
+            </button>
+          )}
+        </div>
       )}
 
-      {open && ReactDOM.createPortal(
-        <div ref={dropRef} style={{
-          position: 'fixed',
-          ...(() => {
-            const r = ref.current?.getBoundingClientRect()
-            if (!r) return { top: 0, left: 0 }
-            const w = 268, pad = 8, h = 360
-            const vw = window.innerWidth
-            const vh = window.visualViewport?.height ?? window.innerHeight
-            let left = r.left
-            let top = r.bottom + 4
-            if (left + w > vw - pad) left = Math.max(pad, vw - w - pad)
-            if (top + h > vh - pad) top = r.top - h - 4
-            top = Math.max(pad, Math.min(top, vh - h - pad))
-            if (vw < 360) left = Math.max(pad, (vw - w) / 2)
-            return { top, left }
-          })(),
-          zIndex: 99999,
-          background: 'var(--bg-card)', border: '1px solid var(--border-primary)',
-          borderRadius: 14, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', padding: 12, width: 268,
-          maxWidth: 'calc(100vw - 16px)',
-          animation: 'selectIn 0.15s ease-out',
-          backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
-        }}>
-          {/* Month nav */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <button type="button" onClick={prevMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, display: 'flex', color: 'var(--text-faint)' }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
-              <ChevronLeft size={16} />
-            </button>
-            <span style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-primary)' }}>{monthLabel}</span>
-            <button type="button" onClick={nextMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, display: 'flex', color: 'var(--text-faint)' }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
-              <ChevronRight size={16} />
-            </button>
-          </div>
+      {open &&
+        ReactDOM.createPortal(
+          <div
+            ref={dropRef}
+            role="dialog"
+            aria-label="Date picker"
+            style={{
+              position: 'fixed',
+              ...(() => {
+                const r = ref.current?.getBoundingClientRect();
+                if (!r) return { top: 0, left: 0 };
+                const w = 268,
+                  pad = 8,
+                  h = 360;
+                const vw = window.innerWidth;
+                const vh = window.visualViewport?.height ?? window.innerHeight;
+                let left = r.left;
+                let top = r.bottom + 4;
+                if (left + w > vw - pad) left = Math.max(pad, vw - w - pad);
+                if (top + h > vh - pad) top = r.top - h - 4;
+                top = Math.max(pad, Math.min(top, vh - h - pad));
+                if (vw < 360) left = Math.max(pad, (vw - w) / 2);
+                return { top, left };
+              })(),
+              zIndex: 99999,
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-primary)',
+              borderRadius: 14,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+              padding: 12,
+              width: 268,
+              maxWidth: 'calc(100vw - 16px)',
+              animation: 'selectIn 0.15s ease-out',
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)',
+            }}
+          >
+            {/* ── Header ── */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <button
+                type="button"
+                onClick={handlePrev}
+                aria-label={prevAriaLabel}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 4,
+                  borderRadius: 6,
+                  display: 'flex',
+                  color: 'var(--text-faint)',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-faint)')}
+              >
+                <ChevronLeft size={16} />
+              </button>
 
-          {/* Weekday headers */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, marginBottom: 4 }}>
-            {weekdays.map((d, i) => (
-              <div key={i} style={{ textAlign: 'center', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', padding: '2px 0' }}>{d}</div>
-            ))}
-          </div>
-
-          {/* Days grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
-            {Array.from({ length: startDay }, (_, i) => <div key={`e-${i}`} />)}
-            {Array.from({ length: days }, (_, i) => {
-              const d = i + 1
-              const sel = d === selectedDay
-              const td = isToday(d)
-              return (
-                <button key={d} type="button" onClick={() => selectDay(d)}
+              {/* Clickable label — drills down (days → months → years) */}
+              {view !== 'years' ? (
+                <button
+                  type="button"
+                  onClick={handleHeaderClick}
+                  aria-label={headerAriaLabel}
                   style={{
-                    width: 32, height: 32, borderRadius: 8, border: 'none',
-                    background: sel ? 'var(--accent)' : 'transparent',
-                    color: sel ? 'var(--accent-text)' : 'var(--text-primary)',
-                    fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: sel ? 700 : td ? 600 : 400,
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    outline: td && !sel ? '2px solid var(--border-primary)' : 'none', outlineOffset: -2,
-                    transition: 'background 0.1s',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '2px 8px',
+                    borderRadius: 6,
+                    fontSize: 'calc(13px * var(--fs-scale-body, 1))',
+                    fontWeight: 600,
+                    color: 'var(--text-primary)',
                   }}
-                  onMouseEnter={e => { if (!sel) e.currentTarget.style.background = 'var(--bg-hover)' }}
-                  onMouseLeave={e => { if (!sel) e.currentTarget.style.background = 'transparent' }}>
-                  {d}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                >
+                  {headerLabel}
                 </button>
-              )
-            })}
-          </div>
+              ) : (
+                <span style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-primary)' }}>{headerLabel}</span>
+              )}
 
-          {/* Clear */}
-          {value && (
-            <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center' }}>
-              <button type="button" onClick={() => { onChange(''); setOpen(false) }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', padding: '3px 8px', borderRadius: 6 }}
-                onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
-                ✕
+              <button
+                type="button"
+                onClick={handleNext}
+                aria-label={nextAriaLabel}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 4,
+                  borderRadius: 6,
+                  display: 'flex',
+                  color: 'var(--text-faint)',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-faint)')}
+              >
+                <ChevronRight size={16} />
               </button>
             </div>
-          )}
-        </div>,
-        document.body
-      )}
+
+            {/* ── Days view ── */}
+            {view === 'days' && (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, marginBottom: 4 }}>
+                  {weekdays.map((d, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        textAlign: 'center',
+                        fontSize: 'calc(10px * var(--fs-scale-caption, 1))',
+                        fontWeight: 600,
+                        color: 'var(--text-faint)',
+                        padding: '2px 0',
+                      }}
+                    >
+                      {d}
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
+                  {Array.from({ length: startDay }, (_, i) => (
+                    <div key={`e-${i}`} />
+                  ))}
+                  {Array.from({ length: days }, (_, i) => {
+                    const d = i + 1;
+                    const sel = d === selectedDay;
+                    const td = isToday(d);
+                    const isoDate = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                    const ariaLabel = new Date(isoDate + 'T00:00:00Z').toLocaleDateString(locale, {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                      timeZone: 'UTC',
+                    });
+                    return (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => selectDay(d)}
+                        aria-label={ariaLabel}
+                        aria-pressed={sel}
+                        style={{
+                          width: 32,
+                          height: 32,
+                          fontSize: 'calc(12px * var(--fs-scale-body, 1))',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          ...gridCellStyle(sel, td),
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!sel) e.currentTarget.style.background = 'var(--bg-hover)';
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!sel) e.currentTarget.style.background = 'transparent';
+                        }}
+                      >
+                        {d}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {/* ── Months view ── */}
+            {view === 'months' && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+                {monthNames.map((name, i) => {
+                  const sel = !!(parsed && parsed.getUTCFullYear() === viewYear && parsed.getUTCMonth() === i);
+                  const cur = today.getFullYear() === viewYear && today.getMonth() === i;
+                  const ariaLabel = new Date(viewYear, i).toLocaleDateString(locale, {
+                    month: 'long',
+                    year: 'numeric',
+                  });
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => selectMonth(i)}
+                      aria-label={ariaLabel}
+                      aria-pressed={sel}
+                      style={{
+                        padding: '10px 4px',
+                        fontSize: 'calc(12px * var(--fs-scale-body, 1))',
+                        ...gridCellStyle(sel, cur),
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!sel) e.currentTarget.style.background = 'var(--bg-hover)';
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!sel) (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+                      }}
+                    >
+                      {name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* ── Years view ── */}
+            {view === 'years' && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+                {years.map((year) => {
+                  const sel = !!(parsed && parsed.getUTCFullYear() === year);
+                  const cur = today.getFullYear() === year;
+                  return (
+                    <button
+                      key={year}
+                      type="button"
+                      onClick={() => selectYear(year)}
+                      aria-label={String(year)}
+                      aria-pressed={sel}
+                      style={{
+                        padding: '10px 4px',
+                        fontSize: 'calc(12px * var(--fs-scale-body, 1))',
+                        ...gridCellStyle(sel, cur),
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!sel) e.currentTarget.style.background = 'var(--bg-hover)';
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!sel) (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+                      }}
+                    >
+                      {year}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* ── Footer: keyboard trigger (compact) + clear ── */}
+            <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              {/* In compact/borderless mode, the keyboard icon lives here instead of next to the trigger */}
+              {compact || borderless ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    setTextInput(inputValue || '');
+                    setIsTyping(true);
+                  }}
+                  aria-label="Enter date manually"
+                  title="Type a date"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '3px 6px',
+                    borderRadius: 6,
+                    display: 'flex',
+                    color: 'var(--text-faint)',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-faint)')}
+                >
+                  <Keyboard size={13} />
+                </button>
+              ) : (
+                <div />
+              )}
+
+              {value && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChange('');
+                    setOpen(false);
+                  }}
+                  aria-label="Clear date"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: 'calc(11px * var(--fs-scale-caption, 1))',
+                    color: 'var(--text-faint)',
+                    padding: '3px 8px',
+                    borderRadius: 6,
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-faint)')}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>,
+          document.body
+        )}
 
       <style>{`@keyframes selectIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
     </div>
-  )
+  );
 }
 
 interface CustomDateTimePickerProps {
-  value: string
-  onChange: (value: string) => void
-  placeholder?: string
-  style?: React.CSSProperties
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  style?: React.CSSProperties;
 }
 
 export function CustomDateTimePicker({ value, onChange, placeholder, style = {} }: CustomDateTimePickerProps) {
-  const { locale } = useTranslation()
-  const [datePart, timePart] = (value || '').split('T')
+  const { locale } = useTranslation();
+  const [datePart, timePart] = (value || '').split('T');
 
   const handleDateChange = (d: string) => {
-    onChange(d ? `${d}T${timePart || '12:00'}` : '')
-  }
+    onChange(d ? `${d}T${timePart || '12:00'}` : '');
+  };
   const handleTimeChange = (t: string) => {
-    const d = datePart || new Date().toISOString().split('T')[0]
-    onChange(t ? `${d}T${t}` : d)
-  }
+    const d = datePart || new Date().toISOString().split('T')[0];
+    onChange(t ? `${d}T${t}` : d);
+  };
 
   return (
     <div style={{ display: 'flex', gap: 8, ...style }}>
@@ -228,7 +622,7 @@ export function CustomDateTimePicker({ value, onChange, placeholder, style = {} 
         <CustomTimePicker value={timePart || ''} onChange={handleTimeChange} />
       </div>
     </div>
-  )
+  );
 }
 
-import CustomTimePicker from './CustomTimePicker'
+import CustomTimePicker from './CustomTimePicker';
