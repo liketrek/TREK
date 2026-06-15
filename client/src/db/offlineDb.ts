@@ -47,7 +47,15 @@ export interface SyncMeta {
 export interface BlobCacheEntry {
   /** Relative URL, e.g. "/api/files/42/download" */
   url: string;
+  /**
+   * Trip this blob belongs to, so it is evicted together with the trip in
+   * clearTripData. Legacy rows cached before v3 carry the sentinel -1.
+   */
+  tripId: number;
   blob: Blob;
+  /** Byte size captured at insert time — Blob.size is not reliably preserved
+   *  across IndexedDB round-trips, so the LRU budget reads this instead. */
+  bytes: number;
   mime: string;
   cachedAt: number;
 }
@@ -120,6 +128,17 @@ class TrekOfflineDb extends Dexie {
       tripMembers:    '[tripId+id], tripId',
       tags:           'id',
       categories:     'id',
+    });
+
+    // v3: scope the blob cache by trip so it can be evicted with the trip and
+    // bounded by an LRU budget (see enforceBlobBudget).
+    this.version(3).stores({
+      blobCache: 'url, cachedAt, tripId',
+    }).upgrade(async (tx) => {
+      await tx.table('blobCache').toCollection().modify((row: Partial<BlobCacheEntry>) => {
+        if (row.tripId == null) row.tripId = -1;
+        if (row.bytes == null) row.bytes = row.blob?.size ?? 0;
+      });
     });
   }
 }
@@ -245,6 +264,40 @@ export async function getCachedBlob(url: string): Promise<Blob | null> {
   }
 }
 
+// ── Blob-cache budget ───────────────────────────────────────────────────────
+
+/**
+ * Upper bounds for the offline file-blob cache. Kept conservative so trip
+ * documents never starve the map-tile cache (sized at MAX_TILES in
+ * tilePrefetcher.ts) for the origin's storage quota.
+ */
+export const BLOB_CACHE_MAX_ENTRIES = 200;
+export const BLOB_CACHE_MAX_BYTES = 100 * 1024 * 1024; // 100 MB
+
+/**
+ * Evict oldest-by-cachedAt blobs until the cache is under both the entry-count
+ * and byte budget. Call after inserting new blobs. LRU on insertion time, which
+ * is a reasonable proxy for access for write-once document blobs.
+ */
+export async function enforceBlobBudget(
+  maxCount = BLOB_CACHE_MAX_ENTRIES,
+  maxBytes = BLOB_CACHE_MAX_BYTES,
+): Promise<void> {
+  const entries = await offlineDb.blobCache.orderBy('cachedAt').toArray();
+  let count = entries.length;
+  let totalBytes = entries.reduce((sum, e) => sum + (e.bytes ?? 0), 0);
+  if (count <= maxCount && totalBytes <= maxBytes) return;
+
+  const toDelete: string[] = [];
+  for (const e of entries) {
+    if (count <= maxCount && totalBytes <= maxBytes) break;
+    toDelete.push(e.url);
+    totalBytes -= e.bytes ?? 0;
+    count -= 1;
+  }
+  if (toDelete.length) await offlineDb.blobCache.bulkDelete(toDelete);
+}
+
 // ── Eviction / cleanup ────────────────────────────────────────────────────────
 
 /** Delete all cached data for one trip (eviction or explicit clear). */
@@ -263,6 +316,7 @@ export async function clearTripData(tripId: number): Promise<void> {
       offlineDb.tripMembers,
       offlineDb.mutationQueue,
       offlineDb.syncMeta,
+      offlineDb.blobCache,
     ],
     async () => {
       await offlineDb.days.where('trip_id').equals(tripId).delete();
@@ -276,6 +330,7 @@ export async function clearTripData(tripId: number): Promise<void> {
       await offlineDb.tripMembers.where('tripId').equals(tripId).delete();
       await offlineDb.mutationQueue.where('tripId').equals(tripId).delete();
       await offlineDb.syncMeta.where('tripId').equals(tripId).delete();
+      await offlineDb.blobCache.where('tripId').equals(tripId).delete();
     },
   );
   // Remove the trip row itself outside the transaction since it's a separate table

@@ -1,20 +1,22 @@
 import { packingApi } from '../api/client'
 import { offlineDb, upsertPackingItems } from '../db/offlineDb'
 import { mutationQueue, generateUUID, nextTempId } from '../sync/mutationQueue'
+import { onlineThenCache } from './withOfflineFallback'
 import type { PackingItem } from '../types'
 
 export const packingRepo = {
   async list(tripId: number | string): Promise<{ items: PackingItem[] }> {
-    if (!navigator.onLine) {
-      const cached = await offlineDb.packingItems
-        .where('trip_id')
-        .equals(Number(tripId))
-        .toArray()
-      return { items: cached }
-    }
-    const result = await packingApi.list(tripId)
-    upsertPackingItems(result.items)
-    return result
+    return onlineThenCache(
+      async () => {
+        const result = await packingApi.list(tripId)
+        upsertPackingItems(result.items)
+        return result
+      },
+      async () => ({
+        items: await offlineDb.packingItems
+          .where('trip_id').equals(Number(tripId)).toArray(),
+      }),
+    )
   },
 
   async create(tripId: number | string, data: Record<string, unknown> & { name: string }): Promise<{ item: PackingItem }> {

@@ -26,6 +26,7 @@ import {
   reopenForUser,
   reopenAnonymous,
   deleteCurrentUserDb,
+  enforceBlobBudget,
   type QueuedMutation,
   type SyncMeta,
   type BlobCacheEntry,
@@ -82,6 +83,15 @@ const makePlace = (id: number, tripId = 1): Place => ({
   website: null,
   phone: null,
   created_at: '2026-01-01T00:00:00Z',
+});
+
+const makeBlob = (url: string, tripId = 1, bytes = 10, cachedAt = 1): BlobCacheEntry => ({
+  url,
+  tripId,
+  blob: new Blob(['x'.repeat(bytes)], { type: 'application/pdf' }),
+  bytes,
+  mime: 'application/pdf',
+  cachedAt,
 });
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
@@ -223,7 +233,9 @@ describe('offlineDb — blobCache', () => {
     const blob = new Blob(['%PDF-1.4 test'], { type: 'application/pdf' });
     const entry: BlobCacheEntry = {
       url: '/api/files/99/download',
+      tripId: 1,
       blob,
+      bytes: blob.size,
       mime: 'application/pdf',
       cachedAt: Date.now(),
     };
@@ -233,6 +245,49 @@ describe('offlineDb — blobCache', () => {
     expect(stored).toBeDefined();
     expect(stored!.mime).toBe('application/pdf');
     expect(stored!.blob).toBeDefined();
+  });
+
+  it('queries blobs by tripId index', async () => {
+    await offlineDb.blobCache.bulkPut([
+      makeBlob('/api/files/1/download', 1),
+      makeBlob('/api/files/2/download', 1),
+      makeBlob('/api/files/3/download', 2),
+    ]);
+    const trip1 = await offlineDb.blobCache.where('tripId').equals(1).toArray();
+    expect(trip1).toHaveLength(2);
+  });
+});
+
+describe('offlineDb — enforceBlobBudget', () => {
+  it('evicts oldest-by-cachedAt entries past the count budget', async () => {
+    // 5 entries with strictly increasing cachedAt; cap to 3.
+    for (let i = 0; i < 5; i++) {
+      await offlineDb.blobCache.put(makeBlob(`/api/files/${i}/download`, 1, 10, i + 1));
+    }
+    await enforceBlobBudget(3, Infinity);
+
+    expect(await offlineDb.blobCache.count()).toBe(3);
+    // Oldest two (cachedAt 1 and 2) are gone; newest survive.
+    expect(await offlineDb.blobCache.get('/api/files/0/download')).toBeUndefined();
+    expect(await offlineDb.blobCache.get('/api/files/1/download')).toBeUndefined();
+    expect(await offlineDb.blobCache.get('/api/files/4/download')).toBeDefined();
+  });
+
+  it('evicts oldest entries past the byte budget', async () => {
+    // 3 entries of 100 bytes each; cap to 250 bytes → newest two (200) survive.
+    for (let i = 0; i < 3; i++) {
+      await offlineDb.blobCache.put(makeBlob(`/api/files/${i}/download`, 1, 100, i + 1));
+    }
+    await enforceBlobBudget(Infinity, 250);
+
+    expect(await offlineDb.blobCache.count()).toBe(2);
+    expect(await offlineDb.blobCache.get('/api/files/0/download')).toBeUndefined();
+  });
+
+  it('is a no-op when already within budget', async () => {
+    await offlineDb.blobCache.put(makeBlob('/api/files/1/download', 1));
+    await enforceBlobBudget(10, Infinity);
+    expect(await offlineDb.blobCache.count()).toBe(1);
   });
 });
 
@@ -244,9 +299,12 @@ describe('offlineDb — clearTripData', () => {
     const item: PackingItem = { id: 5, trip_id: 1, name: 'Towel', category: null, checked: 0, sort_order: 0, quantity: 1 };
     await upsertPackingItems([item]);
 
+    await offlineDb.blobCache.put(makeBlob('/api/files/1/download', 1));
+
     // Also add data for a different trip — should NOT be removed
     await upsertTrip(makeTrip(2));
     await upsertDays([makeDay(99, 2)]);
+    await offlineDb.blobCache.put(makeBlob('/api/files/2/download', 2));
 
     await clearTripData(1);
 
@@ -254,10 +312,12 @@ describe('offlineDb — clearTripData', () => {
     expect(await offlineDb.days.where('trip_id').equals(1).count()).toBe(0);
     expect(await offlineDb.places.where('trip_id').equals(1).count()).toBe(0);
     expect(await offlineDb.packingItems.where('trip_id').equals(1).count()).toBe(0);
+    expect(await offlineDb.blobCache.where('tripId').equals(1).count()).toBe(0);
 
     // Trip 2 intact
     expect(await offlineDb.trips.get(2)).toBeDefined();
     expect(await offlineDb.days.where('trip_id').equals(2).count()).toBe(1);
+    expect(await offlineDb.blobCache.get('/api/files/2/download')).toBeDefined();
   });
 });
 
