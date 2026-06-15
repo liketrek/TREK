@@ -189,8 +189,11 @@ export async function prefetchTilesForTrip(
   // their lower zooms cached instead of being skipped entirely.
   //
   // NOTE: opaque (no-cors) tile responses are padded by Chromium to ~7 MB each
-  // for quota accounting, so the real on-disk budget is far below 180 MB. That
-  // (audit H8) and navigator.storage.persist() (M6) are tracked separately.
+  // for quota accounting, so the real on-disk budget is far below 180 MB. We
+  // keep no-cors deliberately: switching to cors would break self-hosted/custom
+  // tile providers that don't send CORS headers. To stop the browser evicting
+  // these tiles under the inflated quota, we request persistent storage at app
+  // init instead (sync/persistentStorage.ts).
   const fetched = await prefetchTiles(bbox, template)
 
   // Update syncMeta with bbox and tile count

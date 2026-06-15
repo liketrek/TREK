@@ -15,8 +15,11 @@ import '@fontsource/geist-sans/500.css'
 import '@fontsource/geist-sans/600.css'
 import './index.css'
 import { startConnectivityProbe } from './sync/connectivity'
+import { requestPersistentStorage } from './sync/persistentStorage'
 
 startConnectivityProbe()
+// Keep offline data (map tiles, file blobs, IndexedDB) exempt from eviction.
+requestPersistentStorage()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

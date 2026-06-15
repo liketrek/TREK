@@ -48,6 +48,22 @@ export default defineConfig({
             },
           },
           {
+            // Mapbox GL style, glyphs, sprites and vector tiles. Best-effort
+            // offline only: opportunistically caches what the user has already
+            // viewed online. Full pre-download offline maps require the Leaflet
+            // renderer (raster prefetch in tilePrefetcher.ts) — the GL vector
+            // pipeline is not prefetched. StaleWhileRevalidate keeps the basemap
+            // fresh online while still serving from cache when offline. Mapbox
+            // sends CORS, so responses are non-opaque (real 200s, no quota pad).
+            urlPattern: /^https:\/\/(api\.mapbox\.com|[a-d]\.tiles\.mapbox\.com)\/.*/i,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'mapbox-tiles',
+              expiration: { maxEntries: 3000, maxAgeSeconds: 30 * 24 * 60 * 60 },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
+          {
             // API calls — network only. We deliberately do NOT cache API
             // responses in the Service Worker: Workbox keys entries by URL and
             // cannot vary on the httpOnly session cookie, so a shared device
