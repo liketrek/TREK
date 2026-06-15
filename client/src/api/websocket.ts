@@ -20,6 +20,12 @@ export function getSocketId(): string | null {
   return mySocketId
 }
 
+/** Trip ids the app currently has open (joined). Used to re-hydrate the active
+ *  trip's store after the network comes back via the `online` event. */
+export function getActiveTrips(): string[] {
+  return Array.from(activeTrips)
+}
+
 export function setRefetchCallback(fn: RefetchCallback | null): void {
   refetchCallback = fn
 }

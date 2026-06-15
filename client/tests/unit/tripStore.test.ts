@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { useTripStore } from '../../src/store/tripStore';
 import { resetAllStores } from '../helpers/store';
-import { buildTrip, buildDay, buildPlace, buildPackingItem, buildTodoItem, buildTag, buildCategory, buildAssignment, buildDayNote } from '../helpers/factories';
+import { buildTrip, buildDay, buildPlace, buildPackingItem, buildTodoItem, buildTag, buildCategory, buildAssignment, buildDayNote, buildBudgetItem } from '../helpers/factories';
 import { server } from '../helpers/msw/server';
 
 vi.mock('../../src/api/websocket', () => ({
@@ -177,6 +177,40 @@ describe('tripStore', () => {
       const state = useTripStore.getState();
       expect(state.isLoading).toBe(false);
       expect(state.error).not.toBeNull();
+    });
+  });
+
+  describe('hydrateActiveTrip', () => {
+    const loadHandlers = (places: unknown[] = [], budget: unknown[] = []) => [
+      http.get('/api/trips/1', () => HttpResponse.json({ trip: buildTrip({ id: 1 }) })),
+      http.get('/api/trips/1/days', () => HttpResponse.json({ days: [] })),
+      http.get('/api/trips/1/places', () => HttpResponse.json({ places })),
+      http.get('/api/trips/1/packing', () => HttpResponse.json({ items: [] })),
+      http.get('/api/trips/1/todo', () => HttpResponse.json({ items: [] })),
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: budget })),
+      http.get('/api/trips/1/reservations', () => HttpResponse.json({ reservations: [] })),
+      http.get('/api/trips/1/files', () => HttpResponse.json({ files: [] })),
+      http.get('/api/tags', () => HttpResponse.json({ tags: [] })),
+      http.get('/api/categories', () => HttpResponse.json({ categories: [] })),
+    ];
+
+    it('FE-TRIP-H1: silently refreshes resources without resetting or splashing', async () => {
+      server.use(...loadHandlers());
+      await useTripStore.getState().loadTrip(1);
+      expect(useTripStore.getState().trip!.id).toBe(1);
+
+      // New collaborative state arrives (as if edited by someone while we were offline).
+      const place = buildPlace({ trip_id: 1 });
+      const budgetItem = buildBudgetItem({ trip_id: 1 });
+      server.use(...loadHandlers([place], [budgetItem]));
+
+      await useTripStore.getState().hydrateActiveTrip(1);
+      const state = useTripStore.getState();
+
+      expect(state.places).toEqual([place]);
+      expect(state.budgetItems).toEqual([budgetItem]);
+      expect(state.trip!.id).toBe(1);      // trip not reset
+      expect(state.isLoading).toBe(false); // no splash toggled
     });
   });
 

@@ -14,17 +14,34 @@
  */
 import { mutationQueue } from './mutationQueue'
 import { tripSyncManager } from './tripSyncManager'
-import { setPreReconnectHook } from '../api/websocket'
+import { setPreReconnectHook, setRefetchCallback, getActiveTrips } from '../api/websocket'
+import { useTripStore } from '../store/tripStore'
 
 const PERIODIC_MS = 30_000
 
 let _intervalId: ReturnType<typeof setInterval> | null = null
 let _registered = false
 
-/** Network came back — flush mutations AND re-seed Dexie for all cacheable trips. */
+/** Pull the latest server state for every open trip into the Zustand store. */
+function rehydrateActiveTrips() {
+  const store = useTripStore.getState()
+  for (const tripId of getActiveTrips()) {
+    store.hydrateActiveTrip(tripId).catch(console.error)
+  }
+}
+
+/**
+ * Network came back — flush local writes first, then re-seed Dexie for all
+ * cacheable trips and re-hydrate the open trip's store so a collaborator's
+ * edits made while we were offline appear without navigating away.
+ */
 function onOnline() {
-  mutationQueue.flush().catch(console.error)
-  tripSyncManager.syncAll().catch(console.error)
+  mutationQueue.flush()
+    .catch(console.error)
+    .finally(() => {
+      tripSyncManager.syncAll().catch(console.error)
+      rehydrateActiveTrips()
+    })
 }
 
 /** Tab became visible — flush only; don't trigger a potentially expensive syncAll. */
@@ -48,6 +65,11 @@ export function registerSyncTriggers(): void {
   // WS reconnect: flush mutations only — no syncAll to avoid triggering rate
   // limiters when the socket drops and reconnects while the device is online.
   setPreReconnectHook(() => mutationQueue.flush())
+  // After the reconnect flush, pull canonical state for the open trip back into
+  // the store (the WS layer awaits the flush hook before invoking this).
+  setRefetchCallback(tripId => {
+    useTripStore.getState().hydrateActiveTrip(tripId).catch(console.error)
+  })
 
   window.addEventListener('online', onOnline)
   document.addEventListener('visibilitychange', onVisibility)
@@ -59,6 +81,7 @@ export function unregisterSyncTriggers(): void {
   _registered = false
 
   setPreReconnectHook(null)
+  setRefetchCallback(null)
   window.removeEventListener('online', onOnline)
   document.removeEventListener('visibilitychange', onVisibility)
   if (_intervalId !== null) {

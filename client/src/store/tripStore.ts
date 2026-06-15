@@ -62,6 +62,7 @@ export interface TripStoreState
   setSelectedDay: (dayId: number | null) => void
   handleRemoteEvent: (event: WebSocketEvent) => void
   loadTrip: (tripId: number | string) => Promise<void>
+  hydrateActiveTrip: (tripId: number | string) => Promise<void>
   refreshDays: (tripId: number | string) => Promise<void>
   updateTrip: (tripId: number | string, data: Partial<Trip>) => Promise<Trip>
   addTag: (data: Partial<Tag> & { name: string }) => Promise<Tag>
@@ -130,6 +131,22 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
       set({ isLoading: false, error: message })
       throw err
     }
+  },
+
+  // Silently re-fetch the active trip's collaborative state into the store after
+  // the network comes back (WS reconnect or `online` event) so edits missed while
+  // offline appear in place — no splash, no resetTrip. Each resource is
+  // best-effort; a failure on one must not wipe the others.
+  hydrateActiveTrip: async (tripId: number | string) => {
+    await Promise.all([
+      get().refreshDays(tripId),
+      placeRepo.list(tripId).then(d => set({ places: d.places })).catch(() => {}),
+      packingRepo.list(tripId).then(d => set({ packingItems: d.items })).catch(() => {}),
+      todoRepo.list(tripId).then(d => set({ todoItems: d.items })).catch(() => {}),
+      get().loadBudgetItems(tripId),
+      get().loadReservations(tripId),
+      get().loadFiles(tripId),
+    ])
   },
 
   refreshDays: async (tripId: number | string) => {
