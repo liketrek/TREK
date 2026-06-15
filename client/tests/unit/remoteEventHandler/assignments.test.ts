@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useTripStore } from '../../../src/store/tripStore';
 import { resetAllStores } from '../../helpers/store';
 import { buildDay, buildAssignment, buildPlace } from '../../helpers/factories';
+import type { Assignment } from '../../../src/types';
 
 beforeEach(() => {
   resetAllStores();
@@ -48,6 +49,58 @@ describe('remoteEventHandler > assignments', () => {
     const { assignments } = useTripStore.getState();
     expect(assignments['10']).toHaveLength(1);
     expect(assignments['10'][0].id).toBe(500);
+  });
+
+  it('FE-WSEVT-ASSIGN-003b: a second assignment of an already-present place is NOT suppressed (H11)', () => {
+    const place = buildPlace({ id: 55 });
+    useTripStore.setState({
+      days: [buildDay({ id: 10 })],
+      // A committed (positive-id) assignment of place 55 already on the day.
+      assignments: { '10': [buildAssignment({ id: 100, day_id: 10, place, place_id: place.id })] },
+    });
+    // A legitimately new, distinct assignment of the same place arrives.
+    const second = buildAssignment({ id: 300, day_id: 10, place, place_id: place.id });
+    useTripStore.getState().handleRemoteEvent({ type: 'assignment:created', assignment: second });
+    const { assignments } = useTripStore.getState();
+    expect(assignments['10']).toHaveLength(2);
+    expect(assignments['10'].map(a => a.id).sort((x, y) => x - y)).toEqual([100, 300]);
+  });
+
+  it('FE-WSEVT-ASSIGN-003c: temp reconciliation replaces only the matching place, not a sibling temp (H11)', () => {
+    const place55 = buildPlace({ id: 55 });
+    const place66 = buildPlace({ id: 66 });
+    useTripStore.setState({
+      days: [buildDay({ id: 10 })],
+      assignments: {
+        '10': [
+          buildAssignment({ id: -1, day_id: 10, place: place55, place_id: 55 }),
+          buildAssignment({ id: -2, day_id: 10, place: place66, place_id: 66 }),
+        ],
+      },
+    });
+    const real = buildAssignment({ id: 500, day_id: 10, place: place55, place_id: 55 });
+    useTripStore.getState().handleRemoteEvent({ type: 'assignment:created', assignment: real });
+    const { assignments } = useTripStore.getState();
+    const ids = assignments['10'].map(a => a.id);
+    expect(assignments['10']).toHaveLength(2);
+    expect(ids).toContain(500);   // temp 55 reconciled to real
+    expect(ids).toContain(-2);    // sibling temp 66 untouched
+    expect(ids).not.toContain(-1);
+  });
+
+  it('FE-WSEVT-ASSIGN-003d: place-less assignments do not collapse onto each other (H11)', () => {
+    // Defensive: a malformed event lacking place data must not let the
+    // `place?.id === placeId` reconciliation match undefined === undefined.
+    const placeless = (id: number): Assignment =>
+      ({ ...buildAssignment({ id, day_id: 10 }), place: undefined, place_id: undefined } as unknown as Assignment);
+    useTripStore.setState({
+      days: [buildDay({ id: 10 })],
+      assignments: { '10': [placeless(-1)] },
+    });
+    useTripStore.getState().handleRemoteEvent({ type: 'assignment:created', assignment: placeless(700) });
+    const { assignments } = useTripStore.getState();
+    // No placeId → no reconcile; both survive as distinct rows (no collapse).
+    expect(assignments['10']).toHaveLength(2);
   });
 
   it('FE-WSEVT-ASSIGN-004: assignment:updated merges updated data into correct day', () => {

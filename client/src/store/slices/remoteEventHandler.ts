@@ -193,25 +193,34 @@ export function handleRemoteEvent(set: SetState, get: GetState, event: WebSocket
 
       // Assignments
       case 'assignment:created': {
-        const dayKey = String((payload.assignment as Assignment).day_id)
-        const existing = (state.assignments[dayKey] || [])
-        const placeId = (payload.assignment as Assignment).place?.id || (payload.assignment as Assignment).place_id
-        if (existing.some(a => a.id === (payload.assignment as Assignment).id || (placeId && a.place?.id === placeId))) {
-          const hasTempVersion = existing.some(a => a.id < 0 && a.place?.id === placeId)
-          if (hasTempVersion) {
-            return {
-              assignments: {
-                ...state.assignments,
-                [dayKey]: existing.map(a => (a.id < 0 && a.place?.id === placeId) ? payload.assignment as Assignment : a),
-              }
-            }
+        const incoming = payload.assignment as Assignment
+        const dayKey = String(incoming.day_id)
+        const existing = state.assignments[dayKey] || []
+        const placeId = incoming.place?.id ?? incoming.place_id
+
+        // Already have this exact assignment id → duplicate broadcast or the
+        // echo of an already-committed assignment. No-op.
+        if (existing.some(a => a.id === incoming.id)) return {}
+
+        // Reconcile our own optimistic create: replace the temp (negative-id)
+        // assignment of the same place on this day with the real one. Guarded on
+        // a real placeId so an assignment with no place can never collapse onto
+        // another place-less one (undefined === undefined).
+        if (placeId != null) {
+          const tempIdx = existing.findIndex(a => a.id < 0 && a.place?.id === placeId)
+          if (tempIdx !== -1) {
+            const next = existing.slice()
+            next[tempIdx] = incoming
+            return { assignments: { ...state.assignments, [dayKey]: next } }
           }
-          return {}
         }
+
+        // Genuinely new — including a legitimate second assignment of a place
+        // already on this day (no temp version to reconcile). Append.
         return {
           assignments: {
             ...state.assignments,
-            [dayKey]: [...existing, payload.assignment as Assignment],
+            [dayKey]: [...existing, incoming],
           }
         }
       }
