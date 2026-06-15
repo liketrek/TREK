@@ -64,6 +64,20 @@ describe('placeRepo.list', () => {
     const result = await placeRepo.list(99);
     expect(result.places).toHaveLength(0);
   });
+
+  it('online but request fails — falls back to Dexie cache (captive portal)', async () => {
+    // navigator.onLine lies "true" on a captive portal; the request throws.
+    const place = buildPlace({ trip_id: 1 });
+    await offlineDb.places.put(place);
+
+    server.use(
+      http.get('/api/trips/1/places', () => HttpResponse.error()),
+    );
+
+    const result = await placeRepo.list(1);
+    expect(result.places).toHaveLength(1);
+    expect(result.places[0].id).toBe(place.id);
+  });
 });
 
 describe('placeRepo.create', () => {

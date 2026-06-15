@@ -1,20 +1,22 @@
 import { placesApi } from '../api/client'
 import { offlineDb, upsertPlaces } from '../db/offlineDb'
 import { mutationQueue, generateUUID, nextTempId } from '../sync/mutationQueue'
+import { onlineThenCache } from './withOfflineFallback'
 import type { Place } from '../types'
 
 export const placeRepo = {
   async list(tripId: number | string, params?: Record<string, unknown>): Promise<{ places: Place[] }> {
-    if (!navigator.onLine) {
-      const cached = await offlineDb.places
-        .where('trip_id')
-        .equals(Number(tripId))
-        .toArray()
-      return { places: cached }
-    }
-    const result = await placesApi.list(tripId, params)
-    upsertPlaces(result.places)
-    return result
+    return onlineThenCache(
+      async () => {
+        const result = await placesApi.list(tripId, params)
+        upsertPlaces(result.places)
+        return result
+      },
+      async () => ({
+        places: await offlineDb.places
+          .where('trip_id').equals(Number(tripId)).toArray(),
+      }),
+    )
   },
 
   async create(tripId: number | string, data: Record<string, unknown> & { name: string }): Promise<{ place: Place }> {

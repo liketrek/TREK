@@ -1,18 +1,20 @@
 import { filesApi } from '../api/client'
 import { offlineDb, upsertTripFiles } from '../db/offlineDb'
+import { onlineThenCache } from './withOfflineFallback'
 import type { TripFile } from '../types'
 
 export const fileRepo = {
   async list(tripId: number | string): Promise<{ files: TripFile[] }> {
-    if (!navigator.onLine) {
-      const cached = await offlineDb.tripFiles
-        .where('trip_id')
-        .equals(Number(tripId))
-        .toArray()
-      return { files: cached }
-    }
-    const result = await filesApi.list(tripId)
-    upsertTripFiles(result.files)
-    return result
+    return onlineThenCache(
+      async () => {
+        const result = await filesApi.list(tripId)
+        upsertTripFiles(result.files)
+        return result
+      },
+      async () => ({
+        files: await offlineDb.tripFiles
+          .where('trip_id').equals(Number(tripId)).toArray(),
+      }),
+    )
   },
 }
