@@ -65,6 +65,7 @@ const login: TranslationStrings = {
   'login.usernameRequired': 'Nama pengguna wajib diisi',
   'login.passwordMinLength': 'Kata sandi minimal 8 karakter',
   'login.forgotPassword': 'Lupa kata sandi?',
+  'login.rememberMe': 'Ingat saya',
   'login.forgotPasswordTitle': 'Setel ulang kata sandi',
   'login.forgotPasswordBody':
     'Masukkan alamat email akunmu. Jika akun ada, kami akan mengirim tautan reset.',

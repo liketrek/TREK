@@ -65,6 +65,7 @@ const login: TranslationStrings = {
   'login.usernameRequired': 'Nazwa użytkownika jest wymagana',
   'login.passwordMinLength': 'Hasło musi mieć co najmniej 8 znaków',
   'login.forgotPassword': 'Nie pamiętasz hasła?',
+  'login.rememberMe': 'Zapamiętaj mnie',
   'login.forgotPasswordTitle': 'Zresetuj hasło',
   'login.forgotPasswordBody':
     'Wpisz adres e-mail użyty przy rejestracji. Jeśli konto istnieje, wyślemy link do resetu.',

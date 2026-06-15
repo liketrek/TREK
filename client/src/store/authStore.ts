@@ -39,8 +39,8 @@ interface AuthState {
   placesAutocompleteEnabled: boolean
   placesDetailsEnabled: boolean
 
-  login: (email: string, password: string) => Promise<LoginResult>
-  completeMfaLogin: (mfaToken: string, code: string) => Promise<AuthResponse>
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<LoginResult>
+  completeMfaLogin: (mfaToken: string, code: string, rememberMe?: boolean) => Promise<AuthResponse>
   register: (username: string, email: string, password: string, invite_token?: string) => Promise<AuthResponse>
   logout: () => Promise<void>
   /** Pass `{ silent: true }` to refresh the user without toggling global isLoading (avoids unmounting protected routes). */
@@ -99,11 +99,11 @@ export const useAuthStore = create<AuthState>()(
   placesAutocompleteEnabled: true,
   placesDetailsEnabled: true,
 
-  login: async (email: string, password: string) => {
+  login: async (email: string, password: string, rememberMe?: boolean) => {
     authSequence++
     set({ isLoading: true, error: null })
     try {
-      const data = await authApi.login({ email, password }) as AuthResponse & { mfa_required?: boolean; mfa_token?: string }
+      const data = await authApi.login({ email, password, remember_me: rememberMe }) as AuthResponse & { mfa_required?: boolean; mfa_token?: string }
       if (data.mfa_required && data.mfa_token) {
         set({ isLoading: false, error: null })
         return { mfa_required: true as const, mfa_token: data.mfa_token }
@@ -128,11 +128,11 @@ export const useAuthStore = create<AuthState>()(
     }
   },
 
-  completeMfaLogin: async (mfaToken: string, code: string) => {
+  completeMfaLogin: async (mfaToken: string, code: string, rememberMe?: boolean) => {
     authSequence++
     set({ isLoading: true, error: null })
     try {
-      const data = await authApi.verifyMfaLogin({ mfa_token: mfaToken, code: code.replace(/\s/g, '') })
+      const data = await authApi.verifyMfaLogin({ mfa_token: mfaToken, code: code.replace(/\s/g, ''), remember_me: rememberMe })
       set({
         user: data.user,
         isAuthenticated: true,

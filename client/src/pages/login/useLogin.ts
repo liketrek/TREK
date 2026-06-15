@@ -37,6 +37,7 @@ export function useLogin() {
   const [username, setUsername] = useState<string>('')
   const [email, setEmail] = useState<string>('')
   const [password, setPassword] = useState<string>('')
+  const [rememberMe, setRememberMe] = useState<boolean>(false)
   const [showPassword, setShowPassword] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string>('')
@@ -242,7 +243,7 @@ export function useLogin() {
           setIsLoading(false)
           return
         }
-        const mfaResult = await completeMfaLogin(mfaToken, mfaCode)
+        const mfaResult = await completeMfaLogin(mfaToken, mfaCode, rememberMe)
         if ('user' in mfaResult && mfaResult.user?.must_change_password) {
           setSavedLoginPassword(password)
           setPasswordChangeStep(true)
@@ -258,7 +259,7 @@ export function useLogin() {
         if (password.length < 8) { setError(t('login.passwordMinLength')); setIsLoading(false); return }
         await register(username, email, password, inviteToken || undefined)
       } else {
-        const result = await login(email, password)
+        const result = await login(email, password, rememberMe)
         if ('mfa_required' in result && result.mfa_required && 'mfa_token' in result) {
           setMfaToken(result.mfa_token)
           setMfaStep(true)
@@ -289,7 +290,7 @@ export function useLogin() {
   return {
     navigate,
     mode, setMode,
-    username, setUsername, email, setEmail, password, setPassword, showPassword, setShowPassword,
+    username, setUsername, email, setEmail, password, setPassword, rememberMe, setRememberMe, showPassword, setShowPassword,
     isLoading, error, setError, appConfig, inviteToken,
     langDropdownOpen, setLangDropdownOpen, setLanguageLocal,
     showTakeoff, mfaStep, setMfaStep, mfaToken, setMfaToken, mfaCode, setMfaCode,

@@ -136,3 +136,21 @@ export const SESSION_DURATION = parsedSessionMs == null ? DEFAULT_SESSION_DURATI
 export const SESSION_DURATION_MS = parsedSessionMs ?? parseDurationMs(DEFAULT_SESSION_DURATION)!;
 /** Session length in seconds — passed to `jwt.sign({ expiresIn })` (number = seconds). */
 export const SESSION_DURATION_SECONDS = Math.floor(SESSION_DURATION_MS / 1000);
+
+// SESSION_DURATION_REMEMBER is the session length used when the user ticks
+// "Remember me" on the login form: a longer-lived JWT `exp` claim plus a
+// persistent `trek_session` cookie `maxAge`. An unticked login keeps
+// SESSION_DURATION and a browser-session cookie (no `maxAge`). Same ms-style
+// format and fallback behavior as SESSION_DURATION.
+const DEFAULT_SESSION_DURATION_REMEMBER = '30d';
+const rawRememberDuration = process.env.SESSION_DURATION_REMEMBER?.trim() || DEFAULT_SESSION_DURATION_REMEMBER;
+const parsedRememberMs = parseDurationMs(rawRememberDuration);
+if (parsedRememberMs == null) {
+  console.warn(`SESSION_DURATION_REMEMBER="${rawRememberDuration}" is not a valid duration (use e.g. 7d, 30d, 90d). Falling back to "${DEFAULT_SESSION_DURATION_REMEMBER}".`);
+}
+/** Human-readable "remember me" session length actually in effect (for logs/diagnostics). */
+export const SESSION_DURATION_REMEMBER = parsedRememberMs == null ? DEFAULT_SESSION_DURATION_REMEMBER : rawRememberDuration;
+/** "Remember me" session length in milliseconds — used for the persistent cookie `maxAge`. */
+export const SESSION_DURATION_REMEMBER_MS = parsedRememberMs ?? parseDurationMs(DEFAULT_SESSION_DURATION_REMEMBER)!;
+/** "Remember me" session length in seconds — passed to `jwt.sign({ expiresIn })`. */
+export const SESSION_DURATION_REMEMBER_SECONDS = Math.floor(SESSION_DURATION_REMEMBER_MS / 1000);

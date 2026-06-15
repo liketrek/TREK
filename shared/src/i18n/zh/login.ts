@@ -51,6 +51,7 @@ const login: TranslationStrings = {
   'login.usernameRequired': '用户名为必填项',
   'login.passwordMinLength': '密码至少需要8个字符',
   'login.forgotPassword': '忘记密码？',
+  'login.rememberMe': '记住我',
   'login.forgotPasswordTitle': '重置密码',
   'login.forgotPasswordBody':
     '输入您注册时使用的邮箱地址。若账户存在，我们将发送重置链接。',

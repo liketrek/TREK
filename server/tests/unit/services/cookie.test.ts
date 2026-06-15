@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import { cookieOptions } from '../../../src/services/cookie';
+import { SESSION_DURATION_MS, SESSION_DURATION_REMEMBER_MS } from '../../../src/config';
 
 describe('cookieOptions', () => {
   afterEach(() => {
@@ -52,5 +53,17 @@ describe('cookieOptions', () => {
   it('omits maxAge when clear is true', () => {
     const opts = cookieOptions(true);
     expect(opts).not.toHaveProperty('maxAge');
+  });
+
+  it('keeps the default SESSION_DURATION maxAge when remember is undefined', () => {
+    expect(cookieOptions(false, undefined)).toHaveProperty('maxAge', SESSION_DURATION_MS);
+  });
+
+  it('uses the longer SESSION_DURATION_REMEMBER maxAge when remember is true', () => {
+    expect(cookieOptions(false, undefined, true)).toHaveProperty('maxAge', SESSION_DURATION_REMEMBER_MS);
+  });
+
+  it('omits maxAge (session cookie) when remember is false', () => {
+    expect(cookieOptions(false, undefined, false)).not.toHaveProperty('maxAge');
   });
 });

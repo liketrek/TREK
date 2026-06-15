@@ -51,6 +51,7 @@ const login: TranslationStrings = {
   'login.usernameRequired': '使用者名稱為必填',
   'login.passwordMinLength': '密碼至少需要8個字元',
   'login.forgotPassword': '忘記密碼？',
+  'login.rememberMe': '記住我',
   'login.forgotPasswordTitle': '重設密碼',
   'login.forgotPasswordBody':
     '請輸入您註冊時使用的電子郵件。若帳號存在，我們將傳送重設連結。',

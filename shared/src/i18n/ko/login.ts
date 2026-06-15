@@ -62,6 +62,7 @@ const login: TranslationStrings = {
   'login.usernameRequired': '사용자 이름을 입력하세요',
   'login.passwordMinLength': '비밀번호는 최소 8자 이상이어야 합니다',
   'login.forgotPassword': '비밀번호를 잊으셨나요?',
+  'login.rememberMe': '로그인 상태 유지',
   'login.forgotPasswordTitle': '비밀번호 재설정',
   'login.forgotPasswordBody':
     '가입 시 사용한 이메일 주소를 입력하세요. 계정이 존재하면 재설정 링크를 보내드립니다.',

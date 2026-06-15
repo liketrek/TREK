@@ -59,6 +59,7 @@ const login: TranslationStrings = {
   'login.usernameRequired': 'اسم المستخدم مطلوب',
   'login.passwordMinLength': 'يجب أن تكون كلمة المرور 8 أحرف على الأقل',
   'login.forgotPassword': 'نسيت كلمة المرور؟',
+  'login.rememberMe': 'تذكرني',
   'login.forgotPasswordTitle': 'إعادة تعيين كلمة المرور',
   'login.forgotPasswordBody':
     'أدخل عنوان البريد الإلكتروني المسجَّل. إذا كان الحساب موجودًا، سنرسل رابط إعادة التعيين.',

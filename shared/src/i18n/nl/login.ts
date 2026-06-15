@@ -56,6 +56,7 @@ const login: TranslationStrings = {
   'login.usernameRequired': 'Gebruikersnaam is vereist',
   'login.passwordMinLength': 'Wachtwoord moet minimaal 8 tekens bevatten',
   'login.forgotPassword': 'Wachtwoord vergeten?',
+  'login.rememberMe': 'Ingelogd blijven',
   'login.forgotPasswordTitle': 'Wachtwoord resetten',
   'login.forgotPasswordBody':
     'Voer het e-mailadres van je account in. Als er een account bestaat, sturen we een resetlink.',

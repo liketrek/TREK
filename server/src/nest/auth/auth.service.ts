@@ -14,7 +14,7 @@ import type { User } from '../../types';
 @Injectable()
 export class AuthService {
   // Cookie
-  setAuthCookie(res: Response, token: string, req: Request) { setAuthCookie(res, token, req); }
+  setAuthCookie(res: Response, token: string, req: Request, remember?: boolean) { setAuthCookie(res, token, req, remember); }
   clearAuthCookie(res: Response, req: Request) { clearAuthCookie(res, req); }
 
   // Reset-email delivery (canonical app URL, never request headers)

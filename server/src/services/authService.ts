@@ -7,7 +7,7 @@ import { authenticator } from 'otplib';
 import QRCode from 'qrcode';
 import { randomBytes, createHash } from 'crypto';
 import { db } from '../db/database';
-import { JWT_SECRET, SESSION_DURATION_SECONDS } from '../config';
+import { JWT_SECRET, SESSION_DURATION_SECONDS, SESSION_DURATION_REMEMBER_SECONDS } from '../config';
 import { validatePassword } from './passwordPolicy';
 import { encryptMfaSecret, decryptMfaSecret } from './mfaCrypto';
 import { getAllPermissions } from './permissions';
@@ -181,14 +181,17 @@ export function isOidcOnlyMode(): boolean {
   return !resolveAuthToggles().password_login;
 }
 
-export function generateToken(user: { id: number | bigint; password_version?: number }) {
+export function generateToken(user: { id: number | bigint; password_version?: number }, rememberMe = false) {
   const pv = typeof user.password_version === 'number'
     ? user.password_version
     : ((db.prepare('SELECT password_version FROM users WHERE id = ?').get(user.id) as { password_version?: number } | undefined)?.password_version ?? 0);
+  // "Remember me" extends the JWT lifetime to match the persistent cookie maxAge;
+  // the cookie service decides session-vs-persistent off the same flag.
+  const expiresIn = rememberMe ? SESSION_DURATION_REMEMBER_SECONDS : SESSION_DURATION_SECONDS;
   return jwt.sign(
     { id: user.id, pv },
     JWT_SECRET,
-    { expiresIn: SESSION_DURATION_SECONDS, algorithm: 'HS256' }
+    { expiresIn, algorithm: 'HS256' }
   );
 }
 
@@ -443,6 +446,7 @@ export function registerUser(body: {
 export function loginUser(body: {
   email?: string;
   password?: string;
+  remember_me?: boolean;
 }): {
   error?: string;
   status?: number;
@@ -450,6 +454,7 @@ export function loginUser(body: {
   user?: Record<string, unknown>;
   mfa_required?: boolean;
   mfa_token?: string;
+  remember?: boolean;
   auditUserId?: number | null;
   auditAction?: string;
   auditDetails?: Record<string, unknown>;
@@ -458,7 +463,8 @@ export function loginUser(body: {
     return { error: 'Password authentication is disabled. Please sign in with SSO.', status: 403 };
   }
 
-  const { email, password } = body;
+  const { email, password, remember_me } = body;
+  const remember = remember_me === true;
   if (!email || !password) {
     return { error: 'Email and password are required', status: 400 };
   }
@@ -500,12 +506,13 @@ export function loginUser(body: {
   }
 
   db.prepare('UPDATE users SET last_login = CURRENT_TIMESTAMP, login_count = login_count + 1 WHERE id = ?').run(user.id);
-  const token = generateToken(user);
+  const token = generateToken(user, remember);
   const userSafe = stripUserForClient(user) as Record<string, unknown>;
 
   return {
     token,
     user: { ...userSafe, avatar_url: avatarUrl(user) },
+    remember,
     auditUserId: Number(user.id),
     auditAction: 'user.login',
     auditDetails: { email },
@@ -1066,14 +1073,17 @@ export function disableMfa(
 export function verifyMfaLogin(body: {
   mfa_token?: string;
   code?: string;
+  remember_me?: boolean;
 }): {
   error?: string;
   status?: number;
   token?: string;
   user?: Record<string, unknown>;
+  remember?: boolean;
   auditUserId?: number;
 } {
-  const { mfa_token, code } = body;
+  const { mfa_token, code, remember_me } = body;
+  const remember = remember_me === true;
   if (!mfa_token || !code) {
     return { error: 'Verification token and code are required', status: 400 };
   }
@@ -1104,11 +1114,12 @@ export function verifyMfaLogin(body: {
       );
     }
     db.prepare('UPDATE users SET last_login = CURRENT_TIMESTAMP, login_count = login_count + 1 WHERE id = ?').run(user.id);
-    const sessionToken = generateToken(user);
+    const sessionToken = generateToken(user, remember);
     const userSafe = stripUserForClient(user) as Record<string, unknown>;
     return {
       token: sessionToken,
       user: { ...userSafe, avatar_url: avatarUrl(user) },
+      remember,
       auditUserId: Number(user.id),
     };
   } catch {

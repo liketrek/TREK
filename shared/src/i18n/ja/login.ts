@@ -63,6 +63,7 @@ const login: TranslationStrings = {
   'login.usernameRequired': 'ユーザー名を入力してください',
   'login.passwordMinLength': 'パスワードは8文字以上である必要があります',
   'login.forgotPassword': 'パスワードを忘れた場合',
+  'login.rememberMe': 'ログイン状態を保持する',
   'login.forgotPasswordTitle': 'パスワードをリセット',
   'login.forgotPasswordBody':
     '登録時のメールアドレスを入力してください。アカウントが存在する場合、リセット用リンクを送信します。',

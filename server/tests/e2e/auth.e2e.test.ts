@@ -98,6 +98,28 @@ describe('Auth e2e (real auth guard + real cookie service + temp SQLite)', () =>
     expect(setCookie.some((c) => c.startsWith('trek_session=') && /HttpOnly/i.test(c))).toBe(true);
   }, 10000);
 
+  it('POST /login with remember_me sets a persistent cookie (Max-Age present)', async () => {
+    authSvc.loginUser.mockReturnValue({ token: 'jwt.token.value', user: { id: 1 }, remember: true });
+    const res = await request(server).post('/api/auth/login').send({ email: 'u@example.test', password: 'pw', remember_me: true });
+    expect(res.status).toBe(200);
+    const setCookie = res.headers['set-cookie'] as unknown as string[];
+    const cookie = setCookie.find((c) => c.startsWith('trek_session='))!;
+    expect(cookie).toMatch(/Max-Age=\d+/i);
+    // 30d default — well above the 24h (86400s) non-remember window.
+    const maxAge = Number(/Max-Age=(\d+)/i.exec(cookie)?.[1]);
+    expect(maxAge).toBeGreaterThan(86_400);
+  }, 10000);
+
+  it('POST /login without remember_me sets a session cookie (no Max-Age)', async () => {
+    authSvc.loginUser.mockReturnValue({ token: 'jwt.token.value', user: { id: 1 }, remember: false });
+    const res = await request(server).post('/api/auth/login').send({ email: 'u@example.test', password: 'pw' });
+    expect(res.status).toBe(200);
+    const setCookie = res.headers['set-cookie'] as unknown as string[];
+    const cookie = setCookie.find((c) => c.startsWith('trek_session='))!;
+    expect(cookie).not.toMatch(/Max-Age/i);
+    expect(cookie).not.toMatch(/Expires/i);
+  }, 10000);
+
   it('POST /logout clears the session cookie', async () => {
     const res = await request(server).post('/api/auth/logout');
     expect(res.status).toBe(200);

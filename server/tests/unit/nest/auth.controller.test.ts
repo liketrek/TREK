@@ -82,9 +82,10 @@ describe('AuthPublicController', () => {
     const setAuthCookie = vi.fn();
     const mfa = new AuthPublicController(asvc({ loginUser: vi.fn().mockReturnValue({ mfa_required: true, mfa_token: 'mt' }) } as Partial<AuthService>), rl());
     expect(await mfa.login({}, req, res)).toEqual({ mfa_required: true, mfa_token: 'mt' });
-    const ok = new AuthPublicController(asvc({ loginUser: vi.fn().mockReturnValue({ token: 'tk', user }), setAuthCookie } as Partial<AuthService>), rl());
+    const ok = new AuthPublicController(asvc({ loginUser: vi.fn().mockReturnValue({ token: 'tk', user, remember: true }), setAuthCookie } as Partial<AuthService>), rl());
     expect(await ok.login({}, req, res)).toEqual({ token: 'tk', user });
-    expect(setAuthCookie).toHaveBeenCalled();
+    // The "remember me" flag from the service rides through to the cookie service.
+    expect(setAuthCookie).toHaveBeenCalledWith(res, 'tk', req, true);
     const bad = new AuthPublicController(asvc({ loginUser: vi.fn().mockReturnValue({ error: 'Bad creds', status: 401, auditAction: 'user.login_fail' }) } as Partial<AuthService>), rl());
     expect(await thrownAsync(() => bad.login({}, req, res))).toEqual({ status: 401, body: { error: 'Bad creds' } });
   }, 10000);
