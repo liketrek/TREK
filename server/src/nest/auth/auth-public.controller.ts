@@ -87,7 +87,7 @@ export class AuthPublicController {
     if (result.mfa_required) {
       return { mfa_required: true, mfa_token: result.mfa_token };
     }
-    this.auth.setAuthCookie(res, result.token!, req);
+    this.auth.setAuthCookie(res, result.token!, req, result.remember);
     return { token: result.token, user: result.user };
   }
 
@@ -146,7 +146,7 @@ export class AuthPublicController {
       throw new HttpException({ error: result.error }, result.status!);
     }
     writeAudit({ userId: result.auditUserId!, action: 'user.login', ip: getClientIp(req), details: { mfa: true } });
-    this.auth.setAuthCookie(res, result.token!, req);
+    this.auth.setAuthCookie(res, result.token!, req, result.remember);
     return { token: result.token, user: result.user };
   }
 

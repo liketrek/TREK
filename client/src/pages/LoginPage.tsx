@@ -9,7 +9,7 @@ export default function LoginPage(): React.ReactElement {
   const {
     navigate,
     mode, setMode,
-    username, setUsername, email, setEmail, password, setPassword, showPassword, setShowPassword,
+    username, setUsername, email, setEmail, password, setPassword, rememberMe, setRememberMe, showPassword, setShowPassword,
     isLoading, error, setError, appConfig, inviteToken,
     langDropdownOpen, setLangDropdownOpen, setLanguageLocal,
     showTakeoff, mfaStep, setMfaStep, mfaToken, setMfaToken, mfaCode, setMfaCode,
@@ -572,7 +572,16 @@ export default function LoginPage(): React.ReactElement {
                   </button>
                 </div>
                 {mode === 'login' && (
-                  <div style={{ textAlign: 'right', marginTop: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 8 }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', color: '#374151', fontSize: 12.5, fontWeight: 500 }}>
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRememberMe(e.target.checked)}
+                        style={{ width: 15, height: 15, accentColor: '#111827', cursor: 'pointer', flexShrink: 0 }}
+                      />
+                      {t('login.rememberMe')}
+                    </label>
                     <button type="button" onClick={() => navigate('/forgot-password')} style={{
                       background: 'none', border: 'none', cursor: 'pointer', padding: 0,
                       color: '#6b7280', fontSize: 12.5, fontWeight: 500, fontFamily: 'inherit',

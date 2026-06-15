@@ -64,6 +64,7 @@ const login: TranslationStrings = {
   'login.usernameRequired': 'Uživatelské jméno je povinné',
   'login.passwordMinLength': 'Heslo musí mít alespoň 8 znaků',
   'login.forgotPassword': 'Zapomenuté heslo?',
+  'login.rememberMe': 'Zapamatovat si mě',
   'login.forgotPasswordTitle': 'Obnovení hesla',
   'login.forgotPasswordBody':
     'Zadej e-mail použitý při registraci. Pokud účet existuje, pošleme odkaz pro obnovení.',

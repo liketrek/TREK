@@ -57,6 +57,7 @@ const login: TranslationStrings = {
   'login.usernameRequired': 'Ім’я користувача обов’язкове',
   'login.passwordMinLength': 'Пароль має містити щонайменше 8 символів',
   'login.forgotPassword': 'Забули пароль?',
+  'login.rememberMe': "Запам'ятати мене",
   'login.forgotPasswordTitle': 'Скидання пароля',
   'login.forgotPasswordBody':
     'Введіть електронну пошту, з якою ви реєструвалися. Якщо акаунт існує — буде надіслано посилання для скидання.',

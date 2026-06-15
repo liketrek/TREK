@@ -19,6 +19,10 @@ export type RegisterRequest = z.infer<typeof registerRequestSchema>;
 export const loginRequestSchema = z.object({
   email: z.string(),
   password: z.string(),
+  // "Remember me" — when true the server issues a longer-lived
+  // (SESSION_DURATION_REMEMBER) JWT + persistent cookie; when false/absent the
+  // session lasts SESSION_DURATION and the cookie is a browser-session cookie.
+  remember_me: z.boolean().optional(),
 });
 export type LoginRequest = z.infer<typeof loginRequestSchema>;
 
@@ -45,6 +49,9 @@ export type ChangePasswordRequest = z.infer<typeof changePasswordRequestSchema>;
 export const mfaVerifyLoginRequestSchema = z.object({
   mfa_token: z.string(),
   code: z.string(),
+  // Carries the login-form "Remember me" choice through the second (MFA) leg,
+  // since the session token is only minted once the MFA code is verified.
+  remember_me: z.boolean().optional(),
 });
 export type MfaVerifyLoginRequest = z.infer<typeof mfaVerifyLoginRequestSchema>;
 

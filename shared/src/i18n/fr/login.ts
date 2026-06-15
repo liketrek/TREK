@@ -60,6 +60,7 @@ const login: TranslationStrings = {
   'login.passwordMinLength':
     'Le mot de passe doit comporter au moins 8 caractères',
   'login.forgotPassword': 'Mot de passe oublié ?',
+  'login.rememberMe': 'Se souvenir de moi',
   'login.forgotPasswordTitle': 'Réinitialiser votre mot de passe',
   'login.forgotPasswordBody':
     "Entrez l'adresse e-mail associée à votre compte. Si un compte existe, nous enverrons un lien de réinitialisation.",

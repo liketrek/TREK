@@ -70,6 +70,7 @@ const login: TranslationStrings = {
   'login.passwordMinLength':
     'Ο κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες',
   'login.forgotPassword': 'Ξεχάσατε τον κωδικό;',
+  'login.rememberMe': 'Να με θυμάσαι',
   'login.forgotPasswordTitle': 'Επαναφορά του κωδικού σας',
   'login.forgotPasswordBody':
     'Εισάγετε το email με το οποίο εγγραφήκατε. Αν υπάρχει λογαριασμός, θα στείλουμε έναν σύνδεσμο επαναφοράς.',

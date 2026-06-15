@@ -67,6 +67,7 @@ const login: TranslationStrings = {
   'login.usernameRequired': 'Kullanıcı adı gerekli',
   'login.passwordMinLength': 'Şifre en az 8 karakter olmalıdır',
   'login.forgotPassword': 'Parolanızı mı unuttunuz?',
+  'login.rememberMe': 'Beni hatırla',
   'login.forgotPasswordTitle': 'Şifrenizi sıfırlayın',
   'login.forgotPasswordBody':
     "Enter the email address you signed up with. If an account exists, we'll send a reset link.",

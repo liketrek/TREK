@@ -69,6 +69,7 @@ const login: TranslationStrings = {
   'login.passwordMinLength':
     'A jelszónak legalább 8 karakter hosszúnak kell lennie',
   'login.forgotPassword': 'Elfelejtetted a jelszavad?',
+  'login.rememberMe': 'Emlékezz rám',
   'login.forgotPasswordTitle': 'Jelszó visszaállítása',
   'login.forgotPasswordBody':
     'Írd be a regisztrációnál használt e-mail-címet. Ha létezik fiók, küldünk egy visszaállítási linket.',

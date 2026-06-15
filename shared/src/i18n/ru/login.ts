@@ -56,6 +56,7 @@ const login: TranslationStrings = {
   'login.usernameRequired': 'Имя пользователя обязательно',
   'login.passwordMinLength': 'Пароль должен содержать не менее 8 символов',
   'login.forgotPassword': 'Забыли пароль?',
+  'login.rememberMe': 'Запомнить меня',
   'login.forgotPasswordTitle': 'Сброс пароля',
   'login.forgotPasswordBody':
     'Введите e-mail, с которым вы регистрировались. Если аккаунт найдём — отправим ссылку для сброса.',
