@@ -291,8 +291,35 @@ function startVersionCheck(): void {
   }, { timezone: tz });
 }
 
-// Idempotency key cleanup: nightly at 3 AM — delete keys older than 24 hours
+// Idempotency key cleanup: nightly at 3 AM — delete keys past their TTL.
+// The TTL must exceed any realistic offline window: the TREK client replays
+// queued mutations with their X-Idempotency-Key when it reconnects, so a key
+// GC'd before the device comes back online would let the replay create a
+// duplicate. 24h was far too short for a multi-day offline trip; default 30d,
+// overridable via IDEMPOTENCY_TTL_SECONDS.
+const DEFAULT_IDEMPOTENCY_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days
 let idempotencyCleanupTask: ScheduledTask | null = null;
+
+function idempotencyTtlSeconds(): number {
+  const n = Number(process.env.IDEMPOTENCY_TTL_SECONDS);
+  return Number.isFinite(n) && n > 0 ? n : DEFAULT_IDEMPOTENCY_TTL_SECONDS;
+}
+
+interface PurgeDb {
+  prepare(sql: string): { run(...args: unknown[]): { changes: number } };
+}
+
+/** Delete idempotency keys older than the configured TTL. Returns rows removed.
+ *  The db is injectable for testing; the cron job uses the default. */
+function purgeExpiredIdempotencyKeys(
+  now: number = Date.now(),
+  ttlSeconds: number = idempotencyTtlSeconds(),
+  database: PurgeDb = require('./db/database').db,
+): number {
+  const cutoff = Math.floor(now / 1000) - ttlSeconds;
+  const result = database.prepare('DELETE FROM idempotency_keys WHERE created_at < ?').run(cutoff);
+  return result.changes;
+}
 
 function startIdempotencyCleanup(): void {
   if (idempotencyCleanupTask) { idempotencyCleanupTask.stop(); idempotencyCleanupTask = null; }
@@ -300,11 +327,9 @@ function startIdempotencyCleanup(): void {
   const tz = process.env.TZ || 'UTC';
   idempotencyCleanupTask = cron.schedule('0 3 * * *', () => {
     try {
-      const { db } = require('./db/database');
-      const cutoff = Math.floor(Date.now() / 1000) - 86400;
-      const result = db.prepare('DELETE FROM idempotency_keys WHERE created_at < ?').run(cutoff);
-      if (result.changes > 0) {
-        logInfo(`Idempotency cleanup: removed ${result.changes} expired key(s)`);
+      const removed = purgeExpiredIdempotencyKeys();
+      if (removed > 0) {
+        logInfo(`Idempotency cleanup: removed ${removed} expired key(s)`);
       }
     } catch (err: unknown) {
       logError(`Idempotency cleanup: ${err instanceof Error ? err.message : err}`);
@@ -394,4 +419,4 @@ function stop(): void {
   if (airtrailSyncTask) { airtrailSyncTask.stop(); airtrailSyncTask = null; }
 }
 
-export { start, stop, startDemoReset, startTripReminders, startTodoReminders, startVersionCheck, startIdempotencyCleanup, startTrekPhotoCacheCleanup, startPlacePhotoCacheCleanup, startAirTrailSync, loadSettings, saveSettings, VALID_INTERVALS };
+export { start, stop, startDemoReset, startTripReminders, startTodoReminders, startVersionCheck, startIdempotencyCleanup, purgeExpiredIdempotencyKeys, startTrekPhotoCacheCleanup, startPlacePhotoCacheCleanup, startAirTrailSync, loadSettings, saveSettings, VALID_INTERVALS };
