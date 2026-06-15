@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { useTripStore } from '../../src/store/tripStore';
 import { resetAllStores } from '../helpers/store';
-import { buildTrip, buildDay, buildPlace, buildPackingItem, buildTodoItem, buildTag, buildCategory, buildAssignment, buildDayNote } from '../helpers/factories';
+import { buildTrip, buildDay, buildPlace, buildPackingItem, buildTodoItem, buildTag, buildCategory, buildAssignment, buildDayNote, buildBudgetItem, buildReservation, buildTripFile } from '../helpers/factories';
 import { server } from '../helpers/msw/server';
 
 vi.mock('../../src/api/websocket', () => ({
@@ -20,6 +20,28 @@ vi.mock('../../src/api/websocket', () => ({
 beforeEach(() => {
   resetAllStores();
 });
+
+/** Full set of MSW handlers for one trip's loadTrip fan-out. */
+function tripHandlers(
+  id: number,
+  data: {
+    budget?: unknown[]; reservations?: unknown[]; files?: unknown[];
+    tags?: unknown[]; categories?: unknown[];
+  },
+) {
+  return [
+    http.get(`/api/trips/${id}`, () => HttpResponse.json({ trip: buildTrip({ id }) })),
+    http.get(`/api/trips/${id}/days`, () => HttpResponse.json({ days: [] })),
+    http.get(`/api/trips/${id}/places`, () => HttpResponse.json({ places: [] })),
+    http.get(`/api/trips/${id}/packing`, () => HttpResponse.json({ items: [] })),
+    http.get(`/api/trips/${id}/todo`, () => HttpResponse.json({ items: [] })),
+    http.get(`/api/trips/${id}/budget`, () => HttpResponse.json({ items: data.budget ?? [] })),
+    http.get(`/api/trips/${id}/reservations`, () => HttpResponse.json({ reservations: data.reservations ?? [] })),
+    http.get(`/api/trips/${id}/files`, () => HttpResponse.json({ files: data.files ?? [] })),
+    http.get('/api/tags', () => HttpResponse.json({ tags: data.tags ?? [] })),
+    http.get('/api/categories', () => HttpResponse.json({ categories: data.categories ?? [] })),
+  ];
+}
 
 describe('tripStore', () => {
   describe('loadTrip', () => {
@@ -177,6 +199,63 @@ describe('tripStore', () => {
       const state = useTripStore.getState();
       expect(state.isLoading).toBe(false);
       expect(state.error).not.toBeNull();
+    });
+
+    it('FE-TRIP-H5: loadTrip uniformly hydrates budget, reservations and files', async () => {
+      const budgetItem = buildBudgetItem({ trip_id: 1 });
+      const reservation = buildReservation({ trip_id: 1 });
+      const file = buildTripFile({ trip_id: 1 });
+      server.use(...tripHandlers(1, { budget: [budgetItem], reservations: [reservation], files: [file] }));
+
+      await useTripStore.getState().loadTrip(1);
+      const state = useTripStore.getState();
+
+      expect(state.budgetItems).toEqual([budgetItem]);
+      expect(state.reservations).toEqual([reservation]);
+      expect(state.files).toEqual([file]);
+    });
+
+    it('FE-TRIP-H4: switching trips does not leak budget/reservations/files from the previous trip', async () => {
+      // Trip 1 has budget/reservations/files; trip 2 has none.
+      server.use(...tripHandlers(1, {
+        budget: [buildBudgetItem({ trip_id: 1 })],
+        reservations: [buildReservation({ trip_id: 1 })],
+        files: [buildTripFile({ trip_id: 1 })],
+      }));
+      await useTripStore.getState().loadTrip(1);
+      expect(useTripStore.getState().budgetItems).toHaveLength(1);
+
+      server.use(...tripHandlers(2, {}));
+      await useTripStore.getState().loadTrip(2);
+      const state = useTripStore.getState();
+
+      expect(state.trip!.id).toBe(2);
+      expect(state.budgetItems).toEqual([]);
+      expect(state.reservations).toEqual([]);
+      expect(state.files).toEqual([]);
+    });
+
+    it('FE-TRIP-H4b: resetTrip clears every trip-scoped slice but keeps tags/categories', async () => {
+      server.use(...tripHandlers(1, {
+        budget: [buildBudgetItem({ trip_id: 1 })],
+        reservations: [buildReservation({ trip_id: 1 })],
+        files: [buildTripFile({ trip_id: 1 })],
+        tags: [buildTag()],
+      }));
+      await useTripStore.getState().loadTrip(1);
+      expect(useTripStore.getState().budgetItems).toHaveLength(1);
+
+      useTripStore.getState().resetTrip();
+      const state = useTripStore.getState();
+
+      expect(state.trip).toBeNull();
+      expect(state.places).toEqual([]);
+      expect(state.budgetItems).toEqual([]);
+      expect(state.reservations).toEqual([]);
+      expect(state.files).toEqual([]);
+      expect(state.selectedDayId).toBeNull();
+      // Global lookups survive a trip reset.
+      expect(state.tags).toHaveLength(1);
     });
   });
 

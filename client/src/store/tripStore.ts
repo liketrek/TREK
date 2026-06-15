@@ -7,6 +7,9 @@ import { dayRepo } from '../repo/dayRepo'
 import { placeRepo } from '../repo/placeRepo'
 import { packingRepo } from '../repo/packingRepo'
 import { todoRepo } from '../repo/todoRepo'
+import { budgetRepo } from '../repo/budgetRepo'
+import { reservationRepo } from '../repo/reservationRepo'
+import { fileRepo } from '../repo/fileRepo'
 import { createPlacesSlice } from './slices/placesSlice'
 import { createAssignmentsSlice } from './slices/assignmentsSlice'
 import { createDaysSlice } from './slices/daysSlice'
@@ -61,6 +64,7 @@ export interface TripStoreState
 
   setSelectedDay: (dayId: number | null) => void
   handleRemoteEvent: (event: WebSocketEvent) => void
+  resetTrip: () => void
   loadTrip: (tripId: number | string) => Promise<void>
   refreshDays: (tripId: number | string) => Promise<void>
   updateTrip: (tripId: number | string, data: Partial<Trip>) => Promise<Trip>
@@ -89,15 +93,40 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
 
   handleRemoteEvent: (event: WebSocketEvent) => handleRemoteEvent(set, get, event),
 
+  // Clear every trip-scoped slice so switching trips (or losing access to one)
+  // can never leave a previous trip's data visible. Global tags/categories are
+  // left intact. Called at the top of loadTrip.
+  resetTrip: () => set({
+    trip: null,
+    days: [],
+    places: [],
+    assignments: {},
+    dayNotes: {},
+    packingItems: [],
+    todoItems: [],
+    budgetItems: [],
+    files: [],
+    reservations: [],
+    selectedDayId: null,
+    error: null,
+  }),
+
   loadTrip: async (tripId: number | string) => {
+    get().resetTrip()
     set({ isLoading: true, error: null })
     try {
-      const [tripData, daysData, placesData, packingData, todoData, tagsData, categoriesData] = await Promise.all([
+      const [tripData, daysData, placesData, packingData, todoData, budgetData, reservationsData, filesData, tagsData, categoriesData] = await Promise.all([
         tripRepo.get(tripId),
         dayRepo.list(tripId),
         placeRepo.list(tripId),
         packingRepo.list(tripId),
         todoRepo.list(tripId),
+        // Budget / reservations / files are hydrated here too so the offline
+        // path is uniform (no separate tab-gated effects). Non-fatal: a failure
+        // in any of these must not blank the whole trip.
+        budgetRepo.list(tripId).catch(() => ({ items: [] as BudgetItem[] })),
+        reservationRepo.list(tripId).catch(() => ({ reservations: [] as Reservation[] })),
+        fileRepo.list(tripId).catch(() => ({ files: [] as TripFile[] })),
         navigator.onLine
           ? tagsApi.list().catch(() => offlineDb.tags.toArray().then(tags => ({ tags })))
           : offlineDb.tags.toArray().then(tags => ({ tags })),
@@ -121,6 +150,9 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
         dayNotes: dayNotesMap,
         packingItems: packingData.items,
         todoItems: todoData.items,
+        budgetItems: budgetData.items,
+        reservations: reservationsData.reservations,
+        files: filesData.files,
         tags: tagsData.tags,
         categories: categoriesData.categories,
         isLoading: false,

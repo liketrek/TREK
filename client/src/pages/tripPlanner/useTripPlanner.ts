@@ -221,11 +221,12 @@ export function useTripPlanner() {
     }
   }, [isLoading, places])
 
-  // Load trip + files (needed for place inspector file section)
+  // Load the trip. loadTrip hydrates every trip-scoped slice (days, places,
+  // packing, todo, budget, reservations, files) so offline hydration is uniform
+  // and there's no cross-trip bleed; members/accommodations load alongside.
   useEffect(() => {
     if (tripId) {
       tripActions.loadTrip(tripId).catch(() => { toast.error(t('trip.toast.loadError')); navigate('/dashboard') })
-      tripActions.loadFiles(tripId)
       loadAccommodations()
       if (!navigator.onLine) {
         offlineDb.tripMembers.where('tripId').equals(Number(tripId)).toArray()
@@ -237,13 +238,6 @@ export function useTripPlanner() {
           setTripMembers(all)
         }).catch(() => {})
       }
-    }
-  }, [tripId])
-
-  useEffect(() => {
-    if (tripId) {
-      tripActions.loadReservations(tripId)
-      tripActions.loadBudgetItems?.(tripId)
     }
   }, [tripId])
 
