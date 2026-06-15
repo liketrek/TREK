@@ -27,6 +27,12 @@ export interface QueuedMutation {
   tempId?: number;
   /** For DELETE mutations: the entity id to remove from Dexie on flush */
   entityId?: number;
+  /**
+   * For PUT/DELETE enqueued offline against a still-unsynced (negative-id) entity:
+   * the temp id of the target. The url carries an `{id}` placeholder that the
+   * mutation queue rewrites to the real server id once the dependent CREATE flushes.
+   */
+  tempEntityId?: number;
 }
 
 export interface SyncMeta {

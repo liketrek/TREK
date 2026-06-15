@@ -21,6 +21,7 @@ interface CachedTripRow {
 export default function OfflineTab(): React.ReactElement {
   const [rows, setRows] = useState<CachedTripRow[]>([])
   const [pendingCount, setPendingCount] = useState(0)
+  const [failedCount, setFailedCount] = useState(0)
   const [syncing, setSyncing] = useState(false)
   const [clearing, setClearing] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -28,11 +29,13 @@ export default function OfflineTab(): React.ReactElement {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [metas, pending] = await Promise.all([
+      const [metas, pending, failed] = await Promise.all([
         offlineDb.syncMeta.toArray(),
         mutationQueue.pendingCount(),
+        mutationQueue.failedCount(),
       ])
       setPendingCount(pending)
+      setFailedCount(failed)
 
       const result: CachedTripRow[] = []
       for (const meta of metas) {
@@ -85,6 +88,7 @@ export default function OfflineTab(): React.ReactElement {
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <Stat label="Cached trips" value={rows.length} />
           <Stat label="Pending changes" value={pendingCount} />
+          {failedCount > 0 && <Stat label="Failed changes" value={failedCount} danger />}
         </div>
 
         {/* Actions */}
@@ -165,13 +169,14 @@ export default function OfflineTab(): React.ReactElement {
   )
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+function Stat({ label, value, danger }: { label: string; value: number; danger?: boolean }) {
   return (
     <div className="border border-edge bg-surface-secondary" style={{
       padding: '8px 14px', borderRadius: 8,
       minWidth: 100,
     }}>
-      <div className="text-content" style={{ fontSize: 20, fontWeight: 700 }}>{value}</div>
+      <div style={{ fontSize: 20, fontWeight: 700, color: danger ? '#ef4444' : undefined }}
+        className={danger ? undefined : 'text-content'}>{value}</div>
       <div className="text-content-muted" style={{ fontSize: 11 }}>{label}</div>
     </div>
   )
