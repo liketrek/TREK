@@ -5,38 +5,53 @@
   "description": "Shared API contracts (Zod schemas) — single source of truth for TREK server and client.",
   "type": "module",
   "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.cts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     },
     "./i18n": {
-      "types": "./dist/i18n/index.d.ts",
-      "import": "./dist/i18n/index.js",
-      "require": "./dist/i18n/index.cjs"
+      "import": {
+        "types": "./dist/i18n/index.d.mts",
+        "default": "./dist/i18n/index.mjs"
+      },
+      "require": {
+        "types": "./dist/i18n/index.d.cts",
+        "default": "./dist/i18n/index.cjs"
+      }
     },
     "./i18n/*": {
-      "types": "./dist/i18n/*/index.d.ts",
-      "import": "./dist/i18n/*/index.js",
-      "require": "./dist/i18n/*/index.cjs"
+      "import": {
+        "types": "./dist/i18n/*/index.d.mts",
+        "default": "./dist/i18n/*/index.mjs"
+      },
+      "require": {
+        "types": "./dist/i18n/*/index.d.cts",
+        "default": "./dist/i18n/*/index.cjs"
+      }
     }
   },
   "typesVersions": {
     "*": {
       "i18n": [
-        "./dist/i18n/index.d.ts"
+        "./dist/i18n/index.d.cts"
       ],
       "i18n/*": [
-        "./dist/i18n/*/index.d.ts"
+        "./dist/i18n/*/index.d.cts"
       ]
     }
   },
   "scripts": {
-    "build": "tsup",
-    "build:watch": "tsup --watch",
+    "build": "tsdown",
+    "build:watch": "tsdown --watch",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
@@ -59,9 +74,9 @@
     "eslint-plugin-prettier": "^5.5.5",
     "prettier": "3.8.3",
     "prettier-plugin-organize-imports": "^4.3.0",
-    "tsup": "^8.5.1",
+    "tsdown": "^0.22.2",
     "typescript": "^6.0.2",
     "typescript-eslint": "^8.58.2",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.9"
   }
 }

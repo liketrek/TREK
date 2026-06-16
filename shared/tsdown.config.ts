@@ -1,4 +1,4 @@
-import { defineConfig } from 'tsup'
+import { defineConfig } from 'tsdown'
 
 export default defineConfig({
   // Root barrel + i18n metadata barrel + one entry per locale (lazy-load chunks)
@@ -6,5 +6,8 @@ export default defineConfig({
   format: ['cjs', 'esm'],
   dts: true,
   clean: true,
-  external: ['zod'],
+  deps: {
+    neverBundle: ['zod'],
+  },
+  target: false,
 })

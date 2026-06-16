@@ -25,7 +25,7 @@
     "format:check": "npm run format:check --workspace=shared && npm run format:check --workspace=server && npm run format:check --workspace=client"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^10.0.3"
   },
   "comment:overrides": "Force a single React 19 across the workspace so the test renderer (@testing-library/react) and the app share one react-dom.",
   "overrides": {
@@ -33,9 +33,9 @@
     "react-dom": "19.2.6"
   },
   "optionalDependencies": {
-    "@rollup/rollup-linux-x64-musl": "4.60.4",
-    "@rollup/rollup-linux-arm64-musl": "4.60.4",
-    "@img/sharp-linuxmusl-x64": "0.33.5",
-    "@img/sharp-linuxmusl-arm64": "0.33.5"
+    "@rollup/rollup-linux-x64-musl": "4.62.0",
+    "@rollup/rollup-linux-arm64-musl": "4.62.0",
+    "@img/sharp-linuxmusl-x64": "0.35.1",
+    "@img/sharp-linuxmusl-arm64": "0.35.1"
   }
 }
