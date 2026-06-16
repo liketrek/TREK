@@ -13,6 +13,12 @@ export default defineConfig({
       },
     }),
   ],
+  // Vite 8 transforms with Oxc by default, which ignores the `esbuild: false`
+  // that unplugin-swc sets and skips the SWC pass — dropping NestJS decorator
+  // metadata and skewing v8 coverage attribution (nest branch coverage fell to
+  // ~68% even though every test still passes). Disabling Oxc hands the transform
+  // back to unplugin-swc, the Vite-8 equivalent of the `esbuild: false` we relied on.
+  oxc: false,
   test: {
     root: '.',
     include: ['tests/**/*.test.ts'],
