@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../helpers/msw/server';

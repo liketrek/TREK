@@ -1,6 +1,6 @@
 // FE-COMP-MDTOOLBAR-001 to FE-COMP-MDTOOLBAR-006
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, screen, fireEvent } from '../../../tests/helpers/render';
 import MarkdownToolbar from './MarkdownToolbar';
 import React from 'react';
@@ -16,10 +16,10 @@ function createTextareaRef(value = '', selectionStart = 0, selectionEnd = 0) {
 }
 
 describe('MarkdownToolbar', () => {
-  let onUpdate: ReturnType<typeof vi.fn>;
+  let onUpdate: Mock<(value: string) => void>;
 
   beforeEach(() => {
-    onUpdate = vi.fn();
+    onUpdate = vi.fn<(value: string) => void>();
   });
 
   it('FE-COMP-MDTOOLBAR-001: renders all 8 toolbar buttons', () => {
