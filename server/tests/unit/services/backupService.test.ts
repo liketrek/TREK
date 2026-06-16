@@ -19,6 +19,9 @@ const fsMock = vi.hoisted(() => ({
   rmSync: vi.fn(),
   copyFileSync: vi.fn(),
   cpSync: vi.fn(),
+  // Identity by default: when uploadsDir is a plain directory, realpathSync
+  // returns it unchanged. Tests that exercise the symlink case override this.
+  realpathSync: vi.fn((p: string) => p),
 }));
 
 const archiverInstanceMock = vi.hoisted(() => ({
@@ -479,6 +482,71 @@ describe('BACKUP-036 createBackup', () => {
     // The re-derivable caches must not be archived verbatim.
     expect(archiverInstanceMock.directory).not.toHaveBeenCalled();
   });
+
+  it('BACKUP-036f — bundles .encryption_key when present and ENCRYPTION_KEY env is unset', async () => {
+    const prevEnvKey = process.env.ENCRYPTION_KEY;
+    delete process.env.ENCRYPTION_KEY;
+    try {
+      fsMock.existsSync.mockImplementation((p: string) => String(p).endsWith('.encryption_key'));
+      fsMock.mkdirSync.mockReturnValue(undefined);
+
+      const writableEvents: Record<string, Function> = {};
+      const fakeWriteStream = {
+        on: vi.fn((event: string, cb: Function) => {
+          writableEvents[event] = cb;
+        }),
+      };
+      fsMock.createWriteStream.mockReturnValue(fakeWriteStream);
+
+      archiverInstanceMock.on.mockImplementation((_e: string, _cb: Function) => {});
+      archiverInstanceMock.pipe.mockReturnValue(undefined);
+      archiverInstanceMock.finalize.mockImplementation(() => {
+        if (writableEvents['close']) writableEvents['close']();
+      });
+      archiverMock.mockReturnValue(archiverInstanceMock);
+
+      fsMock.statSync.mockReturnValue({ size: 1024, birthtime: new Date('2026-04-06T12:00:00Z') });
+
+      await createBackup();
+
+      expect(archiverInstanceMock.file).toHaveBeenCalledWith(
+        expect.stringContaining('.encryption_key'),
+        { name: '.encryption_key' },
+      );
+    } finally {
+      process.env.ENCRYPTION_KEY = prevEnvKey;
+    }
+  });
+
+  it('BACKUP-036g — does NOT bundle .encryption_key when ENCRYPTION_KEY env is set', async () => {
+    // setup.ts sets process.env.ENCRYPTION_KEY, so the env is the source of truth.
+    fsMock.existsSync.mockImplementation((p: string) => String(p).endsWith('.encryption_key'));
+    fsMock.mkdirSync.mockReturnValue(undefined);
+
+    const writableEvents: Record<string, Function> = {};
+    const fakeWriteStream = {
+      on: vi.fn((event: string, cb: Function) => {
+        writableEvents[event] = cb;
+      }),
+    };
+    fsMock.createWriteStream.mockReturnValue(fakeWriteStream);
+
+    archiverInstanceMock.on.mockImplementation((_e: string, _cb: Function) => {});
+    archiverInstanceMock.pipe.mockReturnValue(undefined);
+    archiverInstanceMock.finalize.mockImplementation(() => {
+      if (writableEvents['close']) writableEvents['close']();
+    });
+    archiverMock.mockReturnValue(archiverInstanceMock);
+
+    fsMock.statSync.mockReturnValue({ size: 1024, birthtime: new Date('2026-04-06T12:00:00Z') });
+
+    await createBackup();
+
+    expect(archiverInstanceMock.file).not.toHaveBeenCalledWith(
+      expect.stringContaining('.encryption_key'),
+      expect.anything(),
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -856,6 +924,53 @@ describe('BACKUP-045 restoreFromZip — full success path (no uploads)', () => {
 
     expect(dbMock.reinitialize).toHaveBeenCalled();
   });
+
+  it('BACKUP-045d — restores bundled .encryption_key when the archive carries one', async () => {
+    setupSuccessfulExtraction();
+    setupAllTablesPresent();
+
+    fsMock.existsSync.mockImplementation((p: string) => {
+      if (String(p).endsWith('travel.db')) return true;
+      if (String(p).endsWith('.encryption_key')) return true; // extracted key present
+      if (String(p).includes('uploads')) return false;
+      return true;
+    });
+    fsMock.unlinkSync.mockReturnValue(undefined);
+    fsMock.copyFileSync.mockReturnValue(undefined);
+    fsMock.rmSync.mockReturnValue(undefined);
+
+    const result = await restoreFromZip('/data/tmp/upload.zip');
+
+    expect(result).toEqual({ success: true });
+    // Key copied from the extract dir into the live data dir.
+    expect(fsMock.copyFileSync).toHaveBeenCalledWith(
+      expect.stringContaining('.encryption_key'),
+      expect.stringContaining('.encryption_key'),
+    );
+  });
+
+  it('BACKUP-045e — skips key restore when the archive has no .encryption_key', async () => {
+    setupSuccessfulExtraction();
+    setupAllTablesPresent();
+
+    fsMock.existsSync.mockImplementation((p: string) => {
+      if (String(p).endsWith('travel.db')) return true;
+      if (String(p).endsWith('.encryption_key')) return false; // no key in archive
+      if (String(p).includes('uploads')) return false;
+      return true;
+    });
+    fsMock.unlinkSync.mockReturnValue(undefined);
+    fsMock.copyFileSync.mockReturnValue(undefined);
+    fsMock.rmSync.mockReturnValue(undefined);
+
+    const result = await restoreFromZip('/data/tmp/upload.zip');
+
+    expect(result).toEqual({ success: true });
+    expect(fsMock.copyFileSync).not.toHaveBeenCalledWith(
+      expect.stringContaining('.encryption_key'),
+      expect.stringContaining('.encryption_key'),
+    );
+  });
 });
 
 describe('BACKUP-046 restoreFromZip — with uploads directory', () => {
@@ -909,6 +1024,64 @@ describe('BACKUP-046 restoreFromZip — with uploads directory', () => {
     expect(fsMock.cpSync).toHaveBeenCalledWith(
       expect.stringContaining('uploads'),
       expect.stringContaining('uploads'),
+      { recursive: true, force: true }
+    );
+  });
+
+  it('BACKUP-046b — copies into the symlink target, not the symlink itself (#1193)', async () => {
+    // In Docker, uploadsDir (/app/server/uploads) is a symlink to the mounted
+    // /app/uploads volume. cpSync(dereference:false) would throw
+    // ERR_FS_CP_DIR_TO_NON_DIR overwriting the symlink node with a directory.
+    // The fix resolves the symlink with realpathSync first, so the copy targets
+    // the real directory behind it.
+    setupSuccessfulExtraction();
+
+    const fakeDbInstance = {
+      prepare: vi.fn()
+        .mockReturnValueOnce({
+          get: vi.fn().mockReturnValue({ integrity_check: 'ok' }),
+        })
+        .mockReturnValueOnce({
+          all: vi.fn().mockReturnValue([
+            { name: 'users' },
+            { name: 'trips' },
+            { name: 'trip_members' },
+            { name: 'places' },
+            { name: 'days' },
+          ]),
+        }),
+      close: vi.fn(),
+    };
+    DatabaseMock.mockReturnValue(fakeDbInstance);
+
+    fsMock.existsSync.mockImplementation((p: string) => {
+      if (String(p).endsWith('travel.db')) return true;
+      if (String(p).includes('uploads')) return true;
+      return true;
+    });
+    fsMock.readdirSync.mockImplementation((p: string) => {
+      if (String(p).includes('uploads') && !String(p).includes('restore-')) {
+        return ['photos'] as any;
+      }
+      if (String(p).includes('photos')) return ['img1.jpg'] as any;
+      return [] as any;
+    });
+    fsMock.statSync.mockReturnValue({ isDirectory: () => true } as any);
+    fsMock.unlinkSync.mockReturnValue(undefined);
+    fsMock.copyFileSync.mockReturnValue(undefined);
+    fsMock.cpSync.mockReturnValue(undefined);
+    fsMock.rmSync.mockReturnValue(undefined);
+    // Resolve the uploads symlink to a distinct real target directory.
+    const REAL_TARGET = '/app/uploads';
+    fsMock.realpathSync.mockReturnValueOnce(REAL_TARGET);
+
+    const result = await restoreFromZip('/data/tmp/upload.zip');
+
+    expect(result).toEqual({ success: true });
+    // The copy destination must be the resolved real path, never the symlink.
+    expect(fsMock.cpSync).toHaveBeenCalledWith(
+      expect.stringContaining('uploads'),
+      REAL_TARGET,
       { recursive: true, force: true }
     );
   });

@@ -155,6 +155,17 @@ export async function createBackup(): Promise<BackupInfo> {
         archive.file(dbPath, { name: 'travel.db' });
       }
 
+      // Bundle the at-rest encryption key so the backup is self-contained: the
+      // DB stores secrets (API keys, MFA, SMTP/OIDC) encrypted with this key, so
+      // a restore onto a different install would otherwise be unable to decrypt
+      // them. NOTE: this makes the backup file as sensitive as the key itself —
+      // store/transfer it securely. Skipped when ENCRYPTION_KEY is provided via
+      // env, since in that case the file is not the source of truth.
+      const encKeyPath = path.join(dataDir, '.encryption_key');
+      if (!process.env.ENCRYPTION_KEY && fs.existsSync(encKeyPath)) {
+        archive.file(encKeyPath, { name: '.encryption_key' });
+      }
+
       if (fs.existsSync(uploadsDir)) {
         // Exclude the place-photo and trek-memory caches: both are re-derivable
         // (re-fetched on demand, keyed on stable ids) and would otherwise dominate
@@ -252,6 +263,16 @@ export async function restoreFromZip(zipPath: string): Promise<RestoreResult> {
       }
       fs.copyFileSync(extractedDb, dbDest);
 
+      // Restore the bundled at-rest encryption key (if the archive carries one)
+      // so the restored DB's encrypted secrets can be decrypted. Only the file
+      // is swapped here; the in-memory key was read at startup, so a restart is
+      // required for it to take effect (and an explicit ENCRYPTION_KEY env var
+      // still overrides the file).
+      const extractedEncKey = path.join(extractDir, '.encryption_key');
+      if (fs.existsSync(extractedEncKey)) {
+        fs.copyFileSync(extractedEncKey, path.join(dataDir, '.encryption_key'));
+      }
+
       const extractedUploads = path.join(extractDir, 'uploads');
       if (fs.existsSync(extractedUploads)) {
         for (const sub of fs.readdirSync(uploadsDir)) {
@@ -262,7 +283,12 @@ export async function restoreFromZip(zipPath: string): Promise<RestoreResult> {
             }
           }
         }
-        fs.cpSync(extractedUploads, uploadsDir, { recursive: true, force: true });
+        // Copy into the real directory behind uploadsDir. In Docker, uploadsDir
+        // (/app/server/uploads) is a symlink to the mounted /app/uploads volume;
+        // cpSync(dereference:false) would otherwise try to overwrite the symlink
+        // node with a directory and throw ERR_FS_CP_DIR_TO_NON_DIR. realpathSync
+        // is a no-op when uploadsDir is a plain directory (dev/non-Docker).
+        fs.cpSync(extractedUploads, fs.realpathSync(uploadsDir), { recursive: true, force: true });
       }
     } finally {
       // Reopening the DB must always run (even if the copy above threw) so the
