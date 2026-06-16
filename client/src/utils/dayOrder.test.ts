@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { Day, Accommodation } from '../types'
-import { getDayOrder, isDayInAccommodationRange, getAccommodationAnchors } from './dayOrder'
+import { getDayOrder, isDayInAccommodationRange, getAccommodationAnchors, getDayBookendHotels } from './dayOrder'
 
 const days = [
   { id: 10, day_number: 1 },
@@ -69,5 +69,52 @@ describe('getAccommodationAnchors', () => {
   it('ignores accommodations that have no coordinates', () => {
     const accs = [hotel({ start_day_id: 10, end_day_id: 30, place_lat: null, place_lng: null })]
     expect(getAccommodationAnchors(days[1], days, accs)).toEqual({})
+  })
+
+  it('keeps morning/evening correct on a transfer day when the morning stay runs long (#887)', () => {
+    const accs = [
+      hotel({ start_day_id: 10, end_day_id: 30, place_lat: 1, place_lng: 1 }), // slept here, checks out later
+      hotel({ start_day_id: 20, end_day_id: 30, place_lat: 9, place_lng: 9 }), // check-in today
+    ]
+    expect(getAccommodationAnchors(days[1], days, accs)).toEqual({
+      start: { lat: 1, lng: 1 },
+      end: { lat: 9, lng: 9 },
+    })
+  })
+})
+
+describe('getDayBookendHotels', () => {
+  it('returns nothing when the day has no accommodation', () => {
+    expect(getDayBookendHotels(days[1], days, [])).toEqual({})
+  })
+
+  it('bookends both ends with the single hotel on a normal stay day', () => {
+    const h = hotel({ start_day_id: 10, end_day_id: 30 })
+    const { morning, evening } = getDayBookendHotels(days[1], days, [h])
+    expect(morning).toBe(h)
+    expect(evening).toBe(h)
+  })
+
+  it('uses the checked-out hotel in the morning and the checked-in hotel in the evening on a transfer day', () => {
+    const out = hotel({ start_day_id: 10, end_day_id: 20, place_lat: 1, place_lng: 1 })
+    const into = hotel({ start_day_id: 20, end_day_id: 30, place_lat: 9, place_lng: 9 })
+    const { morning, evening } = getDayBookendHotels(days[1], days, [out, into])
+    expect(morning).toBe(out)
+    expect(evening).toBe(into)
+  })
+
+  it('still picks the slept-in hotel for the morning when its stay does not end on the transfer day (#887)', () => {
+    // The morning hotel runs long (checks out day 3) so it is not flagged as "checks out today";
+    // the old "ends today" rule collapsed both bookends onto the arriving hotel.
+    const stayed = hotel({ start_day_id: 10, end_day_id: 30, place_lat: 1, place_lng: 1 })
+    const into = hotel({ start_day_id: 20, end_day_id: 30, place_lat: 9, place_lng: 9 })
+    const { morning, evening } = getDayBookendHotels(days[1], days, [stayed, into])
+    expect(morning).toBe(stayed)
+    expect(evening).toBe(into)
+  })
+
+  it('ignores accommodations without coordinates', () => {
+    const h = hotel({ place_lat: null, place_lng: null })
+    expect(getDayBookendHotels(days[1], days, [h])).toEqual({})
   })
 })

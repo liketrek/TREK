@@ -18,7 +18,7 @@ import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTranslation } from '../../i18n'
-import { isDayInAccommodationRange, getAccommodationAnchors } from '../../utils/dayOrder'
+import { isDayInAccommodationRange, getAccommodationAnchors, getDayBookendHotels } from '../../utils/dayOrder'
 import {
   TRANSPORT_TYPES, parseTimeToMinutes, getSpanPhase, getDisplayTimeForDay, getTransportRouteEndpoints,
   getTransportForDay as _getTransportForDay, getMergedItems as _getMergedItems,
@@ -407,30 +407,29 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     }
     if (cur.length >= 2) runs.push(cur)
 
-    // Hotel bookend legs: the drive from the day's accommodation to the first
-    // located place (morning) and from the last place back to it (evening). Only
-    // when the "optimize from accommodation" setting is on and the day has a hotel,
-    // mirroring the range logic the optimizer itself uses (getAccommodationAnchors).
+    // Hotel bookend legs: the drive from the day's accommodation to the first located
+    // waypoint of the day (morning) and from the last one back to it (evening). Only when
+    // the "optimize from accommodation" setting is on and the day has a hotel.
     const day = days.find(d => d.id === selectedDayId)
-    const dayAccs = day && optimizeFromAccommodation !== false
-      ? accommodations.filter(a => a.place_lat != null && a.place_lng != null && isDayInAccommodationRange(day, a.start_day_id, a.end_day_id, days))
-      : []
-    const checkOut = day ? dayAccs.find(a => a.end_day_id === day.id) : undefined
-    const checkIn = day ? dayAccs.find(a => a.start_day_id === day.id) : undefined
-    const transfer = !!(checkOut && checkIn && checkOut !== checkIn)
-    const startHotel = transfer ? checkOut : dayAccs[0]
-    const endHotel = transfer ? checkIn : dayAccs[0]
+    const { morning: startHotel, evening: endHotel } =
+      day && optimizeFromAccommodation !== false ? getDayBookendHotels(day, days, accommodations) : {}
     const hotelName = (a: Accommodation) => (a as any).place_name || (a as any).reservation_title || ''
-    const placePts: { lat: number; lng: number }[] = []
+    // Waypoints include transport endpoints (a car return, a taxi/train arrival), so the hotel
+    // legs connect even when the day starts or ends with a booking rather than a place.
+    const wayPts: { lat: number; lng: number }[] = []
     for (const it of merged) {
       if (it.type === 'place' && it.data.place?.lat && it.data.place?.lng) {
-        placePts.push({ lat: it.data.place.lat, lng: it.data.place.lng })
+        wayPts.push({ lat: it.data.place.lat, lng: it.data.place.lng })
+      } else if (it.type === 'transport') {
+        const { from, to } = getTransportRouteEndpoints(it.data, selectedDayId)
+        if (from) wayPts.push({ lat: from.lat, lng: from.lng })
+        if (to) wayPts.push({ lat: to.lat, lng: to.lng })
       }
     }
-    const firstPlace = placePts[0]
-    const lastPlace = placePts[placePts.length - 1]
-    const wantTop = !!(startHotel && firstPlace)
-    const wantBottom = !!(endHotel && lastPlace)
+    const firstWay = wayPts[0]
+    const lastWay = wayPts[wayPts.length - 1]
+    const wantTop = !!(startHotel && firstWay)
+    const wantBottom = !!(endHotel && lastWay)
 
     if (runs.length === 0 && !wantTop && !wantBottom) { setRouteLegs({}); setHotelLegs({}); return }
 
@@ -456,11 +455,11 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
       }
       const hotel: { top?: { seg: RouteSegment; name: string }; bottom?: { seg: RouteSegment; name: string } } = {}
       if (wantTop) {
-        const seg = await legBetween({ lat: startHotel!.place_lat as number, lng: startHotel!.place_lng as number }, { lat: firstPlace.lat, lng: firstPlace.lng })
+        const seg = await legBetween({ lat: startHotel!.place_lat as number, lng: startHotel!.place_lng as number }, { lat: firstWay.lat, lng: firstWay.lng })
         if (seg) hotel.top = { seg, name: hotelName(startHotel!) }
       }
       if (wantBottom) {
-        const seg = await legBetween({ lat: lastPlace.lat, lng: lastPlace.lng }, { lat: endHotel!.place_lat as number, lng: endHotel!.place_lng as number })
+        const seg = await legBetween({ lat: lastWay.lat, lng: lastWay.lng }, { lat: endHotel!.place_lat as number, lng: endHotel!.place_lng as number })
         if (seg) hotel.bottom = { seg, name: hotelName(endHotel!) }
       }
 
