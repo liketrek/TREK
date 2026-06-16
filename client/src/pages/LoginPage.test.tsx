@@ -104,7 +104,7 @@ describe('LoginPage', () => {
   });
 
   describe('FE-PAGE-LOGIN-007: Remember me sends remember_me to the API', () => {
-    it('renders an unchecked checkbox and forwards remember_me: true when ticked', async () => {
+    it('renders an off toggle and forwards remember_me: true when toggled on', async () => {
       let capturedBody: Record<string, unknown> | null = null;
       server.use(
         http.post('/api/auth/login', async ({ request }) => {
@@ -120,13 +120,13 @@ describe('LoginPage', () => {
         expect(screen.getByPlaceholderText(EMAIL_PLACEHOLDER)).toBeInTheDocument();
       });
 
-      const checkbox = screen.getByRole('checkbox', { name: /remember me/i });
-      expect(checkbox).not.toBeChecked();
+      const toggle = screen.getByRole('button', { name: /remember me/i });
+      expect(toggle).toHaveAttribute('aria-pressed', 'false');
 
       await user.type(screen.getByPlaceholderText(EMAIL_PLACEHOLDER), 'user@example.com');
       await user.type(screen.getByPlaceholderText(PASSWORD_PLACEHOLDER), 'password123');
-      await user.click(checkbox);
-      expect(checkbox).toBeChecked();
+      await user.click(toggle);
+      expect(toggle).toHaveAttribute('aria-pressed', 'true');
       await user.click(screen.getByRole('button', { name: /sign in/i }));
 
       await waitFor(() => {

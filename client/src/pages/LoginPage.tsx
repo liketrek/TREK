@@ -575,7 +575,7 @@ export default function LoginPage(): React.ReactElement {
                 {mode === 'login' && (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 8 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <ToggleSwitch on={rememberMe} onToggle={() => setRememberMe(!rememberMe)} />
+                      <ToggleSwitch on={rememberMe} onToggle={() => setRememberMe(!rememberMe)} label={t('login.rememberMe')} />
                       <span
                         onClick={() => setRememberMe(!rememberMe)}
                         style={{ cursor: 'pointer', color: '#374151', fontSize: 12.5, fontWeight: 500, userSelect: 'none' }}

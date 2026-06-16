@@ -1,8 +1,8 @@
 import React from 'react'
 
-export default function ToggleSwitch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+export default function ToggleSwitch({ on, onToggle, label }: { on: boolean; onToggle: () => void; label?: string }) {
   return (
-    <button type="button" onClick={onToggle}
+    <button type="button" onClick={onToggle} aria-pressed={on} aria-label={label}
       style={{
         position: 'relative', width: 44, height: 24, minWidth: 44, flexShrink: 0,
         borderRadius: 12, border: 'none', padding: 0, cursor: 'pointer',
