@@ -34,6 +34,10 @@ env:
   # When "true": adds includeSubDomains to the HSTS header. Only effective when HSTS is active. Leave "false" if sibling subdomains still run over plain HTTP.
   # COOKIE_SECURE: "true"
   # Auto-derived (true in production or when FORCE_HTTPS=true). Set "false" to force cookies over plain HTTP. Not recommended for production.
+  # SESSION_DURATION: "24h"
+  # How long a login session stays valid when "Remember me" is unchecked (the default): trek_session JWT exp + a browser-session cookie. Accepts 1h, 12h, 7d, 30d, 90d. Defaults to 24h.
+  # SESSION_DURATION_REMEMBER: "30d"
+  # Session length when "Remember me" is ticked: a longer-lived JWT + persistent cookie that survives browser restarts. Same format as SESSION_DURATION. Defaults to 30d.
   # TRUST_PROXY: "1"
   # Trusted proxy hops for X-Forwarded-For/X-Forwarded-Proto. Defaults to 1 in production. Must be set for FORCE_HTTPS to work.
   # ALLOW_INTERNAL_NETWORK: "false"

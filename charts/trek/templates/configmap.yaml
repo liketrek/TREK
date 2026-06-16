@@ -28,6 +28,12 @@ data:
   {{- if .Values.env.COOKIE_SECURE }}
   COOKIE_SECURE: {{ .Values.env.COOKIE_SECURE | quote }}
   {{- end }}
+  {{- if .Values.env.SESSION_DURATION }}
+  SESSION_DURATION: {{ .Values.env.SESSION_DURATION | quote }}
+  {{- end }}
+  {{- if .Values.env.SESSION_DURATION_REMEMBER }}
+  SESSION_DURATION_REMEMBER: {{ .Values.env.SESSION_DURATION_REMEMBER | quote }}
+  {{- end }}
   {{- if .Values.env.TRUST_PROXY }}
   TRUST_PROXY: {{ .Values.env.TRUST_PROXY | quote }}
   {{- end }}

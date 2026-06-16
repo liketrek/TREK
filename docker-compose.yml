@@ -23,6 +23,7 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-info} # info = concise user actions; debug = verbose admin-level details
 #      - DEFAULT_LANGUAGE=en # Default language on the login page for users with no saved preference. Browser/OS language is auto-detected first; this is the fallback. Supported: de, en, es, fr, hu, nl, br, cs, pl, ru, zh, zh-TW, it, ar
 #      - SESSION_DURATION=30d # How long users stay logged in (trek_session JWT + cookie maxAge). Accepts: 1h | 12h | 7d | 30d | 90d. Default: 24h
+#      - SESSION_DURATION_REMEMBER=30d # Session length when "Remember me" is ticked at login: longer-lived JWT + persistent cookie that survives browser restarts. Same format as SESSION_DURATION. Default: 30d
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-} # Comma-separated origins for CORS and email notification links
 #      - FORCE_HTTPS=true # Optional. Enables HTTPS redirect, HSTS, CSP upgrade-insecure-requests, and secure cookies behind a TLS proxy
 #      - HSTS_INCLUDE_SUBDOMAINS=false # When true: adds includeSubDomains to the HSTS header. Only effective when HSTS is active. Leave false if sibling subdomains still run over plain HTTP.
