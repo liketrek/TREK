@@ -1,10 +1,9 @@
+import { ADDON_IDS } from '../../addons';
 import { db } from '../../db/database';
-import { logError, logInfo } from '../auditLog';
 import { broadcast } from '../../websocket';
 import { isAddonEnabled } from '../adminService';
-import { ADDON_IDS } from '../../addons';
+import { logError, logInfo } from '../auditLog';
 import { getReservation, getReservationWithJoins, updateReservation } from '../reservationService';
-import { getAirtrailCredentials } from './airtrailService';
 import {
   AirtrailAuthError,
   AirtrailCreds,
@@ -15,6 +14,7 @@ import {
   saveFlight,
 } from './airtrailClient';
 import { canonicalHash, mapFlightToReservation } from './airtrailMapper';
+import { getAirtrailCredentials } from './airtrailService';
 
 /** Global on/off: the addon must be enabled and sync not explicitly turned off. */
 export function syncGloballyEnabled(): boolean {
@@ -59,7 +59,7 @@ async function syncOwner(uid: number): Promise<number> {
     if (err instanceof AirtrailAuthError) logError(`AirTrail sync: invalid API key for user ${uid}`);
     return 0;
   }
-  const byId = new Map(flights.map(f => [String(f.id), f]));
+  const byId = new Map(flights.map((f) => [String(f.id), f]));
 
   const linked = db
     .prepare(
@@ -145,15 +145,15 @@ function splitLocal(dt: string | null | undefined): { date: string | null; time:
 }
 
 function buildSavePayload(reservation: any, existing: AirtrailFlightRaw): AirtrailSavePayload | null {
-  let meta: Record<string, any> = {};
+  let meta: Record<string, any>;
   try {
     meta = reservation.metadata ? JSON.parse(reservation.metadata) : {};
   } catch {
     meta = {};
   }
   const endpoints: any[] = reservation.endpoints || [];
-  const fromEp = endpoints.find(e => e.role === 'from');
-  const toEp = endpoints.find(e => e.role === 'to');
+  const fromEp = endpoints.find((e) => e.role === 'from');
+  const toEp = endpoints.find((e) => e.role === 'to');
   const fromCode = fromEp?.code || existing.from?.iata || existing.from?.icao || null;
   const toCode = toEp?.code || existing.to?.iata || existing.to?.icao || null;
   if (!fromCode || !toCode) return null;
@@ -164,7 +164,7 @@ function buildSavePayload(reservation: any, existing: AirtrailFlightRaw): Airtra
 
   // Preserve the existing seat manifest (an update replaces all seats); fall back
   // to the key-owner placeholder so AirTrail attributes it to the connecting user.
-  const seats = (existing.seats ?? []).map(s => ({
+  const seats = (existing.seats ?? []).map((s) => ({
     userId: s.userId,
     guestName: s.guestName,
     seat: s.seat,
@@ -179,7 +179,7 @@ function buildSavePayload(reservation: any, existing: AirtrailFlightRaw): Airtra
   // a userId), leaving any co-passenger seats untouched.
   const seatNumber = typeof meta.seat === 'string' && meta.seat.trim() ? meta.seat.trim() : null;
   if (seatNumber) {
-    const ownSeat = seats.find(s => s.userId) ?? seats[0];
+    const ownSeat = seats.find((s) => s.userId) ?? seats[0];
     if (ownSeat) ownSeat.seatNumber = seatNumber;
   }
 
