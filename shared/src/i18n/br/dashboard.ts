@@ -163,5 +163,6 @@ const dashboard: TranslationStrings = {
   'dashboard.aria.swapCurrencies': 'Trocar moedas',
   'dashboard.aria.addTimezone': 'Adicionar fuso horário',
   'dashboard.aria.removeTimezone': 'Remover {city}',
+  'dashboard.dayCountRequired': 'O número de dias é obrigatório',
 };
 export default dashboard;

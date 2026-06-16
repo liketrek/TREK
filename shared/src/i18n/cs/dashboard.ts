@@ -163,5 +163,6 @@ const dashboard: TranslationStrings = {
   'dashboard.aria.swapCurrencies': 'Prohodit měny',
   'dashboard.aria.addTimezone': 'Přidat časové pásmo',
   'dashboard.aria.removeTimezone': 'Odebrat {city}',
+  'dashboard.dayCountRequired': 'Počet dní je povinný',
 };
 export default dashboard;

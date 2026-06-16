@@ -162,5 +162,6 @@ const dashboard: TranslationStrings = {
   'dashboard.aria.swapCurrencies': 'Para birimlerini değiştir',
   'dashboard.aria.addTimezone': 'Saat dilimi ekle',
   'dashboard.aria.removeTimezone': '{city} kaldır',
+  'dashboard.dayCountRequired': 'Gün sayısı gereklidir',
 };
 export default dashboard;

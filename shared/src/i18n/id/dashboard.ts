@@ -163,5 +163,6 @@ const dashboard: TranslationStrings = {
   'dashboard.aria.swapCurrencies': 'Tukar mata uang',
   'dashboard.aria.addTimezone': 'Tambah zona waktu',
   'dashboard.aria.removeTimezone': 'Hapus {city}',
+  'dashboard.dayCountRequired': 'Jumlah hari wajib diisi',
 };
 export default dashboard;
