@@ -51,10 +51,10 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
   <a href="docs/screenshots/dashboard.png"><img src="docs/screenshots/dashboard.png" alt="Dashboard" width="49%" /></a>
   <a href="docs/screenshots/trip-planner.png"><img src="docs/screenshots/trip-planner.png" alt="Trip planner with 3D map" width="49%" /></a>
   <a href="docs/screenshots/journey.png"><img src="docs/screenshots/journey.png" alt="Journey journal" width="49%" /></a>
-  <a href="docs/screenshots/budget.png"><img src="docs/screenshots/budget.png" alt="Budget tracker" width="49%" /></a>
+  <a href="docs/screenshots/budget.png"><img src="docs/screenshots/budget.png" alt="Costs · expense splitting" width="49%" /></a>
   <a href="docs/screenshots/atlas.png"><img src="docs/screenshots/atlas.png" alt="Atlas · visited countries" width="49%" /></a>
   <a href="docs/screenshots/vacay.png"><img src="docs/screenshots/vacay.png" alt="Vacay planner" width="49%" /></a>
-  <a href="docs/screenshots/trip-iceland.png"><img src="docs/screenshots/trip-iceland.png" alt="Iceland Ring Road" width="49%" /></a>
+  <a href="docs/screenshots/trip-iceland.png"><img src="docs/screenshots/trip-iceland.png" alt="Trip planner · day plan and route" width="49%" /></a>
   <a href="docs/screenshots/admin.png"><img src="docs/screenshots/admin.png" alt="Admin panel" width="49%" /></a>
 </div>
 
@@ -79,6 +79,7 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 - **Drag & drop planner** — organise places into day plans with reordering and cross-day moves
 - **Interactive map** — Leaflet or Mapbox GL with 3D buildings, terrain, photo markers, clustering, route visualization
 - **Place search** — Google Places (photos, ratings, hours) or OpenStreetMap (free, no API key)
+- **Place import** — shared Google Maps / Naver Maps lists, plus GPX and KML/KMZ/GeoJSON map files
 - **Day notes** — timestamped, icon-tagged notes with drag-and-drop reordering
 - **Route optimisation** — auto-sort places and export to Google Maps
 - **Weather forecasts** — 16-day via Open-Meteo (no key) + historical climate fallback
@@ -90,7 +91,7 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 #### 🧳 Travel management
 
 - **Reservations** — flights, accommodations, restaurants with status, confirmation numbers, files; import from booking confirmation emails and PDFs ([KDE Itinerary](https://invent.kde.org/pim/kitinerary))
-- **Budget tracking** — category-based expenses with pie chart, per-person / per-day splits, multi-currency
+- **Costs** — track and split trip expenses (Splitwise-style): per-person / per-day breakdowns, settle-up, multi-currency
 - **Packing lists** — categories, templates, user assignment, progress tracking
 - **Bag tracking** — optional weight tracking with iOS-style distribution
 - **Document manager** — attach docs, tickets, PDFs to trips / places / reservations (≤ 50 MB each)
@@ -108,6 +109,7 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 - **Invite links** — one-time or reusable links with expiry
 - **SSO (OIDC)** — Google, Apple, Authentik, Keycloak, or any OIDC provider
 - **2FA** — TOTP + backup codes
+- **Passkeys** — passwordless WebAuthn login (fingerprint / face / PIN / security key), admin-toggleable
 - **Collab suite** — group chat, shared notes, polls, day check-ins
 
 </td>
@@ -128,13 +130,13 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 #### 🧩 Addons (admin-toggleable)
 
 - **Lists** — packing lists + to-dos with templates, member assignments, optional bag tracking
-- **Budget** — expense tracker with splits, pie chart, multi-currency
+- **Costs** — expense tracker with splits and settle-up (who owes whom), multi-currency
 - **Documents** — file attachments on trips, places, and reservations
 - **Collab** — chat, notes, polls, day-by-day attendance
 - **Vacay** — personal vacation planner with calendar, 100+ country holidays, carry-over tracking
 - **Atlas** — world map of visited countries, bucket list, travel stats, streak tracking, liquid-glass UI
 - **Journey** — magazine-style travel journal with entries, photos (Immich/Synology), maps, moods
-- **Naver List Import** — one-click import from shared Naver Maps lists
+- **AirTrail** — connect a self-hosted AirTrail instance to import and sync flights into reservations
 - **MCP** — expose TREK to AI assistants via OAuth 2.1
 
 </td>
@@ -156,8 +158,9 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 #### ⚙️ Admin & customisation
 
 - **Dashboard views** — card grid or compact list · **Dark mode** — full theme with matching status bar
-- **15 languages** — EN, DE, ES, FR, IT, NL, HU, RU, ZH, ZH-TW, PL, CS, AR (RTL), BR, ID
+- **20 languages** — EN, DE, ES, FR, IT, NL, HU, RU, ZH, ZH-TW, PL, CS, AR (RTL), BR, ID, TR, JA, KO, UK, GR
 - **Admin panel** — users, invites, packing templates, categories, addons, API keys, backups, GitHub history
+- **Notifications** — per-user preferences across email (SMTP), webhook, ntfy, and an in-app notification center
 - **Auto-backups** — scheduled with configurable retention · **Units** — °C/°F, 12h/24h, map tile sources, default coordinates
 
 </td>
@@ -191,9 +194,9 @@ Open `http://localhost:3000`. On first boot TREK seeds an admin account — if y
 <div align="center">
 
 ![Node.js](https://img.shields.io/badge/Node.js_22-339933?style=flat-square&logo=node.js&logoColor=white)
-![Express](https://img.shields.io/badge/Express-000000?style=flat-square&logo=express&logoColor=white)
+![NestJS](https://img.shields.io/badge/NestJS_11-E0234E?style=flat-square&logo=nestjs&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white)
-![React](https://img.shields.io/badge/React_18-61DAFB?style=flat-square&logo=react&logoColor=black)
+![React](https://img.shields.io/badge/React_19-61DAFB?style=flat-square&logo=react&logoColor=black)
 ![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
 ![Tailwind](https://img.shields.io/badge/Tailwind-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
@@ -202,7 +205,7 @@ Open `http://localhost:3000`. On first boot TREK seeds an admin account — if y
 
 </div>
 
-Real-time sync via WebSocket (`ws`). State with Zustand. Auth via JWT + OAuth 2.1 + OIDC + TOTP MFA. Weather via Open-Meteo (no key required). Maps with Leaflet and Mapbox GL.
+Real-time sync via WebSocket (`ws`). Backend on NestJS 11. State with Zustand. Auth via JWT + OAuth 2.1 + OIDC + Passkeys (WebAuthn) + TOTP MFA. Weather via Open-Meteo (no key required). Maps with Leaflet and Mapbox GL.
 
 <br />
 
@@ -263,7 +266,7 @@ Then:
 docker compose up -d
 ```
 
-**HTTPS notes:** `FORCE_HTTPS=true` is optional — it adds a 301 redirect, HSTS, CSP upgrade-insecure-requests, and forces the `secure` cookie flag. Only use it behind a TLS-terminating reverse proxy. `TRUST_PROXY=1` tells Express how many proxies sit in front so real client IPs and `X-Forwarded-Proto` work.
+**HTTPS notes:** `FORCE_HTTPS=true` is optional — it adds a 301 redirect, HSTS, CSP upgrade-insecure-requests, and forces the `secure` cookie flag. Only use it behind a TLS-terminating reverse proxy. `TRUST_PROXY=1` tells the server how many proxies sit in front so real client IPs and `X-Forwarded-Proto` work.
 
 </details>
 
@@ -400,12 +403,12 @@ Caddy handles TLS and WebSockets automatically.
 | `ENCRYPTION_KEY` | At-rest encryption key for stored secrets (API keys, MFA, SMTP, OIDC). Recommended: generate with `openssl rand -hex 32`. If unset, falls back to `data/.jwt_secret` (existing installs) or auto-generates a key (fresh installs). | Auto |
 | `TZ` | Timezone for logs, reminders and cron jobs (e.g. `Europe/Berlin`) | `UTC` |
 | `LOG_LEVEL` | `info` = concise user actions, `debug` = verbose details | `info` |
-| `DEFAULT_LANGUAGE` | Default language on the login page for users with no saved preference. Browser/OS language is auto-detected first; this is the fallback. Supported: `de`, `en`, `es`, `fr`, `hu`, `nl`, `br`, `cs`, `pl`, `ru`, `zh`, `zh-TW`, `it`, `ar` | `en` |
+| `DEFAULT_LANGUAGE` | Default language on the login page for users with no saved preference. Browser/OS language is auto-detected first; this is the fallback. Supported: `de`, `en`, `es`, `fr`, `hu`, `nl`, `br`, `cs`, `pl`, `ru`, `zh`, `zh-TW`, `it`, `ar`, `id`, `tr`, `ja`, `ko`, `uk`, `gr` | `en` |
 | `ALLOWED_ORIGINS` | Comma-separated origins for CORS and email links | same-origin |
 | `FORCE_HTTPS` | Optional. When `true`: 301-redirects HTTP to HTTPS, sends HSTS, adds CSP `upgrade-insecure-requests`, forces the session cookie `secure` flag. Useful behind a TLS-terminating reverse proxy. Requires `TRUST_PROXY`. | `false` |
 | `HSTS_INCLUDE_SUBDOMAINS` | When `true`: adds the `includeSubDomains` directive to the HSTS header, extending HTTPS enforcement to all subdomains. Only effective when HSTS is active (`FORCE_HTTPS=true` or `NODE_ENV=production`). Leave `false` if you run other services on sibling subdomains over plain HTTP. | `false` |
 | `COOKIE_SECURE` | Controls the `secure` flag on the `trek_session` cookie. Auto-derived: on when `NODE_ENV=production` or `FORCE_HTTPS=true`. Escape hatch: set `false` to allow session cookies over plain HTTP. Not recommended in production. | auto |
-| `TRUST_PROXY` | Number of trusted reverse proxies. Tells Express to read client IP from `X-Forwarded-For` and protocol from `X-Forwarded-Proto`. Defaults to `1` in production; off in dev unless set. | `1` |
+| `TRUST_PROXY` | Number of trusted reverse proxies. Tells the server to read client IP from `X-Forwarded-For` and protocol from `X-Forwarded-Proto`. Defaults to `1` in production; off in dev unless set. | `1` |
 | `ALLOW_INTERNAL_NETWORK` | Allow outbound requests to private/RFC-1918 IPs (e.g. Immich on your LAN). Loopback and link-local addresses remain blocked. | `false` |
 | `APP_URL` | Public base URL of this instance (e.g. `https://trek.example.com`). Required when OIDC is enabled; used as base for email notification links. | — |
 | **OIDC / SSO** | | |
