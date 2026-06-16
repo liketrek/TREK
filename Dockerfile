@@ -105,5 +105,8 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD wget -qO- http://localhost:3000/api/health || exit 1
 
 ENTRYPOINT ["dumb-init", "--"]
+# Preflight: if the app code is missing, a volume was almost certainly mounted
+# over /app (it hides the image's node_modules + dist). Fail with actionable
+# guidance instead of a cryptic "Cannot find module 'tsconfig-paths/register'".
 # cd into server/ so tsconfig-paths/register finds tsconfig.json and ../node_modules resolves correctly.
-CMD ["sh", "-c", "chown -R node:node /app/data /app/uploads 2>/dev/null || true; cd /app/server && exec gosu node node --require tsconfig-paths/register dist/index.js"]
+CMD ["sh", "-c", "if [ ! -f /app/server/dist/index.js ] || [ ! -d /app/node_modules/tsconfig-paths ]; then echo 'FATAL: TREK application files are missing from the image.'; echo 'A volume is likely mounted over /app, which hides the app code.'; echo 'Mount ONLY your data and uploads dirs: -v ./data:/app/data -v ./uploads:/app/uploads'; echo 'Do NOT mount a volume at /app. See the Troubleshooting section of the README.'; exit 1; fi; chown -R node:node /app/data /app/uploads 2>/dev/null || true; cd /app/server && exec gosu node node --require tsconfig-paths/register dist/index.js"]

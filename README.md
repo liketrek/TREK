@@ -311,6 +311,9 @@ docker run -d --name trek -p 3000:3000 -v ./data:/app/data -v ./uploads:/app/upl
 
 Your data stays in the mounted `data` and `uploads` volumes — updates never touch it.
 
+> [!IMPORTANT]
+> Mount **only** the data and uploads directories — `-v ./data:/app/data -v ./uploads:/app/uploads`. **Never mount a volume at `/app`.** Doing so hides the application code shipped in the image and the container fails to start with `Cannot find module 'tsconfig-paths/register'`. If you previously mounted `/app`, switch to the two mounts above; your data in `data/` and `uploads/` is preserved.
+
 <h3>Rotating the Encryption Key</h3>
 
 If you need to rotate `ENCRYPTION_KEY` (e.g. upgrading from a version that derived encryption from `JWT_SECRET`):
