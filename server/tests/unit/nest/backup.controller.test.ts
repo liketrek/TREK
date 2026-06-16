@@ -3,13 +3,31 @@ import { HttpException } from '@nestjs/common';
 import type { Request, Response } from 'express';
 
 vi.mock('../../../src/services/auditLog', () => ({ writeAudit: vi.fn(), getClientIp: vi.fn(() => '1.2.3.4') }));
-// The controller imports the tmp-dir + size cap at module load.
-vi.mock('../../../src/services/backupService', () => ({ getUploadTmpDir: () => '/tmp', MAX_BACKUP_UPLOAD_SIZE: 1024 }));
+// The controller imports the tmp-dir + size cap at module load. The thin
+// BackupService wrapper forwards every call straight into this module, so the
+// mock also stubs the delegated functions for the wrapper tests below.
+vi.mock('../../../src/services/backupService', () => ({
+  getUploadTmpDir: () => '/tmp',
+  MAX_BACKUP_UPLOAD_SIZE: 1024,
+  BACKUP_RATE_WINDOW: 3600000,
+  listBackups: vi.fn().mockReturnValue([{ filename: 'svc.zip' }]),
+  createBackup: vi.fn().mockResolvedValue({ filename: 'svc.zip', size: 5 }),
+  restoreFromZip: vi.fn().mockResolvedValue({ success: true }),
+  getAutoSettings: vi.fn().mockReturnValue({ settings: { enabled: false }, timezone: 'UTC' }),
+  updateAutoSettings: vi.fn().mockReturnValue({ enabled: true, interval: 'daily', keep_days: 7 }),
+  deleteBackup: vi.fn(),
+  isValidBackupFilename: vi.fn().mockReturnValue(true),
+  backupFilePath: vi.fn().mockReturnValue('/data/backups/svc.zip'),
+  backupFileExists: vi.fn().mockReturnValue(true),
+  checkRateLimit: vi.fn().mockReturnValue(true),
+}));
 
 import { BackupController } from '../../../src/nest/backup/backup.controller';
+import { BackupService as RealBackupService } from '../../../src/nest/backup/backup.service';
 import { AdminGuard } from '../../../src/nest/auth/admin.guard';
 import type { BackupService } from '../../../src/nest/backup/backup.service';
 import { writeAudit } from '../../../src/services/auditLog';
+import * as backupSvc from '../../../src/services/backupService';
 import type { User } from '../../../src/types';
 
 const user = { id: 1, role: 'admin', email: 'a@example.test' } as User;
@@ -86,10 +104,15 @@ describe('BackupController', () => {
 
   it('POST /restore maps the service status, else audits', async () => {
     expect(await thrownAsync(() => new BackupController(svc({ isValidBackupFilename: vi.fn().mockReturnValue(false) })).restore(user, 'x', req))).toEqual({ status: 400, body: { error: 'Invalid filename' } });
+    expect(await thrownAsync(() => new BackupController(svc({ backupFileExists: vi.fn().mockReturnValue(false) })).restore(user, 'x.zip', req))).toEqual({ status: 404, body: { error: 'Backup not found' } });
     expect(await thrownAsync(() => new BackupController(svc({ restoreFromZip: vi.fn().mockResolvedValue({ success: false, status: 422, error: 'bad zip' }) } as Partial<BackupService>)).restore(user, 'x.zip', req))).toEqual({ status: 422, body: { error: 'bad zip' } });
     const res = await new BackupController(svc({ restoreFromZip: vi.fn().mockResolvedValue({ success: true }) } as Partial<BackupService>)).restore(user, 'x.zip', req);
     expect(res).toEqual({ success: true });
     expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'backup.restore', resource: 'x.zip' }));
+  });
+
+  it('POST /restore falls back to status 400 when the service omits one', async () => {
+    expect(await thrownAsync(() => new BackupController(svc({ restoreFromZip: vi.fn().mockResolvedValue({ success: false, error: 'nope' }) } as Partial<BackupService>)).restore(user, 'x.zip', req))).toEqual({ status: 400, body: { error: 'nope' } });
   });
 
   it('POST /upload-restore 400 without a file, cleans up the tmp file', async () => {
@@ -108,6 +131,14 @@ describe('BackupController', () => {
     expect(await thrownAsync(() => new BackupController(svc({ restoreFromZip: vi.fn().mockResolvedValue({ success: false, status: 422, error: 'bad' }) } as Partial<BackupService>)).uploadRestore(user, file, req))).toEqual({ status: 422, body: { error: 'bad' } });
   });
 
+  it('POST /upload-restore falls back to a default name and maps unexpected errors to 500', async () => {
+    const file = { path: '/tmp/does-not-exist-xyz.zip', originalname: '' } as Express.Multer.File;
+    expect(await thrownAsync(() => new BackupController(svc({ restoreFromZip: vi.fn().mockRejectedValue(new Error('boom')) } as Partial<BackupService>)).uploadRestore(user, file, req))).toEqual({ status: 500, body: { error: 'Error restoring backup' } });
+    const ok = { path: '/tmp/does-not-exist-xyz.zip', originalname: '' } as Express.Multer.File;
+    await new BackupController(svc({ restoreFromZip: vi.fn().mockResolvedValue({ success: true }) } as Partial<BackupService>)).uploadRestore(user, ok, req);
+    expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'backup.upload_restore', resource: 'upload.zip' }));
+  });
+
   it('maps unexpected service errors to 500 (create, restore, auto-settings)', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(await thrownAsync(() => new BackupController(svc({ createBackup: vi.fn().mockRejectedValue(new Error('disk')) } as Partial<BackupService>)).create(user, req))).toEqual({ status: 500, body: { error: 'Error creating backup' } });
@@ -123,6 +154,20 @@ describe('BackupController', () => {
     expect(r.body).toEqual({ error: 'Could not save auto-backup settings', detail: 'parse fail' });
   });
 
+  it('PUT /auto-settings hides the detail in production and stringifies non-Error throws', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    process.env.NODE_ENV = 'production';
+    const r = thrown(() => new BackupController(svc({ updateAutoSettings: vi.fn(() => { throw 'plain string'; }) } as Partial<BackupService>)).updateAutoSettings(user, {}, req));
+    expect(r.status).toBe(500);
+    expect(r.body).toEqual({ error: 'Could not save auto-backup settings', detail: undefined });
+  });
+
+  it('PUT /auto-settings tolerates a missing body', () => {
+    const updateAutoSettings = vi.fn().mockReturnValue({ enabled: false, interval: 'weekly', keep_days: 30 });
+    new BackupController(svc({ updateAutoSettings } as Partial<BackupService>)).updateAutoSettings(user, undefined as unknown as Record<string, unknown>, req);
+    expect(updateAutoSettings).toHaveBeenCalledWith({});
+  });
+
   it('GET/PUT /auto-settings', () => {
     expect(new BackupController(svc({ getAutoSettings: vi.fn().mockReturnValue({ settings: { enabled: true }, timezone: 'UTC' }) } as Partial<BackupService>)).autoSettings()).toEqual({ settings: { enabled: true }, timezone: 'UTC' });
     const res = new BackupController(svc({ updateAutoSettings: vi.fn().mockReturnValue({ enabled: true, interval: 'daily', keep_days: 7 }) } as Partial<BackupService>)).updateAutoSettings(user, { enabled: true }, req);
@@ -136,5 +181,52 @@ describe('BackupController', () => {
     const deleteBackup = vi.fn();
     expect(new BackupController(svc({ deleteBackup } as Partial<BackupService>)).remove(user, 'x.zip', req)).toEqual({ success: true });
     expect(deleteBackup).toHaveBeenCalledWith('x.zip');
+  });
+});
+
+describe('BackupService (wrapper)', () => {
+  const wrapper = new RealBackupService();
+
+  it('forwards every call straight to the legacy backup service', async () => {
+    expect(wrapper.listBackups()).toEqual([{ filename: 'svc.zip' }]);
+    expect(backupSvc.listBackups).toHaveBeenCalled();
+
+    await expect(wrapper.createBackup()).resolves.toEqual({ filename: 'svc.zip', size: 5 });
+    expect(backupSvc.createBackup).toHaveBeenCalled();
+
+    await expect(wrapper.restoreFromZip('/tmp/a.zip')).resolves.toEqual({ success: true });
+    expect(backupSvc.restoreFromZip).toHaveBeenCalledWith('/tmp/a.zip');
+
+    expect(wrapper.getAutoSettings()).toEqual({ settings: { enabled: false }, timezone: 'UTC' });
+    expect(backupSvc.getAutoSettings).toHaveBeenCalled();
+
+    expect(wrapper.updateAutoSettings({ enabled: true })).toEqual({ enabled: true, interval: 'daily', keep_days: 7 });
+    expect(backupSvc.updateAutoSettings).toHaveBeenCalledWith({ enabled: true });
+
+    wrapper.deleteBackup('svc.zip');
+    expect(backupSvc.deleteBackup).toHaveBeenCalledWith('svc.zip');
+
+    expect(wrapper.isValidBackupFilename('svc.zip')).toBe(true);
+    expect(backupSvc.isValidBackupFilename).toHaveBeenCalledWith('svc.zip');
+
+    expect(wrapper.backupFilePath('svc.zip')).toBe('/data/backups/svc.zip');
+    expect(backupSvc.backupFilePath).toHaveBeenCalledWith('svc.zip');
+
+    expect(wrapper.backupFileExists('svc.zip')).toBe(true);
+    expect(backupSvc.backupFileExists).toHaveBeenCalledWith('svc.zip');
+
+    expect(wrapper.checkRateLimit('ip', 3, 1000)).toBe(true);
+    expect(backupSvc.checkRateLimit).toHaveBeenCalledWith('ip', 3, 1000);
+  });
+
+  it('exposes the legacy rate window', () => {
+    expect(wrapper.rateWindow).toBe(backupSvc.BACKUP_RATE_WINDOW);
+  });
+});
+
+describe('BackupModule', () => {
+  it('wires the controller and service together', async () => {
+    const { BackupModule } = await import('../../../src/nest/backup/backup.module');
+    expect(new BackupModule()).toBeInstanceOf(BackupModule);
   });
 });

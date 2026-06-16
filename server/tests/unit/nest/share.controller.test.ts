@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { HttpException } from '@nestjs/common';
 import type { Response } from 'express';
 
+const { createReadStream } = vi.hoisted(() => ({ createReadStream: vi.fn() }));
+vi.mock('node:fs', () => ({ createReadStream }));
+
 import { TripShareController, SharedController } from '../../../src/nest/share/share.controller';
 import type { ShareService } from '../../../src/nest/share/share.service';
 import type { User } from '../../../src/types';
@@ -68,5 +71,67 @@ describe('SharedController', () => {
   it('404 for an invalid token, else returns the snapshot', () => {
     expect(thrown(() => new SharedController(svc({ getSharedTripData: vi.fn().mockReturnValue(null) } as Partial<ShareService>)).read('bad'))).toEqual({ status: 404, body: { error: 'Invalid or expired link' } });
     expect(new SharedController(svc({ getSharedTripData: vi.fn().mockReturnValue({ trip: { id: 9 } }) } as Partial<ShareService>)).read('tok')).toEqual({ trip: { id: 9 } });
+  });
+
+  describe('place-photo proxy', () => {
+    function photoRes() {
+      const r = {
+        statusCode: 200,
+        headersSent: false,
+        status: vi.fn(function (this: unknown, c: number) { (r as { statusCode: number }).statusCode = c; return r; }),
+        json: vi.fn(),
+        set: vi.fn(),
+        type: vi.fn(),
+      };
+      return r as unknown as Response & { status: ReturnType<typeof vi.fn>; json: ReturnType<typeof vi.fn>; set: ReturnType<typeof vi.fn>; type: ReturnType<typeof vi.fn> };
+    }
+
+    beforeEach(() => createReadStream.mockReset());
+
+    function controller(path: string | null) {
+      return new SharedController(svc({ getSharedPlacePhotoPath: vi.fn().mockReturnValue(path) } as Partial<ShareService>));
+    }
+
+    it('404 without streaming when the photo is not cached for the token', () => {
+      const res = photoRes();
+      controller(null).placePhotoBytes('tok', 'p1', res);
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Photo not cached' });
+      expect(createReadStream).not.toHaveBeenCalled();
+    });
+
+    it('streams the cached file with image/jpeg + an immutable cache header on a hit', () => {
+      const stream = { on: vi.fn().mockReturnThis(), pipe: vi.fn() };
+      createReadStream.mockReturnValue(stream);
+      const res = photoRes();
+      controller('/cache/p1.jpg').placePhotoBytes('tok', 'p1', res);
+      expect(res.set).toHaveBeenCalledWith('Cache-Control', 'public, max-age=2592000, immutable');
+      expect(res.type).toHaveBeenCalledWith('image/jpeg');
+      expect(createReadStream).toHaveBeenCalledWith('/cache/p1.jpg');
+      expect(stream.pipe).toHaveBeenCalledWith(res);
+    });
+
+    it('falls back to 404 when the read stream errors before headers were sent', () => {
+      let onError: () => void = () => {};
+      const stream = { on: vi.fn((ev: string, cb: () => void) => { if (ev === 'error') onError = cb; return stream; }), pipe: vi.fn() };
+      createReadStream.mockReturnValue(stream);
+      const res = photoRes();
+      controller('/cache/p1.jpg').placePhotoBytes('tok', 'p1', res);
+      onError();
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Photo not cached' });
+    });
+
+    it('does not re-send a 404 when the stream errors after headers were flushed', () => {
+      let onError: () => void = () => {};
+      const stream = { on: vi.fn((ev: string, cb: () => void) => { if (ev === 'error') onError = cb; return stream; }), pipe: vi.fn() };
+      createReadStream.mockReturnValue(stream);
+      const res = photoRes();
+      (res as { headersSent: boolean }).headersSent = true;
+      controller('/cache/p1.jpg').placePhotoBytes('tok', 'p1', res);
+      onError();
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.json).not.toHaveBeenCalled();
+    });
   });
 });

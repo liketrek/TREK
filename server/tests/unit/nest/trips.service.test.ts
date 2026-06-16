@@ -53,6 +53,12 @@ describe('TripsService (wrapper delegation + bundle/copy/notify helpers)', () =>
     s.exportICS('9'); expect(tripSvc.exportICS).toHaveBeenCalledWith('9');
   });
 
+  it('canAccessTrip delegates to the db helper', () => {
+    canAccessTrip.mockReturnValueOnce({ user_id: 7 });
+    expect(svc().canAccessTrip('9', 7)).toEqual({ user_id: 7 });
+    expect(canAccessTrip).toHaveBeenCalledWith('9', 7);
+  });
+
   it('can() delegates to checkPermission; broadcast forwards', () => {
     svc().can('trip_edit', 'user', 1, 1, false);
     expect(checkPermission).toHaveBeenCalledWith('trip_edit', 'user', 1, 1, false);
@@ -68,6 +74,12 @@ describe('TripsService (wrapper delegation + bundle/copy/notify helpers)', () =>
   it('bundle aggregates every sub-collection + the member list', () => {
     const result = svc().bundle('9', { user_id: 1 });
     expect(result).toMatchObject({ trip: { user_id: 1 }, days: [1], places: [], members: [{ id: 1 }] });
+  });
+
+  it('bundle tolerates a null member list', () => {
+    tripSvc.listMembers.mockReturnValueOnce({ owner: { id: 1 }, members: null });
+    const result = svc().bundle('9', { user_id: 1 });
+    expect(result).toMatchObject({ members: [{ id: 1 }] });
   });
 
   it('notifyInvite is fire-and-forget (no throw)', () => {

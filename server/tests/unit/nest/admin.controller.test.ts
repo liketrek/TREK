@@ -8,6 +8,7 @@ vi.mock('../../../src/services/notificationService', () => ({ send: vi.fn().mock
 import { AdminController } from '../../../src/nest/admin/admin.controller';
 import type { AdminService } from '../../../src/nest/admin/admin.service';
 import { writeAudit } from '../../../src/services/auditLog';
+import { send as sendNotification } from '../../../src/services/notificationService';
 import type { User } from '../../../src/types';
 
 const user = { id: 1, role: 'admin', email: 'admin@example.test' } as User;
@@ -121,6 +122,114 @@ describe('AdminController addons + sessions + jwt + defaults', () => {
   });
 });
 
+describe('AdminController error envelope fallbacks', () => {
+  it('ok() defaults to 400 when the error envelope omits a status', () => {
+    expect(thrown(() => new AdminController(svc({ createUser: vi.fn().mockReturnValue({ error: 'boom' }) } as Partial<AdminService>)).createUser(user, {}, req))).toEqual({ status: 400, body: { error: 'boom' } });
+  });
+
+  it('updateOidc defaults to 400 when the service error omits a status', () => {
+    expect(thrown(() => new AdminController(svc({ updateOidcSettings: vi.fn().mockReturnValue({ error: 'nope' }) } as Partial<AdminService>)).updateOidc(user, {}, req))).toEqual({ status: 400, body: { error: 'nope' } });
+  });
+
+  it('updateOidc audits issuer_set=false when no issuer is supplied', () => {
+    expect(new AdminController(svc({ updateOidcSettings: vi.fn().mockReturnValue({}) } as Partial<AdminService>)).updateOidc(user, {}, req)).toEqual({ success: true });
+    expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'admin.oidc_update', details: { issuer_set: false } }));
+  });
+});
+
+describe('AdminController read-only getters', () => {
+  it('return service values verbatim', () => {
+    expect(new AdminController(svc({ resetUserPasskeys: vi.fn().mockReturnValue({ email: 'a@b.c', deleted: 2 }) } as Partial<AdminService>)).resetUserPasskeys(user, '4', req)).toEqual({ success: true, deleted: 2 });
+    expect(new AdminController(svc({ getStats: vi.fn().mockReturnValue({ users: 3 }) } as Partial<AdminService>)).stats()).toEqual({ users: 3 });
+    expect(new AdminController(svc({ getPermissions: vi.fn().mockReturnValue({ a: 1 }) } as Partial<AdminService>)).permissions()).toEqual({ a: 1 });
+    expect(new AdminController(svc({ getAuditLog: vi.fn().mockReturnValue({ entries: [] }) } as Partial<AdminService>)).auditLog({})).toEqual({ entries: [] });
+    expect(new AdminController(svc({ getOidcSettings: vi.fn().mockReturnValue({ issuer: 'x' }) } as Partial<AdminService>)).getOidc()).toEqual({ issuer: 'x' });
+    expect(new AdminController(svc({ checkVersion: vi.fn().mockResolvedValue({ current: '1' }) } as Partial<AdminService>)).versionCheck()).resolves.toEqual({ current: '1' });
+    expect(new AdminController(svc({ getPreferencesMatrix: vi.fn().mockReturnValue({ rows: [] }) } as Partial<AdminService>)).getNotificationPrefs(user)).toEqual({ rows: [] });
+    expect(new AdminController(svc({ listInvites: vi.fn().mockReturnValue([{ id: 1 }]) } as Partial<AdminService>)).listInvites()).toEqual({ invites: [{ id: 1 }] });
+    expect(new AdminController(svc({ getBagTracking: vi.fn().mockReturnValue({ enabled: false }) } as Partial<AdminService>)).getBagTracking()).toEqual({ enabled: false });
+    expect(new AdminController(svc({ getPlacesPhotos: vi.fn().mockReturnValue({ enabled: true }) } as Partial<AdminService>)).getPlacesPhotos()).toEqual({ enabled: true });
+    expect(new AdminController(svc({ getPlacesAutocomplete: vi.fn().mockReturnValue({ enabled: true }) } as Partial<AdminService>)).getPlacesAutocomplete()).toEqual({ enabled: true });
+    expect(new AdminController(svc({ getPlacesDetails: vi.fn().mockReturnValue({ enabled: true }) } as Partial<AdminService>)).getPlacesDetails()).toEqual({ enabled: true });
+    expect(new AdminController(svc({ getCollabFeatures: vi.fn().mockReturnValue({ chat: false }) } as Partial<AdminService>)).getCollabFeatures()).toEqual({ chat: false });
+    expect(new AdminController(svc({ listPackingTemplates: vi.fn().mockReturnValue([{ id: 1 }]) } as Partial<AdminService>)).listPackingTemplates()).toEqual({ templates: [{ id: 1 }] });
+    expect(new AdminController(svc({ listAddons: vi.fn().mockReturnValue([{ id: 'mcp' }]) } as Partial<AdminService>)).listAddons()).toEqual({ addons: [{ id: 'mcp' }] });
+    expect(new AdminController(svc({ listMcpTokens: vi.fn().mockReturnValue([{ id: 1 }]) } as Partial<AdminService>)).listMcpTokens()).toEqual({ tokens: [{ id: 1 }] });
+    expect(new AdminController(svc({ listOAuthSessions: vi.fn().mockReturnValue([{ id: 1 }]) } as Partial<AdminService>)).listOAuthSessions()).toEqual({ sessions: [{ id: 1 }] });
+    expect(new AdminController(svc({ getAdminUserDefaults: vi.fn().mockReturnValue({ theme: 'dark' }) } as Partial<AdminService>)).getDefaultUserSettings()).toEqual({ theme: 'dark' });
+  });
+
+  it('setNotificationPrefs persists then returns the refreshed matrix', () => {
+    const setAdminPreferences = vi.fn();
+    const c = new AdminController(svc({ setAdminPreferences, getPreferencesMatrix: vi.fn().mockReturnValue({ rows: [1] }) } as Partial<AdminService>));
+    expect(c.setNotificationPrefs(user, { x: 1 })).toEqual({ rows: [1] });
+    expect(setAdminPreferences).toHaveBeenCalledWith(user.id, { x: 1 });
+  });
+
+  it('githubReleases falls back to default paging when no query is given', async () => {
+    const getGithubReleases = vi.fn().mockResolvedValue([{ tag: 'v1' }]);
+    const c = new AdminController(svc({ getGithubReleases } as Partial<AdminService>));
+    await expect(c.githubReleases()).resolves.toEqual([{ tag: 'v1' }]);
+    expect(getGithubReleases).toHaveBeenCalledWith('10', '1');
+    await c.githubReleases('5', '2');
+    expect(getGithubReleases).toHaveBeenLastCalledWith('5', '2');
+  });
+});
+
+describe('AdminController feature toggles + audit', () => {
+  it('bag-tracking updates and audits', () => {
+    const c = new AdminController(svc({ updateBagTracking: vi.fn().mockReturnValue({ enabled: true }) } as Partial<AdminService>));
+    expect(c.updateBagTracking(user, { enabled: true }, req)).toEqual({ enabled: true });
+    expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'admin.bag_tracking' }));
+  });
+
+  it('places-autocomplete: 400 on a non-boolean, else updates + audits', () => {
+    expect(thrown(() => new AdminController(svc()).updatePlacesAutocomplete(user, { enabled: 'yes' }, req))).toEqual({ status: 400, body: { error: 'enabled must be a boolean' } });
+    expect(new AdminController(svc({ updatePlacesAutocomplete: vi.fn().mockReturnValue({ enabled: false }) } as Partial<AdminService>)).updatePlacesAutocomplete(user, { enabled: false }, req)).toEqual({ enabled: false });
+  });
+
+  it('places-details: 400 on a non-boolean, else updates + audits', () => {
+    expect(thrown(() => new AdminController(svc()).updatePlacesDetails(user, { enabled: 1 }, req))).toEqual({ status: 400, body: { error: 'enabled must be a boolean' } });
+    expect(new AdminController(svc({ updatePlacesDetails: vi.fn().mockReturnValue({ enabled: true }) } as Partial<AdminService>)).updatePlacesDetails(user, { enabled: true }, req)).toEqual({ enabled: true });
+  });
+});
+
+describe('AdminController packing template sub-routes', () => {
+  it('update/delete templates, categories and items map errors + return success', () => {
+    expect(new AdminController(svc({ updatePackingTemplate: vi.fn().mockReturnValue({ id: 3 }) } as Partial<AdminService>)).updatePackingTemplate('3', {})).toEqual({ id: 3 });
+    expect(new AdminController(svc({ createTemplateCategory: vi.fn().mockReturnValue({ id: 4 }) } as Partial<AdminService>)).createTemplateCategory('3', { name: 'Tops' })).toEqual({ id: 4 });
+    expect(new AdminController(svc({ updateTemplateCategory: vi.fn().mockReturnValue({ id: 4 }) } as Partial<AdminService>)).updateTemplateCategory('3', '4', {})).toEqual({ id: 4 });
+    expect(new AdminController(svc({ deleteTemplateCategory: vi.fn().mockReturnValue({}) } as Partial<AdminService>)).deleteTemplateCategory('3', '4')).toEqual({ success: true });
+    expect(new AdminController(svc({ updateTemplateItem: vi.fn().mockReturnValue({ id: 7 }) } as Partial<AdminService>)).updateTemplateItem('7', {})).toEqual({ id: 7 });
+    expect(new AdminController(svc({ deleteTemplateItem: vi.fn().mockReturnValue({}) } as Partial<AdminService>)).deleteTemplateItem('7')).toEqual({ success: true });
+    expect(thrown(() => new AdminController(svc({ deleteTemplateItem: vi.fn().mockReturnValue({ error: 'gone', status: 404 }) } as Partial<AdminService>)).deleteTemplateItem('9'))).toEqual({ status: 404, body: { error: 'gone' } });
+  });
+});
+
+describe('AdminController tokens + sessions', () => {
+  it('mcp token + oauth session deletes return success and map errors', () => {
+    expect(new AdminController(svc({ deleteMcpToken: vi.fn().mockReturnValue({}) } as Partial<AdminService>)).deleteMcpToken('2')).toEqual({ success: true });
+    expect(thrown(() => new AdminController(svc({ deleteMcpToken: vi.fn().mockReturnValue({ error: 'no token', status: 404 }) } as Partial<AdminService>)).deleteMcpToken('9'))).toEqual({ status: 404, body: { error: 'no token' } });
+    expect(thrown(() => new AdminController(svc({ revokeOAuthSession: vi.fn().mockReturnValue({ error: 'no session', status: 404 }) } as Partial<AdminService>)).revokeOAuthSession(user, '9', req))).toEqual({ status: 404, body: { error: 'no session' } });
+  });
+});
+
+describe('AdminController default-user-settings error path', () => {
+  it('400 with an Error message when setAdminUserDefaults throws an Error', () => {
+    const c = new AdminController(svc({ setAdminUserDefaults: vi.fn(() => { throw new Error('bad default'); }) } as Partial<AdminService>));
+    expect(thrown(() => c.setDefaultUserSettings(user, { theme: 'x' }, req))).toEqual({ status: 400, body: { error: 'bad default' } });
+  });
+
+  it('400 stringifies a non-Error throw', () => {
+    const c = new AdminController(svc({ setAdminUserDefaults: vi.fn(() => { throw 'plain string'; }) } as Partial<AdminService>));
+    expect(thrown(() => c.setDefaultUserSettings(user, { theme: 'x' }, req))).toEqual({ status: 400, body: { error: 'plain string' } });
+  });
+
+  it('400 when the body is null', () => {
+    expect(thrown(() => new AdminController(svc()).setDefaultUserSettings(user, null, req))).toEqual({ status: 400, body: { error: 'Object body required' } });
+  });
+});
+
 describe('AdminController dev test-notification', () => {
   it('404 outside development', async () => {
     delete process.env.NODE_ENV;
@@ -131,5 +240,24 @@ describe('AdminController dev test-notification', () => {
     process.env.NODE_ENV = 'development';
     const res = await new AdminController(svc()).devTestNotification(user, { event: 'trip_reminder' });
     expect(res).toEqual({ success: true });
+  });
+
+  it('applies notification defaults when the body is empty', async () => {
+    process.env.NODE_ENV = 'development';
+    const res = await new AdminController(svc()).devTestNotification(user, {});
+    expect(res).toEqual({ success: true });
+    expect(sendNotification).toHaveBeenCalledWith(expect.objectContaining({ event: 'trip_reminder', scope: 'user', targetId: user.id }));
+  });
+
+  it('maps an Error from the notification service to 400', async () => {
+    process.env.NODE_ENV = 'development';
+    (sendNotification as unknown as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('send failed'));
+    await expect(new AdminController(svc()).devTestNotification(user, { event: 'trip_reminder' })).rejects.toMatchObject({ response: { error: 'send failed' } });
+  });
+
+  it('stringifies a non-Error notification failure to 400', async () => {
+    process.env.NODE_ENV = 'development';
+    (sendNotification as unknown as ReturnType<typeof vi.fn>).mockRejectedValueOnce('weird');
+    await expect(new AdminController(svc()).devTestNotification(user, { event: 'trip_reminder' })).rejects.toMatchObject({ response: { error: 'weird' } });
   });
 });

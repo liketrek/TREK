@@ -144,4 +144,54 @@ describe('IdempotencyInterceptor (parity with the legacy applyIdempotency middle
     res.json({ error: 'bad' });
     expect(run).not.toHaveBeenCalled();
   });
+
+  it('does not cache a body that exceeds the 256 KiB cap', async () => {
+    const run = vi.fn();
+    const db = makeDb({ get: vi.fn().mockReturnValue(undefined), run });
+    const res = makeRes();
+    const big = { blob: 'x'.repeat(300 * 1024) };
+    const h = handler(big);
+    await lastValueFrom(
+      new IdempotencyInterceptor(db).intercept(
+        ctx({ method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/categories', user: { id: 1 } }, res),
+        h,
+      ),
+    );
+    res.statusCode = 200;
+    res.json(big);
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it('swallows a storage failure so the response still succeeds', async () => {
+    const run = vi.fn(() => {
+      throw new Error('db is locked');
+    });
+    const db = makeDb({ get: vi.fn().mockReturnValue(undefined), run });
+    const res = makeRes();
+    const h = handler({ ok: true });
+    await lastValueFrom(
+      new IdempotencyInterceptor(db).intercept(
+        ctx({ method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/categories', user: { id: 1 } }, res),
+        h,
+      ),
+    );
+    res.statusCode = 201;
+    const returned = res.json({ ok: true });
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(returned).toEqual({ ok: true });
+  });
+
+  it('treats a PATCH as a mutating method', async () => {
+    const db = makeDb({ get: vi.fn().mockReturnValue(undefined), run: vi.fn() });
+    const res = makeRes();
+    const h = handler('done');
+    await lastValueFrom(
+      new IdempotencyInterceptor(db).intercept(
+        ctx({ method: 'PATCH', headers: { 'x-idempotency-key': 'k' }, path: '/api/categories/1', user: { id: 1 } }, res),
+        h,
+      ),
+    );
+    expect(db.get).toHaveBeenCalled();
+    expect(h.handle).toHaveBeenCalled();
+  });
 });

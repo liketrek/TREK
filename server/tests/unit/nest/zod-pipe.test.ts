@@ -22,4 +22,31 @@ describe('ZodValidationPipe', () => {
     expect((thrown as HttpException).getStatus()).toBe(400);
     expect((thrown as HttpException).getResponse()).toHaveProperty('error');
   });
+
+  it("labels a root-level (empty path) issue as 'body'", () => {
+    const rootPipe = new ZodValidationPipe(z.string());
+    let thrown: unknown;
+    try {
+      rootPipe.transform(123, meta);
+    } catch (e) {
+      thrown = e;
+    }
+    expect(thrown).toBeInstanceOf(HttpException);
+    const body = (thrown as HttpException).getResponse() as { error: string };
+    expect(body.error).toMatch(/^body: /);
+  });
+
+  it('joins multiple issues with a semicolon', () => {
+    const multiPipe = new ZodValidationPipe(z.object({ a: z.string(), b: z.number() }));
+    let thrown: unknown;
+    try {
+      multiPipe.transform({ a: 1, b: 'x' }, meta);
+    } catch (e) {
+      thrown = e;
+    }
+    const body = (thrown as HttpException).getResponse() as { error: string };
+    expect(body.error).toContain('a: ');
+    expect(body.error).toContain('b: ');
+    expect(body.error).toContain('; ');
+  });
 });

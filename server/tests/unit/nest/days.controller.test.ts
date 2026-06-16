@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { HttpException } from '@nestjs/common';
 import { DaysController } from '../../../src/nest/days/days.controller';
 import { DayNotesController } from '../../../src/nest/days/day-notes.controller';
+import { DayReorderError } from '../../../src/services/dayService';
 import type { DaysService } from '../../../src/nest/days/days.service';
 import type { DayNotesService } from '../../../src/nest/days/day-notes.service';
 import type { User } from '../../../src/types';
@@ -42,6 +43,63 @@ describe('DaysController (parity with the legacy /api/trips/:tripId/days route)'
     expect(new DaysController(daysSvc({ create, broadcast } as Partial<DaysService>)).create(user, '5', { date: '2026-07-01' }, 'sock')).toEqual({ day: { id: 9 } });
     expect(create).toHaveBeenCalledWith('5', '2026-07-01', undefined);
     expect(broadcast).toHaveBeenCalledWith('5', 'day:created', { day: { id: 9 } }, 'sock');
+  });
+
+  it('POST / 404 when the trip is not accessible', () => {
+    const svc = daysSvc({ verifyTripAccess: vi.fn().mockReturnValue(null) });
+    expect(thrown(() => new DaysController(svc).create(user, '5', {}))).toEqual({ status: 404, body: { error: 'Trip not found' } });
+  });
+
+  it('POST / with a position inserts + broadcasts day:reordered', () => {
+    const insert = vi.fn().mockReturnValue({ id: 12 }); const create = vi.fn(); const broadcast = vi.fn();
+    const svc = daysSvc({ insert, create, broadcast } as Partial<DaysService>);
+    expect(new DaysController(svc).create(user, '5', { position: 0 }, 'sock')).toEqual({ day: { id: 12 } });
+    expect(insert).toHaveBeenCalledWith('5', 0);
+    expect(create).not.toHaveBeenCalled();
+    expect(broadcast).toHaveBeenCalledWith('5', 'day:reordered', { day: { id: 12 } }, 'sock');
+  });
+
+  describe('PUT /reorder', () => {
+    it('404 when the trip is not accessible', () => {
+      const svc = daysSvc({ verifyTripAccess: vi.fn().mockReturnValue(undefined) });
+      expect(thrown(() => new DaysController(svc).reorder(user, '5', { orderedIds: [1, 2] }))).toEqual({ status: 404, body: { error: 'Trip not found' } });
+    });
+
+    it('403 without day_edit', () => {
+      const svc = daysSvc({ canEdit: vi.fn().mockReturnValue(false) });
+      expect(thrown(() => new DaysController(svc).reorder(user, '5', { orderedIds: [1, 2] }))).toEqual({ status: 403, body: { error: 'No permission' } });
+    });
+
+    it('400 when orderedIds is missing', () => {
+      expect(thrown(() => new DaysController(daysSvc()).reorder(user, '5', {}))).toEqual({ status: 400, body: { error: 'orderedIds must be an array' } });
+    });
+
+    it('400 when orderedIds is not an array', () => {
+      expect(thrown(() => new DaysController(daysSvc()).reorder(user, '5', { orderedIds: 'nope' as never }))).toEqual({ status: 400, body: { error: 'orderedIds must be an array' } });
+    });
+
+    it('maps a DayReorderError to 400 with its message', () => {
+      const reorder = vi.fn(() => { throw new DayReorderError('orderedIds must be a permutation of the trip day ids.'); });
+      const svc = daysSvc({ reorder } as Partial<DaysService>);
+      expect(thrown(() => new DaysController(svc).reorder(user, '5', { orderedIds: [9] }))).toEqual({
+        status: 400, body: { error: 'orderedIds must be a permutation of the trip day ids.' },
+      });
+    });
+
+    it('rethrows a non-DayReorderError unchanged', () => {
+      const boom = new Error('db is down');
+      const reorder = vi.fn(() => { throw boom; });
+      const svc = daysSvc({ reorder } as Partial<DaysService>);
+      expect(() => new DaysController(svc).reorder(user, '5', { orderedIds: [1, 2] })).toThrow(boom);
+    });
+
+    it('reorders and broadcasts day:reordered', () => {
+      const reorder = vi.fn(); const broadcast = vi.fn();
+      const svc = daysSvc({ reorder, broadcast } as Partial<DaysService>);
+      expect(new DaysController(svc).reorder(user, '5', { orderedIds: [2, 1] }, 'sock')).toEqual({ success: true });
+      expect(reorder).toHaveBeenCalledWith('5', [2, 1]);
+      expect(broadcast).toHaveBeenCalledWith('5', 'day:reordered', { orderedIds: [2, 1] }, 'sock');
+    });
   });
 
   it('PUT /:id 404 when the day is missing, else updates', () => {

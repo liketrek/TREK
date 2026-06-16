@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { HttpException } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import os from 'os';
+import path from 'path';
+import fs from 'fs';
 
 vi.mock('../../../src/services/demo', () => ({ isDemoEmail: vi.fn(() => false) }));
 
@@ -123,6 +126,19 @@ describe('FilesController (parity with the legacy /api/trips/:tripId/files route
     const s = fsvc({ getFileLinks: vi.fn().mockReturnValue([{ id: 1 }]) } as Partial<FilesService>);
     expect(new FilesController(s).links(user, '5', '9')).toEqual({ links: [{ id: 1 }] });
   });
+
+  it('the trash + link routes all reject without file_delete / file_edit', async () => {
+    const denied = () => fsvc({ can: vi.fn().mockReturnValue(false) });
+    await expect(new FilesController(denied()).permanent(user, '5', '9')).rejects.toMatchObject({ status: 403 });
+    expect(thrown(() => new FilesController(denied()).restore(user, '5', '9'))).toEqual({ status: 403, body: { error: 'No permission' } });
+    expect(thrown(() => new FilesController(denied()).link(user, '5', '9', {}))).toEqual({ status: 403, body: { error: 'No permission' } });
+    expect(thrown(() => new FilesController(denied()).unlink(user, '5', '9', '3'))).toEqual({ status: 403, body: { error: 'No permission' } });
+  });
+
+  it('GET /:id/links 404 without trip access', () => {
+    const s = fsvc({ verifyTripAccess: vi.fn().mockReturnValue(undefined) });
+    expect(thrown(() => new FilesController(s).links(user, '5', '9'))).toEqual({ status: 404, body: { error: 'Trip not found' } });
+  });
 });
 
 describe('FilesDownloadController', () => {
@@ -146,6 +162,62 @@ describe('FilesDownloadController', () => {
     expect(thrown(() => new FilesDownloadController(dsvc({ verifyTripAccess: vi.fn().mockReturnValue(undefined) })).download(req, res, '5', '9'))).toEqual({ status: 404, body: { error: 'Trip not found' } });
     expect(thrown(() => new FilesDownloadController(dsvc({ getFileById: vi.fn().mockReturnValue(undefined) })).download(req, res, '5', '9'))).toEqual({ status: 404, body: { error: 'File not found' } });
     expect(thrown(() => new FilesDownloadController(dsvc({ resolveFilePath: vi.fn().mockReturnValue({ resolved: '/x', safe: false }) })).download(req, res, '5', '9'))).toEqual({ status: 403, body: { error: 'Forbidden' } });
+  });
+
+  it('404 when the safe path is gone from disk', () => {
+    const missing = path.join(os.tmpdir(), `trek-no-such-${Date.now()}.pdf`);
+    const s = dsvc({ resolveFilePath: vi.fn().mockReturnValue({ resolved: missing, safe: true }) });
+    expect(thrown(() => new FilesDownloadController(s).download(req, res, '5', '9'))).toEqual({ status: 404, body: { error: 'File not found' } });
+  });
+
+  it('streams a regular file via sendFile with an explicit root', () => {
+    const real = path.join(os.tmpdir(), `trek-dl-${Date.now()}.pdf`);
+    fs.writeFileSync(real, 'x');
+    try {
+      const sendFile = vi.fn();
+      const localRes = { setHeader: vi.fn(), sendFile } as unknown as Response;
+      const s = dsvc({ resolveFilePath: vi.fn().mockReturnValue({ resolved: real, safe: true }) });
+      new FilesDownloadController(s).download(req, localRes, '5', '9');
+      expect(sendFile).toHaveBeenCalledWith(path.basename(real), { root: path.dirname(real) });
+      expect(localRes.setHeader).not.toHaveBeenCalled();
+    } finally {
+      fs.unlinkSync(real);
+    }
+  });
+
+  it('serves a .pkpass inline with the Wallet MIME type and the original name', () => {
+    const real = path.join(os.tmpdir(), `trek-pass-${Date.now()}.pkpass`);
+    fs.writeFileSync(real, 'x');
+    try {
+      const setHeader = vi.fn();
+      const localRes = { setHeader, sendFile: vi.fn() } as unknown as Response;
+      const s = dsvc({
+        getFileById: vi.fn().mockReturnValue({ filename: 'pass.pkpass', original_name: 'BoardingPass.pkpass' }),
+        resolveFilePath: vi.fn().mockReturnValue({ resolved: real, safe: true }),
+      });
+      new FilesDownloadController(s).download(req, localRes, '5', '9');
+      expect(setHeader).toHaveBeenCalledWith('Content-Type', 'application/vnd.apple.pkpass');
+      expect(setHeader).toHaveBeenCalledWith('Content-Disposition', 'inline; filename="BoardingPass.pkpass"');
+    } finally {
+      fs.unlinkSync(real);
+    }
+  });
+
+  it('falls back to the resolved basename when a .pkpass has no original name', () => {
+    const real = path.join(os.tmpdir(), `trek-pass-${Date.now()}.pkpass`);
+    fs.writeFileSync(real, 'x');
+    try {
+      const setHeader = vi.fn();
+      const localRes = { setHeader, sendFile: vi.fn() } as unknown as Response;
+      const s = dsvc({
+        getFileById: vi.fn().mockReturnValue({ filename: 'pass.pkpass', original_name: null }),
+        resolveFilePath: vi.fn().mockReturnValue({ resolved: real, safe: true }),
+      });
+      new FilesDownloadController(s).download(req, localRes, '5', '9');
+      expect(setHeader).toHaveBeenCalledWith('Content-Disposition', `inline; filename="${path.basename(real)}"`);
+    } finally {
+      fs.unlinkSync(real);
+    }
   });
 });
 

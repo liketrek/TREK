@@ -50,10 +50,65 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
       expect(search).toHaveBeenCalledWith(3, 'berlin', 'de', undefined);
     });
 
+    it('400 on a malformed locationBias (non-finite lat/lng)', async () => {
+      const search = vi.fn();
+      const bad = { lat: NaN, lng: 2 };
+      expect(await thrown(() => makeController({ search }).search(user, 'x', 'de', bad))).toEqual({
+        status: 400, body: { error: 'Invalid locationBias: lat and lng must be finite numbers' },
+      });
+      expect(search).not.toHaveBeenCalled();
+    });
+
+    it('forwards a valid locationBias to the service', async () => {
+      const search = vi.fn().mockResolvedValue({ places: [], source: 'osm' });
+      const bias = { lat: 1, lng: 2, radius: 5000 };
+      await makeController({ search }).search(user, 'x', 'de', bias);
+      expect(search).toHaveBeenCalledWith(3, 'x', 'de', bias);
+    });
+
     it('maps a service error to its status + message', async () => {
       const search = vi.fn().mockRejectedValue(withError(429, 'Rate limited'));
       expect(await thrown(() => makeController({ search }).search(user, 'x'))).toEqual({
         status: 429, body: { error: 'Rate limited' },
+      });
+    });
+
+    it('defaults a non-Error rejection to 500 + the fallback message', async () => {
+      const search = vi.fn().mockRejectedValue('boom');
+      expect(await thrown(() => makeController({ search }).search(user, 'x'))).toEqual({
+        status: 500, body: { error: 'Search error' },
+      });
+    });
+  });
+
+  describe('GET /pois', () => {
+    it('400 when category is missing', async () => {
+      const pois = vi.fn();
+      expect(await thrown(() => makeController({ pois }).pois(undefined, '1', '2', '3', '4'))).toEqual({
+        status: 400, body: { error: 'A category is required' },
+      });
+      expect(pois).not.toHaveBeenCalled();
+    });
+
+    it('400 when the bbox has a non-finite value', async () => {
+      const pois = vi.fn();
+      expect(await thrown(() => makeController({ pois }).pois('cafe', 'x', '2', '3', '4'))).toEqual({
+        status: 400, body: { error: 'A valid bbox (south, west, north, east) is required' },
+      });
+      expect(pois).not.toHaveBeenCalled();
+    });
+
+    it('delegates a valid request with a parsed numeric bbox', async () => {
+      const pois = vi.fn().mockResolvedValue({ places: [] });
+      const res = await makeController({ pois }).pois('cafe', '1', '2', '3', '4');
+      expect(res).toEqual({ places: [] });
+      expect(pois).toHaveBeenCalledWith('cafe', { south: 1, west: 2, north: 3, east: 4 });
+    });
+
+    it('maps a service error, defaulting to 500', async () => {
+      const pois = vi.fn().mockRejectedValue(new Error('Overpass down'));
+      expect(await thrown(() => makeController({ pois }).pois('cafe', '1', '2', '3', '4'))).toEqual({
+        status: 500, body: { error: 'Overpass down' },
       });
     });
   });
@@ -87,11 +142,27 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
       });
     });
 
+    it('400 when locationBias is missing the high corner', async () => {
+      const c = makeController({ autocompleteDisabled: () => false });
+      const bad = { low: { lat: 1, lng: 2 } } as never;
+      expect(await thrown(() => c.autocomplete(user, 'be', undefined, bad))).toEqual({
+        status: 400, body: { error: 'Invalid locationBias: low and high must have finite lat and lng' },
+      });
+    });
+
     it('delegates a valid request', async () => {
       const autocomplete = vi.fn().mockResolvedValue({ suggestions: [], source: 'osm' });
       const bias = { low: { lat: 1, lng: 2 }, high: { lat: 3, lng: 4 } };
       await makeController({ autocompleteDisabled: () => false, autocomplete }).autocomplete(user, 'be', 'en', bias);
       expect(autocomplete).toHaveBeenCalledWith(3, 'be', 'en', bias);
+    });
+
+    it('maps a service error', async () => {
+      const autocomplete = vi.fn().mockRejectedValue(withError(503, 'Upstream down'));
+      const c = makeController({ autocompleteDisabled: () => false, autocomplete });
+      expect(await thrown(() => c.autocomplete(user, 'be'))).toEqual({
+        status: 503, body: { error: 'Upstream down' },
+      });
     });
   });
 
@@ -138,11 +209,29 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
       expect(photo).toHaveBeenCalledWith(3, 'coords:1,2', 1, 2, 'Spot');
     });
 
-    it('maps a service error', async () => {
+    it('maps a 4xx service error', async () => {
       const photo = vi.fn().mockRejectedValue(withError(404, 'No photo available'));
       expect(await thrown(() => makeController({ photosDisabled: () => false, photo }).placePhoto(user, 'p1', '1', '2'))).toEqual({
         status: 404, body: { error: 'No photo available' },
       });
+    });
+
+    it('logs and maps a 5xx service error', async () => {
+      const photo = vi.fn().mockRejectedValue(withError(502, 'Upstream failed'));
+      expect(await thrown(() => makeController({ photosDisabled: () => false, photo }).placePhoto(user, 'p1', '1', '2'))).toEqual({
+        status: 502, body: { error: 'Upstream failed' },
+      });
+      expect(console.error).toHaveBeenCalledWith('Place photo error:', expect.any(Error));
+    });
+
+    it('defaults a status-less error to 500 and parses NaN coords', async () => {
+      const photo = vi.fn().mockRejectedValue(new Error('Error fetching photo'));
+      expect(await thrown(() => makeController({ photosDisabled: () => false, photo }).placePhoto(user, 'p1'))).toEqual({
+        status: 500, body: { error: 'Error fetching photo' },
+      });
+      const [, , lat, lng] = photo.mock.calls[0];
+      expect(Number.isNaN(lat)).toBe(true);
+      expect(Number.isNaN(lng)).toBe(true);
     });
   });
 
@@ -190,6 +279,18 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
       expect(res.status).toHaveBeenCalledWith(404);
       expect(res.json).toHaveBeenCalledWith({ error: 'Photo not cached' });
     });
+
+    it('does not re-send a 404 when the stream errors after headers were flushed', () => {
+      let onError: () => void = () => {};
+      const stream = { on: vi.fn((ev: string, cb: () => void) => { if (ev === 'error') onError = cb; return stream; }), pipe: vi.fn() };
+      createReadStream.mockReturnValue(stream);
+      const res = makeRes();
+      (res as { headersSent: boolean }).headersSent = true;
+      makeController({ photoBytesPath: () => '/cache/p1.jpg' }).placePhotoBytes('p1', res);
+      onError();
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.json).not.toHaveBeenCalled();
+    });
   });
 
   describe('GET /reverse', () => {
@@ -220,11 +321,39 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
       expect(await makeController({ resolveUrl }).resolveUrl('https://maps.app.goo.gl/x')).toEqual({ lat: 1, lng: 2, name: null, address: null });
     });
 
+    it('400 when url is not a string', async () => {
+      expect(await thrown(() => makeController({}).resolveUrl(42 as unknown as string))).toEqual({
+        status: 400, body: { error: 'URL is required' },
+      });
+    });
+
     it('maps a service error, defaulting to 400', async () => {
       const resolveUrl = vi.fn().mockRejectedValue(new Error('Failed to resolve URL'));
       expect(await thrown(() => makeController({ resolveUrl }).resolveUrl('bad'))).toEqual({
         status: 400, body: { error: 'Failed to resolve URL' },
       });
+    });
+
+    it('honours an explicit status on the thrown error', async () => {
+      const resolveUrl = vi.fn().mockRejectedValue(withError(422, 'Unsupported link'));
+      expect(await thrown(() => makeController({ resolveUrl }).resolveUrl('bad'))).toEqual({
+        status: 422, body: { error: 'Unsupported link' },
+      });
+    });
+
+    it('falls back to the default message when a non-Error is thrown', async () => {
+      const resolveUrl = vi.fn().mockRejectedValue('nope');
+      expect(await thrown(() => makeController({ resolveUrl }).resolveUrl('bad'))).toEqual({
+        status: 400, body: { error: 'Failed to resolve URL' },
+      });
+    });
+  });
+
+  describe('GET /reverse', () => {
+    it('forwards lang through to the service', async () => {
+      const reverse = vi.fn().mockResolvedValue({ name: null, address: null });
+      await makeController({ reverse }).reverse('1', '2', 'fr');
+      expect(reverse).toHaveBeenCalledWith('1', '2', 'fr');
     });
   });
 });

@@ -51,6 +51,18 @@ describe('RateLimitService', () => {
     expect(s.check('mfa', 'ip', 2, 1000, 20)).toBe(true);     // different bucket
     expect(s.check('login', 'ip', 2, 1000, 2000)).toBe(true); // window elapsed -> reset
   });
+
+  it('reset clears a single named bucket, and reset() clears all of them', () => {
+    const s = rl();
+    s.check('login', 'ip', 1, 1000, 0); // login bucket now at its cap
+    s.check('mfa', 'ip', 1, 1000, 0);   // mfa bucket now at its cap
+    expect(s.check('login', 'ip', 1, 1000, 0)).toBe(false);
+    s.reset('login'); // only the login bucket
+    expect(s.check('login', 'ip', 1, 1000, 0)).toBe(true);
+    expect(s.check('mfa', 'ip', 1, 1000, 0)).toBe(false); // mfa untouched
+    s.reset(); // everything
+    expect(s.check('mfa', 'ip', 1, 1000, 0)).toBe(true);
+  });
 });
 
 describe('AuthPublicController', () => {
@@ -102,6 +114,71 @@ describe('AuthPublicController', () => {
     expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'user.password_reset_fail' }));
     expect(new AuthPublicController(asvc({ resetPassword: vi.fn().mockReturnValue({ mfa_required: true }) } as Partial<AuthService>), rl()).resetPassword({}, req)).toEqual({ mfa_required: true });
     expect(new AuthPublicController(asvc({ resetPassword: vi.fn().mockReturnValue({ userId: 1 }) } as Partial<AuthService>), rl()).resetPassword({}, req)).toEqual({ success: true });
+  });
+
+  it('app-config forwards the optional user (present and absent)', () => {
+    const getAppConfig = vi.fn().mockReturnValue({ version: '3' });
+    const c = new AuthPublicController(asvc({ getAppConfig } as Partial<AuthService>), rl());
+    expect(c.appConfig({ user } as unknown as Request)).toEqual({ version: '3' });
+    expect(getAppConfig).toHaveBeenLastCalledWith(user);
+    expect(c.appConfig({} as Request)).toEqual({ version: '3' });
+    expect(getAppConfig).toHaveBeenLastCalledWith(undefined);
+  });
+
+  it('invite maps a service error', () => {
+    const c = new AuthPublicController(asvc({ validateInviteToken: vi.fn().mockReturnValue({ error: 'Expired', status: 410 }) } as Partial<AuthService>), rl());
+    expect(thrown(() => c.invite('tok', req))).toEqual({ status: 410, body: { error: 'Expired' } });
+  });
+
+  it('login takes the mfa-required branch and never sets a cookie', async () => {
+    const setAuthCookie = vi.fn();
+    const c = new AuthPublicController(asvc({ loginUser: vi.fn().mockReturnValue({ mfa_required: true, mfa_token: 'mt', auditAction: 'user.login_mfa' }), setAuthCookie } as Partial<AuthService>), rl());
+    expect(await c.login({}, req, res)).toEqual({ mfa_required: true, mfa_token: 'mt' });
+    expect(setAuthCookie).not.toHaveBeenCalled();
+    expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'user.login_mfa' }));
+  }, 10000);
+
+  it('forgot-password: non-issued reason and a delivery failure both still return ok', async () => {
+    // Non-issued (unknown email / throttled): audits the reason, no email sent.
+    const sendNever = vi.fn();
+    const skip = new AuthPublicController(asvc({ requestPasswordReset: vi.fn().mockReturnValue({ reason: 'not_found', userId: null }), sendPasswordResetEmail: sendNever } as Partial<AuthService>), rl());
+    expect(await skip.forgotPassword({ email: 'x@y.z' }, req)).toEqual({ ok: true });
+    expect(sendNever).not.toHaveBeenCalled();
+    expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'user.password_reset_request', details: { reason: 'not_found' } }));
+    // Issued but the mailer throws: swallowed, audited as failed, still ok.
+    const boom = vi.fn().mockRejectedValue(new Error('smtp'));
+    const fail = new AuthPublicController(asvc({ requestPasswordReset: vi.fn().mockReturnValue({ reason: 'issued', tokenForDelivery: 'rt', userEmail: 'a@b.c', userId: 1 }), sendPasswordResetEmail: boom } as Partial<AuthService>), rl());
+    expect(await fail.forgotPassword({ email: 'a@b.c' }, req)).toEqual({ ok: true });
+    expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ details: { delivered: 'failed' } }));
+  }, 10000);
+
+  it('forgot-password ignores a non-string email body', async () => {
+    const requestPasswordReset = vi.fn().mockReturnValue({ reason: 'not_found', userId: null });
+    const c = new AuthPublicController(asvc({ requestPasswordReset } as Partial<AuthService>), rl());
+    expect(await c.forgotPassword({ email: 42 } as { email?: unknown }, req)).toEqual({ ok: true });
+    expect(requestPasswordReset).toHaveBeenCalledWith('', expect.any(String));
+  }, 10000);
+
+  it('reset-password 429 once the dedicated reset bucket is exhausted', () => {
+    const s = rl();
+    const now = Date.now();
+    for (let i = 0; i < 5; i++) s.check('reset', '9.9.9.9', 5, 15 * 60 * 1000, now);
+    const c = new AuthPublicController(asvc({ resetPassword: vi.fn() } as Partial<AuthService>), s);
+    expect(thrown(() => c.resetPassword({}, req))).toEqual({ status: 429, body: { error: 'Too many attempts. Please try again later.' } });
+  });
+
+  it('mfa/verify-login maps a service error', () => {
+    const c = new AuthPublicController(asvc({ verifyMfaLogin: vi.fn().mockReturnValue({ error: 'Bad code', status: 401 }) } as Partial<AuthService>), rl());
+    expect(thrown(() => c.verifyMfaLogin({}, req, res))).toEqual({ status: 401, body: { error: 'Bad code' } });
+  });
+
+  it('demo-login + register + invite throw 429 when the login bucket is exhausted', () => {
+    const s = rl();
+    const now = Date.now();
+    for (let i = 0; i < 10; i++) s.check('login', '9.9.9.9', 10, 15 * 60 * 1000, now);
+    const c = new AuthPublicController(asvc({ registerUser: vi.fn(), validateInviteToken: vi.fn() } as Partial<AuthService>), s);
+    expect(thrown(() => c.register({}, req, res))).toEqual({ status: 429, body: { error: 'Too many attempts. Please try again later.' } });
+    expect(thrown(() => c.invite('t', req))).toEqual({ status: 429, body: { error: 'Too many attempts. Please try again later.' } });
   });
 
   it('mfa/verify-login sets cookie + audits; logout clears cookie', () => {
@@ -166,5 +243,89 @@ describe('AuthController (authenticated)', () => {
     for (let i = 0; i < 5; i++) s.check('login', '9.9.9.9', 5, 15 * 60 * 1000, now);
     const c = new AuthController(asvc({ changePassword: vi.fn() } as Partial<AuthService>), s);
     expect(thrown(() => c.changePassword(user, {}, req))).toEqual({ status: 429, body: { error: 'Too many attempts. Please try again later.' } });
+  });
+
+  it('change-password refreshes this device cookie when the service returns a token', () => {
+    const setAuthCookie = vi.fn();
+    const c = new AuthController(asvc({ changePassword: vi.fn().mockReturnValue({ token: 'tk2' }), setAuthCookie } as Partial<AuthService>), rl());
+    expect(c.changePassword(user, {}, req, res)).toEqual({ success: true });
+    expect(setAuthCookie).toHaveBeenCalledWith(res, 'tk2', req);
+  });
+
+  it('delete-account maps error, else audits and succeeds', () => {
+    expect(thrown(() => new AuthController(asvc({ deleteAccount: vi.fn().mockReturnValue({ error: 'Last admin', status: 403 }) } as Partial<AuthService>), rl()).deleteAccount(user, req))).toEqual({ status: 403, body: { error: 'Last admin' } });
+    expect(new AuthController(asvc({ deleteAccount: vi.fn().mockReturnValue({}) } as Partial<AuthService>), rl()).deleteAccount(user, req)).toEqual({ success: true });
+    expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'user.account_delete' }));
+  });
+
+  it('maps-key + api-keys pass straight through to the service', () => {
+    const updateMapsKey = vi.fn().mockReturnValue({ success: true });
+    expect(new AuthController(asvc({ updateMapsKey } as Partial<AuthService>), rl()).mapsKey(user, { maps_api_key: 'k' })).toEqual({ success: true });
+    expect(updateMapsKey).toHaveBeenCalledWith(1, 'k');
+    const updateApiKeys = vi.fn().mockReturnValue({ ok: 1 });
+    expect(new AuthController(asvc({ updateApiKeys } as Partial<AuthService>), rl()).apiKeys(user, { a: 1 })).toEqual({ ok: 1 });
+  });
+
+  it('update-settings + get-settings map errors, else return their payloads', () => {
+    expect(thrown(() => new AuthController(asvc({ updateSettings: vi.fn().mockReturnValue({ error: 'Bad', status: 400 }) } as Partial<AuthService>), rl()).updateSettings(user, {}))).toEqual({ status: 400, body: { error: 'Bad' } });
+    expect(new AuthController(asvc({ updateSettings: vi.fn().mockReturnValue({ success: true, user: { id: 1 } }) } as Partial<AuthService>), rl()).updateSettings(user, {})).toEqual({ success: true, user: { id: 1 } });
+    expect(thrown(() => new AuthController(asvc({ getSettings: vi.fn().mockReturnValue({ error: 'Nope', status: 404 }) } as Partial<AuthService>), rl()).getSettings(user))).toEqual({ status: 404, body: { error: 'Nope' } });
+    expect(new AuthController(asvc({ getSettings: vi.fn().mockReturnValue({ settings: { theme: 'dark' } }) } as Partial<AuthService>), rl()).getSettings(user)).toEqual({ settings: { theme: 'dark' } });
+  });
+
+  it('delete-avatar + users + travel-stats delegate to the service', async () => {
+    const deleteAvatar = vi.fn().mockResolvedValue({ removed: true });
+    expect(await new AuthController(asvc({ deleteAvatar } as Partial<AuthService>), rl()).deleteAvatar(user)).toEqual({ removed: true });
+    const listUsers = vi.fn().mockReturnValue([{ id: 1 }]);
+    expect(new AuthController(asvc({ listUsers } as Partial<AuthService>), rl()).users(user)).toEqual({ users: [{ id: 1 }] });
+    expect(listUsers).toHaveBeenCalledWith(1);
+    const getTravelStats = vi.fn().mockReturnValue({ countries: 3 });
+    expect(new AuthController(asvc({ getTravelStats } as Partial<AuthService>), rl()).travelStats(user)).toEqual({ countries: 3 });
+  });
+
+  it('validate-keys maps error, else returns the maps/weather payload', async () => {
+    expect(await thrownAsync(() => new AuthController(asvc({ validateKeys: vi.fn().mockResolvedValue({ error: 'fail', status: 502 }) } as Partial<AuthService>), rl()).validateKeys(user))).toEqual({ status: 502, body: { error: 'fail' } });
+    const ok = new AuthController(asvc({ validateKeys: vi.fn().mockResolvedValue({ maps: true, weather: false, maps_details: { ok: 1 } }) } as Partial<AuthService>), rl());
+    expect(await ok.validateKeys(user)).toEqual({ maps: true, weather: false, maps_details: { ok: 1 } });
+  });
+
+  it('app-settings get maps error, else returns data; put maps error, else audits', () => {
+    expect(thrown(() => new AuthController(asvc({ getAppSettings: vi.fn().mockReturnValue({ error: 'denied', status: 403 }) } as Partial<AuthService>), rl()).getAppSettings(user))).toEqual({ status: 403, body: { error: 'denied' } });
+    expect(new AuthController(asvc({ getAppSettings: vi.fn().mockReturnValue({ data: { x: 1 } }) } as Partial<AuthService>), rl()).getAppSettings(user)).toEqual({ x: 1 });
+    expect(thrown(() => new AuthController(asvc({ updateAppSettings: vi.fn().mockReturnValue({ error: 'bad', status: 400 }) } as Partial<AuthService>), rl()).updateAppSettings(user, {}, req))).toEqual({ status: 400, body: { error: 'bad' } });
+    expect(new AuthController(asvc({ updateAppSettings: vi.fn().mockReturnValue({ auditSummary: 's', auditDebugDetails: 'd' }) } as Partial<AuthService>), rl()).updateAppSettings(user, {}, req)).toEqual({ success: true });
+    expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'settings.app_update' }));
+  });
+
+  it('mfa/setup maps a service error before ever awaiting the QR promise', async () => {
+    const c = new AuthController(asvc({ setupMfa: vi.fn().mockReturnValue({ error: 'already on', status: 409 }) } as Partial<AuthService>), rl());
+    expect(await thrownAsync(() => c.mfaSetup(user))).toEqual({ status: 409, body: { error: 'already on' } });
+  });
+
+  it('mfa/enable + mfa/disable map errors', () => {
+    expect(thrown(() => new AuthController(asvc({ enableMfa: vi.fn().mockReturnValue({ error: 'Invalid code', status: 400 }) } as Partial<AuthService>), rl()).mfaEnable(user, { code: 'x' }, req))).toEqual({ status: 400, body: { error: 'Invalid code' } });
+    expect(thrown(() => new AuthController(asvc({ disableMfa: vi.fn().mockReturnValue({ error: 'Wrong', status: 401 }) } as Partial<AuthService>), rl()).mfaDisable(user, {}, req))).toEqual({ status: 401, body: { error: 'Wrong' } });
+    const ok = new AuthController(asvc({ disableMfa: vi.fn().mockReturnValue({ mfa_enabled: false }) } as Partial<AuthService>), rl());
+    expect(ok.mfaDisable(user, {}, req)).toEqual({ success: true, mfa_enabled: false });
+    expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'user.mfa_disable' }));
+  });
+
+  it('mcp-tokens list + create error + delete error/success', () => {
+    expect(new AuthController(asvc({ listMcpTokens: vi.fn().mockReturnValue([{ id: 't' }]) } as Partial<AuthService>), rl()).listMcpTokens(user)).toEqual({ tokens: [{ id: 't' }] });
+    expect(thrown(() => new AuthController(asvc({ createMcpToken: vi.fn().mockReturnValue({ error: 'Name taken', status: 409 }) } as Partial<AuthService>), rl()).createMcpToken(user, { name: 'x' }, req))).toEqual({ status: 409, body: { error: 'Name taken' } });
+    expect(thrown(() => new AuthController(asvc({ deleteMcpToken: vi.fn().mockReturnValue({ error: 'Not found', status: 404 }) } as Partial<AuthService>), rl()).deleteMcpToken(user, 'tid'))).toEqual({ status: 404, body: { error: 'Not found' } });
+    expect(new AuthController(asvc({ deleteMcpToken: vi.fn().mockReturnValue({}) } as Partial<AuthService>), rl()).deleteMcpToken(user, 'tid')).toEqual({ success: true });
+  });
+
+  it('ws-token maps error, else returns the token', () => {
+    expect(thrown(() => new AuthController(asvc({ createWsToken: vi.fn().mockReturnValue({ error: 'down', status: 503 }) } as Partial<AuthService>), rl()).wsToken(user))).toEqual({ status: 503, body: { error: 'down' } });
+    expect(new AuthController(asvc({ createWsToken: vi.fn().mockReturnValue({ token: 'ws' }) } as Partial<AuthService>), rl()).wsToken(user)).toEqual({ token: 'ws' });
+  });
+
+  it('avatar saves when not in demo mode (env present but email is not a demo email)', async () => {
+    process.env.DEMO_MODE = 'true';
+    vi.mocked(isDemoEmail).mockReturnValue(false);
+    const saveAvatar = vi.fn().mockResolvedValue({ avatar: '/b.png' });
+    expect(await new AuthController(asvc({ saveAvatar } as Partial<AuthService>), rl()).avatar(user, { filename: 'b.png' } as Express.Multer.File)).toEqual({ avatar: '/b.png' });
   });
 });

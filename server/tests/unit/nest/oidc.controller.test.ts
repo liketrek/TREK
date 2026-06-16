@@ -71,6 +71,59 @@ describe('OidcController /login', () => {
     expect(res.redirectedTo).toContain('code_challenge=cc');
     expect(res.redirectedTo).toContain('code_challenge_method=S256');
   });
+
+  it('400 when a non-HTTPS issuer is used in production', async () => {
+    process.env.NODE_ENV = 'production';
+    const res = makeRes();
+    await new OidcController(svc({ getOidcConfig: vi.fn().mockReturnValue({ issuer: 'http://idp', clientId: 'c', clientSecret: 's', discoveryUrl: null }) })).login(req, res);
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toEqual({ error: 'OIDC issuer must use HTTPS in production' });
+  });
+
+  it('allows a non-HTTPS issuer outside production', async () => {
+    process.env.NODE_ENV = 'development';
+    const res = makeRes();
+    await new OidcController(svc({ getOidcConfig: vi.fn().mockReturnValue({ issuer: 'http://idp', clientId: 'c', clientSecret: 's', discoveryUrl: null }) })).login(req, res);
+    expect(res.redirect).toHaveBeenCalled();
+  });
+
+  it('500 when APP_URL is not configured', async () => {
+    const res = makeRes();
+    await new OidcController(svc({ getAppUrl: vi.fn().mockReturnValue('') })).login(req, res);
+    expect(res.statusCode).toBe(500);
+    expect(res.body).toEqual({ error: 'APP_URL is not configured. OIDC cannot be used.' });
+  });
+
+  it('passes the invite token from the query into createState', async () => {
+    const res = makeRes();
+    const createState = vi.fn().mockReturnValue({ state: 'st', codeChallenge: 'cc' });
+    const reqInvite = { query: { invite: 'tok123' }, headers: {} } as unknown as Request;
+    await new OidcController(svc({ createState })).login(reqInvite, res);
+    expect(createState).toHaveBeenCalledWith('https://app/api/auth/oidc/callback', 'tok123');
+  });
+
+  it('trims a trailing slash off APP_URL when building the redirect uri', async () => {
+    const res = makeRes();
+    const createState = vi.fn().mockReturnValue({ state: 'st', codeChallenge: 'cc' });
+    await new OidcController(svc({ getAppUrl: vi.fn().mockReturnValue('https://app///'), createState })).login(req, res);
+    expect(createState).toHaveBeenCalledWith('https://app/api/auth/oidc/callback', undefined);
+  });
+
+  it('500 when discovery throws', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const res = makeRes();
+    await new OidcController(svc({ discover: vi.fn().mockRejectedValue(new Error('boom')) })).login(req, res);
+    expect(res.statusCode).toBe(500);
+    expect(res.body).toEqual({ error: 'OIDC login failed' });
+  });
+
+  it('500 logs a non-Error rejection without crashing', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const res = makeRes();
+    await new OidcController(svc({ discover: vi.fn().mockRejectedValue('plain string') })).login(req, res);
+    expect(res.statusCode).toBe(500);
+    expect(spy).toHaveBeenCalledWith('[OIDC] Login error:', 'plain string');
+  });
 });
 
 describe('OidcController /callback', () => {
@@ -130,6 +183,145 @@ describe('OidcController /callback', () => {
     }));
     await c.callback('c', 's', undefined, reqCb('s'), res);
     expect(res.redirectedTo).toBe('https://app/login?oidc_error=subject_mismatch');
+  });
+
+  it('redirects invalid_state when there is no bound state cookie at all', async () => {
+    const res = makeRes();
+    const reqNoCookie = { query: {}, headers: {}, cookies: {} } as unknown as Request;
+    await new OidcController(svc()).callback('c', 's', undefined, reqNoCookie, res);
+    expect(res.redirectedTo).toBe('https://app/login?oidc_error=invalid_state');
+  });
+
+  it('tolerates a request with no cookies object', async () => {
+    const res = makeRes();
+    const reqNoCookies = { query: {}, headers: {} } as unknown as Request;
+    await new OidcController(svc()).callback('c', 's', undefined, reqNoCookies, res);
+    expect(res.redirectedTo).toBe('https://app/login?oidc_error=invalid_state');
+  });
+
+  it('redirects not_configured when the config disappears mid-flow', async () => {
+    const res = makeRes();
+    await new OidcController(svc({ getOidcConfig: vi.fn().mockReturnValue(null) })).callback('c', 's', undefined, reqCb('s'), res);
+    expect(res.redirectedTo).toBe('https://app/login?oidc_error=not_configured');
+  });
+
+  it('redirects issuer_not_https when a non-HTTPS issuer is used in production', async () => {
+    process.env.NODE_ENV = 'production';
+    const res = makeRes();
+    await new OidcController(svc({ getOidcConfig: vi.fn().mockReturnValue({ issuer: 'http://idp', clientId: 'c', clientSecret: 's', discoveryUrl: null }) })).callback('c', 's', undefined, reqCb('s'), res);
+    expect(res.redirectedTo).toBe('https://app/login?oidc_error=issuer_not_https');
+  });
+
+  it('redirects token_failed when the token exchange is not ok', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const res = makeRes();
+    await new OidcController(svc({ exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: false, _status: 401 }) })).callback('c', 's', undefined, reqCb('s'), res);
+    expect(res.redirectedTo).toBe('https://app/login?oidc_error=token_failed');
+  });
+
+  it('redirects token_failed when the access token is missing', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const res = makeRes();
+    await new OidcController(svc({ exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true }) })).callback('c', 's', undefined, reqCb('s'), res);
+    expect(res.redirectedTo).toBe('https://app/login?oidc_error=token_failed');
+  });
+
+  it('redirects id_token_invalid when verification fails with a reason', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const res = makeRes();
+    await new OidcController(svc({
+      exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
+      verifyIdToken: vi.fn().mockResolvedValue({ ok: false, error: 'bad_signature' }),
+    })).callback('c', 's', undefined, reqCb('s'), res);
+    expect(res.redirectedTo).toBe('https://app/login?oidc_error=id_token_invalid');
+  });
+
+  it('redirects id_token_invalid when verification fails without an error field', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const res = makeRes();
+    await new OidcController(svc({
+      exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
+      verifyIdToken: vi.fn().mockResolvedValue({ ok: false }),
+    })).callback('c', 's', undefined, reqCb('s'), res);
+    expect(res.redirectedTo).toBe('https://app/login?oidc_error=id_token_invalid');
+  });
+
+  it('falls back to config.issuer when the discovery doc has no issuer', async () => {
+    const verifyIdToken = vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } });
+    const res = makeRes();
+    await new OidcController(svc({
+      discover: vi.fn().mockResolvedValue({ authorization_endpoint: 'https://idp/auth', userinfo_endpoint: 'https://idp/ui' }),
+      exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
+      verifyIdToken,
+      getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'u1' }),
+      findOrCreateUser: vi.fn().mockReturnValue({ user: { id: 1 } }),
+    })).callback('c', 's', undefined, reqCb('s'), res);
+    // doc.issuer absent → (doc.issuer ?? '') is '' → falls back to config.issuer
+    expect(verifyIdToken).toHaveBeenCalledWith('it', expect.anything(), 'c', 'https://idp');
+    expect(res.redirectedTo).toBe('https://app/login?oidc_code=ac');
+  });
+
+  it('strips trailing slashes off the discovery doc issuer before verifying', async () => {
+    const verifyIdToken = vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } });
+    const res = makeRes();
+    await new OidcController(svc({
+      discover: vi.fn().mockResolvedValue({ authorization_endpoint: 'https://idp/auth', userinfo_endpoint: 'https://idp/ui', issuer: 'https://idp/' }),
+      exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
+      verifyIdToken,
+      getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'u1' }),
+      findOrCreateUser: vi.fn().mockReturnValue({ user: { id: 1 } }),
+    })).callback('c', 's', undefined, reqCb('s'), res);
+    expect(verifyIdToken).toHaveBeenCalledWith('it', expect.anything(), 'c', 'https://idp');
+  });
+
+  it('redirects no_email when the userinfo has no email', async () => {
+    const res = makeRes();
+    await new OidcController(svc({
+      exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
+      verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
+      getUserInfo: vi.fn().mockResolvedValue({ sub: 'u1' }),
+    })).callback('c', 's', undefined, reqCb('s'), res);
+    expect(res.redirectedTo).toBe('https://app/login?oidc_error=no_email');
+  });
+
+  it('accepts when userinfo omits sub (no cross-check to run)', async () => {
+    const res = makeRes();
+    await new OidcController(svc({
+      exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
+      verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
+      getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c' }),
+      findOrCreateUser: vi.fn().mockReturnValue({ user: { id: 1 } }),
+    })).callback('c', 's', undefined, reqCb('s'), res);
+    expect(res.redirectedTo).toBe('https://app/login?oidc_code=ac');
+  });
+
+  it('accepts when the id_token claims have a non-string sub (cross-check skipped)', async () => {
+    const res = makeRes();
+    await new OidcController(svc({
+      exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
+      verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 12345 } }),
+      getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'something-else' }),
+      findOrCreateUser: vi.fn().mockReturnValue({ user: { id: 1 } }),
+    })).callback('c', 's', undefined, reqCb('s'), res);
+    expect(res.redirectedTo).toBe('https://app/login?oidc_code=ac');
+  });
+
+  it('surfaces a findOrCreateUser provisioning error', async () => {
+    const res = makeRes();
+    await new OidcController(svc({
+      exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
+      verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
+      getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'u1' }),
+      findOrCreateUser: vi.fn().mockReturnValue({ error: 'registration_disabled' }),
+    })).callback('c', 's', undefined, reqCb('s'), res);
+    expect(res.redirectedTo).toBe('https://app/login?oidc_error=registration_disabled');
+  });
+
+  it('redirects server_error when the flow throws', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const res = makeRes();
+    await new OidcController(svc({ discover: vi.fn().mockRejectedValue(new Error('network down')) })).callback('c', 's', undefined, reqCb('s'), res);
+    expect(res.redirectedTo).toBe('https://app/login?oidc_error=server_error');
   });
 });
 

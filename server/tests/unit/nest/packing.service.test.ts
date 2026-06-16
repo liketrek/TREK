@@ -16,11 +16,14 @@ const { pk } = vi.hoisted(() => ({
   pk: {
     verifyTripAccess: vi.fn(), listItems: vi.fn(), createItem: vi.fn(), updateItem: vi.fn(), deleteItem: vi.fn(),
     bulkImport: vi.fn(), listBags: vi.fn(), createBag: vi.fn(), updateBag: vi.fn(), deleteBag: vi.fn(),
-    applyTemplate: vi.fn(), saveAsTemplate: vi.fn(), setBagMembers: vi.fn(), getCategoryAssignees: vi.fn(),
+    listTemplates: vi.fn(), applyTemplate: vi.fn(), saveAsTemplate: vi.fn(), setBagMembers: vi.fn(), getCategoryAssignees: vi.fn(),
     updateCategoryAssignees: vi.fn(), reorderItems: vi.fn(),
   },
 }));
 vi.mock('../../../src/services/packingService', () => pk);
+
+const { send } = vi.hoisted(() => ({ send: vi.fn(() => Promise.resolve()) }));
+vi.mock('../../../src/services/notificationService', () => ({ send }));
 
 import { PackingService } from '../../../src/nest/packing/packing.service';
 
@@ -55,6 +58,7 @@ describe('PackingService (wrapper delegation + helpers)', () => {
     s.updateBag('5', '2', { name: 'B' } as never, ['name']); expect(pk.updateBag).toHaveBeenCalledWith('5', '2', { name: 'B' }, ['name']);
     s.deleteBag('5', '2'); expect(pk.deleteBag).toHaveBeenCalledWith('5', '2');
     s.setBagMembers('5', '2', [1, 2]); expect(pk.setBagMembers).toHaveBeenCalledWith('5', '2', [1, 2]);
+    s.listTemplates(); expect(pk.listTemplates).toHaveBeenCalled();
     s.applyTemplate('5', 't1'); expect(pk.applyTemplate).toHaveBeenCalledWith('5', 't1');
     s.saveAsTemplate('5', 1, 'Tpl'); expect(pk.saveAsTemplate).toHaveBeenCalledWith('5', 1, 'Tpl');
     s.getCategoryAssignees('5'); expect(pk.getCategoryAssignees).toHaveBeenCalledWith('5');
@@ -70,6 +74,32 @@ describe('PackingService (wrapper delegation + helpers)', () => {
 
     it('fires the notification when users are tagged (fire-and-forget, no throw)', () => {
       expect(() => svc().notifyTagged('5', { id: 1, email: 'a@b.c' } as never, 'Clothes', [2, 3])).not.toThrow();
+    });
+
+    it('queries the trip title and dispatches the notification with the resolved title', async () => {
+      dbMock._stmt.get.mockReturnValue({ title: 'Iceland 2026' });
+      svc().notifyTagged('5', { id: 1, email: 'a@b.c' } as never, 'Clothes', [2, 3]);
+      // Flush the dynamic import().then microtask chain.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(dbMock.prepare).toHaveBeenCalledWith('SELECT title FROM trips WHERE id = ?');
+      expect(send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: 'packing_tagged',
+          actorId: 1,
+          scope: 'trip',
+          targetId: 5,
+          params: expect.objectContaining({ trip: 'Iceland 2026', actor: 'a@b.c', category: 'Clothes', tripId: '5' }),
+        }),
+      );
+    });
+
+    it('falls back to "Untitled" when the trip row is missing (?? / default branch)', async () => {
+      dbMock._stmt.get.mockReturnValue(undefined);
+      svc().notifyTagged('5', { id: 1, email: 'a@b.c' } as never, 'Clothes', [2]);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(send).toHaveBeenCalledWith(
+        expect.objectContaining({ params: expect.objectContaining({ trip: 'Untitled' }) }),
+      );
     });
   });
 });
