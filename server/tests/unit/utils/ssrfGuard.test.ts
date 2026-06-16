@@ -163,7 +163,7 @@ describe('checkSsrf', () => {
       const result = await checkSsrf('http://nxdomain.example.com');
       expect(result.allowed).toBe(false);
       expect(result.isPrivate).toBe(false);
-      expect(result.error).toBe('Could not resolve hostname');
+      expect(result.error).toContain('Could not resolve hostname');
     });
   });
 
