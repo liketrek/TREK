@@ -162,5 +162,6 @@ const dashboard: TranslationStrings = {
   'dashboard.aria.swapCurrencies': '通貨を入れ替え',
   'dashboard.aria.addTimezone': 'タイムゾーンを追加',
   'dashboard.aria.removeTimezone': '{city}を削除',
+  'dashboard.dayCountRequired': '日数は必須です',
 };
 export default dashboard;

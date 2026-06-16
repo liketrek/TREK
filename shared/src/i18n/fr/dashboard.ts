@@ -167,5 +167,6 @@ const dashboard: TranslationStrings = {
   'dashboard.aria.swapCurrencies': 'Inverser les devises',
   'dashboard.aria.addTimezone': 'Ajouter un fuseau horaire',
   'dashboard.aria.removeTimezone': 'Supprimer {city}',
+  'dashboard.dayCountRequired': 'Le nombre de jours est requis',
 };
 export default dashboard;

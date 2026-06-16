@@ -288,4 +288,26 @@ describe('TripFormModal', () => {
     await user.click(submitBtn.closest('button')!);
     await waitFor(() => expect(screen.getByText('Saving...')).toBeInTheDocument());
   });
+
+  it('FE-COMP-TRIPFORM-029: clearing the day count leaves the field empty (no snap to 1)', () => {
+    render(<TripFormModal {...defaultProps} trip={null} />);
+    const dayInput = document.querySelector('input[max="365"]') as HTMLInputElement;
+    expect(dayInput).toBeInTheDocument();
+    expect(dayInput.value).toBe('7');
+    fireEvent.change(dayInput, { target: { value: '' } });
+    expect(dayInput.value).toBe('');
+  });
+
+  it('FE-COMP-TRIPFORM-030: empty day count blocks submit with an error', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+    render(<TripFormModal {...defaultProps} trip={null} onSave={onSave} />);
+    await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'No-date Trip');
+    const dayInput = document.querySelector('input[max="365"]') as HTMLInputElement;
+    fireEvent.change(dayInput, { target: { value: '' } });
+    const submitBtn = screen.getAllByText('Create New Trip').find(el => el.closest('button'))!;
+    await user.click(submitBtn.closest('button')!);
+    await screen.findByText('Number of days is required');
+    expect(onSave).not.toHaveBeenCalled();
+  });
 });

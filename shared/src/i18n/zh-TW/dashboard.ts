@@ -161,5 +161,6 @@ const dashboard: TranslationStrings = {
   'dashboard.aria.swapCurrencies': '交換貨幣',
   'dashboard.aria.addTimezone': '新增時區',
   'dashboard.aria.removeTimezone': '移除 {city}',
+  'dashboard.dayCountRequired': '天數為必填項',
 };
 export default dashboard;

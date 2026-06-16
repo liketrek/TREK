@@ -40,7 +40,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     start_date: '',
     end_date: '',
     reminder_days: 0 as number,
-    day_count: 7,
+    day_count: 7 as number | '',
   })
   const [customReminder, setCustomReminder] = useState(false)
   const [error, setError] = useState('')
@@ -100,6 +100,12 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     if (formData.start_date && formData.end_date && new Date(formData.end_date) < new Date(formData.start_date)) {
       setError(t('dashboard.endDateError')); return
     }
+    if (!formData.start_date && !formData.end_date) {
+      const dc = Number(formData.day_count)
+      if (formData.day_count === '' || !Number.isInteger(dc) || dc < 1 || dc > 365) {
+        setError(t('dashboard.dayCountRequired')); return
+      }
+    }
     setIsLoading(true)
     try {
       const result = await onSave({
@@ -108,7 +114,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         start_date: formData.start_date || null,
         end_date: formData.end_date || null,
         reminder_days: formData.reminder_days,
-        ...(!formData.start_date && !formData.end_date ? { day_count: formData.day_count } : {}),
+        ...(!formData.start_date && !formData.end_date ? { day_count: Number(formData.day_count) } : {}),
       })
       const createdTrip = result ? result.trip : undefined
       // Add selected members for newly created trips
@@ -320,7 +326,12 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
               {t('dashboard.dayCount')}
             </label>
             <input type="number" min={1} max={365} value={formData.day_count}
-              onChange={e => update('day_count', Math.max(1, Math.min(365, Number(e.target.value) || 1)))}
+              onChange={e => {
+                const raw = e.target.value
+                if (raw === '') { update('day_count', ''); return }
+                const n = Math.floor(Number(raw))
+                if (Number.isFinite(n)) update('day_count', Math.min(365, Math.max(1, n)))
+              }}
               className={inputCls} />
             <p className="text-xs text-slate-400 mt-1.5">{t('dashboard.dayCountHint')}</p>
           </div>
