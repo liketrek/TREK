@@ -2,6 +2,7 @@ import React from 'react'
 import { SUPPORTED_LANGUAGES, useTranslation } from '../i18n'
 import { Plane, Eye, EyeOff, Mail, Lock, MapPin, Calendar, Package, User, Globe, Zap, Users, Wallet, Map, CheckSquare, BookMarked, FolderOpen, Route, Shield, KeyRound, ChevronDown, Fingerprint } from 'lucide-react'
 import { useLogin } from './login/useLogin'
+import ToggleSwitch from '../components/Settings/ToggleSwitch'
 
 export default function LoginPage(): React.ReactElement {
   const { t, language } = useTranslation()
@@ -573,15 +574,15 @@ export default function LoginPage(): React.ReactElement {
                 </div>
                 {mode === 'login' && (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 8 }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', color: '#374151', fontSize: 12.5, fontWeight: 500 }}>
-                      <input
-                        type="checkbox"
-                        checked={rememberMe}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRememberMe(e.target.checked)}
-                        style={{ width: 15, height: 15, accentColor: '#111827', cursor: 'pointer', flexShrink: 0 }}
-                      />
-                      {t('login.rememberMe')}
-                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <ToggleSwitch on={rememberMe} onToggle={() => setRememberMe(!rememberMe)} />
+                      <span
+                        onClick={() => setRememberMe(!rememberMe)}
+                        style={{ cursor: 'pointer', color: '#374151', fontSize: 12.5, fontWeight: 500, userSelect: 'none' }}
+                      >
+                        {t('login.rememberMe')}
+                      </span>
+                    </div>
                     <button type="button" onClick={() => navigate('/forgot-password')} style={{
                       background: 'none', border: 'none', cursor: 'pointer', padding: 0,
                       color: '#6b7280', fontSize: 12.5, fontWeight: 500, fontFamily: 'inherit',
