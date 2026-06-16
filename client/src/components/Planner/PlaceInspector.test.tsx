@@ -647,5 +647,43 @@ describe('PlaceInspector', () => {
     expect(screen.queryByText('Participants')).toBeNull();
   });
 
+  // ── Scroll / overflow (issue #1195) ──────────────────────────────────────
+
+  it('FE-PLANNER-INSPECTOR-046: content area is a bounded flex scroll region', () => {
+    const longText = 'Lorem ipsum dolor sit amet. '.repeat(200);
+    const p = buildPlace({ id: 200, description: longText, notes: longText } as any);
+    render(<PlaceInspector {...defaultProps} place={p} />);
+    const scroll = screen.getByTestId('inspector-scroll') as HTMLElement;
+    expect(scroll.style.overflowY).toBe('auto');
+    expect(scroll.style.minHeight).toBe('0px');
+    // flex must allow the region to shrink/grow within the capped card
+    expect(scroll.style.flex).not.toBe('');
+    expect(scroll.style.flex).not.toBe('0 0 auto');
+  });
+
+  it('FE-PLANNER-INSPECTOR-047: long unbroken description wraps instead of clipping horizontally', () => {
+    const longWord = 'https://example.com/' + 'a'.repeat(300);
+    const p = buildPlace({ id: 201, description: longWord } as any);
+    const { container } = render(<PlaceInspector {...defaultProps} place={p} />);
+    const descDiv = container.querySelector('.collab-note-md') as HTMLElement;
+    expect(descDiv).toBeTruthy();
+    expect(descDiv.style.overflowWrap).toBe('anywhere');
+    expect(descDiv.style.wordBreak).toBe('break-word');
+  });
+
+  it('FE-PLANNER-INSPECTOR-048: description/notes do not shrink so the card scrolls instead of clipping', () => {
+    const longText = 'Lorem ipsum dolor sit amet. '.repeat(200);
+    const p = buildPlace({ id: 202, description: longText, notes: longText } as any);
+    const { container } = render(<PlaceInspector {...defaultProps} place={p} />);
+    const notes = Array.from(container.querySelectorAll('.collab-note-md')) as HTMLElement[];
+    // Both description and notes containers must keep their natural height
+    // (flex-shrink: 0) — otherwise they compress inside the flex column and
+    // overflow:hidden clips the text with no scroll (issue #1195).
+    expect(notes.length).toBe(2);
+    for (const el of notes) {
+      expect(el.style.flexShrink).toBe('0');
+    }
+  });
+
 });
 

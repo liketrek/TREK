@@ -217,7 +217,7 @@ export default function PlaceInspector({
           locale={locale} timeFormat={timeFormat} onClose={onClose} />
 
         {/* Content — scrollable */}
-        <div style={{ overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div data-testid="inspector-scroll" style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
 
           {/* Info-Chips — hidden on mobile, shown on desktop */}
           <div className="hidden sm:flex" style={{ flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
@@ -253,14 +253,14 @@ export default function PlaceInspector({
 
           {/* Description / Summary */}
           {(place.description || googleDetails?.summary) && (
-            <div className="collab-note-md bg-surface-hover text-content-muted" style={{ borderRadius: 10, overflow: 'hidden', fontSize: 12, lineHeight: '1.5', padding: '8px 12px' }}>
+            <div className="collab-note-md bg-surface-hover text-content-muted" style={{ borderRadius: 10, overflow: 'hidden', flexShrink: 0, fontSize: 12, lineHeight: '1.5', padding: '8px 12px', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
               <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{place.description || googleDetails?.summary || ''}</Markdown>
             </div>
           )}
 
           {/* Notes */}
           {place.notes && (
-            <div className="collab-note-md bg-surface-hover text-content-muted" style={{ borderRadius: 10, overflow: 'hidden', fontSize: 12, lineHeight: '1.5', padding: '8px 12px', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+            <div className="collab-note-md bg-surface-hover text-content-muted" style={{ borderRadius: 10, overflow: 'hidden', flexShrink: 0, fontSize: 12, lineHeight: '1.5', padding: '8px 12px', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
               <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{place.notes}</Markdown>
             </div>
           )}
@@ -279,7 +279,7 @@ export default function PlaceInspector({
         </div>
 
         {/* Footer actions */}
-        <div className="border-t border-edge-faint" style={{ padding: '10px 16px', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="border-t border-edge-faint" style={{ padding: '10px 16px', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', flexShrink: 0 }}>
           {selectedDayId && (
             assignmentInDay ? (
               <ActionButton onClick={() => onRemoveAssignment(selectedDayId, assignmentInDay.id)} variant="ghost" icon={<Minus size={13} />}
@@ -497,7 +497,7 @@ function ParticipantsBox({ tripMembers, participantIds, allJoined, onSetParticip
 function PlaceInspectorHeader({ openNow, place, category, t, editingName, nameInputRef, nameValue, setNameValue,
   commitNameEdit, handleNameKeyDown, startNameEdit, onUpdatePlace, locale, timeFormat, onClose }: any) {
   return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: openNow !== null ? 26 : 14, padding: openNow !== null ? '18px 16px 14px 28px' : '18px 16px 14px', borderBottom: '1px solid var(--border-faint)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: openNow !== null ? 26 : 14, padding: openNow !== null ? '18px 16px 14px 28px' : '18px 16px 14px', borderBottom: '1px solid var(--border-faint)', flexShrink: 0 }}>
           {/* Avatar with open/closed ring + tag */}
           <div style={{ position: 'relative', flexShrink: 0, marginBottom: openNow !== null ? 8 : 0 }}>
             <div style={{
