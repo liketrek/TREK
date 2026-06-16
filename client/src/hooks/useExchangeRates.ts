@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 /**
  * Live FX rates for the Costs panel, used to convert every amount into the user's
- * display currency. Fetches exchangerate-api.com (no key, already CSP-allowlisted
+ * display currency. Fetches api.frankfurter.dev (no key, already CSP-allowlisted
  * for the dashboard widget) for the given base and caches per base in memory +
  * localStorage for a few hours. rates[X] = units of X per 1 base, so an amount in
  * currency C converts to base as `amount / rates[C]`.
@@ -33,14 +33,19 @@ export function useExchangeRates(base: string) {
     if (cached) setRates(cached.rates)
     if (cached && Date.now() - cached.ts < TTL_MS) return
     let cancelled = false
-    fetch(`https://api.exchangerate-api.com/v4/latest/${encodeURIComponent(upper)}`)
+    fetch(`https://api.frankfurter.dev/v2/rates?base=${encodeURIComponent(upper)}`)
       .then(r => r.json())
-      .then((d: { rates?: Record<string, number> }) => {
-        if (cancelled || !d?.rates) return
-        const entry = { rates: d.rates, ts: Date.now() }
+      .then((d: Array<{ quote?: string; rate?: number }>) => {
+        if (cancelled || !Array.isArray(d)) return
+        // Frankfurter omits the base's own self-rate, so seed it with `base = 1`.
+        const rates: Record<string, number> = { [upper]: 1 }
+        for (const r of d) {
+          if (r && typeof r.quote === 'string' && typeof r.rate === 'number') rates[r.quote] = r.rate
+        }
+        const entry = { rates, ts: Date.now() }
         mem.set(upper, entry)
         try { localStorage.setItem('trek_fx_' + upper, JSON.stringify(entry)) } catch { /* ignore */ }
-        setRates(d.rates)
+        setRates(rates)
       })
       .catch(() => { /* offline → keep cached/identity */ })
     return () => { cancelled = true }

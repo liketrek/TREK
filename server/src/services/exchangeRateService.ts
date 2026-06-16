@@ -1,7 +1,7 @@
 /**
  * Live exchange rates for the Costs/Budget money conversion.
  *
- * Fetches from exchangerate-api.com (no key, already CSP-allowlisted for the
+ * Fetches from api.frankfurter.dev (no key, already CSP-allowlisted for the
  * dashboard widget) and caches per base currency in-memory for a few hours so a
  * settlement request never hammers the upstream. Rates are "units of X per 1
  * base", so an amount in currency C converts to base as `amount / rates[C]`.
@@ -17,10 +17,17 @@ const inflight = new Map<string, Promise<Record<string, number> | null>>();
 
 async function fetchRates(base: string): Promise<Record<string, number> | null> {
   try {
-    const res = await fetch(`https://api.exchangerate-api.com/v4/latest/${encodeURIComponent(base)}`);
+    const res = await fetch(`https://api.frankfurter.dev/v2/rates?base=${encodeURIComponent(base)}`);
     if (!res.ok) return null;
-    const data = (await res.json()) as { rates?: Record<string, number> };
-    return data.rates && typeof data.rates === 'object' ? data.rates : null;
+    // Frankfurter returns an array of { date, base, quote, rate } and omits the
+    // base's own self-rate, so seed the map with `base = 1` then index by quote.
+    const data = (await res.json()) as Array<{ quote?: string; rate?: number }>;
+    if (!Array.isArray(data)) return null;
+    const rates: Record<string, number> = { [base.toUpperCase()]: 1 };
+    for (const r of data) {
+      if (r && typeof r.quote === 'string' && typeof r.rate === 'number') rates[r.quote] = r.rate;
+    }
+    return Object.keys(rates).length > 1 ? rates : null;
   } catch {
     return null;
   }
