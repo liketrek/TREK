@@ -96,7 +96,7 @@ export function applyGlobalMiddleware(
           "https://en.wikipedia.org", "https://commons.wikimedia.org",
           "https://*.basemaps.cartocdn.com", "https://*.tile.openstreetmap.org",
           "https://unpkg.com", "https://open-meteo.com", "https://api.open-meteo.com",
-          "https://geocoding-api.open-meteo.com", "https://api.exchangerate-api.com",
+          "https://geocoding-api.open-meteo.com", "https://api.frankfurter.dev",
           "https://router.project-osrm.org/route/v1/", "https://routing.openstreetmap.de/",
           "https://api.mapbox.com", "https://*.tiles.mapbox.com", "https://events.mapbox.com"
         ],

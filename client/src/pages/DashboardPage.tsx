@@ -461,9 +461,15 @@ function CurrencyTool(): React.ReactElement {
   const [rates, setRates] = useState<Record<string, number> | null>(null)
 
   const fetchRate = React.useCallback(() => {
-    fetch(`https://api.exchangerate-api.com/v4/latest/${from}`)
+    fetch(`https://api.frankfurter.dev/v2/rates?base=${from}`)
       .then(r => r.json())
-      .then(d => setRates(d.rates ?? null))
+      .then((d: Array<{ quote: string; rate: number }>) => {
+        if (!Array.isArray(d)) { setRates(null); return }
+        // Frankfurter omits the base's own self-rate; seed it so `from` stays selectable.
+        const map: Record<string, number> = { [from]: 1 }
+        for (const r of d) map[r.quote] = r.rate
+        setRates(map)
+      })
       .catch(() => setRates(null))
   }, [from])
 
