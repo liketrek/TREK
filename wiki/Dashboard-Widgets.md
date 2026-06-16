@@ -31,7 +31,7 @@ The currency converter lets you quickly convert an amount between two currencies
 
 You can also click the swap arrow to reverse source and target.
 
-**Exchange rates** are fetched from [exchangerate-api.com](https://www.exchangerate-api.com) using the `https://api.exchangerate-api.com/v4/latest/{from}` endpoint. Rates are refreshed each time you change a currency or click the refresh icon.
+**Exchange rates** are fetched from [Frankfurter](https://frankfurter.dev) using the `https://api.frankfurter.dev/v2/rates?base={from}&quotes={to}` endpoint. Rates are refreshed each time you change a currency or click the refresh icon. Frankfurter is an open-source service that aggregates data from central banks and supports historical lookups, which TREK will use for multi-currency budgets in a follow-up change.
 
 **Supported currencies:** 162 currencies are available in the selector, including all major fiat currencies (USD, EUR, GBP, JPY, etc.) and many minor ones.
 

@@ -31,7 +31,7 @@ export default function CurrencyWidget() {
     if (from === to) { setRate(1); return }
     setLoading(true)
     try {
-      const resp = await fetch(`https://api.exchangerate-api.com/v4/latest/${from}`)
+      const resp = await fetch(`https://api.frankfurter.dev/v2/rates?base=${from}&quotes=${to}`)
       const data = await resp.json()
       setRate(data.rates?.[to] || null)
     } catch { setRate(null) }

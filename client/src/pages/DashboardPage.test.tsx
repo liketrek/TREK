@@ -20,8 +20,8 @@ beforeEach(() => {
   } as any);
   // Intercept CurrencyWidget's external fetch so it resolves before teardown
   server.use(
-    http.get('https://api.exchangerate-api.com/v4/latest/:currency', () => {
-      return HttpResponse.json({ rates: { USD: 1.08, EUR: 1, CHF: 0.97 } });
+    http.get('https://api.frankfurter.dev/v2/rates', () => {
+      return HttpResponse.json({ base: 'EUR', date: '2026-01-15', rates: { USD: 1.08, EUR: 1, CHF: 0.97 } });
     }),
   );
 });
