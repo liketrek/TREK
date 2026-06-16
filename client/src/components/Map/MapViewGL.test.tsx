@@ -31,21 +31,29 @@ const glMap = vi.hoisted(() => ({
 vi.mock('mapbox-gl', () => ({
   default: {
     accessToken: '',
-    Map: vi.fn(() => glMap),
-    Marker: vi.fn(() => ({
-      setLngLat: vi.fn().mockReturnThis(),
-      addTo: vi.fn().mockReturnThis(),
-      remove: vi.fn(),
-      getElement: vi.fn(() => document.createElement('div')),
-    })),
-    LngLatBounds: vi.fn(() => ({ extend: vi.fn().mockReturnThis() })),
+    Map: vi.fn(function () {
+      return glMap
+    }),
+    Marker: vi.fn(function () {
+      return {
+        setLngLat: vi.fn().mockReturnThis(),
+        addTo: vi.fn().mockReturnThis(),
+        remove: vi.fn(),
+        getElement: vi.fn(() => document.createElement('div')),
+      }
+    }),
+    LngLatBounds: vi.fn(function () {
+      return { extend: vi.fn().mockReturnThis() }
+    }),
     NavigationControl: vi.fn(),
-    Popup: vi.fn(() => ({
-      setLngLat: vi.fn().mockReturnThis(),
-      setHTML: vi.fn().mockReturnThis(),
-      addTo: vi.fn().mockReturnThis(),
-      remove: vi.fn(),
-    })),
+    Popup: vi.fn(function () {
+      return {
+        setLngLat: vi.fn().mockReturnThis(),
+        setHTML: vi.fn().mockReturnThis(),
+        addTo: vi.fn().mockReturnThis(),
+        remove: vi.fn(),
+      }
+    }),
   },
 }))
 vi.mock('mapbox-gl/dist/mapbox-gl.css', () => ({}))
@@ -63,7 +71,9 @@ vi.mock('./locationMarkerMapbox', () => ({
 }))
 
 vi.mock('./reservationsMapbox', () => ({
-  ReservationMapboxOverlay: vi.fn().mockImplementation(() => ({ update: vi.fn() })),
+  ReservationMapboxOverlay: vi.fn(function () {
+    return { update: vi.fn() }
+  }),
 }))
 
 vi.mock('../../hooks/useGeolocation', () => ({

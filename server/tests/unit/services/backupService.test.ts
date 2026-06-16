@@ -769,7 +769,9 @@ describe('BACKUP-042 restoreFromZip — integrity check fails', () => {
       }),
       close: vi.fn(),
     };
-    DatabaseMock.mockReturnValue(fakeDbInstance);
+    DatabaseMock.mockImplementation(function () {
+      return fakeDbInstance;
+    });
 
     const result = await restoreFromZip('/data/tmp/upload.zip');
 
@@ -803,7 +805,9 @@ describe('BACKUP-043 restoreFromZip — missing required table', () => {
         }),
       close: vi.fn(),
     };
-    DatabaseMock.mockReturnValue(fakeDbInstance);
+    DatabaseMock.mockImplementation(function () {
+      return fakeDbInstance;
+    });
 
     const result = await restoreFromZip('/data/tmp/upload.zip');
 
@@ -827,7 +831,7 @@ describe('BACKUP-044 restoreFromZip — Database constructor throws (invalid SQL
     );
     fsMock.rmSync.mockReturnValue(undefined);
 
-    DatabaseMock.mockImplementation(() => {
+    DatabaseMock.mockImplementation(function () {
       throw new Error('file is not a database');
     });
 
@@ -862,7 +866,9 @@ describe('BACKUP-045 restoreFromZip — full success path (no uploads)', () => {
         }),
       close: vi.fn(),
     };
-    DatabaseMock.mockReturnValue(fakeDbInstance);
+    DatabaseMock.mockImplementation(function () {
+      return fakeDbInstance;
+    });
     return fakeDbInstance;
   }
 
@@ -997,7 +1003,9 @@ describe('BACKUP-046 restoreFromZip — with uploads directory', () => {
         }),
       close: vi.fn(),
     };
-    DatabaseMock.mockReturnValue(fakeDbInstance);
+    DatabaseMock.mockImplementation(function () {
+      return fakeDbInstance;
+    });
 
     fsMock.existsSync.mockImplementation((p: string) => {
       // travel.db present, extractedUploads present
@@ -1052,7 +1060,9 @@ describe('BACKUP-046 restoreFromZip — with uploads directory', () => {
         }),
       close: vi.fn(),
     };
-    DatabaseMock.mockReturnValue(fakeDbInstance);
+    DatabaseMock.mockImplementation(function () {
+      return fakeDbInstance;
+    });
 
     fsMock.existsSync.mockImplementation((p: string) => {
       if (String(p).endsWith('travel.db')) return true;
