@@ -27,7 +27,7 @@ import {
 import { formatDate, formatTime, dayTotalCost, splitReservationDateTime } from '../../utils/formatters'
 import { useDayNotes } from '../../hooks/useDayNotes'
 import { RES_ICONS, getNoteIcon } from './DayPlanSidebar.constants'
-import { RouteConnector } from './DayPlanSidebarRouteConnector'
+import { RouteConnector, HotelRouteConnector } from './DayPlanSidebarRouteConnector'
 import { MobileAddPlaceButton } from './DayPlanSidebarMobileAddPlaceButton'
 import { DayPlanSidebarToolbar } from './DayPlanSidebarToolbar'
 import { DayPlanSidebarNoteModal } from './DayPlanSidebarNoteModal'
@@ -152,6 +152,8 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   const [isCalculating, setIsCalculating] = useState(false)
   const [routeInfo, setRouteInfo] = useState(null)
   const [routeLegs, setRouteLegs] = useState<Record<number, RouteSegment>>({})
+  const [hotelLegs, setHotelLegs] = useState<{ top?: { seg: RouteSegment; name: string }; bottom?: { seg: RouteSegment; name: string } }>({})
+  const optimizeFromAccommodation = useSettingsStore(s => s.settings.optimize_from_accommodation)
   const legsAbortRef = useRef<AbortController | null>(null)
   const [draggingId, setDraggingId] = useState(null)
   const [lockedIds, setLockedIds] = useState(new Set())
@@ -379,7 +381,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   // the start place's assignment id. Shares RouteCalculator's cache with the map.
   useEffect(() => {
     if (legsAbortRef.current) legsAbortRef.current.abort()
-    if (!selectedDayId || !routeShown) { setRouteLegs({}); return }
+    if (!selectedDayId || !routeShown) { setRouteLegs({}); setHotelLegs({}); return }
     const merged = mergedItemsMap[selectedDayId] || []
     const epLoc = (r: any, role: 'from' | 'to'): { lat: number; lng: number } | null => {
       const e = (r.endpoints || []).find((x: any) => x.role === role)
@@ -408,7 +410,33 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
       }
     }
     if (cur.length >= 2) runs.push(cur)
-    if (runs.length === 0) { setRouteLegs({}); return }
+
+    // Hotel bookend legs: the drive from the day's accommodation to the first
+    // located place (morning) and from the last place back to it (evening). Only
+    // when the "optimize from accommodation" setting is on and the day has a hotel,
+    // mirroring the range logic the optimizer itself uses (getAccommodationAnchors).
+    const day = days.find(d => d.id === selectedDayId)
+    const dayAccs = day && optimizeFromAccommodation !== false
+      ? accommodations.filter(a => a.place_lat != null && a.place_lng != null && isDayInAccommodationRange(day, a.start_day_id, a.end_day_id, days))
+      : []
+    const checkOut = day ? dayAccs.find(a => a.end_day_id === day.id) : undefined
+    const checkIn = day ? dayAccs.find(a => a.start_day_id === day.id) : undefined
+    const transfer = !!(checkOut && checkIn && checkOut !== checkIn)
+    const startHotel = transfer ? checkOut : dayAccs[0]
+    const endHotel = transfer ? checkIn : dayAccs[0]
+    const hotelName = (a: Accommodation) => (a as any).place_name || (a as any).reservation_title || ''
+    const placePts: { lat: number; lng: number }[] = []
+    for (const it of merged) {
+      if (it.type === 'place' && it.data.place?.lat && it.data.place?.lng) {
+        placePts.push({ lat: it.data.place.lat, lng: it.data.place.lng })
+      }
+    }
+    const firstPlace = placePts[0]
+    const lastPlace = placePts[placePts.length - 1]
+    const wantTop = !!(startHotel && firstPlace)
+    const wantBottom = !!(endHotel && lastPlace)
+
+    if (runs.length === 0 && !wantTop && !wantBottom) { setRouteLegs({}); setHotelLegs({}); return }
 
     const controller = new AbortController()
     legsAbortRef.current = controller
@@ -422,9 +450,27 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
           if (err instanceof Error && err.name === 'AbortError') return
         }
       }
-      if (!controller.signal.aborted) setRouteLegs(map)
+
+      // One extra cached OSRM call per bookend; shares RouteCalculator's cache.
+      const legBetween = async (a: { lat: number; lng: number }, b: { lat: number; lng: number }): Promise<RouteSegment | undefined> => {
+        try {
+          const r = await calculateRouteWithLegs([a, b], { signal: controller.signal, profile: routeProfile })
+          return r.legs[0]
+        } catch { return undefined }
+      }
+      const hotel: { top?: { seg: RouteSegment; name: string }; bottom?: { seg: RouteSegment; name: string } } = {}
+      if (wantTop) {
+        const seg = await legBetween({ lat: startHotel!.place_lat as number, lng: startHotel!.place_lng as number }, { lat: firstPlace.lat, lng: firstPlace.lng })
+        if (seg) hotel.top = { seg, name: hotelName(startHotel!) }
+      }
+      if (wantBottom) {
+        const seg = await legBetween({ lat: lastPlace.lat, lng: lastPlace.lng }, { lat: endHotel!.place_lat as number, lng: endHotel!.place_lng as number })
+        if (seg) hotel.bottom = { seg, name: hotelName(endHotel!) }
+      }
+
+      if (!controller.signal.aborted) { setRouteLegs(map); setHotelLegs(hotel) }
     })()
-  }, [selectedDayId, routeShown, routeProfile, mergedItemsMap])
+  }, [selectedDayId, routeShown, routeProfile, mergedItemsMap, accommodations, days, optimizeFromAccommodation])
 
   const openAddNote = (dayId, e) => {
     e?.stopPropagation()
@@ -938,6 +984,8 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     setRouteInfo,
     routeLegs,
     setRouteLegs,
+    hotelLegs,
+    setHotelLegs,
     legsAbortRef,
     draggingId,
     setDraggingId,
@@ -1085,6 +1133,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
     setRouteInfo,
     routeLegs,
     setRouteLegs,
+    hotelLegs,
+    setHotelLegs,
     legsAbortRef,
     draggingId,
     setDraggingId,
@@ -1427,6 +1477,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                       handleMergedDrop(day.id, 'note', Number(noteId), lastItem.type, lastItem.data.id, true)
                   }}
                 >
+                  {isSelected && hotelLegs.top && (
+                    <HotelRouteConnector seg={hotelLegs.top.seg} name={hotelLegs.top.name} profile={routeProfile} placement="top" />
+                  )}
                   {merged.length === 0 && !dayNoteUi ? (
                     <div
                       onDragOver={e => { e.preventDefault(); if (dragOverDayId !== day.id) setDragOverDayId(day.id) }}
@@ -2056,6 +2109,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                         </React.Fragment>
                       )
                     })
+                  )}
+                  {isSelected && hotelLegs.bottom && (
+                    <HotelRouteConnector seg={hotelLegs.bottom.seg} name={hotelLegs.bottom.name} profile={routeProfile} placement="bottom" />
                   )}
                   {/* Drop-Zone am Listenende — immer vorhanden als Drop-Target */}
                   <div
