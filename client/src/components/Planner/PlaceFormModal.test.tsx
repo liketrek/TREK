@@ -253,6 +253,101 @@ describe('PlaceFormModal', () => {
     delete window.__addToast;
   });
 
+  // ── Autocomplete suggestion click (#1192) ─────────────────────────────────────
+  // Selecting a dropdown suggestion does a second `details` lookup which is fragile
+  // (details kill-switch, an overloaded OSM Overpass mirror, upstream errors). When
+  // it yields no usable place the modal must fall back to the reliable text search
+  // instead of dead-ending on "Place search failed".
+
+  async function openSuggestion(user: ReturnType<typeof userEvent.setup>) {
+    const searchInput = screen.getByPlaceholderText('Search places...');
+    await user.type(searchInput, 'Eiffel');
+    // Debounced autocomplete (300ms) then the dropdown renders the suggestion.
+    return screen.findByText('Paris, France');
+  }
+
+  it('FE-PLANNER-PLACEFORM-021b: suggestion click falls back to search when details fails', async () => {
+    const addToast = vi.fn();
+    window.__addToast = addToast;
+    const user = userEvent.setup();
+    server.use(
+      http.post('/api/maps/autocomplete', () =>
+        HttpResponse.json({
+          suggestions: [{ placeId: 'node:123', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' }],
+          source: 'nominatim',
+        }),
+      ),
+      // details rejects (e.g. proxy 504 from a hung Overpass mirror)
+      http.get('/api/maps/details/:placeId', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
+      http.post('/api/maps/search', () =>
+        HttpResponse.json({
+          places: [{ name: 'Eiffel Tower', address: 'Paris, France', lat: '48.8584', lng: '2.2945' }],
+          source: 'openstreetmap',
+        }),
+      ),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    const suggestion = await openSuggestion(user);
+    await user.click(suggestion);
+
+    // Form is populated from the search fallback, and no error toast is shown.
+    expect(await screen.findByDisplayValue('48.8584')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('2.2945')).toBeInTheDocument();
+    expect(addToast).not.toHaveBeenCalledWith(expect.anything(), 'error', expect.anything());
+    delete window.__addToast;
+  });
+
+  it('FE-PLANNER-PLACEFORM-021c: suggestion click falls back when details is disabled (place: null)', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post('/api/maps/autocomplete', () =>
+        HttpResponse.json({
+          suggestions: [{ placeId: 'node:123', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' }],
+          source: 'nominatim',
+        }),
+      ),
+      http.get('/api/maps/details/:placeId', () => HttpResponse.json({ place: null, disabled: true })),
+      http.post('/api/maps/search', () =>
+        HttpResponse.json({
+          places: [{ name: 'Eiffel Tower', address: 'Paris, France', lat: '48.8584', lng: '2.2945' }],
+          source: 'openstreetmap',
+        }),
+      ),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    const suggestion = await openSuggestion(user);
+    await user.click(suggestion);
+
+    expect(await screen.findByDisplayValue('48.8584')).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-PLACEFORM-021d: suggestion click shows error only when the fallback also finds nothing', async () => {
+    const addToast = vi.fn();
+    window.__addToast = addToast;
+    const user = userEvent.setup();
+    server.use(
+      http.post('/api/maps/autocomplete', () =>
+        HttpResponse.json({
+          suggestions: [{ placeId: 'node:123', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' }],
+          source: 'nominatim',
+        }),
+      ),
+      http.get('/api/maps/details/:placeId', () => HttpResponse.json({ place: null, disabled: true })),
+      http.post('/api/maps/search', () => HttpResponse.json({ places: [], source: 'openstreetmap' })),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    const suggestion = await openSuggestion(user);
+    await user.click(suggestion);
+
+    await waitFor(() => {
+      expect(addToast).toHaveBeenCalledWith('Place search failed.', 'error', undefined);
+    });
+    delete window.__addToast;
+  });
+
   it('FE-PLANNER-PLACEFORM-022: hasMapsKey=false shows OSM active message', () => {
     // hasMapsKey is false by default in beforeEach
     render(<PlaceFormModal {...defaultProps} />);

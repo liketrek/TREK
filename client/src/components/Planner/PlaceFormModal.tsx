@@ -249,15 +249,34 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     setForm(prev => ({ ...prev, name: suggestion.mainText }))
     setIsSearchingMaps(true)
     try {
-      const result = await mapsApi.details(suggestion.placeId, language)
-      if (result.place) {
-        handleSelectMapsResult(result.place)
+      // The details lookup is a fragile second hop — it can fail when the
+      // details kill-switch is off, when the OSM Overpass mirror is overloaded,
+      // or on any upstream error. Treat a missing/coordinate-less place as a
+      // miss and fall back to the reliable text-search path the search button
+      // uses (its results already carry coordinates), so dropdown items stay
+      // clickable instead of dead-ending on "Place search failed". (#1192)
+      let place: Record<string, unknown> | null = null
+      try {
+        const result = await mapsApi.details(suggestion.placeId, language)
+        if (result.place && result.place.lat != null && result.place.lng != null) {
+          place = result.place
+        }
+      } catch (err) {
+        console.error('Failed to fetch place details:', err)
+      }
+      if (!place) {
+        const query = [suggestion.mainText, suggestion.secondaryText].filter(Boolean).join(', ')
+        const search = await mapsApi.search(query, language)
+        place = search.places?.[0] ?? null
+      }
+      if (place) {
+        handleSelectMapsResult(place)
       } else {
         setMapsSearch(previousSearch)
         toast.error(t('places.mapsSearchError'))
       }
     } catch (err) {
-      console.error('Failed to fetch place details:', err)
+      console.error('Place suggestion lookup failed:', err)
       setMapsSearch(previousSearch)
       toast.error(getApiErrorMessage(err, t('places.mapsSearchError')))
     } finally {
