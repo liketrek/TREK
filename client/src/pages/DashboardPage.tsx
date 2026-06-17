@@ -38,6 +38,7 @@ function tripGradient(id: number): string { return GRADIENTS[id % GRADIENTS.leng
 function splitDate(dateStr: string | null | undefined, locale: string): { d: string; m: string } | null {
   if (!dateStr) return null
   const date = new Date(dateStr + 'T00:00:00Z')
+  if (isNaN(date.getTime())) return null // malformed date — render a dash, never crash
   return {
     d: date.toLocaleDateString(locale, { day: 'numeric', timeZone: 'UTC' }),
     m: date.toLocaleDateString(locale, { month: 'short', timeZone: 'UTC' }),
