@@ -85,6 +85,10 @@ COPY --from=server-builder /app/server/dist ./server/dist
 COPY --from=server-builder /app/server/assets ./server/assets
 # tsconfig-paths/register reads this at runtime to resolve MCP SDK paths.
 COPY server/tsconfig.json ./server/
+# Encryption-key rotation is run on demand via tsx (a prod dep) straight from the
+# raw .ts source — it never enters dist, so it must be copied in explicitly or
+# `node --import tsx scripts/migrate-encryption.ts` fails with module-not-found.
+COPY server/scripts/migrate-encryption.ts ./server/scripts/migrate-encryption.ts
 COPY --from=shared-builder /app/shared/dist ./shared/dist
 COPY --from=client-builder /app/client/dist ./server/public
 COPY --from=client-builder /app/client/public/fonts ./server/public/fonts
