@@ -6,6 +6,7 @@ import { useToast } from '../shared/Toast'
 import Section from '../Settings/Section'
 import CustomSelect from '../shared/CustomSelect'
 import { MapView } from '../Map/MapView'
+import { CURRENCIES, SYMBOLS } from '../Budget/BudgetPanel.constants'
 import type { Place } from '../../types'
 
 const MAP_PRESETS = [
@@ -20,6 +21,7 @@ type Defaults = {
   temperature_unit?: string
   dark_mode?: string | boolean
   time_format?: string
+  default_currency?: string
   blur_booking_codes?: boolean
   map_tile_url?: string
   map_provider?: string
@@ -225,6 +227,23 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
           </OptionButton>
         ))}
       </OptionRow>
+
+      {/* Default Currency */}
+      <div>
+        <label className="block text-sm font-medium mb-1.5 text-content-secondary">
+          {t('settings.currency')} <ResetButton field="default_currency" />
+        </label>
+        <CustomSelect
+          value={defaults.default_currency || ''}
+          onChange={(value: string) => { if (value) save({ default_currency: value }) }}
+          placeholder={t('settings.currency')}
+          searchable
+          options={CURRENCIES.map(c => ({ value: c, label: SYMBOLS[c] ? `${c}  ${SYMBOLS[c]}` : c }))}
+          size="sm"
+          style={{ maxWidth: 240 }}
+        />
+        <p className="text-xs mt-1 text-content-faint">{t('settings.currencyHint')}</p>
+      </div>
 
       {/* Blur Booking Codes */}
       <OptionRow label={<>{t('settings.blurBookingCodes')} <ResetButton field="blur_booking_codes" /></>}>

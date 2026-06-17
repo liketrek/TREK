@@ -10,6 +10,9 @@ export const DEFAULTABLE_USER_SETTING_KEYS = [
   'temperature_unit',
   'dark_mode',
   'time_format',
+  // Instance-wide default currency for Costs (new users inherit it until they
+  // pick their own). Free-form ISO code, validated on the client.
+  'default_currency',
   'blur_booking_codes',
   'map_tile_url',
   // Instance-wide Mapbox defaults: an admin can set a shared token + style so the
