@@ -15,7 +15,21 @@ const dataDir = path.join(__dirname, '../../data');
 const backupsDir = path.join(dataDir, 'backups');
 const uploadsDir = path.join(__dirname, '../../uploads');
 
-export const MAX_BACKUP_UPLOAD_SIZE = 500 * 1024 * 1024; // 500 MB compressed
+// Compressed upload cap for restore archives. Defaults to 500 MB, raisable via
+// BACKUP_UPLOAD_LIMIT_MB for instances whose backups (uploads/ included) grow
+// past that. Invalid values warn and fall back to the default.
+const DEFAULT_BACKUP_UPLOAD_LIMIT_MB = 500;
+const rawBackupUploadLimit = process.env.BACKUP_UPLOAD_LIMIT_MB?.trim();
+let backupUploadLimitMb = DEFAULT_BACKUP_UPLOAD_LIMIT_MB;
+if (rawBackupUploadLimit) {
+  const parsed = Number(rawBackupUploadLimit);
+  if (Number.isFinite(parsed) && parsed > 0) {
+    backupUploadLimitMb = parsed;
+  } else {
+    console.warn(`BACKUP_UPLOAD_LIMIT_MB="${rawBackupUploadLimit}" is not a positive number. Falling back to ${DEFAULT_BACKUP_UPLOAD_LIMIT_MB} MB.`);
+  }
+}
+export const MAX_BACKUP_UPLOAD_SIZE = backupUploadLimitMb * 1024 * 1024; // compressed
 // Upper bound on the TOTAL decompressed size of a restore archive (the upload
 // limit only caps the compressed bytes). Generous enough for any real backup.
 export const MAX_BACKUP_DECOMPRESSED_SIZE = 5 * 1024 * 1024 * 1024; // 5 GB
