@@ -568,7 +568,10 @@ export function useTripPlanner() {
   const handleSaveReservation = async (data: Record<string, string | number | null> & { title: string }) => {
     try {
       if (editingReservation) {
-        const r = await tripActions.updateReservation(tripId, editingReservation.id, { ...data, day_id: selectedDayId || null })
+        // Keep the reservation on its own day. Forcing selectedDayId here dropped
+        // the booking out of the Plan when edited from the Book tab (no day
+        // selected -> selectedDayId null -> day_id nulled).
+        const r = await tripActions.updateReservation(tripId, editingReservation.id, { ...data, day_id: editingReservation.day_id ?? null })
         toast.success(t('trip.toast.reservationUpdated'))
         setShowReservationModal(false)
         setEditingReservation(null)
