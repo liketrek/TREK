@@ -75,11 +75,26 @@ describe('ReservationsService', () => {
   });
 
   describe('syncBudgetOnUpdate', () => {
-    it('deletes the linked item when the price is cleared', () => {
+    it('deletes the linked item when the price is explicitly cleared (total_price 0)', () => {
       dbMock._stmt.get.mockReturnValueOnce({ id: 7 });
-      svc().syncBudgetOnUpdate('5', '9', 'Hotel', 'lodging', 'Hotel', 'lodging', undefined, 'sock');
+      svc().syncBudgetOnUpdate('5', '9', 'Hotel', 'lodging', 'Hotel', 'lodging', { total_price: 0 }, 'sock');
       expect(budget.deleteBudgetItem).toHaveBeenCalledWith(7, '5');
       expect(broadcast).toHaveBeenCalledWith('5', 'budget:deleted', { itemId: 7 }, 'sock');
+    });
+
+    it('leaves the linked item alone when no budget entry is on the payload (no wipe)', () => {
+      svc().syncBudgetOnUpdate('5', '9', 'Hotel', 'lodging', 'Hotel', 'lodging', undefined, 'sock');
+      expect(budget.deleteBudgetItem).not.toHaveBeenCalled();
+      expect(budget.updateBudgetItem).not.toHaveBeenCalled();
+      expect(budget.createBudgetItem).not.toHaveBeenCalled();
+    });
+
+    it('syncs the linked expense category when the booking type changes', () => {
+      dbMock._stmt.get.mockReturnValueOnce({ id: 7, category: 'other' });
+      budget.updateBudgetItem.mockReturnValue({ id: 7, category: 'flights' });
+      svc().syncBudgetOnUpdate('5', '9', 'X', 'flight', 'X', 'other', undefined, 'sock');
+      expect(budget.updateBudgetItem).toHaveBeenCalledWith(7, '5', { category: 'flights' });
+      expect(broadcast).toHaveBeenCalledWith('5', 'budget:updated', { item: { id: 7, category: 'flights' } }, 'sock');
     });
 
     it('updates an existing linked item when a price is provided', () => {
