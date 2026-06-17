@@ -417,8 +417,10 @@ export function findOrCreateUser(
   const bcrypt = require('bcryptjs');
   const hash = bcrypt.hashSync(randomPass, 10);
 
-  // Username: sanitize and avoid collisions
-  let username = name.replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 30) || 'user';
+  // Username: sanitize and avoid collisions. Keep dots — they are valid in
+  // usernames (see the ^[a-zA-Z0-9_.-]+$ validation in authService) and common
+  // in OIDC name claims like "first.last".
+  let username = name.replace(/[^a-zA-Z0-9_.-]/g, '').substring(0, 30) || 'user';
   const existing = db.prepare('SELECT id FROM users WHERE LOWER(username) = LOWER(?)').get(username);
   if (existing) username = `${username}_${Date.now() % 10000}`;
 
