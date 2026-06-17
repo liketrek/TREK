@@ -127,37 +127,56 @@ const reservations: TranslationStrings = {
   'reservations.addBooking': 'Dodaj rezerwację',
   'reservations.import.title': 'Importuj potwierdzenia rezerwacji',
   'reservations.import.cta': 'Importuj z pliku',
-  'reservations.import.dropHere': 'Upuść pliki potwierdzeń rezerwacji tutaj lub kliknij, aby wybrać',
+  'reservations.import.dropHere':
+    'Upuść pliki potwierdzeń rezerwacji tutaj lub kliknij, aby wybrać',
   'reservations.import.dropActive': 'Upuść pliki, aby zaimportować',
-  'reservations.import.acceptedFormats': 'Akceptowane: EML, PDF, PKPass, HTML, TXT (maks. 10 MB każdy, do 5 plików)',
+  'reservations.import.acceptedFormats':
+    'Akceptowane: EML, PDF, PKPass, HTML, TXT (maks. 10 MB każdy, do 5 plików)',
   'reservations.import.parsing': 'Przetwarzanie plików…',
-  'reservations.import.previewHeading': 'Znaleziono {count} rezerwację/rezerwacje',
-  'reservations.import.previewEmpty': 'Nie udało się wyodrębnić rezerwacji z przesłanych plików.',
+  'reservations.import.previewHeading':
+    'Znaleziono {count} rezerwację/rezerwacje',
+  'reservations.import.previewEmpty':
+    'Nie udało się wyodrębnić rezerwacji z przesłanych plików.',
   'reservations.import.removeItem': 'Usuń',
   'reservations.import.confirm': 'Importuj {count} rezerwację/rezerwacje',
   'reservations.import.back': 'Wstecz',
   'reservations.import.success': 'Zaimportowano {count} rezerwację/rezerwacje',
-  'reservations.import.partialFailure': '{created} zaimportowano, {failed} nieudane',
-  'reservations.import.error': 'Przetwarzanie nieudane. Upewnij się, że plik jest prawidłowym potwierdzeniem rezerwacji.',
-  'reservations.import.unavailable': 'Import rezerwacji nie jest dostępny na tym serwerze.',
-  'reservations.import.unsupportedFormat': 'Nieobsługiwany format pliku. Użyj EML, PDF, PKPass, HTML lub TXT.',
+  'reservations.import.partialFailure':
+    '{created} zaimportowano, {failed} nieudane',
+  'reservations.import.error':
+    'Przetwarzanie nieudane. Upewnij się, że plik jest prawidłowym potwierdzeniem rezerwacji.',
+  'reservations.import.unavailable':
+    'Import rezerwacji nie jest dostępny na tym serwerze.',
+  'reservations.import.unsupportedFormat':
+    'Nieobsługiwany format pliku. Użyj EML, PDF, PKPass, HTML lub TXT.',
   'reservations.import.fileTooLarge': 'Plik „{name}" przekracza limit 10 MB.',
   'reservations.airtrail.title': 'Importuj z AirTrail',
   'reservations.airtrail.cta': 'AirTrail',
   'reservations.airtrail.synced': 'AirTrail',
-  'reservations.airtrail.syncedHint': 'Zsynchronizowano z AirTrail — zmiany są synchronizowane w obie strony.',
+  'reservations.airtrail.syncedHint':
+    'Zsynchronizowano z AirTrail — zmiany są synchronizowane w obie strony.',
   'reservations.airtrail.notSynced': 'Niezsynchronizowane',
-  'reservations.airtrail.notSyncedHint': 'Ten lot został usunięty w AirTrail i nie jest już synchronizowany.',
-  'reservations.airtrail.loadError': 'Nie udało się wczytać Twoich lotów z AirTrail.',
+  'reservations.airtrail.notSyncedHint':
+    'Ten lot został usunięty w AirTrail i nie jest już synchronizowany.',
+  'reservations.airtrail.loadError':
+    'Nie udało się wczytać Twoich lotów z AirTrail.',
   'reservations.airtrail.imported': 'Zaimportowano {count} lot(y/ów)',
-  'reservations.airtrail.skippedDuplicate': '{count} już w tej wyprawie, pominięto',
+  'reservations.airtrail.skippedDuplicate':
+    '{count} już w tej wyprawie, pominięto',
   'reservations.airtrail.nothingImported': 'Nic do zaimportowania.',
   'reservations.airtrail.importError': 'Import nieudany. Spróbuj ponownie.',
   'reservations.airtrail.undo': 'Importuj z AirTrail',
   'reservations.airtrail.alreadyImported': 'Zaimportowano',
   'reservations.airtrail.duringTrip': 'Podczas tej wyprawy',
   'reservations.airtrail.otherFlights': 'Inne loty',
-  'reservations.airtrail.empty': 'Nie znaleziono lotów na Twoim koncie AirTrail.',
+  'reservations.airtrail.empty':
+    'Nie znaleziono lotów na Twoim koncie AirTrail.',
   'reservations.airtrail.importCta': 'Importuj {count}',
+  'reservations.costsLabel': 'Costs',
+  'reservations.createExpense': 'Create expense',
+  'reservations.createExpenseHint':
+    'Saves the booking, then opens the Costs editor.',
+  'reservations.linkedExpense': 'Linked expense',
+  'reservations.removeExpense': 'Remove expense',
 };
 export default reservations;

@@ -105,6 +105,7 @@ export function createBudgetItem(
     currency?: string | null; exchange_rate?: number;
     payers?: { user_id: number; amount: number }[]; member_ids?: number[];
     persons?: number | null; days?: number | null; note?: string | null; expense_date?: string | null;
+    reservation_id?: number | null;
   },
 ) {
   const maxOrder = db.prepare(
@@ -128,7 +129,7 @@ export function createBudgetItem(
   const total = data.payers && data.payers.length > 0 ? payerTotal : (data.total_price || 0);
 
   const result = db.prepare(
-    'INSERT INTO budget_items (trip_id, category, name, total_price, currency, exchange_rate, persons, days, note, sort_order, expense_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    'INSERT INTO budget_items (trip_id, category, name, total_price, currency, exchange_rate, persons, days, note, sort_order, expense_date, reservation_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
   ).run(
     tripId,
     cat,
@@ -141,6 +142,7 @@ export function createBudgetItem(
     data.note || null,
     sortOrder,
     data.expense_date || null,
+    data.reservation_id != null ? data.reservation_id : null,
   );
 
   const itemId = result.lastInsertRowid as number;
@@ -208,7 +210,15 @@ export function updateBudgetItem(
   );
 
   // Optional inline payer/member replacement (the edit modal saves all at once).
-  if (data.payers !== undefined) writeItemPayers(id, data.payers);
+  if (data.payers !== undefined) {
+    writeItemPayers(id, data.payers);
+    // writeItemPayers derives total_price from the payer sum (0 for no payers).
+    // A "recorded total, nobody assigned" expense clears payers but still carries
+    // an explicit total_price — re-apply it so it isn't clobbered to 0.
+    if (data.payers.length === 0 && data.total_price !== undefined) {
+      db.prepare('UPDATE budget_items SET total_price = ? WHERE id = ?').run(data.total_price, id);
+    }
+  }
   if (data.member_ids !== undefined) {
     db.prepare('DELETE FROM budget_item_members WHERE budget_item_id = ?').run(id);
     const insert = db.prepare('INSERT OR IGNORE INTO budget_item_members (budget_item_id, user_id, paid) VALUES (?, ?, 0)');

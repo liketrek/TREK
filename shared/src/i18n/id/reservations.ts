@@ -126,37 +126,55 @@ const reservations: TranslationStrings = {
   'reservations.addBooking': 'Tambah pemesanan',
   'reservations.import.title': 'Impor konfirmasi pemesanan',
   'reservations.import.cta': 'Impor dari file',
-  'reservations.import.dropHere': 'Seret file konfirmasi pemesanan ke sini atau klik untuk memilih',
+  'reservations.import.dropHere':
+    'Seret file konfirmasi pemesanan ke sini atau klik untuk memilih',
   'reservations.import.dropActive': 'Lepaskan file untuk mengimpor',
-  'reservations.import.acceptedFormats': 'Diterima: EML, PDF, PKPass, HTML, TXT (maks. 10 MB per file, hingga 5 file)',
+  'reservations.import.acceptedFormats':
+    'Diterima: EML, PDF, PKPass, HTML, TXT (maks. 10 MB per file, hingga 5 file)',
   'reservations.import.parsing': 'Memproses file…',
   'reservations.import.previewHeading': '{count} pemesanan ditemukan',
-  'reservations.import.previewEmpty': 'Tidak ada pemesanan yang dapat diekstrak dari file yang diunggah.',
+  'reservations.import.previewEmpty':
+    'Tidak ada pemesanan yang dapat diekstrak dari file yang diunggah.',
   'reservations.import.removeItem': 'Hapus',
   'reservations.import.confirm': 'Impor {count} pemesanan',
   'reservations.import.back': 'Kembali',
   'reservations.import.success': '{count} pemesanan berhasil diimpor',
-  'reservations.import.partialFailure': '{created} berhasil diimpor, {failed} gagal',
-  'reservations.import.error': 'Pemrosesan gagal. Pastikan file adalah konfirmasi pemesanan yang valid.',
-  'reservations.import.unavailable': 'Impor pemesanan tidak tersedia di server ini.',
-  'reservations.import.unsupportedFormat': 'Format file tidak didukung. Gunakan EML, PDF, PKPass, HTML, atau TXT.',
+  'reservations.import.partialFailure':
+    '{created} berhasil diimpor, {failed} gagal',
+  'reservations.import.error':
+    'Pemrosesan gagal. Pastikan file adalah konfirmasi pemesanan yang valid.',
+  'reservations.import.unavailable':
+    'Impor pemesanan tidak tersedia di server ini.',
+  'reservations.import.unsupportedFormat':
+    'Format file tidak didukung. Gunakan EML, PDF, PKPass, HTML, atau TXT.',
   'reservations.import.fileTooLarge': 'File "{name}" melebihi batas 10 MB.',
   'reservations.airtrail.title': 'Impor dari AirTrail',
   'reservations.airtrail.cta': 'AirTrail',
   'reservations.airtrail.synced': 'AirTrail',
-  'reservations.airtrail.syncedHint': 'Tersinkron dari AirTrail — perubahan tetap sinkron di kedua arah.',
+  'reservations.airtrail.syncedHint':
+    'Tersinkron dari AirTrail — perubahan tetap sinkron di kedua arah.',
   'reservations.airtrail.notSynced': 'Tidak tersinkron',
-  'reservations.airtrail.notSyncedHint': 'Penerbangan ini telah dihapus di AirTrail dan tidak lagi tersinkron.',
-  'reservations.airtrail.loadError': 'Tidak dapat memuat penerbangan AirTrail-mu.',
+  'reservations.airtrail.notSyncedHint':
+    'Penerbangan ini telah dihapus di AirTrail dan tidak lagi tersinkron.',
+  'reservations.airtrail.loadError':
+    'Tidak dapat memuat penerbangan AirTrail-mu.',
   'reservations.airtrail.imported': '{count} penerbangan diimpor',
-  'reservations.airtrail.skippedDuplicate': '{count} sudah ada di perjalanan ini, dilewati',
+  'reservations.airtrail.skippedDuplicate':
+    '{count} sudah ada di perjalanan ini, dilewati',
   'reservations.airtrail.nothingImported': 'Tidak ada yang dapat diimpor.',
   'reservations.airtrail.importError': 'Impor gagal. Silakan coba lagi.',
   'reservations.airtrail.undo': 'Impor dari AirTrail',
   'reservations.airtrail.alreadyImported': 'Diimpor',
   'reservations.airtrail.duringTrip': 'Selama perjalanan ini',
   'reservations.airtrail.otherFlights': 'Penerbangan lain',
-  'reservations.airtrail.empty': 'Tidak ada penerbangan ditemukan di akun AirTrail-mu.',
+  'reservations.airtrail.empty':
+    'Tidak ada penerbangan ditemukan di akun AirTrail-mu.',
   'reservations.airtrail.importCta': 'Impor {count}',
+  'reservations.costsLabel': 'Costs',
+  'reservations.createExpense': 'Create expense',
+  'reservations.createExpenseHint':
+    'Saves the booking, then opens the Costs editor.',
+  'reservations.linkedExpense': 'Linked expense',
+  'reservations.removeExpense': 'Remove expense',
 };
 export default reservations;

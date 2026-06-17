@@ -662,8 +662,15 @@ function SettleHistory({ settlements, fmt, Avatar, name, onUndo, canEdit }: {
 }
 
 // ── Add / edit expense modal ───────────────────────────────────────────────
-function ExpenseModal({ tripId, base, people, me, editing, onClose, onSaved }: {
-  tripId: number; base: string; people: TripMember[]; me: number; editing: BudgetItem | null; onClose: () => void; onSaved: () => void
+export interface ExpensePrefill {
+  name?: string
+  category?: string
+  amount?: number
+  reservationId?: number
+}
+
+export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClose, onSaved }: {
+  tripId: number; base: string; people: TripMember[]; me: number; editing: BudgetItem | null; prefill?: ExpensePrefill; onClose: () => void; onSaved: () => void
 }) {
   const { t, locale } = useTranslation()
   const toast = useToast()
@@ -671,8 +678,8 @@ function ExpenseModal({ tripId, base, people, me, editing, onClose, onSaved }: {
   const { convert } = useExchangeRates(base)
   const sym = (c: string) => SYMBOLS[c] || (c + ' ')
 
-  const [name, setName] = useState(editing?.name || '')
-  const [cat, setCat] = useState<string>(editing ? catMeta(editing.category).key : 'food')
+  const [name, setName] = useState(editing?.name || prefill?.name || '')
+  const [cat, setCat] = useState<string>(editing ? catMeta(editing.category).key : (prefill?.category || 'food'))
   const [currency, setCurrency] = useState((editing?.currency || base).toUpperCase())
   const [day, setDay] = useState(editing?.expense_date || new Date().toISOString().slice(0, 10))
   const [payers, setPayers] = useState<Record<number, string>>(() => {
@@ -680,13 +687,23 @@ function ExpenseModal({ tripId, base, people, me, editing, onClose, onSaved }: {
     for (const p of editing?.payers || []) m[p.user_id] = String(p.amount)
     return m
   })
+  // Standalone total for "recorded amount, nobody has paid yet" expenses (created
+  // from a booking, or pre-rework items). Used only while no per-person amount is
+  // entered; once a payer has an amount, the total derives from the payers.
+  const [amount, setAmount] = useState<string>(() => {
+    if (editing && !(editing.payers && editing.payers.length > 0)) return editing.total_price ? String(editing.total_price) : ''
+    if (prefill?.amount != null) return String(prefill.amount)
+    return ''
+  })
   const [split, setSplit] = useState<Set<number>>(() =>
     editing ? new Set((editing.members || []).map(m => m.user_id)) : new Set(people.map(p => p.id)))
   const [saving, setSaving] = useState(false)
 
   const payersTotal = Object.values(payers).reduce((a, v) => a + (parseFloat(v) || 0), 0)
-  const each = split.size > 0 ? payersTotal / split.size : 0
-  const valid = name.trim().length > 0 && split.size > 0 && payersTotal > 0
+  const hasPayers = payersTotal > 0
+  const total = hasPayers ? payersTotal : (parseFloat(amount) || 0)
+  const each = split.size > 0 ? total / split.size : 0
+  const valid = name.trim().length > 0 && total > 0 && (hasPayers ? split.size > 0 : true)
 
   const save = async () => {
     if (!valid) return
@@ -699,6 +716,11 @@ function ExpenseModal({ tripId, base, people, me, editing, onClose, onSaved }: {
       currency,
       payers: payerList, member_ids: [...split],
       expense_date: day || null,
+      // No per-person amounts: record the typed total directly (the server keeps
+      // it instead of deriving 0 from the empty payer list).
+      ...(payerList.length === 0 ? { total_price: parseFloat(amount) || 0 } : {}),
+      // Link a freshly-created expense to its booking (create-from-booking flow).
+      ...(!editing && prefill?.reservationId ? { reservation_id: prefill.reservationId } : {}),
     }
     try {
       if (editing) await updateBudgetItem(tripId, editing.id, data)
@@ -728,7 +750,13 @@ function ExpenseModal({ tripId, base, people, me, editing, onClose, onSaved }: {
           <label className={labelCls}>{t('costs.totalAmount')}</label>
           <div className="bg-surface-input border border-edge" style={{ height: FIELD_H, boxSizing: 'border-box', display: 'flex', alignItems: 'center', borderRadius: 10, padding: '0 12px' }}>
             <span className="text-content-faint" style={{ fontSize: 15 }}>{sym(currency)}</span>
-            <span className="text-content" style={{ flex: 1, fontSize: 15, fontWeight: 600, paddingLeft: 6 }}>{payersTotal.toFixed(2)}</span>
+            {hasPayers ? (
+              <span className="text-content" style={{ flex: 1, fontSize: 15, fontWeight: 600, paddingLeft: 6 }}>{payersTotal.toFixed(2)}</span>
+            ) : (
+              <input type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" value={amount}
+                onChange={e => setAmount(e.target.value)}
+                className="text-content" style={{ flex: 1, border: 0, background: 'none', outline: 'none', fontSize: 15, fontWeight: 600, paddingLeft: 6, width: '100%' }} />
+            )}
           </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -744,11 +772,11 @@ function ExpenseModal({ tripId, base, people, me, editing, onClose, onSaved }: {
           </div>
         </div>
 
-        {currency !== base && payersTotal > 0 && (
+        {currency !== base && total > 0 && (
           <div className="bg-surface-secondary border border-edge text-content-muted" style={{ borderRadius: 10, padding: '10px 12px', fontSize: 12.5, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span>{formatMoney(payersTotal, currency, locale)}</span>
+            <span>{formatMoney(total, currency, locale)}</span>
             <span className="text-content-faint">≈</span>
-            <span className="text-content" style={{ fontWeight: 600 }}>{formatMoney(convert(payersTotal, currency), base, locale)}</span>
+            <span className="text-content" style={{ fontWeight: 600 }}>{formatMoney(convert(total, currency), base, locale)}</span>
             <span className="text-content-faint">· {t('costs.liveRate')}</span>
           </div>
         )}

@@ -127,35 +127,51 @@ const reservations: TranslationStrings = {
   'reservations.import.cta': 'استيراد من ملف',
   'reservations.import.dropHere': 'أسقط ملفات تأكيد الحجز هنا أو انقر للتحديد',
   'reservations.import.dropActive': 'أسقط الملفات للاستيراد',
-  'reservations.import.acceptedFormats': 'المقبول: EML، PDF، PKPass، HTML، TXT (بحد أقصى 10 ميغابايت لكل ملف، حتى 5 ملفات)',
+  'reservations.import.acceptedFormats':
+    'المقبول: EML، PDF، PKPass، HTML، TXT (بحد أقصى 10 ميغابايت لكل ملف، حتى 5 ملفات)',
   'reservations.import.parsing': 'جارٍ معالجة الملفات…',
   'reservations.import.previewHeading': 'تم العثور على {count} حجز/حجوزات',
-  'reservations.import.previewEmpty': 'تعذّر استخراج أي حجوزات من الملفات المُحمَّلة.',
+  'reservations.import.previewEmpty':
+    'تعذّر استخراج أي حجوزات من الملفات المُحمَّلة.',
   'reservations.import.removeItem': 'إزالة',
   'reservations.import.confirm': 'استيراد {count} حجز/حجوزات',
   'reservations.import.back': 'رجوع',
   'reservations.import.success': 'تم استيراد {count} حجز/حجوزات',
   'reservations.import.partialFailure': 'تم استيراد {created}، فشل {failed}',
-  'reservations.import.error': 'فشلت المعالجة. تأكد من أن الملف تأكيد حجز صالح.',
-  'reservations.import.unavailable': 'استيراد الحجوزات غير متاح على هذا الخادم.',
-  'reservations.import.unsupportedFormat': 'صيغة ملف غير مدعومة. استخدم EML أو PDF أو PKPass أو HTML أو TXT.',
+  'reservations.import.error':
+    'فشلت المعالجة. تأكد من أن الملف تأكيد حجز صالح.',
+  'reservations.import.unavailable':
+    'استيراد الحجوزات غير متاح على هذا الخادم.',
+  'reservations.import.unsupportedFormat':
+    'صيغة ملف غير مدعومة. استخدم EML أو PDF أو PKPass أو HTML أو TXT.',
   'reservations.import.fileTooLarge': 'الملف "{name}" يتجاوز حد 10 ميغابايت.',
   'reservations.airtrail.title': 'استيراد من AirTrail',
   'reservations.airtrail.cta': 'AirTrail',
   'reservations.airtrail.synced': 'AirTrail',
-  'reservations.airtrail.syncedHint': 'متزامن من AirTrail — تبقى التعديلات متزامنة في الاتجاهين.',
+  'reservations.airtrail.syncedHint':
+    'متزامن من AirTrail — تبقى التعديلات متزامنة في الاتجاهين.',
   'reservations.airtrail.notSynced': 'غير متزامن',
-  'reservations.airtrail.notSyncedHint': 'تمت إزالة هذه الرحلة في AirTrail ولم تعد متزامنة.',
+  'reservations.airtrail.notSyncedHint':
+    'تمت إزالة هذه الرحلة في AirTrail ولم تعد متزامنة.',
   'reservations.airtrail.loadError': 'تعذّر تحميل رحلاتك من AirTrail.',
   'reservations.airtrail.imported': 'تم استيراد {count} رحلة/رحلات',
-  'reservations.airtrail.skippedDuplicate': '{count} موجودة بالفعل في هذه الرحلة، تم تخطّيها',
+  'reservations.airtrail.skippedDuplicate':
+    '{count} موجودة بالفعل في هذه الرحلة، تم تخطّيها',
   'reservations.airtrail.nothingImported': 'لا شيء لاستيراده.',
-  'reservations.airtrail.importError': 'فشل الاستيراد. يُرجى المحاولة مرة أخرى.',
+  'reservations.airtrail.importError':
+    'فشل الاستيراد. يُرجى المحاولة مرة أخرى.',
   'reservations.airtrail.undo': 'استيراد من AirTrail',
   'reservations.airtrail.alreadyImported': 'مُستورَد',
   'reservations.airtrail.duringTrip': 'خلال هذه الرحلة',
   'reservations.airtrail.otherFlights': 'رحلات أخرى',
-  'reservations.airtrail.empty': 'لم يتم العثور على أي رحلات في حساب AirTrail الخاص بك.',
+  'reservations.airtrail.empty':
+    'لم يتم العثور على أي رحلات في حساب AirTrail الخاص بك.',
   'reservations.airtrail.importCta': 'استيراد {count}',
+  'reservations.costsLabel': 'Costs',
+  'reservations.createExpense': 'Create expense',
+  'reservations.createExpenseHint':
+    'Saves the booking, then opens the Costs editor.',
+  'reservations.linkedExpense': 'Linked expense',
+  'reservations.removeExpense': 'Remove expense',
 };
 export default reservations;

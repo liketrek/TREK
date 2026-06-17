@@ -128,37 +128,56 @@ const reservations: TranslationStrings = {
   'reservations.addBooking': 'Προσθήκη κράτησης',
   'reservations.import.title': 'Εισαγωγή επιβεβαιώσεων κράτησης',
   'reservations.import.cta': 'Εισαγωγή από αρχείο',
-  'reservations.import.dropHere': 'Αποθέστε αρχεία επιβεβαίωσης κράτησης εδώ ή κάντε κλικ για επιλογή',
+  'reservations.import.dropHere':
+    'Αποθέστε αρχεία επιβεβαίωσης κράτησης εδώ ή κάντε κλικ για επιλογή',
   'reservations.import.dropActive': 'Αποθέστε αρχεία για εισαγωγή',
-  'reservations.import.acceptedFormats': 'Αποδεκτά: EML, PDF, PKPass, HTML, TXT (μέγιστο 10 MB το καθένα, έως 5 αρχεία)',
+  'reservations.import.acceptedFormats':
+    'Αποδεκτά: EML, PDF, PKPass, HTML, TXT (μέγιστο 10 MB το καθένα, έως 5 αρχεία)',
   'reservations.import.parsing': 'Επεξεργασία αρχείων…',
   'reservations.import.previewHeading': 'Βρέθηκαν {count} κράτηση/κρατήσεις',
-  'reservations.import.previewEmpty': 'Δεν ήταν δυνατή η εξαγωγή κρατήσεων από τα μεταφορτωμένα αρχεία.',
+  'reservations.import.previewEmpty':
+    'Δεν ήταν δυνατή η εξαγωγή κρατήσεων από τα μεταφορτωμένα αρχεία.',
   'reservations.import.removeItem': 'Αφαίρεση',
   'reservations.import.confirm': 'Εισαγωγή {count} κράτησης/κρατήσεων',
   'reservations.import.back': 'Πίσω',
   'reservations.import.success': '{count} κράτηση/κρατήσεις εισήχθησαν',
-  'reservations.import.partialFailure': '{created} εισήχθησαν, {failed} απέτυχαν',
-  'reservations.import.error': 'Η επεξεργασία απέτυχε. Βεβαιωθείτε ότι το αρχείο είναι έγκυρη επιβεβαίωση κράτησης.',
-  'reservations.import.unavailable': 'Η εισαγωγή κρατήσεων δεν είναι διαθέσιμη σε αυτόν τον διακομιστή.',
-  'reservations.import.unsupportedFormat': 'Μη υποστηριζόμενη μορφή αρχείου. Χρησιμοποιήστε EML, PDF, PKPass, HTML ή TXT.',
-  'reservations.import.fileTooLarge': 'Το αρχείο «{name}» υπερβαίνει το όριο των 10 MB.',
+  'reservations.import.partialFailure':
+    '{created} εισήχθησαν, {failed} απέτυχαν',
+  'reservations.import.error':
+    'Η επεξεργασία απέτυχε. Βεβαιωθείτε ότι το αρχείο είναι έγκυρη επιβεβαίωση κράτησης.',
+  'reservations.import.unavailable':
+    'Η εισαγωγή κρατήσεων δεν είναι διαθέσιμη σε αυτόν τον διακομιστή.',
+  'reservations.import.unsupportedFormat':
+    'Μη υποστηριζόμενη μορφή αρχείου. Χρησιμοποιήστε EML, PDF, PKPass, HTML ή TXT.',
+  'reservations.import.fileTooLarge':
+    'Το αρχείο «{name}» υπερβαίνει το όριο των 10 MB.',
   'reservations.airtrail.title': 'Εισαγωγή από το AirTrail',
   'reservations.airtrail.cta': 'AirTrail',
   'reservations.airtrail.synced': 'AirTrail',
-  'reservations.airtrail.syncedHint': 'Συγχρονισμένο από το AirTrail — οι αλλαγές συγχρονίζονται και προς τις δύο κατευθύνσεις.',
+  'reservations.airtrail.syncedHint':
+    'Συγχρονισμένο από το AirTrail — οι αλλαγές συγχρονίζονται και προς τις δύο κατευθύνσεις.',
   'reservations.airtrail.notSynced': 'Μη συγχρονισμένο',
-  'reservations.airtrail.notSyncedHint': 'Αυτή η πτήση αφαιρέθηκε στο AirTrail και δεν συγχρονίζεται πλέον.',
-  'reservations.airtrail.loadError': 'Δεν ήταν δυνατή η φόρτωση των πτήσεών σας από το AirTrail.',
+  'reservations.airtrail.notSyncedHint':
+    'Αυτή η πτήση αφαιρέθηκε στο AirTrail και δεν συγχρονίζεται πλέον.',
+  'reservations.airtrail.loadError':
+    'Δεν ήταν δυνατή η φόρτωση των πτήσεών σας από το AirTrail.',
   'reservations.airtrail.imported': '{count} πτήση/πτήσεις εισήχθησαν',
-  'reservations.airtrail.skippedDuplicate': '{count} υπάρχουν ήδη σε αυτό το ταξίδι, παραλείφθηκαν',
+  'reservations.airtrail.skippedDuplicate':
+    '{count} υπάρχουν ήδη σε αυτό το ταξίδι, παραλείφθηκαν',
   'reservations.airtrail.nothingImported': 'Δεν υπάρχει τίποτα για εισαγωγή.',
   'reservations.airtrail.importError': 'Η εισαγωγή απέτυχε. Δοκιμάστε ξανά.',
   'reservations.airtrail.undo': 'Εισαγωγή από το AirTrail',
   'reservations.airtrail.alreadyImported': 'Εισήχθη',
   'reservations.airtrail.duringTrip': 'Κατά τη διάρκεια αυτού του ταξιδιού',
   'reservations.airtrail.otherFlights': 'Άλλες πτήσεις',
-  'reservations.airtrail.empty': 'Δεν βρέθηκαν πτήσεις στον λογαριασμό σας στο AirTrail.',
+  'reservations.airtrail.empty':
+    'Δεν βρέθηκαν πτήσεις στον λογαριασμό σας στο AirTrail.',
   'reservations.airtrail.importCta': 'Εισαγωγή {count}',
+  'reservations.costsLabel': 'Costs',
+  'reservations.createExpense': 'Create expense',
+  'reservations.createExpenseHint':
+    'Saves the booking, then opens the Costs editor.',
+  'reservations.linkedExpense': 'Linked expense',
+  'reservations.removeExpense': 'Remove expense',
 };
 export default reservations;

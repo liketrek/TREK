@@ -127,37 +127,57 @@ const reservations: TranslationStrings = {
   'reservations.addBooking': 'Buchung hinzufügen',
   'reservations.import.title': 'Buchungsbestätigungen importieren',
   'reservations.import.cta': 'Aus Datei importieren',
-  'reservations.import.dropHere': 'Buchungsbestätigungsdateien hier ablegen oder klicken zum Auswählen',
+  'reservations.import.dropHere':
+    'Buchungsbestätigungsdateien hier ablegen oder klicken zum Auswählen',
   'reservations.import.dropActive': 'Dateien zum Importieren ablegen',
-  'reservations.import.acceptedFormats': 'Akzeptiert: EML, PDF, PKPass, HTML, TXT (max. 10 MB pro Datei, bis zu 5 Dateien)',
+  'reservations.import.acceptedFormats':
+    'Akzeptiert: EML, PDF, PKPass, HTML, TXT (max. 10 MB pro Datei, bis zu 5 Dateien)',
   'reservations.import.parsing': 'Dateien werden verarbeitet…',
   'reservations.import.previewHeading': '{count} Reservierung(en) gefunden',
-  'reservations.import.previewEmpty': 'Aus den hochgeladenen Dateien konnten keine Reservierungen extrahiert werden.',
+  'reservations.import.previewEmpty':
+    'Aus den hochgeladenen Dateien konnten keine Reservierungen extrahiert werden.',
   'reservations.import.removeItem': 'Entfernen',
   'reservations.import.confirm': '{count} Reservierung(en) importieren',
   'reservations.import.back': 'Zurück',
   'reservations.import.success': '{count} Reservierung(en) importiert',
-  'reservations.import.partialFailure': '{created} importiert, {failed} fehlgeschlagen',
-  'reservations.import.error': 'Verarbeitung fehlgeschlagen. Stellen Sie sicher, dass die Datei eine gültige Buchungsbestätigung ist.',
-  'reservations.import.unavailable': 'Buchungsimport ist auf diesem Server nicht verfügbar.',
-  'reservations.import.unsupportedFormat': 'Nicht unterstütztes Dateiformat. Verwenden Sie EML, PDF, PKPass, HTML oder TXT.',
-  'reservations.import.fileTooLarge': 'Datei „{name}" überschreitet das 10-MB-Limit.',
+  'reservations.import.partialFailure':
+    '{created} importiert, {failed} fehlgeschlagen',
+  'reservations.import.error':
+    'Verarbeitung fehlgeschlagen. Stellen Sie sicher, dass die Datei eine gültige Buchungsbestätigung ist.',
+  'reservations.import.unavailable':
+    'Buchungsimport ist auf diesem Server nicht verfügbar.',
+  'reservations.import.unsupportedFormat':
+    'Nicht unterstütztes Dateiformat. Verwenden Sie EML, PDF, PKPass, HTML oder TXT.',
+  'reservations.import.fileTooLarge':
+    'Datei „{name}" überschreitet das 10-MB-Limit.',
   'reservations.airtrail.title': 'Aus AirTrail importieren',
   'reservations.airtrail.cta': 'AirTrail',
   'reservations.airtrail.synced': 'AirTrail',
-  'reservations.airtrail.syncedHint': 'Aus AirTrail synchronisiert — Änderungen bleiben in beide Richtungen synchron.',
+  'reservations.airtrail.syncedHint':
+    'Aus AirTrail synchronisiert — Änderungen bleiben in beide Richtungen synchron.',
   'reservations.airtrail.notSynced': 'Nicht synchronisiert',
-  'reservations.airtrail.notSyncedHint': 'Dieser Flug wurde in AirTrail gelöscht und wird nicht mehr synchronisiert.',
-  'reservations.airtrail.loadError': 'Ihre AirTrail-Flüge konnten nicht geladen werden.',
+  'reservations.airtrail.notSyncedHint':
+    'Dieser Flug wurde in AirTrail gelöscht und wird nicht mehr synchronisiert.',
+  'reservations.airtrail.loadError':
+    'Ihre AirTrail-Flüge konnten nicht geladen werden.',
   'reservations.airtrail.imported': '{count} Flug/Flüge importiert',
-  'reservations.airtrail.skippedDuplicate': '{count} bereits in dieser Reise, übersprungen',
+  'reservations.airtrail.skippedDuplicate':
+    '{count} bereits in dieser Reise, übersprungen',
   'reservations.airtrail.nothingImported': 'Nichts zu importieren.',
-  'reservations.airtrail.importError': 'Import fehlgeschlagen. Bitte erneut versuchen.',
+  'reservations.airtrail.importError':
+    'Import fehlgeschlagen. Bitte erneut versuchen.',
   'reservations.airtrail.undo': 'Aus AirTrail importieren',
   'reservations.airtrail.alreadyImported': 'Importiert',
   'reservations.airtrail.duringTrip': 'Während dieser Reise',
   'reservations.airtrail.otherFlights': 'Weitere Flüge',
-  'reservations.airtrail.empty': 'Keine Flüge in Ihrem AirTrail-Konto gefunden.',
+  'reservations.airtrail.empty':
+    'Keine Flüge in Ihrem AirTrail-Konto gefunden.',
   'reservations.airtrail.importCta': '{count} importieren',
+  'reservations.costsLabel': 'Kosten',
+  'reservations.createExpense': 'Ausgabe erstellen',
+  'reservations.createExpenseHint':
+    'Speichert die Buchung und öffnet dann den Kosten-Editor.',
+  'reservations.linkedExpense': 'Verknüpfte Ausgabe',
+  'reservations.removeExpense': 'Ausgabe entfernen',
 };
 export default reservations;

@@ -124,37 +124,57 @@ const reservations: TranslationStrings = {
   'reservations.addBooking': '予約を追加',
   'reservations.import.title': '予約確認書のインポート',
   'reservations.import.cta': 'ファイルからインポート',
-  'reservations.import.dropHere': '予約確認ファイルをここにドロップするか、クリックして選択',
+  'reservations.import.dropHere':
+    '予約確認ファイルをここにドロップするか、クリックして選択',
   'reservations.import.dropActive': 'ファイルをドロップしてインポート',
-  'reservations.import.acceptedFormats': '対応形式：EML、PDF、PKPass、HTML、TXT（各最大 10 MB、最大 5 ファイル）',
+  'reservations.import.acceptedFormats':
+    '対応形式：EML、PDF、PKPass、HTML、TXT（各最大 10 MB、最大 5 ファイル）',
   'reservations.import.parsing': 'ファイルを解析中…',
   'reservations.import.previewHeading': '{count} 件の予約が見つかりました',
-  'reservations.import.previewEmpty': 'アップロードされたファイルから予約を抽出できませんでした。',
+  'reservations.import.previewEmpty':
+    'アップロードされたファイルから予約を抽出できませんでした。',
   'reservations.import.removeItem': '削除',
   'reservations.import.confirm': '{count} 件の予約をインポート',
   'reservations.import.back': '戻る',
   'reservations.import.success': '{count} 件の予約をインポートしました',
-  'reservations.import.partialFailure': '{created} 件インポート済み、{failed} 件失敗',
-  'reservations.import.error': '解析に失敗しました。ファイルが有効な予約確認書であることを確認してください。',
-  'reservations.import.unavailable': 'このサーバーでは予約インポート機能が利用できません。',
-  'reservations.import.unsupportedFormat': '対応していないファイル形式です。EML、PDF、PKPass、HTML、または TXT を使用してください。',
-  'reservations.import.fileTooLarge': 'ファイル「{name}」は 10 MB の制限を超えています。',
+  'reservations.import.partialFailure':
+    '{created} 件インポート済み、{failed} 件失敗',
+  'reservations.import.error':
+    '解析に失敗しました。ファイルが有効な予約確認書であることを確認してください。',
+  'reservations.import.unavailable':
+    'このサーバーでは予約インポート機能が利用できません。',
+  'reservations.import.unsupportedFormat':
+    '対応していないファイル形式です。EML、PDF、PKPass、HTML、または TXT を使用してください。',
+  'reservations.import.fileTooLarge':
+    'ファイル「{name}」は 10 MB の制限を超えています。',
   'reservations.airtrail.title': 'AirTrail からインポート',
   'reservations.airtrail.cta': 'AirTrail',
   'reservations.airtrail.synced': 'AirTrail',
-  'reservations.airtrail.syncedHint': 'AirTrail と同期済み — 編集は双方向で同期されます。',
+  'reservations.airtrail.syncedHint':
+    'AirTrail と同期済み — 編集は双方向で同期されます。',
   'reservations.airtrail.notSynced': '未同期',
-  'reservations.airtrail.notSyncedHint': 'このフライトは AirTrail で削除されたため、同期されなくなりました。',
-  'reservations.airtrail.loadError': 'AirTrail のフライトを読み込めませんでした。',
+  'reservations.airtrail.notSyncedHint':
+    'このフライトは AirTrail で削除されたため、同期されなくなりました。',
+  'reservations.airtrail.loadError':
+    'AirTrail のフライトを読み込めませんでした。',
   'reservations.airtrail.imported': '{count} 件のフライトをインポートしました',
-  'reservations.airtrail.skippedDuplicate': '{count} 件はこの旅行に既に存在するためスキップしました',
+  'reservations.airtrail.skippedDuplicate':
+    '{count} 件はこの旅行に既に存在するためスキップしました',
   'reservations.airtrail.nothingImported': 'インポートする項目がありません。',
-  'reservations.airtrail.importError': 'インポートに失敗しました。もう一度お試しください。',
+  'reservations.airtrail.importError':
+    'インポートに失敗しました。もう一度お試しください。',
   'reservations.airtrail.undo': 'AirTrail からインポート',
   'reservations.airtrail.alreadyImported': 'インポート済み',
   'reservations.airtrail.duringTrip': 'この旅行の期間中',
   'reservations.airtrail.otherFlights': 'その他のフライト',
-  'reservations.airtrail.empty': 'AirTrail アカウントにフライトが見つかりませんでした。',
+  'reservations.airtrail.empty':
+    'AirTrail アカウントにフライトが見つかりませんでした。',
   'reservations.airtrail.importCta': '{count} 件をインポート',
+  'reservations.costsLabel': 'Costs',
+  'reservations.createExpense': 'Create expense',
+  'reservations.createExpenseHint':
+    'Saves the booking, then opens the Costs editor.',
+  'reservations.linkedExpense': 'Linked expense',
+  'reservations.removeExpense': 'Remove expense',
 };
 export default reservations;

@@ -11,7 +11,10 @@ import { useTranslation } from '../../i18n'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
 import CustomTimePicker from '../shared/CustomTimePicker'
 import { openFile } from '../../utils/fileDownload'
-import type { Day, Place, Reservation, TripFile, AssignmentsMap, Accommodation } from '../../types'
+import type { Day, Place, Reservation, TripFile, AssignmentsMap, Accommodation, BudgetItem } from '../../types'
+import { BookingCostsSection } from './BookingCostsSection'
+import type { BookingExpenseRequest } from './BookingCostsSection.types'
+import { typeToCostCategory } from '@trek/shared'
 
 const TYPE_OPTIONS = [
   { value: 'hotel',      labelKey: 'reservations.type.hotel',      Icon: Hotel },
@@ -60,9 +63,10 @@ interface ReservationModalProps {
   onFileDelete: (fileId: number) => Promise<void>
   accommodations?: Accommodation[]
   defaultAssignmentId?: number | null
+  onOpenExpense?: (req: BookingExpenseRequest) => void
 }
 
-export function ReservationModal({ isOpen, onClose, onSave, reservation, days, places, assignments, selectedDayId, files = [], onFileUpload, onFileDelete, accommodations = [], defaultAssignmentId = null }: ReservationModalProps) {
+export function ReservationModal({ isOpen, onClose, onSave, reservation, days, places, assignments, selectedDayId, files = [], onFileUpload, onFileDelete, accommodations = [], defaultAssignmentId = null, onOpenExpense }: ReservationModalProps) {
   const { id: tripId } = useParams<{ id: string }>()
   const loadFiles = useTripStore(s => s.loadFiles)
   const toast = useToast()
@@ -70,18 +74,14 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
   const fileInputRef = useRef(null)
 
   const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
-  const budgetItems = useTripStore(s => s.budgetItems)
-  const budgetCategories = useMemo(() => {
-    const cats = new Set<string>()
-    budgetItems.forEach(i => { if (i.category) cats.add(i.category) })
-    return Array.from(cats).sort()
-  }, [budgetItems])
+  const deleteBudgetItem = useTripStore(s => s.deleteBudgetItem)
+  // Set right before submit when the user clicked create/edit expense (see TransportModal).
+  const expenseIntentRef = useRef<{ editItem?: BudgetItem; create?: boolean } | null>(null)
 
   const [form, setForm] = useState({
     title: '', type: 'other', status: 'pending',
     reservation_time: '', reservation_end_time: '', end_date: '', location: '', confirmation_number: '',
     notes: '', assignment_id: '' as string | number, accommodation_id: '' as string | number,
-    price: '', budget_category: '',
     meta_check_in_time: '', meta_check_in_end_time: '', meta_check_out_time: '',
     hotel_place_id: '' as string | number, hotel_start_day: '' as string | number, hotel_end_day: '' as string | number,
   })
@@ -127,15 +127,12 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
         hotel_place_id: (() => { const acc = accommodations.find(a => a.id == reservation.accommodation_id); return acc?.place_id || '' })(),
         hotel_start_day: (() => { const acc = accommodations.find(a => a.id == reservation.accommodation_id); return acc?.start_day_id || '' })(),
         hotel_end_day: (() => { const acc = accommodations.find(a => a.id == reservation.accommodation_id); return acc?.end_day_id || '' })(),
-        price: meta.price || '',
-        budget_category: (meta.budget_category && budgetItems.some(i => i.category === meta.budget_category)) ? meta.budget_category : '',
       })
     } else {
       setForm({
         title: '', type: 'other', status: 'pending',
         reservation_time: '', reservation_end_time: '', end_date: '', location: '', confirmation_number: '',
         notes: '', assignment_id: defaultAssignmentId ?? '', accommodation_id: '',
-        price: '', budget_category: '',
         meta_check_in_time: '', meta_check_in_end_time: '', meta_check_out_time: '',
         hotel_place_id: '', hotel_start_day: '', hotel_end_day: '',
       })
@@ -167,8 +164,8 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
     return endFull <= startFull
   })()
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const handleSubmit = async (e?: { preventDefault?: () => void }) => {
+    e?.preventDefault?.()
     if (!form.title.trim()) return
     if (isEndBeforeStart) { toast.error(t('reservations.validation.endBeforeStart')); return }
     setIsSaving(true)
@@ -185,11 +182,6 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
       } else if (form.reservation_end_time && form.reservation_time) {
         combinedEndTime = `${form.reservation_time.split('T')[0]}T${form.reservation_end_time}`
       }
-      if (isBudgetEnabled) {
-        if (form.price) metadata.price = form.price
-        if (form.budget_category) metadata.budget_category = form.budget_category
-      }
-
       const saveData: Record<string, any> & { title: string } = {
         title: form.title, type: form.type, status: form.status,
         reservation_time: form.type === 'hotel' ? null : (form.reservation_time || null),
@@ -201,11 +193,6 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
         metadata: Object.keys(metadata).length > 0 ? metadata : null,
         endpoints: [],
         needs_review: false,
-      }
-      if (isBudgetEnabled) {
-        saveData.create_budget_entry = form.price && parseFloat(form.price) > 0
-          ? { total_price: parseFloat(form.price), category: form.budget_category || t(`reservations.type.${form.type}`) || 'Other' }
-          : { total_price: 0 }
       }
       if (form.type === 'hotel' && form.hotel_start_day && form.hotel_end_day) {
         saveData.create_accommodation = {
@@ -228,9 +215,23 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
           await onFileUpload(fd)
         }
       }
+      // Open the Costs editor for the saved booking when the user asked to
+      // create/edit its linked expense (gated on saved?.id).
+      const intent = expenseIntentRef.current
+      expenseIntentRef.current = null
+      if (intent && onOpenExpense && saved?.id) {
+        if (intent.editItem) onOpenExpense({ editItem: intent.editItem })
+        else onOpenExpense({ prefill: { reservationId: saved.id, name: form.title, category: typeToCostCategory(form.type) } })
+      }
     } finally {
       setIsSaving(false)
     }
+  }
+
+  const handleCreateExpense = () => { expenseIntentRef.current = { create: true }; handleSubmit() }
+  const handleEditExpense = (item: BudgetItem) => { expenseIntentRef.current = { editItem: item }; handleSubmit() }
+  const handleRemoveExpense = async (item: BudgetItem) => {
+    try { await deleteBudgetItem(Number(tripId), item.id) } catch { toast.error(t('common.unknownError')) }
   }
 
   const handleFileChange = async (e) => {
@@ -610,38 +611,14 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
           </div>
         </div>
 
-        {/* Price + Budget Category */}
+        {/* Costs — create / view the expense linked to this booking */}
         {isBudgetEnabled && (
-          <>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <label className={labelClass}>{t('reservations.price')}</label>
-                <input type="text" inputMode="decimal" value={form.price}
-                  onChange={e => { const v = e.target.value; if (v === '' || /^\d*[.,]?\d{0,2}$/.test(v)) set('price', v.replace(',', '.')) }}
-                  onPaste={e => { e.preventDefault(); let txt = e.clipboardData.getData('text').trim().replace(/[^\d.,-]/g, ''); const lc = txt.lastIndexOf(','), ld = txt.lastIndexOf('.'), dp = Math.max(lc, ld); if (dp > -1) { txt = txt.substring(0, dp).replace(/[.,]/g, '') + '.' + txt.substring(dp + 1) } else { txt = txt.replace(/[.,]/g, '') } set('price', txt) }}
-                  placeholder="0.00"
-                  className={inputClass} />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <label className={labelClass}>{t('reservations.budgetCategory')}</label>
-                <CustomSelect
-                  value={form.budget_category}
-                  onChange={v => set('budget_category', v)}
-                  options={[
-                    { value: '', label: t('reservations.budgetCategoryAuto') },
-                    ...budgetCategories.map(c => ({ value: c, label: c })),
-                  ]}
-                  placeholder={t('reservations.budgetCategoryAuto')}
-                  size="sm"
-                />
-              </div>
-            </div>
-            {form.price && parseFloat(form.price) > 0 && (
-              <div className="text-content-faint" style={{ fontSize: 11, marginTop: -4 }}>
-                {t('reservations.budgetHint')}
-              </div>
-            )}
-          </>
+          <BookingCostsSection
+            reservationId={reservation?.id ?? null}
+            onCreate={handleCreateExpense}
+            onEdit={handleEditExpense}
+            onRemove={handleRemoveExpense}
+          />
         )}
 
       </form>

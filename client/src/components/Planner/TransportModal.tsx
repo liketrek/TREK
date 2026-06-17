@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { Plane, Train, Car, Ship, Bus, Sailboat, Bike, CarTaxiFront, Route, Paperclip, FileText, X, ExternalLink, Link2, Plus, Trash2 } from 'lucide-react'
 import Modal from '../shared/Modal'
@@ -13,8 +13,11 @@ import { useAddonStore } from '../../store/addonStore'
 import { formatDate, splitReservationDateTime } from '../../utils/formatters'
 import { openFile } from '../../utils/fileDownload'
 import apiClient from '../../api/client'
-import type { Day, Reservation, ReservationEndpoint, TripFile } from '../../types'
+import type { Day, Reservation, ReservationEndpoint, TripFile, BudgetItem } from '../../types'
 import { parseReservationMetadata, orderedEndpoints } from '../../utils/flightLegs'
+import { BookingCostsSection } from './BookingCostsSection'
+import type { BookingExpenseRequest } from './BookingCostsSection.types'
+import { typeToCostCategory } from '@trek/shared'
 
 const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transport_other'] as const
 type TransportType = typeof TRANSPORT_TYPES[number]
@@ -105,8 +108,6 @@ const defaultForm = {
   arrival_time: '',
   confirmation_number: '',
   notes: '',
-  price: '',
-  budget_category: '',
   meta_airline: '',
   meta_flight_number: '',
   meta_train_number: '',
@@ -124,20 +125,20 @@ interface TransportModalProps {
   files?: TripFile[]
   onFileUpload?: (fd: FormData) => Promise<unknown>
   onFileDelete?: (fileId: number) => Promise<void>
+  onOpenExpense?: (req: BookingExpenseRequest) => void
 }
 
-export function TransportModal({ isOpen, onClose, onSave, reservation, days, selectedDayId, files = [], onFileUpload, onFileDelete }: TransportModalProps) {
+export function TransportModal({ isOpen, onClose, onSave, reservation, days, selectedDayId, files = [], onFileUpload, onFileDelete, onOpenExpense }: TransportModalProps) {
   const { t, locale } = useTranslation()
   const toast = useToast()
   const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
   const budgetItems = useTripStore(s => s.budgetItems)
+  const deleteBudgetItem = useTripStore(s => s.deleteBudgetItem)
   const loadFiles = useTripStore(s => s.loadFiles)
-  const budgetCategories = useMemo(() => {
-    const cats = new Set<string>()
-    budgetItems.forEach(i => { if (i.category) cats.add(i.category) })
-    return Array.from(cats).sort()
-  }, [budgetItems])
   const { id: tripId } = useParams<{ id: string }>()
+  // Set right before submitting when the user clicked "create/edit expense", so
+  // the post-save handler knows to open the Costs editor for the saved booking.
+  const expenseIntentRef = useRef<{ editItem?: BudgetItem; create?: boolean } | null>(null)
   const [form, setForm] = useState({ ...defaultForm })
   const [isSaving, setIsSaving] = useState(false)
   const [fromPick, setFromPick] = useState<EndpointPick>({})
@@ -177,8 +178,6 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         meta_train_number: meta.train_number || '',
         meta_platform: meta.platform || '',
         meta_seat: meta.seat || '',
-        price: meta.price || '',
-        budget_category: (meta.budget_category && budgetItems.some(i => i.category === meta.budget_category)) ? meta.budget_category : '',
       })
       if (type === 'flight') {
         const orderedEps = orderedEndpoints(reservation)
@@ -229,8 +228,8 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
 
   const set = (field: string, value: any) => setForm(prev => ({ ...prev, [field]: value }))
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault()
     if (!form.title.trim()) return
     setIsSaving(true)
     try {
@@ -289,11 +288,6 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         if (form.meta_platform) metadata.platform = form.meta_platform
         if (form.meta_seat) metadata.seat = form.meta_seat
       }
-      if (isBudgetEnabled) {
-        if (form.price) metadata.price = form.price
-        if (form.budget_category) metadata.budget_category = form.budget_category
-      }
-
       const startDate = startDay?.date ?? null
       const endDate = (endDay ?? startDay)?.date ?? null
       const endpoints: ReturnType<typeof endpointFromAirport>[] = []
@@ -334,11 +328,6 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         endpoints,
         needs_review: false,
       }
-      if (isBudgetEnabled) {
-        (payload as any).create_budget_entry = form.price && parseFloat(form.price) > 0
-          ? { total_price: parseFloat(form.price), category: form.budget_category || t(`reservations.type.${form.type}`) || 'Other' }
-          : { total_price: 0 }
-      }
       const saved = await onSave(payload)
       if (!reservation?.id && saved?.id && pendingFiles.length > 0 && onFileUpload) {
         for (const file of pendingFiles) {
@@ -349,11 +338,25 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
           await onFileUpload(fd)
         }
       }
+      // The user asked to create/edit the linked expense — open the Costs editor
+      // for the now-saved booking. Gated on saved?.id so a failed save doesn't.
+      const intent = expenseIntentRef.current
+      expenseIntentRef.current = null
+      if (intent && onOpenExpense && saved?.id) {
+        if (intent.editItem) onOpenExpense({ editItem: intent.editItem })
+        else onOpenExpense({ prefill: { reservationId: saved.id, name: form.title, category: typeToCostCategory(form.type) } })
+      }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t('common.unknownError'))
     } finally {
       setIsSaving(false)
     }
+  }
+
+  const handleCreateExpense = () => { expenseIntentRef.current = { create: true }; handleSubmit() }
+  const handleEditExpense = (item: BudgetItem) => { expenseIntentRef.current = { editItem: item }; handleSubmit() }
+  const handleRemoveExpense = async (item: BudgetItem) => {
+    try { await deleteBudgetItem(Number(tripId), item.id) } catch { toast.error(t('common.unknownError')) }
   }
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -712,38 +715,14 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
           </div>
         </div>
 
-        {/* Price + Budget Category */}
+        {/* Costs — create / view the expense linked to this booking */}
         {isBudgetEnabled && (
-          <>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <label className={labelClass}>{t('reservations.price')}</label>
-                <input type="text" inputMode="decimal" value={form.price}
-                  onChange={e => { const v = e.target.value; if (v === '' || /^\d*[.,]?\d{0,2}$/.test(v)) set('price', v.replace(',', '.')) }}
-                  onPaste={e => { e.preventDefault(); let txt = e.clipboardData.getData('text').trim().replace(/[^\d.,-]/g, ''); const lc = txt.lastIndexOf(','), ld = txt.lastIndexOf('.'), dp = Math.max(lc, ld); if (dp > -1) { txt = txt.substring(0, dp).replace(/[.,]/g, '') + '.' + txt.substring(dp + 1) } else { txt = txt.replace(/[.,]/g, '') } set('price', txt) }}
-                  placeholder="0.00"
-                  className={inputClass} />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <label className={labelClass}>{t('reservations.budgetCategory')}</label>
-                <CustomSelect
-                  value={form.budget_category}
-                  onChange={v => set('budget_category', v)}
-                  options={[
-                    { value: '', label: t('reservations.budgetCategoryAuto') },
-                    ...budgetCategories.map(c => ({ value: c, label: c })),
-                  ]}
-                  placeholder={t('reservations.budgetCategoryAuto')}
-                  size="sm"
-                />
-              </div>
-            </div>
-            {form.price && parseFloat(form.price) > 0 && (
-              <div className="text-content-faint" style={{ fontSize: 11, marginTop: -4 }}>
-                {t('reservations.budgetHint')}
-              </div>
-            )}
-          </>
+          <BookingCostsSection
+            reservationId={reservation?.id ?? null}
+            onCreate={handleCreateExpense}
+            onEdit={handleEditExpense}
+            onRemove={handleRemoveExpense}
+          />
         )}
 
       </form>

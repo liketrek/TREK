@@ -343,54 +343,49 @@ describe('ReservationModal', () => {
 
   // ── Budget addon ─────────────────────────────────────────────────────────────
 
-  it('FE-PLANNER-RESMODAL-024: budget section visible when budget addon is enabled', () => {
+  it('FE-PLANNER-RESMODAL-024: costs section (create expense) visible when budget addon is enabled', () => {
     seedStore(useAddonStore, {
       addons: [{ id: 'budget', name: 'Budget', type: 'budget', icon: '', enabled: true }],
       loaded: true,
     });
     render(<ReservationModal {...defaultProps} />);
-    expect(screen.getByText(/^Price$/i)).toBeInTheDocument();
-    expect(screen.getByText(/Budget category/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Create expense/i })).toBeInTheDocument();
   });
 
-  it('FE-PLANNER-RESMODAL-025: budget price input accepts valid decimal', async () => {
+  it('FE-PLANNER-RESMODAL-025: create-expense saves the booking (no create_budget_entry) then opens the Costs editor', async () => {
     seedStore(useAddonStore, {
       addons: [{ id: 'budget', name: 'Budget', type: 'budget', icon: '', enabled: true }],
       loaded: true,
     });
-    render(<ReservationModal {...defaultProps} />);
-    const priceInput = screen.getByPlaceholderText('0.00');
-    await userEvent.type(priceInput, '99.99');
-    expect((priceInput as HTMLInputElement).value).toBe('99.99');
-  });
-
-  it('FE-PLANNER-RESMODAL-026: budget hint shown when price > 0', async () => {
-    seedStore(useAddonStore, {
-      addons: [{ id: 'budget', name: 'Budget', type: 'budget', icon: '', enabled: true }],
-      loaded: true,
-    });
-    render(<ReservationModal {...defaultProps} />);
-    const priceInput = screen.getByPlaceholderText('0.00');
-    await userEvent.type(priceInput, '50');
-    expect(screen.getByText(/budget entry will be created/i)).toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-RESMODAL-027: budget fields included in onSave when price is set', async () => {
-    seedStore(useAddonStore, {
-      addons: [{ id: 'budget', name: 'Budget', type: 'budget', icon: '', enabled: true }],
-      loaded: true,
-    });
-    const onSave = vi.fn().mockResolvedValue(undefined);
-    render(<ReservationModal {...defaultProps} onSave={onSave} />);
+    const onSave = vi.fn().mockResolvedValue({ id: 55 });
+    const onOpenExpense = vi.fn();
+    render(<ReservationModal {...defaultProps} onSave={onSave} onOpenExpense={onOpenExpense} />);
 
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Hotel Paris');
-    await userEvent.type(screen.getByPlaceholderText('0.00'), '120');
-    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /Create expense/i }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ create_budget_entry: expect.objectContaining({ total_price: 120 }) })
+    expect(onSave).not.toHaveBeenCalledWith(expect.objectContaining({ create_budget_entry: expect.anything() }));
+    await waitFor(() =>
+      expect(onOpenExpense).toHaveBeenCalledWith(
+        expect.objectContaining({ prefill: expect.objectContaining({ reservationId: 55 }) })
+      )
     );
+  });
+
+  it('FE-PLANNER-RESMODAL-026: linked expense summary shown for a booking with a linked cost', () => {
+    seedStore(useAddonStore, {
+      addons: [{ id: 'budget', name: 'Budget', type: 'budget', icon: '', enabled: true }],
+      loaded: true,
+    });
+    seedStore(useTripStore, {
+      trip: buildTrip({ id: 1 }),
+      budgetItems: [
+        { id: 7, trip_id: 1, name: 'Hotel deposit', total_price: 120, currency: 'EUR', category: 'accommodation', reservation_id: 9, members: [], payers: [], persons: 1, expense_date: null, paid_by_user_id: null },
+      ],
+    });
+    render(<ReservationModal {...defaultProps} reservation={buildReservation({ id: 9, type: 'hotel', title: 'Hotel Paris' })} />);
+    expect(screen.getByText('Hotel deposit')).toBeInTheDocument();
   });
 
   // ── File upload ───────────────────────────────────────────────────────────────
@@ -599,22 +594,6 @@ describe('ReservationModal', () => {
     expect(filePickerItem).toBeInTheDocument();
   });
 
-  it('FE-PLANNER-RESMODAL-044: budget category dropdown options include existing categories', () => {
-    seedStore(useAddonStore, {
-      addons: [{ id: 'budget', name: 'Budget', type: 'budget', icon: '', enabled: true }],
-      loaded: true,
-    });
-    seedStore(useTripStore, {
-      trip: buildTrip({ id: 1 }),
-      budgetItems: [
-        { id: 1, trip_id: 1, name: 'Flight ticket', total_price: 300, category: 'Transport', paid_by_user_id: null, persons: 1, members: [], expense_date: null },
-      ],
-    });
-    render(<ReservationModal {...defaultProps} />);
-    // Budget section is visible
-    expect(screen.getByText(/Budget category/i)).toBeInTheDocument();
-  });
-
   it('FE-PLANNER-RESMODAL-045: tour type shows time pickers', async () => {
     render(<ReservationModal {...defaultProps} />);
     await userEvent.click(screen.getByRole('button', { name: /^Tour$/i }));
@@ -630,31 +609,6 @@ describe('ReservationModal', () => {
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Misc item');
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ type: 'other' })));
-  });
-
-  it('FE-PLANNER-RESMODAL-047: clicking budget category select changes the value', async () => {
-    seedStore(useAddonStore, {
-      addons: [{ id: 'budget', name: 'Budget', type: 'budget', icon: '', enabled: true }],
-      loaded: true,
-    });
-    seedStore(useTripStore, {
-      trip: buildTrip({ id: 1 }),
-      budgetItems: [
-        { id: 1, trip_id: 1, name: 'Ticket', total_price: 100, category: 'Transport', paid_by_user_id: null, persons: 1, members: [], expense_date: null },
-      ],
-    });
-    render(<ReservationModal {...defaultProps} />);
-
-    // Open the budget category CustomSelect (shows placeholder "Auto (from booking type)")
-    const budgetCategoryBtn = screen.getByText(/Auto \(from booking type\)/i).closest('button')!;
-    await userEvent.click(budgetCategoryBtn);
-
-    // Click the "Transport" category option
-    await waitFor(() => expect(screen.getByText('Transport')).toBeInTheDocument());
-    await userEvent.click(screen.getByText('Transport'));
-
-    // The select should now show "Transport"
-    expect(screen.getByText('Transport')).toBeInTheDocument();
   });
 
   it('FE-PLANNER-RESMODAL-048: clicking attach file button triggers file input', async () => {

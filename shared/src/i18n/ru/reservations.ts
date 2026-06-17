@@ -127,37 +127,56 @@ const reservations: TranslationStrings = {
   'reservations.addBooking': 'Добавить бронирование',
   'reservations.import.title': 'Импорт подтверждений бронирования',
   'reservations.import.cta': 'Импортировать из файла',
-  'reservations.import.dropHere': 'Перетащите файлы подтверждений бронирования сюда или нажмите для выбора',
+  'reservations.import.dropHere':
+    'Перетащите файлы подтверждений бронирования сюда или нажмите для выбора',
   'reservations.import.dropActive': 'Отпустите файлы для импорта',
-  'reservations.import.acceptedFormats': 'Принимаются: EML, PDF, PKPass, HTML, TXT (макс. 10 МБ каждый, до 5 файлов)',
+  'reservations.import.acceptedFormats':
+    'Принимаются: EML, PDF, PKPass, HTML, TXT (макс. 10 МБ каждый, до 5 файлов)',
   'reservations.import.parsing': 'Обработка файлов…',
   'reservations.import.previewHeading': 'Найдено {count} бронирование(й)',
-  'reservations.import.previewEmpty': 'Из загруженных файлов не удалось извлечь бронирования.',
+  'reservations.import.previewEmpty':
+    'Из загруженных файлов не удалось извлечь бронирования.',
   'reservations.import.removeItem': 'Удалить',
   'reservations.import.confirm': 'Импортировать {count} бронирование(й)',
   'reservations.import.back': 'Назад',
   'reservations.import.success': '{count} бронирование(й) импортировано',
-  'reservations.import.partialFailure': '{created} импортировано, {failed} не удалось',
-  'reservations.import.error': 'Обработка не удалась. Убедитесь, что файл является действительным подтверждением бронирования.',
-  'reservations.import.unavailable': 'Импорт бронирований недоступен на этом сервере.',
-  'reservations.import.unsupportedFormat': 'Неподдерживаемый формат файла. Используйте EML, PDF, PKPass, HTML или TXT.',
-  'reservations.import.fileTooLarge': 'Файл «{name}» превышает ограничение в 10 МБ.',
+  'reservations.import.partialFailure':
+    '{created} импортировано, {failed} не удалось',
+  'reservations.import.error':
+    'Обработка не удалась. Убедитесь, что файл является действительным подтверждением бронирования.',
+  'reservations.import.unavailable':
+    'Импорт бронирований недоступен на этом сервере.',
+  'reservations.import.unsupportedFormat':
+    'Неподдерживаемый формат файла. Используйте EML, PDF, PKPass, HTML или TXT.',
+  'reservations.import.fileTooLarge':
+    'Файл «{name}» превышает ограничение в 10 МБ.',
   'reservations.airtrail.title': 'Импорт из AirTrail',
   'reservations.airtrail.cta': 'AirTrail',
   'reservations.airtrail.synced': 'AirTrail',
-  'reservations.airtrail.syncedHint': 'Синхронизировано с AirTrail — изменения синхронизируются в обе стороны.',
+  'reservations.airtrail.syncedHint':
+    'Синхронизировано с AirTrail — изменения синхронизируются в обе стороны.',
   'reservations.airtrail.notSynced': 'Не синхронизировано',
-  'reservations.airtrail.notSyncedHint': 'Этот рейс был удалён в AirTrail и больше не синхронизируется.',
-  'reservations.airtrail.loadError': 'Не удалось загрузить ваши рейсы из AirTrail.',
+  'reservations.airtrail.notSyncedHint':
+    'Этот рейс был удалён в AirTrail и больше не синхронизируется.',
+  'reservations.airtrail.loadError':
+    'Не удалось загрузить ваши рейсы из AirTrail.',
   'reservations.airtrail.imported': 'Импортировано рейсов: {count}',
-  'reservations.airtrail.skippedDuplicate': '{count} уже в этой поездке, пропущено',
+  'reservations.airtrail.skippedDuplicate':
+    '{count} уже в этой поездке, пропущено',
   'reservations.airtrail.nothingImported': 'Нечего импортировать.',
   'reservations.airtrail.importError': 'Импорт не удался. Повторите попытку.',
   'reservations.airtrail.undo': 'Импорт из AirTrail',
   'reservations.airtrail.alreadyImported': 'Импортировано',
   'reservations.airtrail.duringTrip': 'Во время этой поездки',
   'reservations.airtrail.otherFlights': 'Другие рейсы',
-  'reservations.airtrail.empty': 'В вашей учётной записи AirTrail не найдено рейсов.',
+  'reservations.airtrail.empty':
+    'В вашей учётной записи AirTrail не найдено рейсов.',
   'reservations.airtrail.importCta': 'Импортировать {count}',
+  'reservations.costsLabel': 'Costs',
+  'reservations.createExpense': 'Create expense',
+  'reservations.createExpenseHint':
+    'Saves the booking, then opens the Costs editor.',
+  'reservations.linkedExpense': 'Linked expense',
+  'reservations.removeExpense': 'Remove expense',
 };
 export default reservations;

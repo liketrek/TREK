@@ -126,30 +126,39 @@ const reservations: TranslationStrings = {
   'reservations.addBooking': 'Add booking',
   'reservations.import.title': 'Import booking confirmations',
   'reservations.import.cta': 'Import from file',
-  'reservations.import.dropHere': 'Drop booking confirmation files here, or click to select',
+  'reservations.import.dropHere':
+    'Drop booking confirmation files here, or click to select',
   'reservations.import.dropActive': 'Drop files to import',
-  'reservations.import.acceptedFormats': 'Accepted: EML, PDF, PKPass, HTML, TXT (max 10 MB each, up to 5 files)',
+  'reservations.import.acceptedFormats':
+    'Accepted: EML, PDF, PKPass, HTML, TXT (max 10 MB each, up to 5 files)',
   'reservations.import.parsing': 'Parsing files…',
   'reservations.import.previewHeading': '{count} reservation(s) found',
-  'reservations.import.previewEmpty': 'No reservations could be extracted from the uploaded files.',
+  'reservations.import.previewEmpty':
+    'No reservations could be extracted from the uploaded files.',
   'reservations.import.removeItem': 'Remove',
   'reservations.import.confirm': 'Import {count} reservation(s)',
   'reservations.import.back': 'Back',
   'reservations.import.success': '{count} reservation(s) imported',
   'reservations.import.partialFailure': '{created} imported, {failed} failed',
-  'reservations.import.error': 'Parsing failed. Make sure the file is a valid booking confirmation.',
-  'reservations.import.unavailable': 'Booking import is not available on this server.',
-  'reservations.import.unsupportedFormat': 'Unsupported file format. Use EML, PDF, PKPass, HTML, or TXT.',
+  'reservations.import.error':
+    'Parsing failed. Make sure the file is a valid booking confirmation.',
+  'reservations.import.unavailable':
+    'Booking import is not available on this server.',
+  'reservations.import.unsupportedFormat':
+    'Unsupported file format. Use EML, PDF, PKPass, HTML, or TXT.',
   'reservations.import.fileTooLarge': 'File "{name}" exceeds 10 MB limit.',
   'reservations.airtrail.title': 'Import from AirTrail',
   'reservations.airtrail.cta': 'AirTrail',
   'reservations.airtrail.synced': 'AirTrail',
-  'reservations.airtrail.syncedHint': 'Synced from AirTrail — edits stay in sync both ways.',
+  'reservations.airtrail.syncedHint':
+    'Synced from AirTrail — edits stay in sync both ways.',
   'reservations.airtrail.notSynced': 'Not synced',
-  'reservations.airtrail.notSyncedHint': 'This flight was removed in AirTrail and no longer syncs.',
+  'reservations.airtrail.notSyncedHint':
+    'This flight was removed in AirTrail and no longer syncs.',
   'reservations.airtrail.loadError': 'Could not load your AirTrail flights.',
   'reservations.airtrail.imported': '{count} flight(s) imported',
-  'reservations.airtrail.skippedDuplicate': '{count} already in this trip, skipped',
+  'reservations.airtrail.skippedDuplicate':
+    '{count} already in this trip, skipped',
   'reservations.airtrail.nothingImported': 'Nothing to import.',
   'reservations.airtrail.importError': 'Import failed. Please try again.',
   'reservations.airtrail.undo': 'Import from AirTrail',
@@ -158,5 +167,11 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.otherFlights': 'Other flights',
   'reservations.airtrail.empty': 'No flights found in your AirTrail account.',
   'reservations.airtrail.importCta': 'Import {count}',
+  'reservations.costsLabel': 'Costs',
+  'reservations.createExpense': 'Create expense',
+  'reservations.createExpenseHint':
+    'Saves the booking, then opens the Costs editor.',
+  'reservations.linkedExpense': 'Linked expense',
+  'reservations.removeExpense': 'Remove expense',
 };
 export default reservations;

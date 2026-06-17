@@ -5,6 +5,7 @@ import { checkPermission } from '../../services/permissions';
 import type { User } from '../../types';
 import * as svc from '../../services/reservationService';
 import { createBudgetItem, updateBudgetItem, deleteBudgetItem, linkBudgetItemToReservation } from '../../services/budgetService';
+import { typeToCostCategory } from '@trek/shared';
 
 type Trip = NonNullable<ReturnType<typeof svc.verifyTripAccess>>;
 type BudgetEntry = { total_price?: number; category?: string } | undefined;
@@ -77,30 +78,51 @@ export class ReservationsService {
 
   /** PUT side effect: drop the linked budget item when the price is cleared, else create/update it. */
   syncBudgetOnUpdate(tripId: string, id: string, title: string, type: string | undefined, currentTitle: string, currentType: string | undefined, entry: BudgetEntry, socketId: string | undefined): void {
-    if (!entry || !entry.total_price) {
+    // When the booking type changes, keep a linked expense's category in sync —
+    // but only if it still carries the auto-derived category (so a manual pick in
+    // the Costs editor is preserved). Runs regardless of create_budget_entry.
+    if (type && currentType && type !== currentType) {
+      const linked = db.prepare('SELECT id, category FROM budget_items WHERE trip_id = ? AND reservation_id = ?').get(tripId, id) as { id: number; category: string } | undefined;
+      if (linked) {
+        const oldCat = typeToCostCategory(currentType);
+        const newCat = typeToCostCategory(type);
+        if (oldCat !== newCat && linked.category === oldCat) {
+          const updated = updateBudgetItem(linked.id, tripId, { category: newCat });
+          broadcast(tripId, 'budget:updated', { item: updated }, socketId);
+        }
+      }
+    }
+
+    // No budget entry on the payload — the booking edit isn't touching its linked
+    // expense, so leave any linked item alone. Expenses are managed from the
+    // booking's Costs section / the Costs tab, not by re-saving the booking.
+    if (!entry) return;
+
+    if (!(Number(entry.total_price) > 0)) {
+      // Explicit clear (total_price 0/empty) — drop the linked item.
       const linked = db.prepare('SELECT id FROM budget_items WHERE trip_id = ? AND reservation_id = ?').get(tripId, id) as { id: number } | undefined;
       if (linked) {
         deleteBudgetItem(linked.id, tripId);
         broadcast(tripId, 'budget:deleted', { itemId: linked.id }, socketId);
       }
+      return;
     }
-    if (entry && Number(entry.total_price) > 0) {
-      try {
-        const itemName = title || currentTitle;
-        const category = entry.category || type || currentType || 'Other';
-        const existing = db.prepare('SELECT id FROM budget_items WHERE trip_id = ? AND reservation_id = ?').get(tripId, id) as { id: number } | undefined;
-        if (existing) {
-          const updated = updateBudgetItem(existing.id, tripId, { name: itemName, category, total_price: entry.total_price });
-          broadcast(tripId, 'budget:updated', { item: updated }, socketId);
-        } else {
-          const item = createBudgetItem(tripId, { name: itemName, category, total_price: entry.total_price });
-          db.prepare('UPDATE budget_items SET reservation_id = ? WHERE id = ?').run(id, item.id);
-          item.reservation_id = Number(id);
-          broadcast(tripId, 'budget:created', { item }, socketId);
-        }
-      } catch (err) {
-        console.error('[reservations] Failed to create/update budget entry:', err);
+
+    try {
+      const itemName = title || currentTitle;
+      const category = entry.category || type || currentType || 'Other';
+      const existing = db.prepare('SELECT id FROM budget_items WHERE trip_id = ? AND reservation_id = ?').get(tripId, id) as { id: number } | undefined;
+      if (existing) {
+        const updated = updateBudgetItem(existing.id, tripId, { name: itemName, category, total_price: entry.total_price });
+        broadcast(tripId, 'budget:updated', { item: updated }, socketId);
+      } else {
+        const item = createBudgetItem(tripId, { name: itemName, category, total_price: entry.total_price });
+        db.prepare('UPDATE budget_items SET reservation_id = ? WHERE id = ?').run(id, item.id);
+        item.reservation_id = Number(id);
+        broadcast(tripId, 'budget:created', { item }, socketId);
       }
+    } catch (err) {
+      console.error('[reservations] Failed to create/update budget entry:', err);
     }
   }
 

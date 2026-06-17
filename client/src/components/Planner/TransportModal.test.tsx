@@ -132,34 +132,37 @@ describe('TransportModal', () => {
 
   // ── Budget addon ─────────────────────────────────────────────────────────────
 
-  it('FE-PLANNER-TRANSMODAL-011: budget section visible when addon is enabled', () => {
+  it('FE-PLANNER-TRANSMODAL-011: costs section (create expense) visible when budget addon is enabled', () => {
     seedStore(useAddonStore, {
       addons: [{ id: 'budget', name: 'Budget', type: 'budget', icon: '', enabled: true }],
       loaded: true,
     });
     render(<TransportModal {...defaultProps} />);
-    expect(screen.getByText(/^Price$/i)).toBeInTheDocument();
-    expect(screen.getByText(/Budget category/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Create expense/i })).toBeInTheDocument();
   });
 
-  it('FE-PLANNER-TRANSMODAL-012: budget section not shown when addon is disabled', () => {
+  it('FE-PLANNER-TRANSMODAL-012: costs section not shown when budget addon is disabled', () => {
     render(<TransportModal {...defaultProps} />);
-    expect(screen.queryByPlaceholderText('0.00')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Create expense/i })).not.toBeInTheDocument();
   });
 
-  it('FE-PLANNER-TRANSMODAL-013: budget fields included in onSave when price is set', async () => {
+  it('FE-PLANNER-TRANSMODAL-013: create-expense saves the booking (no create_budget_entry) then opens the Costs editor', async () => {
     seedStore(useAddonStore, {
       addons: [{ id: 'budget', name: 'Budget', type: 'budget', icon: '', enabled: true }],
       loaded: true,
     });
-    const onSave = vi.fn().mockResolvedValue(undefined);
-    render(<TransportModal {...defaultProps} onSave={onSave} />);
+    const onSave = vi.fn().mockResolvedValue({ id: 42 });
+    const onOpenExpense = vi.fn();
+    render(<TransportModal {...defaultProps} onSave={onSave} onOpenExpense={onOpenExpense} />);
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'ICE Train');
-    await userEvent.type(screen.getByPlaceholderText('0.00'), '85');
-    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /Create expense/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ create_budget_entry: expect.objectContaining({ total_price: 85 }) })
+    // The legacy auto-budget mechanism is gone; the expense is created via the editor instead.
+    expect(onSave).not.toHaveBeenCalledWith(expect.objectContaining({ create_budget_entry: expect.anything() }));
+    await waitFor(() =>
+      expect(onOpenExpense).toHaveBeenCalledWith(
+        expect.objectContaining({ prefill: expect.objectContaining({ reservationId: 42 }) })
+      )
     );
   });
 

@@ -125,7 +125,8 @@ const reservations: TranslationStrings = {
   'reservations.import.cta': '從檔案匯入',
   'reservations.import.dropHere': '將訂位確認檔案拖放到此處，或點擊選擇',
   'reservations.import.dropActive': '放開檔案以匯入',
-  'reservations.import.acceptedFormats': '支援格式：EML、PDF、PKPass、HTML、TXT（每個最大 10 MB，最多 5 個檔案）',
+  'reservations.import.acceptedFormats':
+    '支援格式：EML、PDF、PKPass、HTML、TXT（每個最大 10 MB，最多 5 個檔案）',
   'reservations.import.parsing': '正在解析檔案…',
   'reservations.import.previewHeading': '找到 {count} 筆預訂',
   'reservations.import.previewEmpty': '無法從上傳的檔案中提取任何預訂資訊。',
@@ -136,14 +137,17 @@ const reservations: TranslationStrings = {
   'reservations.import.partialFailure': '已匯入 {created} 筆，{failed} 筆失敗',
   'reservations.import.error': '解析失敗。請確保檔案是有效的訂位確認。',
   'reservations.import.unavailable': '此伺服器上的預訂匯入功能不可用。',
-  'reservations.import.unsupportedFormat': '不支援的檔案格式。請使用 EML、PDF、PKPass、HTML 或 TXT。',
+  'reservations.import.unsupportedFormat':
+    '不支援的檔案格式。請使用 EML、PDF、PKPass、HTML 或 TXT。',
   'reservations.import.fileTooLarge': '檔案「{name}」超過 10 MB 限制。',
   'reservations.airtrail.title': '從 AirTrail 匯入',
   'reservations.airtrail.cta': 'AirTrail',
   'reservations.airtrail.synced': 'AirTrail',
-  'reservations.airtrail.syncedHint': '已從 AirTrail 同步——編輯會雙向保持同步。',
+  'reservations.airtrail.syncedHint':
+    '已從 AirTrail 同步——編輯會雙向保持同步。',
   'reservations.airtrail.notSynced': '未同步',
-  'reservations.airtrail.notSyncedHint': '此航班已在 AirTrail 中移除，不再同步。',
+  'reservations.airtrail.notSyncedHint':
+    '此航班已在 AirTrail 中移除，不再同步。',
   'reservations.airtrail.loadError': '無法載入你的 AirTrail 航班。',
   'reservations.airtrail.imported': '已匯入 {count} 筆航班',
   'reservations.airtrail.skippedDuplicate': '{count} 筆已在此行程中，已略過',
@@ -155,5 +159,11 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.otherFlights': '其他航班',
   'reservations.airtrail.empty': '在你的 AirTrail 帳戶中找不到任何航班。',
   'reservations.airtrail.importCta': '匯入 {count}',
+  'reservations.costsLabel': 'Costs',
+  'reservations.createExpense': 'Create expense',
+  'reservations.createExpenseHint':
+    'Saves the booking, then opens the Costs editor.',
+  'reservations.linkedExpense': 'Linked expense',
+  'reservations.removeExpense': 'Remove expense',
 };
 export default reservations;

@@ -50,6 +50,35 @@ export const COST_CATEGORIES = [
 export type CostCategory = (typeof COST_CATEGORIES)[number];
 
 /**
+ * Maps a reservation `type` (flight, train, hotel, …) to one of the fixed Costs
+ * categories, so an expense created from a booking lands in the right bucket
+ * instead of a free-text/localized label. Unknown types fall back to `other`.
+ */
+const RESERVATION_TYPE_TO_COST_CATEGORY: Record<string, CostCategory> = {
+  flight: 'flights',
+  plane: 'flights',
+  train: 'transport',
+  bus: 'transport',
+  car: 'transport',
+  'car-rental': 'transport',
+  ferry: 'transport',
+  boat: 'transport',
+  taxi: 'transport',
+  transfer: 'transport',
+  transport: 'transport',
+  hotel: 'accommodation',
+  accommodation: 'accommodation',
+  lodging: 'accommodation',
+  restaurant: 'food',
+  activity: 'activities',
+};
+
+export function typeToCostCategory(type: string | null | undefined): CostCategory {
+  if (!type) return 'other';
+  return RESERVATION_TYPE_TO_COST_CATEGORY[type.trim().toLowerCase()] || 'other';
+}
+
+/**
  * One payer of an expense — a row of budget_item_payers. `amount` is in the
  * expense's own currency (budget_items.currency). Several payers can split who
  * actually paid one bill. Username/avatar are joined for display.
@@ -112,6 +141,9 @@ export const budgetCreateItemRequestSchema = z.object({
   days: z.number().nullable().optional(),
   note: z.string().nullable().optional(),
   expense_date: z.string().nullable().optional(),
+  // Link this expense to a reservation (e.g. created from a booking's
+  // "add expense" flow). The server stores it on budget_items.reservation_id.
+  reservation_id: z.number().optional(),
 });
 export type BudgetCreateItemRequest = z.infer<
   typeof budgetCreateItemRequestSchema

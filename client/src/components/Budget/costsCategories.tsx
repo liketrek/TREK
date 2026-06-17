@@ -32,8 +32,32 @@ export const COST_CAT_META: Record<CostCategory, CostCategoryMeta> = {
 
 export const COST_CATEGORY_LIST: CostCategoryMeta[] = COST_CATEGORIES.map(k => COST_CAT_META[k])
 
-/** Map any stored category (incl. legacy free-text values) to a known meta. */
+/**
+ * Legacy / English free-text categories (and reservation type labels) mapped to
+ * the fixed keys. Bookings used to store labels like "Flight"/"Train"/"Other",
+ * which never matched the lowercase keys and fell through to `other`.
+ */
+const LEGACY_CATEGORY_MAP: Record<string, CostCategory> = {
+  flight: 'flights', flights: 'flights', plane: 'flights', flug: 'flights',
+  train: 'transport', bus: 'transport', car: 'transport', 'car rental': 'transport',
+  ferry: 'transport', boat: 'transport', taxi: 'transport', transfer: 'transport',
+  transport: 'transport', transportation: 'transport',
+  hotel: 'accommodation', accommodation: 'accommodation', lodging: 'accommodation', hostel: 'accommodation',
+  restaurant: 'food', food: 'food', dining: 'food', meal: 'food', meals: 'food',
+  grocery: 'groceries', groceries: 'groceries',
+  activity: 'activities', activities: 'activities',
+  sightseeing: 'sightseeing', sights: 'sightseeing',
+  shop: 'shopping', shopping: 'shopping',
+  fee: 'fees', fees: 'fees',
+  health: 'health', medical: 'health',
+  tip: 'tips', tips: 'tips',
+  other: 'other', misc: 'other',
+}
+
+/** Map any stored category (incl. legacy/localized free-text values) to a known meta. */
 export function catMeta(cat: string | null | undefined): CostCategoryMeta {
-  if (cat && cat in COST_CAT_META) return COST_CAT_META[cat as CostCategory]
-  return COST_CAT_META.other
+  if (!cat) return COST_CAT_META.other
+  if (cat in COST_CAT_META) return COST_CAT_META[cat as CostCategory]
+  const mapped = LEGACY_CATEGORY_MAP[cat.trim().toLowerCase()]
+  return mapped ? COST_CAT_META[mapped] : COST_CAT_META.other
 }

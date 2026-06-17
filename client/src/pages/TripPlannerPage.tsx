@@ -25,7 +25,9 @@ import PackingListPanel from '../components/Packing/PackingListPanel'
 import ApplyTemplateButton from '../components/Packing/ApplyTemplateButton'
 import TodoListPanel from '../components/Todo/TodoListPanel'
 import FileManager from '../components/Files/FileManager'
-import CostsPanel from '../components/Budget/CostsPanel'
+import CostsPanel, { ExpenseModal, type ExpensePrefill } from '../components/Budget/CostsPanel'
+import type { BookingExpenseRequest } from '../components/Planner/BookingCostsSection.types'
+import type { BudgetItem } from '../types'
 import CollabPanel from '../components/Collab/CollabPanel'
 import Navbar from '../components/Layout/Navbar'
 import { useToast } from '../components/shared/Toast'
@@ -211,6 +213,18 @@ export default function TripPlannerPage(): React.ReactElement | null {
   const poi = usePoiExplore()
   const [glMap, setGlMap] = useState<import('mapbox-gl').Map | null>(null)
   const poiPillEnabled = useSettingsStore(s => s.settings.map_poi_pill_enabled) !== false
+
+  // Costs expense editor opened from a booking modal (save-then-open). Lives at the
+  // page level so it has tripMembers / base currency / current user available.
+  const meId = useAuthStore(s => s.user?.id ?? -1)
+  const displayCurrency = useSettingsStore(s => s.settings.default_currency)
+  const costsBase = (displayCurrency || trip?.currency || 'EUR').toUpperCase()
+  const loadBudgetItems = useTripStore(s => s.loadBudgetItems)
+  const [bookingExpense, setBookingExpense] = useState<{ editing: BudgetItem | null; prefill?: ExpensePrefill } | null>(null)
+  const openBookingExpense = (req: BookingExpenseRequest) => {
+    if (req.editItem) setBookingExpense({ editing: req.editItem })
+    else if (req.prefill) setBookingExpense({ editing: null, prefill: req.prefill })
+  }
 
   if (isLoading || !splashDone) {
     return (
@@ -706,8 +720,20 @@ export default function TripPlannerPage(): React.ReactElement | null {
       <PlaceFormModal isOpen={showPlaceForm} onClose={() => { setShowPlaceForm(false); setEditingPlace(null); setEditingAssignmentId(null); setPrefillCoords(null) }} onSave={handleSavePlace} place={editingPlace} prefillCoords={prefillCoords} assignmentId={editingAssignmentId} dayAssignments={editingAssignmentId ? Object.values(assignments).flat() : []} tripId={tripId} categories={categories} onCategoryCreated={cat => tripActions.addCategory?.(cat)} />
       <TripFormModal isOpen={showTripForm} onClose={() => setShowTripForm(false)} onSave={async (data) => { await tripActions.updateTrip(tripId, data); toast.success(t('trip.toast.tripUpdated')) }} trip={trip} />
       <TripMembersModal isOpen={showMembersModal} onClose={() => setShowMembersModal(false)} tripId={tripId} tripTitle={trip?.title} />
-      <ReservationModal isOpen={showReservationModal} onClose={() => { setShowReservationModal(false); setEditingReservation(null); setBookingForAssignmentId(null) }} onSave={handleSaveReservation} reservation={editingReservation} days={days} places={places} assignments={assignments} selectedDayId={selectedDayId} files={files} onFileUpload={canUploadFiles ? (fd) => tripActions.addFile(tripId, fd) : undefined} onFileDelete={(id) => tripActions.deleteFile(tripId, id)} accommodations={tripAccommodations} defaultAssignmentId={bookingForAssignmentId} />
-      {showTransportModal && <TransportModal isOpen={showTransportModal} onClose={() => { setShowTransportModal(false); setEditingTransport(null); setTransportModalDayId(null) }} onSave={handleSaveTransport} reservation={editingTransport} days={days} selectedDayId={transportModalDayId} files={files} onFileUpload={canUploadFiles ? (fd) => tripActions.addFile(tripId, fd) : undefined} onFileDelete={(id) => tripActions.deleteFile(tripId, id)} />}
+      <ReservationModal isOpen={showReservationModal} onClose={() => { setShowReservationModal(false); setEditingReservation(null); setBookingForAssignmentId(null) }} onSave={handleSaveReservation} reservation={editingReservation} days={days} places={places} assignments={assignments} selectedDayId={selectedDayId} files={files} onFileUpload={canUploadFiles ? (fd) => tripActions.addFile(tripId, fd) : undefined} onFileDelete={(id) => tripActions.deleteFile(tripId, id)} accommodations={tripAccommodations} defaultAssignmentId={bookingForAssignmentId} onOpenExpense={openBookingExpense} />
+      {showTransportModal && <TransportModal isOpen={showTransportModal} onClose={() => { setShowTransportModal(false); setEditingTransport(null); setTransportModalDayId(null) }} onSave={handleSaveTransport} reservation={editingTransport} days={days} selectedDayId={transportModalDayId} files={files} onFileUpload={canUploadFiles ? (fd) => tripActions.addFile(tripId, fd) : undefined} onFileDelete={(id) => tripActions.deleteFile(tripId, id)} onOpenExpense={openBookingExpense} />}
+      {bookingExpense && (
+        <ExpenseModal
+          tripId={tripId}
+          base={costsBase}
+          people={tripMembers}
+          me={meId}
+          editing={bookingExpense.editing}
+          prefill={bookingExpense.prefill}
+          onClose={() => setBookingExpense(null)}
+          onSaved={() => { setBookingExpense(null); loadBudgetItems(tripId) }}
+        />
+      )}
       <BookingImportModal isOpen={showBookingImport} onClose={() => setShowBookingImport(false)} tripId={tripId} pushUndo={pushUndo} />
       <AirTrailImportModal isOpen={showAirTrailImport} onClose={() => setShowAirTrailImport(false)} tripId={tripId} pushUndo={pushUndo} />
       <ConfirmDialog
