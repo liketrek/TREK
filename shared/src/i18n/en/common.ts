@@ -50,5 +50,17 @@ const common: TranslationStrings = {
   'common.collapse': 'Collapse',
   'common.copy': 'Copy',
   'common.copied': 'Copied',
+  'common.datepicker.prevMonth': 'Previous month',
+  'common.datepicker.nextMonth': 'Next month',
+  'common.datepicker.prevYear': 'Previous year',
+  'common.datepicker.nextYear': 'Next year',
+  'common.datepicker.prevYears': 'Previous years',
+  'common.datepicker.nextYears': 'Next years',
+  'common.datepicker.selectMonth': 'Select month',
+  'common.datepicker.selectYear': 'Select year',
+  'common.datepicker.enterManually': 'Enter date manually',
+  'common.datepicker.typeDate': 'Type a date',
+  'common.datepicker.dialog': 'Date picker',
+  'common.datepicker.clearDate': 'Clear date',
 };
 export default common;

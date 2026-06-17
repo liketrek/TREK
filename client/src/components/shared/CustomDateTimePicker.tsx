@@ -84,13 +84,32 @@ export function CustomDatePicker({
     else setYearPageStart((s) => s + YEAR_PAGE_SIZE);
   };
 
-  const prevAriaLabel = view === 'days' ? 'Previous month' : view === 'months' ? 'Previous year' : 'Previous years';
-  const nextAriaLabel = view === 'days' ? 'Next month' : view === 'months' ? 'Next year' : 'Next years';
+  // prevAriaLabel / nextAriaLabel:
+  const prevAriaLabel =
+    view === 'days'
+      ? t('common.datepicker.prevMonth')
+      : view === 'months'
+        ? t('common.datepicker.prevYear')
+        : t('common.datepicker.prevYears');
+
+  const nextAriaLabel =
+    view === 'days'
+      ? t('common.datepicker.nextMonth')
+      : view === 'months'
+        ? t('common.datepicker.nextYear')
+        : t('common.datepicker.nextYears');
+
+  // headerAriaLabel:
+  const headerAriaLabel =
+    view === 'days'
+      ? t('common.datepicker.selectMonth')
+      : view === 'months'
+        ? t('common.datepicker.selectYear')
+        : undefined;
 
   const monthLabel = new Date(viewYear, viewMonth).toLocaleDateString(locale, { month: 'long', year: 'numeric' });
   const yearRangeLabel = `${yearPageStart} – ${yearPageStart + YEAR_PAGE_SIZE - 1}`;
   const headerLabel = view === 'days' ? monthLabel : view === 'months' ? String(viewYear) : yearRangeLabel;
-  const headerAriaLabel = view === 'days' ? 'Select month' : view === 'months' ? 'Select year' : undefined;
 
   const handleHeaderClick = () => {
     if (view === 'days') {
@@ -160,27 +179,46 @@ export function CustomDatePicker({
   const handleTextSubmit = () => {
     setIsTyping(false);
     if (!textInput.trim()) return;
-    // Try to parse various date formats
     const input = textInput.trim();
-    // ISO: 2026-03-29
+
+    // Try ISO first — always works
     if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
       onChange(input);
       return;
     }
-    // EU: 29.03.2026 or 29/03/2026
-    const euMatch = input.match(/^(\d{1,2})[./](\d{1,2})[./](\d{2,4})$/);
-    if (euMatch) {
-      const y = euMatch[3].length === 2 ? 2000 + parseInt(euMatch[3]) : parseInt(euMatch[3]);
-      onChange(`${y}-${String(euMatch[2]).padStart(2, '0')}-${String(euMatch[1]).padStart(2, '0')}`);
-      return;
+
+    // Determine field order for active locale via Intl
+    const parts = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'numeric', year: 'numeric' }).formatToParts(
+      new Date(2001, 5, 15)
+    ); // known date: June 15, 2001
+    const order = parts
+      .filter((p) => ['day', 'month', 'year'].includes(p.type))
+      .map((p) => p.type as 'day' | 'month' | 'year');
+
+    // Strip non-numeric chars (handles RTL marks, dots, slashes, spaces)
+    const nums = input
+      .replace(/[^\d]+/g, ' ')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+    if (nums.length !== 3) return;
+
+    // nachher:
+    const get = (field: 'day' | 'month' | 'year') => parseInt(nums[order.indexOf(field)]);
+    let d = get('day'),
+      m = get('month'),
+      y = get('year');
+    if (isNaN(d) || isNaN(m) || isNaN(y)) return;
+
+    // If locale order gives impossible month but valid swap, correct it
+    if (m > 12 && d <= 12) {
+      const tmp = m;
+      m = d;
+      d = tmp;
     }
-    // Try native Date parse as fallback
-    const d = new Date(input);
-    if (!isNaN(d.getTime())) {
-      onChange(
-        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-      );
-    }
+    const year = y < 100 ? 2000 + y : y;
+    if (m < 1 || m > 12 || d < 1 || d > 31) return;
+    onChange(`${year}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
   };
 
   const gridCellStyle = (selected: boolean, current: boolean): React.CSSProperties => ({
@@ -267,8 +305,8 @@ export function CustomDatePicker({
                 setTextInput(inputValue || '');
                 setIsTyping(true);
               }}
-              aria-label="Enter date manually"
-              title="Type a date"
+              aria-label={t('common.datepicker.enterManually')}
+              title={t('common.datepicker.typeDate')}
               style={{
                 background: 'none',
                 border: '1px solid var(--border-primary)',
@@ -301,7 +339,7 @@ export function CustomDatePicker({
           <div
             ref={dropRef}
             role="dialog"
-            aria-label="Date picker"
+            aria-label={t('common.datepicker.dialog')}
             style={{
               position: 'fixed',
               ...(() => {
@@ -543,8 +581,8 @@ export function CustomDatePicker({
                     setTextInput(inputValue || '');
                     setIsTyping(true);
                   }}
-                  aria-label="Enter date manually"
-                  title="Type a date"
+                  aria-label={t('common.datepicker.enterManually')}
+                  title={t('common.datepicker.typeDate')}
                   style={{
                     background: 'none',
                     border: 'none',
@@ -570,7 +608,7 @@ export function CustomDatePicker({
                     onChange('');
                     setOpen(false);
                   }}
-                  aria-label="Clear date"
+                  aria-label={t('common.datepicker.clearDate')}
                   style={{
                     background: 'none',
                     border: 'none',

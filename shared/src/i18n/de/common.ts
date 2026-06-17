@@ -50,5 +50,17 @@ const common: TranslationStrings = {
   'common.reset': 'Zurücksetzen',
   'common.copy': 'Kopieren',
   'common.copied': 'Kopiert',
+  'common.datepicker.prevMonth': 'Vormonat',
+  'common.datepicker.nextMonth': 'Nächster Monat',
+  'common.datepicker.prevYear': 'Vorjahr',
+  'common.datepicker.nextYear': 'Nächstes Jahr',
+  'common.datepicker.prevYears': 'Vorherige Jahre',
+  'common.datepicker.nextYears': 'Nächste Jahre',
+  'common.datepicker.selectMonth': 'Monat auswählen',
+  'common.datepicker.selectYear': 'Jahr auswählen',
+  'common.datepicker.enterManually': 'Datum manuell eingeben',
+  'common.datepicker.typeDate': 'Datum eingeben',
+  'common.datepicker.dialog': 'Datumsauswahl',
+  'common.datepicker.clearDate': 'Datum löschen',
 };
 export default common;

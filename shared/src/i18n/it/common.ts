@@ -50,5 +50,17 @@ const common: TranslationStrings = {
   'common.justNow': 'proprio ora',
   'common.hoursAgo': '{count}h fa',
   'common.daysAgo': '{count}g fa',
+  'common.datepicker.prevMonth': 'Mese precedente',
+  'common.datepicker.nextMonth': 'Mese prossimo',
+  'common.datepicker.prevYear': 'Anno precedente',
+  'common.datepicker.nextYear': 'Anno prossimo',
+  'common.datepicker.prevYears': 'Anni precedenti',
+  'common.datepicker.nextYears': 'Anni prossimi',
+  'common.datepicker.selectMonth': 'Seleziona mese',
+  'common.datepicker.selectYear': 'Seleziona anno',
+  'common.datepicker.enterManually': 'Inserisci la data manualmente',
+  'common.datepicker.typeDate': 'Inserisci una data',
+  'common.datepicker.dialog': 'Selettore di date',
+  'common.datepicker.clearDate': 'Cancella data',
 };
 export default common;

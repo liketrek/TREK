@@ -121,9 +121,9 @@ describe('CustomDatePicker', () => {
     render(<CustomDatePicker value="" onChange={onChange} />);
     await user.click(screen.getByRole('button', { name: /enter date manually/i }));
     const input = screen.getByPlaceholderText('DD.MM.YYYY');
-    fireEvent.change(input, { target: { value: '04.07.2026' } });
+    fireEvent.change(input, { target: { value: '17.07.2026' } });
     fireEvent.keyDown(input, { key: 'Enter' });
-    expect(onChange).toHaveBeenCalledWith('2026-07-04');
+    expect(onChange).toHaveBeenCalledWith('2026-07-17');
   });
 
   it('FE-COMP-DATEPICKER-014: Escape in text input cancels text mode', async () => {
