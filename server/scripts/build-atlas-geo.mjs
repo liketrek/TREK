@@ -151,18 +151,37 @@ function normalizeAdm0Feature(f) {
 
 function normalizeAdm1(geo, a3, countryName) {
   if (!geo?.features) return []
+  const a2 = A3_TO_A2[a3] || null
+  // Ensure every region in a country ends up with a distinct iso_3166_2 — the Atlas
+  // marks/unmarks regions by this code, so duplicates make one mark light up the whole
+  // country.
+  const used = new Set()
+  const uniq = (base) => {
+    let code = base, n = 2
+    while (used.has(code)) code = `${base}-${n++}`
+    used.add(code)
+    return code
+  }
   return geo.features.map(f => {
     const name = f.properties?.shapeName || ''
     const geometry = quantizeGeometry(f.geometry, ADM1_DECIMALS)
     if (!geometry) return null
-    const a2 = A3_TO_A2[a3] || null
-    // shapeISO is a real ISO 3166-2 code for ~90% of features; geoBoundaries leaves the
-    // rest blank or uses an `XX_YYY` placeholder. Keep real/placeholder codes as-is
-    // (stable per polygon → manual mark/unmark works, real ones match Nominatim). For
-    // blank codes, synthesize a stable id mirroring the server's geocode fallback so
-    // every region is still markable.
-    let code = f.properties?.shapeISO || ''
-    if (!code && a2) code = `${a2}-${name.replace(/[^A-Za-z0-9]/g, '').substring(0, 3).toUpperCase()}`
+    // shapeISO is a real ISO 3166-2 code for most features, but geoBoundaries sometimes
+    // fills it with the bare country code instead of a subdivision code — e.g. every
+    // Spanish region gets "ESP", every Chinese "CHN" (also CL/OM). Keep it only when it
+    // is a real `XX-…` subdivision code and not already taken; otherwise synthesize a
+    // stable, unique-per-country id from the region name so each region is independently
+    // markable.
+    const raw = f.properties?.shapeISO || ''
+    let code
+    if (/^[A-Za-z]{2}-[A-Za-z0-9]+$/.test(raw) && !used.has(raw)) {
+      code = raw
+      used.add(code)
+    } else if (a2) {
+      code = uniq(`${a2}-${name.replace(/[^A-Za-z0-9]/g, '').toUpperCase() || 'RGN'}`)
+    } else {
+      code = raw
+    }
     return {
       type: 'Feature',
       // Property names the Atlas region layer + server getRegionGeo already read.
