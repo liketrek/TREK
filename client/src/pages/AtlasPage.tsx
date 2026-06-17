@@ -6,6 +6,7 @@ import CustomSelect from '../components/shared/CustomSelect'
 import { Globe, MapPin, Briefcase, Calendar, Flag, PanelLeftOpen, PanelLeftClose, X, Star, Plus, Trash2, Search } from 'lucide-react'
 import type { TranslationFn } from '../types'
 import { A2_TO_A3, countryCodeToFlag, type AtlasCountry, type AtlasStats, type AtlasData, type CountryDetail } from './atlas/atlasModel'
+import { continentForCountry } from '@trek/shared'
 import { useAtlas } from './atlas/useAtlas'
 import AtlasCountrySearch from './atlas/AtlasCountrySearch'
 import { useToast } from '../components/shared/Toast'
@@ -212,7 +213,8 @@ export default function AtlasPage(): React.ReactElement {
                     await apiClient.post(`/addons/atlas/country/${confirmAction.code}/mark`)
                     setData(prev => {
                       if (!prev || prev.countries.find(c => c.code === confirmAction.code)) return prev
-                      return { ...prev, countries: [...prev.countries, { code: confirmAction.code, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null }], stats: { ...prev.stats, totalCountries: prev.stats.totalCountries + 1 } }
+                      const cont = continentForCountry(confirmAction.code)
+                      return { ...prev, countries: [...prev.countries, { code: confirmAction.code, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null }], stats: { ...prev.stats, totalCountries: prev.stats.totalCountries + 1 }, continents: { ...prev.continents, [cont]: (prev.continents?.[cont] || 0) + 1 } }
                     })
                   } catch (err) {
                     toast.error(getApiErrorMessage(err, t('common.error')))
@@ -260,7 +262,8 @@ export default function AtlasPage(): React.ReactElement {
                     })
                     setData(prev => {
                       if (!prev || prev.countries.find(c => c.code === countryCode)) return prev
-                      return { ...prev, countries: [...prev.countries, { code: countryCode, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null }], stats: { ...prev.stats, totalCountries: prev.stats.totalCountries + 1 } }
+                      const cont = continentForCountry(countryCode)
+                      return { ...prev, countries: [...prev.countries, { code: countryCode, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null }], stats: { ...prev.stats, totalCountries: prev.stats.totalCountries + 1 }, continents: { ...prev.continents, [cont]: (prev.continents?.[cont] || 0) + 1 } }
                     })
                   } catch (err) {
                     toast.error(getApiErrorMessage(err, t('common.error')))
@@ -339,10 +342,12 @@ export default function AtlasPage(): React.ReactElement {
                         if (!c || c.placeCount > 0 || c.tripCount > 0) return prev
                         const remainingRegions = (visitedRegions[countryCode] || []).filter(r => r.code !== rCode && r.manuallyMarked)
                         if (remainingRegions.length > 0) return prev
+                        const cont = continentForCountry(countryCode)
                         return {
                           ...prev,
                           countries: prev.countries.filter(c => c.code !== countryCode),
                           stats: { ...prev.stats, totalCountries: Math.max(0, prev.stats.totalCountries - 1) },
+                          continents: { ...prev.continents, [cont]: Math.max(0, (prev.continents?.[cont] || 0) - 1) },
                         }
                       })
                     } catch (err) {

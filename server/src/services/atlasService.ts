@@ -3,6 +3,7 @@ import path from 'path';
 import zlib from 'zlib';
 import { db } from '../db/database';
 import { Trip, Place } from '../types';
+import { CONTINENT_MAP } from '@trek/shared';
 
 // ── Bundled boundary GeoJSON (admin-0 countries + admin-1 regions) ─────────
 //
@@ -166,30 +167,6 @@ export const NAME_TO_CODE: Record<string, string> = {
   'hong kong':'HK','hong kong sar':'HK','macau':'MO','macao':'MO','macau sar':'MO',
   'san marino':'SM','vatican':'VA','vatican city':'VA','holy see':'VA','monaco':'MC',
   'liechtenstein':'LI','gibraltar':'GI','puerto rico':'PR',
-};
-
-export const CONTINENT_MAP: Record<string, string> = {
-  AF:'Asia',AL:'Europe',DZ:'Africa',AD:'Europe',AO:'Africa',AR:'South America',AM:'Asia',AU:'Oceania',AT:'Europe',AZ:'Asia',
-  BA:'Europe',BD:'Asia',BF:'Africa',BH:'Asia',BI:'Africa',BJ:'Africa',BN:'Asia',BO:'South America',
-  BR:'South America',BE:'Europe',BG:'Europe',BW:'Africa',
-  CA:'North America',CD:'Africa',CG:'Africa',CI:'Africa',CL:'South America',CM:'Africa',CN:'Asia',CO:'South America',
-  CR:'North America',CU:'North America',CV:'Africa',CY:'Europe',HR:'Europe',CZ:'Europe',
-  DJ:'Africa',DK:'Europe',DO:'North America',EC:'South America',EG:'Africa',EE:'Europe',ER:'Africa',ET:'Africa',
-  FI:'Europe',FR:'Europe',DE:'Europe',GE:'Asia',GH:'Africa',GN:'Africa',GR:'Europe',GT:'North America',
-  HN:'North America',HT:'North America',HU:'Europe',IS:'Europe',IN:'Asia',ID:'Asia',IR:'Asia',IQ:'Asia',
-  IE:'Europe',IL:'Asia',IT:'Europe',JM:'North America',JO:'Asia',JP:'Asia',KE:'Africa',KG:'Asia',KH:'Asia',
-  KR:'Asia',KW:'Asia',KZ:'Asia',LA:'Asia',LB:'Asia',LK:'Asia',LV:'Europe',LT:'Europe',LU:'Europe',LY:'Africa',
-  MA:'Africa',MD:'Europe',ME:'Europe',MG:'Africa',MK:'Europe',ML:'Africa',MM:'Asia',MN:'Asia',MR:'Africa',
-  MT:'Europe',MU:'Africa',MV:'Asia',MW:'Africa',MY:'Asia',MX:'North America',MZ:'Africa',
-  NA:'Africa',NE:'Africa',NI:'North America',NL:'Europe',NP:'Asia',NZ:'Oceania',NO:'Europe',OM:'Asia',
-  PA:'North America',PG:'Oceania',PK:'Asia',PE:'South America',PH:'Asia',PL:'Europe',PS:'Asia',
-  PT:'Europe',PY:'South America',QA:'Asia',RO:'Europe',RU:'Europe',RW:'Africa',SA:'Asia',SC:'Africa',
-  SD:'Africa',SG:'Asia',SI:'Europe',SK:'Europe',SN:'Africa',SO:'Africa',RS:'Europe',SV:'North America',
-  SY:'Asia',TG:'Africa',TJ:'Asia',TM:'Asia',TN:'Africa',TT:'North America',TW:'Asia',TZ:'Africa',
-  ZA:'Africa',SE:'Europe',CH:'Europe',TH:'Asia',TR:'Europe',UA:'Europe',UG:'Africa',UY:'South America',
-  UZ:'Asia',VE:'South America',AE:'Asia',GB:'Europe',US:'North America',VN:'Asia',XK:'Europe',
-  YE:'Asia',ZM:'Africa',ZW:'Africa',NG:'Africa',
-  HK:'Asia',MO:'Asia',SM:'Europe',VA:'Europe',MC:'Europe',LI:'Europe',GI:'Europe',PR:'North America',
 };
 
 // ── Geocoding helpers ───────────────────────────────────────────────────────

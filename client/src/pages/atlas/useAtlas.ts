@@ -6,6 +6,7 @@ import apiClient, { mapsApi } from '../../api/client'
 import L from 'leaflet'
 import type { GeoJsonFeatureCollection } from '../../types'
 import { A2_TO_A3, type AtlasData, type CountryDetail, type BucketItem } from './atlasModel'
+import { continentForCountry } from '@trek/shared'
 
 function useCountryNames(language: string): (code: string) => string {
   const [resolver, setResolver] = useState<(code: string) => string>(() => (code: string) => code)
@@ -582,10 +583,12 @@ export function useAtlas() {
       apiClient.post(`/addons/atlas/country/${code}/mark`).catch(() => {})
       setData(prev => {
         if (!prev || prev.countries.find(c => c.code === code)) return prev
+        const cont = continentForCountry(code)
         return {
           ...prev,
           countries: [...prev.countries, { code, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null }],
           stats: { ...prev.stats, totalCountries: prev.stats.totalCountries + 1 },
+          continents: { ...prev.continents, [cont]: (prev.continents?.[cont] || 0) + 1 },
         }
       })
     } else {
@@ -596,10 +599,12 @@ export function useAtlas() {
         if (!prev) return prev
         const c = prev.countries.find(c => c.code === code)
         if (!c || c.placeCount > 0 || c.tripCount > 0) return prev
+        const cont = continentForCountry(code)
         return {
           ...prev,
           countries: prev.countries.filter(c => c.code !== code),
           stats: { ...prev.stats, totalCountries: Math.max(0, prev.stats.totalCountries - 1) },
+          continents: { ...prev.continents, [cont]: Math.max(0, (prev.continents?.[cont] || 0) - 1) },
         }
       })
       setVisitedRegions(prev => {
