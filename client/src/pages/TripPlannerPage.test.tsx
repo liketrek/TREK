@@ -1160,7 +1160,7 @@ describe('TripPlannerPage', () => {
   });
 
   describe('FE-PAGE-PLANNER-041: handleSaveReservation edit path covers update reservation', () => {
-    it('preserves the reservation day_id on edit so it stays in the Plan (#1237)', async () => {
+    it('does not force a day_id on edit so the server keeps/derives it (#1237)', async () => {
       vi.useFakeTimers();
 
       seedTripStore({ id: 42 });
@@ -1196,12 +1196,10 @@ describe('TripPlannerPage', () => {
         });
       });
 
-      // The booking must keep its own day_id (not be nulled to the selected day).
-      expect(updateReservationSpy).toHaveBeenCalledWith(
-        expect.anything(),
-        1,
-        expect.objectContaining({ day_id: 7 }),
-      );
+      // The client must NOT send a day_id (no forcing to the selected day, no
+      // stale value) — the server keeps/derives it from the booking's date.
+      expect(updateReservationSpy).toHaveBeenCalled();
+      expect(updateReservationSpy.mock.calls[0][2]).not.toHaveProperty('day_id');
     });
   });
 

@@ -568,10 +568,12 @@ export function useTripPlanner() {
   const handleSaveReservation = async (data: Record<string, string | number | null> & { title: string }) => {
     try {
       if (editingReservation) {
-        // Keep the reservation on its own day. Forcing selectedDayId here dropped
-        // the booking out of the Plan when edited from the Book tab (no day
-        // selected -> selectedDayId null -> day_id nulled).
-        const r = await tripActions.updateReservation(tripId, editingReservation.id, { ...data, day_id: editingReservation.day_id ?? null })
+        // Don't force a day here. The old code pinned it to the (often empty)
+        // selected day, which dropped the booking out of the Plan; preserving the
+        // old day_id instead left it stale when the date changed. Omitting it lets
+        // the server derive the day from the booking's date, or keep the current
+        // one when there is no date.
+        const r = await tripActions.updateReservation(tripId, editingReservation.id, data)
         toast.success(t('trip.toast.reservationUpdated'))
         setShowReservationModal(false)
         setEditingReservation(null)

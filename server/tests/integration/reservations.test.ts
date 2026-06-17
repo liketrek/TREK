@@ -200,6 +200,29 @@ describe('Update reservation', () => {
     expect(res.body.reservation.day_id).toBe(day2.id);
   });
 
+  it('RESV-004c — re-dating a booking moves it to the matching day (start + end) (#1237)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day1 = createDay(testDb, trip.id, { date: '2025-10-01' });
+    const day3 = createDay(testDb, trip.id, { date: '2025-10-03' });
+
+    // Booking sits on day 1 (start + end).
+    const created = await request(app)
+      .post(`/api/trips/${trip.id}/reservations`)
+      .set('Cookie', authCookie(user.id))
+      .send({ title: 'Event', type: 'event', day_id: day1.id, reservation_time: '2025-10-01T09:00', reservation_end_time: '2025-10-01T10:00' });
+    const rid = created.body.reservation.id;
+
+    // Re-date to day 3 WITHOUT sending day_id (the modal omits it) — both ends follow.
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}/reservations/${rid}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ title: 'Event', type: 'event', reservation_time: '2025-10-03T00:00', reservation_end_time: '2025-10-03T14:00' });
+    expect(res.status).toBe(200);
+    expect(res.body.reservation.day_id).toBe(day3.id);
+    expect(res.body.reservation.end_day_id).toBe(day3.id);
+  });
+
   it('RESV-004 — PUT on non-existent reservation returns 404', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
