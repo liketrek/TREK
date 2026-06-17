@@ -405,4 +405,79 @@ describe('SharedTripPage', () => {
       });
     });
   });
+
+  describe('FE-PAGE-SHARED-017: Multi-leg flight shows each leg in the Day Plan', () => {
+    const day = { id: 101, trip_id: 1, day_number: 1, date: '2026-07-01', title: 'Day One', notes: null };
+    const multiLegFlight = {
+      id: 9, trip_id: 1, title: 'Flight', type: 'flight', status: 'confirmed',
+      day_id: 101, end_day_id: 101,
+      reservation_time: '2026-07-01T08:00:00', reservation_end_time: '2026-07-01T20:00:00',
+      metadata: JSON.stringify({
+        legs: [
+          { from: 'FRA', to: 'BER', airline: 'Lufthansa', flight_number: 'LH1', dep_day_id: 101, dep_time: '08:00', arr_day_id: 101, arr_time: '09:00' },
+          { from: 'BER', to: 'HND', airline: 'Lufthansa', flight_number: 'LH2', dep_day_id: 101, dep_time: '10:00', arr_day_id: 101, arr_time: '20:00' },
+        ],
+        departure_airport: 'FRA', arrival_airport: 'HND', airline: 'Lufthansa', flight_number: 'LH1',
+      }),
+    };
+
+    function serveMultiLeg(token: string) {
+      server.use(
+        http.get('/api/shared/:token', ({ params }) => {
+          if (params.token !== token) return;
+          return HttpResponse.json({
+            trip: { id: 1, title: 'Shared Paris Trip', start_date: '2026-07-01', end_date: '2026-07-05' },
+            days: [day],
+            assignments: {},
+            dayNotes: {},
+            places: [],
+            reservations: [multiLegFlight],
+            accommodations: [],
+            packing: [],
+            budget: [],
+            categories: [],
+            permissions: { share_bookings: true, share_packing: false, share_budget: false, share_collab: false },
+            collab: [],
+          });
+        }),
+      );
+    }
+
+    it('renders each leg with its own route, not the overall start/end', async () => {
+      serveMultiLeg('multileg-token');
+      renderSharedTrip('multileg-token');
+
+      await waitFor(() => {
+        expect(screen.getByText('Shared Paris Trip')).toBeInTheDocument();
+      });
+
+      // Expand the day to reveal the timeline
+      fireEvent.click(screen.getByText('Day One'));
+
+      await waitFor(() => {
+        expect(screen.getByText(/FRA → BER/)).toBeInTheDocument();
+      });
+      // Second leg shows its OWN route + flight number (the bug showed the overall route here)
+      expect(screen.getByText(/BER → HND/)).toBeInTheDocument();
+      expect(screen.getByText(/LH2/)).toBeInTheDocument();
+      // The overall start→end must NOT appear on any leg
+      expect(screen.queryByText(/FRA → HND/)).toBeNull();
+    });
+
+    it('lists each leg flight number in the Bookings tab', async () => {
+      serveMultiLeg('multileg-bookings-token');
+      renderSharedTrip('multileg-bookings-token');
+
+      await waitFor(() => {
+        expect(screen.getByText('Shared Paris Trip')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /bookings/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/LH1/)).toBeInTheDocument();
+      });
+      expect(screen.getByText(/LH2/)).toBeInTheDocument();
+    });
+  });
 });

@@ -11,6 +11,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { Clock, MapPin, FileText, Train, Plane, Bus, Car, Ship, Ticket, Hotel, Map, Luggage, Wallet, MessageCircle } from 'lucide-react'
 import { isDayInAccommodationRange } from '../utils/dayOrder'
 import { getTransportForDay, getMergedItems } from '../utils/dayMerge'
+import { getFlightLegs } from '../utils/flightLegs'
 import { splitReservationDateTime } from '../utils/formatters'
 
 const TRANSPORT_ICONS = { flight: Plane, train: Train, bus: Bus, car: Car, cruise: Ship }
@@ -214,16 +215,24 @@ export default function SharedTripPage() {
                         const TIcon = TRANSPORT_ICONS[r.type] || Ticket
                         const meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata || '{}') : (r.metadata || {})
                         const time = splitReservationDateTime(r.reservation_time).time ?? ''
+                        const endTime = splitReservationDateTime(r.reservation_end_time).time ?? ''
                         let sub = ''
-                        if (r.type === 'flight') sub = [meta.airline, meta.flight_number, meta.departure_airport && meta.arrival_airport ? `${meta.departure_airport} → ${meta.arrival_airport}` : ''].filter(Boolean).join(' · ')
+                        if (r.type === 'flight') {
+                          if (r.__leg) {
+                            // One leg of a multi-leg flight — show this segment's own route/flight number.
+                            sub = [r.__leg.airline, r.__leg.flight_number, (r.__leg.from || r.__leg.to) ? [r.__leg.from, r.__leg.to].filter(Boolean).join(' → ') : ''].filter(Boolean).join(' · ')
+                          } else {
+                            sub = [meta.airline, meta.flight_number, meta.departure_airport && meta.arrival_airport ? `${meta.departure_airport} → ${meta.arrival_airport}` : ''].filter(Boolean).join(' · ')
+                          }
+                        }
                         else if (r.type === 'train') sub = [meta.train_number, meta.platform ? `Gl. ${meta.platform}` : ''].filter(Boolean).join(' · ')
                         return (
-                          <div key={`t-${r.id}`} className="bg-[rgba(59,130,246,0.06)]" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, border: '1px solid rgba(59,130,246,0.15)' }}>
+                          <div key={r.__leg ? `t-${r.id}-leg${r.__leg.index}` : `t-${r.id}`} className="bg-[rgba(59,130,246,0.06)]" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, border: '1px solid rgba(59,130,246,0.15)' }}>
                             <div className="bg-[rgba(59,130,246,0.12)]" style={{ width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                               <TIcon size={12} color="#3b82f6" />
                             </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
-                              <div className="text-[#111827]" style={{ fontSize: 12, fontWeight: 500 }}>{r.title}{time ? ` · ${time}` : ''}</div>
+                              <div className="text-[#111827]" style={{ fontSize: 12, fontWeight: 500 }}>{r.title}{time ? ` · ${time}${endTime ? `–${endTime}` : ''}` : ''}</div>
                               {sub && <div className="text-[#6b7280]" style={{ fontSize: 10 }}>{sub}</div>}
                             </div>
                           </div>
@@ -284,7 +293,11 @@ export default function SharedTripPage() {
                       {date && <span>{date}</span>}
                       {time && <span>{time}</span>}
                       {r.location && <span>{r.location}</span>}
-                      {meta.airline && <span>{meta.airline} {meta.flight_number || ''}</span>}
+                      {r.type === 'flight'
+                        ? getFlightLegs(r).map((leg, i) => (
+                            <span key={i}>{[leg.airline, leg.flight_number, (leg.from || leg.to) ? [leg.from, leg.to].filter(Boolean).join(' → ') : ''].filter(Boolean).join(' ')}</span>
+                          ))
+                        : meta.airline && <span>{meta.airline} {meta.flight_number || ''}</span>}
                       {meta.train_number && <span>{meta.train_number}</span>}
                     </div>
                   </div>
