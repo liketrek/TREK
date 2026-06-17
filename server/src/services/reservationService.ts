@@ -364,12 +364,19 @@ export function updateReservation(id: string | number, tripId: string | number, 
   // otherwise derive from the (possibly updated) reservation_time so the
   // planner renders the booking on the correct day.
   let nextDayId: number | null;
-  if (day_id !== undefined) {
-    nextDayId = day_id || null;
-  } else if (reservation_time !== undefined && resolvedType !== 'hotel') {
+  if (day_id != null) {
+    // Explicit day from the client (e.g. moved on the planner).
+    nextDayId = day_id;
+  } else if (resolvedType !== 'hotel' && nextReservationTime) {
+    // No day set but we have a date — pin it to the matching day so the booking
+    // still shows in the Plan (covers bookings saved without a selected day, and
+    // the case where an earlier edit cleared day_id).
     nextDayId = resolveDayIdFromTime(tripId, nextReservationTime);
-  } else {
+  } else if (day_id === undefined) {
+    // Field absent and nothing to derive from — keep whatever it had.
     nextDayId = current.day_id ?? null;
+  } else {
+    nextDayId = null;
   }
 
   let nextEndDayId: number | null;

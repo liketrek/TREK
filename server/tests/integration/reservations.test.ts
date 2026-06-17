@@ -185,6 +185,21 @@ describe('Update reservation', () => {
     expect(res.body.reservation.confirmation_number).toBe('ABC123');
   });
 
+  it('RESV-004b — PUT with day_id null derives day_id from reservation_time so it stays in the Plan (#1237)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    createDay(testDb, trip.id, { date: '2025-09-01' });
+    const day2 = createDay(testDb, trip.id, { date: '2025-09-02' });
+    const resv = createReservation(testDb, trip.id, { title: 'Event', type: 'event' });
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}/reservations/${resv.id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ title: 'Event', type: 'event', day_id: null, reservation_time: '2025-09-02' });
+    expect(res.status).toBe(200);
+    expect(res.body.reservation.day_id).toBe(day2.id);
+  });
+
   it('RESV-004 — PUT on non-existent reservation returns 404', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
