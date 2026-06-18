@@ -66,6 +66,17 @@ export function hasTripPermission(action: string, tripId: number | string, userI
   return checkPermission(action, userRow?.role ?? 'user', tripOwnerId, userId, tripOwnerId !== userId);
 }
 
+/** True when the user has the global admin role (mirrors REST `user.role === 'admin'` gates). */
+export function isAdminUser(userId: number): boolean {
+  const userRow = db.prepare('SELECT role FROM users WHERE id = ?').get(userId) as { role?: string } | undefined;
+  return userRow?.role === 'admin';
+}
+
+/** Error response for admin-only tools, reproducing the REST `{ error: 'Admin access required' }` string. */
+export function adminRequired() {
+  return { content: [{ type: 'text' as const, text: 'Admin access required' }], isError: true };
+}
+
 export function ok(data: unknown) {
   return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
 }

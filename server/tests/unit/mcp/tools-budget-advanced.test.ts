@@ -37,7 +37,7 @@ vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createBudgetItem } from '../../helpers/factories';
+import { createUser, createTrip, createBudgetItem, addTripMember } from '../../helpers/factories';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
 
 beforeAll(() => {
@@ -70,7 +70,7 @@ async function withResourceHarness(userId: number, fn: (h: McpHarness) => Promis
 // ---------------------------------------------------------------------------
 
 describe('Tool: set_budget_item_members', () => {
-  it('sets members and broadcasts budget:members-updated', async () => {
+  it('sets members and returns a hydrated item with members/payers', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const item = createBudgetItem(testDb, trip.id, { name: 'Flights', total_price: 500 });
@@ -80,8 +80,22 @@ describe('Tool: set_budget_item_members', () => {
         arguments: { tripId: trip.id, itemId: item.id, userIds: [user.id] },
       });
       const data = parseToolResult(result) as any;
-      expect(data.item).toBeDefined();
+      // Regression: returns a hydrated item, not the raw row from updateMembers.
+      expect(data.item.members.map((m: any) => m.user_id)).toEqual([user.id]);
+      expect(Array.isArray(data.item.payers)).toBe(true);
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'budget:members-updated', expect.any(Object));
+    });
+  });
+
+  it('returns an error for an item not in the trip', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'set_budget_item_members',
+        arguments: { tripId: trip.id, itemId: 99999, userIds: [user.id] },
+      });
+      expect(result.isError).toBe(true);
     });
   });
 
@@ -125,6 +139,58 @@ describe('Tool: set_budget_item_members', () => {
       const result = await h.client.callTool({
         name: 'set_budget_item_members',
         arguments: { tripId: trip.id, itemId: item.id, userIds: [] },
+      });
+      expect(result.isError).toBe(true);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// create_budget_item_with_members
+// ---------------------------------------------------------------------------
+
+describe('Tool: create_budget_item_with_members', () => {
+  it('assigns the given members and returns a hydrated item', async () => {
+    const { user } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    addTripMember(testDb, trip.id, member.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_budget_item_with_members',
+        arguments: { tripId: trip.id, name: 'Villa', total_price: 800, userIds: [user.id, member.id] },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.item.members.map((m: any) => m.user_id).sort()).toEqual([user.id, member.id].sort());
+      expect(data.item.persons).toBe(2);
+    });
+  });
+
+  // Regression: omitting userIds previously produced an empty-member (unsaveable) entity.
+  it('defaults to all trip members when userIds omitted', async () => {
+    const { user } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    addTripMember(testDb, trip.id, member.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_budget_item_with_members',
+        arguments: { tripId: trip.id, name: 'Shared cab', total_price: 50 },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.item.members.map((m: any) => m.user_id).sort()).toEqual([user.id, member.id].sort());
+      expect(data.item.members.length).toBeGreaterThan(0);
+    });
+  });
+
+  it('blocks demo user', async () => {
+    process.env.DEMO_MODE = 'true';
+    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_budget_item_with_members',
+        arguments: { tripId: trip.id, name: 'X', total_price: 1 },
       });
       expect(result.isError).toBe(true);
     });

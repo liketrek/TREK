@@ -1,39 +1,11 @@
+import { SUPPORTED_LANGUAGE_CODES as SUPPORTED_LANG_CODES } from '@trek/shared';
+
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { SUPPORTED_LANGUAGE_CODES as SUPPORTED_LANG_CODES } from '@trek/shared';
 
 const dataDir = path.resolve(__dirname, '../data');
-
-// JWT_SECRET is always managed by the server — auto-generated on first start and
-// persisted to data/.jwt_secret. Use the admin panel to rotate it; do not set it
-// via environment variable (env var would override a rotation on next restart).
 const jwtSecretFile = path.join(dataDir, '.jwt_secret');
-let _jwtSecret: string;
-
-try {
-  _jwtSecret = fs.readFileSync(jwtSecretFile, 'utf8').trim();
-} catch {
-  _jwtSecret = crypto.randomBytes(32).toString('hex');
-  try {
-    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-    fs.writeFileSync(jwtSecretFile, _jwtSecret, { mode: 0o600 });
-    console.log('Generated and saved JWT secret to', jwtSecretFile);
-  } catch (writeErr: unknown) {
-    console.warn('WARNING: Could not persist JWT secret to disk:', writeErr instanceof Error ? writeErr.message : writeErr);
-    console.warn('Sessions will reset on server restart.');
-  }
-}
-
-// export let so TypeScript's CJS output keeps exports.JWT_SECRET live
-// (generates `exports.JWT_SECRET = JWT_SECRET = newVal` inside updateJwtSecret)
-export let JWT_SECRET = _jwtSecret;
-
-// Called by the admin rotate-jwt-secret endpoint to update the in-process
-// binding that all middleware and route files reference.
-export function updateJwtSecret(newSecret: string): void {
-  JWT_SECRET = newSecret;
-}
 
 // ENCRYPTION_KEY is used to derive at-rest encryption keys for stored secrets
 // (API keys, MFA TOTP secrets, SMTP password, OIDC client secret, etc.).
@@ -93,18 +65,55 @@ if (_encryptionKey) {
     fs.writeFileSync(encKeyFile, _encryptionKey, { mode: 0o600 });
     console.log('Encryption key persisted to', encKeyFile);
   } catch (writeErr: unknown) {
-    console.warn('WARNING: Could not persist encryption key to disk:', writeErr instanceof Error ? writeErr.message : writeErr);
+    console.warn(
+      'WARNING: Could not persist encryption key to disk:',
+      writeErr instanceof Error ? writeErr.message : writeErr,
+    );
     console.warn('Set ENCRYPTION_KEY env var to avoid losing access to encrypted secrets on restart.');
   }
 }
 
 export const ENCRYPTION_KEY = _encryptionKey;
 
+// JWT_SECRET is always managed by the server — auto-generated on first start and
+// persisted to data/.jwt_secret. Use the admin panel to rotate it; do not set it
+// via environment variable (env var would override a rotation on next restart).
+let _jwtSecret: string;
+
+try {
+  _jwtSecret = fs.readFileSync(jwtSecretFile, 'utf8').trim();
+} catch {
+  _jwtSecret = crypto.randomBytes(32).toString('hex');
+  try {
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+    fs.writeFileSync(jwtSecretFile, _jwtSecret, { mode: 0o600 });
+    console.log('Generated and saved JWT secret to', jwtSecretFile);
+  } catch (writeErr: unknown) {
+    console.warn(
+      'WARNING: Could not persist JWT secret to disk:',
+      writeErr instanceof Error ? writeErr.message : writeErr,
+    );
+    console.warn('Sessions will reset on server restart.');
+  }
+}
+
+// export let so TypeScript's CJS output keeps exports.JWT_SECRET live
+// (generates `exports.JWT_SECRET = JWT_SECRET = newVal` inside updateJwtSecret)
+export let JWT_SECRET = _jwtSecret;
+
+// Called by the admin rotate-jwt-secret endpoint to update the in-process
+// binding that all middleware and route files reference.
+export function updateJwtSecret(newSecret: string): void {
+  JWT_SECRET = newSecret;
+}
+
 // DEFAULT_LANGUAGE sets the language shown on the login page before the user
 // selects one. Only applies when the user has no saved language preference.
 const rawDefaultLang = process.env.DEFAULT_LANGUAGE?.toLowerCase() || 'en';
 if (!SUPPORTED_LANG_CODES.includes(rawDefaultLang)) {
-  console.warn(`DEFAULT_LANGUAGE="${rawDefaultLang}" is not supported. Falling back to "en". Supported: ${SUPPORTED_LANG_CODES.join(', ')}`);
+  console.warn(
+    `DEFAULT_LANGUAGE="${rawDefaultLang}" is not supported. Falling back to "en". Supported: ${SUPPORTED_LANG_CODES.join(', ')}`,
+  );
 }
 export const DEFAULT_LANGUAGE = SUPPORTED_LANG_CODES.includes(rawDefaultLang) ? rawDefaultLang : 'en';
 
@@ -116,7 +125,13 @@ export const DEFAULT_LANGUAGE = SUPPORTED_LANG_CODES.includes(rawDefaultLang) ? 
 // challenge token or MCP OAuth tokens — those keep their own TTL.
 const DEFAULT_SESSION_DURATION = '24h';
 const DURATION_UNITS_MS: Record<string, number> = {
-  ms: 1, s: 1000, m: 60_000, h: 3_600_000, d: 86_400_000, w: 604_800_000, y: 31_557_600_000,
+  ms: 1,
+  s: 1000,
+  m: 60_000,
+  h: 3_600_000,
+  d: 86_400_000,
+  w: 604_800_000,
+  y: 31_557_600_000,
 };
 function parseDurationMs(value: string): number | null {
   const m = /^(\d+(?:\.\d+)?)\s*(ms|s|m|h|d|w|y)?$/i.exec(value.trim());
@@ -128,7 +143,9 @@ function parseDurationMs(value: string): number | null {
 const rawSessionDuration = process.env.SESSION_DURATION?.trim() || DEFAULT_SESSION_DURATION;
 const parsedSessionMs = parseDurationMs(rawSessionDuration);
 if (parsedSessionMs == null) {
-  console.warn(`SESSION_DURATION="${rawSessionDuration}" is not a valid duration (use e.g. 1h, 7d, 30d). Falling back to "${DEFAULT_SESSION_DURATION}".`);
+  console.warn(
+    `SESSION_DURATION="${rawSessionDuration}" is not a valid duration (use e.g. 1h, 7d, 30d). Falling back to "${DEFAULT_SESSION_DURATION}".`,
+  );
 }
 /** Human-readable session length actually in effect (for logs/diagnostics). */
 export const SESSION_DURATION = parsedSessionMs == null ? DEFAULT_SESSION_DURATION : rawSessionDuration;
@@ -146,10 +163,13 @@ const DEFAULT_SESSION_DURATION_REMEMBER = '30d';
 const rawRememberDuration = process.env.SESSION_DURATION_REMEMBER?.trim() || DEFAULT_SESSION_DURATION_REMEMBER;
 const parsedRememberMs = parseDurationMs(rawRememberDuration);
 if (parsedRememberMs == null) {
-  console.warn(`SESSION_DURATION_REMEMBER="${rawRememberDuration}" is not a valid duration (use e.g. 7d, 30d, 90d). Falling back to "${DEFAULT_SESSION_DURATION_REMEMBER}".`);
+  console.warn(
+    `SESSION_DURATION_REMEMBER="${rawRememberDuration}" is not a valid duration (use e.g. 7d, 30d, 90d). Falling back to "${DEFAULT_SESSION_DURATION_REMEMBER}".`,
+  );
 }
 /** Human-readable "remember me" session length actually in effect (for logs/diagnostics). */
-export const SESSION_DURATION_REMEMBER = parsedRememberMs == null ? DEFAULT_SESSION_DURATION_REMEMBER : rawRememberDuration;
+export const SESSION_DURATION_REMEMBER =
+  parsedRememberMs == null ? DEFAULT_SESSION_DURATION_REMEMBER : rawRememberDuration;
 /** "Remember me" session length in milliseconds — used for the persistent cookie `maxAge`. */
 export const SESSION_DURATION_REMEMBER_MS = parsedRememberMs ?? parseDurationMs(DEFAULT_SESSION_DURATION_REMEMBER)!;
 /** "Remember me" session length in seconds — passed to `jwt.sign({ expiresIn })`. */

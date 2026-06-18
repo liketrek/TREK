@@ -158,6 +158,15 @@ export function createBudgetItem(
   return item;
 }
 
+/** Fetch a single budget item hydrated with its members and payers, scoped to the trip. */
+export function getBudgetItem(id: string | number, tripId: string | number): BudgetItem | null {
+  const item = db.prepare('SELECT * FROM budget_items WHERE id = ? AND trip_id = ?').get(id, tripId) as BudgetItem | undefined;
+  if (!item) return null;
+  item.members = loadItemMembers(id);
+  item.payers = loadItemPayers(id);
+  return item;
+}
+
 export function linkBudgetItemToReservation(
   tripId: string | number,
   reservationId: number,

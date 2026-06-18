@@ -55,8 +55,10 @@ export function registerVacayTools(server: McpServer, userId: number, scopes: st
       async ({ block_weekends, holidays_enabled, holidays_region, company_holidays_enabled, carry_over_enabled }) => {
         if (isDemoUser(userId)) return demoDenied();
         const planId = getActivePlanId(userId);
-        await updatePlan(planId, { block_weekends, holidays_enabled, holidays_region, company_holidays_enabled, carry_over_enabled }, undefined);
-        return ok({ success: true });
+        // updatePlan already returns the fully-hydrated { plan }; surface it so the
+        // AI consumer sees the updated plan, matching get_vacay_plan.
+        const result = await updatePlan(planId, { block_weekends, holidays_enabled, holidays_region, company_holidays_enabled, carry_over_enabled }, undefined);
+        return ok(result);
       }
     );
 
@@ -73,7 +75,8 @@ export function registerVacayTools(server: McpServer, userId: number, scopes: st
         if (isDemoUser(userId)) return demoDenied();
         const planId = getActivePlanId(userId);
         setUserColor(userId, planId, color, undefined);
-        return ok({ success: true });
+        // Echo the persisted color (mirrors the service default) so the AI consumer sees what was set.
+        return ok({ success: true, color: color || '#6366f1' });
       }
     );
 

@@ -136,7 +136,9 @@ export function registerJourneyTools(server: McpServer, userId: number, scopes: 
     async ({ title, subtitle, trip_ids }) => {
       if (isDemoUser(userId)) return demoDenied();
       const journey = createJourney(userId, { title, subtitle, trip_ids });
-      return ok({ journey });
+      // Return the fully-hydrated journey (entries/contributors/trips/stats/my_role),
+      // matching get_journey, rather than the bare row.
+      return ok({ journey: getJourneyFull(journey.id, userId) ?? journey });
     }
   );
 
@@ -233,7 +235,9 @@ export function registerJourneyTools(server: McpServer, userId: number, scopes: 
       if (isDemoUser(userId)) return demoDenied();
       const entry = createEntry(journeyId, userId, { entry_date, title, story, entry_time, location_name, mood, sort_order });
       if (!entry) return notFound('Journey not found or access denied.');
-      return ok({ entry });
+      // Return through the listEntries enrichment (parsed tags/pros_cons, photos, source_trip_name).
+      const enriched = listEntries(journeyId, userId)?.find(e => e.id === entry.id) ?? entry;
+      return ok({ entry: enriched });
     }
   );
 
@@ -255,7 +259,9 @@ export function registerJourneyTools(server: McpServer, userId: number, scopes: 
       if (isDemoUser(userId)) return demoDenied();
       const entry = updateEntry(entryId, userId, { title, story, entry_date, entry_time, mood }, undefined);
       if (!entry) return notFound('Entry not found or access denied.');
-      return ok({ entry });
+      // Return through the listEntries enrichment (parsed tags/pros_cons, photos), matching create_journey_entry.
+      const enriched = listEntries(entry.journey_id, userId)?.find(e => e.id === entry.id) ?? entry;
+      return ok({ entry: enriched });
     }
   );
 
@@ -364,7 +370,8 @@ export function registerJourneyTools(server: McpServer, userId: number, scopes: 
       if (isDemoUser(userId)) return demoDenied();
       const result = updateJourneyPreferences(journeyId, userId, { hide_skeletons });
       if (!result) return notFound('Journey not found or access denied.');
-      return ok({ success: true });
+      // Return the service result ({ hide_skeletons }), matching the REST route.
+      return ok(result);
     }
   );
 

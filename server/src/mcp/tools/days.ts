@@ -99,19 +99,20 @@ export function registerDayTools(server: McpServer, userId: number, scopes: stri
         start_day_id: z.number().int().positive().describe('Check-in day ID'),
         end_day_id: z.number().int().positive().describe('Check-out day ID'),
         check_in: z.string().max(10).optional().describe('Check-in time e.g. "15:00"'),
+        check_in_end: z.string().max(10).optional().describe('Check-in window end time e.g. "20:00"'),
         check_out: z.string().max(10).optional().describe('Check-out time e.g. "11:00"'),
         confirmation: z.string().max(100).optional(),
         notes: z.string().max(1000).optional(),
       },
       annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     },
-    async ({ tripId, place_id, start_day_id, end_day_id, check_in, check_out, confirmation, notes }) => {
+    async ({ tripId, place_id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
       if (!hasTripPermission('day_edit', tripId, userId)) return permissionDenied();
       const errors = validateAccommodationRefs(tripId, place_id, start_day_id, end_day_id);
       if (errors.length > 0) return { content: [{ type: 'text' as const, text: errors.map(e => e.message).join(', ') }], isError: true };
-      const accommodation = createAccommodation(tripId, { place_id, start_day_id, end_day_id, check_in, check_out, confirmation, notes });
+      const accommodation = createAccommodation(tripId, { place_id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes });
       safeBroadcast(tripId, 'accommodation:created', { accommodation });
       return ok({ accommodation });
     }
@@ -137,6 +138,7 @@ export function registerDayTools(server: McpServer, userId: number, scopes: stri
         start_day_id: z.number().int().positive().describe('Check-in day ID'),
         end_day_id: z.number().int().positive().describe('Check-out day ID'),
         check_in: z.string().max(10).optional().describe('Check-in time e.g. "15:00"'),
+        check_in_end: z.string().max(10).optional().describe('Check-in window end time e.g. "20:00"'),
         check_out: z.string().max(10).optional().describe('Check-out time e.g. "11:00"'),
         confirmation: z.string().max(100).optional(),
         accommodation_notes: z.string().max(1000).optional().describe('Notes for the accommodation'),
@@ -145,7 +147,7 @@ export function registerDayTools(server: McpServer, userId: number, scopes: stri
       },
       annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     },
-    async ({ tripId, name, description, lat, lng, address, category_id, google_place_id, osm_id, place_notes, website, phone, start_day_id, end_day_id, check_in, check_out, confirmation, accommodation_notes, price, currency }) => {
+    async ({ tripId, name, description, lat, lng, address, category_id, google_place_id, osm_id, place_notes, website, phone, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, accommodation_notes, price, currency }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
       if (!hasTripPermission('day_edit', tripId, userId)) return permissionDenied();
@@ -154,7 +156,7 @@ export function registerDayTools(server: McpServer, userId: number, scopes: stri
       try {
         const run = db.transaction(() => {
           const place = createPlace(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, osm_id, notes: place_notes, website, phone, price, currency });
-          const accommodation = createAccommodation(tripId, { place_id: place.id, start_day_id, end_day_id, check_in, check_out, confirmation, notes: accommodation_notes });
+          const accommodation = createAccommodation(tripId, { place_id: place.id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes: accommodation_notes });
           return { place, accommodation };
         });
         const result = run();
@@ -178,19 +180,20 @@ export function registerDayTools(server: McpServer, userId: number, scopes: stri
         start_day_id: z.number().int().positive().optional(),
         end_day_id: z.number().int().positive().optional(),
         check_in: z.string().max(10).optional(),
+        check_in_end: z.string().max(10).optional().describe('Check-in window end time e.g. "20:00"'),
         check_out: z.string().max(10).optional(),
         confirmation: z.string().max(100).optional(),
         notes: z.string().max(1000).optional(),
       },
       annotations: TOOL_ANNOTATIONS_WRITE,
     },
-    async ({ tripId, accommodationId, place_id, start_day_id, end_day_id, check_in, check_out, confirmation, notes }) => {
+    async ({ tripId, accommodationId, place_id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
       if (!hasTripPermission('day_edit', tripId, userId)) return permissionDenied();
       const existing = getAccommodation(accommodationId, tripId);
       if (!existing) return { content: [{ type: 'text' as const, text: 'Accommodation not found.' }], isError: true };
-      const accommodation = updateAccommodation(accommodationId, existing, { place_id, start_day_id, end_day_id, check_in, check_out, confirmation, notes });
+      const accommodation = updateAccommodation(accommodationId, existing, { place_id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes });
       safeBroadcast(tripId, 'accommodation:updated', { accommodation });
       return ok({ accommodation });
     }

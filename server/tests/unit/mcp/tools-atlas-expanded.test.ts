@@ -128,10 +128,12 @@ describe('Tool: mark_region_visited', () => {
         arguments: { regionCode: 'US-CA', regionName: 'California', countryCode: 'US' },
       });
       const data = parseToolResult(result) as any;
+      // Echoed in the client-facing shape ({ code, name, ... }), not raw DB columns.
       expect(data.region).toBeDefined();
-      expect(data.region.region_code).toBe('US-CA');
-      expect(data.region.region_name).toBe('California');
+      expect(data.region.code).toBe('US-CA');
+      expect(data.region.name).toBe('California');
       expect(data.region.country_code).toBe('US');
+      expect(data.region.manuallyMarked).toBe(true);
       const row = testDb.prepare('SELECT * FROM visited_regions WHERE user_id = ? AND region_code = ?').get(user.id, 'US-CA');
       expect(row).toBeTruthy();
     });

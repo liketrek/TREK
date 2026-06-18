@@ -136,7 +136,11 @@ export function registerAtlasTools(server: McpServer, userId: number, scopes: st
       async ({ regionCode, regionName, countryCode }) => {
         if (isDemoUser(userId)) return demoDenied();
         markRegionVisited(userId, regionCode, regionName, countryCode);
-        const region = listManuallyVisitedRegions(userId).find(r => r.region_code === regionCode);
+        const row = listManuallyVisitedRegions(userId).find(r => r.region_code === regionCode);
+        // Echo in the client-facing shape ({ code, name, ... }) rather than raw DB columns.
+        const region = row
+          ? { code: row.region_code, name: row.region_name, country_code: row.country_code, manuallyMarked: true }
+          : undefined;
         return ok({ region });
       }
     );

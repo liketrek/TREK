@@ -49,7 +49,9 @@ vi.mock('../../../src/services/vacayService', async (importOriginal) => {
   const original = await importOriginal() as Record<string, unknown>;
   return {
     ...original,
-    updatePlan: vi.fn().mockResolvedValue(undefined),
+    updatePlan: vi.fn().mockResolvedValue({
+      plan: { id: 1, block_weekends: true, holidays_enabled: false, company_holidays_enabled: false, carry_over_enabled: false, holiday_calendars: [] },
+    }),
     getCountries: vi.fn().mockResolvedValue({ data: [{ code: 'US', name: 'United States' }] }),
     getHolidays: vi.fn().mockResolvedValue({ data: [{ date: '2025-01-01', name: 'New Year' }] }),
   };
@@ -106,7 +108,7 @@ describe('Tool: get_vacay_plan', () => {
 // ---------------------------------------------------------------------------
 
 describe('Tool: update_vacay_plan', () => {
-  it('calls updatePlan and returns success', async () => {
+  it('calls updatePlan and returns the hydrated plan', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -114,7 +116,11 @@ describe('Tool: update_vacay_plan', () => {
         arguments: { block_weekends: true, holidays_enabled: false },
       });
       const data = parseToolResult(result) as any;
-      expect(data.success).toBe(true);
+      // Now returns the fully-hydrated plan (matching get_vacay_plan), not { success }.
+      expect(data.plan).toBeDefined();
+      expect(data.plan.block_weekends).toBe(true);
+      expect(data.plan.holidays_enabled).toBe(false);
+      expect(Array.isArray(data.plan.holiday_calendars)).toBe(true);
     });
   });
 
@@ -136,9 +142,10 @@ describe('Tool: set_vacay_color', () => {
   it('updates color and returns success', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'set_vacay_color', arguments: { color: '#6366f1' } });
+      const result = await h.client.callTool({ name: 'set_vacay_color', arguments: { color: '#ff0000' } });
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
+      expect(data.color).toBe('#ff0000'); // echoes the persisted color
     });
   });
 

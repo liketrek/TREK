@@ -15,6 +15,7 @@ import {
   safeBroadcast, TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE, TOOL_ANNOTATIONS_DELETE,
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   demoDenied, noAccess, ok, hasTripPermission, permissionDenied,
+  isAdminUser, adminRequired,
 } from './_shared';
 import { canRead, canWrite } from '../scopes';
 import { isAddonEnabled } from '../../services/adminService';
@@ -171,7 +172,9 @@ export function registerPackingTools(server: McpServer, userId: number, scopes: 
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
       if (!hasTripPermission('packing_edit', tripId, userId)) return permissionDenied();
-      const bag = createBag(tripId, { name, color });
+      // createBag returns a bare row; hydrate with the empty members array that
+      // listBags and the schema always carry, so the client/AI consumer matches.
+      const bag = { ...(createBag(tripId, { name, color }) as object), members: [] };
       safeBroadcast(tripId, 'packing:bag-created', { bag });
       return ok({ bag });
     }
@@ -197,7 +200,10 @@ export function registerPackingTools(server: McpServer, userId: number, scopes: 
       const bodyKeys: string[] = [];
       if (name !== undefined) { fields.name = name; bodyKeys.push('name'); }
       if (color !== undefined) { fields.color = color; bodyKeys.push('color'); }
-      const bag = updateBag(tripId, bagId, fields, bodyKeys);
+      const updated = updateBag(tripId, bagId, fields, bodyKeys);
+      if (!updated) return { content: [{ type: 'text' as const, text: 'Bag not found.' }], isError: true };
+      // Hydrate with the members array (matches create_packing_bag, listBags, and the schema).
+      const bag = listBags(tripId).find(b => b.id === (updated as { id: number }).id) ?? { ...(updated as object), members: [] };
       safeBroadcast(tripId, 'packing:bag-updated', { bag });
       return ok({ bag });
     }
@@ -238,9 +244,10 @@ export function registerPackingTools(server: McpServer, userId: number, scopes: 
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
       if (!hasTripPermission('packing_edit', tripId, userId)) return permissionDenied();
-      setBagMembers(tripId, bagId, userIds);
-      safeBroadcast(tripId, 'packing:bag-members-updated', { bagId, userIds });
-      return ok({ success: true });
+      const members = setBagMembers(tripId, bagId, userIds);
+      if (!members) return { content: [{ type: 'text' as const, text: 'Bag not found.' }], isError: true };
+      safeBroadcast(tripId, 'packing:bag-members-updated', { bagId, members });
+      return ok({ members });
     }
   );
 
@@ -275,9 +282,9 @@ export function registerPackingTools(server: McpServer, userId: number, scopes: 
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
       if (!hasTripPermission('packing_edit', tripId, userId)) return permissionDenied();
-      updatePackingCategoryAssignees(tripId, categoryName, userIds);
-      safeBroadcast(tripId, 'packing:assignees', { categoryName, userIds });
-      return ok({ success: true });
+      const assignees = updatePackingCategoryAssignees(tripId, categoryName, userIds);
+      safeBroadcast(tripId, 'packing:assignees', { category: categoryName, assignees });
+      return ok({ assignees });
     }
   );
 
@@ -295,10 +302,10 @@ export function registerPackingTools(server: McpServer, userId: number, scopes: 
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
       if (!hasTripPermission('packing_edit', tripId, userId)) return permissionDenied();
-      const applied = applyTemplate(tripId, templateId);
-      if (applied === null) return { content: [{ type: 'text' as const, text: 'Template not found.' }], isError: true };
-      safeBroadcast(tripId, 'packing:template-applied', { templateId });
-      return ok({ success: true });
+      const items = applyTemplate(tripId, templateId);
+      if (items === null) return { content: [{ type: 'text' as const, text: 'Template not found.' }], isError: true };
+      safeBroadcast(tripId, 'packing:template-applied', { items });
+      return ok({ items, count: items.length });
     }
   );
 
@@ -316,6 +323,8 @@ export function registerPackingTools(server: McpServer, userId: number, scopes: 
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
       if (!hasTripPermission('packing_edit', tripId, userId)) return permissionDenied();
+      // Templates are global; the REST route restricts saving to admins. Match it.
+      if (!isAdminUser(userId)) return adminRequired();
       saveAsTemplate(tripId, userId, templateName);
       return ok({ success: true });
     }
@@ -324,13 +333,16 @@ export function registerPackingTools(server: McpServer, userId: number, scopes: 
   if (W) server.registerTool(
     'bulk_import_packing',
     {
-      description: 'Import multiple packing items at once from a list.',
+      description: 'Import multiple packing items at once from a list. Optionally assign each to a bag (by name — created if missing), set its weight, or pre-check it.',
       inputSchema: {
         tripId: z.number().int().positive(),
         items: z.array(z.object({
           name: z.string().min(1).max(200),
           category: z.string().optional(),
           quantity: z.number().int().positive().optional(),
+          bag: z.string().max(100).optional().describe('Bag name to assign the item to; created if it does not exist'),
+          weight_grams: z.number().nonnegative().optional(),
+          checked: z.boolean().optional(),
         })).min(1),
       },
       annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
@@ -339,9 +351,9 @@ export function registerPackingTools(server: McpServer, userId: number, scopes: 
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
       if (!hasTripPermission('packing_edit', tripId, userId)) return permissionDenied();
-      bulkImport(tripId, items);
-      safeBroadcast(tripId, 'packing:updated', {});
-      return ok({ success: true, count: items.length });
+      const created = bulkImport(tripId, items);
+      for (const item of created) safeBroadcast(tripId, 'packing:created', { item });
+      return ok({ items: created, count: created.length });
     }
   );
 }

@@ -35,7 +35,7 @@ vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createBudgetItem } from '../../helpers/factories';
+import { createUser, createTrip, createBudgetItem, addTripMember } from '../../helpers/factories';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
 
 beforeAll(() => {
@@ -98,6 +98,89 @@ describe('Tool: create_budget_item', () => {
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'create_budget_item', arguments: { tripId: trip.id, name: 'Taxi', total_price: 25 } });
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'budget:created', expect.any(Object));
+    });
+  });
+
+  // Regression for #1244: a naive create must seed members so the client save-gate
+  // (participants.size > 0) passes — the entry must be saveable, not member-less.
+  it('defaults members to the trip owner when member_ids omitted (solo trip)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_budget_item',
+        arguments: { tripId: trip.id, name: 'Dinner', total_price: 40 },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.item.members.map((m: any) => m.user_id)).toEqual([user.id]);
+      expect(data.item.persons).toBe(1);
+      // saveable invariant: client requires participants.size > 0
+      expect(data.item.members.length).toBeGreaterThan(0);
+    });
+  });
+
+  it('defaults members to all trip members when member_ids omitted (multi-member)', async () => {
+    const { user } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    addTripMember(testDb, trip.id, member.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_budget_item',
+        arguments: { tripId: trip.id, name: 'Group taxi', total_price: 60 },
+      });
+      const data = parseToolResult(result) as any;
+      const ids = data.item.members.map((m: any) => m.user_id).sort();
+      expect(ids).toEqual([user.id, member.id].sort());
+      expect(data.item.persons).toBe(2);
+    });
+  });
+
+  it('respects an explicit member_ids subset', async () => {
+    const { user } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    addTripMember(testDb, trip.id, member.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_budget_item',
+        arguments: { tripId: trip.id, name: 'My snack', total_price: 5, member_ids: [user.id] },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.item.members.map((m: any) => m.user_id)).toEqual([user.id]);
+    });
+  });
+
+  it('treats an explicit empty member_ids as a planning-only entry (no split)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_budget_item',
+        arguments: { tripId: trip.id, name: 'Estimate', total_price: 100, member_ids: [] },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.item.members).toEqual([]);
+    });
+  });
+
+  it('round-trips currency, expense_date, and payers', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_budget_item',
+        arguments: {
+          tripId: trip.id, name: 'Museum', total_price: 30, currency: 'EUR',
+          expense_date: '2026-07-01', payers: [{ user_id: user.id, amount: 30 }],
+        },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.item.currency).toBe('EUR');
+      expect(data.item.expense_date).toBe('2026-07-01');
+      expect(data.item.payers.map((p: any) => p.user_id)).toEqual([user.id]);
+      // total_price derives from payer sum
+      expect(data.item.total_price).toBe(30);
     });
   });
 

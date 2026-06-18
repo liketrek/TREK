@@ -4,9 +4,11 @@ import { canAccessTrip } from '../../db/database';
 import { isDemoUser } from '../../services/authService';
 import {
   createReservation, deleteReservation, getReservation, updateReservation,
+  type EndpointInput,
 } from '../../services/reservationService';
 import { linkBudgetItemToReservation } from '../../services/budgetService';
 import { getDay } from '../../services/dayService';
+import { findByIata } from '../../services/airportService';
 import {
   safeBroadcast, TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   TOOL_ANNOTATIONS_WRITE, demoDenied, noAccess, ok, hasTripPermission, permissionDenied,
@@ -15,17 +17,56 @@ import { canWrite } from '../scopes';
 
 const TRANSPORT_TYPES = ['flight', 'train', 'car', 'cruise'] as const;
 
-const endpointSchema = z.array(z.object({
+const endpointObjectSchema = z.object({
   role: z.enum(['from', 'to', 'stop']).describe('Endpoint role: "from" (origin), "to" (destination), or "stop" (intermediate)'),
   sequence: z.number().int().min(0).describe('Order within the route (0-based)'),
   name: z.string().min(1).describe('Location name (e.g. "Paris Gare de Lyon", "ZRH Terminal 2")'),
   code: z.string().optional().describe('IATA airport code for flights (e.g. "ZRH"). Leave empty for other transport types.'),
-  lat: z.number().optional(),
-  lng: z.number().optional(),
+  lat: z.number().optional().describe('Latitude. For flights, leave empty and set code instead — coordinates are filled from the airport.'),
+  lng: z.number().optional().describe('Longitude. For flights, leave empty and set code instead — coordinates are filled from the airport.'),
   timezone: z.string().optional().describe('IANA timezone (e.g. "Europe/Zurich"). Use airport tz for flights.'),
   local_time: z.string().optional().describe('Local departure/arrival time at this endpoint, e.g. "14:35"'),
   local_date: z.string().optional().describe('Local date at this endpoint, YYYY-MM-DD'),
-})).optional();
+});
+const endpointSchema = z.array(endpointObjectSchema).optional();
+
+type Endpoint = z.infer<typeof endpointObjectSchema>;
+
+/**
+ * Endpoint coordinates are stored NOT NULL. Callers may supply a flight endpoint
+ * with only an IATA `code` (the tool description encourages this), so fill missing
+ * lat/lng/timezone from the airport database. Returns an error string for the first
+ * endpoint that can't be resolved rather than letting the NOT NULL bind throw.
+ *
+ * Normalizes to the service's EndpointInput shape (nullable fields coerced from the
+ * schema's optionals), so lat/lng are guaranteed present before the insert.
+ */
+function resolveEndpointCoords(endpoints: Endpoint[] | undefined): { endpoints: EndpointInput[] } | { error: string } {
+  if (!endpoints) return { endpoints: [] };
+  const out: EndpointInput[] = [];
+  for (const e of endpoints) {
+    const base = {
+      role: e.role,
+      sequence: e.sequence,
+      name: e.name,
+      code: e.code ?? null,
+      timezone: e.timezone ?? null,
+      local_time: e.local_time ?? null,
+      local_date: e.local_date ?? null,
+    };
+    if (e.lat != null && e.lng != null) { out.push({ ...base, lat: e.lat, lng: e.lng }); continue; }
+    if (e.code) {
+      const airport = findByIata(e.code);
+      if (airport) {
+        out.push({ ...base, lat: airport.lat, lng: airport.lng, timezone: e.timezone ?? airport.tz });
+        continue;
+      }
+      return { error: `Could not resolve airport code "${e.code}". Use search_airports to find a valid IATA code, or supply lat/lng directly.` };
+    }
+    return { error: `Endpoint "${e.name}" is missing coordinates. For flights set "code" to the IATA airport code; for other transport types supply lat/lng.` };
+  }
+  return { endpoints: out };
+}
 
 export function registerTransportTools(server: McpServer, userId: number, scopes: string[] | null): void {
   if (!canWrite(scopes, 'reservations')) return;
@@ -63,6 +104,9 @@ export function registerTransportTools(server: McpServer, userId: number, scopes
       if (end_day_id && !getDay(end_day_id, tripId))
         return { content: [{ type: 'text' as const, text: 'end_day_id does not belong to this trip.' }], isError: true };
 
+      const resolved = resolveEndpointCoords(endpoints);
+      if ('error' in resolved) return { content: [{ type: 'text' as const, text: resolved.error }], isError: true };
+
       const meta: Record<string, string> = { ...(metadata ?? {}) };
       if (price != null) meta.price = String(price);
 
@@ -78,7 +122,7 @@ export function registerTransportTools(server: McpServer, userId: number, scopes
         end_day_id: end_day_id ?? start_day_id,
         status: status ?? 'pending',
         metadata: Object.keys(meta).length > 0 ? meta : undefined,
-        endpoints,
+        endpoints: resolved.endpoints,
         needs_review,
       });
 
@@ -135,6 +179,14 @@ export function registerTransportTools(server: McpServer, userId: number, scopes
       if (end_day_id && !getDay(end_day_id, tripId))
         return { content: [{ type: 'text' as const, text: 'end_day_id does not belong to this trip.' }], isError: true };
 
+      // Only resolve when endpoints are explicitly provided; undefined leaves them untouched.
+      let resolvedEndpoints: EndpointInput[] | undefined;
+      if (endpoints !== undefined) {
+        const resolved = resolveEndpointCoords(endpoints);
+        if ('error' in resolved) return { content: [{ type: 'text' as const, text: resolved.error }], isError: true };
+        resolvedEndpoints = resolved.endpoints;
+      }
+
       const { reservation } = updateReservation(reservationId, tripId, {
         title,
         type,
@@ -146,7 +198,7 @@ export function registerTransportTools(server: McpServer, userId: number, scopes
         end_day_id,
         status,
         metadata,
-        endpoints,
+        endpoints: resolvedEndpoints,
         needs_review,
       }, existing);
       safeBroadcast(tripId, 'reservation:updated', { reservation });

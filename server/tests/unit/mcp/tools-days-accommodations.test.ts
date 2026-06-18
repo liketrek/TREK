@@ -168,12 +168,14 @@ describe('Tool: create_accommodation', () => {
           start_day_id: day1.id,
           end_day_id: day2.id,
           check_in: '15:00',
+          check_in_end: '20:00',
           check_out: '11:00',
           confirmation: 'CONF123',
         },
       });
       const data = parseToolResult(result) as any;
       expect(data.accommodation).toBeDefined();
+      expect(data.accommodation.check_in_end).toBe('20:00');
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'accommodation:created', expect.any(Object));
     });
   });
