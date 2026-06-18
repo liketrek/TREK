@@ -330,6 +330,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.apiKeyHint': 'AirTrail의 설정 → 보안에서 생성됩니다. 암호화하여 저장됩니다.',
   'settings.airtrail.allowInsecureTls': '자체 서명 인증서 허용',
   'settings.airtrail.allowInsecureTlsHint': '자체 네트워크의 신뢰할 수 있는 인스턴스에서만 활성화하세요.',
+  'settings.airtrail.writeBack': '변경 사항을 AirTrail에 다시 기록',
+  'settings.airtrail.writeBackHint': '기본적으로 꺼져 있음: AirTrail이 신뢰할 수 있는 원본이며 TREK은 읽기만 합니다. TREK에서 변경한 내용을 AirTrail로 다시 보내려면 켜세요.',
   'settings.airtrail.connected': '연결됨',
   'settings.airtrail.notConnected': '연결되지 않음',
   'settings.airtrail.toast.saved': 'AirTrail 연결이 저장되었습니다',

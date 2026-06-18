@@ -336,6 +336,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.allowInsecureTls': 'Zelfondertekende certificaten toestaan',
   'settings.airtrail.allowInsecureTlsHint':
     'Schakel dit alleen in voor een vertrouwde instantie op je eigen netwerk.',
+  'settings.airtrail.writeBack': 'Wijzigingen terugschrijven naar AirTrail',
+  'settings.airtrail.writeBackHint': 'Standaard uit: AirTrail is de bron van waarheid en TREK leest er alleen uit. Schakel in om in TREK gemaakte wijzigingen terug te sturen naar AirTrail.',
   'settings.airtrail.connected': 'Verbonden',
   'settings.airtrail.notConnected': 'Niet verbonden',
   'settings.airtrail.toast.saved': 'AirTrail-verbinding opgeslagen',

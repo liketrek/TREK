@@ -333,6 +333,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.apiKeyHint': 'Создаётся в AirTrail в разделе «Настройки → Безопасность». Хранится в зашифрованном виде.',
   'settings.airtrail.allowInsecureTls': 'Разрешить самоподписанные сертификаты',
   'settings.airtrail.allowInsecureTlsHint': 'Включайте только для доверенного экземпляра в вашей собственной сети.',
+  'settings.airtrail.writeBack': 'Записывать изменения обратно в AirTrail',
+  'settings.airtrail.writeBackHint': 'По умолчанию выключено: AirTrail является источником истины, а TREK только читает из него. Включите, чтобы отправлять изменения, сделанные в TREK, обратно в AirTrail.',
   'settings.airtrail.connected': 'Подключено',
   'settings.airtrail.notConnected': 'Не подключено',
   'settings.airtrail.toast.saved': 'Подключение к AirTrail сохранено',

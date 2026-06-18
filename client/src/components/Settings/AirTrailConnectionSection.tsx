@@ -19,6 +19,7 @@ export default function AirTrailConnectionSection(): React.ReactElement {
   const [url, setUrl] = useState('')
   const [apiKey, setApiKey] = useState('')
   const [allowInsecureTls, setAllowInsecureTls] = useState(false)
+  const [writeEnabled, setWriteEnabled] = useState(false)
   const [connected, setConnected] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -30,6 +31,7 @@ export default function AirTrailConnectionSection(): React.ReactElement {
       .then(d => {
         setUrl(d.url || '')
         setAllowInsecureTls(!!d.allowInsecureTls)
+        setWriteEnabled(!!d.writeEnabled)
         setConnected(!!d.connected)
       })
       .catch(() => {})
@@ -46,7 +48,7 @@ export default function AirTrailConnectionSection(): React.ReactElement {
   const handleSave = async () => {
     setSaving(true)
     try {
-      const d = await airtrailApi.saveSettings({ url: url.trim(), allowInsecureTls, ...keyPayload() })
+      const d = await airtrailApi.saveSettings({ url: url.trim(), allowInsecureTls, writeEnabled, ...keyPayload() })
       const status = await airtrailApi.status().catch(() => ({ connected: false }))
       setConnected(!!status.connected)
       setApiKey('')
@@ -105,6 +107,14 @@ export default function AirTrailConnectionSection(): React.ReactElement {
         <div className="flex items-center gap-3">
           <ToggleSwitch on={allowInsecureTls} onToggle={() => setAllowInsecureTls(v => !v)} />
           <span className="text-sm font-medium text-slate-700">{t('settings.airtrail.allowInsecureTls')}</span>
+        </div>
+
+        <div>
+          <div className="flex items-center gap-3">
+            <ToggleSwitch on={writeEnabled} onToggle={() => setWriteEnabled(v => !v)} />
+            <span className="text-sm font-medium text-slate-700">{t('settings.airtrail.writeBack')}</span>
+          </div>
+          <p className="mt-1 text-xs text-slate-500">{t('settings.airtrail.writeBackHint')}</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">

@@ -13,8 +13,8 @@ import {
   listFlights,
   saveFlight,
 } from './airtrailClient';
-import { canonicalHash, mapFlightToReservation } from './airtrailMapper';
-import { getAirtrailCredentials } from './airtrailService';
+import { canonicalHash, entityCode, mapFlightToReservation } from './airtrailMapper';
+import { getAirtrailCredentials, isAirtrailWriteEnabled } from './airtrailService';
 
 /** Global on/off: the addon must be enabled and sync not explicitly turned off. */
 export function syncGloballyEnabled(): boolean {
@@ -144,7 +144,16 @@ function splitLocal(dt: string | null | undefined): { date: string | null; time:
   return { date: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null, time: m ? m[1] : null };
 }
 
-function buildSavePayload(reservation: any, existing: AirtrailFlightRaw): AirtrailSavePayload | null {
+/**
+ * Build the POST /flight/save body. AirTrail's save fully overwrites the flight,
+ * so we start from the flight as AirTrail currently has it (`existing`, the raw
+ * GET object) and overwrite ONLY the fields TREK manages. Everything else —
+ * terminal, gate, scheduled/actual times, customFields, track, and any field
+ * AirTrail may add later — passes through untouched. We deliberately do NOT model
+ * those fields; spreading the raw object keeps us decoupled from AirTrail's schema
+ * (#1240).
+ */
+export function buildSavePayload(reservation: any, existing: AirtrailFlightRaw): AirtrailSavePayload | null {
   let meta: Record<string, any>;
   try {
     meta = reservation.metadata ? JSON.parse(reservation.metadata) : {};
@@ -183,7 +192,14 @@ function buildSavePayload(reservation: any, existing: AirtrailFlightRaw): Airtra
     if (ownSeat) ownSeat.seatNumber = seatNumber;
   }
 
+  // Spread the existing flight first to preserve every AirTrail-owned field, then
+  // overwrite only what TREK manages. `from`/`to`/`airline`/`aircraft` come back
+  // from GET as objects but the save shape wants codes — those are exactly the
+  // keys we override, so the spread never ships an object where a code is wanted.
   return {
+    // Cast so the spread carries through the AirTrail-owned keys we deliberately
+    // don't model (terminal, gate, scheduled/actual times, customFields, track, …).
+    ...(existing as unknown as Record<string, unknown>),
     id: Number(reservation.external_id),
     from: fromCode,
     to: toCode,
@@ -191,14 +207,18 @@ function buildSavePayload(reservation: any, existing: AirtrailFlightRaw): Airtra
     departureTime: dep.time,
     arrival: arr.date,
     arrivalTime: arr.time,
-    airline: meta.airline ?? null,
-    flightNumber: meta.flight_number ?? null,
-    aircraft: meta.aircraft ?? null,
-    aircraftReg: meta.aircraft_reg ?? null,
-    flightReason: meta.flight_reason ?? null,
-    note: reservation.notes ?? null,
+    // These are AirTrail-owned details TREK doesn't surface in its edit UI — a TREK
+    // edit can leave them out of `metadata`. Preserve AirTrail's current value when
+    // TREK has none rather than nulling it out (#1240). entityCode mirrors the
+    // import/hash code-selection so a writeback stays a no-op for the hash.
+    airline: meta.airline ?? entityCode(existing.airline) ?? null,
+    flightNumber: meta.flight_number ?? existing.flightNumber ?? null,
+    aircraft: meta.aircraft ?? entityCode(existing.aircraft) ?? null,
+    aircraftReg: meta.aircraft_reg ?? existing.aircraftReg ?? null,
+    flightReason: meta.flight_reason ?? existing.flightReason ?? null,
+    note: reservation.notes ?? existing.note ?? null,
     seats,
-  };
+  } as AirtrailSavePayload;
 }
 
 /**
@@ -219,9 +239,12 @@ export async function pushReservationToAirtrail(reservationId: number, tripId: n
     | undefined;
   if (!row || !row.sync_enabled) return;
 
-  const creds: AirtrailCreds | null = row.external_owner_user_id
-    ? getAirtrailCredentials(row.external_owner_user_id)
-    : null;
+  // AirTrail is read-only by default (#1240). Only push when the flight's owner has
+  // explicitly opted in. A no-op skip (not a detach): the link stays active so the
+  // inbound, AirTrail-wins pull keeps the reservation up to date.
+  if (!row.external_owner_user_id || !isAirtrailWriteEnabled(row.external_owner_user_id)) return;
+
+  const creds: AirtrailCreds | null = getAirtrailCredentials(row.external_owner_user_id);
   if (!creds) {
     detach(tripId, row.id); // owner disconnected — cannot push, so stop syncing
     return;

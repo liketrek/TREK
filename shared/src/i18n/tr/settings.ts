@@ -334,6 +334,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.apiKeyHint': 'AirTrail\'de Ayarlar → Güvenlik altında oluşturulur. Şifreli olarak saklanır.',
   'settings.airtrail.allowInsecureTls': 'Kendinden imzalı sertifikalara izin ver',
   'settings.airtrail.allowInsecureTlsHint': 'Yalnızca kendi ağınızdaki güvenilir bir örnek için etkinleştirin.',
+  'settings.airtrail.writeBack': 'Değişiklikleri AirTrail’e geri yaz',
+  'settings.airtrail.writeBackHint': 'Varsayılan olarak kapalı: AirTrail asıl kaynaktır ve TREK yalnızca okur. TREK’te yapılan değişiklikleri AirTrail’e geri göndermek için açın.',
   'settings.airtrail.connected': 'Bağlandı',
   'settings.airtrail.notConnected': 'Bağlı değil',
   'settings.airtrail.toast.saved': 'AirTrail bağlantısı kaydedildi',

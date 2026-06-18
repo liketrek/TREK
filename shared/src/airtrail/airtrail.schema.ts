@@ -21,6 +21,11 @@ export const airtrailSettingsSchema = z.object({
   apiKey: z.string().max(512).optional(),
   /** Allow self-signed TLS certs (common on LAN instances). */
   allowInsecureTls: z.boolean().optional().default(false),
+  /**
+   * Opt in to writing TREK edits back to AirTrail (#1240). Off by default:
+   * AirTrail is the source of truth and TREK only reads from it.
+   */
+  writeEnabled: z.boolean().optional().default(false),
 });
 export type AirtrailSettings = z.infer<typeof airtrailSettingsSchema>;
 
@@ -28,6 +33,7 @@ export const airtrailConnectionSchema = z.object({
   url: z.string(),
   apiKeyMasked: z.string(),
   allowInsecureTls: z.boolean(),
+  writeEnabled: z.boolean(),
   connected: z.boolean(),
 });
 export type AirtrailConnection = z.infer<typeof airtrailConnectionSchema>;

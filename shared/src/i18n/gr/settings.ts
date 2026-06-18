@@ -340,6 +340,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.apiKeyHint': 'Δημιουργείται στο AirTrail από Ρυθμίσεις → Ασφάλεια. Αποθηκεύεται κρυπτογραφημένο.',
   'settings.airtrail.allowInsecureTls': 'Να επιτρέπονται αυτο-υπογεγραμμένα πιστοποιητικά',
   'settings.airtrail.allowInsecureTlsHint': 'Ενεργοποιήστε το μόνο για μια αξιόπιστη εγκατάσταση στο δικό σας δίκτυο.',
+  'settings.airtrail.writeBack': 'Εγγραφή αλλαγών πίσω στο AirTrail',
+  'settings.airtrail.writeBackHint': 'Απενεργοποιημένο από προεπιλογή: το AirTrail είναι η πηγή αλήθειας και το TREK μόνο διαβάζει από αυτό. Ενεργοποιήστε το για να στέλνετε πίσω στο AirTrail τις αλλαγές που κάνετε στο TREK.',
   'settings.airtrail.connected': 'Συνδέθηκε',
   'settings.airtrail.notConnected': 'Δεν συνδέθηκε',
   'settings.airtrail.toast.saved': 'Η σύνδεση με το AirTrail αποθηκεύτηκε',

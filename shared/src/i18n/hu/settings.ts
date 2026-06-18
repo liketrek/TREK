@@ -336,6 +336,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.apiKeyHint': 'Az AirTrailben a Beállítások → Biztonság menüpontban generálva. Titkosítva tárolva.',
   'settings.airtrail.allowInsecureTls': 'Önaláírt tanúsítványok engedélyezése',
   'settings.airtrail.allowInsecureTlsHint': 'Csak megbízható, saját hálózaton futó példány esetén engedélyezd.',
+  'settings.airtrail.writeBack': 'Módosítások visszaírása az AirTrailbe',
+  'settings.airtrail.writeBackHint': 'Alapértelmezés szerint kikapcsolva: az AirTrail a hiteles forrás, és a TREK csak olvas belőle. Kapcsold be, hogy a TREK-ben végzett módosításokat visszaküldje az AirTrailbe.',
   'settings.airtrail.connected': 'Csatlakoztatva',
   'settings.airtrail.notConnected': 'Nincs csatlakoztatva',
   'settings.airtrail.toast.saved': 'AirTrail-kapcsolat mentve',

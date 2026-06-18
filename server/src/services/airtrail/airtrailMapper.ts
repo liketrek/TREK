@@ -11,7 +11,7 @@ function airportCode(a: AirtrailAirport | null): string | null {
  * Airline/aircraft arrive as joined objects ({icao, iata, name, ...}); reduce
  * them to a single code (ICAO preferred, matching AirTrail's save shape).
  */
-function entityCode(e: AirtrailNamedCode | null | undefined): string | null {
+export function entityCode(e: AirtrailNamedCode | null | undefined): string | null {
   return e?.icao || e?.iata || null;
 }
 

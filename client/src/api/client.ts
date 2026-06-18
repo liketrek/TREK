@@ -489,7 +489,7 @@ export const addonsApi = {
 
 export const airtrailApi = {
   getSettings: () => apiClient.get('/integrations/airtrail/settings').then(r => r.data),
-  saveSettings: (data: { url: string; apiKey?: string; allowInsecureTls?: boolean }) =>
+  saveSettings: (data: { url: string; apiKey?: string; allowInsecureTls?: boolean; writeEnabled?: boolean }) =>
     apiClient.put('/integrations/airtrail/settings', data).then(r => r.data),
   status: () => apiClient.get('/integrations/airtrail/status').then(r => r.data),
   test: (data: { url?: string; apiKey?: string; allowInsecureTls?: boolean }) =>

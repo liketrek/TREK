@@ -43,6 +43,7 @@ export class AirtrailController {
       body.url,
       body.apiKey,
       !!body.allowInsecureTls,
+      !!body.writeEnabled,
       getClientIp(req),
     );
     if (!result.success) {

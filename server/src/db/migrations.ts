@@ -3045,6 +3045,15 @@ function runMigrations(db: Database.Database): void {
         'CREATE UNIQUE INDEX IF NOT EXISTS idx_reservations_external ON reservations(external_source, external_id, trip_id)',
       );
     },
+    () => {
+      // Per-user opt-in for writing TREK edits back to AirTrail (#1240). Default
+      // off: AirTrail is the source of truth and TREK never writes unless asked.
+      try {
+        db.exec('ALTER TABLE users ADD COLUMN airtrail_write_enabled INTEGER DEFAULT 0');
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) throw err;
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {

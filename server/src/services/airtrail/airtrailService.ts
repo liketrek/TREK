@@ -12,12 +12,23 @@ interface UserConnRow {
   airtrail_url?: string | null;
   airtrail_api_key?: string | null;
   airtrail_allow_insecure_tls?: number | null;
+  airtrail_write_enabled?: number | null;
 }
 
 function readRow(userId: number): UserConnRow | undefined {
   return db
-    .prepare('SELECT airtrail_url, airtrail_api_key, airtrail_allow_insecure_tls FROM users WHERE id = ?')
+    .prepare(
+      'SELECT airtrail_url, airtrail_api_key, airtrail_allow_insecure_tls, airtrail_write_enabled FROM users WHERE id = ?',
+    )
     .get(userId) as UserConnRow | undefined;
+}
+
+/** Has this user opted in to TREK writing their flight edits back to AirTrail? (#1240) */
+export function isAirtrailWriteEnabled(userId: number): boolean {
+  const row = db.prepare('SELECT airtrail_write_enabled FROM users WHERE id = ?').get(userId) as
+    | { airtrail_write_enabled?: number | null }
+    | undefined;
+  return !!row?.airtrail_write_enabled;
 }
 
 /** Decrypted creds for outbound calls, or null when the user has no connection. */
@@ -40,6 +51,7 @@ export function getConnectionSettings(userId: number) {
     url: row?.airtrail_url || '',
     apiKeyMasked: row?.airtrail_api_key ? KEY_MASK : '',
     allowInsecureTls: !!row?.airtrail_allow_insecure_tls,
+    writeEnabled: !!row?.airtrail_write_enabled,
     connected: !!(row?.airtrail_url && row?.airtrail_api_key),
   };
 }
@@ -49,6 +61,7 @@ export async function saveSettings(
   url: string | undefined,
   apiKey: string | undefined,
   allowInsecureTls: boolean,
+  writeEnabled: boolean,
   clientIp: string | null,
 ): Promise<{ success: boolean; warning?: string; error?: string }> {
   const trimmedUrl = (url || '').trim();
@@ -81,12 +94,12 @@ export async function saveSettings(
 
   if (newKey !== undefined) {
     db.prepare(
-      'UPDATE users SET airtrail_url = ?, airtrail_api_key = ?, airtrail_allow_insecure_tls = ? WHERE id = ?',
-    ).run(trimmedUrl || null, newKey, allowInsecureTls ? 1 : 0, userId);
+      'UPDATE users SET airtrail_url = ?, airtrail_api_key = ?, airtrail_allow_insecure_tls = ?, airtrail_write_enabled = ? WHERE id = ?',
+    ).run(trimmedUrl || null, newKey, allowInsecureTls ? 1 : 0, writeEnabled ? 1 : 0, userId);
   } else {
     db.prepare(
-      'UPDATE users SET airtrail_url = ?, airtrail_allow_insecure_tls = ? WHERE id = ?',
-    ).run(trimmedUrl || null, allowInsecureTls ? 1 : 0, userId);
+      'UPDATE users SET airtrail_url = ?, airtrail_allow_insecure_tls = ?, airtrail_write_enabled = ? WHERE id = ?',
+    ).run(trimmedUrl || null, allowInsecureTls ? 1 : 0, writeEnabled ? 1 : 0, userId);
     // Clearing the URL with no key left makes the connection meaningless — drop the key too.
     if (!trimmedUrl) {
       db.prepare('UPDATE users SET airtrail_api_key = NULL WHERE id = ?').run(userId);

@@ -334,6 +334,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.apiKeyHint': 'Vygenerován v AirTrail v Nastavení → Zabezpečení. Uložen šifrovaně.',
   'settings.airtrail.allowInsecureTls': 'Povolit certifikáty podepsané sebou samým',
   'settings.airtrail.allowInsecureTlsHint': 'Povolte pouze pro důvěryhodnou instanci ve vlastní síti.',
+  'settings.airtrail.writeBack': 'Zapisovat změny zpět do AirTrail',
+  'settings.airtrail.writeBackHint': 'Ve výchozím stavu vypnuto: AirTrail je zdrojem pravdy a TREK z něj pouze čte. Zapněte, chcete-li odesílat úpravy provedené v TREK zpět do AirTrail.',
   'settings.airtrail.connected': 'Připojeno',
   'settings.airtrail.notConnected': 'Nepřipojeno',
   'settings.airtrail.toast.saved': 'Připojení k AirTrail uloženo',
