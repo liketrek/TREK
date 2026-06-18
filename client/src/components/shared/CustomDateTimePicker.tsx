@@ -206,8 +206,8 @@ export function CustomDatePicker({
     // nachher:
     const get = (field: 'day' | 'month' | 'year') => parseInt(nums[order.indexOf(field)]);
     let d = get('day'),
-      m = get('month'),
-      y = get('year');
+      m = get('month');
+    const y = get('year');
     if (isNaN(d) || isNaN(m) || isNaN(y)) return;
 
     // If locale order gives impossible month but valid swap, correct it
