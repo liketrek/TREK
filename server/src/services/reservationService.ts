@@ -19,7 +19,7 @@ export interface ReservationEndpoint {
 
 export type EndpointInput = Omit<ReservationEndpoint, 'id' | 'reservation_id' | 'sequence'> & { sequence?: number };
 
-function loadEndpointsByTrip(tripId: string | number): Map<number, ReservationEndpoint[]> {
+export function loadEndpointsByTrip(tripId: string | number): Map<number, ReservationEndpoint[]> {
   const rows = db.prepare(`
     SELECT e.* FROM reservation_endpoints e
     JOIN reservations r ON e.reservation_id = r.id
@@ -110,6 +110,9 @@ export function listReservations(tripId: string | number) {
   for (const r of reservations) {
     r.day_positions = posMap.get(r.id) || null;
     r.endpoints = endpointsMap.get(r.id) || [];
+    // accommodation_id is a TEXT column; the integer FK reads back as a numeric
+    // string (e.g. "14.0"). Normalize to an int so clients can parse it.
+    r.accommodation_id = r.accommodation_id == null ? null : Math.trunc(Number(r.accommodation_id));
   }
 
   return reservations;
@@ -163,6 +166,9 @@ export function getReservationWithJoins(id: string | number) {
   `).get(id) as any;
   if (!row) return undefined;
   row.endpoints = loadEndpoints(row.id);
+  // accommodation_id is a TEXT column; the integer FK reads back as a numeric
+  // string (e.g. "14.0"). Normalize to an int so clients can parse it.
+  row.accommodation_id = row.accommodation_id == null ? null : Math.trunc(Number(row.accommodation_id));
   return row;
 }
 

@@ -9,7 +9,7 @@ import {
   listBags, createBag, updateBag, deleteBag, setBagMembers,
   getCategoryAssignees as getPackingCategoryAssignees,
   updateCategoryAssignees as updatePackingCategoryAssignees,
-  applyTemplate, saveAsTemplate, bulkImport,
+  applyTemplate, saveAsTemplate, listTemplates, bulkImport,
 } from '../../services/packingService';
 import {
   safeBroadcast, TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE, TOOL_ANNOTATIONS_DELETE,
@@ -18,7 +18,7 @@ import {
   isAdminUser, adminRequired,
 } from './_shared';
 import { canRead, canWrite } from '../scopes';
-import { isAddonEnabled } from '../../services/adminService';
+import { isAddonEnabled, deletePackingTemplate } from '../../services/adminService';
 import { ADDON_IDS } from '../../addons';
 
 export function registerPackingTools(server: McpServer, userId: number, scopes: string[] | null): void {
@@ -309,10 +309,25 @@ export function registerPackingTools(server: McpServer, userId: number, scopes: 
     }
   );
 
+  if (R) server.registerTool(
+    'list_packing_templates',
+    {
+      description: 'List the reusable packing templates (id, name, item count) so one can be applied with apply_packing_template.',
+      inputSchema: {
+        tripId: z.number().int().positive(),
+      },
+      annotations: TOOL_ANNOTATIONS_READONLY,
+    },
+    async ({ tripId }) => {
+      if (!canAccessTrip(tripId, userId)) return noAccess();
+      return ok({ templates: listTemplates() });
+    }
+  );
+
   if (W) server.registerTool(
     'save_packing_template',
     {
-      description: 'Save the current packing list as a reusable template.',
+      description: 'Save the current packing list as a reusable template. Returns the new template (id, name, category/item counts). Admin only.',
       inputSchema: {
         tripId: z.number().int().positive(),
         templateName: z.string().min(1).max(100),
@@ -325,8 +340,28 @@ export function registerPackingTools(server: McpServer, userId: number, scopes: 
       if (!hasTripPermission('packing_edit', tripId, userId)) return permissionDenied();
       // Templates are global; the REST route restricts saving to admins. Match it.
       if (!isAdminUser(userId)) return adminRequired();
-      saveAsTemplate(tripId, userId, templateName);
-      return ok({ success: true });
+      const template = saveAsTemplate(tripId, userId, templateName);
+      if (!template) return { content: [{ type: 'text' as const, text: 'Nothing to save — the packing list is empty.' }], isError: true };
+      return ok({ template });
+    }
+  );
+
+  if (W) server.registerTool(
+    'delete_packing_template',
+    {
+      description: 'Delete a reusable packing template. Templates are global, so deletion is admin only.',
+      inputSchema: {
+        templateId: z.number().int().positive(),
+      },
+      annotations: TOOL_ANNOTATIONS_DELETE,
+    },
+    async ({ templateId }) => {
+      if (isDemoUser(userId)) return demoDenied();
+      // Templates are global; the REST route restricts management to admins. Match it.
+      if (!isAdminUser(userId)) return adminRequired();
+      const result = deletePackingTemplate(String(templateId));
+      if ('error' in result) return { content: [{ type: 'text' as const, text: result.error }], isError: true };
+      return ok({ success: true, name: result.name });
     }
   );
 

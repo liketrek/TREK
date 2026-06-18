@@ -5,7 +5,7 @@ import { Trip, User } from '../types';
 import { listDays, listAccommodations } from './dayService';
 import { listBudgetItems } from './budgetService';
 import { listItems as listPackingItems } from './packingService';
-import { listReservations } from './reservationService';
+import { listReservations, loadEndpointsByTrip } from './reservationService';
 import { listNotes as listCollabNotes } from './collabService';
 import { shiftOwnerEntriesForTripWindow } from './vacayService';
 
@@ -516,27 +516,54 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
     }
   }
 
+  // Transport/flight reservations carry no top-level reservation_time; their
+  // times live per endpoint (local_date + local_time) in reservation_endpoints.
+  const endpointsMap = loadEndpointsByTrip(tripId);
+  const isDate = (s: string | null | undefined) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
+  const isTime = (s: string | null | undefined) => !!s && /^\d{2}:\d{2}/.test(s);
+
+  // Build the DTSTART/DTEND lines for a reservation, or null when it has no
+  // calendar-placeable time. Hotels/restaurants use reservation_time; flights
+  // fall back to their first/last endpoint.
+  const buildReservationTimeLines = (r: any): string | null => {
+    if (r.reservation_time) {
+      const datePart = r.reservation_time.includes('T') ? r.reservation_time.split('T')[0] : r.reservation_time;
+      if (!isDate(datePart)) return null; // time-only (relative "Day N" trips)
+      if (r.reservation_time.includes('T')) {
+        let out = `DTSTART:${fmtDateTime(r.reservation_time)}\r\n`;
+        if (r.reservation_end_time) {
+          const endDt = fmtDateTime(r.reservation_end_time, r.reservation_time);
+          if (endDt.length >= 15) out += `DTEND:${endDt}\r\n`;
+        }
+        return out;
+      }
+      return `DTSTART;VALUE=DATE:${fmtDate(r.reservation_time)}\r\n`;
+    }
+
+    const eps = endpointsMap.get(r.id);
+    if (!eps || eps.length === 0) return null;
+    const ordered = [...eps].sort((a, b) => a.sequence - b.sequence);
+    const first = ordered[0];
+    const last = ordered[ordered.length - 1];
+    if (!isDate(first.local_date)) return null;
+    if (isTime(first.local_time)) {
+      let out = `DTSTART:${fmtDateTime(`${first.local_date}T${first.local_time}`)}\r\n`;
+      if (last !== first && isDate(last.local_date) && isTime(last.local_time)) {
+        out += `DTEND:${fmtDateTime(`${last.local_date}T${last.local_time}`)}\r\n`;
+      }
+      return out;
+    }
+    return `DTSTART;VALUE=DATE:${fmtDate(first.local_date)}\r\n`;
+  };
+
   // Reservations as events
   for (const r of reservations) {
-    if (!r.reservation_time) continue;
-    // Skip time-only values (no calendar date — occurs on relative "Day N" trips)
-    const hasDate = r.reservation_time.includes('T')
-      ? /^\d{4}-\d{2}-\d{2}$/.test(r.reservation_time.split('T')[0])
-      : /^\d{4}-\d{2}-\d{2}$/.test(r.reservation_time);
-    if (!hasDate) continue;
-    const hasTime = r.reservation_time.includes('T');
+    const timeLines = buildReservationTimeLines(r);
+    if (!timeLines) continue;
     const meta = r.metadata ? (typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata) : {};
 
     ics += `BEGIN:VEVENT\r\nUID:${uid(r.id, 'res')}\r\nDTSTAMP:${now}\r\n`;
-    if (hasTime) {
-      ics += `DTSTART:${fmtDateTime(r.reservation_time)}\r\n`;
-      if (r.reservation_end_time) {
-        const endDt = fmtDateTime(r.reservation_end_time, r.reservation_time);
-        if (endDt.length >= 15) ics += `DTEND:${endDt}\r\n`;
-      }
-    } else {
-      ics += `DTSTART;VALUE=DATE:${fmtDate(r.reservation_time)}\r\n`;
-    }
+    ics += timeLines;
     ics += `SUMMARY:${esc(r.title)}\r\n`;
 
     let desc = r.type ? `Type: ${r.type}` : '';
@@ -547,9 +574,16 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
       // Multi-leg flight: show the whole route (FRA → BER → HND) on one event.
       const stops = [meta.legs[0]?.from, ...meta.legs.map((l: { to?: string }) => l.to)].filter(Boolean);
       if (stops.length) desc += `\nRoute: ${stops.join(' → ')}`;
-    } else {
+    } else if (meta.departure_airport || meta.arrival_airport) {
       if (meta.departure_airport) desc += `\nFrom: ${meta.departure_airport}`;
       if (meta.arrival_airport) desc += `\nTo: ${meta.arrival_airport}`;
+    } else {
+      // Endpoint-based transport without route metadata: derive it from endpoints.
+      const eps = endpointsMap.get(r.id);
+      if (eps && eps.length > 1) {
+        const stops = [...eps].sort((a, b) => a.sequence - b.sequence).map(e => e.code || e.name).filter(Boolean);
+        if (stops.length > 1) desc += `\nRoute: ${stops.join(' → ')}`;
+      }
     }
     if (meta.train_number) desc += `\nTrain: ${meta.train_number}`;
     if (r.notes) desc += `\n${r.notes}`;

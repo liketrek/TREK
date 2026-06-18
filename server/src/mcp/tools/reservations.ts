@@ -221,7 +221,7 @@ export function registerReservationTools(server: McpServer, userId: number, scop
 
       safeBroadcast(tripId, isNewAccommodation ? 'accommodation:created' : 'accommodation:updated', {});
       safeBroadcast(tripId, 'reservation:updated', { reservation });
-      return ok({ reservation, accommodation_id: (reservation as any).accommodation_id });
+      return ok({ reservation, accommodation_id: (reservation as any)?.accommodation_id ?? null });
     }
   );
 }

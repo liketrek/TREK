@@ -332,6 +332,41 @@ describe('resolveGoogleMapsUrl coordinate extraction (ReDoS guards)', () => {
     expect(result.name).toBe('Eiffel Tower');
   });
 
+  it('MAPS-CID-001: resolves a cid= URL by following the redirect to a coordinate URL', async () => {
+    // cid URLs (what get_place_details returns, and Google "Share" links) carry no
+    // inline coords; the redirect target carries the !3d!4d data param.
+    const fetchMock = vi.fn(async (u: string) => {
+      if (u.includes('nominatim')) {
+        return { ok: true, json: async () => ({ display_name: 'Paris, France', name: 'Eiffel Tower', address: {} }) };
+      }
+      return { url: 'https://www.google.com/maps/place/Eiffel+Tower/data=!3d48.8584!4d2.2945', text: async () => '' };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { resolveGoogleMapsUrl } = await import('../../../src/services/mapsService');
+    const result = await resolveGoogleMapsUrl('https://maps.google.com/?cid=1234567890');
+    expect(result.lat).toBeCloseTo(48.8584, 3);
+    expect(result.lng).toBeCloseTo(2.2945, 3);
+  });
+
+  it('MAPS-CID-002: falls back to parsing coordinates from the page body', async () => {
+    const fetchMock = vi.fn(async (u: string) => {
+      if (u.includes('nominatim')) {
+        return { ok: true, json: async () => ({ display_name: 'NYC, USA', name: null, address: {} }) };
+      }
+      if (u.includes('cid=')) {
+        // Redirect target has no inline coords.
+        return { url: 'https://www.google.com/maps/place/Somewhere', text: async () => '' };
+      }
+      // Body fetch of the resolved URL embeds coords in the map data.
+      return { url: 'https://www.google.com/maps/place/Somewhere', text: async () => 'x!3d40.6892!4d-74.0445y' };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { resolveGoogleMapsUrl } = await import('../../../src/services/mapsService');
+    const result = await resolveGoogleMapsUrl('https://www.google.com/maps?cid=999');
+    expect(result.lat).toBeCloseTo(40.6892, 3);
+    expect(result.lng).toBeCloseTo(-74.0445, 3);
+  });
+
   it('MAPS-024 (ReDoS): /@(-?\\d+\\.?\\d*),(-?\\d+\\.?\\d*)/ on adversarial input < 500ms', () => {
     const adversarial = '/@' + '1'.repeat(10000) + '.';
     const start = Date.now();

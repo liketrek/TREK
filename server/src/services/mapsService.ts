@@ -986,59 +986,73 @@ export async function reverseGeocode(lat: string, lng: string, lang?: string): P
 export async function resolveGoogleMapsUrl(url: string): Promise<{ lat: number; lng: number; name: string | null; address: string | null }> {
   let resolvedUrl = url;
 
-  // Follow redirects for short URLs (goo.gl, maps.app.goo.gl) with SSRF protection.
-  // Redirects are followed manually so every hop is re-checked — a short link
-  // that 302s to an internal IP is blocked, while a legitimate cross-host
-  // redirect (goo.gl → maps.google.com) still resolves.
-  const parsed = new URL(url);
-  if (['goo.gl', 'maps.app.goo.gl'].includes(parsed.hostname)) {
+  // Extract coordinates from a string (URL or page body). Google Maps encodes
+  // them several ways: /@lat,lng,zoom · !3dlat!4dlng (map data param) · ?q=/?ll=.
+  const extractCoords = (s: string): { lat: number; lng: number } | null => {
+    const at = s.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (at) return { lat: parseFloat(at[1]), lng: parseFloat(at[2]) };
+    const data = s.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+    if (data) return { lat: parseFloat(data[1]), lng: parseFloat(data[2]) };
+    const q = s.match(/[?&](?:q|ll)=(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (q) return { lat: parseFloat(q[1]), lng: parseFloat(q[2]) };
+    return null;
+  };
+
+  const followRedirects = async (target: string, init?: RequestInit): Promise<Response> => {
     try {
-      const redirectRes = await safeFetchFollow(
-        url,
-        { signal: AbortSignal.timeout(10000) },
+      return await safeFetchFollow(
+        target,
+        { signal: AbortSignal.timeout(10000), ...init },
         { bypassInternalIpAllowed: true },
       );
-      resolvedUrl = redirectRes.url;
     } catch (err) {
       if (err instanceof SsrfBlockedError) {
         throw Object.assign(new Error('URL blocked by SSRF check'), { status: 403 });
       }
       throw err;
     }
+  };
+
+  // Follow redirects for short URLs (goo.gl, maps.app.goo.gl) and for Google Maps
+  // URLs that carry no inline coordinates — e.g. ?cid= links (the format
+  // get_place_details returns) and "Share"-button links. The redirect target
+  // usually carries the !3d!4d data param we can then parse. Redirects are
+  // followed manually so every hop is SSRF-re-checked.
+  const parsed = new URL(url);
+  const GOOGLE_MAPS_HOSTS = ['goo.gl', 'maps.app.goo.gl', 'google.com', 'www.google.com', 'maps.google.com'];
+  const isShort = ['goo.gl', 'maps.app.goo.gl'].includes(parsed.hostname);
+  const isGoogleMaps = GOOGLE_MAPS_HOSTS.includes(parsed.hostname);
+  if (isShort || (isGoogleMaps && !extractCoords(url))) {
+    resolvedUrl = (await followRedirects(url)).url || resolvedUrl;
   }
 
-  // Extract coordinates from Google Maps URL patterns:
-  // /@48.8566,2.3522,15z  or  /place/.../@48.8566,2.3522
-  // ?q=48.8566,2.3522  or  ?ll=48.8566,2.3522
-  let lat: number | null = null;
-  let lng: number | null = null;
-  let placeName: string | null = null;
+  let coords = extractCoords(resolvedUrl);
 
-  // Pattern: /@lat,lng
-  const atMatch = resolvedUrl.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
-  if (atMatch) { lat = parseFloat(atMatch[1]); lng = parseFloat(atMatch[2]); }
-
-  // Pattern: !3dlat!4dlng (Google Maps data params)
-  if (!lat) {
-    const dataMatch = resolvedUrl.match(/!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/);
-    if (dataMatch) { lat = parseFloat(dataMatch[1]); lng = parseFloat(dataMatch[2]); }
-  }
-
-  // Pattern: ?q=lat,lng or &q=lat,lng
-  if (!lat) {
-    const qMatch = resolvedUrl.match(/[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
-    if (qMatch) { lat = parseFloat(qMatch[1]); lng = parseFloat(qMatch[2]); }
+  // Still nothing (e.g. a cid page whose final URL lacks coordinates): fetch the
+  // page body once and parse the coordinates out of the embedded map data.
+  if (!coords) {
+    try {
+      const pageRes = await followRedirects(resolvedUrl, {
+        headers: { 'User-Agent': 'TREK-Travel-Planner/1.0' },
+      });
+      coords = extractCoords(await pageRes.text());
+    } catch (err) {
+      if ((err as { status?: number })?.status === 403) throw err; // SSRF block — surface it
+      // Otherwise fall through to the not-found error below.
+    }
   }
 
   // Extract place name from URL path: /place/Place+Name/@...
+  let placeName: string | null = null;
   const placeMatch = resolvedUrl.match(/\/place\/([^/@]+)/);
   if (placeMatch) {
     placeName = decodeURIComponent(placeMatch[1].replace(/\+/g, ' '));
   }
 
-  if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+  if (!coords || isNaN(coords.lat) || isNaN(coords.lng)) {
     throw Object.assign(new Error('Could not extract coordinates from URL'), { status: 400 });
   }
+  const { lat, lng } = coords;
 
   // Reverse geocode to get address
   const nominatimRes = await fetch(

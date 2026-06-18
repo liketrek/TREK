@@ -392,7 +392,22 @@ describe('Tool: save_packing_template', () => {
         arguments: { tripId: trip.id, templateName: 'Weekend Trip' },
       });
       const data = parseToolResult(result) as any;
-      expect(data.success).toBe(true);
+      // Save now returns the new template (with its id) instead of a bare success flag.
+      expect(data.template).toBeDefined();
+      expect(Number.isInteger(data.template.id)).toBe(true);
+      expect(data.template.name).toBe('Weekend Trip');
+    });
+  });
+
+  it('returns an error when the packing list is empty', async () => {
+    const { user } = createAdmin(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'save_packing_template',
+        arguments: { tripId: trip.id, templateName: 'Empty' },
+      });
+      expect(result.isError).toBe(true);
     });
   });
 
@@ -418,6 +433,90 @@ describe('Tool: save_packing_template', () => {
       const result = await h.client.callTool({
         name: 'save_packing_template',
         arguments: { tripId: trip.id, templateName: 'X' },
+      });
+      expect(result.isError).toBe(true);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// list_packing_templates / delete_packing_template
+// ---------------------------------------------------------------------------
+
+describe('Tool: list_packing_templates', () => {
+  it('lists saved templates with their ids and item counts', async () => {
+    const { user } = createAdmin(testDb);
+    const trip = createTrip(testDb, user.id);
+    createPackingItem(testDb, trip.id, { name: 'Toothbrush', category: 'Toiletries' });
+    await withHarness(user.id, async (h) => {
+      const saved = parseToolResult(await h.client.callTool({
+        name: 'save_packing_template',
+        arguments: { tripId: trip.id, templateName: 'Beach' },
+      })) as any;
+
+      const listed = parseToolResult(await h.client.callTool({
+        name: 'list_packing_templates',
+        arguments: { tripId: trip.id },
+      })) as any;
+      expect(listed.templates.some((t: any) => t.id === saved.template.id && t.name === 'Beach')).toBe(true);
+    });
+  });
+
+  it('is available to a non-admin trip member (read-only)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'list_packing_templates',
+        arguments: { tripId: trip.id },
+      });
+      expect(result.isError).toBeFalsy();
+      const data = parseToolResult(result) as any;
+      expect(Array.isArray(data.templates)).toBe(true);
+    });
+  });
+});
+
+describe('Tool: delete_packing_template', () => {
+  it('removes a template for an admin', async () => {
+    const { user } = createAdmin(testDb);
+    const trip = createTrip(testDb, user.id);
+    createPackingItem(testDb, trip.id, { name: 'Toothbrush', category: 'Toiletries' });
+    await withHarness(user.id, async (h) => {
+      const saved = parseToolResult(await h.client.callTool({
+        name: 'save_packing_template',
+        arguments: { tripId: trip.id, templateName: 'Ski' },
+      })) as any;
+      const id = saved.template.id;
+
+      const deleted = parseToolResult(await h.client.callTool({
+        name: 'delete_packing_template',
+        arguments: { templateId: id },
+      })) as any;
+      expect(deleted.success).toBe(true);
+      const remaining = testDb.prepare('SELECT count(*) as cnt FROM packing_templates WHERE id = ?').get(id) as any;
+      expect(remaining.cnt).toBe(0);
+    });
+  });
+
+  it('denies a non-admin (parity with the REST admin gate)', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'delete_packing_template',
+        arguments: { templateId: 1 },
+      });
+      expect(result.isError).toBe(true);
+      expect((result.content as any)[0].text).toBe('Admin access required');
+    });
+  });
+
+  it('returns an error for a missing template', async () => {
+    const { user } = createAdmin(testDb);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'delete_packing_template',
+        arguments: { templateId: 99999 },
       });
       expect(result.isError).toBe(true);
     });

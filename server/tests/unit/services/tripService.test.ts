@@ -397,6 +397,46 @@ describe('exportICS', () => {
 
     expect(ics).toContain('DTEND:20250602T160000');
   });
+
+  it('TRIP-SVC-010: flight with endpoint times but no reservation_time is included', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris Trip' });
+    const reservation = createReservation(testDb, trip.id, {
+      title: 'CDG → JFK',
+      type: 'flight',
+    });
+    // Confirmed flights store times per endpoint, never as reservation_time.
+    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL WHERE id=?').run(reservation.id);
+    const insertEp = testDb.prepare(
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    insertEp.run(reservation.id, 'from', 0, 'Paris CDG', 'CDG', 49.0, 2.5, 'Europe/Paris', '09:00', '2025-06-02');
+    insertEp.run(reservation.id, 'to', 1, 'New York JFK', 'JFK', 40.6, -73.8, 'America/New_York', '12:00', '2025-06-02');
+
+    const { ics } = exportICS(trip.id);
+
+    expect(ics).toContain('SUMMARY:CDG → JFK');
+    expect(ics).toContain('DTSTART:20250602T090000');
+    expect(ics).toContain('DTEND:20250602T120000');
+    expect(ics).toContain('Route: CDG → JFK');
+  });
+
+  it('TRIP-SVC-011: flight endpoint with no local_date is skipped (relative Day-N trips)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Relative Trip' });
+    const reservation = createReservation(testDb, trip.id, {
+      title: 'Timeless Flight',
+      type: 'flight',
+    });
+    testDb.prepare('UPDATE reservations SET reservation_time=NULL WHERE id=?').run(reservation.id);
+    testDb.prepare(
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(reservation.id, 'from', 0, 'Origin', 'AAA', 1.0, 1.0, null, '09:00', null);
+
+    const { ics } = exportICS(trip.id);
+
+    expect(ics).not.toContain('SUMMARY:Timeless Flight');
+  });
 });
 
 // ── deleteOldCover — path containment ──────────────────────────────────────────

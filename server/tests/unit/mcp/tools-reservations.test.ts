@@ -350,6 +350,10 @@ describe('Tool: link_hotel_accommodation', () => {
       const data = parseToolResult(result) as any;
       expect(data.reservation.accommodation_id).not.toBeNull();
       expect(data.accommodation_id).not.toBeNull();
+      // accommodation_id must be a clean integer, not a stringified float ("14.0").
+      expect(typeof data.reservation.accommodation_id).toBe('number');
+      expect(Number.isInteger(data.reservation.accommodation_id)).toBe(true);
+      expect(Number.isInteger(data.accommodation_id)).toBe(true);
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'accommodation:created', expect.any(Object));
     });
   });
