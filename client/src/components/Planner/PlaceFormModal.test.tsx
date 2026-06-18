@@ -399,17 +399,38 @@ describe('PlaceFormModal', () => {
     expect(screen.queryByTestId('time-picker')).not.toBeInTheDocument();
   });
 
-  it('FE-PLANNER-PLACEFORM-026: time section IS shown in edit mode', () => {
+  it('FE-PLANNER-PLACEFORM-026: time section is hidden in edit mode when no assignment is in context', () => {
+    // Times are per day-assignment; editing a pool place with no day in context
+    // (assignmentId null) hides the fields, which otherwise would not persist (#1247)
     const place = buildPlace({ name: 'Test' });
     render(<PlaceFormModal {...defaultProps} place={place} assignmentId={null} />);
-    // Time pickers are rendered when editing
+    expect(screen.queryByTestId('time-picker')).not.toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-PLACEFORM-026b: time section IS shown when an assignment is in context', () => {
+    const place = buildPlace({ name: 'Test', place_time: '09:00', end_time: '10:00' });
+    const assignment = buildAssignment({ id: 10, day_id: 5, place });
+    render(<PlaceFormModal {...defaultProps} place={place} assignmentId={10} dayAssignments={[assignment]} />);
     expect(screen.getAllByTestId('time-picker').length).toBeGreaterThanOrEqual(2);
   });
 
+  it('FE-PLANNER-PLACEFORM-026c: hydrates Start/End from the assignment when the pool place lacks times (#1247)', () => {
+    // The pool Place carries no times — they live on the day-assignment. Opening the
+    // editor with an assignmentId must hydrate the fields from assignment.place, not
+    // the (timeless) pool place that the Places panel passes in.
+    const poolPlace = buildPlace({ id: 7, name: 'Museum' });
+    const assignmentPlace = buildPlace({ id: 7, name: 'Museum', place_time: '20:20', end_time: '20:34' });
+    const assignment = buildAssignment({ id: 42, day_id: 3, place: assignmentPlace });
+    render(<PlaceFormModal {...defaultProps} place={poolPlace} assignmentId={42} dayAssignments={[assignment]} />);
+    expect(screen.getByDisplayValue('20:20')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('20:34')).toBeInTheDocument();
+  });
+
   it('FE-PLANNER-PLACEFORM-027: end-before-start error disables submit', () => {
-    // Build a place with end_time before place_time
+    // Build an assignment whose place has end_time before place_time
     const place = buildPlace({ name: 'Test', place_time: '14:00', end_time: '13:00' });
-    render(<PlaceFormModal {...defaultProps} place={place} assignmentId={null} />);
+    const assignment = buildAssignment({ id: 11, day_id: 5, place });
+    render(<PlaceFormModal {...defaultProps} place={place} assignmentId={11} dayAssignments={[assignment]} />);
 
     // hasTimeError = true → submit button disabled
     const submitBtn = screen.getByRole('button', { name: /^Update$/i });

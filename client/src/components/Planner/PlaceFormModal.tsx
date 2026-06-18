@@ -92,6 +92,11 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
 
   useEffect(() => {
     if (place) {
+      // Times are stored per day-assignment, not on the pool place. When an
+      // assignment is in context (itinerary edit, or a single-assignment pool
+      // edit) read the times off its embedded place; fall back to the place prop.
+      const assignment = assignmentId ? dayAssignments.find(a => a.id === assignmentId) : null
+      const timeSource = assignment?.place ?? place
       setForm({
         name: place.name || '',
         description: place.description || '',
@@ -99,8 +104,8 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
         lat: place.lat != null ? String(place.lat) : '',
         lng: place.lng != null ? String(place.lng) : '',
         category_id: place.category_id != null ? String(place.category_id) : '',
-        place_time: place.place_time || '',
-        end_time: place.end_time || '',
+        place_time: timeSource.place_time || '',
+        end_time: timeSource.end_time || '',
         notes: place.notes || '',
         transport_mode: place.transport_mode || 'walking',
         website: place.website || '',
@@ -121,7 +126,10 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     }
     setPendingFiles([])
     setDuplicateWarning(null)
-  }, [place, prefillCoords, isOpen])
+    // dayAssignments is a fresh array each render; read it at open-time only and
+    // re-run on identity changes (place/assignmentId/open), not on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [place, prefillCoords, isOpen, assignmentId])
 
   // Derive location bias bounding box from the trip's existing places
   const places = useTripStore((s) => s.places)
@@ -728,8 +736,11 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
           )}
         </div>
 
-        {/* Time — only shown when editing, not when creating */}
-        {place && (
+        {/* Time is per day-assignment: only shown when a single assignment is in
+            context (itinerary edit, or a single-assignment pool edit). Hidden when
+            creating, and for unassigned / multi-day pool edits where a single time
+            is ambiguous and wouldn't persist. */}
+        {place && assignmentId && (
           <TimeSection
             form={form}
             handleChange={handleChange}
