@@ -88,6 +88,26 @@ describe('airtrailMapper.mapFlightToReservation', () => {
     expect(m.notes).toBe('window seat');
   });
 
+  it('uses only the seat number for the seat, not the cabin class (#1246)', () => {
+    // AirTrail often has a class but no seat number until check-in; the class
+    // must not leak into the seat field.
+    const m = mapFlightToReservation(
+      flight({ seats: [{ userId: 'u1', guestName: null, seat: null, seatNumber: null, seatClass: 'economy' }] }),
+    );
+    expect(m.metadata).not.toHaveProperty('seat');
+  });
+
+  it('keeps the seat number when present even with no class', () => {
+    const m = mapFlightToReservation(
+      flight({ seats: [{ userId: 'u1', guestName: null, seat: null, seatNumber: '3F', seatClass: null }] }),
+    );
+    expect(m.metadata).toMatchObject({ seat: '3F' });
+  });
+
+  it('omits the seat for a flight with no seats', () => {
+    expect(mapFlightToReservation(flight({ seats: [] })).metadata).not.toHaveProperty('seat');
+  });
+
   it('flags needs_review for a non-day date precision', () => {
     expect(mapFlightToReservation(flight({ datePrecision: 'month' })).needs_review).toBe(1);
   });

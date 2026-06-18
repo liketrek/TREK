@@ -147,7 +147,7 @@ export function mapFlightToReservation(raw: AirtrailFlightRaw): MappedReservatio
   if (aircraftCode) metadata.aircraft = aircraftCode;
   if (raw.aircraftReg) metadata.aircraft_reg = raw.aircraftReg;
   if (raw.flightReason) metadata.flight_reason = raw.flightReason;
-  if (seat?.seatNumber || seat?.seatClass) metadata.seat = seat.seatNumber || seat.seatClass;
+  if (seat?.seatNumber) metadata.seat = seat.seatNumber;
 
   // The flight number already carries the airline prefix (e.g. "SAS983"), so it
   // makes the clearest title; fall back to the route.
