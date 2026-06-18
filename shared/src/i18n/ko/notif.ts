@@ -16,13 +16,11 @@ const notif: TranslationStrings = {
   'notif.vacay_invite.title': 'Vacay 퓨전 초대',
   'notif.vacay_invite.text': '{actor}이(가) 휴가 계획 공유에 초대했습니다',
   'notif.photos_shared.title': '사진 공유됨',
-  'notif.photos_shared.text':
-    '{actor}이(가) {trip}에서 {count}장의 사진을 공유했습니다',
+  'notif.photos_shared.text': '{actor}이(가) {trip}에서 {count}장의 사진을 공유했습니다',
   'notif.collab_message.title': '새 메시지',
   'notif.collab_message.text': '{actor}이(가) {trip}에서 메시지를 보냈습니다',
   'notif.packing_tagged.title': '짐 목록 배정',
-  'notif.packing_tagged.text':
-    '{actor}이(가) {trip}의 {category}에 배정했습니다',
+  'notif.packing_tagged.text': '{actor}이(가) {trip}의 {category}에 배정했습니다',
   'notif.version_available.title': '새 버전 사용 가능',
   'notif.version_available.text': 'TREK {version}이(가) 사용 가능합니다',
   'notif.action.view_trip': '여행 보기',
@@ -37,7 +35,6 @@ const notif: TranslationStrings = {
   'notif.generic.title': '알림',
   'notif.generic.text': '새 알림이 있습니다',
   'notif.dev.unknown_event.title': '[DEV] 알 수 없는 이벤트',
-  'notif.dev.unknown_event.text':
-    '이벤트 유형 "{event}"이(가) EVENT_NOTIFICATION_CONFIG에 등록되지 않았습니다',
+  'notif.dev.unknown_event.text': '이벤트 유형 "{event}"이(가) EVENT_NOTIFICATION_CONFIG에 등록되지 않았습니다',
 };
 export default notif;

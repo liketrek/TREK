@@ -7,8 +7,7 @@ const planner: TranslationStrings = {
   'planner.documents': 'Dokumenty',
   'planner.dayPlan': 'Plan',
   'planner.reservations': 'Rezerwacje',
-  'planner.minTwoPlaces':
-    'Wymagane są przynajmniej dwa miejsca ze współrzędnymi',
+  'planner.minTwoPlaces': 'Wymagane są przynajmniej dwa miejsca ze współrzędnymi',
   'planner.noGeoPlaces': 'Brak miejsc ze współrzędnymi',
   'planner.routeCalculated': 'Trasa została obliczona',
   'planner.routeCalcFailed': 'Nie udało się obliczyć trasy',
@@ -34,8 +33,7 @@ const planner: TranslationStrings = {
   'planner.resConfirmed': 'Rezerwacja potwierdzona · ',
   'planner.notePlaceholder': 'Notatka…',
   'planner.noteTimePlaceholder': 'Godzina (opcjonalnie)',
-  'planner.noteExamplePlaceholder':
-    'np. S3 o 14:30 z dworca centralnego, prom z molo 7, przerwa na lunch…',
+  'planner.noteExamplePlaceholder': 'np. S3 o 14:30 z dworca centralnego, prom z molo 7, przerwa na lunch…',
   'planner.totalCost': 'Całkowity koszt',
   'planner.searchPlaces': 'Szukaj miejsc…',
   'planner.allCategories': 'Wszystkie kategorie',
@@ -49,8 +47,7 @@ const planner: TranslationStrings = {
   'planner.route': 'Trasa',
   'planner.optimize': 'Optymalizuj',
   'planner.openGoogleMaps': 'Otwórz w Google Maps',
-  'planner.selectDayHint':
-    'Wybierz dzień z listy po lewej, aby zobaczyć jego plan',
+  'planner.selectDayHint': 'Wybierz dzień z listy po lewej, aby zobaczyć jego plan',
   'planner.noPlacesForDay': 'Brak miejsc dla tego dnia',
   'planner.addPlacesLink': 'Dodaj miejsca →',
   'planner.minTotal': 'min. łącznie',

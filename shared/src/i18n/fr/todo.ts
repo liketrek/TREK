@@ -20,8 +20,7 @@ const todo: TranslationStrings = {
   'todo.newCategory': 'Nom de la catégorie',
   'todo.addCategory': 'Ajouter une catégorie',
   'todo.newItem': 'Nouvelle tâche',
-  'todo.empty':
-    "Aucune tâche pour l'instant. Ajoutez une tâche pour commencer !",
+  'todo.empty': "Aucune tâche pour l'instant. Ajoutez une tâche pour commencer !",
   'todo.filter.my': 'Mes tâches',
   'todo.filter.overdue': 'En retard',
   'todo.sidebar.tasks': 'Tâches',

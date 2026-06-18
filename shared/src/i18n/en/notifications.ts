@@ -22,16 +22,14 @@ const notifications: TranslationStrings = {
   'notifications.test.title': 'Test notification from {actor}',
   'notifications.test.text': 'This is a simple test notification.',
   'notifications.test.booleanTitle': '{actor} asks for your approval',
-  'notifications.test.booleanText':
-    'This is a test boolean notification. Choose an action below.',
+  'notifications.test.booleanText': 'This is a test boolean notification. Choose an action below.',
   'notifications.test.accept': 'Approve',
   'notifications.test.decline': 'Decline',
   'notifications.test.navigateTitle': 'Check something out',
   'notifications.test.navigateText': 'This is a test navigate notification.',
   'notifications.test.goThere': 'Go there',
   'notifications.test.adminTitle': 'Admin broadcast',
-  'notifications.test.adminText':
-    '{actor} sent a test notification to all admins.',
+  'notifications.test.adminText': '{actor} sent a test notification to all admins.',
   'notifications.test.tripTitle': '{actor} posted in your trip',
   'notifications.test.tripText': 'Test notification for trip "{trip}".',
 };

@@ -17,30 +17,24 @@ const dayplan: TranslationStrings = {
   'dayplan.optimize': 'Optimalizovat',
   'dayplan.optimized': 'Trasa optimalizována',
   'dayplan.routeError': 'Nepodařilo se vypočítat trasu',
-  'dayplan.toast.needTwoPlaces':
-    'Pro optimalizaci trasy jsou potřeba alespoň dvě místa',
+  'dayplan.toast.needTwoPlaces': 'Pro optimalizaci trasy jsou potřeba alespoň dvě místa',
   'dayplan.toast.routeOptimized': 'Trasa byla optimalizována',
-  'dayplan.toast.routeOptimizedFromHotel':
-    'Trasa byla optimalizována od vašeho ubytování',
-  'dayplan.toast.noGeoPlaces':
-    'Nebyla nalezena žádná místa se souřadnicemi pro výpočet trasy',
+  'dayplan.toast.routeOptimizedFromHotel': 'Trasa byla optimalizována od vašeho ubytování',
+  'dayplan.toast.noGeoPlaces': 'Nebyla nalezena žádná místa se souřadnicemi pro výpočet trasy',
   'dayplan.confirmed': 'Potvrzeno',
   'dayplan.pendingRes': 'Čeká na potvrzení',
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Exportovat denní plán do PDF',
   'dayplan.pdfError': 'Export do PDF se nezdařil',
-  'dayplan.cannotReorderTransport':
-    'Rezervace s pevným časem nelze přeuspořádat',
+  'dayplan.cannotReorderTransport': 'Rezervace s pevným časem nelze přeuspořádat',
   'dayplan.confirmRemoveTimeTitle': 'Odebrat čas?',
   'dayplan.confirmRemoveTimeBody':
     'Toto místo má pevný čas ({time}). Přesunutím se čas odebere a povolí se volné řazení.',
   'dayplan.confirmRemoveTimeAction': 'Odebrat čas a přesunout',
   'dayplan.confirmDeleteNoteTitle': 'Smazat poznámku?',
   'dayplan.confirmDeleteNoteBody': 'Tato poznámka bude trvale smazána.',
-  'dayplan.cannotDropOnTimed':
-    'Položky nelze umístit mezi záznamy s pevným časem',
-  'dayplan.cannotBreakChronology':
-    'Toto by porušilo chronologické pořadí naplánovaných položek a rezervací',
+  'dayplan.cannotDropOnTimed': 'Položky nelze umístit mezi záznamy s pevným časem',
+  'dayplan.cannotBreakChronology': 'Toto by porušilo chronologické pořadí naplánovaných položek a rezervací',
   'dayplan.mobile.addPlace': 'Přidat místo',
   'dayplan.mobile.searchPlaces': 'Hledat místa...',
   'dayplan.mobile.allAssigned': 'Všechna místa přiřazena',

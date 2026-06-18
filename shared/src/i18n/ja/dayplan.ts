@@ -30,7 +30,8 @@ const dayplan: TranslationStrings = {
   'dayplan.routeError': 'ルートの計算に失敗しました',
   'dayplan.toast.needTwoPlaces': 'ルート最適化には2つ以上の場所が必要です',
   'dayplan.toast.routeOptimized': 'ルートを最適化しました',
-  'dayplan.toast.routeOptimizedFromHotel': '宿泊先を起点にルートを最適化しました',
+  'dayplan.toast.routeOptimizedFromHotel':
+    '宿泊先を起点にルートを最適化しました',
   'dayplan.toast.noGeoPlaces': '座標付きの場所がありません',
   'dayplan.confirmed': '確定',
   'dayplan.pendingRes': '保留',

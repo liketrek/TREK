@@ -29,8 +29,7 @@ const atlas: TranslationStrings = {
   'atlas.visitedCountries': 'Odwiedzone kraje',
   'atlas.cities': 'Miasta',
   'atlas.noData': 'Brak danych o podróżach',
-  'atlas.noDataHint':
-    'Utwórz podróż i dodaj miejsca, aby zobaczyć swoją mapę świata',
+  'atlas.noDataHint': 'Utwórz podróż i dodaj miejsca, aby zobaczyć swoją mapę świata',
   'atlas.lastTrip': 'Ostatnia podróż',
   'atlas.nextTrip': 'Następna podróż',
   'atlas.daysLeft': 'dni do wyjazdu',

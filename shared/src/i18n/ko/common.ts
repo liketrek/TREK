@@ -16,8 +16,7 @@ const common: TranslationStrings = {
   'common.deselectAll': '전체 해제',
   'common.error': '오류',
   'common.unknownError': '알 수 없는 오류',
-  'common.tooManyAttempts':
-    '시도 횟수가 너무 많습니다. 잠시 후 다시 시도해 주세요.',
+  'common.tooManyAttempts': '시도 횟수가 너무 많습니다. 잠시 후 다시 시도해 주세요.',
   'common.back': '뒤로',
   'common.all': '전체',
   'common.close': '닫기',

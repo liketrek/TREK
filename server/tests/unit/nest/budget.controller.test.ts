@@ -111,6 +111,37 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
       expect(new BudgetController(svc).deleteSettlement(user, '5', '7', 'sock')).toEqual({ success: true });
       expect(broadcast).toHaveBeenCalledWith('5', 'budget:settlement-deleted', { settlementId: 7 }, 'sock');
     });
+
+    it('PUT /settlements/:id 403 without budget_edit', () => {
+      const svc = makeService({ canEdit: vi.fn().mockReturnValue(false) });
+      expect(thrown(() => new BudgetController(svc).updateSettlement(user, '5', '7', { from_user_id: 1, to_user_id: 2, amount: 10 }))).toEqual({
+        status: 403, body: { error: 'No permission' },
+      });
+    });
+
+    it('PUT /settlements/:id 400 when a field is missing', () => {
+      const svc = makeService();
+      expect(thrown(() => new BudgetController(svc).updateSettlement(user, '5', '7', { from_user_id: 1, to_user_id: 2 }))).toEqual({
+        status: 400, body: { error: 'from_user_id, to_user_id and amount are required' },
+      });
+    });
+
+    it('PUT /settlements/:id 404 when missing', () => {
+      const svc = makeService({ updateSettlement: vi.fn().mockReturnValue(null) } as Partial<BudgetService>);
+      expect(thrown(() => new BudgetController(svc).updateSettlement(user, '5', '7', { from_user_id: 1, to_user_id: 2, amount: 10 }))).toEqual({
+        status: 404, body: { error: 'Settlement not found' },
+      });
+    });
+
+    it('PUT /settlements/:id updates and broadcasts', () => {
+      const updateSettlement = vi.fn().mockReturnValue({ id: 7, from_user_id: 2, to_user_id: 1, amount: 15 });
+      const broadcast = vi.fn();
+      const svc = makeService({ updateSettlement, broadcast } as Partial<BudgetService>);
+      const res = new BudgetController(svc).updateSettlement(user, '5', '7', { from_user_id: 2, to_user_id: 1, amount: 15 }, 'sock');
+      expect(res).toEqual({ settlement: { id: 7, from_user_id: 2, to_user_id: 1, amount: 15 } });
+      expect(updateSettlement).toHaveBeenCalledWith('7', '5', { from_user_id: 2, to_user_id: 1, amount: 15 });
+      expect(broadcast).toHaveBeenCalledWith('5', 'budget:settlement-updated', { settlement: { id: 7, from_user_id: 2, to_user_id: 1, amount: 15 } }, 'sock');
+    });
   });
 
   describe('POST /', () => {

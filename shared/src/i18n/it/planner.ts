@@ -33,8 +33,7 @@ const planner: TranslationStrings = {
   'planner.resConfirmed': 'Prenotazione confermata · ',
   'planner.notePlaceholder': 'Nota…',
   'planner.noteTimePlaceholder': 'Ora (opzionale)',
-  'planner.noteExamplePlaceholder':
-    'es. S3 alle 14:30 dalla stazione centrale, traghetto dal molo 7, pausa pranzo…',
+  'planner.noteExamplePlaceholder': 'es. S3 alle 14:30 dalla stazione centrale, traghetto dal molo 7, pausa pranzo…',
   'planner.totalCost': 'Costo totale',
   'planner.searchPlaces': 'Cerca luoghi…',
   'planner.allCategories': 'Tutte le categorie',
@@ -48,8 +47,7 @@ const planner: TranslationStrings = {
   'planner.route': 'Percorso',
   'planner.optimize': 'Ottimizza',
   'planner.openGoogleMaps': 'Apri in Google Maps',
-  'planner.selectDayHint':
-    "Seleziona un giorno dall'elenco a sinistra per vedere il programma",
+  'planner.selectDayHint': "Seleziona un giorno dall'elenco a sinistra per vedere il programma",
   'planner.noPlacesForDay': 'Ancora nessun luogo per questo giorno',
   'planner.addPlacesLink': 'Aggiungi luoghi →',
   'planner.minTotal': 'min. totali',
@@ -61,8 +59,7 @@ const planner: TranslationStrings = {
   'planner.editTripToAddDays': 'Modifica viaggio per aggiungere giorni',
   'planner.dayCount': '{n} Giorni',
   'planner.clickToUnlock': 'Clicca per sbloccare',
-  'planner.keepPosition':
-    "Mantieni la posizione durante l'ottimizzazione del percorso",
+  'planner.keepPosition': "Mantieni la posizione durante l'ottimizzazione del percorso",
   'planner.dayDetails': 'Dettagli del giorno',
   'planner.dayN': 'Giorno {n}',
 };

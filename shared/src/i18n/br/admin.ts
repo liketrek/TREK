@@ -2,22 +2,19 @@ import type { TranslationStrings } from '../types';
 
 const admin: TranslationStrings = {
   'admin.notifications.title': 'Notificações',
-  'admin.notifications.hint':
-    'Escolha um canal de notificação. Apenas um pode estar ativo por vez.',
+  'admin.notifications.hint': 'Escolha um canal de notificação. Apenas um pode estar ativo por vez.',
   'admin.notifications.none': 'Desativado',
   'admin.notifications.email': 'E-mail (SMTP)',
   'admin.notifications.webhook': 'Webhook',
   'admin.notifications.save': 'Salvar configurações de notificação',
   'admin.notifications.saved': 'Configurações de notificação salvas',
   'admin.notifications.testWebhook': 'Enviar webhook de teste',
-  'admin.notifications.testWebhookSuccess':
-    'Webhook de teste enviado com sucesso',
+  'admin.notifications.testWebhookSuccess': 'Webhook de teste enviado com sucesso',
   'admin.notifications.testWebhookFailed': 'Falha ao enviar webhook de teste',
   'admin.smtp.title': 'E-mail e notificações',
   'admin.smtp.hint': 'Configuração SMTP para envio de notificações por e-mail.',
   'admin.smtp.testButton': 'Enviar e-mail de teste',
-  'admin.webhook.hint':
-    'Enviar notificações para um webhook externo (Discord, Slack, etc.).',
+  'admin.webhook.hint': 'Enviar notificações para um webhook externo (Discord, Slack, etc.).',
   'admin.smtp.testSuccess': 'E-mail de teste enviado com sucesso',
   'admin.smtp.testFailed': 'Falha ao enviar e-mail de teste',
   'admin.title': 'Administração',
@@ -40,8 +37,7 @@ const admin: TranslationStrings = {
   'admin.editUser': 'Editar usuário',
   'admin.newPassword': 'Nova senha',
   'admin.newPasswordHint': 'Deixe em branco para manter a senha atual',
-  'admin.deleteUser':
-    'Excluir o usuário "{name}"? Todas as viagens serão excluídas permanentemente.',
+  'admin.deleteUser': 'Excluir o usuário "{name}"? Todas as viagens serão excluídas permanentemente.',
   'admin.deleteUserTitle': 'Excluir usuário',
   'admin.newPasswordPlaceholder': 'Digite a nova senha…',
   'admin.toast.loadError': 'Falha ao carregar dados do admin',
@@ -52,8 +48,7 @@ const admin: TranslationStrings = {
   'admin.toast.cannotDeleteSelf': 'Não é possível excluir a própria conta',
   'admin.toast.userCreated': 'Usuário criado',
   'admin.toast.createError': 'Falha ao criar usuário',
-  'admin.toast.fieldsRequired':
-    'Nome de usuário, e-mail e senha são obrigatórios',
+  'admin.toast.fieldsRequired': 'Nome de usuário, e-mail e senha são obrigatórios',
   'admin.createUser': 'Criar usuário',
   'admin.invite.title': 'Links de convite',
   'admin.invite.subtitle': 'Crie links de cadastro de uso único',
@@ -80,51 +75,40 @@ const admin: TranslationStrings = {
   'admin.passwordLogin': 'Password Login',
   'admin.passwordLoginHint': 'Allow users to sign in with email and password',
   'admin.passwordRegistration': 'Password Registration',
-  'admin.passwordRegistrationHint':
-    'Allow new users to register with email and password',
+  'admin.passwordRegistrationHint': 'Allow new users to register with email and password',
   'admin.oidcLogin': 'SSO Login',
   'admin.oidcLoginHint': 'Allow users to sign in with SSO',
   'admin.oidcRegistration': 'SSO Auto-Provisioning',
-  'admin.oidcRegistrationHint':
-    'Automatically create accounts for new SSO users',
+  'admin.oidcRegistrationHint': 'Automatically create accounts for new SSO users',
   'admin.envOverrideHint':
     'Password login settings are controlled by the OIDC_ONLY environment variable and cannot be changed here.',
   'admin.lockoutWarning': 'At least one login method must remain enabled',
   'admin.requireMfa': 'Exigir autenticação em dois fatores (2FA)',
-  'admin.requireMfaHint':
-    'Usuários sem 2FA precisam concluir a configuração em Configurações antes de usar o app.',
+  'admin.requireMfaHint': 'Usuários sem 2FA precisam concluir a configuração em Configurações antes de usar o app.',
   'admin.apiKeys': 'Chaves de API',
-  'admin.apiKeysHint':
-    'Opcional. Habilita dados estendidos de lugares, como fotos e clima.',
+  'admin.apiKeysHint': 'Opcional. Habilita dados estendidos de lugares, como fotos e clima.',
   'admin.mapsKey': 'Chave da API Google Maps',
-  'admin.mapsKeyHint':
-    'Necessária para busca de lugares. Obtenha em console.cloud.google.com',
+  'admin.mapsKeyHint': 'Necessária para busca de lugares. Obtenha em console.cloud.google.com',
   'admin.mapsKeyHintLong':
     'Sem chave de API, o OpenStreetMap é usado na busca. Com uma chave Google, também podem ser carregadas fotos, avaliações e horários. Obtenha em console.cloud.google.com.',
   'admin.recommended': 'Recomendado',
   'admin.weatherKey': 'Chave OpenWeatherMap',
-  'admin.weatherKeyHint':
-    'Para dados meteorológicos. Grátis em openweathermap.org',
+  'admin.weatherKeyHint': 'Para dados meteorológicos. Grátis em openweathermap.org',
   'admin.validateKey': 'Testar',
   'admin.keyValid': 'Conectado',
   'admin.keyInvalid': 'Inválida',
   'admin.keySaved': 'Chaves de API salvas',
   'admin.oidcTitle': 'Login Único (OIDC)',
-  'admin.oidcSubtitle':
-    'Permitir login via provedores externos como Google, Apple, Authentik ou Keycloak.',
+  'admin.oidcSubtitle': 'Permitir login via provedores externos como Google, Apple, Authentik ou Keycloak.',
   'admin.oidcDisplayName': 'Nome exibido',
   'admin.oidcIssuer': 'URL do emissor',
-  'admin.oidcIssuerHint':
-    'URL do emissor OpenID Connect do provedor, ex.: https://accounts.google.com',
+  'admin.oidcIssuerHint': 'URL do emissor OpenID Connect do provedor, ex.: https://accounts.google.com',
   'admin.oidcSaved': 'Configuração OIDC salva',
   'admin.oidcOnlyMode': 'Desativar login por senha',
-  'admin.oidcOnlyModeHint':
-    'Quando ativado, só é permitido login SSO. Login e cadastro por senha ficam bloqueados.',
+  'admin.oidcOnlyModeHint': 'Quando ativado, só é permitido login SSO. Login e cadastro por senha ficam bloqueados.',
   'admin.fileTypes': 'Tipos de arquivo permitidos',
-  'admin.fileTypesHint':
-    'Configure quais tipos de arquivo os usuários podem enviar.',
-  'admin.fileTypesFormat':
-    'Extensões separadas por vírgula (ex.: jpg,png,pdf,doc). Use * para permitir todos.',
+  'admin.fileTypesHint': 'Configure quais tipos de arquivo os usuários podem enviar.',
+  'admin.fileTypesFormat': 'Extensões separadas por vírgula (ex.: jpg,png,pdf,doc). Use * para permitir todos.',
   'admin.fileTypesSaved': 'Configurações de tipos de arquivo salvas',
   'admin.placesPhotos.title': 'Fotos de Locais',
   'admin.placesPhotos.subtitle':
@@ -136,8 +120,7 @@ const admin: TranslationStrings = {
   'admin.placesDetails.subtitle':
     'Busca informações detalhadas do local (horários, avaliação, site) da Google Places API. Desative para economizar cota da API.',
   'admin.bagTracking.title': 'Rastreamento de malas',
-  'admin.bagTracking.subtitle':
-    'Ativar peso e atribuição de mala para itens da lista',
+  'admin.bagTracking.subtitle': 'Ativar peso e atribuição de mala para itens da lista',
   'admin.collab.chat.title': 'Chat',
   'admin.collab.chat.subtitle': 'Mensagens em tempo real para colaboração',
   'admin.collab.notes.title': 'Notas',
@@ -145,8 +128,7 @@ const admin: TranslationStrings = {
   'admin.collab.polls.title': 'Enquetes',
   'admin.collab.polls.subtitle': 'Enquetes e votações em grupo',
   'admin.collab.whatsnext.title': 'Próximos passos',
-  'admin.collab.whatsnext.subtitle':
-    'Sugestões de atividades e próximos passos',
+  'admin.collab.whatsnext.subtitle': 'Sugestões de atividades e próximos passos',
   'admin.tabs.config': 'Personalização',
   'admin.tabs.defaults': 'Padrões do usuário',
   'admin.defaultSettings.title': 'Configurações padrão do usuário',
@@ -157,8 +139,7 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.resetToBuiltIn': 'redefinir',
   'admin.tabs.templates': 'Modelos de mala',
   'admin.packingTemplates.title': 'Modelos de mala',
-  'admin.packingTemplates.subtitle':
-    'Crie listas de mala reutilizáveis para suas viagens',
+  'admin.packingTemplates.subtitle': 'Crie listas de mala reutilizáveis para suas viagens',
   'admin.packingTemplates.create': 'Novo modelo',
   'admin.packingTemplates.namePlaceholder': 'Nome do modelo (ex.: Praia)',
   'admin.packingTemplates.empty': 'Nenhum modelo criado ainda',
@@ -176,34 +157,24 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.saveError': 'Falha ao salvar',
   'admin.tabs.addons': 'Complementos',
   'admin.addons.title': 'Complementos',
-  'admin.addons.subtitle':
-    'Ative ou desative recursos para personalizar sua experiência no TREK.',
+  'admin.addons.subtitle': 'Ative ou desative recursos para personalizar sua experiência no TREK.',
   'admin.addons.catalog.memories.name': 'Memórias',
-  'admin.addons.catalog.memories.description':
-    'Álbuns de fotos compartilhados em cada viagem',
+  'admin.addons.catalog.memories.description': 'Álbuns de fotos compartilhados em cada viagem',
   'admin.addons.catalog.packing.name': 'Listas',
-  'admin.addons.catalog.packing.description':
-    'Listas de bagagem e tarefas a fazer para suas viagens',
+  'admin.addons.catalog.packing.description': 'Listas de bagagem e tarefas a fazer para suas viagens',
   'admin.addons.catalog.budget.name': 'Orçamento',
-  'admin.addons.catalog.budget.description':
-    'Acompanhe despesas e planeje o orçamento da viagem',
+  'admin.addons.catalog.budget.description': 'Acompanhe despesas e planeje o orçamento da viagem',
   'admin.addons.catalog.documents.name': 'Documentos',
-  'admin.addons.catalog.documents.description':
-    'Armazene e gerencie documentos de viagem',
+  'admin.addons.catalog.documents.description': 'Armazene e gerencie documentos de viagem',
   'admin.addons.catalog.vacay.name': 'Férias',
-  'admin.addons.catalog.vacay.description':
-    'Planejador de férias pessoal com visão em calendário',
+  'admin.addons.catalog.vacay.description': 'Planejador de férias pessoal com visão em calendário',
   'admin.addons.catalog.atlas.name': 'Atlas',
-  'admin.addons.catalog.atlas.description':
-    'Mapa mundial com países visitados e estatísticas',
+  'admin.addons.catalog.atlas.description': 'Mapa mundial com países visitados e estatísticas',
   'admin.addons.catalog.collab.name': 'Colab',
-  'admin.addons.catalog.collab.description':
-    'Notas, enquetes e chat em tempo real para planejar a viagem',
+  'admin.addons.catalog.collab.description': 'Notas, enquetes e chat em tempo real para planejar a viagem',
   'admin.addons.catalog.mcp.name': 'MCP',
-  'admin.addons.catalog.mcp.description':
-    'Model Context Protocol para integração com assistentes de IA',
-  'admin.addons.subtitleBefore':
-    'Ative ou desative recursos para personalizar sua ',
+  'admin.addons.catalog.mcp.description': 'Model Context Protocol para integração com assistentes de IA',
+  'admin.addons.subtitleBefore': 'Ative ou desative recursos para personalizar sua ',
   'admin.addons.subtitleAfter': ' experiência.',
   'admin.addons.enabled': 'Ativado',
   'admin.addons.disabled': 'Desativado',
@@ -211,13 +182,11 @@ const admin: TranslationStrings = {
   'admin.addons.type.global': 'Global',
   'admin.addons.type.integration': 'Integração',
   'admin.addons.tripHint': 'Disponível como aba em cada viagem',
-  'admin.addons.globalHint':
-    'Disponível como seção própria na navegação principal',
+  'admin.addons.globalHint': 'Disponível como seção própria na navegação principal',
   'admin.addons.toast.updated': 'Complemento atualizado',
   'admin.addons.toast.error': 'Falha ao atualizar complemento',
   'admin.addons.noAddons': 'Nenhum complemento disponível',
-  'admin.addons.integrationHint':
-    'Serviços de backend e integrações de API sem página dedicada',
+  'admin.addons.integrationHint': 'Serviços de backend e integrações de API sem página dedicada',
   'admin.weather.title': 'Dados meteorológicos',
   'admin.weather.badge': 'Desde 24 de março de 2026',
   'admin.weather.description':
@@ -225,15 +194,13 @@ const admin: TranslationStrings = {
   'admin.weather.forecast': 'Previsão de 16 dias',
   'admin.weather.forecastDesc': 'Antes eram 5 dias (OpenWeatherMap)',
   'admin.weather.climate': 'Dados climáticos históricos',
-  'admin.weather.climateDesc':
-    'Médias dos últimos 85 anos para dias além da previsão de 16 dias',
+  'admin.weather.climateDesc': 'Médias dos últimos 85 anos para dias além da previsão de 16 dias',
   'admin.weather.requests': '10.000 requisições / dia',
   'admin.weather.requestsDesc': 'Grátis, sem chave de API',
   'admin.weather.locationHint':
     'O clima usa o primeiro lugar com coordenadas de cada dia. Se nenhum lugar estiver atribuído ao dia, qualquer lugar da lista serve como referência.',
   'admin.tabs.audit': 'Auditoria',
-  'admin.audit.subtitle':
-    'Eventos sensíveis de segurança e administração (backups, usuários, 2FA, configurações).',
+  'admin.audit.subtitle': 'Eventos sensíveis de segurança e administração (backups, usuários, 2FA, configurações).',
   'admin.audit.empty': 'Nenhum registro de auditoria.',
   'admin.audit.refresh': 'Atualizar',
   'admin.audit.loadMore': 'Carregar mais',
@@ -257,8 +224,7 @@ const admin: TranslationStrings = {
   'admin.github.by': 'por',
   'admin.github.support': 'Ajuda a continuar desenvolvendo o TREK',
   'admin.update.available': 'Atualização disponível',
-  'admin.update.text':
-    'O TREK {version} está disponível. Você está na {current}.',
+  'admin.update.text': 'O TREK {version} está disponível. Você está na {current}.',
   'admin.update.button': 'Ver no GitHub',
   'admin.update.install': 'Instalar atualização',
   'admin.update.confirmTitle': 'Instalar atualização?',
@@ -266,8 +232,7 @@ const admin: TranslationStrings = {
     'O TREK será atualizado de {current} para {version}. O servidor reiniciará automaticamente em seguida.',
   'admin.update.dataInfo':
     'Todos os seus dados (viagens, usuários, chaves de API, envios, Vacay, Atlas, orçamentos) serão preservados.',
-  'admin.update.warning':
-    'O app ficará brevemente indisponível durante o reinício.',
+  'admin.update.warning': 'O app ficará brevemente indisponível durante o reinício.',
   'admin.update.confirm': 'Atualizar agora',
   'admin.update.installing': 'Atualizando…',
   'admin.update.success': 'Atualização instalada! O servidor está reiniciando…',
@@ -275,14 +240,12 @@ const admin: TranslationStrings = {
   'admin.update.backupHint': 'Recomendamos criar um backup antes de atualizar.',
   'admin.update.backupLink': 'Ir para Backup',
   'admin.update.howTo': 'Como atualizar',
-  'admin.update.dockerText':
-    'Sua instância TREK roda no Docker. Para atualizar para {version}, execute no servidor:',
+  'admin.update.dockerText': 'Sua instância TREK roda no Docker. Para atualizar para {version}, execute no servidor:',
   'admin.update.reloadHint': 'Recarregue a página em alguns segundos.',
   'admin.tabs.permissions': 'Permissões',
   'admin.tabs.mcpTokens': 'Acesso MCP',
   'admin.mcpTokens.title': 'Acesso MCP',
-  'admin.mcpTokens.subtitle':
-    'Gerenciar sessões OAuth e tokens de API de todos os usuários',
+  'admin.mcpTokens.subtitle': 'Gerenciar sessões OAuth e tokens de API de todos os usuários',
   'admin.mcpTokens.sectionTitle': 'Tokens de API',
   'admin.mcpTokens.owner': 'Proprietário',
   'admin.mcpTokens.tokenName': 'Nome do Token',
@@ -303,8 +266,7 @@ const admin: TranslationStrings = {
   'admin.oauthSessions.created': 'Criado',
   'admin.oauthSessions.empty': 'Nenhuma sessão OAuth ativa',
   'admin.oauthSessions.revokeTitle': 'Revogar sessão',
-  'admin.oauthSessions.revokeMessage':
-    'Esta sessão OAuth será revogada imediatamente. O cliente perderá o acesso MCP.',
+  'admin.oauthSessions.revokeMessage': 'Esta sessão OAuth será revogada imediatamente. O cliente perderá o acesso MCP.',
   'admin.oauthSessions.revokeSuccess': 'Sessão revogada',
   'admin.oauthSessions.revokeError': 'Falha ao revogar sessão',
   'admin.oauthSessions.loadError': 'Falha ao carregar sessões OAuth',
@@ -316,12 +278,9 @@ const admin: TranslationStrings = {
   'admin.notifications.adminWebhookPanel.title': 'Webhook de admin',
   'admin.notifications.adminWebhookPanel.hint':
     'Este webhook é usado exclusivamente para notificações de admin (ex. alertas de versão). É independente dos webhooks de usuários e dispara automaticamente quando uma URL está configurada.',
-  'admin.notifications.adminWebhookPanel.saved':
-    'URL do webhook de admin salva',
-  'admin.notifications.adminWebhookPanel.testSuccess':
-    'Webhook de teste enviado com sucesso',
-  'admin.notifications.adminWebhookPanel.testFailed':
-    'Falha no webhook de teste',
+  'admin.notifications.adminWebhookPanel.saved': 'URL do webhook de admin salva',
+  'admin.notifications.adminWebhookPanel.testSuccess': 'Webhook de teste enviado com sucesso',
+  'admin.notifications.adminWebhookPanel.testFailed': 'Falha no webhook de teste',
   'admin.notifications.adminWebhookPanel.alwaysOnHint':
     'O webhook de admin dispara automaticamente quando uma URL está configurada',
   'admin.notifications.ntfy': 'Ntfy',
@@ -340,32 +299,25 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.topicLabel': 'Tópico de admin',
   'admin.notifications.adminNtfyPanel.topicPlaceholder': 'trek-admin-alerts',
   'admin.notifications.adminNtfyPanel.tokenLabel': 'Token de acesso (opcional)',
-  'admin.notifications.adminNtfyPanel.tokenCleared':
-    'Token de acesso admin removido',
-  'admin.notifications.adminNtfyPanel.saved':
-    'Configurações de Ntfy de admin salvas',
+  'admin.notifications.adminNtfyPanel.tokenCleared': 'Token de acesso admin removido',
+  'admin.notifications.adminNtfyPanel.saved': 'Configurações de Ntfy de admin salvas',
   'admin.notifications.adminNtfyPanel.test': 'Enviar Ntfy de teste',
-  'admin.notifications.adminNtfyPanel.testSuccess':
-    'Ntfy de teste enviado com sucesso',
-  'admin.notifications.adminNtfyPanel.testFailed':
-    'Falha ao enviar Ntfy de teste',
-  'admin.notifications.adminNtfyPanel.alwaysOnHint':
-    'O Ntfy de admin sempre dispara quando um tópico está configurado',
+  'admin.notifications.adminNtfyPanel.testSuccess': 'Ntfy de teste enviado com sucesso',
+  'admin.notifications.adminNtfyPanel.testFailed': 'Falha ao enviar Ntfy de teste',
+  'admin.notifications.adminNtfyPanel.alwaysOnHint': 'O Ntfy de admin sempre dispara quando um tópico está configurado',
   'admin.notifications.adminNotificationsHint':
     'Configure quais canais entregam notificações de admin (ex. alertas de versão). O webhook dispara automaticamente se uma URL de webhook de admin estiver definida.',
   'admin.notifications.tripReminders.title': 'Lembretes de viagem',
   'admin.notifications.tripReminders.hint':
     'Envia uma notificação de lembrete antes do início de uma viagem (requer dias de lembrete definidos na viagem).',
   'admin.notifications.tripReminders.enabled': 'Lembretes de viagem ativados',
-  'admin.notifications.tripReminders.disabled':
-    'Lembretes de viagem desativados',
+  'admin.notifications.tripReminders.disabled': 'Lembretes de viagem desativados',
   'admin.tabs.notifications': 'Notificações',
   'admin.addons.catalog.journey.name': 'Jornada',
   'admin.addons.catalog.journey.description':
     'Rastreamento de viagens e diário de viajante com check-ins, fotos e histórias diárias',
   'admin.passkey.title': 'Login com passkey',
-  'admin.passkey.cardHint':
-    'Permite que os usuários entrem com passkeys (WebAuthn). Desativado por padrão.',
+  'admin.passkey.cardHint': 'Permite que os usuários entrem com passkeys (WebAuthn). Desativado por padrão.',
   'admin.passkey.login': 'Ativar login com passkey',
   'admin.passkey.loginHint':
     'Mostra a opção "Entrar com uma passkey" e permite que os usuários cadastrem passkeys nas configurações.',
@@ -383,11 +335,13 @@ const admin: TranslationStrings = {
   'admin.passkey.resetConfirm': 'Remover todas as passkeys de {name}?',
   'admin.passkey.resetDone': 'Removida(s) {count} passkey(s)',
   'admin.defaultSettings.mapProvider': 'Motor de mapas',
-  'admin.defaultSettings.mapProviderHint': 'O mapa padrão para todos nesta instância. Cada usuário ainda pode substituí-lo nas próprias configurações.',
+  'admin.defaultSettings.mapProviderHint':
+    'O mapa padrão para todos nesta instância. Cada usuário ainda pode substituí-lo nas próprias configurações.',
   'admin.defaultSettings.providerLeaflet': 'Padrão (gratuito)',
   'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
   'admin.defaultSettings.mapboxToken': 'Token compartilhado do Mapbox',
-  'admin.defaultSettings.mapboxTokenHint': 'Usado para todos os usuários que não inseriram o próprio token — assim toda a instância usa o Mapbox sem compartilhar a chave individualmente. Armazenado de forma criptografada.',
+  'admin.defaultSettings.mapboxTokenHint':
+    'Usado para todos os usuários que não inseriram o próprio token — assim toda a instância usa o Mapbox sem compartilhar a chave individualmente. Armazenado de forma criptografada.',
   'admin.defaultSettings.mapboxStyle': 'Estilo do mapa',
   'admin.defaultSettings.mapboxStylePlaceholder': 'Escolha um estilo…',
   'admin.defaultSettings.mapbox3d': 'Edifícios & relevo em 3D',

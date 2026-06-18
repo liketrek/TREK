@@ -50,8 +50,7 @@ const journey: TranslationStrings = {
   'journey.visibility.shared': '共有',
   'journey.visibility.public': '公開',
   'journey.emptyState.title': 'ここから物語が始まります',
-  'journey.emptyState.subtitle':
-    '場所にチェックインするか、最初の日記を書いてみましょう',
+  'journey.emptyState.subtitle': '場所にチェックインするか、最初の日記を書いてみましょう',
   'journey.frontpage.subtitle': '旅を、忘れられない物語に',
   'journey.frontpage.createJourney': '日記を作成',
   'journey.frontpage.activeJourney': '進行中の日記',
@@ -79,11 +78,9 @@ const journey: TranslationStrings = {
   'journey.detail.newEntry': '新しいエントリー',
   'journey.detail.editEntry': 'エントリーを編集',
   'journey.detail.noEntries': 'エントリーはまだありません',
-  'journey.detail.noEntriesHint':
-    '旅行を追加して下書きエントリーを作成しましょう',
+  'journey.detail.noEntriesHint': '旅行を追加して下書きエントリーを作成しましょう',
   'journey.detail.noPhotos': '写真はまだありません',
-  'journey.detail.noPhotosHint':
-    'エントリーに写真を追加するか、Immich/Synologyライブラリを表示',
+  'journey.detail.noPhotosHint': 'エントリーに写真を追加するか、Immich/Synologyライブラリを表示',
   'journey.detail.journeyTab': '日記',
   'journey.detail.journeyStats': '統計',
   'journey.detail.syncedTrips': '同期中の旅行',
@@ -105,8 +102,7 @@ const journey: TranslationStrings = {
   'journey.verdict.couldBeBetter': '改善の余地あり',
   'journey.synced.places': '場所',
   'journey.synced.synced': '同期済み',
-  'journey.editor.discardChangesConfirm':
-    '未保存の変更があります。破棄しますか？',
+  'journey.editor.discardChangesConfirm': '未保存の変更があります。破棄しますか？',
   'journey.editor.uploadPhotos': '写真をアップロード',
   'journey.editor.uploading': 'アップロード中…',
   'journey.editor.fromGallery': 'ギャラリーから',
@@ -159,8 +155,7 @@ const journey: TranslationStrings = {
   'journey.contributors.added': '参加者を追加しました',
   'journey.contributors.addFailed': '追加に失敗しました',
   'journey.contributors.remove': '参加者を削除',
-  'journey.contributors.removeConfirm':
-    '{username}をこの日記から削除しますか？',
+  'journey.contributors.removeConfirm': '{username}をこの日記から削除しますか？',
   'journey.contributors.removed': '参加者を削除しました',
   'journey.contributors.removeFailed': '削除に失敗しました',
   'journey.share.publicShare': '公開共有',
@@ -192,12 +187,10 @@ const journey: TranslationStrings = {
   'journey.settings.reopenJourney': '日記を復元',
   'journey.settings.archived': '日記をアーカイブしました',
   'journey.settings.reopened': '日記を復元しました',
-  'journey.settings.endDescription':
-    'Liveバッジを非表示にします。いつでも再開できます。',
+  'journey.settings.endDescription': 'Liveバッジを非表示にします。いつでも再開できます。',
   'journey.settings.delete': '削除',
   'journey.settings.deleteJourney': '日記を削除',
-  'journey.settings.deleteMessage':
-    '「{title}」を削除しますか？すべてのエントリーと写真が失われます。',
+  'journey.settings.deleteMessage': '「{title}」を削除しますか？すべてのエントリーと写真が失われます。',
   'journey.settings.saved': '設定を保存しました',
   'journey.settings.saveFailed': '保存に失敗しました',
   'journey.settings.coverUpdated': 'カバーを更新しました',
@@ -207,8 +200,7 @@ const journey: TranslationStrings = {
   'journey.photosUploaded': '{count}枚の写真をアップロード',
   'journey.photosAdded': '{count}枚の写真を追加',
   'journey.public.notFound': '見つかりません',
-  'journey.public.notFoundMessage':
-    'この日記は存在しないか、リンクの有効期限が切れています。',
+  'journey.public.notFoundMessage': 'この日記は存在しないか、リンクの有効期限が切れています。',
   'journey.public.readOnly': '閲覧のみ · 公開日記',
   'journey.public.tagline': '旅の記録＆探索キット',
   'journey.public.sharedVia': '共有元',

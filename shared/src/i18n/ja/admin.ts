@@ -2,14 +2,12 @@ import type { TranslationStrings } from '../types';
 
 const admin: TranslationStrings = {
   'admin.notifications.title': '通知',
-  'admin.notifications.hint':
-    '通知チャネルを1つ選択してください。同時に有効にできるのは1つだけです。',
+  'admin.notifications.hint': '通知チャネルを1つ選択してください。同時に有効にできるのは1つだけです。',
   'admin.notifications.none': '無効',
   'admin.notifications.email': 'メール（SMTP）',
   'admin.notifications.webhook': 'Webhook',
   'admin.notifications.ntfy': 'Ntfy',
-  'admin.ntfy.hint':
-    'ユーザーが独自のntfyトピックを設定できるようにします。下で既定サーバーを設定してください。',
+  'admin.ntfy.hint': 'ユーザーが独自のntfyトピックを設定できるようにします。下で既定サーバーを設定してください。',
   'admin.notifications.save': '通知設定を保存',
   'admin.notifications.saved': '通知設定を保存しました',
   'admin.notifications.testWebhook': 'Webhookテスト送信',
@@ -21,42 +19,30 @@ const admin: TranslationStrings = {
   'admin.notifications.emailPanel.title': 'メール（SMTP）',
   'admin.notifications.webhookPanel.title': 'Webhook',
   'admin.notifications.inappPanel.title': 'アプリ内',
-  'admin.notifications.inappPanel.hint':
-    'アプリ内通知は常に有効で、全体では無効にできません。',
+  'admin.notifications.inappPanel.hint': 'アプリ内通知は常に有効で、全体では無効にできません。',
   'admin.notifications.adminWebhookPanel.title': '管理者Webhook',
-  'admin.notifications.adminWebhookPanel.hint':
-    '管理者通知専用のWebhookです（例：バージョン通知）。常に送信されます。',
-  'admin.notifications.adminWebhookPanel.saved':
-    '管理者Webhook URLを保存しました',
-  'admin.notifications.adminWebhookPanel.testSuccess':
-    'テストWebhookを送信しました',
-  'admin.notifications.adminWebhookPanel.testFailed':
-    'テストWebhookに失敗しました',
-  'admin.notifications.adminWebhookPanel.alwaysOnHint':
-    'URLが設定されていると常に送信されます',
+  'admin.notifications.adminWebhookPanel.hint': '管理者通知専用のWebhookです（例：バージョン通知）。常に送信されます。',
+  'admin.notifications.adminWebhookPanel.saved': '管理者Webhook URLを保存しました',
+  'admin.notifications.adminWebhookPanel.testSuccess': 'テストWebhookを送信しました',
+  'admin.notifications.adminWebhookPanel.testFailed': 'テストWebhookに失敗しました',
+  'admin.notifications.adminWebhookPanel.alwaysOnHint': 'URLが設定されていると常に送信されます',
   'admin.notifications.adminNtfyPanel.title': '管理者Ntfy',
-  'admin.notifications.adminNtfyPanel.hint':
-    '管理者通知専用のntfyトピックです。',
+  'admin.notifications.adminNtfyPanel.hint': '管理者通知専用のntfyトピックです。',
   'admin.notifications.adminNtfyPanel.serverLabel': 'Ntfy サーバーURL',
-  'admin.notifications.adminNtfyPanel.serverHint':
-    'ユーザー通知の既定サーバーとしても使用されます。',
+  'admin.notifications.adminNtfyPanel.serverHint': 'ユーザー通知の既定サーバーとしても使用されます。',
   'admin.notifications.adminNtfyPanel.serverPlaceholder': 'https://ntfy.sh',
   'admin.notifications.adminNtfyPanel.topicLabel': '管理者トピック',
   'admin.notifications.adminNtfyPanel.topicPlaceholder': 'trek-admin-alerts',
   'admin.notifications.adminNtfyPanel.tokenLabel': 'アクセストークン（任意）',
-  'admin.notifications.adminNtfyPanel.tokenCleared':
-    '管理者アクセストークンを削除しました',
+  'admin.notifications.adminNtfyPanel.tokenCleared': '管理者アクセストークンを削除しました',
   'admin.notifications.adminNtfyPanel.saved': '管理者ntfy設定を保存しました',
   'admin.notifications.adminNtfyPanel.test': 'ntfyテスト送信',
   'admin.notifications.adminNtfyPanel.testSuccess': 'テストntfyを送信しました',
   'admin.notifications.adminNtfyPanel.testFailed': 'テストntfyに失敗しました',
-  'admin.notifications.adminNtfyPanel.alwaysOnHint':
-    'トピック設定時は常に送信されます',
-  'admin.notifications.adminNotificationsHint':
-    '管理者専用通知の配信先を設定します。',
+  'admin.notifications.adminNtfyPanel.alwaysOnHint': 'トピック設定時は常に送信されます',
+  'admin.notifications.adminNotificationsHint': '管理者専用通知の配信先を設定します。',
   'admin.notifications.tripReminders.title': '旅行リマインダー',
-  'admin.notifications.tripReminders.hint':
-    '旅行開始前に通知を送信します（旅行側の設定が必要）。',
+  'admin.notifications.tripReminders.hint': '旅行開始前に通知を送信します（旅行側の設定が必要）。',
   'admin.notifications.tripReminders.enabled': '旅行リマインダー有効',
   'admin.notifications.tripReminders.disabled': '旅行リマインダー無効',
   'admin.smtp.title': 'メール・通知',
@@ -87,8 +73,7 @@ const admin: TranslationStrings = {
   'admin.editUser': 'ユーザーを編集',
   'admin.newPassword': '新しいパスワード',
   'admin.newPasswordHint': '空欄の場合は現在のパスワードを維持',
-  'admin.deleteUser':
-    'ユーザー「{name}」を削除しますか？すべての旅行が完全に削除されます。',
+  'admin.deleteUser': 'ユーザー「{name}」を削除しますか？すべての旅行が完全に削除されます。',
   'admin.deleteUserTitle': 'ユーザー削除',
   'admin.newPasswordPlaceholder': '新しいパスワードを入力…',
   'admin.toast.loadError': '管理データの読み込みに失敗しました',
@@ -131,8 +116,7 @@ const admin: TranslationStrings = {
   'admin.oidcLoginHint': 'SSOでのログインを許可',
   'admin.oidcRegistration': 'SSO自動登録',
   'admin.oidcRegistrationHint': '新しいSSOユーザーを自動作成',
-  'admin.envOverrideHint':
-    'パスワードログイン設定は OIDC_ONLY 環境変数で制御されています。',
+  'admin.envOverrideHint': 'パスワードログイン設定は OIDC_ONLY 環境変数で制御されています。',
   'admin.lockoutWarning': '少なくとも1つのログイン方法を有効にしてください',
   'admin.requireMfa': '二要素認証（2FA）を必須にする',
   'admin.requireMfaHint': '2FA未設定のユーザーは、利用前に設定が必要です。',
@@ -150,28 +134,22 @@ const admin: TranslationStrings = {
   'admin.keyInvalid': '無効',
   'admin.keySaved': 'APIキーを保存しました',
   'admin.oidcTitle': 'シングルサインオン（OIDC）',
-  'admin.oidcSubtitle':
-    'Google、Apple、Authentik、Keycloak などでログインを許可します。',
+  'admin.oidcSubtitle': 'Google、Apple、Authentik、Keycloak などでログインを許可します。',
   'admin.oidcDisplayName': '表示名',
   'admin.oidcIssuer': 'Issuer URL',
-  'admin.oidcIssuerHint':
-    'OpenID ConnectのIssuer URL（例：https://accounts.google.com）',
+  'admin.oidcIssuerHint': 'OpenID ConnectのIssuer URL（例：https://accounts.google.com）',
   'admin.oidcSaved': 'OIDC設定を保存しました',
   'admin.oidcOnlyMode': 'パスワード認証を無効化',
-  'admin.oidcOnlyModeHint':
-    '有効にするとSSOのみ使用可能になり、パスワードログインと登録は無効になります。',
+  'admin.oidcOnlyModeHint': '有効にするとSSOのみ使用可能になり、パスワードログインと登録は無効になります。',
   'admin.fileTypes': '許可するファイル形式',
-  'admin.fileTypesHint':
-    'ユーザーがアップロードできるファイル形式を設定します。',
-  'admin.fileTypesFormat':
-    '拡張子をカンマ区切り（例：jpg,png,pdf,doc）。すべて許可する場合は *。',
+  'admin.fileTypesHint': 'ユーザーがアップロードできるファイル形式を設定します。',
+  'admin.fileTypesFormat': '拡張子をカンマ区切り（例：jpg,png,pdf,doc）。すべて許可する場合は *。',
   'admin.fileTypesSaved': 'ファイル形式の設定を保存しました',
   'admin.placesPhotos.title': '場所の写真',
   'admin.placesPhotos.subtitle':
     'Google Places APIから写真を取得します。APIクォータ節約のため無効にできます。Wikimediaの写真には影響しません。',
   'admin.placesAutocomplete.title': '場所のオートコンプリート',
-  'admin.placesAutocomplete.subtitle':
-    '検索候補にGoogle Places APIを使用します。APIクォータ節約のため無効にできます。',
+  'admin.placesAutocomplete.subtitle': '検索候補にGoogle Places APIを使用します。APIクォータ節約のため無効にできます。',
   'admin.placesDetails.title': '場所の詳細',
   'admin.placesDetails.subtitle':
     'Google Places APIから営業時間、評価、ウェブサイトなどの詳細情報を取得します。APIクォータ節約のため無効にできます。',
@@ -221,18 +199,15 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.documents.name': 'ドキュメント',
   'admin.addons.catalog.documents.description': '旅行書類の保存・管理',
   'admin.addons.catalog.vacay.name': 'Vacay',
-  'admin.addons.catalog.vacay.description':
-    'カレンダー表示の個人休暇プランナー',
+  'admin.addons.catalog.vacay.description': 'カレンダー表示の個人休暇プランナー',
   'admin.addons.catalog.atlas.name': 'Atlas',
   'admin.addons.catalog.atlas.description': '訪問国と旅行統計の世界地図',
   'admin.addons.catalog.collab.name': 'Collab',
-  'admin.addons.catalog.collab.description':
-    'リアルタイムのメモ、投票、チャット',
+  'admin.addons.catalog.collab.description': 'リアルタイムのメモ、投票、チャット',
   'admin.addons.catalog.memories.name': '写真（Immich）',
   'admin.addons.catalog.memories.description': 'Immichで旅行写真を共有',
   'admin.addons.catalog.mcp.name': 'MCP',
-  'admin.addons.catalog.mcp.description':
-    'AI連携のためのModel Context Protocol',
+  'admin.addons.catalog.mcp.description': 'AI連携のためのModel Context Protocol',
   'admin.addons.subtitleBefore': '機能を有効／無効にして ',
   'admin.addons.subtitleAfter': ' をカスタマイズします。',
   'admin.addons.enabled': '有効',
@@ -281,14 +256,12 @@ const admin: TranslationStrings = {
   'admin.oauthSessions.created': '作成日時',
   'admin.oauthSessions.empty': '有効なOAuthセッションはありません',
   'admin.oauthSessions.revokeTitle': 'セッションを無効化',
-  'admin.oauthSessions.revokeMessage':
-    'このOAuthセッションは即時無効化され、クライアントはMCPへのアクセスを失います。',
+  'admin.oauthSessions.revokeMessage': 'このOAuthセッションは即時無効化され、クライアントはMCPへのアクセスを失います。',
   'admin.oauthSessions.revokeSuccess': 'セッションを無効化しました',
   'admin.oauthSessions.revokeError': 'セッションの無効化に失敗しました',
   'admin.oauthSessions.loadError': 'OAuthセッションの読み込みに失敗しました',
   'admin.tabs.github': 'GitHub',
-  'admin.audit.subtitle':
-    'セキュリティおよび管理イベント（バックアップ、ユーザー、MFA、設定）。',
+  'admin.audit.subtitle': 'セキュリティおよび管理イベント（バックアップ、ユーザー、MFA、設定）。',
   'admin.audit.empty': '監査ログはまだありません。',
   'admin.audit.refresh': '更新',
   'admin.audit.loadMore': 'さらに読み込む',
@@ -311,13 +284,11 @@ const admin: TranslationStrings = {
   'admin.github.by': '作成者',
   'admin.github.support': 'TREKの開発を支援',
   'admin.update.available': '更新があります',
-  'admin.update.text':
-    'TREK {version} が利用可能です。現在は {current} を使用しています。',
+  'admin.update.text': 'TREK {version} が利用可能です。現在は {current} を使用しています。',
   'admin.update.button': 'GitHubで見る',
   'admin.update.install': '更新をインストール',
   'admin.update.confirmTitle': '更新をインストールしますか？',
-  'admin.update.confirmText':
-    'TREKを {current} から {version} に更新します。更新後、サーバーは自動的に再起動します。',
+  'admin.update.confirmText': 'TREKを {current} から {version} に更新します。更新後、サーバーは自動的に再起動します。',
   'admin.update.dataInfo':
     'すべてのデータ（旅行、ユーザー、APIキー、アップロード、Vacay、Atlas、予算）は保持されます。',
   'admin.update.warning': '再起動中、アプリは短時間利用できません。',
@@ -325,8 +296,7 @@ const admin: TranslationStrings = {
   'admin.update.installing': '更新中…',
   'admin.update.success': '更新が完了しました！サーバーを再起動しています…',
   'admin.update.failed': '更新に失敗しました',
-  'admin.update.backupHint':
-    '更新前にバックアップを作成することをおすすめします。',
+  'admin.update.backupHint': '更新前にバックアップを作成することをおすすめします。',
   'admin.update.backupLink': 'バックアップへ',
   'admin.update.howTo': '更新方法',
   'admin.update.dockerText':
@@ -334,11 +304,9 @@ const admin: TranslationStrings = {
   'admin.update.reloadHint': '数秒後にページを再読み込みしてください。',
   'admin.tabs.permissions': '権限',
   'admin.addons.catalog.journey.name': '日記',
-  'admin.addons.catalog.journey.description':
-    'チェックイン、写真、日ごとのストーリーで旅を記録',
+  'admin.addons.catalog.journey.description': 'チェックイン、写真、日ごとのストーリーで旅を記録',
   'admin.passkey.title': 'パスキーログイン',
-  'admin.passkey.cardHint':
-    'ユーザーがパスキー（WebAuthn）でサインインできるようにします。既定では無効です。',
+  'admin.passkey.cardHint': 'ユーザーがパスキー（WebAuthn）でサインインできるようにします。既定では無効です。',
   'admin.passkey.login': 'パスキーログインを有効化',
   'admin.passkey.loginHint':
     '「パスキーでサインイン」オプションを表示し、ユーザーが設定でパスキーを登録できるようにします。',
@@ -356,11 +324,13 @@ const admin: TranslationStrings = {
   'admin.passkey.resetConfirm': '{name} のパスキーをすべて削除しますか？',
   'admin.passkey.resetDone': '{count} 件のパスキーを削除しました',
   'admin.defaultSettings.mapProvider': '地図エンジン',
-  'admin.defaultSettings.mapProviderHint': 'このインスタンスの全員に適用される既定の地図です。各ユーザーは自分の設定でこれを上書きできます。',
+  'admin.defaultSettings.mapProviderHint':
+    'このインスタンスの全員に適用される既定の地図です。各ユーザーは自分の設定でこれを上書きできます。',
   'admin.defaultSettings.providerLeaflet': '標準（無料）',
   'admin.defaultSettings.providerMapbox': 'Mapbox（3D）',
   'admin.defaultSettings.mapboxToken': '共有 Mapbox トークン',
-  'admin.defaultSettings.mapboxTokenHint': '自分のトークンを入力していないすべてのユーザーに使用されます。これにより、キーを個別に共有しなくてもインスタンス全体で Mapbox を利用できます。暗号化して保存されます。',
+  'admin.defaultSettings.mapboxTokenHint':
+    '自分のトークンを入力していないすべてのユーザーに使用されます。これにより、キーを個別に共有しなくてもインスタンス全体で Mapbox を利用できます。暗号化して保存されます。',
   'admin.defaultSettings.mapboxStyle': '地図スタイル',
   'admin.defaultSettings.mapboxStylePlaceholder': 'スタイルを選択…',
   'admin.defaultSettings.mapbox3d': '3D の建物と地形',

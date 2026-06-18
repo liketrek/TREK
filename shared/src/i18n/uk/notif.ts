@@ -4,8 +4,7 @@ const notif: TranslationStrings = {
   'notif.test.title': '[Тест] Сповіщення',
   'notif.test.simple.text': 'Це просте тестове сповіщення.',
   'notif.test.boolean.text': 'Ви приймаєте це тестове сповіщення?',
-  'notif.test.navigate.text':
-    'Натисніть нижче, щоб перейти на панель управління.',
+  'notif.test.navigate.text': 'Натисніть нижче, щоб перейти на панель управління.',
   'notif.trip_invite.title': 'Запрошення до поїздки',
   'notif.trip_invite.text': '{actor} запросив вас до {trip}',
   'notif.booking_change.title': 'Бронювання оновлено',
@@ -36,7 +35,6 @@ const notif: TranslationStrings = {
   'notif.generic.title': 'Сповіщення',
   'notif.generic.text': 'У вас нове сповіщення',
   'notif.dev.unknown_event.title': '[DEV] Невідома подія',
-  'notif.dev.unknown_event.text':
-    'Тип події "{event}" не зареєстровано в EVENT_NOTIFICATION_CONFIG',
+  'notif.dev.unknown_event.text': 'Тип події "{event}" не зареєстровано в EVENT_NOTIFICATION_CONFIG',
 };
 export default notif;

@@ -13,8 +13,7 @@ const notifications: TranslationStrings = {
   'notifications.markUnread': '未読にする',
   'notifications.delete': '削除',
   'notifications.system': 'システム',
-  'notifications.synologySessionCleared.title':
-    'Synology Photosが切断されました',
+  'notifications.synologySessionCleared.title': 'Synology Photosが切断されました',
   'notifications.synologySessionCleared.text':
     'サーバーまたはアカウントが変更されました。設定で接続を再テストしてください。',
   'notifications.versionAvailable.title': '更新があります',

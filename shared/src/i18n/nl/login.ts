@@ -3,8 +3,7 @@ import type { TranslationStrings } from '../types';
 const login: TranslationStrings = {
   'login.error': 'Inloggen mislukt. Controleer je inloggegevens.',
   'login.tagline': 'Jouw reizen.\nJouw plan.',
-  'login.description':
-    'Plan reizen samen met interactieve kaarten, budgetten en realtime synchronisatie.',
+  'login.description': 'Plan reizen samen met interactieve kaarten, budgetten en realtime synchronisatie.',
   'login.features.maps': 'Interactieve kaarten',
   'login.features.mapsDesc': 'Google Places, routes en clustering',
   'login.features.realtime': 'Realtime synchronisatie',
@@ -20,10 +19,8 @@ const login: TranslationStrings = {
   'login.features.files': 'Documenten',
   'login.features.filesDesc': 'Upload en beheer documenten',
   'login.features.routes': 'Slimme routes',
-  'login.features.routesDesc':
-    'Automatisch optimaliseren en exporteren naar Google Maps',
-  'login.selfHosted':
-    'Zelf gehost · Open Source · Jouw gegevens blijven van jou',
+  'login.features.routesDesc': 'Automatisch optimaliseren en exporteren naar Google Maps',
+  'login.selfHosted': 'Zelf gehost · Open Source · Jouw gegevens blijven van jou',
   'login.title': 'Inloggen',
   'login.subtitle': 'Welkom terug',
   'login.signingIn': 'Inloggen…',
@@ -31,8 +28,7 @@ const login: TranslationStrings = {
   'login.createAdmin': 'Beheerdersaccount aanmaken',
   'login.createAdminHint': 'Stel het eerste beheerdersaccount in voor TREK.',
   'login.setNewPassword': 'Nieuw wachtwoord instellen',
-  'login.setNewPasswordHint':
-    'U moet uw wachtwoord wijzigen voordat u verder kunt gaan.',
+  'login.setNewPasswordHint': 'U moet uw wachtwoord wijzigen voordat u verder kunt gaan.',
   'login.createAccount': 'Account aanmaken',
   'login.createAccountHint': 'Registreer een nieuw account.',
   'login.creating': 'Aanmaken…',
@@ -41,8 +37,7 @@ const login: TranslationStrings = {
   'login.register': 'Registreren',
   'login.emailPlaceholder': 'jouw@email.com',
   'login.username': 'Gebruikersnaam',
-  'login.oidc.registrationDisabled':
-    'Registratie is uitgeschakeld. Neem contact op met je beheerder.',
+  'login.oidc.registrationDisabled': 'Registratie is uitgeschakeld. Neem contact op met je beheerder.',
   'login.oidc.noEmail': 'Geen e-mailadres ontvangen van de provider.',
   'login.mfaTitle': 'Tweefactorauthenticatie',
   'login.mfaSubtitle': 'Voer de 6-cijferige code van je authenticator-app in.',
@@ -72,28 +67,21 @@ const login: TranslationStrings = {
   'login.passwordsDontMatch': 'Wachtwoorden komen niet overeen',
   'login.mfaCode': '2FA-code',
   'login.resetPasswordTitle': 'Nieuw wachtwoord instellen',
-  'login.resetPasswordBody':
-    'Kies een sterk wachtwoord dat je hier nog niet hebt gebruikt. Minimaal 8 tekens.',
-  'login.resetPasswordMfaBody':
-    'Voer je 2FA-code of een back-upcode in om de reset te voltooien.',
+  'login.resetPasswordBody': 'Kies een sterk wachtwoord dat je hier nog niet hebt gebruikt. Minimaal 8 tekens.',
+  'login.resetPasswordMfaBody': 'Voer je 2FA-code of een back-upcode in om de reset te voltooien.',
   'login.resetPasswordSubmit': 'Wachtwoord resetten',
   'login.resetPasswordVerify': 'Verifiëren en resetten',
   'login.resetPasswordSuccessTitle': 'Wachtwoord bijgewerkt',
-  'login.resetPasswordSuccessBody':
-    'Je kunt nu inloggen met je nieuwe wachtwoord.',
+  'login.resetPasswordSuccessBody': 'Je kunt nu inloggen met je nieuwe wachtwoord.',
   'login.resetPasswordInvalidLink': 'Ongeldige resetlink',
-  'login.resetPasswordInvalidLinkBody':
-    'Deze link ontbreekt of is ongeldig. Vraag een nieuwe aan om door te gaan.',
-  'login.resetPasswordFailed':
-    'Resetten mislukt. De link is mogelijk verlopen.',
+  'login.resetPasswordInvalidLinkBody': 'Deze link ontbreekt of is ongeldig. Vraag een nieuwe aan om door te gaan.',
+  'login.resetPasswordFailed': 'Resetten mislukt. De link is mogelijk verlopen.',
   'login.oidc.tokenFailed': 'Authenticatie mislukt.',
   'login.oidc.invalidState': 'Ongeldige sessie. Probeer het opnieuw.',
   'login.demoFailed': 'Demo-login mislukt',
   'login.oidcSignIn': 'Inloggen met {name}',
-  'login.oidcOnly':
-    'Wachtwoordauthenticatie is uitgeschakeld. Log in via je SSO-provider.',
-  'login.oidcLoggedOut':
-    'Je bent uitgelogd. Log opnieuw in via je SSO-provider.',
+  'login.oidcOnly': 'Wachtwoordauthenticatie is uitgeschakeld. Log in via je SSO-provider.',
+  'login.oidcLoggedOut': 'Je bent uitgelogd. Log opnieuw in via je SSO-provider.',
   'login.demoHint': 'Probeer de demo — geen registratie nodig',
   'login.passkey.signIn': 'Inloggen met een passkey',
   'login.passkey.failed': 'Inloggen met passkey mislukt. Probeer het opnieuw.',

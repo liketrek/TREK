@@ -8,10 +8,8 @@ const places: TranslationStrings = {
     'استورد ملفات .gpx أو .kml أو .kmz من أدوات مثل Google My Maps وGoogle Earth أو جهاز تتبع GPS.',
   'places.importFileDropHere': 'انقر لاختيار ملف أو اسحبه وأفلته هنا',
   'places.importFileDropActive': 'أفلت الملف للاختيار',
-  'places.importFileUnsupported':
-    'نوع الملف غير مدعوم. استخدم .gpx أو .kml أو .kmz.',
-  'places.importFileTooLarge':
-    'الملف كبير جدًا. الحد الأقصى لحجم الرفع هو {maxMb} MB.',
+  'places.importFileUnsupported': 'نوع الملف غير مدعوم. استخدم .gpx أو .kml أو .kmz.',
+  'places.importFileTooLarge': 'الملف كبير جدًا. الحد الأقصى لحجم الرفع هو {maxMb} MB.',
   'places.importFileError': 'فشل الاستيراد',
   'places.importAllSkipped': 'جميع الأماكن موجودة بالفعل في الرحلة.',
   'places.gpxImported': 'تم استيراد {count} مكان من GPX',
@@ -29,16 +27,13 @@ const places: TranslationStrings = {
   'places.kmlKmzImported': 'تم استيراد {count} مكان من KMZ/KML',
   'places.urlResolved': 'تم استيراد المكان من الرابط',
   'places.importList': 'استيراد قائمة',
-  'places.kmlKmzSummaryValues':
-    'علامات المواضع: {total} • تم الاستيراد: {created} • تم التجاوز: {skipped}',
+  'places.kmlKmzSummaryValues': 'علامات المواضع: {total} • تم الاستيراد: {created} • تم التجاوز: {skipped}',
   'places.importGoogleList': 'قائمة Google',
   'places.importNaverList': 'قائمة Naver',
-  'places.googleListHint':
-    'الصق رابط قائمة Google Maps المشتركة لاستيراد جميع الأماكن.',
+  'places.googleListHint': 'الصق رابط قائمة Google Maps المشتركة لاستيراد جميع الأماكن.',
   'places.googleListImported': 'تم استيراد {count} أماكن من "{list}"',
   'places.googleListError': 'فشل استيراد قائمة Google Maps',
-  'places.naverListHint':
-    'الصق رابط قائمة Naver Maps مشتركة لاستيراد جميع الأماكن.',
+  'places.naverListHint': 'الصق رابط قائمة Naver Maps مشتركة لاستيراد جميع الأماكن.',
   'places.naverListImported': 'تم استيراد {count} مكان من "{list}"',
   'places.naverListError': 'فشل استيراد قائمة Naver Maps',
   'places.viewDetails': 'عرض التفاصيل',

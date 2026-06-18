@@ -6,13 +6,10 @@ const places: TranslationStrings = {
   'places.sidebarDrop': 'Ejtse el az importáláshoz',
   'places.importFileHint':
     '.gpx, .kml vagy .kmz fájlok importálása olyan eszközökből, mint a Google My Maps, Google Earth vagy egy GPS tracker.',
-  'places.importFileDropHere':
-    'Kattintson egy fájl kiválasztásához, vagy húzza ide',
+  'places.importFileDropHere': 'Kattintson egy fájl kiválasztásához, vagy húzza ide',
   'places.importFileDropActive': 'Ejtse ide a fájlt a kiválasztáshoz',
-  'places.importFileUnsupported':
-    'Nem támogatott fájltípus. Használjon .gpx, .kml vagy .kmz fájlt.',
-  'places.importFileTooLarge':
-    'A fájl túl nagy. A maximális feltöltési méret {maxMb} MB.',
+  'places.importFileUnsupported': 'Nem támogatott fájltípus. Használjon .gpx, .kml vagy .kmz fájlt.',
+  'places.importFileTooLarge': 'A fájl túl nagy. A maximális feltöltési méret {maxMb} MB.',
   'places.importFileError': 'Importálás sikertelen',
   'places.importAllSkipped': 'Minden hely már szerepel az utazásban.',
   'places.gpxImported': '{count} hely importálva GPX-ből',
@@ -20,8 +17,7 @@ const places: TranslationStrings = {
   'places.gpxImportWaypoints': 'Útpontok',
   'places.gpxImportRoutes': 'Útvonalak',
   'places.gpxImportTracks': 'Nyomvonalak (útvonalgeometriával)',
-  'places.gpxImportNoneSelected':
-    'Válassz legalább egy típust az importáláshoz.',
+  'places.gpxImportNoneSelected': 'Válassz legalább egy típust az importáláshoz.',
   'places.kmlImportTypes': 'Mit szeretnél importálni?',
   'places.kmlImportPoints': 'Pontok (Placemarks)',
   'places.kmlImportPaths': 'Útvonalak (LineStrings)',
@@ -31,16 +27,13 @@ const places: TranslationStrings = {
   'places.kmlKmzImported': '{count} hely importálva KMZ/KML-ből',
   'places.urlResolved': 'Hely importálva URL-ből',
   'places.importList': 'Lista importálás',
-  'places.kmlKmzSummaryValues':
-    'Placemarks: {total} • Importálva: {created} • Kihagyva: {skipped}',
+  'places.kmlKmzSummaryValues': 'Placemarks: {total} • Importálva: {created} • Kihagyva: {skipped}',
   'places.importGoogleList': 'Google Lista',
   'places.importNaverList': 'Naver Lista',
-  'places.googleListHint':
-    'Illessz be egy megosztott Google Maps lista linket az osszes hely importalasahoz.',
+  'places.googleListHint': 'Illessz be egy megosztott Google Maps lista linket az osszes hely importalasahoz.',
   'places.googleListImported': '{count} hely importalva a(z) "{list}" listabol',
   'places.googleListError': 'Google Maps lista importalasa sikertelen',
-  'places.naverListHint':
-    'Illessz be egy megosztott Naver Maps lista linket az összes hely importálásához.',
+  'places.naverListHint': 'Illessz be egy megosztott Naver Maps lista linket az összes hely importálásához.',
   'places.naverListImported': '{count} hely importálva a(z) "{list}" listából',
   'places.naverListError': 'Naver Maps lista importálása sikertelen',
   'places.viewDetails': 'Részletek megtekintése',
@@ -77,8 +70,7 @@ const places: TranslationStrings = {
   'places.formNotes': 'Jegyzetek',
   'places.formNotesPlaceholder': 'Személyes jegyzetek...',
   'places.formReservation': 'Foglalás',
-  'places.reservationNotesPlaceholder':
-    'Foglalási jegyzetek, visszaigazolási szám...',
+  'places.reservationNotesPlaceholder': 'Foglalási jegyzetek, visszaigazolási szám...',
   'places.mapsSearchPlaceholder': 'Helyek keresése...',
   'places.mapsSearchError': 'Helykeresés sikertelen.',
   'places.loadingDetails': 'Hely adatainak betöltése…',

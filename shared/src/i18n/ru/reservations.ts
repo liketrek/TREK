@@ -3,12 +3,10 @@ import type { TranslationStrings } from '../types';
 const reservations: TranslationStrings = {
   'reservations.title': 'Бронирования',
   'reservations.empty': 'Пока нет бронирований',
-  'reservations.emptyHint':
-    'Добавьте бронирования на авиабилеты, отели и другое',
+  'reservations.emptyHint': 'Добавьте бронирования на авиабилеты, отели и другое',
   'reservations.add': 'Добавить бронирование',
   'reservations.addManual': 'Ручное бронирование',
-  'reservations.placeHint':
-    'Совет: бронирования лучше создавать прямо из места, чтобы связать их с планом дня.',
+  'reservations.placeHint': 'Совет: бронирования лучше создавать прямо из места, чтобы связать их с планом дня.',
   'reservations.confirmed': 'Подтверждено',
   'reservations.pending': 'Ожидание',
   'reservations.summary': '{confirmed} подтв., {pending} ожид.',
@@ -34,8 +32,7 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': 'Стыковка',
   'reservations.layover.layover': 'Пересадка',
   'reservations.needsReview': 'Проверить',
-  'reservations.needsReviewHint':
-    'Аэропорт не удалось определить автоматически — подтвердите местоположение.',
+  'reservations.needsReviewHint': 'Аэропорт не удалось определить автоматически — подтвердите местоположение.',
   'reservations.searchLocation': 'Искать станцию, порт, адрес...',
   'reservations.meta.trainNumber': 'Номер поезда',
   'reservations.meta.platform': 'Платформа',
@@ -65,8 +62,7 @@ const reservations: TranslationStrings = {
   'reservations.type.bicycle': 'Велосипед',
   'reservations.type.taxi': 'Такси',
   'reservations.type.transport_other': 'Другое',
-  'reservations.confirm.delete':
-    'Вы уверены, что хотите удалить бронирование «{name}»?',
+  'reservations.confirm.delete': 'Вы уверены, что хотите удалить бронирование «{name}»?',
   'reservations.confirm.deleteTitle': 'Удалить бронирование?',
   'reservations.confirm.deleteBody': '«{name}» будет удалено навсегда.',
   'reservations.toast.updated': 'Бронирование обновлено',
@@ -100,8 +96,7 @@ const reservations: TranslationStrings = {
   'reservations.budgetCategory': 'Категория бюджета',
   'reservations.budgetCategoryPlaceholder': 'напр. Транспорт, Проживание',
   'reservations.budgetCategoryAuto': 'Авто (по типу бронирования)',
-  'reservations.budgetHint':
-    'При сохранении будет автоматически создана запись бюджета.',
+  'reservations.budgetHint': 'При сохранении будет автоматически создана запись бюджета.',
   'reservations.departureDate': 'Вылет',
   'reservations.arrivalDate': 'Прилёт',
   'reservations.departureTime': 'Время вылета',
@@ -122,60 +117,46 @@ const reservations: TranslationStrings = {
   'reservations.span.start': 'Начало',
   'reservations.span.end': 'Конец',
   'reservations.span.ongoing': 'Продолжается',
-  'reservations.validation.endBeforeStart':
-    'Дата/время окончания должны быть позже даты/времени начала',
+  'reservations.validation.endBeforeStart': 'Дата/время окончания должны быть позже даты/времени начала',
   'reservations.addBooking': 'Добавить бронирование',
   'reservations.import.title': 'Импорт подтверждений бронирования',
   'reservations.import.cta': 'Импортировать из файла',
-  'reservations.import.dropHere':
-    'Перетащите файлы подтверждений бронирования сюда или нажмите для выбора',
+  'reservations.import.dropHere': 'Перетащите файлы подтверждений бронирования сюда или нажмите для выбора',
   'reservations.import.dropActive': 'Отпустите файлы для импорта',
-  'reservations.import.acceptedFormats':
-    'Принимаются: EML, PDF, PKPass, HTML, TXT (макс. 10 МБ каждый, до 5 файлов)',
+  'reservations.import.acceptedFormats': 'Принимаются: EML, PDF, PKPass, HTML, TXT (макс. 10 МБ каждый, до 5 файлов)',
   'reservations.import.parsing': 'Обработка файлов…',
   'reservations.import.previewHeading': 'Найдено {count} бронирование(й)',
-  'reservations.import.previewEmpty':
-    'Из загруженных файлов не удалось извлечь бронирования.',
+  'reservations.import.previewEmpty': 'Из загруженных файлов не удалось извлечь бронирования.',
   'reservations.import.removeItem': 'Удалить',
   'reservations.import.confirm': 'Импортировать {count} бронирование(й)',
   'reservations.import.back': 'Назад',
   'reservations.import.success': '{count} бронирование(й) импортировано',
-  'reservations.import.partialFailure':
-    '{created} импортировано, {failed} не удалось',
+  'reservations.import.partialFailure': '{created} импортировано, {failed} не удалось',
   'reservations.import.error':
     'Обработка не удалась. Убедитесь, что файл является действительным подтверждением бронирования.',
-  'reservations.import.unavailable':
-    'Импорт бронирований недоступен на этом сервере.',
-  'reservations.import.unsupportedFormat':
-    'Неподдерживаемый формат файла. Используйте EML, PDF, PKPass, HTML или TXT.',
-  'reservations.import.fileTooLarge':
-    'Файл «{name}» превышает ограничение в 10 МБ.',
+  'reservations.import.unavailable': 'Импорт бронирований недоступен на этом сервере.',
+  'reservations.import.unsupportedFormat': 'Неподдерживаемый формат файла. Используйте EML, PDF, PKPass, HTML или TXT.',
+  'reservations.import.fileTooLarge': 'Файл «{name}» превышает ограничение в 10 МБ.',
   'reservations.airtrail.title': 'Импорт из AirTrail',
   'reservations.airtrail.cta': 'AirTrail',
   'reservations.airtrail.synced': 'AirTrail',
-  'reservations.airtrail.syncedHint':
-    'Синхронизировано с AirTrail — изменения синхронизируются в обе стороны.',
+  'reservations.airtrail.syncedHint': 'Синхронизировано с AirTrail — изменения синхронизируются в обе стороны.',
   'reservations.airtrail.notSynced': 'Не синхронизировано',
-  'reservations.airtrail.notSyncedHint':
-    'Этот рейс был удалён в AirTrail и больше не синхронизируется.',
-  'reservations.airtrail.loadError':
-    'Не удалось загрузить ваши рейсы из AirTrail.',
+  'reservations.airtrail.notSyncedHint': 'Этот рейс был удалён в AirTrail и больше не синхронизируется.',
+  'reservations.airtrail.loadError': 'Не удалось загрузить ваши рейсы из AirTrail.',
   'reservations.airtrail.imported': 'Импортировано рейсов: {count}',
-  'reservations.airtrail.skippedDuplicate':
-    '{count} уже в этой поездке, пропущено',
+  'reservations.airtrail.skippedDuplicate': '{count} уже в этой поездке, пропущено',
   'reservations.airtrail.nothingImported': 'Нечего импортировать.',
   'reservations.airtrail.importError': 'Импорт не удался. Повторите попытку.',
   'reservations.airtrail.undo': 'Импорт из AirTrail',
   'reservations.airtrail.alreadyImported': 'Импортировано',
   'reservations.airtrail.duringTrip': 'Во время этой поездки',
   'reservations.airtrail.otherFlights': 'Другие рейсы',
-  'reservations.airtrail.empty':
-    'В вашей учётной записи AirTrail не найдено рейсов.',
+  'reservations.airtrail.empty': 'В вашей учётной записи AirTrail не найдено рейсов.',
   'reservations.airtrail.importCta': 'Импортировать {count}',
   'reservations.costsLabel': 'Costs',
   'reservations.createExpense': 'Create expense',
-  'reservations.createExpenseHint':
-    'Saves the booking, then opens the Costs editor.',
+  'reservations.createExpenseHint': 'Saves the booking, then opens the Costs editor.',
   'reservations.linkedExpense': 'Linked expense',
   'reservations.removeExpense': 'Remove expense',
 };

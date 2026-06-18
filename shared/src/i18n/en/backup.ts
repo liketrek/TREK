@@ -12,10 +12,8 @@ const backup: TranslationStrings = {
   'backup.createFirst': 'Create first backup',
   'backup.download': 'Download',
   'backup.restore': 'Restore',
-  'backup.confirm.restore':
-    'Restore backup "{name}"?\n\nAll current data will be replaced with the backup.',
-  'backup.confirm.uploadRestore':
-    'Upload and restore backup file "{name}"?\n\nAll current data will be overwritten.',
+  'backup.confirm.restore': 'Restore backup "{name}"?\n\nAll current data will be replaced with the backup.',
+  'backup.confirm.uploadRestore': 'Upload and restore backup file "{name}"?\n\nAll current data will be overwritten.',
   'backup.confirm.delete': 'Delete backup "{name}"?',
   'backup.toast.loadError': 'Failed to load backups',
   'backup.toast.created': 'Backup created successfully',
@@ -31,15 +29,13 @@ const backup: TranslationStrings = {
   'backup.auto.title': 'Auto-Backup',
   'backup.auto.subtitle': 'Automatic backup on a schedule',
   'backup.auto.enable': 'Enable auto-backup',
-  'backup.auto.enableHint':
-    'Backups will be created automatically on the chosen schedule',
+  'backup.auto.enableHint': 'Backups will be created automatically on the chosen schedule',
   'backup.auto.interval': 'Interval',
   'backup.auto.hour': 'Run at hour',
   'backup.auto.hourHint': 'Server local time ({format} format)',
   'backup.auto.dayOfWeek': 'Day of week',
   'backup.auto.dayOfMonth': 'Day of month',
-  'backup.auto.dayOfMonthHint':
-    'Limited to 1–28 for compatibility with all months',
+  'backup.auto.dayOfMonthHint': 'Limited to 1–28 for compatibility with all months',
   'backup.auto.scheduleSummary': 'Schedule',
   'backup.auto.summaryDaily': 'Every day at {hour}:00',
   'backup.auto.summaryWeekly': 'Every {day} at {hour}:00',
@@ -70,8 +66,7 @@ const backup: TranslationStrings = {
   'backup.restoreConfirmTitle': 'Restore Backup?',
   'backup.restoreWarning':
     'All current data (trips, places, users, uploads) will be permanently replaced by the backup. This action cannot be undone.',
-  'backup.restoreTip':
-    'Tip: Create a backup of the current state before restoring.',
+  'backup.restoreTip': 'Tip: Create a backup of the current state before restoring.',
   'backup.restoreConfirm': 'Yes, restore',
 };
 export default backup;

@@ -32,25 +32,20 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': 'التعاون (ملاحظات، استطلاعات، دردشة)',
   'perm.action.share_manage': 'إدارة روابط المشاركة',
   'perm.actionHint.trip_create': 'من يمكنه إنشاء رحلات جديدة',
-  'perm.actionHint.trip_edit':
-    'من يمكنه تغيير اسم الرحلة والتواريخ والوصف والعملة',
+  'perm.actionHint.trip_edit': 'من يمكنه تغيير اسم الرحلة والتواريخ والوصف والعملة',
   'perm.actionHint.trip_delete': 'من يمكنه حذف رحلة نهائياً',
   'perm.actionHint.trip_archive': 'من يمكنه أرشفة أو إلغاء أرشفة رحلة',
   'perm.actionHint.trip_cover_upload': 'من يمكنه رفع أو تغيير صورة الغلاف',
   'perm.actionHint.member_manage': 'من يمكنه دعوة أو إزالة أعضاء الرحلة',
   'perm.actionHint.file_upload': 'من يمكنه رفع ملفات إلى رحلة',
   'perm.actionHint.file_edit': 'من يمكنه تعديل أوصاف الملفات والروابط',
-  'perm.actionHint.file_delete':
-    'من يمكنه نقل الملفات إلى سلة المهملات أو حذفها نهائياً',
+  'perm.actionHint.file_delete': 'من يمكنه نقل الملفات إلى سلة المهملات أو حذفها نهائياً',
   'perm.actionHint.place_edit': 'من يمكنه إضافة أو تعديل أو حذف الأماكن',
-  'perm.actionHint.day_edit':
-    'من يمكنه تعديل الأيام وملاحظات الأيام وتعيينات الأماكن',
+  'perm.actionHint.day_edit': 'من يمكنه تعديل الأيام وملاحظات الأيام وتعيينات الأماكن',
   'perm.actionHint.reservation_edit': 'من يمكنه إنشاء أو تعديل أو حذف الحجوزات',
-  'perm.actionHint.budget_edit':
-    'من يمكنه إنشاء أو تعديل أو حذف عناصر الميزانية',
+  'perm.actionHint.budget_edit': 'من يمكنه إنشاء أو تعديل أو حذف عناصر الميزانية',
   'perm.actionHint.packing_edit': 'من يمكنه إدارة عناصر التعبئة والحقائب',
-  'perm.actionHint.collab_edit':
-    'من يمكنه إنشاء ملاحظات واستطلاعات وإرسال رسائل',
+  'perm.actionHint.collab_edit': 'من يمكنه إنشاء ملاحظات واستطلاعات وإرسال رسائل',
   'perm.actionHint.share_manage': 'من يمكنه إنشاء أو حذف روابط المشاركة العامة',
 };
 export default perm;

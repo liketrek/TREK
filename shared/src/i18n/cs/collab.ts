@@ -14,8 +14,7 @@ const collab: TranslationStrings = {
   'collab.chat.placeholder': 'Napište zprávu...',
   'collab.chat.empty': 'Začněte konverzaci',
   'collab.chat.emptyHint': 'Zprávy jsou sdíleny se všemi členy cesty',
-  'collab.chat.emptyDesc':
-    'Sdílejte nápady, plány a novinky se svou cestovatelskou skupinou',
+  'collab.chat.emptyDesc': 'Sdílejte nápady, plány a novinky se svou cestovatelskou skupinou',
   'collab.chat.today': 'Dnes',
   'collab.chat.yesterday': 'Včera',
   'collab.chat.deletedMessage': 'smazal zprávu',

@@ -3,8 +3,7 @@ import type { TranslationStrings } from '../types';
 const login: TranslationStrings = {
   'login.error': 'Login gagal. Periksa kembali kredensial kamu.',
   'login.tagline': 'Perjalananmu.\nRencanamu.',
-  'login.description':
-    'Rencanakan perjalanan bersama dengan peta interaktif, anggaran, dan sinkronisasi real-time.',
+  'login.description': 'Rencanakan perjalanan bersama dengan peta interaktif, anggaran, dan sinkronisasi real-time.',
   'login.features.maps': 'Peta Interaktif',
   'login.features.mapsDesc': 'Google Places, rute & pengelompokan',
   'login.features.realtime': 'Sinkronisasi Real-Time',
@@ -29,8 +28,7 @@ const login: TranslationStrings = {
   'login.createAdmin': 'Buat Akun Admin',
   'login.createAdminHint': 'Siapkan akun admin pertama untuk TREK.',
   'login.setNewPassword': 'Atur Kata Sandi Baru',
-  'login.setNewPasswordHint':
-    'Kamu harus mengganti kata sandi sebelum melanjutkan.',
+  'login.setNewPasswordHint': 'Kamu harus mengganti kata sandi sebelum melanjutkan.',
   'login.createAccount': 'Buat Akun',
   'login.createAccountHint': 'Daftarkan akun baru.',
   'login.creating': 'Membuat…',
@@ -39,40 +37,33 @@ const login: TranslationStrings = {
   'login.register': 'Daftar',
   'login.emailPlaceholder': 'kamu@email.com',
   'login.username': 'Nama pengguna',
-  'login.oidc.registrationDisabled':
-    'Pendaftaran dinonaktifkan. Hubungi administrator kamu.',
+  'login.oidc.registrationDisabled': 'Pendaftaran dinonaktifkan. Hubungi administrator kamu.',
   'login.oidc.noEmail': 'Tidak ada email yang diterima dari penyedia.',
   'login.oidc.tokenFailed': 'Autentikasi gagal.',
   'login.oidc.invalidState': 'Sesi tidak valid. Coba lagi.',
   'login.demoFailed': 'Login demo gagal',
   'login.oidcSignIn': 'Masuk dengan {name}',
-  'login.oidcOnly':
-    'Autentikasi kata sandi dinonaktifkan. Masuk menggunakan penyedia SSO kamu.',
-  'login.oidcLoggedOut':
-    'Kamu telah keluar. Masuk kembali menggunakan penyedia SSO kamu.',
+  'login.oidcOnly': 'Autentikasi kata sandi dinonaktifkan. Masuk menggunakan penyedia SSO kamu.',
+  'login.oidcLoggedOut': 'Kamu telah keluar. Masuk kembali menggunakan penyedia SSO kamu.',
   'login.demoHint': 'Coba demo — tidak perlu registrasi',
   'login.mfaTitle': 'Autentikasi dua faktor',
   'login.mfaSubtitle': 'Masukkan kode 6 digit dari aplikasi autentikator kamu.',
   'login.mfaCodeLabel': 'Kode verifikasi',
   'login.mfaCodeRequired': 'Masukkan kode dari aplikasi autentikator kamu.',
-  'login.mfaHint':
-    'Buka Google Authenticator, Authy, atau aplikasi TOTP lainnya.',
+  'login.mfaHint': 'Buka Google Authenticator, Authy, atau aplikasi TOTP lainnya.',
   'login.mfaBack': '← Kembali ke halaman masuk',
   'login.mfaVerify': 'Verifikasi',
-  'login.invalidInviteLink':
-    'Tautan undangan tidak valid atau sudah kedaluwarsa',
+  'login.invalidInviteLink': 'Tautan undangan tidak valid atau sudah kedaluwarsa',
   'login.oidcFailed': 'Login OIDC gagal',
   'login.usernameRequired': 'Nama pengguna wajib diisi',
   'login.passwordMinLength': 'Kata sandi minimal 8 karakter',
   'login.forgotPassword': 'Lupa kata sandi?',
   'login.rememberMe': 'Ingat saya',
   'login.forgotPasswordTitle': 'Setel ulang kata sandi',
-  'login.forgotPasswordBody':
-    'Masukkan alamat email akunmu. Jika akun ada, kami akan mengirim tautan reset.',
+  'login.forgotPasswordBody': 'Masukkan alamat email akunmu. Jika akun ada, kami akan mengirim tautan reset.',
   'login.forgotPasswordSubmit': 'Kirim tautan',
   'login.forgotPasswordSentTitle': 'Periksa email kamu',
-  'login.forgotPasswordSentBody':
-    'Jika ada akun dengan email tersebut, tautannya sedang dikirim. Berlaku 60 menit.',
+  'login.forgotPasswordSentBody': 'Jika ada akun dengan email tersebut, tautannya sedang dikirim. Berlaku 60 menit.',
   'login.forgotPasswordSmtpHintOff':
     'Catatan: administrator belum mengonfigurasi SMTP, jadi tautan reset akan ditulis ke konsol server alih-alih dikirim lewat email.',
   'login.backToLogin': 'Kembali ke login',
@@ -81,18 +72,14 @@ const login: TranslationStrings = {
   'login.passwordsDontMatch': 'Kata sandi tidak cocok',
   'login.mfaCode': 'Kode 2FA',
   'login.resetPasswordTitle': 'Tetapkan kata sandi baru',
-  'login.resetPasswordBody':
-    'Pilih kata sandi kuat yang belum pernah kamu pakai di sini. Minimal 8 karakter.',
-  'login.resetPasswordMfaBody':
-    'Masukkan kode 2FA atau kode cadangan untuk menyelesaikan reset.',
+  'login.resetPasswordBody': 'Pilih kata sandi kuat yang belum pernah kamu pakai di sini. Minimal 8 karakter.',
+  'login.resetPasswordMfaBody': 'Masukkan kode 2FA atau kode cadangan untuk menyelesaikan reset.',
   'login.resetPasswordSubmit': 'Setel ulang kata sandi',
   'login.resetPasswordVerify': 'Verifikasi & setel ulang',
   'login.resetPasswordSuccessTitle': 'Kata sandi diperbarui',
-  'login.resetPasswordSuccessBody':
-    'Sekarang kamu bisa login dengan kata sandi baru.',
+  'login.resetPasswordSuccessBody': 'Sekarang kamu bisa login dengan kata sandi baru.',
   'login.resetPasswordInvalidLink': 'Tautan tidak valid',
-  'login.resetPasswordInvalidLinkBody':
-    'Tautan hilang atau rusak. Minta tautan baru untuk melanjutkan.',
+  'login.resetPasswordInvalidLinkBody': 'Tautan hilang atau rusak. Minta tautan baru untuk melanjutkan.',
   'login.resetPasswordFailed': 'Reset gagal. Tautan mungkin sudah kedaluwarsa.',
   'login.passkey.signIn': 'Masuk dengan passkey',
   'login.passkey.failed': 'Masuk dengan passkey gagal. Silakan coba lagi.',

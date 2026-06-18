@@ -5,8 +5,7 @@ const packing: TranslationStrings = {
   'packing.empty': '짐 목록이 비어 있습니다',
   'packing.import': '가져오기',
   'packing.importTitle': '짐 목록 가져오기',
-  'packing.importHint':
-    '한 줄에 하나의 항목. 형식: 카테고리, 이름, 무게(g, 선택), 가방(선택), checked/unchecked(선택)',
+  'packing.importHint': '한 줄에 하나의 항목. 형식: 카테고리, 이름, 무게(g, 선택), 가방(선택), checked/unchecked(선택)',
   'packing.importPlaceholder':
     '위생, 칫솔\n의류, 티셔츠, 200\n서류, 여권, , 기내 수하물\n전자기기, 충전기, 50, 캐리어, checked',
   'packing.importCsv': 'CSV/TXT 불러오기',
@@ -52,8 +51,7 @@ const packing: TranslationStrings = {
   'packing.addBag': '가방 추가',
   'packing.changeCategory': '카테고리 변경',
   'packing.confirm.clearChecked': '체크된 {count}개 항목을 제거할까요?',
-  'packing.confirm.deleteCat':
-    '카테고리 "{name}"을(를) {count}개 항목과 함께 삭제할까요?',
+  'packing.confirm.deleteCat': '카테고리 "{name}"을(를) {count}개 항목과 함께 삭제할까요?',
   'packing.defaultCategory': '기타',
   'packing.toast.saveError': '저장 실패',
   'packing.toast.deleteError': '삭제 실패',

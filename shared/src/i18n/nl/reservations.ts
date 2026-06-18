@@ -3,8 +3,7 @@ import type { TranslationStrings } from '../types';
 const reservations: TranslationStrings = {
   'reservations.title': 'Boekingen',
   'reservations.empty': 'Nog geen reserveringen',
-  'reservations.emptyHint':
-    'Voeg reserveringen toe voor vluchten, hotels en meer',
+  'reservations.emptyHint': 'Voeg reserveringen toe voor vluchten, hotels en meer',
   'reservations.add': 'Reservering toevoegen',
   'reservations.addManual': 'Handmatige boeking',
   'reservations.placeHint':
@@ -34,8 +33,7 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': 'Aansluiting',
   'reservations.layover.layover': 'Overstap',
   'reservations.needsReview': 'Controleren',
-  'reservations.needsReviewHint':
-    'Luchthaven kon niet automatisch worden herkend — bevestig de locatie.',
+  'reservations.needsReviewHint': 'Luchthaven kon niet automatisch worden herkend — bevestig de locatie.',
   'reservations.searchLocation': 'Station, haven, adres zoeken...',
   'reservations.meta.trainNumber': 'Treinnr.',
   'reservations.meta.platform': 'Perron',
@@ -65,8 +63,7 @@ const reservations: TranslationStrings = {
   'reservations.type.bicycle': 'Fiets',
   'reservations.type.taxi': 'Taxi',
   'reservations.type.transport_other': 'Overig',
-  'reservations.confirm.delete':
-    'Weet je zeker dat je de reservering "{name}" wilt verwijderen?',
+  'reservations.confirm.delete': 'Weet je zeker dat je de reservering "{name}" wilt verwijderen?',
   'reservations.confirm.deleteTitle': 'Boeking verwijderen?',
   'reservations.confirm.deleteBody': '"{name}" wordt permanent verwijderd.',
   'reservations.toast.updated': 'Reservering bijgewerkt',
@@ -100,8 +97,7 @@ const reservations: TranslationStrings = {
   'reservations.budgetCategory': 'Budgetcategorie',
   'reservations.budgetCategoryPlaceholder': 'bijv. Transport, Accommodatie',
   'reservations.budgetCategoryAuto': 'Automatisch (op basis van boekingstype)',
-  'reservations.budgetHint':
-    'Er wordt automatisch een budgetpost aangemaakt bij het opslaan.',
+  'reservations.budgetHint': 'Er wordt automatisch een budgetpost aangemaakt bij het opslaan.',
   'reservations.departureDate': 'Vertrek',
   'reservations.arrivalDate': 'Aankomst',
   'reservations.departureTime': 'Vertrektijd',
@@ -122,61 +118,47 @@ const reservations: TranslationStrings = {
   'reservations.span.start': 'Start',
   'reservations.span.end': 'Einde',
   'reservations.span.ongoing': 'Lopend',
-  'reservations.validation.endBeforeStart':
-    'Einddatum/-tijd moet na de startdatum/-tijd liggen',
+  'reservations.validation.endBeforeStart': 'Einddatum/-tijd moet na de startdatum/-tijd liggen',
   'reservations.addBooking': 'Boeking toevoegen',
   'reservations.import.title': 'Boekingsbevestigingen importeren',
   'reservations.import.cta': 'Importeren vanuit bestand',
-  'reservations.import.dropHere':
-    'Zet hier bevestigingsbestanden neer of klik om te selecteren',
+  'reservations.import.dropHere': 'Zet hier bevestigingsbestanden neer of klik om te selecteren',
   'reservations.import.dropActive': 'Laat bestanden los om te importeren',
   'reservations.import.acceptedFormats':
     'Geaccepteerd: EML, PDF, PKPass, HTML, TXT (max. 10 MB per stuk, tot 5 bestanden)',
   'reservations.import.parsing': 'Bestanden verwerken…',
   'reservations.import.previewHeading': '{count} reservering(en) gevonden',
-  'reservations.import.previewEmpty':
-    'Er konden geen reserveringen worden geëxtraheerd uit de geüploade bestanden.',
+  'reservations.import.previewEmpty': 'Er konden geen reserveringen worden geëxtraheerd uit de geüploade bestanden.',
   'reservations.import.removeItem': 'Verwijderen',
   'reservations.import.confirm': '{count} reservering(en) importeren',
   'reservations.import.back': 'Terug',
   'reservations.import.success': '{count} reservering(en) geïmporteerd',
-  'reservations.import.partialFailure':
-    '{created} geïmporteerd, {failed} mislukt',
-  'reservations.import.error':
-    'Verwerking mislukt. Zorg ervoor dat het bestand een geldige boekingsbevestiging is.',
-  'reservations.import.unavailable':
-    'Boeking importeren is niet beschikbaar op deze server.',
-  'reservations.import.unsupportedFormat':
-    'Niet-ondersteund bestandsformaat. Gebruik EML, PDF, PKPass, HTML of TXT.',
-  'reservations.import.fileTooLarge':
-    'Bestand "{name}" overschrijdt de limiet van 10 MB.',
+  'reservations.import.partialFailure': '{created} geïmporteerd, {failed} mislukt',
+  'reservations.import.error': 'Verwerking mislukt. Zorg ervoor dat het bestand een geldige boekingsbevestiging is.',
+  'reservations.import.unavailable': 'Boeking importeren is niet beschikbaar op deze server.',
+  'reservations.import.unsupportedFormat': 'Niet-ondersteund bestandsformaat. Gebruik EML, PDF, PKPass, HTML of TXT.',
+  'reservations.import.fileTooLarge': 'Bestand "{name}" overschrijdt de limiet van 10 MB.',
   'reservations.airtrail.title': 'Importeren uit AirTrail',
   'reservations.airtrail.cta': 'AirTrail',
   'reservations.airtrail.synced': 'AirTrail',
   'reservations.airtrail.syncedHint':
     'Gesynchroniseerd vanuit AirTrail — wijzigingen blijven beide kanten op gesynchroniseerd.',
   'reservations.airtrail.notSynced': 'Niet gesynchroniseerd',
-  'reservations.airtrail.notSyncedHint':
-    'Deze vlucht is in AirTrail verwijderd en wordt niet meer gesynchroniseerd.',
-  'reservations.airtrail.loadError':
-    'Je AirTrail-vluchten konden niet worden geladen.',
+  'reservations.airtrail.notSyncedHint': 'Deze vlucht is in AirTrail verwijderd en wordt niet meer gesynchroniseerd.',
+  'reservations.airtrail.loadError': 'Je AirTrail-vluchten konden niet worden geladen.',
   'reservations.airtrail.imported': '{count} vlucht(en) geïmporteerd',
-  'reservations.airtrail.skippedDuplicate':
-    '{count} al in deze reis, overgeslagen',
+  'reservations.airtrail.skippedDuplicate': '{count} al in deze reis, overgeslagen',
   'reservations.airtrail.nothingImported': 'Niets om te importeren.',
-  'reservations.airtrail.importError':
-    'Importeren mislukt. Probeer het opnieuw.',
+  'reservations.airtrail.importError': 'Importeren mislukt. Probeer het opnieuw.',
   'reservations.airtrail.undo': 'Importeren uit AirTrail',
   'reservations.airtrail.alreadyImported': 'Geïmporteerd',
   'reservations.airtrail.duringTrip': 'Tijdens deze reis',
   'reservations.airtrail.otherFlights': 'Andere vluchten',
-  'reservations.airtrail.empty':
-    'Geen vluchten gevonden in je AirTrail-account.',
+  'reservations.airtrail.empty': 'Geen vluchten gevonden in je AirTrail-account.',
   'reservations.airtrail.importCta': '{count} importeren',
   'reservations.costsLabel': 'Costs',
   'reservations.createExpense': 'Create expense',
-  'reservations.createExpenseHint':
-    'Saves the booking, then opens the Costs editor.',
+  'reservations.createExpenseHint': 'Saves the booking, then opens the Costs editor.',
   'reservations.linkedExpense': 'Linked expense',
   'reservations.removeExpense': 'Remove expense',
 };

@@ -8,12 +8,10 @@ const atlas: TranslationStrings = {
   'atlas.unmark': 'Αφαίρεση',
   'atlas.confirmMark': 'Σήμανση αυτής της χώρας ως επισκεφθείσας;',
   'atlas.confirmUnmark': 'Αφαίρεση αυτής της χώρας από τη λίστα επισκεφθέντων;',
-  'atlas.confirmUnmarkRegion':
-    'Αφαίρεση αυτής της περιοχής από τη λίστα επισκεφθέντων;',
+  'atlas.confirmUnmarkRegion': 'Αφαίρεση αυτής της περιοχής από τη λίστα επισκεφθέντων;',
   'atlas.markVisited': 'Σήμανση ως επισκεφθείσα',
   'atlas.markVisitedHint': 'Προσθέστε αυτή τη χώρα στη λίστα επισκεφθέντων',
-  'atlas.markRegionVisitedHint':
-    'Προσθέστε αυτή την περιοχή στη λίστα επισκεφθέντων',
+  'atlas.markRegionVisitedHint': 'Προσθέστε αυτή την περιοχή στη λίστα επισκεφθέντων',
   'atlas.addToBucket': 'Προσθήκη στη λίστα επιθυμιών',
   'atlas.addPoi': 'Προσθήκη μέρους',
   'atlas.searchCountry': 'Αναζήτηση χώρας...',
@@ -32,8 +30,7 @@ const atlas: TranslationStrings = {
   'atlas.visitedCountries': 'Επισκεφθείσες Χώρες',
   'atlas.cities': 'Πόλεις',
   'atlas.noData': 'Δεν υπάρχουν ταξιδιωτικά δεδομένα ακόμη',
-  'atlas.noDataHint':
-    'Δημιουργήστε ένα ταξίδι και προσθέστε μέρη για να δείτε τον παγκόσμιο χάρτη σας',
+  'atlas.noDataHint': 'Δημιουργήστε ένα ταξίδι και προσθέστε μέρη για να δείτε τον παγκόσμιο χάρτη σας',
   'atlas.lastTrip': 'Τελευταίο ταξίδι',
   'atlas.nextTrip': 'Επόμενο ταξίδι',
   'atlas.daysLeft': 'ημέρες απομένουν',

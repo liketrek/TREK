@@ -14,11 +14,9 @@ const notif: TranslationStrings = {
   'notif.todo_due.title': 'Zadanie z terminem',
   'notif.todo_due.text': '{todo} w {trip} — termin {due}',
   'notif.vacay_invite.title': 'Zaproszenie Vacay Fusion',
-  'notif.vacay_invite.text':
-    '{actor} zaprosił Cię do połączenia planów urlopowych',
+  'notif.vacay_invite.text': '{actor} zaprosił Cię do połączenia planów urlopowych',
   'notif.photos_shared.title': 'Zdjęcia udostępnione',
-  'notif.photos_shared.text':
-    '{actor} udostępnił {count} zdjęcie/zdjęcia w {trip}',
+  'notif.photos_shared.text': '{actor} udostępnił {count} zdjęcie/zdjęcia w {trip}',
   'notif.collab_message.title': 'Nowa wiadomość',
   'notif.collab_message.text': '{actor} wysłał wiadomość w {trip}',
   'notif.packing_tagged.title': 'Zadanie pakowania',
@@ -37,7 +35,6 @@ const notif: TranslationStrings = {
   'notif.generic.title': 'Powiadomienie',
   'notif.generic.text': 'Masz nowe powiadomienie',
   'notif.dev.unknown_event.title': '[DEV] Nieznane zdarzenie',
-  'notif.dev.unknown_event.text':
-    'Typ zdarzenia "{event}" nie jest zarejestrowany w EVENT_NOTIFICATION_CONFIG',
+  'notif.dev.unknown_event.text': 'Typ zdarzenia "{event}" nie jest zarejestrowany w EVENT_NOTIFICATION_CONFIG',
 };
 export default notif;

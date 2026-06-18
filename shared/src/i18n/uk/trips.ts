@@ -11,7 +11,6 @@ const trips: TranslationStrings = {
   'trips.reminderDays': 'днів',
   'trips.reminderCustom': 'Інше',
   'trips.reminderDaysBefore': "днів до від'їзду",
-  'trips.reminderDisabledHint':
-    'Нагадування про поїздки вимкнено. Увімкніть їх в Адмін > Налаштування > Сповіщення.',
+  'trips.reminderDisabledHint': 'Нагадування про поїздки вимкнено. Увімкніть їх в Адмін > Налаштування > Сповіщення.',
 };
 export default trips;

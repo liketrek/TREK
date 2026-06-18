@@ -13,10 +13,8 @@ const collab: TranslationStrings = {
   'collab.chat.send': 'Αποστολή',
   'collab.chat.placeholder': 'Πληκτρολογήστε ένα μήνυμα...',
   'collab.chat.empty': 'Ξεκινήστε τη συζήτηση',
-  'collab.chat.emptyHint':
-    'Τα μηνύματα κοινοποιούνται σε όλα τα μέλη του ταξιδιού',
-  'collab.chat.emptyDesc':
-    'Μοιραστείτε ιδέες, σχέδια και ενημερώσεις με την ταξιδιωτική σας ομάδα',
+  'collab.chat.emptyHint': 'Τα μηνύματα κοινοποιούνται σε όλα τα μέλη του ταξιδιού',
+  'collab.chat.emptyDesc': 'Μοιραστείτε ιδέες, σχέδια και ενημερώσεις με την ταξιδιωτική σας ομάδα',
   'collab.chat.today': 'Σήμερα',
   'collab.chat.yesterday': 'Χθες',
   'collab.chat.deletedMessage': 'διέγραψε ένα μήνυμα',

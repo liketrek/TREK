@@ -13,14 +13,11 @@ const settings: TranslationStrings = {
   'settings.map': 'Térkép',
   'settings.mapTemplate': 'Térkép sablon',
   'settings.mapTemplatePlaceholder.select': 'Sablon kiválasztása...',
-  'settings.mapDefaultHint':
-    'Hagyd üresen az OpenStreetMap használatához (alapértelmezett)',
-  'settings.mapTemplatePlaceholder':
-    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  'settings.mapDefaultHint': 'Hagyd üresen az OpenStreetMap használatához (alapértelmezett)',
+  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'URL sablon a térképcsempékhez',
   'settings.mapProvider': 'Térkép szolgáltató',
-  'settings.mapProviderHint':
-    'A Trip Planner és Journey térképekre érvényes. Az Atlas mindig Leafletet használ.',
+  'settings.mapProviderHint': 'A Trip Planner és Journey térképekre érvényes. Az Atlas mindig Leafletet használ.',
   'settings.mapLeafletSubtitle': 'Klasszikus 2D, bármilyen raszter csempe',
   'settings.mapMapboxSubtitle': 'Vektoros csempék, 3D épületek és terep',
   'settings.mapExperimental': 'Kísérleti',
@@ -31,13 +28,11 @@ const settings: TranslationStrings = {
   'settings.mapStylePlaceholder': 'Válassz Mapbox stílust',
   'settings.mapStyleHint': 'Preset vagy saját mapbox://styles/USER/ID URL',
   'settings.map3dBuildings': '3D épületek és terep',
-  'settings.map3dHint':
-    'Dőlés + valódi 3D épület-kiemelés — minden stílussal működik, beleértve a műholdast.',
+  'settings.map3dHint': 'Dőlés + valódi 3D épület-kiemelés — minden stílussal működik, beleértve a műholdast.',
   'settings.mapHighQuality': 'Magas minőség mód',
   'settings.mapHighQualityHint':
     'Antialiasing + földgömb-vetítés az élesebb kontúrokért és egy valósághű világnézethez.',
-  'settings.mapHighQualityWarning':
-    'Gyengébb eszközökön befolyásolhatja a teljesítményt.',
+  'settings.mapHighQualityWarning': 'Gyengébb eszközökön befolyásolhatja a teljesítményt.',
   'settings.mapTipLabel': 'Tipp:',
   'settings.mapTip':
     'Jobb klikk és húzás a térkép forgatásához/döntéséhez. Középső kattintás hely hozzáadásához (a jobb klikk a forgatáshoz van fenntartva).',
@@ -46,11 +41,9 @@ const settings: TranslationStrings = {
   'settings.saveMap': 'Térkép mentése',
   'settings.apiKeys': 'API kulcsok',
   'settings.mapsKey': 'Google Maps API kulcs',
-  'settings.mapsKeyHint':
-    'Helykereséséhez. Places API (New) szükséges. Létrehozás: console.cloud.google.com',
+  'settings.mapsKeyHint': 'Helykereséséhez. Places API (New) szükséges. Létrehozás: console.cloud.google.com',
   'settings.weatherKey': 'OpenWeatherMap API kulcs',
-  'settings.weatherKeyHint':
-    'Időjárás adatokhoz. Ingyenes: openweathermap.org/api',
+  'settings.weatherKeyHint': 'Időjárás adatokhoz. Ingyenes: openweathermap.org/api',
   'settings.keyPlaceholder': 'Kulcs megadása...',
   'settings.configured': 'Konfigurálva',
   'settings.saveKeys': 'Kulcsok mentése',
@@ -79,8 +72,7 @@ const settings: TranslationStrings = {
   'settings.notificationsDisabled':
     'Az értesítések nincsenek beállítva. Kérje meg a rendszergazdát, hogy engedélyezze az e-mail vagy webhook értesítéseket.',
   'settings.notificationsActive': 'Aktív csatorna',
-  'settings.notificationsManagedByAdmin':
-    'Az értesítési eseményeket az adminisztrátor konfigurálja.',
+  'settings.notificationsManagedByAdmin': 'Az értesítési eseményeket az adminisztrátor konfigurálja.',
   'settings.on': 'Be',
   'settings.off': 'Ki',
   'settings.mcp.title': 'MCP konfiguráció',
@@ -94,8 +86,7 @@ const settings: TranslationStrings = {
   'settings.mcp.copied': 'Másolva!',
   'settings.mcp.apiTokens': 'API tokenek',
   'settings.mcp.createToken': 'Új token létrehozása',
-  'settings.mcp.noTokens':
-    'Még nincsenek tokenek. Hozzon létre egyet MCP kliensek csatlakoztatásához.',
+  'settings.mcp.noTokens': 'Még nincsenek tokenek. Hozzon létre egyet MCP kliensek csatlakoztatásához.',
   'settings.mcp.tokenCreatedAt': 'Létrehozva',
   'settings.mcp.tokenUsedAt': 'Használva',
   'settings.mcp.deleteTokenTitle': 'Token törlése',
@@ -103,8 +94,7 @@ const settings: TranslationStrings = {
     'Ez a token azonnal érvénytelenné válik. Minden MCP kliens, amely használja, elveszíti a hozzáférést.',
   'settings.mcp.modal.createTitle': 'API token létrehozása',
   'settings.mcp.modal.tokenName': 'Token neve',
-  'settings.mcp.modal.tokenNamePlaceholder':
-    'pl. Claude Desktop, Munkahelyi laptop',
+  'settings.mcp.modal.tokenNamePlaceholder': 'pl. Claude Desktop, Munkahelyi laptop',
   'settings.mcp.modal.creating': 'Létrehozás…',
   'settings.mcp.modal.create': 'Token létrehozása',
   'settings.mcp.modal.createdTitle': 'Token létrehozva',
@@ -140,16 +130,13 @@ const settings: TranslationStrings = {
   'settings.oauth.sessionExpires': 'Lejár',
   'settings.oauth.revoke': 'Visszavonás',
   'settings.oauth.revokeSession': 'Munkamenet visszavonása',
-  'settings.oauth.revokeSessionMessage':
-    'Ez azonnal visszavonja a hozzáférést ehhez az OAuth munkamenethez.',
+  'settings.oauth.revokeSessionMessage': 'Ez azonnal visszavonja a hozzáférést ehhez az OAuth munkamenethez.',
   'settings.oauth.modal.createTitle': 'OAuth kliens regisztrálása',
   'settings.oauth.modal.presets': 'Gyors beállítások',
   'settings.oauth.modal.clientName': 'Alkalmazás neve',
-  'settings.oauth.modal.clientNamePlaceholder':
-    'pl. Claude Web, Az én MCP appom',
+  'settings.oauth.modal.clientNamePlaceholder': 'pl. Claude Web, Az én MCP appom',
   'settings.oauth.modal.redirectUris': 'Átirányítási URI-k',
-  'settings.oauth.modal.redirectUrisPlaceholder':
-    'https://your-app.com/callback\nhttps://your-app.com/auth',
+  'settings.oauth.modal.redirectUrisPlaceholder': 'https://your-app.com/callback\nhttps://your-app.com/auth',
   'settings.oauth.modal.redirectUrisHint':
     'Soronként egy URI. HTTPS szükséges (localhost kivételével). Pontos egyezés szükséges.',
   'settings.oauth.modal.scopes': 'Engedélyezett jogosultságok',
@@ -162,15 +149,13 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.createdTitle': 'Kliens regisztrálva',
   'settings.oauth.modal.createdWarning':
     'A kliens titok csak egyszer jelenik meg. Másolja most — nem állítható helyre.',
-  'settings.oauth.toast.createError':
-    'Az OAuth kliens regisztrálása sikertelen',
+  'settings.oauth.toast.createError': 'Az OAuth kliens regisztrálása sikertelen',
   'settings.oauth.toast.deleted': 'OAuth kliens törölve',
   'settings.oauth.toast.deleteError': 'Az OAuth kliens törlése sikertelen',
   'settings.oauth.toast.revoked': 'Munkamenet visszavonva',
   'settings.oauth.toast.revokeError': 'A munkamenet visszavonása sikertelen',
   'settings.oauth.toast.rotateError': 'A kliens titok megújítása sikertelen',
-  'settings.oauth.modal.machineClient':
-    'Gépi kliens (böngészős bejelentkezés nélkül)',
+  'settings.oauth.modal.machineClient': 'Gépi kliens (böngészős bejelentkezés nélkül)',
   'settings.oauth.modal.machineClientHint':
     'client_credentials grant használata — nincs szükség átirányítási URI-kra. A token közvetlenül client_id + client_secret segítségével kerül kiállításra, és a kiválasztott hatókörökön belül az Ön nevében jár el.',
   'settings.oauth.modal.machineClientUsage':
@@ -191,15 +176,13 @@ const settings: TranslationStrings = {
   'settings.about.supporters.tierEmpty': 'Légy az első',
   'settings.about.supporter.tier.noReturnTicket': 'No Return Ticket',
   'settings.about.supporter.tier.lostLuggageVip': 'Lost Luggage VIP',
-  'settings.about.supporter.tier.businessClassDreamer':
-    'Business Class Dreamer',
+  'settings.about.supporter.tier.businessClassDreamer': 'Business Class Dreamer',
   'settings.about.supporter.tier.budgetTraveller': 'Budget Traveller',
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate',
   'settings.about.description':
     'A TREK egy saját szerveren üzemeltetett útitervező, amely segít az utazásaid megszervezésében az első ötlettől az utolsó emlékig. Napi tervezés, költségvetés, csomagolási listák, fotók és még sok más — minden egy helyen, a saját szervereden.',
   'settings.about.madeWith': 'Készítve',
-  'settings.about.madeBy':
-    'Maurice és egy növekvő nyílt forráskódú közösség által.',
+  'settings.about.madeBy': 'Maurice és egy növekvő nyílt forráskódú közösség által.',
   'settings.username': 'Felhasználónév',
   'settings.email': 'E-mail',
   'settings.role': 'Szerepkör',
@@ -212,10 +195,8 @@ const settings: TranslationStrings = {
   'settings.updatePassword': 'Jelszó frissítése',
   'settings.passwordRequired': 'Kérjük, add meg a jelenlegi és az új jelszót',
   'settings.currentPasswordRequired': 'A jelenlegi jelszó megadása kötelező',
-  'settings.passwordTooShort':
-    'A jelszónak legalább 8 karakter hosszúnak kell lennie',
-  'settings.passwordWeak':
-    'A jelszónak tartalmaznia kell nagybetűt, kisbetűt, számot és speciális karaktert',
+  'settings.passwordTooShort': 'A jelszónak legalább 8 karakter hosszúnak kell lennie',
+  'settings.passwordWeak': 'A jelszónak tartalmaznia kell nagybetűt, kisbetűt, számot és speciális karaktert',
   'settings.passwordMismatch': 'A jelszavak nem egyeznek',
   'settings.passwordChanged': 'Jelszó sikeresen módosítva',
   'settings.deleteAccount': 'Törlés',
@@ -245,8 +226,7 @@ const settings: TranslationStrings = {
   'settings.mfa.backupTitle': 'Tartalék kódok',
   'settings.mfa.backupDescription':
     'Használd ezeket az egyszer használatos kódokat, ha elveszíted a hozzáférést a hitelesítő alkalmazásodhoz.',
-  'settings.mfa.backupWarning':
-    'Mentsd el ezeket most. Minden kód csak egyszer használható.',
+  'settings.mfa.backupWarning': 'Mentsd el ezeket most. Minden kód csak egyszer használható.',
   'settings.mfa.backupCopy': 'Kódok másolása',
   'settings.mfa.backupDownload': 'TXT letöltése',
   'settings.mfa.backupPrint': 'Nyomtatás / PDF',
@@ -254,15 +234,13 @@ const settings: TranslationStrings = {
   'settings.mfa.enabled': '2FA engedélyezve van a fiókodban.',
   'settings.mfa.disabled': '2FA nincs engedélyezve.',
   'settings.mfa.setup': 'Hitelesítő beállítása',
-  'settings.mfa.scanQr':
-    'Olvasd be ezt a QR-kódot az alkalmazásoddal, vagy add meg manuálisan a titkos kulcsot.',
+  'settings.mfa.scanQr': 'Olvasd be ezt a QR-kódot az alkalmazásoddal, vagy add meg manuálisan a titkos kulcsot.',
   'settings.mfa.secretLabel': 'Titkos kulcs (kézi megadás)',
   'settings.mfa.codePlaceholder': '6 jegyű kód',
   'settings.mfa.enable': '2FA engedélyezése',
   'settings.mfa.cancelSetup': 'Mégse',
   'settings.mfa.disableTitle': '2FA kikapcsolása',
-  'settings.mfa.disableHint':
-    'Add meg a fiókod jelszavát és a hitelesítő alkalmazás aktuális kódját.',
+  'settings.mfa.disableHint': 'Add meg a fiókod jelszavát és a hitelesítő alkalmazás aktuális kódját.',
   'settings.mfa.disable': '2FA kikapcsolása',
   'settings.mfa.toastEnabled': 'Kétfaktoros hitelesítés engedélyezve',
   'settings.mfa.toastDisabled': 'Kétfaktoros hitelesítés kikapcsolva',
@@ -277,8 +255,7 @@ const settings: TranslationStrings = {
     'Nincsenek értesítési csatornák beállítva. Kérd meg a rendszergazdát, hogy állítson be e-mail vagy webhook értesítéseket.',
   'settings.webhookUrl.label': 'Webhook URL',
   'settings.webhookUrl.placeholder': 'https://discord.com/api/webhooks/...',
-  'settings.webhookUrl.hint':
-    'Adja meg a Discord, Slack vagy egyéni webhook URL-jét az értesítések fogadásához.',
+  'settings.webhookUrl.hint': 'Adja meg a Discord, Slack vagy egyéni webhook URL-jét az értesítések fogadásához.',
   'settings.webhookUrl.saved': 'Webhook URL mentve',
   'settings.webhookUrl.test': 'Teszt',
   'settings.webhookUrl.testSuccess': 'Teszt webhook sikeresen elküldve',
@@ -300,8 +277,8 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',
-  "settings.currency": "Currency",
-  "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.currency': 'Currency',
+  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
   'settings.passkey.title': 'Passkey-k',
   'settings.passkey.description':
     'Jelentkezz be gyorsabban és adathalászat-állóan egy passkey-jel — ujjlenyomattal, arccal, PIN-kóddal vagy hardveres kulccsal. A jelszavad tartalékként megmarad.',
@@ -309,8 +286,7 @@ const settings: TranslationStrings = {
     'A passkey-k engedélyezve vannak, de ezen a szerveren még nincsenek teljesen beállítva. Kérd meg a rendszergazdát, hogy állítsa be a WebAuthn-domaint.',
   'settings.passkey.add': 'Passkey hozzáadása',
   'settings.passkey.addTitle': 'Passkey hozzáadása',
-  'settings.passkey.passwordPrompt':
-    'Erősítsd meg a jelenlegi jelszavad, majd kövesd az eszközöd útmutatását.',
+  'settings.passkey.passwordPrompt': 'Erősítsd meg a jelenlegi jelszavad, majd kövesd az eszközöd útmutatását.',
   'settings.passkey.passwordRequired': 'A jelenlegi jelszó megadása kötelező.',
   'settings.passkey.namePlaceholder': 'Név (opcionális, pl. "iPhone")',
   'settings.passkey.addedToast': 'Passkey hozzáadva',
@@ -318,8 +294,7 @@ const settings: TranslationStrings = {
   'settings.passkey.addError': 'Nem sikerült hozzáadni a passkey-t',
   'settings.passkey.cancelled': 'Passkey beállítása megszakítva',
   'settings.passkey.deleted': 'Passkey eltávolítva',
-  'settings.passkey.deleteConfirm':
-    'Eltávolítod ezt a passkey-t? Erősítsd meg a jelszavaddal.',
+  'settings.passkey.deleteConfirm': 'Eltávolítod ezt a passkey-t? Erősítsd meg a jelszavaddal.',
   'settings.passkey.rename': 'Átnevezés',
   'settings.passkey.defaultName': 'Passkey',
   'settings.passkey.synced': 'Szinkronizálva',
@@ -327,9 +302,11 @@ const settings: TranslationStrings = {
   'settings.passkey.lastUsed': 'Utoljára használva',
   'settings.passkey.neverUsed': 'Még nem használt',
   'settings.mapPoiPill': 'Helyek felfedezése a térképen',
-  'settings.mapPoiPillHint': 'Megjelenít egy kategóriasávot az utazási térképen, hogy az OpenStreetMap segítségével közeli éttermeket, szállásokat és továbbiakat találj.',
+  'settings.mapPoiPillHint':
+    'Megjelenít egy kategóriasávot az utazási térképen, hogy az OpenStreetMap segítségével közeli éttermeket, szállásokat és továbbiakat találj.',
   'settings.airtrail.title': 'AirTrail',
-  'settings.airtrail.hint': 'Csatlakoztasd a saját üzemeltetésű AirTrail-példányodat járatok importálásához és szinkronizálásához. Hozz létre egy API-kulcsot az AirTrailben a Beállítások → Biztonság menüpontban.',
+  'settings.airtrail.hint':
+    'Csatlakoztasd a saját üzemeltetésű AirTrail-példányodat járatok importálásához és szinkronizálásához. Hozz létre egy API-kulcsot az AirTrailben a Beállítások → Biztonság menüpontban.',
   'settings.airtrail.url': 'Példány URL-címe',
   'settings.airtrail.apiKey': 'API-kulcs',
   'settings.airtrail.apiKeyPlaceholder': 'Bearer API-kulcs',
@@ -337,7 +314,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.allowInsecureTls': 'Önaláírt tanúsítványok engedélyezése',
   'settings.airtrail.allowInsecureTlsHint': 'Csak megbízható, saját hálózaton futó példány esetén engedélyezd.',
   'settings.airtrail.writeBack': 'Módosítások visszaírása az AirTrailbe',
-  'settings.airtrail.writeBackHint': 'Alapértelmezés szerint kikapcsolva: az AirTrail a hiteles forrás, és a TREK csak olvas belőle. Kapcsold be, hogy a TREK-ben végzett módosításokat visszaküldje az AirTrailbe.',
+  'settings.airtrail.writeBackHint':
+    'Alapértelmezés szerint kikapcsolva: az AirTrail a hiteles forrás, és a TREK csak olvas belőle. Kapcsold be, hogy a TREK-ben végzett módosításokat visszaküldje az AirTrailbe.',
   'settings.airtrail.connected': 'Csatlakoztatva',
   'settings.airtrail.notConnected': 'Nincs csatlakoztatva',
   'settings.airtrail.toast.saved': 'AirTrail-kapcsolat mentve',

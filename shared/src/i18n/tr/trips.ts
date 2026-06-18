@@ -11,7 +11,6 @@ const trips: TranslationStrings = {
   'trips.reminderDays': 'gün',
   'trips.reminderCustom': 'Özel',
   'trips.reminderDaysBefore': 'hareketten önce gün',
-  'trips.reminderDisabledHint':
-    'Seyahat hatırlatıcıları kapalı. Yönetici > Ayarlar > Bildirimler bölümünden açın.',
+  'trips.reminderDisabledHint': 'Seyahat hatırlatıcıları kapalı. Yönetici > Ayarlar > Bildirimler bölümünden açın.',
 };
 export default trips;

@@ -9,8 +9,7 @@ const memories: TranslationStrings = {
     'A fényképek hozzáadásához csatlakoztasson egyet a következő fényképszolgáltatók közül a Beállításokban: {provider_names}.',
   'memories.noDates': 'Adj hozzá dátumokat az utazáshoz a fotók betöltéséhez.',
   'memories.noPhotos': 'Nem találhatók fotók',
-  'memories.noPhotosHint':
-    'Nem találhatók fotók az Immichben erre az utazási időszakra.',
+  'memories.noPhotosHint': 'Nem találhatók fotók az Immichben erre az utazási időszakra.',
   'memories.photosFound': 'fotó',
   'memories.fromOthers': 'másoktól',
   'memories.sharePhotos': 'Fotók megosztása',
@@ -24,8 +23,7 @@ const memories: TranslationStrings = {
   'memories.providerPassword': 'Jelszó',
   'memories.providerOTP': 'MFA kód (ha engedélyezve van)',
   'memories.skipSSLVerification': 'SSL tanúsítvány ellenőrzésének kihagyása',
-  'memories.immichAutoUpload':
-    'Journey-fotók feltöltésekor másolat Immich-be is',
+  'memories.immichAutoUpload': 'Journey-fotók feltöltésekor másolat Immich-be is',
   'memories.providerUrlHintSynology':
     'Adja meg a Photos alkalmazás elérési útját az URL-ben, pl. https://nas:5001/photo',
   'memories.testConnection': 'Kapcsolat tesztelése',
@@ -38,8 +36,7 @@ const memories: TranslationStrings = {
   'memories.saved': '{provider_name} beállítások mentve',
   'memories.providerDisconnectedBanner':
     'A {provider_name} kapcsolat megszakadt. Csatlakozzon újra a Beállításokban a fényképek megtekintéséhez.',
-  'memories.saveError':
-    'Nem sikerült menteni a(z) {provider_name} beállításait',
+  'memories.saveError': 'Nem sikerült menteni a(z) {provider_name} beállításait',
   'memories.addPhotos': 'Fotók hozzáadása',
   'memories.linkAlbum': 'Album csatolása',
   'memories.selectAlbum': 'Immich album kiválasztása',
@@ -73,10 +70,8 @@ const memories: TranslationStrings = {
   'memories.error.addPhotos': 'A fotók hozzáadása sikertelen',
   'memories.error.removePhoto': 'A fotó eltávolítása sikertelen',
   'memories.error.toggleSharing': 'A megosztás frissítése sikertelen',
-  'memories.saveRouteNotConfigured':
-    'A mentési útvonal nincs konfigurálva ehhez a szolgáltatóhoz',
-  'memories.testRouteNotConfigured':
-    'A tesztútvonal nincs konfigurálva ehhez a szolgáltatóhoz',
+  'memories.saveRouteNotConfigured': 'A mentési útvonal nincs konfigurálva ehhez a szolgáltatóhoz',
+  'memories.testRouteNotConfigured': 'A tesztútvonal nincs konfigurálva ehhez a szolgáltatóhoz',
   'memories.fillRequiredFields': 'Kérjük töltse ki az összes kötelező mezőt',
 };
 export default memories;

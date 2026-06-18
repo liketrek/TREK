@@ -33,8 +33,7 @@ const planner: TranslationStrings = {
   'planner.resConfirmed': 'Rezervace potvrzena · ',
   'planner.notePlaceholder': 'Poznámka…',
   'planner.noteTimePlaceholder': 'Čas (volitelné)',
-  'planner.noteExamplePlaceholder':
-    'např. S3 ve 14:30 z hlavního nádraží, trajekt z přístaviště 7, přestávka na oběd…',
+  'planner.noteExamplePlaceholder': 'např. S3 ve 14:30 z hlavního nádraží, trajekt z přístaviště 7, přestávka na oběd…',
   'planner.totalCost': 'Celkové náklady',
   'planner.searchPlaces': 'Hledat místa…',
   'planner.allCategories': 'Všechny kategorie',
@@ -48,8 +47,7 @@ const planner: TranslationStrings = {
   'planner.route': 'Trasa',
   'planner.optimize': 'Optimalizovat',
   'planner.openGoogleMaps': 'Otevřít v Google Mapách',
-  'planner.selectDayHint':
-    'Vyberte den ze seznamu vlevo pro zobrazení denního plánu',
+  'planner.selectDayHint': 'Vyberte den ze seznamu vlevo pro zobrazení denního plánu',
   'planner.noPlacesForDay': 'Zatím žádná místa pro tento den',
   'planner.addPlacesLink': 'Přidat místa →',
   'planner.minTotal': 'min. celkem',

@@ -51,10 +51,8 @@ const packing: TranslationStrings = {
   'packing.bagName': 'Όνομα τσάντας...',
   'packing.addBag': 'Προσθήκη τσάντας',
   'packing.changeCategory': 'Αλλαγή Κατηγορίας',
-  'packing.confirm.clearChecked':
-    'Είστε σίγουροι ότι θέλετε να αφαιρέσετε {count} επιλεγμένα αντικείμενα;',
-  'packing.confirm.deleteCat':
-    'Είστε σίγουροι ότι θέλετε να διαγράψετε την κατηγορία "{name}" με {count} αντικείμενα;',
+  'packing.confirm.clearChecked': 'Είστε σίγουροι ότι θέλετε να αφαιρέσετε {count} επιλεγμένα αντικείμενα;',
+  'packing.confirm.deleteCat': 'Είστε σίγουροι ότι θέλετε να διαγράψετε την κατηγορία "{name}" με {count} αντικείμενα;',
   'packing.defaultCategory': 'Άλλα',
   'packing.toast.saveError': 'Αποτυχία αποθήκευσης',
   'packing.toast.deleteError': 'Αποτυχία διαγραφής',

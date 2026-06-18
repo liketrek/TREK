@@ -33,8 +33,7 @@ const planner: TranslationStrings = {
   'planner.resConfirmed': 'Бронювання підтверджено · ',
   'planner.notePlaceholder': 'Нотатка…',
   'planner.noteTimePlaceholder': 'Час (необов’язково)',
-  'planner.noteExamplePlaceholder':
-    'наприклад, S3 о 14:30 з вокзалу, пором з причалу 7, обідня перерва…',
+  'planner.noteExamplePlaceholder': 'наприклад, S3 о 14:30 з вокзалу, пором з причалу 7, обідня перерва…',
   'planner.totalCost': 'Загальна вартість',
   'planner.searchPlaces': 'Пошук місць…',
   'planner.allCategories': 'Усі категорії',
@@ -48,8 +47,7 @@ const planner: TranslationStrings = {
   'planner.route': 'Маршрут',
   'planner.optimize': 'Оптимізувати',
   'planner.openGoogleMaps': 'Відкрити в Google Maps',
-  'planner.selectDayHint':
-    'Оберіть день зі списку ліворуч для перегляду плану дня',
+  'planner.selectDayHint': 'Оберіть день зі списку ліворуч для перегляду плану дня',
   'planner.noPlacesForDay': 'На цей день місць поки немає',
   'planner.addPlacesLink': 'Додати місця →',
   'planner.minTotal': 'мін. всього',

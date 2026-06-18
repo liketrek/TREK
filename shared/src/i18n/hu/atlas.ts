@@ -7,14 +7,11 @@ const atlas: TranslationStrings = {
   'atlas.places': 'Helyek',
   'atlas.unmark': 'Eltávolítás',
   'atlas.confirmMark': 'Megjelölöd ezt az országot meglátogatottként?',
-  'atlas.confirmUnmark':
-    'Eltávolítod ezt az országot a meglátogatottak listájáról?',
-  'atlas.confirmUnmarkRegion':
-    'Eltávolítod ezt a régiót a meglátogatottak listájáról?',
+  'atlas.confirmUnmark': 'Eltávolítod ezt az országot a meglátogatottak listájáról?',
+  'atlas.confirmUnmarkRegion': 'Eltávolítod ezt a régiót a meglátogatottak listájáról?',
   'atlas.markVisited': 'Megjelölés meglátogatottként',
   'atlas.markVisitedHint': 'Ország hozzáadása a meglátogatottak listájához',
-  'atlas.markRegionVisitedHint':
-    'Régió hozzáadása a meglátogatottak listájához',
+  'atlas.markRegionVisitedHint': 'Régió hozzáadása a meglátogatottak listájához',
   'atlas.addToBucket': 'Hozzáadás a bakancslistához',
   'atlas.addPoi': 'Hely hozzáadása',
   'atlas.searchCountry': 'Ország keresése...',
@@ -32,8 +29,7 @@ const atlas: TranslationStrings = {
   'atlas.visitedCountries': 'Meglátogatott országok',
   'atlas.cities': 'Városok',
   'atlas.noData': 'Még nincsenek utazási adatok',
-  'atlas.noDataHint':
-    'Hozz létre egy utazást és adj hozzá helyeket a világtérképhez',
+  'atlas.noDataHint': 'Hozz létre egy utazást és adj hozzá helyeket a világtérképhez',
   'atlas.lastTrip': 'Utolsó utazás',
   'atlas.nextTrip': 'Következő utazás',
   'atlas.daysLeft': 'nap van hátra',

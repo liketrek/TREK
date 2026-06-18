@@ -29,18 +29,15 @@ const backup: TranslationStrings = {
   'backup.toast.settingsSaved': 'Ajustes de copia automática guardados',
   'backup.toast.settingsError': 'No se pudieron guardar los ajustes',
   'backup.auto.title': 'Copia automática',
-  'backup.auto.subtitle':
-    'Copia de seguridad automática según una programación',
+  'backup.auto.subtitle': 'Copia de seguridad automática según una programación',
   'backup.auto.enable': 'Activar copia automática',
-  'backup.auto.enableHint':
-    'Se crearán copias automáticamente según la frecuencia elegida',
+  'backup.auto.enableHint': 'Se crearán copias automáticamente según la frecuencia elegida',
   'backup.auto.interval': 'Intervalo',
   'backup.auto.hour': 'Ejecutar a la hora',
   'backup.auto.hourHint': 'Hora local del servidor (formato {format})',
   'backup.auto.dayOfWeek': 'Día de la semana',
   'backup.auto.dayOfMonth': 'Día del mes',
-  'backup.auto.dayOfMonthHint':
-    'Limitado a 1–28 para compatibilidad con todos los meses',
+  'backup.auto.dayOfMonthHint': 'Limitado a 1–28 para compatibilidad con todos los meses',
   'backup.auto.scheduleSummary': 'Programación',
   'backup.auto.summaryDaily': 'Todos los días a las {hour}:00',
   'backup.auto.summaryWeekly': 'Cada {day} a las {hour}:00',
@@ -49,8 +46,7 @@ const backup: TranslationStrings = {
   'backup.auto.envLockedHint':
     'La copia automática está configurada mediante variables de entorno Docker. Para cambiar estos ajustes, actualiza tu docker-compose.yml y reinicia el contenedor.',
   'backup.auto.copyEnv': 'Copiar variables de entorno Docker',
-  'backup.auto.envCopied':
-    'Variables de entorno Docker copiadas al portapapeles',
+  'backup.auto.envCopied': 'Variables de entorno Docker copiadas al portapapeles',
   'backup.auto.keepLabel': 'Eliminar copias antiguas después de',
   'backup.dow.sunday': 'Dom',
   'backup.dow.monday': 'Lun',
@@ -72,8 +68,7 @@ const backup: TranslationStrings = {
   'backup.restoreConfirmTitle': '¿Restaurar copia?',
   'backup.restoreWarning':
     'Todos los datos actuales (viajes, lugares, usuarios, subidas) serán reemplazados permanentemente por la copia. Esta acción no se puede deshacer.',
-  'backup.restoreTip':
-    'Consejo: crea una copia del estado actual antes de restaurar.',
+  'backup.restoreTip': 'Consejo: crea una copia del estado actual antes de restaurar.',
   'backup.restoreConfirm': 'Sí, restaurar',
 };
 export default backup;

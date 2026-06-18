@@ -12,10 +12,8 @@ const backup: TranslationStrings = {
   'backup.createFirst': '创建第一个备份',
   'backup.download': '下载',
   'backup.restore': '恢复',
-  'backup.confirm.restore':
-    '恢复备份「{name}」？\n\n所有当前数据将被备份数据替换。',
-  'backup.confirm.uploadRestore':
-    '上传并恢复备份文件「{name}」？\n\n所有当前数据将被覆盖。',
+  'backup.confirm.restore': '恢复备份「{name}」？\n\n所有当前数据将被备份数据替换。',
+  'backup.confirm.uploadRestore': '上传并恢复备份文件「{name}」？\n\n所有当前数据将被覆盖。',
   'backup.confirm.delete': '删除备份「{name}」？',
   'backup.toast.loadError': '加载备份失败',
   'backup.toast.created': '备份创建成功',
@@ -43,8 +41,7 @@ const backup: TranslationStrings = {
   'backup.auto.summaryWeekly': '每{day} {hour}:00',
   'backup.auto.summaryMonthly': '每月 {day} 号 {hour}:00',
   'backup.auto.envLocked': 'Docker',
-  'backup.auto.envLockedHint':
-    '自动备份通过 Docker 环境变量配置。要更改设置，请更新 docker-compose.yml 并重启容器。',
+  'backup.auto.envLockedHint': '自动备份通过 Docker 环境变量配置。要更改设置，请更新 docker-compose.yml 并重启容器。',
   'backup.auto.copyEnv': '复制 Docker 环境变量',
   'backup.auto.envCopied': 'Docker 环境变量已复制到剪贴板',
   'backup.auto.keepLabel': '自动删除旧备份',
@@ -66,8 +63,7 @@ const backup: TranslationStrings = {
   'backup.keep.30days': '30 天',
   'backup.keep.forever': '永久保留',
   'backup.restoreConfirmTitle': '恢复备份？',
-  'backup.restoreWarning':
-    '所有当前数据（旅行、地点、用户、上传文件）将被备份数据永久替换。此操作无法撤销。',
+  'backup.restoreWarning': '所有当前数据（旅行、地点、用户、上传文件）将被备份数据永久替换。此操作无法撤销。',
   'backup.restoreTip': '提示：恢复前建议先备份当前状态。',
   'backup.restoreConfirm': '确认恢复',
 };

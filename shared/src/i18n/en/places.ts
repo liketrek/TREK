@@ -8,10 +8,8 @@ const places: TranslationStrings = {
     'Import .gpx, .kml or .kmz files from tools like Google My Maps, Google Earth, or a GPS tracker.',
   'places.importFileDropHere': 'Click to select a file or drag and drop here',
   'places.importFileDropActive': 'Drop file to select',
-  'places.importFileUnsupported':
-    'Unsupported file type. Use .gpx, .kml or .kmz.',
-  'places.importFileTooLarge':
-    'File is too large. Maximum upload size is {maxMb} MB.',
+  'places.importFileUnsupported': 'Unsupported file type. Use .gpx, .kml or .kmz.',
+  'places.importFileTooLarge': 'File is too large. Maximum upload size is {maxMb} MB.',
   'places.importFileError': 'Import failed',
   'places.importAllSkipped': 'All places were already in the trip.',
   'places.gpxImported': '{count} places imported from GPX',
@@ -29,16 +27,13 @@ const places: TranslationStrings = {
   'places.kmlKmzImported': '{count} places imported from KMZ/KML',
   'places.urlResolved': 'Place imported from URL',
   'places.importList': 'List Import',
-  'places.kmlKmzSummaryValues':
-    'Placemarks: {total} • Imported: {created} • Skipped: {skipped}',
+  'places.kmlKmzSummaryValues': 'Placemarks: {total} • Imported: {created} • Skipped: {skipped}',
   'places.importGoogleList': 'Google List',
   'places.importNaverList': 'Naver List',
-  'places.googleListHint':
-    'Paste a shared Google Maps list link to import all places.',
+  'places.googleListHint': 'Paste a shared Google Maps list link to import all places.',
   'places.googleListImported': '{count} places imported from "{list}"',
   'places.googleListError': 'Failed to import Google Maps list',
-  'places.naverListHint':
-    'Paste a shared Naver Maps list link to import all places.',
+  'places.naverListHint': 'Paste a shared Naver Maps list link to import all places.',
   'places.naverListImported': '{count} places imported from "{list}"',
   'places.naverListError': 'Failed to import Naver Maps list',
   'places.viewDetails': 'View Details',
@@ -75,8 +70,7 @@ const places: TranslationStrings = {
   'places.formNotes': 'Notes',
   'places.formNotesPlaceholder': 'Personal notes...',
   'places.formReservation': 'Reservation',
-  'places.reservationNotesPlaceholder':
-    'Reservation notes, confirmation number...',
+  'places.reservationNotesPlaceholder': 'Reservation notes, confirmation number...',
   'places.mapsSearchPlaceholder': 'Search places...',
   'places.mapsSearchError': 'Place search failed.',
   'places.loadingDetails': 'Loading place details…',

@@ -13,8 +13,7 @@ const files: TranslationStrings = {
   'files.uploadError': '上傳失敗',
   'files.dropzone': '將檔案拖放到此處',
   'files.dropzoneHint': '或點選瀏覽',
-  'files.allowedTypes':
-    '圖片、PDF、DOC、DOCX、XLS、XLSX、TXT、CSV · 最大 50 MB',
+  'files.allowedTypes': '圖片、PDF、DOC、DOCX、XLS、XLSX、TXT、CSV · 最大 50 MB',
   'files.uploading': '上傳中...',
   'files.filterAll': '全部',
   'files.filterPdf': 'PDF',

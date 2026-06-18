@@ -13,8 +13,7 @@ const files: TranslationStrings = {
   'files.uploadError': 'Ошибка загрузки',
   'files.dropzone': 'Перетащите файлы сюда',
   'files.dropzoneHint': 'или нажмите для выбора',
-  'files.allowedTypes':
-    'Изображения, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Макс. 50 МБ',
+  'files.allowedTypes': 'Изображения, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Макс. 50 МБ',
   'files.uploading': 'Загрузка...',
   'files.filterAll': 'Все',
   'files.filterPdf': 'PDF',
@@ -32,8 +31,7 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Бронирование',
   'files.sourceTransport': 'Транспорт',
   'files.attach': 'Прикрепить',
-  'files.pasteHint':
-    'Также можно вставить изображения из буфера обмена (Ctrl+V)',
+  'files.pasteHint': 'Также можно вставить изображения из буфера обмена (Ctrl+V)',
   'files.trash': 'Корзина',
   'files.trashEmpty': 'Корзина пуста',
   'files.emptyTrash': 'Очистить корзину',
@@ -53,10 +51,8 @@ const files: TranslationStrings = {
   'files.toast.assigned': 'Файл назначен',
   'files.toast.assignError': 'Ошибка назначения',
   'files.toast.restoreError': 'Ошибка восстановления',
-  'files.confirm.permanentDelete':
-    'Безвозвратно удалить этот файл? Это действие нельзя отменить.',
-  'files.confirm.emptyTrash':
-    'Безвозвратно удалить все файлы из корзины? Это действие нельзя отменить.',
+  'files.confirm.permanentDelete': 'Безвозвратно удалить этот файл? Это действие нельзя отменить.',
+  'files.confirm.emptyTrash': 'Безвозвратно удалить все файлы из корзины? Это действие нельзя отменить.',
   'files.noteLabel': 'Заметка',
   'files.notePlaceholder': 'Добавить заметку...',
 };

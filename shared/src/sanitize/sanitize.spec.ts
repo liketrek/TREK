@@ -1,16 +1,10 @@
-import {
-  sanitizeInlineHtml,
-  sanitizeRichTextHtml,
-  escapeHtml,
-} from './sanitize';
+import { sanitizeInlineHtml, sanitizeRichTextHtml, escapeHtml } from './sanitize';
 
 import { describe, it, expect } from 'vitest';
 
 describe('escapeHtml', () => {
   it('escapes the five metacharacters', () => {
-    expect(escapeHtml(`a & b < c > d " e ' f`)).toBe(
-      'a &amp; b &lt; c &gt; d &quot; e &#39; f',
-    );
+    expect(escapeHtml(`a & b < c > d " e ' f`)).toBe('a &amp; b &lt; c &gt; d &quot; e &#39; f');
   });
 
   it('escapes ampersands first (no double-escape of entities)', () => {
@@ -26,9 +20,7 @@ describe('escapeHtml', () => {
   });
 
   it('neutralises a script tag without sanitising', () => {
-    expect(escapeHtml('<script>alert(1)</script>')).toBe(
-      '&lt;script&gt;alert(1)&lt;/script&gt;',
-    );
+    expect(escapeHtml('<script>alert(1)</script>')).toBe('&lt;script&gt;alert(1)&lt;/script&gt;');
   });
 });
 
@@ -38,9 +30,7 @@ describe('sanitizeInlineHtml', () => {
   });
 
   it('preserves the allowed inline tags', () => {
-    expect(sanitizeInlineHtml('a <strong>b</strong> c')).toBe(
-      'a <strong>b</strong> c',
-    );
+    expect(sanitizeInlineHtml('a <strong>b</strong> c')).toBe('a <strong>b</strong> c');
     expect(sanitizeInlineHtml('<em>x</em>')).toBe('<em>x</em>');
   });
 
@@ -62,9 +52,7 @@ describe('sanitizeInlineHtml', () => {
   });
 
   it('strips style attribute (CSS-injection surface)', () => {
-    const out = sanitizeInlineHtml(
-      '<span style="background:url(javascript:alert(1))">x</span>',
-    );
+    const out = sanitizeInlineHtml('<span style="background:url(javascript:alert(1))">x</span>');
     expect(out).not.toContain('style=');
     expect(out).not.toContain('javascript:');
   });
@@ -73,9 +61,7 @@ describe('sanitizeInlineHtml', () => {
     expect(sanitizeInlineHtml('<iframe src="evil"></iframe>')).toBe('');
     expect(sanitizeInlineHtml('<object data="evil"></object>')).toBe('');
     expect(sanitizeInlineHtml('<embed src="evil" />')).toBe('');
-    expect(
-      sanitizeInlineHtml('<svg><script>alert(1)</script></svg>'),
-    ).not.toContain('script');
+    expect(sanitizeInlineHtml('<svg><script>alert(1)</script></svg>')).not.toContain('script');
   });
 
   it('does not preserve href / target on the inline tag set', () => {
@@ -99,9 +85,7 @@ describe('sanitizeRichTextHtml', () => {
   });
 
   it('still strips <script> + on* + style', () => {
-    const out = sanitizeRichTextHtml(
-      '<p onclick="alert(1)" style="x">hi</p><script>x()</script>',
-    );
+    const out = sanitizeRichTextHtml('<p onclick="alert(1)" style="x">hi</p><script>x()</script>');
     expect(out).not.toContain('onclick');
     expect(out).not.toContain('style=');
     expect(out).not.toContain('<script');
@@ -113,9 +97,7 @@ describe('sanitizeRichTextHtml', () => {
   });
 
   it('blocks data: hrefs that smuggle scripts', () => {
-    const out = sanitizeRichTextHtml(
-      '<a href="data:text/html,<script>alert(1)</script>">x</a>',
-    );
+    const out = sanitizeRichTextHtml('<a href="data:text/html,<script>alert(1)</script>">x</a>');
     expect(out).not.toContain('data:text/html');
   });
 
@@ -125,9 +107,7 @@ describe('sanitizeRichTextHtml', () => {
   });
 
   it('strips disallowed tags but keeps their content', () => {
-    expect(
-      sanitizeRichTextHtml('<p>before<custom>middle</custom>after</p>'),
-    ).toContain('middle');
+    expect(sanitizeRichTextHtml('<p>before<custom>middle</custom>after</p>')).toContain('middle');
   });
 
   it('drops mathml + svg shorthand vectors', () => {

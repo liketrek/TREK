@@ -15,9 +15,7 @@ describe('reservationCreateRequestSchema', () => {
         metadata: {},
       }).success,
     ).toBe(true);
-    expect(
-      reservationCreateRequestSchema.safeParse({ location: 'x' }).success,
-    ).toBe(false);
+    expect(reservationCreateRequestSchema.safeParse({ location: 'x' }).success).toBe(false);
   });
 });
 
@@ -29,10 +27,7 @@ describe('reservationPositionsRequestSchema', () => {
         day_id: 3,
       }).success,
     ).toBe(true);
-    expect(
-      reservationPositionsRequestSchema.safeParse({ positions: [{ id: 1 }] })
-        .success,
-    ).toBe(false);
+    expect(reservationPositionsRequestSchema.safeParse({ positions: [{ id: 1 }] }).success).toBe(false);
   });
 });
 
@@ -45,8 +40,6 @@ describe('accommodationCreateRequestSchema', () => {
         end_day_id: 11,
       }).success,
     ).toBe(true);
-    expect(
-      accommodationCreateRequestSchema.safeParse({ place_id: 2 }).success,
-    ).toBe(false);
+    expect(accommodationCreateRequestSchema.safeParse({ place_id: 2 }).success).toBe(false);
   });
 });

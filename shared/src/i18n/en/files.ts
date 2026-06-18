@@ -13,8 +13,7 @@ const files: TranslationStrings = {
   'files.uploadError': 'Upload failed',
   'files.dropzone': 'Drop files here',
   'files.dropzoneHint': 'or click to browse',
-  'files.allowedTypes':
-    'Images, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Max 50 MB',
+  'files.allowedTypes': 'Images, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Max 50 MB',
   'files.uploading': 'Uploading...',
   'files.filterAll': 'All',
   'files.filterPdf': 'PDFs',
@@ -52,10 +51,8 @@ const files: TranslationStrings = {
   'files.toast.assigned': 'File assigned',
   'files.toast.assignError': 'Assignment failed',
   'files.toast.restoreError': 'Restore failed',
-  'files.confirm.permanentDelete':
-    'Permanently delete this file? This cannot be undone.',
-  'files.confirm.emptyTrash':
-    'Permanently delete all trashed files? This cannot be undone.',
+  'files.confirm.permanentDelete': 'Permanently delete this file? This cannot be undone.',
+  'files.confirm.emptyTrash': 'Permanently delete all trashed files? This cannot be undone.',
   'files.noteLabel': 'Note',
   'files.notePlaceholder': 'Add a note...',
 };

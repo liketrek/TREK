@@ -7,11 +7,9 @@ const memories: TranslationStrings = {
     'Connectez votre instance Immich dans les paramètres pour voir vos photos de voyage ici.',
   'memories.notConnectedMultipleHint':
     'Connectez un de ces fournisseurs de photos : {provider_names} dans les Paramètres pour pouvoir ajouter des photos à ce voyage.',
-  'memories.noDates':
-    'Ajoutez des dates à votre voyage pour charger les photos.',
+  'memories.noDates': 'Ajoutez des dates à votre voyage pour charger les photos.',
   'memories.noPhotos': 'Aucune photo trouvée',
-  'memories.noPhotosHint':
-    'Aucune photo trouvée dans Immich pour la période de ce voyage.',
+  'memories.noPhotosHint': 'Aucune photo trouvée dans Immich pour la période de ce voyage.',
   'memories.photosFound': 'photos',
   'memories.fromOthers': "d'autres",
   'memories.sharePhotos': 'Partager les photos',
@@ -25,8 +23,7 @@ const memories: TranslationStrings = {
   'memories.providerPassword': 'Mot de passe',
   'memories.providerOTP': 'Code MFA (si activé)',
   'memories.skipSSLVerification': 'Ignorer la vérification du certificat SSL',
-  'memories.immichAutoUpload':
-    'Répliquer les photos du journey vers Immich au téléversement',
+  'memories.immichAutoUpload': 'Répliquer les photos du journey vers Immich au téléversement',
   'memories.providerUrlHintSynology':
     "Incluez le chemin de l'application Photos dans l'URL, ex. https://nas:5001/photo",
   'memories.testConnection': 'Tester la connexion',
@@ -39,14 +36,10 @@ const memories: TranslationStrings = {
   'memories.saved': 'Paramètres {provider_name} enregistrés',
   'memories.providerDisconnectedBanner':
     'Votre connexion {provider_name} est perdue. Reconnectez-vous dans les Paramètres pour voir les photos.',
-  'memories.saveError':
-    "Impossible d'enregistrer les paramètres de {provider_name}",
-  'memories.saveRouteNotConfigured':
-    "La route de sauvegarde n'est pas configurée pour ce fournisseur",
-  'memories.testRouteNotConfigured':
-    "La route de test n'est pas configurée pour ce fournisseur",
-  'memories.fillRequiredFields':
-    'Veuillez remplir tous les champs obligatoires',
+  'memories.saveError': "Impossible d'enregistrer les paramètres de {provider_name}",
+  'memories.saveRouteNotConfigured': "La route de sauvegarde n'est pas configurée pour ce fournisseur",
+  'memories.testRouteNotConfigured': "La route de test n'est pas configurée pour ce fournisseur",
+  'memories.fillRequiredFields': 'Veuillez remplir tous les champs obligatoires',
   'memories.oldest': 'Plus anciennes',
   'memories.newest': 'Plus récentes',
   'memories.allLocations': 'Tous les lieux',

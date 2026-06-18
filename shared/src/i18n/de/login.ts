@@ -3,8 +3,7 @@ import type { TranslationStrings } from '../types';
 const login: TranslationStrings = {
   'login.error': 'Anmeldung fehlgeschlagen. Bitte Zugangsdaten prüfen.',
   'login.tagline': 'Deine Reisen.\nDein Plan.',
-  'login.description':
-    'Plane Reisen gemeinsam mit interaktiven Karten, Budgets und Echtzeit-Sync.',
+  'login.description': 'Plane Reisen gemeinsam mit interaktiven Karten, Budgets und Echtzeit-Sync.',
   'login.features.maps': 'Interaktive Karten',
   'login.features.mapsDesc': 'Google Places, Routen & Clustering',
   'login.features.realtime': 'Echtzeit-Sync',
@@ -29,8 +28,7 @@ const login: TranslationStrings = {
   'login.createAdmin': 'Admin-Konto erstellen',
   'login.createAdminHint': 'Erstelle das erste Admin-Konto für TREK.',
   'login.setNewPassword': 'Neues Passwort festlegen',
-  'login.setNewPasswordHint':
-    'Sie müssen Ihr Passwort ändern, bevor Sie fortfahren können.',
+  'login.setNewPasswordHint': 'Sie müssen Ihr Passwort ändern, bevor Sie fortfahren können.',
   'login.createAccount': 'Konto erstellen',
   'login.createAccountHint': 'Neues Konto registrieren.',
   'login.creating': 'Erstelle…',
@@ -39,25 +37,20 @@ const login: TranslationStrings = {
   'login.register': 'Registrieren',
   'login.emailPlaceholder': 'deine@email.de',
   'login.username': 'Benutzername',
-  'login.oidc.registrationDisabled':
-    'Registrierung ist deaktiviert. Kontaktiere den Administrator.',
+  'login.oidc.registrationDisabled': 'Registrierung ist deaktiviert. Kontaktiere den Administrator.',
   'login.oidc.noEmail': 'Keine E-Mail vom Provider erhalten.',
   'login.oidc.tokenFailed': 'Authentifizierung fehlgeschlagen.',
   'login.oidc.invalidState': 'Ungültige Sitzung. Bitte erneut versuchen.',
   'login.demoFailed': 'Demo-Login fehlgeschlagen',
   'login.oidcSignIn': 'Anmelden mit {name}',
-  'login.oidcOnly':
-    'Passwort-Authentifizierung ist deaktiviert. Bitte melde dich über deinen SSO-Anbieter an.',
-  'login.oidcLoggedOut':
-    'Du wurdest abgemeldet. Melde dich erneut über deinen SSO-Anbieter an.',
+  'login.oidcOnly': 'Passwort-Authentifizierung ist deaktiviert. Bitte melde dich über deinen SSO-Anbieter an.',
+  'login.oidcLoggedOut': 'Du wurdest abgemeldet. Melde dich erneut über deinen SSO-Anbieter an.',
   'login.demoHint': 'Demo ausprobieren — ohne Registrierung',
   'login.mfaTitle': 'Zwei-Faktor-Authentifizierung',
-  'login.mfaSubtitle':
-    'Gib den 6-stelligen Code aus deiner Authenticator-App ein.',
+  'login.mfaSubtitle': 'Gib den 6-stelligen Code aus deiner Authenticator-App ein.',
   'login.mfaCodeLabel': 'Bestätigungscode',
   'login.mfaCodeRequired': 'Bitte den Code aus der Authenticator-App eingeben.',
-  'login.mfaHint':
-    'Google Authenticator, Authy oder eine andere TOTP-App öffnen.',
+  'login.mfaHint': 'Google Authenticator, Authy oder eine andere TOTP-App öffnen.',
   'login.mfaBack': '← Zurück zur Anmeldung',
   'login.mfaVerify': 'Bestätigen',
   'login.invalidInviteLink': 'Ungültiger oder abgelaufener Einladungslink',
@@ -81,22 +74,17 @@ const login: TranslationStrings = {
   'login.passwordsDontMatch': 'Passwörter stimmen nicht überein',
   'login.mfaCode': '2FA-Code',
   'login.resetPasswordTitle': 'Neues Passwort festlegen',
-  'login.resetPasswordBody':
-    'Wähle ein starkes Passwort, das du hier noch nicht verwendet hast. Mindestens 8 Zeichen.',
-  'login.resetPasswordMfaBody':
-    'Gib deinen 2FA-Code oder einen Backup-Code ein, um den Reset abzuschließen.',
+  'login.resetPasswordBody': 'Wähle ein starkes Passwort, das du hier noch nicht verwendet hast. Mindestens 8 Zeichen.',
+  'login.resetPasswordMfaBody': 'Gib deinen 2FA-Code oder einen Backup-Code ein, um den Reset abzuschließen.',
   'login.resetPasswordSubmit': 'Passwort zurücksetzen',
   'login.resetPasswordVerify': 'Prüfen & zurücksetzen',
   'login.resetPasswordSuccessTitle': 'Passwort aktualisiert',
-  'login.resetPasswordSuccessBody':
-    'Du kannst dich jetzt mit deinem neuen Passwort anmelden.',
+  'login.resetPasswordSuccessBody': 'Du kannst dich jetzt mit deinem neuen Passwort anmelden.',
   'login.resetPasswordInvalidLink': 'Ungültiger Reset-Link',
   'login.resetPasswordInvalidLinkBody':
     'Dieser Link fehlt oder ist beschädigt. Fordere einen neuen an, um fortzufahren.',
-  'login.resetPasswordFailed':
-    'Zurücksetzen fehlgeschlagen. Der Link ist möglicherweise abgelaufen.',
+  'login.resetPasswordFailed': 'Zurücksetzen fehlgeschlagen. Der Link ist möglicherweise abgelaufen.',
   'login.passkey.signIn': 'Mit Passkey anmelden',
-  'login.passkey.failed':
-    'Anmeldung mit Passkey fehlgeschlagen. Bitte erneut versuchen.',
+  'login.passkey.failed': 'Anmeldung mit Passkey fehlgeschlagen. Bitte erneut versuchen.',
 };
 export default login;

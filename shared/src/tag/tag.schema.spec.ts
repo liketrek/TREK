@@ -1,8 +1,4 @@
-import {
-  tagSchema,
-  createTagRequestSchema,
-  updateTagRequestSchema,
-} from './tag.schema';
+import { tagSchema, createTagRequestSchema, updateTagRequestSchema } from './tag.schema';
 
 import { describe, it, expect } from 'vitest';
 
@@ -21,9 +17,7 @@ describe('tagSchema', () => {
 
 describe('createTagRequestSchema', () => {
   it('requires a non-empty name; colour optional', () => {
-    expect(createTagRequestSchema.safeParse({ name: 'Beach' }).success).toBe(
-      true,
-    );
+    expect(createTagRequestSchema.safeParse({ name: 'Beach' }).success).toBe(true);
     expect(createTagRequestSchema.safeParse({ name: '' }).success).toBe(false);
   });
 });

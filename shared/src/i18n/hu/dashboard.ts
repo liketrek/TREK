@@ -20,8 +20,7 @@ const dashboard: TranslationStrings = {
   'dashboard.timezoneCustomTzPlaceholder': 'pl. America/New_York',
   'dashboard.timezoneCustomAdd': 'Hozzáadás',
   'dashboard.timezoneCustomErrorEmpty': 'Adj meg egy időzóna-azonosítót',
-  'dashboard.timezoneCustomErrorInvalid':
-    'Érvénytelen időzóna. Használj Europe/Berlin formátumot',
+  'dashboard.timezoneCustomErrorInvalid': 'Érvénytelen időzóna. Használj Europe/Berlin formátumot',
   'dashboard.timezoneCustomErrorDuplicate': 'Már hozzáadva',
   'dashboard.emptyTitle': 'Még nincsenek utazások',
   'dashboard.emptyText':
@@ -56,8 +55,7 @@ const dashboard: TranslationStrings = {
   'dashboard.toast.restoreError': 'Nem sikerült visszaállítani',
   'dashboard.toast.copied': 'Utazás másolva!',
   'dashboard.toast.copyError': 'Nem sikerült másolni az utazást',
-  'dashboard.confirm.delete':
-    '"{title}" utazás törlése? Minden hely és terv véglegesen törlődik.',
+  'dashboard.confirm.delete': '"{title}" utazás törlése? Minden hely és terv véglegesen törlődik.',
   'dashboard.editTrip': 'Utazás szerkesztése',
   'dashboard.createTrip': 'Új utazás létrehozása',
   'dashboard.tripTitle': 'Cím',
@@ -67,10 +65,8 @@ const dashboard: TranslationStrings = {
   'dashboard.startDate': 'Kezdő dátum',
   'dashboard.endDate': 'Záró dátum',
   'dashboard.dayCount': 'Napok száma',
-  'dashboard.dayCountHint':
-    'Hány napot tervezzen, ha nincsenek utazási dátumok megadva.',
-  'dashboard.noDateHint':
-    'Nincs dátum megadva — 7 alapértelmezett nap jön létre. Ezt bármikor módosíthatod.',
+  'dashboard.dayCountHint': 'Hány napot tervezzen, ha nincsenek utazási dátumok megadva.',
+  'dashboard.noDateHint': 'Nincs dátum megadva — 7 alapértelmezett nap jön létre. Ezt bármikor módosíthatod.',
   'dashboard.coverImage': 'Borítókép',
   'dashboard.addCoverImage': 'Borítókép hozzáadása',
   'dashboard.addMembers': 'Útitársak',

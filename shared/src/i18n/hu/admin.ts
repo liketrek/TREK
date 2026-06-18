@@ -2,8 +2,7 @@ import type { TranslationStrings } from '../types';
 
 const admin: TranslationStrings = {
   'admin.notifications.title': 'Értesítések',
-  'admin.notifications.hint':
-    'Válasszon értesítési csatornát. Egyszerre csak egy lehet aktív.',
+  'admin.notifications.hint': 'Válasszon értesítési csatornát. Egyszerre csak egy lehet aktív.',
   'admin.notifications.none': 'Kikapcsolva',
   'admin.notifications.email': 'E-mail (SMTP)',
   'admin.notifications.webhook': 'Webhook',
@@ -15,8 +14,7 @@ const admin: TranslationStrings = {
   'admin.smtp.title': 'E-mail és értesítések',
   'admin.smtp.hint': 'SMTP konfiguráció e-mail értesítések küldéséhez.',
   'admin.smtp.testButton': 'Teszt e-mail küldése',
-  'admin.webhook.hint':
-    'Értesítések küldése külső webhookra (Discord, Slack stb.).',
+  'admin.webhook.hint': 'Értesítések küldése külső webhookra (Discord, Slack stb.).',
   'admin.smtp.testSuccess': 'Teszt e-mail sikeresen elküldve',
   'admin.smtp.testFailed': 'Teszt e-mail küldése sikertelen',
   'admin.title': 'Adminisztráció',
@@ -39,8 +37,7 @@ const admin: TranslationStrings = {
   'admin.editUser': 'Felhasználó szerkesztése',
   'admin.newPassword': 'Új jelszó',
   'admin.newPasswordHint': 'Hagyd üresen a jelenlegi jelszó megtartásához',
-  'admin.deleteUser':
-    '"{name}" felhasználó törlése? Minden utazás véglegesen törlődik.',
+  'admin.deleteUser': '"{name}" felhasználó törlése? Minden utazás véglegesen törlődik.',
   'admin.deleteUserTitle': 'Felhasználó törlése',
   'admin.newPasswordPlaceholder': 'Új jelszó megadása…',
   'admin.toast.loadError': 'Nem sikerült betölteni az admin adatokat',
@@ -51,12 +48,10 @@ const admin: TranslationStrings = {
   'admin.toast.cannotDeleteSelf': 'Saját fiók nem törölhető',
   'admin.toast.userCreated': 'Felhasználó létrehozva',
   'admin.toast.createError': 'Nem sikerült létrehozni a felhasználót',
-  'admin.toast.fieldsRequired':
-    'Felhasználónév, e-mail és jelszó megadása kötelező',
+  'admin.toast.fieldsRequired': 'Felhasználónév, e-mail és jelszó megadása kötelező',
   'admin.createUser': 'Felhasználó létrehozása',
   'admin.invite.title': 'Meghívó linkek',
-  'admin.invite.subtitle':
-    'Egyszer használatos regisztrációs linkek létrehozása',
+  'admin.invite.subtitle': 'Egyszer használatos regisztrációs linkek létrehozása',
   'admin.invite.create': 'Link létrehozása',
   'admin.invite.createAndCopy': 'Létrehozás és másolás',
   'admin.invite.empty': 'Még nincsenek meghívó linkek',
@@ -80,13 +75,11 @@ const admin: TranslationStrings = {
   'admin.passwordLogin': 'Password Login',
   'admin.passwordLoginHint': 'Allow users to sign in with email and password',
   'admin.passwordRegistration': 'Password Registration',
-  'admin.passwordRegistrationHint':
-    'Allow new users to register with email and password',
+  'admin.passwordRegistrationHint': 'Allow new users to register with email and password',
   'admin.oidcLogin': 'SSO Login',
   'admin.oidcLoginHint': 'Allow users to sign in with SSO',
   'admin.oidcRegistration': 'SSO Auto-Provisioning',
-  'admin.oidcRegistrationHint':
-    'Automatically create accounts for new SSO users',
+  'admin.oidcRegistrationHint': 'Automatically create accounts for new SSO users',
   'admin.envOverrideHint':
     'Password login settings are controlled by the OIDC_ONLY environment variable and cannot be changed here.',
   'admin.lockoutWarning': 'At least one login method must remain enabled',
@@ -94,11 +87,9 @@ const admin: TranslationStrings = {
   'admin.requireMfaHint':
     'A 2FA nélküli felhasználóknak a Beállításokban kell befejezniük a beállítást az alkalmazás használata előtt.',
   'admin.apiKeys': 'API kulcsok',
-  'admin.apiKeysHint':
-    'Opcionális. Bővített helyadatokat tesz lehetővé, például fotókat és időjárást.',
+  'admin.apiKeysHint': 'Opcionális. Bővített helyadatokat tesz lehetővé, például fotókat és időjárást.',
   'admin.mapsKey': 'Google Maps API kulcs',
-  'admin.mapsKeyHint':
-    'Helykereséshez szükséges. Létrehozás: console.cloud.google.com',
+  'admin.mapsKeyHint': 'Helykereséshez szükséges. Létrehozás: console.cloud.google.com',
   'admin.mapsKeyHintLong':
     'API kulcs nélkül az OpenStreetMap szolgál helykeresésre. Google API kulccsal képek, értékelések és nyitvatartás is betölthetők. Létrehozás: console.cloud.google.com.',
   'admin.recommended': 'Ajánlott',
@@ -109,19 +100,16 @@ const admin: TranslationStrings = {
   'admin.keyInvalid': 'Érvénytelen',
   'admin.keySaved': 'API kulcsok mentve',
   'admin.oidcTitle': 'Egyszeri bejelentkezés (OIDC)',
-  'admin.oidcSubtitle':
-    'Bejelentkezés külső szolgáltatókon keresztül, pl. Google, Apple, Authentik vagy Keycloak.',
+  'admin.oidcSubtitle': 'Bejelentkezés külső szolgáltatókon keresztül, pl. Google, Apple, Authentik vagy Keycloak.',
   'admin.oidcDisplayName': 'Megjelenítendő név',
   'admin.oidcIssuer': 'Issuer URL',
-  'admin.oidcIssuerHint':
-    'A szolgáltató OpenID Connect Issuer URL-je. pl. https://accounts.google.com',
+  'admin.oidcIssuerHint': 'A szolgáltató OpenID Connect Issuer URL-je. pl. https://accounts.google.com',
   'admin.oidcSaved': 'OIDC konfiguráció mentve',
   'admin.oidcOnlyMode': 'Jelszavas hitelesítés letiltása',
   'admin.oidcOnlyModeHint':
     'Ha engedélyezve van, csak SSO bejelentkezés lehetséges. A jelszavas bejelentkezés és regisztráció le van tiltva.',
   'admin.fileTypes': 'Engedélyezett fájltípusok',
-  'admin.fileTypesHint':
-    'Állítsd be, milyen fájltípusokat tölthetnek fel a felhasználók.',
+  'admin.fileTypesHint': 'Állítsd be, milyen fájltípusokat tölthetnek fel a felhasználók.',
   'admin.fileTypesFormat':
     'Vesszővel elválasztott kiterjesztések (pl. jpg,png,pdf,doc). Használj *-ot az összes típus engedélyezéséhez.',
   'admin.fileTypesSaved': 'Fájltípus-beállítások mentve',
@@ -135,8 +123,7 @@ const admin: TranslationStrings = {
   'admin.placesDetails.subtitle':
     'Részletes helyinformációk lekérése (nyitvatartás, értékelés, weboldal) a Google Places API-ból. Tiltsa le az API-kvóta megtakarításához.',
   'admin.bagTracking.title': 'Poggyászkövetés',
-  'admin.bagTracking.subtitle':
-    'Súly- és táskahozzárendelés engedélyezése csomagolási tételeknél',
+  'admin.bagTracking.subtitle': 'Súly- és táskahozzárendelés engedélyezése csomagolási tételeknél',
   'admin.collab.chat.title': 'Chat',
   'admin.collab.chat.subtitle': 'Valós idejű üzenetküldés az együttműködéshez',
   'admin.collab.notes.title': 'Jegyzetek',
@@ -144,8 +131,7 @@ const admin: TranslationStrings = {
   'admin.collab.polls.title': 'Szavazások',
   'admin.collab.polls.subtitle': 'Csoportos szavazások',
   'admin.collab.whatsnext.title': 'Mi következik',
-  'admin.collab.whatsnext.subtitle':
-    'Tevékenységjavaslatok és következő lépések',
+  'admin.collab.whatsnext.subtitle': 'Tevékenységjavaslatok és következő lépések',
   'admin.tabs.config': 'Személyre szabás',
   'admin.tabs.defaults': 'Alapértelmezett beállítások',
   'admin.defaultSettings.title': 'Alapértelmezett felhasználói beállítások',
@@ -156,11 +142,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.resetToBuiltIn': 'visszaállítás',
   'admin.tabs.templates': 'Csomagolási sablonok',
   'admin.packingTemplates.title': 'Csomagolási sablonok',
-  'admin.packingTemplates.subtitle':
-    'Újrafelhasználható csomagolási listák létrehozása utazásaidhoz',
+  'admin.packingTemplates.subtitle': 'Újrafelhasználható csomagolási listák létrehozása utazásaidhoz',
   'admin.packingTemplates.create': 'Új sablon',
-  'admin.packingTemplates.namePlaceholder':
-    'Sablon neve (pl. Tengerparti nyaralás)',
+  'admin.packingTemplates.namePlaceholder': 'Sablon neve (pl. Tengerparti nyaralás)',
   'admin.packingTemplates.empty': 'Még nincsenek sablonok',
   'admin.packingTemplates.items': 'tétel',
   'admin.packingTemplates.categories': 'kategória',
@@ -176,32 +160,23 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.saveError': 'Nem sikerült menteni',
   'admin.tabs.addons': 'Bővítmények',
   'admin.addons.title': 'Bővítmények',
-  'admin.addons.subtitle':
-    'Funkciók engedélyezése vagy letiltása a TREK testreszabásához.',
+  'admin.addons.subtitle': 'Funkciók engedélyezése vagy letiltása a TREK testreszabásához.',
   'admin.addons.catalog.packing.name': 'Listák',
-  'admin.addons.catalog.packing.description':
-    'Csomagolási listák és teendők az utazásaidhoz',
+  'admin.addons.catalog.packing.description': 'Csomagolási listák és teendők az utazásaidhoz',
   'admin.addons.catalog.budget.name': 'Költségvetés',
-  'admin.addons.catalog.budget.description':
-    'Kiadások nyomon követése és az utazási költségvetés tervezése',
+  'admin.addons.catalog.budget.description': 'Kiadások nyomon követése és az utazási költségvetés tervezése',
   'admin.addons.catalog.documents.name': 'Dokumentumok',
-  'admin.addons.catalog.documents.description':
-    'Úti dokumentumok tárolása és kezelése',
+  'admin.addons.catalog.documents.description': 'Úti dokumentumok tárolása és kezelése',
   'admin.addons.catalog.vacay.name': 'Vacay',
-  'admin.addons.catalog.vacay.description':
-    'Személyes szabadságtervező naptárnézettel',
+  'admin.addons.catalog.vacay.description': 'Személyes szabadságtervező naptárnézettel',
   'admin.addons.catalog.atlas.name': 'Atlasz',
-  'admin.addons.catalog.atlas.description':
-    'Világtérkép meglátogatott országokkal és utazási statisztikákkal',
+  'admin.addons.catalog.atlas.description': 'Világtérkép meglátogatott országokkal és utazási statisztikákkal',
   'admin.addons.catalog.collab.name': 'Együttműködés',
-  'admin.addons.catalog.collab.description':
-    'Valós idejű jegyzetek, szavazások és csevegés az utazás tervezéséhez',
+  'admin.addons.catalog.collab.description': 'Valós idejű jegyzetek, szavazások és csevegés az utazás tervezéséhez',
   'admin.addons.catalog.memories.name': 'Fotók (Immich)',
-  'admin.addons.catalog.memories.description':
-    'Utazási fotók megosztása az Immich példányon keresztül',
+  'admin.addons.catalog.memories.description': 'Utazási fotók megosztása az Immich példányon keresztül',
   'admin.addons.catalog.mcp.name': 'MCP',
-  'admin.addons.catalog.mcp.description':
-    'Model Context Protocol AI asszisztens integrációhoz',
+  'admin.addons.catalog.mcp.description': 'Model Context Protocol AI asszisztens integrációhoz',
   'admin.addons.subtitleBefore': 'Funkciók engedélyezése vagy letiltása a ',
   'admin.addons.subtitleAfter': ' testreszabásához.',
   'admin.addons.enabled': 'Engedélyezve',
@@ -211,8 +186,7 @@ const admin: TranslationStrings = {
   'admin.addons.type.integration': 'Integráció',
   'admin.addons.tripHint': 'Fülként érhető el minden utazáson belül',
   'admin.addons.globalHint': 'Önálló szekcióként elérhető a fő navigációban',
-  'admin.addons.integrationHint':
-    'Háttérszolgáltatások és API integrációk dedikált oldal nélkül',
+  'admin.addons.integrationHint': 'Háttérszolgáltatások és API integrációk dedikált oldal nélkül',
   'admin.addons.toast.updated': 'Bővítmény frissítve',
   'admin.addons.toast.error': 'Nem sikerült frissíteni a bővítményt',
   'admin.addons.noAddons': 'Nincsenek elérhető bővítmények',
@@ -223,15 +197,13 @@ const admin: TranslationStrings = {
   'admin.weather.forecast': '16 napos előrejelzés',
   'admin.weather.forecastDesc': 'Korábban 5 nap volt (OpenWeatherMap)',
   'admin.weather.climate': 'Történelmi klímaadatok',
-  'admin.weather.climateDesc':
-    'Az elmúlt 85 év átlagai a 16 napos előrejelzésen túli napokhoz',
+  'admin.weather.climateDesc': 'Az elmúlt 85 év átlagai a 16 napos előrejelzésen túli napokhoz',
   'admin.weather.requests': '10 000 kérés / nap',
   'admin.weather.requestsDesc': 'Ingyenes, nincs szükség API kulcsra',
   'admin.weather.locationHint':
     'Az időjárás az adott nap első koordinátákkal rendelkező helye alapján készül. Ha nincs hely hozzárendelve a naphoz, a helylista bármelyik helye szolgál referenciául.',
   'admin.tabs.audit': 'Audit',
-  'admin.audit.subtitle':
-    'Biztonsági és adminisztrációs események (mentések, felhasználók, 2FA, beállítások).',
+  'admin.audit.subtitle': 'Biztonsági és adminisztrációs események (mentések, felhasználók, 2FA, beállítások).',
   'admin.audit.empty': 'Még nincsenek audit bejegyzések.',
   'admin.audit.refresh': 'Frissítés',
   'admin.audit.loadMore': 'Továbbiak betöltése',
@@ -244,8 +216,7 @@ const admin: TranslationStrings = {
   'admin.audit.col.details': 'Részletek',
   'admin.tabs.mcpTokens': 'MCP hozzáférés',
   'admin.mcpTokens.title': 'MCP hozzáférés',
-  'admin.mcpTokens.subtitle':
-    'OAuth munkamenetek és API tokenek kezelése az összes felhasználó számára',
+  'admin.mcpTokens.subtitle': 'OAuth munkamenetek és API tokenek kezelése az összes felhasználó számára',
   'admin.mcpTokens.sectionTitle': 'API tokenek',
   'admin.mcpTokens.owner': 'Tulajdonos',
   'admin.mcpTokens.tokenName': 'Token neve',
@@ -270,8 +241,7 @@ const admin: TranslationStrings = {
     'Ez az OAuth munkamenet azonnal visszavonásra kerül. A kliens elveszíti az MCP hozzáférést.',
   'admin.oauthSessions.revokeSuccess': 'Munkamenet visszavonva',
   'admin.oauthSessions.revokeError': 'Nem sikerült visszavonni a munkamenetet',
-  'admin.oauthSessions.loadError':
-    'Nem sikerült betölteni az OAuth munkameneteket',
+  'admin.oauthSessions.loadError': 'Nem sikerült betölteni az OAuth munkameneteket',
   'admin.tabs.github': 'GitHub',
   'admin.github.title': 'Frissítési előzmények',
   'admin.github.subtitle': 'Legújabb frissítések: {repo}',
@@ -285,8 +255,7 @@ const admin: TranslationStrings = {
   'admin.github.by': 'készítette',
   'admin.github.support': 'Segít fenntartani a TREK fejlesztését',
   'admin.update.available': 'Frissítés elérhető',
-  'admin.update.text':
-    'A TREK {version} elérhető. Jelenleg a {current} verziót használod.',
+  'admin.update.text': 'A TREK {version} elérhető. Jelenleg a {current} verziót használod.',
   'admin.update.button': 'Megtekintés a GitHubon',
   'admin.update.install': 'Frissítés telepítése',
   'admin.update.confirmTitle': 'Frissítés telepítése?',
@@ -294,20 +263,17 @@ const admin: TranslationStrings = {
     'A TREK frissítésre kerül {current} verzióról {version} verzióra. A szerver ezután automatikusan újraindul.',
   'admin.update.dataInfo':
     'Minden adat (utazások, felhasználók, API kulcsok, feltöltések, Vacay, Atlas, költségvetések) megmarad.',
-  'admin.update.warning':
-    'Az alkalmazás az újraindítás alatt rövid ideig nem lesz elérhető.',
+  'admin.update.warning': 'Az alkalmazás az újraindítás alatt rövid ideig nem lesz elérhető.',
   'admin.update.confirm': 'Frissítés most',
   'admin.update.installing': 'Frissítés…',
   'admin.update.success': 'Frissítés telepítve! A szerver újraindul…',
   'admin.update.failed': 'Frissítés sikertelen',
-  'admin.update.backupHint':
-    'Javasoljuk, hogy frissítés előtt készíts biztonsági mentést.',
+  'admin.update.backupHint': 'Javasoljuk, hogy frissítés előtt készíts biztonsági mentést.',
   'admin.update.backupLink': 'Biztonsági mentéshez',
   'admin.update.howTo': 'Frissítési útmutató',
   'admin.update.dockerText':
     'A TREK példányod Dockerben fut. A {version} verzióra frissítéshez futtasd a következő parancsokat a szervereden:',
-  'admin.update.reloadHint':
-    'Kérjük, töltsd újra az oldalt néhány másodperc múlva.',
+  'admin.update.reloadHint': 'Kérjük, töltsd újra az oldalt néhány másodperc múlva.',
   'admin.tabs.permissions': 'Jogosultságok',
   'admin.notifications.emailPanel.title': 'Email (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
@@ -318,12 +284,9 @@ const admin: TranslationStrings = {
   'admin.notifications.adminWebhookPanel.hint':
     'Ez a webhook kizárólag admin értesítésekhez használatos (pl. verziófrissítési figyelmeztetések). Független a felhasználói webhookoktól, és automatikusan küld, ha URL van beállítva.',
   'admin.notifications.adminWebhookPanel.saved': 'Admin webhook URL mentve',
-  'admin.notifications.adminWebhookPanel.testSuccess':
-    'Teszt webhook sikeresen elküldve',
-  'admin.notifications.adminWebhookPanel.testFailed':
-    'Teszt webhook sikertelen',
-  'admin.notifications.adminWebhookPanel.alwaysOnHint':
-    'Az admin webhook automatikusan küld, ha URL van beállítva',
+  'admin.notifications.adminWebhookPanel.testSuccess': 'Teszt webhook sikeresen elküldve',
+  'admin.notifications.adminWebhookPanel.testFailed': 'Teszt webhook sikertelen',
+  'admin.notifications.adminWebhookPanel.alwaysOnHint': 'Az admin webhook automatikusan küld, ha URL van beállítva',
   'admin.notifications.ntfy': 'Ntfy',
   'admin.ntfy.hint':
     'Lehetővé teszi a felhasználóknak, hogy saját ntfy-témáikat konfigurálják push értesítésekhez. Állítsa be az alapértelmezett szervert alább a felhasználói beállítások előre kitöltéséhez.',
@@ -339,24 +302,19 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.serverPlaceholder': 'https://ntfy.sh',
   'admin.notifications.adminNtfyPanel.topicLabel': 'Admin téma',
   'admin.notifications.adminNtfyPanel.topicPlaceholder': 'trek-admin-alerts',
-  'admin.notifications.adminNtfyPanel.tokenLabel':
-    'Hozzáférési token (opcionális)',
-  'admin.notifications.adminNtfyPanel.tokenCleared':
-    'Admin hozzáférési token törölve',
+  'admin.notifications.adminNtfyPanel.tokenLabel': 'Hozzáférési token (opcionális)',
+  'admin.notifications.adminNtfyPanel.tokenCleared': 'Admin hozzáférési token törölve',
   'admin.notifications.adminNtfyPanel.saved': 'Admin Ntfy beállítások mentve',
   'admin.notifications.adminNtfyPanel.test': 'Teszt Ntfy küldése',
-  'admin.notifications.adminNtfyPanel.testSuccess':
-    'Teszt Ntfy sikeresen elküldve',
+  'admin.notifications.adminNtfyPanel.testSuccess': 'Teszt Ntfy sikeresen elküldve',
   'admin.notifications.adminNtfyPanel.testFailed': 'Teszt Ntfy sikertelen',
-  'admin.notifications.adminNtfyPanel.alwaysOnHint':
-    'Az admin Ntfy mindig küld, ha egy téma konfigurálva van',
+  'admin.notifications.adminNtfyPanel.alwaysOnHint': 'Az admin Ntfy mindig küld, ha egy téma konfigurálva van',
   'admin.notifications.adminNotificationsHint':
     'Állítsa be, hogy mely csatornák szállítsák az admin értesítéseket (pl. verziófrissítési figyelmeztetések). A webhook automatikusan küld, ha admin webhook URL van megadva.',
   'admin.notifications.tripReminders.title': 'Utazási emlékeztetők',
   'admin.notifications.tripReminders.hint':
     'Emlékeztető értesítést küld az utazás kezdete előtt (az utazásnál megadott emlékeztető napok szükségesek).',
-  'admin.notifications.tripReminders.enabled':
-    'Utazási emlékeztetők engedélyezve',
+  'admin.notifications.tripReminders.enabled': 'Utazási emlékeztetők engedélyezve',
   'admin.notifications.tripReminders.disabled': 'Utazási emlékeztetők letiltva',
   'admin.tabs.notifications': 'Értesítések',
   'admin.addons.catalog.journey.name': 'Útinaplók',
@@ -382,11 +340,13 @@ const admin: TranslationStrings = {
   'admin.passkey.resetConfirm': 'Eltávolítod {name} összes passkey-jét?',
   'admin.passkey.resetDone': '{count} passkey eltávolítva',
   'admin.defaultSettings.mapProvider': 'Térképmotor',
-  'admin.defaultSettings.mapProviderHint': 'Az alapértelmezett térkép mindenkinek ezen a példányon. Minden felhasználó felülírhatja a saját beállításaiban.',
+  'admin.defaultSettings.mapProviderHint':
+    'Az alapértelmezett térkép mindenkinek ezen a példányon. Minden felhasználó felülírhatja a saját beállításaiban.',
   'admin.defaultSettings.providerLeaflet': 'Alapértelmezett (ingyenes)',
   'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
   'admin.defaultSettings.mapboxToken': 'Megosztott Mapbox-token',
-  'admin.defaultSettings.mapboxTokenHint': 'Minden olyan felhasználóhoz használatos, aki nem adta meg a saját tokenjét — így az egész példány eléri a Mapboxot anélkül, hogy egyenként kellene megosztani a kulcsot. Titkosítva tárolódik.',
+  'admin.defaultSettings.mapboxTokenHint':
+    'Minden olyan felhasználóhoz használatos, aki nem adta meg a saját tokenjét — így az egész példány eléri a Mapboxot anélkül, hogy egyenként kellene megosztani a kulcsot. Titkosítva tárolódik.',
   'admin.defaultSettings.mapboxStyle': 'Térképstílus',
   'admin.defaultSettings.mapboxStylePlaceholder': 'Válassz stílust…',
   'admin.defaultSettings.mapbox3d': '3D épületek & domborzat',

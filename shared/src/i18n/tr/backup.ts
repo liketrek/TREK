@@ -12,8 +12,7 @@ const backup: TranslationStrings = {
   'backup.createFirst': 'İlk yedeği oluştur',
   'backup.download': 'İndir',
   'backup.restore': 'Geri yükle',
-  'backup.confirm.restore':
-    '"{name}" yedeği geri yüklensin mi?\\\\n\\\\nTüm mevcut veriler yedekle değiştirilecek.',
+  'backup.confirm.restore': '"{name}" yedeği geri yüklensin mi?\\\\n\\\\nTüm mevcut veriler yedekle değiştirilecek.',
   'backup.confirm.uploadRestore':
     '"{name}" yedek dosyası yüklenip geri yüklensin mi?\\\\n\\\\nTüm mevcut verilerin üzerine yazılacak.',
   'backup.confirm.delete': '"{name}" yedeği silinsin mi?',
@@ -31,8 +30,7 @@ const backup: TranslationStrings = {
   'backup.auto.title': 'Otomatik yedekleme',
   'backup.auto.subtitle': 'Zamanlanmış otomatik yedekleme',
   'backup.auto.enable': 'Otomatik yedeklemeyi etkinleştir',
-  'backup.auto.enableHint':
-    'Yedekler seçilen programa göre otomatik oluşturulur',
+  'backup.auto.enableHint': 'Yedekler seçilen programa göre otomatik oluşturulur',
   'backup.auto.interval': 'Aralık',
   'backup.auto.hour': 'Çalışma saati',
   'backup.auto.hourHint': 'Sunucu yerel saati ({format} biçimi)',
@@ -69,8 +67,7 @@ const backup: TranslationStrings = {
   'backup.restoreConfirmTitle': 'Yedek geri yüklensin mi?',
   'backup.restoreWarning':
     'Tüm mevcut veriler (seyahatler, yerler, kullanıcılar, yüklemeler) yedekle kalıcı olarak değiştirilecek. Bu işlem geri alınamaz.',
-  'backup.restoreTip':
-    'İpucu: Geri yüklemeden önce mevcut durumun yedeğini oluşturun.',
+  'backup.restoreTip': 'İpucu: Geri yüklemeden önce mevcut durumun yedeğini oluşturun.',
   'backup.restoreConfirm': 'Evet, geri yükle',
 };
 export default backup;

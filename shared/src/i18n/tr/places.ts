@@ -6,13 +6,10 @@ const places: TranslationStrings = {
   'places.sidebarDrop': 'İçe aktarmak için bırakın',
   'places.importFileHint':
     'Google Haritalarım, Google Earth veya GPS izleyici gibi araçlardan .gpx, .kml veya .kmz dosyalarını içe aktarın.',
-  'places.importFileDropHere':
-    'Bir dosya seçmek için tıklayın veya buraya sürükleyip bırakın',
+  'places.importFileDropHere': 'Bir dosya seçmek için tıklayın veya buraya sürükleyip bırakın',
   'places.importFileDropActive': 'Seçmek için dosyayı bırakın',
-  'places.importFileUnsupported':
-    'Desteklenmeyen dosya türü. .gpx, .kml veya .kmz kullanın.',
-  'places.importFileTooLarge':
-    "Dosya çok büyük. Maksimum yükleme boyutu {maxMb} MB'tır.",
+  'places.importFileUnsupported': 'Desteklenmeyen dosya türü. .gpx, .kml veya .kmz kullanın.',
+  'places.importFileTooLarge': "Dosya çok büyük. Maksimum yükleme boyutu {maxMb} MB'tır.",
   'places.importFileError': 'İçe aktarma başarısız oldu',
   'places.importAllSkipped': 'Tüm yerler zaten yolculuktaydı.',
   'places.gpxImported': "{count} yer GPX'ten içe Aktarıldı",
@@ -30,8 +27,7 @@ const places: TranslationStrings = {
   'places.kmlKmzImported': "KMZ/KML'den {count} yer içe Aktarıldı",
   'places.urlResolved': "URL'den içe aktarılan Yer",
   'places.importList': 'Liste İçe Aktarma',
-  'places.kmlKmzSummaryValues':
-    'Yer işaretleri: {total} • İçe aktarıldı: {created} • Atlandı: {skipped}',
+  'places.kmlKmzSummaryValues': 'Yer işaretleri: {total} • İçe aktarıldı: {created} • Atlandı: {skipped}',
   'places.importGoogleList': 'Google Listesi',
   'places.importNaverList': 'Naver Listesi',
   'places.googleListHint':

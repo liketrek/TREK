@@ -9,8 +9,7 @@ const memories: TranslationStrings = {
     'Połącz jednego z tych dostawców zdjęć: {provider_names} w Ustawieniach, aby móc dodawać zdjęcia do tej podróży.',
   'memories.noDates': 'Dodaj daty do swojej podróży, aby załadować zdjęcia.',
   'memories.noPhotos': 'Nie znaleziono zdjęć',
-  'memories.noPhotosHint':
-    'Nie znaleziono zdjęć w Immich dla tego zakresu dat podróży.',
+  'memories.noPhotosHint': 'Nie znaleziono zdjęć w Immich dla tego zakresu dat podróży.',
   'memories.photosFound': 'zdjęć',
   'memories.fromOthers': 'od innych',
   'memories.sharePhotos': 'Udostępnij zdjęcia',
@@ -24,10 +23,8 @@ const memories: TranslationStrings = {
   'memories.providerPassword': 'Hasło',
   'memories.providerOTP': 'Kod MFA (jeśli włączony)',
   'memories.skipSSLVerification': 'Pomiń weryfikację certyfikatu SSL',
-  'memories.immichAutoUpload':
-    'Przy przesyłaniu kopiuj zdjęcia journey także do Immich',
-  'memories.providerUrlHintSynology':
-    'Uwzględnij ścieżkę aplikacji Photos w URL, np. https://nas:5001/photo',
+  'memories.immichAutoUpload': 'Przy przesyłaniu kopiuj zdjęcia journey także do Immich',
+  'memories.providerUrlHintSynology': 'Uwzględnij ścieżkę aplikacji Photos w URL, np. https://nas:5001/photo',
   'memories.testConnection': 'Test',
   'memories.testShort': 'Test',
   'memories.connected': 'Połączono',
@@ -72,10 +69,8 @@ const memories: TranslationStrings = {
   'memories.error.addPhotos': 'Nie udało się dodać zdjęć',
   'memories.error.removePhoto': 'Nie udało się usunąć zdjęcia',
   'memories.error.toggleSharing': 'Nie udało się zaktualizować udostępniania',
-  'memories.saveRouteNotConfigured':
-    'Trasa zapisu nie jest skonfigurowana dla tego dostawcy',
-  'memories.testRouteNotConfigured':
-    'Trasa testowa nie jest skonfigurowana dla tego dostawcy',
+  'memories.saveRouteNotConfigured': 'Trasa zapisu nie jest skonfigurowana dla tego dostawcy',
+  'memories.testRouteNotConfigured': 'Trasa testowa nie jest skonfigurowana dla tego dostawcy',
   'memories.fillRequiredFields': 'Proszę wypełnić wszystkie wymagane pola',
 };
 export default memories;

@@ -14,12 +14,10 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': '地図テンプレート',
   'settings.mapTemplatePlaceholder.select': 'テンプレートを選択…',
   'settings.mapDefaultHint': '空欄の場合は OpenStreetMap（既定）を使用',
-  'settings.mapTemplatePlaceholder':
-    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': '地図タイルのURLテンプレート',
   'settings.mapProvider': '地図プロバイダー',
-  'settings.mapProviderHint':
-    '旅程プランナーと日記地図に影響します。Atlas は常に Leaflet を使用します。',
+  'settings.mapProviderHint': '旅程プランナーと日記地図に影響します。Atlas は常に Leaflet を使用します。',
   'settings.mapLeafletSubtitle': 'クラシックな2D、任意のラスタータイル',
   'settings.mapMapboxSubtitle': 'ベクタータイル、3D建物・地形',
   'settings.mapExperimental': '実験的',
@@ -30,23 +28,18 @@ const settings: TranslationStrings = {
   'settings.mapStylePlaceholder': 'Mapboxスタイルを選択',
   'settings.mapStyleHint': 'プリセットまたは mapbox://styles/USER/ID のURL',
   'settings.map3dBuildings': '3D建物・地形',
-  'settings.map3dHint':
-    'ピッチ＋実際の3D押し出し表示。衛星含む全スタイルで動作。',
+  'settings.map3dHint': 'ピッチ＋実際の3D押し出し表示。衛星含む全スタイルで動作。',
   'settings.mapHighQuality': '高品質モード',
-  'settings.mapHighQualityHint':
-    'アンチエイリアス＋地球投影で、より鮮明でリアルに表示。',
-  'settings.mapHighQualityWarning':
-    '低性能デバイスではパフォーマンスに影響する場合があります。',
+  'settings.mapHighQualityHint': 'アンチエイリアス＋地球投影で、より鮮明でリアルに表示。',
+  'settings.mapHighQualityWarning': '低性能デバイスではパフォーマンスに影響する場合があります。',
   'settings.mapTipLabel': 'ヒント:',
-  'settings.mapTip':
-    '右クリック＋ドラッグで回転／傾き。中クリックで場所を追加（右クリックは回転用）。',
+  'settings.mapTip': '右クリック＋ドラッグで回転／傾き。中クリックで場所を追加（右クリックは回転用）。',
   'settings.latitude': '緯度',
   'settings.longitude': '経度',
   'settings.saveMap': '地図を保存',
   'settings.apiKeys': 'APIキー',
   'settings.mapsKey': 'Google Maps APIキー',
-  'settings.mapsKeyHint':
-    '場所検索用。Places API（新）が必要。console.cloud.google.com で取得',
+  'settings.mapsKeyHint': '場所検索用。Places API（新）が必要。console.cloud.google.com で取得',
   'settings.weatherKey': 'OpenWeatherMap APIキー',
   'settings.weatherKeyHint': '天気情報用。openweathermap.org/api で無料取得',
   'settings.keyPlaceholder': 'キーを入力…',
@@ -61,8 +54,7 @@ const settings: TranslationStrings = {
   'settings.temperature': '温度単位',
   'settings.timeFormat': '時刻形式',
   'settings.bookingLabels': '予約ルートのラベル',
-  'settings.bookingLabelsHint':
-    '地図に駅・空港名を表示。オフ時はアイコンのみ。',
+  'settings.bookingLabelsHint': '地図に駅・空港名を表示。オフ時はアイコンのみ。',
   'settings.blurBookingCodes': '予約コードをぼかす',
   'settings.optimizeFromAccommodation': '宿泊先を起点にルートを最適化',
   'settings.optimizeFromAccommodationHint':
@@ -82,12 +74,10 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.inapp': 'アプリ内',
   'settings.notificationPreferences.ntfy': 'Ntfy',
-  'settings.notificationPreferences.noChannels':
-    '通知チャネルが未設定です。管理者に設定を依頼してください。',
+  'settings.notificationPreferences.noChannels': '通知チャネルが未設定です。管理者に設定を依頼してください。',
   'settings.webhookUrl.label': 'Webhook URL',
   'settings.webhookUrl.placeholder': 'https://discord.com/api/webhooks/...',
-  'settings.webhookUrl.hint':
-    'Discord、Slack、または独自のWebhook URLを入力してください。',
+  'settings.webhookUrl.hint': 'Discord、Slack、または独自のWebhook URLを入力してください。',
   'settings.webhookUrl.saved': 'Webhook URLを保存しました',
   'settings.webhookUrl.test': 'テスト',
   'settings.webhookUrl.testSuccess': 'テストWebhookを送信しました',
@@ -96,8 +86,7 @@ const settings: TranslationStrings = {
   'settings.ntfyUrl.topicPlaceholder': 'my-trek-alerts',
   'settings.ntfyUrl.serverLabel': 'Ntfy サーバーURL（任意）',
   'settings.ntfyUrl.serverPlaceholder': 'https://ntfy.sh',
-  'settings.ntfyUrl.hint':
-    'ntfyトピックを入力してください。サーバー未入力時は管理者設定の既定値を使用します。',
+  'settings.ntfyUrl.hint': 'ntfyトピックを入力してください。サーバー未入力時は管理者設定の既定値を使用します。',
   'settings.ntfyUrl.tokenLabel': 'アクセストークン（任意）',
   'settings.ntfyUrl.tokenHint': 'パスワード保護トピックに必要です。',
   'settings.ntfyUrl.saved': 'Ntfy設定を保存しました',
@@ -105,8 +94,7 @@ const settings: TranslationStrings = {
   'settings.ntfyUrl.testSuccess': 'テスト通知を送信しました',
   'settings.ntfyUrl.testFailed': 'テスト通知に失敗しました',
   'settings.ntfyUrl.tokenCleared': 'アクセストークンを削除しました',
-  'settings.notificationsDisabled':
-    '通知が未設定です。管理者に有効化を依頼してください。',
+  'settings.notificationsDisabled': '通知が未設定です。管理者に有効化を依頼してください。',
   'settings.notificationsActive': '有効なチャネル',
   'settings.notificationsManagedByAdmin': '通知イベントは管理者が設定します。',
   'settings.on': 'オン',
@@ -114,8 +102,7 @@ const settings: TranslationStrings = {
   'settings.mcp.title': 'MCP設定',
   'settings.mcp.endpoint': 'MCPエンドポイント',
   'settings.mcp.clientConfig': 'クライアント設定',
-  'settings.mcp.clientConfigHint':
-    '<your_token> を下のAPIトークンに置き換えてください。',
+  'settings.mcp.clientConfigHint': '<your_token> を下のAPIトークンに置き換えてください。',
   'settings.mcp.clientConfigHintOAuth':
     '<your_client_id> と <your_client_secret> をOAuth 2.1の認証情報に置き換えてください。',
   'settings.mcp.copy': 'コピー',
@@ -133,15 +120,13 @@ const settings: TranslationStrings = {
   'settings.mcp.modal.creating': '作成中…',
   'settings.mcp.modal.create': '作成',
   'settings.mcp.modal.createdTitle': 'トークン作成完了',
-  'settings.mcp.modal.createdWarning':
-    '表示は一度きりです。今すぐ保存してください。',
+  'settings.mcp.modal.createdWarning': '表示は一度きりです。今すぐ保存してください。',
   'settings.mcp.modal.done': '完了',
   'settings.mcp.toast.created': 'トークンを作成しました',
   'settings.mcp.toast.createError': 'トークン作成に失敗しました',
   'settings.mcp.toast.deleted': 'トークンを削除しました',
   'settings.mcp.toast.deleteError': 'トークン削除に失敗しました',
-  'settings.mcp.apiTokensDeprecated':
-    'APIトークンは非推奨です。OAuth 2.1 クライアントを使用してください。',
+  'settings.mcp.apiTokensDeprecated': 'APIトークンは非推奨です。OAuth 2.1 クライアントを使用してください。',
   'settings.oauth.clients': 'OAuth 2.1 クライアント',
   'settings.oauth.clientsHint': '第三者アプリが接続できるよう登録します。',
   'settings.oauth.createClient': '新規クライアント',
@@ -149,40 +134,34 @@ const settings: TranslationStrings = {
   'settings.oauth.clientId': 'クライアントID',
   'settings.oauth.clientSecret': 'クライアントシークレット',
   'settings.oauth.deleteClient': 'クライアント削除',
-  'settings.oauth.deleteClientMessage':
-    'このクライアントは完全に削除されます。',
+  'settings.oauth.deleteClientMessage': 'このクライアントは完全に削除されます。',
   'settings.oauth.rotateSecret': 'シークレット更新',
   'settings.oauth.rotateSecretMessage': '新しいシークレットを生成します。',
   'settings.oauth.rotateSecretConfirm': '更新',
   'settings.oauth.rotateSecretConfirming': '更新中…',
   'settings.oauth.rotateSecretDoneTitle': '新しいシークレット',
-  'settings.oauth.rotateSecretDoneWarning':
-    '表示は一度きりです。今すぐ保存してください。',
+  'settings.oauth.rotateSecretDoneWarning': '表示は一度きりです。今すぐ保存してください。',
   'settings.oauth.activeSessions': '有効なセッション',
   'settings.oauth.sessionScopes': 'スコープ',
   'settings.oauth.sessionExpires': '有効期限',
   'settings.oauth.revoke': '取り消し',
   'settings.oauth.revokeSession': 'セッション取り消し',
-  'settings.oauth.revokeSessionMessage':
-    'このセッションのアクセスを即時無効にします。',
+  'settings.oauth.revokeSessionMessage': 'このセッションのアクセスを即時無効にします。',
   'settings.oauth.modal.createTitle': 'OAuthクライアント登録',
   'settings.oauth.modal.presets': '簡単設定',
   'settings.oauth.modal.clientName': 'アプリ名',
   'settings.oauth.modal.clientNamePlaceholder': '例：Claude Web',
   'settings.oauth.modal.redirectUris': 'リダイレクトURI',
-  'settings.oauth.modal.redirectUrisPlaceholder':
-    'https://your-app.com/callback',
+  'settings.oauth.modal.redirectUrisPlaceholder': 'https://your-app.com/callback',
   'settings.oauth.modal.redirectUrisHint': '1行につき1つ。HTTPS必須。',
   'settings.oauth.modal.scopes': '許可スコープ',
-  'settings.oauth.modal.scopesHint':
-    'list_trips と get_trip_summary は常に利用可能です。',
+  'settings.oauth.modal.scopesHint': 'list_trips と get_trip_summary は常に利用可能です。',
   'settings.oauth.modal.selectAll': 'すべて選択',
   'settings.oauth.modal.deselectAll': 'すべて解除',
   'settings.oauth.modal.creating': '登録中…',
   'settings.oauth.modal.create': '登録',
   'settings.oauth.modal.createdTitle': '登録完了',
-  'settings.oauth.modal.createdWarning':
-    'シークレットは一度しか表示されません。',
+  'settings.oauth.modal.createdWarning': 'シークレットは一度しか表示されません。',
   'settings.oauth.toast.createError': '登録に失敗しました',
   'settings.oauth.toast.deleted': 'クライアントを削除しました',
   'settings.oauth.toast.deleteError': '削除に失敗しました',
@@ -198,8 +177,7 @@ const settings: TranslationStrings = {
   'settings.about.wikiHint': 'ドキュメント・ガイド',
   'settings.about.supporters.badge': '月額サポーター',
   'settings.about.supporters.title': 'TREKの旅仲間',
-  'settings.about.supporters.subtitle':
-    '皆さんの支援がTREKの未来を支えています。',
+  'settings.about.supporters.subtitle': '皆さんの支援がTREKの未来を支えています。',
   'settings.about.supporters.since': '{date}からサポート',
   'settings.about.supporters.tierEmpty': '最初の一人に',
   'settings.about.supporter.tier.noReturnTicket': '片道切符',
@@ -232,8 +210,7 @@ const settings: TranslationStrings = {
   'settings.deleteAccountWarning': 'すべてのデータが完全に削除されます。',
   'settings.deleteAccountConfirm': '完全に削除',
   'settings.deleteBlockedTitle': '削除できません',
-  'settings.deleteBlockedMessage':
-    '唯一の管理者です。別のユーザーを管理者にしてください。',
+  'settings.deleteBlockedMessage': '唯一の管理者です。別のユーザーを管理者にしてください。',
   'settings.roleUser': 'ユーザー',
   'settings.saveProfile': 'プロフィールを保存',
   'settings.toast.mapSaved': '地図設定を保存しました',
@@ -250,8 +227,7 @@ const settings: TranslationStrings = {
   'settings.mfa.requiredByPolicy': '管理者により2FAが必須です。',
   'settings.mfa.backupTitle': 'バックアップコード',
   'settings.mfa.backupDescription': '認証アプリが使えない場合に使用します。',
-  'settings.mfa.backupWarning':
-    '今すぐ保存してください。各コードは1回限りです。',
+  'settings.mfa.backupWarning': '今すぐ保存してください。各コードは1回限りです。',
   'settings.mfa.backupCopy': 'コードをコピー',
   'settings.mfa.backupDownload': 'TXTでダウンロード',
   'settings.mfa.backupPrint': '印刷 / PDF',
@@ -270,15 +246,14 @@ const settings: TranslationStrings = {
   'settings.mfa.toastEnabled': '2FAを有効にしました',
   'settings.mfa.toastDisabled': '2FAを無効にしました',
   'settings.mfa.demoBlocked': 'デモモードでは利用できません',
-  'settings.oauth.modal.machineClient':
-    'マシンクライアント（ブラウザログインなし）',
+  'settings.oauth.modal.machineClient': 'マシンクライアント（ブラウザログインなし）',
   'settings.oauth.modal.machineClientHint':
     'client_credentials グラントを使用します — リダイレクト URI は不要です。トークンは client_id + client_secret を介して直接発行され、選択したスコープ内であなたとして動作します。',
   'settings.oauth.modal.machineClientUsage':
     'トークンを取得するには、grant_type=client_credentials、client_id、client_secret を指定して POST /oauth/token を呼び出します。ブラウザもリフレッシュトークンも不要です。',
   'settings.oauth.badge.machine': 'マシン',
-  "settings.currency": "Currency",
-  "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.currency': 'Currency',
+  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
   'settings.passkey.title': 'パスキー',
   'settings.passkey.description':
     '指紋、顔認証、PIN、またはハードウェアキーを使うパスキーで、より速く、フィッシングに強いサインインができます。パスワードはバックアップとして残ります。',
@@ -286,8 +261,7 @@ const settings: TranslationStrings = {
     'パスキーは有効ですが、このサーバーではまだ完全には設定されていません。管理者に WebAuthn ドメインの設定を依頼してください。',
   'settings.passkey.add': 'パスキーを追加',
   'settings.passkey.addTitle': 'パスキーを追加',
-  'settings.passkey.passwordPrompt':
-    '現在のパスワードを確認し、デバイスの指示に従ってください。',
+  'settings.passkey.passwordPrompt': '現在のパスワードを確認し、デバイスの指示に従ってください。',
   'settings.passkey.passwordRequired': '現在のパスワードが必要です。',
   'settings.passkey.namePlaceholder': '名前（任意、例："iPhone"）',
   'settings.passkey.addedToast': 'パスキーを追加しました',
@@ -295,8 +269,7 @@ const settings: TranslationStrings = {
   'settings.passkey.addError': 'パスキーを追加できませんでした',
   'settings.passkey.cancelled': 'パスキーの設定をキャンセルしました',
   'settings.passkey.deleted': 'パスキーを削除しました',
-  'settings.passkey.deleteConfirm':
-    'このパスキーを削除しますか？パスワードで確認してください。',
+  'settings.passkey.deleteConfirm': 'このパスキーを削除しますか？パスワードで確認してください。',
   'settings.passkey.rename': '名前を変更',
   'settings.passkey.defaultName': 'パスキー',
   'settings.passkey.synced': '同期済み',
@@ -304,17 +277,21 @@ const settings: TranslationStrings = {
   'settings.passkey.lastUsed': '最終使用',
   'settings.passkey.neverUsed': '未使用',
   'settings.mapPoiPill': '地図でスポットを探す',
-  'settings.mapPoiPillHint': '旅行の地図にカテゴリピルを表示して、OpenStreetMapから近くのレストランや宿泊施設などを見つけられます。',
+  'settings.mapPoiPillHint':
+    '旅行の地図にカテゴリピルを表示して、OpenStreetMapから近くのレストランや宿泊施設などを見つけられます。',
   'settings.airtrail.title': 'AirTrail',
-  'settings.airtrail.hint': 'セルフホストの AirTrail を接続して、フライトをインポート・同期します。AirTrail の「設定 → セキュリティ」で API キーを作成してください。',
+  'settings.airtrail.hint':
+    'セルフホストの AirTrail を接続して、フライトをインポート・同期します。AirTrail の「設定 → セキュリティ」で API キーを作成してください。',
   'settings.airtrail.url': 'インスタンス URL',
   'settings.airtrail.apiKey': 'API キー',
   'settings.airtrail.apiKeyPlaceholder': 'Bearer API キー',
   'settings.airtrail.apiKeyHint': 'AirTrail の「設定 → セキュリティ」で生成します。暗号化して保存されます。',
   'settings.airtrail.allowInsecureTls': '自己署名証明書を許可する',
-  'settings.airtrail.allowInsecureTlsHint': '自分のネットワーク内の信頼できるインスタンスの場合にのみ有効にしてください。',
+  'settings.airtrail.allowInsecureTlsHint':
+    '自分のネットワーク内の信頼できるインスタンスの場合にのみ有効にしてください。',
   'settings.airtrail.writeBack': '変更を AirTrail に書き戻す',
-  'settings.airtrail.writeBackHint': '既定ではオフ: AirTrail が信頼できる情報源で、TREK は読み取りのみを行います。TREK で行った編集を AirTrail に書き戻すにはオンにします。',
+  'settings.airtrail.writeBackHint':
+    '既定ではオフ: AirTrail が信頼できる情報源で、TREK は読み取りのみを行います。TREK で行った編集を AirTrail に書き戻すにはオンにします。',
   'settings.airtrail.connected': '接続済み',
   'settings.airtrail.notConnected': '未接続',
   'settings.airtrail.toast.saved': 'AirTrail の接続を保存しました',

@@ -3,18 +3,15 @@ import type { TranslationStrings } from '../types';
 const dayplan: TranslationStrings = {
   'dayplan.icsTooltip': 'Export calendar (ICS)',
   'dayplan.emptyDay': 'No places planned for this day',
-  'dayplan.cannotReorderTransport':
-    'Bookings with a fixed time cannot be reordered',
+  'dayplan.cannotReorderTransport': 'Bookings with a fixed time cannot be reordered',
   'dayplan.confirmRemoveTimeTitle': 'Remove time?',
   'dayplan.confirmRemoveTimeBody':
     'This place has a fixed time ({time}). Moving it will remove the time and allow free sorting.',
   'dayplan.confirmRemoveTimeAction': 'Remove time & move',
   'dayplan.confirmDeleteNoteTitle': 'Delete note?',
   'dayplan.confirmDeleteNoteBody': 'This note will be permanently deleted.',
-  'dayplan.cannotDropOnTimed':
-    'Items cannot be placed between time-bound entries',
-  'dayplan.cannotBreakChronology':
-    'This would break the chronological order of timed items and bookings',
+  'dayplan.cannotDropOnTimed': 'Items cannot be placed between time-bound entries',
+  'dayplan.cannotBreakChronology': 'This would break the chronological order of timed items and bookings',
   'dayplan.addNote': 'Add Note',
   'dayplan.expandAll': 'Expand all days',
   'dayplan.collapseAll': 'Collapse all days',
@@ -31,12 +28,10 @@ const dayplan: TranslationStrings = {
   'dayplan.optimize': 'Optimize',
   'dayplan.optimized': 'Route optimized',
   'dayplan.routeError': 'Failed to calculate route',
-  'dayplan.toast.needTwoPlaces':
-    'At least two places needed for route optimization',
+  'dayplan.toast.needTwoPlaces': 'At least two places needed for route optimization',
   'dayplan.toast.routeOptimized': 'Route optimized',
   'dayplan.toast.routeOptimizedFromHotel': 'Route optimized from your accommodation',
-  'dayplan.toast.noGeoPlaces':
-    'No places with coordinates found for route calculation',
+  'dayplan.toast.noGeoPlaces': 'No places with coordinates found for route calculation',
   'dayplan.confirmed': 'Confirmed',
   'dayplan.pendingRes': 'Pending',
   'dayplan.pdf': 'PDF',

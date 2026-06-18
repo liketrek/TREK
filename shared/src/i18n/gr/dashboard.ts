@@ -19,12 +19,10 @@ const dashboard: TranslationStrings = {
   'dashboard.timezoneCustomTzPlaceholder': 'π.χ. Αμερική/Νέα Υόρκη',
   'dashboard.timezoneCustomAdd': 'Προσθήκη',
   'dashboard.timezoneCustomErrorEmpty': 'Εισάγετε μια ζώνη ώρας',
-  'dashboard.timezoneCustomErrorInvalid':
-    'Μη έγκυρη ζώνη ώρας. Χρησιμοποιήστε την μορφή π.χ. Europe/Berlin',
+  'dashboard.timezoneCustomErrorInvalid': 'Μη έγκυρη ζώνη ώρας. Χρησιμοποιήστε την μορφή π.χ. Europe/Berlin',
   'dashboard.timezoneCustomErrorDuplicate': 'Έχει προστεθεί ήδη',
   'dashboard.emptyTitle': 'Δεν υπάρχουν ταξίδια ακόμη',
-  'dashboard.emptyText':
-    'Δημιουργήστε το πρώτο σας ταξίδι και ξεκινήστε τα σχέδια!',
+  'dashboard.emptyText': 'Δημιουργήστε το πρώτο σας ταξίδι και ξεκινήστε τα σχέδια!',
   'dashboard.emptyButton': 'Δημιουργία Πρώτου Ταξίδιου',
   'dashboard.nextTrip': 'Επόμενο Ταξίδι',
   'dashboard.shared': 'Κοινοποιημένο',
@@ -55,8 +53,7 @@ const dashboard: TranslationStrings = {
   'dashboard.toast.restoreError': 'Αποτυχία επαναφοράς ταξιδιού',
   'dashboard.toast.copied': 'Ταξίδι αντιγράφηκε!',
   'dashboard.toast.copyError': 'Αποτυχία αντιγραφής ταξιδιού',
-  'dashboard.confirm.delete':
-    'Διαγραφή ταξιδιού "{title}"; Όλα τα τόποι και τα σχέδια θα διαγραφούν επίσης.',
+  'dashboard.confirm.delete': 'Διαγραφή ταξιδιού "{title}"; Όλα τα τόποι και τα σχέδια θα διαγραφούν επίσης.',
   'dashboard.confirm.copy.title': 'Αντιγραφή αυτού του ταξιδιού;',
   'dashboard.confirm.copy.willCopy': 'Θα αντιγραφεί',
   'dashboard.confirm.copy.will1': 'Μέρες, μέρη και σχέδια μέρας',
@@ -67,8 +64,7 @@ const dashboard: TranslationStrings = {
   'dashboard.confirm.copy.will6': 'Σημειώσεις μέρας',
   'dashboard.confirm.copy.wontCopy': 'Δεν θα αντιγραφούν',
   'dashboard.confirm.copy.wont1': 'Συνεργάτες & αναθέσεις μελών',
-  'dashboard.confirm.copy.wont2':
-    'Σημειώσεις συνεργασίας, ψηφοφορίες & μηνύματα',
+  'dashboard.confirm.copy.wont2': 'Σημειώσεις συνεργασίας, ψηφοφορίες & μηνύματα',
   'dashboard.confirm.copy.wont3': 'Αρχεία & φωτογραφίες',
   'dashboard.confirm.copy.wont4': 'Σύνδεσμοι διαμοιρασμού',
   'dashboard.confirm.copy.confirm': 'Αντιγραφή ταξιδιού',
@@ -81,8 +77,7 @@ const dashboard: TranslationStrings = {
   'dashboard.startDate': 'Ημερομηνία Έναρξης',
   'dashboard.endDate': 'Ημερομηνία Λήξης',
   'dashboard.dayCount': 'Αριθμός Ημερών',
-  'dashboard.dayCountHint':
-    'Πόσες ημέρες να σχεδιαστούν όταν δεν έχουν οριστεί ημερομηνίες ταξιδιού.',
+  'dashboard.dayCountHint': 'Πόσες ημέρες να σχεδιαστούν όταν δεν έχουν οριστεί ημερομηνίες ταξιδιού.',
   'dashboard.noDateHint':
     'Δεν έχει οριστεί ημερομηνία — θα δημιουργηθούν 7 προεπιλεγμένες ημέρες. Μπορείτε να το αλλάξετε οποτεδήποτε.',
   'dashboard.coverImage': 'Εικόνα Εξωφύλλου',
@@ -93,8 +88,7 @@ const dashboard: TranslationStrings = {
   'dashboard.coverUploadError': 'Αποτυχία μεταφόρτωσης',
   'dashboard.coverRemoveError': 'Αποτυχία αφαίρεσης',
   'dashboard.titleRequired': 'Ο τίτλος είναι υποχρεωτικός',
-  'dashboard.endDateError':
-    'Η ημερομηνία λήξης πρέπει να είναι μετά την ημερομηνία έναρξης',
+  'dashboard.endDateError': 'Η ημερομηνία λήξης πρέπει να είναι μετά την ημερομηνία έναρξης',
   'dashboard.greeting.morning': 'Καλημέρα,',
   'dashboard.greeting.afternoon': 'Καλό απόγευμα,',
   'dashboard.greeting.evening': 'Καλησπέρα,',

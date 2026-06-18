@@ -6,13 +6,10 @@ const places: TranslationStrings = {
   'places.sidebarDrop': 'Upuść, aby zaimportować',
   'places.importFileHint':
     'Importuj pliki .gpx, .kml lub .kmz z narzędzi takich jak Google My Maps, Google Earth lub tracker GPS.',
-  'places.importFileDropHere':
-    'Kliknij, aby wybrać plik lub przeciągnij i upuść tutaj',
+  'places.importFileDropHere': 'Kliknij, aby wybrać plik lub przeciągnij i upuść tutaj',
   'places.importFileDropActive': 'Upuść plik, aby go wybrać',
-  'places.importFileUnsupported':
-    'Nieobsługiwany typ pliku. Użyj .gpx, .kml lub .kmz.',
-  'places.importFileTooLarge':
-    'Plik jest za duży. Maksymalny rozmiar przesyłania to {maxMb} MB.',
+  'places.importFileUnsupported': 'Nieobsługiwany typ pliku. Użyj .gpx, .kml lub .kmz.',
+  'places.importFileTooLarge': 'Plik jest za duży. Maksymalny rozmiar przesyłania to {maxMb} MB.',
   'places.importFileError': 'Import nie powiódł się',
   'places.importAllSkipped': 'Wszystkie miejsca były już w podróży.',
   'places.gpxImported': '{count} miejsc zaimportowanych z GPX',
@@ -29,8 +26,7 @@ const places: TranslationStrings = {
   'places.deleteSelected': 'Usuń wybrane',
   'places.kmlKmzImported': 'Zaimportowano {count} miejsc z KMZ/KML',
   'places.urlResolved': 'Miejsce zaimportowane z URL',
-  'places.kmlKmzSummaryValues':
-    'Placemarks: {total} • Zaimportowano: {created} • Pominięto: {skipped}',
+  'places.kmlKmzSummaryValues': 'Placemarks: {total} • Zaimportowano: {created} • Pominięto: {skipped}',
   'places.importGoogleList': 'Lista Google',
   'places.assignToDay': 'Do którego dnia dodać?',
   'places.all': 'Wszystkie',
@@ -59,15 +55,13 @@ const places: TranslationStrings = {
   'places.formTime': 'Godzina',
   'places.startTime': 'Początek',
   'places.endTime': 'Koniec',
-  'places.endTimeBeforeStart':
-    'Godzina zakończenia jest przed godziną rozpoczęcia',
+  'places.endTimeBeforeStart': 'Godzina zakończenia jest przed godziną rozpoczęcia',
   'places.timeCollision': 'Nakładanie się godzin z:',
   'places.formWebsite': 'Strona internetowa',
   'places.formNotes': 'Notatki',
   'places.formNotesPlaceholder': 'Osobiste notatki...',
   'places.formReservation': 'Rezerwacja',
-  'places.reservationNotesPlaceholder':
-    'Notatki z rezerwacji, numer potwierdzenia...',
+  'places.reservationNotesPlaceholder': 'Notatki z rezerwacji, numer potwierdzenia...',
   'places.mapsSearchPlaceholder': 'Szukaj miejsc...',
   'places.mapsSearchError': 'Nie udało się wyszukać miejsca.',
   'places.loadingDetails': 'Ładowanie szczegółów miejsca…',
@@ -85,8 +79,7 @@ const places: TranslationStrings = {
   'places.googleListHint': 'Wklej link do listy Google Maps.',
   'places.googleListImported': 'Zaimportowano {count} miejsc',
   'places.googleListError': 'Nie udało się zaimportować listy',
-  'places.naverListHint':
-    'Wklej link do udostępnionej listy Naver Maps, aby zaimportować wszystkie miejsca.',
+  'places.naverListHint': 'Wklej link do udostępnionej listy Naver Maps, aby zaimportować wszystkie miejsca.',
   'places.naverListImported': 'Zaimportowano {count} miejsc z "{list}"',
   'places.naverListError': 'Nie udało się zaimportować listy Naver Maps',
   'places.viewDetails': 'Zobacz szczegóły',

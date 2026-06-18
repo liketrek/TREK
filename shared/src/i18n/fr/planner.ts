@@ -33,8 +33,7 @@ const planner: TranslationStrings = {
   'planner.resConfirmed': 'Réservation confirmée · ',
   'planner.notePlaceholder': 'Note…',
   'planner.noteTimePlaceholder': 'Heure (facultatif)',
-  'planner.noteExamplePlaceholder':
-    'ex. S3 à 14h30 depuis la gare centrale, ferry depuis le quai 7, pause déjeuner…',
+  'planner.noteExamplePlaceholder': 'ex. S3 à 14h30 depuis la gare centrale, ferry depuis le quai 7, pause déjeuner…',
   'planner.totalCost': 'Coût total',
   'planner.searchPlaces': 'Rechercher des lieux…',
   'planner.allCategories': 'Toutes les catégories',
@@ -48,8 +47,7 @@ const planner: TranslationStrings = {
   'planner.route': 'Itinéraire',
   'planner.optimize': 'Optimiser',
   'planner.openGoogleMaps': 'Ouvrir dans Google Maps',
-  'planner.selectDayHint':
-    'Sélectionnez un jour dans la liste de gauche pour voir le plan du jour',
+  'planner.selectDayHint': 'Sélectionnez un jour dans la liste de gauche pour voir le plan du jour',
   'planner.noPlacesForDay': 'Aucun lieu pour ce jour',
   'planner.addPlacesLink': 'Ajouter des lieux →',
   'planner.minTotal': 'min. total',
@@ -61,8 +59,7 @@ const planner: TranslationStrings = {
   'planner.editTripToAddDays': 'Modifiez le voyage pour ajouter des jours',
   'planner.dayCount': '{n} jours',
   'planner.clickToUnlock': 'Cliquez pour déverrouiller',
-  'planner.keepPosition':
-    "Maintenir la position lors de l'optimisation de l'itinéraire",
+  'planner.keepPosition': "Maintenir la position lors de l'optimisation de l'itinéraire",
   'planner.dayDetails': 'Détails du jour',
   'planner.dayN': 'Jour {n}',
 };

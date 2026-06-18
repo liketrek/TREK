@@ -8,8 +8,7 @@ const vacay: TranslationStrings = {
   'vacay.addPrevYear': 'Önceki yılı ekle',
   'vacay.removeYear': 'Yılı kaldır',
   'vacay.removeYearConfirm': '{year} Kaldırılsın mı?',
-  'vacay.removeYearHint':
-    'Bu yılın tüm tatil girişleri ve şirket tatilleri kalıcı olarak silinecek.',
+  'vacay.removeYearHint': 'Bu yılın tüm tatil girişleri ve şirket tatilleri kalıcı olarak silinecek.',
   'vacay.remove': 'Kaldırmak',
   'vacay.persons': 'Kişiler',
   'vacay.noPersons': 'Hiç kişi eklenmedi',
@@ -17,8 +16,7 @@ const vacay: TranslationStrings = {
   'vacay.editPerson': 'Kişiyi Düzenle',
   'vacay.removePerson': 'Kişiyi Kaldır',
   'vacay.removePersonConfirm': '{name} Kaldırılsın mı?',
-  'vacay.removePersonHint':
-    'Bu kişinin tüm tatil girişleri kalıcı olarak silinecek.',
+  'vacay.removePersonHint': 'Bu kişinin tüm tatil girişleri kalıcı olarak silinecek.',
   'vacay.personName': 'İsim',
   'vacay.personNamePlaceholder': 'Ad girin',
   'vacay.color': 'Renk',
@@ -53,16 +51,12 @@ const vacay: TranslationStrings = {
   'vacay.calendarColor': 'Renk',
   'vacay.noCalendars': 'Henüz tatil takvimi eklenmedi',
   'vacay.companyHolidays': 'Şirket Tatilleri',
-  'vacay.companyHolidaysHint':
-    'Şirket çapında tatil günlerinin işaretlenmesine izin ver',
-  'vacay.companyHolidaysNoDeduct':
-    'Şirket tatilleri tatil günlerinden sayılmaz.',
+  'vacay.companyHolidaysHint': 'Şirket çapında tatil günlerinin işaretlenmesine izin ver',
+  'vacay.companyHolidaysNoDeduct': 'Şirket tatilleri tatil günlerinden sayılmaz.',
   'vacay.weekStart': 'Hafta başlıyor',
-  'vacay.weekStartHint':
-    'Takvim haftasının Pazartesi mi yoksa Pazar günü mü başlayacağını seçin',
+  'vacay.weekStartHint': 'Takvim haftasının Pazartesi mi yoksa Pazar günü mü başlayacağını seçin',
   'vacay.carryOver': 'Devret',
-  'vacay.carryOverHint':
-    'Kalan tatil günlerini otomatik olarak bir sonraki yıla taşıyın',
+  'vacay.carryOverHint': 'Kalan tatil günlerini otomatik olarak bir sonraki yıla taşıyın',
   'vacay.sharing': 'Paylaşma',
   'vacay.sharingHint': 'Tatil planınızı diğer TREK kullanıcılarıyla paylaşın',
   'vacay.owner': 'Mal sahibi',
@@ -78,8 +72,7 @@ const vacay: TranslationStrings = {
   'vacay.noData': 'Veri yok',
   'vacay.changeColor': 'Rengi değiştir',
   'vacay.inviteUser': 'Kullanıcıyı Davet Et',
-  'vacay.inviteHint':
-    'Başka bir TREK kullanıcısını birleşik bir tatil takvimini paylaşmaya davet edin.',
+  'vacay.inviteHint': 'Başka bir TREK kullanıcısını birleşik bir tatil takvimini paylaşmaya davet edin.',
   'vacay.selectUser': 'Kullanıcı seç',
   'vacay.sendInvite': 'Davet Gönder',
   'vacay.inviteSent': 'Davet gönderildi',
@@ -91,15 +84,10 @@ const vacay: TranslationStrings = {
   'vacay.acceptFusion': 'Kabul Et ve Sigortala',
   'vacay.inviteTitle': 'Füzyon Talebi',
   'vacay.inviteWantsToFuse': 'sizinle bir tatil takvimi paylaşmak istiyor.',
-  'vacay.fuseInfo1':
-    'İkiniz de tüm tatil kayıtlarını tek bir paylaşılan takvimde göreceksiniz.',
-  'vacay.fuseInfo2':
-    'Her iki taraf da birbirleri için girişler oluşturabilir ve düzenleyebilir.',
-  'vacay.fuseInfo3':
-    'Her iki taraf da girişleri silebilir ve tatil haklarını değiştirebilir.',
-  'vacay.fuseInfo4':
-    'Resmi tatiller ve şirket tatilleri gibi ayarlar paylaşılır.',
-  'vacay.fuseInfo5':
-    'Birleşme her iki tarafça da herhangi bir zamanda feshedilebilir. Girişleriniz korunacaktır.',
+  'vacay.fuseInfo1': 'İkiniz de tüm tatil kayıtlarını tek bir paylaşılan takvimde göreceksiniz.',
+  'vacay.fuseInfo2': 'Her iki taraf da birbirleri için girişler oluşturabilir ve düzenleyebilir.',
+  'vacay.fuseInfo3': 'Her iki taraf da girişleri silebilir ve tatil haklarını değiştirebilir.',
+  'vacay.fuseInfo4': 'Resmi tatiller ve şirket tatilleri gibi ayarlar paylaşılır.',
+  'vacay.fuseInfo5': 'Birleşme her iki tarafça da herhangi bir zamanda feshedilebilir. Girişleriniz korunacaktır.',
 };
 export default vacay;

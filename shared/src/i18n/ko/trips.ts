@@ -11,7 +11,6 @@ const trips: TranslationStrings = {
   'trips.reminderDays': '일',
   'trips.reminderCustom': '직접 설정',
   'trips.reminderDaysBefore': '일 전 출발',
-  'trips.reminderDisabledHint':
-    '여행 리마인더가 비활성화되어 있습니다. 관리자 > 설정 > 알림에서 활성화하세요.',
+  'trips.reminderDisabledHint': '여행 리마인더가 비활성화되어 있습니다. 관리자 > 설정 > 알림에서 활성화하세요.',
 };
 export default trips;

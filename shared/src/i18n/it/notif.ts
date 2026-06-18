@@ -8,8 +8,7 @@ const notif: TranslationStrings = {
   'notif.trip_invite.title': 'Invito al viaggio',
   'notif.trip_invite.text': '{actor} ti ha invitato a {trip}',
   'notif.booking_change.title': 'Prenotazione aggiornata',
-  'notif.booking_change.text':
-    '{actor} ha aggiornato una prenotazione in {trip}',
+  'notif.booking_change.text': '{actor} ha aggiornato una prenotazione in {trip}',
   'notif.trip_reminder.title': 'Promemoria viaggio',
   'notif.trip_reminder.text': 'Il tuo viaggio {trip} si avvicina!',
   'notif.todo_due.title': 'Attività in scadenza',
@@ -36,7 +35,6 @@ const notif: TranslationStrings = {
   'notif.generic.title': 'Notifica',
   'notif.generic.text': 'Hai una nuova notifica',
   'notif.dev.unknown_event.title': '[DEV] Evento sconosciuto',
-  'notif.dev.unknown_event.text':
-    'Il tipo di evento "{event}" non è registrato in EVENT_NOTIFICATION_CONFIG',
+  'notif.dev.unknown_event.text': 'Il tipo di evento "{event}" non è registrato in EVENT_NOTIFICATION_CONFIG',
 };
 export default notif;

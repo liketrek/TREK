@@ -4,15 +4,11 @@ const places: TranslationStrings = {
   'places.addPlace': 'Tambah Tempat/Aktivitas',
   'places.importFile': 'Impor file',
   'places.sidebarDrop': 'Lepas untuk mengimpor',
-  'places.importFileHint':
-    'Impor file .gpx, .kml, atau .kmz dari Google My Maps, Google Earth, atau pelacak GPS.',
-  'places.importFileDropHere':
-    'Klik untuk memilih file atau seret dan lepas di sini',
+  'places.importFileHint': 'Impor file .gpx, .kml, atau .kmz dari Google My Maps, Google Earth, atau pelacak GPS.',
+  'places.importFileDropHere': 'Klik untuk memilih file atau seret dan lepas di sini',
   'places.importFileDropActive': 'Lepas file untuk memilih',
-  'places.importFileUnsupported':
-    'Jenis file tidak didukung. Gunakan .gpx, .kml, atau .kmz.',
-  'places.importFileTooLarge':
-    'File terlalu besar. Ukuran unggah maksimum adalah {maxMb} MB.',
+  'places.importFileUnsupported': 'Jenis file tidak didukung. Gunakan .gpx, .kml, atau .kmz.',
+  'places.importFileTooLarge': 'File terlalu besar. Ukuran unggah maksimum adalah {maxMb} MB.',
   'places.importFileError': 'Impor gagal',
   'places.importAllSkipped': 'Semua tempat sudah ada di perjalanan.',
   'places.gpxImported': '{count} tempat diimpor dari GPX',
@@ -30,16 +26,13 @@ const places: TranslationStrings = {
   'places.kmlKmzImported': '{count} tempat diimpor dari KMZ/KML',
   'places.urlResolved': 'Tempat diimpor dari URL',
   'places.importList': 'Impor Daftar',
-  'places.kmlKmzSummaryValues':
-    'Placemark: {total} • Diimpor: {created} • Dilewati: {skipped}',
+  'places.kmlKmzSummaryValues': 'Placemark: {total} • Diimpor: {created} • Dilewati: {skipped}',
   'places.importGoogleList': 'Daftar Google',
   'places.importNaverList': 'Daftar Naver',
-  'places.googleListHint':
-    'Tempel tautan daftar Google Maps yang dibagikan untuk mengimpor semua tempat.',
+  'places.googleListHint': 'Tempel tautan daftar Google Maps yang dibagikan untuk mengimpor semua tempat.',
   'places.googleListImported': '{count} tempat diimpor dari "{list}"',
   'places.googleListError': 'Gagal mengimpor daftar Google Maps',
-  'places.naverListHint':
-    'Tempel tautan daftar Naver Maps yang dibagikan untuk mengimpor semua tempat.',
+  'places.naverListHint': 'Tempel tautan daftar Naver Maps yang dibagikan untuk mengimpor semua tempat.',
   'places.naverListImported': '{count} tempat diimpor dari "{list}"',
   'places.naverListError': 'Gagal mengimpor daftar Naver Maps',
   'places.viewDetails': 'Lihat Detail',
@@ -76,8 +69,7 @@ const places: TranslationStrings = {
   'places.formNotes': 'Catatan',
   'places.formNotesPlaceholder': 'Catatan pribadi...',
   'places.formReservation': 'Reservasi',
-  'places.reservationNotesPlaceholder':
-    'Catatan reservasi, nomor konfirmasi...',
+  'places.reservationNotesPlaceholder': 'Catatan reservasi, nomor konfirmasi...',
   'places.mapsSearchPlaceholder': 'Cari tempat...',
   'places.mapsSearchError': 'Pencarian tempat gagal.',
   'places.loadingDetails': 'Memuat detail tempat…',

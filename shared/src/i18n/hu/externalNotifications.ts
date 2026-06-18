@@ -2,8 +2,7 @@ import type { NotificationLocale } from '../externalNotifications/types';
 
 const hu: NotificationLocale = {
   email: {
-    footer:
-      'Ezt az értesítést azért kaptad, mert engedélyezted az értesítéseket a TREK-ben.',
+    footer: 'Ezt az értesítést azért kaptad, mert engedélyezted az értesítéseket a TREK-ben.',
     manage: 'Beállítások kezelése',
     madeWith: 'Made with',
     openTrek: 'TREK megnyitása',
@@ -56,8 +55,7 @@ const hu: NotificationLocale = {
     body: 'Kérést kaptunk a TREK-fiókod jelszavának visszaállítására. Kattints az alábbi gombra az új jelszó beállításához.',
     ctaIntro: 'Jelszó visszaállítása',
     expiry: 'Ez a link 60 perc után lejár.',
-    ignore:
-      'Ha nem te kérted ezt, nyugodtan hagyd figyelmen kívül ezt az e-mailt — a jelszavad változatlan marad.',
+    ignore: 'Ha nem te kérted ezt, nyugodtan hagyd figyelmen kívül ezt az e-mailt — a jelszavad változatlan marad.',
   },
 };
 

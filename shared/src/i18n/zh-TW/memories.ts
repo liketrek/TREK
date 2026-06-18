@@ -3,10 +3,8 @@ import type { TranslationStrings } from '../types';
 const memories: TranslationStrings = {
   'memories.title': '照片',
   'memories.notConnected': '{provider_name} 未連線',
-  'memories.notConnectedHint':
-    '在設定中連線您的 {provider_name} 例項以在此旅行中新增照片。',
-  'memories.notConnectedMultipleHint':
-    '在設定中連線以下任一照片提供商：{provider_names} 以在此旅行中新增照片。',
+  'memories.notConnectedHint': '在設定中連線您的 {provider_name} 例項以在此旅行中新增照片。',
+  'memories.notConnectedMultipleHint': '在設定中連線以下任一照片提供商：{provider_names} 以在此旅行中新增照片。',
   'memories.noDates': '為旅行新增日期以載入照片。',
   'memories.noPhotos': '未找到照片',
   'memories.noPhotosHint': '{provider_name} 中未找到此旅行日期範圍內的照片。',
@@ -24,8 +22,7 @@ const memories: TranslationStrings = {
   'memories.providerOTP': 'MFA 驗證碼（如已啟用）',
   'memories.skipSSLVerification': '跳過 SSL 憑證驗證',
   'memories.immichAutoUpload': '上傳 Journey 照片時同步到 Immich',
-  'memories.providerUrlHintSynology':
-    '在網址中包含照片應用程式路徑，例如 https://nas:5001/photo',
+  'memories.providerUrlHintSynology': '在網址中包含照片應用程式路徑，例如 https://nas:5001/photo',
   'memories.testConnection': '測試連線',
   'memories.testShort': '測試',
   'memories.testFirst': '請先測試連線',
@@ -34,8 +31,7 @@ const memories: TranslationStrings = {
   'memories.connectionSuccess': '已連線到 {provider_name}',
   'memories.connectionError': '無法連線到 {provider_name}',
   'memories.saved': '{provider_name} 設定已儲存',
-  'memories.providerDisconnectedBanner':
-    '您與 {provider_name} 的連線已中斷。請在設定中重新連線以查看照片。',
+  'memories.providerDisconnectedBanner': '您與 {provider_name} 的連線已中斷。請在設定中重新連線以查看照片。',
   'memories.saveError': '無法儲存 {provider_name} 設定',
   'memories.oldest': '最早優先',
   'memories.newest': '最新優先',
@@ -59,8 +55,7 @@ const memories: TranslationStrings = {
   'memories.tripDates': '旅行日期',
   'memories.allPhotos': '所有照片',
   'memories.confirmShareTitle': '與旅行成員分享？',
-  'memories.confirmShareHint':
-    '{count} 張照片將對本次旅行的所有成員可見。你可以稍後將單張照片設為私密。',
+  'memories.confirmShareHint': '{count} 張照片將對本次旅行的所有成員可見。你可以稍後將單張照片設為私密。',
   'memories.confirmShareButton': '分享照片',
   'memories.error.loadAlbums': '載入相簿失敗',
   'memories.error.linkAlbum': '關聯相簿失敗',

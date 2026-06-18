@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ArrowDown, ArrowUp, BarChart3, Plus, Search, ArrowRight, Check, RotateCcw, History, Pencil, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, BarChart3, Plus, Search, ArrowRight, ArrowLeftRight, Check, RotateCcw, Pencil, Trash2 } from 'lucide-react'
 import { useTripStore } from '../../store/tripStore'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -39,6 +39,12 @@ interface SettlementData {
   settlements: Settlement[]
 }
 
+// One row in the unified Costs ledger — either an expense or a settle-up payment,
+// carrying the date used to group it by day.
+type LedgerEntry =
+  | { kind: 'expense'; date: string; e: BudgetItem }
+  | { kind: 'payment'; date: string; s: Settlement }
+
 const round2 = (n: number) => Math.round(n * 100) / 100
 const FIELD_H = 40 // shared height for the amount / currency / day row in the modal
 
@@ -62,9 +68,10 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
   const [settlement, setSettlement] = useState<SettlementData | null>(null)
   const [filter, setFilter] = useState<'all' | 'mine' | 'owed'>('all')
   const [search, setSearch] = useState('')
-  const [histOpen, setHistOpen] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<BudgetItem | null>(null)
+  const [editingSettlement, setEditingSettlement] = useState<Settlement | null>(null)
+  const [addingPayment, setAddingPayment] = useState(false)
 
   const people = tripMembers
   const personById = useCallback((id: number) => people.find(p => p.id === id), [people])
@@ -122,21 +129,37 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     return list
   }, [budgetItems, filter, search, me])
 
+  // Settlements ("payments") shown inline in the ledger. They have no name, so a
+  // text search hides them; they're excluded from the "owed" expense filter and,
+  // under "mine", only show transfers I'm part of.
+  const filteredSettlements = useMemo(() => {
+    if (search.trim()) return []
+    if (filter === 'owed') return []
+    let list = settlement?.settlements || []
+    if (filter === 'mine') list = list.filter(s => s.from_user_id === me || s.to_user_id === me)
+    return list
+  }, [settlement, filter, search, me])
+
   const dayGroups = useMemo(() => {
-    const groups: { day: string; items: BudgetItem[] }[] = []
-    const labelOf = (e: BudgetItem) => {
-      if (!e.expense_date) return t('costs.noDate')
-      try { return new Date(e.expense_date + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }) } catch { return e.expense_date }
+    const entries: LedgerEntry[] = [
+      ...filtered.map(e => ({ kind: 'expense' as const, date: e.expense_date || '', e })),
+      ...filteredSettlements.map(s => ({ kind: 'payment' as const, date: (s.created_at || '').slice(0, 10), s })),
+    ]
+    const labelOf = (date: string) => {
+      if (!date) return t('costs.noDate')
+      try { return new Date(date + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }) } catch { return date }
     }
-    const sorted = filtered.slice().sort((a, b) => (b.expense_date || '').localeCompare(a.expense_date || ''))
-    for (const e of sorted) {
-      const day = labelOf(e)
+    // Newest day first; within a day, expenses before payments (insertion order).
+    const sorted = entries.slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+    const groups: { day: string; entries: LedgerEntry[] }[] = []
+    for (const en of sorted) {
+      const day = labelOf(en.date)
       let g = groups.find(x => x.day === day)
-      if (!g) { g = { day, items: [] }; groups.push(g) }
-      g.items.push(e)
+      if (!g) { g = { day, entries: [] }; groups.push(g) }
+      g.entries.push(en)
     }
     return groups
-  }, [filtered, locale, t])
+  }, [filtered, filteredSettlements, locale, t])
 
   // ── settle actions ──────────────────────────────────────────────────────
   const settleFlow = async (fromId: number, toId: number, amount: number) => {
@@ -280,14 +303,16 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
               {search ? t('costs.noMatch') : t('costs.emptyText')}
             </div>
           ) : dayGroups.map(g => {
-            const dtot = g.items.reduce((a, e) => a + baseTotal(e), 0)
+            const dtot = g.entries.reduce((a, en) => en.kind === 'expense' ? a + baseTotal(en.e) : a, 0)
             return (
               <div key={g.day} style={{ marginBottom: 22 }}>
                 <div className={labelCls} style={{ display: 'flex', alignItems: 'center', margin: '0 0 10px 4px' }}>
                   {g.day}<span className="text-content-muted" style={{ marginLeft: 'auto', textTransform: 'none', letterSpacing: 0, fontWeight: 500, fontSize: 12 }}>{t('costs.spent', { amount: fmt(dtot) })}</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {g.items.map(e => <ExpenseRow key={e.id} e={e} />)}
+                  {g.entries.map(en => en.kind === 'expense'
+                    ? <ExpenseRow key={'e' + en.e.id} e={en.e} />
+                    : <SettlementRow key={'s' + en.s.id} s={en.s} />)}
                 </div>
               </div>
             )
@@ -300,11 +325,13 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
           <div className={cardCls} style={{ borderRadius: 22, padding: '22px 24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
               <div className={labelCls}>{t('costs.settleUp')} · <span className="text-content">{(settlement?.flows || []).length}</span></div>
-              <button disabled={!(settlement?.settlements || []).length} onClick={() => setHistOpen(true)}
-                className="text-content-muted bg-surface-secondary border border-edge disabled:opacity-40"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 9px', borderRadius: 8, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-                <History size={13} /> {t('costs.history')}{(settlement?.settlements || []).length ? ` (${settlement!.settlements.length})` : ''}
-              </button>
+              {canEdit && (
+                <button onClick={() => setAddingPayment(true)}
+                  className="text-content-muted bg-surface-secondary border border-edge"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 9px', borderRadius: 8, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <Plus size={13} /> {t('costs.addPayment')}
+                </button>
+              )}
             </div>
             <SettleFlows />
           </div>
@@ -330,9 +357,11 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
           onSaved={() => { setModalOpen(false); loadBudgetItems(tripId); loadSettlement() }} />
       )}
 
-      <Modal isOpen={histOpen} onClose={() => setHistOpen(false)} title={t('costs.settleHistory')} size="md">
-        <SettleHistory settlements={settlement?.settlements || []} fmt={fmt} Avatar={Avatar} name={personName} onUndo={undoSettlement} canEdit={canEdit} />
-      </Modal>
+      {(editingSettlement || addingPayment) && (
+        <SettlementModal tripId={tripId} people={people} me={me} editing={editingSettlement}
+          onClose={() => { setEditingSettlement(null); setAddingPayment(false) }}
+          onSaved={() => { setEditingSettlement(null); setAddingPayment(false); loadSettlement() }} />
+      )}
 
       <style>{`
         .costs-root {
@@ -438,7 +467,9 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
         <div className={cardCls} style={{ borderRadius: 18, padding: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 8 }}>
             <div className="text-content" style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-0.02em', display: 'flex', alignItems: 'baseline', gap: 8 }}>{t('costs.settleUp')} <span className="text-content-faint" style={{ fontSize: 12, fontWeight: 500 }}>{(settlement?.flows || []).length}</span></div>
-            <button disabled={!(settlement?.settlements || []).length} onClick={() => setHistOpen(true)} className="text-content-muted bg-surface-card border border-edge disabled:opacity-40" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 10px', borderRadius: 9, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}><History size={13} /> {t('costs.history')}</button>
+            {canEdit && (
+              <button onClick={() => setAddingPayment(true)} className="text-content-muted bg-surface-card border border-edge" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 10px', borderRadius: 9, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}><Plus size={13} /> {t('costs.addPayment')}</button>
+            )}
           </div>
           <SettleFlows />
         </div>
@@ -458,11 +489,13 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
           {dayGroups.length === 0
             ? <div className="text-content-faint" style={{ textAlign: 'center', padding: '36px 16px', fontSize: 13 }}>{search ? t('costs.noMatch') : t('costs.emptyText')}</div>
             : dayGroups.map(g => {
-                const dtot = g.items.reduce((a, e) => a + baseTotal(e), 0)
+                const dtot = g.entries.reduce((a, en) => en.kind === 'expense' ? a + baseTotal(en.e) : a, 0)
                 return (
                   <div key={g.day} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <div className={labelCls} style={{ display: 'flex', alignItems: 'center', padding: '0 2px' }}>{g.day}<span className="text-content-muted" style={{ marginLeft: 'auto', textTransform: 'none', letterSpacing: 0, fontWeight: 500, fontSize: 11.5 }}>{t('costs.spent', { amount: fmt(dtot) })}</span></div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{g.items.map(e => <ExpenseRow key={e.id} e={e} />)}</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{g.entries.map(en => en.kind === 'expense'
+                      ? <ExpenseRow key={'e' + en.e.id} e={en.e} />
+                      : <SettlementRow key={'s' + en.s.id} s={en.s} />)}</div>
                   </div>
                 )
               })}
@@ -490,11 +523,22 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     const cur = curOf(e)
     const payers = (e.payers || []).filter(p => p.amount > 0)
     const net = round2(myPaidOf(e) - myShareOf(e))
+    // "Unfinished": a recorded total nobody has paid yet — counts toward the trip
+    // total but stays out of settlements until who-paid is filled in.
+    const isUnfinished = baseTotal(e) > 0 && payers.length === 0
     return (
       <div className="bg-surface-card border border-edge exp-row" style={{ display: 'grid', gridTemplateColumns: '46px 1fr auto', gap: 16, alignItems: 'center', borderRadius: 18, padding: '16px 20px' }}>
         <span style={{ width: 46, height: 46, borderRadius: 13, display: 'grid', placeItems: 'center', background: c.color + '22', color: c.color }}><Icon size={21} /></span>
         <div style={{ minWidth: 0 }}>
-          <div className="text-content" style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{e.name}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
+            <span className="text-content" style={{ fontSize: 15, fontWeight: 600 }}>{e.name}</span>
+            {isUnfinished && (
+              <span title={t('costs.unfinishedHint')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px 2px 6px', borderRadius: 999, background: 'rgba(217,119,6,0.14)', color: '#d97706', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+                <span style={{ width: 14, height: 14, borderRadius: '50%', background: '#d97706', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 10, fontWeight: 800 }}>!</span>
+                {t('costs.unfinished')}
+              </span>
+            )}
+          </div>
           {payers.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 5 }}>
               {payers.map(p => (
@@ -514,7 +558,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, alignSelf: 'center' }}>
           <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
             <div className="text-content" style={{ fontSize: 18, fontWeight: 600 }}>{fmt(baseTotal(e))}</div>
-            {(e.members || []).length > 0 && Math.abs(net) > 0.01 && (
+            {!isUnfinished && (e.members || []).length > 0 && Math.abs(net) > 0.01 && (
               <div style={{ fontSize: 12, marginTop: 2, fontWeight: 500, whiteSpace: 'nowrap', color: net > 0 ? '#16a34a' : '#dc2626' }}>
                 {net > 0 ? t('costs.youLent', { amount: fmt(net) }) : t('costs.youBorrowed', { amount: fmt(-net) })}
               </div>
@@ -524,6 +568,32 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
             <div className="exp-actions" style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
               <button title={t('common.edit')} onClick={() => { setEditing(e); setModalOpen(true) }} className="bg-surface-secondary border border-edge text-content-muted" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 999, cursor: 'pointer' }}><Pencil size={13} /></button>
               <button title={t('common.delete')} onClick={() => handleDelete(e.id)} className="bg-surface-secondary border border-edge" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 999, cursor: 'pointer', color: '#dc2626' }}><Trash2 size={13} /></button>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // A settle-up payment as a ledger row — visually distinct from an expense, with
+  // inline edit + undo (reuses deleteSettlement) so it isn't buried in a modal.
+  function SettlementRow({ s }: { s: Settlement }) {
+    return (
+      <div className="bg-surface-card border border-edge exp-row" style={{ display: 'grid', gridTemplateColumns: '46px 1fr auto', gap: 16, alignItems: 'center', borderRadius: 18, padding: '16px 20px' }}>
+        <span style={{ width: 46, height: 46, borderRadius: 13, display: 'grid', placeItems: 'center', background: 'rgba(22,163,74,0.12)', color: '#16a34a' }}><ArrowLeftRight size={21} /></span>
+        <div style={{ minWidth: 0 }}>
+          <div className="text-content" style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{t('costs.payment')}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }} title={`${personName(s.from_user_id)} → ${personName(s.to_user_id)}`}>
+            <Avatar id={s.from_user_id} size={20} /><ArrowRight size={13} className="text-content-faint" /><Avatar id={s.to_user_id} size={20} />
+            <span className="text-content-faint" style={{ fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{personName(s.from_user_id)} → {personName(s.to_user_id)}</span>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, alignSelf: 'center' }}>
+          <div className="text-content" style={{ fontSize: 18, fontWeight: 600, whiteSpace: 'nowrap' }}>{fmt(s.amount)}</div>
+          {canEdit && (
+            <div className="exp-actions" style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+              <button title={t('common.edit')} onClick={() => setEditingSettlement(s)} className="bg-surface-secondary border border-edge text-content-muted" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 999, cursor: 'pointer' }}><Pencil size={13} /></button>
+              <button title={t('costs.undo')} onClick={() => undoSettlement(s.id)} className="bg-surface-secondary border border-edge" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 999, cursor: 'pointer', color: '#dc2626' }}><RotateCcw size={13} /></button>
             </div>
           )}
         </div>
@@ -633,31 +703,62 @@ function FlowPills({ ids, lead, Avatar, name }: { ids: number[]; lead: string; A
   )
 }
 
-function SettleHistory({ settlements, fmt, Avatar, name, onUndo, canEdit }: {
-  settlements: Settlement[]; fmt: (v: number) => string; Avatar: (p: { id: number; size?: number }) => React.JSX.Element; name: (id: number) => string; onUndo: (id: number) => void; canEdit: boolean
+// Add or edit a settle-up payment (from / to / amount). Reachable inline from the
+// ledger row and from a manual "Add payment" button, so recording "I sent money to
+// X" works the same whether or not there's an outstanding expense behind it.
+function SettlementModal({ tripId, people, me, editing, onClose, onSaved }: {
+  tripId: number; people: TripMember[]; me: number; editing: Settlement | null; onClose: () => void; onSaved: () => void
 }) {
   const { t } = useTranslation()
-  if (settlements.length === 0) return <div className="text-content-faint" style={{ textAlign: 'center', padding: 30, fontSize: 13 }}>{t('costs.noSettlements')}</div>
-  const total = settlements.reduce((a, s) => a + s.amount, 0)
+  const toast = useToast()
+  const otherDefault = people.find(p => p.id !== me)?.id ?? me
+  const [fromId, setFromId] = useState<string>(String(editing?.from_user_id ?? me))
+  const [toId, setToId] = useState<string>(String(editing?.to_user_id ?? otherDefault))
+  const [amount, setAmount] = useState<string>(editing ? String(editing.amount) : '')
+  const [saving, setSaving] = useState(false)
+
+  const amt = parseFloat(amount) || 0
+  const valid = amt > 0 && fromId !== toId
+  const opts = people.map(p => ({ value: String(p.id), label: p.id === me ? t('costs.you') : p.username }))
+
+  const save = async () => {
+    if (!valid) return
+    setSaving(true)
+    const data = { from_user_id: Number(fromId), to_user_id: Number(toId), amount: amt }
+    try {
+      if (editing) await budgetApi.updateSettlement(tripId, editing.id, data)
+      else await budgetApi.createSettlement(tripId, data)
+      onSaved()
+    } catch { toast.error(t('common.unknownError')) } finally { setSaving(false) }
+  }
+
+  const inputCls = 'w-full bg-surface-input border border-edge text-content'
+  const labelCls = 'block text-[11px] font-semibold uppercase tracking-[0.08em] text-content-faint mb-[6px]'
+
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', borderRadius: 12, marginBottom: 14, background: 'rgba(22,163,74,0.1)', color: '#16a34a', fontWeight: 600, fontSize: 13 }}>
-        <span>{t('costs.paymentsSettled', { count: settlements.length })}</span><span>{fmt(total)}</span>
+    <Modal isOpen onClose={onClose} title={editing ? t('costs.editPayment') : t('costs.addPayment')} size="md"
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <button onClick={onClose} className="text-content-muted border border-edge" style={{ padding: '8px 16px', borderRadius: 10, background: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>{t('common.cancel')}</button>
+          <button onClick={save} disabled={!valid || saving} className="bg-[var(--text-primary)] text-[var(--bg-primary)]" style={{ padding: '8px 20px', borderRadius: 10, border: 0, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: !valid || saving ? 0.5 : 1 }}>{editing ? t('common.save') : t('costs.addPayment')}</button>
+        </div>
+      }>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div>
+          <label className={labelCls}>{t('costs.from')}</label>
+          <CustomSelect value={fromId} onChange={v => setFromId(String(v))} options={opts} style={{ width: '100%' }} />
+        </div>
+        <div>
+          <label className={labelCls}>{t('costs.to')}</label>
+          <CustomSelect value={toId} onChange={v => setToId(String(v))} options={opts} style={{ width: '100%' }} />
+        </div>
+        <div>
+          <label className={labelCls}>{t('costs.amount')}</label>
+          <input type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" value={amount}
+            onChange={e => setAmount(e.target.value)} className={inputCls} style={{ borderRadius: 10, padding: '11px 13px', fontSize: 14, outline: 'none', fontWeight: 600 }} />
+        </div>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {settlements.map(s => (
-          <div key={s.id} className="bg-surface-secondary border border-edge" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 14px', borderRadius: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }} title={`${name(s.from_user_id)} → ${name(s.to_user_id)}`}>
-              <Avatar id={s.from_user_id} size={30} /><ArrowRight size={15} className="text-content-faint" /><Avatar id={s.to_user_id} size={30} />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span className="text-content" style={{ fontSize: 14, fontWeight: 600 }}>{fmt(s.amount)}</span>
-              {canEdit && <button onClick={() => onUndo(s.id)} className="bg-surface-card border border-edge text-content-muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 10px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}><RotateCcw size={12} /> {t('costs.undo')}</button>}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+    </Modal>
   )
 }
 
@@ -682,43 +783,88 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   const [cat, setCat] = useState<string>(editing ? catMeta(editing.category).key : (prefill?.category || 'food'))
   const [currency, setCurrency] = useState((editing?.currency || base).toUpperCase())
   const [day, setDay] = useState(editing?.expense_date || new Date().toISOString().slice(0, 10))
-  const [payers, setPayers] = useState<Record<number, string>>(() => {
-    const m: Record<number, string> = {}
-    for (const p of editing?.payers || []) m[p.user_id] = String(p.amount)
-    return m
-  })
-  // Standalone total for "recorded amount, nobody has paid yet" expenses (created
-  // from a booking, or pre-rework items). Used only while no per-person amount is
-  // entered; once a payer has an amount, the total derives from the payers.
-  const [amount, setAmount] = useState<string>(() => {
-    if (editing && !(editing.payers && editing.payers.length > 0)) return editing.total_price ? String(editing.total_price) : ''
+  // One participant list: a person is "in" the split and may have paid an amount.
+  // Entering the total auto-distributes it equally across the non-pinned participants;
+  // touching an amount pins it and the rest rebalance so the paid amounts always sum
+  // back to the total. Leaving every amount blank = an unfinished expense (counts
+  // toward the trip total only, never settlements, until who-paid is filled in).
+  const [total, setTotal] = useState<string>(() => {
+    if (editing) return editing.total_price ? String(editing.total_price) : ''
     if (prefill?.amount != null) return String(prefill.amount)
     return ''
   })
-  const [split, setSplit] = useState<Set<number>>(() =>
+  const [participants, setParticipants] = useState<Set<number>>(() =>
     editing ? new Set((editing.members || []).map(m => m.user_id)) : new Set(people.map(p => p.id)))
+  const [paid, setPaid] = useState<Record<number, string>>(() => {
+    const m: Record<number, string> = {}
+    for (const p of editing?.payers || []) if (p.amount > 0) m[p.user_id] = String(p.amount)
+    return m
+  })
+  // Amounts the user pinned by typing — kept out of the auto-rebalance. Existing
+  // payer amounts load as pinned so opening an expense never reshuffles them.
+  const [dirty, setDirty] = useState<Set<number>>(() =>
+    new Set((editing?.payers || []).filter(p => p.amount > 0).map(p => p.user_id)))
   const [saving, setSaving] = useState(false)
 
-  const payersTotal = Object.values(payers).reduce((a, v) => a + (parseFloat(v) || 0), 0)
-  const hasPayers = payersTotal > 0
-  const total = hasPayers ? payersTotal : (parseFloat(amount) || 0)
-  const each = split.size > 0 ? total / split.size : 0
-  const valid = name.trim().length > 0 && total > 0 && (hasPayers ? split.size > 0 : true)
+  const totalNum = parseFloat(total) || 0
+  const paidSum = round2([...participants].reduce((a, id) => a + (parseFloat(paid[id]) || 0), 0))
+  const paidEntered = paidSum > 0
+  const balanced = Math.abs(paidSum - totalNum) < 0.01
+  const each = participants.size > 0 ? totalNum / participants.size : 0
+  const valid = name.trim().length > 0 && totalNum > 0 && participants.size > 0 && (!paidEntered || balanced)
+
+  // Spread `amount` across `n` people in whole cents so the parts sum back exactly.
+  const splitCents = (amount: number, n: number): number[] => {
+    if (n <= 0) return []
+    const cents = Math.max(0, Math.round(amount * 100))
+    const base = Math.floor(cents / n), rem = cents - base * n
+    return Array.from({ length: n }, (_, i) => (base + (i < rem ? 1 : 0)) / 100)
+  }
+  // Recompute the non-pinned participants so every paid amount sums to the total.
+  const rebalance = (paidMap: Record<number, string>, dirtySet: Set<number>, parts: Set<number>, totalVal: number): Record<number, string> => {
+    const ids = [...parts]
+    const free = ids.filter(id => !dirtySet.has(id))
+    if (free.length === 0) return paidMap
+    const pinnedSum = ids.filter(id => dirtySet.has(id)).reduce((a, id) => a + (parseFloat(paidMap[id]) || 0), 0)
+    const shares = splitCents(totalVal - pinnedSum, free.length)
+    const next = { ...paidMap }
+    free.forEach((id, i) => { next[id] = shares[i] ? String(shares[i]) : '' })
+    return next
+  }
+
+  const onTotalChange = (v: string) => {
+    setTotal(v)
+    setPaid(prev => rebalance(prev, dirty, participants, parseFloat(v) || 0))
+  }
+  const onPaidChange = (id: number, v: string) => {
+    const nextDirty = new Set(dirty); nextDirty.add(id)
+    setDirty(nextDirty)
+    setPaid(prev => rebalance({ ...prev, [id]: v }, nextDirty, participants, totalNum))
+  }
+  const toggleParticipant = (id: number) => {
+    const nextParts = new Set(participants), nextDirty = new Set(dirty), nextPaid = { ...paid }
+    if (nextParts.has(id)) { nextParts.delete(id); nextDirty.delete(id); delete nextPaid[id] }
+    else nextParts.add(id)
+    setParticipants(nextParts); setDirty(nextDirty)
+    setPaid(rebalance(nextPaid, nextDirty, nextParts, totalNum))
+  }
 
   const save = async () => {
     if (!valid) return
     setSaving(true)
-    const payerList = Object.entries(payers).map(([uid, v]) => ({ user_id: Number(uid), amount: parseFloat(v) || 0 })).filter(p => p.amount > 0)
+    const payerList = [...participants]
+      .map(id => ({ user_id: id, amount: parseFloat(paid[id]) || 0 }))
+      .filter(p => p.amount > 0)
     const data = {
       name: name.trim(), category: cat,
       // Store the actual currency the amounts were entered in; conversion to the
       // viewer's display currency happens live (real rates), no manual rate.
       currency,
-      payers: payerList, member_ids: [...split],
+      payers: payerList, member_ids: [...participants],
       expense_date: day || null,
-      // No per-person amounts: record the typed total directly (the server keeps
-      // it instead of deriving 0 from the empty payer list).
-      ...(payerList.length === 0 ? { total_price: parseFloat(amount) || 0 } : {}),
+      // Always record the entered total: the server keeps it as-is for an unfinished
+      // expense (no payers) and otherwise re-derives it from the payer sum (== total).
+      total_price: totalNum,
       // Link a freshly-created expense to its booking (create-from-booking flow).
       ...(!editing && prefill?.reservationId ? { reservation_id: prefill.reservationId } : {}),
     }
@@ -750,13 +896,9 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
           <label className={labelCls}>{t('costs.totalAmount')}</label>
           <div className="bg-surface-input border border-edge" style={{ height: FIELD_H, boxSizing: 'border-box', display: 'flex', alignItems: 'center', borderRadius: 10, padding: '0 12px' }}>
             <span className="text-content-faint" style={{ fontSize: 15 }}>{sym(currency)}</span>
-            {hasPayers ? (
-              <span className="text-content" style={{ flex: 1, fontSize: 15, fontWeight: 600, paddingLeft: 6 }}>{payersTotal.toFixed(2)}</span>
-            ) : (
-              <input type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" value={amount}
-                onChange={e => setAmount(e.target.value)}
-                className="text-content" style={{ flex: 1, border: 0, background: 'none', outline: 'none', fontSize: 15, fontWeight: 600, paddingLeft: 6, width: '100%' }} />
-            )}
+            <input type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" value={total}
+              onChange={e => onTotalChange(e.target.value)}
+              className="text-content" style={{ flex: 1, border: 0, background: 'none', outline: 'none', fontSize: 15, fontWeight: 600, paddingLeft: 6, width: '100%' }} />
           </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -772,11 +914,11 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
           </div>
         </div>
 
-        {currency !== base && total > 0 && (
+        {currency !== base && totalNum > 0 && (
           <div className="bg-surface-secondary border border-edge text-content-muted" style={{ borderRadius: 10, padding: '10px 12px', fontSize: 12.5, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span>{formatMoney(total, currency, locale)}</span>
+            <span>{formatMoney(totalNum, currency, locale)}</span>
             <span className="text-content-faint">≈</span>
-            <span className="text-content" style={{ fontWeight: 600 }}>{formatMoney(convert(total, currency), base, locale)}</span>
+            <span className="text-content" style={{ fontWeight: 600 }}>{formatMoney(convert(totalNum, currency), base, locale)}</span>
             <span className="text-content-faint">· {t('costs.liveRate')}</span>
           </div>
         )}
@@ -801,39 +943,37 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
         <div>
           <label className={labelCls}>{t('costs.whoPaid')}</label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-            {people.map(p => (
-              <div key={p.id} className="bg-surface-secondary border border-edge" style={{ display: 'grid', gridTemplateColumns: '1fr 130px', gap: 10, alignItems: 'center', padding: '8px 11px', borderRadius: 10 }}>
-                <span className="text-content" style={{ fontSize: 14, fontWeight: 500 }}>{p.id === me ? t('costs.you') : p.username}</span>
-                <div className="bg-surface-input border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 4, borderRadius: 8, padding: '0 10px' }}>
-                  <span className="text-content-faint" style={{ fontSize: 13 }}>{sym(currency)}</span>
-                  <input type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" value={payers[p.id] || ''}
-                    onChange={e => setPayers(prev => ({ ...prev, [p.id]: e.target.value }))}
-                    className="text-content" style={{ width: '100%', border: 0, background: 'none', outline: 'none', fontSize: 14, fontWeight: 600, padding: '8px 0', textAlign: 'right' }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <label className={labelCls}>{t('costs.splitBetween')}</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-            {people.map(p => {
-              const on = split.has(p.id)
+            {people.map((p, idx) => {
+              const on = participants.has(p.id)
               return (
-                <button key={p.id} onClick={() => setSplit(prev => { const n = new Set(prev); n.has(p.id) ? n.delete(p.id) : n.add(p.id); return n })}
-                  className={on ? 'bg-surface-card text-content border' : 'bg-surface-secondary text-content-faint border border-edge'}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 13px 6px 7px', borderRadius: 999, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', borderColor: on ? 'var(--text-primary)' : undefined }}>
-                  {p.avatar_url
-                    ? <img src={p.avatar_url} alt="" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', display: 'block', opacity: on ? 1 : 0.45 }} />
-                    : <span style={{ width: 22, height: 22, borderRadius: '50%', background: SPLIT_COLORS[people.findIndex(x => x.id === p.id) % SPLIT_COLORS.length].gradient, color: '#fff', display: 'grid', placeItems: 'center', fontSize: 9, fontWeight: 700, opacity: on ? 1 : 0.45 }}>{(p.id === me ? t('costs.youShort') : p.username.charAt(0)).toUpperCase()}</span>}
-                  {p.id === me ? t('costs.you') : p.username}
-                </button>
+                <div key={p.id} className="bg-surface-secondary border border-edge" style={{ display: 'grid', gridTemplateColumns: '1fr 130px', gap: 10, alignItems: 'center', padding: '8px 11px', borderRadius: 10, opacity: on ? 1 : 0.5 }}>
+                  <button onClick={() => toggleParticipant(p.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'none', border: 0, cursor: 'pointer', fontFamily: 'inherit', padding: 0, minWidth: 0, textAlign: 'left' }}>
+                    {p.avatar_url
+                      ? <img src={p.avatar_url} alt="" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', display: 'block', flexShrink: 0, opacity: on ? 1 : 0.45 }} />
+                      : <span style={{ width: 22, height: 22, borderRadius: '50%', background: SPLIT_COLORS[idx % SPLIT_COLORS.length].gradient, color: '#fff', display: 'grid', placeItems: 'center', fontSize: 9, fontWeight: 700, flexShrink: 0, opacity: on ? 1 : 0.45 }}>{(p.id === me ? t('costs.youShort') : p.username.charAt(0)).toUpperCase()}</span>}
+                    <span className="text-content" style={{ fontSize: 14, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.id === me ? t('costs.you') : p.username}</span>
+                  </button>
+                  {on ? (
+                    <div className="bg-surface-input border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 4, borderRadius: 8, padding: '0 10px' }}>
+                      <span className="text-content-faint" style={{ fontSize: 13 }}>{sym(currency)}</span>
+                      <input type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" value={paid[p.id] || ''}
+                        onChange={e => onPaidChange(p.id, e.target.value)}
+                        className="text-content" style={{ width: '100%', border: 0, background: 'none', outline: 'none', fontSize: 14, fontWeight: 600, padding: '8px 0', textAlign: 'right' }} />
+                    </div>
+                  ) : (
+                    <button onClick={() => toggleParticipant(p.id)} className="text-content-faint" style={{ background: 'none', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, textAlign: 'right' }}>{t('costs.tapToInclude')}</button>
+                  )}
+                </div>
               )
             })}
           </div>
-          <div className="text-content-faint" style={{ marginTop: 10, fontSize: 12.5 }}>
-            {split.size === 0 ? t('costs.pickSomeone') : t('costs.splitSummary', { count: split.size, amount: sym(currency) + each.toFixed(2) })}
+          <div style={{ marginTop: 10, fontSize: 12.5, display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+            <span className="text-content-faint">
+              {participants.size === 0 ? t('costs.pickSomeone') : t('costs.splitSummary', { count: participants.size, amount: sym(currency) + each.toFixed(2) })}
+            </span>
+            {paidEntered
+              ? <span style={{ fontWeight: 600, color: balanced ? '#16a34a' : '#dc2626' }}>{sym(currency)}{paidSum.toFixed(2)} / {sym(currency)}{totalNum.toFixed(2)}</span>
+              : (totalNum > 0 && <span style={{ color: '#d97706', fontWeight: 600 }}>{t('costs.unfinishedHint')}</span>)}
           </div>
         </div>
       </div>

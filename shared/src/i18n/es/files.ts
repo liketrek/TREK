@@ -13,8 +13,7 @@ const files: TranslationStrings = {
   'files.uploadError': 'La subida falló',
   'files.dropzone': 'Arrastra aquí los archivos',
   'files.dropzoneHint': 'o haz clic para explorar',
-  'files.allowedTypes':
-    'Imágenes, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Máx. 50 MB',
+  'files.allowedTypes': 'Imágenes, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Máx. 50 MB',
   'files.uploading': 'Subiendo...',
   'files.filterAll': 'Todo',
   'files.filterPdf': 'PDF',
@@ -32,8 +31,7 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Reserva',
   'files.sourceTransport': 'Transporte',
   'files.attach': 'Adjuntar',
-  'files.pasteHint':
-    'También puedes pegar imágenes desde el portapapeles (Ctrl+V)',
+  'files.pasteHint': 'También puedes pegar imágenes desde el portapapeles (Ctrl+V)',
   'files.trash': 'Papelera',
   'files.trashEmpty': 'La papelera está vacía',
   'files.emptyTrash': 'Vaciar papelera',
@@ -55,9 +53,7 @@ const files: TranslationStrings = {
   'files.toast.assigned': 'Archivo asignado',
   'files.toast.assignError': 'Error al asignar',
   'files.toast.restoreError': 'Error al restaurar',
-  'files.confirm.permanentDelete':
-    'Eliminar este archivo permanentemente? No se puede deshacer.',
-  'files.confirm.emptyTrash':
-    'Eliminar todos los archivos de la papelera? No se puede deshacer.',
+  'files.confirm.permanentDelete': 'Eliminar este archivo permanentemente? No se puede deshacer.',
+  'files.confirm.emptyTrash': 'Eliminar todos los archivos de la papelera? No se puede deshacer.',
 };
 export default files;

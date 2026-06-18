@@ -13,8 +13,7 @@ const files: TranslationStrings = {
   'files.uploadError': 'فشل الرفع',
   'files.dropzone': 'أسقط الملفات هنا',
   'files.dropzoneHint': 'أو انقر للتصفح',
-  'files.allowedTypes':
-    'صور، PDF، DOC، DOCX، XLS، XLSX، TXT، CSV · حد أقصى 50 ميغابايت',
+  'files.allowedTypes': 'صور، PDF، DOC، DOCX، XLS، XLSX، TXT، CSV · حد أقصى 50 ميغابايت',
   'files.uploading': 'جارٍ الرفع...',
   'files.filterAll': 'الكل',
   'files.filterPdf': 'ملفات PDF',
@@ -52,10 +51,8 @@ const files: TranslationStrings = {
   'files.toast.assigned': 'تم إسناد الملف',
   'files.toast.assignError': 'فشل الإسناد',
   'files.toast.restoreError': 'فشلت الاستعادة',
-  'files.confirm.permanentDelete':
-    'حذف هذا الملف نهائيًا؟ لا يمكن التراجع عن ذلك.',
-  'files.confirm.emptyTrash':
-    'حذف جميع ملفات سلة المهملات نهائيًا؟ لا يمكن التراجع عن ذلك.',
+  'files.confirm.permanentDelete': 'حذف هذا الملف نهائيًا؟ لا يمكن التراجع عن ذلك.',
+  'files.confirm.emptyTrash': 'حذف جميع ملفات سلة المهملات نهائيًا؟ لا يمكن التراجع عن ذلك.',
   'files.noteLabel': 'ملاحظة',
   'files.notePlaceholder': 'أضف ملاحظة...',
 };

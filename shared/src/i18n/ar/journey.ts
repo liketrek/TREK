@@ -10,14 +10,12 @@ const journey: TranslationStrings = {
   'journey.detail.places': 'أماكن',
   'journey.skeletons.show': 'إظهار الاقتراحات',
   'journey.skeletons.hide': 'إخفاء الاقتراحات',
-  'journey.editor.discardChangesConfirm':
-    'لديك تغييرات غير محفوظة. هل تريد تجاهلها؟',
+  'journey.editor.discardChangesConfirm': 'لديك تغييرات غير محفوظة. هل تريد تجاهلها؟',
   'journey.editor.uploadFailed': 'فشل رفع الصور',
   'journey.editor.uploadPhotos': 'رفع صور',
   'journey.editor.uploading': '...جارٍ الرفع',
   'journey.editor.uploadingProgress': 'جارٍ الرفع {done}/{total}…',
-  'journey.editor.uploadPartialFailed':
-    'فشل رفع {failed} من {total} — احفظ مجدداً للمحاولة',
+  'journey.editor.uploadPartialFailed': 'فشل رفع {failed} من {total} — احفظ مجدداً للمحاولة',
   'journey.editor.fromGallery': 'من المعرض',
   'journey.editor.addAnother': 'إضافة آخر',
   'journey.editor.makeFirst': 'جعله الأول',
@@ -33,8 +31,7 @@ const journey: TranslationStrings = {
   'journey.settings.reopenJourney': 'استعادة الرحلة',
   'journey.settings.archived': 'تم أرشفة الرحلة',
   'journey.settings.reopened': 'تمت إعادة فتح الرحلة',
-  'journey.settings.endDescription':
-    'يخفي شارة البث المباشر. يمكنك إعادة الفتح في أي وقت.',
+  'journey.settings.endDescription': 'يخفي شارة البث المباشر. يمكنك إعادة الفتح في أي وقت.',
   'journey.settings.failedToDelete': 'فشل في الحذف',
   'journey.entries.deleteTitle': 'حذف الإدخال',
   'journey.photosUploaded': 'تم رفع {count} صورة',
@@ -68,8 +65,7 @@ const journey: TranslationStrings = {
   'journey.notFound': 'Journey not found', // en-fallback
   'journey.photos': 'Photos', // en-fallback
   'journey.timelineEmpty': 'No stops yet', // en-fallback
-  'journey.timelineEmptyHint':
-    'Add a check-in or write a journal entry to get started', // en-fallback
+  'journey.timelineEmptyHint': 'Add a check-in or write a journal entry to get started', // en-fallback
   'journey.status.draft': 'Draft', // en-fallback
   'journey.status.active': 'Active', // en-fallback
   'journey.status.completed': 'Completed', // en-fallback
@@ -94,30 +90,25 @@ const journey: TranslationStrings = {
   'journey.editor.titlePlaceholder': 'Give this moment a name...', // en-fallback
   'journey.editor.bodyPlaceholder': 'Tell the story of this day...', // en-fallback
   'journey.editor.placePlaceholder': 'Location (optional)', // en-fallback
-  'journey.editor.tagsPlaceholder':
-    'Tags: hidden gem, best meal, must revisit...', // en-fallback
+  'journey.editor.tagsPlaceholder': 'Tags: hidden gem, best meal, must revisit...', // en-fallback
   'journey.visibility.private': 'Private', // en-fallback
   'journey.visibility.shared': 'Shared', // en-fallback
   'journey.visibility.public': 'Public', // en-fallback
   'journey.emptyState.title': 'Your story starts here', // en-fallback
-  'journey.emptyState.subtitle':
-    'Check in at a place or write your first journal entry', // en-fallback
-  'journey.frontpage.subtitle':
-    "Turn your trips into stories you'll never forget", // en-fallback
+  'journey.emptyState.subtitle': 'Check in at a place or write your first journal entry', // en-fallback
+  'journey.frontpage.subtitle': "Turn your trips into stories you'll never forget", // en-fallback
   'journey.frontpage.createJourney': 'Create Journey', // en-fallback
   'journey.frontpage.activeJourney': 'Active Journey', // en-fallback
   'journey.frontpage.allJourneys': 'All Journeys', // en-fallback
   'journey.frontpage.journeys': 'journeys', // en-fallback
   'journey.frontpage.createNew': 'Create a new Journey', // en-fallback
-  'journey.frontpage.createNewSub':
-    'Pick trips, write stories, share your adventures', // en-fallback
+  'journey.frontpage.createNewSub': 'Pick trips, write stories, share your adventures', // en-fallback
   'journey.frontpage.live': 'Live', // en-fallback
   'journey.frontpage.synced': 'Synced', // en-fallback
   'journey.frontpage.continueWriting': 'Continue writing', // en-fallback
   'journey.frontpage.updated': 'Updated {time}', // en-fallback
   'journey.frontpage.suggestionLabel': 'Trip just ended', // en-fallback
-  'journey.frontpage.suggestionText':
-    'Turn <strong>{title}</strong> into a Journey', // en-fallback
+  'journey.frontpage.suggestionText': 'Turn <strong>{title}</strong> into a Journey', // en-fallback
   'journey.frontpage.dismiss': 'Dismiss', // en-fallback
   'journey.frontpage.journeyName': 'Journey Name', // en-fallback
   'journey.frontpage.namePlaceholder': 'e.g. Southeast Asia 2026', // en-fallback
@@ -131,11 +122,9 @@ const journey: TranslationStrings = {
   'journey.detail.newEntry': 'New Entry', // en-fallback
   'journey.detail.editEntry': 'Edit Entry', // en-fallback
   'journey.detail.noEntries': 'No entries yet', // en-fallback
-  'journey.detail.noEntriesHint':
-    'Add a trip to get started with skeleton entries', // en-fallback
+  'journey.detail.noEntriesHint': 'Add a trip to get started with skeleton entries', // en-fallback
   'journey.detail.noPhotos': 'No photos yet', // en-fallback
-  'journey.detail.noPhotosHint':
-    'Upload photos to entries or browse your Immich/Synology library', // en-fallback
+  'journey.detail.noPhotosHint': 'Upload photos to entries or browse your Immich/Synology library', // en-fallback
   'journey.detail.journeyTab': 'Journey', // en-fallback
   'journey.detail.journeyStats': 'Journey Stats', // en-fallback
   'journey.detail.syncedTrips': 'Synced Trips', // en-fallback
@@ -221,15 +210,13 @@ const journey: TranslationStrings = {
   'journey.settings.subtitlePlaceholder': 'e.g. Thailand, Vietnam & Cambodia', // en-fallback
   'journey.settings.delete': 'Delete', // en-fallback
   'journey.settings.deleteJourney': 'Delete Journey', // en-fallback
-  'journey.settings.deleteMessage':
-    'Delete "{title}"? All entries and photos will be lost.', // en-fallback
+  'journey.settings.deleteMessage': 'Delete "{title}"? All entries and photos will be lost.', // en-fallback
   'journey.settings.saved': 'Settings saved', // en-fallback
   'journey.settings.saveFailed': 'Failed to save', // en-fallback
   'journey.settings.coverUpdated': 'Cover updated', // en-fallback
   'journey.settings.coverFailed': 'Upload failed', // en-fallback
   'journey.public.notFound': 'Not Found', // en-fallback
-  'journey.public.notFoundMessage':
-    "This journey doesn't exist or the link has expired.", // en-fallback
+  'journey.public.notFoundMessage': "This journey doesn't exist or the link has expired.", // en-fallback
   'journey.public.readOnly': 'Read-only · Public Journey', // en-fallback
   'journey.public.tagline': 'Travel Resource & Exploration Kit', // en-fallback
   'journey.public.sharedVia': 'Shared via', // en-fallback

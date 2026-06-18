@@ -13,8 +13,7 @@ const files: TranslationStrings = {
   'files.uploadError': 'Caricamento non riuscito',
   'files.dropzone': 'Trascina qui i file',
   'files.dropzoneHint': 'oppure clicca per sfogliare',
-  'files.allowedTypes':
-    'Immagini, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Max 50 MB',
+  'files.allowedTypes': 'Immagini, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Max 50 MB',
   'files.uploading': 'Caricamento...',
   'files.filterAll': 'Tutti',
   'files.filterPdf': 'PDF',

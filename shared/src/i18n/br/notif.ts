@@ -14,8 +14,7 @@ const notif: TranslationStrings = {
   'notif.todo_due.title': 'Tarefa com vencimento',
   'notif.todo_due.text': '{todo} em {trip} vence em {due}',
   'notif.vacay_invite.title': 'Convite Vacay Fusion',
-  'notif.vacay_invite.text':
-    '{actor} convidou você para fundir planos de férias',
+  'notif.vacay_invite.text': '{actor} convidou você para fundir planos de férias',
   'notif.photos_shared.title': 'Fotos compartilhadas',
   'notif.photos_shared.text': '{actor} compartilhou {count} foto(s) em {trip}',
   'notif.collab_message.title': 'Nova mensagem',
@@ -36,7 +35,6 @@ const notif: TranslationStrings = {
   'notif.generic.title': 'Notificação',
   'notif.generic.text': 'Você tem uma nova notificação',
   'notif.dev.unknown_event.title': '[DEV] Evento desconhecido',
-  'notif.dev.unknown_event.text':
-    'O tipo de evento "{event}" não está registrado em EVENT_NOTIFICATION_CONFIG',
+  'notif.dev.unknown_event.text': 'O tipo de evento "{event}" não está registrado em EVENT_NOTIFICATION_CONFIG',
 };
 export default notif;

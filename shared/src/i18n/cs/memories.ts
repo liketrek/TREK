@@ -3,14 +3,12 @@ import type { TranslationStrings } from '../types';
 const memories: TranslationStrings = {
   'memories.title': 'Fotky',
   'memories.notConnected': 'Immich není připojen',
-  'memories.notConnectedHint':
-    'Připojte svoji instanci Immich v Nastavení, abyste zde viděli fotky z cest.',
+  'memories.notConnectedHint': 'Připojte svoji instanci Immich v Nastavení, abyste zde viděli fotky z cest.',
   'memories.notConnectedMultipleHint':
     'Pro přidání fotek k tomuto výletu připojte v Nastavení jednoho z těchto poskytovatelů fotek: {provider_names}.',
   'memories.noDates': 'Přidejte data k cestě pro načtení fotek.',
   'memories.noPhotos': 'Nenalezeny žádné fotky',
-  'memories.noPhotosHint':
-    'V Immich nebyly nalezeny žádné fotky pro období této cesty.',
+  'memories.noPhotosHint': 'V Immich nebyly nalezeny žádné fotky pro období této cesty.',
   'memories.photosFound': 'fotek',
   'memories.fromOthers': 'od ostatních',
   'memories.sharePhotos': 'Sdílet fotky',
@@ -24,10 +22,8 @@ const memories: TranslationStrings = {
   'memories.providerPassword': 'Heslo',
   'memories.providerOTP': 'MFA kód (pokud je povoleno)',
   'memories.skipSSLVerification': 'Přeskočit ověření SSL certifikátu',
-  'memories.immichAutoUpload':
-    'Zrcadlit fotky journey při nahrávání také do Immich',
-  'memories.providerUrlHintSynology':
-    'Zahrňte cestu aplikace Photos do URL, např. https://nas:5001/photo',
+  'memories.immichAutoUpload': 'Zrcadlit fotky journey při nahrávání také do Immich',
+  'memories.providerUrlHintSynology': 'Zahrňte cestu aplikace Photos do URL, např. https://nas:5001/photo',
   'memories.testConnection': 'Otestovat připojení',
   'memories.testShort': 'Otestovat',
   'memories.testFirst': 'Nejprve otestujte připojení',
@@ -72,10 +68,8 @@ const memories: TranslationStrings = {
   'memories.error.addPhotos': 'Přidání fotek se nezdařilo',
   'memories.error.removePhoto': 'Odebrání fotky se nezdařilo',
   'memories.error.toggleSharing': 'Aktualizace sdílení se nezdařila',
-  'memories.saveRouteNotConfigured':
-    'Trasa uložení není nakonfigurována pro tohoto poskytovatele',
-  'memories.testRouteNotConfigured':
-    'Testovací trasa není nakonfigurována pro tohoto poskytovatele',
+  'memories.saveRouteNotConfigured': 'Trasa uložení není nakonfigurována pro tohoto poskytovatele',
+  'memories.testRouteNotConfigured': 'Testovací trasa není nakonfigurována pro tohoto poskytovatele',
   'memories.fillRequiredFields': 'Prosím vyplňte všechna povinná pole',
 };
 export default memories;

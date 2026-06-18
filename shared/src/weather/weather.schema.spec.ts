@@ -1,8 +1,4 @@
-import {
-  weatherQuerySchema,
-  detailedWeatherQuerySchema,
-  weatherResultSchema,
-} from './weather.schema';
+import { weatherQuerySchema, detailedWeatherQuerySchema, weatherResultSchema } from './weather.schema';
 
 import { describe, it, expect } from 'vitest';
 
@@ -25,17 +21,13 @@ describe('weatherQuerySchema', () => {
 
   it('rejects missing lat/lng', () => {
     expect(weatherQuerySchema.safeParse({ lng: '13.4' }).success).toBe(false);
-    expect(weatherQuerySchema.safeParse({ lat: '', lng: '13.4' }).success).toBe(
-      false,
-    );
+    expect(weatherQuerySchema.safeParse({ lat: '', lng: '13.4' }).success).toBe(false);
   });
 });
 
 describe('detailedWeatherQuerySchema', () => {
   it('requires a date', () => {
-    expect(
-      detailedWeatherQuerySchema.safeParse({ lat: '1', lng: '2' }).success,
-    ).toBe(false);
+    expect(detailedWeatherQuerySchema.safeParse({ lat: '1', lng: '2' }).success).toBe(false);
     expect(
       detailedWeatherQuerySchema.safeParse({
         lat: '1',

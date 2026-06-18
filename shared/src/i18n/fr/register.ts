@@ -2,12 +2,10 @@ import type { TranslationStrings } from '../types';
 
 const register: TranslationStrings = {
   'register.passwordMismatch': 'Les mots de passe ne correspondent pas',
-  'register.passwordTooShort':
-    'Le mot de passe doit comporter au moins 8 caractères',
+  'register.passwordTooShort': 'Le mot de passe doit comporter au moins 8 caractères',
   'register.failed': "Échec de l'inscription",
   'register.getStarted': 'Commencer',
-  'register.subtitle':
-    'Créez un compte et commencez à planifier vos voyages de rêve.',
+  'register.subtitle': 'Créez un compte et commencez à planifier vos voyages de rêve.',
   'register.feature1': 'Plans de voyage illimités',
   'register.feature2': 'Vue carte interactive',
   'register.feature3': 'Gérez les lieux et catégories',

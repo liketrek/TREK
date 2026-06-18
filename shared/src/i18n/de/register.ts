@@ -5,8 +5,7 @@ const register: TranslationStrings = {
   'register.passwordTooShort': 'Passwort muss mindestens 8 Zeichen lang sein',
   'register.failed': 'Registrierung fehlgeschlagen',
   'register.getStarted': 'Jetzt starten',
-  'register.subtitle':
-    'Erstellen Sie ein Konto und beginnen Sie, Ihre Traumreisen zu planen.',
+  'register.subtitle': 'Erstellen Sie ein Konto und beginnen Sie, Ihre Traumreisen zu planen.',
   'register.feature1': 'Unbegrenzte Reisepläne',
   'register.feature2': 'Interaktive Kartenansicht',
   'register.feature3': 'Orte und Kategorien verwalten',

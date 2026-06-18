@@ -2,8 +2,7 @@ import type { TranslationStrings } from '../types';
 
 const admin: TranslationStrings = {
   'admin.notifications.title': 'Notifications',
-  'admin.notifications.hint':
-    'Choose one notification channel. Only one can be active at a time.',
+  'admin.notifications.hint': 'Choose one notification channel. Only one can be active at a time.',
   'admin.notifications.none': 'Disabled',
   'admin.notifications.email': 'Email (SMTP)',
   'admin.notifications.webhook': 'Webhook',
@@ -21,17 +20,14 @@ const admin: TranslationStrings = {
   'admin.notifications.emailPanel.title': 'Email (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
   'admin.notifications.inappPanel.title': 'In-App',
-  'admin.notifications.inappPanel.hint':
-    'In-app notifications are always active and cannot be disabled globally.',
+  'admin.notifications.inappPanel.hint': 'In-app notifications are always active and cannot be disabled globally.',
   'admin.notifications.adminWebhookPanel.title': 'Admin Webhook',
   'admin.notifications.adminWebhookPanel.hint':
     'This webhook is used exclusively for admin notifications (e.g. version alerts). It is separate from per-user webhooks and always fires when set.',
   'admin.notifications.adminWebhookPanel.saved': 'Admin webhook URL saved',
-  'admin.notifications.adminWebhookPanel.testSuccess':
-    'Test webhook sent successfully',
+  'admin.notifications.adminWebhookPanel.testSuccess': 'Test webhook sent successfully',
   'admin.notifications.adminWebhookPanel.testFailed': 'Test webhook failed',
-  'admin.notifications.adminWebhookPanel.alwaysOnHint':
-    'Admin webhook always fires when a URL is configured',
+  'admin.notifications.adminWebhookPanel.alwaysOnHint': 'Admin webhook always fires when a URL is configured',
   'admin.notifications.adminNtfyPanel.title': 'Admin Ntfy',
   'admin.notifications.adminNtfyPanel.hint':
     'This ntfy topic is used exclusively for admin notifications (e.g. version alerts). It is separate from per-user topics and always fires when configured.',
@@ -42,15 +38,12 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.topicLabel': 'Admin Topic',
   'admin.notifications.adminNtfyPanel.topicPlaceholder': 'trek-admin-alerts',
   'admin.notifications.adminNtfyPanel.tokenLabel': 'Access Token (optional)',
-  'admin.notifications.adminNtfyPanel.tokenCleared':
-    'Admin access token cleared',
+  'admin.notifications.adminNtfyPanel.tokenCleared': 'Admin access token cleared',
   'admin.notifications.adminNtfyPanel.saved': 'Admin ntfy settings saved',
   'admin.notifications.adminNtfyPanel.test': 'Send test ntfy',
-  'admin.notifications.adminNtfyPanel.testSuccess':
-    'Test ntfy sent successfully',
+  'admin.notifications.adminNtfyPanel.testSuccess': 'Test ntfy sent successfully',
   'admin.notifications.adminNtfyPanel.testFailed': 'Test ntfy failed',
-  'admin.notifications.adminNtfyPanel.alwaysOnHint':
-    'Admin ntfy always fires when a topic is configured',
+  'admin.notifications.adminNtfyPanel.alwaysOnHint': 'Admin ntfy always fires when a topic is configured',
   'admin.notifications.adminNotificationsHint':
     'Configure which channels deliver admin-only notifications (e.g. version alerts).',
   'admin.notifications.tripReminders.title': 'Trip Reminders',
@@ -61,8 +54,7 @@ const admin: TranslationStrings = {
   'admin.smtp.title': 'Email & Notifications',
   'admin.smtp.hint': 'SMTP configuration for sending email notifications.',
   'admin.smtp.testButton': 'Send test email',
-  'admin.webhook.hint':
-    'Allow users to configure their own webhook URLs for notifications (Discord, Slack, etc.).',
+  'admin.webhook.hint': 'Allow users to configure their own webhook URLs for notifications (Discord, Slack, etc.).',
   'admin.smtp.testSuccess': 'Test email sent successfully',
   'admin.smtp.testFailed': 'Test email failed',
   'admin.title': 'Administration',
@@ -87,8 +79,7 @@ const admin: TranslationStrings = {
   'admin.editUser': 'Edit User',
   'admin.newPassword': 'New Password',
   'admin.newPasswordHint': 'Leave empty to keep current password',
-  'admin.deleteUser':
-    'Delete user "{name}"? All trips will be permanently deleted.',
+  'admin.deleteUser': 'Delete user "{name}"? All trips will be permanently deleted.',
   'admin.deleteUserTitle': 'Delete user',
   'admin.newPasswordPlaceholder': 'Enter new password…',
   'admin.toast.loadError': 'Failed to load admin data',
@@ -126,25 +117,20 @@ const admin: TranslationStrings = {
   'admin.passwordLogin': 'Password Login',
   'admin.passwordLoginHint': 'Allow users to sign in with email and password',
   'admin.passwordRegistration': 'Password Registration',
-  'admin.passwordRegistrationHint':
-    'Allow new users to register with email and password',
+  'admin.passwordRegistrationHint': 'Allow new users to register with email and password',
   'admin.oidcLogin': 'SSO Login',
   'admin.oidcLoginHint': 'Allow users to sign in with SSO',
   'admin.oidcRegistration': 'SSO Auto-Provisioning',
-  'admin.oidcRegistrationHint':
-    'Automatically create accounts for new SSO users',
+  'admin.oidcRegistrationHint': 'Automatically create accounts for new SSO users',
   'admin.envOverrideHint':
     'Password login settings are controlled by the OIDC_ONLY environment variable and cannot be changed here.',
   'admin.lockoutWarning': 'At least one login method must remain enabled',
   'admin.requireMfa': 'Require two-factor authentication (2FA)',
-  'admin.requireMfaHint':
-    'Users without 2FA must complete setup in Settings before using the app.',
+  'admin.requireMfaHint': 'Users without 2FA must complete setup in Settings before using the app.',
   'admin.apiKeys': 'API Keys',
-  'admin.apiKeysHint':
-    'Optional. Enables extended place data like photos and weather.',
+  'admin.apiKeysHint': 'Optional. Enables extended place data like photos and weather.',
   'admin.mapsKey': 'Google Maps API Key',
-  'admin.mapsKeyHint':
-    'Required for place search. Get at console.cloud.google.com',
+  'admin.mapsKeyHint': 'Required for place search. Get at console.cloud.google.com',
   'admin.mapsKeyHintLong':
     'Without an API key, OpenStreetMap is used for place search. With a Google API key, photos, ratings, and opening hours can be loaded as well. Get one at console.cloud.google.com.',
   'admin.recommended': 'Recommended',
@@ -155,33 +141,28 @@ const admin: TranslationStrings = {
   'admin.keyInvalid': 'Invalid',
   'admin.keySaved': 'API keys saved',
   'admin.oidcTitle': 'Single Sign-On (OIDC)',
-  'admin.oidcSubtitle':
-    'Allow login via external providers like Google, Apple, Authentik or Keycloak.',
+  'admin.oidcSubtitle': 'Allow login via external providers like Google, Apple, Authentik or Keycloak.',
   'admin.oidcDisplayName': 'Display Name',
   'admin.oidcIssuer': 'Issuer URL',
-  'admin.oidcIssuerHint':
-    'The OpenID Connect Issuer URL of the provider. e.g. https://accounts.google.com',
+  'admin.oidcIssuerHint': 'The OpenID Connect Issuer URL of the provider. e.g. https://accounts.google.com',
   'admin.oidcSaved': 'OIDC configuration saved',
   'admin.oidcOnlyMode': 'Disable password authentication',
   'admin.oidcOnlyModeHint':
     'When enabled, only SSO login is permitted. Password-based login and registration are blocked.',
   'admin.fileTypes': 'Allowed File Types',
   'admin.fileTypesHint': 'Configure which file types users can upload.',
-  'admin.fileTypesFormat':
-    'Comma-separated extensions (e.g. jpg,png,pdf,doc). Use * to allow all types.',
+  'admin.fileTypesFormat': 'Comma-separated extensions (e.g. jpg,png,pdf,doc). Use * to allow all types.',
   'admin.fileTypesSaved': 'File type settings saved',
   'admin.placesPhotos.title': 'Place Photos',
   'admin.placesPhotos.subtitle':
     'Fetch photos from the Google Places API. Disable to save API quota. Wikimedia photos are unaffected.',
   'admin.placesAutocomplete.title': 'Place Autocomplete',
-  'admin.placesAutocomplete.subtitle':
-    'Use the Google Places API for search suggestions. Disable to save API quota.',
+  'admin.placesAutocomplete.subtitle': 'Use the Google Places API for search suggestions. Disable to save API quota.',
   'admin.placesDetails.title': 'Place Details',
   'admin.placesDetails.subtitle':
     'Fetch detailed place information (hours, rating, website) from the Google Places API. Disable to save API quota.',
   'admin.bagTracking.title': 'Bag Tracking',
-  'admin.bagTracking.subtitle':
-    'Enable weight and bag assignment for packing items',
+  'admin.bagTracking.subtitle': 'Enable weight and bag assignment for packing items',
   'admin.collab.chat.title': 'Chat',
   'admin.collab.chat.subtitle': 'Real-time messaging for trip collaboration',
   'admin.collab.notes.title': 'Notes',
@@ -212,11 +193,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxQuality': 'High-quality mode',
   'admin.tabs.templates': 'Packing Templates',
   'admin.packingTemplates.title': 'Packing Templates',
-  'admin.packingTemplates.subtitle':
-    'Create reusable packing lists for your trips',
+  'admin.packingTemplates.subtitle': 'Create reusable packing lists for your trips',
   'admin.packingTemplates.create': 'New Template',
-  'admin.packingTemplates.namePlaceholder':
-    'Template name (e.g. Beach Holiday)',
+  'admin.packingTemplates.namePlaceholder': 'Template name (e.g. Beach Holiday)',
   'admin.packingTemplates.empty': 'No templates created yet',
   'admin.packingTemplates.items': 'items',
   'admin.packingTemplates.categories': 'categories',
@@ -232,34 +211,24 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.saveError': 'Failed to save',
   'admin.tabs.addons': 'Addons',
   'admin.addons.title': 'Addons',
-  'admin.addons.subtitle':
-    'Enable or disable features to customize your TREK experience.',
+  'admin.addons.subtitle': 'Enable or disable features to customize your TREK experience.',
   'admin.addons.catalog.packing.name': 'Lists',
-  'admin.addons.catalog.packing.description':
-    'Packing lists and to-do tasks for your trips',
+  'admin.addons.catalog.packing.description': 'Packing lists and to-do tasks for your trips',
   'admin.addons.catalog.budget.name': 'Budget',
-  'admin.addons.catalog.budget.description':
-    'Track expenses and plan your trip budget',
+  'admin.addons.catalog.budget.description': 'Track expenses and plan your trip budget',
   'admin.addons.catalog.documents.name': 'Documents',
-  'admin.addons.catalog.documents.description':
-    'Store and manage travel documents',
+  'admin.addons.catalog.documents.description': 'Store and manage travel documents',
   'admin.addons.catalog.vacay.name': 'Vacay',
-  'admin.addons.catalog.vacay.description':
-    'Personal vacation planner with calendar view',
+  'admin.addons.catalog.vacay.description': 'Personal vacation planner with calendar view',
   'admin.addons.catalog.atlas.name': 'Atlas',
-  'admin.addons.catalog.atlas.description':
-    'World map with visited countries and travel stats',
+  'admin.addons.catalog.atlas.description': 'World map with visited countries and travel stats',
   'admin.addons.catalog.collab.name': 'Collab',
-  'admin.addons.catalog.collab.description':
-    'Real-time notes, polls, and chat for trip planning',
+  'admin.addons.catalog.collab.description': 'Real-time notes, polls, and chat for trip planning',
   'admin.addons.catalog.memories.name': 'Photos (Immich)',
-  'admin.addons.catalog.memories.description':
-    'Share trip photos via your Immich instance',
+  'admin.addons.catalog.memories.description': 'Share trip photos via your Immich instance',
   'admin.addons.catalog.mcp.name': 'MCP',
-  'admin.addons.catalog.mcp.description':
-    'Model Context Protocol for AI assistant integration',
-  'admin.addons.subtitleBefore':
-    'Enable or disable features to customize your ',
+  'admin.addons.catalog.mcp.description': 'Model Context Protocol for AI assistant integration',
+  'admin.addons.subtitleBefore': 'Enable or disable features to customize your ',
   'admin.addons.subtitleAfter': ' experience.',
   'admin.addons.enabled': 'Enabled',
   'admin.addons.disabled': 'Disabled',
@@ -267,10 +236,8 @@ const admin: TranslationStrings = {
   'admin.addons.type.global': 'Global',
   'admin.addons.type.integration': 'Integration',
   'admin.addons.tripHint': 'Available as a tab within each trip',
-  'admin.addons.globalHint':
-    'Available as a standalone section in the main navigation',
-  'admin.addons.integrationHint':
-    'Backend services and API integrations with no dedicated page',
+  'admin.addons.globalHint': 'Available as a standalone section in the main navigation',
+  'admin.addons.integrationHint': 'Backend services and API integrations with no dedicated page',
   'admin.addons.toast.updated': 'Addon updated',
   'admin.addons.toast.error': 'Failed to update addon',
   'admin.addons.noAddons': 'No addons available',
@@ -281,16 +248,14 @@ const admin: TranslationStrings = {
   'admin.weather.forecast': '16-day forecast',
   'admin.weather.forecastDesc': 'Previously 5 days (OpenWeatherMap)',
   'admin.weather.climate': 'Historical climate data',
-  'admin.weather.climateDesc':
-    'Averages from the last 85 years for days beyond the 16-day forecast',
+  'admin.weather.climateDesc': 'Averages from the last 85 years for days beyond the 16-day forecast',
   'admin.weather.requests': '10,000 requests / day',
   'admin.weather.requestsDesc': 'Free, no API key required',
   'admin.weather.locationHint':
     'Weather is based on the first place with coordinates in each day. If no place is assigned to a day, any place from the place list is used as a reference.',
   'admin.tabs.mcpTokens': 'MCP Access',
   'admin.mcpTokens.title': 'MCP Access',
-  'admin.mcpTokens.subtitle':
-    'Manage OAuth sessions and API tokens across all users',
+  'admin.mcpTokens.subtitle': 'Manage OAuth sessions and API tokens across all users',
   'admin.mcpTokens.sectionTitle': 'API Tokens',
   'admin.mcpTokens.owner': 'Owner',
   'admin.mcpTokens.tokenName': 'Token Name',
@@ -317,8 +282,7 @@ const admin: TranslationStrings = {
   'admin.oauthSessions.revokeError': 'Failed to revoke session',
   'admin.oauthSessions.loadError': 'Failed to load OAuth sessions',
   'admin.tabs.github': 'GitHub',
-  'admin.audit.subtitle':
-    'Security-sensitive and administration events (backups, users, MFA, settings).',
+  'admin.audit.subtitle': 'Security-sensitive and administration events (backups, users, MFA, settings).',
   'admin.audit.empty': 'No audit entries yet.',
   'admin.audit.refresh': 'Refresh',
   'admin.audit.loadMore': 'Load more',
@@ -341,17 +305,14 @@ const admin: TranslationStrings = {
   'admin.github.by': 'by',
   'admin.github.support': 'Helps me keep building TREK',
   'admin.update.available': 'Update available',
-  'admin.update.text':
-    'TREK {version} is available. You are running {current}.',
+  'admin.update.text': 'TREK {version} is available. You are running {current}.',
   'admin.update.button': 'View on GitHub',
   'admin.update.install': 'Install Update',
   'admin.update.confirmTitle': 'Install Update?',
   'admin.update.confirmText':
     'TREK will be updated from {current} to {version}. The server will restart automatically afterwards.',
-  'admin.update.dataInfo':
-    'All your data (trips, users, API keys, uploads, Vacay, Atlas, budgets) will be preserved.',
-  'admin.update.warning':
-    'The app will be briefly unavailable during the restart.',
+  'admin.update.dataInfo': 'All your data (trips, users, API keys, uploads, Vacay, Atlas, budgets) will be preserved.',
+  'admin.update.warning': 'The app will be briefly unavailable during the restart.',
   'admin.update.confirm': 'Update Now',
   'admin.update.installing': 'Updating…',
   'admin.update.success': 'Update installed! Server is restarting…',
@@ -369,8 +330,7 @@ const admin: TranslationStrings = {
   'admin.passkey.title': 'Passkey login',
   'admin.passkey.cardHint': 'Let users sign in with passkeys (WebAuthn). Off by default.',
   'admin.passkey.login': 'Enable passkey login',
-  'admin.passkey.loginHint':
-    'Show a "Sign in with a passkey" option and let users enrol passkeys in their settings.',
+  'admin.passkey.loginHint': 'Show a "Sign in with a passkey" option and let users enrol passkeys in their settings.',
   'admin.passkey.notConfigured':
     'No WebAuthn domain resolves for this deployment yet. Set APP_URL or the Relying Party ID below — passkeys stay hidden until then.',
   'admin.passkey.rpId': 'Relying Party ID (domain)',

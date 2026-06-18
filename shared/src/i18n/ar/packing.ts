@@ -7,8 +7,7 @@ const packing: TranslationStrings = {
   'packing.importTitle': 'استيراد قائمة التعبئة',
   'packing.importHint':
     'عنصر واحد لكل سطر. يمكن إضافة الفئة والكمية مفصولة بفاصلة أو فاصلة منقوطة أو علامة تبويب: الاسم، الفئة، الكمية',
-  'packing.importPlaceholder':
-    'فرشاة أسنان\nواقي شمس، نظافة\nقمصان، ملابس، 5\nجواز سفر، مستندات',
+  'packing.importPlaceholder': 'فرشاة أسنان\nواقي شمس، نظافة\nقمصان، ملابس، 5\nجواز سفر، مستندات',
   'packing.importCsv': 'تحميل CSV/TXT',
   'packing.importAction': 'استيراد {count}',
   'packing.importSuccess': 'تم استيراد {count} عنصر',

@@ -4,12 +4,10 @@ const places: TranslationStrings = {
   'places.addPlace': '新增地點/活動',
   'places.importFile': '匯入檔案',
   'places.sidebarDrop': '拖放以匯入',
-  'places.importFileHint':
-    '從 Google My Maps、Google Earth 或 GPS 追蹤器等工具匯入 .gpx、.kml 或 .kmz 檔案。',
+  'places.importFileHint': '從 Google My Maps、Google Earth 或 GPS 追蹤器等工具匯入 .gpx、.kml 或 .kmz 檔案。',
   'places.importFileDropHere': '點選以選取檔案或拖放至此處',
   'places.importFileDropActive': '放開檔案以選取',
-  'places.importFileUnsupported':
-    '不支援的檔案類型，請使用 .gpx、.kml 或 .kmz。',
+  'places.importFileUnsupported': '不支援的檔案類型，請使用 .gpx、.kml 或 .kmz。',
   'places.importFileTooLarge': '檔案過大。最大上傳大小為 {maxMb} MB。',
   'places.importFileError': '匯入失敗',
   'places.importAllSkipped': '所有地點已在行程中。',
@@ -28,8 +26,7 @@ const places: TranslationStrings = {
   'places.kmlKmzImported': '已從 KMZ/KML 匯入 {count} 個地點',
   'places.urlResolved': '已從 URL 匯入地點',
   'places.importList': '列表匯入',
-  'places.kmlKmzSummaryValues':
-    'Placemarks：{total} • 已匯入：{created} • 已略過：{skipped}',
+  'places.kmlKmzSummaryValues': 'Placemarks：{total} • 已匯入：{created} • 已略過：{skipped}',
   'places.importGoogleList': 'Google 列表',
   'places.importNaverList': 'Naver 列表',
   'places.googleListHint': '貼上共享的 Google Maps 列表連結以匯入所有地點。',
@@ -76,17 +73,14 @@ const places: TranslationStrings = {
   'places.mapsSearchPlaceholder': '搜尋地點...',
   'places.mapsSearchError': '地點搜尋失敗。',
   'places.loadingDetails': '正在載入地點詳情…',
-  'places.osmHint':
-    '使用 OpenStreetMap 搜尋（無照片、營業時間或評分）。在設定中新增 Google API 金鑰以獲取完整資訊。',
-  'places.osmActive':
-    '透過 OpenStreetMap 搜尋（無照片、評分或營業時間）。在設定中新增 Google API 金鑰以獲取增強資料。',
+  'places.osmHint': '使用 OpenStreetMap 搜尋（無照片、營業時間或評分）。在設定中新增 Google API 金鑰以獲取完整資訊。',
+  'places.osmActive': '透過 OpenStreetMap 搜尋（無照片、評分或營業時間）。在設定中新增 Google API 金鑰以獲取增強資料。',
   'places.categoryCreateError': '建立分類失敗',
   'places.nameRequired': '請輸入名稱',
   'places.saveError': '儲存失敗',
   'places.duplicateExists': "'{name}' 已在此行程中。",
   'places.addAnyway': '仍要新增',
   'places.enrichOnImport': '透過 Google 豐富地點資訊',
-  'places.enrichOnImportHint':
-    '查詢每個匯入的地點以補上照片、地址與聯絡資訊。需要 Google Maps 金鑰。',
+  'places.enrichOnImportHint': '查詢每個匯入的地點以補上照片、地址與聯絡資訊。需要 Google Maps 金鑰。',
 };
 export default places;

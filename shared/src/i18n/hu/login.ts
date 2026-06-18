@@ -1,8 +1,7 @@
 import type { TranslationStrings } from '../types';
 
 const login: TranslationStrings = {
-  'login.error':
-    'Bejelentkezés sikertelen. Kérjük, ellenőrizd a megadott adatokat.',
+  'login.error': 'Bejelentkezés sikertelen. Kérjük, ellenőrizd a megadott adatokat.',
   'login.tagline': 'Az utazásaid.\nA terved.',
   'login.description':
     'Tervezz utazásokat közösen interaktív térképekkel, költségvetéssel és valós idejű szinkronizálással.',
@@ -11,8 +10,7 @@ const login: TranslationStrings = {
   'login.features.realtime': 'Valós idejű szinkron',
   'login.features.realtimeDesc': 'Közös tervezés WebSocket-en keresztül',
   'login.features.budget': 'Költségvetés-követés',
-  'login.features.budgetDesc':
-    'Kategóriák, diagramok és személyenkénti költségek',
+  'login.features.budgetDesc': 'Kategóriák, diagramok és személyenkénti költségek',
   'login.features.collab': 'Együttműködés',
   'login.features.collabDesc': 'Többfelhasználós, megosztott utazásokkal',
   'login.features.packing': 'Csomagolási listák',
@@ -22,10 +20,8 @@ const login: TranslationStrings = {
   'login.features.files': 'Dokumentumok',
   'login.features.filesDesc': 'Fájlok feltöltése és kezelése',
   'login.features.routes': 'Útvonal-optimalizálás',
-  'login.features.routesDesc':
-    'Automatikus optimalizálás és Google Maps export',
-  'login.selfHosted':
-    'Saját üzemeltetés · Nyílt forráskód · Az adataid nálad maradnak',
+  'login.features.routesDesc': 'Automatikus optimalizálás és Google Maps export',
+  'login.selfHosted': 'Saját üzemeltetés · Nyílt forráskód · Az adataid nálad maradnak',
   'login.title': 'Bejelentkezés',
   'login.subtitle': 'Üdv újra',
   'login.signingIn': 'Bejelentkezés…',
@@ -33,8 +29,7 @@ const login: TranslationStrings = {
   'login.createAdmin': 'Admin fiók létrehozása',
   'login.createAdminHint': 'Hozd létre az első admin fiókot a TREK-hez.',
   'login.setNewPassword': 'Új jelszó beállítása',
-  'login.setNewPasswordHint':
-    'A folytatás előtt meg kell változtatnia a jelszavát.',
+  'login.setNewPasswordHint': 'A folytatás előtt meg kell változtatnia a jelszavát.',
   'login.createAccount': 'Fiók létrehozása',
   'login.createAccountHint': 'Új fiók regisztrálása.',
   'login.creating': 'Létrehozás…',
@@ -43,31 +38,26 @@ const login: TranslationStrings = {
   'login.register': 'Regisztráció',
   'login.emailPlaceholder': 'email@cimed.hu',
   'login.username': 'Felhasználónév',
-  'login.oidc.registrationDisabled':
-    'A regisztráció le van tiltva. Lépj kapcsolatba az adminisztrátorral.',
+  'login.oidc.registrationDisabled': 'A regisztráció le van tiltva. Lépj kapcsolatba az adminisztrátorral.',
   'login.oidc.noEmail': 'Nem érkezett e-mail a szolgáltatótól.',
   'login.oidc.tokenFailed': 'Hitelesítés sikertelen.',
   'login.oidc.invalidState': 'Érvénytelen munkamenet. Kérjük, próbáld újra.',
   'login.demoFailed': 'Demo bejelentkezés sikertelen',
   'login.oidcSignIn': 'Bejelentkezés ezzel: {name}',
-  'login.oidcOnly':
-    'A jelszavas hitelesítés le van tiltva. Kérjük, jelentkezz be az SSO szolgáltatódon keresztül.',
-  'login.oidcLoggedOut':
-    'Kijelentkeztél. Jelentkezz be újra az SSO szolgáltatódon keresztül.',
+  'login.oidcOnly': 'A jelszavas hitelesítés le van tiltva. Kérjük, jelentkezz be az SSO szolgáltatódon keresztül.',
+  'login.oidcLoggedOut': 'Kijelentkeztél. Jelentkezz be újra az SSO szolgáltatódon keresztül.',
   'login.demoHint': 'Próbáld ki a demót — regisztráció nélkül',
   'login.mfaTitle': 'Kétfaktoros hitelesítés',
   'login.mfaSubtitle': 'Add meg a 6 jegyű kódot a hitelesítő alkalmazásból.',
   'login.mfaCodeLabel': 'Ellenőrző kód',
   'login.mfaCodeRequired': 'Add meg a kódot a hitelesítő alkalmazásból.',
-  'login.mfaHint':
-    'Nyisd meg a Google Authenticator, Authy vagy más TOTP alkalmazást.',
+  'login.mfaHint': 'Nyisd meg a Google Authenticator, Authy vagy más TOTP alkalmazást.',
   'login.mfaBack': '← Vissza a bejelentkezéshez',
   'login.mfaVerify': 'Ellenőrzés',
   'login.invalidInviteLink': 'Érvénytelen vagy lejárt meghívólink',
   'login.oidcFailed': 'OIDC bejelentkezés sikertelen',
   'login.usernameRequired': 'A felhasználónév kötelező',
-  'login.passwordMinLength':
-    'A jelszónak legalább 8 karakter hosszúnak kell lennie',
+  'login.passwordMinLength': 'A jelszónak legalább 8 karakter hosszúnak kell lennie',
   'login.forgotPassword': 'Elfelejtetted a jelszavad?',
   'login.rememberMe': 'Emlékezz rám',
   'login.forgotPasswordTitle': 'Jelszó visszaállítása',
@@ -85,22 +75,16 @@ const login: TranslationStrings = {
   'login.passwordsDontMatch': 'A jelszavak nem egyeznek',
   'login.mfaCode': '2FA-kód',
   'login.resetPasswordTitle': 'Új jelszó beállítása',
-  'login.resetPasswordBody':
-    'Válassz erős jelszót, amit itt még nem használtál. Minimum 8 karakter.',
-  'login.resetPasswordMfaBody':
-    'Add meg a 2FA-kódodat vagy egy tartalék kódot a visszaállítás befejezéséhez.',
+  'login.resetPasswordBody': 'Válassz erős jelszót, amit itt még nem használtál. Minimum 8 karakter.',
+  'login.resetPasswordMfaBody': 'Add meg a 2FA-kódodat vagy egy tartalék kódot a visszaállítás befejezéséhez.',
   'login.resetPasswordSubmit': 'Jelszó visszaállítása',
   'login.resetPasswordVerify': 'Ellenőrzés és visszaállítás',
   'login.resetPasswordSuccessTitle': 'Jelszó frissítve',
-  'login.resetPasswordSuccessBody':
-    'Mostantól bejelentkezhetsz az új jelszavaddal.',
+  'login.resetPasswordSuccessBody': 'Mostantól bejelentkezhetsz az új jelszavaddal.',
   'login.resetPasswordInvalidLink': 'Érvénytelen visszaállítási link',
-  'login.resetPasswordInvalidLinkBody':
-    'A link hiányzik vagy sérült. A folytatáshoz kérj egy újat.',
-  'login.resetPasswordFailed':
-    'A visszaállítás nem sikerült. A link lehet, hogy lejárt.',
+  'login.resetPasswordInvalidLinkBody': 'A link hiányzik vagy sérült. A folytatáshoz kérj egy újat.',
+  'login.resetPasswordFailed': 'A visszaállítás nem sikerült. A link lehet, hogy lejárt.',
   'login.passkey.signIn': 'Bejelentkezés passkey-jel',
-  'login.passkey.failed':
-    'A passkey-bejelentkezés sikertelen. Kérjük, próbáld újra.',
+  'login.passkey.failed': 'A passkey-bejelentkezés sikertelen. Kérjük, próbáld újra.',
 };
 export default login;

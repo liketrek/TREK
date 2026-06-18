@@ -2,8 +2,7 @@ import type { TranslationStrings } from '../types';
 
 const journey: TranslationStrings = {
   'journey.search.placeholder': 'Cari perjalanan…',
-  'journey.search.noResults':
-    'Tidak ada perjalanan yang cocok dengan "{query}"',
+  'journey.search.noResults': 'Tidak ada perjalanan yang cocok dengan "{query}"',
   'journey.title': 'Journey',
   'journey.subtitle': 'Lacak perjalananmu saat terjadi',
   'journey.new': 'Journey Baru',
@@ -15,14 +14,12 @@ const journey: TranslationStrings = {
   'journey.createError': 'Tidak dapat membuat journey',
   'journey.deleteError': 'Tidak dapat menghapus journey',
   'journey.deleteConfirmTitle': 'Hapus',
-  'journey.deleteConfirmMessage':
-    'Hapus "{title}"? Tindakan ini tidak dapat dibatalkan.',
+  'journey.deleteConfirmMessage': 'Hapus "{title}"? Tindakan ini tidak dapat dibatalkan.',
   'journey.deleteConfirmGeneric': 'Apakah kamu yakin ingin menghapus ini?',
   'journey.notFound': 'Journey tidak ditemukan',
   'journey.photos': 'Foto',
   'journey.timelineEmpty': 'Belum ada persinggahan',
-  'journey.timelineEmptyHint':
-    'Tambahkan check-in atau tulis entri jurnal untuk memulai',
+  'journey.timelineEmptyHint': 'Tambahkan check-in atau tulis entri jurnal untuk memulai',
   'journey.status.draft': 'Draf',
   'journey.status.active': 'Aktif',
   'journey.status.completed': 'Selesai',
@@ -48,30 +45,25 @@ const journey: TranslationStrings = {
   'journey.editor.titlePlaceholder': 'Beri nama momen ini...',
   'journey.editor.bodyPlaceholder': 'Ceritakan kisah hari ini...',
   'journey.editor.placePlaceholder': 'Lokasi (opsional)',
-  'journey.editor.tagsPlaceholder':
-    'Tag: permata tersembunyi, makan terbaik, wajib dikunjungi lagi...',
+  'journey.editor.tagsPlaceholder': 'Tag: permata tersembunyi, makan terbaik, wajib dikunjungi lagi...',
   'journey.visibility.private': 'Pribadi',
   'journey.visibility.shared': 'Dibagikan',
   'journey.visibility.public': 'Publik',
   'journey.emptyState.title': 'Kisahmu dimulai di sini',
-  'journey.emptyState.subtitle':
-    'Check in di suatu tempat atau tulis entri jurnal pertamamu',
-  'journey.frontpage.subtitle':
-    'Ubah perjalananmu menjadi kisah yang tak terlupakan',
+  'journey.emptyState.subtitle': 'Check in di suatu tempat atau tulis entri jurnal pertamamu',
+  'journey.frontpage.subtitle': 'Ubah perjalananmu menjadi kisah yang tak terlupakan',
   'journey.frontpage.createJourney': 'Buat Journey',
   'journey.frontpage.activeJourney': 'Journey Aktif',
   'journey.frontpage.allJourneys': 'Semua Journey',
   'journey.frontpage.journeys': 'journey',
   'journey.frontpage.createNew': 'Buat Journey baru',
-  'journey.frontpage.createNewSub':
-    'Pilih perjalanan, tulis cerita, bagikan petualanganmu',
+  'journey.frontpage.createNewSub': 'Pilih perjalanan, tulis cerita, bagikan petualanganmu',
   'journey.frontpage.live': 'Langsung',
   'journey.frontpage.synced': 'Tersinkron',
   'journey.frontpage.continueWriting': 'Lanjutkan menulis',
   'journey.frontpage.updated': 'Diperbarui {time}',
   'journey.frontpage.suggestionLabel': 'Perjalanan baru saja selesai',
-  'journey.frontpage.suggestionText':
-    'Ubah <strong>{title}</strong> menjadi Journey',
+  'journey.frontpage.suggestionText': 'Ubah <strong>{title}</strong> menjadi Journey',
   'journey.frontpage.dismiss': 'Tutup',
   'journey.frontpage.journeyName': 'Nama Journey',
   'journey.frontpage.namePlaceholder': 'mis. Asia Tenggara 2026',
@@ -86,11 +78,9 @@ const journey: TranslationStrings = {
   'journey.detail.newEntry': 'Entri Baru',
   'journey.detail.editEntry': 'Edit Entri',
   'journey.detail.noEntries': 'Belum ada entri',
-  'journey.detail.noEntriesHint':
-    'Tambahkan perjalanan untuk mulai dengan entri kerangka',
+  'journey.detail.noEntriesHint': 'Tambahkan perjalanan untuk mulai dengan entri kerangka',
   'journey.detail.noPhotos': 'Belum ada foto',
-  'journey.detail.noPhotosHint':
-    'Unggah foto ke entri atau jelajahi galeri Immich/Synology-mu',
+  'journey.detail.noPhotosHint': 'Unggah foto ke entri atau jelajahi galeri Immich/Synology-mu',
   'journey.detail.journeyStats': 'Statistik Journey',
   'journey.detail.syncedTrips': 'Perjalanan Tersinkron',
   'journey.detail.noTripsLinked': 'Belum ada perjalanan yang ditautkan',
@@ -111,14 +101,12 @@ const journey: TranslationStrings = {
   'journey.verdict.couldBeBetter': 'Bisa lebih baik',
   'journey.synced.places': 'tempat',
   'journey.synced.synced': 'tersinkron',
-  'journey.editor.discardChangesConfirm':
-    'Anda memiliki perubahan yang belum disimpan. Buang?',
+  'journey.editor.discardChangesConfirm': 'Anda memiliki perubahan yang belum disimpan. Buang?',
   'journey.editor.uploadFailed': 'Gagal mengunggah foto',
   'journey.editor.uploadPhotos': 'Unggah foto',
   'journey.editor.uploading': 'Mengunggah...',
   'journey.editor.uploadingProgress': 'Mengunggah {done}/{total}…',
-  'journey.editor.uploadPartialFailed':
-    '{failed} dari {total} foto gagal — simpan lagi untuk mencoba ulang',
+  'journey.editor.uploadPartialFailed': '{failed} dari {total} foto gagal — simpan lagi untuk mencoba ulang',
   'journey.editor.fromGallery': 'Dari Galeri',
   'journey.editor.allPhotosAdded': 'Semua foto sudah ditambahkan',
   'journey.editor.writeStory': 'Tulis kisahmu...',
@@ -197,12 +185,10 @@ const journey: TranslationStrings = {
   'journey.settings.reopenJourney': 'Pulihkan Perjalanan',
   'journey.settings.archived': 'Perjalanan diarsipkan',
   'journey.settings.reopened': 'Perjalanan dibuka kembali',
-  'journey.settings.endDescription':
-    'Menyembunyikan lencana Langsung. Anda dapat membuka kembali kapan saja.',
+  'journey.settings.endDescription': 'Menyembunyikan lencana Langsung. Anda dapat membuka kembali kapan saja.',
   'journey.settings.delete': 'Hapus',
   'journey.settings.deleteJourney': 'Hapus Journey',
-  'journey.settings.deleteMessage':
-    'Hapus "{title}"? Semua entri dan foto akan hilang.',
+  'journey.settings.deleteMessage': 'Hapus "{title}"? Semua entri dan foto akan hilang.',
   'journey.settings.saved': 'Pengaturan disimpan',
   'journey.settings.saveFailed': 'Gagal menyimpan',
   'journey.settings.coverUpdated': 'Sampul diperbarui',
@@ -213,8 +199,7 @@ const journey: TranslationStrings = {
   'journey.photosUploadFailed': 'Beberapa foto gagal diunggah',
   'journey.photosAdded': '{count} foto ditambahkan',
   'journey.public.notFound': 'Tidak Ditemukan',
-  'journey.public.notFoundMessage':
-    'Journey ini tidak ada atau tautan telah kedaluwarsa.',
+  'journey.public.notFoundMessage': 'Journey ini tidak ada atau tautan telah kedaluwarsa.',
   'journey.public.readOnly': 'Hanya baca · Journey Publik',
   'journey.public.tagline': 'Travel Resource & Exploration Kit',
   'journey.public.sharedVia': 'Dibagikan melalui',

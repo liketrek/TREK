@@ -17,8 +17,7 @@ const vacay: TranslationStrings = {
   'vacay.editPerson': 'Editar pessoa',
   'vacay.removePerson': 'Remover pessoa',
   'vacay.removePersonConfirm': 'Remover {name}?',
-  'vacay.removePersonHint':
-    'Todas as entradas de férias desta pessoa serão excluídas permanentemente.',
+  'vacay.removePersonHint': 'Todas as entradas de férias desta pessoa serão excluídas permanentemente.',
   'vacay.personName': 'Nome',
   'vacay.personNamePlaceholder': 'Digite o nome',
   'vacay.color': 'Cor',
@@ -43,8 +42,7 @@ const vacay: TranslationStrings = {
   'vacay.fri': 'Sex',
   'vacay.sat': 'Sáb',
   'vacay.sun': 'Dom',
-  'vacay.blockWeekendsHint':
-    'Impedir entradas de férias aos sábados e domingos',
+  'vacay.blockWeekendsHint': 'Impedir entradas de férias aos sábados e domingos',
   'vacay.publicHolidays': 'Feriados nacionais',
   'vacay.publicHolidaysHint': 'Marcar feriados nacionais no calendário',
   'vacay.selectCountry': 'Selecione o país',
@@ -54,26 +52,20 @@ const vacay: TranslationStrings = {
   'vacay.calendarColor': 'Cor',
   'vacay.noCalendars': 'Nenhum calendário de feriados adicionado ainda',
   'vacay.companyHolidays': 'Feriados da empresa',
-  'vacay.companyHolidaysHint':
-    'Permitir marcar dias de feriado em toda a empresa',
-  'vacay.companyHolidaysNoDeduct':
-    'Feriados da empresa não contam como dias de férias.',
+  'vacay.companyHolidaysHint': 'Permitir marcar dias de feriado em toda a empresa',
+  'vacay.companyHolidaysNoDeduct': 'Feriados da empresa não contam como dias de férias.',
   'vacay.weekStart': 'Semana começa em',
-  'vacay.weekStartHint':
-    'Escolha se a semana começa na segunda-feira ou no domingo',
+  'vacay.weekStartHint': 'Escolha se a semana começa na segunda-feira ou no domingo',
   'vacay.carryOver': 'Acúmulo',
-  'vacay.carryOverHint':
-    'Levar automaticamente os dias de férias restantes para o ano seguinte',
+  'vacay.carryOverHint': 'Levar automaticamente os dias de férias restantes para o ano seguinte',
   'vacay.sharing': 'Compartilhamento',
-  'vacay.sharingHint':
-    'Compartilhe seu plano de férias com outros usuários do TREK',
+  'vacay.sharingHint': 'Compartilhe seu plano de férias com outros usuários do TREK',
   'vacay.owner': 'Proprietário',
   'vacay.shareEmailPlaceholder': 'E-mail do usuário TREK',
   'vacay.shareSuccess': 'Plano compartilhado com sucesso',
   'vacay.shareError': 'Não foi possível compartilhar o plano',
   'vacay.dissolve': 'Encerrar fusão',
-  'vacay.dissolveHint':
-    'Separar os calendários novamente. Suas entradas serão mantidas.',
+  'vacay.dissolveHint': 'Separar os calendários novamente. Suas entradas serão mantidas.',
   'vacay.dissolveAction': 'Encerrar',
   'vacay.dissolved': 'Calendário separado',
   'vacay.fusedWith': 'Fundido com',
@@ -81,8 +73,7 @@ const vacay: TranslationStrings = {
   'vacay.noData': 'Sem dados',
   'vacay.changeColor': 'Alterar cor',
   'vacay.inviteUser': 'Convidar usuário',
-  'vacay.inviteHint':
-    'Convide outro usuário TREK para compartilhar um calendário de férias combinado.',
+  'vacay.inviteHint': 'Convide outro usuário TREK para compartilhar um calendário de férias combinado.',
   'vacay.selectUser': 'Selecionar usuário',
   'vacay.sendInvite': 'Enviar convite',
   'vacay.inviteSent': 'Convite enviado',
@@ -93,15 +84,11 @@ const vacay: TranslationStrings = {
   'vacay.decline': 'Recusar',
   'vacay.acceptFusion': 'Aceitar e fundir',
   'vacay.inviteTitle': 'Pedido de fusão',
-  'vacay.inviteWantsToFuse':
-    'quer compartilhar um calendário de férias com você.',
-  'vacay.fuseInfo1':
-    'Ambos verão todas as entradas de férias em um calendário compartilhado.',
+  'vacay.inviteWantsToFuse': 'quer compartilhar um calendário de férias com você.',
+  'vacay.fuseInfo1': 'Ambos verão todas as entradas de férias em um calendário compartilhado.',
   'vacay.fuseInfo2': 'Ambos podem criar e editar entradas um do outro.',
-  'vacay.fuseInfo3':
-    'Ambos podem excluir entradas e alterar direitos de férias.',
-  'vacay.fuseInfo4':
-    'Configurações como feriados nacionais e da empresa são compartilhadas.',
+  'vacay.fuseInfo3': 'Ambos podem excluir entradas e alterar direitos de férias.',
+  'vacay.fuseInfo4': 'Configurações como feriados nacionais e da empresa são compartilhadas.',
   'vacay.fuseInfo5':
     'A fusão pode ser encerrada a qualquer momento por qualquer parte. Suas entradas serão preservadas.',
 };

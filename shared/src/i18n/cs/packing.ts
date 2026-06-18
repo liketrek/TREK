@@ -51,10 +51,8 @@ const packing: TranslationStrings = {
   'packing.bagName': 'Název zavazadla...',
   'packing.addBag': 'Přidat zavazadlo',
   'packing.changeCategory': 'Změnit kategorii',
-  'packing.confirm.clearChecked':
-    'Opravdu chcete odstranit {count} zabalených položek?',
-  'packing.confirm.deleteCat':
-    'Opravdu chcete smazat kategorii „{name}" s {count} položkami?',
+  'packing.confirm.clearChecked': 'Opravdu chcete odstranit {count} zabalených položek?',
+  'packing.confirm.deleteCat': 'Opravdu chcete smazat kategorii „{name}" s {count} položkami?',
   'packing.defaultCategory': 'Ostatní',
   'packing.toast.saveError': 'Uložení se nezdařilo',
   'packing.toast.deleteError': 'Smazání se nezdařilo',

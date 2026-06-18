@@ -94,6 +94,31 @@ export class BudgetController {
     return { settlement };
   }
 
+  @Put('settlements/:settlementId')
+  updateSettlement(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Param('settlementId') settlementId: string,
+    @Body() body: { from_user_id?: number; to_user_id?: number; amount?: number },
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    const trip = this.requireTrip(tripId, user);
+    this.requireEdit(trip, user);
+    if (body.from_user_id == null || body.to_user_id == null || body.amount == null) {
+      throw new HttpException({ error: 'from_user_id, to_user_id and amount are required' }, 400);
+    }
+    const settlement = this.budget.updateSettlement(settlementId, tripId, {
+      from_user_id: body.from_user_id,
+      to_user_id: body.to_user_id,
+      amount: body.amount,
+    });
+    if (!settlement) {
+      throw new HttpException({ error: 'Settlement not found' }, 404);
+    }
+    this.budget.broadcast(tripId, 'budget:settlement-updated', { settlement }, socketId);
+    return { settlement };
+  }
+
   @Delete('settlements/:settlementId')
   deleteSettlement(
     @CurrentUser() user: User,

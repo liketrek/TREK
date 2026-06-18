@@ -12,8 +12,7 @@ const backup: TranslationStrings = {
   'backup.createFirst': 'Első mentés készítése',
   'backup.download': 'Letöltés',
   'backup.restore': 'Visszaállítás',
-  'backup.confirm.restore':
-    '"{name}" mentés visszaállítása?\n\nMinden jelenlegi adat a mentéssel lesz helyettesítve.',
+  'backup.confirm.restore': '"{name}" mentés visszaállítása?\n\nMinden jelenlegi adat a mentéssel lesz helyettesítve.',
   'backup.confirm.uploadRestore':
     '"{name}" mentésfájl feltöltése és visszaállítása?\n\nMinden jelenlegi adat felülíródik.',
   'backup.confirm.delete': '"{name}" mentés törlése?',
@@ -31,15 +30,13 @@ const backup: TranslationStrings = {
   'backup.auto.title': 'Automatikus mentés',
   'backup.auto.subtitle': 'Automatikus mentés ütemezés szerint',
   'backup.auto.enable': 'Automatikus mentés engedélyezése',
-  'backup.auto.enableHint':
-    'A mentések automatikusan készülnek a választott ütemezés szerint',
+  'backup.auto.enableHint': 'A mentések automatikusan készülnek a választott ütemezés szerint',
   'backup.auto.interval': 'Időköz',
   'backup.auto.hour': 'Futtatás időpontja',
   'backup.auto.hourHint': 'Szerver helyi ideje ({format} formátum)',
   'backup.auto.dayOfWeek': 'A hét napja',
   'backup.auto.dayOfMonth': 'A hónap napja',
-  'backup.auto.dayOfMonthHint':
-    '1–28-ra korlátozva az összes hónappal való kompatibilitás érdekében',
+  'backup.auto.dayOfMonthHint': '1–28-ra korlátozva az összes hónappal való kompatibilitás érdekében',
   'backup.auto.scheduleSummary': 'Ütemezés',
   'backup.auto.summaryDaily': 'Minden nap {hour}:00-kor',
   'backup.auto.summaryWeekly': 'Minden {day} {hour}:00-kor',
@@ -70,8 +67,7 @@ const backup: TranslationStrings = {
   'backup.restoreConfirmTitle': 'Mentés visszaállítása?',
   'backup.restoreWarning':
     'Minden jelenlegi adat (utazások, helyek, felhasználók, feltöltések) véglegesen lecserélődik a mentéssel. Ez a művelet nem vonható vissza.',
-  'backup.restoreTip':
-    'Tipp: Készíts mentést a jelenlegi állapotról a visszaállítás előtt.',
+  'backup.restoreTip': 'Tipp: Készíts mentést a jelenlegi állapotról a visszaállítás előtt.',
   'backup.restoreConfirm': 'Igen, visszaállítás',
 };
 export default backup;

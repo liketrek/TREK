@@ -3,8 +3,7 @@ import type { TranslationStrings } from '../types';
 const login: TranslationStrings = {
   'login.error': '로그인 실패. 자격 증명을 확인하세요.',
   'login.tagline': '나의 여행.\n나의 계획.',
-  'login.description':
-    '인터랙티브 지도, 예산, 실시간 동기화로 함께 여행을 계획하세요.',
+  'login.description': '인터랙티브 지도, 예산, 실시간 동기화로 함께 여행을 계획하세요.',
   'login.features.maps': '인터랙티브 지도',
   'login.features.mapsDesc': 'Google Places, 경로 및 클러스터링',
   'login.features.realtime': '실시간 동기화',
@@ -38,23 +37,20 @@ const login: TranslationStrings = {
   'login.register': '회원가입',
   'login.emailPlaceholder': 'your@email.com',
   'login.username': '사용자 이름',
-  'login.oidc.registrationDisabled':
-    '회원가입이 비활성화되어 있습니다. 관리자에게 문의하세요.',
+  'login.oidc.registrationDisabled': '회원가입이 비활성화되어 있습니다. 관리자에게 문의하세요.',
   'login.oidc.noEmail': '공급자로부터 이메일을 받지 못했습니다.',
   'login.oidc.tokenFailed': '인증 실패.',
   'login.oidc.invalidState': '유효하지 않은 세션입니다. 다시 시도하세요.',
   'login.demoFailed': '데모 로그인 실패',
   'login.oidcSignIn': '{name}으로 로그인',
-  'login.oidcOnly':
-    '비밀번호 인증이 비활성화되었습니다. SSO 공급자로 로그인하세요.',
+  'login.oidcOnly': '비밀번호 인증이 비활성화되었습니다. SSO 공급자로 로그인하세요.',
   'login.oidcLoggedOut': '로그아웃되었습니다. SSO 공급자로 다시 로그인하세요.',
   'login.demoHint': '데모 체험 — 회원가입 불필요',
   'login.mfaTitle': '2단계 인증',
   'login.mfaSubtitle': '인증 앱의 6자리 코드를 입력하세요.',
   'login.mfaCodeLabel': '인증 코드',
   'login.mfaCodeRequired': '인증 앱의 코드를 입력하세요.',
-  'login.mfaHint':
-    'Google Authenticator, Authy 또는 다른 TOTP 앱을 열어주세요.',
+  'login.mfaHint': 'Google Authenticator, Authy 또는 다른 TOTP 앱을 열어주세요.',
   'login.mfaBack': '← 로그인으로 돌아가기',
   'login.mfaVerify': '인증',
   'login.invalidInviteLink': '유효하지 않거나 만료된 초대 링크입니다',
@@ -64,12 +60,10 @@ const login: TranslationStrings = {
   'login.forgotPassword': '비밀번호를 잊으셨나요?',
   'login.rememberMe': '로그인 상태 유지',
   'login.forgotPasswordTitle': '비밀번호 재설정',
-  'login.forgotPasswordBody':
-    '가입 시 사용한 이메일 주소를 입력하세요. 계정이 존재하면 재설정 링크를 보내드립니다.',
+  'login.forgotPasswordBody': '가입 시 사용한 이메일 주소를 입력하세요. 계정이 존재하면 재설정 링크를 보내드립니다.',
   'login.forgotPasswordSubmit': '재설정 링크 전송',
   'login.forgotPasswordSentTitle': '이메일을 확인하세요',
-  'login.forgotPasswordSentBody':
-    '해당 이메일로 계정이 있다면 재설정 링크가 전송 중입니다. 링크는 60분 후 만료됩니다.',
+  'login.forgotPasswordSentBody': '해당 이메일로 계정이 있다면 재설정 링크가 전송 중입니다. 링크는 60분 후 만료됩니다.',
   'login.forgotPasswordSmtpHintOff':
     '알림: 관리자가 SMTP를 설정하지 않아 재설정 링크가 이메일 대신 서버 콘솔에 기록됩니다.',
   'login.backToLogin': '로그인으로 돌아가기',
@@ -78,17 +72,14 @@ const login: TranslationStrings = {
   'login.passwordsDontMatch': '비밀번호가 일치하지 않습니다',
   'login.mfaCode': '2FA 코드',
   'login.resetPasswordTitle': '새 비밀번호 설정',
-  'login.resetPasswordBody':
-    '이전에 사용하지 않은 강력한 비밀번호를 선택하세요. 최소 8자.',
-  'login.resetPasswordMfaBody':
-    '재설정을 완료하려면 2FA 코드 또는 백업 코드를 입력하세요.',
+  'login.resetPasswordBody': '이전에 사용하지 않은 강력한 비밀번호를 선택하세요. 최소 8자.',
+  'login.resetPasswordMfaBody': '재설정을 완료하려면 2FA 코드 또는 백업 코드를 입력하세요.',
   'login.resetPasswordSubmit': '비밀번호 재설정',
   'login.resetPasswordVerify': '인증 및 재설정',
   'login.resetPasswordSuccessTitle': '비밀번호가 업데이트되었습니다',
   'login.resetPasswordSuccessBody': '새 비밀번호로 로그인할 수 있습니다.',
   'login.resetPasswordInvalidLink': '유효하지 않은 재설정 링크',
-  'login.resetPasswordInvalidLinkBody':
-    '이 링크가 없거나 손상되었습니다. 새 링크를 요청하세요.',
+  'login.resetPasswordInvalidLinkBody': '이 링크가 없거나 손상되었습니다. 새 링크를 요청하세요.',
   'login.resetPasswordFailed': '재설정 실패. 링크가 만료되었을 수 있습니다.',
   'login.passkey.signIn': '패스키로 로그인',
   'login.passkey.failed': '패스키 로그인에 실패했습니다. 다시 시도하세요.',

@@ -14,14 +14,12 @@ const journey: TranslationStrings = {
   'journey.createError': 'Δεν ήταν δυνατή η δημιουργία ταξιδιού',
   'journey.deleteError': 'Δεν ήταν δυνατή η διαγραφή ταξιδιού',
   'journey.deleteConfirmTitle': 'Διαγραφή',
-  'journey.deleteConfirmMessage':
-    'Διαγραφή «{title}»; Αυτό δεν μπορεί να αναιρεθεί.',
+  'journey.deleteConfirmMessage': 'Διαγραφή «{title}»; Αυτό δεν μπορεί να αναιρεθεί.',
   'journey.deleteConfirmGeneric': 'Είστε σίγουροι ότι θέλετε να το διαγράψετε;',
   'journey.notFound': 'Το ταξίδι δεν βρέθηκε',
   'journey.photos': 'Φωτογραφίες',
   'journey.timelineEmpty': 'Δεν υπάρχουν στάσεις ακόμα',
-  'journey.timelineEmptyHint':
-    'Προσθέστε μια άφιξη ή γράψτε μια καταχώρηση ημερολογίου για να ξεκινήσετε',
+  'journey.timelineEmptyHint': 'Προσθέστε μια άφιξη ή γράψτε μια καταχώρηση ημερολογίου για να ξεκινήσετε',
   'journey.status.draft': 'Πρόχειρο',
   'journey.status.active': 'Ενεργό',
   'journey.status.completed': 'Ολοκληρωμένο',
@@ -47,30 +45,25 @@ const journey: TranslationStrings = {
   'journey.editor.titlePlaceholder': 'Δώστε ένα όνομα σε αυτή τη στιγμή...',
   'journey.editor.bodyPlaceholder': 'Πείτε την ιστορία αυτής της ημέρας...',
   'journey.editor.placePlaceholder': 'Τοποθεσία (προαιρετικό)',
-  'journey.editor.tagsPlaceholder':
-    'Ετικέτες: κρυμμένος θησαυρός, καλύτερο γεύμα, πρέπει να ξαναπάω...',
+  'journey.editor.tagsPlaceholder': 'Ετικέτες: κρυμμένος θησαυρός, καλύτερο γεύμα, πρέπει να ξαναπάω...',
   'journey.visibility.private': 'Ιδιωτικό',
   'journey.visibility.shared': 'Κοινόχρηστο',
   'journey.visibility.public': 'Δημόσιο',
   'journey.emptyState.title': 'Η ιστορία σας ξεκινά εδώ',
-  'journey.emptyState.subtitle':
-    'Κάντε άφιξη σε ένα μέρος ή γράψτε την πρώτη σας καταχώρηση ημερολογίου',
-  'journey.frontpage.subtitle':
-    'Μετατρέψτε τα ταξίδια σας σε ιστορίες που δεν θα ξεχάσετε ποτέ',
+  'journey.emptyState.subtitle': 'Κάντε άφιξη σε ένα μέρος ή γράψτε την πρώτη σας καταχώρηση ημερολογίου',
+  'journey.frontpage.subtitle': 'Μετατρέψτε τα ταξίδια σας σε ιστορίες που δεν θα ξεχάσετε ποτέ',
   'journey.frontpage.createJourney': 'Δημιουργία Ταξιδιού',
   'journey.frontpage.activeJourney': 'Ενεργό Ταξίδι',
   'journey.frontpage.allJourneys': 'Όλα τα Ταξίδια',
   'journey.frontpage.journeys': 'ταξίδια',
   'journey.frontpage.createNew': 'Δημιουργία νέου Ταξιδιού',
-  'journey.frontpage.createNewSub':
-    'Επιλέξτε ταξίδια, γράψτε ιστορίες, μοιραστείτε τις περιπέτειές σας',
+  'journey.frontpage.createNewSub': 'Επιλέξτε ταξίδια, γράψτε ιστορίες, μοιραστείτε τις περιπέτειές σας',
   'journey.frontpage.live': 'Ζωντανά',
   'journey.frontpage.synced': 'Συγχρονισμένο',
   'journey.frontpage.continueWriting': 'Συνέχιση γραφής',
   'journey.frontpage.updated': 'Ενημερώθηκε {time}',
   'journey.frontpage.suggestionLabel': 'Το ταξίδι μόλις τελείωσε',
-  'journey.frontpage.suggestionText':
-    'Μετατρέψτε το <strong>{title}</strong> σε Ταξίδι',
+  'journey.frontpage.suggestionText': 'Μετατρέψτε το <strong>{title}</strong> σε Ταξίδι',
   'journey.frontpage.dismiss': 'Απόρριψη',
   'journey.frontpage.journeyName': 'Όνομα Ταξιδιού',
   'journey.frontpage.namePlaceholder': 'π.χ. Νοτιοανατολική Ασία 2026',
@@ -85,8 +78,7 @@ const journey: TranslationStrings = {
   'journey.detail.newEntry': 'Νέα Καταχώρηση',
   'journey.detail.editEntry': 'Επεξεργασία Καταχώρησης',
   'journey.detail.noEntries': 'Δεν υπάρχουν καταχωρήσεις ακόμα',
-  'journey.detail.noEntriesHint':
-    'Προσθέστε ένα ταξίδι για να ξεκινήσετε με προτεινόμενες καταχωρήσεις',
+  'journey.detail.noEntriesHint': 'Προσθέστε ένα ταξίδι για να ξεκινήσετε με προτεινόμενες καταχωρήσεις',
   'journey.detail.noPhotos': 'Δεν υπάρχουν φωτογραφίες ακόμα',
   'journey.detail.noPhotosHint':
     'Μεταφορτώστε φωτογραφίες σε καταχωρήσεις ή περιηγηθείτε τη βιβλιοθήκη Immich/Synology',
@@ -111,8 +103,7 @@ const journey: TranslationStrings = {
   'journey.verdict.couldBeBetter': 'Θα μπορούσε να ήταν καλύτερο',
   'journey.synced.places': 'τοποθεσίες',
   'journey.synced.synced': 'συγχρονισμένα',
-  'journey.editor.discardChangesConfirm':
-    'Έχετε μη αποθηκευμένες αλλαγές. Απόρριψη;',
+  'journey.editor.discardChangesConfirm': 'Έχετε μη αποθηκευμένες αλλαγές. Απόρριψη;',
   'journey.editor.uploadFailed': 'Η μεταφόρτωση φωτογραφίας απέτυχε',
   'journey.editor.uploadPhotos': 'Μεταφόρτωση φωτογραφιών',
   'journey.editor.uploading': 'Μεταφόρτωση...',
@@ -169,8 +160,7 @@ const journey: TranslationStrings = {
   'journey.contributors.added': 'Ο συνεισφέρων προστέθηκε',
   'journey.contributors.addFailed': 'Αποτυχία προσθήκης συνεισφέροντα',
   'journey.contributors.remove': 'Αφαίρεση συνεισφέροντα',
-  'journey.contributors.removeConfirm':
-    'Αφαίρεση {username} από αυτό το ταξίδι;',
+  'journey.contributors.removeConfirm': 'Αφαίρεση {username} από αυτό το ταξίδι;',
   'journey.contributors.removed': 'Ο συνεισφέρων αφαιρέθηκε',
   'journey.contributors.removeFailed': 'Αποτυχία αφαίρεσης συνεισφέροντα',
   'journey.share.publicShare': 'Δημόσια Κοινοποίηση',
@@ -202,12 +192,10 @@ const journey: TranslationStrings = {
   'journey.settings.reopenJourney': 'Επαναφορά Ταξιδιού',
   'journey.settings.archived': 'Το ταξίδι αρχειοθετήθηκε',
   'journey.settings.reopened': 'Το ταξίδι επανενεργοποιήθηκε',
-  'journey.settings.endDescription':
-    'Αποκρύπτει το σήμα «Ζωντανά». Μπορείτε να το επαναφέρετε ανά πάσα στιγμή.',
+  'journey.settings.endDescription': 'Αποκρύπτει το σήμα «Ζωντανά». Μπορείτε να το επαναφέρετε ανά πάσα στιγμή.',
   'journey.settings.delete': 'Διαγραφή',
   'journey.settings.deleteJourney': 'Διαγραφή Ταξιδιού',
-  'journey.settings.deleteMessage':
-    'Διαγραφή «{title}»; Όλες οι καταχωρήσεις και οι φωτογραφίες θα χαθούν.',
+  'journey.settings.deleteMessage': 'Διαγραφή «{title}»; Όλες οι καταχωρήσεις και οι φωτογραφίες θα χαθούν.',
   'journey.settings.saved': 'Οι ρυθμίσεις αποθηκεύτηκαν',
   'journey.settings.saveFailed': 'Αποτυχία αποθήκευσης',
   'journey.settings.coverUpdated': 'Το εξώφυλλο ενημερώθηκε',
@@ -215,12 +203,10 @@ const journey: TranslationStrings = {
   'journey.settings.failedToDelete': 'Αποτυχία διαγραφής',
   'journey.entries.deleteTitle': 'Διαγραφή Καταχώρησης',
   'journey.photosUploaded': '{count} φωτογραφίες μεταφορτώθηκαν',
-  'journey.photosUploadFailed':
-    'Ορισμένες φωτογραφίες απέτυχαν να μεταφορτωθούν',
+  'journey.photosUploadFailed': 'Ορισμένες φωτογραφίες απέτυχαν να μεταφορτωθούν',
   'journey.photosAdded': '{count} φωτογραφίες προστέθηκαν',
   'journey.public.notFound': 'Δεν Βρέθηκε',
-  'journey.public.notFoundMessage':
-    'Αυτό το ταξίδι δεν υπάρχει ή ο σύνδεσμος έχει λήξει.',
+  'journey.public.notFoundMessage': 'Αυτό το ταξίδι δεν υπάρχει ή ο σύνδεσμος έχει λήξει.',
   'journey.public.readOnly': 'Μόνο ανάγνωση · Δημόσιο Ταξίδι',
   'journey.public.tagline': 'Travel Resource & Exploration Kit',
   'journey.public.sharedVia': 'Κοινοποιήθηκε μέσω',

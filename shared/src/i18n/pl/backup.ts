@@ -20,29 +20,24 @@ const backup: TranslationStrings = {
   'backup.toast.loadError': 'Nie udało się załadować kopii zapasowych',
   'backup.toast.created': 'Kopia zapasowa została utworzona pomyślnie',
   'backup.toast.createError': 'Nie udało się utworzyć kopii zapasowej',
-  'backup.toast.restored':
-    'Kopia zapasowa została przywrócona. Strona zostanie przeładowana...',
+  'backup.toast.restored': 'Kopia zapasowa została przywrócona. Strona zostanie przeładowana...',
   'backup.toast.restoreError': 'Nie udało się przywrócić kopii zapasowej',
   'backup.toast.uploadError': 'Nie udało się przesłać kopii zapasowej',
   'backup.toast.deleted': 'Kopia zapasowa została usunięta',
   'backup.toast.deleteError': 'Nie udało się usunąć kopii zapasowej',
   'backup.toast.downloadError': 'Nie udało się pobrać kopii zapasowej',
-  'backup.toast.settingsSaved':
-    'Ustawienia automatycznej kopii zapasowej zostały zapisane',
+  'backup.toast.settingsSaved': 'Ustawienia automatycznej kopii zapasowej zostały zapisane',
   'backup.toast.settingsError': 'Nie udało się zapisać ustawień',
   'backup.auto.title': 'Automatyczna kopia zapasowa',
-  'backup.auto.subtitle':
-    'Tworzenie automatycznej kopii zapasowej według harmonogramu',
+  'backup.auto.subtitle': 'Tworzenie automatycznej kopii zapasowej według harmonogramu',
   'backup.auto.enable': 'Włącz automatyczną kopię zapasową',
-  'backup.auto.enableHint':
-    'Kopie zapasowe będą tworzone automatycznie zgodnie z wybranym harmonogramem',
+  'backup.auto.enableHint': 'Kopie zapasowe będą tworzone automatycznie zgodnie z wybranym harmonogramem',
   'backup.auto.interval': 'Częstotliwość',
   'backup.auto.hour': 'Uruchom o godzinie',
   'backup.auto.hourHint': 'Czas lokalny serwera ({format} format)',
   'backup.auto.dayOfWeek': 'Dzień tygodnia',
   'backup.auto.dayOfMonth': 'Dzień miesiąca',
-  'backup.auto.dayOfMonthHint':
-    'Ograniczone do 1–28 dla kompatybilności ze wszystkimi miesiącami',
+  'backup.auto.dayOfMonthHint': 'Ograniczone do 1–28 dla kompatybilności ze wszystkimi miesiącami',
   'backup.auto.scheduleSummary': 'Harmonogram',
   'backup.auto.summaryDaily': 'Każdego dnia o {hour}:00',
   'backup.auto.summaryWeekly': 'Co {day} o {hour}:00',
@@ -51,8 +46,7 @@ const backup: TranslationStrings = {
   'backup.auto.envLockedHint':
     'Automatyczne kopie zapasowe są konfigurowane za pomocą zmiennych środowiskowych Dockera. Aby zmienić te ustawienia, zaktualizuj plik docker-compose.yml i uruchom ponownie kontener.',
   'backup.auto.copyEnv': 'Kopiuj zmienne środowiskowe Dockera',
-  'backup.auto.envCopied':
-    'Zmienne środowiskowe Dockera zostały skopiowane do schowka',
+  'backup.auto.envCopied': 'Zmienne środowiskowe Dockera zostały skopiowane do schowka',
   'backup.auto.keepLabel': 'Usuń stare kopie zapasowe po',
   'backup.dow.sunday': 'Nd',
   'backup.dow.monday': 'Pon',
@@ -74,8 +68,7 @@ const backup: TranslationStrings = {
   'backup.restoreConfirmTitle': 'Przywrócić kopię zapasową?',
   'backup.restoreWarning':
     'Wszystkie obecne dane (podróże, miejsca, użytkownicy, przesłane pliki) zostaną trwale zastąpione danymi z kopii zapasowej. Tej operacji nie można cofnąć.',
-  'backup.restoreTip':
-    'Wskazówka: Przed przywróceniem utwórz kopię zapasową bieżącej instancji.',
+  'backup.restoreTip': 'Wskazówka: Przed przywróceniem utwórz kopię zapasową bieżącej instancji.',
   'backup.restoreConfirm': 'Tak, przywróć',
 };
 export default backup;

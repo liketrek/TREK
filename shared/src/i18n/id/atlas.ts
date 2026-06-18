@@ -30,8 +30,7 @@ const atlas: TranslationStrings = {
   'atlas.visitedCountries': 'Negara yang Dikunjungi',
   'atlas.cities': 'Kota',
   'atlas.noData': 'Belum ada data perjalanan',
-  'atlas.noDataHint':
-    'Buat perjalanan dan tambahkan tempat untuk melihat peta duniamu',
+  'atlas.noDataHint': 'Buat perjalanan dan tambahkan tempat untuk melihat peta duniamu',
   'atlas.lastTrip': 'Perjalanan terakhir',
   'atlas.nextTrip': 'Perjalanan berikutnya',
   'atlas.daysLeft': 'hari lagi',

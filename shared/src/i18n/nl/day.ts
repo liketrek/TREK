@@ -7,10 +7,8 @@ const day: TranslationStrings = {
   'day.sunrise': 'Zonsopgang',
   'day.sunset': 'Zonsondergang',
   'day.hourlyForecast': 'Uurlijkse voorspelling',
-  'day.climateHint':
-    'Historische gemiddelden — echte voorspelling beschikbaar binnen 16 dagen voor deze datum.',
-  'day.noWeather':
-    'Geen weergegevens beschikbaar. Voeg een plaats met coördinaten toe.',
+  'day.climateHint': 'Historische gemiddelden — echte voorspelling beschikbaar binnen 16 dagen voor deze datum.',
+  'day.noWeather': 'Geen weergegevens beschikbaar. Voeg een plaats met coördinaten toe.',
   'day.overview': 'Dagoverzicht',
   'day.accommodation': 'Accommodatie',
   'day.addAccommodation': 'Accommodatie toevoegen',

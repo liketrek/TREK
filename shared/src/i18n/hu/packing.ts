@@ -51,10 +51,8 @@ const packing: TranslationStrings = {
   'packing.bagName': 'Táska neve...',
   'packing.addBag': 'Táska hozzáadása',
   'packing.changeCategory': 'Kategória módosítása',
-  'packing.confirm.clearChecked':
-    'Biztosan el szeretnéd távolítani a(z) {count} kipipált tárgyat?',
-  'packing.confirm.deleteCat':
-    'Biztosan törölni szeretnéd a(z) "{name}" kategóriát {count} tárggyal?',
+  'packing.confirm.clearChecked': 'Biztosan el szeretnéd távolítani a(z) {count} kipipált tárgyat?',
+  'packing.confirm.deleteCat': 'Biztosan törölni szeretnéd a(z) "{name}" kategóriát {count} tárggyal?',
   'packing.defaultCategory': 'Egyéb',
   'packing.toast.saveError': 'Nem sikerült menteni',
   'packing.toast.deleteError': 'Nem sikerült törölni',

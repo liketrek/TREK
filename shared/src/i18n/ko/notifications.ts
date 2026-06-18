@@ -14,25 +14,21 @@ const notifications: TranslationStrings = {
   'notifications.delete': '삭제',
   'notifications.system': '시스템',
   'notifications.synologySessionCleared.title': 'Synology Photos 연결 해제됨',
-  'notifications.synologySessionCleared.text':
-    '서버 또는 계정이 변경되었습니다 — 설정에서 연결을 다시 테스트하세요.',
+  'notifications.synologySessionCleared.text': '서버 또는 계정이 변경되었습니다 — 설정에서 연결을 다시 테스트하세요.',
   'notifications.versionAvailable.title': '업데이트 사용 가능',
-  'notifications.versionAvailable.text':
-    'TREK {version}이(가) 사용 가능합니다.',
+  'notifications.versionAvailable.text': 'TREK {version}이(가) 사용 가능합니다.',
   'notifications.versionAvailable.button': '상세 보기',
   'notifications.test.title': '{actor}의 테스트 알림',
   'notifications.test.text': '간단한 테스트 알림입니다.',
   'notifications.test.booleanTitle': '{actor}이(가) 승인을 요청합니다',
-  'notifications.test.booleanText':
-    '테스트 boolean 알림입니다. 아래에서 작업을 선택하세요.',
+  'notifications.test.booleanText': '테스트 boolean 알림입니다. 아래에서 작업을 선택하세요.',
   'notifications.test.accept': '승인',
   'notifications.test.decline': '거절',
   'notifications.test.navigateTitle': '확인할 항목이 있습니다',
   'notifications.test.navigateText': '테스트 navigate 알림입니다.',
   'notifications.test.goThere': '이동',
   'notifications.test.adminTitle': '관리자 방송',
-  'notifications.test.adminText':
-    '{actor}이(가) 모든 관리자에게 테스트 알림을 보냈습니다.',
+  'notifications.test.adminText': '{actor}이(가) 모든 관리자에게 테스트 알림을 보냈습니다.',
   'notifications.test.tripTitle': '{actor}이(가) 여행에 게시했습니다',
   'notifications.test.tripText': '여행 "{trip}"의 테스트 알림입니다.',
 };

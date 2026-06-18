@@ -13,8 +13,7 @@ const files: TranslationStrings = {
   'files.uploadError': "Échec de l'import",
   'files.dropzone': 'Déposez les fichiers ici',
   'files.dropzoneHint': 'ou cliquez pour parcourir',
-  'files.allowedTypes':
-    'Images, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Max 50 Mo',
+  'files.allowedTypes': 'Images, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Max 50 Mo',
   'files.uploading': 'Importation…',
   'files.filterAll': 'Tous',
   'files.filterPdf': 'PDF',
@@ -32,8 +31,7 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Réservation',
   'files.sourceTransport': 'Transport',
   'files.attach': 'Joindre',
-  'files.pasteHint':
-    'Vous pouvez aussi coller des images depuis le presse-papiers (Ctrl+V)',
+  'files.pasteHint': 'Vous pouvez aussi coller des images depuis le presse-papiers (Ctrl+V)',
   'files.trash': 'Corbeille',
   'files.trashEmpty': 'La corbeille est vide',
   'files.emptyTrash': 'Vider la corbeille',
@@ -53,8 +51,7 @@ const files: TranslationStrings = {
   'files.toast.assigned': 'Fichier attribué',
   'files.toast.assignError': "Échec de l'assignation",
   'files.toast.restoreError': 'Échec de la restauration',
-  'files.confirm.permanentDelete':
-    'Supprimer définitivement ce fichier ? Cette action est irréversible.',
+  'files.confirm.permanentDelete': 'Supprimer définitivement ce fichier ? Cette action est irréversible.',
   'files.confirm.emptyTrash':
     'Supprimer définitivement tous les fichiers de la corbeille ? Cette action est irréversible.',
   'files.noteLabel': 'Note',

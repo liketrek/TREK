@@ -8,8 +8,7 @@ const vacay: TranslationStrings = {
   'vacay.addPrevYear': '前年を追加',
   'vacay.removeYear': '年を削除',
   'vacay.removeYearConfirm': '{year}年を削除しますか？',
-  'vacay.removeYearHint':
-    'この年の休暇データと会社休日はすべて完全に削除されます。',
+  'vacay.removeYearHint': 'この年の休暇データと会社休日はすべて完全に削除されます。',
   'vacay.remove': '削除',
   'vacay.persons': '人物',
   'vacay.noPersons': '人物が追加されていません',
@@ -17,8 +16,7 @@ const vacay: TranslationStrings = {
   'vacay.editPerson': '人物を編集',
   'vacay.removePerson': '人物を削除',
   'vacay.removePersonConfirm': '{name}を削除しますか？',
-  'vacay.removePersonHint':
-    'この人物のすべての休暇データが完全に削除されます。',
+  'vacay.removePersonHint': 'この人物のすべての休暇データが完全に削除されます。',
   'vacay.personName': '名前',
   'vacay.personNamePlaceholder': '名前を入力',
   'vacay.color': '色',
@@ -56,8 +54,7 @@ const vacay: TranslationStrings = {
   'vacay.companyHolidaysHint': '会社全体の休日を設定できます',
   'vacay.companyHolidaysNoDeduct': '会社休日は休暇日数に含まれません。',
   'vacay.weekStart': '週の開始',
-  'vacay.weekStartHint':
-    'カレンダーの週を月曜始まりにするか日曜始まりにするかを選択します',
+  'vacay.weekStartHint': 'カレンダーの週を月曜始まりにするか日曜始まりにするかを選択します',
   'vacay.carryOver': '繰越',
   'vacay.carryOverHint': '残りの休暇日数を翌年に自動で繰り越します',
   'vacay.sharing': '共有',
@@ -75,8 +72,7 @@ const vacay: TranslationStrings = {
   'vacay.noData': 'データなし',
   'vacay.changeColor': '色を変更',
   'vacay.inviteUser': 'ユーザーを招待',
-  'vacay.inviteHint':
-    '別のTREKユーザーを招待して、休暇カレンダーを共有します。',
+  'vacay.inviteHint': '別のTREKユーザーを招待して、休暇カレンダーを共有します。',
   'vacay.selectUser': 'ユーザーを選択',
   'vacay.sendInvite': '招待を送信',
   'vacay.inviteSent': '招待を送信しました',

@@ -100,9 +100,7 @@ export const assignmentPlaceSchema = z.object({
 });
 export type AssignmentPlace = z.infer<typeof assignmentPlaceSchema>;
 
-export const placeCreateRequestSchema = open.and(
-  z.object({ name: z.string().min(1) }),
-);
+export const placeCreateRequestSchema = open.and(z.object({ name: z.string().min(1) }));
 export type PlaceCreateRequest = z.infer<typeof placeCreateRequestSchema>;
 
 export const placeUpdateRequestSchema = open;
@@ -111,9 +109,7 @@ export type PlaceUpdateRequest = z.infer<typeof placeUpdateRequestSchema>;
 export const placeBulkDeleteRequestSchema = z.object({
   ids: z.array(z.number()),
 });
-export type PlaceBulkDeleteRequest = z.infer<
-  typeof placeBulkDeleteRequestSchema
->;
+export type PlaceBulkDeleteRequest = z.infer<typeof placeBulkDeleteRequestSchema>;
 
 export const placeImportListRequestSchema = z.object({
   url: z.string().min(1),
@@ -121,9 +117,7 @@ export const placeImportListRequestSchema = z.object({
   // Maps key; runs as a background pass after the import returns.
   enrich: z.boolean().optional(),
 });
-export type PlaceImportListRequest = z.infer<
-  typeof placeImportListRequestSchema
->;
+export type PlaceImportListRequest = z.infer<typeof placeImportListRequestSchema>;
 
 /** Query filters for the place list. */
 export const placeListQuerySchema = z.object({

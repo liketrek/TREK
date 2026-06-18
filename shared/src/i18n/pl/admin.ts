@@ -2,8 +2,7 @@ import type { TranslationStrings } from '../types';
 
 const admin: TranslationStrings = {
   'admin.smtp.title': 'E-maile i powiadomienia',
-  'admin.smtp.hint':
-    'Konfiguracja SMTP dla powiadomień e-mail. Opcjonalnie: URL Webhooka dla Discorda, Slacka, itp.',
+  'admin.smtp.hint': 'Konfiguracja SMTP dla powiadomień e-mail. Opcjonalnie: URL Webhooka dla Discorda, Slacka, itp.',
   'admin.smtp.testButton': 'Wyślij testowego e-maila',
   'admin.smtp.testSuccess': 'Testowy e-mail został wysłany pomyślnie',
   'admin.smtp.testFailed': 'Nie udało się wysłać testowego e-maila',
@@ -29,8 +28,7 @@ const admin: TranslationStrings = {
   'admin.editUser': 'Edytuj użytkownika',
   'admin.newPassword': 'Nowe hasło',
   'admin.newPasswordHint': 'Pozostaw puste, aby zachować obecne hasło',
-  'admin.deleteUser':
-    'Usunąć użytkownika "{name}"? Wszystkie jego podróże zostaną trwale usunięte.',
+  'admin.deleteUser': 'Usunąć użytkownika "{name}"? Wszystkie jego podróże zostaną trwale usunięte.',
   'admin.deleteUserTitle': 'Usuń użytkownika',
   'admin.newPasswordPlaceholder': 'Podaj nowe hasło...',
   'admin.toast.loadError': 'Nie udało się załadować danych administratora',
@@ -63,19 +61,16 @@ const admin: TranslationStrings = {
   'admin.invite.deleteError': 'Nie udało się usunąć linku zaproszenia',
   'admin.tabs.settings': 'Ustawienia',
   'admin.allowRegistration': 'Zezwól na rejestrację',
-  'admin.allowRegistrationHint':
-    'Nowi użytkownicy mogą się rejestrować samodzielnie',
+  'admin.allowRegistrationHint': 'Nowi użytkownicy mogą się rejestrować samodzielnie',
   'admin.authMethods': 'Authentication Methods',
   'admin.passwordLogin': 'Password Login',
   'admin.passwordLoginHint': 'Allow users to sign in with email and password',
   'admin.passwordRegistration': 'Password Registration',
-  'admin.passwordRegistrationHint':
-    'Allow new users to register with email and password',
+  'admin.passwordRegistrationHint': 'Allow new users to register with email and password',
   'admin.oidcLogin': 'SSO Login',
   'admin.oidcLoginHint': 'Allow users to sign in with SSO',
   'admin.oidcRegistration': 'SSO Auto-Provisioning',
-  'admin.oidcRegistrationHint':
-    'Automatically create accounts for new SSO users',
+  'admin.oidcRegistrationHint': 'Automatically create accounts for new SSO users',
   'admin.envOverrideHint':
     'Password login settings are controlled by the OIDC_ONLY environment variable and cannot be changed here.',
   'admin.lockoutWarning': 'At least one login method must remain enabled',
@@ -86,14 +81,12 @@ const admin: TranslationStrings = {
   'admin.apiKeysHint':
     'Opcjonalne. Umożliwiają pobieranie większej ilości danych o miejscach, takich jak zdjęcia i pogoda.',
   'admin.mapsKey': 'Klucz Google Maps API',
-  'admin.mapsKeyHint':
-    'Wymagany do wyszukiwania miejsc. Uzyskaj go na console.cloud.google.com',
+  'admin.mapsKeyHint': 'Wymagany do wyszukiwania miejsc. Uzyskaj go na console.cloud.google.com',
   'admin.mapsKeyHintLong':
     'Bez klucza API, OpenStreetMap jest wykorzystywany do wyszukiwania miejsc. Z kluczem API Google, zdjęcia, oceny i godziny otwarcia również mogą być pobierane. Uzyskaj go na console.cloud.google.com.',
   'admin.recommended': 'Polecane',
   'admin.weatherKey': 'Klucz OpenWeatherMap API',
-  'admin.weatherKeyHint':
-    'Do danych pogodowych. Uzyskaj go bezpłatnie na openweathermap.org',
+  'admin.weatherKeyHint': 'Do danych pogodowych. Uzyskaj go bezpłatnie na openweathermap.org',
   'admin.validateKey': 'Testuj',
   'admin.keyValid': 'Połączono',
   'admin.keyInvalid': 'Niepoprawny',
@@ -103,15 +96,13 @@ const admin: TranslationStrings = {
     'Zezwól na logowanie za pomocą zewnętrznych dostawców, takich jak Google, Apple, Authentik lub Keycloak.',
   'admin.oidcDisplayName': 'Wyświetlana nazwa',
   'admin.oidcIssuer': 'URL wystawcy',
-  'admin.oidcIssuerHint':
-    'Adres URL wystawcy OpenID Connect dostawcy, np. https://accounts.google.com',
+  'admin.oidcIssuerHint': 'Adres URL wystawcy OpenID Connect dostawcy, np. https://accounts.google.com',
   'admin.oidcSaved': 'Konfiguracja OIDC została zapisana',
   'admin.oidcOnlyMode': 'Wyłącz uwierzytelnianie hasłem',
   'admin.oidcOnlyModeHint':
     'Po włączeniu dozwolone jest tylko logowanie jednokrotne. Logowanie i rejestracja za pomocą hasła są zablokowane.',
   'admin.fileTypes': 'Dozwolone typy plików',
-  'admin.fileTypesHint':
-    'Ustaw, które typy plików mogą być przesyłane przez użytkowników.',
+  'admin.fileTypesHint': 'Ustaw, które typy plików mogą być przesyłane przez użytkowników.',
   'admin.fileTypesFormat':
     'Rozszerzenia oddzielone przecinkami (np. jpg,png,pdf,doc). Użyj * aby zezwolić na wszystkie typy.',
   'admin.fileTypesSaved': 'Ustawienia typów plików zostały zapisane',
@@ -125,8 +116,7 @@ const admin: TranslationStrings = {
   'admin.placesDetails.subtitle':
     'Pobiera szczegółowe informacje o miejscu (godziny, ocena, strona) z Google Places API. Wyłącz, aby zaoszczędzić limit API.',
   'admin.bagTracking.title': 'Kontrola bagażu',
-  'admin.bagTracking.subtitle':
-    'Włącz wagę i przypisywanie do toreb dla przedmiotów do pakowania',
+  'admin.bagTracking.subtitle': 'Włącz wagę i przypisywanie do toreb dla przedmiotów do pakowania',
   'admin.collab.chat.title': 'Czat',
   'admin.collab.chat.subtitle': 'Wiadomości w czasie rzeczywistym',
   'admin.collab.notes.title': 'Notatki',
@@ -145,11 +135,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.resetToBuiltIn': 'przywróć',
   'admin.tabs.templates': 'Szablony pakowania',
   'admin.packingTemplates.title': 'Szablony pakowania',
-  'admin.packingTemplates.subtitle':
-    'Twórz szablony list pakowania do wielokrotnego użycia dla swoich podróży',
+  'admin.packingTemplates.subtitle': 'Twórz szablony list pakowania do wielokrotnego użycia dla swoich podróży',
   'admin.packingTemplates.create': 'Nowy szablon',
-  'admin.packingTemplates.namePlaceholder':
-    'Nazwa szablonu (np. Wakacje na plaży)',
+  'admin.packingTemplates.namePlaceholder': 'Nazwa szablonu (np. Wakacje na plaży)',
   'admin.packingTemplates.empty': 'Nie utworzono jeszcze żadnych szablonów',
   'admin.packingTemplates.items': 'przedmiotów',
   'admin.packingTemplates.categories': 'kategorie',
@@ -165,34 +153,24 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.saveError': 'Nie udało się zapisać szablonu',
   'admin.tabs.addons': 'Dodatki',
   'admin.addons.title': 'Dodatki',
-  'admin.addons.subtitle':
-    'Włączaj lub wyłączaj funkcje, aby dostosować swoje doświadczenie w TREK.',
+  'admin.addons.subtitle': 'Włączaj lub wyłączaj funkcje, aby dostosować swoje doświadczenie w TREK.',
   'admin.addons.catalog.packing.name': 'Listy',
-  'admin.addons.catalog.packing.description':
-    'Listy pakowania i zadania do wykonania dla Twoich podróży',
+  'admin.addons.catalog.packing.description': 'Listy pakowania i zadania do wykonania dla Twoich podróży',
   'admin.addons.catalog.budget.name': 'Budżet',
-  'admin.addons.catalog.budget.description':
-    'Śledź wydatki i planuj budżet podróży',
+  'admin.addons.catalog.budget.description': 'Śledź wydatki i planuj budżet podróży',
   'admin.addons.catalog.documents.name': 'Dokumenty',
-  'admin.addons.catalog.documents.description':
-    'Przechowuj i zarządzaj dokumentami podróżnymi',
+  'admin.addons.catalog.documents.description': 'Przechowuj i zarządzaj dokumentami podróżnymi',
   'admin.addons.catalog.vacay.name': 'Urlopy',
-  'admin.addons.catalog.vacay.description':
-    'Osobisty planer urlopu z widokiem kalendarza',
+  'admin.addons.catalog.vacay.description': 'Osobisty planer urlopu z widokiem kalendarza',
   'admin.addons.catalog.atlas.name': 'Atlas',
-  'admin.addons.catalog.atlas.description':
-    'Mapa świata z odwiedzonymi krajami i statystykami podróży',
+  'admin.addons.catalog.atlas.description': 'Mapa świata z odwiedzonymi krajami i statystykami podróży',
   'admin.addons.catalog.collab.name': 'Współpraca',
-  'admin.addons.catalog.collab.description':
-    'Notatki w czasie rzeczywistym, ankiety i czat do planowania podróży',
+  'admin.addons.catalog.collab.description': 'Notatki w czasie rzeczywistym, ankiety i czat do planowania podróży',
   'admin.addons.catalog.memories.name': 'Zdjęcia (Immich)',
-  'admin.addons.catalog.memories.description':
-    'Udostępniaj zdjęcia z podróży za pośrednictwem swojej instancji Immich',
+  'admin.addons.catalog.memories.description': 'Udostępniaj zdjęcia z podróży za pośrednictwem swojej instancji Immich',
   'admin.addons.catalog.mcp.name': 'MCP',
-  'admin.addons.catalog.mcp.description':
-    'Model Context Protocol dla integracji asystenta AI',
-  'admin.addons.subtitleBefore':
-    'Włączaj lub wyłączaj funkcje, aby dostosować swoje doświadczenie w ',
+  'admin.addons.catalog.mcp.description': 'Model Context Protocol dla integracji asystenta AI',
+  'admin.addons.subtitleBefore': 'Włączaj lub wyłączaj funkcje, aby dostosować swoje doświadczenie w ',
   'admin.addons.subtitleAfter': '.',
   'admin.addons.enabled': 'Włączone',
   'admin.addons.disabled': 'Wyłączone',
@@ -201,8 +179,7 @@ const admin: TranslationStrings = {
   'admin.addons.type.integration': 'Integracja',
   'admin.addons.tripHint': 'Dostępne jako zakładka w każdej podróży',
   'admin.addons.globalHint': 'Dostępne jako osobna sekcja w menu głównym',
-  'admin.addons.integrationHint':
-    'Usługi backendowe i integracje API bez dedykowanej strony',
+  'admin.addons.integrationHint': 'Usługi backendowe i integracje API bez dedykowanej strony',
   'admin.addons.toast.updated': 'Dodatek został zaktualizowany',
   'admin.addons.toast.error': 'Nie udało się zaktualizować dodatku',
   'admin.addons.noAddons': 'Brak dostępnych dodatków',
@@ -213,16 +190,14 @@ const admin: TranslationStrings = {
   'admin.weather.forecast': '16-dniowa prognoza',
   'admin.weather.forecastDesc': 'Wcześniej 5 dni (OpenWeatherMap)',
   'admin.weather.climate': 'Historyczne dane klimatyczne',
-  'admin.weather.climateDesc':
-    'Średnie z ostatnich 85 lat dla dni poza 16-dniową prognozą',
+  'admin.weather.climateDesc': 'Średnie z ostatnich 85 lat dla dni poza 16-dniową prognozą',
   'admin.weather.requests': '10,000 zapytań / dzień',
   'admin.weather.requestsDesc': 'Bezpłatnie, bez klucza API',
   'admin.weather.locationHint':
     'Pogoda jest określana na podstawie pierwszego miejsca z przypisanymi współrzędnymi w danym dniu. Jeśli do dnia nie przypisano żadnego miejsca, jako punkt odniesienia używane jest dowolne miejsce z listy.',
   'admin.tabs.mcpTokens': 'Dostęp MCP',
   'admin.mcpTokens.title': 'Dostęp MCP',
-  'admin.mcpTokens.subtitle':
-    'Zarządzaj sesjami OAuth i tokenami API dla wszystkich użytkowników',
+  'admin.mcpTokens.subtitle': 'Zarządzaj sesjami OAuth i tokenami API dla wszystkich użytkowników',
   'admin.mcpTokens.sectionTitle': 'Tokeny API',
   'admin.mcpTokens.owner': 'Właściciel',
   'admin.mcpTokens.tokenName': 'Nazwa tokenu',
@@ -243,8 +218,7 @@ const admin: TranslationStrings = {
   'admin.oauthSessions.created': 'Utworzono',
   'admin.oauthSessions.empty': 'Brak aktywnych sesji OAuth',
   'admin.oauthSessions.revokeTitle': 'Unieważnij sesję',
-  'admin.oauthSessions.revokeMessage':
-    'Ta sesja OAuth zostanie natychmiast unieważniona. Klient straci dostęp do MCP.',
+  'admin.oauthSessions.revokeMessage': 'Ta sesja OAuth zostanie natychmiast unieważniona. Klient straci dostęp do MCP.',
   'admin.oauthSessions.revokeSuccess': 'Sesja unieważniona',
   'admin.oauthSessions.revokeError': 'Nie udało się unieważnić sesji',
   'admin.oauthSessions.loadError': 'Nie udało się załadować sesji OAuth',
@@ -273,8 +247,7 @@ const admin: TranslationStrings = {
   'admin.github.by': 'przez',
   'admin.github.support': 'Pomóż mi rozwijać TREK',
   'admin.update.available': 'Dostępna aktualizacja',
-  'admin.update.text':
-    'Dostępna jest wersja TREK {version}. Używasz {current}.',
+  'admin.update.text': 'Dostępna jest wersja TREK {version}. Używasz {current}.',
   'admin.update.button': 'Zobacz na GitHubie',
   'admin.update.install': 'Zainstaluj aktualizację',
   'admin.update.confirmTitle': 'Zainstalować aktualizację?',
@@ -282,14 +255,12 @@ const admin: TranslationStrings = {
     'TREK zostanie zaktualizowany z {current} do {version}. Serwer zostanie automatycznie zrestartowany po zakończeniu.',
   'admin.update.dataInfo':
     'Wszystkie twoje dane (podróże, użytkownicy, klucze API, przesłane pliki, urlopy, Atlas, budżety) zostaną zachowane.',
-  'admin.update.warning':
-    'Aplikacja będzie niedostępna przez krótki czas podczas restartu.',
+  'admin.update.warning': 'Aplikacja będzie niedostępna przez krótki czas podczas restartu.',
   'admin.update.confirm': 'Zaktualizuj',
   'admin.update.installing': 'Aktualizowanie...',
   'admin.update.success': 'Aktualizacja zakończona! Serwer restartuje się...',
   'admin.update.failed': 'Aktualizacja nie powiodła się',
-  'admin.update.backupHint':
-    'Zalecamy utworzenie kopii zapasowej przed aktualizacją.',
+  'admin.update.backupHint': 'Zalecamy utworzenie kopii zapasowej przed aktualizacją.',
   'admin.update.backupLink': 'Zrób kopię zapasową',
   'admin.update.howTo': 'Jak zaktualizować',
   'admin.update.dockerText':
@@ -314,10 +285,8 @@ const admin: TranslationStrings = {
   'admin.notifications.adminWebhookPanel.hint':
     'Ten webhook służy wyłącznie do powiadomień admina (np. alertów o nowych wersjach). Jest niezależny od webhooków użytkowników i wysyła automatycznie, gdy URL jest skonfigurowany.',
   'admin.notifications.adminWebhookPanel.saved': 'URL webhooka admina zapisany',
-  'admin.notifications.adminWebhookPanel.testSuccess':
-    'Testowy webhook wysłany pomyślnie',
-  'admin.notifications.adminWebhookPanel.testFailed':
-    'Wysyłanie testowego webhooka nie powiodło się',
+  'admin.notifications.adminWebhookPanel.testSuccess': 'Testowy webhook wysłany pomyślnie',
+  'admin.notifications.adminWebhookPanel.testFailed': 'Wysyłanie testowego webhooka nie powiodło się',
   'admin.notifications.adminWebhookPanel.alwaysOnHint':
     'Webhook admina wysyła automatycznie, gdy URL jest skonfigurowany',
   'admin.notifications.ntfy': 'Ntfy',
@@ -325,8 +294,7 @@ const admin: TranslationStrings = {
     'Pozwala użytkownikom skonfigurować własne tematy ntfy dla powiadomień push. Ustaw domyślny serwer poniżej, aby wstępnie wypełnić ustawienia użytkownika.',
   'admin.notifications.testNtfy': 'Wyślij testowe Ntfy',
   'admin.notifications.testNtfySuccess': 'Testowe Ntfy wysłane pomyślnie',
-  'admin.notifications.testNtfyFailed':
-    'Wysyłanie testowego Ntfy nie powiodło się',
+  'admin.notifications.testNtfyFailed': 'Wysyłanie testowego Ntfy nie powiodło się',
   'admin.notifications.adminNtfyPanel.title': 'Admin Ntfy',
   'admin.notifications.adminNtfyPanel.hint':
     'Ten temat Ntfy jest używany wyłącznie do powiadomień admina (np. alertów o wersjach). Jest niezależny od tematów użytkowników i zawsze wysyła po skonfigurowaniu.',
@@ -337,25 +305,19 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.topicLabel': 'Temat admina',
   'admin.notifications.adminNtfyPanel.topicPlaceholder': 'trek-admin-alerts',
   'admin.notifications.adminNtfyPanel.tokenLabel': 'Token dostępu (opcjonalne)',
-  'admin.notifications.adminNtfyPanel.tokenCleared':
-    'Token dostępu admina wyczyszczony',
+  'admin.notifications.adminNtfyPanel.tokenCleared': 'Token dostępu admina wyczyszczony',
   'admin.notifications.adminNtfyPanel.saved': 'Ustawienia admin Ntfy zapisane',
   'admin.notifications.adminNtfyPanel.test': 'Wyślij testowe Ntfy',
-  'admin.notifications.adminNtfyPanel.testSuccess':
-    'Testowe Ntfy wysłane pomyślnie',
-  'admin.notifications.adminNtfyPanel.testFailed':
-    'Wysyłanie testowego Ntfy nie powiodło się',
-  'admin.notifications.adminNtfyPanel.alwaysOnHint':
-    'Admin Ntfy zawsze wysyła po skonfigurowaniu tematu',
+  'admin.notifications.adminNtfyPanel.testSuccess': 'Testowe Ntfy wysłane pomyślnie',
+  'admin.notifications.adminNtfyPanel.testFailed': 'Wysyłanie testowego Ntfy nie powiodło się',
+  'admin.notifications.adminNtfyPanel.alwaysOnHint': 'Admin Ntfy zawsze wysyła po skonfigurowaniu tematu',
   'admin.notifications.adminNotificationsHint':
     'Skonfiguruj, które kanały dostarczają powiadomienia admina (np. alerty o wersjach). Webhook wysyła automatycznie, gdy ustawiony jest URL webhooka admina.',
   'admin.notifications.tripReminders.title': 'Przypomnienia o podróżach',
   'admin.notifications.tripReminders.hint':
     'Wysyła powiadomienie z przypomnieniem przed rozpoczęciem podróży (wymaga ustawienia dni przypomnienia dla podróży).',
-  'admin.notifications.tripReminders.enabled':
-    'Przypomnienia o podróżach włączone',
-  'admin.notifications.tripReminders.disabled':
-    'Przypomnienia o podróżach wyłączone',
+  'admin.notifications.tripReminders.enabled': 'Przypomnienia o podróżach włączone',
+  'admin.notifications.tripReminders.disabled': 'Przypomnienia o podróżach wyłączone',
   'admin.webhook.hint':
     'Pozwól użytkownikom konfigurować własne adresy URL webhooka dla powiadomień (Discord, Slack itp.).',
   'admin.tabs.permissions': 'Uprawnienia',
@@ -363,8 +325,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.description':
     'Śledzenie podróży i dziennik z zameldowaniami, zdjęciami i codziennymi historiami',
   'admin.passkey.title': 'Logowanie kluczem dostępu',
-  'admin.passkey.cardHint':
-    'Pozwól użytkownikom logować się kluczami dostępu (WebAuthn). Domyślnie wyłączone.',
+  'admin.passkey.cardHint': 'Pozwól użytkownikom logować się kluczami dostępu (WebAuthn). Domyślnie wyłączone.',
   'admin.passkey.login': 'Włącz logowanie kluczem dostępu',
   'admin.passkey.loginHint':
     'Pokaż opcję „Zaloguj się kluczem dostępu” i pozwól użytkownikom rejestrować klucze dostępu w swoich ustawieniach.',
@@ -382,11 +343,13 @@ const admin: TranslationStrings = {
   'admin.passkey.resetConfirm': 'Usunąć wszystkie klucze dostępu dla {name}?',
   'admin.passkey.resetDone': 'Usunięto {count} kluczy dostępu',
   'admin.defaultSettings.mapProvider': 'Silnik map',
-  'admin.defaultSettings.mapProviderHint': 'Domyślna mapa dla wszystkich na tej instancji. Każdy użytkownik może ją zmienić we własnych ustawieniach.',
+  'admin.defaultSettings.mapProviderHint':
+    'Domyślna mapa dla wszystkich na tej instancji. Każdy użytkownik może ją zmienić we własnych ustawieniach.',
   'admin.defaultSettings.providerLeaflet': 'Standardowa (bezpłatna)',
   'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
   'admin.defaultSettings.mapboxToken': 'Współdzielony token Mapbox',
-  'admin.defaultSettings.mapboxTokenHint': 'Używany dla każdego użytkownika, który nie wprowadził własnego tokena — dzięki temu cała instancja korzysta z Mapbox bez udostępniania klucza każdemu z osobna. Przechowywany w postaci zaszyfrowanej.',
+  'admin.defaultSettings.mapboxTokenHint':
+    'Używany dla każdego użytkownika, który nie wprowadził własnego tokena — dzięki temu cała instancja korzysta z Mapbox bez udostępniania klucza każdemu z osobna. Przechowywany w postaci zaszyfrowanej.',
   'admin.defaultSettings.mapboxStyle': 'Styl mapy',
   'admin.defaultSettings.mapboxStylePlaceholder': 'Wybierz styl…',
   'admin.defaultSettings.mapbox3d': 'Budynki i teren 3D',

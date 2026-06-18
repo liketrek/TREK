@@ -14,12 +14,10 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Plantilla del mapa',
   'settings.mapTemplatePlaceholder.select': 'Seleccionar plantilla...',
   'settings.mapDefaultHint': 'Déjalo vacío para OpenStreetMap (por defecto)',
-  'settings.mapTemplatePlaceholder':
-    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'Plantilla de URL para los mosaicos del mapa',
   'settings.mapProvider': 'Proveedor de mapa',
-  'settings.mapProviderHint':
-    'Afecta a los mapas de Trip Planner y Journey. Atlas siempre usa Leaflet.',
+  'settings.mapProviderHint': 'Afecta a los mapas de Trip Planner y Journey. Atlas siempre usa Leaflet.',
   'settings.mapLeafletSubtitle': 'Clásico 2D, cualquier mosaico raster',
   'settings.mapMapboxSubtitle': 'Mosaicos vectoriales, edificios 3D y terreno',
   'settings.mapExperimental': 'Experimental',
@@ -35,8 +33,7 @@ const settings: TranslationStrings = {
   'settings.mapHighQuality': 'Modo de alta calidad',
   'settings.mapHighQualityHint':
     'Antialiasing + proyección global para bordes más nítidos y una vista realista del mundo.',
-  'settings.mapHighQualityWarning':
-    'Puede afectar el rendimiento en dispositivos menos potentes.',
+  'settings.mapHighQualityWarning': 'Puede afectar el rendimiento en dispositivos menos potentes.',
   'settings.mapTipLabel': 'Consejo:',
   'settings.mapTip':
     'Clic derecho y arrastrar para rotar/inclinar el mapa. Clic central para añadir un lugar (el clic derecho está reservado para la rotación).',
@@ -45,11 +42,9 @@ const settings: TranslationStrings = {
   'settings.saveMap': 'Guardar mapa',
   'settings.apiKeys': 'Claves API',
   'settings.mapsKey': 'Clave API de Google Maps',
-  'settings.mapsKeyHint':
-    'Necesaria para buscar lugares. Consíguela en console.cloud.google.com',
+  'settings.mapsKeyHint': 'Necesaria para buscar lugares. Consíguela en console.cloud.google.com',
   'settings.weatherKey': 'Clave API de OpenWeatherMap',
-  'settings.weatherKeyHint':
-    'Para datos meteorológicos. Gratis en openweathermap.org/api',
+  'settings.weatherKeyHint': 'Para datos meteorológicos. Gratis en openweathermap.org/api',
   'settings.keyPlaceholder': 'Introduce la clave...',
   'settings.configured': 'Configurado',
   'settings.saveKeys': 'Guardar claves',
@@ -78,8 +73,7 @@ const settings: TranslationStrings = {
   'settings.notificationsDisabled':
     'Las notificaciones no están configuradas. Pida a un administrador que active las notificaciones por correo o webhook.',
   'settings.notificationsActive': 'Canal activo',
-  'settings.notificationsManagedByAdmin':
-    'Los eventos de notificación son configurados por el administrador.',
+  'settings.notificationsManagedByAdmin': 'Los eventos de notificación son configurados por el administrador.',
   'settings.on': 'Activado',
   'settings.off': 'Desactivado',
   'settings.mcp.title': 'Configuración MCP',
@@ -93,8 +87,7 @@ const settings: TranslationStrings = {
   'settings.mcp.copied': '¡Copiado!',
   'settings.mcp.apiTokens': 'Tokens de API',
   'settings.mcp.createToken': 'Crear nuevo token',
-  'settings.mcp.noTokens':
-    'Sin tokens aún. Crea uno para conectar clientes MCP.',
+  'settings.mcp.noTokens': 'Sin tokens aún. Crea uno para conectar clientes MCP.',
   'settings.mcp.tokenCreatedAt': 'Creado',
   'settings.mcp.tokenUsedAt': 'Usado',
   'settings.mcp.deleteTokenTitle': 'Eliminar token',
@@ -102,8 +95,7 @@ const settings: TranslationStrings = {
     'Este token dejará de funcionar de inmediato. Cualquier cliente MCP que lo use perderá el acceso.',
   'settings.mcp.modal.createTitle': 'Crear token de API',
   'settings.mcp.modal.tokenName': 'Nombre del token',
-  'settings.mcp.modal.tokenNamePlaceholder':
-    'p. ej. Claude Desktop, Portátil de trabajo',
+  'settings.mcp.modal.tokenNamePlaceholder': 'p. ej. Claude Desktop, Portátil de trabajo',
   'settings.mcp.modal.creating': 'Creando…',
   'settings.mcp.modal.create': 'Crear token',
   'settings.mcp.modal.createdTitle': 'Token creado',
@@ -139,15 +131,13 @@ const settings: TranslationStrings = {
   'settings.oauth.sessionExpires': 'Expira',
   'settings.oauth.revoke': 'Revocar',
   'settings.oauth.revokeSession': 'Revocar sesión',
-  'settings.oauth.revokeSessionMessage':
-    'Esto revocará inmediatamente el acceso de esta sesión OAuth.',
+  'settings.oauth.revokeSessionMessage': 'Esto revocará inmediatamente el acceso de esta sesión OAuth.',
   'settings.oauth.modal.createTitle': 'Registrar cliente OAuth',
   'settings.oauth.modal.presets': 'Ajustes rápidos',
   'settings.oauth.modal.clientName': 'Nombre de la aplicación',
   'settings.oauth.modal.clientNamePlaceholder': 'ej. Claude Web, Mi app MCP',
   'settings.oauth.modal.redirectUris': 'URIs de redirección',
-  'settings.oauth.modal.redirectUrisPlaceholder':
-    'https://your-app.com/callback\nhttps://your-app.com/auth',
+  'settings.oauth.modal.redirectUrisPlaceholder': 'https://your-app.com/callback\nhttps://your-app.com/auth',
   'settings.oauth.modal.redirectUrisHint':
     'Un URI por línea. HTTPS obligatorio (localhost exento). Coincidencia exacta.',
   'settings.oauth.modal.scopes': 'Ámbitos permitidos',
@@ -166,8 +156,7 @@ const settings: TranslationStrings = {
   'settings.oauth.toast.revoked': 'Sesión revocada',
   'settings.oauth.toast.revokeError': 'Error al revocar la sesión',
   'settings.oauth.toast.rotateError': 'Error al renovar el secreto del cliente',
-  'settings.oauth.modal.machineClient':
-    'Cliente de máquina (sin inicio de sesión en el navegador)',
+  'settings.oauth.modal.machineClient': 'Cliente de máquina (sin inicio de sesión en el navegador)',
   'settings.oauth.modal.machineClientHint':
     'Usa el grant client_credentials — sin URIs de redirección. El token se emite directamente vía client_id + client_secret y actúa como tú dentro de los alcances seleccionados.',
   'settings.oauth.modal.machineClientUsage':
@@ -188,15 +177,13 @@ const settings: TranslationStrings = {
   'settings.about.supporters.tierEmpty': 'Sé el primero',
   'settings.about.supporter.tier.noReturnTicket': 'No Return Ticket',
   'settings.about.supporter.tier.lostLuggageVip': 'Lost Luggage VIP',
-  'settings.about.supporter.tier.businessClassDreamer':
-    'Business Class Dreamer',
+  'settings.about.supporter.tier.businessClassDreamer': 'Business Class Dreamer',
   'settings.about.supporter.tier.budgetTraveller': 'Budget Traveller',
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate',
   'settings.about.description':
     'TREK es un planificador de viajes autoalojado que te ayuda a organizar tus viajes desde la primera idea hasta el último recuerdo. Planificación diaria, presupuesto, listas de equipaje, fotos y mucho más — todo en un solo lugar, en tu propio servidor.',
   'settings.about.madeWith': 'Hecho con',
-  'settings.about.madeBy':
-    'por Maurice y una creciente comunidad de código abierto.',
+  'settings.about.madeBy': 'por Maurice y una creciente comunidad de código abierto.',
   'settings.username': 'Usuario',
   'settings.email': 'Correo',
   'settings.role': 'Rol',
@@ -229,10 +216,8 @@ const settings: TranslationStrings = {
   'settings.mfa.requiredByPolicy':
     'Tu administrador exige autenticación en dos factores. Configura una app de autenticación abajo antes de continuar.',
   'settings.mfa.backupTitle': 'Códigos de respaldo',
-  'settings.mfa.backupDescription':
-    'Usa estos códigos de un solo uso si pierdes acceso a tu app autenticadora.',
-  'settings.mfa.backupWarning':
-    'Guárdalos ahora. Cada código solo se puede usar una vez.',
+  'settings.mfa.backupDescription': 'Usa estos códigos de un solo uso si pierdes acceso a tu app autenticadora.',
+  'settings.mfa.backupWarning': 'Guárdalos ahora. Cada código solo se puede usar una vez.',
   'settings.mfa.backupCopy': 'Copiar códigos',
   'settings.mfa.backupDownload': 'Descargar TXT',
   'settings.mfa.backupPrint': 'Imprimir / PDF',
@@ -240,15 +225,13 @@ const settings: TranslationStrings = {
   'settings.mfa.enabled': '2FA está activado en tu cuenta.',
   'settings.mfa.disabled': '2FA no está activado.',
   'settings.mfa.setup': 'Configurar autenticador',
-  'settings.mfa.scanQr':
-    'Escanea este código QR con tu app o introduce la clave manualmente.',
+  'settings.mfa.scanQr': 'Escanea este código QR con tu app o introduce la clave manualmente.',
   'settings.mfa.secretLabel': 'Clave secreta (entrada manual)',
   'settings.mfa.codePlaceholder': 'Código de 6 dígitos',
   'settings.mfa.enable': 'Activar 2FA',
   'settings.mfa.cancelSetup': 'Cancelar',
   'settings.mfa.disableTitle': 'Desactivar 2FA',
-  'settings.mfa.disableHint':
-    'Introduce tu contraseña y un código actual de tu autenticador.',
+  'settings.mfa.disableHint': 'Introduce tu contraseña y un código actual de tu autenticador.',
   'settings.mfa.disable': 'Desactivar 2FA',
   'settings.mfa.toastEnabled': 'Autenticación de dos factores activada',
   'settings.mfa.toastDisabled': 'Autenticación de dos factores desactivada',
@@ -266,8 +249,7 @@ const settings: TranslationStrings = {
   'settings.bookingLabelsHint':
     'Muestra nombres de estaciones / aeropuertos en el mapa. Desactivado, solo se muestra el icono.',
   'settings.currentPasswordRequired': 'La contraseña actual es obligatoria',
-  'settings.passwordWeak':
-    'La contraseña debe contener mayúsculas, minúsculas, números y un carácter especial',
+  'settings.passwordWeak': 'La contraseña debe contener mayúsculas, minúsculas, números y un carácter especial',
   'settings.notifyVersionAvailable': 'Nueva versión disponible',
   'settings.notificationPreferences.noChannels':
     'No hay canales de notificación configurados. Pide a un administrador que configure notificaciones por correo o webhook.',
@@ -286,20 +268,18 @@ const settings: TranslationStrings = {
   'settings.ntfyUrl.hint':
     'Introduce tu tema de Ntfy para recibir notificaciones push. Deja el servidor en blanco para usar el predeterminado configurado por tu administrador.',
   'settings.ntfyUrl.tokenLabel': 'Token de acceso (opcional)',
-  'settings.ntfyUrl.tokenHint':
-    'Requerido para temas protegidos con contraseña.',
+  'settings.ntfyUrl.tokenHint': 'Requerido para temas protegidos con contraseña.',
   'settings.ntfyUrl.saved': 'Configuración de Ntfy guardada',
   'settings.ntfyUrl.test': 'Probar',
-  'settings.ntfyUrl.testSuccess':
-    'Notificación de prueba de Ntfy enviada correctamente',
+  'settings.ntfyUrl.testSuccess': 'Notificación de prueba de Ntfy enviada correctamente',
   'settings.ntfyUrl.testFailed': 'Error en la notificación de prueba de Ntfy',
   'settings.ntfyUrl.tokenCleared': 'Token de acceso eliminado',
   'settings.notificationPreferences.inapp': 'In-App',
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',
-  "settings.currency": "Currency",
-  "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.currency': 'Currency',
+  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
     'Inicia sesión más rápido y con protección frente al phishing usando una passkey: tu huella, tu cara, tu PIN o una llave de seguridad física. Tu contraseña sigue disponible como respaldo.',
@@ -307,8 +287,7 @@ const settings: TranslationStrings = {
     'Las passkeys están habilitadas, pero aún no están del todo configuradas en este servidor. Pide a tu administrador que defina el dominio de WebAuthn.',
   'settings.passkey.add': 'Añadir una passkey',
   'settings.passkey.addTitle': 'Añadir una passkey',
-  'settings.passkey.passwordPrompt':
-    'Confirma tu contraseña actual y luego sigue las indicaciones de tu dispositivo.',
+  'settings.passkey.passwordPrompt': 'Confirma tu contraseña actual y luego sigue las indicaciones de tu dispositivo.',
   'settings.passkey.passwordRequired': 'Se requiere tu contraseña actual.',
   'settings.passkey.namePlaceholder': 'Nombre (opcional, p. ej. "iPhone")',
   'settings.passkey.addedToast': 'Passkey añadida',
@@ -316,8 +295,7 @@ const settings: TranslationStrings = {
   'settings.passkey.addError': 'No se pudo añadir la passkey',
   'settings.passkey.cancelled': 'Configuración de la passkey cancelada',
   'settings.passkey.deleted': 'Passkey eliminada',
-  'settings.passkey.deleteConfirm':
-    '¿Eliminar esta passkey? Confírmalo con tu contraseña.',
+  'settings.passkey.deleteConfirm': '¿Eliminar esta passkey? Confírmalo con tu contraseña.',
   'settings.passkey.rename': 'Renombrar',
   'settings.passkey.defaultName': 'Passkey',
   'settings.passkey.synced': 'Sincronizada',
@@ -325,9 +303,11 @@ const settings: TranslationStrings = {
   'settings.passkey.lastUsed': 'Último uso',
   'settings.passkey.neverUsed': 'Nunca usada',
   'settings.mapPoiPill': 'Explorar lugares en el mapa',
-  'settings.mapPoiPillHint': 'Muestra una píldora de categorías en el mapa del viaje para encontrar restaurantes, alojamientos y más cerca, desde OpenStreetMap.',
+  'settings.mapPoiPillHint':
+    'Muestra una píldora de categorías en el mapa del viaje para encontrar restaurantes, alojamientos y más cerca, desde OpenStreetMap.',
   'settings.airtrail.title': 'AirTrail',
-  'settings.airtrail.hint': 'Conecta tu AirTrail autoalojado para importar y sincronizar vuelos. Crea una clave de API en AirTrail en Ajustes → Seguridad.',
+  'settings.airtrail.hint':
+    'Conecta tu AirTrail autoalojado para importar y sincronizar vuelos. Crea una clave de API en AirTrail en Ajustes → Seguridad.',
   'settings.airtrail.url': 'URL de la instancia',
   'settings.airtrail.apiKey': 'Clave de API',
   'settings.airtrail.apiKeyPlaceholder': 'Clave de API Bearer',
@@ -335,7 +315,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.allowInsecureTls': 'Permitir certificados autofirmados',
   'settings.airtrail.allowInsecureTlsHint': 'Actívalo solo para una instancia de confianza en tu propia red.',
   'settings.airtrail.writeBack': 'Escribir cambios de vuelta en AirTrail',
-  'settings.airtrail.writeBackHint': 'Desactivado por defecto: AirTrail es la fuente de referencia y TREK solo lee de él. Actívalo para enviar a AirTrail los cambios hechos en TREK.',
+  'settings.airtrail.writeBackHint':
+    'Desactivado por defecto: AirTrail es la fuente de referencia y TREK solo lee de él. Actívalo para enviar a AirTrail los cambios hechos en TREK.',
   'settings.airtrail.connected': 'Conectado',
   'settings.airtrail.notConnected': 'No conectado',
   'settings.airtrail.toast.saved': 'Conexión con AirTrail guardada',

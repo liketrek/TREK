@@ -13,8 +13,7 @@ const categories: TranslationStrings = {
   'categories.defaultName': 'カテゴリ',
   'categories.update': '更新',
   'categories.create': '作成',
-  'categories.confirm.delete':
-    'カテゴリを削除しますか？このカテゴリの場所は削除されません。',
+  'categories.confirm.delete': 'カテゴリを削除しますか？このカテゴリの場所は削除されません。',
   'categories.toast.loadError': 'カテゴリの読み込みに失敗しました',
   'categories.toast.nameRequired': '名前を入力してください',
   'categories.toast.updated': 'カテゴリを更新しました',

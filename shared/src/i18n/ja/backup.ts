@@ -20,8 +20,7 @@ const backup: TranslationStrings = {
   'backup.toast.loadError': 'バックアップの読み込みに失敗しました',
   'backup.toast.created': 'バックアップを作成しました',
   'backup.toast.createError': 'バックアップの作成に失敗しました',
-  'backup.toast.restored':
-    'バックアップを復元しました。ページを再読み込みします…',
+  'backup.toast.restored': 'バックアップを復元しました。ページを再読み込みします…',
   'backup.toast.restoreError': '復元に失敗しました',
   'backup.toast.uploadError': 'アップロードに失敗しました',
   'backup.toast.deleted': 'バックアップを削除しました',
@@ -38,8 +37,7 @@ const backup: TranslationStrings = {
   'backup.auto.hourHint': 'サーバーのローカル時刻（{format}形式）',
   'backup.auto.dayOfWeek': '曜日',
   'backup.auto.dayOfMonth': '月の日',
-  'backup.auto.dayOfMonthHint':
-    'すべての月に対応するため1～28に制限されています',
+  'backup.auto.dayOfMonthHint': 'すべての月に対応するため1～28に制限されています',
   'backup.auto.scheduleSummary': 'スケジュール',
   'backup.auto.summaryDaily': '毎日 {hour}:00',
   'backup.auto.summaryWeekly': '毎週{day} {hour}:00',
@@ -70,8 +68,7 @@ const backup: TranslationStrings = {
   'backup.restoreConfirmTitle': 'バックアップを復元しますか？',
   'backup.restoreWarning':
     '現在のすべてのデータ（旅行、場所、ユーザー、アップロード）はバックアップで完全に置き換えられます。この操作は元に戻せません。',
-  'backup.restoreTip':
-    'ヒント：復元前に現在の状態をバックアップすることをおすすめします。',
+  'backup.restoreTip': 'ヒント：復元前に現在の状態をバックアップすることをおすすめします。',
   'backup.restoreConfirm': 'はい、復元します',
 };
 export default backup;

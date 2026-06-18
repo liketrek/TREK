@@ -24,25 +24,15 @@ describe('preferencesUpdateRequestSchema', () => {
 
 describe('notificationRespondRequestSchema', () => {
   it('only accepts positive/negative', () => {
-    expect(
-      notificationRespondRequestSchema.safeParse({ response: 'positive' })
-        .success,
-    ).toBe(true);
-    expect(
-      notificationRespondRequestSchema.safeParse({ response: 'maybe' }).success,
-    ).toBe(false);
+    expect(notificationRespondRequestSchema.safeParse({ response: 'positive' }).success).toBe(true);
+    expect(notificationRespondRequestSchema.safeParse({ response: 'maybe' }).success).toBe(false);
   });
 });
 
 describe('channelTestResultSchema', () => {
   it('accepts a success result and an error result', () => {
-    expect(channelTestResultSchema.safeParse({ success: true }).success).toBe(
-      true,
-    );
-    expect(
-      channelTestResultSchema.safeParse({ success: false, error: 'SMTP down' })
-        .success,
-    ).toBe(true);
+    expect(channelTestResultSchema.safeParse({ success: true }).success).toBe(true);
+    expect(channelTestResultSchema.safeParse({ success: false, error: 'SMTP down' }).success).toBe(true);
   });
 });
 

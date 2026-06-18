@@ -13,8 +13,7 @@ const files: TranslationStrings = {
   'files.uploadError': 'Uploaden mislukt',
   'files.dropzone': 'Sleep bestanden hierheen',
   'files.dropzoneHint': 'of klik om te bladeren',
-  'files.allowedTypes':
-    'Afbeeldingen, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Max 50 MB',
+  'files.allowedTypes': 'Afbeeldingen, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Max 50 MB',
   'files.uploading': 'Uploaden...',
   'files.filterAll': 'Alle',
   'files.filterPdf': "PDF's",
@@ -32,8 +31,7 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Boeking',
   'files.sourceTransport': 'Transport',
   'files.attach': 'Bijvoegen',
-  'files.pasteHint':
-    'Je kunt ook afbeeldingen plakken vanuit het klembord (Ctrl+V)',
+  'files.pasteHint': 'Je kunt ook afbeeldingen plakken vanuit het klembord (Ctrl+V)',
   'files.trash': 'Prullenbak',
   'files.trashEmpty': 'Prullenbak is leeg',
   'files.emptyTrash': 'Prullenbak legen',
@@ -53,8 +51,7 @@ const files: TranslationStrings = {
   'files.toast.assigned': 'Bestand toegewezen',
   'files.toast.assignError': 'Toewijzing mislukt',
   'files.toast.restoreError': 'Herstellen mislukt',
-  'files.confirm.permanentDelete':
-    'Dit bestand permanent verwijderen? Dit kan niet ongedaan worden gemaakt.',
+  'files.confirm.permanentDelete': 'Dit bestand permanent verwijderen? Dit kan niet ongedaan worden gemaakt.',
   'files.confirm.emptyTrash':
     'Alle bestanden in de prullenbak permanent verwijderen? Dit kan niet ongedaan worden gemaakt.',
   'files.noteLabel': 'Notitie',

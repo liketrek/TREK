@@ -3,8 +3,7 @@ import type { TranslationStrings } from '../types';
 const memories: TranslationStrings = {
   'memories.title': 'صور',
   'memories.notConnected': 'Immich غير متصل',
-  'memories.notConnectedHint':
-    'قم بتوصيل Immich في الإعدادات لعرض صور رحلتك هنا.',
+  'memories.notConnectedHint': 'قم بتوصيل Immich في الإعدادات لعرض صور رحلتك هنا.',
   'memories.notConnectedMultipleHint':
     'قم بتوصيل أحد موفري الصور هؤلاء: {provider_names} في الإعدادات لتتمكن من إضافة صور إلى هذه الرحلة.',
   'memories.noDates': 'أضف تواريخ لرحلتك لتحميل الصور.',
@@ -24,8 +23,7 @@ const memories: TranslationStrings = {
   'memories.providerOTP': 'رمز MFA (إذا كان مفعلاً)',
   'memories.skipSSLVerification': 'تخطي التحقق من شهادة SSL',
   'memories.immichAutoUpload': 'نسخ صور الرحلة إلى Immich عند الرفع',
-  'memories.providerUrlHintSynology':
-    'أدرج مسار تطبيق Photos في URL، مثل https://nas:5001/photo',
+  'memories.providerUrlHintSynology': 'أدرج مسار تطبيق Photos في URL، مثل https://nas:5001/photo',
   'memories.testConnection': 'اختبار الاتصال',
   'memories.testShort': 'اختبار',
   'memories.testFirst': 'اختبر الاتصال أولاً',
@@ -34,8 +32,7 @@ const memories: TranslationStrings = {
   'memories.connectionSuccess': 'تم الاتصال بـ Immich',
   'memories.connectionError': 'تعذر الاتصال بـ Immich',
   'memories.saved': 'تم حفظ إعدادات {provider_name}',
-  'memories.providerDisconnectedBanner':
-    'اتصالك بـ {provider_name} مفقود. أعد الاتصال في الإعدادات لعرض الصور.',
+  'memories.providerDisconnectedBanner': 'اتصالك بـ {provider_name} مفقود. أعد الاتصال في الإعدادات لعرض الصور.',
   'memories.saveError': 'تعذّر حفظ إعدادات {provider_name}',
   'memories.addPhotos': 'إضافة صور',
   'memories.linkAlbum': 'ربط ألبوم',
@@ -59,8 +56,7 @@ const memories: TranslationStrings = {
   'memories.tripDates': 'تواريخ الرحلة',
   'memories.allPhotos': 'جميع الصور',
   'memories.confirmShareTitle': 'مشاركة مع أعضاء الرحلة؟',
-  'memories.confirmShareHint':
-    '{count} صور ستكون مرئية لجميع أعضاء هذه الرحلة. يمكنك جعل الصور الفردية خاصة لاحقًا.',
+  'memories.confirmShareHint': '{count} صور ستكون مرئية لجميع أعضاء هذه الرحلة. يمكنك جعل الصور الفردية خاصة لاحقًا.',
   'memories.confirmShareButton': 'مشاركة الصور',
   'memories.error.loadAlbums': 'فشل تحميل الألبومات',
   'memories.error.linkAlbum': 'فشل ربط الألبوم',

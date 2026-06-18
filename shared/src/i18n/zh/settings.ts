@@ -14,12 +14,10 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': '地图模板',
   'settings.mapTemplatePlaceholder.select': '选择模板...',
   'settings.mapDefaultHint': '留空则使用 OpenStreetMap（默认）',
-  'settings.mapTemplatePlaceholder':
-    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': '地图瓦片 URL 模板',
   'settings.mapProvider': '地图提供商',
-  'settings.mapProviderHint':
-    '影响行程规划和旅程地图。Atlas 始终使用 Leaflet。',
+  'settings.mapProviderHint': '影响行程规划和旅程地图。Atlas 始终使用 Leaflet。',
   'settings.mapLeafletSubtitle': '经典 2D，任何栅格瓦片',
   'settings.mapMapboxSubtitle': '矢量瓦片、3D 建筑和地形',
   'settings.mapExperimental': '实验性',
@@ -32,19 +30,16 @@ const settings: TranslationStrings = {
   'settings.map3dBuildings': '3D 建筑和地形',
   'settings.map3dHint': '倾斜 + 真实 3D 建筑拉伸 — 适用于所有样式，包括卫星。',
   'settings.mapHighQuality': '高画质模式',
-  'settings.mapHighQualityHint':
-    '抗锯齿 + 地球投影，带来更清晰的边缘和更真实的世界视图。',
+  'settings.mapHighQualityHint': '抗锯齿 + 地球投影，带来更清晰的边缘和更真实的世界视图。',
   'settings.mapHighQualityWarning': '可能影响低端设备的性能。',
   'settings.mapTipLabel': '提示：',
-  'settings.mapTip':
-    '右键点击并拖动以旋转/倾斜地图。中键点击添加地点（右键用于旋转）。',
+  'settings.mapTip': '右键点击并拖动以旋转/倾斜地图。中键点击添加地点（右键用于旋转）。',
   'settings.latitude': '纬度',
   'settings.longitude': '经度',
   'settings.saveMap': '保存地图',
   'settings.apiKeys': 'API 密钥',
   'settings.mapsKey': 'Google Maps API 密钥',
-  'settings.mapsKeyHint':
-    '用于地点搜索。需要 Places API (New)。在 console.cloud.google.com 获取',
+  'settings.mapsKeyHint': '用于地点搜索。需要 Places API (New)。在 console.cloud.google.com 获取',
   'settings.weatherKey': 'OpenWeatherMap API 密钥',
   'settings.weatherKeyHint': '用于天气数据。在 openweathermap.org/api 免费获取',
   'settings.keyPlaceholder': '输入密钥...',
@@ -60,8 +55,7 @@ const settings: TranslationStrings = {
   'settings.timeFormat': '时间格式',
   'settings.blurBookingCodes': '模糊预订代码',
   'settings.optimizeFromAccommodation': '从住宿地优化路线',
-  'settings.optimizeFromAccommodationHint':
-    '优化某一天时，路线将从您醒来时所在的酒店出发，并在当晚入住的酒店结束。',
+  'settings.optimizeFromAccommodationHint': '优化某一天时，路线将从您醒来时所在的酒店出发，并在当晚入住的酒店结束。',
   'settings.notifications': '通知',
   'settings.notifyTripInvite': '旅行邀请',
   'settings.notifyBookingChange': '预订变更',
@@ -72,8 +66,7 @@ const settings: TranslationStrings = {
   'settings.notifyCollabMessage': '聊天消息 (Collab)',
   'settings.notifyPackingTagged': '行李清单：分配',
   'settings.notifyWebhook': 'Webhook 通知',
-  'settings.notificationsDisabled':
-    '通知尚未配置。请联系管理员启用电子邮件或 Webhook 通知。',
+  'settings.notificationsDisabled': '通知尚未配置。请联系管理员启用电子邮件或 Webhook 通知。',
   'settings.notificationsActive': '活跃频道',
   'settings.notificationsManagedByAdmin': '通知事件由管理员配置。',
   'settings.on': '开',
@@ -93,23 +86,20 @@ const settings: TranslationStrings = {
   'settings.mcp.tokenCreatedAt': '创建于',
   'settings.mcp.tokenUsedAt': '使用于',
   'settings.mcp.deleteTokenTitle': '删除令牌',
-  'settings.mcp.deleteTokenMessage':
-    '此令牌将立即失效，使用它的所有 MCP 客户端将失去访问权限。',
+  'settings.mcp.deleteTokenMessage': '此令牌将立即失效，使用它的所有 MCP 客户端将失去访问权限。',
   'settings.mcp.modal.createTitle': '创建 API 令牌',
   'settings.mcp.modal.tokenName': '令牌名称',
   'settings.mcp.modal.tokenNamePlaceholder': '例如：Claude Desktop、工作电脑',
   'settings.mcp.modal.creating': '创建中…',
   'settings.mcp.modal.create': '创建令牌',
   'settings.mcp.modal.createdTitle': '令牌已创建',
-  'settings.mcp.modal.createdWarning':
-    '此令牌只会显示一次，请立即复制并妥善保存——无法找回。',
+  'settings.mcp.modal.createdWarning': '此令牌只会显示一次，请立即复制并妥善保存——无法找回。',
   'settings.mcp.modal.done': '完成',
   'settings.mcp.toast.created': '令牌已创建',
   'settings.mcp.toast.createError': '创建令牌失败',
   'settings.mcp.toast.deleted': '令牌已删除',
   'settings.mcp.toast.deleteError': '删除令牌失败',
-  'settings.mcp.apiTokensDeprecated':
-    'API 令牌已弃用，将在未来版本中移除。请改用 OAuth 2.1 客户端。',
+  'settings.mcp.apiTokensDeprecated': 'API 令牌已弃用，将在未来版本中移除。请改用 OAuth 2.1 客户端。',
   'settings.oauth.clients': 'OAuth 2.1 客户端',
   'settings.oauth.clientsHint':
     '注册 OAuth 2.1 客户端，让第三方 MCP 应用程序（Claude Web、Cursor 等）无需静态令牌即可连接。',
@@ -126,25 +116,20 @@ const settings: TranslationStrings = {
   'settings.oauth.rotateSecretConfirm': '轮换',
   'settings.oauth.rotateSecretConfirming': '轮换中…',
   'settings.oauth.rotateSecretDoneTitle': '已生成新密钥',
-  'settings.oauth.rotateSecretDoneWarning':
-    '此密钥仅显示一次。请立即复制并更新您的应用程序——所有之前的会话已失效。',
+  'settings.oauth.rotateSecretDoneWarning': '此密钥仅显示一次。请立即复制并更新您的应用程序——所有之前的会话已失效。',
   'settings.oauth.activeSessions': '活跃的 OAuth 会话',
   'settings.oauth.sessionScopes': '权限范围',
   'settings.oauth.sessionExpires': '过期时间',
   'settings.oauth.revoke': '撤销',
   'settings.oauth.revokeSession': '撤销会话',
-  'settings.oauth.revokeSessionMessage':
-    '这将立即撤销此 OAuth 会话的访问权限。',
+  'settings.oauth.revokeSessionMessage': '这将立即撤销此 OAuth 会话的访问权限。',
   'settings.oauth.modal.createTitle': '注册 OAuth 客户端',
   'settings.oauth.modal.presets': '快速预设',
   'settings.oauth.modal.clientName': '应用程序名称',
-  'settings.oauth.modal.clientNamePlaceholder':
-    '例如 Claude Web、我的 MCP 应用',
+  'settings.oauth.modal.clientNamePlaceholder': '例如 Claude Web、我的 MCP 应用',
   'settings.oauth.modal.redirectUris': '重定向 URI',
-  'settings.oauth.modal.redirectUrisPlaceholder':
-    'https://your-app.com/callback\nhttps://your-app.com/auth',
-  'settings.oauth.modal.redirectUrisHint':
-    '每行一个 URI。需要 HTTPS（localhost 除外）。要求精确匹配。',
+  'settings.oauth.modal.redirectUrisPlaceholder': 'https://your-app.com/callback\nhttps://your-app.com/auth',
+  'settings.oauth.modal.redirectUrisHint': '每行一个 URI。需要 HTTPS（localhost 除外）。要求精确匹配。',
   'settings.oauth.modal.scopes': '允许的权限范围',
   'settings.oauth.modal.scopesHint':
     'list_trips 和 get_trip_summary 始终可用——无需权限范围。它们帮助 AI 发现所需的行程 ID。',
@@ -153,8 +138,7 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.creating': '注册中…',
   'settings.oauth.modal.create': '注册客户端',
   'settings.oauth.modal.createdTitle': '客户端已注册',
-  'settings.oauth.modal.createdWarning':
-    '客户端密钥仅显示一次。请立即复制——无法恢复。',
+  'settings.oauth.modal.createdWarning': '客户端密钥仅显示一次。请立即复制——无法恢复。',
   'settings.oauth.toast.createError': '注册 OAuth 客户端失败',
   'settings.oauth.toast.deleted': 'OAuth 客户端已删除',
   'settings.oauth.toast.deleteError': '删除 OAuth 客户端失败',
@@ -182,8 +166,7 @@ const settings: TranslationStrings = {
   'settings.about.supporters.tierEmpty': '成为第一个',
   'settings.about.supporter.tier.noReturnTicket': 'No Return Ticket',
   'settings.about.supporter.tier.lostLuggageVip': 'Lost Luggage VIP',
-  'settings.about.supporter.tier.businessClassDreamer':
-    'Business Class Dreamer',
+  'settings.about.supporter.tier.businessClassDreamer': 'Business Class Dreamer',
   'settings.about.supporter.tier.budgetTraveller': 'Budget Traveller',
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate',
   'settings.about.description':
@@ -209,22 +192,17 @@ const settings: TranslationStrings = {
   'settings.passwordChanged': '密码修改成功',
   'settings.deleteAccount': '删除账户',
   'settings.deleteAccountTitle': '确定删除账户？',
-  'settings.deleteAccountWarning':
-    '你的账户以及所有旅行、地点和文件将被永久删除。此操作无法撤销。',
+  'settings.deleteAccountWarning': '你的账户以及所有旅行、地点和文件将被永久删除。此操作无法撤销。',
   'settings.deleteAccountConfirm': '永久删除',
   'settings.deleteBlockedTitle': '无法删除',
-  'settings.deleteBlockedMessage':
-    '你是唯一的管理员。请先将其他用户提升为管理员，然后再删除账户。',
+  'settings.deleteBlockedMessage': '你是唯一的管理员。请先将其他用户提升为管理员，然后再删除账户。',
   'settings.roleUser': '用户',
   'settings.saveProfile': '保存资料',
   'settings.mfa.title': '双因素认证 (2FA)',
-  'settings.mfa.description':
-    '登录时添加第二步验证。使用身份验证器应用（Google Authenticator、Authy 等）。',
-  'settings.mfa.requiredByPolicy':
-    '管理员要求双因素身份验证。请先完成下方的身份验证器设置后再继续。',
+  'settings.mfa.description': '登录时添加第二步验证。使用身份验证器应用（Google Authenticator、Authy 等）。',
+  'settings.mfa.requiredByPolicy': '管理员要求双因素身份验证。请先完成下方的身份验证器设置后再继续。',
   'settings.mfa.backupTitle': '备用代码',
-  'settings.mfa.backupDescription':
-    '如果你无法使用身份验证器应用，可使用这些一次性备用代码登录。',
+  'settings.mfa.backupDescription': '如果你无法使用身份验证器应用，可使用这些一次性备用代码登录。',
   'settings.mfa.backupWarning': '请立即保存这些代码。每个代码只能使用一次。',
   'settings.mfa.backupCopy': '复制代码',
   'settings.mfa.backupDownload': '下载 TXT',
@@ -254,15 +232,12 @@ const settings: TranslationStrings = {
   'settings.avatarRemoved': '头像已移除',
   'settings.avatarError': '上传失败',
   'settings.bookingLabels': '预订路线标签',
-  'settings.bookingLabelsHint':
-    '在地图上显示车站 / 机场名称。关闭时仅显示图标。',
+  'settings.bookingLabelsHint': '在地图上显示车站 / 机场名称。关闭时仅显示图标。',
   'settings.notifyVersionAvailable': '有新版本可用',
-  'settings.notificationPreferences.noChannels':
-    '未配置通知渠道。请联系管理员设置电子邮件或 Webhook 通知。',
+  'settings.notificationPreferences.noChannels': '未配置通知渠道。请联系管理员设置电子邮件或 Webhook 通知。',
   'settings.webhookUrl.label': 'Webhook URL',
   'settings.webhookUrl.placeholder': 'https://discord.com/api/webhooks/...',
-  'settings.webhookUrl.hint':
-    '输入您的 Discord、Slack 或自定义 Webhook URL 以接收通知。',
+  'settings.webhookUrl.hint': '输入您的 Discord、Slack 或自定义 Webhook URL 以接收通知。',
   'settings.webhookUrl.saved': 'Webhook URL 已保存',
   'settings.webhookUrl.test': '测试',
   'settings.webhookUrl.testSuccess': '测试 Webhook 发送成功',
@@ -271,8 +246,7 @@ const settings: TranslationStrings = {
   'settings.ntfyUrl.topicPlaceholder': 'my-trek-alerts',
   'settings.ntfyUrl.serverLabel': 'Ntfy 服务器 URL（可选）',
   'settings.ntfyUrl.serverPlaceholder': 'https://ntfy.sh',
-  'settings.ntfyUrl.hint':
-    '输入您的 Ntfy 主题以接收推送通知。将服务器留空以使用管理员配置的默认值。',
+  'settings.ntfyUrl.hint': '输入您的 Ntfy 主题以接收推送通知。将服务器留空以使用管理员配置的默认值。',
   'settings.ntfyUrl.tokenLabel': '访问令牌（可选）',
   'settings.ntfyUrl.tokenHint': '受密码保护的主题需要此项。',
   'settings.ntfyUrl.saved': 'Ntfy 设置已保存',
@@ -284,13 +258,12 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',
-  "settings.currency": "Currency",
-  "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.currency': 'Currency',
+  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
   'settings.passkey.title': '通行密钥',
   'settings.passkey.description':
     '使用通行密钥更快登录，并能抵御钓鱼攻击——通过指纹、面容、PIN 或硬件密钥验证。你的密码仍可作为备用方式。',
-  'settings.passkey.notConfigured':
-    '通行密钥已启用，但此服务器尚未完成完整配置。请联系管理员设置 WebAuthn 域名。',
+  'settings.passkey.notConfigured': '通行密钥已启用，但此服务器尚未完成完整配置。请联系管理员设置 WebAuthn 域名。',
   'settings.passkey.add': '添加通行密钥',
   'settings.passkey.addTitle': '添加通行密钥',
   'settings.passkey.passwordPrompt': '确认你的当前密码，然后按照设备提示操作。',
@@ -319,7 +292,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.allowInsecureTls': '允许自签名证书',
   'settings.airtrail.allowInsecureTlsHint': '仅对您自己网络中受信任的实例启用。',
   'settings.airtrail.writeBack': '将更改写回 AirTrail',
-  'settings.airtrail.writeBackHint': '默认关闭：AirTrail 是数据来源，TREK 仅从中读取。开启后会将在 TREK 中所做的修改写回 AirTrail。',
+  'settings.airtrail.writeBackHint':
+    '默认关闭：AirTrail 是数据来源，TREK 仅从中读取。开启后会将在 TREK 中所做的修改写回 AirTrail。',
   'settings.airtrail.connected': '已连接',
   'settings.airtrail.notConnected': '未连接',
   'settings.airtrail.toast.saved': 'AirTrail 连接已保存',

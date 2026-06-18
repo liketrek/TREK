@@ -20,8 +20,7 @@ const dashboard: TranslationStrings = {
   'dashboard.timezoneCustomTzPlaceholder': '如 America/New_York',
   'dashboard.timezoneCustomAdd': '添加',
   'dashboard.timezoneCustomErrorEmpty': '请输入时区标识符',
-  'dashboard.timezoneCustomErrorInvalid':
-    '无效的时区。请使用 Europe/Berlin 这样的格式',
+  'dashboard.timezoneCustomErrorInvalid': '无效的时区。请使用 Europe/Berlin 这样的格式',
   'dashboard.timezoneCustomErrorDuplicate': '已添加',
   'dashboard.emptyTitle': '暂无旅行',
   'dashboard.emptyText': '创建你的第一次旅行，开始规划吧！',
@@ -55,8 +54,7 @@ const dashboard: TranslationStrings = {
   'dashboard.toast.restoreError': '恢复旅行失败',
   'dashboard.toast.copied': '旅行已复制！',
   'dashboard.toast.copyError': '复制旅行失败',
-  'dashboard.confirm.delete':
-    '删除旅行「{title}」？所有地点和计划将被永久删除。',
+  'dashboard.confirm.delete': '删除旅行「{title}」？所有地点和计划将被永久删除。',
   'dashboard.editTrip': '编辑旅行',
   'dashboard.createTrip': '创建新旅行',
   'dashboard.tripTitle': '标题',

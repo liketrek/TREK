@@ -8,8 +8,7 @@ const vacay: TranslationStrings = {
   'vacay.addPrevYear': 'Додати попередній рік',
   'vacay.removeYear': 'Видалити рік',
   'vacay.removeYearConfirm': 'Видалити {year}?',
-  'vacay.removeYearHint':
-    'Усі записи про відпустку і корпоративні вихідні за цей рік будуть безповоротно видалені.',
+  'vacay.removeYearHint': 'Усі записи про відпустку і корпоративні вихідні за цей рік будуть безповоротно видалені.',
   'vacay.remove': 'Видалити',
   'vacay.persons': 'Люди',
   'vacay.noPersons': 'Ніхто не доданий',
@@ -17,8 +16,7 @@ const vacay: TranslationStrings = {
   'vacay.editPerson': 'Редагувати',
   'vacay.removePerson': 'Видалити людину',
   'vacay.removePersonConfirm': 'Видалити {name}?',
-  'vacay.removePersonHint':
-    'Усі записи про відпустку цієї людини будуть безповоротно видалені.',
+  'vacay.removePersonHint': 'Усі записи про відпустку цієї людини будуть безповоротно видалені.',
   'vacay.personName': 'Ім’я',
   'vacay.personNamePlaceholder': 'Введіть ім’я',
   'vacay.color': 'Колір',
@@ -35,8 +33,7 @@ const vacay: TranslationStrings = {
   'vacay.remaining': 'Залишилося',
   'vacay.carriedOver': 'із {year}',
   'vacay.blockWeekends': 'Блокувати вихідні',
-  'vacay.blockWeekendsHint':
-    'Заборонити записи про відпустку в суботу та неділю',
+  'vacay.blockWeekendsHint': 'Заборонити записи про відпустку в суботу та неділю',
   'vacay.weekendDays': 'Вихідні дні',
   'vacay.mon': 'Пн',
   'vacay.tue': 'Вт',
@@ -51,24 +48,19 @@ const vacay: TranslationStrings = {
   'vacay.selectRegion': 'Виберіть регіон (необов’язково)',
   'vacay.companyHolidays': 'Корпоративні вихідні',
   'vacay.companyHolidaysHint': 'Дозволити позначати корпоративні вихідні',
-  'vacay.companyHolidaysNoDeduct':
-    'Корпоративні вихідні не віднімаються від днів відпустки.',
+  'vacay.companyHolidaysNoDeduct': 'Корпоративні вихідні не віднімаються від днів відпустки.',
   'vacay.weekStart': 'Тиждень починається з',
-  'vacay.weekStartHint':
-    'Виберіть, чи тиждень починається з понеділка чи неділі',
+  'vacay.weekStartHint': 'Виберіть, чи тиждень починається з понеділка чи неділі',
   'vacay.carryOver': 'Переносити',
-  'vacay.carryOverHint':
-    'Автоматично переносити залишкові дні відпустки на наступний рік',
+  'vacay.carryOverHint': 'Автоматично переносити залишкові дні відпустки на наступний рік',
   'vacay.sharing': 'Спільний доступ',
-  'vacay.sharingHint':
-    'Поділіться планом відпустки з іншими користувачами TREK',
+  'vacay.sharingHint': 'Поділіться планом відпустки з іншими користувачами TREK',
   'vacay.owner': 'Власник',
   'vacay.shareEmailPlaceholder': 'Ел. пошта користувача TREK',
   'vacay.shareSuccess': 'План успішно надано',
   'vacay.shareError': 'Не вдалося поділитися планом',
   'vacay.dissolve': 'Розділити об’єднання',
-  'vacay.dissolveHint':
-    'Знову розділити календарі. Ваші записи будуть збережені.',
+  'vacay.dissolveHint': 'Знову розділити календарі. Ваші записи будуть збережені.',
   'vacay.dissolveAction': 'Розділити',
   'vacay.dissolved': 'Календар розділено',
   'vacay.fusedWith': 'Об’єднано з',
@@ -76,8 +68,7 @@ const vacay: TranslationStrings = {
   'vacay.noData': 'Немає даних',
   'vacay.changeColor': 'Змінити колір',
   'vacay.inviteUser': 'Запросити користувача',
-  'vacay.inviteHint':
-    'Запросіть іншого користувача TREK для спільного календаря відпусток.',
+  'vacay.inviteHint': 'Запросіть іншого користувача TREK для спільного календаря відпусток.',
   'vacay.selectUser': 'Виберіть користувача',
   'vacay.sendInvite': 'Надіслати запрошення',
   'vacay.inviteSent': 'Запрошення надіслано',
@@ -89,16 +80,11 @@ const vacay: TranslationStrings = {
   'vacay.acceptFusion': 'Прийняти й об’єднати',
   'vacay.inviteTitle': 'Запит на об’єднання',
   'vacay.inviteWantsToFuse': 'хоче об’єднати календар відпусток з вами.',
-  'vacay.fuseInfo1':
-    'Ви обидва бачитимете всі записи про відпустки в одному спільному календарі.',
-  'vacay.fuseInfo2':
-    'Обидві сторони можуть створювати та редагувати записи одна для одної.',
-  'vacay.fuseInfo3':
-    'Обидві сторони можуть видаляти записи та змінювати право на відпустку.',
-  'vacay.fuseInfo4':
-    'Налаштування, такі як свята та корпоративні вихідні, стають спільними.',
-  'vacay.fuseInfo5':
-    'Об’єднання можна скасувати будь-коли з будь-якого боку. Ваші записи будуть збережені.',
+  'vacay.fuseInfo1': 'Ви обидва бачитимете всі записи про відпустки в одному спільному календарі.',
+  'vacay.fuseInfo2': 'Обидві сторони можуть створювати та редагувати записи одна для одної.',
+  'vacay.fuseInfo3': 'Обидві сторони можуть видаляти записи та змінювати право на відпустку.',
+  'vacay.fuseInfo4': 'Налаштування, такі як свята та корпоративні вихідні, стають спільними.',
+  'vacay.fuseInfo5': 'Об’єднання можна скасувати будь-коли з будь-якого боку. Ваші записи будуть збережені.',
   'vacay.addCalendar': 'Добавить календарь',
   'vacay.calendarColor': 'Колір',
   'vacay.calendarLabel': 'Назва',

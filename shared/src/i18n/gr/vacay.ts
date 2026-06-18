@@ -17,8 +17,7 @@ const vacay: TranslationStrings = {
   'vacay.editPerson': 'Επεξεργασία Ατόμου',
   'vacay.removePerson': 'Αφαίρεση Ατόμου',
   'vacay.removePersonConfirm': 'Αφαίρεση {name};',
-  'vacay.removePersonHint':
-    'Όλες οι καταχωρήσεις διακοπών για αυτό το άτομο θα διαγραφούν οριστικά.',
+  'vacay.removePersonHint': 'Όλες οι καταχωρήσεις διακοπών για αυτό το άτομο θα διαγραφούν οριστικά.',
   'vacay.personName': 'Όνομα',
   'vacay.personNamePlaceholder': 'Εισαγάγετε όνομα',
   'vacay.color': 'Χρώμα',
@@ -35,8 +34,7 @@ const vacay: TranslationStrings = {
   'vacay.remaining': 'Υπόλοιπο',
   'vacay.carriedOver': 'από {year}',
   'vacay.blockWeekends': 'Αποκλεισμός Σαββατοκύριακων',
-  'vacay.blockWeekendsHint':
-    'Αποτρέψτε καταχωρήσεις διακοπών σε ημέρες σαββατοκύριακου',
+  'vacay.blockWeekendsHint': 'Αποτρέψτε καταχωρήσεις διακοπών σε ημέρες σαββατοκύριακου',
   'vacay.weekendDays': 'Ημέρες σαββατοκύριακου',
   'vacay.mon': 'Δευ',
   'vacay.tue': 'Τρι',
@@ -54,26 +52,20 @@ const vacay: TranslationStrings = {
   'vacay.calendarColor': 'Χρώμα',
   'vacay.noCalendars': 'Δεν έχουν προστεθεί ημερολόγια αργιών ακόμη',
   'vacay.companyHolidays': 'Αργίες Εταιρείας',
-  'vacay.companyHolidaysHint':
-    'Επιτρέψτε τη σήμανση αργιών για όλη την εταιρεία',
-  'vacay.companyHolidaysNoDeduct':
-    'Οι αργίες της εταιρείας δεν προσμετρώνται στις ημέρες διακοπών.',
+  'vacay.companyHolidaysHint': 'Επιτρέψτε τη σήμανση αργιών για όλη την εταιρεία',
+  'vacay.companyHolidaysNoDeduct': 'Οι αργίες της εταιρείας δεν προσμετρώνται στις ημέρες διακοπών.',
   'vacay.weekStart': 'Η εβδομάδα ξεκινά την',
-  'vacay.weekStartHint':
-    'Επιλέξτε αν η εβδομάδα του ημερολογίου ξεκινά Δευτέρα ή Κυριακή',
+  'vacay.weekStartHint': 'Επιλέξτε αν η εβδομάδα του ημερολογίου ξεκινά Δευτέρα ή Κυριακή',
   'vacay.carryOver': 'Μεταφορά',
-  'vacay.carryOverHint':
-    'Αυτόματη μεταφορά των υπολοίπων ημερών διακοπών στο επόμενο έτος',
+  'vacay.carryOverHint': 'Αυτόματη μεταφορά των υπολοίπων ημερών διακοπών στο επόμενο έτος',
   'vacay.sharing': 'Κοινή Χρήση',
-  'vacay.sharingHint':
-    'Μοιραστείτε το πλάνο διακοπών σας με άλλους χρήστες TREK',
+  'vacay.sharingHint': 'Μοιραστείτε το πλάνο διακοπών σας με άλλους χρήστες TREK',
   'vacay.owner': 'Κάτοχος',
   'vacay.shareEmailPlaceholder': 'Email χρήστη TREK',
   'vacay.shareSuccess': 'Το πλάνο μοιράστηκε επιτυχώς',
   'vacay.shareError': 'Δεν ήταν δυνατή η κοινοποίηση του πλάνου',
   'vacay.dissolve': 'Διάλυση Συγχώνευσης',
-  'vacay.dissolveHint':
-    'Διαχωρίστε ξανά τα ημερολόγια. Οι καταχωρήσεις σας θα διατηρηθούν.',
+  'vacay.dissolveHint': 'Διαχωρίστε ξανά τα ημερολόγια. Οι καταχωρήσεις σας θα διατηρηθούν.',
   'vacay.dissolveAction': 'Διάλυση',
   'vacay.dissolved': 'Το ημερολόγιο διαχωρίστηκε',
   'vacay.fusedWith': 'Συγχωνευμένο με',
@@ -81,8 +73,7 @@ const vacay: TranslationStrings = {
   'vacay.noData': 'Δεν υπάρχουν δεδομένα',
   'vacay.changeColor': 'Αλλαγή χρώματος',
   'vacay.inviteUser': 'Πρόσκληση Χρήστη',
-  'vacay.inviteHint':
-    'Προσκαλέστε έναν άλλο χρήστη TREK για να μοιραστείτε ένα κοινό ημερολόγιο διακοπών.',
+  'vacay.inviteHint': 'Προσκαλέστε έναν άλλο χρήστη TREK για να μοιραστείτε ένα κοινό ημερολόγιο διακοπών.',
   'vacay.selectUser': 'Επιλογή χρήστη',
   'vacay.sendInvite': 'Αποστολή Πρόσκλησης',
   'vacay.inviteSent': 'Η πρόσκληση στάλθηκε',
@@ -93,16 +84,11 @@ const vacay: TranslationStrings = {
   'vacay.decline': 'Απόρριψη',
   'vacay.acceptFusion': 'Αποδοχή & Συγχώνευση',
   'vacay.inviteTitle': 'Αίτημα Συγχώνευσης',
-  'vacay.inviteWantsToFuse':
-    'θέλει να μοιραστεί ένα ημερολόγιο διακοπών μαζί σας.',
-  'vacay.fuseInfo1':
-    'Και οι δύο θα βλέπετε όλες τις καταχωρήσεις διακοπών σε ένα κοινό ημερολόγιο.',
-  'vacay.fuseInfo2':
-    'Και τα δύο μέρη μπορούν να δημιουργούν και να επεξεργάζονται καταχωρήσεις ο ένας για τον άλλο.',
-  'vacay.fuseInfo3':
-    'Και τα δύο μέρη μπορούν να διαγράφουν καταχωρήσεις και να αλλάζουν τα δικαιώματα διακοπών.',
-  'vacay.fuseInfo4':
-    'Ρυθμίσεις όπως δημόσιες αργίες και αργίες εταιρείας μοιράζονται.',
+  'vacay.inviteWantsToFuse': 'θέλει να μοιραστεί ένα ημερολόγιο διακοπών μαζί σας.',
+  'vacay.fuseInfo1': 'Και οι δύο θα βλέπετε όλες τις καταχωρήσεις διακοπών σε ένα κοινό ημερολόγιο.',
+  'vacay.fuseInfo2': 'Και τα δύο μέρη μπορούν να δημιουργούν και να επεξεργάζονται καταχωρήσεις ο ένας για τον άλλο.',
+  'vacay.fuseInfo3': 'Και τα δύο μέρη μπορούν να διαγράφουν καταχωρήσεις και να αλλάζουν τα δικαιώματα διακοπών.',
+  'vacay.fuseInfo4': 'Ρυθμίσεις όπως δημόσιες αργίες και αργίες εταιρείας μοιράζονται.',
   'vacay.fuseInfo5':
     'Η συγχώνευση μπορεί να διαλυθεί ανά πάσα στιγμή από οποιοδήποτε μέρος. Οι καταχωρήσεις σας θα διατηρηθούν.',
 };

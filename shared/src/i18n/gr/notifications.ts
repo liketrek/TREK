@@ -13,30 +13,24 @@ const notifications: TranslationStrings = {
   'notifications.markUnread': 'Σήμανση ως μη αναγνωσμένη',
   'notifications.delete': 'Διαγραφή',
   'notifications.system': 'Σύστημα',
-  'notifications.synologySessionCleared.title':
-    'Το Synology Photos αποσυνδέθηκε',
+  'notifications.synologySessionCleared.title': 'Το Synology Photos αποσυνδέθηκε',
   'notifications.synologySessionCleared.text':
     'Ο διακομιστής ή ο λογαριασμός σας άλλαξε — μεταβείτε στις Ρυθμίσεις για να δοκιμάσετε ξανά τη σύνδεσή σας.',
   'notifications.versionAvailable.title': 'Διαθέσιμη Ενημέρωση',
-  'notifications.versionAvailable.text':
-    'Το TREK {version} είναι τώρα διαθέσιμο.',
+  'notifications.versionAvailable.text': 'Το TREK {version} είναι τώρα διαθέσιμο.',
   'notifications.versionAvailable.button': 'Προβολή Λεπτομερειών',
   'notifications.test.title': 'Δοκιμαστική ειδοποίηση από {actor}',
   'notifications.test.text': 'Αυτή είναι μια απλή δοκιμαστική ειδοποίηση.',
   'notifications.test.booleanTitle': 'Ο {actor} ζητά την έγκρισή σας',
-  'notifications.test.booleanText':
-    'Αυτή είναι μια δοκιμαστική ειδοποίηση boolean. Επιλέξτε μια ενέργεια παρακάτω.',
+  'notifications.test.booleanText': 'Αυτή είναι μια δοκιμαστική ειδοποίηση boolean. Επιλέξτε μια ενέργεια παρακάτω.',
   'notifications.test.accept': 'Έγκριση',
   'notifications.test.decline': 'Απόρριψη',
   'notifications.test.navigateTitle': 'Ρίξτε μια ματιά',
-  'notifications.test.navigateText':
-    'Αυτή είναι μια δοκιμαστική ειδοποίηση πλοήγησης.',
+  'notifications.test.navigateText': 'Αυτή είναι μια δοκιμαστική ειδοποίηση πλοήγησης.',
   'notifications.test.goThere': 'Μετάβαση εκεί',
   'notifications.test.adminTitle': 'Εκπομπή διαχειριστή',
-  'notifications.test.adminText':
-    'Ο {actor} έστειλε μια δοκιμαστική ειδοποίηση σε όλους τους διαχειριστές.',
+  'notifications.test.adminText': 'Ο {actor} έστειλε μια δοκιμαστική ειδοποίηση σε όλους τους διαχειριστές.',
   'notifications.test.tripTitle': 'Ο {actor} δημοσίευσε στο ταξίδι σας',
-  'notifications.test.tripText':
-    'Δοκιμαστική ειδοποίηση για το ταξίδι «{trip}».',
+  'notifications.test.tripText': 'Δοκιμαστική ειδοποίηση για το ταξίδι «{trip}».',
 };
 export default notifications;

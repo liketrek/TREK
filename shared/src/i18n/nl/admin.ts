@@ -2,8 +2,7 @@ import type { TranslationStrings } from '../types';
 
 const admin: TranslationStrings = {
   'admin.notifications.title': 'Meldingen',
-  'admin.notifications.hint':
-    'Kies een meldingskanaal. Er kan er slechts één tegelijk actief zijn.',
+  'admin.notifications.hint': 'Kies een meldingskanaal. Er kan er slechts één tegelijk actief zijn.',
   'admin.notifications.none': 'Uitgeschakeld',
   'admin.notifications.email': 'E-mail (SMTP)',
   'admin.notifications.webhook': 'Webhook',
@@ -13,11 +12,9 @@ const admin: TranslationStrings = {
   'admin.notifications.testWebhookSuccess': 'Testwebhook succesvol verzonden',
   'admin.notifications.testWebhookFailed': 'Testwebhook mislukt',
   'admin.smtp.title': 'E-mail en meldingen',
-  'admin.smtp.hint':
-    'SMTP-configuratie voor het verzenden van e-mailmeldingen.',
+  'admin.smtp.hint': 'SMTP-configuratie voor het verzenden van e-mailmeldingen.',
   'admin.smtp.testButton': 'Test-e-mail verzenden',
-  'admin.webhook.hint':
-    'Meldingen verzenden naar een externe webhook (Discord, Slack, enz.).',
+  'admin.webhook.hint': 'Meldingen verzenden naar een externe webhook (Discord, Slack, enz.).',
   'admin.smtp.testSuccess': 'Test-e-mail succesvol verzonden',
   'admin.smtp.testFailed': 'Test-e-mail mislukt',
   'admin.title': 'Beheer',
@@ -41,8 +38,7 @@ const admin: TranslationStrings = {
   'admin.editUser': 'Gebruiker bewerken',
   'admin.newPassword': 'Nieuw wachtwoord',
   'admin.newPasswordHint': 'Laat leeg om het huidige wachtwoord te behouden',
-  'admin.deleteUser':
-    'Gebruiker "{name}" verwijderen? Alle reizen worden permanent verwijderd.',
+  'admin.deleteUser': 'Gebruiker "{name}" verwijderen? Alle reizen worden permanent verwijderd.',
   'admin.deleteUserTitle': 'Gebruiker verwijderen',
   'admin.newPasswordPlaceholder': 'Nieuw wachtwoord invoeren…',
   'admin.toast.loadError': 'Beheergegevens laden mislukt',
@@ -53,8 +49,7 @@ const admin: TranslationStrings = {
   'admin.toast.cannotDeleteSelf': 'Je kunt je eigen account niet verwijderen',
   'admin.toast.userCreated': 'Gebruiker aangemaakt',
   'admin.toast.createError': 'Gebruiker aanmaken mislukt',
-  'admin.toast.fieldsRequired':
-    'Gebruikersnaam, e-mail en wachtwoord zijn verplicht',
+  'admin.toast.fieldsRequired': 'Gebruikersnaam, e-mail en wachtwoord zijn verplicht',
   'admin.createUser': 'Gebruiker aanmaken',
   'admin.invite.title': 'Uitnodigingslinks',
   'admin.invite.subtitle': 'Eenmalige registratielinks aanmaken',
@@ -76,19 +71,16 @@ const admin: TranslationStrings = {
   'admin.invite.deleteError': 'Fout bij verwijderen van link',
   'admin.tabs.settings': 'Instellingen',
   'admin.allowRegistration': 'Registratie toestaan',
-  'admin.allowRegistrationHint':
-    'Nieuwe gebruikers kunnen zichzelf registreren',
+  'admin.allowRegistrationHint': 'Nieuwe gebruikers kunnen zichzelf registreren',
   'admin.authMethods': 'Authentication Methods',
   'admin.passwordLogin': 'Password Login',
   'admin.passwordLoginHint': 'Allow users to sign in with email and password',
   'admin.passwordRegistration': 'Password Registration',
-  'admin.passwordRegistrationHint':
-    'Allow new users to register with email and password',
+  'admin.passwordRegistrationHint': 'Allow new users to register with email and password',
   'admin.oidcLogin': 'SSO Login',
   'admin.oidcLoginHint': 'Allow users to sign in with SSO',
   'admin.oidcRegistration': 'SSO Auto-Provisioning',
-  'admin.oidcRegistrationHint':
-    'Automatically create accounts for new SSO users',
+  'admin.oidcRegistrationHint': 'Automatically create accounts for new SSO users',
   'admin.envOverrideHint':
     'Password login settings are controlled by the OIDC_ONLY environment variable and cannot be changed here.',
   'admin.lockoutWarning': 'At least one login method must remain enabled',
@@ -96,11 +88,9 @@ const admin: TranslationStrings = {
   'admin.requireMfaHint':
     'Gebruikers zonder 2FA moeten de installatie in Instellingen voltooien voordat ze de app kunnen gebruiken.',
   'admin.apiKeys': 'API-sleutels',
-  'admin.apiKeysHint':
-    "Optioneel. Schakelt uitgebreide plaatsgegevens in zoals foto's en weer.",
+  'admin.apiKeysHint': "Optioneel. Schakelt uitgebreide plaatsgegevens in zoals foto's en weer.",
   'admin.mapsKey': 'Google Maps API-sleutel',
-  'admin.mapsKeyHint':
-    'Vereist voor het zoeken van plaatsen. Verkrijgbaar op console.cloud.google.com',
+  'admin.mapsKeyHint': 'Vereist voor het zoeken van plaatsen. Verkrijgbaar op console.cloud.google.com',
   'admin.mapsKeyHintLong':
     "Zonder API-sleutel wordt OpenStreetMap gebruikt voor het zoeken van plaatsen. Met een Google API-sleutel kunnen ook foto's, beoordelingen en openingstijden worden geladen. Verkrijgbaar op console.cloud.google.com.",
   'admin.recommended': 'Aanbevolen',
@@ -111,21 +101,17 @@ const admin: TranslationStrings = {
   'admin.keyInvalid': 'Ongeldig',
   'admin.keySaved': 'API-sleutels opgeslagen',
   'admin.oidcTitle': 'Single Sign-On (OIDC)',
-  'admin.oidcSubtitle':
-    'Sta inloggen toe via externe providers zoals Google, Apple, Authentik of Keycloak.',
+  'admin.oidcSubtitle': 'Sta inloggen toe via externe providers zoals Google, Apple, Authentik of Keycloak.',
   'admin.oidcDisplayName': 'Weergavenaam',
   'admin.oidcIssuer': 'Issuer-URL',
-  'admin.oidcIssuerHint':
-    'De OpenID Connect Issuer-URL van de provider. Bijv. https://accounts.google.com',
+  'admin.oidcIssuerHint': 'De OpenID Connect Issuer-URL van de provider. Bijv. https://accounts.google.com',
   'admin.oidcSaved': 'OIDC-configuratie opgeslagen',
   'admin.oidcOnlyMode': 'Wachtwoordauthenticatie uitschakelen',
   'admin.oidcOnlyModeHint':
     'Indien ingeschakeld, is alleen SSO-login toegestaan. Inloggen en registreren met wachtwoord worden geblokkeerd.',
   'admin.fileTypes': 'Toegestane bestandstypen',
-  'admin.fileTypesHint':
-    'Configureer welke bestandstypen gebruikers kunnen uploaden.',
-  'admin.fileTypesFormat':
-    'Kommagescheiden extensies (bijv. jpg,png,pdf,doc). Gebruik * om alle typen toe te staan.',
+  'admin.fileTypesHint': 'Configureer welke bestandstypen gebruikers kunnen uploaden.',
+  'admin.fileTypesFormat': 'Kommagescheiden extensies (bijv. jpg,png,pdf,doc). Gebruik * om alle typen toe te staan.',
   'admin.fileTypesSaved': 'Bestandstype-instellingen opgeslagen',
   'admin.placesPhotos.title': "Plaatsfoto's",
   'admin.placesPhotos.subtitle':
@@ -137,8 +123,7 @@ const admin: TranslationStrings = {
   'admin.placesDetails.subtitle':
     'Haalt gedetailleerde plaatsinformatie (openingstijden, beoordeling, website) op via de Google Places API. Schakel uit om API-quota te besparen.',
   'admin.bagTracking.title': 'Bagagetracking',
-  'admin.bagTracking.subtitle':
-    'Gewicht en bagagetoewijzing inschakelen voor paklijstitems',
+  'admin.bagTracking.subtitle': 'Gewicht en bagagetoewijzing inschakelen voor paklijstitems',
   'admin.collab.chat.title': 'Chat',
   'admin.collab.chat.subtitle': 'Realtime berichten voor reissamenwerking',
   'admin.collab.notes.title': 'Notities',
@@ -146,8 +131,7 @@ const admin: TranslationStrings = {
   'admin.collab.polls.title': 'Polls',
   'admin.collab.polls.subtitle': 'Groepspolls en stemmen',
   'admin.collab.whatsnext.title': 'Wat nu',
-  'admin.collab.whatsnext.subtitle':
-    'Activiteitssuggesties en volgende stappen',
+  'admin.collab.whatsnext.subtitle': 'Activiteitssuggesties en volgende stappen',
   'admin.tabs.config': 'Personalisatie',
   'admin.tabs.defaults': 'Standaardinstellingen',
   'admin.defaultSettings.title': 'Standaard gebruikersinstellingen',
@@ -158,11 +142,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.resetToBuiltIn': 'terugzetten',
   'admin.tabs.templates': 'Paksjablonen',
   'admin.packingTemplates.title': 'Paksjablonen',
-  'admin.packingTemplates.subtitle':
-    'Herbruikbare paklijsten maken voor je reizen',
+  'admin.packingTemplates.subtitle': 'Herbruikbare paklijsten maken voor je reizen',
   'admin.packingTemplates.create': 'Nieuw sjabloon',
-  'admin.packingTemplates.namePlaceholder':
-    'Sjabloonnaam (bijv. Strandvakantie)',
+  'admin.packingTemplates.namePlaceholder': 'Sjabloonnaam (bijv. Strandvakantie)',
   'admin.packingTemplates.empty': 'Nog geen sjablonen aangemaakt',
   'admin.packingTemplates.items': 'items',
   'admin.packingTemplates.categories': 'categorieën',
@@ -178,32 +160,23 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.saveError': 'Fout bij opslaan',
   'admin.tabs.addons': 'Add-ons',
   'admin.addons.title': 'Add-ons',
-  'admin.addons.subtitle':
-    'Schakel functies in of uit om je TREK-ervaring aan te passen.',
+  'admin.addons.subtitle': 'Schakel functies in of uit om je TREK-ervaring aan te passen.',
   'admin.addons.catalog.memories.name': "Foto's (Immich)",
-  'admin.addons.catalog.memories.description':
-    "Deel reisfoto's via je Immich-instantie",
+  'admin.addons.catalog.memories.description': "Deel reisfoto's via je Immich-instantie",
   'admin.addons.catalog.mcp.name': 'MCP',
-  'admin.addons.catalog.mcp.description':
-    'Model Context Protocol voor AI-assistent integratie',
+  'admin.addons.catalog.mcp.description': 'Model Context Protocol voor AI-assistent integratie',
   'admin.addons.catalog.packing.name': 'Lijsten',
-  'admin.addons.catalog.packing.description':
-    'Paklijsten en to-dotaken voor je reizen',
+  'admin.addons.catalog.packing.description': 'Paklijsten en to-dotaken voor je reizen',
   'admin.addons.catalog.budget.name': 'Budget',
-  'admin.addons.catalog.budget.description':
-    'Houd uitgaven bij en plan je reisbudget',
+  'admin.addons.catalog.budget.description': 'Houd uitgaven bij en plan je reisbudget',
   'admin.addons.catalog.documents.name': 'Documenten',
-  'admin.addons.catalog.documents.description':
-    'Bewaar en beheer reisdocumenten',
+  'admin.addons.catalog.documents.description': 'Bewaar en beheer reisdocumenten',
   'admin.addons.catalog.vacay.name': 'Vakantie',
-  'admin.addons.catalog.vacay.description':
-    'Persoonlijke vakantieplanner met kalenderweergave',
+  'admin.addons.catalog.vacay.description': 'Persoonlijke vakantieplanner met kalenderweergave',
   'admin.addons.catalog.atlas.name': 'Atlas',
-  'admin.addons.catalog.atlas.description':
-    'Wereldkaart met bezochte landen en reisstatistieken',
+  'admin.addons.catalog.atlas.description': 'Wereldkaart met bezochte landen en reisstatistieken',
   'admin.addons.catalog.collab.name': 'Samenwerking',
-  'admin.addons.catalog.collab.description':
-    'Realtime notities, polls en chat voor het plannen van reizen',
+  'admin.addons.catalog.collab.description': 'Realtime notities, polls en chat voor het plannen van reizen',
   'admin.addons.subtitleBefore': 'Schakel functies in of uit om je ',
   'admin.addons.subtitleAfter': '-ervaring aan te passen.',
   'admin.addons.enabled': 'Ingeschakeld',
@@ -212,10 +185,8 @@ const admin: TranslationStrings = {
   'admin.addons.type.global': 'Globaal',
   'admin.addons.type.integration': 'Integratie',
   'admin.addons.tripHint': 'Beschikbaar als tabblad binnen elke reis',
-  'admin.addons.globalHint':
-    'Beschikbaar als zelfstandig onderdeel in de hoofdnavigatie',
-  'admin.addons.integrationHint':
-    'Backenddiensten en API-integraties zonder eigen pagina',
+  'admin.addons.globalHint': 'Beschikbaar als zelfstandig onderdeel in de hoofdnavigatie',
+  'admin.addons.integrationHint': 'Backenddiensten en API-integraties zonder eigen pagina',
   'admin.addons.toast.updated': 'Add-on bijgewerkt',
   'admin.addons.toast.error': 'Add-on bijwerken mislukt',
   'admin.addons.noAddons': 'Geen add-ons beschikbaar',
@@ -226,16 +197,14 @@ const admin: TranslationStrings = {
   'admin.weather.forecast': '16-daagse voorspelling',
   'admin.weather.forecastDesc': 'Voorheen 5 dagen (OpenWeatherMap)',
   'admin.weather.climate': 'Historische klimaatgegevens',
-  'admin.weather.climateDesc':
-    'Gemiddelden over de afgelopen 85 jaar voor dagen buiten de 16-daagse voorspelling',
+  'admin.weather.climateDesc': 'Gemiddelden over de afgelopen 85 jaar voor dagen buiten de 16-daagse voorspelling',
   'admin.weather.requests': '10.000 verzoeken / dag',
   'admin.weather.requestsDesc': 'Gratis, geen API-sleutel vereist',
   'admin.weather.locationHint':
     'Het weer is gebaseerd op de eerste plaats met coördinaten op elke dag. Als er geen plaats aan een dag is toegewezen, wordt een plaats uit de lijst als referentie gebruikt.',
   'admin.tabs.mcpTokens': 'MCP-toegang',
   'admin.mcpTokens.title': 'MCP-toegang',
-  'admin.mcpTokens.subtitle':
-    'OAuth-sessies en API-tokens van alle gebruikers beheren',
+  'admin.mcpTokens.subtitle': 'OAuth-sessies en API-tokens van alle gebruikers beheren',
   'admin.mcpTokens.sectionTitle': 'API-tokens',
   'admin.mcpTokens.owner': 'Eigenaar',
   'admin.mcpTokens.tokenName': 'Tokennaam',
@@ -290,18 +259,15 @@ const admin: TranslationStrings = {
   'admin.update.button': 'Bekijk op GitHub',
   'admin.update.install': 'Update installeren',
   'admin.update.confirmTitle': 'Update installeren?',
-  'admin.update.confirmText':
-    'TREK wordt bijgewerkt van {current} naar {version}. De server herstart automatisch.',
+  'admin.update.confirmText': 'TREK wordt bijgewerkt van {current} naar {version}. De server herstart automatisch.',
   'admin.update.dataInfo':
     'Al je gegevens (reizen, gebruikers, API-sleutels, uploads, Vacay, Atlas, budgetten) worden bewaard.',
-  'admin.update.warning':
-    'De app is kort niet beschikbaar tijdens het herstarten.',
+  'admin.update.warning': 'De app is kort niet beschikbaar tijdens het herstarten.',
   'admin.update.confirm': 'Nu bijwerken',
   'admin.update.installing': 'Bijwerken…',
   'admin.update.success': 'Update geïnstalleerd! Server herstart…',
   'admin.update.failed': 'Update mislukt',
-  'admin.update.backupHint':
-    'We raden aan een back-up te maken voordat je bijwerkt.',
+  'admin.update.backupHint': 'We raden aan een back-up te maken voordat je bijwerkt.',
   'admin.update.backupLink': 'Naar back-up',
   'admin.update.howTo': 'Hoe bij te werken',
   'admin.update.dockerText':
@@ -317,8 +283,7 @@ const admin: TranslationStrings = {
   'admin.notifications.adminWebhookPanel.hint':
     'Deze webhook wordt uitsluitend gebruikt voor admin-meldingen (bijv. versie-updates). Hij staat los van gebruikerswebhooks en verstuurt automatisch als er een URL is ingesteld.',
   'admin.notifications.adminWebhookPanel.saved': 'Admin-webhook-URL opgeslagen',
-  'admin.notifications.adminWebhookPanel.testSuccess':
-    'Test-webhook succesvol verzonden',
+  'admin.notifications.adminWebhookPanel.testSuccess': 'Test-webhook succesvol verzonden',
   'admin.notifications.adminWebhookPanel.testFailed': 'Test-webhook mislukt',
   'admin.notifications.adminWebhookPanel.alwaysOnHint':
     'Admin-webhook verstuurt automatisch als er een URL is ingesteld',
@@ -338,13 +303,10 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.topicLabel': 'Admin-onderwerp',
   'admin.notifications.adminNtfyPanel.topicPlaceholder': 'trek-admin-alerts',
   'admin.notifications.adminNtfyPanel.tokenLabel': 'Toegangstoken (optioneel)',
-  'admin.notifications.adminNtfyPanel.tokenCleared':
-    'Admin-toegangstoken gewist',
-  'admin.notifications.adminNtfyPanel.saved':
-    'Admin-Ntfy-instellingen opgeslagen',
+  'admin.notifications.adminNtfyPanel.tokenCleared': 'Admin-toegangstoken gewist',
+  'admin.notifications.adminNtfyPanel.saved': 'Admin-Ntfy-instellingen opgeslagen',
   'admin.notifications.adminNtfyPanel.test': 'Test-Ntfy verzenden',
-  'admin.notifications.adminNtfyPanel.testSuccess':
-    'Test-Ntfy succesvol verzonden',
+  'admin.notifications.adminNtfyPanel.testSuccess': 'Test-Ntfy succesvol verzonden',
   'admin.notifications.adminNtfyPanel.testFailed': 'Test-Ntfy mislukt',
   'admin.notifications.adminNtfyPanel.alwaysOnHint':
     'Admin-Ntfy verstuurt altijd wanneer een onderwerp is geconfigureerd',
@@ -354,15 +316,12 @@ const admin: TranslationStrings = {
   'admin.notifications.tripReminders.hint':
     'Stuurt een herinneringsmelding voor de start van een reis (vereist ingestelde herinneringsdagen bij de reis).',
   'admin.notifications.tripReminders.enabled': 'Reisherinneringen ingeschakeld',
-  'admin.notifications.tripReminders.disabled':
-    'Reisherinneringen uitgeschakeld',
+  'admin.notifications.tripReminders.disabled': 'Reisherinneringen uitgeschakeld',
   'admin.tabs.notifications': 'Meldingen',
   'admin.addons.catalog.journey.name': 'Reisverslag',
-  'admin.addons.catalog.journey.description':
-    "Reistracking & reisdagboek met check-ins, foto's en dagelijkse verhalen",
+  'admin.addons.catalog.journey.description': "Reistracking & reisdagboek met check-ins, foto's en dagelijkse verhalen",
   'admin.passkey.title': 'Inloggen met passkey',
-  'admin.passkey.cardHint':
-    'Laat gebruikers inloggen met passkeys (WebAuthn). Standaard uit.',
+  'admin.passkey.cardHint': 'Laat gebruikers inloggen met passkeys (WebAuthn). Standaard uit.',
   'admin.passkey.login': 'Inloggen met passkey inschakelen',
   'admin.passkey.loginHint':
     'Toon een optie "Inloggen met een passkey" en laat gebruikers passkeys registreren in hun instellingen.',
@@ -373,18 +332,20 @@ const admin: TranslationStrings = {
     'Het kale domein waaraan passkeys zijn gebonden, bijv. trek.example.org. Laat leeg om het af te leiden uit APP_URL. Als je dit later wijzigt, worden bestaande passkeys ongeldig.',
   'admin.passkey.origins': 'Toegestane origins',
   'admin.passkey.originsHint':
-    'Volledige origins, gescheiden door komma\'s, bijv. https://trek.example.org. Laat leeg om APP_URL te gebruiken.',
+    "Volledige origins, gescheiden door komma's, bijv. https://trek.example.org. Laat leeg om APP_URL te gebruiken.",
   'admin.passkey.reset': 'Passkeys resetten',
   'admin.passkey.resetHint':
     'Verwijder alle passkeys van deze gebruiker (bijv. bij een verloren apparaat). Ze kunnen nog steeds inloggen met hun wachtwoord.',
   'admin.passkey.resetConfirm': 'Alle passkeys voor {name} verwijderen?',
   'admin.passkey.resetDone': '{count} passkey(s) verwijderd',
   'admin.defaultSettings.mapProvider': 'Kaartmotor',
-  'admin.defaultSettings.mapProviderHint': 'De standaardkaart voor iedereen op deze instantie. Elke gebruiker kan dit nog steeds aanpassen in zijn eigen instellingen.',
+  'admin.defaultSettings.mapProviderHint':
+    'De standaardkaart voor iedereen op deze instantie. Elke gebruiker kan dit nog steeds aanpassen in zijn eigen instellingen.',
   'admin.defaultSettings.providerLeaflet': 'Standaard (gratis)',
   'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
   'admin.defaultSettings.mapboxToken': 'Gedeeld Mapbox-token',
-  'admin.defaultSettings.mapboxTokenHint': 'Wordt gebruikt voor elke gebruiker die nog geen eigen token heeft ingevoerd — zo krijgt de hele instantie Mapbox zonder de sleutel apart te delen. Versleuteld opgeslagen.',
+  'admin.defaultSettings.mapboxTokenHint':
+    'Wordt gebruikt voor elke gebruiker die nog geen eigen token heeft ingevoerd — zo krijgt de hele instantie Mapbox zonder de sleutel apart te delen. Versleuteld opgeslagen.',
   'admin.defaultSettings.mapboxStyle': 'Kaartstijl',
   'admin.defaultSettings.mapboxStylePlaceholder': 'Kies een stijl…',
   'admin.defaultSettings.mapbox3d': '3D-gebouwen & terrein',

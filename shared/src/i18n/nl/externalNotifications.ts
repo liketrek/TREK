@@ -55,8 +55,7 @@ const nl: NotificationLocale = {
     body: 'We hebben een verzoek ontvangen om het wachtwoord voor je TREK-account te resetten. Klik op de knop hieronder om een nieuw wachtwoord in te stellen.',
     ctaIntro: 'Wachtwoord resetten',
     expiry: 'Deze link verloopt over 60 minuten.',
-    ignore:
-      'Als jij dit niet hebt aangevraagd, kun je deze e-mail negeren — je wachtwoord blijft ongewijzigd.',
+    ignore: 'Als jij dit niet hebt aangevraagd, kun je deze e-mail negeren — je wachtwoord blijft ongewijzigd.',
   },
 };
 

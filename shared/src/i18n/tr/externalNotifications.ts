@@ -55,8 +55,7 @@ const tr: NotificationLocale = {
     body: 'TREK hesabınızın şifresini sıfırlamak için bir istek aldık. Yeni bir şifre belirlemek için aşağıdaki butona tıklayın.',
     ctaIntro: 'Şifreyi sıfırla',
     expiry: 'Bu bağlantı 60 dakika içinde sona erer.',
-    ignore:
-      'Bu isteği siz yapmadıysanız, bu e-postayı güvenle yok sayabilirsiniz — şifreniz değişmeyecektir.',
+    ignore: 'Bu isteği siz yapmadıysanız, bu e-postayı güvenle yok sayabilirsiniz — şifreniz değişmeyecektir.',
   },
 };
 

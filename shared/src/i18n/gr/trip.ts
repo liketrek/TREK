@@ -9,7 +9,7 @@ const trip: TranslationStrings = {
   'trip.tabs.packingShort': 'Αποσκευές',
   'trip.tabs.lists': 'Λίστες',
   'trip.tabs.listsShort': 'Λίστες',
-  'trip.tabs.budget': "Costs",
+  'trip.tabs.budget': 'Costs',
   'trip.tabs.files': 'Αρχεία',
   'trip.loading': 'Φόρτωση ταξιδιού...',
   'trip.loadingPhotos': 'Φόρτωση φωτογραφιών μέρους...',
@@ -24,8 +24,7 @@ const trip: TranslationStrings = {
   'trip.toast.reservationUpdated': 'Η κράτηση ενημερώθηκε',
   'trip.toast.reservationAdded': 'Η κράτηση προστέθηκε',
   'trip.toast.deleted': 'Διαγράφηκε',
-  'trip.confirm.deletePlace':
-    'Είστε σίγουροι ότι θέλετε να διαγράψετε αυτό το μέρος;',
+  'trip.confirm.deletePlace': 'Είστε σίγουροι ότι θέλετε να διαγράψετε αυτό το μέρος;',
   'trip.confirm.deletePlaces': 'Διαγραφή {count} μερών;',
   'trip.toast.placesDeleted': '{count} μέρη διαγράφηκαν',
 };

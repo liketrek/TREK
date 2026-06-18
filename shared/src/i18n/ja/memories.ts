@@ -3,10 +3,8 @@ import type { TranslationStrings } from '../types';
 const memories: TranslationStrings = {
   'memories.title': '写真',
   'memories.notConnected': '{provider_name} が接続されていません',
-  'memories.notConnectedHint':
-    '設定で {provider_name} インスタンスを接続すると、この旅行に写真を追加できます。',
-  'memories.notConnectedMultipleHint':
-    '設定で次の写真プロバイダーのいずれかを接続してください：{provider_names}',
+  'memories.notConnectedHint': '設定で {provider_name} インスタンスを接続すると、この旅行に写真を追加できます。',
+  'memories.notConnectedMultipleHint': '設定で次の写真プロバイダーのいずれかを接続してください：{provider_names}',
   'memories.noDates': '写真を読み込むには旅行の日付を追加してください。',
   'memories.noPhotos': '写真が見つかりません',
   'memories.noPhotosHint': '{provider_name} にこの旅行期間の写真がありません。',
@@ -24,8 +22,7 @@ const memories: TranslationStrings = {
   'memories.providerOTP': 'MFAコード（有効な場合）',
   'memories.skipSSLVerification': 'SSL証明書の検証をスキップ',
   'memories.immichAutoUpload': 'アップロード時に旅程の写真をImmichにミラー',
-  'memories.providerUrlHintSynology':
-    'URLにPhotosアプリのパスを含めてください（例：https://nas:5001/photo）',
+  'memories.providerUrlHintSynology': 'URLにPhotosアプリのパスを含めてください（例：https://nas:5001/photo）',
   'memories.testConnection': '接続をテスト',
   'memories.testFirst': '先に接続をテストしてください',
   'memories.testShort': 'テスト',
@@ -59,8 +56,7 @@ const memories: TranslationStrings = {
   'memories.tripDates': '旅行期間',
   'memories.allPhotos': 'すべての写真',
   'memories.confirmShareTitle': '旅行メンバーと共有しますか？',
-  'memories.confirmShareHint':
-    '{count} 枚の写真がこの旅行の全メンバーに表示されます。後から個別に非公開にできます。',
+  'memories.confirmShareHint': '{count} 枚の写真がこの旅行の全メンバーに表示されます。後から個別に非公開にできます。',
   'memories.confirmShareButton': '写真を共有',
   'memories.error.loadAlbums': 'アルバムの読み込みに失敗しました',
   'memories.error.linkAlbum': 'アルバムのリンクに失敗しました',
@@ -70,10 +66,8 @@ const memories: TranslationStrings = {
   'memories.error.addPhotos': '写真の追加に失敗しました',
   'memories.error.removePhoto': '写真の削除に失敗しました',
   'memories.error.toggleSharing': '共有設定の更新に失敗しました',
-  'memories.saveRouteNotConfigured':
-    'このプロバイダーでは保存先が設定されていません',
-  'memories.testRouteNotConfigured':
-    'このプロバイダーではテスト用の保存先が設定されていません',
+  'memories.saveRouteNotConfigured': 'このプロバイダーでは保存先が設定されていません',
+  'memories.testRouteNotConfigured': 'このプロバイダーではテスト用の保存先が設定されていません',
   'memories.fillRequiredFields': '必須項目をすべて入力してください',
 };
 export default memories;

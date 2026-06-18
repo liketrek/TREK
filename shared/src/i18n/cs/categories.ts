@@ -13,8 +13,7 @@ const categories: TranslationStrings = {
   'categories.defaultName': 'Kategorie',
   'categories.update': 'Aktualizovat',
   'categories.create': 'Vytvořit',
-  'categories.confirm.delete':
-    'Smazat kategorii? Místa v této kategorii nebudou smazána.',
+  'categories.confirm.delete': 'Smazat kategorii? Místa v této kategorii nebudou smazána.',
   'categories.toast.loadError': 'Nepodařilo se načíst kategorie',
   'categories.toast.nameRequired': 'Prosím zadejte název',
   'categories.toast.updated': 'Kategorie aktualizována',

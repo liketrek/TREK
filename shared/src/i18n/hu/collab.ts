@@ -9,15 +9,12 @@ const collab: TranslationStrings = {
   'collab.whatsNext.tomorrow': 'Holnap',
   'collab.whatsNext.empty': 'Nincsenek közelgő tevékenységek',
   'collab.whatsNext.until': '-ig',
-  'collab.whatsNext.emptyHint':
-    'Az időponttal rendelkező tevékenységek itt jelennek meg',
+  'collab.whatsNext.emptyHint': 'Az időponttal rendelkező tevékenységek itt jelennek meg',
   'collab.chat.send': 'Küldés',
   'collab.chat.placeholder': 'Üzenet írása...',
   'collab.chat.empty': 'Kezdd el a beszélgetést',
-  'collab.chat.emptyHint':
-    'Az üzenetek az utazás minden tagjával meg vannak osztva',
-  'collab.chat.emptyDesc':
-    'Oszd meg ötleteidet, terveidet és híreidet az utazócsoportoddal',
+  'collab.chat.emptyHint': 'Az üzenetek az utazás minden tagjával meg vannak osztva',
+  'collab.chat.emptyDesc': 'Oszd meg ötleteidet, terveidet és híreidet az utazócsoportoddal',
   'collab.chat.today': 'Ma',
   'collab.chat.yesterday': 'Tegnap',
   'collab.chat.deletedMessage': 'törölt egy üzenetet',

@@ -31,15 +31,13 @@ const backup: TranslationStrings = {
   'backup.auto.title': 'Auto-Backup',
   'backup.auto.subtitle': 'Automatische Sicherung nach Zeitplan',
   'backup.auto.enable': 'Auto-Backup aktivieren',
-  'backup.auto.enableHint':
-    'Backups werden automatisch nach dem gewählten Zeitplan erstellt',
+  'backup.auto.enableHint': 'Backups werden automatisch nach dem gewählten Zeitplan erstellt',
   'backup.auto.interval': 'Intervall',
   'backup.auto.hour': 'Ausführung um',
   'backup.auto.hourHint': 'Lokale Serverzeit ({format}-Format)',
   'backup.auto.dayOfWeek': 'Wochentag',
   'backup.auto.dayOfMonth': 'Tag des Monats',
-  'backup.auto.dayOfMonthHint':
-    'Auf 1–28 beschränkt, um mit allen Monaten kompatibel zu sein',
+  'backup.auto.dayOfMonthHint': 'Auf 1–28 beschränkt, um mit allen Monaten kompatibel zu sein',
   'backup.auto.scheduleSummary': 'Zeitplan',
   'backup.auto.summaryDaily': 'Täglich um {hour}:00',
   'backup.auto.summaryWeekly': 'Jeden {day} um {hour}:00',
@@ -48,8 +46,7 @@ const backup: TranslationStrings = {
   'backup.auto.envLockedHint':
     'Auto-Backup wird über Docker-Umgebungsvariablen konfiguriert. Ändern Sie Ihre docker-compose.yml und starten Sie den Container neu.',
   'backup.auto.copyEnv': 'Docker-Umgebungsvariablen kopieren',
-  'backup.auto.envCopied':
-    'Docker-Umgebungsvariablen in die Zwischenablage kopiert',
+  'backup.auto.envCopied': 'Docker-Umgebungsvariablen in die Zwischenablage kopiert',
   'backup.auto.keepLabel': 'Alte Backups löschen nach',
   'backup.dow.sunday': 'So',
   'backup.dow.monday': 'Mo',
@@ -71,8 +68,7 @@ const backup: TranslationStrings = {
   'backup.restoreConfirmTitle': 'Backup wiederherstellen?',
   'backup.restoreWarning':
     'Alle aktuellen Daten (Reisen, Orte, Benutzer, Uploads) werden unwiderruflich durch das Backup ersetzt. Dieser Vorgang kann nicht rückgängig gemacht werden.',
-  'backup.restoreTip':
-    'Tipp: Erstelle zuerst ein Backup des aktuellen Stands, bevor du wiederherstellst.',
+  'backup.restoreTip': 'Tipp: Erstelle zuerst ein Backup des aktuellen Stands, bevor du wiederherstellst.',
   'backup.restoreConfirm': 'Ja, wiederherstellen',
 };
 export default backup;

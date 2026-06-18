@@ -3,18 +3,15 @@ import type { TranslationStrings } from '../types';
 const dayplan: TranslationStrings = {
   'dayplan.icsTooltip': 'Kalender exportieren (ICS)',
   'dayplan.emptyDay': 'Keine Orte für diesen Tag geplant',
-  'dayplan.cannotReorderTransport':
-    'Buchungen mit fester Uhrzeit können nicht verschoben werden',
+  'dayplan.cannotReorderTransport': 'Buchungen mit fester Uhrzeit können nicht verschoben werden',
   'dayplan.confirmRemoveTimeTitle': 'Uhrzeit entfernen?',
   'dayplan.confirmRemoveTimeBody':
     'Dieser Ort hat eine feste Uhrzeit ({time}). Durch das Verschieben wird die Uhrzeit entfernt und der Ort kann frei sortiert werden.',
   'dayplan.confirmRemoveTimeAction': 'Uhrzeit entfernen & verschieben',
   'dayplan.confirmDeleteNoteTitle': 'Notiz löschen?',
   'dayplan.confirmDeleteNoteBody': 'Diese Notiz wird dauerhaft gelöscht.',
-  'dayplan.cannotDropOnTimed':
-    'Orte können nicht zwischen zeitgebundene Einträge geschoben werden',
-  'dayplan.cannotBreakChronology':
-    'Die zeitliche Reihenfolge von Uhrzeiten und Buchungen darf nicht verletzt werden',
+  'dayplan.cannotDropOnTimed': 'Orte können nicht zwischen zeitgebundene Einträge geschoben werden',
+  'dayplan.cannotBreakChronology': 'Die zeitliche Reihenfolge von Uhrzeiten und Buchungen darf nicht verletzt werden',
   'dayplan.addNote': 'Notiz hinzufügen',
   'dayplan.expandAll': 'Alle Tage ausklappen',
   'dayplan.collapseAll': 'Alle Tage einklappen',
@@ -31,12 +28,10 @@ const dayplan: TranslationStrings = {
   'dayplan.optimize': 'Optimieren',
   'dayplan.optimized': 'Route optimiert',
   'dayplan.routeError': 'Fehler bei der Routenberechnung',
-  'dayplan.toast.needTwoPlaces':
-    'Mindestens zwei Orte für Routenoptimierung nötig',
+  'dayplan.toast.needTwoPlaces': 'Mindestens zwei Orte für Routenoptimierung nötig',
   'dayplan.toast.routeOptimized': 'Route optimiert',
   'dayplan.toast.routeOptimizedFromHotel': 'Route ab deiner Unterkunft optimiert',
-  'dayplan.toast.noGeoPlaces':
-    'Keine Orte mit Koordinaten für Routenberechnung gefunden',
+  'dayplan.toast.noGeoPlaces': 'Keine Orte mit Koordinaten für Routenberechnung gefunden',
   'dayplan.confirmed': 'Bestätigt',
   'dayplan.pendingRes': 'Ausstehend',
   'dayplan.pdf': 'PDF',

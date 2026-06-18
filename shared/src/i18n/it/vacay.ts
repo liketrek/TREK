@@ -17,8 +17,7 @@ const vacay: TranslationStrings = {
   'vacay.editPerson': 'Modifica persona',
   'vacay.removePerson': 'Rimuovi persona',
   'vacay.removePersonConfirm': 'Rimuovere {name}?',
-  'vacay.removePersonHint':
-    'Tutte le voci delle ferie per questa persona verranno eliminate in modo permanente.',
+  'vacay.removePersonHint': 'Tutte le voci delle ferie per questa persona verranno eliminate in modo permanente.',
   'vacay.personName': 'Nome',
   'vacay.personNamePlaceholder': 'Inserisci nome',
   'vacay.color': 'Colore',
@@ -54,14 +53,11 @@ const vacay: TranslationStrings = {
   'vacay.noCalendars': 'Ancora nessun calendario delle festività aggiunto',
   'vacay.companyHolidays': 'Ferie aziendali',
   'vacay.companyHolidaysHint': 'Consenti di segnare giorni di ferie aziendali',
-  'vacay.companyHolidaysNoDeduct':
-    'Le ferie aziendali non vengono conteggiate nei giorni di ferie.',
+  'vacay.companyHolidaysNoDeduct': 'Le ferie aziendali non vengono conteggiate nei giorni di ferie.',
   'vacay.weekStart': 'La settimana inizia il',
-  'vacay.weekStartHint':
-    'Scegli se la settimana inizia il lunedì o la domenica',
+  'vacay.weekStartHint': 'Scegli se la settimana inizia il lunedì o la domenica',
   'vacay.carryOver': 'Riporto',
-  'vacay.carryOverHint':
-    "Riporta automaticamente i giorni di ferie rimanenti all'anno successivo",
+  'vacay.carryOverHint': "Riporta automaticamente i giorni di ferie rimanenti all'anno successivo",
   'vacay.sharing': 'Condivisione',
   'vacay.sharingHint': 'Condividi il tuo piano ferie con altri utenti TREK',
   'vacay.owner': 'Proprietario',
@@ -69,8 +65,7 @@ const vacay: TranslationStrings = {
   'vacay.shareSuccess': 'Piano condiviso con successo',
   'vacay.shareError': 'Impossibile condividere il piano',
   'vacay.dissolve': 'Sciogli unione',
-  'vacay.dissolveHint':
-    'Separa di nuovo i calendari. Le tue voci verranno mantenute.',
+  'vacay.dissolveHint': 'Separa di nuovo i calendari. Le tue voci verranno mantenute.',
   'vacay.dissolveAction': 'Sciogli',
   'vacay.dissolved': 'Calendario separato',
   'vacay.fusedWith': 'Unito con',
@@ -78,8 +73,7 @@ const vacay: TranslationStrings = {
   'vacay.noData': 'Nessun dato',
   'vacay.changeColor': 'Cambia colore',
   'vacay.inviteUser': 'Invita utente',
-  'vacay.inviteHint':
-    'Invita un altro utente TREK a condividere un calendario ferie combinato.',
+  'vacay.inviteHint': 'Invita un altro utente TREK a condividere un calendario ferie combinato.',
   'vacay.selectUser': 'Seleziona utente',
   'vacay.sendInvite': 'Invia invito',
   'vacay.inviteSent': 'Invito inviato',
@@ -91,14 +85,10 @@ const vacay: TranslationStrings = {
   'vacay.acceptFusion': 'Accetta e unisci',
   'vacay.inviteTitle': 'Richiesta di unione',
   'vacay.inviteWantsToFuse': 'vuole condividere con te un calendario ferie.',
-  'vacay.fuseInfo1':
-    'Entrambi vedrete tutte le voci ferie in un unico calendario condiviso.',
-  'vacay.fuseInfo2':
-    'Entrambe le parti possono creare e modificare le voci reciproche.',
-  'vacay.fuseInfo3':
-    'Entrambe le parti possono eliminare le voci e modificare le disponibilità ferie.',
-  'vacay.fuseInfo4':
-    'Le impostazioni come festività pubbliche e ferie aziendali sono condivise.',
+  'vacay.fuseInfo1': 'Entrambi vedrete tutte le voci ferie in un unico calendario condiviso.',
+  'vacay.fuseInfo2': 'Entrambe le parti possono creare e modificare le voci reciproche.',
+  'vacay.fuseInfo3': 'Entrambe le parti possono eliminare le voci e modificare le disponibilità ferie.',
+  'vacay.fuseInfo4': 'Le impostazioni come festività pubbliche e ferie aziendali sono condivise.',
   'vacay.fuseInfo5':
     "L'unione può essere sciolta in qualsiasi momento da una delle due parti. Le tue voci verranno preservate.",
 };

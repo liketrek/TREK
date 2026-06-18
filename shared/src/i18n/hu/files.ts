@@ -13,8 +13,7 @@ const files: TranslationStrings = {
   'files.uploadError': 'Feltöltés sikertelen',
   'files.dropzone': 'Húzd ide a fájlokat',
   'files.dropzoneHint': 'vagy kattints a böngészéshez',
-  'files.allowedTypes':
-    'Képek, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Max 50 MB',
+  'files.allowedTypes': 'Képek, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Max 50 MB',
   'files.uploading': 'Feltöltés...',
   'files.filterAll': 'Összes',
   'files.filterPdf': 'PDF-ek',
@@ -52,10 +51,8 @@ const files: TranslationStrings = {
   'files.toast.assigned': 'Fájl hozzárendelve',
   'files.toast.assignError': 'Hozzárendelés sikertelen',
   'files.toast.restoreError': 'Visszaállítás sikertelen',
-  'files.confirm.permanentDelete':
-    'Véglegesen törlöd ezt a fájlt? Ez nem vonható vissza.',
-  'files.confirm.emptyTrash':
-    'Véglegesen törlöd az összes kukába helyezett fájlt? Ez nem vonható vissza.',
+  'files.confirm.permanentDelete': 'Véglegesen törlöd ezt a fájlt? Ez nem vonható vissza.',
+  'files.confirm.emptyTrash': 'Véglegesen törlöd az összes kukába helyezett fájlt? Ez nem vonható vissza.',
   'files.noteLabel': 'Megjegyzés',
   'files.notePlaceholder': 'Megjegyzés hozzáadása...',
 };

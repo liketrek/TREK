@@ -12,8 +12,7 @@ const backup: TranslationStrings = {
   'backup.createFirst': 'Створити першу копію',
   'backup.download': 'Завантажити',
   'backup.restore': 'Відновити',
-  'backup.confirm.restore':
-    'Відновити копію «{name}»?\n\nУсі поточні дані будуть замінені даними з копії.',
+  'backup.confirm.restore': 'Відновити копію «{name}»?\n\nУсі поточні дані будуть замінені даними з копії.',
   'backup.confirm.uploadRestore':
     'Завантажити та відновити файл копії «{name}»?\n\nУсі поточні дані будуть перезаписані.',
   'backup.confirm.delete': 'Видалити копію «{name}»?',
@@ -31,8 +30,7 @@ const backup: TranslationStrings = {
   'backup.auto.title': 'Автокопіювання',
   'backup.auto.subtitle': 'Автоматичне резервне копіювання за розкладом',
   'backup.auto.enable': 'Увімкнути автокопіювання',
-  'backup.auto.enableHint':
-    'Резервні копії створюватимуться автоматично за обраним графіком',
+  'backup.auto.enableHint': 'Резервні копії створюватимуться автоматично за обраним графіком',
   'backup.auto.interval': 'Інтервал',
   'backup.auto.hour': 'Запуск о',
   'backup.auto.hourHint': 'Місцевий час сервера (формат {format})',
@@ -69,8 +67,7 @@ const backup: TranslationStrings = {
   'backup.restoreConfirmTitle': 'Відновити копію?',
   'backup.restoreWarning':
     'Усі поточні дані (поїздки, місця, користувачі, завантаження) будуть безповоротно замінені даними з копії. Цю дію неможливо скасувати.',
-  'backup.restoreTip':
-    'Порада: створіть резервну копію поточного стану перед відновленням.',
+  'backup.restoreTip': 'Порада: створіть резервну копію поточного стану перед відновленням.',
   'backup.restoreConfirm': 'Так, відновити',
 };
 export default backup;

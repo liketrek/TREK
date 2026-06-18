@@ -4,8 +4,7 @@ const notif: TranslationStrings = {
   'notif.test.title': '[Δοκιμή] Ειδοποίηση',
   'notif.test.simple.text': 'Αυτή είναι μια απλή δοκιμαστική ειδοποίηση.',
   'notif.test.boolean.text': 'Αποδέχεστε αυτή τη δοκιμαστική ειδοποίηση;',
-  'notif.test.navigate.text':
-    'Κάντε κλικ παρακάτω για μετάβαση στον πίνακα ελέγχου.',
+  'notif.test.navigate.text': 'Κάντε κλικ παρακάτω για μετάβαση στον πίνακα ελέγχου.',
   'notif.trip_invite.title': 'Πρόσκληση Ταξιδιού',
   'notif.trip_invite.text': 'Ο/Η {actor} σας προσκάλεσε στο {trip}',
   'notif.booking_change.title': 'Η Κράτηση Ενημερώθηκε',
@@ -15,16 +14,13 @@ const notif: TranslationStrings = {
   'notif.todo_due.title': 'Εργασία προς λήξη',
   'notif.todo_due.text': 'Η εργασία {todo} στο {trip} λήγει στις {due}',
   'notif.vacay_invite.title': 'Πρόσκληση Σύντηξης Vacay',
-  'notif.vacay_invite.text':
-    'Ο/Η {actor} σας προσκάλεσε να συγχωνεύσετε τα σχέδια διακοπών',
+  'notif.vacay_invite.text': 'Ο/Η {actor} σας προσκάλεσε να συγχωνεύσετε τα σχέδια διακοπών',
   'notif.photos_shared.title': 'Κοινοποίηση Φωτογραφιών',
-  'notif.photos_shared.text':
-    'Ο/Η {actor} μοιράστηκε {count} φωτογραφία(ες) στο {trip}',
+  'notif.photos_shared.text': 'Ο/Η {actor} μοιράστηκε {count} φωτογραφία(ες) στο {trip}',
   'notif.collab_message.title': 'Νέο Μήνυμα',
   'notif.collab_message.text': 'Ο/Η {actor} έστειλε ένα μήνυμα στο {trip}',
   'notif.packing_tagged.title': 'Ανάθεση Αποσκευών',
-  'notif.packing_tagged.text':
-    'Ο/Η {actor} σας ανέθεσε στο {category} του {trip}',
+  'notif.packing_tagged.text': 'Ο/Η {actor} σας ανέθεσε στο {category} του {trip}',
   'notif.version_available.title': 'Νέα Έκδοση Διαθέσιμη',
   'notif.version_available.text': 'Το TREK {version} είναι τώρα διαθέσιμο',
   'notif.action.view_trip': 'Προβολή Ταξιδιού',
@@ -39,7 +35,6 @@ const notif: TranslationStrings = {
   'notif.generic.title': 'Ειδοποίηση',
   'notif.generic.text': 'Έχετε μια νέα ειδοποίηση',
   'notif.dev.unknown_event.title': '[DEV] Άγνωστο Συμβάν',
-  'notif.dev.unknown_event.text':
-    'Ο τύπος συμβάντος "{event}" δεν είναι εγγεγραμμένος στο EVENT_NOTIFICATION_CONFIG',
+  'notif.dev.unknown_event.text': 'Ο τύπος συμβάντος "{event}" δεν είναι εγγεγραμμένος στο EVENT_NOTIFICATION_CONFIG',
 };
 export default notif;

@@ -32,32 +32,20 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': 'Співпраця (нотатки, опитування, чат)',
   'perm.action.share_manage': 'Керувати посиланнями для обміну',
   'perm.actionHint.trip_create': 'Хто може створювати нові поїздки',
-  'perm.actionHint.trip_edit':
-    'Хто може змінювати назву, дати, опис і валюту поїздки',
+  'perm.actionHint.trip_edit': 'Хто може змінювати назву, дати, опис і валюту поїздки',
   'perm.actionHint.trip_delete': 'Хто може безповоротно видалити поїздку',
-  'perm.actionHint.trip_archive':
-    'Хто може архівувати або розархівувати поїздку',
-  'perm.actionHint.trip_cover_upload':
-    'Хто може завантажувати або змінювати обкладинку',
-  'perm.actionHint.member_manage':
-    'Хто може запрошувати або видаляти учасників поїздки',
+  'perm.actionHint.trip_archive': 'Хто може архівувати або розархівувати поїздку',
+  'perm.actionHint.trip_cover_upload': 'Хто може завантажувати або змінювати обкладинку',
+  'perm.actionHint.member_manage': 'Хто може запрошувати або видаляти учасників поїздки',
   'perm.actionHint.file_upload': 'Хто може завантажувати файли до поїздки',
   'perm.actionHint.file_edit': 'Хто може редагувати описи та посилання файлів',
-  'perm.actionHint.file_delete':
-    'Хто може переміщувати файли до кошика або безповоротно видаляти',
-  'perm.actionHint.place_edit':
-    'Хто може додавати, редагувати або видаляти місця',
-  'perm.actionHint.day_edit':
-    'Хто може редагувати дні, нотатки до днів та призначення місць',
-  'perm.actionHint.reservation_edit':
-    'Хто може створювати, редагувати або видаляти бронювання',
-  'perm.actionHint.budget_edit':
-    'Хто може створювати, редагувати або видаляти статті бюджету',
-  'perm.actionHint.packing_edit':
-    'Хто може керувати речами для зборів і сумками',
-  'perm.actionHint.collab_edit':
-    'Хто може створювати нотатки, опитування та надсилати повідомлення',
-  'perm.actionHint.share_manage':
-    'Хто може створювати або видаляти публічні посилання для обміну',
+  'perm.actionHint.file_delete': 'Хто може переміщувати файли до кошика або безповоротно видаляти',
+  'perm.actionHint.place_edit': 'Хто може додавати, редагувати або видаляти місця',
+  'perm.actionHint.day_edit': 'Хто може редагувати дні, нотатки до днів та призначення місць',
+  'perm.actionHint.reservation_edit': 'Хто може створювати, редагувати або видаляти бронювання',
+  'perm.actionHint.budget_edit': 'Хто може створювати, редагувати або видаляти статті бюджету',
+  'perm.actionHint.packing_edit': 'Хто може керувати речами для зборів і сумками',
+  'perm.actionHint.collab_edit': 'Хто може створювати нотатки, опитування та надсилати повідомлення',
+  'perm.actionHint.share_manage': 'Хто може створювати або видаляти публічні посилання для обміну',
 };
 export default perm;

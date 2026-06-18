@@ -5,8 +5,7 @@ const register: TranslationStrings = {
   'register.passwordTooShort': 'Wachtwoord moet minimaal 8 tekens bevatten',
   'register.failed': 'Registratie mislukt',
   'register.getStarted': 'Aan de slag',
-  'register.subtitle':
-    'Maak een account aan en begin met het plannen van je droomreizen.',
+  'register.subtitle': 'Maak een account aan en begin met het plannen van je droomreizen.',
   'register.feature1': 'Onbeperkte reisplannen',
   'register.feature2': 'Interactieve kaartweergave',
   'register.feature3': 'Beheer plaatsen en categorieën',

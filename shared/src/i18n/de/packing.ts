@@ -51,10 +51,8 @@ const packing: TranslationStrings = {
   'packing.bagName': 'Name...',
   'packing.addBag': 'Gepäck hinzufügen',
   'packing.changeCategory': 'Kategorie ändern',
-  'packing.confirm.clearChecked':
-    'Möchtest du {count} abgehakte Gegenstände wirklich entfernen?',
-  'packing.confirm.deleteCat':
-    'Möchtest du die Kategorie "{name}" mit {count} Gegenständen wirklich löschen?',
+  'packing.confirm.clearChecked': 'Möchtest du {count} abgehakte Gegenstände wirklich entfernen?',
+  'packing.confirm.deleteCat': 'Möchtest du die Kategorie "{name}" mit {count} Gegenständen wirklich löschen?',
   'packing.defaultCategory': 'Sonstiges',
   'packing.toast.saveError': 'Fehler beim Speichern',
   'packing.toast.deleteError': 'Fehler beim Löschen',

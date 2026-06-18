@@ -14,12 +14,10 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Map Template',
   'settings.mapTemplatePlaceholder.select': 'Select template...',
   'settings.mapDefaultHint': 'Leave empty for OpenStreetMap (default)',
-  'settings.mapTemplatePlaceholder':
-    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'URL template for map tiles',
   'settings.mapProvider': 'Map Provider',
-  'settings.mapProviderHint':
-    'Affects Trip Planner and Journey maps. Atlas always uses Leaflet.',
+  'settings.mapProviderHint': 'Affects Trip Planner and Journey maps. Atlas always uses Leaflet.',
   'settings.mapLeafletSubtitle': 'Classic 2D, any raster tiles',
   'settings.mapMapboxSubtitle': 'Vector tiles, 3D buildings & terrain',
   'settings.mapExperimental': 'Experimental',
@@ -30,13 +28,10 @@ const settings: TranslationStrings = {
   'settings.mapStylePlaceholder': 'Select a Mapbox style',
   'settings.mapStyleHint': 'Preset or your own mapbox://styles/USER/ID URL',
   'settings.map3dBuildings': '3D Buildings & Terrain',
-  'settings.map3dHint':
-    'Pitch + real 3D building extrusions — works on every style, including satellite.',
+  'settings.map3dHint': 'Pitch + real 3D building extrusions — works on every style, including satellite.',
   'settings.mapHighQuality': 'High Quality Mode',
-  'settings.mapHighQualityHint':
-    'Antialiasing + globe projection for sharper edges and a realistic world view.',
-  'settings.mapHighQualityWarning':
-    'May impact performance on lower-end devices.',
+  'settings.mapHighQualityHint': 'Antialiasing + globe projection for sharper edges and a realistic world view.',
+  'settings.mapHighQualityWarning': 'May impact performance on lower-end devices.',
   'settings.mapTipLabel': 'Tip:',
   'settings.mapTip':
     'right-click and drag to rotate/pitch the map. Middle-click to add a place (right-click is reserved for rotation).',
@@ -45,8 +40,7 @@ const settings: TranslationStrings = {
   'settings.saveMap': 'Save Map',
   'settings.apiKeys': 'API Keys',
   'settings.mapsKey': 'Google Maps API Key',
-  'settings.mapsKeyHint':
-    'For place search. Requires Places API (New). Get at console.cloud.google.com',
+  'settings.mapsKeyHint': 'For place search. Requires Places API (New). Get at console.cloud.google.com',
   'settings.weatherKey': 'OpenWeatherMap API Key',
   'settings.weatherKeyHint': 'For weather data. Free at openweathermap.org/api',
   'settings.keyPlaceholder': 'Enter key...',
@@ -61,8 +55,7 @@ const settings: TranslationStrings = {
   'settings.temperature': 'Temperature Unit',
   'settings.timeFormat': 'Time Format',
   'settings.bookingLabels': 'Booking route labels',
-  'settings.bookingLabelsHint':
-    'Show station / airport names on the map. When off, only the icon is shown.',
+  'settings.bookingLabelsHint': 'Show station / airport names on the map. When off, only the icon is shown.',
   'settings.mapPoiPill': 'Explore places on the map',
   'settings.mapPoiPillHint':
     'Show a category pill on the trip map to find nearby restaurants, hotels and more from OpenStreetMap.',
@@ -89,8 +82,7 @@ const settings: TranslationStrings = {
     'No notification channels are configured. Ask an admin to set up email or webhook notifications.',
   'settings.webhookUrl.label': 'Webhook URL',
   'settings.webhookUrl.placeholder': 'https://discord.com/api/webhooks/...',
-  'settings.webhookUrl.hint':
-    'Enter your Discord, Slack, or custom webhook URL to receive notifications.',
+  'settings.webhookUrl.hint': 'Enter your Discord, Slack, or custom webhook URL to receive notifications.',
   'settings.webhookUrl.saved': 'Webhook URL saved',
   'settings.webhookUrl.test': 'Test',
   'settings.webhookUrl.testSuccess': 'Test webhook sent successfully',
@@ -111,8 +103,7 @@ const settings: TranslationStrings = {
   'settings.notificationsDisabled':
     'Notifications are not configured. Ask an admin to enable email or webhook notifications.',
   'settings.notificationsActive': 'Active channel',
-  'settings.notificationsManagedByAdmin':
-    'Notification events are configured by your administrator.',
+  'settings.notificationsManagedByAdmin': 'Notification events are configured by your administrator.',
   'settings.on': 'On',
   'settings.off': 'Off',
   'settings.mcp.title': 'MCP Configuration',
@@ -170,17 +161,14 @@ const settings: TranslationStrings = {
   'settings.oauth.sessionExpires': 'Expires',
   'settings.oauth.revoke': 'Revoke',
   'settings.oauth.revokeSession': 'Revoke Session',
-  'settings.oauth.revokeSessionMessage':
-    'This will immediately revoke access for this OAuth session.',
+  'settings.oauth.revokeSessionMessage': 'This will immediately revoke access for this OAuth session.',
   'settings.oauth.modal.createTitle': 'Register OAuth Client',
   'settings.oauth.modal.presets': 'Quick presets',
   'settings.oauth.modal.clientName': 'Application Name',
   'settings.oauth.modal.clientNamePlaceholder': 'e.g. Claude Web, My MCP App',
   'settings.oauth.modal.redirectUris': 'Redirect URIs',
-  'settings.oauth.modal.redirectUrisPlaceholder':
-    'https://your-app.com/callback\nhttps://your-app.com/auth',
-  'settings.oauth.modal.redirectUrisHint':
-    'One URI per line. HTTPS required (localhost exempt). Exact match enforced.',
+  'settings.oauth.modal.redirectUrisPlaceholder': 'https://your-app.com/callback\nhttps://your-app.com/auth',
+  'settings.oauth.modal.redirectUrisHint': 'One URI per line. HTTPS required (localhost exempt). Exact match enforced.',
   'settings.oauth.modal.scopes': 'Allowed Scopes',
   'settings.oauth.modal.scopesHint':
     'list_trips and get_trip_summary are always available — no scope required. They let the AI discover trip IDs needed to use any other tool.',
@@ -189,8 +177,7 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.creating': 'Registering…',
   'settings.oauth.modal.create': 'Register Client',
   'settings.oauth.modal.createdTitle': 'Client Registered',
-  'settings.oauth.modal.createdWarning':
-    'The client secret is shown only once. Copy it now — it cannot be recovered.',
+  'settings.oauth.modal.createdWarning': 'The client secret is shown only once. Copy it now — it cannot be recovered.',
   'settings.oauth.toast.createError': 'Failed to register OAuth client',
   'settings.oauth.toast.deleted': 'OAuth client deleted',
   'settings.oauth.toast.deleteError': 'Failed to delete OAuth client',
@@ -218,8 +205,7 @@ const settings: TranslationStrings = {
   'settings.about.supporters.tierEmpty': 'Be the first',
   'settings.about.supporter.tier.noReturnTicket': 'No Return Ticket',
   'settings.about.supporter.tier.lostLuggageVip': 'Lost Luggage VIP',
-  'settings.about.supporter.tier.businessClassDreamer':
-    'Business Class Dreamer',
+  'settings.about.supporter.tier.businessClassDreamer': 'Business Class Dreamer',
   'settings.about.supporter.tier.budgetTraveller': 'Budget Traveller',
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate',
   'settings.about.description':
@@ -240,8 +226,7 @@ const settings: TranslationStrings = {
   'settings.passwordRequired': 'Please enter current and new password',
   'settings.passwordTooShort': 'Password must be at least 8 characters',
   'settings.passwordMismatch': 'Passwords do not match',
-  'settings.passwordWeak':
-    'Password must contain uppercase, lowercase, a number, and a special character',
+  'settings.passwordWeak': 'Password must contain uppercase, lowercase, a number, and a special character',
   'settings.passwordChanged': 'Password changed successfully',
   'settings.mustChangePassword':
     'You must change your password before you can continue. Please set a new password below.',
@@ -270,10 +255,8 @@ const settings: TranslationStrings = {
   'settings.mfa.requiredByPolicy':
     'Your administrator requires two-factor authentication. Set up an authenticator app below before continuing.',
   'settings.mfa.backupTitle': 'Backup codes',
-  'settings.mfa.backupDescription':
-    'Use these one-time backup codes if you lose access to your authenticator app.',
-  'settings.mfa.backupWarning':
-    'Save these codes now. Each code can only be used once.',
+  'settings.mfa.backupDescription': 'Use these one-time backup codes if you lose access to your authenticator app.',
+  'settings.mfa.backupWarning': 'Save these codes now. Each code can only be used once.',
   'settings.mfa.backupCopy': 'Copy codes',
   'settings.mfa.backupDownload': 'Download TXT',
   'settings.mfa.backupPrint': 'Print / PDF',
@@ -281,21 +264,19 @@ const settings: TranslationStrings = {
   'settings.mfa.enabled': '2FA is enabled on your account.',
   'settings.mfa.disabled': '2FA is not enabled.',
   'settings.mfa.setup': 'Set up authenticator',
-  'settings.mfa.scanQr':
-    'Scan this QR code with your app, or enter the secret manually.',
+  'settings.mfa.scanQr': 'Scan this QR code with your app, or enter the secret manually.',
   'settings.mfa.secretLabel': 'Secret key (manual entry)',
   'settings.mfa.codePlaceholder': '6-digit code',
   'settings.mfa.enable': 'Enable 2FA',
   'settings.mfa.cancelSetup': 'Cancel',
   'settings.mfa.disableTitle': 'Disable 2FA',
-  'settings.mfa.disableHint':
-    'Enter your account password and a current code from your authenticator.',
+  'settings.mfa.disableHint': 'Enter your account password and a current code from your authenticator.',
   'settings.mfa.disable': 'Disable 2FA',
   'settings.mfa.toastEnabled': 'Two-factor authentication enabled',
   'settings.mfa.toastDisabled': 'Two-factor authentication disabled',
   'settings.mfa.demoBlocked': 'Not available in demo mode',
-  "settings.currency": "Currency",
-  "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.currency': 'Currency',
+  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
     'Sign in faster and phishing-resistant with a passkey — your fingerprint, face, PIN, or a hardware key. Your password stays as a backup.',
@@ -319,7 +300,8 @@ const settings: TranslationStrings = {
   'settings.passkey.lastUsed': 'Last used',
   'settings.passkey.neverUsed': 'Never used',
   'settings.airtrail.title': 'AirTrail',
-  'settings.airtrail.hint': 'Connect your self-hosted AirTrail to import and sync flights. Create an API key in AirTrail under Settings → Security.',
+  'settings.airtrail.hint':
+    'Connect your self-hosted AirTrail to import and sync flights. Create an API key in AirTrail under Settings → Security.',
   'settings.airtrail.url': 'Instance URL',
   'settings.airtrail.apiKey': 'API key',
   'settings.airtrail.apiKeyPlaceholder': 'Bearer API key',
@@ -327,7 +309,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.allowInsecureTls': 'Allow self-signed certificates',
   'settings.airtrail.allowInsecureTlsHint': 'Enable only for a trusted instance on your own network.',
   'settings.airtrail.writeBack': 'Write changes back to AirTrail',
-  'settings.airtrail.writeBackHint': 'Off by default: AirTrail is the source of truth and TREK only reads from it. Turn on to push edits made in TREK back to AirTrail.',
+  'settings.airtrail.writeBackHint':
+    'Off by default: AirTrail is the source of truth and TREK only reads from it. Turn on to push edits made in TREK back to AirTrail.',
   'settings.airtrail.connected': 'Connected',
   'settings.airtrail.notConnected': 'Not connected',
   'settings.airtrail.toast.saved': 'AirTrail connection saved',

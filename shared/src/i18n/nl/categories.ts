@@ -13,8 +13,7 @@ const categories: TranslationStrings = {
   'categories.defaultName': 'Categorie',
   'categories.update': 'Bijwerken',
   'categories.create': 'Aanmaken',
-  'categories.confirm.delete':
-    'Categorie verwijderen? Plaatsen in deze categorie worden niet verwijderd.',
+  'categories.confirm.delete': 'Categorie verwijderen? Plaatsen in deze categorie worden niet verwijderd.',
   'categories.toast.loadError': 'Categorieën laden mislukt',
   'categories.toast.nameRequired': 'Voer een naam in',
   'categories.toast.updated': 'Categorie bijgewerkt',

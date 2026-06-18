@@ -73,6 +73,10 @@ export class BudgetService {
     return svc.createSettlement(tripId, data, userId);
   }
 
+  updateSettlement(id: string, tripId: string, data: { from_user_id: number; to_user_id: number; amount: number }) {
+    return svc.updateSettlement(id, tripId, data);
+  }
+
   deleteSettlement(id: string, tripId: string): boolean {
     return svc.deleteSettlement(id, tripId);
   }

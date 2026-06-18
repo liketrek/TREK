@@ -2,8 +2,7 @@ import type { TranslationStrings } from '../types';
 
 const perm: TranslationStrings = {
   'perm.title': 'İzin Ayarları',
-  'perm.subtitle':
-    'Uygulama genelinde kimlerin hangi işlemleri yapabileceğini belirleyin',
+  'perm.subtitle': 'Uygulama genelinde kimlerin hangi işlemleri yapabileceğini belirleyin',
   'perm.saved': 'İzin ayarları kaydedildi',
   'perm.resetDefaults': 'Varsayılanlara sıfırla',
   'perm.customized': 'özelleştirildi',
@@ -33,33 +32,20 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': 'İşbirliği (notlar, anketler, sohbet)',
   'perm.action.share_manage': 'Paylaşım bağlantılarını yönet',
   'perm.actionHint.trip_create': 'Kimler yeni seyahat oluşturabilir',
-  'perm.actionHint.trip_edit':
-    'Kimler seyahat adını, tarihlerini, açıklamasını ve para birimini değiştirebilir',
+  'perm.actionHint.trip_edit': 'Kimler seyahat adını, tarihlerini, açıklamasını ve para birimini değiştirebilir',
   'perm.actionHint.trip_delete': 'Kimler bir seyahati kalıcı olarak silebilir',
-  'perm.actionHint.trip_archive':
-    'Kimler seyahati arşivleyebilir veya geri alabilir',
-  'perm.actionHint.trip_cover_upload':
-    'Kimler kapak görseli yükleyebilir veya değiştirebilir',
-  'perm.actionHint.member_manage':
-    'Kimler seyahat üyesi davet edebilir veya kaldırabilir',
+  'perm.actionHint.trip_archive': 'Kimler seyahati arşivleyebilir veya geri alabilir',
+  'perm.actionHint.trip_cover_upload': 'Kimler kapak görseli yükleyebilir veya değiştirebilir',
+  'perm.actionHint.member_manage': 'Kimler seyahat üyesi davet edebilir veya kaldırabilir',
   'perm.actionHint.file_upload': 'Kimler seyahate dosya yükleyebilir',
-  'perm.actionHint.file_edit':
-    'Kimler dosya açıklamalarını ve bağlantılarını düzenleyebilir',
-  'perm.actionHint.file_delete':
-    'Kimler dosyaları çöp kutusuna taşıyabilir veya kalıcı silebilir',
-  'perm.actionHint.place_edit':
-    'Kimler yer ekleyebilir, düzenleyebilir veya silebilir',
-  'perm.actionHint.day_edit':
-    'Kimler günleri, gün notlarını ve yer atamalarını düzenleyebilir',
-  'perm.actionHint.reservation_edit':
-    'Kimler rezervasyon oluşturabilir, düzenleyebilir veya silebilir',
-  'perm.actionHint.budget_edit':
-    'Kimler bütçe kalemleri oluşturabilir, düzenleyebilir veya silebilir',
-  'perm.actionHint.packing_edit':
-    'Kimler paket öğelerini ve çantaları yönetebilir',
-  'perm.actionHint.collab_edit':
-    'Kimler not, anket oluşturabilir ve mesaj gönderebilir',
-  'perm.actionHint.share_manage':
-    'Kimler genel paylaşım bağlantısı oluşturabilir veya silebilir',
+  'perm.actionHint.file_edit': 'Kimler dosya açıklamalarını ve bağlantılarını düzenleyebilir',
+  'perm.actionHint.file_delete': 'Kimler dosyaları çöp kutusuna taşıyabilir veya kalıcı silebilir',
+  'perm.actionHint.place_edit': 'Kimler yer ekleyebilir, düzenleyebilir veya silebilir',
+  'perm.actionHint.day_edit': 'Kimler günleri, gün notlarını ve yer atamalarını düzenleyebilir',
+  'perm.actionHint.reservation_edit': 'Kimler rezervasyon oluşturabilir, düzenleyebilir veya silebilir',
+  'perm.actionHint.budget_edit': 'Kimler bütçe kalemleri oluşturabilir, düzenleyebilir veya silebilir',
+  'perm.actionHint.packing_edit': 'Kimler paket öğelerini ve çantaları yönetebilir',
+  'perm.actionHint.collab_edit': 'Kimler not, anket oluşturabilir ve mesaj gönderebilir',
+  'perm.actionHint.share_manage': 'Kimler genel paylaşım bağlantısı oluşturabilir veya silebilir',
 };
 export default perm;

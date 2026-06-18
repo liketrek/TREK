@@ -9,9 +9,7 @@ import { describe, it, expect } from 'vitest';
 
 describe('packingCreateItemRequestSchema', () => {
   it('requires a non-empty name; category/checked optional', () => {
-    expect(
-      packingCreateItemRequestSchema.safeParse({ name: 'Socks' }).success,
-    ).toBe(true);
+    expect(packingCreateItemRequestSchema.safeParse({ name: 'Socks' }).success).toBe(true);
     expect(
       packingCreateItemRequestSchema.safeParse({
         name: 'Socks',
@@ -19,9 +17,7 @@ describe('packingCreateItemRequestSchema', () => {
         checked: true,
       }).success,
     ).toBe(true);
-    expect(packingCreateItemRequestSchema.safeParse({ name: '' }).success).toBe(
-      false,
-    );
+    expect(packingCreateItemRequestSchema.safeParse({ name: '' }).success).toBe(false);
   });
 });
 
@@ -37,20 +33,14 @@ describe('packingImportRequestSchema', () => {
 
 describe('packingCreateBagRequestSchema', () => {
   it('requires a name', () => {
-    expect(
-      packingCreateBagRequestSchema.safeParse({ name: 'Carry-on' }).success,
-    ).toBe(true);
+    expect(packingCreateBagRequestSchema.safeParse({ name: 'Carry-on' }).success).toBe(true);
     expect(packingCreateBagRequestSchema.safeParse({}).success).toBe(false);
   });
 });
 
 describe('packingSaveTemplateRequestSchema', () => {
   it('requires a name', () => {
-    expect(
-      packingSaveTemplateRequestSchema.safeParse({ name: 'Summer' }).success,
-    ).toBe(true);
-    expect(
-      packingSaveTemplateRequestSchema.safeParse({ name: '' }).success,
-    ).toBe(false);
+    expect(packingSaveTemplateRequestSchema.safeParse({ name: 'Summer' }).success).toBe(true);
+    expect(packingSaveTemplateRequestSchema.safeParse({ name: '' }).success).toBe(false);
   });
 });

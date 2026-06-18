@@ -2,8 +2,7 @@ import type { TranslationStrings } from '../types';
 
 const perm: TranslationStrings = {
   'perm.title': 'Paramètres des permissions',
-  'perm.subtitle':
-    "Contrôlez qui peut effectuer des actions dans l'application",
+  'perm.subtitle': "Contrôlez qui peut effectuer des actions dans l'application",
   'perm.saved': 'Paramètres des permissions enregistrés',
   'perm.resetDefaults': 'Réinitialiser par défaut',
   'perm.customized': 'personnalisé',
@@ -33,33 +32,20 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': 'Collaboration (notes, sondages, chat)',
   'perm.action.share_manage': 'Gérer les liens de partage',
   'perm.actionHint.trip_create': 'Qui peut créer de nouveaux voyages',
-  'perm.actionHint.trip_edit':
-    'Qui peut modifier le nom, les dates, la description et la devise du voyage',
+  'perm.actionHint.trip_edit': 'Qui peut modifier le nom, les dates, la description et la devise du voyage',
   'perm.actionHint.trip_delete': 'Qui peut supprimer définitivement un voyage',
   'perm.actionHint.trip_archive': 'Qui peut archiver ou désarchiver un voyage',
-  'perm.actionHint.trip_cover_upload':
-    "Qui peut télécharger ou modifier l'image de couverture",
-  'perm.actionHint.member_manage':
-    'Qui peut inviter ou supprimer des membres du voyage',
-  'perm.actionHint.file_upload':
-    'Qui peut télécharger des fichiers vers un voyage',
-  'perm.actionHint.file_edit':
-    'Qui peut modifier les descriptions et liens des fichiers',
-  'perm.actionHint.file_delete':
-    'Qui peut déplacer des fichiers vers la corbeille ou les supprimer définitivement',
-  'perm.actionHint.place_edit':
-    'Qui peut ajouter, modifier ou supprimer des lieux',
-  'perm.actionHint.day_edit':
-    'Qui peut modifier les jours, notes de jours et affectations de lieux',
-  'perm.actionHint.reservation_edit':
-    'Qui peut créer, modifier ou supprimer des réservations',
-  'perm.actionHint.budget_edit':
-    'Qui peut créer, modifier ou supprimer des éléments de budget',
-  'perm.actionHint.packing_edit':
-    'Qui peut gérer les articles de bagages et les sacs',
-  'perm.actionHint.collab_edit':
-    'Qui peut créer des notes, des sondages et envoyer des messages',
-  'perm.actionHint.share_manage':
-    'Qui peut créer ou supprimer des liens de partage publics',
+  'perm.actionHint.trip_cover_upload': "Qui peut télécharger ou modifier l'image de couverture",
+  'perm.actionHint.member_manage': 'Qui peut inviter ou supprimer des membres du voyage',
+  'perm.actionHint.file_upload': 'Qui peut télécharger des fichiers vers un voyage',
+  'perm.actionHint.file_edit': 'Qui peut modifier les descriptions et liens des fichiers',
+  'perm.actionHint.file_delete': 'Qui peut déplacer des fichiers vers la corbeille ou les supprimer définitivement',
+  'perm.actionHint.place_edit': 'Qui peut ajouter, modifier ou supprimer des lieux',
+  'perm.actionHint.day_edit': 'Qui peut modifier les jours, notes de jours et affectations de lieux',
+  'perm.actionHint.reservation_edit': 'Qui peut créer, modifier ou supprimer des réservations',
+  'perm.actionHint.budget_edit': 'Qui peut créer, modifier ou supprimer des éléments de budget',
+  'perm.actionHint.packing_edit': 'Qui peut gérer les articles de bagages et les sacs',
+  'perm.actionHint.collab_edit': 'Qui peut créer des notes, des sondages et envoyer des messages',
+  'perm.actionHint.share_manage': 'Qui peut créer ou supprimer des liens de partage publics',
 };
 export default perm;

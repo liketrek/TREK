@@ -26,8 +26,7 @@ const notifications: TranslationStrings = {
   'notifications.test.navigateText': 'Teszt navigációs értesítés.',
   'notifications.test.goThere': 'Odamegyek',
   'notifications.test.adminTitle': 'Adminisztrátor üzenet',
-  'notifications.test.adminText':
-    '{actor} teszt értesítést küldött az összes adminisztrátornak.',
+  'notifications.test.adminText': '{actor} teszt értesítést küldött az összes adminisztrátornak.',
   'notifications.test.tripTitle': '{actor} üzenetet küldött az utazásodba',
   'notifications.test.tripText': 'Teszt értesítés a(z) "{trip}" utazáshoz.',
   'notifications.versionAvailable.title': 'Elérhető frissítés',

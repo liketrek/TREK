@@ -16,8 +16,7 @@ const common: TranslationStrings = {
   'common.deselectAll': 'Seçimi kaldır',
   'common.error': 'Hata',
   'common.unknownError': 'Bilinmeyen hata',
-  'common.tooManyAttempts':
-    'Çok fazla deneme. Lütfen daha sonra tekrar deneyin.',
+  'common.tooManyAttempts': 'Çok fazla deneme. Lütfen daha sonra tekrar deneyin.',
   'common.back': 'Geri',
   'common.all': 'Tümü',
   'common.close': 'Kapat',

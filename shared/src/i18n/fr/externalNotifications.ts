@@ -2,8 +2,7 @@ import type { NotificationLocale } from '../externalNotifications/types';
 
 const fr: NotificationLocale = {
   email: {
-    footer:
-      'Vous recevez cet e-mail car les notifications sont activées dans TREK.',
+    footer: 'Vous recevez cet e-mail car les notifications sont activées dans TREK.',
     manage: 'Gérer les préférences',
     madeWith: 'Made with',
     openTrek: 'Ouvrir TREK',
@@ -56,8 +55,7 @@ const fr: NotificationLocale = {
     body: 'Nous avons reçu une demande de réinitialisation du mot de passe de votre compte TREK. Cliquez sur le bouton ci-dessous pour définir un nouveau mot de passe.',
     ctaIntro: 'Réinitialiser le mot de passe',
     expiry: 'Ce lien expire dans 60 minutes.',
-    ignore:
-      "Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail — votre mot de passe ne changera pas.",
+    ignore: "Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail — votre mot de passe ne changera pas.",
   },
 };
 

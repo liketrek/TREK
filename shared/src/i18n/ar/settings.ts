@@ -15,8 +15,7 @@ const settings: TranslationStrings = {
   'settings.mapDefaultHint': 'اتركه فارغًا لاستخدام OpenStreetMap افتراضيًا',
   'settings.mapHint': 'قالب URL لبلاطات الخريطة',
   'settings.mapProvider': 'مزود الخريطة',
-  'settings.mapProviderHint':
-    'يؤثر على خرائط Trip Planner و Journey. يستخدم Atlas دائمًا Leaflet.',
+  'settings.mapProviderHint': 'يؤثر على خرائط Trip Planner و Journey. يستخدم Atlas دائمًا Leaflet.',
   'settings.mapLeafletSubtitle': '2D كلاسيكي، أي بلاطات نقطية',
   'settings.mapMapboxSubtitle': 'بلاطات متجهية ومبانٍ ثلاثية الأبعاد وتضاريس',
   'settings.mapExperimental': 'تجريبي',
@@ -25,14 +24,11 @@ const settings: TranslationStrings = {
   'settings.mapMapboxTokenLink': 'mapbox.com ← رموز الوصول',
   'settings.mapStyle': 'نمط الخريطة',
   'settings.mapStylePlaceholder': 'اختر نمط Mapbox',
-  'settings.mapStyleHint':
-    'إعداد مسبق أو عنوان URL mapbox://styles/USER/ID خاص بك',
+  'settings.mapStyleHint': 'إعداد مسبق أو عنوان URL mapbox://styles/USER/ID خاص بك',
   'settings.map3dBuildings': 'مبانٍ ثلاثية الأبعاد وتضاريس',
-  'settings.map3dHint':
-    'إمالة + مبانٍ ثلاثية الأبعاد حقيقية — يعمل مع كل نمط بما في ذلك الأقمار الصناعية.',
+  'settings.map3dHint': 'إمالة + مبانٍ ثلاثية الأبعاد حقيقية — يعمل مع كل نمط بما في ذلك الأقمار الصناعية.',
   'settings.mapHighQuality': 'وضع الجودة العالية',
-  'settings.mapHighQualityHint':
-    'تحسين الحواف + إسقاط كروي لحواف أكثر حدة وعرض واقعي للعالم.',
+  'settings.mapHighQualityHint': 'تحسين الحواف + إسقاط كروي لحواف أكثر حدة وعرض واقعي للعالم.',
   'settings.mapHighQualityWarning': 'قد يؤثر على الأداء في الأجهزة الأقل قدرة.',
   'settings.mapTipLabel': 'نصيحة:',
   'settings.mapTip':
@@ -57,8 +53,7 @@ const settings: TranslationStrings = {
   'settings.temperature': 'وحدة الحرارة',
   'settings.timeFormat': 'تنسيق الوقت',
   'settings.bookingLabels': 'تسميات مسارات الحجوزات',
-  'settings.bookingLabelsHint':
-    'عرض أسماء المحطات/المطارات على الخريطة. عند الإيقاف، يتم عرض الرمز فقط.',
+  'settings.bookingLabelsHint': 'عرض أسماء المحطات/المطارات على الخريطة. عند الإيقاف، يتم عرض الرمز فقط.',
   'settings.blurBookingCodes': 'إخفاء رموز الحجز',
   'settings.optimizeFromAccommodation': 'تحسين المسار انطلاقًا من مكان الإقامة',
   'settings.optimizeFromAccommodationHint':
@@ -77,8 +72,7 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.noChannels':
     'لم يتم تكوين قنوات إشعارات. اطلب من المسؤول إعداد إشعارات البريد الإلكتروني أو webhook.',
   'settings.webhookUrl.label': 'رابط Webhook',
-  'settings.webhookUrl.hint':
-    'أدخل رابط Webhook الخاص بـ Discord أو Slack أو المخصص لتلقي الإشعارات.',
+  'settings.webhookUrl.hint': 'أدخل رابط Webhook الخاص بـ Discord أو Slack أو المخصص لتلقي الإشعارات.',
   'settings.webhookUrl.saved': 'تم حفظ رابط Webhook',
   'settings.webhookUrl.test': 'اختبار',
   'settings.webhookUrl.testSuccess': 'تم إرسال Webhook الاختباري بنجاح',
@@ -94,11 +88,9 @@ const settings: TranslationStrings = {
   'settings.ntfyUrl.testSuccess': 'تم إرسال إشعار Ntfy التجريبي بنجاح',
   'settings.ntfyUrl.testFailed': 'فشل إشعار Ntfy التجريبي',
   'settings.ntfyUrl.tokenCleared': 'تم مسح رمز الوصول',
-  'settings.notificationsDisabled':
-    'الإشعارات غير مكوّنة. اطلب من المسؤول تفعيل إشعارات البريد الإلكتروني أو Webhook.',
+  'settings.notificationsDisabled': 'الإشعارات غير مكوّنة. اطلب من المسؤول تفعيل إشعارات البريد الإلكتروني أو Webhook.',
   'settings.notificationsActive': 'القناة النشطة',
-  'settings.notificationsManagedByAdmin':
-    'يتم تكوين أحداث الإشعارات بواسطة المسؤول.',
+  'settings.notificationsManagedByAdmin': 'يتم تكوين أحداث الإشعارات بواسطة المسؤول.',
   'settings.on': 'تشغيل',
   'settings.off': 'إيقاف',
   'settings.mcp.title': 'إعداد MCP',
@@ -116,17 +108,14 @@ const settings: TranslationStrings = {
   'settings.mcp.tokenCreatedAt': 'أُنشئ',
   'settings.mcp.tokenUsedAt': 'استُخدم',
   'settings.mcp.deleteTokenTitle': 'حذف الرمز',
-  'settings.mcp.deleteTokenMessage':
-    'سيتوقف هذا الرمز عن العمل فوراً. أي عميل MCP يستخدمه سيفقد الوصول.',
+  'settings.mcp.deleteTokenMessage': 'سيتوقف هذا الرمز عن العمل فوراً. أي عميل MCP يستخدمه سيفقد الوصول.',
   'settings.mcp.modal.createTitle': 'إنشاء رمز API',
   'settings.mcp.modal.tokenName': 'اسم الرمز',
-  'settings.mcp.modal.tokenNamePlaceholder':
-    'مثال: Claude Desktop، حاسوب العمل',
+  'settings.mcp.modal.tokenNamePlaceholder': 'مثال: Claude Desktop، حاسوب العمل',
   'settings.mcp.modal.creating': 'جارٍ الإنشاء…',
   'settings.mcp.modal.create': 'إنشاء الرمز',
   'settings.mcp.modal.createdTitle': 'تم إنشاء الرمز',
-  'settings.mcp.modal.createdWarning':
-    'سيُعرض هذا الرمز مرة واحدة فقط. انسخه واحفظه الآن — لا يمكن استرداده.',
+  'settings.mcp.modal.createdWarning': 'سيُعرض هذا الرمز مرة واحدة فقط. انسخه واحفظه الآن — لا يمكن استرداده.',
   'settings.mcp.modal.done': 'تم',
   'settings.mcp.toast.created': 'تم إنشاء الرمز',
   'settings.mcp.toast.createError': 'فشل إنشاء الرمز',
@@ -157,16 +146,13 @@ const settings: TranslationStrings = {
   'settings.oauth.sessionExpires': 'تنتهي',
   'settings.oauth.revoke': 'إلغاء',
   'settings.oauth.revokeSession': 'إلغاء الجلسة',
-  'settings.oauth.revokeSessionMessage':
-    'سيؤدي هذا إلى إلغاء الوصول لهذه الجلسة OAuth فوراً.',
+  'settings.oauth.revokeSessionMessage': 'سيؤدي هذا إلى إلغاء الوصول لهذه الجلسة OAuth فوراً.',
   'settings.oauth.modal.createTitle': 'تسجيل عميل OAuth',
   'settings.oauth.modal.presets': 'إعدادات سريعة',
   'settings.oauth.modal.clientName': 'اسم التطبيق',
-  'settings.oauth.modal.clientNamePlaceholder':
-    'مثال: Claude Web، تطبيق MCP الخاص بي',
+  'settings.oauth.modal.clientNamePlaceholder': 'مثال: Claude Web، تطبيق MCP الخاص بي',
   'settings.oauth.modal.redirectUris': 'عناوين URI لإعادة التوجيه',
-  'settings.oauth.modal.redirectUrisHint':
-    'عنوان URI واحد لكل سطر. يُطلب HTTPS (localhost مستثنى). يُطبق تطابق دقيق.',
+  'settings.oauth.modal.redirectUrisHint': 'عنوان URI واحد لكل سطر. يُطلب HTTPS (localhost مستثنى). يُطبق تطابق دقيق.',
   'settings.oauth.modal.scopes': 'النطاقات المسموح بها',
   'settings.oauth.modal.scopesHint':
     'list_trips وget_trip_summary متاحان دائماً — لا يُطلب نطاق. يساعدان الذكاء الاصطناعي في اكتشاف معرّفات الرحلات.',
@@ -175,16 +161,14 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.creating': 'جارٍ التسجيل…',
   'settings.oauth.modal.create': 'تسجيل العميل',
   'settings.oauth.modal.createdTitle': 'تم تسجيل العميل',
-  'settings.oauth.modal.createdWarning':
-    'يُعرض سر العميل مرة واحدة فقط. انسخه الآن — لا يمكن استرداده.',
+  'settings.oauth.modal.createdWarning': 'يُعرض سر العميل مرة واحدة فقط. انسخه الآن — لا يمكن استرداده.',
   'settings.oauth.toast.createError': 'فشل تسجيل عميل OAuth',
   'settings.oauth.toast.deleted': 'تم حذف عميل OAuth',
   'settings.oauth.toast.deleteError': 'فشل حذف عميل OAuth',
   'settings.oauth.toast.revoked': 'تم إلغاء الجلسة',
   'settings.oauth.toast.revokeError': 'فشل إلغاء الجلسة',
   'settings.oauth.toast.rotateError': 'فشل تجديد سر العميل',
-  'settings.oauth.modal.machineClient':
-    'عميل آلي (بدون تسجيل دخول عبر المتصفح)',
+  'settings.oauth.modal.machineClient': 'عميل آلي (بدون تسجيل دخول عبر المتصفح)',
   'settings.oauth.modal.machineClientHint':
     'استخدام منحة client_credentials — لا تحتاج إلى عناوين إعادة التوجيه. يُصدر الرمز المميز مباشرةً عبر client_id + client_secret ويعمل بصلاحياتك ضمن النطاقات المحددة.',
   'settings.oauth.modal.machineClientUsage':
@@ -221,19 +205,15 @@ const settings: TranslationStrings = {
   'settings.passwordRequired': 'أدخل كلمة المرور الحالية والجديدة',
   'settings.passwordTooShort': 'يجب أن تتكون كلمة المرور من 8 أحرف على الأقل',
   'settings.passwordMismatch': 'كلمتا المرور غير متطابقتين',
-  'settings.passwordWeak':
-    'يجب أن تحتوي كلمة المرور على حرف كبير وحرف صغير ورقم ورمز خاص',
+  'settings.passwordWeak': 'يجب أن تحتوي كلمة المرور على حرف كبير وحرف صغير ورقم ورمز خاص',
   'settings.passwordChanged': 'تم تغيير كلمة المرور بنجاح',
-  'settings.mustChangePassword':
-    'يجب عليك تغيير كلمة المرور قبل المتابعة. يرجى تعيين كلمة مرور جديدة أدناه.',
+  'settings.mustChangePassword': 'يجب عليك تغيير كلمة المرور قبل المتابعة. يرجى تعيين كلمة مرور جديدة أدناه.',
   'settings.deleteAccount': 'حذف الحساب',
   'settings.deleteAccountTitle': 'هل تريد حذف حسابك؟',
-  'settings.deleteAccountWarning':
-    'سيتم حذف حسابك وجميع رحلاتك وأماكنك وملفاتك نهائيًا. لا يمكن التراجع عن ذلك.',
+  'settings.deleteAccountWarning': 'سيتم حذف حسابك وجميع رحلاتك وأماكنك وملفاتك نهائيًا. لا يمكن التراجع عن ذلك.',
   'settings.deleteAccountConfirm': 'حذف نهائي',
   'settings.deleteBlockedTitle': 'الحذف غير ممكن',
-  'settings.deleteBlockedMessage':
-    'أنت المسؤول الوحيد. قم بترقية مستخدم آخر إلى مسؤول قبل حذف حسابك.',
+  'settings.deleteBlockedMessage': 'أنت المسؤول الوحيد. قم بترقية مستخدم آخر إلى مسؤول قبل حذف حسابك.',
   'settings.roleUser': 'مستخدم',
   'settings.saveProfile': 'حفظ الملف الشخصي',
   'settings.toast.mapSaved': 'تم حفظ إعدادات الخريطة',
@@ -248,13 +228,10 @@ const settings: TranslationStrings = {
   'settings.mfa.title': 'المصادقة الثنائية (2FA)',
   'settings.mfa.description':
     'تضيف خطوة ثانية عند تسجيل الدخول. استخدم تطبيق مصادقة (Google Authenticator، Authy، إلخ).',
-  'settings.mfa.requiredByPolicy':
-    'المسؤول يتطلب المصادقة الثنائية. اضبط تطبيق المصادقة أدناه قبل المتابعة.',
+  'settings.mfa.requiredByPolicy': 'المسؤول يتطلب المصادقة الثنائية. اضبط تطبيق المصادقة أدناه قبل المتابعة.',
   'settings.mfa.backupTitle': 'رموز النسخ الاحتياطي',
-  'settings.mfa.backupDescription':
-    'استخدم هذه الرموز لمرة واحدة إذا فقدت الوصول إلى تطبيق المصادقة.',
-  'settings.mfa.backupWarning':
-    'احفظ هذه الرموز الآن. كل رمز يمكن استخدامه مرة واحدة فقط.',
+  'settings.mfa.backupDescription': 'استخدم هذه الرموز لمرة واحدة إذا فقدت الوصول إلى تطبيق المصادقة.',
+  'settings.mfa.backupWarning': 'احفظ هذه الرموز الآن. كل رمز يمكن استخدامه مرة واحدة فقط.',
   'settings.mfa.backupCopy': 'نسخ الرموز',
   'settings.mfa.backupDownload': 'تنزيل TXT',
   'settings.mfa.backupPrint': 'طباعة / PDF',
@@ -274,8 +251,7 @@ const settings: TranslationStrings = {
   'settings.mfa.toastDisabled': 'تم تعطيل المصادقة الثنائية',
   'settings.mfa.demoBlocked': 'غير متاح في الوضع التجريبي',
   'settings.tabs.offline': 'Offline', // en-fallback
-  'settings.mapTemplatePlaceholder':
-    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', // en-fallback
+  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', // en-fallback
   'settings.notificationPreferences.email': 'Email', // en-fallback
   'settings.notificationPreferences.webhook': 'Webhook', // en-fallback
   'settings.notificationPreferences.inapp': 'In-App', // en-fallback
@@ -283,16 +259,14 @@ const settings: TranslationStrings = {
   'settings.webhookUrl.placeholder': 'https://discord.com/api/webhooks/...', // en-fallback
   'settings.ntfyUrl.topicPlaceholder': 'my-trek-alerts', // en-fallback
   'settings.ntfyUrl.serverPlaceholder': 'https://ntfy.sh', // en-fallback
-  'settings.oauth.modal.redirectUrisPlaceholder':
-    'https://your-app.com/callback\nhttps://your-app.com/auth', // en-fallback
+  'settings.oauth.modal.redirectUrisPlaceholder': 'https://your-app.com/callback\nhttps://your-app.com/auth', // en-fallback
   'settings.about.supporter.tier.noReturnTicket': 'No Return Ticket', // en-fallback
   'settings.about.supporter.tier.lostLuggageVip': 'Lost Luggage VIP', // en-fallback
-  'settings.about.supporter.tier.businessClassDreamer':
-    'Business Class Dreamer', // en-fallback
+  'settings.about.supporter.tier.businessClassDreamer': 'Business Class Dreamer', // en-fallback
   'settings.about.supporter.tier.budgetTraveller': 'Budget Traveller', // en-fallback
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate', // en-fallback
-  "settings.currency": "Currency",
-  "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.currency': 'Currency',
+  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
   'settings.passkey.title': 'مفاتيح المرور',
   'settings.passkey.description':
     'سجّل الدخول بشكل أسرع وأكثر مقاومة للتصيّد باستخدام مفتاح مرور — ببصمة إصبعك أو وجهك أو رمز PIN أو مفتاح أمان مادي. تبقى كلمة المرور كنسخة احتياطية.',
@@ -300,8 +274,7 @@ const settings: TranslationStrings = {
     'مفاتيح المرور مفعّلة لكنها لم تُهيّأ بالكامل على هذا الخادم بعد. اطلب من المسؤول تعيين نطاق WebAuthn.',
   'settings.passkey.add': 'إضافة مفتاح مرور',
   'settings.passkey.addTitle': 'إضافة مفتاح مرور',
-  'settings.passkey.passwordPrompt':
-    'أكّد كلمة المرور الحالية، ثم اتبع التعليمات على جهازك.',
+  'settings.passkey.passwordPrompt': 'أكّد كلمة المرور الحالية، ثم اتبع التعليمات على جهازك.',
   'settings.passkey.passwordRequired': 'كلمة المرور الحالية مطلوبة.',
   'settings.passkey.namePlaceholder': 'الاسم (اختياري، مثل "iPhone")',
   'settings.passkey.addedToast': 'تمت إضافة مفتاح المرور',
@@ -309,8 +282,7 @@ const settings: TranslationStrings = {
   'settings.passkey.addError': 'تعذّرت إضافة مفتاح المرور',
   'settings.passkey.cancelled': 'تم إلغاء إعداد مفتاح المرور',
   'settings.passkey.deleted': 'تمت إزالة مفتاح المرور',
-  'settings.passkey.deleteConfirm':
-    'إزالة مفتاح المرور هذا؟ أكّد بكلمة المرور الخاصة بك.',
+  'settings.passkey.deleteConfirm': 'إزالة مفتاح المرور هذا؟ أكّد بكلمة المرور الخاصة بك.',
   'settings.passkey.rename': 'إعادة التسمية',
   'settings.passkey.defaultName': 'مفتاح المرور',
   'settings.passkey.synced': 'متزامن',
@@ -318,9 +290,11 @@ const settings: TranslationStrings = {
   'settings.passkey.lastUsed': 'آخر استخدام',
   'settings.passkey.neverUsed': 'لم يُستخدم قط',
   'settings.mapPoiPill': 'استكشاف الأماكن على الخريطة',
-  'settings.mapPoiPillHint': 'أظهر شريط فئات على خريطة الرحلة للعثور على المطاعم والفنادق والمزيد القريبة من OpenStreetMap.',
+  'settings.mapPoiPillHint':
+    'أظهر شريط فئات على خريطة الرحلة للعثور على المطاعم والفنادق والمزيد القريبة من OpenStreetMap.',
   'settings.airtrail.title': 'AirTrail',
-  'settings.airtrail.hint': 'اربط نسخة AirTrail المُستضافة ذاتيًا لاستيراد الرحلات ومزامنتها. أنشئ مفتاح API في AirTrail ضمن الإعدادات ← الأمان.',
+  'settings.airtrail.hint':
+    'اربط نسخة AirTrail المُستضافة ذاتيًا لاستيراد الرحلات ومزامنتها. أنشئ مفتاح API في AirTrail ضمن الإعدادات ← الأمان.',
   'settings.airtrail.url': 'رابط النسخة',
   'settings.airtrail.apiKey': 'مفتاح API',
   'settings.airtrail.apiKeyPlaceholder': 'مفتاح API من نوع Bearer',
@@ -328,7 +302,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.allowInsecureTls': 'السماح بالشهادات الموقّعة ذاتيًا',
   'settings.airtrail.allowInsecureTlsHint': 'فعّل هذا فقط لنسخة موثوقة على شبكتك الخاصة.',
   'settings.airtrail.writeBack': 'كتابة التغييرات إلى AirTrail',
-  'settings.airtrail.writeBackHint': 'مُعطّل افتراضيًا: AirTrail هو مصدر الحقيقة وTREK يقرأ منه فقط. فعّله لإرسال التعديلات التي تجريها في TREK إلى AirTrail.',
+  'settings.airtrail.writeBackHint':
+    'مُعطّل افتراضيًا: AirTrail هو مصدر الحقيقة وTREK يقرأ منه فقط. فعّله لإرسال التعديلات التي تجريها في TREK إلى AirTrail.',
   'settings.airtrail.connected': 'متصل',
   'settings.airtrail.notConnected': 'غير متصل',
   'settings.airtrail.toast.saved': 'تم حفظ اتصال AirTrail',

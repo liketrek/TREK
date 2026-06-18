@@ -5,8 +5,7 @@ const register: TranslationStrings = {
   'register.passwordTooShort': 'Şifre en az 8 karakter olmalıdır',
   'register.failed': 'Kayıt başarısız oldu',
   'register.getStarted': 'Başlayın',
-  'register.subtitle':
-    'Bir hesap oluşturun ve hayalinizdeki gezileri planlamaya başlayın.',
+  'register.subtitle': 'Bir hesap oluşturun ve hayalinizdeki gezileri planlamaya başlayın.',
   'register.feature1': 'Sınırsız gezi planları',
   'register.feature2': 'İnteraktif harita görünümü',
   'register.feature3': 'Yerleri ve kategorileri yönetin',

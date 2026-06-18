@@ -22,9 +22,7 @@ export const vacayAddHolidayCalendarRequestSchema = z.object({
   color: z.string().optional(),
   sort_order: z.number().optional(),
 });
-export type VacayAddHolidayCalendarRequest = z.infer<
-  typeof vacayAddHolidayCalendarRequestSchema
->;
+export type VacayAddHolidayCalendarRequest = z.infer<typeof vacayAddHolidayCalendarRequestSchema>;
 
 export const vacaySetColorRequestSchema = z.object({
   color: z.string().optional(),
@@ -40,9 +38,7 @@ export type VacayInviteRequest = z.infer<typeof vacayInviteRequestSchema>;
 export const vacayInviteActionRequestSchema = z.object({
   plan_id: z.number().optional(),
 });
-export type VacayInviteActionRequest = z.infer<
-  typeof vacayInviteActionRequestSchema
->;
+export type VacayInviteActionRequest = z.infer<typeof vacayInviteActionRequestSchema>;
 
 export const vacayAddYearRequestSchema = z.object({
   year: z.union([z.number(), z.string()]),
@@ -53,25 +49,19 @@ export const vacayToggleEntryRequestSchema = z.object({
   date: z.string().min(1),
   target_user_id: z.union([z.number(), z.string()]).optional(),
 });
-export type VacayToggleEntryRequest = z.infer<
-  typeof vacayToggleEntryRequestSchema
->;
+export type VacayToggleEntryRequest = z.infer<typeof vacayToggleEntryRequestSchema>;
 
 export const vacayCompanyHolidayRequestSchema = z.object({
   date: z.string(),
   note: z.string().optional(),
 });
-export type VacayCompanyHolidayRequest = z.infer<
-  typeof vacayCompanyHolidayRequestSchema
->;
+export type VacayCompanyHolidayRequest = z.infer<typeof vacayCompanyHolidayRequestSchema>;
 
 export const vacayUpdateStatsRequestSchema = z.object({
   vacation_days: z.number().optional(),
   target_user_id: z.union([z.number(), z.string()]).optional(),
 });
-export type VacayUpdateStatsRequest = z.infer<
-  typeof vacayUpdateStatsRequestSchema
->;
+export type VacayUpdateStatsRequest = z.infer<typeof vacayUpdateStatsRequestSchema>;
 
 /** Plan / entries / stats payloads are wide and DB-derived; kept open. */
 export const vacayPlanDataSchema = open;

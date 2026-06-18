@@ -12,10 +12,8 @@ const backup: TranslationStrings = {
   'backup.createFirst': 'Vytvořit první zálohu',
   'backup.download': 'Stáhnout',
   'backup.restore': 'Obnovit',
-  'backup.confirm.restore':
-    'Obnovit zálohu „{name}"?\n\nVšechna aktuální data budou nahrazena zálohou.',
-  'backup.confirm.uploadRestore':
-    'Nahrát a obnovit zálohu „{name}"?\n\nVšechna aktuální data budou přepsána.',
+  'backup.confirm.restore': 'Obnovit zálohu „{name}"?\n\nVšechna aktuální data budou nahrazena zálohou.',
+  'backup.confirm.uploadRestore': 'Nahrát a obnovit zálohu „{name}"?\n\nVšechna aktuální data budou přepsána.',
   'backup.confirm.delete': 'Smazat zálohu „{name}"?',
   'backup.toast.loadError': 'Nepodařilo se načíst zálohy',
   'backup.toast.created': 'Záloha byla úspěšně vytvořena',
@@ -31,15 +29,13 @@ const backup: TranslationStrings = {
   'backup.auto.title': 'Automatické zálohování',
   'backup.auto.subtitle': 'Automatické zálohování podle plánu',
   'backup.auto.enable': 'Povolit automatické zálohování',
-  'backup.auto.enableHint':
-    'Zálohy budou vytvářeny automaticky podle zvoleného plánu',
+  'backup.auto.enableHint': 'Zálohy budou vytvářeny automaticky podle zvoleného plánu',
   'backup.auto.interval': 'Interval',
   'backup.auto.hour': 'Spustit v hodinu',
   'backup.auto.hourHint': 'Místní čas serveru (formát {format})',
   'backup.auto.dayOfWeek': 'Den v týdnu',
   'backup.auto.dayOfMonth': 'Den v měsíci',
-  'backup.auto.dayOfMonthHint':
-    'Omezeno na 1–28 pro kompatibilitu se všemi měsíci',
+  'backup.auto.dayOfMonthHint': 'Omezeno na 1–28 pro kompatibilitu se všemi měsíci',
   'backup.auto.scheduleSummary': 'Plán',
   'backup.auto.summaryDaily': 'Každý den v {hour}:00',
   'backup.auto.summaryWeekly': 'Každý {day} v {hour}:00',

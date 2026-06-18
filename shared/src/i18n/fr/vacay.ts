@@ -17,8 +17,7 @@ const vacay: TranslationStrings = {
   'vacay.editPerson': 'Modifier la personne',
   'vacay.removePerson': 'Supprimer la personne',
   'vacay.removePersonConfirm': 'Supprimer {name} ?',
-  'vacay.removePersonHint':
-    'Toutes les entrées de vacances de cette personne seront définitivement supprimées.',
+  'vacay.removePersonHint': 'Toutes les entrées de vacances de cette personne seront définitivement supprimées.',
   'vacay.personName': 'Nom',
   'vacay.personNamePlaceholder': 'Saisir le nom',
   'vacay.color': 'Couleur',
@@ -43,33 +42,26 @@ const vacay: TranslationStrings = {
   'vacay.sat': 'Sam',
   'vacay.sun': 'Dim',
   'vacay.blockWeekends': 'Bloquer les week-ends',
-  'vacay.blockWeekendsHint':
-    'Empêcher les entrées de vacances les samedis et dimanches',
+  'vacay.blockWeekendsHint': 'Empêcher les entrées de vacances les samedis et dimanches',
   'vacay.publicHolidays': 'Jours fériés',
   'vacay.publicHolidaysHint': 'Marquer les jours fériés dans le calendrier',
   'vacay.selectCountry': 'Sélectionner un pays',
   'vacay.selectRegion': 'Sélectionner une région (facultatif)',
   'vacay.companyHolidays': "Jours fériés d'entreprise",
-  'vacay.companyHolidaysHint':
-    "Autoriser le marquage des jours fériés d'entreprise",
-  'vacay.companyHolidaysNoDeduct':
-    "Les jours fériés d'entreprise ne sont pas déduits des jours de vacances.",
+  'vacay.companyHolidaysHint': "Autoriser le marquage des jours fériés d'entreprise",
+  'vacay.companyHolidaysNoDeduct': "Les jours fériés d'entreprise ne sont pas déduits des jours de vacances.",
   'vacay.weekStart': 'La semaine commence le',
-  'vacay.weekStartHint':
-    'Choisissez si la semaine commence le lundi ou le dimanche',
+  'vacay.weekStartHint': 'Choisissez si la semaine commence le lundi ou le dimanche',
   'vacay.carryOver': 'Report',
-  'vacay.carryOverHint':
-    "Reporter automatiquement les jours de vacances restants à l'année suivante",
+  'vacay.carryOverHint': "Reporter automatiquement les jours de vacances restants à l'année suivante",
   'vacay.sharing': 'Partage',
-  'vacay.sharingHint':
-    "Partagez votre plan de vacances avec d'autres utilisateurs TREK",
+  'vacay.sharingHint': "Partagez votre plan de vacances avec d'autres utilisateurs TREK",
   'vacay.owner': 'Propriétaire',
   'vacay.shareEmailPlaceholder': "E-mail de l'utilisateur TREK",
   'vacay.shareSuccess': 'Plan partagé avec succès',
   'vacay.shareError': 'Impossible de partager le plan',
   'vacay.dissolve': 'Séparer les calendriers',
-  'vacay.dissolveHint':
-    'Séparer à nouveau les calendriers. Vos entrées seront conservées.',
+  'vacay.dissolveHint': 'Séparer à nouveau les calendriers. Vos entrées seront conservées.',
   'vacay.dissolveAction': 'Dissoudre',
   'vacay.dissolved': 'Calendrier séparé',
   'vacay.fusedWith': 'Partagé avec',
@@ -77,8 +69,7 @@ const vacay: TranslationStrings = {
   'vacay.noData': 'Aucune donnée',
   'vacay.changeColor': 'Changer la couleur',
   'vacay.inviteUser': 'Inviter un utilisateur',
-  'vacay.inviteHint':
-    'Invitez un autre utilisateur TREK à partager un calendrier de vacances combiné.',
+  'vacay.inviteHint': 'Invitez un autre utilisateur TREK à partager un calendrier de vacances combiné.',
   'vacay.selectUser': 'Sélectionner un utilisateur',
   'vacay.sendInvite': "Envoyer l'invitation",
   'vacay.inviteSent': 'Invitation envoyée',
@@ -89,16 +80,11 @@ const vacay: TranslationStrings = {
   'vacay.decline': 'Refuser',
   'vacay.acceptFusion': 'Accepter et fusionner',
   'vacay.inviteTitle': 'Demande de fusion',
-  'vacay.inviteWantsToFuse':
-    'souhaite partager un calendrier de vacances avec vous.',
-  'vacay.fuseInfo1':
-    'Vous verrez tous les deux toutes les entrées de vacances dans un calendrier partagé.',
-  'vacay.fuseInfo2':
-    "Les deux parties peuvent créer et modifier des entrées pour l'autre.",
-  'vacay.fuseInfo3':
-    'Les deux parties peuvent supprimer des entrées et modifier les droits aux vacances.',
-  'vacay.fuseInfo4':
-    "Les paramètres comme les jours fériés et les jours d'entreprise sont partagés.",
+  'vacay.inviteWantsToFuse': 'souhaite partager un calendrier de vacances avec vous.',
+  'vacay.fuseInfo1': 'Vous verrez tous les deux toutes les entrées de vacances dans un calendrier partagé.',
+  'vacay.fuseInfo2': "Les deux parties peuvent créer et modifier des entrées pour l'autre.",
+  'vacay.fuseInfo3': 'Les deux parties peuvent supprimer des entrées et modifier les droits aux vacances.',
+  'vacay.fuseInfo4': "Les paramètres comme les jours fériés et les jours d'entreprise sont partagés.",
   'vacay.fuseInfo5':
     "La fusion peut être dissoute à tout moment par l'une ou l'autre partie. Vos entrées seront préservées.",
   'vacay.addCalendar': 'Ajouter un calendrier',

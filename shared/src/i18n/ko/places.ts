@@ -4,14 +4,11 @@ const places: TranslationStrings = {
   'places.addPlace': '장소/활동 추가',
   'places.importFile': '파일 가져오기',
   'places.sidebarDrop': '끌어다 가져오기',
-  'places.importFileHint':
-    'Google My Maps, Google Earth 또는 GPS 추적기 등의 .gpx, .kml, .kmz 파일을 가져옵니다.',
+  'places.importFileHint': 'Google My Maps, Google Earth 또는 GPS 추적기 등의 .gpx, .kml, .kmz 파일을 가져옵니다.',
   'places.importFileDropHere': '파일을 선택하거나 여기에 끌어다 놓으세요',
   'places.importFileDropActive': '파일을 놓으세요',
-  'places.importFileUnsupported':
-    '지원하지 않는 파일 형식입니다. .gpx, .kml 또는 .kmz를 사용하세요.',
-  'places.importFileTooLarge':
-    '파일이 너무 큽니다. 최대 업로드 크기는 {maxMb} MB입니다.',
+  'places.importFileUnsupported': '지원하지 않는 파일 형식입니다. .gpx, .kml 또는 .kmz를 사용하세요.',
+  'places.importFileTooLarge': '파일이 너무 큽니다. 최대 업로드 크기는 {maxMb} MB입니다.',
   'places.importFileError': '가져오기 실패',
   'places.importAllSkipped': '모든 장소가 이미 여행에 포함되어 있습니다.',
   'places.gpxImported': 'GPX에서 {count}개 장소를 가져왔습니다',
@@ -29,16 +26,13 @@ const places: TranslationStrings = {
   'places.kmlKmzImported': 'KMZ/KML에서 {count}개 장소를 가져왔습니다',
   'places.urlResolved': 'URL에서 장소를 가져왔습니다',
   'places.importList': '목록 가져오기',
-  'places.kmlKmzSummaryValues':
-    '총 Placemarks: {total} · 가져옴: {created} · 건너뜀: {skipped}',
+  'places.kmlKmzSummaryValues': '총 Placemarks: {total} · 가져옴: {created} · 건너뜀: {skipped}',
   'places.importGoogleList': 'Google 목록',
   'places.importNaverList': '네이버 목록',
-  'places.googleListHint':
-    '공유된 Google Maps 목록 링크를 붙여넣어 모든 장소를 가져옵니다.',
+  'places.googleListHint': '공유된 Google Maps 목록 링크를 붙여넣어 모든 장소를 가져옵니다.',
   'places.googleListImported': '"{list}"에서 {count}개 장소를 가져왔습니다',
   'places.googleListError': 'Google Maps 목록 가져오기 실패',
-  'places.naverListHint':
-    '공유된 네이버 지도 목록 링크를 붙여넣어 모든 장소를 가져옵니다.',
+  'places.naverListHint': '공유된 네이버 지도 목록 링크를 붙여넣어 모든 장소를 가져옵니다.',
   'places.naverListImported': '"{list}"에서 {count}개 장소를 가져왔습니다',
   'places.naverListError': '네이버 지도 목록 가져오기 실패',
   'places.viewDetails': '상세 보기',
@@ -89,7 +83,6 @@ const places: TranslationStrings = {
   'places.duplicateExists': "'{name}'은(는) 이미 이 여행에 있습니다.",
   'places.addAnyway': '그래도 추가',
   'places.enrichOnImport': 'Google로 장소 정보 보강',
-  'places.enrichOnImportHint':
-    '가져온 각 장소를 검색해 사진, 주소, 연락처를 추가합니다. Google Maps 키가 필요합니다.',
+  'places.enrichOnImportHint': '가져온 각 장소를 검색해 사진, 주소, 연락처를 추가합니다. Google Maps 키가 필요합니다.',
 };
 export default places;

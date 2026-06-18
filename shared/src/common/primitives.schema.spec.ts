@@ -1,10 +1,5 @@
 import { paginationQuerySchema } from './pagination.schema';
-import {
-  idSchema,
-  idParamSchema,
-  nonEmptyString,
-  isoDateTime,
-} from './primitives.schema';
+import { idSchema, idParamSchema, nonEmptyString, isoDateTime } from './primitives.schema';
 
 import { describe, it, expect } from 'vitest';
 
@@ -43,8 +38,6 @@ describe('@trek/shared pagination', () => {
 
   it('enforces bounds', () => {
     expect(paginationQuerySchema.safeParse({ perPage: 0 }).success).toBe(false);
-    expect(paginationQuerySchema.safeParse({ perPage: 999 }).success).toBe(
-      false,
-    );
+    expect(paginationQuerySchema.safeParse({ perPage: 999 }).success).toBe(false);
   });
 });

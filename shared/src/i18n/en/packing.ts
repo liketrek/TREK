@@ -51,10 +51,8 @@ const packing: TranslationStrings = {
   'packing.bagName': 'Bag name...',
   'packing.addBag': 'Add bag',
   'packing.changeCategory': 'Change Category',
-  'packing.confirm.clearChecked':
-    'Are you sure you want to remove {count} checked items?',
-  'packing.confirm.deleteCat':
-    'Are you sure you want to delete the category "{name}" with {count} items?',
+  'packing.confirm.clearChecked': 'Are you sure you want to remove {count} checked items?',
+  'packing.confirm.deleteCat': 'Are you sure you want to delete the category "{name}" with {count} items?',
   'packing.defaultCategory': 'Other',
   'packing.toast.saveError': 'Failed to save',
   'packing.toast.deleteError': 'Failed to delete',

@@ -12,10 +12,8 @@ const backup: TranslationStrings = {
   'backup.createFirst': 'Buat cadangan pertama',
   'backup.download': 'Unduh',
   'backup.restore': 'Pulihkan',
-  'backup.confirm.restore':
-    'Pulihkan cadangan "{name}"?\n\nSemua data saat ini akan digantikan dengan cadangan.',
-  'backup.confirm.uploadRestore':
-    'Unggah dan pulihkan file cadangan "{name}"?\n\nSemua data saat ini akan ditimpa.',
+  'backup.confirm.restore': 'Pulihkan cadangan "{name}"?\n\nSemua data saat ini akan digantikan dengan cadangan.',
+  'backup.confirm.uploadRestore': 'Unggah dan pulihkan file cadangan "{name}"?\n\nSemua data saat ini akan ditimpa.',
   'backup.confirm.delete': 'Hapus cadangan "{name}"?',
   'backup.toast.loadError': 'Gagal memuat cadangan',
   'backup.toast.created': 'Cadangan berhasil dibuat',
@@ -31,15 +29,13 @@ const backup: TranslationStrings = {
   'backup.auto.title': 'Cadangan Otomatis',
   'backup.auto.subtitle': 'Pencadangan otomatis sesuai jadwal',
   'backup.auto.enable': 'Aktifkan cadangan otomatis',
-  'backup.auto.enableHint':
-    'Cadangan akan dibuat secara otomatis sesuai jadwal yang dipilih',
+  'backup.auto.enableHint': 'Cadangan akan dibuat secara otomatis sesuai jadwal yang dipilih',
   'backup.auto.interval': 'Interval',
   'backup.auto.hour': 'Jalankan pada jam',
   'backup.auto.hourHint': 'Waktu lokal server (format {format})',
   'backup.auto.dayOfWeek': 'Hari dalam seminggu',
   'backup.auto.dayOfMonth': 'Tanggal dalam sebulan',
-  'backup.auto.dayOfMonthHint':
-    'Dibatasi 1–28 agar kompatibel dengan semua bulan',
+  'backup.auto.dayOfMonthHint': 'Dibatasi 1–28 agar kompatibel dengan semua bulan',
   'backup.auto.scheduleSummary': 'Jadwal',
   'backup.auto.summaryDaily': 'Setiap hari pukul {hour}:00',
   'backup.auto.summaryWeekly': 'Setiap {day} pukul {hour}:00',
@@ -70,8 +66,7 @@ const backup: TranslationStrings = {
   'backup.restoreConfirmTitle': 'Pulihkan Cadangan?',
   'backup.restoreWarning':
     'Semua data saat ini (perjalanan, tempat, pengguna, unggahan) akan digantikan secara permanen oleh cadangan ini. Tindakan ini tidak dapat dibatalkan.',
-  'backup.restoreTip':
-    'Tips: Buat cadangan kondisi saat ini sebelum memulihkan.',
+  'backup.restoreTip': 'Tips: Buat cadangan kondisi saat ini sebelum memulihkan.',
   'backup.restoreConfirm': 'Ya, pulihkan',
 };
 export default backup;

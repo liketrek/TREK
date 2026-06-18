@@ -6,13 +6,10 @@ const places: TranslationStrings = {
   'places.sidebarDrop': 'Відпустіть для імпорту',
   'places.importFileHint':
     'Імпортуйте файли .gpx, .kml або .kmz із інструментів, таких як Google My Maps, Google Earth або GPS-трекер.',
-  'places.importFileDropHere':
-    'Натисніть, щоб вибрати файл, або перетягніть його сюди',
+  'places.importFileDropHere': 'Натисніть, щоб вибрати файл, або перетягніть його сюди',
   'places.importFileDropActive': 'Відпустіть файл для вибору',
-  'places.importFileUnsupported':
-    'Непідтримуваний тип файлу. Використовуйте .gpx, .kml або .kmz.',
-  'places.importFileTooLarge':
-    'Файл занадто великий. Максимальний розмір завантаження — {maxMb} МБ.',
+  'places.importFileUnsupported': 'Непідтримуваний тип файлу. Використовуйте .gpx, .kml або .kmz.',
+  'places.importFileTooLarge': 'Файл занадто великий. Максимальний розмір завантаження — {maxMb} МБ.',
   'places.importFileError': 'Помилка імпорту',
   'places.importAllSkipped': 'Усі місця вже були в подорожі.',
   'places.gpxImported': '{count} місць імпортовано з GPX',
@@ -30,16 +27,13 @@ const places: TranslationStrings = {
   'places.kmlKmzImported': '{count} місць імпортовано з KMZ/KML',
   'places.urlResolved': 'Місце імпортовано з URL',
   'places.importList': 'Імпорт списку',
-  'places.kmlKmzSummaryValues':
-    'Позначки: {total} • Імпортовано: {created} • Пропущено: {skipped}',
+  'places.kmlKmzSummaryValues': 'Позначки: {total} • Імпортовано: {created} • Пропущено: {skipped}',
   'places.importGoogleList': 'Список Google',
   'places.importNaverList': 'Список Naver',
-  'places.googleListHint':
-    'Вставте посилання на спільний список Google Maps для імпорту всіх місць.',
+  'places.googleListHint': 'Вставте посилання на спільний список Google Maps для імпорту всіх місць.',
   'places.googleListImported': '{count} місць імпортовано з "{list}"',
   'places.googleListError': 'Не вдалося імпортувати список Google Maps',
-  'places.naverListHint':
-    'Вставте посилання на спільний список Naver Maps для імпорту всіх місць.',
+  'places.naverListHint': 'Вставте посилання на спільний список Naver Maps для імпорту всіх місць.',
   'places.naverListImported': '{count} місць імпортовано з "{list}"',
   'places.naverListError': 'Не вдалося імпортувати список Naver Maps',
   'places.viewDetails': 'Деталі',
@@ -76,8 +70,7 @@ const places: TranslationStrings = {
   'places.formNotes': 'Нотатки',
   'places.formNotesPlaceholder': 'Особисті нотатки...',
   'places.formReservation': 'Бронювання',
-  'places.reservationNotesPlaceholder':
-    'Нотатки про бронювання, номер підтвердження...',
+  'places.reservationNotesPlaceholder': 'Нотатки про бронювання, номер підтвердження...',
   'places.mapsSearchPlaceholder': 'Пошук місць...',
   'places.mapsSearchError': 'Помилка пошуку місць.',
   'places.loadingDetails': 'Завантаження даних про місце…',

@@ -1,28 +1,17 @@
-import {
-  markRegionRequestSchema,
-  createBucketItemRequestSchema,
-  regionGeoSchema,
-} from './atlas.schema';
+import { markRegionRequestSchema, createBucketItemRequestSchema, regionGeoSchema } from './atlas.schema';
 
 import { describe, it, expect } from 'vitest';
 
 describe('markRegionRequestSchema', () => {
   it('requires both name and country_code', () => {
-    expect(
-      markRegionRequestSchema.safeParse({ name: 'Bavaria', country_code: 'DE' })
-        .success,
-    ).toBe(true);
-    expect(markRegionRequestSchema.safeParse({ name: 'Bavaria' }).success).toBe(
-      false,
-    );
+    expect(markRegionRequestSchema.safeParse({ name: 'Bavaria', country_code: 'DE' }).success).toBe(true);
+    expect(markRegionRequestSchema.safeParse({ name: 'Bavaria' }).success).toBe(false);
   });
 });
 
 describe('createBucketItemRequestSchema', () => {
   it('requires a name; coordinates and metadata optional/nullable', () => {
-    expect(
-      createBucketItemRequestSchema.safeParse({ name: 'Tokyo' }).success,
-    ).toBe(true);
+    expect(createBucketItemRequestSchema.safeParse({ name: 'Tokyo' }).success).toBe(true);
     expect(
       createBucketItemRequestSchema.safeParse({
         name: 'Tokyo',
@@ -37,18 +26,13 @@ describe('createBucketItemRequestSchema', () => {
 
 describe('regionGeoSchema', () => {
   it('accepts a FeatureCollection with opaque features', () => {
-    expect(
-      regionGeoSchema.safeParse({ type: 'FeatureCollection', features: [] })
-        .success,
-    ).toBe(true);
+    expect(regionGeoSchema.safeParse({ type: 'FeatureCollection', features: [] }).success).toBe(true);
     expect(
       regionGeoSchema.safeParse({
         type: 'FeatureCollection',
         features: [{ anything: true }],
       }).success,
     ).toBe(true);
-    expect(
-      regionGeoSchema.safeParse({ type: 'Other', features: [] }).success,
-    ).toBe(false);
+    expect(regionGeoSchema.safeParse({ type: 'Other', features: [] }).success).toBe(false);
   });
 });

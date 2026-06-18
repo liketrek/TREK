@@ -2,8 +2,7 @@ import type { NotificationLocale } from '../externalNotifications/types';
 
 const pl: NotificationLocale = {
   email: {
-    footer:
-      'Otrzymałeś/aś tę wiadomość, ponieważ masz włączone powiadomienia w TREK.',
+    footer: 'Otrzymałeś/aś tę wiadomość, ponieważ masz włączone powiadomienia w TREK.',
     manage: 'Zarządzaj preferencjami w ustawieniach',
     madeWith: 'Made with',
     openTrek: 'Otwórz TREK',
@@ -56,8 +55,7 @@ const pl: NotificationLocale = {
     body: 'Otrzymaliśmy prośbę o zresetowanie hasła do Twojego konta TREK. Kliknij przycisk poniżej, aby ustawić nowe hasło.',
     ctaIntro: 'Zresetuj hasło',
     expiry: 'Link wygaśnie za 60 minut.',
-    ignore:
-      'Jeśli to nie Ty, zignoruj tę wiadomość — Twoje hasło pozostanie bez zmian.',
+    ignore: 'Jeśli to nie Ty, zignoruj tę wiadomość — Twoje hasło pozostanie bez zmian.',
   },
 };
 

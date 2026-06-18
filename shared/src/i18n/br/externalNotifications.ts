@@ -55,8 +55,7 @@ const br: NotificationLocale = {
     body: 'Recebemos um pedido para redefinir a senha da sua conta TREK. Clique no botão abaixo para definir uma nova senha.',
     ctaIntro: 'Redefinir senha',
     expiry: 'Este link expira em 60 minutos.',
-    ignore:
-      'Se você não solicitou isto, pode ignorar este e-mail — sua senha não será alterada.',
+    ignore: 'Se você não solicitou isto, pode ignorar este e-mail — sua senha não será alterada.',
   },
 };
 

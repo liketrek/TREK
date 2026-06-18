@@ -3,8 +3,7 @@ import type { TranslationStrings } from '../types';
 const reservations: TranslationStrings = {
   'reservations.title': 'Foglalások',
   'reservations.empty': 'Még nincsenek foglalások',
-  'reservations.emptyHint':
-    'Adj hozzá foglalásokat repülőkhöz, szállodákhoz és egyebekhez',
+  'reservations.emptyHint': 'Adj hozzá foglalásokat repülőkhöz, szállodákhoz és egyebekhez',
   'reservations.add': 'Foglalás hozzáadása',
   'reservations.addManual': 'Kézi foglalás',
   'reservations.placeHint':
@@ -35,8 +34,7 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': 'Csatlakozás',
   'reservations.layover.layover': 'Átszállás',
   'reservations.needsReview': 'Ellenőrzés',
-  'reservations.needsReviewHint':
-    'A repülőteret nem sikerült automatikusan azonosítani — erősítsd meg a helyet.',
+  'reservations.needsReviewHint': 'A repülőteret nem sikerült automatikusan azonosítani — erősítsd meg a helyet.',
   'reservations.searchLocation': 'Állomás, kikötő, cím keresése...',
   'reservations.meta.trainNumber': 'Vonatszám',
   'reservations.meta.platform': 'Vágány',
@@ -66,8 +64,7 @@ const reservations: TranslationStrings = {
   'reservations.type.bicycle': 'Kerékpár',
   'reservations.type.taxi': 'Taxi',
   'reservations.type.transport_other': 'Egyéb',
-  'reservations.confirm.delete':
-    'Biztosan törölni szeretnéd a(z) "{name}" foglalást?',
+  'reservations.confirm.delete': 'Biztosan törölni szeretnéd a(z) "{name}" foglalást?',
   'reservations.confirm.deleteTitle': 'Foglalás törlése?',
   'reservations.confirm.deleteBody': '"{name}" véglegesen törlődik.',
   'reservations.toast.updated': 'Foglalás frissítve',
@@ -100,8 +97,7 @@ const reservations: TranslationStrings = {
   'reservations.budgetCategory': 'Költségvetési kategória',
   'reservations.budgetCategoryPlaceholder': 'pl. Közlekedés, Szállás',
   'reservations.budgetCategoryAuto': 'Automatikus (foglalás típusa alapján)',
-  'reservations.budgetHint':
-    'Mentéskor automatikusan létrejön egy költségvetési tétel.',
+  'reservations.budgetHint': 'Mentéskor automatikusan létrejön egy költségvetési tétel.',
   'reservations.departureDate': 'Indulás',
   'reservations.arrivalDate': 'Érkezés',
   'reservations.departureTime': 'Indulási idő',
@@ -122,50 +118,40 @@ const reservations: TranslationStrings = {
   'reservations.span.start': 'Kezdés',
   'reservations.span.end': 'Vége',
   'reservations.span.ongoing': 'Folyamatban',
-  'reservations.validation.endBeforeStart':
-    'A befejezés dátuma/időpontja a kezdés utáni kell legyen',
+  'reservations.validation.endBeforeStart': 'A befejezés dátuma/időpontja a kezdés utáni kell legyen',
   'reservations.addBooking': 'Foglalás hozzáadása',
   'reservations.import.title': 'Foglalási visszaigazolások importálása',
   'reservations.import.cta': 'Importálás fájlból',
-  'reservations.import.dropHere':
-    'Dobja ide a foglalási visszaigazolás fájlokat, vagy kattintson a kiválasztáshoz',
+  'reservations.import.dropHere': 'Dobja ide a foglalási visszaigazolás fájlokat, vagy kattintson a kiválasztáshoz',
   'reservations.import.dropActive': 'Dobja ide a fájlokat az importáláshoz',
   'reservations.import.acceptedFormats':
     'Elfogadott: EML, PDF, PKPass, HTML, TXT (max. 10 MB darabonként, legfeljebb 5 fájl)',
   'reservations.import.parsing': 'Fájlok feldolgozása…',
   'reservations.import.previewHeading': '{count} foglalás találva',
-  'reservations.import.previewEmpty':
-    'A feltöltött fájlokból nem sikerült foglalásokat kinyerni.',
+  'reservations.import.previewEmpty': 'A feltöltött fájlokból nem sikerült foglalásokat kinyerni.',
   'reservations.import.removeItem': 'Eltávolítás',
   'reservations.import.confirm': '{count} foglalás importálása',
   'reservations.import.back': 'Vissza',
   'reservations.import.success': '{count} foglalás importálva',
-  'reservations.import.partialFailure':
-    '{created} importálva, {failed} sikertelen',
+  'reservations.import.partialFailure': '{created} importálva, {failed} sikertelen',
   'reservations.import.error':
     'A feldolgozás sikertelen. Győződjön meg arról, hogy a fájl érvényes foglalási visszaigazolás.',
-  'reservations.import.unavailable':
-    'A foglalásimportálás nem érhető el ezen a kiszolgálón.',
+  'reservations.import.unavailable': 'A foglalásimportálás nem érhető el ezen a kiszolgálón.',
   'reservations.import.unsupportedFormat':
     'Nem támogatott fájlformátum. Használjon EML, PDF, PKPass, HTML vagy TXT formátumot.',
-  'reservations.import.fileTooLarge':
-    'A(z) „{name}" fájl meghaladja a 10 MB-os korlátot.',
+  'reservations.import.fileTooLarge': 'A(z) „{name}" fájl meghaladja a 10 MB-os korlátot.',
   'reservations.airtrail.title': 'Importálás az AirTrailből',
   'reservations.airtrail.cta': 'AirTrail',
   'reservations.airtrail.synced': 'AirTrail',
   'reservations.airtrail.syncedHint':
     'Az AirTrailből szinkronizálva — a módosítások mindkét irányban szinkronban maradnak.',
   'reservations.airtrail.notSynced': 'Nincs szinkronizálva',
-  'reservations.airtrail.notSyncedHint':
-    'Ezt a járatot eltávolították az AirTrailből, és többé nem szinkronizálódik.',
-  'reservations.airtrail.loadError':
-    'Nem sikerült betölteni az AirTrail-járataidat.',
+  'reservations.airtrail.notSyncedHint': 'Ezt a járatot eltávolították az AirTrailből, és többé nem szinkronizálódik.',
+  'reservations.airtrail.loadError': 'Nem sikerült betölteni az AirTrail-járataidat.',
   'reservations.airtrail.imported': '{count} járat importálva',
-  'reservations.airtrail.skippedDuplicate':
-    '{count} már szerepel ebben az utazásban, kihagyva',
+  'reservations.airtrail.skippedDuplicate': '{count} már szerepel ebben az utazásban, kihagyva',
   'reservations.airtrail.nothingImported': 'Nincs mit importálni.',
-  'reservations.airtrail.importError':
-    'Az importálás sikertelen. Kérjük, próbáld újra.',
+  'reservations.airtrail.importError': 'Az importálás sikertelen. Kérjük, próbáld újra.',
   'reservations.airtrail.undo': 'Importálás az AirTrailből',
   'reservations.airtrail.alreadyImported': 'Importálva',
   'reservations.airtrail.duringTrip': 'Az utazás ideje alatt',
@@ -174,8 +160,7 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.importCta': '{count} importálása',
   'reservations.costsLabel': 'Costs',
   'reservations.createExpense': 'Create expense',
-  'reservations.createExpenseHint':
-    'Saves the booking, then opens the Costs editor.',
+  'reservations.createExpenseHint': 'Saves the booking, then opens the Costs editor.',
   'reservations.linkedExpense': 'Linked expense',
   'reservations.removeExpense': 'Remove expense',
 };

@@ -8,8 +8,7 @@ const vacay: TranslationStrings = {
   'vacay.addPrevYear': 'Tambah tahun sebelumnya',
   'vacay.removeYear': 'Hapus tahun',
   'vacay.removeYearConfirm': 'Hapus {year}?',
-  'vacay.removeYearHint':
-    'Semua entri cuti dan hari libur perusahaan untuk tahun ini akan dihapus secara permanen.',
+  'vacay.removeYearHint': 'Semua entri cuti dan hari libur perusahaan untuk tahun ini akan dihapus secara permanen.',
   'vacay.remove': 'Hapus',
   'vacay.persons': 'Orang',
   'vacay.noPersons': 'Belum ada orang ditambahkan',
@@ -17,8 +16,7 @@ const vacay: TranslationStrings = {
   'vacay.editPerson': 'Edit Orang',
   'vacay.removePerson': 'Hapus Orang',
   'vacay.removePersonConfirm': 'Hapus {name}?',
-  'vacay.removePersonHint':
-    'Semua entri cuti untuk orang ini akan dihapus secara permanen.',
+  'vacay.removePersonHint': 'Semua entri cuti untuk orang ini akan dihapus secara permanen.',
   'vacay.personName': 'Nama',
   'vacay.personNamePlaceholder': 'Masukkan nama',
   'vacay.color': 'Warna',
@@ -53,16 +51,12 @@ const vacay: TranslationStrings = {
   'vacay.calendarColor': 'Warna',
   'vacay.noCalendars': 'Belum ada kalender hari libur ditambahkan',
   'vacay.companyHolidays': 'Hari Libur Perusahaan',
-  'vacay.companyHolidaysHint':
-    'Izinkan penandaan hari libur seluruh perusahaan',
-  'vacay.companyHolidaysNoDeduct':
-    'Hari libur perusahaan tidak dipotong dari jatah cuti.',
+  'vacay.companyHolidaysHint': 'Izinkan penandaan hari libur seluruh perusahaan',
+  'vacay.companyHolidaysNoDeduct': 'Hari libur perusahaan tidak dipotong dari jatah cuti.',
   'vacay.weekStart': 'Awal minggu',
-  'vacay.weekStartHint':
-    'Pilih apakah minggu kalender dimulai pada hari Senin atau Minggu',
+  'vacay.weekStartHint': 'Pilih apakah minggu kalender dimulai pada hari Senin atau Minggu',
   'vacay.carryOver': 'Carry Over Cuti',
-  'vacay.carryOverHint':
-    'Otomatis pindahkan sisa hari cuti ke tahun berikutnya',
+  'vacay.carryOverHint': 'Otomatis pindahkan sisa hari cuti ke tahun berikutnya',
   'vacay.sharing': 'Berbagi',
   'vacay.sharingHint': 'Bagikan rencana cuti kamu dengan pengguna TREK lainnya',
   'vacay.owner': 'Pemilik',
@@ -70,8 +64,7 @@ const vacay: TranslationStrings = {
   'vacay.shareSuccess': 'Rencana berhasil dibagikan',
   'vacay.shareError': 'Gagal membagikan rencana',
   'vacay.dissolve': 'Pisahkan Gabungan',
-  'vacay.dissolveHint':
-    'Pisahkan kalender kembali. Entri kamu akan tetap disimpan.',
+  'vacay.dissolveHint': 'Pisahkan kalender kembali. Entri kamu akan tetap disimpan.',
   'vacay.dissolveAction': 'Pisahkan',
   'vacay.dissolved': 'Kalender dipisahkan',
   'vacay.fusedWith': 'Digabung dengan',
@@ -79,8 +72,7 @@ const vacay: TranslationStrings = {
   'vacay.noData': 'Tidak ada data',
   'vacay.changeColor': 'Ganti warna',
   'vacay.inviteUser': 'Undang Pengguna',
-  'vacay.inviteHint':
-    'Undang pengguna TREK lain untuk berbagi kalender cuti bersama.',
+  'vacay.inviteHint': 'Undang pengguna TREK lain untuk berbagi kalender cuti bersama.',
   'vacay.selectUser': 'Pilih pengguna',
   'vacay.sendInvite': 'Kirim Undangan',
   'vacay.inviteSent': 'Undangan terkirim',
@@ -92,15 +84,10 @@ const vacay: TranslationStrings = {
   'vacay.acceptFusion': 'Terima & Gabung',
   'vacay.inviteTitle': 'Permintaan Penggabungan',
   'vacay.inviteWantsToFuse': 'ingin berbagi kalender cuti bersamamu.',
-  'vacay.fuseInfo1':
-    'Kalian berdua akan melihat semua entri cuti dalam satu kalender bersama.',
-  'vacay.fuseInfo2':
-    'Kedua pihak dapat membuat dan mengedit entri satu sama lain.',
-  'vacay.fuseInfo3':
-    'Kedua pihak dapat menghapus entri dan mengubah jatah cuti.',
-  'vacay.fuseInfo4':
-    'Pengaturan seperti hari libur nasional dan hari libur perusahaan dibagikan bersama.',
-  'vacay.fuseInfo5':
-    'Penggabungan dapat dipisahkan kapan saja oleh salah satu pihak. Entri kamu akan tetap disimpan.',
+  'vacay.fuseInfo1': 'Kalian berdua akan melihat semua entri cuti dalam satu kalender bersama.',
+  'vacay.fuseInfo2': 'Kedua pihak dapat membuat dan mengedit entri satu sama lain.',
+  'vacay.fuseInfo3': 'Kedua pihak dapat menghapus entri dan mengubah jatah cuti.',
+  'vacay.fuseInfo4': 'Pengaturan seperti hari libur nasional dan hari libur perusahaan dibagikan bersama.',
+  'vacay.fuseInfo5': 'Penggabungan dapat dipisahkan kapan saja oleh salah satu pihak. Entri kamu akan tetap disimpan.',
 };
 export default vacay;

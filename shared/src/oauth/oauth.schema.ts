@@ -41,6 +41,4 @@ export const oauthClientCreateRequestSchema = z.object({
   allowed_scopes: z.array(z.string()),
   allows_client_credentials: z.boolean().optional(),
 });
-export type OauthClientCreateRequest = z.infer<
-  typeof oauthClientCreateRequestSchema
->;
+export type OauthClientCreateRequest = z.infer<typeof oauthClientCreateRequestSchema>;

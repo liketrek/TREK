@@ -21,12 +21,9 @@ export const SUPPORTED_LANGUAGES = [
   { value: 'gr', label: 'Ελληνικά', locale: 'el-GR' },
 ] as const;
 
-export type SupportedLanguageCode =
-  (typeof SUPPORTED_LANGUAGES)[number]['value'];
+export type SupportedLanguageCode = (typeof SUPPORTED_LANGUAGES)[number]['value'];
 
-export const SUPPORTED_LANGUAGE_CODES: string[] = SUPPORTED_LANGUAGES.map(
-  (l) => l.value,
-);
+export const SUPPORTED_LANGUAGE_CODES: string[] = SUPPORTED_LANGUAGES.map((l) => l.value);
 
 const LOCALES: Partial<Record<string, string>> = Object.fromEntries(
   SUPPORTED_LANGUAGES.map((l) => [l.value, l.locale]),

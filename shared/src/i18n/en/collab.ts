@@ -14,8 +14,7 @@ const collab: TranslationStrings = {
   'collab.chat.placeholder': 'Type a message...',
   'collab.chat.empty': 'Start the conversation',
   'collab.chat.emptyHint': 'Messages are shared with all trip members',
-  'collab.chat.emptyDesc':
-    'Share ideas, plans, and updates with your travel group',
+  'collab.chat.emptyDesc': 'Share ideas, plans, and updates with your travel group',
   'collab.chat.today': 'Today',
   'collab.chat.yesterday': 'Yesterday',
   'collab.chat.deletedMessage': 'deleted a message',

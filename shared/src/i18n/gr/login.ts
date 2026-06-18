@@ -20,20 +20,16 @@ const login: TranslationStrings = {
   'login.features.files': 'Έγγραφα',
   'login.features.filesDesc': 'Μεταφόρτωση & διαχείριση εγγράφων',
   'login.features.routes': 'Έξυπνες Διαδρομές',
-  'login.features.routesDesc':
-    'Αυτόματη βελτιστοποίηση & εξαγωγή στο Google Maps',
-  'login.selfHosted':
-    'Self-hosted \u00B7 Open Source \u00B7 Τα δεδομένα σας παραμένουν δικά σας',
+  'login.features.routesDesc': 'Αυτόματη βελτιστοποίηση & εξαγωγή στο Google Maps',
+  'login.selfHosted': 'Self-hosted \u00B7 Open Source \u00B7 Τα δεδομένα σας παραμένουν δικά σας',
   'login.title': 'Σύνδεση',
   'login.subtitle': 'Καλώς ήρθατε πίσω',
   'login.signingIn': 'Σύνδεση…',
   'login.signIn': 'Σύνδεση',
   'login.createAdmin': 'Δημιουργία Λογαριασμού Διαχειριστή',
-  'login.createAdminHint':
-    'Ρυθμίστε τον πρώτο λογαριασμό διαχειριστή για το TREK.',
+  'login.createAdminHint': 'Ρυθμίστε τον πρώτο λογαριασμό διαχειριστή για το TREK.',
   'login.setNewPassword': 'Ορισμός Νέου Κωδικού',
-  'login.setNewPasswordHint':
-    'Πρέπει να αλλάξετε τον κωδικό σας πριν συνεχίσετε.',
+  'login.setNewPasswordHint': 'Πρέπει να αλλάξετε τον κωδικό σας πριν συνεχίσετε.',
   'login.createAccount': 'Δημιουργία Λογαριασμού',
   'login.createAccountHint': 'Καταχωρήστε έναν νέο λογαριασμό.',
   'login.creating': 'Δημιουργία…',
@@ -42,8 +38,7 @@ const login: TranslationStrings = {
   'login.register': 'Εγγραφή',
   'login.emailPlaceholder': 'your@email.com',
   'login.username': 'Όνομα χρήστη',
-  'login.oidc.registrationDisabled':
-    'Η εγγραφή είναι απενεργοποιημένη. Επικοινωνήστε με τον διαχειριστή σας.',
+  'login.oidc.registrationDisabled': 'Η εγγραφή είναι απενεργοποιημένη. Επικοινωνήστε με τον διαχειριστή σας.',
   'login.oidc.noEmail': 'Δεν ελήφθη email από τον πάροχο.',
   'login.oidc.tokenFailed': 'Ο έλεγχος ταυτότητας απέτυχε.',
   'login.oidc.invalidState': 'Μη έγκυρη συνεδρία. Παρακαλώ δοκιμάστε ξανά.',
@@ -51,24 +46,19 @@ const login: TranslationStrings = {
   'login.oidcSignIn': 'Σύνδεση με {name}',
   'login.oidcOnly':
     'Ο έλεγχος ταυτότητας με κωδικό είναι απενεργοποιημένος. Παρακαλώ συνδεθείτε χρησιμοποιώντας τον πάροχο SSO σας.',
-  'login.oidcLoggedOut':
-    'Έχετε αποσυνδεθεί. Συνδεθείτε ξανά χρησιμοποιώντας τον πάροχο SSO σας.',
+  'login.oidcLoggedOut': 'Έχετε αποσυνδεθεί. Συνδεθείτε ξανά χρησιμοποιώντας τον πάροχο SSO σας.',
   'login.demoHint': 'Δοκιμάστε το demo — δεν απαιτείται εγγραφή',
   'login.mfaTitle': 'Έλεγχος ταυτότητας δύο παραγόντων',
-  'login.mfaSubtitle':
-    'Εισάγετε τον 6ψήφιο κωδικό από την εφαρμογή authenticator σας.',
+  'login.mfaSubtitle': 'Εισάγετε τον 6ψήφιο κωδικό από την εφαρμογή authenticator σας.',
   'login.mfaCodeLabel': 'Κωδικός επαλήθευσης',
-  'login.mfaCodeRequired':
-    'Εισάγετε τον κωδικό από την εφαρμογή authenticator σας.',
-  'login.mfaHint':
-    'Ανοίξτε το Google Authenticator, Authy ή άλλη εφαρμογή TOTP.',
+  'login.mfaCodeRequired': 'Εισάγετε τον κωδικό από την εφαρμογή authenticator σας.',
+  'login.mfaHint': 'Ανοίξτε το Google Authenticator, Authy ή άλλη εφαρμογή TOTP.',
   'login.mfaBack': '← Πίσω στη σύνδεση',
   'login.mfaVerify': 'Επαλήθευση',
   'login.invalidInviteLink': 'Μη έγκυρος ή ληγμένος σύνδεσμος πρόσκλησης',
   'login.oidcFailed': 'Η σύνδεση OIDC απέτυχε',
   'login.usernameRequired': 'Το όνομα χρήστη είναι υποχρεωτικό',
-  'login.passwordMinLength':
-    'Ο κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες',
+  'login.passwordMinLength': 'Ο κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες',
   'login.forgotPassword': 'Ξεχάσατε τον κωδικό;',
   'login.rememberMe': 'Να με θυμάσαι',
   'login.forgotPasswordTitle': 'Επαναφορά του κωδικού σας',
@@ -88,20 +78,15 @@ const login: TranslationStrings = {
   'login.resetPasswordTitle': 'Ορίστε έναν νέο κωδικό',
   'login.resetPasswordBody':
     'Επιλέξτε έναν ισχυρό κωδικό που δεν έχετε χρησιμοποιήσει εδώ ξανά. Ελάχιστο 8 χαρακτήρες.',
-  'login.resetPasswordMfaBody':
-    'Εισάγετε τον κωδικό 2FA ή έναν εφεδρικό κωδικό για να ολοκληρωθεί η επαναφορά.',
+  'login.resetPasswordMfaBody': 'Εισάγετε τον κωδικό 2FA ή έναν εφεδρικό κωδικό για να ολοκληρωθεί η επαναφορά.',
   'login.resetPasswordSubmit': 'Επαναφορά κωδικού',
   'login.resetPasswordVerify': 'Επαλήθευση & επαναφορά',
   'login.resetPasswordSuccessTitle': 'Ο κωδικός ενημερώθηκε',
-  'login.resetPasswordSuccessBody':
-    'Μπορείτε τώρα να συνδεθείτε με τον νέο σας κωδικό.',
+  'login.resetPasswordSuccessBody': 'Μπορείτε τώρα να συνδεθείτε με τον νέο σας κωδικό.',
   'login.resetPasswordInvalidLink': 'Μη έγκυρος σύνδεσμος επαναφοράς',
-  'login.resetPasswordInvalidLinkBody':
-    'Αυτός ο σύνδεσμος λείπει ή έχει χαλάσει. Ζητήστε έναν νέο για να συνεχίσετε.',
-  'login.resetPasswordFailed':
-    'Η επαναφορά απέτυχε. Ο σύνδεσμος μπορεί να έχει λήξει.',
+  'login.resetPasswordInvalidLinkBody': 'Αυτός ο σύνδεσμος λείπει ή έχει χαλάσει. Ζητήστε έναν νέο για να συνεχίσετε.',
+  'login.resetPasswordFailed': 'Η επαναφορά απέτυχε. Ο σύνδεσμος μπορεί να έχει λήξει.',
   'login.passkey.signIn': 'Σύνδεση με passkey',
-  'login.passkey.failed':
-    'Η σύνδεση με passkey απέτυχε. Παρακαλώ δοκιμάστε ξανά.',
+  'login.passkey.failed': 'Η σύνδεση με passkey απέτυχε. Παρακαλώ δοκιμάστε ξανά.',
 };
 export default login;

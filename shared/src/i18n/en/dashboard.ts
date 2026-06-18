@@ -20,8 +20,7 @@ const dashboard: TranslationStrings = {
   'dashboard.timezoneCustomTzPlaceholder': 'e.g. America/New_York',
   'dashboard.timezoneCustomAdd': 'Add',
   'dashboard.timezoneCustomErrorEmpty': 'Enter a timezone identifier',
-  'dashboard.timezoneCustomErrorInvalid':
-    'Invalid timezone. Use format like Europe/Berlin',
+  'dashboard.timezoneCustomErrorInvalid': 'Invalid timezone. Use format like Europe/Berlin',
   'dashboard.timezoneCustomErrorDuplicate': 'Already added',
   'dashboard.emptyTitle': 'No trips yet',
   'dashboard.emptyText': 'Create your first trip and start planning!',
@@ -55,8 +54,7 @@ const dashboard: TranslationStrings = {
   'dashboard.toast.restoreError': 'Failed to restore trip',
   'dashboard.toast.copied': 'Trip copied!',
   'dashboard.toast.copyError': 'Failed to copy trip',
-  'dashboard.confirm.delete':
-    'Delete trip "{title}"? All places and plans will be permanently deleted.',
+  'dashboard.confirm.delete': 'Delete trip "{title}"? All places and plans will be permanently deleted.',
   'dashboard.confirm.copy.title': 'Copy this trip?',
   'dashboard.confirm.copy.willCopy': 'Will be copied',
   'dashboard.confirm.copy.will1': 'Days, places & day assignments',
@@ -80,10 +78,8 @@ const dashboard: TranslationStrings = {
   'dashboard.startDate': 'Start Date',
   'dashboard.endDate': 'End Date',
   'dashboard.dayCount': 'Number of Days',
-  'dashboard.dayCountHint':
-    'How many days to plan for when no travel dates are set.',
-  'dashboard.noDateHint':
-    'No date set — 7 default days will be created. You can change this anytime.',
+  'dashboard.dayCountHint': 'How many days to plan for when no travel dates are set.',
+  'dashboard.noDateHint': 'No date set — 7 default days will be created. You can change this anytime.',
   'dashboard.coverImage': 'Cover Image',
   'dashboard.addCoverImage': 'Add cover image (or drag & drop)',
   'dashboard.addMembers': 'Travel buddies',

@@ -107,27 +107,17 @@ export const accommodationSchema = z.object({
 export type Accommodation = z.infer<typeof accommodationSchema>;
 
 /** Reservation create: title is required; the many optional fields stay open. */
-export const reservationCreateRequestSchema = open.and(
-  z.object({ title: z.string().min(1) }),
-);
-export type ReservationCreateRequest = z.infer<
-  typeof reservationCreateRequestSchema
->;
+export const reservationCreateRequestSchema = open.and(z.object({ title: z.string().min(1) }));
+export type ReservationCreateRequest = z.infer<typeof reservationCreateRequestSchema>;
 
 export const reservationUpdateRequestSchema = open;
-export type ReservationUpdateRequest = z.infer<
-  typeof reservationUpdateRequestSchema
->;
+export type ReservationUpdateRequest = z.infer<typeof reservationUpdateRequestSchema>;
 
 export const reservationPositionsRequestSchema = z.object({
-  positions: z.array(
-    z.object({ id: z.number(), day_plan_position: z.number() }),
-  ),
+  positions: z.array(z.object({ id: z.number(), day_plan_position: z.number() })),
   day_id: z.union([z.number(), z.string()]).nullable().optional(),
 });
-export type ReservationPositionsRequest = z.infer<
-  typeof reservationPositionsRequestSchema
->;
+export type ReservationPositionsRequest = z.infer<typeof reservationPositionsRequestSchema>;
 
 export const accommodationCreateRequestSchema = z.object({
   place_id: z.union([z.number(), z.string()]),
@@ -139,14 +129,10 @@ export const accommodationCreateRequestSchema = z.object({
   confirmation: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
 });
-export type AccommodationCreateRequest = z.infer<
-  typeof accommodationCreateRequestSchema
->;
+export type AccommodationCreateRequest = z.infer<typeof accommodationCreateRequestSchema>;
 
 export const accommodationUpdateRequestSchema = open;
-export type AccommodationUpdateRequest = z.infer<
-  typeof accommodationUpdateRequestSchema
->;
+export type AccommodationUpdateRequest = z.infer<typeof accommodationUpdateRequestSchema>;
 
 // ---------------------------------------------------------------------------
 // Booking import (KItinerary)

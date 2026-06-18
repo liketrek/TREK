@@ -7,8 +7,7 @@ const packing: TranslationStrings = {
   'packing.importTitle': 'Paklijst importeren',
   'packing.importHint':
     'Eén item per regel. Optioneel categorie en aantal gescheiden door komma, puntkomma of tab: Naam, Categorie, Aantal',
-  'packing.importPlaceholder':
-    'Tandenborstel\nZonnebrand, Hygiëne\nT-Shirts, Kleding, 5\nPaspoort, Documenten',
+  'packing.importPlaceholder': 'Tandenborstel\nZonnebrand, Hygiëne\nT-Shirts, Kleding, 5\nPaspoort, Documenten',
   'packing.importCsv': 'CSV/TXT laden',
   'packing.importAction': '{count} importeren',
   'packing.importSuccess': '{count} items geïmporteerd',
@@ -51,10 +50,8 @@ const packing: TranslationStrings = {
   'packing.bagName': 'Naam...',
   'packing.addBag': 'Bagage toevoegen',
   'packing.changeCategory': 'Categorie wijzigen',
-  'packing.confirm.clearChecked':
-    'Weet je zeker dat je {count} aangevinkte items wilt verwijderen?',
-  'packing.confirm.deleteCat':
-    'Weet je zeker dat je de categorie "{name}" met {count} items wilt verwijderen?',
+  'packing.confirm.clearChecked': 'Weet je zeker dat je {count} aangevinkte items wilt verwijderen?',
+  'packing.confirm.deleteCat': 'Weet je zeker dat je de categorie "{name}" met {count} items wilt verwijderen?',
   'packing.defaultCategory': 'Overig',
   'packing.toast.saveError': 'Opslaan mislukt',
   'packing.toast.deleteError': 'Verwijderen mislukt',

@@ -35,7 +35,6 @@ const notif: TranslationStrings = {
   'notif.generic.title': '通知',
   'notif.generic.text': '您有一条新通知',
   'notif.dev.unknown_event.title': '[DEV] 未知事件',
-  'notif.dev.unknown_event.text':
-    '事件类型 "{event}" 未在 EVENT_NOTIFICATION_CONFIG 中注册',
+  'notif.dev.unknown_event.text': '事件类型 "{event}" 未在 EVENT_NOTIFICATION_CONFIG 中注册',
 };
 export default notif;

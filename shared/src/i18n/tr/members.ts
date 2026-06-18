@@ -13,8 +13,7 @@ const members: TranslationStrings = {
   'members.owner': 'Sahip',
   'members.leaveTrip': 'Seyahatten ayrıl',
   'members.removeAccess': 'Erişimi kaldır',
-  'members.confirmLeave':
-    'Seyahatten ayrılmak İstiyor musunuz? Erişiminizi kaybedersiniz.',
+  'members.confirmLeave': 'Seyahatten ayrılmak İstiyor musunuz? Erişiminizi kaybedersiniz.',
   'members.confirmRemove': 'Bu kullanıcının erişimi kaldırılsın mı?',
   'members.loadError': 'Üyeler yüklenemedi',
   'members.added': 'eklendi',

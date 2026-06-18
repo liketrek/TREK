@@ -53,14 +53,11 @@ const login: TranslationStrings = {
   'login.forgotPassword': '忘记密码？',
   'login.rememberMe': '记住我',
   'login.forgotPasswordTitle': '重置密码',
-  'login.forgotPasswordBody':
-    '输入您注册时使用的邮箱地址。若账户存在，我们将发送重置链接。',
+  'login.forgotPasswordBody': '输入您注册时使用的邮箱地址。若账户存在，我们将发送重置链接。',
   'login.forgotPasswordSubmit': '发送重置链接',
   'login.forgotPasswordSentTitle': '请查看邮箱',
-  'login.forgotPasswordSentBody':
-    '若该邮箱存在账户，重置链接正在发送中。链接将在 60 分钟后失效。',
-  'login.forgotPasswordSmtpHintOff':
-    '提示：管理员未配置 SMTP，重置链接将被写入服务器控制台，而不是通过电子邮件发送。',
+  'login.forgotPasswordSentBody': '若该邮箱存在账户，重置链接正在发送中。链接将在 60 分钟后失效。',
+  'login.forgotPasswordSmtpHintOff': '提示：管理员未配置 SMTP，重置链接将被写入服务器控制台，而不是通过电子邮件发送。',
   'login.backToLogin': '返回登录',
   'login.newPassword': '新密码',
   'login.confirmPassword': '确认新密码',
@@ -74,8 +71,7 @@ const login: TranslationStrings = {
   'login.resetPasswordSuccessTitle': '密码已更新',
   'login.resetPasswordSuccessBody': '您现在可以使用新密码登录了。',
   'login.resetPasswordInvalidLink': '无效的重置链接',
-  'login.resetPasswordInvalidLinkBody':
-    '此链接已丢失或损坏。请重新申请以继续。',
+  'login.resetPasswordInvalidLinkBody': '此链接已丢失或损坏。请重新申请以继续。',
   'login.resetPasswordFailed': '重置失败。链接可能已过期。',
   'login.oidc.tokenFailed': '认证失败。',
   'login.oidc.invalidState': '会话无效，请重试。',

@@ -8,8 +8,7 @@ const vacay: TranslationStrings = {
   'vacay.addPrevYear': 'Add previous year',
   'vacay.removeYear': 'Remove year',
   'vacay.removeYearConfirm': 'Remove {year}?',
-  'vacay.removeYearHint':
-    'All vacation entries and company holidays for this year will be permanently deleted.',
+  'vacay.removeYearHint': 'All vacation entries and company holidays for this year will be permanently deleted.',
   'vacay.remove': 'Remove',
   'vacay.persons': 'Persons',
   'vacay.noPersons': 'No persons added',
@@ -17,8 +16,7 @@ const vacay: TranslationStrings = {
   'vacay.editPerson': 'Edit Person',
   'vacay.removePerson': 'Remove Person',
   'vacay.removePersonConfirm': 'Remove {name}?',
-  'vacay.removePersonHint':
-    'All vacation entries for this person will be permanently deleted.',
+  'vacay.removePersonHint': 'All vacation entries for this person will be permanently deleted.',
   'vacay.personName': 'Name',
   'vacay.personNamePlaceholder': 'Enter name',
   'vacay.color': 'Color',
@@ -54,14 +52,11 @@ const vacay: TranslationStrings = {
   'vacay.noCalendars': 'No holiday calendars added yet',
   'vacay.companyHolidays': 'Company Holidays',
   'vacay.companyHolidaysHint': 'Allow marking company-wide holiday days',
-  'vacay.companyHolidaysNoDeduct':
-    'Company holidays do not count towards vacation days.',
+  'vacay.companyHolidaysNoDeduct': 'Company holidays do not count towards vacation days.',
   'vacay.weekStart': 'Week starts on',
-  'vacay.weekStartHint':
-    'Choose whether the calendar week starts on Monday or Sunday',
+  'vacay.weekStartHint': 'Choose whether the calendar week starts on Monday or Sunday',
   'vacay.carryOver': 'Carry Over',
-  'vacay.carryOverHint':
-    'Automatically carry remaining vacation days into the next year',
+  'vacay.carryOverHint': 'Automatically carry remaining vacation days into the next year',
   'vacay.sharing': 'Sharing',
   'vacay.sharingHint': 'Share your vacation plan with other TREK users',
   'vacay.owner': 'Owner',
@@ -77,8 +72,7 @@ const vacay: TranslationStrings = {
   'vacay.noData': 'No data',
   'vacay.changeColor': 'Change color',
   'vacay.inviteUser': 'Invite User',
-  'vacay.inviteHint':
-    'Invite another TREK user to share a combined vacation calendar.',
+  'vacay.inviteHint': 'Invite another TREK user to share a combined vacation calendar.',
   'vacay.selectUser': 'Select user',
   'vacay.sendInvite': 'Send Invite',
   'vacay.inviteSent': 'Invite sent',
@@ -90,14 +84,10 @@ const vacay: TranslationStrings = {
   'vacay.acceptFusion': 'Accept & Fuse',
   'vacay.inviteTitle': 'Fusion Request',
   'vacay.inviteWantsToFuse': 'wants to share a vacation calendar with you.',
-  'vacay.fuseInfo1':
-    'Both of you will see all vacation entries in one shared calendar.',
+  'vacay.fuseInfo1': 'Both of you will see all vacation entries in one shared calendar.',
   'vacay.fuseInfo2': 'Both parties can create and edit entries for each other.',
-  'vacay.fuseInfo3':
-    'Both parties can delete entries and change vacation entitlements.',
-  'vacay.fuseInfo4':
-    'Settings like public holidays and company holidays are shared.',
-  'vacay.fuseInfo5':
-    'The fusion can be dissolved at any time by either party. Your entries will be preserved.',
+  'vacay.fuseInfo3': 'Both parties can delete entries and change vacation entitlements.',
+  'vacay.fuseInfo4': 'Settings like public holidays and company holidays are shared.',
+  'vacay.fuseInfo5': 'The fusion can be dissolved at any time by either party. Your entries will be preserved.',
 };
 export default vacay;

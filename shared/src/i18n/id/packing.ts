@@ -51,10 +51,8 @@ const packing: TranslationStrings = {
   'packing.bagName': 'Nama tas...',
   'packing.addBag': 'Tambah tas',
   'packing.changeCategory': 'Ganti Kategori',
-  'packing.confirm.clearChecked':
-    'Yakin ingin menghapus {count} item yang dicentang?',
-  'packing.confirm.deleteCat':
-    'Yakin ingin menghapus kategori "{name}" beserta {count} item di dalamnya?',
+  'packing.confirm.clearChecked': 'Yakin ingin menghapus {count} item yang dicentang?',
+  'packing.confirm.deleteCat': 'Yakin ingin menghapus kategori "{name}" beserta {count} item di dalamnya?',
   'packing.defaultCategory': 'Lainnya',
   'packing.toast.saveError': 'Gagal menyimpan',
   'packing.toast.deleteError': 'Gagal menghapus',

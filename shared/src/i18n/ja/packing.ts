@@ -5,8 +5,7 @@ const packing: TranslationStrings = {
   'packing.empty': '持ち物リストは空です',
   'packing.import': 'インポート',
   'packing.importTitle': '持ち物リストをインポート',
-  'packing.importHint':
-    '1行につき1項目。形式：カテゴリ, 名前, 重量(g・任意), バッグ(任意), checked/unchecked(任意)',
+  'packing.importHint': '1行につき1項目。形式：カテゴリ, 名前, 重量(g・任意), バッグ(任意), checked/unchecked(任意)',
   'packing.importPlaceholder':
     '衛生用品, 歯ブラシ\n衣類, Tシャツ, 200\n書類, パスポート, , 機内持ち込み\n電子機器, 充電器, 50, スーツケース, checked',
   'packing.importCsv': 'CSV/TXTを読み込む',
@@ -52,8 +51,7 @@ const packing: TranslationStrings = {
   'packing.addBag': 'バッグを追加',
   'packing.changeCategory': 'カテゴリを変更',
   'packing.confirm.clearChecked': 'チェック済み{count}件を削除しますか？',
-  'packing.confirm.deleteCat':
-    '{count}件の項目があるカテゴリ「{name}」を削除しますか？',
+  'packing.confirm.deleteCat': '{count}件の項目があるカテゴリ「{name}」を削除しますか？',
   'packing.defaultCategory': 'その他',
   'packing.toast.saveError': '保存に失敗しました',
   'packing.toast.deleteError': '削除に失敗しました',

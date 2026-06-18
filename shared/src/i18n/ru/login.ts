@@ -21,8 +21,7 @@ const login: TranslationStrings = {
   'login.features.filesDesc': 'Загружайте и управляйте документами',
   'login.features.routes': 'Умные маршруты',
   'login.features.routesDesc': 'Автооптимизация и экспорт в Google Maps',
-  'login.selfHosted':
-    'Самостоятельный хостинг · Открытый код · Ваши данные остаются у вас',
+  'login.selfHosted': 'Самостоятельный хостинг · Открытый код · Ваши данные остаются у вас',
   'login.title': 'Вход',
   'login.subtitle': 'С возвращением',
   'login.signingIn': 'Вход…',
@@ -30,8 +29,7 @@ const login: TranslationStrings = {
   'login.createAdmin': 'Создать аккаунт администратора',
   'login.createAdminHint': 'Настройте первый аккаунт администратора для TREK.',
   'login.setNewPassword': 'Установить новый пароль',
-  'login.setNewPasswordHint':
-    'Вы должны сменить пароль, прежде чем продолжить.',
+  'login.setNewPasswordHint': 'Вы должны сменить пароль, прежде чем продолжить.',
   'login.createAccount': 'Создать аккаунт',
   'login.createAccountHint': 'Зарегистрируйте новый аккаунт.',
   'login.creating': 'Создание…',
@@ -40,15 +38,13 @@ const login: TranslationStrings = {
   'login.register': 'Регистрация',
   'login.emailPlaceholder': 'ваш@email.com',
   'login.username': 'Имя пользователя',
-  'login.oidc.registrationDisabled':
-    'Регистрация отключена. Обратитесь к администратору.',
+  'login.oidc.registrationDisabled': 'Регистрация отключена. Обратитесь к администратору.',
   'login.oidc.noEmail': 'Провайдер не предоставил адрес эл. почты.',
   'login.mfaTitle': 'Двухфакторная аутентификация',
   'login.mfaSubtitle': 'Введите 6-значный код из приложения-аутентификатора.',
   'login.mfaCodeLabel': 'Код подтверждения',
   'login.mfaCodeRequired': 'Введите код из приложения-аутентификатора.',
-  'login.mfaHint':
-    'Откройте Google Authenticator, Authy или другое TOTP-приложение.',
+  'login.mfaHint': 'Откройте Google Authenticator, Authy или другое TOTP-приложение.',
   'login.mfaBack': '← Назад к входу',
   'login.mfaVerify': 'Подтвердить',
   'login.invalidInviteLink': 'Недействительная или истёкшая ссылка-приглашение',
@@ -72,27 +68,21 @@ const login: TranslationStrings = {
   'login.passwordsDontMatch': 'Пароли не совпадают',
   'login.mfaCode': 'Код 2FA',
   'login.resetPasswordTitle': 'Задайте новый пароль',
-  'login.resetPasswordBody':
-    'Выберите надёжный пароль, который вы здесь ещё не использовали. Минимум 8 символов.',
-  'login.resetPasswordMfaBody':
-    'Введите код 2FA или резервный код, чтобы завершить сброс.',
+  'login.resetPasswordBody': 'Выберите надёжный пароль, который вы здесь ещё не использовали. Минимум 8 символов.',
+  'login.resetPasswordMfaBody': 'Введите код 2FA или резервный код, чтобы завершить сброс.',
   'login.resetPasswordSubmit': 'Сбросить пароль',
   'login.resetPasswordVerify': 'Проверить и сбросить',
   'login.resetPasswordSuccessTitle': 'Пароль обновлён',
   'login.resetPasswordSuccessBody': 'Теперь вы можете войти с новым паролем.',
   'login.resetPasswordInvalidLink': 'Неверная ссылка сброса',
-  'login.resetPasswordInvalidLinkBody':
-    'Ссылка отсутствует или повреждена. Запросите новую, чтобы продолжить.',
-  'login.resetPasswordFailed':
-    'Сброс не удался. Возможно, срок действия ссылки истёк.',
+  'login.resetPasswordInvalidLinkBody': 'Ссылка отсутствует или повреждена. Запросите новую, чтобы продолжить.',
+  'login.resetPasswordFailed': 'Сброс не удался. Возможно, срок действия ссылки истёк.',
   'login.oidc.tokenFailed': 'Аутентификация не удалась.',
   'login.oidc.invalidState': 'Недействительная сессия. Попробуйте снова.',
   'login.demoFailed': 'Ошибка демо-входа',
   'login.oidcSignIn': 'Войти через {name}',
-  'login.oidcOnly':
-    'Вход по паролю отключён. Используйте вашего провайдера SSO для входа.',
-  'login.oidcLoggedOut':
-    'Вы вышли из системы. Войдите снова через вашего провайдера SSO.',
+  'login.oidcOnly': 'Вход по паролю отключён. Используйте вашего провайдера SSO для входа.',
+  'login.oidcLoggedOut': 'Вы вышли из системы. Войдите снова через вашего провайдера SSO.',
   'login.demoHint': 'Попробуйте демо — регистрация не требуется',
   'login.passkey.signIn': 'Войти с помощью passkey',
   'login.passkey.failed': 'Не удалось войти с помощью passkey. Попробуйте ещё раз.',

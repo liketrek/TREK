@@ -2,8 +2,7 @@ import type { TranslationStrings } from '../types';
 
 const admin: TranslationStrings = {
   'admin.notifications.title': 'Notifikasi',
-  'admin.notifications.hint':
-    'Pilih satu saluran notifikasi. Hanya satu yang bisa aktif sekaligus.',
+  'admin.notifications.hint': 'Pilih satu saluran notifikasi. Hanya satu yang bisa aktif sekaligus.',
   'admin.notifications.none': 'Dinonaktifkan',
   'admin.notifications.email': 'Email (SMTP)',
   'admin.notifications.webhook': 'Webhook',
@@ -15,17 +14,14 @@ const admin: TranslationStrings = {
   'admin.notifications.emailPanel.title': 'Email (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
   'admin.notifications.inappPanel.title': 'In-App',
-  'admin.notifications.inappPanel.hint':
-    'Notifikasi in-app selalu aktif dan tidak bisa dinonaktifkan secara global.',
+  'admin.notifications.inappPanel.hint': 'Notifikasi in-app selalu aktif dan tidak bisa dinonaktifkan secara global.',
   'admin.notifications.adminWebhookPanel.title': 'Admin Webhook',
   'admin.notifications.adminWebhookPanel.hint':
     'Webhook ini digunakan khusus untuk notifikasi admin (mis. peringatan versi). Terpisah dari webhook per pengguna dan selalu berjalan jika diatur.',
   'admin.notifications.adminWebhookPanel.saved': 'Admin webhook URL tersimpan',
-  'admin.notifications.adminWebhookPanel.testSuccess':
-    'Test webhook berhasil dikirim',
+  'admin.notifications.adminWebhookPanel.testSuccess': 'Test webhook berhasil dikirim',
   'admin.notifications.adminWebhookPanel.testFailed': 'Test webhook gagal',
-  'admin.notifications.adminWebhookPanel.alwaysOnHint':
-    'Admin webhook selalu berjalan jika URL dikonfigurasi',
+  'admin.notifications.adminWebhookPanel.alwaysOnHint': 'Admin webhook selalu berjalan jika URL dikonfigurasi',
   'admin.notifications.ntfy': 'Ntfy',
   'admin.ntfy.hint':
     'Memungkinkan pengguna mengonfigurasi topik ntfy mereka sendiri untuk notifikasi push. Tetapkan server default di bawah untuk mengisi setelan pengguna secara otomatis.',
@@ -42,28 +38,23 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.topicLabel': 'Topik Admin',
   'admin.notifications.adminNtfyPanel.topicPlaceholder': 'trek-admin-alerts',
   'admin.notifications.adminNtfyPanel.tokenLabel': 'Token Akses (opsional)',
-  'admin.notifications.adminNtfyPanel.tokenCleared':
-    'Token akses admin dihapus',
+  'admin.notifications.adminNtfyPanel.tokenCleared': 'Token akses admin dihapus',
   'admin.notifications.adminNtfyPanel.saved': 'Pengaturan Ntfy admin tersimpan',
   'admin.notifications.adminNtfyPanel.test': 'Kirim uji Ntfy',
   'admin.notifications.adminNtfyPanel.testSuccess': 'Uji Ntfy berhasil dikirim',
   'admin.notifications.adminNtfyPanel.testFailed': 'Uji Ntfy gagal',
-  'admin.notifications.adminNtfyPanel.alwaysOnHint':
-    'Admin Ntfy selalu berjalan jika topik dikonfigurasi',
+  'admin.notifications.adminNtfyPanel.alwaysOnHint': 'Admin Ntfy selalu berjalan jika topik dikonfigurasi',
   'admin.notifications.adminNotificationsHint':
     'Atur saluran mana yang mengirimkan notifikasi khusus admin (mis. peringatan versi).',
   'admin.notifications.tripReminders.title': 'Pengingat Perjalanan',
   'admin.notifications.tripReminders.hint':
     'Mengirim notifikasi pengingat sebelum perjalanan dimulai (memerlukan hari pengingat yang diatur pada perjalanan).',
-  'admin.notifications.tripReminders.enabled':
-    'Pengingat perjalanan diaktifkan',
-  'admin.notifications.tripReminders.disabled':
-    'Pengingat perjalanan dinonaktifkan',
+  'admin.notifications.tripReminders.enabled': 'Pengingat perjalanan diaktifkan',
+  'admin.notifications.tripReminders.disabled': 'Pengingat perjalanan dinonaktifkan',
   'admin.smtp.title': 'Email & Notifikasi',
   'admin.smtp.hint': 'Konfigurasi SMTP untuk pengiriman notifikasi email.',
   'admin.smtp.testButton': 'Kirim email uji',
-  'admin.webhook.hint':
-    'Izinkan pengguna mengatur URL webhook sendiri untuk notifikasi (Discord, Slack, dll.).',
+  'admin.webhook.hint': 'Izinkan pengguna mengatur URL webhook sendiri untuk notifikasi (Discord, Slack, dll.).',
   'admin.smtp.testSuccess': 'Email uji berhasil dikirim',
   'admin.smtp.testFailed': 'Email uji gagal',
   'admin.title': 'Administrasi',
@@ -88,8 +79,7 @@ const admin: TranslationStrings = {
   'admin.editUser': 'Edit Pengguna',
   'admin.newPassword': 'Kata Sandi Baru',
   'admin.newPasswordHint': 'Kosongkan untuk mempertahankan kata sandi saat ini',
-  'admin.deleteUser':
-    'Hapus pengguna "{name}"? Semua perjalanan akan dihapus secara permanen.',
+  'admin.deleteUser': 'Hapus pengguna "{name}"? Semua perjalanan akan dihapus secara permanen.',
   'admin.deleteUserTitle': 'Hapus pengguna',
   'admin.newPasswordPlaceholder': 'Masukkan kata sandi baru…',
   'admin.toast.loadError': 'Gagal memuat data admin',
@@ -100,8 +90,7 @@ const admin: TranslationStrings = {
   'admin.toast.cannotDeleteSelf': 'Tidak bisa menghapus akun sendiri',
   'admin.toast.userCreated': 'Pengguna dibuat',
   'admin.toast.createError': 'Gagal membuat pengguna',
-  'admin.toast.fieldsRequired':
-    'Nama pengguna, email, dan kata sandi wajib diisi',
+  'admin.toast.fieldsRequired': 'Nama pengguna, email, dan kata sandi wajib diisi',
   'admin.createUser': 'Buat Pengguna',
   'admin.invite.title': 'Tautan Undangan',
   'admin.invite.subtitle': 'Buat tautan pendaftaran sekali pakai',
@@ -126,11 +115,9 @@ const admin: TranslationStrings = {
   'admin.allowRegistrationHint': 'Pengguna baru dapat mendaftar sendiri',
   'admin.authMethods': 'Metode Autentikasi',
   'admin.passwordLogin': 'Login dengan Kata Sandi',
-  'admin.passwordLoginHint':
-    'Izinkan pengguna masuk dengan email dan kata sandi',
+  'admin.passwordLoginHint': 'Izinkan pengguna masuk dengan email dan kata sandi',
   'admin.passwordRegistration': 'Pendaftaran dengan Kata Sandi',
-  'admin.passwordRegistrationHint':
-    'Izinkan pengguna baru mendaftar dengan email dan kata sandi',
+  'admin.passwordRegistrationHint': 'Izinkan pengguna baru mendaftar dengan email dan kata sandi',
   'admin.oidcLogin': 'Login SSO',
   'admin.oidcLoginHint': 'Izinkan pengguna masuk dengan SSO',
   'admin.oidcRegistration': 'Penyediaan Otomatis SSO',
@@ -142,11 +129,9 @@ const admin: TranslationStrings = {
   'admin.requireMfaHint':
     'Pengguna tanpa 2FA harus menyelesaikan pengaturan di Pengaturan sebelum menggunakan aplikasi.',
   'admin.apiKeys': 'Kunci API',
-  'admin.apiKeysHint':
-    'Opsional. Mengaktifkan data tempat yang lebih lengkap seperti foto dan cuaca.',
+  'admin.apiKeysHint': 'Opsional. Mengaktifkan data tempat yang lebih lengkap seperti foto dan cuaca.',
   'admin.mapsKey': 'Kunci API Google Maps',
-  'admin.mapsKeyHint':
-    'Diperlukan untuk pencarian tempat. Dapatkan di console.cloud.google.com',
+  'admin.mapsKeyHint': 'Diperlukan untuk pencarian tempat. Dapatkan di console.cloud.google.com',
   'admin.mapsKeyHintLong':
     'Tanpa kunci API, OpenStreetMap digunakan untuk pencarian tempat. Dengan kunci API Google, foto, rating, dan jam buka juga bisa dimuat. Dapatkan di console.cloud.google.com.',
   'admin.recommended': 'Direkomendasikan',
@@ -157,19 +142,16 @@ const admin: TranslationStrings = {
   'admin.keyInvalid': 'Tidak valid',
   'admin.keySaved': 'Kunci API disimpan',
   'admin.oidcTitle': 'Single Sign-On (OIDC)',
-  'admin.oidcSubtitle':
-    'Izinkan login melalui penyedia eksternal seperti Google, Apple, Authentik, atau Keycloak.',
+  'admin.oidcSubtitle': 'Izinkan login melalui penyedia eksternal seperti Google, Apple, Authentik, atau Keycloak.',
   'admin.oidcDisplayName': 'Nama Tampilan',
   'admin.oidcIssuer': 'Issuer URL',
-  'admin.oidcIssuerHint':
-    'Issuer URL OpenID Connect dari penyedia. Contoh: https://accounts.google.com',
+  'admin.oidcIssuerHint': 'Issuer URL OpenID Connect dari penyedia. Contoh: https://accounts.google.com',
   'admin.oidcSaved': 'Konfigurasi OIDC disimpan',
   'admin.oidcOnlyMode': 'Nonaktifkan autentikasi kata sandi',
   'admin.oidcOnlyModeHint':
     'Jika diaktifkan, hanya login SSO yang diizinkan. Login dan pendaftaran berbasis kata sandi diblokir.',
   'admin.fileTypes': 'Jenis File yang Diizinkan',
-  'admin.fileTypesHint':
-    'Atur jenis file apa saja yang boleh diunggah pengguna.',
+  'admin.fileTypesHint': 'Atur jenis file apa saja yang boleh diunggah pengguna.',
   'admin.fileTypesFormat':
     'Ekstensi dipisahkan koma (contoh: jpg,png,pdf,doc). Gunakan * untuk mengizinkan semua jenis.',
   'admin.fileTypesSaved': 'Pengaturan jenis file disimpan',
@@ -183,8 +165,7 @@ const admin: TranslationStrings = {
   'admin.placesDetails.subtitle':
     'Mengambil informasi detail tempat (jam, penilaian, situs web) dari Google Places API. Nonaktifkan untuk menghemat kuota API.',
   'admin.bagTracking.title': 'Pelacak Tas',
-  'admin.bagTracking.subtitle':
-    'Aktifkan berat dan penugasan tas untuk item packing',
+  'admin.bagTracking.subtitle': 'Aktifkan berat dan penugasan tas untuk item packing',
   'admin.collab.chat.title': 'Chat',
   'admin.collab.chat.subtitle': 'Pesan real-time untuk kolaborasi',
   'admin.collab.notes.title': 'Catatan',
@@ -203,11 +184,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.resetToBuiltIn': 'atur ulang',
   'admin.tabs.templates': 'Template Packing',
   'admin.packingTemplates.title': 'Template Packing',
-  'admin.packingTemplates.subtitle':
-    'Buat daftar packing yang bisa digunakan ulang untuk perjalananmu',
+  'admin.packingTemplates.subtitle': 'Buat daftar packing yang bisa digunakan ulang untuk perjalananmu',
   'admin.packingTemplates.create': 'Template Baru',
-  'admin.packingTemplates.namePlaceholder':
-    'Nama template (contoh: Liburan Pantai)',
+  'admin.packingTemplates.namePlaceholder': 'Nama template (contoh: Liburan Pantai)',
   'admin.packingTemplates.empty': 'Belum ada template yang dibuat',
   'admin.packingTemplates.items': 'item',
   'admin.packingTemplates.categories': 'kategori',
@@ -223,34 +202,24 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.saveError': 'Gagal menyimpan',
   'admin.tabs.addons': 'Addon',
   'admin.addons.title': 'Addon',
-  'admin.addons.subtitle':
-    'Aktifkan atau nonaktifkan fitur untuk menyesuaikan pengalaman TREK kamu.',
+  'admin.addons.subtitle': 'Aktifkan atau nonaktifkan fitur untuk menyesuaikan pengalaman TREK kamu.',
   'admin.addons.catalog.packing.name': 'Daftar',
-  'admin.addons.catalog.packing.description':
-    'Daftar packing dan tugas to-do untuk perjalananmu',
+  'admin.addons.catalog.packing.description': 'Daftar packing dan tugas to-do untuk perjalananmu',
   'admin.addons.catalog.budget.name': 'Anggaran',
-  'admin.addons.catalog.budget.description':
-    'Lacak pengeluaran dan rencanakan anggaran perjalananmu',
+  'admin.addons.catalog.budget.description': 'Lacak pengeluaran dan rencanakan anggaran perjalananmu',
   'admin.addons.catalog.documents.name': 'Dokumen',
-  'admin.addons.catalog.documents.description':
-    'Simpan dan kelola dokumen perjalanan',
+  'admin.addons.catalog.documents.description': 'Simpan dan kelola dokumen perjalanan',
   'admin.addons.catalog.vacay.name': 'Vacay',
-  'admin.addons.catalog.vacay.description':
-    'Perencana liburan pribadi dengan tampilan kalender',
+  'admin.addons.catalog.vacay.description': 'Perencana liburan pribadi dengan tampilan kalender',
   'admin.addons.catalog.atlas.name': 'Atlas',
-  'admin.addons.catalog.atlas.description':
-    'Peta dunia dengan negara yang pernah dikunjungi dan statistik perjalanan',
+  'admin.addons.catalog.atlas.description': 'Peta dunia dengan negara yang pernah dikunjungi dan statistik perjalanan',
   'admin.addons.catalog.collab.name': 'Collab',
-  'admin.addons.catalog.collab.description':
-    'Catatan real-time, polling, dan chat untuk perencanaan perjalanan',
+  'admin.addons.catalog.collab.description': 'Catatan real-time, polling, dan chat untuk perencanaan perjalanan',
   'admin.addons.catalog.memories.name': 'Foto (Immich)',
-  'admin.addons.catalog.memories.description':
-    'Bagikan foto perjalanan melalui instans Immich kamu',
+  'admin.addons.catalog.memories.description': 'Bagikan foto perjalanan melalui instans Immich kamu',
   'admin.addons.catalog.mcp.name': 'MCP',
-  'admin.addons.catalog.mcp.description':
-    'Model Context Protocol untuk integrasi asisten AI',
-  'admin.addons.subtitleBefore':
-    'Aktifkan atau nonaktifkan fitur untuk menyesuaikan ',
+  'admin.addons.catalog.mcp.description': 'Model Context Protocol untuk integrasi asisten AI',
+  'admin.addons.subtitleBefore': 'Aktifkan atau nonaktifkan fitur untuk menyesuaikan ',
   'admin.addons.subtitleAfter': ' kamu.',
   'admin.addons.enabled': 'Aktif',
   'admin.addons.disabled': 'Nonaktif',
@@ -258,10 +227,8 @@ const admin: TranslationStrings = {
   'admin.addons.type.global': 'Global',
   'admin.addons.type.integration': 'Integrasi',
   'admin.addons.tripHint': 'Tersedia sebagai tab di setiap perjalanan',
-  'admin.addons.globalHint':
-    'Tersedia sebagai bagian mandiri di navigasi utama',
-  'admin.addons.integrationHint':
-    'Layanan backend dan integrasi API tanpa halaman tersendiri',
+  'admin.addons.globalHint': 'Tersedia sebagai bagian mandiri di navigasi utama',
+  'admin.addons.integrationHint': 'Layanan backend dan integrasi API tanpa halaman tersendiri',
   'admin.addons.toast.updated': 'Addon diperbarui',
   'admin.addons.toast.error': 'Gagal memperbarui addon',
   'admin.addons.noAddons': 'Tidak ada addon yang tersedia',
@@ -272,16 +239,14 @@ const admin: TranslationStrings = {
   'admin.weather.forecast': 'Prakiraan 16 hari',
   'admin.weather.forecastDesc': 'Sebelumnya 5 hari (OpenWeatherMap)',
   'admin.weather.climate': 'Data iklim historis',
-  'admin.weather.climateDesc':
-    'Rata-rata dari 85 tahun terakhir untuk hari di luar prakiraan 16 hari',
+  'admin.weather.climateDesc': 'Rata-rata dari 85 tahun terakhir untuk hari di luar prakiraan 16 hari',
   'admin.weather.requests': '10.000 permintaan / hari',
   'admin.weather.requestsDesc': 'Gratis, tidak perlu kunci API',
   'admin.weather.locationHint':
     'Cuaca didasarkan pada tempat pertama dengan koordinat di setiap hari. Jika tidak ada tempat yang ditetapkan untuk suatu hari, tempat mana pun dari daftar tempat digunakan sebagai referensi.',
   'admin.tabs.mcpTokens': 'Akses MCP',
   'admin.mcpTokens.title': 'Akses MCP',
-  'admin.mcpTokens.subtitle':
-    'Kelola sesi OAuth dan token API di semua pengguna',
+  'admin.mcpTokens.subtitle': 'Kelola sesi OAuth dan token API di semua pengguna',
   'admin.mcpTokens.sectionTitle': 'Token API',
   'admin.mcpTokens.owner': 'Pemilik',
   'admin.mcpTokens.tokenName': 'Nama Token',
@@ -302,14 +267,12 @@ const admin: TranslationStrings = {
   'admin.oauthSessions.created': 'Dibuat',
   'admin.oauthSessions.empty': 'Tidak ada sesi OAuth aktif',
   'admin.oauthSessions.revokeTitle': 'Cabut Sesi',
-  'admin.oauthSessions.revokeMessage':
-    'Ini akan segera mencabut sesi OAuth. Client akan kehilangan akses MCP.',
+  'admin.oauthSessions.revokeMessage': 'Ini akan segera mencabut sesi OAuth. Client akan kehilangan akses MCP.',
   'admin.oauthSessions.revokeSuccess': 'Sesi dicabut',
   'admin.oauthSessions.revokeError': 'Gagal mencabut sesi',
   'admin.oauthSessions.loadError': 'Gagal memuat sesi OAuth',
   'admin.tabs.github': 'GitHub',
-  'admin.audit.subtitle':
-    'Peristiwa sensitif keamanan dan administrasi (backup, pengguna, MFA, pengaturan).',
+  'admin.audit.subtitle': 'Peristiwa sensitif keamanan dan administrasi (backup, pengguna, MFA, pengaturan).',
   'admin.audit.empty': 'Belum ada entri audit.',
   'admin.audit.refresh': 'Segarkan',
   'admin.audit.loadMore': 'Muat lebih banyak',
@@ -340,14 +303,12 @@ const admin: TranslationStrings = {
     'TREK akan diperbarui dari {current} ke {version}. Server akan restart otomatis setelahnya.',
   'admin.update.dataInfo':
     'Semua datamu (perjalanan, pengguna, kunci API, unggahan, Vacay, Atlas, anggaran) akan dipertahankan.',
-  'admin.update.warning':
-    'Aplikasi akan tidak tersedia sebentar selama restart.',
+  'admin.update.warning': 'Aplikasi akan tidak tersedia sebentar selama restart.',
   'admin.update.confirm': 'Perbarui Sekarang',
   'admin.update.installing': 'Memperbarui…',
   'admin.update.success': 'Pembaruan terpasang! Server sedang restart…',
   'admin.update.failed': 'Pembaruan gagal',
-  'admin.update.backupHint':
-    'Kami merekomendasikan membuat backup sebelum memperbarui.',
+  'admin.update.backupHint': 'Kami merekomendasikan membuat backup sebelum memperbarui.',
   'admin.update.backupLink': 'Pergi ke Backup',
   'admin.update.howTo': 'Cara Memperbarui',
   'admin.update.dockerText':
@@ -355,11 +316,9 @@ const admin: TranslationStrings = {
   'admin.update.reloadHint': 'Muat ulang halaman dalam beberapa detik.',
   'admin.tabs.permissions': 'Izin',
   'admin.addons.catalog.journey.name': 'Journey',
-  'admin.addons.catalog.journey.description':
-    'Pelacakan perjalanan & jurnal dengan check-in, foto, dan cerita harian',
+  'admin.addons.catalog.journey.description': 'Pelacakan perjalanan & jurnal dengan check-in, foto, dan cerita harian',
   'admin.passkey.title': 'Login dengan passkey',
-  'admin.passkey.cardHint':
-    'Izinkan pengguna masuk dengan passkey (WebAuthn). Nonaktif secara default.',
+  'admin.passkey.cardHint': 'Izinkan pengguna masuk dengan passkey (WebAuthn). Nonaktif secara default.',
   'admin.passkey.login': 'Aktifkan login dengan passkey',
   'admin.passkey.loginHint':
     'Tampilkan opsi "Masuk dengan passkey" dan izinkan pengguna mendaftarkan passkey di pengaturan mereka.',
@@ -377,11 +336,13 @@ const admin: TranslationStrings = {
   'admin.passkey.resetConfirm': 'Hapus semua passkey untuk {name}?',
   'admin.passkey.resetDone': 'Menghapus {count} passkey',
   'admin.defaultSettings.mapProvider': 'Mesin peta',
-  'admin.defaultSettings.mapProviderHint': 'Peta default untuk semua orang di instance ini. Setiap pengguna tetap dapat menggantinya di pengaturan masing-masing.',
+  'admin.defaultSettings.mapProviderHint':
+    'Peta default untuk semua orang di instance ini. Setiap pengguna tetap dapat menggantinya di pengaturan masing-masing.',
   'admin.defaultSettings.providerLeaflet': 'Standar (gratis)',
   'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
   'admin.defaultSettings.mapboxToken': 'Token Mapbox bersama',
-  'admin.defaultSettings.mapboxTokenHint': 'Digunakan untuk setiap pengguna yang belum memasukkan token mereka sendiri — sehingga seluruh instance mendapatkan Mapbox tanpa perlu membagikan kunci satu per satu. Disimpan dalam bentuk terenkripsi.',
+  'admin.defaultSettings.mapboxTokenHint':
+    'Digunakan untuk setiap pengguna yang belum memasukkan token mereka sendiri — sehingga seluruh instance mendapatkan Mapbox tanpa perlu membagikan kunci satu per satu. Disimpan dalam bentuk terenkripsi.',
   'admin.defaultSettings.mapboxStyle': 'Gaya peta',
   'admin.defaultSettings.mapboxStylePlaceholder': 'Pilih gaya…',
   'admin.defaultSettings.mapbox3d': 'Bangunan & medan 3D',

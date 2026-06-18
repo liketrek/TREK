@@ -8,23 +8,19 @@ const notif: TranslationStrings = {
   'notif.trip_invite.title': 'Utazásra meghívó',
   'notif.trip_invite.text': '{actor} meghívott a(z) {trip} utazásra',
   'notif.booking_change.title': 'Foglalás frissítve',
-  'notif.booking_change.text':
-    '{actor} frissített egy foglalást a(z) {trip} utazásban',
+  'notif.booking_change.text': '{actor} frissített egy foglalást a(z) {trip} utazásban',
   'notif.trip_reminder.title': 'Utazás emlékeztető',
   'notif.trip_reminder.text': 'A(z) {trip} utazás hamarosan kezdődik!',
   'notif.todo_due.title': 'Teendő esedékes',
   'notif.todo_due.text': '{todo} ({trip}) határideje: {due}',
   'notif.vacay_invite.title': 'Vacay Fusion meghívó',
-  'notif.vacay_invite.text':
-    '{actor} meghívott a nyaralási tervek összevonásához',
+  'notif.vacay_invite.text': '{actor} meghívott a nyaralási tervek összevonásához',
   'notif.photos_shared.title': 'Fotók megosztva',
-  'notif.photos_shared.text':
-    '{actor} {count} fotót osztott meg a(z) {trip} utazásban',
+  'notif.photos_shared.text': '{actor} {count} fotót osztott meg a(z) {trip} utazásban',
   'notif.collab_message.title': 'Új üzenet',
   'notif.collab_message.text': '{actor} üzenetet küldött a(z) {trip} utazásban',
   'notif.packing_tagged.title': 'Csomagolási feladat',
-  'notif.packing_tagged.text':
-    '{actor} hozzárendelte Önt a {category} kategóriához a(z) {trip} utazásban',
+  'notif.packing_tagged.text': '{actor} hozzárendelte Önt a {category} kategóriához a(z) {trip} utazásban',
   'notif.version_available.title': 'Új verzió elérhető',
   'notif.version_available.text': 'A TREK {version} elérhető',
   'notif.action.view_trip': 'Utazás megtekintése',
@@ -39,7 +35,6 @@ const notif: TranslationStrings = {
   'notif.generic.title': 'Értesítés',
   'notif.generic.text': 'Új értesítésed érkezett',
   'notif.dev.unknown_event.title': '[DEV] Ismeretlen esemény',
-  'notif.dev.unknown_event.text':
-    'A(z) "{event}" eseménytípus nincs regisztrálva az EVENT_NOTIFICATION_CONFIG-ban',
+  'notif.dev.unknown_event.text': 'A(z) "{event}" eseménytípus nincs regisztrálva az EVENT_NOTIFICATION_CONFIG-ban',
 };
 export default notif;

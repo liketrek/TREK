@@ -7,8 +7,7 @@ const day: TranslationStrings = {
   'day.sunrise': '日の出',
   'day.sunset': '日の入り',
   'day.hourlyForecast': '時間別予報',
-  'day.climateHint':
-    '過去の平均値 — 実際の予報はこの日付の16日前から表示されます。',
+  'day.climateHint': '過去の平均値 — 実際の予報はこの日付の16日前から表示されます。',
   'day.noWeather': '天気データがありません。座標付きの場所を追加してください。',
   'day.overview': '1日の概要',
   'day.accommodation': '宿泊先',

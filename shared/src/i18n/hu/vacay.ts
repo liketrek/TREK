@@ -8,8 +8,7 @@ const vacay: TranslationStrings = {
   'vacay.addPrevYear': 'Előző év hozzáadása',
   'vacay.removeYear': 'Év eltávolítása',
   'vacay.removeYearConfirm': '{year} eltávolítása?',
-  'vacay.removeYearHint':
-    'Az adott év összes szabadság-bejegyzése és céges szabadnapja véglegesen törlődik.',
+  'vacay.removeYearHint': 'Az adott év összes szabadság-bejegyzése és céges szabadnapja véglegesen törlődik.',
   'vacay.remove': 'Eltávolítás',
   'vacay.persons': 'Személyek',
   'vacay.noPersons': 'Nincsenek személyek hozzáadva',
@@ -17,8 +16,7 @@ const vacay: TranslationStrings = {
   'vacay.editPerson': 'Személy szerkesztése',
   'vacay.removePerson': 'Személy eltávolítása',
   'vacay.removePersonConfirm': '{name} eltávolítása?',
-  'vacay.removePersonHint':
-    'A személy összes szabadság-bejegyzése véglegesen törlődik.',
+  'vacay.removePersonHint': 'A személy összes szabadság-bejegyzése véglegesen törlődik.',
   'vacay.personName': 'Név',
   'vacay.personNamePlaceholder': 'Név megadása',
   'vacay.color': 'Szín',
@@ -35,8 +33,7 @@ const vacay: TranslationStrings = {
   'vacay.remaining': 'Maradt',
   'vacay.carriedOver': '{year}-ból/ből',
   'vacay.blockWeekends': 'Hétvégék zárolása',
-  'vacay.blockWeekendsHint':
-    'Szabadság-bejegyzések megakadályozása szombaton és vasárnap',
+  'vacay.blockWeekendsHint': 'Szabadság-bejegyzések megakadályozása szombaton és vasárnap',
   'vacay.publicHolidays': 'Ünnepnapok',
   'vacay.publicHolidaysHint': 'Ünnepnapok megjelölése a naptárban',
   'vacay.selectCountry': 'Ország kiválasztása',
@@ -54,16 +51,12 @@ const vacay: TranslationStrings = {
   'vacay.sat': 'Szo',
   'vacay.sun': 'Va',
   'vacay.companyHolidays': 'Céges szabadnapok',
-  'vacay.companyHolidaysHint':
-    'Céges szintű szabadnapok megjelölésének engedélyezése',
-  'vacay.companyHolidaysNoDeduct':
-    'A céges szabadnapok nem számítanak bele a szabadságkeretbe.',
+  'vacay.companyHolidaysHint': 'Céges szintű szabadnapok megjelölésének engedélyezése',
+  'vacay.companyHolidaysNoDeduct': 'A céges szabadnapok nem számítanak bele a szabadságkeretbe.',
   'vacay.weekStart': 'A hét kezdőnapja',
-  'vacay.weekStartHint':
-    'Válaszd ki, hogy a hét hétfőn vagy vasárnap kezdődjön',
+  'vacay.weekStartHint': 'Válaszd ki, hogy a hét hétfőn vagy vasárnap kezdődjön',
   'vacay.carryOver': 'Szabadság átvitele',
-  'vacay.carryOverHint':
-    'Megmaradt szabadságnapok automatikus átvitele a következő évre',
+  'vacay.carryOverHint': 'Megmaradt szabadságnapok automatikus átvitele a következő évre',
   'vacay.sharing': 'Megosztás',
   'vacay.sharingHint': 'Szabadságterved megosztása más TREK felhasználókkal',
   'vacay.owner': 'Tulajdonos',
@@ -71,8 +64,7 @@ const vacay: TranslationStrings = {
   'vacay.shareSuccess': 'Terv sikeresen megosztva',
   'vacay.shareError': 'Nem sikerült megosztani a tervet',
   'vacay.dissolve': 'Összevonás feloldása',
-  'vacay.dissolveHint':
-    'Naptárak újbóli szétválasztása. A bejegyzéseid megmaradnak.',
+  'vacay.dissolveHint': 'Naptárak újbóli szétválasztása. A bejegyzéseid megmaradnak.',
   'vacay.dissolveAction': 'Feloldás',
   'vacay.dissolved': 'Naptár szétválasztva',
   'vacay.fusedWith': 'Összevonva:',
@@ -80,8 +72,7 @@ const vacay: TranslationStrings = {
   'vacay.noData': 'Nincs adat',
   'vacay.changeColor': 'Szín módosítása',
   'vacay.inviteUser': 'Felhasználó meghívása',
-  'vacay.inviteHint':
-    'Hívj meg egy másik TREK felhasználót közös szabadságnaptár megosztásához.',
+  'vacay.inviteHint': 'Hívj meg egy másik TREK felhasználót közös szabadságnaptár megosztásához.',
   'vacay.selectUser': 'Felhasználó kiválasztása',
   'vacay.sendInvite': 'Meghívó küldése',
   'vacay.inviteSent': 'Meghívó elküldve',
@@ -93,15 +84,10 @@ const vacay: TranslationStrings = {
   'vacay.acceptFusion': 'Elfogadás és összevonás',
   'vacay.inviteTitle': 'Összevonási kérelem',
   'vacay.inviteWantsToFuse': 'szeretne megosztani veled egy szabadságnaptárat.',
-  'vacay.fuseInfo1':
-    'Mindketten látjátok az összes szabadság-bejegyzést egy közös naptárban.',
-  'vacay.fuseInfo2':
-    'Mindkét fél létrehozhat és szerkeszthet bejegyzéseket a másik számára.',
-  'vacay.fuseInfo3':
-    'Mindkét fél törölhet bejegyzéseket és módosíthatja a szabadságkeretet.',
-  'vacay.fuseInfo4':
-    'A beállítások, mint ünnepnapok és céges szabadnapok, közösen érvényesek.',
-  'vacay.fuseInfo5':
-    'Az összevonás bármikor feloldható bármelyik fél által. A bejegyzések megmaradnak.',
+  'vacay.fuseInfo1': 'Mindketten látjátok az összes szabadság-bejegyzést egy közös naptárban.',
+  'vacay.fuseInfo2': 'Mindkét fél létrehozhat és szerkeszthet bejegyzéseket a másik számára.',
+  'vacay.fuseInfo3': 'Mindkét fél törölhet bejegyzéseket és módosíthatja a szabadságkeretet.',
+  'vacay.fuseInfo4': 'A beállítások, mint ünnepnapok és céges szabadnapok, közösen érvényesek.',
+  'vacay.fuseInfo5': 'Az összevonás bármikor feloldható bármelyik fél által. A bejegyzések megmaradnak.',
 };
 export default vacay;

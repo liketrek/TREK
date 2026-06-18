@@ -8,8 +8,7 @@ const vacay: TranslationStrings = {
   'vacay.addPrevYear': 'Vorig jaar toevoegen',
   'vacay.removeYear': 'Jaar verwijderen',
   'vacay.removeYearConfirm': '{year} verwijderen?',
-  'vacay.removeYearHint':
-    'Alle vakantie-invoeren en bedrijfsvakanties voor dit jaar worden permanent verwijderd.',
+  'vacay.removeYearHint': 'Alle vakantie-invoeren en bedrijfsvakanties voor dit jaar worden permanent verwijderd.',
   'vacay.remove': 'Verwijderen',
   'vacay.persons': 'Personen',
   'vacay.noPersons': 'Geen personen toegevoegd',
@@ -17,8 +16,7 @@ const vacay: TranslationStrings = {
   'vacay.editPerson': 'Persoon bewerken',
   'vacay.removePerson': 'Persoon verwijderen',
   'vacay.removePersonConfirm': '{name} verwijderen?',
-  'vacay.removePersonHint':
-    'Alle vakantie-invoeren voor deze persoon worden permanent verwijderd.',
+  'vacay.removePersonHint': 'Alle vakantie-invoeren voor deze persoon worden permanent verwijderd.',
   'vacay.personName': 'Naam',
   'vacay.personNamePlaceholder': 'Naam invoeren',
   'vacay.color': 'Kleur',
@@ -49,15 +47,12 @@ const vacay: TranslationStrings = {
   'vacay.selectCountry': 'Selecteer land',
   'vacay.selectRegion': 'Selecteer regio (optioneel)',
   'vacay.companyHolidays': 'Bedrijfsvakanties',
-  'vacay.companyHolidaysHint':
-    'Sta het markeren van bedrijfsbrede vakantiedagen toe',
-  'vacay.companyHolidaysNoDeduct':
-    'Bedrijfsvakanties worden niet afgetrokken van vakantiedagen.',
+  'vacay.companyHolidaysHint': 'Sta het markeren van bedrijfsbrede vakantiedagen toe',
+  'vacay.companyHolidaysNoDeduct': 'Bedrijfsvakanties worden niet afgetrokken van vakantiedagen.',
   'vacay.weekStart': 'Week begint op',
   'vacay.weekStartHint': 'Kies of de kalenderweek op maandag of zondag begint',
   'vacay.carryOver': 'Overdracht',
-  'vacay.carryOverHint':
-    'Draag resterende vakantiedagen automatisch over naar het volgende jaar',
+  'vacay.carryOverHint': 'Draag resterende vakantiedagen automatisch over naar het volgende jaar',
   'vacay.sharing': 'Delen',
   'vacay.sharingHint': 'Deel je vakantieplan met andere TREK-gebruikers',
   'vacay.owner': 'Eigenaar',
@@ -65,8 +60,7 @@ const vacay: TranslationStrings = {
   'vacay.shareSuccess': 'Plan succesvol gedeeld',
   'vacay.shareError': 'Plan delen mislukt',
   'vacay.dissolve': 'Fusie opheffen',
-  'vacay.dissolveHint':
-    'Kalenders weer scheiden. Je invoeren blijven behouden.',
+  'vacay.dissolveHint': 'Kalenders weer scheiden. Je invoeren blijven behouden.',
   'vacay.dissolveAction': 'Opheffen',
   'vacay.dissolved': 'Kalender gescheiden',
   'vacay.fusedWith': 'Gefuseerd met',
@@ -74,8 +68,7 @@ const vacay: TranslationStrings = {
   'vacay.noData': 'Geen gegevens',
   'vacay.changeColor': 'Kleur wijzigen',
   'vacay.inviteUser': 'Gebruiker uitnodigen',
-  'vacay.inviteHint':
-    'Nodig een andere TREK-gebruiker uit om een gecombineerde vakantiekalender te delen.',
+  'vacay.inviteHint': 'Nodig een andere TREK-gebruiker uit om een gecombineerde vakantiekalender te delen.',
   'vacay.selectUser': 'Selecteer gebruiker',
   'vacay.sendInvite': 'Uitnodiging verzenden',
   'vacay.inviteSent': 'Uitnodiging verzonden',
@@ -87,16 +80,11 @@ const vacay: TranslationStrings = {
   'vacay.acceptFusion': 'Accepteren en fuseren',
   'vacay.inviteTitle': 'Fusieverzoek',
   'vacay.inviteWantsToFuse': 'wil een vakantiekalender met je delen.',
-  'vacay.fuseInfo1':
-    'Jullie zien allebei alle vakantie-invoeren in één gedeelde kalender.',
-  'vacay.fuseInfo2':
-    'Beide partijen kunnen invoeren voor elkaar aanmaken en bewerken.',
-  'vacay.fuseInfo3':
-    'Beide partijen kunnen invoeren verwijderen en vakantierechten wijzigen.',
-  'vacay.fuseInfo4':
-    'Instellingen zoals feestdagen en bedrijfsvakanties worden gedeeld.',
-  'vacay.fuseInfo5':
-    'De fusie kan op elk moment door beide partijen worden opgeheven. Je invoeren blijven behouden.',
+  'vacay.fuseInfo1': 'Jullie zien allebei alle vakantie-invoeren in één gedeelde kalender.',
+  'vacay.fuseInfo2': 'Beide partijen kunnen invoeren voor elkaar aanmaken en bewerken.',
+  'vacay.fuseInfo3': 'Beide partijen kunnen invoeren verwijderen en vakantierechten wijzigen.',
+  'vacay.fuseInfo4': 'Instellingen zoals feestdagen en bedrijfsvakanties worden gedeeld.',
+  'vacay.fuseInfo5': 'De fusie kan op elk moment door beide partijen worden opgeheven. Je invoeren blijven behouden.',
   'vacay.addCalendar': 'Kalender toevoegen',
   'vacay.calendarColor': 'Kleur',
   'vacay.calendarLabel': 'Label',

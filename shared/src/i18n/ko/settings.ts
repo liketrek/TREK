@@ -14,12 +14,10 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': '지도 템플릿',
   'settings.mapTemplatePlaceholder.select': '템플릿 선택...',
   'settings.mapDefaultHint': '비워두면 OpenStreetMap (기본값) 사용',
-  'settings.mapTemplatePlaceholder':
-    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': '지도 타일 URL 템플릿',
   'settings.mapProvider': '지도 공급자',
-  'settings.mapProviderHint':
-    '여행 플래너 및 Journey 지도에 영향을 줍니다. Atlas는 항상 Leaflet을 사용합니다.',
+  'settings.mapProviderHint': '여행 플래너 및 Journey 지도에 영향을 줍니다. Atlas는 항상 Leaflet을 사용합니다.',
   'settings.mapLeafletSubtitle': '클래식 2D, 모든 래스터 타일',
   'settings.mapMapboxSubtitle': '벡터 타일, 3D 건물 및 지형',
   'settings.mapExperimental': '실험적',
@@ -30,13 +28,10 @@ const settings: TranslationStrings = {
   'settings.mapStylePlaceholder': 'Mapbox 스타일 선택',
   'settings.mapStyleHint': '프리셋 또는 mapbox://styles/USER/ID URL 직접 입력',
   'settings.map3dBuildings': '3D 건물 및 지형',
-  'settings.map3dHint':
-    '기울기 + 실제 3D 건물 돌출 — 위성 포함 모든 스타일에서 작동합니다.',
+  'settings.map3dHint': '기울기 + 실제 3D 건물 돌출 — 위성 포함 모든 스타일에서 작동합니다.',
   'settings.mapHighQuality': '고품질 모드',
-  'settings.mapHighQualityHint':
-    '안티앨리어싱 + 구형 투영으로 선명한 경계와 현실적인 지구 뷰를 제공합니다.',
-  'settings.mapHighQualityWarning':
-    '저사양 기기에서 성능에 영향을 줄 수 있습니다.',
+  'settings.mapHighQualityHint': '안티앨리어싱 + 구형 투영으로 선명한 경계와 현실적인 지구 뷰를 제공합니다.',
+  'settings.mapHighQualityWarning': '저사양 기기에서 성능에 영향을 줄 수 있습니다.',
   'settings.mapTipLabel': '팁:',
   'settings.mapTip':
     '우클릭 후 드래그하여 지도를 회전/기울이세요. 가운데 클릭으로 장소를 추가할 수 있습니다 (우클릭은 회전 전용).',
@@ -45,11 +40,9 @@ const settings: TranslationStrings = {
   'settings.saveMap': '지도 저장',
   'settings.apiKeys': 'API 키',
   'settings.mapsKey': 'Google Maps API 키',
-  'settings.mapsKeyHint':
-    '장소 검색용. Places API (New) 필요. console.cloud.google.com에서 발급',
+  'settings.mapsKeyHint': '장소 검색용. Places API (New) 필요. console.cloud.google.com에서 발급',
   'settings.weatherKey': 'OpenWeatherMap API 키',
-  'settings.weatherKeyHint':
-    '날씨 데이터용. openweathermap.org/api에서 무료 발급',
+  'settings.weatherKeyHint': '날씨 데이터용. openweathermap.org/api에서 무료 발급',
   'settings.keyPlaceholder': '키 입력...',
   'settings.configured': '설정됨',
   'settings.saveKeys': '키 저장',
@@ -62,8 +55,7 @@ const settings: TranslationStrings = {
   'settings.temperature': '온도 단위',
   'settings.timeFormat': '시간 형식',
   'settings.bookingLabels': '예약 경로 레이블',
-  'settings.bookingLabelsHint':
-    '지도에 역 / 공항 이름을 표시합니다. 끄면 아이콘만 표시됩니다.',
+  'settings.bookingLabelsHint': '지도에 역 / 공항 이름을 표시합니다. 끄면 아이콘만 표시됩니다.',
   'settings.blurBookingCodes': '예약 코드 흐리게',
   'settings.optimizeFromAccommodation': '숙소 기준으로 경로 최적화',
   'settings.optimizeFromAccommodationHint':
@@ -87,8 +79,7 @@ const settings: TranslationStrings = {
     '알림 채널이 설정되지 않았습니다. 관리자에게 이메일 또는 웹훅 알림 설정을 요청하세요.',
   'settings.webhookUrl.label': '웹훅 URL',
   'settings.webhookUrl.placeholder': 'https://discord.com/api/webhooks/...',
-  'settings.webhookUrl.hint':
-    'Discord, Slack 또는 사용자 지정 웹훅 URL을 입력하여 알림을 받으세요.',
+  'settings.webhookUrl.hint': 'Discord, Slack 또는 사용자 지정 웹훅 URL을 입력하여 알림을 받으세요.',
   'settings.webhookUrl.saved': '웹훅 URL이 저장되었습니다',
   'settings.webhookUrl.test': '테스트',
   'settings.webhookUrl.testSuccess': '테스트 웹훅이 성공적으로 전송되었습니다',
@@ -103,12 +94,10 @@ const settings: TranslationStrings = {
   'settings.ntfyUrl.tokenHint': '비밀번호로 보호된 토픽에 필요합니다.',
   'settings.ntfyUrl.saved': 'Ntfy 설정이 저장되었습니다',
   'settings.ntfyUrl.test': '테스트',
-  'settings.ntfyUrl.testSuccess':
-    '테스트 ntfy 알림이 성공적으로 전송되었습니다',
+  'settings.ntfyUrl.testSuccess': '테스트 ntfy 알림이 성공적으로 전송되었습니다',
   'settings.ntfyUrl.testFailed': '테스트 ntfy 알림 실패',
   'settings.ntfyUrl.tokenCleared': '액세스 토큰이 삭제되었습니다',
-  'settings.notificationsDisabled':
-    '알림이 설정되지 않았습니다. 관리자에게 이메일 또는 웹훅 알림 활성화를 요청하세요.',
+  'settings.notificationsDisabled': '알림이 설정되지 않았습니다. 관리자에게 이메일 또는 웹훅 알림 활성화를 요청하세요.',
   'settings.notificationsActive': '활성 채널',
   'settings.notificationsManagedByAdmin': '알림 이벤트는 관리자가 설정합니다.',
   'settings.on': '켜기',
@@ -124,8 +113,7 @@ const settings: TranslationStrings = {
   'settings.mcp.copied': '복사됨!',
   'settings.mcp.apiTokens': 'API 토큰',
   'settings.mcp.createToken': '새 토큰 만들기',
-  'settings.mcp.noTokens':
-    '토큰이 없습니다. MCP 클라이언트 연결을 위해 토큰을 만드세요.',
+  'settings.mcp.noTokens': '토큰이 없습니다. MCP 클라이언트 연결을 위해 토큰을 만드세요.',
   'settings.mcp.tokenCreatedAt': '생성일',
   'settings.mcp.tokenUsedAt': '사용일',
   'settings.mcp.deleteTokenTitle': '토큰 삭제',
@@ -133,8 +121,7 @@ const settings: TranslationStrings = {
     '이 토큰은 즉시 무효화됩니다. 이 토큰을 사용하는 MCP 클라이언트는 접근 권한을 잃게 됩니다.',
   'settings.mcp.modal.createTitle': 'API 토큰 만들기',
   'settings.mcp.modal.tokenName': '토큰 이름',
-  'settings.mcp.modal.tokenNamePlaceholder':
-    '예: Claude Desktop, 업무용 노트북',
+  'settings.mcp.modal.tokenNamePlaceholder': '예: Claude Desktop, 업무용 노트북',
   'settings.mcp.modal.creating': '생성 중…',
   'settings.mcp.modal.create': '토큰 만들기',
   'settings.mcp.modal.createdTitle': '토큰이 생성되었습니다',
@@ -170,17 +157,14 @@ const settings: TranslationStrings = {
   'settings.oauth.sessionExpires': '만료',
   'settings.oauth.revoke': '취소',
   'settings.oauth.revokeSession': '세션 취소',
-  'settings.oauth.revokeSessionMessage':
-    '이 OAuth 세션의 접근 권한이 즉시 취소됩니다.',
+  'settings.oauth.revokeSessionMessage': '이 OAuth 세션의 접근 권한이 즉시 취소됩니다.',
   'settings.oauth.modal.createTitle': 'OAuth 클라이언트 등록',
   'settings.oauth.modal.presets': '빠른 프리셋',
   'settings.oauth.modal.clientName': '앱 이름',
   'settings.oauth.modal.clientNamePlaceholder': '예: Claude Web, My MCP App',
   'settings.oauth.modal.redirectUris': '리디렉션 URI',
-  'settings.oauth.modal.redirectUrisPlaceholder':
-    'https://your-app.com/callback\nhttps://your-app.com/auth',
-  'settings.oauth.modal.redirectUrisHint':
-    '한 줄에 URI 하나. HTTPS 필수 (localhost 예외). 정확히 일치해야 합니다.',
+  'settings.oauth.modal.redirectUrisPlaceholder': 'https://your-app.com/callback\nhttps://your-app.com/auth',
+  'settings.oauth.modal.redirectUrisHint': '한 줄에 URI 하나. HTTPS 필수 (localhost 예외). 정확히 일치해야 합니다.',
   'settings.oauth.modal.scopes': '허용 권한 범위',
   'settings.oauth.modal.scopesHint':
     'list_trips 및 get_trip_summary는 항상 사용 가능합니다 — 권한 범위 불필요. AI가 다른 도구를 사용하는 데 필요한 여행 ID를 찾을 수 있습니다.',
@@ -212,8 +196,7 @@ const settings: TranslationStrings = {
   'settings.about.supporters.tierEmpty': '첫 번째 후원자가 되어보세요',
   'settings.about.supporter.tier.noReturnTicket': '편도 티켓',
   'settings.about.supporter.tier.lostLuggageVip': '분실 수하물 VIP',
-  'settings.about.supporter.tier.businessClassDreamer':
-    '비즈니스 클래스 꿈꾸기',
+  'settings.about.supporter.tier.businessClassDreamer': '비즈니스 클래스 꿈꾸기',
   'settings.about.supporter.tier.budgetTraveller': '알뜰 여행자',
   'settings.about.supporter.tier.hostelBunkmate': '호스텔 룸메이트',
   'settings.about.description':
@@ -234,19 +217,15 @@ const settings: TranslationStrings = {
   'settings.passwordRequired': '현재 비밀번호와 새 비밀번호를 입력하세요',
   'settings.passwordTooShort': '비밀번호는 최소 8자 이상이어야 합니다',
   'settings.passwordMismatch': '비밀번호가 일치하지 않습니다',
-  'settings.passwordWeak':
-    '비밀번호는 대문자, 소문자, 숫자, 특수문자를 포함해야 합니다',
+  'settings.passwordWeak': '비밀번호는 대문자, 소문자, 숫자, 특수문자를 포함해야 합니다',
   'settings.passwordChanged': '비밀번호가 성공적으로 변경되었습니다',
-  'settings.mustChangePassword':
-    '계속하기 전에 비밀번호를 변경해야 합니다. 아래에서 새 비밀번호를 설정하세요.',
+  'settings.mustChangePassword': '계속하기 전에 비밀번호를 변경해야 합니다. 아래에서 새 비밀번호를 설정하세요.',
   'settings.deleteAccount': '계정 삭제',
   'settings.deleteAccountTitle': '계정을 삭제할까요?',
-  'settings.deleteAccountWarning':
-    '계정과 모든 여행, 장소, 파일이 영구 삭제됩니다. 이 작업은 취소할 수 없습니다.',
+  'settings.deleteAccountWarning': '계정과 모든 여행, 장소, 파일이 영구 삭제됩니다. 이 작업은 취소할 수 없습니다.',
   'settings.deleteAccountConfirm': '영구 삭제',
   'settings.deleteBlockedTitle': '삭제 불가',
-  'settings.deleteBlockedMessage':
-    '유일한 관리자입니다. 계정을 삭제하기 전에 다른 사용자를 관리자로 승격하세요.',
+  'settings.deleteBlockedMessage': '유일한 관리자입니다. 계정을 삭제하기 전에 다른 사용자를 관리자로 승격하세요.',
   'settings.roleUser': '사용자',
   'settings.saveProfile': '프로필 저장',
   'settings.toast.mapSaved': '지도 설정이 저장되었습니다',
@@ -264,10 +243,8 @@ const settings: TranslationStrings = {
   'settings.mfa.requiredByPolicy':
     '관리자가 2단계 인증을 요구합니다. 앱을 계속 사용하려면 아래에서 인증 앱을 설정하세요.',
   'settings.mfa.backupTitle': '백업 코드',
-  'settings.mfa.backupDescription':
-    '인증 앱에 접근할 수 없을 때 이 일회용 백업 코드를 사용하세요.',
-  'settings.mfa.backupWarning':
-    '지금 이 코드를 저장하세요. 각 코드는 한 번만 사용할 수 있습니다.',
+  'settings.mfa.backupDescription': '인증 앱에 접근할 수 없을 때 이 일회용 백업 코드를 사용하세요.',
+  'settings.mfa.backupWarning': '지금 이 코드를 저장하세요. 각 코드는 한 번만 사용할 수 있습니다.',
   'settings.mfa.backupCopy': '코드 복사',
   'settings.mfa.backupDownload': 'TXT 다운로드',
   'settings.mfa.backupPrint': '인쇄 / PDF',
@@ -275,15 +252,13 @@ const settings: TranslationStrings = {
   'settings.mfa.enabled': '계정에 2FA가 활성화되어 있습니다.',
   'settings.mfa.disabled': '2FA가 활성화되지 않았습니다.',
   'settings.mfa.setup': '인증 앱 설정',
-  'settings.mfa.scanQr':
-    '앱으로 이 QR 코드를 스캔하거나 시크릿을 수동으로 입력하세요.',
+  'settings.mfa.scanQr': '앱으로 이 QR 코드를 스캔하거나 시크릿을 수동으로 입력하세요.',
   'settings.mfa.secretLabel': '시크릿 키 (수동 입력)',
   'settings.mfa.codePlaceholder': '6자리 코드',
   'settings.mfa.enable': '2FA 활성화',
   'settings.mfa.cancelSetup': '취소',
   'settings.mfa.disableTitle': '2FA 비활성화',
-  'settings.mfa.disableHint':
-    '계정 비밀번호와 인증 앱의 현재 코드를 입력하세요.',
+  'settings.mfa.disableHint': '계정 비밀번호와 인증 앱의 현재 코드를 입력하세요.',
   'settings.mfa.disable': '2FA 비활성화',
   'settings.mfa.toastEnabled': '2단계 인증이 활성화되었습니다',
   'settings.mfa.toastDisabled': '2단계 인증이 비활성화되었습니다',
@@ -294,8 +269,8 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.machineClientUsage':
     '토큰 받기: grant_type=client_credentials, client_id, client_secret으로 POST /oauth/token을 호출하세요. 브라우저도 새로 고침 토큰도 필요 없습니다.',
   'settings.oauth.badge.machine': '머신',
-  "settings.currency": "Currency",
-  "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.currency': 'Currency',
+  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
   'settings.passkey.title': '패스키',
   'settings.passkey.description':
     '지문, 얼굴, PIN 또는 하드웨어 키 같은 패스키로 더 빠르고 피싱에 강하게 로그인하세요. 비밀번호는 백업으로 그대로 유지됩니다.',
@@ -303,8 +278,7 @@ const settings: TranslationStrings = {
     '패스키가 활성화되어 있지만 이 서버에 아직 완전히 설정되지 않았습니다. 관리자에게 WebAuthn 도메인 설정을 요청하세요.',
   'settings.passkey.add': '패스키 추가',
   'settings.passkey.addTitle': '패스키 추가',
-  'settings.passkey.passwordPrompt':
-    '현재 비밀번호를 확인한 뒤 기기 안내에 따라 진행하세요.',
+  'settings.passkey.passwordPrompt': '현재 비밀번호를 확인한 뒤 기기 안내에 따라 진행하세요.',
   'settings.passkey.passwordRequired': '현재 비밀번호가 필요합니다.',
   'settings.passkey.namePlaceholder': '이름 (선택, 예: "iPhone")',
   'settings.passkey.addedToast': '패스키가 추가되었습니다',
@@ -312,8 +286,7 @@ const settings: TranslationStrings = {
   'settings.passkey.addError': '패스키를 추가할 수 없습니다',
   'settings.passkey.cancelled': '패스키 설정이 취소되었습니다',
   'settings.passkey.deleted': '패스키가 삭제되었습니다',
-  'settings.passkey.deleteConfirm':
-    '이 패스키를 삭제할까요? 비밀번호로 확인하세요.',
+  'settings.passkey.deleteConfirm': '이 패스키를 삭제할까요? 비밀번호로 확인하세요.',
   'settings.passkey.rename': '이름 변경',
   'settings.passkey.defaultName': '패스키',
   'settings.passkey.synced': '동기화됨',
@@ -323,7 +296,8 @@ const settings: TranslationStrings = {
   'settings.mapPoiPill': '지도에서 장소 탐색',
   'settings.mapPoiPillHint': '여행 지도에 카테고리 칩을 표시하여 OpenStreetMap에서 주변 음식점, 숙소 등을 찾아보세요.',
   'settings.airtrail.title': 'AirTrail',
-  'settings.airtrail.hint': '자체 호스팅한 AirTrail을 연결하여 항공편을 가져오고 동기화하세요. AirTrail의 설정 → 보안에서 API 키를 생성하세요.',
+  'settings.airtrail.hint':
+    '자체 호스팅한 AirTrail을 연결하여 항공편을 가져오고 동기화하세요. AirTrail의 설정 → 보안에서 API 키를 생성하세요.',
   'settings.airtrail.url': '인스턴스 URL',
   'settings.airtrail.apiKey': 'API 키',
   'settings.airtrail.apiKeyPlaceholder': 'Bearer API 키',
@@ -331,7 +305,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.allowInsecureTls': '자체 서명 인증서 허용',
   'settings.airtrail.allowInsecureTlsHint': '자체 네트워크의 신뢰할 수 있는 인스턴스에서만 활성화하세요.',
   'settings.airtrail.writeBack': '변경 사항을 AirTrail에 다시 기록',
-  'settings.airtrail.writeBackHint': '기본적으로 꺼져 있음: AirTrail이 신뢰할 수 있는 원본이며 TREK은 읽기만 합니다. TREK에서 변경한 내용을 AirTrail로 다시 보내려면 켜세요.',
+  'settings.airtrail.writeBackHint':
+    '기본적으로 꺼져 있음: AirTrail이 신뢰할 수 있는 원본이며 TREK은 읽기만 합니다. TREK에서 변경한 내용을 AirTrail로 다시 보내려면 켜세요.',
   'settings.airtrail.connected': '연결됨',
   'settings.airtrail.notConnected': '연결되지 않음',
   'settings.airtrail.toast.saved': 'AirTrail 연결이 저장되었습니다',

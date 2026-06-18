@@ -8,8 +8,7 @@ const vacay: TranslationStrings = {
   'vacay.addPrevYear': '이전 연도 추가',
   'vacay.removeYear': '연도 제거',
   'vacay.removeYearConfirm': '{year}을(를) 제거할까요?',
-  'vacay.removeYearHint':
-    '이 연도의 모든 휴가 항목 및 회사 공휴일이 영구 삭제됩니다.',
+  'vacay.removeYearHint': '이 연도의 모든 휴가 항목 및 회사 공휴일이 영구 삭제됩니다.',
   'vacay.remove': '제거',
   'vacay.persons': '인원',
   'vacay.noPersons': '추가된 인원이 없습니다',
@@ -53,8 +52,7 @@ const vacay: TranslationStrings = {
   'vacay.noCalendars': '아직 공휴일 캘린더가 없습니다',
   'vacay.companyHolidays': '회사 휴일',
   'vacay.companyHolidaysHint': '회사 전체 휴일 표시를 허용합니다',
-  'vacay.companyHolidaysNoDeduct':
-    '회사 휴일은 휴가 일수에서 차감되지 않습니다.',
+  'vacay.companyHolidaysNoDeduct': '회사 휴일은 휴가 일수에서 차감되지 않습니다.',
   'vacay.weekStart': '주 시작 요일',
   'vacay.weekStartHint': '캘린더 주가 월요일 또는 일요일에 시작할지 선택하세요',
   'vacay.carryOver': '이월',
@@ -74,8 +72,7 @@ const vacay: TranslationStrings = {
   'vacay.noData': '데이터 없음',
   'vacay.changeColor': '색상 변경',
   'vacay.inviteUser': '사용자 초대',
-  'vacay.inviteHint':
-    '다른 TREK 사용자를 초대하여 통합 휴가 캘린더를 공유하세요.',
+  'vacay.inviteHint': '다른 TREK 사용자를 초대하여 통합 휴가 캘린더를 공유하세요.',
   'vacay.selectUser': '사용자 선택',
   'vacay.sendInvite': '초대 전송',
   'vacay.inviteSent': '초대가 전송되었습니다',
@@ -87,13 +84,10 @@ const vacay: TranslationStrings = {
   'vacay.acceptFusion': '수락 및 퓨전',
   'vacay.inviteTitle': '퓨전 요청',
   'vacay.inviteWantsToFuse': '귀하와 휴가 캘린더를 공유하고 싶어 합니다.',
-  'vacay.fuseInfo1':
-    '두 사람 모두 하나의 공유 캘린더에서 모든 휴가 항목을 볼 수 있습니다.',
+  'vacay.fuseInfo1': '두 사람 모두 하나의 공유 캘린더에서 모든 휴가 항목을 볼 수 있습니다.',
   'vacay.fuseInfo2': '양측 모두 서로의 항목을 만들고 편집할 수 있습니다.',
-  'vacay.fuseInfo3':
-    '양측 모두 항목을 삭제하고 휴가 일수를 변경할 수 있습니다.',
+  'vacay.fuseInfo3': '양측 모두 항목을 삭제하고 휴가 일수를 변경할 수 있습니다.',
   'vacay.fuseInfo4': '공휴일 및 회사 휴일 등의 설정이 공유됩니다.',
-  'vacay.fuseInfo5':
-    '어느 쪽이든 언제든지 퓨전을 해제할 수 있습니다. 항목은 보존됩니다.',
+  'vacay.fuseInfo5': '어느 쪽이든 언제든지 퓨전을 해제할 수 있습니다. 항목은 보존됩니다.',
 };
 export default vacay;

@@ -17,7 +17,7 @@ const mockDb = vi.hoisted(() => {
 
 vi.mock('../../../src/db/database', () => mockDb);
 
-import { calculateSettlement } from '../../../src/services/budgetService';
+import { calculateSettlement, updateSettlement } from '../../../src/services/budgetService';
 import type { BudgetItem, BudgetItemMember, BudgetItemPayer } from '../../../src/types';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -188,5 +188,61 @@ describe('calculateSettlement', () => {
     expect(bob.balance).toBe(-20);
     expect(result.flows).toHaveLength(1);
     expect(result.flows[0].amount).toBe(20);
+  });
+
+  it('counts a settlement with no matching expense as an amount still to square up', () => {
+    // bob paid alice 30 but every expense behind it was deleted: alice now owes bob.
+    mockDb.db.prepare.mockImplementation((sql: string) => {
+      if (sql.includes('FROM budget_settlements')) {
+        return { all: vi.fn(() => [
+          { id: 1, trip_id: 1, from_user_id: 2, to_user_id: 1, amount: 30, from_username: 'bob', to_username: 'alice', from_avatar: null, to_avatar: null },
+        ]), get: vi.fn(), run: vi.fn() };
+      }
+      return { all: vi.fn(() => []), get: vi.fn(), run: vi.fn() };
+    });
+    const result = calculateSettlement(1);
+    const alice = result.balances.find(b => b.user_id === 1)!;
+    const bob = result.balances.find(b => b.user_id === 2)!;
+    expect(bob.balance).toBe(30);
+    expect(alice.balance).toBe(-30);
+    expect(result.flows).toEqual([
+      expect.objectContaining({ amount: 30, from: expect.objectContaining({ user_id: 1 }), to: expect.objectContaining({ user_id: 2 }) }),
+    ]);
+  });
+});
+
+// ── updateSettlement ──────────────────────────────────────────────────────────
+
+describe('updateSettlement', () => {
+  it('returns null when the settlement is not in the trip', () => {
+    mockDb.db.prepare.mockImplementation((sql: string) => {
+      if (sql.includes('SELECT id FROM budget_settlements')) {
+        return { get: vi.fn(() => undefined), all: vi.fn(), run: vi.fn() };
+      }
+      return { get: vi.fn(), all: vi.fn(() => []), run: vi.fn() };
+    });
+    expect(updateSettlement(7, 1, { from_user_id: 2, to_user_id: 1, amount: 10 })).toBeNull();
+  });
+
+  it('updates the row (rounded to cents) and returns the refreshed settlement', () => {
+    const run = vi.fn();
+    mockDb.db.prepare.mockImplementation((sql: string) => {
+      if (sql.includes('SELECT id FROM budget_settlements')) {
+        return { get: vi.fn(() => ({ id: 7 })), all: vi.fn(), run: vi.fn() };
+      }
+      if (sql.includes('UPDATE budget_settlements')) {
+        return { get: vi.fn(), all: vi.fn(), run };
+      }
+      if (sql.includes('FROM budget_settlements')) {
+        return { get: vi.fn(), all: vi.fn(() => [
+          { id: 7, trip_id: 1, from_user_id: 2, to_user_id: 1, amount: 10.13, from_username: 'bob', to_username: 'alice', from_avatar: null, to_avatar: null },
+        ]), run: vi.fn() };
+      }
+      return { get: vi.fn(), all: vi.fn(() => []), run: vi.fn() };
+    });
+
+    const res = updateSettlement(7, 1, { from_user_id: 2, to_user_id: 1, amount: 10.126 });
+    expect(run).toHaveBeenCalledWith(2, 1, 10.13, 7);
+    expect(res).toMatchObject({ id: 7, from_user_id: 2, to_user_id: 1, amount: 10.13 });
   });
 });

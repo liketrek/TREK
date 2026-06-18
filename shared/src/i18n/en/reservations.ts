@@ -6,8 +6,7 @@ const reservations: TranslationStrings = {
   'reservations.emptyHint': 'Add reservations for flights, hotels and more',
   'reservations.add': 'Add Reservation',
   'reservations.addManual': 'Manual Booking',
-  'reservations.placeHint':
-    'Tip: Reservations are best created directly from a place to link them with your day plan.',
+  'reservations.placeHint': 'Tip: Reservations are best created directly from a place to link them with your day plan.',
   'reservations.confirmed': 'Confirmed',
   'reservations.pending': 'Pending',
   'reservations.summary': '{confirmed} confirmed, {pending} pending',
@@ -33,8 +32,7 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': 'Connection',
   'reservations.layover.layover': 'Layover',
   'reservations.needsReview': 'Review',
-  'reservations.needsReviewHint':
-    'Airport could not be matched automatically — please confirm the location.',
+  'reservations.needsReviewHint': 'Airport could not be matched automatically — please confirm the location.',
   'reservations.searchLocation': 'Search station, port, address…',
   'reservations.meta.trainNumber': 'Train No.',
   'reservations.meta.platform': 'Platform',
@@ -64,8 +62,7 @@ const reservations: TranslationStrings = {
   'reservations.type.bicycle': 'Bicycle',
   'reservations.type.taxi': 'Taxi',
   'reservations.type.transport_other': 'Other',
-  'reservations.confirm.delete':
-    'Are you sure you want to delete the reservation "{name}"?',
+  'reservations.confirm.delete': 'Are you sure you want to delete the reservation "{name}"?',
   'reservations.confirm.deleteTitle': 'Delete booking?',
   'reservations.confirm.deleteBody': '"{name}" will be permanently deleted.',
   'reservations.toast.updated': 'Reservation updated',
@@ -99,8 +96,7 @@ const reservations: TranslationStrings = {
   'reservations.budgetCategory': 'Budget category',
   'reservations.budgetCategoryPlaceholder': 'e.g. Transport, Accommodation',
   'reservations.budgetCategoryAuto': 'Auto (from booking type)',
-  'reservations.budgetHint':
-    'A budget entry will be created automatically when saving.',
+  'reservations.budgetHint': 'A budget entry will be created automatically when saving.',
   'reservations.departureDate': 'Departure',
   'reservations.arrivalDate': 'Arrival',
   'reservations.departureTime': 'Dep. time',
@@ -121,44 +117,34 @@ const reservations: TranslationStrings = {
   'reservations.span.start': 'Start',
   'reservations.span.end': 'End',
   'reservations.span.ongoing': 'Ongoing',
-  'reservations.validation.endBeforeStart':
-    'End date/time must be after start date/time',
+  'reservations.validation.endBeforeStart': 'End date/time must be after start date/time',
   'reservations.addBooking': 'Add booking',
   'reservations.import.title': 'Import booking confirmations',
   'reservations.import.cta': 'Import from file',
-  'reservations.import.dropHere':
-    'Drop booking confirmation files here, or click to select',
+  'reservations.import.dropHere': 'Drop booking confirmation files here, or click to select',
   'reservations.import.dropActive': 'Drop files to import',
-  'reservations.import.acceptedFormats':
-    'Accepted: EML, PDF, PKPass, HTML, TXT (max 10 MB each, up to 5 files)',
+  'reservations.import.acceptedFormats': 'Accepted: EML, PDF, PKPass, HTML, TXT (max 10 MB each, up to 5 files)',
   'reservations.import.parsing': 'Parsing files…',
   'reservations.import.previewHeading': '{count} reservation(s) found',
-  'reservations.import.previewEmpty':
-    'No reservations could be extracted from the uploaded files.',
+  'reservations.import.previewEmpty': 'No reservations could be extracted from the uploaded files.',
   'reservations.import.removeItem': 'Remove',
   'reservations.import.confirm': 'Import {count} reservation(s)',
   'reservations.import.back': 'Back',
   'reservations.import.success': '{count} reservation(s) imported',
   'reservations.import.partialFailure': '{created} imported, {failed} failed',
-  'reservations.import.error':
-    'Parsing failed. Make sure the file is a valid booking confirmation.',
-  'reservations.import.unavailable':
-    'Booking import is not available on this server.',
-  'reservations.import.unsupportedFormat':
-    'Unsupported file format. Use EML, PDF, PKPass, HTML, or TXT.',
+  'reservations.import.error': 'Parsing failed. Make sure the file is a valid booking confirmation.',
+  'reservations.import.unavailable': 'Booking import is not available on this server.',
+  'reservations.import.unsupportedFormat': 'Unsupported file format. Use EML, PDF, PKPass, HTML, or TXT.',
   'reservations.import.fileTooLarge': 'File "{name}" exceeds 10 MB limit.',
   'reservations.airtrail.title': 'Import from AirTrail',
   'reservations.airtrail.cta': 'AirTrail',
   'reservations.airtrail.synced': 'AirTrail',
-  'reservations.airtrail.syncedHint':
-    'Synced from AirTrail — edits stay in sync both ways.',
+  'reservations.airtrail.syncedHint': 'Synced from AirTrail — edits stay in sync both ways.',
   'reservations.airtrail.notSynced': 'Not synced',
-  'reservations.airtrail.notSyncedHint':
-    'This flight was removed in AirTrail and no longer syncs.',
+  'reservations.airtrail.notSyncedHint': 'This flight was removed in AirTrail and no longer syncs.',
   'reservations.airtrail.loadError': 'Could not load your AirTrail flights.',
   'reservations.airtrail.imported': '{count} flight(s) imported',
-  'reservations.airtrail.skippedDuplicate':
-    '{count} already in this trip, skipped',
+  'reservations.airtrail.skippedDuplicate': '{count} already in this trip, skipped',
   'reservations.airtrail.nothingImported': 'Nothing to import.',
   'reservations.airtrail.importError': 'Import failed. Please try again.',
   'reservations.airtrail.undo': 'Import from AirTrail',
@@ -169,8 +155,7 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.importCta': 'Import {count}',
   'reservations.costsLabel': 'Costs',
   'reservations.createExpense': 'Create expense',
-  'reservations.createExpenseHint':
-    'Saves the booking, then opens the Costs editor.',
+  'reservations.createExpenseHint': 'Saves the booking, then opens the Costs editor.',
   'reservations.linkedExpense': 'Linked expense',
   'reservations.removeExpense': 'Remove expense',
 };

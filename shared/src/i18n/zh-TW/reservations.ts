@@ -6,8 +6,7 @@ const reservations: TranslationStrings = {
   'reservations.emptyHint': '新增航班、酒店等預訂資訊',
   'reservations.add': '新增預訂',
   'reservations.addManual': '手動新增',
-  'reservations.placeHint':
-    '提示：建議從地點直接建立預訂，以便與日程計劃關聯。',
+  'reservations.placeHint': '提示：建議從地點直接建立預訂，以便與日程計劃關聯。',
   'reservations.confirmed': '已確認',
   'reservations.pending': '待確認',
   'reservations.summary': '{confirmed} 已確認，{pending} 待確認',
@@ -118,15 +117,13 @@ const reservations: TranslationStrings = {
   'reservations.span.start': '開始',
   'reservations.span.end': '結束',
   'reservations.span.ongoing': '進行中',
-  'reservations.validation.endBeforeStart':
-    '結束日期/時間必須晚於開始日期/時間',
+  'reservations.validation.endBeforeStart': '結束日期/時間必須晚於開始日期/時間',
   'reservations.addBooking': '新增預訂',
   'reservations.import.title': '匯入訂位確認',
   'reservations.import.cta': '從檔案匯入',
   'reservations.import.dropHere': '將訂位確認檔案拖放到此處，或點擊選擇',
   'reservations.import.dropActive': '放開檔案以匯入',
-  'reservations.import.acceptedFormats':
-    '支援格式：EML、PDF、PKPass、HTML、TXT（每個最大 10 MB，最多 5 個檔案）',
+  'reservations.import.acceptedFormats': '支援格式：EML、PDF、PKPass、HTML、TXT（每個最大 10 MB，最多 5 個檔案）',
   'reservations.import.parsing': '正在解析檔案…',
   'reservations.import.previewHeading': '找到 {count} 筆預訂',
   'reservations.import.previewEmpty': '無法從上傳的檔案中提取任何預訂資訊。',
@@ -137,17 +134,14 @@ const reservations: TranslationStrings = {
   'reservations.import.partialFailure': '已匯入 {created} 筆，{failed} 筆失敗',
   'reservations.import.error': '解析失敗。請確保檔案是有效的訂位確認。',
   'reservations.import.unavailable': '此伺服器上的預訂匯入功能不可用。',
-  'reservations.import.unsupportedFormat':
-    '不支援的檔案格式。請使用 EML、PDF、PKPass、HTML 或 TXT。',
+  'reservations.import.unsupportedFormat': '不支援的檔案格式。請使用 EML、PDF、PKPass、HTML 或 TXT。',
   'reservations.import.fileTooLarge': '檔案「{name}」超過 10 MB 限制。',
   'reservations.airtrail.title': '從 AirTrail 匯入',
   'reservations.airtrail.cta': 'AirTrail',
   'reservations.airtrail.synced': 'AirTrail',
-  'reservations.airtrail.syncedHint':
-    '已從 AirTrail 同步——編輯會雙向保持同步。',
+  'reservations.airtrail.syncedHint': '已從 AirTrail 同步——編輯會雙向保持同步。',
   'reservations.airtrail.notSynced': '未同步',
-  'reservations.airtrail.notSyncedHint':
-    '此航班已在 AirTrail 中移除，不再同步。',
+  'reservations.airtrail.notSyncedHint': '此航班已在 AirTrail 中移除，不再同步。',
   'reservations.airtrail.loadError': '無法載入你的 AirTrail 航班。',
   'reservations.airtrail.imported': '已匯入 {count} 筆航班',
   'reservations.airtrail.skippedDuplicate': '{count} 筆已在此行程中，已略過',
@@ -161,8 +155,7 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.importCta': '匯入 {count}',
   'reservations.costsLabel': 'Costs',
   'reservations.createExpense': 'Create expense',
-  'reservations.createExpenseHint':
-    'Saves the booking, then opens the Costs editor.',
+  'reservations.createExpenseHint': 'Saves the booking, then opens the Costs editor.',
   'reservations.linkedExpense': 'Linked expense',
   'reservations.removeExpense': 'Remove expense',
 };

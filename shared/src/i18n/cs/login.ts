@@ -3,8 +3,7 @@ import type { TranslationStrings } from '../types';
 const login: TranslationStrings = {
   'login.error': 'Přihlášení se nezdařilo. Zkontrolujte prosím své údaje.',
   'login.tagline': 'Vaše cesty.\nVáš plán.',
-  'login.description':
-    'Plánujte cesty společně s interaktivními mapami, rozpočty a synchronizací v reálném čase.',
+  'login.description': 'Plánujte cesty společně s interaktivními mapami, rozpočty a synchronizací v reálném čase.',
   'login.features.maps': 'Interaktivní mapy',
   'login.features.mapsDesc': 'Google Places, trasy a shlukování bodů',
   'login.features.realtime': 'Synchronizace v reálném čase',
@@ -20,8 +19,7 @@ const login: TranslationStrings = {
   'login.features.files': 'Dokumenty',
   'login.features.filesDesc': 'Nahrávejte a spravujte dokumenty',
   'login.features.routes': 'Chytré trasy',
-  'login.features.routesDesc':
-    'Automatická optimalizace a export do Google Maps',
+  'login.features.routesDesc': 'Automatická optimalizace a export do Google Maps',
   'login.selfHosted': 'Self-hosted · Open Source · Vaše data zůstávají u vás',
   'login.title': 'Přihlásit se',
   'login.subtitle': 'Vítejte zpět',
@@ -39,24 +37,20 @@ const login: TranslationStrings = {
   'login.register': 'Registrovat se',
   'login.emailPlaceholder': 'vas@email.cz',
   'login.username': 'Uživatelské jméno',
-  'login.oidc.registrationDisabled':
-    'Registrace je zakázána. Kontaktujte svého administrátora.',
+  'login.oidc.registrationDisabled': 'Registrace je zakázána. Kontaktujte svého administrátora.',
   'login.oidc.noEmail': 'Od poskytovatele nebyl přijat žádný e-mail.',
   'login.oidc.tokenFailed': 'Ověření se nezdařilo.',
   'login.oidc.invalidState': 'Neplatná relace. Zkuste to prosím znovu.',
   'login.demoFailed': 'Přihlášení do dema se nezdařilo',
   'login.oidcSignIn': 'Přihlásit se přes {name}',
-  'login.oidcOnly':
-    'Ověřování heslem je zakázáno. Přihlaste se prosím přes SSO poskytovatele.',
-  'login.oidcLoggedOut':
-    'Byl jste odhlášen. Přihlaste se znovu přes SSO poskytovatele.',
+  'login.oidcOnly': 'Ověřování heslem je zakázáno. Přihlaste se prosím přes SSO poskytovatele.',
+  'login.oidcLoggedOut': 'Byl jste odhlášen. Přihlaste se znovu přes SSO poskytovatele.',
   'login.demoHint': 'Vyzkoušejte demo – registrace není nutná',
   'login.mfaTitle': 'Dvoufaktorové ověření',
   'login.mfaSubtitle': 'Zadejte 6místný kód z vaší autentizační aplikace.',
   'login.mfaCodeLabel': 'Ověřovací kód',
   'login.mfaCodeRequired': 'Zadejte kód z aplikace.',
-  'login.mfaHint':
-    'Otevřete Google Authenticator, Authy nebo jinou TOTP aplikaci.',
+  'login.mfaHint': 'Otevřete Google Authenticator, Authy nebo jinou TOTP aplikaci.',
   'login.mfaBack': '← Zpět k přihlášení',
   'login.mfaVerify': 'Ověřit',
   'login.invalidInviteLink': 'Neplatný nebo vypršelý odkaz s pozvánkou',
@@ -66,8 +60,7 @@ const login: TranslationStrings = {
   'login.forgotPassword': 'Zapomenuté heslo?',
   'login.rememberMe': 'Zapamatovat si mě',
   'login.forgotPasswordTitle': 'Obnovení hesla',
-  'login.forgotPasswordBody':
-    'Zadej e-mail použitý při registraci. Pokud účet existuje, pošleme odkaz pro obnovení.',
+  'login.forgotPasswordBody': 'Zadej e-mail použitý při registraci. Pokud účet existuje, pošleme odkaz pro obnovení.',
   'login.forgotPasswordSubmit': 'Odeslat odkaz',
   'login.forgotPasswordSentTitle': 'Zkontroluj e-mail',
   'login.forgotPasswordSentBody':
@@ -80,20 +73,16 @@ const login: TranslationStrings = {
   'login.passwordsDontMatch': 'Hesla se neshodují',
   'login.mfaCode': 'Kód 2FA',
   'login.resetPasswordTitle': 'Nastavit nové heslo',
-  'login.resetPasswordBody':
-    'Vyber silné heslo, které jsi tu ještě nepoužil. Minimálně 8 znaků.',
-  'login.resetPasswordMfaBody':
-    'Zadej 2FA kód nebo záložní kód pro dokončení obnovení.',
+  'login.resetPasswordBody': 'Vyber silné heslo, které jsi tu ještě nepoužil. Minimálně 8 znaků.',
+  'login.resetPasswordMfaBody': 'Zadej 2FA kód nebo záložní kód pro dokončení obnovení.',
   'login.resetPasswordSubmit': 'Obnovit heslo',
   'login.resetPasswordVerify': 'Ověřit a obnovit',
   'login.resetPasswordSuccessTitle': 'Heslo aktualizováno',
   'login.resetPasswordSuccessBody': 'Nyní se můžeš přihlásit novým heslem.',
   'login.resetPasswordInvalidLink': 'Neplatný odkaz',
-  'login.resetPasswordInvalidLinkBody':
-    'Odkaz chybí nebo je poškozený. Pro pokračování si vyžádej nový.',
+  'login.resetPasswordInvalidLinkBody': 'Odkaz chybí nebo je poškozený. Pro pokračování si vyžádej nový.',
   'login.resetPasswordFailed': 'Obnovení se nezdařilo. Odkaz mohl vypršet.',
   'login.passkey.signIn': 'Přihlásit se pomocí přístupového klíče',
-  'login.passkey.failed':
-    'Přihlášení přístupovým klíčem se nezdařilo. Zkuste to prosím znovu.',
+  'login.passkey.failed': 'Přihlášení přístupovým klíčem se nezdařilo. Zkuste to prosím znovu.',
 };
 export default login;

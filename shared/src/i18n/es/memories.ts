@@ -3,14 +3,12 @@ import type { TranslationStrings } from '../types';
 const memories: TranslationStrings = {
   'memories.title': 'Fotos',
   'memories.notConnected': 'Immich no conectado',
-  'memories.notConnectedHint':
-    'Conecta tu instancia de Immich en Ajustes para ver tus fotos de viaje aquí.',
+  'memories.notConnectedHint': 'Conecta tu instancia de Immich en Ajustes para ver tus fotos de viaje aquí.',
   'memories.notConnectedMultipleHint':
     'Conecta alguno de estos proveedores de fotos: {provider_names} en Configuración para poder añadir fotos a este viaje.',
   'memories.noDates': 'Añade fechas a tu viaje para cargar fotos.',
   'memories.noPhotos': 'No se encontraron fotos',
-  'memories.noPhotosHint':
-    'No se encontraron fotos en Immich para el rango de fechas de este viaje.',
+  'memories.noPhotosHint': 'No se encontraron fotos en Immich para el rango de fechas de este viaje.',
   'memories.photosFound': 'fotos',
   'memories.fromOthers': 'de otros',
   'memories.sharePhotos': 'Compartir fotos',
@@ -24,10 +22,8 @@ const memories: TranslationStrings = {
   'memories.providerPassword': 'Contraseña',
   'memories.providerOTP': 'Código MFA (si está habilitado)',
   'memories.skipSSLVerification': 'Omitir verificación del certificado SSL',
-  'memories.immichAutoUpload':
-    'Duplicar las fotos del journey en Immich al subirlas',
-  'memories.providerUrlHintSynology':
-    'Incluye la ruta de la aplicación Photos en la URL, p.ej. https://nas:5001/photo',
+  'memories.immichAutoUpload': 'Duplicar las fotos del journey en Immich al subirlas',
+  'memories.providerUrlHintSynology': 'Incluye la ruta de la aplicación Photos en la URL, p.ej. https://nas:5001/photo',
   'memories.testConnection': 'Probar conexión',
   'memories.testShort': 'Probar',
   'memories.testFirst': 'Probar conexión primero',
@@ -39,12 +35,9 @@ const memories: TranslationStrings = {
   'memories.providerDisconnectedBanner':
     'Se perdió la conexión con {provider_name}. Vuelve a conectar en Configuración para ver las fotos.',
   'memories.saveError': 'No se pudieron guardar los ajustes de {provider_name}',
-  'memories.saveRouteNotConfigured':
-    'La ruta de guardado no está configurada para este proveedor',
-  'memories.testRouteNotConfigured':
-    'La ruta de prueba no está configurada para este proveedor',
-  'memories.fillRequiredFields':
-    'Por favor complete todos los campos requeridos',
+  'memories.saveRouteNotConfigured': 'La ruta de guardado no está configurada para este proveedor',
+  'memories.testRouteNotConfigured': 'La ruta de prueba no está configurada para este proveedor',
+  'memories.fillRequiredFields': 'Por favor complete todos los campos requeridos',
   'memories.oldest': 'Más antiguas',
   'memories.newest': 'Más recientes',
   'memories.allLocations': 'Todas las ubicaciones',

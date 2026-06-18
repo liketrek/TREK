@@ -3,14 +3,12 @@ import type { TranslationStrings } from '../types';
 const memories: TranslationStrings = {
   'memories.title': '사진',
   'memories.notConnected': '{provider_name}이(가) 연결되지 않았습니다',
-  'memories.notConnectedHint':
-    '이 여행에 사진을 추가하려면 설정에서 {provider_name} 인스턴스를 연결하세요.',
+  'memories.notConnectedHint': '이 여행에 사진을 추가하려면 설정에서 {provider_name} 인스턴스를 연결하세요.',
   'memories.notConnectedMultipleHint':
     '이 여행에 사진을 추가하려면 설정에서 다음 사진 공급자 중 하나를 연결하세요: {provider_names}',
   'memories.noDates': '사진을 불러오려면 여행에 날짜를 추가하세요.',
   'memories.noPhotos': '사진을 찾을 수 없습니다',
-  'memories.noPhotosHint':
-    '{provider_name}에서 이 여행의 날짜 범위에 해당하는 사진을 찾을 수 없습니다.',
+  'memories.noPhotosHint': '{provider_name}에서 이 여행의 날짜 범위에 해당하는 사진을 찾을 수 없습니다.',
   'memories.photosFound': '장',
   'memories.fromOthers': '다른 사람으로부터',
   'memories.sharePhotos': '사진 공유',
@@ -25,8 +23,7 @@ const memories: TranslationStrings = {
   'memories.providerOTP': 'MFA 코드 (활성화된 경우)',
   'memories.skipSSLVerification': 'SSL 인증서 확인 건너뛰기',
   'memories.immichAutoUpload': '업로드 시 Journey 사진을 Immich에 미러링',
-  'memories.providerUrlHintSynology':
-    'URL에 Photos 앱 경로를 포함하세요. 예: https://nas:5001/photo',
+  'memories.providerUrlHintSynology': 'URL에 Photos 앱 경로를 포함하세요. 예: https://nas:5001/photo',
   'memories.testConnection': '연결 테스트',
   'memories.testShort': '테스트',
   'memories.testFirst': '먼저 연결을 테스트하세요',
@@ -35,8 +32,7 @@ const memories: TranslationStrings = {
   'memories.connectionSuccess': '{provider_name}에 연결되었습니다',
   'memories.connectionError': '{provider_name}에 연결할 수 없습니다',
   'memories.saved': '{provider_name} 설정이 저장되었습니다',
-  'memories.providerDisconnectedBanner':
-    '{provider_name} 연결이 끊어졌습니다. 사진을 보려면 설정에서 다시 연결하세요.',
+  'memories.providerDisconnectedBanner': '{provider_name} 연결이 끊어졌습니다. 사진을 보려면 설정에서 다시 연결하세요.',
   'memories.saveError': '{provider_name} 설정을 저장할 수 없습니다',
   'memories.addPhotos': '사진 추가',
   'memories.linkAlbum': '앨범 연결',
@@ -71,10 +67,8 @@ const memories: TranslationStrings = {
   'memories.error.addPhotos': '사진 추가 실패',
   'memories.error.removePhoto': '사진 제거 실패',
   'memories.error.toggleSharing': '공유 업데이트 실패',
-  'memories.saveRouteNotConfigured':
-    '이 공급자에 대해 저장 경로가 설정되지 않았습니다',
-  'memories.testRouteNotConfigured':
-    '이 공급자에 대해 테스트 경로가 설정되지 않았습니다',
+  'memories.saveRouteNotConfigured': '이 공급자에 대해 저장 경로가 설정되지 않았습니다',
+  'memories.testRouteNotConfigured': '이 공급자에 대해 테스트 경로가 설정되지 않았습니다',
   'memories.fillRequiredFields': '모든 필수 항목을 입력하세요',
 };
 export default memories;

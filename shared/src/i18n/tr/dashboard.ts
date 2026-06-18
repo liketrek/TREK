@@ -20,8 +20,7 @@ const dashboard: TranslationStrings = {
   'dashboard.timezoneCustomTzPlaceholder': 'örn. America/New_York',
   'dashboard.timezoneCustomAdd': 'Ekle',
   'dashboard.timezoneCustomErrorEmpty': 'Saat dilimi tanımlayıcısı girin',
-  'dashboard.timezoneCustomErrorInvalid':
-    'Geçersiz saat dilimi. Europe/Berlin gibi bir biçim kullanın',
+  'dashboard.timezoneCustomErrorInvalid': 'Geçersiz saat dilimi. Europe/Berlin gibi bir biçim kullanın',
   'dashboard.timezoneCustomErrorDuplicate': 'Zaten ekli',
   'dashboard.emptyTitle': 'Henüz seyahat yok',
   'dashboard.emptyText': 'İlk seyahatinizi oluşturup planlamaya başlayın!',
@@ -55,8 +54,7 @@ const dashboard: TranslationStrings = {
   'dashboard.toast.restoreError': 'Geri alınamadı',
   'dashboard.toast.copied': 'Seyahat kopyalandı!',
   'dashboard.toast.copyError': 'Kopyalanamadı',
-  'dashboard.confirm.delete':
-    '"{title}" seyahatini sil? Tüm yerler ve planlar kalıcı olarak silinir.',
+  'dashboard.confirm.delete': '"{title}" seyahatini sil? Tüm yerler ve planlar kalıcı olarak silinir.',
   'dashboard.confirm.copy.title': 'Bu seyahat kopyalansın mı?',
   'dashboard.confirm.copy.willCopy': 'Kopyalanacak',
   'dashboard.confirm.copy.will1': 'Günler, yerler ve gün atamaları',
@@ -81,8 +79,7 @@ const dashboard: TranslationStrings = {
   'dashboard.endDate': 'Bitiş Tarihi',
   'dashboard.dayCount': 'Gün sayısı',
   'dashboard.dayCountHint': 'Seyahat tarihi yoksa kaç gün planlanacağı.',
-  'dashboard.noDateHint':
-    'Tarih yok — varsayılan 7 gün oluşturulur. İstediğiniz zaman değiştirebilirsiniz.',
+  'dashboard.noDateHint': 'Tarih yok — varsayılan 7 gün oluşturulur. İstediğiniz zaman değiştirebilirsiniz.',
   'dashboard.coverImage': 'Kapak Görseli',
   'dashboard.addCoverImage': 'Kapak ekle (sürükleyip bırakabilirsiniz)',
   'dashboard.addMembers': 'Seyahat arkadaşları',

@@ -14,12 +14,10 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Harita Şablonu',
   'settings.mapTemplatePlaceholder.select': 'Şablon seçin...',
   'settings.mapDefaultHint': 'OpenStreetMap için boş bırakın (varsayılan)',
-  'settings.mapTemplatePlaceholder':
-    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'Harita kutucukları için URL şablonu',
   'settings.mapProvider': 'Harita Sağlayıcısı',
-  'settings.mapProviderHint':
-    'Seyahat planlayıcı ve Journey haritalarını etkiler. Atlas her zaman Leaflet kullanır.',
+  'settings.mapProviderHint': 'Seyahat planlayıcı ve Journey haritalarını etkiler. Atlas her zaman Leaflet kullanır.',
   'settings.mapLeafletSubtitle': 'Klasik 2D, herhangi bir raster kutucuk',
   'settings.mapMapboxSubtitle': 'Vektör kutucuklar, 3D binalar ve arazi',
   'settings.mapExperimental': 'Deneysel',
@@ -28,16 +26,12 @@ const settings: TranslationStrings = {
   'settings.mapMapboxTokenLink': 'Mapbox.com → Jetonlara erişim',
   'settings.mapStyle': 'Harita Stili',
   'settings.mapStylePlaceholder': 'Bir Mapbox stili seçin',
-  'settings.mapStyleHint':
-    'Ön ayar veya kendi mapbox://styles/KULLANICI/ID adresiniz',
+  'settings.mapStyleHint': 'Ön ayar veya kendi mapbox://styles/KULLANICI/ID adresiniz',
   'settings.map3dBuildings': '3D Binalar ve Arazi',
-  'settings.map3dHint':
-    'Eğim + gerçek 3D bina çıkıntıları — uydu dahil her stilde çalışır.',
+  'settings.map3dHint': 'Eğim + gerçek 3D bina çıkıntıları — uydu dahil her stilde çalışır.',
   'settings.mapHighQuality': 'Yüksek Kalite Modu',
-  'settings.mapHighQualityHint':
-    'Keskin kenarlar ve gerçekçi dünya görünümü için antialiasing + küre projeksiyonu.',
-  'settings.mapHighQualityWarning':
-    'Düşük donanımlı cihazlarda performansı etkileyebilir.',
+  'settings.mapHighQualityHint': 'Keskin kenarlar ve gerçekçi dünya görünümü için antialiasing + küre projeksiyonu.',
+  'settings.mapHighQualityWarning': 'Düşük donanımlı cihazlarda performansı etkileyebilir.',
   'settings.mapTipLabel': 'İpucu:',
   'settings.mapTip':
     'Haritayı döndürmek/eğmek için sağ tıklayıp sürükleyin. Yer eklemek için orta tıklama (sağ tık döndürmeye ayrılmıştır).',
@@ -46,11 +40,9 @@ const settings: TranslationStrings = {
   'settings.saveMap': 'Haritayı Kaydet',
   'settings.apiKeys': 'API Anahtarları',
   'settings.mapsKey': 'Google Maps API Anahtarı',
-  'settings.mapsKeyHint':
-    'Yer araması için. Places API (New) gerekir. console.cloud.google.com',
+  'settings.mapsKeyHint': 'Yer araması için. Places API (New) gerekir. console.cloud.google.com',
   'settings.weatherKey': 'OpenWeatherMap API Anahtarı',
-  'settings.weatherKeyHint':
-    'Hava verisi için. Ücretsiz: openweathermap.org/api',
+  'settings.weatherKeyHint': 'Hava verisi için. Ücretsiz: openweathermap.org/api',
   'settings.keyPlaceholder': 'Anahtarı girin...',
   'settings.configured': 'Yapılandırıldı',
   'settings.saveKeys': 'Anahtarları Kaydet',
@@ -63,8 +55,7 @@ const settings: TranslationStrings = {
   'settings.temperature': 'Sıcaklık Birimi',
   'settings.timeFormat': 'Saat Biçimi',
   'settings.bookingLabels': 'Rezervasyon rota etiketleri',
-  'settings.bookingLabelsHint':
-    'Haritada istasyon / havalimanı adlarını göster. Kapalıyken yalnızca simge görünür.',
+  'settings.bookingLabelsHint': 'Haritada istasyon / havalimanı adlarını göster. Kapalıyken yalnızca simge görünür.',
   'settings.blurBookingCodes': 'Rezervasyon Kodlarını Bulanıklaştır',
   'settings.optimizeFromAccommodation': 'Rotayı konaklamadan optimize et',
   'settings.optimizeFromAccommodationHint':
@@ -88,8 +79,7 @@ const settings: TranslationStrings = {
     'Bildirim kanalı yapılandırılmadı. Yöneticiden e-posta veya webhook kurmasını isteyin.',
   'settings.webhookUrl.label': "Web kancası URL'si",
   'settings.webhookUrl.placeholder': 'https://discord.com/api/webhooks/...',
-  'settings.webhookUrl.hint':
-    "Bildirim almak için Discord, Slack veya özel webhook URL'nizi girin.",
+  'settings.webhookUrl.hint': "Bildirim almak için Discord, Slack veya özel webhook URL'nizi girin.",
   'settings.webhookUrl.saved': 'Webhook URL kaydedildi',
   'settings.webhookUrl.test': 'Dene',
   'settings.webhookUrl.testSuccess': 'Test webhook başarıyla gönderildi',
@@ -107,11 +97,9 @@ const settings: TranslationStrings = {
   'settings.ntfyUrl.testSuccess': 'Test ntfy bildirimi gönderildi',
   'settings.ntfyUrl.testFailed': 'Test ntfy bildirimi başarısız',
   'settings.ntfyUrl.tokenCleared': 'Erişim anahtarı temizlendi',
-  'settings.notificationsDisabled':
-    'Bildirimler yapılandırılmadı. Yöneticiden e-posta veya webhook açmasını isteyin.',
+  'settings.notificationsDisabled': 'Bildirimler yapılandırılmadı. Yöneticiden e-posta veya webhook açmasını isteyin.',
   'settings.notificationsActive': 'Etkin kanal',
-  'settings.notificationsManagedByAdmin':
-    'Bildirim olayları yöneticiniz tarafından yapılandırılır.',
+  'settings.notificationsManagedByAdmin': 'Bildirim olayları yöneticiniz tarafından yapılandırılır.',
   'settings.on': 'Açık',
   'settings.off': 'Kapalı',
   'settings.mcp.title': 'MCP Yapılandırması',
@@ -125,8 +113,7 @@ const settings: TranslationStrings = {
   'settings.mcp.copied': 'Kopyalandı!',
   'settings.mcp.apiTokens': 'API Belirteçleri',
   'settings.mcp.createToken': 'Yeni Jeton Oluştur',
-  'settings.mcp.noTokens':
-    'Henüz jeton yok. MCP istemcilerini bağlamak için bir tane oluşturun.',
+  'settings.mcp.noTokens': 'Henüz jeton yok. MCP istemcilerini bağlamak için bir tane oluşturun.',
   'settings.mcp.tokenCreatedAt': 'Oluşturuldu',
   'settings.mcp.tokenUsedAt': 'Kullanılmış',
   'settings.mcp.deleteTokenTitle': 'Jetonu Sil',
@@ -134,8 +121,7 @@ const settings: TranslationStrings = {
     'Bu jeton hemen çalışmayı durduracak. Bunu kullanan herhangi bir MCP istemcisi erişimi kaybedecektir.',
   'settings.mcp.modal.createTitle': 'API Jetonu Oluştur',
   'settings.mcp.modal.tokenName': 'Jeton Adı',
-  'settings.mcp.modal.tokenNamePlaceholder':
-    'örneğin Claude Masaüstü, İş dizüstü bilgisayarı',
+  'settings.mcp.modal.tokenNamePlaceholder': 'örneğin Claude Masaüstü, İş dizüstü bilgisayarı',
   'settings.mcp.modal.creating': 'Oluşturuluyor…',
   'settings.mcp.modal.create': 'Jeton Oluştur',
   'settings.mcp.modal.createdTitle': 'Jeton Oluşturuldu',
@@ -171,16 +157,13 @@ const settings: TranslationStrings = {
   'settings.oauth.sessionExpires': 'Süresi doluyor',
   'settings.oauth.revoke': 'Geri çekmek',
   'settings.oauth.revokeSession': 'Oturumu İptal Et',
-  'settings.oauth.revokeSessionMessage':
-    'Bu, bu OAuth oturumuna erişimi anında iptal edecektir.',
+  'settings.oauth.revokeSessionMessage': 'Bu, bu OAuth oturumuna erişimi anında iptal edecektir.',
   'settings.oauth.modal.createTitle': 'OAuth İstemcisini Kaydedin',
   'settings.oauth.modal.presets': 'Hızlı ön ayarlar',
   'settings.oauth.modal.clientName': 'Uygulama Adı',
-  'settings.oauth.modal.clientNamePlaceholder':
-    'örneğin Claude Web, MCP Uygulamam',
+  'settings.oauth.modal.clientNamePlaceholder': 'örneğin Claude Web, MCP Uygulamam',
   'settings.oauth.modal.redirectUris': "URI'leri Yönlendir",
-  'settings.oauth.modal.redirectUrisPlaceholder':
-    'https://uygulamaniz.com/callback\\nhttps://uygulamaniz.com/auth',
+  'settings.oauth.modal.redirectUrisPlaceholder': 'https://uygulamaniz.com/callback\\nhttps://uygulamaniz.com/auth',
   'settings.oauth.modal.redirectUrisHint':
     'Satır başına bir URI. HTTPS gerekli (yerel ana bilgisayar hariç). Tam eşleşme uygulandı.',
   'settings.oauth.modal.scopes': 'İzin Verilen Kapsamlar',
@@ -191,8 +174,7 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.creating': 'Kaydediliyor…',
   'settings.oauth.modal.create': 'Müşteriyi Kaydet',
   'settings.oauth.modal.createdTitle': 'Müşteri Kayıtlı',
-  'settings.oauth.modal.createdWarning':
-    'İstemci sırrı yalnızca bir kez gösterilir. Şimdi kopyalayın; kurtarılamaz.',
+  'settings.oauth.modal.createdWarning': 'İstemci sırrı yalnızca bir kez gösterilir. Şimdi kopyalayın; kurtarılamaz.',
   'settings.oauth.toast.createError': 'OAuth istemcisi kaydedilemedi',
   'settings.oauth.toast.deleted': 'OAuth istemcisi silindi',
   'settings.oauth.toast.deleteError': 'OAuth istemcisi silinemedi',
@@ -214,15 +196,13 @@ const settings: TranslationStrings = {
   'settings.about.supporters.tierEmpty': 'İlk olun',
   'settings.about.supporter.tier.noReturnTicket': 'Dönüş Bileti Yok',
   'settings.about.supporter.tier.lostLuggageVip': 'Kayıp Bagaj VIP',
-  'settings.about.supporter.tier.businessClassDreamer':
-    'Business Class Hayalperest',
+  'settings.about.supporter.tier.businessClassDreamer': 'Business Class Hayalperest',
   'settings.about.supporter.tier.budgetTraveller': 'Bütçe Gezgini',
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Yatakhane Arkadaşı',
   'settings.about.description':
     'TREK, seyahatlerinizi ilk fikirden son anıya kadar organize etmenize yardımcı olan, kendi kendine barındırılan bir seyahat planlayıcıdır. Gün planlaması, bütçe, paketleme listeleri, fotoğraflar ve çok daha fazlası; hepsi tek bir yerde, kendi sunucunuzda.',
   'settings.about.madeWith': 'İle yapıldı',
-  'settings.about.madeBy':
-    'Maurice ve büyüyen bir açık kaynak topluluğu tarafından.',
+  'settings.about.madeBy': 'Maurice ve büyüyen bir açık kaynak topluluğu tarafından.',
   'settings.username': 'Kullanıcı adı',
   'settings.email': 'E-posta',
   'settings.role': 'Rol',
@@ -237,8 +217,7 @@ const settings: TranslationStrings = {
   'settings.passwordRequired': 'Lütfen mevcut ve yeni şifrenizi giriniz',
   'settings.passwordTooShort': 'Şifre en az 8 karakter olmalıdır',
   'settings.passwordMismatch': 'Şifreler eşleşmiyor',
-  'settings.passwordWeak':
-    'Şifre büyük harf, küçük harf, sayı ve özel karakter içermelidir',
+  'settings.passwordWeak': 'Şifre büyük harf, küçük harf, sayı ve özel karakter içermelidir',
   'settings.passwordChanged': 'Şifre başarıyla değiştirildi',
   'settings.mustChangePassword':
     'Devam etmeden önce şifrenizi değiştirmelisiniz. Lütfen aşağıdan yeni bir şifre belirleyin.',
@@ -269,8 +248,7 @@ const settings: TranslationStrings = {
   'settings.mfa.backupTitle': 'Yedekleme kodları',
   'settings.mfa.backupDescription':
     'Kimlik doğrulayıcı uygulamanıza erişimi kaybederseniz bu tek seferlik yedek kodları kullanın.',
-  'settings.mfa.backupWarning':
-    'Şimdi bu kodları kaydedin. Her kod yalnızca bir kez kullanılabilir.',
+  'settings.mfa.backupWarning': 'Şimdi bu kodları kaydedin. Her kod yalnızca bir kez kullanılabilir.',
   'settings.mfa.backupCopy': 'Kodları kopyala',
   'settings.mfa.backupDownload': "TXT'yi İndirin",
   'settings.mfa.backupPrint': 'Yazdır / PDF',
@@ -278,28 +256,25 @@ const settings: TranslationStrings = {
   'settings.mfa.enabled': 'Hesabınızda 2FA etkin.',
   'settings.mfa.disabled': '2FA etkin değil.',
   'settings.mfa.setup': 'Kimlik doğrulayıcıyı ayarla',
-  'settings.mfa.scanQr':
-    'Bu QR kodunu uygulamanızla tarayın veya sırrı manuel olarak girin.',
+  'settings.mfa.scanQr': 'Bu QR kodunu uygulamanızla tarayın veya sırrı manuel olarak girin.',
   'settings.mfa.secretLabel': 'Gizli anahtar (manuel giriş)',
   'settings.mfa.codePlaceholder': '6 haneli kod',
   'settings.mfa.enable': "2FA'yı Etkinleştir",
   'settings.mfa.cancelSetup': 'İptal etmek',
   'settings.mfa.disableTitle': "2FA'yı devre dışı bırak",
-  'settings.mfa.disableHint':
-    'Hesap şifrenizi ve kimlik doğrulayıcınızdan aldığınız geçerli kodu girin.',
+  'settings.mfa.disableHint': 'Hesap şifrenizi ve kimlik doğrulayıcınızdan aldığınız geçerli kodu girin.',
   'settings.mfa.disable': "2FA'yı devre dışı bırak",
   'settings.mfa.toastEnabled': 'İki faktörlü kimlik doğrulama etkin',
   'settings.mfa.toastDisabled': 'İki faktörlü kimlik doğrulama devre dışı',
   'settings.mfa.demoBlocked': 'Demo modunda kullanılamaz',
-  'settings.oauth.modal.machineClient':
-    'Makine istemcisi (tarayıcıda oturum açma yok)',
+  'settings.oauth.modal.machineClient': 'Makine istemcisi (tarayıcıda oturum açma yok)',
   'settings.oauth.modal.machineClientHint':
     "client_credentials iznini kullanın — yönlendirme URI'lerine gerek yoktur. Belirteç doğrudan client_id + client_secret ile verilir ve seçilen kapsamlar dahilinde sizin adınıza hareket eder.",
   'settings.oauth.modal.machineClientUsage':
     'Bir jeton alın: grant_type=client_credentials, client_id ve client_secret ile POST /oauth/token. Tarayıcı yok, yenileme belirteci yok.',
   'settings.oauth.badge.machine': 'makine',
-  "settings.currency": "Currency",
-  "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.currency': 'Currency',
+  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
   'settings.passkey.title': 'Passkey’ler',
   'settings.passkey.description':
     'Passkey ile daha hızlı ve kimlik avına dayanıklı şekilde oturum açın — parmak iziniz, yüzünüz, PIN’iniz veya bir donanım anahtarı. Şifreniz yedek olarak kalır.',
@@ -307,8 +282,7 @@ const settings: TranslationStrings = {
     'Passkey’ler etkin ancak bu sunucuda henüz tam olarak yapılandırılmadı. WebAuthn alan adını ayarlaması için yöneticinize başvurun.',
   'settings.passkey.add': 'Passkey ekle',
   'settings.passkey.addTitle': 'Passkey ekle',
-  'settings.passkey.passwordPrompt':
-    'Mevcut şifrenizi onaylayın, ardından cihazınızın istemini izleyin.',
+  'settings.passkey.passwordPrompt': 'Mevcut şifrenizi onaylayın, ardından cihazınızın istemini izleyin.',
   'settings.passkey.passwordRequired': 'Mevcut şifreniz gerekli.',
   'settings.passkey.namePlaceholder': 'Ad (isteğe bağlı, ör. "iPhone")',
   'settings.passkey.addedToast': 'Passkey eklendi',
@@ -316,8 +290,7 @@ const settings: TranslationStrings = {
   'settings.passkey.addError': 'Passkey eklenemedi',
   'settings.passkey.cancelled': 'Passkey kurulumu iptal edildi',
   'settings.passkey.deleted': 'Passkey kaldırıldı',
-  'settings.passkey.deleteConfirm':
-    'Bu passkey kaldırılsın mı? Şifrenizle onaylayın.',
+  'settings.passkey.deleteConfirm': 'Bu passkey kaldırılsın mı? Şifrenizle onaylayın.',
   'settings.passkey.rename': 'Yeniden adlandır',
   'settings.passkey.defaultName': 'Passkey',
   'settings.passkey.synced': 'Senkronize edildi',
@@ -325,17 +298,20 @@ const settings: TranslationStrings = {
   'settings.passkey.lastUsed': 'Son kullanım',
   'settings.passkey.neverUsed': 'Hiç kullanılmadı',
   'settings.mapPoiPill': 'Haritada yerleri keşfet',
-  'settings.mapPoiPillHint': 'Yakındaki restoranları, otelleri ve daha fazlasını OpenStreetMap\'ten bulmak için gezi haritasında bir kategori etiketi göster.',
+  'settings.mapPoiPillHint':
+    "Yakındaki restoranları, otelleri ve daha fazlasını OpenStreetMap'ten bulmak için gezi haritasında bir kategori etiketi göster.",
   'settings.airtrail.title': 'AirTrail',
-  'settings.airtrail.hint': 'Uçuşları içe aktarmak ve senkronize etmek için kendi barındırdığınız AirTrail\'i bağlayın. AirTrail\'de Ayarlar → Güvenlik altından bir API anahtarı oluşturun.',
-  'settings.airtrail.url': 'Örnek URL\'si',
+  'settings.airtrail.hint':
+    "Uçuşları içe aktarmak ve senkronize etmek için kendi barındırdığınız AirTrail'i bağlayın. AirTrail'de Ayarlar → Güvenlik altından bir API anahtarı oluşturun.",
+  'settings.airtrail.url': "Örnek URL'si",
   'settings.airtrail.apiKey': 'API anahtarı',
   'settings.airtrail.apiKeyPlaceholder': 'Bearer API anahtarı',
-  'settings.airtrail.apiKeyHint': 'AirTrail\'de Ayarlar → Güvenlik altında oluşturulur. Şifreli olarak saklanır.',
+  'settings.airtrail.apiKeyHint': "AirTrail'de Ayarlar → Güvenlik altında oluşturulur. Şifreli olarak saklanır.",
   'settings.airtrail.allowInsecureTls': 'Kendinden imzalı sertifikalara izin ver',
   'settings.airtrail.allowInsecureTlsHint': 'Yalnızca kendi ağınızdaki güvenilir bir örnek için etkinleştirin.',
   'settings.airtrail.writeBack': 'Değişiklikleri AirTrail’e geri yaz',
-  'settings.airtrail.writeBackHint': 'Varsayılan olarak kapalı: AirTrail asıl kaynaktır ve TREK yalnızca okur. TREK’te yapılan değişiklikleri AirTrail’e geri göndermek için açın.',
+  'settings.airtrail.writeBackHint':
+    'Varsayılan olarak kapalı: AirTrail asıl kaynaktır ve TREK yalnızca okur. TREK’te yapılan değişiklikleri AirTrail’e geri göndermek için açın.',
   'settings.airtrail.connected': 'Bağlandı',
   'settings.airtrail.notConnected': 'Bağlı değil',
   'settings.airtrail.toast.saved': 'AirTrail bağlantısı kaydedildi',

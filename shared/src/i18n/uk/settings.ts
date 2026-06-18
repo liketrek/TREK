@@ -13,14 +13,11 @@ const settings: TranslationStrings = {
   'settings.map': 'Карта',
   'settings.mapTemplate': 'Шаблон карти',
   'settings.mapTemplatePlaceholder.select': 'Виберіть шаблон...',
-  'settings.mapDefaultHint':
-    'Залиште порожнім для OpenStreetMap (за замовчуванням)',
-  'settings.mapTemplatePlaceholder':
-    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  'settings.mapDefaultHint': 'Залиште порожнім для OpenStreetMap (за замовчуванням)',
+  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'URL-шаблон для тайлів карти',
   'settings.mapProvider': 'Провайдер карти',
-  'settings.mapProviderHint':
-    'Застосовується до Trip Planner та Journey. Atlas завжди використовує Leaflet.',
+  'settings.mapProviderHint': 'Застосовується до Trip Planner та Journey. Atlas завжди використовує Leaflet.',
   'settings.mapLeafletSubtitle': 'Класичні 2D, будь-які растрові тайли',
   'settings.mapMapboxSubtitle': 'Векторні тайли, 3D-будинки та рельєф',
   'settings.mapExperimental': 'Експериментально',
@@ -31,13 +28,11 @@ const settings: TranslationStrings = {
   'settings.mapStylePlaceholder': 'Виберіть стиль Mapbox',
   'settings.mapStyleHint': 'Preset або власний URL mapbox://styles/USER/ID',
   'settings.map3dBuildings': '3D-будинки та рельєф',
-  'settings.map3dHint':
-    'Нахил + справжні 3D-будинки — працює з усіма стилями, включаючи супутник.',
+  'settings.map3dHint': 'Нахил + справжні 3D-будинки — працює з усіма стилями, включаючи супутник.',
   'settings.mapHighQuality': 'Режим високої якості',
   'settings.mapHighQualityHint':
     'Згладжування + проекція глобуса для більш чітких країв та реалістичного вигляду світу.',
-  'settings.mapHighQualityWarning':
-    'Може вплинути на продуктивність на слабких пристроях.',
+  'settings.mapHighQualityWarning': 'Може вплинути на продуктивність на слабких пристроях.',
   'settings.mapTipLabel': 'Порада:',
   'settings.mapTip':
     'Затисніть праву кнопку миші та перетягніть, щоб повернути/нахилити карту. Клік середньою кнопкою — додати місце (права кнопка зарезервована для обертання).',
@@ -46,11 +41,9 @@ const settings: TranslationStrings = {
   'settings.saveMap': 'Зберегти карту',
   'settings.apiKeys': 'API-ключі',
   'settings.mapsKey': 'API-ключ Google Maps',
-  'settings.mapsKeyHint':
-    'Для пошуку місць. Потрібен Places API (New). Отримайте на console.cloud.google.com',
+  'settings.mapsKeyHint': 'Для пошуку місць. Потрібен Places API (New). Отримайте на console.cloud.google.com',
   'settings.weatherKey': 'API-ключ OpenWeatherMap',
-  'settings.weatherKeyHint':
-    'Для даних про погоду. Безкоштовно на openweathermap.org/api',
+  'settings.weatherKeyHint': 'Для даних про погоду. Безкоштовно на openweathermap.org/api',
   'settings.keyPlaceholder': 'Введіть ключ...',
   'settings.configured': 'Налаштовано',
   'settings.saveKeys': 'Зберегти ключі',
@@ -79,8 +72,7 @@ const settings: TranslationStrings = {
   'settings.notificationsDisabled':
     'Сповіщення не налаштовані. Попросіть адміністратора ввімкнути сповіщення електронною поштою або webhook.',
   'settings.notificationsActive': 'Активний канал',
-  'settings.notificationsManagedByAdmin':
-    'Події сповіщень налаштовуються адміністратором.',
+  'settings.notificationsManagedByAdmin': 'Події сповіщень налаштовуються адміністратором.',
   'settings.on': 'Увімк.',
   'settings.off': 'Вимк.',
   'settings.mcp.title': 'Налаштування MCP',
@@ -94,8 +86,7 @@ const settings: TranslationStrings = {
   'settings.mcp.copied': 'Скопійовано!',
   'settings.mcp.apiTokens': 'API-токени',
   'settings.mcp.createToken': 'Створити токен',
-  'settings.mcp.noTokens':
-    'Токенів поки немає. Створіть один для підключення MCP-клієнтів.',
+  'settings.mcp.noTokens': 'Токенів поки немає. Створіть один для підключення MCP-клієнтів.',
   'settings.mcp.tokenCreatedAt': 'Створено',
   'settings.mcp.tokenUsedAt': 'Використано',
   'settings.mcp.deleteTokenTitle': 'Видалити токен',
@@ -103,8 +94,7 @@ const settings: TranslationStrings = {
     'Цей токен перестане працювати одразу. Будь-який MCP-клієнт, що його використовує, втратить доступ.',
   'settings.mcp.modal.createTitle': 'Створити API-токен',
   'settings.mcp.modal.tokenName': 'Назва токена',
-  'settings.mcp.modal.tokenNamePlaceholder':
-    'наприклад Claude Desktop, Робочий ноутбук',
+  'settings.mcp.modal.tokenNamePlaceholder': 'наприклад Claude Desktop, Робочий ноутбук',
   'settings.mcp.modal.creating': 'Створення…',
   'settings.mcp.modal.create': 'Створити токен',
   'settings.mcp.modal.createdTitle': 'Токен створено',
@@ -140,16 +130,13 @@ const settings: TranslationStrings = {
   'settings.oauth.sessionExpires': 'Закінчується',
   'settings.oauth.revoke': 'Відкликати',
   'settings.oauth.revokeSession': 'Відкликати сесію',
-  'settings.oauth.revokeSessionMessage':
-    'Це негайно відкличе доступ для даної сесії OAuth.',
+  'settings.oauth.revokeSessionMessage': 'Це негайно відкличе доступ для даної сесії OAuth.',
   'settings.oauth.modal.createTitle': 'Зареєструвати клієнта OAuth',
   'settings.oauth.modal.presets': 'Швидкі налаштування',
   'settings.oauth.modal.clientName': 'Назва застосунку',
-  'settings.oauth.modal.clientNamePlaceholder':
-    'напр. Claude Web, Мій MCP-застосунок',
+  'settings.oauth.modal.clientNamePlaceholder': 'напр. Claude Web, Мій MCP-застосунок',
   'settings.oauth.modal.redirectUris': 'URI перенаправлення',
-  'settings.oauth.modal.redirectUrisPlaceholder':
-    'https://your-app.com/callback\nhttps://your-app.com/auth',
+  'settings.oauth.modal.redirectUrisPlaceholder': 'https://your-app.com/callback\nhttps://your-app.com/auth',
   'settings.oauth.modal.redirectUrisHint':
     'Один URI на рядок. Потрібен HTTPS (localhost виключено). Потрібне точне співпадіння.',
   'settings.oauth.modal.scopes': 'Дозволені області доступу',
@@ -183,8 +170,7 @@ const settings: TranslationStrings = {
   'settings.about.supporters.tierEmpty': 'Стань першим',
   'settings.about.supporter.tier.noReturnTicket': 'No Return Ticket',
   'settings.about.supporter.tier.lostLuggageVip': 'Lost Luggage VIP',
-  'settings.about.supporter.tier.businessClassDreamer':
-    'Business Class Dreamer',
+  'settings.about.supporter.tier.businessClassDreamer': 'Business Class Dreamer',
   'settings.about.supporter.tier.budgetTraveller': 'Budget Traveller',
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate',
   'settings.about.description':
@@ -207,8 +193,7 @@ const settings: TranslationStrings = {
   'settings.passwordRequired': 'Введіть поточний та новий паролі',
   'settings.passwordTooShort': 'Пароль повинен містити не менше 8 символів',
   'settings.passwordMismatch': 'Паролі не збігаються',
-  'settings.passwordWeak':
-    'Пароль повинен містити великі й малі літери, цифру та спеціальний символ',
+  'settings.passwordWeak': 'Пароль повинен містити великі й малі літери, цифру та спеціальний символ',
   'settings.passwordChanged': 'Пароль успішно змінено',
   'settings.deleteAccount': 'Видалити акаунт',
   'settings.deleteAccountTitle': 'Видалити ваш акаунт?',
@@ -228,8 +213,7 @@ const settings: TranslationStrings = {
   'settings.mfa.backupTitle': 'Резервні коди',
   'settings.mfa.backupDescription':
     'Використовуйте ці одноразові коди, якщо втратите доступ до додатку-аутентифікатора.',
-  'settings.mfa.backupWarning':
-    'Збережіть їх зараз. Кожен код можна використати лише один раз.',
+  'settings.mfa.backupWarning': 'Збережіть їх зараз. Кожен код можна використати лише один раз.',
   'settings.mfa.backupCopy': 'Скопіювати коди',
   'settings.mfa.backupDownload': 'Завантажити TXT',
   'settings.mfa.backupPrint': 'Друк / PDF',
@@ -243,8 +227,7 @@ const settings: TranslationStrings = {
   'settings.mfa.enable': 'Увімкнути 2FA',
   'settings.mfa.cancelSetup': 'Скасувати',
   'settings.mfa.disableTitle': 'Вимкнути 2FA',
-  'settings.mfa.disableHint':
-    'Введіть пароль акаунта та поточний код з автентифікатора.',
+  'settings.mfa.disableHint': 'Введіть пароль акаунта та поточний код з автентифікатора.',
   'settings.mfa.disable': 'Вимкнути 2FA',
   'settings.mfa.toastEnabled': 'Двофакторна автентифікація увімкнена',
   'settings.mfa.toastDisabled': 'Двофакторна автентифікація вимкнена',
@@ -259,15 +242,13 @@ const settings: TranslationStrings = {
   'settings.avatarRemoved': 'Фото профілю видалено',
   'settings.avatarError': 'Помилка завантаження',
   'settings.bookingLabels': 'Підписи маршрутів бронювань',
-  'settings.bookingLabelsHint':
-    'Показує назви станцій / аеропортів на карті. Якщо вимкнено, показується лише значок.',
+  'settings.bookingLabelsHint': 'Показує назви станцій / аеропортів на карті. Якщо вимкнено, показується лише значок.',
   'settings.notifyVersionAvailable': 'Доступна нова версія',
   'settings.notificationPreferences.noChannels':
     'Канали сповіщень не налаштовані. Попросіть адміністратора налаштувати сповіщення електронною поштою або через webhook.',
   'settings.webhookUrl.label': 'URL вебхука',
   'settings.webhookUrl.placeholder': 'https://discord.com/api/webhooks/...',
-  'settings.webhookUrl.hint':
-    'Введіть URL вашого вебхука Discord, Slack або власного для отримання сповіщень.',
+  'settings.webhookUrl.hint': 'Введіть URL вашого вебхука Discord, Slack або власного для отримання сповіщень.',
   'settings.webhookUrl.saved': 'URL вебхука збережено',
   'settings.webhookUrl.test': 'Тест',
   'settings.webhookUrl.testSuccess': 'Тестовий вебхук успішно надіслано',
@@ -289,15 +270,14 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',
-  'settings.oauth.modal.machineClient':
-    'Машинний клієнт (без входу через браузер)',
+  'settings.oauth.modal.machineClient': 'Машинний клієнт (без входу через браузер)',
   'settings.oauth.modal.machineClientHint':
     'Використовуйте надання client_credentials — URI перенаправлення не потрібні. Токен видається безпосередньо через client_id + client_secret і діє від вашого імені в межах вибраних областей.',
   'settings.oauth.modal.machineClientUsage':
     'Отримати токен: POST /oauth/token з grant_type=client_credentials, client_id і client_secret. Без браузера, без токена оновлення.',
   'settings.oauth.badge.machine': 'машина',
-  "settings.currency": "Currency",
-  "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.currency': 'Currency',
+  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
     'Входьте швидше та з захистом від фішингу за допомогою passkey — відбитка пальця, обличчя, PIN-коду або апаратного ключа. Ваш пароль залишається як резервний варіант.',
@@ -305,8 +285,7 @@ const settings: TranslationStrings = {
     'Passkeys увімкнено, але цей сервер ще не повністю налаштовано. Попросіть адміністратора вказати домен WebAuthn.',
   'settings.passkey.add': 'Додати passkey',
   'settings.passkey.addTitle': 'Додати passkey',
-  'settings.passkey.passwordPrompt':
-    'Підтвердіть поточний пароль, а потім дотримуйтесь підказок на вашому пристрої.',
+  'settings.passkey.passwordPrompt': 'Підтвердіть поточний пароль, а потім дотримуйтесь підказок на вашому пристрої.',
   'settings.passkey.passwordRequired': 'Потрібен ваш поточний пароль.',
   'settings.passkey.namePlaceholder': 'Назва (необов’язково, напр. "iPhone")',
   'settings.passkey.addedToast': 'Passkey додано',
@@ -314,8 +293,7 @@ const settings: TranslationStrings = {
   'settings.passkey.addError': 'Не вдалося додати passkey',
   'settings.passkey.cancelled': 'Налаштування passkey скасовано',
   'settings.passkey.deleted': 'Passkey видалено',
-  'settings.passkey.deleteConfirm':
-    'Видалити цей passkey? Підтвердіть паролем.',
+  'settings.passkey.deleteConfirm': 'Видалити цей passkey? Підтвердіть паролем.',
   'settings.passkey.rename': 'Перейменувати',
   'settings.passkey.defaultName': 'Passkey',
   'settings.passkey.synced': 'Синхронізовано',
@@ -323,17 +301,21 @@ const settings: TranslationStrings = {
   'settings.passkey.lastUsed': 'Останнє використання',
   'settings.passkey.neverUsed': 'Не використовувався',
   'settings.mapPoiPill': 'Досліджуйте місця на карті',
-  'settings.mapPoiPillHint': 'Показувати на карті подорожі плашку категорій, щоб знаходити поблизу ресторани, готелі та інше з OpenStreetMap.',
+  'settings.mapPoiPillHint':
+    'Показувати на карті подорожі плашку категорій, щоб знаходити поблизу ресторани, готелі та інше з OpenStreetMap.',
   'settings.airtrail.title': 'AirTrail',
-  'settings.airtrail.hint': 'Підключіть свій самостійно розміщений AirTrail, щоб імпортувати та синхронізувати рейси. Створіть API-ключ в AirTrail у розділі Налаштування → Безпека.',
+  'settings.airtrail.hint':
+    'Підключіть свій самостійно розміщений AirTrail, щоб імпортувати та синхронізувати рейси. Створіть API-ключ в AirTrail у розділі Налаштування → Безпека.',
   'settings.airtrail.url': 'URL екземпляра',
   'settings.airtrail.apiKey': 'API-ключ',
   'settings.airtrail.apiKeyPlaceholder': 'Bearer API-ключ',
-  'settings.airtrail.apiKeyHint': 'Згенеровано в AirTrail у розділі Налаштування → Безпека. Зберігається в зашифрованому вигляді.',
+  'settings.airtrail.apiKeyHint':
+    'Згенеровано в AirTrail у розділі Налаштування → Безпека. Зберігається в зашифрованому вигляді.',
   'settings.airtrail.allowInsecureTls': 'Дозволити самопідписані сертифікати',
   'settings.airtrail.allowInsecureTlsHint': 'Вмикайте лише для довіреного екземпляра у вашій власній мережі.',
   'settings.airtrail.writeBack': 'Записувати зміни назад у AirTrail',
-  'settings.airtrail.writeBackHint': 'Типово вимкнено: AirTrail є джерелом істини, а TREK лише читає з нього. Увімкніть, щоб надсилати зміни, зроблені в TREK, назад до AirTrail.',
+  'settings.airtrail.writeBackHint':
+    'Типово вимкнено: AirTrail є джерелом істини, а TREK лише читає з нього. Увімкніть, щоб надсилати зміни, зроблені в TREK, назад до AirTrail.',
   'settings.airtrail.connected': 'Підключено',
   'settings.airtrail.notConnected': 'Не підключено',
   'settings.airtrail.toast.saved': 'Підключення AirTrail збережено',

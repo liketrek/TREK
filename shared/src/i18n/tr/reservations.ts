@@ -3,8 +3,7 @@ import type { TranslationStrings } from '../types';
 const reservations: TranslationStrings = {
   'reservations.title': 'Rezervasyonlar',
   'reservations.empty': 'Henüz rezervasyon yok',
-  'reservations.emptyHint':
-    'Uçuşlar, oteller ve daha fazlası için rezervasyon ekleyin',
+  'reservations.emptyHint': 'Uçuşlar, oteller ve daha fazlası için rezervasyon ekleyin',
   'reservations.add': 'Rezervasyon Ekle',
   'reservations.addManual': 'Manuel Rezervasyon',
   'reservations.placeHint':
@@ -34,8 +33,7 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': 'Aktarma',
   'reservations.layover.layover': 'Aktarma bekleme süresi',
   'reservations.needsReview': 'Gözden geçirmek',
-  'reservations.needsReviewHint':
-    'Havaalanı otomatik olarak eşleştirilemedi; lütfen konumu onaylayın.',
+  'reservations.needsReviewHint': 'Havaalanı otomatik olarak eşleştirilemedi; lütfen konumu onaylayın.',
   'reservations.searchLocation': 'İstasyonu, limanı, adresi arayın…',
   'reservations.meta.trainNumber': 'Tren No.',
   'reservations.meta.platform': 'Platformu',
@@ -65,8 +63,7 @@ const reservations: TranslationStrings = {
   'reservations.type.bicycle': 'Bisiklet',
   'reservations.type.taxi': 'Taksi',
   'reservations.type.transport_other': 'Diğer',
-  'reservations.confirm.delete':
-    '"{name}" rezervasyonunu silmek istediğinizden emin misiniz?',
+  'reservations.confirm.delete': '"{name}" rezervasyonunu silmek istediğinizden emin misiniz?',
   'reservations.confirm.deleteTitle': 'Rezervasyon silinsin mi?',
   'reservations.confirm.deleteBody': '"{name}" kalıcı olarak silinecek.',
   'reservations.toast.updated': 'Rezervasyon güncellendi',
@@ -100,8 +97,7 @@ const reservations: TranslationStrings = {
   'reservations.budgetCategory': 'Bütçe kategorisi',
   'reservations.budgetCategoryPlaceholder': 'örn. Ulaşım, Konaklama',
   'reservations.budgetCategoryAuto': 'Otomatik (rezervasyon türünden)',
-  'reservations.budgetHint':
-    'Kaydederken otomatik olarak bir bütçe kaydı oluşturulur.',
+  'reservations.budgetHint': 'Kaydederken otomatik olarak bir bütçe kaydı oluşturulur.',
   'reservations.departureDate': 'Kalkış',
   'reservations.arrivalDate': 'Varış',
   'reservations.departureTime': 'Kalkış saati',
@@ -122,32 +118,25 @@ const reservations: TranslationStrings = {
   'reservations.span.start': 'Başlangıç',
   'reservations.span.end': 'Son',
   'reservations.span.ongoing': 'Devam ediyor',
-  'reservations.validation.endBeforeStart':
-    'Bitiş tarihi/saati başlangıçtan sonra olmalı',
+  'reservations.validation.endBeforeStart': 'Bitiş tarihi/saati başlangıçtan sonra olmalı',
   'reservations.addBooking': 'Rezervasyon ekle',
   'reservations.import.title': 'Rezervasyon onaylarını içe aktar',
   'reservations.import.cta': 'Dosyadan içe aktar',
-  'reservations.import.dropHere':
-    'Rezervasyon onay dosyalarını buraya sürükleyin veya seçmek için tıklayın',
+  'reservations.import.dropHere': 'Rezervasyon onay dosyalarını buraya sürükleyin veya seçmek için tıklayın',
   'reservations.import.dropActive': 'İçe aktarmak için dosyaları bırakın',
   'reservations.import.acceptedFormats':
     'Kabul edilenler: EML, PDF, PKPass, HTML, TXT (her biri maks. 10 MB, en fazla 5 dosya)',
   'reservations.import.parsing': 'Dosyalar işleniyor…',
   'reservations.import.previewHeading': '{count} rezervasyon bulundu',
-  'reservations.import.previewEmpty':
-    'Yüklenen dosyalardan hiçbir rezervasyon çıkarılamadı.',
+  'reservations.import.previewEmpty': 'Yüklenen dosyalardan hiçbir rezervasyon çıkarılamadı.',
   'reservations.import.removeItem': 'Kaldır',
   'reservations.import.confirm': '{count} rezervasyonu içe aktar',
   'reservations.import.back': 'Geri',
   'reservations.import.success': '{count} rezervasyon içe aktarıldı',
-  'reservations.import.partialFailure':
-    '{created} içe aktarıldı, {failed} başarısız',
-  'reservations.import.error':
-    'İşlem başarısız. Dosyanın geçerli bir rezervasyon onayı olduğundan emin olun.',
-  'reservations.import.unavailable':
-    'Rezervasyon içe aktarma bu sunucuda mevcut değil.',
-  'reservations.import.unsupportedFormat':
-    'Desteklenmeyen dosya biçimi. EML, PDF, PKPass, HTML veya TXT kullanın.',
+  'reservations.import.partialFailure': '{created} içe aktarıldı, {failed} başarısız',
+  'reservations.import.error': 'İşlem başarısız. Dosyanın geçerli bir rezervasyon onayı olduğundan emin olun.',
+  'reservations.import.unavailable': 'Rezervasyon içe aktarma bu sunucuda mevcut değil.',
+  'reservations.import.unsupportedFormat': 'Desteklenmeyen dosya biçimi. EML, PDF, PKPass, HTML veya TXT kullanın.',
   'reservations.import.fileTooLarge': '"{name}" dosyası 10 MB sınırını aşıyor.',
   'reservations.airtrail.title': "AirTrail'den içe aktar",
   'reservations.airtrail.cta': 'AirTrail',
@@ -155,14 +144,12 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.syncedHint':
     'AirTrail ile senkronize edildi — düzenlemeler iki yönlü olarak senkronize kalır.',
   'reservations.airtrail.notSynced': 'Senkronize değil',
-  'reservations.airtrail.notSyncedHint':
-    "Bu uçuş AirTrail'de kaldırıldı ve artık senkronize edilmiyor.",
+  'reservations.airtrail.notSyncedHint': "Bu uçuş AirTrail'de kaldırıldı ve artık senkronize edilmiyor.",
   'reservations.airtrail.loadError': 'AirTrail uçuşlarınız yüklenemedi.',
   'reservations.airtrail.imported': '{count} uçuş içe aktarıldı',
   'reservations.airtrail.skippedDuplicate': '{count} zaten bu gezide, atlandı',
   'reservations.airtrail.nothingImported': 'İçe aktarılacak bir şey yok.',
-  'reservations.airtrail.importError':
-    'İçe aktarma başarısız. Lütfen tekrar deneyin.',
+  'reservations.airtrail.importError': 'İçe aktarma başarısız. Lütfen tekrar deneyin.',
   'reservations.airtrail.undo': "AirTrail'den içe aktar",
   'reservations.airtrail.alreadyImported': 'İçe aktarıldı',
   'reservations.airtrail.duringTrip': 'Bu gezi sırasında',
@@ -171,8 +158,7 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.importCta': '{count} içe aktar',
   'reservations.costsLabel': 'Costs',
   'reservations.createExpense': 'Create expense',
-  'reservations.createExpenseHint':
-    'Saves the booking, then opens the Costs editor.',
+  'reservations.createExpenseHint': 'Saves the booking, then opens the Costs editor.',
   'reservations.linkedExpense': 'Linked expense',
   'reservations.removeExpense': 'Remove expense',
 };

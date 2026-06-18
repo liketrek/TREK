@@ -7,8 +7,7 @@ const day: TranslationStrings = {
   'day.sunrise': 'Gün doğumu',
   'day.sunset': 'Gün batımı',
   'day.hourlyForecast': 'Saatlik Tahmin',
-  'day.climateHint':
-    'Tarihsel ortalamalar — gerçek tahmin bu tarihten 16 gün öncesine kadar kullanılabilir.',
+  'day.climateHint': 'Tarihsel ortalamalar — gerçek tahmin bu tarihten 16 gün öncesine kadar kullanılabilir.',
   'day.noWeather': 'Hava durumu verisi yok. Koordinatlı bir yer ekleyin.',
   'day.overview': 'Günlük Özet',
   'day.accommodation': 'Konaklama',

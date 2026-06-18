@@ -32,33 +32,20 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': 'Colaboração (notas, enquetes, chat)',
   'perm.action.share_manage': 'Gerenciar links de compartilhamento',
   'perm.actionHint.trip_create': 'Quem pode criar novas viagens',
-  'perm.actionHint.trip_edit':
-    'Quem pode alterar nome, datas, descrição e moeda da viagem',
+  'perm.actionHint.trip_edit': 'Quem pode alterar nome, datas, descrição e moeda da viagem',
   'perm.actionHint.trip_delete': 'Quem pode excluir permanentemente uma viagem',
-  'perm.actionHint.trip_archive':
-    'Quem pode arquivar ou desarquivar uma viagem',
-  'perm.actionHint.trip_cover_upload':
-    'Quem pode enviar ou alterar a imagem de capa',
-  'perm.actionHint.member_manage':
-    'Quem pode convidar ou remover membros da viagem',
+  'perm.actionHint.trip_archive': 'Quem pode arquivar ou desarquivar uma viagem',
+  'perm.actionHint.trip_cover_upload': 'Quem pode enviar ou alterar a imagem de capa',
+  'perm.actionHint.member_manage': 'Quem pode convidar ou remover membros da viagem',
   'perm.actionHint.file_upload': 'Quem pode enviar arquivos para uma viagem',
-  'perm.actionHint.file_edit':
-    'Quem pode editar descrições e links dos arquivos',
-  'perm.actionHint.file_delete':
-    'Quem pode mover arquivos para a lixeira ou excluí-los permanentemente',
-  'perm.actionHint.place_edit':
-    'Quem pode adicionar, editar ou excluir lugares',
-  'perm.actionHint.day_edit':
-    'Quem pode editar dias, notas dos dias e atribuições de lugares',
-  'perm.actionHint.reservation_edit':
-    'Quem pode criar, editar ou excluir reservas',
-  'perm.actionHint.budget_edit':
-    'Quem pode criar, editar ou excluir itens do orçamento',
-  'perm.actionHint.packing_edit':
-    'Quem pode gerenciar itens de bagagem e malas',
-  'perm.actionHint.collab_edit':
-    'Quem pode criar notas, enquetes e enviar mensagens',
-  'perm.actionHint.share_manage':
-    'Quem pode criar ou excluir links de compartilhamento públicos',
+  'perm.actionHint.file_edit': 'Quem pode editar descrições e links dos arquivos',
+  'perm.actionHint.file_delete': 'Quem pode mover arquivos para a lixeira ou excluí-los permanentemente',
+  'perm.actionHint.place_edit': 'Quem pode adicionar, editar ou excluir lugares',
+  'perm.actionHint.day_edit': 'Quem pode editar dias, notas dos dias e atribuições de lugares',
+  'perm.actionHint.reservation_edit': 'Quem pode criar, editar ou excluir reservas',
+  'perm.actionHint.budget_edit': 'Quem pode criar, editar ou excluir itens do orçamento',
+  'perm.actionHint.packing_edit': 'Quem pode gerenciar itens de bagagem e malas',
+  'perm.actionHint.collab_edit': 'Quem pode criar notas, enquetes e enviar mensagens',
+  'perm.actionHint.share_manage': 'Quem pode criar ou excluir links de compartilhamento públicos',
 };
 export default perm;

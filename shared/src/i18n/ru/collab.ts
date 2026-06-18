@@ -9,14 +9,12 @@ const collab: TranslationStrings = {
   'collab.whatsNext.tomorrow': 'Завтра',
   'collab.whatsNext.empty': 'Нет предстоящих активностей',
   'collab.whatsNext.until': 'до',
-  'collab.whatsNext.emptyHint':
-    'Активности со временем будут отображаться здесь',
+  'collab.whatsNext.emptyHint': 'Активности со временем будут отображаться здесь',
   'collab.chat.send': 'Отправить',
   'collab.chat.placeholder': 'Введите сообщение...',
   'collab.chat.empty': 'Начните разговор',
   'collab.chat.emptyHint': 'Сообщения видны всем участникам поездки',
-  'collab.chat.emptyDesc':
-    'Делитесь идеями, планами и новостями с вашей группой',
+  'collab.chat.emptyDesc': 'Делитесь идеями, планами и новостями с вашей группой',
   'collab.chat.today': 'Сегодня',
   'collab.chat.yesterday': 'Вчера',
   'collab.chat.deletedMessage': 'удалил(а) сообщение',

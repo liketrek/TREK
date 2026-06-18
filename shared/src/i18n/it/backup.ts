@@ -31,15 +31,13 @@ const backup: TranslationStrings = {
   'backup.auto.title': 'Auto-Backup',
   'backup.auto.subtitle': 'Backup automatico pianificato',
   'backup.auto.enable': 'Abilita auto-backup',
-  'backup.auto.enableHint':
-    'I backup verranno creati automaticamente in base alla pianificazione scelta',
+  'backup.auto.enableHint': 'I backup verranno creati automaticamente in base alla pianificazione scelta',
   'backup.auto.interval': 'Intervallo',
   'backup.auto.hour': "Esegui all'ora",
   'backup.auto.hourHint': 'Ora locale del server (formato {format})',
   'backup.auto.dayOfWeek': 'Giorno della settimana',
   'backup.auto.dayOfMonth': 'Giorno del mese',
-  'backup.auto.dayOfMonthHint':
-    'Limitato a 1–28 per compatibilità con tutti i mesi',
+  'backup.auto.dayOfMonthHint': 'Limitato a 1–28 per compatibilità con tutti i mesi',
   'backup.auto.scheduleSummary': 'Pianificazione',
   'backup.auto.summaryDaily': 'Ogni giorno alle {hour}:00',
   'backup.auto.summaryWeekly': 'Ogni {day} alle {hour}:00',
@@ -70,8 +68,7 @@ const backup: TranslationStrings = {
   'backup.restoreConfirmTitle': 'Ripristinare il backup?',
   'backup.restoreWarning':
     'Tutti i dati attuali (viaggi, luoghi, utenti, caricamenti) verranno sostituiti in modo permanente dal backup. Questa azione non può essere annullata.',
-  'backup.restoreTip':
-    'Suggerimento: Crea un backup dello stato attuale prima di ripristinare.',
+  'backup.restoreTip': 'Suggerimento: Crea un backup dello stato attuale prima di ripristinare.',
   'backup.restoreConfirm': 'Sì, ripristina',
 };
 export default backup;

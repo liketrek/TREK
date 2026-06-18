@@ -26,14 +26,11 @@ const notifications: TranslationStrings = {
   'notifications.test.navigateText': 'Notification de test de navigation.',
   'notifications.test.goThere': 'Y aller',
   'notifications.test.adminTitle': 'Diffusion admin',
-  'notifications.test.adminText':
-    '{actor} a envoyé une notification de test à tous les admins.',
+  'notifications.test.adminText': '{actor} a envoyé une notification de test à tous les admins.',
   'notifications.test.tripTitle': '{actor} a publié dans votre voyage',
-  'notifications.test.tripText':
-    'Notification de test pour le voyage "{trip}".',
+  'notifications.test.tripText': 'Notification de test pour le voyage "{trip}".',
   'notifications.versionAvailable.title': 'Mise à jour disponible',
-  'notifications.versionAvailable.text':
-    'TREK {version} est maintenant disponible.',
+  'notifications.versionAvailable.text': 'TREK {version} est maintenant disponible.',
   'notifications.versionAvailable.button': 'Voir les détails',
 };
 export default notifications;

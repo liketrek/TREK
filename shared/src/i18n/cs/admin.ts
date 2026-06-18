@@ -2,8 +2,7 @@ import type { TranslationStrings } from '../types';
 
 const admin: TranslationStrings = {
   'admin.notifications.title': 'Oznámení',
-  'admin.notifications.hint':
-    'Vyberte kanál oznámení. Současně může být aktivní pouze jeden.',
+  'admin.notifications.hint': 'Vyberte kanál oznámení. Současně může být aktivní pouze jeden.',
   'admin.notifications.none': 'Vypnuto',
   'admin.notifications.email': 'E-mail (SMTP)',
   'admin.notifications.webhook': 'Webhook',
@@ -11,13 +10,11 @@ const admin: TranslationStrings = {
   'admin.notifications.saved': 'Nastavení oznámení uloženo',
   'admin.notifications.testWebhook': 'Odeslat testovací webhook',
   'admin.notifications.testWebhookSuccess': 'Testovací webhook úspěšně odeslán',
-  'admin.notifications.testWebhookFailed':
-    'Odeslání testovacího webhooku se nezdařilo',
+  'admin.notifications.testWebhookFailed': 'Odeslání testovacího webhooku se nezdařilo',
   'admin.smtp.title': 'E-mail a oznámení',
   'admin.smtp.hint': 'Konfigurace SMTP pro odesílání e-mailových oznámení.',
   'admin.smtp.testButton': 'Odeslat testovací e-mail',
-  'admin.webhook.hint':
-    'Odesílat oznámení na externí webhook (Discord, Slack atd.).',
+  'admin.webhook.hint': 'Odesílat oznámení na externí webhook (Discord, Slack atd.).',
   'admin.smtp.testSuccess': 'Testovací e-mail byl úspěšně odeslán',
   'admin.smtp.testFailed': 'Odeslání testovacího e-mailu se nezdařilo',
   'admin.title': 'Administrace',
@@ -40,8 +37,7 @@ const admin: TranslationStrings = {
   'admin.editUser': 'Upravit uživatele',
   'admin.newPassword': 'Nové heslo',
   'admin.newPasswordHint': 'Ponechte prázdné pro zachování současného hesla',
-  'admin.deleteUser':
-    'Smazat uživatele „{name}“? Všechny jeho cesty budou trvale smazány.',
+  'admin.deleteUser': 'Smazat uživatele „{name}“? Všechny jeho cesty budou trvale smazány.',
   'admin.deleteUserTitle': 'Smazat uživatele',
   'admin.newPasswordPlaceholder': 'Zadejte nové heslo…',
   'admin.toast.loadError': 'Nepodařilo se načíst data administrace',
@@ -52,8 +48,7 @@ const admin: TranslationStrings = {
   'admin.toast.cannotDeleteSelf': 'Nemůžete smazat svůj vlastní účet',
   'admin.toast.userCreated': 'Uživatel byl vytvořen',
   'admin.toast.createError': 'Nepodařilo se vytvořit uživatele',
-  'admin.toast.fieldsRequired':
-    'Uživatelské jméno, e-mail a heslo jsou povinné',
+  'admin.toast.fieldsRequired': 'Uživatelské jméno, e-mail a heslo jsou povinné',
   'admin.createUser': 'Vytvořit uživatele',
   'admin.invite.title': 'Pozvánky',
   'admin.invite.subtitle': 'Vytvářejte jednorázové registrační odkazy',
@@ -80,25 +75,20 @@ const admin: TranslationStrings = {
   'admin.passwordLogin': 'Password Login',
   'admin.passwordLoginHint': 'Allow users to sign in with email and password',
   'admin.passwordRegistration': 'Password Registration',
-  'admin.passwordRegistrationHint':
-    'Allow new users to register with email and password',
+  'admin.passwordRegistrationHint': 'Allow new users to register with email and password',
   'admin.oidcLogin': 'SSO Login',
   'admin.oidcLoginHint': 'Allow users to sign in with SSO',
   'admin.oidcRegistration': 'SSO Auto-Provisioning',
-  'admin.oidcRegistrationHint':
-    'Automatically create accounts for new SSO users',
+  'admin.oidcRegistrationHint': 'Automatically create accounts for new SSO users',
   'admin.envOverrideHint':
     'Password login settings are controlled by the OIDC_ONLY environment variable and cannot be changed here.',
   'admin.lockoutWarning': 'At least one login method must remain enabled',
   'admin.requireMfa': 'Vyžadovat dvoufázové ověření (2FA)',
-  'admin.requireMfaHint':
-    'Uživatelé bez 2FA musí dokončit nastavení v Nastavení před použitím aplikace.',
+  'admin.requireMfaHint': 'Uživatelé bez 2FA musí dokončit nastavení v Nastavení před použitím aplikace.',
   'admin.apiKeys': 'API klíče',
-  'admin.apiKeysHint':
-    'Volitelné. Povoluje rozšířená data o místech (fotky, počasí).',
+  'admin.apiKeysHint': 'Volitelné. Povoluje rozšířená data o místech (fotky, počasí).',
   'admin.mapsKey': 'Google Maps API klíč',
-  'admin.mapsKeyHint':
-    'Povinné pro hledání míst. Získáte na console.cloud.google.com',
+  'admin.mapsKeyHint': 'Povinné pro hledání míst. Získáte na console.cloud.google.com',
   'admin.mapsKeyHintLong':
     'Bez API klíče se pro hledání používá OpenStreetMap. S Google klíčem lze načítat fotky, hodnocení a otevírací dobu.',
   'admin.recommended': 'Doporučeno',
@@ -109,21 +99,17 @@ const admin: TranslationStrings = {
   'admin.keyInvalid': 'Neplatný',
   'admin.keySaved': 'API klíče byly uloženy',
   'admin.oidcTitle': 'Jednotné přihlášení (OIDC)',
-  'admin.oidcSubtitle':
-    'Povolit přihlášení přes externí poskytovatele (Google, Apple, Authentik, Keycloak).',
+  'admin.oidcSubtitle': 'Povolit přihlášení přes externí poskytovatele (Google, Apple, Authentik, Keycloak).',
   'admin.oidcDisplayName': 'Zobrazované jméno',
   'admin.oidcIssuer': 'URL vydavatele (Issuer)',
-  'admin.oidcIssuerHint':
-    'OpenID Connect Issuer URL, např. https://accounts.google.com',
+  'admin.oidcIssuerHint': 'OpenID Connect Issuer URL, např. https://accounts.google.com',
   'admin.oidcSaved': 'Konfigurace OIDC uložena',
   'admin.oidcOnlyMode': 'Zakázat ověřování heslem',
   'admin.oidcOnlyModeHint':
     'Pokud je zapnuto, je povolen pouze SSO login. Registrace i přihlášení heslem budou zablokovány.',
   'admin.fileTypes': 'Povolené typy souborů',
-  'admin.fileTypesHint':
-    'Nastavte, které typy souborů mohou uživatelé nahrávat.',
-  'admin.fileTypesFormat':
-    'Přípony oddělené čárkou (např. jpg,png,pdf,doc). Použijte * pro všechny typy.',
+  'admin.fileTypesHint': 'Nastavte, které typy souborů mohou uživatelé nahrávat.',
+  'admin.fileTypesFormat': 'Přípony oddělené čárkou (např. jpg,png,pdf,doc). Použijte * pro všechny typy.',
   'admin.fileTypesSaved': 'Nastavení souborů uloženo',
   'admin.placesPhotos.title': 'Fotografie míst',
   'admin.placesPhotos.subtitle':
@@ -135,8 +121,7 @@ const admin: TranslationStrings = {
   'admin.placesDetails.subtitle':
     'Načítání podrobných informací o místě (hodiny, hodnocení, web) z Google Places API. Zakázáním ušetříte kvótu API.',
   'admin.bagTracking.title': 'Sledování zavazadel',
-  'admin.bagTracking.subtitle':
-    'Povolit váhu a přiřazení k zavazadlům u položek balení',
+  'admin.bagTracking.subtitle': 'Povolit váhu a přiřazení k zavazadlům u položek balení',
   'admin.collab.chat.title': 'Chat',
   'admin.collab.chat.subtitle': 'Zasílání zpráv v reálném čase',
   'admin.collab.notes.title': 'Poznámky',
@@ -155,11 +140,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.resetToBuiltIn': 'obnovit',
   'admin.tabs.templates': 'Šablony seznamů',
   'admin.packingTemplates.title': 'Šablony pro balení',
-  'admin.packingTemplates.subtitle':
-    'Vytvářejte opakovaně použitelné seznamy pro své cesty',
+  'admin.packingTemplates.subtitle': 'Vytvářejte opakovaně použitelné seznamy pro své cesty',
   'admin.packingTemplates.create': 'Nová šablona',
-  'admin.packingTemplates.namePlaceholder':
-    'Název šablony (např. Dovolená u moře)',
+  'admin.packingTemplates.namePlaceholder': 'Název šablony (např. Dovolená u moře)',
   'admin.packingTemplates.empty': 'Zatím nejsou vytvořeny žádné šablony',
   'admin.packingTemplates.items': 'položek',
   'admin.packingTemplates.categories': 'kategorií',
@@ -177,26 +160,19 @@ const admin: TranslationStrings = {
   'admin.addons.title': 'Doplňky',
   'admin.addons.subtitle': 'Zapněte nebo vypněte funkce a přizpůsobte si TREK.',
   'admin.addons.catalog.memories.name': 'Fotky (Immich)',
-  'admin.addons.catalog.memories.description':
-    'Sdílejte cestovní fotky přes vaši instanci Immich',
+  'admin.addons.catalog.memories.description': 'Sdílejte cestovní fotky přes vaši instanci Immich',
   'admin.addons.catalog.packing.name': 'Seznamy',
-  'admin.addons.catalog.packing.description':
-    'Balicí seznamy a úkoly pro vaše výlety',
+  'admin.addons.catalog.packing.description': 'Balicí seznamy a úkoly pro vaše výlety',
   'admin.addons.catalog.budget.name': 'Rozpočet',
-  'admin.addons.catalog.budget.description':
-    'Sledování výdajů a plánování rozpočtu cesty',
+  'admin.addons.catalog.budget.description': 'Sledování výdajů a plánování rozpočtu cesty',
   'admin.addons.catalog.documents.name': 'Dokumenty',
-  'admin.addons.catalog.documents.description':
-    'Ukládání a správa cestovních dokladů',
+  'admin.addons.catalog.documents.description': 'Ukládání a správa cestovních dokladů',
   'admin.addons.catalog.vacay.name': 'Dovolená (Vacay)',
-  'admin.addons.catalog.vacay.description':
-    'Osobní plánovač dovolené s kalendářem',
+  'admin.addons.catalog.vacay.description': 'Osobní plánovač dovolené s kalendářem',
   'admin.addons.catalog.atlas.name': 'Atlas',
-  'admin.addons.catalog.atlas.description':
-    'Mapa světa s navštívenými zeměmi a statistikami',
+  'admin.addons.catalog.atlas.description': 'Mapa světa s navštívenými zeměmi a statistikami',
   'admin.addons.catalog.collab.name': 'Spolupráce',
-  'admin.addons.catalog.collab.description':
-    'Poznámky v reálném čase, hlasování a chat pro plánování',
+  'admin.addons.catalog.collab.description': 'Poznámky v reálném čase, hlasování a chat pro plánování',
   'admin.addons.enabled': 'Povoleno',
   'admin.addons.disabled': 'Zakázáno',
   'admin.addons.type.trip': 'Cesta',
@@ -204,20 +180,16 @@ const admin: TranslationStrings = {
   'admin.addons.type.integration': 'Integrace',
   'admin.addons.tripHint': 'Dostupné jako karta v rámci každé cesty',
   'admin.addons.globalHint': 'Dostupné jako samostatná sekce v hlavní navigaci',
-  'admin.addons.integrationHint':
-    'Backendové služby a API integrace bez vlastní stránky',
+  'admin.addons.integrationHint': 'Backendové služby a API integrace bez vlastní stránky',
   'admin.addons.toast.updated': 'Doplněk byl aktualizován',
   'admin.addons.toast.error': 'Aktualizace doplňku se nezdařila',
   'admin.addons.noAddons': 'Žádné doplňky nejsou k dispozici',
   'admin.addons.catalog.mcp.name': 'MCP',
-  'admin.addons.catalog.mcp.description':
-    'Model Context Protocol pro integraci AI asistentů',
-  'admin.addons.subtitleBefore':
-    'Zapněte nebo vypněte funkce a přizpůsobte si ',
+  'admin.addons.catalog.mcp.description': 'Model Context Protocol pro integraci AI asistentů',
+  'admin.addons.subtitleBefore': 'Zapněte nebo vypněte funkce a přizpůsobte si ',
   'admin.addons.subtitleAfter': '.',
   'admin.tabs.audit': 'Audit',
-  'admin.audit.subtitle':
-    'Bezpečnostní a administrátorské události (zálohy, uživatelé, 2FA, nastavení).',
+  'admin.audit.subtitle': 'Bezpečnostní a administrátorské události (zálohy, uživatelé, 2FA, nastavení).',
   'admin.audit.empty': 'Zatím žádné záznamy auditu.',
   'admin.audit.refresh': 'Obnovit',
   'admin.audit.loadMore': 'Načíst další',
@@ -230,8 +202,7 @@ const admin: TranslationStrings = {
   'admin.audit.col.details': 'Detaily',
   'admin.tabs.mcpTokens': 'MCP přístup',
   'admin.mcpTokens.title': 'MCP přístup',
-  'admin.mcpTokens.subtitle':
-    'Správa OAuth relací a API tokenů všech uživatelů',
+  'admin.mcpTokens.subtitle': 'Správa OAuth relací a API tokenů všech uživatelů',
   'admin.mcpTokens.sectionTitle': 'API tokeny',
   'admin.mcpTokens.owner': 'Vlastník',
   'admin.mcpTokens.tokenName': 'Název tokenu',
@@ -252,8 +223,7 @@ const admin: TranslationStrings = {
   'admin.oauthSessions.created': 'Vytvořeno',
   'admin.oauthSessions.empty': 'Žádné aktivní OAuth relace',
   'admin.oauthSessions.revokeTitle': 'Zrušit relaci',
-  'admin.oauthSessions.revokeMessage':
-    'Tato OAuth relace bude okamžitě zrušena. Klient ztratí přístup k MCP.',
+  'admin.oauthSessions.revokeMessage': 'Tato OAuth relace bude okamžitě zrušena. Klient ztratí přístup k MCP.',
   'admin.oauthSessions.revokeSuccess': 'Relace zrušena',
   'admin.oauthSessions.revokeError': 'Nepodařilo se zrušit relaci',
   'admin.oauthSessions.loadError': 'Nepodařilo se načíst OAuth relace',
@@ -276,27 +246,22 @@ const admin: TranslationStrings = {
   'admin.weather.forecast': 'Předpověď na 16 dní',
   'admin.weather.forecastDesc': 'Dříve 5 dní (OpenWeatherMap)',
   'admin.weather.climate': 'Historická klimatická data',
-  'admin.weather.climateDesc':
-    'Průměry za posledních 85 let pro dny mimo 16denní předpověď',
+  'admin.weather.climateDesc': 'Průměry za posledních 85 let pro dny mimo 16denní předpověď',
   'admin.weather.requests': '10 000 požadavků denně',
   'admin.weather.requestsDesc': 'Zdarma, bez nutnosti klíče',
-  'admin.weather.locationHint':
-    'Počasí se určuje podle prvního místa se souřadnicemi v daném dni.',
+  'admin.weather.locationHint': 'Počasí se určuje podle prvního místa se souřadnicemi v daném dni.',
   'admin.update.available': 'Dostupná aktualizace',
-  'admin.update.text':
-    'TREK {version} je k dispozici. Aktuálně používáte verzi {current}.',
+  'admin.update.text': 'TREK {version} je k dispozici. Aktuálně používáte verzi {current}.',
   'admin.update.button': 'Zobrazit na GitHubu',
   'admin.update.install': 'Instalovat aktualizaci',
   'admin.update.confirmTitle': 'Instalovat aktualizaci?',
   'admin.update.confirmText':
     'TREK bude aktualizován z verze {current} na {version}. Server se poté automaticky restartuje.',
-  'admin.update.dataInfo':
-    'Všechna vaše data (cesty, uživatelé, API klíče, soubory) budou zachována.',
+  'admin.update.dataInfo': 'Všechna vaše data (cesty, uživatelé, API klíče, soubory) budou zachována.',
   'admin.update.warning': 'Aplikace bude během restartu krátce nedostupná.',
   'admin.update.confirm': 'Aktualizovat nyní',
   'admin.update.installing': 'Aktualizace probíhá…',
-  'admin.update.success':
-    'Aktualizace byla nainstalována! Server se restartuje…',
+  'admin.update.success': 'Aktualizace byla nainstalována! Server se restartuje…',
   'admin.update.failed': 'Aktualizace se nezdařila',
   'admin.update.backupHint': 'Před aktualizací doporučujeme vytvořit zálohu.',
   'admin.update.backupLink': 'Přejít na zálohování',
@@ -308,18 +273,14 @@ const admin: TranslationStrings = {
   'admin.notifications.emailPanel.title': 'Email (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
   'admin.notifications.inappPanel.title': 'In-App',
-  'admin.notifications.inappPanel.hint':
-    'In-app oznámení jsou vždy aktivní a nelze je globálně vypnout.',
+  'admin.notifications.inappPanel.hint': 'In-app oznámení jsou vždy aktivní a nelze je globálně vypnout.',
   'admin.notifications.adminWebhookPanel.title': 'Admin webhook',
   'admin.notifications.adminWebhookPanel.hint':
     'Tento webhook se používá výhradně pro admin oznámení (např. upozornění na verze). Je nezávislý na uživatelských webhooků a odesílá automaticky, pokud je nastavena URL.',
   'admin.notifications.adminWebhookPanel.saved': 'URL admin webhooku uložena',
-  'admin.notifications.adminWebhookPanel.testSuccess':
-    'Testovací webhook byl úspěšně odeslán',
-  'admin.notifications.adminWebhookPanel.testFailed':
-    'Testovací webhook selhal',
-  'admin.notifications.adminWebhookPanel.alwaysOnHint':
-    'Admin webhook odesílá automaticky, pokud je nastavena URL',
+  'admin.notifications.adminWebhookPanel.testSuccess': 'Testovací webhook byl úspěšně odeslán',
+  'admin.notifications.adminWebhookPanel.testFailed': 'Testovací webhook selhal',
+  'admin.notifications.adminWebhookPanel.alwaysOnHint': 'Admin webhook odesílá automaticky, pokud je nastavena URL',
   'admin.notifications.ntfy': 'Ntfy',
   'admin.ntfy.hint':
     'Umožňuje uživatelům nakonfigurovat vlastní témata ntfy pro přijímání push notifikací. Níže nastavte výchozí server pro předvyplnění nastavení uživatelů.',
@@ -335,29 +296,23 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.serverPlaceholder': 'https://ntfy.sh',
   'admin.notifications.adminNtfyPanel.topicLabel': 'Admin téma',
   'admin.notifications.adminNtfyPanel.topicPlaceholder': 'trek-admin-alerts',
-  'admin.notifications.adminNtfyPanel.tokenLabel':
-    'Přístupový token (volitelné)',
-  'admin.notifications.adminNtfyPanel.tokenCleared':
-    'Přístupový token admina byl vymazán',
+  'admin.notifications.adminNtfyPanel.tokenLabel': 'Přístupový token (volitelné)',
+  'admin.notifications.adminNtfyPanel.tokenCleared': 'Přístupový token admina byl vymazán',
   'admin.notifications.adminNtfyPanel.saved': 'Nastavení admin Ntfy uloženo',
   'admin.notifications.adminNtfyPanel.test': 'Odeslat testovací Ntfy',
-  'admin.notifications.adminNtfyPanel.testSuccess':
-    'Testovací Ntfy bylo úspěšně odesláno',
+  'admin.notifications.adminNtfyPanel.testSuccess': 'Testovací Ntfy bylo úspěšně odesláno',
   'admin.notifications.adminNtfyPanel.testFailed': 'Testovací Ntfy selhalo',
-  'admin.notifications.adminNtfyPanel.alwaysOnHint':
-    'Admin Ntfy odesílá vždy, když je nakonfigurováno téma',
+  'admin.notifications.adminNtfyPanel.alwaysOnHint': 'Admin Ntfy odesílá vždy, když je nakonfigurováno téma',
   'admin.notifications.adminNotificationsHint':
     'Nastavte, které kanály doručují admin oznámení (např. upozornění na verze). Webhook odesílá automaticky, pokud je nastavena URL admin webhooku.',
   'admin.notifications.tripReminders.title': 'Připomínky výletů',
   'admin.notifications.tripReminders.hint':
     'Odešle upozornění před začátkem výletu (vyžaduje nastavené dny připomínky na výletu).',
   'admin.notifications.tripReminders.enabled': 'Připomínky výletů aktivovány',
-  'admin.notifications.tripReminders.disabled':
-    'Připomínky výletů deaktivovány',
+  'admin.notifications.tripReminders.disabled': 'Připomínky výletů deaktivovány',
   'admin.tabs.notifications': 'Oznámení',
   'admin.addons.catalog.journey.name': 'Cestovní deník',
-  'admin.addons.catalog.journey.description':
-    'Sledování cest a cestovní deník s odbaveními, fotkami a denními příběhy',
+  'admin.addons.catalog.journey.description': 'Sledování cest a cestovní deník s odbaveními, fotkami a denními příběhy',
   'admin.passkey.title': 'Přihlášení přístupovým klíčem',
   'admin.passkey.cardHint':
     'Umožněte uživatelům přihlašovat se pomocí přístupových klíčů (WebAuthn). Ve výchozím nastavení vypnuto.',
@@ -378,11 +333,13 @@ const admin: TranslationStrings = {
   'admin.passkey.resetConfirm': 'Odebrat všechny přístupové klíče uživatele {name}?',
   'admin.passkey.resetDone': 'Odebráno {count} přístupových klíčů',
   'admin.defaultSettings.mapProvider': 'Mapový engine',
-  'admin.defaultSettings.mapProviderHint': 'Výchozí mapa pro všechny uživatele na této instanci. Každý uživatel ji může i nadále změnit ve svém vlastním nastavení.',
+  'admin.defaultSettings.mapProviderHint':
+    'Výchozí mapa pro všechny uživatele na této instanci. Každý uživatel ji může i nadále změnit ve svém vlastním nastavení.',
   'admin.defaultSettings.providerLeaflet': 'Standardní (zdarma)',
   'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
   'admin.defaultSettings.mapboxToken': 'Sdílený token Mapbox',
-  'admin.defaultSettings.mapboxTokenHint': 'Použije se pro každého uživatele, který nezadal vlastní token — takže celá instance získá Mapbox, aniž byste klíč sdíleli s každým zvlášť. Ukládá se šifrovaně.',
+  'admin.defaultSettings.mapboxTokenHint':
+    'Použije se pro každého uživatele, který nezadal vlastní token — takže celá instance získá Mapbox, aniž byste klíč sdíleli s každým zvlášť. Ukládá se šifrovaně.',
   'admin.defaultSettings.mapboxStyle': 'Styl mapy',
   'admin.defaultSettings.mapboxStylePlaceholder': 'Vyberte styl…',
   'admin.defaultSettings.mapbox3d': '3D budovy & terén',

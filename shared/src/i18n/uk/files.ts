@@ -13,8 +13,7 @@ const files: TranslationStrings = {
   'files.uploadError': 'Помилка завантаження',
   'files.dropzone': 'Перетягніть файли сюди',
   'files.dropzoneHint': 'або натисніть для вибору',
-  'files.allowedTypes':
-    'Зображення, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Макс. 50 МБ',
+  'files.allowedTypes': 'Зображення, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Макс. 50 МБ',
   'files.uploading': 'Завантаження...',
   'files.filterAll': 'Усі',
   'files.filterPdf': 'PDF',
@@ -50,10 +49,8 @@ const files: TranslationStrings = {
   'files.toast.assigned': 'Файл призначено',
   'files.toast.assignError': 'Помилка призначення',
   'files.toast.restoreError': 'Помилка відновлення',
-  'files.confirm.permanentDelete':
-    'Безповоротно видалити цей файл? Цю дію неможливо скасувати.',
-  'files.confirm.emptyTrash':
-    'Безповоротно видалити всі файли з кошика? Цю дію неможливо скасувати.',
+  'files.confirm.permanentDelete': 'Безповоротно видалити цей файл? Цю дію неможливо скасувати.',
+  'files.confirm.emptyTrash': 'Безповоротно видалити всі файли з кошика? Цю дію неможливо скасувати.',
   'files.noteLabel': 'Нотатка',
   'files.notePlaceholder': 'Додати нотатку...',
   'files.assignTransport': 'Транспорт',

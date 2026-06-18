@@ -2,8 +2,7 @@ import type { TranslationStrings } from '../types';
 
 const admin: TranslationStrings = {
   'admin.notifications.title': 'Ειδοποιήσεις',
-  'admin.notifications.hint':
-    'Επιλέξτε ένα κανάλι ειδοποιήσεων. Μόνο ένα μπορεί να είναι ενεργό κάθε φορά.',
+  'admin.notifications.hint': 'Επιλέξτε ένα κανάλι ειδοποιήσεων. Μόνο ένα μπορεί να είναι ενεργό κάθε φορά.',
   'admin.notifications.none': 'Απενεργοποιημένο',
   'admin.notifications.email': 'Email (SMTP)',
   'admin.notifications.webhook': 'Webhook',
@@ -13,8 +12,7 @@ const admin: TranslationStrings = {
   'admin.notifications.save': 'Αποθήκευση ρυθμίσεων ειδοποιήσεων',
   'admin.notifications.saved': 'Οι ρυθμίσεις ειδοποιήσεων αποθηκεύτηκαν',
   'admin.notifications.testWebhook': 'Αποστολή δοκιμαστικού webhook',
-  'admin.notifications.testWebhookSuccess':
-    'Η δοκιμή webhook στάλθηκε επιτυχώς',
+  'admin.notifications.testWebhookSuccess': 'Η δοκιμή webhook στάλθηκε επιτυχώς',
   'admin.notifications.testWebhookFailed': 'Η δοκιμή webhook απέτυχε',
   'admin.notifications.testNtfy': 'Αποστολή δοκιμαστικού ntfy',
   'admin.notifications.testNtfySuccess': 'Η δοκιμή ntfy στάλθηκε επιτυχώς',
@@ -27,12 +25,9 @@ const admin: TranslationStrings = {
   'admin.notifications.adminWebhookPanel.title': 'Webhook Διαχειριστή',
   'admin.notifications.adminWebhookPanel.hint':
     'Αυτό το webhook χρησιμοποιείται αποκλειστικά για ειδοποιήσεις διαχειριστή (π.χ. ειδοποιήσεις έκδοσης). Είναι ξεχωριστό από τα webhooks των χρηστών και ενεργοποιείται πάντα όταν έχει οριστεί.',
-  'admin.notifications.adminWebhookPanel.saved':
-    'Το URL του webhook διαχειριστή αποθηκεύτηκε',
-  'admin.notifications.adminWebhookPanel.testSuccess':
-    'Η δοκιμή webhook στάλθηκε επιτυχώς',
-  'admin.notifications.adminWebhookPanel.testFailed':
-    'Η δοκιμή webhook απέτυχε',
+  'admin.notifications.adminWebhookPanel.saved': 'Το URL του webhook διαχειριστή αποθηκεύτηκε',
+  'admin.notifications.adminWebhookPanel.testSuccess': 'Η δοκιμή webhook στάλθηκε επιτυχώς',
+  'admin.notifications.adminWebhookPanel.testFailed': 'Η δοκιμή webhook απέτυχε',
   'admin.notifications.adminWebhookPanel.alwaysOnHint':
     'Το webhook διαχειριστή ενεργοποιείται πάντα όταν έχει διαμορφωθεί ένα URL',
   'admin.notifications.adminNtfyPanel.title': 'Ntfy Διαχειριστή',
@@ -45,13 +40,10 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.topicLabel': 'Θέμα Διαχειριστή',
   'admin.notifications.adminNtfyPanel.topicPlaceholder': 'trek-admin-alerts',
   'admin.notifications.adminNtfyPanel.tokenLabel': 'Access Token (προαιρετικό)',
-  'admin.notifications.adminNtfyPanel.tokenCleared':
-    'Το access token διαχειριστή εκκαθαρίστηκε',
-  'admin.notifications.adminNtfyPanel.saved':
-    'Οι ρυθμίσεις ntfy διαχειριστή αποθηκεύτηκαν',
+  'admin.notifications.adminNtfyPanel.tokenCleared': 'Το access token διαχειριστή εκκαθαρίστηκε',
+  'admin.notifications.adminNtfyPanel.saved': 'Οι ρυθμίσεις ntfy διαχειριστή αποθηκεύτηκαν',
   'admin.notifications.adminNtfyPanel.test': 'Αποστολή δοκιμαστικού ntfy',
-  'admin.notifications.adminNtfyPanel.testSuccess':
-    'Η δοκιμή ntfy στάλθηκε επιτυχώς',
+  'admin.notifications.adminNtfyPanel.testSuccess': 'Η δοκιμή ntfy στάλθηκε επιτυχώς',
   'admin.notifications.adminNtfyPanel.testFailed': 'Η δοκιμή ntfy απέτυχε',
   'admin.notifications.adminNtfyPanel.alwaysOnHint':
     'Το ntfy διαχειριστή ενεργοποιείται πάντα όταν έχει διαμορφωθεί ένα θέμα',
@@ -60,10 +52,8 @@ const admin: TranslationStrings = {
   'admin.notifications.tripReminders.title': 'Υπενθυμίσεις Ταξιδιού',
   'admin.notifications.tripReminders.hint':
     'Αποστολή ειδοποίησης υπενθύμισης πριν την έναρξη ενός ταξιδιού (απαιτεί να έχουν οριστεί ημέρες υπενθύμισης στο ταξίδι).',
-  'admin.notifications.tripReminders.enabled':
-    'Οι υπενθυμίσεις ταξιδιού ενεργοποιήθηκαν',
-  'admin.notifications.tripReminders.disabled':
-    'Οι υπενθυμίσεις ταξιδιού απενεργοποιήθηκαν',
+  'admin.notifications.tripReminders.enabled': 'Οι υπενθυμίσεις ταξιδιού ενεργοποιήθηκαν',
+  'admin.notifications.tripReminders.disabled': 'Οι υπενθυμίσεις ταξιδιού απενεργοποιήθηκαν',
   'admin.smtp.title': 'Email & Ειδοποιήσεις',
   'admin.smtp.hint': 'Διαμόρφωση SMTP για αποστολή ειδοποιήσεων email.',
   'admin.smtp.testButton': 'Αποστολή δοκιμαστικού email',
@@ -93,8 +83,7 @@ const admin: TranslationStrings = {
   'admin.editUser': 'Επεξεργασία Χρήστη',
   'admin.newPassword': 'Νέος Κωδικός',
   'admin.newPasswordHint': 'Αφήστε κενό για να διατηρηθεί ο τρέχων κωδικός',
-  'admin.deleteUser':
-    'Διαγραφή χρήστη "{name}"; Όλα τα ταξίδια θα διαγραφούν μόνιμα.',
+  'admin.deleteUser': 'Διαγραφή χρήστη "{name}"; Όλα τα ταξίδια θα διαγραφούν μόνιμα.',
   'admin.deleteUserTitle': 'Διαγραφή χρήστη',
   'admin.newPasswordPlaceholder': 'Εισάγετε νέο κωδικό…',
   'admin.toast.loadError': 'Αποτυχία φόρτωσης δεδομένων διαχείρισης',
@@ -102,12 +91,10 @@ const admin: TranslationStrings = {
   'admin.toast.updateError': 'Αποτυχία ενημέρωσης',
   'admin.toast.userDeleted': 'Ο χρήστης διαγράφηκε',
   'admin.toast.deleteError': 'Αποτυχία διαγραφής',
-  'admin.toast.cannotDeleteSelf':
-    'Δεν μπορείτε να διαγράψετε τον δικό σας λογαριασμό',
+  'admin.toast.cannotDeleteSelf': 'Δεν μπορείτε να διαγράψετε τον δικό σας λογαριασμό',
   'admin.toast.userCreated': 'Ο χρήστης δημιουργήθηκε',
   'admin.toast.createError': 'Αποτυχία δημιουργίας χρήστη',
-  'admin.toast.fieldsRequired':
-    'Το όνομα χρήστη, το email και ο κωδικός είναι υποχρεωτικά',
+  'admin.toast.fieldsRequired': 'Το όνομα χρήστη, το email και ο κωδικός είναι υποχρεωτικά',
   'admin.createUser': 'Δημιουργία Χρήστη',
   'admin.invite.title': 'Σύνδεσμοι Πρόσκλησης',
   'admin.invite.subtitle': 'Δημιουργία συνδέσμων εγγραφής μίας χρήσης',
@@ -129,33 +116,26 @@ const admin: TranslationStrings = {
   'admin.invite.deleteError': 'Αποτυχία διαγραφής συνδέσμου πρόσκλησης',
   'admin.tabs.settings': 'Ρυθμίσεις',
   'admin.allowRegistration': 'Να επιτρέπονται οι εγγραφές',
-  'admin.allowRegistrationHint':
-    'Οι νέοι χρήστες μπορούν να εγγράφονται μόνοι τους',
+  'admin.allowRegistrationHint': 'Οι νέοι χρήστες μπορούν να εγγράφονται μόνοι τους',
   'admin.authMethods': 'Μέθοδοι Ελέγχου Ταυτότητας',
   'admin.passwordLogin': 'Σύνδεση με Κωδικό',
-  'admin.passwordLoginHint':
-    'Επιτρέψτε στους χρήστες να συνδέονται με email και κωδικό',
+  'admin.passwordLoginHint': 'Επιτρέψτε στους χρήστες να συνδέονται με email και κωδικό',
   'admin.passwordRegistration': 'Εγγραφή με Κωδικό',
-  'admin.passwordRegistrationHint':
-    'Επιτρέψτε σε νέους χρήστες να εγγράφονται με email και κωδικό',
+  'admin.passwordRegistrationHint': 'Επιτρέψτε σε νέους χρήστες να εγγράφονται με email και κωδικό',
   'admin.oidcLogin': 'Σύνδεση SSO',
   'admin.oidcLoginHint': 'Επιτρέψτε στους χρήστες να συνδέονται με SSO',
   'admin.oidcRegistration': 'Αυτόματη Δημιουργία SSO',
-  'admin.oidcRegistrationHint':
-    'Αυτόματη δημιουργία λογαριασμών για νέους χρήστες SSO',
+  'admin.oidcRegistrationHint': 'Αυτόματη δημιουργία λογαριασμών για νέους χρήστες SSO',
   'admin.envOverrideHint':
     'Οι ρυθμίσεις σύνδεσης με κωδικό ελέγχονται από τη μεταβλητή περιβάλλοντος OIDC_ONLY και δεν μπορούν να αλλάξουν εδώ.',
-  'admin.lockoutWarning':
-    'Πρέπει να παραμείνει ενεργοποιημένη τουλάχιστον μία μέθοδος σύνδεσης',
+  'admin.lockoutWarning': 'Πρέπει να παραμείνει ενεργοποιημένη τουλάχιστον μία μέθοδος σύνδεσης',
   'admin.requireMfa': 'Απαίτηση ελέγχου ταυτότητας δύο παραγόντων (2FA)',
   'admin.requireMfaHint':
     'Οι χρήστες χωρίς 2FA πρέπει να ολοκληρώσουν τη ρύθμιση στις Ρυθμίσεις πριν χρησιμοποιήσουν την εφαρμογή.',
   'admin.apiKeys': 'Κλειδιά API',
-  'admin.apiKeysHint':
-    'Προαιρετικά. Ενεργοποιεί εκτεταμένα δεδομένα τόπων όπως φωτογραφίες και καιρό.',
+  'admin.apiKeysHint': 'Προαιρετικά. Ενεργοποιεί εκτεταμένα δεδομένα τόπων όπως φωτογραφίες και καιρό.',
   'admin.mapsKey': 'Google Maps API Key',
-  'admin.mapsKeyHint':
-    'Απαιτείται για αναζήτηση τόπων. Λάβετε το από console.cloud.google.com',
+  'admin.mapsKeyHint': 'Απαιτείται για αναζήτηση τόπων. Λάβετε το από console.cloud.google.com',
   'admin.mapsKeyHintLong':
     'Χωρίς κλειδί API, χρησιμοποιείται το OpenStreetMap για αναζήτηση τόπων. Με κλειδί Google API, μπορούν επίσης να φορτωθούν φωτογραφίες, βαθμολογίες και ώρες λειτουργίας. Λάβετε ένα στο console.cloud.google.com.',
   'admin.recommended': 'Συνιστάται',
@@ -166,19 +146,16 @@ const admin: TranslationStrings = {
   'admin.keyInvalid': 'Μη έγκυρο',
   'admin.keySaved': 'Τα κλειδιά API αποθηκεύτηκαν',
   'admin.oidcTitle': 'Ενιαία Σύνδεση (OIDC)',
-  'admin.oidcSubtitle':
-    'Επιτρέψτε τη σύνδεση μέσω εξωτερικών παρόχων όπως Google, Apple, Authentik ή Keycloak.',
+  'admin.oidcSubtitle': 'Επιτρέψτε τη σύνδεση μέσω εξωτερικών παρόχων όπως Google, Apple, Authentik ή Keycloak.',
   'admin.oidcDisplayName': 'Εμφανιζόμενο Όνομα',
   'admin.oidcIssuer': 'Issuer URL',
-  'admin.oidcIssuerHint':
-    'Το OpenID Connect Issuer URL του παρόχου. π.χ. https://accounts.google.com',
+  'admin.oidcIssuerHint': 'Το OpenID Connect Issuer URL του παρόχου. π.χ. https://accounts.google.com',
   'admin.oidcSaved': 'Η διαμόρφωση OIDC αποθηκεύτηκε',
   'admin.oidcOnlyMode': 'Απενεργοποίηση ελέγχου ταυτότητας με κωδικό',
   'admin.oidcOnlyModeHint':
     'Όταν είναι ενεργοποιημένο, επιτρέπεται μόνο η σύνδεση SSO. Η σύνδεση και εγγραφή με κωδικό αποκλείονται.',
   'admin.fileTypes': 'Επιτρεπόμενοι Τύποι Αρχείων',
-  'admin.fileTypesHint':
-    'Ρυθμίστε ποιους τύπους αρχείων μπορούν να μεταφορτώνουν οι χρήστες.',
+  'admin.fileTypesHint': 'Ρυθμίστε ποιους τύπους αρχείων μπορούν να μεταφορτώνουν οι χρήστες.',
   'admin.fileTypesFormat':
     'Επεκτάσεις χωρισμένες με κόμμα (π.χ. jpg,png,pdf,doc). Χρησιμοποιήστε * για να επιτρέπονται όλοι οι τύποι.',
   'admin.fileTypesSaved': 'Οι ρυθμίσεις τύπων αρχείων αποθηκεύτηκαν',
@@ -192,18 +169,15 @@ const admin: TranslationStrings = {
   'admin.placesDetails.subtitle':
     'Λήψη λεπτομερών πληροφοριών τόπου (ώρες, βαθμολογία, ιστοσελίδα) από το Google Places API. Απενεργοποιήστε για εξοικονόμηση ποσοστώσης API.',
   'admin.bagTracking.title': 'Παρακολούθηση Αποσκευών',
-  'admin.bagTracking.subtitle':
-    'Ενεργοποίηση βάρους και ανάθεσης τσάντας για αντικείμενα πακεταρίσματος',
+  'admin.bagTracking.subtitle': 'Ενεργοποίηση βάρους και ανάθεσης τσάντας για αντικείμενα πακεταρίσματος',
   'admin.collab.chat.title': 'Συνομιλία',
-  'admin.collab.chat.subtitle':
-    'Μηνύματα πραγματικού χρόνου για συνεργασία ταξιδιού',
+  'admin.collab.chat.subtitle': 'Μηνύματα πραγματικού χρόνου για συνεργασία ταξιδιού',
   'admin.collab.notes.title': 'Σημειώσεις',
   'admin.collab.notes.subtitle': 'Κοινόχρηστες σημειώσεις και έγγραφα',
   'admin.collab.polls.title': 'Δημοσκοπήσεις',
   'admin.collab.polls.subtitle': 'Ομαδικές δημοσκοπήσεις και ψηφοφορίες',
   'admin.collab.whatsnext.title': 'Τι Ακολουθεί',
-  'admin.collab.whatsnext.subtitle':
-    'Προτάσεις δραστηριοτήτων και επόμενα βήματα',
+  'admin.collab.whatsnext.subtitle': 'Προτάσεις δραστηριοτήτων και επόμενα βήματα',
   'admin.tabs.config': 'Εξατομίκευση',
   'admin.tabs.defaults': 'Προεπιλογές Χρήστη',
   'admin.defaultSettings.title': 'Προεπιλεγμένες Ρυθμίσεις Χρήστη',
@@ -214,11 +188,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.resetToBuiltIn': 'επαναφορά',
   'admin.tabs.templates': 'Πρότυπα Πακεταρίσματος',
   'admin.packingTemplates.title': 'Πρότυπα Πακεταρίσματος',
-  'admin.packingTemplates.subtitle':
-    'Δημιουργήστε επαναχρησιμοποιήσιμες λίστες πακεταρίσματος για τα ταξίδια σας',
+  'admin.packingTemplates.subtitle': 'Δημιουργήστε επαναχρησιμοποιήσιμες λίστες πακεταρίσματος για τα ταξίδια σας',
   'admin.packingTemplates.create': 'Νέο Πρότυπο',
-  'admin.packingTemplates.namePlaceholder':
-    'Όνομα προτύπου (π.χ. Διακοπές στην Παραλία)',
+  'admin.packingTemplates.namePlaceholder': 'Όνομα προτύπου (π.χ. Διακοπές στην Παραλία)',
   'admin.packingTemplates.empty': 'Δεν έχουν δημιουργηθεί πρότυπα ακόμη',
   'admin.packingTemplates.items': 'αντικείμενα',
   'admin.packingTemplates.categories': 'κατηγορίες',
@@ -237,17 +209,13 @@ const admin: TranslationStrings = {
   'admin.addons.subtitle':
     'Ενεργοποιήστε ή απενεργοποιήστε λειτουργίες για να εξατομικεύσετε την εμπειρία σας στο TREK.',
   'admin.addons.catalog.packing.name': 'Λίστες',
-  'admin.addons.catalog.packing.description':
-    'Λίστες πακεταρίσματος και εργασίες προς εκτέλεση για τα ταξίδια σας',
+  'admin.addons.catalog.packing.description': 'Λίστες πακεταρίσματος και εργασίες προς εκτέλεση για τα ταξίδια σας',
   'admin.addons.catalog.budget.name': 'Προϋπολογισμός',
-  'admin.addons.catalog.budget.description':
-    'Παρακολουθήστε τα έξοδα και σχεδιάστε τον προϋπολογισμό του ταξιδιού σας',
+  'admin.addons.catalog.budget.description': 'Παρακολουθήστε τα έξοδα και σχεδιάστε τον προϋπολογισμό του ταξιδιού σας',
   'admin.addons.catalog.documents.name': 'Έγγραφα',
-  'admin.addons.catalog.documents.description':
-    'Αποθηκεύστε και διαχειριστείτε ταξιδιωτικά έγγραφα',
+  'admin.addons.catalog.documents.description': 'Αποθηκεύστε και διαχειριστείτε ταξιδιωτικά έγγραφα',
   'admin.addons.catalog.vacay.name': 'Vacay',
-  'admin.addons.catalog.vacay.description':
-    'Προσωπικός σχεδιαστής διακοπών με προβολή ημερολογίου',
+  'admin.addons.catalog.vacay.description': 'Προσωπικός σχεδιαστής διακοπών με προβολή ημερολογίου',
   'admin.addons.catalog.atlas.name': 'Atlas',
   'admin.addons.catalog.atlas.description':
     'Παγκόσμιος χάρτης με χώρες που έχετε επισκεφθεί και ταξιδιωτικά στατιστικά',
@@ -258,8 +226,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.memories.description':
     'Μοιραστείτε φωτογραφίες ταξιδιού μέσω της δικής σας εγκατάστασης Immich',
   'admin.addons.catalog.mcp.name': 'MCP',
-  'admin.addons.catalog.mcp.description':
-    'Model Context Protocol για ενσωμάτωση βοηθού AI',
+  'admin.addons.catalog.mcp.description': 'Model Context Protocol για ενσωμάτωση βοηθού AI',
   'admin.addons.subtitleBefore':
     'Ενεργοποιήστε ή απενεργοποιήστε λειτουργίες για να εξατομικεύσετε την εμπειρία σας στο ',
   'admin.addons.subtitleAfter': '.',
@@ -269,10 +236,8 @@ const admin: TranslationStrings = {
   'admin.addons.type.global': 'Καθολικό',
   'admin.addons.type.integration': 'Ενσωμάτωση',
   'admin.addons.tripHint': 'Διαθέσιμο ως καρτέλα μέσα σε κάθε ταξίδι',
-  'admin.addons.globalHint':
-    'Διαθέσιμο ως αυτόνομη ενότητα στην κύρια πλοήγηση',
-  'admin.addons.integrationHint':
-    'Υπηρεσίες backend και ενσωματώσεις API χωρίς ειδική σελίδα',
+  'admin.addons.globalHint': 'Διαθέσιμο ως αυτόνομη ενότητα στην κύρια πλοήγηση',
+  'admin.addons.integrationHint': 'Υπηρεσίες backend και ενσωματώσεις API χωρίς ειδική σελίδα',
   'admin.addons.toast.updated': 'Το πρόσθετο ενημερώθηκε',
   'admin.addons.toast.error': 'Αποτυχία ενημέρωσης προσθέτου',
   'admin.addons.noAddons': 'Δεν υπάρχουν διαθέσιμα πρόσθετα',
@@ -283,16 +248,14 @@ const admin: TranslationStrings = {
   'admin.weather.forecast': 'Πρόγνωση 16 ημερών',
   'admin.weather.forecastDesc': 'Προηγουμένως 5 ημέρες (OpenWeatherMap)',
   'admin.weather.climate': 'Ιστορικά δεδομένα κλίματος',
-  'admin.weather.climateDesc':
-    'Μέσοι όροι από τα τελευταία 85 χρόνια για ημέρες πέρα από την πρόγνωση 16 ημερών',
+  'admin.weather.climateDesc': 'Μέσοι όροι από τα τελευταία 85 χρόνια για ημέρες πέρα από την πρόγνωση 16 ημερών',
   'admin.weather.requests': '10.000 αιτήματα / ημέρα',
   'admin.weather.requestsDesc': 'Δωρεάν, δεν απαιτείται κλειδί API',
   'admin.weather.locationHint':
     'Ο καιρός βασίζεται στον πρώτο τόπο με συντεταγμένες σε κάθε ημέρα. Αν δεν έχει ανατεθεί τόπος σε μια ημέρα, χρησιμοποιείται ως αναφορά οποιοσδήποτε τόπος από τη λίστα.',
   'admin.tabs.mcpTokens': 'Πρόσβαση MCP',
   'admin.mcpTokens.title': 'Πρόσβαση MCP',
-  'admin.mcpTokens.subtitle':
-    'Διαχείριση συνεδριών OAuth και διακριτικών API για όλους τους χρήστες',
+  'admin.mcpTokens.subtitle': 'Διαχείριση συνεδριών OAuth και διακριτικών API για όλους τους χρήστες',
   'admin.mcpTokens.sectionTitle': 'Διακριτικά API',
   'admin.mcpTokens.owner': 'Κάτοχος',
   'admin.mcpTokens.tokenName': 'Όνομα Διακριτικού',
@@ -319,8 +282,7 @@ const admin: TranslationStrings = {
   'admin.oauthSessions.revokeError': 'Αποτυχία ανάκλησης συνεδρίας',
   'admin.oauthSessions.loadError': 'Αποτυχία φόρτωσης συνεδριών OAuth',
   'admin.tabs.github': 'GitHub',
-  'admin.audit.subtitle':
-    'Συμβάντα ασφαλείας και διαχείρισης (αντίγραφα ασφαλείας, χρήστες, MFA, ρυθμίσεις).',
+  'admin.audit.subtitle': 'Συμβάντα ασφαλείας και διαχείρισης (αντίγραφα ασφαλείας, χρήστες, MFA, ρυθμίσεις).',
   'admin.audit.empty': 'Δεν υπάρχουν εγγραφές ελέγχου ακόμη.',
   'admin.audit.refresh': 'Ανανέωση',
   'admin.audit.loadMore': 'Φόρτωση περισσότερων',
@@ -343,8 +305,7 @@ const admin: TranslationStrings = {
   'admin.github.by': 'από',
   'admin.github.support': 'Βοηθά να συνεχίσω την ανάπτυξη του TREK',
   'admin.update.available': 'Διαθέσιμη ενημέρωση',
-  'admin.update.text':
-    'Το TREK {version} είναι διαθέσιμο. Εκτελείτε το {current}.',
+  'admin.update.text': 'Το TREK {version} είναι διαθέσιμο. Εκτελείτε το {current}.',
   'admin.update.button': 'Προβολή στο GitHub',
   'admin.update.install': 'Εγκατάσταση Ενημέρωσης',
   'admin.update.confirmTitle': 'Εγκατάσταση Ενημέρωσης;',
@@ -352,20 +313,17 @@ const admin: TranslationStrings = {
     'Το TREK θα ενημερωθεί από {current} σε {version}. Ο server θα επανεκκινήσει αυτόματα στη συνέχεια.',
   'admin.update.dataInfo':
     'Όλα τα δεδομένα σας (ταξίδια, χρήστες, κλειδιά API, μεταφορτώσεις, Vacay, Atlas, προϋπολογισμοί) θα διατηρηθούν.',
-  'admin.update.warning':
-    'Η εφαρμογή θα είναι σύντομα μη διαθέσιμη κατά την επανεκκίνηση.',
+  'admin.update.warning': 'Η εφαρμογή θα είναι σύντομα μη διαθέσιμη κατά την επανεκκίνηση.',
   'admin.update.confirm': 'Ενημέρωση Τώρα',
   'admin.update.installing': 'Ενημέρωση…',
   'admin.update.success': 'Η ενημέρωση εγκαταστάθηκε! Ο server επανεκκινεί…',
   'admin.update.failed': 'Η ενημέρωση απέτυχε',
-  'admin.update.backupHint':
-    'Συνιστούμε να δημιουργήσετε ένα αντίγραφο ασφαλείας πριν την ενημέρωση.',
+  'admin.update.backupHint': 'Συνιστούμε να δημιουργήσετε ένα αντίγραφο ασφαλείας πριν την ενημέρωση.',
   'admin.update.backupLink': 'Μετάβαση στο Αντίγραφο Ασφαλείας',
   'admin.update.howTo': 'Πώς να Ενημερώσετε',
   'admin.update.dockerText':
     'Η εγκατάστασή σας TREK εκτελείται σε Docker. Για να ενημερωθείτε στο {version}, εκτελέστε τις ακόλουθες εντολές στον server σας:',
-  'admin.update.reloadHint':
-    'Παρακαλώ ανανεώστε τη σελίδα σε λίγα δευτερόλεπτα.',
+  'admin.update.reloadHint': 'Παρακαλώ ανανεώστε τη σελίδα σε λίγα δευτερόλεπτα.',
   'admin.tabs.permissions': 'Δικαιώματα',
   'admin.addons.catalog.journey.name': 'Ταξίδι',
   'admin.addons.catalog.journey.description':
@@ -390,11 +348,13 @@ const admin: TranslationStrings = {
   'admin.passkey.resetConfirm': 'Αφαίρεση όλων των passkeys για τον/την {name};',
   'admin.passkey.resetDone': 'Αφαιρέθηκαν {count} passkey(s)',
   'admin.defaultSettings.mapProvider': 'Μηχανή χάρτη',
-  'admin.defaultSettings.mapProviderHint': 'Ο προεπιλεγμένος χάρτης για όλους σε αυτή την εγκατάσταση. Κάθε χρήστης μπορεί να τον αλλάξει στις δικές του ρυθμίσεις.',
+  'admin.defaultSettings.mapProviderHint':
+    'Ο προεπιλεγμένος χάρτης για όλους σε αυτή την εγκατάσταση. Κάθε χρήστης μπορεί να τον αλλάξει στις δικές του ρυθμίσεις.',
   'admin.defaultSettings.providerLeaflet': 'Τυπικός (δωρεάν)',
   'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
   'admin.defaultSettings.mapboxToken': 'Κοινόχρηστο διακριτικό Mapbox',
-  'admin.defaultSettings.mapboxTokenHint': 'Χρησιμοποιείται για κάθε χρήστη που δεν έχει εισαγάγει το δικό του διακριτικό — έτσι ολόκληρη η εγκατάσταση αποκτά Mapbox χωρίς να μοιράζεται το κλειδί ξεχωριστά. Αποθηκεύεται κρυπτογραφημένο.',
+  'admin.defaultSettings.mapboxTokenHint':
+    'Χρησιμοποιείται για κάθε χρήστη που δεν έχει εισαγάγει το δικό του διακριτικό — έτσι ολόκληρη η εγκατάσταση αποκτά Mapbox χωρίς να μοιράζεται το κλειδί ξεχωριστά. Αποθηκεύεται κρυπτογραφημένο.',
   'admin.defaultSettings.mapboxStyle': 'Στυλ χάρτη',
   'admin.defaultSettings.mapboxStylePlaceholder': 'Επιλέξτε ένα στυλ…',
   'admin.defaultSettings.mapbox3d': 'Κτίρια & ανάγλυφο 3D',

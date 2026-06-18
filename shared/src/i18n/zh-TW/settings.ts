@@ -14,12 +14,10 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': '地圖模板',
   'settings.mapTemplatePlaceholder.select': '選擇模板...',
   'settings.mapDefaultHint': '留空則使用 OpenStreetMap（預設）',
-  'settings.mapTemplatePlaceholder':
-    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': '地圖瓦片 URL 模板',
   'settings.mapProvider': '地圖提供商',
-  'settings.mapProviderHint':
-    '影響行程規劃和旅程地圖。Atlas 始終使用 Leaflet。',
+  'settings.mapProviderHint': '影響行程規劃和旅程地圖。Atlas 始終使用 Leaflet。',
   'settings.mapLeafletSubtitle': '經典 2D,任何柵格瓦片',
   'settings.mapMapboxSubtitle': '向量瓦片、3D 建築和地形',
   'settings.mapExperimental': '實驗性',
@@ -32,19 +30,16 @@ const settings: TranslationStrings = {
   'settings.map3dBuildings': '3D 建築和地形',
   'settings.map3dHint': '傾斜 + 真實 3D 建築拉伸 — 適用於所有樣式,包括衛星。',
   'settings.mapHighQuality': '高畫質模式',
-  'settings.mapHighQualityHint':
-    '抗鋸齒 + 地球投影,帶來更清晰的邊緣和更真實的世界視圖。',
+  'settings.mapHighQualityHint': '抗鋸齒 + 地球投影,帶來更清晰的邊緣和更真實的世界視圖。',
   'settings.mapHighQualityWarning': '可能影響低階裝置的效能。',
   'settings.mapTipLabel': '提示：',
-  'settings.mapTip':
-    '右鍵點擊並拖曳以旋轉/傾斜地圖。中鍵點擊新增地點(右鍵用於旋轉)。',
+  'settings.mapTip': '右鍵點擊並拖曳以旋轉/傾斜地圖。中鍵點擊新增地點(右鍵用於旋轉)。',
   'settings.latitude': '緯度',
   'settings.longitude': '經度',
   'settings.saveMap': '儲存地圖',
   'settings.apiKeys': 'API 金鑰',
   'settings.mapsKey': 'Google Maps API 金鑰',
-  'settings.mapsKeyHint':
-    '用於地點搜尋。需要 Places API (New)。在 console.cloud.google.com 獲取',
+  'settings.mapsKeyHint': '用於地點搜尋。需要 Places API (New)。在 console.cloud.google.com 獲取',
   'settings.weatherKey': 'OpenWeatherMap API 金鑰',
   'settings.weatherKeyHint': '用於天氣資料。在 openweathermap.org/api 免費獲取',
   'settings.keyPlaceholder': '輸入金鑰...',
@@ -77,12 +72,10 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.inapp': '應用程式內',
   'settings.notificationPreferences.ntfy': 'Ntfy',
-  'settings.notificationPreferences.noChannels':
-    '未配置通知渠道。請聯絡管理員設定電子郵件或 Webhook 通知。',
+  'settings.notificationPreferences.noChannels': '未配置通知渠道。請聯絡管理員設定電子郵件或 Webhook 通知。',
   'settings.webhookUrl.label': 'Webhook URL',
   'settings.webhookUrl.placeholder': 'https://discord.com/api/webhooks/...',
-  'settings.webhookUrl.hint':
-    '輸入您的 Discord、Slack 或自訂 Webhook URL 以接收通知。',
+  'settings.webhookUrl.hint': '輸入您的 Discord、Slack 或自訂 Webhook URL 以接收通知。',
   'settings.webhookUrl.saved': 'Webhook URL 已儲存',
   'settings.webhookUrl.test': '測試',
   'settings.webhookUrl.testSuccess': '測試 Webhook 傳送成功',
@@ -91,8 +84,7 @@ const settings: TranslationStrings = {
   'settings.ntfyUrl.topicPlaceholder': 'my-trek-alerts',
   'settings.ntfyUrl.serverLabel': 'Ntfy 伺服器 URL（選填）',
   'settings.ntfyUrl.serverPlaceholder': 'https://ntfy.sh',
-  'settings.ntfyUrl.hint':
-    '輸入您的 Ntfy 主題以接收推播通知。將伺服器留空以使用管理員設定的預設值。',
+  'settings.ntfyUrl.hint': '輸入您的 Ntfy 主題以接收推播通知。將伺服器留空以使用管理員設定的預設值。',
   'settings.ntfyUrl.tokenLabel': '存取權杖（選填）',
   'settings.ntfyUrl.tokenHint': '受密碼保護的主題需要此項目。',
   'settings.ntfyUrl.saved': 'Ntfy 設定已儲存',
@@ -100,8 +92,7 @@ const settings: TranslationStrings = {
   'settings.ntfyUrl.testSuccess': '測試 Ntfy 通知傳送成功',
   'settings.ntfyUrl.testFailed': '測試 Ntfy 通知失敗',
   'settings.ntfyUrl.tokenCleared': '存取權杖已清除',
-  'settings.notificationsDisabled':
-    '通知尚未配置。請聯絡管理員啟用電子郵件或 Webhook 通知。',
+  'settings.notificationsDisabled': '通知尚未配置。請聯絡管理員啟用電子郵件或 Webhook 通知。',
   'settings.notificationsActive': '活躍頻道',
   'settings.notificationsManagedByAdmin': '通知事件由管理員配置。',
   'settings.on': '開',
@@ -121,23 +112,20 @@ const settings: TranslationStrings = {
   'settings.mcp.tokenCreatedAt': '創建於',
   'settings.mcp.tokenUsedAt': '使用於',
   'settings.mcp.deleteTokenTitle': '刪除令牌',
-  'settings.mcp.deleteTokenMessage':
-    '此令牌將立即失效，使用它的所有 MCP 客戶端將失去訪問許可權。',
+  'settings.mcp.deleteTokenMessage': '此令牌將立即失效，使用它的所有 MCP 客戶端將失去訪問許可權。',
   'settings.mcp.modal.createTitle': '建立 API 令牌',
   'settings.mcp.modal.tokenName': '令牌名稱',
   'settings.mcp.modal.tokenNamePlaceholder': '例如：Claude Desktop、工作電腦',
   'settings.mcp.modal.creating': '建立中…',
   'settings.mcp.modal.create': '建立令牌',
   'settings.mcp.modal.createdTitle': '令牌已建立',
-  'settings.mcp.modal.createdWarning':
-    '此令牌只會顯示一次，請立即複製並妥善儲存——無法找回。',
+  'settings.mcp.modal.createdWarning': '此令牌只會顯示一次，請立即複製並妥善儲存——無法找回。',
   'settings.mcp.modal.done': '完成',
   'settings.mcp.toast.created': '令牌已建立',
   'settings.mcp.toast.createError': '建立令牌失敗',
   'settings.mcp.toast.deleted': '令牌已刪除',
   'settings.mcp.toast.deleteError': '刪除令牌失敗',
-  'settings.mcp.apiTokensDeprecated':
-    'API 金鑰已棄用，將於未來版本中移除。請改用 OAuth 2.1 客戶端。',
+  'settings.mcp.apiTokensDeprecated': 'API 金鑰已棄用，將於未來版本中移除。請改用 OAuth 2.1 客戶端。',
   'settings.oauth.clients': 'OAuth 2.1 客戶端',
   'settings.oauth.clientsHint':
     '註冊 OAuth 2.1 客戶端，讓第三方 MCP 應用程式（Claude Web、Cursor 等）無需靜態金鑰即可連線。',
@@ -161,18 +149,14 @@ const settings: TranslationStrings = {
   'settings.oauth.sessionExpires': '到期時間',
   'settings.oauth.revoke': '撤銷',
   'settings.oauth.revokeSession': '撤銷工作階段',
-  'settings.oauth.revokeSessionMessage':
-    '這將立即撤銷此 OAuth 工作階段的存取權限。',
+  'settings.oauth.revokeSessionMessage': '這將立即撤銷此 OAuth 工作階段的存取權限。',
   'settings.oauth.modal.createTitle': '註冊 OAuth 客戶端',
   'settings.oauth.modal.presets': '快速預設',
   'settings.oauth.modal.clientName': '應用程式名稱',
-  'settings.oauth.modal.clientNamePlaceholder':
-    '例如 Claude Web、我的 MCP 應用程式',
+  'settings.oauth.modal.clientNamePlaceholder': '例如 Claude Web、我的 MCP 應用程式',
   'settings.oauth.modal.redirectUris': '重新導向 URI',
-  'settings.oauth.modal.redirectUrisPlaceholder':
-    'https://your-app.com/callback\nhttps://your-app.com/auth',
-  'settings.oauth.modal.redirectUrisHint':
-    '每行一個 URI。需要 HTTPS（localhost 除外）。需要完全符合。',
+  'settings.oauth.modal.redirectUrisPlaceholder': 'https://your-app.com/callback\nhttps://your-app.com/auth',
+  'settings.oauth.modal.redirectUrisHint': '每行一個 URI。需要 HTTPS（localhost 除外）。需要完全符合。',
   'settings.oauth.modal.scopes': '允許的授權範圍',
   'settings.oauth.modal.scopesHint':
     'list_trips 和 get_trip_summary 始終可用——不需要授權範圍。它們可幫助 AI 找到所需的行程 ID。',
@@ -181,8 +165,7 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.creating': '註冊中…',
   'settings.oauth.modal.create': '註冊客戶端',
   'settings.oauth.modal.createdTitle': '客戶端已註冊',
-  'settings.oauth.modal.createdWarning':
-    '客戶端密鑰僅顯示一次。請立即複製——無法恢復。',
+  'settings.oauth.modal.createdWarning': '客戶端密鑰僅顯示一次。請立即複製——無法恢復。',
   'settings.oauth.toast.createError': '註冊 OAuth 客戶端失敗',
   'settings.oauth.toast.deleted': 'OAuth 客戶端已刪除',
   'settings.oauth.toast.deleteError': '刪除 OAuth 客戶端失敗',
@@ -210,8 +193,7 @@ const settings: TranslationStrings = {
   'settings.about.supporters.tierEmpty': '成為第一個',
   'settings.about.supporter.tier.noReturnTicket': 'No Return Ticket',
   'settings.about.supporter.tier.lostLuggageVip': 'Lost Luggage VIP',
-  'settings.about.supporter.tier.businessClassDreamer':
-    'Business Class Dreamer',
+  'settings.about.supporter.tier.businessClassDreamer': 'Business Class Dreamer',
   'settings.about.supporter.tier.budgetTraveller': 'Budget Traveller',
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate',
   'settings.about.description':
@@ -237,24 +219,18 @@ const settings: TranslationStrings = {
   'settings.passwordChanged': '密碼修改成功',
   'settings.deleteAccount': '刪除賬戶',
   'settings.deleteAccountTitle': '確定刪除賬戶？',
-  'settings.deleteAccountWarning':
-    '你的賬戶以及所有旅行、地點和檔案將被永久刪除。此操作無法撤銷。',
+  'settings.deleteAccountWarning': '你的賬戶以及所有旅行、地點和檔案將被永久刪除。此操作無法撤銷。',
   'settings.deleteAccountConfirm': '永久刪除',
   'settings.deleteBlockedTitle': '無法刪除',
-  'settings.deleteBlockedMessage':
-    '你是唯一的管理員。請先將其他使用者提升為管理員，然後再刪除賬戶。',
+  'settings.deleteBlockedMessage': '你是唯一的管理員。請先將其他使用者提升為管理員，然後再刪除賬戶。',
   'settings.roleUser': '使用者',
   'settings.saveProfile': '儲存資料',
   'settings.mfa.title': '雙因素認證 (2FA)',
-  'settings.mfa.description':
-    '登入時新增第二步驗證。使用身份驗證器應用（Google Authenticator、Authy 等）。',
-  'settings.mfa.requiredByPolicy':
-    '管理員要求雙因素身份驗證。請先完成下方的身份驗證器設定後再繼續。',
+  'settings.mfa.description': '登入時新增第二步驗證。使用身份驗證器應用（Google Authenticator、Authy 等）。',
+  'settings.mfa.requiredByPolicy': '管理員要求雙因素身份驗證。請先完成下方的身份驗證器設定後再繼續。',
   'settings.mfa.backupTitle': '備用程式碼',
-  'settings.mfa.backupDescription':
-    '如果你無法使用身份驗證器應用，可使用這些一次性備用程式碼登入。',
-  'settings.mfa.backupWarning':
-    '請立即儲存這些程式碼。每個程式碼只能使用一次。',
+  'settings.mfa.backupDescription': '如果你無法使用身份驗證器應用，可使用這些一次性備用程式碼登入。',
+  'settings.mfa.backupWarning': '請立即儲存這些程式碼。每個程式碼只能使用一次。',
   'settings.mfa.backupCopy': '複製程式碼',
   'settings.mfa.backupDownload': '下載 TXT',
   'settings.mfa.backupPrint': '列印 / PDF',
@@ -283,15 +259,13 @@ const settings: TranslationStrings = {
   'settings.avatarRemoved': '頭像已移除',
   'settings.avatarError': '上傳失敗',
   'settings.bookingLabels': '預訂路線標籤',
-  'settings.bookingLabelsHint':
-    '在地圖上顯示車站 / 機場名稱。關閉時僅顯示圖示。',
-  "settings.currency": "Currency",
-  "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.bookingLabelsHint': '在地圖上顯示車站 / 機場名稱。關閉時僅顯示圖示。',
+  'settings.currency': 'Currency',
+  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
   'settings.passkey.title': 'Passkey',
   'settings.passkey.description':
     '使用 Passkey 更快登入，並可抵禦網路釣魚——透過你的指紋、臉部、PIN 碼或硬體金鑰。你的密碼仍會保留作為備援。',
-  'settings.passkey.notConfigured':
-    'Passkey 已啟用，但此伺服器尚未完成設定。請聯絡管理員設定 WebAuthn 網域。',
+  'settings.passkey.notConfigured': 'Passkey 已啟用，但此伺服器尚未完成設定。請聯絡管理員設定 WebAuthn 網域。',
   'settings.passkey.add': '新增 Passkey',
   'settings.passkey.addTitle': '新增 Passkey',
   'settings.passkey.passwordPrompt': '請確認你目前的密碼，然後依照裝置提示操作。',
@@ -320,7 +294,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.allowInsecureTls': '允許自簽憑證',
   'settings.airtrail.allowInsecureTlsHint': '僅在你自己網路上受信任的執行個體啟用。',
   'settings.airtrail.writeBack': '將變更寫回 AirTrail',
-  'settings.airtrail.writeBackHint': '預設關閉：AirTrail 是資料來源，TREK 僅從中讀取。開啟後會將在 TREK 中所做的修改寫回 AirTrail。',
+  'settings.airtrail.writeBackHint':
+    '預設關閉：AirTrail 是資料來源，TREK 僅從中讀取。開啟後會將在 TREK 中所做的修改寫回 AirTrail。',
   'settings.airtrail.connected': '已連接',
   'settings.airtrail.notConnected': '未連接',
   'settings.airtrail.toast.saved': '已儲存 AirTrail 連接',

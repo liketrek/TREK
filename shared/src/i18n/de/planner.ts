@@ -33,8 +33,7 @@ const planner: TranslationStrings = {
   'planner.resConfirmed': 'Reservierung bestätigt · ',
   'planner.notePlaceholder': 'Notiz…',
   'planner.noteTimePlaceholder': 'Zeit (optional)',
-  'planner.noteExamplePlaceholder':
-    'z.B. S3 um 14:30 ab Hauptbahnhof, Fähre ab Pier 7, Mittagspause…',
+  'planner.noteExamplePlaceholder': 'z.B. S3 um 14:30 ab Hauptbahnhof, Fähre ab Pier 7, Mittagspause…',
   'planner.totalCost': 'Gesamtkosten',
   'planner.searchPlaces': 'Orte suchen…',
   'planner.allCategories': 'Alle Kategorien',
@@ -48,8 +47,7 @@ const planner: TranslationStrings = {
   'planner.route': 'Route',
   'planner.optimize': 'Optimieren',
   'planner.openGoogleMaps': 'In Google Maps öffnen',
-  'planner.selectDayHint':
-    'Wähle einen Tag aus der linken Liste um den Tagesplan zu sehen',
+  'planner.selectDayHint': 'Wähle einen Tag aus der linken Liste um den Tagesplan zu sehen',
   'planner.noPlacesForDay': 'Noch keine Orte für diesen Tag',
   'planner.addPlacesLink': 'Orte hinzufügen →',
   'planner.minTotal': 'Min. gesamt',

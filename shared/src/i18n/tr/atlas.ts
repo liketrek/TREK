@@ -8,8 +8,7 @@ const atlas: TranslationStrings = {
   'atlas.unmark': 'Kaldırmak',
   'atlas.confirmMark': 'Bu ülke ziyaret edildi olarak işaretlensin mi?',
   'atlas.confirmUnmark': 'Bu ülke ziyaret ettiğiniz listeden kaldırılsın mı?',
-  'atlas.confirmUnmarkRegion':
-    'Bu bölge ziyaret ettiğiniz listeden kaldırılsın mı?',
+  'atlas.confirmUnmarkRegion': 'Bu bölge ziyaret ettiğiniz listeden kaldırılsın mı?',
   'atlas.markVisited': 'Ziyaret edildi olarak işaretle',
   'atlas.markVisitedHint': 'Bu ülkeyi ziyaret ettiğiniz listeye ekleyin',
   'atlas.markRegionVisitedHint': 'Bu bölgeyi ziyaret ettiğiniz listeye ekleyin',
@@ -31,8 +30,7 @@ const atlas: TranslationStrings = {
   'atlas.visitedCountries': 'Ziyaret Edilen Ülkeler',
   'atlas.cities': 'Şehirler',
   'atlas.noData': 'Henüz seyahat verisi yok',
-  'atlas.noDataHint':
-    'Bir gezi oluşturun ve dünya haritanızı göreceğiniz yerleri ekleyin',
+  'atlas.noDataHint': 'Bir gezi oluşturun ve dünya haritanızı göreceğiniz yerleri ekleyin',
   'atlas.lastTrip': 'Son yolculuk',
   'atlas.nextTrip': 'Sonraki gezi',
   'atlas.daysLeft': 'kalan günler',

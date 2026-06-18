@@ -13,8 +13,7 @@ const categories: TranslationStrings = {
   'categories.defaultName': 'Categoría',
   'categories.update': 'Actualizar',
   'categories.create': 'Crear',
-  'categories.confirm.delete':
-    '¿Eliminar la categoría? Los lugares de esta categoría no se eliminarán.',
+  'categories.confirm.delete': '¿Eliminar la categoría? Los lugares de esta categoría no se eliminarán.',
   'categories.toast.loadError': 'No se pudieron cargar las categorías',
   'categories.toast.nameRequired': 'Introduce un nombre',
   'categories.toast.updated': 'Categoría actualizada',

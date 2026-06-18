@@ -14,8 +14,7 @@ const notifications: TranslationStrings = {
   'notifications.delete': '删除',
   'notifications.system': '系统',
   'notifications.synologySessionCleared.title': 'Synology Photos 已断开连接',
-  'notifications.synologySessionCleared.text':
-    '您的服务器或账户已更改 — 请前往设置重新测试您的连接。',
+  'notifications.synologySessionCleared.text': '您的服务器或账户已更改 — 请前往设置重新测试您的连接。',
   'notifications.test.title': '来自 {actor} 的测试通知',
   'notifications.test.text': '这是一条简单的测试通知。',
   'notifications.test.booleanTitle': '{actor} 请求您的审批',

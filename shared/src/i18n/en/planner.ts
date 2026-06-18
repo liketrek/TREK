@@ -33,8 +33,7 @@ const planner: TranslationStrings = {
   'planner.resConfirmed': 'Reservation confirmed · ',
   'planner.notePlaceholder': 'Note…',
   'planner.noteTimePlaceholder': 'Time (optional)',
-  'planner.noteExamplePlaceholder':
-    'e.g. S3 at 14:30 from central station, ferry from pier 7, lunch break…',
+  'planner.noteExamplePlaceholder': 'e.g. S3 at 14:30 from central station, ferry from pier 7, lunch break…',
   'planner.totalCost': 'Total cost',
   'planner.searchPlaces': 'Search places…',
   'planner.allCategories': 'All Categories',
@@ -48,8 +47,7 @@ const planner: TranslationStrings = {
   'planner.route': 'Route',
   'planner.optimize': 'Optimize',
   'planner.openGoogleMaps': 'Open in Google Maps',
-  'planner.selectDayHint':
-    'Select a day from the left list to see the day plan',
+  'planner.selectDayHint': 'Select a day from the left list to see the day plan',
   'planner.noPlacesForDay': 'No places for this day yet',
   'planner.addPlacesLink': 'Add places →',
   'planner.minTotal': 'min. total',

@@ -14,12 +14,10 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Шаблон карты',
   'settings.mapTemplatePlaceholder.select': 'Выберите шаблон...',
   'settings.mapDefaultHint': 'Оставьте пустым для OpenStreetMap (по умолчанию)',
-  'settings.mapTemplatePlaceholder':
-    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'URL-шаблон для тайлов карты',
   'settings.mapProvider': 'Провайдер карты',
-  'settings.mapProviderHint':
-    'Применяется к Trip Planner и Journey. Atlas всегда использует Leaflet.',
+  'settings.mapProviderHint': 'Применяется к Trip Planner и Journey. Atlas всегда использует Leaflet.',
   'settings.mapLeafletSubtitle': 'Классические 2D, любые растровые тайлы',
   'settings.mapMapboxSubtitle': 'Векторные тайлы, 3D-здания и рельеф',
   'settings.mapExperimental': 'Экспериментально',
@@ -30,13 +28,10 @@ const settings: TranslationStrings = {
   'settings.mapStylePlaceholder': 'Выберите стиль Mapbox',
   'settings.mapStyleHint': 'Preset или собственный URL mapbox://styles/USER/ID',
   'settings.map3dBuildings': '3D-здания и рельеф',
-  'settings.map3dHint':
-    'Наклон + настоящие 3D-здания — работает со всеми стилями, включая спутник.',
+  'settings.map3dHint': 'Наклон + настоящие 3D-здания — работает со всеми стилями, включая спутник.',
   'settings.mapHighQuality': 'Режим высокого качества',
-  'settings.mapHighQualityHint':
-    'Сглаживание + проекция глобуса для более чётких краёв и реалистичного вида мира.',
-  'settings.mapHighQualityWarning':
-    'Может повлиять на производительность на слабых устройствах.',
+  'settings.mapHighQualityHint': 'Сглаживание + проекция глобуса для более чётких краёв и реалистичного вида мира.',
+  'settings.mapHighQualityWarning': 'Может повлиять на производительность на слабых устройствах.',
   'settings.mapTipLabel': 'Совет:',
   'settings.mapTip':
     'Зажмите правую кнопку мыши и перетащите, чтобы повернуть/наклонить карту. Клик средней кнопкой — добавить место (правая кнопка зарезервирована для вращения).',
@@ -45,11 +40,9 @@ const settings: TranslationStrings = {
   'settings.saveMap': 'Сохранить карту',
   'settings.apiKeys': 'API-ключи',
   'settings.mapsKey': 'API-ключ Google Maps',
-  'settings.mapsKeyHint':
-    'Для поиска мест. Требуется Places API (New). Получите на console.cloud.google.com',
+  'settings.mapsKeyHint': 'Для поиска мест. Требуется Places API (New). Получите на console.cloud.google.com',
   'settings.weatherKey': 'API-ключ OpenWeatherMap',
-  'settings.weatherKeyHint':
-    'Для данных о погоде. Бесплатно на openweathermap.org/api',
+  'settings.weatherKeyHint': 'Для данных о погоде. Бесплатно на openweathermap.org/api',
   'settings.keyPlaceholder': 'Введите ключ...',
   'settings.configured': 'Настроено',
   'settings.saveKeys': 'Сохранить ключи',
@@ -78,8 +71,7 @@ const settings: TranslationStrings = {
   'settings.notificationsDisabled':
     'Уведомления не настроены. Попросите администратора включить уведомления по электронной почте или webhook.',
   'settings.notificationsActive': 'Активный канал',
-  'settings.notificationsManagedByAdmin':
-    'События уведомлений настраиваются администратором.',
+  'settings.notificationsManagedByAdmin': 'События уведомлений настраиваются администратором.',
   'settings.on': 'Вкл.',
   'settings.off': 'Выкл.',
   'settings.mcp.title': 'Настройка MCP',
@@ -93,8 +85,7 @@ const settings: TranslationStrings = {
   'settings.mcp.copied': 'Скопировано!',
   'settings.mcp.apiTokens': 'API-токены',
   'settings.mcp.createToken': 'Создать токен',
-  'settings.mcp.noTokens':
-    'Токенов пока нет. Создайте один для подключения MCP-клиентов.',
+  'settings.mcp.noTokens': 'Токенов пока нет. Создайте один для подключения MCP-клиентов.',
   'settings.mcp.tokenCreatedAt': 'Создан',
   'settings.mcp.tokenUsedAt': 'Использован',
   'settings.mcp.deleteTokenTitle': 'Удалить токен',
@@ -102,8 +93,7 @@ const settings: TranslationStrings = {
     'Этот токен перестанет работать немедленно. Любой MCP-клиент, использующий его, потеряет доступ.',
   'settings.mcp.modal.createTitle': 'Создать API-токен',
   'settings.mcp.modal.tokenName': 'Название токена',
-  'settings.mcp.modal.tokenNamePlaceholder':
-    'напр. Claude Desktop, Рабочий ноутбук',
+  'settings.mcp.modal.tokenNamePlaceholder': 'напр. Claude Desktop, Рабочий ноутбук',
   'settings.mcp.modal.creating': 'Создание…',
   'settings.mcp.modal.create': 'Создать токен',
   'settings.mcp.modal.createdTitle': 'Токен создан',
@@ -139,16 +129,13 @@ const settings: TranslationStrings = {
   'settings.oauth.sessionExpires': 'Истекает',
   'settings.oauth.revoke': 'Отозвать',
   'settings.oauth.revokeSession': 'Отозвать сессию',
-  'settings.oauth.revokeSessionMessage':
-    'Это немедленно отзовёт доступ для данной сессии OAuth.',
+  'settings.oauth.revokeSessionMessage': 'Это немедленно отзовёт доступ для данной сессии OAuth.',
   'settings.oauth.modal.createTitle': 'Зарегистрировать клиент OAuth',
   'settings.oauth.modal.presets': 'Быстрые настройки',
   'settings.oauth.modal.clientName': 'Название приложения',
-  'settings.oauth.modal.clientNamePlaceholder':
-    'напр. Claude Web, Моё MCP-приложение',
+  'settings.oauth.modal.clientNamePlaceholder': 'напр. Claude Web, Моё MCP-приложение',
   'settings.oauth.modal.redirectUris': 'URI перенаправления',
-  'settings.oauth.modal.redirectUrisPlaceholder':
-    'https://your-app.com/callback\nhttps://your-app.com/auth',
+  'settings.oauth.modal.redirectUrisPlaceholder': 'https://your-app.com/callback\nhttps://your-app.com/auth',
   'settings.oauth.modal.redirectUrisHint':
     'Один URI на строку. Требуется HTTPS (localhost исключён). Требуется точное совпадение.',
   'settings.oauth.modal.scopes': 'Разрешённые области доступа',
@@ -161,15 +148,13 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.createdTitle': 'Клиент зарегистрирован',
   'settings.oauth.modal.createdWarning':
     'Секрет клиента отображается только один раз. Скопируйте его сейчас — его нельзя будет восстановить.',
-  'settings.oauth.toast.createError':
-    'Не удалось зарегистрировать клиент OAuth',
+  'settings.oauth.toast.createError': 'Не удалось зарегистрировать клиент OAuth',
   'settings.oauth.toast.deleted': 'Клиент OAuth удалён',
   'settings.oauth.toast.deleteError': 'Не удалось удалить клиент OAuth',
   'settings.oauth.toast.revoked': 'Сессия отозвана',
   'settings.oauth.toast.revokeError': 'Не удалось отозвать сессию',
   'settings.oauth.toast.rotateError': 'Не удалось обновить секрет клиента',
-  'settings.oauth.modal.machineClient':
-    'Машинный клиент (без входа через браузер)',
+  'settings.oauth.modal.machineClient': 'Машинный клиент (без входа через браузер)',
   'settings.oauth.modal.machineClientHint':
     'Использует грант client_credentials — URI перенаправления не требуются. Токен выдаётся напрямую через client_id + client_secret и действует от вашего имени в пределах выбранных областей.',
   'settings.oauth.modal.machineClientUsage':
@@ -190,8 +175,7 @@ const settings: TranslationStrings = {
   'settings.about.supporters.tierEmpty': 'Стань первым',
   'settings.about.supporter.tier.noReturnTicket': 'No Return Ticket',
   'settings.about.supporter.tier.lostLuggageVip': 'Lost Luggage VIP',
-  'settings.about.supporter.tier.businessClassDreamer':
-    'Business Class Dreamer',
+  'settings.about.supporter.tier.businessClassDreamer': 'Business Class Dreamer',
   'settings.about.supporter.tier.budgetTraveller': 'Budget Traveller',
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate',
   'settings.about.description':
@@ -214,8 +198,7 @@ const settings: TranslationStrings = {
   'settings.passwordRequired': 'Введите текущий и новый пароль',
   'settings.passwordTooShort': 'Пароль должен содержать не менее 8 символов',
   'settings.passwordMismatch': 'Пароли не совпадают',
-  'settings.passwordWeak':
-    'Пароль должен содержать заглавные, строчные буквы, цифру и специальный символ',
+  'settings.passwordWeak': 'Пароль должен содержать заглавные, строчные буквы, цифру и специальный символ',
   'settings.passwordChanged': 'Пароль успешно изменён',
   'settings.deleteAccount': 'Удалить аккаунт',
   'settings.deleteAccountTitle': 'Удалить ваш аккаунт?',
@@ -235,8 +218,7 @@ const settings: TranslationStrings = {
   'settings.mfa.backupTitle': 'Резервные коды',
   'settings.mfa.backupDescription':
     'Используйте эти одноразовые коды, если потеряете доступ к приложению-аутентификатору.',
-  'settings.mfa.backupWarning':
-    'Сохраните их сейчас. Каждый код можно использовать только один раз.',
+  'settings.mfa.backupWarning': 'Сохраните их сейчас. Каждый код можно использовать только один раз.',
   'settings.mfa.backupCopy': 'Скопировать коды',
   'settings.mfa.backupDownload': 'Скачать TXT',
   'settings.mfa.backupPrint': 'Печать / PDF',
@@ -244,15 +226,13 @@ const settings: TranslationStrings = {
   'settings.mfa.enabled': '2FA включена для вашего аккаунта.',
   'settings.mfa.disabled': '2FA не включена.',
   'settings.mfa.setup': 'Настроить аутентификатор',
-  'settings.mfa.scanQr':
-    'Отсканируйте QR-код приложением или введите ключ вручную.',
+  'settings.mfa.scanQr': 'Отсканируйте QR-код приложением или введите ключ вручную.',
   'settings.mfa.secretLabel': 'Секретный ключ (ручной ввод)',
   'settings.mfa.codePlaceholder': '6-значный код',
   'settings.mfa.enable': 'Включить 2FA',
   'settings.mfa.cancelSetup': 'Отмена',
   'settings.mfa.disableTitle': 'Отключить 2FA',
-  'settings.mfa.disableHint':
-    'Введите пароль аккаунта и текущий код из аутентификатора.',
+  'settings.mfa.disableHint': 'Введите пароль аккаунта и текущий код из аутентификатора.',
   'settings.mfa.disable': 'Отключить 2FA',
   'settings.mfa.toastEnabled': 'Двухфакторная аутентификация включена',
   'settings.mfa.toastDisabled': 'Двухфакторная аутентификация отключена',
@@ -290,16 +270,15 @@ const settings: TranslationStrings = {
   'settings.ntfyUrl.tokenHint': 'Требуется для тем, защищённых паролем.',
   'settings.ntfyUrl.saved': 'Настройки Ntfy сохранены',
   'settings.ntfyUrl.test': 'Тест',
-  'settings.ntfyUrl.testSuccess':
-    'Тестовое уведомление Ntfy успешно отправлено',
+  'settings.ntfyUrl.testSuccess': 'Тестовое уведомление Ntfy успешно отправлено',
   'settings.ntfyUrl.testFailed': 'Ошибка отправки тестового уведомления Ntfy',
   'settings.ntfyUrl.tokenCleared': 'Токен доступа очищен',
   'settings.notificationPreferences.inapp': 'In-App',
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',
-  "settings.currency": "Currency",
-  "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.currency': 'Currency',
+  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
     'Входите быстрее и с защитой от фишинга с помощью passkey — отпечатка пальца, лица, PIN-кода или аппаратного ключа. Ваш пароль остаётся как резервный способ.',
@@ -307,8 +286,7 @@ const settings: TranslationStrings = {
     'Passkeys включены, но ещё не полностью настроены на этом сервере. Попросите администратора задать домен WebAuthn.',
   'settings.passkey.add': 'Добавить passkey',
   'settings.passkey.addTitle': 'Добавить passkey',
-  'settings.passkey.passwordPrompt':
-    'Подтвердите текущий пароль, затем следуйте подсказке на устройстве.',
+  'settings.passkey.passwordPrompt': 'Подтвердите текущий пароль, затем следуйте подсказке на устройстве.',
   'settings.passkey.passwordRequired': 'Требуется ваш текущий пароль.',
   'settings.passkey.namePlaceholder': 'Название (необязательно, напр. "iPhone")',
   'settings.passkey.addedToast': 'Passkey добавлен',
@@ -324,17 +302,21 @@ const settings: TranslationStrings = {
   'settings.passkey.lastUsed': 'Последнее использование',
   'settings.passkey.neverUsed': 'Не использовался',
   'settings.mapPoiPill': 'Поиск мест на карте',
-  'settings.mapPoiPillHint': 'Показывать на карте поездки кнопку категорий, чтобы находить рядом рестораны, отели и другие места из OpenStreetMap.',
+  'settings.mapPoiPillHint':
+    'Показывать на карте поездки кнопку категорий, чтобы находить рядом рестораны, отели и другие места из OpenStreetMap.',
   'settings.airtrail.title': 'AirTrail',
-  'settings.airtrail.hint': 'Подключите свой self-hosted AirTrail для импорта и синхронизации рейсов. Создайте ключ API в AirTrail в разделе «Настройки → Безопасность».',
+  'settings.airtrail.hint':
+    'Подключите свой self-hosted AirTrail для импорта и синхронизации рейсов. Создайте ключ API в AirTrail в разделе «Настройки → Безопасность».',
   'settings.airtrail.url': 'URL экземпляра',
   'settings.airtrail.apiKey': 'Ключ API',
   'settings.airtrail.apiKeyPlaceholder': 'Bearer-ключ API',
-  'settings.airtrail.apiKeyHint': 'Создаётся в AirTrail в разделе «Настройки → Безопасность». Хранится в зашифрованном виде.',
+  'settings.airtrail.apiKeyHint':
+    'Создаётся в AirTrail в разделе «Настройки → Безопасность». Хранится в зашифрованном виде.',
   'settings.airtrail.allowInsecureTls': 'Разрешить самоподписанные сертификаты',
   'settings.airtrail.allowInsecureTlsHint': 'Включайте только для доверенного экземпляра в вашей собственной сети.',
   'settings.airtrail.writeBack': 'Записывать изменения обратно в AirTrail',
-  'settings.airtrail.writeBackHint': 'По умолчанию выключено: AirTrail является источником истины, а TREK только читает из него. Включите, чтобы отправлять изменения, сделанные в TREK, обратно в AirTrail.',
+  'settings.airtrail.writeBackHint':
+    'По умолчанию выключено: AirTrail является источником истины, а TREK только читает из него. Включите, чтобы отправлять изменения, сделанные в TREK, обратно в AirTrail.',
   'settings.airtrail.connected': 'Подключено',
   'settings.airtrail.notConnected': 'Не подключено',
   'settings.airtrail.toast.saved': 'Подключение к AirTrail сохранено',

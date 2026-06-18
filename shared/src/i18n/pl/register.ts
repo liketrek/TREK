@@ -5,8 +5,7 @@ const register: TranslationStrings = {
   'register.passwordTooShort': 'Hasło musi mieć co najmniej 6 znaków',
   'register.failed': 'Rejestracja nie powiodła się',
   'register.getStarted': 'Rozpocznij',
-  'register.subtitle':
-    'Utwórz konto i zacznij planować swoje wymarzone podróże.',
+  'register.subtitle': 'Utwórz konto i zacznij planować swoje wymarzone podróże.',
   'register.feature1': 'Nieograniczone plany podróży',
   'register.feature2': 'Interaktywna mapa',
   'register.feature3': 'Zarządzaj miejscami i kategoriami',

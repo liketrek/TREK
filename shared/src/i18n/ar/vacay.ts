@@ -8,8 +8,7 @@ const vacay: TranslationStrings = {
   'vacay.addPrevYear': 'إضافة السنة السابقة',
   'vacay.removeYear': 'إزالة السنة',
   'vacay.removeYearConfirm': 'إزالة {year}؟',
-  'vacay.removeYearHint':
-    'سيتم حذف كل إدخالات الإجازات والعطل الخاصة بهذه السنة نهائيًا.',
+  'vacay.removeYearHint': 'سيتم حذف كل إدخالات الإجازات والعطل الخاصة بهذه السنة نهائيًا.',
   'vacay.remove': 'إزالة',
   'vacay.persons': 'الأشخاص',
   'vacay.noPersons': 'لم تتم إضافة أشخاص بعد',
@@ -57,8 +56,7 @@ const vacay: TranslationStrings = {
   'vacay.weekStart': 'يبدأ الأسبوع في',
   'vacay.weekStartHint': 'اختر ما إذا كان الأسبوع يبدأ يوم الاثنين أو الأحد',
   'vacay.carryOver': 'الترحيل',
-  'vacay.carryOverHint':
-    'ترحيل أيام الإجازة المتبقية تلقائيًا إلى السنة التالية',
+  'vacay.carryOverHint': 'ترحيل أيام الإجازة المتبقية تلقائيًا إلى السنة التالية',
   'vacay.sharing': 'المشاركة',
   'vacay.sharingHint': 'شارك خطة إجازاتك مع مستخدمي TREK الآخرين',
   'vacay.owner': 'المالك',
@@ -90,7 +88,6 @@ const vacay: TranslationStrings = {
   'vacay.fuseInfo2': 'يمكن لكلا الطرفين إنشاء وتعديل الإدخالات لبعضهما البعض.',
   'vacay.fuseInfo3': 'يمكن لكلا الطرفين حذف الإدخالات وتغيير مستحقات الإجازة.',
   'vacay.fuseInfo4': 'تتم مشاركة الإعدادات مثل العطل الرسمية وعطل الشركة.',
-  'vacay.fuseInfo5':
-    'يمكن فك الدمج في أي وقت من قبل أي طرف. ستبقى إدخالاتك محفوظة.',
+  'vacay.fuseInfo5': 'يمكن فك الدمج في أي وقت من قبل أي طرف. ستبقى إدخالاتك محفوظة.',
 };
 export default vacay;

@@ -14,8 +14,7 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Πρότυπο Χάρτη',
   'settings.mapTemplatePlaceholder.select': 'Επιλέξτε πρότυπο...',
   'settings.mapDefaultHint': 'Αφήστε κενό για OpenStreetMap (προεπιλογή)',
-  'settings.mapTemplatePlaceholder':
-    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'Πρότυπο URL για πλακίδια χάρτη',
   'settings.mapProvider': 'Πάροχος Χάρτη',
   'settings.mapProviderHint':
@@ -28,16 +27,14 @@ const settings: TranslationStrings = {
   'settings.mapMapboxTokenLink': 'mapbox.com → Access tokens',
   'settings.mapStyle': 'Στυλ Χάρτη',
   'settings.mapStylePlaceholder': 'Επιλέξτε ένα στυλ Mapbox',
-  'settings.mapStyleHint':
-    'Προκαθορισμένο ή δικό σας mapbox://styles/USER/ID URL',
+  'settings.mapStyleHint': 'Προκαθορισμένο ή δικό σας mapbox://styles/USER/ID URL',
   'settings.map3dBuildings': '3D Κτίρια & Ανάγλυφο',
   'settings.map3dHint':
     'Κλίση + πραγματικές 3D προεξοχές κτιρίων — λειτουργεί σε κάθε στυλ, συμπεριλαμβανομένου του δορυφορικού.',
   'settings.mapHighQuality': 'Λειτουργία Υψηλής Ποιότητας',
   'settings.mapHighQualityHint':
     'Antialiasing + προβολή υδρογείου για ευκρινέστερες ακμές και ρεαλιστική όψη του κόσμου.',
-  'settings.mapHighQualityWarning':
-    'Μπορεί να επηρεάσει την απόδοση σε συσκευές χαμηλότερων προδιαγραφών.',
+  'settings.mapHighQualityWarning': 'Μπορεί να επηρεάσει την απόδοση σε συσκευές χαμηλότερων προδιαγραφών.',
   'settings.mapTipLabel': 'Συμβουλή:',
   'settings.mapTip':
     'κάντε δεξί κλικ και σύρετε για περιστροφή/κλίση του χάρτη. Μεσαίο κλικ για προσθήκη τοποθεσίας (το δεξί κλικ έχει κρατηθεί για περιστροφή).',
@@ -49,8 +46,7 @@ const settings: TranslationStrings = {
   'settings.mapsKeyHint':
     'Για αναζήτηση τοποθεσιών. Απαιτείται Places API (New). Λάβετε το από console.cloud.google.com',
   'settings.weatherKey': 'OpenWeatherMap API Key',
-  'settings.weatherKeyHint':
-    'Για δεδομένα καιρού. Δωρεάν στο openweathermap.org/api',
+  'settings.weatherKeyHint': 'Για δεδομένα καιρού. Δωρεάν στο openweathermap.org/api',
   'settings.keyPlaceholder': 'Εισάγετε κλειδί...',
   'settings.configured': 'Διαμορφωμένο',
   'settings.saveKeys': 'Αποθήκευση Κλειδιών',
@@ -101,19 +97,16 @@ const settings: TranslationStrings = {
   'settings.ntfyUrl.hint':
     'Εισάγετε το ntfy topic σας για να λαμβάνετε push ειδοποιήσεις. Αφήστε τον server κενό για χρήση του προεπιλεγμένου από τον διαχειριστή.',
   'settings.ntfyUrl.tokenLabel': 'Access Token (προαιρετικό)',
-  'settings.ntfyUrl.tokenHint':
-    'Απαιτείται για θέματα προστατευμένα με κωδικό.',
+  'settings.ntfyUrl.tokenHint': 'Απαιτείται για θέματα προστατευμένα με κωδικό.',
   'settings.ntfyUrl.saved': 'Οι ρυθμίσεις Ntfy αποθηκεύτηκαν',
   'settings.ntfyUrl.test': 'Δοκιμή',
-  'settings.ntfyUrl.testSuccess':
-    'Η δοκιμαστική ειδοποίηση ntfy στάλθηκε επιτυχώς',
+  'settings.ntfyUrl.testSuccess': 'Η δοκιμαστική ειδοποίηση ntfy στάλθηκε επιτυχώς',
   'settings.ntfyUrl.testFailed': 'Η δοκιμαστική ειδοποίηση ntfy απέτυχε',
   'settings.ntfyUrl.tokenCleared': 'Το access token εκκαθαρίστηκε',
   'settings.notificationsDisabled':
     'Οι ειδοποιήσεις δεν έχουν διαμορφωθεί. Ζητήστε από έναν διαχειριστή να ενεργοποιήσει ειδοποιήσεις email ή webhook.',
   'settings.notificationsActive': 'Ενεργό κανάλι',
-  'settings.notificationsManagedByAdmin':
-    'Τα συμβάντα ειδοποιήσεων διαμορφώνονται από τον διαχειριστή σας.',
+  'settings.notificationsManagedByAdmin': 'Τα συμβάντα ειδοποιήσεων διαμορφώνονται από τον διαχειριστή σας.',
   'settings.on': 'Ενεργό',
   'settings.off': 'Ανενεργό',
   'settings.mcp.title': 'Διαμόρφωση MCP',
@@ -127,8 +120,7 @@ const settings: TranslationStrings = {
   'settings.mcp.copied': 'Αντιγράφηκε!',
   'settings.mcp.apiTokens': 'API Tokens',
   'settings.mcp.createToken': 'Δημιουργία νέου Token',
-  'settings.mcp.noTokens':
-    'Δεν υπάρχουν tokens ακόμη. Δημιουργήστε ένα για να συνδέσετε πελάτες MCP.',
+  'settings.mcp.noTokens': 'Δεν υπάρχουν tokens ακόμη. Δημιουργήστε ένα για να συνδέσετε πελάτες MCP.',
   'settings.mcp.tokenCreatedAt': 'Δημιουργήθηκε',
   'settings.mcp.tokenUsedAt': 'Χρησιμοποιήθηκε',
   'settings.mcp.deleteTokenTitle': 'Διαγραφή Token',
@@ -136,8 +128,7 @@ const settings: TranslationStrings = {
     'Αυτό το token θα σταματήσει να λειτουργεί αμέσως. Οποιοσδήποτε πελάτης MCP το χρησιμοποιεί θα χάσει την πρόσβαση.',
   'settings.mcp.modal.createTitle': 'Δημιουργία API Token',
   'settings.mcp.modal.tokenName': 'Όνομα Token',
-  'settings.mcp.modal.tokenNamePlaceholder':
-    'π.χ. Claude Desktop, Φορητός εργασίας',
+  'settings.mcp.modal.tokenNamePlaceholder': 'π.χ. Claude Desktop, Φορητός εργασίας',
   'settings.mcp.modal.creating': 'Δημιουργία…',
   'settings.mcp.modal.create': 'Δημιουργία Token',
   'settings.mcp.modal.createdTitle': 'Το Token δημιουργήθηκε',
@@ -173,16 +164,13 @@ const settings: TranslationStrings = {
   'settings.oauth.sessionExpires': 'Λήγει',
   'settings.oauth.revoke': 'Ανάκληση',
   'settings.oauth.revokeSession': 'Ανάκληση Συνεδρίας',
-  'settings.oauth.revokeSessionMessage':
-    'Αυτό θα ανακαλέσει αμέσως την πρόσβαση για αυτή τη συνεδρία OAuth.',
+  'settings.oauth.revokeSessionMessage': 'Αυτό θα ανακαλέσει αμέσως την πρόσβαση για αυτή τη συνεδρία OAuth.',
   'settings.oauth.modal.createTitle': 'Καταχώρηση Πελάτη OAuth',
   'settings.oauth.modal.presets': 'Γρήγορες προεπιλογές',
   'settings.oauth.modal.clientName': 'Όνομα Εφαρμογής',
-  'settings.oauth.modal.clientNamePlaceholder':
-    'π.χ. Claude Web, Η εφαρμογή μου MCP',
+  'settings.oauth.modal.clientNamePlaceholder': 'π.χ. Claude Web, Η εφαρμογή μου MCP',
   'settings.oauth.modal.redirectUris': 'Redirect URIs',
-  'settings.oauth.modal.redirectUrisPlaceholder':
-    'https://your-app.com/callback\nhttps://your-app.com/auth',
+  'settings.oauth.modal.redirectUrisPlaceholder': 'https://your-app.com/callback\nhttps://your-app.com/auth',
   'settings.oauth.modal.redirectUrisHint':
     'Ένα URI ανά γραμμή. Απαιτείται HTTPS (το localhost εξαιρείται). Επιβάλλεται ακριβής αντιστοίχιση.',
   'settings.oauth.modal.scopes': 'Επιτρεπόμενα Scopes',
@@ -201,8 +189,7 @@ const settings: TranslationStrings = {
   'settings.oauth.toast.revoked': 'Η συνεδρία ανακλήθηκε',
   'settings.oauth.toast.revokeError': 'Αποτυχία ανάκλησης συνεδρίας',
   'settings.oauth.toast.rotateError': 'Αποτυχία εναλλαγής client secret',
-  'settings.oauth.modal.machineClient':
-    'Πελάτης μηχανής (χωρίς σύνδεση μέσω browser)',
+  'settings.oauth.modal.machineClient': 'Πελάτης μηχανής (χωρίς σύνδεση μέσω browser)',
   'settings.oauth.modal.machineClientHint':
     'Χρησιμοποιήστε grant client_credentials — δεν χρειάζονται redirect URIs. Το token εκδίδεται απευθείας μέσω client_id + client_secret και ενεργεί ως εσείς εντός των επιλεγμένων scopes.',
   'settings.oauth.modal.machineClientUsage':
@@ -223,15 +210,13 @@ const settings: TranslationStrings = {
   'settings.about.supporters.tierEmpty': 'Γίνετε ο πρώτος',
   'settings.about.supporter.tier.noReturnTicket': 'Χωρίς Εισιτήριο Επιστροφής',
   'settings.about.supporter.tier.lostLuggageVip': 'VIP Χαμένων Αποσκευών',
-  'settings.about.supporter.tier.businessClassDreamer':
-    'Ονειροπόλος Business Class',
+  'settings.about.supporter.tier.businessClassDreamer': 'Ονειροπόλος Business Class',
   'settings.about.supporter.tier.budgetTraveller': 'Οικονομικός Ταξιδιώτης',
   'settings.about.supporter.tier.hostelBunkmate': 'Συγκάτοικος Hostel',
   'settings.about.description':
     'Το TREK είναι ένας self-hosted ταξιδιωτικός σχεδιαστής που σας βοηθά να οργανώσετε τα ταξίδια σας από την πρώτη ιδέα μέχρι την τελευταία ανάμνηση. Σχεδιασμός ημερών, προϋπολογισμός, λίστες πακεταρίσματος, φωτογραφίες και πολλά άλλα — όλα σε ένα μέρος, στον δικό σας server.',
   'settings.about.madeWith': 'Φτιαγμένο με',
-  'settings.about.madeBy':
-    'από τον Maurice και μια αναπτυσσόμενη κοινότητα open-source.',
+  'settings.about.madeBy': 'από τον Maurice και μια αναπτυσσόμενη κοινότητα open-source.',
   'settings.username': 'Όνομα χρήστη',
   'settings.email': 'Email',
   'settings.role': 'Ρόλος',
@@ -243,13 +228,10 @@ const settings: TranslationStrings = {
   'settings.newPassword': 'Νέος κωδικός',
   'settings.confirmPassword': 'Επιβεβαίωση νέου κωδικού',
   'settings.updatePassword': 'Ενημέρωση κωδικού',
-  'settings.passwordRequired':
-    'Παρακαλώ εισάγετε τον τρέχοντα και τον νέο κωδικό',
-  'settings.passwordTooShort':
-    'Ο κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες',
+  'settings.passwordRequired': 'Παρακαλώ εισάγετε τον τρέχοντα και τον νέο κωδικό',
+  'settings.passwordTooShort': 'Ο κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες',
   'settings.passwordMismatch': 'Οι κωδικοί δεν ταιριάζουν',
-  'settings.passwordWeak':
-    'Ο κωδικός πρέπει να περιέχει κεφαλαία, πεζά, έναν αριθμό και έναν ειδικό χαρακτήρα',
+  'settings.passwordWeak': 'Ο κωδικός πρέπει να περιέχει κεφαλαία, πεζά, έναν αριθμό και έναν ειδικό χαρακτήρα',
   'settings.passwordChanged': 'Ο κωδικός άλλαξε επιτυχώς',
   'settings.mustChangePassword':
     'Πρέπει να αλλάξετε τον κωδικό σας πριν συνεχίσετε. Παρακαλώ ορίστε έναν νέο κωδικό παρακάτω.',
@@ -289,8 +271,7 @@ const settings: TranslationStrings = {
   'settings.mfa.enabled': 'Το 2FA είναι ενεργοποιημένο στον λογαριασμό σας.',
   'settings.mfa.disabled': 'Το 2FA δεν είναι ενεργοποιημένο.',
   'settings.mfa.setup': 'Ρύθμιση authenticator',
-  'settings.mfa.scanQr':
-    'Σαρώστε αυτόν τον κωδικό QR με την εφαρμογή σας ή εισάγετε το secret χειροκίνητα.',
+  'settings.mfa.scanQr': 'Σαρώστε αυτόν τον κωδικό QR με την εφαρμογή σας ή εισάγετε το secret χειροκίνητα.',
   'settings.mfa.secretLabel': 'Κλειδί secret (χειροκίνητη εισαγωγή)',
   'settings.mfa.codePlaceholder': 'Κωδικός 6 ψηφίων',
   'settings.mfa.enable': 'Ενεργοποίηση 2FA',
@@ -299,13 +280,11 @@ const settings: TranslationStrings = {
   'settings.mfa.disableHint':
     'Εισάγετε τον κωδικό του λογαριασμού σας και έναν τρέχοντα κωδικό από τον authenticator σας.',
   'settings.mfa.disable': 'Απενεργοποίηση 2FA',
-  'settings.mfa.toastEnabled':
-    'Ο έλεγχος ταυτότητας δύο παραγόντων ενεργοποιήθηκε',
-  'settings.mfa.toastDisabled':
-    'Ο έλεγχος ταυτότητας δύο παραγόντων απενεργοποιήθηκε',
+  'settings.mfa.toastEnabled': 'Ο έλεγχος ταυτότητας δύο παραγόντων ενεργοποιήθηκε',
+  'settings.mfa.toastDisabled': 'Ο έλεγχος ταυτότητας δύο παραγόντων απενεργοποιήθηκε',
   'settings.mfa.demoBlocked': 'Δεν είναι διαθέσιμο σε λειτουργία demo',
-  "settings.currency": "Currency",
-  "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.currency': 'Currency',
+  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
     'Συνδεθείτε πιο γρήγορα και με προστασία από phishing χρησιμοποιώντας ένα passkey — το δαχτυλικό σας αποτύπωμα, το πρόσωπό σας, ένα PIN ή ένα κλειδί υλικού. Ο κωδικός σας παραμένει ως εφεδρεία.',
@@ -322,8 +301,7 @@ const settings: TranslationStrings = {
   'settings.passkey.addError': 'Δεν ήταν δυνατή η προσθήκη του passkey',
   'settings.passkey.cancelled': 'Η ρύθμιση του passkey ακυρώθηκε',
   'settings.passkey.deleted': 'Το passkey αφαιρέθηκε',
-  'settings.passkey.deleteConfirm':
-    'Αφαίρεση αυτού του passkey; Επιβεβαιώστε με τον κωδικό σας.',
+  'settings.passkey.deleteConfirm': 'Αφαίρεση αυτού του passkey; Επιβεβαιώστε με τον κωδικό σας.',
   'settings.passkey.rename': 'Μετονομασία',
   'settings.passkey.defaultName': 'Passkey',
   'settings.passkey.synced': 'Συγχρονισμένο',
@@ -331,9 +309,11 @@ const settings: TranslationStrings = {
   'settings.passkey.lastUsed': 'Τελευταία χρήση',
   'settings.passkey.neverUsed': 'Δεν χρησιμοποιήθηκε ποτέ',
   'settings.mapPoiPill': 'Εξερεύνηση μερών στον χάρτη',
-  'settings.mapPoiPillHint': 'Εμφάνιση ετικέτας κατηγορίας στον χάρτη του ταξιδιού για εύρεση κοντινών εστιατορίων, ξενοδοχείων και άλλων από το OpenStreetMap.',
+  'settings.mapPoiPillHint':
+    'Εμφάνιση ετικέτας κατηγορίας στον χάρτη του ταξιδιού για εύρεση κοντινών εστιατορίων, ξενοδοχείων και άλλων από το OpenStreetMap.',
   'settings.airtrail.title': 'AirTrail',
-  'settings.airtrail.hint': 'Συνδέστε το αυτο-φιλοξενούμενο AirTrail σας για εισαγωγή και συγχρονισμό πτήσεων. Δημιουργήστε ένα κλειδί API στο AirTrail από Ρυθμίσεις → Ασφάλεια.',
+  'settings.airtrail.hint':
+    'Συνδέστε το αυτο-φιλοξενούμενο AirTrail σας για εισαγωγή και συγχρονισμό πτήσεων. Δημιουργήστε ένα κλειδί API στο AirTrail από Ρυθμίσεις → Ασφάλεια.',
   'settings.airtrail.url': 'URL της εγκατάστασης',
   'settings.airtrail.apiKey': 'Κλειδί API',
   'settings.airtrail.apiKeyPlaceholder': 'Κλειδί API τύπου Bearer',
@@ -341,7 +321,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.allowInsecureTls': 'Να επιτρέπονται αυτο-υπογεγραμμένα πιστοποιητικά',
   'settings.airtrail.allowInsecureTlsHint': 'Ενεργοποιήστε το μόνο για μια αξιόπιστη εγκατάσταση στο δικό σας δίκτυο.',
   'settings.airtrail.writeBack': 'Εγγραφή αλλαγών πίσω στο AirTrail',
-  'settings.airtrail.writeBackHint': 'Απενεργοποιημένο από προεπιλογή: το AirTrail είναι η πηγή αλήθειας και το TREK μόνο διαβάζει από αυτό. Ενεργοποιήστε το για να στέλνετε πίσω στο AirTrail τις αλλαγές που κάνετε στο TREK.',
+  'settings.airtrail.writeBackHint':
+    'Απενεργοποιημένο από προεπιλογή: το AirTrail είναι η πηγή αλήθειας και το TREK μόνο διαβάζει από αυτό. Ενεργοποιήστε το για να στέλνετε πίσω στο AirTrail τις αλλαγές που κάνετε στο TREK.',
   'settings.airtrail.connected': 'Συνδέθηκε',
   'settings.airtrail.notConnected': 'Δεν συνδέθηκε',
   'settings.airtrail.toast.saved': 'Η σύνδεση με το AirTrail αποθηκεύτηκε',

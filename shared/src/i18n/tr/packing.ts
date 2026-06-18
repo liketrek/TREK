@@ -51,10 +51,8 @@ const packing: TranslationStrings = {
   'packing.bagName': 'Çanta adı...',
   'packing.addBag': 'Çanta ekle',
   'packing.changeCategory': 'Kategoriyi Değiştir',
-  'packing.confirm.clearChecked':
-    '{count} İşaretli öğeyi kaldırmak istediğinizden emin misiniz?',
-  'packing.confirm.deleteCat':
-    '"{name}" kategorisini {count} öğeyle birlikte silmek istediğinizden emin misiniz?',
+  'packing.confirm.clearChecked': '{count} İşaretli öğeyi kaldırmak istediğinizden emin misiniz?',
+  'packing.confirm.deleteCat': '"{name}" kategorisini {count} öğeyle birlikte silmek istediğinizden emin misiniz?',
   'packing.defaultCategory': 'Diğer',
   'packing.toast.saveError': 'Kaydedilemedi',
   'packing.toast.deleteError': 'Silinemedi',

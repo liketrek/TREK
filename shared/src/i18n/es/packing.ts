@@ -51,10 +51,8 @@ const packing: TranslationStrings = {
   'packing.bagName': 'Nombre...',
   'packing.addBag': 'Añadir equipaje',
   'packing.changeCategory': 'Cambiar categoría',
-  'packing.confirm.clearChecked':
-    '¿Seguro que quieres eliminar {count} elementos marcados?',
-  'packing.confirm.deleteCat':
-    '¿Seguro que quieres eliminar la categoría "{name}" con {count} elementos?',
+  'packing.confirm.clearChecked': '¿Seguro que quieres eliminar {count} elementos marcados?',
+  'packing.confirm.deleteCat': '¿Seguro que quieres eliminar la categoría "{name}" con {count} elementos?',
   'packing.defaultCategory': 'Otros',
   'packing.toast.saveError': 'No se pudo guardar',
   'packing.toast.deleteError': 'No se pudo eliminar',

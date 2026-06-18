@@ -9,15 +9,12 @@ const collab: TranslationStrings = {
   'collab.whatsNext.tomorrow': 'Demain',
   'collab.whatsNext.empty': 'Aucune activité à venir',
   'collab.whatsNext.until': 'à',
-  'collab.whatsNext.emptyHint':
-    'Les activités avec des horaires apparaîtront ici',
+  'collab.whatsNext.emptyHint': 'Les activités avec des horaires apparaîtront ici',
   'collab.chat.send': 'Envoyer',
   'collab.chat.placeholder': 'Écrire un message…',
   'collab.chat.empty': 'Commencez la conversation',
-  'collab.chat.emptyHint':
-    'Les messages sont partagés avec tous les membres du voyage',
-  'collab.chat.emptyDesc':
-    'Partagez des idées, des plans et des mises à jour avec votre groupe de voyage',
+  'collab.chat.emptyHint': 'Les messages sont partagés avec tous les membres du voyage',
+  'collab.chat.emptyDesc': 'Partagez des idées, des plans et des mises à jour avec votre groupe de voyage',
   'collab.chat.today': "Aujourd'hui",
   'collab.chat.yesterday': 'Hier',
   'collab.chat.deletedMessage': 'a supprimé un message',

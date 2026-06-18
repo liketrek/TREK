@@ -13,8 +13,7 @@ const categories: TranslationStrings = {
   'categories.defaultName': 'Kategori',
   'categories.update': 'Perbarui',
   'categories.create': 'Buat',
-  'categories.confirm.delete':
-    'Hapus kategori? Tempat dalam kategori ini tidak akan dihapus.',
+  'categories.confirm.delete': 'Hapus kategori? Tempat dalam kategori ini tidak akan dihapus.',
   'categories.toast.loadError': 'Gagal memuat kategori',
   'categories.toast.nameRequired': 'Harap masukkan nama',
   'categories.toast.updated': 'Kategori diperbarui',

@@ -20,8 +20,7 @@ const dashboard: TranslationStrings = {
   'dashboard.timezoneCustomTzPlaceholder': 'напр. America/New_York',
   'dashboard.timezoneCustomAdd': 'Додати',
   'dashboard.timezoneCustomErrorEmpty': 'Введіть ідентифікатор часового поясу',
-  'dashboard.timezoneCustomErrorInvalid':
-    'Невірний часовий пояс. Використовуйте формат Europe/Berlin',
+  'dashboard.timezoneCustomErrorInvalid': 'Невірний часовий пояс. Використовуйте формат Europe/Berlin',
   'dashboard.timezoneCustomErrorDuplicate': 'Вже додано',
   'dashboard.emptyTitle': 'Немає поїздок',
   'dashboard.emptyText': 'Створіть свою першу поїздку і почніть планувати!',
@@ -69,8 +68,7 @@ const dashboard: TranslationStrings = {
   'dashboard.confirm.copy.wont3': 'Файли та фото',
   'dashboard.confirm.copy.wont4': 'Токени доступу',
   'dashboard.confirm.copy.wontCopy': 'Не буде скопійовано',
-  'dashboard.confirm.delete':
-    'Видалити поїздку «{title}»? Всі місця та плани будуть безповоротно видалені.',
+  'dashboard.confirm.delete': 'Видалити поїздку «{title}»? Всі місця та плани будуть безповоротно видалені.',
   'dashboard.editTrip': 'Редагувати поїздку',
   'dashboard.createTrip': 'Створити нову поїздку',
   'dashboard.tripTitle': 'Назва',
@@ -80,8 +78,7 @@ const dashboard: TranslationStrings = {
   'dashboard.startDate': 'Дата початку',
   'dashboard.endDate': 'Дата закінчення',
   'dashboard.dayCount': 'Кількість днів',
-  'dashboard.dayCountHint':
-    'Скільки днів планувати, якщо дати поїздки не вказані.',
+  'dashboard.dayCountHint': 'Скільки днів планувати, якщо дати поїздки не вказані.',
   'dashboard.noDateHint':
     'Дата не вказана — буде створено 7 днів за замовчуванням. Ви можете змінити це в будь-який час.',
   'dashboard.coverImage': 'Обкладинка',
@@ -153,8 +150,7 @@ const dashboard: TranslationStrings = {
   'dashboard.fx.to': 'У',
   'dashboard.fx.unavailable': 'Курс недоступний',
   'dashboard.tz.searchPlaceholder': 'Пошук часового поясу…',
-  'dashboard.tz.empty':
-    'Інших часових поясів поки немає — додайте за допомогою +',
+  'dashboard.tz.empty': 'Інших часових поясів поки немає — додайте за допомогою +',
   'dashboard.upcoming.title': 'Найближчі бронювання',
   'dashboard.upcoming.empty': 'Поки нічого не заброньовано.',
   'dashboard.aria.toggleView': 'Перемкнути вигляд',

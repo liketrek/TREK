@@ -7,8 +7,7 @@ const packing: TranslationStrings = {
   'packing.importTitle': 'Импорт списка вещей',
   'packing.importHint':
     'Один предмет на строку. Категория и количество — через запятую, точку с запятой или табуляцию: Название, Категория, Количество',
-  'packing.importPlaceholder':
-    'Зубная щётка\nСолнцезащитный крем, Гигиена\nФутболки, Одежда, 5\nПаспорт, Документы',
+  'packing.importPlaceholder': 'Зубная щётка\nСолнцезащитный крем, Гигиена\nФутболки, Одежда, 5\nПаспорт, Документы',
   'packing.importCsv': 'Загрузить CSV/TXT',
   'packing.importAction': 'Импортировать {count}',
   'packing.importSuccess': '{count} предметов импортировано',
@@ -51,10 +50,8 @@ const packing: TranslationStrings = {
   'packing.bagName': 'Название...',
   'packing.addBag': 'Добавить багаж',
   'packing.changeCategory': 'Изменить категорию',
-  'packing.confirm.clearChecked':
-    'Вы уверены, что хотите удалить {count} отмеченных вещей?',
-  'packing.confirm.deleteCat':
-    'Вы уверены, что хотите удалить категорию «{name}» с {count} вещами?',
+  'packing.confirm.clearChecked': 'Вы уверены, что хотите удалить {count} отмеченных вещей?',
+  'packing.confirm.deleteCat': 'Вы уверены, что хотите удалить категорию «{name}» с {count} вещами?',
   'packing.defaultCategory': 'Другое',
   'packing.toast.saveError': 'Ошибка сохранения',
   'packing.toast.deleteError': 'Ошибка удаления',

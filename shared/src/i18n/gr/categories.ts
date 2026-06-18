@@ -13,8 +13,7 @@ const categories: TranslationStrings = {
   'categories.defaultName': 'Κατηγορία',
   'categories.update': 'Ενημέρωση',
   'categories.create': 'Δημιουργία',
-  'categories.confirm.delete':
-    'Διαγραφή κατηγορίας; Οι τοποθεσίες σε αυτή την κατηγορία δεν θα διαγραφούν.',
+  'categories.confirm.delete': 'Διαγραφή κατηγορίας; Οι τοποθεσίες σε αυτή την κατηγορία δεν θα διαγραφούν.',
   'categories.toast.loadError': 'Αποτυχία φόρτωσης κατηγοριών',
   'categories.toast.nameRequired': 'Παρακαλώ εισάγετε όνομα',
   'categories.toast.updated': 'Η κατηγορία ενημερώθηκε',

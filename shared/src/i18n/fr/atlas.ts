@@ -9,8 +9,7 @@ const atlas: TranslationStrings = {
   'atlas.visitedCountries': 'Pays visités',
   'atlas.cities': 'Villes',
   'atlas.noData': 'Aucune donnée de voyage',
-  'atlas.noDataHint':
-    'Créez un voyage et ajoutez des lieux pour voir votre carte du monde',
+  'atlas.noDataHint': 'Créez un voyage et ajoutez des lieux pour voir votre carte du monde',
   'atlas.lastTrip': 'Dernier voyage',
   'atlas.nextTrip': 'Prochain voyage',
   'atlas.daysLeft': 'jours restants',
@@ -48,8 +47,7 @@ const atlas: TranslationStrings = {
   'atlas.confirmUnmarkRegion': 'Retirer cette région de votre liste ?',
   'atlas.markVisited': 'Marquer comme visité',
   'atlas.markVisitedHint': 'Ajouter ce pays à votre liste de visités',
-  'atlas.markRegionVisitedHint':
-    'Ajouter cette région à votre liste de visités',
+  'atlas.markRegionVisitedHint': 'Ajouter cette région à votre liste de visités',
   'atlas.addToBucket': 'Ajouter à la bucket list',
   'atlas.addPoi': 'Ajouter un lieu',
   'atlas.searchCountry': 'Rechercher un pays…',

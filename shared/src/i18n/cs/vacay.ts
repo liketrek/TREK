@@ -8,8 +8,7 @@ const vacay: TranslationStrings = {
   'vacay.addPrevYear': 'Přidat předchozí rok',
   'vacay.removeYear': 'Odebrat rok',
   'vacay.removeYearConfirm': 'Odebrat rok {year}?',
-  'vacay.removeYearHint':
-    'Všechny záznamy o dovolené a firemní svátky pro tento rok budou trvale smazány.',
+  'vacay.removeYearHint': 'Všechny záznamy o dovolené a firemní svátky pro tento rok budou trvale smazány.',
   'vacay.remove': 'Odebrat',
   'vacay.persons': 'Osoby',
   'vacay.noPersons': 'Žádné osoby nebyly přidány',
@@ -17,8 +16,7 @@ const vacay: TranslationStrings = {
   'vacay.editPerson': 'Upravit osobu',
   'vacay.removePerson': 'Odebrat osobu',
   'vacay.removePersonConfirm': 'Odebrat osobu {name}?',
-  'vacay.removePersonHint':
-    'Všechny záznamy dovolené pro tuto osobu budou trvale smazány.',
+  'vacay.removePersonHint': 'Všechny záznamy dovolené pro tuto osobu budou trvale smazány.',
   'vacay.personName': 'Jméno',
   'vacay.personNamePlaceholder': 'Zadejte jméno',
   'vacay.color': 'Barva',
@@ -54,8 +52,7 @@ const vacay: TranslationStrings = {
   'vacay.noCalendars': 'Zatím nebyly přidány žádné svátkové kalendáře',
   'vacay.companyHolidays': 'Firemní volno',
   'vacay.companyHolidaysHint': 'Povolit označování dnů celofiremního volna',
-  'vacay.companyHolidaysNoDeduct':
-    'Firemní volno se nezapočítává do nároku na dovolenou.',
+  'vacay.companyHolidaysNoDeduct': 'Firemní volno se nezapočítává do nároku na dovolenou.',
   'vacay.weekStart': 'Týden začíná',
   'vacay.weekStartHint': 'Zvolte, zda týden začíná v pondělí nebo v neděli',
   'vacay.carryOver': 'Převod dovolené',
@@ -67,8 +64,7 @@ const vacay: TranslationStrings = {
   'vacay.shareSuccess': 'Plán byl úspěšně sdílen',
   'vacay.shareError': 'Nepodařilo se sdílet plán',
   'vacay.dissolve': 'Zrušit propojení',
-  'vacay.dissolveHint':
-    'Znovu oddělit kalendáře. Vaše záznamy zůstanou zachovány.',
+  'vacay.dissolveHint': 'Znovu oddělit kalendáře. Vaše záznamy zůstanou zachovány.',
   'vacay.dissolveAction': 'Oddělit',
   'vacay.dissolved': 'Kalendáře byly odděleny',
   'vacay.fusedWith': 'Propojeno s',
@@ -76,8 +72,7 @@ const vacay: TranslationStrings = {
   'vacay.noData': 'Žádná data',
   'vacay.changeColor': 'Změnit barvu',
   'vacay.inviteUser': 'Pozvat uživatele',
-  'vacay.inviteHint':
-    'Pozvěte jiného uživatele TREK ke sdílení společného kalendáře dovolených.',
+  'vacay.inviteHint': 'Pozvěte jiného uživatele TREK ke sdílení společného kalendáře dovolených.',
   'vacay.selectUser': 'Vyberte uživatele',
   'vacay.sendInvite': 'Odeslat pozvánku',
   'vacay.inviteSent': 'Pozvánka odeslána',
@@ -90,8 +85,7 @@ const vacay: TranslationStrings = {
   'vacay.inviteTitle': 'Žádost o propojení',
   'vacay.inviteWantsToFuse': 'vás zve ke sdílení kalendáře dovolených.',
   'vacay.fuseInfo1': 'Oba uvidíte všechny záznamy v jednom sdíleném kalendáři.',
-  'vacay.fuseInfo2':
-    'Obě strany mohou vytvářet a upravovat záznamy tomu druhému.',
+  'vacay.fuseInfo2': 'Obě strany mohou vytvářet a upravovat záznamy tomu druhému.',
   'vacay.fuseInfo3': 'Obě strany mohou měnit nároky na dovolenou.',
   'vacay.fuseInfo4': 'Nastavení (svátky, firemní volno) jsou sdílená.',
   'vacay.fuseInfo5': 'Propojení lze kdykoli zrušit bez ztráty dat.',

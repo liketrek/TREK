@@ -31,8 +31,7 @@ const files: TranslationStrings = {
   'files.sourceBooking': '予約',
   'files.sourceTransport': '移動',
   'files.attach': '添付',
-  'files.pasteHint':
-    'クリップボードから画像を貼り付けることもできます（Ctrl+V）',
+  'files.pasteHint': 'クリップボードから画像を貼り付けることもできます（Ctrl+V）',
   'files.trash': 'ゴミ箱',
   'files.trashEmpty': 'ゴミ箱は空です',
   'files.emptyTrash': 'ゴミ箱を空にする',
@@ -52,10 +51,8 @@ const files: TranslationStrings = {
   'files.toast.assigned': 'ファイルを割り当てました',
   'files.toast.assignError': '割り当てに失敗しました',
   'files.toast.restoreError': '復元に失敗しました',
-  'files.confirm.permanentDelete':
-    'このファイルを完全に削除しますか？元に戻せません。',
-  'files.confirm.emptyTrash':
-    'ゴミ箱内のファイルをすべて完全に削除しますか？元に戻せません。',
+  'files.confirm.permanentDelete': 'このファイルを完全に削除しますか？元に戻せません。',
+  'files.confirm.emptyTrash': 'ゴミ箱内のファイルをすべて完全に削除しますか？元に戻せません。',
   'files.noteLabel': 'メモ',
   'files.notePlaceholder': 'メモを追加...',
 };

@@ -18,9 +18,7 @@ export const collabNoteCreateRequestSchema = z.object({
   color: z.string().optional(),
   website: z.string().optional(),
 });
-export type CollabNoteCreateRequest = z.infer<
-  typeof collabNoteCreateRequestSchema
->;
+export type CollabNoteCreateRequest = z.infer<typeof collabNoteCreateRequestSchema>;
 
 export const collabNoteUpdateRequestSchema = z.object({
   title: z.string().optional(),
@@ -30,9 +28,7 @@ export const collabNoteUpdateRequestSchema = z.object({
   pinned: z.union([z.boolean(), z.number()]).optional(),
   website: z.string().optional(),
 });
-export type CollabNoteUpdateRequest = z.infer<
-  typeof collabNoteUpdateRequestSchema
->;
+export type CollabNoteUpdateRequest = z.infer<typeof collabNoteUpdateRequestSchema>;
 
 export const collabPollCreateRequestSchema = z.object({
   question: z.string().min(1),
@@ -41,9 +37,7 @@ export const collabPollCreateRequestSchema = z.object({
   multiple_choice: z.boolean().optional(),
   deadline: z.string().optional(),
 });
-export type CollabPollCreateRequest = z.infer<
-  typeof collabPollCreateRequestSchema
->;
+export type CollabPollCreateRequest = z.infer<typeof collabPollCreateRequestSchema>;
 
 export const collabPollVoteRequestSchema = z.object({
   option_index: z.number(),
@@ -54,9 +48,7 @@ export const collabMessageCreateRequestSchema = z.object({
   text: z.string().min(1).max(5000),
   reply_to: z.number().nullable().optional(),
 });
-export type CollabMessageCreateRequest = z.infer<
-  typeof collabMessageCreateRequestSchema
->;
+export type CollabMessageCreateRequest = z.infer<typeof collabMessageCreateRequestSchema>;
 
 export const collabReactionRequestSchema = z.object({
   emoji: z.string().min(1),

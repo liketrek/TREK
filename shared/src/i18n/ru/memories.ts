@@ -3,8 +3,7 @@ import type { TranslationStrings } from '../types';
 const memories: TranslationStrings = {
   'memories.title': 'Фото',
   'memories.notConnected': 'Immich не подключён',
-  'memories.notConnectedHint':
-    'Подключите Immich в настройках, чтобы видеть фотографии из поездок.',
+  'memories.notConnectedHint': 'Подключите Immich в настройках, чтобы видеть фотографии из поездок.',
   'memories.notConnectedMultipleHint':
     'Подключите одного из этих фотопровайдеров: {provider_names} в Настройках, чтобы добавлять фотографии к этому путешествию.',
   'memories.noDates': 'Добавьте даты поездки для загрузки фотографий.',
@@ -15,8 +14,7 @@ const memories: TranslationStrings = {
   'memories.sharePhotos': 'Поделиться фото',
   'memories.sharing': 'Общий доступ',
   'memories.reviewTitle': 'Проверьте ваши фото',
-  'memories.reviewHint':
-    'Нажмите на фото, чтобы исключить его из общего доступа.',
+  'memories.reviewHint': 'Нажмите на фото, чтобы исключить его из общего доступа.',
   'memories.shareCount': 'Поделиться ({count} фото)',
   'memories.providerUrl': 'URL сервера',
   'memories.providerApiKey': 'API-ключ',
@@ -25,8 +23,7 @@ const memories: TranslationStrings = {
   'memories.providerOTP': 'Код MFA (если включён)',
   'memories.skipSSLVerification': 'Пропустить проверку SSL-сертификата',
   'memories.immichAutoUpload': 'Дублировать фото journey в Immich при загрузке',
-  'memories.providerUrlHintSynology':
-    'Включите путь приложения Photos в URL, например https://nas:5001/photo',
+  'memories.providerUrlHintSynology': 'Включите путь приложения Photos в URL, например https://nas:5001/photo',
   'memories.testConnection': 'Проверить подключение',
   'memories.testShort': 'Проверить',
   'memories.testFirst': 'Сначала проверьте подключение',
@@ -71,10 +68,8 @@ const memories: TranslationStrings = {
   'memories.error.addPhotos': 'Не удалось добавить фотографии',
   'memories.error.removePhoto': 'Не удалось удалить фотографию',
   'memories.error.toggleSharing': 'Не удалось обновить настройки доступа',
-  'memories.saveRouteNotConfigured':
-    'Маршрут сохранения не настроен для этого провайдера',
-  'memories.testRouteNotConfigured':
-    'Маршрут тестирования не настроен для этого провайдера',
+  'memories.saveRouteNotConfigured': 'Маршрут сохранения не настроен для этого провайдера',
+  'memories.testRouteNotConfigured': 'Маршрут тестирования не настроен для этого провайдера',
   'memories.fillRequiredFields': 'Пожалуйста, заполните все обязательные поля',
 };
 export default memories;

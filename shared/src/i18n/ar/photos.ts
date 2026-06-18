@@ -20,7 +20,6 @@ const photos: TranslationStrings = {
   'photos.dayLabel': 'اليوم {number}',
   'photos.photoSelected': 'صورة محددة',
   'photos.photosSelected': 'صور محددة',
-  'photos.fileTypeHint':
-    'JPG, PNG, WebP · الحد الأقصى 10 ميغابايت · حتى 30 صورة',
+  'photos.fileTypeHint': 'JPG, PNG, WebP · الحد الأقصى 10 ميغابايت · حتى 30 صورة',
 };
 export default photos;

@@ -33,8 +33,7 @@ const planner: TranslationStrings = {
   'planner.resConfirmed': 'حجز مؤكد · ',
   'planner.notePlaceholder': 'ملاحظة…',
   'planner.noteTimePlaceholder': 'الوقت (اختياري)',
-  'planner.noteExamplePlaceholder':
-    'مثال: S3 الساعة 14:30 من المحطة المركزية، عبّارة من الرصيف 7، استراحة غداء…',
+  'planner.noteExamplePlaceholder': 'مثال: S3 الساعة 14:30 من المحطة المركزية، عبّارة من الرصيف 7، استراحة غداء…',
   'planner.totalCost': 'إجمالي التكلفة',
   'planner.searchPlaces': 'ابحث عن أماكن…',
   'planner.allCategories': 'كل الفئات',

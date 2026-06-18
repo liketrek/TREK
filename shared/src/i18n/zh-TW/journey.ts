@@ -63,8 +63,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.continueWriting': '繼續撰寫',
   'journey.frontpage.updated': '更新於 {time}',
   'journey.frontpage.suggestionLabel': '旅行剛結束',
-  'journey.frontpage.suggestionText':
-    '將 <strong>{title}</strong> 變成一段旅程',
+  'journey.frontpage.suggestionText': '將 <strong>{title}</strong> 變成一段旅程',
   'journey.frontpage.dismiss': '忽略',
   'journey.frontpage.journeyName': '旅程名稱',
   'journey.frontpage.namePlaceholder': '例如 東南亞 2026',
@@ -81,8 +80,7 @@ const journey: TranslationStrings = {
   'journey.detail.noEntries': '還沒有條目',
   'journey.detail.noEntriesHint': '新增一個旅行以產生骨架條目',
   'journey.detail.noPhotos': '還沒有照片',
-  'journey.detail.noPhotosHint':
-    '上傳照片到條目或瀏覽你的 Immich/Synology 相簿',
+  'journey.detail.noPhotosHint': '上傳照片到條目或瀏覽你的 Immich/Synology 相簿',
   'journey.detail.journeyStats': '旅程統計',
   'journey.detail.syncedTrips': '已同步的旅行',
   'journey.detail.noTripsLinked': '尚未關聯旅行',
@@ -108,8 +106,7 @@ const journey: TranslationStrings = {
   'journey.editor.uploadPhotos': '上傳照片',
   'journey.editor.uploading': '上傳中...',
   'journey.editor.uploadingProgress': '上傳中 {done}/{total}…',
-  'journey.editor.uploadPartialFailed':
-    '{total} 張中有 {failed} 張上傳失敗 — 再次儲存以重試',
+  'journey.editor.uploadPartialFailed': '{total} 張中有 {failed} 張上傳失敗 — 再次儲存以重試',
   'journey.editor.fromGallery': '從相簿',
   'journey.editor.allPhotosAdded': '所有照片已新增',
   'journey.editor.writeStory': '寫下你的故事...',
@@ -146,8 +143,7 @@ const journey: TranslationStrings = {
   'journey.trips.linkFailed': '關聯旅行失敗',
   'journey.trips.addTrip': '新增旅行',
   'journey.trips.unlinkTrip': '取消關聯旅行',
-  'journey.trips.unlinkMessage':
-    '取消關聯「{title}」？此旅行中所有已同步的條目和照片將被永久刪除。此操作無法復原。',
+  'journey.trips.unlinkMessage': '取消關聯「{title}」？此旅行中所有已同步的條目和照片將被永久刪除。此操作無法復原。',
   'journey.trips.unlink': '取消關聯',
   'journey.trips.tripUnlinked': '旅行已取消關聯',
   'journey.trips.unlinkFailed': '取消關聯失敗',

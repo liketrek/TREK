@@ -33,8 +33,7 @@ const planner: TranslationStrings = {
   'planner.resConfirmed': 'Foglalás megerősítve · ',
   'planner.notePlaceholder': 'Jegyzet…',
   'planner.noteTimePlaceholder': 'Időpont (opcionális)',
-  'planner.noteExamplePlaceholder':
-    'pl. S3 14:30-kor a főpályaudvarról, komp a 7. mólóról, ebédszünet…',
+  'planner.noteExamplePlaceholder': 'pl. S3 14:30-kor a főpályaudvarról, komp a 7. mólóról, ebédszünet…',
   'planner.totalCost': 'Összköltség',
   'planner.searchPlaces': 'Helyek keresése…',
   'planner.allCategories': 'Összes kategória',
@@ -48,8 +47,7 @@ const planner: TranslationStrings = {
   'planner.route': 'Útvonal',
   'planner.optimize': 'Optimalizálás',
   'planner.openGoogleMaps': 'Megnyitás a Google Térképben',
-  'planner.selectDayHint':
-    'Válassz egy napot a bal oldali listából a napi terv megtekintéséhez',
+  'planner.selectDayHint': 'Válassz egy napot a bal oldali listából a napi terv megtekintéséhez',
   'planner.noPlacesForDay': 'Még nincsenek helyek erre a napra',
   'planner.addPlacesLink': 'Helyek hozzáadása →',
   'planner.minTotal': 'perc összesen',

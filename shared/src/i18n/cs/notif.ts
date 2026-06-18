@@ -14,8 +14,7 @@ const notif: TranslationStrings = {
   'notif.todo_due.title': 'Úkol se blíží',
   'notif.todo_due.text': '{todo} ve výletě {trip} má termín {due}',
   'notif.vacay_invite.title': 'Pozvánka Vacay Fusion',
-  'notif.vacay_invite.text':
-    '{actor} vás pozval ke spojení dovolenkových plánů',
+  'notif.vacay_invite.text': '{actor} vás pozval ke spojení dovolenkových plánů',
   'notif.photos_shared.title': 'Fotky sdíleny',
   'notif.photos_shared.text': '{actor} sdílel {count} foto v {trip}',
   'notif.collab_message.title': 'Nová zpráva',
@@ -36,7 +35,6 @@ const notif: TranslationStrings = {
   'notif.generic.title': 'Oznámení',
   'notif.generic.text': 'Máte nové oznámení',
   'notif.dev.unknown_event.title': '[DEV] Neznámá událost',
-  'notif.dev.unknown_event.text':
-    'Typ události "{event}" není registrován v EVENT_NOTIFICATION_CONFIG',
+  'notif.dev.unknown_event.text': 'Typ události "{event}" není registrován v EVENT_NOTIFICATION_CONFIG',
 };
 export default notif;

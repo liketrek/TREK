@@ -3,10 +3,8 @@ import type { TranslationStrings } from '../types';
 const memories: TranslationStrings = {
   'memories.title': '照片',
   'memories.notConnected': 'Immich 未连接',
-  'memories.notConnectedHint':
-    '在设置中连接您的 Immich 实例以在此查看旅行照片。',
-  'memories.notConnectedMultipleHint':
-    '请在设置中连接以下任一照片提供商：{provider_names}，以便向此行程添加照片。',
+  'memories.notConnectedHint': '在设置中连接您的 Immich 实例以在此查看旅行照片。',
+  'memories.notConnectedMultipleHint': '请在设置中连接以下任一照片提供商：{provider_names}，以便向此行程添加照片。',
   'memories.noDates': '为旅行添加日期以加载照片。',
   'memories.noPhotos': '未找到照片',
   'memories.noPhotosHint': 'Immich 中未找到此旅行日期范围内的照片。',
@@ -24,8 +22,7 @@ const memories: TranslationStrings = {
   'memories.providerOTP': 'MFA 验证码（如已启用）',
   'memories.skipSSLVerification': '跳过 SSL 证书验证',
   'memories.immichAutoUpload': '上传 Journey 照片时同步到 Immich',
-  'memories.providerUrlHintSynology':
-    '在 URL 中包含照片应用路径，例如 https://nas:5001/photo',
+  'memories.providerUrlHintSynology': '在 URL 中包含照片应用路径，例如 https://nas:5001/photo',
   'memories.testConnection': '测试连接',
   'memories.testShort': '测试',
   'memories.testFirst': '请先测试连接',
@@ -34,8 +31,7 @@ const memories: TranslationStrings = {
   'memories.connectionSuccess': '已连接到 Immich',
   'memories.connectionError': '无法连接到 Immich',
   'memories.saved': '{provider_name} 设置已保存',
-  'memories.providerDisconnectedBanner':
-    '您与 {provider_name} 的连接已断开。请在设置中重新连接以查看照片。',
+  'memories.providerDisconnectedBanner': '您与 {provider_name} 的连接已断开。请在设置中重新连接以查看照片。',
   'memories.saveError': '无法保存 {provider_name} 设置',
   'memories.oldest': '最早优先',
   'memories.newest': '最新优先',
@@ -59,8 +55,7 @@ const memories: TranslationStrings = {
   'memories.tripDates': '旅行日期',
   'memories.allPhotos': '所有照片',
   'memories.confirmShareTitle': '与旅行成员分享？',
-  'memories.confirmShareHint':
-    '{count} 张照片将对本次旅行的所有成员可见。你可以稍后将单张照片设为私密。',
+  'memories.confirmShareHint': '{count} 张照片将对本次旅行的所有成员可见。你可以稍后将单张照片设为私密。',
   'memories.confirmShareButton': '分享照片',
   'memories.error.loadAlbums': '加载相册失败',
   'memories.error.linkAlbum': '关联相册失败',

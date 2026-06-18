@@ -12,8 +12,7 @@ const backup: TranslationStrings = {
   'backup.createFirst': 'Создать первую копию',
   'backup.download': 'Скачать',
   'backup.restore': 'Восстановить',
-  'backup.confirm.restore':
-    'Восстановить копию «{name}»?\n\nВсе текущие данные будут заменены данными из копии.',
+  'backup.confirm.restore': 'Восстановить копию «{name}»?\n\nВсе текущие данные будут заменены данными из копии.',
   'backup.confirm.uploadRestore':
     'Загрузить и восстановить файл копии «{name}»?\n\nВсе текущие данные будут перезаписаны.',
   'backup.confirm.delete': 'Удалить копию «{name}»?',
@@ -31,15 +30,13 @@ const backup: TranslationStrings = {
   'backup.auto.title': 'Автокопирование',
   'backup.auto.subtitle': 'Автоматическое резервное копирование по расписанию',
   'backup.auto.enable': 'Включить автокопирование',
-  'backup.auto.enableHint':
-    'Резервные копии будут создаваться автоматически по выбранному расписанию',
+  'backup.auto.enableHint': 'Резервные копии будут создаваться автоматически по выбранному расписанию',
   'backup.auto.interval': 'Интервал',
   'backup.auto.hour': 'Запуск в час',
   'backup.auto.hourHint': 'Местное время сервера (формат {format})',
   'backup.auto.dayOfWeek': 'День недели',
   'backup.auto.dayOfMonth': 'День месяца',
-  'backup.auto.dayOfMonthHint':
-    'Ограничено 1–28 для совместимости со всеми месяцами',
+  'backup.auto.dayOfMonthHint': 'Ограничено 1–28 для совместимости со всеми месяцами',
   'backup.auto.scheduleSummary': 'Расписание',
   'backup.auto.summaryDaily': 'Каждый день в {hour}:00',
   'backup.auto.summaryWeekly': 'Каждый {day} в {hour}:00',
@@ -48,8 +45,7 @@ const backup: TranslationStrings = {
   'backup.auto.envLockedHint':
     'Автокопирование настроено через переменные окружения Docker. Чтобы изменить параметры, обновите docker-compose.yml и перезапустите контейнер.',
   'backup.auto.copyEnv': 'Скопировать переменные окружения Docker',
-  'backup.auto.envCopied':
-    'Переменные окружения Docker скопированы в буфер обмена',
+  'backup.auto.envCopied': 'Переменные окружения Docker скопированы в буфер обмена',
   'backup.auto.keepLabel': 'Удалять старые копии через',
   'backup.dow.sunday': 'Вс',
   'backup.dow.monday': 'Пн',
@@ -71,8 +67,7 @@ const backup: TranslationStrings = {
   'backup.restoreConfirmTitle': 'Восстановить копию?',
   'backup.restoreWarning':
     'Все текущие данные (поездки, места, пользователи, загрузки) будут безвозвратно заменены данными из копии. Это действие нельзя отменить.',
-  'backup.restoreTip':
-    'Совет: создайте резервную копию текущего состояния перед восстановлением.',
+  'backup.restoreTip': 'Совет: создайте резервную копию текущего состояния перед восстановлением.',
   'backup.restoreConfirm': 'Да, восстановить',
 };
 export default backup;

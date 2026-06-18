@@ -2,8 +2,7 @@ import type { TranslationStrings } from '../types';
 
 const share: TranslationStrings = {
   'share.linkTitle': '公開連結',
-  'share.linkHint':
-    '建立一個連結，任何人無需登入即可檢視此旅行。僅可檢視，無法編輯。',
+  'share.linkHint': '建立一個連結，任何人無需登入即可檢視此旅行。僅可檢視，無法編輯。',
   'share.createLink': '建立連結',
   'share.deleteLink': '刪除連結',
   'share.createError': '無法建立連結',

@@ -13,8 +13,7 @@ const files: TranslationStrings = {
   'files.uploadError': '업로드 실패',
   'files.dropzone': '여기에 파일을 놓으세요',
   'files.dropzoneHint': '또는 클릭하여 탐색',
-  'files.allowedTypes':
-    '이미지, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · 최대 50 MB',
+  'files.allowedTypes': '이미지, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · 최대 50 MB',
   'files.uploading': '업로드 중...',
   'files.filterAll': '전체',
   'files.filterPdf': 'PDF',
@@ -52,10 +51,8 @@ const files: TranslationStrings = {
   'files.toast.assigned': '파일이 배정되었습니다',
   'files.toast.assignError': '배정 실패',
   'files.toast.restoreError': '복원 실패',
-  'files.confirm.permanentDelete':
-    '이 파일을 영구 삭제할까요? 이 작업은 취소할 수 없습니다.',
-  'files.confirm.emptyTrash':
-    '휴지통의 모든 파일을 영구 삭제할까요? 이 작업은 취소할 수 없습니다.',
+  'files.confirm.permanentDelete': '이 파일을 영구 삭제할까요? 이 작업은 취소할 수 없습니다.',
+  'files.confirm.emptyTrash': '휴지통의 모든 파일을 영구 삭제할까요? 이 작업은 취소할 수 없습니다.',
   'files.noteLabel': '메모',
   'files.notePlaceholder': '메모 추가...',
 };

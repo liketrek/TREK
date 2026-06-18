@@ -3,8 +3,7 @@ import type { TranslationStrings } from '../types';
 const login: TranslationStrings = {
   'login.error': 'ログインに失敗しました。認証情報を確認してください。',
   'login.tagline': 'あなたの旅行。\nあなたの計画。',
-  'login.description':
-    'インタラクティブなマップ、予算、リアルタイム同期で、みんなで旅行を計画。',
+  'login.description': 'インタラクティブなマップ、予算、リアルタイム同期で、みんなで旅行を計画。',
   'login.features.maps': 'インタラクティブマップ',
   'login.features.mapsDesc': 'Google Places、経路、クラスタリング',
   'login.features.realtime': 'リアルタイム同期',
@@ -38,24 +37,20 @@ const login: TranslationStrings = {
   'login.register': '登録',
   'login.emailPlaceholder': 'your@email.com',
   'login.username': 'ユーザー名',
-  'login.oidc.registrationDisabled':
-    '登録は無効です。管理者に連絡してください。',
+  'login.oidc.registrationDisabled': '登録は無効です。管理者に連絡してください。',
   'login.oidc.noEmail': 'プロバイダーからメールが取得できませんでした。',
   'login.oidc.tokenFailed': '認証に失敗しました。',
   'login.oidc.invalidState': 'セッションが無効です。もう一度お試しください。',
   'login.demoFailed': 'デモログインに失敗しました',
   'login.oidcSignIn': '{name}でサインイン',
-  'login.oidcOnly':
-    'パスワード認証は無効です。SSOプロバイダーでサインインしてください。',
-  'login.oidcLoggedOut':
-    'ログアウトしました。SSOプロバイダーで再度サインインしてください。',
+  'login.oidcOnly': 'パスワード認証は無効です。SSOプロバイダーでサインインしてください。',
+  'login.oidcLoggedOut': 'ログアウトしました。SSOプロバイダーで再度サインインしてください。',
   'login.demoHint': 'デモを試す — 登録不要',
   'login.mfaTitle': '二要素認証',
   'login.mfaSubtitle': '認証アプリの6桁コードを入力してください。',
   'login.mfaCodeLabel': '確認コード',
   'login.mfaCodeRequired': '認証アプリのコードを入力してください。',
-  'login.mfaHint':
-    'Google Authenticator、Authy などのTOTPアプリを開いてください。',
+  'login.mfaHint': 'Google Authenticator、Authy などのTOTPアプリを開いてください。',
   'login.mfaBack': '← サインインに戻る',
   'login.mfaVerify': '確認',
   'login.invalidInviteLink': '無効または期限切れの招待リンクです',
@@ -79,21 +74,16 @@ const login: TranslationStrings = {
   'login.passwordsDontMatch': 'パスワードが一致しません',
   'login.mfaCode': '2FAコード',
   'login.resetPasswordTitle': '新しいパスワードを設定',
-  'login.resetPasswordBody':
-    '以前使用していない強力なパスワードを設定してください（8文字以上）。',
-  'login.resetPasswordMfaBody':
-    '2FAコードまたはバックアップコードを入力してリセットを完了してください。',
+  'login.resetPasswordBody': '以前使用していない強力なパスワードを設定してください（8文字以上）。',
+  'login.resetPasswordMfaBody': '2FAコードまたはバックアップコードを入力してリセットを完了してください。',
   'login.resetPasswordSubmit': 'パスワードをリセット',
   'login.resetPasswordVerify': '確認してリセット',
   'login.resetPasswordSuccessTitle': 'パスワードを更新しました',
   'login.resetPasswordSuccessBody': '新しいパスワードでログインできます。',
   'login.resetPasswordInvalidLink': '無効なリセットリンク',
-  'login.resetPasswordInvalidLinkBody':
-    'リンクが無効または破損しています。新しいリンクをリクエストしてください。',
-  'login.resetPasswordFailed':
-    'リセットに失敗しました。リンクの有効期限が切れている可能性があります。',
+  'login.resetPasswordInvalidLinkBody': 'リンクが無効または破損しています。新しいリンクをリクエストしてください。',
+  'login.resetPasswordFailed': 'リセットに失敗しました。リンクの有効期限が切れている可能性があります。',
   'login.passkey.signIn': 'パスキーでサインイン',
-  'login.passkey.failed':
-    'パスキーでのサインインに失敗しました。もう一度お試しください。',
+  'login.passkey.failed': 'パスキーでのサインインに失敗しました。もう一度お試しください。',
 };
 export default login;

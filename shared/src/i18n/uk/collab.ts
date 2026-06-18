@@ -14,8 +14,7 @@ const collab: TranslationStrings = {
   'collab.chat.placeholder': 'Введіть повідомлення...',
   'collab.chat.empty': 'Розпочніть розмову',
   'collab.chat.emptyHint': 'Повідомлення видимі всім учасникам поїздки',
-  'collab.chat.emptyDesc':
-    'Діліться ідеями, планами та новинами з вашою групою',
+  'collab.chat.emptyDesc': 'Діліться ідеями, планами та новинами з вашою групою',
   'collab.chat.today': 'Сьогодні',
   'collab.chat.yesterday': 'Вчора',
   'collab.chat.deletedMessage': 'видалив(ла) повідомлення',

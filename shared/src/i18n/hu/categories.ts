@@ -13,8 +13,7 @@ const categories: TranslationStrings = {
   'categories.defaultName': 'Kategória',
   'categories.update': 'Frissítés',
   'categories.create': 'Létrehozás',
-  'categories.confirm.delete':
-    'Kategória törlése? Az ebben a kategóriában lévő helyek nem törlődnek.',
+  'categories.confirm.delete': 'Kategória törlése? Az ebben a kategóriában lévő helyek nem törlődnek.',
   'categories.toast.loadError': 'Nem sikerült betölteni a kategóriákat',
   'categories.toast.nameRequired': 'Kérjük, adj meg egy nevet',
   'categories.toast.updated': 'Kategória frissítve',

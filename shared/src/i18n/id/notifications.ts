@@ -22,16 +22,14 @@ const notifications: TranslationStrings = {
   'notifications.test.title': 'Notifikasi uji dari {actor}',
   'notifications.test.text': 'Ini adalah notifikasi uji sederhana.',
   'notifications.test.booleanTitle': '{actor} meminta persetujuanmu',
-  'notifications.test.booleanText':
-    'Ini adalah notifikasi uji boolean. Pilih tindakan di bawah.',
+  'notifications.test.booleanText': 'Ini adalah notifikasi uji boolean. Pilih tindakan di bawah.',
   'notifications.test.accept': 'Setujui',
   'notifications.test.decline': 'Tolak',
   'notifications.test.navigateTitle': 'Cek sesuatu',
   'notifications.test.navigateText': 'Ini adalah notifikasi uji navigasi.',
   'notifications.test.goThere': 'Ke sana',
   'notifications.test.adminTitle': 'Siaran Admin',
-  'notifications.test.adminText':
-    '{actor} mengirim notifikasi uji ke semua admin.',
+  'notifications.test.adminText': '{actor} mengirim notifikasi uji ke semua admin.',
   'notifications.test.tripTitle': '{actor} memposting di perjalananmu',
   'notifications.test.tripText': 'Notifikasi uji untuk perjalanan "{trip}".',
 };

@@ -3,8 +3,7 @@ import type { TranslationStrings } from '../types';
 const login: TranslationStrings = {
   'login.error': 'Falha no login. Verifique suas credenciais.',
   'login.tagline': 'Suas viagens.\nSeu plano.',
-  'login.description':
-    'Planeje viagens em equipe com mapas interativos, orçamento e sincronização em tempo real.',
+  'login.description': 'Planeje viagens em equipe com mapas interativos, orçamento e sincronização em tempo real.',
   'login.features.maps': 'Mapas interativos',
   'login.features.mapsDesc': 'Google Places, rotas e agrupamento',
   'login.features.realtime': 'Sincronização em tempo real',
@@ -27,8 +26,7 @@ const login: TranslationStrings = {
   'login.signingIn': 'Entrando…',
   'login.signIn': 'Entrar',
   'login.createAdmin': 'Criar conta de administrador',
-  'login.createAdminHint':
-    'Configure a primeira conta de administrador do TREK.',
+  'login.createAdminHint': 'Configure a primeira conta de administrador do TREK.',
   'login.setNewPassword': 'Definir nova senha',
   'login.setNewPasswordHint': 'Você deve alterar sua senha antes de continuar.',
   'login.createAccount': 'Criar conta',
@@ -39,16 +37,14 @@ const login: TranslationStrings = {
   'login.register': 'Cadastrar',
   'login.emailPlaceholder': 'seu@email.com',
   'login.username': 'Nome de usuário',
-  'login.oidc.registrationDisabled':
-    'Cadastro desativado. Fale com o administrador.',
+  'login.oidc.registrationDisabled': 'Cadastro desativado. Fale com o administrador.',
   'login.oidc.noEmail': 'Nenhum e-mail recebido do provedor.',
   'login.oidc.tokenFailed': 'Falha na autenticação.',
   'login.oidc.invalidState': 'Sessão inválida. Tente novamente.',
   'login.demoFailed': 'Falha no login de demonstração',
   'login.oidcSignIn': 'Entrar com {name}',
   'login.oidcOnly': 'Login por senha desativado. Use o provedor SSO.',
-  'login.oidcLoggedOut':
-    'Você foi desconectado. Entre novamente usando o provedor SSO.',
+  'login.oidcLoggedOut': 'Você foi desconectado. Entre novamente usando o provedor SSO.',
   'login.demoHint': 'Experimente a demonstração — sem cadastro',
   'login.mfaTitle': 'Autenticação em duas etapas',
   'login.mfaSubtitle': 'Digite o código de 6 dígitos do seu app autenticador.',
@@ -64,8 +60,7 @@ const login: TranslationStrings = {
   'login.forgotPassword': 'Esqueceu a senha?',
   'login.rememberMe': 'Lembrar de mim',
   'login.forgotPasswordTitle': 'Redefinir sua senha',
-  'login.forgotPasswordBody':
-    'Digite o e-mail cadastrado. Se houver uma conta, enviaremos um link de redefinição.',
+  'login.forgotPasswordBody': 'Digite o e-mail cadastrado. Se houver uma conta, enviaremos um link de redefinição.',
   'login.forgotPasswordSubmit': 'Enviar link',
   'login.forgotPasswordSentTitle': 'Verifique seu e-mail',
   'login.forgotPasswordSentBody':
@@ -78,22 +73,16 @@ const login: TranslationStrings = {
   'login.passwordsDontMatch': 'As senhas não coincidem',
   'login.mfaCode': 'Código 2FA',
   'login.resetPasswordTitle': 'Definir uma nova senha',
-  'login.resetPasswordBody':
-    'Escolha uma senha forte que você ainda não tenha usado aqui. Mínimo de 8 caracteres.',
-  'login.resetPasswordMfaBody':
-    'Digite seu código 2FA ou um código de backup para concluir a redefinição.',
+  'login.resetPasswordBody': 'Escolha uma senha forte que você ainda não tenha usado aqui. Mínimo de 8 caracteres.',
+  'login.resetPasswordMfaBody': 'Digite seu código 2FA ou um código de backup para concluir a redefinição.',
   'login.resetPasswordSubmit': 'Redefinir senha',
   'login.resetPasswordVerify': 'Verificar e redefinir',
   'login.resetPasswordSuccessTitle': 'Senha atualizada',
-  'login.resetPasswordSuccessBody':
-    'Agora você pode entrar com sua nova senha.',
+  'login.resetPasswordSuccessBody': 'Agora você pode entrar com sua nova senha.',
   'login.resetPasswordInvalidLink': 'Link de redefinição inválido',
-  'login.resetPasswordInvalidLinkBody':
-    'Este link está ausente ou corrompido. Solicite um novo para continuar.',
-  'login.resetPasswordFailed':
-    'Falha na redefinição. O link pode ter expirado.',
+  'login.resetPasswordInvalidLinkBody': 'Este link está ausente ou corrompido. Solicite um novo para continuar.',
+  'login.resetPasswordFailed': 'Falha na redefinição. O link pode ter expirado.',
   'login.passkey.signIn': 'Entrar com uma passkey',
-  'login.passkey.failed':
-    'Falha ao entrar com passkey. Tente novamente.',
+  'login.passkey.failed': 'Falha ao entrar com passkey. Tente novamente.',
 };
 export default login;

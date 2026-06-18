@@ -8,8 +8,7 @@ const vacay: TranslationStrings = {
   'vacay.addPrevYear': 'Vorheriges Jahr hinzufügen',
   'vacay.removeYear': 'Jahr entfernen',
   'vacay.removeYearConfirm': '{year} entfernen?',
-  'vacay.removeYearHint':
-    'Alle Urlaubseinträge und Betriebsferien für dieses Jahr werden unwiderruflich gelöscht.',
+  'vacay.removeYearHint': 'Alle Urlaubseinträge und Betriebsferien für dieses Jahr werden unwiderruflich gelöscht.',
   'vacay.remove': 'Entfernen',
   'vacay.persons': 'Personen',
   'vacay.noPersons': 'Keine Personen angelegt',
@@ -17,8 +16,7 @@ const vacay: TranslationStrings = {
   'vacay.editPerson': 'Person bearbeiten',
   'vacay.removePerson': 'Person entfernen',
   'vacay.removePersonConfirm': '{name} wirklich entfernen?',
-  'vacay.removePersonHint':
-    'Alle Urlaubseinträge dieser Person werden unwiderruflich gelöscht.',
+  'vacay.removePersonHint': 'Alle Urlaubseinträge dieser Person werden unwiderruflich gelöscht.',
   'vacay.personName': 'Name',
   'vacay.personNamePlaceholder': 'Name eingeben',
   'vacay.color': 'Farbe',
@@ -53,13 +51,10 @@ const vacay: TranslationStrings = {
   'vacay.calendarColor': 'Farbe',
   'vacay.noCalendars': 'Noch keine Feiertagskalender angelegt',
   'vacay.companyHolidays': 'Betriebsferien',
-  'vacay.companyHolidaysHint':
-    'Erlaubt das Markieren von unternehmensweiten Feiertagen',
-  'vacay.companyHolidaysNoDeduct':
-    'Betriebsferien werden nicht vom Urlaubskontingent abgezogen.',
+  'vacay.companyHolidaysHint': 'Erlaubt das Markieren von unternehmensweiten Feiertagen',
+  'vacay.companyHolidaysNoDeduct': 'Betriebsferien werden nicht vom Urlaubskontingent abgezogen.',
   'vacay.weekStart': 'Woche beginnt am',
-  'vacay.weekStartHint':
-    'Wähle ob die Kalenderwoche am Montag oder Sonntag beginnt',
+  'vacay.weekStartHint': 'Wähle ob die Kalenderwoche am Montag oder Sonntag beginnt',
   'vacay.carryOver': 'Urlaubsmitnahme',
   'vacay.carryOverHint': 'Resturlaub automatisch ins Folgejahr übertragen',
   'vacay.sharing': 'Teilen',
@@ -69,8 +64,7 @@ const vacay: TranslationStrings = {
   'vacay.shareSuccess': 'Plan erfolgreich geteilt',
   'vacay.shareError': 'Plan konnte nicht geteilt werden',
   'vacay.dissolve': 'Fusion auflösen',
-  'vacay.dissolveHint':
-    'Kalender wieder trennen. Deine Einträge bleiben erhalten.',
+  'vacay.dissolveHint': 'Kalender wieder trennen. Deine Einträge bleiben erhalten.',
   'vacay.dissolveAction': 'Auflösen',
   'vacay.dissolved': 'Kalender getrennt',
   'vacay.fusedWith': 'Fusioniert mit',
@@ -78,8 +72,7 @@ const vacay: TranslationStrings = {
   'vacay.noData': 'Keine Daten',
   'vacay.changeColor': 'Farbe ändern',
   'vacay.inviteUser': 'Benutzer einladen',
-  'vacay.inviteHint':
-    'Lade einen anderen TREK-Benutzer ein, um einen gemeinsamen Urlaubskalender zu teilen.',
+  'vacay.inviteHint': 'Lade einen anderen TREK-Benutzer ein, um einen gemeinsamen Urlaubskalender zu teilen.',
   'vacay.selectUser': 'Benutzer wählen',
   'vacay.sendInvite': 'Einladung senden',
   'vacay.inviteSent': 'Einladung gesendet',
@@ -91,15 +84,10 @@ const vacay: TranslationStrings = {
   'vacay.acceptFusion': 'Annehmen & Fusionieren',
   'vacay.inviteTitle': 'Fusionsanfrage',
   'vacay.inviteWantsToFuse': 'möchte einen Urlaubskalender mit dir teilen.',
-  'vacay.fuseInfo1':
-    'Beide sehen alle Urlaubseinträge in einem gemeinsamen Kalender.',
-  'vacay.fuseInfo2':
-    'Beide können Einträge für den jeweils anderen erstellen und bearbeiten.',
-  'vacay.fuseInfo3':
-    'Beide können Einträge löschen und den Urlaubsanspruch ändern.',
-  'vacay.fuseInfo4':
-    'Einstellungen wie Feiertage und Betriebsferien werden geteilt.',
-  'vacay.fuseInfo5':
-    'Die Fusion kann jederzeit von beiden Seiten aufgelöst werden. Einträge bleiben erhalten.',
+  'vacay.fuseInfo1': 'Beide sehen alle Urlaubseinträge in einem gemeinsamen Kalender.',
+  'vacay.fuseInfo2': 'Beide können Einträge für den jeweils anderen erstellen und bearbeiten.',
+  'vacay.fuseInfo3': 'Beide können Einträge löschen und den Urlaubsanspruch ändern.',
+  'vacay.fuseInfo4': 'Einstellungen wie Feiertage und Betriebsferien werden geteilt.',
+  'vacay.fuseInfo5': 'Die Fusion kann jederzeit von beiden Seiten aufgelöst werden. Einträge bleiben erhalten.',
 };
 export default vacay;

@@ -39,6 +39,4 @@ export type TodoReorderRequest = z.infer<typeof todoReorderRequestSchema>;
 export const todoCategoryAssigneesRequestSchema = z.object({
   user_ids: z.array(z.number()),
 });
-export type TodoCategoryAssigneesRequest = z.infer<
-  typeof todoCategoryAssigneesRequestSchema
->;
+export type TodoCategoryAssigneesRequest = z.infer<typeof todoCategoryAssigneesRequestSchema>;

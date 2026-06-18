@@ -2,8 +2,7 @@ import type { NotificationLocale } from '../externalNotifications/types';
 
 const id: NotificationLocale = {
   email: {
-    footer:
-      'Anda menerima ini karena Anda telah mengaktifkan notifikasi di TREK.',
+    footer: 'Anda menerima ini karena Anda telah mengaktifkan notifikasi di TREK.',
     manage: 'Kelola preferensi di Pengaturan',
     madeWith: 'Dibuat dengan',
     openTrek: 'Buka TREK',
@@ -56,8 +55,7 @@ const id: NotificationLocale = {
     body: 'Kami menerima permintaan untuk menyetel ulang kata sandi akun TREK Anda. Klik tombol di bawah untuk menetapkan kata sandi baru.',
     ctaIntro: 'Setel ulang kata sandi',
     expiry: 'Tautan ini kedaluwarsa dalam 60 menit.',
-    ignore:
-      'Jika Anda tidak meminta ini, Anda dapat mengabaikan email ini — kata sandi Anda tidak akan berubah.',
+    ignore: 'Jika Anda tidak meminta ini, Anda dapat mengabaikan email ini — kata sandi Anda tidak akan berubah.',
   },
 };
 

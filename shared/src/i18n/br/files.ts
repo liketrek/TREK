@@ -13,8 +13,7 @@ const files: TranslationStrings = {
   'files.uploadError': 'Falha no envio',
   'files.dropzone': 'Solte os arquivos aqui',
   'files.dropzoneHint': 'ou clique para escolher',
-  'files.allowedTypes':
-    'Imagens, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Máx. 50 MB',
+  'files.allowedTypes': 'Imagens, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Máx. 50 MB',
   'files.uploading': 'Enviando...',
   'files.filterAll': 'Todos',
   'files.filterPdf': 'PDFs',
@@ -32,8 +31,7 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Reserva',
   'files.sourceTransport': 'Transporte',
   'files.attach': 'Anexar',
-  'files.pasteHint':
-    'Você também pode colar imagens da área de transferência (Ctrl+V)',
+  'files.pasteHint': 'Você também pode colar imagens da área de transferência (Ctrl+V)',
   'files.trash': 'Lixeira',
   'files.trashEmpty': 'A lixeira está vazia',
   'files.emptyTrash': 'Esvaziar lixeira',
@@ -53,10 +51,8 @@ const files: TranslationStrings = {
   'files.toast.assigned': 'Arquivo atribuído',
   'files.toast.assignError': 'Falha na atribuição',
   'files.toast.restoreError': 'Falha ao restaurar',
-  'files.confirm.permanentDelete':
-    'Excluir permanentemente este arquivo? Não é possível desfazer.',
-  'files.confirm.emptyTrash':
-    'Excluir permanentemente todos os arquivos na lixeira? Não é possível desfazer.',
+  'files.confirm.permanentDelete': 'Excluir permanentemente este arquivo? Não é possível desfazer.',
+  'files.confirm.emptyTrash': 'Excluir permanentemente todos os arquivos na lixeira? Não é possível desfazer.',
   'files.noteLabel': 'Nota',
   'files.notePlaceholder': 'Adicione uma nota...',
 };

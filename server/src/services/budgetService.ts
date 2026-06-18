@@ -385,11 +385,18 @@ export function calculateSettlement(
   }
 
   // Persisted settle-up transfers already moved money: the payer's debt shrinks,
-  // the receiver's credit shrinks, so the corresponding flow disappears.
+  // the receiver's credit shrinks, so the corresponding flow disappears. A transfer
+  // counts even when neither user has an expense-derived balance yet — a manual
+  // payment, or one left behind after its expense was deleted, then correctly
+  // surfaces as an amount still to square up instead of silently vanishing.
   const settlements = listSettlements(tripId);
+  const ensureSettled = (id: number, username: string | undefined, avatar_url: string | null | undefined) => {
+    if (!balances[id]) balances[id] = { user_id: id, username: username || '', avatar_url: avatar_url ?? null, balance: 0 };
+    return balances[id];
+  };
   for (const s of settlements) {
-    if (balances[s.from_user_id]) balances[s.from_user_id].balance += s.amount;
-    if (balances[s.to_user_id]) balances[s.to_user_id].balance -= s.amount;
+    ensureSettled(s.from_user_id, s.from_username, s.from_avatar_url).balance += s.amount;
+    ensureSettled(s.to_user_id, s.to_username, s.to_avatar_url).balance -= s.amount;
   }
 
   // Calculate optimized payment flows (greedy algorithm)
@@ -459,6 +466,19 @@ export function createSettlement(
     'INSERT INTO budget_settlements (trip_id, from_user_id, to_user_id, amount, created_by_user_id) VALUES (?, ?, ?, ?, ?)'
   ).run(tripId, data.from_user_id, data.to_user_id, Math.round(data.amount * 100) / 100, createdByUserId ?? null);
   return listSettlements(tripId).find(s => s.id === Number(result.lastInsertRowid)) || null;
+}
+
+export function updateSettlement(
+  id: string | number,
+  tripId: string | number,
+  data: { from_user_id: number; to_user_id: number; amount: number },
+) {
+  const row = db.prepare('SELECT id FROM budget_settlements WHERE id = ? AND trip_id = ?').get(id, tripId);
+  if (!row) return null;
+  db.prepare(
+    'UPDATE budget_settlements SET from_user_id = ?, to_user_id = ?, amount = ? WHERE id = ?'
+  ).run(data.from_user_id, data.to_user_id, Math.round(data.amount * 100) / 100, id);
+  return listSettlements(tripId).find(s => s.id === Number(id)) || null;
 }
 
 export function deleteSettlement(id: string | number, tripId: string | number): boolean {

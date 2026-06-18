@@ -12,10 +12,8 @@ const backup: TranslationStrings = {
   'backup.createFirst': 'Criar primeiro backup',
   'backup.download': 'Baixar',
   'backup.restore': 'Restaurar',
-  'backup.confirm.restore':
-    'Restaurar o backup "{name}"?\n\nTodos os dados atuais serão substituídos pelo backup.',
-  'backup.confirm.uploadRestore':
-    'Enviar e restaurar o arquivo "{name}"?\n\nTodos os dados atuais serão sobrescritos.',
+  'backup.confirm.restore': 'Restaurar o backup "{name}"?\n\nTodos os dados atuais serão substituídos pelo backup.',
+  'backup.confirm.uploadRestore': 'Enviar e restaurar o arquivo "{name}"?\n\nTodos os dados atuais serão sobrescritos.',
   'backup.confirm.delete': 'Excluir o backup "{name}"?',
   'backup.toast.loadError': 'Falha ao carregar backups',
   'backup.toast.created': 'Backup criado com sucesso',
@@ -31,15 +29,13 @@ const backup: TranslationStrings = {
   'backup.auto.title': 'Backup automático',
   'backup.auto.subtitle': 'Backup automático em agenda',
   'backup.auto.enable': 'Ativar backup automático',
-  'backup.auto.enableHint':
-    'Backups serão criados automaticamente conforme a agenda escolhida',
+  'backup.auto.enableHint': 'Backups serão criados automaticamente conforme a agenda escolhida',
   'backup.auto.interval': 'Intervalo',
   'backup.auto.hour': 'Executar no horário',
   'backup.auto.hourHint': 'Horário local do servidor (formato {format})',
   'backup.auto.dayOfWeek': 'Dia da semana',
   'backup.auto.dayOfMonth': 'Dia do mês',
-  'backup.auto.dayOfMonthHint':
-    'Limitado a 1–28 para compatibilidade com todos os meses',
+  'backup.auto.dayOfMonthHint': 'Limitado a 1–28 para compatibilidade com todos os meses',
   'backup.auto.scheduleSummary': 'Agenda',
   'backup.auto.summaryDaily': 'Todos os dias às {hour}:00',
   'backup.auto.summaryWeekly': 'Toda {day} às {hour}:00',
@@ -48,8 +44,7 @@ const backup: TranslationStrings = {
   'backup.auto.envLockedHint':
     'O backup automático é configurado via variáveis de ambiente Docker. Para alterar essas configurações, atualize o docker-compose.yml e reinicie o contêiner.',
   'backup.auto.copyEnv': 'Copiar variáveis de ambiente Docker',
-  'backup.auto.envCopied':
-    'Variáveis de ambiente Docker copiadas para a área de transferência',
+  'backup.auto.envCopied': 'Variáveis de ambiente Docker copiadas para a área de transferência',
   'backup.auto.keepLabel': 'Excluir backups antigos após',
   'backup.dow.sunday': 'Dom',
   'backup.dow.monday': 'Seg',
@@ -71,8 +66,7 @@ const backup: TranslationStrings = {
   'backup.restoreConfirmTitle': 'Restaurar backup?',
   'backup.restoreWarning':
     'Todos os dados atuais (viagens, lugares, usuários, envios) serão permanentemente substituídos pelo backup. Esta ação não pode ser desfeita.',
-  'backup.restoreTip':
-    'Dica: crie um backup do estado atual antes de restaurar.',
+  'backup.restoreTip': 'Dica: crie um backup do estado atual antes de restaurar.',
   'backup.restoreConfirm': 'Sim, restaurar',
 };
 export default backup;

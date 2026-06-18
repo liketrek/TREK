@@ -4,12 +4,10 @@ const places: TranslationStrings = {
   'places.addPlace': '添加地点/活动',
   'places.importFile': '导入文件',
   'places.sidebarDrop': '拖放以导入',
-  'places.importFileHint':
-    '从 Google My Maps、Google Earth 或 GPS 追踪器等工具导入 .gpx、.kml 或 .kmz 文件。',
+  'places.importFileHint': '从 Google My Maps、Google Earth 或 GPS 追踪器等工具导入 .gpx、.kml 或 .kmz 文件。',
   'places.importFileDropHere': '点击选择文件或拖放到此处',
   'places.importFileDropActive': '释放文件以选择',
-  'places.importFileUnsupported':
-    '不支持的文件类型，请使用 .gpx、.kml 或 .kmz。',
+  'places.importFileUnsupported': '不支持的文件类型，请使用 .gpx、.kml 或 .kmz。',
   'places.importFileTooLarge': '文件过大。最大上传大小为 {maxMb} MB。',
   'places.importFileError': '导入失败',
   'places.importAllSkipped': '所有地点已在行程中。',
@@ -28,8 +26,7 @@ const places: TranslationStrings = {
   'places.kmlKmzImported': '已从 KMZ/KML 导入 {count} 个地点',
   'places.urlResolved': '已从 URL 导入地点',
   'places.importList': '列表导入',
-  'places.kmlKmzSummaryValues':
-    'Placemarks：{total} • 已导入：{created} • 已跳过：{skipped}',
+  'places.kmlKmzSummaryValues': 'Placemarks：{total} • 已导入：{created} • 已跳过：{skipped}',
   'places.importGoogleList': 'Google 列表',
   'places.importNaverList': 'Naver 列表',
   'places.googleListHint': '粘贴共享的 Google Maps 列表链接以导入所有地点。',
@@ -76,17 +73,14 @@ const places: TranslationStrings = {
   'places.mapsSearchPlaceholder': '搜索地点...',
   'places.mapsSearchError': '地点搜索失败。',
   'places.loadingDetails': '正在加载地点详情…',
-  'places.osmHint':
-    '使用 OpenStreetMap 搜索（无照片、营业时间或评分）。在设置中添加 Google API 密钥以获取完整信息。',
-  'places.osmActive':
-    '通过 OpenStreetMap 搜索（无照片、评分或营业时间）。在设置中添加 Google API 密钥以获取增强数据。',
+  'places.osmHint': '使用 OpenStreetMap 搜索（无照片、营业时间或评分）。在设置中添加 Google API 密钥以获取完整信息。',
+  'places.osmActive': '通过 OpenStreetMap 搜索（无照片、评分或营业时间）。在设置中添加 Google API 密钥以获取增强数据。',
   'places.categoryCreateError': '创建分类失败',
   'places.nameRequired': '请输入名称',
   'places.saveError': '保存失败',
   'places.duplicateExists': "'{name}' 已在此行程中。",
   'places.addAnyway': '仍然添加',
   'places.enrichOnImport': '通过 Google 丰富地点信息',
-  'places.enrichOnImportHint':
-    '查找每个导入的地点以补充照片、地址和联系方式。需要 Google Maps 密钥。',
+  'places.enrichOnImportHint': '查找每个导入的地点以补充照片、地址和联系方式。需要 Google Maps 密钥。',
 };
 export default places;

@@ -28,8 +28,7 @@ const atlas: TranslationStrings = {
   'atlas.visitedCountries': 'Navštívené země',
   'atlas.cities': 'Města',
   'atlas.noData': 'Zatím žádná cestovatelská data',
-  'atlas.noDataHint':
-    'Vytvořte cestu a přidejte místa, abyste viděli svou mapu světa',
+  'atlas.noDataHint': 'Vytvořte cestu a přidejte místa, abyste viděli svou mapu světa',
   'atlas.lastTrip': 'Poslední cesta',
   'atlas.nextTrip': 'Další cesta',
   'atlas.daysLeft': 'dní zbývá',

@@ -14,29 +14,21 @@ export const adminUserCreateRequestSchema = z.object({
   username: z.string().optional(),
   role: z.enum(['user', 'admin']).optional(),
 });
-export type AdminUserCreateRequest = z.infer<
-  typeof adminUserCreateRequestSchema
->;
+export type AdminUserCreateRequest = z.infer<typeof adminUserCreateRequestSchema>;
 
 export const adminPermissionsRequestSchema = z.object({
   permissions: z.record(z.string(), z.unknown()),
 });
-export type AdminPermissionsRequest = z.infer<
-  typeof adminPermissionsRequestSchema
->;
+export type AdminPermissionsRequest = z.infer<typeof adminPermissionsRequestSchema>;
 
 export const adminInviteCreateRequestSchema = z.object({
   max_uses: z.number().optional(),
   expires_in_days: z.number().optional(),
   role: z.enum(['user', 'admin']).optional(),
 });
-export type AdminInviteCreateRequest = z.infer<
-  typeof adminInviteCreateRequestSchema
->;
+export type AdminInviteCreateRequest = z.infer<typeof adminInviteCreateRequestSchema>;
 
 export const adminFeatureToggleRequestSchema = z.object({
   enabled: z.boolean(),
 });
-export type AdminFeatureToggleRequest = z.infer<
-  typeof adminFeatureToggleRequestSchema
->;
+export type AdminFeatureToggleRequest = z.infer<typeof adminFeatureToggleRequestSchema>;

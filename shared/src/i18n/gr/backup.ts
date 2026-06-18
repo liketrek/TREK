@@ -20,28 +20,24 @@ const backup: TranslationStrings = {
   'backup.toast.loadError': 'Αποτυχία φόρτωσης αντιγράφων',
   'backup.toast.created': 'Το αντίγραφο δημιουργήθηκε επιτυχώς',
   'backup.toast.createError': 'Αποτυχία δημιουργίας αντιγράφου',
-  'backup.toast.restored':
-    'Το αντίγραφο επαναφέρθηκε. Η σελίδα θα επαναφορτωθεί…',
+  'backup.toast.restored': 'Το αντίγραφο επαναφέρθηκε. Η σελίδα θα επαναφορτωθεί…',
   'backup.toast.restoreError': 'Αποτυχία επαναφοράς',
   'backup.toast.uploadError': 'Αποτυχία μεταφόρτωσης',
   'backup.toast.deleted': 'Το αντίγραφο διαγράφηκε',
   'backup.toast.deleteError': 'Αποτυχία διαγραφής',
   'backup.toast.downloadError': 'Η λήψη απέτυχε',
-  'backup.toast.settingsSaved':
-    'Οι ρυθμίσεις αυτόματου αντιγράφου αποθηκεύτηκαν',
+  'backup.toast.settingsSaved': 'Οι ρυθμίσεις αυτόματου αντιγράφου αποθηκεύτηκαν',
   'backup.toast.settingsError': 'Αποτυχία αποθήκευσης ρυθμίσεων',
   'backup.auto.title': 'Αυτόματο Αντίγραφο',
   'backup.auto.subtitle': 'Αυτόματο αντίγραφο ασφαλείας με χρονοπρόγραμμα',
   'backup.auto.enable': 'Ενεργοποίηση αυτόματου αντιγράφου',
-  'backup.auto.enableHint':
-    'Τα αντίγραφα θα δημιουργούνται αυτόματα στο επιλεγμένο χρονοπρόγραμμα',
+  'backup.auto.enableHint': 'Τα αντίγραφα θα δημιουργούνται αυτόματα στο επιλεγμένο χρονοπρόγραμμα',
   'backup.auto.interval': 'Διάστημα',
   'backup.auto.hour': 'Εκτέλεση την ώρα',
   'backup.auto.hourHint': 'Τοπική ώρα διακομιστή (μορφή {format})',
   'backup.auto.dayOfWeek': 'Ημέρα εβδομάδας',
   'backup.auto.dayOfMonth': 'Ημέρα μήνα',
-  'backup.auto.dayOfMonthHint':
-    'Περιορίζεται σε 1–28 για συμβατότητα με όλους τους μήνες',
+  'backup.auto.dayOfMonthHint': 'Περιορίζεται σε 1–28 για συμβατότητα με όλους τους μήνες',
   'backup.auto.scheduleSummary': 'Χρονοπρόγραμμα',
   'backup.auto.summaryDaily': 'Κάθε ημέρα στις {hour}:00',
   'backup.auto.summaryWeekly': 'Κάθε {day} στις {hour}:00',
@@ -72,8 +68,7 @@ const backup: TranslationStrings = {
   'backup.restoreConfirmTitle': 'Επαναφορά Αντιγράφου;',
   'backup.restoreWarning':
     'Όλα τα τρέχοντα δεδομένα (ταξίδια, τοποθεσίες, χρήστες, μεταφορτώσεις) θα αντικατασταθούν μόνιμα με το αντίγραφο. Αυτή η ενέργεια δεν μπορεί να αναιρεθεί.',
-  'backup.restoreTip':
-    'Συμβουλή: Δημιουργήστε ένα αντίγραφο της τρέχουσας κατάστασης πριν την επαναφορά.',
+  'backup.restoreTip': 'Συμβουλή: Δημιουργήστε ένα αντίγραφο της τρέχουσας κατάστασης πριν την επαναφορά.',
   'backup.restoreConfirm': 'Ναι, επαναφορά',
 };
 export default backup;

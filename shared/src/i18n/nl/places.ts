@@ -6,13 +6,10 @@ const places: TranslationStrings = {
   'places.sidebarDrop': 'Loslaten om te importeren',
   'places.importFileHint':
     'Importeer .gpx-, .kml- of .kmz-bestanden uit tools zoals Google My Maps, Google Earth of een GPS-tracker.',
-  'places.importFileDropHere':
-    'Klik om een bestand te selecteren of sleep het hier naartoe',
+  'places.importFileDropHere': 'Klik om een bestand te selecteren of sleep het hier naartoe',
   'places.importFileDropActive': 'Laat het bestand los om het te selecteren',
-  'places.importFileUnsupported':
-    'Niet-ondersteund bestandstype. Gebruik .gpx, .kml of .kmz.',
-  'places.importFileTooLarge':
-    'Bestand is te groot. Maximale uploadgrootte is {maxMb} MB.',
+  'places.importFileUnsupported': 'Niet-ondersteund bestandstype. Gebruik .gpx, .kml of .kmz.',
+  'places.importFileTooLarge': 'Bestand is te groot. Maximale uploadgrootte is {maxMb} MB.',
   'places.importFileError': 'Importeren mislukt',
   'places.importAllSkipped': 'Alle plaatsen waren al in de reis.',
   'places.gpxImported': '{count} plaatsen geïmporteerd uit GPX',
@@ -20,8 +17,7 @@ const places: TranslationStrings = {
   'places.gpxImportWaypoints': 'Waypoints',
   'places.gpxImportRoutes': 'Routes',
   'places.gpxImportTracks': 'Tracks (met routegeometrie)',
-  'places.gpxImportNoneSelected':
-    'Selecteer minstens één type om te importeren.',
+  'places.gpxImportNoneSelected': 'Selecteer minstens één type om te importeren.',
   'places.kmlImportTypes': 'Wat wil je importeren?',
   'places.kmlImportPoints': 'Punten (Placemarks)',
   'places.kmlImportPaths': 'Paden (LineStrings)',
@@ -31,16 +27,13 @@ const places: TranslationStrings = {
   'places.kmlKmzImported': '{count} plaatsen geïmporteerd uit KMZ/KML',
   'places.urlResolved': 'Plaats geïmporteerd van URL',
   'places.importList': 'Lijst importeren',
-  'places.kmlKmzSummaryValues':
-    'Placemarks: {total} • Geïmporteerd: {created} • Overgeslagen: {skipped}',
+  'places.kmlKmzSummaryValues': 'Placemarks: {total} • Geïmporteerd: {created} • Overgeslagen: {skipped}',
   'places.importGoogleList': 'Google Lijst',
   'places.importNaverList': 'Naver Lijst',
-  'places.googleListHint':
-    'Plak een gedeelde Google Maps lijstlink om alle plaatsen te importeren.',
+  'places.googleListHint': 'Plak een gedeelde Google Maps lijstlink om alle plaatsen te importeren.',
   'places.googleListImported': '{count} plaatsen geimporteerd uit "{list}"',
   'places.googleListError': 'Google Maps lijst importeren mislukt',
-  'places.naverListHint':
-    'Plak een gedeelde Naver Maps lijstlink om alle plaatsen te importeren.',
+  'places.naverListHint': 'Plak een gedeelde Naver Maps lijstlink om alle plaatsen te importeren.',
   'places.naverListImported': '{count} plaatsen geimporteerd uit "{list}"',
   'places.naverListError': 'Naver Maps lijst importeren mislukt',
   'places.viewDetails': 'Details bekijken',
@@ -77,8 +70,7 @@ const places: TranslationStrings = {
   'places.formNotes': 'Notities',
   'places.formNotesPlaceholder': 'Persoonlijke notities...',
   'places.formReservation': 'Reservering',
-  'places.reservationNotesPlaceholder':
-    'Reserveringsnotities, bevestigingsnummer...',
+  'places.reservationNotesPlaceholder': 'Reserveringsnotities, bevestigingsnummer...',
   'places.mapsSearchPlaceholder': 'Plaatsen zoeken...',
   'places.mapsSearchError': 'Zoeken naar plaatsen mislukt.',
   'places.loadingDetails': 'Plaatsgegevens laden…',

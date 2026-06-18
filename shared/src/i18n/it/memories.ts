@@ -9,8 +9,7 @@ const memories: TranslationStrings = {
     'Collega uno di questi provider di foto: {provider_names} nelle Impostazioni per poter aggiungere foto a questo viaggio.',
   'memories.noDates': 'Aggiungi le date al tuo viaggio per caricare le foto.',
   'memories.noPhotos': 'Nessuna foto trovata',
-  'memories.noPhotosHint':
-    "Nessuna foto trovata in Immich per l'intervallo di date di questo viaggio.",
+  'memories.noPhotosHint': "Nessuna foto trovata in Immich per l'intervallo di date di questo viaggio.",
   'memories.photosFound': 'foto',
   'memories.fromOthers': 'da altri',
   'memories.sharePhotos': 'Condividi foto',
@@ -24,10 +23,8 @@ const memories: TranslationStrings = {
   'memories.providerPassword': 'Password',
   'memories.providerOTP': 'Codice MFA (se abilitato)',
   'memories.skipSSLVerification': 'Ignora la verifica del certificato SSL',
-  'memories.immichAutoUpload':
-    'Rispecchia le foto del journey su Immich al caricamento',
-  'memories.providerUrlHintSynology':
-    "Includi il percorso dell'app Foto nell'URL, es. https://nas:5001/photo",
+  'memories.immichAutoUpload': 'Rispecchia le foto del journey su Immich al caricamento',
+  'memories.providerUrlHintSynology': "Includi il percorso dell'app Foto nell'URL, es. https://nas:5001/photo",
   'memories.testConnection': 'Test connessione',
   'memories.testShort': 'Prova',
   'memories.testFirst': 'Testa prima la connessione',
@@ -38,12 +35,9 @@ const memories: TranslationStrings = {
   'memories.saved': 'Impostazioni {provider_name} salvate',
   'memories.providerDisconnectedBanner':
     'La connessione a {provider_name} è persa. Riconnetti nelle Impostazioni per visualizzare le foto.',
-  'memories.saveError':
-    'Impossibile salvare le impostazioni di {provider_name}',
-  'memories.saveRouteNotConfigured':
-    'La route di salvataggio non è configurata per questo provider',
-  'memories.testRouteNotConfigured':
-    'La route di test non è configurata per questo provider',
+  'memories.saveError': 'Impossibile salvare le impostazioni di {provider_name}',
+  'memories.saveRouteNotConfigured': 'La route di salvataggio non è configurata per questo provider',
+  'memories.testRouteNotConfigured': 'La route di test non è configurata per questo provider',
   'memories.fillRequiredFields': 'Per favore compila tutti i campi obbligatori',
   'memories.addPhotos': 'Aggiungi foto',
   'memories.linkAlbum': 'Collega album',

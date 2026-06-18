@@ -10,8 +10,7 @@ const login: TranslationStrings = {
   'login.features.realtime': 'Synchronizacja w czasie rzeczywistym',
   'login.features.realtimeDesc': 'Planuj wspólnie przez WebSocket',
   'login.features.budget': 'Śledzenie budżetu',
-  'login.features.budgetDesc':
-    'Kategorie, wykresy i koszty w przeliczeniu na osobę',
+  'login.features.budgetDesc': 'Kategorie, wykresy i koszty w przeliczeniu na osobę',
   'login.features.collab': 'Współpraca',
   'login.features.collabDesc': 'Wielu użytkowników i wspólne podróże',
   'login.features.packing': 'Listy pakowania',
@@ -21,17 +20,14 @@ const login: TranslationStrings = {
   'login.features.files': 'Dokumenty',
   'login.features.filesDesc': 'Przesyłaj i zarządzaj dokumentami',
   'login.features.routes': 'Inteligentne trasy',
-  'login.features.routesDesc':
-    'Automatyczna optymalizacja i eksport do Google Maps',
-  'login.selfHosted':
-    'Własny hosting · Otwarty kod źródłowy · Twoje dane pozostają Twoje',
+  'login.features.routesDesc': 'Automatyczna optymalizacja i eksport do Google Maps',
+  'login.selfHosted': 'Własny hosting · Otwarty kod źródłowy · Twoje dane pozostają Twoje',
   'login.title': 'Zaloguj się',
   'login.subtitle': 'Witaj ponownie',
   'login.signingIn': 'Logowanie...',
   'login.signIn': 'Zaloguj się',
   'login.createAdmin': 'Utwórz konto administratora',
-  'login.createAdminHint':
-    'Skonfiguruj pierwsze konto administratora dla TREK.',
+  'login.createAdminHint': 'Skonfiguruj pierwsze konto administratora dla TREK.',
   'login.createAccount': 'Utwórz konto',
   'login.createAccountHint': 'Zarejestruj nowe konto.',
   'login.creating': 'Tworzenie...',
@@ -40,24 +36,20 @@ const login: TranslationStrings = {
   'login.register': 'Zarejestruj się',
   'login.emailPlaceholder': 'twoj@email.pl',
   'login.username': 'Nazwa użytkownika',
-  'login.oidc.registrationDisabled':
-    'Rejestracja jest wyłączona. Skontaktuj się z administratorem.',
+  'login.oidc.registrationDisabled': 'Rejestracja jest wyłączona. Skontaktuj się z administratorem.',
   'login.oidc.noEmail': 'Nie otrzymano e-maila od dostawcy.',
   'login.oidc.tokenFailed': 'Nie udało się uwierzytelnić.',
   'login.oidc.invalidState': 'Nieprawidłowa sesja. Spróbuj ponownie.',
   'login.demoFailed': 'Nie udało się zalogować do wersji demonstracyjnej',
   'login.oidcSignIn': 'Zaloguj się z {name}',
-  'login.oidcOnly':
-    'Uwierzytelnianie hasłem jest wyłączone. Zaloguj się za pomocą swojego dostawcy SSO.',
-  'login.oidcLoggedOut':
-    'Zostałeś wylogowany. Zaloguj się ponownie za pomocą swojego dostawcy SSO.',
+  'login.oidcOnly': 'Uwierzytelnianie hasłem jest wyłączone. Zaloguj się za pomocą swojego dostawcy SSO.',
+  'login.oidcLoggedOut': 'Zostałeś wylogowany. Zaloguj się ponownie za pomocą swojego dostawcy SSO.',
   'login.demoHint': 'Wypróbuj demo — nie wymaga rejestracji',
   'login.mfaTitle': 'Uwierzytelnianie dwuskładnikowe',
   'login.mfaSubtitle': 'Wprowadź 6-cyfrowy kod z aplikacji uwierzytelniającej.',
   'login.mfaCodeLabel': 'Kod weryfikacyjny',
   'login.mfaCodeRequired': 'Wprowadź kod z aplikacji uwierzytelniającej.',
-  'login.mfaHint':
-    'Otwórz Google Authenticator, Authy lub inną aplikację TOTP.',
+  'login.mfaHint': 'Otwórz Google Authenticator, Authy lub inną aplikację TOTP.',
   'login.mfaBack': '← Powrót do logowania',
   'login.mfaVerify': 'Weryfikuj',
   'login.invalidInviteLink': 'Nieprawidłowy lub wygasły link zaproszenia',
@@ -71,8 +63,7 @@ const login: TranslationStrings = {
     'Wpisz adres e-mail użyty przy rejestracji. Jeśli konto istnieje, wyślemy link do resetu.',
   'login.forgotPasswordSubmit': 'Wyślij link',
   'login.forgotPasswordSentTitle': 'Sprawdź swoją pocztę',
-  'login.forgotPasswordSentBody':
-    'Jeśli istnieje konto dla tego adresu, link jest już w drodze. Wygaśnie za 60 minut.',
+  'login.forgotPasswordSentBody': 'Jeśli istnieje konto dla tego adresu, link jest już w drodze. Wygaśnie za 60 minut.',
   'login.forgotPasswordSmtpHintOff':
     'Uwaga: administrator nie skonfigurował SMTP, więc link resetujący zostanie zapisany w konsoli serwera zamiast wysłania e-mailem.',
   'login.backToLogin': 'Wróć do logowania',
@@ -81,22 +72,18 @@ const login: TranslationStrings = {
   'login.passwordsDontMatch': 'Hasła nie są zgodne',
   'login.mfaCode': 'Kod 2FA',
   'login.resetPasswordTitle': 'Ustaw nowe hasło',
-  'login.resetPasswordBody':
-    'Wybierz silne hasło, którego tu jeszcze nie używałeś. Minimum 8 znaków.',
-  'login.resetPasswordMfaBody':
-    'Wpisz kod 2FA lub kod zapasowy, aby zakończyć reset.',
+  'login.resetPasswordBody': 'Wybierz silne hasło, którego tu jeszcze nie używałeś. Minimum 8 znaków.',
+  'login.resetPasswordMfaBody': 'Wpisz kod 2FA lub kod zapasowy, aby zakończyć reset.',
   'login.resetPasswordSubmit': 'Zresetuj hasło',
   'login.resetPasswordVerify': 'Zweryfikuj i zresetuj',
   'login.resetPasswordSuccessTitle': 'Hasło zaktualizowane',
   'login.resetPasswordSuccessBody': 'Możesz się teraz zalogować nowym hasłem.',
   'login.resetPasswordInvalidLink': 'Nieprawidłowy link',
-  'login.resetPasswordInvalidLinkBody':
-    'Brakuje linku lub jest uszkodzony. Poproś o nowy, aby kontynuować.',
+  'login.resetPasswordInvalidLinkBody': 'Brakuje linku lub jest uszkodzony. Poproś o nowy, aby kontynuować.',
   'login.resetPasswordFailed': 'Reset nie powiódł się. Link mógł wygasnąć.',
   'login.setNewPassword': 'Ustaw nowe hasło',
   'login.setNewPasswordHint': 'Musisz zmienić hasło.',
   'login.passkey.signIn': 'Zaloguj się kluczem dostępu',
-  'login.passkey.failed':
-    'Logowanie kluczem dostępu nie powiodło się. Spróbuj ponownie.',
+  'login.passkey.failed': 'Logowanie kluczem dostępu nie powiodło się. Spróbuj ponownie.',
 };
 export default login;

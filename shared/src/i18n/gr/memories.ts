@@ -7,18 +7,15 @@ const memories: TranslationStrings = {
     'Συνδέστε την υπηρεσία {provider_name} στις Ρυθμίσεις για να μπορείτε να προσθέτετε φωτογραφίες σε αυτό το ταξίδι.',
   'memories.notConnectedMultipleHint':
     'Συνδέστε οποιονδήποτε από αυτούς τους παρόχους φωτογραφιών: {provider_names} στις Ρυθμίσεις για να μπορείτε να προσθέτετε φωτογραφίες σε αυτό το ταξίδι.',
-  'memories.noDates':
-    'Προσθέστε ημερομηνίες στο ταξίδι σας για να φορτωθούν φωτογραφίες.',
+  'memories.noDates': 'Προσθέστε ημερομηνίες στο ταξίδι σας για να φορτωθούν φωτογραφίες.',
   'memories.noPhotos': 'Δεν βρέθηκαν φωτογραφίες',
-  'memories.noPhotosHint':
-    'Δεν βρέθηκαν φωτογραφίες στο {provider_name} για το εύρος ημερομηνιών αυτού του ταξιδιού.',
+  'memories.noPhotosHint': 'Δεν βρέθηκαν φωτογραφίες στο {provider_name} για το εύρος ημερομηνιών αυτού του ταξιδιού.',
   'memories.photosFound': 'φωτογραφίες',
   'memories.fromOthers': 'από άλλους',
   'memories.sharePhotos': 'Κοινή χρήση φωτογραφιών',
   'memories.sharing': 'Κοινή χρήση',
   'memories.reviewTitle': 'Ελέγξτε τις φωτογραφίες σας',
-  'memories.reviewHint':
-    'Κάντε κλικ στις φωτογραφίες για να τις εξαιρέσετε από την κοινή χρήση.',
+  'memories.reviewHint': 'Κάντε κλικ στις φωτογραφίες για να τις εξαιρέσετε από την κοινή χρήση.',
   'memories.shareCount': 'Κοινή χρήση {count} φωτογραφιών',
   'memories.providerUrl': 'URL Διακομιστή',
   'memories.providerApiKey': 'API Key',
@@ -26,8 +23,7 @@ const memories: TranslationStrings = {
   'memories.providerPassword': 'Κωδικός',
   'memories.providerOTP': 'Κωδικός MFA (αν είναι ενεργοποιημένος)',
   'memories.skipSSLVerification': 'Παράλειψη επαλήθευσης πιστοποιητικού SSL',
-  'memories.immichAutoUpload':
-    'Αντικατοπτρισμός φωτογραφιών journey στο Immich κατά τη μεταφόρτωση',
+  'memories.immichAutoUpload': 'Αντικατοπτρισμός φωτογραφιών journey στο Immich κατά τη μεταφόρτωση',
   'memories.providerUrlHintSynology':
     'Συμπεριλάβετε τη διαδρομή της εφαρμογής Photos στο URL, π.χ. https://nas:5001/photo',
   'memories.testConnection': 'Δοκιμή σύνδεσης',
@@ -40,8 +36,7 @@ const memories: TranslationStrings = {
   'memories.saved': 'Οι ρυθμίσεις {provider_name} αποθηκεύτηκαν',
   'memories.providerDisconnectedBanner':
     'Η σύνδεση {provider_name} χάθηκε. Επανασυνδεθείτε στις Ρυθμίσεις για να δείτε φωτογραφίες.',
-  'memories.saveError':
-    'Δεν ήταν δυνατή η αποθήκευση των ρυθμίσεων {provider_name}',
+  'memories.saveError': 'Δεν ήταν δυνατή η αποθήκευση των ρυθμίσεων {provider_name}',
   'memories.addPhotos': 'Προσθήκη φωτογραφιών',
   'memories.linkAlbum': 'Σύνδεση Άλμπουμ',
   'memories.selectAlbum': 'Επιλογή Άλμπουμ {provider_name}',
@@ -75,11 +70,8 @@ const memories: TranslationStrings = {
   'memories.error.addPhotos': 'Αποτυχία προσθήκης φωτογραφιών',
   'memories.error.removePhoto': 'Αποτυχία αφαίρεσης φωτογραφίας',
   'memories.error.toggleSharing': 'Αποτυχία ενημέρωσης κοινής χρήσης',
-  'memories.saveRouteNotConfigured':
-    'Η διαδρομή αποθήκευσης δεν έχει ρυθμιστεί για αυτόν τον πάροχο',
-  'memories.testRouteNotConfigured':
-    'Η διαδρομή δοκιμής δεν έχει ρυθμιστεί για αυτόν τον πάροχο',
-  'memories.fillRequiredFields':
-    'Παρακαλώ συμπληρώστε όλα τα απαιτούμενα πεδία',
+  'memories.saveRouteNotConfigured': 'Η διαδρομή αποθήκευσης δεν έχει ρυθμιστεί για αυτόν τον πάροχο',
+  'memories.testRouteNotConfigured': 'Η διαδρομή δοκιμής δεν έχει ρυθμιστεί για αυτόν τον πάροχο',
+  'memories.fillRequiredFields': 'Παρακαλώ συμπληρώστε όλα τα απαιτούμενα πεδία',
 };
 export default memories;

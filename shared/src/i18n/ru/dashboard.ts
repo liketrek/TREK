@@ -20,8 +20,7 @@ const dashboard: TranslationStrings = {
   'dashboard.timezoneCustomTzPlaceholder': 'напр. America/New_York',
   'dashboard.timezoneCustomAdd': 'Добавить',
   'dashboard.timezoneCustomErrorEmpty': 'Введите идентификатор часового пояса',
-  'dashboard.timezoneCustomErrorInvalid':
-    'Неверный часовой пояс. Используйте формат Europe/Berlin',
+  'dashboard.timezoneCustomErrorInvalid': 'Неверный часовой пояс. Используйте формат Europe/Berlin',
   'dashboard.timezoneCustomErrorDuplicate': 'Уже добавлен',
   'dashboard.emptyTitle': 'Нет поездок',
   'dashboard.emptyText': 'Создайте свою первую поездку и начните планировать!',
@@ -55,8 +54,7 @@ const dashboard: TranslationStrings = {
   'dashboard.toast.restoreError': 'Не удалось восстановить поездку',
   'dashboard.toast.copied': 'Поездка скопирована!',
   'dashboard.toast.copyError': 'Не удалось скопировать поездку',
-  'dashboard.confirm.delete':
-    'Удалить поездку «{title}»? Все места и планы будут безвозвратно удалены.',
+  'dashboard.confirm.delete': 'Удалить поездку «{title}»? Все места и планы будут безвозвратно удалены.',
   'dashboard.editTrip': 'Редактировать поездку',
   'dashboard.createTrip': 'Создать новую поездку',
   'dashboard.tripTitle': 'Название',
@@ -66,10 +64,8 @@ const dashboard: TranslationStrings = {
   'dashboard.startDate': 'Дата начала',
   'dashboard.endDate': 'Дата окончания',
   'dashboard.dayCount': 'Количество дней',
-  'dashboard.dayCountHint':
-    'Сколько дней планировать, если даты поездки не указаны.',
-  'dashboard.noDateHint':
-    'Дата не указана — будет создано 7 дней по умолчанию. Вы можете изменить это в любое время.',
+  'dashboard.dayCountHint': 'Сколько дней планировать, если даты поездки не указаны.',
+  'dashboard.noDateHint': 'Дата не указана — будет создано 7 дней по умолчанию. Вы можете изменить это в любое время.',
   'dashboard.coverImage': 'Обложка',
   'dashboard.addCoverImage': 'Добавить обложку',
   'dashboard.addMembers': 'Попутчики',

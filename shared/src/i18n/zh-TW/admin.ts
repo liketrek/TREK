@@ -14,19 +14,16 @@ const admin: TranslationStrings = {
   'admin.notifications.emailPanel.title': '電子郵件 (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
   'admin.notifications.inappPanel.title': '應用程式內通知',
-  'admin.notifications.inappPanel.hint':
-    '應用程式內通知始終啟用，無法全域性停用。',
+  'admin.notifications.inappPanel.hint': '應用程式內通知始終啟用，無法全域性停用。',
   'admin.notifications.adminWebhookPanel.title': '管理員 Webhook',
   'admin.notifications.adminWebhookPanel.hint':
     '此 Webhook 專用於管理員通知（例如版本提醒）。它與每位使用者的 Webhook 分開，設定後始終會觸發。',
   'admin.notifications.adminWebhookPanel.saved': '管理員 Webhook URL 已儲存',
   'admin.notifications.adminWebhookPanel.testSuccess': '測試 Webhook 傳送成功',
   'admin.notifications.adminWebhookPanel.testFailed': '測試 Webhook 傳送失敗',
-  'admin.notifications.adminWebhookPanel.alwaysOnHint':
-    '配置 URL 後，管理員 Webhook 始終觸發',
+  'admin.notifications.adminWebhookPanel.alwaysOnHint': '配置 URL 後，管理員 Webhook 始終觸發',
   'admin.notifications.ntfy': 'Ntfy',
-  'admin.ntfy.hint':
-    '允許使用者設定自己的 ntfy 主題以接收推播通知。在下方設定預設伺服器以預先填入使用者設定。',
+  'admin.ntfy.hint': '允許使用者設定自己的 ntfy 主題以接收推播通知。在下方設定預設伺服器以預先填入使用者設定。',
   'admin.notifications.testNtfy': '傳送測試 Ntfy',
   'admin.notifications.testNtfySuccess': '測試 Ntfy 傳送成功',
   'admin.notifications.testNtfyFailed': '測試 Ntfy 失敗',
@@ -45,20 +42,16 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.test': '傳送測試 Ntfy',
   'admin.notifications.adminNtfyPanel.testSuccess': '測試 Ntfy 傳送成功',
   'admin.notifications.adminNtfyPanel.testFailed': '測試 Ntfy 失敗',
-  'admin.notifications.adminNtfyPanel.alwaysOnHint':
-    '設定主題後管理員 Ntfy 始終觸發',
-  'admin.notifications.adminNotificationsHint':
-    '配置哪些渠道傳遞僅管理員通知（例如版本提醒）。',
+  'admin.notifications.adminNtfyPanel.alwaysOnHint': '設定主題後管理員 Ntfy 始終觸發',
+  'admin.notifications.adminNotificationsHint': '配置哪些渠道傳遞僅管理員通知（例如版本提醒）。',
   'admin.notifications.tripReminders.title': '行程提醒',
-  'admin.notifications.tripReminders.hint':
-    '在行程開始前發送提醒通知（需要在行程中設定提醒天數）。',
+  'admin.notifications.tripReminders.hint': '在行程開始前發送提醒通知（需要在行程中設定提醒天數）。',
   'admin.notifications.tripReminders.enabled': '行程提醒已啟用',
   'admin.notifications.tripReminders.disabled': '行程提醒已停用',
   'admin.smtp.title': '郵件與通知',
   'admin.smtp.hint': '用於傳送電子郵件通知的 SMTP 配置。',
   'admin.smtp.testButton': '傳送測試郵件',
-  'admin.webhook.hint':
-    '允許使用者配置自己的 Webhook URL 以接收通知（Discord、Slack 等）。',
+  'admin.webhook.hint': '允許使用者配置自己的 Webhook URL 以接收通知（Discord、Slack 等）。',
   'admin.smtp.testSuccess': '測試郵件傳送成功',
   'admin.smtp.testFailed': '測試郵件傳送失敗',
   'admin.title': '管理後臺',
@@ -121,19 +114,16 @@ const admin: TranslationStrings = {
   'admin.passwordLogin': 'Password Login',
   'admin.passwordLoginHint': 'Allow users to sign in with email and password',
   'admin.passwordRegistration': 'Password Registration',
-  'admin.passwordRegistrationHint':
-    'Allow new users to register with email and password',
+  'admin.passwordRegistrationHint': 'Allow new users to register with email and password',
   'admin.oidcLogin': 'SSO Login',
   'admin.oidcLoginHint': 'Allow users to sign in with SSO',
   'admin.oidcRegistration': 'SSO Auto-Provisioning',
-  'admin.oidcRegistrationHint':
-    'Automatically create accounts for new SSO users',
+  'admin.oidcRegistrationHint': 'Automatically create accounts for new SSO users',
   'admin.envOverrideHint':
     'Password login settings are controlled by the OIDC_ONLY environment variable and cannot be changed here.',
   'admin.lockoutWarning': 'At least one login method must remain enabled',
   'admin.requireMfa': '要求雙因素身份驗證（2FA）',
-  'admin.requireMfaHint':
-    '未啟用 2FA 的使用者必須先完成設定中的配置才能使用應用。',
+  'admin.requireMfaHint': '未啟用 2FA 的使用者必須先完成設定中的配置才能使用應用。',
   'admin.apiKeys': 'API 金鑰',
   'admin.apiKeysHint': '可選。啟用地點的擴充套件資料，如照片和天氣。',
   'admin.mapsKey': 'Google Maps API 金鑰',
@@ -148,26 +138,21 @@ const admin: TranslationStrings = {
   'admin.keyInvalid': '無效',
   'admin.keySaved': 'API 金鑰已儲存',
   'admin.oidcTitle': '單點登入 (OIDC)',
-  'admin.oidcSubtitle':
-    '允許透過 Google、Apple、Authentik 或 Keycloak 等外部提供商登入。',
+  'admin.oidcSubtitle': '允許透過 Google、Apple、Authentik 或 Keycloak 等外部提供商登入。',
   'admin.oidcDisplayName': '顯示名稱',
   'admin.oidcIssuer': '頒發者 URL',
-  'admin.oidcIssuerHint':
-    '提供商的 OpenID Connect 頒發者 URL。如 https://accounts.google.com',
+  'admin.oidcIssuerHint': '提供商的 OpenID Connect 頒發者 URL。如 https://accounts.google.com',
   'admin.oidcSaved': 'OIDC 配置已儲存',
   'admin.oidcOnlyMode': '停用密碼登入',
   'admin.oidcOnlyModeHint': '啟用後，僅允許 SSO 登入。密碼登入和註冊將被停用。',
   'admin.fileTypes': '允許的檔案型別',
   'admin.fileTypesHint': '配置使用者可以上傳的檔案型別。',
-  'admin.fileTypesFormat':
-    '以逗號分隔的副檔名（如 jpg,png,pdf,doc）。使用 * 允許所有型別。',
+  'admin.fileTypesFormat': '以逗號分隔的副檔名（如 jpg,png,pdf,doc）。使用 * 允許所有型別。',
   'admin.fileTypesSaved': '檔案型別設定已儲存',
   'admin.placesPhotos.title': '地點照片',
-  'admin.placesPhotos.subtitle':
-    '從 Google Places API 獲取照片。停用可節省 API 配額。Wikimedia 照片不受影響。',
+  'admin.placesPhotos.subtitle': '從 Google Places API 獲取照片。停用可節省 API 配額。Wikimedia 照片不受影響。',
   'admin.placesAutocomplete.title': '地點自動補全',
-  'admin.placesAutocomplete.subtitle':
-    '使用 Google Places API 提供搜尋建議。停用可節省 API 配額。',
+  'admin.placesAutocomplete.subtitle': '使用 Google Places API 提供搜尋建議。停用可節省 API 配額。',
   'admin.placesDetails.title': '地點詳情',
   'admin.placesDetails.subtitle':
     '從 Google Places API 獲取地點詳細資訊（營業時間、評分、網站）。停用可節省 API 配額。',
@@ -223,8 +208,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.vacay.name': 'Vacay',
   'admin.addons.catalog.vacay.description': '帶日曆檢視的個人假期規劃器',
   'admin.addons.catalog.atlas.name': 'Atlas',
-  'admin.addons.catalog.atlas.description':
-    '標記已訪問國家和旅行統計的世界地圖',
+  'admin.addons.catalog.atlas.description': '標記已訪問國家和旅行統計的世界地圖',
   'admin.addons.catalog.collab.name': 'Collab',
   'admin.addons.catalog.collab.description': '旅行規劃的即時筆記、投票和聊天',
   'admin.addons.subtitleBefore': '啟用或停用功能以自定義你的 ',
@@ -263,8 +247,7 @@ const admin: TranslationStrings = {
   'admin.mcpTokens.never': '從未',
   'admin.mcpTokens.empty': '尚未建立任何 MCP 令牌',
   'admin.mcpTokens.deleteTitle': '刪除令牌',
-  'admin.mcpTokens.deleteMessage':
-    '此令牌將立即被撤銷。使用者將失去透過此令牌的 MCP 訪問許可權。',
+  'admin.mcpTokens.deleteMessage': '此令牌將立即被撤銷。使用者將失去透過此令牌的 MCP 訪問許可權。',
   'admin.mcpTokens.deleteSuccess': '令牌已刪除',
   'admin.mcpTokens.deleteError': '刪除令牌失敗',
   'admin.mcpTokens.loadError': '載入令牌失敗',
@@ -275,8 +258,7 @@ const admin: TranslationStrings = {
   'admin.oauthSessions.created': '建立時間',
   'admin.oauthSessions.empty': '目前沒有活躍的 OAuth 工作階段',
   'admin.oauthSessions.revokeTitle': '撤銷工作階段',
-  'admin.oauthSessions.revokeMessage':
-    '此 OAuth 工作階段將立即被撤銷。客戶端將失去 MCP 存取權限。',
+  'admin.oauthSessions.revokeMessage': '此 OAuth 工作階段將立即被撤銷。客戶端將失去 MCP 存取權限。',
   'admin.oauthSessions.revokeSuccess': '工作階段已撤銷',
   'admin.oauthSessions.revokeError': '撤銷工作階段失敗',
   'admin.oauthSessions.loadError': '載入 OAuth 工作階段失敗',
@@ -308,10 +290,8 @@ const admin: TranslationStrings = {
   'admin.update.button': '在 GitHub 檢視',
   'admin.update.install': '安裝更新',
   'admin.update.confirmTitle': '確定安裝更新？',
-  'admin.update.confirmText':
-    'TREK 將從 {current} 更新到 {version}。伺服器將自動重啟。',
-  'admin.update.dataInfo':
-    '你的所有資料（旅行、使用者、API 金鑰、上傳檔案、Vacay、Atlas、預算）將被保留。',
+  'admin.update.confirmText': 'TREK 將從 {current} 更新到 {version}。伺服器將自動重啟。',
+  'admin.update.dataInfo': '你的所有資料（旅行、使用者、API 金鑰、上傳檔案、Vacay、Atlas、預算）將被保留。',
   'admin.update.warning': '重啟期間應用將短暫不可用。',
   'admin.update.confirm': '立即更新',
   'admin.update.installing': '更新中…',
@@ -320,29 +300,24 @@ const admin: TranslationStrings = {
   'admin.update.backupHint': '建議在更新前建立備份。',
   'admin.update.backupLink': '前往備份',
   'admin.update.howTo': '如何更新',
-  'admin.update.dockerText':
-    '你的 TREK 例項執行在 Docker 中。要更新到 {version}，請在伺服器上執行以下命令：',
+  'admin.update.dockerText': '你的 TREK 例項執行在 Docker 中。要更新到 {version}，請在伺服器上執行以下命令：',
   'admin.update.reloadHint': '請在幾秒後重新整理頁面。',
   'admin.tabs.permissions': '許可權',
   'admin.addons.catalog.journey.name': '旅程',
-  'admin.addons.catalog.journey.description':
-    '旅行追蹤與旅行日誌，包含打卡、照片和每日故事',
+  'admin.addons.catalog.journey.description': '旅行追蹤與旅行日誌，包含打卡、照片和每日故事',
   'admin.passkey.title': 'Passkey 登入',
   'admin.passkey.cardHint': '讓使用者使用 Passkey（WebAuthn）登入。預設為關閉。',
   'admin.passkey.login': '啟用 Passkey 登入',
-  'admin.passkey.loginHint':
-    '顯示「使用 Passkey 登入」選項，並讓使用者在設定中註冊 Passkey。',
+  'admin.passkey.loginHint': '顯示「使用 Passkey 登入」選項，並讓使用者在設定中註冊 Passkey。',
   'admin.passkey.notConfigured':
     '此部署尚未解析出任何 WebAuthn 網域。請設定下方的 APP_URL 或 Relying Party ID——在此之前 Passkey 將保持隱藏。',
   'admin.passkey.rpId': 'Relying Party ID（網域）',
   'admin.passkey.rpIdHint':
     'Passkey 綁定的純網域，例如 trek.example.org。留空則從 APP_URL 推導。日後變更將使現有 Passkey 失效。',
   'admin.passkey.origins': '允許的來源',
-  'admin.passkey.originsHint':
-    '以逗號分隔的完整來源，例如 https://trek.example.org。留空則使用 APP_URL。',
+  'admin.passkey.originsHint': '以逗號分隔的完整來源，例如 https://trek.example.org。留空則使用 APP_URL。',
   'admin.passkey.reset': '重設 Passkey',
-  'admin.passkey.resetHint':
-    '移除此使用者的所有 Passkey（例如裝置遺失時）。他們仍可使用密碼登入。',
+  'admin.passkey.resetHint': '移除此使用者的所有 Passkey（例如裝置遺失時）。他們仍可使用密碼登入。',
   'admin.passkey.resetConfirm': '要移除 {name} 的所有 Passkey 嗎？',
   'admin.passkey.resetDone': '已移除 {count} 個 Passkey',
   'admin.defaultSettings.mapProvider': '地圖引擎',
@@ -350,7 +325,8 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.providerLeaflet': '標準（免費）',
   'admin.defaultSettings.providerMapbox': 'Mapbox（3D）',
   'admin.defaultSettings.mapboxToken': '共用的 Mapbox 權杖',
-  'admin.defaultSettings.mapboxTokenHint': '用於每一位尚未輸入自己權杖的使用者 — 如此整個執行個體都能使用 Mapbox，而無需個別共享金鑰。以加密方式儲存。',
+  'admin.defaultSettings.mapboxTokenHint':
+    '用於每一位尚未輸入自己權杖的使用者 — 如此整個執行個體都能使用 Mapbox，而無需個別共享金鑰。以加密方式儲存。',
   'admin.defaultSettings.mapboxStyle': '地圖樣式',
   'admin.defaultSettings.mapboxStylePlaceholder': '選擇樣式…',
   'admin.defaultSettings.mapbox3d': '3D 建築物與地形',

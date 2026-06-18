@@ -12,8 +12,7 @@ const backup: TranslationStrings = {
   'backup.createFirst': 'Eerste back-up aanmaken',
   'backup.download': 'Downloaden',
   'backup.restore': 'Herstellen',
-  'backup.confirm.restore':
-    'Back-up "{name}" herstellen?\n\nAlle huidige gegevens worden vervangen door de back-up.',
+  'backup.confirm.restore': 'Back-up "{name}" herstellen?\n\nAlle huidige gegevens worden vervangen door de back-up.',
   'backup.confirm.uploadRestore':
     'Back-upbestand "{name}" uploaden en herstellen?\n\nAlle huidige gegevens worden overschreven.',
   'backup.confirm.delete': 'Back-up "{name}" verwijderen?',
@@ -31,15 +30,13 @@ const backup: TranslationStrings = {
   'backup.auto.title': 'Auto-back-up',
   'backup.auto.subtitle': 'Automatische back-up volgens schema',
   'backup.auto.enable': 'Auto-back-up inschakelen',
-  'backup.auto.enableHint':
-    'Back-ups worden automatisch aangemaakt volgens het gekozen schema',
+  'backup.auto.enableHint': 'Back-ups worden automatisch aangemaakt volgens het gekozen schema',
   'backup.auto.interval': 'Interval',
   'backup.auto.hour': 'Uitvoeren om',
   'backup.auto.hourHint': 'Lokale servertijd ({format}-notatie)',
   'backup.auto.dayOfWeek': 'Dag van de week',
   'backup.auto.dayOfMonth': 'Dag van de maand',
-  'backup.auto.dayOfMonthHint':
-    'Beperkt tot 1–28 voor compatibiliteit met alle maanden',
+  'backup.auto.dayOfMonthHint': 'Beperkt tot 1–28 voor compatibiliteit met alle maanden',
   'backup.auto.scheduleSummary': 'Planning',
   'backup.auto.summaryDaily': 'Elke dag om {hour}:00',
   'backup.auto.summaryWeekly': 'Elke {day} om {hour}:00',
@@ -48,8 +45,7 @@ const backup: TranslationStrings = {
   'backup.auto.envLockedHint':
     'Auto-back-up is geconfigureerd via Docker-omgevingsvariabelen. Pas je docker-compose.yml aan en herstart de container om deze instellingen te wijzigen.',
   'backup.auto.copyEnv': 'Docker-omgevingsvariabelen kopiëren',
-  'backup.auto.envCopied':
-    'Docker-omgevingsvariabelen gekopieerd naar klembord',
+  'backup.auto.envCopied': 'Docker-omgevingsvariabelen gekopieerd naar klembord',
   'backup.auto.keepLabel': 'Oude back-ups verwijderen na',
   'backup.dow.sunday': 'Zo',
   'backup.dow.monday': 'Ma',
@@ -71,8 +67,7 @@ const backup: TranslationStrings = {
   'backup.restoreConfirmTitle': 'Back-up herstellen?',
   'backup.restoreWarning':
     'Alle huidige gegevens (reizen, plaatsen, gebruikers, uploads) worden permanent vervangen door de back-up. Deze actie kan niet ongedaan worden gemaakt.',
-  'backup.restoreTip':
-    'Tip: Maak een back-up van de huidige status voordat je herstelt.',
+  'backup.restoreTip': 'Tip: Maak een back-up van de huidige status voordat je herstelt.',
   'backup.restoreConfirm': 'Ja, herstellen',
 };
 export default backup;

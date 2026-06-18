@@ -3,21 +3,18 @@ import type { TranslationStrings } from '../types';
 const memories: TranslationStrings = {
   'memories.title': 'Fotos',
   'memories.notConnected': 'Immich não conectado',
-  'memories.notConnectedHint':
-    'Conecte sua instância Immich nas Configurações para ver suas fotos de viagem aqui.',
+  'memories.notConnectedHint': 'Conecte sua instância Immich nas Configurações para ver suas fotos de viagem aqui.',
   'memories.notConnectedMultipleHint':
     'Conecte um destes provedores de fotos: {provider_names} nas Configurações para poder adicionar fotos a esta viagem.',
   'memories.noDates': 'Adicione datas à sua viagem para carregar fotos.',
   'memories.noPhotos': 'Nenhuma foto encontrada',
-  'memories.noPhotosHint':
-    'Nenhuma foto encontrada no Immich para o período desta viagem.',
+  'memories.noPhotosHint': 'Nenhuma foto encontrada no Immich para o período desta viagem.',
   'memories.photosFound': 'fotos',
   'memories.fromOthers': 'de outros',
   'memories.sharePhotos': 'Compartilhar fotos',
   'memories.sharing': 'Compartilhando',
   'memories.reviewTitle': 'Revise suas fotos',
-  'memories.reviewHint':
-    'Clique nas fotos para excluí-las do compartilhamento.',
+  'memories.reviewHint': 'Clique nas fotos para excluí-las do compartilhamento.',
   'memories.shareCount': 'Compartilhar {count} fotos',
   'memories.providerUrl': 'URL do servidor',
   'memories.providerApiKey': 'Chave de API',
@@ -26,8 +23,7 @@ const memories: TranslationStrings = {
   'memories.providerOTP': 'Código MFA (se habilitado)',
   'memories.skipSSLVerification': 'Pular verificação de certificado SSL',
   'memories.immichAutoUpload': 'Espelhar fotos da jornada no Immich ao enviar',
-  'memories.providerUrlHintSynology':
-    'Inclua o caminho do aplicativo Photos na URL, ex. https://nas:5001/photo',
+  'memories.providerUrlHintSynology': 'Inclua o caminho do aplicativo Photos na URL, ex. https://nas:5001/photo',
   'memories.testConnection': 'Testar conexão',
   'memories.testShort': 'Testar',
   'memories.testFirst': 'Teste a conexão primeiro',
@@ -38,8 +34,7 @@ const memories: TranslationStrings = {
   'memories.saved': 'Configurações do {provider_name} salvas',
   'memories.providerDisconnectedBanner':
     'Sua conexão com {provider_name} foi perdida. Reconecte nas Configurações para ver as fotos.',
-  'memories.saveError':
-    'Não foi possível salvar as configurações de {provider_name}',
+  'memories.saveError': 'Não foi possível salvar as configurações de {provider_name}',
   'memories.addPhotos': 'Adicionar fotos',
   'memories.linkAlbum': 'Vincular álbum',
   'memories.selectAlbum': 'Selecionar álbum do Immich',
@@ -73,11 +68,8 @@ const memories: TranslationStrings = {
   'memories.error.addPhotos': 'Falha ao adicionar fotos',
   'memories.error.removePhoto': 'Falha ao remover foto',
   'memories.error.toggleSharing': 'Falha ao atualizar compartilhamento',
-  'memories.saveRouteNotConfigured':
-    'A rota de salvamento não está configurada para este provedor',
-  'memories.testRouteNotConfigured':
-    'A rota de teste não está configurada para este provedor',
-  'memories.fillRequiredFields':
-    'Por favor preencha todos os campos obrigatórios',
+  'memories.saveRouteNotConfigured': 'A rota de salvamento não está configurada para este provedor',
+  'memories.testRouteNotConfigured': 'A rota de teste não está configurada para este provedor',
+  'memories.fillRequiredFields': 'Por favor preencha todos os campos obrigatórios',
 };
 export default memories;

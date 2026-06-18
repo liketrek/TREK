@@ -12,8 +12,7 @@ const backup: TranslationStrings = {
   'backup.createFirst': '첫 번째 백업 만들기',
   'backup.download': '다운로드',
   'backup.restore': '복원',
-  'backup.confirm.restore':
-    '백업 "{name}"을(를) 복원할까요?\n\n현재 모든 데이터가 백업으로 교체됩니다.',
+  'backup.confirm.restore': '백업 "{name}"을(를) 복원할까요?\n\n현재 모든 데이터가 백업으로 교체됩니다.',
   'backup.confirm.uploadRestore':
     '백업 파일 "{name}"을(를) 업로드하고 복원할까요?\n\n현재 모든 데이터가 덮어쓰여집니다.',
   'backup.confirm.delete': '백업 "{name}"을(를) 삭제할까요?',

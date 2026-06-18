@@ -9,8 +9,7 @@ const collab: TranslationStrings = {
   'collab.whatsNext.tomorrow': '明日',
   'collab.whatsNext.empty': '予定されたアクティビティはありません',
   'collab.whatsNext.until': '〜',
-  'collab.whatsNext.emptyHint':
-    '時間が設定されたアクティビティがここに表示されます',
+  'collab.whatsNext.emptyHint': '時間が設定されたアクティビティがここに表示されます',
   'collab.chat.send': '送信',
   'collab.chat.placeholder': 'メッセージを入力…',
   'collab.chat.empty': '会話を始めましょう',

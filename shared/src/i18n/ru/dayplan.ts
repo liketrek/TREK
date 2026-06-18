@@ -17,30 +17,24 @@ const dayplan: TranslationStrings = {
   'dayplan.optimize': 'Оптимизировать',
   'dayplan.optimized': 'Маршрут оптимизирован',
   'dayplan.routeError': 'Не удалось рассчитать маршрут',
-  'dayplan.toast.needTwoPlaces':
-    'Для оптимизации маршрута нужно минимум два места',
+  'dayplan.toast.needTwoPlaces': 'Для оптимизации маршрута нужно минимум два места',
   'dayplan.toast.routeOptimized': 'Маршрут оптимизирован',
-  'dayplan.toast.routeOptimizedFromHotel':
-    'Маршрут оптимизирован от места проживания',
-  'dayplan.toast.noGeoPlaces':
-    'Не найдено мест с координатами для расчёта маршрута',
+  'dayplan.toast.routeOptimizedFromHotel': 'Маршрут оптимизирован от места проживания',
+  'dayplan.toast.noGeoPlaces': 'Не найдено мест с координатами для расчёта маршрута',
   'dayplan.confirmed': 'Подтверждено',
   'dayplan.pendingRes': 'Ожидание',
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Экспортировать план дня в PDF',
   'dayplan.pdfError': 'Ошибка экспорта PDF',
-  'dayplan.cannotReorderTransport':
-    'Бронирования с фиксированным временем нельзя перемещать',
+  'dayplan.cannotReorderTransport': 'Бронирования с фиксированным временем нельзя перемещать',
   'dayplan.confirmRemoveTimeTitle': 'Удалить время?',
   'dayplan.confirmRemoveTimeBody':
     'У этого места фиксированное время ({time}). При перемещении время будет удалено, и станет доступна свободная сортировка.',
   'dayplan.confirmRemoveTimeAction': 'Удалить время и переместить',
   'dayplan.confirmDeleteNoteTitle': 'Удалить заметку?',
   'dayplan.confirmDeleteNoteBody': 'Эта заметка будет удалена безвозвратно.',
-  'dayplan.cannotDropOnTimed':
-    'Элементы нельзя размещать между записями с фиксированным временем',
-  'dayplan.cannotBreakChronology':
-    'Это нарушит хронологический порядок запланированных элементов и бронирований',
+  'dayplan.cannotDropOnTimed': 'Элементы нельзя размещать между записями с фиксированным временем',
+  'dayplan.cannotBreakChronology': 'Это нарушит хронологический порядок запланированных элементов и бронирований',
   'dayplan.mobile.addPlace': 'Добавить место',
   'dayplan.mobile.searchPlaces': 'Поиск мест...',
   'dayplan.mobile.allAssigned': 'Все места распределены',

@@ -20,8 +20,7 @@ const dashboard: TranslationStrings = {
   'dashboard.timezoneCustomTzPlaceholder': 'mis. America/New_York',
   'dashboard.timezoneCustomAdd': 'Tambah',
   'dashboard.timezoneCustomErrorEmpty': 'Masukkan pengenal zona waktu',
-  'dashboard.timezoneCustomErrorInvalid':
-    'Zona waktu tidak valid. Gunakan format seperti Europe/Berlin',
+  'dashboard.timezoneCustomErrorInvalid': 'Zona waktu tidak valid. Gunakan format seperti Europe/Berlin',
   'dashboard.timezoneCustomErrorDuplicate': 'Sudah ditambahkan',
   'dashboard.emptyTitle': 'Belum ada perjalanan',
   'dashboard.emptyText': 'Buat perjalanan pertamamu dan mulai merencanakan!',
@@ -55,8 +54,7 @@ const dashboard: TranslationStrings = {
   'dashboard.toast.restoreError': 'Gagal memulihkan perjalanan',
   'dashboard.toast.copied': 'Perjalanan disalin!',
   'dashboard.toast.copyError': 'Gagal menyalin perjalanan',
-  'dashboard.confirm.delete':
-    'Hapus perjalanan "{title}"? Semua tempat dan rencana akan dihapus permanen.',
+  'dashboard.confirm.delete': 'Hapus perjalanan "{title}"? Semua tempat dan rencana akan dihapus permanen.',
   'dashboard.editTrip': 'Edit Perjalanan',
   'dashboard.createTrip': 'Buat Perjalanan Baru',
   'dashboard.tripTitle': 'Judul',
@@ -66,10 +64,8 @@ const dashboard: TranslationStrings = {
   'dashboard.startDate': 'Tanggal Mulai',
   'dashboard.endDate': 'Tanggal Selesai',
   'dashboard.dayCount': 'Jumlah Hari',
-  'dashboard.dayCountHint':
-    'Berapa hari yang ingin direncanakan jika tanggal perjalanan belum diatur.',
-  'dashboard.noDateHint':
-    'Belum ada tanggal — 7 hari default akan dibuat. Bisa diubah kapan saja.',
+  'dashboard.dayCountHint': 'Berapa hari yang ingin direncanakan jika tanggal perjalanan belum diatur.',
+  'dashboard.noDateHint': 'Belum ada tanggal — 7 hari default akan dibuat. Bisa diubah kapan saja.',
   'dashboard.coverImage': 'Gambar Sampul',
   'dashboard.addCoverImage': 'Tambah gambar sampul (atau seret & lepas)',
   'dashboard.addMembers': 'Teman perjalanan',

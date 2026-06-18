@@ -5,8 +5,7 @@ const packing: TranslationStrings = {
   'packing.empty': 'A lista de mala está vazia',
   'packing.import': 'Importar',
   'packing.importTitle': 'Importar lista de bagagem',
-  'packing.importHint':
-    'Um item por linha. Formato: Categoria, Nome, Peso (g), Bolsa, checked/unchecked (opcional)',
+  'packing.importHint': 'Um item por linha. Formato: Categoria, Nome, Peso (g), Bolsa, checked/unchecked (opcional)',
   'packing.importPlaceholder':
     'Higiene, Escova de dentes\nRoupas, Camisetas, 200\nDocumentos, Passaporte, , Mala de mão\nEletrônicos, Carregador, 50, Mala, checked',
   'packing.importCsv': 'Carregar CSV/TXT',
@@ -52,8 +51,7 @@ const packing: TranslationStrings = {
   'packing.addBag': 'Adicionar mala',
   'packing.changeCategory': 'Alterar categoria',
   'packing.confirm.clearChecked': 'Remover {count} item(ns) marcado(s)?',
-  'packing.confirm.deleteCat':
-    'Excluir a categoria "{name}" com {count} item(ns)?',
+  'packing.confirm.deleteCat': 'Excluir a categoria "{name}" com {count} item(ns)?',
   'packing.defaultCategory': 'Outros',
   'packing.toast.saveError': 'Falha ao salvar',
   'packing.toast.deleteError': 'Falha ao excluir',

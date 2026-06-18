@@ -9,8 +9,7 @@ const atlas: TranslationStrings = {
   'atlas.visitedCountries': 'Países visitados',
   'atlas.cities': 'Ciudades',
   'atlas.noData': 'Aún no hay datos de viaje',
-  'atlas.noDataHint':
-    'Crea un viaje y añade lugares para ver tu mapa del mundo',
+  'atlas.noDataHint': 'Crea un viaje y añade lugares para ver tu mapa del mundo',
   'atlas.lastTrip': 'Último viaje',
   'atlas.nextTrip': 'Próximo viaje',
   'atlas.daysLeft': 'días restantes',
@@ -45,8 +44,7 @@ const atlas: TranslationStrings = {
   'atlas.unmark': 'Eliminar',
   'atlas.confirmMark': '¿Marcar este país como visitado?',
   'atlas.confirmUnmark': '¿Eliminar este país de tu lista de visitados?',
-  'atlas.confirmUnmarkRegion':
-    '¿Eliminar esta región de tu lista de visitados?',
+  'atlas.confirmUnmarkRegion': '¿Eliminar esta región de tu lista de visitados?',
   'atlas.markVisited': 'Marcar como visitado',
   'atlas.markVisitedHint': 'Añadir este país a tu lista de visitados',
   'atlas.markRegionVisitedHint': 'Añadir esta región a tu lista de visitados',

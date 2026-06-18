@@ -17,29 +17,24 @@ const dayplan: TranslationStrings = {
   'dayplan.optimize': 'Optimizar',
   'dayplan.optimized': 'Ruta optimizada',
   'dayplan.routeError': 'No se pudo calcular la ruta',
-  'dayplan.toast.needTwoPlaces':
-    'Se necesitan al menos dos lugares para optimizar la ruta',
+  'dayplan.toast.needTwoPlaces': 'Se necesitan al menos dos lugares para optimizar la ruta',
   'dayplan.toast.routeOptimized': 'Ruta optimizada',
   'dayplan.toast.routeOptimizedFromHotel': 'Ruta optimizada desde tu alojamiento',
-  'dayplan.toast.noGeoPlaces':
-    'No se encontraron lugares con coordenadas para calcular la ruta',
+  'dayplan.toast.noGeoPlaces': 'No se encontraron lugares con coordenadas para calcular la ruta',
   'dayplan.confirmed': 'Confirmado',
   'dayplan.pendingRes': 'Pendiente',
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Exportar plan diario como PDF',
   'dayplan.pdfError': 'No se pudo exportar el PDF',
-  'dayplan.cannotReorderTransport':
-    'Las reservas con hora fija no se pueden reordenar',
+  'dayplan.cannotReorderTransport': 'Las reservas con hora fija no se pueden reordenar',
   'dayplan.confirmRemoveTimeTitle': '¿Eliminar hora?',
   'dayplan.confirmRemoveTimeBody':
     'Este lugar tiene una hora fija ({time}). Al moverlo se eliminará la hora y se permitirá el orden libre.',
   'dayplan.confirmRemoveTimeAction': 'Eliminar hora y mover',
   'dayplan.confirmDeleteNoteTitle': '¿Eliminar nota?',
   'dayplan.confirmDeleteNoteBody': 'Esta nota se eliminará de forma permanente.',
-  'dayplan.cannotDropOnTimed':
-    'No se pueden colocar elementos entre entradas con hora fija',
-  'dayplan.cannotBreakChronology':
-    'Esto rompería el orden cronológico de los elementos y reservas programados',
+  'dayplan.cannotDropOnTimed': 'No se pueden colocar elementos entre entradas con hora fija',
+  'dayplan.cannotBreakChronology': 'Esto rompería el orden cronológico de los elementos y reservas programados',
   'dayplan.mobile.addPlace': 'Añadir lugar',
   'dayplan.mobile.searchPlaces': 'Buscar lugares...',
   'dayplan.mobile.allAssigned': 'Todos los lugares asignados',

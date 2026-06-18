@@ -20,8 +20,7 @@ const dashboard: TranslationStrings = {
   'dashboard.timezoneCustomTzPlaceholder': 'např. America/New_York',
   'dashboard.timezoneCustomAdd': 'Přidat',
   'dashboard.timezoneCustomErrorEmpty': 'Zadejte identifikátor pásma',
-  'dashboard.timezoneCustomErrorInvalid':
-    'Neplatné pásmo. Použijte formát jako např. Europe/Prague',
+  'dashboard.timezoneCustomErrorInvalid': 'Neplatné pásmo. Použijte formát jako např. Europe/Prague',
   'dashboard.timezoneCustomErrorDuplicate': 'Již bylo přidáno',
   'dashboard.emptyTitle': 'Zatím žádné cesty',
   'dashboard.emptyText': 'Vytvořte svou první cestu a začněte plánovat!',
@@ -55,8 +54,7 @@ const dashboard: TranslationStrings = {
   'dashboard.toast.restoreError': 'Nepodařilo se obnovit cestu',
   'dashboard.toast.copied': 'Cesta byla zkopírována!',
   'dashboard.toast.copyError': 'Nepodařilo se zkopírovat cestu',
-  'dashboard.confirm.delete':
-    'Smazat cestu „{title}”? Všechna místa a plány budou trvale smazány.',
+  'dashboard.confirm.delete': 'Smazat cestu „{title}”? Všechna místa a plány budou trvale smazány.',
   'dashboard.editTrip': 'Upravit cestu',
   'dashboard.createTrip': 'Vytvořit novou cestu',
   'dashboard.tripTitle': 'Název',
@@ -66,10 +64,8 @@ const dashboard: TranslationStrings = {
   'dashboard.startDate': 'Datum začátku',
   'dashboard.endDate': 'Datum konce',
   'dashboard.dayCount': 'Počet dnů',
-  'dashboard.dayCountHint':
-    'Kolik dnů naplánovat, když nejsou nastavena data cesty.',
-  'dashboard.noDateHint':
-    'Datum nezadáno – výchozí délka nastavena na 7 dní. Toto lze kdykoli změnit.',
+  'dashboard.dayCountHint': 'Kolik dnů naplánovat, když nejsou nastavena data cesty.',
+  'dashboard.noDateHint': 'Datum nezadáno – výchozí délka nastavena na 7 dní. Toto lze kdykoli změnit.',
   'dashboard.coverImage': 'Úvodní obrázek',
   'dashboard.addCoverImage': 'Vybrat úvodní obrázek (nebo přetáhnout sem)',
   'dashboard.addMembers': 'Spolucestující',

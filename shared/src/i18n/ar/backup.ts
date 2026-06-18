@@ -12,10 +12,8 @@ const backup: TranslationStrings = {
   'backup.createFirst': 'إنشاء أول نسخة',
   'backup.download': 'تنزيل',
   'backup.restore': 'استعادة',
-  'backup.confirm.restore':
-    'استعادة النسخة "{name}"؟\n\nسيتم استبدال جميع البيانات الحالية بالنسخة.',
-  'backup.confirm.uploadRestore':
-    'رفع واستعادة النسخة "{name}"؟\n\nسيتم الكتابة فوق جميع البيانات الحالية.',
+  'backup.confirm.restore': 'استعادة النسخة "{name}"؟\n\nسيتم استبدال جميع البيانات الحالية بالنسخة.',
+  'backup.confirm.uploadRestore': 'رفع واستعادة النسخة "{name}"؟\n\nسيتم الكتابة فوق جميع البيانات الحالية.',
   'backup.confirm.delete': 'حذف النسخة "{name}"؟',
   'backup.toast.loadError': 'فشل تحميل النسخ الاحتياطية',
   'backup.toast.created': 'تم إنشاء النسخة الاحتياطية بنجاح',
@@ -31,8 +29,7 @@ const backup: TranslationStrings = {
   'backup.auto.title': 'النسخ الاحتياطي التلقائي',
   'backup.auto.subtitle': 'نسخ احتياطي تلقائي وفق جدول زمني',
   'backup.auto.enable': 'تفعيل النسخ التلقائي',
-  'backup.auto.enableHint':
-    'سيتم إنشاء نسخ احتياطية تلقائيًا وفق الجدول المختار',
+  'backup.auto.enableHint': 'سيتم إنشاء نسخ احتياطية تلقائيًا وفق الجدول المختار',
   'backup.auto.interval': 'الفترة',
   'backup.auto.hour': 'التنفيذ في الساعة',
   'backup.auto.hourHint': 'التوقيت المحلي للخادم (تنسيق {format})',
@@ -68,8 +65,7 @@ const backup: TranslationStrings = {
   'backup.restoreConfirmTitle': 'استعادة النسخة الاحتياطية؟',
   'backup.restoreWarning':
     'سيتم استبدال جميع البيانات الحالية (الرحلات، الأماكن، المستخدمون، المرفوعات) بالنسخة نهائيًا. لا يمكن التراجع عن ذلك.',
-  'backup.restoreTip':
-    'نصيحة: أنشئ نسخة احتياطية للحالة الحالية قبل الاستعادة.',
+  'backup.restoreTip': 'نصيحة: أنشئ نسخة احتياطية للحالة الحالية قبل الاستعادة.',
   'backup.restoreConfirm': 'نعم، استعادة',
   'backup.auto.envLocked': 'Docker', // en-fallback
 };

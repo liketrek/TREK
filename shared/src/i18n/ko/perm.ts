@@ -32,29 +32,20 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': '협업 (메모, 투표, 채팅)',
   'perm.action.share_manage': '공유 링크 관리',
   'perm.actionHint.trip_create': '누가 새 여행을 만들 수 있는지',
-  'perm.actionHint.trip_edit':
-    '누가 여행 이름, 날짜, 설명, 통화를 변경할 수 있는지',
+  'perm.actionHint.trip_edit': '누가 여행 이름, 날짜, 설명, 통화를 변경할 수 있는지',
   'perm.actionHint.trip_delete': '누가 여행을 영구 삭제할 수 있는지',
   'perm.actionHint.trip_archive': '누가 여행을 보관하거나 복원할 수 있는지',
-  'perm.actionHint.trip_cover_upload':
-    '누가 커버 이미지를 업로드하거나 변경할 수 있는지',
-  'perm.actionHint.member_manage':
-    '누가 여행 멤버를 초대하거나 제거할 수 있는지',
+  'perm.actionHint.trip_cover_upload': '누가 커버 이미지를 업로드하거나 변경할 수 있는지',
+  'perm.actionHint.member_manage': '누가 여행 멤버를 초대하거나 제거할 수 있는지',
   'perm.actionHint.file_upload': '누가 여행에 파일을 업로드할 수 있는지',
   'perm.actionHint.file_edit': '누가 파일 설명 및 링크를 편집할 수 있는지',
-  'perm.actionHint.file_delete':
-    '누가 파일을 휴지통으로 이동하거나 영구 삭제할 수 있는지',
+  'perm.actionHint.file_delete': '누가 파일을 휴지통으로 이동하거나 영구 삭제할 수 있는지',
   'perm.actionHint.place_edit': '누가 장소를 추가, 편집, 삭제할 수 있는지',
-  'perm.actionHint.day_edit':
-    '누가 날, 일별 메모, 장소 배정을 편집할 수 있는지',
-  'perm.actionHint.reservation_edit':
-    '누가 예약을 만들고, 편집하고, 삭제할 수 있는지',
-  'perm.actionHint.budget_edit':
-    '누가 예산 항목을 만들고, 편집하고, 삭제할 수 있는지',
+  'perm.actionHint.day_edit': '누가 날, 일별 메모, 장소 배정을 편집할 수 있는지',
+  'perm.actionHint.reservation_edit': '누가 예약을 만들고, 편집하고, 삭제할 수 있는지',
+  'perm.actionHint.budget_edit': '누가 예산 항목을 만들고, 편집하고, 삭제할 수 있는지',
   'perm.actionHint.packing_edit': '누가 짐 항목과 가방을 관리할 수 있는지',
-  'perm.actionHint.collab_edit':
-    '누가 메모, 투표를 만들고 메시지를 보낼 수 있는지',
-  'perm.actionHint.share_manage':
-    '누가 공개 공유 링크를 만들거나 삭제할 수 있는지',
+  'perm.actionHint.collab_edit': '누가 메모, 투표를 만들고 메시지를 보낼 수 있는지',
+  'perm.actionHint.share_manage': '누가 공개 공유 링크를 만들거나 삭제할 수 있는지',
 };
 export default perm;

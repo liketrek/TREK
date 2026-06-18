@@ -3,14 +3,12 @@ import type { TranslationStrings } from '../types';
 const memories: TranslationStrings = {
   'memories.title': 'Photos',
   'memories.notConnected': '{provider_name} not connected',
-  'memories.notConnectedHint':
-    'Connect your {provider_name} instance in Settings to be able add photos to this trip.',
+  'memories.notConnectedHint': 'Connect your {provider_name} instance in Settings to be able add photos to this trip.',
   'memories.notConnectedMultipleHint':
     'Connect any of these photo providers: {provider_names} in Settings to be able add photos to this trip.',
   'memories.noDates': 'Add dates to your trip to load photos.',
   'memories.noPhotos': 'No photos found',
-  'memories.noPhotosHint':
-    "No photos found in {provider_name} for this trip's date range.",
+  'memories.noPhotosHint': "No photos found in {provider_name} for this trip's date range.",
   'memories.photosFound': 'photos',
   'memories.fromOthers': 'from others',
   'memories.sharePhotos': 'Share photos',
@@ -25,8 +23,7 @@ const memories: TranslationStrings = {
   'memories.providerOTP': 'MFA code (if enabled)',
   'memories.skipSSLVerification': 'Skip SSL certificate verification',
   'memories.immichAutoUpload': 'Mirror journey photos to Immich on upload',
-  'memories.providerUrlHintSynology':
-    'Include the Photos app path in the URL, e.g. https://nas:5001/photo',
+  'memories.providerUrlHintSynology': 'Include the Photos app path in the URL, e.g. https://nas:5001/photo',
   'memories.testConnection': 'Test connection',
   'memories.testShort': 'Test',
   'memories.testFirst': 'Test connection first',
@@ -71,10 +68,8 @@ const memories: TranslationStrings = {
   'memories.error.addPhotos': 'Failed to add photos',
   'memories.error.removePhoto': 'Failed to remove photo',
   'memories.error.toggleSharing': 'Failed to update sharing',
-  'memories.saveRouteNotConfigured':
-    'Save route is not configured for this provider',
-  'memories.testRouteNotConfigured':
-    'Test route is not configured for this provider',
+  'memories.saveRouteNotConfigured': 'Save route is not configured for this provider',
+  'memories.testRouteNotConfigured': 'Test route is not configured for this provider',
   'memories.fillRequiredFields': 'Please fill all required fields',
 };
 export default memories;

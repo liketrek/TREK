@@ -17,31 +17,24 @@ const dayplan: TranslationStrings = {
   'dayplan.optimize': 'Optimiser',
   'dayplan.optimized': 'Itinéraire optimisé',
   'dayplan.routeError': "Impossible de calculer l'itinéraire",
-  'dayplan.toast.needTwoPlaces':
-    "Au moins deux lieux nécessaires pour optimiser l'itinéraire",
+  'dayplan.toast.needTwoPlaces': "Au moins deux lieux nécessaires pour optimiser l'itinéraire",
   'dayplan.toast.routeOptimized': 'Itinéraire optimisé',
-  'dayplan.toast.routeOptimizedFromHotel':
-    'Itinéraire optimisé depuis votre hébergement',
-  'dayplan.toast.noGeoPlaces':
-    "Aucun lieu avec des coordonnées trouvé pour le calcul d'itinéraire",
+  'dayplan.toast.routeOptimizedFromHotel': 'Itinéraire optimisé depuis votre hébergement',
+  'dayplan.toast.noGeoPlaces': "Aucun lieu avec des coordonnées trouvé pour le calcul d'itinéraire",
   'dayplan.confirmed': 'Confirmé',
   'dayplan.pendingRes': 'En attente',
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Exporter le plan du jour en PDF',
   'dayplan.pdfError': "Échec de l'export PDF",
-  'dayplan.cannotReorderTransport':
-    'Les réservations avec une heure fixe ne peuvent pas être réorganisées',
+  'dayplan.cannotReorderTransport': 'Les réservations avec une heure fixe ne peuvent pas être réorganisées',
   'dayplan.confirmRemoveTimeTitle': "Supprimer l'heure ?",
   'dayplan.confirmRemoveTimeBody':
     "Ce lieu a une heure fixe ({time}). Le déplacer supprimera l'heure et permettra un tri libre.",
   'dayplan.confirmRemoveTimeAction': "Supprimer l'heure et déplacer",
   'dayplan.confirmDeleteNoteTitle': 'Supprimer la note ?',
-  'dayplan.confirmDeleteNoteBody':
-    'Cette note sera définitivement supprimée.',
-  'dayplan.cannotDropOnTimed':
-    'Les éléments ne peuvent pas être placés entre des entrées à heure fixe',
-  'dayplan.cannotBreakChronology':
-    "Cela briserait l'ordre chronologique des éléments et réservations planifiés",
+  'dayplan.confirmDeleteNoteBody': 'Cette note sera définitivement supprimée.',
+  'dayplan.cannotDropOnTimed': 'Les éléments ne peuvent pas être placés entre des entrées à heure fixe',
+  'dayplan.cannotBreakChronology': "Cela briserait l'ordre chronologique des éléments et réservations planifiés",
   'dayplan.mobile.addPlace': 'Ajouter un lieu',
   'dayplan.mobile.searchPlaces': 'Rechercher des lieux...',
   'dayplan.mobile.allAssigned': 'Tous les lieux attribués',
@@ -51,12 +44,12 @@ const dayplan: TranslationStrings = {
   'dayplan.collapseAll': 'Collapse all days', // en-fallback
   'dayplan.reorderDays': 'Réorganiser les jours',
   'dayplan.reorderTitle': 'Réorganiser les jours',
-  'dayplan.reorderHint': 'Les lieux, notes et réservations d\'un jour le suivent.',
+  'dayplan.reorderHint': "Les lieux, notes et réservations d'un jour le suivent.",
   'dayplan.addDay': 'Ajouter un jour',
   'dayplan.moveUp': 'Monter',
   'dayplan.moveDown': 'Descendre',
   'dayplan.reorderUndo': 'Réorganiser les jours',
   'dayplan.reorderError': 'Échec de la réorganisation des jours',
-  'dayplan.addDayError': 'Échec de l\'ajout du jour',
+  'dayplan.addDayError': "Échec de l'ajout du jour",
 };
 export default dayplan;

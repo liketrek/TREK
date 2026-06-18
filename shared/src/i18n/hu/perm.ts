@@ -2,8 +2,7 @@ import type { TranslationStrings } from '../types';
 
 const perm: TranslationStrings = {
   'perm.title': 'Jogosultsági beállítások',
-  'perm.subtitle':
-    'Szabályozd, ki milyen műveleteket végezhet az alkalmazásban',
+  'perm.subtitle': 'Szabályozd, ki milyen műveleteket végezhet az alkalmazásban',
   'perm.saved': 'Jogosultsági beállítások mentve',
   'perm.resetDefaults': 'Alapértelmezések visszaállítása',
   'perm.customized': 'testreszabott',
@@ -33,33 +32,20 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': 'Együttműködés (jegyzetek, szavazások, chat)',
   'perm.action.share_manage': 'Megosztási linkek kezelése',
   'perm.actionHint.trip_create': 'Ki hozhat létre új utazásokat',
-  'perm.actionHint.trip_edit':
-    'Ki módosíthatja az utazás nevét, dátumait, leírását és pénznemét',
+  'perm.actionHint.trip_edit': 'Ki módosíthatja az utazás nevét, dátumait, leírását és pénznemét',
   'perm.actionHint.trip_delete': 'Ki törölhet véglegesen egy utazást',
-  'perm.actionHint.trip_archive':
-    'Ki archiválhat vagy állíthat vissza egy utazást',
-  'perm.actionHint.trip_cover_upload':
-    'Ki tölthet fel vagy módosíthat borítóképet',
-  'perm.actionHint.member_manage':
-    'Ki hívhat meg vagy távolíthat el utazás tagokat',
+  'perm.actionHint.trip_archive': 'Ki archiválhat vagy állíthat vissza egy utazást',
+  'perm.actionHint.trip_cover_upload': 'Ki tölthet fel vagy módosíthat borítóképet',
+  'perm.actionHint.member_manage': 'Ki hívhat meg vagy távolíthat el utazás tagokat',
   'perm.actionHint.file_upload': 'Ki tölthet fel fájlokat egy utazáshoz',
-  'perm.actionHint.file_edit':
-    'Ki szerkesztheti a fájlok leírásait és linkjeit',
-  'perm.actionHint.file_delete':
-    'Ki helyezhet fájlokat a kukába vagy törölheti véglegesen',
-  'perm.actionHint.place_edit':
-    'Ki adhat hozzá, szerkeszthet vagy törölhet helyeket',
-  'perm.actionHint.day_edit':
-    'Ki szerkesztheti a napokat, napi jegyzeteket és hely-hozzárendeléseket',
-  'perm.actionHint.reservation_edit':
-    'Ki hozhat létre, szerkeszthet vagy törölhet foglalásokat',
-  'perm.actionHint.budget_edit':
-    'Ki hozhat létre, szerkeszthet vagy törölhet költségvetési tételeket',
-  'perm.actionHint.packing_edit':
-    'Ki kezelheti a csomagolási tételeket és táskákat',
-  'perm.actionHint.collab_edit':
-    'Ki hozhat létre jegyzeteket, szavazásokat és küldhet üzeneteket',
-  'perm.actionHint.share_manage':
-    'Ki hozhat létre vagy törölhet nyilvános megosztási linkeket',
+  'perm.actionHint.file_edit': 'Ki szerkesztheti a fájlok leírásait és linkjeit',
+  'perm.actionHint.file_delete': 'Ki helyezhet fájlokat a kukába vagy törölheti véglegesen',
+  'perm.actionHint.place_edit': 'Ki adhat hozzá, szerkeszthet vagy törölhet helyeket',
+  'perm.actionHint.day_edit': 'Ki szerkesztheti a napokat, napi jegyzeteket és hely-hozzárendeléseket',
+  'perm.actionHint.reservation_edit': 'Ki hozhat létre, szerkeszthet vagy törölhet foglalásokat',
+  'perm.actionHint.budget_edit': 'Ki hozhat létre, szerkeszthet vagy törölhet költségvetési tételeket',
+  'perm.actionHint.packing_edit': 'Ki kezelheti a csomagolási tételeket és táskákat',
+  'perm.actionHint.collab_edit': 'Ki hozhat létre jegyzeteket, szavazásokat és küldhet üzeneteket',
+  'perm.actionHint.share_manage': 'Ki hozhat létre vagy törölhet nyilvános megosztási linkeket',
 };
 export default perm;

@@ -11,7 +11,6 @@ const trips: TranslationStrings = {
   'trips.reminderDays': 'dní',
   'trips.reminderCustom': 'Vlastní',
   'trips.reminderDaysBefore': 'dní před odjezdem',
-  'trips.reminderDisabledHint':
-    'Připomínky výletů jsou zakázány. Povolte je v Správa > Nastavení > Oznámení.',
+  'trips.reminderDisabledHint': 'Připomínky výletů jsou zakázány. Povolte je v Správa > Nastavení > Oznámení.',
 };
 export default trips;

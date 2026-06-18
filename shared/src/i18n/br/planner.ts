@@ -7,8 +7,7 @@ const planner: TranslationStrings = {
   'planner.documents': 'Documentos',
   'planner.dayPlan': 'Plano do dia',
   'planner.reservations': 'Reservas',
-  'planner.minTwoPlaces':
-    'São necessários pelo menos 2 lugares com coordenadas',
+  'planner.minTwoPlaces': 'São necessários pelo menos 2 lugares com coordenadas',
   'planner.noGeoPlaces': 'Nenhum lugar com coordenadas disponível',
   'planner.routeCalculated': 'Rota calculada',
   'planner.routeCalcFailed': 'Não foi possível calcular a rota',
@@ -34,8 +33,7 @@ const planner: TranslationStrings = {
   'planner.resConfirmed': 'Reserva confirmada · ',
   'planner.notePlaceholder': 'Nota…',
   'planner.noteTimePlaceholder': 'Horário (opcional)',
-  'planner.noteExamplePlaceholder':
-    'ex.: metrô às 14:30 da estação central, barco do cais 7, pausa para almoço…',
+  'planner.noteExamplePlaceholder': 'ex.: metrô às 14:30 da estação central, barco do cais 7, pausa para almoço…',
   'planner.totalCost': 'Custo total',
   'planner.searchPlaces': 'Buscar lugares…',
   'planner.allCategories': 'Todas as categorias',
@@ -49,8 +47,7 @@ const planner: TranslationStrings = {
   'planner.route': 'Rota',
   'planner.optimize': 'Otimizar',
   'planner.openGoogleMaps': 'Abrir no Google Maps',
-  'planner.selectDayHint':
-    'Selecione um dia na lista à esquerda para ver o plano do dia',
+  'planner.selectDayHint': 'Selecione um dia na lista à esquerda para ver o plano do dia',
   'planner.noPlacesForDay': 'Nenhum lugar neste dia ainda',
   'planner.addPlacesLink': 'Adicionar lugares →',
   'planner.minTotal': 'mín. total',

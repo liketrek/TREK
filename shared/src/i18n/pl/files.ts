@@ -13,8 +13,7 @@ const files: TranslationStrings = {
   'files.uploadError': 'Przesyłanie nie powiodło się',
   'files.dropzone': 'Przeciągnij pliki tutaj',
   'files.dropzoneHint': 'lub kliknij, aby przeglądać',
-  'files.allowedTypes':
-    'Obrazki, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Maks 50 MB',
+  'files.allowedTypes': 'Obrazki, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Maks 50 MB',
   'files.uploading': 'Przesyłanie...',
   'files.filterAll': 'Wszystkie',
   'files.filterPdf': 'PDF',
@@ -52,8 +51,7 @@ const files: TranslationStrings = {
   'files.toast.assigned': 'Plik został przypisany',
   'files.toast.assignError': 'Nie udało się przypisać',
   'files.toast.restoreError': 'Nie udało się przywrócić',
-  'files.confirm.permanentDelete':
-    'Czy na pewno chcesz trwale usunąć ten plik? Tej operacji nie można cofnąć.',
+  'files.confirm.permanentDelete': 'Czy na pewno chcesz trwale usunąć ten plik? Tej operacji nie można cofnąć.',
   'files.confirm.emptyTrash':
     'Czy na pewno chcesz trwale usunąć wszystkie pliki z kosza? Tej operacji nie można cofnąć.',
   'files.noteLabel': 'Notatka',

@@ -55,8 +55,7 @@ const en: NotificationLocale = {
     body: 'We received a request to reset the password for your TREK account. Click the button below to set a new password.',
     ctaIntro: 'Reset password',
     expiry: 'This link expires in 60 minutes.',
-    ignore:
-      "If you didn't request this, you can safely ignore this email — your password won't change.",
+    ignore: "If you didn't request this, you can safely ignore this email — your password won't change.",
   },
 };
 

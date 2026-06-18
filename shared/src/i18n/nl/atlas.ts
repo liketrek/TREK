@@ -9,8 +9,7 @@ const atlas: TranslationStrings = {
   'atlas.visitedCountries': 'Bezochte landen',
   'atlas.cities': 'Steden',
   'atlas.noData': 'Nog geen reisgegevens',
-  'atlas.noDataHint':
-    'Maak een reis aan en voeg plaatsen toe om je wereldkaart te zien',
+  'atlas.noDataHint': 'Maak een reis aan en voeg plaatsen toe om je wereldkaart te zien',
   'atlas.lastTrip': 'Laatste reis',
   'atlas.nextTrip': 'Volgende reis',
   'atlas.daysLeft': 'dagen te gaan',

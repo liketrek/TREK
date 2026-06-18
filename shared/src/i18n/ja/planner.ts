@@ -33,8 +33,7 @@ const planner: TranslationStrings = {
   'planner.resConfirmed': '予約確定 · ',
   'planner.notePlaceholder': 'メモ…',
   'planner.noteTimePlaceholder': '時刻（任意）',
-  'planner.noteExamplePlaceholder':
-    '例：中央駅から14:30発のS3、7番桟橋からフェリー、昼食休憩…',
+  'planner.noteExamplePlaceholder': '例：中央駅から14:30発のS3、7番桟橋からフェリー、昼食休憩…',
   'planner.totalCost': '合計費用',
   'planner.searchPlaces': '場所を検索…',
   'planner.allCategories': 'すべてのカテゴリ',

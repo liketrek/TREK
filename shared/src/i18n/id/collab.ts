@@ -14,8 +14,7 @@ const collab: TranslationStrings = {
   'collab.chat.placeholder': 'Ketik pesan...',
   'collab.chat.empty': 'Mulai percakapan',
   'collab.chat.emptyHint': 'Pesan dibagikan kepada semua anggota perjalanan',
-  'collab.chat.emptyDesc':
-    'Bagikan ide, rencana, dan update dengan grup perjalananmu',
+  'collab.chat.emptyDesc': 'Bagikan ide, rencana, dan update dengan grup perjalananmu',
   'collab.chat.today': 'Hari ini',
   'collab.chat.yesterday': 'Kemarin',
   'collab.chat.deletedMessage': 'menghapus pesan',

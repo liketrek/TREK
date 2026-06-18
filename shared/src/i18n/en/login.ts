@@ -3,8 +3,7 @@ import type { TranslationStrings } from '../types';
 const login: TranslationStrings = {
   'login.error': 'Login failed. Please check your credentials.',
   'login.tagline': 'Your Trips.\nYour Plan.',
-  'login.description':
-    'Plan trips collaboratively with interactive maps, budgets, and real-time sync.',
+  'login.description': 'Plan trips collaboratively with interactive maps, budgets, and real-time sync.',
   'login.features.maps': 'Interactive Maps',
   'login.features.mapsDesc': 'Google Places, routes & clustering',
   'login.features.realtime': 'Real-Time Sync',
@@ -29,8 +28,7 @@ const login: TranslationStrings = {
   'login.createAdmin': 'Create Admin Account',
   'login.createAdminHint': 'Set up the first admin account for TREK.',
   'login.setNewPassword': 'Set New Password',
-  'login.setNewPasswordHint':
-    'You must change your password before continuing.',
+  'login.setNewPasswordHint': 'You must change your password before continuing.',
   'login.createAccount': 'Create Account',
   'login.createAccountHint': 'Register a new account.',
   'login.creating': 'Creating…',
@@ -39,17 +37,14 @@ const login: TranslationStrings = {
   'login.register': 'Register',
   'login.emailPlaceholder': 'your@email.com',
   'login.username': 'Username',
-  'login.oidc.registrationDisabled':
-    'Registration is disabled. Contact your administrator.',
+  'login.oidc.registrationDisabled': 'Registration is disabled. Contact your administrator.',
   'login.oidc.noEmail': 'No email received from provider.',
   'login.oidc.tokenFailed': 'Authentication failed.',
   'login.oidc.invalidState': 'Invalid session. Please try again.',
   'login.demoFailed': 'Demo login failed',
   'login.oidcSignIn': 'Sign in with {name}',
-  'login.oidcOnly':
-    'Password authentication is disabled. Please sign in using your SSO provider.',
-  'login.oidcLoggedOut':
-    'You have been logged out. Sign in again using your SSO provider.',
+  'login.oidcOnly': 'Password authentication is disabled. Please sign in using your SSO provider.',
+  'login.oidcLoggedOut': 'You have been logged out. Sign in again using your SSO provider.',
   'login.demoHint': 'Try the demo — no registration needed',
   'login.mfaTitle': 'Two-factor authentication',
   'login.mfaSubtitle': 'Enter the 6-digit code from your authenticator app.',
@@ -79,18 +74,14 @@ const login: TranslationStrings = {
   'login.passwordsDontMatch': "Passwords don't match",
   'login.mfaCode': '2FA code',
   'login.resetPasswordTitle': 'Set a new password',
-  'login.resetPasswordBody':
-    'Pick a strong password you haven’t used here before. Minimum 8 characters.',
-  'login.resetPasswordMfaBody':
-    'Enter your 2FA code or a backup code to complete the reset.',
+  'login.resetPasswordBody': 'Pick a strong password you haven’t used here before. Minimum 8 characters.',
+  'login.resetPasswordMfaBody': 'Enter your 2FA code or a backup code to complete the reset.',
   'login.resetPasswordSubmit': 'Reset password',
   'login.resetPasswordVerify': 'Verify & reset',
   'login.resetPasswordSuccessTitle': 'Password updated',
-  'login.resetPasswordSuccessBody':
-    'You can now sign in with your new password.',
+  'login.resetPasswordSuccessBody': 'You can now sign in with your new password.',
   'login.resetPasswordInvalidLink': 'Invalid reset link',
-  'login.resetPasswordInvalidLinkBody':
-    'This link is missing or broken. Request a new one to continue.',
+  'login.resetPasswordInvalidLinkBody': 'This link is missing or broken. Request a new one to continue.',
   'login.resetPasswordFailed': 'Reset failed. The link may have expired.',
   'login.passkey.signIn': 'Sign in with a passkey',
   'login.passkey.failed': 'Passkey sign-in failed. Please try again.',

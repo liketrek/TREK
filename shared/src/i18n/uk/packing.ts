@@ -7,8 +7,7 @@ const packing: TranslationStrings = {
   'packing.importTitle': 'Імпорт списку речей',
   'packing.importHint':
     'Один предмет у рядок. Категорію та кількість — через кому, крапку з комою або табуляцію: Назва, Категорія, Кількість',
-  'packing.importPlaceholder':
-    'Зубна щітка\nСонцезахисний крем, Гігієна\nФутболки, Одяг, 5\nПаспорт, Документи',
+  'packing.importPlaceholder': 'Зубна щітка\nСонцезахисний крем, Гігієна\nФутболки, Одяг, 5\nПаспорт, Документи',
   'packing.importCsv': 'Завантажити CSV/TXT',
   'packing.importAction': 'Імпортувати {count}',
   'packing.importSuccess': '{count} предметів імпортовано',
@@ -51,10 +50,8 @@ const packing: TranslationStrings = {
   'packing.bagName': 'Назва...',
   'packing.addBag': 'Додати багаж',
   'packing.changeCategory': 'Змінити категорію',
-  'packing.confirm.clearChecked':
-    'Ви впевнені, що хочете видалити {count} позначених речей?',
-  'packing.confirm.deleteCat':
-    'Ви впевнені, що хочете видалити категорію «{name}» з {count} речами?',
+  'packing.confirm.clearChecked': 'Ви впевнені, що хочете видалити {count} позначених речей?',
+  'packing.confirm.deleteCat': 'Ви впевнені, що хочете видалити категорію «{name}» з {count} речами?',
   'packing.defaultCategory': 'Інше',
   'packing.toast.saveError': 'Помилка збереження',
   'packing.toast.deleteError': 'Помилка видалення',

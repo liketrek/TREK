@@ -21,18 +21,15 @@ const login: TranslationStrings = {
   'login.features.filesDesc': 'Importez et gérez vos documents',
   'login.features.routes': 'Itinéraires intelligents',
   'login.features.routesDesc': 'Optimisation automatique et export Google Maps',
-  'login.selfHosted':
-    'Auto-hébergé · Open Source · Vos données restent les vôtres',
+  'login.selfHosted': 'Auto-hébergé · Open Source · Vos données restent les vôtres',
   'login.title': 'Connexion',
   'login.subtitle': 'Bon retour',
   'login.signingIn': 'Connexion en cours…',
   'login.signIn': 'Se connecter',
   'login.createAdmin': 'Créer un compte administrateur',
-  'login.createAdminHint':
-    'Configurez le premier compte administrateur pour TREK.',
+  'login.createAdminHint': 'Configurez le premier compte administrateur pour TREK.',
   'login.setNewPassword': 'Définir un nouveau mot de passe',
-  'login.setNewPasswordHint':
-    'Vous devez changer votre mot de passe avant de continuer.',
+  'login.setNewPasswordHint': 'Vous devez changer votre mot de passe avant de continuer.',
   'login.createAccount': 'Créer un compte',
   'login.createAccountHint': 'Créez un nouveau compte.',
   'login.creating': 'Création…',
@@ -41,24 +38,19 @@ const login: TranslationStrings = {
   'login.register': "S'inscrire",
   'login.emailPlaceholder': 'votre@email.com',
   'login.username': "Nom d'utilisateur",
-  'login.oidc.registrationDisabled':
-    'Les inscriptions sont désactivées. Contactez votre administrateur.',
+  'login.oidc.registrationDisabled': 'Les inscriptions sont désactivées. Contactez votre administrateur.',
   'login.oidc.noEmail': 'Aucun e-mail reçu du fournisseur.',
   'login.mfaTitle': 'Authentification à deux facteurs',
-  'login.mfaSubtitle':
-    "Entrez le code à 6 chiffres de votre application d'authentification.",
+  'login.mfaSubtitle': "Entrez le code à 6 chiffres de votre application d'authentification.",
   'login.mfaCodeLabel': 'Code de vérification',
-  'login.mfaCodeRequired':
-    "Entrez le code de votre application d'authentification.",
-  'login.mfaHint':
-    'Ouvrez Google Authenticator, Authy ou une autre application TOTP.',
+  'login.mfaCodeRequired': "Entrez le code de votre application d'authentification.",
+  'login.mfaHint': 'Ouvrez Google Authenticator, Authy ou une autre application TOTP.',
   'login.mfaBack': '← Retour à la connexion',
   'login.mfaVerify': 'Vérifier',
   'login.invalidInviteLink': "Lien d'invitation invalide ou expiré",
   'login.oidcFailed': 'Échec de connexion OIDC',
   'login.usernameRequired': "Le nom d'utilisateur est obligatoire",
-  'login.passwordMinLength':
-    'Le mot de passe doit comporter au moins 8 caractères',
+  'login.passwordMinLength': 'Le mot de passe doit comporter au moins 8 caractères',
   'login.forgotPassword': 'Mot de passe oublié ?',
   'login.rememberMe': 'Se souvenir de moi',
   'login.forgotPasswordTitle': 'Réinitialiser votre mot de passe',
@@ -78,29 +70,23 @@ const login: TranslationStrings = {
   'login.resetPasswordTitle': 'Définir un nouveau mot de passe',
   'login.resetPasswordBody':
     "Choisissez un mot de passe fort que vous n'avez pas encore utilisé ici. 8 caractères minimum.",
-  'login.resetPasswordMfaBody':
-    'Entrez votre code 2FA ou un code de secours pour finaliser la réinitialisation.',
+  'login.resetPasswordMfaBody': 'Entrez votre code 2FA ou un code de secours pour finaliser la réinitialisation.',
   'login.resetPasswordSubmit': 'Réinitialiser',
   'login.resetPasswordVerify': 'Vérifier et réinitialiser',
   'login.resetPasswordSuccessTitle': 'Mot de passe mis à jour',
-  'login.resetPasswordSuccessBody':
-    'Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.',
+  'login.resetPasswordSuccessBody': 'Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.',
   'login.resetPasswordInvalidLink': 'Lien de réinitialisation invalide',
-  'login.resetPasswordInvalidLinkBody':
-    'Ce lien est manquant ou invalide. Demandez-en un nouveau pour continuer.',
-  'login.resetPasswordFailed':
-    'Échec de la réinitialisation. Le lien a peut-être expiré.',
+  'login.resetPasswordInvalidLinkBody': 'Ce lien est manquant ou invalide. Demandez-en un nouveau pour continuer.',
+  'login.resetPasswordFailed': 'Échec de la réinitialisation. Le lien a peut-être expiré.',
   'login.oidc.tokenFailed': "L'authentification a échoué.",
   'login.oidc.invalidState': 'Session invalide. Veuillez réessayer.',
   'login.demoFailed': 'Échec de la connexion démo',
   'login.oidcSignIn': 'Se connecter avec {name}',
   'login.oidcOnly':
     "L'authentification par mot de passe est désactivée. Veuillez vous connecter via votre fournisseur SSO.",
-  'login.oidcLoggedOut':
-    'Vous avez été déconnecté. Reconnectez-vous via votre fournisseur SSO.',
+  'login.oidcLoggedOut': 'Vous avez été déconnecté. Reconnectez-vous via votre fournisseur SSO.',
   'login.demoHint': 'Essayez la démo — aucune inscription nécessaire',
   'login.passkey.signIn': 'Se connecter avec une passkey',
-  'login.passkey.failed':
-    'Échec de la connexion par passkey. Veuillez réessayer.',
+  'login.passkey.failed': 'Échec de la connexion par passkey. Veuillez réessayer.',
 };
 export default login;

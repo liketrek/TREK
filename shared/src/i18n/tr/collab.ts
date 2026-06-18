@@ -14,8 +14,7 @@ const collab: TranslationStrings = {
   'collab.chat.placeholder': 'Mesaj yazın...',
   'collab.chat.empty': 'Sohbeti başlatın',
   'collab.chat.emptyHint': 'Mesajlar tüm seyahat üyeleriyle paylaşılır',
-  'collab.chat.emptyDesc':
-    'Seyahat grubunuzla fikir, plan ve güncellemeleri paylaşın',
+  'collab.chat.emptyDesc': 'Seyahat grubunuzla fikir, plan ve güncellemeleri paylaşın',
   'collab.chat.today': 'Bugün',
   'collab.chat.yesterday': 'Dün',
   'collab.chat.deletedMessage': 'bir mesajı sildi',

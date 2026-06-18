@@ -145,9 +145,7 @@ export const budgetCreateItemRequestSchema = z.object({
   // "add expense" flow). The server stores it on budget_items.reservation_id.
   reservation_id: z.number().optional(),
 });
-export type BudgetCreateItemRequest = z.infer<
-  typeof budgetCreateItemRequestSchema
->;
+export type BudgetCreateItemRequest = z.infer<typeof budgetCreateItemRequestSchema>;
 
 /** Update accepts the same fields plus total_price changes; all optional. */
 export const budgetUpdateItemRequestSchema = z.object({
@@ -163,17 +161,13 @@ export const budgetUpdateItemRequestSchema = z.object({
   note: z.string().nullable().optional(),
   expense_date: z.string().nullable().optional(),
 });
-export type BudgetUpdateItemRequest = z.infer<
-  typeof budgetUpdateItemRequestSchema
->;
+export type BudgetUpdateItemRequest = z.infer<typeof budgetUpdateItemRequestSchema>;
 
 /** Replace the explicit payers of an expense (amounts in expense currency). */
 export const budgetUpdatePayersRequestSchema = z.object({
   payers: z.array(payerInputSchema),
 });
-export type BudgetUpdatePayersRequest = z.infer<
-  typeof budgetUpdatePayersRequestSchema
->;
+export type BudgetUpdatePayersRequest = z.infer<typeof budgetUpdatePayersRequestSchema>;
 
 /**
  * A persisted settle-up transfer (budget_settlements row): "from paid to" a
@@ -200,34 +194,32 @@ export const budgetCreateSettlementRequestSchema = z.object({
   to_user_id: z.number(),
   amount: z.number(),
 });
-export type BudgetCreateSettlementRequest = z.infer<
-  typeof budgetCreateSettlementRequestSchema
->;
+export type BudgetCreateSettlementRequest = z.infer<typeof budgetCreateSettlementRequestSchema>;
+
+/** Edit a persisted settle-up transfer (same fields as create; full replace). */
+export const budgetUpdateSettlementRequestSchema = z.object({
+  from_user_id: z.number(),
+  to_user_id: z.number(),
+  amount: z.number(),
+});
+export type BudgetUpdateSettlementRequest = z.infer<typeof budgetUpdateSettlementRequestSchema>;
 
 export const budgetUpdateMembersRequestSchema = z.object({
   user_ids: z.array(z.number()),
 });
-export type BudgetUpdateMembersRequest = z.infer<
-  typeof budgetUpdateMembersRequestSchema
->;
+export type BudgetUpdateMembersRequest = z.infer<typeof budgetUpdateMembersRequestSchema>;
 
 export const budgetToggleMemberPaidRequestSchema = z.object({
   paid: z.boolean(),
 });
-export type BudgetToggleMemberPaidRequest = z.infer<
-  typeof budgetToggleMemberPaidRequestSchema
->;
+export type BudgetToggleMemberPaidRequest = z.infer<typeof budgetToggleMemberPaidRequestSchema>;
 
 export const budgetReorderItemsRequestSchema = z.object({
   orderedIds: z.array(z.number()),
 });
-export type BudgetReorderItemsRequest = z.infer<
-  typeof budgetReorderItemsRequestSchema
->;
+export type BudgetReorderItemsRequest = z.infer<typeof budgetReorderItemsRequestSchema>;
 
 export const budgetReorderCategoriesRequestSchema = z.object({
   orderedCategories: z.array(z.string()),
 });
-export type BudgetReorderCategoriesRequest = z.infer<
-  typeof budgetReorderCategoriesRequestSchema
->;
+export type BudgetReorderCategoriesRequest = z.infer<typeof budgetReorderCategoriesRequestSchema>;

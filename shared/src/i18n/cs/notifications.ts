@@ -26,8 +26,7 @@ const notifications: TranslationStrings = {
   'notifications.test.navigateText': 'Testovací navigační oznámení.',
   'notifications.test.goThere': 'Přejít tam',
   'notifications.test.adminTitle': 'Hromadná zpráva pro správce',
-  'notifications.test.adminText':
-    '{actor} odeslal testovací oznámení všem správcům.',
+  'notifications.test.adminText': '{actor} odeslal testovací oznámení všem správcům.',
   'notifications.test.tripTitle': '{actor} přispěl do vašeho výletu',
   'notifications.test.tripText': 'Testovací oznámení pro výlet "{trip}".',
   'notifications.versionAvailable.title': 'Dostupná aktualizace',

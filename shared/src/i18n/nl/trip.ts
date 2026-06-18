@@ -9,7 +9,7 @@ const trip: TranslationStrings = {
   'trip.tabs.packingShort': 'Inpakken',
   'trip.tabs.lists': 'Lijsten',
   'trip.tabs.listsShort': 'Lijsten',
-  'trip.tabs.budget': "Costs",
+  'trip.tabs.budget': 'Costs',
   'trip.tabs.files': 'Bestanden',
   'trip.loading': 'Reis laden...',
   'trip.loadingPhotos': 'Plaatsfoto laden...',
@@ -24,8 +24,7 @@ const trip: TranslationStrings = {
   'trip.toast.reservationUpdated': 'Reservering bijgewerkt',
   'trip.toast.reservationAdded': 'Reservering toegevoegd',
   'trip.toast.deleted': 'Verwijderd',
-  'trip.confirm.deletePlace':
-    'Weet je zeker dat je deze plaats wilt verwijderen?',
+  'trip.confirm.deletePlace': 'Weet je zeker dat je deze plaats wilt verwijderen?',
   'trip.confirm.deletePlaces': '{count} plaatsen verwijderen?',
   'trip.toast.placesDeleted': '{count} plaatsen verwijderd',
 };

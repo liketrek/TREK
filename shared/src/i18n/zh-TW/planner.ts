@@ -33,8 +33,7 @@ const planner: TranslationStrings = {
   'planner.resConfirmed': '預訂已確認 · ',
   'planner.notePlaceholder': '備註…',
   'planner.noteTimePlaceholder': '時間（可選）',
-  'planner.noteExamplePlaceholder':
-    '如：14:30 從中央車站乘 S3，7 號碼頭渡輪，午餐休息…',
+  'planner.noteExamplePlaceholder': '如：14:30 從中央車站乘 S3，7 號碼頭渡輪，午餐休息…',
   'planner.totalCost': '總費用',
   'planner.searchPlaces': '搜尋地點…',
   'planner.allCategories': '所有分類',

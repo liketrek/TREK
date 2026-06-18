@@ -32,31 +32,20 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': 'Samenwerking (notities, polls, chat)',
   'perm.action.share_manage': 'Deellinks beheren',
   'perm.actionHint.trip_create': 'Wie kan nieuwe reizen aanmaken',
-  'perm.actionHint.trip_edit':
-    'Wie kan reisnaam, data, beschrijving en valuta wijzigen',
+  'perm.actionHint.trip_edit': 'Wie kan reisnaam, data, beschrijving en valuta wijzigen',
   'perm.actionHint.trip_delete': 'Wie kan een reis permanent verwijderen',
   'perm.actionHint.trip_archive': 'Wie kan een reis archiveren of dearchiveren',
-  'perm.actionHint.trip_cover_upload':
-    'Wie kan de omslagfoto uploaden of wijzigen',
-  'perm.actionHint.member_manage':
-    'Wie kan reisleden uitnodigen of verwijderen',
+  'perm.actionHint.trip_cover_upload': 'Wie kan de omslagfoto uploaden of wijzigen',
+  'perm.actionHint.member_manage': 'Wie kan reisleden uitnodigen of verwijderen',
   'perm.actionHint.file_upload': 'Wie kan bestanden uploaden naar een reis',
-  'perm.actionHint.file_edit':
-    'Wie kan bestandsbeschrijvingen en links bewerken',
-  'perm.actionHint.file_delete':
-    'Wie kan bestanden naar de prullenbak verplaatsen of permanent verwijderen',
-  'perm.actionHint.place_edit':
-    'Wie kan plaatsen toevoegen, bewerken of verwijderen',
-  'perm.actionHint.day_edit':
-    'Wie kan dagen, dagnotities en plaatstoewijzingen bewerken',
-  'perm.actionHint.reservation_edit':
-    'Wie kan reserveringen aanmaken, bewerken of verwijderen',
-  'perm.actionHint.budget_edit':
-    'Wie kan budgetposten aanmaken, bewerken of verwijderen',
+  'perm.actionHint.file_edit': 'Wie kan bestandsbeschrijvingen en links bewerken',
+  'perm.actionHint.file_delete': 'Wie kan bestanden naar de prullenbak verplaatsen of permanent verwijderen',
+  'perm.actionHint.place_edit': 'Wie kan plaatsen toevoegen, bewerken of verwijderen',
+  'perm.actionHint.day_edit': 'Wie kan dagen, dagnotities en plaatstoewijzingen bewerken',
+  'perm.actionHint.reservation_edit': 'Wie kan reserveringen aanmaken, bewerken of verwijderen',
+  'perm.actionHint.budget_edit': 'Wie kan budgetposten aanmaken, bewerken of verwijderen',
   'perm.actionHint.packing_edit': 'Wie kan pakitems en tassen beheren',
-  'perm.actionHint.collab_edit':
-    'Wie kan notities, polls aanmaken en berichten versturen',
-  'perm.actionHint.share_manage':
-    'Wie kan openbare deellinks aanmaken of verwijderen',
+  'perm.actionHint.collab_edit': 'Wie kan notities, polls aanmaken en berichten versturen',
+  'perm.actionHint.share_manage': 'Wie kan openbare deellinks aanmaken of verwijderen',
 };
 export default perm;

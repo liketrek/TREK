@@ -3,8 +3,7 @@ import type { TranslationStrings } from '../types';
 const login: TranslationStrings = {
   'login.error': 'فشل تسجيل الدخول. يرجى التحقق من بياناتك.',
   'login.tagline': 'رحلاتك.\nخطتك.',
-  'login.description':
-    'خطط لرحلاتك بشكل تعاوني مع خرائط تفاعلية وميزانيات ومزامنة لحظية.',
+  'login.description': 'خطط لرحلاتك بشكل تعاوني مع خرائط تفاعلية وميزانيات ومزامنة لحظية.',
   'login.features.maps': 'خرائط تفاعلية',
   'login.features.mapsDesc': 'Google Places ومسارات وتجميع',
   'login.features.realtime': 'مزامنة فورية',
@@ -43,8 +42,7 @@ const login: TranslationStrings = {
   'login.oidc.invalidState': 'جلسة غير صالحة. حاول مرة أخرى.',
   'login.demoFailed': 'فشل الدخول إلى العرض التجريبي',
   'login.oidcSignIn': 'تسجيل الدخول عبر {name}',
-  'login.oidcOnly':
-    'تم تعطيل المصادقة بكلمة المرور. يرجى تسجيل الدخول عبر مزود SSO.',
+  'login.oidcOnly': 'تم تعطيل المصادقة بكلمة المرور. يرجى تسجيل الدخول عبر مزود SSO.',
   'login.oidcLoggedOut': 'تم تسجيل خروجك. سجّل الدخول مجدداً عبر مزود SSO.',
   'login.demoHint': 'جرّب العرض التجريبي دون الحاجة للتسجيل',
   'login.mfaTitle': 'المصادقة الثنائية',
@@ -75,18 +73,14 @@ const login: TranslationStrings = {
   'login.passwordsDontMatch': 'كلمتا المرور غير متطابقتين',
   'login.mfaCode': 'رمز 2FA',
   'login.resetPasswordTitle': 'ضبط كلمة مرور جديدة',
-  'login.resetPasswordBody':
-    'اختر كلمة مرور قوية لم تستخدمها هنا من قبل. 8 أحرف على الأقل.',
-  'login.resetPasswordMfaBody':
-    'أدخل رمز 2FA أو رمز النسخ الاحتياطي لإتمام إعادة التعيين.',
+  'login.resetPasswordBody': 'اختر كلمة مرور قوية لم تستخدمها هنا من قبل. 8 أحرف على الأقل.',
+  'login.resetPasswordMfaBody': 'أدخل رمز 2FA أو رمز النسخ الاحتياطي لإتمام إعادة التعيين.',
   'login.resetPasswordSubmit': 'إعادة تعيين كلمة المرور',
   'login.resetPasswordVerify': 'تحقق وأعد التعيين',
   'login.resetPasswordSuccessTitle': 'تم تحديث كلمة المرور',
-  'login.resetPasswordSuccessBody':
-    'يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة.',
+  'login.resetPasswordSuccessBody': 'يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة.',
   'login.resetPasswordInvalidLink': 'رابط إعادة تعيين غير صالح',
-  'login.resetPasswordInvalidLinkBody':
-    'هذا الرابط مفقود أو تالف. اطلب رابطًا جديدًا للمتابعة.',
+  'login.resetPasswordInvalidLinkBody': 'هذا الرابط مفقود أو تالف. اطلب رابطًا جديدًا للمتابعة.',
   'login.resetPasswordFailed': 'فشلت إعادة التعيين. ربما انتهت صلاحية الرابط.',
   'login.emailPlaceholder': 'your@email.com', // en-fallback
   'login.passkey.signIn': 'تسجيل الدخول باستخدام مفتاح المرور',

@@ -5,8 +5,7 @@ const register: TranslationStrings = {
   'register.passwordTooShort': 'Heslo musí mít alespoň 8 znaků',
   'register.failed': 'Registrace se nezdařila',
   'register.getStarted': 'Začínáme',
-  'register.subtitle':
-    'Vytvořte si účet a začněte plánovat svou vysněnou cestu.',
+  'register.subtitle': 'Vytvořte si účet a začněte plánovat svou vysněnou cestu.',
   'register.feature1': 'Neomezené plány cest',
   'register.feature2': 'Zobrazení na interaktivní mapě',
   'register.feature3': 'Správa míst a kategorií',

@@ -26,8 +26,7 @@ const notifications: TranslationStrings = {
   'notifications.test.navigateText': 'Notificação de teste de navegação.',
   'notifications.test.goThere': 'Ir lá',
   'notifications.test.adminTitle': 'Transmissão do admin',
-  'notifications.test.adminText':
-    '{actor} enviou uma notificação de teste para todos os admins.',
+  'notifications.test.adminText': '{actor} enviou uma notificação de teste para todos os admins.',
   'notifications.test.tripTitle': '{actor} postou na sua viagem',
   'notifications.test.tripText': 'Notificação de teste para a viagem "{trip}".',
   'notifications.versionAvailable.title': 'Atualização disponível',

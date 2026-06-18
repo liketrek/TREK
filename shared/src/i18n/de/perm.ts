@@ -32,32 +32,20 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': 'Zusammenarbeit (Notizen, Umfragen, Chat)',
   'perm.action.share_manage': 'Freigabelinks verwalten',
   'perm.actionHint.trip_create': 'Wer kann neue Reisen erstellen',
-  'perm.actionHint.trip_edit':
-    'Wer kann Reisename, Daten, Beschreibung und Währung ändern',
+  'perm.actionHint.trip_edit': 'Wer kann Reisename, Daten, Beschreibung und Währung ändern',
   'perm.actionHint.trip_delete': 'Wer kann eine Reise dauerhaft löschen',
-  'perm.actionHint.trip_archive':
-    'Wer kann eine Reise archivieren oder dearchivieren',
-  'perm.actionHint.trip_cover_upload':
-    'Wer kann das Titelbild hochladen oder ändern',
-  'perm.actionHint.member_manage':
-    'Wer kann Reise-Mitglieder einladen oder entfernen',
+  'perm.actionHint.trip_archive': 'Wer kann eine Reise archivieren oder dearchivieren',
+  'perm.actionHint.trip_cover_upload': 'Wer kann das Titelbild hochladen oder ändern',
+  'perm.actionHint.member_manage': 'Wer kann Reise-Mitglieder einladen oder entfernen',
   'perm.actionHint.file_upload': 'Wer kann Dateien zu einer Reise hochladen',
-  'perm.actionHint.file_edit':
-    'Wer kann Dateibeschreibungen und Links bearbeiten',
-  'perm.actionHint.file_delete':
-    'Wer kann Dateien in den Papierkorb verschieben oder dauerhaft löschen',
-  'perm.actionHint.place_edit':
-    'Wer kann Orte hinzufügen, bearbeiten oder löschen',
-  'perm.actionHint.day_edit':
-    'Wer kann Tage, Tagesnotizen und Ort-Zuweisungen bearbeiten',
-  'perm.actionHint.reservation_edit':
-    'Wer kann Reservierungen erstellen, bearbeiten oder löschen',
-  'perm.actionHint.budget_edit':
-    'Wer kann Budgetposten erstellen, bearbeiten oder löschen',
+  'perm.actionHint.file_edit': 'Wer kann Dateibeschreibungen und Links bearbeiten',
+  'perm.actionHint.file_delete': 'Wer kann Dateien in den Papierkorb verschieben oder dauerhaft löschen',
+  'perm.actionHint.place_edit': 'Wer kann Orte hinzufügen, bearbeiten oder löschen',
+  'perm.actionHint.day_edit': 'Wer kann Tage, Tagesnotizen und Ort-Zuweisungen bearbeiten',
+  'perm.actionHint.reservation_edit': 'Wer kann Reservierungen erstellen, bearbeiten oder löschen',
+  'perm.actionHint.budget_edit': 'Wer kann Budgetposten erstellen, bearbeiten oder löschen',
   'perm.actionHint.packing_edit': 'Wer kann Packstücke und Taschen verwalten',
-  'perm.actionHint.collab_edit':
-    'Wer kann Notizen, Umfragen erstellen und Nachrichten senden',
-  'perm.actionHint.share_manage':
-    'Wer kann öffentliche Freigabelinks erstellen oder löschen',
+  'perm.actionHint.collab_edit': 'Wer kann Notizen, Umfragen erstellen und Nachrichten senden',
+  'perm.actionHint.share_manage': 'Wer kann öffentliche Freigabelinks erstellen oder löschen',
 };
 export default perm;

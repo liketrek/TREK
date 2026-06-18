@@ -13,10 +13,8 @@ const collab: TranslationStrings = {
   'collab.chat.send': 'Wyślij',
   'collab.chat.placeholder': 'Napisz wiadomość...',
   'collab.chat.empty': 'Rozpocznij konwersację',
-  'collab.chat.emptyHint':
-    'Wiadomości są widoczne dla wszystkich uczestników podróży',
-  'collab.chat.emptyDesc':
-    'Dziel się pomysłami, planami i aktualizacjami z uczestnikami podróży',
+  'collab.chat.emptyHint': 'Wiadomości są widoczne dla wszystkich uczestników podróży',
+  'collab.chat.emptyDesc': 'Dziel się pomysłami, planami i aktualizacjami z uczestnikami podróży',
   'collab.chat.today': 'Dzisiaj',
   'collab.chat.yesterday': 'Wczoraj',
   'collab.chat.deletedMessage': 'usunięto wiadomość',

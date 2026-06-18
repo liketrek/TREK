@@ -13,8 +13,7 @@ const files: TranslationStrings = {
   'files.uploadError': 'Fehler beim Hochladen',
   'files.dropzone': 'Dateien hier ablegen',
   'files.dropzoneHint': 'oder klicken zum Auswählen',
-  'files.allowedTypes':
-    'Bilder, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Max 50 MB',
+  'files.allowedTypes': 'Bilder, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Max 50 MB',
   'files.uploading': 'Wird hochgeladen...',
   'files.filterAll': 'Alle',
   'files.filterPdf': 'PDFs',
@@ -32,8 +31,7 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Buchung',
   'files.sourceTransport': 'Transport',
   'files.attach': 'Anhängen',
-  'files.pasteHint':
-    'Du kannst auch Bilder aus der Zwischenablage einfügen (Strg+V)',
+  'files.pasteHint': 'Du kannst auch Bilder aus der Zwischenablage einfügen (Strg+V)',
   'files.trash': 'Papierkorb',
   'files.trashEmpty': 'Papierkorb ist leer',
   'files.emptyTrash': 'Papierkorb leeren',
@@ -53,10 +51,8 @@ const files: TranslationStrings = {
   'files.toast.assigned': 'Datei zugewiesen',
   'files.toast.assignError': 'Zuweisung fehlgeschlagen',
   'files.toast.restoreError': 'Wiederherstellung fehlgeschlagen',
-  'files.confirm.permanentDelete':
-    'Diese Datei endgültig löschen? Das kann nicht rückgängig gemacht werden.',
-  'files.confirm.emptyTrash':
-    'Alle Dateien im Papierkorb endgültig löschen? Das kann nicht rückgängig gemacht werden.',
+  'files.confirm.permanentDelete': 'Diese Datei endgültig löschen? Das kann nicht rückgängig gemacht werden.',
+  'files.confirm.emptyTrash': 'Alle Dateien im Papierkorb endgültig löschen? Das kann nicht rückgängig gemacht werden.',
   'files.noteLabel': 'Notiz',
   'files.notePlaceholder': 'Notiz hinzufügen...',
 };

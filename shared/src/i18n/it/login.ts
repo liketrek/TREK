@@ -20,8 +20,7 @@ const login: TranslationStrings = {
   'login.features.files': 'Documenti',
   'login.features.filesDesc': 'Carica e gestisci i documenti',
   'login.features.routes': 'Percorsi Intelligenti',
-  'login.features.routesDesc':
-    'Ottimizzazione automatica ed esportazione su Google Maps',
+  'login.features.routesDesc': 'Ottimizzazione automatica ed esportazione su Google Maps',
   'login.selfHosted': 'Self-hosted · Open Source · Your data stays yours',
   'login.title': 'Accedi',
   'login.subtitle': 'Bentornato',
@@ -39,21 +38,17 @@ const login: TranslationStrings = {
   'login.register': 'Registrati',
   'login.emailPlaceholder': 'tua@email.com',
   'login.username': 'Nome utente',
-  'login.oidc.registrationDisabled':
-    'La registrazione è disabilitata. Contatta il tuo amministratore.',
+  'login.oidc.registrationDisabled': 'La registrazione è disabilitata. Contatta il tuo amministratore.',
   'login.oidc.noEmail': 'Nessuna email ricevuta dal provider.',
   'login.oidc.tokenFailed': 'Autenticazione fallita.',
   'login.oidc.invalidState': 'Sessione non valida. Riprova.',
   'login.demoFailed': 'Accesso demo fallito',
   'login.oidcSignIn': 'Accedi con {name}',
-  'login.oidcOnly':
-    "L'autenticazione tramite password è disabilitata. Accedi utilizzando il tuo provider SSO.",
-  'login.oidcLoggedOut':
-    'Sei stato disconnesso. Accedi nuovamente tramite il tuo provider SSO.',
+  'login.oidcOnly': "L'autenticazione tramite password è disabilitata. Accedi utilizzando il tuo provider SSO.",
+  'login.oidcLoggedOut': 'Sei stato disconnesso. Accedi nuovamente tramite il tuo provider SSO.',
   'login.demoHint': 'Prova la demo — nessuna registrazione necessaria',
   'login.mfaTitle': 'Autenticazione a due fattori',
-  'login.mfaSubtitle':
-    'Inserisci il codice a 6 cifre dalla tua app authenticator.',
+  'login.mfaSubtitle': 'Inserisci il codice a 6 cifre dalla tua app authenticator.',
   'login.mfaCodeLabel': 'Codice di verifica',
   'login.mfaCodeRequired': 'Inserisci il codice dalla tua app authenticator.',
   'login.mfaHint': "Apri Google Authenticator, Authy o un'altra app TOTP.",
@@ -70,8 +65,7 @@ const login: TranslationStrings = {
     'Inserisci l’indirizzo email del tuo account. Se esiste un account, invieremo un link per reimpostarla.',
   'login.forgotPasswordSubmit': 'Invia link',
   'login.forgotPasswordSentTitle': 'Controlla la tua email',
-  'login.forgotPasswordSentBody':
-    'Se esiste un account con questa email, il link è in arrivo. Scade tra 60 minuti.',
+  'login.forgotPasswordSentBody': 'Se esiste un account con questa email, il link è in arrivo. Scade tra 60 minuti.',
   'login.forgotPasswordSmtpHintOff':
     'Nota: il tuo amministratore non ha configurato SMTP, quindi il link di reset verrà scritto nella console del server invece di essere inviato via email.',
   'login.backToLogin': 'Torna all’accesso',
@@ -80,19 +74,15 @@ const login: TranslationStrings = {
   'login.passwordsDontMatch': 'Le password non corrispondono',
   'login.mfaCode': 'Codice 2FA',
   'login.resetPasswordTitle': 'Imposta una nuova password',
-  'login.resetPasswordBody':
-    'Scegli una password robusta che non hai già usato qui. Minimo 8 caratteri.',
-  'login.resetPasswordMfaBody':
-    'Inserisci il codice 2FA o un codice di backup per completare il reset.',
+  'login.resetPasswordBody': 'Scegli una password robusta che non hai già usato qui. Minimo 8 caratteri.',
+  'login.resetPasswordMfaBody': 'Inserisci il codice 2FA o un codice di backup per completare il reset.',
   'login.resetPasswordSubmit': 'Reimposta password',
   'login.resetPasswordVerify': 'Verifica e reimposta',
   'login.resetPasswordSuccessTitle': 'Password aggiornata',
   'login.resetPasswordSuccessBody': 'Ora puoi accedere con la nuova password.',
   'login.resetPasswordInvalidLink': 'Link di reset non valido',
-  'login.resetPasswordInvalidLinkBody':
-    'Il link è mancante o danneggiato. Richiedine uno nuovo per continuare.',
-  'login.resetPasswordFailed':
-    'Reset non riuscito. Il link potrebbe essere scaduto.',
+  'login.resetPasswordInvalidLinkBody': 'Il link è mancante o danneggiato. Richiedine uno nuovo per continuare.',
+  'login.resetPasswordFailed': 'Reset non riuscito. Il link potrebbe essere scaduto.',
   'login.passkey.signIn': 'Accedi con una passkey',
   'login.passkey.failed': 'Accesso con passkey non riuscito. Riprova.',
 };

@@ -7,8 +7,7 @@ const day: TranslationStrings = {
   'day.sunrise': 'Схід',
   'day.sunset': 'Захід',
   'day.hourlyForecast': 'Погодний прогноз по годинах',
-  'day.climateHint':
-    'Історичні середні — реальний прогноз доступний за 16 днів до цієї дати.',
+  'day.climateHint': 'Історичні середні — реальний прогноз доступний за 16 днів до цієї дати.',
   'day.noWeather': 'Дані про погоду недоступні. Додайте місце з координатами.',
   'day.overview': 'Огляд дня',
   'day.accommodation': 'Проживання',

@@ -9,8 +9,7 @@ const atlas: TranslationStrings = {
   'atlas.visitedCountries': 'Відвідані країни',
   'atlas.cities': 'Міста',
   'atlas.noData': 'Даних про подорожі поки немає',
-  'atlas.noDataHint':
-    'Створіть подорож і додайте місця, щоб побачити карту світу',
+  'atlas.noDataHint': 'Створіть подорож і додайте місця, щоб побачити карту світу',
   'atlas.lastTrip': 'Остання подорож',
   'atlas.nextTrip': 'Наступна подорож',
   'atlas.daysLeft': 'днів залишилося',

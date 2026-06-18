@@ -35,7 +35,6 @@ const notif: TranslationStrings = {
   'notif.generic.title': 'Уведомление',
   'notif.generic.text': 'У вас новое уведомление',
   'notif.dev.unknown_event.title': '[DEV] Неизвестное событие',
-  'notif.dev.unknown_event.text':
-    'Тип события "{event}" не зарегистрирован в EVENT_NOTIFICATION_CONFIG',
+  'notif.dev.unknown_event.text': 'Тип события "{event}" не зарегистрирован в EVENT_NOTIFICATION_CONFIG',
 };
 export default notif;

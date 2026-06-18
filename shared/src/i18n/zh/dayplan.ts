@@ -28,8 +28,7 @@ const dayplan: TranslationStrings = {
   'dayplan.pdfError': 'PDF 导出失败',
   'dayplan.cannotReorderTransport': '有固定时间的预订无法重新排序',
   'dayplan.confirmRemoveTimeTitle': '移除时间？',
-  'dayplan.confirmRemoveTimeBody':
-    '此地点有固定时间（{time}）。移动后将移除时间并允许自由排序。',
+  'dayplan.confirmRemoveTimeBody': '此地点有固定时间（{time}）。移动后将移除时间并允许自由排序。',
   'dayplan.confirmRemoveTimeAction': '移除时间并移动',
   'dayplan.confirmDeleteNoteTitle': '删除备注？',
   'dayplan.confirmDeleteNoteBody': '此备注将被永久删除。',

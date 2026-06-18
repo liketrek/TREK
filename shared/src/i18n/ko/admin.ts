@@ -2,8 +2,7 @@ import type { TranslationStrings } from '../types';
 
 const admin: TranslationStrings = {
   'admin.notifications.title': '알림',
-  'admin.notifications.hint':
-    '알림 채널을 하나 선택하세요. 한 번에 하나만 활성화할 수 있습니다.',
+  'admin.notifications.hint': '알림 채널을 하나 선택하세요. 한 번에 하나만 활성화할 수 있습니다.',
   'admin.notifications.none': '비활성화',
   'admin.notifications.email': '이메일 (SMTP)',
   'admin.notifications.webhook': '웹훅',
@@ -13,28 +12,22 @@ const admin: TranslationStrings = {
   'admin.notifications.save': '알림 설정 저장',
   'admin.notifications.saved': '알림 설정이 저장되었습니다',
   'admin.notifications.testWebhook': '테스트 웹훅 전송',
-  'admin.notifications.testWebhookSuccess':
-    '테스트 웹훅이 성공적으로 전송되었습니다',
+  'admin.notifications.testWebhookSuccess': '테스트 웹훅이 성공적으로 전송되었습니다',
   'admin.notifications.testWebhookFailed': '테스트 웹훅 실패',
   'admin.notifications.testNtfy': '테스트 ntfy 전송',
-  'admin.notifications.testNtfySuccess':
-    '테스트 ntfy가 성공적으로 전송되었습니다',
+  'admin.notifications.testNtfySuccess': '테스트 ntfy가 성공적으로 전송되었습니다',
   'admin.notifications.testNtfyFailed': '테스트 ntfy 실패',
   'admin.notifications.emailPanel.title': '이메일 (SMTP)',
   'admin.notifications.webhookPanel.title': '웹훅',
   'admin.notifications.inappPanel.title': '앱 내',
-  'admin.notifications.inappPanel.hint':
-    '앱 내 알림은 항상 활성화되어 있으며 전역으로 비활성화할 수 없습니다.',
+  'admin.notifications.inappPanel.hint': '앱 내 알림은 항상 활성화되어 있으며 전역으로 비활성화할 수 없습니다.',
   'admin.notifications.adminWebhookPanel.title': '관리자 웹훅',
   'admin.notifications.adminWebhookPanel.hint':
     '이 웹훅은 관리자 알림 전용입니다 (예: 버전 알림). 사용자별 웹훅과 별개이며 설정 시 항상 실행됩니다.',
-  'admin.notifications.adminWebhookPanel.saved':
-    '관리자 웹훅 URL이 저장되었습니다',
-  'admin.notifications.adminWebhookPanel.testSuccess':
-    '테스트 웹훅이 성공적으로 전송되었습니다',
+  'admin.notifications.adminWebhookPanel.saved': '관리자 웹훅 URL이 저장되었습니다',
+  'admin.notifications.adminWebhookPanel.testSuccess': '테스트 웹훅이 성공적으로 전송되었습니다',
   'admin.notifications.adminWebhookPanel.testFailed': '테스트 웹훅 실패',
-  'admin.notifications.adminWebhookPanel.alwaysOnHint':
-    'URL이 설정되면 관리자 웹훅은 항상 실행됩니다',
+  'admin.notifications.adminWebhookPanel.alwaysOnHint': 'URL이 설정되면 관리자 웹훅은 항상 실행됩니다',
   'admin.notifications.adminNtfyPanel.title': '관리자 Ntfy',
   'admin.notifications.adminNtfyPanel.hint':
     '이 ntfy 토픽은 관리자 알림 전용입니다 (예: 버전 알림). 사용자별 토픽과 별개이며 설정 시 항상 실행됩니다.',
@@ -45,18 +38,13 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.topicLabel': '관리자 토픽',
   'admin.notifications.adminNtfyPanel.topicPlaceholder': 'trek-admin-alerts',
   'admin.notifications.adminNtfyPanel.tokenLabel': '액세스 토큰 (선택)',
-  'admin.notifications.adminNtfyPanel.tokenCleared':
-    '관리자 액세스 토큰이 삭제되었습니다',
-  'admin.notifications.adminNtfyPanel.saved':
-    '관리자 ntfy 설정이 저장되었습니다',
+  'admin.notifications.adminNtfyPanel.tokenCleared': '관리자 액세스 토큰이 삭제되었습니다',
+  'admin.notifications.adminNtfyPanel.saved': '관리자 ntfy 설정이 저장되었습니다',
   'admin.notifications.adminNtfyPanel.test': '테스트 ntfy 전송',
-  'admin.notifications.adminNtfyPanel.testSuccess':
-    '테스트 ntfy가 성공적으로 전송되었습니다',
+  'admin.notifications.adminNtfyPanel.testSuccess': '테스트 ntfy가 성공적으로 전송되었습니다',
   'admin.notifications.adminNtfyPanel.testFailed': '테스트 ntfy 실패',
-  'admin.notifications.adminNtfyPanel.alwaysOnHint':
-    '토픽이 설정되면 관리자 ntfy는 항상 실행됩니다',
-  'admin.notifications.adminNotificationsHint':
-    '관리자 전용 알림 (예: 버전 알림)을 전달할 채널을 설정하세요.',
+  'admin.notifications.adminNtfyPanel.alwaysOnHint': '토픽이 설정되면 관리자 ntfy는 항상 실행됩니다',
+  'admin.notifications.adminNotificationsHint': '관리자 전용 알림 (예: 버전 알림)을 전달할 채널을 설정하세요.',
   'admin.notifications.tripReminders.title': '여행 리마인더',
   'admin.notifications.tripReminders.hint':
     '여행 시작 전에 리마인더 알림을 전송합니다 (여행에 리마인더 일수가 설정되어 있어야 합니다).',
@@ -65,8 +53,7 @@ const admin: TranslationStrings = {
   'admin.smtp.title': '이메일 및 알림',
   'admin.smtp.hint': '이메일 알림 전송을 위한 SMTP 설정입니다.',
   'admin.smtp.testButton': '테스트 이메일 전송',
-  'admin.webhook.hint':
-    '사용자가 알림용 웹훅 URL을 설정할 수 있습니다 (Discord, Slack 등).',
+  'admin.webhook.hint': '사용자가 알림용 웹훅 URL을 설정할 수 있습니다 (Discord, Slack 등).',
   'admin.smtp.testSuccess': '테스트 이메일이 성공적으로 전송되었습니다',
   'admin.smtp.testFailed': '테스트 이메일 실패',
   'admin.title': '관리자',
@@ -91,8 +78,7 @@ const admin: TranslationStrings = {
   'admin.editUser': '사용자 편집',
   'admin.newPassword': '새 비밀번호',
   'admin.newPasswordHint': '비워두면 현재 비밀번호 유지',
-  'admin.deleteUser':
-    '사용자 "{name}"을(를) 삭제할까요? 모든 여행이 영구 삭제됩니다.',
+  'admin.deleteUser': '사용자 "{name}"을(를) 삭제할까요? 모든 여행이 영구 삭제됩니다.',
   'admin.deleteUserTitle': '사용자 삭제',
   'admin.newPasswordPlaceholder': '새 비밀번호 입력…',
   'admin.toast.loadError': '관리자 데이터 불러오기 실패',
@@ -128,27 +114,21 @@ const admin: TranslationStrings = {
   'admin.allowRegistrationHint': '새 사용자가 직접 회원가입할 수 있습니다',
   'admin.authMethods': '인증 방법',
   'admin.passwordLogin': '비밀번호 로그인',
-  'admin.passwordLoginHint':
-    '사용자가 이메일과 비밀번호로 로그인할 수 있습니다',
+  'admin.passwordLoginHint': '사용자가 이메일과 비밀번호로 로그인할 수 있습니다',
   'admin.passwordRegistration': '비밀번호 회원가입',
-  'admin.passwordRegistrationHint':
-    '새 사용자가 이메일과 비밀번호로 가입할 수 있습니다',
+  'admin.passwordRegistrationHint': '새 사용자가 이메일과 비밀번호로 가입할 수 있습니다',
   'admin.oidcLogin': 'SSO 로그인',
   'admin.oidcLoginHint': '사용자가 SSO로 로그인할 수 있습니다',
   'admin.oidcRegistration': 'SSO 자동 프로비저닝',
   'admin.oidcRegistrationHint': '새 SSO 사용자의 계정을 자동으로 생성합니다',
-  'admin.envOverrideHint':
-    '비밀번호 로그인 설정은 OIDC_ONLY 환경 변수로 제어되며 여기서 변경할 수 없습니다.',
+  'admin.envOverrideHint': '비밀번호 로그인 설정은 OIDC_ONLY 환경 변수로 제어되며 여기서 변경할 수 없습니다.',
   'admin.lockoutWarning': '최소 하나의 로그인 방법이 활성화되어 있어야 합니다',
   'admin.requireMfa': '2단계 인증 (2FA) 요구',
-  'admin.requireMfaHint':
-    '2FA가 없는 사용자는 앱을 사용하기 전에 설정에서 설정을 완료해야 합니다.',
+  'admin.requireMfaHint': '2FA가 없는 사용자는 앱을 사용하기 전에 설정에서 설정을 완료해야 합니다.',
   'admin.apiKeys': 'API 키',
-  'admin.apiKeysHint':
-    '선택 사항. 사진 및 날씨 등 확장된 장소 데이터를 활성화합니다.',
+  'admin.apiKeysHint': '선택 사항. 사진 및 날씨 등 확장된 장소 데이터를 활성화합니다.',
   'admin.mapsKey': 'Google Maps API 키',
-  'admin.mapsKeyHint':
-    '장소 검색에 필요합니다. console.cloud.google.com에서 발급',
+  'admin.mapsKeyHint': '장소 검색에 필요합니다. console.cloud.google.com에서 발급',
   'admin.mapsKeyHintLong':
     'API 키 없이는 장소 검색에 OpenStreetMap이 사용됩니다. Google API 키가 있으면 사진, 평점, 영업 시간도 불러올 수 있습니다. console.cloud.google.com에서 발급하세요.',
   'admin.recommended': '권장',
@@ -159,20 +139,16 @@ const admin: TranslationStrings = {
   'admin.keyInvalid': '유효하지 않음',
   'admin.keySaved': 'API 키가 저장되었습니다',
   'admin.oidcTitle': 'Single Sign-On (OIDC)',
-  'admin.oidcSubtitle':
-    'Google, Apple, Authentik 또는 Keycloak 등 외부 공급자를 통한 로그인을 허용합니다.',
+  'admin.oidcSubtitle': 'Google, Apple, Authentik 또는 Keycloak 등 외부 공급자를 통한 로그인을 허용합니다.',
   'admin.oidcDisplayName': '표시 이름',
   'admin.oidcIssuer': '발급자 URL',
-  'admin.oidcIssuerHint':
-    '공급자의 OpenID Connect 발급자 URL. 예: https://accounts.google.com',
+  'admin.oidcIssuerHint': '공급자의 OpenID Connect 발급자 URL. 예: https://accounts.google.com',
   'admin.oidcSaved': 'OIDC 설정이 저장되었습니다',
   'admin.oidcOnlyMode': '비밀번호 인증 비활성화',
-  'admin.oidcOnlyModeHint':
-    '활성화하면 SSO 로그인만 허용됩니다. 비밀번호 기반 로그인 및 회원가입이 차단됩니다.',
+  'admin.oidcOnlyModeHint': '활성화하면 SSO 로그인만 허용됩니다. 비밀번호 기반 로그인 및 회원가입이 차단됩니다.',
   'admin.fileTypes': '허용된 파일 형식',
   'admin.fileTypesHint': '사용자가 업로드할 수 있는 파일 형식을 설정합니다.',
-  'admin.fileTypesFormat':
-    '쉼표로 구분된 확장자 (예: jpg,png,pdf,doc). 모든 형식을 허용하려면 *를 사용하세요.',
+  'admin.fileTypesFormat': '쉼표로 구분된 확장자 (예: jpg,png,pdf,doc). 모든 형식을 허용하려면 *를 사용하세요.',
   'admin.fileTypesSaved': '파일 형식 설정이 저장되었습니다',
   'admin.placesPhotos.title': '장소 사진',
   'admin.placesPhotos.subtitle':
@@ -203,8 +179,7 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.resetToBuiltIn': '초기화',
   'admin.tabs.templates': '짐 목록 템플릿',
   'admin.packingTemplates.title': '짐 목록 템플릿',
-  'admin.packingTemplates.subtitle':
-    '여행을 위한 재사용 가능한 짐 목록을 만드세요',
+  'admin.packingTemplates.subtitle': '여행을 위한 재사용 가능한 짐 목록을 만드세요',
   'admin.packingTemplates.create': '새 템플릿',
   'admin.packingTemplates.namePlaceholder': '템플릿 이름 (예: 해변 휴가)',
   'admin.packingTemplates.empty': '아직 템플릿이 없습니다',
@@ -222,30 +197,23 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.saveError': '저장 실패',
   'admin.tabs.addons': '애드온',
   'admin.addons.title': '애드온',
-  'admin.addons.subtitle':
-    '기능을 활성화 또는 비활성화하여 TREK 경험을 맞춤 설정하세요.',
+  'admin.addons.subtitle': '기능을 활성화 또는 비활성화하여 TREK 경험을 맞춤 설정하세요.',
   'admin.addons.catalog.packing.name': '목록',
-  'admin.addons.catalog.packing.description':
-    '여행을 위한 짐 목록 및 할 일 작업',
+  'admin.addons.catalog.packing.description': '여행을 위한 짐 목록 및 할 일 작업',
   'admin.addons.catalog.budget.name': '예산',
   'admin.addons.catalog.budget.description': '지출 추적 및 여행 예산 계획',
   'admin.addons.catalog.documents.name': '문서',
   'admin.addons.catalog.documents.description': '여행 서류 저장 및 관리',
   'admin.addons.catalog.vacay.name': 'Vacay',
-  'admin.addons.catalog.vacay.description':
-    '캘린더 보기가 있는 개인 휴가 플래너',
+  'admin.addons.catalog.vacay.description': '캘린더 보기가 있는 개인 휴가 플래너',
   'admin.addons.catalog.atlas.name': 'Atlas',
-  'admin.addons.catalog.atlas.description':
-    '방문한 나라와 여행 통계가 있는 세계 지도',
+  'admin.addons.catalog.atlas.description': '방문한 나라와 여행 통계가 있는 세계 지도',
   'admin.addons.catalog.collab.name': 'Collab',
-  'admin.addons.catalog.collab.description':
-    '여행 계획을 위한 실시간 메모, 투표, 채팅',
+  'admin.addons.catalog.collab.description': '여행 계획을 위한 실시간 메모, 투표, 채팅',
   'admin.addons.catalog.memories.name': '사진 (Immich)',
-  'admin.addons.catalog.memories.description':
-    'Immich 인스턴스를 통해 여행 사진 공유',
+  'admin.addons.catalog.memories.description': 'Immich 인스턴스를 통해 여행 사진 공유',
   'admin.addons.catalog.mcp.name': 'MCP',
-  'admin.addons.catalog.mcp.description':
-    'AI 어시스턴트 통합을 위한 모델 컨텍스트 프로토콜',
+  'admin.addons.catalog.mcp.description': 'AI 어시스턴트 통합을 위한 모델 컨텍스트 프로토콜',
   'admin.addons.subtitleBefore': '기능을 활성화 또는 비활성화하여 ',
   'admin.addons.subtitleAfter': ' 경험을 맞춤 설정하세요.',
   'admin.addons.enabled': '활성화됨',
@@ -255,8 +223,7 @@ const admin: TranslationStrings = {
   'admin.addons.type.integration': '통합',
   'admin.addons.tripHint': '각 여행 내 탭으로 사용 가능',
   'admin.addons.globalHint': '메인 내비게이션의 독립 섹션으로 사용 가능',
-  'admin.addons.integrationHint':
-    '전용 페이지가 없는 백엔드 서비스 및 API 통합',
+  'admin.addons.integrationHint': '전용 페이지가 없는 백엔드 서비스 및 API 통합',
   'admin.addons.toast.updated': '애드온이 업데이트되었습니다',
   'admin.addons.toast.error': '애드온 업데이트 실패',
   'admin.addons.noAddons': '사용 가능한 애드온이 없습니다',
@@ -274,8 +241,7 @@ const admin: TranslationStrings = {
     '날씨는 각 날의 좌표가 있는 첫 번째 장소를 기준으로 합니다. 날에 배정된 장소가 없으면 장소 목록의 임의 장소가 참조로 사용됩니다.',
   'admin.tabs.mcpTokens': 'MCP 접근',
   'admin.mcpTokens.title': 'MCP 접근',
-  'admin.mcpTokens.subtitle':
-    '모든 사용자의 OAuth 세션 및 API 토큰을 관리합니다',
+  'admin.mcpTokens.subtitle': '모든 사용자의 OAuth 세션 및 API 토큰을 관리합니다',
   'admin.mcpTokens.sectionTitle': 'API 토큰',
   'admin.mcpTokens.owner': '소유자',
   'admin.mcpTokens.tokenName': '토큰 이름',
@@ -284,8 +250,7 @@ const admin: TranslationStrings = {
   'admin.mcpTokens.never': '없음',
   'admin.mcpTokens.empty': '생성된 MCP 토큰이 없습니다',
   'admin.mcpTokens.deleteTitle': '토큰 삭제',
-  'admin.mcpTokens.deleteMessage':
-    '토큰이 즉시 취소됩니다. 사용자는 이 토큰을 통한 MCP 접근 권한을 잃게 됩니다.',
+  'admin.mcpTokens.deleteMessage': '토큰이 즉시 취소됩니다. 사용자는 이 토큰을 통한 MCP 접근 권한을 잃게 됩니다.',
   'admin.mcpTokens.deleteSuccess': '토큰이 삭제되었습니다',
   'admin.mcpTokens.deleteError': '토큰 삭제 실패',
   'admin.mcpTokens.loadError': '토큰 불러오기 실패',
@@ -296,8 +261,7 @@ const admin: TranslationStrings = {
   'admin.oauthSessions.created': '생성일',
   'admin.oauthSessions.empty': '활성 OAuth 세션이 없습니다',
   'admin.oauthSessions.revokeTitle': '세션 취소',
-  'admin.oauthSessions.revokeMessage':
-    'OAuth 세션이 즉시 취소됩니다. 클라이언트는 MCP 접근 권한을 잃게 됩니다.',
+  'admin.oauthSessions.revokeMessage': 'OAuth 세션이 즉시 취소됩니다. 클라이언트는 MCP 접근 권한을 잃게 됩니다.',
   'admin.oauthSessions.revokeSuccess': '세션이 취소되었습니다',
   'admin.oauthSessions.revokeError': '세션 취소 실패',
   'admin.oauthSessions.loadError': 'OAuth 세션 불러오기 실패',
@@ -325,15 +289,12 @@ const admin: TranslationStrings = {
   'admin.github.by': '작성자',
   'admin.github.support': 'TREK 개발 지속에 도움이 됩니다',
   'admin.update.available': '업데이트 사용 가능',
-  'admin.update.text':
-    'TREK {version}이(가) 사용 가능합니다. 현재 {current}을(를) 실행 중입니다.',
+  'admin.update.text': 'TREK {version}이(가) 사용 가능합니다. 현재 {current}을(를) 실행 중입니다.',
   'admin.update.button': 'GitHub에서 보기',
   'admin.update.install': '업데이트 설치',
   'admin.update.confirmTitle': '업데이트를 설치할까요?',
-  'admin.update.confirmText':
-    'TREK이 {current}에서 {version}으로 업데이트됩니다. 서버가 이후 자동으로 재시작됩니다.',
-  'admin.update.dataInfo':
-    '모든 데이터 (여행, 사용자, API 키, 업로드, Vacay, Atlas, 예산)가 보존됩니다.',
+  'admin.update.confirmText': 'TREK이 {current}에서 {version}으로 업데이트됩니다. 서버가 이후 자동으로 재시작됩니다.',
+  'admin.update.dataInfo': '모든 데이터 (여행, 사용자, API 키, 업로드, Vacay, Atlas, 예산)가 보존됩니다.',
   'admin.update.warning': '재시작 중에 앱이 잠시 사용할 수 없게 됩니다.',
   'admin.update.confirm': '지금 업데이트',
   'admin.update.installing': '업데이트 중…',
@@ -347,14 +308,11 @@ const admin: TranslationStrings = {
   'admin.update.reloadHint': '잠시 후 페이지를 새로 고침하세요.',
   'admin.tabs.permissions': '권한',
   'admin.addons.catalog.journey.name': 'Journey',
-  'admin.addons.catalog.journey.description':
-    '체크인, 사진, 일별 이야기가 있는 여행 기록 및 여행 일지',
+  'admin.addons.catalog.journey.description': '체크인, 사진, 일별 이야기가 있는 여행 기록 및 여행 일지',
   'admin.passkey.title': '패스키 로그인',
-  'admin.passkey.cardHint':
-    '사용자가 패스키(WebAuthn)로 로그인할 수 있게 합니다. 기본값은 꺼짐입니다.',
+  'admin.passkey.cardHint': '사용자가 패스키(WebAuthn)로 로그인할 수 있게 합니다. 기본값은 꺼짐입니다.',
   'admin.passkey.login': '패스키 로그인 활성화',
-  'admin.passkey.loginHint':
-    '"패스키로 로그인" 옵션을 표시하고 사용자가 설정에서 패스키를 등록할 수 있게 합니다.',
+  'admin.passkey.loginHint': '"패스키로 로그인" 옵션을 표시하고 사용자가 설정에서 패스키를 등록할 수 있게 합니다.',
   'admin.passkey.notConfigured':
     '이 배포에 아직 WebAuthn 도메인이 확인되지 않습니다. 아래에서 APP_URL 또는 Relying Party ID를 설정하세요 — 그 전까지 패스키는 숨겨진 상태로 유지됩니다.',
   'admin.passkey.rpId': 'Relying Party ID (도메인)',
@@ -369,11 +327,13 @@ const admin: TranslationStrings = {
   'admin.passkey.resetConfirm': '{name}의 모든 패스키를 삭제할까요?',
   'admin.passkey.resetDone': '패스키 {count}개를 삭제했습니다',
   'admin.defaultSettings.mapProvider': '지도 엔진',
-  'admin.defaultSettings.mapProviderHint': '이 인스턴스의 모든 사용자에게 적용되는 기본 지도입니다. 각 사용자는 자신의 설정에서 이를 변경할 수 있습니다.',
+  'admin.defaultSettings.mapProviderHint':
+    '이 인스턴스의 모든 사용자에게 적용되는 기본 지도입니다. 각 사용자는 자신의 설정에서 이를 변경할 수 있습니다.',
   'admin.defaultSettings.providerLeaflet': '표준 (무료)',
   'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
   'admin.defaultSettings.mapboxToken': '공유 Mapbox 토큰',
-  'admin.defaultSettings.mapboxTokenHint': '자신의 토큰을 입력하지 않은 모든 사용자에게 사용됩니다 — 키를 개별적으로 공유하지 않아도 인스턴스 전체에서 Mapbox를 사용할 수 있습니다. 암호화하여 저장됩니다.',
+  'admin.defaultSettings.mapboxTokenHint':
+    '자신의 토큰을 입력하지 않은 모든 사용자에게 사용됩니다 — 키를 개별적으로 공유하지 않아도 인스턴스 전체에서 Mapbox를 사용할 수 있습니다. 암호화하여 저장됩니다.',
   'admin.defaultSettings.mapboxStyle': '지도 스타일',
   'admin.defaultSettings.mapboxStylePlaceholder': '스타일을 선택하세요…',
   'admin.defaultSettings.mapbox3d': '3D 건물 & 지형',

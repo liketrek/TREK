@@ -2,8 +2,7 @@ import type { TranslationStrings } from '../types';
 
 const admin: TranslationStrings = {
   'admin.notifications.title': 'الإشعارات',
-  'admin.notifications.hint':
-    'اختر قناة إشعارات واحدة. يمكن تفعيل واحدة فقط في كل مرة.',
+  'admin.notifications.hint': 'اختر قناة إشعارات واحدة. يمكن تفعيل واحدة فقط في كل مرة.',
   'admin.notifications.none': 'معطّل',
   'admin.notifications.email': 'البريد الإلكتروني (SMTP)',
   'admin.ntfy.hint':
@@ -16,18 +15,14 @@ const admin: TranslationStrings = {
   'admin.notifications.testNtfy': 'إرسال Ntfy تجريبي',
   'admin.notifications.testNtfySuccess': 'تم إرسال Ntfy التجريبي بنجاح',
   'admin.notifications.testNtfyFailed': 'فشل إرسال Ntfy التجريبي',
-  'admin.notifications.inappPanel.hint':
-    'الإشعارات داخل التطبيق نشطة دائمًا ولا يمكن تعطيلها بشكل عام.',
+  'admin.notifications.inappPanel.hint': 'الإشعارات داخل التطبيق نشطة دائمًا ولا يمكن تعطيلها بشكل عام.',
   'admin.notifications.adminWebhookPanel.title': 'Webhook المسؤول',
   'admin.notifications.adminWebhookPanel.hint':
     'يُستخدم هذا الـ Webhook حصريًا لإشعارات المسؤول (مثل تنبيهات الإصدارات). وهو مستقل عن Webhooks المستخدمين ويُرسل تلقائيًا عند تعيين رابط URL.',
   'admin.notifications.adminWebhookPanel.saved': 'تم حفظ رابط Webhook المسؤول',
-  'admin.notifications.adminWebhookPanel.testSuccess':
-    'تم إرسال Webhook الاختباري بنجاح',
-  'admin.notifications.adminWebhookPanel.testFailed':
-    'فشل إرسال Webhook الاختباري',
-  'admin.notifications.adminWebhookPanel.alwaysOnHint':
-    'يُرسل Webhook المسؤول تلقائيًا عند تعيين رابط URL',
+  'admin.notifications.adminWebhookPanel.testSuccess': 'تم إرسال Webhook الاختباري بنجاح',
+  'admin.notifications.adminWebhookPanel.testFailed': 'فشل إرسال Webhook الاختباري',
+  'admin.notifications.adminWebhookPanel.alwaysOnHint': 'يُرسل Webhook المسؤول تلقائيًا عند تعيين رابط URL',
   'admin.notifications.adminNtfyPanel.title': 'Ntfy المسؤول',
   'admin.notifications.adminNtfyPanel.hint':
     'يُستخدم موضوع Ntfy هذا حصريًا لإشعارات المسؤول (مثل تنبيهات الإصدارات). وهو مستقل عن مواضيع المستخدمين ويُرسل دائمًا عند تهيئته.',
@@ -39,23 +34,19 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.tokenCleared': 'تم مسح رمز وصول المسؤول',
   'admin.notifications.adminNtfyPanel.saved': 'تم حفظ إعدادات Ntfy للمسؤول',
   'admin.notifications.adminNtfyPanel.test': 'إرسال Ntfy تجريبي',
-  'admin.notifications.adminNtfyPanel.testSuccess':
-    'تم إرسال Ntfy التجريبي بنجاح',
+  'admin.notifications.adminNtfyPanel.testSuccess': 'تم إرسال Ntfy التجريبي بنجاح',
   'admin.notifications.adminNtfyPanel.testFailed': 'فشل إرسال Ntfy التجريبي',
-  'admin.notifications.adminNtfyPanel.alwaysOnHint':
-    'يُرسل Ntfy للمسؤول دائمًا عند تهيئة موضوع',
+  'admin.notifications.adminNtfyPanel.alwaysOnHint': 'يُرسل Ntfy للمسؤول دائمًا عند تهيئة موضوع',
   'admin.notifications.adminNotificationsHint':
     'حدد القنوات التي تُسلّم إشعارات المسؤول (مثل تنبيهات الإصدارات). يُرسل الـ Webhook تلقائيًا عند تعيين رابط URL لـ Webhook المسؤول.',
   'admin.notifications.tripReminders.title': 'تذكيرات الرحلات',
-  'admin.notifications.tripReminders.hint':
-    'إرسال تذكير قبل بدء الرحلة (يتطلب تعيين أيام التذكير على الرحلة).',
+  'admin.notifications.tripReminders.hint': 'إرسال تذكير قبل بدء الرحلة (يتطلب تعيين أيام التذكير على الرحلة).',
   'admin.notifications.tripReminders.enabled': 'تم تفعيل تذكيرات الرحلات',
   'admin.notifications.tripReminders.disabled': 'تم تعطيل تذكيرات الرحلات',
   'admin.smtp.title': 'البريد والإشعارات',
   'admin.smtp.hint': 'تكوين SMTP لإرسال إشعارات البريد الإلكتروني.',
   'admin.smtp.testButton': 'إرسال بريد تجريبي',
-  'admin.webhook.hint':
-    'إرسال الإشعارات إلى webhook خارجي (Discord، Slack، إلخ).',
+  'admin.webhook.hint': 'إرسال الإشعارات إلى webhook خارجي (Discord، Slack، إلخ).',
   'admin.smtp.testSuccess': 'تم إرسال البريد التجريبي بنجاح',
   'admin.smtp.testFailed': 'فشل إرسال البريد التجريبي',
   'admin.title': 'الإدارة',
@@ -91,8 +82,7 @@ const admin: TranslationStrings = {
   'admin.toast.cannotDeleteSelf': 'لا يمكنك حذف حسابك الخاص',
   'admin.toast.userCreated': 'تم إنشاء المستخدم',
   'admin.toast.createError': 'فشل إنشاء المستخدم',
-  'admin.toast.fieldsRequired':
-    'اسم المستخدم والبريد الإلكتروني وكلمة المرور مطلوبة',
+  'admin.toast.fieldsRequired': 'اسم المستخدم والبريد الإلكتروني وكلمة المرور مطلوبة',
   'admin.createUser': 'إنشاء مستخدم',
   'admin.invite.title': 'روابط الدعوة',
   'admin.invite.subtitle': 'إنشاء روابط تسجيل للاستخدام المحدود',
@@ -116,14 +106,11 @@ const admin: TranslationStrings = {
   'admin.allowRegistration': 'السماح بالتسجيل',
   'admin.allowRegistrationHint': 'يمكن للمستخدمين الجدد التسجيل بأنفسهم',
   'admin.requireMfa': 'فرض المصادقة الثنائية (2FA)',
-  'admin.requireMfaHint':
-    'يجب على المستخدمين الذين لا يملكون 2FA إكمال الإعداد في الإعدادات قبل استخدام التطبيق.',
+  'admin.requireMfaHint': 'يجب على المستخدمين الذين لا يملكون 2FA إكمال الإعداد في الإعدادات قبل استخدام التطبيق.',
   'admin.apiKeys': 'مفاتيح API',
-  'admin.apiKeysHint':
-    'اختياري. يُفعّل بيانات الأماكن الموسعة مثل الصور والطقس.',
+  'admin.apiKeysHint': 'اختياري. يُفعّل بيانات الأماكن الموسعة مثل الصور والطقس.',
   'admin.mapsKey': 'مفتاح Google Maps API',
-  'admin.mapsKeyHint':
-    'مطلوب للبحث عن الأماكن. احصل عليه من console.cloud.google.com',
+  'admin.mapsKeyHint': 'مطلوب للبحث عن الأماكن. احصل عليه من console.cloud.google.com',
   'admin.mapsKeyHintLong':
     'بدون مفتاح API، يُستخدم OpenStreetMap للبحث. مع مفتاح Google يمكن تحميل الصور والتقييمات وساعات العمل أيضًا. احصل عليه من console.cloud.google.com.',
   'admin.recommended': 'مُوصى به',
@@ -134,27 +121,22 @@ const admin: TranslationStrings = {
   'admin.keyInvalid': 'غير صالح',
   'admin.keySaved': 'تم حفظ مفاتيح API',
   'admin.oidcTitle': 'تسجيل الدخول الموحد (OIDC)',
-  'admin.oidcSubtitle':
-    'السماح بتسجيل الدخول عبر مزودين خارجيين مثل Google أو Apple أو Authentik أو Keycloak.',
+  'admin.oidcSubtitle': 'السماح بتسجيل الدخول عبر مزودين خارجيين مثل Google أو Apple أو Authentik أو Keycloak.',
   'admin.oidcDisplayName': 'الاسم المعروض',
   'admin.oidcIssuer': 'عنوان URL للمُصدر',
-  'admin.oidcIssuerHint':
-    'عنوان OpenID Connect Issuer URL للمزود. مثال: https://accounts.google.com',
+  'admin.oidcIssuerHint': 'عنوان OpenID Connect Issuer URL للمزود. مثال: https://accounts.google.com',
   'admin.oidcSaved': 'تم حفظ إعدادات OIDC',
   'admin.oidcOnlyMode': 'تعطيل المصادقة بكلمة المرور',
   'admin.oidcOnlyModeHint':
     'عند التفعيل، يُسمح فقط بتسجيل الدخول عبر SSO. سيتم حظر تسجيل الدخول والتسجيل بكلمة المرور.',
   'admin.fileTypes': 'أنواع الملفات المسموح بها',
   'admin.fileTypesHint': 'حدد أنواع الملفات التي يمكن للمستخدمين رفعها.',
-  'admin.fileTypesFormat':
-    'امتدادات مفصولة بفواصل (مثل jpg,png,pdf,doc). استخدم * للسماح بجميع الأنواع.',
+  'admin.fileTypesFormat': 'امتدادات مفصولة بفواصل (مثل jpg,png,pdf,doc). استخدم * للسماح بجميع الأنواع.',
   'admin.fileTypesSaved': 'تم حفظ إعدادات أنواع الملفات',
   'admin.placesPhotos.title': 'صور الأماكن',
-  'admin.placesPhotos.subtitle':
-    'جلب الصور من Google Places API. عطّلها للحفاظ على حصة API. صور Wikimedia غير متأثرة.',
+  'admin.placesPhotos.subtitle': 'جلب الصور من Google Places API. عطّلها للحفاظ على حصة API. صور Wikimedia غير متأثرة.',
   'admin.placesAutocomplete.title': 'الإكمال التلقائي للأماكن',
-  'admin.placesAutocomplete.subtitle':
-    'استخدام Google Places API لاقتراحات البحث. عطّلها للحفاظ على حصة API.',
+  'admin.placesAutocomplete.subtitle': 'استخدام Google Places API لاقتراحات البحث. عطّلها للحفاظ على حصة API.',
   'admin.placesDetails.title': 'تفاصيل الأماكن',
   'admin.placesDetails.subtitle':
     'جلب معلومات تفصيلية عن الأماكن (الساعات، التقييم، الموقع) من Google Places API. عطّلها للحفاظ على حصة API.',
@@ -206,15 +188,12 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.vacay.name': 'الإجازة',
   'admin.addons.catalog.vacay.description': 'مخطط إجازات شخصي مع عرض تقويم',
   'admin.addons.catalog.atlas.name': 'الأطلس',
-  'admin.addons.catalog.atlas.description':
-    'خريطة العالم مع الدول التي تمت زيارتها وإحصائيات السفر',
+  'admin.addons.catalog.atlas.description': 'خريطة العالم مع الدول التي تمت زيارتها وإحصائيات السفر',
   'admin.addons.catalog.collab.name': 'التعاون',
-  'admin.addons.catalog.collab.description':
-    'ملاحظات واستطلاعات ودردشة لحظية لتخطيط الرحلة',
+  'admin.addons.catalog.collab.description': 'ملاحظات واستطلاعات ودردشة لحظية لتخطيط الرحلة',
   'admin.addons.catalog.memories.name': 'صور (Immich)',
   'admin.addons.catalog.memories.description': 'شارك صور رحلتك عبر Immich',
-  'admin.addons.catalog.mcp.description':
-    'بروتوكول سياق النموذج لتكامل مساعد الذكاء الاصطناعي',
+  'admin.addons.catalog.mcp.description': 'بروتوكول سياق النموذج لتكامل مساعد الذكاء الاصطناعي',
   'admin.addons.subtitleBefore': 'فعّل أو عطّل الميزات لتخصيص تجربة ',
   'admin.addons.subtitleAfter': '.',
   'admin.addons.enabled': 'مفعّل',
@@ -224,8 +203,7 @@ const admin: TranslationStrings = {
   'admin.addons.type.integration': 'تكامل',
   'admin.addons.tripHint': 'متاح كعلامة تبويب داخل كل رحلة',
   'admin.addons.globalHint': 'متاح كقسم مستقل في التنقل الرئيسي',
-  'admin.addons.integrationHint':
-    'خدمات الواجهة الخلفية وتكاملات API بدون صفحة مخصصة',
+  'admin.addons.integrationHint': 'خدمات الواجهة الخلفية وتكاملات API بدون صفحة مخصصة',
   'admin.addons.toast.updated': 'تم تحديث الإضافة',
   'admin.addons.toast.error': 'فشل تحديث الإضافة',
   'admin.addons.noAddons': 'لا توجد إضافات متاحة',
@@ -236,8 +214,7 @@ const admin: TranslationStrings = {
   'admin.weather.forecast': 'توقعات 16 يومًا',
   'admin.weather.forecastDesc': 'سابقًا 5 أيام (OpenWeatherMap)',
   'admin.weather.climate': 'بيانات المناخ التاريخية',
-  'admin.weather.climateDesc':
-    'متوسطات آخر 85 سنة للأيام بعد توقعات الـ 16 يومًا',
+  'admin.weather.climateDesc': 'متوسطات آخر 85 سنة للأيام بعد توقعات الـ 16 يومًا',
   'admin.weather.requests': '10,000 طلب / يوم',
   'admin.weather.requestsDesc': 'مجاني، بدون مفتاح API',
   'admin.weather.locationHint':
@@ -253,8 +230,7 @@ const admin: TranslationStrings = {
   'admin.mcpTokens.never': 'أبداً',
   'admin.mcpTokens.empty': 'لم يتم إنشاء أي رموز MCP بعد',
   'admin.mcpTokens.deleteTitle': 'حذف الرمز',
-  'admin.mcpTokens.deleteMessage':
-    'سيتم إلغاء هذا الرمز فوراً. سيفقد المستخدم وصوله إلى MCP عبر هذا الرمز.',
+  'admin.mcpTokens.deleteMessage': 'سيتم إلغاء هذا الرمز فوراً. سيفقد المستخدم وصوله إلى MCP عبر هذا الرمز.',
   'admin.mcpTokens.deleteSuccess': 'تم حذف الرمز',
   'admin.mcpTokens.deleteError': 'فشل حذف الرمز',
   'admin.mcpTokens.loadError': 'فشل تحميل الرموز',
@@ -265,13 +241,11 @@ const admin: TranslationStrings = {
   'admin.oauthSessions.created': 'تاريخ الإنشاء',
   'admin.oauthSessions.empty': 'لا توجد جلسات OAuth نشطة',
   'admin.oauthSessions.revokeTitle': 'إلغاء الجلسة',
-  'admin.oauthSessions.revokeMessage':
-    'سيتم إلغاء جلسة OAuth هذه فوراً. سيفقد العميل وصوله إلى MCP.',
+  'admin.oauthSessions.revokeMessage': 'سيتم إلغاء جلسة OAuth هذه فوراً. سيفقد العميل وصوله إلى MCP.',
   'admin.oauthSessions.revokeSuccess': 'تم إلغاء الجلسة',
   'admin.oauthSessions.revokeError': 'فشل إلغاء الجلسة',
   'admin.oauthSessions.loadError': 'فشل تحميل جلسات OAuth',
-  'admin.audit.subtitle':
-    'أحداث الأمان والإدارة (النسخ الاحتياطية، المستخدمون، المصادقة الثنائية، الإعدادات).',
+  'admin.audit.subtitle': 'أحداث الأمان والإدارة (النسخ الاحتياطية، المستخدمون، المصادقة الثنائية، الإعدادات).',
   'admin.audit.empty': 'لا توجد سجلات تدقيق بعد.',
   'admin.audit.refresh': 'تحديث',
   'admin.audit.loadMore': 'تحميل المزيد',
@@ -298,12 +272,10 @@ const admin: TranslationStrings = {
   'admin.update.button': 'عرض على GitHub',
   'admin.update.install': 'تثبيت التحديث',
   'admin.update.confirmTitle': 'تثبيت التحديث؟',
-  'admin.update.confirmText':
-    'سيتم تحديث TREK من {current} إلى {version}. سيُعاد تشغيل الخادم تلقائيًا بعد ذلك.',
+  'admin.update.confirmText': 'سيتم تحديث TREK من {current} إلى {version}. سيُعاد تشغيل الخادم تلقائيًا بعد ذلك.',
   'admin.update.dataInfo':
     'جميع بياناتك (الرحلات، المستخدمون، مفاتيح API، المرفوعات، الإجازة، الأطلس، الميزانيات) ستبقى محفوظة.',
-  'admin.update.warning':
-    'سيكون التطبيق غير متاح لفترة وجيزة أثناء إعادة التشغيل.',
+  'admin.update.warning': 'سيكون التطبيق غير متاح لفترة وجيزة أثناء إعادة التشغيل.',
   'admin.update.confirm': 'حدّث الآن',
   'admin.update.installing': 'جارٍ التحديث…',
   'admin.update.success': 'تم تثبيت التحديث. ستتم إعادة تشغيل الخادم…',
@@ -311,8 +283,7 @@ const admin: TranslationStrings = {
   'admin.update.backupHint': 'نوصي بإنشاء نسخة احتياطية قبل التحديث.',
   'admin.update.backupLink': 'الذهاب إلى النسخ الاحتياطي',
   'admin.update.howTo': 'كيفية التحديث',
-  'admin.update.dockerText':
-    'يعمل TREK الخاص بك في Docker. للتحديث إلى {version}، نفّذ الأوامر التالية على الخادم:',
+  'admin.update.dockerText': 'يعمل TREK الخاص بك في Docker. للتحديث إلى {version}، نفّذ الأوامر التالية على الخادم:',
   'admin.update.reloadHint': 'يرجى إعادة تحميل الصفحة بعد بضع ثوانٍ.',
   'admin.tabs.permissions': 'الصلاحيات',
   'admin.notifications.webhook': 'Webhook', // en-fallback
@@ -326,13 +297,11 @@ const admin: TranslationStrings = {
   'admin.passwordLogin': 'Password Login', // en-fallback
   'admin.passwordLoginHint': 'Allow users to sign in with email and password', // en-fallback
   'admin.passwordRegistration': 'Password Registration', // en-fallback
-  'admin.passwordRegistrationHint':
-    'Allow new users to register with email and password', // en-fallback
+  'admin.passwordRegistrationHint': 'Allow new users to register with email and password', // en-fallback
   'admin.oidcLogin': 'SSO Login', // en-fallback
   'admin.oidcLoginHint': 'Allow users to sign in with SSO', // en-fallback
   'admin.oidcRegistration': 'SSO Auto-Provisioning', // en-fallback
-  'admin.oidcRegistrationHint':
-    'Automatically create accounts for new SSO users', // en-fallback
+  'admin.oidcRegistrationHint': 'Automatically create accounts for new SSO users', // en-fallback
   'admin.envOverrideHint':
     'Password login settings are controlled by the OIDC_ONLY environment variable and cannot be changed here.', // en-fallback
   'admin.lockoutWarning': 'At least one login method must remain enabled', // en-fallback
@@ -342,8 +311,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.description':
     'Trip tracking & travel journal with check-ins, photos, and daily stories', // en-fallback
   'admin.passkey.title': 'تسجيل الدخول بمفتاح المرور',
-  'admin.passkey.cardHint':
-    'اسمح للمستخدمين بتسجيل الدخول باستخدام مفاتيح المرور (WebAuthn). معطّل افتراضيًا.',
+  'admin.passkey.cardHint': 'اسمح للمستخدمين بتسجيل الدخول باستخدام مفاتيح المرور (WebAuthn). معطّل افتراضيًا.',
   'admin.passkey.login': 'تفعيل تسجيل الدخول بمفتاح المرور',
   'admin.passkey.loginHint':
     'إظهار خيار "تسجيل الدخول باستخدام مفتاح المرور" والسماح للمستخدمين بتسجيل مفاتيح المرور في إعداداتهم.',
@@ -353,19 +321,20 @@ const admin: TranslationStrings = {
   'admin.passkey.rpIdHint':
     'النطاق المجرّد الذي تُربط به مفاتيح المرور، مثل trek.example.org. اتركه فارغًا لاشتقاقه من APP_URL. تغييره لاحقًا يُبطل مفاتيح المرور الموجودة.',
   'admin.passkey.origins': 'الأصول المسموح بها',
-  'admin.passkey.originsHint':
-    'أصول كاملة مفصولة بفواصل، مثل https://trek.example.org. اتركه فارغًا لاستخدام APP_URL.',
+  'admin.passkey.originsHint': 'أصول كاملة مفصولة بفواصل، مثل https://trek.example.org. اتركه فارغًا لاستخدام APP_URL.',
   'admin.passkey.reset': 'إعادة تعيين مفاتيح المرور',
   'admin.passkey.resetHint':
     'إزالة جميع مفاتيح المرور لهذا المستخدم (مثلًا عند فقدان جهاز). سيظل بإمكانه تسجيل الدخول بكلمة المرور.',
   'admin.passkey.resetConfirm': 'إزالة جميع مفاتيح المرور لـ {name}؟',
   'admin.passkey.resetDone': 'تمت إزالة {count} من مفاتيح المرور',
   'admin.defaultSettings.mapProvider': 'محرك الخرائط',
-  'admin.defaultSettings.mapProviderHint': 'الخريطة الافتراضية لجميع المستخدمين على هذا الخادم. لا يزال بإمكان كل مستخدم تجاوزها في إعداداته الخاصة.',
+  'admin.defaultSettings.mapProviderHint':
+    'الخريطة الافتراضية لجميع المستخدمين على هذا الخادم. لا يزال بإمكان كل مستخدم تجاوزها في إعداداته الخاصة.',
   'admin.defaultSettings.providerLeaflet': 'قياسي (مجاني)',
   'admin.defaultSettings.providerMapbox': 'Mapbox (ثلاثي الأبعاد)',
   'admin.defaultSettings.mapboxToken': 'رمز Mapbox المشترك',
-  'admin.defaultSettings.mapboxTokenHint': 'يُستخدم لكل مستخدم لم يُدخل رمزه الخاص — حتى يحصل الخادم بأكمله على Mapbox دون مشاركة المفتاح بشكل فردي. يُخزَّن مشفّرًا.',
+  'admin.defaultSettings.mapboxTokenHint':
+    'يُستخدم لكل مستخدم لم يُدخل رمزه الخاص — حتى يحصل الخادم بأكمله على Mapbox دون مشاركة المفتاح بشكل فردي. يُخزَّن مشفّرًا.',
   'admin.defaultSettings.mapboxStyle': 'نمط الخريطة',
   'admin.defaultSettings.mapboxStylePlaceholder': 'اختر نمطًا…',
   'admin.defaultSettings.mapbox3d': 'المباني والتضاريس ثلاثية الأبعاد',

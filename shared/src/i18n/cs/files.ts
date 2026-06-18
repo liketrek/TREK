@@ -13,8 +13,7 @@ const files: TranslationStrings = {
   'files.uploadError': 'Nahrávání se nezdařilo',
   'files.dropzone': 'Přetáhněte soubory sem',
   'files.dropzoneHint': 'nebo klikněte pro výběr',
-  'files.allowedTypes':
-    'Obrázky, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Max 50 MB',
+  'files.allowedTypes': 'Obrázky, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Max 50 MB',
   'files.uploading': 'Nahrávání...',
   'files.filterAll': 'Vše',
   'files.filterPdf': 'PDF',
@@ -52,10 +51,8 @@ const files: TranslationStrings = {
   'files.toast.assigned': 'Soubor byl přiřazen',
   'files.toast.assignError': 'Přiřazení se nezdařilo',
   'files.toast.restoreError': 'Obnovení se nezdařilo',
-  'files.confirm.permanentDelete':
-    'Trvale smazat tento soubor? Tuto akci nelze vrátit.',
-  'files.confirm.emptyTrash':
-    'Trvale smazat všechny soubory v koši? Tuto akci nelze vrátit.',
+  'files.confirm.permanentDelete': 'Trvale smazat tento soubor? Tuto akci nelze vrátit.',
+  'files.confirm.emptyTrash': 'Trvale smazat všechny soubory v koši? Tuto akci nelze vrátit.',
   'files.noteLabel': 'Poznámka',
   'files.notePlaceholder': 'Přidat poznámku...',
 };

@@ -16,8 +16,7 @@ const common: TranslationStrings = {
   'common.deselectAll': 'Összes kijelölés megszüntetése',
   'common.error': 'Hiba',
   'common.unknownError': 'Ismeretlen hiba',
-  'common.tooManyAttempts':
-    'Túl sok próbálkozás. Kérjük, próbálja újra később.',
+  'common.tooManyAttempts': 'Túl sok próbálkozás. Kérjük, próbálja újra később.',
   'common.back': 'Vissza',
   'common.all': 'Összes',
   'common.close': 'Bezárás',

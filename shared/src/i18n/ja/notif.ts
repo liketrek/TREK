@@ -4,8 +4,7 @@ const notif: TranslationStrings = {
   'notif.test.title': '[テスト] 通知',
   'notif.test.simple.text': 'これはシンプルなテスト通知です。',
   'notif.test.boolean.text': 'このテスト通知を承認しますか？',
-  'notif.test.navigate.text':
-    '下をクリックしてダッシュボードに移動してください。',
+  'notif.test.navigate.text': '下をクリックしてダッシュボードに移動してください。',
   'notif.trip_invite.title': '旅行への招待',
   'notif.trip_invite.text': '{actor}が「{trip}」に招待しました',
   'notif.booking_change.title': '予約が更新されました',
@@ -17,13 +16,11 @@ const notif: TranslationStrings = {
   'notif.vacay_invite.title': 'Vacay Fusionへの招待',
   'notif.vacay_invite.text': '{actor}から旅行プランの統合に招待されました',
   'notif.photos_shared.title': '写真が共有されました',
-  'notif.photos_shared.text':
-    '{actor}が「{trip}」で{count}枚の写真を共有しました',
+  'notif.photos_shared.text': '{actor}が「{trip}」で{count}枚の写真を共有しました',
   'notif.collab_message.title': '新しいメッセージ',
   'notif.collab_message.text': '{actor}が「{trip}」でメッセージを送りました',
   'notif.packing_tagged.title': '持ち物の割り当て',
-  'notif.packing_tagged.text':
-    '{actor}が「{trip}」の{category}をあなたに割り当てました',
+  'notif.packing_tagged.text': '{actor}が「{trip}」の{category}をあなたに割り当てました',
   'notif.version_available.title': '新しいバージョンがあります',
   'notif.version_available.text': 'TREK {version}が利用可能です',
   'notif.action.view_trip': '旅行を見る',
@@ -38,7 +35,6 @@ const notif: TranslationStrings = {
   'notif.generic.title': '通知',
   'notif.generic.text': '新しい通知があります',
   'notif.dev.unknown_event.title': '[DEV] 不明なイベント',
-  'notif.dev.unknown_event.text':
-    'イベントタイプ「{event}」はEVENT_NOTIFICATION_CONFIGに登録されていません',
+  'notif.dev.unknown_event.text': 'イベントタイプ「{event}」はEVENT_NOTIFICATION_CONFIGに登録されていません',
 };
 export default notif;

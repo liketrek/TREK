@@ -20,17 +20,14 @@ const login: TranslationStrings = {
   'login.features.files': 'Documentos',
   'login.features.filesDesc': 'Sube y gestiona documentos',
   'login.features.routes': 'Rutas inteligentes',
-  'login.features.routesDesc':
-    'Optimización automática y exportación a Google Maps',
-  'login.selfHosted':
-    'Autoalojado · Código abierto · Tus datos siguen siendo tuyos',
+  'login.features.routesDesc': 'Optimización automática y exportación a Google Maps',
+  'login.selfHosted': 'Autoalojado · Código abierto · Tus datos siguen siendo tuyos',
   'login.title': 'Iniciar sesión',
   'login.subtitle': 'Bienvenido de nuevo',
   'login.signingIn': 'Iniciando sesión…',
   'login.signIn': 'Entrar',
   'login.createAdmin': 'Crear cuenta de administrador',
-  'login.createAdminHint':
-    'Configura la primera cuenta administradora de TREK.',
+  'login.createAdminHint': 'Configura la primera cuenta administradora de TREK.',
   'login.setNewPassword': 'Establecer nueva contraseña',
   'login.setNewPasswordHint': 'Debe cambiar su contraseña antes de continuar.',
   'login.createAccount': 'Crear cuenta',
@@ -41,12 +38,10 @@ const login: TranslationStrings = {
   'login.register': 'Registrarse',
   'login.emailPlaceholder': 'tu@correo.com',
   'login.username': 'Usuario',
-  'login.oidc.registrationDisabled':
-    'El registro está desactivado. Contacta con tu administrador.',
+  'login.oidc.registrationDisabled': 'El registro está desactivado. Contacta con tu administrador.',
   'login.oidc.noEmail': 'No se recibió ningún correo del proveedor.',
   'login.mfaTitle': 'Autenticación de dos factores',
-  'login.mfaSubtitle':
-    'Introduce el código de 6 dígitos de tu app de autenticación.',
+  'login.mfaSubtitle': 'Introduce el código de 6 dígitos de tu app de autenticación.',
   'login.mfaCodeLabel': 'Código de verificación',
   'login.mfaCodeRequired': 'Introduce el código de tu app de autenticación.',
   'login.mfaHint': 'Abre Google Authenticator, Authy u otra app TOTP.',
@@ -73,31 +68,23 @@ const login: TranslationStrings = {
   'login.passwordsDontMatch': 'Las contraseñas no coinciden',
   'login.mfaCode': 'Código 2FA',
   'login.resetPasswordTitle': 'Establecer una nueva contraseña',
-  'login.resetPasswordBody':
-    'Elige una contraseña segura que no hayas usado aquí antes. Mínimo 8 caracteres.',
-  'login.resetPasswordMfaBody':
-    'Introduce tu código 2FA o un código de respaldo para completar el restablecimiento.',
+  'login.resetPasswordBody': 'Elige una contraseña segura que no hayas usado aquí antes. Mínimo 8 caracteres.',
+  'login.resetPasswordMfaBody': 'Introduce tu código 2FA o un código de respaldo para completar el restablecimiento.',
   'login.resetPasswordSubmit': 'Restablecer contraseña',
   'login.resetPasswordVerify': 'Verificar y restablecer',
   'login.resetPasswordSuccessTitle': 'Contraseña actualizada',
-  'login.resetPasswordSuccessBody':
-    'Ya puedes iniciar sesión con tu nueva contraseña.',
+  'login.resetPasswordSuccessBody': 'Ya puedes iniciar sesión con tu nueva contraseña.',
   'login.resetPasswordInvalidLink': 'Enlace de restablecimiento no válido',
-  'login.resetPasswordInvalidLinkBody':
-    'Este enlace falta o está roto. Solicita uno nuevo para continuar.',
-  'login.resetPasswordFailed':
-    'Restablecimiento fallido. El enlace puede haber caducado.',
+  'login.resetPasswordInvalidLinkBody': 'Este enlace falta o está roto. Solicita uno nuevo para continuar.',
+  'login.resetPasswordFailed': 'Restablecimiento fallido. El enlace puede haber caducado.',
   'login.oidc.tokenFailed': 'La autenticación falló.',
   'login.oidc.invalidState': 'Sesión no válida. Inténtalo de nuevo.',
   'login.demoFailed': 'Falló el acceso a la demo',
   'login.oidcSignIn': 'Entrar con {name}',
   'login.demoHint': 'Prueba la demo: no necesitas registrarte',
-  'login.oidcOnly':
-    'La autenticación por contraseña está desactivada. Por favor, inicia sesión con tu proveedor SSO.',
-  'login.oidcLoggedOut':
-    'Has cerrado sesión. Vuelve a iniciar sesión con tu proveedor SSO.',
+  'login.oidcOnly': 'La autenticación por contraseña está desactivada. Por favor, inicia sesión con tu proveedor SSO.',
+  'login.oidcLoggedOut': 'Has cerrado sesión. Vuelve a iniciar sesión con tu proveedor SSO.',
   'login.passkey.signIn': 'Iniciar sesión con una passkey',
-  'login.passkey.failed':
-    'Error al iniciar sesión con la passkey. Inténtalo de nuevo.',
+  'login.passkey.failed': 'Error al iniciar sesión con la passkey. Inténtalo de nuevo.',
 };
 export default login;

@@ -13,8 +13,7 @@ const categories: TranslationStrings = {
   'categories.defaultName': 'Категорія',
   'categories.update': 'Оновити',
   'categories.create': 'Створити',
-  'categories.confirm.delete':
-    'Видалити категорію? Місця в цій категорії не будуть видалені.',
+  'categories.confirm.delete': 'Видалити категорію? Місця в цій категорії не будуть видалені.',
   'categories.toast.loadError': 'Не вдалося завантажити категорії',
   'categories.toast.nameRequired': 'Введіть назву',
   'categories.toast.updated': 'Категорію оновлено',

@@ -15,98 +15,68 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.weather': 'Weather',
   'oauth.scope.group.journey': 'Journey',
   'oauth.scope.trips:read.label': 'View trips & itineraries',
-  'oauth.scope.trips:read.description':
-    'Read trips, days, day notes, and members',
+  'oauth.scope.trips:read.description': 'Read trips, days, day notes, and members',
   'oauth.scope.trips:write.label': 'Edit trips & itineraries',
-  'oauth.scope.trips:write.description':
-    'Create and update trips, days, notes, and manage members',
+  'oauth.scope.trips:write.description': 'Create and update trips, days, notes, and manage members',
   'oauth.scope.trips:delete.label': 'Delete trips',
-  'oauth.scope.trips:delete.description':
-    'Permanently delete entire trips — this action is irreversible',
+  'oauth.scope.trips:delete.description': 'Permanently delete entire trips — this action is irreversible',
   'oauth.scope.trips:share.label': 'Manage share links',
-  'oauth.scope.trips:share.description':
-    'Create, update, and revoke public share links for trips',
+  'oauth.scope.trips:share.description': 'Create, update, and revoke public share links for trips',
   'oauth.scope.places:read.label': 'View places & map data',
-  'oauth.scope.places:read.description':
-    'Read places, day assignments, tags, and categories',
+  'oauth.scope.places:read.description': 'Read places, day assignments, tags, and categories',
   'oauth.scope.places:write.label': 'Manage places',
-  'oauth.scope.places:write.description':
-    'Create, update, and delete places, assignments, and tags',
+  'oauth.scope.places:write.description': 'Create, update, and delete places, assignments, and tags',
   'oauth.scope.atlas:read.label': 'View Atlas',
-  'oauth.scope.atlas:read.description':
-    'Read visited countries, regions, and bucket list',
+  'oauth.scope.atlas:read.description': 'Read visited countries, regions, and bucket list',
   'oauth.scope.atlas:write.label': 'Manage Atlas',
-  'oauth.scope.atlas:write.description':
-    'Mark countries and regions visited, manage bucket list',
+  'oauth.scope.atlas:write.description': 'Mark countries and regions visited, manage bucket list',
   'oauth.scope.packing:read.label': 'View packing lists',
-  'oauth.scope.packing:read.description':
-    'Read packing items, bags, and category assignees',
+  'oauth.scope.packing:read.description': 'Read packing items, bags, and category assignees',
   'oauth.scope.packing:write.label': 'Manage packing lists',
-  'oauth.scope.packing:write.description':
-    'Add, update, delete, toggle, and reorder packing items and bags',
+  'oauth.scope.packing:write.description': 'Add, update, delete, toggle, and reorder packing items and bags',
   'oauth.scope.todos:read.label': 'View to-do lists',
-  'oauth.scope.todos:read.description':
-    'Read trip to-do items and category assignees',
+  'oauth.scope.todos:read.description': 'Read trip to-do items and category assignees',
   'oauth.scope.todos:write.label': 'Manage to-do lists',
-  'oauth.scope.todos:write.description':
-    'Create, update, toggle, delete, and reorder to-do items',
+  'oauth.scope.todos:write.description': 'Create, update, toggle, delete, and reorder to-do items',
   'oauth.scope.budget:read.label': 'View budget',
-  'oauth.scope.budget:read.description':
-    'Read budget items and expense breakdown',
+  'oauth.scope.budget:read.description': 'Read budget items and expense breakdown',
   'oauth.scope.budget:write.label': 'Manage budget',
-  'oauth.scope.budget:write.description':
-    'Create, update, and delete budget items',
+  'oauth.scope.budget:write.description': 'Create, update, and delete budget items',
   'oauth.scope.reservations:read.label': 'View reservations',
-  'oauth.scope.reservations:read.description':
-    'Read reservations and accommodation details',
+  'oauth.scope.reservations:read.description': 'Read reservations and accommodation details',
   'oauth.scope.reservations:write.label': 'Manage reservations',
-  'oauth.scope.reservations:write.description':
-    'Create, update, delete, and reorder reservations',
+  'oauth.scope.reservations:write.description': 'Create, update, delete, and reorder reservations',
   'oauth.scope.collab:read.label': 'View collaboration',
-  'oauth.scope.collab:read.description':
-    'Read collab notes, polls, and messages',
+  'oauth.scope.collab:read.description': 'Read collab notes, polls, and messages',
   'oauth.scope.collab:write.label': 'Manage collaboration',
-  'oauth.scope.collab:write.description':
-    'Create, update, and delete collab notes, polls, and messages',
+  'oauth.scope.collab:write.description': 'Create, update, and delete collab notes, polls, and messages',
   'oauth.scope.notifications:read.label': 'View notifications',
-  'oauth.scope.notifications:read.description':
-    'Read in-app notifications and unread counts',
+  'oauth.scope.notifications:read.description': 'Read in-app notifications and unread counts',
   'oauth.scope.notifications:write.label': 'Manage notifications',
-  'oauth.scope.notifications:write.description':
-    'Mark notifications as read and respond to them',
+  'oauth.scope.notifications:write.description': 'Mark notifications as read and respond to them',
   'oauth.scope.vacay:read.label': 'View vacation plans',
-  'oauth.scope.vacay:read.description':
-    'Read vacation planning data, entries, and stats',
+  'oauth.scope.vacay:read.description': 'Read vacation planning data, entries, and stats',
   'oauth.scope.vacay:write.label': 'Manage vacation plans',
-  'oauth.scope.vacay:write.description':
-    'Create and manage vacation entries, holidays, and team plans',
+  'oauth.scope.vacay:write.description': 'Create and manage vacation entries, holidays, and team plans',
   'oauth.scope.geo:read.label': 'Maps & geocoding',
-  'oauth.scope.geo:read.description':
-    'Search locations, resolve map URLs, and reverse geocode coordinates',
+  'oauth.scope.geo:read.description': 'Search locations, resolve map URLs, and reverse geocode coordinates',
   'oauth.scope.weather:read.label': 'Weather forecasts',
-  'oauth.scope.weather:read.description':
-    'Fetch weather forecasts for trip locations and dates',
+  'oauth.scope.weather:read.description': 'Fetch weather forecasts for trip locations and dates',
   'oauth.scope.journey:read.label': 'View journeys',
-  'oauth.scope.journey:read.description':
-    'Read journeys, entries, and contributor list',
+  'oauth.scope.journey:read.description': 'Read journeys, entries, and contributor list',
   'oauth.scope.journey:write.label': 'Manage journeys',
-  'oauth.scope.journey:write.description':
-    'Create, update, and delete journeys and their entries',
+  'oauth.scope.journey:write.description': 'Create, update, and delete journeys and their entries',
   'oauth.scope.journey:share.label': 'Manage journey links',
-  'oauth.scope.journey:share.description':
-    'Create, update, and revoke public share links for journeys',
+  'oauth.scope.journey:share.description': 'Create, update, and revoke public share links for journeys',
   'oauth.authorize.authorizing': 'Authorizing…',
   'oauth.authorize.loading': 'Loading…',
   'oauth.authorize.errorTitle': 'Authorization Error',
   'oauth.authorize.loginTitle': 'Sign in to continue',
-  'oauth.authorize.loginDescription':
-    '{client} wants access to your TREK account. Please sign in first.',
+  'oauth.authorize.loginDescription': '{client} wants access to your TREK account. Please sign in first.',
   'oauth.authorize.loginButton': 'Sign in to TREK',
   'oauth.authorize.requestLabel': 'Authorization Request',
-  'oauth.authorize.requestDescription':
-    'This application is requesting access to your TREK account.',
-  'oauth.authorize.trustNote':
-    'Only grant access to applications you trust. Your data stays on your server.',
+  'oauth.authorize.requestDescription': 'This application is requesting access to your TREK account.',
+  'oauth.authorize.trustNote': 'Only grant access to applications you trust. Your data stays on your server.',
   'oauth.authorize.selectScope': 'Select at least one scope',
   'oauth.authorize.approveOneScope': 'Approve ({count} scope)',
   'oauth.authorize.approveManyScopes': 'Approve ({count} scopes)',
@@ -115,9 +85,7 @@ const oauth: TranslationStrings = {
   'oauth.authorize.choosePermissions': 'Choose which permissions to grant',
   'oauth.authorize.permissionsRequested': 'Permissions requested',
   'oauth.authorize.alwaysIncluded': 'Always included',
-  'oauth.authorize.alwaysTool.listTrips':
-    'List your trips so the AI can discover trip IDs',
-  'oauth.authorize.alwaysTool.getTripSummary':
-    'Read a trip overview needed to use any other tool',
+  'oauth.authorize.alwaysTool.listTrips': 'List your trips so the AI can discover trip IDs',
+  'oauth.authorize.alwaysTool.getTripSummary': 'Read a trip overview needed to use any other tool',
 };
 export default oauth;

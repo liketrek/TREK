@@ -5,8 +5,7 @@ const packing: TranslationStrings = {
   'packing.empty': '行李清单为空',
   'packing.import': '导入',
   'packing.importTitle': '导入装箱清单',
-  'packing.importHint':
-    '每行一个物品。可选用逗号、分号或制表符分隔类别和数量：名称, 类别, 数量',
+  'packing.importHint': '每行一个物品。可选用逗号、分号或制表符分隔类别和数量：名称, 类别, 数量',
   'packing.importPlaceholder': '牙刷\n防晒霜, 卫生\nT恤, 衣物, 5\n护照, 证件',
   'packing.importCsv': '加载 CSV/TXT',
   'packing.importAction': '导入 {count}',

@@ -26,21 +26,18 @@ const backup: TranslationStrings = {
   'backup.toast.deleted': 'Sauvegarde supprimée',
   'backup.toast.deleteError': 'Échec de la suppression',
   'backup.toast.downloadError': 'Échec du téléchargement',
-  'backup.toast.settingsSaved':
-    'Paramètres de sauvegarde automatique enregistrés',
+  'backup.toast.settingsSaved': 'Paramètres de sauvegarde automatique enregistrés',
   'backup.toast.settingsError': "Impossible d'enregistrer les paramètres",
   'backup.auto.title': 'Sauvegarde automatique',
   'backup.auto.subtitle': 'Sauvegarde automatique programmée',
   'backup.auto.enable': 'Activer la sauvegarde automatique',
-  'backup.auto.enableHint':
-    'Les sauvegardes seront créées automatiquement selon le calendrier choisi',
+  'backup.auto.enableHint': 'Les sauvegardes seront créées automatiquement selon le calendrier choisi',
   'backup.auto.interval': 'Intervalle',
   'backup.auto.hour': "Exécuter à l'heure",
   'backup.auto.hourHint': 'Heure locale du serveur (format {format})',
   'backup.auto.dayOfWeek': 'Jour de la semaine',
   'backup.auto.dayOfMonth': 'Jour du mois',
-  'backup.auto.dayOfMonthHint':
-    'Limité à 1–28 pour la compatibilité avec tous les mois',
+  'backup.auto.dayOfMonthHint': 'Limité à 1–28 pour la compatibilité avec tous les mois',
   'backup.auto.scheduleSummary': 'Planification',
   'backup.auto.summaryDaily': 'Tous les jours à {hour}h00',
   'backup.auto.summaryWeekly': 'Chaque {day} à {hour}h00',
@@ -49,8 +46,7 @@ const backup: TranslationStrings = {
   'backup.auto.envLockedHint':
     "La sauvegarde automatique est configurée via les variables d'environnement Docker. Pour modifier ces paramètres, mettez à jour votre docker-compose.yml et redémarrez le conteneur.",
   'backup.auto.copyEnv': "Copier les variables d'env Docker",
-  'backup.auto.envCopied':
-    "Variables d'env Docker copiées dans le presse-papiers",
+  'backup.auto.envCopied': "Variables d'env Docker copiées dans le presse-papiers",
   'backup.auto.keepLabel': 'Supprimer les anciennes sauvegardes après',
   'backup.dow.sunday': 'Dim',
   'backup.dow.monday': 'Lun',
@@ -72,8 +68,7 @@ const backup: TranslationStrings = {
   'backup.restoreConfirmTitle': 'Restaurer la sauvegarde ?',
   'backup.restoreWarning':
     'Toutes les données actuelles (voyages, lieux, utilisateurs, importations) seront définitivement remplacées par la sauvegarde. Cette action est irréversible.',
-  'backup.restoreTip':
-    "Conseil : créez une sauvegarde de l'état actuel avant de restaurer.",
+  'backup.restoreTip': "Conseil : créez une sauvegarde de l'état actuel avant de restaurer.",
   'backup.restoreConfirm': 'Oui, restaurer',
 };
 export default backup;

@@ -2,8 +2,7 @@ import type { NotificationLocale } from '../externalNotifications/types';
 
 const es: NotificationLocale = {
   email: {
-    footer:
-      'Recibiste esto porque tienes las notificaciones activadas en TREK.',
+    footer: 'Recibiste esto porque tienes las notificaciones activadas en TREK.',
     manage: 'Gestionar preferencias',
     madeWith: 'Made with',
     openTrek: 'Abrir TREK',
@@ -56,8 +55,7 @@ const es: NotificationLocale = {
     body: 'Recibimos una solicitud para restablecer la contraseña de tu cuenta de TREK. Haz clic en el botón de abajo para establecer una nueva contraseña.',
     ctaIntro: 'Restablecer contraseña',
     expiry: 'Este enlace caduca en 60 minutos.',
-    ignore:
-      'Si no solicitaste esto, puedes ignorar este correo — tu contraseña no cambiará.',
+    ignore: 'Si no solicitaste esto, puedes ignorar este correo — tu contraseña no cambiará.',
   },
 };
 

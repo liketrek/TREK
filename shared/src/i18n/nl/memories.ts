@@ -3,14 +3,12 @@ import type { TranslationStrings } from '../types';
 const memories: TranslationStrings = {
   'memories.title': "Foto's",
   'memories.notConnected': 'Immich niet verbonden',
-  'memories.notConnectedHint':
-    "Verbind je Immich-instantie in Instellingen om je reisfoto's hier te zien.",
+  'memories.notConnectedHint': "Verbind je Immich-instantie in Instellingen om je reisfoto's hier te zien.",
   'memories.notConnectedMultipleHint':
     "Verbind een van deze fotoproviders: {provider_names} in Instellingen om foto's aan dit reisplan toe te voegen.",
   'memories.noDates': "Voeg data toe aan je reis om foto's te laden.",
   'memories.noPhotos': "Geen foto's gevonden",
-  'memories.noPhotosHint':
-    "Geen foto's gevonden in Immich voor de datumreeks van deze reis.",
+  'memories.noPhotosHint': "Geen foto's gevonden in Immich voor de datumreeks van deze reis.",
   'memories.photosFound': "foto's",
   'memories.fromOthers': 'van anderen',
   'memories.sharePhotos': "Foto's delen",
@@ -24,10 +22,8 @@ const memories: TranslationStrings = {
   'memories.providerPassword': 'Wachtwoord',
   'memories.providerOTP': 'MFA-code (indien ingeschakeld)',
   'memories.skipSSLVerification': 'SSL-certificaatverificatie overslaan',
-  'memories.immichAutoUpload':
-    "Journey-foto's bij upload ook naar Immich spiegelen",
-  'memories.providerUrlHintSynology':
-    'Voeg het pad van de Photos-app toe aan de URL, bijv. https://nas:5001/photo',
+  'memories.immichAutoUpload': "Journey-foto's bij upload ook naar Immich spiegelen",
+  'memories.providerUrlHintSynology': 'Voeg het pad van de Photos-app toe aan de URL, bijv. https://nas:5001/photo',
   'memories.testConnection': 'Verbinding testen',
   'memories.testShort': 'Testen',
   'memories.testFirst': 'Test eerst de verbinding',
@@ -38,12 +34,9 @@ const memories: TranslationStrings = {
   'memories.saved': '{provider_name}-instellingen opgeslagen',
   'memories.providerDisconnectedBanner':
     "Je {provider_name}-verbinding is verbroken. Maak opnieuw verbinding in Instellingen om foto's te bekijken.",
-  'memories.saveError':
-    '{provider_name}-instellingen konden niet worden opgeslagen',
-  'memories.saveRouteNotConfigured':
-    'Opslagroute is niet geconfigureerd voor deze provider',
-  'memories.testRouteNotConfigured':
-    'Testroute is niet geconfigureerd voor deze provider',
+  'memories.saveError': '{provider_name}-instellingen konden niet worden opgeslagen',
+  'memories.saveRouteNotConfigured': 'Opslagroute is niet geconfigureerd voor deze provider',
+  'memories.testRouteNotConfigured': 'Testroute is niet geconfigureerd voor deze provider',
   'memories.fillRequiredFields': 'Vul alle verplichte velden in',
   'memories.oldest': 'Oudste eerst',
   'memories.newest': 'Nieuwste eerst',

@@ -14,12 +14,10 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Kaartsjabloon',
   'settings.mapTemplatePlaceholder.select': 'Selecteer sjabloon...',
   'settings.mapDefaultHint': 'Laat leeg voor OpenStreetMap (standaard)',
-  'settings.mapTemplatePlaceholder':
-    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'URL-sjabloon voor kaarttegels',
   'settings.mapProvider': 'Kaartprovider',
-  'settings.mapProviderHint':
-    'Geldt voor Trip Planner en Journey kaarten. Atlas gebruikt altijd Leaflet.',
+  'settings.mapProviderHint': 'Geldt voor Trip Planner en Journey kaarten. Atlas gebruikt altijd Leaflet.',
   'settings.mapLeafletSubtitle': 'Klassiek 2D, elke raster-tile',
   'settings.mapMapboxSubtitle': 'Vector tiles, 3D-gebouwen & terrein',
   'settings.mapExperimental': 'Experimenteel',
@@ -30,13 +28,11 @@ const settings: TranslationStrings = {
   'settings.mapStylePlaceholder': 'Kies een Mapbox-stijl',
   'settings.mapStyleHint': 'Preset of eigen mapbox://styles/USER/ID URL',
   'settings.map3dBuildings': '3D-gebouwen & terrein',
-  'settings.map3dHint':
-    'Kanteling + echte 3D-gebouwenextrusies — werkt op elke stijl, inclusief satelliet.',
+  'settings.map3dHint': 'Kanteling + echte 3D-gebouwenextrusies — werkt op elke stijl, inclusief satelliet.',
   'settings.mapHighQuality': 'Hoge kwaliteit modus',
   'settings.mapHighQualityHint':
     'Antialiasing + globeprojectie voor scherpere randen en een realistische wereldweergave.',
-  'settings.mapHighQualityWarning':
-    'Kan de prestaties op minder krachtige apparaten beïnvloeden.',
+  'settings.mapHighQualityWarning': 'Kan de prestaties op minder krachtige apparaten beïnvloeden.',
   'settings.mapTipLabel': 'Tip:',
   'settings.mapTip':
     'Rechts-klik en sleep om de kaart te roteren/kantelen. Middenklik om een locatie toe te voegen (rechts-klik is voor rotatie).',
@@ -45,11 +41,9 @@ const settings: TranslationStrings = {
   'settings.saveMap': 'Kaart opslaan',
   'settings.apiKeys': 'API-sleutels',
   'settings.mapsKey': 'Google Maps API-sleutel',
-  'settings.mapsKeyHint':
-    'Voor plaatsen zoeken. Vereist Places API (New). Verkrijgbaar op console.cloud.google.com',
+  'settings.mapsKeyHint': 'Voor plaatsen zoeken. Vereist Places API (New). Verkrijgbaar op console.cloud.google.com',
   'settings.weatherKey': 'OpenWeatherMap API-sleutel',
-  'settings.weatherKeyHint':
-    'Voor weergegevens. Gratis op openweathermap.org/api',
+  'settings.weatherKeyHint': 'Voor weergegevens. Gratis op openweathermap.org/api',
   'settings.keyPlaceholder': 'Sleutel invoeren...',
   'settings.configured': 'Geconfigureerd',
   'settings.saveKeys': 'Sleutels opslaan',
@@ -78,8 +72,7 @@ const settings: TranslationStrings = {
   'settings.notificationsDisabled':
     'Meldingen zijn niet geconfigureerd. Vraag een beheerder om e-mail- of webhookmeldingen in te schakelen.',
   'settings.notificationsActive': 'Actief kanaal',
-  'settings.notificationsManagedByAdmin':
-    'Meldingsgebeurtenissen worden geconfigureerd door je beheerder.',
+  'settings.notificationsManagedByAdmin': 'Meldingsgebeurtenissen worden geconfigureerd door je beheerder.',
   'settings.on': 'Aan',
   'settings.off': 'Uit',
   'settings.mcp.title': 'MCP-configuratie',
@@ -93,8 +86,7 @@ const settings: TranslationStrings = {
   'settings.mcp.copied': 'Gekopieerd!',
   'settings.mcp.apiTokens': 'API-tokens',
   'settings.mcp.createToken': 'Nieuw token aanmaken',
-  'settings.mcp.noTokens':
-    'Nog geen tokens. Maak er een aan om MCP-clients te verbinden.',
+  'settings.mcp.noTokens': 'Nog geen tokens. Maak er een aan om MCP-clients te verbinden.',
   'settings.mcp.tokenCreatedAt': 'Aangemaakt',
   'settings.mcp.tokenUsedAt': 'Gebruikt',
   'settings.mcp.deleteTokenTitle': 'Token verwijderen',
@@ -138,16 +130,13 @@ const settings: TranslationStrings = {
   'settings.oauth.sessionExpires': 'Verloopt',
   'settings.oauth.revoke': 'Intrekken',
   'settings.oauth.revokeSession': 'Sessie intrekken',
-  'settings.oauth.revokeSessionMessage':
-    'Dit trekt onmiddellijk de toegang voor deze OAuth-sessie in.',
+  'settings.oauth.revokeSessionMessage': 'Dit trekt onmiddellijk de toegang voor deze OAuth-sessie in.',
   'settings.oauth.modal.createTitle': 'OAuth-client registreren',
   'settings.oauth.modal.presets': 'Snelle instellingen',
   'settings.oauth.modal.clientName': 'Toepassingsnaam',
-  'settings.oauth.modal.clientNamePlaceholder':
-    'bijv. Claude Web, Mijn MCP-app',
+  'settings.oauth.modal.clientNamePlaceholder': 'bijv. Claude Web, Mijn MCP-app',
   'settings.oauth.modal.redirectUris': "Redirect-URI's",
-  'settings.oauth.modal.redirectUrisPlaceholder':
-    'https://your-app.com/callback\nhttps://your-app.com/auth',
+  'settings.oauth.modal.redirectUrisPlaceholder': 'https://your-app.com/callback\nhttps://your-app.com/auth',
   'settings.oauth.modal.redirectUrisHint':
     'Eén URI per regel. HTTPS vereist (localhost uitgezonderd). Exacte overeenkomst vereist.',
   'settings.oauth.modal.scopes': 'Toegestane rechten',
@@ -160,8 +149,7 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.createdTitle': 'Client geregistreerd',
   'settings.oauth.modal.createdWarning':
     'Het clientgeheim wordt slechts eenmalig getoond. Kopieer het nu — het kan niet worden hersteld.',
-  'settings.oauth.toast.createError':
-    'OAuth-client kon niet worden geregistreerd',
+  'settings.oauth.toast.createError': 'OAuth-client kon niet worden geregistreerd',
   'settings.oauth.toast.deleted': 'OAuth-client verwijderd',
   'settings.oauth.toast.deleteError': 'OAuth-client kon niet worden verwijderd',
   'settings.oauth.toast.revoked': 'Sessie ingetrokken',
@@ -188,15 +176,13 @@ const settings: TranslationStrings = {
   'settings.about.supporters.tierEmpty': 'Wees de eerste',
   'settings.about.supporter.tier.noReturnTicket': 'No Return Ticket',
   'settings.about.supporter.tier.lostLuggageVip': 'Lost Luggage VIP',
-  'settings.about.supporter.tier.businessClassDreamer':
-    'Business Class Dreamer',
+  'settings.about.supporter.tier.businessClassDreamer': 'Business Class Dreamer',
   'settings.about.supporter.tier.budgetTraveller': 'Budget Traveller',
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate',
   'settings.about.description':
     "TREK is een zelf-gehoste reisplanner die je helpt je reizen te organiseren van het eerste idee tot de laatste herinnering. Dagplanning, budget, paklijsten, foto's en nog veel meer — alles op één plek, op je eigen server.",
   'settings.about.madeWith': 'Gemaakt met',
-  'settings.about.madeBy':
-    'door Maurice en een groeiende open-source community.',
+  'settings.about.madeBy': 'door Maurice en een groeiende open-source community.',
   'settings.username': 'Gebruikersnaam',
   'settings.email': 'E-mail',
   'settings.role': 'Rol',
@@ -213,8 +199,7 @@ const settings: TranslationStrings = {
   'settings.passwordRequired': 'Voer het huidige en nieuwe wachtwoord in',
   'settings.passwordTooShort': 'Wachtwoord moet minimaal 8 tekens bevatten',
   'settings.passwordMismatch': 'Wachtwoorden komen niet overeen',
-  'settings.passwordWeak':
-    'Wachtwoord moet hoofdletters, kleine letters, een cijfer en een speciaal teken bevatten',
+  'settings.passwordWeak': 'Wachtwoord moet hoofdletters, kleine letters, een cijfer en een speciaal teken bevatten',
   'settings.passwordChanged': 'Wachtwoord succesvol gewijzigd',
   'settings.deleteAccount': 'Account verwijderen',
   'settings.deleteAccountTitle': 'Account verwijderen?',
@@ -234,8 +219,7 @@ const settings: TranslationStrings = {
   'settings.mfa.backupTitle': 'Back-upcodes',
   'settings.mfa.backupDescription':
     'Gebruik deze eenmalige codes als je geen toegang meer hebt tot je authenticator-app.',
-  'settings.mfa.backupWarning':
-    'Sla deze codes nu op. Elke code kan maar een keer worden gebruikt.',
+  'settings.mfa.backupWarning': 'Sla deze codes nu op. Elke code kan maar een keer worden gebruikt.',
   'settings.mfa.backupCopy': 'Codes kopiëren',
   'settings.mfa.backupDownload': 'TXT downloaden',
   'settings.mfa.backupPrint': 'Afdrukken / PDF',
@@ -243,15 +227,13 @@ const settings: TranslationStrings = {
   'settings.mfa.enabled': '2FA is ingeschakeld op je account.',
   'settings.mfa.disabled': '2FA is niet ingeschakeld.',
   'settings.mfa.setup': 'Authenticator instellen',
-  'settings.mfa.scanQr':
-    'Scan deze QR-code met je app of voer de sleutel handmatig in.',
+  'settings.mfa.scanQr': 'Scan deze QR-code met je app of voer de sleutel handmatig in.',
   'settings.mfa.secretLabel': 'Geheime sleutel (handmatige invoer)',
   'settings.mfa.codePlaceholder': '6-cijferige code',
   'settings.mfa.enable': '2FA inschakelen',
   'settings.mfa.cancelSetup': 'Annuleren',
   'settings.mfa.disableTitle': '2FA uitschakelen',
-  'settings.mfa.disableHint':
-    'Voer je wachtwoord en een huidige code van je authenticator in.',
+  'settings.mfa.disableHint': 'Voer je wachtwoord en een huidige code van je authenticator in.',
   'settings.mfa.disable': '2FA uitschakelen',
   'settings.mfa.toastEnabled': 'Tweefactorauthenticatie ingeschakeld',
   'settings.mfa.toastDisabled': 'Tweefactorauthenticatie uitgeschakeld',
@@ -266,15 +248,13 @@ const settings: TranslationStrings = {
   'settings.avatarRemoved': 'Profielfoto verwijderd',
   'settings.avatarError': 'Uploaden mislukt',
   'settings.bookingLabels': 'Routelabels voor boekingen',
-  'settings.bookingLabelsHint':
-    'Toon station- / luchthavennamen op de kaart. Indien uit, alleen het icoon.',
+  'settings.bookingLabelsHint': 'Toon station- / luchthavennamen op de kaart. Indien uit, alleen het icoon.',
   'settings.notifyVersionAvailable': 'Nieuwe versie beschikbaar',
   'settings.notificationPreferences.noChannels':
     'Er zijn geen meldingskanalen geconfigureerd. Vraag een beheerder om e-mail- of webhookmeldingen in te stellen.',
   'settings.webhookUrl.label': 'Webhook-URL',
   'settings.webhookUrl.placeholder': 'https://discord.com/api/webhooks/...',
-  'settings.webhookUrl.hint':
-    'Voer je Discord-, Slack- of aangepaste webhook-URL in om meldingen te ontvangen.',
+  'settings.webhookUrl.hint': 'Voer je Discord-, Slack- of aangepaste webhook-URL in om meldingen te ontvangen.',
   'settings.webhookUrl.saved': 'Webhook-URL opgeslagen',
   'settings.webhookUrl.test': 'Testen',
   'settings.webhookUrl.testSuccess': 'Test-webhook succesvol verzonden',
@@ -286,8 +266,7 @@ const settings: TranslationStrings = {
   'settings.ntfyUrl.hint':
     'Voer je Ntfy-onderwerp in om pushmeldingen te ontvangen. Laat het serverveld leeg om de standaard te gebruiken die door je beheerder is ingesteld.',
   'settings.ntfyUrl.tokenLabel': 'Toegangstoken (optioneel)',
-  'settings.ntfyUrl.tokenHint':
-    'Vereist voor onderwerpen die met een wachtwoord zijn beveiligd.',
+  'settings.ntfyUrl.tokenHint': 'Vereist voor onderwerpen die met een wachtwoord zijn beveiligd.',
   'settings.ntfyUrl.saved': 'Ntfy-instellingen opgeslagen',
   'settings.ntfyUrl.test': 'Testen',
   'settings.ntfyUrl.testSuccess': 'Test-Ntfy-melding succesvol verzonden',
@@ -297,8 +276,8 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',
-  "settings.currency": "Currency",
-  "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.currency': 'Currency',
+  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
     'Log sneller en phishingbestendig in met een passkey — je vingerafdruk, gezicht, pincode of een hardwaresleutel. Je wachtwoord blijft als back-up bestaan.',
@@ -306,8 +285,7 @@ const settings: TranslationStrings = {
     'Passkeys zijn ingeschakeld maar nog niet volledig geconfigureerd op deze server. Vraag je beheerder om het WebAuthn-domein in te stellen.',
   'settings.passkey.add': 'Een passkey toevoegen',
   'settings.passkey.addTitle': 'Een passkey toevoegen',
-  'settings.passkey.passwordPrompt':
-    'Bevestig je huidige wachtwoord en volg daarna de aanwijzingen van je apparaat.',
+  'settings.passkey.passwordPrompt': 'Bevestig je huidige wachtwoord en volg daarna de aanwijzingen van je apparaat.',
   'settings.passkey.passwordRequired': 'Je huidige wachtwoord is vereist.',
   'settings.passkey.namePlaceholder': 'Naam (optioneel, bijv. "iPhone")',
   'settings.passkey.addedToast': 'Passkey toegevoegd',
@@ -315,8 +293,7 @@ const settings: TranslationStrings = {
   'settings.passkey.addError': 'Passkey kon niet worden toegevoegd',
   'settings.passkey.cancelled': 'Passkey instellen geannuleerd',
   'settings.passkey.deleted': 'Passkey verwijderd',
-  'settings.passkey.deleteConfirm':
-    'Deze passkey verwijderen? Bevestig met je wachtwoord.',
+  'settings.passkey.deleteConfirm': 'Deze passkey verwijderen? Bevestig met je wachtwoord.',
   'settings.passkey.rename': 'Naam wijzigen',
   'settings.passkey.defaultName': 'Passkey',
   'settings.passkey.synced': 'Gesynchroniseerd',
@@ -324,20 +301,20 @@ const settings: TranslationStrings = {
   'settings.passkey.lastUsed': 'Laatst gebruikt',
   'settings.passkey.neverUsed': 'Nooit gebruikt',
   'settings.mapPoiPill': 'Plaatsen op de kaart ontdekken',
-  'settings.mapPoiPillHint': 'Toon een categorielabel op de reiskaart om restaurants, hotels en meer in de buurt te vinden via OpenStreetMap.',
+  'settings.mapPoiPillHint':
+    'Toon een categorielabel op de reiskaart om restaurants, hotels en meer in de buurt te vinden via OpenStreetMap.',
   'settings.airtrail.title': 'AirTrail',
   'settings.airtrail.hint':
     'Verbind je zelf-gehoste AirTrail om vluchten te importeren en te synchroniseren. Maak een API-sleutel aan in AirTrail onder Instellingen → Beveiliging.',
   'settings.airtrail.url': 'Instantie-URL',
   'settings.airtrail.apiKey': 'API-sleutel',
   'settings.airtrail.apiKeyPlaceholder': 'Bearer API-sleutel',
-  'settings.airtrail.apiKeyHint':
-    'Aangemaakt in AirTrail onder Instellingen → Beveiliging. Versleuteld opgeslagen.',
+  'settings.airtrail.apiKeyHint': 'Aangemaakt in AirTrail onder Instellingen → Beveiliging. Versleuteld opgeslagen.',
   'settings.airtrail.allowInsecureTls': 'Zelfondertekende certificaten toestaan',
-  'settings.airtrail.allowInsecureTlsHint':
-    'Schakel dit alleen in voor een vertrouwde instantie op je eigen netwerk.',
+  'settings.airtrail.allowInsecureTlsHint': 'Schakel dit alleen in voor een vertrouwde instantie op je eigen netwerk.',
   'settings.airtrail.writeBack': 'Wijzigingen terugschrijven naar AirTrail',
-  'settings.airtrail.writeBackHint': 'Standaard uit: AirTrail is de bron van waarheid en TREK leest er alleen uit. Schakel in om in TREK gemaakte wijzigingen terug te sturen naar AirTrail.',
+  'settings.airtrail.writeBackHint':
+    'Standaard uit: AirTrail is de bron van waarheid en TREK leest er alleen uit. Schakel in om in TREK gemaakte wijzigingen terug te sturen naar AirTrail.',
   'settings.airtrail.connected': 'Verbonden',
   'settings.airtrail.notConnected': 'Niet verbonden',
   'settings.airtrail.toast.saved': 'AirTrail-verbinding opgeslagen',

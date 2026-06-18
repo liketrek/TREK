@@ -6,13 +6,10 @@ const places: TranslationStrings = {
   'places.sidebarDrop': 'Pusťte pro import',
   'places.importFileHint':
     'Importujte soubory .gpx, .kml nebo .kmz z nástrojů jako Google My Maps, Google Earth nebo GPS tracker.',
-  'places.importFileDropHere':
-    'Klikněte pro výběr souboru nebo jej přetáhněte sem',
+  'places.importFileDropHere': 'Klikněte pro výběr souboru nebo jej přetáhněte sem',
   'places.importFileDropActive': 'Přetáhněte soubor pro výběr',
-  'places.importFileUnsupported':
-    'Nepodporovaný typ souboru. Použijte .gpx, .kml nebo .kmz.',
-  'places.importFileTooLarge':
-    'Soubor je příliš velký. Maximální velikost nahrání je {maxMb} MB.',
+  'places.importFileUnsupported': 'Nepodporovaný typ souboru. Použijte .gpx, .kml nebo .kmz.',
+  'places.importFileTooLarge': 'Soubor je příliš velký. Maximální velikost nahrání je {maxMb} MB.',
   'places.importFileError': 'Import se nezdařil',
   'places.importAllSkipped': 'Všechna místa již byla v cestě.',
   'places.gpxImported': '{count} míst importováno z GPX',
@@ -30,16 +27,13 @@ const places: TranslationStrings = {
   'places.kmlKmzImported': 'Importováno {count} míst z KMZ/KML',
   'places.urlResolved': 'Místo importováno z URL',
   'places.importList': 'Import seznamu',
-  'places.kmlKmzSummaryValues':
-    'Placemarks: {total} • Importováno: {created} • Přeskočeno: {skipped}',
+  'places.kmlKmzSummaryValues': 'Placemarks: {total} • Importováno: {created} • Přeskočeno: {skipped}',
   'places.importGoogleList': 'Google Seznam',
   'places.importNaverList': 'Naver Seznam',
-  'places.googleListHint':
-    'Vložte sdílený odkaz na seznam Google Maps pro import všech míst.',
+  'places.googleListHint': 'Vložte sdílený odkaz na seznam Google Maps pro import všech míst.',
   'places.googleListImported': '{count} míst importováno ze seznamu "{list}"',
   'places.googleListError': 'Import seznamu Google Maps se nezdařil',
-  'places.naverListHint':
-    'Vložte sdílený odkaz na seznam Naver Maps pro import všech míst.',
+  'places.naverListHint': 'Vložte sdílený odkaz na seznam Naver Maps pro import všech míst.',
   'places.naverListImported': '{count} míst importováno ze seznamu "{list}"',
   'places.naverListError': 'Import seznamu Naver Maps se nezdařil',
   'places.viewDetails': 'Zobrazit detaily',
@@ -76,8 +70,7 @@ const places: TranslationStrings = {
   'places.formNotes': 'Poznámky',
   'places.formNotesPlaceholder': 'Osobní poznámky...',
   'places.formReservation': 'Rezervace',
-  'places.reservationNotesPlaceholder':
-    'Poznámky k rezervaci, potvrzovací kód...',
+  'places.reservationNotesPlaceholder': 'Poznámky k rezervaci, potvrzovací kód...',
   'places.mapsSearchPlaceholder': 'Hledat místa...',
   'places.mapsSearchError': 'Hledání místa se nezdařilo.',
   'places.loadingDetails': 'Načítání podrobností místa…',

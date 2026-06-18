@@ -13,8 +13,7 @@ const files: TranslationStrings = {
   'files.uploadError': 'Gagal mengunggah',
   'files.dropzone': 'Jatuhkan file di sini',
   'files.dropzoneHint': 'atau klik untuk memilih',
-  'files.allowedTypes':
-    'Gambar, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Maks 50 MB',
+  'files.allowedTypes': 'Gambar, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Maks 50 MB',
   'files.uploading': 'Mengunggah...',
   'files.filterAll': 'Semua',
   'files.filterPdf': 'PDFs',
@@ -52,10 +51,8 @@ const files: TranslationStrings = {
   'files.toast.assigned': 'File ditugaskan',
   'files.toast.assignError': 'Penugasan gagal',
   'files.toast.restoreError': 'Pemulihan gagal',
-  'files.confirm.permanentDelete':
-    'Hapus file ini secara permanen? Tindakan ini tidak bisa dibatalkan.',
-  'files.confirm.emptyTrash':
-    'Hapus semua file di sampah secara permanen? Tindakan ini tidak bisa dibatalkan.',
+  'files.confirm.permanentDelete': 'Hapus file ini secara permanen? Tindakan ini tidak bisa dibatalkan.',
+  'files.confirm.emptyTrash': 'Hapus semua file di sampah secara permanen? Tindakan ini tidak bisa dibatalkan.',
   'files.noteLabel': 'Catatan',
   'files.notePlaceholder': 'Tambahkan catatan...',
 };

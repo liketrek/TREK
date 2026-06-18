@@ -9,7 +9,7 @@ const trip: TranslationStrings = {
   'trip.tabs.packingShort': 'Packing',
   'trip.tabs.lists': 'Lists',
   'trip.tabs.listsShort': 'Lists',
-  'trip.tabs.budget': "Costs",
+  'trip.tabs.budget': 'Costs',
   'trip.tabs.files': 'Files',
   'trip.loading': 'Loading trip...',
   'trip.loadingPhotos': 'Loading place photos...',

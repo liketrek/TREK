@@ -55,8 +55,7 @@ const cs: NotificationLocale = {
     body: 'Obdrželi jsme žádost o obnovení hesla k tvému účtu TREK. Klikni na tlačítko níže a nastav nové heslo.',
     ctaIntro: 'Obnovit heslo',
     expiry: 'Odkaz vyprší za 60 minut.',
-    ignore:
-      'Pokud jsi o obnovení nežádal/a, tento e-mail ignoruj — heslo zůstane beze změny.',
+    ignore: 'Pokud jsi o obnovení nežádal/a, tento e-mail ignoruj — heslo zůstane beze změny.',
   },
 };
 

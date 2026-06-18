@@ -20,8 +20,7 @@ const system_notice: TranslationStrings = {
   'system_notice.v3_photos.body':
     '行程規劃器中的​**相片**標籤已被移除。您的相片安全— TREK 從未修改您的 Immich 或 Synology 相簿。\n\n相片現在位於 **Journey** 附加元件中。Journey 為選用 — 若尚未啟用，請聯絡管理員於 Admin → 附加元件 中開啟。',
   'system_notice.v3_journey.title': '認識 Journey — 旅行日記',
-  'system_notice.v3_journey.body':
-    '將您的旅程記錄為具有時間軸、相片畫庫與互動地圖的豐富旅行故事。',
+  'system_notice.v3_journey.body': '將您的旅程記錄為具有時間軸、相片畫庫與互動地圖的豐富旅行故事。',
   'system_notice.v3_journey.cta_label': '開啟 Journey',
   'system_notice.v3_journey.highlight_timeline': '每日時間軸與畫庫',
   'system_notice.v3_journey.highlight_photos': '從 Immich 或 Synology 匯入',

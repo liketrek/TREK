@@ -9,8 +9,7 @@ const day: TranslationStrings = {
   'day.hourlyForecast': 'Pronóstico por horas',
   'day.climateHint':
     'Promedios históricos: el pronóstico real está disponible dentro de los 16 días previos a la fecha.',
-  'day.noWeather':
-    'No hay datos meteorológicos disponibles. Añade un lugar con coordenadas.',
+  'day.noWeather': 'No hay datos meteorológicos disponibles. Añade un lugar con coordenadas.',
   'day.overview': 'Resumen diario',
   'day.accommodation': 'Alojamiento',
   'day.addAccommodation': 'Añadir alojamiento',

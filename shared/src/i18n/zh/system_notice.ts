@@ -2,8 +2,7 @@ import type { TranslationStrings } from '../types';
 
 const system_notice: TranslationStrings = {
   'system_notice.welcome_v1.title': '欢迎使用 TREK',
-  'system_notice.welcome_v1.body':
-    '您的全能旅行规划器。制定行程、与朋友分享旅行，随时保持井然有序——在线或离线均可。',
+  'system_notice.welcome_v1.body': '您的全能旅行规划器。制定行程、与朋友分享旅行，随时保持井然有序——在线或离线均可。',
   'system_notice.welcome_v1.cta_label': '规划行程',
   'system_notice.welcome_v1.hero_alt': '风景优美的旅游目的地与 TREK 界面',
   'system_notice.welcome_v1.highlight_plan': '逐日行程规划',
@@ -20,8 +19,7 @@ const system_notice: TranslationStrings = {
   'system_notice.v3_photos.body':
     '行程规划器中的​**照片**标签已被移除。您的照片安全无虑 — TREK 从未修改您的 Immich 或 Synology 相册。\n\n照片现在位于 **Journey** 插件中。Journey 是可选的 — 如果尚未启用，请联系管理员在 Admin → 插件 中开启。',
   'system_notice.v3_journey.title': '认识 Journey — 旅行日记',
-  'system_notice.v3_journey.body':
-    '将您的旅程记录为展示时间线、照片画廊和互动地图的丰富旅行故事。',
+  'system_notice.v3_journey.body': '将您的旅程记录为展示时间线、照片画廊和互动地图的丰富旅行故事。',
   'system_notice.v3_journey.cta_label': '打开 Journey',
   'system_notice.v3_journey.highlight_timeline': '每日时间线与画廊',
   'system_notice.v3_journey.highlight_photos': '从 Immich 或 Synology 导入',

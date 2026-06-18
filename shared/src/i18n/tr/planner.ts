@@ -33,8 +33,7 @@ const planner: TranslationStrings = {
   'planner.resConfirmed': 'Rezervasyon onaylandı · ',
   'planner.notePlaceholder': 'Not…',
   'planner.noteTimePlaceholder': 'Saat (isteğe bağlı)',
-  'planner.noteExamplePlaceholder':
-    "örn. Merkez istasyondan 14:30'da S3, iskele 7'den feribot, öğle molası…",
+  'planner.noteExamplePlaceholder': "örn. Merkez istasyondan 14:30'da S3, iskele 7'den feribot, öğle molası…",
   'planner.totalCost': 'Toplam maliyet',
   'planner.searchPlaces': 'Yer ara…',
   'planner.allCategories': 'Tüm Kategoriler',
@@ -48,8 +47,7 @@ const planner: TranslationStrings = {
   'planner.route': 'Rota',
   'planner.optimize': 'Optimize et',
   'planner.openGoogleMaps': "Google Haritalar'da aç",
-  'planner.selectDayHint':
-    'Gün planını görmek için soldaki listeden bir gün seçin',
+  'planner.selectDayHint': 'Gün planını görmek için soldaki listeden bir gün seçin',
   'planner.noPlacesForDay': 'Bu gün için henüz yer yok',
   'planner.addPlacesLink': 'Yer ekle →',
   'planner.minTotal': 'dk. toplam',

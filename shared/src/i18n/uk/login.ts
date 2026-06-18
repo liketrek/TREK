@@ -3,8 +3,7 @@ import type { TranslationStrings } from '../types';
 const login: TranslationStrings = {
   'login.error': 'Помилка входу. Перевірте свої облікові дані.',
   'login.tagline': 'Ваші поїздки.\nВаш план.',
-  'login.description':
-    'Плануйте поїздки разом з інтерактивними картами, бюджетами та синхронізацією в реальному часі.',
+  'login.description': 'Плануйте поїздки разом з інтерактивними картами, бюджетами та синхронізацією в реальному часі.',
   'login.features.maps': 'Інтерактивні карти',
   'login.features.mapsDesc': 'Google Places, маршрути та кластеризація',
   'login.features.realtime': 'Синхронізація в реальному часі',
@@ -12,19 +11,16 @@ const login: TranslationStrings = {
   'login.features.budget': 'Контроль бюджету',
   'login.features.budgetDesc': 'Категорії, графіки та витрати на особу',
   'login.features.collab': 'Спільна робота',
-  'login.features.collabDesc':
-    'Багатокористувацький режим зі спільними поїздками',
+  'login.features.collabDesc': 'Багатокористувацький режим зі спільними поїздками',
   'login.features.packing': 'Списки речей',
   'login.features.packingDesc': 'Категорії, прогрес та підказки',
   'login.features.bookings': 'Бронювання',
-  'login.features.bookingsDesc':
-    'Авіаквитки, готелі, ресторани та багато іншого',
+  'login.features.bookingsDesc': 'Авіаквитки, готелі, ресторани та багато іншого',
   'login.features.files': 'Документи',
   'login.features.filesDesc': 'Завантажуйте та керуйте документами',
   'login.features.routes': 'Розумні маршрути',
   'login.features.routesDesc': 'Автооптимізація та експорт з Google Maps',
-  'login.selfHosted':
-    'Self-hosted · Відкритий код · Ваші дані залишаються у вас',
+  'login.selfHosted': 'Self-hosted · Відкритий код · Ваші дані залишаються у вас',
   'login.title': 'Вхід',
   'login.subtitle': 'З поверненням',
   'login.signingIn': 'Вхід…',
@@ -41,15 +37,13 @@ const login: TranslationStrings = {
   'login.register': 'Реєстрація',
   'login.emailPlaceholder': 'ваш@email.com',
   'login.username': 'Ім’я користувача',
-  'login.oidc.registrationDisabled':
-    'Реєстрацію вимкнено. Зверніться до адміністратора.',
+  'login.oidc.registrationDisabled': 'Реєстрацію вимкнено. Зверніться до адміністратора.',
   'login.oidc.noEmail': 'Провайдер не надав адресу електронної пошти.',
   'login.mfaTitle': 'Двофакторна автентифікація',
   'login.mfaSubtitle': 'Введіть 6-значний код з додатка-автентифікатора.',
   'login.mfaCodeLabel': 'Код підтвердження',
   'login.mfaCodeRequired': 'Введіть код із додатка-автентифікатора.',
-  'login.mfaHint':
-    'Відкрийте Google Authenticator, Authy або інший TOTP-додаток.',
+  'login.mfaHint': 'Відкрийте Google Authenticator, Authy або інший TOTP-додаток.',
   'login.mfaBack': '← Назад до входу',
   'login.mfaVerify': 'Підтвердити',
   'login.invalidInviteLink': 'Недійсне або прострочене посилання-запрошення',
@@ -73,27 +67,21 @@ const login: TranslationStrings = {
   'login.passwordsDontMatch': 'Паролі не співпадають',
   'login.mfaCode': 'Код 2FA',
   'login.resetPasswordTitle': 'Встановіть новий пароль',
-  'login.resetPasswordBody':
-    'Виберіть надійний пароль, який ви ще не використовували. Мінімум 8 символів.',
-  'login.resetPasswordMfaBody':
-    'Введіть код 2FA або резервний код, щоб завершити скидання.',
+  'login.resetPasswordBody': 'Виберіть надійний пароль, який ви ще не використовували. Мінімум 8 символів.',
+  'login.resetPasswordMfaBody': 'Введіть код 2FA або резервний код, щоб завершити скидання.',
   'login.resetPasswordSubmit': 'Скинути пароль',
   'login.resetPasswordVerify': 'Перевірити та скинути',
   'login.resetPasswordSuccessTitle': 'Пароль оновлено',
   'login.resetPasswordSuccessBody': 'Тепер ви можете увійти з новим паролем.',
   'login.resetPasswordInvalidLink': 'Неправильне посилання для скидання',
-  'login.resetPasswordInvalidLinkBody':
-    'Посилання відсутнє або пошкоджене. Запитайте нове, щоб продовжити.',
-  'login.resetPasswordFailed':
-    'Скидання не вдалося. Можливо, термін дії посилання минув.',
+  'login.resetPasswordInvalidLinkBody': 'Посилання відсутнє або пошкоджене. Запитайте нове, щоб продовжити.',
+  'login.resetPasswordFailed': 'Скидання не вдалося. Можливо, термін дії посилання минув.',
   'login.oidc.tokenFailed': 'Автентифікація не вдалася.',
   'login.oidc.invalidState': 'Недійсна сесія. Спробуйте знову.',
   'login.demoFailed': 'Помилка демо-входу',
   'login.oidcSignIn': 'Увійти через {name}',
-  'login.oidcOnly':
-    'Вхід за паролем вимкнено. Використайте вашого SSO-провайдера для входу.',
-  'login.oidcLoggedOut':
-    'Ви вийшли з системи. Увійдіть знову через вашого SSO-провайдера.',
+  'login.oidcOnly': 'Вхід за паролем вимкнено. Використайте вашого SSO-провайдера для входу.',
+  'login.oidcLoggedOut': 'Ви вийшли з системи. Увійдіть знову через вашого SSO-провайдера.',
   'login.demoHint': 'Спробуйте демо — реєстрація не потрібна',
   'login.passkey.signIn': 'Увійти за допомогою passkey',
   'login.passkey.failed': 'Не вдалося увійти за допомогою passkey. Спробуйте ще раз.',

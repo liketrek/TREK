@@ -3,18 +3,14 @@ import type { TranslationStrings } from '../types';
 const dayplan: TranslationStrings = {
   'dayplan.icsTooltip': 'تصدير التقويم (ICS)',
   'dayplan.emptyDay': 'لا توجد أماكن مخططة لهذا اليوم',
-  'dayplan.cannotReorderTransport':
-    'لا يمكن إعادة ترتيب الحجوزات ذات الوقت الثابت',
+  'dayplan.cannotReorderTransport': 'لا يمكن إعادة ترتيب الحجوزات ذات الوقت الثابت',
   'dayplan.confirmRemoveTimeTitle': 'إزالة الوقت؟',
-  'dayplan.confirmRemoveTimeBody':
-    'هذا المكان له وقت ثابت ({time}). نقله سيزيل الوقت ويسمح بالترتيب الحر.',
+  'dayplan.confirmRemoveTimeBody': 'هذا المكان له وقت ثابت ({time}). نقله سيزيل الوقت ويسمح بالترتيب الحر.',
   'dayplan.confirmRemoveTimeAction': 'إزالة الوقت ونقل',
   'dayplan.confirmDeleteNoteTitle': 'حذف الملاحظة؟',
   'dayplan.confirmDeleteNoteBody': 'سيتم حذف هذه الملاحظة نهائيًا.',
-  'dayplan.cannotDropOnTimed':
-    'لا يمكن وضع العناصر بين الإدخالات المرتبطة بوقت',
-  'dayplan.cannotBreakChronology':
-    'سيؤدي هذا إلى كسر الترتيب الزمني للعناصر والحجوزات المجدولة',
+  'dayplan.cannotDropOnTimed': 'لا يمكن وضع العناصر بين الإدخالات المرتبطة بوقت',
+  'dayplan.cannotBreakChronology': 'سيؤدي هذا إلى كسر الترتيب الزمني للعناصر والحجوزات المجدولة',
   'dayplan.addNote': 'إضافة ملاحظة',
   'dayplan.editNote': 'تعديل الملاحظة',
   'dayplan.noteAdd': 'إضافة ملاحظة',

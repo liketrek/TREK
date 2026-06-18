@@ -13,8 +13,7 @@ const categories: TranslationStrings = {
   'categories.defaultName': '카테고리',
   'categories.update': '업데이트',
   'categories.create': '생성',
-  'categories.confirm.delete':
-    '카테고리를 삭제할까요? 이 카테고리의 장소는 삭제되지 않습니다.',
+  'categories.confirm.delete': '카테고리를 삭제할까요? 이 카테고리의 장소는 삭제되지 않습니다.',
   'categories.toast.loadError': '카테고리 불러오기 실패',
   'categories.toast.nameRequired': '이름을 입력하세요',
   'categories.toast.updated': '카테고리가 업데이트되었습니다',

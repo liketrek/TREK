@@ -31,6 +31,7 @@ const { svc } = vi.hoisted(() => ({
     verifyTripAccess: vi.fn(), listBudgetItems: vi.fn(), createBudgetItem: vi.fn(), updateBudgetItem: vi.fn(),
     deleteBudgetItem: vi.fn(), updateMembers: vi.fn(), toggleMemberPaid: vi.fn(), getPerPersonSummary: vi.fn(),
     calculateSettlement: vi.fn(), reorderBudgetItems: vi.fn(), reorderBudgetCategories: vi.fn(),
+    setItemPayers: vi.fn(), listSettlements: vi.fn(), createSettlement: vi.fn(), updateSettlement: vi.fn(), deleteSettlement: vi.fn(),
   },
 }));
 vi.mock('../../src/services/budgetService', () => svc);
@@ -103,5 +104,19 @@ describe('Budget e2e (real auth guard + temp SQLite)', () => {
     const res = await request(server).put('/api/trips/5/budget/9/members').set('Cookie', sessionCookie(1)).send({ user_ids: 'no' });
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'user_ids must be an array' });
+  });
+
+  it('200 on settlement update with permission', async () => {
+    svc.updateSettlement.mockReturnValue({ id: 7, from_user_id: 2, to_user_id: 1, amount: 15 });
+    const res = await request(server).put('/api/trips/5/budget/settlements/7').set('Cookie', sessionCookie(1)).send({ from_user_id: 2, to_user_id: 1, amount: 15 });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ settlement: { id: 7, from_user_id: 2, to_user_id: 1, amount: 15 } });
+  });
+
+  it('404 on settlement update when it does not exist', async () => {
+    svc.updateSettlement.mockReturnValue(null);
+    const res = await request(server).put('/api/trips/5/budget/settlements/7').set('Cookie', sessionCookie(1)).send({ from_user_id: 2, to_user_id: 1, amount: 15 });
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'Settlement not found' });
   });
 });

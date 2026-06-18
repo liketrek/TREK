@@ -3,14 +3,12 @@ import type { TranslationStrings } from '../types';
 const memories: TranslationStrings = {
   'memories.title': 'Fotoğraflar',
   'memories.notConnected': '{provider_name} bağlı değil',
-  'memories.notConnectedHint':
-    "Bu seyahate fotoğraf eklemek için Ayarlar'dan {provider_name} örneğinizi bağlayın.",
+  'memories.notConnectedHint': "Bu seyahate fotoğraf eklemek için Ayarlar'dan {provider_name} örneğinizi bağlayın.",
   'memories.notConnectedMultipleHint':
     "Bu seyahate fotoğraf eklemek için Ayarlar'dan şu fotoğraf sağlayıcılarından birini bağlayın: {provider_names}",
   'memories.noDates': 'Fotoğrafları yüklemek için seyahatinize tarih ekleyin.',
   'memories.noPhotos': 'Fotoğraf bulunamadı',
-  'memories.noPhotosHint':
-    "No photos found in {provider_name} for this trip's date range.",
+  'memories.noPhotosHint': "No photos found in {provider_name} for this trip's date range.",
   'memories.photosFound': 'fotoğraf',
   'memories.fromOthers': 'başkalarından',
   'memories.sharePhotos': 'Fotoğrafları paylaş',
@@ -24,10 +22,8 @@ const memories: TranslationStrings = {
   'memories.providerPassword': 'Şifre',
   'memories.providerOTP': 'MFA kodu (etkinse)',
   'memories.skipSSLVerification': 'SSL Sertifika doğrulamasını atla',
-  'memories.immichAutoUpload':
-    "Journey fotoğraflarını yüklerken Immich'e yansıt",
-  'memories.providerUrlHintSynology':
-    "URL'ye Photos uygulama yolunu ekleyin, örn. https://nas:5001/photo",
+  'memories.immichAutoUpload': "Journey fotoğraflarını yüklerken Immich'e yansıt",
+  'memories.providerUrlHintSynology': "URL'ye Photos uygulama yolunu ekleyin, örn. https://nas:5001/photo",
   'memories.testConnection': 'Bağlantıyı test et',
   'memories.testShort': 'Dene',
   'memories.testFirst': 'Önce bağlantıyı test edin',
@@ -72,10 +68,8 @@ const memories: TranslationStrings = {
   'memories.error.addPhotos': 'Fotoğraflar eklenemedi',
   'memories.error.removePhoto': 'Fotoğraf kaldırılamadı',
   'memories.error.toggleSharing': 'Paylaşım güncellenemedi',
-  'memories.saveRouteNotConfigured':
-    'Bu sağlayıcı için kaydetme yolu yapılandırılmamış',
-  'memories.testRouteNotConfigured':
-    'Bu sağlayıcı için test yolu yapılandırılmamış',
+  'memories.saveRouteNotConfigured': 'Bu sağlayıcı için kaydetme yolu yapılandırılmamış',
+  'memories.testRouteNotConfigured': 'Bu sağlayıcı için test yolu yapılandırılmamış',
   'memories.fillRequiredFields': 'Lütfen tüm zorunlu alanları doldurun',
 };
 export default memories;

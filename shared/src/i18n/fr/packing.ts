@@ -7,8 +7,7 @@ const packing: TranslationStrings = {
   'packing.importTitle': 'Importer la liste',
   'packing.importHint':
     'Un élément par ligne. Catégorie et quantité optionnelles séparées par virgule, point-virgule ou tabulation : Nom, Catégorie, Quantité',
-  'packing.importPlaceholder':
-    'Brosse à dents\nCrème solaire, Hygiène\nT-Shirts, Vêtements, 5\nPasseport, Documents',
+  'packing.importPlaceholder': 'Brosse à dents\nCrème solaire, Hygiène\nT-Shirts, Vêtements, 5\nPasseport, Documents',
   'packing.importCsv': 'Charger CSV/TXT',
   'packing.importAction': 'Importer {count}',
   'packing.importSuccess': '{count} éléments importés',
@@ -51,10 +50,8 @@ const packing: TranslationStrings = {
   'packing.bagName': 'Nom...',
   'packing.addBag': 'Ajouter un bagage',
   'packing.changeCategory': 'Changer de catégorie',
-  'packing.confirm.clearChecked':
-    'Voulez-vous vraiment supprimer {count} articles cochés ?',
-  'packing.confirm.deleteCat':
-    'Voulez-vous vraiment supprimer la catégorie « {name} » avec {count} articles ?',
+  'packing.confirm.clearChecked': 'Voulez-vous vraiment supprimer {count} articles cochés ?',
+  'packing.confirm.deleteCat': 'Voulez-vous vraiment supprimer la catégorie « {name} » avec {count} articles ?',
   'packing.defaultCategory': 'Autre',
   'packing.toast.saveError': "Échec de l'enregistrement",
   'packing.toast.deleteError': 'Échec de la suppression',

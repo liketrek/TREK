@@ -33,8 +33,7 @@ const planner: TranslationStrings = {
   'planner.resConfirmed': 'Reservering bevestigd · ',
   'planner.notePlaceholder': 'Notitie…',
   'planner.noteTimePlaceholder': 'Tijd (optioneel)',
-  'planner.noteExamplePlaceholder':
-    'bijv. S3 om 14:30 vanaf centraal station, veerboot van pier 7, lunchpauze…',
+  'planner.noteExamplePlaceholder': 'bijv. S3 om 14:30 vanaf centraal station, veerboot van pier 7, lunchpauze…',
   'planner.totalCost': 'Totale kosten',
   'planner.searchPlaces': 'Plaatsen zoeken…',
   'planner.allCategories': 'Alle categorieën',
@@ -48,8 +47,7 @@ const planner: TranslationStrings = {
   'planner.route': 'Route',
   'planner.optimize': 'Optimaliseren',
   'planner.openGoogleMaps': 'Openen in Google Maps',
-  'planner.selectDayHint':
-    'Selecteer een dag uit de lijst links om het dagplan te bekijken',
+  'planner.selectDayHint': 'Selecteer een dag uit de lijst links om het dagplan te bekijken',
   'planner.noPlacesForDay': 'Nog geen plaatsen voor deze dag',
   'planner.addPlacesLink': 'Plaatsen toevoegen →',
   'planner.minTotal': 'min. totaal',

@@ -14,8 +14,7 @@ const notif: TranslationStrings = {
   'notif.todo_due.title': 'Tugas jatuh tempo',
   'notif.todo_due.text': '{todo} di {trip} jatuh tempo pada {due}',
   'notif.vacay_invite.title': 'Undangan Vacay Fusion',
-  'notif.vacay_invite.text':
-    '{actor} mengundangmu untuk menggabungkan rencana liburan',
+  'notif.vacay_invite.text': '{actor} mengundangmu untuk menggabungkan rencana liburan',
   'notif.photos_shared.title': 'Foto Dibagikan',
   'notif.photos_shared.text': '{actor} membagikan {count} foto di {trip}',
   'notif.collab_message.title': 'Pesan Baru',
@@ -36,7 +35,6 @@ const notif: TranslationStrings = {
   'notif.generic.title': 'Notifikasi',
   'notif.generic.text': 'Kamu punya notifikasi baru',
   'notif.dev.unknown_event.title': '[DEV] Event Tidak Dikenal',
-  'notif.dev.unknown_event.text':
-    'Tipe event "{event}" tidak terdaftar di EVENT_NOTIFICATION_CONFIG',
+  'notif.dev.unknown_event.text': 'Tipe event "{event}" tidak terdaftar di EVENT_NOTIFICATION_CONFIG',
 };
 export default notif;

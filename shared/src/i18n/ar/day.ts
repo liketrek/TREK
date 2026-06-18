@@ -7,8 +7,7 @@ const day: TranslationStrings = {
   'day.sunrise': 'شروق الشمس',
   'day.sunset': 'غروب الشمس',
   'day.hourlyForecast': 'التوقعات بالساعة',
-  'day.climateHint':
-    'متوسطات تاريخية — التوقعات الفعلية متاحة خلال 16 يومًا من هذا التاريخ.',
+  'day.climateHint': 'متوسطات تاريخية — التوقعات الفعلية متاحة خلال 16 يومًا من هذا التاريخ.',
   'day.noWeather': 'لا تتوفر بيانات طقس. أضف مكانًا بإحداثيات.',
   'day.overview': 'ملخص اليوم',
   'day.accommodation': 'الإقامة',

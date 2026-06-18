@@ -32,28 +32,20 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': 'Spolupráce (poznámky, hlasování, chat)',
   'perm.action.share_manage': 'Spravovat odkazy ke sdílení',
   'perm.actionHint.trip_create': 'Kdo může vytvářet nové výlety',
-  'perm.actionHint.trip_edit':
-    'Kdo může měnit název, data, popis a měnu výletu',
+  'perm.actionHint.trip_edit': 'Kdo může měnit název, data, popis a měnu výletu',
   'perm.actionHint.trip_delete': 'Kdo může trvale smazat výlet',
   'perm.actionHint.trip_archive': 'Kdo může archivovat nebo odarchivovat výlet',
-  'perm.actionHint.trip_cover_upload':
-    'Kdo může nahrát nebo změnit titulní obrázek',
+  'perm.actionHint.trip_cover_upload': 'Kdo může nahrát nebo změnit titulní obrázek',
   'perm.actionHint.member_manage': 'Kdo může pozvat nebo odebrat členy výletu',
   'perm.actionHint.file_upload': 'Kdo může nahrávat soubory k výletu',
   'perm.actionHint.file_edit': 'Kdo může upravovat popisy a odkazy souborů',
-  'perm.actionHint.file_delete':
-    'Kdo může přesunout soubory do koše nebo je trvale smazat',
+  'perm.actionHint.file_delete': 'Kdo může přesunout soubory do koše nebo je trvale smazat',
   'perm.actionHint.place_edit': 'Kdo může přidávat, upravovat nebo mazat místa',
-  'perm.actionHint.day_edit':
-    'Kdo může upravovat dny, poznámky ke dnům a přiřazení míst',
-  'perm.actionHint.reservation_edit':
-    'Kdo může vytvářet, upravovat nebo mazat rezervace',
-  'perm.actionHint.budget_edit':
-    'Kdo může vytvářet, upravovat nebo mazat položky rozpočtu',
+  'perm.actionHint.day_edit': 'Kdo může upravovat dny, poznámky ke dnům a přiřazení míst',
+  'perm.actionHint.reservation_edit': 'Kdo může vytvářet, upravovat nebo mazat rezervace',
+  'perm.actionHint.budget_edit': 'Kdo může vytvářet, upravovat nebo mazat položky rozpočtu',
   'perm.actionHint.packing_edit': 'Kdo může spravovat položky balení a tašky',
-  'perm.actionHint.collab_edit':
-    'Kdo může vytvářet poznámky, hlasování a posílat zprávy',
-  'perm.actionHint.share_manage':
-    'Kdo může vytvářet nebo mazat veřejné odkazy ke sdílení',
+  'perm.actionHint.collab_edit': 'Kdo může vytvářet poznámky, hlasování a posílat zprávy',
+  'perm.actionHint.share_manage': 'Kdo může vytvářet nebo mazat veřejné odkazy ke sdílení',
 };
 export default perm;

@@ -13,8 +13,7 @@ const categories: TranslationStrings = {
   'categories.defaultName': 'فئة',
   'categories.update': 'تحديث',
   'categories.create': 'إنشاء',
-  'categories.confirm.delete':
-    'حذف الفئة؟ لن يتم حذف الأماكن التابعة لهذه الفئة.',
+  'categories.confirm.delete': 'حذف الفئة؟ لن يتم حذف الأماكن التابعة لهذه الفئة.',
   'categories.toast.loadError': 'فشل تحميل الفئات',
   'categories.toast.nameRequired': 'يرجى إدخال اسم',
   'categories.toast.updated': 'تم تحديث الفئة',

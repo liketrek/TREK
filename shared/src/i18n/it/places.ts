@@ -6,13 +6,10 @@ const places: TranslationStrings = {
   'places.sidebarDrop': 'Rilascia per importare',
   'places.importFileHint':
     'Importa file .gpx, .kml o .kmz da strumenti come Google My Maps, Google Earth o un tracker GPS.',
-  'places.importFileDropHere':
-    'Clicca per selezionare un file o trascina e rilascia qui',
+  'places.importFileDropHere': 'Clicca per selezionare un file o trascina e rilascia qui',
   'places.importFileDropActive': 'Rilascia il file per selezionarlo',
-  'places.importFileUnsupported':
-    'Tipo di file non supportato. Usa .gpx, .kml o .kmz.',
-  'places.importFileTooLarge':
-    'Il file è troppo grande. La dimensione massima di caricamento è {maxMb} MB.',
+  'places.importFileUnsupported': 'Tipo di file non supportato. Usa .gpx, .kml o .kmz.',
+  'places.importFileTooLarge': 'Il file è troppo grande. La dimensione massima di caricamento è {maxMb} MB.',
   'places.importFileError': 'Importazione non riuscita',
   'places.importAllSkipped': 'Tutti i luoghi erano già nel viaggio.',
   'places.gpxImported': '{count} luoghi importati da GPX',
@@ -30,16 +27,13 @@ const places: TranslationStrings = {
   'places.kmlKmzImported': '{count} luoghi importati da KMZ/KML',
   'places.urlResolved': "Luogo importato dall'URL",
   'places.importList': 'Importa lista',
-  'places.kmlKmzSummaryValues':
-    'Placemarks: {total} • Importati: {created} • Saltati: {skipped}',
+  'places.kmlKmzSummaryValues': 'Placemarks: {total} • Importati: {created} • Saltati: {skipped}',
   'places.importGoogleList': 'Lista Google',
   'places.importNaverList': 'Lista Naver',
-  'places.googleListHint':
-    'Incolla un link condiviso di una lista Google Maps per importare tutti i luoghi.',
+  'places.googleListHint': 'Incolla un link condiviso di una lista Google Maps per importare tutti i luoghi.',
   'places.googleListImported': '{count} luoghi importati da "{list}"',
   'places.googleListError': 'Importazione lista Google Maps non riuscita',
-  'places.naverListHint':
-    'Incolla un link condiviso di una lista Naver Maps per importare tutti i luoghi.',
+  'places.naverListHint': 'Incolla un link condiviso di una lista Naver Maps per importare tutti i luoghi.',
   'places.naverListImported': '{count} luoghi importati da "{list}"',
   'places.naverListError': 'Importazione lista Naver Maps non riuscita',
   'places.viewDetails': 'Visualizza dettagli',
@@ -76,8 +70,7 @@ const places: TranslationStrings = {
   'places.formNotes': 'Note',
   'places.formNotesPlaceholder': 'Note personali...',
   'places.formReservation': 'Prenotazione',
-  'places.reservationNotesPlaceholder':
-    'Note della prenotazione, numero di conferma...',
+  'places.reservationNotesPlaceholder': 'Note della prenotazione, numero di conferma...',
   'places.mapsSearchPlaceholder': 'Cerca luoghi...',
   'places.mapsSearchError': 'Impossibile cercare i luoghi.',
   'places.loadingDetails': 'Caricamento dettagli del luogo…',

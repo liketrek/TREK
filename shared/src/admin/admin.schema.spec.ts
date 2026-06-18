@@ -16,16 +16,9 @@ describe('adminUserCreateRequestSchema', () => {
         role: 'admin',
       }).success,
     ).toBe(true);
-    expect(
-      adminUserCreateRequestSchema.safeParse({ email: 'a@b.c' }).success,
-    ).toBe(true);
-    expect(
-      adminUserCreateRequestSchema.safeParse({ password: 'p' }).success,
-    ).toBe(false);
-    expect(
-      adminUserCreateRequestSchema.safeParse({ email: 'a@b.c', role: 'root' })
-        .success,
-    ).toBe(false);
+    expect(adminUserCreateRequestSchema.safeParse({ email: 'a@b.c' }).success).toBe(true);
+    expect(adminUserCreateRequestSchema.safeParse({ password: 'p' }).success).toBe(false);
+    expect(adminUserCreateRequestSchema.safeParse({ email: 'a@b.c', role: 'root' }).success).toBe(false);
   });
 });
 
@@ -49,19 +42,13 @@ describe('adminInviteCreateRequestSchema', () => {
       }).success,
     ).toBe(true);
     expect(adminInviteCreateRequestSchema.safeParse({}).success).toBe(true);
-    expect(
-      adminInviteCreateRequestSchema.safeParse({ role: 'root' }).success,
-    ).toBe(false);
+    expect(adminInviteCreateRequestSchema.safeParse({ role: 'root' }).success).toBe(false);
   });
 });
 
 describe('adminFeatureToggleRequestSchema', () => {
   it('requires a boolean enabled', () => {
-    expect(
-      adminFeatureToggleRequestSchema.safeParse({ enabled: true }).success,
-    ).toBe(true);
-    expect(
-      adminFeatureToggleRequestSchema.safeParse({ enabled: 'yes' }).success,
-    ).toBe(false);
+    expect(adminFeatureToggleRequestSchema.safeParse({ enabled: true }).success).toBe(true);
+    expect(adminFeatureToggleRequestSchema.safeParse({ enabled: 'yes' }).success).toBe(false);
   });
 });

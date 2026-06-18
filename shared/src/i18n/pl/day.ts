@@ -7,8 +7,7 @@ const day: TranslationStrings = {
   'day.sunrise': 'Wschód słońca',
   'day.sunset': 'Zachód słońca',
   'day.hourlyForecast': 'Prognoza godzinowa',
-  'day.climateHint':
-    'Historyczne średnie — rzeczywista prognoza dostępna na następne 16 dni od tej daty.',
+  'day.climateHint': 'Historyczne średnie — rzeczywista prognoza dostępna na następne 16 dni od tej daty.',
   'day.noWeather': 'Brak danych pogodowych. Dodaj miejsce ze współrzędnymi.',
   'day.overview': 'Przegląd dnia',
   'day.accommodation': 'Zakwaterowanie',

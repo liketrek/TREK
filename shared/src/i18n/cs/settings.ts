@@ -14,12 +14,10 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Šablona mapy',
   'settings.mapTemplatePlaceholder.select': 'Vyberte šablonu...',
   'settings.mapDefaultHint': 'Ponechte prázdné pro OpenStreetMap (výchozí)',
-  'settings.mapTemplatePlaceholder':
-    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'URL šablony pro mapové dlaždice',
   'settings.mapProvider': 'Poskytovatel mapy',
-  'settings.mapProviderHint':
-    'Ovlivňuje mapy v Trip Planneru a Journey. Atlas vždy používá Leaflet.',
+  'settings.mapProviderHint': 'Ovlivňuje mapy v Trip Planneru a Journey. Atlas vždy používá Leaflet.',
   'settings.mapLeafletSubtitle': 'Klasické 2D, libovolné rastrové dlaždice',
   'settings.mapMapboxSubtitle': 'Vektorové dlaždice, 3D budovy a terén',
   'settings.mapExperimental': 'Experimentální',
@@ -28,16 +26,12 @@ const settings: TranslationStrings = {
   'settings.mapMapboxTokenLink': 'mapbox.com → Přístupové tokeny',
   'settings.mapStyle': 'Styl mapy',
   'settings.mapStylePlaceholder': 'Vyberte styl Mapbox',
-  'settings.mapStyleHint':
-    'Preset nebo vaše vlastní URL mapbox://styles/USER/ID',
+  'settings.mapStyleHint': 'Preset nebo vaše vlastní URL mapbox://styles/USER/ID',
   'settings.map3dBuildings': '3D budovy a terén',
-  'settings.map3dHint':
-    'Náklon + skutečné 3D vyvýšení budov — funguje s každým stylem, včetně satelitu.',
+  'settings.map3dHint': 'Náklon + skutečné 3D vyvýšení budov — funguje s každým stylem, včetně satelitu.',
   'settings.mapHighQuality': 'Režim vysoké kvality',
-  'settings.mapHighQualityHint':
-    'Antialiasing + zobrazení glóbu pro ostřejší hrany a realistický pohled na svět.',
-  'settings.mapHighQualityWarning':
-    'Může ovlivnit výkon na slabších zařízeních.',
+  'settings.mapHighQualityHint': 'Antialiasing + zobrazení glóbu pro ostřejší hrany a realistický pohled na svět.',
+  'settings.mapHighQualityWarning': 'Může ovlivnit výkon na slabších zařízeních.',
   'settings.mapTipLabel': 'Tip:',
   'settings.mapTip':
     'Pravé tlačítko myši a táhněte pro rotaci/náklon mapy. Prostřední tlačítko pro přidání místa (pravé tlačítko je vyhrazeno pro rotaci).',
@@ -46,11 +40,9 @@ const settings: TranslationStrings = {
   'settings.saveMap': 'Uložit nastavení mapy',
   'settings.apiKeys': 'API klíče',
   'settings.mapsKey': 'Google Maps API klíč',
-  'settings.mapsKeyHint':
-    'Pro vyhledávání míst. Vyžaduje Places API (New). Získáte na console.cloud.google.com',
+  'settings.mapsKeyHint': 'Pro vyhledávání míst. Vyžaduje Places API (New). Získáte na console.cloud.google.com',
   'settings.weatherKey': 'OpenWeatherMap API klíč',
-  'settings.weatherKeyHint':
-    'Pro předpověď počasí. Zdarma na openweathermap.org/api',
+  'settings.weatherKeyHint': 'Pro předpověď počasí. Zdarma na openweathermap.org/api',
   'settings.keyPlaceholder': 'Vložte klíč...',
   'settings.configured': 'Nastaveno',
   'settings.saveKeys': 'Uložit klíče',
@@ -79,8 +71,7 @@ const settings: TranslationStrings = {
   'settings.notificationsDisabled':
     'Oznámení nejsou nakonfigurována. Požádejte správce o aktivaci e-mailových nebo webhookových oznámení.',
   'settings.notificationsActive': 'Aktivní kanál',
-  'settings.notificationsManagedByAdmin':
-    'Události oznámení jsou konfigurovány administrátorem.',
+  'settings.notificationsManagedByAdmin': 'Události oznámení jsou konfigurovány administrátorem.',
   'settings.on': 'Zapnuto',
   'settings.off': 'Vypnuto',
   'settings.mcp.title': 'Konfigurace MCP',
@@ -94,8 +85,7 @@ const settings: TranslationStrings = {
   'settings.mcp.copied': 'Zkopírováno!',
   'settings.mcp.apiTokens': 'API tokeny',
   'settings.mcp.createToken': 'Vytvořit nový token',
-  'settings.mcp.noTokens':
-    'Zatím žádné tokeny. Vytvořte jeden pro připojení MCP klientů.',
+  'settings.mcp.noTokens': 'Zatím žádné tokeny. Vytvořte jeden pro připojení MCP klientů.',
   'settings.mcp.tokenCreatedAt': 'Vytvořen',
   'settings.mcp.tokenUsedAt': 'Použit',
   'settings.mcp.deleteTokenTitle': 'Smazat token',
@@ -103,8 +93,7 @@ const settings: TranslationStrings = {
     'Tento token přestane okamžitě fungovat. Všichni MCP klienti, kteří ho používají, ztratí přístup.',
   'settings.mcp.modal.createTitle': 'Vytvořit API token',
   'settings.mcp.modal.tokenName': 'Název tokenu',
-  'settings.mcp.modal.tokenNamePlaceholder':
-    'např. Claude Desktop, Pracovní notebook',
+  'settings.mcp.modal.tokenNamePlaceholder': 'např. Claude Desktop, Pracovní notebook',
   'settings.mcp.modal.creating': 'Vytváření…',
   'settings.mcp.modal.create': 'Vytvořit token',
   'settings.mcp.modal.createdTitle': 'Token vytvořen',
@@ -140,16 +129,13 @@ const settings: TranslationStrings = {
   'settings.oauth.sessionExpires': 'Vyprší',
   'settings.oauth.revoke': 'Odvolat',
   'settings.oauth.revokeSession': 'Odvolat relaci',
-  'settings.oauth.revokeSessionMessage':
-    'Tím se okamžitě odvolá přístup pro tuto relaci OAuth.',
+  'settings.oauth.revokeSessionMessage': 'Tím se okamžitě odvolá přístup pro tuto relaci OAuth.',
   'settings.oauth.modal.createTitle': 'Zaregistrovat klienta OAuth',
   'settings.oauth.modal.presets': 'Rychlá nastavení',
   'settings.oauth.modal.clientName': 'Název aplikace',
-  'settings.oauth.modal.clientNamePlaceholder':
-    'např. Claude Web, Moje MCP aplikace',
+  'settings.oauth.modal.clientNamePlaceholder': 'např. Claude Web, Moje MCP aplikace',
   'settings.oauth.modal.redirectUris': 'Přesměrovací URI',
-  'settings.oauth.modal.redirectUrisPlaceholder':
-    'https://your-app.com/callback\nhttps://your-app.com/auth',
+  'settings.oauth.modal.redirectUrisPlaceholder': 'https://your-app.com/callback\nhttps://your-app.com/auth',
   'settings.oauth.modal.redirectUrisHint':
     'Jedno URI na řádek. Vyžadováno HTTPS (localhost vyjmuto). Vyžadována přesná shoda.',
   'settings.oauth.modal.scopes': 'Povolená oprávnění',
@@ -167,10 +153,8 @@ const settings: TranslationStrings = {
   'settings.oauth.toast.deleteError': 'Smazání klienta OAuth se nezdařilo',
   'settings.oauth.toast.revoked': 'Relace odvolána',
   'settings.oauth.toast.revokeError': 'Odvolání relace se nezdařilo',
-  'settings.oauth.toast.rotateError':
-    'Obnovení tajného klíče klienta se nezdařilo',
-  'settings.oauth.modal.machineClient':
-    'Strojový klient (bez přihlášení v prohlížeči)',
+  'settings.oauth.toast.rotateError': 'Obnovení tajného klíče klienta se nezdařilo',
+  'settings.oauth.modal.machineClient': 'Strojový klient (bez přihlášení v prohlížeči)',
   'settings.oauth.modal.machineClientHint':
     'Používá grant client_credentials — bez URI pro přesměrování. Token je vydán přímo přes client_id + client_secret a funguje jako vy v rámci vybraných oborů.',
   'settings.oauth.modal.machineClientUsage':
@@ -191,8 +175,7 @@ const settings: TranslationStrings = {
   'settings.about.supporters.tierEmpty': 'Buď první',
   'settings.about.supporter.tier.noReturnTicket': 'No Return Ticket',
   'settings.about.supporter.tier.lostLuggageVip': 'Lost Luggage VIP',
-  'settings.about.supporter.tier.businessClassDreamer':
-    'Business Class Dreamer',
+  'settings.about.supporter.tier.businessClassDreamer': 'Business Class Dreamer',
   'settings.about.supporter.tier.budgetTraveller': 'Budget Traveller',
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate',
   'settings.about.description':
@@ -213,8 +196,7 @@ const settings: TranslationStrings = {
   'settings.passwordRequired': 'Zadejte prosím současné i nové heslo',
   'settings.passwordTooShort': 'Heslo musí mít alespoň 8 znaků',
   'settings.passwordMismatch': 'Hesla se neshodují',
-  'settings.passwordWeak':
-    'Heslo musí obsahovat velké a malé písmeno, číslici a speciální znak',
+  'settings.passwordWeak': 'Heslo musí obsahovat velké a malé písmeno, číslici a speciální znak',
   'settings.passwordChanged': 'Heslo bylo úspěšně změněno',
   'settings.deleteAccount': 'Smazat účet',
   'settings.deleteAccountTitle': 'Smazat váš účet?',
@@ -238,13 +220,10 @@ const settings: TranslationStrings = {
   'settings.mfa.title': 'Dvoufaktorové ověření (2FA)',
   'settings.mfa.description':
     'Přidá druhý stupeň zabezpečení při přihlašování e-mailem a heslem. Použijte aplikaci (Google Authenticator, Authy apod.).',
-  'settings.mfa.requiredByPolicy':
-    'Správce vyžaduje dvoufázové ověření. Nejdřív níže nastavte aplikaci autentikátoru.',
+  'settings.mfa.requiredByPolicy': 'Správce vyžaduje dvoufázové ověření. Nejdřív níže nastavte aplikaci autentikátoru.',
   'settings.mfa.backupTitle': 'Záložní kódy',
-  'settings.mfa.backupDescription':
-    'Použijte tyto jednorázové kódy, pokud ztratíte přístup k autentizační aplikaci.',
-  'settings.mfa.backupWarning':
-    'Uložte si je hned. Každý kód lze použít pouze jednou.',
+  'settings.mfa.backupDescription': 'Použijte tyto jednorázové kódy, pokud ztratíte přístup k autentizační aplikaci.',
+  'settings.mfa.backupWarning': 'Uložte si je hned. Každý kód lze použít pouze jednou.',
   'settings.mfa.backupCopy': 'Kopírovat kódy',
   'settings.mfa.backupDownload': 'Stáhnout TXT',
   'settings.mfa.backupPrint': 'Tisk / PDF',
@@ -252,30 +231,26 @@ const settings: TranslationStrings = {
   'settings.mfa.enabled': '2FA je pro váš účet aktivní.',
   'settings.mfa.disabled': '2FA není aktivní.',
   'settings.mfa.setup': 'Nastavit autentizační aplikaci',
-  'settings.mfa.scanQr':
-    'Naskenujte tento QR kód ve vaší aplikaci nebo zadejte kód ručně.',
+  'settings.mfa.scanQr': 'Naskenujte tento QR kód ve vaší aplikaci nebo zadejte kód ručně.',
   'settings.mfa.secretLabel': 'Tajný klíč (pro ruční zadání)',
   'settings.mfa.codePlaceholder': '6místný kód',
   'settings.mfa.enable': 'Zapnout 2FA',
   'settings.mfa.cancelSetup': 'Zrušit',
   'settings.mfa.disableTitle': 'Vypnout 2FA',
-  'settings.mfa.disableHint':
-    'Zadejte své heslo k účtu a aktuální kód z aplikace.',
+  'settings.mfa.disableHint': 'Zadejte své heslo k účtu a aktuální kód z aplikace.',
   'settings.mfa.disable': 'Vypnout 2FA',
   'settings.mfa.toastEnabled': 'Dvoufaktorové ověření bylo zapnuto',
   'settings.mfa.toastDisabled': 'Dvoufaktorové ověření bylo vypnuto',
   'settings.mfa.demoBlocked': 'Není k dispozici v demo režimu',
   'settings.bookingLabels': 'Popisky tras rezervací',
-  'settings.bookingLabelsHint':
-    'Zobrazuje názvy stanic / letišť na mapě. Pokud je vypnuto, zobrazí se pouze ikona.',
+  'settings.bookingLabelsHint': 'Zobrazuje názvy stanic / letišť na mapě. Pokud je vypnuto, zobrazí se pouze ikona.',
   'settings.mustChangePassword': 'Před pokračováním musíte změnit heslo.',
   'settings.notifyVersionAvailable': 'Nová verze k dispozici',
   'settings.notificationPreferences.noChannels':
     'Nejsou nakonfigurovány žádné kanály oznámení. Požádejte správce o nastavení e-mailových nebo webhook oznámení.',
   'settings.webhookUrl.label': 'URL webhooku',
   'settings.webhookUrl.placeholder': 'https://discord.com/api/webhooks/...',
-  'settings.webhookUrl.hint':
-    'Zadejte URL vašeho Discord, Slack nebo vlastního webhooku pro příjem oznámení.',
+  'settings.webhookUrl.hint': 'Zadejte URL vašeho Discord, Slack nebo vlastního webhooku pro příjem oznámení.',
   'settings.webhookUrl.saved': 'URL webhooku uložena',
   'settings.webhookUrl.test': 'Otestovat',
   'settings.webhookUrl.testSuccess': 'Testovací webhook byl úspěšně odeslán',
@@ -290,16 +265,15 @@ const settings: TranslationStrings = {
   'settings.ntfyUrl.tokenHint': 'Vyžadováno pro témata chráněná heslem.',
   'settings.ntfyUrl.saved': 'Nastavení Ntfy uloženo',
   'settings.ntfyUrl.test': 'Otestovat',
-  'settings.ntfyUrl.testSuccess':
-    'Testovací notifikace Ntfy byla úspěšně odeslána',
+  'settings.ntfyUrl.testSuccess': 'Testovací notifikace Ntfy byla úspěšně odeslána',
   'settings.ntfyUrl.testFailed': 'Testovací notifikace Ntfy selhala',
   'settings.ntfyUrl.tokenCleared': 'Přístupový token byl vymazán',
   'settings.notificationPreferences.inapp': 'In-App',
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',
-  "settings.currency": "Currency",
-  "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.currency': 'Currency',
+  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
   'settings.passkey.title': 'Přístupové klíče',
   'settings.passkey.description':
     'Přihlašujte se rychleji a s ochranou proti phishingu pomocí přístupového klíče — otiskem prstu, obličejem, PINem nebo hardwarovým klíčem. Vaše heslo zůstává jako záloha.',
@@ -307,8 +281,7 @@ const settings: TranslationStrings = {
     'Přístupové klíče jsou povoleny, ale na tomto serveru zatím nejsou plně nastaveny. Požádejte správce o nastavení domény WebAuthn.',
   'settings.passkey.add': 'Přidat přístupový klíč',
   'settings.passkey.addTitle': 'Přidat přístupový klíč',
-  'settings.passkey.passwordPrompt':
-    'Potvrďte své současné heslo a poté postupujte podle pokynů svého zařízení.',
+  'settings.passkey.passwordPrompt': 'Potvrďte své současné heslo a poté postupujte podle pokynů svého zařízení.',
   'settings.passkey.passwordRequired': 'Vaše současné heslo je vyžadováno.',
   'settings.passkey.namePlaceholder': 'Název (volitelné, např. „iPhone“)',
   'settings.passkey.addedToast': 'Přístupový klíč přidán',
@@ -316,8 +289,7 @@ const settings: TranslationStrings = {
   'settings.passkey.addError': 'Přístupový klíč se nepodařilo přidat',
   'settings.passkey.cancelled': 'Nastavení přístupového klíče zrušeno',
   'settings.passkey.deleted': 'Přístupový klíč odebrán',
-  'settings.passkey.deleteConfirm':
-    'Odebrat tento přístupový klíč? Potvrďte svým heslem.',
+  'settings.passkey.deleteConfirm': 'Odebrat tento přístupový klíč? Potvrďte svým heslem.',
   'settings.passkey.rename': 'Přejmenovat',
   'settings.passkey.defaultName': 'Přístupový klíč',
   'settings.passkey.synced': 'Synchronizováno',
@@ -325,9 +297,11 @@ const settings: TranslationStrings = {
   'settings.passkey.lastUsed': 'Naposledy použito',
   'settings.passkey.neverUsed': 'Nikdy nepoužito',
   'settings.mapPoiPill': 'Objevovat místa na mapě',
-  'settings.mapPoiPillHint': 'Zobrazit na mapě výletu kategorie pro hledání restaurací, hotelů a dalšího v okolí z OpenStreetMap.',
+  'settings.mapPoiPillHint':
+    'Zobrazit na mapě výletu kategorie pro hledání restaurací, hotelů a dalšího v okolí z OpenStreetMap.',
   'settings.airtrail.title': 'AirTrail',
-  'settings.airtrail.hint': 'Připojte svou vlastní instanci AirTrail pro import a synchronizaci letů. Vytvořte API klíč v AirTrail v Nastavení → Zabezpečení.',
+  'settings.airtrail.hint':
+    'Připojte svou vlastní instanci AirTrail pro import a synchronizaci letů. Vytvořte API klíč v AirTrail v Nastavení → Zabezpečení.',
   'settings.airtrail.url': 'URL instance',
   'settings.airtrail.apiKey': 'API klíč',
   'settings.airtrail.apiKeyPlaceholder': 'API klíč Bearer',
@@ -335,7 +309,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.allowInsecureTls': 'Povolit certifikáty podepsané sebou samým',
   'settings.airtrail.allowInsecureTlsHint': 'Povolte pouze pro důvěryhodnou instanci ve vlastní síti.',
   'settings.airtrail.writeBack': 'Zapisovat změny zpět do AirTrail',
-  'settings.airtrail.writeBackHint': 'Ve výchozím stavu vypnuto: AirTrail je zdrojem pravdy a TREK z něj pouze čte. Zapněte, chcete-li odesílat úpravy provedené v TREK zpět do AirTrail.',
+  'settings.airtrail.writeBackHint':
+    'Ve výchozím stavu vypnuto: AirTrail je zdrojem pravdy a TREK z něj pouze čte. Zapněte, chcete-li odesílat úpravy provedené v TREK zpět do AirTrail.',
   'settings.airtrail.connected': 'Připojeno',
   'settings.airtrail.notConnected': 'Nepřipojeno',
   'settings.airtrail.toast.saved': 'Připojení k AirTrail uloženo',

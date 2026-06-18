@@ -1,8 +1,4 @@
-import {
-  oauthTokenRequestSchema,
-  oauthConsentRequestSchema,
-  oauthClientCreateRequestSchema,
-} from './oauth.schema';
+import { oauthTokenRequestSchema, oauthConsentRequestSchema, oauthClientCreateRequestSchema } from './oauth.schema';
 
 import { describe, it, expect } from 'vitest';
 
@@ -61,11 +57,7 @@ describe('oauthClientCreateRequestSchema', () => {
         allowed_scopes: ['trips:read'],
       }).success,
     ).toBe(true);
-    expect(
-      oauthClientCreateRequestSchema.safeParse({ name: 'CLI' }).success,
-    ).toBe(false);
-    expect(
-      oauthClientCreateRequestSchema.safeParse({ allowed_scopes: [] }).success,
-    ).toBe(false);
+    expect(oauthClientCreateRequestSchema.safeParse({ name: 'CLI' }).success).toBe(false);
+    expect(oauthClientCreateRequestSchema.safeParse({ allowed_scopes: [] }).success).toBe(false);
   });
 });

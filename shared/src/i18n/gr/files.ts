@@ -13,8 +13,7 @@ const files: TranslationStrings = {
   'files.uploadError': 'Η μεταφόρτωση απέτυχε',
   'files.dropzone': 'Αποθέστε αρχεία εδώ',
   'files.dropzoneHint': 'ή κάντε κλικ για περιήγηση',
-  'files.allowedTypes':
-    'Εικόνες, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Μέγ. 50 MB',
+  'files.allowedTypes': 'Εικόνες, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Μέγ. 50 MB',
   'files.uploading': 'Μεταφόρτωση...',
   'files.filterAll': 'Όλα',
   'files.filterPdf': 'PDF',
@@ -25,16 +24,14 @@ const files: TranslationStrings = {
   'files.empty': 'Δεν υπάρχουν αρχεία ακόμη',
   'files.emptyHint': 'Μεταφορτώστε αρχεία για να τα επισυνάψετε στο ταξίδι σας',
   'files.openTab': 'Άνοιγμα σε νέα καρτέλα',
-  'files.confirm.delete':
-    'Είστε σίγουροι ότι θέλετε να διαγράψετε αυτό το αρχείο;',
+  'files.confirm.delete': 'Είστε σίγουροι ότι θέλετε να διαγράψετε αυτό το αρχείο;',
   'files.toast.deleted': 'Το αρχείο διαγράφηκε',
   'files.toast.deleteError': 'Αποτυχία διαγραφής αρχείου',
   'files.sourcePlan': 'Ημερήσιο Πλάνο',
   'files.sourceBooking': 'Κράτηση',
   'files.sourceTransport': 'Μεταφορά',
   'files.attach': 'Επισύναψη',
-  'files.pasteHint':
-    'Μπορείτε επίσης να επικολλήσετε εικόνες από το πρόχειρο (Ctrl+V)',
+  'files.pasteHint': 'Μπορείτε επίσης να επικολλήσετε εικόνες από το πρόχειρο (Ctrl+V)',
   'files.trash': 'Κάδος',
   'files.trashEmpty': 'Ο κάδος είναι άδειος',
   'files.emptyTrash': 'Άδειασμα Κάδου',
@@ -54,10 +51,8 @@ const files: TranslationStrings = {
   'files.toast.assigned': 'Το αρχείο ανατέθηκε',
   'files.toast.assignError': 'Η ανάθεση απέτυχε',
   'files.toast.restoreError': 'Η επαναφορά απέτυχε',
-  'files.confirm.permanentDelete':
-    'Οριστική διαγραφή αυτού του αρχείου; Αυτή η ενέργεια δεν μπορεί να αναιρεθεί.',
-  'files.confirm.emptyTrash':
-    'Οριστική διαγραφή όλων των αρχείων στον κάδο; Αυτή η ενέργεια δεν μπορεί να αναιρεθεί.',
+  'files.confirm.permanentDelete': 'Οριστική διαγραφή αυτού του αρχείου; Αυτή η ενέργεια δεν μπορεί να αναιρεθεί.',
+  'files.confirm.emptyTrash': 'Οριστική διαγραφή όλων των αρχείων στον κάδο; Αυτή η ενέργεια δεν μπορεί να αναιρεθεί.',
   'files.noteLabel': 'Σημείωση',
   'files.notePlaceholder': 'Προσθήκη σημείωσης...',
 };

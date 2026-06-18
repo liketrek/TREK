@@ -14,8 +14,7 @@ const notifications: TranslationStrings = {
   'notifications.delete': 'حذف',
   'notifications.system': 'النظام',
   'notifications.synologySessionCleared.title': 'تم قطع اتصال Synology Photos',
-  'notifications.synologySessionCleared.text':
-    'تغير خادمك أو حسابك — انتقل إلى الإعدادات لاختبار اتصالك مرة أخرى.',
+  'notifications.synologySessionCleared.text': 'تغير خادمك أو حسابك — انتقل إلى الإعدادات لاختبار اتصالك مرة أخرى.',
   'notifications.versionAvailable.title': 'تحديث متاح',
   'notifications.versionAvailable.text': 'TREK {version} متاح الآن.',
   'notifications.versionAvailable.button': 'عرض التفاصيل',
@@ -29,8 +28,7 @@ const notifications: TranslationStrings = {
   'notifications.test.navigateText': 'إشعار تجريبي للتنقل.',
   'notifications.test.goThere': 'اذهب إلى هناك',
   'notifications.test.adminTitle': 'إذاعة المسؤول',
-  'notifications.test.adminText':
-    'أرسل {actor} إشعاراً تجريبياً لجميع المسؤولين.',
+  'notifications.test.adminText': 'أرسل {actor} إشعاراً تجريبياً لجميع المسؤولين.',
   'notifications.test.tripTitle': 'نشر {actor} في رحلتك',
   'notifications.test.tripText': 'إشعار تجريبي للرحلة "{trip}".',
 };

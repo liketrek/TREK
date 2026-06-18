@@ -20,8 +20,7 @@ const dashboard: TranslationStrings = {
   'dashboard.timezoneCustomTzPlaceholder': '예: America/New_York',
   'dashboard.timezoneCustomAdd': '추가',
   'dashboard.timezoneCustomErrorEmpty': '시간대 식별자를 입력하세요',
-  'dashboard.timezoneCustomErrorInvalid':
-    '잘못된 시간대입니다. Europe/Berlin 같은 형식을 사용하세요',
+  'dashboard.timezoneCustomErrorInvalid': '잘못된 시간대입니다. Europe/Berlin 같은 형식을 사용하세요',
   'dashboard.timezoneCustomErrorDuplicate': '이미 추가됨',
   'dashboard.emptyTitle': '아직 여행이 없습니다',
   'dashboard.emptyText': '첫 번째 여행을 만들고 계획을 시작하세요!',
@@ -55,8 +54,7 @@ const dashboard: TranslationStrings = {
   'dashboard.toast.restoreError': '여행 복원 실패',
   'dashboard.toast.copied': '여행이 복사되었습니다!',
   'dashboard.toast.copyError': '여행 복사 실패',
-  'dashboard.confirm.delete':
-    '여행 "{title}"을(를) 삭제할까요? 모든 장소와 계획이 영구 삭제됩니다.',
+  'dashboard.confirm.delete': '여행 "{title}"을(를) 삭제할까요? 모든 장소와 계획이 영구 삭제됩니다.',
   'dashboard.confirm.copy.title': '이 여행을 복사할까요?',
   'dashboard.confirm.copy.willCopy': '복사될 항목',
   'dashboard.confirm.copy.will1': '일정, 장소 및 일별 배정',
@@ -81,8 +79,7 @@ const dashboard: TranslationStrings = {
   'dashboard.endDate': '종료일',
   'dashboard.dayCount': '일수',
   'dashboard.dayCountHint': '여행 날짜가 설정되지 않은 경우 계획할 일수입니다.',
-  'dashboard.noDateHint':
-    '날짜 미설정 — 기본 7일이 생성됩니다. 언제든지 변경할 수 있습니다.',
+  'dashboard.noDateHint': '날짜 미설정 — 기본 7일이 생성됩니다. 언제든지 변경할 수 있습니다.',
   'dashboard.coverImage': '커버 이미지',
   'dashboard.addCoverImage': '커버 이미지 추가 (또는 끌어다 놓기)',
   'dashboard.addMembers': '동행자',

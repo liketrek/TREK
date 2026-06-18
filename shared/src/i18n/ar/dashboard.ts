@@ -20,8 +20,7 @@ const dashboard: TranslationStrings = {
   'dashboard.timezoneCustomTzPlaceholder': 'مثال: Asia/Riyadh',
   'dashboard.timezoneCustomAdd': 'إضافة',
   'dashboard.timezoneCustomErrorEmpty': 'أدخل معرّف منطقة زمنية',
-  'dashboard.timezoneCustomErrorInvalid':
-    'منطقة زمنية غير صالحة. استخدم صيغة مثل Asia/Riyadh',
+  'dashboard.timezoneCustomErrorInvalid': 'منطقة زمنية غير صالحة. استخدم صيغة مثل Asia/Riyadh',
   'dashboard.timezoneCustomErrorDuplicate': 'مضافة بالفعل',
   'dashboard.emptyTitle': 'لا توجد رحلات بعد',
   'dashboard.emptyText': 'أنشئ رحلتك الأولى وابدأ التخطيط',
@@ -55,8 +54,7 @@ const dashboard: TranslationStrings = {
   'dashboard.toast.restoreError': 'فشل الاستعادة',
   'dashboard.toast.copied': 'تم نسخ الرحلة!',
   'dashboard.toast.copyError': 'فشل نسخ الرحلة',
-  'dashboard.confirm.delete':
-    'حذف الرحلة "{title}"؟ سيتم حذف جميع الأماكن والخطط نهائيًا.',
+  'dashboard.confirm.delete': 'حذف الرحلة "{title}"؟ سيتم حذف جميع الأماكن والخطط نهائيًا.',
   'dashboard.editTrip': 'تعديل الرحلة',
   'dashboard.createTrip': 'إنشاء رحلة جديدة',
   'dashboard.tripTitle': 'العنوان',
@@ -66,10 +64,8 @@ const dashboard: TranslationStrings = {
   'dashboard.startDate': 'تاريخ البداية',
   'dashboard.endDate': 'تاريخ النهاية',
   'dashboard.dayCount': 'عدد الأيام',
-  'dashboard.dayCountHint':
-    'عدد الأيام المراد التخطيط لها عندما لا يتم تحديد تواريخ السفر.',
-  'dashboard.noDateHint':
-    'لا يوجد تاريخ محدد. سيتم إنشاء 7 أيام افتراضية ويمكنك تغيير ذلك لاحقًا.',
+  'dashboard.dayCountHint': 'عدد الأيام المراد التخطيط لها عندما لا يتم تحديد تواريخ السفر.',
+  'dashboard.noDateHint': 'لا يوجد تاريخ محدد. سيتم إنشاء 7 أيام افتراضية ويمكنك تغيير ذلك لاحقًا.',
   'dashboard.coverImage': 'صورة الغلاف',
   'dashboard.addCoverImage': 'إضافة صورة غلاف',
   'dashboard.addMembers': 'رفاق السفر',

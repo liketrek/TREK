@@ -32,32 +32,20 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': 'Collaborazione (note, sondaggi, chat)',
   'perm.action.share_manage': 'Gestire link di condivisione',
   'perm.actionHint.trip_create': 'Chi può creare nuovi viaggi',
-  'perm.actionHint.trip_edit':
-    'Chi può modificare nome, date, descrizione e valuta del viaggio',
+  'perm.actionHint.trip_edit': 'Chi può modificare nome, date, descrizione e valuta del viaggio',
   'perm.actionHint.trip_delete': 'Chi può eliminare definitivamente un viaggio',
-  'perm.actionHint.trip_archive':
-    'Chi può archiviare o dearchiviare un viaggio',
-  'perm.actionHint.trip_cover_upload':
-    "Chi può caricare o modificare l'immagine di copertina",
-  'perm.actionHint.member_manage':
-    'Chi può invitare o rimuovere membri del viaggio',
+  'perm.actionHint.trip_archive': 'Chi può archiviare o dearchiviare un viaggio',
+  'perm.actionHint.trip_cover_upload': "Chi può caricare o modificare l'immagine di copertina",
+  'perm.actionHint.member_manage': 'Chi può invitare o rimuovere membri del viaggio',
   'perm.actionHint.file_upload': 'Chi può caricare file in un viaggio',
   'perm.actionHint.file_edit': 'Chi può modificare descrizioni e link dei file',
-  'perm.actionHint.file_delete':
-    'Chi può spostare file nel cestino o eliminarli definitivamente',
-  'perm.actionHint.place_edit':
-    'Chi può aggiungere, modificare o eliminare luoghi',
-  'perm.actionHint.day_edit':
-    'Chi può modificare giorni, note dei giorni e assegnazioni dei luoghi',
-  'perm.actionHint.reservation_edit':
-    'Chi può creare, modificare o eliminare prenotazioni',
-  'perm.actionHint.budget_edit':
-    'Chi può creare, modificare o eliminare voci di budget',
-  'perm.actionHint.packing_edit':
-    'Chi può gestire articoli da bagaglio e borse',
-  'perm.actionHint.collab_edit':
-    'Chi può creare note, sondaggi e inviare messaggi',
-  'perm.actionHint.share_manage':
-    'Chi può creare o eliminare link di condivisione pubblici',
+  'perm.actionHint.file_delete': 'Chi può spostare file nel cestino o eliminarli definitivamente',
+  'perm.actionHint.place_edit': 'Chi può aggiungere, modificare o eliminare luoghi',
+  'perm.actionHint.day_edit': 'Chi può modificare giorni, note dei giorni e assegnazioni dei luoghi',
+  'perm.actionHint.reservation_edit': 'Chi può creare, modificare o eliminare prenotazioni',
+  'perm.actionHint.budget_edit': 'Chi può creare, modificare o eliminare voci di budget',
+  'perm.actionHint.packing_edit': 'Chi può gestire articoli da bagaglio e borse',
+  'perm.actionHint.collab_edit': 'Chi può creare note, sondaggi e inviare messaggi',
+  'perm.actionHint.share_manage': 'Chi può creare o eliminare link di condivisione pubblici',
 };
 export default perm;

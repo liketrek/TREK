@@ -14,12 +14,10 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Template Peta',
   'settings.mapTemplatePlaceholder.select': 'Pilih template...',
   'settings.mapDefaultHint': 'Kosongkan untuk OpenStreetMap (default)',
-  'settings.mapTemplatePlaceholder':
-    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'Template URL untuk tile peta',
   'settings.mapProvider': 'Penyedia peta',
-  'settings.mapProviderHint':
-    'Berlaku untuk peta Trip Planner dan Journey. Atlas selalu menggunakan Leaflet.',
+  'settings.mapProviderHint': 'Berlaku untuk peta Trip Planner dan Journey. Atlas selalu menggunakan Leaflet.',
   'settings.mapLeafletSubtitle': 'Klasik 2D, tile raster apa pun',
   'settings.mapMapboxSubtitle': 'Tile vektor, bangunan 3D & medan',
   'settings.mapExperimental': 'Eksperimental',
@@ -30,13 +28,11 @@ const settings: TranslationStrings = {
   'settings.mapStylePlaceholder': 'Pilih gaya Mapbox',
   'settings.mapStyleHint': 'Preset atau URL mapbox://styles/USER/ID milikmu',
   'settings.map3dBuildings': 'Bangunan 3D & medan',
-  'settings.map3dHint':
-    'Kemiringan + ekstrusi bangunan 3D nyata — bekerja di semua gaya, termasuk satelit.',
+  'settings.map3dHint': 'Kemiringan + ekstrusi bangunan 3D nyata — bekerja di semua gaya, termasuk satelit.',
   'settings.mapHighQuality': 'Mode kualitas tinggi',
   'settings.mapHighQualityHint':
     'Antialiasing + proyeksi globe untuk tepi yang lebih tajam dan tampilan dunia realistis.',
-  'settings.mapHighQualityWarning':
-    'Dapat memengaruhi performa pada perangkat kelas bawah.',
+  'settings.mapHighQualityWarning': 'Dapat memengaruhi performa pada perangkat kelas bawah.',
   'settings.mapTipLabel': 'Tip:',
   'settings.mapTip':
     'Klik kanan dan seret untuk memutar/memiringkan peta. Klik tengah untuk menambah tempat (klik kanan untuk rotasi).',
@@ -45,11 +41,9 @@ const settings: TranslationStrings = {
   'settings.saveMap': 'Simpan Peta',
   'settings.apiKeys': 'API Keys',
   'settings.mapsKey': 'Google Maps API Key',
-  'settings.mapsKeyHint':
-    'Untuk pencarian tempat. Memerlukan Places API (New). Dapatkan di console.cloud.google.com',
+  'settings.mapsKeyHint': 'Untuk pencarian tempat. Memerlukan Places API (New). Dapatkan di console.cloud.google.com',
   'settings.weatherKey': 'OpenWeatherMap API Key',
-  'settings.weatherKeyHint':
-    'Untuk data cuaca. Gratis di openweathermap.org/api',
+  'settings.weatherKeyHint': 'Untuk data cuaca. Gratis di openweathermap.org/api',
   'settings.keyPlaceholder': 'Masukkan key...',
   'settings.configured': 'Sudah dikonfigurasi',
   'settings.saveKeys': 'Simpan Keys',
@@ -84,8 +78,7 @@ const settings: TranslationStrings = {
     'Belum ada saluran notifikasi yang dikonfigurasi. Minta admin untuk mengatur notifikasi email atau webhook.',
   'settings.webhookUrl.label': 'Webhook URL',
   'settings.webhookUrl.placeholder': 'https://discord.com/api/webhooks/...',
-  'settings.webhookUrl.hint':
-    'Masukkan URL webhook Discord, Slack, atau kustom untuk menerima notifikasi.',
+  'settings.webhookUrl.hint': 'Masukkan URL webhook Discord, Slack, atau kustom untuk menerima notifikasi.',
   'settings.webhookUrl.saved': 'Webhook URL tersimpan',
   'settings.webhookUrl.test': 'Uji',
   'settings.webhookUrl.testSuccess': 'Test webhook berhasil dikirim',
@@ -97,8 +90,7 @@ const settings: TranslationStrings = {
   'settings.ntfyUrl.hint':
     'Masukkan topik Ntfy Anda untuk menerima notifikasi push. Kosongkan bidang server untuk menggunakan default yang dikonfigurasi oleh admin Anda.',
   'settings.ntfyUrl.tokenLabel': 'Token Akses (opsional)',
-  'settings.ntfyUrl.tokenHint':
-    'Diperlukan untuk topik yang dilindungi kata sandi.',
+  'settings.ntfyUrl.tokenHint': 'Diperlukan untuk topik yang dilindungi kata sandi.',
   'settings.ntfyUrl.saved': 'Pengaturan Ntfy tersimpan',
   'settings.ntfyUrl.test': 'Uji',
   'settings.ntfyUrl.testSuccess': 'Notifikasi uji Ntfy berhasil dikirim',
@@ -107,8 +99,7 @@ const settings: TranslationStrings = {
   'settings.notificationsDisabled':
     'Notifikasi belum dikonfigurasi. Minta admin untuk mengaktifkan notifikasi email atau webhook.',
   'settings.notificationsActive': 'Saluran aktif',
-  'settings.notificationsManagedByAdmin':
-    'Acara notifikasi dikonfigurasi oleh administrator.',
+  'settings.notificationsManagedByAdmin': 'Acara notifikasi dikonfigurasi oleh administrator.',
   'settings.on': 'Aktif',
   'settings.off': 'Nonaktif',
   'settings.mcp.title': 'Konfigurasi MCP',
@@ -122,8 +113,7 @@ const settings: TranslationStrings = {
   'settings.mcp.copied': 'Disalin!',
   'settings.mcp.apiTokens': 'API Tokens',
   'settings.mcp.createToken': 'Buat Token Baru',
-  'settings.mcp.noTokens':
-    'Belum ada token. Buat satu untuk menghubungkan MCP client.',
+  'settings.mcp.noTokens': 'Belum ada token. Buat satu untuk menghubungkan MCP client.',
   'settings.mcp.tokenCreatedAt': 'Dibuat',
   'settings.mcp.tokenUsedAt': 'Digunakan',
   'settings.mcp.deleteTokenTitle': 'Hapus Token',
@@ -131,8 +121,7 @@ const settings: TranslationStrings = {
     'Token ini akan langsung berhenti bekerja. MCP client yang menggunakannya akan kehilangan akses.',
   'settings.mcp.modal.createTitle': 'Buat API Token',
   'settings.mcp.modal.tokenName': 'Nama Token',
-  'settings.mcp.modal.tokenNamePlaceholder':
-    'mis. Claude Desktop, Laptop kerja',
+  'settings.mcp.modal.tokenNamePlaceholder': 'mis. Claude Desktop, Laptop kerja',
   'settings.mcp.modal.creating': 'Membuat…',
   'settings.mcp.modal.create': 'Buat Token',
   'settings.mcp.modal.createdTitle': 'Token Dibuat',
@@ -168,16 +157,13 @@ const settings: TranslationStrings = {
   'settings.oauth.sessionExpires': 'Kedaluwarsa',
   'settings.oauth.revoke': 'Cabut',
   'settings.oauth.revokeSession': 'Cabut Sesi',
-  'settings.oauth.revokeSessionMessage':
-    'Ini akan segera mencabut akses untuk sesi OAuth ini.',
+  'settings.oauth.revokeSessionMessage': 'Ini akan segera mencabut akses untuk sesi OAuth ini.',
   'settings.oauth.modal.createTitle': 'Daftarkan OAuth Client',
   'settings.oauth.modal.presets': 'Preset cepat',
   'settings.oauth.modal.clientName': 'Nama Aplikasi',
-  'settings.oauth.modal.clientNamePlaceholder':
-    'mis. Claude Web, Aplikasi MCP Saya',
+  'settings.oauth.modal.clientNamePlaceholder': 'mis. Claude Web, Aplikasi MCP Saya',
   'settings.oauth.modal.redirectUris': 'Redirect URI',
-  'settings.oauth.modal.redirectUrisPlaceholder':
-    'https://aplikasiku.com/callback\nhttps://aplikasiku.com/auth',
+  'settings.oauth.modal.redirectUrisPlaceholder': 'https://aplikasiku.com/callback\nhttps://aplikasiku.com/auth',
   'settings.oauth.modal.redirectUrisHint':
     'Satu URI per baris. HTTPS wajib (localhost dikecualikan). Kecocokan tepat diberlakukan.',
   'settings.oauth.modal.scopes': 'Cakupan yang Diizinkan',
@@ -217,15 +203,13 @@ const settings: TranslationStrings = {
   'settings.about.supporters.tierEmpty': 'Jadilah yang pertama',
   'settings.about.supporter.tier.noReturnTicket': 'No Return Ticket',
   'settings.about.supporter.tier.lostLuggageVip': 'Lost Luggage VIP',
-  'settings.about.supporter.tier.businessClassDreamer':
-    'Business Class Dreamer',
+  'settings.about.supporter.tier.businessClassDreamer': 'Business Class Dreamer',
   'settings.about.supporter.tier.budgetTraveller': 'Budget Traveller',
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate',
   'settings.about.description':
     'TREK adalah perencana perjalanan self-hosted yang membantu kamu mengatur perjalanan dari ide pertama hingga kenangan terakhir. Perencanaan harian, anggaran, daftar bawaan, foto dan masih banyak lagi — semua di satu tempat, di servermu sendiri.',
   'settings.about.madeWith': 'Dibuat dengan',
-  'settings.about.madeBy':
-    'oleh Maurice dan komunitas open-source yang terus berkembang.',
+  'settings.about.madeBy': 'oleh Maurice dan komunitas open-source yang terus berkembang.',
   'settings.username': 'Nama pengguna',
   'settings.email': 'Email',
   'settings.role': 'Peran',
@@ -237,12 +221,10 @@ const settings: TranslationStrings = {
   'settings.newPassword': 'Kata sandi baru',
   'settings.confirmPassword': 'Konfirmasi kata sandi baru',
   'settings.updatePassword': 'Perbarui kata sandi',
-  'settings.passwordRequired':
-    'Masukkan kata sandi saat ini dan kata sandi baru',
+  'settings.passwordRequired': 'Masukkan kata sandi saat ini dan kata sandi baru',
   'settings.passwordTooShort': 'Kata sandi minimal 8 karakter',
   'settings.passwordMismatch': 'Kata sandi tidak cocok',
-  'settings.passwordWeak':
-    'Kata sandi harus mengandung huruf besar, huruf kecil, angka, dan karakter khusus',
+  'settings.passwordWeak': 'Kata sandi harus mengandung huruf besar, huruf kecil, angka, dan karakter khusus',
   'settings.passwordChanged': 'Kata sandi berhasil diubah',
   'settings.mustChangePassword':
     'Kamu harus mengubah kata sandi sebelum melanjutkan. Atur kata sandi baru di bawah ini.',
@@ -273,8 +255,7 @@ const settings: TranslationStrings = {
   'settings.mfa.backupTitle': 'Kode cadangan',
   'settings.mfa.backupDescription':
     'Gunakan kode cadangan sekali pakai ini jika kamu kehilangan akses ke aplikasi autentikator.',
-  'settings.mfa.backupWarning':
-    'Simpan kode ini sekarang. Setiap kode hanya bisa digunakan sekali.',
+  'settings.mfa.backupWarning': 'Simpan kode ini sekarang. Setiap kode hanya bisa digunakan sekali.',
   'settings.mfa.backupCopy': 'Salin kode',
   'settings.mfa.backupDownload': 'Unduh TXT',
   'settings.mfa.backupPrint': 'Cetak / PDF',
@@ -282,24 +263,21 @@ const settings: TranslationStrings = {
   'settings.mfa.enabled': '2FA aktif di akunmu.',
   'settings.mfa.disabled': '2FA belum diaktifkan.',
   'settings.mfa.setup': 'Atur autentikator',
-  'settings.mfa.scanQr':
-    'Pindai kode QR ini dengan aplikasimu, atau masukkan secret secara manual.',
+  'settings.mfa.scanQr': 'Pindai kode QR ini dengan aplikasimu, atau masukkan secret secara manual.',
   'settings.mfa.secretLabel': 'Kunci secret (entri manual)',
   'settings.mfa.codePlaceholder': 'Kode 6 digit',
   'settings.mfa.enable': 'Aktifkan 2FA',
   'settings.mfa.cancelSetup': 'Batal',
   'settings.mfa.disableTitle': 'Nonaktifkan 2FA',
-  'settings.mfa.disableHint':
-    'Masukkan kata sandi akun dan kode terkini dari aplikasi autentikatormu.',
+  'settings.mfa.disableHint': 'Masukkan kata sandi akun dan kode terkini dari aplikasi autentikatormu.',
   'settings.mfa.disable': 'Nonaktifkan 2FA',
   'settings.mfa.toastEnabled': 'Autentikasi dua faktor diaktifkan',
   'settings.mfa.toastDisabled': 'Autentikasi dua faktor dinonaktifkan',
   'settings.mfa.demoBlocked': 'Tidak tersedia dalam mode demo',
   'settings.bookingLabels': 'Label rute pemesanan',
-  'settings.bookingLabelsHint':
-    'Menampilkan nama stasiun / bandara di peta. Jika mati, hanya ikon ditampilkan.',
-  "settings.currency": "Currency",
-  "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.bookingLabelsHint': 'Menampilkan nama stasiun / bandara di peta. Jika mati, hanya ikon ditampilkan.',
+  'settings.currency': 'Currency',
+  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
   'settings.passkey.title': 'Passkey',
   'settings.passkey.description':
     'Masuk lebih cepat dan tahan terhadap phishing dengan passkey — sidik jari, wajah, PIN, atau kunci keamanan fisik kamu. Kata sandimu tetap tersedia sebagai cadangan.',
@@ -307,8 +285,7 @@ const settings: TranslationStrings = {
     'Passkey diaktifkan tetapi belum sepenuhnya dikonfigurasi di server ini. Minta administratormu untuk mengatur domain WebAuthn.',
   'settings.passkey.add': 'Tambah passkey',
   'settings.passkey.addTitle': 'Tambah passkey',
-  'settings.passkey.passwordPrompt':
-    'Konfirmasi kata sandimu saat ini, lalu ikuti petunjuk di perangkatmu.',
+  'settings.passkey.passwordPrompt': 'Konfirmasi kata sandimu saat ini, lalu ikuti petunjuk di perangkatmu.',
   'settings.passkey.passwordRequired': 'Kata sandimu saat ini wajib diisi.',
   'settings.passkey.namePlaceholder': 'Nama (opsional, mis. "iPhone")',
   'settings.passkey.addedToast': 'Passkey ditambahkan',
@@ -316,8 +293,7 @@ const settings: TranslationStrings = {
   'settings.passkey.addError': 'Gagal menambahkan passkey',
   'settings.passkey.cancelled': 'Penyiapan passkey dibatalkan',
   'settings.passkey.deleted': 'Passkey dihapus',
-  'settings.passkey.deleteConfirm':
-    'Hapus passkey ini? Konfirmasi dengan kata sandimu.',
+  'settings.passkey.deleteConfirm': 'Hapus passkey ini? Konfirmasi dengan kata sandimu.',
   'settings.passkey.rename': 'Ganti nama',
   'settings.passkey.defaultName': 'Passkey',
   'settings.passkey.synced': 'Tersinkron',
@@ -325,9 +301,11 @@ const settings: TranslationStrings = {
   'settings.passkey.lastUsed': 'Terakhir digunakan',
   'settings.passkey.neverUsed': 'Belum pernah digunakan',
   'settings.mapPoiPill': 'Jelajahi tempat di peta',
-  'settings.mapPoiPillHint': 'Tampilkan pil kategori di peta perjalanan untuk menemukan restoran, hotel, dan lainnya di sekitar dari OpenStreetMap.',
+  'settings.mapPoiPillHint':
+    'Tampilkan pil kategori di peta perjalanan untuk menemukan restoran, hotel, dan lainnya di sekitar dari OpenStreetMap.',
   'settings.airtrail.title': 'AirTrail',
-  'settings.airtrail.hint': 'Hubungkan AirTrail yang kamu host sendiri untuk mengimpor dan menyinkronkan penerbangan. Buat kunci API di AirTrail pada Pengaturan → Keamanan.',
+  'settings.airtrail.hint':
+    'Hubungkan AirTrail yang kamu host sendiri untuk mengimpor dan menyinkronkan penerbangan. Buat kunci API di AirTrail pada Pengaturan → Keamanan.',
   'settings.airtrail.url': 'URL Instans',
   'settings.airtrail.apiKey': 'Kunci API',
   'settings.airtrail.apiKeyPlaceholder': 'Kunci API Bearer',
@@ -335,7 +313,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.allowInsecureTls': 'Izinkan sertifikat yang ditandatangani sendiri',
   'settings.airtrail.allowInsecureTlsHint': 'Aktifkan hanya untuk instans tepercaya di jaringanmu sendiri.',
   'settings.airtrail.writeBack': 'Tulis perubahan kembali ke AirTrail',
-  'settings.airtrail.writeBackHint': 'Nonaktif secara bawaan: AirTrail adalah sumber kebenaran dan TREK hanya membaca darinya. Aktifkan untuk mengirim perubahan yang dibuat di TREK kembali ke AirTrail.',
+  'settings.airtrail.writeBackHint':
+    'Nonaktif secara bawaan: AirTrail adalah sumber kebenaran dan TREK hanya membaca darinya. Aktifkan untuk mengirim perubahan yang dibuat di TREK kembali ke AirTrail.',
   'settings.airtrail.connected': 'Terhubung',
   'settings.airtrail.notConnected': 'Tidak terhubung',
   'settings.airtrail.toast.saved': 'Koneksi AirTrail disimpan',

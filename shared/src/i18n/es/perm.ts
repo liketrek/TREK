@@ -32,32 +32,20 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': 'Colaboración (notas, encuestas, chat)',
   'perm.action.share_manage': 'Gestionar enlaces compartidos',
   'perm.actionHint.trip_create': 'Quién puede crear nuevos viajes',
-  'perm.actionHint.trip_edit':
-    'Quién puede cambiar el nombre, fechas, descripción y moneda del viaje',
-  'perm.actionHint.trip_delete':
-    'Quién puede eliminar permanentemente un viaje',
+  'perm.actionHint.trip_edit': 'Quién puede cambiar el nombre, fechas, descripción y moneda del viaje',
+  'perm.actionHint.trip_delete': 'Quién puede eliminar permanentemente un viaje',
   'perm.actionHint.trip_archive': 'Quién puede archivar o desarchivar un viaje',
-  'perm.actionHint.trip_cover_upload':
-    'Quién puede subir o cambiar la imagen de portada',
-  'perm.actionHint.member_manage':
-    'Quién puede invitar o eliminar miembros del viaje',
+  'perm.actionHint.trip_cover_upload': 'Quién puede subir o cambiar la imagen de portada',
+  'perm.actionHint.member_manage': 'Quién puede invitar o eliminar miembros del viaje',
   'perm.actionHint.file_upload': 'Quién puede subir archivos a un viaje',
-  'perm.actionHint.file_edit':
-    'Quién puede editar descripciones y enlaces de archivos',
-  'perm.actionHint.file_delete':
-    'Quién puede mover archivos a la papelera o eliminarlos permanentemente',
+  'perm.actionHint.file_edit': 'Quién puede editar descripciones y enlaces de archivos',
+  'perm.actionHint.file_delete': 'Quién puede mover archivos a la papelera o eliminarlos permanentemente',
   'perm.actionHint.place_edit': 'Quién puede añadir, editar o eliminar lugares',
-  'perm.actionHint.day_edit':
-    'Quién puede editar días, notas de días y asignaciones de lugares',
-  'perm.actionHint.reservation_edit':
-    'Quién puede crear, editar o eliminar reservas',
-  'perm.actionHint.budget_edit':
-    'Quién puede crear, editar o eliminar partidas del presupuesto',
-  'perm.actionHint.packing_edit':
-    'Quién puede gestionar artículos de equipaje y bolsas',
-  'perm.actionHint.collab_edit':
-    'Quién puede crear notas, encuestas y enviar mensajes',
-  'perm.actionHint.share_manage':
-    'Quién puede crear o eliminar enlaces compartidos públicos',
+  'perm.actionHint.day_edit': 'Quién puede editar días, notas de días y asignaciones de lugares',
+  'perm.actionHint.reservation_edit': 'Quién puede crear, editar o eliminar reservas',
+  'perm.actionHint.budget_edit': 'Quién puede crear, editar o eliminar partidas del presupuesto',
+  'perm.actionHint.packing_edit': 'Quién puede gestionar artículos de equipaje y bolsas',
+  'perm.actionHint.collab_edit': 'Quién puede crear notas, encuestas y enviar mensajes',
+  'perm.actionHint.share_manage': 'Quién puede crear o eliminar enlaces compartidos públicos',
 };
 export default perm;

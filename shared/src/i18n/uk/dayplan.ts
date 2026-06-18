@@ -19,29 +19,24 @@ const dayplan: TranslationStrings = {
   'dayplan.optimize': 'Оптимізувати',
   'dayplan.optimized': 'Маршрут оптимізовано',
   'dayplan.routeError': 'Не вдалося розрахувати маршрут',
-  'dayplan.toast.needTwoPlaces':
-    'Для оптимизации маршрута нужно минимум два места',
+  'dayplan.toast.needTwoPlaces': 'Для оптимизации маршрута нужно минимум два места',
   'dayplan.toast.routeOptimized': 'Маршрут оптимизирован',
   'dayplan.toast.routeOptimizedFromHotel': 'Маршрут оптимізовано від вашого житла',
-  'dayplan.toast.noGeoPlaces':
-    'Не знайдено місць з координатами для розрахунку маршруту',
+  'dayplan.toast.noGeoPlaces': 'Не знайдено місць з координатами для розрахунку маршруту',
   'dayplan.confirmed': 'Подтверждено',
   'dayplan.pendingRes': 'Ожидание',
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Експортувати план дня в PDF',
   'dayplan.pdfError': 'Помилка експорту PDF',
-  'dayplan.cannotReorderTransport':
-    'Бронювання з фіксованим часом не можна переміщувати',
+  'dayplan.cannotReorderTransport': 'Бронювання з фіксованим часом не можна переміщувати',
   'dayplan.confirmRemoveTimeTitle': 'Видалити час?',
   'dayplan.confirmRemoveTimeBody':
     'У цього місця фіксований час ({time}). При переміщенні час буде видалено, і стане доступне вільне сортування.',
   'dayplan.confirmRemoveTimeAction': 'Видалити час і перемістити',
   'dayplan.confirmDeleteNoteTitle': 'Видалити нотатку?',
   'dayplan.confirmDeleteNoteBody': 'Цю нотатку буде видалено назавжди.',
-  'dayplan.cannotDropOnTimed':
-    'Елементи не можна розміщувати між записами з фіксованим часом',
-  'dayplan.cannotBreakChronology':
-    'Це порушить хронологічний порядок запланованих елементів і бронювань',
+  'dayplan.cannotDropOnTimed': 'Елементи не можна розміщувати між записами з фіксованим часом',
+  'dayplan.cannotBreakChronology': 'Це порушить хронологічний порядок запланованих елементів і бронювань',
   'dayplan.mobile.addPlace': 'Додати місце',
   'dayplan.mobile.searchPlaces': 'Пошук місць...',
   'dayplan.mobile.allAssigned': 'Усі місця розподілені',

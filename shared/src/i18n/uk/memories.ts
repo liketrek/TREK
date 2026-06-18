@@ -3,8 +3,7 @@ import type { TranslationStrings } from '../types';
 const memories: TranslationStrings = {
   'memories.title': 'Фото',
   'memories.notConnected': 'Immich не підключено',
-  'memories.notConnectedHint':
-    'Підключіть Immich у налаштуваннях, щоб бачити фотографії з поїздок.',
+  'memories.notConnectedHint': 'Підключіть Immich у налаштуваннях, щоб бачити фотографії з поїздок.',
   'memories.notConnectedMultipleHint':
     'Підключіть одного з цих фотопровайдерів: {provider_names} у Налаштуваннях, щоб додавати фотографії до цієї подорожі.',
   'memories.noDates': 'Додайте дати поїздки, щоб завантажити фотографії.',
@@ -15,8 +14,7 @@ const memories: TranslationStrings = {
   'memories.sharePhotos': 'Поділитися фото',
   'memories.sharing': 'Спільний доступ',
   'memories.reviewTitle': 'Перевірте свої фото',
-  'memories.reviewHint':
-    'Натисніть на фото, щоб виключити його зі спільного доступу.',
+  'memories.reviewHint': 'Натисніть на фото, щоб виключити його зі спільного доступу.',
   'memories.shareCount': 'Поділитися ({count} фото)',
   'memories.providerUrl': 'URL сервера',
   'memories.providerApiKey': 'API-ключ',
@@ -24,10 +22,8 @@ const memories: TranslationStrings = {
   'memories.providerPassword': 'Пароль',
   'memories.providerOTP': 'Код MFA (якщо увімкнено)',
   'memories.skipSSLVerification': 'Пропустити перевірку SSL-сертифіката',
-  'memories.immichAutoUpload':
-    'Дублювати фото journey в Immich при завантаженні',
-  'memories.providerUrlHintSynology':
-    'Включіть шлях додатку Photos в URL, наприклад https://nas:5001/photo',
+  'memories.immichAutoUpload': 'Дублювати фото journey в Immich при завантаженні',
+  'memories.providerUrlHintSynology': 'Включіть шлях додатку Photos в URL, наприклад https://nas:5001/photo',
   'memories.testConnection': 'Перевірити підключення',
   'memories.testShort': 'Перевірити',
   'memories.testFirst': 'Спершу перевірте підключення',
@@ -72,10 +68,8 @@ const memories: TranslationStrings = {
   'memories.error.addPhotos': 'Не вдалося додати фотографії',
   'memories.error.removePhoto': 'Не вдалося видалити фотографію',
   'memories.error.toggleSharing': 'Не вдалося оновити налаштування доступу',
-  'memories.saveRouteNotConfigured':
-    'Маршрут збереження не налаштовано для цього провайдера',
-  'memories.testRouteNotConfigured':
-    'Маршрут тестування не налаштовано для цього провайдера',
+  'memories.saveRouteNotConfigured': 'Маршрут збереження не налаштовано для цього провайдера',
+  'memories.testRouteNotConfigured': 'Маршрут тестування не налаштовано для цього провайдера',
   'memories.fillRequiredFields': 'Будь ласка, заповніть усі обов’язкові поля',
 };
 export default memories;

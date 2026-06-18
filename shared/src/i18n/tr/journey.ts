@@ -14,14 +14,12 @@ const journey: TranslationStrings = {
   'journey.createError': 'Journey oluşturulamadı',
   'journey.deleteError': 'Journey silinemedi',
   'journey.deleteConfirmTitle': 'Sil',
-  'journey.deleteConfirmMessage':
-    '"{title}" silinsin mi? Bu işlem geri alınamaz.',
+  'journey.deleteConfirmMessage': '"{title}" silinsin mi? Bu işlem geri alınamaz.',
   'journey.deleteConfirmGeneric': 'Bunu silmek istediğinizden emin misiniz?',
   'journey.notFound': 'Journey bulunamadı',
   'journey.photos': 'Fotoğraflar',
   'journey.timelineEmpty': 'Henüz durak yok',
-  'journey.timelineEmptyHint':
-    'Başlamak için check-in ekleyin veya günlük kaydı yazın',
+  'journey.timelineEmptyHint': 'Başlamak için check-in ekleyin veya günlük kaydı yazın',
   'journey.status.draft': 'Taslak',
   'journey.status.active': 'Aktif',
   'journey.status.completed': 'Tamamlandı',
@@ -47,30 +45,25 @@ const journey: TranslationStrings = {
   'journey.editor.titlePlaceholder': 'Bu ana bir ad verin...',
   'journey.editor.bodyPlaceholder': 'Bu günün hikâyesini anlatın...',
   'journey.editor.placePlaceholder': 'Konum (isteğe bağlı)',
-  'journey.editor.tagsPlaceholder':
-    'Etiketler: gizli cevher, en iyi yemek, tekrar ziyaret...',
+  'journey.editor.tagsPlaceholder': 'Etiketler: gizli cevher, en iyi yemek, tekrar ziyaret...',
   'journey.visibility.private': 'Gizli',
   'journey.visibility.shared': 'Paylaşılan',
   'journey.visibility.public': 'Herkese açık',
   'journey.emptyState.title': 'Hikâyeniz burada başlıyor',
-  'journey.emptyState.subtitle':
-    'Bir yerde check-in yapın veya ilk günlük kaydınızı yazın',
-  'journey.frontpage.subtitle':
-    "Turn your trips into stories you'll never forget",
+  'journey.emptyState.subtitle': 'Bir yerde check-in yapın veya ilk günlük kaydınızı yazın',
+  'journey.frontpage.subtitle': "Turn your trips into stories you'll never forget",
   'journey.frontpage.createJourney': 'Journey Oluştur',
   'journey.frontpage.activeJourney': 'Aktif Journey',
   'journey.frontpage.allJourneys': "Tüm Journey'ler",
   'journey.frontpage.journeys': 'journey',
   'journey.frontpage.createNew': 'Yeni Journey oluştur',
-  'journey.frontpage.createNewSub':
-    'Seyahat seçin, hikâyeler yazın, maceralarınızı paylaşın',
+  'journey.frontpage.createNewSub': 'Seyahat seçin, hikâyeler yazın, maceralarınızı paylaşın',
   'journey.frontpage.live': 'Canlı',
   'journey.frontpage.synced': 'Senkronize',
   'journey.frontpage.continueWriting': 'Yazmaya devam et',
   'journey.frontpage.updated': '{time} Güncellendi',
   'journey.frontpage.suggestionLabel': 'Seyahat yeni bitti',
-  'journey.frontpage.suggestionText':
-    "<strong>{title}</strong> seyahatini Journey'e dönüştür",
+  'journey.frontpage.suggestionText': "<strong>{title}</strong> seyahatini Journey'e dönüştür",
   'journey.frontpage.dismiss': 'Kapat',
   'journey.frontpage.journeyName': 'Journey Adı',
   'journey.frontpage.namePlaceholder': 'örn. Güneydoğu Asya 2026',
@@ -85,11 +78,9 @@ const journey: TranslationStrings = {
   'journey.detail.newEntry': 'Yeni Kayıt',
   'journey.detail.editEntry': 'Kaydı Düzenle',
   'journey.detail.noEntries': 'Henüz kayıt yok',
-  'journey.detail.noEntriesHint':
-    'İskelet kayıtlarla başlamak için bir seyahat ekleyin',
+  'journey.detail.noEntriesHint': 'İskelet kayıtlarla başlamak için bir seyahat ekleyin',
   'journey.detail.noPhotos': 'Henüz fotoğraf yok',
-  'journey.detail.noPhotosHint':
-    'Kayıtlara fotoğraf yükleyin veya Immich/Synology kütüphanenize göz atın',
+  'journey.detail.noPhotosHint': 'Kayıtlara fotoğraf yükleyin veya Immich/Synology kütüphanenize göz atın',
   'journey.detail.journeyTab': 'Seyahat',
   'journey.detail.journeyStats': 'Journey İstatistikleri',
   'journey.detail.syncedTrips': 'Senkronize Seyahatler',
@@ -111,8 +102,7 @@ const journey: TranslationStrings = {
   'journey.verdict.couldBeBetter': 'Daha iyi olabilirdi',
   'journey.synced.places': 'yer',
   'journey.synced.synced': 'senkronize',
-  'journey.editor.discardChangesConfirm':
-    'Kaydedilmemiş değişiklikleriniz var. Vazgeçilsin mi?',
+  'journey.editor.discardChangesConfirm': 'Kaydedilmemiş değişiklikleriniz var. Vazgeçilsin mi?',
   'journey.editor.uploadPhotos': 'Fotoğraf yükle',
   'journey.editor.uploading': 'Yükleniyor...',
   'journey.editor.fromGallery': 'Galeriden',
@@ -165,8 +155,7 @@ const journey: TranslationStrings = {
   'journey.contributors.added': 'Katkıda bulunan eklendi',
   'journey.contributors.addFailed': 'Katkıda bulunan eklenemedi',
   'journey.contributors.remove': 'Katkıda bulunanı kaldır',
-  'journey.contributors.removeConfirm':
-    "{username} bu journey'den kaldırılsın mı?",
+  'journey.contributors.removeConfirm': "{username} bu journey'den kaldırılsın mı?",
   'journey.contributors.removed': 'Katkıda bulunan kaldırıldı',
   'journey.contributors.removeFailed': 'Katkıda bulunan kaldırılamadı',
   'journey.share.publicShare': 'Herkese açık paylaşım',
@@ -198,12 +187,10 @@ const journey: TranslationStrings = {
   'journey.settings.reopenJourney': "Journey'i geri aç",
   'journey.settings.archived': 'Journey arşivlendi',
   'journey.settings.reopened': 'Journey yeniden açıldı',
-  'journey.settings.endDescription':
-    'Canlı rozetini gizler. İstediğiniz zaman yeniden açabilirsiniz.',
+  'journey.settings.endDescription': 'Canlı rozetini gizler. İstediğiniz zaman yeniden açabilirsiniz.',
   'journey.settings.delete': 'Sil',
   'journey.settings.deleteJourney': "Journey'i Sil",
-  'journey.settings.deleteMessage':
-    '"{title}" silinsin mi? Tüm kayıtlar ve fotoğraflar kaybolacak.',
+  'journey.settings.deleteMessage': '"{title}" silinsin mi? Tüm kayıtlar ve fotoğraflar kaybolacak.',
   'journey.settings.saved': 'Ayarlar kaydedildi',
   'journey.settings.saveFailed': 'Kaydedilemedi',
   'journey.settings.coverUpdated': 'Kapak güncellendi',
@@ -213,8 +200,7 @@ const journey: TranslationStrings = {
   'journey.photosUploaded': '{count} fotoğraf yüklendi',
   'journey.photosAdded': '{count} fotoğraf eklendi',
   'journey.public.notFound': 'Bulunamadı',
-  'journey.public.notFoundMessage':
-    "This journey doesn't exist or the link has expired.",
+  'journey.public.notFoundMessage': "This journey doesn't exist or the link has expired.",
   'journey.public.readOnly': 'Salt okunur · Herkese açık Journey',
   'journey.public.tagline': 'Seyahat Kaynak ve Keşif Kiti',
   'journey.public.sharedVia': 'Şununla paylaşıldı:',
@@ -239,8 +225,7 @@ const journey: TranslationStrings = {
   'journey.picker.search': 'Ara',
   'journey.editor.uploadingProgress': '{done}/{total} yükleniyor…',
   'journey.editor.uploadFailed': 'Fotoğraf yüklenemedi',
-  'journey.editor.uploadPartialFailed':
-    '{total} fotoğraftan {failed} tanesi başarısız — tekrar denemek için kaydedin',
+  'journey.editor.uploadPartialFailed': '{total} fotoğraftan {failed} tanesi başarısız — tekrar denemek için kaydedin',
   'journey.photosUploadFailed': 'Bazı fotoğraflar yüklenemedi',
 };
 export default journey;

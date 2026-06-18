@@ -7,8 +7,7 @@ const day: TranslationStrings = {
   'day.sunrise': 'Sunrise',
   'day.sunset': 'Sunset',
   'day.hourlyForecast': 'Hourly Forecast',
-  'day.climateHint':
-    'Historical averages — real forecast available within 16 days of this date.',
+  'day.climateHint': 'Historical averages — real forecast available within 16 days of this date.',
   'day.noWeather': 'No weather data available. Add a place with coordinates.',
   'day.overview': 'Daily Overview',
   'day.accommodation': 'Accommodation',

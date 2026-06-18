@@ -32,35 +32,20 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': 'Kolaborasi (catatan, polling, chat)',
   'perm.action.share_manage': 'Kelola tautan berbagi',
   'perm.actionHint.trip_create': 'Siapa yang bisa membuat perjalanan baru',
-  'perm.actionHint.trip_edit':
-    'Siapa yang bisa mengubah nama, tanggal, deskripsi, dan mata uang perjalanan',
-  'perm.actionHint.trip_delete':
-    'Siapa yang bisa menghapus perjalanan secara permanen',
-  'perm.actionHint.trip_archive':
-    'Siapa yang bisa mengarsipkan atau membatalkan arsip perjalanan',
-  'perm.actionHint.trip_cover_upload':
-    'Siapa yang bisa mengunggah atau mengganti gambar sampul',
-  'perm.actionHint.member_manage':
-    'Siapa yang bisa mengundang atau menghapus anggota perjalanan',
-  'perm.actionHint.file_upload':
-    'Siapa yang bisa mengunggah file ke perjalanan',
-  'perm.actionHint.file_edit':
-    'Siapa yang bisa mengedit deskripsi dan tautan file',
-  'perm.actionHint.file_delete':
-    'Siapa yang bisa memindahkan file ke sampah atau menghapusnya secara permanen',
-  'perm.actionHint.place_edit':
-    'Siapa yang bisa menambah, mengedit, atau menghapus tempat',
-  'perm.actionHint.day_edit':
-    'Siapa yang bisa mengedit hari, catatan hari, dan penugasan tempat',
-  'perm.actionHint.reservation_edit':
-    'Siapa yang bisa membuat, mengedit, atau menghapus reservasi',
-  'perm.actionHint.budget_edit':
-    'Siapa yang bisa membuat, mengedit, atau menghapus item anggaran',
-  'perm.actionHint.packing_edit':
-    'Siapa yang bisa mengelola item perlengkapan dan tas',
-  'perm.actionHint.collab_edit':
-    'Siapa yang bisa membuat catatan, polling, dan mengirim pesan',
-  'perm.actionHint.share_manage':
-    'Siapa yang bisa membuat atau menghapus tautan berbagi publik',
+  'perm.actionHint.trip_edit': 'Siapa yang bisa mengubah nama, tanggal, deskripsi, dan mata uang perjalanan',
+  'perm.actionHint.trip_delete': 'Siapa yang bisa menghapus perjalanan secara permanen',
+  'perm.actionHint.trip_archive': 'Siapa yang bisa mengarsipkan atau membatalkan arsip perjalanan',
+  'perm.actionHint.trip_cover_upload': 'Siapa yang bisa mengunggah atau mengganti gambar sampul',
+  'perm.actionHint.member_manage': 'Siapa yang bisa mengundang atau menghapus anggota perjalanan',
+  'perm.actionHint.file_upload': 'Siapa yang bisa mengunggah file ke perjalanan',
+  'perm.actionHint.file_edit': 'Siapa yang bisa mengedit deskripsi dan tautan file',
+  'perm.actionHint.file_delete': 'Siapa yang bisa memindahkan file ke sampah atau menghapusnya secara permanen',
+  'perm.actionHint.place_edit': 'Siapa yang bisa menambah, mengedit, atau menghapus tempat',
+  'perm.actionHint.day_edit': 'Siapa yang bisa mengedit hari, catatan hari, dan penugasan tempat',
+  'perm.actionHint.reservation_edit': 'Siapa yang bisa membuat, mengedit, atau menghapus reservasi',
+  'perm.actionHint.budget_edit': 'Siapa yang bisa membuat, mengedit, atau menghapus item anggaran',
+  'perm.actionHint.packing_edit': 'Siapa yang bisa mengelola item perlengkapan dan tas',
+  'perm.actionHint.collab_edit': 'Siapa yang bisa membuat catatan, polling, dan mengirim pesan',
+  'perm.actionHint.share_manage': 'Siapa yang bisa membuat atau menghapus tautan berbagi publik',
 };
 export default perm;

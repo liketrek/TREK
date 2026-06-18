@@ -9,8 +9,7 @@ const memories: TranslationStrings = {
     'Hubungkan salah satu penyedia foto berikut: {provider_names} di Pengaturan untuk dapat menambahkan foto ke perjalanan ini.',
   'memories.noDates': 'Tambahkan tanggal ke perjalananmu untuk memuat foto.',
   'memories.noPhotos': 'Foto tidak ditemukan',
-  'memories.noPhotosHint':
-    'Tidak ada foto ditemukan di {provider_name} untuk rentang tanggal perjalanan ini.',
+  'memories.noPhotosHint': 'Tidak ada foto ditemukan di {provider_name} untuk rentang tanggal perjalanan ini.',
   'memories.photosFound': 'foto',
   'memories.fromOthers': 'dari orang lain',
   'memories.sharePhotos': 'Bagikan foto',
@@ -25,8 +24,7 @@ const memories: TranslationStrings = {
   'memories.providerOTP': 'Kode MFA (jika diaktifkan)',
   'memories.skipSSLVerification': 'Lewati verifikasi sertifikat SSL',
   'memories.immichAutoUpload': 'Salin foto journey ke Immich saat diunggah',
-  'memories.providerUrlHintSynology':
-    'Sertakan path aplikasi Photos di URL, mis. https://nas:5001/photo',
+  'memories.providerUrlHintSynology': 'Sertakan path aplikasi Photos di URL, mis. https://nas:5001/photo',
   'memories.testConnection': 'Uji koneksi',
   'memories.testShort': 'Uji',
   'memories.testFirst': 'Uji koneksi terlebih dahulu',
@@ -71,10 +69,8 @@ const memories: TranslationStrings = {
   'memories.error.addPhotos': 'Gagal menambahkan foto',
   'memories.error.removePhoto': 'Gagal menghapus foto',
   'memories.error.toggleSharing': 'Gagal memperbarui berbagi',
-  'memories.saveRouteNotConfigured':
-    'Rute simpan tidak dikonfigurasi untuk penyedia ini',
-  'memories.testRouteNotConfigured':
-    'Rute uji tidak dikonfigurasi untuk penyedia ini',
+  'memories.saveRouteNotConfigured': 'Rute simpan tidak dikonfigurasi untuk penyedia ini',
+  'memories.testRouteNotConfigured': 'Rute uji tidak dikonfigurasi untuk penyedia ini',
   'memories.fillRequiredFields': 'Harap isi semua kolom yang wajib diisi',
 };
 export default memories;

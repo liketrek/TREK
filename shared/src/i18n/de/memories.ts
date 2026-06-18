@@ -3,14 +3,12 @@ import type { TranslationStrings } from '../types';
 const memories: TranslationStrings = {
   'memories.title': 'Fotos',
   'memories.notConnected': 'Immich nicht verbunden',
-  'memories.notConnectedHint':
-    'Verbinde deine Immich-Instanz in den Einstellungen, um deine Reisefotos hier zu sehen.',
+  'memories.notConnectedHint': 'Verbinde deine Immich-Instanz in den Einstellungen, um deine Reisefotos hier zu sehen.',
   'memories.notConnectedMultipleHint':
     'Verbinde einen dieser Fotoanbieter: {provider_names} in den Einstellungen, um Fotos zu dieser Reise hinzufügen zu können.',
   'memories.noDates': 'Füge Daten zu deiner Reise hinzu, um Fotos zu laden.',
   'memories.noPhotos': 'Keine Fotos gefunden',
-  'memories.noPhotosHint':
-    'Keine Fotos in Immich für den Zeitraum dieser Reise gefunden.',
+  'memories.noPhotosHint': 'Keine Fotos in Immich für den Zeitraum dieser Reise gefunden.',
   'memories.photosFound': 'Fotos',
   'memories.fromOthers': 'von anderen',
   'memories.sharePhotos': 'Fotos teilen',
@@ -24,10 +22,8 @@ const memories: TranslationStrings = {
   'memories.providerPassword': 'Passwort',
   'memories.providerOTP': 'MFA-Code (falls aktiviert)',
   'memories.skipSSLVerification': 'SSL-Zertifikatsprüfung überspringen',
-  'memories.immichAutoUpload':
-    'Journey-Fotos beim Upload auch zu Immich spiegeln',
-  'memories.providerUrlHintSynology':
-    'Füge den Fotos-App-Pfad in die URL ein, z.B. https://nas:5001/photo',
+  'memories.immichAutoUpload': 'Journey-Fotos beim Upload auch zu Immich spiegeln',
+  'memories.providerUrlHintSynology': 'Füge den Fotos-App-Pfad in die URL ein, z.B. https://nas:5001/photo',
   'memories.testConnection': 'Verbindung testen',
   'memories.testShort': 'Testen',
   'memories.testFirst': 'Verbindung zuerst testen',
@@ -38,12 +34,9 @@ const memories: TranslationStrings = {
   'memories.saved': '{provider_name}-Einstellungen gespeichert',
   'memories.providerDisconnectedBanner':
     'Deine {provider_name}-Verbindung wurde getrennt. Verbinde erneut in den Einstellungen, um Fotos anzuzeigen.',
-  'memories.saveError':
-    '{provider_name}-Einstellungen konnten nicht gespeichert werden',
-  'memories.saveRouteNotConfigured':
-    'Speicherroute ist für diesen Anbieter nicht konfiguriert',
-  'memories.testRouteNotConfigured':
-    'Testroute ist für diesen Anbieter nicht konfiguriert',
+  'memories.saveError': '{provider_name}-Einstellungen konnten nicht gespeichert werden',
+  'memories.saveRouteNotConfigured': 'Speicherroute ist für diesen Anbieter nicht konfiguriert',
+  'memories.testRouteNotConfigured': 'Testroute ist für diesen Anbieter nicht konfiguriert',
   'memories.fillRequiredFields': 'Bitte füllen Sie alle Pflichtfelder aus',
   'memories.addPhotos': 'Fotos hinzufügen',
   'memories.linkAlbum': 'Album verknüpfen',

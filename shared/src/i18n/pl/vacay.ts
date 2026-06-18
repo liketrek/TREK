@@ -8,8 +8,7 @@ const vacay: TranslationStrings = {
   'vacay.addPrevYear': 'Dodaj poprzedni rok',
   'vacay.removeYear': 'Usuń rok',
   'vacay.removeYearConfirm': 'Usunąć {year}?',
-  'vacay.removeYearHint':
-    'Wszystkie wpisy dotyczące urlopów oraz dni wolnych w tym roku zostaną trwale usunięte.',
+  'vacay.removeYearHint': 'Wszystkie wpisy dotyczące urlopów oraz dni wolnych w tym roku zostaną trwale usunięte.',
   'vacay.remove': 'Usuń',
   'vacay.persons': 'Osoby',
   'vacay.noPersons': 'Nie dodano osób',
@@ -17,8 +16,7 @@ const vacay: TranslationStrings = {
   'vacay.editPerson': 'Edytuj osobę',
   'vacay.removePerson': 'Usuń osobę',
   'vacay.removePersonConfirm': 'Usunąć {name}?',
-  'vacay.removePersonHint':
-    'Wszystkie wpisy dotyczące urlopów dla tej osoby zostaną trwale usunięte.',
+  'vacay.removePersonHint': 'Wszystkie wpisy dotyczące urlopów dla tej osoby zostaną trwale usunięte.',
   'vacay.personName': 'Imię',
   'vacay.personNamePlaceholder': 'Podaj imię',
   'vacay.color': 'Kolor',
@@ -53,16 +51,12 @@ const vacay: TranslationStrings = {
   'vacay.calendarColor': 'Kolor',
   'vacay.noCalendars': 'Nie dodano jeszcze kalendarzy świąt',
   'vacay.companyHolidays': 'Urlopy firmowe',
-  'vacay.companyHolidaysHint':
-    'Pozwala oznaczać dni wolne od pracy w kalendarzu',
-  'vacay.companyHolidaysNoDeduct':
-    'Urlopy firmowe nie są odejmowane od puli dni urlopowych.',
+  'vacay.companyHolidaysHint': 'Pozwala oznaczać dni wolne od pracy w kalendarzu',
+  'vacay.companyHolidaysNoDeduct': 'Urlopy firmowe nie są odejmowane od puli dni urlopowych.',
   'vacay.weekStart': 'Tydzień zaczyna się w',
-  'vacay.weekStartHint':
-    'Wybierz czy tydzień zaczyna się w poniedziałek czy niedzielę',
+  'vacay.weekStartHint': 'Wybierz czy tydzień zaczyna się w poniedziałek czy niedzielę',
   'vacay.carryOver': 'Przeniesienie na kolejny rok',
-  'vacay.carryOverHint':
-    'Automatycznie przenosi pozostałe dni urlopowe na kolejny rok',
+  'vacay.carryOverHint': 'Automatycznie przenosi pozostałe dni urlopowe na kolejny rok',
   'vacay.sharing': 'Udostępnianie',
   'vacay.sharingHint': 'Udostępnij swój plan urlopów innym użytkownikom TREK',
   'vacay.owner': 'Właściciel',
@@ -70,8 +64,7 @@ const vacay: TranslationStrings = {
   'vacay.shareSuccess': 'Plan został udostępniony pomyślnie',
   'vacay.shareError': 'Nie udało się udostępnić planu',
   'vacay.dissolve': 'Rozłącz kalendarze',
-  'vacay.dissolveHint':
-    'Rozłącz kalendarze ponownie. Twoje wpisy zostaną zachowane.',
+  'vacay.dissolveHint': 'Rozłącz kalendarze ponownie. Twoje wpisy zostaną zachowane.',
   'vacay.dissolveAction': 'Rozłącz',
   'vacay.dissolved': 'Kalendarz został rozłączony',
   'vacay.fusedWith': 'Połączono z',
@@ -79,8 +72,7 @@ const vacay: TranslationStrings = {
   'vacay.noData': 'Brak danych',
   'vacay.changeColor': 'Zmień kolor',
   'vacay.inviteUser': 'Zaproś użytkownika',
-  'vacay.inviteHint':
-    'Zaproś innego użytkownika TREK do wspólnego kalendarza urlopów.',
+  'vacay.inviteHint': 'Zaproś innego użytkownika TREK do wspólnego kalendarza urlopów.',
   'vacay.selectUser': 'Wybierz użytkownika',
   'vacay.sendInvite': 'Wyślij zaproszenie',
   'vacay.inviteSent': 'Zaproszenie zostało wysłane',
@@ -92,14 +84,10 @@ const vacay: TranslationStrings = {
   'vacay.acceptFusion': 'Akceptuj i połącz',
   'vacay.inviteTitle': 'Zaproszenie do połączenia',
   'vacay.inviteWantsToFuse': 'chce udostępnić kalendarz urlopów.',
-  'vacay.fuseInfo1':
-    'Obie strony będą widzieć wszystkie wpisy urlopowe w jednym wspólnym kalendarzu.',
-  'vacay.fuseInfo2':
-    'Obie strony mogą tworzyć i edytować wpisy dla drugiej strony.',
-  'vacay.fuseInfo3':
-    'Obie strony mogą usuwać wpisy i zmieniać pulę dni urlopowych.',
-  'vacay.fuseInfo4':
-    'Ustawienia, takie jak święta państwowe i urlopy firmowe, są współdzielone.',
+  'vacay.fuseInfo1': 'Obie strony będą widzieć wszystkie wpisy urlopowe w jednym wspólnym kalendarzu.',
+  'vacay.fuseInfo2': 'Obie strony mogą tworzyć i edytować wpisy dla drugiej strony.',
+  'vacay.fuseInfo3': 'Obie strony mogą usuwać wpisy i zmieniać pulę dni urlopowych.',
+  'vacay.fuseInfo4': 'Ustawienia, takie jak święta państwowe i urlopy firmowe, są współdzielone.',
   'vacay.fuseInfo5':
     'Połączenie może zostać rozwiązane w dowolnym momencie przez każdą ze stron. Twoje wpisy zostaną zachowane.',
 };

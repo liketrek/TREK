@@ -3,18 +3,15 @@ import type { TranslationStrings } from '../types';
 const dayplan: TranslationStrings = {
   'dayplan.icsTooltip': 'İhracat takvimi (ICS)',
   'dayplan.emptyDay': 'Bu gün için planlanmış yer yok',
-  'dayplan.cannotReorderTransport':
-    'Sabit zamanlı rezervasyonlar yeniden sıralanamaz',
+  'dayplan.cannotReorderTransport': 'Sabit zamanlı rezervasyonlar yeniden sıralanamaz',
   'dayplan.confirmRemoveTimeTitle': 'Saat kaldırılsın mı?',
   'dayplan.confirmRemoveTimeBody':
     'Bu yerin sabit bir saati var ({time}). Taşımak saati kaldırır ve serbest sıralamaya izin verir.',
   'dayplan.confirmRemoveTimeAction': 'Saati kaldır ve taşı',
   'dayplan.confirmDeleteNoteTitle': 'Not silinsin mi?',
   'dayplan.confirmDeleteNoteBody': 'Bu not kalıcı olarak silinecek.',
-  'dayplan.cannotDropOnTimed':
-    'Öğeler saate bağlı girişler arasına yerleştirilemez',
-  'dayplan.cannotBreakChronology':
-    'Bu, zamanlı öğelerin kronolojik sırasını bozar',
+  'dayplan.cannotDropOnTimed': 'Öğeler saate bağlı girişler arasına yerleştirilemez',
+  'dayplan.cannotBreakChronology': 'Bu, zamanlı öğelerin kronolojik sırasını bozar',
   'dayplan.addNote': 'Not Ekle',
   'dayplan.expandAll': 'Tüm günleri genişlet',
   'dayplan.collapseAll': 'Tüm günleri daralt',
@@ -31,11 +28,9 @@ const dayplan: TranslationStrings = {
   'dayplan.optimize': 'Optimize et',
   'dayplan.optimized': 'Rota optimize edildi',
   'dayplan.routeError': 'Rota hesaplanamadı',
-  'dayplan.toast.needTwoPlaces':
-    'Rota optimizasyonu için en az iki yer gerekli',
+  'dayplan.toast.needTwoPlaces': 'Rota optimizasyonu için en az iki yer gerekli',
   'dayplan.toast.routeOptimized': 'Rota optimize edildi',
-  'dayplan.toast.routeOptimizedFromHotel':
-    'Rota konakladığınız yerden optimize edildi',
+  'dayplan.toast.routeOptimizedFromHotel': 'Rota konakladığınız yerden optimize edildi',
   'dayplan.toast.noGeoPlaces': 'Rota için koordinatlı yer bulunamadı',
   'dayplan.confirmed': 'Onaylandı',
   'dayplan.pendingRes': 'Beklemede',

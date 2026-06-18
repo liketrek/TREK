@@ -17,30 +17,24 @@ const dayplan: TranslationStrings = {
   'dayplan.optimize': 'Optimaliseren',
   'dayplan.optimized': 'Route geoptimaliseerd',
   'dayplan.routeError': 'Route berekenen mislukt',
-  'dayplan.toast.needTwoPlaces':
-    'Minimaal twee plaatsen nodig voor route-optimalisatie',
+  'dayplan.toast.needTwoPlaces': 'Minimaal twee plaatsen nodig voor route-optimalisatie',
   'dayplan.toast.routeOptimized': 'Route geoptimaliseerd',
-  'dayplan.toast.routeOptimizedFromHotel':
-    'Route geoptimaliseerd vanaf je accommodatie',
-  'dayplan.toast.noGeoPlaces':
-    'Geen plaatsen met coördinaten gevonden voor routeberekening',
+  'dayplan.toast.routeOptimizedFromHotel': 'Route geoptimaliseerd vanaf je accommodatie',
+  'dayplan.toast.noGeoPlaces': 'Geen plaatsen met coördinaten gevonden voor routeberekening',
   'dayplan.confirmed': 'Bevestigd',
   'dayplan.pendingRes': 'In behandeling',
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Dagplan exporteren als PDF',
   'dayplan.pdfError': 'PDF-export mislukt',
-  'dayplan.cannotReorderTransport':
-    'Boekingen met een vast tijdstip kunnen niet worden verplaatst',
+  'dayplan.cannotReorderTransport': 'Boekingen met een vast tijdstip kunnen niet worden verplaatst',
   'dayplan.confirmRemoveTimeTitle': 'Tijd verwijderen?',
   'dayplan.confirmRemoveTimeBody':
     'Deze plek heeft een vast tijdstip ({time}). Verplaatsen verwijdert het tijdstip en maakt vrije sortering mogelijk.',
   'dayplan.confirmRemoveTimeAction': 'Tijd verwijderen en verplaatsen',
   'dayplan.confirmDeleteNoteTitle': 'Notitie verwijderen?',
   'dayplan.confirmDeleteNoteBody': 'Deze notitie wordt definitief verwijderd.',
-  'dayplan.cannotDropOnTimed':
-    'Items kunnen niet tussen tijdgebonden items worden geplaatst',
-  'dayplan.cannotBreakChronology':
-    'Dit zou de chronologische volgorde van geplande items en boekingen doorbreken',
+  'dayplan.cannotDropOnTimed': 'Items kunnen niet tussen tijdgebonden items worden geplaatst',
+  'dayplan.cannotBreakChronology': 'Dit zou de chronologische volgorde van geplande items en boekingen doorbreken',
   'dayplan.mobile.addPlace': 'Plaats toevoegen',
   'dayplan.mobile.searchPlaces': 'Plaatsen zoeken...',
   'dayplan.mobile.allAssigned': 'Alle plaatsen toegewezen',

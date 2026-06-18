@@ -2,12 +2,10 @@ import type { TranslationStrings } from '../types';
 
 const register: TranslationStrings = {
   'register.passwordMismatch': 'A jelszavak nem egyeznek',
-  'register.passwordTooShort':
-    'A jelszónak legalább 8 karakter hosszúnak kell lennie',
+  'register.passwordTooShort': 'A jelszónak legalább 8 karakter hosszúnak kell lennie',
   'register.failed': 'Regisztráció sikertelen',
   'register.getStarted': 'Kezdjük',
-  'register.subtitle':
-    'Hozz létre egy fiókot, és kezdd el megtervezni álomutazásaidat.',
+  'register.subtitle': 'Hozz létre egy fiókot, és kezdd el megtervezni álomutazásaidat.',
   'register.feature1': 'Korlátlan utazási tervek',
   'register.feature2': 'Interaktív térképnézet',
   'register.feature3': 'Helyek és kategóriák kezelése',

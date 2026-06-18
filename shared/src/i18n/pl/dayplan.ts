@@ -3,16 +3,14 @@ import type { TranslationStrings } from '../types';
 const dayplan: TranslationStrings = {
   'dayplan.icsTooltip': 'Eksportuj kalendarz (ICS)',
   'dayplan.emptyDay': 'Brak miejsc zaplanowanych na ten dzień',
-  'dayplan.cannotReorderTransport':
-    'Nie można zmieniać kolejności dla rezerwacji z określoną godziną',
+  'dayplan.cannotReorderTransport': 'Nie można zmieniać kolejności dla rezerwacji z określoną godziną',
   'dayplan.confirmRemoveTimeTitle': 'Usunąć godzinę?',
   'dayplan.confirmRemoveTimeBody':
     'To miejsce ma określoną godzinę ({time}). Przeniesienie go usunie godzinę i umożliwi swobodne sortowanie.',
   'dayplan.confirmRemoveTimeAction': 'Usuń godzinę i przenieś',
   'dayplan.confirmDeleteNoteTitle': 'Usunąć notatkę?',
   'dayplan.confirmDeleteNoteBody': 'Ta notatka zostanie trwale usunięta.',
-  'dayplan.cannotDropOnTimed':
-    'Nie można umieszczać elementów pomiędzy wpisami z określoną godziną',
+  'dayplan.cannotDropOnTimed': 'Nie można umieszczać elementów pomiędzy wpisami z określoną godziną',
   'dayplan.cannotBreakChronology':
     'Spowodowałoby to naruszenie chronologicznej kolejności elementów i rezerwacji z określoną godziną',
   'dayplan.addNote': 'Dodaj notatkę',
@@ -29,13 +27,10 @@ const dayplan: TranslationStrings = {
   'dayplan.optimize': 'Optymalizuj',
   'dayplan.optimized': 'Trasa została zoptymalizowana',
   'dayplan.routeError': 'Nie udało się obliczyć trasy',
-  'dayplan.toast.needTwoPlaces':
-    'Potrzeba co najmniej dwóch miejsc, aby zoptymalizować trasę',
+  'dayplan.toast.needTwoPlaces': 'Potrzeba co najmniej dwóch miejsc, aby zoptymalizować trasę',
   'dayplan.toast.routeOptimized': 'Trasa została zoptymalizowana',
-  'dayplan.toast.routeOptimizedFromHotel':
-    'Trasa została zoptymalizowana względem Twojego zakwaterowania',
-  'dayplan.toast.noGeoPlaces':
-    'Nie znaleziono miejsc ze współrzędnymi do obliczenia trasy',
+  'dayplan.toast.routeOptimizedFromHotel': 'Trasa została zoptymalizowana względem Twojego zakwaterowania',
+  'dayplan.toast.noGeoPlaces': 'Nie znaleziono miejsc ze współrzędnymi do obliczenia trasy',
   'dayplan.confirmed': 'Potwierdzono',
   'dayplan.pendingRes': 'Oczekujące',
   'dayplan.pdf': 'PDF',

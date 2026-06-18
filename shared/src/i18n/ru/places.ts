@@ -6,13 +6,10 @@ const places: TranslationStrings = {
   'places.sidebarDrop': 'Отпустите для импорта',
   'places.importFileHint':
     'Импортируйте файлы .gpx, .kml или .kmz из инструментов, таких как Google My Maps, Google Earth или GPS-трекер.',
-  'places.importFileDropHere':
-    'Нажмите для выбора файла или перетащите его сюда',
+  'places.importFileDropHere': 'Нажмите для выбора файла или перетащите его сюда',
   'places.importFileDropActive': 'Отпустите файл для выбора',
-  'places.importFileUnsupported':
-    'Неподдерживаемый тип файла. Используйте .gpx, .kml или .kmz.',
-  'places.importFileTooLarge':
-    'Файл слишком большой. Максимальный размер загрузки — {maxMb} MB.',
+  'places.importFileUnsupported': 'Неподдерживаемый тип файла. Используйте .gpx, .kml или .kmz.',
+  'places.importFileTooLarge': 'Файл слишком большой. Максимальный размер загрузки — {maxMb} MB.',
   'places.importFileError': 'Ошибка импорта',
   'places.importAllSkipped': 'Все места уже были в поездке.',
   'places.gpxImported': '{count} мест импортировано из GPX',
@@ -30,16 +27,13 @@ const places: TranslationStrings = {
   'places.kmlKmzImported': '{count} мест импортировано из KMZ/KML',
   'places.urlResolved': 'Место импортировано из URL',
   'places.importList': 'Импорт списка',
-  'places.kmlKmzSummaryValues':
-    'Placemarks: {total} • Импортировано: {created} • Пропущено: {skipped}',
+  'places.kmlKmzSummaryValues': 'Placemarks: {total} • Импортировано: {created} • Пропущено: {skipped}',
   'places.importGoogleList': 'Список Google',
   'places.importNaverList': 'Список Naver',
-  'places.googleListHint':
-    'Вставьте ссылку на общий список Google Maps для импорта всех мест.',
+  'places.googleListHint': 'Вставьте ссылку на общий список Google Maps для импорта всех мест.',
   'places.googleListImported': '{count} мест импортировано из "{list}"',
   'places.googleListError': 'Не удалось импортировать список Google Maps',
-  'places.naverListHint':
-    'Вставьте ссылку на общий список Naver Maps для импорта всех мест.',
+  'places.naverListHint': 'Вставьте ссылку на общий список Naver Maps для импорта всех мест.',
   'places.naverListImported': '{count} мест импортировано из "{list}"',
   'places.naverListError': 'Не удалось импортировать список Naver Maps',
   'places.viewDetails': 'Подробности',
@@ -76,8 +70,7 @@ const places: TranslationStrings = {
   'places.formNotes': 'Заметки',
   'places.formNotesPlaceholder': 'Личные заметки...',
   'places.formReservation': 'Бронирование',
-  'places.reservationNotesPlaceholder':
-    'Заметки о бронировании, номер подтверждения...',
+  'places.reservationNotesPlaceholder': 'Заметки о бронировании, номер подтверждения...',
   'places.mapsSearchPlaceholder': 'Поиск мест...',
   'places.mapsSearchError': 'Ошибка поиска мест.',
   'places.loadingDetails': 'Загрузка данных о месте…',

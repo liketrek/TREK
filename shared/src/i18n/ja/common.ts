@@ -16,8 +16,7 @@ const common: TranslationStrings = {
   'common.deselectAll': 'すべて解除',
   'common.error': 'エラー',
   'common.unknownError': '不明なエラー',
-  'common.tooManyAttempts':
-    '試行回数が多すぎます。時間をおいて再度お試しください。',
+  'common.tooManyAttempts': '試行回数が多すぎます。時間をおいて再度お試しください。',
   'common.back': '戻る',
   'common.all': 'すべて',
   'common.close': '閉じる',

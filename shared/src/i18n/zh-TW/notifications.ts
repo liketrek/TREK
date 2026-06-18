@@ -14,8 +14,7 @@ const notifications: TranslationStrings = {
   'notifications.delete': '刪除',
   'notifications.system': '系統',
   'notifications.synologySessionCleared.title': 'Synology Photos 已斷線',
-  'notifications.synologySessionCleared.text':
-    '您的伺服器或帳號已更改 — 請前往設定重新測試連線。',
+  'notifications.synologySessionCleared.text': '您的伺服器或帳號已更改 — 請前往設定重新測試連線。',
   'notifications.test.title': '來自 {actor} 的測試通知',
   'notifications.test.text': '這是一條簡單的測試通知。',
   'notifications.test.booleanTitle': '{actor} 請求您的審批',

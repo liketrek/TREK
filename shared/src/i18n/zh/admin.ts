@@ -76,19 +76,16 @@ const admin: TranslationStrings = {
   'admin.passwordLogin': 'Password Login',
   'admin.passwordLoginHint': 'Allow users to sign in with email and password',
   'admin.passwordRegistration': 'Password Registration',
-  'admin.passwordRegistrationHint':
-    'Allow new users to register with email and password',
+  'admin.passwordRegistrationHint': 'Allow new users to register with email and password',
   'admin.oidcLogin': 'SSO Login',
   'admin.oidcLoginHint': 'Allow users to sign in with SSO',
   'admin.oidcRegistration': 'SSO Auto-Provisioning',
-  'admin.oidcRegistrationHint':
-    'Automatically create accounts for new SSO users',
+  'admin.oidcRegistrationHint': 'Automatically create accounts for new SSO users',
   'admin.envOverrideHint':
     'Password login settings are controlled by the OIDC_ONLY environment variable and cannot be changed here.',
   'admin.lockoutWarning': 'At least one login method must remain enabled',
   'admin.requireMfa': '要求双因素身份验证（2FA）',
-  'admin.requireMfaHint':
-    '未启用 2FA 的用户必须先完成设置中的配置才能使用应用。',
+  'admin.requireMfaHint': '未启用 2FA 的用户必须先完成设置中的配置才能使用应用。',
   'admin.apiKeys': 'API 密钥',
   'admin.apiKeysHint': '可选。启用地点的扩展数据，如照片和天气。',
   'admin.mapsKey': 'Google Maps API 密钥',
@@ -103,26 +100,21 @@ const admin: TranslationStrings = {
   'admin.keyInvalid': '无效',
   'admin.keySaved': 'API 密钥已保存',
   'admin.oidcTitle': '单点登录 (OIDC)',
-  'admin.oidcSubtitle':
-    '允许通过 Google、Apple、Authentik 或 Keycloak 等外部提供商登录。',
+  'admin.oidcSubtitle': '允许通过 Google、Apple、Authentik 或 Keycloak 等外部提供商登录。',
   'admin.oidcDisplayName': '显示名称',
   'admin.oidcIssuer': '颁发者 URL',
-  'admin.oidcIssuerHint':
-    '提供商的 OpenID Connect 颁发者 URL。如 https://accounts.google.com',
+  'admin.oidcIssuerHint': '提供商的 OpenID Connect 颁发者 URL。如 https://accounts.google.com',
   'admin.oidcSaved': 'OIDC 配置已保存',
   'admin.oidcOnlyMode': '禁用密码登录',
   'admin.oidcOnlyModeHint': '启用后，仅允许 SSO 登录。密码登录和注册将被禁用。',
   'admin.fileTypes': '允许的文件类型',
   'admin.fileTypesHint': '配置用户可以上传的文件类型。',
-  'admin.fileTypesFormat':
-    '以逗号分隔的扩展名（如 jpg,png,pdf,doc）。使用 * 允许所有类型。',
+  'admin.fileTypesFormat': '以逗号分隔的扩展名（如 jpg,png,pdf,doc）。使用 * 允许所有类型。',
   'admin.fileTypesSaved': '文件类型设置已保存',
   'admin.placesPhotos.title': '地点照片',
-  'admin.placesPhotos.subtitle':
-    '从 Google Places API 获取照片。禁用可节省 API 配额。Wikimedia 照片不受影响。',
+  'admin.placesPhotos.subtitle': '从 Google Places API 获取照片。禁用可节省 API 配额。Wikimedia 照片不受影响。',
   'admin.placesAutocomplete.title': '地点自动补全',
-  'admin.placesAutocomplete.subtitle':
-    '使用 Google Places API 提供搜索建议。禁用可节省 API 配额。',
+  'admin.placesAutocomplete.subtitle': '使用 Google Places API 提供搜索建议。禁用可节省 API 配额。',
   'admin.placesDetails.title': '地点详情',
   'admin.placesDetails.subtitle':
     '从 Google Places API 获取地点详细信息（营业时间、评分、网站）。禁用可节省 API 配额。',
@@ -139,8 +131,7 @@ const admin: TranslationStrings = {
   'admin.tabs.config': '个性化',
   'admin.tabs.defaults': '用户默认设置',
   'admin.defaultSettings.title': '用户默认设置',
-  'admin.defaultSettings.description':
-    '设置实例范围的默认值。未更改设置的用户将看到这些值。用户自己的更改始终优先。',
+  'admin.defaultSettings.description': '设置实例范围的默认值。未更改设置的用户将看到这些值。用户自己的更改始终优先。',
   'admin.defaultSettings.saved': '默认值已保存',
   'admin.defaultSettings.reset': '重置为内置默认值',
   'admin.defaultSettings.resetToBuiltIn': '重置',
@@ -178,8 +169,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.vacay.name': 'Vacay',
   'admin.addons.catalog.vacay.description': '带日历视图的个人假期规划器',
   'admin.addons.catalog.atlas.name': 'Atlas',
-  'admin.addons.catalog.atlas.description':
-    '标记已访问国家和旅行统计的世界地图',
+  'admin.addons.catalog.atlas.description': '标记已访问国家和旅行统计的世界地图',
   'admin.addons.catalog.collab.name': 'Collab',
   'admin.addons.catalog.collab.description': '旅行规划的实时笔记、投票和聊天',
   'admin.addons.subtitleBefore': '启用或禁用功能以自定义你的 ',
@@ -197,8 +187,7 @@ const admin: TranslationStrings = {
   'admin.addons.noAddons': '暂无可用扩展',
   'admin.weather.title': '天气数据',
   'admin.weather.badge': '自 2026 年 3 月 24 日起',
-  'admin.weather.description':
-    'TREK 使用 Open-Meteo 作为天气数据源。Open-Meteo 是免费的开源天气服务——无需 API 密钥。',
+  'admin.weather.description': 'TREK 使用 Open-Meteo 作为天气数据源。Open-Meteo 是免费的开源天气服务——无需 API 密钥。',
   'admin.weather.forecast': '16 天天气预报',
   'admin.weather.forecastDesc': '之前为 5 天 (OpenWeatherMap)',
   'admin.weather.climate': '历史气候数据',
@@ -218,8 +207,7 @@ const admin: TranslationStrings = {
   'admin.mcpTokens.never': '从未',
   'admin.mcpTokens.empty': '尚未创建任何 MCP 令牌',
   'admin.mcpTokens.deleteTitle': '删除令牌',
-  'admin.mcpTokens.deleteMessage':
-    '此令牌将立即被撤销。用户将失去通过此令牌的 MCP 访问权限。',
+  'admin.mcpTokens.deleteMessage': '此令牌将立即被撤销。用户将失去通过此令牌的 MCP 访问权限。',
   'admin.mcpTokens.deleteSuccess': '令牌已删除',
   'admin.mcpTokens.deleteError': '删除令牌失败',
   'admin.mcpTokens.loadError': '加载令牌失败',
@@ -230,8 +218,7 @@ const admin: TranslationStrings = {
   'admin.oauthSessions.created': '创建时间',
   'admin.oauthSessions.empty': '暂无活跃的 OAuth 会话',
   'admin.oauthSessions.revokeTitle': '撤销会话',
-  'admin.oauthSessions.revokeMessage':
-    '此 OAuth 会话将立即被撤销。客户端将失去 MCP 访问权限。',
+  'admin.oauthSessions.revokeMessage': '此 OAuth 会话将立即被撤销。客户端将失去 MCP 访问权限。',
   'admin.oauthSessions.revokeSuccess': '会话已撤销',
   'admin.oauthSessions.revokeError': '撤销会话失败',
   'admin.oauthSessions.loadError': '加载 OAuth 会话失败',
@@ -263,10 +250,8 @@ const admin: TranslationStrings = {
   'admin.update.button': '在 GitHub 查看',
   'admin.update.install': '安装更新',
   'admin.update.confirmTitle': '确定安装更新？',
-  'admin.update.confirmText':
-    'TREK 将从 {current} 更新到 {version}。服务器将自动重启。',
-  'admin.update.dataInfo':
-    '你的所有数据（旅行、用户、API 密钥、上传文件、Vacay、Atlas、预算）将被保留。',
+  'admin.update.confirmText': 'TREK 将从 {current} 更新到 {version}。服务器将自动重启。',
+  'admin.update.dataInfo': '你的所有数据（旅行、用户、API 密钥、上传文件、Vacay、Atlas、预算）将被保留。',
   'admin.update.warning': '重启期间应用将短暂不可用。',
   'admin.update.confirm': '立即更新',
   'admin.update.installing': '更新中…',
@@ -275,26 +260,22 @@ const admin: TranslationStrings = {
   'admin.update.backupHint': '建议在更新前创建备份。',
   'admin.update.backupLink': '前往备份',
   'admin.update.howTo': '如何更新',
-  'admin.update.dockerText':
-    '你的 TREK 实例运行在 Docker 中。要更新到 {version}，请在服务器上执行以下命令：',
+  'admin.update.dockerText': '你的 TREK 实例运行在 Docker 中。要更新到 {version}，请在服务器上执行以下命令：',
   'admin.update.reloadHint': '请在几秒后刷新页面。',
   'admin.tabs.permissions': '权限',
   'admin.notifications.emailPanel.title': 'Email (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
   'admin.notifications.inappPanel.title': 'In-App',
-  'admin.notifications.inappPanel.hint':
-    '应用内通知始终处于活跃状态，无法全局禁用。',
+  'admin.notifications.inappPanel.hint': '应用内通知始终处于活跃状态，无法全局禁用。',
   'admin.notifications.adminWebhookPanel.title': '管理员 Webhook',
   'admin.notifications.adminWebhookPanel.hint':
     '此 Webhook 专用于管理员通知（如版本更新提醒）。它与用户 Webhook 相互独立，配置 URL 后自动触发。',
   'admin.notifications.adminWebhookPanel.saved': '管理员 Webhook URL 已保存',
   'admin.notifications.adminWebhookPanel.testSuccess': '测试 Webhook 发送成功',
   'admin.notifications.adminWebhookPanel.testFailed': '测试 Webhook 失败',
-  'admin.notifications.adminWebhookPanel.alwaysOnHint':
-    '配置 URL 后管理员 Webhook 自动触发',
+  'admin.notifications.adminWebhookPanel.alwaysOnHint': '配置 URL 后管理员 Webhook 自动触发',
   'admin.notifications.ntfy': 'Ntfy',
-  'admin.ntfy.hint':
-    '允许用户配置自己的 ntfy 主题以接收推送通知。在下方设置默认服务器以预填充用户设置。',
+  'admin.ntfy.hint': '允许用户配置自己的 ntfy 主题以接收推送通知。在下方设置默认服务器以预填充用户设置。',
   'admin.notifications.testNtfy': '发送测试 Ntfy',
   'admin.notifications.testNtfySuccess': '测试 Ntfy 发送成功',
   'admin.notifications.testNtfyFailed': '测试 Ntfy 失败',
@@ -313,35 +294,29 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.test': '发送测试 Ntfy',
   'admin.notifications.adminNtfyPanel.testSuccess': '测试 Ntfy 发送成功',
   'admin.notifications.adminNtfyPanel.testFailed': '测试 Ntfy 失败',
-  'admin.notifications.adminNtfyPanel.alwaysOnHint':
-    '配置主题后管理员 Ntfy 始终触发',
+  'admin.notifications.adminNtfyPanel.alwaysOnHint': '配置主题后管理员 Ntfy 始终触发',
   'admin.notifications.adminNotificationsHint':
     '配置哪些渠道发送管理员通知（如版本更新提醒）。设置管理员 Webhook URL 后，Webhook 将自动触发。',
   'admin.notifications.tripReminders.title': '行程提醒',
-  'admin.notifications.tripReminders.hint':
-    '在行程开始前发送提醒通知（需要在行程中设置提醒天数）。',
+  'admin.notifications.tripReminders.hint': '在行程开始前发送提醒通知（需要在行程中设置提醒天数）。',
   'admin.notifications.tripReminders.enabled': '行程提醒已启用',
   'admin.notifications.tripReminders.disabled': '行程提醒已禁用',
   'admin.tabs.notifications': '通知',
   'admin.addons.catalog.journey.name': '旅程',
-  'admin.addons.catalog.journey.description':
-    '旅行追踪与旅行日志，包含签到、照片和每日故事',
+  'admin.addons.catalog.journey.description': '旅行追踪与旅行日志，包含签到、照片和每日故事',
   'admin.passkey.title': '通行密钥登录',
   'admin.passkey.cardHint': '允许用户使用通行密钥（WebAuthn）登录。默认关闭。',
   'admin.passkey.login': '启用通行密钥登录',
-  'admin.passkey.loginHint':
-    '显示"使用通行密钥登录"选项，并允许用户在其设置中注册通行密钥。',
+  'admin.passkey.loginHint': '显示"使用通行密钥登录"选项，并允许用户在其设置中注册通行密钥。',
   'admin.passkey.notConfigured':
     '此部署尚未解析出有效的 WebAuthn 域名。请设置 APP_URL 或下方的 Relying Party ID——在此之前通行密钥将保持隐藏。',
   'admin.passkey.rpId': 'Relying Party ID（域名）',
   'admin.passkey.rpIdHint':
     '通行密钥所绑定的纯域名，如 trek.example.org。留空则从 APP_URL 推导。之后更改将使现有通行密钥失效。',
   'admin.passkey.origins': '允许的来源',
-  'admin.passkey.originsHint':
-    '以逗号分隔的完整来源，如 https://trek.example.org。留空则使用 APP_URL。',
+  'admin.passkey.originsHint': '以逗号分隔的完整来源，如 https://trek.example.org。留空则使用 APP_URL。',
   'admin.passkey.reset': '重置通行密钥',
-  'admin.passkey.resetHint':
-    '移除该用户的所有通行密钥（如设备丢失时）。他们仍可使用密码登录。',
+  'admin.passkey.resetHint': '移除该用户的所有通行密钥（如设备丢失时）。他们仍可使用密码登录。',
   'admin.passkey.resetConfirm': '移除 {name} 的所有通行密钥？',
   'admin.passkey.resetDone': '已移除 {count} 个通行密钥',
   'admin.defaultSettings.mapProvider': '地图引擎',
@@ -349,7 +324,8 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.providerLeaflet': '标准（免费）',
   'admin.defaultSettings.providerMapbox': 'Mapbox（3D）',
   'admin.defaultSettings.mapboxToken': '共享 Mapbox 令牌',
-  'admin.defaultSettings.mapboxTokenHint': '用于所有未输入自己令牌的用户 — 这样无需逐个分享密钥，整个实例即可使用 Mapbox。以加密方式存储。',
+  'admin.defaultSettings.mapboxTokenHint':
+    '用于所有未输入自己令牌的用户 — 这样无需逐个分享密钥，整个实例即可使用 Mapbox。以加密方式存储。',
   'admin.defaultSettings.mapboxStyle': '地图样式',
   'admin.defaultSettings.mapboxStylePlaceholder': '选择一种样式…',
   'admin.defaultSettings.mapbox3d': '3D 建筑与地形',

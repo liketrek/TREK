@@ -20,8 +20,7 @@ const dashboard: TranslationStrings = {
   'dashboard.timezoneCustomTzPlaceholder': 'z.B. America/New_York',
   'dashboard.timezoneCustomAdd': 'Hinzufügen',
   'dashboard.timezoneCustomErrorEmpty': 'Zeitzone eingeben',
-  'dashboard.timezoneCustomErrorInvalid':
-    'Ungültige Zeitzone. Format: Europe/Berlin',
+  'dashboard.timezoneCustomErrorInvalid': 'Ungültige Zeitzone. Format: Europe/Berlin',
   'dashboard.timezoneCustomErrorDuplicate': 'Bereits hinzugefügt',
   'dashboard.emptyTitle': 'Noch keine Reisen',
   'dashboard.emptyText':
@@ -56,8 +55,7 @@ const dashboard: TranslationStrings = {
   'dashboard.toast.restoreError': 'Fehler beim Wiederherstellen',
   'dashboard.toast.copied': 'Reise kopiert!',
   'dashboard.toast.copyError': 'Fehler beim Kopieren der Reise',
-  'dashboard.confirm.delete':
-    'Reise "{title}" löschen? Alle Orte und Pläne werden unwiderruflich gelöscht.',
+  'dashboard.confirm.delete': 'Reise "{title}" löschen? Alle Orte und Pläne werden unwiderruflich gelöscht.',
   'dashboard.editTrip': 'Reise bearbeiten',
   'dashboard.createTrip': 'Neue Reise erstellen',
   'dashboard.tripTitle': 'Titel',
@@ -67,10 +65,8 @@ const dashboard: TranslationStrings = {
   'dashboard.startDate': 'Startdatum',
   'dashboard.endDate': 'Enddatum',
   'dashboard.dayCount': 'Anzahl Tage',
-  'dashboard.dayCountHint':
-    'Wie viele Tage geplant werden sollen, wenn kein Reisezeitraum gesetzt ist.',
-  'dashboard.noDateHint':
-    'Kein Datum gesetzt — es werden 7 Standardtage erstellt. Du kannst das jederzeit ändern.',
+  'dashboard.dayCountHint': 'Wie viele Tage geplant werden sollen, wenn kein Reisezeitraum gesetzt ist.',
+  'dashboard.noDateHint': 'Kein Datum gesetzt — es werden 7 Standardtage erstellt. Du kannst das jederzeit ändern.',
   'dashboard.coverImage': 'Titelbild',
   'dashboard.addCoverImage': 'Titelbild hinzufügen (oder per Drag & Drop)',
   'dashboard.addMembers': 'Reisebegleiter',

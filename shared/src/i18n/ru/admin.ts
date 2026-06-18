@@ -2,8 +2,7 @@ import type { TranslationStrings } from '../types';
 
 const admin: TranslationStrings = {
   'admin.notifications.title': 'Уведомления',
-  'admin.notifications.hint':
-    'Выберите канал уведомлений. Одновременно может быть активен только один.',
+  'admin.notifications.hint': 'Выберите канал уведомлений. Одновременно может быть активен только один.',
   'admin.notifications.none': 'Отключено',
   'admin.notifications.email': 'Эл. почта (SMTP)',
   'admin.notifications.webhook': 'Webhook',
@@ -13,11 +12,9 @@ const admin: TranslationStrings = {
   'admin.notifications.testWebhookSuccess': 'Тестовый вебхук успешно отправлен',
   'admin.notifications.testWebhookFailed': 'Ошибка отправки тестового вебхука',
   'admin.smtp.title': 'Почта и уведомления',
-  'admin.smtp.hint':
-    'Конфигурация SMTP для отправки уведомлений по электронной почте.',
+  'admin.smtp.hint': 'Конфигурация SMTP для отправки уведомлений по электронной почте.',
   'admin.smtp.testButton': 'Отправить тестовое письмо',
-  'admin.webhook.hint':
-    'Отправлять уведомления через внешний webhook (Discord, Slack и т.д.).',
+  'admin.webhook.hint': 'Отправлять уведомления через внешний webhook (Discord, Slack и т.д.).',
   'admin.smtp.testSuccess': 'Тестовое письмо успешно отправлено',
   'admin.smtp.testFailed': 'Ошибка отправки тестового письма',
   'admin.title': 'Администрирование',
@@ -41,8 +38,7 @@ const admin: TranslationStrings = {
   'admin.editUser': 'Редактировать пользователя',
   'admin.newPassword': 'Новый пароль',
   'admin.newPasswordHint': 'Оставьте пустым, чтобы сохранить текущий пароль',
-  'admin.deleteUser':
-    'Удалить пользователя «{name}»? Все поездки будут безвозвратно удалены.',
+  'admin.deleteUser': 'Удалить пользователя «{name}»? Все поездки будут безвозвратно удалены.',
   'admin.deleteUserTitle': 'Удалить пользователя',
   'admin.newPasswordPlaceholder': 'Введите новый пароль…',
   'admin.toast.loadError': 'Не удалось загрузить данные администрирования',
@@ -53,8 +49,7 @@ const admin: TranslationStrings = {
   'admin.toast.cannotDeleteSelf': 'Нельзя удалить собственный аккаунт',
   'admin.toast.userCreated': 'Пользователь создан',
   'admin.toast.createError': 'Ошибка создания пользователя',
-  'admin.toast.fieldsRequired':
-    'Имя пользователя, эл. почта и пароль обязательны',
+  'admin.toast.fieldsRequired': 'Имя пользователя, эл. почта и пароль обязательны',
   'admin.createUser': 'Создать пользователя',
   'admin.invite.title': 'Ссылки-приглашения',
   'admin.invite.subtitle': 'Создание одноразовых ссылок для регистрации',
@@ -76,19 +71,16 @@ const admin: TranslationStrings = {
   'admin.invite.deleteError': 'Ошибка при удалении ссылки',
   'admin.tabs.settings': 'Настройки',
   'admin.allowRegistration': 'Разрешить регистрацию',
-  'admin.allowRegistrationHint':
-    'Новые пользователи могут регистрироваться самостоятельно',
+  'admin.allowRegistrationHint': 'Новые пользователи могут регистрироваться самостоятельно',
   'admin.authMethods': 'Authentication Methods',
   'admin.passwordLogin': 'Password Login',
   'admin.passwordLoginHint': 'Allow users to sign in with email and password',
   'admin.passwordRegistration': 'Password Registration',
-  'admin.passwordRegistrationHint':
-    'Allow new users to register with email and password',
+  'admin.passwordRegistrationHint': 'Allow new users to register with email and password',
   'admin.oidcLogin': 'SSO Login',
   'admin.oidcLoginHint': 'Allow users to sign in with SSO',
   'admin.oidcRegistration': 'SSO Auto-Provisioning',
-  'admin.oidcRegistrationHint':
-    'Automatically create accounts for new SSO users',
+  'admin.oidcRegistrationHint': 'Automatically create accounts for new SSO users',
   'admin.envOverrideHint':
     'Password login settings are controlled by the OIDC_ONLY environment variable and cannot be changed here.',
   'admin.lockoutWarning': 'At least one login method must remain enabled',
@@ -96,37 +88,30 @@ const admin: TranslationStrings = {
   'admin.requireMfaHint':
     'Пользователи без 2FA должны завершить настройку в разделе «Настройки» перед использованием приложения.',
   'admin.apiKeys': 'API-ключи',
-  'admin.apiKeysHint':
-    'Необязательно. Включает расширенные данные о местах, такие как фото и погода.',
+  'admin.apiKeysHint': 'Необязательно. Включает расширенные данные о местах, такие как фото и погода.',
   'admin.mapsKey': 'API-ключ Google Maps',
-  'admin.mapsKeyHint':
-    'Необходим для поиска мест. Получите на console.cloud.google.com',
+  'admin.mapsKeyHint': 'Необходим для поиска мест. Получите на console.cloud.google.com',
   'admin.mapsKeyHintLong':
     'Без API-ключа используется OpenStreetMap для поиска мест. С ключом Google API можно загружать фото, рейтинги и часы работы. Получите ключ на console.cloud.google.com.',
   'admin.recommended': 'Рекомендуется',
   'admin.weatherKey': 'API-ключ OpenWeatherMap',
-  'admin.weatherKeyHint':
-    'Для данных о погоде. Бесплатно на openweathermap.org',
+  'admin.weatherKeyHint': 'Для данных о погоде. Бесплатно на openweathermap.org',
   'admin.validateKey': 'Проверить',
   'admin.keyValid': 'Подключено',
   'admin.keyInvalid': 'Недействителен',
   'admin.keySaved': 'API-ключи сохранены',
   'admin.oidcTitle': 'Единый вход (OIDC)',
-  'admin.oidcSubtitle':
-    'Разрешить вход через внешних провайдеров, таких как Google, Apple, Authentik или Keycloak.',
+  'admin.oidcSubtitle': 'Разрешить вход через внешних провайдеров, таких как Google, Apple, Authentik или Keycloak.',
   'admin.oidcDisplayName': 'Отображаемое имя',
   'admin.oidcIssuer': 'URL издателя',
-  'admin.oidcIssuerHint':
-    'URL издателя OpenID Connect провайдера. Напр. https://accounts.google.com',
+  'admin.oidcIssuerHint': 'URL издателя OpenID Connect провайдера. Напр. https://accounts.google.com',
   'admin.oidcSaved': 'Конфигурация OIDC сохранена',
   'admin.oidcOnlyMode': 'Отключить вход по паролю',
   'admin.oidcOnlyModeHint':
     'При включении разрешён только вход через SSO. Вход и регистрация по паролю будут заблокированы.',
   'admin.fileTypes': 'Разрешённые типы файлов',
-  'admin.fileTypesHint':
-    'Настройте, какие типы файлов могут загружать пользователи.',
-  'admin.fileTypesFormat':
-    'Расширения через запятую (напр. jpg,png,pdf,doc). Используйте * для разрешения всех типов.',
+  'admin.fileTypesHint': 'Настройте, какие типы файлов могут загружать пользователи.',
+  'admin.fileTypesFormat': 'Расширения через запятую (напр. jpg,png,pdf,doc). Используйте * для разрешения всех типов.',
   'admin.fileTypesSaved': 'Настройки типов файлов сохранены',
   'admin.placesPhotos.title': 'Фотографии мест',
   'admin.placesPhotos.subtitle':
@@ -157,11 +142,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.resetToBuiltIn': 'сбросить',
   'admin.tabs.templates': 'Шаблоны упаковки',
   'admin.packingTemplates.title': 'Шаблоны упаковки',
-  'admin.packingTemplates.subtitle':
-    'Создавайте многоразовые списки вещей для поездок',
+  'admin.packingTemplates.subtitle': 'Создавайте многоразовые списки вещей для поездок',
   'admin.packingTemplates.create': 'Новый шаблон',
-  'admin.packingTemplates.namePlaceholder':
-    'Название шаблона (напр. Пляжный отдых)',
+  'admin.packingTemplates.namePlaceholder': 'Название шаблона (напр. Пляжный отдых)',
   'admin.packingTemplates.empty': 'Шаблоны ещё не созданы',
   'admin.packingTemplates.items': 'вещей',
   'admin.packingTemplates.categories': 'категорий',
@@ -177,34 +160,24 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.saveError': 'Ошибка сохранения',
   'admin.tabs.addons': 'Дополнения',
   'admin.addons.title': 'Дополнения',
-  'admin.addons.subtitle':
-    'Включайте или отключайте функции для настройки TREK под себя.',
+  'admin.addons.subtitle': 'Включайте или отключайте функции для настройки TREK под себя.',
   'admin.addons.catalog.memories.name': 'Фото (Immich)',
-  'admin.addons.catalog.memories.description':
-    'Делитесь фотографиями из поездок через Immich',
+  'admin.addons.catalog.memories.description': 'Делитесь фотографиями из поездок через Immich',
   'admin.addons.catalog.mcp.name': 'MCP',
-  'admin.addons.catalog.mcp.description':
-    'Протокол контекста модели для интеграции с ИИ-ассистентами',
+  'admin.addons.catalog.mcp.description': 'Протокол контекста модели для интеграции с ИИ-ассистентами',
   'admin.addons.catalog.packing.name': 'Списки',
-  'admin.addons.catalog.packing.description':
-    'Списки вещей и задачи для ваших поездок',
+  'admin.addons.catalog.packing.description': 'Списки вещей и задачи для ваших поездок',
   'admin.addons.catalog.budget.name': 'Бюджет',
-  'admin.addons.catalog.budget.description':
-    'Отслеживайте расходы и планируйте бюджет поездки',
+  'admin.addons.catalog.budget.description': 'Отслеживайте расходы и планируйте бюджет поездки',
   'admin.addons.catalog.documents.name': 'Документы',
-  'admin.addons.catalog.documents.description':
-    'Храните и управляйте документами для путешествий',
+  'admin.addons.catalog.documents.description': 'Храните и управляйте документами для путешествий',
   'admin.addons.catalog.vacay.name': 'Vacay',
-  'admin.addons.catalog.vacay.description':
-    'Личный планировщик отпусков с календарём',
+  'admin.addons.catalog.vacay.description': 'Личный планировщик отпусков с календарём',
   'admin.addons.catalog.atlas.name': 'Atlas',
-  'admin.addons.catalog.atlas.description':
-    'Карта мира с посещёнными странами и статистикой путешествий',
+  'admin.addons.catalog.atlas.description': 'Карта мира с посещёнными странами и статистикой путешествий',
   'admin.addons.catalog.collab.name': 'Collab',
-  'admin.addons.catalog.collab.description':
-    'Заметки в реальном времени, опросы и чат для планирования поездок',
-  'admin.addons.subtitleBefore':
-    'Включайте или отключайте функции для настройки ',
+  'admin.addons.catalog.collab.description': 'Заметки в реальном времени, опросы и чат для планирования поездок',
+  'admin.addons.subtitleBefore': 'Включайте или отключайте функции для настройки ',
   'admin.addons.subtitleAfter': ' под себя.',
   'admin.addons.enabled': 'Включено',
   'admin.addons.disabled': 'Отключено',
@@ -212,10 +185,8 @@ const admin: TranslationStrings = {
   'admin.addons.type.global': 'Глобально',
   'admin.addons.type.integration': 'Интеграция',
   'admin.addons.tripHint': 'Доступно как вкладка внутри каждой поездки',
-  'admin.addons.globalHint':
-    'Доступно как отдельный раздел в основной навигации',
-  'admin.addons.integrationHint':
-    'Фоновые сервисы и API-интеграции без отдельной страницы',
+  'admin.addons.globalHint': 'Доступно как отдельный раздел в основной навигации',
+  'admin.addons.integrationHint': 'Фоновые сервисы и API-интеграции без отдельной страницы',
   'admin.addons.toast.updated': 'Дополнение обновлено',
   'admin.addons.toast.error': 'Не удалось обновить дополнение',
   'admin.addons.noAddons': 'Нет доступных дополнений',
@@ -226,16 +197,14 @@ const admin: TranslationStrings = {
   'admin.weather.forecast': 'Прогноз на 16 дней',
   'admin.weather.forecastDesc': 'Ранее 5 дней (OpenWeatherMap)',
   'admin.weather.climate': 'Исторические климатические данные',
-  'admin.weather.climateDesc':
-    'Средние значения за последние 85 лет для дней за пределами 16-дневного прогноза',
+  'admin.weather.climateDesc': 'Средние значения за последние 85 лет для дней за пределами 16-дневного прогноза',
   'admin.weather.requests': '10 000 запросов / день',
   'admin.weather.requestsDesc': 'Бесплатно, API-ключ не требуется',
   'admin.weather.locationHint':
     'Погода основана на первом месте с координатами в каждом дне. Если ни одно место не назначено на день, в качестве ориентира используется любое место из списка.',
   'admin.tabs.mcpTokens': 'MCP-доступ',
   'admin.mcpTokens.title': 'MCP-доступ',
-  'admin.mcpTokens.subtitle':
-    'Управление OAuth-сессиями и API-токенами всех пользователей',
+  'admin.mcpTokens.subtitle': 'Управление OAuth-сессиями и API-токенами всех пользователей',
   'admin.mcpTokens.sectionTitle': 'API-токены',
   'admin.mcpTokens.owner': 'Владелец',
   'admin.mcpTokens.tokenName': 'Название токена',
@@ -256,8 +225,7 @@ const admin: TranslationStrings = {
   'admin.oauthSessions.created': 'Создано',
   'admin.oauthSessions.empty': 'Нет активных OAuth-сессий',
   'admin.oauthSessions.revokeTitle': 'Отозвать сессию',
-  'admin.oauthSessions.revokeMessage':
-    'Эта OAuth-сессия будет немедленно отозвана. Клиент потеряет доступ к MCP.',
+  'admin.oauthSessions.revokeMessage': 'Эта OAuth-сессия будет немедленно отозвана. Клиент потеряет доступ к MCP.',
   'admin.oauthSessions.revokeSuccess': 'Сессия отозвана',
   'admin.oauthSessions.revokeError': 'Не удалось отозвать сессию',
   'admin.oauthSessions.loadError': 'Не удалось загрузить OAuth-сессии',
@@ -286,23 +254,19 @@ const admin: TranslationStrings = {
   'admin.github.error': 'Не удалось загрузить релизы',
   'admin.github.by': 'от',
   'admin.update.available': 'Доступно обновление',
-  'admin.update.text':
-    'Доступна версия TREK {version}. У вас установлена {current}.',
+  'admin.update.text': 'Доступна версия TREK {version}. У вас установлена {current}.',
   'admin.update.button': 'Посмотреть на GitHub',
   'admin.update.install': 'Установить обновление',
   'admin.update.confirmTitle': 'Установить обновление?',
-  'admin.update.confirmText':
-    'TREK будет обновлён с {current} до {version}. Сервер перезапустится автоматически.',
+  'admin.update.confirmText': 'TREK будет обновлён с {current} до {version}. Сервер перезапустится автоматически.',
   'admin.update.dataInfo':
     'Все ваши данные (поездки, пользователи, API-ключи, загрузки, Vacay, Atlas, бюджеты) будут сохранены.',
-  'admin.update.warning':
-    'Приложение будет кратковременно недоступно во время перезапуска.',
+  'admin.update.warning': 'Приложение будет кратковременно недоступно во время перезапуска.',
   'admin.update.confirm': 'Обновить сейчас',
   'admin.update.installing': 'Обновление…',
   'admin.update.success': 'Обновление установлено! Сервер перезапускается…',
   'admin.update.failed': 'Ошибка обновления',
-  'admin.update.backupHint':
-    'Рекомендуем создать резервную копию перед обновлением.',
+  'admin.update.backupHint': 'Рекомендуем создать резервную копию перед обновлением.',
   'admin.update.backupLink': 'Перейти к резервным копиям',
   'admin.update.howTo': 'Как обновить',
   'admin.update.dockerText':
@@ -312,17 +276,13 @@ const admin: TranslationStrings = {
   'admin.notifications.emailPanel.title': 'Email (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
   'admin.notifications.inappPanel.title': 'In-App',
-  'admin.notifications.inappPanel.hint':
-    'Уведомления в приложении всегда активны и не могут быть отключены глобально.',
+  'admin.notifications.inappPanel.hint': 'Уведомления в приложении всегда активны и не могут быть отключены глобально.',
   'admin.notifications.adminWebhookPanel.title': 'Вебхук администратора',
   'admin.notifications.adminWebhookPanel.hint':
     'Этот вебхук используется исключительно для уведомлений администратора (например, оповещения о версиях). Он независим от пользовательских вебхуков и отправляется автоматически при наличии URL.',
-  'admin.notifications.adminWebhookPanel.saved':
-    'URL вебхука администратора сохранён',
-  'admin.notifications.adminWebhookPanel.testSuccess':
-    'Тестовый вебхук успешно отправлен',
-  'admin.notifications.adminWebhookPanel.testFailed':
-    'Ошибка тестового вебхука',
+  'admin.notifications.adminWebhookPanel.saved': 'URL вебхука администратора сохранён',
+  'admin.notifications.adminWebhookPanel.testSuccess': 'Тестовый вебхук успешно отправлен',
+  'admin.notifications.adminWebhookPanel.testFailed': 'Ошибка тестового вебхука',
   'admin.notifications.adminWebhookPanel.alwaysOnHint':
     'Вебхук администратора отправляется автоматически при наличии URL',
   'admin.notifications.ntfy': 'Ntfy',
@@ -340,17 +300,12 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.serverPlaceholder': 'https://ntfy.sh',
   'admin.notifications.adminNtfyPanel.topicLabel': 'Тема администратора',
   'admin.notifications.adminNtfyPanel.topicPlaceholder': 'trek-admin-alerts',
-  'admin.notifications.adminNtfyPanel.tokenLabel':
-    'Токен доступа (необязательно)',
-  'admin.notifications.adminNtfyPanel.tokenCleared':
-    'Токен доступа администратора очищен',
-  'admin.notifications.adminNtfyPanel.saved':
-    'Настройки Ntfy администратора сохранены',
+  'admin.notifications.adminNtfyPanel.tokenLabel': 'Токен доступа (необязательно)',
+  'admin.notifications.adminNtfyPanel.tokenCleared': 'Токен доступа администратора очищен',
+  'admin.notifications.adminNtfyPanel.saved': 'Настройки Ntfy администратора сохранены',
   'admin.notifications.adminNtfyPanel.test': 'Отправить тестовое Ntfy',
-  'admin.notifications.adminNtfyPanel.testSuccess':
-    'Тестовое Ntfy успешно отправлено',
-  'admin.notifications.adminNtfyPanel.testFailed':
-    'Ошибка отправки тестового Ntfy',
+  'admin.notifications.adminNtfyPanel.testSuccess': 'Тестовое Ntfy успешно отправлено',
+  'admin.notifications.adminNtfyPanel.testFailed': 'Ошибка отправки тестового Ntfy',
   'admin.notifications.adminNtfyPanel.alwaysOnHint':
     'Ntfy администратора всегда отправляется при наличии настроенной темы',
   'admin.notifications.adminNotificationsHint':
@@ -358,17 +313,14 @@ const admin: TranslationStrings = {
   'admin.notifications.tripReminders.title': 'Напоминания о поездках',
   'admin.notifications.tripReminders.hint':
     'Отправляет напоминание перед началом поездки (необходимо указать дни напоминания в параметрах поездки).',
-  'admin.notifications.tripReminders.enabled':
-    'Напоминания о поездках включены',
-  'admin.notifications.tripReminders.disabled':
-    'Напоминания о поездках отключены',
+  'admin.notifications.tripReminders.enabled': 'Напоминания о поездках включены',
+  'admin.notifications.tripReminders.disabled': 'Напоминания о поездках отключены',
   'admin.tabs.notifications': 'Уведомления',
   'admin.addons.catalog.journey.name': 'Путешествие',
   'admin.addons.catalog.journey.description':
     'Отслеживание поездок и дневник путешествий с отметками, фото и ежедневными историями',
   'admin.passkey.title': 'Вход по passkey',
-  'admin.passkey.cardHint':
-    'Разрешите пользователям входить с помощью passkeys (WebAuthn). По умолчанию выключено.',
+  'admin.passkey.cardHint': 'Разрешите пользователям входить с помощью passkeys (WebAuthn). По умолчанию выключено.',
   'admin.passkey.login': 'Включить вход по passkey',
   'admin.passkey.loginHint':
     'Показывать вариант «Войти с помощью passkey» и разрешить пользователям регистрировать passkeys в своих настройках.',
@@ -386,11 +338,13 @@ const admin: TranslationStrings = {
   'admin.passkey.resetConfirm': 'Удалить все passkeys пользователя {name}?',
   'admin.passkey.resetDone': 'Удалено passkeys: {count}',
   'admin.defaultSettings.mapProvider': 'Картографический движок',
-  'admin.defaultSettings.mapProviderHint': 'Карта по умолчанию для всех на этом сервере. Каждый пользователь по-прежнему может изменить её в своих настройках.',
+  'admin.defaultSettings.mapProviderHint':
+    'Карта по умолчанию для всех на этом сервере. Каждый пользователь по-прежнему может изменить её в своих настройках.',
   'admin.defaultSettings.providerLeaflet': 'Стандартная (бесплатно)',
   'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
   'admin.defaultSettings.mapboxToken': 'Общий токен Mapbox',
-  'admin.defaultSettings.mapboxTokenHint': 'Используется для каждого пользователя, который не ввёл собственный токен — так весь сервер получает Mapbox без необходимости делиться ключом по отдельности. Хранится в зашифрованном виде.',
+  'admin.defaultSettings.mapboxTokenHint':
+    'Используется для каждого пользователя, который не ввёл собственный токен — так весь сервер получает Mapbox без необходимости делиться ключом по отдельности. Хранится в зашифрованном виде.',
   'admin.defaultSettings.mapboxStyle': 'Стиль карты',
   'admin.defaultSettings.mapboxStylePlaceholder': 'Выберите стиль…',
   'admin.defaultSettings.mapbox3d': '3D-здания и рельеф',

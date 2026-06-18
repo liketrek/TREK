@@ -48,8 +48,7 @@ const planner: TranslationStrings = {
   'planner.route': 'Ruta',
   'planner.optimize': 'Optimizar',
   'planner.openGoogleMaps': 'Abrir en Google Maps',
-  'planner.selectDayHint':
-    'Selecciona un día de la lista izquierda para ver su plan',
+  'planner.selectDayHint': 'Selecciona un día de la lista izquierda para ver su plan',
   'planner.noPlacesForDay': 'Aún no hay lugares para este día',
   'planner.addPlacesLink': 'Añadir lugares →',
   'planner.minTotal': 'min en total',

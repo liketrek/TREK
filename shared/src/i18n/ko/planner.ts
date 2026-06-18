@@ -33,8 +33,7 @@ const planner: TranslationStrings = {
   'planner.resConfirmed': '예약 확정 · ',
   'planner.notePlaceholder': '메모…',
   'planner.noteTimePlaceholder': '시간 (선택)',
-  'planner.noteExamplePlaceholder':
-    '예: 14:30 중앙역에서 S3, 7번 부두에서 페리, 점심 휴식…',
+  'planner.noteExamplePlaceholder': '예: 14:30 중앙역에서 S3, 7번 부두에서 페리, 점심 휴식…',
   'planner.totalCost': '총 비용',
   'planner.searchPlaces': '장소 검색…',
   'planner.allCategories': '모든 카테고리',

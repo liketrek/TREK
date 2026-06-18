@@ -6,13 +6,10 @@ const places: TranslationStrings = {
   'places.sidebarDrop': 'ドロップしてインポート',
   'places.importFileHint':
     'Google My Maps、Google Earth、GPSトラッカーなどの .gpx、.kml、.kmz ファイルをインポートできます。',
-  'places.importFileDropHere':
-    'クリックしてファイルを選択、またはここにドラッグ＆ドロップ',
+  'places.importFileDropHere': 'クリックしてファイルを選択、またはここにドラッグ＆ドロップ',
   'places.importFileDropActive': 'ドロップして選択',
-  'places.importFileUnsupported':
-    '対応していないファイル形式です。.gpx、.kml、.kmz を使用してください。',
-  'places.importFileTooLarge':
-    'ファイルが大きすぎます。最大 {maxMb} MB までです。',
+  'places.importFileUnsupported': '対応していないファイル形式です。.gpx、.kml、.kmz を使用してください。',
+  'places.importFileTooLarge': 'ファイルが大きすぎます。最大 {maxMb} MB までです。',
   'places.importFileError': 'インポートに失敗しました',
   'places.importAllSkipped': 'すべての場所は既に旅行に含まれています。',
   'places.gpxImported': 'GPXから {count} 件の場所をインポートしました',
@@ -30,19 +27,14 @@ const places: TranslationStrings = {
   'places.kmlKmzImported': 'KMZ/KMLから {count} 件の場所をインポートしました',
   'places.urlResolved': 'URLから場所をインポートしました',
   'places.importList': 'リストをインポート',
-  'places.kmlKmzSummaryValues':
-    'プレースマーク: {total} • 追加: {created} • スキップ: {skipped}',
+  'places.kmlKmzSummaryValues': 'プレースマーク: {total} • 追加: {created} • スキップ: {skipped}',
   'places.importGoogleList': 'Google リスト',
   'places.importNaverList': 'Naver リスト',
-  'places.googleListHint':
-    '共有されたGoogleマップのリストリンクを貼り付けてください。',
-  'places.googleListImported':
-    '「{list}」から {count} 件の場所をインポートしました',
+  'places.googleListHint': '共有されたGoogleマップのリストリンクを貼り付けてください。',
+  'places.googleListImported': '「{list}」から {count} 件の場所をインポートしました',
   'places.googleListError': 'Googleマップのリストをインポートできませんでした',
-  'places.naverListHint':
-    '共有されたNaverマップのリストリンクを貼り付けてください。',
-  'places.naverListImported':
-    '「{list}」から {count} 件の場所をインポートしました',
+  'places.naverListHint': '共有されたNaverマップのリストリンクを貼り付けてください。',
+  'places.naverListImported': '「{list}」から {count} 件の場所をインポートしました',
   'places.naverListError': 'Naverマップのリストをインポートできませんでした',
   'places.viewDetails': '詳細を見る',
   'places.assignToDay': 'どの日に追加しますか？',
@@ -84,8 +76,7 @@ const places: TranslationStrings = {
   'places.loadingDetails': '詳細を読み込み中…',
   'places.osmHint':
     'OpenStreetMapで検索しています（写真・営業時間・評価なし）。設定でGoogle APIキーを追加すると詳細が表示されます。',
-  'places.osmActive':
-    'OpenStreetMapで検索中（写真・評価・営業時間なし）。設定でGoogle APIキーを追加してください。',
+  'places.osmActive': 'OpenStreetMapで検索中（写真・評価・営業時間なし）。設定でGoogle APIキーを追加してください。',
   'places.categoryCreateError': 'カテゴリの作成に失敗しました',
   'places.nameRequired': '名前を入力してください',
   'places.saveError': '保存に失敗しました',
