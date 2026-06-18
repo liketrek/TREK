@@ -23,8 +23,11 @@ function flight(over: Partial<AirtrailFlightRaw> = {}): AirtrailFlightRaw {
     to: airport({ id: 2, icao: 'EGLL', iata: 'LHR', name: 'London Heathrow', lat: 51.4706, lon: -0.4619, tz: 'Europe/London' }),
     date: '2021-09-01',
     datePrecision: 'day',
-    departure: '2021-09-01T23:00:00.000+00:00', // 19:00 local at JFK (EDT, UTC-4)
-    arrival: '2021-09-02T07:00:00.000+00:00', // 08:00 local at LHR (BST, UTC+1)
+    // Actual times (delayed) — TREK must IGNORE these and read the scheduled times.
+    departure: '2021-09-01T23:42:00.000+00:00',
+    arrival: '2021-09-02T07:42:00.000+00:00',
+    departureScheduled: '2021-09-01T23:00:00.000+00:00', // 19:00 local at JFK (EDT, UTC-4)
+    arrivalScheduled: '2021-09-02T07:00:00.000+00:00', // 08:00 local at LHR (BST, UTC+1)
     airline: { id: 1, icao: 'BAW', iata: 'BA', name: 'British Airways' },
     flightNumber: 'BA178',
     aircraft: { id: 1, icao: 'B772', name: 'Boeing 777' },
@@ -48,6 +51,9 @@ describe('airtrailMapper.normalizeFlight', () => {
       flightNumber: 'BA178',
       seatClass: 'economy',
     });
+    // The picker preview surfaces the scheduled times, not the actual ones.
+    expect(n.departure).toBe('2021-09-01T23:00:00.000+00:00');
+    expect(n.arrival).toBe('2021-09-02T07:00:00.000+00:00');
   });
 
   it('falls back to ICAO when IATA is missing and tolerates null airports', () => {
@@ -59,12 +65,22 @@ describe('airtrailMapper.normalizeFlight', () => {
 });
 
 describe('airtrailMapper.mapFlightToReservation', () => {
-  it('composes airport-local times from the instant + airport tz', () => {
+  it('composes airport-local times from the SCHEDULED instant + airport tz', () => {
     const m = mapFlightToReservation(flight());
-    // 23:00 UTC at JFK in September is 19:00 EDT; date stays the AirTrail local date.
+    // Scheduled 23:00 UTC at JFK in September is 19:00 EDT; date stays the AirTrail local date.
+    // (The actual times in the fixture are 23:42/07:42 — proving they are ignored.)
     expect(m.reservation_time).toBe('2021-09-01T19:00');
-    // 07:00 UTC at LHR in September is 08:00 BST.
+    // Scheduled 07:00 UTC at LHR in September is 08:00 BST.
     expect(m.reservation_end_time).toBe('2021-09-02T08:00');
+  });
+
+  it('leaves the clock blank (date only) when the flight has no scheduled time', () => {
+    const m = mapFlightToReservation(flight({ departureScheduled: null, arrivalScheduled: null }));
+    // Date is preserved from the AirTrail canonical date; no fabricated 00:00.
+    expect(m.reservation_time).toBe('2021-09-01');
+    expect(m.reservation_end_time).toBeNull();
+    expect(m.endpoints.find(e => e.role === 'from')?.local_time).toBeNull();
+    expect(m.endpoints.find(e => e.role === 'to')?.local_time).toBeNull();
   });
 
   it('builds two endpoints with codes, coords and timezones', () => {
@@ -119,8 +135,8 @@ describe('airtrailMapper.mapFlightToReservation', () => {
     expect(m.endpoints.find(e => e.role === 'to')).toBeDefined();
   });
 
-  it('leaves the end time null for a partial flight with no arrival', () => {
-    const m = mapFlightToReservation(flight({ arrival: null }));
+  it('leaves the end time null for a partial flight with no scheduled arrival', () => {
+    const m = mapFlightToReservation(flight({ arrivalScheduled: null }));
     expect(m.reservation_end_time).toBeNull();
     expect(m.reservation_time).toBe('2021-09-01T19:00');
   });
@@ -134,6 +150,17 @@ describe('airtrailMapper.canonicalHash', () => {
   it('changes when a meaningful field changes', () => {
     expect(canonicalHash(flight())).not.toBe(canonicalHash(flight({ flightNumber: 'BA179' })));
     expect(canonicalHash(flight())).not.toBe(canonicalHash(flight({ note: 'aisle seat' })));
+  });
+
+  it('tracks the scheduled time and ignores actual-time changes', () => {
+    // A scheduled-time change is what TREK imports, so it must re-sync...
+    expect(canonicalHash(flight())).not.toBe(
+      canonicalHash(flight({ departureScheduled: '2021-09-01T22:00:00.000+00:00' })),
+    );
+    // ...but a change to the actual time alone must not (TREK never shows it).
+    expect(canonicalHash(flight())).toBe(
+      canonicalHash(flight({ departure: '2021-09-01T20:00:00.000+00:00', arrival: '2021-09-02T05:00:00.000+00:00' })),
+    );
   });
 
   it('is independent of seat ordering', () => {

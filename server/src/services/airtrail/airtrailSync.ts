@@ -207,6 +207,13 @@ export function buildSavePayload(reservation: any, existing: AirtrailFlightRaw):
     departureTime: dep.time,
     arrival: arr.date,
     arrivalTime: arr.time,
+    // Import reads the SCHEDULED time, so a TREK edit must write back there too —
+    // otherwise the next pull (scheduled-wins) would revert it. AirTrail rebuilds the
+    // instant from a full-ISO date carrier + the HH:MM time, so pass a date carrier.
+    departureScheduled: dep.date ? `${dep.date}T00:00:00.000Z` : null,
+    departureScheduledTime: dep.time,
+    arrivalScheduled: arr.date ? `${arr.date}T00:00:00.000Z` : null,
+    arrivalScheduledTime: arr.time,
     // These are AirTrail-owned details TREK doesn't surface in its edit UI — a TREK
     // edit can leave them out of `metadata`. Preserve AirTrail's current value when
     // TREK has none rather than nulling it out (#1240). entityCode mirrors the

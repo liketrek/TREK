@@ -78,6 +78,8 @@ export interface AirtrailFlightRaw {
   datePrecision: string | null;
   departure: string | null;
   arrival: string | null;
+  departureScheduled: string | null;
+  arrivalScheduled: string | null;
   airline: AirtrailNamedCode | null;
   flightNumber: string | null;
   aircraft: AirtrailNamedCode | null;
@@ -92,10 +94,14 @@ export interface AirtrailSavePayload {
   id?: number;
   from: string;
   to: string;
-  departure: string;
+  departure: string | null;
   departureTime?: string | null;
   arrival?: string | null;
   arrivalTime?: string | null;
+  departureScheduled?: string | null;
+  departureScheduledTime?: string | null;
+  arrivalScheduled?: string | null;
+  arrivalScheduledTime?: string | null;
   datePrecision?: string;
   airline?: string | null;
   flightNumber?: string | null;

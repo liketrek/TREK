@@ -79,10 +79,6 @@ describe('airtrailSync.buildSavePayload', () => {
     const payload = buildSavePayload(reservation(), existingFlight());
     expect(payload).not.toBeNull();
     expect(payload).toMatchObject({
-      departureScheduled: '2021-09-01',
-      departureScheduledTime: '18:45',
-      arrivalScheduled: '2021-09-02',
-      arrivalScheduledTime: '08:10',
       takeoffActual: '2021-09-01',
       takeoffActualTime: '19:12',
       landingActual: '2021-09-02',
@@ -94,6 +90,26 @@ describe('airtrailSync.buildSavePayload', () => {
       customFields: { confirmation: 'ABC123' },
       track: [{ lat: 40.6, lon: -73.7 }],
     });
+  });
+
+  it('writes the TREK time to the SCHEDULED fields so it round-trips on the next pull', () => {
+    // Import reads the scheduled time, so a TREK edit must be pushed back there
+    // (mirroring the read), overwriting AirTrail's stored scheduled value.
+    const payload = buildSavePayload(reservation(), existingFlight());
+    expect(payload).toMatchObject({
+      departureScheduled: '2021-09-01T00:00:00.000Z',
+      departureScheduledTime: '19:00',
+      arrivalScheduled: '2021-09-02T00:00:00.000Z',
+      arrivalScheduledTime: '08:00',
+    });
+  });
+
+  it('blanks the scheduled time when the TREK reservation has only a date', () => {
+    const payload = buildSavePayload(reservation({ reservation_time: '2021-09-01', reservation_end_time: null }), existingFlight());
+    // A date carrier with no HH:MM leaves AirTrail's scheduled instant unset.
+    expect(payload?.departureScheduledTime).toBeNull();
+    expect(payload?.arrivalScheduled).toBeNull();
+    expect(payload?.arrivalScheduledTime).toBeNull();
   });
 
   it('preserves a non-day date precision instead of resetting it to day', () => {
@@ -116,6 +132,8 @@ describe('airtrailSync.buildSavePayload', () => {
       to: 'LHR',
       departure: '2021-09-01',
       departureTime: '20:30',
+      departureScheduled: '2021-09-01T00:00:00.000Z',
+      departureScheduledTime: '20:30',
       flightNumber: 'BA999',
       note: 'changed in TREK',
     });
