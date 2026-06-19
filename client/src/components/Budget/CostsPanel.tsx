@@ -754,8 +754,8 @@ function SettlementModal({ tripId, people, me, editing, onClose, onSaved }: {
         </div>
         <div>
           <label className={labelCls}>{t('costs.amount')}</label>
-          <input type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" value={amount}
-            onChange={e => setAmount(e.target.value)} className={inputCls} style={{ borderRadius: 10, padding: '11px 13px', fontSize: 14, outline: 'none', fontWeight: 600 }} />
+          <input type="text" inputMode="decimal" placeholder="0.00" value={amount}
+            onChange={e => setAmount(e.target.value.replace(',', '.'))} className={inputCls} style={{ borderRadius: 10, padding: '11px 13px', fontSize: 14, outline: 'none', fontWeight: 600 }} />
         </div>
       </div>
     </Modal>
@@ -833,10 +833,12 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   }
 
   const onTotalChange = (v: string) => {
+    v = v.replace(',', '.')
     setTotal(v)
     setPaid(prev => rebalance(prev, dirty, participants, parseFloat(v) || 0))
   }
   const onPaidChange = (id: number, v: string) => {
+    v = v.replace(',', '.')
     const nextDirty = new Set(dirty); nextDirty.add(id)
     setDirty(nextDirty)
     setPaid(prev => rebalance({ ...prev, [id]: v }, nextDirty, participants, totalNum))
@@ -896,7 +898,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
           <label className={labelCls}>{t('costs.totalAmount')}</label>
           <div className="bg-surface-input border border-edge" style={{ height: FIELD_H, boxSizing: 'border-box', display: 'flex', alignItems: 'center', borderRadius: 10, padding: '0 12px' }}>
             <span className="text-content-faint" style={{ fontSize: 15 }}>{sym(currency)}</span>
-            <input type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" value={total}
+            <input type="text" inputMode="decimal" placeholder="0.00" value={total}
               onChange={e => onTotalChange(e.target.value)}
               className="text-content" style={{ flex: 1, border: 0, background: 'none', outline: 'none', fontSize: 15, fontWeight: 600, paddingLeft: 6, width: '100%' }} />
           </div>
@@ -956,7 +958,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
                   {on ? (
                     <div className="bg-surface-input border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 4, borderRadius: 8, padding: '0 10px' }}>
                       <span className="text-content-faint" style={{ fontSize: 13 }}>{sym(currency)}</span>
-                      <input type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" value={paid[p.id] || ''}
+                      <input type="text" inputMode="decimal" placeholder="0.00" value={paid[p.id] || ''}
                         onChange={e => onPaidChange(p.id, e.target.value)}
                         className="text-content" style={{ width: '100%', border: 0, background: 'none', outline: 'none', fontSize: 14, fontWeight: 600, padding: '8px 0', textAlign: 'right' }} />
                     </div>

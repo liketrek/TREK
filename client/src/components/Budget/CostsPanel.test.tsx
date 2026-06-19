@@ -107,7 +107,7 @@ describe('CostsPanel — settlements in the ledger', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Add expense' }))
     await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Dinner')
-    const nums = () => screen.getAllByRole('spinbutton') as HTMLInputElement[]
+    const nums = () => screen.getAllByPlaceholderText('0.00') as HTMLInputElement[]
     await user.type(nums()[0], '100') // total → auto equal-split across the 2 participants
     await waitFor(() => expect(nums()[1].value).toBe('50'))
     expect(nums()[2].value).toBe('50')
@@ -123,6 +123,30 @@ describe('CostsPanel — settlements in the ledger', () => {
       expect.objectContaining({ user_id: 1, amount: 30 }),
       expect.objectContaining({ user_id: 2, amount: 70 }),
     ]))
+  })
+
+  it('accepts a comma as the decimal separator in the total amount (#1256)', async () => {
+    let posted: Record<string, unknown> | null = null
+    server.use(
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
+      http.post('/api/trips/1/budget', async ({ request }) => {
+        posted = await request.json() as Record<string, unknown>
+        return HttpResponse.json({ item: { ...buildBudgetItem({ trip_id: 1, name: 'AirTags' }), id: 6 } })
+      }),
+    )
+    const { default: userEvent } = await import('@testing-library/user-event')
+    const user = userEvent.setup()
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+
+    await user.click(await screen.findByRole('button', { name: 'Add expense' }))
+    await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'AirTags')
+    await user.type(screen.getAllByPlaceholderText('0.00')[0], '39,99') // comma → normalized to 39.99
+
+    const addBtns = screen.getAllByRole('button', { name: 'Add expense' })
+    await user.click(addBtns[addBtns.length - 1]) // footer submit
+    await waitFor(() => expect(posted).toBeTruthy())
+    expect(posted!.total_price).toBe(39.99)
   })
 
   it('marks an expense with no payer as Unfinished', async () => {
