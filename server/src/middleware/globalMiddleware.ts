@@ -1,4 +1,5 @@
 import express, { Request, Response, NextFunction } from 'express';
+import compression from 'compression';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
@@ -27,6 +28,21 @@ export function applyGlobalMiddleware(
   if (process.env.NODE_ENV?.toLowerCase() === 'production' || process.env.TRUST_PROXY) {
     app.set('trust proxy', Number.parseInt(process.env.TRUST_PROXY) || 1);
   }
+
+  // Compress responses (gzip via Accept-Encoding). The Atlas admin-0 country
+  // GeoJSON is ~30 MB uncompressed, which stalls/aborts (~8s → net::ERR_FAILED)
+  // behind reverse proxies and Cloudflare Tunnel (#1254); gzip brings it to ~4 MB.
+  // SSE responses (the /mcp StreamableHTTP transport) must NOT be buffered, so
+  // they are excluded explicitly.
+  app.use(
+    compression({
+      filter: (req, res) => {
+        const type = res.getHeader('Content-Type');
+        if (typeof type === 'string' && type.includes('text/event-stream')) return false;
+        return compression.filter(req, res);
+      },
+    }),
+  );
 
   const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean)
