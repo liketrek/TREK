@@ -119,7 +119,9 @@ export function applyGlobalMiddleware(
         workerSrc: ["'self'", "blob:"],
         childSrc: ["'self'", "blob:"],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
-        objectSrc: ["'none'"],
+        // 'self' so same-origin file previews can embed PDFs via <object>/<embed>
+        // (Firefox/Chrome enforce object-src; 'none' broke inline PDF previews there).
+        objectSrc: ["'self'"],
         frameSrc: ["'none'"],
         frameAncestors: ["'self'"],
         // Restrict <form> submission targets (form-action has no default-src
