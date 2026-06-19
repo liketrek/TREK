@@ -8,6 +8,9 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
+  {{- with .Values.persistence.data.storageClassName }}
+  storageClassName: {{ . }}
+  {{- end }}
   resources:
     requests:
       storage: {{ .Values.persistence.data.size }}
@@ -21,6 +24,9 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
+  {{- with .Values.persistence.uploads.storageClassName }}
+  storageClassName: {{ . }}
+  {{- end }}
   resources:
     requests:
       storage: {{ .Values.persistence.uploads.size }}

@@ -98,8 +98,10 @@ persistence:
   enabled: true
   data:
     size: 1Gi
+    # storageClassName: ""
   uploads:
     size: 1Gi
+    # storageClassName: ""
 
 resources:
   requests:
