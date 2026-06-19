@@ -98,8 +98,10 @@ persistence:
   enabled: true
   data:
     size: 1Gi
+    annotations: {}
   uploads:
     size: 1Gi
+    annotations: {}
 
 resources:
   requests:
