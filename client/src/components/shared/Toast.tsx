@@ -102,7 +102,9 @@ export function ToastContainer() {
       `}</style>
       <div style={{
         position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
-        zIndex: 9999, display: 'flex', flexDirection: 'column-reverse', gap: 8,
+        // Above modal overlays (which sit around z-index 10000 with a backdrop-filter
+        // blur) so error toasts paint on top and stay legible instead of blurred behind.
+        zIndex: 100000, display: 'flex', flexDirection: 'column-reverse', gap: 8,
         pointerEvents: 'none', maxWidth: 420, width: '100%', padding: '0 16px',
       }}>
         {toasts.map(toast => (

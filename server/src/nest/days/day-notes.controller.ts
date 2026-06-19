@@ -17,9 +17,10 @@ import { CurrentUser } from '../auth/current-user.decorator';
 
 type DayNoteBody = { text?: string; time?: string; icon?: string; sort_order?: number };
 
-// Mirrors the legacy validateStringLengths({ text: 500, time: 150 }) middleware,
-// which runs BEFORE the trip-access check — so an over-long field 400s first.
-const MAX_LENGTHS: Record<string, number> = { text: 500, time: 150 };
+// Runs BEFORE the trip-access check, so an over-long field 400s first. The `time`
+// cap matches the shared dayNote schema (max 250) and the note dialog's counter;
+// it was 150 here, which rejected valid 151–250 char notes with a confusing error.
+const MAX_LENGTHS: Record<string, number> = { text: 500, time: 250 };
 
 function validateLengths(body: Record<string, unknown>): void {
   for (const [field, max] of Object.entries(MAX_LENGTHS)) {
