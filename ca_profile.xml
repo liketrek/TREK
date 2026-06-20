@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<CommunityApplications>
+  <Profile>TREK is a self-hosted, real-time collaborative travel planner. Plan trips together with interactive maps, budgets, bookings, packing lists, day-by-day itineraries and file management — every change syncs instantly across everyone in your group. Includes OIDC/SSO, TOTP MFA, dark mode, PWA support, multi-language UI and a modular addon system (Vacay, Atlas, Collab, Budget, Packing, Journey). Maintained by mauriceboe — support and bug reports via GitHub Issues.</Profile>
+  <Icon>https://raw.githubusercontent.com/mauriceboe/TREK/main/docs/trek-icon.png</Icon>
+  <WebPage>https://github.com/mauriceboe/TREK</WebPage>
+  <Forum>https://github.com/mauriceboe/TREK/issues</Forum>
+  <DonateLink>https://ko-fi.com/mauriceboe</DonateLink>
+  <DonateText>Support TREK development</DonateText>
+</CommunityApplications>

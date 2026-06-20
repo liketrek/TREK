@@ -32,6 +32,7 @@ server/tests/
 server/vitest.config.ts
 server/reset-admin.js
 **/*.test.ts
+**/*.spec.ts
 wiki/
 scripts/
 charts/

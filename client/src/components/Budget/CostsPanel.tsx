@@ -528,11 +528,16 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     const isUnfinished = baseTotal(e) > 0 && payers.length === 0
     return (
       <div className="bg-surface-card border border-edge exp-row" style={{ display: 'grid', gridTemplateColumns: '46px 1fr auto', gap: 16, alignItems: 'center', borderRadius: 18, padding: '16px 20px' }}>
-        <span style={{ width: 46, height: 46, borderRadius: 13, display: 'grid', placeItems: 'center', background: c.color + '22', color: c.color }}><Icon size={21} /></span>
+        <span style={{ position: 'relative', width: 46, height: 46, borderRadius: 13, display: 'grid', placeItems: 'center', background: c.color + '22', color: c.color }}>
+          <Icon size={21} />
+          {isMobile && isUnfinished && (
+            <span title={t('costs.unfinishedHint')} style={{ position: 'absolute', bottom: -4, right: -4, width: 20, height: 20, borderRadius: '50%', background: '#d97706', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 800, lineHeight: 1, border: '2px solid var(--bg-card)' }}>!</span>
+          )}
+        </span>
         <div style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
             <span className="text-content" style={{ fontSize: 15, fontWeight: 600 }}>{e.name}</span>
-            {isUnfinished && (
+            {isUnfinished && !isMobile && (
               <span title={t('costs.unfinishedHint')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px 2px 6px', borderRadius: 999, background: 'rgba(217,119,6,0.14)', color: '#d97706', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
                 <span style={{ width: 14, height: 14, borderRadius: '50%', background: '#d97706', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 10, fontWeight: 800 }}>!</span>
                 {t('costs.unfinished')}
@@ -632,14 +637,16 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
 
   function CategoryBreakdown() {
     const tot: Record<string, number> = {}
-    let grand = 0
-    for (const e of budgetItems) { const k = catMeta(e.category).key; tot[k] = (tot[k] || 0) + baseTotal(e); grand += baseTotal(e) }
+    for (const e of budgetItems) { const k = catMeta(e.category).key; tot[k] = (tot[k] || 0) + baseTotal(e) }
     const rows = COST_CATEGORY_LIST.filter(c => (tot[c.key] || 0) > 0).sort((a, b) => (tot[b.key] || 0) - (tot[a.key] || 0))
     if (rows.length === 0) return <div className="text-content-faint" style={{ fontSize: 12.5 }}>{t('costs.noCategories')}</div>
+    // Bars are scaled relative to the most expensive category (the top row fills the
+    // bar), not to the trip grand total — makes the relative ranking readable.
+    const maxCat = Math.max(0, ...rows.map(c => tot[c.key] || 0))
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {rows.map(c => {
-          const v = tot[c.key]; const pct = grand ? v / grand * 100 : 0
+          const v = tot[c.key]; const pct = maxCat ? v / maxCat * 100 : 0
           return (
             <div key={c.key} style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 10, alignItems: 'center' }}>
               <span style={{ width: 10, height: 10, borderRadius: 3, background: c.color }} />
@@ -754,8 +761,8 @@ function SettlementModal({ tripId, people, me, editing, onClose, onSaved }: {
         </div>
         <div>
           <label className={labelCls}>{t('costs.amount')}</label>
-          <input type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" value={amount}
-            onChange={e => setAmount(e.target.value)} className={inputCls} style={{ borderRadius: 10, padding: '11px 13px', fontSize: 14, outline: 'none', fontWeight: 600 }} />
+          <input type="text" inputMode="decimal" placeholder="0.00" value={amount}
+            onChange={e => setAmount(e.target.value.replace(',', '.'))} className={inputCls} style={{ borderRadius: 10, padding: '11px 13px', fontSize: 14, outline: 'none', fontWeight: 600 }} />
         </div>
       </div>
     </Modal>
@@ -833,10 +840,12 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   }
 
   const onTotalChange = (v: string) => {
+    v = v.replace(',', '.')
     setTotal(v)
     setPaid(prev => rebalance(prev, dirty, participants, parseFloat(v) || 0))
   }
   const onPaidChange = (id: number, v: string) => {
+    v = v.replace(',', '.')
     const nextDirty = new Set(dirty); nextDirty.add(id)
     setDirty(nextDirty)
     setPaid(prev => rebalance({ ...prev, [id]: v }, nextDirty, participants, totalNum))
@@ -896,7 +905,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
           <label className={labelCls}>{t('costs.totalAmount')}</label>
           <div className="bg-surface-input border border-edge" style={{ height: FIELD_H, boxSizing: 'border-box', display: 'flex', alignItems: 'center', borderRadius: 10, padding: '0 12px' }}>
             <span className="text-content-faint" style={{ fontSize: 15 }}>{sym(currency)}</span>
-            <input type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" value={total}
+            <input type="text" inputMode="decimal" placeholder="0.00" value={total}
               onChange={e => onTotalChange(e.target.value)}
               className="text-content" style={{ flex: 1, border: 0, background: 'none', outline: 'none', fontSize: 15, fontWeight: 600, paddingLeft: 6, width: '100%' }} />
           </div>
@@ -956,7 +965,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
                   {on ? (
                     <div className="bg-surface-input border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 4, borderRadius: 8, padding: '0 10px' }}>
                       <span className="text-content-faint" style={{ fontSize: 13 }}>{sym(currency)}</span>
-                      <input type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" value={paid[p.id] || ''}
+                      <input type="text" inputMode="decimal" placeholder="0.00" value={paid[p.id] || ''}
                         onChange={e => onPaidChange(p.id, e.target.value)}
                         className="text-content" style={{ width: '100%', border: 0, background: 'none', outline: 'none', fontSize: 14, fontWeight: 600, padding: '8px 0', textAlign: 'right' }} />
                     </div>

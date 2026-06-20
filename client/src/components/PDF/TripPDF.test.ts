@@ -323,6 +323,28 @@ describe('downloadTripPDF', () => {
     expect(photoCalled).toBe(true)
   })
 
+  it('FE-COMP-TRIPPDF-019b: fetches photos for OSM places via osm_id recovered from the places pool (#1130)', async () => {
+    let fetchedId: string | null = null
+    server.use(
+      http.get('/api/maps/place-photo/:placeId', ({ params }) => {
+        fetchedId = params.placeId as string
+        return HttpResponse.json({ photoUrl: 'https://example.com/osm.jpg' })
+      }),
+    )
+    // The assignment projection drops osm_id; the full place in `places` carries it.
+    const osmPlace = { ...placeWithDetails, id: 101, image_url: null, google_place_id: null, osm_id: 'node/240109189', lat: 41.89, lng: 12.49 }
+    const args = {
+      ...richArgs,
+      places: [osmPlace],
+      assignments: {
+        '10': [{ ...assignmentForDay, id: 201, place_id: 101, place: { ...placeWithDetails, id: 101, image_url: null, google_place_id: null } }],
+      } as any,
+    }
+    await downloadTripPDF(args)
+    // osm_id is used as the photo key (not the coords fallback), proving the pool lookup works.
+    expect(fetchedId).toBe('node/240109189')
+  })
+
   it('FE-COMP-TRIPPDF-020: renders empty day message when no items assigned', async () => {
     const args = {
       ...minimalArgs,

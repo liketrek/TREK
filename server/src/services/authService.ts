@@ -935,13 +935,16 @@ export function getTravelStats(userId: number) {
     WHERE t.user_id = ? OR tm.user_id = ?
   `).all(userId, userId) as { address: string | null; lat: number | null; lng: number | null }[];
 
+  // Archived trips still count here, matching the places, countries and flight
+  // distance widgets (which never filtered on is_archived) so the dashboard stats
+  // stay consistent — archiving a trip no longer zeroes out trips/days.
   const tripStats = db.prepare(`
     SELECT COUNT(DISTINCT t.id) as trips,
            COUNT(DISTINCT d.id) as days
     FROM trips t
     LEFT JOIN days d ON d.trip_id = t.id
     LEFT JOIN trip_members tm ON t.id = tm.trip_id
-    WHERE (t.user_id = ? OR tm.user_id = ?) AND t.is_archived = 0
+    WHERE (t.user_id = ? OR tm.user_id = ?)
   `).get(userId, userId) as { trips: number; days: number } | undefined;
 
   const cities = new Set<string>();

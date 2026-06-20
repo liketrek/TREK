@@ -134,9 +134,12 @@ export function useAtlas() {
   }, [])
 
   // Load country-border GeoJSON from our API (geoBoundaries, served server-side —
-  // no third-party fetch from the browser).
+  // no third-party fetch from the browser). Even gzipped the payload is a few MB, so
+  // it gets a longer timeout than the global 8s default to survive slow links and
+  // reverse-proxy / Cloudflare-Tunnel setups instead of aborting and leaving the map
+  // with no countries (#1254).
   useEffect(() => {
-    apiClient.get('/addons/atlas/countries/geo')
+    apiClient.get('/addons/atlas/countries/geo', { timeout: 30000 })
       .then(res => {
         const geo = res.data
         // Dynamically build A2→A3 mapping from GeoJSON

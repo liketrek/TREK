@@ -218,7 +218,7 @@
   opacity: .88; margin-bottom: 16px; font-weight: 500;
 }
 .trek-dash .hero-eyebrow::before { content: ""; width: 28px; height: 1px; background: oklch(1 0 0 / .6); }
-.trek-dash .hero-title { font-size: 104px; font-weight: 600; line-height: 0.9; letter-spacing: -0.045em; margin: 0; }
+.trek-dash .hero-title { font-size: 104px; font-weight: 600; line-height: 0.9; letter-spacing: -0.045em; margin: 0; text-shadow: 0 1px 12px oklch(0 0 0 / .32), 0 1px 3px oklch(0 0 0 / .4); }
 
 /* ----------------- boarding pass ----------------- */
 .trek-dash .hero-pass {
@@ -422,7 +422,7 @@
 .trek-dash .trip-action-btn:hover { background: oklch(1 0 0 / .3); }
 .trek-dash .trip-action-btn svg { width: 16px; height: 16px; }
 .trek-dash .trip-cover-content { position: absolute; left: 18px; right: 18px; bottom: 16px; z-index: 1; color: #fff; }
-.trek-dash .trip-name { font-size: 26px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.05; margin: 0; }
+.trek-dash .trip-name { font-size: 26px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.05; margin: 0; text-shadow: 0 1px 7px oklch(0 0 0 / .3), 0 1px 2px oklch(0 0 0 / .38); }
 .trek-dash .trip-where { margin-top: 4px; font-size: 13px; opacity: .85; display: flex; align-items: center; gap: 6px; }
 .trek-dash .trip-where svg { width: 12px; height: 12px; opacity: .8; }
 .trek-dash .trip-body { padding: 18px 20px 20px; }

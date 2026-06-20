@@ -127,8 +127,8 @@ describe('DayNotesController (parity with the legacy /api/.../days/:dayId/notes 
   });
 
   it('400 on an over-long time', () => {
-    expect(thrown(() => new DayNotesController(notesSvc()).create(user, '5', '3', { text: 'ok', time: 'y'.repeat(151) }))).toEqual({
-      status: 400, body: { error: 'time must be 150 characters or less' },
+    expect(thrown(() => new DayNotesController(notesSvc()).create(user, '5', '3', { text: 'ok', time: 'y'.repeat(251) }))).toEqual({
+      status: 400, body: { error: 'time must be 250 characters or less' },
     });
   });
 

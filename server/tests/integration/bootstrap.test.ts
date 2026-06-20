@@ -122,4 +122,17 @@ describe('BOOTSTRAP (F6) — unified NestJS app serves the whole surface', () =>
       else process.env.NODE_ENV = prev;
     }
   });
+
+  it('BOOT-008 — large responses are gzip-compressed (Atlas country GeoJSON, #1254)', async () => {
+    // The admin-0 country GeoJSON is multi-MB; without compression it stalls
+    // behind reverse proxies / Cloudflare Tunnel. Proves applyGlobalMiddleware
+    // gzips it on the wire.
+    const { user } = createUser(testDb);
+    const res = await request(instance)
+      .get('/api/addons/atlas/countries/geo')
+      .set('Accept-Encoding', 'gzip')
+      .set('Cookie', authCookie(user.id));
+    expect(res.status).toBe(200);
+    expect(res.headers['content-encoding']).toBe('gzip');
+  });
 });

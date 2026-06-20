@@ -97,21 +97,29 @@ function dayCost(assignments, dayId, locale) {
   return total > 0 ? `${total.toLocaleString(locale)} EUR` : null
 }
 
-// Pre-fetch Google Place photos for all assigned places
-async function fetchPlacePhotos(assignments: AssignmentsMap) {
+// Pre-fetch place photos for all assigned places.
+// Assignment places are a server-side projection that drops osm_id, so we recover
+// the full place from the trip's places pool and key the photo off the same id the
+// app UI uses (google_place_id || osm_id || coords) — otherwise OSM/coords-only
+// places fell back to category icons in the PDF even though they show photos in-app.
+async function fetchPlacePhotos(assignments: AssignmentsMap, places: Place[]) {
   const photoMap = {} // placeId → photoUrl
+  // The assignment projection drops osm_id, so recover it from the full places pool.
+  const osmById = new Map((places || []).map(p => [p.id, p.osm_id]))
   const allPlaces = Object.values(assignments).flatMap(a => a.map(x => x.place)).filter(Boolean)
   const unique = [...new Map(allPlaces.map(p => [p.id, p])).values()]
 
-  // Assignment places are a server-side projection that omits osm_id, so photo
-  // pre-fetch keys off the google_place_id that the projection does carry.
-  const toFetch = unique.filter(p => !p.image_url && p.google_place_id)
+  const toFetch = unique
+    .map(p => ({ p, osm_id: osmById.get(p.id) }))
+    .filter(({ p, osm_id }) => !p.image_url && (p.google_place_id || osm_id || (p.lat != null && p.lng != null)))
 
   await Promise.allSettled(
-    toFetch.map(async (place) => {
+    toFetch.map(async ({ p, osm_id }) => {
+      // Same key the app UI uses: google_place_id || osm_id || coords.
+      const photoId = p.google_place_id || osm_id || `coords:${p.lat}:${p.lng}`
       try {
-        const data = await mapsApi.placePhoto(place.google_place_id, place.lat, place.lng, place.name)
-        if (data.photoUrl) photoMap[place.id] = data.photoUrl
+        const data = await mapsApi.placePhoto(photoId, p.lat, p.lng, p.name)
+        if (data.photoUrl) photoMap[p.id] = data.photoUrl
       } catch {}
     })
   )
@@ -141,8 +149,8 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
   //retrieve accommodations for the trip to display on the day sections and prefetch their photos if needed
   const accommodations = await accommodationsApi.list(trip.id);
 
-  // Pre-fetch place photos from Google
-  const photoMap = await fetchPlacePhotos(assignments)
+  // Pre-fetch place photos (Google, OSM and coords-only places)
+  const photoMap = await fetchPlacePhotos(assignments, places)
 
   const totalAssigned = new Set(
     Object.values(assignments || {}).flatMap(a => a.map(x => x.place?.id)).filter(Boolean)
