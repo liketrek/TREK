@@ -141,6 +141,16 @@ export function updateUser(id: string, data: { username?: string; email?: string
   }
   const passwordHash = password ? bcrypt.hashSync(password, BCRYPT_COST) : null;
 
+  // Don't let the admin UI demote the last remaining admin — that would leave the
+  // instance with no one able to manage it (and on OIDC-only setups, no recovery). #1274
+  if (role && role !== 'admin') {
+    const current = db.prepare('SELECT role FROM users WHERE id = ?').get(id) as { role?: string } | undefined;
+    if (current?.role === 'admin') {
+      const adminCount = (db.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'admin'").get() as { count: number }).count;
+      if (adminCount <= 1) return { error: 'Cannot remove the last admin', status: 400 };
+    }
+  }
+
   db.prepare(`
     UPDATE users SET
       username = COALESCE(?, username),

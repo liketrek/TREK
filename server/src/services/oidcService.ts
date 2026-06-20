@@ -385,8 +385,20 @@ export function findOrCreateUser(
     if (process.env.OIDC_ADMIN_VALUE) {
       const newRole = resolveOidcRole(userInfo, false);
       if (user.role !== newRole) {
-        db.prepare('UPDATE users SET role = ? WHERE id = ?').run(newRole, user.id);
-        user = { ...user, role: newRole } as User;
+        // Never let the claim-based downgrade strip the last admin. The bootstrap
+        // admin (first SSO user) usually doesn't carry the admin claim, so a forced
+        // re-login — e.g. after a JWT-secret rotation — would otherwise demote it and
+        // lock an OIDC-only instance out for good. #1274
+        const demotingLastAdmin =
+          user.role === 'admin' &&
+          newRole !== 'admin' &&
+          (db.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'admin'").get() as { count: number }).count <= 1;
+        if (demotingLastAdmin) {
+          console.warn(`[OIDC] Kept admin role for user ${user.id}: their OIDC claims map to '${newRole}', but they are the only admin — demoting would lock the instance out.`);
+        } else {
+          db.prepare('UPDATE users SET role = ? WHERE id = ?').run(newRole, user.id);
+          user = { ...user, role: newRole } as User;
+        }
       }
     }
     return { user };
