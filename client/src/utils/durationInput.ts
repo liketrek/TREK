@@ -9,21 +9,26 @@ function onlyTokenSeparators(value: string): boolean {
   return value.trim() === '' || /^[,+\s]+$/.test(value)
 }
 
-function roundPositiveMinutes(value: number): number | null {
-  if (!Number.isFinite(value) || value <= 0) return null
-  const rounded = Math.round(value)
-  return rounded > 0 ? rounded : null
+interface ParseDurationOptions {
+  allowZero?: boolean
 }
 
-export function parseDurationMinutes(input: unknown): number | null {
-  if (typeof input === 'number') return roundPositiveMinutes(input)
+function roundMinutes(value: number, allowZero = false): number | null {
+  if (!Number.isFinite(value) || value < 0 || (!allowZero && value === 0)) return null
+  const rounded = Math.round(value)
+  if (rounded > 0) return rounded
+  return allowZero && rounded === 0 ? 0 : null
+}
+
+export function parseDurationMinutes(input: unknown, options: ParseDurationOptions = {}): number | null {
+  if (typeof input === 'number') return roundMinutes(input, options.allowZero)
   if (typeof input !== 'string') return null
 
   const value = normalizeDecimalSeparators(input)
   if (!value) return null
 
   if (PLAIN_NUMBER_RE.test(value)) {
-    return roundPositiveMinutes(Number(value))
+    return roundMinutes(Number(value), options.allowZero)
   }
 
   DURATION_TOKEN_RE.lastIndex = 0
@@ -45,11 +50,11 @@ export function parseDurationMinutes(input: unknown): number | null {
   }
 
   if (!matched || !onlyTokenSeparators(value.slice(lastIndex))) return null
-  return roundPositiveMinutes(total)
+  return roundMinutes(total, options.allowZero)
 }
 
-export function formatDurationInput(value: unknown): string {
-  const minutes = parseDurationMinutes(value) ?? 60
+export function formatDurationInput(value: unknown, options: ParseDurationOptions = {}): string {
+  const minutes = parseDurationMinutes(value, options) ?? (options.allowZero ? 0 : 60)
   const hours = Math.floor(minutes / 60)
   const remainingMinutes = minutes % 60
 

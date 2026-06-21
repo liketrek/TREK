@@ -266,7 +266,7 @@ describe('PlaceInspector', () => {
   });
 
   it('FE-PLANNER-INSPECTOR-018b: shows assignment duration when a selected place is assigned to the day', () => {
-    const assignmentInDay = buildAssignment({ id: 99, day_id: 1, place, duration_minutes: 75 });
+    const assignmentInDay = buildAssignment({ id: 99, day_id: 1, place, duration_minutes: 75, margin_before_minutes: 15, margin_after_minutes: 0 });
     render(
       <PlaceInspector
         {...defaultProps}
@@ -277,6 +277,8 @@ describe('PlaceInspector', () => {
     );
 
     expect(screen.getByLabelText('Duration')).toHaveValue('1h 15m');
+    expect(screen.getByLabelText('Margin before')).toHaveValue('15m');
+    expect(screen.getByLabelText('Margin after')).toHaveValue('0m');
   });
 
   it('FE-PLANNER-INSPECTOR-018c: saves flexible duration text as assignment minutes', async () => {
@@ -300,6 +302,30 @@ describe('PlaceInspector', () => {
 
     await waitFor(() => {
       expect(onUpdateAssignmentDuration).toHaveBeenCalledWith(99, 1, 120);
+    });
+  });
+
+  it('FE-PLANNER-INSPECTOR-018c2: saves assignment margins from the inspector', async () => {
+    const user = userEvent.setup();
+    const onUpdateAssignmentDuration = vi.fn().mockResolvedValue(undefined);
+    const assignmentInDay = buildAssignment({ id: 99, day_id: 1, place, duration_minutes: 75, margin_before_minutes: 0 });
+    render(
+      <PlaceInspector
+        {...defaultProps}
+        selectedDayId={1}
+        selectedAssignmentId={99}
+        assignments={{ '1': [assignmentInDay] }}
+        onUpdateAssignmentDuration={onUpdateAssignmentDuration}
+      />
+    );
+
+    const marginBeforeInput = screen.getByLabelText('Margin before');
+    await user.clear(marginBeforeInput);
+    await user.type(marginBeforeInput, '15 min');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => {
+      expect(onUpdateAssignmentDuration).toHaveBeenCalledWith(99, 1, 75, { marginBeforeMinutes: 15 });
     });
   });
 

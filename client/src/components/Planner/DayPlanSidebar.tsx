@@ -197,6 +197,8 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   const legsAbortRef = useRef<AbortController | null>(null)
   const resizeRef = useRef<{ assignmentId: number; dayId: number; startY: number; startDuration: number; draftDuration: number } | null>(null)
   const [resizePreview, setResizePreview] = useState<{ assignmentId: number; durationMinutes: number } | null>(null)
+  const [editingWakeUpDayId, setEditingWakeUpDayId] = useState<number | null>(null)
+  const [wakeUpDraft, setWakeUpDraft] = useState('')
   const [draggingId, setDraggingId] = useState(null)
   const [lockedIds, setLockedIds] = useState(new Set())
   const [lockHoverId, setLockHoverId] = useState(null)
@@ -694,6 +696,18 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     }
   }
 
+  const startEditWakeUpTime = (dayId: number, wakeUpTime: string, e: React.MouseEvent<HTMLElement>) => {
+    e.stopPropagation()
+    setWakeUpDraft(wakeUpTime)
+    setEditingWakeUpDayId(dayId)
+  }
+
+  const commitWakeUpTime = async (dayId: number) => {
+    const nextWakeUpTime = wakeUpDraft || DEFAULT_WAKE_UP_TIME
+    setEditingWakeUpDayId(null)
+    await saveWakeUpTime(dayId, nextWakeUpTime)
+  }
+
   const startCalendarResize = (
     e: React.PointerEvent<HTMLElement>,
     assignmentId: number,
@@ -963,6 +977,12 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     legsAbortRef,
     resizePreview,
     startCalendarResize,
+    editingWakeUpDayId,
+    setEditingWakeUpDayId,
+    wakeUpDraft,
+    setWakeUpDraft,
+    startEditWakeUpTime,
+    commitWakeUpTime,
     draggingId,
     setDraggingId,
     lockedIds,
@@ -1113,6 +1133,12 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
     legsAbortRef,
     resizePreview,
     startCalendarResize,
+    editingWakeUpDayId,
+    setEditingWakeUpDayId,
+    wakeUpDraft,
+    setWakeUpDraft,
+    startEditWakeUpTime,
+    commitWakeUpTime,
     draggingId,
     setDraggingId,
     lockedIds,
@@ -1306,19 +1332,27 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
               pushRouteBlock(`${day.id}-start`, renderedHotelLegs.top?.seg, 0)
               for (const block of calendarBlocks) {
                 if (!block) continue
-                pushRouteBlock(`${day.id}-${block.assignment.id}`, renderedRouteLegs[block.assignment.id], block.topMinutes + block.slot.durationMinutes)
+                pushRouteBlock(
+                  `${day.id}-${block.assignment.id}`,
+                  renderedRouteLegs[block.assignment.id],
+                  block.topMinutes + block.durationMinutes + block.slot.marginAfterMinutes,
+                )
               }
               const lastBlock = calendarBlocks[calendarBlocks.length - 1]
               if (lastBlock) {
                 const afterLast = routeSecondsToMinutes(renderedRouteLegs[lastBlock.assignment.id]?.duration)
-                pushRouteBlock(`${day.id}-end`, renderedHotelLegs.bottom?.seg, lastBlock.topMinutes + lastBlock.slot.durationMinutes + afterLast)
+                pushRouteBlock(
+                  `${day.id}-end`,
+                  renderedHotelLegs.bottom?.seg,
+                  lastBlock.topMinutes + lastBlock.durationMinutes + lastBlock.slot.marginAfterMinutes + afterLast,
+                )
               }
             }
             return blocks
           })() : []
           const calendarContentMinutes = Math.max(
             8 * 60,
-            ...calendarBlocks.map(block => block!.topMinutes + block!.durationMinutes),
+            ...calendarBlocks.map(block => block!.topMinutes + block!.durationMinutes + block!.slot.marginAfterMinutes),
             ...calendarRouteBlocks.map(block => block.topMinutes + block.durationMinutes),
           )
           const calendarHourCount = Math.max(1, Math.ceil((calendarContentMinutes + 30) / 60))
@@ -1470,12 +1504,22 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                         <Clock size={10} strokeWidth={2} />
                         {t('dayplan.wake')}
                       </span>
-                      {canEditDays ? (
+                      {canEditDays && editingWakeUpDayId === day.id ? (
                         <input
                           type="time"
-                          value={wakeUpTime}
+                          autoFocus
+                          value={wakeUpDraft}
                           onClick={e => e.stopPropagation()}
-                          onChange={e => saveWakeUpTime(day.id, e.target.value)}
+                          onChange={e => setWakeUpDraft(e.target.value)}
+                          onBlur={() => { void commitWakeUpTime(day.id) }}
+                          onKeyDown={e => {
+                            e.stopPropagation()
+                            if (e.key === 'Enter') e.currentTarget.blur()
+                            if (e.key === 'Escape') {
+                              setEditingWakeUpDayId(null)
+                              setWakeUpDraft('')
+                            }
+                          }}
                           style={{
                             width: 74,
                             border: '1px solid var(--border-faint)',
@@ -1487,6 +1531,27 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                             fontFamily: 'inherit',
                           }}
                         />
+                      ) : canEditDays ? (
+                        <button
+                          type="button"
+                          aria-label={`${t('dayplan.wake')} ${formatTime(wakeUpTime, locale, timeFormat)}`}
+                          onClick={e => startEditWakeUpTime(day.id, wakeUpTime, e)}
+                          style={{
+                            appearance: 'none',
+                            border: 'none',
+                            background: 'transparent',
+                            padding: 0,
+                            margin: 0,
+                            color: 'var(--text-faint)',
+                            fontSize: 10.5,
+                            fontFamily: 'inherit',
+                            fontWeight: 400,
+                            lineHeight: 1.2,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {formatTime(wakeUpTime, locale, timeFormat)}
+                        </button>
                       ) : (
                         <span style={{ fontSize: 10.5, color: 'var(--text-faint)' }}>
                           {formatTime(wakeUpTime, locale, timeFormat)}
@@ -1585,7 +1650,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
               {/* Aufgeklappte Orte + Notizen */}
               {isExpanded && (
                 <div
-                  style={{ background: 'var(--bg-hover)', paddingTop: 6 }}
+                  style={{ background: planView === 'calendar' ? 'transparent' : 'var(--bg-hover)', paddingTop: 6 }}
                   onDragOver={e => { e.preventDefault(); const cur = dropTargetRef.current; if (draggingId && (!cur || cur.startsWith('end-'))) setDropTargetKey(`end-${day.id}`) }}
                   onDrop={e => {
                     e.preventDefault()
@@ -1693,7 +1758,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                             height: calendarHeight,
                             borderLeft: '1px solid var(--border-faint)',
                             borderRight: '1px solid var(--border-faint)',
-                            background: 'var(--bg-card)',
+                            background: 'transparent',
                             overflow: 'hidden',
                           }}
                           onDragOver={e => {
@@ -1813,9 +1878,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                   right: 8,
                                   height: heightPx,
                                   borderRadius: 7,
-                                  border: `1px solid ${isPlaceSelected ? 'var(--accent)' : 'var(--border-faint)'}`,
+                                  border: `1px solid ${isPlaceSelected ? 'color-mix(in srgb, var(--accent) 16%, var(--border-faint))' : 'var(--border-faint)'}`,
                                   borderLeft: `4px solid ${color}`,
-                                  background: isPlaceSelected ? 'var(--bg-selected)' : 'var(--bg-card)',
+                                  background: isPlaceSelected ? 'color-mix(in srgb, var(--accent) 3%, var(--bg-card))' : 'var(--bg-card)',
                                   boxShadow: '0 1px 3px rgba(15,23,42,0.08)',
                                   cursor: canEditDays ? 'grab' : 'pointer',
                                   opacity: isDraggingThis ? 0.45 : 1,

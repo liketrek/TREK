@@ -441,6 +441,10 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
     const n = Number(value);
     return Number.isFinite(n) && n > 0 ? Math.round(n) : 60;
   };
+  const normalizeMargin = (value: unknown) => {
+    const n = Number(value);
+    return Number.isFinite(n) && n > 0 ? Math.round(n) : 0;
+  };
   const fmtDayMinutes = (date: string, minutes: number) => {
     const dt = new Date(date + 'T00:00:00Z');
     dt.setUTCMinutes(dt.getUTCMinutes() + Math.round(minutes));
@@ -482,6 +486,9 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
     let activityCursor = parseClockMinutes(day.wake_up_time);
     for (const a of assignments) {
       const duration = normalizeDuration(a.duration_minutes ?? a.place_duration_minutes);
+      const marginBefore = normalizeMargin(a.margin_before_minutes);
+      const marginAfter = normalizeMargin(a.margin_after_minutes);
+      activityCursor += marginBefore;
       ics += `BEGIN:VEVENT\r\nUID:${uid(a.id, 'assign')}\r\nDTSTAMP:${now}\r\n`;
       ics += `DTSTART:${fmtDayMinutes(day.date, activityCursor)}\r\n`;
       ics += `DTEND:${fmtDayMinutes(day.date, activityCursor + duration)}\r\n`;
@@ -492,7 +499,7 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
       if (desc) ics += `DESCRIPTION:${esc(desc)}\r\n`;
       if (a.place_address) ics += `LOCATION:${esc(a.place_address)}\r\n`;
       ics += `END:VEVENT\r\n`;
-      activityCursor += duration;
+      activityCursor += duration + marginAfter;
     }
 
     // Build all-day summary event for notes.
@@ -659,14 +666,19 @@ export function copyTripById(sourceTripId: string | number, newOwnerId: number, 
     `).all(sourceTripId) as any[];
     const assignmentMap = new Map<number, number | bigint>();
     const insertAssignment = db.prepare(`
-      INSERT INTO day_assignments (day_id, place_id, order_index, notes, duration_minutes, reservation_status, reservation_notes, reservation_datetime, assignment_time, assignment_end_time)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO day_assignments (
+        day_id, place_id, order_index, notes, duration_minutes,
+        margin_before_minutes, margin_after_minutes,
+        reservation_status, reservation_notes, reservation_datetime, assignment_time, assignment_end_time
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     for (const a of oldAssignments) {
       const newDayId = dayMap.get(a.day_id);
       const newPlaceId = placeMap.get(a.place_id);
       if (newDayId && newPlaceId) {
         const r = insertAssignment.run(newDayId, newPlaceId, a.order_index, a.notes, a.duration_minutes ?? 60,
+          a.margin_before_minutes ?? 0, a.margin_after_minutes ?? 0,
           a.reservation_status, a.reservation_notes, a.reservation_datetime,
           null, null);
         assignmentMap.set(a.id, r.lastInsertRowid);

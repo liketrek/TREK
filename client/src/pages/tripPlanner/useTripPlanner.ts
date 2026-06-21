@@ -461,8 +461,17 @@ export function useTripPlanner() {
     }
   }, [editingPlace, editingAssignmentId, tripId, toast, pushUndo, t])
 
-  const handleUpdateAssignmentDuration = useCallback(async (assignmentId: number, dayId: number, durationMinutes: number) => {
-    await assignmentsApi.updateTime(tripId, assignmentId, { duration_minutes: durationMinutes })
+  const handleUpdateAssignmentDuration = useCallback(async (
+    assignmentId: number,
+    dayId: number,
+    durationMinutes: number,
+    settings: { marginBeforeMinutes?: number; marginAfterMinutes?: number } = {},
+  ) => {
+    await assignmentsApi.updateTime(tripId, assignmentId, {
+      duration_minutes: durationMinutes,
+      ...(settings.marginBeforeMinutes != null ? { margin_before_minutes: settings.marginBeforeMinutes } : {}),
+      ...(settings.marginAfterMinutes != null ? { margin_after_minutes: settings.marginAfterMinutes } : {}),
+    })
     await tripActions.refreshDays(tripId)
     updateRouteForDay(dayId)
   }, [tripId, updateRouteForDay])

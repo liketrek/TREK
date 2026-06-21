@@ -127,7 +127,10 @@ export function getSharedTripData(token: string): Record<string, any> | null {
         p.lat, p.lng, p.address, p.category_id, p.price, p.currency as place_currency,
         NULL as place_time,
         NULL as end_time,
-        COALESCE(da.duration_minutes, p.duration_minutes, 60) as duration_minutes, p.notes as place_notes, p.image_url, p.transport_mode,
+        COALESCE(da.duration_minutes, p.duration_minutes, 60) as duration_minutes,
+        COALESCE(da.margin_before_minutes, 0) as margin_before_minutes,
+        COALESCE(da.margin_after_minutes, 0) as margin_after_minutes,
+        p.notes as place_notes, p.image_url, p.transport_mode,
         c.name as category_name, c.color as category_color, c.icon as category_icon
       FROM day_assignments da
       JOIN places p ON da.place_id = p.id
@@ -145,6 +148,8 @@ export function getSharedTripData(token: string): Record<string, any> | null {
       byDay[a.day_id].push({
         id: a.id, day_id: a.day_id, order_index: a.order_index, notes: a.notes,
         duration_minutes: a.duration_minutes,
+        margin_before_minutes: a.margin_before_minutes ?? 0,
+        margin_after_minutes: a.margin_after_minutes ?? 0,
         place: {
           id: a.place_id, name: a.place_name, description: a.place_description,
           lat: a.lat, lng: a.lng, address: a.address, category_id: a.category_id,

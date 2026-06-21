@@ -34,6 +34,8 @@ describe('assignmentTimeRequestSchema', () => {
   it('accepts duration only and rejects manual start/end times', () => {
     expect(assignmentTimeRequestSchema.safeParse({ place_time: '09:00', end_time: null }).success).toBe(false);
     expect(assignmentTimeRequestSchema.safeParse({ duration_minutes: 90 }).success).toBe(true);
+    expect(assignmentTimeRequestSchema.safeParse({ duration_minutes: 90, margin_before_minutes: 0, margin_after_minutes: 15 }).success).toBe(true);
     expect(assignmentTimeRequestSchema.safeParse({ duration_minutes: 0 }).success).toBe(false);
+    expect(assignmentTimeRequestSchema.safeParse({ margin_before_minutes: -1 }).success).toBe(false);
   });
 });

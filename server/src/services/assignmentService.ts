@@ -5,7 +5,10 @@ import { AssignmentRow, DayAssignment } from '../types';
 export function getAssignmentWithPlace(assignmentId: number | bigint) {
   const a = db.prepare(`
     SELECT da.id, da.day_id, da.place_id, da.order_index, da.notes,
-      da.assignment_time, da.assignment_end_time, da.created_at,
+      da.assignment_time, da.assignment_end_time,
+      COALESCE(da.margin_before_minutes, 0) as margin_before_minutes,
+      COALESCE(da.margin_after_minutes, 0) as margin_after_minutes,
+      da.created_at,
       p.name as place_name, p.description as place_description,
       p.lat, p.lng, p.address, p.category_id, p.price, p.currency as place_currency,
       NULL as place_time,
@@ -41,6 +44,8 @@ export function getAssignmentWithPlace(assignmentId: number | bigint) {
     order_index: a.order_index,
     notes: a.notes,
     duration_minutes: a.duration_minutes,
+    margin_before_minutes: a.margin_before_minutes ?? 0,
+    margin_after_minutes: a.margin_after_minutes ?? 0,
     assignment_time: null,
     assignment_end_time: null,
     participants,
@@ -78,7 +83,10 @@ export function getAssignmentWithPlace(assignmentId: number | bigint) {
 export function listDayAssignments(dayId: string | number) {
   const assignments = db.prepare(`
     SELECT da.id, da.day_id, da.place_id, da.order_index, da.notes,
-      da.assignment_time, da.assignment_end_time, da.created_at,
+      da.assignment_time, da.assignment_end_time,
+      COALESCE(da.margin_before_minutes, 0) as margin_before_minutes,
+      COALESCE(da.margin_after_minutes, 0) as margin_after_minutes,
+      da.created_at,
       p.name as place_name, p.description as place_description,
       p.lat, p.lng, p.address, p.category_id, p.price, p.currency as place_currency,
       NULL as place_time,
@@ -180,13 +188,35 @@ function normalizeDurationMinutes(value: unknown): number | undefined {
   return Math.round(n);
 }
 
-export function updateTime(id: string | number, durationMinutes?: number | null) {
-  const current = db.prepare('SELECT duration_minutes FROM day_assignments WHERE id = ?').get(id) as
-    | { duration_minutes: number | null }
+function normalizeMarginMinutes(value: unknown): number | undefined {
+  if (value === undefined) return undefined;
+  if (value === null || value === '') return 0;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) return undefined;
+  return Math.round(n);
+}
+
+export function updateTime(
+  id: string | number,
+  durationMinutes?: number | null,
+  marginBeforeMinutes?: number | null,
+  marginAfterMinutes?: number | null,
+) {
+  const current = db.prepare('SELECT duration_minutes, margin_before_minutes, margin_after_minutes FROM day_assignments WHERE id = ?').get(id) as
+    | { duration_minutes: number | null; margin_before_minutes: number | null; margin_after_minutes: number | null }
     | undefined;
   const nextDuration = normalizeDurationMinutes(durationMinutes) ?? current?.duration_minutes ?? 60;
-  db.prepare('UPDATE day_assignments SET assignment_time = NULL, assignment_end_time = NULL, duration_minutes = ? WHERE id = ?')
-    .run(nextDuration, id);
+  const nextMarginBefore = normalizeMarginMinutes(marginBeforeMinutes) ?? current?.margin_before_minutes ?? 0;
+  const nextMarginAfter = normalizeMarginMinutes(marginAfterMinutes) ?? current?.margin_after_minutes ?? 0;
+  db.prepare(`
+    UPDATE day_assignments
+    SET assignment_time = NULL,
+        assignment_end_time = NULL,
+        duration_minutes = ?,
+        margin_before_minutes = ?,
+        margin_after_minutes = ?
+    WHERE id = ?
+  `).run(nextDuration, nextMarginBefore, nextMarginAfter, id);
 
   return getAssignmentWithPlace(Number(id));
 }

@@ -60,6 +60,8 @@ function formatAssignmentWithPlace(a: AssignmentRow, tags: Partial<Tag>[], parti
     order_index: a.order_index,
     notes: a.notes,
     duration_minutes: a.duration_minutes,
+    margin_before_minutes: a.margin_before_minutes ?? 0,
+    margin_after_minutes: a.margin_after_minutes ?? 0,
     assignment_time: null,
     assignment_end_time: null,
     participants: participants || [],

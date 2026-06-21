@@ -3079,6 +3079,18 @@ function runMigrations(db: Database.Database): void {
         console.warn('[migrations] Non-fatal migration step failed:', err);
       }
     },
+    () => {
+      try {
+        db.exec('ALTER TABLE day_assignments ADD COLUMN margin_before_minutes INTEGER DEFAULT 0');
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) throw err;
+      }
+      try {
+        db.exec('ALTER TABLE day_assignments ADD COLUMN margin_after_minutes INTEGER DEFAULT 0');
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) throw err;
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {
@@ -3120,6 +3132,16 @@ function ensureDayTimeColumns(db: Database.Database): void {
       db.exec('ALTER TABLE day_assignments ADD COLUMN duration_minutes INTEGER DEFAULT 60');
       addedDurationColumn = true;
       console.log('[DB] Repaired missing day_assignments.duration_minutes column');
+    }
+
+    if (!columnExists(db, 'day_assignments', 'margin_before_minutes')) {
+      db.exec('ALTER TABLE day_assignments ADD COLUMN margin_before_minutes INTEGER DEFAULT 0');
+      console.log('[DB] Repaired missing day_assignments.margin_before_minutes column');
+    }
+
+    if (!columnExists(db, 'day_assignments', 'margin_after_minutes')) {
+      db.exec('ALTER TABLE day_assignments ADD COLUMN margin_after_minutes INTEGER DEFAULT 0');
+      console.log('[DB] Repaired missing day_assignments.margin_after_minutes column');
     }
 
     if (addedDurationColumn) {

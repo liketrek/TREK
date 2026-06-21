@@ -27,6 +27,12 @@ describe('durationInput', () => {
     expect(parseDurationMinutes('0m')).toBeNull()
   })
 
+  it('allows zero when requested', () => {
+    expect(parseDurationMinutes('0m', { allowZero: true })).toBe(0)
+    expect(parseDurationMinutes('0 min', { allowZero: true })).toBe(0)
+    expect(formatDurationInput(0, { allowZero: true })).toBe('0m')
+  })
+
   it('formats minutes for editing', () => {
     expect(formatDurationInput(45)).toBe('45m')
     expect(formatDurationInput(120)).toBe('2h')

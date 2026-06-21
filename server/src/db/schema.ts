@@ -159,6 +159,8 @@ function createTables(db: Database.Database): void {
       order_index INTEGER DEFAULT 0,
       notes TEXT,
       duration_minutes INTEGER DEFAULT 60,
+      margin_before_minutes INTEGER DEFAULT 0,
+      margin_after_minutes INTEGER DEFAULT 0,
       reservation_status TEXT DEFAULT 'none',
       reservation_notes TEXT,
       reservation_datetime TEXT,

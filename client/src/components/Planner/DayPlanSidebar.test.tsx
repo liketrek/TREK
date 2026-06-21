@@ -253,7 +253,8 @@ describe('DayPlanSidebar', () => {
     expect(screen.queryByText(/10:00/)).not.toBeInTheDocument()
   })
 
-  it('FE-PLANNER-DAYPLAN-012b: displays calculated ranges, wake time, and max sleep', () => {
+  it('FE-PLANNER-DAYPLAN-012b: displays calculated ranges, wake time, and max sleep', async () => {
+    const user = userEvent.setup()
     const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1', wake_up_time: '09:30' })
     const museum = buildPlace({ name: 'Museum' })
     const lunch = buildPlace({ name: 'Lunch' })
@@ -264,6 +265,10 @@ describe('DayPlanSidebar', () => {
       ],
     }
     render(<DayPlanSidebar {...makeDefaultProps({ days: [day], places: [museum, lunch], assignments })} />)
+    const wakeButton = screen.getByRole('button', { name: /Wake 09:30/i })
+    expect(wakeButton).toHaveTextContent('09:30')
+    expect(screen.queryByDisplayValue('09:30')).not.toBeInTheDocument()
+    await user.click(wakeButton)
     expect(screen.getByDisplayValue('09:30')).toBeInTheDocument()
     expect(screen.getByText(/09:30 ~ 10:40/)).toBeInTheDocument()
     expect(screen.getByText(/10:40 ~ 11:30/)).toBeInTheDocument()
@@ -304,6 +309,7 @@ describe('DayPlanSidebar', () => {
     expect(screen.getByText(/09:00 ~ 11:00/)).toBeInTheDocument()
     const museumTile = screen.getByTestId('calendar-activity-11') as HTMLElement
     const lunchTile = screen.getByTestId('calendar-activity-22') as HTMLElement
+    expect(screen.getByTestId('day-calendar-grid-10')).toHaveStyle('background: transparent')
     expect(parseFloat(lunchTile.style.height)).toBeGreaterThan(parseFloat(museumTile.style.height))
   })
 
@@ -378,6 +384,27 @@ describe('DayPlanSidebar', () => {
     await waitFor(() => expect(screen.getByTestId('calendar-route-10-11')).toBeInTheDocument())
     expect(screen.getByTestId('calendar-route-10-11')).toHaveTextContent(/09:00 ~ 09:15/)
     expect(screen.getByText(/09:15 ~ 10:15/)).toBeInTheDocument()
+  })
+
+  it('FE-PLANNER-DAYPLAN-012g2: calendar route blocks start after assignment margins', async () => {
+    const user = userEvent.setup()
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1', wake_up_time: '08:00' })
+    const museum = buildPlace({ id: 1, name: 'Museum', lat: 48.86, lng: 2.34 })
+    const lunch = buildPlace({ id: 2, name: 'Lunch', lat: 48.87, lng: 2.35 })
+    const assignments = {
+      '10': [
+        buildAssignment({ id: 11, day_id: 10, order_index: 0, place: museum, duration_minutes: 60, margin_before_minutes: 15, margin_after_minutes: 10 }),
+        buildAssignment({ id: 22, day_id: 10, order_index: 1, place: lunch, duration_minutes: 60 }),
+      ],
+    }
+    render(<DayPlanSidebar {...makeDefaultProps({ days: [day], places: [museum, lunch], assignments, routeShown: true })} />)
+
+    await user.click(screen.getByRole('button', { name: 'Calendar' }))
+
+    await waitFor(() => expect(screen.getByTestId('calendar-route-10-11')).toBeInTheDocument())
+    expect(screen.getByText(/08:15 ~ 09:15/)).toBeInTheDocument()
+    expect(screen.getByTestId('calendar-route-10-11')).toHaveTextContent(/09:25 ~ 09:40/)
+    expect(screen.getByText(/09:40 ~ 10:40/)).toBeInTheDocument()
   })
 
   it('FE-PLANNER-DAYPLAN-012h: calendar resize handle updates assignment duration', async () => {

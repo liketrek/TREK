@@ -73,8 +73,8 @@ export class AssignmentsService {
     return svc.getParticipants(id);
   }
 
-  updateTime(id: string, durationMinutes?: unknown) {
-    return svc.updateTime(id, durationMinutes as never);
+  updateTime(id: string, durationMinutes?: unknown, marginBeforeMinutes?: unknown, marginAfterMinutes?: unknown) {
+    return svc.updateTime(id, durationMinutes as never, marginBeforeMinutes as never, marginAfterMinutes as never);
   }
 
   setParticipants(id: string, userIds: number[]) {

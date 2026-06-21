@@ -285,7 +285,7 @@ describe('Tool: reorder_day_assignments', () => {
 // ---------------------------------------------------------------------------
 
 describe('Tool: update_assignment_duration', () => {
-  it('sets duration for an assignment without manual times', async () => {
+  it('sets duration and margins for an assignment without manual times', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
@@ -295,10 +295,12 @@ describe('Tool: update_assignment_duration', () => {
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_assignment_duration',
-        arguments: { tripId: trip.id, assignmentId: assignment.id, duration_minutes: 95 },
+        arguments: { tripId: trip.id, assignmentId: assignment.id, duration_minutes: 95, margin_before_minutes: 10, margin_after_minutes: 15 },
       });
       const data = parseToolResult(result) as any;
       expect(data.assignment.duration_minutes).toBe(95);
+      expect(data.assignment.margin_before_minutes).toBe(10);
+      expect(data.assignment.margin_after_minutes).toBe(15);
       expect(data.assignment.assignment_time).toBeNull();
       expect(data.assignment.assignment_end_time).toBeNull();
     });

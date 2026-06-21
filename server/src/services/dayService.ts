@@ -11,7 +11,10 @@ export { verifyTripAccess } from './tripAccess';
 export function getAssignmentsForDay(dayId: number | string) {
   const assignments = db.prepare(`
     SELECT da.id, da.day_id, da.place_id, da.order_index, da.notes,
-      da.assignment_time, da.assignment_end_time, da.created_at,
+      da.assignment_time, da.assignment_end_time,
+      COALESCE(da.margin_before_minutes, 0) as margin_before_minutes,
+      COALESCE(da.margin_after_minutes, 0) as margin_after_minutes,
+      da.created_at,
       p.name as place_name, p.description as place_description,
       p.lat, p.lng, p.address, p.category_id, p.price, p.currency as place_currency,
       NULL as place_time,
@@ -40,6 +43,8 @@ export function getAssignmentsForDay(dayId: number | string) {
       order_index: a.order_index,
       notes: a.notes,
       duration_minutes: a.duration_minutes,
+      margin_before_minutes: a.margin_before_minutes ?? 0,
+      margin_after_minutes: a.margin_after_minutes ?? 0,
       created_at: a.created_at,
       place: {
         id: a.place_id,
@@ -88,7 +93,10 @@ export function listDays(tripId: string | number) {
 
   const allAssignments = db.prepare(`
     SELECT da.id, da.day_id, da.place_id, da.order_index, da.notes,
-      da.assignment_time, da.assignment_end_time, da.created_at,
+      da.assignment_time, da.assignment_end_time,
+      COALESCE(da.margin_before_minutes, 0) as margin_before_minutes,
+      COALESCE(da.margin_after_minutes, 0) as margin_after_minutes,
+      da.created_at,
       p.name as place_name, p.description as place_description,
       p.lat, p.lng, p.address, p.category_id, p.price, p.currency as place_currency,
       NULL as place_time,
