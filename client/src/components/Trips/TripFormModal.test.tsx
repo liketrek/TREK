@@ -1,4 +1,4 @@
-// FE-COMP-TRIPFORM-001 to FE-COMP-TRIPFORM-028
+// FE-COMP-TRIPFORM-001 to FE-COMP-TRIPFORM-031
 import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -309,5 +309,42 @@ describe('TripFormModal', () => {
     await user.click(submitBtn.closest('button')!);
     await screen.findByText('Number of days is required');
     expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('FE-COMP-TRIPFORM-031: selects an Unsplash cover and saves it after trip creation', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue({ trip: buildTrip({ id: 99 }) });
+    let updateBody: unknown;
+    server.use(
+      http.get('/api/trips/cover-images/search', () =>
+        HttpResponse.json({
+          photos: [{
+            id: 'unsplash-1',
+            url: 'https://images.example.com/regular.jpg',
+            thumb: 'https://images.example.com/thumb.jpg',
+            description: 'Mountain lake',
+            photographer: 'Alice',
+            link: 'https://unsplash.com/photos/unsplash-1',
+          }],
+        })
+      ),
+      http.put('/api/trips/99', async ({ request }) => {
+        updateBody = await request.json();
+        return HttpResponse.json({ trip: buildTrip({ id: 99, cover_image: 'https://images.example.com/regular.jpg' }) });
+      }),
+    );
+
+    render(<TripFormModal {...defaultProps} trip={null} onSave={onSave} />);
+    await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Alpine Trip');
+    await user.type(screen.getByPlaceholderText('Search destination photos'), 'alps');
+    await user.click(screen.getByRole('button', { name: /Search Unsplash/i }));
+    await user.click(await screen.findByRole('button', { name: /Use Unsplash photo by Alice/i }));
+
+    const submitBtn = screen.getAllByText('Create New Trip').find(el => el.closest('button'))!;
+    await user.click(submitBtn.closest('button')!);
+
+    await waitFor(() => {
+      expect(updateBody).toMatchObject({ cover_image: 'https://images.example.com/regular.jpg' });
+    });
   });
 });

@@ -11,6 +11,7 @@ import { listItems as listTodoItems } from '../../services/todoService';
 import { listBudgetItems } from '../../services/budgetService';
 import { listReservations } from '../../services/reservationService';
 import { listFiles } from '../../services/fileService';
+import { searchUnsplashPhotos } from '../../services/unsplashService';
 
 /**
  * Thin Nest wrapper around the existing trip service + the per-domain list
@@ -47,6 +48,10 @@ export class TripsService {
 
   getRaw(tripId: string) {
     return tripSvc.getTripRaw(tripId);
+  }
+
+  searchCoverImages(userId: number, query: string) {
+    return searchUnsplashPhotos(userId, query, 9);
   }
 
   getOwner(tripId: string) {

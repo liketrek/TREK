@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import Modal from '../shared/Modal'
-import { Calendar, Camera, X, Clipboard, UserPlus, Bell } from 'lucide-react'
+import { Calendar, Camera, Search, X, UserPlus, Bell } from 'lucide-react'
 import { tripsApi, authApi } from '../../api/client'
 import CustomSelect from '../shared/CustomSelect'
 import { useAuthStore } from '../../store/authStore'
@@ -9,7 +9,7 @@ import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
 import { normalizeImageFile } from '../../utils/convertHeic'
-import type { Trip } from '../../types'
+import { getApiErrorMessage, type Trip } from '../../types'
 import type { TripCreateRequest } from '@trek/shared'
 
 interface TripFormModalProps {
@@ -20,6 +20,15 @@ interface TripFormModalProps {
   onSave: (data: TripCreateRequest) => Promise<{ trip?: Trip } | void> | void
   trip: Trip | null
   onCoverUpdate?: (tripId: number, coverUrl: string | null) => void
+}
+
+interface CoverSearchPhoto {
+  id: string
+  url: string
+  thumb: string
+  description?: string | null
+  photographer?: string | null
+  link?: string | null
 }
 
 export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUpdate }: TripFormModalProps) {
@@ -45,9 +54,14 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   const [customReminder, setCustomReminder] = useState(false)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [coverPreview, setCoverPreview] = useState(null)
-  const [pendingCoverFile, setPendingCoverFile] = useState(null)
+  const [coverPreview, setCoverPreview] = useState<string | null>(null)
+  const [pendingCoverFile, setPendingCoverFile] = useState<File | null>(null)
+  const [pendingUnsplashUrl, setPendingUnsplashUrl] = useState<string | null>(null)
   const [uploadingCover, setUploadingCover] = useState(false)
+  const [coverSearchQuery, setCoverSearchQuery] = useState('')
+  const [coverSearchResults, setCoverSearchResults] = useState<CoverSearchPhoto[]>([])
+  const [coverSearchError, setCoverSearchError] = useState('')
+  const [searchingCover, setSearchingCover] = useState(false)
   const [allUsers, setAllUsers] = useState<{ id: number; username: string }[]>([])
   const [selectedMembers, setSelectedMembers] = useState<number[]>([])
   const [existingMembers, setExistingMembers] = useState<{ id: number; username: string }[]>([])
@@ -66,12 +80,17 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
       })
       setCustomReminder(![0, 1, 3, 9].includes(rd))
       setCoverPreview(trip.cover_image || null)
+      setCoverSearchQuery('')
     } else {
       setFormData({ title: '', description: '', start_date: '', end_date: '', reminder_days: tripRemindersEnabled ? 3 : 0, day_count: 7 })
       setCustomReminder(false)
       setCoverPreview(null)
+      setCoverSearchQuery('')
     }
     setPendingCoverFile(null)
+    setPendingUnsplashUrl(null)
+    setCoverSearchResults([])
+    setCoverSearchError('')
     setSelectedMembers([])
     setError('')
     if (isOpen) {
@@ -139,6 +158,13 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
           // Cover upload failed but trip was created — surface it without blocking the create
           toast.error(t('dashboard.coverUploadError'))
         }
+      } else if (pendingUnsplashUrl && createdTrip?.id) {
+        try {
+          await tripsApi.update(createdTrip.id, { cover_image: pendingUnsplashUrl })
+          onCoverUpdate?.(createdTrip.id, pendingUnsplashUrl)
+        } catch {
+          toast.error(t('dashboard.coverSaveError'))
+        }
       }
       onClose()
     } catch (err: unknown) {
@@ -152,6 +178,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     if (!file) return
     // HEIC/HEIF from iOS can't be rendered or stored as-is — convert to JPEG first
     const normalized = await normalizeImageFile(file)
+    setPendingUnsplashUrl(null)
     if (isEditing && trip?.id) {
       // Existing trip: upload immediately
       uploadCoverNow(normalized)
@@ -183,9 +210,51 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     }
   }
 
+  const handleCoverSearch = async () => {
+    const query = coverSearchQuery.trim() || formData.title.trim()
+    if (!query) {
+      setCoverSearchError(t('dashboard.unsplashQueryRequired'))
+      return
+    }
+    setSearchingCover(true)
+    setCoverSearchError('')
+    try {
+      const data = await tripsApi.searchCoverImages(query)
+      const photos = data.photos || []
+      setCoverSearchResults(photos)
+      if (photos.length === 0) setCoverSearchError(t('dashboard.unsplashNoResults'))
+    } catch (err: unknown) {
+      setCoverSearchError(getApiErrorMessage(err, t('dashboard.coverSearchError')))
+    } finally {
+      setSearchingCover(false)
+    }
+  }
+
+  const handleUnsplashSelect = async (photo: CoverSearchPhoto) => {
+    if (!photo.url) return
+    setPendingCoverFile(null)
+    if (isEditing && trip?.id) {
+      setUploadingCover(true)
+      try {
+        await tripsApi.update(trip.id, { cover_image: photo.url })
+        setCoverPreview(photo.url)
+        onCoverUpdate?.(trip.id, photo.url)
+        toast.success(t('dashboard.coverSaved'))
+      } catch (err: unknown) {
+        toast.error(getApiErrorMessage(err, t('dashboard.coverSaveError')))
+      } finally {
+        setUploadingCover(false)
+      }
+    } else {
+      setPendingUnsplashUrl(photo.url)
+      setCoverPreview(photo.url)
+    }
+  }
+
   const handleRemoveCover = async () => {
-    if (pendingCoverFile) {
+    if (pendingCoverFile || pendingUnsplashUrl) {
       setPendingCoverFile(null)
+      setPendingUnsplashUrl(null)
       setCoverPreview(null)
       return
     }
@@ -287,6 +356,42 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
               onMouseLeave={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.color = '#9ca3af' }}>
               <Camera size={15} /> {uploadingCover ? t('common.uploading') : t('dashboard.addCoverImage')}
             </button>
+          )}
+          <div className="mt-2 flex gap-2">
+            <input
+              type="text"
+              value={coverSearchQuery}
+              onChange={e => setCoverSearchQuery(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCoverSearch() } }}
+              placeholder={t('dashboard.unsplashSearchPlaceholder')}
+              className={inputCls}
+            />
+            <button type="button" onClick={handleCoverSearch} disabled={searchingCover || (!coverSearchQuery.trim() && !formData.title.trim())}
+              className="px-3 py-2 text-sm border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 whitespace-nowrap">
+              {searchingCover ? <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-700 rounded-full animate-spin" /> : <Search size={14} />}
+              {t('dashboard.searchUnsplash')}
+            </button>
+          </div>
+          {coverSearchError && <p className="text-xs text-red-500 mt-1.5">{coverSearchError}</p>}
+          {coverSearchResults.length > 0 && (
+            <div className="grid grid-cols-3 gap-2 mt-2">
+              {coverSearchResults.map(photo => (
+                <button
+                  type="button"
+                  key={photo.id}
+                  onClick={() => handleUnsplashSelect(photo)}
+                  aria-label={t('dashboard.useUnsplashPhoto', { photographer: photo.photographer || 'Unsplash' })}
+                  className={`relative h-20 overflow-hidden rounded-lg border transition-colors ${coverPreview === photo.url ? 'border-slate-900 ring-2 ring-slate-900/20' : 'border-slate-200 hover:border-slate-400'}`}
+                >
+                  <img src={photo.thumb} alt={photo.description || ''} loading="lazy" className="w-full h-full object-cover" />
+                  {photo.photographer && (
+                    <span className="absolute inset-x-0 bottom-0 truncate bg-black/55 px-1.5 py-1 text-[10px] text-white">
+                      {photo.photographer}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
           )}
         </div>}
 

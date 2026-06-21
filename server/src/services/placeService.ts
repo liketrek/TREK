@@ -15,6 +15,7 @@ import {
 } from './kmlImport';
 import { enrichImportedPlaces, type EnrichablePlace } from './placeEnrichment';
 import * as placePhotoCache from './placePhotoCache';
+import { searchUnsplashPhotos } from './unsplashService';
 
 // Reclaim a deleted place's cached marker photo if nothing else references it.
 // The cache key is the Google place_id, or — for coordinate-only places — the
@@ -40,11 +41,6 @@ interface PlaceWithCategory extends Place {
   category_name: string | null;
   category_color: string | null;
   category_icon: string | null;
-}
-
-interface UnsplashSearchResponse {
-  results?: { id: string; urls?: { regular?: string; thumb?: string }; description?: string; alt_description?: string; user?: { name?: string }; links?: { html?: string } }[];
-  errors?: string[];
 }
 
 export interface PlaceImportResult {
@@ -947,29 +943,5 @@ export async function searchPlaceImage(tripId: string, placeId: string, userId: 
   const place = db.prepare('SELECT * FROM places WHERE id = ? AND trip_id = ?').get(placeId, tripId) as Place | undefined;
   if (!place) return { error: 'Place not found', status: 404 };
 
-  const user = db.prepare('SELECT unsplash_api_key FROM users WHERE id = ?').get(userId) as { unsplash_api_key: string | null } | undefined;
-  if (!user || !user.unsplash_api_key) {
-    return { error: 'No Unsplash API key configured', status: 400 };
-  }
-
-  const query = encodeURIComponent(place.name + (place.address ? ' ' + place.address : ''));
-  const response = await fetch(
-    `https://api.unsplash.com/search/photos?query=${query}&per_page=5&client_id=${user.unsplash_api_key}`,
-  );
-  const data = await response.json() as UnsplashSearchResponse;
-
-  if (!response.ok) {
-    return { error: data.errors?.[0] || 'Unsplash API error', status: response.status };
-  }
-
-  const photos = (data.results || []).map((p: NonNullable<UnsplashSearchResponse['results']>[number]) => ({
-    id: p.id,
-    url: p.urls?.regular,
-    thumb: p.urls?.thumb,
-    description: p.description || p.alt_description,
-    photographer: p.user?.name,
-    link: p.links?.html,
-  }));
-
-  return { photos };
+  return searchUnsplashPhotos(userId, place.name + (place.address ? ' ' + place.address : ''), 5);
 }

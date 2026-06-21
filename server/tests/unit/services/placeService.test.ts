@@ -1,7 +1,7 @@
 /**
  * Unit tests for placeService — PLACE-SVC-001 through PLACE-SVC-025.
  * Uses a real in-memory SQLite DB so SQL logic is exercised faithfully.
- * Skips importGpx / importGoogleList / searchPlaceImage (require external I/O).
+ * External fetches are mocked where needed.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
@@ -541,20 +541,31 @@ describe('searchPlaceImage', () => {
     expect(result.status).toBe(404);
   });
 
-  it('PLACE-SVC-031 — returns 400 when user has no Unsplash API key', async () => {
+  it('PLACE-SVC-031 — searches Unsplash without a stored API key', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const place = createPlace(testDb, trip.id, { name: 'Eiffel Tower' }) as any;
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        results: [
+          { id: 'photo1', urls: { regular: 'https://img.example.com/1', thumb: 'https://img.example.com/t1' }, description: 'Tower', user: { name: 'Photographer' }, links: { html: 'https://unsplash.com/1' } },
+        ],
+      }),
+      status: 200,
+    }));
+
     const result = await searchPlaceImage(String(trip.id), String(place.id), user.id) as any;
-    expect(result.error).toMatch(/No Unsplash API key/);
-    expect(result.status).toBe(400);
+    expect(result.photos).toHaveLength(1);
+    const [url] = (fetch as any).mock.calls[0];
+    expect(url).toContain('https://unsplash.com/napi/search/photos?');
+    expect(url).not.toContain('client_id=');
   });
 
   it('PLACE-SVC-032 — returns photos when Unsplash API responds successfully', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const place = createPlace(testDb, trip.id, { name: 'Eiffel Tower' }) as any;
-    testDb.prepare('UPDATE users SET unsplash_api_key = ? WHERE id = ?').run('test-unsplash-key', user.id);
 
     const mockPhotos = [
       { id: 'photo1', urls: { regular: 'https://img.example.com/1', thumb: 'https://img.example.com/t1' }, description: 'Tower', user: { name: 'Photographer' }, links: { html: 'https://unsplash.com/1' } },

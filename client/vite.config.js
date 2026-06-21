@@ -2,6 +2,8 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+const backendTarget = process.env.VITE_DEV_PROXY_TARGET || 'http://localhost:3001'
+
 export default defineConfig({
   plugins: [
     react(),
@@ -126,42 +128,42 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: backendTarget,
         changeOrigin: true,
       },
       '/uploads': {
-        target: 'http://localhost:3001',
+        target: backendTarget,
         changeOrigin: true,
       },
       '/ws': {
-        target: 'http://localhost:3001',
+        target: backendTarget,
         ws: true,
       },
       '/mcp': {
-        target: 'http://localhost:3001',
+        target: backendTarget,
         changeOrigin: true,
       },
       // OAuth 2.1 endpoints handled by backend (SDK authorize handler + token/revoke)
       // /oauth/authorize goes to backend so the SDK can redirect to /oauth/consent
       // /oauth/consent is served by Vite as a SPA route (no proxy entry needed)
       '/oauth/authorize': {
-        target: 'http://localhost:3001',
+        target: backendTarget,
         changeOrigin: true,
       },
       '/oauth/token': {
-        target: 'http://localhost:3001',
+        target: backendTarget,
         changeOrigin: true,
       },
       '/oauth/register': {
-        target: 'http://localhost:3001',
+        target: backendTarget,
         changeOrigin: true,
       },
       '/oauth/revoke': {
-        target: 'http://localhost:3001',
+        target: backendTarget,
         changeOrigin: true,
       },
       '/.well-known': {
-        target: 'http://localhost:3001',
+        target: backendTarget,
         changeOrigin: true,
       },
     }

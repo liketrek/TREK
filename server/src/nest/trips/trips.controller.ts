@@ -71,6 +71,21 @@ export class TripsController {
     return { trips: this.trips.list(user.id, archived === '1' ? 1 : 0) };
   }
 
+  @Get('cover-images/search')
+  async coverImages(@CurrentUser() user: User, @Query('query') query?: string) {
+    try {
+      const result = await this.trips.searchCoverImages(user.id, query || '');
+      if ('error' in result) {
+        throw new HttpException({ error: result.error }, result.status);
+      }
+      return { photos: result.photos };
+    } catch (err: unknown) {
+      if (err instanceof HttpException) throw err;
+      console.error('Unsplash cover image error:', err);
+      throw new HttpException({ error: 'Error searching for cover images' }, 500);
+    }
+  }
+
   @Post()
   @HttpCode(201)
   create(@CurrentUser() user: User, @Body() body: Record<string, unknown>, @Req() req: Request) {
@@ -122,8 +137,14 @@ export class TripsController {
     if (editFields.some((f) => body[f] !== undefined) && !this.trips.can('trip_edit', user.role, ownerId, user.id, isMember)) {
       throw new HttpException({ error: 'No permission to edit this trip' }, 403);
     }
+    const oldCover = body.cover_image !== undefined
+      ? (this.trips.getRaw(id) as { cover_image: string | null } | undefined)?.cover_image
+      : undefined;
     try {
       const result = this.trips.update(id, user.id, body, user.role);
+      if (body.cover_image !== undefined && body.cover_image !== oldCover) {
+        this.trips.deleteOldCover(oldCover);
+      }
       if (Object.keys(result.changes).length > 0) {
         writeAudit({ userId: user.id, action: 'trip.update', ip: getClientIp(req), details: { tripId: Number(id), trip: result.newTitle, ...(result.ownerEmail ? { owner: result.ownerEmail } : {}), ...result.changes } });
         if (result.isAdminEdit && result.ownerEmail) logInfo(`Admin ${user.email} edited trip "${result.newTitle}" owned by ${result.ownerEmail}`);
