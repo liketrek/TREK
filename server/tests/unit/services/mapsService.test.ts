@@ -751,13 +751,20 @@ describe('searchPlaces (fetch stubbed)', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
-        places: [{ id: 'gid1', displayName: { text: 'Eiffel Tower' }, formattedAddress: 'Paris', location: { latitude: 48.8, longitude: 2.3 } }],
+        places: [{
+          id: 'gid1',
+          displayName: { text: 'Eiffel Tower' },
+          formattedAddress: 'Paris',
+          location: { latitude: 48.8, longitude: 2.3 },
+          googleMapsUri: 'https://www.google.com/maps/place/?q=Eiffel%20Tower&ftid=0x882bf179e806d471:0x8591dde29c821a93',
+        }],
       }),
     }));
     const { searchPlaces } = await import('../../../src/services/mapsService');
     const result = await searchPlaces(1, 'Eiffel Tower');
     expect(result.source).toBe('google');
     expect((result.places[0] as any).google_place_id).toBe('gid1');
+    expect((result.places[0] as any).google_ftid).toBe('0x882bf179e806d471:0x8591dde29c821a93');
   });
 
   it('MAPS-039b: throws with Google error status when Google API returns non-ok', async () => {
@@ -813,6 +820,7 @@ describe('searchPlaces (fetch stubbed)', () => {
     const result = await searchPlaces(1, 'sparse');
     const place = result.places[0] as any;
     expect(place.google_place_id).toBe('gid-sparse');
+    expect(place.google_ftid).toBeNull();
     expect(place.name).toBe('');
     expect(place.address).toBe('');
     expect(place.lat).toBeNull();
@@ -1082,7 +1090,7 @@ describe('getPlaceDetails (fetch stubbed)', () => {
           weekdayDescriptions: ['Monday: 9:00 AM – 12:00 AM'],
           openNow: true,
         },
-        googleMapsUri: 'https://maps.google.com/?cid=123',
+        googleMapsUri: 'https://maps.google.com/?cid=123&ftid=0x882bf179e806d471:0x8591dde29c821a93',
         editorialSummary: { text: 'Iconic iron tower.' },
         reviews: [
           {
@@ -1099,6 +1107,7 @@ describe('getPlaceDetails (fetch stubbed)', () => {
     const result = await getPlaceDetails(1, 'ChIJ123');
     const place = result.place as any;
     expect(place.google_place_id).toBe('ChIJ123');
+    expect(place.google_ftid).toBe('0x882bf179e806d471:0x8591dde29c821a93');
     expect(place.name).toBe('Eiffel Tower');
     expect(place.rating).toBe(4.7);
     expect(place.rating_count).toBe(200000);

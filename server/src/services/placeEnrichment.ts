@@ -10,8 +10,8 @@ import { getMapsKey, searchPlaces, getPlacePhoto } from './mapsService';
  * open/closed). When the importer opts in and a Google Maps key is configured,
  * we re-resolve each place by name — biased to and validated against the
  * imported coordinates — to a real Google place, then fill in the empty fields
- * and persist the resolved `google_place_id` (which is what powers on-demand
- * opening hours / the proper Maps link going forward).
+ * and persist the resolved `google_place_id` plus `google_ftid` (which power
+ * on-demand opening hours and proper Maps links going forward).
  *
  * This runs detached from the import request (fire-and-forget) so a long list
  * never blocks the response, and pushes each enriched row over the websocket so
@@ -26,6 +26,7 @@ export interface EnrichablePlace {
   lat: number;
   lng: number;
   google_place_id?: string | null;
+  google_ftid?: string | null;
   address?: string | null;
   website?: string | null;
   phone?: string | null;
@@ -105,18 +106,20 @@ async function enrichOne(tripId: string, userId: number, place: EnrichablePlace,
 
   const gpid = str(match.google_place_id);
   if (!gpid) return;
+  const gftid = str(match.google_ftid);
 
   // COALESCE so enrichment only fills empty columns — never overwrites data the
   // import already captured (e.g. Naver's address) or anything the user edited.
   db.prepare(
     `UPDATE places
-       SET google_place_id = COALESCE(google_place_id, ?),
-           address         = COALESCE(address, ?),
-           website         = COALESCE(website, ?),
-           phone           = COALESCE(phone, ?),
-           updated_at      = CURRENT_TIMESTAMP
+     SET google_place_id = COALESCE(google_place_id, ?),
+         google_ftid    = COALESCE(google_ftid, ?),
+         address        = COALESCE(address, ?),
+         website        = COALESCE(website, ?),
+         phone          = COALESCE(phone, ?),
+         updated_at     = CURRENT_TIMESTAMP
      WHERE id = ? AND trip_id = ?`,
-  ).run(gpid, str(match.address), str(match.website), str(match.phone), place.id, tripId);
+  ).run(gpid, gftid, str(match.address), str(match.website), str(match.phone), place.id, tripId);
 
   // Photo is best-effort: Google often has none, and getPlacePhoto throws 404 in
   // that case — a missing photo must never abort the rest of the enrichment.

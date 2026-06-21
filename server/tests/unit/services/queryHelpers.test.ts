@@ -33,6 +33,7 @@ function makeRow(overrides: Partial<AssignmentRow> = {}): AssignmentRow {
     image_url: 'https://example.com/img.jpg',
     transport_mode: 'walk',
     google_place_id: 'ChIJLU7jZClu5kcR4PcOOO6p3I0',
+    google_ftid: '0x47e66e2c94e34e2d:0x8ddca9ee380ef7e0',
     website: 'https://eiffel-tower.com',
     phone: '+33 1 2345 6789',
     ...overrides,
@@ -66,6 +67,7 @@ describe('formatAssignmentWithPlace', () => {
     expect(place.image_url).toBe('https://example.com/img.jpg');
     expect(place.transport_mode).toBe('walk');
     expect(place.google_place_id).toBe('ChIJLU7jZClu5kcR4PcOOO6p3I0');
+    expect(place.google_ftid).toBe('0x47e66e2c94e34e2d:0x8ddca9ee380ef7e0');
     expect(place.website).toBe('https://eiffel-tower.com');
     expect(place.phone).toBe('+33 1 2345 6789');
   });

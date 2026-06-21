@@ -67,6 +67,7 @@ export interface Place {
   notes?: string | null;
   image_url?: string | null;
   google_place_id?: string | null;
+  google_ftid?: string | null;
   osm_id?: string | null;
   website?: string | null;
   phone?: string | null;
@@ -323,6 +324,7 @@ export interface AssignmentRow extends DayAssignment {
   image_url: string | null;
   transport_mode: string;
   google_place_id: string | null;
+  google_ftid: string | null;
   website: string | null;
   phone: string | null;
   category_name: string | null;

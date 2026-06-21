@@ -618,6 +618,22 @@ describe('PlaceInspector', () => {
     expect(mapsBtn).toBeTruthy();
   });
 
+  it('FE-PLANNER-INSPECTOR-043b: Google Maps action uses google_ftid over coordinates', async () => {
+    const user = userEvent.setup();
+    const mapsUrl = "https://www.google.com/maps/place/?q=St.%20Jacobs%20Farmers'%20Market&ftid=0x882bf179e806d471:0x8591dde29c821a93";
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    render(<PlaceInspector {...defaultProps} place={buildPlace({
+      name: "St. Jacobs Farmers' Market",
+      lat: 43.5118527,
+      lng: -80.5542617,
+      google_ftid: '0x882bf179e806d471:0x8591dde29c821a93',
+    })} />);
+    const mapsBtn = screen.getAllByRole('button').find(btn => btn.textContent?.includes('Google Maps'))!;
+    await user.click(mapsBtn);
+    expect(openSpy).toHaveBeenCalledWith(mapsUrl, '_blank');
+    openSpy.mockRestore();
+  });
+
   // ── No files section when no upload handler and no files ──────────────────
 
   it('FE-PLANNER-INSPECTOR-044: files section hidden when no files and no onFileUpload', () => {
@@ -686,4 +702,3 @@ describe('PlaceInspector', () => {
   });
 
 });
-

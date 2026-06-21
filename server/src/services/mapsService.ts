@@ -45,6 +45,7 @@ interface GooglePlaceResult {
   websiteUri?: string;
   nationalPhoneNumber?: string;
   types?: string[];
+  googleMapsUri?: string;
 }
 
 interface GoogleAutocompleteSuggestion {
@@ -60,7 +61,6 @@ interface GoogleAutocompleteSuggestion {
 interface GooglePlaceDetails extends GooglePlaceResult {
   userRatingCount?: number;
   regularOpeningHours?: { weekdayDescriptions?: string[]; openNow?: boolean };
-  googleMapsUri?: string;
   editorialSummary?: { text: string };
   reviews?: { authorAttribution?: { displayName?: string; photoUri?: string }; rating?: number; text?: { text?: string }; relativePublishTimeDescription?: string }[];
   photos?: { name: string; authorAttributions?: { displayName?: string }[] }[];
@@ -86,6 +86,18 @@ function toApiLang(lang: string | undefined, fallback = 'en'): string {
   const code = (lang || '').trim();
   if (!code) return fallback;
   return API_LANG_OVERRIDES[code] ?? code;
+}
+
+const GOOGLE_FTID_RE = /^0x[0-9a-f]+:0x[0-9a-f]+$/i;
+
+export function googleFtidFromMapsUrl(url?: string | null): string | null {
+  if (!url) return null;
+  try {
+    const ftid = new URL(url).searchParams.get('ftid')?.trim();
+    return ftid && GOOGLE_FTID_RE.test(ftid) ? ftid.toLowerCase() : null;
+  } catch {
+    return null;
+  }
 }
 
 // ── Photo cache (disk-backed) ────────────────────────────────────────────────
@@ -145,6 +157,7 @@ export async function searchNominatim(query: string, lang?: string) {
   const data = await response.json() as NominatimResult[];
   return data.map(item => ({
     google_place_id: null,
+    google_ftid: null,
     osm_id: `${item.osm_type}:${item.osm_id}`,
     name: item.name || item.display_name?.split(',')[0] || '',
     address: item.display_name || '',
@@ -573,7 +586,7 @@ export async function searchPlaces(userId: number, query: string, lang?: string,
     headers: {
       'Content-Type': 'application/json',
       'X-Goog-Api-Key': apiKey,
-      'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.websiteUri,places.nationalPhoneNumber,places.types',
+      'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.websiteUri,places.nationalPhoneNumber,places.types,places.googleMapsUri',
     },
     body: JSON.stringify(searchBody),
   });
@@ -588,6 +601,7 @@ export async function searchPlaces(userId: number, query: string, lang?: string,
 
   const places = (data.places || []).map((p: GooglePlaceResult) => ({
     google_place_id: p.id,
+    google_ftid: googleFtidFromMapsUrl(p.googleMapsUri),
     name: p.displayName?.text || '',
     address: p.formattedAddress || '',
     lat: p.location?.latitude || null,
@@ -740,6 +754,7 @@ export async function getPlaceDetails(userId: number, placeId: string, lang?: st
 
   const place = {
     google_place_id: data.id,
+    google_ftid: googleFtidFromMapsUrl(data.googleMapsUri),
     name: data.displayName?.text || '',
     address: data.formattedAddress || '',
     lat: data.location?.latitude || null,
@@ -799,6 +814,7 @@ export async function getPlaceDetailsExpanded(userId: number, placeId: string, l
 
   const place = {
     google_place_id: data.id,
+    google_ftid: googleFtidFromMapsUrl(data.googleMapsUri),
     name: data.displayName?.text || '',
     address: data.formattedAddress || '',
     lat: data.location?.latitude || null,
@@ -983,7 +999,7 @@ export async function reverseGeocode(lat: string, lng: string, lang?: string): P
 
 // ── Resolve Google Maps URL ──────────────────────────────────────────────────
 
-export async function resolveGoogleMapsUrl(url: string): Promise<{ lat: number; lng: number; name: string | null; address: string | null }> {
+export async function resolveGoogleMapsUrl(url: string): Promise<{ lat: number; lng: number; name: string | null; address: string | null; google_ftid: string | null }> {
   let resolvedUrl = url;
 
   // Extract coordinates from a string (URL or page body). Google Maps encodes
@@ -1064,5 +1080,5 @@ export async function resolveGoogleMapsUrl(url: string): Promise<{ lat: number; 
   const name = placeName || nominatim.name || nominatim.address?.tourism || nominatim.address?.building || null;
   const address = nominatim.display_name || null;
 
-  return { lat, lng, name, address };
+  return { lat, lng, name, address, google_ftid: googleFtidFromMapsUrl(resolvedUrl) };
 }

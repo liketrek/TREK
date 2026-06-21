@@ -13,6 +13,7 @@ import { useTranslation } from '../../i18n'
 import type { Place, Category, Day, Assignment, Reservation, TripFile, AssignmentsMap } from '../../types'
 import { splitReservationDateTime, formatTime } from '../../utils/formatters'
 import { formatDistance, formatElevation } from '../../utils/units'
+import { getGoogleMapsUrlForPlace } from './placeGoogleMaps'
 
 const detailsCache = new Map()
 
@@ -164,6 +165,7 @@ export default function PlaceInspector({
 
   const openingHours = googleDetails?.opening_hours || null
   const openNow = googleDetails?.open_now ?? null
+  const googleMapsUrl = getGoogleMapsUrlForPlace(place, googleDetails?.google_maps_url)
   const selectedDay = days?.find(d => d.id === selectedDayId)
   const weekdayIndex = getWeekdayIndex(selectedDay?.date)
 
@@ -291,13 +293,9 @@ export default function PlaceInspector({
               <ActionButton onClick={() => onAssignToDay(place.id)} variant="primary" icon={<Plus size={13} />} label={t('inspector.addToDay')} />
             )
           )}
-          {googleDetails?.google_maps_url && (
-            <ActionButton onClick={() => window.open(googleDetails.google_maps_url, '_blank')} variant="ghost" icon={<Navigation size={13} />}
+          {googleMapsUrl && (
+            <ActionButton onClick={() => window.open(googleMapsUrl, '_blank')} variant="ghost" icon={<Navigation size={13} />}
               label={<span className="hidden sm:inline">{t('inspector.google')}</span>} />
-          )}
-          {!googleDetails?.google_maps_url && place.lat && place.lng && (
-            <ActionButton onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${place.google_place_id ? encodeURIComponent(place.name) + '&query_place_id=' + place.google_place_id : place.lat + ',' + place.lng}`, '_blank')} variant="ghost" icon={<Navigation size={13} />}
-              label={<span className="hidden sm:inline">Google Maps</span>} />
           )}
           {(place.website || googleDetails?.website) && (
             <ActionButton onClick={() => window.open(place.website || googleDetails?.website, '_blank')} variant="ghost" icon={<ExternalLink size={13} />}

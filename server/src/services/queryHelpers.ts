@@ -80,6 +80,7 @@ function formatAssignmentWithPlace(a: AssignmentRow, tags: Partial<Tag>[], parti
       image_url: a.image_url,
       transport_mode: a.transport_mode,
       google_place_id: a.google_place_id,
+      google_ftid: a.google_ftid,
       website: a.website,
       phone: a.phone,
       category: a.category_id ? {

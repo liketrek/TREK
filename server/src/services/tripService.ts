@@ -632,14 +632,14 @@ export function copyTripById(sourceTripId: string | number, newOwnerId: number, 
     const insertPlace = db.prepare(`
       INSERT INTO places (trip_id, name, description, lat, lng, address, category_id, price, currency,
         reservation_status, reservation_notes, reservation_datetime, place_time, end_time,
-        duration_minutes, notes, image_url, google_place_id, website, phone, transport_mode, osm_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        duration_minutes, notes, image_url, google_place_id, google_ftid, website, phone, transport_mode, osm_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     for (const p of oldPlaces) {
       const r = insertPlace.run(newTripId, p.name, p.description, p.lat, p.lng, p.address, p.category_id,
         p.price, p.currency, p.reservation_status, p.reservation_notes, p.reservation_datetime,
         p.place_time, p.end_time, p.duration_minutes, p.notes, p.image_url, p.google_place_id,
-        p.website, p.phone, p.transport_mode, p.osm_id);
+        p.google_ftid, p.website, p.phone, p.transport_mode, p.osm_id);
       placeMap.set(p.id, r.lastInsertRowid);
     }
 

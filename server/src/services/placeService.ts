@@ -123,27 +123,27 @@ export function createPlace(
     category_id?: number; price?: number; currency?: string;
     place_time?: string; end_time?: string;
     duration_minutes?: number; notes?: string; image_url?: string;
-    google_place_id?: string; osm_id?: string; website?: string; phone?: string;
+    google_place_id?: string; google_ftid?: string; osm_id?: string; website?: string; phone?: string;
     transport_mode?: string; tags?: number[];
   },
 ) {
   const {
     name, description, lat, lng, address, category_id, price, currency,
     place_time, end_time,
-    duration_minutes, notes, image_url, google_place_id, osm_id, website, phone,
+    duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, website, phone,
     transport_mode, tags = [],
   } = body;
 
   const result = db.prepare(`
     INSERT INTO places (trip_id, name, description, lat, lng, address, category_id, price, currency,
       place_time, end_time,
-      duration_minutes, notes, image_url, google_place_id, osm_id, website, phone, transport_mode)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, website, phone, transport_mode)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     tripId, name, description || null, lat || null, lng || null, address || null,
     category_id || null, price || null, currency || null,
     place_time || null, end_time || null, duration_minutes || 60, notes || null, image_url || null,
-    google_place_id || null, osm_id || null, website || null, phone || null, transport_mode || 'walking',
+    google_place_id || null, google_ftid || null, osm_id || null, website || null, phone || null, transport_mode || 'walking',
   );
 
   const placeId = result.lastInsertRowid;
@@ -180,7 +180,7 @@ export function updatePlace(
     category_id?: number; price?: number; currency?: string;
     place_time?: string; end_time?: string;
     duration_minutes?: number; notes?: string; image_url?: string;
-    google_place_id?: string; osm_id?: string; website?: string; phone?: string;
+    google_place_id?: string; google_ftid?: string; osm_id?: string; website?: string; phone?: string;
     transport_mode?: string; tags?: number[];
   },
 ) {
@@ -190,7 +190,7 @@ export function updatePlace(
   const {
     name, description, lat, lng, address, category_id, price, currency,
     place_time, end_time,
-    duration_minutes, notes, image_url, google_place_id, osm_id, website, phone,
+    duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, website, phone,
     transport_mode, tags,
   } = body;
 
@@ -210,6 +210,7 @@ export function updatePlace(
       notes = ?,
       image_url = ?,
       google_place_id = ?,
+      google_ftid = ?,
       osm_id = ?,
       website = ?,
       phone = ?,
@@ -231,6 +232,7 @@ export function updatePlace(
     notes !== undefined ? notes : existingPlace.notes,
     image_url !== undefined ? image_url : existingPlace.image_url,
     google_place_id !== undefined ? google_place_id : existingPlace.google_place_id,
+    google_ftid !== undefined ? google_ftid : existingPlace.google_ftid,
     osm_id !== undefined ? osm_id : existingPlace.osm_id,
     website !== undefined ? website : existingPlace.website,
     phone !== undefined ? phone : existingPlace.phone,
@@ -625,6 +627,65 @@ export async function importMapFile(tripId: string, fileBuffer: Buffer, filename
 // Import Google Maps list
 // ---------------------------------------------------------------------------
 
+function googleMapsHexId(value: unknown): string | null {
+  if (typeof value !== 'string' && typeof value !== 'number') return null;
+  const raw = String(value).trim();
+  if (/^0x[0-9a-f]+$/i.test(raw)) return raw.toLowerCase();
+  if (!/^-?\d+$/.test(raw)) return null;
+  try {
+    const parsed = BigInt(raw);
+    const unsigned = parsed < 0n ? (1n << 64n) + parsed : parsed;
+    return `0x${unsigned.toString(16)}`;
+  } catch {
+    return null;
+  }
+}
+
+function googleMapsFeatureIdFromItem(item: unknown): string | null {
+  if (!Array.isArray(item)) return null;
+  const candidates = [
+    Array.isArray(item[1]) ? item[1][6] : null,
+    Array.isArray(item[7]) ? item[7][1] : null,
+  ];
+
+  for (const ids of candidates) {
+    if (!Array.isArray(ids) || ids.length < 2) continue;
+    const first = googleMapsHexId(ids[0]);
+    const second = googleMapsHexId(ids[1]);
+    if (first && second) return `${first}:${second}`;
+  }
+
+  return null;
+}
+
+function findDuplicatePlace(
+  tripId: string,
+  place: { name: string | null | undefined; lat: number | null; lng: number | null },
+): { id: number; google_ftid: string | null } | null {
+  const normalizedName = place.name?.trim().toLowerCase();
+  if (normalizedName) {
+    const duplicate = db.prepare(`
+      SELECT id, google_ftid FROM places
+      WHERE trip_id = ? AND lower(trim(name)) = ?
+      ORDER BY id ASC
+      LIMIT 1
+    `).get(tripId, normalizedName) as { id: number; google_ftid: string | null } | undefined;
+    if (duplicate) return duplicate;
+  }
+  if (place.lat != null && place.lng != null) {
+    return db.prepare(`
+      SELECT id, google_ftid FROM places
+      WHERE trip_id = ?
+        AND lat IS NOT NULL AND lng IS NOT NULL
+        AND abs(lat - ?) <= ?
+        AND abs(lng - ?) <= ?
+      ORDER BY id ASC
+      LIMIT 1
+    `).get(tripId, place.lat, COORD_DEDUP_TOLERANCE, place.lng, COORD_DEDUP_TOLERANCE) as { id: number; google_ftid: string | null } | undefined || null;
+  }
+  return null;
+}
+
 export async function importGoogleList(tripId: string, url: string, opts?: ListImportOptions) {
   let listId: string | null = null;
   let resolvedUrl = url;
@@ -689,7 +750,7 @@ export async function importGoogleList(tripId: string, url: string, opts?: ListI
   }
 
   // Parse place data from items
-  const places: { name: string; lat: number; lng: number; notes: string | null }[] = [];
+  const places: { name: string; lat: number; lng: number; notes: string | null; googleFtid: string | null }[] = [];
   for (const item of items) {
     const coords = item?.[1]?.[5];
     const lat = coords?.[2];
@@ -698,7 +759,7 @@ export async function importGoogleList(tripId: string, url: string, opts?: ListI
     const note = item?.[3] || null;
 
     if (name && typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng)) {
-      places.push({ name, lat, lng, notes: note || null });
+      places.push({ name, lat, lng, notes: note || null, googleFtid: googleMapsFeatureIdFromItem(item) });
     }
   }
 
@@ -708,18 +769,23 @@ export async function importGoogleList(tripId: string, url: string, opts?: ListI
 
   const dedup = buildDedupSet(tripId);
   const insertStmt = db.prepare(`
-    INSERT INTO places (trip_id, name, lat, lng, notes, transport_mode)
-    VALUES (?, ?, ?, ?, ?, 'walking')
+    INSERT INTO places (trip_id, name, lat, lng, notes, google_ftid, transport_mode)
+    VALUES (?, ?, ?, ?, ?, ?, 'walking')
   `);
+  const updateGoogleFtidStmt = db.prepare('UPDATE places SET google_ftid = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
   const created: any[] = [];
   let skipped = 0;
   const insertAll = db.transaction(() => {
     for (const p of places) {
       if (isPlaceDuplicate({ name: p.name, lat: p.lat, lng: p.lng }, dedup)) {
+        const duplicate = findDuplicatePlace(tripId, p);
+        if (duplicate && !duplicate.google_ftid && p.googleFtid) {
+          updateGoogleFtidStmt.run(p.googleFtid, duplicate.id);
+        }
         skipped++;
         continue;
       }
-      const result = insertStmt.run(tripId, p.name, p.lat, p.lng, p.notes);
+      const result = insertStmt.run(tripId, p.name, p.lat, p.lng, p.notes, p.googleFtid);
       const place = getPlaceWithTags(Number(result.lastInsertRowid));
       created.push(place);
       trackInsertedInDedupSet({ name: p.name, lat: p.lat, lng: p.lng }, dedup);

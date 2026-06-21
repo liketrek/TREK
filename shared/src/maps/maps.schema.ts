@@ -84,5 +84,6 @@ export const mapsResolveUrlResultSchema = z.object({
   lng: z.number(),
   name: z.string().nullable(),
   address: z.string().nullable(),
+  google_ftid: z.string().nullable().optional(),
 });
 export type MapsResolveUrlResult = z.infer<typeof mapsResolveUrlResultSchema>;
