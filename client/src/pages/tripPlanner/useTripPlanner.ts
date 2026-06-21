@@ -21,6 +21,24 @@ import { parseDurationMinutes } from '../../utils/durationInput'
 import type { Accommodation, TripMember, Day, Place, Reservation } from '../../types'
 import { resolvePoolAssignmentId } from './tripPlannerModel'
 
+function readRouteShownPreference(tripId: number): boolean {
+  if (typeof window === 'undefined' || !Number.isFinite(tripId)) return false
+  try {
+    return window.localStorage.getItem(`trek:route-shown:${tripId}`) === 'true'
+  } catch {
+    return false
+  }
+}
+
+function readRouteProfilePreference(tripId: number): 'driving' | 'walking' {
+  if (typeof window === 'undefined' || !Number.isFinite(tripId)) return 'driving'
+  try {
+    return window.localStorage.getItem(`trek:route-profile:${tripId}`) === 'walking' ? 'walking' : 'driving'
+  } catch {
+    return 'driving'
+  }
+}
+
 /**
  * Trip planner page logic — the big one. Owns the trip store wiring, addon
  * gating, accommodations/members loading, the tab + resizable-panel + selection
@@ -160,9 +178,9 @@ export function useTripPlanner() {
   const [editingTransport, setEditingTransport] = useState<Reservation | null>(null)
   const [transportModalDayId, setTransportModalDayId] = useState<number | null>(null)
   // Manual route planning: off by default, toggled from the day-plan footer. Mode
-  // (driving/walking) is per-session and selects which travel time the connectors show.
-  const [routeShown, setRouteShown] = useState(false)
-  const [routeProfile, setRouteProfile] = useState<'driving' | 'walking'>('driving')
+  // (driving/walking) is trip-scoped and selects which travel time the connectors show.
+  const [routeShown, setRouteShown] = useState(() => readRouteShownPreference(tripId))
+  const [routeProfile, setRouteProfile] = useState<'driving' | 'walking'>(() => readRouteProfilePreference(tripId))
   const [fitKey, setFitKey] = useState<number>(0)
   const initialFitTripId = useRef<number | null>(null)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<'left' | 'right' | null>(null)
@@ -200,6 +218,14 @@ export function useTripPlanner() {
     setVisibleConnections(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
   }, [])
   const [mapTransportDetail, setMapTransportDetail] = useState<Reservation | null>(null)
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !Number.isFinite(tripId)) return
+    try {
+      window.localStorage.setItem(`trek:route-shown:${tripId}`, String(routeShown))
+      window.localStorage.setItem(`trek:route-profile:${tripId}`, routeProfile)
+    } catch {}
+  }, [tripId, routeShown, routeProfile])
 
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
   useEffect(() => {

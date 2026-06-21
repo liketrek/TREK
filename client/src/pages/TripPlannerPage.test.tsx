@@ -220,6 +220,7 @@ function renderPlannerPage(tripId: number | string) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  localStorage.clear();
   resetAllStores();
   mockUseTripWebSocket.mockReset();
   mockSetSelectedPlaceId.mockReset();
@@ -1022,6 +1023,55 @@ describe('TripPlannerPage', () => {
 
       await act(async () => {
         capturedDayPlanSidebarProps.current.onRouteCalculated?.(null);
+      });
+    });
+  });
+
+  describe('FE-PAGE-PLANNER-034b: route preferences persist per trip', () => {
+    it('restores the route toggle and profile from localStorage', async () => {
+      vi.useFakeTimers();
+      localStorage.setItem('trek:route-shown:42', 'true');
+      localStorage.setItem('trek:route-profile:42', 'walking');
+      seedTripStore({ id: 42 });
+
+      renderPlannerPage(42);
+
+      act(() => { vi.runAllTimers(); });
+      vi.useRealTimers();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('day-plan-sidebar')).toBeInTheDocument();
+      });
+
+      expect(capturedDayPlanSidebarProps.current.routeShown).toBe(true);
+      expect(capturedDayPlanSidebarProps.current.routeProfile).toBe('walking');
+    });
+
+    it('writes route toggle and profile changes to localStorage', async () => {
+      vi.useFakeTimers();
+      seedTripStore({ id: 42 });
+
+      renderPlannerPage(42);
+
+      act(() => { vi.runAllTimers(); });
+      vi.useRealTimers();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('day-plan-sidebar')).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        capturedDayPlanSidebarProps.current.onToggleRoute?.();
+      });
+      await waitFor(() => {
+        expect(localStorage.getItem('trek:route-shown:42')).toBe('true');
+      });
+
+      await act(async () => {
+        capturedDayPlanSidebarProps.current.onSetRouteProfile?.('walking');
+      });
+      await waitFor(() => {
+        expect(localStorage.getItem('trek:route-profile:42')).toBe('walking');
       });
     });
   });

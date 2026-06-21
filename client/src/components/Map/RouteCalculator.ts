@@ -15,6 +15,83 @@ const OSRM_PROFILE_BASE: Record<'driving' | 'walking' | 'cycling', string> = {
 // this avoids re-hitting the public OSRM demo server on every day switch / reorder.
 const routeCache = new Map<string, RouteWithLegs>()
 const ROUTE_CACHE_MAX = 200
+const ROUTE_CACHE_STORAGE_KEY = 'trek:route-cache:v1'
+const ROUTE_CACHE_VERSION = 1
+const ROUTE_CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000
+
+interface StoredRouteCacheEntry {
+  key: string
+  savedAt: number
+  route: RouteWithLegs
+}
+
+interface StoredRouteCache {
+  version: number
+  entries: StoredRouteCacheEntry[]
+}
+
+function getStorage(): Storage | null {
+  if (typeof window === 'undefined') return null
+  try {
+    return window.localStorage
+  } catch {
+    return null
+  }
+}
+
+function readStoredRouteCache(): StoredRouteCacheEntry[] {
+  const storage = getStorage()
+  if (!storage) return []
+  try {
+    const raw = storage.getItem(ROUTE_CACHE_STORAGE_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as StoredRouteCache
+    if (parsed?.version !== ROUTE_CACHE_VERSION || !Array.isArray(parsed.entries)) return []
+    const cutoff = Date.now() - ROUTE_CACHE_MAX_AGE_MS
+    return parsed.entries
+      .filter(entry => entry && typeof entry.key === 'string' && entry.savedAt >= cutoff && entry.route)
+      .slice(-ROUTE_CACHE_MAX)
+  } catch {
+    return []
+  }
+}
+
+function writeStoredRouteCache(entries: StoredRouteCacheEntry[]): void {
+  const storage = getStorage()
+  if (!storage) return
+  try {
+    storage.setItem(ROUTE_CACHE_STORAGE_KEY, JSON.stringify({
+      version: ROUTE_CACHE_VERSION,
+      entries: entries.slice(-ROUTE_CACHE_MAX),
+    }))
+  } catch {
+    // Storage can be unavailable or full; the in-memory cache still works.
+  }
+}
+
+function getPersistedRoute(cacheKey: string): RouteWithLegs | null {
+  const entries = readStoredRouteCache()
+  const entry = entries.find(e => e.key === cacheKey)
+  if (!entry) return null
+  routeCache.set(cacheKey, entry.route)
+  return entry.route
+}
+
+function setCachedRoute(cacheKey: string, route: RouteWithLegs): void {
+  routeCache.set(cacheKey, route)
+  if (routeCache.size > ROUTE_CACHE_MAX) {
+    const oldest = routeCache.keys().next().value
+    if (oldest !== undefined) routeCache.delete(oldest)
+  }
+
+  const entries = readStoredRouteCache().filter(e => e.key !== cacheKey)
+  entries.push({ key: cacheKey, savedAt: Date.now(), route })
+  writeStoredRouteCache(entries)
+}
+
+export function __clearRouteCacheForTests(): void {
+  routeCache.clear()
+}
 
 /** Fetches a full route via OSRM and returns coordinates, distance, and duration estimates for driving/walking. */
 export async function calculateRoute(
@@ -241,6 +318,8 @@ export async function calculateRouteWithLegs(
   const cacheKey = `${profile}:${coords}`
   const cached = routeCache.get(cacheKey)
   if (cached) return cached
+  const persisted = getPersistedRoute(cacheKey)
+  if (persisted) return persisted
 
   const url = `${OSRM_PROFILE_BASE[profile]}/${coords}?overview=full&geometries=geojson&annotations=distance,duration`
   const response = await fetch(url, { signal })
@@ -272,11 +351,7 @@ export async function calculateRouteWithLegs(
   )
 
   const result: RouteWithLegs = { coordinates, distance: route.distance, duration: route.duration, legs }
-  routeCache.set(cacheKey, result)
-  if (routeCache.size > ROUTE_CACHE_MAX) {
-    const oldest = routeCache.keys().next().value
-    if (oldest !== undefined) routeCache.delete(oldest)
-  }
+  setCachedRoute(cacheKey, result)
   return result
 }
 

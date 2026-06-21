@@ -1,15 +1,18 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../../tests/helpers/msw/server'
 import {
   calculateRoute,
   calculateSegments,
+  calculateRouteWithLegs,
   optimizeRoute,
   generateGoogleMapsUrl,
   withHotelBookends,
+  __clearRouteCacheForTests,
 } from './RouteCalculator'
 
 const OSRM_BASE = 'https://router.project-osrm.org/route/v1'
+const OSRM_DRIVING_BASE = 'https://routing.openstreetmap.de/routed-car/route/v1/driving'
 
 const buildOsrmRouteResponse = (distance = 5000, duration = 360) => ({
   code: 'Ok',
@@ -25,6 +28,11 @@ const buildOsrmRouteResponse = (distance = 5000, duration = 360) => ({
 
 const wp1 = { lat: 48.8566, lng: 2.3522 }
 const wp2 = { lat: 48.8600, lng: 2.3600 }
+
+beforeEach(() => {
+  __clearRouteCacheForTests()
+  localStorage.clear()
+})
 
 // ── calculateRoute ─────────────────────────────────────────────────────────────
 
@@ -138,6 +146,30 @@ describe('calculateSegments', () => {
     expect(seg.mid[0]).toBeCloseTo(expectedMid[0])
     expect(seg.mid[1]).toBeCloseTo(expectedMid[1])
     expect(seg.drivingText).toBe('2 min')
+  })
+})
+
+// ── calculateRouteWithLegs persistent cache ─────────────────────────────────
+
+describe('calculateRouteWithLegs persistent cache', () => {
+  it('FE-COMP-ROUTECALCULATOR-021: restores cached route legs after memory cache is cleared', async () => {
+    let calls = 0
+    server.use(
+      http.get(`${OSRM_DRIVING_BASE}/:coords`, () => {
+        calls += 1
+        return HttpResponse.json(buildOsrmRouteResponse(1500, 420))
+      })
+    )
+
+    const first = await calculateRouteWithLegs([wp1, wp2])
+    expect(first.legs[0].duration).toBe(420)
+    expect(calls).toBe(1)
+
+    __clearRouteCacheForTests()
+    const second = await calculateRouteWithLegs([wp1, wp2])
+
+    expect(second.legs[0].duration).toBe(420)
+    expect(calls).toBe(1)
   })
 })
 
