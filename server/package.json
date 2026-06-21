@@ -18,7 +18,11 @@
     "test:integration": "vitest run tests/integration",
     "test:ws": "vitest run tests/websocket",
     "test:e2e": "vitest run tests/e2e",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:jest": "jest --config jest.config.cjs --forceExit",
+    "test:jest:unit": "jest --config jest.config.cjs tests-wat/unit",
+    "test:jest:integration": "jest --config jest.config.cjs tests-wat/integration --forceExit",
+    "test:jest:cov": "jest --config jest.config.cjs --coverage --forceExit"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.28.0",
@@ -67,7 +71,8 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@nestjs/testing": "^11.1.24",
-    "@swc/core": "^1.15.40",
+    "@swc/core": "^1.15.41",
+    "@swc/jest": "^0.2.39",
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
     "@types/archiver": "^7.0.0",
     "@types/bcryptjs": "^2.4.6",
@@ -75,6 +80,7 @@
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.25",
+    "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.1.0",
     "@types/node": "^25.5.0",
@@ -92,6 +98,7 @@
     "eslint-config-flat-gitignore": "^2.3.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",
+    "jest": "^30.4.2",
     "nodemon": "^3.1.0",
     "prettier": "^3.8.3",
     "prettier-plugin-organize-imports": "^4.3.0",

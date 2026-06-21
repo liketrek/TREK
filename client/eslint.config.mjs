@@ -35,6 +35,11 @@ export default tseslint.config(
       '**/*.config.js',
       '**/*.config.ts',
       '**/*.config.mjs',
+      '**/*.config.cjs',
+      // WAT project work -> separate Jest/Cypress harness, not part of the upstream lint gate.
+      'tests-wat/**',
+      'cypress/**',
+      'coverage-wat',
     ],
   },
   js.configs.recommended,

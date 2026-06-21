@@ -1,0 +1,72 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "schemaVersion": 39,
+  "title": "k6 Load Test",
+  "uid": "k6-load-test",
+  "time": { "from": "now-15m", "to": "now" },
+  "refresh": "5s",
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Virtual Users (VUs)",
+      "datasource": { "type": "influxdb", "uid": "k6influx" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "k6influx" },
+          "query": "SELECT max(\"value\") FROM \"vus\" WHERE $timeFilter GROUP BY time($__interval) fill(null)",
+          "rawQuery": true,
+          "resultFormat": "time_series"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Requests / s",
+      "datasource": { "type": "influxdb", "uid": "k6influx" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "k6influx" },
+          "query": "SELECT count(\"value\") FROM \"http_reqs\" WHERE $timeFilter GROUP BY time(1s) fill(0)",
+          "rawQuery": true,
+          "resultFormat": "time_series"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "http_req_duration (p95 / p90 / avg, ms)",
+      "datasource": { "type": "influxdb", "uid": "k6influx" },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "k6influx" },
+          "query": "SELECT percentile(\"value\", 95) AS \"p95\", percentile(\"value\", 90) AS \"p90\", mean(\"value\") AS \"avg\" FROM \"http_req_duration\" WHERE $timeFilter GROUP BY time($__interval) fill(null)",
+          "rawQuery": true,
+          "resultFormat": "time_series"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Failed request rate",
+      "datasource": { "type": "influxdb", "uid": "k6influx" },
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 17 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "k6influx" },
+          "query": "SELECT mean(\"value\") FROM \"http_req_failed\" WHERE $timeFilter GROUP BY time($__interval) fill(null)",
+          "rawQuery": true,
+          "resultFormat": "time_series"
+        }
+      ]
+    }
+  ]
+}

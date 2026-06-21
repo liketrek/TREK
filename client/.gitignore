@@ -3,3 +3,9 @@ e2e/.tmp/
 test-results/
 playwright-report/
 playwright/.cache/
+
+# WAT project work
+cypress/videos/
+cypress/screenshots/
+cypress/downloads/
+coverage-wat/

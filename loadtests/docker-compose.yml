@@ -1,0 +1,28 @@
+# Local k6 -> InfluxDB -> Grafana stack for live load-test visualization.
+#
+#   docker compose -f loadtests/docker-compose.yml up -d
+#   k6 run --out influxdb=http://localhost:8086/k6 loadtests/trips-read.js
+#   open http://localhost:3030  (admin / admin) -> "k6 Load Test" dashboard
+#
+# InfluxDB 1.8 is used because k6's built-in `influxdb` output speaks the v1 API.
+services:
+  influxdb:
+    image: influxdb:1.8
+    ports:
+      - '8086:8086'
+    environment:
+      INFLUXDB_DB: k6
+      INFLUXDB_HTTP_AUTH_ENABLED: 'false'
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    ports:
+      - '3030:3000' # 3000 is taken by TREK -> expose Grafana on 3030
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: 'true'
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_BASIC_ENABLED: 'false'
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - influxdb

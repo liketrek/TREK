@@ -1,0 +1,161 @@
+name: WAT Tests
+
+# WAT test suite (Jest + Cypress + k6) added on top of the upstream Vitest/Playwright suite (.github/workflows/test.yml).
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - 'server/**'
+      - 'client/**'
+      - 'shared/**'
+      - 'loadtests/**'
+      - '.github/workflows/wat-tests.yml'
+
+jobs:
+  jest-server:
+    name: Server Jest (unit + integration)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Ensure @swc/core's Linux binary for @swc/jest
+        run: |
+          SWC_VERSION=$(node -p "require('@swc/core/package.json').version")
+          npm install --no-save --legacy-peer-deps "@swc/core-linux-x64-gnu@$SWC_VERSION"
+
+      - name: Build shared
+        run: npm run build --workspace=shared
+
+      - name: Run Jest (coverage)
+        run: npm run test:jest:cov --workspace=server
+
+      - name: Upload coverage
+        if: success()
+        uses: actions/upload-artifact@v6
+        with:
+          name: wat-server-coverage
+          path: server/coverage-wat/
+          retention-days: 7
+
+  jest-client:
+    name: Client Jest (unit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Ensure @swc/core's Linux binary for @swc/jest
+        run: |
+          SWC_VERSION=$(node -p "require('@swc/core/package.json').version")
+          npm install --no-save --legacy-peer-deps "@swc/core-linux-x64-gnu@$SWC_VERSION"
+
+      - name: Build shared
+        run: npm run build --workspace=shared
+
+      - name: Run Jest (coverage)
+        run: npm run test:jest:cov --workspace=client
+
+      - name: Upload coverage
+        if: success()
+        uses: actions/upload-artifact@v6
+        with:
+          name: wat-client-coverage
+          path: client/coverage-wat/
+          retention-days: 7
+
+  cypress:
+    name: Cypress E2E
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Ensure @swc/core's Linux binary (server build under e2e harness)
+        run: |
+          SWC_VERSION=$(node -p "require('@swc/core/package.json').version")
+          npm install --no-save --legacy-peer-deps "@swc/core-linux-x64-gnu@$SWC_VERSION"
+
+      - name: Build shared
+        run: npm run build --workspace=shared
+
+      - name: Run Cypress (start-server-and-test)
+        uses: cypress-io/github-action@v6
+        with:
+          install: false
+          working-directory: client
+          command: npm run e2e:cy
+
+      - name: Upload Cypress artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: wat-cypress-artifacts
+          path: |
+            client/cypress/screenshots/
+            client/cypress/videos/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  k6-smoke:
+    name: k6 Load Smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Ensure @swc/core's Linux binary
+        run: |
+          SWC_VERSION=$(node -p "require('@swc/core/package.json').version")
+          npm install --no-save --legacy-peer-deps "@swc/core-linux-x64-gnu@$SWC_VERSION"
+
+      - name: Build shared
+        run: npm run build --workspace=shared
+
+      - name: Boot seed backend (:3001)
+        working-directory: client
+        run: |
+          node e2e/server-launch.mjs > /tmp/backend.log 2>&1 &
+          npx wait-on -t 180000 http://localhost:3001/api/_nest/health
+
+      - name: Setup k6
+        uses: grafana/setup-k6-action@v1
+
+      - name: Run k6 smoke
+        run: k6 run loadtests/smoke.js
