@@ -23,7 +23,7 @@ export function registerPlaceTools(server: McpServer, userId: number, scopes: st
   if (W) server.registerTool(
     'create_place',
     {
-      description: 'Add a new place/POI to a trip. Set google_place_id or osm_id (from search_place) so the app can show opening hours and ratings. Set price + currency to record the cost so it shows on the item.',
+      description: 'Add a new place/POI to a trip. Set google_place_id, google_ftid, or osm_id (from search_place) so the app can show opening hours, ratings, and direct Google Maps links. Set price + currency to record the cost so it shows on the item.',
       inputSchema: {
         tripId: z.number().int().positive(),
         name: z.string().min(1).max(200),
@@ -33,6 +33,7 @@ export function registerPlaceTools(server: McpServer, userId: number, scopes: st
         address: z.string().max(500).optional(),
         category_id: z.number().int().positive().optional().describe('Category ID — use list_categories to see available options'),
         google_place_id: z.string().optional().describe('Google Place ID from search_place — enables opening hours display'),
+        google_ftid: z.string().optional().describe('Google Maps feature ID from search_place — enables direct Google Maps links'),
         osm_id: z.string().optional().describe('OpenStreetMap ID from search_place (e.g. "way:12345") — enables opening hours if no Google ID'),
         notes: z.string().max(2000).optional(),
         website: z.string().max(500).optional(),
@@ -42,11 +43,11 @@ export function registerPlaceTools(server: McpServer, userId: number, scopes: st
       },
       annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     },
-    async ({ tripId, name, description, lat, lng, address, category_id, google_place_id, osm_id, notes, website, phone, price, currency }) => {
+    async ({ tripId, name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, notes, website, phone, price, currency }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
       if (!hasTripPermission('place_edit', tripId, userId)) return permissionDenied();
-      const place = createPlace(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, osm_id, notes, website, phone, price, currency });
+      const place = createPlace(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, notes, website, phone, price, currency });
       safeBroadcast(tripId, 'place:created', { place });
       return ok({ place });
     }
@@ -66,6 +67,7 @@ export function registerPlaceTools(server: McpServer, userId: number, scopes: st
         address: z.string().max(500).optional(),
         category_id: z.number().int().positive().optional().describe('Category ID — use list_categories to see available options'),
         google_place_id: z.string().optional().describe('Google Place ID from search_place — enables opening hours display'),
+        google_ftid: z.string().optional().describe('Google Maps feature ID from search_place — enables direct Google Maps links'),
         osm_id: z.string().optional().describe('OpenStreetMap ID from search_place (e.g. "way:12345")'),
         place_notes: z.string().max(2000).optional().describe('Notes for the place'),
         website: z.string().max(500).optional(),
@@ -76,14 +78,14 @@ export function registerPlaceTools(server: McpServer, userId: number, scopes: st
       },
       annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     },
-    async ({ tripId, dayId, name, description, lat, lng, address, category_id, google_place_id, osm_id, place_notes, website, phone, assignment_notes, price, currency }) => {
+    async ({ tripId, dayId, name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, place_notes, website, phone, assignment_notes, price, currency }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
       if (!hasTripPermission('place_edit', tripId, userId)) return permissionDenied();
       if (!dayExists(dayId, tripId)) return { content: [{ type: 'text' as const, text: 'Day not found.' }], isError: true };
       try {
         const run = db.transaction(() => {
-          const place = createPlace(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, osm_id, notes: place_notes, website, phone, price, currency });
+          const place = createPlace(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, notes: place_notes, website, phone, price, currency });
           const assignment = createAssignment(dayId, place.id, assignment_notes ?? null);
           return { place, assignment };
         });
@@ -121,14 +123,15 @@ export function registerPlaceTools(server: McpServer, userId: number, scopes: st
         transport_mode: z.enum(['walking', 'driving', 'cycling', 'transit', 'flight']).optional(),
         osm_id: z.string().optional().describe('OpenStreetMap ID (e.g. "way:12345")'),
         google_place_id: z.string().optional().describe('Google Place ID (e.g. "ChIJd8BlQ2BZwokRAFUEcm_qrcA")'),
+        google_ftid: z.string().optional().describe('Google Maps feature ID (e.g. "0x89c259b7abdd4769:0x103aaf1c8bf8a050")'),
       },
       annotations: TOOL_ANNOTATIONS_WRITE,
     },
-    async ({ tripId, placeId, name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, transport_mode, osm_id, google_place_id }) => {
+    async ({ tripId, placeId, name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, transport_mode, osm_id, google_place_id, google_ftid }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
       if (!hasTripPermission('place_edit', tripId, userId)) return permissionDenied();
-      const place = updatePlace(String(tripId), String(placeId), { name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, transport_mode, osm_id, google_place_id });
+      const place = updatePlace(String(tripId), String(placeId), { name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, transport_mode, osm_id, google_place_id, google_ftid });
       if (!place) return { content: [{ type: 'text' as const, text: 'Place not found.' }], isError: true };
       safeBroadcast(tripId, 'place:updated', { place });
       return ok({ place });
@@ -196,7 +199,7 @@ export function registerPlaceTools(server: McpServer, userId: number, scopes: st
   if (R) server.registerTool(
     'search_place',
     {
-      description: 'Search for a real-world place by name or address. Returns results with osm_id (and google_place_id if configured). Use these IDs when calling create_place so the app can display opening hours and ratings.',
+      description: 'Search for a real-world place by name or address. Returns results with osm_id (and google_place_id/google_ftid if configured). Use these IDs when calling create_place so the app can display opening hours, ratings, and map links.',
       inputSchema: {
         query: z.string().min(1).max(500).describe('Place name or address to search for'),
       },

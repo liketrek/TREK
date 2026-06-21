@@ -13,6 +13,7 @@ export interface PlaceFormData {
   // Populated from a maps-search pick (not part of the initial blank form).
   phone?: string
   google_place_id?: string
+  google_ftid?: string
   osm_id?: string
 }
 

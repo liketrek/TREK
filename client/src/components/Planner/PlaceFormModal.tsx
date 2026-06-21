@@ -217,6 +217,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
             address: resolved.address || prev.address,
             lat: String(resolved.lat),
             lng: String(resolved.lng),
+            google_ftid: resolved.google_ftid || prev.google_ftid,
           }))
           setMapsResults([])
           setMapsSearch('')
@@ -241,6 +242,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
       lat: result.lat || prev.lat,
       lng: result.lng || prev.lng,
       google_place_id: result.google_place_id || prev.google_place_id,
+      google_ftid: result.google_ftid || prev.google_ftid,
       osm_id: result.osm_id || prev.osm_id,
       website: result.website || prev.website,
       phone: result.phone || prev.phone,

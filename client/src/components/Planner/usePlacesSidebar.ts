@@ -9,6 +9,7 @@ import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useAuthStore } from '../../store/authStore'
 import type { Place, Category, Day, AssignmentsMap } from '../../types'
+import { getGoogleMapsUrlForPlace } from './placeGoogleMaps'
 
 export interface PlacesSidebarProps {
   tripId: number
@@ -234,11 +235,12 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
 
   const openContextMenu = useCallback((e: React.MouseEvent, place: Place) => {
     const selDayId = selectedDayIdRef.current
+    const googleMapsUrl = getGoogleMapsUrlForPlace(place)
     ctxMenu.open(e, [
       canEditPlaces && { label: t('common.edit'), icon: Pencil, onClick: () => props.onEditPlace(place) },
       selDayId && { label: t('planner.addToDay'), icon: CalendarDays, onClick: () => props.onAssignToDay(place.id, selDayId) },
       place.website && { label: t('inspector.website'), icon: ExternalLink, onClick: () => window.open(place.website, '_blank') },
-      (place.lat && place.lng) && { label: 'Google Maps', icon: Navigation, onClick: () => window.open(`https://www.google.com/maps/search/?api=1&query=${(place as any).google_place_id ? encodeURIComponent(place.name) + '&query_place_id=' + (place as any).google_place_id : place.lat + ',' + place.lng}`, '_blank') },
+      googleMapsUrl && { label: 'Google Maps', icon: Navigation, onClick: () => window.open(googleMapsUrl, '_blank') },
       { divider: true },
       canEditPlaces && { label: t('common.delete'), icon: Trash2, danger: true, onClick: () => props.onDeletePlace(place.id) },
     ])

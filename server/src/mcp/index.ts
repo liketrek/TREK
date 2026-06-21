@@ -48,7 +48,7 @@ You are connected to TREK, a travel planning application. Below is a compact ref
 **Loading trip context:** Before planning or modifying a trip, call \`get_trip_summary\` once. It returns all days (with assignments and notes), accommodations, budget, packing, reservations, collab notes, and todos in a single round-trip. Use this data to answer follow-up questions without extra tool calls.
 
 **Adding a place to the itinerary (correct order):**
-1. \`search_place\` — find the real-world POI; note the \`osm_id\` and/or \`google_place_id\` in the result.
+1. \`search_place\` — find the real-world POI; note the \`osm_id\`, \`google_place_id\`, and/or \`google_ftid\` in the result.
 2. \`create_place\` — add it to the trip's place pool, passing the IDs from step 1 (enables opening hours, ratings, and map linking in the app).
 3. \`assign_place_to_day\` — schedule it on the desired day using the dayId from \`get_trip_summary\`.
 

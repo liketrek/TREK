@@ -3054,6 +3054,14 @@ function runMigrations(db: Database.Database): void {
         if (!err.message?.includes('duplicate column name')) throw err;
       }
     },
+    // Store Google Maps feature IDs separately from real Google Places API IDs.
+    () => {
+      try {
+        db.exec('ALTER TABLE places ADD COLUMN google_ftid TEXT');
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) throw err;
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {
