@@ -126,17 +126,10 @@ jobs:
         run: cd client && npm run lint:pages
 
       - name: Run tests
-        env:
-          # Vitest's main process accumulates v8 coverage + verbose results across
-          # 150+ files; the peak exceeds Node's default ~4 GB heap (and 6 GB), so
-          # give it generous headroom on the 16 GB runner.
-          NODE_OPTIONS: --max-old-space-size=12288
-        run: cd client && npm run test:coverage
-
-      - name: Upload coverage
-        if: success()
-        uses: actions/upload-artifact@v6
-        with:
-          name: frontend-coverage
-          path: client/coverage/
-          retention-days: 7
+        # Coverage is intentionally NOT collected in CI: the v8 coverage report
+        # phase (source-map remapping over 150+ files) runs out of memory even
+        # with a 12 GB heap, while the tests themselves pass within the default
+        # heap. Run coverage locally with `npm run test:coverage`.
+        # TODO(#1258): re-enable coverage in CI via test sharding or the istanbul
+        # provider, then restore the artifact upload.
+        run: cd client && npm run test
