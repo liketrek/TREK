@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import Modal from '../shared/Modal'
-import { Calendar, Camera, X, Clipboard, UserPlus, Bell, Clock } from 'lucide-react'
+import { Calendar, Camera, X, Clipboard, UserPlus, Bell, Clock, Route as RouteIcon } from 'lucide-react'
 import { tripsApi, authApi } from '../../api/client'
 import CustomSelect from '../shared/CustomSelect'
 import { useAuthStore } from '../../store/authStore'
@@ -42,6 +42,8 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     end_date: '',
     reminder_days: 0 as number,
     schedule_margin_minutes: '0m',
+    routing_provider: 'osrm' as 'osrm' | 'google_maps',
+    routing_optimism: 0.33,
     day_count: 7 as number | '',
   })
   const [customReminder, setCustomReminder] = useState(false)
@@ -65,12 +67,24 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         end_date: trip.end_date || '',
         reminder_days: rd,
         schedule_margin_minutes: formatDurationInput(trip.schedule_margin_minutes ?? 0, { allowZero: true }),
+        routing_provider: trip.routing_provider === 'google_maps' ? 'google_maps' : 'osrm',
+        routing_optimism: Number.isFinite(Number(trip.routing_optimism)) ? Math.min(1, Math.max(0, Number(trip.routing_optimism))) : 0.33,
         day_count: trip.day_count || 7,
       })
       setCustomReminder(![0, 1, 3, 9].includes(rd))
       setCoverPreview(trip.cover_image || null)
     } else {
-      setFormData({ title: '', description: '', start_date: '', end_date: '', reminder_days: tripRemindersEnabled ? 3 : 0, schedule_margin_minutes: '0m', day_count: 7 })
+      setFormData({
+        title: '',
+        description: '',
+        start_date: '',
+        end_date: '',
+        reminder_days: tripRemindersEnabled ? 3 : 0,
+        schedule_margin_minutes: '0m',
+        routing_provider: 'osrm',
+        routing_optimism: 0.33,
+        day_count: 7,
+      })
       setCustomReminder(false)
       setCoverPreview(null)
     }
@@ -122,6 +136,8 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         end_date: formData.end_date || null,
         reminder_days: formData.reminder_days,
         schedule_margin_minutes: scheduleMargin,
+        routing_provider: formData.routing_provider,
+        routing_optimism: formData.routing_optimism,
         ...(!formData.start_date && !formData.end_date ? { day_count: Number(formData.day_count) } : {}),
       })
       const createdTrip = result ? result.trip : undefined
@@ -361,6 +377,47 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
           />
           <p className="text-xs text-slate-400 mt-1.5">{t('trips.scheduleMarginHint')}</p>
         </div>
+
+        <div>
+          <label htmlFor="trip-routing-provider-input" className="block text-sm font-medium text-slate-700 mb-1.5">
+            <RouteIcon className="inline w-4 h-4 mr-1" />{t('trips.routingProvider')}
+          </label>
+          <select
+            id="trip-routing-provider-input"
+            value={formData.routing_provider}
+            onChange={e => canEditTrip && update('routing_provider', e.target.value === 'google_maps' ? 'google_maps' : 'osrm')}
+            disabled={!canEditTrip}
+            className={inputCls}
+          >
+            <option value="osrm">{t('trips.routingProviderOsrm')}</option>
+            <option value="google_maps">{t('trips.routingProviderGoogle')}</option>
+          </select>
+          <p className="text-xs text-slate-400 mt-1.5">{t('trips.routingProviderHint')}</p>
+        </div>
+
+        {formData.routing_provider === 'google_maps' && (
+          <div>
+            <label htmlFor="trip-routing-optimism-input" className="block text-sm font-medium text-slate-700 mb-1.5">
+              {t('trips.routingOptimism')} <span className="text-slate-400 font-normal">{formData.routing_optimism.toFixed(2)}</span>
+            </label>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-slate-500 w-20">{t('trips.routingPessimistic')}</span>
+              <input
+                id="trip-routing-optimism-input"
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={formData.routing_optimism}
+                onChange={e => canEditTrip && update('routing_optimism', Math.min(1, Math.max(0, Number(e.target.value))))}
+                disabled={!canEditTrip}
+                className="flex-1"
+              />
+              <span className="text-xs text-slate-500 w-20 text-right">{t('trips.routingOptimistic')}</span>
+            </div>
+            <p className="text-xs text-slate-400 mt-1.5">{t('trips.routingOptimismHint')}</p>
+          </div>
+        )}
 
         {/* Reminder — only visible to owner (or when creating) */}
         {(!isEditing || trip?.user_id === currentUser?.id || currentUser?.role === 'admin') && (

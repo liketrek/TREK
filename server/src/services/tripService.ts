@@ -176,6 +176,8 @@ interface CreateTripData {
   currency?: string;
   reminder_days?: number;
   schedule_margin_minutes?: number;
+  routing_provider?: string;
+  routing_optimism?: number;
   day_count?: number;
 }
 
@@ -186,16 +188,30 @@ function normalizeScheduleMarginMinutes(value: unknown, fallback = 0): number {
   return Math.round(n);
 }
 
+function normalizeRoutingProvider(value: unknown, fallback = 'osrm'): 'osrm' | 'google_maps' {
+  if (value === 'osrm' || value === 'google_maps') return value;
+  return fallback === 'google_maps' ? 'google_maps' : 'osrm';
+}
+
+function normalizeRoutingOptimism(value: unknown, fallback = 0.33): number {
+  if (value === undefined || value === null || value === '') return fallback;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(1, Math.max(0, n));
+}
+
 export function createTrip(userId: number, data: CreateTripData, maxDays?: number) {
   const rd = data.reminder_days !== undefined
     ? (Number(data.reminder_days) >= 0 && Number(data.reminder_days) <= 30 ? Number(data.reminder_days) : 3)
     : 3;
   const scheduleMargin = normalizeScheduleMarginMinutes(data.schedule_margin_minutes, 0);
+  const routingProvider = normalizeRoutingProvider(data.routing_provider, 'osrm');
+  const routingOptimism = normalizeRoutingOptimism(data.routing_optimism, 0.33);
 
   const result = db.prepare(`
-    INSERT INTO trips (user_id, title, description, start_date, end_date, currency, reminder_days, schedule_margin_minutes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(userId, data.title, data.description || null, data.start_date || null, data.end_date || null, data.currency || 'EUR', rd, scheduleMargin);
+    INSERT INTO trips (user_id, title, description, start_date, end_date, currency, reminder_days, schedule_margin_minutes, routing_provider, routing_optimism)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(userId, data.title, data.description || null, data.start_date || null, data.end_date || null, data.currency || 'EUR', rd, scheduleMargin, routingProvider, routingOptimism);
 
   const tripId = result.lastInsertRowid;
   generateDays(tripId, data.start_date || null, data.end_date || null, maxDays, data.day_count);
@@ -222,6 +238,8 @@ interface UpdateTripData {
   cover_image?: string;
   reminder_days?: number;
   schedule_margin_minutes?: number;
+  routing_provider?: string;
+  routing_optimism?: number;
   day_count?: number;
 }
 
@@ -239,7 +257,7 @@ export function updateTrip(tripId: string | number, userId: number, data: Update
   const trip = db.prepare('SELECT * FROM trips WHERE id = ?').get(tripId) as Trip & { reminder_days?: number } | undefined;
   if (!trip) throw new NotFoundError('Trip not found');
 
-  const { title, description, start_date, end_date, currency, is_archived, cover_image, reminder_days, schedule_margin_minutes } = data;
+  const { title, description, start_date, end_date, currency, is_archived, cover_image, reminder_days, schedule_margin_minutes, routing_provider, routing_optimism } = data;
 
   if (start_date && end_date && new Date(end_date) < new Date(start_date))
     throw new ValidationError('End date must be after start date');
@@ -259,12 +277,21 @@ export function updateTrip(tripId: string | number, userId: number, data: Update
   const newScheduleMargin = schedule_margin_minutes !== undefined
     ? normalizeScheduleMarginMinutes(schedule_margin_minutes, oldScheduleMargin)
     : oldScheduleMargin;
+  const oldRoutingProvider = normalizeRoutingProvider((trip as any).routing_provider, 'osrm');
+  const newRoutingProvider = routing_provider !== undefined
+    ? normalizeRoutingProvider(routing_provider, oldRoutingProvider)
+    : oldRoutingProvider;
+  const oldRoutingOptimism = normalizeRoutingOptimism((trip as any).routing_optimism, 0.33);
+  const newRoutingOptimism = routing_optimism !== undefined
+    ? normalizeRoutingOptimism(routing_optimism, oldRoutingOptimism)
+    : oldRoutingOptimism;
 
   db.prepare(`
     UPDATE trips SET title=?, description=?, start_date=?, end_date=?,
-      currency=?, is_archived=?, cover_image=?, reminder_days=?, schedule_margin_minutes=?, updated_at=CURRENT_TIMESTAMP
+      currency=?, is_archived=?, cover_image=?, reminder_days=?, schedule_margin_minutes=?,
+      routing_provider=?, routing_optimism=?, updated_at=CURRENT_TIMESTAMP
     WHERE id=?
-  `).run(newTitle, newDesc, newStart || null, newEnd || null, newCurrency, newArchived, newCover, newReminder, newScheduleMargin, tripId);
+  `).run(newTitle, newDesc, newStart || null, newEnd || null, newCurrency, newArchived, newCover, newReminder, newScheduleMargin, newRoutingProvider, newRoutingOptimism, tripId);
 
   if (trip.start_date && trip.end_date && newStart && newStart !== trip.start_date)
     shiftOwnerEntriesForTripWindow(trip.user_id, trip.start_date, trip.end_date, newStart);
@@ -279,6 +306,8 @@ export function updateTrip(tripId: string | number, userId: number, data: Update
   if (newEnd !== trip.end_date) changes.end_date = newEnd;
   if (newReminder !== oldReminder) changes.reminder_days = newReminder === 0 ? 'none' : `${newReminder} days`;
   if (newScheduleMargin !== oldScheduleMargin) changes.schedule_margin_minutes = `${newScheduleMargin} min`;
+  if (newRoutingProvider !== oldRoutingProvider) changes.routing_provider = newRoutingProvider;
+  if (newRoutingOptimism !== oldRoutingOptimism) changes.routing_optimism = newRoutingOptimism;
   if (is_archived !== undefined && newArchived !== trip.is_archived) changes.archived = !!newArchived;
 
   const isAdminEdit = userRole === 'admin' && trip.user_id !== userId;
@@ -632,9 +661,21 @@ export function copyTripById(sourceTripId: string | number, newOwnerId: number, 
 
   const fn = db.transaction(() => {
     const tripResult = db.prepare(`
-      INSERT INTO trips (user_id, title, description, start_date, end_date, currency, cover_image, is_archived, reminder_days, schedule_margin_minutes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
-    `).run(newOwnerId, newTitle, src.description, src.start_date, src.end_date, src.currency, src.cover_image, src.reminder_days ?? 3, src.schedule_margin_minutes ?? 0);
+      INSERT INTO trips (user_id, title, description, start_date, end_date, currency, cover_image, is_archived, reminder_days, schedule_margin_minutes, routing_provider, routing_optimism)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)
+    `).run(
+      newOwnerId,
+      newTitle,
+      src.description,
+      src.start_date,
+      src.end_date,
+      src.currency,
+      src.cover_image,
+      src.reminder_days ?? 3,
+      src.schedule_margin_minutes ?? 0,
+      normalizeRoutingProvider(src.routing_provider, 'osrm'),
+      normalizeRoutingOptimism(src.routing_optimism, 0.33),
+    );
     const newTripId = tripResult.lastInsertRowid;
 
     const oldDays = db.prepare('SELECT * FROM days WHERE trip_id = ? ORDER BY day_number').all(sourceTripId) as any[];

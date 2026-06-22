@@ -14,6 +14,13 @@ const { maps } = vi.hoisted(() => ({
 }));
 vi.mock('../../../src/services/mapsService', () => maps);
 
+const { fetchGoogleMapsPreviewDirections } = vi.hoisted(() => ({
+  fetchGoogleMapsPreviewDirections: vi.fn(),
+}));
+vi.mock('../../../src/services/googleMapsPreviewDirections', () => ({
+  fetchGoogleMapsPreviewDirections,
+}));
+
 const { serveFilePath } = vi.hoisted(() => ({ serveFilePath: vi.fn() }));
 vi.mock('../../../src/services/placePhotoCache', () => ({ serveFilePath }));
 
@@ -113,6 +120,12 @@ describe('MapsService', () => {
       const bbox = { south: 1, west: 2, north: 3, east: 4 };
       svc().pois('cafe', bbox);
       expect(maps.searchOverpassPois).toHaveBeenCalledWith('cafe', bbox);
+    });
+
+    it('previewDirections forwards through', () => {
+      const request = { origin: { lat: 1, lng: 2 }, destination: { lat: 3, lng: 4 } };
+      svc().previewDirections(request);
+      expect(fetchGoogleMapsPreviewDirections).toHaveBeenCalledWith(request);
     });
   });
 

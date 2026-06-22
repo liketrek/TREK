@@ -11,6 +11,8 @@ describe('tripCreateRequestSchema', () => {
         start_date: '2026-07-01',
         day_count: 7,
         schedule_margin_minutes: 15,
+        routing_provider: 'google_maps',
+        routing_optimism: 0.33,
       }).success,
     ).toBe(true);
     expect(tripCreateRequestSchema.safeParse({}).success).toBe(false);
@@ -22,6 +24,8 @@ describe('tripUpdateRequestSchema', () => {
     expect(tripUpdateRequestSchema.safeParse({}).success).toBe(true);
     expect(tripUpdateRequestSchema.safeParse({ is_archived: 1, cover_image: null }).success).toBe(true);
     expect(tripUpdateRequestSchema.safeParse({ schedule_margin_minutes: -1 }).success).toBe(false);
+    expect(tripUpdateRequestSchema.safeParse({ routing_provider: 'other' }).success).toBe(false);
+    expect(tripUpdateRequestSchema.safeParse({ routing_optimism: 1.1 }).success).toBe(false);
   });
 });
 

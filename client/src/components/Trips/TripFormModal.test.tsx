@@ -169,6 +169,24 @@ describe('TripFormModal', () => {
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ schedule_margin_minutes: 15 }));
   });
 
+  it('FE-COMP-TRIPFORM-018c: submits routing provider and optimism settings', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue({ trip: buildTrip({ id: 99 }) });
+    render(<TripFormModal {...defaultProps} onSave={onSave} trip={null} />);
+    await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Traffic Trip');
+    fireEvent.change(screen.getByLabelText('Estimated Driving Time'), { target: { value: 'google_maps' } });
+    expect(screen.getByText(/0 uses Google Maps' slowest traffic estimate/i)).toBeInTheDocument();
+    const optimismInput = screen.getByLabelText(/Optimism/i);
+    fireEvent.change(optimismInput, { target: { value: '0.75' } });
+    const submitBtn = screen.getAllByText('Create New Trip').find(el => el.closest('button'))!;
+    await user.click(submitBtn.closest('button')!);
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      routing_provider: 'google_maps',
+      routing_optimism: 0.75,
+    }));
+  });
+
   it('FE-COMP-TRIPFORM-019: reminder buttons visible when tripRemindersEnabled=true', async () => {
     seedStore(useAuthStore, { tripRemindersEnabled: true });
     render(<TripFormModal {...defaultProps} trip={null} />);

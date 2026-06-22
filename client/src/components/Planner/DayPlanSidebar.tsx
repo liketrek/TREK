@@ -4,8 +4,8 @@ declare global { interface Window { __dragData: DragDataPayload | null } }
 
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
 import { ChevronDown, ChevronRight, ChevronUp, Navigation, RotateCcw, ExternalLink, Clock, Pencil, GripVertical, Ticket, Plus, FileText, Trash2, Car, Lock, Hotel, Footprints, Route as RouteIcon, CalendarDays, List } from 'lucide-react'
-import { assignmentsApi, reservationsApi } from '../../api/client'
-import { calculateRoute, calculateRouteWithLegs, optimizeRoute, generateGoogleMapsUrl } from '../Map/RouteCalculator'
+import { reservationsApi } from '../../api/client'
+import { calculateRoute, calculateRouteWithLegs, optimizeRoute, generateGoogleMapsUrl, type RoutingProvider } from '../Map/RouteCalculator'
 import PlaceAvatar from '../shared/PlaceAvatar'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import { useContextMenu, ContextMenu } from '../shared/ContextMenu'
@@ -25,7 +25,7 @@ import {
   type MergedItem,
 } from '../../utils/dayMerge'
 import { formatDate, formatTime, dayTotalCost, splitReservationDateTime } from '../../utils/formatters'
-import { DEFAULT_WAKE_UP_TIME, buildActivitySchedule, formatDurationMinutes, getMaxSleepMinutes, minutesToClock } from '../../utils/daySchedule'
+import { DEFAULT_WAKE_UP_TIME, buildActivitySchedule, formatDurationMinutes, getMaxSleepMinutes, minutesToClock, normalizeDurationMinutes } from '../../utils/daySchedule'
 import { useDayNotes } from '../../hooks/useDayNotes'
 import { RES_ICONS, getNoteIcon } from './DayPlanSidebar.constants'
 import { RouteConnector, HotelRouteConnector } from './DayPlanSidebarRouteConnector'
@@ -64,6 +64,22 @@ function minutesAfterClock(clock: string, startMinutes: number): number {
 
 function formatRestHours(totalMinutes: number): string {
   return `${(Math.max(0, Math.round(totalMinutes)) / 60).toFixed(1)}h`
+}
+
+function localDateTimeForDayMinute(day: Pick<Day, 'date'>, minutes: number): string | null {
+  if (!day.date) return null
+  const date = new Date(`${day.date}T00:00:00Z`)
+  date.setUTCMinutes(date.getUTCMinutes() + Math.round(minutes))
+  return date.toISOString().slice(0, 16)
+}
+
+function normalizeRoutingProvider(value: unknown): RoutingProvider {
+  return value === 'google_maps' ? 'google_maps' : 'osrm'
+}
+
+function normalizeRoutingOptimism(value: unknown): number {
+  const n = Number(value)
+  return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 0.33
 }
 
 interface DayPlanSidebarProps {
@@ -427,9 +443,22 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
       const nextRouteLegs: Record<number, Record<number, RouteSegment>> = {}
       const nextHotelLegs: Record<number, DayHotelRouteLegs> = {}
       const hotelName = (a: Accommodation) => (a as any).place_name || (a as any).reservation_title || ''
-      const legBetween = async (a: { lat: number; lng: number }, b: { lat: number; lng: number }): Promise<RouteSegment | undefined> => {
+      const routeProvider = normalizeRoutingProvider(trip?.routing_provider)
+      const routeOptimism = normalizeRoutingOptimism(trip?.routing_optimism)
+      const scheduleMarginMinutes = Math.max(0, Math.round(Number(trip?.schedule_margin_minutes) || 0))
+      const legBetween = async (
+        a: { lat: number; lng: number },
+        b: { lat: number; lng: number },
+        departureLocalDateTime?: string | null,
+      ): Promise<RouteSegment | undefined> => {
         try {
-          const r = await calculateRouteWithLegs([a, b], { signal: controller.signal, profile: routeProfile })
+          const r = await calculateRouteWithLegs([a, b], {
+            signal: controller.signal,
+            profile: routeProfile,
+            provider: routeProvider,
+            optimism: routeOptimism,
+            departureLocalDateTime,
+          })
           return r.legs[0]
         } catch (err) {
           if (err instanceof Error && err.name === 'AbortError') throw err
@@ -440,39 +469,6 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
       for (const day of days) {
         if (controller.signal.aborted) return
         const merged = mergedItemsMap[day.id] || []
-        const runs: { id: number; lat: number; lng: number }[][] = []
-        let cur: { id: number; lat: number; lng: number }[] = []
-        for (const it of merged) {
-          if (it.type === 'place' && it.data.place?.lat && it.data.place?.lng) {
-            cur.push({ id: it.data.id, lat: it.data.place.lat, lng: it.data.place.lng })
-          } else if (it.type === 'transport') {
-            const r = it.data
-            const { from, to } = getTransportRouteEndpoints(r, day.id)
-            if (from || to) {
-              // Located transport: route to its departure point, break the run,
-              // and let its arrival start the next ground segment.
-              if (from) cur.push({ id: r.id, lat: from.lat, lng: from.lng })
-              if (cur.length >= 2) runs.push(cur)
-              cur = []
-              if (to) cur.push({ id: r.id, lat: to.lat, lng: to.lng })
-            } else if (cur.length > 0) {
-              cur[cur.length - 1] = { ...cur[cur.length - 1], id: r.id }
-            }
-          }
-        }
-        if (cur.length >= 2) runs.push(cur)
-
-        const map: Record<number, RouteSegment> = {}
-        for (const run of runs) {
-          try {
-            const r = await calculateRouteWithLegs(run.map(p => ({ lat: p.lat, lng: p.lng })), { signal: controller.signal, profile: routeProfile })
-            r.legs.forEach((leg, i) => { map[run[i].id] = leg })
-          } catch (err) {
-            if (err instanceof Error && err.name === 'AbortError') return
-          }
-        }
-        if (Object.keys(map).length > 0) nextRouteLegs[day.id] = map
-
         const { morning: startHotel, evening: endHotel } =
           optimizeFromAccommodation !== false ? getDayBookendHotels(day, days, accommodations) : {}
         const wayPts: { lat: number; lng: number }[] = []
@@ -488,14 +484,114 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
         const firstWay = wayPts[0]
         const lastWay = wayPts[wayPts.length - 1]
         const hotel: DayHotelRouteLegs = {}
-        if (startHotel && firstWay) {
-          const seg = await legBetween({ lat: startHotel.place_lat as number, lng: startHotel.place_lng as number }, { lat: firstWay.lat, lng: firstWay.lng })
-          if (seg) hotel.top = { seg, name: hotelName(startHotel) }
+
+        const map: Record<number, RouteSegment> = {}
+
+        if (routeProvider === 'google_maps') {
+          let cursor = parseTimeToMinutes(day.wake_up_time || DEFAULT_WAKE_UP_TIME) ?? parseTimeToMinutes(DEFAULT_WAKE_UP_TIME)!
+          const timedLeg = async (
+            a: { lat: number; lng: number },
+            b: { lat: number; lng: number },
+            departureMinutes: number,
+          ) => legBetween(a, b, localDateTimeForDayMinute(day, departureMinutes))
+
+          if (startHotel && firstWay) {
+            const seg = await timedLeg(
+              { lat: startHotel.place_lat as number, lng: startHotel.place_lng as number },
+              { lat: firstWay.lat, lng: firstWay.lng },
+              cursor,
+            )
+            if (seg) {
+              hotel.top = { seg, name: hotelName(startHotel) }
+              cursor += routeSecondsToMinutes(seg.duration) + scheduleMarginMinutes
+            }
+          }
+
+          let current: { id: number; lat: number; lng: number } | null = null
+          for (const it of merged) {
+            if (it.type === 'place' && it.data.place?.lat && it.data.place?.lng) {
+              const next = { id: it.data.id, lat: it.data.place.lat, lng: it.data.place.lng }
+              if (current) {
+                const seg = await timedLeg(current, next, cursor)
+                if (seg) {
+                  map[current.id] = seg
+                  cursor += routeSecondsToMinutes(seg.duration) + scheduleMarginMinutes
+                }
+              }
+              cursor += normalizeDurationMinutes(it.data.duration_minutes ?? it.data.place.duration_minutes) + scheduleMarginMinutes
+              current = next
+            } else if (it.type === 'transport') {
+              const r = it.data
+              const { from, to } = getTransportRouteEndpoints(r, day.id)
+              if (from) {
+                if (current) {
+                  const seg = await timedLeg(current, { lat: from.lat, lng: from.lng }, cursor)
+                  if (seg) {
+                    map[current.id] = seg
+                    cursor += routeSecondsToMinutes(seg.duration) + scheduleMarginMinutes
+                  }
+                }
+                current = null
+              }
+              if (to) {
+                current = { id: r.id, lat: to.lat, lng: to.lng }
+              } else if (!from && current) {
+                current = { ...current, id: r.id }
+              }
+            }
+          }
+
+          if (endHotel && current) {
+            const seg = await timedLeg(current, { lat: endHotel.place_lat as number, lng: endHotel.place_lng as number }, cursor)
+            if (seg) hotel.bottom = { seg, name: hotelName(endHotel) }
+          }
+        } else {
+          const runs: { id: number; lat: number; lng: number }[][] = []
+          let cur: { id: number; lat: number; lng: number }[] = []
+          for (const it of merged) {
+            if (it.type === 'place' && it.data.place?.lat && it.data.place?.lng) {
+              cur.push({ id: it.data.id, lat: it.data.place.lat, lng: it.data.place.lng })
+            } else if (it.type === 'transport') {
+              const r = it.data
+              const { from, to } = getTransportRouteEndpoints(r, day.id)
+              if (from || to) {
+                // Located transport: route to its departure point, break the run,
+                // and let its arrival start the next ground segment.
+                if (from) cur.push({ id: r.id, lat: from.lat, lng: from.lng })
+                if (cur.length >= 2) runs.push(cur)
+                cur = []
+                if (to) cur.push({ id: r.id, lat: to.lat, lng: to.lng })
+              } else if (cur.length > 0) {
+                cur[cur.length - 1] = { ...cur[cur.length - 1], id: r.id }
+              }
+            }
+          }
+          if (cur.length >= 2) runs.push(cur)
+
+          for (const run of runs) {
+            try {
+              const r = await calculateRouteWithLegs(run.map(p => ({ lat: p.lat, lng: p.lng })), {
+                signal: controller.signal,
+                profile: routeProfile,
+                provider: routeProvider,
+              })
+              r.legs.forEach((leg, i) => { map[run[i].id] = leg })
+            } catch (err) {
+              if (err instanceof Error && err.name === 'AbortError') return
+            }
+          }
+
+          if (startHotel && firstWay) {
+            const seg = await legBetween({ lat: startHotel.place_lat as number, lng: startHotel.place_lng as number }, { lat: firstWay.lat, lng: firstWay.lng })
+            if (seg) hotel.top = { seg, name: hotelName(startHotel) }
+          }
+          if (endHotel && lastWay) {
+            const seg = await legBetween({ lat: lastWay.lat, lng: lastWay.lng }, { lat: endHotel.place_lat as number, lng: endHotel.place_lng as number })
+            if (seg) hotel.bottom = { seg, name: hotelName(endHotel) }
+          }
         }
-        if (endHotel && lastWay) {
-          const seg = await legBetween({ lat: lastWay.lat, lng: lastWay.lng }, { lat: endHotel.place_lat as number, lng: endHotel.place_lng as number })
-          if (seg) hotel.bottom = { seg, name: hotelName(endHotel) }
-        }
+
+        if (Object.keys(map).length > 0) nextRouteLegs[day.id] = map
         if (hotel.top || hotel.bottom) nextHotelLegs[day.id] = hotel
       }
 
@@ -510,7 +606,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
       }
     })
     return () => controller.abort()
-  }, [routeShown, routeProfile, mergedItemsMap, accommodations, days, optimizeFromAccommodation])
+  }, [routeShown, routeProfile, mergedItemsMap, accommodations, days, optimizeFromAccommodation, trip?.routing_provider, trip?.routing_optimism, trip?.schedule_margin_minutes])
 
   const openAddNote = (dayId, e) => {
     e?.stopPropagation()

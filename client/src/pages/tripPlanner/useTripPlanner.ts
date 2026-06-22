@@ -20,6 +20,7 @@ import { useAirtrailConnection } from '../../hooks/useAirtrailConnection'
 import { parseDurationMinutes } from '../../utils/durationInput'
 import type { Accommodation, TripMember, Day, Place, Reservation } from '../../types'
 import { resolvePoolAssignmentId } from './tripPlannerModel'
+import type { RoutingProvider } from '../../components/Map/RouteCalculator'
 
 function readRouteShownPreference(tripId: number): boolean {
   if (typeof window === 'undefined' || !Number.isFinite(tripId)) return false
@@ -37,6 +38,15 @@ function readRouteProfilePreference(tripId: number): 'driving' | 'walking' {
   } catch {
     return 'driving'
   }
+}
+
+function normalizeRoutingProvider(value: unknown): RoutingProvider {
+  return value === 'google_maps' ? 'google_maps' : 'osrm'
+}
+
+function normalizeRoutingOptimism(value: unknown): number {
+  const n = Number(value)
+  return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 0.33
 }
 
 /**
@@ -316,7 +326,21 @@ export function useTripPlanner() {
     })
   }, [places, mapCategoryFilter, mapPlacesFilter, assignments, expandedDayIds])
 
-  const { route, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay } = useRouteCalculation({ assignments } as any, selectedDayId, routeShown, routeProfile, tripAccommodations)
+  const routeProvider = normalizeRoutingProvider(trip?.routing_provider)
+  const routeOptimism = normalizeRoutingOptimism(trip?.routing_optimism)
+  const scheduleMarginMinutes = Number.isFinite(Number(trip?.schedule_margin_minutes))
+    ? Math.max(0, Math.round(Number(trip?.schedule_margin_minutes)))
+    : 0
+  const { route, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay } = useRouteCalculation(
+    { assignments } as any,
+    selectedDayId,
+    routeShown,
+    routeProfile,
+    tripAccommodations,
+    routeProvider,
+    routeOptimism,
+    scheduleMarginMinutes,
+  )
 
   const handleSelectDay = useCallback((dayId: number | null, skipFit?: boolean) => {
     const changed = dayId !== selectedDayId

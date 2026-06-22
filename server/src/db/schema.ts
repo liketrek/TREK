@@ -88,6 +88,8 @@ function createTables(db: Database.Database): void {
       is_archived INTEGER DEFAULT 0,
       reminder_days INTEGER DEFAULT 3,
       schedule_margin_minutes INTEGER DEFAULT 0,
+      routing_provider TEXT DEFAULT 'osrm',
+      routing_optimism REAL DEFAULT 0.33,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );

@@ -2,7 +2,7 @@ import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useRouteCalculation } from '../../../src/hooks/useRouteCalculation';
 import { useTripStore } from '../../../src/store/tripStore';
-import { buildAssignment, buildPlace } from '../../helpers/factories';
+import { buildAssignment, buildDay, buildPlace } from '../../helpers/factories';
 import type { TripStoreState } from '../../../src/store/tripStore';
 import type { RouteSegment } from '../../../src/types';
 
@@ -113,6 +113,42 @@ describe('useRouteCalculation', () => {
 
     expect(calculateRouteWithLegs).toHaveBeenCalled();
     expect(result.current.routeSegments).toEqual(MOCK_SEGMENTS);
+  });
+
+  it('FE-HOOK-ROUTE-004b: passes Google provider settings and scheduled departure times per leg', async () => {
+    const p1 = buildPlace({ lat: 10, lng: 10, duration_minutes: 60 });
+    const p2 = buildPlace({ lat: 20, lng: 20, duration_minutes: 30 });
+    const p3 = buildPlace({ lat: 30, lng: 30, duration_minutes: 45 });
+    const a1 = buildAssignment({ day_id: 5, order_index: 0, place: p1 });
+    const a2 = buildAssignment({ day_id: 5, order_index: 1, place: p2 });
+    const a3 = buildAssignment({ day_id: 5, order_index: 2, place: p3 });
+    const store = buildMockStore({ '5': [a1, a2, a3] });
+    useTripStore.setState({
+      assignments: { '5': [a1, a2, a3] },
+      reservations: [],
+      days: [buildDay({ id: 5, date: '2026-06-01', wake_up_time: '08:00' })],
+    } as any);
+    (calculateRouteWithLegs as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ ...MOCK_ROUTE_WITH_LEGS, duration: 900 })
+      .mockResolvedValueOnce({ ...MOCK_ROUTE_WITH_LEGS, duration: 1200 });
+
+    renderHook(() =>
+      useRouteCalculation(store as TripStoreState, 5, true, 'driving', 'google_maps', 0.75, 10)
+    );
+
+    await act(async () => {});
+
+    expect(calculateRouteWithLegs).toHaveBeenCalledTimes(2);
+    expect(calculateRouteWithLegs).toHaveBeenNthCalledWith(1, [expect.objectContaining({ lat: 10 }), expect.objectContaining({ lat: 20 })], expect.objectContaining({
+      provider: 'google_maps',
+      optimism: 0.75,
+      departureLocalDateTime: '2026-06-01T09:10',
+    }));
+    expect(calculateRouteWithLegs).toHaveBeenNthCalledWith(2, [expect.objectContaining({ lat: 20 }), expect.objectContaining({ lat: 30 })], expect.objectContaining({
+      provider: 'google_maps',
+      optimism: 0.75,
+      departureLocalDateTime: '2026-06-01T10:15',
+    }));
   });
 
   it('FE-HOOK-ROUTE-006: assignments are sorted by order_index before extracting waypoints', async () => {

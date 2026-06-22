@@ -3098,6 +3098,18 @@ function runMigrations(db: Database.Database): void {
         if (!err.message?.includes('duplicate column name')) throw err;
       }
     },
+    () => {
+      try {
+        db.exec("ALTER TABLE trips ADD COLUMN routing_provider TEXT DEFAULT 'osrm'");
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) throw err;
+      }
+      try {
+        db.exec('ALTER TABLE trips ADD COLUMN routing_optimism REAL DEFAULT 0.33');
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) throw err;
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {
@@ -3138,6 +3150,16 @@ function ensureDayTimeColumns(db: Database.Database): void {
     if (!columnExists(db, 'trips', 'schedule_margin_minutes')) {
       db.exec('ALTER TABLE trips ADD COLUMN schedule_margin_minutes INTEGER DEFAULT 0');
       console.log('[DB] Repaired missing trips.schedule_margin_minutes column');
+    }
+
+    if (!columnExists(db, 'trips', 'routing_provider')) {
+      db.exec("ALTER TABLE trips ADD COLUMN routing_provider TEXT DEFAULT 'osrm'");
+      console.log('[DB] Repaired missing trips.routing_provider column');
+    }
+
+    if (!columnExists(db, 'trips', 'routing_optimism')) {
+      db.exec('ALTER TABLE trips ADD COLUMN routing_optimism REAL DEFAULT 0.33');
+      console.log('[DB] Repaired missing trips.routing_optimism column');
     }
 
     if (!columnExists(db, 'day_assignments', 'duration_minutes')) {

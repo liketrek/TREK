@@ -77,7 +77,16 @@ export class TripsController {
     if (!this.trips.can('trip_create', user.role, null, user.id, false)) {
       throw new HttpException({ error: 'No permission to create trips' }, 403);
     }
-    const { title, description, currency, reminder_days, schedule_margin_minutes, day_count } = body as Record<string, never>;
+    const {
+      title,
+      description,
+      currency,
+      reminder_days,
+      schedule_margin_minutes,
+      routing_provider,
+      routing_optimism,
+      day_count,
+    } = body as Record<string, never>;
     if (!title) {
       throw new HttpException({ error: 'Title is required' }, 400);
     }
@@ -89,7 +98,7 @@ export class TripsController {
       throw new HttpException({ error: 'End date must be after start date' }, 400);
     }
     const parsedDayCount = day_count ? Math.min(Math.max(Number(day_count) || 7, 1), 365) : undefined;
-    const { trip, tripId, reminderDays } = this.trips.create(user.id, { title, description, start_date, end_date, currency, reminder_days, schedule_margin_minutes, day_count: parsedDayCount });
+    const { trip, tripId, reminderDays } = this.trips.create(user.id, { title, description, start_date, end_date, currency, reminder_days, schedule_margin_minutes, routing_provider, routing_optimism, day_count: parsedDayCount });
     writeAudit({ userId: user.id, action: 'trip.create', ip: getClientIp(req), details: { tripId, title, reminder_days: reminderDays === 0 ? 'none' : `${reminderDays} days` } });
     if (reminderDays > 0) logInfo(`${user.email} set ${reminderDays}-day reminder for trip "${title}"`);
     return { trip };
@@ -118,7 +127,7 @@ export class TripsController {
     if (body.cover_image !== undefined && !this.trips.can('trip_cover_upload', user.role, ownerId, user.id, isMember)) {
       throw new HttpException({ error: 'No permission to change cover image' }, 403);
     }
-    const editFields = ['title', 'description', 'start_date', 'end_date', 'currency', 'reminder_days', 'schedule_margin_minutes', 'day_count'];
+    const editFields = ['title', 'description', 'start_date', 'end_date', 'currency', 'reminder_days', 'schedule_margin_minutes', 'routing_provider', 'routing_optimism', 'day_count'];
     if (editFields.some((f) => body[f] !== undefined) && !this.trips.can('trip_edit', user.role, ownerId, user.id, isMember)) {
       throw new HttpException({ error: 'No permission to edit this trip' }, 403);
     }

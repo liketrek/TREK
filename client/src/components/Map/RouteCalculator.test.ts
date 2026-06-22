@@ -171,6 +171,50 @@ describe('calculateRouteWithLegs persistent cache', () => {
     expect(second.legs[0].duration).toBe(420)
     expect(calls).toBe(1)
   })
+
+  it('FE-COMP-ROUTECALCULATOR-022: Google Maps routing uses traffic optimism and caches identical requests', async () => {
+    let calls = 0
+    server.use(
+      http.post('/api/maps/directions-preview', async ({ request }) => {
+        calls += 1
+        const body = await request.json() as any
+        expect(body.time).toEqual({ kind: 'departAtLocal', localDateTime: '2026-06-01T09:10' })
+        return HttpResponse.json({
+          routes: [
+            {
+              distance: { meters: 1200, text: '1.2 km' },
+              duration: { seconds: 600, text: '10 min' },
+              traffic: {
+                range: { minSeconds: 600, maxSeconds: 1200, text: '10 min to 20 min' },
+              },
+              overviewGeometry: [
+                { lat: body.origin.lat, lng: body.origin.lng },
+                { lat: body.destination.lat, lng: body.destination.lng },
+              ],
+            },
+          ],
+        })
+      })
+    )
+
+    const first = await calculateRouteWithLegs([wp1, wp2], {
+      provider: 'google_maps',
+      optimism: 0.25,
+      departureLocalDateTime: '2026-06-01T09:10',
+    })
+    const second = await calculateRouteWithLegs([wp1, wp2], {
+      provider: 'google_maps',
+      optimism: 0.25,
+      departureLocalDateTime: '2026-06-01T09:10',
+    })
+
+    expect(first.legs[0].duration).toBe(1050)
+    expect(first.duration).toBe(1050)
+    expect(first.distance).toBe(1200)
+    expect(first.coordinates).toEqual([[wp1.lat, wp1.lng], [wp2.lat, wp2.lng]])
+    expect(second.legs[0].duration).toBe(1050)
+    expect(calls).toBe(1)
+  })
 })
 
 // ── optimizeRoute ──────────────────────────────────────────────────────────────

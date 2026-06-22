@@ -89,12 +89,21 @@ describe('Create trip', () => {
     const res = await request(app)
       .post('/api/trips')
       .set('Cookie', authCookie(user.id))
-      .send({ title: 'Paris Adventure', start_date: '2026-06-01', end_date: '2026-06-05', schedule_margin_minutes: 15 });
+      .send({
+        title: 'Paris Adventure',
+        start_date: '2026-06-01',
+        end_date: '2026-06-05',
+        schedule_margin_minutes: 15,
+        routing_provider: 'google_maps',
+        routing_optimism: 0.33,
+      });
 
     expect(res.status).toBe(201);
     expect(res.body.trip).toBeDefined();
     expect(res.body.trip.title).toBe('Paris Adventure');
     expect(res.body.trip.schedule_margin_minutes).toBe(15);
+    expect(res.body.trip.routing_provider).toBe('google_maps');
+    expect(res.body.trip.routing_optimism).toBe(0.33);
 
     // Verify days were generated (5 days: Jun 1–5)
     const days = testDb.prepare('SELECT * FROM days WHERE trip_id = ? ORDER BY date').all(res.body.trip.id) as any[];
@@ -337,19 +346,27 @@ describe('Get trip', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('Update trip', () => {
-  it('TRIP-008 — PUT /api/trips/:id updates title, description, and schedule margin for owner → 200', async () => {
+  it('TRIP-008 — PUT /api/trips/:id updates title, description, and routing settings for owner → 200', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Original Title' });
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}`)
       .set('Cookie', authCookie(user.id))
-      .send({ title: 'Updated Title', description: 'New description', schedule_margin_minutes: 20 });
+      .send({
+        title: 'Updated Title',
+        description: 'New description',
+        schedule_margin_minutes: 20,
+        routing_provider: 'google_maps',
+        routing_optimism: 0.75,
+      });
 
     expect(res.status).toBe(200);
     expect(res.body.trip.title).toBe('Updated Title');
     expect(res.body.trip.description).toBe('New description');
     expect(res.body.trip.schedule_margin_minutes).toBe(20);
+    expect(res.body.trip.routing_provider).toBe('google_maps');
+    expect(res.body.trip.routing_optimism).toBe(0.75);
   });
 
   it('TRIP-009 — Archive trip (PUT with is_archived:true) removes it from normal list', async () => {

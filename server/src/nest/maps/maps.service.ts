@@ -7,6 +7,11 @@ import type {
   MapsReverseResult,
   MapsResolveUrlResult,
 } from '@trek/shared';
+import {
+  fetchGoogleMapsPreviewDirections,
+  type GoogleMapsPreviewDirectionsRequest,
+  type GoogleMapsPreviewDirectionsResult,
+} from '../../services/googleMapsPreviewDirections';
 import { DatabaseService } from '../database/database.service';
 import {
   searchPlaces,
@@ -86,6 +91,10 @@ export class MapsService {
 
   resolveUrl(url: string): Promise<MapsResolveUrlResult> {
     return resolveGoogleMapsUrl(url) as Promise<MapsResolveUrlResult>;
+  }
+
+  previewDirections(request: GoogleMapsPreviewDirectionsRequest | unknown): Promise<GoogleMapsPreviewDirectionsResult> {
+    return fetchGoogleMapsPreviewDirections(request);
   }
 
   // OSM-only POI search by category within a viewport bbox (never calls Google).

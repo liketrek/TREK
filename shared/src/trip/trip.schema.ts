@@ -31,6 +31,8 @@ export const tripSchema = z.object({
   is_archived: z.number(),
   reminder_days: z.number(),
   schedule_margin_minutes: z.number().optional(),
+  routing_provider: z.enum(['osrm', 'google_maps']).optional(),
+  routing_optimism: z.number().min(0).max(1).optional(),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
   // computed in TRIP_SELECT (list/get)
@@ -67,6 +69,8 @@ export const tripCreateRequestSchema = z.object({
   currency: z.string().optional(),
   reminder_days: z.number().optional(),
   schedule_margin_minutes: z.number().int().min(0).optional(),
+  routing_provider: z.enum(['osrm', 'google_maps']).optional(),
+  routing_optimism: z.number().min(0).max(1).optional(),
   day_count: z.number().optional(),
 });
 export type TripCreateRequest = z.infer<typeof tripCreateRequestSchema>;
@@ -80,6 +84,8 @@ export const tripUpdateRequestSchema = z.object({
   currency: z.string().optional(),
   reminder_days: z.number().optional(),
   schedule_margin_minutes: z.number().int().min(0).optional(),
+  routing_provider: z.enum(['osrm', 'google_maps']).optional(),
+  routing_optimism: z.number().min(0).max(1).optional(),
   day_count: z.number().optional(),
   is_archived: z.union([z.boolean(), z.number()]).optional(),
   cover_image: z.string().nullable().optional(),

@@ -17,6 +17,69 @@ import { z } from 'zod';
 
 const latLng = z.object({ lat: z.number(), lng: z.number() });
 
+export const mapsDirectionsPreviewModeSchema = z.enum(['driving', 'bicycling', 'walking', 'transit']);
+export type MapsDirectionsPreviewMode = z.infer<typeof mapsDirectionsPreviewModeSchema>;
+
+export const mapsDirectionsPreviewLocationSchema = latLng.extend({
+  label: z.string().min(1).max(500).optional(),
+  address: z.string().min(1).max(500).optional(),
+  placeId: z.string().min(1).optional(),
+  dataId: z.string().min(1).optional(),
+  cid: z.string().min(1).optional(),
+});
+export type MapsDirectionsPreviewLocation = z.infer<typeof mapsDirectionsPreviewLocationSchema>;
+
+export const mapsDirectionsPreviewTimeSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('now'), timeZone: z.string().min(1).optional() }),
+  z.object({ kind: z.literal('departAt'), epochSeconds: z.number(), timeZone: z.string().min(1).optional() }),
+  z.object({
+    kind: z.literal('departAtLocal'),
+    localDateTime: z.string().min(1),
+    timeZone: z.string().min(1).optional(),
+  }),
+  z.object({
+    kind: z.literal('raw'),
+    googleMapsEpochSeconds: z.number(),
+    timeKindEnum: z.number().int().nonnegative().optional(),
+    timeZone: z.string().min(1).optional(),
+  }),
+]);
+export type MapsDirectionsPreviewTime = z.infer<typeof mapsDirectionsPreviewTimeSchema>;
+
+export const mapsDirectionsPreviewRequestSchema = z.object({
+  origin: mapsDirectionsPreviewLocationSchema,
+  destination: mapsDirectionsPreviewLocationSchema,
+  waypoints: z.array(mapsDirectionsPreviewLocationSchema).max(8).optional(),
+  mode: mapsDirectionsPreviewModeSchema.optional(),
+  language: z.string().min(1).optional(),
+  region: z.string().min(1).optional(),
+  time: mapsDirectionsPreviewTimeSchema.optional(),
+  viewport: z
+    .object({
+      centerLat: z.number().optional(),
+      centerLng: z.number().optional(),
+      spanMeters: z.number().optional(),
+      width: z.number().optional(),
+      height: z.number().optional(),
+      zoom: z.number().optional(),
+    })
+    .optional(),
+  includeOverviewGeometry: z.boolean().optional(),
+  includeSteps: z.boolean().optional(),
+  includeRaw: z.boolean().optional(),
+  includeDebug: z.boolean().optional(),
+  featureProfile: z.enum(['compact', 'full']).optional(),
+  timeoutMs: z.number().positive().optional(),
+  internal: z
+    .object({
+      modeEnum: z.number().int().nonnegative().optional(),
+      timeKindEnum: z.number().int().nonnegative().optional(),
+      routePreferenceEnum: z.number().int().nonnegative().optional(),
+    })
+    .optional(),
+});
+export type MapsDirectionsPreviewRequest = z.infer<typeof mapsDirectionsPreviewRequestSchema>;
+
 export const mapsSearchRequestSchema = z.object({
   query: z.string().min(1),
 });
