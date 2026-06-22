@@ -818,7 +818,10 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   const paidEntered = paidSum > 0
   const balanced = Math.abs(paidSum - totalNum) < 0.01
   const each = participants.size > 0 ? totalNum / participants.size : 0
-  const valid = name.trim().length > 0 && totalNum > 0 && participants.size > 0 && (!paidEntered || balanced)
+  // No participants = a recorded total with nobody to split with (e.g. a booking
+  // paid on-site later). It saves as an "unfinished" expense (#1286); selecting
+  // people only adds the who-owes-whom split on top.
+  const valid = name.trim().length > 0 && totalNum > 0 && (!paidEntered || balanced)
 
   // Spread `amount` across `n` people in whole cents so the parts sum back exactly.
   const splitCents = (amount: number, n: number): number[] => {
@@ -978,7 +981,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
           </div>
           <div style={{ marginTop: 10, fontSize: 12.5, display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
             <span className="text-content-faint">
-              {participants.size === 0 ? t('costs.pickSomeone') : t('costs.splitSummary', { count: participants.size, amount: sym(currency) + each.toFixed(2) })}
+              {participants.size > 0 && t('costs.splitSummary', { count: participants.size, amount: sym(currency) + each.toFixed(2) })}
             </span>
             {paidEntered
               ? <span style={{ fontWeight: 600, color: balanced ? '#16a34a' : '#dc2626' }}>{sym(currency)}{paidSum.toFixed(2)} / {sym(currency)}{totalNum.toFixed(2)}</span>
