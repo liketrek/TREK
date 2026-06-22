@@ -56,6 +56,9 @@ describe('mapsDirectionsPreviewRequestSchema', () => {
         origin: location,
         destination: { label: 'Royal Ontario Museum', lat: 43.6677097, lng: -79.3947771 },
         mode: 'transit',
+        avoidTolls: true,
+        avoidHighways: false,
+        avoidFerries: true,
         time: { kind: 'departAtLocal', localDateTime: '2026-06-21T19:30', timeZone: 'America/Toronto' },
         includeOverviewGeometry: true,
       }).success,
@@ -68,6 +71,13 @@ describe('mapsDirectionsPreviewRequestSchema', () => {
         origin: location,
         destination: location,
         mode: 'flying',
+      }).success,
+    ).toBe(false);
+    expect(
+      mapsDirectionsPreviewRequestSchema.safeParse({
+        origin: location,
+        destination: location,
+        avoidTolls: 1,
       }).success,
     ).toBe(false);
     expect(

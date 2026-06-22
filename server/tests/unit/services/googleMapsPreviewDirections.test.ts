@@ -188,6 +188,22 @@ describe('googleMapsPreviewDirections wrapper', () => {
     expect(buildGoogleMapsPreviewDirectionsUrl({ origin, destination, mode: 'transit' }).pb).toContain('!20m5!1e3');
   });
 
+  it('encodes Google Maps avoid options in the full feature block', () => {
+    const built = buildGoogleMapsPreviewDirectionsUrl({
+      origin,
+      destination,
+      avoidTolls: true,
+      avoidHighways: true,
+      avoidFerries: true,
+    });
+
+    expect(built.featureProfile).toBe('full');
+    expect(built.pb).toContain('!6m60');
+    expect(built.pb).toContain('!2m6!1b1!2b1!5m1');
+    expect(built.pb).toContain('!6m26');
+    expect(built.pb).toContain('!279b1!7b1!10b1');
+  });
+
   it('encodes absolute departure instants as Google local-wall-clock epochs', () => {
     const built = buildGoogleMapsPreviewDirectionsUrl({
       origin,

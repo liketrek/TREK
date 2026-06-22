@@ -13,6 +13,9 @@ describe('tripCreateRequestSchema', () => {
         schedule_margin_minutes: 15,
         routing_provider: 'google_maps',
         routing_optimism: 0.33,
+        routing_avoid_tolls: true,
+        routing_avoid_highways: false,
+        routing_avoid_ferries: true,
       }).success,
     ).toBe(true);
     expect(tripCreateRequestSchema.safeParse({}).success).toBe(false);
@@ -26,6 +29,8 @@ describe('tripUpdateRequestSchema', () => {
     expect(tripUpdateRequestSchema.safeParse({ schedule_margin_minutes: -1 }).success).toBe(false);
     expect(tripUpdateRequestSchema.safeParse({ routing_provider: 'other' }).success).toBe(false);
     expect(tripUpdateRequestSchema.safeParse({ routing_optimism: 1.1 }).success).toBe(false);
+    expect(tripUpdateRequestSchema.safeParse({ routing_avoid_tolls: true }).success).toBe(true);
+    expect(tripUpdateRequestSchema.safeParse({ routing_avoid_tolls: 1 }).success).toBe(false);
   });
 });
 

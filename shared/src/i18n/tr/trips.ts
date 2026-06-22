@@ -12,5 +12,9 @@ const trips: TranslationStrings = {
   'trips.reminderCustom': 'Özel',
   'trips.reminderDaysBefore': 'hareketten önce gün',
   'trips.reminderDisabledHint': 'Seyahat hatırlatıcıları kapalı. Yönetici > Ayarlar > Bildirimler bölümünden açın.',
+  'trips.routingAvoid': 'Avoid', // en-fallback
+  'trips.routingAvoidTolls': 'Tolls', // en-fallback
+  'trips.routingAvoidHighways': 'Highways', // en-fallback
+  'trips.routingAvoidFerries': 'Ferries', // en-fallback
 };
 export default trips;

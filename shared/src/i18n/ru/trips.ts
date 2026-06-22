@@ -12,5 +12,9 @@ const trips: TranslationStrings = {
   'trips.reminderCustom': 'Другое',
   'trips.reminderDaysBefore': 'дней до отъезда',
   'trips.reminderDisabledHint': 'Напоминания о поездках отключены. Включите их в Админ > Настройки > Уведомления.',
+  'trips.routingAvoid': 'Avoid', // en-fallback
+  'trips.routingAvoidTolls': 'Tolls', // en-fallback
+  'trips.routingAvoidHighways': 'Highways', // en-fallback
+  'trips.routingAvoidFerries': 'Ferries', // en-fallback
 };
 export default trips;

@@ -49,6 +49,10 @@ function normalizeRoutingOptimism(value: unknown): number {
   return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 0.33
 }
 
+function normalizeRoutingAvoidFlag(value: unknown): boolean {
+  return value === true || value === 1
+}
+
 /**
  * Trip planner page logic — the big one. Owns the trip store wiring, addon
  * gating, accommodations/members loading, the tab + resizable-panel + selection
@@ -328,6 +332,9 @@ export function useTripPlanner() {
 
   const routeProvider = normalizeRoutingProvider(trip?.routing_provider)
   const routeOptimism = normalizeRoutingOptimism(trip?.routing_optimism)
+  const routeAvoidTolls = normalizeRoutingAvoidFlag(trip?.routing_avoid_tolls)
+  const routeAvoidHighways = normalizeRoutingAvoidFlag(trip?.routing_avoid_highways)
+  const routeAvoidFerries = normalizeRoutingAvoidFlag(trip?.routing_avoid_ferries)
   const scheduleMarginMinutes = Number.isFinite(Number(trip?.schedule_margin_minutes))
     ? Math.max(0, Math.round(Number(trip?.schedule_margin_minutes)))
     : 0
@@ -340,6 +347,7 @@ export function useTripPlanner() {
     routeProvider,
     routeOptimism,
     scheduleMarginMinutes,
+    { avoidTolls: routeAvoidTolls, avoidHighways: routeAvoidHighways, avoidFerries: routeAvoidFerries },
   )
 
   const handleSelectDay = useCallback((dayId: number | null, skipFit?: boolean) => {

@@ -34,6 +34,9 @@ export interface GoogleMapsPreviewDirectionsRequest {
   destination: GoogleMapsPreviewDirectionsLocation;
   waypoints?: GoogleMapsPreviewDirectionsLocation[];
   mode?: GoogleMapsPreviewDirectionsMode;
+  avoidTolls?: boolean;
+  avoidHighways?: boolean;
+  avoidFerries?: boolean;
   language?: string;
   region?: string;
   time?: GoogleMapsPreviewTimeOption;
@@ -217,6 +220,9 @@ interface NormalizedRequest extends GoogleMapsPreviewDirectionsRequest {
   destination: GoogleMapsPreviewDirectionsLocation;
   waypoints: GoogleMapsPreviewDirectionsLocation[];
   mode: GoogleMapsPreviewDirectionsMode;
+  avoidTolls: boolean;
+  avoidHighways: boolean;
+  avoidFerries: boolean;
   language: string;
   region: string;
   includeSteps: boolean;
@@ -258,17 +264,6 @@ const ENUM_TO_MODE: Record<number, GoogleMapsPreviewDirectionsMode> = {
   2: 'walking',
   3: 'transit',
 };
-
-const FULL_FEATURE_PREFIX =
-  '!6m57' +
-  '!1m5!18b1!30b1!31m1!1b1!34e1' +
-  '!2m4!5m1!6e2!20e3!39b1' +
-  '!6m25' +
-  '!32i1!49b1!66b1!85b1!114b1!149b1!206b1!209b1!212b1!216b1' +
-  '!222b1!223b1!232b1!234b1!235b1!241b1!244b1!246b1!250b1!253b1' +
-  '!260b1!266b1!270b1!273b1!279b1' +
-  '!10b1!12b1!13b1!14b1!16b1' +
-  '!17m1!3e1';
 
 const FULL_FEATURE_SUFFIX = '!46m1!1b0!96b1!99b1';
 
@@ -318,6 +313,12 @@ function optionalString(value: unknown, field: string): string | undefined {
   if (typeof value !== 'string') throw makeHttpError(400, `${field} must be a string`);
   const trimmed = value.trim();
   return trimmed ? trimmed : undefined;
+}
+
+function optionalBoolean(value: unknown, field: string): boolean | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== 'boolean') throw makeHttpError(400, `${field} must be a boolean`);
+  return value;
 }
 
 function validateLocation(value: unknown, field: string): GoogleMapsPreviewDirectionsLocation {
@@ -422,7 +423,10 @@ export function normalizeGoogleMapsPreviewDirectionsRequest(input: unknown): Nor
     ? Math.min(Math.max(body.timeoutMs, 1), MAX_TIMEOUT_MS)
     : DEFAULT_TIMEOUT_MS;
   const includeOverviewGeometry = body.includeOverviewGeometry === true;
-  const featureProfile = body.featureProfile === 'full' || includeOverviewGeometry ? 'full' : 'compact';
+  const avoidTolls = optionalBoolean(body.avoidTolls, 'avoidTolls') ?? false;
+  const avoidHighways = optionalBoolean(body.avoidHighways, 'avoidHighways') ?? false;
+  const avoidFerries = optionalBoolean(body.avoidFerries, 'avoidFerries') ?? false;
+  const featureProfile = body.featureProfile === 'full' || includeOverviewGeometry || avoidTolls || avoidHighways || avoidFerries ? 'full' : 'compact';
   if (body.featureProfile !== undefined && body.featureProfile !== 'compact' && body.featureProfile !== 'full') {
     throw makeHttpError(400, 'featureProfile must be compact or full');
   }
@@ -432,6 +436,9 @@ export function normalizeGoogleMapsPreviewDirectionsRequest(input: unknown): Nor
     destination: validateLocation(body.destination, 'destination'),
     waypoints,
     mode: mode as GoogleMapsPreviewDirectionsMode,
+    avoidTolls,
+    avoidHighways,
+    avoidFerries,
     language: optionalString(body.language, 'language') ?? DEFAULT_LANGUAGE,
     region: optionalString(body.region, 'region') ?? DEFAULT_REGION,
     time: validateTime(body.time),
@@ -572,6 +579,28 @@ function buildTime(request: NormalizedRequest): {
   };
 }
 
+function buildFullFeaturePrefix(request: NormalizedRequest): string {
+  const routeAvoidFlags = [
+    request.avoidHighways ? '!1b1' : '',
+    request.avoidTolls ? '!2b1' : '',
+  ].join('');
+  const routeAvoidFlagCount = (request.avoidHighways ? 1 : 0) + (request.avoidTolls ? 1 : 0);
+  const ferryFlag = request.avoidFerries ? '!7b1' : '';
+  const ferryFlagCount = request.avoidFerries ? 1 : 0;
+
+  return (
+    `!6m${57 + routeAvoidFlagCount + ferryFlagCount}` +
+    '!1m5!18b1!30b1!31m1!1b1!34e1' +
+    `!2m${4 + routeAvoidFlagCount}${routeAvoidFlags}!5m1!6e2!20e3!39b1` +
+    `!6m${25 + ferryFlagCount}` +
+    '!32i1!49b1!66b1!85b1!114b1!149b1!206b1!209b1!212b1!216b1' +
+    '!222b1!223b1!232b1!234b1!235b1!241b1!244b1!246b1!250b1!253b1' +
+    '!260b1!266b1!270b1!273b1!279b1' +
+    `${ferryFlag}!10b1!12b1!13b1!14b1!16b1` +
+    '!17m1!3e1'
+  );
+}
+
 function buildFeaturePb(
   request: NormalizedRequest,
   modeCode: number,
@@ -581,7 +610,7 @@ function buildFeaturePb(
   const routePreferenceEnum = request.internal?.routePreferenceEnum ?? 3;
   const routeOptions = `!19m2!2e${timeKindEnum}!3j${googleMapsEpochSeconds}!20m5!1e${modeCode}!2e${routePreferenceEnum}!5e2!6b1!14b1`;
   if (request.featureProfile === 'full') {
-    return `${FULL_FEATURE_PREFIX}${routeOptions}${FULL_FEATURE_SUFFIX}`;
+    return `${buildFullFeaturePrefix(request)}${routeOptions}${FULL_FEATURE_SUFFIX}`;
   }
   return `!6m11!17m1!3e1${routeOptions}`;
 }

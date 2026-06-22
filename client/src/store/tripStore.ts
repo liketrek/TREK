@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { StoreApi } from 'zustand'
+import type { TripUpdateRequest } from '@trek/shared'
 import { tripsApi, tagsApi, categoriesApi } from '../api/client'
 import { offlineDb } from '../db/offlineDb'
 import { tripRepo } from '../repo/tripRepo'
@@ -68,7 +69,7 @@ export interface TripStoreState
   loadTrip: (tripId: number | string) => Promise<void>
   hydrateActiveTrip: (tripId: number | string) => Promise<void>
   refreshDays: (tripId: number | string) => Promise<void>
-  updateTrip: (tripId: number | string, data: Partial<Trip>) => Promise<Trip>
+  updateTrip: (tripId: number | string, data: TripUpdateRequest) => Promise<Trip>
   addTag: (data: Partial<Tag> & { name: string }) => Promise<Tag>
   addCategory: (data: Partial<Category> & { name: string }) => Promise<Category>
 }
@@ -196,7 +197,7 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
     }
   },
 
-  updateTrip: async (tripId: number | string, data: Partial<Trip>) => {
+  updateTrip: async (tripId: number | string, data: TripUpdateRequest) => {
     try {
       const result = await tripsApi.update(tripId, data)
       set({ trip: result.trip })

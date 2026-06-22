@@ -49,6 +49,9 @@ const makeTrip = (id = 1): Trip => ({
   schedule_margin_minutes: 0,
   routing_provider: 'osrm',
   routing_optimism: 0.33,
+  routing_avoid_tolls: 0,
+  routing_avoid_highways: 0,
+  routing_avoid_ferries: 0,
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
 });

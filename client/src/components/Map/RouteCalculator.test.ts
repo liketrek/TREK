@@ -174,10 +174,12 @@ describe('calculateRouteWithLegs persistent cache', () => {
 
   it('FE-COMP-ROUTECALCULATOR-022: Google Maps routing uses traffic optimism and caches identical requests', async () => {
     let calls = 0
+    const bodies: any[] = []
     server.use(
       http.post('/api/maps/directions-preview', async ({ request }) => {
         calls += 1
         const body = await request.json() as any
+        bodies.push(body)
         expect(body.time).toEqual({ kind: 'departAtLocal', localDateTime: '2026-06-01T09:10' })
         return HttpResponse.json({
           routes: [
@@ -214,6 +216,25 @@ describe('calculateRouteWithLegs persistent cache', () => {
     expect(first.coordinates).toEqual([[wp1.lat, wp1.lng], [wp2.lat, wp2.lng]])
     expect(second.legs[0].duration).toBe(1050)
     expect(calls).toBe(1)
+    expect(bodies[0]).toMatchObject({
+      avoidTolls: false,
+      avoidHighways: false,
+      avoidFerries: false,
+    })
+
+    await calculateRouteWithLegs([wp1, wp2], {
+      provider: 'google_maps',
+      optimism: 0.25,
+      departureLocalDateTime: '2026-06-01T09:10',
+      google: { avoidTolls: true, avoidHighways: true, avoidFerries: false },
+    })
+
+    expect(calls).toBe(2)
+    expect(bodies[1]).toMatchObject({
+      avoidTolls: true,
+      avoidHighways: true,
+      avoidFerries: false,
+    })
   })
 })
 

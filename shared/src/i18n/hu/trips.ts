@@ -13,5 +13,9 @@ const trips: TranslationStrings = {
   'trips.reminderDaysBefore': 'nappal indulás előtt',
   'trips.reminderDisabledHint':
     'Az utazási emlékeztetők ki vannak kapcsolva. Kapcsold be az Admin > Beállítások > Értesítések menüben.',
+  'trips.routingAvoid': 'Avoid', // en-fallback
+  'trips.routingAvoidTolls': 'Tolls', // en-fallback
+  'trips.routingAvoidHighways': 'Highways', // en-fallback
+  'trips.routingAvoidFerries': 'Ferries', // en-fallback
 };
 export default trips;

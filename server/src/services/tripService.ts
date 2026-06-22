@@ -178,6 +178,9 @@ interface CreateTripData {
   schedule_margin_minutes?: number;
   routing_provider?: string;
   routing_optimism?: number;
+  routing_avoid_tolls?: boolean | number;
+  routing_avoid_highways?: boolean | number;
+  routing_avoid_ferries?: boolean | number;
   day_count?: number;
 }
 
@@ -200,6 +203,13 @@ function normalizeRoutingOptimism(value: unknown, fallback = 0.33): number {
   return Math.min(1, Math.max(0, n));
 }
 
+function normalizeRoutingAvoidFlag(value: unknown, fallback = 0): number {
+  if (value === undefined || value === null || value === '') return fallback ? 1 : 0;
+  if (value === true || value === 1 || value === '1') return 1;
+  if (value === false || value === 0 || value === '0') return 0;
+  return fallback ? 1 : 0;
+}
+
 export function createTrip(userId: number, data: CreateTripData, maxDays?: number) {
   const rd = data.reminder_days !== undefined
     ? (Number(data.reminder_days) >= 0 && Number(data.reminder_days) <= 30 ? Number(data.reminder_days) : 3)
@@ -207,11 +217,14 @@ export function createTrip(userId: number, data: CreateTripData, maxDays?: numbe
   const scheduleMargin = normalizeScheduleMarginMinutes(data.schedule_margin_minutes, 0);
   const routingProvider = normalizeRoutingProvider(data.routing_provider, 'osrm');
   const routingOptimism = normalizeRoutingOptimism(data.routing_optimism, 0.33);
+  const routingAvoidTolls = normalizeRoutingAvoidFlag(data.routing_avoid_tolls, 0);
+  const routingAvoidHighways = normalizeRoutingAvoidFlag(data.routing_avoid_highways, 0);
+  const routingAvoidFerries = normalizeRoutingAvoidFlag(data.routing_avoid_ferries, 0);
 
   const result = db.prepare(`
-    INSERT INTO trips (user_id, title, description, start_date, end_date, currency, reminder_days, schedule_margin_minutes, routing_provider, routing_optimism)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(userId, data.title, data.description || null, data.start_date || null, data.end_date || null, data.currency || 'EUR', rd, scheduleMargin, routingProvider, routingOptimism);
+    INSERT INTO trips (user_id, title, description, start_date, end_date, currency, reminder_days, schedule_margin_minutes, routing_provider, routing_optimism, routing_avoid_tolls, routing_avoid_highways, routing_avoid_ferries)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(userId, data.title, data.description || null, data.start_date || null, data.end_date || null, data.currency || 'EUR', rd, scheduleMargin, routingProvider, routingOptimism, routingAvoidTolls, routingAvoidHighways, routingAvoidFerries);
 
   const tripId = result.lastInsertRowid;
   generateDays(tripId, data.start_date || null, data.end_date || null, maxDays, data.day_count);
@@ -240,6 +253,9 @@ interface UpdateTripData {
   schedule_margin_minutes?: number;
   routing_provider?: string;
   routing_optimism?: number;
+  routing_avoid_tolls?: boolean | number;
+  routing_avoid_highways?: boolean | number;
+  routing_avoid_ferries?: boolean | number;
   day_count?: number;
 }
 
@@ -257,7 +273,7 @@ export function updateTrip(tripId: string | number, userId: number, data: Update
   const trip = db.prepare('SELECT * FROM trips WHERE id = ?').get(tripId) as Trip & { reminder_days?: number } | undefined;
   if (!trip) throw new NotFoundError('Trip not found');
 
-  const { title, description, start_date, end_date, currency, is_archived, cover_image, reminder_days, schedule_margin_minutes, routing_provider, routing_optimism } = data;
+  const { title, description, start_date, end_date, currency, is_archived, cover_image, reminder_days, schedule_margin_minutes, routing_provider, routing_optimism, routing_avoid_tolls, routing_avoid_highways, routing_avoid_ferries } = data;
 
   if (start_date && end_date && new Date(end_date) < new Date(start_date))
     throw new ValidationError('End date must be after start date');
@@ -285,13 +301,26 @@ export function updateTrip(tripId: string | number, userId: number, data: Update
   const newRoutingOptimism = routing_optimism !== undefined
     ? normalizeRoutingOptimism(routing_optimism, oldRoutingOptimism)
     : oldRoutingOptimism;
+  const oldRoutingAvoidTolls = normalizeRoutingAvoidFlag((trip as any).routing_avoid_tolls, 0);
+  const newRoutingAvoidTolls = routing_avoid_tolls !== undefined
+    ? normalizeRoutingAvoidFlag(routing_avoid_tolls, oldRoutingAvoidTolls)
+    : oldRoutingAvoidTolls;
+  const oldRoutingAvoidHighways = normalizeRoutingAvoidFlag((trip as any).routing_avoid_highways, 0);
+  const newRoutingAvoidHighways = routing_avoid_highways !== undefined
+    ? normalizeRoutingAvoidFlag(routing_avoid_highways, oldRoutingAvoidHighways)
+    : oldRoutingAvoidHighways;
+  const oldRoutingAvoidFerries = normalizeRoutingAvoidFlag((trip as any).routing_avoid_ferries, 0);
+  const newRoutingAvoidFerries = routing_avoid_ferries !== undefined
+    ? normalizeRoutingAvoidFlag(routing_avoid_ferries, oldRoutingAvoidFerries)
+    : oldRoutingAvoidFerries;
 
   db.prepare(`
     UPDATE trips SET title=?, description=?, start_date=?, end_date=?,
       currency=?, is_archived=?, cover_image=?, reminder_days=?, schedule_margin_minutes=?,
-      routing_provider=?, routing_optimism=?, updated_at=CURRENT_TIMESTAMP
+      routing_provider=?, routing_optimism=?, routing_avoid_tolls=?, routing_avoid_highways=?, routing_avoid_ferries=?,
+      updated_at=CURRENT_TIMESTAMP
     WHERE id=?
-  `).run(newTitle, newDesc, newStart || null, newEnd || null, newCurrency, newArchived, newCover, newReminder, newScheduleMargin, newRoutingProvider, newRoutingOptimism, tripId);
+  `).run(newTitle, newDesc, newStart || null, newEnd || null, newCurrency, newArchived, newCover, newReminder, newScheduleMargin, newRoutingProvider, newRoutingOptimism, newRoutingAvoidTolls, newRoutingAvoidHighways, newRoutingAvoidFerries, tripId);
 
   if (trip.start_date && trip.end_date && newStart && newStart !== trip.start_date)
     shiftOwnerEntriesForTripWindow(trip.user_id, trip.start_date, trip.end_date, newStart);
@@ -308,6 +337,9 @@ export function updateTrip(tripId: string | number, userId: number, data: Update
   if (newScheduleMargin !== oldScheduleMargin) changes.schedule_margin_minutes = `${newScheduleMargin} min`;
   if (newRoutingProvider !== oldRoutingProvider) changes.routing_provider = newRoutingProvider;
   if (newRoutingOptimism !== oldRoutingOptimism) changes.routing_optimism = newRoutingOptimism;
+  if (newRoutingAvoidTolls !== oldRoutingAvoidTolls) changes.routing_avoid_tolls = !!newRoutingAvoidTolls;
+  if (newRoutingAvoidHighways !== oldRoutingAvoidHighways) changes.routing_avoid_highways = !!newRoutingAvoidHighways;
+  if (newRoutingAvoidFerries !== oldRoutingAvoidFerries) changes.routing_avoid_ferries = !!newRoutingAvoidFerries;
   if (is_archived !== undefined && newArchived !== trip.is_archived) changes.archived = !!newArchived;
 
   const isAdminEdit = userRole === 'admin' && trip.user_id !== userId;
@@ -661,8 +693,8 @@ export function copyTripById(sourceTripId: string | number, newOwnerId: number, 
 
   const fn = db.transaction(() => {
     const tripResult = db.prepare(`
-      INSERT INTO trips (user_id, title, description, start_date, end_date, currency, cover_image, is_archived, reminder_days, schedule_margin_minutes, routing_provider, routing_optimism)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)
+      INSERT INTO trips (user_id, title, description, start_date, end_date, currency, cover_image, is_archived, reminder_days, schedule_margin_minutes, routing_provider, routing_optimism, routing_avoid_tolls, routing_avoid_highways, routing_avoid_ferries)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       newOwnerId,
       newTitle,
@@ -675,6 +707,9 @@ export function copyTripById(sourceTripId: string | number, newOwnerId: number, 
       src.schedule_margin_minutes ?? 0,
       normalizeRoutingProvider(src.routing_provider, 'osrm'),
       normalizeRoutingOptimism(src.routing_optimism, 0.33),
+      normalizeRoutingAvoidFlag(src.routing_avoid_tolls, 0),
+      normalizeRoutingAvoidFlag(src.routing_avoid_highways, 0),
+      normalizeRoutingAvoidFlag(src.routing_avoid_ferries, 0),
     );
     const newTripId = tripResult.lastInsertRowid;
 

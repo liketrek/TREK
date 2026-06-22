@@ -12,5 +12,9 @@ const trips: TranslationStrings = {
   'trips.reminderCustom': 'Niestandardowe',
   'trips.reminderDaysBefore': 'dni przed wyjazdem',
   'trips.reminderDisabledHint': 'Przypomnienia o podróżach są wyłączone.',
+  'trips.routingAvoid': 'Avoid', // en-fallback
+  'trips.routingAvoidTolls': 'Tolls', // en-fallback
+  'trips.routingAvoidHighways': 'Highways', // en-fallback
+  'trips.routingAvoidFerries': 'Ferries', // en-fallback
 };
 export default trips;

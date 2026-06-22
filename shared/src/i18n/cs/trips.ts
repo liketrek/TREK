@@ -12,5 +12,9 @@ const trips: TranslationStrings = {
   'trips.reminderCustom': 'Vlastní',
   'trips.reminderDaysBefore': 'dní před odjezdem',
   'trips.reminderDisabledHint': 'Připomínky výletů jsou zakázány. Povolte je v Správa > Nastavení > Oznámení.',
+  'trips.routingAvoid': 'Avoid', // en-fallback
+  'trips.routingAvoidTolls': 'Tolls', // en-fallback
+  'trips.routingAvoidHighways': 'Highways', // en-fallback
+  'trips.routingAvoidFerries': 'Ferries', // en-fallback
 };
 export default trips;

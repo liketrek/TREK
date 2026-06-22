@@ -90,6 +90,9 @@ function createTables(db: Database.Database): void {
       schedule_margin_minutes INTEGER DEFAULT 0,
       routing_provider TEXT DEFAULT 'osrm',
       routing_optimism REAL DEFAULT 0.33,
+      routing_avoid_tolls INTEGER DEFAULT 0,
+      routing_avoid_highways INTEGER DEFAULT 0,
+      routing_avoid_ferries INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );

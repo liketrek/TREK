@@ -13,5 +13,9 @@ const trips: TranslationStrings = {
   'trips.reminderDaysBefore': 'días antes de la salida',
   'trips.reminderDisabledHint':
     'Los recordatorios de viaje están desactivados. Actívalos en Admin > Configuración > Notificaciones.',
+  'trips.routingAvoid': 'Avoid', // en-fallback
+  'trips.routingAvoidTolls': 'Tolls', // en-fallback
+  'trips.routingAvoidHighways': 'Highways', // en-fallback
+  'trips.routingAvoidFerries': 'Ferries', // en-fallback
 };
 export default trips;

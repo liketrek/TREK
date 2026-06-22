@@ -96,6 +96,9 @@ describe('Create trip', () => {
         schedule_margin_minutes: 15,
         routing_provider: 'google_maps',
         routing_optimism: 0.33,
+        routing_avoid_tolls: true,
+        routing_avoid_highways: false,
+        routing_avoid_ferries: true,
       });
 
     expect(res.status).toBe(201);
@@ -104,6 +107,9 @@ describe('Create trip', () => {
     expect(res.body.trip.schedule_margin_minutes).toBe(15);
     expect(res.body.trip.routing_provider).toBe('google_maps');
     expect(res.body.trip.routing_optimism).toBe(0.33);
+    expect(res.body.trip.routing_avoid_tolls).toBe(1);
+    expect(res.body.trip.routing_avoid_highways).toBe(0);
+    expect(res.body.trip.routing_avoid_ferries).toBe(1);
 
     // Verify days were generated (5 days: Jun 1–5)
     const days = testDb.prepare('SELECT * FROM days WHERE trip_id = ? ORDER BY date').all(res.body.trip.id) as any[];
@@ -359,6 +365,9 @@ describe('Update trip', () => {
         schedule_margin_minutes: 20,
         routing_provider: 'google_maps',
         routing_optimism: 0.75,
+        routing_avoid_tolls: true,
+        routing_avoid_highways: true,
+        routing_avoid_ferries: false,
       });
 
     expect(res.status).toBe(200);
@@ -367,6 +376,9 @@ describe('Update trip', () => {
     expect(res.body.trip.schedule_margin_minutes).toBe(20);
     expect(res.body.trip.routing_provider).toBe('google_maps');
     expect(res.body.trip.routing_optimism).toBe(0.75);
+    expect(res.body.trip.routing_avoid_tolls).toBe(1);
+    expect(res.body.trip.routing_avoid_highways).toBe(1);
+    expect(res.body.trip.routing_avoid_ferries).toBe(0);
   });
 
   it('TRIP-009 — Archive trip (PUT with is_archived:true) removes it from normal list', async () => {

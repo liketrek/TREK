@@ -23,5 +23,9 @@ const trips: TranslationStrings = {
   'trips.routingOptimismHint': "0 uses Google Maps' slowest traffic estimate, 1 uses the fastest, and 0.33 leans cautious.",
   'trips.routingPessimistic': 'Pessimistic',
   'trips.routingOptimistic': 'Optimistic',
+  'trips.routingAvoid': 'Avoid',
+  'trips.routingAvoidTolls': 'Tolls',
+  'trips.routingAvoidHighways': 'Highways',
+  'trips.routingAvoidFerries': 'Ferries',
 };
 export default trips;

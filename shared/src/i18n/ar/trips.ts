@@ -12,5 +12,9 @@ const trips: TranslationStrings = {
   'trips.reminderCustom': 'مخصص',
   'trips.reminderDaysBefore': 'أيام قبل المغادرة',
   'trips.reminderDisabledHint': 'تذكيرات الرحلة معطلة. قم بتفعيلها من الإدارة > الإعدادات > الإشعارات.',
+  'trips.routingAvoid': 'Avoid', // en-fallback
+  'trips.routingAvoidTolls': 'Tolls', // en-fallback
+  'trips.routingAvoidHighways': 'Highways', // en-fallback
+  'trips.routingAvoidFerries': 'Ferries', // en-fallback
 };
 export default trips;

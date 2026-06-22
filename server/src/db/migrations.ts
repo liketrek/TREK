@@ -3110,6 +3110,15 @@ function runMigrations(db: Database.Database): void {
         if (!err.message?.includes('duplicate column name')) throw err;
       }
     },
+    () => {
+      for (const column of ['routing_avoid_tolls', 'routing_avoid_highways', 'routing_avoid_ferries']) {
+        try {
+          db.exec(`ALTER TABLE trips ADD COLUMN ${column} INTEGER DEFAULT 0`);
+        } catch (err: any) {
+          if (!err.message?.includes('duplicate column name')) throw err;
+        }
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {
@@ -3160,6 +3169,13 @@ function ensureDayTimeColumns(db: Database.Database): void {
     if (!columnExists(db, 'trips', 'routing_optimism')) {
       db.exec('ALTER TABLE trips ADD COLUMN routing_optimism REAL DEFAULT 0.33');
       console.log('[DB] Repaired missing trips.routing_optimism column');
+    }
+
+    for (const column of ['routing_avoid_tolls', 'routing_avoid_highways', 'routing_avoid_ferries']) {
+      if (!columnExists(db, 'trips', column)) {
+        db.exec(`ALTER TABLE trips ADD COLUMN ${column} INTEGER DEFAULT 0`);
+        console.log(`[DB] Repaired missing trips.${column} column`);
+      }
     }
 
     if (!columnExists(db, 'day_assignments', 'duration_minutes')) {

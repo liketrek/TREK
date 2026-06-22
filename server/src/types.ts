@@ -35,6 +35,11 @@ export interface Trip {
   is_archived: number;
   reminder_days: number;
   schedule_margin_minutes?: number;
+  routing_provider?: 'osrm' | 'google_maps';
+  routing_optimism?: number;
+  routing_avoid_tolls?: number | boolean;
+  routing_avoid_highways?: number | boolean;
+  routing_avoid_ferries?: number | boolean;
   created_at?: string;
   updated_at?: string;
 }

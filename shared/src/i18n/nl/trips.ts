@@ -13,5 +13,9 @@ const trips: TranslationStrings = {
   'trips.reminderDaysBefore': 'dagen voor vertrek',
   'trips.reminderDisabledHint':
     'Reisherinneringen zijn uitgeschakeld. Schakel ze in via Admin > Instellingen > Meldingen.',
+  'trips.routingAvoid': 'Avoid', // en-fallback
+  'trips.routingAvoidTolls': 'Tolls', // en-fallback
+  'trips.routingAvoidHighways': 'Highways', // en-fallback
+  'trips.routingAvoidFerries': 'Ferries', // en-fallback
 };
 export default trips;

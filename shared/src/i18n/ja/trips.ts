@@ -12,5 +12,9 @@ const trips: TranslationStrings = {
   'trips.reminderCustom': 'カスタム',
   'trips.reminderDaysBefore': '出発前',
   'trips.reminderDisabledHint': '旅行のリマインダーは無効です。管理 > 設定 > 通知から有効にしてください。',
+  'trips.routingAvoid': 'Avoid', // en-fallback
+  'trips.routingAvoidTolls': 'Tolls', // en-fallback
+  'trips.routingAvoidHighways': 'Highways', // en-fallback
+  'trips.routingAvoidFerries': 'Ferries', // en-fallback
 };
 export default trips;

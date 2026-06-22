@@ -133,7 +133,11 @@ describe('useRouteCalculation', () => {
       .mockResolvedValueOnce({ ...MOCK_ROUTE_WITH_LEGS, duration: 1200 });
 
     renderHook(() =>
-      useRouteCalculation(store as TripStoreState, 5, true, 'driving', 'google_maps', 0.75, 10)
+      useRouteCalculation(store as TripStoreState, 5, true, 'driving', 'google_maps', 0.75, 10, {
+        avoidTolls: true,
+        avoidHighways: false,
+        avoidFerries: true,
+      })
     );
 
     await act(async () => {});
@@ -142,11 +146,13 @@ describe('useRouteCalculation', () => {
     expect(calculateRouteWithLegs).toHaveBeenNthCalledWith(1, [expect.objectContaining({ lat: 10 }), expect.objectContaining({ lat: 20 })], expect.objectContaining({
       provider: 'google_maps',
       optimism: 0.75,
+      google: { avoidTolls: true, avoidHighways: false, avoidFerries: true },
       departureLocalDateTime: '2026-06-01T09:10',
     }));
     expect(calculateRouteWithLegs).toHaveBeenNthCalledWith(2, [expect.objectContaining({ lat: 20 }), expect.objectContaining({ lat: 30 })], expect.objectContaining({
       provider: 'google_maps',
       optimism: 0.75,
+      google: { avoidTolls: true, avoidHighways: false, avoidFerries: true },
       departureLocalDateTime: '2026-06-01T10:15',
     }));
   });

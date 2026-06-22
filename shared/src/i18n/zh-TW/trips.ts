@@ -12,5 +12,9 @@ const trips: TranslationStrings = {
   'trips.reminderCustom': '自定義',
   'trips.reminderDaysBefore': '天前提醒',
   'trips.reminderDisabledHint': '旅行提醒已停用。請在管理 > 設定 > 通知中啟用。',
+  'trips.routingAvoid': 'Avoid', // en-fallback
+  'trips.routingAvoidTolls': 'Tolls', // en-fallback
+  'trips.routingAvoidHighways': 'Highways', // en-fallback
+  'trips.routingAvoidFerries': 'Ferries', // en-fallback
 };
 export default trips;

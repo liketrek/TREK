@@ -178,12 +178,17 @@ describe('TripFormModal', () => {
     expect(screen.getByText(/0 uses Google Maps' slowest traffic estimate/i)).toBeInTheDocument();
     const optimismInput = screen.getByLabelText(/Optimism/i);
     fireEvent.change(optimismInput, { target: { value: '0.75' } });
+    await user.click(screen.getByLabelText('Tolls'));
+    await user.click(screen.getByLabelText('Ferries'));
     const submitBtn = screen.getAllByText('Create New Trip').find(el => el.closest('button'))!;
     await user.click(submitBtn.closest('button')!);
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
       routing_provider: 'google_maps',
       routing_optimism: 0.75,
+      routing_avoid_tolls: true,
+      routing_avoid_highways: false,
+      routing_avoid_ferries: true,
     }));
   });
 
