@@ -126,14 +126,12 @@ jobs:
         run: cd client && npm run lint:pages
 
       - name: Run tests
-        # Two separate OOM sources, both avoided here:
-        #  1) The v8 coverage report phase (source-map remapping over 150+ files)
-        #     OOMs even with a 12 GB heap, so coverage is NOT collected in CI.
-        #  2) Each forks worker runs ~38 files and jsdom/MSW state accumulates
-        #     past Node's default ~4 GB, so workers get extra heap.
-        # Run coverage locally with `npm run test:coverage`.
-        # TODO(#1258): re-enable coverage in CI via test sharding or the istanbul
-        # provider, then restore the artifact upload.
-        env:
-          NODE_OPTIONS: --max-old-space-size=8192
-        run: cd client && npm run test
+        run: cd client && npm run test:coverage
+
+      - name: Upload coverage
+        if: success()
+        uses: actions/upload-artifact@v6
+        with:
+          name: frontend-coverage
+          path: client/coverage/
+          retention-days: 7

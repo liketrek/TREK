@@ -6,13 +6,16 @@ import { buildAssignment, buildPlace } from '../../helpers/factories';
 import type { TripStoreState } from '../../../src/store/tripStore';
 import type { RouteSegment } from '../../../src/types';
 
-// Mock the RouteCalculator module to avoid real OSRM fetch calls
-vi.mock('../../../src/components/Map/RouteCalculator', () => ({
-  calculateRouteWithLegs: vi.fn(),
-  calculateRoute: vi.fn(),
-  optimizeRoute: vi.fn((waypoints: unknown[]) => waypoints),
-  generateGoogleMapsUrl: vi.fn(),
-}));
+vi.mock('../../../src/components/Map/RouteCalculator', async (importActual) => {
+  const actual = await importActual<typeof import('../../../src/components/Map/RouteCalculator')>();
+  return {
+    ...actual,
+    calculateRouteWithLegs: vi.fn(),
+    calculateRoute: vi.fn(),
+    optimizeRoute: vi.fn((waypoints: unknown[]) => waypoints),
+    generateGoogleMapsUrl: vi.fn(),
+  };
+});
 
 const { calculateRouteWithLegs } = await import('../../../src/components/Map/RouteCalculator');
 
