@@ -4,12 +4,16 @@ import { checkPermission } from '../../services/permissions';
 import { verifyTripAccess } from '../../services/tripAccess';
 import { createReservation } from '../../services/reservationService';
 import { createPlace } from '../../services/placeService';
+import { createBudgetItem } from '../../services/budgetService';
+import { isAddonEnabled } from '../../services/adminService';
+import { ADDON_IDS } from '../../addons';
 import { searchNominatim } from '../../services/mapsService';
 import { db } from '../../db/database';
 import type { User } from '../../types';
 import { KitineraryExtractorService } from './kitinerary-extractor.service';
 import { LlmParseService } from '../llm-parse/llm-parse.service';
 import { mapReservations } from './kitinerary-mapper';
+import { typeToCostCategory } from '@trek/shared';
 import type { BookingImportPreviewItem, BookingImportPreviewResponse, BookingImportConfirmResponse, BookingImportMode, BookingImportFileReport, Reservation } from '@trek/shared';
 import type { ParsedBookingItem, KiReservation } from './kitinerary.types';
 
@@ -215,6 +219,33 @@ export class BookingImportService {
         broadcast(tripId, 'reservation:created', { reservation }, socketId);
         if (accommodationCreated) {
           broadcast(tripId, 'accommodation:created', {}, socketId);
+        }
+
+        // Turn an extracted price into a real linked cost (Costs addon), so the
+        // booking shows up as an expense — not just a price in metadata.
+        if (isAddonEnabled(ADDON_IDS.BUDGET)) {
+          const meta =
+            reservationData.metadata && typeof reservationData.metadata === 'object'
+              ? (reservationData.metadata as Record<string, unknown>)
+              : null;
+          const price = meta && meta.price != null ? Number(meta.price) : NaN;
+          if (Number.isFinite(price) && price > 0) {
+            try {
+              const budgetItem = createBudgetItem(tripId, {
+                category: typeToCostCategory(item.type),
+                name: item.title,
+                total_price: price,
+                currency: meta && typeof meta.priceCurrency === 'string' ? meta.priceCurrency : null,
+                reservation_id: reservation.id,
+              });
+              broadcast(tripId, 'budget:created', { item: budgetItem }, socketId);
+            } catch (err) {
+              console.error(
+                `[booking-import] Failed to create cost for "${item.title}":`,
+                err instanceof Error ? err.message : err,
+              );
+            }
+          }
         }
 
         created.push(reservation);
