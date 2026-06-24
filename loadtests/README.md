@@ -43,9 +43,9 @@ Do not run these against the public demo or production.
 
 | Script          | Type          | Target                  | Status          |
 |-----------------|---------------|-------------------------|-----------------|
-| `smoke.js`      | smoke (5 VUs) | `GET /api/_nest/health` | implemented     |
-| `trips-read.js` | ramp-up       | `GET /api/trips`        | skeleton (TODO) |
-| `auth-login.js` | spike         | `POST /api/auth/login`  | skeleton (TODO) |
+| `smoke.js`      | smoke (5 VUs) | `GET /api/_nest/health`              | implemented     |
+| `trips-read.js` | ramp-up       | `GET /api/trips` + `/:id/bundle`     | implemented     |
+| `auth-login.js` | spike         | `POST /api/auth/login`               | skeleton (TODO) |
 
 `trips-read.js` and `auth-login.js` keep the load profile and thresholds.
 
