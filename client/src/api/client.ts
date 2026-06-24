@@ -665,7 +665,9 @@ export const reservationsApi = {
     const fd = new FormData()
     for (const f of files) fd.append('files', f)
     fd.append('mode', mode)
-    return apiClient.post(`/trips/${tripId}/reservations/import/booking`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data)
+    // No client-side timeout: kitinerary + LLM extraction routinely exceeds the
+    // global 8s default (a cold local model alone can take ~45s).
+    return apiClient.post(`/trips/${tripId}/reservations/import/booking`, fd, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 0 }).then(r => r.data)
   },
   importBookingConfirm: (tripId: number | string, items: BookingImportPreviewItem[]): Promise<BookingImportConfirmResponse> =>
     apiClient.post(`/trips/${tripId}/reservations/import/booking/confirm`, { items }).then(r => r.data),
