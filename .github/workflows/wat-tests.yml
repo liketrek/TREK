@@ -125,8 +125,8 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-  k6-smoke:
-    name: k6 Load Smoke
+  k6-load:
+    name: k6 Load Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -158,4 +158,23 @@ jobs:
         uses: grafana/setup-k6-action@v1
 
       - name: Run k6 smoke
-        run: k6 run loadtests/smoke.js
+        working-directory: loadtests
+        run: k6 run smoke.js
+
+      # trips-read runs before auth-login: the auth-login spike exhausts the
+      # per-IP login rate limit, which would 429 trips-read's setup login.
+      - name: Run k6 trips-read ramp
+        working-directory: loadtests
+        run: k6 run trips-read.js
+
+      - name: Run k6 auth-login spike
+        working-directory: loadtests
+        run: k6 run auth-login.js
+
+      - name: Upload k6 summaries
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: wat-k6-results
+          path: loadtests/results/*.summary.json
+          retention-days: 7

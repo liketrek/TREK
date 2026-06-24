@@ -28,6 +28,4 @@ describe('server integration', () => {
     const res = await request(ctx.http).get('/api/_nest/me');
     expect(res.status).toBe(401);
   });
-
-  it.todo('ersten Integrationstest schreiben');
 });
