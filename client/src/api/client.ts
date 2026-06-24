@@ -41,6 +41,7 @@ import {
   type BookingImportPreviewItem,
   type BookingImportPreviewResponse,
   type BookingImportConfirmResponse,
+  type BookingImportMode,
 } from '@trek/shared'
 import { getSocketId } from './websocket'
 import { isReachable, probeNow } from '../sync/connectivity'
@@ -442,6 +443,41 @@ export const adminApi = {
   updateOidc: (data: Record<string, unknown>) => apiClient.put('/admin/oidc', data).then(r => r.data),
   addons: () => apiClient.get('/admin/addons').then(r => r.data),
   updateAddon: (id: number | string, data: Record<string, unknown>) => apiClient.put(`/admin/addons/${id}`, data).then(r => r.data),
+  // Local LLM (Ollama) management for the AI-parsing addon.
+  llmLocalModels: (baseUrl: string): Promise<{ models: { name: string; size: number }[] }> =>
+    apiClient.get('/admin/llm/local/models', { params: { baseUrl } }).then(r => r.data),
+  /** Pull a model, streaming Ollama's NDJSON progress to `onProgress`. */
+  llmLocalPull: async (
+    baseUrl: string,
+    model: string,
+    onProgress: (p: { status?: string; total?: number; completed?: number; error?: string }) => void,
+  ): Promise<void> => {
+    const res = await fetch('/api/admin/llm/local/pull', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ baseUrl, model }),
+    })
+    if (!res.ok || !res.body) {
+      let msg = `Pull failed (${res.status})`
+      try { msg = (await res.json())?.error ?? msg } catch { /* non-json */ }
+      throw new Error(msg)
+    }
+    const reader = res.body.getReader()
+    const dec = new TextDecoder()
+    let buf = ''
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buf += dec.decode(value, { stream: true })
+      const lines = buf.split('\n')
+      buf = lines.pop() ?? ''
+      for (const line of lines) {
+        if (!line.trim()) continue
+        try { onProgress(JSON.parse(line)) } catch { /* skip partial */ }
+      }
+    }
+  },
   checkVersion: () => apiClient.get('/admin/version-check').then(r => r.data),
   getBagTracking: () => apiClient.get('/admin/bag-tracking').then(r => r.data),
   updateBagTracking: (enabled: boolean) => apiClient.put('/admin/bag-tracking', { enabled }).then(r => r.data),
@@ -625,9 +661,10 @@ export const reservationsApi = {
   update: (tripId: number | string, id: number, data: ReservationUpdateRequest) => apiClient.put(`/trips/${tripId}/reservations/${id}`, data).then(r => r.data),
   delete: (tripId: number | string, id: number) => apiClient.delete(`/trips/${tripId}/reservations/${id}`).then(r => r.data),
   updatePositions: (tripId: number | string, positions: { id: number; day_plan_position: number }[], dayId?: number) => apiClient.put(`/trips/${tripId}/reservations/positions`, { positions, day_id: dayId }).then(r => r.data),
-  importBookingPreview: (tripId: number | string, files: File[]): Promise<BookingImportPreviewResponse> => {
+  importBookingPreview: (tripId: number | string, files: File[], mode: BookingImportMode = 'no-ai'): Promise<BookingImportPreviewResponse> => {
     const fd = new FormData()
     for (const f of files) fd.append('files', f)
+    fd.append('mode', mode)
     return apiClient.post(`/trips/${tripId}/reservations/import/booking`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data)
   },
   importBookingConfirm: (tripId: number | string, items: BookingImportPreviewItem[]): Promise<BookingImportConfirmResponse> =>
@@ -635,7 +672,7 @@ export const reservationsApi = {
 }
 
 export const healthApi = {
-  features: (): Promise<{ bookingImport: boolean }> => apiClient.get('/health/features').then(r => r.data),
+  features: (): Promise<{ bookingImport: boolean; aiParsing: boolean }> => apiClient.get('/health/features').then(r => r.data),
 }
 
 export const weatherApi = {

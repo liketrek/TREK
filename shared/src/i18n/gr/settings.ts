@@ -66,6 +66,8 @@ const settings: TranslationStrings = {
   'settings.bookingLabelsHint':
     'Εμφάνιση ονομάτων σταθμών / αεροδρομίων στον χάρτη. Όταν είναι απενεργοποιημένο, εμφανίζεται μόνο το εικονίδιο.',
   'settings.blurBookingCodes': 'Θόλωμα Κωδικών Κρατήσεων',
+  'settings.aiAlwaysRetry': 'Always retry booking imports with AI',
+  'settings.aiAlwaysRetryHint': 'When a file cannot be read by the standard parser, automatically retry it with AI.',
   'settings.optimizeFromAccommodation': 'Βελτιστοποίηση διαδρομής από το κατάλυμα',
   'settings.optimizeFromAccommodationHint':
     'Κατά τη βελτιστοποίηση μιας ημέρας, ξεκινήστε τη διαδρομή από το ξενοδοχείο στο οποίο ξυπνάτε και τερματίστε την σε αυτό στο οποίο κάνετε check-in το ίδιο βράδυ.',

@@ -61,6 +61,8 @@ const settings: TranslationStrings = {
   'settings.bookingLabels': 'Rezervasyon rota etiketleri',
   'settings.bookingLabelsHint': 'Haritada istasyon / havalimanı adlarını göster. Kapalıyken yalnızca simge görünür.',
   'settings.blurBookingCodes': 'Rezervasyon Kodlarını Bulanıklaştır',
+  'settings.aiAlwaysRetry': 'Always retry booking imports with AI',
+  'settings.aiAlwaysRetryHint': 'When a file cannot be read by the standard parser, automatically retry it with AI.',
   'settings.optimizeFromAccommodation': 'Rotayı konaklamadan optimize et',
   'settings.optimizeFromAccommodationHint':
     'Bir günü optimize ederken rotaya o sabah uyandığınız otelden başlayın ve akşam giriş yaptığınız otelde sonlandırın.',

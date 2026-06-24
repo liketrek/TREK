@@ -64,6 +64,8 @@ const settings: TranslationStrings = {
   'settings.mapPoiPillHint':
     'Show a category pill on the trip map to find nearby restaurants, hotels and more from OpenStreetMap.',
   'settings.blurBookingCodes': 'Blur Booking Codes',
+  'settings.aiAlwaysRetry': 'Always retry booking imports with AI',
+  'settings.aiAlwaysRetryHint': 'When a file cannot be read by the standard parser, automatically retry it with AI.',
   'settings.optimizeFromAccommodation': 'Optimize route from accommodation',
   'settings.optimizeFromAccommodationHint':
     'When optimizing a day, start the route at the hotel you wake up in and end it at the one you check into that evening.',

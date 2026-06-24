@@ -181,9 +181,28 @@ export const bookingImportPreviewItemSchema = z.object({
 });
 export type BookingImportPreviewItem = z.infer<typeof bookingImportPreviewItemSchema>;
 
+/**
+ * How the preview endpoint should treat the LLM fallback:
+ *  - `no-ai`             — kitinerary only (default; existing behaviour)
+ *  - `fallback-on-empty` — run the LLM for files kitinerary returns nothing for
+ *  - `force-ai`          — run the LLM on every submitted file (skip kitinerary)
+ */
+export const bookingImportModeSchema = z.enum(['no-ai', 'fallback-on-empty', 'force-ai']);
+export type BookingImportMode = z.infer<typeof bookingImportModeSchema>;
+
+/** Per-file AI report so the preview UI can offer "Try AI parsing" only where it applies. */
+export const bookingImportFileReportSchema = z.object({
+  fileName: z.string(),
+  aiAvailable: z.boolean(),
+  aiUsed: z.boolean(),
+});
+export type BookingImportFileReport = z.infer<typeof bookingImportFileReportSchema>;
+
 export const bookingImportPreviewResponseSchema = z.object({
   items: z.array(bookingImportPreviewItemSchema),
   warnings: z.array(z.string()),
+  // Optional so existing/no-AI responses stay byte-compatible.
+  files: z.array(bookingImportFileReportSchema).optional(),
 });
 export type BookingImportPreviewResponse = z.infer<typeof bookingImportPreviewResponseSchema>;
 

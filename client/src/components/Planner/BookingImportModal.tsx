@@ -2,11 +2,12 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import { useState, useRef, useEffect } from 'react'
 import { Upload, Plane, Train, Hotel, UtensilsCrossed, Car, Anchor, Calendar, ArrowLeft, X } from 'lucide-react'
-import type { BookingImportPreviewItem } from '@trek/shared'
+import type { BookingImportPreviewItem, BookingImportFileReport } from '@trek/shared'
 import { useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
-import { reservationsApi } from '../../api/client'
+import { reservationsApi, healthApi } from '../../api/client'
 import { useTripStore } from '../../store/tripStore'
+import { useSettingsStore } from '../../store/settingsStore'
 
 interface BookingImportModalProps {
   isOpen: boolean
@@ -54,6 +55,7 @@ export default function BookingImportModal({ isOpen, onClose, tripId, pushUndo }
   const { t } = useTranslation()
   const toast = useToast()
   const loadTrip = useTripStore((s) => s.loadTrip)
+  const alwaysRetryAi = useSettingsStore((s) => s.settings.llm_always_retry)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const mouseDownTarget = useRef<EventTarget | null>(null)
 
@@ -66,6 +68,10 @@ export default function BookingImportModal({ isOpen, onClose, tripId, pushUndo }
   const [previewItems, setPreviewItems] = useState<BookingImportPreviewItem[]>([])
   const [warnings, setWarnings] = useState<string[]>([])
   const [excluded, setExcluded] = useState<Set<number>>(() => new Set())
+  // AI fallback: addon-level availability + per-file report + in-flight retries.
+  const [aiParsing, setAiParsing] = useState(false)
+  const [fileReports, setFileReports] = useState<BookingImportFileReport[]>([])
+  const [retrying, setRetrying] = useState<Set<string>>(() => new Set())
 
   const reset = () => {
     setPhase('upload')
@@ -76,12 +82,19 @@ export default function BookingImportModal({ isOpen, onClose, tripId, pushUndo }
     setPreviewItems([])
     setWarnings([])
     setExcluded(new Set())
+    setFileReports([])
+    setRetrying(new Set())
   }
 
   useEffect(() => {
     if (isOpen) reset()
     // reset is stable — intentional
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen])
+
+  useEffect(() => {
+    if (!isOpen) return
+    healthApi.features().then(f => setAiParsing(!!f.aiParsing)).catch(() => setAiParsing(false))
   }, [isOpen])
 
   const handleClose = () => { reset(); onClose() }
@@ -126,9 +139,13 @@ export default function BookingImportModal({ isOpen, onClose, tripId, pushUndo }
     setLoading(true)
     setError('')
     try {
-      const result = await reservationsApi.importBookingPreview(tripId, files)
+      // When the user opted into "always retry with AI", rescue files kitinerary
+      // can't read automatically; otherwise offer a per-file retry in the preview.
+      const mode = aiParsing && alwaysRetryAi ? 'fallback-on-empty' : 'no-ai'
+      const result = await reservationsApi.importBookingPreview(tripId, files, mode)
       setPreviewItems(result.items ?? [])
       setWarnings(result.warnings ?? [])
+      setFileReports(result.files ?? [])
       setExcluded(new Set())
       setPhase('preview')
     } catch (err: any) {
@@ -136,6 +153,24 @@ export default function BookingImportModal({ isOpen, onClose, tripId, pushUndo }
       setError(msg)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Re-run a single file through the LLM (force-ai) and merge any new items in.
+  const handleRetryAi = async (fileName: string) => {
+    const file = files.find(f => f.name === fileName)
+    if (!file || retrying.has(fileName)) return
+    setRetrying(prev => new Set(prev).add(fileName))
+    try {
+      const result = await reservationsApi.importBookingPreview(tripId, [file], 'force-ai')
+      setPreviewItems(prev => [...prev, ...(result.items ?? [])])
+      setWarnings(prev => [...prev, ...(result.warnings ?? [])])
+      setFileReports(prev => prev.map(r => r.fileName === fileName ? { ...r, aiUsed: true } : r))
+    } catch (err: any) {
+      const msg = err?.response?.data?.error ?? t('reservations.import.error')
+      setError(msg)
+    } finally {
+      setRetrying(prev => { const next = new Set(prev); next.delete(fileName); return next })
     }
   }
 
@@ -290,8 +325,15 @@ export default function BookingImportModal({ isOpen, onClose, tripId, pushUndo }
                       <Icon size={15} color={typeColor(item.type)} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {item.title}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {item.title}
+                        </span>
+                        {item.needs_review && (
+                          <span className="bg-[rgba(245,158,11,0.15)] text-[#92400e]" style={{ flexShrink: 0, fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 6 }}>
+                            {t('reservations.import.needsReview')}
+                          </span>
+                        )}
                       </div>
                       {fromEp && toEp && (
                         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>
@@ -326,6 +368,23 @@ export default function BookingImportModal({ isOpen, onClose, tripId, pushUndo }
                   </div>
                 )
               })}
+
+              {/* Per-file AI fallback: offer a retry for files kitinerary couldn't read. */}
+              {phase === 'preview' && fileReports.filter(r => r.aiAvailable && !r.aiUsed).map(r => (
+                <div key={`ai-${r.fileName}`} className="bg-surface-secondary" style={{ borderRadius: 10, padding: '8px 12px', marginBottom: 8, border: '1px dashed var(--border-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {r.fileName}
+                  </span>
+                  <button
+                    onClick={() => handleRetryAi(r.fileName)}
+                    disabled={retrying.has(r.fileName)}
+                    className="bg-accent text-accent-text"
+                    style={{ flexShrink: 0, border: 'none', borderRadius: 8, padding: '5px 10px', fontSize: 12, fontWeight: 500, cursor: retrying.has(r.fileName) ? 'default' : 'pointer', fontFamily: 'inherit', opacity: retrying.has(r.fileName) ? 0.6 : 1 }}
+                  >
+                    {retrying.has(r.fileName) ? t('reservations.import.aiParsing') : t('reservations.import.tryAi')}
+                  </button>
+                </div>
+              ))}
             </>
           )}
 

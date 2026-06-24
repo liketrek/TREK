@@ -60,6 +60,8 @@ const settings: TranslationStrings = {
   'settings.distance': 'Afstandseenheid',
   'settings.timeFormat': 'Tijdnotatie',
   'settings.blurBookingCodes': 'Boekingscodes vervagen',
+  'settings.aiAlwaysRetry': 'Always retry booking imports with AI',
+  'settings.aiAlwaysRetryHint': 'When a file cannot be read by the standard parser, automatically retry it with AI.',
   'settings.optimizeFromAccommodation': 'Route optimaliseren vanaf accommodatie',
   'settings.optimizeFromAccommodationHint':
     'Begin bij het optimaliseren van een dag de route bij het hotel waar je wakker wordt en eindig bij het hotel waar je die avond incheckt.',

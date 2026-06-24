@@ -1,10 +1,10 @@
 import { db } from '../db/database';
 import { decrypt_api_key, maybe_encrypt_api_key } from './apiKeyCrypto';
 
-const ENCRYPTED_SETTING_KEYS = new Set(['webhook_url', 'ntfy_token', 'mapbox_access_token']);
+const ENCRYPTED_SETTING_KEYS = new Set(['webhook_url', 'ntfy_token', 'mapbox_access_token', 'llm_api_key']);
 // Encrypted keys that are masked (••••••••) when returned to the client.
 // Keys not in this set but in ENCRYPTED_SETTING_KEYS are decrypted and returned.
-const MASKED_SETTING_KEYS = new Set(['webhook_url', 'ntfy_token']);
+const MASKED_SETTING_KEYS = new Set(['webhook_url', 'ntfy_token', 'llm_api_key']);
 
 export const DEFAULTABLE_USER_SETTING_KEYS = [
   'temperature_unit',
@@ -24,6 +24,16 @@ export const DEFAULTABLE_USER_SETTING_KEYS = [
   'maplibre_style',
   'mapbox_3d_enabled',
   'mapbox_quality_mode',
+  // Per-user LLM fallback config for booking import (used when the admin has not
+  // set instance-wide config on the llm_parsing addon). See llmConfig.ts.
+  'llm_provider',
+  'llm_model',
+  'llm_base_url',
+  'llm_multimodal',
+  'llm_api_key',
+  // "Always retry with AI" toggle — when on, the preview auto-runs the LLM on
+  // files kitinerary returns nothing for.
+  'llm_always_retry',
 ] as const;
 
 type DefaultableKey = typeof DEFAULTABLE_USER_SETTING_KEYS[number];
@@ -34,9 +44,10 @@ const VALID_VALUES: Partial<Record<DefaultableKey, unknown[]>> = {
   time_format: ['12h', '24h'],
   dark_mode: [true, false, 'light', 'dark', 'auto'],
   map_provider: ['leaflet', 'mapbox-gl', 'maplibre-gl'],
+  llm_provider: ['local', 'openai', 'anthropic'],
 };
 
-const BOOLEAN_KEYS = new Set<DefaultableKey>(['blur_booking_codes', 'mapbox_3d_enabled', 'mapbox_quality_mode']);
+const BOOLEAN_KEYS = new Set<DefaultableKey>(['blur_booking_codes', 'mapbox_3d_enabled', 'mapbox_quality_mode', 'llm_multimodal', 'llm_always_retry']);
 
 function parseValue(raw: string): unknown {
   try { return JSON.parse(raw); } catch { return raw; }
@@ -156,4 +167,22 @@ export function bulkUpsertSettings(userId: number, settings: Record<string, unkn
     throw err;
   }
   return Object.keys(settings).length;
+}
+
+/**
+ * Read a single per-user setting, decrypting it if it's an encrypted key.
+ * Unlike getUserSettings (which MASKS encrypted keys for the client), this
+ * returns the plaintext — for server-side use only (e.g. the LLM config
+ * resolver needs the real API key). Returns null when unset.
+ */
+export function getDecryptedUserSetting(userId: number, key: string): string | null {
+  const row = db.prepare('SELECT value FROM settings WHERE user_id = ? AND key = ?').get(userId, key) as { value: string } | undefined;
+  if (!row || row.value === '' || row.value == null) return null;
+  if (ENCRYPTED_SETTING_KEYS.has(key)) return decrypt_api_key(row.value);
+  try {
+    const parsed = JSON.parse(row.value);
+    return typeof parsed === 'string' ? parsed : row.value;
+  } catch {
+    return row.value;
+  }
 }

@@ -60,6 +60,8 @@ const settings: TranslationStrings = {
   'settings.bookingLabels': '予約ルートのラベル',
   'settings.bookingLabelsHint': '地図に駅・空港名を表示。オフ時はアイコンのみ。',
   'settings.blurBookingCodes': '予約コードをぼかす',
+  'settings.aiAlwaysRetry': 'Always retry booking imports with AI',
+  'settings.aiAlwaysRetryHint': 'When a file cannot be read by the standard parser, automatically retry it with AI.',
   'settings.optimizeFromAccommodation': '宿泊先を起点にルートを最適化',
   'settings.optimizeFromAccommodationHint':
     'その日を最適化する際、朝に目覚める宿泊先を起点にし、その晩にチェックインする宿泊先を終点としてルートを組みます。',

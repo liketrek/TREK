@@ -60,6 +60,8 @@ const settings: TranslationStrings = {
   'settings.distance': 'Satuan Jarak',
   'settings.timeFormat': 'Format Waktu',
   'settings.blurBookingCodes': 'Sembunyikan Kode Pemesanan',
+  'settings.aiAlwaysRetry': 'Always retry booking imports with AI',
+  'settings.aiAlwaysRetryHint': 'When a file cannot be read by the standard parser, automatically retry it with AI.',
   'settings.optimizeFromAccommodation': 'Optimalkan rute dari akomodasi',
   'settings.optimizeFromAccommodationHint':
     'Saat mengoptimalkan suatu hari, mulai rute dari hotel tempatmu bangun pagi dan akhiri di hotel tempatmu check-in malam itu.',

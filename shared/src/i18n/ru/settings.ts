@@ -59,6 +59,8 @@ const settings: TranslationStrings = {
   'settings.distance': 'Единица расстояния',
   'settings.timeFormat': 'Формат времени',
   'settings.blurBookingCodes': 'Скрыть коды бронирования',
+  'settings.aiAlwaysRetry': 'Always retry booking imports with AI',
+  'settings.aiAlwaysRetryHint': 'When a file cannot be read by the standard parser, automatically retry it with AI.',
   'settings.optimizeFromAccommodation': 'Оптимизировать маршрут от места проживания',
   'settings.optimizeFromAccommodationHint':
     'При оптимизации дня маршрут начинается от отеля, в котором вы просыпаетесь, и заканчивается у того, в который вы заселяетесь вечером.',

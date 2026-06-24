@@ -58,6 +58,8 @@ const settings: TranslationStrings = {
   'settings.distance': '距离单位',
   'settings.timeFormat': '时间格式',
   'settings.blurBookingCodes': '模糊预订代码',
+  'settings.aiAlwaysRetry': 'Always retry booking imports with AI',
+  'settings.aiAlwaysRetryHint': 'When a file cannot be read by the standard parser, automatically retry it with AI.',
   'settings.optimizeFromAccommodation': '从住宿地优化路线',
   'settings.optimizeFromAccommodationHint': '优化某一天时，路线将从您醒来时所在的酒店出发，并在当晚入住的酒店结束。',
   'settings.notifications': '通知',

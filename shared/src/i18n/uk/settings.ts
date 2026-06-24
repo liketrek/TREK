@@ -60,6 +60,8 @@ const settings: TranslationStrings = {
   'settings.distance': 'Одиниця відстані',
   'settings.timeFormat': 'Формат часу',
   'settings.blurBookingCodes': 'Приховати коди бронювання',
+  'settings.aiAlwaysRetry': 'Always retry booking imports with AI',
+  'settings.aiAlwaysRetryHint': 'When a file cannot be read by the standard parser, automatically retry it with AI.',
   'settings.optimizeFromAccommodation': 'Оптимізувати маршрут від житла',
   'settings.optimizeFromAccommodationHint':
     'Під час оптимізації дня починайте маршрут від готелю, у якому ви прокидаєтеся, і завершуйте його тим, у який ви заселяєтеся ввечері.',

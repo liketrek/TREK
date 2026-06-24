@@ -59,6 +59,8 @@ const settings: TranslationStrings = {
   'settings.bookingLabels': 'تسميات مسارات الحجوزات',
   'settings.bookingLabelsHint': 'عرض أسماء المحطات/المطارات على الخريطة. عند الإيقاف، يتم عرض الرمز فقط.',
   'settings.blurBookingCodes': 'إخفاء رموز الحجز',
+  'settings.aiAlwaysRetry': 'Always retry booking imports with AI',
+  'settings.aiAlwaysRetryHint': 'When a file cannot be read by the standard parser, automatically retry it with AI.',
   'settings.optimizeFromAccommodation': 'تحسين المسار انطلاقًا من مكان الإقامة',
   'settings.optimizeFromAccommodationHint':
     'عند تحسين يوم ما، يبدأ المسار من الفندق الذي تستيقظ فيه وينتهي عند الفندق الذي تسجّل الوصول إليه في تلك الليلة.',

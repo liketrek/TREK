@@ -298,13 +298,212 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
                   </span>
                 </div>
                 {integrationAddons.map(addon => (
-                  <AddonRow key={addon.id} addon={addon} onToggle={handleToggle} t={t} />
+                  <div key={addon.id}>
+                    <AddonRow addon={addon} onToggle={handleToggle} t={t} />
+                    {addon.id === 'llm_parsing' && addon.enabled && (
+                      <LlmParsingConfig addon={addon} />
+                    )}
+                  </div>
                 ))}
               </div>
             )}
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+const MASKED = '••••••••'
+const DEFAULT_OLLAMA_URL = 'http://localhost:11434/v1'
+
+/** Curated NuExtract models, pullable via Ollama (HF GGUF for 2.0; library for 1.5). */
+const NUEXTRACT_MODELS: { id: string; label: string; note: string; recommended: boolean; vision: boolean }[] = [
+  { id: 'hf.co/numind/NuExtract-2.0-2B-GGUF', label: 'NuExtract 2.0 — 2B', note: 'Vision · lightest · commercial license', recommended: true, vision: true },
+  { id: 'hf.co/numind/NuExtract-2.0-4B-GGUF', label: 'NuExtract 2.0 — 4B', note: 'Vision · best balance', recommended: true, vision: true },
+  { id: 'hf.co/numind/NuExtract-2.0-8B-GGUF', label: 'NuExtract 2.0 — 8B', note: 'Vision · highest quality', recommended: false, vision: true },
+  { id: 'nuextract', label: 'NuExtract 1.5 — 3.8B', note: 'Text-only', recommended: false, vision: false },
+]
+
+/**
+ * Instance-wide AI-parsing config. When set, applies to the whole instance and
+ * overrides per-user config (see server llmConfig.ts). The API key is masked on
+ * read; an unchanged mask is treated as a no-op by the server. For the local
+ * provider, it also lists installed Ollama models and can pull NuExtract models.
+ */
+function LlmParsingConfig({ addon }: { addon: Addon }) {
+  const toast = useToast()
+  const cfg = (addon.config ?? {}) as Record<string, unknown>
+  const [provider, setProvider] = useState<string>((cfg.provider as string) ?? 'local')
+  const [model, setModel] = useState<string>((cfg.model as string) ?? '')
+  const [baseUrl, setBaseUrl] = useState<string>((cfg.baseUrl as string) ?? '')
+  const [apiKey, setApiKey] = useState<string>((cfg.apiKey as string) ?? '')
+  const [saving, setSaving] = useState(false)
+
+  // Local-provider model management.
+  const [installed, setInstalled] = useState<string[]>([])
+  const [modelsErr, setModelsErr] = useState('')
+  const [loadingModels, setLoadingModels] = useState(false)
+  const [pulling, setPulling] = useState<string | null>(null)
+  const [pullPct, setPullPct] = useState(0)
+  const [pullStatus, setPullStatus] = useState('')
+
+  const effectiveUrl = baseUrl.trim() || DEFAULT_OLLAMA_URL
+  const isInstalled = (id: string) => installed.some(n => n === id || n.startsWith(id + ':') || n.startsWith(id))
+
+  const loadModels = async () => {
+    if (provider !== 'local') return
+    setLoadingModels(true)
+    setModelsErr('')
+    try {
+      const res = await adminApi.llmLocalModels(effectiveUrl)
+      setInstalled(res.models.map(m => m.name))
+    } catch (e: unknown) {
+      setModelsErr(e instanceof Error ? e.message : 'Could not reach the local LLM server')
+      setInstalled([])
+    } finally {
+      setLoadingModels(false)
+    }
+  }
+
+  // Load installed models when the local provider is active.
+  useEffect(() => {
+    if (provider === 'local') loadModels()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [provider])
+
+  const pull = async (id: string) => {
+    if (pulling) return
+    setPulling(id)
+    setPullPct(0)
+    setPullStatus('starting…')
+    try {
+      await adminApi.llmLocalPull(effectiveUrl, id, (p) => {
+        if (p.error) throw new Error(p.error)
+        if (p.status) setPullStatus(p.status)
+        if (p.total && p.completed != null) setPullPct(Math.round((p.completed / p.total) * 100))
+      })
+      toast.success('Model pulled')
+      setModel(id)
+      await loadModels()
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Pull failed')
+    } finally {
+      setPulling(null)
+      setPullPct(0)
+      setPullStatus('')
+    }
+  }
+
+  const save = async () => {
+    setSaving(true)
+    try {
+      // Send the masked sentinel unchanged so the server keeps the stored key.
+      await adminApi.updateAddon(addon.id, { config: { provider, model: model.trim(), baseUrl: baseUrl.trim(), apiKey, multimodal: cfg.multimodal === true } })
+      toast.success('Saved')
+    } catch {
+      toast.error('Failed to save')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const inputCls = 'w-full rounded-md border border-edge-secondary bg-surface px-2 py-1.5 text-sm text-content'
+  return (
+    <div className="px-6 py-4 border-b border-edge-secondary bg-surface-secondary space-y-3" style={{ paddingLeft: 70 }}>
+      <p className="text-xs text-content-faint">
+        Set instance-wide config (applies to all users). Leave blank to let each user configure their own provider.
+      </p>
+      <label className="block text-xs font-medium text-content-secondary">Provider
+        <select className={inputCls} value={provider} onChange={e => setProvider(e.target.value)}>
+          <option value="local">Local (OpenAI-compatible, e.g. Ollama)</option>
+          <option value="openai">OpenAI</option>
+          <option value="anthropic">Anthropic</option>
+        </select>
+      </label>
+      <label className="block text-xs font-medium text-content-secondary">Model
+        <input className={inputCls} value={model} onChange={e => setModel(e.target.value)} placeholder={provider === 'anthropic' ? 'claude-opus-4-8' : provider === 'openai' ? 'gpt-4o' : 'select or pull below'} />
+      </label>
+      {provider !== 'anthropic' && (
+        <label className="block text-xs font-medium text-content-secondary">Base URL
+          <input className={inputCls} value={baseUrl} onChange={e => setBaseUrl(e.target.value)} onBlur={loadModels} placeholder={provider === 'local' ? 'http://localhost:11434/v1' : 'https://api.openai.com/v1'} />
+        </label>
+      )}
+
+      {/* Local model management (Ollama) */}
+      {provider === 'local' && (
+        <div className="rounded-lg border border-edge-secondary p-3 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-content-secondary">Installed models</span>
+            <button onClick={loadModels} disabled={loadingModels} className="text-xs text-content-muted underline disabled:opacity-60">
+              {loadingModels ? 'Loading…' : 'Refresh'}
+            </button>
+          </div>
+          {modelsErr && <p className="text-xs text-[#b91c1c]">{modelsErr}</p>}
+          {!modelsErr && installed.length === 0 && !loadingModels && (
+            <p className="text-xs text-content-faint">No models installed yet — pull one below.</p>
+          )}
+          {installed.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {installed.map(name => (
+                <button
+                  key={name}
+                  onClick={() => setModel(name)}
+                  className={`rounded-full px-2.5 py-1 text-xs border ${model === name ? 'bg-accent text-accent-text border-transparent' : 'border-edge-secondary text-content-secondary'}`}
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="text-xs font-semibold text-content-secondary pt-1">Pull a NuExtract model</div>
+          <div className="space-y-2">
+            {NUEXTRACT_MODELS.map(m => {
+              const installedHere = isInstalled(m.id)
+              const isPulling = pulling === m.id
+              return (
+                <div key={m.id} className="flex items-center gap-3">
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-content">{m.label}</span>
+                      {m.recommended && (
+                        <span className="bg-[rgba(16,185,129,0.15)] text-[#047857]" style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 6 }}>Recommended</span>
+                      )}
+                    </div>
+                    <div className="text-xs text-content-faint">{m.note}</div>
+                    {isPulling && (
+                      <div className="mt-1">
+                        <div className="h-1.5 w-full rounded-full bg-surface-tertiary overflow-hidden">
+                          <div className="h-full bg-accent" style={{ width: `${pullPct}%`, transition: 'width 0.2s' }} />
+                        </div>
+                        <div className="text-[10px] text-content-faint mt-0.5">{pullStatus} {pullPct ? `· ${pullPct}%` : ''}</div>
+                      </div>
+                    )}
+                  </div>
+                  {installedHere ? (
+                    <button onClick={() => setModel(m.id)} className="shrink-0 rounded-md border border-edge-secondary px-3 py-1.5 text-xs text-content-secondary">Use</button>
+                  ) : (
+                    <button onClick={() => pull(m.id)} disabled={!!pulling} className="shrink-0 rounded-md bg-accent text-accent-text px-3 py-1.5 text-xs font-medium disabled:opacity-60">
+                      {isPulling ? 'Pulling…' : 'Pull'}
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      <label className="block text-xs font-medium text-content-secondary">API key
+        <input type="password" className={inputCls} value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder={apiKey === MASKED ? MASKED : provider === 'local' ? '(often not required)' : 'sk-…'} />
+      </label>
+      {provider === 'anthropic' && (
+        <p className="text-xs text-content-faint">Anthropic reads PDFs (including scans) natively. Local/OpenAI models receive extracted text — scanned PDFs need Anthropic.</p>
+      )}
+      <button onClick={save} disabled={saving} className="bg-accent text-accent-text rounded-md px-3 py-1.5 text-sm font-medium disabled:opacity-60">
+        {saving ? 'Saving…' : 'Save'}
+      </button>
     </div>
   )
 }

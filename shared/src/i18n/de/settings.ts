@@ -62,6 +62,8 @@ const settings: TranslationStrings = {
   'settings.bookingLabels': 'Orts-Labels auf Buchungsrouten',
   'settings.bookingLabelsHint': 'Zeigt Bahnhofs-/Flughafennamen auf der Karte. Wenn aus, wird nur das Icon angezeigt.',
   'settings.blurBookingCodes': 'Buchungscodes verbergen',
+  'settings.aiAlwaysRetry': 'Always retry booking imports with AI',
+  'settings.aiAlwaysRetryHint': 'When a file cannot be read by the standard parser, automatically retry it with AI.',
   'settings.optimizeFromAccommodation': 'Route ab der Unterkunft optimieren',
   'settings.optimizeFromAccommodationHint':
     'Beim Optimieren eines Tages startet die Route an der Unterkunft, in der du aufwachst, und endet an der, in die du am Abend eincheckst.',

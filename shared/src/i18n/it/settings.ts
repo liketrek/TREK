@@ -61,6 +61,8 @@ const settings: TranslationStrings = {
   'settings.distance': 'Unità di Distanza',
   'settings.timeFormat': 'Formato Ora',
   'settings.blurBookingCodes': 'Nascondi codici di prenotazione',
+  'settings.aiAlwaysRetry': 'Always retry booking imports with AI',
+  'settings.aiAlwaysRetryHint': 'When a file cannot be read by the standard parser, automatically retry it with AI.',
   'settings.optimizeFromAccommodation': "Ottimizza il percorso dall'alloggio",
   'settings.optimizeFromAccommodationHint':
     "Quando ottimizzi un giorno, fa iniziare il percorso dall'hotel in cui ti svegli e terminarlo in quello in cui fai il check-in quella sera.",
