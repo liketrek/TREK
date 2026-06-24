@@ -46,23 +46,11 @@ COPY package.json package-lock.json ./
 COPY shared/package.json ./shared/
 COPY server/package.json ./server/
 
-# better-sqlite3 native addon requires build tools (purged after compile).
-# kitinerary-extractor for booking-confirmation import:
-#   amd64 — static binary from KDE CDN (glibc 2.17+; wget stays for healthcheck)
-#   arm64 — apt package (KDE publishes no arm64 static binary)
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends tzdata dumb-init wget ca-certificates python3 build-essential && \
+    apt-get install -y --no-install-recommends tzdata dumb-init wget ca-certificates python3 build-essential \
+    libkitinerary-bin && \
     npm ci --workspace=server --omit=dev && \
-    ARCH=$(dpkg --print-architecture) && \
-    if [ "$ARCH" = "amd64" ]; then \
-        wget -qO /tmp/ki.tgz https://cdn.kde.org/ci-builds/pim/kitinerary/release-26.04/linux/kitinerary-extractor-x86_64-26.04.2.tgz && \
-        echo "ba5cfb4a2353157c8f54cbeaea0097c5bf2c3a810e0342f63d6e524826176628 /tmp/ki.tgz" | sha256sum -c && \
-        tar -xz -C /usr/local -f /tmp/ki.tgz bin/kitinerary-extractor share/locale && \
-        rm /tmp/ki.tgz; \
-    else \
-        apt-get install -y --no-install-recommends libkitinerary-bin && \
-        ln -sf "$(find /usr/lib -name kitinerary-extractor -type f | head -1)" /usr/local/bin/kitinerary-extractor; \
-    fi && \
+    ln -sf "$(find /usr/lib -name kitinerary-extractor -type f | head -1)" /usr/local/bin/kitinerary-extractor; \
     apt-get purge -y python3 build-essential && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/* /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx

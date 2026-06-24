@@ -15,7 +15,8 @@ import type { User } from '../../types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { BookingImportService } from './booking-import.service';
-import type { BookingImportPreviewItem, BookingImportPreviewResponse, BookingImportConfirmResponse } from '@trek/shared';
+import { bookingImportModeSchema } from '@trek/shared';
+import type { BookingImportPreviewItem, BookingImportPreviewResponse, BookingImportConfirmResponse, BookingImportMode } from '@trek/shared';
 
 const ACCEPTED_EXTS = new Set(['.eml', '.pdf', '.pkpass', '.html', '.htm', '.txt']);
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
@@ -54,11 +55,23 @@ export class BookingImportController {
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @UploadedFiles() files: Express.Multer.File[] | undefined,
+    @Body('mode') rawMode?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
 
-    if (!this.bookingImport.isAvailable()) {
+    const modeResult = bookingImportModeSchema.safeParse(rawMode ?? 'no-ai');
+    if (!modeResult.success) {
+      throw new HttpException({ error: 'Invalid mode' }, 400);
+    }
+    const mode: BookingImportMode = modeResult.data;
+
+    // Forcing AI requires it to be configured; otherwise surface a clear 4xx.
+    if (mode === 'force-ai' && !this.bookingImport.aiAvailable(user.id)) {
+      throw new HttpException({ error: 'AI parsing is not configured' }, 409);
+    }
+    // For the kitinerary-only path, keep the existing 503 contract.
+    if (mode === 'no-ai' && !this.bookingImport.isAvailable()) {
       throw new HttpException({ error: 'KItinerary extractor is not available on this server' }, 503);
     }
 
@@ -74,7 +87,7 @@ export class BookingImportController {
       }
     }
 
-    const result: BookingImportPreviewResponse = await this.bookingImport.preview(files);
+    const result: BookingImportPreviewResponse = await this.bookingImport.preview(files, mode, user.id);
     return result;
   }
 

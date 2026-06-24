@@ -58,6 +58,8 @@ const settings: TranslationStrings = {
   'settings.temperature': 'Unité de température',
   'settings.timeFormat': "Format de l'heure",
   'settings.blurBookingCodes': 'Masquer les codes de réservation',
+  'settings.aiAlwaysRetry': 'Always retry booking imports with AI',
+  'settings.aiAlwaysRetryHint': 'When a file cannot be read by the standard parser, automatically retry it with AI.',
   'settings.optimizeFromAccommodation': "Optimiser l'itinéraire depuis l'hébergement",
   'settings.optimizeFromAccommodationHint':
     "Lors de l'optimisation d'une journée, commencez l'itinéraire à l'hôtel où vous vous réveillez et terminez-le à celui où vous arrivez le soir.",

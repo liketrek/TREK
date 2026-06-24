@@ -120,6 +120,14 @@ export interface Settings {
   mapbox_style?: string
   mapbox_3d_enabled?: boolean
   mapbox_quality_mode?: boolean
+  // AI booking-import fallback (per-user config; used when the admin has not set
+  // instance-wide config on the llm_parsing addon). llm_api_key is masked on read.
+  llm_always_retry?: boolean
+  llm_provider?: 'local' | 'openai' | 'anthropic'
+  llm_model?: string
+  llm_base_url?: string
+  llm_multimodal?: boolean
+  llm_api_key?: string
 }
 
 export interface AssignmentsMap {

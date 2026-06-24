@@ -55,6 +55,8 @@ const settings: TranslationStrings = {
   'settings.temperature': 'Jednotky teploty',
   'settings.timeFormat': 'Formát času',
   'settings.blurBookingCodes': 'Skrýt rezervační kódy',
+  'settings.aiAlwaysRetry': 'Always retry booking imports with AI',
+  'settings.aiAlwaysRetryHint': 'When a file cannot be read by the standard parser, automatically retry it with AI.',
   'settings.optimizeFromAccommodation': 'Optimalizovat trasu od ubytování',
   'settings.optimizeFromAccommodationHint':
     'Při optimalizaci dne začne trasa v hotelu, ve kterém se ráno probudíte, a skončí v hotelu, do kterého se večer ubytujete.',

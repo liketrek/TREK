@@ -11,6 +11,8 @@ import { revokeUserSessions, revokeUserSessionsForClient } from '../mcp';
 import { deleteUserCompletely } from './userCleanupService';
 import { validatePassword } from './passwordPolicy';
 import { getPhotoProviderConfig } from './memories/helpersService';
+import { ADDON_IDS } from '../addons';
+import { prepareLlmAddonConfigForWrite, maskLlmAddonConfig } from './llmConfig';
 import { send as sendNotification } from './notificationService';
 import { resolveAuthToggles } from './authService';
 
@@ -670,7 +672,13 @@ export function listAddons() {
   }
 
   return [
-    ...addons.map(a => ({ ...a, enabled: !!a.enabled, config: JSON.parse(a.config || '{}') })),
+    ...addons.map(a => ({
+      ...a,
+      enabled: !!a.enabled,
+      config: a.id === ADDON_IDS.LLM_PARSING
+        ? maskLlmAddonConfig(JSON.parse(a.config || '{}'))
+        : JSON.parse(a.config || '{}'),
+    })),
     ...providers.map(p => ({
       id: p.id,
       name: p.name,
@@ -702,7 +710,14 @@ export function updateAddon(id: string, data: { enabled?: boolean; config?: Reco
 
   if (addon) {
     if (data.enabled !== undefined) db.prepare('UPDATE addons SET enabled = ? WHERE id = ?').run(data.enabled ? 1 : 0, id);
-    if (data.config !== undefined) db.prepare('UPDATE addons SET config = ? WHERE id = ?').run(JSON.stringify(data.config), id);
+    if (data.config !== undefined) {
+      // The AI-parsing addon holds an API key — encrypt it at rest and preserve
+      // the stored key when the client echoes the mask sentinel (see llmConfig.ts).
+      const configToStore = id === ADDON_IDS.LLM_PARSING
+        ? prepareLlmAddonConfigForWrite(data.config, JSON.parse(addon.config || '{}'))
+        : data.config;
+      db.prepare('UPDATE addons SET config = ? WHERE id = ?').run(JSON.stringify(configToStore), id);
+    }
   } else {
     if (data.enabled !== undefined) db.prepare('UPDATE photo_providers SET enabled = ? WHERE id = ?').run(data.enabled ? 1 : 0, id);
   }
@@ -710,7 +725,13 @@ export function updateAddon(id: string, data: { enabled?: boolean; config?: Reco
   const updatedAddon = db.prepare('SELECT * FROM addons WHERE id = ?').get(id) as Addon | undefined;
   const updatedProvider = db.prepare('SELECT * FROM photo_providers WHERE id = ?').get(id) as { id: string; name: string; description?: string | null; icon: string; enabled: number; sort_order: number } | undefined;
   const updated = updatedAddon
-    ? { ...updatedAddon, enabled: !!updatedAddon.enabled, config: JSON.parse(updatedAddon.config || '{}') }
+    ? {
+      ...updatedAddon,
+      enabled: !!updatedAddon.enabled,
+      config: updatedAddon.id === ADDON_IDS.LLM_PARSING
+        ? maskLlmAddonConfig(JSON.parse(updatedAddon.config || '{}'))
+        : JSON.parse(updatedAddon.config || '{}'),
+    }
     : updatedProvider
       ? {
         id: updatedProvider.id,

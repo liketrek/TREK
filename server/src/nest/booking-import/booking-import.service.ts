@@ -8,9 +8,10 @@ import { searchNominatim } from '../../services/mapsService';
 import { db } from '../../db/database';
 import type { User } from '../../types';
 import { KitineraryExtractorService } from './kitinerary-extractor.service';
+import { LlmParseService } from '../llm-parse/llm-parse.service';
 import { mapReservations } from './kitinerary-mapper';
-import type { BookingImportPreviewItem, BookingImportPreviewResponse, BookingImportConfirmResponse, Reservation } from '@trek/shared';
-import type { ParsedBookingItem } from './kitinerary.types';
+import type { BookingImportPreviewItem, BookingImportPreviewResponse, BookingImportConfirmResponse, BookingImportMode, BookingImportFileReport, Reservation } from '@trek/shared';
+import type { ParsedBookingItem, KiReservation } from './kitinerary.types';
 
 function resolveDayId(tripId: string, iso: string | null | undefined): number | null {
   if (!iso) return null;
@@ -22,10 +23,18 @@ function resolveDayId(tripId: string, iso: string | null | undefined): number | 
 
 @Injectable()
 export class BookingImportService {
-  constructor(private readonly extractor: KitineraryExtractorService) {}
+  constructor(
+    private readonly extractor: KitineraryExtractorService,
+    private readonly llmParse: LlmParseService,
+  ) {}
 
   isAvailable(): boolean {
     return this.extractor.isAvailable();
+  }
+
+  /** True when the LLM fallback is enabled and configured for this user. */
+  aiAvailable(userId: number): boolean {
+    return this.llmParse.isAvailable(userId);
   }
 
   verifyTripAccess(tripId: string, userId: number) {
@@ -37,25 +46,51 @@ export class BookingImportService {
   }
 
   /**
-   * Parse uploaded files through kitinerary-extractor and return a preview list.
-   * Does NOT persist anything.
+   * Parse uploaded files and return a preview list. Does NOT persist anything.
+   * Runs kitinerary first; depending on `mode`, falls back to the LLM:
+   *  - no-ai:             kitinerary only
+   *  - fallback-on-empty: LLM for files kitinerary returns nothing for
+   *  - force-ai:          LLM on every file (kitinerary skipped)
+   * LLM-derived items are flagged needs_review. Per-file AI usage is reported.
    */
-  async preview(files: Express.Multer.File[]): Promise<BookingImportPreviewResponse> {
-    if (!this.extractor.isAvailable()) {
+  async preview(
+    files: Express.Multer.File[],
+    mode: BookingImportMode,
+    userId: number,
+  ): Promise<BookingImportPreviewResponse> {
+    const kitineraryAvailable = this.extractor.isAvailable();
+    const aiAvailable = this.llmParse.isAvailable(userId);
+    if (!kitineraryAvailable && !aiAvailable) {
       throw new HttpException({ error: 'KItinerary extractor is not available on this server' }, 503);
     }
 
     const allItems: ParsedBookingItem[] = [];
     const allWarnings: string[] = [];
+    const fileReports: BookingImportFileReport[] = [];
 
     for (const file of files) {
-      let kiItems;
-      try {
-        kiItems = await this.extractor.extract(file.buffer, file.originalname);
-      } catch (err) {
-        allWarnings.push(`${file.originalname}: extraction failed — ${err instanceof Error ? err.message : String(err)}`);
-        continue;
+      let kiItems: KiReservation[] = [];
+      let aiUsed = false;
+
+      // Stage 1: kitinerary (skipped entirely when forcing AI).
+      if (mode !== 'force-ai' && kitineraryAvailable) {
+        try {
+          kiItems = await this.extractor.extract(file.buffer, file.originalname);
+        } catch (err) {
+          allWarnings.push(`${file.originalname}: extraction failed — ${err instanceof Error ? err.message : String(err)}`);
+        }
       }
+
+      // Stage 1b: LLM fallback.
+      const runLlm = aiAvailable && (mode === 'force-ai' || (mode === 'fallback-on-empty' && kiItems.length === 0));
+      if (runLlm) {
+        aiUsed = true;
+        const llm = await this.llmParse.parse({ buffer: file.buffer, originalName: file.originalname }, userId);
+        kiItems = llm.kiItems;
+        allWarnings.push(...llm.warnings);
+      }
+
+      fileReports.push({ fileName: file.originalname, aiAvailable, aiUsed });
 
       if (kiItems.length === 0) {
         allWarnings.push(`${file.originalname}: no reservations found`);
@@ -63,11 +98,13 @@ export class BookingImportService {
       }
 
       const { items, warnings } = mapReservations(kiItems, file.originalname);
+      // LLM extraction is less certain than kitinerary — always flag for review.
+      if (aiUsed) for (const it of items) it.needs_review = true;
       allItems.push(...items);
       allWarnings.push(...warnings);
     }
 
-    return { items: allItems, warnings: allWarnings };
+    return { items: allItems, warnings: allWarnings, files: fileReports };
   }
 
   /**
