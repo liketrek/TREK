@@ -131,9 +131,10 @@ describe('useRouteCalculation', () => {
     (calculateRouteWithLegs as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce({ ...MOCK_ROUTE_WITH_LEGS, duration: 900 })
       .mockResolvedValueOnce({ ...MOCK_ROUTE_WITH_LEGS, duration: 1200 });
+    const accommodations = [];
 
     renderHook(() =>
-      useRouteCalculation(store as TripStoreState, 5, true, 'driving', 'google_maps', 0.75, 10, {
+      useRouteCalculation(store as TripStoreState, 5, true, 'driving', accommodations, 'google_maps', 0.75, 10, {
         avoidTolls: true,
         avoidHighways: false,
         avoidFerries: true,

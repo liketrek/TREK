@@ -193,6 +193,28 @@ export function useRouteCalculation(
         return 0
       }
     }
+    const routeRun = async (
+      run: { lat: number; lng: number }[],
+      departure: string | null,
+      polylines: [number, number][][],
+      allLegs: RouteSegment[],
+    ): Promise<void> => {
+      try {
+        const r = await calculateRouteWithLegs(run, {
+          signal: controller.signal,
+          profile,
+          provider,
+          optimism,
+          google: { avoidTolls, avoidHighways, avoidFerries },
+          departureLocalDateTime: departure,
+        })
+        appendRoutePolyline(polylines, r.coordinates, run.map(p => [p.lat, p.lng] as [number, number]))
+        allLegs.push(...r.legs)
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') throw err
+        appendRoutePolyline(polylines, [], run.map(p => [p.lat, p.lng] as [number, number]))
+      }
+    }
 
     try {
       const polylines: [number, number][][] = []
@@ -239,10 +261,7 @@ export function useRouteCalculation(
         }
       } else {
         for (const run of runsWithHotel) {
-          await routeLeg(run[0], run[1], departureLocalDateTime, polylines, allLegs)
-          for (let index = 1; index < run.length - 1; index++) {
-            await routeLeg(run[index], run[index + 1], departureLocalDateTime, polylines, allLegs)
-          }
+          await routeRun(run, departureLocalDateTime, polylines, allLegs)
         }
       }
       if (!controller.signal.aborted) { setRoute(polylines); setRouteSegments(allLegs) }
