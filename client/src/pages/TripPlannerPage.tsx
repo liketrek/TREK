@@ -713,7 +713,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
           onSaved={() => { setBookingExpense(null); loadBudgetItems(tripId) }}
         />
       )}
-      <BookingImportModal isOpen={showBookingImport} onClose={() => setShowBookingImport(false)} tripId={tripId} pushUndo={pushUndo} />
+      <BookingImportModal isOpen={showBookingImport} onClose={() => setShowBookingImport(false)} tripId={tripId} pushUndo={pushUndo} onImported={loadAccommodations} />
       <AirTrailImportModal isOpen={showAirTrailImport} onClose={() => setShowAirTrailImport(false)} tripId={tripId} pushUndo={pushUndo} />
       <ConfirmDialog
         isOpen={!!deletePlaceId}

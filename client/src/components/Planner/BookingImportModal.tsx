@@ -13,6 +13,10 @@ interface BookingImportModalProps {
   onClose: () => void
   tripId: number
   pushUndo?: (label: string, undoFn: () => Promise<void> | void) => void
+  // Fired after a successful import so the page can refresh state that lives
+  // outside the trip store — notably the accommodations list a hotel booking
+  // links to (loadTrip alone leaves it stale, so the edit modal shows blanks).
+  onImported?: () => void
 }
 
 const ACCEPTED_EXTS = ['.eml', '.pdf', '.pkpass', '.html', '.htm', '.txt']
@@ -50,7 +54,7 @@ function formatDateTime(iso: unknown): string {
   return [date, time].filter(Boolean).join(' ')
 }
 
-export default function BookingImportModal({ isOpen, onClose, tripId, pushUndo }: BookingImportModalProps) {
+export default function BookingImportModal({ isOpen, onClose, tripId, pushUndo, onImported }: BookingImportModalProps) {
   const { t } = useTranslation()
   const toast = useToast()
   const loadTrip = useTripStore((s) => s.loadTrip)
@@ -181,6 +185,9 @@ export default function BookingImportModal({ isOpen, onClose, tripId, pushUndo }
       const result = await reservationsApi.importBookingConfirm(tripId, toImport)
       const created = result.created ?? []
       await loadTrip(tripId)
+      // Refresh out-of-store state (accommodations) so a freshly imported hotel
+      // resolves its place/date range in the reservation edit modal.
+      onImported?.()
 
       if (created.length > 0) {
         pushUndo?.(t('undo.importBooking'), async () => {
