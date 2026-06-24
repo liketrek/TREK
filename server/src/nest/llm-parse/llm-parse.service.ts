@@ -58,7 +58,7 @@ export class LlmParseService {
         // (rental/insurance docs run 30k+ chars) otherwise overflow the model's
         // context window — truncating the *relevant* head — and balloon CPU
         // inference time. Cap the text so only the useful head reaches the LLM.
-        const MAX_EXTRACT_CHARS = 8000;
+        const MAX_EXTRACT_CHARS = 4000;
         if (input.text.length > MAX_EXTRACT_CHARS) input.text = input.text.slice(0, MAX_EXTRACT_CHARS);
         console.debug(`[DEBUG] Extracted text from ${file.originalName} (${input.text.length} chars):\n`, input.text);
         if (!input.text.trim()) {
