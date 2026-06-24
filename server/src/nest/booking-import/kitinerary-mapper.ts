@@ -321,7 +321,7 @@ function mapEvent(r: KiReservation, source: ParsedBookingItem['source']): Parsed
 
   const loc = e.location;
   const c = coords(loc?.geo);
-  const venue: ParsedVenue | undefined = loc?.name ? { name: loc.name, ...(c ?? {}), address: formatAddress(loc.address) ?? undefined } : undefined;
+  const venue: ParsedVenue | undefined = loc?.name ? { name: loc.name, ...(c ?? {}), address: formatAddress(loc.address) ?? undefined, website: loc.url ?? undefined, phone: loc.telephone ?? undefined } : undefined;
 
   return { type: 'event', title: e.name, reservation_time: toIsoString(e.startDate ?? r.startTime), reservation_end_time: toIsoString(e.endDate ?? r.endTime), confirmation_number: r.reservationNumber ?? null, location: loc ? (formatAddress(loc.address) ?? loc.name ?? null) : null, ...(venue ? { _venue: venue } : {}), source };
 }
@@ -329,6 +329,33 @@ function mapEvent(r: KiReservation, source: ParsedBookingItem['source']): Parsed
 // ---------------------------------------------------------------------------
 // Public
 // ---------------------------------------------------------------------------
+
+/** Merge seat/class/platform/price into an item's metadata (type-agnostic).
+ *  Models name these inconsistently and sometimes nest them under reservationFor,
+ *  so check both levels and common aliases. The item's own metadata wins. */
+function applyCommonMeta(item: ParsedBookingItem, r: KiReservation): ParsedBookingItem {
+  const rf = (r.reservationFor && typeof r.reservationFor === 'object' ? r.reservationFor : {}) as Record<string, unknown>;
+  const pick = (...keys: string[]): unknown => {
+    for (const k of keys) {
+      const v = (r as Record<string, unknown>)[k] ?? rf[k];
+      if (v != null && v !== '') return v;
+    }
+    return undefined;
+  };
+  const m: Record<string, unknown> = {};
+  const seat = pick('seat', 'seatNumber');
+  if (seat != null) m.seat = String(seat);
+  const cls = pick('class', 'bookingClass', 'fareClass', 'serviceClass', 'seatingType');
+  if (cls != null) m.class = String(cls);
+  const platform = pick('platform', 'departurePlatform');
+  if (platform != null) m.platform = String(platform);
+  const price = pick('price', 'priceAmount', 'totalPrice', 'total');
+  if (price != null) m.price = price;
+  const cur = pick('priceCurrency', 'priceCurrencyISO4217Code', 'currency');
+  if (cur != null) m.priceCurrency = String(cur);
+  if (Object.keys(m).length) item.metadata = { ...m, ...(item.metadata ?? {}) };
+  return item;
+}
 
 export function mapReservations(kiItems: KiReservation[], fileName: string): { items: ParsedBookingItem[]; warnings: string[] } {
   const items: ParsedBookingItem[] = [];
@@ -353,7 +380,7 @@ export function mapReservations(kiItems: KiReservation[], fileName: string): { i
         group.push(kiItems[++i]);
       }
       item = group.length > 1 ? mapFlightGroup(group, source) : mapFlight(r, source);
-      if (item) items.push(item);
+      if (item) items.push(applyCommonMeta(item, r));
       continue;
     }
 
@@ -370,7 +397,7 @@ export function mapReservations(kiItems: KiReservation[], fileName: string): { i
         warnings.push(`Unknown type "${r['@type']}" in ${fileName}[${i}] — skipped`);
     }
 
-    if (item) items.push(item);
+    if (item) items.push(applyCommonMeta(item, r));
   }
 
   return { items, warnings };
