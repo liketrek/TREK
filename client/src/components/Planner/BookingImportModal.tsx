@@ -7,7 +7,6 @@ import { useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
 import { reservationsApi, healthApi } from '../../api/client'
 import { useTripStore } from '../../store/tripStore'
-import { useSettingsStore } from '../../store/settingsStore'
 
 interface BookingImportModalProps {
   isOpen: boolean
@@ -55,7 +54,6 @@ export default function BookingImportModal({ isOpen, onClose, tripId, pushUndo }
   const { t } = useTranslation()
   const toast = useToast()
   const loadTrip = useTripStore((s) => s.loadTrip)
-  const alwaysRetryAi = useSettingsStore((s) => s.settings.llm_always_retry)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const mouseDownTarget = useRef<EventTarget | null>(null)
 
@@ -139,9 +137,9 @@ export default function BookingImportModal({ isOpen, onClose, tripId, pushUndo }
     setLoading(true)
     setError('')
     try {
-      // When the user opted into "always retry with AI", rescue files kitinerary
-      // can't read automatically; otherwise offer a per-file retry in the preview.
-      const mode = aiParsing && alwaysRetryAi ? 'fallback-on-empty' : 'no-ai'
+      // Auto-rescue: whenever AI parsing is available, files kitinerary can't
+      // read fall back to the LLM automatically — no extra confirmation step.
+      const mode = aiParsing ? 'fallback-on-empty' : 'no-ai'
       const result = await reservationsApi.importBookingPreview(tripId, files, mode)
       setPreviewItems(result.items ?? [])
       setWarnings(result.warnings ?? [])

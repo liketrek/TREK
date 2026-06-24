@@ -130,7 +130,6 @@ export interface Settings {
   dashboard_timezones?: string[]
   // AI booking-import fallback (per-user config; used when the admin has not set
   // instance-wide config on the llm_parsing addon). llm_api_key is masked on read.
-  llm_always_retry?: boolean
   llm_provider?: 'local' | 'openai' | 'anthropic'
   llm_model?: string
   llm_base_url?: string

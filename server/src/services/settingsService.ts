@@ -31,9 +31,6 @@ export const DEFAULTABLE_USER_SETTING_KEYS = [
   'llm_base_url',
   'llm_multimodal',
   'llm_api_key',
-  // "Always retry with AI" toggle — when on, the preview auto-runs the LLM on
-  // files kitinerary returns nothing for.
-  'llm_always_retry',
 ] as const;
 
 type DefaultableKey = typeof DEFAULTABLE_USER_SETTING_KEYS[number];
@@ -47,7 +44,7 @@ const VALID_VALUES: Partial<Record<DefaultableKey, unknown[]>> = {
   llm_provider: ['local', 'openai', 'anthropic'],
 };
 
-const BOOLEAN_KEYS = new Set<DefaultableKey>(['blur_booking_codes', 'mapbox_3d_enabled', 'mapbox_quality_mode', 'llm_multimodal', 'llm_always_retry']);
+const BOOLEAN_KEYS = new Set<DefaultableKey>(['blur_booking_codes', 'mapbox_3d_enabled', 'mapbox_quality_mode', 'llm_multimodal']);
 
 function parseValue(raw: string): unknown {
   try { return JSON.parse(raw); } catch { return raw; }
