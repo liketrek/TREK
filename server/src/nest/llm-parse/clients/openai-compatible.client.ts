@@ -1,8 +1,8 @@
 import type { LlmExtractionClient, LlmExtractionInput } from '../llm-provider.interface';
 
-// Generous: a local model (Ollama) may cold-load several GB before its first
-// token, and longer documents push inference past a minute.
-const TIMEOUT_MS = 180_000;
+// Generous: a local CPU model (Ollama, no GPU) may cold-load several GB and then
+// take a few minutes on a longer document before the first token.
+const TIMEOUT_MS = 300_000;
 const MAX_TOKENS = 4096;
 
 /**

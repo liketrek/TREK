@@ -108,6 +108,7 @@ const ROOT_KEYS = new Set([
   'startTime',
   'endTime',
   'pickupLocation',
+  'dropoffLocation',
   'reservationFor',
 ]);
 

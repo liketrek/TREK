@@ -53,10 +53,16 @@ function resolveDayIdFromTime(
   if (!time) return null;
   const datePart = time.slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return null;
-  const row = db
+  const exact = db
     .prepare('SELECT id FROM days WHERE trip_id = ? AND date = ? LIMIT 1')
     .get(tripId, datePart) as { id: number } | undefined;
-  return row?.id ?? null;
+  if (exact) return exact.id;
+  // Fallback: clamp to the nearest day in the trip so a booking whose exact date
+  // has no day row (or sits just outside the span) still lands on a day.
+  const nearest = db
+    .prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY ABS(JULIANDAY(date) - JULIANDAY(?)) ASC, date ASC LIMIT 1')
+    .get(tripId, datePart) as { id: number } | undefined;
+  return nearest?.id ?? null;
 }
 
 // After a trip's date range changes, generateDays positionally re-dates the day rows

@@ -70,6 +70,7 @@ export const KI_RESERVATION_JSON_SCHEMA = {
           // Type-specific payload (Flight/Train/Lodging/…): open object.
           reservationFor: { type: 'object', additionalProperties: true },
           pickupLocation: { type: 'object', additionalProperties: true },
+          dropoffLocation: { type: 'object', additionalProperties: true },
         },
         required: ['@type'],
       },

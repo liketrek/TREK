@@ -23,7 +23,7 @@ export function buildSystemPrompt(): string {
     '  BoatReservation:   { name, departureBoatTerminal:{name,geo}, arrivalBoatTerminal:{name,geo}, departureTime, arrivalTime }',
     '  LodgingReservation: { name, address, geo:{latitude,longitude}, telephone, url } — put check-in/out in root "checkinTime"/"checkoutTime"',
     '  FoodEstablishmentReservation: { name, address, geo, telephone, url } — put booking time in root "startTime"/"endTime"',
-    '  RentalCarReservation: { name, model, make, rentalCompany:{name} } — put pickup/dropoff in root "pickupTime"/"dropoffTime" and "pickupLocation":{name,address,geo}',
+    '  RentalCarReservation: { name, model, make, rentalCompany:{name} } — put pickup/dropoff times in root "pickupTime"/"dropoffTime", and the pickup AND return stations in root "pickupLocation" and "dropoffLocation", each {name,address,geo:{latitude,longitude}}',
     '  EventReservation / TouristAttractionVisit: { name, startDate, endDate, location:{name,address,geo} }',
     'Extract EVERY flight/segment in the document, including return legs — a round trip has TWO OR MORE flights, and each row of a flight table is a separate reservation. Do NOT stop after the first.',
     "Each flight shares the booking's reservationNumber. Use the date shown for that specific flight as its departureTime; if a flight lists only one date (no separate arrival time), leave arrivalTime null — never reuse another flight's date.",

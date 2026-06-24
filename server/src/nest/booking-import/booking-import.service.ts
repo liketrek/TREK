@@ -17,8 +17,12 @@ function resolveDayId(tripId: string, iso: string | null | undefined): number | 
   if (!iso) return null;
   const date = iso.slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
-  const row = db.prepare('SELECT id FROM days WHERE trip_id = ? AND date = ? LIMIT 1').get(tripId, date) as { id: number } | undefined;
-  return row?.id ?? null;
+  const exact = db.prepare('SELECT id FROM days WHERE trip_id = ? AND date = ? LIMIT 1').get(tripId, date) as { id: number } | undefined;
+  if (exact) return exact.id;
+  // Clamp to the nearest trip day so an out-of-range / unmatched check-in still
+  // resolves and the accommodation row is inserted.
+  const nearest = db.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY ABS(JULIANDAY(date) - JULIANDAY(?)) ASC, date ASC LIMIT 1').get(tripId, date) as { id: number } | undefined;
+  return nearest?.id ?? null;
 }
 
 @Injectable()
@@ -161,6 +165,28 @@ export class BookingImportService {
           });
           placeId = (place as any).id;
           broadcast(tripId, 'place:created', { place }, socketId);
+        }
+
+        // Geocode transport endpoints (stations/stops/terminals/rental desks) that
+        // arrived without coords, so the route draws and map pins appear. The LLM
+        // and kitinerary rarely supply geo for non-airport endpoints.
+        if (Array.isArray(reservationData.endpoints)) {
+          for (const ep of reservationData.endpoints) {
+            if ((ep.lat == null || ep.lng == null) && ep.name) {
+              try {
+                const hit = (await searchNominatim(ep.name))[0];
+                if (hit?.lat != null && hit?.lng != null) {
+                  ep.lat = hit.lat;
+                  ep.lng = hit.lng;
+                }
+              } catch {
+                // geocoding failure is non-fatal
+              }
+            }
+          }
+          // Persist only coord'd endpoints (reservation_endpoints needs lat/lng);
+          // ungeocodable ones still appeared in the preview's From→To.
+          reservationData.endpoints = reservationData.endpoints.filter((ep) => ep.lat != null && ep.lng != null);
         }
 
         // Build create_accommodation for hotel reservations.
