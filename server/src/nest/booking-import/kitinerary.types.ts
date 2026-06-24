@@ -112,6 +112,8 @@ export interface KiEventVenue {
   name?: string;
   address?: string | KiAddress;
   geo?: KiGeo;
+  telephone?: string;
+  url?: string;
 }
 
 export interface KiEvent {
@@ -135,6 +137,11 @@ export interface KiReservation {
   reservationFor?: Record<string, unknown>;
   pickupLocation?: KiEventVenue;
   dropoffLocation?: KiEventVenue;
+  seat?: string;
+  class?: string;
+  platform?: string;
+  price?: number | string;
+  priceCurrency?: string;
   [key: string]: unknown;
 }
 

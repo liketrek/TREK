@@ -109,6 +109,11 @@ const ROOT_KEYS = new Set([
   'endTime',
   'pickupLocation',
   'dropoffLocation',
+  'seat',
+  'class',
+  'platform',
+  'price',
+  'priceCurrency',
   'reservationFor',
 ]);
 
