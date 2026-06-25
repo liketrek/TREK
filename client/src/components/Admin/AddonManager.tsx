@@ -4,7 +4,8 @@ import { useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useAddonStore } from '../../store/addonStore'
 import { useToast } from '../shared/Toast'
-import { Puzzle, ListChecks, Wallet, FileText, CalendarDays, Globe, Briefcase, Image, Terminal, Link2, Compass, BookOpen, MessageCircle, StickyNote, BarChart3, Sparkles, Luggage, Plane } from 'lucide-react'
+import { Puzzle, ListChecks, Wallet, FileText, CalendarDays, Globe, Briefcase, Image, Terminal, Link2, Compass, BookOpen, MessageCircle, StickyNote, BarChart3, Sparkles, Luggage, Plane, Server, Cloud } from 'lucide-react'
+import CustomSelect from '../shared/CustomSelect'
 
 const ICON_MAP = {
   ListChecks, Wallet, FileText, CalendarDays, Puzzle, Globe, Briefcase, Image, Terminal, Link2, Compass, BookOpen, Plane,
@@ -319,9 +320,9 @@ const DEFAULT_OLLAMA_URL = 'http://localhost:11434/v1'
 
 /** Curated NuExtract models, pullable via Ollama (HF GGUF for 2.0; library for 1.5). */
 const NUEXTRACT_MODELS: { id: string; label: string; note: string; recommended: boolean; vision: boolean }[] = [
-  { id: 'hf.co/numind/NuExtract-2.0-2B-GGUF', label: 'NuExtract 2.0 — 2B', note: 'Vision · lightest · commercial license', recommended: true, vision: true },
-  { id: 'hf.co/numind/NuExtract-2.0-4B-GGUF', label: 'NuExtract 2.0 — 4B', note: 'Vision · best balance', recommended: true, vision: true },
-  { id: 'hf.co/numind/NuExtract-2.0-8B-GGUF', label: 'NuExtract 2.0 — 8B', note: 'Vision · highest quality', recommended: false, vision: true },
+  { id: 'hf.co/numind/NuExtract-2.0-2B-GGUF', label: 'NuExtract 2.0 — 2B', note: 'Vision · fastest on CPU · MIT license — recommended', recommended: true, vision: true },
+  { id: 'hf.co/numind/NuExtract-2.0-8B-GGUF', label: 'NuExtract 2.0 — 8B', note: 'Vision · highest quality · slower on CPU · MIT license', recommended: false, vision: true },
+  { id: 'hf.co/numind/NuExtract-2.0-4B-GGUF', label: 'NuExtract 2.0 — 4B', note: 'Vision · non-commercial (Qwen Research) license', recommended: false, vision: true },
   { id: 'nuextract', label: 'NuExtract 1.5 — 3.8B', note: 'Text-only', recommended: false, vision: false },
 ]
 
@@ -408,102 +409,128 @@ function LlmParsingConfig({ addon }: { addon: Addon }) {
     }
   }
 
-  const inputCls = 'w-full rounded-md border border-edge-secondary bg-surface px-2 py-1.5 text-sm text-content'
-  return (
-    <div className="px-6 py-4 border-b border-edge-secondary bg-surface-secondary space-y-3" style={{ paddingLeft: 70 }}>
-      <p className="text-xs text-content-faint">
-        Set instance-wide config (applies to all users). Leave blank to let each user configure their own provider.
-      </p>
-      <label className="block text-xs font-medium text-content-secondary">Provider
-        <select className={inputCls} value={provider} onChange={e => setProvider(e.target.value)}>
-          <option value="local">Local (OpenAI-compatible, e.g. Ollama)</option>
-          <option value="openai">OpenAI</option>
-          <option value="anthropic">Anthropic</option>
-        </select>
-      </label>
-      <label className="block text-xs font-medium text-content-secondary">Model
-        <input className={inputCls} value={model} onChange={e => setModel(e.target.value)} placeholder={provider === 'anthropic' ? 'claude-opus-4-8' : provider === 'openai' ? 'gpt-4o' : 'select or pull below'} />
-      </label>
-      {provider !== 'anthropic' && (
-        <label className="block text-xs font-medium text-content-secondary">Base URL
-          <input className={inputCls} value={baseUrl} onChange={e => setBaseUrl(e.target.value)} onBlur={loadModels} placeholder={provider === 'local' ? 'http://localhost:11434/v1' : 'https://api.openai.com/v1'} />
-        </label>
-      )}
+  const fieldCls = 'w-full rounded-lg border border-edge-secondary bg-surface px-3 py-2 text-sm text-content placeholder:text-content-faint transition-colors focus:border-edge focus:outline-none'
+  const labelCls = 'mb-1.5 block text-xs font-medium text-content-secondary'
+  const sectionCls = 'text-[11px] font-semibold uppercase tracking-wide text-content-faint'
 
-      {/* Local model management (Ollama) */}
-      {provider === 'local' && (
-        <div className="rounded-lg border border-edge-secondary p-3 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-content-secondary">Installed models</span>
-            <button onClick={loadModels} disabled={loadingModels} className="text-xs text-content-muted underline disabled:opacity-60">
-              {loadingModels ? 'Loading…' : 'Refresh'}
-            </button>
+  const providerOptions = [
+    { value: 'local', label: 'Local · OpenAI-compatible', icon: <Server size={14} />, badge: 'Ollama' },
+    { value: 'openai', label: 'OpenAI', icon: <Cloud size={14} /> },
+    { value: 'anthropic', label: 'Anthropic', icon: <Sparkles size={14} /> },
+  ]
+
+  return (
+    <div className="border-b border-edge-secondary bg-surface-secondary py-5 pr-6 pl-[70px]">
+      <div className="max-w-2xl space-y-6">
+        <p className="text-xs text-content-faint">
+          Set instance-wide config (applies to all users). Leave blank to let each user configure their own provider.
+        </p>
+
+        {/* Connection */}
+        <section className="space-y-3">
+          <div className={sectionCls}>Connection</div>
+          <div>
+            <span className={labelCls}>Provider</span>
+            <CustomSelect value={provider} onChange={v => setProvider(String(v))} options={providerOptions} />
           </div>
-          {modelsErr && <p className="text-xs text-[#b91c1c]">{modelsErr}</p>}
-          {!modelsErr && installed.length === 0 && !loadingModels && (
-            <p className="text-xs text-content-faint">No models installed yet — pull one below.</p>
+          {provider !== 'anthropic' && (
+            <label className="block">
+              <span className={labelCls}>Base URL</span>
+              <input className={fieldCls} value={baseUrl} onChange={e => setBaseUrl(e.target.value)} onBlur={loadModels} placeholder={provider === 'local' ? 'http://localhost:11434/v1' : 'https://api.openai.com/v1'} />
+            </label>
           )}
-          {installed.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {installed.map(name => (
-                <button
-                  key={name}
-                  onClick={() => setModel(name)}
-                  className={`rounded-full px-2.5 py-1 text-xs border ${model === name ? 'bg-accent text-accent-text border-transparent' : 'border-edge-secondary text-content-secondary'}`}
-                >
-                  {name}
+          <label className="block">
+            <span className={labelCls}>API key</span>
+            <input type="password" className={fieldCls} value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder={apiKey === MASKED ? MASKED : provider === 'local' ? '(often not required)' : 'sk-…'} />
+          </label>
+          {provider === 'anthropic' && (
+            <p className="text-xs text-content-faint">Anthropic reads PDFs (including scans) natively. Local/OpenAI models receive extracted text — scanned PDFs need Anthropic.</p>
+          )}
+        </section>
+
+        {/* Model */}
+        <section className="space-y-3">
+          <div className={sectionCls}>Model</div>
+          <label className="block">
+            <input className={fieldCls} value={model} onChange={e => setModel(e.target.value)} placeholder={provider === 'anthropic' ? 'claude-opus-4-8' : provider === 'openai' ? 'gpt-4o' : 'select or pull below'} />
+          </label>
+
+          {/* Local model management (Ollama) */}
+          {provider === 'local' && (
+            <div className="space-y-3 rounded-lg border border-edge-secondary bg-surface p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-content-secondary">Installed on the server</span>
+                <button onClick={loadModels} disabled={loadingModels} className="text-xs text-content-muted underline disabled:opacity-60">
+                  {loadingModels ? 'Loading…' : 'Refresh'}
                 </button>
-              ))}
+              </div>
+              {modelsErr && <p className="text-xs text-rose-600">{modelsErr}</p>}
+              {!modelsErr && installed.length === 0 && !loadingModels && (
+                <p className="text-xs text-content-faint">No models installed yet — pull one below.</p>
+              )}
+              {installed.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {installed.map(name => (
+                    <button
+                      key={name}
+                      title={name}
+                      onClick={() => setModel(name)}
+                      className={`max-w-full truncate rounded-full border px-2.5 py-1 text-xs transition-colors ${model === name ? 'border-transparent bg-accent text-accent-text' : 'border-edge-secondary text-content-secondary hover:border-edge'}`}
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="border-t border-edge-secondary pt-3">
+                <div className="mb-2 text-xs font-medium text-content-secondary">Pull a NuExtract model</div>
+                <div className="space-y-1">
+                  {NUEXTRACT_MODELS.map(m => {
+                    const installedHere = isInstalled(m.id)
+                    const isPulling = pulling === m.id
+                    const active = model === m.id
+                    return (
+                      <div key={m.id} className={`flex items-center gap-3 rounded-lg border px-3 py-2 transition-colors ${active ? 'border-edge-secondary bg-surface-secondary' : 'border-transparent'}`}>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-content">{m.label}</span>
+                            {m.recommended && (
+                              <span className="rounded-md bg-[rgba(16,185,129,0.15)] px-1.5 py-px text-[10px] font-semibold text-emerald-600">Recommended</span>
+                            )}
+                          </div>
+                          <div className="text-xs text-content-faint">{m.note}</div>
+                          {isPulling && (
+                            <div className="mt-1.5">
+                              <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-tertiary">
+                                <div className="h-full bg-accent transition-[width] duration-200" style={{ width: `${pullPct}%` }} />
+                              </div>
+                              <div className="mt-0.5 text-[10px] text-content-faint">{pullStatus}{pullPct ? ` · ${pullPct}%` : ''}</div>
+                            </div>
+                          )}
+                        </div>
+                        {installedHere ? (
+                          <button onClick={() => setModel(m.id)} disabled={active} className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${active ? 'bg-surface-tertiary text-content-muted' : 'border border-edge-secondary text-content-secondary hover:border-edge'}`}>
+                            {active ? 'Selected' : 'Use'}
+                          </button>
+                        ) : (
+                          <button onClick={() => pull(m.id)} disabled={!!pulling} className="shrink-0 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-text disabled:opacity-60">
+                            {isPulling ? 'Pulling…' : 'Pull'}
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
             </div>
           )}
+        </section>
 
-          <div className="text-xs font-semibold text-content-secondary pt-1">Pull a NuExtract model</div>
-          <div className="space-y-2">
-            {NUEXTRACT_MODELS.map(m => {
-              const installedHere = isInstalled(m.id)
-              const isPulling = pulling === m.id
-              return (
-                <div key={m.id} className="flex items-center gap-3">
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-content">{m.label}</span>
-                      {m.recommended && (
-                        <span className="bg-[rgba(16,185,129,0.15)] text-[#047857]" style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 6 }}>Recommended</span>
-                      )}
-                    </div>
-                    <div className="text-xs text-content-faint">{m.note}</div>
-                    {isPulling && (
-                      <div className="mt-1">
-                        <div className="h-1.5 w-full rounded-full bg-surface-tertiary overflow-hidden">
-                          <div className="h-full bg-accent" style={{ width: `${pullPct}%`, transition: 'width 0.2s' }} />
-                        </div>
-                        <div className="text-[10px] text-content-faint mt-0.5">{pullStatus} {pullPct ? `· ${pullPct}%` : ''}</div>
-                      </div>
-                    )}
-                  </div>
-                  {installedHere ? (
-                    <button onClick={() => setModel(m.id)} className="shrink-0 rounded-md border border-edge-secondary px-3 py-1.5 text-xs text-content-secondary">Use</button>
-                  ) : (
-                    <button onClick={() => pull(m.id)} disabled={!!pulling} className="shrink-0 rounded-md bg-accent text-accent-text px-3 py-1.5 text-xs font-medium disabled:opacity-60">
-                      {isPulling ? 'Pulling…' : 'Pull'}
-                    </button>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      <label className="block text-xs font-medium text-content-secondary">API key
-        <input type="password" className={inputCls} value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder={apiKey === MASKED ? MASKED : provider === 'local' ? '(often not required)' : 'sk-…'} />
-      </label>
-      {provider === 'anthropic' && (
-        <p className="text-xs text-content-faint">Anthropic reads PDFs (including scans) natively. Local/OpenAI models receive extracted text — scanned PDFs need Anthropic.</p>
-      )}
-      <button onClick={save} disabled={saving} className="bg-accent text-accent-text rounded-md px-3 py-1.5 text-sm font-medium disabled:opacity-60">
-        {saving ? 'Saving…' : 'Save'}
-      </button>
+        <button onClick={save} disabled={saving} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-text transition-opacity disabled:opacity-60">
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+      </div>
     </div>
   )
 }
