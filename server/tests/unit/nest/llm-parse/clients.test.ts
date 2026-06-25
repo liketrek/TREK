@@ -64,6 +64,53 @@ describe('OpenAiCompatibleClient', () => {
   });
 });
 
+describe('OpenAiCompatibleClient — NuExtract path', () => {
+  it('inlines the template in one user message (no system, no response_format) and maps the flat result', async () => {
+    const fetchFn = mockFetch(() =>
+      jsonResponse({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                reservations: [
+                  { type: 'hotel', name: 'B&B Hotel', booking_reference: '733', checkin_time: '2026-05-01T15:00:00', checkout_time: '2026-05-02T12:00:00' },
+                ],
+              }),
+            },
+          },
+        ],
+      }),
+    );
+    const out = await new OpenAiCompatibleClient().extract({ ...baseInput, model: 'hf.co/numind/NuExtract-2.0-2B-GGUF:latest', text: 'Hotel doc' });
+
+    expect(out).toEqual([
+      {
+        '@type': 'LodgingReservation',
+        reservationNumber: '733',
+        reservationFor: { name: 'B&B Hotel' },
+        checkinTime: '2026-05-01T15:00:00',
+        checkoutTime: '2026-05-02T12:00:00',
+      },
+    ]);
+
+    const body = JSON.parse((fetchFn.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.messages).toHaveLength(1);
+    expect(body.messages[0].role).toBe('user');
+    expect(body.messages[0].content[0].text.startsWith('# Template:')).toBe(true);
+    expect(body.messages[0].content[0].text.endsWith('Hotel doc')).toBe(true);
+    expect(body.temperature).toBe(0);
+    expect(body.response_format).toBeUndefined();
+  });
+
+  it('keeps the system prompt and response_format for non-NuExtract models', async () => {
+    const fetchFn = mockFetch(() => jsonResponse({ choices: [{ message: { content: '{"reservations":[]}' } }] }));
+    await new OpenAiCompatibleClient().extract({ ...baseInput, model: 'qwen2.5:7b' });
+    const body = JSON.parse((fetchFn.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.messages[0].role).toBe('system');
+    expect(body.response_format).toBeDefined();
+  });
+});
+
 describe('AnthropicClient', () => {
   it('forces the emit_reservations tool and reads its input', async () => {
     const fetchFn = mockFetch(() =>
