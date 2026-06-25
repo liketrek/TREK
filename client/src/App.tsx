@@ -20,6 +20,7 @@ import SharedTripPage from './pages/SharedTripPage'
 import InAppNotificationsPage from './pages/InAppNotificationsPage.tsx'
 import OAuthAuthorizePage from './pages/OAuthAuthorizePage'
 import { ToastContainer } from './components/shared/Toast'
+import BackgroundTasksWidget from './components/BackgroundTasks/BackgroundTasksWidget'
 import BottomNav from './components/Layout/BottomNav'
 import { TranslationProvider, useTranslation } from './i18n'
 import { authApi } from './api/client'
@@ -208,6 +209,7 @@ export default function App() {
     <TranslationProvider>
       {!isAuthPage && <SystemNoticeHost />}
       <ToastContainer />
+      {!isAuthPage && <BackgroundTasksWidget />}
       <OfflineBanner />
       <Routes>
         <Route path="/" element={<RootRedirect />} />

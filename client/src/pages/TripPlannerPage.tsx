@@ -18,6 +18,7 @@ import TripMembersModal from '../components/Trips/TripMembersModal'
 import { ReservationModal } from '../components/Planner/ReservationModal'
 import { TransportModal } from '../components/Planner/TransportModal'
 import BookingImportModal from '../components/Planner/BookingImportModal'
+import { useBackgroundTasksStore } from '../store/backgroundTasksStore'
 import AirTrailImportModal from '../components/Planner/AirTrailImportModal'
 // MemoriesPanel moved to Journey addon
 import ReservationsPanel from '../components/Planner/ReservationsPanel'
@@ -210,6 +211,23 @@ export default function TripPlannerPage(): React.ReactElement | null {
     selectedPlace, dayOrderMap, dayPlaces,
     mapTileUrl, defaultCenter, defaultZoom, fontStyle, splashDone,
   } = useTripPlanner()
+
+  // Bridge: when a finished background import is sent here for review (the user hit
+  // "review" in the background widget, on this or any page), open the per-item flow.
+  const bgTasks = useBackgroundTasksStore((s) => s.tasks)
+  const dismissBgTask = useBackgroundTasksStore((s) => s.dismiss)
+  useEffect(() => {
+    const task = bgTasks.find(
+      (tk) => tk.tripId === String(tripId) && tk.status === 'done' && tk.reviewRequested && !tk.consumed,
+    )
+    if (task && task.items && task.items.length > 0) {
+      // Hand the items to the review flow and clear the widget entry — once the user
+      // hit "review", the background card has done its job.
+      const items = task.items
+      dismissBgTask(task.id)
+      startImportReview(items)
+    }
+  }, [bgTasks, tripId, startImportReview, dismissBgTask])
 
   const poi = usePoiExplore()
   const [glMap, setGlMap] = useState<CompassMap | null>(null)
@@ -714,7 +732,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
           onSaved={() => { setBookingExpense(null); loadBudgetItems(tripId) }}
         />
       )}
-      <BookingImportModal isOpen={showBookingImport} onClose={() => setShowBookingImport(false)} tripId={tripId} pushUndo={pushUndo} onImported={loadAccommodations} onReview={startImportReview} />
+      <BookingImportModal isOpen={showBookingImport} onClose={() => setShowBookingImport(false)} tripId={tripId} />
       <AirTrailImportModal isOpen={showAirTrailImport} onClose={() => setShowAirTrailImport(false)} tripId={tripId} pushUndo={pushUndo} />
       <ConfirmDialog
         isOpen={!!deletePlaceId}

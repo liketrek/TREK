@@ -65,6 +65,7 @@ export class BookingImportService {
     files: Express.Multer.File[],
     mode: BookingImportMode,
     userId: number,
+    onProgress?: (done: number, total: number, fileName: string) => void,
   ): Promise<BookingImportPreviewResponse> {
     const kitineraryAvailable = this.extractor.isAvailable();
     const aiAvailable = this.llmParse.isAvailable(userId);
@@ -76,6 +77,7 @@ export class BookingImportService {
     const allWarnings: string[] = [];
     const fileReports: BookingImportFileReport[] = [];
 
+    let processed = 0;
     for (const file of files) {
       let kiItems: KiReservation[] = [];
       let aiUsed = false;
@@ -102,14 +104,16 @@ export class BookingImportService {
 
       if (kiItems.length === 0) {
         allWarnings.push(`${file.originalname}: no reservations found`);
-        continue;
+      } else {
+        const { items, warnings } = mapReservations(kiItems, file.originalname);
+        // LLM extraction is less certain than kitinerary — always flag for review.
+        if (aiUsed) for (const it of items) it.needs_review = true;
+        allItems.push(...items);
+        allWarnings.push(...warnings);
       }
 
-      const { items, warnings } = mapReservations(kiItems, file.originalname);
-      // LLM extraction is less certain than kitinerary — always flag for review.
-      if (aiUsed) for (const it of items) it.needs_review = true;
-      allItems.push(...items);
-      allWarnings.push(...warnings);
+      // Report per-file progress so a background import can drive a live widget.
+      onProgress?.(++processed, files.length, file.originalname);
     }
 
     return { items: allItems, warnings: allWarnings, files: fileReports };
