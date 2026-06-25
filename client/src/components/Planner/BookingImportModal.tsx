@@ -17,6 +17,10 @@ interface BookingImportModalProps {
   // outside the trip store — notably the accommodations list a hotel booking
   // links to (loadTrip alone leaves it stale, so the edit modal shows blanks).
   onImported?: () => void
+  // When provided, the parsed items aren't persisted directly: each is handed
+  // back so the page can open the normal edit modal pre-filled for review before
+  // the user saves it. Falls back to direct confirm() when absent.
+  onReview?: (items: BookingImportPreviewItem[]) => void
 }
 
 const ACCEPTED_EXTS = ['.eml', '.pdf', '.pkpass', '.html', '.htm', '.txt']
@@ -54,7 +58,7 @@ function formatDateTime(iso: unknown): string {
   return [date, time].filter(Boolean).join(' ')
 }
 
-export default function BookingImportModal({ isOpen, onClose, tripId, pushUndo, onImported }: BookingImportModalProps) {
+export default function BookingImportModal({ isOpen, onClose, tripId, pushUndo, onImported, onReview }: BookingImportModalProps) {
   const { t } = useTranslation()
   const toast = useToast()
   const loadTrip = useTripStore((s) => s.loadTrip)
@@ -179,6 +183,9 @@ export default function BookingImportModal({ isOpen, onClose, tripId, pushUndo, 
   const handleConfirm = async () => {
     const toImport = previewItems.filter((_, i) => !excluded.has(i))
     if (toImport.length === 0) return
+    // Review-first flow: hand the parsed items to the page, which opens the
+    // normal edit modal pre-filled for each so the user checks before saving.
+    if (onReview) { onReview(toImport); handleClose(); return }
     setPhase('confirming')
     setError('')
     try {

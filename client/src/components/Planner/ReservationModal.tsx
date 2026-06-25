@@ -14,6 +14,7 @@ import { openFile } from '../../utils/fileDownload'
 import type { Day, Place, Reservation, TripFile, AssignmentsMap, Accommodation, BudgetItem } from '../../types'
 import { BookingCostsSection } from './BookingCostsSection'
 import type { BookingExpenseRequest } from './BookingCostsSection.types'
+import type { BookingReviewDraft } from './parsedItemToDraft'
 import { typeToCostCategory } from '@trek/shared'
 
 const TYPE_OPTIONS = [
@@ -64,9 +65,12 @@ interface ReservationModalProps {
   accommodations?: Accommodation[]
   defaultAssignmentId?: number | null
   onOpenExpense?: (req: BookingExpenseRequest) => void
+  // Pre-fill a brand-new booking from a parsed import item (review-before-save).
+  // Distinct from `reservation`: the form is populated but stays in create mode.
+  prefill?: BookingReviewDraft | null
 }
 
-export function ReservationModal({ isOpen, onClose, onSave, reservation, days, places, assignments, selectedDayId, files = [], onFileUpload, onFileDelete, accommodations = [], defaultAssignmentId = null, onOpenExpense }: ReservationModalProps) {
+export function ReservationModal({ isOpen, onClose, onSave, reservation, days, places, assignments, selectedDayId, files = [], onFileUpload, onFileDelete, accommodations = [], defaultAssignmentId = null, onOpenExpense, prefill = null }: ReservationModalProps) {
   const { id: tripId } = useParams<{ id: string }>()
   const loadFiles = useTripStore(s => s.loadFiles)
   const toast = useToast()
@@ -84,6 +88,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
     notes: '', assignment_id: '' as string | number, accommodation_id: '' as string | number,
     meta_check_in_time: '', meta_check_in_end_time: '', meta_check_out_time: '',
     hotel_place_id: '' as string | number, hotel_start_day: '' as string | number, hotel_end_day: '' as string | number,
+    hotel_address: '',
   })
   const [isSaving, setIsSaving] = useState(false)
   const [uploadingFile, setUploadingFile] = useState(false)
@@ -97,6 +102,32 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
   )
 
   useEffect(() => {
+    // Resolve an ISO date to a trip day id (exact match, else nearest).
+    const dayIdForDate = (iso: unknown): string | number => {
+      if (!iso) return ''
+      const date = String(iso).slice(0, 10)
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return ''
+      const exact = days.find(d => d.date === date)
+      if (exact) return exact.id
+      let best: string | number = ''
+      let bestDiff = Infinity
+      for (const d of days) {
+        if (!d.date) continue
+        const diff = Math.abs(new Date(d.date).getTime() - new Date(date).getTime())
+        if (diff < bestDiff) { bestDiff = diff; best = d.id }
+      }
+      return best
+    }
+    // Match an existing place by name (exact, then loose contains) for hotels.
+    const matchPlaceId = (name: string | undefined): string | number => {
+      const n = (name || '').trim().toLowerCase()
+      if (!n) return ''
+      const exact = places.find(p => p.name?.trim().toLowerCase() === n)
+      if (exact) return exact.id
+      const loose = places.find(p => p.name && (p.name.toLowerCase().includes(n) || n.includes(p.name.toLowerCase())))
+      return loose?.id ?? ''
+    }
+
     if (reservation) {
       const meta = typeof reservation.metadata === 'string' ? JSON.parse(reservation.metadata || '{}') : (reservation.metadata || {})
       const rawEnd = reservation.reservation_end_time || ''
@@ -109,6 +140,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
         endDate = rawEnd
         endTime = ''
       }
+      const editAcc = accommodations.find(a => a.id == reservation.accommodation_id)
       setForm({
         title: reservation.title || '',
         type: reservation.type || 'other',
@@ -124,21 +156,52 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
         meta_check_in_time: meta.check_in_time || '',
         meta_check_in_end_time: meta.check_in_end_time || '',
         meta_check_out_time: meta.check_out_time || '',
-        hotel_place_id: (() => { const acc = accommodations.find(a => a.id == reservation.accommodation_id); return acc?.place_id || '' })(),
-        hotel_start_day: (() => { const acc = accommodations.find(a => a.id == reservation.accommodation_id); return acc?.start_day_id || '' })(),
-        hotel_end_day: (() => { const acc = accommodations.find(a => a.id == reservation.accommodation_id); return acc?.end_day_id || '' })(),
+        hotel_place_id: editAcc?.place_id || '',
+        hotel_start_day: editAcc?.start_day_id || '',
+        hotel_end_day: editAcc?.end_day_id || '',
+        hotel_address: places.find(p => p.id == editAcc?.place_id)?.address || '',
       })
+    } else if (prefill) {
+      // Review-before-save: populate from a parsed import item, stay in create mode.
+      const meta = (prefill.metadata && typeof prefill.metadata === 'object' ? prefill.metadata : {}) as Record<string, string>
+      const rawEnd = typeof prefill.reservation_end_time === 'string' ? prefill.reservation_end_time : ''
+      let endDate = ''
+      let endTime = rawEnd
+      if (rawEnd.includes('T')) { endDate = rawEnd.split('T')[0]; endTime = rawEnd.split('T')[1]?.slice(0, 5) || '' }
+      else if (/^\d{4}-\d{2}-\d{2}$/.test(rawEnd)) { endDate = rawEnd; endTime = '' }
+      setForm({
+        title: prefill.title || '',
+        type: prefill.type || 'other',
+        status: prefill.status || 'pending',
+        reservation_time: typeof prefill.reservation_time === 'string' ? prefill.reservation_time.slice(0, 16) : '',
+        reservation_end_time: endTime,
+        end_date: endDate,
+        location: prefill.location || '',
+        confirmation_number: prefill.confirmation_number || '',
+        notes: prefill.notes || '',
+        assignment_id: defaultAssignmentId ?? '',
+        accommodation_id: '',
+        meta_check_in_time: meta.check_in_time || '',
+        meta_check_in_end_time: meta.check_in_end_time || '',
+        meta_check_out_time: meta.check_out_time || '',
+        hotel_place_id: matchPlaceId(prefill._venue?.name || prefill.title),
+        hotel_start_day: dayIdForDate(prefill._accommodation?.check_in),
+        hotel_end_day: dayIdForDate(prefill._accommodation?.check_out),
+        hotel_address: prefill._venue?.address || '',
+      })
+      setPendingFiles([])
     } else {
       setForm({
         title: '', type: 'other', status: 'pending',
         reservation_time: '', reservation_end_time: '', end_date: '', location: '', confirmation_number: '',
         notes: '', assignment_id: defaultAssignmentId ?? '', accommodation_id: '',
         meta_check_in_time: '', meta_check_in_end_time: '', meta_check_out_time: '',
-        hotel_place_id: '', hotel_start_day: '', hotel_end_day: '',
+        hotel_place_id: '', hotel_start_day: '', hotel_end_day: '', hotel_address: '',
       })
       setPendingFiles([])
     }
-  }, [reservation, isOpen, selectedDayId, defaultAssignmentId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reservation, prefill, isOpen, selectedDayId, defaultAssignmentId, days, places, accommodations])
 
   // Re-hydrate hotel day range when the accommodations prop arrives after the modal opens
   // (race: tripAccommodations fetch may complete after isOpen fires, leaving hotel fields empty)
@@ -197,6 +260,11 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
       if (form.type === 'hotel' && form.hotel_start_day && form.hotel_end_day) {
         saveData.create_accommodation = {
           place_id: form.hotel_place_id || null,
+          // No existing place picked but we have an address/name (e.g. a reviewed
+          // import) → the save handler geocodes it and creates the place.
+          venue: (!form.hotel_place_id && (form.hotel_address || form.title))
+            ? { name: form.title, address: form.hotel_address || null }
+            : null,
           start_day_id: form.hotel_start_day,
           end_day_id: form.hotel_end_day,
           check_in: form.meta_check_in_time || null,
@@ -496,6 +564,11 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
                   size="sm"
                 />
               </div>
+            </div>
+            <div>
+              <label className={labelClass}>{t('reservations.locationAddress')}</label>
+              <input type="text" value={form.hotel_address} onChange={e => set('hotel_address', e.target.value)}
+                placeholder={t('reservations.locationPlaceholder')} className={inputClass} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>

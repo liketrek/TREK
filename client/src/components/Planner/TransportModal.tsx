@@ -17,6 +17,7 @@ import type { Day, Reservation, ReservationEndpoint, TripFile, BudgetItem } from
 import { parseReservationMetadata, orderedEndpoints } from '../../utils/flightLegs'
 import { BookingCostsSection } from './BookingCostsSection'
 import type { BookingExpenseRequest } from './BookingCostsSection.types'
+import type { BookingReviewDraft } from './parsedItemToDraft'
 import { typeToCostCategory } from '@trek/shared'
 
 const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transport_other'] as const
@@ -126,9 +127,12 @@ interface TransportModalProps {
   onFileUpload?: (fd: FormData) => Promise<unknown>
   onFileDelete?: (fileId: number) => Promise<void>
   onOpenExpense?: (req: BookingExpenseRequest) => void
+  // Pre-fill a brand-new transport booking from a parsed import item (review-
+  // before-save); like `reservation` for the form but stays in create mode.
+  prefill?: BookingReviewDraft | null
 }
 
-export function TransportModal({ isOpen, onClose, onSave, reservation, days, selectedDayId, files = [], onFileUpload, onFileDelete, onOpenExpense }: TransportModalProps) {
+export function TransportModal({ isOpen, onClose, onSave, reservation, days, selectedDayId, files = [], onFileUpload, onFileDelete, onOpenExpense, prefill = null }: TransportModalProps) {
   const { t, locale } = useTranslation()
   const toast = useToast()
   const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
@@ -153,26 +157,30 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
 
   useEffect(() => {
     if (!isOpen) return
-    if (reservation) {
-      const meta = typeof reservation.metadata === 'string'
-        ? JSON.parse(reservation.metadata || '{}')
-        : (reservation.metadata || {})
-      const eps = reservation.endpoints || []
+    // Edit uses the saved `reservation`; a review-import populates from `prefill`.
+    // Either way the init reads the same fields — `reservation` still decides
+    // edit-vs-create at submit time.
+    const src = (reservation ?? prefill) as Reservation | null
+    if (src) {
+      const meta = typeof src.metadata === 'string'
+        ? JSON.parse(src.metadata || '{}')
+        : (src.metadata || {})
+      const eps = src.endpoints || []
       const from = eps.find(e => e.role === 'from')
       const to = eps.find(e => e.role === 'to')
-      const type = (TRANSPORT_TYPES as readonly string[]).includes(reservation.type)
-        ? reservation.type as TransportType
+      const type = (TRANSPORT_TYPES as readonly string[]).includes(src.type)
+        ? src.type as TransportType
         : 'flight'
       setForm({
-        title: reservation.title || '',
+        title: src.title || '',
         type,
-        status: reservation.status === 'confirmed' ? 'confirmed' : 'pending',
-        start_day_id: reservation.day_id ?? '',
-        end_day_id: reservation.end_day_id ?? '',
-        departure_time: splitReservationDateTime(reservation.reservation_time).time ?? '',
-        arrival_time: splitReservationDateTime(reservation.reservation_end_time).time ?? '',
-        confirmation_number: reservation.confirmation_number || '',
-        notes: reservation.notes || '',
+        status: src.status === 'confirmed' ? 'confirmed' : 'pending',
+        start_day_id: src.day_id ?? '',
+        end_day_id: src.end_day_id ?? '',
+        departure_time: splitReservationDateTime(src.reservation_time).time ?? '',
+        arrival_time: splitReservationDateTime(src.reservation_end_time).time ?? '',
+        confirmation_number: src.confirmation_number || '',
+        notes: src.notes || '',
         meta_airline: meta.airline || '',
         meta_flight_number: meta.flight_number || '',
         meta_train_number: meta.train_number || '',
@@ -180,7 +188,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         meta_seat: meta.seat || '',
       })
       if (type === 'flight') {
-        const orderedEps = orderedEndpoints(reservation)
+        const orderedEps = orderedEndpoints(src)
         const metaLegs: any[] = Array.isArray(meta.legs) ? meta.legs : []
         let wps: WaypointForm[]
         if (orderedEps.length >= 2) {
@@ -191,9 +199,9 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
             const isLast = i === orderedEps.length - 1
             return {
               airport: airportFromEndpoint(ep),
-              arrDayId: legInto?.arr_day_id ?? (isLast ? (reservation.end_day_id ?? '') : ''),
+              arrDayId: legInto?.arr_day_id ?? (isLast ? (src.end_day_id ?? '') : ''),
               arrTime: legInto?.arr_time ?? (!isFirst ? (ep.local_time ?? '') : ''),
-              depDayId: legOut?.dep_day_id ?? (isFirst ? (reservation.day_id ?? '') : ''),
+              depDayId: legOut?.dep_day_id ?? (isFirst ? (src.day_id ?? '') : ''),
               depTime: legOut?.dep_time ?? (!isLast ? (ep.local_time ?? '') : ''),
               airline: legOut?.airline ?? (isFirst ? (meta.airline ?? '') : ''),
               flight_number: legOut?.flight_number ?? (isFirst ? (meta.flight_number ?? '') : ''),
@@ -202,15 +210,15 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
           })
         } else {
           // Legacy flight with no (or partial) endpoints — seed two waypoints.
-          const dep = emptyWaypoint(reservation.day_id ?? '')
+          const dep = emptyWaypoint(src.day_id ?? '')
           dep.airport = airportFromEndpoint(from)
-          dep.depTime = splitReservationDateTime(reservation.reservation_time).time ?? ''
+          dep.depTime = splitReservationDateTime(src.reservation_time).time ?? ''
           dep.airline = meta.airline ?? ''
           dep.flight_number = meta.flight_number ?? ''
           dep.seat = meta.seat ?? ''
-          const arr = emptyWaypoint(reservation.end_day_id ?? reservation.day_id ?? '')
+          const arr = emptyWaypoint(src.end_day_id ?? src.day_id ?? '')
           arr.airport = airportFromEndpoint(to)
-          arr.arrTime = splitReservationDateTime(reservation.reservation_end_time).time ?? ''
+          arr.arrTime = splitReservationDateTime(src.reservation_end_time).time ?? ''
           wps = [dep, arr]
         }
         setWaypoints(wps)
@@ -224,7 +232,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
       setToPick({})
       setWaypoints([emptyWaypoint(selectedDayId ?? ''), emptyWaypoint(selectedDayId ?? '')])
     }
-  }, [isOpen, reservation, selectedDayId, budgetItems])
+  }, [isOpen, reservation, prefill, selectedDayId, budgetItems])
 
   const set = (field: string, value: any) => setForm(prev => ({ ...prev, [field]: value }))
 

@@ -7,7 +7,9 @@ import { getCached, fetchPhoto } from '../../services/photoService'
 import { useToast } from '../../components/shared/Toast'
 import { Map, Ticket, PackageCheck, Wallet, FolderOpen, Users, Train } from 'lucide-react'
 import { useTranslation } from '../../i18n'
-import { addonsApi, accommodationsApi, authApi, tripsApi, assignmentsApi, healthApi, airtrailApi } from '../../api/client'
+import { addonsApi, accommodationsApi, authApi, tripsApi, assignmentsApi, healthApi, airtrailApi, mapsApi, placesApi } from '../../api/client'
+import { parsedItemToDraft, isTransportItem, type BookingReviewDraft } from '../../components/Planner/parsedItemToDraft'
+import type { BookingImportPreviewItem } from '@trek/shared'
 import { accommodationRepo } from '../../repo/accommodationRepo'
 import { offlineDb } from '../../db/offlineDb'
 import { useAuthStore } from '../../store/authStore'
@@ -158,6 +160,12 @@ export function useTripPlanner() {
   const [showTransportModal, setShowTransportModal] = useState<boolean>(false)
   const [editingTransport, setEditingTransport] = useState<Reservation | null>(null)
   const [transportModalDayId, setTransportModalDayId] = useState<number | null>(null)
+  // Review-before-save import: each parsed item pre-fills the normal edit modal so
+  // the user checks/fixes it, then saves. A ref drives the queue (no stale closures).
+  const [reservationPrefill, setReservationPrefill] = useState<BookingReviewDraft | null>(null)
+  const [transportPrefill, setTransportPrefill] = useState<BookingReviewDraft | null>(null)
+  const [importReviewActive, setImportReviewActive] = useState(false)
+  const importQueueRef = useRef<BookingImportPreviewItem[]>([])
   // Manual route planning: off by default, toggled from the day-plan footer. Mode
   // (driving/walking) is per-session and selects which travel time the connectors show.
   const [routeShown, setRouteShown] = useState(false)
@@ -578,6 +586,13 @@ export function useTripPlanner() {
 
   const handleSaveReservation = async (data: Record<string, string | number | null> & { title: string }) => {
     try {
+      // Imported hotel with a reviewed address but no existing place picked: match
+      // an existing place by name, else geocode the address and create one, then link it.
+      const acc = (data as Record<string, any>).create_accommodation
+      if (data.type === 'hotel' && acc && acc.venue && !acc.place_id) {
+        acc.place_id = (await resolveImportedPlace(acc.venue)) ?? undefined
+        delete acc.venue
+      }
       if (editingReservation) {
         // Don't force a day here. The old code pinned it to the (often empty)
         // selected day, which dropped the booking out of the Plan; preserving the
@@ -633,6 +648,74 @@ export function useTripPlanner() {
       accommodationsApi.list(tripId).then(d => setTripAccommodations(d.accommodations || [])).catch(() => {})
     }
     catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
+  }
+
+  // ── Review-before-save booking import ───────────────────────────────────────
+  // Match an existing trip place by name, else geocode the reviewed address and
+  // create one. Returns the place id (or null if even creation failed).
+  const resolveImportedPlace = async (venue: { name?: string; address?: string | null }): Promise<number | null> => {
+    const name = (venue.name || '').trim()
+    const n = name.toLowerCase()
+    if (n) {
+      const existing = places.find(p => p.name?.trim().toLowerCase() === n)
+        ?? places.find(p => p.name && (p.name.toLowerCase().includes(n) || n.includes(p.name.toLowerCase())))
+      if (existing) return existing.id
+    }
+    let lat: number | null = null
+    let lng: number | null = null
+    let address: string | null = venue.address ?? null
+    try {
+      const query = venue.address ? `${name} ${venue.address}`.trim() : name
+      if (query) {
+        const res = await mapsApi.search(query)
+        const hit = res?.places?.[0] as { lat?: number; lng?: number; address?: string } | undefined
+        if (hit && hit.lat != null && hit.lng != null) {
+          lat = hit.lat; lng = hit.lng
+          if (!address && hit.address) address = hit.address
+        }
+      }
+    } catch { /* geocode failure is non-fatal — create the place without coords */ }
+    try {
+      const place = await placesApi.create(tripId, { name: name || address || 'Accommodation', lat, lng, address } as never)
+      return (place as { id?: number })?.id ?? null
+    } catch { return null }
+  }
+
+  // Open the right edit modal for a parsed item, pre-filled, in create mode.
+  const openImportItem = (item: BookingImportPreviewItem) => {
+    const draft = parsedItemToDraft(item)
+    if (isTransportItem(item)) {
+      setShowReservationModal(false); setEditingReservation(null); setReservationPrefill(null)
+      setEditingTransport(null); setTransportModalDayId(null)
+      setTransportPrefill(draft); setShowTransportModal(true)
+    } else {
+      setShowTransportModal(false); setEditingTransport(null); setTransportPrefill(null); setTransportModalDayId(null)
+      setEditingReservation(null)
+      setReservationPrefill(draft); setShowReservationModal(true)
+    }
+  }
+
+  const startImportReview = (items: BookingImportPreviewItem[]) => {
+    if (!items.length) return
+    importQueueRef.current = items.slice(1)
+    setImportReviewActive(true)
+    openImportItem(items[0])
+  }
+
+  // Called when a reviewed item's modal closes (saved or skipped): open the next,
+  // or finish the review session and refresh accommodations.
+  const advanceImportReview = () => {
+    const queue = importQueueRef.current
+    if (queue.length > 0) {
+      importQueueRef.current = queue.slice(1)
+      openImportItem(queue[0])
+      return
+    }
+    importQueueRef.current = []
+    setImportReviewActive(false)
+    setShowReservationModal(false); setEditingReservation(null); setReservationPrefill(null)
+    setShowTransportModal(false); setEditingTransport(null); setTransportPrefill(null); setTransportModalDayId(null)
+    accommodationsApi.list(tripId).then(d => setTripAccommodations(d.accommodations || [])).catch(() => {})
   }
 
   const selectedPlace = selectedPlaceId ? places.find(p => p.id === selectedPlaceId) : null
@@ -693,6 +776,7 @@ export function useTripPlanner() {
     bookingForAssignmentId, setBookingForAssignmentId,
     showTransportModal, setShowTransportModal, editingTransport, setEditingTransport,
     transportModalDayId, setTransportModalDayId,
+    reservationPrefill, transportPrefill, importReviewActive, startImportReview, advanceImportReview,
     routeShown, setRouteShown, routeProfile, setRouteProfile, fitKey, setFitKey,
     mobileSidebarOpen, setMobileSidebarOpen, mobilePlanScrollTopRef, mobilePlacesScrollTopRef,
     deletePlaceId, setDeletePlaceId, deletePlaceIds, setDeletePlaceIds,
