@@ -67,7 +67,7 @@ const settings: TranslationStrings = {
   'settings.notifyVacayInvite': 'Vacay-fusieuitnodigingen',
   'settings.notifyPhotosShared': "Gedeelde foto's (Immich)",
   'settings.notifyCollabMessage': 'Chatberichten (Collab)',
-  'settings.notifyPackingTagged': 'Paklijst: toewijzingen',
+  'settings.notifyPackingTagged': 'Inpaklijst: toewijzingen',
   'settings.notifyWebhook': 'Webhook-meldingen',
   'settings.notificationsDisabled':
     'Meldingen zijn niet geconfigureerd. Vraag een beheerder om e-mail- of webhookmeldingen in te schakelen.',
@@ -276,8 +276,8 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',
-  'settings.currency': 'Currency',
-  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currency': 'Valuta',
+  'settings.currencyHint': 'Alle bedragen onder Onkosten worden omgerekend naar en weergegeven in deze valuta.',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
     'Log sneller en phishingbestendig in met een passkey — je vingerafdruk, gezicht, pincode of een hardwaresleutel. Je wachtwoord blijft als back-up bestaan.',

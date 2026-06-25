@@ -101,7 +101,7 @@ const dashboard: TranslationStrings = {
   'dashboard.mobile.inDays': 'Over {count} dagen',
   'dashboard.mobile.inMonths': 'Over {count} maanden',
   'dashboard.mobile.completed': 'Voltooid',
-  'dashboard.mobile.currencyConverter': 'Valutaomrekener',
+  'dashboard.mobile.currencyConverter': 'Valutaomzetter',
   'dashboard.filter.planned': 'Gepland',
   'dashboard.hero.badgeLive': 'NU LIVE',
   'dashboard.hero.badgeToday': 'START VANDAAG',

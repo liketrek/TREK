@@ -1,7 +1,7 @@
 import type { TranslationStrings } from '../types';
 
 const todo: TranslationStrings = {
-  'todo.subtab.packing': 'Paklijst',
+  'todo.subtab.packing': 'Inpaklijst',
   'todo.subtab.todo': 'Taken',
   'todo.completed': 'voltooid',
   'todo.filter.all': 'Alles',

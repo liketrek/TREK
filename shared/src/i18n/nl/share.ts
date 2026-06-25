@@ -9,7 +9,7 @@ const share: TranslationStrings = {
   'share.createError': 'Kon link niet aanmaken',
   'share.permMap': 'Kaart en plan',
   'share.permBookings': 'Boekingen',
-  'share.permPacking': 'Paklijst',
+  'share.permPacking': 'Inpaklijst',
   'share.permBudget': 'Budget',
   'share.permCollab': 'Chat',
 };

@@ -10,7 +10,7 @@ const register: TranslationStrings = {
   'register.feature2': 'Interactieve kaartweergave',
   'register.feature3': 'Beheer plaatsen en categorieën',
   'register.feature4': 'Houd reserveringen bij',
-  'register.feature5': 'Maak paklijsten',
+  'register.feature5': 'Maak inpaklijsten',
   'register.feature6': "Bewaar foto's en bestanden",
   'register.createAccount': 'Account aanmaken',
   'register.startPlanning': 'Begin met het plannen van je reis',

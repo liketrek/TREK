@@ -3,7 +3,7 @@ import type { TranslationStrings } from '../types';
 const planner: TranslationStrings = {
   'planner.places': 'Plaatsen',
   'planner.bookings': 'Boekingen',
-  'planner.packingList': 'Paklijst',
+  'planner.packingList': 'Inpaklijst',
   'planner.documents': 'Documenten',
   'planner.dayPlan': 'Dagplan',
   'planner.reservations': 'Reserveringen',

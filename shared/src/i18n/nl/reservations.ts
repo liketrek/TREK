@@ -156,10 +156,10 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.otherFlights': 'Andere vluchten',
   'reservations.airtrail.empty': 'Geen vluchten gevonden in je AirTrail-account.',
   'reservations.airtrail.importCta': '{count} importeren',
-  'reservations.costsLabel': 'Costs',
-  'reservations.createExpense': 'Create expense',
-  'reservations.createExpenseHint': 'Saves the booking, then opens the Costs editor.',
-  'reservations.linkedExpense': 'Linked expense',
-  'reservations.removeExpense': 'Remove expense',
+  'reservations.costsLabel': 'Kosten',
+  'reservations.createExpense': 'Kostenpost aanmaken',
+  'reservations.createExpenseHint': 'Boeking opslaan en daarna de Onkosteneditor openen.',
+  'reservations.linkedExpense': 'Gekoppelde kostenpost',
+  'reservations.removeExpense': 'Kostenpost verwijderen',
 };
 export default reservations;

@@ -6,7 +6,7 @@ const shared: TranslationStrings = {
   'shared.readOnly': 'Alleen-lezen weergave',
   'shared.tabPlan': 'Plan',
   'shared.tabBookings': 'Boekingen',
-  'shared.tabPacking': 'Paklijst',
+  'shared.tabPacking': 'Inpaklijst',
   'shared.tabBudget': 'Budget',
   'shared.tabChat': 'Chat',
   'shared.days': 'dagen',

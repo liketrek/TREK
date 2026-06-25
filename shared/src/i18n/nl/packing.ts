@@ -1,10 +1,10 @@
 import type { TranslationStrings } from '../types';
 
 const packing: TranslationStrings = {
-  'packing.title': 'Paklijst',
-  'packing.empty': 'Paklijst is leeg',
+  'packing.title': 'Inpaklijst',
+  'packing.empty': 'Inpaklijst is leeg',
   'packing.import': 'Importeren',
-  'packing.importTitle': 'Paklijst importeren',
+  'packing.importTitle': 'InInpaklijst importeren',
   'packing.importHint':
     'Eén item per regel. Optioneel categorie en aantal gescheiden door komma, puntkomma of tab: Naam, Categorie, Aantal',
   'packing.importPlaceholder': 'Tandenborstel\nZonnebrand, Hygiëne\nT-Shirts, Kleding, 5\nPaspoort, Documenten',
@@ -25,7 +25,7 @@ const packing: TranslationStrings = {
   'packing.filterAll': 'Alle',
   'packing.filterOpen': 'Openstaand',
   'packing.filterDone': 'Klaar',
-  'packing.emptyTitle': 'Paklijst is leeg',
+  'packing.emptyTitle': 'Inpaklijst is leeg',
   'packing.emptyHint': 'Voeg items toe of gebruik de suggesties',
   'packing.emptyFiltered': 'Geen items gevonden voor dit filter',
   'packing.menuRename': 'Hernoemen',
@@ -42,7 +42,7 @@ const packing: TranslationStrings = {
   'packing.templateError': 'Fout bij toepassen van sjabloon',
   'packing.saveAsTemplate': 'Opslaan als sjabloon',
   'packing.templateName': 'Sjabloonnaam',
-  'packing.templateSaved': 'Paklijst opgeslagen als sjabloon',
+  'packing.templateSaved': 'Inpaklijst opgeslagen als sjabloon',
   'packing.noMembers': 'Geen leden',
   'packing.bags': 'Bagage',
   'packing.noBag': 'Niet toegewezen',
