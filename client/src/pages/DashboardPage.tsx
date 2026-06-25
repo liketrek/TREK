@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from '../i18n'
 import Navbar from '../components/Layout/Navbar'
 import DemoBanner from '../components/Layout/DemoBanner'
@@ -16,8 +17,9 @@ import {
 import {
   Plus, Edit2, Trash2, Archive, Copy, ArrowRight, MapPin,
   Plane, Hotel, Utensils, Clock, RefreshCw, ArrowRightLeft, Calendar,
-  LayoutGrid, List, Ticket, X,
+  LayoutGrid, List, Ticket, X, CalendarPlus,
 } from 'lucide-react'
+import { SubscribeLinks } from '../components/Planner/SubscribeLinks'
 import { formatTime, splitReservationDateTime } from '../utils/formatters'
 import { convertDistance, getDistanceUnitLabel } from '../utils/units'
 import { useSettingsStore } from '../store/settingsStore'
@@ -91,6 +93,7 @@ export default function DashboardPage(): React.ReactElement {
     showForm, setShowForm, editingTrip, setEditingTrip,
     deleteTrip, setDeleteTrip, copyTrip, setCopyTrip, setTrips,
     handleCreate, handleUpdate, confirmDelete, handleArchive, handleUnarchive, confirmCopy,
+    allSubOpen, setAllSubOpen,
   } = useDashboard()
 
   // Per-device dashboard widget visibility (from the appearance config).
@@ -149,11 +152,21 @@ export default function DashboardPage(): React.ReactElement {
                     <button className={tripFilter === 'archive' ? 'on' : ''} onClick={() => setTripFilter('archive')}>{t('dashboard.archived')}</button>
                     <button className={tripFilter === 'completed' ? 'on' : ''} onClick={() => setTripFilter('completed')}>{t('dashboard.mobile.completed')}</button>
                   </div>
+                  <button
+                    className="tool-action"
+                    aria-label="Subscribe to all trips calendar"
+                    title="Subscribe to all trips"
+                    onClick={() => setAllSubOpen(true)}
+                    style={{ width: 38, height: 38, borderRadius: 11 }}
+                  >
+                    <CalendarPlus size={17} />
+                  </button>
                   <button className="tool-action" aria-label={t('dashboard.aria.toggleView')} onClick={toggleViewMode} style={{ width: 38, height: 38, borderRadius: 11 }}>
                     {viewMode === 'grid' ? <List size={17} /> : <LayoutGrid size={17} />}
                   </button>
                 </div>
               </div>
+              {allSubOpen && <AllTripsSubscribeModal onClose={() => setAllSubOpen(false)} />}
 
               {gridTrips.length === 0 && tripFilter === 'planned' && !isLoading && !loadError && (
                 <div className="trips-empty">
@@ -740,5 +753,103 @@ function UpcomingTool({ items, locale, onOpen }: {
         </div>
       )}
     </div>
+  )
+}
+
+// ── All-trips subscribe modal ────────────────────────────────────────────────
+function AllTripsSubscribeModal({ onClose }: { onClose: () => void }) {
+  const [feedUrl, setFeedUrl] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [regenerating, setRegenerating] = useState(false)
+
+  const httpsUrl = feedUrl ?? ''
+  const webcalUrl = feedUrl ? feedUrl.replace(/^https?:\/\//, 'webcal://') : ''
+
+  const loadToken = useCallback(async () => {
+    setLoading(true)
+    try {
+      let res = await fetch('/api/feed/user/token', { credentials: 'include' })
+      if (!res.ok) { setLoading(false); return }
+      const data = await res.json() as { feed_url: string | null }
+      if (data.feed_url) {
+        setFeedUrl(data.feed_url)
+      } else {
+        res = await fetch('/api/feed/user/token', { method: 'POST', credentials: 'include' })
+        if (res.ok) {
+          const gen = await res.json() as { feed_url: string }
+          setFeedUrl(gen.feed_url)
+        }
+      }
+    } catch { /* ignore */ }
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { loadToken() }, [loadToken])
+
+  const regenerate = async () => {
+    setRegenerating(true)
+    try {
+      const res = await fetch('/api/feed/user/token', { method: 'DELETE', credentials: 'include' })
+      if (res.ok) {
+        const data = await res.json() as { feed_url: string }
+        setFeedUrl(data.feed_url)
+      }
+    } catch { /* ignore */ }
+    setRegenerating(false)
+  }
+
+  return createPortal(
+    <div
+      style={{
+        position: 'fixed', inset: 0, zIndex: 9999,
+        background: 'rgba(0,0,0,0.5)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '16px',
+      }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div style={{
+        background: 'var(--bg-card, white)',
+        borderRadius: 14, padding: '22px 24px',
+        width: '100%', maxWidth: 420,
+        boxShadow: '0 16px 48px rgba(0,0,0,0.22)',
+        border: '1px solid var(--border-faint)',
+        color: 'var(--text-primary)', fontFamily: 'inherit',
+        position: 'relative',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <CalendarPlus size={16} strokeWidth={2} style={{ color: 'var(--accent, #6366f1)' }} />
+            <span style={{ fontWeight: 600, fontSize: 14 }}>Subscribe to All Trips</span>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--text-muted)', borderRadius: 6, display: 'flex' }}>
+            <X size={15} strokeWidth={2} />
+          </button>
+        </div>
+
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.5 }}>
+          Subscribe to all your active trips in one calendar feed. Updates automatically. Excludes archived trips and trips that ended more than 90 days ago.
+        </p>
+
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '16px 0', color: 'var(--text-muted)', fontSize: 12 }}>Generating link…</div>
+        ) : !feedUrl ? (
+          <div style={{ textAlign: 'center', padding: '16px 0', color: 'var(--text-muted)', fontSize: 12 }}>Could not generate feed link.</div>
+        ) : (
+          <>
+            <SubscribeLinks httpsUrl={httpsUrl} webcalUrl={webcalUrl} />
+            <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--border-faint)' }}>
+              <button onClick={regenerate} disabled={regenerating} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px solid var(--border-primary)', borderRadius: 7, padding: '5px 10px', fontSize: 11, color: 'var(--text-muted)', cursor: regenerating ? 'default' : 'pointer', fontFamily: 'inherit', opacity: regenerating ? 0.6 : 1 }}>
+                <RefreshCw size={11} strokeWidth={2} style={{ animation: regenerating ? 'spin 0.8s linear infinite' : 'none' }} />
+                Regenerate link
+              </button>
+              <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.4 }}>Regenerating creates a new link and invalidates the old one.</p>
+            </div>
+          </>
+        )}
+      </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>,
+  document.body
   )
 }

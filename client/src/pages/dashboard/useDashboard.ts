@@ -33,6 +33,7 @@ export function useDashboard() {
   const [deleteTrip, setDeleteTrip] = useState<DashboardTrip | null>(null)
   const [copyTrip, setCopyTrip] = useState<DashboardTrip | null>(null)
   const [tripFilter, setTripFilter] = useState<'planned' | 'archive' | 'completed'>('planned')
+  const [allSubOpen, setAllSubOpen] = useState<boolean>(false)
   const [loadError, setLoadError] = useState<boolean>(false)
 
   const [stats, setStats] = useState<TravelStats | null>(null)
@@ -192,6 +193,7 @@ export function useDashboard() {
     tripFilter, setTripFilter, viewMode, toggleViewMode,
     showForm, setShowForm, editingTrip, setEditingTrip,
     deleteTrip, setDeleteTrip, copyTrip, setCopyTrip, setTrips,
+    allSubOpen, setAllSubOpen,
     // actions
     handleCreate, handleUpdate, confirmDelete, handleArchive, handleUnarchive, confirmCopy,
   }
