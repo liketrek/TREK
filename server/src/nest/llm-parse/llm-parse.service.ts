@@ -4,6 +4,7 @@ import { resolveLlmConfig } from './llm-config.resolver';
 import { buildSystemPrompt, KI_RESERVATION_JSON_SCHEMA } from './llm-prompt';
 import type { LlmExtractionInput } from './llm-provider.interface';
 import { isPdf, extractText } from './text-extract';
+import { routeExtraction } from './router/extraction-router';
 import { Injectable } from '@nestjs/common';
 import { kiReservationSchema } from '@trek/shared';
 
@@ -54,11 +55,10 @@ export class LlmParseService {
         );
       } else {
         input.text = await extractText(file.buffer, file.originalName);
-        // Booking details sit at the top of a confirmation; multi-page T&C tails
-        // (rental/insurance docs run 30k+ chars) otherwise overflow the model's
-        // context window — truncating the *relevant* head — and balloon CPU
-        // inference time. Cap the text so only the useful head reaches the LLM.
-        const MAX_EXTRACT_CHARS = 4000;
+        // The local router decomposes the document and extracts one reservation at a
+        // time, so it tolerates more text than the single-shot path (which had to cap
+        // at 4000 to fit a small context). Cloud single-shot keeps the tight cap.
+        const MAX_EXTRACT_CHARS = config.provider === 'local' ? 16000 : 4000;
         if (input.text.length > MAX_EXTRACT_CHARS) input.text = input.text.slice(0, MAX_EXTRACT_CHARS);
         console.debug(`[DEBUG] Extracted text from ${file.originalName} (${input.text.length} chars):\n`, input.text);
         if (!input.text.trim()) {
@@ -73,6 +73,26 @@ export class LlmParseService {
         kiItems: [],
         warnings: [`${file.originalName}: could not read file — ${err instanceof Error ? err.message : String(err)}`],
       };
+    }
+
+    // Local provider (Ollama): go through the layered extraction router — vendor
+    // templates → decompose + grammar-enforced per-reservation extraction → validate
+    // + repair. Far more reliable on small CPU models than the single-shot path below
+    // (which stays for cloud providers, whose strong models handle one-shot well).
+    if (config.provider === 'local' && input.text) {
+      try {
+        const routed = await routeExtraction(input.text, {
+          baseUrl: config.baseUrl ?? 'http://localhost:11434/v1',
+          model: config.model,
+          apiKey: config.apiKey,
+        });
+        return { kiItems: routed.kiItems, warnings: [...warnings, ...routed.warnings] };
+      } catch (err) {
+        return {
+          kiItems: [],
+          warnings: [`${file.originalName}: AI parsing failed — ${err instanceof Error ? err.message : String(err)}`],
+        };
+      }
     }
 
     let raw: Record<string, unknown>[];

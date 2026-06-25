@@ -318,12 +318,12 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
 const MASKED = '••••••••'
 const DEFAULT_OLLAMA_URL = 'http://localhost:11434/v1'
 
-/** Curated NuExtract models, pullable via Ollama (HF GGUF for 2.0; library for 1.5). */
-const NUEXTRACT_MODELS: { id: string; label: string; note: string; recommended: boolean; vision: boolean }[] = [
-  { id: 'hf.co/numind/NuExtract-2.0-2B-GGUF', label: 'NuExtract 2.0 — 2B', note: 'Vision · fastest on CPU · MIT license — recommended', recommended: true, vision: true },
-  { id: 'hf.co/numind/NuExtract-2.0-8B-GGUF', label: 'NuExtract 2.0 — 8B', note: 'Vision · highest quality · slower on CPU · MIT license', recommended: false, vision: true },
-  { id: 'hf.co/numind/NuExtract-2.0-4B-GGUF', label: 'NuExtract 2.0 — 4B', note: 'Vision · non-commercial (Qwen Research) license', recommended: false, vision: true },
-  { id: 'nuextract', label: 'NuExtract 1.5 — 3.8B', note: 'Text-only', recommended: false, vision: false },
+/** Curated models the local extractor is tuned for, pullable via Ollama. The router
+ *  uses the strong model for flights/multi-item docs and the small one (when installed)
+ *  for simple single-item bookings — so a host only needs these two. */
+const RECOMMENDED_MODELS: { id: string; label: string; note: string; recommended: boolean; vision: boolean }[] = [
+  { id: 'qwen2.5:7b', label: 'Qwen2.5 — 7B', note: 'Recommended · reliable for flights & multi-item bookings · Apache-2.0', recommended: true, vision: false },
+  { id: 'qwen2.5:3b', label: 'Qwen2.5 — 3B', note: 'Optional · used automatically for simple bookings (~3× faster) · Apache-2.0', recommended: false, vision: false },
 ]
 
 /**
@@ -484,9 +484,9 @@ function LlmParsingConfig({ addon }: { addon: Addon }) {
               )}
 
               <div className="border-t border-edge-secondary pt-3">
-                <div className="mb-2 text-xs font-medium text-content-secondary">Pull a NuExtract model</div>
+                <div className="mb-2 text-xs font-medium text-content-secondary">Pull a recommended model</div>
                 <div className="space-y-1">
-                  {NUEXTRACT_MODELS.map(m => {
+                  {RECOMMENDED_MODELS.map(m => {
                     const installedHere = isInstalled(m.id)
                     const isPulling = pulling === m.id
                     const active = model === m.id
