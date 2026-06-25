@@ -1,5 +1,5 @@
 import React from 'react'
-import { Settings, Palette, Map, Bell, Plug, CloudOff, User, Info } from 'lucide-react'
+import { Settings, Palette, Map, Bell, Plug, CloudOff, User, Info, Sparkles } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import PageShell from '../components/Layout/PageShell'
 import PageSidebar, { type PageSidebarTab } from '../components/Layout/PageSidebar'
@@ -10,17 +10,21 @@ import IntegrationsTab from '../components/Settings/IntegrationsTab'
 import AccountTab from '../components/Settings/AccountTab'
 import AboutTab from '../components/Settings/AboutTab'
 import OfflineTab from '../components/Settings/OfflineTab'
+import AiSettingsTab from '../components/Settings/AiSettingsTab'
 import { useSettings } from './settings/useSettings'
 
 export default function SettingsPage(): React.ReactElement {
   const { t } = useTranslation()
   // Page = wiring container: addon/version loading + active-tab state in the hook.
-  const { hasIntegrations, appVersion, activeTab, setActiveTab } = useSettings()
+  const { hasIntegrations, appVersion, activeTab, setActiveTab, aiSettingsAvailable, aiManaged } = useSettings()
 
   const tabs: PageSidebarTab[] = [
     { id: 'display', label: t('settings.tabs.display'), icon: Palette },
     { id: 'map', label: t('settings.tabs.map'), icon: Map },
     { id: 'notifications', label: t('settings.tabs.notifications'), icon: Bell },
+    ...(aiSettingsAvailable
+      ? [{ id: 'ai', label: t('settings.tabs.ai'), icon: Sparkles }]
+      : []),
     ...(hasIntegrations
       ? [{ id: 'integrations', label: t('settings.tabs.integrations'), icon: Plug }]
       : []),
@@ -56,6 +60,7 @@ export default function SettingsPage(): React.ReactElement {
             {activeTab === 'display' && <DisplaySettingsTab />}
             {activeTab === 'map' && <MapSettingsTab />}
             {activeTab === 'notifications' && <NotificationsTab />}
+            {activeTab === 'ai' && aiSettingsAvailable && <AiSettingsTab managed={aiManaged} />}
             {activeTab === 'integrations' && hasIntegrations && <IntegrationsTab />}
             {activeTab === 'offline' && <OfflineTab />}
             {activeTab === 'account' && <AccountTab />}

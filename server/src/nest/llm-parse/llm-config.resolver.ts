@@ -53,3 +53,12 @@ export function resolveLlmConfig(userId: number): ResolvedLlmConfig | null {
   if (!isAddonEnabled(ADDON_IDS.LLM_PARSING)) return null;
   return readInstanceConfig() ?? readUserConfig(userId);
 }
+
+/**
+ * Whether the admin has defined a *usable* instance-wide config (provider + model).
+ * When true, the instance config takes over and per-user config is never consulted —
+ * the client uses this to hide the per-user "bring your own key" settings.
+ */
+export function hasInstanceLlmConfig(): boolean {
+  return readInstanceConfig() !== null;
+}

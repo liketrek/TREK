@@ -15,7 +15,7 @@ const { getUserSettings, getDecryptedUserSetting } = vi.hoisted(() => ({
 }));
 vi.mock('../../../../src/services/settingsService', () => ({ getUserSettings, getDecryptedUserSetting }));
 
-import { resolveLlmConfig } from '../../../../src/nest/llm-parse/llm-config.resolver';
+import { resolveLlmConfig, hasInstanceLlmConfig } from '../../../../src/nest/llm-parse/llm-config.resolver';
 
 function setInstanceConfig(config: unknown) {
   dbMock._stmt.get.mockReturnValue(config === undefined ? undefined : { config: JSON.stringify(config) });
@@ -63,5 +63,25 @@ describe('resolveLlmConfig', () => {
   it('returns null when neither instance nor user config is usable', () => {
     getUserSettings.mockReturnValue({ llm_provider: 'openai' }); // no model
     expect(resolveLlmConfig(1)).toBeNull();
+  });
+});
+
+describe('hasInstanceLlmConfig', () => {
+  it('is true when the admin instance config has provider + model', () => {
+    setInstanceConfig({ provider: 'openai', model: 'gpt-4o', apiKey: 'sk' });
+    expect(hasInstanceLlmConfig()).toBe(true);
+  });
+
+  it('is false when the instance config is missing or incomplete', () => {
+    setInstanceConfig(undefined);
+    expect(hasInstanceLlmConfig()).toBe(false);
+    setInstanceConfig({ provider: 'anthropic' }); // no model
+    expect(hasInstanceLlmConfig()).toBe(false);
+  });
+
+  it('ignores the addon enabled flag (independent of resolveLlmConfig gating)', () => {
+    isAddonEnabled.mockReturnValue(false);
+    setInstanceConfig({ provider: 'openai', model: 'gpt-4o' });
+    expect(hasInstanceLlmConfig()).toBe(true);
   });
 });

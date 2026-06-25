@@ -305,6 +305,18 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.button': '測試連接',
   'settings.airtrail.test.success': '已連接——找到 {count} 筆航班',
   'settings.airtrail.test.failed': '連接失敗',
+  "settings.tabs.ai": "AI",
+  "settings.ai.title": "AI parsing",
+  "settings.ai.intro": "Set your own AI provider to parse booking documents (flights, hotels, trains). Your key is stored encrypted and used only for you.",
+  "settings.ai.managedNote": "AI parsing is configured by your administrator for this instance, so no personal key is needed.",
+  "settings.ai.provider": "Provider",
+  "settings.ai.model": "Model",
+  "settings.ai.modelPlaceholder.openai": "gpt-4o",
+  "settings.ai.modelPlaceholder.anthropic": "claude-3-5-sonnet-latest",
+  "settings.ai.apiKey": "API key",
+  "settings.ai.apiKeyHint": "Stored encrypted. Used only to parse your booking documents.",
+  "settings.ai.save": "Save",
+  "settings.ai.toast.saved": "AI settings saved",
 };
 
 export default settings;

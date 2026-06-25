@@ -673,7 +673,7 @@ export const reservationsApi = {
 }
 
 export const healthApi = {
-  features: (): Promise<{ bookingImport: boolean; aiParsing: boolean }> => apiClient.get('/health/features').then(r => r.data),
+  features: (): Promise<{ bookingImport: boolean; aiParsing: boolean; aiParsingManaged: boolean }> => apiClient.get('/health/features').then(r => r.data),
 }
 
 export const weatherApi = {
