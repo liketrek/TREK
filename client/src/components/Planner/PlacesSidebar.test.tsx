@@ -124,6 +124,40 @@ describe('PlacesSidebar', () => {
     expect(screen.getByText('Central Park')).toBeInTheDocument();
   });
 
+  it('FE-COMP-PLACES-009a: selected visible place is scrolled into view', async () => {
+    const scrollIntoView = Element.prototype.scrollIntoView as unknown as ReturnType<typeof vi.fn>;
+    scrollIntoView.mockClear();
+    const places = [
+      buildPlace({ id: 10, name: 'First Place' }),
+      buildPlace({ id: 42, name: 'Map Click Target' }),
+    ];
+
+    render(<PlacesSidebar {...defaultProps} places={places} selectedPlaceId={42} />);
+
+    const selectedRow = screen.getByText('Map Click Target').closest('[data-place-id="42"]');
+    expect(selectedRow).toHaveAttribute('aria-selected', 'true');
+    await waitFor(() => {
+      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' });
+    });
+  });
+
+  it('FE-COMP-PLACES-009b: selected place hidden by search is not scrolled', async () => {
+    const user = userEvent.setup();
+    const scrollIntoView = Element.prototype.scrollIntoView as unknown as ReturnType<typeof vi.fn>;
+    const places = [
+      buildPlace({ id: 10, name: 'Visible Cafe' }),
+      buildPlace({ id: 42, name: 'Hidden Museum' }),
+    ];
+    const { rerender } = render(<PlacesSidebar {...defaultProps} places={places} selectedPlaceId={null} />);
+
+    await user.type(screen.getByPlaceholderText(/Search places/i), 'Visible');
+    scrollIntoView.mockClear();
+    rerender(<PlacesSidebar {...defaultProps} places={places} selectedPlaceId={42} />);
+
+    expect(screen.queryByText('Hidden Museum')).not.toBeInTheDocument();
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+
   it('FE-COMP-PLACES-010: shows place count', () => {
     const places = [buildPlace({ name: 'P1' }), buildPlace({ name: 'P2' }), buildPlace({ name: 'P3' })];
     render(<PlacesSidebar {...defaultProps} places={places} />);
