@@ -671,6 +671,17 @@ export const reservationsApi = {
   },
   importBookingConfirm: (tripId: number | string, items: BookingImportPreviewItem[]): Promise<BookingImportConfirmResponse> =>
     apiClient.post(`/trips/${tripId}/reservations/import/booking/confirm`, { items }).then(r => r.data),
+  // Start a background parse: returns a job id at once; progress + result arrive
+  // over the WebSocket (import:progress / import:done / import:error).
+  importBookingAsync: (tripId: number | string, files: File[], mode: BookingImportMode = 'no-ai'): Promise<{ jobId: string }> => {
+    const fd = new FormData()
+    for (const f of files) fd.append('files', f)
+    fd.append('mode', mode)
+    return apiClient.post(`/trips/${tripId}/reservations/import/booking/async`, fd, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 0 }).then(r => r.data)
+  },
+  // Poll a background job — recovery path when a WebSocket push was missed.
+  importJobStatus: (tripId: number | string, jobId: string): Promise<{ status: 'running' | 'done' | 'error'; done: number; total: number; result?: BookingImportPreviewResponse; error?: string }> =>
+    apiClient.get(`/trips/${tripId}/reservations/import/jobs/${jobId}`).then(r => r.data),
 }
 
 export const healthApi = {
