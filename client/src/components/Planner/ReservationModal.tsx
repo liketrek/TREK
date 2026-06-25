@@ -257,7 +257,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
         endpoints: [],
         needs_review: false,
       }
-      if (form.type === 'hotel' && form.hotel_start_day && form.hotel_end_day) {
+      if (form.type === 'hotel' && (form.hotel_start_day || form.hotel_end_day)) {
         saveData.create_accommodation = {
           place_id: form.hotel_place_id || null,
           // No existing place picked but we have an address/name (e.g. a reviewed
@@ -265,12 +265,23 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
           venue: (!form.hotel_place_id && (form.hotel_address || form.title))
             ? { name: form.title, address: form.hotel_address || null }
             : null,
-          start_day_id: form.hotel_start_day,
-          end_day_id: form.hotel_end_day,
+          // Tolerate a single resolved end of the range (a one-night stay or a date
+          // that only matched one trip day) so the accommodation is still created.
+          start_day_id: form.hotel_start_day || form.hotel_end_day,
+          end_day_id: form.hotel_end_day || form.hotel_start_day,
           check_in: form.meta_check_in_time || null,
           check_in_end: form.meta_check_in_end_time || null,
           check_out: form.meta_check_out_time || null,
           confirmation: form.confirmation_number || null,
+        }
+      }
+      // Imported booking → auto-create the linked cost from the parsed price (what the
+      // old direct import did). Only on create (not edit) and only when there's a price.
+      if (!reservation && prefill && isBudgetEnabled) {
+        const pmeta = prefill.metadata && typeof prefill.metadata === 'object' ? (prefill.metadata as Record<string, unknown>) : {}
+        const price = Number(pmeta.price)
+        if (Number.isFinite(price) && price > 0) {
+          saveData.create_budget_entry = { total_price: price, category: typeToCostCategory(form.type) }
         }
       }
       const saved = await onSave(saveData)

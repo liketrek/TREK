@@ -336,6 +336,15 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         endpoints,
         needs_review: false,
       }
+      // Imported booking → auto-create the linked cost from the parsed price (what the
+      // old direct import did). Only on create (not edit) and only when there's a price.
+      if (!reservation && prefill && isBudgetEnabled) {
+        const pmeta = prefill.metadata && typeof prefill.metadata === 'object' ? (prefill.metadata as Record<string, unknown>) : {}
+        const price = Number(pmeta.price)
+        if (Number.isFinite(price) && price > 0) {
+          ;(payload as Record<string, unknown>).create_budget_entry = { total_price: price, category: typeToCostCategory(form.type) }
+        }
+      }
       const saved = await onSave(payload)
       if (!reservation?.id && saved?.id && pendingFiles.length > 0 && onFileUpload) {
         for (const file of pendingFiles) {
