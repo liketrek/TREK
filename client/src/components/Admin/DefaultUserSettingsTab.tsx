@@ -214,7 +214,7 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
       </OptionRow>
 
       {/* Distance */}
-      <OptionRow label={<>Distance <ResetButton field="distance_unit" /></>}>
+      <OptionRow label={<>{t('settings.distance')} <ResetButton field="distance_unit" /></>}>
         {([
           { value: 'metric', label: 'km Metric' },
           { value: 'imperial', label: 'mi Imperial' },

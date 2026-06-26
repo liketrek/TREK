@@ -154,6 +154,9 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   const [routeLegs, setRouteLegs] = useState<Record<number, RouteSegment>>({})
   const [hotelLegs, setHotelLegs] = useState<{ top?: { seg: RouteSegment; name: string }; bottom?: { seg: RouteSegment; name: string } }>({})
   const optimizeFromAccommodation = useSettingsStore(s => s.settings.optimize_from_accommodation)
+  // Recompute the hotel/route legs when the user flips km↔mi so the connector
+  // distances refresh instead of showing stale cached text (#1300).
+  const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
   const legsAbortRef = useRef<AbortController | null>(null)
   const [draggingId, setDraggingId] = useState(null)
   const [lockedIds, setLockedIds] = useState(new Set())
@@ -470,7 +473,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
 
       if (!controller.signal.aborted) { setRouteLegs(map); setHotelLegs(hotel) }
     })()
-  }, [selectedDayId, routeShown, routeProfile, mergedItemsMap, accommodations, days, optimizeFromAccommodation])
+  }, [selectedDayId, routeShown, routeProfile, mergedItemsMap, accommodations, days, optimizeFromAccommodation, distanceUnit])
 
   const openAddNote = (dayId, e) => {
     e?.stopPropagation()

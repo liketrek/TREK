@@ -14,7 +14,6 @@ import { getLocaleForLanguage, useTranslation } from '../../i18n'
 import type { Day, Place, Category, Reservation, AssignmentsMap } from '../../types'
 import { isDayInAccommodationRange } from '../../utils/dayOrder'
 import { splitReservationDateTime } from '../../utils/formatters'
-import { convertDistance } from '../../utils/units'
 import { useDayDetail } from './useDayDetail'
 
 const WEATHER_ICON_MAP = {
@@ -69,7 +68,6 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
   const tripObj = useTripStore((s) => s.trip)
   const canEditDays = can('day_edit', tripObj)
   const isFahrenheit = useSettingsStore(s => s.settings.temperature_unit) === 'fahrenheit'
-  const distanceUnit = useSettingsStore(s => s.settings.distance_unit) || 'metric'
   const is12h = useSettingsStore(s => s.settings.time_format) === '12h'
   const blurCodes = useSettingsStore(s => s.settings.blur_booking_codes)
   const fmtTime = (v) => {
@@ -78,8 +76,6 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
     return formatTime12(v, is12h)
   }
   const unit = isFahrenheit ? '°F' : '°C'
-  const formatWindSpeed = (kmh: number) =>
-    distanceUnit === 'imperial' ? `${Math.round(convertDistance(kmh, distanceUnit))} mph` : `${Math.round(kmh)} km/h`
   const collapsed = collapsedProp
   const toggleCollapse = () => onToggleCollapse?.()
   const {
@@ -176,7 +172,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
                     <Chip icon={CloudRain} value={`${weather.precipitation_sum.toFixed(1)} mm`} />
                   )}
                   {weather.wind_max != null && (
-                    <Chip icon={Wind} value={formatWindSpeed(weather.wind_max)} />
+                    <Chip icon={Wind} value={isFahrenheit ? `${Math.round(weather.wind_max * 0.621371)} mph` : `${Math.round(weather.wind_max)} km/h`} />
                   )}
                   {weather.sunrise && <Chip icon={Sunrise} value={weather.sunrise} />}
                   {weather.sunset && <Chip icon={Sunset} value={weather.sunset} />}

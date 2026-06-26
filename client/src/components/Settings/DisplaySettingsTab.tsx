@@ -208,7 +208,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
 
       {/* Distance */}
       <div>
-        <label className="block text-sm font-medium mb-2 text-content-secondary">Distance</label>
+        <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.distance')}</label>
         <div className="flex gap-3">
           {([
             { value: 'metric', label: 'km Metric' },

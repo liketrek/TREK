@@ -361,12 +361,13 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
 // ── Atlas / stats row ────────────────────────────────────────────────────────
 function formatCompactDistance(value: number): string {
   const safeValue = Number.isFinite(value) ? Math.max(0, value) : 0
+  // String() keeps a '.' decimal regardless of locale (no "1,5k" in non-English UIs).
   if (safeValue >= 1000) {
-    return `${(safeValue / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })}k`
+    return `${String(Math.round(safeValue / 100) / 10)}k`
   }
   const rounded = Math.round(safeValue * 10) / 10
   if (safeValue > 0 && rounded === 0) return '<0.1'
-  return rounded.toLocaleString(undefined, { maximumFractionDigits: 1 })
+  return String(rounded)
 }
 
 function AtlasStats({ stats }: { stats: TravelStats | null }): React.ReactElement {

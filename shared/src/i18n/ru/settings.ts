@@ -53,6 +53,7 @@ const settings: TranslationStrings = {
   'settings.auto': 'Авто',
   'settings.language': 'Язык',
   'settings.temperature': 'Единица температуры',
+  'settings.distance': 'Единица расстояния',
   'settings.timeFormat': 'Формат времени',
   'settings.blurBookingCodes': 'Скрыть коды бронирования',
   'settings.optimizeFromAccommodation': 'Оптимизировать маршрут от места проживания',

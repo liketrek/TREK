@@ -53,6 +53,7 @@ const settings: TranslationStrings = {
   'settings.auto': 'Otomatik',
   'settings.language': 'Dil',
   'settings.temperature': 'Sıcaklık Birimi',
+  'settings.distance': 'Mesafe Birimi',
   'settings.timeFormat': 'Saat Biçimi',
   'settings.bookingLabels': 'Rezervasyon rota etiketleri',
   'settings.bookingLabelsHint': 'Haritada istasyon / havalimanı adlarını göster. Kapalıyken yalnızca simge görünür.',

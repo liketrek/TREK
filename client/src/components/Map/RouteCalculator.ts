@@ -240,7 +240,9 @@ export async function calculateRouteWithLegs(
   }
 
   const coords = waypoints.map((p) => `${p.lng},${p.lat}`).join(';')
-  const cacheKey = `${profile}:${coords}`
+  // The cached result carries formatted leg distances, so the active distance unit is
+  // part of the key — otherwise switching km↔mi would return stale text (#1300).
+  const cacheKey = `${profile}:${getDistanceUnit()}:${coords}`
   const cached = routeCache.get(cacheKey)
   if (cached) return cached
 

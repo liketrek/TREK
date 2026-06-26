@@ -12,7 +12,7 @@ import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import type { Place, Category, Day, Assignment, Reservation, TripFile, AssignmentsMap } from '../../types'
 import { splitReservationDateTime, formatTime } from '../../utils/formatters'
-import { formatDistance } from '../../utils/units'
+import { formatDistance, formatElevation } from '../../utils/units'
 
 const detailsCache = new Map()
 
@@ -784,14 +784,14 @@ function PlaceExtras({ openingHours, weekdayIndex, hoursExpanded, setHoursExpand
                       <>
                         <div className="text-content" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600 }}>
                           <Mountain size={12} color="#22c55e" />
-                          {Math.round(maxEle)} m
+                          {formatElevation(maxEle, distanceUnit)}
                         </div>
                         <div className="text-content" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600 }}>
                           <Mountain size={12} color="#ef4444" />
-                          {Math.round(minEle)} m
+                          {formatElevation(minEle, distanceUnit)}
                         </div>
                         <div className="text-content-muted" style={{ fontSize: 12 }}>
-                          ↑{Math.round(totalUp)} m &nbsp;↓{Math.round(totalDown)} m
+                          ↑{formatElevation(totalUp, distanceUnit)} &nbsp;↓{formatElevation(totalDown, distanceUnit)}
                         </div>
                       </>
                     )}

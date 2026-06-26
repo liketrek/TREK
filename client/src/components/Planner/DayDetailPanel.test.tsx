@@ -402,9 +402,9 @@ describe('DayDetailPanel', () => {
     await screen.findByText('20:15');
   });
 
-  it('FE-PLANNER-DAYDETAIL-027: weather chips show imperial wind speed', async () => {
+  it('FE-PLANNER-DAYDETAIL-027: weather chips show Fahrenheit wind speed', async () => {
     seedStore(useSettingsStore, {
-      settings: { time_format: '24h', temperature_unit: 'celsius', distance_unit: 'imperial', blur_booking_codes: false },
+      settings: { time_format: '24h', temperature_unit: 'fahrenheit', blur_booking_codes: false },
     });
     server.use(
       http.get('/api/weather/detailed', () =>

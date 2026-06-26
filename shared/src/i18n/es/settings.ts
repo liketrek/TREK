@@ -55,6 +55,7 @@ const settings: TranslationStrings = {
   'settings.auto': 'Automático',
   'settings.language': 'Idioma',
   'settings.temperature': 'Unidad de temperatura',
+  'settings.distance': 'Unidad de distancia',
   'settings.timeFormat': 'Formato de hora',
   'settings.blurBookingCodes': 'Difuminar códigos de reserva',
   'settings.optimizeFromAccommodation': 'Optimizar la ruta desde el alojamiento',

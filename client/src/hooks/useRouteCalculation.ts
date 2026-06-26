@@ -25,6 +25,9 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
   // Draw the day's accommodation bookend legs (hotel → first stop, last stop →
   // hotel) unless the user turned the setting off — same gate as the sidebar.
   const optimizeFromAccommodation = useSettingsStore((s) => s.settings.optimize_from_accommodation)
+  // Recompute when the user flips km↔mi so leg distances (formatted at compute time)
+  // refresh instead of showing stale cached text (#1300).
+  const distanceUnit = useSettingsStore((s) => s.settings.distance_unit)
 
   const updateRouteForDay = useCallback(async (dayId: number | null) => {
     if (routeAbortRef.current) routeAbortRef.current.abort()
@@ -164,7 +167,7 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
       // Aborted (day changed) — newer call owns the state. Anything else: keep straight lines.
       if (!(err instanceof Error) || err.name !== 'AbortError') setRouteSegments([])
     }
-  }, [enabled, profile, accommodations, optimizeFromAccommodation])
+  }, [enabled, profile, accommodations, optimizeFromAccommodation, distanceUnit])
 
   // Stable signature for transport reservations on the selected day — changes when a transport
   // is added, removed, or repositioned, ensuring route recalc fires even on transport-only reorders.
@@ -188,7 +191,7 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
     if (!selectedDayId) { setRoute(null); setRouteSegments([]); return }
     updateRouteForDay(selectedDayId)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDayId, selectedDayAssignments, transportSignature, enabled, profile, accommodations, optimizeFromAccommodation])
+  }, [selectedDayId, selectedDayAssignments, transportSignature, enabled, profile, accommodations, optimizeFromAccommodation, distanceUnit])
 
   return { route, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay }
 }
