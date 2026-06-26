@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const trip: TranslationStrings = {
+  'trip.tabs.plan': 'Plan',
+  'trip.tabs.transports': 'Transporter',
+  'trip.tabs.reservations': 'Bokningar',
+  'trip.tabs.reservationsShort': 'Bokningar',
+  'trip.tabs.packing': 'Packlista',
+  'trip.tabs.packingShort': 'Packning',
+  'trip.tabs.lists': 'Listor',
+  'trip.tabs.listsShort': 'Listor',
+  'trip.tabs.budget': 'Kostnader',
+  'trip.tabs.files': 'Filer',
+  'trip.loading': 'Laddar resa...',
+  'trip.loadingPhotos': 'Laddar plats foton...',
+  'trip.mobilePlan': 'Plan',
+  'trip.mobilePlaces': 'Platser',
+  'trip.toast.placeUpdated': 'Plats uppdaterad',
+  'trip.toast.placeAdded': 'Plats tillagd',
+  'trip.toast.placeDeleted': 'Plats raderad',
+  'trip.toast.selectDay': 'Vänligen välj en dag först',
+  'trip.toast.assignedToDay': 'Plats tilldelad till dag',
+  'trip.toast.reorderError': 'Misslyckades att ordna om',
+  'trip.toast.reservationUpdated': 'Reservation uppdaterad',
+  'trip.toast.reservationAdded': 'Reservation tillagd',
+  'trip.toast.deleted': 'Raderad',
+  'trip.confirm.deletePlace': 'Är du säker på att du vill radera denna plats?',
+  'trip.confirm.deletePlaces': 'Radera {count} platser?',
+  'trip.toast.placesDeleted': '{count} platser raderade',
+};
+export default trip;

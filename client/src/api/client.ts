@@ -100,6 +100,7 @@ const RATE_LIMIT_MESSAGES: Record<string, string> = {
   ja:      '試行回数が多すぎます。時間をおいて再度お試しください。',
   ko:      '시도 횟수가 너무 많습니다. 잠시 후 다시 시도해 주세요.',
   uk:      'Занадто багато спроб. Спробуйте пізніше.',
+  sv:      'För många försök. Prova igen senare.',
 }
 
 function translateRateLimit(): string {
