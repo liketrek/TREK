@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import React, { useState } from 'react'
 import ReactDOM from 'react-dom'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTripStore } from '../store/tripStore'
@@ -18,7 +18,6 @@ import TripMembersModal from '../components/Trips/TripMembersModal'
 import { ReservationModal } from '../components/Planner/ReservationModal'
 import { TransportModal } from '../components/Planner/TransportModal'
 import BookingImportModal from '../components/Planner/BookingImportModal'
-import { useBackgroundTasksStore } from '../store/backgroundTasksStore'
 import AirTrailImportModal from '../components/Planner/AirTrailImportModal'
 // MemoriesPanel moved to Journey addon
 import ReservationsPanel from '../components/Planner/ReservationsPanel'
@@ -36,7 +35,6 @@ import { Map, X, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen,
 import { useTranslation } from '../i18n'
 import { addonsApi, accommodationsApi, authApi, tripsApi, assignmentsApi, mapsApi } from '../api/client'
 import { accommodationRepo } from '../repo/accommodationRepo'
-import { offlineDb, getImportFiles, deleteImportFiles } from '../db/offlineDb'
 import { useAuthStore } from '../store/authStore'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
 import { useResizablePanels } from '../hooks/useResizablePanels'
@@ -196,7 +194,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
     bookingForAssignmentId, setBookingForAssignmentId,
     showTransportModal, setShowTransportModal, editingTransport, setEditingTransport,
     transportModalDayId, setTransportModalDayId,
-    reservationPrefill, transportPrefill, importReviewActive, startImportReview, advanceImportReview,
+    reservationPrefill, transportPrefill, importReviewActive, advanceImportReview,
     routeShown, setRouteShown, routeProfile, setRouteProfile, fitKey, setFitKey,
     mobileSidebarOpen, setMobileSidebarOpen, mobilePlanScrollTopRef, mobilePlacesScrollTopRef,
     deletePlaceId, setDeletePlaceId, deletePlaceIds, setDeletePlaceIds,
@@ -211,30 +209,6 @@ export default function TripPlannerPage(): React.ReactElement | null {
     selectedPlace, dayOrderMap, dayPlaces,
     mapTileUrl, defaultCenter, defaultZoom, fontStyle, splashDone,
   } = useTripPlanner()
-
-  // Bridge: when a finished background import is sent here for review (the user hit
-  // "review" in the background widget, on this or any page), open the per-item flow.
-  const bgTasks = useBackgroundTasksStore((s) => s.tasks)
-  const dismissBgTask = useBackgroundTasksStore((s) => s.dismiss)
-  useEffect(() => {
-    const task = bgTasks.find(
-      (tk) => tk.tripId === String(tripId) && tk.status === 'done' && tk.reviewRequested && !tk.consumed,
-    )
-    if (task && task.items && task.items.length > 0) {
-      // Hand the items (and the source files, to attach to each booking) to the review flow
-      // and clear the widget entry — once the user hit "review", the background card is done.
-      const items = task.items
-      const jobId = task.id
-      const inMemory = task.sourceFiles
-      dismissBgTask(jobId)
-      // Prefer the in-memory files (immediate path); after a reload they live in IndexedDB.
-      void (async () => {
-        const files = inMemory && inMemory.length ? inMemory : await getImportFiles(jobId)
-        deleteImportFiles(jobId)
-        startImportReview(items, files)
-      })()
-    }
-  }, [bgTasks, tripId, startImportReview, dismissBgTask])
 
   const poi = usePoiExplore()
   const [glMap, setGlMap] = useState<CompassMap | null>(null)

@@ -11,7 +11,8 @@ import { addonsApi, accommodationsApi, authApi, tripsApi, assignmentsApi, health
 import { parsedItemToDraft, isTransportItem, type BookingReviewDraft } from '../../components/Planner/parsedItemToDraft'
 import type { BookingImportPreviewItem } from '@trek/shared'
 import { accommodationRepo } from '../../repo/accommodationRepo'
-import { offlineDb } from '../../db/offlineDb'
+import { offlineDb, getImportFiles, deleteImportFiles } from '../../db/offlineDb'
+import { useBackgroundTasksStore } from '../../store/backgroundTasksStore'
 import { useAuthStore } from '../../store/authStore'
 import { useResizablePanels } from '../../hooks/useResizablePanels'
 import { useTripWebSocket } from '../../hooks/useTripWebSocket'
@@ -713,6 +714,31 @@ export function useTripPlanner() {
     setImportReviewActive(true)
     openImportItem(items[0])
   }
+
+  // Bridge: when a finished background import is sent here for review (the user hit
+  // "review" in the background widget, on this or any page), open the per-item flow.
+  // Lives in the hook so the page stays a pure wiring container.
+  const bgTasks = useBackgroundTasksStore((s) => s.tasks)
+  const dismissBgTask = useBackgroundTasksStore((s) => s.dismiss)
+  useEffect(() => {
+    const task = bgTasks.find(
+      (tk) => tk.tripId === String(tripId) && tk.status === 'done' && tk.reviewRequested && !tk.consumed,
+    )
+    if (task && task.items && task.items.length > 0) {
+      // Hand the items (and the source files, to attach to each booking) to the review flow
+      // and clear the widget entry — once the user hit "review", the background card is done.
+      const items = task.items
+      const jobId = task.id
+      const inMemory = task.sourceFiles
+      dismissBgTask(jobId)
+      // Prefer the in-memory files (immediate path); after a reload they live in IndexedDB.
+      void (async () => {
+        const files = inMemory && inMemory.length ? inMemory : await getImportFiles(jobId)
+        deleteImportFiles(jobId)
+        startImportReview(items, files)
+      })()
+    }
+  }, [bgTasks, tripId, startImportReview, dismissBgTask])
 
   // Called when a reviewed item's modal closes (saved or skipped): open the next,
   // or finish the review session and refresh accommodations.
