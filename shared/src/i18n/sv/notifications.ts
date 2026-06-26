@@ -1,0 +1,36 @@
+import type { TranslationStrings } from '../types';
+
+const notifications: TranslationStrings = {
+  'notifications.title': 'Meddelanden',
+  'notifications.markAllRead': 'Markera alla som lästa',
+  'notifications.deleteAll': 'Ta bort alla',
+  'notifications.showAll': 'Visa alla meddelanden',
+  'notifications.empty': 'Inga meddelanden',
+  'notifications.emptyDescription': "Nu är du helt uppdaterad!",
+  'notifications.all': 'Alla',
+  'notifications.unreadOnly': 'Olästa',
+  'notifications.markRead': 'Markera som läst',
+  'notifications.markUnread': 'Markera som oläst',
+  'notifications.delete': 'Radera',
+  'notifications.system': 'System',
+  'notifications.synologySessionCleared.title': 'Synology Photos har kopplats bort',
+  'notifications.synologySessionCleared.text':
+    'Din server eller ditt konto har ändrats – gå till Inställningar för att testa din anslutning igen.',
+  'notifications.versionAvailable.title': 'Uppdatering tillgänglig',
+  'notifications.versionAvailable.text': 'TREK {version} finns nu tillgängligt.',
+  'notifications.versionAvailable.button': 'Visa detaljer',
+  'notifications.test.title': 'Testmeddelande från {actor}',
+  'notifications.test.text': 'Detta är ett enkelt testmeddelande.',
+  'notifications.test.booleanTitle': '{actor} ber om ditt godkännande',
+  'notifications.test.booleanText': 'Detta är ett testmeddelande av typen boolean. Välj en åtgärd nedan.',
+  'notifications.test.accept': 'Godkänn',
+  'notifications.test.decline': 'Neka',
+  'notifications.test.navigateTitle': 'Kolla in det här',
+  'notifications.test.navigateText': 'Detta är ett testmeddelande om navigering.',
+  'notifications.test.goThere': 'Gå dit',
+  'notifications.test.adminTitle': 'Meddelande från administratören',
+  'notifications.test.adminText': '{actor} skickade ett testmeddelande till alla administratörer.',
+  'notifications.test.tripTitle': '{actor} publicerat i din resa',
+  'notifications.test.tripText': 'Testmeddelande för resan "{trip}".',
+};
+export default notifications;

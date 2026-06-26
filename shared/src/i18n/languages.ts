@@ -19,6 +19,7 @@ export const SUPPORTED_LANGUAGES = [
   { value: 'ko', label: '한국어', locale: 'ko-KR' },
   { value: 'uk', label: 'Українська', locale: 'uk-UA' },
   { value: 'gr', label: 'Ελληνικά', locale: 'el-GR' },
+  { value: 'sv', label: 'Svenska', locale: 'sv-SE' },
 ] as const;
 
 export type SupportedLanguageCode = (typeof SUPPORTED_LANGUAGES)[number]['value'];
