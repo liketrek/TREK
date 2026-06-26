@@ -136,41 +136,13 @@ The `@trek/shared` package is the single source of truth for code shared between
 | `npm run build`             | Compile shared package (tsup)        |
 | `npm run build:watch`       | Compile in watch mode                |
 | `npm test`                  | Run tests                            |
+| `npm run test:watch`        | Run tests in watch mode              |
 | `npm run typecheck`         | Type-check without emitting          |
 | `npm run i18n:parity`       | Check locale key parity              |
 | `npm run i18n:parity:strict`| Strict locale key parity (CI gate)   |
 | `npm run lint`              | Lint source                          |
 | `npm run format`            | Format source                        |
-
-### Root (`/`)
-
-These commands run across all workspaces at once and are the recommended way to work:
-
-| Command              | Description                                                         |
-|----------------------|---------------------------------------------------------------------|
-| `npm run dev`        | Build shared, then start shared (watch), server, and client together via `concurrently` |
-| `npm run build`      | Build shared → server → client in order                            |
-| `npm test`           | Run tests in shared, server, and client                            |
-| `npm run test:cov`   | Run coverage for server and client                                 |
-| `npm run test:e2e`   | Run end-to-end tests (server)                                      |
-| `npm run lint`       | Lint shared, server, and client                                    |
-| `npm run format`     | Format shared, server, and client                                  |
-| `npm run format:check` | Check formatting across all workspaces                           |
-
-### Shared (`/shared`)
-
-The `@trek/shared` package is the single source of truth for code shared between the client and server. It currently holds **Zod schemas that define API contracts** (request/response shapes, common primitives, pagination). Both workspaces import from it so schema changes automatically propagate to both sides.
-
-> **Upcoming:** the i18n translation layer will be migrated into this package so that translation keys and types are enforced across the stack from one place.
-
-| Command                | Description                        |
-|------------------------|------------------------------------|
-| `npm run build`        | Compile shared package (tsup)      |
-| `npm run build:watch`  | Compile in watch mode              |
-| `npm test`             | Run tests                          |
-| `npm run typecheck`    | Type-check without emitting        |
-| `npm run lint`         | Lint source                        |
-| `npm run format`       | Format source                      |
+| `npm run format:check`   | Check formatting                  |
 
 ### Server (`/server`)
 
