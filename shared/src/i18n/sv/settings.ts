@@ -53,6 +53,7 @@ const settings: TranslationStrings = {
   'settings.auto': 'Auto',
   'settings.language': 'Språk',
   'settings.temperature': 'Temperaturenhet',
+  'settings.distance': 'Avståndsenhet',
   'settings.timeFormat': 'Tidsformat',
   'settings.bookingLabels': 'Etiketter för bokningsrutter',
   'settings.bookingLabelsHint': 'Visa stations- och flygplatsnamn på kartan. När funktionen är avstängd visas endast ikonen.',
