@@ -716,6 +716,10 @@ export function useTripPlanner() {
     setShowReservationModal(false); setEditingReservation(null); setReservationPrefill(null)
     setShowTransportModal(false); setEditingTransport(null); setTransportPrefill(null); setTransportModalDayId(null)
     accommodationsApi.list(tripId).then(d => setTripAccommodations(d.accommodations || [])).catch(() => {})
+    // Imported bookings auto-create their linked costs server-side, but the saving client
+    // suppresses its own budget:created echo (X-Socket-Id) — so reload the budget items here
+    // to surface those expenses without a manual page refresh.
+    tripActions.loadBudgetItems?.(tripId)
   }
 
   const selectedPlace = selectedPlaceId ? places.find(p => p.id === selectedPlaceId) : null
