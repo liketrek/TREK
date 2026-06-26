@@ -68,10 +68,18 @@ export function detectFlightNumbers(text: string): string[] {
   return out;
 }
 
-/** The booking/confirmation code, pulled once for the whole document. */
+/**
+ * The booking/confirmation code, pulled once for the whole document. Covers the German
+ * "Bestätigungs-Code" (Airbnb) and "Reservation No." (rental brokers) on top of the PNR /
+ * Buchungsnummer / Confirmation forms. The match is left-most in the text, so a customer
+ * "Reservation No." that precedes a vendor "Supplier Reference" wins.
+ */
 export function extractBookingRef(text: string): string | undefined {
+  // The captured code must contain a digit: real PNRs/booking codes effectively always
+  // do, while the case-insensitive [A-Z0-9] class would otherwise grab a following prose
+  // word ("Confirmation\nThank you…" → "Thank") after a bare label.
   const m = text.match(
-    /(?:PNR|Buchungs(?:code|nummer|referenz)|Booking\s*(?:reference|code|number)|Confirmation(?:\s*number)?|Reservierungsnummer|Best(?:ä|ae)tigungsnummer|Reference)\s*:?\s*([A-Z0-9]{5,})/i,
+    /(?:PNR|Buchungs(?:code|nummer|referenz)|Booking\s*(?:reference|code|number)|Confirmation\s*(?:number|code)?|Reservierungsnummer|Reservation\s*(?:No\.?|Number|Nr\.?)|Best(?:ä|ae)tigungs[-\s]?(?:nummer|code)|Reference)\s*:?\s*((?=[A-Z0-9]*\d)[A-Z0-9]{5,})/i,
   );
   return m?.[1];
 }
@@ -173,12 +181,38 @@ async function extractSingle(text: string, ctx: RouterContext): Promise<FlatLike
  * Run the router on extracted document text and return schema.org KiReservation nodes.
  * Returns `[]` (never throws for content reasons) so the caller degrades gracefully.
  */
+/**
+ * Schicht 2 — fill the booking-wide fields the per-reservation extraction doesn't carry:
+ * the confirmation/PNR and the booking total. Applied to BOTH the deterministic vendor
+ * results AND the model output, so a vendor template that read the structured fields but
+ * whose narrow ref/price regex missed still gets the broad doc-wide deterministic value.
+ * Never overrides a value the source already provided.
+ */
+function fillBookingWideFields(flats: Array<Record<string, unknown>>, text: string): void {
+  const ref = extractBookingRef(text);
+  const total = extractTotalPrice(text);
+  // A small model sometimes emits an empty string for a price it didn't find, which is
+  // not `null` — treat blank/whitespace as "no price" so the deterministic total still wins.
+  const priceMissing = (v: unknown) => v == null || (typeof v === 'string' && v.trim() === '');
+  flats.forEach((f, i) => {
+    if (!f.booking_reference && ref) f.booking_reference = ref;
+    // The total belongs to the booking, so attach it once (the first item).
+    if (i === 0 && total && priceMissing(f.price)) {
+      f.price = total.price;
+      if (f.currency == null) f.currency = total.currency;
+    }
+  });
+}
+
 export async function routeExtraction(text: string, ctx: RouterContext): Promise<{ kiItems: KiReservation[]; warnings: string[] }> {
   const warnings: string[] = [];
 
-  // Schicht 0 — deterministic vendor templates (no LLM).
+  // Schicht 0 — deterministic vendor templates (no LLM). Still top-up the booking-wide
+  // fields so a template misses on the ref/price doesn't drop them when the doc-wide
+  // deterministic extractor would have found them.
   const vendor = matchVendorTemplate(text);
   if (vendor && vendor.length > 0) {
+    fillBookingWideFields(vendor as unknown as Array<Record<string, unknown>>, text);
     return { kiItems: nuExtractToKiReservations(vendor) as unknown as KiReservation[], warnings };
   }
 
@@ -191,16 +225,7 @@ export async function routeExtraction(text: string, ctx: RouterContext): Promise
   }
 
   // Schicht 2 — deterministic booking-wide fields the per-call schema doesn't carry.
-  const ref = extractBookingRef(text);
-  const total = extractTotalPrice(text);
-  flats.forEach((f, i) => {
-    if (!f.booking_reference && ref) f.booking_reference = ref;
-    // The total belongs to the booking, so attach it once (the first item).
-    if (i === 0 && total && f.price == null) {
-      f.price = total.price;
-      if (f.currency == null) f.currency = total.currency;
-    }
-  });
+  fillBookingWideFields(flats as unknown as Array<Record<string, unknown>>, text);
 
   const kiItems = nuExtractToKiReservations(flats as unknown as Record<string, unknown>[]) as unknown as KiReservation[];
   return { kiItems, warnings };
