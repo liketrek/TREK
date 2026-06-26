@@ -155,6 +155,25 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
   const [linkedFileIds, setLinkedFileIds] = useState<number[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Resolve a trip day from a YYYY-MM-DD string: exact match, else the nearest day so an
+  // imported booking still lands on one. An imported transport arrives without a day_id
+  // (only its parsed dates), and without a selected day the save would drop the date and
+  // store a bare "HH:MM" — see buildTime below.
+  const dayIdForDate = (dateStr: string | null): number | '' => {
+    if (!dateStr || days.length === 0) return ''
+    const exact = days.find(d => d.date === dateStr)
+    if (exact) return exact.id
+    const target = new Date(dateStr).getTime()
+    if (Number.isNaN(target)) return ''
+    let best = days[0]
+    let bestDiff = Infinity
+    for (const d of days) {
+      const diff = Math.abs(new Date(d.date).getTime() - target)
+      if (diff < bestDiff) { bestDiff = diff; best = d }
+    }
+    return best.id
+  }
+
   useEffect(() => {
     if (!isOpen) return
     // Edit uses the saved `reservation`; a review-import populates from `prefill`.
@@ -175,8 +194,10 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         title: src.title || '',
         type,
         status: src.status === 'confirmed' ? 'confirmed' : 'pending',
-        start_day_id: src.day_id ?? '',
-        end_day_id: src.end_day_id ?? '',
+        // For an edit, keep the saved day; for an imported prefill (no day_id), resolve it
+        // from the parsed pick-up/return date so the date isn't lost on save.
+        start_day_id: src.day_id ?? dayIdForDate(splitReservationDateTime(src.reservation_time).date),
+        end_day_id: src.end_day_id ?? dayIdForDate(splitReservationDateTime(src.reservation_end_time).date),
         departure_time: splitReservationDateTime(src.reservation_time).time ?? '',
         arrival_time: splitReservationDateTime(src.reservation_end_time).time ?? '',
         confirmation_number: src.confirmation_number || '',
