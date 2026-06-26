@@ -5,7 +5,7 @@ export function PlacesList(S: SidebarState) {
   const {
     filtered, scrollContainerRef, onScrollTopChange, filter, t, canEditPlaces, onAddPlace,
     categories, selectedPlaceId, plannedIds, inDaySet, selectedIds, selectMode, selectedDayId,
-    isMobile, onPlaceClick, openContextMenu, onAssignToDay, toggleSelected, setDayPickerPlace,
+    isMobile, onPlaceClick, openContextMenu, onAssignToDay, toggleSelected, setDayPickerPlace, registerPlaceRow,
   } = S
   return (
     <div className="trek-stagger" style={{ flex: 1, overflowY: 'auto', minHeight: 0 }} ref={scrollContainerRef} onScroll={(e) => onScrollTopChange?.((e.currentTarget as HTMLElement).scrollTop)}>
@@ -44,6 +44,7 @@ export function PlacesList(S: SidebarState) {
               onAssignToDay={onAssignToDay}
               toggleSelected={toggleSelected}
               setDayPickerPlace={setDayPickerPlace}
+              registerPlaceRow={registerPlaceRow}
             />
           )
         })

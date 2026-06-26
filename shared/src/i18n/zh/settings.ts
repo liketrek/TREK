@@ -52,6 +52,7 @@ const settings: TranslationStrings = {
   'settings.auto': '自动',
   'settings.language': '语言',
   'settings.temperature': '温度单位',
+  'settings.distance': '距离单位',
   'settings.timeFormat': '时间格式',
   'settings.blurBookingCodes': '模糊预订代码',
   'settings.optimizeFromAccommodation': '从住宿地优化路线',

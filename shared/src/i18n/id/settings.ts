@@ -54,6 +54,7 @@ const settings: TranslationStrings = {
   'settings.auto': 'Otomatis',
   'settings.language': 'Bahasa',
   'settings.temperature': 'Satuan Suhu',
+  'settings.distance': 'Satuan Jarak',
   'settings.timeFormat': 'Format Waktu',
   'settings.blurBookingCodes': 'Sembunyikan Kode Pemesanan',
   'settings.optimizeFromAccommodation': 'Optimalkan rute dari akomodasi',

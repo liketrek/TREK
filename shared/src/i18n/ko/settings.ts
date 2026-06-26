@@ -53,6 +53,7 @@ const settings: TranslationStrings = {
   'settings.auto': '자동',
   'settings.language': '언어',
   'settings.temperature': '온도 단위',
+  'settings.distance': '거리 단위',
   'settings.timeFormat': '시간 형식',
   'settings.bookingLabels': '예약 경로 레이블',
   'settings.bookingLabelsHint': '지도에 역 / 공항 이름을 표시합니다. 끄면 아이콘만 표시됩니다.',

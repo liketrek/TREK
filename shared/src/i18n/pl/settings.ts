@@ -54,6 +54,7 @@ const settings: TranslationStrings = {
   'settings.auto': 'Automatyczny',
   'settings.language': 'Język',
   'settings.temperature': 'Jednostka temperatury',
+  'settings.distance': 'Jednostka odległości',
   'settings.timeFormat': 'Format czasu',
   'settings.blurBookingCodes': 'Rozmyj kody rezerwacji',
   'settings.optimizeFromAccommodation': 'Optymalizuj trasę od zakwaterowania',

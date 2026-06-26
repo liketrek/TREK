@@ -25,6 +25,9 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
   // Draw the day's accommodation bookend legs (hotel → first stop, last stop →
   // hotel) unless the user turned the setting off — same gate as the sidebar.
   const optimizeFromAccommodation = useSettingsStore((s) => s.settings.optimize_from_accommodation)
+  // Recompute when the user flips km↔mi so leg distances (formatted at compute time)
+  // refresh instead of showing stale cached text (#1300).
+  const distanceUnit = useSettingsStore((s) => s.settings.distance_unit)
 
   const updateRouteForDay = useCallback(async (dayId: number | null) => {
     if (routeAbortRef.current) routeAbortRef.current.abort()
@@ -105,8 +108,9 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
     // getDayBookendHotels returns the morning/evening hotel (they differ only on a
     // transfer day) and already filters to accommodations that have coordinates.
     const day = allDays.find(d => d.id === dayId)
-    const { morning: startHotel, evening: endHotel } =
-      day && optimizeFromAccommodation !== false ? getDayBookendHotels(day, allDays, accommodations) : {}
+    const bookends = day && optimizeFromAccommodation !== false
+      ? getDayBookendHotels(day, allDays, accommodations)
+      : null
     const flatPts: { lat: number; lng: number }[] = []
     for (const e of entries) {
       if (e.kind === 'place') flatPts.push({ lat: e.lat, lng: e.lng })
@@ -114,7 +118,24 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
     }
     const hotelPt = (a?: Accommodation) =>
       a && a.place_lat != null && a.place_lng != null ? { lat: a.place_lat, lng: a.place_lng } : null
-    const runsWithHotel = withHotelBookends(runs, flatPts[0], flatPts[flatPts.length - 1], hotelPt(startHotel), hotelPt(endHotel))
+    // Only draw a hotel bookend when the leg is real. A hotel → first-stop leg holds
+    // if the first stop is a place, or if you actually slept in that hotel last night;
+    // on a day-1 arrival the morning hotel is just a check-in fallback and the first
+    // waypoint is the transport's departure point, so [hotel → departure] is dropped
+    // (#1321). Symmetrically, [last-stop → hotel] is dropped when you leave on a transport
+    // in the evening and don't sleep in that hotel tonight.
+    const contributes = (e: Entry) => e.kind === 'place' || !!e.from || !!e.to
+    const firstStop = entries.find(contributes)
+    const lastStop = [...entries].reverse().find(contributes)
+    const drawMorning = firstStop?.kind === 'place' || !!bookends?.morningIsSleptHere
+    const drawEvening = lastStop?.kind === 'place' || !!bookends?.eveningIsOvernight
+    const runsWithHotel = withHotelBookends(
+      runs,
+      flatPts[0],
+      flatPts[flatPts.length - 1],
+      drawMorning ? hotelPt(bookends?.morning) : null,
+      drawEvening ? hotelPt(bookends?.evening) : null,
+    )
 
     const straightLines = (): [number, number][][] =>
       runsWithHotel.map(r => r.map(p => [p.lat, p.lng] as [number, number]))
@@ -146,7 +167,7 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
       // Aborted (day changed) — newer call owns the state. Anything else: keep straight lines.
       if (!(err instanceof Error) || err.name !== 'AbortError') setRouteSegments([])
     }
-  }, [enabled, profile, accommodations, optimizeFromAccommodation])
+  }, [enabled, profile, accommodations, optimizeFromAccommodation, distanceUnit])
 
   // Stable signature for transport reservations on the selected day — changes when a transport
   // is added, removed, or repositioned, ensuring route recalc fires even on transport-only reorders.
@@ -170,7 +191,7 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
     if (!selectedDayId) { setRoute(null); setRouteSegments([]); return }
     updateRouteForDay(selectedDayId)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDayId, selectedDayAssignments, transportSignature, enabled, profile, accommodations, optimizeFromAccommodation])
+  }, [selectedDayId, selectedDayAssignments, transportSignature, enabled, profile, accommodations, optimizeFromAccommodation, distanceUnit])
 
   return { route, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay }
 }

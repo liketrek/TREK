@@ -51,6 +51,7 @@ const settings: TranslationStrings = {
   'settings.auto': 'تلقائي',
   'settings.language': 'اللغة',
   'settings.temperature': 'وحدة الحرارة',
+  'settings.distance': 'وحدة المسافة',
   'settings.timeFormat': 'تنسيق الوقت',
   'settings.bookingLabels': 'تسميات مسارات الحجوزات',
   'settings.bookingLabelsHint': 'عرض أسماء المحطات/المطارات على الخريطة. عند الإيقاف، يتم عرض الرمز فقط.',

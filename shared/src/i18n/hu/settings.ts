@@ -54,6 +54,7 @@ const settings: TranslationStrings = {
   'settings.auto': 'Automatikus',
   'settings.language': 'Nyelv',
   'settings.temperature': 'Hőmérséklet egység',
+  'settings.distance': 'Távolság egység',
   'settings.timeFormat': 'Időformátum',
   'settings.blurBookingCodes': 'Foglalási kódok elrejtése',
   'settings.optimizeFromAccommodation': 'Útvonal optimalizálása a szállástól',
