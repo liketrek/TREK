@@ -1,5 +1,5 @@
 import ReactDOM from 'react-dom'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Loader2, CheckCircle2, AlertCircle, X } from 'lucide-react'
 import { useTranslation } from '../../i18n'
@@ -24,6 +24,31 @@ export default function BackgroundTasksWidget() {
   const requestReview = useBackgroundTasksStore((s) => s.requestReview)
   const dismiss = useBackgroundTasksStore((s) => s.dismiss)
 
+  // On (re)load, reconcile tasks restored from localStorage with the server: a parse
+  // that was still running when the page reloaded must keep its widget, so re-fetch each
+  // job's real status (and its parsed items) once. A job the server has since dropped
+  // (404, expired) is removed so no stale card lingers.
+  const didRehydrate = useRef(false)
+  useEffect(() => {
+    if (didRehydrate.current) return
+    didRehydrate.current = true
+    const restored = useBackgroundTasksStore.getState().tasks
+    for (const task of restored) {
+      reservationsApi
+        .importJobStatus(task.tripId, task.id)
+        .then((s) => {
+          if (s.status === 'done') setDone(task.id, task.tripId, (s.result?.items ?? []) as never, s.result?.warnings ?? [])
+          else if (s.status === 'error') setError(task.id, task.tripId, s.error ?? 'error')
+          else setProgress(task.id, task.tripId, s.done, s.total)
+        })
+        .catch((err: { response?: { status?: number } }) => {
+          if (err?.response?.status === 404) dismiss(task.id)
+        })
+    }
+    // run once on mount against whatever was rehydrated from storage
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Server pushes import:* to the user on whatever page they're on.
   useEffect(() => {
     const handler = (e: Record<string, unknown>) => {
@@ -42,12 +67,14 @@ export default function BackgroundTasksWidget() {
     return () => removeListener(handler)
   }, [setProgress, setDone, setError])
 
-  // Backstop: poll running jobs in case a WebSocket push was missed on reconnect.
+  // Backstop: poll jobs whose state we still need — running ones (in case a WebSocket push
+  // was missed) and a restored 'done' task whose items haven't been re-fetched yet (so a
+  // failed one-shot rehydrate self-heals instead of getting stuck on "preview empty").
   useEffect(() => {
-    const running = tasks.filter((task) => task.status === 'running')
-    if (running.length === 0) return
+    const pending = tasks.filter((task) => task.status === 'running' || (task.status === 'done' && task.items === undefined))
+    if (pending.length === 0) return
     const iv = setInterval(() => {
-      for (const task of running) {
+      for (const task of pending) {
         reservationsApi
           .importJobStatus(task.tripId, task.id)
           .then((s) => {
@@ -79,8 +106,8 @@ export default function BackgroundTasksWidget() {
           style={{ borderRadius: 12, border: '1px solid var(--border-primary)', boxShadow: '0 8px 24px rgba(0,0,0,0.18)', padding: '11px 13px', backdropFilter: 'blur(8px)', display: 'flex', gap: 10, alignItems: 'flex-start' }}
         >
           <div style={{ flexShrink: 0, marginTop: 1 }}>
-            {task.status === 'running' && <Loader2 size={16} className="animate-spin" color="var(--accent)" />}
-            {task.status === 'done' && <CheckCircle2 size={16} color="#10b981" />}
+            {(task.status === 'running' || (task.status === 'done' && task.items === undefined)) && <Loader2 size={16} className="animate-spin" color="var(--accent)" />}
+            {task.status === 'done' && task.items !== undefined && <CheckCircle2 size={16} color="#10b981" />}
             {task.status === 'error' && <AlertCircle size={16} color="#ef4444" />}
           </div>
 
@@ -97,7 +124,10 @@ export default function BackgroundTasksWidget() {
             )}
 
             {task.status === 'done' && (
-              (task.items?.length ?? 0) > 0 ? (
+              task.items === undefined ? (
+                // Restored from a reload; items are being re-fetched (see the poll backstop).
+                <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 1 }}>{t('reservations.import.parsing')}</div>
+              ) : task.items.length > 0 ? (
                 <button
                   onClick={() => review(task)}
                   className="bg-accent text-accent-text"
