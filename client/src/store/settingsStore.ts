@@ -30,6 +30,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     default_currency: 'USD',
     language: localStorage.getItem('app_language') || 'en',
     temperature_unit: 'fahrenheit',
+    distance_unit: 'metric',
     time_format: '12h',
     show_place_description: false,
     optimize_from_accommodation: true,

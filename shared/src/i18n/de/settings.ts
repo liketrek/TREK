@@ -54,6 +54,7 @@ const settings: TranslationStrings = {
   'settings.auto': 'Automatisch',
   'settings.language': 'Sprache',
   'settings.temperature': 'Temperatureinheit',
+  'settings.distance': 'Entfernungseinheit',
   'settings.timeFormat': 'Zeitformat',
   'settings.bookingLabels': 'Orts-Labels auf Buchungsrouten',
   'settings.bookingLabelsHint': 'Zeigt Bahnhofs-/Flughafennamen auf der Karte. Wenn aus, wird nur das Icon angezeigt.',

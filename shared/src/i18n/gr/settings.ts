@@ -57,6 +57,7 @@ const settings: TranslationStrings = {
   'settings.auto': 'Αυτόματο',
   'settings.language': 'Γλώσσα',
   'settings.temperature': 'Μονάδα Θερμοκρασίας',
+  'settings.distance': 'Μονάδα Απόστασης',
   'settings.timeFormat': 'Μορφή Ώρας',
   'settings.bookingLabels': 'Ετικέτες διαδρομής κρατήσεων',
   'settings.bookingLabelsHint':

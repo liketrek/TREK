@@ -12,6 +12,7 @@ import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import type { Place, Category, Day, Assignment, Reservation, TripFile, AssignmentsMap } from '../../types'
 import { splitReservationDateTime, formatTime } from '../../utils/formatters'
+import { formatDistance, formatElevation } from '../../utils/units'
 
 const detailsCache = new Map()
 
@@ -122,6 +123,7 @@ export default function PlaceInspector({
   const { t, locale, language } = useTranslation()
   const toast = useToast()
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
+  const distanceUnit = useSettingsStore(s => s.settings.distance_unit) || 'metric'
   const [hoursExpanded, setHoursExpanded] = useState(false)
   const [filesExpanded, setFilesExpanded] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -274,7 +276,8 @@ export default function PlaceInspector({
           <PlaceExtras openingHours={openingHours} weekdayIndex={weekdayIndex} hoursExpanded={hoursExpanded}
             setHoursExpanded={setHoursExpanded} timeFormat={timeFormat} t={t} place={place} placeFiles={placeFiles}
             onFileUpload={onFileUpload} filesExpanded={filesExpanded} setFilesExpanded={setFilesExpanded}
-            fileInputRef={fileInputRef} handleFileUpload={handleFileUpload} isUploading={isUploading} />
+            fileInputRef={fileInputRef} handleFileUpload={handleFileUpload} isUploading={isUploading}
+            distanceUnit={distanceUnit} />
 
         </div>
 
@@ -682,7 +685,7 @@ function PlaceReservationParticipants({ selectedAssignmentId, reservations, assi
 }
 
 function PlaceExtras({ openingHours, weekdayIndex, hoursExpanded, setHoursExpanded, timeFormat, t, place,
-  placeFiles, onFileUpload, filesExpanded, setFilesExpanded, fileInputRef, handleFileUpload, isUploading }: any) {
+  placeFiles, onFileUpload, filesExpanded, setFilesExpanded, fileInputRef, handleFileUpload, isUploading, distanceUnit }: any) {
   return (
           <div className={`grid grid-cols-1 ${openingHours?.length > 0 ? 'sm:grid-cols-2' : ''} gap-2`}>
           {openingHours && openingHours.length > 0 && (
@@ -775,20 +778,20 @@ function PlaceExtras({ openingHours, weekdayIndex, hoursExpanded, setHoursExpand
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     <div className="text-content" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600 }}>
                       <MapPin size={12} color="#3b82f6" />
-                      {distKm < 1 ? `${Math.round(totalDist)} m` : `${distKm.toFixed(1)} km`}
+                      {formatDistance(distKm, distanceUnit)}
                     </div>
                     {hasEle && (
                       <>
                         <div className="text-content" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600 }}>
                           <Mountain size={12} color="#22c55e" />
-                          {Math.round(maxEle)} m
+                          {formatElevation(maxEle, distanceUnit)}
                         </div>
                         <div className="text-content" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600 }}>
                           <Mountain size={12} color="#ef4444" />
-                          {Math.round(minEle)} m
+                          {formatElevation(minEle, distanceUnit)}
                         </div>
                         <div className="text-content-muted" style={{ fontSize: 12 }}>
-                          ↑{Math.round(totalUp)} m &nbsp;↓{Math.round(totalDown)} m
+                          ↑{formatElevation(totalUp, distanceUnit)} &nbsp;↓{formatElevation(totalDown, distanceUnit)}
                         </div>
                       </>
                     )}

@@ -53,6 +53,7 @@ const settings: TranslationStrings = {
   'settings.auto': 'Automatické',
   'settings.language': 'Jazyk',
   'settings.temperature': 'Jednotky teploty',
+  'settings.distance': 'Jednotky vzdálenosti',
   'settings.timeFormat': 'Formát času',
   'settings.blurBookingCodes': 'Skrýt rezervační kódy',
   'settings.optimizeFromAccommodation': 'Optimalizovat trasu od ubytování',

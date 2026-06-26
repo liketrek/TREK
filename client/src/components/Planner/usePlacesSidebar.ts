@@ -59,6 +59,8 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
   const [sidebarDragOver, setSidebarDragOver] = useState(false)
   const sidebarDragCounter = useRef(0)
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
+  const placeRowRefs = useRef(new Map<number, HTMLDivElement>())
+  const lastAutoScrolledPlaceIdRef = useRef<number | null>(null)
   useLayoutEffect(() => {
     if (scrollContainerRef.current && initialScrollTop) {
       scrollContainerRef.current.scrollTop = initialScrollTop
@@ -197,6 +199,28 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
     return true
   }), [places, filter, categoryFilters, search, plannedIds])
 
+  const registerPlaceRow = useCallback((placeId: number, element: HTMLDivElement | null) => {
+    if (element) {
+      placeRowRefs.current.set(placeId, element)
+    } else {
+      placeRowRefs.current.delete(placeId)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!props.selectedPlaceId) {
+      lastAutoScrolledPlaceIdRef.current = null
+      return
+    }
+    if (lastAutoScrolledPlaceIdRef.current === props.selectedPlaceId) return
+    if (!filtered.some(place => place.id === props.selectedPlaceId)) return
+
+    const selectedRow = placeRowRefs.current.get(props.selectedPlaceId)
+    if (!selectedRow) return
+    selectedRow.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    lastAutoScrolledPlaceIdRef.current = props.selectedPlaceId
+  }, [filtered, props.selectedPlaceId])
+
   const isAssignedToSelectedDay = (placeId) =>
     selectedDayId && (assignments[String(selectedDayId)] || []).some(a => a.place?.id === placeId)
 
@@ -234,7 +258,7 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
     selectMode, setSelectMode, selectedIds, setSelectedIds, pendingDeleteIds, setPendingDeleteIds,
     exitSelectMode, toggleSelected, toggleCategoryFilter, dayPickerPlace, setDayPickerPlace,
     catDropOpen, setCatDropOpen, mobileShowDays, setMobileShowDays,
-    hasTracks, plannedIds, filtered, isAssignedToSelectedDay, inDaySet, openContextMenu,
+    hasTracks, plannedIds, filtered, registerPlaceRow, isAssignedToSelectedDay, inDaySet, openContextMenu,
   }
 }
 

@@ -6,12 +6,14 @@ import { useToast } from '../shared/Toast'
 import CustomSelect from '../shared/CustomSelect'
 import { CURRENCIES, SYMBOLS } from '../Budget/BudgetPanel.constants'
 import Section from './Section'
+import type { DistanceUnit } from '../../types'
 
 export default function DisplaySettingsTab(): React.ReactElement {
   const { settings, updateSetting } = useSettingsStore()
   const { t } = useTranslation()
   const toast = useToast()
   const [tempUnit, setTempUnit] = useState<string>(settings.temperature_unit || 'celsius')
+  const [distanceUnit, setDistanceUnit] = useState<DistanceUnit>(settings.distance_unit || 'metric')
   const [langOpen, setLangOpen] = useState(false)
   const langDropdownRef = useRef<HTMLDivElement | null>(null)
 
@@ -27,6 +29,10 @@ export default function DisplaySettingsTab(): React.ReactElement {
   useEffect(() => {
     setTempUnit(settings.temperature_unit || 'celsius')
   }, [settings.temperature_unit])
+
+  useEffect(() => {
+    setDistanceUnit(settings.distance_unit || 'metric')
+  }, [settings.distance_unit])
 
   return (
     <Section title={t('settings.display')} icon={Palette}>
@@ -190,6 +196,37 @@ export default function DisplaySettingsTab(): React.ReactElement {
                 fontFamily: 'inherit', fontSize: 14, fontWeight: 500,
                 border: tempUnit === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
                 background: tempUnit === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)',
+                color: 'var(--text-primary)',
+                transition: 'all 0.15s',
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Distance */}
+      <div>
+        <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.distance')}</label>
+        <div className="flex gap-3">
+          {([
+            { value: 'metric', label: 'km Metric' },
+            { value: 'imperial', label: 'mi Imperial' },
+          ] as const).map(opt => (
+            <button
+              key={opt.value}
+              onClick={async () => {
+                setDistanceUnit(opt.value)
+                try { await updateSetting('distance_unit', opt.value) }
+                catch (e: unknown) { toast.error(e instanceof Error ? e.message : t('common.error')) }
+              }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
+                fontFamily: 'inherit', fontSize: 14, fontWeight: 500,
+                border: distanceUnit === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
+                background: distanceUnit === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)',
                 color: 'var(--text-primary)',
                 transition: 'all 0.15s',
               }}

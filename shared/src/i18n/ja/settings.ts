@@ -52,6 +52,7 @@ const settings: TranslationStrings = {
   'settings.auto': '自動',
   'settings.language': '言語',
   'settings.temperature': '温度単位',
+  'settings.distance': '距離単位',
   'settings.timeFormat': '時刻形式',
   'settings.bookingLabels': '予約ルートのラベル',
   'settings.bookingLabelsHint': '地図に駅・空港名を表示。オフ時はアイコンのみ。',

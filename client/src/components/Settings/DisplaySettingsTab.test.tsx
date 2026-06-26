@@ -150,6 +150,22 @@ describe('DisplaySettingsTab', () => {
     expect(updateSetting).toHaveBeenCalledWith('temperature_unit', 'fahrenheit');
   });
 
+  it('FE-COMP-DISPLAY-028: metric distance button is active by default', () => {
+    seedStore(useSettingsStore, { settings: { temperature_unit: 'celsius' } });
+    render(<DisplaySettingsTab />);
+    const metricBtn = screen.getByText('km Metric').closest('button')!;
+    expect(metricBtn.style.border).toContain('var(--text-primary)');
+  });
+
+  it('FE-COMP-DISPLAY-029: clicking imperial distance calls updateSetting with imperial', async () => {
+    const user = userEvent.setup();
+    const updateSetting = vi.fn().mockResolvedValue(undefined);
+    seedStore(useSettingsStore, { settings: buildSettings({ distance_unit: 'metric' }), updateSetting });
+    render(<DisplaySettingsTab />);
+    await user.click(screen.getByText('mi Imperial'));
+    expect(updateSetting).toHaveBeenCalledWith('distance_unit', 'imperial');
+  });
+
   it('FE-COMP-DISPLAY-020: clicking 24h time format calls updateSetting with 24h', async () => {
     const user = userEvent.setup();
     const updateSetting = vi.fn().mockResolvedValue(undefined);

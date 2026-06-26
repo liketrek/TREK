@@ -21,17 +21,21 @@ interface MemoPlaceRowProps {
   onAssignToDay: (placeId: number, dayId?: number) => void
   toggleSelected: (id: number) => void
   setDayPickerPlace: (place: any) => void
+  registerPlaceRow: (placeId: number, element: HTMLDivElement | null) => void
 }
 
 export const MemoPlaceRow = React.memo(function MemoPlaceRow({
   place, category: cat, isSelected, isPlanned, inDay, isChecked,
   selectMode, selectedDayId, canEditPlaces, isMobile, t,
-  onPlaceClick, onContextMenu, onAssignToDay, toggleSelected, setDayPickerPlace,
+  onPlaceClick, onContextMenu, onAssignToDay, toggleSelected, setDayPickerPlace, registerPlaceRow,
 }: MemoPlaceRowProps) {
   const hasGeometry = Boolean(place.route_geometry)
   return (
     <div
       key={place.id}
+      ref={element => registerPlaceRow(place.id, element)}
+      aria-selected={isSelected}
+      data-place-id={place.id}
       draggable={!selectMode}
       onDragStart={e => {
         e.dataTransfer.setData('placeId', String(place.id))

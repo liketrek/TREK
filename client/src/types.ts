@@ -100,6 +100,8 @@ export interface TripFile {
   url: string
 }
 
+export type DistanceUnit = 'metric' | 'imperial'
+
 export interface Settings {
   map_tile_url: string
   default_lat: number
@@ -109,6 +111,7 @@ export interface Settings {
   default_currency: string
   language: string
   temperature_unit: string
+  distance_unit?: DistanceUnit
   time_format: string
   show_place_description: boolean
   blur_booking_codes?: boolean

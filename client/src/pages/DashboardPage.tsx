@@ -19,6 +19,7 @@ import {
   LayoutGrid, List, Ticket, X,
 } from 'lucide-react'
 import { formatTime, splitReservationDateTime } from '../utils/formatters'
+import { convertDistance, getDistanceUnitLabel } from '../utils/units'
 import { useSettingsStore } from '../store/settingsStore'
 import '../styles/dashboard.css'
 
@@ -358,12 +359,27 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
 }
 
 // ── Atlas / stats row ────────────────────────────────────────────────────────
+function formatCompactDistance(value: number): string {
+  const safeValue = Number.isFinite(value) ? Math.max(0, value) : 0
+  // String() keeps a '.' decimal regardless of locale (no "1,5k" in non-English UIs).
+  if (safeValue >= 1000) {
+    return `${String(Math.round(safeValue / 100) / 10)}k`
+  }
+  const rounded = Math.round(safeValue * 10) / 10
+  if (safeValue > 0 && rounded === 0) return '<0.1'
+  return String(rounded)
+}
+
 function AtlasStats({ stats }: { stats: TravelStats | null }): React.ReactElement {
   const { t } = useTranslation()
+  const distanceUnit = useSettingsStore(s => s.settings.distance_unit) || 'metric'
   const countries = stats?.countries || []
   const distanceKm = stats?.totalDistanceKm || 0
-  const distanceText = distanceKm >= 1000 ? `${(distanceKm / 1000).toFixed(1)}k` : String(distanceKm)
-  const equatorTimes = (distanceKm / 40075).toFixed(2)
+  const distance = convertDistance(distanceKm, distanceUnit)
+  const distanceText = formatCompactDistance(distance)
+  const equatorDistance = convertDistance(40075, distanceUnit)
+  const equatorTimes = (distance / equatorDistance).toFixed(2)
+  const distanceLabel = getDistanceUnitLabel(distanceUnit)
 
   return (
     <section className="atlas">
@@ -401,7 +417,7 @@ function AtlasStats({ stats }: { stats: TravelStats | null }): React.ReactElemen
 
       <div className="atlas-card">
         <div className="label">{t('dashboard.atlas.distanceFlown')}</div>
-        <div className="value mono">{distanceText} <span className="unit">{t('dashboard.atlas.kmUnit')}</span></div>
+        <div className="value mono">{distanceText} <span className="unit">{distanceLabel}</span></div>
         <div className="delta">{t('dashboard.atlas.aroundEquator', { count: equatorTimes })}</div>
         <svg className="spark" width="80" height="36" viewBox="0 0 80 36">
           <circle cx="40" cy="18" r="14" fill="none" stroke="oklch(0.88 0.01 70)" strokeWidth="2" />

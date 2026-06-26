@@ -53,6 +53,7 @@ const settings: TranslationStrings = {
   'settings.auto': 'Auto',
   'settings.language': 'Language',
   'settings.temperature': 'Temperature Unit',
+  'settings.distance': 'Distance Unit',
   'settings.timeFormat': 'Time Format',
   'settings.bookingLabels': 'Booking route labels',
   'settings.bookingLabelsHint': 'Show station / airport names on the map. When off, only the icon is shown.',
