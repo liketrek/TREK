@@ -4,7 +4,7 @@ const packing: TranslationStrings = {
   'packing.title': 'Inpaklijst',
   'packing.empty': 'Inpaklijst is leeg',
   'packing.import': 'Importeren',
-  'packing.importTitle': 'InInpaklijst importeren',
+  'packing.importTitle': 'Inpaklijst importeren',
   'packing.importHint':
     'Eén item per regel. Optioneel categorie en aantal gescheiden door komma, puntkomma of tab: Naam, Categorie, Aantal',
   'packing.importPlaceholder': 'Tandenborstel\nZonnebrand, Hygiëne\nT-Shirts, Kleding, 5\nPaspoort, Documenten',
