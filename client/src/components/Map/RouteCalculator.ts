@@ -1,4 +1,6 @@
-import type { RouteResult, RouteSegment, RouteWithLegs, Waypoint, RouteAnchors } from '../../types'
+import { useSettingsStore } from '../../store/settingsStore'
+import type { DistanceUnit, RouteResult, RouteSegment, RouteWithLegs, Waypoint, RouteAnchors } from '../../types'
+import { formatDistance } from '../../utils/units'
 
 const OSRM_BASE = 'https://router.project-osrm.org/route/v1'
 
@@ -60,7 +62,7 @@ export async function calculateRoute(
     coordinates,
     distance,
     duration,
-    distanceText: formatDistance(distance),
+    distanceText: formatRouteDistance(distance),
     durationText: formatDuration(duration),
     walkingText: formatDuration(walkingDuration),
     drivingText: formatDuration(drivingDuration),
@@ -218,7 +220,7 @@ export async function calculateSegments(
       duration: leg.duration,
       walkingText: formatDuration(walkingDuration),
       drivingText: formatDuration(leg.duration),
-      distanceText: formatDistance(leg.distance),
+      distanceText: formatRouteDistance(leg.distance),
     }
   })
 }
@@ -265,7 +267,7 @@ export async function calculateRouteWithLegs(
         duration: leg.duration,
         walkingText: formatDuration(walkingDuration),
         drivingText: formatDuration(leg.duration),
-        distanceText: formatDistance(leg.distance),
+        distanceText: formatRouteDistance(leg.distance),
         durationText: formatDuration(leg.duration),
       }
     }
@@ -280,11 +282,16 @@ export async function calculateRouteWithLegs(
   return result
 }
 
-function formatDistance(meters: number): string {
-  if (meters < 1000) {
+function getDistanceUnit(): DistanceUnit {
+  return useSettingsStore.getState().settings.distance_unit === 'imperial' ? 'imperial' : 'metric'
+}
+
+function formatRouteDistance(meters: number): string {
+  const unit = getDistanceUnit()
+  if (unit === 'metric' && meters < 1000) {
     return `${Math.round(meters)} m`
   }
-  return `${(meters / 1000).toFixed(1)} km`
+  return formatDistance(meters / 1000, unit)
 }
 
 function formatDuration(seconds: number): string {
