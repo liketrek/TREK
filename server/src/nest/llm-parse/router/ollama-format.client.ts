@@ -54,6 +54,10 @@ export async function extractEnforced(input: EnforcedExtractInput): Promise<Reco
     model: input.model,
     stream: false,
     format: input.schema,
+    // Disable "thinking" for hybrid/reasoning models (Qwen3, etc.): the reasoning tokens
+    // collide with the format-grammar constraint here — they produce unparseable output and
+    // blow the latency budget on CPU. Ollama ignores this for non-thinking models, so it's safe.
+    think: false,
     // Keep the model resident a while so back-to-back imports don't pay the cold load.
     keep_alive: '30m',
     options: { temperature: 0, num_predict: input.numPredict ?? 512, num_ctx: input.numCtx ?? 8192 },
