@@ -20,9 +20,8 @@
 
 import type { KiReservation } from '../../booking-import/kitinerary.types';
 import { nuExtractToKiReservations } from '../clients/nuextract';
-import { FLAT_SCHEMA_BY_TYPE, FLIGHTS_ARRAY_SCHEMA, UNION_SINGLE_SCHEMA, type FlatType } from './flat-schemas';
+import { FLAT_SCHEMA_BY_TYPE, FLIGHTS_ARRAY_SCHEMA, UNION_SINGLE_SCHEMA, type FlatType, type FlatLike } from './flat-schemas';
 import { extractEnforced } from './ollama-format.client';
-import type { FlatLike } from './validate';
 
 export interface RouterContext {
   baseUrl: string;

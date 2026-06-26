@@ -15,6 +15,12 @@ vi.mock('../../../../src/nest/llm-parse/text-extract', async (orig) => {
   return { ...actual, extractText };
 });
 
+const { routeExtraction, detectFlightNumbers } = vi.hoisted(() => ({
+  routeExtraction: vi.fn(),
+  detectFlightNumbers: vi.fn(() => [] as string[]),
+}));
+vi.mock('../../../../src/nest/llm-parse/router/extraction-router', () => ({ routeExtraction, detectFlightNumbers }));
+
 import { LlmParseService } from '../../../../src/nest/llm-parse/llm-parse.service';
 
 const cfg = (over: Record<string, unknown> = {}) => ({ provider: 'openai', model: 'm', multimodal: false, ...over });
@@ -26,6 +32,8 @@ beforeEach(() => {
   resolveLlmConfig.mockReturnValue(cfg());
   extract.mockResolvedValue([{ '@type': 'FlightReservation' }]);
   extractText.mockResolvedValue('Flight AB123');
+  detectFlightNumbers.mockReturnValue([]);
+  routeExtraction.mockResolvedValue({ kiItems: [{ '@type': 'LodgingReservation' }], warnings: [] });
 });
 
 describe('LlmParseService', () => {
@@ -112,5 +120,50 @@ describe('LlmParseService', () => {
     const res = await svc().parse(file('a.txt'), 1);
     expect(res.kiItems).toEqual([]);
     expect(res.warnings[0]).toMatch(/AI parsing failed/i);
+  });
+
+  it('routes the local provider through the extraction router instead of the single-shot client', async () => {
+    resolveLlmConfig.mockReturnValue(cfg({ provider: 'local', baseUrl: 'http://ollama:11434/v1', apiKey: 'k' }));
+    extractText.mockResolvedValue('Hotel booking');
+    routeExtraction.mockResolvedValue({ kiItems: [{ '@type': 'LodgingReservation' }], warnings: ['note'] });
+    const res = await svc().parse(file('a.txt'), 1);
+    expect(res.kiItems).toEqual([{ '@type': 'LodgingReservation' }]);
+    expect(res.warnings).toEqual(['note']);
+    expect(extract).not.toHaveBeenCalled();
+    expect(routeExtraction).toHaveBeenCalledWith('Hotel booking', { baseUrl: 'http://ollama:11434/v1', model: 'm', apiKey: 'k' });
+  });
+
+  it('keeps the wide text cap (16k) for a local flight itinerary but tightens it (6k) otherwise', async () => {
+    const long = 'x'.repeat(7000);
+    extractText.mockResolvedValue(long);
+
+    resolveLlmConfig.mockReturnValue(cfg({ provider: 'local' }));
+    detectFlightNumbers.mockReturnValue(['AB123']);
+    await svc().parse(file('flights.txt'), 1);
+    expect(routeExtraction.mock.calls[0][0]).toHaveLength(7000); // under the 16k cap, untouched
+
+    vi.clearAllMocks();
+    resolveLlmConfig.mockReturnValue(cfg({ provider: 'local' }));
+    extractText.mockResolvedValue(long);
+    detectFlightNumbers.mockReturnValue([]);
+    routeExtraction.mockResolvedValue({ kiItems: [], warnings: [] });
+    await svc().parse(file('hotel.txt'), 1);
+    expect(routeExtraction.mock.calls[0][0]).toHaveLength(6000); // single booking → tighter cap
+  });
+
+  it('degrades to a warning when the local router throws', async () => {
+    resolveLlmConfig.mockReturnValue(cfg({ provider: 'local' }));
+    routeExtraction.mockRejectedValue(new Error('ollama down'));
+    const res = await svc().parse(file('a.txt'), 1);
+    expect(res.kiItems).toEqual([]);
+    expect(res.warnings[0]).toMatch(/AI parsing failed/i);
+  });
+
+  it('warns when the file cannot be read (text extraction throws)', async () => {
+    extractText.mockRejectedValue(new Error('corrupt pdf'));
+    const res = await svc().parse(file('a.pdf', '%PDF'), 1);
+    expect(res.kiItems).toEqual([]);
+    expect(res.warnings[0]).toMatch(/could not read file/i);
+    expect(res.warnings[0]).toContain('corrupt pdf');
   });
 });

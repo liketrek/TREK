@@ -166,3 +166,62 @@ describe('nuExtractToKiReservations', () => {
     expect(nuExtractToKiReservations(null)).toEqual([]);
   });
 });
+
+describe('nuExtractToKiReservations — remaining reservation types', () => {
+  const one = (x: Record<string, unknown>) => nuExtractToKiReservations(x)[0];
+
+  it('maps a train into a TrainReservation with stations', () => {
+    const node = one({ type: 'train', vehicle_number: 'ICE 597', from_name: 'Berlin Hbf', to_name: 'München Hbf', departure_time: '2025-05-01T08:00:00' });
+    expect(node['@type']).toBe('TrainReservation');
+    expect(node.reservationFor).toMatchObject({ trainNumber: 'ICE 597', departureStation: { name: 'Berlin Hbf' }, arrivalStation: { name: 'München Hbf' } });
+  });
+
+  it('maps a bus into a BusReservation with stops', () => {
+    const node = one({ type: 'bus', vehicle_number: 'FB42', from_name: 'Köln', to_name: 'Paris' });
+    expect(node['@type']).toBe('BusReservation');
+    expect(node.reservationFor).toMatchObject({ busNumber: 'FB42', departureBusStop: { name: 'Köln' }, arrivalBusStop: { name: 'Paris' } });
+  });
+
+  it('maps a ferry into a BoatReservation, using the operator when no name is given', () => {
+    const node = one({ type: 'ferry', operator: 'Stena Line', from_name: 'Kiel', to_name: 'Göteborg' });
+    expect(node['@type']).toBe('BoatReservation');
+    expect((node.reservationFor as Record<string, unknown>).name).toBe('Stena Line');
+  });
+
+  it('maps a restaurant into a FoodEstablishmentReservation', () => {
+    const node = one({ type: 'restaurant', name: 'Osteria', address: 'Via Roma 1', start_time: '2025-05-01T19:30:00' });
+    expect(node['@type']).toBe('FoodEstablishmentReservation');
+    expect(node.startTime).toBe('2025-05-01T19:30:00');
+    expect((node.reservationFor as Record<string, unknown>).name).toBe('Osteria');
+  });
+
+  it('maps an event into an EventReservation with a location', () => {
+    const node = one({ type: 'event', name: 'Concert', address: 'Arena', start_time: '2025-05-01T20:00:00', end_time: '2025-05-01T23:00:00' });
+    expect(node['@type']).toBe('EventReservation');
+    expect(node.startTime).toBe('2025-05-01T20:00:00');
+    expect(node.reservationFor).toMatchObject({ name: 'Concert', location: { address: 'Arena' } });
+  });
+
+  it('uses the generic name fallback for a nameless restaurant/event with no address', () => {
+    expect((one({ type: 'restaurant', start_time: '2025-05-01T19:30:00' }).reservationFor as Record<string, unknown>).name).toBe('Restaurant');
+    expect((one({ type: 'event', start_time: '2025-05-01T20:00:00' }).reservationFor as Record<string, unknown>).name).toBe('Event');
+  });
+
+  it('resolves GBP, JPY and a bare ISO code, and leaves an unrecognised currency undefined', () => {
+    expect(one({ type: 'hotel', name: 'A', price: '£120.00' }).priceCurrency).toBe('GBP');
+    expect(one({ type: 'event', name: 'B', price: '¥9,400' }).priceCurrency).toBe('JPY');
+    expect(one({ type: 'hotel', name: 'C', currency: 'CHF', price: '200' }).priceCurrency).toBe('CHF');
+    expect(one({ type: 'hotel', name: 'D', price: '200' }).priceCurrency).toBeUndefined();
+  });
+
+  it('parses a plain number price, grouping without a decimal, and drops an unparseable amount', () => {
+    expect(one({ type: 'hotel', name: 'A', price: 89 }).price).toBe(89);
+    expect(one({ type: 'hotel', name: 'B', price: '1.580' }).price).toBe(1580); // dot is grouping, not a decimal
+    expect(one({ type: 'hotel', name: 'C', price: 'free of charge' }).price).toBeUndefined();
+  });
+
+  it('accepts a bare array of reservations', () => {
+    const out = nuExtractToKiReservations([{ type: 'hotel', name: 'A' }, { type: 'train', from_name: 'X', to_name: 'Y' }]);
+    expect(out.map((n) => n['@type'])).toEqual(['LodgingReservation', 'TrainReservation']);
+  });
+});

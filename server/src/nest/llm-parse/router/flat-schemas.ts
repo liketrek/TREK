@@ -19,6 +19,23 @@ export type FlatType = 'flight' | 'train' | 'bus' | 'ferry' | 'car' | 'hotel' | 
 
 export const FLAT_TYPES: FlatType[] = ['flight', 'train', 'bus', 'ferry', 'car', 'hotel', 'restaurant', 'event'];
 
+/** A flat reservation as the model emits it, before mapping to schema.org. The named fields
+ *  are the ones the router reads directly; the index signature carries the rest unchanged. */
+export interface FlatLike {
+  type: FlatType;
+  booking_reference?: string;
+  vehicle_number?: string;
+  from_code?: string;
+  to_code?: string;
+  from_name?: string;
+  to_name?: string;
+  departure_time?: string;
+  arrival_time?: string;
+  checkin_time?: string;
+  checkout_time?: string;
+  [k: string]: unknown;
+}
+
 type JsonSchema = Record<string, unknown>;
 
 const STR = { type: 'string' } as const;
