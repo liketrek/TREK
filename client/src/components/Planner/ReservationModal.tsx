@@ -11,6 +11,7 @@ import { useTranslation } from '../../i18n'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
 import CustomTimePicker from '../shared/CustomTimePicker'
 import { openFile } from '../../utils/fileDownload'
+import { resolveDayId } from '../../utils/formatters'
 import type { Day, Place, Reservation, TripFile, AssignmentsMap, Accommodation, BudgetItem } from '../../types'
 import { BookingCostsSection } from './BookingCostsSection'
 import type { BookingExpenseRequest } from './BookingCostsSection.types'
@@ -92,7 +93,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
   })
   const [isSaving, setIsSaving] = useState(false)
   const [uploadingFile, setUploadingFile] = useState(false)
-  const [pendingFiles, setPendingFiles] = useState([])
+  const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [showFilePicker, setShowFilePicker] = useState(false)
   const [linkedFileIds, setLinkedFileIds] = useState<number[]>([])
 
@@ -102,22 +103,6 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
   )
 
   useEffect(() => {
-    // Resolve an ISO date to a trip day id (exact match, else nearest).
-    const dayIdForDate = (iso: unknown): string | number => {
-      if (!iso) return ''
-      const date = String(iso).slice(0, 10)
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return ''
-      const exact = days.find(d => d.date === date)
-      if (exact) return exact.id
-      let best: string | number = ''
-      let bestDiff = Infinity
-      for (const d of days) {
-        if (!d.date) continue
-        const diff = Math.abs(new Date(d.date).getTime() - new Date(date).getTime())
-        if (diff < bestDiff) { bestDiff = diff; best = d.id }
-      }
-      return best
-    }
     // Match an existing place by name (exact, then loose contains) for hotels.
     const matchPlaceId = (name: string | undefined): string | number => {
       const n = (name || '').trim().toLowerCase()
@@ -185,11 +170,12 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
         meta_check_in_end_time: meta.check_in_end_time || '',
         meta_check_out_time: meta.check_out_time || '',
         hotel_place_id: matchPlaceId(prefill._venue?.name || prefill.title),
-        hotel_start_day: dayIdForDate(prefill._accommodation?.check_in),
-        hotel_end_day: dayIdForDate(prefill._accommodation?.check_out),
+        hotel_start_day: resolveDayId(days, prefill._accommodation?.check_in),
+        hotel_end_day: resolveDayId(days, prefill._accommodation?.check_out),
         hotel_address: prefill._venue?.address || '',
       })
-      setPendingFiles([])
+      // Seed the booking's Files with the document this item was parsed from.
+      setPendingFiles(prefill._sourceFiles ?? [])
     } else {
       setForm({
         title: '', type: 'other', status: 'pending',

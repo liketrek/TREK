@@ -15,6 +15,8 @@ export interface BookingReviewDraft extends Omit<Partial<Reservation>, 'metadata
   _venue?: BookingImportPreviewItem['_venue']
   /** Parsed check-in/out + confirmation — hotels only. */
   _accommodation?: BookingImportPreviewItem['_accommodation']
+  /** The uploaded source file(s) the item was parsed from — attached to the booking on save. */
+  _sourceFiles?: File[]
 }
 
 /**
