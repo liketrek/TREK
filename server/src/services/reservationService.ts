@@ -105,9 +105,15 @@ function saveEndpoints(reservationId: number, endpoints: EndpointInput[]): void 
       INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    eps.forEach((e, i) => {
-      insert.run(rid, e.role, e.sequence ?? i, e.name, e.code ?? null, e.lat, e.lng, e.timezone ?? null, e.local_time ?? null, e.local_date ?? null);
-    });
+    // lat/lng are NOT NULL: an imported transport whose pick-up/return (or station/
+    // stop) couldn't be geocoded reaches here with null coords. Skip those rows rather
+    // than let the INSERT throw and fail the entire booking save — the dates still live
+    // on reservation_time/reservation_end_time, so the booking lands on its day either way.
+    eps
+      .filter((e) => e.lat != null && e.lng != null)
+      .forEach((e, i) => {
+        insert.run(rid, e.role, e.sequence ?? i, e.name, e.code ?? null, e.lat, e.lng, e.timezone ?? null, e.local_time ?? null, e.local_date ?? null);
+      });
   });
   tx(reservationId, endpoints);
 }
