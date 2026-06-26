@@ -73,6 +73,7 @@ import {
   parseOpeningHours,
   buildOsmDetails,
   getMapsKey,
+  googleFtidFromMapsUrl,
 } from '../../../src/services/mapsService';
 
 afterEach(() => {
@@ -756,7 +757,8 @@ describe('searchPlaces (fetch stubbed)', () => {
           displayName: { text: 'Eiffel Tower' },
           formattedAddress: 'Paris',
           location: { latitude: 48.8, longitude: 2.3 },
-          googleMapsUri: 'https://www.google.com/maps/place/?q=Eiffel%20Tower&ftid=0x882bf179e806d471:0x8591dde29c821a93',
+          // Real search API returns a cid-style URL with no ftid → google_ftid stays null.
+          googleMapsUri: 'https://maps.google.com/?cid=10403719659250533155',
         }],
       }),
     }));
@@ -764,7 +766,7 @@ describe('searchPlaces (fetch stubbed)', () => {
     const result = await searchPlaces(1, 'Eiffel Tower');
     expect(result.source).toBe('google');
     expect((result.places[0] as any).google_place_id).toBe('gid1');
-    expect((result.places[0] as any).google_ftid).toBe('0x882bf179e806d471:0x8591dde29c821a93');
+    expect((result.places[0] as any).google_ftid).toBeNull();
   });
 
   it('MAPS-039b: throws with Google error status when Google API returns non-ok', async () => {
@@ -1090,7 +1092,9 @@ describe('getPlaceDetails (fetch stubbed)', () => {
           weekdayDescriptions: ['Monday: 9:00 AM – 12:00 AM'],
           openNow: true,
         },
-        googleMapsUri: 'https://maps.google.com/?cid=123&ftid=0x882bf179e806d471:0x8591dde29c821a93',
+        // The Places API returns a cid-style URL with no ftid, so google_ftid stays null
+        // and the precise query_place_id link is used on the client instead.
+        googleMapsUri: 'https://maps.google.com/?cid=10403719659250533155',
         editorialSummary: { text: 'Iconic iron tower.' },
         reviews: [
           {
@@ -1107,7 +1111,7 @@ describe('getPlaceDetails (fetch stubbed)', () => {
     const result = await getPlaceDetails(1, 'ChIJ123');
     const place = result.place as any;
     expect(place.google_place_id).toBe('ChIJ123');
-    expect(place.google_ftid).toBe('0x882bf179e806d471:0x8591dde29c821a93');
+    expect(place.google_ftid).toBeNull();
     expect(place.name).toBe('Eiffel Tower');
     expect(place.rating).toBe(4.7);
     expect(place.rating_count).toBe(200000);
@@ -1474,5 +1478,21 @@ describe('getPlacePhoto (fetch stubbed)', () => {
     expect(result.photoUrl).toBe(`/api/maps/place-photo/${encodeURIComponent(placeId)}/bytes`);
     expect(result.attribution).toBe('Wikipedia');
     expect(mockCachePut).toHaveBeenCalledOnce();
+  });
+});
+
+describe('googleFtidFromMapsUrl', () => {
+  it('MAPS-FTID-001: extracts a valid ftid from a /place/?ftid= URL (resolved share link)', () => {
+    expect(googleFtidFromMapsUrl('https://www.google.com/maps/place/?q=X&ftid=0x882bf179e806d471:0x8591dde29c821a93'))
+      .toBe('0x882bf179e806d471:0x8591dde29c821a93');
+  });
+  it('MAPS-FTID-002: returns null for a cid-style URL (the usual Places API shape)', () => {
+    expect(googleFtidFromMapsUrl('https://maps.google.com/?cid=10403719659250533155')).toBeNull();
+  });
+  it('MAPS-FTID-003: rejects malformed / hostile ftid values', () => {
+    expect(googleFtidFromMapsUrl('https://maps.google.com/?ftid=not-an-ftid')).toBeNull();
+    expect(googleFtidFromMapsUrl('https://maps.google.com/?ftid=0xAB%26q%3Devil%3Cscript%3E')).toBeNull();
+    expect(googleFtidFromMapsUrl('not a url')).toBeNull();
+    expect(googleFtidFromMapsUrl(null)).toBeNull();
   });
 });

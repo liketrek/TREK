@@ -90,6 +90,11 @@ function toApiLang(lang: string | undefined, fallback = 'en'): string {
 
 const GOOGLE_FTID_RE = /^0x[0-9a-f]+:0x[0-9a-f]+$/i;
 
+// Extracts a Google Maps feature id (ftid, 0x..:0x..) from a URL's ?ftid= param.
+// The Places API (New) googleMapsUri is usually a cid-style URL (https://maps.google.com/?cid=NNN)
+// with no ftid, so this returns null for most API responses — the precise query_place_id link is
+// used instead. It does recover an ftid from a /place/?...&ftid= URL, e.g. a pasted share link
+// resolved by resolveGoogleMapsUrl or a Google MyMaps list import.
 export function googleFtidFromMapsUrl(url?: string | null): string | null {
   if (!url) return null;
   try {

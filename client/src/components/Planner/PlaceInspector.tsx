@@ -165,7 +165,11 @@ export default function PlaceInspector({
 
   const openingHours = googleDetails?.opening_hours || null
   const openNow = googleDetails?.open_now ?? null
-  const googleMapsUrl = getGoogleMapsUrlForPlace(place, googleDetails?.google_maps_url)
+  // Prefer the place's stored ftid; if it has none yet, use the one just fetched from Google.
+  const googleMapsUrl = getGoogleMapsUrlForPlace(
+    place ? { ...place, google_ftid: place.google_ftid || googleDetails?.google_ftid || null } : null,
+    googleDetails?.google_maps_url,
+  )
   const selectedDay = days?.find(d => d.id === selectedDayId)
   const weekdayIndex = getWeekdayIndex(selectedDay?.date)
 
