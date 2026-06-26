@@ -613,6 +613,9 @@ export function useTripPlanner() {
         const r = await tripActions.addReservation(tripId, { ...data, day_id: selectedDayId || null })
         toast.success(t('trip.toast.reservationAdded'))
         setShowReservationModal(false)
+        // An imported booking auto-creates a linked cost server-side; the saving client gets
+        // no budget:created echo, so refresh the budget items here to surface it without a reload.
+        if ((data as Record<string, unknown>).create_budget_entry) await tripActions.loadBudgetItems?.(tripId)
         // Refresh accommodations if hotel was created
         if (data.type === 'hotel') {
           accommodationsApi.list(tripId).then(d => setTripAccommodations(d.accommodations || [])).catch(() => {})
@@ -637,6 +640,8 @@ export function useTripPlanner() {
         setShowTransportModal(false)
         setEditingTransport(null)
         setTransportModalDayId(null)
+        // Surface the auto-created linked cost without a reload (no budget:created echo to us).
+        if (data.create_budget_entry) await tripActions.loadBudgetItems?.(tripId)
         return r
       }
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
