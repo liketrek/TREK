@@ -88,14 +88,19 @@ function enDateTime(text: string): string | null {
   return `${date}T${String(h).padStart(2, '0')}:${m[5]}:00`;
 }
 
-/** Symbol/code → ISO 4217 (defaults to EUR for the EU-centric broker vouchers). */
-function moneyCurrency(token: string | undefined): string {
-  if (!token) return 'EUR';
+/** Symbol/code → ISO 4217, or undefined when none is recognised. */
+export function normCurrency(token: string): string | undefined {
   const u = token.toUpperCase();
   if (u.includes('€')) return 'EUR';
   if (u.includes('$')) return 'USD';
   if (u.includes('£')) return 'GBP';
-  return /^[A-Z]{3}$/.test(u) ? u : 'EUR';
+  if (u.includes('¥')) return 'JPY';
+  return /^[A-Z]{3}$/.test(u) ? u : undefined;
+}
+
+/** Same, but defaults to EUR for the EU-centric broker vouchers. */
+function moneyCurrency(token: string | undefined): string {
+  return normCurrency(token ?? '') ?? 'EUR';
 }
 
 /**
@@ -180,11 +185,11 @@ const brokerRental: VendorTemplate = {
     const ref = t.match(/Reservation\s*No\.?:?\s*([A-Z0-9]{5,})/i)?.[1];
     const block = (label: RegExp) =>
       t.match(new RegExp(label.source + String.raw`\s*\n([^\n]+)\n([A-Za-z]{3,}\.?\s+\d{1,2},?\s+\d{4}[^\n]*)`, 'i'));
-    const pu = block(/PICK-?UP DETAILS/);
-    const dof = block(/DROP-?OFF DETAILS/);
-    const puTime = pu ? enDateTime(pu[2]) : null;
-    const doTime = dof ? enDateTime(dof[2]) : null;
-    if (!ref || !pu || !dof || !puTime || !doTime) return [];
+    const pickup = block(/PICK-?UP DETAILS/);
+    const dropoff = block(/DROP-?OFF DETAILS/);
+    const pickupTime = pickup ? enDateTime(pickup[2]) : null;
+    const dropoffTime = dropoff ? enDateTime(dropoff[2]) : null;
+    if (!ref || !pickup || !dropoff || !pickupTime || !dropoffTime) return [];
     const company = t
       .match(/SUPPLIER DETAILS\s*\n([^\n]+?)(?:\s+Supplier Reference|\n|$)/i)?.[1]
       ?.trim()
@@ -200,10 +205,10 @@ const brokerRental: VendorTemplate = {
         type: 'car',
         ...(company ? { operator: company } : {}),
         booking_reference: ref,
-        from_name: pu[1].trim(),
-        to_name: dof[1].trim(),
-        departure_time: puTime,
-        arrival_time: doTime,
+        from_name: pickup[1].trim(),
+        to_name: dropoff[1].trim(),
+        departure_time: pickupTime,
+        arrival_time: dropoffTime,
         ...(price ? { price, currency: moneyCurrency(priceM![1] ?? priceM![4]) } : {}),
       },
     ];

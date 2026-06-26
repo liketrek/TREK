@@ -19,7 +19,7 @@ import type { KiReservation } from '../../booking-import/kitinerary.types';
 import { nuExtractToKiReservations } from '../clients/nuextract';
 import { FLAT_SCHEMA_BY_TYPE, FLIGHTS_ARRAY_SCHEMA, UNION_SINGLE_SCHEMA, type FlatType } from './flat-schemas';
 import { extractEnforced } from './ollama-format.client';
-import { matchVendorTemplate } from './vendor-templates';
+import { matchVendorTemplate, normCurrency } from './vendor-templates';
 import type { FlatLike } from './validate';
 
 export interface RouterContext {
@@ -84,23 +84,19 @@ export function extractBookingRef(text: string): string | undefined {
   return m?.[1];
 }
 
-/** Currency symbol/code → ISO 4217. */
-function normCurrency(s: string): string | undefined {
-  const u = s.toUpperCase();
-  if (u.includes('€') || u === 'EUR') return 'EUR';
-  if (u.includes('$') || u === 'USD') return 'USD';
-  if (u.includes('£') || u === 'GBP') return 'GBP';
-  if (/^[A-Z]{3}$/.test(u)) return u;
-  return undefined;
-}
-
 /** The booking total, pulled deterministically (raw amount string + ISO currency). */
 export function extractTotalPrice(text: string): { price: string; currency?: string } | null {
-  const m = text.match(
-    /(?:Gesamtpreis|Gesamtbetrag|Gesamtsumme|Total(?:\s*(?:price|amount))?|Amount|Summe|Betrag)\s*:?\s*([€$£]?\s*\d[\d.,]*)\s*(EUR|USD|GBP|CHF|€|\$|£)?/i,
+  const strip = (s: string) => s.replace(/[€$£¥\s]/g, '');
+  // A labeled total: "Gesamtpreis: 1.234,56 €", "Total Amount 99 USD", "Bezahlter Betrag 651,86 €".
+  const labeled = text.match(
+    /(?:Gesamtpreis|Gesamtbetrag|Gesamtsumme|Total(?:\s*(?:price|amount))?|Amount|Summe|Betrag)\s*:?\s*([€$£¥]?\s*\d[\d.,]*)\s*(EUR|USD|GBP|CHF|JPY|€|\$|£|¥)?/i,
   );
-  if (!m) return null;
-  return { price: m[1].replace(/[€$£\s]/g, ''), currency: normCurrency(m[2] ?? m[1]) };
+  if (labeled) return { price: strip(labeled[1]), currency: normCurrency(labeled[2] ?? labeled[1]) };
+  // Fallback: a standalone amount carrying a currency symbol on its own line (e.g. a voucher's
+  // "¥9,400") — the price sits far from any label the pattern above can anchor to.
+  const symbol = text.match(/^\s*([€$£¥]\s?\d[\d.,]*)\b/m);
+  if (symbol) return { price: strip(symbol[1]), currency: normCurrency(symbol[1]) };
+  return null;
 }
 
 /**
@@ -178,17 +174,13 @@ async function extractSingle(text: string, ctx: RouterContext): Promise<FlatLike
 }
 
 /**
- * Run the router on extracted document text and return schema.org KiReservation nodes.
- * Returns `[]` (never throws for content reasons) so the caller degrades gracefully.
- */
-/**
  * Schicht 2 — fill the booking-wide fields the per-reservation extraction doesn't carry:
  * the confirmation/PNR and the booking total. Applied to BOTH the deterministic vendor
  * results AND the model output, so a vendor template that read the structured fields but
  * whose narrow ref/price regex missed still gets the broad doc-wide deterministic value.
  * Never overrides a value the source already provided.
  */
-function fillBookingWideFields(flats: Array<Record<string, unknown>>, text: string): void {
+function fillBookingWideFields(flats: Record<string, unknown>[], text: string): void {
   const ref = extractBookingRef(text);
   const total = extractTotalPrice(text);
   // A small model sometimes emits an empty string for a price it didn't find, which is
@@ -204,6 +196,10 @@ function fillBookingWideFields(flats: Array<Record<string, unknown>>, text: stri
   });
 }
 
+/**
+ * Run the router on extracted document text and return schema.org KiReservation nodes.
+ * Returns `[]` (never throws for content reasons) so the caller degrades gracefully.
+ */
 export async function routeExtraction(text: string, ctx: RouterContext): Promise<{ kiItems: KiReservation[]; warnings: string[] }> {
   const warnings: string[] = [];
 
@@ -212,7 +208,7 @@ export async function routeExtraction(text: string, ctx: RouterContext): Promise
   // deterministic extractor would have found them.
   const vendor = matchVendorTemplate(text);
   if (vendor && vendor.length > 0) {
-    fillBookingWideFields(vendor as unknown as Array<Record<string, unknown>>, text);
+    fillBookingWideFields(vendor, text);
     return { kiItems: nuExtractToKiReservations(vendor) as unknown as KiReservation[], warnings };
   }
 
@@ -225,7 +221,7 @@ export async function routeExtraction(text: string, ctx: RouterContext): Promise
   }
 
   // Schicht 2 — deterministic booking-wide fields the per-call schema doesn't carry.
-  fillBookingWideFields(flats as unknown as Array<Record<string, unknown>>, text);
+  fillBookingWideFields(flats, text);
 
   const kiItems = nuExtractToKiReservations(flats as unknown as Record<string, unknown>[]) as unknown as KiReservation[];
   return { kiItems, warnings };

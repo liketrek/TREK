@@ -150,4 +150,11 @@ describe('extractTotalPrice', () => {
   it('reads an Airbnb "Bezahlter Betrag"', () => {
     expect(extractTotalPrice(AIRBNB)).toEqual({ price: '651,86', currency: 'EUR' });
   });
+  it('falls back to a standalone ¥ voucher price (JPY) with no nearby label', () => {
+    const voucher = 'Price (consumption tax included)\n金額(消費税込)\nPark Admission Date\n¥9,400\nAdult\n1-Day Passport';
+    expect(extractTotalPrice(voucher)).toEqual({ price: '9,400', currency: 'JPY' });
+  });
+  it('returns null when there is neither a labeled nor a symbol amount', () => {
+    expect(extractTotalPrice('Just some terms and conditions, no price here.')).toBeNull();
+  });
 });

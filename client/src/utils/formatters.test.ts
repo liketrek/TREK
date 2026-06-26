@@ -1,5 +1,29 @@
 import { describe, it, expect } from 'vitest'
-import { splitReservationDateTime } from './formatters'
+import { splitReservationDateTime, resolveDayId } from './formatters'
+import type { Day } from '../types'
+
+const days = [
+  { id: 10, date: '2026-05-03' },
+  { id: 11, date: '2026-05-04' },
+  { id: 12, date: '2026-05-22' },
+] as Day[]
+
+describe('resolveDayId', () => {
+  it('returns the exact-match day id', () => {
+    expect(resolveDayId(days, '2026-05-04')).toBe(11)
+  })
+  it('accepts a full ISO timestamp', () => {
+    expect(resolveDayId(days, '2026-05-22T13:30:00')).toBe(12)
+  })
+  it('falls back to the nearest day when there is no exact match', () => {
+    expect(resolveDayId(days, '2026-05-05')).toBe(11)
+  })
+  it('returns "" for a missing/invalid date or no days', () => {
+    expect(resolveDayId(days, null)).toBe('')
+    expect(resolveDayId(days, 'not a date')).toBe('')
+    expect(resolveDayId([], '2026-05-04')).toBe('')
+  })
+})
 
 describe('splitReservationDateTime', () => {
   it('parses full ISO datetime', () => {

@@ -1,4 +1,4 @@
-import type { AssignmentsMap } from '../types'
+import type { AssignmentsMap, Day } from '../types'
 
 // Collapses verbose Nominatim display_name strings (e.g. "Place, 1, Road, Neighbourhood,
 // City, County, State, Country, Postcode, Country") into "Place, Postcode, Country".
@@ -127,6 +127,27 @@ export function splitReservationDateTime(value?: string | null): { date: string 
   if (isoDate.test(value)) return { date: value, time: null }
   if (/^\d{1,2}:\d{2}/.test(value)) return { date: null, time: value.slice(0, 5) }
   return { date: null, time: null }
+}
+
+/**
+ * Resolve a date (YYYY-MM-DD or an ISO timestamp) to a trip day id: exact match, else the
+ * nearest day so an out-of-range booking still lands on one. Returns '' when there is no
+ * usable date or the trip has no days — callers read that as "no day selected".
+ */
+export function resolveDayId(days: Day[], value: string | null | undefined): Day['id'] | '' {
+  const date = value ? String(value).slice(0, 10) : ''
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || days.length === 0) return ''
+  const exact = days.find(d => d.date === date)
+  if (exact) return exact.id
+  const target = new Date(date).getTime()
+  let best: Day['id'] | '' = ''
+  let bestDiff = Infinity
+  for (const d of days) {
+    if (!d.date) continue
+    const diff = Math.abs(new Date(d.date).getTime() - target)
+    if (diff < bestDiff) { bestDiff = diff; best = d.id }
+  }
+  return best
 }
 
 export function dayTotalCost(dayId: number, assignments: AssignmentsMap, currency: string): string | null {

@@ -146,6 +146,7 @@ function parseCurrency(...candidates: unknown[]): string | undefined {
     if (s.includes('€') || /\bEUR\b/.test(s)) return 'EUR';
     if (s.includes('£') || /\bGBP\b/.test(s)) return 'GBP';
     if (s.includes('$') || /\bUSD\b/.test(s)) return 'USD';
+    if (s.includes('¥') || /\bJPY\b/.test(s)) return 'JPY';
     const iso = s.match(/\b([A-Z]{3})\b/);
     if (iso) return iso[1];
   }
