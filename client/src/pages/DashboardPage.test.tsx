@@ -4,9 +4,10 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../tests/helpers/msw/server';
 import { resetAllStores, seedStore } from '../../tests/helpers/store';
-import { buildUser, buildAdmin, buildTrip } from '../../tests/helpers/factories';
+import { buildUser, buildAdmin, buildTrip, buildSettings } from '../../tests/helpers/factories';
 import { useAuthStore } from '../store/authStore';
 import { usePermissionsStore } from '../store/permissionsStore';
+import { useSettingsStore } from '../store/settingsStore';
 import DashboardPage from './DashboardPage';
 
 beforeEach(() => {
@@ -798,10 +799,51 @@ describe('DashboardPage', () => {
     });
   });
 
+  describe('FE-PAGE-DASH-033: Atlas distance respects distance unit setting', () => {
+    const distanceValue = (text: string) =>
+      screen.getByText((_, element) =>
+        element?.classList.contains('value') === true &&
+        element.textContent?.replace(/\s+/g, ' ').trim() === text
+      );
+
+    beforeEach(() => {
+      server.use(
+        http.get('/api/auth/travel-stats', () =>
+          HttpResponse.json({
+            totalTrips: 1,
+            totalDays: 1,
+            totalPlaces: 1,
+            totalDistanceKm: 10,
+            countries: [],
+          })
+        ),
+      );
+    });
+
+    it('renders metric atlas distance as kilometers', async () => {
+      seedStore(useSettingsStore, { settings: buildSettings({ distance_unit: 'metric' }) });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(distanceValue('10 km')).toBeInTheDocument();
+      });
+    });
+
+    it('renders imperial atlas distance as miles', async () => {
+      seedStore(useSettingsStore, { settings: buildSettings({ distance_unit: 'imperial' }) });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(distanceValue('6.2 mi')).toBeInTheDocument();
+      });
+    });
+  });
+
   describe('FE-PAGE-DASH-032: Dark mode detection uses window.matchMedia', () => {
     it('renders without error when dark_mode is set to auto', async () => {
       // Seed settings with dark_mode = 'auto' to exercise the matchMedia branch
-      const { useSettingsStore } = await import('../store/settingsStore');
       seedStore(useSettingsStore, {
         settings: {
           map_tile_url: '',
@@ -812,6 +854,7 @@ describe('DashboardPage', () => {
           default_currency: 'USD',
           language: 'en',
           temperature_unit: 'fahrenheit',
+          distance_unit: 'metric',
           time_format: '12h',
           show_place_description: false,
           blur_booking_codes: false,
