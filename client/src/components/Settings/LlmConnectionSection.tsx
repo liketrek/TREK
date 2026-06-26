@@ -6,6 +6,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import type { Settings } from '../../types'
 import Section from './Section'
 import ToggleSwitch from './ToggleSwitch'
+import CustomSelect from '../shared/CustomSelect'
 
 type Provider = NonNullable<Settings['llm_provider']>
 
@@ -76,15 +77,15 @@ export default function LlmConnectionSection(): React.ReactElement {
 
         <div>
           <label className="block text-sm font-medium mb-1.5 text-content-secondary">{t('settings.aiParsing.provider')}</label>
-          <select
+          <CustomSelect
             value={provider}
-            onChange={e => setProvider(e.target.value as Provider)}
-            className="w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 border-edge bg-surface-secondary text-content"
-          >
-            <option value="local">{t('settings.aiParsing.providerLocal')}</option>
-            <option value="openai">{t('settings.aiParsing.providerOpenai')}</option>
-            <option value="anthropic">{t('settings.aiParsing.providerAnthropic')}</option>
-          </select>
+            onChange={v => setProvider(v as Provider)}
+            options={[
+              { value: 'local', label: t('settings.aiParsing.providerLocal') },
+              { value: 'openai', label: t('settings.aiParsing.providerOpenai') },
+              { value: 'anthropic', label: t('settings.aiParsing.providerAnthropic') },
+            ]}
+          />
         </div>
 
         <div>
