@@ -17,7 +17,8 @@ export function useSettings() {
   const memoriesEnabled = addonEnabled('memories')
   const mcpEnabled = addonEnabled('mcp')
   const airtrailEnabled = addonEnabled('airtrail')
-  const hasIntegrations = memoriesEnabled || mcpEnabled || airtrailEnabled
+  const llmEnabled = addonEnabled('llm_parsing')
+  const hasIntegrations = memoriesEnabled || mcpEnabled || airtrailEnabled || llmEnabled
 
   const [appVersion, setAppVersion] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('display')
