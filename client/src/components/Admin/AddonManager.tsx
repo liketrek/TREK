@@ -318,12 +318,12 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
 const MASKED = '••••••••'
 const DEFAULT_OLLAMA_URL = 'http://localhost:11434/v1'
 
-/** Curated models the local extractor is tuned for, pullable via Ollama. The router
- *  uses the strong model for flights/multi-item docs and the small one (when installed)
- *  for simple single-item bookings — so a host only needs these two. */
+/** Curated models the local extractor is tuned for, pullable via Ollama. The router drives
+ *  one model per document via Ollama's grammar-constrained `format`; "thinking" is disabled
+ *  automatically, so the Qwen3 family works without any tuning. A host only needs one. */
 const RECOMMENDED_MODELS: { id: string; label: string; note: string; recommended: boolean; vision: boolean }[] = [
-  { id: 'qwen2.5:7b', label: 'Qwen2.5 — 7B', note: 'Recommended · reliable for flights & multi-item bookings · Apache-2.0', recommended: true, vision: false },
-  { id: 'qwen2.5:3b', label: 'Qwen2.5 — 3B', note: 'Optional · used automatically for simple bookings (~3× faster) · Apache-2.0', recommended: false, vision: false },
+  { id: 'qwen3:8b', label: 'Qwen3 — 8B', note: 'Recommended · best extraction quality & speed on CPU (thinking auto-disabled) · Apache-2.0', recommended: true, vision: false },
+  { id: 'qwen2.5:7b', label: 'Qwen2.5 — 7B', note: 'Solid fallback · a bit less accurate on tricky/multilingual docs · Apache-2.0', recommended: false, vision: false },
 ]
 
 /**
