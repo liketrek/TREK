@@ -272,7 +272,7 @@ const OVERPASS_MIRRORS = [
 ];
 // Per-mirror cap. Because mirrors race in parallel this is also the worst-case
 // total wait before every mirror is given up on and a 502 is returned.
-const OVERPASS_TIMEOUT_MS = 12000;
+const OVERPASS_TIMEOUT_MS = 25000;
 // Largest viewport side we send to Overpass. A country/continent-sized bbox makes
 // Overpass scan millions of elements and time out; clamping to a centred window
 // keeps the query cheap so the explore pill returns fast at ANY zoom level.
