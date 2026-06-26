@@ -380,6 +380,13 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
     try { await deleteBudgetItem(Number(tripId), item.id) } catch { toast.error(t('common.unknownError')) }
   }
 
+  // On an import review (not yet saved), preview the parsed price as the cost that will be linked.
+  const prefillMeta = prefill?.metadata && typeof prefill.metadata === 'object' ? (prefill.metadata as Record<string, unknown>) : null
+  const prefillPrice = Number(prefillMeta?.price)
+  const pendingExpense = !reservation && Number.isFinite(prefillPrice) && prefillPrice > 0
+    ? { total_price: prefillPrice, currency: (prefillMeta?.priceCurrency as string | null) ?? null, category: typeToCostCategory(form.type) }
+    : null
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -740,6 +747,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         {isBudgetEnabled && (
           <BookingCostsSection
             reservationId={reservation?.id ?? null}
+            pendingExpense={pendingExpense}
             onCreate={handleCreateExpense}
             onEdit={handleEditExpense}
             onRemove={handleRemoveExpense}
