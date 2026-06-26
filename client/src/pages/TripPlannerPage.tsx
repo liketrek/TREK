@@ -221,11 +221,12 @@ export default function TripPlannerPage(): React.ReactElement | null {
       (tk) => tk.tripId === String(tripId) && tk.status === 'done' && tk.reviewRequested && !tk.consumed,
     )
     if (task && task.items && task.items.length > 0) {
-      // Hand the items to the review flow and clear the widget entry — once the user
-      // hit "review", the background card has done its job.
+      // Hand the items (and the source files, to attach to each booking) to the review flow
+      // and clear the widget entry — once the user hit "review", the background card is done.
       const items = task.items
+      const sourceFiles = task.sourceFiles
       dismissBgTask(task.id)
-      startImportReview(items)
+      startImportReview(items, sourceFiles)
     }
   }, [bgTasks, tripId, startImportReview, dismissBgTask])
 

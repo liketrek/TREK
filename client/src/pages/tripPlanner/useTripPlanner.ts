@@ -166,6 +166,8 @@ export function useTripPlanner() {
   const [transportPrefill, setTransportPrefill] = useState<BookingReviewDraft | null>(null)
   const [importReviewActive, setImportReviewActive] = useState(false)
   const importQueueRef = useRef<BookingImportPreviewItem[]>([])
+  // The files this import was parsed from, so each reviewed booking can attach its source doc.
+  const importSourceFilesRef = useRef<File[]>([])
   // Manual route planning: off by default, toggled from the day-plan footer. Mode
   // (driving/walking) is per-session and selects which travel time the connectors show.
   const [routeShown, setRouteShown] = useState(false)
@@ -684,6 +686,10 @@ export function useTripPlanner() {
   // Open the right edit modal for a parsed item, pre-filled, in create mode.
   const openImportItem = (item: BookingImportPreviewItem) => {
     const draft = parsedItemToDraft(item)
+    // Attach the file this item was parsed from so it lands in the booking's Files on save.
+    const srcName = item.source?.fileName
+    const srcFile = srcName ? importSourceFilesRef.current.find(f => f.name === srcName) : undefined
+    if (srcFile) draft._sourceFiles = [srcFile]
     if (isTransportItem(item)) {
       setShowReservationModal(false); setEditingReservation(null); setReservationPrefill(null)
       setEditingTransport(null); setTransportModalDayId(null)
@@ -695,8 +701,9 @@ export function useTripPlanner() {
     }
   }
 
-  const startImportReview = (items: BookingImportPreviewItem[]) => {
+  const startImportReview = (items: BookingImportPreviewItem[], sourceFiles: File[] = []) => {
     if (!items.length) return
+    importSourceFilesRef.current = sourceFiles
     importQueueRef.current = items.slice(1)
     setImportReviewActive(true)
     openImportItem(items[0])

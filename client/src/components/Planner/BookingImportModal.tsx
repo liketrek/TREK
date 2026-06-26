@@ -96,7 +96,8 @@ export default function BookingImportModal({ isOpen, onClose, tripId }: BookingI
     try {
       const mode = aiParsing ? 'fallback-on-empty' : 'no-ai'
       const { jobId } = await reservationsApi.importBookingAsync(tripId, files, mode)
-      addTask({ id: jobId, tripId: String(tripId), label: files.map((f) => f.name).join(', '), total: files.length })
+      // Keep the uploaded files so the review can attach each source document to its booking.
+      addTask({ id: jobId, tripId: String(tripId), label: files.map((f) => f.name).join(', '), total: files.length, files })
       handleClose()
     } catch (err: any) {
       setError(err?.response?.data?.error ?? t('reservations.import.error'))

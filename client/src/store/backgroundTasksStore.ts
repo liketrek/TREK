@@ -27,11 +27,14 @@ export interface BackgroundImportTask {
   error?: string
   reviewRequested?: boolean  // user clicked "review" — the trip page consumes it
   consumed?: boolean         // review has been handed to the trip page
+  /** The uploaded files this parse ran on — kept in memory so the review can attach the
+   *  source document to each created booking. Not persisted (a File can't survive a reload). */
+  sourceFiles?: File[]
 }
 
 interface BackgroundTasksState {
   tasks: BackgroundImportTask[]
-  addTask: (task: { id: string; tripId: string; label: string; total: number }) => void
+  addTask: (task: { id: string; tripId: string; label: string; total: number; files?: File[] }) => void
   setProgress: (id: string, tripId: string, done: number, total: number) => void
   setDone: (id: string, tripId: string, items: BookingImportPreviewItem[], warnings: string[]) => void
   setError: (id: string, tripId: string, error: string) => void
@@ -58,7 +61,7 @@ export const useBackgroundTasksStore = create<BackgroundTasksState>()(
 
       return {
         tasks: [],
-        addTask: ({ id, tripId, label, total }) => upsert(id, tripId, { label, total, status: 'running', done: 0 }),
+        addTask: ({ id, tripId, label, total, files }) => upsert(id, tripId, { label, total, status: 'running', done: 0, sourceFiles: files }),
         setProgress: (id, tripId, done, total) => upsert(id, tripId, { done, total, status: 'running' }),
         setDone: (id, tripId, items, warnings) => upsert(id, tripId, { status: 'done', items, warnings, done: items?.length ?? 0 }),
         setError: (id, tripId, error) => upsert(id, tripId, { status: 'error', error }),
