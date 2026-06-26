@@ -60,6 +60,15 @@ export interface BlobCacheEntry {
   cachedAt: number;
 }
 
+/** An uploaded booking-import source file, kept so the review flow can attach it to the
+ *  created bookings even after a page reload during the (background) parse. Keyed by job. */
+export interface ImportSourceFile {
+  jobId: string;
+  fileName: string;
+  blob: Blob;
+  createdAt: number;
+}
+
 // ── Dexie class ────────────────────────────────────────────────────────────────
 
 /**
@@ -105,6 +114,7 @@ class TrekOfflineDb extends Dexie {
   mutationQueue!: Table<QueuedMutation, string>;
   syncMeta!: Table<SyncMeta, number>;
   blobCache!: Table<BlobCacheEntry, string>;
+  importFiles!: Table<ImportSourceFile, [string, string]>;
 
   constructor(name: string = ANON_DB_NAME) {
     super(name);
@@ -139,6 +149,11 @@ class TrekOfflineDb extends Dexie {
         if (row.tripId == null) row.tripId = -1;
         if (row.bytes == null) row.bytes = row.blob?.size ?? 0;
       });
+    });
+
+    // v4: durable store for booking-import source files (survives a reload mid-parse).
+    this.version(4).stores({
+      importFiles: '[jobId+fileName], jobId, createdAt',
     });
   }
 }
@@ -262,6 +277,39 @@ export async function getCachedBlob(url: string): Promise<Blob | null> {
   } catch {
     return null;
   }
+}
+
+// ── Booking-import source files ─────────────────────────────────────────────
+
+/** Abandoned import files (never reviewed) are pruned after this long. */
+const IMPORT_FILE_TTL_MS = 60 * 60_000;
+
+/**
+ * Persist the uploaded source files for a background import job so the per-item review can
+ * attach each document to its booking even if the page reloads during the parse. Best-effort.
+ */
+export async function saveImportFiles(jobId: string, files: File[]): Promise<void> {
+  try {
+    const now = Date.now();
+    await offlineDb.importFiles.bulkPut(files.map(f => ({ jobId, fileName: f.name, blob: f, createdAt: now })));
+    // Prune leftovers from imports that were never reviewed.
+    await offlineDb.importFiles.where('createdAt').below(now - IMPORT_FILE_TTL_MS).delete();
+  } catch { /* the in-memory copy still serves the no-reload path */ }
+}
+
+/** A job's stored source files, rebuilt as File objects (name + type preserved for upload). */
+export async function getImportFiles(jobId: string): Promise<File[]> {
+  try {
+    const rows = await offlineDb.importFiles.where('jobId').equals(jobId).toArray();
+    return rows.map(r => new File([r.blob], r.fileName, { type: r.blob.type || 'application/octet-stream' }));
+  } catch {
+    return [];
+  }
+}
+
+/** Drop a job's stored source files once they've been handed to the review flow. */
+export async function deleteImportFiles(jobId: string): Promise<void> {
+  try { await offlineDb.importFiles.where('jobId').equals(jobId).delete(); } catch { /* ignore */ }
 }
 
 // ── Blob-cache budget ───────────────────────────────────────────────────────

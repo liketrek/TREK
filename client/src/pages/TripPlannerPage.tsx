@@ -36,7 +36,7 @@ import { Map, X, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen,
 import { useTranslation } from '../i18n'
 import { addonsApi, accommodationsApi, authApi, tripsApi, assignmentsApi, mapsApi } from '../api/client'
 import { accommodationRepo } from '../repo/accommodationRepo'
-import { offlineDb } from '../db/offlineDb'
+import { offlineDb, getImportFiles, deleteImportFiles } from '../db/offlineDb'
 import { useAuthStore } from '../store/authStore'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
 import { useResizablePanels } from '../hooks/useResizablePanels'
@@ -224,9 +224,15 @@ export default function TripPlannerPage(): React.ReactElement | null {
       // Hand the items (and the source files, to attach to each booking) to the review flow
       // and clear the widget entry — once the user hit "review", the background card is done.
       const items = task.items
-      const sourceFiles = task.sourceFiles
-      dismissBgTask(task.id)
-      startImportReview(items, sourceFiles)
+      const jobId = task.id
+      const inMemory = task.sourceFiles
+      dismissBgTask(jobId)
+      // Prefer the in-memory files (immediate path); after a reload they live in IndexedDB.
+      void (async () => {
+        const files = inMemory && inMemory.length ? inMemory : await getImportFiles(jobId)
+        deleteImportFiles(jobId)
+        startImportReview(items, files)
+      })()
     }
   }, [bgTasks, tripId, startImportReview, dismissBgTask])
 
