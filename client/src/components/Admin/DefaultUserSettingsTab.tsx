@@ -7,7 +7,7 @@ import Section from '../Settings/Section'
 import CustomSelect from '../shared/CustomSelect'
 import { MapView } from '../Map/MapView'
 import { CURRENCIES, SYMBOLS } from '../Budget/BudgetPanel.constants'
-import type { Place } from '../../types'
+import type { DistanceUnit, Place } from '../../types'
 
 const MAP_PRESETS = [
   { name: 'OpenStreetMap', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' },
@@ -19,6 +19,7 @@ const MAP_PRESETS = [
 
 type Defaults = {
   temperature_unit?: string
+  distance_unit?: DistanceUnit
   dark_mode?: string | boolean
   time_format?: string
   default_currency?: string
@@ -206,6 +207,22 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
             key={opt.value}
             active={defaults.temperature_unit === opt.value}
             onClick={() => save({ temperature_unit: opt.value })}
+          >
+            {opt.label}
+          </OptionButton>
+        ))}
+      </OptionRow>
+
+      {/* Distance */}
+      <OptionRow label={<>Distance <ResetButton field="distance_unit" /></>}>
+        {([
+          { value: 'metric', label: 'km Metric' },
+          { value: 'imperial', label: 'mi Imperial' },
+        ] as const).map(opt => (
+          <OptionButton
+            key={opt.value}
+            active={defaults.distance_unit === opt.value}
+            onClick={() => save({ distance_unit: opt.value })}
           >
             {opt.label}
           </OptionButton>
