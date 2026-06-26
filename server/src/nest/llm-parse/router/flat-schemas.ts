@@ -61,7 +61,9 @@ export const FLAT_SCHEMA_BY_TYPE: Record<FlatType, JsonSchema> = {
   ),
   hotel: flat(
     ['name', 'booking_reference', 'address', 'checkin_time', 'checkout_time', 'telephone', 'website', 'price', 'currency'],
-    ['name', 'checkin_time', 'checkout_time'],
+    // `address` is REQUIRED so the model actually emits the (often unlabeled) street address line
+    // — without it small models skip it and the booking loses its location/place.
+    ['name', 'address', 'checkin_time', 'checkout_time'],
   ),
   restaurant: flat(
     ['name', 'booking_reference', 'address', 'start_time', 'end_time', 'telephone', 'website', 'price', 'currency'],

@@ -39,7 +39,7 @@ const TYPE_HINT: Record<FlatType, string> = {
   train: 'train. from_name/to_name = stations, vehicle_number = train number, times = full ISO, price/currency = total fare.',
   bus: 'bus. from_name/to_name = stops, times = full ISO, price/currency = total fare.',
   ferry: 'ferry/cruise. from_name/to_name = terminals/ports, times = full ISO, price/currency = total fare.',
-  car: 'rental car. from_name = pick-up location, to_name = return location (may differ), departure_time = pick-up, arrival_time = return, price/currency = total rental cost.',
+  car: 'rental car. operator = the rental company, from_name = pick-up location, to_name = return location (may differ), departure_time = pick-up, arrival_time = return, price/currency = total rental cost.',
   hotel: 'hotel stay. name = hotel name, address = the hotel street address, checkin_time/checkout_time = full ISO date-time, price/currency = total paid.',
   restaurant: 'restaurant booking. name = the restaurant, address = its street address, start_time = the reservation date-time, price/currency = total if shown.',
   event: 'event/attraction. name = the event/ticket, address = the venue, start_time/end_time = full ISO, price/currency = ticket price.',
