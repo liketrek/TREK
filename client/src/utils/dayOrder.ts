@@ -12,7 +12,7 @@ export const getDayBookendHotels = (
   day: Day,
   days: Day[],
   accommodations: Accommodation[],
-): { morning?: Accommodation; evening?: Accommodation } => {
+): { morning?: Accommodation; evening?: Accommodation; morningIsSleptHere?: boolean; eveningIsOvernight?: boolean } => {
   const inRange = accommodations.filter(a =>
     a.place_lat != null && a.place_lng != null &&
     isDayInAccommodationRange(day, a.start_day_id, a.end_day_id, days),
@@ -30,6 +30,13 @@ export const getDayBookendHotels = (
   return {
     morning: sleptHere ?? checkIn ?? inRange[0],
     evening: checkIn ?? sleptHere ?? inRange[0],
+    // Provenance for the drawing consumers (map + sidebar). A hotel↔transport bookend
+    // is only real when you actually used the hotel: morningIsSleptHere is true only
+    // when you woke up there (not a check-in fallback on an arrival day), and
+    // eveningIsOvernight is true only when you sleep there tonight (you check in today,
+    // or an earlier stay continues past today). The optimizer keeps using the values.
+    morningIsSleptHere: sleptHere != null,
+    eveningIsOvernight: checkIn != null || (sleptHere != null && orderOf(sleptHere.end_day_id) > dayOrd),
   }
 }
 

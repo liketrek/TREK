@@ -105,8 +105,9 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
     // getDayBookendHotels returns the morning/evening hotel (they differ only on a
     // transfer day) and already filters to accommodations that have coordinates.
     const day = allDays.find(d => d.id === dayId)
-    const { morning: startHotel, evening: endHotel } =
-      day && optimizeFromAccommodation !== false ? getDayBookendHotels(day, allDays, accommodations) : {}
+    const bookends = day && optimizeFromAccommodation !== false
+      ? getDayBookendHotels(day, allDays, accommodations)
+      : null
     const flatPts: { lat: number; lng: number }[] = []
     for (const e of entries) {
       if (e.kind === 'place') flatPts.push({ lat: e.lat, lng: e.lng })
@@ -114,7 +115,24 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
     }
     const hotelPt = (a?: Accommodation) =>
       a && a.place_lat != null && a.place_lng != null ? { lat: a.place_lat, lng: a.place_lng } : null
-    const runsWithHotel = withHotelBookends(runs, flatPts[0], flatPts[flatPts.length - 1], hotelPt(startHotel), hotelPt(endHotel))
+    // Only draw a hotel bookend when the leg is real. A hotel → first-stop leg holds
+    // if the first stop is a place, or if you actually slept in that hotel last night;
+    // on a day-1 arrival the morning hotel is just a check-in fallback and the first
+    // waypoint is the transport's departure point, so [hotel → departure] is dropped
+    // (#1321). Symmetrically, [last-stop → hotel] is dropped when you leave on a transport
+    // in the evening and don't sleep in that hotel tonight.
+    const contributes = (e: Entry) => e.kind === 'place' || !!e.from || !!e.to
+    const firstStop = entries.find(contributes)
+    const lastStop = [...entries].reverse().find(contributes)
+    const drawMorning = firstStop?.kind === 'place' || !!bookends?.morningIsSleptHere
+    const drawEvening = lastStop?.kind === 'place' || !!bookends?.eveningIsOvernight
+    const runsWithHotel = withHotelBookends(
+      runs,
+      flatPts[0],
+      flatPts[flatPts.length - 1],
+      drawMorning ? hotelPt(bookends?.morning) : null,
+      drawEvening ? hotelPt(bookends?.evening) : null,
+    )
 
     const straightLines = (): [number, number][][] =>
       runsWithHotel.map(r => r.map(p => [p.lat, p.lng] as [number, number]))

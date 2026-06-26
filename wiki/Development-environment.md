@@ -83,22 +83,10 @@ npm ci
 
 The booking-confirmation import feature uses [KDE KItinerary](https://apps.kde.org/itinerary/) to parse travel documents. The server works without it, but the import endpoint will be non-functional.
 
-### Linux — amd64
-
-Download the static binary from the KDE CDN and verify the checksum:
-
-```bash
-wget -qO /tmp/ki.tgz https://cdn.kde.org/ci-builds/pim/kitinerary/release-26.04/linux/kitinerary-extractor-x86_64-26.04.0.tgz
-echo "b7058d98990053c7b61847fef0c21e02d59b60e323e2b171ca210b682334e801  /tmp/ki.tgz" | sha256sum -c
-sudo tar -xz -C /usr/local -f /tmp/ki.tgz bin/kitinerary-extractor share/locale
-rm /tmp/ki.tgz
-```
-
-### Linux — arm64
+### Linux
 
 ```bash
 sudo apt-get install -y libkitinerary-bin
-sudo ln -sf "$(find /usr/lib -name kitinerary-extractor -type f | head -1)" /usr/local/bin/kitinerary-extractor
 ```
 
 ### Environment variables

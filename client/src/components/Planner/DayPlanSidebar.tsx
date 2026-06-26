@@ -411,25 +411,30 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     // waypoint of the day (morning) and from the last one back to it (evening). Only when
     // the "optimize from accommodation" setting is on and the day has a hotel.
     const day = days.find(d => d.id === selectedDayId)
-    const { morning: startHotel, evening: endHotel } =
-      day && optimizeFromAccommodation !== false ? getDayBookendHotels(day, days, accommodations) : {}
+    const bookends = day && optimizeFromAccommodation !== false
+      ? getDayBookendHotels(day, days, accommodations)
+      : null
+    const startHotel = bookends?.morning
+    const endHotel = bookends?.evening
     const hotelName = (a: Accommodation) => (a as any).place_name || (a as any).reservation_title || ''
     // Waypoints include transport endpoints (a car return, a taxi/train arrival), so the hotel
-    // legs connect even when the day starts or ends with a booking rather than a place.
-    const wayPts: { lat: number; lng: number }[] = []
+    // legs connect even when the day starts or ends with a booking rather than a place. Track
+    // whether each is a place so we can skip a hotel↔transport leg that isn't real: on a day-1
+    // arrival the check-in hotel never drove to the departure airport (#1321).
+    const wayPts: { lat: number; lng: number; isPlace: boolean }[] = []
     for (const it of merged) {
       if (it.type === 'place' && it.data.place?.lat && it.data.place?.lng) {
-        wayPts.push({ lat: it.data.place.lat, lng: it.data.place.lng })
+        wayPts.push({ lat: it.data.place.lat, lng: it.data.place.lng, isPlace: true })
       } else if (it.type === 'transport') {
         const { from, to } = getTransportRouteEndpoints(it.data, selectedDayId)
-        if (from) wayPts.push({ lat: from.lat, lng: from.lng })
-        if (to) wayPts.push({ lat: to.lat, lng: to.lng })
+        if (from) wayPts.push({ lat: from.lat, lng: from.lng, isPlace: false })
+        if (to) wayPts.push({ lat: to.lat, lng: to.lng, isPlace: false })
       }
     }
     const firstWay = wayPts[0]
     const lastWay = wayPts[wayPts.length - 1]
-    const wantTop = !!(startHotel && firstWay)
-    const wantBottom = !!(endHotel && lastWay)
+    const wantTop = !!(startHotel && firstWay && (firstWay.isPlace || bookends?.morningIsSleptHere))
+    const wantBottom = !!(endHotel && lastWay && (lastWay.isPlace || bookends?.eveningIsOvernight))
 
     if (runs.length === 0 && !wantTop && !wantBottom) { setRouteLegs({}); setHotelLegs({}); return }
 

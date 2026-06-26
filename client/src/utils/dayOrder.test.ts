@@ -117,4 +117,40 @@ describe('getDayBookendHotels', () => {
     const h = hotel({ place_lat: null, place_lng: null })
     expect(getDayBookendHotels(days[1], days, [h])).toEqual({})
   })
+
+  it('flags an arrival/check-in day as not slept-here in the morning (#1321)', () => {
+    // Day 1: you arrive from home and check in tonight, so the morning hotel is only a
+    // check-in fallback — no hotel → departure leg should be drawn.
+    const into = hotel({ start_day_id: 10, end_day_id: 30, place_lat: 3, place_lng: 4 })
+    const r = getDayBookendHotels(days[0], days, [into])
+    expect(r.morning).toBe(into)
+    expect(r.morningIsSleptHere).toBe(false)
+    expect(r.eveningIsOvernight).toBe(true)
+    // The optimizer anchor must stay a loop on the check-in day (values unchanged).
+    expect(getAccommodationAnchors(days[0], days, [into])).toEqual({ start: { lat: 3, lng: 4 }, end: { lat: 3, lng: 4 } })
+  })
+
+  it('flags a mid-stay day as slept-here and overnight', () => {
+    const h = hotel({ start_day_id: 10, end_day_id: 30 })
+    const r = getDayBookendHotels(days[1], days, [h])
+    expect(r.morningIsSleptHere).toBe(true)
+    expect(r.eveningIsOvernight).toBe(true)
+  })
+
+  it('an evening departure with no replacement check-in is not overnight (S7 mirror)', () => {
+    // You woke up here but check out today and board an evening transport — you do not
+    // sleep here tonight, so the last-stop → hotel leg must be droppable.
+    const h = hotel({ start_day_id: 10, end_day_id: 20, place_lat: 1, place_lng: 1 })
+    const r = getDayBookendHotels(days[1], days, [h])
+    expect(r.morningIsSleptHere).toBe(true)
+    expect(r.eveningIsOvernight).toBe(false)
+  })
+
+  it('flags a transfer day as slept-here in the morning and overnight in the evening', () => {
+    const out = hotel({ start_day_id: 10, end_day_id: 20, place_lat: 1, place_lng: 1 })
+    const into = hotel({ start_day_id: 20, end_day_id: 30, place_lat: 9, place_lng: 9 })
+    const r = getDayBookendHotels(days[1], days, [out, into])
+    expect(r.morningIsSleptHere).toBe(true)
+    expect(r.eveningIsOvernight).toBe(true)
+  })
 })
