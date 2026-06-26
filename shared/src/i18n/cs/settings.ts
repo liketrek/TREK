@@ -324,6 +324,21 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.button': 'Otestovat připojení',
   'settings.airtrail.test.success': 'Připojeno – nalezeno letů: {count}',
   'settings.airtrail.test.failed': 'Připojení selhalo',
+  'settings.aiParsing.title': 'Zpracování pomocí AI',
+  'settings.aiParsing.hint': 'Použijte vlastní model AI k získání rezervací z nahraných souborů. Platí pouze tehdy, když správce nenastavil model pro celou instanci.',
+  'settings.aiParsing.provider': 'Poskytovatel',
+  'settings.aiParsing.providerLocal': 'Místní (Ollama)',
+  'settings.aiParsing.providerOpenai': 'OpenAI',
+  'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.model': 'Model',
+  'settings.aiParsing.baseUrl': 'Základní URL',
+  'settings.aiParsing.baseUrlHint': 'Kde model běží — místní server Ollama nebo koncový bod kompatibilní s OpenAI.',
+  'settings.aiParsing.apiKey': 'Klíč API',
+  'settings.aiParsing.apiKeyHint': 'Ukládá se šifrovaně. Ponechte prázdné pro zachování aktuálního klíče.',
+  'settings.aiParsing.multimodal': 'Odesílat dokumenty jako obrázky',
+  'settings.aiParsing.multimodalHint': 'Pro modely se schopností zpracovat obraz — odešle původní PDF místo extrahovaného textu.',
+  'settings.aiParsing.toast.saved': 'Nastavení AI uloženo',
+  'settings.aiParsing.toast.saveError': 'Nastavení AI se nepodařilo uložit',
 };
 
 export default settings;

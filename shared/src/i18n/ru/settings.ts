@@ -330,6 +330,21 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.button': 'Проверить подключение',
   'settings.airtrail.test.success': 'Подключено — найдено рейсов: {count}',
   'settings.airtrail.test.failed': 'Не удалось подключиться',
+  'settings.aiParsing.title': 'Распознавание с помощью ИИ',
+  'settings.aiParsing.hint': 'Используйте собственную модель ИИ для извлечения бронирований из загруженных файлов. Это работает только в том случае, если администратор не настроил модель для всего экземпляра.',
+  'settings.aiParsing.provider': 'Провайдер',
+  'settings.aiParsing.providerLocal': 'Локально (Ollama)',
+  'settings.aiParsing.providerOpenai': 'OpenAI',
+  'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.model': 'Модель',
+  'settings.aiParsing.baseUrl': 'Базовый URL',
+  'settings.aiParsing.baseUrlHint': 'Где работает модель — локальный сервер Ollama или конечная точка, совместимая с OpenAI.',
+  'settings.aiParsing.apiKey': 'Ключ API',
+  'settings.aiParsing.apiKeyHint': 'Хранится в зашифрованном виде. Оставьте поле пустым, чтобы сохранить текущий ключ.',
+  'settings.aiParsing.multimodal': 'Отправлять документы как изображения',
+  'settings.aiParsing.multimodalHint': 'Для моделей с поддержкой изображений — отправляет исходный PDF вместо извлечённого текста.',
+  'settings.aiParsing.toast.saved': 'Настройки ИИ сохранены',
+  'settings.aiParsing.toast.saveError': 'Не удалось сохранить настройки ИИ',
 };
 
 export default settings;

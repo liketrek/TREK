@@ -329,6 +329,21 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.button': 'Kapcsolat tesztelése',
   'settings.airtrail.test.success': 'Csatlakoztatva — {count} járat található',
   'settings.airtrail.test.failed': 'A kapcsolat sikertelen',
+  'settings.aiParsing.title': 'AI-feldolgozás',
+  'settings.aiParsing.hint': 'Használd a saját AI-modelledet a foglalások kinyeréséhez a feltöltött fájlokból. Ez csak akkor érvényes, ha a rendszergazda nem állított be modellt az egész példányhoz.',
+  'settings.aiParsing.provider': 'Szolgáltató',
+  'settings.aiParsing.providerLocal': 'Helyi (Ollama)',
+  'settings.aiParsing.providerOpenai': 'OpenAI',
+  'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.model': 'Modell',
+  'settings.aiParsing.baseUrl': 'Alap-URL',
+  'settings.aiParsing.baseUrlHint': 'Ahol a modell fut — helyi Ollama-kiszolgáló vagy OpenAI-kompatibilis végpont.',
+  'settings.aiParsing.apiKey': 'API-kulcs',
+  'settings.aiParsing.apiKeyHint': 'Titkosítva tárolva. Hagyd üresen a jelenlegi kulcs megtartásához.',
+  'settings.aiParsing.multimodal': 'Dokumentumok küldése képként',
+  'settings.aiParsing.multimodalHint': 'Képfelismerésre képes modellekhez — az eredeti PDF-et küldi a kinyert szöveg helyett.',
+  'settings.aiParsing.toast.saved': 'AI-beállítások elmentve',
+  'settings.aiParsing.toast.saveError': 'Az AI-beállítások mentése nem sikerült',
 };
 
 export default settings;

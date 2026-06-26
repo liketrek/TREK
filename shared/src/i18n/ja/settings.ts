@@ -305,6 +305,21 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.button': '接続をテスト',
   'settings.airtrail.test.success': '接続成功 — {count} 件のフライトが見つかりました',
   'settings.airtrail.test.failed': '接続に失敗しました',
+  'settings.aiParsing.title': 'AI解析',
+  'settings.aiParsing.hint': 'アップロードしたファイルから予約情報を抽出するために、自分のAIモデルを使用します。これは、管理者がインスタンス全体のモデルを設定していない場合にのみ適用されます。',
+  'settings.aiParsing.provider': 'プロバイダー',
+  'settings.aiParsing.providerLocal': 'ローカル (Ollama)',
+  'settings.aiParsing.providerOpenai': 'OpenAI',
+  'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.model': 'モデル',
+  'settings.aiParsing.baseUrl': 'ベースURL',
+  'settings.aiParsing.baseUrlHint': 'モデルの実行場所 — ローカルのOllamaサーバー、またはOpenAI互換のエンドポイント。',
+  'settings.aiParsing.apiKey': 'APIキー',
+  'settings.aiParsing.apiKeyHint': '暗号化して保存されます。現在のキーを保持する場合は空欄のままにしてください。',
+  'settings.aiParsing.multimodal': 'ドキュメントを画像として送信',
+  'settings.aiParsing.multimodalHint': '画像認識対応モデル向け — 抽出したテキストの代わりに元のPDFを送信します。',
+  'settings.aiParsing.toast.saved': 'AI設定を保存しました',
+  'settings.aiParsing.toast.saveError': 'AI設定を保存できませんでした',
 };
 
 export default settings;

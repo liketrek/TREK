@@ -336,6 +336,21 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.button': 'Δοκιμή σύνδεσης',
   'settings.airtrail.test.success': 'Συνδέθηκε — βρέθηκαν {count} πτήση/πτήσεις',
   'settings.airtrail.test.failed': 'Η σύνδεση απέτυχε',
+  'settings.aiParsing.title': 'Ανάλυση με AI',
+  'settings.aiParsing.hint': 'Χρησιμοποιήστε το δικό σας μοντέλο AI για την εξαγωγή κρατήσεων από τα αρχεία που ανεβάζετε. Ισχύει μόνο όταν ο διαχειριστής σας δεν έχει ρυθμίσει μοντέλο για ολόκληρη την εγκατάσταση.',
+  'settings.aiParsing.provider': 'Πάροχος',
+  'settings.aiParsing.providerLocal': 'Τοπικό (Ollama)',
+  'settings.aiParsing.providerOpenai': 'OpenAI',
+  'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.model': 'Μοντέλο',
+  'settings.aiParsing.baseUrl': 'Βασικό URL',
+  'settings.aiParsing.baseUrlHint': 'Πού εκτελείται το μοντέλο — ένας τοπικός διακομιστής Ollama ή ένα τελικό σημείο συμβατό με OpenAI.',
+  'settings.aiParsing.apiKey': 'Κλειδί API',
+  'settings.aiParsing.apiKeyHint': 'Αποθηκεύεται κρυπτογραφημένο. Αφήστε το κενό για να διατηρήσετε το τρέχον κλειδί.',
+  'settings.aiParsing.multimodal': 'Αποστολή εγγράφων ως εικόνες',
+  'settings.aiParsing.multimodalHint': 'Για μοντέλα με δυνατότητα όρασης — στέλνει το αρχικό PDF αντί για το εξαγόμενο κείμενο.',
+  'settings.aiParsing.toast.saved': 'Οι ρυθμίσεις AI αποθηκεύτηκαν',
+  'settings.aiParsing.toast.saveError': 'Δεν ήταν δυνατή η αποθήκευση των ρυθμίσεων AI',
 };
 
 export default settings;

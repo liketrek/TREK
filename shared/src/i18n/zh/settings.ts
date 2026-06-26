@@ -307,6 +307,21 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.button': '测试连接',
   'settings.airtrail.test.success': '已连接——找到 {count} 个航班',
   'settings.airtrail.test.failed': '连接失败',
+  'settings.aiParsing.title': 'AI 解析',
+  'settings.aiParsing.hint': '使用你自己的 AI 模型从上传的文件中提取预订信息。仅当管理员未为整个实例配置模型时才会生效。',
+  'settings.aiParsing.provider': '服务商',
+  'settings.aiParsing.providerLocal': '本地 (Ollama)',
+  'settings.aiParsing.providerOpenai': 'OpenAI',
+  'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.model': '模型',
+  'settings.aiParsing.baseUrl': '基础 URL',
+  'settings.aiParsing.baseUrlHint': '模型运行的位置——本地 Ollama 服务器或兼容 OpenAI 的接口。',
+  'settings.aiParsing.apiKey': 'API 密钥',
+  'settings.aiParsing.apiKeyHint': '加密存储。留空则保留当前密钥。',
+  'settings.aiParsing.multimodal': '以图像形式发送文档',
+  'settings.aiParsing.multimodalHint': '适用于支持视觉的模型——发送原始 PDF 而非提取的文本。',
+  'settings.aiParsing.toast.saved': 'AI 设置已保存',
+  'settings.aiParsing.toast.saveError': '无法保存 AI 设置',
 };
 
 export default settings;

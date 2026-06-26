@@ -320,6 +320,21 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.button': '연결 테스트',
   'settings.airtrail.test.success': '연결됨 — {count}개 항공편을 찾았습니다',
   'settings.airtrail.test.failed': '연결에 실패했습니다',
+  'settings.aiParsing.title': 'AI 분석',
+  'settings.aiParsing.hint': '업로드한 파일에서 예약 정보를 추출할 때 직접 지정한 AI 모델을 사용하세요. 이 설정은 관리자가 인스턴스 전체에 모델을 설정하지 않은 경우에만 적용됩니다.',
+  'settings.aiParsing.provider': '제공자',
+  'settings.aiParsing.providerLocal': '로컬 (Ollama)',
+  'settings.aiParsing.providerOpenai': 'OpenAI',
+  'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.model': '모델',
+  'settings.aiParsing.baseUrl': '기본 URL',
+  'settings.aiParsing.baseUrlHint': '모델이 실행되는 위치 — 로컬 Ollama 서버 또는 OpenAI 호환 엔드포인트입니다.',
+  'settings.aiParsing.apiKey': 'API 키',
+  'settings.aiParsing.apiKeyHint': '암호화되어 저장됩니다. 현재 키를 유지하려면 비워 두세요.',
+  'settings.aiParsing.multimodal': '문서를 이미지로 전송',
+  'settings.aiParsing.multimodalHint': '비전 지원 모델용 — 추출된 텍스트 대신 원본 PDF를 전송합니다.',
+  'settings.aiParsing.toast.saved': 'AI 설정이 저장되었습니다',
+  'settings.aiParsing.toast.saveError': 'AI 설정을 저장할 수 없습니다',
 };
 
 export default settings;

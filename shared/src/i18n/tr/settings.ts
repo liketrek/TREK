@@ -325,6 +325,21 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.button': 'Bağlantıyı test et',
   'settings.airtrail.test.success': 'Bağlandı — {count} uçuş bulundu',
   'settings.airtrail.test.failed': 'Bağlantı başarısız',
+  'settings.aiParsing.title': 'Yapay zekâ ayrıştırma',
+  'settings.aiParsing.hint': 'Yüklenen dosyalardan rezervasyonları çıkarmak için kendi yapay zekâ modelini kullan. Bu yalnızca yöneticin tüm uygulama geneli için bir model yapılandırmadığında geçerlidir.',
+  'settings.aiParsing.provider': 'Sağlayıcı',
+  'settings.aiParsing.providerLocal': 'Yerel (Ollama)',
+  'settings.aiParsing.providerOpenai': 'OpenAI',
+  'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.model': 'Model',
+  'settings.aiParsing.baseUrl': 'Temel URL',
+  'settings.aiParsing.baseUrlHint': 'Modelin çalıştığı yer — yerel bir Ollama sunucusu veya OpenAI uyumlu bir uç nokta.',
+  'settings.aiParsing.apiKey': 'API anahtarı',
+  'settings.aiParsing.apiKeyHint': 'Şifrelenmiş olarak saklanır. Mevcut anahtarı korumak için boş bırak.',
+  'settings.aiParsing.multimodal': 'Belgeleri görsel olarak gönder',
+  'settings.aiParsing.multimodalHint': 'Görüntü işleyebilen modeller için — çıkarılan metin yerine orijinal PDF\'yi gönderir.',
+  'settings.aiParsing.toast.saved': 'Yapay zekâ ayarları kaydedildi',
+  'settings.aiParsing.toast.saveError': 'Yapay zekâ ayarları kaydedilemedi',
 };
 
 export default settings;

@@ -328,6 +328,21 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.button': 'Verbinding testen',
   'settings.airtrail.test.success': 'Verbonden — {count} vlucht(en) gevonden',
   'settings.airtrail.test.failed': 'Verbinding mislukt',
+  'settings.aiParsing.title': 'AI-verwerking',
+  'settings.aiParsing.hint': 'Gebruik je eigen AI-model om boekingen uit geüploade bestanden te halen. Dit geldt alleen als je beheerder geen model voor de hele instantie heeft ingesteld.',
+  'settings.aiParsing.provider': 'Provider',
+  'settings.aiParsing.providerLocal': 'Lokaal (Ollama)',
+  'settings.aiParsing.providerOpenai': 'OpenAI',
+  'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.model': 'Model',
+  'settings.aiParsing.baseUrl': 'Basis-URL',
+  'settings.aiParsing.baseUrlHint': 'Waar het model draait — een lokale Ollama-server of een OpenAI-compatibel endpoint.',
+  'settings.aiParsing.apiKey': 'API-sleutel',
+  'settings.aiParsing.apiKeyHint': 'Versleuteld opgeslagen. Laat leeg om de huidige sleutel te behouden.',
+  'settings.aiParsing.multimodal': 'Documenten als afbeeldingen versturen',
+  'settings.aiParsing.multimodalHint': 'Voor modellen met beeldherkenning — verstuurt de originele PDF in plaats van geëxtraheerde tekst.',
+  'settings.aiParsing.toast.saved': 'AI-instellingen opgeslagen',
+  'settings.aiParsing.toast.saveError': 'AI-instellingen konden niet worden opgeslagen',
 };
 
 export default settings;

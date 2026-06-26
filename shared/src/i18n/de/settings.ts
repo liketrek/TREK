@@ -330,6 +330,22 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.button': 'Verbindung testen',
   'settings.airtrail.test.success': 'Verbunden — {count} Flug/Flüge gefunden',
   'settings.airtrail.test.failed': 'Verbindung fehlgeschlagen',
+  'settings.aiParsing.title': 'KI-Verarbeitung',
+  'settings.aiParsing.hint':
+    'Nutze dein eigenes KI-Modell, um Buchungen aus hochgeladenen Dateien auszulesen. Greift nur, wenn dein Administrator kein Modell für die gesamte Instanz konfiguriert hat.',
+  'settings.aiParsing.provider': 'Anbieter',
+  'settings.aiParsing.providerLocal': 'Lokal (Ollama)',
+  'settings.aiParsing.providerOpenai': 'OpenAI',
+  'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.model': 'Modell',
+  'settings.aiParsing.baseUrl': 'Basis-URL',
+  'settings.aiParsing.baseUrlHint': 'Wo das Modell läuft — ein lokaler Ollama-Server oder ein OpenAI-kompatibler Endpunkt.',
+  'settings.aiParsing.apiKey': 'API-Schlüssel',
+  'settings.aiParsing.apiKeyHint': 'Verschlüsselt gespeichert. Leer lassen, um den aktuellen Schlüssel zu behalten.',
+  'settings.aiParsing.multimodal': 'Dokumente als Bilder senden',
+  'settings.aiParsing.multimodalHint': 'Für Modelle mit Bildverständnis — sendet das Original-PDF statt extrahiertem Text.',
+  'settings.aiParsing.toast.saved': 'KI-Einstellungen gespeichert',
+  'settings.aiParsing.toast.saveError': 'KI-Einstellungen konnten nicht gespeichert werden',
 };
 
 export default settings;

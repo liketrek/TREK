@@ -328,6 +328,21 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.button': 'Uji koneksi',
   'settings.airtrail.test.success': 'Terhubung — {count} penerbangan ditemukan',
   'settings.airtrail.test.failed': 'Koneksi gagal',
+  'settings.aiParsing.title': 'Penguraian AI',
+  'settings.aiParsing.hint': 'Gunakan model AI milikmu sendiri untuk mengekstrak pemesanan dari file yang diunggah. Ini hanya berlaku jika administrator belum mengonfigurasi model untuk seluruh instance.',
+  'settings.aiParsing.provider': 'Penyedia',
+  'settings.aiParsing.providerLocal': 'Lokal (Ollama)',
+  'settings.aiParsing.providerOpenai': 'OpenAI',
+  'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.model': 'Model',
+  'settings.aiParsing.baseUrl': 'URL Dasar',
+  'settings.aiParsing.baseUrlHint': 'Tempat model berjalan — server Ollama lokal atau endpoint yang kompatibel dengan OpenAI.',
+  'settings.aiParsing.apiKey': 'Kunci API',
+  'settings.aiParsing.apiKeyHint': 'Disimpan secara terenkripsi. Biarkan kosong untuk mempertahankan kunci saat ini.',
+  'settings.aiParsing.multimodal': 'Kirim dokumen sebagai gambar',
+  'settings.aiParsing.multimodalHint': 'Untuk model yang mendukung visi — mengirim PDF asli alih-alih teks yang diekstrak.',
+  'settings.aiParsing.toast.saved': 'Pengaturan AI disimpan',
+  'settings.aiParsing.toast.saveError': 'Tidak dapat menyimpan pengaturan AI',
 };
 
 export default settings;

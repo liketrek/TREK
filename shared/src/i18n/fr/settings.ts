@@ -335,6 +335,21 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.button': 'Tester la connexion',
   'settings.airtrail.test.success': 'Connecté — {count} vol(s) trouvé(s)',
   'settings.airtrail.test.failed': 'Échec de la connexion',
+  'settings.aiParsing.title': 'Analyse par IA',
+  'settings.aiParsing.hint': 'Utilisez votre propre modèle d\'IA pour extraire les réservations des fichiers importés. Cela ne s\'applique que si votre administrateur n\'a pas configuré de modèle pour l\'ensemble de l\'instance.',
+  'settings.aiParsing.provider': 'Fournisseur',
+  'settings.aiParsing.providerLocal': 'Local (Ollama)',
+  'settings.aiParsing.providerOpenai': 'OpenAI',
+  'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.model': 'Modèle',
+  'settings.aiParsing.baseUrl': 'URL de base',
+  'settings.aiParsing.baseUrlHint': 'Emplacement d\'exécution du modèle — un serveur Ollama local ou un point de terminaison compatible OpenAI.',
+  'settings.aiParsing.apiKey': 'Clé API',
+  'settings.aiParsing.apiKeyHint': 'Stockée de façon chiffrée. Laissez vide pour conserver la clé actuelle.',
+  'settings.aiParsing.multimodal': 'Envoyer les documents sous forme d\'images',
+  'settings.aiParsing.multimodalHint': 'Pour les modèles capables d\'analyser des images — envoie le PDF d\'origine au lieu du texte extrait.',
+  'settings.aiParsing.toast.saved': 'Paramètres d\'IA enregistrés',
+  'settings.aiParsing.toast.saveError': 'Impossible d\'enregistrer les paramètres d\'IA',
 };
 
 export default settings;

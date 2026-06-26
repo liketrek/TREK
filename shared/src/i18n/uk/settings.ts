@@ -329,6 +329,21 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.button': 'Перевірити підключення',
   'settings.airtrail.test.success': 'Підключено — знайдено {count} рейс(ів)',
   'settings.airtrail.test.failed': 'Не вдалося підключитися',
+  'settings.aiParsing.title': 'Розпізнавання ШІ',
+  'settings.aiParsing.hint': 'Використовуйте власну модель ШІ для вилучення бронювань із завантажених файлів. Це діє лише тоді, коли адміністратор не налаштував модель для всього екземпляра.',
+  'settings.aiParsing.provider': 'Постачальник',
+  'settings.aiParsing.providerLocal': 'Локальний (Ollama)',
+  'settings.aiParsing.providerOpenai': 'OpenAI',
+  'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.model': 'Модель',
+  'settings.aiParsing.baseUrl': 'Базова URL-адреса',
+  'settings.aiParsing.baseUrlHint': 'Де працює модель — локальний сервер Ollama або сумісна з OpenAI кінцева точка.',
+  'settings.aiParsing.apiKey': 'Ключ API',
+  'settings.aiParsing.apiKeyHint': 'Зберігається в зашифрованому вигляді. Залиште порожнім, щоб зберегти поточний ключ.',
+  'settings.aiParsing.multimodal': 'Надсилати документи як зображення',
+  'settings.aiParsing.multimodalHint': 'Для моделей із підтримкою зображень — надсилає оригінальний PDF замість вилученого тексту.',
+  'settings.aiParsing.toast.saved': 'Налаштування ШІ збережено',
+  'settings.aiParsing.toast.saveError': 'Не вдалося зберегти налаштування ШІ',
 };
 
 export default settings;

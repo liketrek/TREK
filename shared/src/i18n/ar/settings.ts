@@ -317,6 +317,21 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.button': 'اختبار الاتصال',
   'settings.airtrail.test.success': 'متصل — تم العثور على {count} رحلة/رحلات',
   'settings.airtrail.test.failed': 'فشل الاتصال',
+  'settings.aiParsing.title': 'التحليل بالذكاء الاصطناعي',
+  'settings.aiParsing.hint': 'استخدم نموذج الذكاء الاصطناعي الخاص بك لاستخراج الحجوزات من الملفات المرفوعة. لا يسري هذا إلا عندما لا يكون المسؤول قد أعدّ نموذجًا للنظام بأكمله.',
+  'settings.aiParsing.provider': 'المزوّد',
+  'settings.aiParsing.providerLocal': 'محلي (Ollama)',
+  'settings.aiParsing.providerOpenai': 'OpenAI',
+  'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.model': 'النموذج',
+  'settings.aiParsing.baseUrl': 'عنوان URL الأساسي',
+  'settings.aiParsing.baseUrlHint': 'المكان الذي يعمل فيه النموذج — خادم Ollama محلي أو نقطة نهاية متوافقة مع OpenAI.',
+  'settings.aiParsing.apiKey': 'مفتاح API',
+  'settings.aiParsing.apiKeyHint': 'يُخزَّن مشفّرًا. اتركه فارغًا للإبقاء على المفتاح الحالي.',
+  'settings.aiParsing.multimodal': 'إرسال المستندات كصور',
+  'settings.aiParsing.multimodalHint': 'للنماذج القادرة على الرؤية — يرسل ملف PDF الأصلي بدلًا من النص المستخرج.',
+  'settings.aiParsing.toast.saved': 'تم حفظ إعدادات الذكاء الاصطناعي',
+  'settings.aiParsing.toast.saveError': 'تعذّر حفظ إعدادات الذكاء الاصطناعي',
 };
 
 export default settings;

@@ -329,6 +329,21 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.button': 'Testuj połączenie',
   'settings.airtrail.test.success': 'Połączono — znaleziono {count} lot(y/ów)',
   'settings.airtrail.test.failed': 'Połączenie nieudane',
+  'settings.aiParsing.title': 'Analiza AI',
+  'settings.aiParsing.hint': 'Użyj własnego modelu AI, aby wyodrębniać rezerwacje z przesłanych plików. Ma to zastosowanie tylko wtedy, gdy administrator nie skonfigurował modelu dla całej instancji.',
+  'settings.aiParsing.provider': 'Dostawca',
+  'settings.aiParsing.providerLocal': 'Lokalny (Ollama)',
+  'settings.aiParsing.providerOpenai': 'OpenAI',
+  'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.model': 'Model',
+  'settings.aiParsing.baseUrl': 'Bazowy adres URL',
+  'settings.aiParsing.baseUrlHint': 'Miejsce, w którym działa model — lokalny serwer Ollama lub punkt końcowy zgodny z OpenAI.',
+  'settings.aiParsing.apiKey': 'Klucz API',
+  'settings.aiParsing.apiKeyHint': 'Przechowywany w postaci zaszyfrowanej. Pozostaw puste, aby zachować bieżący klucz.',
+  'settings.aiParsing.multimodal': 'Wysyłaj dokumenty jako obrazy',
+  'settings.aiParsing.multimodalHint': 'Dla modeli obsługujących obraz — wysyła oryginalny plik PDF zamiast wyodrębnionego tekstu.',
+  'settings.aiParsing.toast.saved': 'Zapisano ustawienia AI',
+  'settings.aiParsing.toast.saveError': 'Nie udało się zapisać ustawień AI',
 };
 
 export default settings;

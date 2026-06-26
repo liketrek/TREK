@@ -330,6 +330,21 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.button': 'Probar conexión',
   'settings.airtrail.test.success': 'Conectado: {count} vuelo(s) encontrado(s)',
   'settings.airtrail.test.failed': 'Error de conexión',
+  'settings.aiParsing.title': 'Análisis con IA',
+  'settings.aiParsing.hint': 'Usa tu propio modelo de IA para extraer reservas de los archivos subidos. Esto solo se aplica cuando tu administrador no ha configurado un modelo para toda la instancia.',
+  'settings.aiParsing.provider': 'Proveedor',
+  'settings.aiParsing.providerLocal': 'Local (Ollama)',
+  'settings.aiParsing.providerOpenai': 'OpenAI',
+  'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.model': 'Modelo',
+  'settings.aiParsing.baseUrl': 'URL base',
+  'settings.aiParsing.baseUrlHint': 'Donde se ejecuta el modelo: un servidor Ollama local o un endpoint compatible con OpenAI.',
+  'settings.aiParsing.apiKey': 'Clave de API',
+  'settings.aiParsing.apiKeyHint': 'Se almacena cifrada. Déjalo en blanco para mantener la clave actual.',
+  'settings.aiParsing.multimodal': 'Enviar documentos como imágenes',
+  'settings.aiParsing.multimodalHint': 'Para modelos con visión: envía el PDF original en lugar del texto extraído.',
+  'settings.aiParsing.toast.saved': 'Ajustes de IA guardados',
+  'settings.aiParsing.toast.saveError': 'No se han podido guardar los ajustes de IA',
 };
 
 export default settings;
