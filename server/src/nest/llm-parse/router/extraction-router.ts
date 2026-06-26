@@ -1,25 +1,27 @@
 /**
- * The extraction router (Schicht 0–2) — tuned for ONE model call per document.
+ * The extraction router — tuned for ONE model call per document.
  *
- *   0. deterministic vendor templates first (no LLM, instant);
  *   1. exactly one grammar-ENFORCED call (Ollama native `format`):
  *        - flights  → a flat ARRAY of legs in a single call (a capable model fills every
  *          leg at once — far faster than one call per leg);
- *        - otherwise → one flat single-reservation call, on the FAST model when the type is
- *          obvious from keywords (the common case), else the strong model with a union schema;
- *   2. booking-wide fields (PNR, total price) and the overnight-arrival day are filled
- *      DETERMINISTICALLY from the text — the model isn't asked to repeat or reason about them.
+ *        - otherwise → one flat single-reservation call, with a type-specific schema when the
+ *          type is obvious from keywords (the common case), else a union schema the model picks;
+ *   2. booking-wide fields (PNR, total price, currency) and the overnight-arrival day are filled
+ *      DETERMINISTICALLY from the text — the model isn't asked to reason about them, and the
+ *      document's own currency symbol corrects the model where it misreads it.
  *
- * No per-leg fan-out and no repair round-trips: that 4–8× call count was the latency that made
- * a multi-leg flight take minutes on a CPU host. The flat results map into the kitinerary
- * pipeline via the existing `nuExtractToKiReservations` mapper, so nothing downstream changes.
+ * A capable instruct model (e.g. Qwen3-8B with thinking disabled) reads name/address/dates/
+ * legs reliably across formats, so there's no per-vendor template layer to drift or distort —
+ * the model handles the long tail and Schicht 2 backstops the money/reference fields. No per-leg
+ * fan-out and no repair round-trips: that 4–8× call count was the latency that made a multi-leg
+ * flight take minutes on a CPU host. The flat results map into the kitinerary pipeline via the
+ * existing `nuExtractToKiReservations` mapper, so nothing downstream changes.
  */
 
 import type { KiReservation } from '../../booking-import/kitinerary.types';
 import { nuExtractToKiReservations } from '../clients/nuextract';
 import { FLAT_SCHEMA_BY_TYPE, FLIGHTS_ARRAY_SCHEMA, UNION_SINGLE_SCHEMA, type FlatType } from './flat-schemas';
 import { extractEnforced } from './ollama-format.client';
-import { matchVendorTemplate, normCurrency } from './vendor-templates';
 import type { FlatLike } from './validate';
 
 export interface RouterContext {
@@ -30,16 +32,17 @@ export interface RouterContext {
 
 const TRANSPORT_TYPES: FlatType[] = ['flight', 'train', 'bus', 'ferry'];
 
-/** Per-type guidance for the single-reservation prompt. */
+/** Per-type guidance for the single-reservation prompt. `price`/`currency` are the total
+ *  paid and its currency on every type; `address` is the venue street address for stays/venues. */
 const TYPE_HINT: Record<FlatType, string> = {
-  flight: 'flight. vehicle_number = flight number, from_code/to_code = IATA codes, times = full ISO.',
-  train: 'train. from_name/to_name = stations, vehicle_number = train number, times = full ISO.',
-  bus: 'bus. from_name/to_name = stops, times = full ISO.',
-  ferry: 'ferry/cruise. from_name/to_name = terminals/ports, times = full ISO.',
-  car: 'rental car. from_name = pick-up location, to_name = return location (may differ), departure_time = pick-up, arrival_time = return.',
-  hotel: 'hotel stay. name = hotel name, checkin_time/checkout_time = full ISO date-time.',
-  restaurant: 'restaurant booking. name = the restaurant, start_time = the reservation date-time.',
-  event: 'event/attraction. name = the event, start_time/end_time = full ISO.',
+  flight: 'flight. vehicle_number = flight number, from_code/to_code = IATA codes, times = full ISO, price/currency = total fare.',
+  train: 'train. from_name/to_name = stations, vehicle_number = train number, times = full ISO, price/currency = total fare.',
+  bus: 'bus. from_name/to_name = stops, times = full ISO, price/currency = total fare.',
+  ferry: 'ferry/cruise. from_name/to_name = terminals/ports, times = full ISO, price/currency = total fare.',
+  car: 'rental car. from_name = pick-up location, to_name = return location (may differ), departure_time = pick-up, arrival_time = return, price/currency = total rental cost.',
+  hotel: 'hotel stay. name = hotel name, address = the hotel street address, checkin_time/checkout_time = full ISO date-time, price/currency = total paid.',
+  restaurant: 'restaurant booking. name = the restaurant, address = its street address, start_time = the reservation date-time, price/currency = total if shown.',
+  event: 'event/attraction. name = the event/ticket, address = the venue, start_time/end_time = full ISO, price/currency = ticket price.',
 };
 
 /** Keyword → reservation type, so an obvious document skips the costlier union/strong path. */
@@ -79,9 +82,19 @@ export function extractBookingRef(text: string): string | undefined {
   // do, while the case-insensitive [A-Z0-9] class would otherwise grab a following prose
   // word ("Confirmation\nThank you…" → "Thank") after a bare label.
   const m = text.match(
-    /(?:PNR|Buchungs(?:code|nummer|referenz)|Booking\s*(?:reference|code|number)|Confirmation\s*(?:number|code)?|Reservierungsnummer|Reservation\s*(?:No\.?|Number|Nr\.?)|Best(?:ä|ae)tigungs[-\s]?(?:nummer|code)|Reference)\s*:?\s*((?=[A-Z0-9]*\d)[A-Z0-9]{5,})/i,
+    /(?:PNR|Buchungs(?:code|nummer|referenz)|Booking\s*(?:reference|code|number)|Confirmation\s*(?:number|code)?|Reservierungsnummer|Reservation\s*(?:No\.?|Number|Nr\.?)|Best(?:ä|ae)tigungs[-\s]?(?:nummer|code)|(?:Expedia[-\s]*)?Reiseplan|Reference)\s*:?\s*((?=[A-Z0-9]*\d)[A-Z0-9]{5,})/i,
   );
   return m?.[1];
+}
+
+/** Currency symbol/code → ISO 4217, or undefined when none is recognised. */
+export function normCurrency(token: string): string | undefined {
+  const u = token.toUpperCase();
+  if (u.includes('€')) return 'EUR';
+  if (u.includes('$')) return 'USD';
+  if (u.includes('£')) return 'GBP';
+  if (u.includes('¥')) return 'JPY';
+  return /^[A-Z]{3}$/.test(u) ? u : undefined;
 }
 
 /** The booking total, pulled deterministically (raw amount string + ISO currency). */
@@ -174,11 +187,10 @@ async function extractSingle(text: string, ctx: RouterContext): Promise<FlatLike
 }
 
 /**
- * Schicht 2 — fill the booking-wide fields the per-reservation extraction doesn't carry:
- * the confirmation/PNR and the booking total. Applied to BOTH the deterministic vendor
- * results AND the model output, so a vendor template that read the structured fields but
- * whose narrow ref/price regex missed still gets the broad doc-wide deterministic value.
- * Never overrides a value the source already provided.
+ * Schicht 2 — fill the booking-wide fields the per-reservation model call doesn't reliably
+ * carry: the confirmation/PNR and the booking total + its currency. The confirmation and a
+ * missing price are filled from the document; the currency is taken from the document's own
+ * symbol/code (authoritative — small models misread it), correcting the model where needed.
  */
 function fillBookingWideFields(flats: Record<string, unknown>[], text: string): void {
   const ref = extractBookingRef(text);
@@ -188,10 +200,12 @@ function fillBookingWideFields(flats: Record<string, unknown>[], text: string): 
   const priceMissing = (v: unknown) => v == null || (typeof v === 'string' && v.trim() === '');
   flats.forEach((f, i) => {
     if (!f.booking_reference && ref) f.booking_reference = ref;
-    // The total belongs to the booking, so attach it once (the first item).
-    if (i === 0 && total && priceMissing(f.price)) {
-      f.price = total.price;
-      if (f.currency == null) f.currency = total.currency;
+    // The total belongs to the booking, so handle it once (the first item).
+    if (i === 0 && total) {
+      if (priceMissing(f.price)) f.price = total.price;
+      // The document's own currency symbol/code is authoritative; let it override the
+      // model's guess (small models misread "¥" as "$").
+      if (total.currency) f.currency = total.currency;
     }
   });
 }
@@ -202,15 +216,6 @@ function fillBookingWideFields(flats: Record<string, unknown>[], text: string): 
  */
 export async function routeExtraction(text: string, ctx: RouterContext): Promise<{ kiItems: KiReservation[]; warnings: string[] }> {
   const warnings: string[] = [];
-
-  // Schicht 0 — deterministic vendor templates (no LLM). Still top-up the booking-wide
-  // fields so a template misses on the ref/price doesn't drop them when the doc-wide
-  // deterministic extractor would have found them.
-  const vendor = matchVendorTemplate(text);
-  if (vendor && vendor.length > 0) {
-    fillBookingWideFields(vendor, text);
-    return { kiItems: nuExtractToKiReservations(vendor) as unknown as KiReservation[], warnings };
-  }
 
   // Schicht 1 — exactly one model call.
   let flats: FlatLike[];
