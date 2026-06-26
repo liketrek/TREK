@@ -323,7 +323,6 @@ const DEFAULT_OLLAMA_URL = 'http://localhost:11434/v1'
  *  automatically, so the Qwen3 family works without any tuning. A host only needs one. */
 const RECOMMENDED_MODELS: { id: string; label: string; note: string; recommended: boolean; vision: boolean }[] = [
   { id: 'qwen3:8b', label: 'Qwen3 — 8B', note: 'Recommended · best extraction quality & speed on CPU (thinking auto-disabled) · Apache-2.0', recommended: true, vision: false },
-  { id: 'qwen2.5:7b', label: 'Qwen2.5 — 7B', note: 'Solid fallback · a bit less accurate on tricky/multilingual docs · Apache-2.0', recommended: false, vision: false },
 ]
 
 /**
