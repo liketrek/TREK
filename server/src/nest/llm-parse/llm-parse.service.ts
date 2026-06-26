@@ -4,7 +4,7 @@ import { resolveLlmConfig } from './llm-config.resolver';
 import { buildSystemPrompt, KI_RESERVATION_JSON_SCHEMA } from './llm-prompt';
 import type { LlmExtractionInput } from './llm-provider.interface';
 import { isPdf, extractText } from './text-extract';
-import { routeExtraction } from './router/extraction-router';
+import { routeExtraction, detectFlightNumbers } from './router/extraction-router';
 import { Injectable } from '@nestjs/common';
 import { kiReservationSchema } from '@trek/shared';
 
@@ -55,10 +55,12 @@ export class LlmParseService {
         );
       } else {
         input.text = await extractText(file.buffer, file.originalName);
-        // The local router decomposes the document and extracts one reservation at a
-        // time, so it tolerates more text than the single-shot path (which had to cap
-        // at 4000 to fit a small context). Cloud single-shot keeps the tight cap.
-        const MAX_EXTRACT_CHARS = config.provider === 'local' ? 16000 : 4000;
+        // Cap the text fed to the model. A flight itinerary lists its legs throughout a long
+        // document, so it keeps a generous window; a single booking has the essentials up top,
+        // so cap it tighter to keep CPU prompt-eval fast (a 11-page rental voucher was ~200s at
+        // 16k, the booking data sits in the first ~2k). Cloud single-shot keeps the tight cap.
+        const MAX_EXTRACT_CHARS =
+          config.provider !== 'local' ? 4000 : detectFlightNumbers(input.text).length > 0 ? 16000 : 6000;
         if (input.text.length > MAX_EXTRACT_CHARS) input.text = input.text.slice(0, MAX_EXTRACT_CHARS);
         console.debug(`[DEBUG] Extracted text from ${file.originalName} (${input.text.length} chars):\n`, input.text);
         if (!input.text.trim()) {

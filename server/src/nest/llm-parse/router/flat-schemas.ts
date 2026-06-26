@@ -57,7 +57,9 @@ export const FLAT_SCHEMA_BY_TYPE: Record<FlatType, JsonSchema> = {
   ),
   car: flat(
     ['booking_reference', 'operator', 'name', 'from_name', 'to_name', 'departure_time', 'arrival_time', 'price', 'currency'],
-    ['from_name', 'departure_time', 'arrival_time'],
+    // `operator` (rental company) is REQUIRED so the booking gets a real title instead of the
+    // generic "Rental Car" fallback.
+    ['operator', 'from_name', 'departure_time', 'arrival_time'],
   ),
   hotel: flat(
     ['name', 'booking_reference', 'address', 'checkin_time', 'checkout_time', 'telephone', 'website', 'price', 'currency'],
