@@ -68,11 +68,17 @@ interface GooglePlaceDetails extends GooglePlaceResult {
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-function userAgent(): string {
+const USER_AGENT = (() => {
   const base = 'TREK Travel Planner (https://github.com/mauriceboe/TREK)';
-  try { const url = getAppUrl(); if (url) return `${base}; ${url}`; } catch { /* ignore */ }
+  const hasInstanceUrl = Boolean(process.env.APP_URL || process.env.ALLOWED_ORIGINS);
+  if (!hasInstanceUrl) return base;
+  try {
+    const url = getAppUrl();
+    if (url && !url.startsWith('http://localhost')) return `${base}; ${url}`;
+  } catch { /* ignore */ }
   return base;
-}
+})();
+function userAgent(): string { return USER_AGENT; }
 
 // TREK's internal language codes mostly coincide with valid BCP-47 codes, but a
 // couple don't: 'br' is Brazilian Portuguese here (BCP-47 'pt-BR'; bare 'br' is
@@ -294,7 +300,7 @@ const OVERPASS_MIRRORS = [
 ];
 // Per-mirror cap. Because mirrors race in parallel this is also the worst-case
 // total wait before every mirror is given up on and a 502 is returned.
-const OVERPASS_TIMEOUT_MS = 25000;
+const OVERPASS_TIMEOUT_MS = 30000;
 // Largest viewport side we send to Overpass. A country/continent-sized bbox makes
 // Overpass scan millions of elements and time out; clamping to a centred window
 // keeps the query cheap so the explore pill returns fast at ANY zoom level.
