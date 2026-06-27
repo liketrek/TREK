@@ -171,6 +171,23 @@ describe('getCountryFromCoords', () => {
     const code = getCountryFromCoords(0.0, 0.0);
     expect(code).toBeNull();
   });
+
+  it('ATLAS-SVC-005b: #1331 a point inside France near the German border resolves to FR, not the smaller overlapping box', () => {
+    // Strasbourg (48.573, 7.752) sits inside BOTH the FR and DE bounding boxes; the old
+    // smallest-box rule mis-picked DE (its box is smaller). Point-in-polygon picks FR.
+    expect(getCountryFromCoords(48.5734, 7.7521)).toBe('FR');
+  });
+
+  it('ATLAS-SVC-005c: #1331 a point inside Germany near the French border resolves to DE', () => {
+    // Kehl (48.575, 7.815) — the German side of the same border.
+    expect(getCountryFromCoords(48.5750, 7.8150)).toBe('DE');
+  });
+
+  it('ATLAS-SVC-005d: #1331 a micro-territory without an admin0 polygon keeps the smallest-box win (Hong Kong)', () => {
+    // HK is not a separate admin0 polygon (it falls inside CN there), so the smallest
+    // bounding box still wins for it.
+    expect(getCountryFromCoords(22.30, 114.17)).toBe('HK');
+  });
 });
 
 // ── getCountryFromAddress ───────────────────────────────────────────────────

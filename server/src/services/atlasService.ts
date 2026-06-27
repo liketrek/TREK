@@ -199,19 +199,74 @@ export async function reverseGeocodeCountry(lat: number, lng: number): Promise<s
   }
 }
 
-export function getCountryFromCoords(lat: number, lng: number): string | null {
-  let bestCode: string | null = null;
-  let bestArea = Infinity;
-  for (const [code, [minLng, minLat, maxLng, maxLat]] of Object.entries(COUNTRY_BOXES)) {
-    if (lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng) {
-      const area = (maxLng - minLng) * (maxLat - minLat);
-      if (area < bestArea) {
-        bestArea = area;
-        bestCode = code;
-      }
+// ── Point-in-polygon over the bundled admin0 borders (#1331) ─────────────────
+
+// Ray-casting (even-odd) test of (lng,lat) against a single GeoJSON ring.
+function pointInRing(lng: number, lat: number, ring: number[][]): boolean {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1];
+    const xj = ring[j][0], yj = ring[j][1];
+    if (((yi > lat) !== (yj > lat)) && (lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi)) {
+      inside = !inside;
     }
   }
-  return bestCode;
+  return inside;
+}
+
+// True when (lng,lat) falls inside a Polygon/MultiPolygon, honouring holes.
+function pointInGeometry(lng: number, lat: number, geom: { type: string; coordinates: number[][][] | number[][][][] }): boolean {
+  const polygons = (geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates) as number[][][][];
+  for (const poly of polygons) {
+    if (!pointInRing(lng, lat, poly[0])) continue;
+    let inHole = false;
+    for (let h = 1; h < poly.length; h++) {
+      if (pointInRing(lng, lat, poly[h])) { inHole = true; break; }
+    }
+    if (!inHole) return true;
+  }
+  return false;
+}
+
+// ISO_A2 → admin0 geometry, built once. Micro-territories (HK, MO, SM, VA, …) aren't
+// in admin0, so they stay absent and keep the smallest-box behaviour below.
+let countryPolyIndex: Map<string, { type: string; coordinates: number[][][] | number[][][][] }> | null = null;
+function getCountryPolyIndex(): Map<string, { type: string; coordinates: number[][][] | number[][][][] }> {
+  if (countryPolyIndex) return countryPolyIndex;
+  const idx = new Map<string, { type: string; coordinates: number[][][] | number[][][][] }>();
+  for (const f of loadGeoBundle('admin0').features ?? []) {
+    const code = f.properties?.ISO_A2;
+    if (code && code !== '-99' && f.geometry) idx.set(String(code).toUpperCase(), f.geometry);
+  }
+  countryPolyIndex = idx;
+  return idx;
+}
+
+export function getCountryFromCoords(lat: number, lng: number): string | null {
+  // Cheap prefilter: every country whose bounding box contains the point.
+  const candidates: { code: string; area: number }[] = [];
+  for (const [code, [minLng, minLat, maxLng, maxLat]] of Object.entries(COUNTRY_BOXES)) {
+    if (lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng) {
+      candidates.push({ code, area: (maxLng - minLng) * (maxLat - minLat) });
+    }
+  }
+  if (candidates.length === 0) return null;
+  if (candidates.length === 1) return candidates[0].code;
+
+  // Boxes overlap near borders, so a single point can sit in several — picking the
+  // smallest box then mis-assigns a point just across the border (#1331). Disambiguate
+  // with the real admin0 polygon: try candidates smallest-box-first and return the one
+  // whose polygon actually contains the point. A candidate with no admin0 polygon (a
+  // micro-territory like HK/MO/SM/VA) keeps the smallest-box win.
+  candidates.sort((a, b) => a.area - b.area);
+  const polys = getCountryPolyIndex();
+  for (const { code } of candidates) {
+    const poly = polys.get(code);
+    if (!poly) return code;
+    if (pointInGeometry(lng, lat, poly)) return code;
+  }
+  // No polygon contained the point (coastal slop / data gap) — fall back to smallest box.
+  return candidates[0].code;
 }
 
 export function getCountryFromAddress(address: string | null): string | null {
