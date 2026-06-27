@@ -5,6 +5,7 @@ import {
   isOpenFreeMapStyle,
   normalizeStyleForProvider,
   styleForActiveProvider,
+  basemapLanguage,
 } from './glProviders'
 
 describe('glProviders', () => {
@@ -51,5 +52,21 @@ describe('glProviders', () => {
     expect(styleForActiveProvider('maplibre-gl', mb, ofm)).toBe(ofm)
     // An empty MapLibre slot falls back to the OpenFreeMap default, leaving mapbox untouched.
     expect(styleForActiveProvider('maplibre-gl', mb, '')).toBe(OPENFREEMAP_DEFAULT_STYLE)
+  })
+
+  it('basemapLanguage maps TREK UI codes to basemap label codes (#1299)', () => {
+    // Pass-through for plain ISO 639-1 codes.
+    expect(basemapLanguage('en')).toBe('en')
+    expect(basemapLanguage('de')).toBe('de')
+    expect(basemapLanguage('fr')).toBe('fr')
+    // TREK-specific overrides.
+    expect(basemapLanguage('br')).toBe('pt')
+    expect(basemapLanguage('gr')).toBe('el')
+    expect(basemapLanguage('zh')).toBe('zh-Hans')
+    expect(basemapLanguage('zhTw')).toBe('zh-Hant')
+    expect(basemapLanguage('zh-TW')).toBe('zh-Hant')
+    // Falls back to English when unset.
+    expect(basemapLanguage(undefined)).toBe('en')
+    expect(basemapLanguage('')).toBe('en')
   })
 })

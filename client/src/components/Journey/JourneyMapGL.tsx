@@ -5,7 +5,7 @@ import 'mapbox-gl/dist/mapbox-gl.css'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { useSettingsStore } from '../../store/settingsStore'
 import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings, addTerrainAndSky } from '../Map/mapboxSetup'
-import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, type GlMapProvider } from '../Map/glProviders'
+import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from '../Map/glProviders'
 
 export interface JourneyMapGLHandle {
   highlightMarker: (id: string | null) => void
@@ -215,6 +215,7 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
   const mapboxToken = useSettingsStore(s => s.settings.mapbox_access_token || '')
   const mapbox3d = useSettingsStore(s => s.settings.mapbox_3d_enabled !== false)
   const mapboxQuality = useSettingsStore(s => s.settings.mapbox_quality_mode === true)
+  const mapLang = useSettingsStore(s => s.settings.language)
   const isMapLibre = glProvider === 'maplibre-gl'
   const gl = (isMapLibre ? maplibregl : mapboxgl) as any
   const glStyle = styleForActiveProvider(glProvider, rawMapboxStyle, rawMaplibreStyle)
@@ -374,6 +375,11 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
       // stay pinned to their coordinates at every zoom and pitch.
       if (glStyle === MAPBOX_DEFAULT_STYLE) {
         try { map.setTerrain(null) } catch { /* noop */ }
+      }
+      // Pin the basemap label language to the UI language so labels don't fall back to the
+      // browser/OS locale and stack multiple scripts per place (#1299).
+      if (!isMapLibre && isStandardFamily(glStyle)) {
+        try { map.setConfigProperty('basemap', 'language', basemapLanguage(mapLang)) } catch { /* style/SDK may not support it */ }
       }
 
       // route trail — dashed line connecting entries in time order

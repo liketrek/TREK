@@ -66,3 +66,22 @@ export function styleForActiveProvider(
 ): string {
   return normalizeStyleForProvider(provider, provider === 'maplibre-gl' ? maplibreStyle : mapboxStyle)
 }
+
+// A few TREK UI language codes differ from what the GL basemap expects for its labels.
+const BASEMAP_LANG_OVERRIDES: Record<string, string> = {
+  br: 'pt',          // TREK 'br' = Brazilian Portuguese
+  gr: 'el',          // TREK 'gr' = Greek
+  zh: 'zh-Hans',
+  zhTw: 'zh-Hant',
+  'zh-TW': 'zh-Hant',
+}
+
+/**
+ * Maps a TREK UI language code to the label language the GL basemap expects. Used to pin
+ * Mapbox Standard's basemap labels to the user's language so they don't fall back to the
+ * browser/OS locale and stack multiple scripts per place (#1299).
+ */
+export function basemapLanguage(uiLang: string | undefined): string {
+  const code = (uiLang || 'en').trim()
+  return BASEMAP_LANG_OVERRIDES[code] ?? code
+}
