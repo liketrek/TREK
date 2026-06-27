@@ -56,6 +56,34 @@ export function formatFile(file: TripFile & { trip_id?: number; uploaded_by_avat
 }
 
 // ---------------------------------------------------------------------------
+// Trip-scoped link validation
+// ---------------------------------------------------------------------------
+
+/**
+ * A file, and any reservation / day-assignment / place it points at, must all
+ * live in the same trip. FILE_SELECT and getFileLinks join the reservation and
+ * return its title, so without this guard a member of trip A could aim a file
+ * (or a file_link) at trip B's reservation id and read the title back. Returns
+ * the first field that escapes `tripId`, or null when every supplied id belongs
+ * to the trip. Absent / null / zero ids are ignored (they clear the link).
+ */
+export function findForeignLinkTarget(
+  tripId: string | number,
+  opts: { reservation_id?: string | number | null; assignment_id?: string | number | null; place_id?: string | number | null }
+): 'reservation_id' | 'assignment_id' | 'place_id' | null {
+  if (opts.reservation_id && !db.prepare('SELECT 1 FROM reservations WHERE id = ? AND trip_id = ?').get(opts.reservation_id, tripId)) {
+    return 'reservation_id';
+  }
+  if (opts.place_id && !db.prepare('SELECT 1 FROM places WHERE id = ? AND trip_id = ?').get(opts.place_id, tripId)) {
+    return 'place_id';
+  }
+  if (opts.assignment_id && !db.prepare('SELECT 1 FROM day_assignments a JOIN days d ON a.day_id = d.id WHERE a.id = ? AND d.trip_id = ?').get(opts.assignment_id, tripId)) {
+    return 'assignment_id';
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // File path resolution & validation
 // ---------------------------------------------------------------------------
 

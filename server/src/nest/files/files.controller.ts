@@ -72,6 +72,15 @@ export class FilesController {
     return trip;
   }
 
+  // A file may only point at reservations/assignments/places from its own trip.
+  // Reject cross-trip ids before they are stored — the reservation JOIN would
+  // otherwise leak the foreign reservation's title back to the caller.
+  private assertLinkTargets(tripId: string, body: { reservation_id?: string | null; assignment_id?: string | null; place_id?: string | null }) {
+    if (this.files.findForeignLinkTarget(tripId, body)) {
+      throw new HttpException({ error: 'Linked item does not belong to this trip' }, 400);
+    }
+  }
+
   @Get()
   list(@CurrentUser() user: User, @Param('tripId') tripId: string, @Query('trash') trash?: string) {
     this.requireTrip(tripId, user);
@@ -97,6 +106,7 @@ export class FilesController {
     if (!file) {
       throw new HttpException({ error: 'No file uploaded' }, 400);
     }
+    this.assertLinkTargets(tripId, { reservation_id: body.reservation_id, place_id: body.place_id });
     const created = this.files.createFile(tripId, file, user.id, {
       place_id: body.place_id,
       description: body.description,
@@ -116,6 +126,7 @@ export class FilesController {
     if (!file) {
       throw new HttpException({ error: 'File not found' }, 404);
     }
+    this.assertLinkTargets(tripId, { reservation_id: body.reservation_id, place_id: body.place_id });
     const updated = this.files.updateFile(id, file, { description: body.description, place_id: body.place_id, reservation_id: body.reservation_id });
     this.files.broadcast(tripId, 'file:updated', { file: updated }, socketId);
     return { file: updated };
@@ -203,6 +214,7 @@ export class FilesController {
     if (!file) {
       throw new HttpException({ error: 'File not found' }, 404);
     }
+    this.assertLinkTargets(tripId, { reservation_id: body.reservation_id, assignment_id: body.assignment_id, place_id: body.place_id });
     const links = this.files.createFileLink(id, { reservation_id: body.reservation_id, assignment_id: body.assignment_id, place_id: body.place_id });
     return { success: true, links };
   }

@@ -43,6 +43,7 @@ export class FilesService {
   restoreFile(id: string) { return svc.restoreFile(id); }
   permanentDeleteFile(file: TripFile) { return svc.permanentDeleteFile(file); }
   emptyTrash(tripId: string) { return svc.emptyTrash(tripId); }
+  findForeignLinkTarget(tripId: string, opts: Parameters<typeof svc.findForeignLinkTarget>[1]) { return svc.findForeignLinkTarget(tripId, opts); }
   createFileLink(id: string, opts: Parameters<typeof svc.createFileLink>[1]) { return svc.createFileLink(id, opts); }
   deleteFileLink(linkId: string, id: string) { return svc.deleteFileLink(linkId, id); }
   getFileLinks(id: string) { return svc.getFileLinks(id); }

@@ -21,6 +21,7 @@ function fsvc(o: Partial<FilesService> = {}): FilesService {
   return {
     verifyTripAccess: vi.fn().mockReturnValue({ user_id: 1 }),
     can: vi.fn().mockReturnValue(true),
+    findForeignLinkTarget: vi.fn().mockReturnValue(null),
     broadcast: vi.fn(),
     ...o,
   } as unknown as FilesService;
