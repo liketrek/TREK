@@ -67,6 +67,12 @@ env:
   # Max MCP API requests per user per minute. Defaults to 300.
   # MCP_MAX_SESSION_PER_USER: "20"
   # Max concurrent MCP sessions per user. Defaults to 20.
+  # OVERPASS_URL: ""
+  # Custom Overpass endpoint(s) for the map POI "explore" search, comma-separated. When set, REPLACES the bundled
+  # public mirrors — point it at an internal/self-hosted Overpass instance when the public mirrors are unreachable
+  # from the cluster (e.g. locked-down egress). Non-http(s) entries are ignored.
+  # OVERPASS_TIMEOUT_MS: "12000"
+  # Per-endpoint timeout (ms) for Overpass POI requests. Raise it for a slow self-hosted Overpass instance. Defaults to 12000.
 
 
 # Secret environment variables stored in a Kubernetes Secret.
