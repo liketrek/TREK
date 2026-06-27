@@ -349,9 +349,17 @@ export function calculateSettlement(
   const rates = opts.rates ?? null;
   // Amount in some currency → base. Pre-rework rows store currency = NULL, which
   // means "the trip's own currency". rates[X] = units of X per 1 base.
-  const toBase = (amount: number, itemCurrency: string | null | undefined): number => {
+  const toBase = (amount: number, itemCurrency: string | null | undefined, itemRate?: number | null): number => {
     const cur = (itemCurrency || tripCurrency).toUpperCase();
-    if (cur === base || !rates) return amount;
+    if (cur === base) return amount;
+    // Prefer the FX rate frozen at entry time (#1335): a settled expense keeps the rate it
+    // was booked at, so a later live-rate drift doesn't re-open it with a few-cent residual.
+    // The stored rate is units of item-currency per 1 trip-currency, so it only applies when
+    // converting to the trip's own currency; otherwise (and for legacy rows) use live rates.
+    if (base === tripCurrency && itemRate != null && itemRate > 0 && itemRate !== 1) {
+      return amount / itemRate;
+    }
+    if (!rates) return amount;
     const r = rates[cur];
     return r && r > 0 ? amount / r : amount;
   };
@@ -384,11 +392,11 @@ export function calculateSettlement(
     const payers = allPayers.filter(p => p.budget_item_id === item.id);
     if (members.length === 0) continue; // planning-only entry → doesn't affect balances
 
-    const paidBase = payers.reduce((a, p) => a + toBase(p.amount > 0 ? p.amount : 0, item.currency), 0);
+    const paidBase = payers.reduce((a, p) => a + toBase(p.amount > 0 ? p.amount : 0, item.currency, item.exchange_rate), 0);
     const sharePerMember = paidBase / members.length;
 
     // Payers are credited what they actually paid (converted to base)…
-    for (const p of payers) ensure(p.user_id, p).balance += toBase(p.amount > 0 ? p.amount : 0, item.currency);
+    for (const p of payers) ensure(p.user_id, p).balance += toBase(p.amount > 0 ? p.amount : 0, item.currency, item.exchange_rate);
     // …and every split participant owes an equal share of the base total.
     for (const m of members) ensure(m.user_id, m).balance -= sharePerMember;
   }

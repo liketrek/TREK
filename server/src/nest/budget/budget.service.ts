@@ -41,11 +41,39 @@ export class BudgetService {
     return svc.calculateSettlement(tripId, { base: effectiveBase, rates, tripCurrency });
   }
 
-  create(tripId: string, data: Parameters<typeof svc.createBudgetItem>[1]) {
+  // Freeze the live FX rate at entry time into budget_items.exchange_rate so a settled
+  // position isn't re-opened when live rates drift later (#1335). Only for a foreign
+  // currency with no explicit rate; degrades to live rates if the fetch fails. On update
+  // it (re)freezes only when the currency changes, so an unrelated edit never moves money.
+  private async freezeForeignRate(
+    tripId: string,
+    data: { currency?: string | null; exchange_rate?: number },
+    existingItemId?: string,
+  ): Promise<void> {
+    if (data.exchange_rate != null) return; // an explicit rate from the caller wins
+    const cur = (data.currency || '').toUpperCase();
+    if (!cur) return; // currency not being set in this request
+    if (existingItemId != null) {
+      const existing = db.prepare('SELECT currency FROM budget_items WHERE id = ?')
+        .get(existingItemId) as { currency?: string } | undefined;
+      if (existing && (existing.currency || '').toUpperCase() === cur) return; // currency unchanged
+    }
+    const trip = db.prepare('SELECT currency FROM trips WHERE id = ?')
+      .get(tripId) as { currency?: string } | undefined;
+    const tripCur = (trip?.currency || 'EUR').toUpperCase();
+    if (cur === tripCur) return; // same as the trip currency → no conversion to freeze
+    const rates = await getRates(tripCur);
+    const r = rates?.[cur];
+    if (r && r > 0) data.exchange_rate = r;
+  }
+
+  async create(tripId: string, data: Parameters<typeof svc.createBudgetItem>[1]) {
+    await this.freezeForeignRate(tripId, data);
     return svc.createBudgetItem(tripId, data);
   }
 
-  update(id: string, tripId: string, data: Parameters<typeof svc.updateBudgetItem>[2]) {
+  async update(id: string, tripId: string, data: Parameters<typeof svc.updateBudgetItem>[2]) {
+    await this.freezeForeignRate(tripId, data, id);
     return svc.updateBudgetItem(id, tripId, data);
   }
 

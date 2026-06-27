@@ -136,7 +136,7 @@ export class BudgetController {
   }
 
   @Post()
-  create(
+  async create(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Body() body: { name?: string; category?: string; total_price?: number; persons?: number | null; days?: number | null; note?: string | null; expense_date?: string | null; reservation_id?: number },
@@ -147,7 +147,7 @@ export class BudgetController {
     if (!body.name) {
       throw new HttpException({ error: 'Name is required' }, 400);
     }
-    const item = this.budget.create(tripId, body as { name: string });
+    const item = await this.budget.create(tripId, body as { name: string });
     this.budget.broadcast(tripId, 'budget:created', { item }, socketId);
     return { item };
   }
@@ -181,7 +181,7 @@ export class BudgetController {
   }
 
   @Put(':id')
-  update(
+  async update(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Param('id') id: string,
@@ -190,7 +190,7 @@ export class BudgetController {
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    const updated = this.budget.update(id, tripId, body);
+    const updated = await this.budget.update(id, tripId, body);
     if (!updated) {
       throw new HttpException({ error: 'Budget item not found' }, 404);
     }

@@ -209,6 +209,33 @@ describe('calculateSettlement', () => {
       expect.objectContaining({ amount: 30, from: expect.objectContaining({ user_id: 1 }), to: expect.objectContaining({ user_id: 2 }) }),
     ]);
   });
+
+  it('#1335 converts a foreign expense with the frozen exchange_rate, not live rates', () => {
+    // $110 booked at a frozen rate of 1.1 (USD per 1 EUR) = 100 EUR. Live rates have since
+    // drifted to 1.2, but the converted amount must stay on the frozen rate so an already
+    // settled position isn't re-opened with a residual.
+    setupDb(
+      [{ ...makeItem(1, 110), currency: 'USD', exchange_rate: 1.1 } as BudgetItem],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob')],
+      [makePayer(1, 1, 110, 'alice')],
+    );
+    const result = calculateSettlement(1, { base: 'EUR', tripCurrency: 'EUR', rates: { EUR: 1, USD: 1.2 } });
+    const bob = result.balances.find(b => b.user_id === 2)!;
+    // 110 / 1.1 = 100 EUR; Bob owes half = 50 (frozen). With the live 1.2 it would be ~45.83.
+    expect(bob.balance).toBeCloseTo(-50, 2);
+  });
+
+  it('#1335 a legacy row (exchange_rate = 1) still converts with live rates', () => {
+    setupDb(
+      [{ ...makeItem(1, 120), currency: 'USD', exchange_rate: 1 } as BudgetItem],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob')],
+      [makePayer(1, 1, 120, 'alice')],
+    );
+    const result = calculateSettlement(1, { base: 'EUR', tripCurrency: 'EUR', rates: { EUR: 1, USD: 1.2 } });
+    const bob = result.balances.find(b => b.user_id === 2)!;
+    // 120 / 1.2 (live) = 100 EUR; Bob owes 50 — unchanged behaviour for pre-#1335 rows.
+    expect(bob.balance).toBeCloseTo(-50, 2);
+  });
 });
 
 // ── updateSettlement ──────────────────────────────────────────────────────────

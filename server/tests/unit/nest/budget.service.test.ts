@@ -103,10 +103,10 @@ describe('BudgetService', () => {
     });
   });
 
-  it('create / update / remove / members / paid / payers delegate', () => {
-    svc().create('5', { name: 'Hotel' } as never);
+  it('create / update / remove / members / paid / payers delegate', async () => {
+    await svc().create('5', { name: 'Hotel' } as never);
     expect(budget.createBudgetItem).toHaveBeenCalledWith('5', { name: 'Hotel' });
-    svc().update('9', '5', { name: 'X' });
+    await svc().update('9', '5', { name: 'X' });
     expect(budget.updateBudgetItem).toHaveBeenCalledWith('9', '5', { name: 'X' });
     svc().remove('9', '5');
     expect(budget.deleteBudgetItem).toHaveBeenCalledWith('9', '5');

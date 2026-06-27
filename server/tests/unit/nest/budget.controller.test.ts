@@ -28,6 +28,17 @@ function thrown(fn: () => unknown): { status: number; body: unknown } {
   throw new Error('expected the handler to throw');
 }
 
+async function thrownAsync(fn: () => Promise<unknown>): Promise<{ status: number; body: unknown }> {
+  try {
+    await fn();
+  } catch (err) {
+    expect(err).toBeInstanceOf(HttpException);
+    const e = err as HttpException;
+    return { status: e.getStatus(), body: e.getResponse() };
+  }
+  throw new Error('expected the handler to throw');
+}
+
 describe('BudgetController (parity with the legacy /api/trips/:tripId/budget route)', () => {
   it('404 when the trip is not accessible', () => {
     const svc = makeService({ verifyTripAccess: vi.fn().mockReturnValue(undefined) });
@@ -145,51 +156,51 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
   });
 
   describe('POST /', () => {
-    it('403 without budget_edit', () => {
+    it('403 without budget_edit', async () => {
       const svc = makeService({ canEdit: vi.fn().mockReturnValue(false) });
-      expect(thrown(() => new BudgetController(svc).create(user, '5', { name: 'Hotel' }))).toEqual({
+      expect(await thrownAsync(() => new BudgetController(svc).create(user, '5', { name: 'Hotel' }))).toEqual({
         status: 403, body: { error: 'No permission' },
       });
     });
 
-    it('400 when name missing', () => {
-      expect(thrown(() => new BudgetController(makeService()).create(user, '5', {}))).toEqual({
+    it('400 when name missing', async () => {
+      expect(await thrownAsync(() => new BudgetController(makeService()).create(user, '5', {}))).toEqual({
         status: 400, body: { error: 'Name is required' },
       });
     });
 
-    it('creates and broadcasts', () => {
+    it('creates and broadcasts', async () => {
       const create = vi.fn().mockReturnValue({ id: 9, name: 'Hotel' });
       const broadcast = vi.fn();
       const svc = makeService({ create, broadcast } as Partial<BudgetService>);
-      expect(new BudgetController(svc).create(user, '5', { name: 'Hotel', total_price: 200 }, 'sock')).toEqual({ item: { id: 9, name: 'Hotel' } });
+      expect(await new BudgetController(svc).create(user, '5', { name: 'Hotel', total_price: 200 }, 'sock')).toEqual({ item: { id: 9, name: 'Hotel' } });
       expect(broadcast).toHaveBeenCalledWith('5', 'budget:created', { item: { id: 9, name: 'Hotel' } }, 'sock');
     });
   });
 
   describe('PUT /:id', () => {
-    it('404 when item missing', () => {
+    it('404 when item missing', async () => {
       const svc = makeService({ update: vi.fn().mockReturnValue(null) } as Partial<BudgetService>);
-      expect(thrown(() => new BudgetController(svc).update(user, '5', '9', { name: 'X' }))).toEqual({
+      expect(await thrownAsync(() => new BudgetController(svc).update(user, '5', '9', { name: 'X' }))).toEqual({
         status: 404, body: { error: 'Budget item not found' },
       });
     });
 
-    it('syncs the reservation price when a linked item changes total_price', () => {
+    it('syncs the reservation price when a linked item changes total_price', async () => {
       const update = vi.fn().mockReturnValue({ id: 9, reservation_id: 42, total_price: 250 });
       const syncReservationPrice = vi.fn();
       const broadcast = vi.fn();
       const svc = makeService({ update, syncReservationPrice, broadcast } as Partial<BudgetService>);
-      new BudgetController(svc).update(user, '5', '9', { total_price: 250 }, 'sock');
+      await new BudgetController(svc).update(user, '5', '9', { total_price: 250 }, 'sock');
       expect(syncReservationPrice).toHaveBeenCalledWith('5', 42, 250, 'sock');
       expect(broadcast).toHaveBeenCalledWith('5', 'budget:updated', { item: { id: 9, reservation_id: 42, total_price: 250 } }, 'sock');
     });
 
-    it('does not sync when the item has no linked reservation', () => {
+    it('does not sync when the item has no linked reservation', async () => {
       const update = vi.fn().mockReturnValue({ id: 9, reservation_id: null, total_price: 250 });
       const syncReservationPrice = vi.fn();
       const svc = makeService({ update, syncReservationPrice } as Partial<BudgetService>);
-      new BudgetController(svc).update(user, '5', '9', { total_price: 250 });
+      await new BudgetController(svc).update(user, '5', '9', { total_price: 250 });
       expect(syncReservationPrice).not.toHaveBeenCalled();
     });
   });
