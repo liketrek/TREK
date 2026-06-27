@@ -46,19 +46,32 @@ export function getActiveNoticesFor(userId: number): SystemNoticeDTO[] {
     'SELECT COUNT(*) AS count FROM trips WHERE user_id = ?'
   ).get(userId) as { count: number };
 
-  const dismissedIds = new Set<string>(
-    (db.prepare('SELECT notice_id FROM user_notice_dismissals WHERE user_id = ?')
-      .all(userId) as Array<{ notice_id: string }>)
-      .map(r => r.notice_id)
+  // Dismissals mapped to the app version they were dismissed at (used by per-version notices).
+  const dismissals = new Map<string, string | null>(
+    (db.prepare('SELECT notice_id, dismissed_app_version FROM user_notice_dismissals WHERE user_id = ?')
+      .all(userId) as Array<{ notice_id: string; dismissed_app_version: string | null }>)
+      .map(r => [r.notice_id, r.dismissed_app_version])
   );
 
   const now = new Date();
   const currentAppVersion = getCurrentAppVersion();
   const ctx = { user: { ...user, noTrips: tripCount }, currentAppVersion, now };
+  const appVer = semver.coerce(currentAppVersion)?.version ?? '0.0.0';
+
+  const isStillDismissed = (n: SystemNotice): boolean => {
+    if (!dismissals.has(n.id)) return false;
+    if (n.recurring === 'per-version') {
+      // Re-show once the running app version moves past the version it was last dismissed at,
+      // so a per-version notice surfaces again on each install/upgrade.
+      const dismissedVer = semver.coerce(dismissals.get(n.id) ?? '0.0.0')?.version ?? '0.0.0';
+      return semver.gte(dismissedVer, appVer);
+    }
+    return true; // default: permanent one-time dismissal
+  };
 
   return SYSTEM_NOTICES
     .filter(n => {
-      if (dismissedIds.has(n.id)) return false;
+      if (isStillDismissed(n)) return false;
       if (!isNoticeVersionActive(n, currentAppVersion)) return false;
       return evaluate(n, ctx);
     })
@@ -69,15 +82,20 @@ export function getActiveNoticesFor(userId: number): SystemNoticeDTO[] {
       if (sw !== 0) return sw;
       return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
     })
-    .map(({ conditions: _c, publishedAt: _p, minVersion: _mn, maxVersion: _mx, priority: _pr, ...dto }) => dto);
+    .map(({ conditions: _c, publishedAt: _p, minVersion: _mn, maxVersion: _mx, priority: _pr, recurring: _rc, ...dto }) => dto);
 }
 
 export function dismissNotice(userId: number, noticeId: string): boolean {
   const exists = SYSTEM_NOTICES.some(n => n.id === noticeId);
   if (!exists) return false;
+  // Record the app version at dismissal so per-version notices can re-appear on the next
+  // upgrade. Upsert (not INSERT OR IGNORE) so re-dismissing after a bump refreshes the version.
   db.prepare(`
-    INSERT OR IGNORE INTO user_notice_dismissals (user_id, notice_id, dismissed_at)
-    VALUES (?, ?, ?)
-  `).run(userId, noticeId, Date.now());
+    INSERT INTO user_notice_dismissals (user_id, notice_id, dismissed_at, dismissed_app_version)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(user_id, notice_id) DO UPDATE SET
+      dismissed_at = excluded.dismissed_at,
+      dismissed_app_version = excluded.dismissed_app_version
+  `).run(userId, noticeId, Date.now(), getCurrentAppVersion());
   return true;
 }

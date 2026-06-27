@@ -21,6 +21,7 @@ export interface NoticeMedia {
 
 export type NoticeCta =
   | { kind: 'nav';    labelKey: string; href: string }
+  | { kind: 'link';   labelKey: string; href: string }  // external URL, opens in a new tab
   | { kind: 'action'; labelKey: string; actionId: string; dismissOnAction?: boolean };
 
 export interface SystemNotice {
@@ -34,13 +35,19 @@ export interface SystemNotice {
   media?: NoticeMedia;
   highlights?: Array<{ labelKey: string; iconName?: string }>;
   cta?: NoticeCta;
+  secondaryCta?: NoticeCta;
+  // Hide this notice on small/mobile viewports (evaluated client-side).
+  desktopOnly?: boolean;
   dismissible: boolean;
   conditions: NoticeCondition[];
   publishedAt: string;
   minVersion?: string;
   maxVersion?: string;
   priority?: number;
+  // 'per-version': re-show on every app version bump (each install + upgrade) instead of
+  // the default permanent one-time dismissal.
+  recurring?: 'per-version';
 }
 
 // DTO sent to client (same shape minus the conditions — server evaluates those)
-export type SystemNoticeDTO = Omit<SystemNotice, 'conditions' | 'publishedAt' | 'minVersion' | 'maxVersion' | 'priority'>;
+export type SystemNoticeDTO = Omit<SystemNotice, 'conditions' | 'publishedAt' | 'minVersion' | 'maxVersion' | 'priority' | 'recurring'>;

@@ -92,16 +92,17 @@ describe('GET /api/system-notices/active', () => {
     expect(res.status).toBe(401);
   });
 
-  it('returns empty array for non-first-login user with no applicable notices', async () => {
+  it('returns no login/version-gated notices for an established user', async () => {
     const { user } = createUser(testDb);
-    // login_count > 1 means firstLogin condition does not match for any notice;
-    // first_seen_version >= 3.0.0 means existingUserBeforeVersion('3.0.0') also does not match
+    // login_count > 1 means firstLogin does not match; first_seen_version >= 3.0.0 means
+    // existingUserBeforeVersion('3.0.0') does not match either. The always-on thank-you
+    // notice (no conditions) may still apply, so only filter it out.
     testDb.prepare('UPDATE users SET login_count = 5, first_seen_version = ? WHERE id = ?').run('3.0.0', user.id);
     const res = await request(app)
       .get('/api/system-notices/active')
       .set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
-    expect(res.body).toEqual([]);
+    expect(res.body.filter((n: { id: string }) => n.id !== 'thank-you-support')).toEqual([]);
   });
 
   it('returns firstLogin notice for user with login_count <= 1', async () => {
@@ -115,7 +116,7 @@ describe('GET /api/system-notices/active', () => {
         .get('/api/system-notices/active')
         .set('Cookie', authCookie(user.id));
       expect(res.status).toBe(200);
-      // welcome-v1 is also in the registry and matches firstLogin, so at least TEST_NOTICE is present
+      // The always-on thank-you notice may also be present, so just assert TEST_NOTICE is there
       const testNotice = res.body.find((n: { id: string }) => n.id === TEST_NOTICE.id);
       expect(testNotice).toBeDefined();
       // DTO should not expose conditions, publishedAt, minVersion, maxVersion, priority
@@ -139,7 +140,7 @@ describe('GET /api/system-notices/active', () => {
         .get('/api/system-notices/active')
         .set('Cookie', authCookie(user.id));
       expect(res.status).toBe(200);
-      expect(res.body).toEqual([]);
+      expect(res.body.find((n: { id: string }) => n.id === TEST_NOTICE.id)).toBeUndefined();
     } finally {
       const idx = SYSTEM_NOTICES.indexOf(TEST_NOTICE);
       if (idx !== -1) SYSTEM_NOTICES.splice(idx, 1);
@@ -161,13 +162,42 @@ describe('GET /api/system-notices/active', () => {
         .get('/api/system-notices/active')
         .set('Cookie', authCookie(user.id));
       expect(res.status).toBe(200);
-      // TEST_NOTICE should be filtered out; welcome-v1 may still appear
+      // TEST_NOTICE should be filtered out; the thank-you notice may still appear
       const found = res.body.find((n: { id: string }) => n.id === TEST_NOTICE.id);
       expect(found).toBeUndefined();
     } finally {
       const idx = SYSTEM_NOTICES.indexOf(TEST_NOTICE);
       if (idx !== -1) SYSTEM_NOTICES.splice(idx, 1);
     }
+  });
+
+  it('re-surfaces a per-version notice after an upgrade but hides it within the same version', async () => {
+    const TY = 'thank-you-support';
+    const { user } = createUser(testDb);
+    testDb.prepare('UPDATE users SET login_count = 5, first_seen_version = ? WHERE id = ?').run('3.0.0', user.id);
+
+    const shows = async () => {
+      const res = await request(app)
+        .get('/api/system-notices/active')
+        .set('Cookie', authCookie(user.id));
+      expect(res.status).toBe(200);
+      return res.body.some((n: { id: string }) => n.id === TY);
+    };
+
+    // Fresh user with no dismissal: the recurring thank-you shows.
+    expect(await shows()).toBe(true);
+
+    // Dismissed at an old version → it returns once the running version is newer.
+    testDb.prepare(
+      'INSERT INTO user_notice_dismissals (user_id, notice_id, dismissed_at, dismissed_app_version) VALUES (?, ?, ?, ?)'
+    ).run(user.id, TY, Date.now(), '0.0.1');
+    expect(await shows()).toBe(true);
+
+    // Dismissed at a version >= the running one → stays hidden until the next upgrade.
+    testDb.prepare(
+      'UPDATE user_notice_dismissals SET dismissed_app_version = ? WHERE user_id = ? AND notice_id = ?'
+    ).run('99.0.0', user.id, TY);
+    expect(await shows()).toBe(false);
   });
 });
 

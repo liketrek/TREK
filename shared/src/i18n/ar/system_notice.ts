@@ -44,6 +44,14 @@ const system_notice: TranslationStrings = {
   'system_notice.pager.position': 'الإشعار {current} من {total}',
   'system_notice.dev_test_modal.title': '[Dev] Test notice', // en-fallback
   'system_notice.dev_test_modal.body': 'This is a dev-only test notice.', // en-fallback
+  'system_notice.thank_you_support.title': 'شكرًا لاستخدامك TREK',
+  'system_notice.thank_you_support.body':
+    'شكرًا سريعًا على تثبيتك TREK — هذا يعني لي الكثير حقًا.\n\nأنا مطوّر منفرد أبني TREK في وقت فراغي. بدأ كأداة صغيرة لرحلاتي الخاصة فحسب، وصدقًا أنا مندهش من الدعم والاهتمام اللذين أبداهما المجتمع منذ ذلك الحين. TREK مصنوع بكثير من الحب من جانبي — ولكن أيضًا بفضل العديد من المساهمين الخارجيين الرائعين الذين ساعدوا في تشكيله.\n\n**TREK مفتوح المصدر ومجاني تمامًا — وسيبقى كذلك إلى الأبد. لا باقات مدفوعة، لا اشتراكات، لا شروط خفية. أعدكم بذلك.**\n\nإذا كان TREK مفيدًا لك وأردت دعم تطويره، فإن فنجان قهوة صغيرًا يساعدني حقًا على مواصلة البناء — لا ضغط على الإطلاق، لكن كل فنجان يبقي الليالي المتأخرة مستمرة.\n\nشكرًا لوجودك هنا.\n\n— Maurice',
+  'system_notice.thank_you_support.highlight_opensource': 'مفتوح المصدر 100% على GitHub',
+  'system_notice.thank_you_support.highlight_free': 'مجاني للأبد — لا باقات مدفوعة أبدًا',
+  'system_notice.thank_you_support.highlight_community': 'مبني بالتعاون مع المجتمع',
+  'system_notice.thank_you_support.cta_bmc': 'Buy Me a Coffee',
+  'system_notice.thank_you_support.cta_kofi': 'ادعمني على Ko-fi',
   'system_notice.pager.counter': '{current} / {total}', // en-fallback
 };
 export default system_notice;

@@ -30,9 +30,10 @@ const noticeHighlightSchema = z.object({
   iconName: z.string().optional(),
 });
 
-/** Call-to-action: either a navigation link or an in-app action. */
+/** Call-to-action: an internal nav, an external link (new tab), or an in-app action. */
 const noticeCtaSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('nav'), labelKey: z.string(), href: z.string() }),
+  z.object({ kind: z.literal('link'), labelKey: z.string(), href: z.string() }),
   z.object({
     kind: z.literal('action'),
     labelKey: z.string(),
@@ -53,6 +54,8 @@ export const systemNoticeDtoSchema = z.object({
   media: noticeMediaSchema.optional(),
   highlights: z.array(noticeHighlightSchema).optional(),
   cta: noticeCtaSchema.optional(),
+  secondaryCta: noticeCtaSchema.optional(),
+  desktopOnly: z.boolean().optional(),
   dismissible: z.boolean(),
 });
 export type SystemNoticeDto = z.infer<typeof systemNoticeDtoSchema>;

@@ -11,6 +11,15 @@ const system_notice: TranslationStrings = {
   'system_notice.welcome_v1.highlight_offline': 'Funktioniert offline auf dem Handy',
   'system_notice.dev_test_modal.title': '[Dev] Test notice',
   'system_notice.dev_test_modal.body': 'This is a dev-only test notice.',
+  // Dankeschön + Projektunterstützung (1x pro Installation und pro Update)
+  'system_notice.thank_you_support.title': 'Danke, dass du TREK nutzt',
+  'system_notice.thank_you_support.body':
+    'Ein kurzes Dankeschön, dass du TREK installiert hast — das bedeutet mir wirklich viel.\n\nIch bin Solo-Entwickler und baue TREK in meiner Freizeit. Angefangen hat alles als kleines Tool nur für meine eigenen Reisen, und ich bin ehrlich überwältigt von der Unterstützung und dem Interesse der Community seitdem. In TREK steckt viel Herzblut von meiner Seite — aber auch viele großartige externe Mitwirkende haben es mitgeprägt.\n\n**TREK ist Open Source und vollständig kostenlos — und das bleibt für immer so. Keine Paid Tiers, keine Abos, kein Haken. Versprochen.**\n\nWenn TREK dir nützt und du die Entwicklung unterstützen möchtest, hilft mir ein kleiner Kaffee wirklich beim Weitermachen — überhaupt kein Druck, aber jede Tasse trägt durch die langen Nächte.\n\nDanke, dass du dabei bist.\n\n— Maurice',
+  'system_notice.thank_you_support.highlight_opensource': '100% Open Source auf GitHub',
+  'system_notice.thank_you_support.highlight_free': 'Für immer kostenlos – keine Paid Tiers',
+  'system_notice.thank_you_support.highlight_community': 'Gemeinsam mit der Community gebaut',
+  'system_notice.thank_you_support.cta_bmc': 'Buy Me a Coffee',
+  'system_notice.thank_you_support.cta_kofi': 'Ko-fi unterstützen',
   'system_notice.pager.prev': 'Vorherige Meldung',
   'system_notice.pager.next': 'Nächste Meldung',
   'system_notice.pager.counter': '{current} / {total}',

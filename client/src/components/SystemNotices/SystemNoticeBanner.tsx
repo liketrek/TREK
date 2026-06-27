@@ -62,16 +62,17 @@ function CTALink({
     if (notice.cta.kind === 'nav') {
       navigate(notice.cta.href);
       if (notice.dismissible) onDismiss();
+    } else if (notice.cta.kind === 'link') {
+      window.open(notice.cta.href, '_blank', 'noopener,noreferrer');
     } else {
       runNoticeAction(notice.cta.actionId, { navigate });
-      const actionCta = notice.cta as { kind: 'action'; labelKey: string; actionId: string; dismissOnAction?: boolean };
-      if (actionCta.dismissOnAction !== false) onDismiss();
+      if (notice.cta.dismissOnAction !== false) onDismiss();
     }
   }
 
   if (!notice.cta) return null;
 
-  if (notice.cta.kind === 'nav') {
+  if (notice.cta.kind === 'nav' || notice.cta.kind === 'link') {
     return (
       <a
         href={notice.cta.href}
