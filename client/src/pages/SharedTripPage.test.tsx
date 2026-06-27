@@ -3,7 +3,9 @@ import { render, screen, waitFor, fireEvent } from '../../tests/helpers/render';
 import { Routes, Route } from 'react-router-dom';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../tests/helpers/msw/server';
-import { resetAllStores } from '../../tests/helpers/store';
+import { resetAllStores, seedStore } from '../../tests/helpers/store';
+import { buildSettings } from '../../tests/helpers/factories';
+import { useSettingsStore } from '../store/settingsStore';
 import SharedTripPage from './SharedTripPage';
 
 // Mock react-leaflet (SharedTripPage renders a map)
@@ -478,6 +480,33 @@ describe('SharedTripPage', () => {
         expect(screen.getByText(/LH1/)).toBeInTheDocument();
       });
       expect(screen.getByText(/LH2/)).toBeInTheDocument();
+    });
+  });
+
+  describe('FE-PAGE-SHARED-018: untitled day uses the translated day label (#1296)', () => {
+    it('renders the day-number label via i18n (German), not a hardcoded English string', async () => {
+      seedStore(useSettingsStore, { settings: buildSettings({ language: 'de' }) });
+      const day = { id: 101, trip_id: 1, day_number: 1, date: '2026-07-01', title: null, notes: null };
+      server.use(
+        http.get('/api/shared/:token', () => HttpResponse.json({
+          trip: { id: 1, title: 'Shared Paris Trip', start_date: '2026-07-01', end_date: '2026-07-05' },
+          days: [day],
+          assignments: {},
+          dayNotes: {},
+          places: [],
+          reservations: [],
+          accommodations: [],
+          packing: [],
+          budget: [],
+          categories: [],
+          permissions: { share_bookings: false, share_packing: false, share_budget: false, share_collab: false },
+          collab: [],
+        })),
+      );
+      renderSharedTrip('test-token');
+      // The untitled day shows the German label "Tag 1", proving the hardcoded English
+      // "Day 1" was replaced by the i18n key t('dayplan.dayN').
+      await waitFor(() => expect(screen.getByText('Tag 1')).toBeInTheDocument());
     });
   });
 });
