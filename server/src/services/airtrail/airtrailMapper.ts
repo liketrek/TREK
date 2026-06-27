@@ -16,6 +16,15 @@ export function entityCode(e: AirtrailNamedCode | null | undefined): string | nu
 }
 
 /**
+ * Human-readable name for an airline/aircraft (e.g. "Lufthansa"), falling back to the
+ * code when AirTrail doesn't provide a name. Used for what TREK displays/stores; the
+ * raw code stays available via entityCode for the writeback payload (#1334).
+ */
+export function entityName(e: AirtrailNamedCode | null | undefined): string | null {
+  return e?.name || e?.icao || e?.iata || null;
+}
+
+/**
  * Local calendar date + clock time for an instant at a given IANA zone.
  * AirTrail stores `departure`/`arrival` as instants (ISO w/ offset) plus a local
  * `date`; the airport-local wall time is what TREK shows and files days by.
@@ -57,7 +66,7 @@ export function normalizeFlight(raw: AirtrailFlightRaw): AirtrailFlight {
     date: raw.date ?? null,
     departure: raw.departureScheduled ?? null,
     arrival: raw.arrivalScheduled ?? null,
-    airline: entityCode(raw.airline),
+    airline: entityName(raw.airline),
     flightNumber: raw.flightNumber ?? null,
     aircraft: entityCode(raw.aircraft),
     seatClass: (raw.seats?.find(s => s.userId) ?? raw.seats?.[0])?.seatClass ?? null,
@@ -142,10 +151,14 @@ export function mapFlightToReservation(raw: AirtrailFlightRaw): MappedReservatio
   }
 
   const seat = raw.seats?.find(s => s.userId) ?? raw.seats?.[0];
+  const airlineName = entityName(raw.airline);
   const airlineCode = entityCode(raw.airline);
   const aircraftCode = entityCode(raw.aircraft);
   const metadata: Record<string, unknown> = {};
-  if (airlineCode) metadata.airline = airlineCode;
+  // Display the airline name; keep the code in airline_code for the AirTrail writeback,
+  // which expects a code, not a name (#1334 / #1240).
+  if (airlineName) metadata.airline = airlineName;
+  if (airlineCode) metadata.airline_code = airlineCode;
   if (raw.flightNumber) metadata.flight_number = raw.flightNumber;
   if (aircraftCode) metadata.aircraft = aircraftCode;
   if (raw.aircraftReg) metadata.aircraft_reg = raw.aircraftReg;

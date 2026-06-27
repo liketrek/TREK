@@ -216,9 +216,10 @@ export function buildSavePayload(reservation: any, existing: AirtrailFlightRaw):
     arrivalScheduledTime: arr.time,
     // These are AirTrail-owned details TREK doesn't surface in its edit UI — a TREK
     // edit can leave them out of `metadata`. Preserve AirTrail's current value when
-    // TREK has none rather than nulling it out (#1240). entityCode mirrors the
+    // TREK has none rather than nulling it out (#1240). Use airline_code (not the
+    // display name in metadata.airline, #1334); both it and entityCode mirror the
     // import/hash code-selection so a writeback stays a no-op for the hash.
-    airline: meta.airline ?? entityCode(existing.airline) ?? null,
+    airline: meta.airline_code ?? entityCode(existing.airline) ?? null,
     flightNumber: meta.flight_number ?? existing.flightNumber ?? null,
     aircraft: meta.aircraft ?? entityCode(existing.aircraft) ?? null,
     aircraftReg: meta.aircraft_reg ?? existing.aircraftReg ?? null,

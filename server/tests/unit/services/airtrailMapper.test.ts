@@ -47,7 +47,7 @@ describe('airtrailMapper.normalizeFlight', () => {
       fromCode: 'JFK',
       toCode: 'LHR',
       date: '2021-09-01',
-      airline: 'BAW',
+      airline: 'British Airways',
       flightNumber: 'BA178',
       seatClass: 'economy',
     });
@@ -98,10 +98,17 @@ describe('airtrailMapper.mapFlightToReservation', () => {
 
   it('carries flight metadata', () => {
     const m = mapFlightToReservation(flight());
-    expect(m.metadata).toMatchObject({ airline: 'BAW', flight_number: 'BA178', aircraft: 'B772', aircraft_reg: 'G-VIIL', flight_reason: 'leisure', seat: '12A' });
+    // #1334: display the airline name, keep the code in airline_code for the writeback.
+    expect(m.metadata).toMatchObject({ airline: 'British Airways', airline_code: 'BAW', flight_number: 'BA178', aircraft: 'B772', aircraft_reg: 'G-VIIL', flight_reason: 'leisure', seat: '12A' });
     expect(m.type).toBe('flight');
     expect(m.status).toBe('confirmed');
     expect(m.notes).toBe('window seat');
+  });
+
+  it('#1334 falls back to the airline code when AirTrail provides no name', () => {
+    const a = { id: 9, icao: 'EWG', iata: 'EW' };
+    expect(normalizeFlight(flight({ airline: a })).airline).toBe('EWG');
+    expect(mapFlightToReservation(flight({ airline: a })).metadata).toMatchObject({ airline: 'EWG', airline_code: 'EWG' });
   });
 
   it('uses only the seat number for the seat, not the cabin class (#1246)', () => {
