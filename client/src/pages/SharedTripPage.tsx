@@ -196,7 +196,7 @@ export default function SharedTripPage() {
                   style={{ padding: '12px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div className={selectedDay === day.id ? 'bg-[#111827] text-white' : 'bg-[#f3f4f6] text-[#6b7280]'} style={{ width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{di + 1}</div>
                   <div style={{ flex: 1 }}>
-                    <div className="text-[#111827]" style={{ fontSize: 14, fontWeight: 600 }}>{day.title || `Day ${day.day_number}`}</div>
+                    <div className="text-[#111827]" style={{ fontSize: 14, fontWeight: 600 }}>{day.title || t('dayplan.dayN', { n: day.day_number })}</div>
                     {day.date && <div className="text-[#9ca3af]" style={{ fontSize: 11, marginTop: 1 }}>{new Date(day.date + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })}</div>}
                   </div>
                   {dayAccs.map((acc: any) => (
