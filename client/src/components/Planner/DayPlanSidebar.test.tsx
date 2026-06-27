@@ -168,6 +168,34 @@ describe('DayPlanSidebar', () => {
     expect(screen.getByText('D2')).toBeInTheDocument()
   })
 
+  // ── #1330: route tools for a single optimizable place ───────────────────────
+  it('FE-PLANNER-DAYPLAN-005b: route tools show for one located place with a bookend hotel (#1330)', () => {
+    const place = buildPlace({ name: 'Louvre', lat: 48.86, lng: 2.34 })
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    const day2 = buildDay({ id: 11, date: '2025-06-02', title: 'Day 2' })
+    const assignment = buildAssignment({ id: 99, day_id: 10, order_index: 0, place })
+    const accommodations = [{ id: 1, start_day_id: 10, end_day_id: 11, place_lat: 48.85, place_lng: 2.35 }]
+    render(<DayPlanSidebar {...makeDefaultProps({
+      days: [day, day2], places: [place], assignments: { '10': [assignment] },
+      accommodations: accommodations as any, selectedDayId: 10,
+    })} />)
+    // With accommodation optimization on, one located place is routable (hotel → place → hotel),
+    // so the route tools (here the Google Maps export button) must be visible.
+    expect(screen.getByRole('button', { name: 'Open in Google Maps' })).toBeInTheDocument()
+  })
+
+  it('FE-PLANNER-DAYPLAN-005c: route tools stay hidden for one place with no bookend hotel (#1330 guard)', () => {
+    const place = buildPlace({ name: 'Louvre', lat: 48.86, lng: 2.34 })
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    const assignment = buildAssignment({ id: 99, day_id: 10, order_index: 0, place })
+    render(<DayPlanSidebar {...makeDefaultProps({
+      days: [day], places: [place], assignments: { '10': [assignment] },
+      accommodations: [], selectedDayId: 10,
+    })} />)
+    // No accommodation to bookend the lone place, so nothing routable — tools stay hidden.
+    expect(screen.queryByRole('button', { name: 'Open in Google Maps' })).not.toBeInTheDocument()
+  })
+
   // ── Day expansion/collapse ──────────────────────────────────────────────
 
   it('FE-PLANNER-DAYPLAN-006: days are expanded by default', () => {
