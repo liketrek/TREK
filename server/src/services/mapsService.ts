@@ -68,7 +68,11 @@ interface GooglePlaceDetails extends GooglePlaceResult {
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const UA = 'TREK Travel Planner (https://github.com/mauriceboe/TREK)';
+function userAgent(): string {
+  const base = 'TREK Travel Planner (https://github.com/mauriceboe/TREK)';
+  try { const url = getAppUrl(); if (url) return `${base}; ${url}`; } catch { /* ignore */ }
+  return base;
+}
 
 // TREK's internal language codes mostly coincide with valid BCP-47 codes, but a
 // couple don't: 'br' is Brazilian Portuguese here (BCP-47 'pt-BR'; bare 'br' is
@@ -153,7 +157,7 @@ export async function searchNominatim(query: string, lang?: string) {
     'accept-language': toApiLang(lang),
   });
   const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
-    headers: { 'User-Agent': UA },
+    headers: { 'User-Agent': userAgent() },
   });
   if (!response.ok) {
     const text = await response.text().catch(() => '');
@@ -188,7 +192,7 @@ export async function lookupNominatim(osmType: string, osmId: string, lang?: str
   });
   try {
     const res = await fetch(`https://nominatim.openstreetmap.org/lookup?${params}`, {
-      headers: { 'User-Agent': UA },
+      headers: { 'User-Agent': userAgent() },
     });
     if (!res.ok) return null;
     const data = await res.json() as NominatimResult[];
@@ -213,7 +217,7 @@ export async function fetchOverpassDetails(osmType: string, osmId: string): Prom
   try {
     const res = await fetch('https://overpass-api.de/api/interpreter', {
       method: 'POST',
-      headers: { 'User-Agent': UA, 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: { 'User-Agent': userAgent(), 'Content-Type': 'application/x-www-form-urlencoded' },
       body: `data=${encodeURIComponent(query)}`,
     });
     if (!res.ok) return null;
@@ -290,7 +294,7 @@ const OVERPASS_MIRRORS = [
 ];
 // Per-mirror cap. Because mirrors race in parallel this is also the worst-case
 // total wait before every mirror is given up on and a 502 is returned.
-const OVERPASS_TIMEOUT_MS = 12000;
+const OVERPASS_TIMEOUT_MS = 25000;
 // Largest viewport side we send to Overpass. A country/continent-sized bbox makes
 // Overpass scan millions of elements and time out; clamping to a centred window
 // keeps the query cheap so the explore pill returns fast at ANY zoom level.
@@ -319,7 +323,7 @@ async function overpassFetch(query: string): Promise<OverpassPoiElement[]> {
     try {
       const res = await fetch(url, {
         method: 'POST',
-        headers: { 'User-Agent': UA, 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: { 'User-Agent': userAgent(), 'Content-Type': 'application/x-www-form-urlencoded' },
         body,
         signal: ctrl.signal,
       });
@@ -515,7 +519,7 @@ export async function fetchWikimediaPhoto(lat: number, lng: number, name?: strin
         pilimit: '1',
         redirects: '1',
       });
-      const res = await fetch(`https://en.wikipedia.org/w/api.php?${searchParams}`, { headers: { 'User-Agent': UA } });
+      const res = await fetch(`https://en.wikipedia.org/w/api.php?${searchParams}`, { headers: { 'User-Agent': userAgent() } });
       if (res.ok) {
         const data = await res.json() as { query?: { pages?: Record<string, { thumbnail?: { source?: string } }> } };
         const pages = data.query?.pages;
@@ -544,7 +548,7 @@ export async function fetchWikimediaPhoto(lat: number, lng: number, name?: strin
     iiurlwidth: '400',
   });
   try {
-    const res = await fetch(`https://commons.wikimedia.org/w/api.php?${params}`, { headers: { 'User-Agent': UA } });
+    const res = await fetch(`https://commons.wikimedia.org/w/api.php?${params}`, { headers: { 'User-Agent': userAgent() } });
     if (!res.ok) return null;
     const data = await res.json() as { query?: { pages?: Record<string, WikiCommonsPage & { imageinfo?: { mime?: string }[] }> } };
     const pages = data.query?.pages;
@@ -993,7 +997,7 @@ export async function reverseGeocode(lat: string, lng: string, lang?: string): P
     'accept-language': toApiLang(lang),
   });
   const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params}`, {
-    headers: { 'User-Agent': UA },
+    headers: { 'User-Agent': userAgent() },
   });
   if (!response.ok) return { name: null, address: null };
   const data = await response.json() as { name?: string; display_name?: string; address?: Record<string, string> };
