@@ -41,6 +41,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     maplibre_style: '',
     mapbox_3d_enabled: true,
     mapbox_quality_mode: false,
+    dashboard_fx_from: 'EUR',
+    dashboard_fx_to: 'USD',
+    // dashboard_timezones is intentionally left unset so the widget can tell "never
+    // chosen" (fall back to home + defaults) from an explicitly emptied list.
   },
   isLoaded: false,
 

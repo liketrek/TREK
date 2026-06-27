@@ -491,8 +491,12 @@ const FX_FALLBACK = ['EUR', 'USD', 'GBP', 'CHF', 'JPY', 'CAD', 'AUD', 'CNY', 'SE
 
 function CurrencyTool(): React.ReactElement {
   const { t } = useTranslation()
-  const [from, setFrom] = useState(() => localStorage.getItem('trek_fx_from') || 'EUR')
-  const [to, setTo] = useState(() => localStorage.getItem('trek_fx_to') || 'USD')
+  const isLoaded = useSettingsStore(s => s.isLoaded)
+  const updateSetting = useSettingsStore(s => s.updateSetting)
+  const from = useSettingsStore(s => s.settings.dashboard_fx_from) || 'EUR'
+  const to = useSettingsStore(s => s.settings.dashboard_fx_to) || 'USD'
+  const setFrom = (v: string) => { updateSetting('dashboard_fx_from', v).catch(() => {}) }
+  const setTo = (v: string) => { updateSetting('dashboard_fx_to', v).catch(() => {}) }
   const [amount, setAmount] = useState('100')
   const [rates, setRates] = useState<Record<string, number> | null>(null)
 
@@ -510,7 +514,18 @@ function CurrencyTool(): React.ReactElement {
   }, [from])
 
   useEffect(() => { fetchRate() }, [fetchRate])
-  useEffect(() => { localStorage.setItem('trek_fx_from', from); localStorage.setItem('trek_fx_to', to) }, [from, to])
+  // One-time migration of the pre-3.1.3 localStorage values into the user's settings,
+  // so a (docker) upgrade no longer resets the widget (#1311).
+  useEffect(() => {
+    if (!isLoaded) return
+    const lf = localStorage.getItem('trek_fx_from')
+    const lt = localStorage.getItem('trek_fx_to')
+    if (!lf && !lt) return
+    if (lf) updateSetting('dashboard_fx_from', lf).catch(() => {})
+    if (lt) updateSetting('dashboard_fx_to', lt).catch(() => {})
+    localStorage.removeItem('trek_fx_from')
+    localStorage.removeItem('trek_fx_to')
+  }, [isLoaded, updateSetting])
 
   const currencies = rates ? Object.keys(rates).sort() : FX_FALLBACK
   const ccyOptions = currencies.map(c => ({ value: c, label: c }))
@@ -565,13 +580,12 @@ function TimezoneTool({ locale }: { locale: string }): React.ReactElement {
   const { t } = useTranslation()
   const home = Intl.DateTimeFormat().resolvedOptions().timeZone
   const [now, setNow] = useState(() => new Date())
-  const [zones, setZones] = useState<string[]>(() => {
-    try {
-      const raw = localStorage.getItem('trek_dashboard_tz')
-      if (raw) return JSON.parse(raw)
-    } catch { /* ignore malformed storage */ }
-    return [home, ...DEFAULT_ZONES]
-  })
+  const isLoaded = useSettingsStore(s => s.isLoaded)
+  const updateSetting = useSettingsStore(s => s.updateSetting)
+  const stored = useSettingsStore(s => s.settings.dashboard_timezones)
+  // Unset (never chosen) falls back to home + defaults; an explicit list is honoured.
+  const zones = stored ?? [home, ...DEFAULT_ZONES]
+  const setZones = (next: string[]) => { updateSetting('dashboard_timezones', next).catch(() => {}) }
   const [adding, setAdding] = useState(false)
 
   // A minute's resolution is plenty for clocks and keeps re-renders cheap.
@@ -580,7 +594,18 @@ function TimezoneTool({ locale }: { locale: string }): React.ReactElement {
     return () => clearInterval(id)
   }, [])
 
-  useEffect(() => { localStorage.setItem('trek_dashboard_tz', JSON.stringify(zones)) }, [zones])
+  // One-time migration of the pre-3.1.3 localStorage value into the user's settings,
+  // so a (docker) upgrade no longer resets the widget (#1311).
+  useEffect(() => {
+    if (!isLoaded) return
+    const raw = localStorage.getItem('trek_dashboard_tz')
+    if (!raw) return
+    try {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed)) updateSetting('dashboard_timezones', parsed).catch(() => {})
+    } catch { /* ignore malformed storage */ }
+    localStorage.removeItem('trek_dashboard_tz')
+  }, [isLoaded, updateSetting])
 
   const allZones = React.useMemo<string[]>(() => {
     const supported = (Intl as unknown as { supportedValuesOf?: (k: string) => string[] }).supportedValuesOf
@@ -591,8 +616,8 @@ function TimezoneTool({ locale }: { locale: string }): React.ReactElement {
     .filter(z => !zones.includes(z))
     .map(z => ({ value: z, label: z.replace(/_/g, ' '), searchLabel: z }))
 
-  const addZone = (tz: string) => { if (tz) setZones(prev => prev.includes(tz) ? prev : [...prev, tz]); setAdding(false) }
-  const removeZone = (tz: string) => setZones(prev => prev.filter(z => z !== tz))
+  const addZone = (tz: string) => { if (tz && !zones.includes(tz)) setZones([...zones, tz]); setAdding(false) }
+  const removeZone = (tz: string) => setZones(zones.filter(z => z !== tz))
 
   const timeIn = (tz: string) => now.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tz })
   const offsetLabel = (tz: string) => {

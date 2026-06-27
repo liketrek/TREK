@@ -874,4 +874,32 @@ describe('DashboardPage', () => {
       expect(screen.getByText(/my trips/i)).toBeInTheDocument();
     });
   });
+
+  describe('FE-PAGE-DASH-034: dashboard widgets persist to settings, not localStorage (#1311)', () => {
+    it('reads the timezone widget zones from the settings store', async () => {
+      // A zone that is NOT in the hardcoded default ([home, London, Tokyo]) — its presence
+      // proves the widget reads the stored preference rather than the old localStorage default.
+      seedStore(useSettingsStore, { settings: buildSettings({ dashboard_timezones: ['America/New_York'] }), isLoaded: true });
+      render(<DashboardPage />);
+      await waitFor(() => expect(screen.getByRole('button', { name: /add timezone/i })).toBeInTheDocument());
+      expect(screen.getByText('New York')).toBeInTheDocument();
+    });
+
+    it('migrates the pre-3.1.3 localStorage prefs into settings and clears the legacy keys', async () => {
+      localStorage.setItem('trek_fx_from', 'CAD');
+      localStorage.setItem('trek_fx_to', 'CHF');
+      localStorage.setItem('trek_dashboard_tz', JSON.stringify(['America/New_York']));
+      seedStore(useSettingsStore, { settings: buildSettings(), isLoaded: true });
+      render(<DashboardPage />);
+      // The one-time migration runs on mount (settings already loaded) and removes the keys.
+      await waitFor(() => {
+        expect(localStorage.getItem('trek_fx_from')).toBeNull();
+        expect(localStorage.getItem('trek_dashboard_tz')).toBeNull();
+      });
+      const s = useSettingsStore.getState().settings;
+      expect(s.dashboard_fx_from).toBe('CAD');
+      expect(s.dashboard_fx_to).toBe('CHF');
+      expect(s.dashboard_timezones).toEqual(['America/New_York']);
+    });
+  });
 });

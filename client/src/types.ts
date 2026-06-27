@@ -124,6 +124,10 @@ export interface Settings {
   maplibre_style?: string
   mapbox_3d_enabled?: boolean
   mapbox_quality_mode?: boolean
+  // Dashboard widget prefs — persisted server-side so a (docker) upgrade keeps them (#1311).
+  dashboard_fx_from?: string
+  dashboard_fx_to?: string
+  dashboard_timezones?: string[]
 }
 
 export interface AssignmentsMap {
