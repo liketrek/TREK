@@ -1055,6 +1055,9 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
 
 const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarProps) {
   const S = useDayPlanSidebar(props)
+  // Needed by the route-tools visibility gate in the render below (#1330); the hook
+  // keeps its own copy, so read it reactively here in the component scope too.
+  const optimizeFromAccommodation = useSettingsStore(s => s.settings.optimize_from_accommodation)
   const {
     tripId,
     trip,
@@ -1240,6 +1243,16 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
           const cost = dayTotalCost(day.id, assignments, currency)
           const formattedDate = formatDate(day.date, locale)
           const loc = da.find(a => a.place?.lat && a.place?.lng)
+          // Route tools normally need 2+ stops, but a single located place is still
+          // routable when accommodation optimization can bookend it with a hotel
+          // (hotel → place → hotel, the same line the map draws) — otherwise the tools
+          // vanish on such a day (#1330). Purely additive to the 2+ case.
+          const routeBookends = optimizeFromAccommodation !== false ? getDayBookendHotels(day, days, accommodations) : null
+          const hasRouteBookend = !!(
+            (routeBookends?.morning?.place_lat != null && routeBookends?.morning?.place_lng != null) ||
+            (routeBookends?.evening?.place_lat != null && routeBookends?.evening?.place_lng != null)
+          )
+          const routeToolsRoutable = da.length >= 2 || (loc != null && hasRouteBookend)
           const isDragTarget = dragOverDayId === day.id
           const merged = mergedItemsMap[day.id] || []
           const dayNoteUi = noteUi[day.id]
@@ -2163,8 +2176,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                     )}
                   </div>
 
-                  {/* Routen-Werkzeuge (ausgewählter Tag, 2+ Orte) */}
-                  {(isSelected || (showRouteToolsWhenExpanded && isExpanded)) && getDayAssignments(day.id).length >= 2 && (
+                  {/* Routen-Werkzeuge (ausgewählter Tag, 2+ Orte — oder 1 Ort mit Hotel-Bookend, #1330) */}
+                  {(isSelected || (showRouteToolsWhenExpanded && isExpanded)) && routeToolsRoutable && (
                     <div style={{ padding: '10px 16px 12px', borderTop: '1px solid var(--border-faint)', display: 'flex', flexDirection: 'column', gap: 7 }}>
                       <div style={{ display: 'flex', gap: 6, alignItems: 'stretch' }}>
                         <button
