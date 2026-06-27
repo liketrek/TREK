@@ -322,6 +322,55 @@ describe('useRouteCalculation', () => {
     expect(legs).toContainEqual([`${actB.lat},${actB.lng}`, `${hotel.lat},${hotel.lng}`]);
   });
 
+  it('FE-HOOK-ROUTE-016: #1297 transfer day with no activities draws the hotel → hotel leg', async () => {
+    // Day 2 is a pure transfer: check out of hotel A (slept there last night) and into
+    // hotel B tonight, with no activities or transport. The map must still draw A → B.
+    const hotelA = { lat: 48.86, lng: 2.35 };
+    const hotelB = { lat: 45.76, lng: 4.84 };
+    const accommodations = [
+      { id: 1, start_day_id: 1, end_day_id: 2, place_lat: hotelA.lat, place_lng: hotelA.lng },
+      { id: 2, start_day_id: 2, end_day_id: 3, place_lat: hotelB.lat, place_lng: hotelB.lng },
+    ];
+    const store = { assignments: {} } as unknown as TripStoreState;
+    useTripStore.setState({
+      assignments: {},
+      reservations: [],
+      days: [{ id: 1, day_number: 1 }, { id: 2, day_number: 2 }, { id: 3, day_number: 3 }],
+    } as any);
+
+    const { result } = renderHook(() =>
+      useRouteCalculation(store, 2, true, 'driving', accommodations as any)
+    );
+
+    await act(async () => {});
+
+    const legs = (result.current.route ?? []).map(run => run.map(p => `${p[0]},${p[1]}`));
+    expect(legs).toContainEqual([`${hotelA.lat},${hotelA.lng}`, `${hotelB.lat},${hotelB.lng}`]);
+  });
+
+  it('FE-HOOK-ROUTE-017: #1297 rest day in one hotel with no activities draws nothing', async () => {
+    // Guard against a zero-length loop: morning and evening hotel are the same, no
+    // activities — no transfer leg should be drawn.
+    const hotel = { lat: 48.86, lng: 2.35 };
+    const accommodations = [
+      { id: 1, start_day_id: 1, end_day_id: 4, place_lat: hotel.lat, place_lng: hotel.lng },
+    ];
+    const store = { assignments: {} } as unknown as TripStoreState;
+    useTripStore.setState({
+      assignments: {},
+      reservations: [],
+      days: [{ id: 1, day_number: 1 }, { id: 2, day_number: 2 }, { id: 3, day_number: 3 }],
+    } as any);
+
+    const { result } = renderHook(() =>
+      useRouteCalculation(store, 2, true, 'driving', accommodations as any)
+    );
+
+    await act(async () => {});
+
+    expect(result.current.route).toBeNull();
+  });
+
   it('FE-HOOK-ROUTE-012: setRoute and setRouteInfo are exposed', () => {
     const store = buildMockStore({});
     const { result } = renderHook(() =>

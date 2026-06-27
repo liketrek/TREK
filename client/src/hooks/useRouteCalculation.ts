@@ -137,6 +137,17 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
       drawEvening ? hotelPt(bookends?.evening) : null,
     )
 
+    // Transfer day with no activities: you check out of one accommodation and into
+    // another, so there are no waypoints for withHotelBookends to attach a leg to.
+    // Draw the hotel → hotel transfer directly. Gated on both bookends being real
+    // (drawMorning/drawEvening already exclude the #1321 arrival fallback) and the two
+    // hotels being distinct, so an ordinary same-hotel rest day still draws nothing.
+    if (runsWithHotel.length === 0 && drawMorning && drawEvening) {
+      const m = hotelPt(bookends?.morning)
+      const e = hotelPt(bookends?.evening)
+      if (m && e && (m.lat !== e.lat || m.lng !== e.lng)) runsWithHotel.push([m, e])
+    }
+
     const straightLines = (): [number, number][][] =>
       runsWithHotel.map(r => r.map(p => [p.lat, p.lng] as [number, number]))
 
