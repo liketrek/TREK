@@ -70,3 +70,9 @@ data:
   {{- if .Values.env.MCP_RATE_LIMIT }}
   MCP_RATE_LIMIT: {{ .Values.env.MCP_RATE_LIMIT | quote }}
   {{- end }}
+  {{- if .Values.env.OVERPASS_URL }}
+  OVERPASS_URL: {{ .Values.env.OVERPASS_URL | quote }}
+  {{- end }}
+  {{- if .Values.env.OVERPASS_TIMEOUT_MS }}
+  OVERPASS_TIMEOUT_MS: {{ .Values.env.OVERPASS_TIMEOUT_MS | quote }}
+  {{- end }}

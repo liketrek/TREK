@@ -74,6 +74,10 @@ import {
   buildOsmDetails,
   getMapsKey,
   googleFtidFromMapsUrl,
+  buildUserAgent,
+  resolveOverpassEndpoints,
+  resolveOverpassTimeoutMs,
+  searchOverpassPois,
 } from '../../../src/services/mapsService';
 
 afterEach(() => {
@@ -1494,5 +1498,98 @@ describe('googleFtidFromMapsUrl', () => {
     expect(googleFtidFromMapsUrl('https://maps.google.com/?ftid=0xAB%26q%3Devil%3Cscript%3E')).toBeNull();
     expect(googleFtidFromMapsUrl('not a url')).toBeNull();
     expect(googleFtidFromMapsUrl(null)).toBeNull();
+  });
+});
+
+// ── buildUserAgent (instance-specific UA, #1309) ──────────────────────────────
+
+describe('buildUserAgent', () => {
+  const base = 'TREK Travel Planner (https://github.com/mauriceboe/TREK)';
+
+  it('MAPS-094: returns the bare base UA when no instance URL is configured', () => {
+    expect(buildUserAgent(undefined)).toBe(base);
+    expect(buildUserAgent('')).toBe(base);
+  });
+
+  it('MAPS-095: appends a configured https instance URL so the deployment is identifiable', () => {
+    expect(buildUserAgent('https://trek.example.org')).toBe(`${base}; https://trek.example.org`);
+  });
+
+  it('MAPS-096: drops the http://localhost fallback — it is not a unique identifier', () => {
+    expect(buildUserAgent('http://localhost:3001')).toBe(base);
+  });
+});
+
+// ── resolveOverpassEndpoints (OVERPASS_URL override, #1309) ────────────────────
+
+describe('resolveOverpassEndpoints', () => {
+  it('MAPS-097: falls back to the public mirrors when OVERPASS_URL is unset/empty', () => {
+    expect(resolveOverpassEndpoints(undefined).length).toBeGreaterThan(1);
+    expect(resolveOverpassEndpoints('').length).toBeGreaterThan(1);
+    expect(resolveOverpassEndpoints(undefined)[0]).toContain('overpass-api.de');
+  });
+
+  it('MAPS-098: a single custom endpoint REPLACES the public mirrors (locked-down egress)', () => {
+    expect(resolveOverpassEndpoints('https://overpass.internal/api/interpreter'))
+      .toEqual(['https://overpass.internal/api/interpreter']);
+  });
+
+  it('MAPS-099: parses a comma-separated list and trims whitespace', () => {
+    expect(resolveOverpassEndpoints(' https://a.test/api , http://b.test/api '))
+      .toEqual(['https://a.test/api', 'http://b.test/api']);
+  });
+
+  it('MAPS-100: drops non-http(s) / malformed entries, keeping the valid ones', () => {
+    expect(resolveOverpassEndpoints('https://ok.test/api, ftp://no.test, not a url'))
+      .toEqual(['https://ok.test/api']);
+  });
+
+  it('MAPS-101: falls back to the defaults when every custom entry is invalid', () => {
+    expect(resolveOverpassEndpoints('not a url, ftp://no.test').length).toBeGreaterThan(1);
+  });
+});
+
+// ── resolveOverpassTimeoutMs (OVERPASS_TIMEOUT_MS override, #1309) ─────────────
+
+describe('resolveOverpassTimeoutMs', () => {
+  it('MAPS-104: falls back to the 12s default for unset / empty / non-numeric values', () => {
+    expect(resolveOverpassTimeoutMs(undefined)).toBe(12000);
+    expect(resolveOverpassTimeoutMs('')).toBe(12000);
+    expect(resolveOverpassTimeoutMs('abc')).toBe(12000);
+  });
+
+  it('MAPS-105: honours a positive numeric override', () => {
+    expect(resolveOverpassTimeoutMs('30000')).toBe(30000);
+  });
+
+  it('MAPS-106: rejects 0, negative and Infinity — a non-positive cap would 502 every search', () => {
+    expect(resolveOverpassTimeoutMs('0')).toBe(12000);
+    expect(resolveOverpassTimeoutMs('-5')).toBe(12000);
+    expect(resolveOverpassTimeoutMs('Infinity')).toBe(12000);
+  });
+});
+
+// ── searchOverpassPois error path (all endpoints down, #1309) ──────────────────
+
+describe('searchOverpassPois all-endpoints-down', () => {
+  const bbox = { south: -41.2, west: 146.31, north: -41.16, east: 146.37 };
+
+  it('MAPS-102: surfaces a 502 with a clear message when every Overpass endpoint fails', async () => {
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('connect ECONNREFUSED')));
+    await expect(searchOverpassPois('restaurant', bbox)).rejects.toMatchObject({
+      status: 502,
+      message: 'Could not reach any Overpass endpoint',
+    });
+    errSpy.mockRestore();
+  });
+
+  it('MAPS-103: logs each endpoint failure so an operator can diagnose blocked egress', async () => {
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('connect ECONNREFUSED')));
+    await expect(searchOverpassPois('bar', bbox)).rejects.toThrow();
+    expect(errSpy).toHaveBeenCalledWith(expect.stringContaining('[Overpass] all'));
+    expect(errSpy).toHaveBeenCalledWith(expect.stringContaining('ECONNREFUSED'));
+    errSpy.mockRestore();
   });
 });

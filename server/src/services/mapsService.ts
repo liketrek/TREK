@@ -68,17 +68,17 @@ interface GooglePlaceDetails extends GooglePlaceResult {
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const USER_AGENT = (() => {
+// Overpass, Nominatim and Wikimedia all ask that requests carry a User-Agent that
+// uniquely identifies the deploying instance — a shared, generic UA gets rate-limited
+// and throttled harder (see #1309). When the instance URL is configured we append it;
+// getAppUrl()'s bare http://localhost fallback isn't a useful identifier, so we drop it.
+export function buildUserAgent(instanceUrl: string | undefined): string {
   const base = 'TREK Travel Planner (https://github.com/mauriceboe/TREK)';
-  const hasInstanceUrl = Boolean(process.env.APP_URL || process.env.ALLOWED_ORIGINS);
-  if (!hasInstanceUrl) return base;
-  try {
-    const url = getAppUrl();
-    if (url && !url.startsWith('http://localhost')) return `${base}; ${url}`;
-  } catch { /* ignore */ }
+  if (instanceUrl && !instanceUrl.startsWith('http://localhost')) return `${base}; ${instanceUrl}`;
   return base;
-})();
-function userAgent(): string { return USER_AGENT; }
+}
+// Computed once at load — getAppUrl() reads only env vars, which don't change at runtime.
+const UA = buildUserAgent(getAppUrl());
 
 // TREK's internal language codes mostly coincide with valid BCP-47 codes, but a
 // couple don't: 'br' is Brazilian Portuguese here (BCP-47 'pt-BR'; bare 'br' is
@@ -163,7 +163,7 @@ export async function searchNominatim(query: string, lang?: string) {
     'accept-language': toApiLang(lang),
   });
   const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
-    headers: { 'User-Agent': userAgent() },
+    headers: { 'User-Agent': UA },
   });
   if (!response.ok) {
     const text = await response.text().catch(() => '');
@@ -198,7 +198,7 @@ export async function lookupNominatim(osmType: string, osmId: string, lang?: str
   });
   try {
     const res = await fetch(`https://nominatim.openstreetmap.org/lookup?${params}`, {
-      headers: { 'User-Agent': userAgent() },
+      headers: { 'User-Agent': UA },
     });
     if (!res.ok) return null;
     const data = await res.json() as NominatimResult[];
@@ -223,7 +223,7 @@ export async function fetchOverpassDetails(osmType: string, osmId: string): Prom
   try {
     const res = await fetch('https://overpass-api.de/api/interpreter', {
       method: 'POST',
-      headers: { 'User-Agent': userAgent(), 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: { 'User-Agent': UA, 'Content-Type': 'application/x-www-form-urlencoded' },
       body: `data=${encodeURIComponent(query)}`,
     });
     if (!res.ok) return null;
@@ -292,15 +292,39 @@ interface PoiSearchResult {
 // frequently overloaded (504s) and some community mirrors are unreachable from
 // certain networks. Racing them means whichever mirror is fastest-reachable for
 // this user answers, and an overloaded or blocked one never blocks the others.
-const OVERPASS_MIRRORS = [
+const DEFAULT_OVERPASS_MIRRORS = [
   'https://overpass-api.de/api/interpreter',
   'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
   'https://overpass.private.coffee/api/interpreter',
 ];
-// Per-mirror cap. Because mirrors race in parallel this is also the worst-case
-// total wait before every mirror is given up on and a 502 is returned.
-const OVERPASS_TIMEOUT_MS = 30000;
+
+// Operators behind locked-down egress — or running their own Overpass — can point TREK
+// at one or more custom endpoints via OVERPASS_URL (comma-separated). When set it
+// REPLACES the public mirrors, so a firewalled cluster never reaches out to them and a
+// self-hosted instance is used exclusively (see #1309). Non-http(s) entries are dropped.
+export function resolveOverpassEndpoints(raw: string | undefined = process.env.OVERPASS_URL): string[] {
+  const custom = (raw ?? '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(s => {
+      try { const u = new URL(s); return u.protocol === 'http:' || u.protocol === 'https:'; }
+      catch { return false; }
+    });
+  return custom.length ? custom : DEFAULT_OVERPASS_MIRRORS;
+}
+const OVERPASS_MIRRORS = resolveOverpassEndpoints();
+// Per-mirror fetch cap. Because mirrors race in parallel this is also the worst-case
+// wait before every mirror is given up on and a 502 is returned. Public mirrors answer
+// in 1–2s when reachable, so the cap mainly bounds dead/blocked ones; operators with a
+// slow self-hosted endpoint can raise it via OVERPASS_TIMEOUT_MS. A non-positive or
+// non-numeric value falls back to the default — a 0/negative cap would abort every
+// request immediately and 502 the search.
+export function resolveOverpassTimeoutMs(raw: string | undefined = process.env.OVERPASS_TIMEOUT_MS): number {
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : 12000;
+}
+const OVERPASS_TIMEOUT_MS = resolveOverpassTimeoutMs();
 // Largest viewport side we send to Overpass. A country/continent-sized bbox makes
 // Overpass scan millions of elements and time out; clamping to a centred window
 // keeps the query cheap so the explore pill returns fast at ANY zoom level.
@@ -329,7 +353,7 @@ async function overpassFetch(query: string): Promise<OverpassPoiElement[]> {
     try {
       const res = await fetch(url, {
         method: 'POST',
-        headers: { 'User-Agent': userAgent(), 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: { 'User-Agent': UA, 'Content-Type': 'application/x-www-form-urlencoded' },
         body,
         signal: ctrl.signal,
       });
@@ -352,8 +376,15 @@ async function overpassFetch(query: string): Promise<OverpassPoiElement[]> {
     // Promise.any resolves with the first mirror to return valid JSON, and only
     // rejects (AggregateError) once every mirror has failed.
     return await Promise.any(OVERPASS_MIRRORS.map(attempt));
-  } catch {
-    throw Object.assign(new Error('Overpass request failed'), { status: 502 });
+  } catch (err) {
+    // Log WHY every endpoint failed (connection refused, aborted/timed out, non-OSM
+    // body, …) so an operator can tell blocked egress / a firewall from a transiently
+    // overloaded mirror — otherwise this is a bare 502 with no breadcrumb (see #1309).
+    const reasons = err instanceof AggregateError
+      ? err.errors.map(e => (e instanceof Error ? e.message : String(e))).join(' | ')
+      : (err instanceof Error ? err.message : String(err));
+    console.error(`[Overpass] all ${OVERPASS_MIRRORS.length} endpoint(s) failed — ${reasons}`);
+    throw Object.assign(new Error('Could not reach any Overpass endpoint'), { status: 502 });
   } finally {
     // Cancel the slower/losing requests — we already have (or have given up on) a result.
     controllers.forEach(c => { try { c.abort(); } catch { /* noop */ } });
@@ -525,7 +556,7 @@ export async function fetchWikimediaPhoto(lat: number, lng: number, name?: strin
         pilimit: '1',
         redirects: '1',
       });
-      const res = await fetch(`https://en.wikipedia.org/w/api.php?${searchParams}`, { headers: { 'User-Agent': userAgent() } });
+      const res = await fetch(`https://en.wikipedia.org/w/api.php?${searchParams}`, { headers: { 'User-Agent': UA } });
       if (res.ok) {
         const data = await res.json() as { query?: { pages?: Record<string, { thumbnail?: { source?: string } }> } };
         const pages = data.query?.pages;
@@ -554,7 +585,7 @@ export async function fetchWikimediaPhoto(lat: number, lng: number, name?: strin
     iiurlwidth: '400',
   });
   try {
-    const res = await fetch(`https://commons.wikimedia.org/w/api.php?${params}`, { headers: { 'User-Agent': userAgent() } });
+    const res = await fetch(`https://commons.wikimedia.org/w/api.php?${params}`, { headers: { 'User-Agent': UA } });
     if (!res.ok) return null;
     const data = await res.json() as { query?: { pages?: Record<string, WikiCommonsPage & { imageinfo?: { mime?: string }[] }> } };
     const pages = data.query?.pages;
@@ -1003,7 +1034,7 @@ export async function reverseGeocode(lat: string, lng: string, lang?: string): P
     'accept-language': toApiLang(lang),
   });
   const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params}`, {
-    headers: { 'User-Agent': userAgent() },
+    headers: { 'User-Agent': UA },
   });
   if (!response.ok) return { name: null, address: null };
   const data = await response.json() as { name?: string; display_name?: string; address?: Record<string, string> };
