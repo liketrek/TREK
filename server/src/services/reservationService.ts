@@ -59,6 +59,34 @@ function resolveDayIdFromTime(
   return row?.id ?? null;
 }
 
+// After a trip's date range changes, generateDays positionally re-dates the day rows
+// (keeping their ids), so a dated booking's day_id stays glued to a now-re-dated day and
+// the booking visually shifts by the offset (#1288). Re-anchor non-hotel bookings to the
+// day matching their absolute reservation_time — the same derivation create/updateReservation
+// use. Only updates when a matching day exists, so a booking whose date now falls outside
+// the new range is left untouched. Hotels keep their range on the linked day_accommodation.
+export function resyncReservationDays(tripId: string | number): void {
+  const rows = db.prepare(
+    `SELECT id, reservation_time, reservation_end_time, day_id, end_day_id
+       FROM reservations
+      WHERE trip_id = ? AND type != 'hotel' AND reservation_time IS NOT NULL`,
+  ).all(tripId) as {
+    id: number; reservation_time: string | null; reservation_end_time: string | null;
+    day_id: number | null; end_day_id: number | null;
+  }[];
+  const update = db.prepare('UPDATE reservations SET day_id = ?, end_day_id = ? WHERE id = ?');
+  for (const r of rows) {
+    const newDayId = resolveDayIdFromTime(tripId, r.reservation_time);
+    if (newDayId == null) continue;
+    const newEndDayId = r.reservation_end_time
+      ? (resolveDayIdFromTime(tripId, r.reservation_end_time) ?? r.end_day_id)
+      : r.end_day_id;
+    if (newDayId !== r.day_id || newEndDayId !== r.end_day_id) {
+      update.run(newDayId, newEndDayId, r.id);
+    }
+  }
+}
+
 function saveEndpoints(reservationId: number, endpoints: EndpointInput[]): void {
   // Bind the transaction lazily on each call. Binding at module load time
   // captures the DB connection that was open then, which becomes invalid

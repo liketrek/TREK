@@ -34,7 +34,7 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createReservation, createPlace, createDay, createDayAssignment, createDayNote } from '../../helpers/factories';
-import { exportICS, generateDays, deleteOldCover } from '../../../src/services/tripService';
+import { exportICS, generateDays, deleteOldCover, updateTrip } from '../../../src/services/tripService';
 import fs from 'fs';
 
 beforeAll(() => {
@@ -474,5 +474,36 @@ describe('deleteOldCover', () => {
       existsSpy.mockRestore();
       unlinkSpy.mockRestore();
     }
+  });
+});
+
+describe('resyncReservationDays (#1288)', () => {
+  const dayFor = (tripId: number, date: string) =>
+    (testDb.prepare('SELECT id FROM days WHERE trip_id = ? AND date = ?').get(tripId, date) as { id: number }).id;
+  const insertDatedReservation = (tripId: number, dayId: number, time: string) =>
+    Number(testDb.prepare(
+      "INSERT INTO reservations (trip_id, day_id, title, reservation_time, type, status) VALUES (?, ?, 'Dinner', ?, 'restaurant', 'pending')",
+    ).run(tripId, dayId, time).lastInsertRowid);
+
+  it('TRIP-SVC-018: changing the start date re-anchors a dated reservation to the day matching its time', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { start_date: '2025-06-01', end_date: '2025-06-05' });
+    const resId = insertDatedReservation(trip.id, dayFor(trip.id, '2025-06-02'), '2025-06-02T19:00:00');
+    // Shift the whole range one day forward (days become 2025-06-02..06).
+    updateTrip(trip.id, user.id, { start_date: '2025-06-02', end_date: '2025-06-06' }, 'user');
+    const res = testDb.prepare('SELECT day_id FROM reservations WHERE id = ?').get(resId) as { day_id: number };
+    // The booking stays on its absolute date (2025-06-02) instead of shifting with its old day row.
+    expect(res.day_id).toBe(dayFor(trip.id, '2025-06-02'));
+  });
+
+  it('TRIP-SVC-019: a reservation whose date falls outside the new range keeps its day_id (not nulled)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { start_date: '2025-06-01', end_date: '2025-06-05' });
+    const origDayId = dayFor(trip.id, '2025-06-02');
+    const resId = insertDatedReservation(trip.id, origDayId, '2025-06-02T19:00:00');
+    // Shift far forward so 2025-06-02 is no longer covered by any day.
+    updateTrip(trip.id, user.id, { start_date: '2025-06-10', end_date: '2025-06-14' }, 'user');
+    const res = testDb.prepare('SELECT day_id FROM reservations WHERE id = ?').get(resId) as { day_id: number };
+    expect(res.day_id).toBe(origDayId);
   });
 });

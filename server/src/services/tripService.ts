@@ -5,7 +5,7 @@ import { Trip, User } from '../types';
 import { listDays, listAccommodations } from './dayService';
 import { listBudgetItems } from './budgetService';
 import { listItems as listPackingItems } from './packingService';
-import { listReservations, loadEndpointsByTrip } from './reservationService';
+import { listReservations, loadEndpointsByTrip, resyncReservationDays } from './reservationService';
 import { listNotes as listCollabNotes } from './collabService';
 import { shiftOwnerEntriesForTripWindow } from './vacayService';
 
@@ -256,8 +256,12 @@ export function updateTrip(tripId: string | number, userId: number, data: Update
     shiftOwnerEntriesForTripWindow(trip.user_id, trip.start_date, trip.end_date, newStart);
 
   const dayCount = data.day_count ? Math.min(Math.max(Number(data.day_count) || 7, 1), MAX_TRIP_DAYS) : undefined;
-  if (newStart !== trip.start_date || newEnd !== trip.end_date || dayCount)
+  if (newStart !== trip.start_date || newEnd !== trip.end_date || dayCount) {
     generateDays(tripId, newStart || null, newEnd || null, undefined, dayCount);
+    // generateDays re-dates day rows positionally; re-anchor dated bookings to the day
+    // matching their absolute reservation_time so they don't shift with it (#1288).
+    resyncReservationDays(tripId);
+  }
 
   const changes: Record<string, unknown> = {};
   if (title && title !== trip.title) changes.title = title;
