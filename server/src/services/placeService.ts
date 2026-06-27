@@ -719,6 +719,11 @@ export async function importGoogleList(tripId: string, url: string, opts?: ListI
   }
 
   if (!listId) {
+    // A single-place share link (…/maps/place/…) carries no list id — point the user at
+    // the place search box instead of a cryptic "could not extract list ID" (#1304).
+    if (resolvedUrl.includes('/maps/place/')) {
+      return { error: 'That link points to a single place, not a list. To add it, paste the link into the place search box instead of using the list import.', status: 400 };
+    }
     return { error: 'Could not extract list ID from URL. Please use a shared Google Maps list link.', status: 400 };
   }
 

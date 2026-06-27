@@ -416,6 +416,15 @@ describe('importGoogleList', () => {
     expect(result.status).toBe(400);
   });
 
+  it('PLACE-SVC-026b — a single-place link gives a guiding error instead of the generic one (#1304)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const url = 'https://www.google.com/maps/place/Eiffel+Tower/@48.8584,2.2945,17z/data=!3m1';
+    const result = await importGoogleList(String(trip.id), url) as any;
+    expect(result.status).toBe(400);
+    expect(result.error).toMatch(/single place/i);
+  });
+
   it('PLACE-SVC-027 — returns error when Google Maps API responds with non-ok status', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
