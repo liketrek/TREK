@@ -40,6 +40,7 @@ See `values.yaml` for more options.
 ## Notes
 - Ingress is off by default. Enable and configure hosts for your domain.
 - PVCs use the cluster's default StorageClass. Set `persistence.data.storageClassName` and/or `persistence.uploads.storageClassName` to bind a specific class.
+- If you want to use your own PVCs, set `persistence.data.existingClaim` or `persistence.uploads.existingClaim` to bind it. The other PVCs values ​​will be ignored (size, storageClassName, annotations).
 - `JWT_SECRET` is managed entirely by the server — auto-generated into the data PVC on first start and rotatable via the admin panel (Settings → Danger Zone). No Helm configuration needed.
 - `ENCRYPTION_KEY` encrypts stored secrets (API keys, MFA, SMTP, OIDC) at rest. Recommended: set via `secretEnv.ENCRYPTION_KEY` or `existingSecret`. If left empty, the server falls back automatically: existing installs use `data/.jwt_secret` (no action needed on upgrade); fresh installs auto-generate a key persisted to the data PVC.
 - If using ingress, you must manually keep `env.ALLOWED_ORIGINS` and `ingress.hosts` in sync to ensure CORS works correctly. The chart does not sync these automatically.

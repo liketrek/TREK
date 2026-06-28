@@ -18,6 +18,7 @@
    - Generate a random key at install: `--set generateEncryptionKey=true`
    - Use an existing secret: `--set existingSecret=my-k8s-secret`
    - Use a custom key name in the existing secret: `--set existingSecret=my-k8s-secret --set existingSecretKey=MY_ENC_KEY`
+   - Use your own PVCs, set `persistence.data.existingClaim` or `persistence.uploads.existingClaim` to bind it. The other PVCs values ​​will be ignored (size, storageClassName, annotations).
 
 4. Only one method should be used at a time. If both `generateEncryptionKey` and `existingSecret` are
    set, `existingSecret` takes precedence. Ensure the referenced secret and key exist in the namespace.

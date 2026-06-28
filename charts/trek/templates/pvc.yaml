@@ -1,4 +1,4 @@
-{{- if .Values.persistence.enabled }}
+{{- if and .Values.persistence.enabled (not .Values.persistence.data.existingClaim) }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -18,7 +18,9 @@ spec:
   resources:
     requests:
       storage: {{ .Values.persistence.data.size }}
+{{- end }}
 ---
+{{- if and .Values.persistence.enabled (not .Values.persistence.uploads.existingClaim) }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

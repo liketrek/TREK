@@ -83,7 +83,7 @@ spec:
       volumes:
         - name: data
           persistentVolumeClaim:
-            claimName: {{ include "trek.fullname" . }}-data
+            claimName: {{ default (printf "%s-data" (include "trek.fullname" .)) .Values.persistence.data.existingClaim }}
         - name: uploads
           persistentVolumeClaim:
-            claimName: {{ include "trek.fullname" . }}-uploads
+            claimName: {{ default (printf "%s-uploads" (include "trek.fullname" .)) .Values.persistence.uploads.existingClaim }}
