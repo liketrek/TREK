@@ -79,6 +79,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null)
   const [pendingFiles, setPendingFiles] = useState([])
   const fileRef = useRef(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
   const [acSuggestions, setAcSuggestions] = useState<{ placeId: string; mainText: string; secondaryText: string }[]>([])
   const [acHighlight, setAcHighlight] = useState(-1)
   const acDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -130,6 +131,17 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     // re-run on identity changes (place/assignmentId/open), not on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [place, prefillCoords, isOpen, assignmentId])
+
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => {
+        const modal = searchInputRef.current?.closest('[role="dialog"]') ?? document.body
+        if (!modal.contains(document.activeElement) || document.activeElement === document.body) {
+          searchInputRef.current?.focus()
+        }
+      }, 50)
+    }
+  }, [isOpen])
 
   // Derive location bias bounding box from the trip's existing places
   const places = useTripStore((s) => s.places)
@@ -434,6 +446,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     canUploadFiles,
     places,
     locationBias,
+    searchInputRef,
     fetchSuggestions,
     handleChange,
     handleMapsSearch,
@@ -495,6 +508,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
     canUploadFiles,
     places,
     locationBias,
+    searchInputRef,
     fetchSuggestions,
     handleChange,
     handleMapsSearch,
@@ -546,6 +560,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
           <div className="relative">
             <div className="flex gap-2">
               <input
+                ref={searchInputRef}
                 type="text"
                 value={mapsSearch}
                 onChange={e => setMapsSearch(e.target.value)}
