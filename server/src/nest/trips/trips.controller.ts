@@ -29,6 +29,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { writeAudit, getClientIp, logInfo } from '../../services/auditLog';
 import { isDemoEmail } from '../../services/demo';
 import { NotFoundError, ValidationError } from '../../services/tripService';
+import { saveUnsplashCover, isUnsplashCoverUrl } from '../../services/unsplashService';
 
 const MAX_COVER_SIZE = 20 * 1024 * 1024;
 const coversDir = path.join(__dirname, '../../../uploads/covers');
@@ -72,9 +73,9 @@ export class TripsController {
   }
 
   @Get('cover-images/search')
-  async coverImages(@CurrentUser() user: User, @Query('query') query?: string) {
+  async coverImages(@Query('query') query?: string) {
     try {
-      const result = await this.trips.searchCoverImages(user.id, query || '');
+      const result = await this.trips.searchCoverImages(query || '');
       if ('error' in result) {
         throw new HttpException({ error: result.error }, result.status);
       }
@@ -120,7 +121,7 @@ export class TripsController {
   }
 
   @Put(':id')
-  update(@CurrentUser() user: User, @Param('id') id: string, @Body() body: Record<string, unknown>, @Req() req: Request, @Headers('x-socket-id') socketId?: string) {
+  async update(@CurrentUser() user: User, @Param('id') id: string, @Body() body: Record<string, unknown>, @Req() req: Request, @Headers('x-socket-id') socketId?: string) {
     const access = this.trips.canAccessTrip(id, user.id);
     if (!access) {
       throw new HttpException({ error: 'Trip not found' }, 404);
@@ -136,6 +137,17 @@ export class TripsController {
     const editFields = ['title', 'description', 'start_date', 'end_date', 'currency', 'reminder_days', 'day_count'];
     if (editFields.some((f) => body[f] !== undefined) && !this.trips.can('trip_edit', user.role, ownerId, user.id, isMember)) {
       throw new HttpException({ error: 'No permission to edit this trip' }, 403);
+    }
+    // A chosen Unsplash cover arrives as an images.unsplash.com hot-link; download
+    // it into uploads/covers so the cover survives offline + CDN link-rot (#1277).
+    if (isUnsplashCoverUrl(body.cover_image)) {
+      try {
+        const filename = await saveUnsplashCover(body.cover_image, coversDir);
+        body.cover_image = `/uploads/covers/${filename}`;
+      } catch (e) {
+        console.error('Unsplash cover download failed:', e);
+        throw new HttpException({ error: 'Could not save the selected cover image' }, 502);
+      }
     }
     const oldCover = body.cover_image !== undefined
       ? (this.trips.getRaw(id) as { cover_image: string | null } | undefined)?.cover_image

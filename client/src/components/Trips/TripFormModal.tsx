@@ -34,6 +34,7 @@ interface CoverSearchPhoto {
 export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUpdate }: TripFormModalProps) {
   const isEditing = !!trip
   const fileRef = useRef(null)
+  const coverSearchSeq = useRef(0)
   const toast = useToast()
   const { t } = useTranslation()
   const currentUser = useAuthStore(s => s.user)
@@ -216,17 +217,22 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
       setCoverSearchError(t('dashboard.unsplashQueryRequired'))
       return
     }
+    // Guard against out-of-order responses: only the latest search applies its
+    // results, so a slow earlier query can't overwrite a newer one. #1277 review
+    const seq = ++coverSearchSeq.current
     setSearchingCover(true)
     setCoverSearchError('')
     try {
       const data = await tripsApi.searchCoverImages(query)
+      if (seq !== coverSearchSeq.current) return
       const photos = data.photos || []
       setCoverSearchResults(photos)
       if (photos.length === 0) setCoverSearchError(t('dashboard.unsplashNoResults'))
     } catch (err: unknown) {
+      if (seq !== coverSearchSeq.current) return
       setCoverSearchError(getApiErrorMessage(err, t('dashboard.coverSearchError')))
     } finally {
-      setSearchingCover(false)
+      if (seq === coverSearchSeq.current) setSearchingCover(false)
     }
   }
 

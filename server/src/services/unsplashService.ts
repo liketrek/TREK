@@ -1,3 +1,8 @@
+import path from 'path';
+import fs from 'fs';
+import { v4 as uuidv4 } from 'uuid';
+import { safeFetch } from '../utils/ssrfGuard';
+
 interface UnsplashSearchResponse {
   results?: {
     id: string;
@@ -20,7 +25,7 @@ export interface UnsplashPhoto {
   link: string | null;
 }
 
-export async function searchUnsplashPhotos(_userId: number, query: string, perPage = 9) {
+export async function searchUnsplashPhotos(query: string, perPage = 9) {
   const trimmed = query.trim();
   if (!trimmed) {
     return { error: 'Search query is required', status: 400 };
@@ -66,4 +71,45 @@ export async function searchUnsplashPhotos(_userId: number, query: string, perPa
     .slice(0, perPage);
 
   return { photos };
+}
+
+const UNSPLASH_IMAGE_HOST = 'images.unsplash.com';
+const MAX_COVER_BYTES = 15 * 1024 * 1024;
+const COVER_EXT_BY_TYPE: Record<string, string> = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+  'image/gif': '.gif',
+};
+
+/** True when a cover_image value is an Unsplash CDN hot-link we should internalise. */
+export function isUnsplashCoverUrl(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  try {
+    return new URL(value).hostname.toLowerCase() === UNSPLASH_IMAGE_HOST;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Download a chosen Unsplash cover from its CDN into destDir so the cover is
+ * stored locally (offline + CDN link-rot safe) instead of hot-linked. Only the
+ * Unsplash image CDN host is accepted, and the request goes through the SSRF
+ * guard. Returns the saved filename. Throws on a non-Unsplash host, a failed
+ * download, an unsupported content type, or an oversized image.
+ */
+export async function saveUnsplashCover(url: string, destDir: string): Promise<string> {
+  if (!isUnsplashCoverUrl(url)) throw new Error('Not an Unsplash image URL');
+  const res = await safeFetch(url);
+  if (!res.ok) throw new Error(`Unsplash image download failed (HTTP ${res.status})`);
+  const type = (res.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+  const ext = COVER_EXT_BY_TYPE[type];
+  if (!ext) throw new Error(`Unsupported cover image type: ${type || 'unknown'}`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  if (buf.byteLength > MAX_COVER_BYTES) throw new Error('Cover image too large');
+  if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
+  const filename = `${uuidv4()}${ext}`;
+  fs.writeFileSync(path.join(destDir, filename), buf);
+  return filename;
 }

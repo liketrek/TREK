@@ -939,9 +939,9 @@ export async function importNaverList(
 // Search place image (Unsplash)
 // ---------------------------------------------------------------------------
 
-export async function searchPlaceImage(tripId: string, placeId: string, userId: number) {
+export async function searchPlaceImage(tripId: string, placeId: string, _userId: number) {
   const place = db.prepare('SELECT * FROM places WHERE id = ? AND trip_id = ?').get(placeId, tripId) as Place | undefined;
   if (!place) return { error: 'Place not found', status: 404 };
 
-  return searchUnsplashPhotos(userId, place.name + (place.address ? ' ' + place.address : ''), 5);
+  return searchUnsplashPhotos(place.name + (place.address ? ' ' + place.address : ''), 5);
 }

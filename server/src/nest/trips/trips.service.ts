@@ -50,8 +50,8 @@ export class TripsService {
     return tripSvc.getTripRaw(tripId);
   }
 
-  searchCoverImages(userId: number, query: string) {
-    return searchUnsplashPhotos(userId, query, 9);
+  searchCoverImages(query: string) {
+    return searchUnsplashPhotos(query, 9);
   }
 
   getOwner(tripId: string) {
