@@ -105,6 +105,36 @@ sudo chown -R 1000:1000 ./data ./uploads
 
 ---
 
+## Container won't start: "exec /usr/bin/dumb-init: operation not permitted"
+
+**Symptoms:** The container restarts in a loop and the logs show nothing but:
+
+```
+trek  | exec /usr/bin/dumb-init: operation not permitted
+trek exited with code 255 (restarting)
+```
+
+**Cause:** You are running **Docker installed from the snap** (its config lives under `/var/snap/docker/...`) *and* your compose file sets `security_opt: [no-new-privileges:true]`. The snap-packaged `dockerd` runs under its own AppArmor profile, and AppArmor refuses the `no_new_privs` privilege transition for snapped daemons. The container's very first `execve` is denied with `EPERM`, so it never starts. Confirm it in the kernel log right after a crash:
+
+```bash
+sudo dmesg -T | grep -iE 'apparmor|denied'
+# apparmor="DENIED" operation="exec" ... info="no new privs"
+```
+
+This affects **any** image, not just TREK, and is a known snap limitation ([snapd bug #1908448](https://bugs.launchpad.net/snapd/+bug/1908448)). Setting `apparmor=unconfined` on the container does **not** help — that only swaps the *container's* profile, while the denial comes from the *daemon's* (snap's) confinement, which a container-level option cannot reach.
+
+**Fix:** Install Docker from the official apt repository instead of the snap. Your data is safe as long as it lives in host bind-mounts (`./data`, `./uploads`):
+
+```bash
+sudo snap remove docker
+curl -fsSL https://get.docker.com | sudo sh   # or follow docs.docker.com/engine/install/ubuntu
+docker compose up -d
+```
+
+> **Note:** If you must stay on the snap, the only workaround is removing `no-new-privileges` from `security_opt`. The rest of the hardening (`read_only`, `cap_drop: ALL` with a minimal `cap_add`, the `noexec,nosuid` tmpfs) keeps working and carries most of the weight. See [Security Hardening](Security-Hardening).
+
+---
+
 ## Encryption key regenerated on restart — stored secrets stop working
 
 **Cause:** On every startup, TREK resolves its encryption key in this order: (1) `ENCRYPTION_KEY` env var, (2) `data/.encryption_key` file, (3) legacy `data/.jwt_secret` fallback, (4) auto-generate a fresh key. If neither the env var nor the `data/` volume is persisted — for example after recreating a container without a volume mount — a new random key is generated and all stored secrets (SMTP password, OIDC client secret, API keys, MFA TOTP seeds) become unrecoverable.
