@@ -44,7 +44,7 @@ import {
   type BookingImportMode,
 } from '@trek/shared'
 import { getSocketId } from './websocket'
-import { isReachable, probeNow } from '../sync/connectivity'
+import { probeNow } from '../sync/connectivity'
 
 /**
  * Validate a response payload against its @trek/shared Zod schema — but only in
@@ -176,13 +176,17 @@ apiClient.interceptors.response.use(
       // distinguish a proxy auth challenge from a genuine outage. If the server
       // is reachable, a top-level reload lets the edge proxy run its auth flow.
       if (!error.response && navigator.onLine) {
-        await probeNow()
-        // Both the original request and the health probe failed while the device
-        // has a network interface. This matches the proxy-auth-challenge pattern
-        // (CF Access / Pangolin intercept all requests and CORS-block XHR).
-        // Guard with sessionStorage to prevent reload loops (server genuinely
-        // down would also land here, but only reloads once).
-        if (!isReachable()) {
+        // Only an actual edge-proxy auth wall warrants tearing down the SW to
+        // reauth: a reachable proxy (CF Access / Pangolin) that intercepts /api
+        // with a cross-origin redirect or an HTML login page. A genuine offline
+        // boot ALSO lands here — navigator.onLine reflects a network interface,
+        // not reachability, and is routinely true on mobile while offline. So
+        // gate strictly on a positive proxy signal; on plain offline do nothing
+        // and let the request reject so the cached shell + IndexedDB serve the
+        // app. Unregistering the SW here reloaded into a dead network and broke
+        // PWA offline mode (#1346).
+        const state = await probeNow()
+        if (state === 'proxy-wall') {
           const { pathname } = window.location
           if (!isAuthPublicPath(pathname) && !sessionStorage.getItem('proxy_reauth_attempted')) {
             sessionStorage.setItem('proxy_reauth_attempted', '1')
