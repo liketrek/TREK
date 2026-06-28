@@ -82,8 +82,16 @@ spec:
             periodSeconds: 10
       volumes:
         - name: data
+          {{- if .Values.persistence.enabled }}
           persistentVolumeClaim:
             claimName: {{ default (printf "%s-data" (include "trek.fullname" .)) .Values.persistence.data.existingClaim }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
         - name: uploads
+          {{- if .Values.persistence.enabled }}
           persistentVolumeClaim:
             claimName: {{ default (printf "%s-uploads" (include "trek.fullname" .)) .Values.persistence.uploads.existingClaim }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
