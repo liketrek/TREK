@@ -25,12 +25,15 @@ function useCreateAction(): { label: string; run: () => void } {
   const onJourneyList = useMatch('/journey')
 
   if (inTrip) {
-    // On the Costs tab the "+" adds an expense; otherwise it adds a place.
-    const tripTab = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(`trip-tab-${inTrip.params.id}`) : null
-    if (tripTab === 'finanzplan') {
-      return { label: t('costs.addExpense'), run: () => navigate(`/trips/${inTrip.params.id}?create=expense`) }
-    }
-    return { label: t('places.addPlace'), run: () => navigate(`/trips/${inTrip.params.id}?create=place`) }
+    // The "+" is context-aware per active tab: Bookings → reservation,
+    // Transports → transport, Costs → expense. Tabs without a create modal
+    // (lists / files / collab) fall through to adding a place. #1349
+    const id = inTrip.params.id
+    const tripTab = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(`trip-tab-${id}`) : null
+    if (tripTab === 'finanzplan') return { label: t('costs.addExpense'), run: () => navigate(`/trips/${id}?create=expense`) }
+    if (tripTab === 'buchungen') return { label: t('reservations.addManual'), run: () => navigate(`/trips/${id}?create=reservation`) }
+    if (tripTab === 'transports') return { label: t('transport.addManual'), run: () => navigate(`/trips/${id}?create=transport`) }
+    return { label: t('places.addPlace'), run: () => navigate(`/trips/${id}?create=place`) }
   }
   if (inJourney) {
     return { label: t('journey.detail.addEntry'), run: () => navigate(`/journey/${inJourney.params.id}?create=entry`) }

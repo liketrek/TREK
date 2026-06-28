@@ -161,6 +161,20 @@ export function useTripPlanner() {
   const [showTransportModal, setShowTransportModal] = useState<boolean>(false)
   const [editingTransport, setEditingTransport] = useState<Reservation | null>(null)
   const [transportModalDayId, setTransportModalDayId] = useState<number | null>(null)
+
+  // The bottom-nav "+" is context-aware per tab: on the Bookings / Transports tabs
+  // it opens the booking / transport modal via ?create=reservation|transport
+  // (place is handled above, expense in CostsPanel). #1349
+  useEffect(() => {
+    const intent = searchParams.get('create')
+    if (intent === 'reservation') {
+      setEditingReservation(null); setBookingForAssignmentId(null); setShowReservationModal(true)
+      setSearchParams(p => { p.delete('create'); return p }, { replace: true })
+    } else if (intent === 'transport') {
+      setEditingTransport(null); setTransportModalDayId(null); setShowTransportModal(true)
+      setSearchParams(p => { p.delete('create'); return p }, { replace: true })
+    }
+  }, [searchParams])
   // Review-before-save import: each parsed item pre-fills the normal edit modal so
   // the user checks/fixes it, then saves. A ref drives the queue (no stale closures).
   const [reservationPrefill, setReservationPrefill] = useState<BookingReviewDraft | null>(null)
