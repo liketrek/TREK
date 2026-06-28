@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const trip: TranslationStrings = {
+  'trip.tabs.plan': 'Kế hoạch',
+  'trip.tabs.transports': 'Di chuyển',
+  'trip.tabs.reservations': 'Đặt chỗ',
+  'trip.tabs.reservationsShort': 'Đặt',
+  'trip.tabs.packing': 'Danh sách đóng gói',
+  'trip.tabs.packingShort': 'Đóng gói',
+  'trip.tabs.lists': 'Danh sách',
+  'trip.tabs.listsShort': 'Danh sách',
+  'trip.tabs.budget': 'Chi phí',
+  'trip.tabs.files': 'Tập tin',
+  'trip.loading': 'Đang tải chuyến đi...',
+  'trip.loadingPhotos': 'Đang tải ảnh địa điểm...',
+  'trip.mobilePlan': 'Kế hoạch',
+  'trip.mobilePlaces': 'Địa điểm',
+  'trip.toast.placeUpdated': 'Đã cập nhật địa điểm',
+  'trip.toast.placeAdded': 'Đã thêm địa điểm',
+  'trip.toast.placeDeleted': 'Địa điểm đã bị xóa',
+  'trip.toast.selectDay': 'Vui lòng chọn một ngày trước',
+  'trip.toast.assignedToDay': 'Địa điểm đã được gán vào ngày',
+  'trip.toast.reorderError': 'Không thể sắp xếp lại',
+  'trip.toast.reservationUpdated': 'Đã cập nhật đặt chỗ',
+  'trip.toast.reservationAdded': 'Đã thêm đặt chỗ',
+  'trip.toast.deleted': 'Đã xóa',
+  'trip.confirm.deletePlace': 'Bạn có chắc chắn muốn xóa địa điểm này không?',
+  'trip.confirm.deletePlaces': 'Xóa {count} địa điểm?',
+  'trip.toast.placesDeleted': '{count} địa điểm đã bị xóa',
+};
+export default trip;
