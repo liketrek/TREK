@@ -60,6 +60,8 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'Tidsformat',
   'settings.bookingLabels': 'Etiketter för bokningsrutter',
   'settings.bookingLabelsHint': 'Visa stations- och flygplatsnamn på kartan. När funktionen är avstängd visas endast ikonen.',
+  'settings.aiAlwaysRetry': 'Försök alltid importera bokningar med AI',
+  'settings.aiAlwaysRetryHint': 'När en fil inte kan läsas av standardtolken görs ett nytt försök automatiskt med AI.',
   'settings.mapPoiPill': 'Utforska platser på kartan',
   'settings.mapPoiPillHint':
     'Visa en kategoriknapp på resekartan för att hitta restauranger, hotell och annat i närheten från OpenStreetMap.',
@@ -322,6 +324,22 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.button': 'Testa anslutningen',
   'settings.airtrail.test.success': 'Ansluten — {count} flygning(ar) hittades',
   'settings.airtrail.test.failed': 'Anslutning misslyckades',
+  'settings.aiParsing.title': 'AI-analys',
+  'settings.aiParsing.hint':
+    'Använd din egen AI-modell för att extrahera bokningar från uppladdade filer. Detta gäller endast när din administratör inte har konfigurerat en modell för hela instansen.',
+  'settings.aiParsing.provider': 'Leverantör',
+  'settings.aiParsing.providerLocal': 'Lokal (Ollama)',
+  'settings.aiParsing.providerOpenai': 'OpenAI',
+  'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.model': 'Modell',
+  'settings.aiParsing.baseUrl': 'Bas-URL',
+  'settings.aiParsing.baseUrlHint': 'Var modellen körs — en lokal Ollama-server eller en OpenAI-kompatibel slutpunkt.',
+  'settings.aiParsing.apiKey': 'API-nyckel',
+  'settings.aiParsing.apiKeyHint': 'Lagras krypterad. Lämna tomt för att behålla den nuvarande nyckeln.',
+  'settings.aiParsing.multimodal': 'Skicka dokument som bilder',
+  'settings.aiParsing.multimodalHint': 'För modeller med bildstöd — skickar original-PDF:en istället för extraherad text.',
+  'settings.aiParsing.toast.saved': 'AI-inställningar sparade',
+  'settings.aiParsing.toast.saveError': 'Kunde inte spara AI-inställningarna',
 };
 
 export default settings;
