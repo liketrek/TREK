@@ -89,6 +89,8 @@ COPY server/tsconfig.json ./server/
 # raw .ts source — it never enters dist, so it must be copied in explicitly or
 # `node --import tsx scripts/migrate-encryption.ts` fails with module-not-found.
 COPY server/scripts/migrate-encryption.ts ./server/scripts/migrate-encryption.ts
+# Admin recovery script (node server/reset-admin.js) for locked-out installs.
+COPY server/reset-admin.js ./server/reset-admin.js
 COPY --from=shared-builder /app/shared/dist ./shared/dist
 COPY --from=client-builder /app/client/dist ./server/public
 COPY --from=client-builder /app/client/public/fonts ./server/public/fonts

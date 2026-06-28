@@ -19,6 +19,46 @@ environment:
 
 ---
 
+## Can't log in after setup / ADMIN_EMAIL and ADMIN_PASSWORD seem ignored
+
+**Cause:** The initial admin account is seeded **only on the first boot, when the database has no users yet.** Three things follow from that, and each trips people up:
+
+- `ADMIN_EMAIL` / `ADMIN_PASSWORD` apply **only on that first run**. If you first start *without* them, an admin is created with a **random** password (it is **not** `changeme`) — and adding the variables afterwards has no effect, because a user already exists. The server now logs a reminder when it ignores them.
+- The random first-run password is printed to the log **once**, in a box titled `TREK — First Run: Admin Account Created`. It is easy to miss if you read the logs later.
+- Pulling a "fresh image" does **not** reset anything — your `./data` volume still holds the old database, so first-run setup does not run again.
+
+**Fix — pick whichever applies:**
+
+**Read the first-run credentials** (only present on the very first start of an empty database):
+
+```bash
+docker compose logs | grep -A6 "First Run"
+```
+
+Log in with what it shows; you will be asked to set a new password.
+
+**Reset the admin without losing data** (locked-out, existing install):
+
+```bash
+docker exec -it trek node server/reset-admin.js
+```
+
+This resets (or creates) `admin@trek.local` and prints a generated password. Override with `-e RESET_ADMIN_EMAIL=you@example.com -e RESET_ADMIN_PASSWORD=yourpass`. You will be asked to change it on first login.
+
+**Start over with chosen credentials** (fresh install, no data to keep):
+
+```bash
+docker compose down
+rm -rf ./data        # deletes ALL TREK data — only on a throwaway/fresh install
+docker compose up -d
+```
+
+With `ADMIN_EMAIL` and `ADMIN_PASSWORD` set, the admin is created with exactly those credentials.
+
+> **Note (Docker Desktop on Windows/macOS):** SQLite's WAL mode is unreliable on bind mounts backed by the Windows/macOS filesystem and can cause silent write failures. Prefer a Docker **named volume** for `/app/data` over a host bind mount. See [Install: Docker Compose](Install-Docker-Compose#named-volumes).
+
+---
+
 ## WebSocket not connecting / real-time sync broken
 
 **Cause:** Your reverse proxy is not forwarding WebSocket upgrade headers on the `/ws` path.
