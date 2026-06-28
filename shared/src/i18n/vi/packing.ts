@@ -1,0 +1,184 @@
+import type { TranslationStrings } from '../types';
+
+const packing: TranslationStrings = {
+  'packing.title': 'Danh sách đóng gói',
+  'packing.empty': 'Danh sách đóng gói trống',
+  'packing.import': 'Nhập',
+  'packing.importTitle': 'Nhập danh sách đóng gói',
+  'packing.importHint':
+    'Một mục trên mỗi dòng. Định dạng: Danh mục, Tên, Trọng lượng tính bằng g (tùy chọn), Túi (tùy chọn), đã chọn/bỏ chọn (tùy chọn)',
+  'packing.importPlaceholder':
+    'Vệ sinh, Bàn chải đánh răng\nQuần áo, Áo sơ mi, 200\nGiấy tờ, Hộ chiếu, Hành lý xách tay\nĐiện tử, Sạc, 50, Vali, đã kiểm tra',
+  'packing.importCsv': 'Tải CSV/TXT',
+  'packing.importAction': 'Nhập {count}',
+  'packing.importSuccess': '{count} mặt hàng đã được nhập',
+  'packing.importError': 'Nhập không thành công',
+  'packing.importEmpty': 'Không có mặt hàng nào để nhập',
+  'packing.progress': '{packed} trong số {total} được đóng gói ({percent}%)',
+  'packing.clearChecked': 'Xóa {count} đã chọn',
+  'packing.clearCheckedShort': 'Xóa {count}',
+  'packing.suggestions': 'Đề xuất',
+  'packing.suggestionsTitle': 'Thêm đề xuất',
+  'packing.allSuggested': 'Đã thêm tất cả đề xuất',
+  'packing.allPacked': 'Tất cả đã được đóng gói!',
+  'packing.addPlaceholder': 'Thêm mục mới...',
+  'packing.categoryPlaceholder': 'Loại...',
+  'packing.filterAll': 'Tất cả',
+  'packing.filterOpen': 'Mở',
+  'packing.filterDone': 'Xong',
+  'packing.emptyTitle': 'Danh sách đóng gói trống',
+  'packing.emptyHint': 'Thêm mục hoặc sử dụng các đề xuất',
+  'packing.emptyFiltered': 'Không có mục nào phù hợp với bộ lọc này',
+  'packing.menuRename': 'Đổi tên',
+  'packing.menuCheckAll': 'Kiểm tra tất cả',
+  'packing.menuUncheckAll': 'Bỏ chọn tất cả',
+  'packing.menuDeleteCat': 'Xóa danh mục',
+  'packing.noMembers': 'Không có thành viên chuyến đi',
+  'packing.addItem': 'Thêm mục',
+  'packing.addItemPlaceholder': 'Tên mặt hàng...',
+  'packing.addCategory': 'Thêm danh mục',
+  'packing.newCategoryPlaceholder': 'Tên danh mục (ví dụ: Quần áo)',
+  'packing.applyTemplate': 'Áp dụng mẫu',
+  'packing.template': 'Bản mẫu',
+  'packing.templateApplied': '{count} mục được thêm từ mẫu',
+  'packing.templateError': 'Không áp dụng được mẫu',
+  'packing.saveAsTemplate': 'Lưu dưới dạng mẫu',
+  'packing.templateName': 'Tên mẫu',
+  'packing.templateSaved': 'Danh sách đóng gói được lưu dưới dạng mẫu',
+  'packing.bags': 'Túi xách',
+  'packing.noBag': 'Chưa được chỉ định',
+  'packing.totalWeight': 'Tổng trọng lượng',
+  'packing.bagName': 'Tên túi...',
+  'packing.addBag': 'Thêm túi',
+  'packing.changeCategory': 'Thay đổi danh mục',
+  'packing.confirm.clearChecked': 'Bạn có chắc chắn muốn xóa {count} mục đã chọn không?',
+  'packing.confirm.deleteCat': 'Bạn có chắc chắn muốn xóa danh mục "{name}" với các mục {count} không?',
+  'packing.defaultCategory': 'Khác',
+  'packing.toast.saveError': 'Không lưu được',
+  'packing.toast.deleteError': 'Không thể xóa',
+  'packing.toast.renameError': 'Không thể đổi tên',
+  'packing.toast.addError': 'Không thể thêm',
+  'packing.suggestions.items': [
+    {
+      name: 'Hộ chiếu',
+      category: 'Tài liệu',
+    },
+    {
+      name: 'Thẻ ID',
+      category: 'Tài liệu',
+    },
+    {
+      name: 'Bảo hiểm du lịch',
+      category: 'Tài liệu',
+    },
+    {
+      name: 'Vé máy bay',
+      category: 'Tài liệu',
+    },
+    {
+      name: 'Thẻ tín dụng',
+      category: 'Tài chính',
+    },
+    {
+      name: 'Tiền mặt',
+      category: 'Tài chính',
+    },
+    {
+      name: 'Visa',
+      category: 'Tài liệu',
+    },
+    {
+      name: 'Áo sơ mi',
+      category: 'Quần áo',
+    },
+    {
+      name: 'Quần dài',
+      category: 'Quần áo',
+    },
+    {
+      name: 'Đồ lót',
+      category: 'Quần áo',
+    },
+    {
+      name: 'Tất',
+      category: 'Quần áo',
+    },
+    {
+      name: 'Áo khoác',
+      category: 'Quần áo',
+    },
+    {
+      name: 'Đồ ngủ',
+      category: 'Quần áo',
+    },
+    {
+      name: 'Đồ bơi',
+      category: 'Quần áo',
+    },
+    {
+      name: 'Áo mưa',
+      category: 'Quần áo',
+    },
+    {
+      name: 'Giày thoải mái',
+      category: 'Quần áo',
+    },
+    {
+      name: 'Bàn chải đánh răng',
+      category: 'Đồ vệ sinh cá nhân',
+    },
+    {
+      name: 'Kem đánh răng',
+      category: 'Đồ vệ sinh cá nhân',
+    },
+    {
+      name: 'Dầu gội đầu',
+      category: 'Đồ vệ sinh cá nhân',
+    },
+    {
+      name: 'Khử mùi',
+      category: 'Đồ vệ sinh cá nhân',
+    },
+    {
+      name: 'Kem chống nắng',
+      category: 'Đồ vệ sinh cá nhân',
+    },
+    {
+      name: 'dao cạo',
+      category: 'Đồ vệ sinh cá nhân',
+    },
+    {
+      name: 'Bộ sạc',
+      category: 'Điện tử',
+    },
+    {
+      name: 'Ngân hàng điện',
+      category: 'Điện tử',
+    },
+    {
+      name: 'Tai nghe',
+      category: 'Điện tử',
+    },
+    {
+      name: 'Bộ chuyển đổi du lịch',
+      category: 'Điện tử',
+    },
+    {
+      name: 'Máy ảnh',
+      category: 'Điện tử',
+    },
+    {
+      name: 'Thuốc giảm đau',
+      category: 'Sức khỏe',
+    },
+    {
+      name: 'Băng cá nhân',
+      category: 'Sức khỏe',
+    },
+    {
+      name: 'Thuốc khử trùng',
+      category: 'Sức khỏe',
+    },
+  ],
+};
+export default packing;

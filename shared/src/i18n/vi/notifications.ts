@@ -1,0 +1,36 @@
+import type { TranslationStrings } from '../types';
+
+const notifications: TranslationStrings = {
+  'notifications.title': 'Thông báo',
+  'notifications.markAllRead': 'Đánh dấu tất cả đã đọc',
+  'notifications.deleteAll': 'Xóa tất cả',
+  'notifications.showAll': 'Hiển thị tất cả thông báo',
+  'notifications.empty': 'Không có thông báo',
+  'notifications.emptyDescription': 'Bạn đã bắt kịp tất cả!',
+  'notifications.all': 'Tất cả',
+  'notifications.unreadOnly': 'Chưa đọc',
+  'notifications.markRead': 'Đánh dấu là đã đọc',
+  'notifications.markUnread': 'Đánh dấu là chưa đọc',
+  'notifications.delete': 'Xóa bỏ',
+  'notifications.system': 'Hệ thống',
+  'notifications.synologySessionCleared.title': 'Synology Ảnh bị ngắt kết nối',
+  'notifications.synologySessionCleared.text':
+    'Máy chủ hoặc tài khoản của bạn đã thay đổi — hãy đi tới Cài đặt để kiểm tra lại kết nối của bạn.',
+  'notifications.versionAvailable.title': 'Cập nhật có sẵn',
+  'notifications.versionAvailable.text': 'TREK {version} hiện có sẵn.',
+  'notifications.versionAvailable.button': 'Xem chi tiết',
+  'notifications.test.title': 'Thông báo kiểm tra từ {actor}',
+  'notifications.test.text': 'Đây là một thông báo thử nghiệm đơn giản.',
+  'notifications.test.booleanTitle': '{actor} yêu cầu sự chấp thuận của bạn',
+  'notifications.test.booleanText': 'Đây là thông báo boolean thử nghiệm. Chọn một hành động dưới đây.',
+  'notifications.test.accept': 'Chấp thuận',
+  'notifications.test.decline': 'Sự suy sụp',
+  'notifications.test.navigateTitle': 'Kiểm tra cái gì đó',
+  'notifications.test.navigateText': 'Đây là thông báo điều hướng thử nghiệm.',
+  'notifications.test.goThere': 'Đến đó',
+  'notifications.test.adminTitle': 'Quản trị viên phát sóng',
+  'notifications.test.adminText': '{actor} đã gửi thông báo kiểm tra tới tất cả quản trị viên.',
+  'notifications.test.tripTitle': '{actor} đã đăng trong chuyến đi của bạn',
+  'notifications.test.tripText': 'Thông báo kiểm tra chuyến đi "{trip}".',
+};
+export default notifications;
