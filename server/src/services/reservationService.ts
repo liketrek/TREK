@@ -49,6 +49,7 @@ function loadEndpoints(reservationId: number): ReservationEndpoint[] {
 function resolveDayIdFromTime(
   tripId: string | number,
   time: string | null | undefined,
+  clampToNearest = true,
 ): number | null {
   if (!time) return null;
   const datePart = time.slice(0, 10);
@@ -57,8 +58,11 @@ function resolveDayIdFromTime(
     .prepare('SELECT id FROM days WHERE trip_id = ? AND date = ? LIMIT 1')
     .get(tripId, datePart) as { id: number } | undefined;
   if (exact) return exact.id;
-  // Fallback: clamp to the nearest day in the trip so a booking whose exact date
-  // has no day row (or sits just outside the span) still lands on a day.
+  // Fallback: clamp to the nearest day in the trip so an imported booking whose
+  // exact date has no day row (or sits just outside the span) still lands on a day.
+  // Skipped by callers (e.g. resyncReservationDays) that must leave a booking whose
+  // date now falls outside the range untouched instead of snapping it to an edge day.
+  if (!clampToNearest) return null;
   const nearest = db
     .prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY ABS(JULIANDAY(date) - JULIANDAY(?)) ASC, date ASC LIMIT 1')
     .get(tripId, datePart) as { id: number } | undefined;
@@ -82,10 +86,10 @@ export function resyncReservationDays(tripId: string | number): void {
   }[];
   const update = db.prepare('UPDATE reservations SET day_id = ?, end_day_id = ? WHERE id = ?');
   for (const r of rows) {
-    const newDayId = resolveDayIdFromTime(tripId, r.reservation_time);
+    const newDayId = resolveDayIdFromTime(tripId, r.reservation_time, false);
     if (newDayId == null) continue;
     const newEndDayId = r.reservation_end_time
-      ? (resolveDayIdFromTime(tripId, r.reservation_end_time) ?? r.end_day_id)
+      ? (resolveDayIdFromTime(tripId, r.reservation_end_time, false) ?? r.end_day_id)
       : r.end_day_id;
     if (newDayId !== r.day_id || newEndDayId !== r.end_day_id) {
       update.run(newDayId, newEndDayId, r.id);
