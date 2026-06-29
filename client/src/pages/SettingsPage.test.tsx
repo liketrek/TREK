@@ -104,11 +104,11 @@ describe('SettingsPage', () => {
   });
 
   describe('FE-PAGE-SETTINGS-004: All standard tabs are present', () => {
-    it('renders Display, Map, Notifications, Account tabs', async () => {
+    it('renders General, Map, Notifications, Account tabs', async () => {
       render(<SettingsPage />);
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /display/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /general/i })).toBeInTheDocument();
       });
 
       expect(screen.getByRole('button', { name: /^map$/i })).toBeInTheDocument();

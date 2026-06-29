@@ -406,6 +406,8 @@ const settings: TranslationStrings = {
   'settings.appearance.example.normal': 'Place names, descriptions',
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
+  'settings.general.languageRegion': 'Language & region',
+  'settings.general.travelMap': 'Travel & map',
 };
 
 export default settings;

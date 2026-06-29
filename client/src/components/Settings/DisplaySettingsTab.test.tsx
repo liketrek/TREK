@@ -25,9 +25,9 @@ describe('DisplaySettingsTab', () => {
     expect(document.body).toBeInTheDocument();
   });
 
-  it('FE-COMP-DISPLAY-002: shows Display section title', () => {
+  it('FE-COMP-DISPLAY-002: shows the language & region section title', () => {
     render(<DisplaySettingsTab />);
-    expect(screen.getByText('Display')).toBeInTheDocument();
+    expect(screen.getByText('Language & region')).toBeInTheDocument();
   });
 
   it('FE-COMP-DISPLAY-006: shows Language section', () => {

@@ -3,7 +3,7 @@ import type { TranslationStrings } from '../types';
 const settings: TranslationStrings = {
   'settings.title': 'Einstellungen',
   'settings.subtitle': 'Konfigurieren Sie Ihre persönlichen Einstellungen',
-  'settings.tabs.display': 'Anzeige',
+  'settings.tabs.display': 'Allgemein',
   'settings.tabs.map': 'Karte',
   'settings.tabs.notifications': 'Mitteilungen',
   'settings.tabs.integrations': 'Integrationen',
@@ -407,6 +407,8 @@ const settings: TranslationStrings = {
   'settings.appearance.example.normal': 'Ortsnamen, Beschreibungen',
   'settings.appearance.example.small': 'Adressen, Labels',
   'settings.appearance.experimental': 'Experimentell',
+  'settings.general.languageRegion': 'Sprache & Region',
+  'settings.general.travelMap': 'Reise & Karte',
 };
 
 export default settings;

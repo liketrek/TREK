@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Palette, ChevronDown, Check } from 'lucide-react'
+import { Languages, Map, ChevronDown, Check } from 'lucide-react'
 import { SUPPORTED_LANGUAGES, useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
@@ -35,7 +35,8 @@ export default function DisplaySettingsTab(): React.ReactElement {
   }, [settings.distance_unit])
 
   return (
-    <Section title={t('settings.display')} icon={Palette}>
+    <>
+      <Section title={t('settings.general.languageRegion')} icon={Languages}>
       {/* Display currency */}
       <div>
         <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.currency')}</label>
@@ -225,7 +226,9 @@ export default function DisplaySettingsTab(): React.ReactElement {
           ))}
         </div>
       </div>
+      </Section>
 
+      <Section title={t('settings.general.travelMap')} icon={Map}>
       {/* Booking route labels */}
       <div>
         <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.bookingLabels')}</label>
@@ -348,6 +351,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
         </div>
         <p className="text-xs mt-1 text-content-faint">{t('settings.optimizeFromAccommodationHint')}</p>
       </div>
-    </Section>
+      </Section>
+    </>
   )
 }

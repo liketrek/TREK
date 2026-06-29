@@ -1,5 +1,5 @@
 import React from 'react'
-import { Settings, Palette, Paintbrush, Map, Bell, Plug, CloudOff, User, Info } from 'lucide-react'
+import { Settings, SlidersHorizontal, Paintbrush, Map, Bell, Plug, CloudOff, User, Info } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import PageShell from '../components/Layout/PageShell'
 import PageSidebar, { type PageSidebarTab } from '../components/Layout/PageSidebar'
@@ -19,7 +19,7 @@ export default function SettingsPage(): React.ReactElement {
   const { hasIntegrations, appVersion, activeTab, setActiveTab } = useSettings()
 
   const tabs: PageSidebarTab[] = [
-    { id: 'display', label: t('settings.tabs.display'), icon: Palette },
+    { id: 'display', label: t('settings.tabs.display'), icon: SlidersHorizontal },
     { id: 'appearance', label: t('settings.tabs.appearance'), icon: Paintbrush },
     { id: 'map', label: t('settings.tabs.map'), icon: Map },
     { id: 'notifications', label: t('settings.tabs.notifications'), icon: Bell },
