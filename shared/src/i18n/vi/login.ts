@@ -85,5 +85,9 @@ const login: TranslationStrings = {
   'login.resetPasswordFailed': 'Đặt lại không thành công. Liên kết có thể đã hết hạn.',
   'login.passkey.signIn': 'Đăng nhập bằng mật mã',
   'login.passkey.failed': 'Đăng nhập bằng mật mã không thành công. Vui lòng thử lại.',
+  'login.insecureCookie.title': 'Đăng nhập không được giữ qua HTTP',
+  'login.insecureCookie.body':
+    'Bạn đang kết nối qua HTTP thuần, nên trình duyệt loại bỏ cookie phiên bảo mật của TREK — yêu cầu tiếp theo sẽ thất bại với "Access token required". Cách khắc phục: dùng HTTPS, hoặc với máy chủ tại nhà hãy đặt COOKIE_SECURE=false.',
+  'login.insecureCookie.link': 'Mở hướng dẫn khắc phục sự cố',
 };
 export default login;

@@ -16,5 +16,6 @@ const nav: TranslationStrings = {
   'nav.bottomAdmin': 'Cài đặt quản trị viên',
   'nav.bottomLogout': 'Đăng xuất',
   'nav.bottomAdminBadge': 'Quản trị viên',
+  'nav.help': 'Trợ giúp',
 };
 export default nav;

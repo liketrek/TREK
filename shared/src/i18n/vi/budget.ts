@@ -116,6 +116,10 @@ const budget: TranslationStrings = {
   'costs.unfinishedHint': 'Chỉ tổng cộng - chưa thanh toán',
   'costs.tapToInclude': 'Nhấn để bao gồm',
   'costs.amount': 'Số lượng',
+  'costs.split': 'Chia tiền',
+  'costs.splitEqually': 'Chia đều',
+  'costs.splitCustom': 'Tùy chỉnh',
+  'costs.splitTicket': 'Hóa đơn',
 };
 
 export default budget;

@@ -348,5 +348,9 @@ const admin: TranslationStrings = {
     'Xóa tất cả mật mã của người dùng này (ví dụ: trên thiết bị bị mất). Họ vẫn có thể đăng nhập bằng mật khẩu của mình.',
   'admin.passkey.resetConfirm': 'Xóa tất cả mật mã cho {name}?',
   'admin.passkey.resetDone': 'Đã xóa {count} mật mã',
+  'admin.group.users': 'Người dùng',
+  'admin.group.config': 'Cấu hình',
+  'admin.group.integration': 'Tích hợp',
+  'admin.group.maintenance': 'Bảo trì',
 };
 export default admin;

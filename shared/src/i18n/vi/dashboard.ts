@@ -162,5 +162,12 @@ const dashboard: TranslationStrings = {
   'dashboard.aria.addTimezone': 'Thêm múi giờ',
   'dashboard.aria.removeTimezone': 'Xóa {city}',
   'dashboard.dayCountRequired': 'Số ngày là bắt buộc',
+  'dashboard.coverSaveError': 'Không thể lưu ảnh bìa',
+  'dashboard.searchUnsplash': 'Tìm trên Unsplash',
+  'dashboard.unsplashSearchPlaceholder': 'Tìm ảnh điểm đến',
+  'dashboard.unsplashQueryRequired': 'Nhập từ khóa tìm kiếm',
+  'dashboard.unsplashNoResults': 'Không tìm thấy ảnh nào',
+  'dashboard.coverSearchError': 'Tìm kiếm trên Unsplash không thành công',
+  'dashboard.useUnsplashPhoto': 'Dùng ảnh Unsplash của {photographer}',
 };
 export default dashboard;

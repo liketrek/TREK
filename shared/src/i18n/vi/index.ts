@@ -10,6 +10,7 @@ import dashboard from './dashboard';
 import day from './day';
 import dayplan from './dayplan';
 import files from './files';
+import help from './help';
 import inspector from './inspector';
 import journey from './journey';
 import login from './login';
@@ -82,5 +83,6 @@ const locale = {
   ...oauth,
   ...system_notice,
   ...transport,
+  ...help,
 };
 export default locale;
