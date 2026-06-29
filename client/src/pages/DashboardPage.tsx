@@ -21,6 +21,7 @@ import {
 import { formatTime, splitReservationDateTime } from '../utils/formatters'
 import { convertDistance, getDistanceUnitLabel } from '../utils/units'
 import { useSettingsStore } from '../store/settingsStore'
+import { normalizeAppearance } from '@trek/shared'
 import '../styles/dashboard.css'
 
 const GRADIENTS = [
@@ -92,6 +93,17 @@ export default function DashboardPage(): React.ReactElement {
     handleCreate, handleUpdate, confirmDelete, handleArchive, handleUnarchive, confirmCopy,
   } = useDashboard()
 
+  // Per-device dashboard widget visibility (from the appearance config).
+  const isMobile = useIsMobile()
+  const appearanceCfg = useSettingsStore(s => s.settings.appearance)
+  const dashCfg = normalizeAppearance(appearanceCfg).dashboard
+  const sideWidgets = isMobile ? dashCfg.mobile : dashCfg.desktop
+  const showCurrency = sideWidgets.currency
+  const showTimezones = sideWidgets.timezones
+  const showUpcoming = sideWidgets.upcomingReservations
+  // Desktop has a master toggle for the whole right column; off → centered layout.
+  const sidebarVisible = (isMobile || dashCfg.desktop.sidebar) && (showCurrency || showTimezones || showUpcoming)
+
   return (
     <>
       {/* Navbar lives outside .trek-dash so it keeps the app-wide font + button
@@ -102,7 +114,7 @@ export default function DashboardPage(): React.ReactElement {
       {demoMode && <DemoBanner />}
       <div className="trek-dash-scroll">
         <MobileTopBar />
-        <main className="page">
+        <main className="page" data-no-sidebar={sidebarVisible ? undefined : 'true'}>
           <div className="page-main">
             {loadError && (
               <div className="dash-error" role="alert">
@@ -176,11 +188,13 @@ export default function DashboardPage(): React.ReactElement {
             </section>
           </div>
 
-          <aside className="page-sidebar">
-            <CurrencyTool />
-            <TimezoneTool locale={locale} />
-            <UpcomingTool items={upcoming} locale={locale} onOpen={(tripId) => navigate(`/trips/${tripId}`)} />
-          </aside>
+          {sidebarVisible && (
+            <aside className="page-sidebar">
+              {showCurrency && <CurrencyTool />}
+              {showTimezones && <TimezoneTool locale={locale} />}
+              {showUpcoming && <UpcomingTool items={upcoming} locale={locale} onOpen={(tripId) => navigate(`/trips/${tripId}`)} />}
+            </aside>
+          )}
         </main>
       </div>
 
@@ -370,9 +384,28 @@ function formatCompactDistance(value: number): string {
   return String(rounded)
 }
 
-function AtlasStats({ stats }: { stats: TravelStats | null }): React.ReactElement {
+function AtlasStats({ stats }: { stats: TravelStats | null }): React.ReactElement | null {
   const { t } = useTranslation()
   const distanceUnit = useSettingsStore(s => s.settings.distance_unit) || 'metric'
+  const appearance = useSettingsStore(s => s.settings.appearance)
+  const isMobile = useIsMobile()
+  const dash = normalizeAppearance(appearance).dashboard
+
+  // Per-device widget visibility. Atlas + distance are desktop-only tiles.
+  const showAtlas = !isMobile && dash.desktop.atlas
+  const showTrips = isMobile ? dash.mobile.tripsTotal : dash.desktop.tripsTotal
+  const showDays = isMobile ? dash.mobile.daysTraveled : dash.desktop.daysTraveled
+  const showDistance = !isMobile && dash.desktop.distanceFlown
+  if (!showAtlas && !showTrips && !showDays && !showDistance) return null
+
+  // Reflow: the grid spreads the visible tiles to full width (the passport stays
+  // proportionally wider). Set as CSS vars so the responsive media queries still win.
+  const atlasTemplate =
+    [dash.desktop.atlas && '1.5fr', dash.desktop.tripsTotal && '1fr', dash.desktop.daysTraveled && '1fr', dash.desktop.distanceFlown && '1fr']
+      .filter(Boolean).join(' ') || '1fr'
+  const atlasTemplateM =
+    [dash.mobile.tripsTotal && '1fr', dash.mobile.daysTraveled && '1fr'].filter(Boolean).join(' ') || '1fr'
+
   const countries = stats?.countries || []
   const distanceKm = stats?.totalDistanceKm || 0
   const distance = convertDistance(distanceKm, distanceUnit)
@@ -382,48 +415,56 @@ function AtlasStats({ stats }: { stats: TravelStats | null }): React.ReactElemen
   const distanceLabel = getDistanceUnitLabel(distanceUnit)
 
   return (
-    <section className="atlas">
-      <div className="atlas-card passport">
-        <div className="label">{t('dashboard.atlas.countriesVisited')}</div>
-        <div className="value mono">{countries.length} <span className="unit text-[oklch(1_0_0_/_.55)]">{t('dashboard.atlas.ofTotal', { total: 195 })}</span></div>
-        <div className="passport-flags">
-          {countries.slice(0, 5).map((c, i) => (
-            <span key={i} className="flag" title={c}>
-              <img src={`https://flagcdn.com/w40/${c.toLowerCase()}.png`} alt={c} loading="lazy" />
-            </span>
-          ))}
-          {countries.length > 5 && <span className="flag more">+{countries.length - 5}</span>}
+    <section className="atlas" style={{ '--atlas-template': atlasTemplate, '--atlas-template-m': atlasTemplateM } as React.CSSProperties}>
+      {showAtlas && (
+        <div className="atlas-card passport">
+          <div className="label">{t('dashboard.atlas.countriesVisited')}</div>
+          <div className="value mono">{countries.length} <span className="unit text-[oklch(1_0_0_/_.55)]">{t('dashboard.atlas.ofTotal', { total: 195 })}</span></div>
+          <div className="passport-flags">
+            {countries.slice(0, 5).map((c, i) => (
+              <span key={i} className="flag" title={c}>
+                <img src={`https://flagcdn.com/w40/${c.toLowerCase()}.png`} alt={c} loading="lazy" />
+              </span>
+            ))}
+            {countries.length > 5 && <span className="flag more">+{countries.length - 5}</span>}
+          </div>
+          <div className="delta" />
         </div>
-        <div className="delta" />
-      </div>
+      )}
 
-      <div className="atlas-card">
-        <div className="label">{t('dashboard.atlas.tripsTotal')}</div>
-        <div className="value mono">{stats?.totalTrips ?? 0}</div>
-        <div className="delta">{t('dashboard.atlas.placesMapped', { count: stats?.totalPlaces ?? 0 })}</div>
-        <svg className="spark" width="80" height="36" viewBox="0 0 80 36">
-          <polyline points="0,30 12,26 22,28 32,18 44,22 56,10 68,14 80,4" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </div>
+      {showTrips && (
+        <div className="atlas-card">
+          <div className="label">{t('dashboard.atlas.tripsTotal')}</div>
+          <div className="value mono">{stats?.totalTrips ?? 0}</div>
+          <div className="delta">{t('dashboard.atlas.placesMapped', { count: stats?.totalPlaces ?? 0 })}</div>
+          <svg className="spark" width="80" height="36" viewBox="0 0 80 36">
+            <polyline points="0,30 12,26 22,28 32,18 44,22 56,10 68,14 80,4" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+      )}
 
-      <div className="atlas-card">
-        <div className="label">{t('dashboard.atlas.daysTraveled')}</div>
-        <div className="value mono">{stats?.totalDays ?? 0} <span className="unit">{t('dashboard.atlas.daysUnit')}</span></div>
-        <div className="delta">{t('dashboard.atlas.acrossAllTrips')}</div>
-        <svg className="spark" width="80" height="36" viewBox="0 0 80 36">
-          <path d="M0 30 Q10 24 20 26 T40 20 T60 14 T80 10" fill="none" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-      </div>
+      {showDays && (
+        <div className="atlas-card">
+          <div className="label">{t('dashboard.atlas.daysTraveled')}</div>
+          <div className="value mono">{stats?.totalDays ?? 0} <span className="unit">{t('dashboard.atlas.daysUnit')}</span></div>
+          <div className="delta">{t('dashboard.atlas.acrossAllTrips')}</div>
+          <svg className="spark" width="80" height="36" viewBox="0 0 80 36">
+            <path d="M0 30 Q10 24 20 26 T40 20 T60 14 T80 10" fill="none" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </div>
+      )}
 
-      <div className="atlas-card">
-        <div className="label">{t('dashboard.atlas.distanceFlown')}</div>
-        <div className="value mono">{distanceText} <span className="unit">{distanceLabel}</span></div>
-        <div className="delta">{t('dashboard.atlas.aroundEquator', { count: equatorTimes })}</div>
-        <svg className="spark" width="80" height="36" viewBox="0 0 80 36">
-          <circle cx="40" cy="18" r="14" fill="none" stroke="oklch(0.88 0.01 70)" strokeWidth="2" />
-          <circle cx="40" cy="18" r="14" fill="none" strokeWidth="2" strokeDasharray="58 88" strokeLinecap="round" transform="rotate(-90 40 18)" />
-        </svg>
-      </div>
+      {showDistance && (
+        <div className="atlas-card">
+          <div className="label">{t('dashboard.atlas.distanceFlown')}</div>
+          <div className="value mono">{distanceText} <span className="unit">{distanceLabel}</span></div>
+          <div className="delta">{t('dashboard.atlas.aroundEquator', { count: equatorTimes })}</div>
+          <svg className="spark" width="80" height="36" viewBox="0 0 80 36">
+            <circle cx="40" cy="18" r="14" fill="none" stroke="oklch(0.88 0.01 70)" strokeWidth="2" />
+            <circle cx="40" cy="18" r="14" fill="none" strokeWidth="2" strokeDasharray="58 88" strokeLinecap="round" transform="rotate(-90 40 18)" />
+          </svg>
+        </div>
+      )}
     </section>
   )
 }

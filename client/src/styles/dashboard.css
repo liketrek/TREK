@@ -103,6 +103,9 @@
   align-items: start;
 }
 .trek-dash .page-main { min-width: 0; }
+/* Right sidebar disabled → single centered column. */
+.trek-dash .page[data-no-sidebar="true"] { grid-template-columns: 1fr; }
+.trek-dash .page[data-no-sidebar="true"] .page-main { max-width: 1080px; margin-inline: auto; width: 100%; }
 .trek-dash .page-sidebar {
   position: sticky;
   top: 24px;
@@ -318,7 +321,7 @@
 .trek-dash .pass-cell.countdown { gap: 6px; }
 
 /* ----------------- atlas / stats ----------------- */
-.trek-dash .atlas { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 16px; margin-bottom: 56px; }
+.trek-dash .atlas { display: grid; grid-template-columns: var(--atlas-template, 1.5fr 1fr 1fr 1fr); gap: 16px; margin-bottom: 56px; }
 .trek-dash .atlas-card {
   background: var(--glass-bg); border-radius: var(--r-lg); padding: 24px 26px;
   border: 1px solid var(--glass-border);
@@ -599,7 +602,7 @@
 
   /* Atlas → single row of stat cards. Passport (countries) and distance are
      hidden on mobile; only Trips total + Days traveled remain. */
-  .trek-dash .atlas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 26px; }
+  .trek-dash .atlas { display: grid; grid-template-columns: var(--atlas-template-m, 1fr 1fr); gap: 10px; margin: 0 0 26px; }
   .trek-dash .atlas-card.passport,
   .trek-dash .atlas-card:last-child { display: none; }
   .trek-dash .atlas .spark { display: none; }
