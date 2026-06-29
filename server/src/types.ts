@@ -144,6 +144,7 @@ export interface BudgetItemMember {
   avatar_url?: string | null;
   avatar?: string | null;
   budget_item_id?: number;
+  amount?: number | null;
 }
 
 export interface BudgetItemPayer {

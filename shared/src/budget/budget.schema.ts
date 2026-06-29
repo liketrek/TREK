@@ -24,6 +24,7 @@ export const budgetItemMemberSchema = z.object({
   avatar_url: z.string().nullable().optional(),
   avatar: z.string().nullable().optional(),
   budget_item_id: z.number().optional(),
+  amount: z.number().nullable().optional(),
 });
 export type BudgetItemMember = z.infer<typeof budgetItemMemberSchema>;
 
@@ -126,6 +127,11 @@ const payerInputSchema = z.object({
   amount: z.number(),
 });
 
+const memberInputSchema = z.object({
+  user_id: z.number(),
+  amount: z.number().nullable().optional(),
+});
+
 export const budgetCreateItemRequestSchema = z.object({
   name: z.string().min(1),
   category: z.string().optional(),
@@ -137,6 +143,7 @@ export const budgetCreateItemRequestSchema = z.object({
   payers: z.array(payerInputSchema).optional(),
   // Equal-split participants. When omitted, the item has no split (planning-only).
   member_ids: z.array(z.number()).optional(),
+  members: z.array(memberInputSchema).optional(),
   persons: z.number().nullable().optional(),
   days: z.number().nullable().optional(),
   note: z.string().nullable().optional(),
@@ -156,6 +163,7 @@ export const budgetUpdateItemRequestSchema = z.object({
   exchange_rate: z.number().optional(),
   payers: z.array(payerInputSchema).optional(),
   member_ids: z.array(z.number()).optional(),
+  members: z.array(memberInputSchema).optional(),
   persons: z.number().nullable().optional(),
   days: z.number().nullable().optional(),
   note: z.string().nullable().optional(),

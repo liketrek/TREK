@@ -116,6 +116,9 @@ const budget: TranslationStrings = {
   'costs.unfinishedHint': 'Solo nel totale — non ancora saldato',
   'costs.tapToInclude': 'Tocca per includere',
   'costs.amount': 'Importo',
+  'costs.split': "Split",
+  'costs.splitEqually': "Equally",
+  'costs.splitCustom': "Custom",
+  'costs.splitTicket': "Ticket",
 };
-
 export default budget;

@@ -19,6 +19,68 @@ import { COST_CATEGORY_LIST, catMeta } from './costsCategories'
 import type { BudgetItem } from '../../types'
 import type { TripMember } from './BudgetPanelMemberChips'
 
+export function splitEqualShares(total: number, members: { user_id: number }[], itemId: number): Record<number, number> {
+  const n = members.length
+  if (n === 0) return {}
+
+  const totalCents = Math.round(total * 100)
+  const baseCents = Math.floor(totalCents / n)
+  const remainder = totalCents % n
+
+  const shares: Record<number, number> = {}
+  const sortedMembers = [...members].sort((a, b) => a.user_id - b.user_id)
+  const startIndex = itemId % n
+
+  for (let i = 0; i < n; i++) {
+    const member = sortedMembers[i]
+    const hasExtraCent = ((i - startIndex + n) % n) < remainder
+    shares[member.user_id] = (baseCents + (hasExtraCent ? 1 : 0)) / 100
+  }
+
+  return shares
+}
+
+export interface TicketItem {
+  id: string
+  name: string
+  price: string
+  participants: Set<number>
+}
+
+export function calculateTicketShares(items: TicketItem[]): { shares: Record<number, number>; total: number } {
+  const shares: Record<number, number> = {}
+  let totalCents = 0
+
+  for (const item of items) {
+    const priceNum = parseFloat(item.price) || 0
+    const priceCents = Math.round(priceNum * 100)
+    totalCents += priceCents
+
+    const partIds = [...item.participants]
+    const n = partIds.length
+    if (n === 0) continue
+
+    const baseCents = Math.floor(priceCents / n)
+    const remainder = priceCents % n
+
+    const sortedPartIds = [...partIds].sort((a, b) => a - b)
+
+    for (let i = 0; i < n; i++) {
+      const id = sortedPartIds[i]
+      const hasExtraCent = i < remainder
+      const shareCents = baseCents + (hasExtraCent ? 1 : 0)
+      shares[id] = (shares[id] || 0) + shareCents
+    }
+  }
+
+  const finalShares: Record<number, number> = {}
+  for (const id of Object.keys(shares)) {
+    finalShares[Number(id)] = shares[Number(id)] / 100
+  }
+
+  return { shares: finalShares, total: totalCents / 100 }
+}
+
 interface CostsPanelProps {
   tripId: number
   tripMembers?: TripMember[]
@@ -105,9 +167,14 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
   const baseTotal = (e: BudgetItem) => convert(e.total_price || 0, curOf(e))
   const myPaidOf = (e: BudgetItem) => (e.payers || []).filter(p => p.user_id === me).reduce((a, p) => a + convert(p.amount, curOf(e)), 0)
   const myShareOf = (e: BudgetItem) => {
-    const n = (e.members || []).length
-    if (!n || !(e.members || []).some(m => m.user_id === me)) return 0
-    return baseTotal(e) / n
+    const myMember = (e.members || []).find(m => m.user_id === me)
+    if (!myMember) return 0
+    if (myMember.amount !== null && myMember.amount !== undefined) {
+      return convert(myMember.amount, curOf(e))
+    }
+    const shares = splitEqualShares(e.total_price || 0, e.members || [], e.id)
+    const myShare = shares[me] || 0
+    return convert(myShare, curOf(e))
   }
 
   const totals = useMemo(() => {
@@ -790,11 +857,6 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   const [cat, setCat] = useState<string>(editing ? catMeta(editing.category).key : (prefill?.category || 'food'))
   const [currency, setCurrency] = useState((editing?.currency || base).toUpperCase())
   const [day, setDay] = useState(editing?.expense_date || new Date().toISOString().slice(0, 10))
-  // One participant list: a person is "in" the split and may have paid an amount.
-  // Entering the total auto-distributes it equally across the non-pinned participants;
-  // touching an amount pins it and the rest rebalance so the paid amounts always sum
-  // back to the total. Leaving every amount blank = an unfinished expense (counts
-  // toward the trip total only, never settlements, until who-paid is filled in).
   const [total, setTotal] = useState<string>(() => {
     if (editing) return editing.total_price ? String(editing.total_price) : ''
     if (prefill?.amount != null) return String(prefill.amount)
@@ -802,89 +864,192 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   })
   const [participants, setParticipants] = useState<Set<number>>(() =>
     editing ? new Set((editing.members || []).map(m => m.user_id)) : new Set(people.map(p => p.id)))
-  const [paid, setPaid] = useState<Record<number, string>>(() => {
+
+  // Payer state: 0 represents "Nobody (planning entry)"
+  const [payerId, setPayerId] = useState<number>(() => {
+    const existingPayer = (editing?.payers || []).find(p => p.amount > 0)
+    return existingPayer ? existingPayer.user_id : me
+  })
+
+  const [splitMode, setSplitMode] = useState<'equally' | 'custom' | 'ticket'>(() => {
+    if (editing?.note && editing.note.startsWith('TICKETJSON:')) {
+      return 'ticket'
+    }
+    if (editing && editing.members && editing.members.length > 0) {
+      const hasCustom = editing.members.some(m => m.amount !== null && m.amount !== undefined)
+      return hasCustom ? 'custom' : 'equally'
+    }
+    return 'equally'
+  })
+
+  const [ticketItems, setTicketItems] = useState<TicketItem[]>(() => {
+    if (editing?.note && editing.note.startsWith('TICKETJSON:')) {
+      try {
+        const parsed = JSON.parse(editing.note.slice(11))
+        return (parsed.items || []).map((item: any) => ({
+          id: String(Math.random()),
+          name: item.name,
+          price: String(item.price),
+          participants: new Set(item.parts || [])
+        }))
+      } catch {
+        return []
+      }
+    }
+    return []
+  })
+
+  const [customAmounts, setCustomAmounts] = useState<Record<number, string>>(() => {
     const m: Record<number, string> = {}
-    for (const p of editing?.payers || []) if (p.amount > 0) m[p.user_id] = String(p.amount)
+    if (editing && editing.members) {
+      for (const member of editing.members) {
+        if (member.amount !== null && member.amount !== undefined) {
+          m[member.user_id] = String(member.amount)
+        }
+      }
+    }
     return m
   })
-  // Amounts the user pinned by typing — kept out of the auto-rebalance. Existing
-  // payer amounts load as pinned so opening an expense never reshuffles them.
-  const [dirty, setDirty] = useState<Set<number>>(() =>
-    new Set((editing?.payers || []).filter(p => p.amount > 0).map(p => p.user_id)))
+
   const [saving, setSaving] = useState(false)
 
-  const totalNum = parseFloat(total) || 0
-  const paidSum = round2([...participants].reduce((a, id) => a + (parseFloat(paid[id]) || 0), 0))
-  const paidEntered = paidSum > 0
-  const balanced = Math.abs(paidSum - totalNum) < 0.01
-  const each = participants.size > 0 ? totalNum / participants.size : 0
-  // No participants = a recorded total with nobody to split with (e.g. a booking
-  // paid on-site later). It saves as an "unfinished" expense (#1286); selecting
-  // people only adds the who-owes-whom split on top.
-  const valid = name.trim().length > 0 && totalNum > 0 && (!paidEntered || balanced)
+  const isTicketMode = splitMode === 'ticket'
 
-  // Spread `amount` across `n` people in whole cents so the parts sum back exactly.
-  const splitCents = (amount: number, n: number): number[] => {
-    if (n <= 0) return []
-    const cents = Math.max(0, Math.round(amount * 100))
-    const base = Math.floor(cents / n), rem = cents - base * n
-    return Array.from({ length: n }, (_, i) => (base + (i < rem ? 1 : 0)) / 100)
-  }
-  // Recompute the non-pinned participants so every paid amount sums to the total.
-  const rebalance = (paidMap: Record<number, string>, dirtySet: Set<number>, parts: Set<number>, totalVal: number): Record<number, string> => {
-    const ids = [...parts]
-    const free = ids.filter(id => !dirtySet.has(id))
-    if (free.length === 0) return paidMap
-    const pinnedSum = ids.filter(id => dirtySet.has(id)).reduce((a, id) => a + (parseFloat(paidMap[id]) || 0), 0)
-    const shares = splitCents(totalVal - pinnedSum, free.length)
-    const next = { ...paidMap }
-    free.forEach((id, i) => { next[id] = shares[i] ? String(shares[i]) : '' })
-    return next
-  }
+  const ticketInfo = useMemo(() => {
+    return calculateTicketShares(ticketItems)
+  }, [ticketItems])
+
+  const totalNum = isTicketMode ? ticketInfo.total : (parseFloat(total) || 0)
+  const splitSum = [...participants].reduce((sum, id) => sum + (parseFloat(customAmounts[id]) || 0), 0)
+  const customBalanced = Math.round(splitSum * 100) === Math.round(totalNum * 100)
+  const each = participants.size > 0 ? totalNum / participants.size : 0
+  const equalShares = useMemo(() => {
+    return splitEqualShares(totalNum, [...participants].map(id => ({ user_id: id })), editing?.id || 0)
+  }, [totalNum, participants, editing])
+
+  const placeholderShares = useMemo(() => {
+    const emptyParts = [...participants].filter(id => !customAmounts[id])
+    if (emptyParts.length === 0) return {}
+
+    const enteredSum = [...participants]
+      .filter(id => customAmounts[id])
+      .reduce((sum, id) => sum + (parseFloat(customAmounts[id]) || 0), 0)
+    const remaining = Math.max(0, totalNum - enteredSum)
+
+    return splitEqualShares(remaining, emptyParts.map(id => ({ user_id: id })), editing?.id || 0)
+  }, [totalNum, participants, customAmounts, editing])
+  
+  const ticketValid = ticketItems.length > 0 && ticketItems.every(item => item.name.trim().length > 0 && (parseFloat(item.price) || 0) > 0 && item.participants.size > 0)
+  const valid = name.trim().length > 0 && (
+    isTicketMode
+      ? ticketValid
+      : totalNum > 0 && (participants.size === 0 || splitMode === 'equally' || customBalanced)
+  )
 
   const onTotalChange = (v: string) => {
-    v = v.replace(',', '.')
-    setTotal(v)
-    setPaid(prev => rebalance(prev, dirty, participants, parseFloat(v) || 0))
+    setTotal(v.replace(',', '.'))
   }
-  const onPaidChange = (id: number, v: string) => {
-    v = v.replace(',', '.')
-    const nextDirty = new Set(dirty); nextDirty.add(id)
-    setDirty(nextDirty)
-    setPaid(prev => rebalance({ ...prev, [id]: v }, nextDirty, participants, totalNum))
+
+  const handleCustomAmountChange = (id: number, val: string) => {
+    val = val.replace(',', '.')
+    if (/^\d*\.?\d{0,2}$/.test(val) || val === '') {
+      setCustomAmounts(prev => ({ ...prev, [id]: val }))
+    }
   }
+
+  const handleAddEmptyItem = () => {
+    setTicketItems(prev => [
+      ...prev,
+      {
+        id: String(Date.now() + Math.random()),
+        name: '',
+        price: '',
+        participants: new Set(people.map(p => p.id))
+      }
+    ])
+  }
+
+  const handleUpdateItemName = (id: string, name: string) => {
+    setTicketItems(prev => prev.map(item => item.id === id ? { ...item, name } : item))
+  }
+
+  const handleUpdateItemPrice = (id: string, price: string) => {
+    price = price.replace(',', '.')
+    if (/^\d*\.?\d{0,2}$/.test(price) || price === '') {
+      setTicketItems(prev => prev.map(item => item.id === id ? { ...item, price } : item))
+    }
+  }
+
+  const handleRemoveItem = (id: string) => {
+    setTicketItems(prev => prev.filter(item => item.id !== id))
+  }
+
+  const handleToggleItemParticipant = (itemId: string, userId: number) => {
+    setTicketItems(prev => prev.map(item => {
+      if (item.id === itemId) {
+        const nextParts = new Set(item.participants)
+        if (nextParts.has(userId)) nextParts.delete(userId)
+        else nextParts.add(userId)
+        return { ...item, participants: nextParts }
+      }
+      return item
+    }))
+  }
+
   const toggleParticipant = (id: number) => {
-    const nextParts = new Set(participants), nextDirty = new Set(dirty), nextPaid = { ...paid }
-    if (nextParts.has(id)) { nextParts.delete(id); nextDirty.delete(id); delete nextPaid[id] }
-    else nextParts.add(id)
-    setParticipants(nextParts); setDirty(nextDirty)
-    setPaid(rebalance(nextPaid, nextDirty, nextParts, totalNum))
+    const nextParts = new Set(participants)
+    if (nextParts.has(id)) {
+      nextParts.delete(id)
+      setCustomAmounts(prev => {
+        const copy = { ...prev }
+        delete copy[id]
+        return copy
+      })
+    } else {
+      nextParts.add(id)
+    }
+    setParticipants(nextParts)
   }
 
   const save = async () => {
     if (!valid) return
     setSaving(true)
-    const payerList = [...participants]
-      .map(id => ({ user_id: id, amount: parseFloat(paid[id]) || 0 }))
-      .filter(p => p.amount > 0)
+    const payerList = (payerId > 0 && participants.size > 0) ? [{ user_id: payerId, amount: totalNum }] : []
+    const memberList = [...participants].map(id => ({
+      user_id: id,
+      amount: splitMode === 'custom'
+        ? (parseFloat(customAmounts[id]) || 0)
+        : splitMode === 'ticket'
+        ? (ticketInfo.shares[id] || 0)
+        : null
+    }))
     const data = {
-      name: name.trim(), category: cat,
-      // Store the actual currency the amounts were entered in; conversion to the
-      // viewer's display currency happens live (real rates), no manual rate.
+      name: name.trim(),
+      category: cat,
       currency,
-      payers: payerList, member_ids: [...participants],
+      payers: payerList,
+      members: memberList,
+      member_ids: [...participants],
       expense_date: day || null,
-      // Always record the entered total: the server keeps it as-is for an unfinished
-      // expense (no payers) and otherwise re-derives it from the payer sum (== total).
       total_price: totalNum,
-      // Link a freshly-created expense to its booking (create-from-booking flow).
+      note: splitMode === 'ticket' ? 'TICKETJSON:' + JSON.stringify({
+        items: ticketItems.map(item => ({
+          name: item.name,
+          price: item.price,
+          parts: [...item.participants]
+        }))
+      }) : null,
       ...(!editing && prefill?.reservationId ? { reservation_id: prefill.reservationId } : {}),
     }
     try {
       if (editing) await updateBudgetItem(tripId, editing.id, data)
       else await addBudgetItem(tripId, data)
       onSaved()
-    } catch { toast.error(t('common.unknownError')) } finally { setSaving(false) }
+    } catch {
+      toast.error(t('common.unknownError'))
+    } finally {
+      setSaving(false)
+    }
   }
 
   const inputCls = 'w-full bg-surface-input border border-edge text-content'
@@ -906,10 +1071,11 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
 
         <div>
           <label className={labelCls}>{t('costs.totalAmount')}</label>
-          <div className="bg-surface-input border border-edge" style={{ height: FIELD_H, boxSizing: 'border-box', display: 'flex', alignItems: 'center', borderRadius: 10, padding: '0 12px' }}>
+          <div className="bg-surface-input border border-edge" style={{ height: FIELD_H, boxSizing: 'border-box', display: 'flex', alignItems: 'center', borderRadius: 10, padding: '0 12px', opacity: isTicketMode ? 0.6 : 1 }}>
             <span className="text-content-faint" style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))' }}>{sym(currency)}</span>
-            <input type="text" inputMode="decimal" placeholder="0.00" value={total}
+            <input type="text" inputMode="decimal" placeholder="0.00" value={isTicketMode ? ticketInfo.total.toFixed(2) : total}
               onChange={e => onTotalChange(e.target.value)}
+              disabled={isTicketMode}
               className="text-content" style={{ flex: 1, border: 0, background: 'none', outline: 'none', fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600, paddingLeft: 6, width: '100%' }} />
           </div>
         </div>
@@ -954,39 +1120,164 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
 
         <div>
           <label className={labelCls}>{t('costs.whoPaid')}</label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-            {people.map((p, idx) => {
-              const on = participants.has(p.id)
-              return (
-                <div key={p.id} className="bg-surface-secondary border border-edge" style={{ display: 'grid', gridTemplateColumns: '1fr 130px', gap: 10, alignItems: 'center', padding: '8px 11px', borderRadius: 10, opacity: on ? 1 : 0.5 }}>
-                  <button onClick={() => toggleParticipant(p.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'none', border: 0, cursor: 'pointer', fontFamily: 'inherit', padding: 0, minWidth: 0, textAlign: 'left' }}>
-                    {p.avatar_url
-                      ? <img src={p.avatar_url} alt="" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', display: 'block', flexShrink: 0, opacity: on ? 1 : 0.45 }} />
-                      : <span style={{ width: 22, height: 22, borderRadius: '50%', background: SPLIT_COLORS[idx % SPLIT_COLORS.length].gradient, color: '#fff', display: 'grid', placeItems: 'center', fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 700, flexShrink: 0, opacity: on ? 1 : 0.45 }}>{(p.id === me ? t('costs.youShort') : p.username.charAt(0)).toUpperCase()}</span>}
-                    <span className="text-content" style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.id === me ? t('costs.you') : p.username}</span>
-                  </button>
-                  {on ? (
-                    <div className="bg-surface-input border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 4, borderRadius: 8, padding: '0 10px' }}>
-                      <span className="text-content-faint" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>{sym(currency)}</span>
-                      <input type="text" inputMode="decimal" placeholder="0.00" value={paid[p.id] || ''}
-                        onChange={e => onPaidChange(p.id, e.target.value)}
-                        className="text-content" style={{ width: '100%', border: 0, background: 'none', outline: 'none', fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600, padding: '8px 0', textAlign: 'right' }} />
+          <CustomSelect value={String(payerId)} onChange={v => setPayerId(Number(v))}
+            options={[
+              { value: '0', label: t('costs.noOnePaid') || 'Nobody (planning entry)' },
+              ...people.map(p => ({ value: String(p.id), label: p.id === me ? t('costs.you') : p.username }))
+            ]}
+            style={{ width: '100%' }} />
+        </div>
+
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <label className={labelCls}>{t('costs.split') || 'Split'}</label>
+            <div className="bg-surface-secondary" style={{ display: 'flex', borderRadius: 8, padding: 2 }}>
+              <button type="button" onClick={() => setSplitMode('equally')}
+                className={splitMode === 'equally' ? 'bg-surface-card text-content' : 'text-content-muted'}
+                style={{ padding: '4px 10px', fontSize: 11.5, borderRadius: 6, fontWeight: 600, border: 0, cursor: 'pointer', fontFamily: 'inherit' }}>
+                {t('costs.splitEqually') || 'Equally'}
+              </button>
+              <button type="button" onClick={() => setSplitMode('custom')}
+                className={splitMode === 'custom' ? 'bg-surface-card text-content' : 'text-content-muted'}
+                style={{ padding: '4px 10px', fontSize: 11.5, borderRadius: 6, fontWeight: 600, border: 0, cursor: 'pointer', fontFamily: 'inherit' }}>
+                {t('costs.splitCustom') || 'Custom'}
+              </button>
+              <button type="button" onClick={() => setSplitMode('ticket')}
+                className={splitMode === 'ticket' ? 'bg-surface-card text-content' : 'text-content-muted'}
+                style={{ padding: '4px 10px', fontSize: 11.5, borderRadius: 6, fontWeight: 600, border: 0, cursor: 'pointer', fontFamily: 'inherit' }}>
+                {t('costs.splitTicket') || 'Ticket'}
+              </button>
+            </div>
+          </div>
+          {splitMode === 'ticket' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {ticketItems.map((item, itemIdx) => (
+                  <div key={item.id} className="bg-surface-secondary border border-edge" style={{ padding: 10, borderRadius: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        placeholder="Item name"
+                        value={item.name}
+                        onChange={e => handleUpdateItemName(item.id, e.target.value)}
+                        className="bg-surface-input border border-edge text-content"
+                        style={{ flex: 2, padding: '6px 10px', borderRadius: 8, fontSize: 13, border: '1px solid var(--border-color)', outline: 'none' }}
+                      />
+                      <div className="bg-surface-input border border-edge" style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '0 8px', borderRadius: 8 }}>
+                        <span className="text-content-faint" style={{ fontSize: 12 }}>{sym(currency)}</span>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="0.00"
+                          value={item.price}
+                          onChange={e => handleUpdateItemPrice(item.id, e.target.value)}
+                          className="text-content"
+                          style={{ width: '100%', border: 0, background: 'none', outline: 'none', fontSize: 13, fontWeight: 600, textAlign: 'right', padding: '6px 0' }}
+                        />
+                      </div>
+                      <button type="button" onClick={() => handleRemoveItem(item.id)} className="text-content-muted" style={{ background: 'none', border: 0, cursor: 'pointer', padding: 4 }}>
+                        <Trash2 size={15} />
+                      </button>
                     </div>
-                  ) : (
-                    <button onClick={() => toggleParticipant(p.id)} className="text-content-faint" style={{ background: 'none', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'calc(12px * var(--fs-scale-body, 1))', textAlign: 'right' }}>{t('costs.tapToInclude')}</button>
-                  )}
+
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center' }}>
+                      <span className="text-content-faint" style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', marginRight: 4 }}>Splitting:</span>
+                      {people.map((p, pIdx) => {
+                        const active = item.participants.has(p.id)
+                        return (
+                          <button
+                            type="button"
+                            key={p.id}
+                            onClick={() => handleToggleItemParticipant(item.id, p.id)}
+                            className={active ? 'bg-surface-card text-content border' : 'bg-surface-secondary text-content-muted border border-edge'}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 999, fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', border: active ? '1px solid var(--text-primary)' : undefined }}
+                          >
+                            {p.avatar_url
+                              ? <img src={p.avatar_url} alt="" style={{ width: 14, height: 14, borderRadius: '50%', objectFit: 'cover' }} />
+                              : <span style={{ width: 14, height: 14, borderRadius: '50%', background: SPLIT_COLORS[pIdx % SPLIT_COLORS.length].gradient, color: '#fff', display: 'grid', placeItems: 'center', fontSize: 7, fontWeight: 700 }}>{(p.id === me ? t('costs.youShort') : p.username.charAt(0)).toUpperCase()}</span>}
+                            <span>{p.id === me ? t('costs.you') : p.username}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button type="button" onClick={handleAddEmptyItem} className="border border-dashed border-edge text-content-muted" style={{ padding: '8px 12px', borderRadius: 10, background: 'none', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <Plus size={14} /> Add item
+              </button>
+
+              {ticketItems.length > 0 && (
+                <div className="bg-surface-secondary border border-edge" style={{ padding: 12, borderRadius: 10 }}>
+                  <div className="text-content" style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>Individual Shares Summary</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {people.map(p => {
+                      const share = ticketInfo.shares[p.id] || 0
+                      return (
+                        <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                          <span className="text-content-muted">{p.id === me ? t('costs.you') : p.username}</span>
+                          <span className="text-content" style={{ fontWeight: 600 }}>{sym(currency)}{share.toFixed(2)}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
-              )
-            })}
-          </div>
-          <div style={{ marginTop: 10, fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-            <span className="text-content-faint">
-              {participants.size > 0 && t('costs.splitSummary', { count: participants.size, amount: sym(currency) + each.toFixed(2) })}
-            </span>
-            {paidEntered
-              ? <span style={{ fontWeight: 600, color: balanced ? '#16a34a' : '#dc2626' }}>{sym(currency)}{paidSum.toFixed(2)} / {sym(currency)}{totalNum.toFixed(2)}</span>
-              : (totalNum > 0 && <span style={{ color: '#d97706', fontWeight: 600 }}>{t('costs.unfinishedHint')}</span>)}
-          </div>
+              )}
+            </div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                {people.map((p, idx) => {
+                  const on = participants.has(p.id)
+                  return (
+                    <div key={p.id} className="bg-surface-secondary border border-edge" style={{ display: 'grid', gridTemplateColumns: '1fr 130px', gap: 10, alignItems: 'center', padding: '8px 11px', borderRadius: 10, opacity: on ? 1 : 0.5 }}>
+                      <button type="button" onClick={() => toggleParticipant(p.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'none', border: 0, cursor: 'pointer', fontFamily: 'inherit', padding: 0, minWidth: 0, textAlign: 'left' }}>
+                        {p.avatar_url
+                          ? <img src={p.avatar_url} alt="" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', display: 'block', flexShrink: 0, opacity: on ? 1 : 0.45 }} />
+                          : <span style={{ width: 22, height: 22, borderRadius: '50%', background: SPLIT_COLORS[idx % SPLIT_COLORS.length].gradient, color: '#fff', display: 'grid', placeItems: 'center', fontSize: 9, fontWeight: 700, flexShrink: 0, opacity: on ? 1 : 0.45 }}>{(p.id === me ? t('costs.youShort') : p.username.charAt(0)).toUpperCase()}</span>}
+                        <span className="text-content" style={{ fontSize: 14, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.id === me ? t('costs.you') : p.username}</span>
+                      </button>
+                      {splitMode === 'equally' ? (
+                        on ? (
+                          <span className="text-content" style={{ fontSize: 14, fontWeight: 600, textAlign: 'right', paddingRight: 10 }}>
+                            {sym(currency)}{(equalShares[p.id] || 0).toFixed(2)}
+                          </span>
+                        ) : (
+                          <span className="text-content-faint" style={{ fontSize: 12, textAlign: 'right', paddingRight: 10 }}>Excluded</span>
+                        )
+                      ) : (
+                        on ? (
+                          <div className="bg-surface-input border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 4, borderRadius: 8, padding: '0 10px' }}>
+                            <span className="text-content-faint" style={{ fontSize: 13 }}>{sym(currency)}</span>
+                            <input type="text" inputMode="decimal" placeholder={(placeholderShares[p.id] || 0).toFixed(2)} value={customAmounts[p.id] || ''}
+                              onChange={e => handleCustomAmountChange(p.id, e.target.value)}
+                              className="text-content" style={{ width: '100%', border: 0, background: 'none', outline: 'none', fontSize: 14, fontWeight: 600, padding: '8px 0', textAlign: 'right' }} />
+                          </div>
+                        ) : (
+                          <button type="button" onClick={() => toggleParticipant(p.id)} className="text-content-faint" style={{ background: 'none', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, textAlign: 'right' }}>{t('costs.tapToInclude')}</button>
+                        )
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              <div style={{ marginTop: 10, fontSize: 12.5, display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                {splitMode === 'equally' ? (
+                  <span className="text-content-faint">
+                    {participants.size > 0 && t('costs.splitSummary', { count: participants.size, amount: sym(currency) + each.toFixed(2) })}
+                  </span>
+                ) : (
+                  <span style={{ fontWeight: 600, color: customBalanced ? '#16a34a' : '#dc2626' }}>
+                    {customBalanced 
+                      ? 'Split matches total' 
+                      : `Sum of splits: ${sym(currency)}${splitSum.toFixed(2)} of ${sym(currency)}${totalNum.toFixed(2)} (${(totalNum - splitSum) > 0 ? 'under by' : 'over by'} ${sym(currency)}${Math.abs(totalNum - splitSum).toFixed(2)})`}
+                  </span>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </Modal>

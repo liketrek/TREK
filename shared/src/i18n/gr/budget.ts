@@ -117,6 +117,9 @@ const budget: TranslationStrings = {
   'costs.unfinishedHint': 'Μόνο στο σύνολο — δεν έχει διακανονιστεί',
   'costs.tapToInclude': 'Πατήστε για προσθήκη',
   'costs.amount': 'Ποσό',
+  'costs.split': "Split",
+  'costs.splitEqually': "Equally",
+  'costs.splitCustom': "Custom",
+  'costs.splitTicket': "Ticket",
 };
-
 export default budget;

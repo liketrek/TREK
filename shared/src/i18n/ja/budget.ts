@@ -116,6 +116,9 @@ const budget: TranslationStrings = {
   'costs.unfinishedHint': '合計のみ — 未精算',
   'costs.tapToInclude': 'タップして追加',
   'costs.amount': '金額',
+  'costs.split': "Split",
+  'costs.splitEqually': "Equally",
+  'costs.splitCustom': "Custom",
+  'costs.splitTicket': "Ticket",
 };
-
 export default budget;

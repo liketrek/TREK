@@ -11,7 +11,7 @@ export { verifyTripAccess } from './tripAccess';
 
 function loadItemMembers(itemId: number | string) {
   const rows = db.prepare(`
-    SELECT bm.user_id, bm.paid, u.username, u.avatar
+    SELECT bm.user_id, bm.paid, bm.amount, u.username, u.avatar
     FROM budget_item_members bm
     JOIN users u ON bm.user_id = u.id
     WHERE bm.budget_item_id = ?
@@ -60,7 +60,7 @@ export function listBudgetItems(tripId: string | number) {
 
   if (itemIds.length > 0) {
     const allMembers = db.prepare(`
-      SELECT bm.budget_item_id, bm.user_id, bm.paid, u.username, u.avatar
+      SELECT bm.budget_item_id, bm.user_id, bm.paid, bm.amount, u.username, u.avatar
       FROM budget_item_members bm
       JOIN users u ON bm.user_id = u.id
       WHERE bm.budget_item_id IN (${itemIds.map(() => '?').join(',')})
@@ -69,7 +69,7 @@ export function listBudgetItems(tripId: string | number) {
     for (const m of allMembers) {
       if (!membersByItem[m.budget_item_id]) membersByItem[m.budget_item_id] = [];
       membersByItem[m.budget_item_id].push({
-        user_id: m.user_id, paid: m.paid, username: m.username, avatar_url: avatarUrl(m),
+        user_id: m.user_id, paid: m.paid, username: m.username, avatar_url: avatarUrl(m), amount: m.amount,
       });
     }
   }
@@ -104,6 +104,7 @@ export function createBudgetItem(
     category?: string; name: string; total_price?: number;
     currency?: string | null; exchange_rate?: number;
     payers?: { user_id: number; amount: number }[]; member_ids?: number[];
+    members?: { user_id: number; amount?: number | null }[];
     persons?: number | null; days?: number | null; note?: string | null; expense_date?: string | null;
     reservation_id?: number | null;
   },
@@ -147,8 +148,11 @@ export function createBudgetItem(
 
   const itemId = result.lastInsertRowid as number;
   if (data.payers && data.payers.length > 0) writeItemPayers(itemId, data.payers);
-  if (data.member_ids && data.member_ids.length > 0) {
-    const insert = db.prepare('INSERT OR IGNORE INTO budget_item_members (budget_item_id, user_id, paid) VALUES (?, ?, 0)');
+  if (data.members && data.members.length > 0) {
+    const insert = db.prepare('INSERT OR IGNORE INTO budget_item_members (budget_item_id, user_id, paid, amount) VALUES (?, ?, 0, ?)');
+    for (const m of data.members) insert.run(itemId, m.user_id, m.amount !== undefined && m.amount !== null ? m.amount : null);
+  } else if (data.member_ids && data.member_ids.length > 0) {
+    const insert = db.prepare('INSERT OR IGNORE INTO budget_item_members (budget_item_id, user_id, paid, amount) VALUES (?, ?, 0, NULL)');
     for (const uid of data.member_ids) insert.run(itemId, uid);
   }
 
@@ -185,6 +189,7 @@ export function updateBudgetItem(
     category?: string; name?: string; total_price?: number;
     currency?: string | null; exchange_rate?: number;
     payers?: { user_id: number; amount: number }[]; member_ids?: number[];
+    members?: { user_id: number; amount?: number | null }[];
     persons?: number | null; days?: number | null; note?: string | null; sort_order?: number; expense_date?: string | null;
   },
 ) {
@@ -228,9 +233,14 @@ export function updateBudgetItem(
       db.prepare('UPDATE budget_items SET total_price = ? WHERE id = ?').run(data.total_price, id);
     }
   }
-  if (data.member_ids !== undefined) {
+  if (data.members !== undefined) {
     db.prepare('DELETE FROM budget_item_members WHERE budget_item_id = ?').run(id);
-    const insert = db.prepare('INSERT OR IGNORE INTO budget_item_members (budget_item_id, user_id, paid) VALUES (?, ?, 0)');
+    const insert = db.prepare('INSERT OR IGNORE INTO budget_item_members (budget_item_id, user_id, paid, amount) VALUES (?, ?, 0, ?)');
+    for (const m of data.members) insert.run(id, m.user_id, m.amount !== undefined && m.amount !== null ? m.amount : null);
+    db.prepare('UPDATE budget_items SET persons = ? WHERE id = ?').run(data.members.length || null, id);
+  } else if (data.member_ids !== undefined) {
+    db.prepare('DELETE FROM budget_item_members WHERE budget_item_id = ?').run(id);
+    const insert = db.prepare('INSERT OR IGNORE INTO budget_item_members (budget_item_id, user_id, paid, amount) VALUES (?, ?, 0, NULL)');
     for (const uid of data.member_ids) insert.run(id, uid);
     db.prepare('UPDATE budget_items SET persons = ? WHERE id = ?').run(data.member_ids.length || null, id);
   }
@@ -323,8 +333,8 @@ export function toggleMemberPaid(id: string | number, tripId: string | number, u
 export function getPerPersonSummary(tripId: string | number) {
   const summary = db.prepare(`
     SELECT bm.user_id, u.username, u.avatar,
-      SUM(bi.total_price * 1.0 / (SELECT COUNT(*) FROM budget_item_members WHERE budget_item_id = bi.id)) as total_assigned,
-      SUM(CASE WHEN bm.paid = 1 THEN bi.total_price * 1.0 / (SELECT COUNT(*) FROM budget_item_members WHERE budget_item_id = bi.id) ELSE 0 END) as total_paid,
+      SUM(COALESCE(bm.amount, bi.total_price * 1.0 / (SELECT COUNT(*) FROM budget_item_members WHERE budget_item_id = bi.id))) as total_assigned,
+      SUM(CASE WHEN bm.paid = 1 THEN COALESCE(bm.amount, bi.total_price * 1.0 / (SELECT COUNT(*) FROM budget_item_members WHERE budget_item_id = bi.id)) ELSE 0 END) as total_paid,
       COUNT(bi.id) as items_count
     FROM budget_item_members bm
     JOIN budget_items bi ON bm.budget_item_id = bi.id
@@ -336,9 +346,26 @@ export function getPerPersonSummary(tripId: string | number) {
   return summary.map(s => ({ ...s, avatar_url: avatarUrl(s) }));
 }
 
-// ---------------------------------------------------------------------------
-// Settlement calculation (greedy debt matching)
-// ---------------------------------------------------------------------------
+export function splitEqualShares(total: number, members: { user_id: number }[], itemId: number): Record<number, number> {
+  const n = members.length;
+  if (n === 0) return {};
+
+  const totalCents = Math.round(total * 100);
+  const baseCents = Math.floor(totalCents / n);
+  const remainder = totalCents % n;
+
+  const shares: Record<number, number> = {};
+  const sortedMembers = [...members].sort((a, b) => a.user_id - b.user_id);
+  const startIndex = itemId % n;
+
+  for (let i = 0; i < n; i++) {
+    const member = sortedMembers[i];
+    const hasExtraCent = ((i - startIndex + n) % n) < remainder;
+    shares[member.user_id] = (baseCents + (hasExtraCent ? 1 : 0)) / 100;
+  }
+
+  return shares;
+}
 
 export function calculateSettlement(
   tripId: string | number,
@@ -392,13 +419,19 @@ export function calculateSettlement(
     const payers = allPayers.filter(p => p.budget_item_id === item.id);
     if (members.length === 0) continue; // planning-only entry → doesn't affect balances
 
-    const paidBase = payers.reduce((a, p) => a + toBase(p.amount > 0 ? p.amount : 0, item.currency, item.exchange_rate), 0);
-    const sharePerMember = paidBase / members.length;
-
-    // Payers are credited what they actually paid (converted to base)…
+    // Payers are credited what they actually paid (converted to base with the
+    // item's stored exchange rate)…
     for (const p of payers) ensure(p.user_id, p).balance += toBase(p.amount > 0 ? p.amount : 0, item.currency, item.exchange_rate);
-    // …and every split participant owes an equal share of the base total.
-    for (const m of members) ensure(m.user_id, m).balance -= sharePerMember;
+    // …and each split participant owes their share — a custom per-member amount
+    // when one is set, otherwise an equal share of the expense total.
+    const hasCustomSplit = members.some(m => m.amount !== null && m.amount !== undefined);
+    const equalShares = !hasCustomSplit ? splitEqualShares(item.total_price, members, item.id) : {};
+    for (const m of members) {
+      const memberShare = hasCustomSplit && m.amount !== null && m.amount !== undefined
+        ? toBase(m.amount, item.currency, item.exchange_rate)
+        : toBase(equalShares[m.user_id] || 0, item.currency, item.exchange_rate);
+      ensure(m.user_id, m).balance -= memberShare;
+    }
   }
 
   // Persisted settle-up transfers already moved money: the payer's debt shrinks,

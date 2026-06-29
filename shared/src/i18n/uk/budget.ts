@@ -116,6 +116,9 @@ const budget: TranslationStrings = {
   'costs.unfinishedHint': 'Лише в сумі — ще не врегульовано',
   'costs.tapToInclude': 'Натисніть, щоб додати',
   'costs.amount': 'Сума',
+  'costs.split': "Split",
+  'costs.splitEqually': "Equally",
+  'costs.splitCustom': "Custom",
+  'costs.splitTicket': "Ticket",
 };
-
 export default budget;

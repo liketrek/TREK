@@ -12,8 +12,8 @@ type GetState = StoreApi<TripStoreState>['getState']
 
 export interface BudgetSlice {
   loadBudgetItems: (tripId: number | string) => Promise<void>
-  addBudgetItem: (tripId: number | string, data: Partial<BudgetItem>) => Promise<BudgetItem>
-  updateBudgetItem: (tripId: number | string, id: number, data: Partial<BudgetItem>) => Promise<BudgetItem>
+  addBudgetItem: (tripId: number | string, data: BudgetCreateItemRequest) => Promise<BudgetItem>
+  updateBudgetItem: (tripId: number | string, id: number, data: BudgetUpdateItemRequest) => Promise<BudgetItem>
   deleteBudgetItem: (tripId: number | string, id: number) => Promise<void>
   setBudgetItemMembers: (tripId: number | string, itemId: number, userIds: number[]) => Promise<{ members: BudgetItemMember[]; item: BudgetItem }>
   toggleBudgetMemberPaid: (tripId: number | string, itemId: number, userId: number, paid: boolean) => Promise<void>
@@ -33,7 +33,7 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
 
   addBudgetItem: async (tripId, data) => {
     try {
-      const result = await budgetApi.create(tripId, data as BudgetCreateItemRequest)
+      const result = await budgetApi.create(tripId, data)
       set(state => ({ budgetItems: [...state.budgetItems, result.item] }))
       return result.item
     } catch (err: unknown) {
@@ -43,7 +43,7 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
 
   updateBudgetItem: async (tripId, id, data) => {
     try {
-      const result = await budgetApi.update(tripId, id, data as BudgetUpdateItemRequest)
+      const result = await budgetApi.update(tripId, id, data)
       set(state => ({
         budgetItems: state.budgetItems.map(item => item.id === id ? result.item : item)
       }))

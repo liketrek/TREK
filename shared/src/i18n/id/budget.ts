@@ -116,6 +116,9 @@ const budget: TranslationStrings = {
   'costs.unfinishedHint': 'Hanya total — belum diselesaikan',
   'costs.tapToInclude': 'Ketuk untuk menyertakan',
   'costs.amount': 'Jumlah',
+  'costs.split': "Split",
+  'costs.splitEqually': "Equally",
+  'costs.splitCustom': "Custom",
+  'costs.splitTicket': "Ticket",
 };
-
 export default budget;

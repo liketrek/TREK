@@ -115,6 +115,9 @@ const budget: TranslationStrings = {
   'costs.unfinishedHint': '仅计入总额 — 尚未结算',
   'costs.tapToInclude': '点按以加入',
   'costs.amount': '金额',
+  'costs.split': "Split",
+  'costs.splitEqually': "Equally",
+  'costs.splitCustom': "Custom",
+  'costs.splitTicket': "Ticket",
 };
-
 export default budget;

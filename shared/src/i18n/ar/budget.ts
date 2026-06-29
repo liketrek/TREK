@@ -116,6 +116,9 @@ const budget: TranslationStrings = {
   'costs.unfinishedHint': 'في الإجمالي فقط — لم تتم التسوية بعد',
   'costs.tapToInclude': 'اضغط للتضمين',
   'costs.amount': 'المبلغ',
+  'costs.split': "Split",
+  'costs.splitEqually': "Equally",
+  'costs.splitCustom': "Custom",
+  'costs.splitTicket': "Ticket",
 };
-
 export default budget;

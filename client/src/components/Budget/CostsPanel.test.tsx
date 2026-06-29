@@ -91,7 +91,7 @@ describe('CostsPanel — settlements in the ledger', () => {
     expect(screen.getByText('Dinner')).toBeInTheDocument()
   })
 
-  it('auto-splits the total across participants and rebalances a pinned amount on save', async () => {
+  it('supports custom split amounts on save', async () => {
     let posted: Record<string, unknown> | null = null
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
@@ -108,18 +108,22 @@ describe('CostsPanel — settlements in the ledger', () => {
     await user.click(await screen.findByRole('button', { name: 'Add expense' }))
     await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Dinner')
     const nums = () => screen.getAllByPlaceholderText('0.00') as HTMLInputElement[]
-    await user.type(nums()[0], '100') // total → auto equal-split across the 2 participants
-    await waitFor(() => expect(nums()[1].value).toBe('50'))
-    expect(nums()[2].value).toBe('50')
-    // Pin the first participant to 30 → the other non-pinned field rebalances to 70.
-    await user.clear(nums()[1]); await user.type(nums()[1], '30')
-    await waitFor(() => expect(nums()[2].value).toBe('70'))
+    await user.type(nums()[0], '100') // total = 100
+
+    await user.click(screen.getByRole('button', { name: /Custom/i }))
+
+    const customInputs = screen.getAllByPlaceholderText('50.00')
+    await user.type(customInputs[0], '30')
+    await user.type(customInputs[1], '70')
 
     const addBtns = screen.getAllByRole('button', { name: 'Add expense' })
     await user.click(addBtns[addBtns.length - 1]) // footer submit
     await waitFor(() => expect(posted).toBeTruthy())
     expect(posted!.total_price).toBe(100)
-    expect(posted!.payers).toEqual(expect.arrayContaining([
+    expect(posted!.payers).toEqual([
+      expect.objectContaining({ amount: 100 })
+    ])
+    expect(posted!.members).toEqual(expect.arrayContaining([
       expect.objectContaining({ user_id: 1, amount: 30 }),
       expect.objectContaining({ user_id: 2, amount: 70 }),
     ]))
@@ -193,5 +197,61 @@ describe('CostsPanel — settlements in the ledger', () => {
     expect(posted!.total_price).toBe(120)
     expect(posted!.member_ids).toEqual([])
     expect(posted!.payers).toEqual([])
+  })
+
+  it('supports itemized receipt ticket manual entry and split assignment', async () => {
+    let posted: Record<string, unknown> | null = null
+    server.use(
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
+      http.post('/api/trips/1/budget', async ({ request }) => {
+        posted = await request.json() as Record<string, unknown>
+        return HttpResponse.json({ item: { ...buildBudgetItem({ trip_id: 1, name: 'Dinner' }), id: 10 } })
+      }),
+    )
+    const { default: userEvent } = await import('@testing-library/user-event')
+    const user = userEvent.setup()
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+
+    await user.click(await screen.findByRole('button', { name: 'Add expense' }))
+    await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Dinner')
+
+    await user.click(screen.getByRole('button', { name: 'Ticket' }))
+
+    const addBtn = screen.getByRole('button', { name: /Add item/i })
+    await user.click(addBtn)
+    await user.click(addBtn)
+    await user.click(addBtn)
+
+    const itemNames = screen.getAllByPlaceholderText('Item name')
+    const itemPrices = screen.getAllByPlaceholderText('0.00')
+    
+    await user.type(itemNames[0], 'Apples')
+    await user.type(itemPrices[1], '10')
+
+    await user.type(itemNames[1], 'chocolate cake')
+    await user.type(itemPrices[2], '50')
+    const bobButtons = screen.getAllByRole('button', { name: /bob/i })
+    await user.click(bobButtons[1])
+
+    await user.type(itemNames[2], 'Milk')
+    await user.type(itemPrices[3], '40')
+
+    expect(screen.getByDisplayValue('100.00')).toBeDisabled()
+
+    expect(screen.getByText('Individual Shares Summary')).toBeInTheDocument()
+    expect(screen.getByText(/75\.00/)).toBeInTheDocument()
+    expect(screen.getByText(/25\.00/)).toBeInTheDocument()
+
+    const addBtns = screen.getAllByRole('button', { name: 'Add expense' })
+    await user.click(addBtns[addBtns.length - 1])
+
+    await waitFor(() => expect(posted).toBeTruthy())
+    expect(posted!.total_price).toBe(100)
+    expect(posted!.members).toEqual(expect.arrayContaining([
+      expect.objectContaining({ user_id: 1, amount: 75 }),
+      expect.objectContaining({ user_id: 2, amount: 25 }),
+    ]))
+    expect(posted!.note).toContain('TICKETJSON:')
   })
 })

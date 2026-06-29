@@ -116,6 +116,9 @@ const budget: TranslationStrings = {
   'costs.unfinishedHint': '합계에만 반영 — 아직 미정산',
   'costs.tapToInclude': '탭하여 포함',
   'costs.amount': '금액',
+  'costs.split': "Split",
+  'costs.splitEqually': "Equally",
+  'costs.splitCustom': "Custom",
+  'costs.splitTicket': "Ticket",
 };
-
 export default budget;

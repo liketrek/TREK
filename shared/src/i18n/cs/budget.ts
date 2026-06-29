@@ -116,6 +116,9 @@ const budget: TranslationStrings = {
   'costs.unfinishedHint': 'Jen v součtu — zatím nevyrovnáno',
   'costs.tapToInclude': 'Klepnutím zahrnout',
   'costs.amount': 'Částka',
+  'costs.split': "Split",
+  'costs.splitEqually': "Equally",
+  'costs.splitCustom': "Custom",
+  'costs.splitTicket': "Ticket",
 };
-
 export default budget;
