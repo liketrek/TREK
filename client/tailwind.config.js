@@ -58,12 +58,38 @@ export default {
         accent: {
           DEFAULT: 'var(--accent)',
           text: 'var(--accent-text)',
+          on: 'var(--accent-on)',
+          hover: 'var(--accent-hover)',
+          subtle: 'var(--accent-subtle)',
         },
+        // Semantic status colors (+ soft tinted background variant).
+        success: { DEFAULT: 'var(--success)', soft: 'var(--success-soft)' },
+        danger: { DEFAULT: 'var(--danger)', soft: 'var(--danger-soft)' },
+        warning: { DEFAULT: 'var(--warning)', soft: 'var(--warning-soft)' },
+        info: { DEFAULT: 'var(--info)', soft: 'var(--info-soft)' },
+        // Inverse surface (the near-black/near-white "pill" header pattern).
+        inverse: { DEFAULT: 'var(--bg-inverse)', text: 'var(--text-inverse)' },
       },
       boxShadow: {
         'day-column': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
         'place-card': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
         'drag-overlay': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+        // Token-backed elevation (scheme/dark aware) — for migrating inline rgba shadows.
+        'card': 'var(--shadow-card)',
+        'elevated': 'var(--shadow-elevated)',
+        'modal': 'var(--shadow-modal)',
+        'dropdown': 'var(--shadow-dropdown)',
+        'popover': 'var(--shadow-popover)',
+      },
+      // Semantic type tiers — each scales with its own user multiplier (defaults
+      // to 1). Use text-title/subtitle/body/caption for headings/labels so the
+      // appearance "text size" control reaches them; the global fontScale (root
+      // font-size) additionally scales all rem-based text.
+      fontSize: {
+        title: ['calc(1.5rem * var(--fs-scale-title, 1))', '1.2'],
+        subtitle: ['calc(1.125rem * var(--fs-scale-subtitle, 1))', '1.35'],
+        body: ['calc(0.875rem * var(--fs-scale-body, 1))', '1.5'],
+        caption: ['calc(0.75rem * var(--fs-scale-caption, 1))', '1.4'],
       },
     },
   },

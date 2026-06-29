@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>TREK</title>
 
+    <!-- Pre-paint appearance (FOUC fix). External classic script so it runs
+         before first paint AND complies with the prod CSP (script-src 'self'). -->
+    <script src="/theme-boot.js"></script>
+
     <!-- PWA / iOS -->
     <meta name="theme-color" content="#09090b" />
     <meta name="apple-mobile-web-app-capable" content="yes" />

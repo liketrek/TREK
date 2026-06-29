@@ -2,6 +2,7 @@ import React, { useEffect, ReactNode } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
 import { useSettingsStore } from './store/settingsStore'
+import { applyAppearance } from './theme/applyAppearance'
 import { useAddonStore } from './store/addonStore'
 import LoginPage from './pages/LoginPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
@@ -175,30 +176,21 @@ export default function App() {
   const isSharedPage = location.pathname.startsWith('/shared/')
 
   useEffect(() => {
-    // Shared page always forces light mode
-    if (isSharedPage) {
-      document.documentElement.classList.remove('dark')
-      const meta = document.querySelector('meta[name="theme-color"]')
-      if (meta) meta.setAttribute('content', '#ffffff')
-      return
-    }
-
-    const mode = settings.dark_mode
-    const applyDark = (isDark: boolean) => {
-      document.documentElement.classList.toggle('dark', isDark)
-      const meta = document.querySelector('meta[name="theme-color"]')
-      if (meta) meta.setAttribute('content', isDark ? '#09090b' : '#ffffff')
-    }
-
-    if (mode === 'auto') {
+    const run = () =>
+      applyAppearance({
+        darkMode: settings.dark_mode,
+        appearance: settings.appearance,
+        isSharedPage,
+      })
+    run()
+    // Re-resolve on OS theme change while in auto mode.
+    if (!isSharedPage && settings.dark_mode === 'auto') {
       const mq = window.matchMedia('(prefers-color-scheme: dark)')
-      applyDark(mq.matches)
-      const handler = (e: MediaQueryListEvent) => applyDark(e.matches)
+      const handler = () => run()
       mq.addEventListener('change', handler)
       return () => mq.removeEventListener('change', handler)
     }
-    applyDark(mode === true || mode === 'dark')
-  }, [settings.dark_mode, isSharedPage])
+  }, [settings.dark_mode, settings.appearance, isSharedPage])
 
   const isAuthPage = location.pathname.startsWith('/login')
     || location.pathname.startsWith('/register')
