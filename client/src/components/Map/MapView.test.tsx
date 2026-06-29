@@ -244,4 +244,22 @@ describe('MapView', () => {
     rerender(<MapView places={places} fitKey={2} />)
     expect(mapMock.fitBounds.mock.calls.length).toBeGreaterThan(afterFirst)
   })
+
+  it('FE-COMP-MAPVIEW-020: a day fit expands to include the route once it arrives (#1128)', async () => {
+    const L = ((await import('leaflet')).default) as unknown as { latLngBounds: ReturnType<typeof vi.fn> }
+    const dayPlaces = [
+      buildMapPlace({ id: 1, lat: 48.0, lng: 2.0 }),
+      buildMapPlace({ id: 2, lat: 48.1, lng: 2.1 }),
+    ]
+    // Day selected, route not computed yet → first fit is the two destinations.
+    const { rerender } = render(<MapView places={dayPlaces} dayPlaces={dayPlaces} route={[]} fitKey={5} />)
+    const lastBounds = () => { const c = L.latLngBounds.mock.calls; return c[c.length - 1][0] }
+    expect(lastBounds()).toHaveLength(2)
+
+    // The day's route arrives → one-shot re-fit including the 3 route points.
+    L.latLngBounds.mockClear()
+    rerender(<MapView places={dayPlaces} dayPlaces={dayPlaces} route={[[[47.9, 1.9], [48.05, 2.05], [48.2, 2.2]]]} fitKey={5} />)
+    expect(L.latLngBounds).toHaveBeenCalled()
+    expect(lastBounds()).toHaveLength(5) // 2 destinations + 3 route points
+  })
 })
