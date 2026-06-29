@@ -753,6 +753,12 @@ html[data-no-transparency] .trek-dash {
   --glass-blur: none;
   --glass-highlight: none;
 }
+/* The boarding-pass hero ticket uses its own translucent gradient (not the glass
+   tokens) — force it solid. */
+html[data-no-transparency] .trek-dash .hero-pass {
+  background: var(--surface, var(--bg-card)) !important;
+}
+html[data-no-transparency] .trek-dash .hero-pass::before { display: none !important; }
 html[data-no-transparency] *,
 html[data-no-transparency] *::before,
 html[data-no-transparency] *::after {
