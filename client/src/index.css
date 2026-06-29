@@ -490,6 +490,35 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --scrollbar-thumb: #d1d5db;
   --scrollbar-hover: #9ca3af;
 
+  /* ── Extended semantic tokens (appearance platform) ──────────────
+     Accent variants + status/shadow/overlay/inverse + per-tier type scales.
+     Additive: nothing consumes these until components migrate to them, so
+     defining them is visually inert. Colored schemes override --accent* via
+     [data-scheme]; status/shadow/inverse stay scheme-independent. */
+  --accent-on: var(--accent);       /* accent as text/icon/border on a surface */
+  --accent-hover: #1f2937;          /* hover state of an accent fill */
+  --accent-subtle: #f1f5f9;         /* faint accent-tinted surface (chips, selected) */
+
+  --fs-scale-title: 1;
+  --fs-scale-subtitle: 1;
+  --fs-scale-body: 1;
+  --fs-scale-caption: 1;
+
+  --success: #16a34a;  --success-soft: #dcfce7;
+  --danger:  #dc2626;  --danger-soft:  #fef2f2;
+  --warning: #d97706;  --warning-soft: #fffbeb;
+  --info:    #2563eb;  --info-soft:    #eff6ff;
+
+  --bg-inverse: #111827;  --text-inverse: #ffffff;
+  --overlay: rgba(0, 0, 0, 0.5);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
+  --shadow-modal: 0 16px 48px rgba(0, 0, 0, 0.20);
+  --shadow-dropdown: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-popover: 0 8px 32px rgba(0, 0, 0, 0.18);
+
   /* Journey design tokens */
   --journal-bg: #FAFAFA;
   --journal-card: #FFFFFF;
@@ -538,6 +567,26 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --scrollbar-thumb: #3f3f46;
   --scrollbar-hover: #52525b;
 
+  /* Extended semantic tokens (dark) */
+  --accent-on: var(--accent);
+  --accent-hover: #d4d4d8;
+  --accent-subtle: rgba(255, 255, 255, 0.08);
+
+  --success: #22c55e;  --success-soft: rgba(34, 197, 94, 0.15);
+  --danger:  #ef4444;  --danger-soft:  rgba(239, 68, 68, 0.15);
+  --warning: #f59e0b;  --warning-soft: rgba(245, 158, 11, 0.15);
+  --info:    #3b82f6;  --info-soft:    rgba(59, 130, 246, 0.15);
+
+  --bg-inverse: #e4e4e7;  --text-inverse: #09090b;
+  --overlay: rgba(0, 0, 0, 0.6);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --shadow-modal: 0 16px 48px rgba(0, 0, 0, 0.6);
+  --shadow-dropdown: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-popover: 0 8px 32px rgba(0, 0, 0, 0.55);
+
   /* Journey design tokens (dark) */
   --journal-bg: #09090B;
   --journal-card: #18181B;
@@ -551,6 +600,164 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --mood-neutral: #9a9a94;
   --mood-tired: #6db3f0;
   --mood-rough: #a9a3f0;
+}
+
+/* ── Color schemes (data-scheme) ──────────────────────────────────
+   Each non-default scheme overrides the accent family (High-Contrast also
+   raises neutral text/border contrast and solidifies surfaces). Light and dark
+   are tuned independently. The 'default' scheme sets NO attribute, so the
+   monochrome accent above is untouched — existing users see no change. */
+
+:root[data-scheme="indigo"] {
+  --accent: #4f46e5; --accent-text: #ffffff; --accent-on: #4338ca;
+  --accent-hover: #4338ca; --accent-subtle: #eef2ff;
+}
+.dark[data-scheme="indigo"] {
+  --accent: #6366f1; --accent-text: #ffffff; --accent-on: #a5b4fc;
+  --accent-hover: #4f46e5; --accent-subtle: rgba(99, 102, 241, 0.18);
+}
+
+:root[data-scheme="teal"] {
+  --accent: #0d9488; --accent-text: #ffffff; --accent-on: #0f766e;
+  --accent-hover: #0f766e; --accent-subtle: #f0fdfa;
+}
+.dark[data-scheme="teal"] {
+  --accent: #14b8a6; --accent-text: #04211f; --accent-on: #5eead4;
+  --accent-hover: #0d9488; --accent-subtle: rgba(20, 184, 166, 0.18);
+}
+
+:root[data-scheme="rose"] {
+  --accent: #e11d48; --accent-text: #ffffff; --accent-on: #be123c;
+  --accent-hover: #be123c; --accent-subtle: #fff1f2;
+}
+.dark[data-scheme="rose"] {
+  --accent: #f43f5e; --accent-text: #ffffff; --accent-on: #fda4af;
+  --accent-hover: #e11d48; --accent-subtle: rgba(244, 63, 94, 0.18);
+}
+
+:root[data-scheme="amber"] {
+  --accent: #d97706; --accent-text: #ffffff; --accent-on: #b45309;
+  --accent-hover: #b45309; --accent-subtle: #fffbeb;
+}
+.dark[data-scheme="amber"] {
+  --accent: #f59e0b; --accent-text: #1c1917; --accent-on: #fcd34d;
+  --accent-hover: #d97706; --accent-subtle: rgba(245, 158, 11, 0.18);
+}
+
+:root[data-scheme="violet"] {
+  --accent: #7c3aed; --accent-text: #ffffff; --accent-on: #6d28d9;
+  --accent-hover: #6d28d9; --accent-subtle: #f5f3ff;
+}
+.dark[data-scheme="violet"] {
+  --accent: #8b5cf6; --accent-text: #ffffff; --accent-on: #c4b5fd;
+  --accent-hover: #7c3aed; --accent-subtle: rgba(139, 92, 246, 0.18);
+}
+
+/* High-Contrast — raises neutral text/border contrast and solidifies surfaces,
+   directly answering #951 / #1025 (grey-on-grey, transparency hurting legibility). */
+:root[data-scheme="highContrast"] {
+  --accent: #1d4ed8; --accent-text: #ffffff; --accent-on: #1d4ed8;
+  --accent-hover: #1e40af; --accent-subtle: #dbeafe;
+  --text-primary: #000000; --text-secondary: #1f2937;
+  --text-muted: #374151; --text-faint: #4b5563;
+  --border-primary: #475569; --border-secondary: #94a3b8;
+  --border-faint: rgba(0, 0, 0, 0.35);
+  --bg-elevated: #ffffff; --bg-hover: #e2e8f0; --bg-selected: #cbd5e1;
+  --sidebar-bg: #ffffff; --tooltip-bg: #ffffff;
+}
+.dark[data-scheme="highContrast"] {
+  --accent: #60a5fa; --accent-text: #06182f; --accent-on: #93c5fd;
+  --accent-hover: #3b82f6; --accent-subtle: rgba(96, 165, 250, 0.2);
+  --text-primary: #ffffff; --text-secondary: #f1f5f9;
+  --text-muted: #e2e8f0; --text-faint: #cbd5e1;
+  --border-primary: #64748b; --border-secondary: #475569;
+  --border-faint: rgba(255, 255, 255, 0.35);
+  --bg-elevated: #131316; --bg-hover: #2a2a30; --bg-selected: #3a3a42;
+  --sidebar-bg: #131316; --tooltip-bg: #131316;
+}
+
+/* Custom — the user's picked accent (applyAppearance writes the inline vars;
+   color-mix derives hover/subtle so a single picked color yields a full set). */
+:root[data-scheme="custom"] {
+  --accent: var(--accent-custom-light, var(--accent));
+  --accent-text: var(--accent-custom-text-light, #ffffff);
+  --accent-on: var(--accent-custom-light, var(--accent));
+  --accent-hover: color-mix(in srgb, var(--accent-custom-light, #4f46e5) 86%, #000);
+  --accent-subtle: color-mix(in srgb, var(--accent-custom-light, #4f46e5) 12%, transparent);
+}
+.dark[data-scheme="custom"] {
+  --accent: var(--accent-custom-dark, var(--accent));
+  --accent-text: var(--accent-custom-text-dark, #ffffff);
+  --accent-on: var(--accent-custom-dark, var(--accent));
+  --accent-hover: color-mix(in srgb, var(--accent-custom-dark, #6366f1) 84%, #fff);
+  --accent-subtle: color-mix(in srgb, var(--accent-custom-dark, #6366f1) 20%, transparent);
+}
+
+/* ── Legacy accent bridge (gated) ─────────────────────────────────
+   Under a NON-default scheme ONLY, redirect the hardcoded "primary/black"
+   action surfaces (and raw indigo accents) to the chosen accent so un-migrated
+   components follow the scheme without editing ~50 files. These selectors carry
+   higher specificity than the legacy dark shim, so they win under a scheme; on
+   the default scheme nothing here matches (zero change for existing users).
+   TEMPORARY scaffold — the Phase-8 codemod migrates these to bg-accent and this
+   block shrinks file-by-file until it is deleted. */
+html[data-scheme]:not([data-scheme="default"]) :is(.bg-slate-900, .bg-gray-900, .bg-zinc-900, .bg-neutral-900, .bg-black) {
+  background-color: var(--accent) !important;
+  color: var(--accent-text) !important;
+}
+html[data-scheme]:not([data-scheme="default"]) :is(.bg-slate-900, .bg-gray-900, .bg-zinc-900, .bg-neutral-900, .bg-black):hover {
+  background-color: var(--accent-hover) !important;
+}
+html[data-scheme]:not([data-scheme="default"])
+  :is(.hover\:bg-slate-900, .hover\:bg-slate-800, .hover\:bg-slate-700, .hover\:bg-gray-900, .hover\:bg-gray-800, .hover\:bg-black):hover {
+  background-color: var(--accent-hover) !important;
+  color: var(--accent-text) !important;
+}
+html[data-scheme]:not([data-scheme="default"]) :is(.bg-indigo-500, .bg-indigo-600, .bg-indigo-700) {
+  background-color: var(--accent) !important;
+  color: var(--accent-text) !important;
+}
+html[data-scheme]:not([data-scheme="default"]) :is(.text-indigo-400, .text-indigo-500, .text-indigo-600, .text-indigo-700) {
+  color: var(--accent-on) !important;
+}
+html[data-scheme]:not([data-scheme="default"])
+  :is(.border-indigo-500, .border-indigo-600, .ring-indigo-500, .ring-indigo-600) {
+  border-color: var(--accent) !important;
+}
+
+/* ── Transparency off (data-no-transparency) ──────────────────────
+   Solidify the alpha-bearing surface tokens, flatten the dashboard liquid-glass,
+   and disable backdrop blur app-wide so content over the map is fully opaque
+   (#1025). Inert unless the attribute is set. Intentional dimming scrims (modal
+   backdrops) stay translucent on purpose — forcing them opaque blacks out the
+   screen. */
+html[data-no-transparency] {
+  --bg-elevated: #fafafa;
+  --bg-hover: #f1f3f5;
+  --bg-selected: #e2e8f0;
+  --border-faint: #e5e7eb;
+  --sidebar-bg: #ffffff;
+  --tooltip-bg: #ffffff;
+}
+html.dark[data-no-transparency] {
+  --bg-elevated: #131316;
+  --bg-hover: #26262c;
+  --bg-selected: #2f2f37;
+  --border-faint: #27272a;
+  --sidebar-bg: #131316;
+  --tooltip-bg: #131316;
+}
+html[data-no-transparency] .trek-dash {
+  --glass-bg: var(--surface, var(--bg-card));
+  --glass-border: var(--line, var(--border-primary));
+  --glass-blur: none;
+  --glass-highlight: none;
+}
+html[data-no-transparency] *,
+html[data-no-transparency] *::before,
+html[data-no-transparency] *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 body {

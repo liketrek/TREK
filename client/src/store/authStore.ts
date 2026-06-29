@@ -9,6 +9,7 @@ import { reopenForUser, deleteCurrentUserDb } from '../db/offlineDb'
 import { setAuthed } from '../sync/authGate'
 import { unregisterSyncTriggers } from '../sync/syncTriggers'
 import { useSystemNoticeStore } from './systemNoticeStore.js'
+import { clearAppearanceSnapshot } from '../theme/applyAppearance'
 
 interface AuthResponse {
   user: User
@@ -191,6 +192,9 @@ export const useAuthStore = create<AuthState>()(
     // 3. Tear down the live connection.
     disconnect()
     useSystemNoticeStore.getState().reset()
+    // Drop the per-device appearance snapshot so the next user on a shared
+    // browser doesn't get a pre-paint flash of this user's theme.
+    clearAppearanceSnapshot()
     // 4. Tell server to clear the httpOnly cookie (best-effort).
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {})
     // 5. Clear service worker caches containing sensitive data.
