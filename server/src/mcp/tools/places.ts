@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { z } from 'zod';
 import { canAccessTrip, db } from '../../db/database';
 import { isDemoUser } from '../../services/authService';
-import { deletePlacesMany, importGoogleList, importNaverList, listPlaces, createPlace, updatePlace, deletePlace } from '../../services/placeService';
+import { deletePlacesMany, updatePlacesMany, importGoogleList, importNaverList, listPlaces, createPlace, updatePlace, deletePlace } from '../../services/placeService';
 import { createAssignment, dayExists } from '../../services/assignmentService';
 import { onPlaceDeleted } from '../../services/journeyService';
 import { listCategories } from '../../services/categoryService';
@@ -267,6 +267,43 @@ export function registerPlaceTools(server: McpServer, userId: number, scopes: st
         try { onPlaceDeleted(id); } catch {}
       }
       return ok({ deleted, count: deleted.length });
+    }
+  );
+
+  if (W) server.registerTool(
+    'bulk_update_places',
+    {
+      description: 'Update many places in a trip at once, applying the SAME field values to every listed place. Use this for sweeping edits — e.g. re-categorising a batch of POIs (set category_id for 80 places) — in a single call instead of one update_place per place. Only the fields you set are changed; everything else on each place is preserved. Use list_categories for category_id.',
+      inputSchema: {
+        tripId: z.number().int().positive(),
+        placeIds: z.array(z.number().int().positive()).min(1).max(500).describe('IDs of the places to update (from list_places)'),
+        category_id: z.number().int().positive().optional().describe('Category ID — use list_categories'),
+        price: z.number().optional(),
+        currency: z.string().length(3).optional(),
+        transport_mode: z.enum(['walking', 'driving', 'cycling', 'transit', 'flight']).optional(),
+        place_time: z.string().max(50).optional().describe('Scheduled time (e.g. "09:00")'),
+        end_time: z.string().max(50).optional().describe('End time (e.g. "11:00")'),
+        duration_minutes: z.number().int().positive().optional(),
+        notes: z.string().max(2000).optional(),
+        website: z.string().max(500).optional(),
+        phone: z.string().max(50).optional(),
+        description: z.string().max(2000).optional(),
+      },
+      annotations: TOOL_ANNOTATIONS_WRITE,
+    },
+    async ({ tripId, placeIds, category_id, price, currency, transport_mode, place_time, end_time, duration_minutes, notes, website, phone, description }) => {
+      if (isDemoUser(userId)) return demoDenied();
+      if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('place_edit', tripId, userId)) return permissionDenied();
+
+      const fields = { category_id, price, currency, transport_mode, place_time, end_time, duration_minutes, notes, website, phone, description };
+      if (Object.values(fields).every(v => v === undefined)) {
+        return { content: [{ type: 'text' as const, text: 'Provide at least one field to update.' }], isError: true };
+      }
+
+      const updated = updatePlacesMany(String(tripId), placeIds, fields);
+      for (const place of updated) safeBroadcast(tripId, 'place:updated', { place });
+      return ok({ count: updated.length, updatedIds: updated.map(p => p.id), skipped: placeIds.length - updated.length });
     }
   );
 }

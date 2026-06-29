@@ -285,6 +285,33 @@ export function deletePlacesMany(tripId: string, ids: number[]): number[] {
 }
 
 // ---------------------------------------------------------------------------
+// Bulk update
+// ---------------------------------------------------------------------------
+
+/**
+ * Apply the same set of fields to many places in a single transaction. Each
+ * place is scoped to the trip and patched via updatePlace, so only the provided
+ * fields change and everything else is preserved. IDs that don't belong to the
+ * trip are skipped. Returns the updated places.
+ */
+export function updatePlacesMany(
+  tripId: string,
+  ids: number[],
+  body: Parameters<typeof updatePlace>[2],
+): NonNullable<ReturnType<typeof updatePlace>>[] {
+  if (ids.length === 0) return [];
+  const updated: NonNullable<ReturnType<typeof updatePlace>>[] = [];
+  const run = db.transaction((list: number[]) => {
+    for (const id of list) {
+      const place = updatePlace(tripId, String(id), body);
+      if (place) updated.push(place);
+    }
+  });
+  run(ids);
+  return updated;
+}
+
+// ---------------------------------------------------------------------------
 // Import GPX
 // ---------------------------------------------------------------------------
 

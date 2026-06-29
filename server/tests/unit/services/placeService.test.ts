@@ -55,7 +55,7 @@ import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createPlace, createCategory, createTag } from '../../helpers/factories';
 import path from 'path';
 import fs from 'fs';
-import { listPlaces, createPlace as svcCreatePlace, getPlace, updatePlace, deletePlace, importGpx, importKmlPlaces, importGoogleList, searchPlaceImage } from '../../../src/services/placeService';
+import { listPlaces, createPlace as svcCreatePlace, getPlace, updatePlace, updatePlacesMany, deletePlace, importGpx, importKmlPlaces, importGoogleList, searchPlaceImage } from '../../../src/services/placeService';
 
 const GPX_FIXTURE = path.join(__dirname, '../../fixtures/test.gpx');
 const KML_FIXTURE = path.join(__dirname, '../../fixtures/test.kml');
@@ -230,6 +230,49 @@ describe('updatePlace', () => {
 
     const updated = updatePlace(String(trip.id), String(place.id), { tags: [] }) as any;
     expect(updated.tags).toHaveLength(0);
+  });
+});
+
+// ── updatePlacesMany ────────────────────────────────────────────────────────────
+
+describe('updatePlacesMany', () => {
+  it('PLACE-SVC-039 — applies the same fields to many places, preserving the rest', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const a = createPlace(testDb, trip.id, { name: 'A' }) as any;
+    const b = createPlace(testDb, trip.id, { name: 'B' }) as any;
+    const c = createPlace(testDb, trip.id, { name: 'C' }) as any;
+
+    const updated = updatePlacesMany(String(trip.id), [a.id, b.id, c.id], { notes: 'visited', transport_mode: 'walking' });
+
+    expect(updated).toHaveLength(3);
+    for (const p of updated) {
+      expect((p as any).notes).toBe('visited');
+      expect((p as any).transport_mode).toBe('walking');
+    }
+    // Only the provided fields change — names are untouched.
+    expect(updated.map(p => (p as any).name).sort()).toEqual(['A', 'B', 'C']);
+  });
+
+  it('PLACE-SVC-040 — skips ids that are not in the trip and reports the rest', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const other = createTrip(testDb, user.id);
+    const mine = createPlace(testDb, trip.id, { name: 'Mine' }) as any;
+    const foreign = createPlace(testDb, other.id, { name: 'Foreign' }) as any;
+
+    const updated = updatePlacesMany(String(trip.id), [mine.id, foreign.id, 99999], { notes: 'tagged' });
+
+    expect(updated).toHaveLength(1);
+    expect((updated[0] as any).id).toBe(mine.id);
+    // The place from the other trip stays untouched.
+    expect((getPlace(String(other.id), String(foreign.id)) as any).notes).toBeNull();
+  });
+
+  it('PLACE-SVC-041 — returns [] for an empty id list', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    expect(updatePlacesMany(String(trip.id), [], { notes: 'x' })).toEqual([]);
   });
 });
 
