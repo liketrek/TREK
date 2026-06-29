@@ -909,7 +909,7 @@ describe('DayPlanSidebar', () => {
 
   // ── ICS export click ─────────────────────────────────────────────────
 
-  it('FE-PLANNER-DAYPLAN-058: clicking ICS button calls fetch for .ics export', async () => {
+  it('FE-PLANNER-DAYPLAN-058: ICS menu "Download ICS" calls fetch for .ics export', async () => {
     const user = userEvent.setup()
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,
@@ -919,7 +919,10 @@ describe('DayPlanSidebar', () => {
     const createObjURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock')
     const revokeObjURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
     render(<DayPlanSidebar {...makeDefaultProps()} />)
-    await user.click(screen.getByText('ICS').closest('button')!)
+    // The ICS button now opens a hover menu (Download / Subscribe) instead of
+    // downloading on direct click.
+    await user.hover(screen.getByText('ICS').closest('button')!)
+    await user.click(await screen.findByText('Download ICS'))
     await waitFor(() => expect(fetchSpy).toHaveBeenCalledWith('/api/trips/1/export.ics', expect.any(Object)))
     fetchSpy.mockRestore()
     createObjURL.mockRestore()
@@ -1550,14 +1553,14 @@ describe('DayPlanSidebar', () => {
 
   // ── ICS hover tooltip ─────────────────────────────────────────────────────
 
-  it('FE-PLANNER-DAYPLAN-090: hovering ICS button shows tooltip', async () => {
+  it('FE-PLANNER-DAYPLAN-090: hovering ICS button shows the download/subscribe menu', async () => {
     const user = userEvent.setup()
     render(<DayPlanSidebar {...makeDefaultProps()} />)
-    const icsBtn = screen.getByRole('button', { name: /ICS/i })
+    const icsBtn = screen.getByText('ICS').closest('button')!
     await user.hover(icsBtn)
     await waitFor(() => {
-      const tooltips = document.querySelectorAll('[style*="pointer-events: none"]')
-      expect(tooltips.length).toBeGreaterThan(0)
+      expect(screen.getByText('Download ICS')).toBeInTheDocument()
+      expect(screen.getByText('Subscribe to calendar')).toBeInTheDocument()
     })
   })
 

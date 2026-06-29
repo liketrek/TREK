@@ -405,6 +405,31 @@ export function removeMember(tripId: string | number, targetUserId: number) {
 
 // ── ICS export ────────────────────────────────────────────────────────────
 
+// RFC 5545 §3.1: content lines longer than 75 octets must be folded with a CRLF
+// followed by a single leading space. We fold on UTF-8 *octet* boundaries and
+// never split a multi-byte codepoint, so non-ASCII titles/notes (accents, CJK,
+// emoji) stay intact. Applied to the whole calendar, so both the one-time
+// download and the subscribable feed emit spec-compliant output.
+function foldICS(ics: string): string {
+  const foldLine = (line: string): string => {
+    const bytes = Buffer.from(line, 'utf8');
+    if (bytes.length <= 75) return line;
+    const parts: Buffer[] = [];
+    let start = 0;
+    let limit = 75; // first physical line may use 75 octets
+    while (start < bytes.length) {
+      let end = Math.min(start + limit, bytes.length);
+      // Back off so we never cut a multi-byte UTF-8 sequence (0x80–0xBF = continuation byte).
+      while (end < bytes.length && (bytes[end] & 0xc0) === 0x80) end--;
+      parts.push(bytes.subarray(start, end));
+      start = end;
+      limit = 74; // continuation lines spend one octet on the leading space
+    }
+    return parts.map((b, i) => (i === 0 ? '' : ' ') + b.toString('utf8')).join('\r\n');
+  };
+  return ics.split('\r\n').map(foldLine).join('\r\n');
+}
+
 export function exportICS(tripId: string | number): { ics: string; filename: string } {
   const trip = db.prepare('SELECT * FROM trips WHERE id = ?').get(tripId) as any;
   if (!trip) throw new NotFoundError('Trip not found');
@@ -599,7 +624,7 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
   ics += 'END:VCALENDAR\r\n';
 
   const safeFilename = (trip.title || 'trek-trip').replace(/["\r\n]/g, '').replace(/[^\w\s.-]/g, '_');
-  return { ics, filename: `${safeFilename}.ics` };
+  return { ics: foldICS(ics), filename: `${safeFilename}.ics` };
 }
 
 // ── Copy / duplicate ─────────────────────────────────────────────────────

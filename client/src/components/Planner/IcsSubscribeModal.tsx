@@ -1,60 +1,64 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { X, RefreshCw, Calendar } from 'lucide-react'
+import { X, RefreshCw, Calendar, Power } from 'lucide-react'
 import { SubscribeLinks } from './SubscribeLinks'
 
 interface IcsSubscribeModalProps {
-  tripId: number
+  /** Token endpoint base, e.g. `/api/trips/123/feed` or `/api/feed/user`. */
+  endpoint: string
+  title: string
+  description: string
   onClose: () => void
 }
 
-export function IcsSubscribeModal({ tripId, onClose }: IcsSubscribeModalProps) {
+// A server that has no APP_URL configured hands back a host-relative path; the
+// webcal:// handoff and Google deep link need an absolute URL, so resolve it
+// against the current origin as a fallback.
+function absolutize(url: string): string {
+  if (!url) return ''
+  if (/^https?:\/\//i.test(url)) return url
+  if (url.startsWith('/')) return window.location.origin + url
+  return url
+}
+
+/**
+ * Shared subscribe dialog for the per-trip and all-trips ICS feeds. Opening it
+ * only *reads* the current token — it never mints one silently. The user
+ * explicitly enables the public link, and can rotate or fully turn it off.
+ */
+export function IcsSubscribeModal({ endpoint, title, description, onClose }: IcsSubscribeModalProps) {
+  const tokenUrl = `${endpoint}/token`
   const [feedUrl, setFeedUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [regenerating, setRegenerating] = useState(false)
+  const [busy, setBusy] = useState(false)
 
-  const httpsUrl = feedUrl ?? ''
-  const webcalUrl = feedUrl ? feedUrl.replace(/^https?:\/\//, 'webcal://') : ''
+  const httpsUrl = feedUrl ? absolutize(feedUrl) : ''
+  const webcalUrl = httpsUrl ? httpsUrl.replace(/^https?:\/\//, 'webcal://') : ''
 
-  const loadToken = useCallback(async () => {
+  const load = useCallback(async () => {
     setLoading(true)
     try {
-      // Try to get existing token first
-      let res = await fetch(`/api/trips/${tripId}/feed/token`, { credentials: 'include' })
-      if (!res.ok) { setLoading(false); return }
-      const data = await res.json() as { feed_url: string | null }
-      if (data.feed_url) {
+      const res = await fetch(tokenUrl, { credentials: 'include' })
+      if (res.ok) {
+        const data = await res.json() as { feed_url: string | null }
         setFeedUrl(data.feed_url)
-      } else {
-        // Lazily generate on first open
-        res = await fetch(`/api/trips/${tripId}/feed/token`, {
-          method: 'POST',
-          credentials: 'include',
-        })
-        if (res.ok) {
-          const gen = await res.json() as { feed_url: string }
-          setFeedUrl(gen.feed_url)
-        }
       }
     } catch { /* ignore */ }
     setLoading(false)
-  }, [tripId])
+  }, [tokenUrl])
 
-  useEffect(() => { loadToken() }, [loadToken])
+  useEffect(() => { load() }, [load])
 
-  const regenerate = async () => {
-    setRegenerating(true)
+  const mutate = async (method: 'POST' | 'PUT' | 'DELETE') => {
+    setBusy(true)
     try {
-      const res = await fetch(`/api/trips/${tripId}/feed/token`, {
-        method: 'DELETE',
-        credentials: 'include',
-      })
+      const res = await fetch(tokenUrl, { method, credentials: 'include' })
       if (res.ok) {
-        const data = await res.json() as { feed_url: string }
+        const data = await res.json() as { feed_url: string | null }
         setFeedUrl(data.feed_url)
       }
     } catch { /* ignore */ }
-    setRegenerating(false)
+    setBusy(false)
   }
 
   return createPortal(
@@ -83,7 +87,7 @@ export function IcsSubscribeModal({ tripId, onClose }: IcsSubscribeModalProps) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Calendar size={16} strokeWidth={2} style={{ color: 'var(--accent, #6366f1)' }} />
-            <span style={{ fontWeight: 600, fontSize: 14 }}>Subscribe to Calendar</span>
+            <span style={{ fontWeight: 600, fontSize: 14 }}>{title}</span>
           </div>
           <button
             onClick={onClose}
@@ -97,41 +101,72 @@ export function IcsSubscribeModal({ tripId, onClose }: IcsSubscribeModalProps) {
         </div>
 
         <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.5 }}>
-          This link stays in sync with your trip automatically. Calendar apps re-fetch it every hour.
+          {description}
         </p>
 
         {loading ? (
           <div style={{ textAlign: 'center', padding: '16px 0', color: 'var(--text-muted)', fontSize: 12 }}>
-            Generating link…
+            Loading…
           </div>
         ) : !feedUrl ? (
-          <div style={{ textAlign: 'center', padding: '16px 0', color: 'var(--text-muted)', fontSize: 12 }}>
-            Could not generate feed link.
-          </div>
+          <>
+            <button
+              onClick={() => mutate('POST')}
+              disabled={busy}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                width: '100%', padding: '9px 14px', borderRadius: 9, border: 'none',
+                background: 'var(--accent, #6366f1)', color: 'var(--accent-text, #fff)',
+                fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
+                cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1,
+              }}
+            >
+              <Calendar size={14} strokeWidth={2} />
+              Enable calendar subscription
+            </button>
+            <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.4 }}>
+              Creates a secret link anyone with it can read without logging in. You can turn it off anytime.
+            </p>
+          </>
         ) : (
           <>
             <SubscribeLinks httpsUrl={httpsUrl} webcalUrl={webcalUrl} />
 
-            <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--border-faint)' }}>
+            <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--border-faint)', display: 'flex', gap: 8 }}>
               <button
-                onClick={regenerate}
-                disabled={regenerating}
+                onClick={() => mutate('PUT')}
+                disabled={busy}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6,
                   background: 'none', border: '1px solid var(--border-primary)',
                   borderRadius: 7, padding: '5px 10px',
                   fontSize: 11, color: 'var(--text-muted)',
-                  cursor: regenerating ? 'default' : 'pointer',
-                  fontFamily: 'inherit', opacity: regenerating ? 0.6 : 1,
+                  cursor: busy ? 'default' : 'pointer',
+                  fontFamily: 'inherit', opacity: busy ? 0.6 : 1,
                 }}
               >
-                <RefreshCw size={11} strokeWidth={2} style={{ animation: regenerating ? 'spin 0.8s linear infinite' : 'none' }} />
-                Regenerate link
+                <RefreshCw size={11} strokeWidth={2} style={{ animation: busy ? 'spin 0.8s linear infinite' : 'none' }} />
+                Regenerate
               </button>
-              <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.4 }}>
-                Regenerating creates a new link and invalidates the old one.
-              </p>
+              <button
+                onClick={() => mutate('DELETE')}
+                disabled={busy}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  background: 'none', border: '1px solid var(--border-primary)',
+                  borderRadius: 7, padding: '5px 10px',
+                  fontSize: 11, color: 'var(--danger, #dc2626)',
+                  cursor: busy ? 'default' : 'pointer',
+                  fontFamily: 'inherit', opacity: busy ? 0.6 : 1,
+                }}
+              >
+                <Power size={11} strokeWidth={2} />
+                Turn off
+              </button>
             </div>
+            <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.4 }}>
+              Regenerating creates a new link and invalidates the old one. Turning off disables the link entirely.
+            </p>
           </>
         )}
       </div>

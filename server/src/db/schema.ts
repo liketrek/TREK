@@ -26,6 +26,7 @@ function createTables(db: Database.Database): void {
       synology_sid TEXT,
       must_change_password INTEGER DEFAULT 0,
       password_version INTEGER NOT NULL DEFAULT 0,
+      feed_token TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
@@ -87,6 +88,7 @@ function createTables(db: Database.Database): void {
       cover_image TEXT,
       is_archived INTEGER DEFAULT 0,
       reminder_days INTEGER DEFAULT 3,
+      feed_token TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );

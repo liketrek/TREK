@@ -178,7 +178,12 @@ export function DayPlanSidebarToolbar({
           )}
         </div>
         {subscribeOpen && (
-          <IcsSubscribeModal tripId={tripId} onClose={() => setSubscribeOpen(false)} />
+          <IcsSubscribeModal
+            endpoint={`/api/trips/${tripId}/feed`}
+            title="Subscribe to calendar"
+            description="This link stays in sync with your trip automatically. Calendar apps re-fetch it every hour."
+            onClose={() => setSubscribeOpen(false)}
+          />
         )}
         {(() => {
           const allExpanded = days.length > 0 && days.every(d => expandedDays.has(d.id))

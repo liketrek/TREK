@@ -9,63 +9,73 @@ const ninetyDaysAgo = () => {
   return d.toISOString().slice(0, 10);
 };
 
-function feedUrl(token: string, scope: 'trip' | 'user'): string {
-  const base = (process.env.APP_URL || '').replace(/\/$/, '');
-  return `${base}/api/feed/${scope}/${token}.ics`;
+function feedUrl(token: string, scope: 'trip' | 'user', base: string): string {
+  return `${base.replace(/\/$/, '')}/api/feed/${scope}/${token}.ics`;
 }
 
 @Injectable()
 export class FeedsService {
   // ── Trip feed token ─────────────────────────────────────────────────────
 
-  getTripToken(tripId: string, userId: number): { feed_url: string } | null {
-    const row = db
-      .prepare('SELECT feed_token FROM trips WHERE id = ? AND (user_id = ? OR id IN (SELECT trip_id FROM trip_members WHERE user_id = ?))')
+  private tripTokenRow(tripId: string, userId: number) {
+    return db
+      .prepare(
+        'SELECT feed_token FROM trips WHERE id = ? AND (user_id = ? OR id IN (SELECT trip_id FROM trip_members WHERE user_id = ?))',
+      )
       .get(tripId, userId, userId) as { feed_token: string | null } | undefined;
-    if (!row || !row.feed_token) return null;
-    return { feed_url: feedUrl(row.feed_token, 'trip') };
   }
 
-  generateTripToken(tripId: string, userId: number): { feed_url: string } {
-    const existing = this.getTripToken(tripId, userId);
-    if (existing) return existing;
-    const token = randomUUID();
-    db.prepare('UPDATE trips SET feed_token = ? WHERE id = ?').run(token, tripId);
-    return { feed_url: feedUrl(token, 'trip') };
+  getTripToken(tripId: string, userId: number, base: string): { feed_url: string | null } {
+    const row = this.tripTokenRow(tripId, userId);
+    return { feed_url: row?.feed_token ? feedUrl(row.feed_token, 'trip', base) : null };
   }
 
-  regenerateTripToken(tripId: string, userId: number): { feed_url: string } {
-    const trip = db
-      .prepare('SELECT id FROM trips WHERE id = ? AND (user_id = ? OR id IN (SELECT trip_id FROM trip_members WHERE user_id = ?))')
-      .get(tripId, userId, userId);
-    if (!trip) return { feed_url: '' };
+  /** Enable (idempotent): mint a token only if the trip has none yet. */
+  generateTripToken(tripId: string, userId: number, base: string): { feed_url: string } {
+    const row = this.tripTokenRow(tripId, userId);
+    if (row?.feed_token) return { feed_url: feedUrl(row.feed_token, 'trip', base) };
     const token = randomUUID();
     db.prepare('UPDATE trips SET feed_token = ? WHERE id = ?').run(token, tripId);
-    return { feed_url: feedUrl(token, 'trip') };
+    return { feed_url: feedUrl(token, 'trip', base) };
+  }
+
+  /** Rotate: always issue a fresh token, invalidating the previous URL. */
+  rotateTripToken(tripId: string, base: string): { feed_url: string } {
+    const token = randomUUID();
+    db.prepare('UPDATE trips SET feed_token = ? WHERE id = ?').run(token, tripId);
+    return { feed_url: feedUrl(token, 'trip', base) };
+  }
+
+  /** Disable: clear the token so the public URL stops resolving. */
+  disableTripToken(tripId: string): void {
+    db.prepare('UPDATE trips SET feed_token = NULL WHERE id = ?').run(tripId);
   }
 
   // ── User (all-trips) feed token ──────────────────────────────────────────
 
-  getUserToken(userId: number): { feed_url: string } | null {
+  getUserToken(userId: number, base: string): { feed_url: string | null } {
     const row = db.prepare('SELECT feed_token FROM users WHERE id = ?').get(userId) as
       | { feed_token: string | null }
       | undefined;
-    if (!row || !row.feed_token) return null;
-    return { feed_url: feedUrl(row.feed_token, 'user') };
+    return { feed_url: row?.feed_token ? feedUrl(row.feed_token, 'user', base) : null };
   }
 
-  generateUserToken(userId: number): { feed_url: string } {
-    const existing = this.getUserToken(userId);
-    if (existing) return existing;
+  generateUserToken(userId: number, base: string): { feed_url: string } {
+    const existing = this.getUserToken(userId, base);
+    if (existing.feed_url) return { feed_url: existing.feed_url };
     const token = randomUUID();
     db.prepare('UPDATE users SET feed_token = ? WHERE id = ?').run(token, userId);
-    return { feed_url: feedUrl(token, 'user') };
+    return { feed_url: feedUrl(token, 'user', base) };
   }
 
-  regenerateUserToken(userId: number): { feed_url: string } {
+  rotateUserToken(userId: number, base: string): { feed_url: string } {
     const token = randomUUID();
     db.prepare('UPDATE users SET feed_token = ? WHERE id = ?').run(token, userId);
-    return { feed_url: feedUrl(token, 'user') };
+    return { feed_url: feedUrl(token, 'user', base) };
+  }
+
+  disableUserToken(userId: number): void {
+    db.prepare('UPDATE users SET feed_token = NULL WHERE id = ?').run(userId);
   }
 
   // ── ICS generation ───────────────────────────────────────────────────────
@@ -110,23 +120,39 @@ export class FeedsService {
     const esc = (s: string) =>
       s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
 
+    const calName = `${user.username} – All Trips`;
     let combined =
       'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//TREK//Travel Planner//EN\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\n';
-    combined += `X-WR-CALNAME:${esc(user.username + ' – All Trips')}\r\n`;
+    combined += `X-WR-CALNAME:${esc(calName)}\r\n`;
     combined += 'REFRESH-INTERVAL;VALUE=DURATION:PT1H\r\nX-PUBLISHED-TTL:PT1H\r\n';
 
     for (const { id } of trips) {
       try {
         const { ics } = exportICS(id);
-        // Strip outer VCALENDAR wrapper and extract VEVENT blocks
-        const events = [...ics.matchAll(/BEGIN:VEVENT[\s\S]*?END:VEVENT/g)].map((m) => m[0]);
-        for (const ev of events) combined += ev + '\r\n';
+        combined += extractVEvents(ics);
       } catch {
         // skip failed trips
       }
     }
 
     combined += 'END:VCALENDAR\r\n';
-    return { ics: combined, calName: user.username + ' – All Trips' };
+    return { ics: combined, calName };
   }
+}
+
+// Pull the VEVENT blocks out of a single-trip calendar by structural line
+// scanning rather than a lazy regex on "END:VEVENT". User-supplied text (escaped
+// onto a SUMMARY/DESCRIPTION line) can legitimately contain the literal
+// "END:VEVENT", which a non-greedy regex would mistake for a terminator and
+// truncate the event. Folded continuation lines always begin with a space, so a
+// bare "BEGIN:VEVENT"/"END:VEVENT" only ever appears as a real delimiter.
+function extractVEvents(ics: string): string {
+  let out = '';
+  let inside = false;
+  for (const line of ics.split('\r\n')) {
+    if (line === 'BEGIN:VEVENT') inside = true;
+    if (inside) out += line + '\r\n';
+    if (line === 'END:VEVENT') inside = false;
+  }
+  return out;
 }

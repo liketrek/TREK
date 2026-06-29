@@ -15,8 +15,8 @@ export function SubscribeLinks({ httpsUrl, webcalUrl }: SubscribeLinksProps) {
   const [copied, setCopied] = useState<'https' | 'webcal' | null>(null)
 
   // Google Calendar's add-by-URL deep link. The cid must carry the webcal://
-  // scheme (not https) and the feed must be served over HTTPS.
-  const googleUrl = `https://www.google.com/calendar/render?cid=${webcalUrl}`
+  // scheme (not https), URL-encoded, and the feed must be served over HTTPS.
+  const googleUrl = `https://www.google.com/calendar/render?cid=${encodeURIComponent(webcalUrl)}`
 
   const copy = async (url: string, which: 'https' | 'webcal') => {
     try {

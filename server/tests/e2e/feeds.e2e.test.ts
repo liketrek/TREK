@@ -2,7 +2,8 @@
  * Calendar-feed e2e — exercises the subscribable ICS feeds end-to-end against a
  * temp in-memory SQLite db through the REAL JwtAuthGuard:
  *   - JWT-guarded token endpoints (/api/trips/:id/feed/token, /api/feed/user/token):
- *     lazy generate, idempotency, regenerate-invalidates-old, 404 on no access, 401 no cookie
+ *     lazy generate, idempotency, rotate-invalidates-old, disable-clears-token,
+ *     host fallback when APP_URL is unset, 404 on no access, 401 no cookie
  *   - public unguarded feeds (/api/feed/trip/:token.ics, /api/feed/user/:token.ics):
  *     valid token → 200 text/calendar with the injected REFRESH-INTERVAL / X-PUBLISHED-TTL
  *     hints, unknown token → 404, all-trips feed excludes archived + >90-day-old trips
@@ -106,16 +107,40 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
     expect(second.body.feed_url).toBe(first.body.feed_url); // same token, not a new one
   });
 
-  it('DELETE regenerates: a new token works and the old one 404s', async () => {
+  it('PUT rotates: a new token works and the old one 404s', async () => {
     const gen = await request(server).post('/api/trips/5/feed/token').set('Cookie', sessionCookie(1));
     const oldToken = gen.body.feed_url.match(/trip\/([0-9a-f-]+)\.ics$/)![1];
 
-    const regen = await request(server).delete('/api/trips/5/feed/token').set('Cookie', sessionCookie(1));
-    const newToken = regen.body.feed_url.match(/trip\/([0-9a-f-]+)\.ics$/)![1];
+    const rot = await request(server).put('/api/trips/5/feed/token').set('Cookie', sessionCookie(1));
+    const newToken = rot.body.feed_url.match(/trip\/([0-9a-f-]+)\.ics$/)![1];
     expect(newToken).not.toBe(oldToken);
 
     expect((await request(server).get(`/api/feed/trip/${oldToken}.ics`)).status).toBe(404);
     expect((await request(server).get(`/api/feed/trip/${newToken}.ics`)).status).toBe(200);
+  });
+
+  it('DELETE disables: the token is cleared, the URL 404s, and GET reports null', async () => {
+    const gen = await request(server).post('/api/trips/5/feed/token').set('Cookie', sessionCookie(1));
+    const token = gen.body.feed_url.match(/trip\/([0-9a-f-]+)\.ics$/)![1];
+    expect((await request(server).get(`/api/feed/trip/${token}.ics`)).status).toBe(200);
+
+    const del = await request(server).delete('/api/trips/5/feed/token').set('Cookie', sessionCookie(1));
+    expect(del.status).toBe(200);
+    expect(del.body).toEqual({ feed_url: null });
+
+    expect((await request(server).get(`/api/feed/trip/${token}.ics`)).status).toBe(404);
+    const after = await request(server).get('/api/trips/5/feed/token').set('Cookie', sessionCookie(1));
+    expect(after.body).toEqual({ feed_url: null });
+  });
+
+  it('feed URL falls back to the request host when APP_URL is unset', async () => {
+    delete process.env.APP_URL;
+    try {
+      const gen = await request(server).post('/api/trips/5/feed/token').set('Cookie', sessionCookie(1));
+      expect(gen.body.feed_url).toMatch(/^https?:\/\/[^/]+\/api\/feed\/trip\/[0-9a-f-]+\.ics$/);
+    } finally {
+      process.env.APP_URL = BASE;
+    }
   });
 
   it('404 when generating for a trip the user cannot access', async () => {
