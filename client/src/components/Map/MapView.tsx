@@ -212,24 +212,27 @@ function MapController({ center, zoom }: MapControllerProps) {
   return null
 }
 
-// Fit bounds when places change (fitKey triggers re-fit)
+// Fit bounds when places change (fitKey triggers re-fit). On a day selection we
+// fit to that day's destinations immediately, then — once the day's route has
+// finished computing asynchronously — re-fit once more to include the full route
+// polyline, so a route that bulges past its stops stays in view (#1128).
 interface BoundsControllerProps {
   hasDayDetail?: boolean
   places: Place[]
+  routeCoords: [number, number][]
   fitKey: number
   paddingOpts: L.FitBoundsOptions
 }
 
-function BoundsController({ places, fitKey, paddingOpts, hasDayDetail }: BoundsControllerProps) {
+function BoundsController({ places, routeCoords, fitKey, paddingOpts, hasDayDetail }: BoundsControllerProps) {
   const map = useMap()
   const prevFitKey = useRef(-1)
+  const awaitingRoute = useRef(false)
 
-  useEffect(() => {
-    if (fitKey === prevFitKey.current) return
-    prevFitKey.current = fitKey
-    if (places.length === 0) return
+  const fitTo = useCallback((coords: [number, number][]) => {
+    if (coords.length === 0) return
     try {
-      const bounds = L.latLngBounds(places.map(p => [p.lat, p.lng]))
+      const bounds = L.latLngBounds(coords)
       if (bounds.isValid()) {
         map.fitBounds(bounds, { ...paddingOpts, maxZoom: 16, animate: true })
         if (hasDayDetail) {
@@ -237,7 +240,26 @@ function BoundsController({ places, fitKey, paddingOpts, hasDayDetail }: BoundsC
         }
       }
     } catch {}
+  }, [map, paddingOpts, hasDayDetail])
+
+  // New fitKey (initial trip fit or a day selection): fit to the destinations now
+  // and arm a one-shot re-fit for when the route arrives.
+  useEffect(() => {
+    if (fitKey === prevFitKey.current) return
+    prevFitKey.current = fitKey
+    awaitingRoute.current = false
+    if (places.length === 0) return
+    fitTo(places.map(p => [p.lat, p.lng] as [number, number]))
+    awaitingRoute.current = true
   }, [fitKey]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Once the just-selected day's route is ready, expand the fit to include it.
+  // One-shot per day-fit, so later route-profile toggles don't re-zoom the map.
+  useEffect(() => {
+    if (!awaitingRoute.current || routeCoords.length === 0) return
+    awaitingRoute.current = false
+    fitTo([...places.map(p => [p.lat, p.lng] as [number, number]), ...routeCoords])
+  }, [routeCoords]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return null
 }
@@ -463,6 +485,9 @@ export const MapView = memo(function MapView({
   const thumbRafRef = useRef<number | null>(null)
 
   const placeIds = useMemo(() => places.map(p => p.id).join(','), [places])
+  // Flattened [lat,lng] points of the selected day's route, so the bounds fit can
+  // include the full polyline once it has been computed.
+  const routeCoords = useMemo<[number, number][]>(() => (route || []).flat() as [number, number][], [route])
   useEffect(() => {
     if (!places || places.length === 0 || !placesPhotosEnabled) return
     const cleanups: (() => void)[] = []
@@ -597,7 +622,7 @@ export const MapView = memo(function MapView({
       />
 
       <MapController center={center} zoom={zoom} />
-      <BoundsController places={dayPlaces.length > 0 ? dayPlaces : places} fitKey={fitKey} paddingOpts={paddingOpts} hasDayDetail={hasDayDetail} />
+      <BoundsController places={dayPlaces.length > 0 ? dayPlaces : places} routeCoords={dayPlaces.length > 0 ? routeCoords : []} fitKey={fitKey} paddingOpts={paddingOpts} hasDayDetail={hasDayDetail} />
       <SelectionController places={places} selectedPlaceId={selectedPlaceId} dayPlaces={dayPlaces} paddingOpts={paddingOpts} />
       <MapClickHandler onClick={onMapClick} />
       <MapContextMenuHandler onContextMenu={onMapContextMenu} />
