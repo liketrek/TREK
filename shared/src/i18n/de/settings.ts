@@ -402,6 +402,10 @@ const settings: TranslationStrings = {
   'settings.appearance.preview.medium': 'Mittlerer Untertitel',
   'settings.appearance.preview.normal': 'Normaler Fließtext',
   'settings.appearance.preview.small': 'Kleine Beschriftung / Adresse',
+  'settings.appearance.example.large': 'Überschriften, große Zahlen',
+  'settings.appearance.example.medium': 'Zwischenüberschriften',
+  'settings.appearance.example.normal': 'Ortsnamen, Beschreibungen',
+  'settings.appearance.example.small': 'Adressen, Labels',
 };
 
 export default settings;

@@ -398,6 +398,10 @@ const settings: TranslationStrings = {
   'settings.appearance.preview.medium': 'Medium subtitle',
   'settings.appearance.preview.normal': 'Normal body text',
   'settings.appearance.preview.small': 'Small caption / address',
+  'settings.appearance.example.large': 'Headings, big numbers',
+  'settings.appearance.example.medium': 'Sub-headings',
+  'settings.appearance.example.normal': 'Place names, descriptions',
+  'settings.appearance.example.small': 'Addresses, labels',
 };
 
 export default settings;

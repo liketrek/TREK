@@ -79,7 +79,6 @@ export default function AppearanceSettingsTab(): React.ReactElement {
   const tr = (key: string, fallback: string) => t(key) || fallback
 
   const [cfg, setCfg] = useState<AppearanceConfig>(() => normalizeAppearance(settings.appearance))
-  const [advancedType, setAdvancedType] = useState(false)
   const persistTimer = useRef<number | undefined>(undefined)
 
   // Re-sync when settings change elsewhere (e.g. server reconcile / another tab).
@@ -285,39 +284,52 @@ export default function AppearanceSettingsTab(): React.ReactElement {
           </p>
         </div>
 
-        {/* Text size — live preview + global slider + per size-class */}
+        {/* Text size — global, plus an always-visible row per size class with a
+            live sample and an example of what each size affects. */}
         <div>
           <label className="block text-sm font-medium mb-2 text-content-secondary">
             {tr('settings.appearance.textSize', 'Text size')}
           </label>
-          {/* Live preview — these lines use the same size classes the controls drive. */}
-          <div className="rounded-lg border border-edge-secondary px-3 py-2.5 mb-3 space-y-1 overflow-hidden">
-            <div className="text-title font-bold text-content leading-tight">{tr('settings.appearance.preview.large', 'Large heading')}</div>
-            <div className="text-subtitle font-semibold text-content-secondary">{tr('settings.appearance.preview.medium', 'Medium subtitle')}</div>
-            <div className="text-body text-content-secondary">{tr('settings.appearance.preview.normal', 'Normal body text')}</div>
-            <div className="text-caption text-content-faint">{tr('settings.appearance.preview.small', 'Small caption / address')}</div>
-          </div>
           <SliderRow
             label={tr('settings.appearance.textSizeAll', 'Everything')}
             value={cfg.fontScale}
             onChange={(v) => update({ fontScale: v })}
           />
-        </div>
-        <button
-          onClick={() => setAdvancedType((v) => !v)}
-          className="text-xs font-medium text-content-muted hover:text-content"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-        >
-          {advancedType ? tr('settings.appearance.hideAdvanced', 'Hide per-size controls') : tr('settings.appearance.perSize', 'Adjust each size separately')}
-        </button>
-        {advancedType && (
-          <div className="space-y-3 pl-1">
-            <SliderRow label={tr('settings.appearance.size.large', 'Large')} value={cfg.typeScale.title} onChange={(v) => update({ typeScale: { ...cfg.typeScale, title: v } })} />
-            <SliderRow label={tr('settings.appearance.size.medium', 'Medium')} value={cfg.typeScale.subtitle} onChange={(v) => update({ typeScale: { ...cfg.typeScale, subtitle: v } })} />
-            <SliderRow label={tr('settings.appearance.size.normal', 'Normal')} value={cfg.typeScale.body} onChange={(v) => update({ typeScale: { ...cfg.typeScale, body: v } })} />
-            <SliderRow label={tr('settings.appearance.size.small', 'Small')} value={cfg.typeScale.caption} onChange={(v) => update({ typeScale: { ...cfg.typeScale, caption: v } })} />
+          <div className="space-y-4 mt-4 pt-4 border-t border-edge-secondary">
+            <SizeRow
+              sampleClass="text-title font-bold"
+              name={tr('settings.appearance.size.large', 'Large')}
+              example={tr('settings.appearance.example.large', 'Headings, big numbers')}
+              sample={tr('settings.appearance.preview.large', 'Large heading')}
+              value={cfg.typeScale.title}
+              onChange={(v) => update({ typeScale: { ...cfg.typeScale, title: v } })}
+            />
+            <SizeRow
+              sampleClass="text-subtitle font-semibold"
+              name={tr('settings.appearance.size.medium', 'Medium')}
+              example={tr('settings.appearance.example.medium', 'Sub-headings')}
+              sample={tr('settings.appearance.preview.medium', 'Medium subtitle')}
+              value={cfg.typeScale.subtitle}
+              onChange={(v) => update({ typeScale: { ...cfg.typeScale, subtitle: v } })}
+            />
+            <SizeRow
+              sampleClass="text-body"
+              name={tr('settings.appearance.size.normal', 'Normal')}
+              example={tr('settings.appearance.example.normal', 'Place names, descriptions')}
+              sample={tr('settings.appearance.preview.normal', 'Normal body text')}
+              value={cfg.typeScale.body}
+              onChange={(v) => update({ typeScale: { ...cfg.typeScale, body: v } })}
+            />
+            <SizeRow
+              sampleClass="text-caption"
+              name={tr('settings.appearance.size.small', 'Small')}
+              example={tr('settings.appearance.example.small', 'Addresses, labels')}
+              sample={tr('settings.appearance.preview.small', 'Small caption / address')}
+              value={cfg.typeScale.caption}
+              onChange={(v) => update({ typeScale: { ...cfg.typeScale, caption: v } })}
+            />
           </div>
-        )}
+        </div>
       </Section>
 
       {/* ── Dashboard widgets ───────────────────────────────────── */}
@@ -423,6 +435,31 @@ function SliderRow({ label, value, onChange }: { label: string; value: number; o
       <div className="flex items-center justify-between mb-1">
         <span className="text-sm font-medium text-content-secondary">{label}</span>
         <span className="text-xs text-content-muted tabular-nums">{Math.round(value * 100)}%</span>
+      </div>
+      <input
+        type="range"
+        min={APPEARANCE_SCALE_MIN}
+        max={APPEARANCE_SCALE_MAX}
+        step={0.05}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        style={{ width: '100%', accentColor: 'var(--accent)', cursor: 'pointer' }}
+      />
+    </div>
+  )
+}
+
+function SizeRow({ sampleClass, name, example, sample, value, onChange }: { sampleClass: string; name: string; example: string; sample: string; value: number; onChange: (v: number) => void }) {
+  return (
+    <div>
+      <div className="flex items-end justify-between gap-3 mb-1.5">
+        <div className="min-w-0 flex-1">
+          <div className={`${sampleClass} text-content leading-tight truncate`}>{sample}</div>
+          <div className="text-xs text-content-faint mt-0.5">
+            <span className="font-medium text-content-muted">{name}</span> · {example}
+          </div>
+        </div>
+        <span className="text-xs text-content-muted tabular-nums shrink-0">{Math.round(value * 100)}%</span>
       </div>
       <input
         type="range"
