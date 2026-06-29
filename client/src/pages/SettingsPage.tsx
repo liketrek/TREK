@@ -1,9 +1,10 @@
 import React from 'react'
-import { Settings, Palette, Map, Bell, Plug, CloudOff, User, Info } from 'lucide-react'
+import { Settings, Palette, Paintbrush, Map, Bell, Plug, CloudOff, User, Info } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import PageShell from '../components/Layout/PageShell'
 import PageSidebar, { type PageSidebarTab } from '../components/Layout/PageSidebar'
 import DisplaySettingsTab from '../components/Settings/DisplaySettingsTab'
+import AppearanceSettingsTab from '../components/Settings/AppearanceSettingsTab'
 import MapSettingsTab from '../components/Settings/MapSettingsTab'
 import NotificationsTab from '../components/Settings/NotificationsTab'
 import IntegrationsTab from '../components/Settings/IntegrationsTab'
@@ -19,6 +20,7 @@ export default function SettingsPage(): React.ReactElement {
 
   const tabs: PageSidebarTab[] = [
     { id: 'display', label: t('settings.tabs.display'), icon: Palette },
+    { id: 'appearance', label: t('settings.tabs.appearance'), icon: Paintbrush },
     { id: 'map', label: t('settings.tabs.map'), icon: Map },
     { id: 'notifications', label: t('settings.tabs.notifications'), icon: Bell },
     ...(hasIntegrations
@@ -54,6 +56,7 @@ export default function SettingsPage(): React.ReactElement {
             footer={appVersion ? `v${appVersion} · self-hosted` : 'self-hosted'}
           >
             {activeTab === 'display' && <DisplaySettingsTab />}
+            {activeTab === 'appearance' && <AppearanceSettingsTab />}
             {activeTab === 'map' && <MapSettingsTab />}
             {activeTab === 'notifications' && <NotificationsTab />}
             {activeTab === 'integrations' && hasIntegrations && <IntegrationsTab />}

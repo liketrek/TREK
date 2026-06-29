@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Palette, Sun, Moon, Monitor, ChevronDown, Check } from 'lucide-react'
+import { Palette, ChevronDown, Check } from 'lucide-react'
 import { SUPPORTED_LANGUAGES, useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
@@ -49,48 +49,6 @@ export default function DisplaySettingsTab(): React.ReactElement {
           searchable
         />
         <p className="text-xs text-content-faint mt-2">{t('settings.currencyHint')}</p>
-      </div>
-
-      {/* Color Mode */}
-      <div>
-        <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.colorMode')}</label>
-        <div className="flex gap-3" style={{ flexWrap: 'wrap' }}>
-          {[
-            { value: 'light', label: t('settings.light'), icon: Sun },
-            { value: 'dark', label: t('settings.dark'), icon: Moon },
-            { value: 'auto', label: t('settings.auto'), icon: Monitor },
-          ].map(opt => {
-            const current = settings.dark_mode
-            const isActive = current === opt.value || (opt.value === 'light' && current === false) || (opt.value === 'dark' && current === true)
-            return (
-              <button
-                key={opt.value}
-                onClick={async () => {
-                  try {
-                    await updateSetting('dark_mode', opt.value)
-                  } catch (e: unknown) { toast.error(e instanceof Error ? e.message : t('common.error')) }
-                }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '10px 14px', borderRadius: 10, cursor: 'pointer', flex: '1 1 0', justifyContent: 'center', minWidth: 0,
-                  fontFamily: 'inherit', fontSize: 14, fontWeight: 500,
-                  border: isActive ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
-                  background: isActive ? 'var(--bg-hover)' : 'var(--bg-card)',
-                  color: 'var(--text-primary)',
-                  transition: 'all 0.15s',
-                }}
-              >
-                <span className="hidden sm:inline-flex"><opt.icon size={16} /></span>
-                {opt.value === 'auto' ? (
-                  <>
-                    <span className="hidden sm:inline">{opt.label}</span>
-                    <span className="sm:hidden">Auto</span>
-                  </>
-                ) : opt.label}
-              </button>
-            )
-          })}
-        </div>
       </div>
 
       {/* Language */}
