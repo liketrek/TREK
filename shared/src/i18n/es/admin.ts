@@ -359,5 +359,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': 'Elige un estilo…',
   'admin.defaultSettings.mapbox3d': 'Edificios y terreno en 3D',
   'admin.defaultSettings.mapboxQuality': 'Modo de alta calidad',
+  'admin.group.users': 'Users',
+  'admin.group.config': 'Configuration',
+  'admin.group.integration': 'Integrations',
+  'admin.group.maintenance': 'Maintenance',
 };
 export default admin;

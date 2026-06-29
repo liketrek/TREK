@@ -355,5 +355,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': 'Válassz stílust…',
   'admin.defaultSettings.mapbox3d': '3D épületek & domborzat',
   'admin.defaultSettings.mapboxQuality': 'Kiváló minőségű mód',
+  'admin.group.users': 'Users',
+  'admin.group.config': 'Configuration',
+  'admin.group.integration': 'Integrations',
+  'admin.group.maintenance': 'Maintenance',
 };
 export default admin;

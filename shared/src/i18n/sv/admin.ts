@@ -348,5 +348,9 @@ const admin: TranslationStrings = {
     "Ta bort alla den här användarens inloggningsnycklar (t.ex. om enheten har försvunnit). Användaren kan fortfarande logga in med sitt lösenord.",
   'admin.passkey.resetConfirm': 'Ta bort alla åtkomstnycklar för {name}?',
   'admin.passkey.resetDone': 'Tog bort {count} inloggningsnycklar',
+  'admin.group.users': 'Users',
+  'admin.group.config': 'Configuration',
+  'admin.group.integration': 'Integrations',
+  'admin.group.maintenance': 'Maintenance',
 };
 export default admin;

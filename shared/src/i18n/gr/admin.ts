@@ -363,5 +363,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': 'Επιλέξτε ένα στυλ…',
   'admin.defaultSettings.mapbox3d': 'Κτίρια & ανάγλυφο 3D',
   'admin.defaultSettings.mapboxQuality': 'Λειτουργία υψηλής ποιότητας',
+  'admin.group.users': 'Users',
+  'admin.group.config': 'Configuration',
+  'admin.group.integration': 'Integrations',
+  'admin.group.maintenance': 'Maintenance',
 };
 export default admin;
