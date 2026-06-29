@@ -141,9 +141,16 @@ export function applyAppearance(input: ApplyAppearanceInput): AppearanceConfig {
   setScaleVar(root, '--fs-scale-body', eff.typeScale.body)
   setScaleVar(root, '--fs-scale-caption', eff.typeScale.caption)
 
-  // global font scale — coarse accessibility knob; root font-size drives all rem text.
-  if (eff.fontScale === 1) root.style.removeProperty('font-size')
-  else root.style.fontSize = `${eff.fontScale * 100}%`
+  // global font scale: root font-size scales rem-based text; --fs-scale-text
+  // scales the (migrated) inline px sizes so dense content (trip places,
+  // addresses, panels) scales too. Both are driven by the same factor.
+  if (eff.fontScale === 1) {
+    root.style.removeProperty('font-size')
+    root.style.removeProperty('--fs-scale-text')
+  } else {
+    root.style.fontSize = `${eff.fontScale * 100}%`
+    root.style.setProperty('--fs-scale-text', String(eff.fontScale))
+  }
 
   // theme-color meta — unchanged from before (dark #09090b / light #ffffff).
   const meta = document.querySelector('meta[name="theme-color"]')

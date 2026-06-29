@@ -48,6 +48,7 @@
     setScale('--fs-scale-caption', ts.caption);
     if (typeof s.fontScale === 'number' && s.fontScale !== 1) {
       root.style.fontSize = s.fontScale * 100 + '%';
+      root.style.setProperty('--fs-scale-text', String(s.fontScale));
     }
 
     function setScale(name, v) {
