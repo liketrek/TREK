@@ -17,6 +17,8 @@
     "lint": "eslint .",
     "lint:check": "eslint .",
     "lint:pages": "node scripts/check-page-pattern.mjs",
+    "theme:lint": "node scripts/theme-lint.mjs",
+    "theme:lint:strict": "node scripts/theme-lint.mjs --strict",
     "e2e": "playwright test",
     "e2e:report": "playwright show-report",
     "format": "prettier --write \"src/**/*.tsx\" \"src/**/*.css\"",
