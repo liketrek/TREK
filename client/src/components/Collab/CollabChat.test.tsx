@@ -647,7 +647,7 @@ describe('CollabChat', () => {
     let foundBigEmoji = false;
     while (el) {
       const styleAttr = el.getAttribute('style');
-      if (styleAttr && styleAttr.includes('font-size: 40px')) {
+      if (styleAttr && styleAttr.includes('font-size: calc(40px')) {
         foundBigEmoji = true;
         break;
       }
