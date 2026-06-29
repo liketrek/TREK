@@ -37,15 +37,31 @@ const GRADIENTS = [
 ]
 function tripGradient(id: number): string { return GRADIENTS[id % GRADIENTS.length] }
 
-// Day + short month for the boarding pass / cards, e.g. { d: '10', m: 'Sep' }.
-function splitDate(dateStr: string | null | undefined, locale: string): { d: string; m: string } | null {
+// Day + short month for the boarding pass / cards, plus the year — but only
+// when it isn't the current year (this year's trips stay clutter-free), e.g.
+// { d: '10', m: 'Sep', y: '' } now vs { …, y: '2024' } for an older trip.
+function splitDate(dateStr: string | null | undefined, locale: string): { d: string; m: string; y: string } | null {
   if (!dateStr) return null
   const date = new Date(dateStr + 'T00:00:00Z')
   if (isNaN(date.getTime())) return null // malformed date — render a dash, never crash
+  const otherYear = date.getUTCFullYear() !== new Date().getUTCFullYear()
   return {
     d: date.toLocaleDateString(locale, { day: 'numeric', timeZone: 'UTC' }),
     m: date.toLocaleDateString(locale, { month: 'short', timeZone: 'UTC' }),
+    y: otherYear ? date.toLocaleDateString(locale, { year: 'numeric', timeZone: 'UTC' }) : '',
   }
+}
+
+// Localized date for the cards. The year is included only when it isn't the
+// current year, and order/punctuation follow the locale (EN "Sep 10, 2026",
+// DE "10. Sep 2026" — vs a plain "Sep 10" this year), never a hard-coded layout.
+function fullDate(dateStr: string | null | undefined, locale: string): string | null {
+  if (!dateStr) return null
+  const date = new Date(dateStr + 'T00:00:00Z')
+  if (isNaN(date.getTime())) return null
+  const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', timeZone: 'UTC' }
+  if (date.getUTCFullYear() !== new Date().getUTCFullYear()) opts.year = 'numeric'
+  return date.toLocaleDateString(locale, opts)
 }
 
 function buddyColor(seed: number): string {
@@ -322,10 +338,10 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
       <div className="pass-cell dates-combined">
         <div className="pass-label">{t('dashboard.hero.tripDates')}</div>
         <div className="dates-row">
-          {start ? <div className="date-block"><div className="date-num mono">{start.d}</div><div className="date-month">{start.m}</div></div>
+          {start ? <div className="date-block"><div className="date-num mono">{start.d}</div><div className="date-month">{start.m}{start.y ? ` ${start.y}` : ''}</div></div>
             : <div className="date-block"><div className="date-num">—</div></div>}
           <div className="date-arrow"><ArrowRight /></div>
-          {end ? <div className="date-block"><div className="date-num mono">{end.d}</div><div className="date-month">{end.m}</div></div>
+          {end ? <div className="date-block"><div className="date-num mono">{end.d}</div><div className="date-month">{end.m}{end.y ? ` ${end.y}` : ''}</div></div>
             : <div className="date-block"><div className="date-num">—</div></div>}
         </div>
       </div>
@@ -530,9 +546,9 @@ function TripCard({ trip, locale, onOpen, onEdit, onCopy, onArchive, onDelete }:
         <div className="trip-dates">
           {start && end ? (
             <>
-              <span className="date-num">{start.m} {start.d}</span>
+              <span className="date-num">{fullDate(trip.start_date, locale)}</span>
               <span className="date-arrow"><ArrowRight size={11} /></span>
-              <span className="date-num">{end.m} {end.d}</span>
+              <span className="date-num">{fullDate(trip.end_date, locale)}</span>
             </>
           ) : <span>{t('dashboard.hero.noDates')}</span>}
         </div>

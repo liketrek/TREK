@@ -93,11 +93,15 @@ export function formatMoney(
 
 export function formatDate(dateStr: string | null | undefined, locale: string, timeZone?: string): string | null {
   if (!dateStr) return null
+  const date = new Date(dateStr + 'T00:00:00Z')
   const opts: Intl.DateTimeFormatOptions = {
     weekday: 'short', day: 'numeric', month: 'short',
     timeZone: timeZone || 'UTC',
   }
-  return new Date(dateStr + 'T00:00:00Z').toLocaleDateString(locale, opts)
+  // Show the year only when it isn't the current year, so this year's dates stay
+  // compact while older/future ones are unambiguous.
+  if (date.getUTCFullYear() !== new Date().getUTCFullYear()) opts.year = 'numeric'
+  return date.toLocaleDateString(locale, opts)
 }
 
 export function formatTime(timeStr: string | null | undefined, locale: string, timeFormat: string): string {
