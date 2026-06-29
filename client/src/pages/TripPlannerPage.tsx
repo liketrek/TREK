@@ -73,7 +73,7 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
           padding: '14px 16px 14px 22px',
           display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
         }}>
-          <h2 className="text-content" style={{ margin: 0, fontSize: 'calc(18px * var(--fs-scale-text, 1))', fontWeight: 600, letterSpacing: '-0.01em', flexShrink: 0 }}>
+          <h2 className="text-content" style={{ margin: 0, fontSize: 'calc(18px * var(--fs-scale-subtitle, 1))', fontWeight: 600, letterSpacing: '-0.01em', flexShrink: 0 }}>
             {t('trip.tabs.lists')}
           </h2>
           <div className="hidden md:block bg-edge-faint" style={{ width: 1, height: 22, flexShrink: 0 }} />
@@ -87,7 +87,7 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
                   style={{
                     appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                     display: 'inline-flex', alignItems: 'center', gap: 6,
-                    padding: '6px 12px', borderRadius: 99, fontSize: 'calc(13px * var(--fs-scale-text, 1))', whiteSpace: 'nowrap',
+                    padding: '6px 12px', borderRadius: 99, fontSize: 'calc(13px * var(--fs-scale-body, 1))', whiteSpace: 'nowrap',
                     fontWeight: active ? 500 : 400,
                     boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                     transition: 'background 180ms cubic-bezier(0.23,1,0.32,1), color 180ms cubic-bezier(0.23,1,0.32,1), box-shadow 180ms cubic-bezier(0.23,1,0.32,1)',
@@ -96,7 +96,7 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
                   <Icon size={13} className={active ? 'text-content' : 'text-content-faint'} />
                   <span className="hidden sm:inline">{tab.label}</span>
                   <span className={`text-content-faint ${active ? 'bg-surface-tertiary' : 'bg-[rgba(0,0,0,0.06)]'}`} style={{
-                    fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 600,
+                    fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600,
                     padding: '1px 6px', borderRadius: 99, minWidth: 16, textAlign: 'center',
                   }}>{tab.count}</span>
                 </button>
@@ -109,7 +109,7 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
             const sharedBtnClass = 'inline-flex items-center gap-1.5 px-2.5 sm:px-[14px] py-[7px] sm:py-[9px] hover:opacity-[0.88]'
             const sharedBtnStyle: React.CSSProperties = {
               appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500,
+              borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
             }
             return (
               <div style={{ display: 'flex', gap: 6, flexShrink: 0, marginLeft: 'auto', flexWrap: 'wrap' }}>
@@ -152,7 +152,7 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
               style={{
                 appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                 display: 'inline-flex', alignItems: 'center', gap: 6,
-                padding: '9px 14px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500,
+                padding: '9px 14px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
                 flexShrink: 0,
                 marginLeft: 'auto',
               }}
@@ -250,10 +250,10 @@ export default function TripPlannerPage(): React.ReactElement | null {
             height={64}
           />
         </div>
-        <div className="text-content" style={{ fontSize: 'calc(20px * var(--fs-scale-text, 1))', fontWeight: 700, letterSpacing: '-0.3px', marginBottom: 6, animation: 'fadeInUp 0.5s ease-out' }}>
+        <div className="text-content" style={{ fontSize: 'calc(20px * var(--fs-scale-title, 1))', fontWeight: 700, letterSpacing: '-0.3px', marginBottom: 6, animation: 'fadeInUp 0.5s ease-out' }}>
           {trip?.title || 'TREK'}
         </div>
-        <div className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 500, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 32, animation: 'fadeInUp 0.5s ease-out 0.1s both' }}>
+        <div className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 32, animation: 'fadeInUp 0.5s ease-out 0.1s both' }}>
           {t('trip.loadingPhotos')}
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
@@ -483,12 +483,12 @@ export default function TripPlannerPage(): React.ReactElement | null {
               <div className="flex md:hidden" style={{ position: 'fixed', top: 'calc(var(--nav-h) + 44px + 12px)', left: 12, right: 12, justifyContent: 'space-between', zIndex: 100, pointerEvents: 'none' }}>
                 <button onClick={() => setMobileSidebarOpen('left')}
                   className="bg-surface-card text-content border border-edge"
-                  style={{ pointerEvents: 'auto', backdropFilter: 'blur(12px)', borderRadius: 24, padding: '11px 24px', fontSize: 'calc(15px * var(--fs-scale-text, 1))', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.15)', minHeight: 44, fontFamily: 'inherit', touchAction: 'manipulation' }}>
+                  style={{ pointerEvents: 'auto', backdropFilter: 'blur(12px)', borderRadius: 24, padding: '11px 24px', fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.15)', minHeight: 44, fontFamily: 'inherit', touchAction: 'manipulation' }}>
                   {t('trip.mobilePlan')}
                 </button>
                 <button onClick={() => setMobileSidebarOpen('right')}
                   className="bg-surface-card text-content border border-edge"
-                  style={{ pointerEvents: 'auto', backdropFilter: 'blur(12px)', borderRadius: 24, padding: '11px 24px', fontSize: 'calc(15px * var(--fs-scale-text, 1))', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.15)', minHeight: 44, fontFamily: 'inherit', touchAction: 'manipulation' }}>
+                  style={{ pointerEvents: 'auto', backdropFilter: 'blur(12px)', borderRadius: 24, padding: '11px 24px', fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.15)', minHeight: 44, fontFamily: 'inherit', touchAction: 'manipulation' }}>
                   {t('trip.mobilePlaces')}
                 </button>
               </div>,
@@ -602,7 +602,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
               <div className="bg-[rgba(0,0,0,0.3)]" style={{ position: 'fixed', inset: 0, zIndex: 9999 }} onClick={() => setMobileSidebarOpen(null)}>
                 <div className="bg-surface-card" style={{ position: 'absolute', top: 'var(--nav-h)', left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
                   <div className="border-b border-edge-secondary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px' }}>
-                    <span className="text-content" style={{ fontWeight: 600, fontSize: 'calc(14px * var(--fs-scale-text, 1))' }}>{mobileSidebarOpen === 'left' ? t('trip.mobilePlan') : t('trip.mobilePlaces')}</span>
+                    <span className="text-content" style={{ fontWeight: 600, fontSize: 'calc(14px * var(--fs-scale-body, 1))' }}>{mobileSidebarOpen === 'left' ? t('trip.mobilePlan') : t('trip.mobilePlaces')}</span>
                     <button onClick={() => setMobileSidebarOpen(null)} className="bg-surface-tertiary text-content" style={{ border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <X size={14} />
                     </button>

@@ -127,7 +127,7 @@ export default function BookingImportModal({ isOpen, onClose, tripId }: BookingI
       >
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-          <div style={{ flex: 1, fontSize: 'calc(15px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'var(--text-primary)' }}>
+          <div style={{ flex: 1, fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 700, color: 'var(--text-primary)' }}>
             {t('reservations.import.title')}
           </div>
           <button onClick={handleClose} className="bg-transparent text-content-faint" style={{ border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center' }}>
@@ -136,7 +136,7 @@ export default function BookingImportModal({ isOpen, onClose, tripId }: BookingI
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
-          <div style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', marginBottom: 14, lineHeight: 1.45 }}>
+          <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)', marginBottom: 14, lineHeight: 1.45 }}>
             {t('reservations.import.acceptedFormats')}
           </div>
 
@@ -160,7 +160,7 @@ export default function BookingImportModal({ isOpen, onClose, tripId }: BookingI
               width: '100%', minHeight: 100, borderRadius: 12,
               border: `2px dashed ${isDragOver ? 'var(--accent)' : 'var(--border-primary)'}`,
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              gap: 6, fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500, cursor: 'pointer',
+              gap: 6, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, cursor: 'pointer',
               marginBottom: 12, padding: 16, boxSizing: 'border-box',
               transition: 'border-color 0.15s, background 0.15s',
             }}
@@ -176,7 +176,7 @@ export default function BookingImportModal({ isOpen, onClose, tripId }: BookingI
           </div>
 
           {error && (
-            <div className="bg-[rgba(239,68,68,0.08)] text-[#b91c1c]" style={{ border: '1px solid rgba(239,68,68,0.35)', borderRadius: 10, padding: '8px 10px', fontSize: 'calc(12px * var(--fs-scale-text, 1))', whiteSpace: 'pre-wrap', marginTop: 8 }}>
+            <div className="bg-[rgba(239,68,68,0.08)] text-[#b91c1c]" style={{ border: '1px solid rgba(239,68,68,0.35)', borderRadius: 10, padding: '8px 10px', fontSize: 'calc(12px * var(--fs-scale-body, 1))', whiteSpace: 'pre-wrap', marginTop: 8 }}>
               {error}
             </div>
           )}
@@ -186,7 +186,7 @@ export default function BookingImportModal({ isOpen, onClose, tripId }: BookingI
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-faint)' }}>
           <button
             onClick={handleClose}
-            style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', color: 'var(--text-primary)', fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
+            style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', color: 'var(--text-primary)', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
           >
             {t('common.cancel')}
           </button>
@@ -194,7 +194,7 @@ export default function BookingImportModal({ isOpen, onClose, tripId }: BookingI
             onClick={handleParse}
             disabled={files.length === 0 || loading}
             className={files.length > 0 && !loading ? 'bg-accent text-accent-text' : 'bg-surface-tertiary text-content-faint'}
-            style={{ padding: '8px 16px', borderRadius: 10, border: 'none', fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500, cursor: files.length > 0 && !loading ? 'pointer' : 'default', fontFamily: 'inherit' }}
+            style={{ padding: '8px 16px', borderRadius: 10, border: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, cursor: files.length > 0 && !loading ? 'pointer' : 'default', fontFamily: 'inherit' }}
           >
             {loading ? t('reservations.import.parsing') : t('common.import')}
           </button>

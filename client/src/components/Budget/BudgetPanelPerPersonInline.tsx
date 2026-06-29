@@ -51,10 +51,10 @@ export default function PerPersonInline({ tripId, budgetItems, currency, locale,
             <div key={p.user_id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '6px 0' }}>
               <RingAvatar userId={p.user_id} username={p.username} avatarUrl={p.avatar_url} size={34} innerBg={theme.centerBg} textColor={theme.text} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 'calc(13.5px * var(--fs-scale-text, 1))', fontWeight: 500, letterSpacing: '-0.01em', color: theme.text }}>{p.username}</div>
-                <div style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: theme.faint, marginTop: 1 }}>{percent}%</div>
+                <div style={{ fontSize: 'calc(13.5px * var(--fs-scale-body, 1))', fontWeight: 500, letterSpacing: '-0.01em', color: theme.text }}>{p.username}</div>
+                <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: theme.faint, marginTop: 1 }}>{percent}%</div>
               </div>
-              <div style={{ fontSize: 'calc(13.5px * var(--fs-scale-text, 1))', fontWeight: 600, color: theme.text, letterSpacing: '-0.01em' }}>{fmt(p.total_assigned)}</div>
+              <div style={{ fontSize: 'calc(13.5px * var(--fs-scale-body, 1))', fontWeight: 600, color: theme.text, letterSpacing: '-0.01em' }}>{fmt(p.total_assigned)}</div>
             </div>
           )
         })}

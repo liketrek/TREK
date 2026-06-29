@@ -396,6 +396,16 @@ const settings: TranslationStrings = {
   'settings.appearance.group.bottomOfPage': 'Bottom of page',
   'settings.appearance.sidebarHint': 'The whole right column. Turn off and the dashboard centers.',
   'settings.appearance.densityHint': 'Compact tightens spacing and padding for a denser layout that fits more on screen.',
+  'settings.appearance.textSizeAll': 'Everything',
+  'settings.appearance.perSize': 'Adjust each size separately',
+  'settings.appearance.size.large': 'Large',
+  'settings.appearance.size.medium': 'Medium',
+  'settings.appearance.size.normal': 'Normal',
+  'settings.appearance.size.small': 'Small',
+  'settings.appearance.preview.large': 'Large heading',
+  'settings.appearance.preview.medium': 'Medium subtitle',
+  'settings.appearance.preview.normal': 'Normal body text',
+  'settings.appearance.preview.small': 'Small caption / address',
 };
 
 export default settings;

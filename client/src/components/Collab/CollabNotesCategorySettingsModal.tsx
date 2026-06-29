@@ -71,7 +71,7 @@ export function CategorySettingsModal({ onClose, categories, categoryColors, onS
       }} onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 12px', borderBottom: '1px solid var(--border-faint)' }}>
-          <h3 style={{ fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+          <h3 style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
             {t('collab.notes.categorySettings') || 'Category Settings'}
           </h3>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 2, display: 'flex' }}>
@@ -82,7 +82,7 @@ export function CategorySettingsModal({ onClose, categories, categoryColors, onS
         {/* Categories list */}
         <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           {allCats.length === 0 && (
-            <p style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', textAlign: 'center', padding: 16 }}>
+            <p style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)', textAlign: 'center', padding: 16 }}>
               {t('collab.notes.noCategoriesYet') || 'No categories yet'}
             </p>
           )}
@@ -119,7 +119,7 @@ export function CategorySettingsModal({ onClose, categories, categoryColors, onS
               placeholder={t('collab.notes.newCategory')}
               style={{
                 flex: 1, border: '1px solid var(--border-primary)', borderRadius: 10, padding: '8px 12px',
-                fontSize: 'calc(13px * var(--fs-scale-text, 1))', background: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none',
+                fontSize: 'calc(13px * var(--fs-scale-body, 1))', background: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none',
               }} />
             <button onClick={handleAddCategory} disabled={!newCatName.trim()} style={{
               background: newCatName.trim() ? 'var(--accent)' : 'var(--border-primary)', color: 'var(--accent-text)',
@@ -133,7 +133,7 @@ export function CategorySettingsModal({ onClose, categories, categoryColors, onS
           {/* Save */}
           <button onClick={handleSave} style={{
             width: '100%', borderRadius: 99, padding: '9px 14px', background: 'var(--accent)', color: 'var(--accent-text)',
-            fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 600, border: 'none', cursor: 'pointer', marginTop: 8,
+            fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, border: 'none', cursor: 'pointer', marginTop: 8,
           }}>
             {t('collab.notes.save')}
           </button>

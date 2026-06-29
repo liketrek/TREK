@@ -116,7 +116,7 @@ export default function AtlasPage(): React.ReactElement {
           borderRadius: 10, padding: '10px 14px',
           boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
           border: `1px solid ${dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`,
-          fontSize: 'calc(12px * var(--fs-scale-text, 1))', minWidth: 120,
+          fontSize: 'calc(12px * var(--fs-scale-body, 1))', minWidth: 120,
         }} />
         <AtlasCountrySearch
           dark={dark}
@@ -205,9 +205,9 @@ export default function AtlasPage(): React.ReactElement {
             {confirmAction.code.length === 2 ? (
               <img src={`https://flagcdn.com/w80/${confirmAction.code.toLowerCase()}.png`} alt={confirmAction.code} style={{ width: 48, height: 34, borderRadius: 6, objectFit: 'cover', marginBottom: 12, display: 'inline-block' }} />
             ) : (
-              <div style={{ fontSize: 'calc(36px * var(--fs-scale-text, 1))', marginBottom: 12 }}>{countryCodeToFlag(confirmAction.code)}</div>
+              <div style={{ fontSize: 'calc(36px * var(--fs-scale-title, 1))', marginBottom: 12 }}>{countryCodeToFlag(confirmAction.code)}</div>
             )}
-            <h3 className="text-content" style={{ margin: '0 0 16px', fontSize: 'calc(16px * var(--fs-scale-text, 1))', fontWeight: 700 }}>{confirmAction.name}</h3>
+            <h3 className="text-content" style={{ margin: '0 0 16px', fontSize: 'calc(16px * var(--fs-scale-subtitle, 1))', fontWeight: 700 }}>{confirmAction.name}</h3>
 
             {confirmAction.type === 'choose' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -230,8 +230,8 @@ export default function AtlasPage(): React.ReactElement {
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}>
                   <MapPin size={18} className="text-content" style={{ flexShrink: 0 }} />
                   <div>
-                    <div className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 600 }}>{t('atlas.markVisited')}</div>
-                    <div className="text-content-muted" style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', marginTop: 1 }}>{t('atlas.markVisitedHint')}</div>
+                    <div className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{t('atlas.markVisited')}</div>
+                    <div className="text-content-muted" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', marginTop: 1 }}>{t('atlas.markVisitedHint')}</div>
                   </div>
                 </button>
                 <button onClick={() => setConfirmAction({ ...confirmAction, type: 'bucket' as any })}
@@ -241,8 +241,8 @@ export default function AtlasPage(): React.ReactElement {
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}>
                   <Star size={18} className="text-[#fbbf24]" style={{ flexShrink: 0 }} />
                   <div>
-                    <div className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 600 }}>{t('atlas.addToBucket')}</div>
-                    <div className="text-content-muted" style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', marginTop: 1 }}>{t('atlas.addToBucketHint')}</div>
+                    <div className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{t('atlas.addToBucket')}</div>
+                    <div className="text-content-muted" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', marginTop: 1 }}>{t('atlas.addToBucketHint')}</div>
                   </div>
                 </button>
               </div>
@@ -251,7 +251,7 @@ export default function AtlasPage(): React.ReactElement {
             {confirmAction.type === 'choose-region' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {confirmAction.countryName && (
-                  <p className="text-content-muted" style={{ margin: '-8px 0 8px', fontSize: 'calc(12px * var(--fs-scale-text, 1))' }}>{confirmAction.countryName}</p>
+                  <p className="text-content-muted" style={{ margin: '-8px 0 8px', fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}>{confirmAction.countryName}</p>
                 )}
                 <button onClick={async () => {
                   const { code: countryCode, name: rName, regionCode: rCode } = confirmAction
@@ -279,8 +279,8 @@ export default function AtlasPage(): React.ReactElement {
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}>
                   <MapPin size={18} className="text-content" style={{ flexShrink: 0 }} />
                   <div>
-                    <div className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 600 }}>{t('atlas.markVisited')}</div>
-                    <div className="text-content-muted" style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', marginTop: 1 }}>{t('atlas.markRegionVisitedHint')}</div>
+                    <div className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{t('atlas.markVisited')}</div>
+                    <div className="text-content-muted" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', marginTop: 1 }}>{t('atlas.markRegionVisitedHint')}</div>
                   </div>
                 </button>
                 <button onClick={() => setConfirmAction({ ...confirmAction, type: 'bucket' })}
@@ -290,8 +290,8 @@ export default function AtlasPage(): React.ReactElement {
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}>
                   <Star size={18} className="text-[#fbbf24]" style={{ flexShrink: 0 }} />
                   <div>
-                    <div className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 600 }}>{t('atlas.addToBucket')}</div>
-                    <div className="text-content-muted" style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', marginTop: 1 }}>{t('atlas.addToBucketHint')}</div>
+                    <div className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{t('atlas.addToBucket')}</div>
+                    <div className="text-content-muted" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', marginTop: 1 }}>{t('atlas.addToBucketHint')}</div>
                   </div>
                 </button>
               </div>
@@ -299,16 +299,16 @@ export default function AtlasPage(): React.ReactElement {
 
             {confirmAction.type === 'unmark' && (
               <>
-                <p className="text-content-muted" style={{ margin: '0 0 20px', fontSize: 'calc(13px * var(--fs-scale-text, 1))' }}>{t('atlas.confirmUnmark')}</p>
+                <p className="text-content-muted" style={{ margin: '0 0 20px', fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>{t('atlas.confirmUnmark')}</p>
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
                   <button onClick={() => setConfirmAction(null)}
                     className="border border-edge text-content-muted"
-                    style={{ padding: '8px 20px', borderRadius: 10, background: 'none', fontSize: 'calc(13px * var(--fs-scale-text, 1))', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    style={{ padding: '8px 20px', borderRadius: 10, background: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', cursor: 'pointer', fontFamily: 'inherit' }}>
                     {t('common.cancel')}
                   </button>
                   <button onClick={executeConfirmAction}
                     className="bg-[#ef4444] text-white"
-                    style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                     {t('atlas.unmark')}
                   </button>
                 </div>
@@ -318,13 +318,13 @@ export default function AtlasPage(): React.ReactElement {
             {confirmAction.type === 'unmark-region' && (
               <>
                 {confirmAction.countryName && (
-                  <p className="text-content-muted" style={{ margin: '-8px 0 8px', fontSize: 'calc(12px * var(--fs-scale-text, 1))' }}>{confirmAction.countryName}</p>
+                  <p className="text-content-muted" style={{ margin: '-8px 0 8px', fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}>{confirmAction.countryName}</p>
                 )}
-                <p className="text-content-muted" style={{ margin: '0 0 20px', fontSize: 'calc(13px * var(--fs-scale-text, 1))' }}>{t('atlas.confirmUnmarkRegion')}</p>
+                <p className="text-content-muted" style={{ margin: '0 0 20px', fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>{t('atlas.confirmUnmarkRegion')}</p>
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
                   <button onClick={() => setConfirmAction(null)}
                     className="border border-edge text-content-muted"
-                    style={{ padding: '8px 20px', borderRadius: 10, background: 'none', fontSize: 'calc(13px * var(--fs-scale-text, 1))', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    style={{ padding: '8px 20px', borderRadius: 10, background: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', cursor: 'pointer', fontFamily: 'inherit' }}>
                     {t('common.cancel')}
                   </button>
                   <button onClick={async () => {
@@ -359,7 +359,7 @@ export default function AtlasPage(): React.ReactElement {
                     setConfirmAction(null)
                   }}
                     className="bg-[#ef4444] text-white"
-                    style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                     {t('atlas.unmark')}
                   </button>
                 </div>
@@ -368,7 +368,7 @@ export default function AtlasPage(): React.ReactElement {
 
             {confirmAction.type === 'bucket' && (
               <>
-                <p className="text-content-muted" style={{ margin: '0 0 14px', fontSize: 'calc(13px * var(--fs-scale-text, 1))' }}>{t('atlas.bucketWhen')}</p>
+                <p className="text-content-muted" style={{ margin: '0 0 14px', fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>{t('atlas.bucketWhen')}</p>
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16 }}>
                   <div style={{ flex: 1 }}>
                     <CustomSelect
@@ -398,7 +398,7 @@ export default function AtlasPage(): React.ReactElement {
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
                   <button onClick={() => setConfirmAction({ ...confirmAction, type: confirmAction.regionCode ? 'choose-region' : 'choose' })}
                     className="border border-edge text-content-muted"
-                    style={{ padding: '8px 20px', borderRadius: 10, background: 'none', fontSize: 'calc(13px * var(--fs-scale-text, 1))', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    style={{ padding: '8px 20px', borderRadius: 10, background: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', cursor: 'pointer', fontFamily: 'inherit' }}>
                     {t('common.back')}
                   </button>
                   <button onClick={async () => {
@@ -413,7 +413,7 @@ export default function AtlasPage(): React.ReactElement {
                     setConfirmAction(null)
                   }}
                     className="bg-[#fbbf24] text-[#1a1a1a]"
-                    style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                     {t('atlas.addToBucket')}
                   </button>
                 </div>
@@ -422,16 +422,16 @@ export default function AtlasPage(): React.ReactElement {
 
             {confirmAction.type === 'mark' && (
               <>
-                <p className="text-content-muted" style={{ margin: '0 0 20px', fontSize: 'calc(13px * var(--fs-scale-text, 1))' }}>{t('atlas.confirmMark')}</p>
+                <p className="text-content-muted" style={{ margin: '0 0 20px', fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>{t('atlas.confirmMark')}</p>
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
                   <button onClick={() => setConfirmAction(null)}
                     className="border border-edge text-content-muted"
-                    style={{ padding: '8px 20px', borderRadius: 10, background: 'none', fontSize: 'calc(13px * var(--fs-scale-text, 1))', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    style={{ padding: '8px 20px', borderRadius: 10, background: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', cursor: 'pointer', fontFamily: 'inherit' }}>
                     {t('common.cancel')}
                   </button>
                   <button onClick={executeConfirmAction}
                     className="bg-content text-white"
-                    style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                     {t('atlas.markVisited')}
                   </button>
                 </div>
@@ -509,7 +509,7 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
           style={{
             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
             padding: '7px 0', borderRadius: 10, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-            fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 600, transition: 'all 0.15s',
+            fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, transition: 'all 0.15s',
             background: bucketTab === tab.id ? bg(0.1) : 'transparent',
             color: bucketTab === tab.id ? tp : tf,
           }}>
@@ -563,7 +563,7 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
         </div>
       ))}
       {bucketList.length === 0 && !showBucketAdd && (
-        <div className="flex items-center justify-center py-4 px-6" style={{ color: tf, fontSize: 'calc(12px * var(--fs-scale-text, 1))' }}>
+        <div className="flex items-center justify-center py-4 px-6" style={{ color: tf, fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}>
           {t('atlas.bucketEmptyHint')}
         </div>
       )}
@@ -579,7 +579,7 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
               placeholder={t('atlas.bucketNamePlaceholder')}
               autoFocus
               className="border border-edge text-content bg-surface-input"
-              style={{ flex: 1, padding: '6px 10px', borderRadius: 8, fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+              style={{ flex: 1, padding: '6px 10px', borderRadius: 8, fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
             />
             {!bucketForm.name && (
               <button onClick={onSearchBucket} disabled={bucketSearching}
@@ -600,8 +600,8 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
             <div className="bg-surface-card border border-edge" style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, zIndex: 50, marginBottom: 4, borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.12)', maxHeight: 160, overflowY: 'auto' }}>
               {bucketSearchResults.slice(0, 6).map((r, i) => (
                 <button key={i} onClick={() => onSelectBucketPoi(r)} className="border-b border-edge-faint" style={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%', padding: '6px 10px', borderTop: 'none', borderLeft: 'none', borderRight: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}>
-                  <span className="text-content" style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 500 }}>{r.name}</span>
-                  {r.address && <span className="text-content-faint" style={{ fontSize: 'calc(10px * var(--fs-scale-text, 1))' }}>{r.address}</span>}
+                  <span className="text-content" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500 }}>{r.name}</span>
+                  {r.address && <span className="text-content-faint" style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))' }}>{r.address}</span>}
                 </button>
               ))}
             </div>
@@ -609,7 +609,7 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
         </div>
         {/* Selected place indicator */}
         {bucketForm.lat && bucketForm.lng && (
-          <div className="text-content-faint" style={{ fontSize: 'calc(10px * var(--fs-scale-text, 1))', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div className="text-content-faint" style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', display: 'flex', alignItems: 'center', gap: 4 }}>
             <MapPin size={10} /> {Number(bucketForm.lat).toFixed(4)}, {Number(bucketForm.lng).toFixed(4)}
           </div>
         )}
@@ -627,12 +627,12 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
         <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
           <button onClick={() => { setShowBucketAdd(false); setBucketForm({ name: '', notes: '', lat: '', lng: '', target_date: '' }); setBucketSearch(''); setBucketSearchResults([]); setBucketPoiMonth(0); setBucketPoiYear(0) }}
             className="border border-edge text-content-muted"
-            style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', padding: '4px 10px', borderRadius: 6, background: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+            style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', padding: '4px 10px', borderRadius: 6, background: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
             {t('common.cancel')}
           </button>
           <button onClick={onAddBucket} disabled={!bucketForm.name.trim()}
             className="bg-[#fbbf24] text-[#1a1a1a]"
-            style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', padding: '4px 12px', borderRadius: 6, border: 'none', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: bucketForm.name.trim() ? 1 : 0.5 }}>
+            style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', padding: '4px 12px', borderRadius: 6, border: 'none', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: bucketForm.name.trim() ? 1 : 0.5 }}>
             {t('common.add')}
           </button>
         </div>
@@ -641,7 +641,7 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
       <div style={{ padding: '4px 16px 8px' }}>
         <button onClick={() => setShowBucketAdd(true)}
           className="border border-dashed border-edge"
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, width: '100%', padding: '5px 0', borderRadius: 8, background: 'none', fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: tf, cursor: 'pointer', fontFamily: 'inherit' }}>
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, width: '100%', padding: '5px 0', borderRadius: 8, background: 'none', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: tf, cursor: 'pointer', fontFamily: 'inherit' }}>
           <Plus size={11} /> {t('atlas.addPoi')}
         </button>
       </div>

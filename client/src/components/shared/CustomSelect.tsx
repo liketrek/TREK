@@ -95,7 +95,7 @@ export default function CustomSelect({
           padding: sm ? '8px 12px' : '8px 14px', borderRadius: 10,
           border: '1px solid var(--border-primary)',
           background: 'var(--bg-input)', color: 'var(--text-primary)',
-          fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500, fontFamily: 'inherit',
+          fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, fontFamily: 'inherit',
           cursor: disabled ? 'default' : 'pointer', outline: 'none', textAlign: 'left',
           transition: 'border-color 0.15s', overflow: 'hidden', minWidth: 0,
           opacity: disabled ? 0.5 : 1,
@@ -109,7 +109,7 @@ export default function CustomSelect({
         </span>
         {selected?.badge && (
           <span style={{
-            flexShrink: 0, fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-muted)',
+            flexShrink: 0, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-muted)',
             background: 'var(--bg-tertiary)', padding: '2px 7px', borderRadius: 999,
             letterSpacing: '0.01em',
           }}>{selected.badge}</span>
@@ -153,7 +153,7 @@ export default function CustomSelect({
                 placeholder="..."
                 style={{
                   width: '100%', border: '1px solid var(--border-secondary)', borderRadius: 6,
-                  padding: '5px 8px', fontSize: 'calc(12px * var(--fs-scale-text, 1))', outline: 'none', fontFamily: 'inherit',
+                  padding: '5px 8px', fontSize: 'calc(12px * var(--fs-scale-body, 1))', outline: 'none', fontFamily: 'inherit',
                   background: 'var(--bg-secondary)', color: 'var(--text-primary)',
                   boxSizing: 'border-box',
                 }}
@@ -164,13 +164,13 @@ export default function CustomSelect({
           {/* Options */}
           <div style={{ maxHeight: 220, overflowY: 'auto', padding: '4px' }}>
             {filtered.length === 0 ? (
-              <div style={{ padding: '10px 12px', fontSize: 'calc(12px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', textAlign: 'center' }}>—</div>
+              <div style={{ padding: '10px 12px', fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)', textAlign: 'center' }}>—</div>
             ) : (
               filtered.map(option => {
                 if (option.isHeader) {
                   return (
                     <div key={option.value} style={{
-                      padding: '5px 10px', fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'var(--text-faint)',
+                      padding: '5px 10px', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700, color: 'var(--text-faint)',
                       textTransform: 'uppercase', letterSpacing: '0.03em',
                       background: 'var(--bg-tertiary)', borderRadius: 4, margin: '2px 0',
                     }}>
@@ -188,7 +188,7 @@ export default function CustomSelect({
                       width: '100%', display: 'flex', alignItems: 'center', gap: 8,
                       padding: '7px 10px', borderRadius: 6,
                       border: 'none', background: isSelected ? 'var(--bg-hover)' : 'transparent',
-                      color: 'var(--text-primary)', fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontFamily: 'inherit',
+                      color: 'var(--text-primary)', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontFamily: 'inherit',
                       cursor: 'pointer', textAlign: 'left', transition: 'background 0.1s',
                     }}
                     onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
@@ -198,7 +198,7 @@ export default function CustomSelect({
                     <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{option.label}</span>
                     {option.badge && (
                       <span style={{
-                        flexShrink: 0, fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-muted)',
+                        flexShrink: 0, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-muted)',
                         background: 'var(--bg-tertiary)', padding: '2px 7px', borderRadius: 999,
                         letterSpacing: '0.01em',
                       }}>{option.badge}</span>

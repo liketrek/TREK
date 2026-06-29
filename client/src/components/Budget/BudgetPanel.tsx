@@ -38,14 +38,14 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
         <div style={{ width: 64, height: 64, borderRadius: 16, background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
           <Calculator size={28} color="#6b7280" />
         </div>
-        <h2 style={{ fontSize: 'calc(20px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>{t('budget.emptyTitle')}</h2>
-        <p style={{ fontSize: 'calc(14px * var(--fs-scale-text, 1))', color: 'var(--text-muted)', margin: '0 0 24px', lineHeight: 1.5 }}>{t('budget.emptyText')}</p>
+        <h2 style={{ fontSize: 'calc(20px * var(--fs-scale-title, 1))', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>{t('budget.emptyTitle')}</h2>
+        <p style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', color: 'var(--text-muted)', margin: '0 0 24px', lineHeight: 1.5 }}>{t('budget.emptyText')}</p>
         {canEdit && (
           <div style={{ display: 'flex', gap: 6, justifyContent: 'center', alignItems: 'stretch', maxWidth: 320, margin: '0 auto' }}>
             <input value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleAddCategory()}
               placeholder={t('budget.emptyPlaceholder')}
-              style={{ flex: 1, padding: '9px 14px', borderRadius: 10, border: '1px solid var(--border-primary)', fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontFamily: 'inherit', outline: 'none', background: 'var(--bg-input)', color: 'var(--text-primary)', minWidth: 0 }} />
+              style={{ flex: 1, padding: '9px 14px', borderRadius: 10, border: '1px solid var(--border-primary)', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontFamily: 'inherit', outline: 'none', background: 'var(--bg-input)', color: 'var(--text-primary)', minWidth: 0 }} />
             <button onClick={handleAddCategory} disabled={!newCategoryName.trim()}
               style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: 10, padding: '0 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', opacity: newCategoryName.trim() ? 1 : 0.5, flexShrink: 0 }}>
               <Plus size={16} />
@@ -65,7 +65,7 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
           padding: '14px 16px 14px 22px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap',
         }}>
-          <h2 style={{ margin: 0, fontSize: 'calc(18px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em', flexShrink: 0 }}>
+          <h2 style={{ margin: 0, fontSize: 'calc(18px * var(--fs-scale-subtitle, 1))', fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em', flexShrink: 0 }}>
             {t('budget.title')}
           </h2>
           <div className="flex flex-wrap max-md:!w-full max-md:!mt-2" style={{ alignItems: 'center', gap: 8, marginLeft: 'auto', flexShrink: 0 }}>
@@ -85,14 +85,14 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
                   onChange={e => setNewCategoryName(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') handleAddCategory() }}
                   placeholder={t('budget.categoryName')}
-                  style={{ flex: 1, minWidth: 0, border: '1px solid var(--border-primary)', borderRadius: 10, padding: '9px 14px', fontSize: 'calc(13px * var(--fs-scale-text, 1))', outline: 'none', fontFamily: 'inherit', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                  style={{ flex: 1, minWidth: 0, border: '1px solid var(--border-primary)', borderRadius: 10, padding: '9px 14px', fontSize: 'calc(13px * var(--fs-scale-body, 1))', outline: 'none', fontFamily: 'inherit', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
                 />
                 <button onClick={handleAddCategory} disabled={!newCategoryName.trim()}
                   title={t('budget.addCategory')}
                   style={{
                     appearance: 'none', border: 'none', cursor: newCategoryName.trim() ? 'pointer' : 'default', fontFamily: 'inherit',
                     display: 'inline-flex', alignItems: 'center', gap: 6,
-                    padding: '9px 14px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500,
+                    padding: '9px 14px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
                     background: 'var(--accent)', color: 'var(--accent-text)', flexShrink: 0,
                     opacity: newCategoryName.trim() ? 1 : 0.4,
                     transition: 'opacity 0.15s ease',
@@ -105,7 +105,7 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
               style={{
                 appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                 display: 'inline-flex', alignItems: 'center', gap: 6,
-                padding: '9px 14px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500,
+                padding: '9px 14px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
                 background: 'var(--accent)', color: 'var(--accent-text)', flexShrink: 0,
                 transition: 'opacity 0.15s ease',
               }}

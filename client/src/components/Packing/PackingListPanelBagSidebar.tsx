@@ -10,7 +10,7 @@ export function BagSidebar(S: PackingState) {
   } = S
   return (
     <div className="hidden xl:block" style={{ width: 260, borderLeft: '1px solid var(--border-secondary)', overflowY: 'auto', padding: 16, flexShrink: 0 }}>
-      <div style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)', marginBottom: 12 }}>
+      <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)', marginBottom: 12 }}>
         {t('packing.bags')}
       </div>
 
@@ -33,19 +33,19 @@ export function BagSidebar(S: PackingState) {
           <div style={{ marginBottom: 14, opacity: 0.6 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
               <span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px dashed var(--border-primary)', flexShrink: 0 }} />
-              <span style={{ flex: 1, fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)' }}>{t('packing.noBag')}</span>
-              <span style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: 'var(--text-faint)' }}>
+              <span style={{ flex: 1, fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-faint)' }}>{t('packing.noBag')}</span>
+              <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)' }}>
                 {unassignedWeight >= 1000 ? `${(unassignedWeight / 1000).toFixed(1)} kg` : `${unassignedWeight} g`}
               </span>
             </div>
-            <div style={{ fontSize: 'calc(10px * var(--fs-scale-text, 1))', color: 'var(--text-faint)' }}>{unassigned.length} {t('admin.packingTemplates.items')}</div>
+            <div style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)' }}>{unassigned.length} {t('admin.packingTemplates.items')}</div>
           </div>
         )
       })()}
 
       {/* Total */}
       <div style={{ borderTop: '1px solid var(--border-secondary)', paddingTop: 10, marginTop: 6 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'var(--text-primary)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 700, color: 'var(--text-primary)' }}>
           <span>{t('packing.totalWeight')}</span>
           <span>{(() => { const w = items.reduce((s, i) => s + itemWeight(i), 0); return w >= 1000 ? `${(w / 1000).toFixed(1)} kg` : `${w} g` })()}</span>
         </div>
@@ -57,14 +57,14 @@ export function BagSidebar(S: PackingState) {
           <input autoFocus value={newBagName} onChange={e => setNewBagName(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') handleCreateBag(); if (e.key === 'Escape') { setShowAddBag(false); setNewBagName('') } }}
             placeholder={t('packing.bagName')}
-            style={{ flex: 1, padding: '5px 8px', borderRadius: 8, border: '1px solid var(--border-primary)', fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontFamily: 'inherit', outline: 'none' }} />
+            style={{ flex: 1, padding: '5px 8px', borderRadius: 8, border: '1px solid var(--border-primary)', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontFamily: 'inherit', outline: 'none' }} />
           <button onClick={handleCreateBag} style={{ padding: '4px 8px', borderRadius: 8, border: 'none', background: 'var(--text-primary)', color: 'var(--bg-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
             <Plus size={12} />
           </button>
         </div>
       ) : (
         <button onClick={() => setShowAddBag(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 12, padding: '5px 8px', borderRadius: 8, border: '1px dashed var(--border-primary)', background: 'none', cursor: 'pointer', fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', fontFamily: 'inherit', width: '100%' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 12, padding: '5px 8px', borderRadius: 8, border: '1px dashed var(--border-primary)', background: 'none', cursor: 'pointer', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', fontFamily: 'inherit', width: '100%' }}>
           <Plus size={11} /> {t('packing.addBag')}
         </button>
       ))}

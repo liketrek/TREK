@@ -47,7 +47,7 @@ export default function BudgetSummary({ theme, currency, locale, grandTotal, has
                 <Wallet size={20} strokeWidth={2} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: theme.faint, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.09em' }}>{t('budget.totalBudget')}</div>
+                <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: theme.faint, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.09em' }}>{t('budget.totalBudget')}</div>
               </div>
             </div>
 
@@ -58,13 +58,13 @@ export default function BudgetSummary({ theme, currency, locale, grandTotal, has
               const [integerPart, decimalPart] = decimals > 0 ? full.split(sep) : [full, '']
               return (
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, letterSpacing: '-0.03em', lineHeight: 1 }}>
-                  <span style={{ fontSize: 'calc(38px * var(--fs-scale-text, 1))', fontWeight: 700 }}>{integerPart}</span>
-                  {decimalPart && <span style={{ fontSize: 'calc(22px * var(--fs-scale-text, 1))', fontWeight: 500, color: theme.sub }}>{sep}{decimalPart}</span>}
-                  <span style={{ fontSize: 'calc(22px * var(--fs-scale-text, 1))', fontWeight: 500, color: theme.sub, marginLeft: 2 }}>{SYMBOLS[currency] || currency}</span>
+                  <span style={{ fontSize: 'calc(38px * var(--fs-scale-title, 1))', fontWeight: 700 }}>{integerPart}</span>
+                  {decimalPart && <span style={{ fontSize: 'calc(22px * var(--fs-scale-title, 1))', fontWeight: 500, color: theme.sub }}>{sep}{decimalPart}</span>}
+                  <span style={{ fontSize: 'calc(22px * var(--fs-scale-title, 1))', fontWeight: 500, color: theme.sub, marginLeft: 2 }}>{SYMBOLS[currency] || currency}</span>
                 </div>
               )
             })()}
-            <div style={{ color: theme.faint, fontSize: 'calc(12px * var(--fs-scale-text, 1))', marginTop: 8, fontWeight: 500, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ color: theme.faint, fontSize: 'calc(12px * var(--fs-scale-body, 1))', marginTop: 8, fontWeight: 500, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
               <span>{currency}</span>
             </div>
 
@@ -78,7 +78,7 @@ export default function BudgetSummary({ theme, currency, locale, grandTotal, has
                 <button onClick={() => setSettlementOpen(v => !v)} style={{
                   display: 'flex', alignItems: 'center', gap: 6, width: '100%',
                   background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit',
-                  color: theme.sub, fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, letterSpacing: 0.5,
+                  color: theme.sub, fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, letterSpacing: 0.5,
                 }}>
                   {settlementOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
                   {t('budget.settlement')}
@@ -95,7 +95,7 @@ export default function BudgetSummary({ theme, currency, locale, grandTotal, has
                       marginTop: 6, width: 220, padding: '10px 12px', borderRadius: 10, zIndex: 100,
                       background: 'var(--bg-card)', border: '1px solid var(--border-faint)',
                       boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-                      fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 400, color: 'var(--text-secondary)', lineHeight: 1.5, textAlign: 'left',
+                      fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 400, color: 'var(--text-secondary)', lineHeight: 1.5, textAlign: 'left',
                     }}>
                       {t('budget.settlementInfo')}
                     </div>
@@ -117,7 +117,7 @@ export default function BudgetSummary({ theme, currency, locale, grandTotal, has
                       >
                         <RingAvatar userId={flow.from.user_id} username={flow.from.username} avatarUrl={flow.from.avatar_url} size={32} innerBg={theme.centerBg} textColor={theme.text} />
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
-                          <span style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 700, color: '#ef4444', letterSpacing: '-0.01em' }}>
+                          <span style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 700, color: '#ef4444', letterSpacing: '-0.01em' }}>
                             {fmt(flow.amount, currency)}
                           </span>
                           <div style={{ width: '100%', height: 2, borderRadius: 2, background: 'linear-gradient(90deg, rgba(239,68,68,0.1), rgba(239,68,68,0.55), rgba(239,68,68,0.3))', position: 'relative' }}>
@@ -130,7 +130,7 @@ export default function BudgetSummary({ theme, currency, locale, grandTotal, has
 
                     {settlement.balances.filter(b => Math.abs(b.balance) > 0.01).length > 0 && (
                       <div style={{ marginTop: 8, borderTop: `1px solid ${theme.divider}`, paddingTop: 12 }}>
-                        <div style={{ fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 700, color: theme.faint, textTransform: 'uppercase', letterSpacing: '0.11em', marginBottom: 10 }}>
+                        <div style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700, color: theme.faint, textTransform: 'uppercase', letterSpacing: '0.11em', marginBottom: 10 }}>
                           {t('budget.netBalances')}
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -140,13 +140,13 @@ export default function BudgetSummary({ theme, currency, locale, grandTotal, has
                             return (
                               <div key={b.user_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 0' }}>
                                 <RingAvatar userId={b.user_id} username={b.username} avatarUrl={b.avatar_url} size={26} innerBg={theme.centerBg} textColor={theme.text} />
-                                <span style={{ flex: 1, fontSize: 'calc(13px * var(--fs-scale-text, 1))', color: theme.text, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <span style={{ flex: 1, fontSize: 'calc(13px * var(--fs-scale-body, 1))', color: theme.text, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {b.username}
                                 </span>
                                 <span style={{
                                   display: 'inline-flex', alignItems: 'center', gap: 4,
                                   padding: '4px 10px', borderRadius: 8,
-                                  fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 700, letterSpacing: '-0.01em',
+                                  fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 700, letterSpacing: '-0.01em',
                                   background: positive ? 'rgba(16,185,129,0.13)' : 'rgba(239,68,68,0.13)',
                                   color: positive ? '#10b981' : '#ef4444',
                                 }}>
@@ -192,7 +192,7 @@ export default function BudgetSummary({ theme, currency, locale, grandTotal, has
                     <PieChartIcon size={18} strokeWidth={2} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: theme.faint, textTransform: 'uppercase', letterSpacing: '0.09em', fontWeight: 600 }}>{t('budget.byCategory')}</div>
+                    <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: theme.faint, textTransform: 'uppercase', letterSpacing: '0.09em', fontWeight: 600 }}>{t('budget.byCategory')}</div>
                   </div>
                 </div>
 
@@ -226,12 +226,12 @@ export default function BudgetSummary({ theme, currency, locale, grandTotal, has
                     })}
                   </svg>
                   <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, pointerEvents: 'none' }}>
-                    <div style={{ fontSize: 'calc(10.5px * var(--fs-scale-text, 1))', color: theme.faint, textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 700 }}>{t('budget.total')}</div>
-                    <div style={{ fontSize: 'calc(22px * var(--fs-scale-text, 1))', fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 2 }}>
+                    <div style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', color: theme.faint, textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 700 }}>{t('budget.total')}</div>
+                    <div style={{ fontSize: 'calc(22px * var(--fs-scale-title, 1))', fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 2 }}>
                       <span>{totalInt}</span>
-                      {totalDec && <span style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500, color: theme.sub }}>{decimalSep}{totalDec}</span>}
+                      {totalDec && <span style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, color: theme.sub }}>{decimalSep}{totalDec}</span>}
                     </div>
-                    <div style={{ fontSize: 'calc(10.5px * var(--fs-scale-text, 1))', color: theme.faint, fontWeight: 500, marginTop: 2 }}>{currency}</div>
+                    <div style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', color: theme.faint, fontWeight: 500, marginTop: 2 }}>{currency}</div>
                   </div>
                 </div>
 
@@ -256,13 +256,13 @@ export default function BudgetSummary({ theme, currency, locale, grandTotal, has
                           boxShadow: `0 0 12px ${seg.color}80`,
                         }} />
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 'calc(13.5px * var(--fs-scale-text, 1))', fontWeight: 500, letterSpacing: '-0.01em', color: theme.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{seg.name}</div>
-                          <div style={{ fontSize: 'calc(11.5px * var(--fs-scale-text, 1))', color: theme.sub, fontWeight: 500, marginTop: 1 }}>{fmt(seg.value, currency)}</div>
+                          <div style={{ fontSize: 'calc(13.5px * var(--fs-scale-body, 1))', fontWeight: 500, letterSpacing: '-0.01em', color: theme.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{seg.name}</div>
+                          <div style={{ fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', color: theme.sub, fontWeight: 500, marginTop: 1 }}>{fmt(seg.value, currency)}</div>
                         </div>
                         <span style={{
                           flexShrink: 0,
                           padding: '4px 9px', borderRadius: 7,
-                          fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 700, letterSpacing: '-0.01em',
+                          fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 700, letterSpacing: '-0.01em',
                           background: `${seg.color}26`,
                           border: `1px solid ${seg.color}40`,
                           color: chipColor,

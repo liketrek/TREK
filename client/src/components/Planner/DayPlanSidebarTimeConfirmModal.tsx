@@ -39,20 +39,20 @@ export function DayPlanSidebarTimeConfirmModal({ timeConfirm, setTimeConfirm, co
           }}>
             <Clock size={18} strokeWidth={1.8} color="#ef4444" />
           </div>
-          <div className="text-content" style={{ fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 600 }}>
+          <div className="text-content" style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600 }}>
             {t('dayplan.confirmRemoveTimeTitle')}
           </div>
         </div>
-        <div className="text-content-secondary" style={{ fontSize: 'calc(12.5px * var(--fs-scale-text, 1))', lineHeight: 1.5 }}>
+        <div className="text-content-secondary" style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', lineHeight: 1.5 }}>
           {t('dayplan.confirmRemoveTimeBody', { time: timeConfirm.time })}
         </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
           <button onClick={() => setTimeConfirm(null)} className="text-content-muted" style={{
-            fontSize: 'calc(12px * var(--fs-scale-text, 1))', background: 'none', border: '1px solid var(--border-primary)',
+            fontSize: 'calc(12px * var(--fs-scale-body, 1))', background: 'none', border: '1px solid var(--border-primary)',
             borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontFamily: 'inherit',
           }}>{t('common.cancel')}</button>
           <button onClick={confirmTimeRemoval} className="bg-[#ef4444] text-white" style={{
-            fontSize: 'calc(12px * var(--fs-scale-text, 1))',
+            fontSize: 'calc(12px * var(--fs-scale-body, 1))',
             border: 'none', borderRadius: 8, padding: '6px 16px', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
           }}>{t('common.confirm')}</button>
         </div>

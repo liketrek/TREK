@@ -19,7 +19,7 @@ export function ListImportModal(S: SidebarState) {
         className="bg-surface-card"
         style={{ borderRadius: 16, width: '100%', maxWidth: 440, padding: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}
       >
-        <div className="text-content" style={{ fontSize: 'calc(15px * var(--fs-scale-text, 1))', fontWeight: 700, marginBottom: 4 }}>
+        <div className="text-content" style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 700, marginBottom: 4 }}>
           {t('places.importList')}
         </div>
         {hasMultipleListImportProviders && (
@@ -31,7 +31,7 @@ export function ListImportModal(S: SidebarState) {
                 className={listImportProvider === provider ? 'bg-accent text-accent-text' : 'bg-surface-tertiary text-content-muted'}
                 style={{
                   padding: '6px 10px', borderRadius: 20, border: 'none', cursor: 'pointer',
-                  fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, fontFamily: 'inherit',
+                  fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, fontFamily: 'inherit',
                 }}
               >
                 {provider === 'google' ? t('places.importGoogleList') : t('places.importNaverList')}
@@ -39,7 +39,7 @@ export function ListImportModal(S: SidebarState) {
             ))}
           </div>
         )}
-        <div className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', marginBottom: 16 }}>
+        <div className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', marginBottom: 16 }}>
           {t(listImportProvider === 'google' ? 'places.googleListHint' : 'places.naverListHint')}
         </div>
         <input
@@ -53,15 +53,15 @@ export function ListImportModal(S: SidebarState) {
           style={{
             width: '100%', padding: '10px 14px', borderRadius: 10,
             border: '1px solid var(--border-primary)',
-            fontSize: 'calc(13px * var(--fs-scale-text, 1))', outline: 'none',
+            fontSize: 'calc(13px * var(--fs-scale-body, 1))', outline: 'none',
             fontFamily: 'inherit', boxSizing: 'border-box',
           }}
         />
         {canEnrichImport && (
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginTop: 12 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="text-content" style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 600 }}>{t('places.enrichOnImport')}</div>
-              <div className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', marginTop: 2 }}>{t('places.enrichOnImportHint')}</div>
+              <div className="text-content" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{t('places.enrichOnImport')}</div>
+              <div className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', marginTop: 2 }}>{t('places.enrichOnImportHint')}</div>
             </div>
             <ToggleSwitch on={listImportEnrich} onToggle={() => setListImportEnrich(!listImportEnrich)} />
           </div>
@@ -72,7 +72,7 @@ export function ListImportModal(S: SidebarState) {
             className="text-content"
             style={{
               padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)',
-              background: 'none', fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500,
+              background: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
               cursor: 'pointer', fontFamily: 'inherit',
             }}
           >
@@ -84,7 +84,7 @@ export function ListImportModal(S: SidebarState) {
             className={!listImportUrl.trim() || listImportLoading ? 'bg-surface-tertiary text-content-faint' : 'bg-accent text-accent-text'}
             style={{
               padding: '8px 16px', borderRadius: 10, border: 'none',
-              fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500, cursor: !listImportUrl.trim() || listImportLoading ? 'default' : 'pointer',
+              fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, cursor: !listImportUrl.trim() || listImportLoading ? 'default' : 'pointer',
               fontFamily: 'inherit',
             }}
           >

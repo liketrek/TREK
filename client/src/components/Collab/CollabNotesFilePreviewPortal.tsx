@@ -37,7 +37,7 @@ export function FilePreviewPortal({ file, onClose }: FilePreviewPortalProps) {
             : <Loader2 size={32} className="animate-spin text-[rgba(255,255,255,0.5)]" />
           }
           <div style={{ position: 'absolute', top: -36, left: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }}>
-            <span style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>{file.original_name}</span>
+            <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>{file.original_name}</span>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={openInNewTab} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', display: 'flex', padding: 0 }}><ExternalLink size={15} /></button>
               <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', display: 'flex', padding: 0 }}><X size={17} /></button>
@@ -48,21 +48,21 @@ export function FilePreviewPortal({ file, onClose }: FilePreviewPortalProps) {
         /* Document viewer — card with header */
         <div style={{ width: '100%', maxWidth: 950, height: '94vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-card)', borderRadius: 12, overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderBottom: '1px solid var(--border-primary)', flexShrink: 0 }}>
-            <span style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{file.original_name}</span>
+            <span style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{file.original_name}</span>
             <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-              <button onClick={openInNewTab} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: 'var(--text-muted)', padding: 0 }}><ExternalLink size={13} /></button>
+              <button onClick={openInNewTab} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-muted)', padding: 0 }}><ExternalLink size={13} /></button>
               <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', padding: 2 }}><X size={18} /></button>
             </div>
           </div>
           {(isPdf || isTxt) ? (
             <object data={authUrl ? `${authUrl}#view=FitH` : ''} type={file.mime_type} style={{ flex: 1, width: '100%', border: 'none', background: '#fff' }} title={file.original_name}>
               <p style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)' }}>
-                <button onClick={openInNewTab} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', textDecoration: 'underline', fontSize: 'calc(14px * var(--fs-scale-text, 1))', padding: 0 }}>Download</button>
+                <button onClick={openInNewTab} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', textDecoration: 'underline', fontSize: 'calc(14px * var(--fs-scale-body, 1))', padding: 0 }}>Download</button>
               </p>
             </object>
           ) : (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
-              <button onClick={openInNewTab} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', textDecoration: 'underline', fontSize: 'calc(14px * var(--fs-scale-text, 1))', padding: 0 }}>Download {file.original_name}</button>
+              <button onClick={openInNewTab} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', textDecoration: 'underline', fontSize: 'calc(14px * var(--fs-scale-body, 1))', padding: 0 }}>Download {file.original_name}</button>
             </div>
           )}
         </div>

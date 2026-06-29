@@ -103,11 +103,11 @@ export default function BudgetCategoryTable({ cat, grouped, categoryColor, canEd
                         onChange={e => setEditingCat({ ...editingCat, value: e.target.value })}
                         onBlur={() => { handleRenameCategory(cat, editingCat.value); setEditingCat(null) }}
                         onKeyDown={e => { if (e.key === 'Enter') { handleRenameCategory(cat, editingCat.value); setEditingCat(null) } if (e.key === 'Escape') setEditingCat(null) }}
-                        style={{ fontWeight: 600, fontSize: 'calc(13px * var(--fs-scale-text, 1))', background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 4, color: '#fff', padding: '1px 6px', outline: 'none', fontFamily: 'inherit', width: '100%' }}
+                        style={{ fontWeight: 600, fontSize: 'calc(13px * var(--fs-scale-body, 1))', background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 4, color: '#fff', padding: '1px 6px', outline: 'none', fontFamily: 'inherit', width: '100%' }}
                       />
                     ) : (
                       <>
-                        <span style={{ fontWeight: 600, fontSize: 'calc(13px * var(--fs-scale-text, 1))' }}>{cat}</span>
+                        <span style={{ fontWeight: 600, fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>{cat}</span>
                         {canEdit && (
                           <button onClick={() => setEditingCat({ name: cat, value: cat })}
                             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', display: 'flex', padding: 1 }}
@@ -119,7 +119,7 @@ export default function BudgetCategoryTable({ cat, grouped, categoryColor, canEd
                     )}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500, opacity: 0.9 }}>{fmt(subtotal, currency)}</span>
+                    <span style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, opacity: 0.9 }}>{fmt(subtotal, currency)}</span>
                     {canEdit && (
                       <button onClick={() => handleDeleteCategory(cat)} title={t('budget.deleteCategory')}
                         style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 4, color: '#fff', cursor: 'pointer', padding: '3px 6px', display: 'flex', alignItems: 'center', opacity: 0.6 }}
@@ -233,7 +233,7 @@ export default function BudgetCategoryTable({ cat, grouped, categoryColor, canEd
                                   <CustomDatePicker value={item.expense_date || ''} onChange={v => handleUpdateField(item.id, 'expense_date', v || null)} placeholder="—" compact borderless />
                                 </div>
                               ) : (
-                                <span style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: item.expense_date ? 'var(--text-secondary)' : 'var(--text-faint)' }}>{item.expense_date || '—'}</span>
+                                <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: item.expense_date ? 'var(--text-secondary)' : 'var(--text-faint)' }}>{item.expense_date || '—'}</span>
                               )}
                             </td>
                             <td className="hidden sm:table-cell" style={td}><InlineEditCell value={item.note} onSave={v => handleUpdateField(item.id, 'note', v)} placeholder={t('budget.table.note')} locale={locale} editTooltip={t('budget.editTooltip')} readOnly={!canEdit} /></td>

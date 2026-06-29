@@ -63,7 +63,7 @@ export function DayPlanSidebarToolbar({
             style={{
               display: 'flex', alignItems: 'center', gap: 5,
               padding: '5px 10px', borderRadius: 8, border: 'none',
-              fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 500,
+              fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500,
               cursor: 'pointer', fontFamily: 'inherit',
             }}
           >
@@ -75,7 +75,7 @@ export function DayPlanSidebarToolbar({
               position: 'absolute', top: 'calc(100% + 6px)', right: 0,
               whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 200,
               background: 'var(--bg-card, white)', color: 'var(--text-primary, #111827)',
-              fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 500, padding: '5px 10px',
+              fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500, padding: '5px 10px',
               borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
               border: '1px solid var(--border-faint, #e5e7eb)',
             }}>
@@ -106,7 +106,7 @@ export function DayPlanSidebarToolbar({
               display: 'flex', alignItems: 'center', gap: 5,
               padding: '5px 10px', borderRadius: 8,
               border: '1px solid var(--border-primary)', background: 'none',
-              color: 'var(--text-muted)', fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 500,
+              color: 'var(--text-muted)', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500,
               cursor: 'pointer', fontFamily: 'inherit',
             }}
           >
@@ -118,7 +118,7 @@ export function DayPlanSidebarToolbar({
               position: 'absolute', top: 'calc(100% + 6px)', right: 0,
               whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 200,
               background: 'var(--bg-card, white)', color: 'var(--text-primary, #111827)',
-              fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 500, padding: '5px 10px',
+              fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500, padding: '5px 10px',
               borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
               border: '1px solid var(--border-faint, #e5e7eb)',
             }}>
@@ -195,7 +195,7 @@ export function DayPlanSidebarToolbar({
                 position: 'absolute', top: 'calc(100% + 6px)', right: 0,
                 whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 200,
                 background: 'var(--bg-card, white)', color: 'var(--text-primary, #111827)',
-                fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 500, padding: '5px 10px',
+                fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500, padding: '5px 10px',
                 borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                 border: '1px solid var(--border-faint, #e5e7eb)',
               }}>

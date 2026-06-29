@@ -10,7 +10,7 @@ export function FileManagerToolbar(S: FileManagerState) {
         padding: '14px 16px 14px 22px',
         display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
       }}>
-        <h2 style={{ margin: 0, fontSize: 'calc(18px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em', flexShrink: 0 }}>
+        <h2 style={{ margin: 0, fontSize: 'calc(18px * var(--fs-scale-subtitle, 1))', fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em', flexShrink: 0 }}>
           {showTrash ? (t('files.trash') || 'Trash') : t('files.title')}
         </h2>
 
@@ -40,7 +40,7 @@ export function FileManagerToolbar(S: FileManagerState) {
                     style={{
                       appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                       display: 'inline-flex', alignItems: 'center', gap: 6,
-                      padding: '6px 12px', borderRadius: 99, fontSize: 'calc(13px * var(--fs-scale-text, 1))', whiteSpace: 'nowrap',
+                      padding: '6px 12px', borderRadius: 99, fontSize: 'calc(13px * var(--fs-scale-body, 1))', whiteSpace: 'nowrap',
                       background: active ? 'var(--bg-card)' : 'transparent',
                       color: active ? 'var(--text-primary)' : 'var(--text-muted)',
                       fontWeight: active ? 500 : 400,
@@ -51,7 +51,7 @@ export function FileManagerToolbar(S: FileManagerState) {
                     {TabIcon ? <TabIcon size={13} fill={active ? '#facc15' : 'none'} color={active ? '#facc15' : 'currentColor'} /> : null}
                     {'label' in tab && tab.label}
                     <span style={{
-                      fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 600,
+                      fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600,
                       background: active ? 'var(--bg-tertiary)' : 'rgba(0,0,0,0.06)',
                       color: 'var(--text-faint)',
                       padding: '1px 6px', borderRadius: 99, minWidth: 16, textAlign: 'center',
@@ -66,7 +66,7 @@ export function FileManagerToolbar(S: FileManagerState) {
         <button onClick={toggleTrash} style={{
           appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
           display: 'inline-flex', alignItems: 'center', gap: 6,
-          padding: '9px 14px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500,
+          padding: '9px 14px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
           background: 'var(--accent)', color: 'var(--accent-text)',
           flexShrink: 0, marginLeft: 'auto',
           opacity: showTrash ? 1 : 0.88,

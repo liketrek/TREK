@@ -23,7 +23,7 @@ export default function AddItemRow({ onAdd, t }: AddItemRowProps) {
     setTimeout(() => nameRef.current?.focus(), 50)
   }
 
-  const inp = { border: '1px solid var(--border-primary)', borderRadius: 4, padding: '4px 6px', fontSize: 'calc(13px * var(--fs-scale-text, 1))', outline: 'none', fontFamily: 'inherit', width: '100%', background: 'var(--bg-input)', color: 'var(--text-primary)' }
+  const inp = { border: '1px solid var(--border-primary)', borderRadius: 4, padding: '4px 6px', fontSize: 'calc(13px * var(--fs-scale-body, 1))', outline: 'none', fontFamily: 'inherit', width: '100%', background: 'var(--bg-input)', color: 'var(--text-primary)' }
 
   return (
     <tr className="bg-surface-secondary">
@@ -44,9 +44,9 @@ export default function AddItemRow({ onAdd, t }: AddItemRowProps) {
         <input value={days} onChange={e => setDays(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()}
           placeholder="-" inputMode="numeric" style={{ ...inp, textAlign: 'center', maxWidth: 60, margin: '0 auto' }} />
       </td>
-      <td className="hidden md:table-cell text-content-faint" style={{ padding: '4px 6px', fontSize: 'calc(12px * var(--fs-scale-text, 1))', textAlign: 'center' }}>-</td>
-      <td className="hidden md:table-cell text-content-faint" style={{ padding: '4px 6px', fontSize: 'calc(12px * var(--fs-scale-text, 1))', textAlign: 'center' }}>-</td>
-      <td className="hidden lg:table-cell text-content-faint" style={{ padding: '4px 6px', fontSize: 'calc(12px * var(--fs-scale-text, 1))', textAlign: 'center' }}>-</td>
+      <td className="hidden md:table-cell text-content-faint" style={{ padding: '4px 6px', fontSize: 'calc(12px * var(--fs-scale-body, 1))', textAlign: 'center' }}>-</td>
+      <td className="hidden md:table-cell text-content-faint" style={{ padding: '4px 6px', fontSize: 'calc(12px * var(--fs-scale-body, 1))', textAlign: 'center' }}>-</td>
+      <td className="hidden lg:table-cell text-content-faint" style={{ padding: '4px 6px', fontSize: 'calc(12px * var(--fs-scale-body, 1))', textAlign: 'center' }}>-</td>
       <td className="hidden sm:table-cell" style={{ padding: '4px 6px', textAlign: 'center' }}>
         <div style={{ maxWidth: 90, margin: '0 auto' }}>
           <CustomDatePicker value={expenseDate} onChange={setExpenseDate} placeholder="-" compact />

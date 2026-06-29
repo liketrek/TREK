@@ -8,7 +8,7 @@ export function PlacesSelectionBar(S: SidebarState) {
     <div style={{
       margin: '6px 16px', padding: '5px 8px 5px 10px', borderRadius: 8,
       background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
-      display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, fontSize: 'calc(11px * var(--fs-scale-text, 1))',
+      display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, fontSize: 'calc(11px * var(--fs-scale-caption, 1))',
     }}>
       <span className="text-accent" style={{ flex: 1, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
         {t('places.selectionCount', { count: selectedIds.size })}

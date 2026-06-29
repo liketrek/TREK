@@ -42,7 +42,7 @@ export default function TodoRow({ item, members, categories, today, isSelected, 
       {/* Content */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
-          fontSize: 'calc(14px * var(--fs-scale-text, 1))', color: done ? 'var(--text-faint)' : 'var(--text-primary)',
+          fontSize: 'calc(14px * var(--fs-scale-body, 1))', color: done ? 'var(--text-faint)' : 'var(--text-primary)',
           textDecoration: done ? 'line-through' : 'none', lineHeight: 1.4,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
@@ -50,7 +50,7 @@ export default function TodoRow({ item, members, categories, today, isSelected, 
         </div>
         {/* Description preview */}
         {item.description && (
-          <div style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.4 }}>
+          <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.4 }}>
             {item.description}
           </div>
         )}
@@ -59,7 +59,7 @@ export default function TodoRow({ item, members, categories, today, isSelected, 
         <div style={{ display: 'flex', gap: 5, marginTop: 5, flexWrap: 'wrap' }}>
           {item.priority > 0 && PRIO_CONFIG[item.priority] && (
             <span style={{
-              fontSize: 'calc(10px * var(--fs-scale-text, 1))', display: 'inline-flex', alignItems: 'center', gap: 3,
+              fontSize: 'calc(10px * var(--fs-scale-caption, 1))', display: 'inline-flex', alignItems: 'center', gap: 3,
               padding: '2px 7px', borderRadius: 5, fontWeight: 600,
               color: PRIO_CONFIG[item.priority].color,
               background: `${PRIO_CONFIG[item.priority].color}10`,
@@ -70,7 +70,7 @@ export default function TodoRow({ item, members, categories, today, isSelected, 
           )}
           {item.due_date && (
             <span style={{
-              fontSize: 'calc(10px * var(--fs-scale-text, 1))', display: 'inline-flex', alignItems: 'center', gap: 3,
+              fontSize: 'calc(10px * var(--fs-scale-caption, 1))', display: 'inline-flex', alignItems: 'center', gap: 3,
               padding: '2px 7px', borderRadius: 5, fontWeight: 500,
               color: isOverdue ? '#ef4444' : 'var(--text-secondary)',
               background: isOverdue ? 'rgba(239,68,68,0.08)' : 'var(--bg-hover)',
@@ -81,7 +81,7 @@ export default function TodoRow({ item, members, categories, today, isSelected, 
           )}
           {catColor && (
             <span style={{
-              fontSize: 'calc(10px * var(--fs-scale-text, 1))', display: 'inline-flex', alignItems: 'center', gap: 4,
+              fontSize: 'calc(10px * var(--fs-scale-caption, 1))', display: 'inline-flex', alignItems: 'center', gap: 4,
               padding: '2px 7px', borderRadius: 5, fontWeight: 500,
               color: 'var(--text-secondary)', background: 'var(--bg-hover)',
               border: '1px solid var(--border-faint)',
@@ -92,7 +92,7 @@ export default function TodoRow({ item, members, categories, today, isSelected, 
           )}
           {assignedUser && (
             <span style={{
-              fontSize: 'calc(10px * var(--fs-scale-text, 1))', display: 'inline-flex', alignItems: 'center', gap: 4,
+              fontSize: 'calc(10px * var(--fs-scale-caption, 1))', display: 'inline-flex', alignItems: 'center', gap: 4,
               padding: '2px 7px', borderRadius: 5, fontWeight: 500,
               color: 'var(--text-secondary)', background: 'var(--bg-hover)',
               border: '1px solid var(--border-faint)',
@@ -100,7 +100,7 @@ export default function TodoRow({ item, members, categories, today, isSelected, 
               {assignedUser.avatar ? (
                 <img src={`/uploads/avatars/${assignedUser.avatar}`} style={{ width: 13, height: 13, borderRadius: '50%', objectFit: 'cover' }} alt="" />
               ) : (
-                <span style={{ width: 13, height: 13, borderRadius: '50%', background: 'var(--border-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(7px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', fontWeight: 700 }}>
+                <span style={{ width: 13, height: 13, borderRadius: '50%', background: 'var(--border-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(7px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', fontWeight: 700 }}>
                   {assignedUser.username.charAt(0).toUpperCase()}
                 </span>
               )}

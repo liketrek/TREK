@@ -31,7 +31,7 @@ export function MobileAddPlaceButton({ dayId, places, assignments, onAssign, onA
             padding: '10px 0', borderRadius: 12,
             border: '1.5px dashed var(--border-primary)',
             background: 'transparent', color: 'var(--text-muted)',
-            fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
+            fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
           }}
         >
           <Plus size={14} />
@@ -45,7 +45,7 @@ export function MobileAddPlaceButton({ dayId, places, assignments, onAssign, onA
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder={t('dayplan.mobile.searchPlaces')}
-              style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontFamily: 'inherit', color: 'var(--text-primary)' }}
+              style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontFamily: 'inherit', color: 'var(--text-primary)' }}
             />
             <button onClick={() => { setOpen(false); setSearch('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-faint)' }}>
               <X size={14} />
@@ -53,7 +53,7 @@ export function MobileAddPlaceButton({ dayId, places, assignments, onAssign, onA
           </div>
           <div style={{ maxHeight: 200, overflowY: 'auto' }}>
             {filtered.length === 0 && (
-              <div style={{ padding: '16px 12px', textAlign: 'center', fontSize: 'calc(12px * var(--fs-scale-text, 1))', color: 'var(--text-faint)' }}>
+              <div style={{ padding: '16px 12px', textAlign: 'center', fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)' }}>
                 {available.length === 0 ? t('dayplan.mobile.allAssigned') : t('dayplan.mobile.noMatch')}
               </div>
             )}
@@ -72,7 +72,7 @@ export function MobileAddPlaceButton({ dayId, places, assignments, onAssign, onA
                 }}
               >
                 <MapPin size={13} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
-                <span style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                <span style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
               </button>
             ))}
           </div>
@@ -83,7 +83,7 @@ export function MobileAddPlaceButton({ dayId, places, assignments, onAssign, onA
                 width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 padding: '10px 0', borderTop: '1px solid var(--border-faint)',
                 background: 'transparent', border: 'none', color: 'var(--text-muted)',
-                fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
+                fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
               }}
             >
               <Plus size={13} />

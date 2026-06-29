@@ -1300,7 +1300,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                       color: isSelected ? 'var(--accent-text)' : 'var(--text-muted)',
                       display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'hidden',
                     }}>
-                      <div style={{ width: '100%', height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 700 }}>
+                      <div style={{ width: '100%', height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 700 }}>
                         {index + 1}
                       </div>
                       {hasWeather && (
@@ -1326,20 +1326,20 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                       onClick={e => e.stopPropagation()}
                       style={{
                         width: '100%', border: 'none', outline: 'none',
-                        fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-primary)',
+                        fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-primary)',
                         background: 'transparent', padding: 0, fontFamily: 'inherit',
                         borderBottom: '1.5px solid var(--text-primary)',
                       }}
                     />
                   ) : (<>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
-                      <span style={{ fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0 }}>
+                      <span style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0 }}>
                         {day.title || t('dayplan.dayN', { n: index + 1 })}
                       </span>
                       {formattedDate && (
                         <>
                           <span style={{ flexShrink: 0, width: 1, height: 11, background: 'var(--border-primary)' }} />
-                          <span style={{ flexShrink: 0, fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 400, color: 'var(--text-faint)', whiteSpace: 'nowrap' }}>
+                          <span style={{ flexShrink: 0, fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 400, color: 'var(--text-faint)', whiteSpace: 'nowrap' }}>
                             {formattedDate}
                           </span>
                         </>
@@ -1374,7 +1374,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                           return (
                             <span key={acc.id} onClick={e => { e.stopPropagation(); if ((acc as any).place_id) onPlaceClick((acc as any).place_id) }} className="bg-surface-hover" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 1, minWidth: 0, cursor: (acc as any).place_id ? 'pointer' : 'default', borderRadius: 7, padding: '2px 7px 2px 6px' }}>
                               <Hotel size={11} strokeWidth={1.8} style={{ color: iconColor, flexShrink: 0 }} />
-                              <span className="text-content-muted" style={{ fontSize: 'calc(10.5px * var(--fs-scale-text, 1))', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(acc as any).place_name || (acc as any).reservation_title}</span>
+                              <span className="text-content-muted" style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(acc as any).place_name || (acc as any).reservation_title}</span>
                             </span>
                           )
                         })
@@ -1386,7 +1386,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                         return activeRentals.map(r => (
                           <span key={`rental-${r.id}`} onClick={e => { e.stopPropagation(); setTransportDetail(r) }} className="bg-surface-hover" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 1, minWidth: 0, cursor: 'pointer', borderRadius: 7, padding: '2px 7px 2px 6px' }}>
                             <Car size={11} strokeWidth={1.8} className="text-content-faint" style={{ flexShrink: 0 }} />
-                            <span className="text-content-muted" style={{ fontSize: 'calc(10.5px * var(--fs-scale-text, 1))', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</span>
+                            <span className="text-content-muted" style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</span>
                           </span>
                         ))
                       })()}
@@ -1395,7 +1395,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                   )}
                   {cost && (
                     <div style={{ marginTop: 2 }}>
-                      <span className="text-[#059669]" style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))' }}>{cost}</span>
+                      <span className="text-[#059669]" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))' }}>{cost}</span>
                     </div>
                   )}
                 </div>
@@ -1506,7 +1506,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                         border: dragOverDayId === day.id ? '2px dashed rgba(17,24,39,0.2)' : '2px dashed transparent',
                       }}
                     >
-                      <span className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))' }}>{t('dayplan.emptyDay')}</span>
+                      <span className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}>{t('dayplan.emptyDay')}</span>
                     </div>
                   ) : (
                     merged.map((item, idx) => {
@@ -1684,7 +1684,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                   position: 'absolute', left: '100%', top: '50%', transform: 'translateY(-50%)',
                                   marginLeft: 8, whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 50,
                                   background: 'var(--bg-card, white)', color: 'var(--text-primary, #111827)',
-                                  fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 500, padding: '5px 10px', borderRadius: 8,
+                                  fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500, padding: '5px 10px', borderRadius: 8,
                                   boxShadow: '0 4px 12px rgba(0,0,0,0.15)', border: '1px solid var(--border-faint, #e5e7eb)',
                                 }}>
                                   {lockedIds.has(assignment.id)
@@ -1699,18 +1699,18 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                   const CatIcon = getCategoryIcon(cat.icon)
                                   return <span title={cat.name} style={{ display: 'inline-flex', flexShrink: 0 }}><CatIcon size={10} strokeWidth={2} color={cat.color || 'var(--text-muted)'} /></span>
                                 })()}
-                                <span style={{ fontSize: 'calc(12.5px * var(--fs-scale-text, 1))', fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>
+                                <span style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>
                                   {place.name}
                                 </span>
                                 {place.place_time && (
-                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 'calc(10px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', fontWeight: 400, marginLeft: 6 }}>
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', fontWeight: 400, marginLeft: 6 }}>
                                     <Clock size={9} strokeWidth={2} />
                                     {formatTime(place.place_time, locale, timeFormat)}{place.end_time ? ` – ${formatTime(place.end_time, locale, timeFormat)}` : ''}
                                   </span>
                                 )}
                               </div>
                               {(place.description || place.address || cat?.name) && (
-                                <div className="collab-note-md" style={{ marginTop: 2, fontSize: 'calc(10px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2, maxHeight: '1.2em' }}>
+                                <div className="collab-note-md" style={{ marginTop: 2, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2, maxHeight: '1.2em' }}>
                                   <Markdown remarkPlugins={[remarkGfm]}>{place.description || place.address || cat?.name || ''}</Markdown>
                                 </div>
                               )}
@@ -1722,7 +1722,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                 const active = hasEndpoints ? visibleConnectionIds.includes(res.id) : false
                                 return (
                                   <div style={{ marginTop: 3, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                    <div className={confirmed ? 'bg-[rgba(22,163,74,0.1)] text-[#16a34a]' : 'bg-[rgba(217,119,6,0.1)] text-[#d97706]'} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '1px 6px', borderRadius: 5, fontSize: 'calc(9px * var(--fs-scale-text, 1))', fontWeight: 600,
+                                    <div className={confirmed ? 'bg-[rgba(22,163,74,0.1)] text-[#16a34a]' : 'bg-[rgba(217,119,6,0.1)] text-[#d97706]'} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '1px 6px', borderRadius: 5, fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600,
                                     }}>
                                       {(() => { const RI = RES_ICONS[res.type] || Ticket; return <RI size={8} /> })()}
                                       <span className="hidden sm:inline">{confirmed ? t('planner.resConfirmed') : t('planner.resPending')}</span>
@@ -1797,7 +1797,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                   {assignment.participants.slice(0, 5).map((p, pi) => (
                                     <div key={p.user_id} className="bg-surface-tertiary text-content-muted" style={{
                                       width: 16, height: 16, borderRadius: '50%', border: '1.5px solid var(--bg-card)',
-                                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(7px * var(--fs-scale-text, 1))', fontWeight: 700,
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(7px * var(--fs-scale-caption, 1))', fontWeight: 700,
                                       marginLeft: pi > 0 ? -4 : 0, flexShrink: 0,
                                       overflow: 'hidden',
                                     }}>
@@ -1805,7 +1805,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                     </div>
                                   ))}
                                   {assignment.participants.length > 5 && (
-                                    <span className="text-content-faint" style={{ fontSize: 'calc(8px * var(--fs-scale-text, 1))', marginLeft: 2 }}>+{assignment.participants.length - 5}</span>
+                                    <span className="text-content-faint" style={{ fontSize: 'calc(8px * var(--fs-scale-caption, 1))', marginLeft: 2 }}>+{assignment.participants.length - 5}</span>
                                   )}
                                 </div>
                               )}
@@ -1835,7 +1835,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                   display: 'flex',
                                   alignItems: 'center',
                                   gap: 3,
-                                  fontSize: 'calc(10px * var(--fs-scale-text, 1))',
+                                  fontSize: 'calc(10px * var(--fs-scale-caption, 1))',
                                   fontWeight: 500,
                                   color: 'var(--text-muted)',
                                   fontFamily: 'inherit',
@@ -1968,13 +1968,13 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                 {spanLabel && (
                                   <span style={{
-                                    fontSize: 'calc(9px * var(--fs-scale-text, 1))', fontWeight: 700, padding: '1px 5px', borderRadius: 4, flexShrink: 0,
+                                    fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 700, padding: '1px 5px', borderRadius: 4, flexShrink: 0,
                                     background: `${color}20`, color: color, textTransform: 'uppercase', letterSpacing: '0.03em',
                                   }}>
                                     {spanLabel}
                                   </span>
                                 )}
-                                <span style={{ fontSize: 'calc(12.5px * var(--fs-scale-text, 1))', fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <span style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {res.title}
                                 </span>
                                 {(() => {
@@ -1982,7 +1982,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                   const { time: endTime } = splitReservationDateTime(res.reservation_end_time)
                                   if (!dispTime && !endTime) return null
                                   return (
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 'calc(10px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', fontWeight: 400, marginLeft: 6 }}>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', fontWeight: 400, marginLeft: 6 }}>
                                       <Clock size={9} strokeWidth={2} />
                                       {dispTime ? formatTime(dispTime, locale, timeFormat) : ''}
                                       {spanPhase === 'single' && endTime ? ` – ${formatTime(endTime, locale, timeFormat)}` : ''}
@@ -1993,7 +1993,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                 })()}
                               </div>
                               {subtitle && (
-                                <div style={{ fontSize: 'calc(10px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <div style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {subtitle}
                                 </div>
                               )}
@@ -2110,11 +2110,11 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                             <NoteIcon size={13} strokeWidth={1.8} color="var(--text-muted)" />
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <span style={{ fontSize: 'calc(12.5px * var(--fs-scale-text, 1))', fontWeight: 500, color: 'var(--text-primary)', wordBreak: 'break-word' }}>
+                            <span style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 500, color: 'var(--text-primary)', wordBreak: 'break-word' }}>
                               {note.text}
                             </span>
                             {note.time && (
-                              <div className="collab-note-md" style={{ fontSize: 'calc(10.5px * var(--fs-scale-text, 1))', fontWeight: 400, color: 'var(--text-faint)', lineHeight: '1.3', marginTop: 2, wordBreak: 'break-word' }}><Markdown remarkPlugins={[remarkGfm]}>{note.time}</Markdown></div>
+                              <div className="collab-note-md" style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', fontWeight: 400, color: 'var(--text-faint)', lineHeight: '1.3', marginTop: 2, wordBreak: 'break-word' }}><Markdown remarkPlugins={[remarkGfm]}>{note.time}</Markdown></div>
                             )}
                           </div>
                           {canEditDays && <div className="note-edit-buttons" style={{ display: 'flex', gap: 1, flexShrink: 0, opacity: 0, transition: 'opacity 0.15s' }}>
@@ -2185,7 +2185,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                           className={routeShown ? 'bg-accent text-accent-text' : 'bg-transparent text-content-secondary'}
                           style={{
                             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                            padding: '6px 0', fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, borderRadius: 8,
+                            padding: '6px 0', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, borderRadius: 8,
                             border: routeShown ? 'none' : '1px solid var(--border-faint)',
                             cursor: 'pointer', fontFamily: 'inherit',
                           }}
@@ -2217,7 +2217,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                         </button>
                         <button onClick={() => handleOptimize(day.id)} className="bg-surface-hover text-content-secondary" style={{
                           flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                          padding: '6px 0', fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 500, borderRadius: 8, border: 'none',
+                          padding: '6px 0', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500, borderRadius: 8, border: 'none',
                           cursor: 'pointer', fontFamily: 'inherit',
                         }}>
                           <RotateCcw size={12} strokeWidth={2} />
@@ -2245,7 +2245,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                         </div>
                       </div>
                       {isSelected && routeInfo && (
-                        <div className="text-content-secondary bg-surface-hover" style={{ display: 'flex', justifyContent: 'center', gap: 12, fontSize: 'calc(12px * var(--fs-scale-text, 1))', borderRadius: 8, padding: '5px 10px' }}>
+                        <div className="text-content-secondary bg-surface-hover" style={{ display: 'flex', justifyContent: 'center', gap: 12, fontSize: 'calc(12px * var(--fs-scale-body, 1))', borderRadius: 8, padding: '5px 10px' }}>
                           <span>{routeInfo.distance}</span>
                           <span className="text-content-faint">·</span>
                           <span>{routeInfo.duration}</span>

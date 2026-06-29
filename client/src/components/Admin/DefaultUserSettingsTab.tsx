@@ -89,7 +89,7 @@ function OptionButton({
       style={{
         display: 'flex', alignItems: 'center', gap: 8,
         padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
-        fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 500,
+        fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 500,
         border: active ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
         background: active ? 'var(--bg-hover)' : 'var(--bg-card)',
         color: 'var(--text-primary)',
@@ -186,7 +186,7 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
   }], [])
 
   if (!loaded) {
-    return <p className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontStyle: 'italic', padding: 16 }}>Loading…</p>
+    return <p className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontStyle: 'italic', padding: 16 }}>Loading…</p>
   }
 
   const darkMode = defaults.dark_mode

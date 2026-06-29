@@ -38,7 +38,7 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
       style={{
         display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'center' : 'flex-start',
         gap: isMobile ? 0 : 8, width: '100%', padding: isMobile ? '8px 0' : '7px 12px',
-        border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'calc(13px * var(--fs-scale-text, 1))',
+        border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'calc(13px * var(--fs-scale-body, 1))',
         background: filter === id ? 'var(--bg-hover)' : 'transparent',
         color: filter === id ? 'var(--text-primary)' : 'var(--text-secondary)',
         fontWeight: filter === id ? 600 : 400, transition: 'all 0.1s',
@@ -53,12 +53,12 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
       )}
       {!isMobile && <span style={{ flex: 1, textAlign: 'left' }}>{label}</span>}
       {!isMobile && count > 0 && (
-        <span style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', background: 'var(--bg-hover)', borderRadius: 10, padding: '1px 7px', minWidth: 20, textAlign: 'center' }}>
+        <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', background: 'var(--bg-hover)', borderRadius: 10, padding: '1px 7px', minWidth: 20, textAlign: 'center' }}>
           {count}
         </span>
       )}
       {isMobile && count > 0 && (
-        <span style={{ position: 'absolute', top: 2, right: 2, fontSize: 'calc(8px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'var(--bg-primary)', background: 'var(--text-faint)', borderRadius: '50%', width: 14, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ position: 'absolute', top: 2, right: 2, fontSize: 'calc(8px * var(--fs-scale-caption, 1))', fontWeight: 700, color: 'var(--bg-primary)', background: 'var(--text-faint)', borderRadius: '50%', width: 14, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {count}
         </span>
       )}
@@ -91,20 +91,20 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
           boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
         }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 8 }}>
-            <span style={{ fontSize: 'calc(18px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1, letterSpacing: '-0.02em' }}>
+            <span style={{ fontSize: 'calc(18px * var(--fs-scale-subtitle, 1))', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1, letterSpacing: '-0.02em' }}>
               {totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0}%
             </span>
           </div>
           <div style={{ height: 4, background: 'var(--border-faint)', borderRadius: 2, overflow: 'hidden', marginBottom: 6 }}>
             <div style={{ height: '100%', width: totalCount > 0 ? `${Math.round((doneCount / totalCount) * 100)}%` : '0%', background: '#22c55e', borderRadius: 2, transition: 'width 0.3s' }} />
           </div>
-          <div style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: 'var(--text-faint)' }}>
+          <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)' }}>
             {doneCount} / {totalCount} {t('todo.completed')}
           </div>
         </div>}
 
         {/* Smart filters */}
-        {!isMobile && <div style={{ fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)', padding: '8px 12px 4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        {!isMobile && <div style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', padding: '8px 12px 4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           {t('todo.sidebar.tasks')}
         </div>}
         <SidebarItem id="all" icon={Inbox} label={t('todo.filter.all')} count={items.filter(i => !i.checked).length} />
@@ -113,7 +113,7 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
         <SidebarItem id="done" icon={CheckCheck} label={t('todo.filter.done')} count={doneCount} />
 
         {/* Sort by */}
-        {!isMobile && <div style={{ fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)', padding: '16px 12px 4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        {!isMobile && <div style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', padding: '16px 12px 4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           {t('todo.sidebar.sortBy')}
         </div>}
         <button onClick={() => setSortByPrio(v => !v)}
@@ -121,7 +121,7 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
           style={{
             display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'center' : 'flex-start',
             gap: isMobile ? 0 : 8, width: '100%', padding: isMobile ? '8px 0' : '7px 12px',
-            border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'calc(13px * var(--fs-scale-text, 1))',
+            border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'calc(13px * var(--fs-scale-body, 1))',
             background: sortByPrio ? '#f59e0b12' : 'transparent',
             color: sortByPrio ? '#f59e0b' : 'var(--text-secondary)',
             fontWeight: sortByPrio ? 600 : 400, transition: 'all 0.1s',
@@ -133,7 +133,7 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
         </button>
 
         {/* Categories */}
-        {!isMobile && <div style={{ fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)', padding: '16px 12px 4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        {!isMobile && <div style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', padding: '16px 12px 4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           {t('todo.sidebar.categories')}
         </div>}
         {isMobile && <div style={{ height: 1, background: 'var(--border-faint)', margin: '8px 4px' }} />}
@@ -147,13 +147,13 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
               <input autoFocus value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') addCategory(); if (e.key === 'Escape') { setAddingCategory(false); setNewCategoryName('') } }}
                 placeholder={t('todo.newCategory')}
-                style={{ flex: 1, fontSize: 'calc(12px * var(--fs-scale-text, 1))', padding: '4px 6px', border: '1px solid var(--border-primary)', borderRadius: 5, background: 'var(--bg-hover)', color: 'var(--text-primary)', fontFamily: 'inherit', minWidth: 0 }} />
+                style={{ flex: 1, fontSize: 'calc(12px * var(--fs-scale-body, 1))', padding: '4px 6px', border: '1px solid var(--border-primary)', borderRadius: 5, background: 'var(--bg-hover)', color: 'var(--text-primary)', fontFamily: 'inherit', minWidth: 0 }} />
               <button onClick={addCategory} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#22c55e', padding: 2 }}><Check size={13} /></button>
             </div>
           ) : (
             <button onClick={() => setAddingCategory(true)}
               title={isMobile ? t('todo.addCategory') : undefined}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'center' : 'flex-start', gap: isMobile ? 0 : 6, padding: isMobile ? '8px 0' : '7px 12px', fontSize: 'calc(12px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', width: '100%', textAlign: 'left' }}>
+              style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'center' : 'flex-start', gap: isMobile ? 0 : 6, padding: isMobile ? '8px 0' : '7px 12px', fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', width: '100%', textAlign: 'left' }}>
               <Plus size={isMobile ? 18 : 13} /> {!isMobile && t('todo.addCategory')}
             </button>
           )
@@ -165,10 +165,10 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
         {/* Header */}
         <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid var(--border-faint)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <h2 style={{ margin: 0, fontSize: 'calc(22px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+            <h2 style={{ margin: 0, fontSize: 'calc(22px * var(--fs-scale-title, 1))', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
               {filterTitle}
             </h2>
-            <span style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', background: 'var(--bg-hover)', borderRadius: 6, padding: '2px 8px', fontWeight: 600 }}>
+            <span style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', color: 'var(--text-faint)', background: 'var(--bg-hover)', borderRadius: 6, padding: '2px 8px', fontWeight: 600 }}>
               {filtered.length}
             </span>
           </div>
@@ -318,7 +318,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
 
   const labelClass = 'block text-xs font-medium text-content-secondary mb-1'
   const inputStyle: React.CSSProperties = {
-    width: '100%', fontSize: 'calc(13px * var(--fs-scale-text, 1))', padding: '8px 10px', border: '1px solid var(--border-primary)',
+    width: '100%', fontSize: 'calc(13px * var(--fs-scale-body, 1))', padding: '8px 10px', border: '1px solid var(--border-primary)',
     borderRadius: 8, background: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: 'inherit',
   }
 
@@ -329,7 +329,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
     }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px 12px', borderBottom: '1px solid var(--border-faint)' }}>
-        <span style={{ fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'var(--text-primary)' }}>{t('todo.detail.title')}</span>
+        <span style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 700, color: 'var(--text-primary)' }}>{t('todo.detail.title')}</span>
         <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 4 }}>
           <X size={16} />
         </button>
@@ -340,7 +340,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
         {/* Name */}
         <div>
           <input value={name} onChange={e => setName(e.target.value)} disabled={!canEdit}
-            style={{ ...inputStyle, fontSize: 'calc(15px * var(--fs-scale-text, 1))', fontWeight: 600, border: 'none', padding: '4px 0', background: 'transparent' }}
+            style={{ ...inputStyle, fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600, border: 'none', padding: '4px 0', background: 'transparent' }}
             placeholder={t('todo.namePlaceholder')} />
         </div>
 
@@ -362,7 +362,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
               return (
                 <button key={p} onClick={() => canEdit && setPriority(p)}
                   style={{
-                    flex: 1, padding: '6px 0', borderRadius: 6, fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, cursor: canEdit ? 'pointer' : 'default',
+                    flex: 1, padding: '6px 0', borderRadius: 6, fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, cursor: canEdit ? 'pointer' : 'default',
                     fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
                     border: `1px solid ${isActive && cfg ? cfg.color + '40' : 'var(--border-primary)'}`,
                     background: isActive && cfg ? cfg.color + '12' : 'transparent',
@@ -387,7 +387,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
                 onChange={e => setCategory(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') setAddingCategoryInline(false); if (e.key === 'Escape') { setCategory(''); setAddingCategoryInline(false) } }}
                 placeholder={t('todo.newCategory')}
-                style={{ flex: 1, fontSize: 'calc(13px * var(--fs-scale-text, 1))', padding: '8px 10px', border: '1px solid var(--border-primary)', borderRadius: 8, background: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none' }}
+                style={{ flex: 1, fontSize: 'calc(13px * var(--fs-scale-body, 1))', padding: '8px 10px', border: '1px solid var(--border-primary)', borderRadius: 8, background: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none' }}
               />
               <button type="button" onClick={() => setAddingCategoryInline(false)}
                 style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-primary)', borderRadius: 8, padding: '0 10px', cursor: 'pointer', color: 'var(--text-primary)' }}>
@@ -450,7 +450,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
                 icon: m.avatar ? (
                   <img src={`/uploads/avatars/${m.avatar}`} style={{ width: 18, height: 18, borderRadius: '50%', objectFit: 'cover' as const }} alt="" />
                 ) : (
-                  <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'var(--border-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(10px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', fontWeight: 600 }}>
+                  <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'var(--border-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', fontWeight: 600 }}>
                     {m.username.charAt(0).toUpperCase()}
                   </span>
                 ),
@@ -468,7 +468,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
         <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border-faint)', display: 'flex', gap: 8 }}>
           <button onClick={handleDelete}
             style={{
-              flex: 1, padding: '9px 16px', borderRadius: 8, fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+              flex: 1, padding: '9px 16px', borderRadius: 8, fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
               border: '1px solid var(--border-primary)', background: 'transparent', color: 'var(--text-secondary)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
             }}>
@@ -477,7 +477,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
           </button>
           <button onClick={save} disabled={!hasChanges || saving}
             style={{
-              flex: 1, padding: '9px 16px', borderRadius: 8, fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 600, cursor: hasChanges ? 'pointer' : 'default', fontFamily: 'inherit',
+              flex: 1, padding: '9px 16px', borderRadius: 8, fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: hasChanges ? 'pointer' : 'default', fontFamily: 'inherit',
               border: 'none', background: hasChanges ? 'var(--text-primary)' : 'var(--border-faint)',
               color: hasChanges ? 'var(--bg-primary)' : 'var(--text-faint)',
               transition: 'all 0.15s',
@@ -532,7 +532,7 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
       display: 'flex', flexDirection: 'column', background: 'var(--bg-primary)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px 12px', borderBottom: '1px solid var(--border-faint)' }}>
-        <span style={{ fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'var(--text-primary)' }}>{t('todo.newItem')}</span>
+        <span style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 700, color: 'var(--text-primary)' }}>{t('todo.newItem')}</span>
         <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 4 }}>
           <X size={16} />
         </button>
@@ -542,7 +542,7 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
         <div>
           <input autoFocus value={name} onChange={e => setName(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && name.trim()) create() }}
-            style={{ width: '100%', fontSize: 'calc(15px * var(--fs-scale-text, 1))', fontWeight: 600, border: 'none', padding: '4px 0', background: 'transparent', color: 'var(--text-primary)', outline: 'none', fontFamily: 'inherit' }}
+            style={{ width: '100%', fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600, border: 'none', padding: '4px 0', background: 'transparent', color: 'var(--text-primary)', outline: 'none', fontFamily: 'inherit' }}
             placeholder={t('todo.namePlaceholder')} />
         </div>
 
@@ -550,7 +550,7 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
           <label className={labelClass}>{t('todo.detail.description')}</label>
           <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={4}
             placeholder={t('todo.descriptionPlaceholder')}
-            style={{ width: '100%', fontSize: 'calc(13px * var(--fs-scale-text, 1))', padding: '8px 10px', border: '1px solid var(--border-primary)', borderRadius: 8, background: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: 'inherit', resize: 'vertical', minHeight: 80 }} />
+            style={{ width: '100%', fontSize: 'calc(13px * var(--fs-scale-body, 1))', padding: '8px 10px', border: '1px solid var(--border-primary)', borderRadius: 8, background: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: 'inherit', resize: 'vertical', minHeight: 80 }} />
         </div>
 
         <div>
@@ -563,7 +563,7 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
                 onChange={e => setCategory(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') setAddingCategoryInline(false); if (e.key === 'Escape') { setCategory(''); setAddingCategoryInline(false) } }}
                 placeholder={t('todo.newCategory')}
-                style={{ flex: 1, fontSize: 'calc(13px * var(--fs-scale-text, 1))', padding: '8px 10px', border: '1px solid var(--border-primary)', borderRadius: 8, background: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none' }}
+                style={{ flex: 1, fontSize: 'calc(13px * var(--fs-scale-body, 1))', padding: '8px 10px', border: '1px solid var(--border-primary)', borderRadius: 8, background: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none' }}
               />
               <button type="button" onClick={() => setAddingCategoryInline(false)}
                 style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-primary)', borderRadius: 8, padding: '0 10px', cursor: 'pointer', color: 'var(--text-primary)' }}>
@@ -609,7 +609,7 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
               return (
                 <button key={p} onClick={() => setPriority(p)}
                   style={{
-                    flex: 1, padding: '6px 0', borderRadius: 6, fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, cursor: 'pointer',
+                    flex: 1, padding: '6px 0', borderRadius: 6, fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, cursor: 'pointer',
                     fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
                     border: `1px solid ${isActive && cfg ? cfg.color + '40' : 'var(--border-primary)'}`,
                     background: isActive && cfg ? cfg.color + '12' : 'transparent',
@@ -640,7 +640,7 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
                 icon: m.avatar ? (
                   <img src={`/uploads/avatars/${m.avatar}`} style={{ width: 18, height: 18, borderRadius: '50%', objectFit: 'cover' as const }} alt="" />
                 ) : (
-                  <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'var(--border-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(10px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', fontWeight: 600 }}>
+                  <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'var(--border-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', fontWeight: 600 }}>
                     {m.username.charAt(0).toUpperCase()}
                   </span>
                 ),
@@ -655,7 +655,7 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
       <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border-faint)' }}>
         <button onClick={create} disabled={!name.trim() || saving}
           style={{
-            width: '100%', padding: '9px 16px', borderRadius: 8, fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 600, cursor: name.trim() ? 'pointer' : 'default', fontFamily: 'inherit',
+            width: '100%', padding: '9px 16px', borderRadius: 8, fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: name.trim() ? 'pointer' : 'default', fontFamily: 'inherit',
             border: 'none', background: name.trim() ? 'var(--text-primary)' : 'var(--border-faint)',
             color: name.trim() ? 'var(--bg-primary)' : 'var(--text-faint)', transition: 'all 0.15s',
           }}>

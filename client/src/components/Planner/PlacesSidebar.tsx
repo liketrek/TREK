@@ -34,7 +34,7 @@ const PlacesSidebar = React.memo(function PlacesSidebar(props: PlacesSidebarProp
         <PlacesSelectionBar {...S} />
       ) : (
         <div style={{ padding: '6px 16px', flexShrink: 0 }}>
-          <span className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))' }}>{filtered.length === 1 ? t('places.countSingular') : t('places.count', { count: filtered.length })}</span>
+          <span className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))' }}>{filtered.length === 1 ? t('places.countSingular') : t('places.count', { count: filtered.length })}</span>
         </div>
       )}
 

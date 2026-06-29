@@ -15,11 +15,11 @@ export function BulkImportModal(S: PackingState) {
         boxShadow: '0 16px 48px rgba(0,0,0,0.22)', padding: '22px 22px 18px',
         display: 'flex', flexDirection: 'column', gap: 14,
       }} onClick={e => e.stopPropagation()}>
-        <div style={{ fontSize: 'calc(15px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-primary)' }}>{t('packing.importTitle')}</div>
-        <div style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', lineHeight: 1.5 }}>{t('packing.importHint')}</div>
+        <div style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600, color: 'var(--text-primary)' }}>{t('packing.importTitle')}</div>
+        <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)', lineHeight: 1.5 }}>{t('packing.importHint')}</div>
         <div style={{ display: 'flex', border: '1px solid var(--border-primary)', borderRadius: 10, overflow: 'hidden', background: 'var(--bg-input)' }}>
           <div style={{
-            padding: '10px 0', fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontFamily: 'monospace', lineHeight: 1.5,
+            padding: '10px 0', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontFamily: 'monospace', lineHeight: 1.5,
             color: 'var(--text-faint)', textAlign: 'right', userSelect: 'none',
             background: 'var(--bg-hover)', borderRight: '1px solid var(--border-faint)',
             minWidth: 32, flexShrink: 0,
@@ -34,7 +34,7 @@ export function BulkImportModal(S: PackingState) {
             rows={10}
             placeholder={t('packing.importPlaceholder')}
             style={{
-              flex: 1, border: 'none', padding: '10px 12px', fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontFamily: 'monospace',
+              flex: 1, border: 'none', padding: '10px 12px', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontFamily: 'monospace',
               outline: 'none', boxSizing: 'border-box', color: 'var(--text-primary)',
               background: 'transparent', resize: 'vertical', lineHeight: 1.5,
             }}
@@ -46,18 +46,18 @@ export function BulkImportModal(S: PackingState) {
             <button onClick={() => csvInputRef.current?.click()} style={{
               display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px',
               border: '1px dashed var(--border-primary)', borderRadius: 8, background: 'none',
-              fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', cursor: 'pointer', fontFamily: 'inherit',
+              fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', cursor: 'pointer', fontFamily: 'inherit',
             }}>
               <Upload size={11} /> {t('packing.importCsv')}
             </button>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => setShowImportModal(false)} style={{
-              fontSize: 'calc(12px * var(--fs-scale-text, 1))', background: 'none', border: '1px solid var(--border-primary)',
+              fontSize: 'calc(12px * var(--fs-scale-body, 1))', background: 'none', border: '1px solid var(--border-primary)',
               borderRadius: 8, padding: '6px 14px', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'inherit',
             }}>{t('common.cancel')}</button>
             <button onClick={handleBulkImport} disabled={!importText.trim()} style={{
-              fontSize: 'calc(12px * var(--fs-scale-text, 1))', background: 'var(--accent)', color: 'var(--accent-text)',
+              fontSize: 'calc(12px * var(--fs-scale-body, 1))', background: 'var(--accent)', color: 'var(--accent-text)',
               border: 'none', borderRadius: 8, padding: '6px 16px', cursor: 'pointer', fontWeight: 600,
               fontFamily: 'inherit', opacity: importText.trim() ? 1 : 0.5,
             }}>{t('packing.importAction', { count: parseImportLines(importText).length })}</button>

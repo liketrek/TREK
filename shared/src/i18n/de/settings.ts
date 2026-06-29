@@ -392,6 +392,16 @@ const settings: TranslationStrings = {
   'settings.appearance.group.bottomOfPage': 'Seitenende',
   'settings.appearance.sidebarHint': 'Die ganze rechte Spalte. Aus → das Dashboard zentriert sich.',
   'settings.appearance.densityHint': 'Kompakt verringert Abstände und Innenabstände für ein dichteres Layout.',
+  'settings.appearance.textSizeAll': 'Alles',
+  'settings.appearance.perSize': 'Jede Größe einzeln anpassen',
+  'settings.appearance.size.large': 'Groß',
+  'settings.appearance.size.medium': 'Mittel',
+  'settings.appearance.size.normal': 'Normal',
+  'settings.appearance.size.small': 'Klein',
+  'settings.appearance.preview.large': 'Große Überschrift',
+  'settings.appearance.preview.medium': 'Mittlerer Untertitel',
+  'settings.appearance.preview.normal': 'Normaler Fließtext',
+  'settings.appearance.preview.small': 'Kleine Beschriftung / Adresse',
 };
 
 export default settings;

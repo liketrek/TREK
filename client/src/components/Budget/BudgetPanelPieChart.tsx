@@ -46,7 +46,7 @@ export default function PieChart({ segments, size = 200, totalLabel }: PieChartP
         boxShadow: 'inset 0 0 12px rgba(0,0,0,0.04)',
       }}>
         <Wallet size={18} color="var(--text-faint)" style={{ marginBottom: 2 }} />
-        <span style={{ fontSize: 'calc(10px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', fontWeight: 500 }}>{totalLabel}</span>
+        <span style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', fontWeight: 500 }}>{totalLabel}</span>
       </div>
     </div>
   )

@@ -154,7 +154,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
               <Link key={tab.id} to={tab.path}
                 className="flex items-center gap-1.5 transition-colors"
                 style={{
-                  padding: '5px 16px', borderRadius: 9, fontSize: 'calc(13.5px * var(--fs-scale-text, 1))', fontWeight: 500,
+                  padding: '5px 16px', borderRadius: 9, fontSize: 'calc(13.5px * var(--fs-scale-body, 1))', fontWeight: 500,
                   color: isActive ? 'var(--text-primary)' : 'var(--text-muted)',
                   background: isActive ? 'var(--bg-card)' : 'transparent',
                   boxShadow: isActive ? '0 1px 2px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.05)' : 'none',
@@ -274,7 +274,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--bg-tertiary)', borderRadius: 99, padding: '4px 12px' }}>
                           <img src={dark ? '/text-light.svg' : '/text-dark.svg'} alt="TREK" style={{ height: 10, opacity: 0.5 }} />
-                          <span style={{ fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)' }}>v{appVersion}</span>
+                          <span style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)' }}>v{appVersion}</span>
                         </div>
                         <a href="https://discord.gg/NhZBDSd4qW" target="_blank" rel="noopener noreferrer"
                           style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: 99, background: 'var(--bg-tertiary)', transition: 'background 0.15s' }}

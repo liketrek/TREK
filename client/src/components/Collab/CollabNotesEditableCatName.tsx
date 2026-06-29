@@ -21,12 +21,12 @@ export function EditableCatName({ name, onRename }: EditableCatNameProps) {
   if (editing) {
     return <input ref={inputRef} value={value} onChange={e => setValue(e.target.value)}
       onBlur={save} onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') { setValue(name); setEditing(false) } }}
-      style={{ flex: 1, fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-primary)', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '2px 8px', background: 'var(--bg-input)', fontFamily: 'inherit', outline: 'none' }} />
+      style={{ flex: 1, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-primary)', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '2px 8px', background: 'var(--bg-input)', fontFamily: 'inherit', outline: 'none' }} />
   }
 
   return (
     <span onClick={() => { setValue(name); setEditing(true) }}
-      style={{ flex: 1, fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer', padding: '2px 0' }}
+      style={{ flex: 1, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer', padding: '2px 0' }}
       title="Click to rename">
       {name}
     </span>

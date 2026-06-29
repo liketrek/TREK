@@ -88,30 +88,30 @@ function CreatePollModal({ onClose, onCreate, t }: CreatePollModalProps) {
     <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay-bg, rgba(0,0,0,0.35))', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 16, fontFamily: FONT }} onClick={onClose}>
       <form style={{ background: 'var(--bg-card)', borderRadius: 16, width: '100%', maxWidth: 400, maxHeight: '90vh', overflow: 'auto', border: '1px solid var(--border-faint)' }} onClick={e => e.stopPropagation()} onSubmit={handleSubmit}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 12px', borderBottom: '1px solid var(--border-faint)' }}>
-          <h3 style={{ fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{t('collab.polls.new')}</h3>
+          <h3 style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{t('collab.polls.new')}</h3>
           <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 2, display: 'flex' }}><X size={16} /></button>
         </div>
         <div style={{ padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* Question */}
           <div>
-            <div style={{ fontSize: 'calc(9px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{t('collab.polls.question')}</div>
-            <input autoFocus value={question} onChange={e => setQuestion(e.target.value)} placeholder={t('collab.polls.questionPlaceholder') || 'Ask a question...'} style={{ width: '100%', border: '1px solid var(--border-primary)', borderRadius: 10, padding: '8px 12px', fontSize: 'calc(13px * var(--fs-scale-text, 1))', background: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+            <div style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{t('collab.polls.question')}</div>
+            <input autoFocus value={question} onChange={e => setQuestion(e.target.value)} placeholder={t('collab.polls.questionPlaceholder') || 'Ask a question...'} style={{ width: '100%', border: '1px solid var(--border-primary)', borderRadius: 10, padding: '8px 12px', fontSize: 'calc(13px * var(--fs-scale-body, 1))', background: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
           </div>
 
           {/* Options */}
           <div>
-            <div style={{ fontSize: 'calc(9px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{t('collab.polls.options')}</div>
+            <div style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{t('collab.polls.options')}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {options.map((opt, i) => (
                 <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                   <input value={opt} onChange={e => updateOption(i, e.target.value)} placeholder={`${t('collab.polls.option')} ${i + 1}`}
-                    style={{ flex: 1, border: '1px solid var(--border-primary)', borderRadius: 10, padding: '8px 12px', fontSize: 'calc(13px * var(--fs-scale-text, 1))', background: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none' }} />
+                    style={{ flex: 1, border: '1px solid var(--border-primary)', borderRadius: 10, padding: '8px 12px', fontSize: 'calc(13px * var(--fs-scale-body, 1))', background: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none' }} />
                   {options.length > 2 && (
                     <button type="button" onClick={() => removeOption(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', padding: 2 }}><X size={14} /></button>
                   )}
                 </div>
               ))}
-              <button type="button" onClick={addOption} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 10, border: '1px dashed var(--border-faint)', background: 'transparent', cursor: 'pointer', color: 'var(--text-faint)', fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontFamily: FONT }}>
+              <button type="button" onClick={addOption} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 10, border: '1px dashed var(--border-faint)', background: 'transparent', cursor: 'pointer', color: 'var(--text-faint)', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontFamily: FONT }}>
                 <Plus size={12} /> {t('collab.polls.addOption')}
               </button>
             </div>
@@ -126,13 +126,13 @@ function CreatePollModal({ onClose, onCreate, t }: CreatePollModalProps) {
             }}>
               <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'transform 0.2s', transform: multiChoice ? 'translateX(16px)' : 'translateX(0)' }} />
             </div>
-            <span style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', color: 'var(--text-muted)', fontFamily: FONT }}>{t('collab.polls.multiChoice')}</span>
+            <span style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-muted)', fontFamily: FONT }}>{t('collab.polls.multiChoice')}</span>
           </label>
 
           {/* Submit */}
           <button type="submit" disabled={!canSubmit} style={{
             width: '100%', borderRadius: 99, padding: '9px 14px', background: canSubmit ? 'var(--accent)' : 'var(--border-primary)',
-            color: canSubmit ? 'var(--accent-text)' : 'var(--text-faint)', fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 600, border: 'none', cursor: canSubmit ? 'pointer' : 'default', fontFamily: FONT,
+            color: canSubmit ? 'var(--accent-text)' : 'var(--text-faint)', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, border: 'none', cursor: canSubmit ? 'pointer' : 'default', fontFamily: FONT,
           }}>
             {submitting ? '...' : t('collab.polls.create')}
           </button>
@@ -168,7 +168,7 @@ function VoterChip({ voter, offset }: VoterChipProps) {
         style={{
           width: 18, height: 18, borderRadius: '50%', background: 'var(--bg-tertiary)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 'calc(7px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'var(--text-muted)', overflow: 'hidden',
+          fontSize: 'calc(7px * var(--fs-scale-caption, 1))', fontWeight: 700, color: 'var(--text-muted)', overflow: 'hidden',
           border: '1.5px solid var(--bg-card)', marginLeft: offset ? -5 : 0, flexShrink: 0,
         }}>
         {voter.avatar_url ? <img src={voter.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (voter.username || '?')[0].toUpperCase()}
@@ -178,7 +178,7 @@ function VoterChip({ voter, offset }: VoterChipProps) {
           position: 'fixed', top: pos.top, left: pos.left, transform: 'translate(-50%, -100%)',
           pointerEvents: 'none', zIndex: 10000, whiteSpace: 'nowrap',
           background: 'var(--bg-card)', color: 'var(--text-primary)',
-          fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 500, padding: '5px 10px', borderRadius: 8,
+          fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500, padding: '5px 10px', borderRadius: 8,
           boxShadow: '0 4px 12px rgba(0,0,0,0.15)', border: '1px solid var(--border-faint)',
         }}>
           {voter.username}
@@ -217,26 +217,26 @@ function PollCard({ poll, currentUser, canEdit, onVote, onClose, onDelete, t }: 
         background: isClosed ? 'var(--bg-secondary)' : 'transparent',
       }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.35, wordBreak: 'break-word' }}>
+          <div style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.35, wordBreak: 'break-word' }}>
             {poll.question}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
             {isClosed && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 'calc(9px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)', background: 'var(--bg-tertiary)', padding: '2px 7px', borderRadius: 99 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', background: 'var(--bg-tertiary)', padding: '2px 7px', borderRadius: 99 }}>
                 <Lock size={8} /> {t('collab.polls.closed')}
               </span>
             )}
             {remaining && !isClosed && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 'calc(9px * var(--fs-scale-text, 1))', fontWeight: 600, color: '#f59e0b', background: '#f59e0b18', padding: '2px 7px', borderRadius: 99 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, color: '#f59e0b', background: '#f59e0b18', padding: '2px 7px', borderRadius: 99 }}>
                 <Clock size={8} /> {remaining}
               </span>
             )}
             {poll.multi_choice && (
-              <span style={{ fontSize: 'calc(9px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)', background: 'var(--bg-tertiary)', padding: '2px 7px', borderRadius: 99 }}>
+              <span style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', background: 'var(--bg-tertiary)', padding: '2px 7px', borderRadius: 99 }}>
                 {t('collab.polls.multiChoice')}
               </span>
             )}
-            <span style={{ fontSize: 'calc(9px * var(--fs-scale-text, 1))', color: 'var(--text-faint)' }}>
+            <span style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)' }}>
               {total} {total === 1 ? 'vote' : 'votes'}
             </span>
           </div>
@@ -303,7 +303,7 @@ function PollCard({ poll, currentUser, canEdit, onVote, onClose, onDelete, t }: 
 
               {/* Label */}
               <span style={{
-                flex: 1, fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: myVote || isWinner ? 600 : 400,
+                flex: 1, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: myVote || isWinner ? 600 : 400,
                 color: 'var(--text-primary)', position: 'relative', zIndex: 1,
               }}>
                 {typeof opt === 'string' ? opt : opt.text}
@@ -321,7 +321,7 @@ function PollCard({ poll, currentUser, canEdit, onVote, onClose, onDelete, t }: 
               {/* Percentage */}
               {(hasVoted || isClosed) && (
                 <span style={{
-                  fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 700, color: myVote ? '#007AFF' : 'var(--text-muted)',
+                  fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 700, color: myVote ? '#007AFF' : 'var(--text-muted)',
                   position: 'relative', zIndex: 1, minWidth: 32, textAlign: 'right',
                 }}>
                   {pct}%
@@ -443,14 +443,14 @@ export default function CollabPolls({ tripId, currentUser }: CollabPollsProps) {
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', fontFamily: FONT }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', flexShrink: 0 }}>
-        <h3 style={{ margin: 0, fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 7, letterSpacing: 0.3, textTransform: 'uppercase' }}>
+        <h3 style={{ margin: 0, fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 7, letterSpacing: 0.3, textTransform: 'uppercase' }}>
           <BarChart3 size={14} color="var(--text-faint)" />
           {t('collab.polls.title')}
         </h3>
         {canEdit && (
           <button onClick={() => setShowForm(true)} style={{
             display: 'inline-flex', alignItems: 'center', gap: 4, borderRadius: 99, padding: '6px 12px',
-            background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600,
+            background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600,
             fontFamily: FONT, border: 'none', cursor: 'pointer',
           }}>
             <Plus size={12} /> {t('collab.polls.new')}
@@ -463,8 +463,8 @@ export default function CollabPolls({ tripId, currentUser }: CollabPollsProps) {
         {polls.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 20px', textAlign: 'center', height: '100%' }}>
             <BarChart3 size={36} color="var(--text-faint)" strokeWidth={1.3} style={{ marginBottom: 12 }} />
-            <div style={{ fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>{t('collab.polls.empty')}</div>
-            <div style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', color: 'var(--text-faint)' }}>{t('collab.polls.emptyHint')}</div>
+            <div style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>{t('collab.polls.empty')}</div>
+            <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)' }}>{t('collab.polls.emptyHint')}</div>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -474,7 +474,7 @@ export default function CollabPolls({ tripId, currentUser }: CollabPollsProps) {
             {closedPolls.length > 0 && (
               <>
                 {activePolls.length > 0 && (
-                  <div style={{ fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.3, padding: '8px 0 2px' }}>
+                  <div style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.3, padding: '8px 0 2px' }}>
                     {t('collab.polls.closedSection') || 'Closed'}
                   </div>
                 )}

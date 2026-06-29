@@ -115,7 +115,7 @@ export default function AirportSelect({ value, onChange, placeholder, style }: P
           onFocus={() => setOpen(true)}
           onKeyDown={onKey}
           className="bg-transparent text-content"
-          style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', fontSize: 'calc(13px * var(--fs-scale-text, 1))' }}
+          style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}
         />
         {value && (
           <button type="button" onClick={clear} className="bg-transparent text-content-faint" style={{ border: 'none', padding: 2, cursor: 'pointer', display: 'flex' }} aria-label="Clear">
@@ -127,7 +127,7 @@ export default function AirportSelect({ value, onChange, placeholder, style }: P
       {open && (loading || results.length > 0) && (
         <div className="bg-surface-card" style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, border: '1px solid var(--border-primary)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.18)', maxHeight: 260, overflowY: 'auto', zIndex: 1000 }}>
           {loading && results.length === 0 && (
-            <div className="text-content-faint" style={{ padding: 10, fontSize: 'calc(12px * var(--fs-scale-text, 1))' }}>{t('common.loading')}</div>
+            <div className="text-content-faint" style={{ padding: 10, fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}>{t('common.loading')}</div>
           )}
           {results.map((a, i) => (
             <button
@@ -142,10 +142,10 @@ export default function AirportSelect({ value, onChange, placeholder, style }: P
                 fontFamily: 'inherit',
               }}
             >
-              <span className="text-content-muted" style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace', fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 700, minWidth: 32 }}>{a.iata}</span>
+              <span className="text-content-muted" style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 700, minWidth: 32 }}>{a.iata}</span>
               <span style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.city || a.name}</div>
-                <div className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.name}{a.country ? ` · ${displayCountry(a.country)}` : ''}</div>
+                <div style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.city || a.name}</div>
+                <div className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.name}{a.country ? ` · ${displayCountry(a.country)}` : ''}</div>
               </span>
             </button>
           ))}

@@ -86,7 +86,7 @@ export function Tooltip({ label, placement = 'bottom', delay = 250, disabled, ch
             visibility: coords ? 'visible' : 'hidden',
             pointerEvents: 'none',
             zIndex: 100000,
-            fontSize: 'calc(11px * var(--fs-scale-text, 1))',
+            fontSize: 'calc(11px * var(--fs-scale-caption, 1))',
             fontWeight: 500,
             padding: '5px 10px',
             borderRadius: 8,

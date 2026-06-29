@@ -66,7 +66,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
               style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 500,
+                fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 500,
                 border: settings.language === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
                 background: settings.language === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)',
                 color: 'var(--text-primary)',
@@ -90,7 +90,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
                   padding: '10px 14px', borderRadius: 10,
                   border: '2px solid var(--border-primary)',
                   background: 'var(--bg-card)', color: 'var(--text-primary)',
-                  fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 500, fontFamily: 'inherit', cursor: 'pointer',
+                  fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 500, fontFamily: 'inherit', cursor: 'pointer',
                 }}
               >
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{current?.label}</span>
@@ -119,7 +119,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
                       display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                       padding: '9px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
                       background: active ? 'var(--bg-hover)' : 'transparent',
-                      fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-text, 1))', color: 'var(--text-primary)',
+                      fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-body, 1))', color: 'var(--text-primary)',
                       textAlign: 'left', fontWeight: active ? 600 : 500,
                     }}
                   >
@@ -151,7 +151,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
               style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 500,
+                fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 500,
                 border: tempUnit === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
                 background: tempUnit === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)',
                 color: 'var(--text-primary)',
@@ -182,7 +182,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
               style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 500,
+                fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 500,
                 border: distanceUnit === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
                 background: distanceUnit === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)',
                 color: 'var(--text-primary)',
@@ -212,7 +212,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
               style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 500,
+                fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 500,
                 border: settings.time_format === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
                 background: settings.time_format === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)',
                 color: 'var(--text-primary)',
@@ -243,7 +243,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
               style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 500,
+                fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 500,
                 border: (settings.map_booking_labels !== false) === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
                 background: (settings.map_booking_labels !== false) === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)',
                 color: 'var(--text-primary)',
@@ -274,7 +274,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
               style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 500,
+                fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 500,
                 border: (settings.map_poi_pill_enabled !== false) === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
                 background: (settings.map_poi_pill_enabled !== false) === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)',
                 color: 'var(--text-primary)',
@@ -305,7 +305,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
               style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 500,
+                fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 500,
                 border: (!!settings.blur_booking_codes) === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
                 background: (!!settings.blur_booking_codes) === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)',
                 color: 'var(--text-primary)',
@@ -335,7 +335,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
               style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 500,
+                fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 500,
                 border: (settings.optimize_from_accommodation !== false) === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
                 background: (settings.optimize_from_accommodation !== false) === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)',
                 color: 'var(--text-primary)',

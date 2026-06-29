@@ -49,7 +49,7 @@ export function EmojiPicker({ onSelect, onClose, anchorRef, containerRef }: Emoj
           <button key={c} onClick={() => setCat(c)} style={{
             flex: 1, padding: '4px 0', borderRadius: 6, border: 'none', cursor: 'pointer',
             background: cat === c ? 'var(--bg-hover)' : 'transparent',
-            color: 'var(--text-primary)', fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 600, fontFamily: 'inherit',
+            color: 'var(--text-primary)', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, fontFamily: 'inherit',
           }}>
             {c}
           </button>

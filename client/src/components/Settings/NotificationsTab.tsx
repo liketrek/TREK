@@ -171,11 +171,11 @@ export default function NotificationsTab(): React.ReactElement {
   }
 
   const renderContent = () => {
-    if (!matrix) return <p style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', fontStyle: 'italic' }}>{t('common.loading')}</p>
+    if (!matrix) return <p style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)', fontStyle: 'italic' }}>{t('common.loading')}</p>
 
     if (visibleChannels.length === 0) {
       return (
-        <p style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', fontStyle: 'italic' }}>
+        <p style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)', fontStyle: 'italic' }}>
           {t('settings.notificationPreferences.noChannels')}
         </p>
       )
@@ -183,32 +183,32 @@ export default function NotificationsTab(): React.ReactElement {
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-        {saving && <p style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', marginBottom: 8 }}>{t('common.saving')}</p>}
+        {saving && <p style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginBottom: 8 }}>{t('common.saving')}</p>}
         {matrix.available_channels.webhook && (
           <div style={{ marginBottom: 16, padding: '12px', background: 'var(--bg-secondary)', borderRadius: 8, border: '1px solid var(--border-primary)' }}>
-            <label style={{ display: 'block', fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>
+            <label style={{ display: 'block', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>
               {t('settings.webhookUrl.label')}
             </label>
-            <p style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', marginBottom: 8 }}>{t('settings.webhookUrl.hint')}</p>
+            <p style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginBottom: 8 }}>{t('settings.webhookUrl.hint')}</p>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <input
                 type="text"
                 value={webhookUrl}
                 onChange={e => setWebhookUrl(e.target.value)}
                 placeholder={webhookIsSet ? '••••••••' : t('settings.webhookUrl.placeholder')}
-                style={{ flex: 1, fontSize: 'calc(13px * var(--fs-scale-text, 1))', padding: '6px 10px', border: '1px solid var(--border-primary)', borderRadius: 6, background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                style={{ flex: 1, fontSize: 'calc(13px * var(--fs-scale-body, 1))', padding: '6px 10px', border: '1px solid var(--border-primary)', borderRadius: 6, background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
               />
               <button
                 onClick={saveWebhookUrl}
                 disabled={webhookSaving}
-                style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', padding: '6px 12px', background: 'var(--text-primary)', color: 'var(--bg-primary)', border: 'none', borderRadius: 6, cursor: webhookSaving ? 'not-allowed' : 'pointer', opacity: webhookSaving ? 0.6 : 1 }}
+                style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', padding: '6px 12px', background: 'var(--text-primary)', color: 'var(--bg-primary)', border: 'none', borderRadius: 6, cursor: webhookSaving ? 'not-allowed' : 'pointer', opacity: webhookSaving ? 0.6 : 1 }}
               >
                 {t('common.save')}
               </button>
               <button
                 onClick={testWebhookUrl}
                 disabled={(!webhookUrl && !webhookIsSet) || webhookTesting}
-                style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', padding: '6px 12px', background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-primary)', borderRadius: 6, cursor: ((!webhookUrl && !webhookIsSet) || webhookTesting) ? 'not-allowed' : 'pointer', opacity: ((!webhookUrl && !webhookIsSet) || webhookTesting) ? 0.5 : 1 }}
+                style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', padding: '6px 12px', background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-primary)', borderRadius: 6, cursor: ((!webhookUrl && !webhookIsSet) || webhookTesting) ? 'not-allowed' : 'pointer', opacity: ((!webhookUrl && !webhookIsSet) || webhookTesting) ? 0.5 : 1 }}
               >
                 {t('settings.webhookUrl.test')}
               </button>
@@ -217,18 +217,18 @@ export default function NotificationsTab(): React.ReactElement {
         )}
         {matrix.available_channels.ntfy && (
           <div style={{ marginBottom: 16, padding: '12px', background: 'var(--bg-secondary)', borderRadius: 8, border: '1px solid var(--border-primary)' }}>
-            <label style={{ display: 'block', fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>
+            <label style={{ display: 'block', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>
               {t('settings.ntfyUrl.topicLabel')}
             </label>
-            <p style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', marginBottom: 8 }}>{t('settings.ntfyUrl.hint')}</p>
+            <p style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginBottom: 8 }}>{t('settings.ntfyUrl.hint')}</p>
             <input
               type="text"
               value={ntfyTopic}
               onChange={e => setNtfyTopic(e.target.value)}
               placeholder={t('settings.ntfyUrl.topicPlaceholder')}
-              style={{ width: '100%', boxSizing: 'border-box', fontSize: 'calc(13px * var(--fs-scale-text, 1))', padding: '6px 10px', border: '1px solid var(--border-primary)', borderRadius: 6, background: 'var(--bg-primary)', color: 'var(--text-primary)', marginBottom: 6 }}
+              style={{ width: '100%', boxSizing: 'border-box', fontSize: 'calc(13px * var(--fs-scale-body, 1))', padding: '6px 10px', border: '1px solid var(--border-primary)', borderRadius: 6, background: 'var(--bg-primary)', color: 'var(--text-primary)', marginBottom: 6 }}
             />
-            <label style={{ display: 'block', fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>
+            <label style={{ display: 'block', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>
               {t('settings.ntfyUrl.serverLabel')}
             </label>
             <input
@@ -236,24 +236,24 @@ export default function NotificationsTab(): React.ReactElement {
               value={ntfyServer}
               onChange={e => setNtfyServer(e.target.value)}
               placeholder={matrix.defaults?.ntfyServer || t('settings.ntfyUrl.serverPlaceholder')}
-              style={{ width: '100%', boxSizing: 'border-box', fontSize: 'calc(13px * var(--fs-scale-text, 1))', padding: '6px 10px', border: '1px solid var(--border-primary)', borderRadius: 6, background: 'var(--bg-primary)', color: 'var(--text-primary)', marginBottom: 6 }}
+              style={{ width: '100%', boxSizing: 'border-box', fontSize: 'calc(13px * var(--fs-scale-body, 1))', padding: '6px 10px', border: '1px solid var(--border-primary)', borderRadius: 6, background: 'var(--bg-primary)', color: 'var(--text-primary)', marginBottom: 6 }}
             />
-            <label style={{ display: 'block', fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>
+            <label style={{ display: 'block', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>
               {t('settings.ntfyUrl.tokenLabel')}
             </label>
-            <p style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', marginBottom: 4 }}>{t('settings.ntfyUrl.tokenHint')}</p>
+            <p style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginBottom: 4 }}>{t('settings.ntfyUrl.tokenHint')}</p>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <input
                 type="password"
                 value={ntfyToken}
                 onChange={e => setNtfyToken(e.target.value)}
                 placeholder={ntfyTokenIsSet ? '••••••••' : ''}
-                style={{ flex: 1, fontSize: 'calc(13px * var(--fs-scale-text, 1))', padding: '6px 10px', border: '1px solid var(--border-primary)', borderRadius: 6, background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                style={{ flex: 1, fontSize: 'calc(13px * var(--fs-scale-body, 1))', padding: '6px 10px', border: '1px solid var(--border-primary)', borderRadius: 6, background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
               />
               {ntfyTokenIsSet && (
                 <button
                   onClick={clearNtfyToken}
-                  style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', padding: '6px 12px', background: 'transparent', color: 'var(--color-danger, #e53e3e)', border: '1px solid var(--color-danger, #e53e3e)', borderRadius: 6, cursor: 'pointer' }}
+                  style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', padding: '6px 12px', background: 'transparent', color: 'var(--color-danger, #e53e3e)', border: '1px solid var(--color-danger, #e53e3e)', borderRadius: 6, cursor: 'pointer' }}
                 >
                   {t('common.clear')}
                 </button>
@@ -261,14 +261,14 @@ export default function NotificationsTab(): React.ReactElement {
               <button
                 onClick={saveNtfySettings}
                 disabled={ntfySaving}
-                style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', padding: '6px 12px', background: 'var(--text-primary)', color: 'var(--bg-primary)', border: 'none', borderRadius: 6, cursor: ntfySaving ? 'not-allowed' : 'pointer', opacity: ntfySaving ? 0.6 : 1 }}
+                style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', padding: '6px 12px', background: 'var(--text-primary)', color: 'var(--bg-primary)', border: 'none', borderRadius: 6, cursor: ntfySaving ? 'not-allowed' : 'pointer', opacity: ntfySaving ? 0.6 : 1 }}
               >
                 {t('common.save')}
               </button>
               <button
                 onClick={testNtfySettings}
                 disabled={!ntfyTopic || ntfyTesting}
-                style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', padding: '6px 12px', background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-primary)', borderRadius: 6, cursor: (!ntfyTopic || ntfyTesting) ? 'not-allowed' : 'pointer', opacity: (!ntfyTopic || ntfyTesting) ? 0.5 : 1 }}
+                style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', padding: '6px 12px', background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-primary)', borderRadius: 6, cursor: (!ntfyTopic || ntfyTesting) ? 'not-allowed' : 'pointer', opacity: (!ntfyTopic || ntfyTesting) ? 0.5 : 1 }}
               >
                 {t('settings.ntfyUrl.test')}
               </button>
@@ -279,7 +279,7 @@ export default function NotificationsTab(): React.ReactElement {
         <div style={{ display: 'grid', gridTemplateColumns: `1fr ${visibleChannels.map(() => '64px').join(' ')}`, gap: 4, paddingBottom: 6, marginBottom: 4, borderBottom: '1px solid var(--border-primary)' }}>
           <span />
           {visibleChannels.map(ch => (
-            <span key={ch} style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <span key={ch} style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               {t(CHANNEL_LABEL_KEYS[ch]) || ch}
             </span>
           ))}
@@ -291,12 +291,12 @@ export default function NotificationsTab(): React.ReactElement {
           if (relevantChannels.length === 0) return null
           return (
             <div key={eventType} style={{ display: 'grid', gridTemplateColumns: `1fr ${visibleChannels.map(() => '64px').join(' ')}`, gap: 4, alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border-primary)' }}>
-              <span style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', color: 'var(--text-primary)' }}>
+              <span style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', color: 'var(--text-primary)' }}>
                 {t(EVENT_LABEL_KEYS[eventType]) || eventType}
               </span>
               {visibleChannels.map(ch => {
                 if (!implementedForEvent.includes(ch)) {
-                  return <span key={ch} style={{ textAlign: 'center', color: 'var(--text-faint)', fontSize: 'calc(14px * var(--fs-scale-text, 1))' }}>—</span>
+                  return <span key={ch} style={{ textAlign: 'center', color: 'var(--text-faint)', fontSize: 'calc(14px * var(--fs-scale-body, 1))' }}>—</span>
                 }
                 const isOn = matrix.preferences[eventType]?.[ch] ?? true
                 return (

@@ -118,7 +118,7 @@ export function NoteFormModal({ onClose, onSubmit, onDeleteFile, existingCategor
           borderBottom: '1px solid var(--border-faint)',
         }}>
           <h3 style={{
-            fontSize: 'calc(14px * var(--fs-scale-text, 1))',
+            fontSize: 'calc(14px * var(--fs-scale-body, 1))',
             fontWeight: 700,
             color: 'var(--text-primary)',
             margin: 0,
@@ -153,7 +153,7 @@ export function NoteFormModal({ onClose, onSubmit, onDeleteFile, existingCategor
           {/* Title */}
           <div>
             <div style={{
-              fontSize: 'calc(9px * var(--fs-scale-text, 1))',
+              fontSize: 'calc(9px * var(--fs-scale-caption, 1))',
               fontWeight: 600,
               color: 'var(--text-faint)',
               textTransform: 'uppercase',
@@ -173,7 +173,7 @@ export function NoteFormModal({ onClose, onSubmit, onDeleteFile, existingCategor
                 border: '1px solid var(--border-primary)',
                 borderRadius: 10,
                 padding: '8px 12px',
-                fontSize: 'calc(13px * var(--fs-scale-text, 1))',
+                fontSize: 'calc(13px * var(--fs-scale-body, 1))',
                 background: 'var(--bg-input)',
                 color: 'var(--text-primary)',
                 fontFamily: 'inherit',
@@ -186,7 +186,7 @@ export function NoteFormModal({ onClose, onSubmit, onDeleteFile, existingCategor
           {/* Content */}
           <div>
             <div style={{
-              fontSize: 'calc(9px * var(--fs-scale-text, 1))',
+              fontSize: 'calc(9px * var(--fs-scale-caption, 1))',
               fontWeight: 600,
               color: 'var(--text-faint)',
               textTransform: 'uppercase',
@@ -205,7 +205,7 @@ export function NoteFormModal({ onClose, onSubmit, onDeleteFile, existingCategor
                 border: '1px solid var(--border-primary)',
                 borderRadius: 10,
                 padding: '8px 12px',
-                fontSize: 'calc(13px * var(--fs-scale-text, 1))',
+                fontSize: 'calc(13px * var(--fs-scale-body, 1))',
                 background: 'var(--bg-input)',
                 color: 'var(--text-primary)',
                 fontFamily: 'inherit',
@@ -220,7 +220,7 @@ export function NoteFormModal({ onClose, onSubmit, onDeleteFile, existingCategor
 
           {/* Category pills */}
           <div>
-            <div style={{ fontSize: 'calc(9px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, fontFamily: FONT }}>
+            <div style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, fontFamily: FONT }}>
               {t('collab.notes.category')}
             </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -229,7 +229,7 @@ export function NoteFormModal({ onClose, onSubmit, onDeleteFile, existingCategor
                 const active = category === cat
                 return (
                   <button key={cat} type="button" onClick={() => setCategory(cat)}
-                    style={{ padding: '4px 12px', borderRadius: 99, border: active ? `1.5px solid ${c}` : '1px solid var(--border-faint)', background: active ? `${c}18` : 'transparent', color: active ? c : 'var(--text-muted)', fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: FONT }}>
+                    style={{ padding: '4px 12px', borderRadius: 99, border: active ? `1.5px solid ${c}` : '1px solid var(--border-faint)', background: active ? `${c}18` : 'transparent', color: active ? c : 'var(--text-muted)', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: FONT }}>
                     {cat}
                   </button>
                 )
@@ -239,17 +239,17 @@ export function NoteFormModal({ onClose, onSubmit, onDeleteFile, existingCategor
 
           {/* Website */}
           <div>
-            <div style={{ fontSize: 'calc(9px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, fontFamily: FONT }}>
+            <div style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, fontFamily: FONT }}>
               {t('collab.notes.website')}
             </div>
             <input value={website} onChange={e => setWebsite(e.target.value)}
               placeholder={t('collab.notes.websitePlaceholder')}
-              style={{ width: '100%', border: '1px solid var(--border-primary)', borderRadius: 10, padding: '8px 12px', fontSize: 'calc(13px * var(--fs-scale-text, 1))', background: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+              style={{ width: '100%', border: '1px solid var(--border-primary)', borderRadius: 10, padding: '8px 12px', fontSize: 'calc(13px * var(--fs-scale-body, 1))', background: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
           </div>
 
           {/* File attachments */}
           {canUploadFiles && <div>
-            <div style={{ fontSize: 'calc(9px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, fontFamily: FONT }}>
+            <div style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, fontFamily: FONT }}>
               {t('collab.notes.attachFiles')}
             </div>
             <input ref={fileRef} type="file" multiple style={{ display: 'none' }} onChange={e => { const files = e.target.files; if (files?.length) setPendingFiles(prev => [...prev, ...Array.from(files)]); e.target.value = '' }} />
@@ -258,7 +258,7 @@ export function NoteFormModal({ onClose, onSubmit, onDeleteFile, existingCategor
               {existingAttachments.map(a => {
                 const isImage = a.mime_type?.startsWith('image/')
                 return (
-                  <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 8, background: 'var(--bg-secondary)', fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: 'var(--text-muted)' }}>
+                  <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 8, background: 'var(--bg-secondary)', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-muted)' }}>
                     {isImage && <AuthedImg src={a.url} style={{ width: 18, height: 18, objectFit: 'cover', borderRadius: 3 }} />}
                     {(a.original_name || '').length > 20 ? a.original_name.slice(0, 17) + '...' : a.original_name}
                     <button type="button" onClick={() => handleDeleteAttachment(a.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: 0, display: 'flex' }}>
@@ -269,7 +269,7 @@ export function NoteFormModal({ onClose, onSubmit, onDeleteFile, existingCategor
               })}
               {/* New pending files */}
               {pendingFiles.map((f, i) => (
-                <div key={`new-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 8, background: 'var(--bg-secondary)', fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: 'var(--text-muted)' }}>
+                <div key={`new-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 8, background: 'var(--bg-secondary)', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-muted)' }}>
                   {f.name.length > 20 ? f.name.slice(0, 17) + '...' : f.name}
                   <button type="button" onClick={() => setPendingFiles(prev => prev.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 0, display: 'flex' }}>
                     <X size={10} />
@@ -277,7 +277,7 @@ export function NoteFormModal({ onClose, onSubmit, onDeleteFile, existingCategor
                 </div>
               ))}
               <button type="button" onClick={() => fileRef.current?.click()}
-                style={{ padding: '4px 10px', borderRadius: 8, border: '1px dashed var(--border-faint)', background: 'transparent', cursor: 'pointer', color: 'var(--text-faint)', fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontFamily: FONT, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                style={{ padding: '4px 10px', borderRadius: 8, border: '1px dashed var(--border-faint)', background: 'transparent', cursor: 'pointer', color: 'var(--text-faint)', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontFamily: FONT, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                 <Plus size={11} /> {t('files.attach') || 'Add'}
               </button>
             </div>
@@ -293,7 +293,7 @@ export function NoteFormModal({ onClose, onSubmit, onDeleteFile, existingCategor
               padding: '7px 14px',
               background: canSubmit ? 'var(--accent)' : 'var(--border-primary)',
               color: canSubmit ? 'var(--accent-text)' : 'var(--text-faint)',
-              fontSize: 'calc(12px * var(--fs-scale-text, 1))',
+              fontSize: 'calc(12px * var(--fs-scale-body, 1))',
               fontWeight: 600,
               fontFamily: FONT,
               border: 'none',

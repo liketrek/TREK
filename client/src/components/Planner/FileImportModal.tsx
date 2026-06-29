@@ -226,10 +226,10 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
         className="bg-surface-card"
         style={{ borderRadius: 16, width: '100%', maxWidth: 520, padding: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.2)', fontFamily: "var(--font-system)" }}
       >
-        <div style={{ fontSize: 'calc(15px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
+        <div style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
           {t('places.importFile')}
         </div>
-        <div style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', marginBottom: 14, lineHeight: 1.45 }}>
+        <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)', marginBottom: 14, lineHeight: 1.45 }}>
           {t('places.importFileHint')}
         </div>
 
@@ -259,7 +259,7 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
             alignItems: 'center',
             justifyContent: 'center',
             gap: 6,
-            fontSize: 'calc(13px * var(--fs-scale-text, 1))',
+            fontSize: 'calc(13px * var(--fs-scale-body, 1))',
             fontWeight: 500,
             cursor: 'pointer',
             marginBottom: 12,
@@ -281,7 +281,7 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
 
         {isGpx && (
           <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               {t('places.gpxImportTypes')}
             </div>
             {(['waypoints', 'routes', 'tracks'] as const).map(key => (
@@ -293,20 +293,20 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
                 }}>
                   {gpxOpts[key] && <svg width="10" height="10" viewBox="0 0 10 10"><polyline points="1.5,5 4,7.5 8.5,2" stroke="white" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>}
                 </div>
-                <span style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', color: 'var(--text-primary)', userSelect: 'none' }}>
+                <span style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-primary)', userSelect: 'none' }}>
                   {t(key === 'waypoints' ? 'places.gpxImportWaypoints' : key === 'routes' ? 'places.gpxImportRoutes' : 'places.gpxImportTracks')}
                 </span>
               </label>
             ))}
             {gpxNoneSelected && (
-              <div className="text-[#b45309]" style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', marginTop: 4 }}>{t('places.gpxImportNoneSelected')}</div>
+              <div className="text-[#b45309]" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', marginTop: 4 }}>{t('places.gpxImportNoneSelected')}</div>
             )}
           </div>
         )}
 
         {isKml && (
           <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               {t('places.kmlImportTypes')}
             </div>
             {(['points', 'paths'] as const).map(key => (
@@ -318,13 +318,13 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
                 }}>
                   {kmlOpts[key] && <svg width="10" height="10" viewBox="0 0 10 10"><polyline points="1.5,5 4,7.5 8.5,2" stroke="white" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>}
                 </div>
-                <span style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', color: 'var(--text-primary)', userSelect: 'none' }}>
+                <span style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-primary)', userSelect: 'none' }}>
                   {t(key === 'points' ? 'places.kmlImportPoints' : 'places.kmlImportPaths')}
                 </span>
               </label>
             ))}
             {kmlNoneSelected && (
-              <div className="text-[#b45309]" style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', marginTop: 4 }}>{t('places.kmlImportNoneSelected')}</div>
+              <div className="text-[#b45309]" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', marginTop: 4 }}>{t('places.kmlImportNoneSelected')}</div>
             )}
           </div>
         )}
@@ -334,7 +334,7 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
             border: '1px solid var(--border-primary)', borderRadius: 10,
             background: 'var(--bg-tertiary)', padding: 10, marginBottom: 10,
           }}>
-            <div style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-muted)' }}>
               {t('places.kmlKmzSummaryValues', {
                 total: summary.totalPlacemarks,
                 created: summary.createdCount,
@@ -342,7 +342,7 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
               })}
             </div>
             {summary.warnings?.length > 0 && (
-              <div className="text-[#b45309]" style={{ marginTop: 8, fontSize: 'calc(12px * var(--fs-scale-text, 1))', whiteSpace: 'pre-wrap' }}>
+              <div className="text-[#b45309]" style={{ marginTop: 8, fontSize: 'calc(12px * var(--fs-scale-body, 1))', whiteSpace: 'pre-wrap' }}>
                 {summary.warnings.join('\n')}
               </div>
             )}
@@ -353,7 +353,7 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
           <div className="bg-[rgba(239,68,68,0.08)] text-[#b91c1c]" style={{
             border: '1px solid rgba(239,68,68,0.35)', borderRadius: 10,
             padding: '8px 10px',
-            fontSize: 'calc(12px * var(--fs-scale-text, 1))', whiteSpace: 'pre-wrap', marginBottom: 10,
+            fontSize: 'calc(12px * var(--fs-scale-body, 1))', whiteSpace: 'pre-wrap', marginBottom: 10,
           }}>
             {error}
           </div>
@@ -364,7 +364,7 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
             onClick={handleClose}
             style={{
               padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)',
-              background: 'none', color: 'var(--text-primary)', fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500,
+              background: 'none', color: 'var(--text-primary)', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
               cursor: 'pointer', fontFamily: 'inherit',
             }}
           >
@@ -376,7 +376,7 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
             className={canImport ? 'bg-accent text-accent-text' : 'bg-surface-tertiary text-content-faint'}
             style={{
               padding: '8px 16px', borderRadius: 10, border: 'none',
-              fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500, cursor: canImport ? 'pointer' : 'default',
+              fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, cursor: canImport ? 'pointer' : 'default',
               fontFamily: 'inherit',
             }}
           >

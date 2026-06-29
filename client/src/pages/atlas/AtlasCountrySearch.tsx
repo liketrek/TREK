@@ -81,7 +81,7 @@ export default function AtlasCountrySearch({
               border: 'none',
               outline: 'none',
               background: 'transparent',
-              fontSize: 'calc(13px * var(--fs-scale-text, 1))',
+              fontSize: 'calc(13px * var(--fs-scale-body, 1))',
               fontFamily: 'inherit',
             }}
           />
@@ -137,7 +137,7 @@ export default function AtlasCountrySearch({
               >
                 <span style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                   <img src={`https://flagcdn.com/w40/${r.code.toLowerCase()}.png`} alt={r.code} style={{ width: 28, height: 20, borderRadius: 4, objectFit: 'cover' }} />
-                  <span className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 650, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 650, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {r.label}
                   </span>
                 </span>

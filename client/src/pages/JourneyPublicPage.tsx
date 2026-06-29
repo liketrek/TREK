@@ -340,7 +340,7 @@ export default function JourneyPublicPage() {
           <button onClick={() => setShowLangPicker(v => !v)} style={{
             padding: '5px 12px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.15)',
             background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)',
-            color: 'rgba(255,255,255,0.7)', fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+            color: 'rgba(255,255,255,0.7)', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
           }}>
             {SUPPORTED_LANGUAGES.find(l => l.value === (locale?.split('-')[0] || 'en'))?.label || 'Language'}
           </button>
@@ -351,7 +351,7 @@ export default function JourneyPublicPage() {
                   useSettingsStore.setState(s => ({ settings: { ...s.settings, language: lang.value } }))
                   setShowLangPicker(false)
                 }}
-                  style={{ display: 'block', width: '100%', padding: '6px 12px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', fontSize: 'calc(12px * var(--fs-scale-text, 1))', color: '#374151', borderRadius: 6, fontFamily: 'inherit' }}
+                  style={{ display: 'block', width: '100%', padding: '6px 12px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: '#374151', borderRadius: 6, fontFamily: 'inherit' }}
                   onMouseEnter={e => e.currentTarget.style.background = '#f3f4f6'}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}
                 >{lang.label}</button>
@@ -365,24 +365,24 @@ export default function JourneyPublicPage() {
           <img src="/icons/icon-white.svg" alt="TREK" width={26} height={26} />
         </div>
 
-        <div style={{ fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', opacity: 0.35, marginBottom: 12, position: 'relative' }}>{t('journey.public.tagline')}</div>
+        <div style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', opacity: 0.35, marginBottom: 12, position: 'relative' }}>{t('journey.public.tagline')}</div>
 
-        <h1 className="relative" style={{ margin: '0 0 4px', fontSize: 'calc(26px * var(--fs-scale-text, 1))', fontWeight: 700, letterSpacing: -0.5 }}>{journey.title}</h1>
+        <h1 className="relative" style={{ margin: '0 0 4px', fontSize: 'calc(26px * var(--fs-scale-title, 1))', fontWeight: 700, letterSpacing: -0.5 }}>{journey.title}</h1>
 
         {journey.subtitle && (
-          <div className="relative" style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', opacity: 0.5, maxWidth: 400, margin: '0 auto', lineHeight: 1.5 }}>{journey.subtitle}</div>
+          <div className="relative" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', opacity: 0.5, maxWidth: 400, margin: '0 auto', lineHeight: 1.5 }}>{journey.subtitle}</div>
         )}
 
         {/* Stats pill */}
         <div className="relative" style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 12, padding: '8px 18px', borderRadius: 20, background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <span style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 500, opacity: 0.8, display: 'flex', alignItems: 'center', gap: 5 }}><BookOpen size={12} /> {stats.entries} {t('journey.stats.entries')}</span>
-          <span style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', opacity: 0.4 }}>·</span>
-          <span style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 500, opacity: 0.8, display: 'flex', alignItems: 'center', gap: 5 }}><Camera size={12} /> {stats.photos} {t('journey.stats.photos')}</span>
-          <span style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', opacity: 0.4 }}>·</span>
-          <span style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 500, opacity: 0.8, display: 'flex', alignItems: 'center', gap: 5 }}><MapPin size={12} /> {stats.places} {t('journey.stats.places')}</span>
+          <span style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500, opacity: 0.8, display: 'flex', alignItems: 'center', gap: 5 }}><BookOpen size={12} /> {stats.entries} {t('journey.stats.entries')}</span>
+          <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', opacity: 0.4 }}>·</span>
+          <span style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500, opacity: 0.8, display: 'flex', alignItems: 'center', gap: 5 }}><Camera size={12} /> {stats.photos} {t('journey.stats.photos')}</span>
+          <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', opacity: 0.4 }}>·</span>
+          <span style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500, opacity: 0.8, display: 'flex', alignItems: 'center', gap: 5 }}><MapPin size={12} /> {stats.places} {t('journey.stats.places')}</span>
         </div>
 
-        <div className="relative" style={{ marginTop: 12, fontSize: 'calc(9px * var(--fs-scale-text, 1))', fontWeight: 500, letterSpacing: 1.5, textTransform: 'uppercase', opacity: 0.25 }}>{t('journey.public.readOnly')}</div>
+        <div className="relative" style={{ marginTop: 12, fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 500, letterSpacing: 1.5, textTransform: 'uppercase', opacity: 0.25 }}>{t('journey.public.readOnly')}</div>
       </div>
 
       {/* Content */}
@@ -483,9 +483,9 @@ export default function JourneyPublicPage() {
       <div className="flex flex-col items-center py-8 gap-2">
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 20, background: 'white', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
           <img src="/icons/icon.svg" alt="TREK" width={18} height={18} style={{ borderRadius: 4 }} />
-          <span style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: '#9ca3af' }}>{t('journey.public.sharedVia')} <strong style={{ color: '#6b7280' }}>TREK</strong></span>
+          <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: '#9ca3af' }}>{t('journey.public.sharedVia')} <strong style={{ color: '#6b7280' }}>TREK</strong></span>
         </div>
-        <div style={{ fontSize: 'calc(10px * var(--fs-scale-text, 1))', color: '#d1d5db' }}>
+        <div style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: '#d1d5db' }}>
           Made with <span style={{ color: '#ef4444' }}>♥</span> by Maurice · <a href="https://github.com/mauriceboe/TREK" style={{ color: '#9ca3af', textDecoration: 'none' }}>GitHub</a>
         </div>
       </div>

@@ -7,7 +7,7 @@ export function PackingFilterTabs({ items, filter, setFilter, t }: PackingState)
       {[['alle', t('packing.filterAll')], ['offen', t('packing.filterOpen')], ['erledigt', t('packing.filterDone')]].map(([id, label]) => (
         <button key={id} onClick={() => setFilter(id)} style={{
           padding: '4px 12px', borderRadius: 99, border: 'none', cursor: 'pointer',
-          fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontFamily: 'inherit', fontWeight: filter === id ? 600 : 400,
+          fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontFamily: 'inherit', fontWeight: filter === id ? 600 : 400,
           background: filter === id ? 'var(--text-primary)' : 'transparent',
           color: filter === id ? 'var(--bg-primary)' : 'var(--text-muted)',
         }}>{label}</button>

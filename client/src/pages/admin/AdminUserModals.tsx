@@ -220,15 +220,15 @@ export default function AdminUserModals({ admin, t }: AdminUserModalsProps): Rea
                 <ArrowUpCircle size={20} className="text-white" />
               </div>
               <div>
-                <h3 className="text-white" style={{ margin: 0, fontSize: 'calc(16px * var(--fs-scale-text, 1))', fontWeight: 700 }}>{t('admin.update.howTo')}</h3>
-                <p className="text-[rgba(255,255,255,0.8)]" style={{ margin: '2px 0 0', fontSize: 'calc(12px * var(--fs-scale-text, 1))' }}>
+                <h3 className="text-white" style={{ margin: 0, fontSize: 'calc(16px * var(--fs-scale-subtitle, 1))', fontWeight: 700 }}>{t('admin.update.howTo')}</h3>
+                <p className="text-[rgba(255,255,255,0.8)]" style={{ margin: '2px 0 0', fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}>
                   v{updateInfo?.current} → v{updateInfo?.latest}
                 </p>
               </div>
             </div>
 
             <div style={{ padding: '20px 24px' }}>
-              <p className="text-gray-700 dark:text-gray-300" style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', lineHeight: 1.6, margin: 0 }}>
+              <p className="text-gray-700 dark:text-gray-300" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', lineHeight: 1.6, margin: 0 }}>
                 {(updateInfo?.is_docker === false ? t('admin.update.nonDockerText') : t('admin.update.dockerText')).replace('{version}', `v${updateInfo?.latest ?? ''}`)}
               </p>
 
@@ -237,14 +237,14 @@ export default function AdminUserModals({ admin, t }: AdminUserModalsProps): Rea
                   href="https://github.com/mauriceboe/TREK/wiki/Updating"
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ marginTop: 14, padding: '12px 14px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-text, 1))', lineHeight: 1.5, display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}
+                  style={{ marginTop: 14, padding: '12px 14px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', lineHeight: 1.5, display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}
                   className="bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
                   <ExternalLink className="w-4 h-4 flex-shrink-0" />
                   <span className="font-semibold underline">{t('admin.update.wikiLink')}</span>
                 </a>
               ) : (
-                <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 10, fontSize: 'calc(12px * var(--fs-scale-text, 1))', lineHeight: 1.8, fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
+                <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 10, fontSize: 'calc(12px * var(--fs-scale-body, 1))', lineHeight: 1.8, fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
                   className="bg-gray-900 dark:bg-gray-950 text-gray-100 border border-gray-700"
                 >
 {`docker pull mauriceboe/trek:latest
@@ -258,7 +258,7 @@ docker run -d --name trek \\
                 </div>
               )}
 
-              <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, fontSize: 'calc(12px * var(--fs-scale-text, 1))', lineHeight: 1.5 }}
+              <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, fontSize: 'calc(12px * var(--fs-scale-body, 1))', lineHeight: 1.5 }}
                 className="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
               >
                 <div className="flex items-start gap-2">
@@ -268,7 +268,7 @@ docker run -d --name trek \\
               </div>
 
               {updateInfo?.release_url && (
-                <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, fontSize: 'calc(12px * var(--fs-scale-text, 1))', lineHeight: 1.5 }}
+                <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, fontSize: 'calc(12px * var(--fs-scale-body, 1))', lineHeight: 1.5 }}
                   className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
                 >
                   <div className="flex items-start gap-2">
@@ -287,7 +287,7 @@ docker run -d --name trek \\
               <button
                 onClick={() => setShowUpdateModal(false)}
                 className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-gray-200"
-                style={{ padding: '9px 20px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                style={{ padding: '9px 20px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
               >
                 {t('common.close')}
               </button>

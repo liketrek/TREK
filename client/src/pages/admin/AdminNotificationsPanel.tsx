@@ -13,7 +13,7 @@ export default function AdminNotificationsPanel({ t, toast }: { t: (k: string) =
     adminApi.getNotificationPreferences().then((data: any) => setMatrix(data)).catch(() => {})
   }, [])
 
-  if (!matrix) return <p className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontStyle: 'italic', padding: 16 }}>Loading…</p>
+  if (!matrix) return <p className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontStyle: 'italic', padding: 16 }}>Loading…</p>
 
   const visibleChannels = (['inapp', 'email', 'webhook', 'ntfy'] as const).filter(ch => {
     if (!matrix.available_channels[ch]) return false
@@ -38,7 +38,7 @@ export default function AdminNotificationsPanel({ t, toast }: { t: (k: string) =
   if (matrix.event_types.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <p className="text-content-faint" style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))' }}>{t('settings.notificationPreferences.noChannels')}</p>
+        <p className="text-content-faint" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>{t('settings.notificationPreferences.noChannels')}</p>
       </div>
     )
   }
@@ -51,12 +51,12 @@ export default function AdminNotificationsPanel({ t, toast }: { t: (k: string) =
           <p className="text-xs text-slate-400 mt-1">{t('admin.notifications.adminNotificationsHint')}</p>
         </div>
         <div className="p-6">
-          {saving && <p className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', marginBottom: 8 }}>Saving…</p>}
+          {saving && <p className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', marginBottom: 8 }}>Saving…</p>}
           {/* Header row */}
           <div className="border-b border-edge" style={{ display: 'grid', gridTemplateColumns: `1fr ${visibleChannels.map(() => '80px').join(' ')}`, gap: 4, paddingBottom: 6, marginBottom: 4 }}>
             <span />
             {visibleChannels.map(ch => (
-              <span key={ch} className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <span key={ch} className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 {t(ADMIN_CHANNEL_LABEL_KEYS[ch]) || ch}
               </span>
             ))}
@@ -66,12 +66,12 @@ export default function AdminNotificationsPanel({ t, toast }: { t: (k: string) =
             const implementedForEvent = matrix.implemented_combos[eventType] ?? []
             return (
               <div key={eventType} className="border-b border-edge" style={{ display: 'grid', gridTemplateColumns: `1fr ${visibleChannels.map(() => '80px').join(' ')}`, gap: 4, alignItems: 'center', padding: '8px 0' }}>
-                <span className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))' }}>
+                <span className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>
                   {t(ADMIN_EVENT_LABEL_KEYS[eventType]) || eventType}
                 </span>
                 {visibleChannels.map(ch => {
                   if (!implementedForEvent.includes(ch)) {
-                    return <span key={ch} className="text-content-faint" style={{ textAlign: 'center', fontSize: 'calc(14px * var(--fs-scale-text, 1))' }}>—</span>
+                    return <span key={ch} className="text-content-faint" style={{ textAlign: 'center', fontSize: 'calc(14px * var(--fs-scale-body, 1))' }}>—</span>
                   }
                   const isOn = matrix.preferences[eventType]?.[ch] ?? true
                   return (

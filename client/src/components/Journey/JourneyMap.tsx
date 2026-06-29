@@ -300,7 +300,7 @@ const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
             border: `1px solid ${dark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'}`,
             color: dark ? '#fff' : '#18181B',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', fontSize: 'calc(16px * var(--fs-scale-text, 1))', fontWeight: 700, lineHeight: 1,
+            cursor: 'pointer', fontSize: 'calc(16px * var(--fs-scale-subtitle, 1))', fontWeight: 700, lineHeight: 1,
           }}
         >+</button>
         <button
@@ -312,7 +312,7 @@ const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
             border: `1px solid ${dark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'}`,
             color: dark ? '#fff' : '#18181B',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', fontSize: 'calc(16px * var(--fs-scale-text, 1))', fontWeight: 700, lineHeight: 1,
+            cursor: 'pointer', fontSize: 'calc(16px * var(--fs-scale-subtitle, 1))', fontWeight: 700, lineHeight: 1,
           }}
         >−</button>
       </div>

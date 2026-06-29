@@ -14,8 +14,8 @@ export function ChatMessages(props: any) {
       {messages.length === 0 ? (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: 'var(--text-faint)', padding: 32, textAlign: 'center' }}>
           <MessageCircle size={40} strokeWidth={1.2} style={{ opacity: 0.4 }} />
-          <span style={{ fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 600 }}>{t('collab.chat.empty')}</span>
-          <span style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', opacity: 0.6, fontFamily: 'var(--font-subtext)' }}>{t('collab.chat.emptyDesc') || ''}</span>
+          <span style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{t('collab.chat.empty')}</span>
+          <span style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', opacity: 0.6, fontFamily: 'var(--font-subtext)' }}>{t('collab.chat.emptyDesc') || ''}</span>
         </div>
       ) : (
         <div ref={scrollRef} onScroll={checkAtBottom} className="chat-scroll" style={{
@@ -25,7 +25,7 @@ export function ChatMessages(props: any) {
           {hasMore && (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0 10px' }}>
               <button onClick={handleLoadMore} disabled={loadingMore} style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600,
+                display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600,
                 color: 'var(--text-muted)', background: 'var(--bg-secondary)', border: '1px solid var(--border-faint)',
                 borderRadius: 99, padding: '5px 14px', cursor: 'pointer', fontFamily: 'inherit',
               }}>
@@ -51,13 +51,13 @@ export function ChatMessages(props: any) {
                 <React.Fragment key={msg.id}>
                   {showDate && (
                     <div style={{ display: 'flex', justifyContent: 'center', padding: '14px 0 6px' }}>
-                      <span style={{ fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)', background: 'var(--bg-secondary)', padding: '3px 12px', borderRadius: 99, letterSpacing: 0.3, textTransform: 'uppercase' }}>
+                      <span style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', background: 'var(--bg-secondary)', padding: '3px 12px', borderRadius: 99, letterSpacing: 0.3, textTransform: 'uppercase' }}>
                         {formatDateSeparator(msg.created_at, t)}
                       </span>
                     </div>
                   )}
                   <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0' }}>
-                    <span style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', fontStyle: 'italic' }}>
+                    <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', fontStyle: 'italic' }}>
                       {msg.username} {t('collab.chat.deletedMessage') || 'deleted a message'} · {formatTime(msg.created_at, is12h)}
                     </span>
                   </div>
@@ -76,7 +76,7 @@ export function ChatMessages(props: any) {
                 {showDate && (
                   <div style={{ display: 'flex', justifyContent: 'center', padding: '14px 0 6px' }}>
                     <span style={{
-                      fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)',
+                      fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)',
                       background: 'var(--bg-secondary)', padding: '3px 12px', borderRadius: 99,
                       letterSpacing: 0.3, textTransform: 'uppercase',
                     }}>
@@ -103,7 +103,7 @@ export function ChatMessages(props: any) {
                           <div style={{
                             width: 28, height: 28, borderRadius: '50%', background: 'var(--bg-tertiary)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'var(--text-muted)',
+                            fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 700, color: 'var(--text-muted)',
                           }}>
                             {(msg.username || '?')[0].toUpperCase()}
                           </div>
@@ -115,7 +115,7 @@ export function ChatMessages(props: any) {
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: own ? 'flex-end' : 'flex-start', maxWidth: '78%', minWidth: 0 }}>
                     {/* Username for others at group start */}
                     {!own && isNewGroup && (
-                      <span style={{ fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)', marginBottom: 2, paddingLeft: 4 }}>
+                      <span style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', marginBottom: 2, paddingLeft: 4 }}>
                         {msg.username}
                       </span>
                     )}
@@ -138,7 +138,7 @@ export function ChatMessages(props: any) {
                       }}
                     >
                       {bigEmoji ? (
-                        <div style={{ fontSize: 'calc(40px * var(--fs-scale-text, 1))', lineHeight: 1.2, padding: '2px 0' }}>
+                        <div style={{ fontSize: 'calc(40px * var(--fs-scale-title, 1))', lineHeight: 1.2, padding: '2px 0' }}>
                           {msg.text}
                         </div>
                       ) : (
@@ -146,16 +146,16 @@ export function ChatMessages(props: any) {
                           background: own ? '#007AFF' : 'var(--bg-secondary)',
                           color: own ? '#fff' : 'var(--text-primary)',
                           borderRadius: br, padding: hasReply ? '4px 4px 8px 4px' : '8px 14px',
-                          fontSize: 'calc(14px * var(--fs-scale-text, 1))', lineHeight: 1.4, wordBreak: 'break-word', whiteSpace: 'pre-wrap',
+                          fontSize: 'calc(14px * var(--fs-scale-body, 1))', lineHeight: 1.4, wordBreak: 'break-word', whiteSpace: 'pre-wrap',
                         }}>
                           {/* Inline reply quote */}
                           {hasReply && (
                             <div style={{
                               padding: '5px 10px', marginBottom: 4, borderRadius: 12,
                               background: own ? 'rgba(255,255,255,0.15)' : 'var(--bg-tertiary)',
-                              fontSize: 'calc(12px * var(--fs-scale-text, 1))', lineHeight: 1.3,
+                              fontSize: 'calc(12px * var(--fs-scale-body, 1))', lineHeight: 1.3,
                             }}>
-                              <div style={{ fontWeight: 600, fontSize: 'calc(11px * var(--fs-scale-text, 1))', opacity: 0.7, marginBottom: 1 }}>
+                              <div style={{ fontWeight: 600, fontSize: 'calc(11px * var(--fs-scale-caption, 1))', opacity: 0.7, marginBottom: 1 }}>
                                 {msg.reply_username || ''}
                               </div>
                               <div style={{ opacity: 0.8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -233,7 +233,7 @@ export function ChatMessages(props: any) {
 
                     {/* Timestamp — only on last message of group */}
                     {isLastInGroup && (
-                      <span style={{ fontSize: 'calc(9px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', marginTop: 2, padding: '0 4px' }}>
+                      <span style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginTop: 2, padding: '0 4px' }}>
                         {formatTime(msg.created_at, is12h)}
                       </span>
                     )}

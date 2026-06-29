@@ -42,14 +42,12 @@
     }
 
     var ts = s.typeScale || {};
-    setScale('--fs-scale-title', ts.title);
-    setScale('--fs-scale-subtitle', ts.subtitle);
-    setScale('--fs-scale-body', ts.body);
-    setScale('--fs-scale-caption', ts.caption);
-    if (typeof s.fontScale === 'number' && s.fontScale !== 1) {
-      root.style.fontSize = s.fontScale * 100 + '%';
-      root.style.setProperty('--fs-scale-text', String(s.fontScale));
-    }
+    var fs = typeof s.fontScale === 'number' ? s.fontScale : 1;
+    setScale('--fs-scale-title', fs * (ts.title || 1));
+    setScale('--fs-scale-subtitle', fs * (ts.subtitle || 1));
+    setScale('--fs-scale-body', fs * (ts.body || 1));
+    setScale('--fs-scale-caption', fs * (ts.caption || 1));
+    if (fs !== 1) root.style.fontSize = fs * 100 + '%';
 
     function setScale(name, v) {
       if (typeof v === 'number' && v !== 1) root.style.setProperty(name, String(v));

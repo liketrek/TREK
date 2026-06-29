@@ -175,7 +175,7 @@ export default function CollabPanel({ tripId, tripMembers = [], collabFeatures }
               padding: '8px 0', borderRadius: 10, border: 'none', cursor: 'pointer',
               background: active ? 'var(--accent)' : 'transparent',
               color: active ? 'var(--accent-text)' : 'var(--text-muted)',
-              fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, fontFamily: 'inherit',
+              fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, fontFamily: 'inherit',
               transition: 'all 0.15s',
             }}>
               {tab.label}

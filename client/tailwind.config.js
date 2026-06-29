@@ -86,10 +86,10 @@ export default {
       // appearance "text size" control reaches them; the global fontScale (root
       // font-size) additionally scales all rem-based text.
       fontSize: {
-        title: ['calc(1.5rem * var(--fs-scale-title, 1))', '1.2'],
-        subtitle: ['calc(1.125rem * var(--fs-scale-subtitle, 1))', '1.35'],
-        body: ['calc(0.875rem * var(--fs-scale-body, 1))', '1.5'],
-        caption: ['calc(0.75rem * var(--fs-scale-caption, 1))', '1.4'],
+        title: ['calc(24px * var(--fs-scale-title, 1))', '1.2'],
+        subtitle: ['calc(18px * var(--fs-scale-subtitle, 1))', '1.35'],
+        body: ['calc(14px * var(--fs-scale-body, 1))', '1.5'],
+        caption: ['calc(12px * var(--fs-scale-caption, 1))', '1.4'],
       },
     },
   },

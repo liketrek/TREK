@@ -39,10 +39,10 @@ export function BookingCostsSection({ reservationId, pendingExpense, onCreate, o
         <div className="bg-surface-secondary border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10 }}>
           <span style={{ width: 26, height: 26, borderRadius: 7, display: 'grid', placeItems: 'center', background: meta.color + '22', color: meta.color, flexShrink: 0 }}><Icon size={14} /></span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="text-content" style={{ fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 600 }}>{t(meta.labelKey)}</div>
-            <div className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))' }}>{t('reservations.createExpenseHint')}</div>
+            <div className="text-content" style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{t(meta.labelKey)}</div>
+            <div className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}>{t('reservations.createExpenseHint')}</div>
           </div>
-          <span className="text-content" style={{ fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 700, flexShrink: 0 }}>{formatMoney(pendingExpense.total_price, pendingExpense.currency || base, locale)}</span>
+          <span className="text-content" style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 700, flexShrink: 0 }}>{formatMoney(pendingExpense.total_price, pendingExpense.currency || base, locale)}</span>
         </div>
       </div>
     )
@@ -57,10 +57,10 @@ export function BookingCostsSection({ reservationId, pendingExpense, onCreate, o
         <div className="bg-surface-secondary border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10 }}>
           <span style={{ width: 26, height: 26, borderRadius: 7, display: 'grid', placeItems: 'center', background: meta.color + '22', color: meta.color, flexShrink: 0 }}><Icon size={14} /></span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="text-content" style={{ fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{linked.name}</div>
-            <div className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))' }}>{t(meta.labelKey)}</div>
+            <div className="text-content" style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{linked.name}</div>
+            <div className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}>{t(meta.labelKey)}</div>
           </div>
-          <span className="text-content" style={{ fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 700, flexShrink: 0 }}>{formatMoney(linked.total_price, linked.currency || base, locale)}</span>
+          <span className="text-content" style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 700, flexShrink: 0 }}>{formatMoney(linked.total_price, linked.currency || base, locale)}</span>
           <button type="button" onClick={() => onEdit(linked)} title={t('common.edit')} className="text-content-muted border border-edge bg-surface-card" style={{ display: 'inline-flex', padding: 7, borderRadius: 8, cursor: 'pointer' }}><Pencil size={13} /></button>
           <button type="button" onClick={() => onRemove(linked)} title={t('reservations.removeExpense')} className="text-content-muted border border-edge bg-surface-card" style={{ display: 'inline-flex', padding: 7, borderRadius: 8, cursor: 'pointer' }}><Trash2 size={13} /></button>
         </div>
@@ -73,10 +73,10 @@ export function BookingCostsSection({ reservationId, pendingExpense, onCreate, o
       <label className={labelCls}>{t('reservations.costsLabel')}</label>
       <button type="button" onClick={onCreate}
         className="bg-surface-secondary border border-edge text-content"
-        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px 13px', borderRadius: 10, fontSize: 'calc(13.5px * var(--fs-scale-text, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px 13px', borderRadius: 10, fontSize: 'calc(13.5px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
         <Plus size={15} /> {t('reservations.createExpense')}
       </button>
-      <div className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', marginTop: 6 }}>{t('reservations.createExpenseHint')}</div>
+      <div className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', marginTop: 6 }}>{t('reservations.createExpenseHint')}</div>
     </div>
   )
 }

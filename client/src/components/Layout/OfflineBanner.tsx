@@ -88,7 +88,7 @@ export default function OfflineBanner(): React.ReactElement | null {
         padding: '6px 14px',
         borderRadius: 999,
         boxShadow: '0 4px 16px rgba(0,0,0,0.18), 0 0 0 1px rgba(255,255,255,0.08)',
-        fontSize: 'calc(12px * var(--fs-scale-text, 1))',
+        fontSize: 'calc(12px * var(--fs-scale-body, 1))',
         fontWeight: 600,
         whiteSpace: 'nowrap',
         pointerEvents: 'none',

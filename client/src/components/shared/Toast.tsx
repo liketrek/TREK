@@ -123,7 +123,7 @@ export function ToastContainer() {
           >
             {icons[toast.type] || icons.info}
             <span style={{
-              flex: 1, fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500, color: 'rgba(255, 255, 255, 0.9)',
+              flex: 1, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, color: 'rgba(255, 255, 255, 0.9)',
               lineHeight: 1.4,
               fontFamily: "var(--font-system)",
             }}>

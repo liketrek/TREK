@@ -33,7 +33,7 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8,
             padding: '6px 10px', borderRadius: 10, background: 'var(--bg-secondary)',
-            borderLeft: '3px solid #007AFF', fontSize: 'calc(12px * var(--fs-scale-text, 1))', color: 'var(--text-muted)',
+            borderLeft: '3px solid #007AFF', fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-muted)',
           }}>
             <Reply size={12} style={{ flexShrink: 0, opacity: 0.5 }} />
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
@@ -67,7 +67,7 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
             disabled={!canEdit}
             style={{
               flex: 1, resize: 'none', border: '1px solid var(--border-primary)', borderRadius: 20,
-              padding: '8px 14px', fontSize: 'calc(14px * var(--fs-scale-text, 1))', lineHeight: 1.4, fontFamily: 'inherit',
+              padding: '8px 14px', fontSize: 'calc(14px * var(--fs-scale-body, 1))', lineHeight: 1.4, fontFamily: 'inherit',
               background: 'var(--bg-input)', color: 'var(--text-primary)', outline: 'none',
               maxHeight: 100, overflowY: 'hidden',
               opacity: canEdit ? 1 : 0.5,

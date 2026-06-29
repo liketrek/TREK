@@ -50,7 +50,7 @@ export default function InlineEditCell({ value, onSave, type = 'text', style = {
     return <input ref={inputRef} type="text" inputMode={type === 'number' ? 'decimal' : 'text'} value={editValue}
       onChange={e => setEditValue(e.target.value)} onBlur={save} onPaste={handlePaste}
       onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') { setEditValue(value ?? ''); setEditing(false) } }}
-      style={{ width: '100%', border: '1px solid var(--accent)', borderRadius: 4, padding: '4px 6px', fontSize: 'calc(13px * var(--fs-scale-text, 1))', outline: 'none', background: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'inherit', ...style }}
+      style={{ width: '100%', border: '1px solid var(--accent)', borderRadius: 4, padding: '4px 6px', fontSize: 'calc(13px * var(--fs-scale-body, 1))', outline: 'none', background: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'inherit', ...style }}
       placeholder={placeholder} />
   }
 
@@ -62,7 +62,7 @@ export default function InlineEditCell({ value, onSave, type = 'text', style = {
     <div onClick={() => { if (readOnly) return; setEditValue(value ?? ''); setEditing(true) }} title={readOnly ? undefined : editTooltip}
       style={{ cursor: readOnly ? 'default' : 'pointer', padding: '2px 4px', borderRadius: 4, minHeight: 22, display: 'flex', alignItems: 'center',
         justifyContent: style?.textAlign === 'center' ? 'center' : 'flex-start', transition: 'background 0.15s',
-        color: display ? 'var(--text-primary)' : 'var(--text-faint)', fontSize: 'calc(13px * var(--fs-scale-text, 1))', ...style }}
+        color: display ? 'var(--text-primary)' : 'var(--text-faint)', fontSize: 'calc(13px * var(--fs-scale-body, 1))', ...style }}
       onMouseEnter={e => { if (!readOnly) e.currentTarget.style.background = 'var(--bg-hover)' }}
       onMouseLeave={e => { if (!readOnly) e.currentTarget.style.background = 'transparent' }}>
       {display || placeholder || '-'}

@@ -10,7 +10,7 @@ export function TrashView(S: FileManagerState) {
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
           <button onClick={handleEmptyTrash} style={{
             padding: '5px 12px', borderRadius: 8, border: '1px solid #fecaca',
-            background: '#fef2f2', color: '#dc2626', fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 500,
+            background: '#fef2f2', color: '#dc2626', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500,
             cursor: 'pointer', fontFamily: 'inherit',
           }}>
             {t('files.emptyTrash') || 'Empty Trash'}
@@ -24,7 +24,7 @@ export function TrashView(S: FileManagerState) {
       ) : trashFiles.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-faint)' }}>
           <Trash2 size={40} style={{ color: 'var(--text-faint)', display: 'block', margin: '0 auto 12px' }} />
-          <p style={{ fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-secondary)', margin: '0 0 4px' }}>{t('files.trashEmpty') || 'Trash is empty'}</p>
+          <p style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-secondary)', margin: '0 0 4px' }}>{t('files.trashEmpty') || 'Trash is empty'}</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

@@ -137,7 +137,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
               {day.title || t('planner.dayN', { n: (days.indexOf(day) + 1) || '?' })}
               {collapsed && formattedDate && <span className="text-content-muted" style={{ fontWeight: 500, marginLeft: 8 }}>{formattedDate}</span>}
             </div>
-            {!collapsed && formattedDate && <div className="text-content-muted" style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', marginTop: 1 }}>{formattedDate}</div>}
+            {!collapsed && formattedDate && <div className="text-content-muted" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', marginTop: 1 }}>{formattedDate}</div>}
           </div>
           <button onClick={(e) => { e.stopPropagation(); toggleCollapse() }} title={collapsed ? t('common.expand') : t('common.collapse')}
             className="bg-surface-secondary"
@@ -159,7 +159,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
           {/* ── Weather ── */}
           {day.date && lat && lng && (
             loading ? (
-              <div style={{ textAlign: 'center', padding: 16, color: 'var(--text-faint)', fontSize: 'calc(12px * var(--fs-scale-text, 1))' }}>
+              <div style={{ textAlign: 'center', padding: 16, color: 'var(--text-faint)', fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}>
                 <div style={{ width: 18, height: 18, border: '2px solid var(--border-primary)', borderTopColor: 'var(--text-primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 6px' }} />
               </div>
             ) : weather ? (
@@ -170,16 +170,16 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
                     <WIcon main={weather.main} size={20} />
                   </div>
                   <div style={{ flex: 1, display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 'calc(20px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>
+                    <span style={{ fontSize: 'calc(20px * var(--fs-scale-title, 1))', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>
                       {weather.type === 'climate' ? 'Ø ' : ''}{cTemp(weather.temp, isFahrenheit)}{unit}
                     </span>
                     {weather.temp_max != null && (
-                      <span style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', color: 'var(--text-faint)' }}>
+                      <span style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)' }}>
                         {cTemp(weather.temp_min, isFahrenheit)}° / {cTemp(weather.temp_max, isFahrenheit)}°
                       </span>
                     )}
                     {weather.description && (
-                      <span style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', color: 'var(--text-muted)', textTransform: 'capitalize' }}>{weather.description}</span>
+                      <span style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-muted)', textTransform: 'capitalize' }}>{weather.description}</span>
                     )}
                   </div>
                 </div>
@@ -209,11 +209,11 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
                           width: 44, padding: '5px 2px', borderRadius: 8,
                           background: h.precipitation_probability > 50 ? 'rgba(59,130,246,0.07)' : 'transparent',
                         }}>
-                          <span style={{ fontSize: 'calc(9px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', fontWeight: 500 }}>{String(h.hour).padStart(2, '0')}</span>
+                          <span style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', fontWeight: 500 }}>{String(h.hour).padStart(2, '0')}</span>
                           <WIcon main={h.main} size={12} />
-                          <span style={{ fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-primary)' }}>{cTemp(h.temp, isFahrenheit)}°</span>
+                          <span style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-primary)' }}>{cTemp(h.temp, isFahrenheit)}°</span>
                           {h.precipitation_probability > 0 && (
-                            <span style={{ fontSize: 'calc(8px * var(--fs-scale-text, 1))', color: '#3b82f6', fontWeight: 500 }}>{h.precipitation_probability}%</span>
+                            <span style={{ fontSize: 'calc(8px * var(--fs-scale-caption, 1))', color: '#3b82f6', fontWeight: 500 }}>{h.precipitation_probability}%</span>
                           )}
                         </div>
                       ))}
@@ -222,11 +222,11 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
                 )}
 
                 {weather.type === 'climate' && (
-                  <div style={{ fontSize: 'calc(10px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', marginTop: 6, fontStyle: 'italic' }}>{t('day.climateHint')}</div>
+                  <div style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginTop: 6, fontStyle: 'italic' }}>{t('day.climateHint')}</div>
                 )}
               </div>
             ) : (
-              <div style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', textAlign: 'center', padding: 8 }}>{t('day.noWeather')}</div>
+              <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)', textAlign: 'center', padding: 8 }}>{t('day.noWeather')}</div>
             )
           )}
 
@@ -242,7 +242,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
             return (
               <div style={{ marginBottom: 0 }}>
                 {day.date && lat && lng && <div style={{ height: 1, background: 'var(--border-faint)', margin: '12px 0' }} />}
-                <div className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>{t('day.reservations')}</div>
+                <div className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>{t('day.reservations')}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {dayReservations.map(r => {
                     const linkedAssignment = dayAssignments.find(a => a.id === r.assignment_id)
@@ -251,15 +251,15 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
                       <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', borderRadius: 8, background: confirmed ? 'rgba(22,163,74,0.06)' : 'rgba(217,119,6,0.06)', border: `1px solid ${confirmed ? 'rgba(22,163,74,0.15)' : 'rgba(217,119,6,0.15)'}` }}>
                         {(() => { const TIcon = RES_TYPE_ICONS[r.type] || FileText; return <TIcon size={12} style={{ color: RES_TYPE_COLORS[r.type] || 'var(--text-faint)', flexShrink: 0 }} /> })()}
                         <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
-                          <span style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.title}</span>
-                          {linkedAssignment?.place && <span style={{ fontSize: 'calc(9px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', whiteSpace: 'nowrap' }}>· {linkedAssignment.place.name}</span>}
+                          <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.title}</span>
+                          {linkedAssignment?.place && <span style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', whiteSpace: 'nowrap' }}>· {linkedAssignment.place.name}</span>}
                         </div>
                         {(() => {
                           const { time: startTime } = splitReservationDateTime(r.reservation_time)
                           const { time: endTime } = splitReservationDateTime(r.reservation_end_time)
                           if (!startTime && !endTime) return null
                           return (
-                            <span style={{ fontSize: 'calc(10px * var(--fs-scale-text, 1))', color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                            <span style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
                               {startTime ? formatTime12(startTime, is12h) : ''}
                               {endTime ? ` – ${formatTime12(endTime, is12h)}` : ''}
                             </span>
@@ -278,7 +278,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
 
           {/* ── Accommodation ── */}
           <div>
-            <div className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>{t('day.accommodation')}</div>
+            <div className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>{t('day.accommodation')}</div>
 
             <AccommodationList dayAccommodations={dayAccommodations} day={day} reservations={reservations}
               canEditDays={canEditDays} fmtTime={fmtTime} blurCodes={blurCodes} t={t}
@@ -307,7 +307,7 @@ interface ChipProps {
 
 function Chip({ icon: Icon, value }: ChipProps) {
   return (
-    <div className="bg-surface-secondary text-content-muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 8, fontSize: 'calc(11px * var(--fs-scale-text, 1))' }}>
+    <div className="bg-surface-secondary text-content-muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 8, fontSize: 'calc(11px * var(--fs-scale-caption, 1))' }}>
       <Icon size={11} style={{ flexShrink: 0, opacity: 0.6 }} />
       <span style={{ fontWeight: 500 }}>{value}</span>
     </div>
@@ -347,7 +347,7 @@ function InfoChip({ icon: Icon, label, value, placeholder, onEdit, type }: InfoC
     >
       <Icon size={11} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 'calc(8px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: 1 }}>{label}</div>
+        <div style={{ fontSize: 'calc(8px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: 1 }}>{label}</div>
         {editing ? (
           <input
             ref={inputRef}
@@ -359,12 +359,12 @@ function InfoChip({ icon: Icon, label, value, placeholder, onEdit, type }: InfoC
             onClick={e => e.stopPropagation()}
             style={{
               border: 'none', outline: 'none', background: 'none', padding: 0, margin: 0,
-              fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'inherit',
+              fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'inherit',
               width: type === 'time' ? 50 : '100%', lineHeight: 1.3,
             }}
           />
         ) : (
-          <div style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, color: value ? 'var(--text-primary)' : 'var(--text-faint)', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, color: value ? 'var(--text-primary)' : 'var(--text-faint)', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {value || placeholder}
           </div>
         )}
@@ -398,7 +398,7 @@ function AccommodationList({ dayAccommodations, day, reservations, canEditDays, 
                         <div style={{ padding: '4px 12px 0', display: 'flex', alignItems: 'center', gap: 4 }}>
                           {isCheckInDay && <LogIn size={9} style={{ color: '#22c55e' }} />}
                           {isCheckOutDay && !isCheckInDay && <LogOut size={9} style={{ color: '#ef4444' }} />}
-                          <span style={{ fontSize: 'calc(9px * var(--fs-scale-text, 1))', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: isCheckOutDay && !isCheckInDay ? '#ef4444' : '#22c55e' }}>{dayLabel}</span>
+                          <span style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: isCheckOutDay && !isCheckInDay ? '#ef4444' : '#22c55e' }}>{dayLabel}</span>
                         </div>
                       )}
                       {/* Hotel header */}
@@ -411,8 +411,8 @@ function AccommodationList({ dayAccommodations, day, reservations, canEditDays, 
                           )}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{acc.place_name}</div>
-                          {acc.place_address && <div style={{ fontSize: 'calc(10px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{acc.place_address}</div>}
+                          <div style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{acc.place_name}</div>
+                          {acc.place_address && <div style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{acc.place_address}</div>}
                         </div>
                         {canEditDays && <button onClick={() => { setAccommodation(acc); setHotelForm({ check_in: acc.check_in || '', check_in_end: acc.check_in_end || '', check_out: acc.check_out || '', confirmation: acc.confirmation || '', place_id: acc.place_id }); setHotelDayRange({ start: acc.start_day_id, end: acc.end_day_id }); setShowHotelPicker('edit') }}
                           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 3, flexShrink: 0 }}>
@@ -426,26 +426,26 @@ function AccommodationList({ dayAccommodations, day, reservations, canEditDays, 
                       <div style={{ display: 'flex', gap: 0, margin: '0 12px 8px', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border-faint)' }}>
                         {acc.check_in && (
                           <div style={{ flex: 1, padding: '8px 10px', borderRight: '1px solid var(--border-faint)', textAlign: 'center' }}>
-                            <div style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+                            <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
                               {fmtTime(acc.check_in)}{acc.check_in_end ? ` – ${fmtTime(acc.check_in_end)}` : ''}
                             </div>
-                            <div style={{ fontSize: 'calc(9px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', fontWeight: 500, marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+                            <div style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', fontWeight: 500, marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
                               <LogIn size={8} /> {t('day.checkIn')}
                             </div>
                           </div>
                         )}
                         {acc.check_out && (
                           <div style={{ flex: 1, padding: '8px 10px', borderRight: acc.confirmation ? '1px solid var(--border-faint)' : 'none', textAlign: 'center' }}>
-                            <div style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>{fmtTime(acc.check_out)}</div>
-                            <div style={{ fontSize: 'calc(9px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', fontWeight: 500, marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+                            <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>{fmtTime(acc.check_out)}</div>
+                            <div style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', fontWeight: 500, marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
                               <LogOut size={8} /> {t('day.checkOut')}
                             </div>
                           </div>
                         )}
                         {acc.confirmation && (
                           <div style={{ flex: 1, padding: '8px 10px', textAlign: 'center' }}>
-                            <div style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>{acc.confirmation}</div>
-                            <div style={{ fontSize: 'calc(9px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', fontWeight: 500, marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+                            <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>{acc.confirmation}</div>
+                            <div style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', fontWeight: 500, marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
                               <Hash size={8} /> {t('day.confirmation')}
                             </div>
                           </div>
@@ -456,8 +456,8 @@ function AccommodationList({ dayAccommodations, day, reservations, canEditDays, 
                         <div style={{ margin: '0 12px 8px', padding: '6px 10px', borderRadius: 8, background: confirmed ? 'rgba(22,163,74,0.06)' : 'rgba(217,119,6,0.06)', border: `1px solid ${confirmed ? 'rgba(22,163,74,0.15)' : 'rgba(217,119,6,0.15)'}`, display: 'flex', alignItems: 'center', gap: 8 }}>
                           <div style={{ width: 6, height: 6, borderRadius: '50%', background: confirmed ? '#16a34a' : '#d97706', flexShrink: 0 }} />
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{linked.title}</div>
-                            <div style={{ fontSize: 'calc(9px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', display: 'flex', gap: 6, marginTop: 1 }}>
+                            <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{linked.title}</div>
+                            <div style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', display: 'flex', gap: 6, marginTop: 1 }}>
                               <span>{confirmed ? t('reservations.confirmed') : t('reservations.pending')}</span>
                               {linked.confirmation_number && <span
                                 onMouseEnter={e => { if (blurCodes) e.currentTarget.style.filter = 'none' }}
@@ -476,7 +476,7 @@ function AccommodationList({ dayAccommodations, day, reservations, canEditDays, 
                 {canEditDays && <button onClick={() => setShowHotelPicker(true)} style={{
                   width: '100%', padding: 8, border: '1.5px dashed var(--border-primary)', borderRadius: 10,
                   background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                  fontSize: 'calc(10px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', fontFamily: 'inherit',
+                  fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', fontFamily: 'inherit',
                 }}>
                   <Hotel size={10} /> {t('day.addAccommodation')}
                 </button>}
@@ -485,7 +485,7 @@ function AccommodationList({ dayAccommodations, day, reservations, canEditDays, 
               canEditDays ? <button onClick={() => setShowHotelPicker(true)} style={{
                 width: '100%', padding: 10, border: '1.5px dashed var(--border-primary)', borderRadius: 10,
                 background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', fontFamily: 'inherit',
+                fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', fontFamily: 'inherit',
               }}>
                 <Hotel size={12} /> {t('day.addAccommodation')}
               </button> : null
@@ -512,7 +512,7 @@ function HotelPickerModal({ showHotelPicker, setShowHotelPicker, font, t, hotelD
                   {/* Popup Header */}
                   <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid var(--border-faint)', display: 'flex', alignItems: 'center', gap: 10 }}>
                     <Hotel size={16} style={{ color: 'var(--text-primary)' }} />
-                    <span style={{ fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>{showHotelPicker === 'edit' ? t('day.editAccommodation') : t('day.addAccommodation')}</span>
+                    <span style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>{showHotelPicker === 'edit' ? t('day.editAccommodation') : t('day.addAccommodation')}</span>
                     <button onClick={() => setShowHotelPicker(false)} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 8, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                       <X size={12} style={{ color: 'var(--text-muted)' }} />
                     </button>
@@ -520,7 +520,7 @@ function HotelPickerModal({ showHotelPicker, setShowHotelPicker, font, t, hotelD
 
                   {/* Day Range */}
                   <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border-faint)', background: 'var(--bg-secondary)' }}>
-                    <div style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{t('day.hotelDayRange')}</div>
+                    <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{t('day.hotelDayRange')}</div>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <CustomSelect
@@ -536,7 +536,7 @@ function HotelPickerModal({ showHotelPicker, setShowHotelPicker, font, t, hotelD
                           size="sm"
                         />
                       </div>
-                      <span style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', flexShrink: 0 }}>→</span>
+                      <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', flexShrink: 0 }}>→</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <CustomSelect
                           value={hotelDayRange.end}
@@ -552,7 +552,7 @@ function HotelPickerModal({ showHotelPicker, setShowHotelPicker, font, t, hotelD
                         />
                       </div>
                       <button onClick={() => setHotelDayRange({ start: days[0]?.id, end: days[days.length - 1]?.id })} style={{
-                        padding: '6px 14px', borderRadius: 8, border: 'none', fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, cursor: 'pointer', flexShrink: 0,
+                        padding: '6px 14px', borderRadius: 8, border: 'none', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, cursor: 'pointer', flexShrink: 0,
                         background: hotelDayRange.start === days[0]?.id && hotelDayRange.end === days[days.length - 1]?.id ? 'var(--text-primary)' : 'var(--bg-card)',
                         color: hotelDayRange.start === days[0]?.id && hotelDayRange.end === days[days.length - 1]?.id ? 'var(--bg-card)' : 'var(--text-muted)',
                       }}>
@@ -564,21 +564,21 @@ function HotelPickerModal({ showHotelPicker, setShowHotelPicker, font, t, hotelD
                   {/* Check-in / Check-out / Confirmation */}
                   <div style={{ padding: '10px 18px', borderBottom: '1px solid var(--border-faint)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <div style={{ flex: 1, minWidth: 80 }}>
-                      <label style={{ fontSize: 'calc(9px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 3 }}>{t('day.checkIn')}</label>
+                      <label style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 3 }}>{t('day.checkIn')}</label>
                       <CustomTimePicker value={hotelForm.check_in} onChange={v => setHotelForm(f => ({ ...f, check_in: v }))} placeholder="14:00" />
                     </div>
                     <div style={{ flex: 1, minWidth: 80 }}>
-                      <label style={{ fontSize: 'calc(9px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 3 }}>{t('day.checkInUntil')}</label>
+                      <label style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 3 }}>{t('day.checkInUntil')}</label>
                       <CustomTimePicker value={hotelForm.check_in_end} onChange={v => setHotelForm(f => ({ ...f, check_in_end: v }))} placeholder="22:00" />
                     </div>
                     <div style={{ flex: 1, minWidth: 80 }}>
-                      <label style={{ fontSize: 'calc(9px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 3 }}>{t('day.checkOut')}</label>
+                      <label style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 3 }}>{t('day.checkOut')}</label>
                       <CustomTimePicker value={hotelForm.check_out} onChange={v => setHotelForm(f => ({ ...f, check_out: v }))} placeholder="11:00" />
                     </div>
                     <div style={{ flex: 2, minWidth: 120 }}>
-                      <label style={{ fontSize: 'calc(9px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 3 }}>{t('day.confirmation')}</label>
+                      <label style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 3 }}>{t('day.confirmation')}</label>
                       <input type="text" value={hotelForm.confirmation} onChange={e => setHotelForm(f => ({ ...f, confirmation: e.target.value }))}
-                        placeholder="ABC-12345" style={{ width: '100%', padding: '8px 10px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontFamily: 'inherit', boxSizing: 'border-box', height: 38 }} />
+                        placeholder="ABC-12345" style={{ width: '100%', padding: '8px 10px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontFamily: 'inherit', boxSizing: 'border-box', height: 38 }} />
                     </div>
                   </div>
 
@@ -586,14 +586,14 @@ function HotelPickerModal({ showHotelPicker, setShowHotelPicker, font, t, hotelD
                   {categories.length > 0 && (
                     <div style={{ padding: '8px 18px', borderBottom: '1px solid var(--border-faint)', display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                       <button onClick={() => setHotelCategoryFilter('')} style={{
-                        padding: '3px 10px', borderRadius: 6, border: 'none', fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 600, cursor: 'pointer',
+                        padding: '3px 10px', borderRadius: 6, border: 'none', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, cursor: 'pointer',
                         background: !hotelCategoryFilter ? 'var(--text-primary)' : 'var(--bg-secondary)',
                         color: !hotelCategoryFilter ? 'var(--bg-card)' : 'var(--text-muted)',
                       }}>{t('day.allDays')}</button>
 
                       {categories.map(c => (
                         <button key={c.id} onClick={() => setHotelCategoryFilter(c.id)} style={{
-                          padding: '3px 10px', borderRadius: 6, border: 'none', fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 600, cursor: 'pointer',
+                          padding: '3px 10px', borderRadius: 6, border: 'none', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, cursor: 'pointer',
                           background: hotelCategoryFilter === c.id ? c.color || 'var(--text-primary)' : 'var(--bg-secondary)',
                           color: hotelCategoryFilter === c.id ? '#fff' : 'var(--text-muted)',
                         }}>{c.name}</button>
@@ -606,7 +606,7 @@ function HotelPickerModal({ showHotelPicker, setShowHotelPicker, font, t, hotelD
                     {(() => {
                       const filtered = hotelCategoryFilter ? places.filter(p => p.category_id === hotelCategoryFilter) : places
                       return filtered.length === 0 ? (
-                        <div style={{ padding: 20, textAlign: 'center', fontSize: 'calc(12px * var(--fs-scale-text, 1))', color: 'var(--text-faint)' }}>{t('day.noPlacesForHotel')}</div>
+                        <div style={{ padding: 20, textAlign: 'center', fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)' }}>{t('day.noPlacesForHotel')}</div>
                       ) : filtered.map(p => (
                       <button key={p.id} onClick={() => handleSelectPlace(p.id)} style={{
                         display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 18px',
@@ -628,8 +628,8 @@ function HotelPickerModal({ showHotelPicker, setShowHotelPicker, font, t, hotelD
                           )}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
-                          {p.address && <div style={{ fontSize: 'calc(10px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.address}</div>}
+                          <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
+                          {p.address && <div style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.address}</div>}
                         </div>
                       </button>
                     ))
@@ -638,7 +638,7 @@ function HotelPickerModal({ showHotelPicker, setShowHotelPicker, font, t, hotelD
 
                 {/* Save / Cancel */}
                 <div style={{ padding: '12px 18px', borderTop: '1px solid var(--border-faint)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                  <button onClick={() => setShowHotelPicker(false)} style={{ padding: '7px 16px', borderRadius: 8, border: '1px solid var(--border-primary)', background: 'none', fontSize: 'calc(12px * var(--fs-scale-text, 1))', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-muted)' }}>
+                  <button onClick={() => setShowHotelPicker(false)} style={{ padding: '7px 16px', borderRadius: 8, border: '1px solid var(--border-primary)', background: 'none', fontSize: 'calc(12px * var(--fs-scale-body, 1))', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-muted)' }}>
                     {t('common.cancel')}
                   </button>
                   <button onClick={async () => {
@@ -670,7 +670,7 @@ function HotelPickerModal({ showHotelPicker, setShowHotelPicker, font, t, hotelD
                       await handleSaveAccommodation()
                     }
                   }} disabled={!hotelForm.place_id} style={{
-                    padding: '7px 20px', borderRadius: 8, border: 'none', fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                    padding: '7px 20px', borderRadius: 8, border: 'none', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                     background: hotelForm.place_id ? 'var(--text-primary)' : 'var(--bg-tertiary)',
                     color: hotelForm.place_id ? 'var(--bg-card)' : 'var(--text-faint)',
                   }}>

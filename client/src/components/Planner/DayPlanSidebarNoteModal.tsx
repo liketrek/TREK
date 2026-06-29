@@ -31,7 +31,7 @@ export function DayPlanSidebarNoteModal({ noteUi, setNoteUi, noteInputRef, cance
             boxShadow: '0 16px 48px rgba(0,0,0,0.22)', padding: '22px 22px 18px',
             display: 'flex', flexDirection: 'column', gap: 12,
           }} onClick={e => e.stopPropagation()}>
-            <div className="text-content" style={{ fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 600 }}>
+            <div className="text-content" style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600 }}>
               {ui.mode === 'add' ? t('dayplan.noteAdd') : t('dayplan.noteEdit')}
             </div>
             {/* Icon-Auswahl */}
@@ -54,7 +54,7 @@ export function DayPlanSidebarNoteModal({ noteUi, setNoteUi, noteInputRef, cance
               placeholder={t('dayplan.noteTitle') + ' *'}
               required
               className="text-content"
-              style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500, border: `1px solid ${!ui.text?.trim() ? 'var(--border-primary)' : 'var(--border-primary)'}`, borderRadius: 8, padding: '8px 10px', fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box' }}
+              style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, border: `1px solid ${!ui.text?.trim() ? 'var(--border-primary)' : 'var(--border-primary)'}`, borderRadius: 8, padding: '8px 10px', fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box' }}
             />
             <textarea
               value={ui.time}
@@ -64,12 +64,12 @@ export function DayPlanSidebarNoteModal({ noteUi, setNoteUi, noteInputRef, cance
               onKeyDown={e => { if (e.key === 'Escape') cancelNote(Number(dayId)) }}
               placeholder={t('dayplan.noteSubtitle')}
               className="text-content"
-              style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', border: '1px solid var(--border-primary)', borderRadius: 8, padding: '7px 10px', fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box', resize: 'none', lineHeight: 1.4 }}
+              style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', border: '1px solid var(--border-primary)', borderRadius: 8, padding: '7px 10px', fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box', resize: 'none', lineHeight: 1.4 }}
             />
-            <div className={(ui.time?.length || 0) >= 240 ? 'text-[#d97706]' : 'text-content-faint'} style={{ textAlign: 'right', fontSize: 'calc(11px * var(--fs-scale-text, 1))', marginTop: -2 }}>{ui.time?.length || 0}/250</div>
+            <div className={(ui.time?.length || 0) >= 240 ? 'text-[#d97706]' : 'text-content-faint'} style={{ textAlign: 'right', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', marginTop: -2 }}>{ui.time?.length || 0}/250</div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button onClick={() => cancelNote(Number(dayId))} className="text-content-muted" style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', background: 'none', border: '1px solid var(--border-primary)', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontFamily: 'inherit' }}>{t('common.cancel')}</button>
-              <button onClick={() => saveNote(Number(dayId))} disabled={!ui.text?.trim()} className={!ui.text?.trim() ? 'bg-[var(--border-primary)] text-content-faint' : 'bg-accent text-accent-text'} style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', border: 'none', borderRadius: 8, padding: '6px 16px', cursor: !ui.text?.trim() ? 'not-allowed' : 'pointer', fontWeight: 600, fontFamily: 'inherit', transition: 'background 0.15s, color 0.15s' }}>
+              <button onClick={() => cancelNote(Number(dayId))} className="text-content-muted" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', background: 'none', border: '1px solid var(--border-primary)', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontFamily: 'inherit' }}>{t('common.cancel')}</button>
+              <button onClick={() => saveNote(Number(dayId))} disabled={!ui.text?.trim()} className={!ui.text?.trim() ? 'bg-[var(--border-primary)] text-content-faint' : 'bg-accent text-accent-text'} style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', border: 'none', borderRadius: 8, padding: '6px 16px', cursor: !ui.text?.trim() ? 'not-allowed' : 'pointer', fontWeight: 600, fontFamily: 'inherit', transition: 'background 0.15s, color 0.15s' }}>
                 {ui.mode === 'add' ? t('common.add') : t('common.save')}
               </button>
             </div>

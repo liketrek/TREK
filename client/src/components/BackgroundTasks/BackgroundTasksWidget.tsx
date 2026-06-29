@@ -112,12 +112,12 @@ export default function BackgroundTasksWidget() {
           </div>
 
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 'calc(12.5px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {task.label}
             </div>
 
             {task.status === 'running' && (
-              <div style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', marginTop: 1 }}>
+              <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginTop: 1 }}>
                 {t('reservations.import.parsing')}
                 {task.total > 1 ? ` · ${task.done}/${task.total}` : ''}
               </div>
@@ -126,22 +126,22 @@ export default function BackgroundTasksWidget() {
             {task.status === 'done' && (
               task.items === undefined ? (
                 // Restored from a reload; items are being re-fetched (see the poll backstop).
-                <div style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', marginTop: 1 }}>{t('reservations.import.parsing')}</div>
+                <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginTop: 1 }}>{t('reservations.import.parsing')}</div>
               ) : task.items.length > 0 ? (
                 <button
                   onClick={() => review(task)}
                   className="bg-accent text-accent-text"
-                  style={{ marginTop: 4, border: 'none', borderRadius: 8, padding: '4px 12px', fontSize: 'calc(11.5px * var(--fs-scale-text, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+                  style={{ marginTop: 4, border: 'none', borderRadius: 8, padding: '4px 12px', fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
                 >
                   {t('common.import')}
                 </button>
               ) : (
-                <div style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', marginTop: 1 }}>{t('reservations.import.previewEmpty')}</div>
+                <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginTop: 1 }}>{t('reservations.import.previewEmpty')}</div>
               )
             )}
 
             {task.status === 'error' && (
-              <div style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: '#b91c1c', marginTop: 1, whiteSpace: 'pre-wrap' }}>{task.error}</div>
+              <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: '#b91c1c', marginTop: 1, whiteSpace: 'pre-wrap' }}>{task.error}</div>
             )}
           </div>
 

@@ -473,10 +473,10 @@ export default function BackupPanel() {
                 <AlertTriangle size={20} className="text-white" />
               </div>
               <div>
-                <h3 className="text-white" style={{ margin: 0, fontSize: 'calc(16px * var(--fs-scale-text, 1))', fontWeight: 700 }}>
+                <h3 className="text-white" style={{ margin: 0, fontSize: 'calc(16px * var(--fs-scale-subtitle, 1))', fontWeight: 700 }}>
                   {t('backup.restoreConfirmTitle')}
                 </h3>
-                <p className="text-[rgba(255,255,255,0.8)]" style={{ margin: '2px 0 0', fontSize: 'calc(12px * var(--fs-scale-text, 1))' }}>
+                <p className="text-[rgba(255,255,255,0.8)]" style={{ margin: '2px 0 0', fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}>
                   {restoreConfirm.filename}
                 </p>
               </div>
@@ -484,11 +484,11 @@ export default function BackupPanel() {
 
             {/* Body */}
             <div style={{ padding: '20px 24px' }}>
-              <p className="text-gray-700 dark:text-gray-300" style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', lineHeight: 1.6, margin: 0 }}>
+              <p className="text-gray-700 dark:text-gray-300" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', lineHeight: 1.6, margin: 0 }}>
                 {t('backup.restoreWarning')}
               </p>
 
-              <div style={{ marginTop: 14, padding: '10px 12px', borderRadius: 10, fontSize: 'calc(12px * var(--fs-scale-text, 1))', lineHeight: 1.5 }}
+              <div style={{ marginTop: 14, padding: '10px 12px', borderRadius: 10, fontSize: 'calc(12px * var(--fs-scale-body, 1))', lineHeight: 1.5 }}
                 className="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800"
               >
                 {t('backup.restoreTip')}
@@ -500,14 +500,14 @@ export default function BackupPanel() {
               <button
                 onClick={() => setRestoreConfirm(null)}
                 className="text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-                style={{ padding: '9px 20px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                style={{ padding: '9px 20px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
               >
                 {t('common.cancel')}
               </button>
               <button
                 onClick={executeRestore}
                 className="bg-[#dc2626] text-white"
-                style={{ padding: '9px 20px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                style={{ padding: '9px 20px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
                 onMouseEnter={e => e.currentTarget.style.background = '#b91c1c'}
                 onMouseLeave={e => e.currentTarget.style.background = '#dc2626'}
               >

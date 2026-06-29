@@ -101,7 +101,7 @@ export default function OfflineTab(): React.ReactElement {
               display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px',
               borderRadius: 8,
               cursor: syncing || !navigator.onLine ? 'not-allowed' : 'pointer',
-              fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500, opacity: !navigator.onLine ? 0.5 : 1,
+              fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, opacity: !navigator.onLine ? 0.5 : 1,
             }}
           >
             <RefreshCw size={14} style={syncing ? { animation: 'spin 1s linear infinite' } : {}} />
@@ -116,7 +116,7 @@ export default function OfflineTab(): React.ReactElement {
               display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px',
               borderRadius: 8,
               cursor: clearing || rows.length === 0 ? 'not-allowed' : 'pointer',
-              fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500, opacity: rows.length === 0 ? 0.5 : 1,
+              fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, opacity: rows.length === 0 ? 0.5 : 1,
             }}
           >
             <Trash2 size={14} />
@@ -126,9 +126,9 @@ export default function OfflineTab(): React.ReactElement {
 
         {/* Cached trip list */}
         {loading ? (
-          <p className="text-content-muted" style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))' }}>Loading…</p>
+          <p className="text-content-muted" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>Loading…</p>
         ) : rows.length === 0 ? (
-          <p className="text-content-muted" style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))' }}>
+          <p className="text-content-muted" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>
             No trips cached yet. Connect to internet to sync.
           </p>
         ) : (
@@ -143,17 +143,17 @@ export default function OfflineTab(): React.ReactElement {
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span className="text-content" style={{ fontWeight: 600, fontSize: 'calc(14px * var(--fs-scale-text, 1))' }}>
+                  <span className="text-content" style={{ fontWeight: 600, fontSize: 'calc(14px * var(--fs-scale-body, 1))' }}>
                     {trip.title}
                   </span>
-                  <span className="text-content-muted" style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))' }}>
+                  <span className="text-content-muted" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))' }}>
                     <Wifi size={10} style={{ display: 'inline', marginRight: 3 }} />
                     {meta.lastSyncedAt
                       ? new Date(meta.lastSyncedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
                       : '—'}
                   </span>
                 </div>
-                <span className="text-content-muted" style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))' }}>
+                <span className="text-content-muted" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}>
                   {formatDate(trip.start_date)} – {formatDate(trip.end_date)}
                   {' · '}
                   {placeCount} place{placeCount !== 1 ? 's' : ''}
@@ -175,9 +175,9 @@ function Stat({ label, value, danger }: { label: string; value: number; danger?:
       padding: '8px 14px', borderRadius: 8,
       minWidth: 100,
     }}>
-      <div style={{ fontSize: 'calc(20px * var(--fs-scale-text, 1))', fontWeight: 700, color: danger ? '#ef4444' : undefined }}
+      <div style={{ fontSize: 'calc(20px * var(--fs-scale-title, 1))', fontWeight: 700, color: danger ? '#ef4444' : undefined }}
         className={danger ? undefined : 'text-content'}>{value}</div>
-      <div className="text-content-muted" style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))' }}>{label}</div>
+      <div className="text-content-muted" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))' }}>{label}</div>
     </div>
   )
 }

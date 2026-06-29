@@ -97,13 +97,13 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange, onDel
           onChange={e => setEditName(e.target.value)}
           onBlur={handleSaveName}
           onKeyDown={e => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') { setEditing(false); setEditName(isPlaceholder ? '' : item.name) } }}
-          style={{ flex: 1, fontSize: 'calc(13.5px * var(--fs-scale-text, 1))', padding: '2px 8px', borderRadius: 6, border: '1px solid var(--border-primary)', outline: 'none', fontFamily: 'inherit' }}
+          style={{ flex: 1, fontSize: 'calc(13.5px * var(--fs-scale-body, 1))', padding: '2px 8px', borderRadius: 6, border: '1px solid var(--border-primary)', outline: 'none', fontFamily: 'inherit' }}
         />
       ) : (
         <span
           onClick={() => canEdit && !item.checked && setEditing(true)}
           style={{
-            flex: 1, fontSize: 'calc(13.5px * var(--fs-scale-text, 1))',
+            flex: 1, fontSize: 'calc(13.5px * var(--fs-scale-body, 1))',
             cursor: !canEdit || item.checked ? 'default' : 'text',
             color: isPlaceholder ? 'var(--text-faint)' : (item.checked ? 'var(--text-faint)' : 'var(--text-primary)'),
             transition: 'color 200ms cubic-bezier(0.23,1,0.32,1)',
@@ -132,9 +132,9 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange, onDel
                 try { await updatePackingItem(tripId, item.id, { weight_grams: v }) } catch { toast.error(t('packing.toast.saveError')) }
               }}
               placeholder="—"
-              style={{ width: 36, border: 'none', fontSize: 'calc(12px * var(--fs-scale-text, 1))', textAlign: 'right', fontFamily: 'inherit', outline: 'none', color: 'var(--text-secondary)', background: 'transparent', padding: 0 }}
+              style={{ width: 36, border: 'none', fontSize: 'calc(12px * var(--fs-scale-body, 1))', textAlign: 'right', fontFamily: 'inherit', outline: 'none', color: 'var(--text-secondary)', background: 'transparent', padding: 0 }}
             />
-            <span style={{ fontSize: 'calc(10px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', userSelect: 'none' }}>g</span>
+            <span style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', userSelect: 'none' }}>g</span>
           </div>
           <div style={{ position: 'relative' }}>
             <button
@@ -155,7 +155,7 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange, onDel
               }}>
                 {item.bag_id && (
                   <button onClick={async () => { setShowBagPicker(false); try { await updatePackingItem(tripId, item.id, { bag_id: null }) } catch { toast.error(t('packing.toast.saveError')) } }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 7, width: '100%', padding: '6px 10px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontFamily: 'inherit', color: 'var(--text-faint)', borderRadius: 7 }}>
+                    style={{ display: 'flex', alignItems: 'center', gap: 7, width: '100%', padding: '6px 10px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontFamily: 'inherit', color: 'var(--text-faint)', borderRadius: 7 }}>
                     <span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px dashed var(--border-primary)' }} />
                     {t('packing.noBag')}
                   </button>
@@ -165,7 +165,7 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange, onDel
                     style={{
                       display: 'flex', alignItems: 'center', gap: 7, width: '100%', padding: '6px 10px',
                       background: item.bag_id === b.id ? 'var(--bg-tertiary)' : 'none',
-                      border: 'none', cursor: 'pointer', fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontFamily: 'inherit', color: 'var(--text-secondary)', borderRadius: 7,
+                      border: 'none', cursor: 'pointer', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontFamily: 'inherit', color: 'var(--text-secondary)', borderRadius: 7,
                     }}
                     onMouseEnter={e => { if (item.bag_id !== b.id) e.currentTarget.style.background = 'var(--bg-tertiary)' }}
                     onMouseLeave={e => { if (item.bag_id !== b.id) e.currentTarget.style.background = 'none' }}>
@@ -187,7 +187,7 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange, onDel
                           if (e.key === 'Escape') { setBagInlineCreate(false); setBagInlineName('') }
                         }}
                         placeholder={t('packing.bagName')}
-                        style={{ flex: 1, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border-primary)', fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontFamily: 'inherit', outline: 'none' }} />
+                        style={{ flex: 1, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border-primary)', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontFamily: 'inherit', outline: 'none' }} />
                       <button onClick={async () => {
                         if (bagInlineName.trim()) {
                           const newBag = await onCreateBag(bagInlineName.trim())
@@ -201,7 +201,7 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange, onDel
                     </div>
                   ) : (
                     <button onClick={() => setBagInlineCreate(true)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 5, width: '100%', padding: '5px 6px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontFamily: 'inherit', color: 'var(--text-faint)', borderRadius: 7 }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 5, width: '100%', padding: '5px 6px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontFamily: 'inherit', color: 'var(--text-faint)', borderRadius: 7 }}
                       onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
                       onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
                       <Plus size={11} /> {t('packing.addBag')}
@@ -220,7 +220,7 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange, onDel
           <button
             onClick={() => setShowCatPicker(p => !p)}
             title={t('packing.changeCategory')}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 5px', borderRadius: 6, display: 'flex', alignItems: 'center', color: 'var(--text-faint)', fontSize: 'calc(10px * var(--fs-scale-text, 1))', gap: 2 }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 5px', borderRadius: 6, display: 'flex', alignItems: 'center', color: 'var(--text-faint)', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', gap: 2 }}
           >
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: katColor(item.category || t('packing.defaultCategory'), categories), display: 'inline-block' }} />
           </button>
@@ -234,7 +234,7 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange, onDel
                 <button key={cat} onClick={() => handleCatChange(cat)} style={{
                   display: 'flex', alignItems: 'center', gap: 7, width: '100%',
                   padding: '6px 10px', background: cat === (item.category || t('packing.defaultCategory')) ? 'var(--bg-tertiary)' : 'none',
-                  border: 'none', cursor: 'pointer', fontSize: 'calc(12.5px * var(--fs-scale-text, 1))', fontFamily: 'inherit',
+                  border: 'none', cursor: 'pointer', fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontFamily: 'inherit',
                   color: 'var(--text-secondary)', borderRadius: 7, textAlign: 'left',
                 }}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: katColor(cat, categories), flexShrink: 0 }} />

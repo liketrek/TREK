@@ -243,7 +243,7 @@ function CollabNotesLoading({ t }: NotesState) {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', fontFamily: FONT }}>
       <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-faint)' }}>
-        <h3 style={{ fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'var(--text-primary)', margin: 0, fontFamily: FONT }}>
+        <h3 style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 700, color: 'var(--text-primary)', margin: 0, fontFamily: FONT }}>
           {t('collab.notes.title')}
         </h3>
       </div>
@@ -263,7 +263,7 @@ function CollabNotesHeader({ t, canEdit, setShowSettings, setShowNewModal }: Not
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', flexShrink: 0 }}>
       <h3 style={{
-        fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-muted)', margin: 0, fontFamily: FONT,
+        fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-muted)', margin: 0, fontFamily: FONT,
         letterSpacing: 0.3, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 7,
       }}>
         <StickyNote size={14} color="var(--text-faint)" />
@@ -277,7 +277,7 @@ function CollabNotesHeader({ t, canEdit, setShowSettings, setShowNewModal }: Not
           <Settings size={14} />
         </button>}
         {canEdit && <button onClick={() => setShowNewModal(true)}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, borderRadius: 99, padding: '6px 12px', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, fontFamily: FONT, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, borderRadius: 99, padding: '6px 12px', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, fontFamily: FONT, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>
           <Plus size={12} />
           {t('collab.notes.new')}
         </button>}
@@ -292,7 +292,7 @@ function CollabCategoryPills({ categories, activeCategory, setActiveCategory, t 
       <button
         onClick={() => setActiveCategory(null)}
         style={{
-          flexShrink: 0, borderRadius: 99, padding: '3px 10px', fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 600, fontFamily: FONT,
+          flexShrink: 0, borderRadius: 99, padding: '3px 10px', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, fontFamily: FONT,
           border: activeCategory === null ? '1px solid var(--accent)' : '1px solid var(--border-faint)',
           background: activeCategory === null ? 'var(--accent)' : 'transparent',
           color: activeCategory === null ? 'var(--accent-text)' : 'var(--text-secondary)',
@@ -306,7 +306,7 @@ function CollabCategoryPills({ categories, activeCategory, setActiveCategory, t 
           key={cat}
           onClick={() => setActiveCategory(prev => prev === cat ? null : cat)}
           style={{
-            flexShrink: 0, borderRadius: 99, padding: '3px 10px', fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 600, fontFamily: FONT,
+            flexShrink: 0, borderRadius: 99, padding: '3px 10px', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, fontFamily: FONT,
             border: activeCategory === cat ? '1px solid var(--accent)' : '1px solid var(--border-faint)',
             background: activeCategory === cat ? 'var(--accent)' : 'transparent',
             color: activeCategory === cat ? 'var(--accent-text)' : 'var(--text-secondary)',
@@ -334,10 +334,10 @@ function CollabNotesGrid(S: NotesState) {
           padding: '48px 20px', textAlign: 'center', height: '100%',
         }}>
           <Pencil size={36} color="var(--text-faint)" style={{ marginBottom: 12 }} />
-          <div style={{ fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4, fontFamily: FONT }}>
+          <div style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4, fontFamily: FONT }}>
             {t('collab.notes.empty')}
           </div>
-          <div style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', fontFamily: FONT }}>
+          <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)', fontFamily: FONT }}>
             {t('collab.notes.emptyDesc') || 'Create a note to get started'}
           </div>
         </div>
@@ -397,10 +397,10 @@ function ViewNoteModal(S: NotesState) {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
         }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 'calc(17px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-primary)' }}>{viewingNote.title}</div>
+            <div style={{ fontSize: 'calc(17px * var(--fs-scale-subtitle, 1))', fontWeight: 600, color: 'var(--text-primary)' }}>{viewingNote.title}</div>
             {viewingNote.category && (
               <span style={{
-                display: 'inline-block', marginTop: 4, fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 600,
+                display: 'inline-block', marginTop: 4, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600,
                 color: getCategoryColor(viewingNote.category),
                 background: `${getCategoryColor(viewingNote.category)}18`,
                 padding: '2px 8px', borderRadius: 6,
@@ -422,11 +422,11 @@ function ViewNoteModal(S: NotesState) {
             </button>
           </div>
         </div>
-        <div className="collab-note-md-full" style={{ padding: '16px 20px', overflowY: 'auto', fontSize: 'calc(14px * var(--fs-scale-text, 1))', color: 'var(--text-primary)', lineHeight: 1.7 }}>
+        <div className="collab-note-md-full" style={{ padding: '16px 20px', overflowY: 'auto', fontSize: 'calc(14px * var(--fs-scale-body, 1))', color: 'var(--text-primary)', lineHeight: 1.7 }}>
           <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{viewingNote.content || ''}</Markdown>
           {(viewingNote.attachments || []).length > 0 && (
             <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border-primary)' }}>
-              <div style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>{t('files.title')}</div>
+              <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>{t('files.title')}</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {(viewingNote.attachments || []).map(a => {
                   const isImage = a.mime_type?.startsWith('image/')
@@ -449,10 +449,10 @@ function ViewNoteModal(S: NotesState) {
                           }}
                           onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)' }}
                           onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none' }}>
-                          <span style={{ fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 700, color: a.mime_type === 'application/pdf' ? '#ef4444' : 'var(--text-muted)', letterSpacing: 0.3 }}>{ext}</span>
+                          <span style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700, color: a.mime_type === 'application/pdf' ? '#ef4444' : 'var(--text-muted)', letterSpacing: 0.3 }}>{ext}</span>
                         </div>
                       )}
-                      <span style={{ fontSize: 'calc(9px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>{a.original_name}</span>
+                      <span style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>{a.original_name}</span>
                     </div>
                   )
                 })}

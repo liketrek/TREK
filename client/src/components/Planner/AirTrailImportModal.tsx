@@ -161,13 +161,13 @@ export default function AirTrailImportModal({ isOpen, onClose, tripId, pushUndo 
         </span>
         <Plane size={15} color="#3b82f6" style={{ flexShrink: 0 }} />
         <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: 'block', fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
-          <span style={{ display: 'block', fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: 'var(--text-muted)' }}>
+          <span style={{ display: 'block', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+          <span style={{ display: 'block', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-muted)' }}>
             {f.fromCode ?? f.fromName ?? '?'} → {f.toCode ?? f.toName ?? '?'}{f.date ? ` · ${fmtDate(f.date, locale)}` : ''}
           </span>
         </span>
         {already && (
-          <span style={{ flexShrink: 0, fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)' }}>
+          <span style={{ flexShrink: 0, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)' }}>
             {t('reservations.airtrail.alreadyImported')}
           </span>
         )}
@@ -192,7 +192,7 @@ export default function AirTrailImportModal({ isOpen, onClose, tripId, pushUndo 
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
           <Plane size={16} color="#3b82f6" />
-          <div style={{ flex: 1, fontSize: 'calc(15px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'var(--text-primary)' }}>
+          <div style={{ flex: 1, fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 700, color: 'var(--text-primary)' }}>
             {t('reservations.airtrail.title')}
           </div>
           <button onClick={handleClose} className="bg-transparent text-content-faint" style={{ border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center' }}>
@@ -202,20 +202,20 @@ export default function AirTrailImportModal({ isOpen, onClose, tripId, pushUndo 
 
         <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
           {loading && (
-            <div className="text-content-faint" style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', textAlign: 'center', padding: '24px 0' }}>
+            <div className="text-content-faint" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', textAlign: 'center', padding: '24px 0' }}>
               {t('common.loading')}
             </div>
           )}
 
           {!loading && flights.length === 0 && !error && (
-            <div className="text-content-faint" style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', textAlign: 'center', padding: '24px 0' }}>
+            <div className="text-content-faint" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', textAlign: 'center', padding: '24px 0' }}>
               {t('reservations.airtrail.empty')}
             </div>
           )}
 
           {!loading && during.length > 0 && (
             <>
-              <div style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'var(--text-primary)', margin: '2px 0 8px' }}>
+              <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 700, color: 'var(--text-primary)', margin: '2px 0 8px' }}>
                 {t('reservations.airtrail.duringTrip')}
               </div>
               {during.map(renderFlight)}
@@ -224,7 +224,7 @@ export default function AirTrailImportModal({ isOpen, onClose, tripId, pushUndo 
 
           {!loading && others.length > 0 && (
             <>
-              <div style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'var(--text-faint)', margin: `${during.length > 0 ? 14 : 2}px 0 8px` }}>
+              <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 700, color: 'var(--text-faint)', margin: `${during.length > 0 ? 14 : 2}px 0 8px` }}>
                 {t('reservations.airtrail.otherFlights')}
               </div>
               {others.map(renderFlight)}
@@ -232,7 +232,7 @@ export default function AirTrailImportModal({ isOpen, onClose, tripId, pushUndo 
           )}
 
           {error && (
-            <div className="bg-[rgba(239,68,68,0.08)] text-[#b91c1c]" style={{ border: '1px solid rgba(239,68,68,0.35)', borderRadius: 10, padding: '8px 10px', fontSize: 'calc(12px * var(--fs-scale-text, 1))', whiteSpace: 'pre-wrap', marginTop: 8 }}>
+            <div className="bg-[rgba(239,68,68,0.08)] text-[#b91c1c]" style={{ border: '1px solid rgba(239,68,68,0.35)', borderRadius: 10, padding: '8px 10px', fontSize: 'calc(12px * var(--fs-scale-body, 1))', whiteSpace: 'pre-wrap', marginTop: 8 }}>
               {error}
             </div>
           )}
@@ -241,7 +241,7 @@ export default function AirTrailImportModal({ isOpen, onClose, tripId, pushUndo 
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-faint)' }}>
           <button
             onClick={handleClose}
-            style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', color: 'var(--text-primary)', fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
+            style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', color: 'var(--text-primary)', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
           >
             {t('common.cancel')}
           </button>
@@ -249,7 +249,7 @@ export default function AirTrailImportModal({ isOpen, onClose, tripId, pushUndo 
             onClick={handleImport}
             disabled={selectableCount === 0 || importing}
             className={selectableCount > 0 && !importing ? 'bg-accent text-accent-text' : 'bg-surface-tertiary text-content-faint'}
-            style={{ padding: '8px 16px', borderRadius: 10, border: 'none', fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500, cursor: selectableCount > 0 && !importing ? 'pointer' : 'default', fontFamily: 'inherit' }}
+            style={{ padding: '8px 16px', borderRadius: 10, border: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, cursor: selectableCount > 0 && !importing ? 'pointer' : 'default', fontFamily: 'inherit' }}
           >
             {importing ? t('common.loading') : t('reservations.airtrail.importCta', { count: selectableCount })}
           </button>

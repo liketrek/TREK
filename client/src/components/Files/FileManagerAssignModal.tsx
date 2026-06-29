@@ -17,8 +17,8 @@ export function AssignModal(S: FileManagerState) {
       }} onClick={e => e.stopPropagation()}>
         <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid var(--border-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 'calc(15px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-primary)' }}>{t('files.assignTitle')}</div>
-            <div style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600, color: 'var(--text-primary)' }}>{t('files.assignTitle')}</div>
+            <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {files.find(f => f.id === assignFileId)?.original_name || ''}
             </div>
           </div>
@@ -27,7 +27,7 @@ export function AssignModal(S: FileManagerState) {
           </button>
         </div>
         <div style={{ padding: '8px 12px 0' }}>
-          <div style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)', padding: '0 2px 4px', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', padding: '0 2px 4px', textTransform: 'uppercase', letterSpacing: 0.5 }}>
             {t('files.noteLabel') || 'Note'}
           </div>
           <input
@@ -43,7 +43,7 @@ export function AssignModal(S: FileManagerState) {
             }}
             onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
             style={{
-              width: '100%', padding: '7px 10px', fontSize: 'calc(13px * var(--fs-scale-text, 1))', borderRadius: 8,
+              width: '100%', padding: '7px 10px', fontSize: 'calc(13px * var(--fs-scale-body, 1))', borderRadius: 8,
               border: '1px solid var(--border-primary)', background: 'var(--bg-secondary)',
               color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none',
             }}
@@ -91,7 +91,7 @@ export function AssignModal(S: FileManagerState) {
                   }
                 }} style={{
                   width: '100%', textAlign: 'left', padding: '6px 10px 6px 20px', background: isLinked ? 'var(--bg-hover)' : 'none',
-                  border: 'none', cursor: 'pointer', fontSize: 'calc(13px * var(--fs-scale-text, 1))', color: 'var(--text-primary)',
+                  border: 'none', cursor: 'pointer', fontSize: 'calc(13px * var(--fs-scale-body, 1))', color: 'var(--text-primary)',
                   borderRadius: 8, fontFamily: 'inherit', fontWeight: isLinked ? 600 : 400,
                   display: 'flex', alignItems: 'center', gap: 6,
                 }}
@@ -106,18 +106,18 @@ export function AssignModal(S: FileManagerState) {
 
             const placesSection = places.length > 0 && (
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)', padding: '8px 10px 4px', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', padding: '8px 10px 4px', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                   {t('files.assignPlace')}
                 </div>
                 {dayGroups.map(({ day, dayPlaces }) => (
                   <div key={day.id}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-muted)', padding: '8px 10px 2px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-muted)', padding: '8px 10px 2px' }}>
                       <span>{day.title || t('dayplan.dayN', { n: day.day_number })}</span>
                       {(() => {
                         const badge = day.date || (day.title ? t('dayplan.dayN', { n: day.day_number }) : null)
                         return badge ? (
                           <span style={{
-                            fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)',
+                            fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)',
                             background: 'var(--bg-tertiary)', padding: '1px 6px', borderRadius: 999,
                           }}>{badge}</span>
                         ) : null
@@ -128,7 +128,7 @@ export function AssignModal(S: FileManagerState) {
                 ))}
                 {unassigned.length > 0 && (
                   <div>
-                    {dayGroups.length > 0 && <div style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-muted)', padding: '8px 10px 2px' }}>{t('files.unassigned')}</div>}
+                    {dayGroups.length > 0 && <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-muted)', padding: '8px 10px 2px' }}>{t('files.unassigned')}</div>}
                     {unassigned.map(placeBtn)}
                   </div>
                 )}
@@ -166,7 +166,7 @@ export function AssignModal(S: FileManagerState) {
                   }
                 }} style={{
                   width: '100%', textAlign: 'left', padding: '6px 10px 6px 20px', background: isLinked ? 'var(--bg-hover)' : 'none',
-                  border: 'none', cursor: 'pointer', fontSize: 'calc(13px * var(--fs-scale-text, 1))', color: 'var(--text-primary)',
+                  border: 'none', cursor: 'pointer', fontSize: 'calc(13px * var(--fs-scale-body, 1))', color: 'var(--text-primary)',
                   borderRadius: 8, fontFamily: 'inherit', fontWeight: isLinked ? 600 : 400,
                   display: 'flex', alignItems: 'center', gap: 6,
                 }}
@@ -183,7 +183,7 @@ export function AssignModal(S: FileManagerState) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 {bookingReservations.length > 0 && (
                   <>
-                    <div style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)', padding: '8px 10px 4px', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', padding: '8px 10px 4px', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                       {t('files.assignBooking')}
                     </div>
                     {bookingReservations.map(reservationBtn)}
@@ -191,7 +191,7 @@ export function AssignModal(S: FileManagerState) {
                 )}
                 {transportReservations.length > 0 && (
                   <>
-                    <div style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)', padding: '8px 10px 4px', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: bookingReservations.length > 0 ? 4 : 0 }}>
+                    <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', padding: '8px 10px 4px', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: bookingReservations.length > 0 ? 4 : 0 }}>
                       {t('files.assignTransport')}
                     </div>
                     {transportReservations.map(reservationBtn)}

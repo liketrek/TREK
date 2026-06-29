@@ -92,11 +92,11 @@ export default function JourneyPage() {
               padding: '14px 16px 14px 22px',
               display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
             }}>
-              <h2 className="text-content" style={{ margin: 0, fontSize: 'calc(18px * var(--fs-scale-text, 1))', fontWeight: 600, letterSpacing: '-0.01em', flexShrink: 0 }}>
+              <h2 className="text-content" style={{ margin: 0, fontSize: 'calc(18px * var(--fs-scale-subtitle, 1))', fontWeight: 600, letterSpacing: '-0.01em', flexShrink: 0 }}>
                 {t('journey.title')}
               </h2>
               <div className="bg-edge-faint" style={{ width: 1, height: 22, flexShrink: 0 }} />
-              <span className="text-content-muted" style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))' }}>
+              <span className="text-content-muted" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>
                 {t('journey.frontpage.subtitle')}
               </span>
 
@@ -107,7 +107,7 @@ export default function JourneyPage() {
                   style={{
                     appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                     display: 'inline-flex', alignItems: 'center', gap: 6,
-                    padding: '9px 14px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500,
+                    padding: '9px 14px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
                     flexShrink: 0,
                     marginLeft: 2,
                     transition: 'opacity 0.15s ease',

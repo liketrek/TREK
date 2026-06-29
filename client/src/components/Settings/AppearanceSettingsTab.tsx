@@ -65,7 +65,7 @@ function segStyle(active: boolean): React.CSSProperties {
   return {
     display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center',
     padding: '10px 14px', borderRadius: 10, cursor: 'pointer', flex: '1 1 0', minWidth: 0,
-    fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 500,
+    fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 500,
     border: active ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
     background: active ? 'var(--bg-hover)' : 'var(--bg-card)',
     color: 'var(--text-primary)', transition: 'all 0.15s',
@@ -178,7 +178,7 @@ export default function AppearanceSettingsTab(): React.ReactElement {
                   onClick={() => update({ schemeId: s.id })}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px',
-                    borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500,
+                    borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
                     border: active ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
                     background: active ? 'var(--bg-hover)' : 'var(--bg-card)', color: 'var(--text-primary)',
                     transition: 'all 0.15s',
@@ -196,7 +196,7 @@ export default function AppearanceSettingsTab(): React.ReactElement {
               onClick={() => update({ schemeId: 'custom', accent: cfg.accent ?? { light: accentLight, dark: accentDark } })}
               style={{
                 display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 10,
-                cursor: 'pointer', fontFamily: 'inherit', fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500,
+                cursor: 'pointer', fontFamily: 'inherit', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
                 border: cfg.schemeId === 'custom' ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
                 background: cfg.schemeId === 'custom' ? 'var(--bg-hover)' : 'var(--bg-card)', color: 'var(--text-primary)',
                 transition: 'all 0.15s',
@@ -285,25 +285,37 @@ export default function AppearanceSettingsTab(): React.ReactElement {
           </p>
         </div>
 
-        {/* Text size (global) */}
-        <SliderRow
-          label={tr('settings.appearance.textSize', 'Text size')}
-          value={cfg.fontScale}
-          onChange={(v) => update({ fontScale: v })}
-        />
+        {/* Text size — live preview + global slider + per size-class */}
+        <div>
+          <label className="block text-sm font-medium mb-2 text-content-secondary">
+            {tr('settings.appearance.textSize', 'Text size')}
+          </label>
+          {/* Live preview — these lines use the same size classes the controls drive. */}
+          <div className="rounded-lg border border-edge-secondary px-3 py-2.5 mb-3 space-y-1 overflow-hidden">
+            <div className="text-title font-bold text-content leading-tight">{tr('settings.appearance.preview.large', 'Large heading')}</div>
+            <div className="text-subtitle font-semibold text-content-secondary">{tr('settings.appearance.preview.medium', 'Medium subtitle')}</div>
+            <div className="text-body text-content-secondary">{tr('settings.appearance.preview.normal', 'Normal body text')}</div>
+            <div className="text-caption text-content-faint">{tr('settings.appearance.preview.small', 'Small caption / address')}</div>
+          </div>
+          <SliderRow
+            label={tr('settings.appearance.textSizeAll', 'Everything')}
+            value={cfg.fontScale}
+            onChange={(v) => update({ fontScale: v })}
+          />
+        </div>
         <button
           onClick={() => setAdvancedType((v) => !v)}
           className="text-xs font-medium text-content-muted hover:text-content"
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
         >
-          {advancedType ? tr('settings.appearance.hideAdvanced', 'Hide advanced') : tr('settings.appearance.advancedTextSizes', 'Advanced text sizes')}
+          {advancedType ? tr('settings.appearance.hideAdvanced', 'Hide per-size controls') : tr('settings.appearance.perSize', 'Adjust each size separately')}
         </button>
         {advancedType && (
           <div className="space-y-3 pl-1">
-            <SliderRow label={tr('settings.appearance.tier.title', 'Titles')} value={cfg.typeScale.title} onChange={(v) => update({ typeScale: { ...cfg.typeScale, title: v } })} />
-            <SliderRow label={tr('settings.appearance.tier.subtitle', 'Subtitles')} value={cfg.typeScale.subtitle} onChange={(v) => update({ typeScale: { ...cfg.typeScale, subtitle: v } })} />
-            <SliderRow label={tr('settings.appearance.tier.body', 'Body')} value={cfg.typeScale.body} onChange={(v) => update({ typeScale: { ...cfg.typeScale, body: v } })} />
-            <SliderRow label={tr('settings.appearance.tier.caption', 'Captions')} value={cfg.typeScale.caption} onChange={(v) => update({ typeScale: { ...cfg.typeScale, caption: v } })} />
+            <SliderRow label={tr('settings.appearance.size.large', 'Large')} value={cfg.typeScale.title} onChange={(v) => update({ typeScale: { ...cfg.typeScale, title: v } })} />
+            <SliderRow label={tr('settings.appearance.size.medium', 'Medium')} value={cfg.typeScale.subtitle} onChange={(v) => update({ typeScale: { ...cfg.typeScale, subtitle: v } })} />
+            <SliderRow label={tr('settings.appearance.size.normal', 'Normal')} value={cfg.typeScale.body} onChange={(v) => update({ typeScale: { ...cfg.typeScale, body: v } })} />
+            <SliderRow label={tr('settings.appearance.size.small', 'Small')} value={cfg.typeScale.caption} onChange={(v) => update({ typeScale: { ...cfg.typeScale, caption: v } })} />
           </div>
         )}
       </Section>

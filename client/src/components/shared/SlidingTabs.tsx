@@ -109,7 +109,7 @@ export function SlidingTabs<T extends string>({
             {tab.label}
             {tab.count != null && (
               <span style={{
-                fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 600,
+                fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600,
                 padding: '1px 6px', borderRadius: 99, minWidth: 16,
                 background: isActive ? 'rgba(255,255,255,0.22)' : 'var(--bg-tertiary)',
                 color: isActive ? 'inherit' : 'var(--text-faint)',

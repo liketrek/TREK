@@ -67,8 +67,8 @@ export function DayPlanSidebarTransportDetailModal({
                   <TransportIcon size={18} strokeWidth={1.8} color={color} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div className="text-content" style={{ fontSize: 'calc(15px * var(--fs-scale-text, 1))', fontWeight: 600 }}>{res.title}</div>
-                  <div className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', marginTop: 2 }}>
+                  <div className="text-content" style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600 }}>{res.title}</div>
+                  <div className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', marginTop: 2 }}>
                     {(() => {
                       const { date, time } = splitReservationDateTime(res.reservation_time)
                       const { time: endTime } = splitReservationDateTime(res.reservation_end_time)
@@ -85,7 +85,7 @@ export function DayPlanSidebarTransportDetailModal({
                   </div>
                 </div>
                 <div className={res.status === 'confirmed' ? 'bg-[rgba(22,163,74,0.1)] text-[#16a34a]' : 'bg-[rgba(217,119,6,0.1)] text-[#d97706]'} style={{
-                  padding: '3px 8px', borderRadius: 6, fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 600,
+                  padding: '3px 8px', borderRadius: 6, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600,
                 }}>
                   {(res.status === 'confirmed' ? t('planner.resConfirmed') : t('planner.resPending')).replace(/\s*·\s*$/, '')}
                 </div>
@@ -98,14 +98,14 @@ export function DayPlanSidebarTransportDetailModal({
                     const shouldBlur = f.sensitive && useSettingsStore.getState().settings.blur_booking_codes
                     return (
                       <div key={i} className="bg-surface-tertiary" style={{ padding: '8px 10px', borderRadius: 8 }}>
-                        <div className="text-content-faint" style={{ fontSize: 'calc(9px * var(--fs-scale-text, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 3 }}>{f.label}</div>
+                        <div className="text-content-faint" style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 3 }}>{f.label}</div>
                         <div
                           onMouseEnter={e => { if (shouldBlur) e.currentTarget.style.filter = 'none' }}
                           onMouseLeave={e => { if (shouldBlur) e.currentTarget.style.filter = 'blur(5px)' }}
                           onClick={e => { if (shouldBlur) { const el = e.currentTarget; el.style.filter = el.style.filter === 'none' ? 'blur(5px)' : 'none' } }}
                           className="text-content"
                           style={{
-                            fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 500, wordBreak: 'break-word',
+                            fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500, wordBreak: 'break-word',
                             filter: shouldBlur ? 'blur(5px)' : 'none', transition: 'filter 0.2s',
                             cursor: shouldBlur ? 'pointer' : 'default',
                             userSelect: shouldBlur ? 'none' : 'auto',
@@ -120,8 +120,8 @@ export function DayPlanSidebarTransportDetailModal({
               {/* Notizen */}
               {res.notes && (
                 <div className="bg-surface-tertiary" style={{ padding: '8px 10px', borderRadius: 8 }}>
-                  <div className="text-content-faint" style={{ fontSize: 'calc(9px * var(--fs-scale-text, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 3 }}>{t('reservations.notes')}</div>
-                  <div className="collab-note-md text-content" style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', wordBreak: 'break-word', overflowWrap: 'anywhere' }}><Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{res.notes}</Markdown></div>
+                  <div className="text-content-faint" style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 3 }}>{t('reservations.notes')}</div>
+                  <div className="collab-note-md text-content" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', wordBreak: 'break-word', overflowWrap: 'anywhere' }}><Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{res.notes}</Markdown></div>
                 </div>
               )}
 
@@ -136,7 +136,7 @@ export function DayPlanSidebarTransportDetailModal({
                 if (resFiles.length === 0) return null
                 return (
                   <div>
-                    <div className="text-content-faint" style={{ fontSize: 'calc(9px * var(--fs-scale-text, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 6 }}>{t('files.title')}</div>
+                    <div className="text-content-faint" style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 6 }}>{t('files.title')}</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                       {resFiles.map(f => (
                         <div key={f.id}
@@ -151,7 +151,7 @@ export function DayPlanSidebarTransportDetailModal({
                           onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
                         >
                           <FileText size={14} className="text-content-muted" style={{ flexShrink: 0 }} />
-                          <span className="text-content" style={{ flex: 1, fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <span className="text-content" style={{ flex: 1, fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {f.original_name}
                           </span>
                           <ExternalLink size={11} className="text-content-faint" style={{ flexShrink: 0 }} />
@@ -165,7 +165,7 @@ export function DayPlanSidebarTransportDetailModal({
               {/* Schließen */}
               <div style={{ textAlign: 'right' }}>
                 <button onClick={() => setTransportDetail(null)} className="bg-accent text-accent-text" style={{
-                  fontSize: 'calc(12px * var(--fs-scale-text, 1))',
+                  fontSize: 'calc(12px * var(--fs-scale-body, 1))',
                   border: 'none', borderRadius: 8, padding: '6px 16px', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
                 }}>
                   {t('common.close')}

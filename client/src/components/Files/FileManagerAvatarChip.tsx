@@ -32,7 +32,7 @@ export function AvatarChip({ name, avatarUrl, size = 20 }: { name: string; avata
         <div style={{
           position: 'fixed', top: pos.top, left: pos.left, transform: 'translate(-50%, -100%)',
           background: 'var(--bg-elevated)', color: 'var(--text-primary)',
-          fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 500, padding: '3px 8px', borderRadius: 6,
+          fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500, padding: '3px 8px', borderRadius: 6,
           boxShadow: '0 2px 8px rgba(0,0,0,0.15)', whiteSpace: 'nowrap', zIndex: 9999,
           pointerEvents: 'none',
         }}>

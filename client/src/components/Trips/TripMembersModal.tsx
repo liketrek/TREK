@@ -93,9 +93,9 @@ function ShareLinkSection({ tripId, t }: { tripId: number; t: (key: string, para
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
         <Link2 size={14} className="text-content-muted" />
-        <span className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 600 }}>{t('share.linkTitle')}</span>
+        <span className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{t('share.linkTitle')}</span>
       </div>
-      <p className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', marginBottom: 10, lineHeight: 1.5 }}>{t('share.linkHint')}</p>
+      <p className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', marginBottom: 10, lineHeight: 1.5 }}>{t('share.linkHint')}</p>
 
       {/* Permission checkboxes */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
@@ -109,7 +109,7 @@ function ShareLinkSection({ tripId, t }: { tripId: number; t: (key: string, para
           <button key={opt.key} onClick={() => !opt.always && handleUpdatePerms(opt.key, !perms[opt.key])}
             style={{
               display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20,
-              border: '1.5px solid', fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 500, cursor: opt.always ? 'default' : 'pointer',
+              border: '1.5px solid', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500, cursor: opt.always ? 'default' : 'pointer',
               fontFamily: 'inherit', transition: 'all 0.12s',
               background: perms[opt.key] ? 'var(--text-primary)' : 'transparent',
               borderColor: perms[opt.key] ? 'var(--text-primary)' : 'var(--border-primary)',
@@ -129,13 +129,13 @@ function ShareLinkSection({ tripId, t }: { tripId: number; t: (key: string, para
             borderRadius: 8,
           }}>
             <input type="text" value={shareUrl} readOnly className="text-content" style={{
-              flex: 1, border: 'none', background: 'none', fontSize: 'calc(11px * var(--fs-scale-text, 1))',
+              flex: 1, border: 'none', background: 'none', fontSize: 'calc(11px * var(--fs-scale-caption, 1))',
               outline: 'none', fontFamily: 'monospace',
             }} />
             <button onClick={handleCopy} style={{
               display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 6,
               border: 'none', background: copied ? '#16a34a' : 'var(--accent)', color: copied ? 'white' : 'var(--accent-text)',
-              fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.2s',
+              fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.2s',
             }}>
               {copied ? <><Check size={10} /> {t('common.copied')}</> : <><Copy size={10} /> {t('common.copy')}</>}
             </button>
@@ -143,7 +143,7 @@ function ShareLinkSection({ tripId, t }: { tripId: number; t: (key: string, para
           <button onClick={handleDelete} style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
             padding: '6px 0', borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)',
-            background: 'rgba(239,68,68,0.06)', color: '#ef4444', fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 500,
+            background: 'rgba(239,68,68,0.06)', color: '#ef4444', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500,
             cursor: 'pointer', fontFamily: 'inherit',
           }}>
             <Trash2 size={11} /> {t('share.deleteLink')}
@@ -153,7 +153,7 @@ function ShareLinkSection({ tripId, t }: { tripId: number; t: (key: string, para
         <button onClick={handleCreate} className="border border-dashed border-edge text-content-muted" style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           width: '100%', padding: '8px 0', borderRadius: 8,
-          background: 'none', fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 500,
+          background: 'none', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500,
           cursor: 'pointer', fontFamily: 'inherit',
         }}>
           <Link2 size={12} /> {t('share.createLink')}
@@ -267,13 +267,13 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle }:
 
         {/* Trip name */}
         <div className="bg-surface-secondary border border-edge-secondary" style={{ padding: '10px 14px', borderRadius: 10 }}>
-          <div className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>{t('nav.trip')}</div>
-          <div className="text-content" style={{ fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 600 }}>{tripTitle}</div>
+          <div className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>{t('nav.trip')}</div>
+          <div className="text-content" style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{tripTitle}</div>
         </div>
 
         {/* Add member dropdown */}
         {canManageMembers && <div>
-          <label className="text-content-secondary" style={{ display: 'block', fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 600, marginBottom: 8 }}>
+          <label className="text-content-secondary" style={{ display: 'block', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, marginBottom: 8 }}>
             {t('members.inviteUser')}
           </label>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -298,7 +298,7 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle }:
               style={{
                 display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px',
                 background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: 10,
-                fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 600, cursor: adding || !selectedUserId ? 'default' : 'pointer',
+                fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: adding || !selectedUserId ? 'default' : 'pointer',
                 fontFamily: 'inherit', opacity: adding || !selectedUserId ? 0.4 : 1, flexShrink: 0,
               }}
             >
@@ -306,7 +306,7 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle }:
             </button>
           </div>
           {availableUsers.length === 0 && allUsers.length > 0 && canManageMembers && (
-            <p className="text-content-faint" style={{ fontSize: 'calc(11.5px * var(--fs-scale-text, 1))', margin: '6px 0 0' }}>{t('members.allHaveAccess')}</p>
+            <p className="text-content-faint" style={{ fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', margin: '6px 0 0' }}>{t('members.allHaveAccess')}</p>
           )}
         </div>}
 
@@ -314,7 +314,7 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle }:
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
             <Users size={13} className="text-content-faint" />
-            <span className="text-content-secondary" style={{ fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 600 }}>
+            <span className="text-content-secondary" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600 }}>
               {t('members.access')} ({allMembers.length} {allMembers.length === 1 ? t('members.person') : t('members.persons')})
             </span>
           </div>
@@ -338,10 +338,10 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle }:
                     <Avatar username={member.username} avatarUrl={member.avatar_url} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                        <span className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 600 }}>{member.username}</span>
-                        {isSelf && <span className="text-content-faint" style={{ fontSize: 'calc(10px * var(--fs-scale-text, 1))' }}>({t('members.you')})</span>}
+                        <span className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{member.username}</span>
+                        {isSelf && <span className="text-content-faint" style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))' }}>({t('members.you')})</span>}
                         {member.role === 'owner' && (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 700, color: '#d97706', background: '#fef9c3', padding: '1px 6px', borderRadius: 99 }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700, color: '#d97706', background: '#fef9c3', padding: '1px 6px', borderRadius: 99 }}>
                             <Crown size={9} /> {t('members.owner')}
                           </span>
                         )}

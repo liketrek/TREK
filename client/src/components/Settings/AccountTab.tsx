@@ -408,7 +408,7 @@ export default function AccountTab(): React.ReactElement {
               <div className="bg-surface-hover text-content-secondary" style={{
                 width: 64, height: 64, borderRadius: '50%',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 'calc(24px * var(--fs-scale-text, 1))', fontWeight: 700,
+                fontSize: 'calc(24px * var(--fs-scale-title, 1))', fontWeight: 700,
               }}>
                 {user?.username?.charAt(0).toUpperCase()}
               </div>
@@ -453,7 +453,7 @@ export default function AccountTab(): React.ReactElement {
               {(user as UserWithOidc)?.oidc_issuer && (
                 <span className="bg-[#dbeafe] text-[#1d4ed8]" style={{
                   display: 'inline-flex', alignItems: 'center', gap: 4,
-                  fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 500, padding: '1px 8px', borderRadius: 99,
+                  fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 500, padding: '1px 8px', borderRadius: 99,
                   marginLeft: 6,
                 }}>
                   SSO
@@ -461,7 +461,7 @@ export default function AccountTab(): React.ReactElement {
               )}
             </div>
             {(user as UserWithOidc)?.oidc_issuer && (
-              <p className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', marginTop: -2 }}>
+              <p className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', marginTop: -2 }}>
                 {t('settings.oidcLinked')} {(user as UserWithOidc).oidc_issuer!.replace('https://', '').replace(/\/+$/, '')}
               </p>
             )}
@@ -516,9 +516,9 @@ export default function AccountTab(): React.ReactElement {
               <div className="bg-[#fef3c7]" style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Shield size={18} className="text-[#d97706]" />
               </div>
-              <h3 className="text-content" style={{ margin: 0, fontSize: 'calc(16px * var(--fs-scale-text, 1))', fontWeight: 700 }}>{t('settings.deleteBlockedTitle')}</h3>
+              <h3 className="text-content" style={{ margin: 0, fontSize: 'calc(16px * var(--fs-scale-subtitle, 1))', fontWeight: 700 }}>{t('settings.deleteBlockedTitle')}</h3>
             </div>
-            <p className="text-content-muted" style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', lineHeight: 1.6, margin: '0 0 20px' }}>
+            <p className="text-content-muted" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', lineHeight: 1.6, margin: '0 0 20px' }}>
               {t('settings.deleteBlockedMessage')}
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -526,7 +526,7 @@ export default function AccountTab(): React.ReactElement {
                 onClick={() => setShowDeleteConfirm(false)}
                 className="border border-edge bg-surface-card text-content-secondary"
                 style={{
-                  padding: '8px 16px', borderRadius: 8, fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500,
+                  padding: '8px 16px', borderRadius: 8, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
                   cursor: 'pointer', fontFamily: 'inherit',
                 }}
               >
@@ -552,9 +552,9 @@ export default function AccountTab(): React.ReactElement {
               <div className="bg-[#fef2f2]" style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Trash2 size={18} className="text-[#ef4444]" />
               </div>
-              <h3 className="text-content" style={{ margin: 0, fontSize: 'calc(16px * var(--fs-scale-text, 1))', fontWeight: 700 }}>{t('settings.deleteAccountTitle')}</h3>
+              <h3 className="text-content" style={{ margin: 0, fontSize: 'calc(16px * var(--fs-scale-subtitle, 1))', fontWeight: 700 }}>{t('settings.deleteAccountTitle')}</h3>
             </div>
-            <p className="text-content-muted" style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', lineHeight: 1.6, margin: '0 0 20px' }}>
+            <p className="text-content-muted" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', lineHeight: 1.6, margin: '0 0 20px' }}>
               {t('settings.deleteAccountWarning')}
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
@@ -562,7 +562,7 @@ export default function AccountTab(): React.ReactElement {
                 onClick={() => setShowDeleteConfirm(false)}
                 className="border border-edge bg-surface-card text-content-secondary"
                 style={{
-                  padding: '8px 16px', borderRadius: 8, fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500,
+                  padding: '8px 16px', borderRadius: 8, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
                   cursor: 'pointer', fontFamily: 'inherit',
                 }}
               >
@@ -581,7 +581,7 @@ export default function AccountTab(): React.ReactElement {
                 }}
                 className="bg-[#ef4444] text-white"
                 style={{
-                  padding: '8px 16px', borderRadius: 8, fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 600,
+                  padding: '8px 16px', borderRadius: 8, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600,
                   border: 'none',
                   cursor: 'pointer', fontFamily: 'inherit',
                 }}

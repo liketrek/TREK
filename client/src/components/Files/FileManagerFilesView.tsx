@@ -22,15 +22,15 @@ export function FilesView(S: FileManagerState) {
         <input {...getInputProps()} />
         <Upload size={24} style={{ margin: '0 auto 8px', color: isDragActive ? 'var(--text-secondary)' : 'var(--text-faint)', display: 'block' }} />
         {uploading ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 'calc(13px * var(--fs-scale-text, 1))', color: 'var(--text-secondary)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 'calc(13px * var(--fs-scale-body, 1))', color: 'var(--text-secondary)' }}>
             <div style={{ width: 14, height: 14, border: '2px solid var(--text-secondary)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
             {t('files.uploading')}
           </div>
         ) : (
           <>
-            <p style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', color: 'var(--text-secondary)', fontWeight: 500, margin: 0 }}>{t('files.dropzone')}</p>
-            <p style={{ fontSize: 'calc(11.5px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', marginTop: 3 }}>{t('files.dropzoneHint')}</p>
-            <p style={{ fontSize: 'calc(10px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', marginTop: 6, opacity: 0.7 }}>
+            <p style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', color: 'var(--text-secondary)', fontWeight: 500, margin: 0 }}>{t('files.dropzone')}</p>
+            <p style={{ fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginTop: 3 }}>{t('files.dropzoneHint')}</p>
+            <p style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginTop: 6, opacity: 0.7 }}>
               {(allowedFileTypes || 'jpg,jpeg,png,gif,webp,heic,pdf,doc,docx,xls,xlsx,txt,csv').toUpperCase().split(',').join(', ')} · Max 50 MB
             </p>
           </>
@@ -48,14 +48,14 @@ export function FilesView(S: FileManagerState) {
           ...(files.some(f => f.note_id) ? [{ id: 'collab', label: t('files.filterCollab') || 'Collab' }] : []),
         ].map(tab => (
           <button key={tab.id} onClick={() => setFilterType(tab.id)} style={{
-            padding: '4px 12px', borderRadius: 99, border: 'none', cursor: 'pointer', fontSize: 'calc(12px * var(--fs-scale-text, 1))',
+            padding: '4px 12px', borderRadius: 99, border: 'none', cursor: 'pointer', fontSize: 'calc(12px * var(--fs-scale-body, 1))',
             fontFamily: 'inherit', transition: 'all 0.12s',
             background: filterType === tab.id ? 'var(--accent)' : 'transparent',
             color: filterType === tab.id ? 'var(--accent-text)' : 'var(--text-muted)',
             fontWeight: filterType === tab.id ? 600 : 400,
           }}>{tab.icon ? <tab.icon size={13} fill={filterType === tab.id ? '#facc15' : 'none'} color={filterType === tab.id ? '#facc15' : 'currentColor'} /> : tab.label}</button>
         ))}
-        <span style={{ marginLeft: 'auto', fontSize: 'calc(11.5px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', alignSelf: 'center' }}>
+        <span style={{ marginLeft: 'auto', fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', alignSelf: 'center' }}>
           {filteredFiles.length === 1 ? t('files.countSingular') : t('files.count', { count: filteredFiles.length })}
         </span>
       </div>
@@ -65,8 +65,8 @@ export function FilesView(S: FileManagerState) {
         {filteredFiles.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-faint)' }}>
             <FileText size={40} style={{ color: 'var(--text-faint)', display: 'block', margin: '0 auto 12px' }} />
-            <p style={{ fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-secondary)', margin: '0 0 4px' }}>{t('files.empty')}</p>
-            <p style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', margin: 0 }}>{t('files.emptyHint')}</p>
+            <p style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-secondary)', margin: '0 0 4px' }}>{t('files.empty')}</p>
+            <p style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', color: 'var(--text-faint)', margin: 0 }}>{t('files.emptyHint')}</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

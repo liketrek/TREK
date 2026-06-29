@@ -37,7 +37,7 @@ export function WebsiteThumbnail({ url, tripId, color }: WebsiteThumbnailProps) 
       ) : (
         <>
           <ExternalLink size={14} color="var(--text-muted)" />
-          <span style={{ fontSize: 'calc(7px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-muted)', maxWidth: 42, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center' }}>
+          <span style={{ fontSize: 'calc(7px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-muted)', maxWidth: 42, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center' }}>
             {domain}
           </span>
         </>

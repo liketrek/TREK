@@ -94,7 +94,7 @@ export function CustomDatePicker({ value, onChange, placeholder, style = {}, com
           placeholder="DD.MM.YYYY"
           style={{
             width: '100%', padding: '8px 14px', borderRadius: 10, border: '1px solid var(--text-faint)',
-            background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontFamily: 'inherit', outline: 'none',
+            background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontFamily: 'inherit', outline: 'none',
           }} />
       ) : (
       <button type="button" onClick={() => setOpen(o => !o)} onDoubleClick={() => { setTextInput(value || ''); setIsTyping(true) }}
@@ -103,7 +103,7 @@ export function CustomDatePicker({ value, onChange, placeholder, style = {}, com
           padding: compact ? '4px 6px' : '8px 14px', borderRadius: compact ? 4 : 10,
           border: borderless ? 'none' : '1px solid var(--border-primary)',
           background: borderless ? 'transparent' : 'var(--bg-input)', color: displayValue ? 'var(--text-primary)' : 'var(--text-faint)',
-          fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontFamily: 'inherit', cursor: 'pointer', outline: 'none',
+          fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontFamily: 'inherit', cursor: 'pointer', outline: 'none',
           transition: 'border-color 0.15s',
         }}
         onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--text-faint)'}
@@ -143,7 +143,7 @@ export function CustomDatePicker({ value, onChange, placeholder, style = {}, com
               onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
               <ChevronLeft size={16} />
             </button>
-            <span style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-primary)' }}>{monthLabel}</span>
+            <span style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-primary)' }}>{monthLabel}</span>
             <button type="button" onClick={nextMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, display: 'flex', color: 'var(--text-faint)' }}
               onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
               <ChevronRight size={16} />
@@ -153,7 +153,7 @@ export function CustomDatePicker({ value, onChange, placeholder, style = {}, com
           {/* Weekday headers */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, marginBottom: 4 }}>
             {weekdays.map((d, i) => (
-              <div key={i} style={{ textAlign: 'center', fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)', padding: '2px 0' }}>{d}</div>
+              <div key={i} style={{ textAlign: 'center', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', padding: '2px 0' }}>{d}</div>
             ))}
           </div>
 
@@ -170,7 +170,7 @@ export function CustomDatePicker({ value, onChange, placeholder, style = {}, com
                     width: 32, height: 32, borderRadius: 8, border: 'none',
                     background: sel ? 'var(--accent)' : 'transparent',
                     color: sel ? 'var(--accent-text)' : 'var(--text-primary)',
-                    fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: sel ? 700 : td ? 600 : 400,
+                    fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: sel ? 700 : td ? 600 : 400,
                     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     outline: td && !sel ? '2px solid var(--border-primary)' : 'none', outlineOffset: -2,
                     transition: 'background 0.1s',
@@ -187,7 +187,7 @@ export function CustomDatePicker({ value, onChange, placeholder, style = {}, com
           {value && (
             <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center' }}>
               <button type="button" onClick={() => { onChange(''); setOpen(false) }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', padding: '3px 8px', borderRadius: 6 }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', padding: '3px 8px', borderRadius: 6 }}
                 onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
                 ✕
               </button>

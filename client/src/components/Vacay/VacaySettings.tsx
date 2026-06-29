@@ -71,7 +71,7 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
                   updatePlan({ weekend_days: next.join(',') })
                 }}
                   style={{
-                    padding: '4px 10px', borderRadius: 8, fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 600, cursor: 'pointer',
+                    padding: '4px 10px', borderRadius: 8, fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer',
                     fontFamily: 'inherit', border: '1px solid', transition: 'all 0.12s',
                     background: active ? 'var(--text-primary)' : 'var(--bg-card)',
                     borderColor: active ? 'var(--text-primary)' : 'var(--border-primary)',
@@ -103,7 +103,7 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
             return (
               <button key={value} onClick={() => updatePlan({ week_start: value })}
                 style={{
-                  padding: '4px 10px', borderRadius: 8, fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 600, cursor: 'pointer',
+                  padding: '4px 10px', borderRadius: 8, fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer',
                   fontFamily: 'inherit', border: '1px solid', transition: 'all 0.12s',
                   background: active ? 'var(--text-primary)' : 'var(--bg-card)',
                   borderColor: active ? 'var(--text-primary)' : 'var(--border-primary)',
@@ -331,7 +331,7 @@ function CalendarRow({ cal, countries, onUpdate, onDelete }: {
           onBlur={() => { const v = localLabel.trim() || null; if (v !== cal.label) onUpdate({ label: v }) }}
           onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
           placeholder={t('vacay.calendarLabel')}
-          style={{ width: '100%', fontSize: 'calc(12px * var(--fs-scale-text, 1))', padding: '6px 10px', borderRadius: 8, background: 'var(--bg-input)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none' }}
+          style={{ width: '100%', fontSize: 'calc(12px * var(--fs-scale-body, 1))', padding: '6px 10px', borderRadius: 8, background: 'var(--bg-input)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none' }}
         />
         <CustomSelect
           value={selectedCountry}
@@ -413,7 +413,7 @@ function AddCalendarForm({ countries, onAdd, onCancel }: {
           value={label}
           onChange={e => setLabel(e.target.value)}
           placeholder={t('vacay.calendarLabel')}
-          style={{ width: '100%', fontSize: 'calc(12px * var(--fs-scale-text, 1))', padding: '6px 10px', borderRadius: 8, background: 'var(--bg-input)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none' }}
+          style={{ width: '100%', fontSize: 'calc(12px * var(--fs-scale-body, 1))', padding: '6px 10px', borderRadius: 8, background: 'var(--bg-input)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none' }}
         />
         <CustomSelect
           value={selectedCountry}

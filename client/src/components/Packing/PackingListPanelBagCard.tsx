@@ -69,13 +69,13 @@ export function BagCard({ bag, bagItems, totalWeight, pct, tripId, tripMembers, 
               const isSelected = memberIds.includes(m.id)
               return (
                 <button key={m.id} onClick={() => { toggleMember(m.id); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 10px', borderRadius: 6, border: 'none', background: isSelected ? 'var(--bg-tertiary)' : 'transparent', cursor: 'pointer', fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: 'var(--text-primary)', fontFamily: 'inherit' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 10px', borderRadius: 6, border: 'none', background: isSelected ? 'var(--bg-tertiary)' : 'transparent', cursor: 'pointer', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-primary)', fontFamily: 'inherit' }}
                   onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--bg-secondary)' }}
                   onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent' }}>
                   {m.avatar ? (
                     <img src={m.avatar} alt="" style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover' }} />
                   ) : (
-                    <span style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--bg-tertiary)', fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)' }}>
+                    <span style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--bg-tertiary)', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)' }}>
                       {m.username[0].toUpperCase()}
                     </span>
                   )}
@@ -84,9 +84,9 @@ export function BagCard({ bag, bagItems, totalWeight, pct, tripId, tripMembers, 
                 </button>
               )
             })}
-            {tripMembers.length === 0 && <div style={{ padding: '8px 10px', fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: 'var(--text-faint)' }}>{t('packing.noMembers')}</div>}
+            {tripMembers.length === 0 && <div style={{ padding: '8px 10px', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)' }}>{t('packing.noMembers')}</div>}
             <div style={{ borderTop: '1px solid var(--border-secondary)', marginTop: 4, paddingTop: 4 }}>
-              <button onClick={() => setShowUserPicker(false)} style={{ width: '100%', padding: '6px 10px', borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', fontFamily: 'inherit', textAlign: 'center' }}>
+              <button onClick={() => setShowUserPicker(false)} style={{ width: '100%', padding: '6px 10px', borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', fontFamily: 'inherit', textAlign: 'center' }}>
                 {t('common.close')}
               </button>
             </div>

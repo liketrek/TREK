@@ -34,14 +34,14 @@ export function ReactionBadge({ reaction, currentUserId, onReact }: ReactionBadg
         }}
       >
         <TwemojiImg emoji={reaction.emoji} size={16} />
-        {reaction.count > 1 && <span style={{ fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'var(--text-muted)', minWidth: 8 }}>{reaction.count}</span>}
+        {reaction.count > 1 && <span style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700, color: 'var(--text-muted)', minWidth: 8 }}>{reaction.count}</span>}
       </button>
       {hover && names && ReactDOM.createPortal(
         <div style={{
           position: 'fixed', top: pos.top, left: pos.left, transform: 'translate(-50%, -100%)',
           pointerEvents: 'none', zIndex: 10000, whiteSpace: 'nowrap',
           background: 'var(--bg-card, white)', color: 'var(--text-primary, #111827)',
-          fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 500, padding: '5px 10px', borderRadius: 8,
+          fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500, padding: '5px 10px', borderRadius: 8,
           boxShadow: '0 4px 12px rgba(0,0,0,0.15)', border: '1px solid var(--border-faint, #e5e7eb)',
         }}>
           {names}

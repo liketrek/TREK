@@ -99,10 +99,10 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
             onChange={e => setEditKatName(e.target.value)}
             onBlur={handleSaveKatName}
             onKeyDown={e => { if (e.key === 'Enter') handleSaveKatName(); if (e.key === 'Escape') { setEditingName(false); setEditKatName(kategorie) } }}
-            style={{ flex: 1, fontSize: 'calc(12.5px * var(--fs-scale-text, 1))', fontWeight: 600, border: 'none', borderBottom: '2px solid var(--text-primary)', outline: 'none', background: 'transparent', fontFamily: 'inherit', color: 'var(--text-primary)', padding: '0 2px' }}
+            style={{ flex: 1, fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 600, border: 'none', borderBottom: '2px solid var(--text-primary)', outline: 'none', background: 'transparent', fontFamily: 'inherit', color: 'var(--text-primary)', padding: '0 2px' }}
           />
         ) : (
-          <span style={{ fontSize: 'calc(12.5px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <span style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             {kategorie}
           </span>
         )}
@@ -118,7 +118,7 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
                   width: 22, height: 22, borderRadius: '50%', flexShrink: 0, cursor: canEdit ? 'pointer' : 'default',
                   background: `hsl(${a.username.charCodeAt(0) * 37 % 360}, 55%, 55%)`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'white', textTransform: 'uppercase',
+                  fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700, color: 'white', textTransform: 'uppercase',
                   border: '2px solid var(--bg-card)', transition: 'opacity 0.15s',
                 }}
               >
@@ -128,7 +128,7 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
                 position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
                 marginTop: 6, padding: '3px 8px', borderRadius: 6, zIndex: 60,
                 background: 'var(--text-primary)', color: 'var(--bg-primary)',
-                fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 600, whiteSpace: 'nowrap',
+                fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, whiteSpace: 'nowrap',
                 pointerEvents: 'none', opacity: 0, transition: 'opacity 0.15s',
               }}>
                 {a.username}
@@ -168,7 +168,7 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
                         display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                         padding: '6px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
                         background: isAssigned ? 'var(--bg-hover)' : 'transparent',
-                        fontFamily: 'inherit', fontSize: 'calc(12px * var(--fs-scale-text, 1))', color: 'var(--text-primary)',
+                        fontFamily: 'inherit', fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-primary)',
                         transition: 'background 0.1s',
                       }}
                       onMouseEnter={e => { if (!isAssigned) e.currentTarget.style.background = 'var(--bg-tertiary)' }}
@@ -178,7 +178,7 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
                         width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
                         background: `hsl(${m.username.charCodeAt(0) * 37 % 360}, 55%, 55%)`,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 'calc(10px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'white', textTransform: 'uppercase',
+                        fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700, color: 'white', textTransform: 'uppercase',
                       }}>
                         {m.username[0]}
                       </div>
@@ -188,7 +188,7 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
                   )
                 })}
                 {tripMembers.length === 0 && (
-                  <div style={{ padding: '8px 10px', fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: 'var(--text-faint)' }}>{t('packing.noMembers')}</div>
+                  <div style={{ padding: '8px 10px', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)' }}>{t('packing.noMembers')}</div>
                 )}
               </div>
             )}
@@ -197,7 +197,7 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
         </div>
 
         <span style={{
-          fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 600, padding: '1px 8px', borderRadius: 99,
+          fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, padding: '1px 8px', borderRadius: 99,
           background: alleAbgehakt ? 'rgba(22,163,74,0.12)' : 'var(--bg-tertiary)',
           color: alleAbgehakt ? '#16a34a' : 'var(--text-muted)',
         }}>
@@ -251,7 +251,7 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
                   if (e.key === 'Escape') { setShowAddItem(false); setNewItemName('') }
                 }}
                 placeholder={t('packing.addItemPlaceholder')}
-                style={{ flex: 1, padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border-primary)', fontSize: 'calc(12.5px * var(--fs-scale-text, 1))', fontFamily: 'inherit', outline: 'none', color: 'var(--text-primary)', background: 'var(--bg-input)' }}
+                style={{ flex: 1, padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border-primary)', fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontFamily: 'inherit', outline: 'none', color: 'var(--text-primary)', background: 'var(--bg-input)' }}
               />
               <button onClick={() => { if (newItemName.trim()) { onAddItem(kategorie, newItemName.trim()); setNewItemName(''); setTimeout(() => addItemRef.current?.focus(), 30) } }}
                 disabled={!newItemName.trim()}
@@ -265,7 +265,7 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
             </div>
           ) : (
             <button onClick={() => { setShowAddItem(true); setTimeout(() => addItemRef.current?.focus(), 30) }}
-              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', margin: '2px 4px', borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer', fontSize: 'calc(12px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', fontFamily: 'inherit' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', margin: '2px 4px', borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer', fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)', fontFamily: 'inherit' }}
               onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
               onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
               <Plus size={12} /> {t('packing.addItem')}
@@ -289,7 +289,7 @@ function MenuItem({ icon, label, onClick, danger = false }: MenuItemProps) {
     <button onClick={onClick} style={{
       display: 'flex', alignItems: 'center', gap: 8, width: '100%',
       padding: '7px 10px', background: 'none', border: 'none', cursor: 'pointer',
-      fontSize: 'calc(12.5px * var(--fs-scale-text, 1))', fontFamily: 'inherit', borderRadius: 7, textAlign: 'left',
+      fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontFamily: 'inherit', borderRadius: 7, textAlign: 'left',
       color: danger ? '#ef4444' : 'var(--text-secondary)',
     }}
       onMouseEnter={e => e.currentTarget.style.background = danger ? '#fef2f2' : 'var(--bg-tertiary)'}

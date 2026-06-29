@@ -83,7 +83,7 @@ export function ContextMenu({ menu, onClose }: ContextMenuProps) {
             display: 'flex', alignItems: 'center', gap: 8, width: '100%',
             padding: '7px 10px', borderRadius: 7, border: 'none',
             background: 'none', cursor: 'pointer', fontFamily: 'inherit',
-            fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 500, textAlign: 'left',
+            fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500, textAlign: 'left',
             color: item.danger ? '#ef4444' : 'var(--text-primary)',
             transition: 'background 0.1s',
           }}

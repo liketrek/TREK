@@ -14,7 +14,7 @@ export function PlacesDropOverlay({ t }: SidebarState) {
       gap: 10, pointerEvents: 'none',
     }}>
       <Upload size={28} strokeWidth={1.5} color="var(--accent)" />
-      <span className="text-accent" style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 600 }}>{t('places.sidebarDrop')}</span>
+      <span className="text-accent" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{t('places.sidebarDrop')}</span>
     </div>
   )
 }
@@ -34,7 +34,7 @@ export function PlacesHeader(S: SidebarState) {
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           width: '100%', padding: '8px 12px', borderRadius: 12, border: 'none',
-          fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500,
+          fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
           cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10,
         }}
       >
@@ -48,7 +48,7 @@ export function PlacesHeader(S: SidebarState) {
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
             flex: 1, padding: '5px 12px', borderRadius: 8,
-            background: 'none', fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 500,
+            background: 'none', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500,
             cursor: 'pointer', fontFamily: 'inherit',
           }}
         >
@@ -60,7 +60,7 @@ export function PlacesHeader(S: SidebarState) {
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
             flex: 1, padding: '5px 12px', borderRadius: 8,
-            background: 'none', fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 500,
+            background: 'none', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500,
             cursor: 'pointer', fontFamily: 'inherit',
           }}
         >
@@ -105,14 +105,14 @@ export function PlacesHeader(S: SidebarState) {
                     appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                     display: 'inline-flex', alignItems: 'center', gap: 5,
                     padding: '4px 9px', borderRadius: 99,
-                    fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 500, whiteSpace: 'nowrap',
+                    fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500, whiteSpace: 'nowrap',
                     boxShadow: active ? 'none' : '0 1px 2px rgba(0,0,0,0.06)',
                     transition: 'background 0.15s, color 0.15s, box-shadow 0.15s',
                   }}
                 >
                   {f.label}
                   <span className={active ? 'text-accent-text' : 'text-content-faint'} style={{
-                    fontSize: 'calc(9px * var(--fs-scale-text, 1))', fontWeight: 600, lineHeight: 1,
+                    fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, lineHeight: 1,
                     background: active ? 'color-mix(in srgb, var(--accent-text) 22%, transparent)' : 'var(--bg-tertiary)',
                     padding: '1px 5px', borderRadius: 99, minWidth: 14, textAlign: 'center',
                   }}>
@@ -136,7 +136,7 @@ export function PlacesHeader(S: SidebarState) {
           className="bg-surface-tertiary text-content"
           style={{
             width: '100%', padding: '7px 30px 7px 30px', borderRadius: 10,
-            border: 'none', fontSize: 'calc(12px * var(--fs-scale-text, 1))',
+            border: 'none', fontSize: 'calc(12px * var(--fs-scale-body, 1))',
             outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
           }}
         />
@@ -159,7 +159,7 @@ export function PlacesHeader(S: SidebarState) {
             <button onClick={() => setCatDropOpen(v => !v)} className="bg-surface-card text-content" style={{
               flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border-primary)',
-              fontSize: 'calc(12px * var(--fs-scale-text, 1))',
+              fontSize: 'calc(12px * var(--fs-scale-body, 1))',
               cursor: 'pointer', fontFamily: 'inherit',
             }}>
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
@@ -213,7 +213,7 @@ export function PlacesHeader(S: SidebarState) {
                     <button key={c.id} onClick={() => toggleCategoryFilter(String(c.id))} className={`text-content ${active ? 'bg-surface-hover' : 'bg-transparent'}`} style={{
                       display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                       padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                      fontFamily: 'inherit', fontSize: 'calc(12px * var(--fs-scale-text, 1))',
+                      fontFamily: 'inherit', fontSize: 'calc(12px * var(--fs-scale-body, 1))',
                       textAlign: 'left',
                     }}>
                       <div style={{
@@ -235,7 +235,7 @@ export function PlacesHeader(S: SidebarState) {
                     <button onClick={() => toggleCategoryFilter('uncategorized')} className={`text-content-muted ${active ? 'bg-surface-hover' : 'bg-transparent'}`} style={{
                       display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                       padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                      fontFamily: 'inherit', fontSize: 'calc(12px * var(--fs-scale-text, 1))',
+                      fontFamily: 'inherit', fontSize: 'calc(12px * var(--fs-scale-body, 1))',
                       textAlign: 'left', borderTop: '1px solid var(--border-faint)', marginTop: 2,
                     }}>
                       <div className={active ? 'bg-[var(--text-faint)]' : 'bg-transparent'} style={{
@@ -254,7 +254,7 @@ export function PlacesHeader(S: SidebarState) {
                   <button onClick={() => { setCategoryFiltersLocal(new Set()); onCategoryFilterChange?.(new Set()) }} className="bg-transparent text-content-faint" style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
                     width: '100%', padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                    fontFamily: 'inherit', fontSize: 'calc(11px * var(--fs-scale-text, 1))',
+                    fontFamily: 'inherit', fontSize: 'calc(11px * var(--fs-scale-caption, 1))',
                     marginTop: 2, borderTop: '1px solid var(--border-faint)',
                   }}>
                     <X size={10} /> {t('places.clearFilter')}

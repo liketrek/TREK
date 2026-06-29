@@ -63,11 +63,11 @@ export function NoteCard({ note, currentUser, canEdit, onUpdate, onDelete, onEdi
       }}>
         {!!note.pinned && <Pin size={9} color={color} style={{ flexShrink: 0 }} />}
         <span style={{ display: 'flex', alignItems: 'center', gap: 5, overflow: 'hidden', flex: 1, minWidth: 0 }}>
-          <span style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {note.title}
           </span>
           {note.category && (
-            <span style={{ fontSize: 'calc(8px * var(--fs-scale-text, 1))', fontWeight: 600, color, background: `${color}18`, padding: '2px 6px', borderRadius: 99, flexShrink: 0, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: 'calc(8px * var(--fs-scale-caption, 1))', fontWeight: 600, color, background: `${color}18`, padding: '2px 6px', borderRadius: 99, flexShrink: 0, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
               {note.category}
             </span>
           )}
@@ -115,7 +115,7 @@ export function NoteCard({ note, currentUser, canEdit, onUpdate, onDelete, onEdi
                 marginBottom: 6, pointerEvents: 'none', opacity: 0, transition: 'opacity 0.12s',
                 whiteSpace: 'nowrap', zIndex: 10,
                 background: 'var(--bg-card)', color: 'var(--text-primary)',
-                fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 500, padding: '5px 10px', borderRadius: 8,
+                fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500, padding: '5px 10px', borderRadius: 8,
                 boxShadow: '0 4px 12px rgba(0,0,0,0.15)', border: '1px solid var(--border-faint)',
               }}>
                 {author.username}
@@ -137,7 +137,7 @@ export function NoteCard({ note, currentUser, canEdit, onUpdate, onDelete, onEdi
           <div style={{ flex: 1, minWidth: 0 }}>
             {note.content && (
               <div className="collab-note-md" style={{
-                fontSize: 'calc(11.5px * var(--fs-scale-text, 1))', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0,
+                fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0,
                 maxHeight: '4.5em', overflow: 'hidden',
                 wordBreak: 'break-word', fontFamily: FONT,
               }}>
@@ -151,14 +151,14 @@ export function NoteCard({ note, currentUser, canEdit, onUpdate, onDelete, onEdi
                   {/* Website */}
                   {note.website && (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                      <span style={{ fontSize: 'calc(7px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.3 }}>Link</span>
+                      <span style={{ fontSize: 'calc(7px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.3 }}>Link</span>
                       <WebsiteThumbnail url={note.website} tripId={tripId} color={color} />
                     </div>
                   )}
                   {/* Files */}
                   {(note.attachments || []).length > 0 && (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                      <span style={{ fontSize: 'calc(7px * var(--fs-scale-text, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.3 }}>{t('files.title')}</span>
+                      <span style={{ fontSize: 'calc(7px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.3 }}>{t('files.title')}</span>
                       <div style={{ display: 'flex', gap: 4 }}>
                   {(note.attachments || []).slice(0, note.website ? 1 : 2).map(a => {
                     const isImage = a.mime_type?.startsWith('image/')
@@ -179,12 +179,12 @@ export function NoteCard({ note, currentUser, canEdit, onUpdate, onDelete, onEdi
                         }}
                         onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)' }}
                         onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none' }}>
-                        <span style={{ fontSize: 'calc(9px * var(--fs-scale-text, 1))', fontWeight: 700, color: a.mime_type === 'application/pdf' ? '#ef4444' : 'var(--text-muted)', letterSpacing: 0.3 }}>{ext}</span>
+                        <span style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 700, color: a.mime_type === 'application/pdf' ? '#ef4444' : 'var(--text-muted)', letterSpacing: 0.3 }}>{ext}</span>
                       </div>
                     )
                   })}
                   {(note.attachments?.length || 0) > (note.website ? 1 : 2) && (
-                    <span style={{ fontSize: 'calc(8px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', textAlign: 'center' }}>+{(note.attachments?.length || 0) - (note.website ? 1 : 2)}</span>
+                    <span style={{ fontSize: 'calc(8px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', textAlign: 'center' }}>+{(note.attachments?.length || 0) - (note.website ? 1 : 2)}</span>
                   )}
                       </div>
                     </div>

@@ -711,7 +711,7 @@ function UpcomingTool({ items, locale, onOpen }: {
         <div className="tool-title"><Calendar size={14} /> {t('dashboard.upcoming.title')}</div>
       </div>
       {items.length === 0 ? (
-        <div style={{ fontSize: 'calc(13px * var(--fs-scale-text, 1))', color: 'var(--ink-3)' }}>{t('dashboard.upcoming.empty')}</div>
+        <div style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', color: 'var(--ink-3)' }}>{t('dashboard.upcoming.empty')}</div>
       ) : (
         <div className="upc-list">
           {items.map(r => {

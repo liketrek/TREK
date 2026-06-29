@@ -56,13 +56,13 @@ export function ChipWithTooltip({ label, avatarUrl, size = 20, paid, onClick }: 
           pointerEvents: 'none', zIndex: 10000, whiteSpace: 'nowrap',
           display: 'flex', alignItems: 'center', gap: 5,
           background: 'var(--bg-card, white)', color: 'var(--text-primary, #111827)',
-          fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 500, padding: '5px 10px', borderRadius: 8,
+          fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500, padding: '5px 10px', borderRadius: 8,
           boxShadow: '0 4px 12px rgba(0,0,0,0.15)', border: '1px solid var(--border-faint, #e5e7eb)',
         }}>
           {label}
           {paid && (
             <span style={{
-              fontSize: 'calc(9px * var(--fs-scale-text, 1))', fontWeight: 700, padding: '1px 5px', borderRadius: 4,
+              fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 700, padding: '1px 5px', borderRadius: 4,
               background: 'rgba(34,197,94,0.15)', color: '#16a34a',
               textTransform: 'uppercase', letterSpacing: '0.03em',
             }}>Paid</span>
@@ -151,14 +151,14 @@ export default function BudgetMemberChips({ members = [], tripMembers = [], onSe
               <button key={tm.id} onClick={() => toggleMember(tm.id)} style={{
                 display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: '5px 8px',
                 borderRadius: 6, border: 'none', background: isActive ? 'var(--bg-hover)' : 'none', cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: 'var(--text-primary)', textAlign: 'left',
+                fontFamily: 'inherit', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-primary)', textAlign: 'left',
               }}
                 onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg-hover)' }}
                 onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'none' }}
               >
                 <div style={{
                   width: 18, height: 18, borderRadius: '50%', background: 'var(--bg-tertiary)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(8px * var(--fs-scale-text, 1))', fontWeight: 700,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(8px * var(--fs-scale-caption, 1))', fontWeight: 700,
                   color: 'var(--text-muted)', overflow: 'hidden', flexShrink: 0,
                 }}>
                   {tm.avatar_url

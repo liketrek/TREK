@@ -135,22 +135,17 @@ export function applyAppearance(input: ApplyAppearanceInput): AppearanceConfig {
     root.style.removeProperty('--accent-custom-text-dark')
   }
 
-  // per-tier type scales (consumed by the text-title/subtitle/body/caption utilities)
-  setScaleVar(root, '--fs-scale-title', eff.typeScale.title)
-  setScaleVar(root, '--fs-scale-subtitle', eff.typeScale.subtitle)
-  setScaleVar(root, '--fs-scale-body', eff.typeScale.body)
-  setScaleVar(root, '--fs-scale-caption', eff.typeScale.caption)
+  // Text scaling: each size-class var = global fontScale × its per-class factor.
+  // Inline px content (mapped by size) and the text-title/subtitle/body/caption
+  // utilities consume these; rem-based text additionally follows root font-size.
+  setScaleVar(root, '--fs-scale-title', eff.fontScale * eff.typeScale.title)
+  setScaleVar(root, '--fs-scale-subtitle', eff.fontScale * eff.typeScale.subtitle)
+  setScaleVar(root, '--fs-scale-body', eff.fontScale * eff.typeScale.body)
+  setScaleVar(root, '--fs-scale-caption', eff.fontScale * eff.typeScale.caption)
 
-  // global font scale: root font-size scales rem-based text; --fs-scale-text
-  // scales the (migrated) inline px sizes so dense content (trip places,
-  // addresses, panels) scales too. Both are driven by the same factor.
-  if (eff.fontScale === 1) {
-    root.style.removeProperty('font-size')
-    root.style.removeProperty('--fs-scale-text')
-  } else {
-    root.style.fontSize = `${eff.fontScale * 100}%`
-    root.style.setProperty('--fs-scale-text', String(eff.fontScale))
-  }
+  // root font-size scales rem-based text (navbar, menus, non-migrated text).
+  if (eff.fontScale === 1) root.style.removeProperty('font-size')
+  else root.style.fontSize = `${eff.fontScale * 100}%`
 
   // theme-color meta — unchanged from before (dark #09090b / light #ffffff).
   const meta = document.querySelector('meta[name="theme-color"]')

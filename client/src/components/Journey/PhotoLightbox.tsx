@@ -81,7 +81,7 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose }: Props
       >
         {/* Top bar */}
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px' }}>
-          <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500 }}>
+          <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500 }}>
             {idx + 1} / {photos.length}
           </span>
           <button onClick={onClose} style={{
@@ -137,7 +137,7 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose }: Props
         {photo.caption && (
           <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 5, maxWidth: '70%', textAlign: 'center' }}>
             <p style={{
-              fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontStyle: 'italic',
+              fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontStyle: 'italic',
               color: 'rgba(255,255,255,0.75)', margin: 0, lineHeight: 1.5,
               background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(8px)',
               padding: '6px 14px', borderRadius: 10,

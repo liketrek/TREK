@@ -349,10 +349,10 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
       size="2xl"
       footer={
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <button type="button" onClick={onClose} className="text-content-muted" style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', fontSize: 'calc(12px * var(--fs-scale-text, 1))', cursor: 'pointer', fontFamily: 'inherit' }}>
+          <button type="button" onClick={onClose} className="text-content-muted" style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', fontSize: 'calc(12px * var(--fs-scale-body, 1))', cursor: 'pointer', fontFamily: 'inherit' }}>
             {t('common.cancel')}
           </button>
-          <button type="button" onClick={handleSubmit} disabled={isSaving || !form.title.trim() || isEndBeforeStart} className="bg-[var(--text-primary)] text-[var(--bg-primary)]" style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: isSaving || !form.title.trim() || isEndBeforeStart ? 0.5 : 1 }}>
+          <button type="button" onClick={handleSubmit} disabled={isSaving || !form.title.trim() || isEndBeforeStart} className="bg-[var(--text-primary)] text-[var(--bg-primary)]" style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: isSaving || !form.title.trim() || isEndBeforeStart ? 0.5 : 1 }}>
             {isSaving ? t('common.saving') : reservation ? t('common.update') : t('common.add')}
           </button>
         </div>
@@ -368,7 +368,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
               <button key={value} type="button" onClick={() => set('type', value)} className={form.type === value ? 'bg-[var(--text-primary)] text-[var(--bg-primary)]' : 'bg-surface-card text-content-muted'} style={{
                 display: 'flex', alignItems: 'center', gap: 4,
                 padding: '5px 10px', borderRadius: 99, border: '1px solid',
-                fontSize: 'calc(11px * var(--fs-scale-text, 1))', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s',
+                fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s',
                 borderColor: form.type === value ? 'var(--text-primary)' : 'var(--border-primary)',
               }}>
                 <Icon size={11} /> {t(labelKey)}
@@ -457,7 +457,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
               </div>
             </div>
             {isEndBeforeStart && (
-              <div className="text-[#ef4444]" style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', marginTop: -6 }}>{t('reservations.validation.endBeforeStart')}</div>
+              <div className="text-[#ef4444]" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', marginTop: -6 }}>{t('reservations.validation.endBeforeStart')}</div>
             )}
           </>
         )}
@@ -606,7 +606,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
             {attachedFiles.map(f => (
               <div key={f.id} className="bg-surface-secondary" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', borderRadius: 8 }}>
                 <FileText size={12} className="text-content-muted" style={{ flexShrink: 0 }} />
-                <span className="text-content-secondary" style={{ flex: 1, fontSize: 'calc(12px * var(--fs-scale-text, 1))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.original_name}</span>
+                <span className="text-content-secondary" style={{ flex: 1, fontSize: 'calc(12px * var(--fs-scale-body, 1))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.original_name}</span>
                 <a href="#" onClick={(e) => { e.preventDefault(); openFile(f.url).catch(() => {}) }} className="text-content-faint" style={{ display: 'flex', flexShrink: 0, cursor: 'pointer' }}><ExternalLink size={11} /></a>
                 <button type="button" onClick={async () => {
                   if (f.reservation_id === reservation?.id) {
@@ -627,7 +627,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
             {pendingFiles.map((f, i) => (
               <div key={i} className="bg-surface-secondary" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', borderRadius: 8 }}>
                 <FileText size={12} className="text-content-muted" style={{ flexShrink: 0 }} />
-                <span className="text-content-secondary" style={{ flex: 1, fontSize: 'calc(12px * var(--fs-scale-text, 1))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                <span className="text-content-secondary" style={{ flex: 1, fontSize: 'calc(12px * var(--fs-scale-body, 1))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
                 <button type="button" onClick={() => setPendingFiles(prev => prev.filter((_, j) => j !== i))}
                   className="text-content-faint" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0, flexShrink: 0 }}>
                   <X size={11} />
@@ -639,7 +639,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
               {onFileUpload && <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingFile} className="text-content-faint" style={{
                 display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px',
                 border: '1px dashed var(--border-primary)', borderRadius: 8, background: 'none',
-                fontSize: 'calc(11px * var(--fs-scale-text, 1))', cursor: uploadingFile ? 'default' : 'pointer', fontFamily: 'inherit',
+                fontSize: 'calc(11px * var(--fs-scale-caption, 1))', cursor: uploadingFile ? 'default' : 'pointer', fontFamily: 'inherit',
               }}>
                 <Paperclip size={11} />
                 {uploadingFile ? t('reservations.uploading') : t('reservations.attachFile')}
@@ -649,7 +649,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
                   <button type="button" onClick={() => setShowFilePicker(v => !v)} className="text-content-faint" style={{
                     display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px',
                     border: '1px dashed var(--border-primary)', borderRadius: 8, background: 'none',
-                    fontSize: 'calc(11px * var(--fs-scale-text, 1))', cursor: 'pointer', fontFamily: 'inherit',
+                    fontSize: 'calc(11px * var(--fs-scale-caption, 1))', cursor: 'pointer', fontFamily: 'inherit',
                   }}>
                     <Link2 size={11} /> {t('reservations.linkExisting')}
                   </button>
@@ -671,7 +671,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
                           className="text-content-secondary"
                           style={{
                             display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 10px',
-                            background: 'none', border: 'none', cursor: 'pointer', fontSize: 'calc(12px * var(--fs-scale-text, 1))', fontFamily: 'inherit',
+                            background: 'none', border: 'none', cursor: 'pointer', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontFamily: 'inherit',
                             borderRadius: 7, textAlign: 'left',
                           }}
                           onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}

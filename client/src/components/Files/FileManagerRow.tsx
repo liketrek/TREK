@@ -49,7 +49,7 @@ export function FileRow(p: FileManagerState & { file: TripFile; isTrash?: boolea
               const isPdf = file.mime_type === 'application/pdf'
               return (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', background: isPdf ? '#ef44441a' : 'var(--bg-tertiary)' }}>
-                  <span style={{ fontSize: 'calc(9px * var(--fs-scale-text, 1))', fontWeight: 700, color: isPdf ? '#ef4444' : 'var(--text-muted)', letterSpacing: 0.3 }}>{ext}</span>
+                  <span style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 700, color: isPdf ? '#ef4444' : 'var(--text-muted)', letterSpacing: 0.3 }}>{ext}</span>
                 </div>
               )
             })()
@@ -65,19 +65,19 @@ export function FileRow(p: FileManagerState & { file: TripFile; isTrash?: boolea
           {!isTrash && file.starred ? <Star size={12} fill="#facc15" color="#facc15" style={{ flexShrink: 0 }} /> : null}
           <span
             onClick={() => !isTrash && openFile(file)}
-            style={{ fontWeight: 500, fontSize: 'calc(13px * var(--fs-scale-text, 1))', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: isTrash ? 'default' : 'pointer' }}
+            style={{ fontWeight: 500, fontSize: 'calc(13px * var(--fs-scale-body, 1))', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: isTrash ? 'default' : 'pointer' }}
           >
             {file.original_name}
           </span>
         </div>
 
         {file.description && (
-          <p style={{ fontSize: 'calc(11.5px * var(--fs-scale-text, 1))', color: 'var(--text-faint)', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.description}</p>
+          <p style={{ fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.description}</p>
         )}
 
         <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
-          {file.file_size && <span style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: 'var(--text-faint)' }}>{formatSize(file.file_size)}</span>}
-          <span style={{ fontSize: 'calc(11px * var(--fs-scale-text, 1))', color: 'var(--text-faint)' }}>{formatDateWithLocale(file.created_at, locale)}</span>
+          {file.file_size && <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)' }}>{formatSize(file.file_size)}</span>}
+          <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)' }}>{formatDateWithLocale(file.created_at, locale)}</span>
 
           {linkedPlaces.map(p => (
             <SourceBadge key={p.id} icon={MapPin} label={`${t('files.sourcePlan')} · ${p.name}`} />
