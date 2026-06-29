@@ -348,5 +348,9 @@ const admin: TranslationStrings = {
     "Remove all of this user's passkeys (e.g. on a lost device). They can still sign in with their password.",
   'admin.passkey.resetConfirm': 'Remove all passkeys for {name}?',
   'admin.passkey.resetDone': 'Removed {count} passkey(s)',
+  'admin.group.users': 'Users',
+  'admin.group.config': 'Configuration',
+  'admin.group.integration': 'Integrations',
+  'admin.group.maintenance': 'Maintenance',
 };
 export default admin;

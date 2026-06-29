@@ -342,5 +342,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': '스타일을 선택하세요…',
   'admin.defaultSettings.mapbox3d': '3D 건물 & 지형',
   'admin.defaultSettings.mapboxQuality': '고품질 모드',
+  'admin.group.users': 'Users',
+  'admin.group.config': 'Configuration',
+  'admin.group.integration': 'Integrations',
+  'admin.group.maintenance': 'Maintenance',
 };
 export default admin;

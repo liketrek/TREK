@@ -351,5 +351,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': 'Pilih gaya…',
   'admin.defaultSettings.mapbox3d': 'Bangunan & medan 3D',
   'admin.defaultSettings.mapboxQuality': 'Mode kualitas tinggi',
+  'admin.group.users': 'Users',
+  'admin.group.config': 'Configuration',
+  'admin.group.integration': 'Integrations',
+  'admin.group.maintenance': 'Maintenance',
 };
 export default admin;

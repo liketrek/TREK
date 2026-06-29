@@ -5,6 +5,9 @@ export interface PageSidebarTab {
   id: string
   label: string
   icon: LucideIcon
+  /** Optional group heading shown above the first tab of each group. Tabs that
+   *  share a group must be contiguous in the array. */
+  group?: string
 }
 
 interface PageSidebarProps {
@@ -160,29 +163,40 @@ function SidebarInner({
         </div>
       )}
       <nav className="flex flex-col gap-1 flex-1">
-        {tabs.map((tab) => {
-          const Icon = tab.icon
-          const active = tab.id === activeTab
-          return (
-            <button
-              key={tab.id}
-              onClick={() => onTabChange(tab.id)}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left transition-colors ${active ? 'text-content font-semibold' : 'text-content-secondary font-medium'}`}
-              style={{
-                background: active ? 'var(--bg-hover)' : 'transparent',
-              }}
-              onMouseEnter={(e) => {
-                if (!active) e.currentTarget.style.background = 'var(--bg-hover)'
-              }}
-              onMouseLeave={(e) => {
-                if (!active) e.currentTarget.style.background = 'transparent'
-              }}
-            >
-              <Icon size={16} className="shrink-0" />
-              <span className="truncate">{tab.label}</span>
-            </button>
-          )
-        })}
+        {(() => {
+          let lastGroup: string | undefined
+          return tabs.map((tab) => {
+            const Icon = tab.icon
+            const active = tab.id === activeTab
+            const showHeader = !!tab.group && tab.group !== lastGroup
+            lastGroup = tab.group
+            return (
+              <React.Fragment key={tab.id}>
+                {showHeader && (
+                  <div className="text-[10px] font-bold tracking-widest uppercase text-content-faint px-3 mt-3 mb-0.5 first:mt-0">
+                    {tab.group}
+                  </div>
+                )}
+                <button
+                  onClick={() => onTabChange(tab.id)}
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left transition-colors ${active ? 'text-content font-semibold' : 'text-content-secondary font-medium'}`}
+                  style={{
+                    background: active ? 'var(--bg-hover)' : 'transparent',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!active) e.currentTarget.style.background = 'var(--bg-hover)'
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) e.currentTarget.style.background = 'transparent'
+                  }}
+                >
+                  <Icon size={16} className="shrink-0" />
+                  <span className="truncate">{tab.label}</span>
+                </button>
+              </React.Fragment>
+            )
+          })
+        })()}
       </nav>
       {footer && (
         <div

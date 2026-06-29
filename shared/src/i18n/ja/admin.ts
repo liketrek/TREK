@@ -339,5 +339,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': 'スタイルを選択…',
   'admin.defaultSettings.mapbox3d': '3D の建物と地形',
   'admin.defaultSettings.mapboxQuality': '高品質モード',
+  'admin.group.users': 'Users',
+  'admin.group.config': 'Configuration',
+  'admin.group.integration': 'Integrations',
+  'admin.group.maintenance': 'Maintenance',
 };
 export default admin;

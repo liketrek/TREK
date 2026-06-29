@@ -333,5 +333,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': '选择一种样式…',
   'admin.defaultSettings.mapbox3d': '3D 建筑与地形',
   'admin.defaultSettings.mapboxQuality': '高质量模式',
+  'admin.group.users': 'Users',
+  'admin.group.config': 'Configuration',
+  'admin.group.integration': 'Integrations',
+  'admin.group.maintenance': 'Maintenance',
 };
 export default admin;
