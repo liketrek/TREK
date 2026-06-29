@@ -11,6 +11,7 @@ const files: TranslationStrings = {
   'files.countSingular': '1 dosya',
   'files.uploaded': '{count} yüklendi',
   'files.uploadError': 'Yükleme başarısız oldu',
+  'files.uploadErrorType': 'Bu dosya türü desteklenmiyor',
   'files.dropzone': 'Dosyaları buraya bırakın',
   'files.dropzoneHint': 'veya göz atmak için tıklayın',
   'files.allowedTypes': 'Görsel, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Maks. 50 MB',

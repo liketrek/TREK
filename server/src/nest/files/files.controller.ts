@@ -37,7 +37,8 @@ const UPLOAD = {
   fileFilter: (_req: unknown, file: Express.Multer.File, cb: (err: Error | null, accept: boolean) => void) => {
     const ext = path.extname(file.originalname).toLowerCase();
     const reject = () => {
-      const err: Error & { statusCode?: number } = new Error('File type not allowed');
+      // i18n key — the client resolves it via t() (see translateApiError).
+      const err: Error & { statusCode?: number } = new Error('files.uploadErrorType');
       err.statusCode = 400;
       cb(err, false);
     };

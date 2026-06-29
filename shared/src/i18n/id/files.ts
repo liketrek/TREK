@@ -11,6 +11,7 @@ const files: TranslationStrings = {
   'files.countSingular': '1 berkas',
   'files.uploaded': '{count} diunggah',
   'files.uploadError': 'Gagal mengunggah',
+  'files.uploadErrorType': 'Tipe file ini tidak didukung',
   'files.dropzone': 'Jatuhkan file di sini',
   'files.dropzoneHint': 'atau klik untuk memilih',
   'files.allowedTypes': 'Gambar, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Maks 50 MB',

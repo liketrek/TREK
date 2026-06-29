@@ -11,6 +11,7 @@ const files: TranslationStrings = {
   'files.countSingular': '1 soubor',
   'files.uploaded': '{count} nahráno',
   'files.uploadError': 'Nahrávání se nezdařilo',
+  'files.uploadErrorType': 'Tento typ souboru není podporován',
   'files.dropzone': 'Přetáhněte soubory sem',
   'files.dropzoneHint': 'nebo klikněte pro výběr',
   'files.allowedTypes': 'Obrázky, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Max 50 MB',

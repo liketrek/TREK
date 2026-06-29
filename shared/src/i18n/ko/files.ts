@@ -11,6 +11,7 @@ const files: TranslationStrings = {
   'files.countSingular': '파일 1개',
   'files.uploaded': '{count}개 업로드됨',
   'files.uploadError': '업로드 실패',
+  'files.uploadErrorType': '지원되지 않는 파일 형식입니다',
   'files.dropzone': '여기에 파일을 놓으세요',
   'files.dropzoneHint': '또는 클릭하여 탐색',
   'files.allowedTypes': '이미지, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · 최대 50 MB',

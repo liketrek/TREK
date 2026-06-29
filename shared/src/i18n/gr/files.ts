@@ -11,6 +11,7 @@ const files: TranslationStrings = {
   'files.countSingular': '1 αρχείο',
   'files.uploaded': '{count} μεταφορτώθηκαν',
   'files.uploadError': 'Η μεταφόρτωση απέτυχε',
+  'files.uploadErrorType': 'Αυτός ο τύπος αρχείου δεν υποστηρίζεται',
   'files.dropzone': 'Αποθέστε αρχεία εδώ',
   'files.dropzoneHint': 'ή κάντε κλικ για περιήγηση',
   'files.allowedTypes': 'Εικόνες, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Μέγ. 50 MB',

@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { useToast } from '../shared/Toast'
-import { useTranslation } from '../../i18n'
+import { useTranslation, translateApiError } from '../../i18n'
 import { filesApi } from '../../api/client'
 import type { Place, Reservation, TripFile, Day, AssignmentsMap } from '../../types'
 import { useCanDo } from '../../store/permissionsStore'
@@ -119,8 +119,8 @@ export function useFileManager({ files = [], onUpload, onDelete, onUpdate, place
       if (lastId && (places.length > 0 || reservations.length > 0)) {
         setAssignFileId(lastId)
       }
-    } catch {
-      toast.error(t('files.uploadError'))
+    } catch (err) {
+      toast.error(translateApiError(t, err, 'files.uploadError'))
     } finally {
       setUploading(false)
     }

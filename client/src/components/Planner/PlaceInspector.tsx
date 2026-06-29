@@ -9,7 +9,7 @@ import { mapsApi } from '../../api/client'
 import { useSettingsStore } from '../../store/settingsStore'
 import { getCategoryIcon } from '../shared/categoryIcons'
 import { useToast } from '../shared/Toast'
-import { useTranslation } from '../../i18n'
+import { useTranslation, translateApiError } from '../../i18n'
 import type { Place, Category, Day, Assignment, Reservation, TripFile, AssignmentsMap } from '../../types'
 import { splitReservationDateTime, formatTime } from '../../utils/formatters'
 import { formatDistance, formatElevation } from '../../utils/units'
@@ -189,7 +189,7 @@ export default function PlaceInspector({
       setFilesExpanded(true)
     } catch (err: unknown) {
       console.error('Upload failed', err)
-      toast.error(t('files.uploadError'))
+      toast.error(translateApiError(t, err, 'files.uploadError'))
     } finally {
       setIsUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
