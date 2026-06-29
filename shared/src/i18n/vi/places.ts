@@ -24,6 +24,8 @@ const places: TranslationStrings = {
   'places.kmlImportNoneSelected': 'Chọn ít nhất một loại để nhập.',
   'places.selectionCount': '{count} đã chọn',
   'places.deleteSelected': 'Xóa đã chọn',
+  'places.changeCategory': "Change category",
+  'places.categoryChanged': "{count} places updated",
   'places.kmlKmzImported': '{count} địa điểm được nhập từ KMZ/KML',
   'places.urlResolved': 'Địa điểm được nhập từ URL',
   'places.importList': 'Nhập danh sách',

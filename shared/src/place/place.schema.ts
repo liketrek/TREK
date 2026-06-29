@@ -113,6 +113,14 @@ export const placeBulkDeleteRequestSchema = z.object({
 });
 export type PlaceBulkDeleteRequest = z.infer<typeof placeBulkDeleteRequestSchema>;
 
+export const placeBulkUpdateRequestSchema = z.object({
+  ids: z.array(z.number()).min(1),
+  // null clears the category ("No category"); a number sets it. Optional so the
+  // field can be omitted, but the endpoint requires it to be present to act.
+  category_id: z.number().nullable().optional(),
+});
+export type PlaceBulkUpdateRequest = z.infer<typeof placeBulkUpdateRequestSchema>;
+
 export const placeImportListRequestSchema = z.object({
   url: z.string().min(1),
   // Opt-in: enrich imported places via the Places API (#886). Requires a Google

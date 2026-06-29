@@ -9,6 +9,7 @@ const undo: TranslationStrings = {
   'undo.optimize': 'Útvonal optimalizálva',
   'undo.deletePlace': 'Hely törölve',
   'undo.deletePlaces': 'Helyek törölve',
+  'undo.changeCategory': "Category changed",
   'undo.moveDay': 'Hely áthelyezve másik napra',
   'undo.lock': 'Hely zárolása váltva',
   'undo.importGpx': 'GPX importálás',

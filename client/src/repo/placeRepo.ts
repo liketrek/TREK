@@ -115,4 +115,31 @@ export const placeRepo = {
     await offlineDb.places.bulkDelete(ids)
     return result
   },
+
+  async updateMany(tripId: number | string, ids: number[], data: Record<string, unknown>): Promise<{ updated: number[]; count: number }> {
+    if (!navigator.onLine) {
+      // Offline fans out one queued PUT per id (mirrors deleteMany's DELETE fan-out).
+      for (const id of ids) {
+        const existing = await offlineDb.places.get(id)
+        if (existing) await offlineDb.places.put({ ...existing, ...(data as Partial<Place>) })
+        const mutId = generateUUID()
+        const isTemp = id < 0
+        await mutationQueue.enqueue({
+          id: mutId,
+          tripId: Number(tripId),
+          method: 'PUT',
+          url: isTemp ? `/trips/${tripId}/places/{id}` : `/trips/${tripId}/places/${id}`,
+          body: data,
+          resource: 'places',
+          entityId: id,
+          ...(isTemp ? { tempEntityId: id } : {}),
+        })
+      }
+      return { updated: ids, count: ids.length }
+    }
+    const result = await placesApi.bulkUpdate(tripId, ids, data as Parameters<typeof placesApi.bulkUpdate>[2])
+    const cached = await offlineDb.places.bulkGet(ids)
+    await offlineDb.places.bulkPut(cached.filter(Boolean).map(p => ({ ...(p as Place), ...(data as Partial<Place>) })))
+    return result
+  },
 }

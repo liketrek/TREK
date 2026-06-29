@@ -225,6 +225,36 @@ export class PlacesController {
     return { deleted, count: deleted.length };
   }
 
+  @Post('bulk-update')
+  @HttpCode(200)
+  bulkUpdate(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Body() body: { ids?: unknown; category_id?: unknown },
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    const trip = this.requireTrip(tripId, user);
+    this.requireEdit(trip, user);
+    const { ids } = body;
+    if (!Array.isArray(ids) || ids.some((v) => typeof v !== 'number')) {
+      throw new HttpException({ error: 'ids must be an array of numbers' }, 400);
+    }
+    if (ids.length === 0) {
+      return { updated: [], count: 0 };
+    }
+    // `category_id` may be a number or null (null clears it), so key presence —
+    // not truthiness — is what signals there's something to change.
+    if (!('category_id' in body)) {
+      throw new HttpException({ error: 'Provide at least one field to update' }, 400);
+    }
+    const updated = this.places.updateMany(tripId, ids, { category_id: body.category_id as number | null });
+    for (const place of updated) {
+      this.places.broadcast(tripId, 'place:updated', { place }, socketId);
+      this.places.onUpdated(place.id);
+    }
+    return { updated: updated.map((p) => p.id), count: updated.length };
+  }
+
   @Get(':id')
   get(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string) {
     this.requireTrip(tripId, user);

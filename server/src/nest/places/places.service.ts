@@ -52,6 +52,10 @@ export class PlacesService {
     return svc.deletePlacesMany(tripId, ids);
   }
 
+  updateMany(tripId: string, ids: number[], data: Parameters<typeof svc.updatePlacesMany>[2]) {
+    return svc.updatePlacesMany(tripId, ids, data);
+  }
+
   importGpx(
     tripId: string,
     buffer: Buffer,

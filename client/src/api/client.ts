@@ -27,6 +27,7 @@ import {
   type TodoCreateItemRequest, type TodoUpdateItemRequest,
   type AssignmentCreateRequest, type AssignmentParticipantsRequest, type AssignmentTimeRequest,
   type PlaceBulkDeleteRequest,
+  type PlaceBulkUpdateRequest,
   type DayNoteCreateRequest, type DayNoteUpdateRequest,
   type PackingImportRequest, type PackingBagMembersRequest, type PackingUpdateBagRequest,
   type PackingCategoryAssigneesRequest,
@@ -379,6 +380,8 @@ export const placesApi = {
       apiClient.post(`/trips/${tripId}/places/import/naver-list`, { url, enrich } satisfies PlaceImportListRequest).then(r => r.data),
   bulkDelete: (tripId: number | string, ids: number[]) =>
       apiClient.post(`/trips/${tripId}/places/bulk-delete`, { ids } satisfies PlaceBulkDeleteRequest).then(r => r.data),
+  bulkUpdate: (tripId: number | string, ids: number[], data: Omit<PlaceBulkUpdateRequest, 'ids'>) =>
+      apiClient.post(`/trips/${tripId}/places/bulk-update`, { ids, ...data } satisfies PlaceBulkUpdateRequest).then(r => r.data),
 }
 
 export const assignmentsApi = {

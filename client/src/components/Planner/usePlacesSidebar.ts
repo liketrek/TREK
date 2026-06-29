@@ -25,6 +25,7 @@ export interface PlacesSidebarProps {
   onDeletePlace: (placeId: number) => void
   onBulkDeletePlaces?: (ids: number[]) => void
   onBulkDeleteConfirm?: (ids: number[]) => void
+  onBulkChangeCategory?: (ids: number[], categoryId: number | null) => void
   days: Day[]
   isMobile: boolean
   onCategoryFilterChange?: (categoryIds: Set<string>) => void
@@ -147,6 +148,7 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [pendingDeleteIds, setPendingDeleteIds] = useState<number[] | null>(null)
+  const [categoryPickerOpen, setCategoryPickerOpen] = useState(false)
 
   const exitSelectMode = () => { setSelectMode(false); setSelectedIds(new Set()) }
 
@@ -258,6 +260,7 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
     availableListImportProviders, hasMultipleListImportProviders, handleListImport,
     search, setSearch, filter, setFilter, categoryFilters, setCategoryFiltersLocal,
     selectMode, setSelectMode, selectedIds, setSelectedIds, pendingDeleteIds, setPendingDeleteIds,
+    categoryPickerOpen, setCategoryPickerOpen,
     exitSelectMode, toggleSelected, toggleCategoryFilter, dayPickerPlace, setDayPickerPlace,
     catDropOpen, setCatDropOpen, mobileShowDays, setMobileShowDays,
     hasTracks, plannedIds, filtered, registerPlaceRow, isAssignedToSelectedDay, inDaySet, openContextMenu,

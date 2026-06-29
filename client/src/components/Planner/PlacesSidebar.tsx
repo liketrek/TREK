@@ -8,6 +8,7 @@ import { PlacesSelectionBar } from './PlacesSidebarSelectionBar'
 import { PlacesList } from './PlacesSidebarList'
 import { MobileDayPickerSheet } from './PlacesSidebarMobileDayPicker'
 import { ListImportModal } from './PlacesSidebarListImportModal'
+import { PlacesBulkCategoryModal } from './PlacesBulkCategoryModal'
 
 const PlacesSidebar = React.memo(function PlacesSidebar(props: PlacesSidebarProps) {
   const S = usePlacesSidebar(props)
@@ -16,6 +17,7 @@ const PlacesSidebar = React.memo(function PlacesSidebar(props: PlacesSidebarProp
     selectMode, filtered, t, dayPickerPlace, listImportOpen,
     fileImportOpen, setFileImportOpen, sidebarDropFile, setSidebarDropFile, tripId, pushUndo,
     ctxMenu, isMobile, pendingDeleteIds, setPendingDeleteIds, onBulkDeleteConfirm,
+    categories, selectedIds, exitSelectMode, onBulkChangeCategory, categoryPickerOpen, setCategoryPickerOpen,
   } = S
   return (
     <div
@@ -51,6 +53,14 @@ const PlacesSidebar = React.memo(function PlacesSidebar(props: PlacesSidebarProp
         initialFile={sidebarDropFile}
       />
       <ContextMenu menu={ctxMenu.menu} onClose={ctxMenu.close} />
+      {categoryPickerOpen && (
+        <PlacesBulkCategoryModal
+          count={selectedIds.size}
+          categories={categories}
+          onClose={() => setCategoryPickerOpen(false)}
+          onPick={(catId) => { onBulkChangeCategory?.(Array.from(selectedIds), catId); setCategoryPickerOpen(false); exitSelectMode() }}
+        />
+      )}
       {isMobile && (
         <ConfirmDialog
           isOpen={!!pendingDeleteIds?.length}

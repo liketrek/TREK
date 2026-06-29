@@ -91,6 +91,35 @@ describe('placesSlice', () => {
     });
   });
 
+  describe('updatePlacesMany', () => {
+    it('FE-PLACES-008: applies the patch to every listed place and cascades to assignments', async () => {
+      const a = buildPlace({ id: 10, trip_id: 1, category_id: 1 });
+      const b = buildPlace({ id: 20, trip_id: 1, category_id: 1 });
+      const c = buildPlace({ id: 30, trip_id: 1, category_id: 9 });
+      const assignment = buildAssignment({ id: 100, day_id: 1, place: a });
+      seedStore(useTripStore, { places: [a, b, c], assignments: { '1': [assignment] } });
+
+      server.use(
+        http.post('/api/trips/1/places/bulk-update', () => HttpResponse.json({ updated: [10, 20], count: 2 })),
+      );
+
+      await useTripStore.getState().updatePlacesMany(1, [10, 20], { category_id: 5 });
+
+      const places = useTripStore.getState().places;
+      expect(places.find(p => p.id === 10)?.category_id).toBe(5);
+      expect(places.find(p => p.id === 20)?.category_id).toBe(5);
+      expect(places.find(p => p.id === 30)?.category_id).toBe(9); // untouched
+      expect(useTripStore.getState().assignments['1'][0].place.category_id).toBe(5); // cascaded
+    });
+
+    it('FE-PLACES-009: no-ops on an empty id list without calling the API', async () => {
+      const a = buildPlace({ id: 10, trip_id: 1, category_id: 1 });
+      seedStore(useTripStore, { places: [a] });
+      await useTripStore.getState().updatePlacesMany(1, [], { category_id: 5 });
+      expect(useTripStore.getState().places[0].category_id).toBe(1);
+    });
+  });
+
   describe('deletePlace', () => {
     it('FE-PLACES-005: deletePlace removes place from places array', async () => {
       const place1 = buildPlace({ id: 10, trip_id: 1 });

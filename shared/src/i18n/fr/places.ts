@@ -24,6 +24,8 @@ const places: TranslationStrings = {
   'places.kmlImportNoneSelected': 'Sélectionnez au moins un type.',
   'places.selectionCount': '{count} sélectionné(s)',
   'places.deleteSelected': 'Supprimer la sélection',
+  'places.changeCategory': "Change category",
+  'places.categoryChanged': "{count} places updated",
   'places.kmlKmzImported': '{count} lieux importés depuis KMZ/KML',
   'places.urlResolved': "Lieu importé depuis l'URL",
   'places.importList': 'Import de liste',

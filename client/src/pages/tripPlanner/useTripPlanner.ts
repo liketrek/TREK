@@ -525,6 +525,32 @@ export function useTripPlanner() {
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
   }, [deletePlaceIds, tripId, toast, selectedPlaceId, selectedDayId, updateRouteForDay, pushUndo])
 
+  const confirmChangeCategory = useCallback(async (ids: number[], categoryId: number | null) => {
+    if (!ids.length) return
+    const state = useTripStore.getState()
+    // Capture each place's prior category so undo can restore them per group.
+    const captured = state.places.filter(p => ids.includes(p.id)).map(p => ({ id: p.id, prev: p.category_id ?? null }))
+    try {
+      await tripActions.updatePlacesMany(tripId, ids, { category_id: categoryId })
+      toast.success(t('places.categoryChanged', { count: ids.length }))
+      if (captured.length > 0) {
+        pushUndo(t('undo.changeCategory'), async () => {
+          // Group the captured ids by their prior category so each set is restored
+          // in one call ('null' key = previously uncategorized). Map is shadowed by
+          // the lucide icon import in this file, so use a plain object.
+          const byPrev: Record<string, number[]> = {}
+          for (const { id, prev } of captured) {
+            const key = prev === null ? 'null' : String(prev)
+            ;(byPrev[key] ??= []).push(id)
+          }
+          for (const [key, group] of Object.entries(byPrev)) {
+            await tripActions.updatePlacesMany(tripId, group, { category_id: key === 'null' ? null : Number(key) })
+          }
+        })
+      }
+    } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
+  }, [tripId, toast, pushUndo])
+
   const handleAssignToDay = useCallback(async (placeId: number, dayId?: number, position?: number) => {
     const target = dayId || selectedDayId
     if (!target) { toast.error(t('trip.toast.selectDay')); return }
@@ -841,7 +867,7 @@ export function useTripPlanner() {
     expandedDayIds, setExpandedDayIds, mapPlaces,
     route, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay,
     handleSelectDay, handlePlaceClick, handleMarkerClick, handleMapClick, handleMapContextMenu, openAddPlaceFromPoi,
-    handleSavePlace, openPlaceEditor, handleDeletePlace, confirmDeletePlace, confirmDeletePlaces,
+    handleSavePlace, openPlaceEditor, handleDeletePlace, confirmDeletePlace, confirmDeletePlaces, confirmChangeCategory,
     handleAssignToDay, handleRemoveAssignment, handleReorder, handleReorderDays, handleAddDay, handleUpdateDayTitle,
     handleSaveReservation, handleSaveTransport, handleDeleteReservation,
     selectedPlace, dayOrderMap, dayPlaces,

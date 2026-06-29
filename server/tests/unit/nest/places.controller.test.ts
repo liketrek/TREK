@@ -190,6 +190,38 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
     });
   });
 
+  describe('POST /bulk-update', () => {
+    it('404 when trip not accessible, 403 without place_edit (before any write)', () => {
+      expect(thrown(() => new PlacesController(svc({ verifyTripAccess: vi.fn().mockReturnValue(undefined) })).bulkUpdate(user, '5', { ids: [1], category_id: 3 }))).toEqual({ status: 404, body: { error: 'Trip not found' } });
+      expect(thrown(() => new PlacesController(svc({ canEdit: vi.fn().mockReturnValue(false) })).bulkUpdate(user, '5', { ids: [1], category_id: 3 }))).toEqual({ status: 403, body: { error: 'No permission' } });
+    });
+    it('400 when ids is not an array of numbers', () => {
+      expect(thrown(() => new PlacesController(svc()).bulkUpdate(user, '5', { ids: ['a'] }))).toEqual({ status: 400, body: { error: 'ids must be an array of numbers' } });
+    });
+    it('400 when no patch field is present', () => {
+      expect(thrown(() => new PlacesController(svc()).bulkUpdate(user, '5', { ids: [1] }))).toEqual({ status: 400, body: { error: 'Provide at least one field to update' } });
+    });
+    it('returns empty for an empty list without touching the service', () => {
+      const updateMany = vi.fn();
+      expect(new PlacesController(svc({ updateMany } as Partial<PlacesService>)).bulkUpdate(user, '5', { ids: [] })).toEqual({ updated: [], count: 0 });
+      expect(updateMany).not.toHaveBeenCalled();
+    });
+    it('updates, fires hooks + broadcasts per updated place', () => {
+      const updateMany = vi.fn().mockReturnValue([{ id: 1 }, { id: 2 }]); const onUpdated = vi.fn(); const broadcast = vi.fn();
+      const s = svc({ updateMany, onUpdated, broadcast } as Partial<PlacesService>);
+      expect(new PlacesController(s).bulkUpdate(user, '5', { ids: [1, 2], category_id: 3 }, 'sock')).toEqual({ updated: [1, 2], count: 2 });
+      expect(updateMany).toHaveBeenCalledWith('5', [1, 2], { category_id: 3 });
+      expect(onUpdated).toHaveBeenCalledTimes(2);
+      expect(broadcast).toHaveBeenCalledWith('5', 'place:updated', { place: { id: 1 } }, 'sock');
+    });
+    it('passes category_id: null through to clear the category', () => {
+      const updateMany = vi.fn().mockReturnValue([{ id: 1 }]);
+      const s = svc({ updateMany } as Partial<PlacesService>);
+      expect(new PlacesController(s).bulkUpdate(user, '5', { ids: [1], category_id: null })).toEqual({ updated: [1], count: 1 });
+      expect(updateMany).toHaveBeenCalledWith('5', [1], { category_id: null });
+    });
+  });
+
   it('GET /:id returns the place when found, 404 when missing', () => {
     expect(thrown(() => new PlacesController(svc({ get: vi.fn().mockReturnValue(undefined) } as Partial<PlacesService>)).get(user, '5', '9'))).toEqual({ status: 404, body: { error: 'Place not found' } });
     const s = svc({ get: vi.fn().mockReturnValue({ id: 9 }) } as Partial<PlacesService>);
