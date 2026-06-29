@@ -2,6 +2,7 @@ import { db, canAccessTrip } from '../db/database';
 import crypto from 'crypto';
 import { loadTagsByPlaceIds } from './queryHelpers';
 import { serveFilePath } from './placePhotoCache';
+import { getUserSettings } from './settingsService';
 
 const PLACE_PHOTO_PROXY_PREFIX = '/api/maps/place-photo/';
 
@@ -219,8 +220,23 @@ export function getSharedTripData(token: string): Record<string, any> | null {
     ? db.prepare('SELECT m.*, u.username, u.avatar FROM collab_messages m JOIN users u ON m.user_id = u.id WHERE m.trip_id = ? AND m.deleted = 0 ORDER BY m.created_at').all(tripId)
     : [];
 
+  // Display currency the share owner sees in their Costs view. A public viewer has
+  // no logged-in user, so the owner's per-user `default_currency` (with the admin
+  // instance default already merged in by getUserSettings) is embedded in the
+  // payload and used by the client to convert every expense — otherwise guests
+  // fall back to the trip's base currency and see the wrong totals (#1361).
+  // getUserSettings merges admin defaults under the user's own settings, so this
+  // honours per-user → admin-default; we then fall back to trip currency → EUR.
+  let baseCurrency = (trip as { currency?: string }).currency || 'EUR';
+  if (shareRow.created_by != null) {
+    const ownerDefault = getUserSettings(shareRow.created_by)['default_currency'];
+    if (typeof ownerDefault === 'string' && ownerDefault.trim()) {
+      baseCurrency = ownerDefault.trim();
+    }
+  }
+
   return {
-    trip, days, assignments, dayNotes, places, categories, permissions,
+    trip, baseCurrency, days, assignments, dayNotes, places, categories, permissions,
     reservations: permissions.share_bookings ? reservations : [],
     accommodations: permissions.share_bookings ? accommodations : [],
     packing: permissions.share_packing ? packing : [],

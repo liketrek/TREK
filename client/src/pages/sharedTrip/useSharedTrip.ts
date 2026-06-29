@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { shareApi } from '../../api/client'
+import { useExchangeRates } from '../../hooks/useExchangeRates'
 
 /**
  * Shared-trip (public) data hook — owns the token lookup, the read-only share
@@ -24,5 +25,12 @@ export function useSharedTrip() {
     shareApi.getSharedTrip(token).then(setData).catch(() => setError(true))
   }, [token])
 
-  return { data, error, selectedDay, setSelectedDay, activeTab, setActiveTab, showLangPicker, setShowLangPicker }
+  // Budget display currency = what the share owner sees in Costs (embedded in the
+  // payload as baseCurrency), falling back to the trip's own currency, then EUR.
+  // Convert every expense into it via live FX, mirroring CostsPanel — a public
+  // viewer has no settings store, so the base comes from the payload (#1361).
+  const base = String(data?.baseCurrency || data?.trip?.currency || 'EUR').toUpperCase()
+  const { convert } = useExchangeRates(base)
+
+  return { data, error, base, convert, selectedDay, setSelectedDay, activeTab, setActiveTab, showLangPicker, setShowLangPicker }
 }

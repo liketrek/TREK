@@ -42,7 +42,7 @@ function FitBoundsToPlaces({ places }: { places: any[] }) {
 export default function SharedTripPage() {
   const { t, locale } = useTranslation()
   // Page = wiring container: share fetch + view state live in the hook.
-  const { data, error, selectedDay, setSelectedDay, activeTab, setActiveTab, showLangPicker, setShowLangPicker } = useSharedTrip()
+  const { data, error, base, convert, selectedDay, setSelectedDay, activeTab, setActiveTab, showLangPicker, setShowLangPicker } = useSharedTrip()
 
   if (error) return (
     <div className="bg-[#f3f4f6]" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
@@ -328,26 +328,30 @@ export default function SharedTripPage() {
 
         {/* Budget */}
         {activeTab === 'budget' && (budget || []).length > 0 && (() => {
+          // Pre-rework rows store currency = NULL ("the trip's own currency"); convert
+          // each expense into the owner's display base via live FX, mirroring CostsPanel.
+          const curOf = (i: any) => i.currency || trip.currency || base
           const grouped = (budget || []).reduce((g: any, i: any) => { const c = i.category || t('shared.other'); (g[c] = g[c] || []).push(i); return g }, {})
-          const total = (budget || []).reduce((s: number, i: any) => s + (parseFloat(i.total_price) || 0), 0)
+          const sumIn = (items: any[]) => items.reduce((s: number, i: any) => s + convert(parseFloat(i.total_price) || 0, curOf(i)), 0)
+          const total = sumIn(budget || [])
           return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {/* Total card */}
               <div className="text-white" style={{ background: 'linear-gradient(135deg, #000 0%, #1a1a2e 100%)', borderRadius: 14, padding: '20px 24px' }}>
                 <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: 1, textTransform: 'uppercase', opacity: 0.5 }}>{t('shared.totalBudget')}</div>
-                <div style={{ fontSize: 28, fontWeight: 700, marginTop: 4 }}>{total.toLocaleString(locale, { minimumFractionDigits: 2 })} {trip.currency || 'EUR'}</div>
+                <div style={{ fontSize: 28, fontWeight: 700, marginTop: 4 }}>{total.toLocaleString(locale, { minimumFractionDigits: 2 })} {base}</div>
               </div>
               {/* By category */}
               {Object.entries(grouped).map(([cat, items]: [string, any]) => (
                 <div key={cat} className="bg-surface-card border border-edge-faint" style={{ borderRadius: 12, overflow: 'hidden' }}>
                   <div className="bg-[#f9fafb]" style={{ padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f3f4f6' }}>
                     <span className="text-[#374151]" style={{ fontSize: 12, fontWeight: 700 }}>{cat}</span>
-                    <span className="text-[#6b7280]" style={{ fontSize: 12, fontWeight: 600 }}>{items.reduce((s: number, i: any) => s + (parseFloat(i.total_price) || 0), 0).toLocaleString(locale, { minimumFractionDigits: 2 })} {trip.currency || ''}</span>
+                    <span className="text-[#6b7280]" style={{ fontSize: 12, fontWeight: 600 }}>{sumIn(items).toLocaleString(locale, { minimumFractionDigits: 2 })} {base}</span>
                   </div>
                   {items.map((item: any) => (
                     <div key={item.id} style={{ padding: '8px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #fafafa' }}>
                       <span className="text-[#111827]" style={{ fontSize: 13 }}>{item.name}</span>
-                      <span className="text-[#111827]" style={{ fontSize: 13, fontWeight: 600 }}>{item.total_price ? Number(item.total_price).toLocaleString(locale, { minimumFractionDigits: 2 }) : '—'}</span>
+                      <span className="text-[#111827]" style={{ fontSize: 13, fontWeight: 600 }}>{item.total_price ? `${convert(parseFloat(item.total_price) || 0, curOf(item)).toLocaleString(locale, { minimumFractionDigits: 2 })} ${base}` : '—'}</span>
                     </div>
                   ))}
                 </div>
