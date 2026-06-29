@@ -155,7 +155,12 @@ export default function AppearanceSettingsTab(): React.ReactElement {
               return (
                 <button key={opt.value} onClick={() => setMode(opt.value)} style={segStyle(active)}>
                   <span className="hidden sm:inline-flex"><opt.icon size={16} /></span>
-                  {opt.label}
+                  {opt.value === 'auto' ? (
+                    <>
+                      <span className="hidden sm:inline">{opt.label}</span>
+                      <span className="sm:hidden">Auto</span>
+                    </>
+                  ) : opt.label}
                 </button>
               )
             })}
