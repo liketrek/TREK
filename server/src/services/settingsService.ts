@@ -1,5 +1,6 @@
 import { db } from '../db/database';
 import { decrypt_api_key, maybe_encrypt_api_key } from './apiKeyCrypto';
+import { normalizeAppearance } from '@trek/shared';
 
 const ENCRYPTED_SETTING_KEYS = new Set(['webhook_url', 'ntfy_token', 'mapbox_access_token', 'llm_api_key']);
 // Encrypted keys that are masked (••••••••) when returned to the client.
@@ -136,6 +137,10 @@ export function getUserSettings(userId: number): Record<string, unknown> {
 }
 
 function serializeValue(key: string, value: unknown): string {
+  // The appearance blob drives the DOM on the client — normalize it on the way
+  // in so a malformed/partial/future-versioned payload can never be stored (and
+  // thus never reach the writer). Unknown/invalid fields collapse to the default.
+  if (key === 'appearance') value = normalizeAppearance(value);
   const raw = typeof value === 'object' ? JSON.stringify(value) : String(value !== undefined ? value : '');
   if (ENCRYPTED_SETTING_KEYS.has(key)) return maybe_encrypt_api_key(raw) ?? raw;
   return raw;

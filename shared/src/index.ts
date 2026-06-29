@@ -37,6 +37,7 @@ export * from './file/file.schema';
 export * from './journey/journey.schema';
 export * from './share/share.schema';
 export * from './settings/settings.schema';
+export * from './appearance/appearance.schema';
 export * from './backup/backup.schema';
 export * from './auth/auth.schema';
 export * from './oidc/oidc.schema';

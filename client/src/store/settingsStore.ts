@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { settingsApi } from '../api/client'
 import type { Settings } from '../types'
+import { DEFAULT_APPEARANCE } from '@trek/shared'
 import { getApiErrorMessage } from '../types'
 import { SUPPORTED_LANGUAGE_CODES } from '../i18n/supportedLanguages'
 
@@ -43,6 +44,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     mapbox_quality_mode: false,
     dashboard_fx_from: 'EUR',
     dashboard_fx_to: 'USD',
+    appearance: DEFAULT_APPEARANCE,
     // dashboard_timezones is intentionally left unset so the widget can tell "never
     // chosen" (fall back to home + defaults) from an explicitly emptied list.
   },
