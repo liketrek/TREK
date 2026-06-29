@@ -198,6 +198,64 @@ describe('Tool: update_place', () => {
 });
 
 // ---------------------------------------------------------------------------
+// bulk_update_places
+// ---------------------------------------------------------------------------
+
+describe('Tool: bulk_update_places', () => {
+  it('applies the same field to many places in one call', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const a = createPlace(testDb, trip.id, { name: 'A' });
+    const b = createPlace(testDb, trip.id, { name: 'B' });
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'bulk_update_places',
+        arguments: { tripId: trip.id, placeIds: [a.id, b.id], transport_mode: 'walking' },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.count).toBe(2);
+      expect([...data.updatedIds].sort()).toEqual([a.id, b.id].sort());
+      expect(data.skipped).toBe(0);
+    });
+  });
+
+  it('broadcasts place:updated for each updated place', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const a = createPlace(testDb, trip.id);
+    const b = createPlace(testDb, trip.id);
+    await withHarness(user.id, async (h) => {
+      broadcastMock.mockClear();
+      await h.client.callTool({ name: 'bulk_update_places', arguments: { tripId: trip.id, placeIds: [a.id, b.id], notes: 'seen' } });
+      const updates = broadcastMock.mock.calls.filter((c) => c[1] === 'place:updated');
+      expect(updates).toHaveLength(2);
+    });
+  });
+
+  it('errors when no update fields are provided', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const a = createPlace(testDb, trip.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'bulk_update_places', arguments: { tripId: trip.id, placeIds: [a.id] } });
+      expect(result.isError).toBe(true);
+    });
+  });
+
+  it('returns access denied for non-member', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const trip = createTrip(testDb, other.id);
+    const place = createPlace(testDb, trip.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'bulk_update_places', arguments: { tripId: trip.id, placeIds: [place.id], notes: 'x' } });
+      expect(result.isError).toBe(true);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // delete_place
 // ---------------------------------------------------------------------------
 
