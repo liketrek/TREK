@@ -384,6 +384,7 @@ const settings: TranslationStrings = {
   'settings.appearance.example.medium': 'Sub-headings',
   'settings.appearance.example.normal': 'Place names, descriptions',
   'settings.appearance.example.small': 'Addresses, labels',
+  'settings.appearance.experimental': 'Experimental',
 };
 
 export default settings;

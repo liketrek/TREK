@@ -255,7 +255,15 @@ export default function AppearanceSettingsTab(): React.ReactElement {
       </Section>
 
       {/* ── Readability ─────────────────────────────────────────── */}
-      <Section title={tr('settings.appearance.readability', 'Readability')} icon={Eye}>
+      <Section
+        title={tr('settings.appearance.readability', 'Readability')}
+        icon={Eye}
+        badge={
+          <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-warning-soft text-warning">
+            {tr('settings.appearance.experimental', 'Experimental')}
+          </span>
+        }
+      >
         <ToggleRow
           label={tr('settings.appearance.transparency', 'Transparency')}
           hint={tr('settings.appearance.transparencyHint', 'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.')}

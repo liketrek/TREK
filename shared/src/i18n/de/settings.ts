@@ -406,6 +406,7 @@ const settings: TranslationStrings = {
   'settings.appearance.example.medium': 'Zwischenüberschriften',
   'settings.appearance.example.normal': 'Ortsnamen, Beschreibungen',
   'settings.appearance.example.small': 'Adressen, Labels',
+  'settings.appearance.experimental': 'Experimentell',
 };
 
 export default settings;
