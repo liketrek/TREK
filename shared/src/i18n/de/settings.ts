@@ -388,6 +388,10 @@ const settings: TranslationStrings = {
   'settings.appearance.widget.daysTraveled': 'Reisetage',
   'settings.appearance.widget.distanceFlown': 'Flugdistanz',
   'settings.appearance.reset': 'Auf Standard zurücksetzen',
+  'settings.appearance.group.belowHero': 'Unter dem Hero',
+  'settings.appearance.group.bottomOfPage': 'Seitenende',
+  'settings.appearance.sidebarHint': 'Die ganze rechte Spalte. Aus → das Dashboard zentriert sich.',
+  'settings.appearance.densityHint': 'Kompakt verringert Abstände und Innenabstände für ein dichteres Layout.',
 };
 
 export default settings;

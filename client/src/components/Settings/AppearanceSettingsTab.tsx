@@ -38,22 +38,26 @@ const isHex = (v: string) => /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v)
 type DesktopWidgetKey = keyof AppearanceConfig['dashboard']['desktop']
 type MobileWidgetKey = keyof AppearanceConfig['dashboard']['mobile']
 
-const DESKTOP_WIDGETS: { key: DesktopWidgetKey; fallback: string }[] = [
-  { key: 'sidebar', fallback: 'Right sidebar' },
-  { key: 'currency', fallback: 'Currency' },
-  { key: 'timezones', fallback: 'Timezones' },
-  { key: 'upcomingReservations', fallback: 'Upcoming reservations' },
-  { key: 'atlas', fallback: 'Atlas / countries' },
-  { key: 'tripsTotal', fallback: 'Trips total' },
-  { key: 'daysTraveled', fallback: 'Days traveled' },
-  { key: 'distanceFlown', fallback: 'Distance flown' },
+const WIDGET_LABELS: Record<string, string> = {
+  sidebar: 'Right sidebar',
+  currency: 'Currency',
+  timezones: 'Timezones',
+  upcomingReservations: 'Upcoming reservations',
+  atlas: 'Atlas / countries',
+  tripsTotal: 'Trips total',
+  daysTraveled: 'Days traveled',
+  distanceFlown: 'Distance flown',
+}
+// Grouped by where the widgets actually sit on the dashboard. The right sidebar
+// has a master toggle (off → no sidebar, layout centers); its individual
+// widgets only matter while the sidebar is shown.
+const DESKTOP_GROUPS: { id: string; fallback: string; master?: DesktopWidgetKey; keys: DesktopWidgetKey[] }[] = [
+  { id: 'belowHero', fallback: 'Below the hero', keys: ['atlas', 'tripsTotal', 'daysTraveled', 'distanceFlown'] },
+  { id: 'rightSidebar', fallback: 'Right sidebar', master: 'sidebar', keys: ['currency', 'timezones', 'upcomingReservations'] },
 ]
-const MOBILE_WIDGETS: { key: MobileWidgetKey; fallback: string }[] = [
-  { key: 'tripsTotal', fallback: 'Trips total' },
-  { key: 'daysTraveled', fallback: 'Days traveled' },
-  { key: 'currency', fallback: 'Currency' },
-  { key: 'timezones', fallback: 'Timezones' },
-  { key: 'upcomingReservations', fallback: 'Upcoming reservations' },
+const MOBILE_GROUPS: { id: string; fallback: string; keys: MobileWidgetKey[] }[] = [
+  { id: 'belowHero', fallback: 'Below the hero', keys: ['tripsTotal', 'daysTraveled'] },
+  { id: 'bottomOfPage', fallback: 'Bottom of page', keys: ['currency', 'timezones', 'upcomingReservations'] },
 ]
 
 // shared segmented-button style (matches DisplaySettingsTab)
@@ -61,7 +65,7 @@ function segStyle(active: boolean): React.CSSProperties {
   return {
     display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center',
     padding: '10px 14px', borderRadius: 10, cursor: 'pointer', flex: '1 1 0', minWidth: 0,
-    fontFamily: 'inherit', fontSize: 14, fontWeight: 500,
+    fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-text, 1))', fontWeight: 500,
     border: active ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
     background: active ? 'var(--bg-hover)' : 'var(--bg-card)',
     color: 'var(--text-primary)', transition: 'all 0.15s',
@@ -174,7 +178,7 @@ export default function AppearanceSettingsTab(): React.ReactElement {
                   onClick={() => update({ schemeId: s.id })}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px',
-                    borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 500,
+                    borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500,
                     border: active ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
                     background: active ? 'var(--bg-hover)' : 'var(--bg-card)', color: 'var(--text-primary)',
                     transition: 'all 0.15s',
@@ -192,7 +196,7 @@ export default function AppearanceSettingsTab(): React.ReactElement {
               onClick={() => update({ schemeId: 'custom', accent: cfg.accent ?? { light: accentLight, dark: accentDark } })}
               style={{
                 display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 10,
-                cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 500,
+                cursor: 'pointer', fontFamily: 'inherit', fontSize: 'calc(13px * var(--fs-scale-text, 1))', fontWeight: 500,
                 border: cfg.schemeId === 'custom' ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
                 background: cfg.schemeId === 'custom' ? 'var(--bg-hover)' : 'var(--bg-card)', color: 'var(--text-primary)',
                 transition: 'all 0.15s',
@@ -276,6 +280,9 @@ export default function AppearanceSettingsTab(): React.ReactElement {
               </button>
             ))}
           </div>
+          <p className="text-xs text-content-faint mt-2">
+            {tr('settings.appearance.densityHint', 'Compact tightens spacing and padding for a denser layout that fits more on screen.')}
+          </p>
         </div>
 
         {/* Text size (global) */}
@@ -304,30 +311,59 @@ export default function AppearanceSettingsTab(): React.ReactElement {
       {/* ── Dashboard widgets ───────────────────────────────────── */}
       <Section title={tr('settings.appearance.dashboardWidgets', 'Dashboard widgets')} icon={LayoutDashboard}>
         <p className="text-xs text-content-faint -mt-1">
-          {tr('settings.appearance.dashboardWidgetsHint', 'Show or hide dashboard widgets independently on desktop and mobile.')}
+          {tr('settings.appearance.dashboardWidgetsHint', 'Choose which widgets appear on the dashboard — independently for desktop and mobile.')}
         </p>
-        <div>
-          <div className="text-sm font-medium mb-2 text-content-secondary">{tr('settings.appearance.desktop', 'Desktop')}</div>
-          {DESKTOP_WIDGETS.map((w) => (
-            <ToggleRow
-              key={w.key}
-              label={tr(`settings.appearance.widget.${w.key}`, w.fallback)}
-              on={cfg.dashboard.desktop[w.key]}
-              onToggle={() => setWidget('desktop', w.key, !cfg.dashboard.desktop[w.key])}
-            />
-          ))}
-        </div>
-        <div>
-          <div className="text-sm font-medium mb-2 text-content-secondary">{tr('settings.appearance.mobile', 'Mobile')}</div>
-          {MOBILE_WIDGETS.map((w) => (
-            <ToggleRow
-              key={w.key}
-              label={tr(`settings.appearance.widget.${w.key}`, w.fallback)}
-              on={cfg.dashboard.mobile[w.key]}
-              onToggle={() => setWidget('mobile', w.key, !cfg.dashboard.mobile[w.key])}
-            />
-          ))}
-        </div>
+
+        <div className="text-sm font-semibold text-content">{tr('settings.appearance.desktop', 'Desktop')}</div>
+        {DESKTOP_GROUPS.map((g) => {
+          const masterOn = g.master ? cfg.dashboard.desktop[g.master] : true
+          return (
+            <div key={g.id} className="rounded-lg border border-edge-secondary px-3 py-2">
+              {g.master ? (
+                <ToggleRow
+                  label={tr(`settings.appearance.widget.${g.master}`, WIDGET_LABELS[g.master])}
+                  hint={tr('settings.appearance.sidebarHint', 'The whole right column. Turn off and the dashboard centers.')}
+                  on={masterOn}
+                  onToggle={() => setWidget('desktop', g.master as string, !masterOn)}
+                />
+              ) : (
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-content-faint mb-1">
+                  {tr(`settings.appearance.group.${g.id}`, g.fallback)}
+                </div>
+              )}
+              <div
+                className={g.master ? 'mt-1 pl-3 border-l-2 border-edge-secondary' : ''}
+                style={g.master && !masterOn ? { opacity: 0.4, pointerEvents: 'none' } : undefined}
+              >
+                {g.keys.map((k) => (
+                  <ToggleRow
+                    key={k}
+                    label={tr(`settings.appearance.widget.${k}`, WIDGET_LABELS[k])}
+                    on={cfg.dashboard.desktop[k]}
+                    onToggle={() => setWidget('desktop', k, !cfg.dashboard.desktop[k])}
+                  />
+                ))}
+              </div>
+            </div>
+          )
+        })}
+
+        <div className="text-sm font-semibold text-content mt-3">{tr('settings.appearance.mobile', 'Mobile')}</div>
+        {MOBILE_GROUPS.map((g) => (
+          <div key={g.id} className="rounded-lg border border-edge-secondary px-3 py-2">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-content-faint mb-1">
+              {tr(`settings.appearance.group.${g.id}`, g.fallback)}
+            </div>
+            {g.keys.map((k) => (
+              <ToggleRow
+                key={k}
+                label={tr(`settings.appearance.widget.${k}`, WIDGET_LABELS[k])}
+                on={cfg.dashboard.mobile[k]}
+                onToggle={() => setWidget('mobile', k, !cfg.dashboard.mobile[k])}
+              />
+            ))}
+          </div>
+        ))}
       </Section>
 
       <div className="flex justify-end mb-6">

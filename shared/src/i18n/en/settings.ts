@@ -382,6 +382,10 @@ const settings: TranslationStrings = {
   'settings.appearance.widget.daysTraveled': 'Days traveled',
   'settings.appearance.widget.distanceFlown': 'Distance flown',
   'settings.appearance.reset': 'Reset to defaults',
+  'settings.appearance.group.belowHero': 'Below the hero',
+  'settings.appearance.group.bottomOfPage': 'Bottom of page',
+  'settings.appearance.sidebarHint': 'The whole right column. Turn off and the dashboard centers.',
+  'settings.appearance.densityHint': 'Compact tightens spacing and padding for a denser layout that fits more on screen.',
 };
 
 export default settings;

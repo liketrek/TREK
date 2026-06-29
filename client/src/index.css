@@ -759,6 +759,30 @@ html[data-no-transparency] *::after {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
+/* Class-based translucent surfaces (Atlas tooltip, Leaflet controls, GL popups)
+   forced solid. Inline rgba() is handled per-component (it can't be reached by CSS). */
+html[data-no-transparency] .atlas-tooltip {
+  background: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-primary) !important;
+}
+html[data-no-transparency] .atlas-tooltip::before { border-top-color: var(--bg-card) !important; }
+html[data-no-transparency] .leaflet-control-zoom a { background: var(--bg-card) !important; }
+html[data-no-transparency] .map-tooltip,
+html[data-no-transparency] .leaflet-tooltip.map-tooltip { background: var(--bg-card) !important; }
+html[data-no-transparency] .trek-map-popup .mapboxgl-popup-content,
+html[data-no-transparency] .trek-map-popup .maplibregl-popup-content { background: var(--bg-card) !important; }
+
+/* ── Compact density ──────────────────────────────────────────────
+   Tightens the spacing scale; reach grows as components adopt the tokens. */
+html[data-density="compact"] {
+  --sp-1: 3px;
+  --sp-2: 6px;
+  --sp-3: 9px;
+  --sp-4: 12px;
+  --sp-6: 18px;
+}
+html[data-density="compact"] .form-input { padding: 5px 11px; }
 
 body {
   font-family: var(--font-system);
