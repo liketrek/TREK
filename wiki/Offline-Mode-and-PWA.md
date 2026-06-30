@@ -47,28 +47,40 @@ On login, after each trip-list refresh, and on WebSocket reconnect, TREK runs a 
 - Only ongoing and future trips are cached (trips whose `end_date` is today or later, or has no end date).
 - Trips that ended more than 7 days ago are automatically evicted from IndexedDB on the next sync.
 
-## Offline Cache (Settings → Offline)
+## Settings → Offline
 
-The **Offline Cache** section under Settings → Offline shows the current state of the local cache.
+The **Offline** tab gives you control over what is stored on this device and lets you go offline deliberately.
 
-<!-- TODO: screenshot: Offline tab showing cached trips -->
+<!-- TODO: screenshot: Offline tab -->
 
-**Stats panel:**
-- **Cached trips** — number of trips stored in IndexedDB (Dexie).
-- **Pending changes** — number of actions taken offline that are queued to sync.
+### Offline mode
 
-**Actions:**
-- **Re-sync now** — forces a full sync with the server. Disabled when you are offline.
-- **Clear cache** — removes all offline trip data from IndexedDB. You can re-sync any time while online.
+- **Force offline mode** — a switch that first downloads everything you need (see *Prepare for offline* below) and then routes the whole app to the local cache, queueing every change you make. Flip it back off to reconnect: queued changes are replayed and the cache is refreshed. The override is remembered across app restarts, so a session forced offline before a flight stays offline when the PWA relaunches.
+- **Prepare for offline** → **Download for offline use** — a one-tap, progress-tracked download of trip data, documents and map tiles for every trip you keep offline. Unlike a background sync it *waits* for the downloads to finish, so the completion state means you really have everything.
+- **Re-sync now** — refreshes the cache from the server. Disabled while offline.
 
-Each cached trip entry shows the trip name, date range, place count, and file count, plus the time of the last successful sync.
+### What to store offline
+
+- **Store map tiles offline** — map tiles use the most storage by far. Turn this off to keep only trip data and documents on the device; the pre-downloaded tile cache is cleared immediately.
+- **Per-trip toggle** — each trip has its own on/off switch. Turning a trip off evicts its cached read data from the device (your unsynced edits are kept and still sync).
+
+### Sync conflicts
+
+If a change you made offline collides with a newer change on the server, it is surfaced as a **conflict** instead of silently overwriting anything. The conflict list lets you **keep mine** or **keep theirs** per item. A default rule (*Ask me each time* / *Always keep my version* / *Always keep the server version*) is configurable under **When a conflict happens**. Conflict detection covers places and packing items.
+
+### Stats & cache
+
+The stats panel shows cached trips, pending changes, conflicts and failed changes. **Clear cache** removes all offline data from IndexedDB (you can re-sync any time while online). Each cached trip entry shows its date range, place/file count and last successful sync.
 
 ## Limitations
 
+- Offline **editing** is supported for places and packing items (with conflict detection). Other entities — budget, to-dos, reservations, days — require connectivity to edit; while forced offline those edits still go to the live server when a connection is actually present.
+- A change you made offline that **deletes** an item wins over a concurrent server edit of that same item ("delete wins"); only edit-vs-edit conflicts are surfaced for resolution.
+- The conflict token has one-second resolution, so two edits to the same field within the same second can't be told apart and fall back to last-write-wins (only relevant to sub-second races; normal offline windows are unaffected).
 - New trips created while offline are queued and synced when connectivity is restored.
 - Photo uploads require connectivity; non-photo file attachments are pre-cached automatically during sync.
 - Real-time collaboration features require an active WebSocket connection.
-- Mapbox GL tiles are not cached by the service worker (Mapbox manages its own tile cache internally).
+- Mapbox GL / vector tiles are not pre-downloaded; raster (Leaflet) tiles are. With map-tile storage off, individually viewed tiles may still be cached opportunistically by the service worker.
 
 ## See also
 
