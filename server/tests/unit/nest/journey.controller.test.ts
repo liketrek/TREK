@@ -93,6 +93,41 @@ describe('JourneyController', () => {
     expect(new JourneyController(svc({ uploadGalleryPhotos: vi.fn().mockReturnValue([{ id: 1 }]) } as Partial<JourneyService>)).uploadGalleryPhotos(user, '3', [{ filename: 'a.jpg' } as Express.Multer.File])).toEqual({ photos: [{ id: 1 }] });
   });
 
+  it('gallery video: 400 no video, 403 not allowed, else stores the clip + poster (#823)', () => {
+    const files = { video: [{ filename: 'v.mp4' } as Express.Multer.File], poster: [{ filename: 'p.jpg' } as Express.Multer.File] };
+    expect(thrown(() => new JourneyController(svc()).uploadGalleryVideo(user, '3', {}, {}))).toEqual({ status: 400, body: { error: 'No video uploaded' } });
+    // Rejected with real paths → the cleanup unlinks the orphaned bytes (the files
+    // don't exist, so the best-effort catch swallows it).
+    const withPaths = { video: [{ filename: 'v.mp4', path: '/nonexistent/v.mp4' } as Express.Multer.File], poster: [{ filename: 'p.jpg', path: '/nonexistent/p.jpg' } as Express.Multer.File] };
+    expect(thrown(() => new JourneyController(svc({ uploadGalleryPhotos: vi.fn().mockReturnValue([]) } as Partial<JourneyService>)).uploadGalleryVideo(user, '3', withPaths, { duration_ms: 'abc' }))).toEqual({ status: 403, body: { error: 'Not allowed' } });
+    const up = vi.fn().mockReturnValue([{ id: 7 }]);
+    expect(new JourneyController(svc({ uploadGalleryPhotos: up } as Partial<JourneyService>)).uploadGalleryVideo(user, '3', files, { duration_ms: '4200' })).toEqual({ photos: [{ id: 7 }] });
+    expect(up).toHaveBeenCalledWith(3, 1, [{ path: 'journey/v.mp4', thumbnail: 'journey/p.jpg', mediaType: 'video', durationMs: 4200 }]);
+
+    // No poster + no duration → thumbnail undefined, durationMs null.
+    const up2 = vi.fn().mockReturnValue([{ id: 8 }]);
+    new JourneyController(svc({ uploadGalleryPhotos: up2 } as Partial<JourneyService>)).uploadGalleryVideo(user, '3', { video: [{ filename: 'v2.mp4' } as Express.Multer.File] }, {});
+    expect(up2).toHaveBeenCalledWith(3, 1, [{ path: 'journey/v2.mp4', thumbnail: undefined, mediaType: 'video', durationMs: null }]);
+  });
+
+  it('provider-photos forwards per-asset media_types for gallery and entries (#823)', () => {
+    const add = vi.fn().mockReturnValue({ id: 1 });
+    new JourneyController(svc({ addProviderPhotoToGallery: add } as Partial<JourneyService>)).galleryProviderPhotos(user, '9', { provider: 'immich', asset_ids: ['a', 'b'], media_types: ['video', 'image'] });
+    expect(add).toHaveBeenNthCalledWith(1, 9, 1, 'immich', 'a', undefined, undefined, 'video');
+    expect(add).toHaveBeenNthCalledWith(2, 9, 1, 'immich', 'b', undefined, undefined, 'image');
+    const addOne = vi.fn().mockReturnValue({ id: 2 });
+    new JourneyController(svc({ addProviderPhotoToGallery: addOne } as Partial<JourneyService>)).galleryProviderPhotos(user, '9', { provider: 'immich', asset_id: 'c', media_type: 'video' });
+    expect(addOne).toHaveBeenCalledWith(9, 1, 'immich', 'c', undefined, undefined, 'video');
+
+    // Entry path mirrors the gallery path.
+    const eAdd = vi.fn().mockReturnValue({ id: 3 });
+    new JourneyController(svc({ addProviderPhoto: eAdd } as Partial<JourneyService>)).providerPhotos(user, '4', { provider: 'immich', asset_ids: ['x'], media_types: ['video'], caption: 'c' });
+    expect(eAdd).toHaveBeenNthCalledWith(1, 4, 1, 'immich', 'x', 'c', undefined, 'video');
+    const eOne = vi.fn().mockReturnValue({ id: 4 });
+    new JourneyController(svc({ addProviderPhoto: eOne } as Partial<JourneyService>)).providerPhotos(user, '4', { provider: 'immich', asset_id: 'y', media_type: 'video' });
+    expect(eOne).toHaveBeenCalledWith(4, 1, 'immich', 'y', undefined, undefined, 'video');
+  });
+
   it('GET/PATCH/DELETE /:id map 404', () => {
     expect(thrown(() => new JourneyController(svc({ getJourneyFull: vi.fn().mockReturnValue(null) } as Partial<JourneyService>)).get(user, '9'))).toEqual({ status: 404, body: { error: 'Journey not found' } });
     expect(new JourneyController(svc({ getJourneyFull: vi.fn().mockReturnValue({ id: 9 }) } as Partial<JourneyService>)).get(user, '9')).toEqual({ id: 9 });
