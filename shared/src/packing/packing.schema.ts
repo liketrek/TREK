@@ -29,11 +29,16 @@ export const packingItemSchema = z.object({
   weight_grams: z.number().nullable().optional(),
   bag_id: z.number().nullable().optional(),
   quantity: z.number().optional(),
-  // Private items (#858): is_private is the raw SQLite INTEGER (0/1); owner_id is
-  // the user the item belongs to (NULL on legacy shared rows). The listing only
-  // returns another member's item when is_private is 0.
+  // Three-tier sharing (#858). is_private is the raw SQLite INTEGER (0/1):
+  // 0 = Common (group pool, visible to all), 1 = restricted. owner_id is the
+  // "bringer". A restricted item with no recipients is Personal; with recipients
+  // it's Shared-with-those-people. owner_username/recipients/contributors are
+  // attached by the listing for display ("brought by X" / "taken care of by X").
   is_private: z.number().optional(),
   owner_id: z.number().nullable().optional(),
+  owner_username: z.string().nullable().optional(),
+  recipients: z.array(z.object({ user_id: z.number(), username: z.string() })).optional(),
+  contributors: z.array(z.object({ user_id: z.number(), username: z.string(), status: z.string() })).optional(),
   created_at: z.string().optional(),
   // Optimistic-concurrency token for offline conflict detection (#1135). Added
   // by migration 98; older rows backfill from created_at.
@@ -71,14 +76,30 @@ export const packingBagSchema = z.object({
 });
 export type PackingBag = z.infer<typeof packingBagSchema>;
 
+// Three-tier sharing (#858): Common (group pool), Personal (private), or Shared
+// with specific people.
+export const packingVisibilitySchema = z.enum(['common', 'personal', 'shared']);
+export type PackingVisibility = z.infer<typeof packingVisibilitySchema>;
+
 export const packingCreateItemRequestSchema = z.object({
   name: z.string().min(1),
   category: z.string().optional(),
   checked: z.boolean().optional(),
-  // Mark the new item private to its creator (#858).
+  // Mark the new item private to its creator (#858, legacy flag).
   is_private: z.boolean().optional(),
+  // Three-tier sharing (#858): which list the item belongs to, and — for 'shared' —
+  // the people it covers ("taken care of by you").
+  visibility: packingVisibilitySchema.optional(),
+  recipient_ids: z.array(z.number()).optional(),
 });
 export type PackingCreateItemRequest = z.infer<typeof packingCreateItemRequestSchema>;
+
+// Re-set an item's sharing tier + the people a 'shared' item covers (#858).
+export const packingSetSharingRequestSchema = z.object({
+  visibility: packingVisibilitySchema,
+  recipient_ids: z.array(z.number()).optional(),
+});
+export type PackingSetSharingRequest = z.infer<typeof packingSetSharingRequestSchema>;
 
 export const packingUpdateItemRequestSchema = z.object({
   name: z.string().optional(),

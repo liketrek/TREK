@@ -40,6 +40,22 @@ export class PackingService {
     broadcast(tripId, event, payload, socketId, onlyUserId);
   }
 
+  /** Deliver an item event to a specific set of viewers (#858 shared items) — the
+   *  owner plus the recipients it was shared with — without leaking to the room. */
+  broadcastToViewers(tripId: string, event: string, payload: Record<string, unknown>, viewerIds: number[], socketId: string | undefined): void {
+    for (const uid of new Set(viewerIds)) {
+      if (uid != null) broadcast(tripId, event, payload, socketId, uid);
+    }
+  }
+
+  /** The users who can currently see an item: everyone (null) for Common, or
+   *  owner + recipients for a restricted item. */
+  viewersOf(item: { is_private?: number; owner_id?: number | null; recipients?: { user_id: number }[] } | null | undefined): number[] | null {
+    if (!item || !item.is_private) return null; // Common — visible to the whole room
+    const ids = [item.owner_id, ...(item.recipients || []).map(r => r.user_id)].filter((x): x is number => x != null);
+    return ids;
+  }
+
   listItems(tripId: string, userId?: number) {
     return svc.listItems(tripId, userId);
   }
@@ -50,8 +66,24 @@ export class PackingService {
     return db.prepare('SELECT is_private, owner_id FROM packing_items WHERE id = ? AND trip_id = ?').get(id, tripId) as PrivacyFields | undefined;
   }
 
-  createItem(tripId: string, data: { name: string; category?: string; checked?: boolean; is_private?: boolean }, ownerId?: number) {
+  createItem(tripId: string, data: Parameters<typeof svc.createItem>[1], ownerId?: number) {
     return svc.createItem(tripId, data, ownerId);
+  }
+
+  setItemSharing(tripId: string, id: string, actingUserId: number, visibility: svc.PackingVisibility, recipientIds: number[]) {
+    return svc.setItemSharing(tripId, id, actingUserId, visibility, recipientIds);
+  }
+
+  addContributor(tripId: string, id: string, userId: number) {
+    return svc.addContributor(tripId, id, userId);
+  }
+
+  removeContributor(tripId: string, id: string, userId: number) {
+    return svc.removeContributor(tripId, id, userId);
+  }
+
+  cloneItem(tripId: string, id: string, userId: number) {
+    return svc.cloneItem(tripId, id, userId);
   }
 
   updateItem(tripId: string, id: string, data: Parameters<typeof svc.updateItem>[2], changedKeys: string[], ifMatch?: string, actingUserId?: number) {

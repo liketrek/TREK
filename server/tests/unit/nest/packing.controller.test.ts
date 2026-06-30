@@ -15,6 +15,10 @@ function makeService(overrides: Partial<PackingService> = {}): PackingService {
     canEdit: vi.fn().mockReturnValue(true),
     broadcast: vi.fn(),
     broadcastItem: vi.fn(),
+    broadcastToViewers: vi.fn(),
+    // Real viewer logic so the emit-to-viewers routing is exercised faithfully.
+    viewersOf: (item: { is_private?: number; owner_id?: number | null; recipients?: { user_id: number }[] } | null | undefined) =>
+      !item || !item.is_private ? null : [item.owner_id, ...(item.recipients || []).map(r => r.user_id)].filter((x): x is number => x != null),
     getItemPrivacy: vi.fn().mockReturnValue(undefined),
     notifyTagged: vi.fn(),
     ...overrides,
@@ -60,14 +64,24 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
       });
     });
 
-    it('creates an item (owned by the creator) and broadcasts', () => {
-      const createItem = vi.fn().mockReturnValue({ id: 9, name: 'Socks' });
-      const broadcastItem = vi.fn();
-      const svc = makeService({ createItem, broadcastItem } as Partial<PackingService>);
-      expect(new PackingController(svc).create(user, '5', { name: 'Socks' }, 'sock')).toEqual({ item: { id: 9, name: 'Socks' } });
-      // Stamps the creator as owner (#858) and routes the broadcast through broadcastItem.
+    it('creates an item (owned by the creator) and broadcasts a Common item to the room', () => {
+      // Common item (is_private falsy) → viewersOf null → whole-room broadcast.
+      const createItem = vi.fn().mockReturnValue({ id: 9, name: 'Socks', is_private: 0 });
+      const broadcast = vi.fn();
+      const svc = makeService({ createItem, broadcast } as Partial<PackingService>);
+      expect(new PackingController(svc).create(user, '5', { name: 'Socks' }, 'sock')).toEqual({ item: { id: 9, name: 'Socks', is_private: 0 } });
+      // Stamps the creator as owner (#858) and routes the broadcast to viewers.
       expect(createItem).toHaveBeenCalledWith('5', expect.objectContaining({ name: 'Socks' }), user.id);
-      expect(broadcastItem).toHaveBeenCalledWith('5', 'packing:created', { item: { id: 9, name: 'Socks' } }, { id: 9, name: 'Socks' }, 'sock');
+      expect(broadcast).toHaveBeenCalledWith('5', 'packing:created', { item: { id: 9, name: 'Socks', is_private: 0 } }, 'sock');
+    });
+
+    it('routes a Shared item create only to the owner + recipients (#858)', () => {
+      const item = { id: 9, name: 'Power bank', is_private: 1, owner_id: 1, recipients: [{ user_id: 2 }] };
+      const createItem = vi.fn().mockReturnValue(item);
+      const broadcastToViewers = vi.fn();
+      const svc = makeService({ createItem, broadcastToViewers } as Partial<PackingService>);
+      new PackingController(svc).create(user, '5', { name: 'Power bank', visibility: 'shared', recipient_ids: [2] }, 'sock');
+      expect(broadcastToViewers).toHaveBeenCalledWith('5', 'packing:created', { item }, [1, 2], 'sock');
     });
   });
 
@@ -202,13 +216,72 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
       });
     });
 
-    it('deletes the item and broadcasts (scoped to the owner when private, #858)', () => {
+    it('deletes a Common item and broadcasts to the room', () => {
       const deleted = { id: 9, is_private: 0, owner_id: 1 };
       const deleteItem = vi.fn().mockReturnValue(deleted);
-      const broadcastItem = vi.fn();
-      const svc = makeService({ deleteItem, broadcastItem } as Partial<PackingService>);
+      const broadcast = vi.fn();
+      const svc = makeService({ deleteItem, broadcast } as Partial<PackingService>);
       expect(new PackingController(svc).remove(user, '5', '9', 'sock')).toEqual({ success: true });
-      expect(broadcastItem).toHaveBeenCalledWith('5', 'packing:deleted', { itemId: 9 }, deleted, 'sock');
+      expect(broadcast).toHaveBeenCalledWith('5', 'packing:deleted', { itemId: 9 }, 'sock');
+    });
+
+    it('scopes the delete of a Shared item to the owner + recipients (#858)', () => {
+      const deleted = { id: 9, is_private: 1, owner_id: 1, recipients: [{ user_id: 2 }] };
+      const deleteItem = vi.fn().mockReturnValue(deleted);
+      const broadcastToViewers = vi.fn();
+      const svc = makeService({ deleteItem, broadcastToViewers } as Partial<PackingService>);
+      new PackingController(svc).remove(user, '5', '9', 'sock');
+      expect(broadcastToViewers).toHaveBeenCalledWith('5', 'packing:deleted', { itemId: 9 }, [1, 2], 'sock');
+    });
+  });
+
+  describe('sharing, contributors, clone (#858 three-tier)', () => {
+    it('PUT /:id/sharing 400 invalid, 404 missing, 403 non-owner, else drops + re-emits', () => {
+      expect(thrown(() => new PackingController(makeService()).setSharing(user, '5', '9', { visibility: 'nope' as never }))).toEqual({ status: 400, body: { error: 'Invalid visibility' } });
+      expect(thrown(() => new PackingController(makeService({ setItemSharing: vi.fn().mockReturnValue(null) } as Partial<PackingService>)).setSharing(user, '5', '9', { visibility: 'personal' }))).toEqual({ status: 404, body: { error: 'Item not found' } });
+      expect(thrown(() => new PackingController(makeService({ setItemSharing: vi.fn().mockReturnValue({ forbidden: true }) } as Partial<PackingService>)).setSharing(user, '5', '9', { visibility: 'personal' }))).toEqual({ status: 403, body: { error: 'Only the owner can change sharing' } });
+
+      const updated = { id: 9, is_private: 1, owner_id: 1, recipients: [{ user_id: 2 }] };
+      const setItemSharing = vi.fn().mockReturnValue(updated);
+      const broadcast = vi.fn();
+      const broadcastToViewers = vi.fn();
+      const svc = makeService({ setItemSharing, broadcast, broadcastToViewers } as Partial<PackingService>);
+      new PackingController(svc).setSharing(user, '5', '9', { visibility: 'shared', recipient_ids: [2] }, 'sock');
+      expect(setItemSharing).toHaveBeenCalledWith('5', '9', user.id, 'shared', [2]);
+      expect(broadcast).toHaveBeenCalledWith('5', 'packing:deleted', { itemId: 9 }, 'sock');
+      expect(broadcastToViewers).toHaveBeenCalledWith('5', 'packing:created', { item: updated }, [1, 2], 'sock');
+    });
+
+    it('POST /:id/clone 404 missing, else creates a personal copy for the caller', () => {
+      expect(thrown(() => new PackingController(makeService({ cloneItem: vi.fn().mockReturnValue(null) } as Partial<PackingService>)).clone(user, '5', '9'))).toEqual({ status: 404, body: { error: 'Item not found' } });
+      const item = { id: 12, is_private: 1, owner_id: 1 };
+      const cloneItem = vi.fn().mockReturnValue(item);
+      const broadcastToViewers = vi.fn();
+      const svc = makeService({ cloneItem, broadcastToViewers } as Partial<PackingService>);
+      expect(new PackingController(svc).clone(user, '5', '9', 'sock')).toEqual({ item });
+      expect(cloneItem).toHaveBeenCalledWith('5', '9', user.id);
+      expect(broadcastToViewers).toHaveBeenCalledWith('5', 'packing:created', { item }, [1], 'sock');
+    });
+
+    it('POST /:id/contributors 404 missing, else adds the caller + broadcasts', () => {
+      expect(thrown(() => new PackingController(makeService({ addContributor: vi.fn().mockReturnValue(null) } as Partial<PackingService>)).addContributor(user, '5', '9'))).toEqual({ status: 404, body: { error: 'Item not found or not a shared list item' } });
+      const item = { id: 9, is_private: 0, contributors: [{ user_id: 1 }] };
+      const addContributor = vi.fn().mockReturnValue(item);
+      const broadcast = vi.fn();
+      const svc = makeService({ addContributor, broadcast } as Partial<PackingService>);
+      new PackingController(svc).addContributor(user, '5', '9', 'sock');
+      expect(addContributor).toHaveBeenCalledWith('5', '9', user.id);
+      expect(broadcast).toHaveBeenCalledWith('5', 'packing:updated', { item }, 'sock');
+    });
+
+    it('DELETE /:id/contributors/:userId removes the contributor + broadcasts', () => {
+      const item = { id: 9, is_private: 0, contributors: [] };
+      const removeContributor = vi.fn().mockReturnValue(item);
+      const broadcast = vi.fn();
+      const svc = makeService({ removeContributor, broadcast } as Partial<PackingService>);
+      new PackingController(svc).removeContributor(user, '5', '9', '2', 'sock');
+      expect(removeContributor).toHaveBeenCalledWith('5', '9', 2);
+      expect(broadcast).toHaveBeenCalledWith('5', 'packing:updated', { item }, 'sock');
     });
   });
 

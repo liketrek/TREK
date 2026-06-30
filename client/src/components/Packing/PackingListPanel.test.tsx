@@ -1496,4 +1496,35 @@ describe('PackingListPanel', () => {
     await waitFor(() => expect(putBody).toMatchObject({ name: 'Tent' }));
     expect(posted).toBe(false);
   });
+
+  // ── Three-tier sharing (#858) ──────────────────────────────────────────────
+  it('FE-COMP-PACKING-080: the view switch separates the Common pool from My list', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 1 }), isAuthenticated: true });
+    const items = [
+      buildPackingItem({ name: 'Group tent', is_private: 0 }),
+      buildPackingItem({ name: 'My diary', is_private: 1, owner_id: 1 }),
+    ];
+    render(<PackingListPanel tripId={1} items={items} />);
+
+    // Default view = Common pool → only the shared item.
+    expect(await screen.findByText('Group tent')).toBeInTheDocument();
+    expect(screen.queryByText('My diary')).not.toBeInTheDocument();
+
+    // Switch to "My list" → only the personal item.
+    await userEvent.click(screen.getByText('My list'));
+    expect(await screen.findByText('My diary')).toBeInTheDocument();
+    expect(screen.queryByText('Group tent')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-PACKING-081: a shared-to-me item shows the "by <bringer>" badge in My list', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 1 }), isAuthenticated: true });
+    const items = [
+      buildPackingItem({ name: 'Power bank', is_private: 1, owner_id: 2, owner_username: 'Bob', recipients: [{ user_id: 1, username: 'me' }] }),
+    ];
+    render(<PackingListPanel tripId={1} items={items} />);
+    await userEvent.click(screen.getByText('My list'));
+    await screen.findByText('Power bank');
+    // "by Bob" — taken care of by the bringer.
+    expect(screen.getByText('by Bob')).toBeInTheDocument();
+  });
 });

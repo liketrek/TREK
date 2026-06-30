@@ -15,6 +15,11 @@ export interface PackingSlice {
   deletePackingItem: (tripId: number | string, id: number) => Promise<void>
   togglePackingItem: (tripId: number | string, id: number, checked: boolean) => Promise<void>
   reorderPackingItems: (tripId: number | string, orderedIds: number[]) => Promise<void>
+  // Three-tier sharing (#858)
+  setPackingItemSharing: (tripId: number | string, id: number, visibility: 'common' | 'personal' | 'shared', recipientIds: number[]) => Promise<void>
+  clonePackingItem: (tripId: number | string, id: number) => Promise<void>
+  addPackingContributor: (tripId: number | string, id: number) => Promise<void>
+  removePackingContributor: (tripId: number | string, id: number, userId: number) => Promise<void>
 }
 
 export const createPackingSlice = (set: SetState, get: GetState): PackingSlice => ({
@@ -88,6 +93,44 @@ export const createPackingSlice = (set: SetState, get: GetState): PackingSlice =
     } catch (err: unknown) {
       set({ packingItems: prev })
       notify(getApiErrorMessage(err, 'Error reordering items'), 'error')
+    }
+  },
+
+  // ── Three-tier sharing (#858) ──────────────────────────────────────────────
+  setPackingItemSharing: async (tripId, id, visibility, recipientIds) => {
+    try {
+      const result = await packingApi.setSharing(tripId, id, { visibility, recipient_ids: recipientIds })
+      set(state => ({ packingItems: state.packingItems.map(i => i.id === id ? result.item : i) }))
+    } catch (err: unknown) {
+      notify(getApiErrorMessage(err, 'Error updating sharing'), 'error')
+      throw err
+    }
+  },
+
+  clonePackingItem: async (tripId, id) => {
+    try {
+      const result = await packingApi.clone(tripId, id)
+      set(state => (state.packingItems.some(i => i.id === result.item.id) ? {} : { packingItems: [...state.packingItems, result.item] }))
+    } catch (err: unknown) {
+      notify(getApiErrorMessage(err, 'Error copying item'), 'error')
+    }
+  },
+
+  addPackingContributor: async (tripId, id) => {
+    try {
+      const result = await packingApi.addContributor(tripId, id)
+      set(state => ({ packingItems: state.packingItems.map(i => i.id === id ? result.item : i) }))
+    } catch (err: unknown) {
+      notify(getApiErrorMessage(err, 'Error joining item'), 'error')
+    }
+  },
+
+  removePackingContributor: async (tripId, id, userId) => {
+    try {
+      const result = await packingApi.removeContributor(tripId, id, userId)
+      set(state => ({ packingItems: state.packingItems.map(i => i.id === id ? result.item : i) }))
+    } catch (err: unknown) {
+      notify(getApiErrorMessage(err, 'Error leaving item'), 'error')
     }
   },
 })

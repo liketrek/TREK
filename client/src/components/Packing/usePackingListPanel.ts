@@ -44,13 +44,18 @@ export interface PackingListPanelProps {
  */
 export function usePackingList({ tripId, items, openImportSignal = 0, clearCheckedSignal = 0, saveTemplateSignal = 0, inlineHeader = true }: PackingListPanelProps) {
   const [filter, setFilter] = useState('alle') // 'alle' | 'offen' | 'erledigt'
+  // Three-tier sharing (#858): 'common' = the group pool (where existing items
+  // live — non-breaking), 'personal' = my own list (private + shared-to-me).
+  const [view, setView] = useState<'common' | 'personal'>('common')
   const [addingCategory, setAddingCategory] = useState(false)
   const [newCatName, setNewCatName] = useState('')
-  const { addPackingItem, updatePackingItem, deletePackingItem, togglePackingItem, reorderPackingItems } = useTripStore()
+  const { addPackingItem, updatePackingItem, deletePackingItem, togglePackingItem, reorderPackingItems,
+    setPackingItemSharing, clonePackingItem, addPackingContributor, removePackingContributor } = useTripStore()
   const can = useCanDo()
   const trip = useTripStore((s) => s.trip)
   const canEdit = can('packing_edit', trip)
   const isAdmin = useAuthStore((s) => s.user?.role === 'admin')
+  const currentUserId = useAuthStore((s) => s.user?.id)
   const toast = useToast()
   const { t } = useTranslation()
 
@@ -79,17 +84,24 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
     }
   }
 
+  // Split by the active view (#858): Common = group pool (is_private 0), Personal =
+  // my own + shared-to-me (is_private 1, already filtered to me by the server).
+  const viewItems = useMemo(
+    () => items.filter(i => (view === 'common' ? !i.is_private : !!i.is_private)),
+    [items, view],
+  )
+
   const allCategories = useMemo(() => {
     const seen: string[] = []
-    for (const item of items) {
+    for (const item of viewItems) {
       const cat = item.category || t('packing.defaultCategory')
       if (!seen.includes(cat)) seen.push(cat)
     }
     return seen
-  }, [items, t])
+  }, [viewItems, t])
 
   const gruppiert = useMemo(() => {
-    const filtered = items.filter(i => {
+    const filtered = viewItems.filter(i => {
       if (filter === 'offen') return !i.checked
       if (filter === 'erledigt') return i.checked
       return true
@@ -101,10 +113,10 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
       groups[kat].push(item)
     }
     return groups
-  }, [items, filter, t])
+  }, [viewItems, filter, t])
 
-  const abgehakt = items.filter(i => i.checked).length
-  const fortschritt = items.length > 0 ? Math.round((abgehakt / items.length) * 100) : 0
+  const abgehakt = viewItems.filter(i => i.checked).length
+  const fortschritt = viewItems.length > 0 ? Math.round((abgehakt / viewItems.length) * 100) : 0
 
   const handleAddItemToCategory = async (category: string, name: string) => {
     try {
@@ -117,7 +129,8 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
       if (placeholder) {
         await updatePackingItem(tripId, placeholder.id, { name })
       } else {
-        await addPackingItem(tripId, { name, category })
+        // New items inherit the active view's tier: Personal in "my list", Common otherwise.
+        await addPackingItem(tripId, { name, category, visibility: view === 'personal' ? 'personal' : 'common' } as Parameters<typeof addPackingItem>[1])
       }
     } catch { toast.error(t('packing.toast.addError')) }
   }
@@ -155,7 +168,7 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
       catName += '​'
     }
     try {
-      await addPackingItem(tripId, { name: '...', category: catName })
+      await addPackingItem(tripId, { name: '...', category: catName, visibility: view === 'personal' ? 'personal' : 'common' } as Parameters<typeof addPackingItem>[1])
       setNewCatName('')
       setAddingCategory(false)
     } catch { toast.error(t('packing.toast.addError')) }
@@ -341,7 +354,16 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
 
   const font = { fontFamily: "var(--font-system)" }
 
+  // ── Three-tier sharing handlers (#858) ──────────────────────────────────────
+  const handleSetSharing = (id: number, visibility: 'common' | 'personal' | 'shared', recipientIds: number[]) =>
+    setPackingItemSharing(tripId, id, visibility, recipientIds)
+  const handleCloneItem = (id: number) => clonePackingItem(tripId, id)
+  const handleJoinItem = (id: number) => addPackingContributor(tripId, id)
+  const handleLeaveItem = (id: number, userId: number) => removePackingContributor(tripId, id, userId)
+
   return {
+    view, setView, currentUserId,
+    handleSetSharing, handleCloneItem, handleJoinItem, handleLeaveItem,
     tripId, items, inlineHeader, t, canEdit, isAdmin, font, reorderPackingItems,
     filter, setFilter, addingCategory, setAddingCategory, newCatName, setNewCatName,
     tripMembers, categoryAssignees, handleSetAssignees, allCategories, gruppiert, abgehakt, fortschritt,

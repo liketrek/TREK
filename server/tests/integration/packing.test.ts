@@ -187,6 +187,82 @@ describe('Private packing items (#858)', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Three-tier sharing (#858)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('Three-tier packing sharing (#858)', () => {
+  it('PACK-3T-001 — existing items stay Common (visible to all) — non-breaking', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+    // A pre-existing row (default is_private=0) must remain visible to everyone.
+    createPackingItem(testDb, trip.id, { name: 'Group tent' });
+
+    const memberView = await request(app).get(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(member.id));
+    expect(memberView.body.items.map((i: any) => i.name)).toContain('Group tent');
+  });
+
+  it('PACK-3T-002 — a Shared item reaches the recipient (with the bringer) but no one else', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: friend } = createUser(testDb);
+    const { user: stranger } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, friend.id);
+    addTripMember(testDb, trip.id, stranger.id);
+
+    const created = await request(app).post(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(owner.id))
+      .send({ name: 'Power bank', visibility: 'shared', recipient_ids: [friend.id] });
+    expect(created.body.item.recipients.map((r: any) => r.user_id)).toEqual([friend.id]);
+    expect(created.body.item.owner_username).toBeTruthy();
+
+    const friendView = await request(app).get(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(friend.id));
+    const strangerView = await request(app).get(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(stranger.id));
+    expect(friendView.body.items.map((i: any) => i.name)).toContain('Power bank');
+    expect(strangerView.body.items.map((i: any) => i.name)).not.toContain('Power bank');
+  });
+
+  it('PACK-3T-003 — clone copies a Common item onto the caller\'s personal list', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+    const created = await request(app).post(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(owner.id)).send({ name: 'Adapter', visibility: 'common' });
+
+    const clone = await request(app).post(`/api/trips/${trip.id}/packing/${created.body.item.id}/clone`).set('Cookie', authCookie(member.id));
+    expect(clone.status).toBe(201);
+    expect(clone.body.item.is_private).toBe(1);
+    expect(clone.body.item.owner_id).toBe(member.id);
+    // The owner does not see the member's private clone.
+    const ownerView = await request(app).get(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(owner.id));
+    expect(ownerView.body.items.filter((i: any) => i.name === 'Adapter')).toHaveLength(1);
+  });
+
+  it('PACK-3T-004 — "I can bring that too" adds the caller as a contributor on a Common item', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: helper } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, helper.id);
+    const created = await request(app).post(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(owner.id)).send({ name: 'Sunscreen', visibility: 'common' });
+
+    const res = await request(app).post(`/api/trips/${trip.id}/packing/${created.body.item.id}/contributors`).set('Cookie', authCookie(helper.id));
+    expect(res.status).toBe(201);
+    expect(res.body.item.contributors.map((c: any) => c.user_id)).toContain(helper.id);
+  });
+
+  it('PACK-3T-005 — sharing can only be changed by the owner', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+    const created = await request(app).post(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(owner.id)).send({ name: 'Tent', visibility: 'personal' });
+
+    const denied = await request(app).put(`/api/trips/${trip.id}/packing/${created.body.item.id}/sharing`).set('Cookie', authCookie(member.id)).send({ visibility: 'common' });
+    expect(denied.status).toBe(403);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Update packing item
 // ─────────────────────────────────────────────────────────────────────────────
 

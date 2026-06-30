@@ -18,6 +18,7 @@ const { pk } = vi.hoisted(() => ({
     bulkImport: vi.fn(), listBags: vi.fn(), createBag: vi.fn(), updateBag: vi.fn(), deleteBag: vi.fn(),
     listTemplates: vi.fn(), applyTemplate: vi.fn(), saveAsTemplate: vi.fn(), setBagMembers: vi.fn(), getCategoryAssignees: vi.fn(),
     updateCategoryAssignees: vi.fn(), reorderItems: vi.fn(),
+    setItemSharing: vi.fn(), addContributor: vi.fn(), removeContributor: vi.fn(), cloneItem: vi.fn(),
   },
 }));
 vi.mock('../../../src/services/packingService', () => pk);
@@ -86,6 +87,25 @@ describe('PackingService (wrapper delegation + helpers)', () => {
     s.saveAsTemplate('5', 1, 'Tpl'); expect(pk.saveAsTemplate).toHaveBeenCalledWith('5', 1, 'Tpl');
     s.getCategoryAssignees('5'); expect(pk.getCategoryAssignees).toHaveBeenCalledWith('5');
     s.updateCategoryAssignees('5', 'Clothes', [2]); expect(pk.updateCategoryAssignees).toHaveBeenCalledWith('5', 'Clothes', [2]);
+    s.setItemSharing('5', '2', 1, 'shared', [3]); expect(pk.setItemSharing).toHaveBeenCalledWith('5', '2', 1, 'shared', [3]);
+    s.addContributor('5', '2', 3); expect(pk.addContributor).toHaveBeenCalledWith('5', '2', 3);
+    s.removeContributor('5', '2', 3); expect(pk.removeContributor).toHaveBeenCalledWith('5', '2', 3);
+    s.cloneItem('5', '2', 7); expect(pk.cloneItem).toHaveBeenCalledWith('5', '2', 7);
+  });
+
+  describe('viewersOf + broadcastToViewers (#858 three-tier)', () => {
+    it('viewersOf: Common → null (whole room); restricted → owner + recipients', () => {
+      expect(svc().viewersOf({ is_private: 0, owner_id: 1 })).toBeNull();
+      expect(svc().viewersOf(null)).toBeNull();
+      expect(svc().viewersOf({ is_private: 1, owner_id: 1, recipients: [{ user_id: 2 }, { user_id: 3 }] })).toEqual([1, 2, 3]);
+    });
+
+    it('broadcastToViewers delivers to each viewer (deduped) via onlyUserId', () => {
+      svc().broadcastToViewers('5', 'packing:created', { item: 1 }, [1, 2, 2], 'sock');
+      expect(broadcast).toHaveBeenCalledWith('5', 'packing:created', { item: 1 }, 'sock', 1);
+      expect(broadcast).toHaveBeenCalledWith('5', 'packing:created', { item: 1 }, 'sock', 2);
+      expect(broadcast).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('notifyTagged', () => {

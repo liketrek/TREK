@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import { useTripStore } from '../../store/tripStore'
-import { useAuthStore } from '../../store/authStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import {
-  CheckSquare, Square, Trash2, Plus, Pencil, Package, GripVertical, Lock, Unlock,
+  CheckSquare, Square, Trash2, Plus, Pencil, Package, GripVertical, UserRound, Users, HandHelping,
 } from 'lucide-react'
 import type { PackingItem, PackingBag } from '../../types'
 import { katColor } from './packingListPanel.helpers'
 import { PACKING_PLACEHOLDER_NAME } from './packingListPanel.constants'
 import { QuantityInput } from './PackingListPanelQuantityInput'
+import PackingShareControl from './PackingShareControl'
+import type { TripMember } from './usePackingListPanel'
 
 interface ArtikelZeileProps {
   item: PackingItem
@@ -21,6 +22,13 @@ interface ArtikelZeileProps {
   bags?: PackingBag[]
   onCreateBag: (name: string) => Promise<PackingBag | undefined>
   canEdit?: boolean
+  // Three-tier sharing (#858): members + handlers for the per-item share control.
+  tripMembers?: TripMember[]
+  currentUserId?: number
+  onSetSharing?: (id: number, visibility: 'common' | 'personal' | 'shared', recipientIds: number[]) => void
+  onClone?: (id: number) => void
+  onJoin?: (id: number) => void
+  onLeave?: (id: number, userId: number) => void
   // Drag-to-reorder (#969) — wired by the category group, which owns the order.
   drag?: {
     isDragging: boolean
@@ -32,7 +40,7 @@ interface ArtikelZeileProps {
   }
 }
 
-export function ArtikelZeile({ item, tripId, categories, onCategoryChange, onDelete, bagTrackingEnabled, bags = [], onCreateBag, canEdit = true, drag }: ArtikelZeileProps) {
+export function ArtikelZeile({ item, tripId, categories, onCategoryChange, onDelete, bagTrackingEnabled, bags = [], onCreateBag, canEdit = true, tripMembers = [], currentUserId, onSetSharing, onClone, onJoin, onLeave, drag }: ArtikelZeileProps) {
   const isPlaceholder = item.name === PACKING_PLACEHOLDER_NAME
   const [editing, setEditing] = useState(false)
   const [editName, setEditName] = useState(isPlaceholder ? '' : item.name)
@@ -42,22 +50,18 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange, onDel
   const [bagInlineCreate, setBagInlineCreate] = useState(false)
   const [bagInlineName, setBagInlineName] = useState('')
   const { togglePackingItem, updatePackingItem, deletePackingItem } = useTripStore()
-  const currentUserId = useAuthStore(s => s.user?.id)
   const toast = useToast()
   const { t } = useTranslation()
 
-  const isPrivate = !!item.is_private
-  // Only the owner may toggle privacy (#858). A private item is only ever rendered
-  // to its owner, so the toggle on those is always the owner's; for shared items
-  // it shows only to the member who created them — you don't privatize others' items.
-  const canTogglePrivacy = canEdit && !isPlaceholder && currentUserId != null && item.owner_id === currentUserId
+  // Three-tier sharing display (#858).
+  const sharedToMe = !!item.is_private && item.owner_id != null && item.owner_id !== currentUserId
+  const recipients = item.recipients || []
+  const sharedByMe = !!item.is_private && item.owner_id === currentUserId && recipients.length > 0
+  const broughtBy = !item.is_private && item.owner_username ? item.owner_username : null
+  const contributors = item.contributors || []
+  const canShare = canEdit && !isPlaceholder && !!onSetSharing
 
   const handleToggle = () => togglePackingItem(tripId, item.id, !item.checked)
-
-  const handleTogglePrivacy = async () => {
-    try { await updatePackingItem(tripId, item.id, { is_private: isPrivate ? 0 : 1 }) }
-    catch { toast.error(t('packing.toast.saveError')) }
-  }
 
   const handleSaveName = async () => {
     if (!editName.trim()) { setEditing(false); setEditName(isPlaceholder ? '' : item.name); return }
@@ -154,10 +158,23 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange, onDel
         </span>
       )}
 
-      {/* Private indicator (#858) — shown to the owner so they know it's hidden from others */}
-      {isPrivate && (
-        <span title={t('packing.privateHint')} style={{ display: 'flex', alignItems: 'center', color: 'var(--accent)', flexShrink: 0 }}>
-          <Lock size={12} />
+      {/* Sharing badges (#858 three-tier) */}
+      {!isPlaceholder && sharedToMe && (
+        <span title={t('packing.takenCareOf', { name: item.owner_username || '' })}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)', padding: '1px 7px', borderRadius: 99 }}>
+          <HandHelping size={10} /> {t('packing.takenCareOf', { name: item.owner_username || '' })}
+        </span>
+      )}
+      {!isPlaceholder && sharedByMe && (
+        <span title={recipients.map(r => r.username).join(', ')}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-muted)', background: 'var(--bg-tertiary)', padding: '1px 7px', borderRadius: 99 }}>
+          <UserRound size={10} /> {t('packing.sharedWithCount', { count: recipients.length })}
+        </span>
+      )}
+      {!isPlaceholder && broughtBy && (
+        <span title={t('packing.broughtBy', { name: broughtBy })}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', padding: '1px 4px' }}>
+          <Users size={10} /> {broughtBy}{contributors.length > 0 ? ` +${contributors.length}` : ''}
         </span>
       )}
 
@@ -262,7 +279,7 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange, onDel
       )}
 
       {canEdit && (
-      <div className="sm:opacity-0 sm:group-hover:opacity-100" style={{ display: 'flex', gap: 2, alignItems: 'center', transition: 'opacity 0.12s', flexShrink: 0 }}>
+      <div style={{ display: 'flex', gap: 2, alignItems: 'center', flexShrink: 0 }}>
         <div style={{ position: 'relative' }}>
           <button
             onClick={() => setShowCatPicker(p => !p)}
@@ -292,13 +309,16 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange, onDel
           )}
         </div>
 
-        {canTogglePrivacy && (
-          <button onClick={handleTogglePrivacy} title={isPrivate ? t('packing.makePublic') : t('packing.makePrivate')}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 4px', borderRadius: 6, display: 'flex', color: isPrivate ? 'var(--accent)' : 'var(--text-faint)' }}
-            onMouseEnter={e => { if (!isPrivate) e.currentTarget.style.color = 'var(--text-secondary)' }}
-            onMouseLeave={e => { if (!isPrivate) e.currentTarget.style.color = 'var(--text-faint)' }}>
-            {isPrivate ? <Unlock size={13} /> : <Lock size={13} />}
-          </button>
+        {canShare && onClone && onJoin && onLeave && (
+          <PackingShareControl
+            item={item}
+            tripMembers={tripMembers}
+            currentUserId={currentUserId}
+            onSetSharing={onSetSharing!}
+            onClone={onClone}
+            onJoin={onJoin}
+            onLeave={onLeave}
+          />
         )}
 
         <button onClick={() => setEditing(true)} title={t('common.rename')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 4px', borderRadius: 6, display: 'flex', color: 'var(--text-faint)' }}

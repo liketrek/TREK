@@ -18,7 +18,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 
 /** A packing item row carrying the privacy fields (#858) used to scope broadcasts. */
-type PackingItemRow = { is_private?: number; owner_id?: number | null; [key: string]: unknown };
+type PackingItemRow = { is_private?: number; owner_id?: number | null; recipients?: { user_id: number }[]; [key: string]: unknown };
 
 /**
  * /api/trips/:tripId/packing — trip-scoped packing list (items, bags, templates,
@@ -81,7 +81,7 @@ export class PackingController {
   create(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body() body: { name?: string; category?: string; checked?: boolean; is_private?: boolean },
+    @Body() body: { name?: string; category?: string; checked?: boolean; is_private?: boolean; visibility?: 'common' | 'personal' | 'shared'; recipient_ids?: number[] },
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
@@ -89,9 +89,20 @@ export class PackingController {
     if (!body.name) {
       throw new HttpException({ error: 'Item name is required' }, 400);
     }
-    const item = this.packing.createItem(tripId, { name: body.name, category: body.category, checked: body.checked, is_private: body.is_private }, user.id);
-    this.packing.broadcastItem(tripId, 'packing:created', { item }, item, socketId);
+    const item = this.packing.createItem(tripId, { name: body.name, category: body.category, checked: body.checked, is_private: body.is_private, visibility: body.visibility, recipient_ids: body.recipient_ids }, user.id);
+    this.emitToViewers(tripId, 'packing:created', { item }, item, socketId);
     return { item };
+  }
+
+  /** Deliver an item event to exactly the people who can see it (#858): the whole
+   *  room for a Common item, or owner + recipients for a restricted one. */
+  private emitToViewers(tripId: string, event: string, payload: Record<string, unknown>, item: PackingItemRow, socketId: string | undefined): void {
+    const viewers = this.packing.viewersOf(item);
+    if (viewers === null) {
+      this.packing.broadcast(tripId, event, payload, socketId);
+    } else {
+      this.packing.broadcastToViewers(tripId, event, payload, viewers, socketId);
+    }
   }
 
   @Put('reorder')
@@ -178,9 +189,93 @@ export class PackingController {
     if (!deleted) {
       throw new HttpException({ error: 'Item not found' }, 404);
     }
-    // Scope the delete to the owner when the item was private (#858).
-    this.packing.broadcastItem(tripId, 'packing:deleted', { itemId: Number(id) }, deleted, socketId);
+    // Scope the delete to the people who could see it (owner + recipients, #858).
+    this.emitToViewers(tripId, 'packing:deleted', { itemId: Number(id) }, deleted as PackingItemRow, socketId);
     return { success: true };
+  }
+
+  @Put(':id/sharing')
+  setSharing(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Param('id') id: string,
+    @Body() body: { visibility?: 'common' | 'personal' | 'shared'; recipient_ids?: number[] },
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    const trip = this.requireTrip(tripId, user);
+    this.requireEdit(trip, user);
+    if (body.visibility !== 'common' && body.visibility !== 'personal' && body.visibility !== 'shared') {
+      throw new HttpException({ error: 'Invalid visibility' }, 400);
+    }
+    const updated = this.packing.setItemSharing(tripId, id, user.id, body.visibility, Array.isArray(body.recipient_ids) ? body.recipient_ids : []);
+    if (!updated) {
+      throw new HttpException({ error: 'Item not found' }, 404);
+    }
+    if ((updated as { forbidden?: boolean }).forbidden) {
+      throw new HttpException({ error: 'Only the owner can change sharing' }, 403);
+    }
+    // The viewer set just changed: drop the item from the whole room, then re-add
+    // it for whoever can now see it (owner + recipients, or everyone if Common).
+    this.packing.broadcast(tripId, 'packing:deleted', { itemId: Number(id) }, socketId);
+    this.emitToViewers(tripId, 'packing:created', { item: updated }, updated as PackingItemRow, socketId);
+    return { item: updated };
+  }
+
+  @Post(':id/clone')
+  @HttpCode(201)
+  clone(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Param('id') id: string,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    const trip = this.requireTrip(tripId, user);
+    this.requireEdit(trip, user);
+    const item = this.packing.cloneItem(tripId, id, user.id);
+    if (!item) {
+      throw new HttpException({ error: 'Item not found' }, 404);
+    }
+    // The clone is personal to the caller — only their sockets need it.
+    this.emitToViewers(tripId, 'packing:created', { item }, item, socketId);
+    return { item };
+  }
+
+  @Post(':id/contributors')
+  addContributor(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Param('id') id: string,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    const trip = this.requireTrip(tripId, user);
+    this.requireEdit(trip, user);
+    const item = this.packing.addContributor(tripId, id, user.id);
+    if (!item) {
+      throw new HttpException({ error: 'Item not found or not a shared list item' }, 404);
+    }
+    // Common item — visible to all, so the contributor change broadcasts to the room.
+    this.packing.broadcast(tripId, 'packing:updated', { item }, socketId);
+    return { item };
+  }
+
+  @Delete(':id/contributors/:userId')
+  removeContributor(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    const trip = this.requireTrip(tripId, user);
+    this.requireEdit(trip, user);
+    // You can drop your own pledge; the owner can remove anyone's.
+    const target = parseInt(userId);
+    const item = this.packing.removeContributor(tripId, id, target);
+    if (!item) {
+      throw new HttpException({ error: 'Item not found' }, 404);
+    }
+    this.packing.broadcast(tripId, 'packing:updated', { item }, socketId);
+    return { item };
   }
 
   @Get('bags')
