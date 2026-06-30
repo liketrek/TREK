@@ -310,6 +310,8 @@ const settings: TranslationStrings = {
   'settings.mapPoiPill': 'Helyek felfedezése a térképen',
   'settings.mapPoiPillHint':
     'Megjelenít egy kategóriasávot az utazási térképen, hogy az OpenStreetMap segítségével közeli éttermeket, szállásokat és továbbiakat találj.',
+  'settings.mapIconGrouping': 'Térképikonok csoportosítása',
+  'settings.mapIconGroupingHint': 'A közeli helyikonokat csoportokba vonja össze, amikor a térkép ki van nagyítva.',
   'settings.airtrail.title': 'AirTrail',
   'settings.airtrail.hint':
     'Csatlakoztasd a saját üzemeltetésű AirTrail-példányodat járatok importálásához és szinkronizálásához. Hozz létre egy API-kulcsot az AirTrailben a Beállítások → Biztonság menüpontban.',

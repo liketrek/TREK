@@ -309,6 +309,8 @@ const settings: TranslationStrings = {
   'settings.mapPoiPill': 'Plaatsen op de kaart ontdekken',
   'settings.mapPoiPillHint':
     'Toon een categorielabel op de reiskaart om restaurants, hotels en meer in de buurt te vinden via OpenStreetMap.',
+  'settings.mapIconGrouping': 'Kaarticonen groeperen',
+  'settings.mapIconGroupingHint': 'Combineert nabijgelegen plaatsiconen in clusters wanneer de kaart is uitgezoomd.',
   'settings.airtrail.title': 'AirTrail',
   'settings.airtrail.hint':
     'Verbind je zelf-gehoste AirTrail om vluchten te importeren en te synchroniseren. Maak een API-sleutel aan in AirTrail onder Instellingen → Beveiliging.',

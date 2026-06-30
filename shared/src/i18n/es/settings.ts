@@ -311,6 +311,8 @@ const settings: TranslationStrings = {
   'settings.mapPoiPill': 'Explorar lugares en el mapa',
   'settings.mapPoiPillHint':
     'Muestra una píldora de categorías en el mapa del viaje para encontrar restaurantes, alojamientos y más cerca, desde OpenStreetMap.',
+  'settings.mapIconGrouping': 'Agrupar iconos del mapa',
+  'settings.mapIconGroupingHint': 'Combina iconos de lugares cercanos en grupos cuando el mapa está alejado.',
   'settings.airtrail.title': 'AirTrail',
   'settings.airtrail.hint':
     'Conecta tu AirTrail autoalojado para importar y sincronizar vuelos. Crea una clave de API en AirTrail en Ajustes → Seguridad.',

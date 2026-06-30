@@ -301,6 +301,8 @@ const settings: TranslationStrings = {
   'settings.passkey.neverUsed': '사용한 적 없음',
   'settings.mapPoiPill': '지도에서 장소 탐색',
   'settings.mapPoiPillHint': '여행 지도에 카테고리 칩을 표시하여 OpenStreetMap에서 주변 음식점, 숙소 등을 찾아보세요.',
+  'settings.mapIconGrouping': '지도 아이콘 그룹화',
+  'settings.mapIconGroupingHint': '지도를 축소했을 때 가까운 장소 아이콘을 클러스터로 묶습니다.',
   'settings.airtrail.title': 'AirTrail',
   'settings.airtrail.hint':
     '자체 호스팅한 AirTrail을 연결하여 항공편을 가져오고 동기화하세요. AirTrail의 설정 → 보안에서 API 키를 생성하세요.',

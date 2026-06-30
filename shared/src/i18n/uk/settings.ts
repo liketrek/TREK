@@ -309,6 +309,8 @@ const settings: TranslationStrings = {
   'settings.mapPoiPill': 'Досліджуйте місця на карті',
   'settings.mapPoiPillHint':
     'Показувати на карті подорожі плашку категорій, щоб знаходити поблизу ресторани, готелі та інше з OpenStreetMap.',
+  'settings.mapIconGrouping': 'Групувати значки карти',
+  'settings.mapIconGroupingHint': 'Об’єднує значки найближчих місць у кластери, коли карту віддалено.',
   'settings.airtrail.title': 'AirTrail',
   'settings.airtrail.hint':
     'Підключіть свій самостійно розміщений AirTrail, щоб імпортувати та синхронізувати рейси. Створіть API-ключ в AirTrail у розділі Налаштування → Безпека.',

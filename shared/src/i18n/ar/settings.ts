@@ -298,6 +298,8 @@ const settings: TranslationStrings = {
   'settings.mapPoiPill': 'استكشاف الأماكن على الخريطة',
   'settings.mapPoiPillHint':
     'أظهر شريط فئات على خريطة الرحلة للعثور على المطاعم والفنادق والمزيد القريبة من OpenStreetMap.',
+  'settings.mapIconGrouping': 'تجميع أيقونات الخريطة',
+  'settings.mapIconGroupingHint': 'ادمج أيقونات الأماكن القريبة في مجموعات عند تصغير الخريطة.',
   'settings.airtrail.title': 'AirTrail',
   'settings.airtrail.hint':
     'اربط نسخة AirTrail المُستضافة ذاتيًا لاستيراد الرحلات ومزامنتها. أنشئ مفتاح API في AirTrail ضمن الإعدادات ← الأمان.',

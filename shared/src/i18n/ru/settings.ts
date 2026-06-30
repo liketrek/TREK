@@ -310,6 +310,8 @@ const settings: TranslationStrings = {
   'settings.mapPoiPill': 'Поиск мест на карте',
   'settings.mapPoiPillHint':
     'Показывать на карте поездки кнопку категорий, чтобы находить рядом рестораны, отели и другие места из OpenStreetMap.',
+  'settings.mapIconGrouping': 'Группировать значки карты',
+  'settings.mapIconGroupingHint': 'Объединяет значки ближайших мест в кластеры при уменьшении масштаба карты.',
   'settings.airtrail.title': 'AirTrail',
   'settings.airtrail.hint':
     'Подключите свой self-hosted AirTrail для импорта и синхронизации рейсов. Создайте ключ API в AirTrail в разделе «Настройки → Безопасность».',

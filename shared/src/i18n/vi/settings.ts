@@ -63,6 +63,8 @@ const settings: TranslationStrings = {
   'settings.mapPoiPill': 'Khám phá các địa điểm trên bản đồ',
   'settings.mapPoiPillHint':
     'Hiển thị một danh mục trên bản đồ chuyến đi để tìm các nhà hàng, khách sạn lân cận và hơn thế nữa từ OpenStreetMap.',
+  'settings.mapIconGrouping': 'Nhóm biểu tượng bản đồ',
+  'settings.mapIconGroupingHint': 'Gộp các biểu tượng địa điểm gần nhau thành cụm khi bản đồ được thu nhỏ.',
   'settings.blurBookingCodes': 'Mã đặt chỗ mờ',
   'settings.optimizeFromAccommodation': 'Tối ưu hóa tuyến đường từ chỗ ở',
   'settings.optimizeFromAccommodationHint':

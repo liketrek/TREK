@@ -291,6 +291,8 @@ const settings: TranslationStrings = {
   'settings.passkey.neverUsed': '從未使用',
   'settings.mapPoiPill': '在地圖上探索地點',
   'settings.mapPoiPillHint': '在行程地圖上顯示分類標籤，透過 OpenStreetMap 尋找附近的餐廳、住宿等地點。',
+  'settings.mapIconGrouping': '群組地圖圖示',
+  'settings.mapIconGroupingHint': '地圖縮小時，將附近的地點圖示合併成叢集。',
   'settings.airtrail.title': 'AirTrail',
   'settings.airtrail.hint': '連接你自架的 AirTrail 以匯入及同步航班。在 AirTrail 的「設定 → 安全性」中建立 API 金鑰。',
   'settings.airtrail.url': '執行個體網址',

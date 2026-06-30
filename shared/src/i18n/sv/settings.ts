@@ -65,6 +65,8 @@ const settings: TranslationStrings = {
   'settings.mapPoiPill': 'Utforska platser på kartan',
   'settings.mapPoiPillHint':
     'Visa en kategoriknapp på resekartan för att hitta restauranger, hotell och annat i närheten från OpenStreetMap.',
+  'settings.mapIconGrouping': 'Gruppera kartikoner',
+  'settings.mapIconGroupingHint': 'Kombinerar närliggande platsikoner i kluster när kartan är utzoomad.',
   'settings.blurBookingCodes': 'Blurra bokningskoder',
   'settings.optimizeFromAccommodation': 'Optimera rutten från boendet',
   'settings.optimizeFromAccommodationHint':

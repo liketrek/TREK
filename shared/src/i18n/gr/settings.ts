@@ -317,6 +317,8 @@ const settings: TranslationStrings = {
   'settings.mapPoiPill': 'Εξερεύνηση μερών στον χάρτη',
   'settings.mapPoiPillHint':
     'Εμφάνιση ετικέτας κατηγορίας στον χάρτη του ταξιδιού για εύρεση κοντινών εστιατορίων, ξενοδοχείων και άλλων από το OpenStreetMap.',
+  'settings.mapIconGrouping': 'Ομαδοποίηση εικονιδίων χάρτη',
+  'settings.mapIconGroupingHint': 'Συνδυάζει κοντινά εικονίδια μερών σε ομάδες όταν ο χάρτης είναι σε σμίκρυνση.',
   'settings.airtrail.title': 'AirTrail',
   'settings.airtrail.hint':
     'Συνδέστε το αυτο-φιλοξενούμενο AirTrail σας για εισαγωγή και συγχρονισμό πτήσεων. Δημιουργήστε ένα κλειδί API στο AirTrail από Ρυθμίσεις → Ασφάλεια.',

@@ -315,6 +315,8 @@ const settings: TranslationStrings = {
   'settings.mapPoiPill': 'Explorer les lieux sur la carte',
   'settings.mapPoiPillHint':
     'Afficher une pastille de catégorie sur la carte du voyage pour trouver à proximité des restaurants, hébergements et plus encore depuis OpenStreetMap.',
+  'settings.mapIconGrouping': 'Regrouper les icônes de carte',
+  'settings.mapIconGroupingHint': 'Combine les icônes de lieux proches en groupes lorsque la carte est dézoomée.',
   'settings.airtrail.title': 'AirTrail',
   'settings.airtrail.hint':
     'Connectez votre instance AirTrail auto-hébergée pour importer et synchroniser vos vols. Créez une clé API dans AirTrail sous Paramètres → Sécurité.',
