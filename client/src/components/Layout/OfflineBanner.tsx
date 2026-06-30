@@ -1,49 +1,44 @@
 /**
  * OfflineBanner — connectivity + sync state indicator.
  *
- * States:
- *   N failed            →  red pill   "N changes failed to sync" (takes priority)
- *   offline + N queued  →  amber pill "Offline · N queued"
- *   offline + 0 queued  →  amber pill "Offline"
- *   online  + N pending →  blue pill  "Syncing N…"
- *   online  + 0 pending →  hidden
+ * Priority (highest first):
+ *   N failed     →  red pill    "Failed to sync: N"  (changes were dropped)
+ *   N conflicts  →  purple pill "Conflicts: N"       (need resolving)
+ *   offline      →  amber pill  "Offline" / "Offline mode" / "Offline · N queued"
+ *   online + N   →  blue pill   "Syncing N…"
+ *   online + 0   →  hidden
  *
  * Rendered as a small floating pill anchored to the bottom-center of the
  * viewport so it never competes with top navigation or sticky modal
  * headers. On mobile it hovers just above the bottom tab bar.
  */
 import React, { useState, useEffect } from 'react'
-import { WifiOff, RefreshCw, AlertTriangle } from 'lucide-react'
+import { WifiOff, RefreshCw, AlertTriangle, GitMerge } from 'lucide-react'
 import { mutationQueue } from '../../sync/mutationQueue'
+import { useNetworkMode } from '../../hooks/useNetworkMode'
+import { useTranslation } from '../../i18n'
 
 const POLL_MS = 3_000
 
 export default function OfflineBanner(): React.ReactElement | null {
-  const [isOnline, setIsOnline] = useState(navigator.onLine)
+  const { t } = useTranslation()
+  const { offline, forced } = useNetworkMode()
   const [pendingCount, setPendingCount] = useState(0)
   const [failedCount, setFailedCount] = useState(0)
-
-  useEffect(() => {
-    const onOnline  = () => setIsOnline(true)
-    const onOffline = () => setIsOnline(false)
-    window.addEventListener('online',  onOnline)
-    window.addEventListener('offline', onOffline)
-    return () => {
-      window.removeEventListener('online',  onOnline)
-      window.removeEventListener('offline', onOffline)
-    }
-  }, [])
+  const [conflictCount, setConflictCount] = useState(0)
 
   useEffect(() => {
     let cancelled = false
     async function poll() {
-      const [n, failed] = await Promise.all([
+      const [n, failed, conflicts] = await Promise.all([
         mutationQueue.pendingCount(),
         mutationQueue.failedCount(),
+        mutationQueue.conflictCount(),
       ])
       if (!cancelled) {
         setPendingCount(n)
         setFailedCount(failed)
+        setConflictCount(conflicts)
       }
     }
     poll()
@@ -51,22 +46,34 @@ export default function OfflineBanner(): React.ReactElement | null {
     return () => { cancelled = true; clearInterval(id) }
   }, [])
 
-  const hidden = isOnline && pendingCount === 0 && failedCount === 0
+  const hidden = !offline && pendingCount === 0 && failedCount === 0 && conflictCount === 0
   if (hidden) return null
 
-  const offline = !isOnline
   // Failed mutations are the most important signal — they mean data was dropped.
+  // Conflicts come next (they still need a decision), then plain offline status.
   const failed = failedCount > 0
-  const bg    = failed ? '#b91c1c' : offline ? '#92400e' : '#1e40af'
-  const text  = '#fff'
+  const conflict = !failed && conflictCount > 0
+  const bg = failed ? '#b91c1c' : conflict ? '#6d28d9' : offline ? '#92400e' : '#1e40af'
 
-  const label = failed
-    ? `${failedCount} change${failedCount !== 1 ? 's' : ''} failed to sync`
-    : offline
-      ? pendingCount > 0
-        ? `Offline · ${pendingCount} queued`
-        : 'Offline'
-      : `Syncing ${pendingCount}…`
+  let label: string
+  let icon: React.ReactElement
+  if (failed) {
+    label = t('settings.offline.banner.failed', { count: failedCount })
+    icon = <AlertTriangle size={12} />
+  } else if (conflict) {
+    label = t('settings.offline.banner.conflicts', { count: conflictCount })
+    icon = <GitMerge size={12} />
+  } else if (offline) {
+    label = pendingCount > 0
+      ? t('settings.offline.banner.queued', { count: pendingCount })
+      : forced
+        ? t('settings.offline.banner.forced')
+        : t('settings.offline.banner.offline')
+    icon = <WifiOff size={12} />
+  } else {
+    label = t('settings.offline.banner.syncing', { count: pendingCount })
+    icon = <RefreshCw size={12} style={{ animation: 'spin 1s linear infinite' }} />
+  }
 
   return (
     <div
@@ -81,7 +88,7 @@ export default function OfflineBanner(): React.ReactElement | null {
         transform: 'translateX(-50%)',
         zIndex: 9999,
         background: bg,
-        color: text,
+        color: '#fff',
         display: 'inline-flex',
         alignItems: 'center',
         gap: 6,
@@ -94,12 +101,7 @@ export default function OfflineBanner(): React.ReactElement | null {
         pointerEvents: 'none',
       }}
     >
-      {failed
-        ? <AlertTriangle size={12} />
-        : offline
-          ? <WifiOff size={12} />
-          : <RefreshCw size={12} style={{ animation: 'spin 1s linear infinite' }} />
-      }
+      {icon}
       {label}
     </div>
   )
