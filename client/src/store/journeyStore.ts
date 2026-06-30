@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { journeyApi } from '../api/client'
 import { uploadFilesResilient, type ResilientResult, type UploadProgress } from '../utils/uploadQueue'
+import { captureVideoPoster, isVideoFile } from '../utils/videoPoster'
 
 export interface Journey {
   id: number
@@ -276,8 +277,19 @@ export const useJourneyStore = create<JourneyState>((set, get) => ({
       files,
       async (file, opts) => {
         const fd = new FormData()
-        fd.append('photos', file)
-        const data = await journeyApi.uploadGalleryPhotos(journeyId, fd, opts)
+        let data: { photos?: GalleryPhoto[] }
+        if (isVideoFile(file)) {
+          // Video: grab a poster frame + duration in the browser, then upload the
+          // raw video + poster (#823). No server-side transcoding.
+          const { poster, durationMs } = await captureVideoPoster(file)
+          fd.append('video', file)
+          if (poster) fd.append('poster', poster, 'poster.jpg')
+          if (durationMs != null) fd.append('duration_ms', String(durationMs))
+          data = await journeyApi.uploadGalleryVideo(journeyId, fd, opts)
+        } else {
+          fd.append('photos', file)
+          data = await journeyApi.uploadGalleryPhotos(journeyId, fd, opts)
+        }
         const photos: GalleryPhoto[] = data.photos || []
         set(s => {
           if (!s.current || s.current.id !== journeyId) return s

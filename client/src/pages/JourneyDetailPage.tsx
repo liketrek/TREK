@@ -95,7 +95,7 @@ export default function JourneyDetailPage() {
           onClose={() => setViewingEntry(null)}
           onEdit={() => { setViewingEntry(null); setEditingEntry(viewingEntry); }}
           onDelete={() => { setViewingEntry(null); setDeleteTarget(viewingEntry); }}
-          onPhotoClick={(photos, idx) => setLightbox({ photos: photos.map(p => ({ id: p.id, src: photoUrl(p, 'original'), caption: p.caption, provider: p.provider, asset_id: p.asset_id, owner_id: p.owner_id })), index: idx })}
+          onPhotoClick={(photos, idx) => setLightbox({ photos: photos.map(p => ({ id: p.id, src: photoUrl(p, 'original'), caption: p.caption, provider: p.provider, asset_id: p.asset_id, owner_id: p.owner_id, mediaType: p.media_type })), index: idx })}
         />
       )}
 
@@ -384,7 +384,7 @@ export default function JourneyDetailPage() {
                                     readOnly={!canEditEntries}
                                     onEdit={() => setEditingEntry(entry)}
                                     onDelete={() => setDeleteTarget(entry)}
-                                    onPhotoClick={(photos, idx) => setLightbox({ photos: photos.map(p => ({ id: p.id, src: photoUrl(p, 'original'), caption: p.caption, provider: p.provider, asset_id: p.asset_id, owner_id: p.owner_id })), index: idx })}
+                                    onPhotoClick={(photos, idx) => setLightbox({ photos: photos.map(p => ({ id: p.id, src: photoUrl(p, 'original'), caption: p.caption, provider: p.provider, asset_id: p.asset_id, owner_id: p.owner_id, mediaType: p.media_type })), index: idx })}
                                   />
                                 )}
                               </div>
@@ -408,7 +408,7 @@ export default function JourneyDetailPage() {
                   journeyId={current.id}
                   userId={useAuthStore.getState().user?.id || 0}
                   trips={current.trips}
-                  onPhotoClick={(photos, idx) => setLightbox({ photos: photos.map(p => ({ id: p.id, src: photoUrl(p, 'original'), caption: p.caption ?? null, provider: p.provider, asset_id: p.asset_id, owner_id: p.owner_id })), index: idx })}
+                  onPhotoClick={(photos, idx) => setLightbox({ photos: photos.map(p => ({ id: p.id, src: photoUrl(p, 'original'), caption: p.caption ?? null, provider: p.provider, asset_id: p.asset_id, owner_id: p.owner_id, mediaType: p.media_type })), index: idx })}
                   onRefresh={() => loadJourney(Number(id))}
                 />
               </div>
@@ -538,7 +538,7 @@ export default function JourneyDetailPage() {
       {/* Lightbox */}
       {lightbox && (
         <PhotoLightbox
-          photos={lightbox.photos.map(p => ({ id: p.id.toString(), src: p.src, caption: p.caption, provider: p.provider, asset_id: p.asset_id, owner_id: p.owner_id }))}
+          photos={lightbox.photos.map(p => ({ id: p.id.toString(), src: p.src, caption: p.caption, provider: p.provider, asset_id: p.asset_id, owner_id: p.owner_id, mediaType: p.mediaType }))}
           startIndex={lightbox.index}
           onClose={() => setLightbox(null)}
         />

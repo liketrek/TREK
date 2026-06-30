@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
-import { RefreshCw, Camera, Image, Plus, X } from 'lucide-react'
+import { RefreshCw, Camera, Image, Plus, X, Play } from 'lucide-react'
 import { normalizeImageFiles } from '../../utils/convertHeic'
+import { isVideoFile } from '../../utils/videoPoster'
 import { useJourneyStore } from '../../store/journeyStore'
 import { useTranslation } from '../../i18n'
 import { journeyApi, addonsApi } from '../../api/client'
@@ -66,7 +67,11 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
     if (!files?.length) return
     setGalleryProgress({ done: 0, total: files.length })
     try {
-      const normalized = await normalizeImageFiles(files)
+      // Videos skip HEIC normalization; only images are converted (#823).
+      const all = Array.from(files)
+      const videos = all.filter(isVideoFile)
+      const images = all.filter(f => !isVideoFile(f))
+      const normalized = [...(images.length ? await normalizeImageFiles(images) : []), ...videos]
       const { failed } = await useJourneyStore.getState().uploadGalleryPhotos(journeyId, normalized, {
         onProgress: p => setGalleryProgress({ done: p.done, total: p.total }),
       })
@@ -110,7 +115,7 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
 
   return (
     <div>
-      <input ref={galleryFileRef} type="file" accept="image/*" multiple onChange={handleGalleryUpload} className="hidden" />
+      <input ref={galleryFileRef} type="file" accept="image/*,video/*" multiple onChange={handleGalleryUpload} className="hidden" />
 
       {/* Header */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
@@ -165,6 +170,13 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
                 loading="lazy"
               />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+              {photo.media_type === 'video' && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <span className="w-9 h-9 rounded-full bg-black/55 backdrop-blur flex items-center justify-center text-white">
+                    <Play size={16} className="ml-0.5" fill="currentColor" />
+                  </span>
+                </div>
+              )}
               {/* Delete button */}
               <button
                 onClick={(e) => { e.stopPropagation(); handleDeletePhoto(photo.id) }}

@@ -39,7 +39,7 @@ export function useJourneyDetail() {
   const feedRef = useRef<HTMLDivElement>(null)
   const [viewingEntry, setViewingEntry] = useState<JourneyEntry | null>(null)
   const [editingEntry, setEditingEntry] = useState<JourneyEntry | null>(null)
-  const [lightbox, setLightbox] = useState<{ photos: { id: number; src: string; caption?: string | null; provider?: string; asset_id?: string | null; owner_id?: number | null }[]; index: number } | null>(null)
+  const [lightbox, setLightbox] = useState<{ photos: { id: number; src: string; caption?: string | null; provider?: string; asset_id?: string | null; owner_id?: number | null; mediaType?: string | null }[]; index: number } | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<JourneyEntry | null>(null)
   const [showInvite, setShowInvite] = useState(false)
   const [showAddTrip, setShowAddTrip] = useState(false)

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
+import VideoPlayer from './VideoPlayer'
 
 interface LightboxPhoto {
   id: string
@@ -8,6 +9,7 @@ interface LightboxPhoto {
   provider?: string
   asset_id?: string | null
   owner_id?: number | null
+  mediaType?: string | null
 }
 
 interface Props {
@@ -107,17 +109,21 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose }: Props
           </button>
         )}
 
-        {/* Photo */}
-        <img
-          key={photo.id}
-          src={photo.src}
-          alt={photo.caption || ''}
-          style={{
-            maxWidth: '92vw', maxHeight: '92vh',
-            objectFit: 'contain', borderRadius: 4,
-            animation: 'fadeIn 0.15s ease',
-          }}
-        />
+        {/* Photo or video */}
+        {photo.mediaType === 'video' ? (
+          <VideoPlayer key={photo.id} src={photo.src} />
+        ) : (
+          <img
+            key={photo.id}
+            src={photo.src}
+            alt={photo.caption || ''}
+            style={{
+              maxWidth: '92vw', maxHeight: '92vh',
+              objectFit: 'contain', borderRadius: 4,
+              animation: 'fadeIn 0.15s ease',
+            }}
+          />
+        )}
 
         {/* Next button */}
         {hasNext && (

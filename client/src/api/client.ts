@@ -582,6 +582,13 @@ export const journeyApi = {
       onUploadProgress: opts?.onUploadProgress,
       signal: opts?.signal,
     }).then(r => r.data),
+  uploadGalleryVideo: (journeyId: number, formData: FormData, opts?: { onUploadProgress?: (e: import('axios').AxiosProgressEvent) => void; idempotencyKey?: string; signal?: AbortSignal }) =>
+    apiClient.post(`/journeys/${journeyId}/gallery/video`, formData, {
+      headers: { 'Content-Type': undefined as any, ...(opts?.idempotencyKey ? { 'X-Idempotency-Key': opts.idempotencyKey } : {}) },
+      timeout: 0,
+      onUploadProgress: opts?.onUploadProgress,
+      signal: opts?.signal,
+    }).then(r => r.data),
   addProviderPhotosToGallery: (journeyId: number, provider: string, assetIds: string[], passphrase?: string) => apiClient.post(`/journeys/${journeyId}/gallery/provider-photos`, { provider, asset_ids: assetIds, ...(passphrase ? { passphrase } : {}) } satisfies JourneyProviderPhotosRequest).then(r => r.data),
   addProviderPhoto: (entryId: number, provider: string, assetId: string, caption?: string, passphrase?: string) => apiClient.post(`/journeys/entries/${entryId}/provider-photos`, { provider, asset_id: assetId, caption, ...(passphrase ? { passphrase } : {}) }).then(r => r.data),
   addProviderPhotos: (entryId: number, provider: string, assetIds: string[], caption?: string, passphrase?: string) => apiClient.post(`/journeys/entries/${entryId}/provider-photos`, { provider, asset_ids: assetIds, caption, ...(passphrase ? { passphrase } : {}) }).then(r => r.data),
