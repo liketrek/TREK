@@ -1813,7 +1813,7 @@ describe('JourneyDetailPage', () => {
       expect(uploadBtn).toBeTruthy();
 
       // Verify the hidden file input exists in the gallery view
-      const fileInput = document.querySelector('input[type="file"][accept="image/*"]') as HTMLInputElement;
+      const fileInput = document.querySelector('input[type="file"][accept="image/*,video/*"]') as HTMLInputElement;
       expect(fileInput).toBeTruthy();
     });
   });
@@ -3314,7 +3314,7 @@ describe('JourneyDetailPage', () => {
       });
 
       // Find the hidden file input in the gallery view
-      const fileInput = document.querySelector('input[type="file"][accept="image/*"][multiple]') as HTMLInputElement;
+      const fileInput = document.querySelector('input[type="file"][accept="image/*,video/*"][multiple]') as HTMLInputElement;
       expect(fileInput).toBeTruthy();
 
       // Simulate file selection

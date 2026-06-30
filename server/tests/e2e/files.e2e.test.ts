@@ -31,7 +31,8 @@ vi.mock('../../src/services/permissions', () => ({ checkPermission }));
 
 const { fileSvc } = vi.hoisted(() => ({
   fileSvc: {
-    MAX_FILE_SIZE: 50 * 1024 * 1024, BLOCKED_EXTENSIONS: ['.exe', '.svg'], filesDir: '/tmp/files', getAllowedExtensions: () => '*',
+    MAX_FILE_SIZE: 50 * 1024 * 1024, MAX_VIDEO_SIZE: 500 * 1024 * 1024, BLOCKED_EXTENSIONS: ['.exe', '.svg'], filesDir: '/tmp/files', getAllowedExtensions: () => '*',
+    isVideoExtension: (ext: string) => ['mp4', 'm4v', 'webm', 'mov'].includes(String(ext).toLowerCase().replace(/^\./, '')), isVideoMime: (m?: string) => !!m && m.startsWith('video/'),
     verifyTripAccess: vi.fn(), resolveFilePath: vi.fn(), authenticateDownload: vi.fn(),
     listFiles: vi.fn(), getFileById: vi.fn(), getDeletedFile: vi.fn(), createFile: vi.fn(), updateFile: vi.fn(),
     toggleStarred: vi.fn(), softDeleteFile: vi.fn(), restoreFile: vi.fn(), permanentDeleteFile: vi.fn(),
