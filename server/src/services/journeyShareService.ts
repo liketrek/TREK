@@ -105,7 +105,8 @@ export function getPublicJourney(token: string) {
 
   const photos = db.prepare(`
     SELECT gp.id, jep.entry_id, gp.photo_id, gp.caption, jep.sort_order, gp.shared, gp.created_at,
-           tkp.provider, tkp.asset_id, tkp.owner_id, tkp.file_path, tkp.thumbnail_path, tkp.width, tkp.height
+           tkp.provider, tkp.asset_id, tkp.owner_id, tkp.file_path, tkp.thumbnail_path, tkp.width, tkp.height,
+           tkp.media_type, tkp.duration_ms
     FROM journey_entry_photos jep
     JOIN journey_photos gp ON gp.id = jep.journey_photo_id
     JOIN trek_photos tkp ON tkp.id = gp.photo_id
@@ -120,7 +121,8 @@ export function getPublicJourney(token: string) {
 
   const gallery = db.prepare(`
     SELECT gp.id, gp.journey_id, gp.photo_id, gp.caption, gp.shared, gp.sort_order, gp.created_at,
-           tkp.provider, tkp.asset_id, tkp.owner_id, tkp.file_path, tkp.thumbnail_path, tkp.width, tkp.height
+           tkp.provider, tkp.asset_id, tkp.owner_id, tkp.file_path, tkp.thumbnail_path, tkp.width, tkp.height,
+           tkp.media_type, tkp.duration_ms
     FROM journey_photos gp
     JOIN trek_photos tkp ON tkp.id = gp.photo_id
     WHERE gp.journey_id = ?

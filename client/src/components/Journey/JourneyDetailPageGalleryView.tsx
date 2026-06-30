@@ -163,12 +163,18 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
               className="relative aspect-square rounded-lg overflow-hidden cursor-pointer group"
               onClick={() => onPhotoClick(allPhotos, i)}
             >
-              <img
-                src={photoUrl(photo, 'thumbnail')}
-                alt={photo.caption || ''}
-                className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                loading="lazy"
-              />
+              {photo.media_type === 'video' && !photo.thumbnail_path ? (
+                // Poster-less video (capture failed / unsupported codec): show a
+                // neutral tile rather than a broken 404 thumbnail (#823).
+                <div className="w-full h-full bg-zinc-200 dark:bg-zinc-800" />
+              ) : (
+                <img
+                  src={photoUrl(photo, 'thumbnail')}
+                  alt={photo.caption || ''}
+                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                  loading="lazy"
+                />
+              )}
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
               {photo.media_type === 'video' && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

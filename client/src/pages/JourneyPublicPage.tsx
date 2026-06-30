@@ -1,7 +1,7 @@
 import { useTranslation, SUPPORTED_LANGUAGES } from '../i18n'
 import { useSettingsStore } from '../store/settingsStore'
 import {
-  List, Grid, MapPin, Camera, BookOpen, Image, Clock,
+  List, Grid, MapPin, Camera, BookOpen, Image, Clock, Play,
   Laugh, Smile, Meh, Frown,
   Sun, CloudSun, Cloud, CloudRain, CloudLightning, Snowflake,
   ThumbsUp, ThumbsDown,
@@ -123,7 +123,7 @@ export default function JourneyPublicPage() {
                 const prosArr = entry.pros_cons?.pros ?? []
                 const consArr = entry.pros_cons?.cons ?? []
                 const hasProscons = prosArr.length > 0 || consArr.length > 0
-                const lightboxPhotos = photos.map(p => ({ id: String(p.id), src: photoUrl(p, token!, 'original'), caption: p.caption }))
+                const lightboxPhotos = photos.map(p => ({ id: String(p.id), src: photoUrl(p, token!, 'original'), caption: p.caption, mediaType: (p as any).media_type }))
 
                 const isActive = activeEntryId === String(entry.id)
                 return (
@@ -296,10 +296,17 @@ export default function JourneyPublicPage() {
       {allPhotos.map((photo, idx) => (
         <div
           key={photo.id}
-          className="aspect-square rounded-lg overflow-hidden cursor-pointer"
-          onClick={() => setLightbox({ photos: allPhotos.map(p => ({ id: String(p.id), src: photoUrl(p, token!, 'original'), caption: p.caption })), index: idx })}
+          className="relative aspect-square rounded-lg overflow-hidden cursor-pointer"
+          onClick={() => setLightbox({ photos: allPhotos.map(p => ({ id: String(p.id), src: photoUrl(p, token!, 'original'), caption: p.caption, mediaType: (p as any).media_type })), index: idx })}
         >
           <img src={photoUrl(photo, token!, 'thumbnail')} className="w-full h-full object-cover hover:scale-105 transition-transform" alt="" loading="lazy" />
+          {(photo as any).media_type === 'video' && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <span className="w-9 h-9 rounded-full bg-black/55 backdrop-blur flex items-center justify-center text-white">
+                <Play size={16} className="ml-0.5" fill="currentColor" />
+              </span>
+            </div>
+          )}
         </div>
       ))}
     </div>
@@ -513,6 +520,7 @@ export default function JourneyPublicPage() {
               id: String(p.id),
               src: photoUrl(p as any, token!, 'original'),
               caption: (p as any).caption ?? null,
+              mediaType: (p as any).media_type,
             })),
             index: idx,
           })}

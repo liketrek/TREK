@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ExternalLink, Download, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ExternalLink, Download, X, ChevronLeft, ChevronRight, Play } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import type { TripFile } from '../../types'
 import { getAuthUrl } from '../../api/authUrl'
@@ -126,14 +126,20 @@ export function ImageLightbox({ files, initialIndex, onClose }: ImageLightboxPro
 }
 
 function ThumbImg({ file, active, onClick }: { file: TripFile & { url: string }; active: boolean; onClick: () => void }) {
+  const fileIsVideo = isVideo(file.mime_type)
   const [src, setSrc] = useState('')
-  useEffect(() => { getAuthUrl(file.url, 'download').then(setSrc) }, [file.url])
+  // Videos have no stored thumbnail and can't render as an <img>; show a play
+  // placeholder and don't mint a download token for them (#823).
+  useEffect(() => { if (!fileIsVideo) getAuthUrl(file.url, 'download').then(setSrc) }, [file.url, fileIsVideo])
   return (
     <button onClick={onClick} style={{
       width: 48, height: 48, borderRadius: 6, overflow: 'hidden', border: active ? '2px solid #fff' : '2px solid transparent',
       opacity: active ? 1 : 0.5, cursor: 'pointer', padding: 0, background: '#111', flexShrink: 0, transition: 'opacity 0.15s',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.7)',
     }}>
-      {src && <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
+      {fileIsVideo
+        ? <Play size={16} fill="currentColor" />
+        : (src && <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />)}
     </button>
   )
 }

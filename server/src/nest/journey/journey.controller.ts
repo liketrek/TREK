@@ -57,7 +57,15 @@ const IMAGE_UPLOAD = {
 const VIDEO_UPLOAD = {
   storage: diskStorage({
     destination: (_req, _file, cb) => { if (!fs.existsSync(uploadsBase)) fs.mkdirSync(uploadsBase, { recursive: true }); cb(null, uploadsBase); },
-    filename: (_req, file, cb) => cb(null, `${crypto.randomUUID()}${path.extname(file.originalname).toLowerCase() || (file.fieldname === 'poster' ? '.jpg' : '.mp4')}`),
+    filename: (_req, file, cb) => {
+      // The poster is ALWAYS stored as .jpg, never the client-supplied extension:
+      // otherwise a poster declared image/* but named x.html / x.js would land on
+      // disk with that extension and be served inline same-origin (stored XSS,
+      // reachable via the public share proxy). The video extension is validated by
+      // the fileFilter, so it is safe to keep.
+      const ext = file.fieldname === 'poster' ? '.jpg' : (path.extname(file.originalname).toLowerCase() || '.mp4');
+      cb(null, `${crypto.randomUUID()}${ext}`);
+    },
   }),
   limits: { fileSize: MAX_VIDEO_SIZE },
   fileFilter: (_req: unknown, file: Express.Multer.File, cb: (err: Error | null, accept: boolean) => void) => {
@@ -259,10 +267,18 @@ export class JourneyController {
     @Body() body: { duration_ms?: string },
   ) {
     const video = files?.video?.[0];
+    const poster = files?.poster?.[0];
+    // multer already wrote both parts; clean them up on any rejection so a POST to
+    // a journey the user can't edit doesn't orphan a 500 MB clip on disk (#823).
+    const cleanup = () => {
+      for (const f of [video, poster]) {
+        if (f?.path) { try { fs.unlinkSync(f.path); } catch { /* best-effort */ } }
+      }
+    };
     if (!video) {
+      cleanup();
       throw new HttpException({ error: 'No video uploaded' }, 400);
     }
-    const poster = files?.poster?.[0];
     const durationMs = body?.duration_ms != null ? Number(body.duration_ms) : null;
     const photos = this.journey.uploadGalleryPhotos(Number(id), user.id, [{
       path: `journey/${video.filename}`,
@@ -271,6 +287,7 @@ export class JourneyController {
       durationMs: durationMs != null && Number.isFinite(durationMs) ? durationMs : null,
     }]);
     if (!photos.length) {
+      cleanup();
       throw new HttpException({ error: 'Not allowed' }, 403);
     }
     return { photos };

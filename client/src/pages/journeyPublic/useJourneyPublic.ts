@@ -23,7 +23,7 @@ export function useJourneyPublic() {
   const [error, setError] = useState(false)
   const isMobile = useIsMobile()
   const [view, setView] = useState<'timeline' | 'gallery' | 'map'>('timeline')
-  const [lightbox, setLightbox] = useState<{ photos: { id: string; src: string; caption?: string | null }[]; index: number } | null>(null)
+  const [lightbox, setLightbox] = useState<{ photos: { id: string; src: string; caption?: string | null; mediaType?: string | null }[]; index: number } | null>(null)
   const [showLangPicker, setShowLangPicker] = useState(false)
   const locale = useSettingsStore(s => s.settings.language) || 'en'
   const mapRef = useRef<JourneyMapHandle>(null)
