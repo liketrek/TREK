@@ -38,6 +38,7 @@
     "mapbox-gl": "^3.22.0",
     "maplibre-gl": "^5.24.0",
     "marked": "^18.0.0",
+    "plyr": "^3.8.4",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-dropzone": "^14.4.1",
