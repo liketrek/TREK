@@ -1,6 +1,7 @@
 import { packingApi } from '../api/client'
 import { offlineDb, upsertPackingItems } from '../db/offlineDb'
 import { mutationQueue, generateUUID, nextTempId } from '../sync/mutationQueue'
+import { isEffectivelyOffline } from '../sync/networkMode'
 import { onlineThenCache } from './withOfflineFallback'
 import type { PackingItem } from '../types'
 
@@ -20,7 +21,7 @@ export const packingRepo = {
   },
 
   async create(tripId: number | string, data: Record<string, unknown> & { name: string }): Promise<{ item: PackingItem }> {
-    if (!navigator.onLine) {
+    if (isEffectivelyOffline()) {
       const tempId = nextTempId()
       const tempItem: PackingItem = {
         ...(data as Partial<PackingItem>),
@@ -48,7 +49,7 @@ export const packingRepo = {
   },
 
   async update(tripId: number | string, id: number, data: Record<string, unknown>): Promise<{ item: PackingItem }> {
-    if (!navigator.onLine) {
+    if (isEffectivelyOffline()) {
       const existing = await offlineDb.packingItems.get(id)
       const optimistic: PackingItem = { ...(existing ?? {} as PackingItem), ...(data as Partial<PackingItem>), id }
       await offlineDb.packingItems.put(optimistic)
@@ -62,6 +63,7 @@ export const packingRepo = {
         body: data,
         resource: 'packingItems',
         entityId: id,
+        baseUpdatedAt: existing?.updated_at ?? null,
         ...(isTemp ? { tempEntityId: id } : {}),
       })
       return { item: optimistic }
@@ -72,7 +74,7 @@ export const packingRepo = {
   },
 
   async delete(tripId: number | string, id: number): Promise<unknown> {
-    if (!navigator.onLine) {
+    if (isEffectivelyOffline()) {
       await offlineDb.packingItems.delete(id)
       const mutId = generateUUID()
       const isTemp = id < 0

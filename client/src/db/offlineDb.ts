@@ -8,7 +8,10 @@ export interface CachedTripMember extends TripMember {
 
 // ── Queue + sync types ────────────────────────────────────────────────────────
 
-export type MutationStatus = 'pending' | 'syncing' | 'failed';
+// 'conflict' is terminal-until-resolved: the server rejected the replay because
+// the entity changed underneath the offline edit (#1135 ask 3). It is surfaced
+// to the user for a keep-mine / keep-theirs decision rather than dropped.
+export type MutationStatus = 'pending' | 'syncing' | 'failed' | 'conflict';
 
 export interface QueuedMutation {
   /** UUID — also used as X-Idempotency-Key sent to the server */
@@ -33,6 +36,21 @@ export interface QueuedMutation {
    * mutation queue rewrites to the real server id once the dependent CREATE flushes.
    */
   tempEntityId?: number;
+  /**
+   * Optimistic-concurrency token: the entity's `updated_at` at the moment the
+   * offline edit was made. Sent as `X-Base-Updated-At` on replay so the server
+   * can reject the write (409) if someone else changed the entity in the
+   * meantime. Absent for creates and for resources without a token.
+   */
+  baseUpdatedAt?: string | null;
+  /**
+   * Set when the replay came back 409: the server's current version of the
+   * entity, kept so the conflict resolver can show "theirs" beside "mine"
+   * (which is reconstructed from `body`). Only present while status==='conflict'.
+   */
+  conflictServer?: unknown;
+  /** When the conflict was detected (for ordering / display). */
+  conflictAt?: number;
 }
 
 export interface SyncMeta {
@@ -348,7 +366,16 @@ export async function enforceBlobBudget(
 
 // ── Eviction / cleanup ────────────────────────────────────────────────────────
 
-/** Delete all cached data for one trip (eviction or explicit clear). */
+/**
+ * Delete one trip's cached READ data (eviction, per-trip opt-out). The offline
+ * write queue is deliberately preserved except for already-dropped 'failed' rows:
+ * a trip can be evicted for being stale, or turned off in the storage settings,
+ * while it still holds unsynced offline edits (pending/syncing) or unresolved
+ * conflicts — those must survive so the user's work is not silently lost (#1135).
+ * The replay only needs the queued REST request, not the cached entities, and a
+ * successful flush re-adds the canonical row. The full "Clear cache" wipe goes
+ * through clearAll(), which intentionally drops everything.
+ */
 export async function clearTripData(tripId: number): Promise<void> {
   await offlineDb.transaction(
     'rw',
@@ -376,7 +403,8 @@ export async function clearTripData(tripId: number): Promise<void> {
       await offlineDb.tripFiles.where('trip_id').equals(tripId).delete();
       await offlineDb.accommodations.where('trip_id').equals(tripId).delete();
       await offlineDb.tripMembers.where('tripId').equals(tripId).delete();
-      await offlineDb.mutationQueue.where('tripId').equals(tripId).delete();
+      // Keep pending/syncing/conflict mutations — only purge dead 'failed' rows.
+      await offlineDb.mutationQueue.where('tripId').equals(tripId).and(m => m.status === 'failed').delete();
       await offlineDb.syncMeta.where('tripId').equals(tripId).delete();
       await offlineDb.blobCache.where('tripId').equals(tripId).delete();
     },

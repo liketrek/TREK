@@ -8,6 +8,8 @@
 import { offlineDb } from '../db/offlineDb'
 import { apiClient } from '../api/client'
 import { isAuthed } from './authGate'
+import { isEffectivelyOffline } from './networkMode'
+import { getOfflinePrefs } from './offlinePrefs'
 import type { QueuedMutation } from '../db/offlineDb'
 import type { Table } from 'dexie'
 
@@ -62,6 +64,22 @@ function isRetryableStatus(status: number | undefined): boolean {
   return status === 401 || status === 408 || status === 425 || status === 429
 }
 
+/** Pull the server's current entity out of a 409 response body ({ server: {...} }). */
+function extractConflictServer(err: unknown): unknown {
+  const data = (err as { response?: { data?: unknown } })?.response?.data
+  if (data && typeof data === 'object' && 'server' in data) {
+    return (data as { server: unknown }).server
+  }
+  return null
+}
+
+/** Write a server entity into its Dexie table (used when "theirs" wins a conflict). */
+async function applyServerEntity(mutation: QueuedMutation, server: unknown): Promise<void> {
+  if (!mutation.resource || !server || typeof server !== 'object' || !('id' in server)) return
+  const table = getTable(mutation.resource)
+  if (table) await table.put(server)
+}
+
 export const mutationQueue = {
   /**
    * Add a mutation to the queue.
@@ -89,12 +107,19 @@ export const mutationQueue = {
    * 4xx responses are marked failed and skipped.
    */
   async flush(): Promise<void> {
-    if (_flushing || !navigator.onLine || !isAuthed()) return
+    if (_flushing || isEffectivelyOffline() || !isAuthed()) return
     _flushing = true
     // tempId → realId learned during this flush, so a dependent edit/delete
     // queued against an offline-created entity (still holding the negative id)
     // can be rewritten to the server id before it is replayed.
     const idMap = new Map<number, number>()
+    // resource:entityId → freshest updated_at applied during this flush. A second
+    // queued edit of the same entity must send THIS token, not the stale one its
+    // snapshot was loaded with, or it would 409 against our own first edit (#1135).
+    const tokenMap = new Map<string, string>()
+    // Set when a conflict auto-resolved as "mine wins": the mutation is re-queued
+    // without its base token, so one more pass overwrites the server cleanly.
+    let needsRetry = false
     try {
       const pending = await offlineDb.mutationQueue
         .where('status')
@@ -128,11 +153,20 @@ export const mutationQueue = {
         }
 
         try {
+          // Send the optimistic-concurrency token when we have one so the server
+          // can reject a stale overwrite (409). Absent header => unconditional
+          // write (back-compat with servers / resources that don't check it).
+          // A newer token learned earlier in THIS flush (an earlier edit of the
+          // same entity) overrides the snapshot's stale base.
+          const headers: Record<string, string> = { 'X-Idempotency-Key': mutation.id }
+          const tokenKey = mutation.resource !== undefined && reqEntityId !== undefined ? `${mutation.resource}:${reqEntityId}` : undefined
+          const baseToken = (tokenKey && tokenMap.get(tokenKey)) || mutation.baseUpdatedAt
+          if (baseToken) headers['X-Base-Updated-At'] = baseToken
           const response = await apiClient.request({
             method: mutation.method,
             url: reqUrl,
             data: mutation.body,
-            headers: { 'X-Idempotency-Key': mutation.id },
+            headers,
           })
 
           // Apply canonical server response to Dexie
@@ -161,6 +195,29 @@ export const mutationQueue = {
                     })
                 }
                 await table.put(entity)
+                // Advance the base-version token of any other queued edits to the
+                // same entity to the value we just wrote. Without this, a second
+                // offline edit of the same place/item still carries the pre-flush
+                // token and would 409 against our OWN just-applied first edit —
+                // self-conflicting and risking loss of the later edit (#1135).
+                const newToken = (entity as { updated_at?: unknown }).updated_at
+                if (typeof newToken === 'string') {
+                  // In-memory: consulted when the sibling is replayed later in this
+                  // same flush (its snapshot still holds the stale base).
+                  if (mutation.resource) tokenMap.set(`${mutation.resource}:${realId}`, newToken)
+                  // Durable: survives a flush boundary / reload if the sibling is
+                  // not reached this pass.
+                  await offlineDb.mutationQueue
+                    .where('tripId')
+                    .equals(mutation.tripId)
+                    .filter(m =>
+                      m.id !== mutation.id &&
+                      m.resource === mutation.resource &&
+                      m.entityId === realId &&
+                      (m.status === 'pending' || m.status === 'syncing'),
+                    )
+                    .modify(m => { m.baseUpdatedAt = newToken })
+                }
               }
             }
           } else if (mutation.method === 'DELETE' && mutation.resource && reqEntityId !== undefined) {
@@ -172,6 +229,37 @@ export const mutationQueue = {
           await offlineDb.mutationQueue.delete(mutation.id)
         } catch (err: unknown) {
           const httpStatus = (err as { response?: { status: number } })?.response?.status
+
+          // 409 = the entity changed on the server since this offline edit was
+          // made. This is NOT a dropped change like other 4xx — resolve it per
+          // the user's strategy instead of failing it. Deliberately scoped to
+          // edits: an offline DELETE is "delete wins" by design (no CAS on the
+          // delete path), so it never reaches here. See the wiki Offline doc.
+          if (httpStatus === 409 && mutation.method !== 'DELETE') {
+            const server = extractConflictServer(err)
+            const strategy = getOfflinePrefs().conflictStrategy
+            if (strategy === 'server') {
+              // Theirs wins: adopt the server's version locally, drop our write.
+              await applyServerEntity(mutation, server)
+              await offlineDb.mutationQueue.delete(mutation.id)
+            } else if (strategy === 'mine') {
+              // Mine wins: re-queue without the base token so the next pass
+              // overwrites unconditionally.
+              await offlineDb.mutationQueue.update(mutation.id, {
+                status: 'pending', baseUpdatedAt: null, conflictServer: undefined,
+                attempts: mutation.attempts + 1, lastError: null,
+              })
+              needsRetry = true
+            } else {
+              // Ask: park it as a conflict for the user to resolve.
+              await offlineDb.mutationQueue.update(mutation.id, {
+                status: 'conflict', conflictServer: server ?? null, conflictAt: Date.now(),
+                attempts: mutation.attempts + 1, lastError: 'conflict',
+              })
+            }
+            continue
+          }
+
           const isTerminal =
             httpStatus !== undefined && httpStatus >= 400 && httpStatus < 500 && !isRetryableStatus(httpStatus)
           if (isTerminal) {
@@ -199,6 +287,12 @@ export const mutationQueue = {
       }
     } finally {
       _flushing = false
+    }
+    // A "mine wins" auto-resolution dropped its base token; one more pass now
+    // overwrites the server unconditionally. Bounded: the retried write carries
+    // no token, so it cannot 409 for the same reason.
+    if (needsRetry && !isEffectivelyOffline()) {
+      await this.flush()
     }
   },
 
@@ -235,6 +329,45 @@ export const mutationQueue = {
       .where('status')
       .equals('failed')
       .count()
+  },
+
+  /** Count unresolved sync conflicts (offline edits the server rejected as stale). */
+  async conflictCount(): Promise<number> {
+    return offlineDb.mutationQueue
+      .where('status')
+      .equals('conflict')
+      .count()
+  },
+
+  /** All unresolved conflicts, newest first, optionally scoped to one trip. */
+  async conflicts(tripId?: number): Promise<QueuedMutation[]> {
+    const all = await offlineDb.mutationQueue.where('status').equals('conflict').toArray()
+    const scoped = tripId === undefined ? all : all.filter(m => m.tripId === tripId)
+    return scoped.sort((a, b) => (b.conflictAt ?? 0) - (a.conflictAt ?? 0))
+  },
+
+  /**
+   * Resolve a conflict by keeping the local (offline) edit: re-queue it without
+   * the base token so the next flush overwrites the server unconditionally.
+   */
+  async resolveKeepMine(id: string): Promise<void> {
+    const m = await offlineDb.mutationQueue.get(id)
+    if (!m || m.status !== 'conflict') return
+    await offlineDb.mutationQueue.update(id, {
+      status: 'pending', baseUpdatedAt: null, conflictServer: undefined, conflictAt: undefined, lastError: null,
+    })
+    await this.flush()
+  },
+
+  /**
+   * Resolve a conflict by keeping the server's version: adopt it into the local
+   * cache and drop the queued write.
+   */
+  async resolveKeepServer(id: string): Promise<void> {
+    const m = await offlineDb.mutationQueue.get(id)
+    if (!m || m.status !== 'conflict') return
+    await applyServerEntity(m, m.conflictServer)
+    await offlineDb.mutationQueue.delete(id)
   },
 
   /** Reset internal flushing flag and timestamp counters — useful in tests. */

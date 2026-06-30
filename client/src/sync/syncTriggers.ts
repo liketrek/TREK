@@ -14,12 +14,15 @@
  */
 import { mutationQueue } from './mutationQueue'
 import { tripSyncManager } from './tripSyncManager'
+import { isEffectivelyOnline, onNetworkModeChange } from './networkMode'
 import { setPreReconnectHook, setRefetchCallback, getActiveTrips } from '../api/websocket'
 import { useTripStore } from '../store/tripStore'
 
 const PERIODIC_MS = 30_000
 
 let _intervalId: ReturnType<typeof setInterval> | null = null
+let _unsubscribeNetworkMode: (() => void) | null = null
+let _wasEffectivelyOnline = isEffectivelyOnline()
 let _registered = false
 
 /** Pull the latest server state for every open trip into the Zustand store. */
@@ -36,6 +39,11 @@ function rehydrateActiveTrips() {
  * edits made while we were offline appear without navigating away.
  */
 function onOnline() {
+  // A real browser reconnect must NOT override a user-forced offline session:
+  // syncAll would re-seed Dexie from the server and wipe un-flushed optimistic
+  // edits from the cache/UI. Stay put until the user lifts the switch (which
+  // routes through onNetworkMode → here with the force flag already cleared).
+  if (!isEffectivelyOnline()) return
   mutationQueue.flush()
     .catch(console.error)
     .finally(() => {
@@ -46,16 +54,28 @@ function onOnline() {
 
 /** Tab became visible — flush only; don't trigger a potentially expensive syncAll. */
 function onVisibility() {
-  if (!document.hidden && navigator.onLine) {
+  if (!document.hidden && isEffectivelyOnline()) {
     mutationQueue.flush().catch(console.error)
   }
 }
 
 /** Periodic heartbeat — drain any lingering pending mutations. */
 function onPeriodic() {
-  if (navigator.onLine) {
+  if (isEffectivelyOnline()) {
     mutationQueue.flush().catch(console.error)
   }
+}
+
+/**
+ * The force-offline toggle (or a browser online/offline event) changed the
+ * effective network mode. Coming back online — whether the network returned or
+ * the user lifted the force-offline switch — behaves like a real reconnection:
+ * flush queued writes, then re-seed and re-hydrate.
+ */
+function onNetworkMode() {
+  const nowOnline = isEffectivelyOnline()
+  if (nowOnline && !_wasEffectivelyOnline) onOnline()
+  _wasEffectivelyOnline = nowOnline
 }
 
 export function registerSyncTriggers(): void {
@@ -73,6 +93,10 @@ export function registerSyncTriggers(): void {
 
   window.addEventListener('online', onOnline)
   document.addEventListener('visibilitychange', onVisibility)
+  // React to the force-offline toggle (and browser online/offline) so lifting
+  // the switch immediately flushes + re-seeds like a real reconnection.
+  _wasEffectivelyOnline = isEffectivelyOnline()
+  _unsubscribeNetworkMode = onNetworkModeChange(onNetworkMode)
   _intervalId = setInterval(onPeriodic, PERIODIC_MS)
 }
 
@@ -84,6 +108,10 @@ export function unregisterSyncTriggers(): void {
   setRefetchCallback(null)
   window.removeEventListener('online', onOnline)
   document.removeEventListener('visibilitychange', onVisibility)
+  if (_unsubscribeNetworkMode) {
+    _unsubscribeNetworkMode()
+    _unsubscribeNetworkMode = null
+  }
   if (_intervalId !== null) {
     clearInterval(_intervalId)
     _intervalId = null

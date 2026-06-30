@@ -10,6 +10,7 @@ import { todoRepo } from '../repo/todoRepo'
 import { budgetRepo } from '../repo/budgetRepo'
 import { reservationRepo } from '../repo/reservationRepo'
 import { fileRepo } from '../repo/fileRepo'
+import { isEffectivelyOnline } from '../sync/networkMode'
 import { createPlacesSlice } from './slices/placesSlice'
 import { createAssignmentsSlice } from './slices/assignmentsSlice'
 import { createDaysSlice } from './slices/daysSlice'
@@ -128,10 +129,10 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
         budgetRepo.list(tripId).catch(() => ({ items: [] as BudgetItem[] })),
         reservationRepo.list(tripId).catch(() => ({ reservations: [] as Reservation[] })),
         fileRepo.list(tripId).catch(() => ({ files: [] as TripFile[] })),
-        navigator.onLine
+        isEffectivelyOnline()
           ? tagsApi.list().catch(() => offlineDb.tags.toArray().then(tags => ({ tags })))
           : offlineDb.tags.toArray().then(tags => ({ tags })),
-        navigator.onLine
+        isEffectivelyOnline()
           ? categoriesApi.list().catch(() => offlineDb.categories.toArray().then(categories => ({ categories })))
           : offlineDb.categories.toArray().then(categories => ({ categories })),
       ])

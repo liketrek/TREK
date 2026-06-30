@@ -1,3 +1,5 @@
+import { isEffectivelyOffline } from '../sync/networkMode'
+
 /**
  * True when an error means the request never reached the server — a network-level
  * failure (offline, captive portal, proxy auth wall, dropped connection, CORS).
@@ -22,11 +24,11 @@ function isNetworkError(err: unknown): boolean {
  *      connection (H2). Rather than surfacing that (which blanks the trip even
  *      though a good cached copy exists), we fall back to the cache.
  *
- * We intentionally gate only on `navigator.onLine`, NOT the connectivity probe:
- * the probe is a coarse global flag, and a single failed health check would
- * otherwise force every read to the (possibly empty) cache even when the request
- * itself would succeed. The network-error catch below covers the captive-portal
- * case the probe was meant to.
+ * We gate on the effective offline state (real `navigator.onLine` OR the user's
+ * force-offline override), NOT the connectivity probe: the probe is a coarse
+ * global flag, and a single failed health check would otherwise force every read
+ * to the (possibly empty) cache even when the request itself would succeed. The
+ * network-error catch below covers the captive-portal case the probe was meant to.
  *
  * A genuine HTTP error (404/403/500 — the server responded) is NOT swallowed: it
  * is rethrown so callers can set error state, navigate away, etc.
@@ -38,7 +40,7 @@ export async function onlineThenCache<T>(
   onlineFn: () => Promise<T>,
   cacheFn: () => Promise<T>,
 ): Promise<T> {
-  if (!navigator.onLine) return cacheFn()
+  if (isEffectivelyOffline()) return cacheFn()
   try {
     return await onlineFn()
   } catch (err) {

@@ -319,6 +319,22 @@ describe('offlineDb — clearTripData', () => {
     expect(await offlineDb.days.where('trip_id').equals(2).count()).toBe(1);
     expect(await offlineDb.blobCache.get('/api/files/2/download')).toBeDefined();
   });
+
+  it('preserves unsynced (pending/conflict) writes but drops dead failed ones (#1135)', async () => {
+    await upsertTrip(makeTrip(1));
+    await offlineDb.mutationQueue.bulkPut([
+      { id: 'p1', tripId: 1, method: 'PUT', url: '/trips/1/places/10', body: { name: 'X' }, createdAt: 1, status: 'pending', attempts: 0, lastError: null, resource: 'places', entityId: 10 },
+      { id: 'c1', tripId: 1, method: 'PUT', url: '/trips/1/places/11', body: { name: 'Y' }, createdAt: 2, status: 'conflict', attempts: 1, lastError: 'conflict', resource: 'places', entityId: 11 },
+      { id: 'f1', tripId: 1, method: 'PUT', url: '/trips/1/places/12', body: { name: 'Z' }, createdAt: 3, status: 'failed', attempts: 1, lastError: 'boom', resource: 'places', entityId: 12 },
+    ]);
+
+    await clearTripData(1);
+
+    // The trip's cached read data is gone, but the unsynced work survives.
+    expect(await offlineDb.mutationQueue.get('p1')).toBeDefined();
+    expect(await offlineDb.mutationQueue.get('c1')).toBeDefined();
+    expect(await offlineDb.mutationQueue.get('f1')).toBeUndefined();
+  });
 });
 
 describe('offlineDb — clearAll', () => {

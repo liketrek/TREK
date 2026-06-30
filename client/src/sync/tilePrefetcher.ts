@@ -143,11 +143,16 @@ export async function prefetchTiles(
   tileUrlTemplate: string,
   minZoom = 10,
   maxZoom = 16,
+  awaitAll = false,
 ): Promise<number> {
   if (!navigator.onLine) return 0
   if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) return 0
 
   let fetched = 0
+  // When awaitAll is set (the "prepare for offline" path), we wait for every tile
+  // request to settle so the caller's progress bar only completes once the tiles
+  // are actually downloaded into the SW cache — not merely dispatched.
+  const inflight: Promise<unknown>[] = []
 
   for (let z = minZoom; z <= maxZoom; z++) {
     const minX = lngToTileX(bbox.minLng, z)
@@ -161,14 +166,30 @@ export async function prefetchTiles(
     for (let x = minX; x <= maxX; x++) {
       for (let y = minY; y <= maxY; y++) {
         const url = buildTileUrl(tileUrlTemplate, z, x, y)
-        // Fire-and-forget: SW CacheFirst handler stores the response
-        fetch(url, { mode: 'no-cors' }).catch(() => {})
+        // SW CacheFirst handler stores the response. Fire-and-forget unless the
+        // caller asked to await completion.
+        const p = fetch(url, { mode: 'no-cors' }).catch(() => {})
+        if (awaitAll) inflight.push(p)
         fetched++
       }
     }
   }
 
+  if (awaitAll && inflight.length) await Promise.allSettled(inflight)
   return fetched
+}
+
+/**
+ * Drop the pre-downloaded map-tile cache. Called when the user turns off
+ * "store map tiles offline" (#1135 ask 2) so the bulk tile storage — the real
+ * "whole world map" concern — is reclaimed immediately.
+ */
+export async function clearTileCache(): Promise<void> {
+  try {
+    if (typeof caches !== 'undefined') await caches.delete('map-tiles')
+  } catch {
+    /* Cache Storage unavailable (no SW / private mode) — nothing to clear */
+  }
 }
 
 /**
@@ -179,6 +200,7 @@ export async function prefetchTilesForTrip(
   tripId: number,
   places: Place[],
   tileUrlTemplate?: string,
+  awaitAll = false,
 ): Promise<void> {
   const template = tileUrlTemplate || DEFAULT_TILE_URL
   const bbox = computeBbox(places)
@@ -194,7 +216,7 @@ export async function prefetchTilesForTrip(
   // tile providers that don't send CORS headers. To stop the browser evicting
   // these tiles under the inflated quota, we request persistent storage at app
   // init instead (sync/persistentStorage.ts).
-  const fetched = await prefetchTiles(bbox, template)
+  const fetched = await prefetchTiles(bbox, template, 10, 16, awaitAll)
 
   // Update syncMeta with bbox and tile count
   const meta = await offlineDb.syncMeta.get(tripId)

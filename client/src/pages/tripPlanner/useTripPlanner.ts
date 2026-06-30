@@ -12,6 +12,7 @@ import { parsedItemToDraft, isTransportItem, type BookingReviewDraft } from '../
 import type { BookingImportPreviewItem } from '@trek/shared'
 import { accommodationRepo } from '../../repo/accommodationRepo'
 import { offlineDb, getImportFiles, deleteImportFiles } from '../../db/offlineDb'
+import { isEffectivelyOffline } from '../../sync/networkMode'
 import { useBackgroundTasksStore } from '../../store/backgroundTasksStore'
 import { useAuthStore } from '../../store/authStore'
 import { useResizablePanels } from '../../hooks/useResizablePanels'
@@ -254,7 +255,7 @@ export function useTripPlanner() {
     if (tripId) {
       tripActions.loadTrip(tripId).catch(() => { toast.error(t('trip.toast.loadError')); navigate('/dashboard') })
       loadAccommodations()
-      if (!navigator.onLine) {
+      if (isEffectivelyOffline()) {
         offlineDb.tripMembers.where('tripId').equals(Number(tripId)).toArray()
           .then(rows => setTripMembers(rows))
           .catch(() => {})

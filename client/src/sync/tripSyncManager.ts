@@ -31,6 +31,7 @@ import {
 } from '../db/offlineDb'
 import { prefetchTilesForTrip } from './tilePrefetcher'
 import { isAuthed } from './authGate'
+import { getOfflinePrefs, isTripOfflineEnabled } from './offlinePrefs'
 import { useSettingsStore } from '../store/settingsStore'
 import type { Trip, Day, Place, PackingItem, TodoItem, BudgetItem, Reservation, TripFile, Accommodation, TripMember } from '../types'
 
@@ -130,26 +131,46 @@ async function cacheFilesForTrip(files: TripFile[]): Promise<void> {
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
+/** Progress callback payload for a {@link tripSyncManager.prepareForOffline} run. */
+export interface PrepareProgress {
+  /** Current stage. 'done' fires once at the end. */
+  phase: 'trips' | 'files' | 'tiles' | 'done'
+  /** 1-based index of the trip currently processed in this phase. */
+  current: number
+  /** Total trips to process in this phase. */
+  total: number
+  /** Name of the trip currently processed (for the UI). */
+  label?: string
+}
+
 let _syncing = false
+
+/**
+ * Decide which trips to cache and which to drop, honouring both the date rule
+ * and the user's per-trip offline choices (#1135 ask 2). Returns the trips to
+ * sync; clears Dexie for stale or user-disabled trips as a side effect.
+ */
+async function reconcileTrips(trips: Trip[]): Promise<Trip[]> {
+  const stale = trips.filter(isStale)
+  // Trips the user turned off explicitly are evicted regardless of date.
+  const disabled = trips.filter(t => !isTripOfflineEnabled(t.id))
+  await Promise.all([...stale, ...disabled].map(t => clearTripData(t.id).catch(console.error)))
+  return trips.filter(t => shouldCache(t) && isTripOfflineEnabled(t.id))
+}
 
 export const tripSyncManager = {
   /**
    * Sync all cache-eligible trips.
-   * Evicts stale trips. Caches file blobs in the background.
-   * No-ops when offline.
+   * Evicts stale and user-disabled trips. Caches file blobs + map tiles in the
+   * background. No-ops when offline.
    */
   async syncAll(): Promise<void> {
     if (_syncing || !navigator.onLine || !isAuthed()) return
     _syncing = true
     try {
       const { trips } = await tripsApi.list() as { trips: Trip[] }
+      const toSync = await reconcileTrips(trips)
 
-      // Evict stale trips first
-      const stale = trips.filter(isStale)
-      await Promise.all(stale.map(t => clearTripData(t.id).catch(console.error)))
-
-      // Sync eligible trips
-      const toSync = trips.filter(shouldCache)
       for (const trip of toSync) {
         try {
           await syncTrip(trip.id)
@@ -163,14 +184,77 @@ export const tripSyncManager = {
       categoriesApi.list().then(d => upsertCategories(d.categories)).catch(() => {})
 
       // Cache file blobs + map tiles in background (don't block syncAll)
+      const cacheTiles = getOfflinePrefs().cacheTiles
       const tileUrl = useSettingsStore.getState().settings.map_tile_url || undefined
       for (const trip of toSync) {
         const files = await offlineDb.tripFiles.where('trip_id').equals(trip.id).toArray()
         cacheFilesForTrip(files).catch(console.error)
 
-        const places = await offlineDb.places.where('trip_id').equals(trip.id).toArray()
-        prefetchTilesForTrip(trip.id, places, tileUrl).catch(console.error)
+        if (cacheTiles) {
+          const places = await offlineDb.places.where('trip_id').equals(trip.id).toArray()
+          prefetchTilesForTrip(trip.id, places, tileUrl).catch(console.error)
+        }
       }
+    } finally {
+      _syncing = false
+    }
+  },
+
+  /**
+   * "Prepare for offline" (#1135 ask 1): a fully-awaited sync the user runs while
+   * still online so everything they need is guaranteed on-device before they go
+   * offline. Unlike syncAll, this AWAITS file-blob and map-tile downloads and
+   * reports progress, so the UI can show a real completion state instead of
+   * resolving the moment the requests are merely dispatched.
+   *
+   * Returns the number of trips prepared.
+   */
+  async prepareForOffline(onProgress?: (p: PrepareProgress) => void): Promise<number> {
+    if (_syncing || !navigator.onLine || !isAuthed()) return 0
+    _syncing = true
+    try {
+      const { trips } = await tripsApi.list() as { trips: Trip[] }
+      const toSync = await reconcileTrips(trips)
+      const total = toSync.length
+
+      // 1) Trip bundles (structured data).
+      let i = 0
+      for (const trip of toSync) {
+        onProgress?.({ phase: 'trips', current: ++i, total, label: trip.title })
+        try {
+          await syncTrip(trip.id)
+        } catch (err) {
+          console.error(`[tripSync] prepare failed for trip ${trip.id}:`, err)
+        }
+      }
+
+      // Global user data (tags + categories) — awaited here.
+      await Promise.all([
+        tagsApi.list().then(d => upsertTags(d.tags)).catch(() => {}),
+        categoriesApi.list().then(d => upsertCategories(d.categories)).catch(() => {}),
+      ])
+
+      // 2) File blobs — awaited so "prepared" really means downloaded.
+      i = 0
+      for (const trip of toSync) {
+        onProgress?.({ phase: 'files', current: ++i, total, label: trip.title })
+        const files = await offlineDb.tripFiles.where('trip_id').equals(trip.id).toArray()
+        await cacheFilesForTrip(files).catch(console.error)
+      }
+
+      // 3) Map tiles — awaited, and only when the user opted to store them.
+      if (getOfflinePrefs().cacheTiles) {
+        const tileUrl = useSettingsStore.getState().settings.map_tile_url || undefined
+        i = 0
+        for (const trip of toSync) {
+          onProgress?.({ phase: 'tiles', current: ++i, total, label: trip.title })
+          const places = await offlineDb.places.where('trip_id').equals(trip.id).toArray()
+          await prefetchTilesForTrip(trip.id, places, tileUrl, true).catch(console.error)
+        }
+      }
+
+      onProgress?.({ phase: 'done', current: total, total })
+      return total
     } finally {
       _syncing = false
     }

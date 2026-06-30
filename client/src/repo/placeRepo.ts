@@ -1,6 +1,7 @@
 import { placesApi } from '../api/client'
 import { offlineDb, upsertPlaces } from '../db/offlineDb'
 import { mutationQueue, generateUUID, nextTempId } from '../sync/mutationQueue'
+import { isEffectivelyOffline } from '../sync/networkMode'
 import { onlineThenCache } from './withOfflineFallback'
 import type { Place } from '../types'
 
@@ -20,7 +21,7 @@ export const placeRepo = {
   },
 
   async create(tripId: number | string, data: Record<string, unknown> & { name: string }): Promise<{ place: Place }> {
-    if (!navigator.onLine) {
+    if (isEffectivelyOffline()) {
       const tempId = nextTempId()
       const tempPlace: Place = {
         ...(data as Partial<Place>),
@@ -47,7 +48,7 @@ export const placeRepo = {
   },
 
   async update(tripId: number | string, id: number | string, data: Record<string, unknown>): Promise<{ place: Place }> {
-    if (!navigator.onLine) {
+    if (isEffectivelyOffline()) {
       const existing = await offlineDb.places.get(Number(id))
       const optimistic: Place = { ...(existing ?? {} as Place), ...(data as Partial<Place>), id: Number(id) }
       await offlineDb.places.put(optimistic)
@@ -61,6 +62,7 @@ export const placeRepo = {
         body: data,
         resource: 'places',
         entityId: Number(id),
+        baseUpdatedAt: existing?.updated_at ?? null,
         ...(isTemp ? { tempEntityId: Number(id) } : {}),
       })
       return { place: optimistic }
@@ -71,7 +73,7 @@ export const placeRepo = {
   },
 
   async delete(tripId: number | string, id: number | string): Promise<unknown> {
-    if (!navigator.onLine) {
+    if (isEffectivelyOffline()) {
       await offlineDb.places.delete(Number(id))
       const mutId = generateUUID()
       const isTemp = Number(id) < 0
@@ -93,7 +95,7 @@ export const placeRepo = {
   },
 
   async deleteMany(tripId: number | string, ids: number[]): Promise<unknown> {
-    if (!navigator.onLine) {
+    if (isEffectivelyOffline()) {
       await offlineDb.places.bulkDelete(ids)
       for (const id of ids) {
         const mutId = generateUUID()
@@ -117,7 +119,7 @@ export const placeRepo = {
   },
 
   async updateMany(tripId: number | string, ids: number[], data: Record<string, unknown>): Promise<{ updated: number[]; count: number }> {
-    if (!navigator.onLine) {
+    if (isEffectivelyOffline()) {
       // Offline fans out one queued PUT per id (mirrors deleteMany's DELETE fan-out).
       for (const id of ids) {
         const existing = await offlineDb.places.get(id)
@@ -132,6 +134,7 @@ export const placeRepo = {
           body: data,
           resource: 'places',
           entityId: id,
+          baseUpdatedAt: existing?.updated_at ?? null,
           ...(isTemp ? { tempEntityId: id } : {}),
         })
       }
