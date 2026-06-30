@@ -240,7 +240,7 @@ describe('PhotosController', () => {
     await c.thumbnail(user2, '5', res);
     expect(stream).toHaveBeenCalledWith(res, 1, 5, 'thumbnail');
     await c.original(user2, '5', res);
-    expect(stream).toHaveBeenCalledWith(res, 1, 5, 'original');
+    expect(stream).toHaveBeenCalledWith(res, 1, 5, 'original', undefined);
   });
 
   it('info writes the data, maps a service error', async () => {
