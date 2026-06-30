@@ -72,6 +72,12 @@ function isPhoto(file: TripFile): boolean {
   return file.mime_type.startsWith('image/')
 }
 
+// Videos can be hundreds of MB — never prefetch them into the bounded offline
+// blob cache, or a single clip would evict the trip's real documents (#823).
+function isVideo(file: TripFile): boolean {
+  return file.mime_type.startsWith('video/')
+}
+
 // ── Core logic ────────────────────────────────────────────────────────────────
 
 /** Fetch bundle + write all entities for one trip into Dexie. */
@@ -99,7 +105,7 @@ async function syncTrip(tripId: number): Promise<void> {
 
 /** Cache non-photo file blobs for a trip. Fire-and-forget safe. */
 async function cacheFilesForTrip(files: TripFile[]): Promise<void> {
-  const nonPhotos = files.filter(f => f.url && !isPhoto(f))
+  const nonPhotos = files.filter(f => f.url && !isPhoto(f) && !isVideo(f))
   let cached = 0
 
   for (const file of nonPhotos) {

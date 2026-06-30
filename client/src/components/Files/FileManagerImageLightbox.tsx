@@ -4,7 +4,8 @@ import { useTranslation } from '../../i18n'
 import type { TripFile } from '../../types'
 import { getAuthUrl } from '../../api/authUrl'
 import { openFile as openFileUrl } from '../../utils/fileDownload'
-import { triggerDownload } from './FileManager.helpers'
+import { triggerDownload, isVideo } from './FileManager.helpers'
+import VideoPlayer from '../Journey/VideoPlayer'
 
 // Image lightbox with gallery navigation
 interface ImageLightboxProps {
@@ -20,10 +21,14 @@ export function ImageLightbox({ files, initialIndex, onClose }: ImageLightboxPro
   const [touchStart, setTouchStart] = useState<number | null>(null)
   const file = files[index]
 
+  const fileIsVideo = isVideo(file?.mime_type)
+
   useEffect(() => {
     setImgSrc('')
-    if (file) getAuthUrl(file.url, 'download').then(setImgSrc)
-  }, [file?.url])
+    // Images use a one-shot signed URL; a video must use the plain same-origin
+    // URL (cookie auth) so its many Range requests all authenticate (#823).
+    if (file && !isVideo(file.mime_type)) getAuthUrl(file.url, 'download').then(setImgSrc)
+  }, [file?.url, file?.mime_type])
 
   const goPrev = () => setIndex(i => Math.max(0, i - 1))
   const goNext = () => setIndex(i => Math.min(files.length - 1, i + 1))
@@ -98,7 +103,13 @@ export function ImageLightbox({ files, initialIndex, onClose }: ImageLightboxPro
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', minHeight: 0 }}
         onClick={e => { if (e.target === e.currentTarget) onClose() }}>
         {navBtn('left', goPrev, hasPrev)}
-        {imgSrc && <img src={imgSrc} alt={file.original_name} style={{ maxWidth: '85vw', maxHeight: '80vh', objectFit: 'contain', borderRadius: 8, display: 'block' }} onClick={e => e.stopPropagation()} />}
+        {fileIsVideo ? (
+          <div onClick={e => e.stopPropagation()}>
+            <VideoPlayer src={file.url} style={{ maxWidth: '85vw', maxHeight: '80vh', borderRadius: 8 }} />
+          </div>
+        ) : (
+          imgSrc && <img src={imgSrc} alt={file.original_name} style={{ maxWidth: '85vw', maxHeight: '80vh', objectFit: 'contain', borderRadius: 8, display: 'block' }} onClick={e => e.stopPropagation()} />
+        )}
         {navBtn('right', goNext, hasNext)}
       </div>
 

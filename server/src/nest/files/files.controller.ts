@@ -24,7 +24,7 @@ import type { User } from '../../types';
 import { FilesService } from './files.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { MAX_FILE_SIZE, BLOCKED_EXTENSIONS, filesDir, getAllowedExtensions } from '../../services/fileService';
+import { MAX_FILE_SIZE, MAX_VIDEO_SIZE, BLOCKED_EXTENSIONS, filesDir, getAllowedExtensions, isVideoExtension, isVideoMime } from '../../services/fileService';
 import { isDemoEmail } from '../../services/demo';
 
 const UPLOAD = {
@@ -32,7 +32,9 @@ const UPLOAD = {
     destination: (_req, _file, cb) => { if (!fs.existsSync(filesDir)) fs.mkdirSync(filesDir, { recursive: true }); cb(null, filesDir); },
     filename: (_req, file, cb) => cb(null, `${uuidv4()}${path.extname(file.originalname)}`),
   }),
-  limits: { fileSize: MAX_FILE_SIZE },
+  // Allow up to the video cap; non-video files are still held to MAX_FILE_SIZE by
+  // the per-type guard in the upload handler (#823).
+  limits: { fileSize: MAX_VIDEO_SIZE },
   defParamCharset: 'utf8', // parity with legacy routes/files.ts — preserve non-ASCII original filenames
   fileFilter: (_req: unknown, file: Express.Multer.File, cb: (err: Error | null, accept: boolean) => void) => {
     const ext = path.extname(file.originalname).toLowerCase();
@@ -44,7 +46,8 @@ const UPLOAD = {
     if (BLOCKED_EXTENSIONS.includes(ext) || file.mimetype.includes('svg')) return reject();
     const allowed = getAllowedExtensions().split(',').map((e) => e.trim().toLowerCase());
     const fileExt = ext.replace('.', '');
-    if (allowed.includes(fileExt) || (allowed.includes('*') && !BLOCKED_EXTENSIONS.includes(ext))) return cb(null, true);
+    // Video is accepted as media regardless of the admin doc-types allowlist (#823).
+    if (allowed.includes(fileExt) || isVideoExtension(fileExt) || (allowed.includes('*') && !BLOCKED_EXTENSIONS.includes(ext))) return cb(null, true);
     reject();
   },
 };
@@ -105,6 +108,11 @@ export class FilesController {
     }
     if (!file) {
       throw new HttpException({ error: 'No file uploaded' }, 400);
+    }
+    // Only video may use the larger cap; other types stay at MAX_FILE_SIZE (#823).
+    if (!isVideoMime(file.mimetype) && file.size > MAX_FILE_SIZE) {
+      try { fs.unlinkSync(file.path); } catch { /* best-effort cleanup */ }
+      throw new HttpException({ error: 'File is too large' }, 400);
     }
     this.assertLinkTargets(tripId, { reservation_id: body.reservation_id, place_id: body.place_id });
     const created = this.files.createFile(tripId, file, user.id, {
