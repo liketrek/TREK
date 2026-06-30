@@ -320,6 +320,9 @@ const admin: TranslationStrings = {
   'admin.tabs.permissions': 'Izin',
   'admin.addons.catalog.journey.name': 'Journey',
   'admin.addons.catalog.journey.description': 'Pelacakan perjalanan & jurnal dengan check-in, foto, dan cerita harian',
+  'admin.addons.catalog.collections.name': 'Koleksi',
+  'admin.addons.catalog.collections.description':
+    'Pustaka tempat pribadi — simpan tempat lintas perjalanan ke dalam daftar bernama, salin ke perjalanan mana pun, bagikan dengan orang lain',
   'admin.passkey.title': 'Login dengan passkey',
   'admin.passkey.cardHint': 'Izinkan pengguna masuk dengan passkey (WebAuthn). Nonaktif secara default.',
   'admin.passkey.login': 'Aktifkan login dengan passkey',

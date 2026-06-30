@@ -13,6 +13,8 @@ const inspector: TranslationStrings = {
   'inspector.confirmedRes': 'Reservasi Dikonfirmasi',
   'inspector.pendingRes': 'Reservasi Menunggu',
   'inspector.google': 'Buka di Google Maps',
+  'inspector.saveToCollection': 'Simpan ke Koleksi',
+  'inspector.savedToCollection': 'Tersimpan',
   'inspector.website': 'Buka Situs Web',
   'inspector.addRes': 'Reservasi',
   'inspector.editRes': 'Edit Reservasi',

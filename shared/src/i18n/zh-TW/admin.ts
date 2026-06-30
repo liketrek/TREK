@@ -308,6 +308,9 @@ const admin: TranslationStrings = {
   'admin.tabs.permissions': '許可權',
   'admin.addons.catalog.journey.name': '旅程',
   'admin.addons.catalog.journey.description': '旅行追蹤與旅行日誌，包含打卡、照片和每日故事',
+  'admin.addons.catalog.collections.name': '收藏',
+  'admin.addons.catalog.collections.description':
+    '個人地點庫 — 將各行程的地點儲存到具名清單中，複製到任意行程，並與他人分享',
   'admin.passkey.title': 'Passkey 登入',
   'admin.passkey.cardHint': '讓使用者使用 Passkey（WebAuthn）登入。預設為關閉。',
   'admin.passkey.login': '啟用 Passkey 登入',

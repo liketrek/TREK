@@ -308,6 +308,9 @@ const admin: TranslationStrings = {
   'admin.tabs.permissions': '権限',
   'admin.addons.catalog.journey.name': '日記',
   'admin.addons.catalog.journey.description': 'チェックイン、写真、日ごとのストーリーで旅を記録',
+  'admin.addons.catalog.collections.name': 'コレクション',
+  'admin.addons.catalog.collections.description':
+    '個人の場所ライブラリ — 旅行をまたいで場所を名前付きリストに保存し、どの旅行にもコピーして、他の人と共有',
   'admin.passkey.title': 'パスキーログイン',
   'admin.passkey.cardHint': 'ユーザーがパスキー（WebAuthn）でサインインできるようにします。既定では無効です。',
   'admin.passkey.login': 'パスキーログインを有効化',

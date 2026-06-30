@@ -3,7 +3,7 @@ interface DragDataPayload { placeId?: string; assignmentId?: string; noteId?: st
 declare global { interface Window { __dragData: DragDataPayload | null } }
 
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
-import { ChevronDown, ChevronRight, ChevronUp, Navigation, RotateCcw, ExternalLink, Clock, Pencil, GripVertical, Ticket, Plus, FileText, Trash2, Car, Lock, Hotel, Footprints, Route as RouteIcon } from 'lucide-react'
+import { ChevronDown, ChevronRight, ChevronUp, Navigation, RotateCcw, ExternalLink, Clock, Pencil, GripVertical, Ticket, Plus, FileText, Trash2, Car, Lock, Hotel, Footprints, Route as RouteIcon, Bookmark } from 'lucide-react'
 import { assignmentsApi, reservationsApi } from '../../api/client'
 import { calculateRoute, calculateRouteWithLegs, optimizeRoute, generateGoogleMapsUrl } from '../Map/RouteCalculator'
 import PlaceAvatar from '../shared/PlaceAvatar'
@@ -17,6 +17,9 @@ import { getCategoryIcon } from '../shared/categoryIcons'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useSettingsStore } from '../../store/settingsStore'
+import { useAddonStore } from '../../store/addonStore'
+import { useSaveToCollectionStore } from '../../store/saveToCollectionStore'
+import { placeToSaveTarget } from '../Collections/saveTarget'
 import { useTranslation } from '../../i18n'
 import { isDayInAccommodationRange, getAccommodationAnchors, getDayBookendHotels } from '../../utils/dayOrder'
 import {
@@ -1058,6 +1061,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
   // Needed by the route-tools visibility gate in the render below (#1330); the hook
   // keeps its own copy, so read it reactively here in the component scope too.
   const optimizeFromAccommodation = useSettingsStore(s => s.settings.optimize_from_accommodation)
+  const collectionsEnabled = useAddonStore(s => s.isEnabled('collections'))
   const {
     tripId,
     trip,
@@ -1623,7 +1627,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                 canEditDays && onEditPlace && { label: t('common.edit'), icon: Pencil, onClick: () => onEditPlace(place, assignment.id) },
                                 canEditDays && onRemoveAssignment && { label: t('planner.removeFromDay'), icon: Trash2, onClick: () => onRemoveAssignment(day.id, assignment.id) },
                                 place.website && { label: t('inspector.website'), icon: ExternalLink, onClick: () => window.open(place.website, '_blank') },
-                                googleMapsUrl && { label: 'Google Maps', icon: Navigation, onClick: () => window.open(googleMapsUrl, '_blank') },
+                                googleMapsUrl && { label: t('inspector.google'), icon: Navigation, onClick: () => window.open(googleMapsUrl, '_blank') },
+                                collectionsEnabled && { label: t('inspector.saveToCollection'), icon: Bookmark, onClick: () => useSaveToCollectionStore.getState().open(placeToSaveTarget(place)) },
                                 { divider: true },
                                 canEditDays && onDeletePlace && { label: t('common.delete'), icon: Trash2, danger: true, onClick: () => onDeletePlace(place.id) },
                               ])

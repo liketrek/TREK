@@ -3,15 +3,20 @@ import { openFile } from '../../utils/fileDownload'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
-import { X, Clock, MapPin, ExternalLink, Phone, Euro, Edit2, Trash2, Plus, Minus, ChevronDown, ChevronUp, FileText, Upload, File, FileImage, Star, Navigation, Users, Mountain, TrendingUp } from 'lucide-react'
+import { X, Clock, MapPin, ExternalLink, Phone, Euro, Edit2, Trash2, Plus, Minus, ChevronDown, ChevronUp, FileText, Upload, File, FileImage, Star, Navigation, Users, Mountain, TrendingUp, Bookmark, BookmarkCheck, Copy } from 'lucide-react'
 import PlaceAvatar from '../shared/PlaceAvatar'
 import GuestBadge from '../shared/GuestBadge'
+import StatusBadge from '../Collections/StatusBadge'
 import { mapsApi } from '../../api/client'
+import { collectionsApi } from '../../api/collections'
 import { useSettingsStore } from '../../store/settingsStore'
+import { useAddonStore } from '../../store/addonStore'
+import { useSaveToCollectionStore } from '../../store/saveToCollectionStore'
 import { getCategoryIcon } from '../shared/categoryIcons'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import type { Place, Category, Day, Assignment, Reservation, TripFile, AssignmentsMap } from '../../types'
+import type { CollectionStatus } from '@trek/shared'
 import { splitReservationDateTime, formatTime } from '../../utils/formatters'
 import { formatDistance, formatElevation } from '../../utils/units'
 import { getGoogleMapsUrlForPlace } from './placeGoogleMaps'
@@ -98,35 +103,51 @@ interface TripMember {
 interface PlaceInspectorProps {
   place: Place | null
   categories: Category[]
-  days: Day[]
-  selectedDayId: number | null
-  selectedAssignmentId: number | null
-  assignments: AssignmentsMap
+  /** 'trip' (default) keeps every existing trip-planner behaviour byte-identical;
+   *  'collection' hides the day/reservation/file sub-panels and swaps the footer
+   *  for the saved-place actions (copy to trip, status, remove from list). */
+  mode?: 'trip' | 'collection'
+  // ── Trip-only props (optional so the collection detail panel can omit them) ──
+  days?: Day[]
+  selectedDayId?: number | null
+  selectedAssignmentId?: number | null
+  assignments?: AssignmentsMap
   reservations?: Reservation[]
   onClose: () => void
-  onEdit: () => void
-  onDelete: () => void
-  onAssignToDay: (placeId: number, dayId?: number) => void
-  onRemoveAssignment: (dayId: number, assignmentId: number) => void
-  files: TripFile[]
+  onEdit?: () => void
+  onDelete?: () => void
+  onAssignToDay?: (placeId: number, dayId?: number) => void
+  onRemoveAssignment?: (dayId: number, assignmentId: number) => void
+  files?: TripFile[]
   onFileUpload?: (fd: FormData) => Promise<unknown>
   tripMembers?: TripMember[]
-  onSetParticipants: (assignmentId: number, dayId: number, participantIds: number[]) => void
-  onUpdatePlace: (placeId: number, data: Partial<Place>) => void
+  onSetParticipants?: (assignmentId: number, dayId: number, participantIds: number[]) => void
+  onUpdatePlace?: (placeId: number, data: Partial<Place>) => void
   leftWidth?: number
   rightWidth?: number
+  // ── Collection-mode props ──
+  collectionStatus?: CollectionStatus
+  onCopyToTrip?: () => void
+  onSetStatus?: (status: CollectionStatus) => void
+  onRemoveFromList?: () => void
 }
 
 export default function PlaceInspector({
-  place, categories, days, selectedDayId, selectedAssignmentId, assignments, reservations = [],
+  place, categories, mode = 'trip', days = [], selectedDayId = null, selectedAssignmentId = null,
+  assignments = {}, reservations = [],
   onClose, onEdit, onDelete, onAssignToDay, onRemoveAssignment,
-  files, onFileUpload, tripMembers = [], onSetParticipants, onUpdatePlace,
+  files = [], onFileUpload, tripMembers = [], onSetParticipants, onUpdatePlace,
   leftWidth = 0, rightWidth = 0,
+  collectionStatus, onCopyToTrip, onSetStatus, onRemoveFromList,
 }: PlaceInspectorProps) {
   const { t, locale, language } = useTranslation()
   const toast = useToast()
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
   const distanceUnit = useSettingsStore(s => s.settings.distance_unit) || 'metric'
+  const collectionsEnabled = useAddonStore(s => s.isEnabled('collections'))
+  const openSavePicker = useSaveToCollectionStore(s => s.open)
+  const saveVersion = useSaveToCollectionStore(s => s.version)
+  const [savedInCollection, setSavedInCollection] = useState(false)
   const [hoursExpanded, setHoursExpanded] = useState(false)
   const [filesExpanded, setFilesExpanded] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -135,6 +156,49 @@ export default function PlaceInspector({
   const nameInputRef = useRef(null)
   const fileInputRef = useRef(null)
   const googleDetails = usePlaceDetails(place?.google_place_id, place?.osm_id, language)
+
+  // Library-wide "is this place already saved anywhere I can see?" indicator for
+  // the trip-planner footer bookmark. Re-checks when the place changes or after
+  // the save picker reports a change (saveVersion bump).
+  const showSaveToCollection = mode === 'trip' && collectionsEnabled
+  useEffect(() => {
+    if (!showSaveToCollection || !place) { setSavedInCollection(false); return }
+    let cancelled = false
+    collectionsApi.membership({
+      google_place_id: place.google_place_id ?? undefined,
+      google_ftid: place.google_ftid ?? undefined,
+      name: place.name,
+      lat: place.lat ?? undefined,
+      lng: place.lng ?? undefined,
+    }).then(m => { if (!cancelled) setSavedInCollection(m.saved) }).catch(() => { if (!cancelled) setSavedInCollection(false) })
+    return () => { cancelled = true }
+    // Re-check on place identity + after the picker reports a change; the other
+    // place fields are read at fire-time only, like the existing detail caches.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showSaveToCollection, place?.id, saveVersion])
+
+  const handleSaveToCollection = useCallback(() => {
+    if (!place) return
+    openSavePicker({
+      name: place.name,
+      source_trip_id: place.trip_id ?? null,
+      source_place_id: place.id,
+      description: place.description ?? null,
+      lat: place.lat ?? null,
+      lng: place.lng ?? null,
+      address: place.address ?? null,
+      category_id: place.category_id ?? null,
+      price: place.price ?? null,
+      currency: place.currency ?? null,
+      notes: place.notes ?? null,
+      image_url: place.image_url ?? null,
+      google_place_id: place.google_place_id ?? null,
+      google_ftid: place.google_ftid ?? null,
+      osm_id: place.osm_id ?? null,
+      website: place.website ?? null,
+      phone: place.phone ?? null,
+    })
+  }, [place, openSavePicker])
 
   const startNameEdit = () => {
     if (!onUpdatePlace) return
@@ -275,10 +339,12 @@ export default function PlaceInspector({
             </div>
           )}
 
-          {/* Reservation + Participants — side by side */}
-          <PlaceReservationParticipants selectedAssignmentId={selectedAssignmentId} reservations={reservations}
-            assignments={assignments} selectedDayId={selectedDayId} tripMembers={tripMembers} locale={locale}
-            timeFormat={timeFormat} t={t} onSetParticipants={onSetParticipants} />
+          {/* Reservation + Participants — trip-only (collections have no days) */}
+          {mode === 'trip' && (
+            <PlaceReservationParticipants selectedAssignmentId={selectedAssignmentId} reservations={reservations}
+              assignments={assignments} selectedDayId={selectedDayId} tripMembers={tripMembers} locale={locale}
+              timeFormat={timeFormat} t={t} onSetParticipants={onSetParticipants} />
+          )}
 
           {/* Opening hours + Files — side by side on desktop only if both exist */}
           <PlaceExtras openingHours={openingHours} weekdayIndex={weekdayIndex} hoursExpanded={hoursExpanded}
@@ -291,13 +357,28 @@ export default function PlaceInspector({
 
         {/* Footer actions */}
         <div className="border-t border-edge-faint" style={{ padding: '10px 16px', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', flexShrink: 0 }}>
-          {selectedDayId && (
+          {/* Collection mode — copy to trip + per-place status */}
+          {mode === 'collection' && onCopyToTrip && (
+            <ActionButton onClick={onCopyToTrip} variant="primary" icon={<Copy size={13} />}
+              label={<span className="hidden sm:inline">{t('collections.copyToTrip')}</span>} />
+          )}
+          {mode === 'collection' && collectionStatus && onSetStatus && (
+            <StatusBadge status={collectionStatus} onChange={onSetStatus} t={t} />
+          )}
+          {/* Trip mode — day assignment */}
+          {mode === 'trip' && selectedDayId && (
             assignmentInDay ? (
-              <ActionButton onClick={() => onRemoveAssignment(selectedDayId, assignmentInDay.id)} variant="ghost" icon={<Minus size={13} />}
+              <ActionButton onClick={() => onRemoveAssignment?.(selectedDayId, assignmentInDay.id)} variant="ghost" icon={<Minus size={13} />}
                 label={<><span className="hidden sm:inline">{t('inspector.removeFromDay')}</span><span className="sm:hidden">{t('inspector.remove')}</span></>} />
             ) : (
-              <ActionButton onClick={() => onAssignToDay(place.id)} variant="primary" icon={<Plus size={13} />} label={t('inspector.addToDay')} />
+              <ActionButton onClick={() => onAssignToDay?.(place.id)} variant="primary" icon={<Plus size={13} />} label={t('inspector.addToDay')} />
             )
+          )}
+          {/* Save to Collection — trip mode, independent of the Google Maps link */}
+          {showSaveToCollection && (
+            <ActionButton onClick={handleSaveToCollection} variant="ghost"
+              icon={savedInCollection ? <BookmarkCheck size={13} /> : <Bookmark size={13} />}
+              label={<span className="hidden sm:inline">{savedInCollection ? t('inspector.savedToCollection') : t('inspector.saveToCollection')}</span>} />
           )}
           {googleMapsUrl && (
             <ActionButton onClick={() => window.open(googleMapsUrl, '_blank')} variant="ghost" icon={<Navigation size={13} />}
@@ -308,8 +389,17 @@ export default function PlaceInspector({
               label={<span className="hidden sm:inline">{t('inspector.website')}</span>} />
           )}
           <div style={{ flex: 1 }} />
-          <ActionButton onClick={onEdit} variant="ghost" icon={<Edit2 size={13} />} label={<span className="hidden sm:inline">{t('common.edit')}</span>} />
-          <ActionButton onClick={onDelete} variant="danger" icon={<Trash2 size={13} />} label={<span className="hidden sm:inline">{t('common.delete')}</span>} />
+          {mode === 'trip' && onEdit && (
+            <ActionButton onClick={onEdit} variant="ghost" icon={<Edit2 size={13} />} label={<span className="hidden sm:inline">{t('common.edit')}</span>} />
+          )}
+          {mode === 'collection'
+            ? (onRemoveFromList && (
+                <ActionButton onClick={onRemoveFromList} variant="danger" icon={<Trash2 size={13} />}
+                  label={<span className="hidden sm:inline">{t('collections.removeFromList')}</span>} />
+              ))
+            : (onDelete && (
+                <ActionButton onClick={onDelete} variant="danger" icon={<Trash2 size={13} />} label={<span className="hidden sm:inline">{t('common.delete')}</span>} />
+              ))}
         </div>
       </div>
     </div>
@@ -353,7 +443,7 @@ interface ActionButtonProps {
   label: React.ReactNode
 }
 
-function ActionButton({ onClick, variant, icon, label }: ActionButtonProps) {
+export function ActionButton({ onClick, variant, icon, label }: ActionButtonProps) {
   const base = {
     primary: { background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', hoverBg: 'var(--text-secondary)' },
     ghost: { background: 'var(--bg-hover)', color: 'var(--text-secondary)', border: 'none', hoverBg: 'var(--bg-tertiary)' },

@@ -14,6 +14,8 @@ const inspector: TranslationStrings = {
   'inspector.pendingRes': '待確認預訂',
   'inspector.google': '在 Google Maps 中開啟',
   'inspector.website': '開啟網站',
+  'inspector.saveToCollection': '儲存到收藏',
+  'inspector.savedToCollection': '已儲存',
   'inspector.addRes': '預訂',
   'inspector.editRes': '編輯預訂',
   'inspector.participants': '參與者',

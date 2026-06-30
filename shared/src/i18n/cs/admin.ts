@@ -316,6 +316,9 @@ const admin: TranslationStrings = {
   'admin.tabs.notifications': 'Oznámení',
   'admin.addons.catalog.journey.name': 'Cestovní deník',
   'admin.addons.catalog.journey.description': 'Sledování cest a cestovní deník s odbaveními, fotkami a denními příběhy',
+  'admin.addons.catalog.collections.name': 'Sbírky',
+  'admin.addons.catalog.collections.description':
+    'Osobní knihovna míst — ukládejte místa napříč výlety do pojmenovaných seznamů, kopírujte do libovolného výletu, sdílejte s ostatními',
   'admin.passkey.title': 'Přihlášení přístupovým klíčem',
   'admin.passkey.cardHint':
     'Umožněte uživatelům přihlašovat se pomocí přístupových klíčů (WebAuthn). Ve výchozím nastavení vypnuto.',

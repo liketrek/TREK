@@ -14,6 +14,8 @@ const inspector: TranslationStrings = {
   'inspector.pendingRes': 'حجز قيد الانتظار',
   'inspector.google': 'فتح في Google Maps',
   'inspector.website': 'فتح الموقع الإلكتروني',
+  'inspector.saveToCollection': 'حفظ في مجموعة',
+  'inspector.savedToCollection': 'محفوظ',
   'inspector.addRes': 'حجز',
   'inspector.editRes': 'تعديل الحجز',
   'inspector.participants': 'المشاركون',

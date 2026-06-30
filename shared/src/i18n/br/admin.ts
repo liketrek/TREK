@@ -319,6 +319,9 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': 'Jornada',
   'admin.addons.catalog.journey.description':
     'Rastreamento de viagens e diário de viajante com check-ins, fotos e histórias diárias',
+  'admin.addons.catalog.collections.name': 'Coleções',
+  'admin.addons.catalog.collections.description':
+    'Biblioteca pessoal de lugares — salve lugares entre viagens em listas nomeadas, copie para qualquer viagem, compartilhe com outras pessoas',
   'admin.passkey.title': 'Login com passkey',
   'admin.passkey.cardHint': 'Permite que os usuários entrem com passkeys (WebAuthn). Desativado por padrão.',
   'admin.passkey.login': 'Ativar login com passkey',

@@ -325,6 +325,9 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': 'Seyahat',
   'admin.addons.catalog.journey.description':
     'Check-in, fotoğraf ve günlük hikâyelerle seyahat takibi ve seyahat günlüğü',
+  'admin.addons.catalog.collections.name': 'Koleksiyonlar',
+  'admin.addons.catalog.collections.description':
+    'Kişisel yer kitaplığı — yerleri geziler arasında adlandırılmış listelere kaydet, herhangi bir geziye kopyala, başkalarıyla paylaş',
   'admin.passkey.title': 'Passkey ile oturum açma',
   'admin.passkey.cardHint':
     'Kullanıcıların passkey (WebAuthn) ile oturum açmasına izin verin. Varsayılan olarak kapalı.',

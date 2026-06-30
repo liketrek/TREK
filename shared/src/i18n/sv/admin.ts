@@ -331,6 +331,9 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': 'Journey',
   'admin.addons.catalog.journey.description':
     'Resespårning och resedagbok med incheckningar, foton och dagliga inlägg',
+  'admin.addons.catalog.collections.name': 'Samlingar',
+  'admin.addons.catalog.collections.description':
+    'Personligt platsbibliotek — spara platser mellan resor i namngivna listor, kopiera till valfri resa, dela med andra',
   'admin.passkey.title': 'Inloggningsnyckel',
   'admin.passkey.cardHint': 'Låter användare att logga in med inloggningsnyckel (WebAuthn). Avstängt som standard.',
   'admin.passkey.login': 'Aktivera inloggningsnyckel',

@@ -331,6 +331,9 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': 'Ταξίδι',
   'admin.addons.catalog.journey.description':
     'Παρακολούθηση ταξιδιών & ημερολόγιο ταξιδιών με αφίξεις, φωτογραφίες και καθημερινές ιστορίες',
+  'admin.addons.catalog.collections.name': 'Συλλογές',
+  'admin.addons.catalog.collections.description':
+    'Προσωπική βιβλιοθήκη μερών — αποθήκευσε μέρη από όλα τα ταξίδια σε ονομασμένες λίστες, αντίγραψέ τα σε οποιοδήποτε ταξίδι, μοιράσου τα με άλλους',
   'admin.passkey.title': 'Σύνδεση με passkey',
   'admin.passkey.cardHint':
     'Επιτρέψτε στους χρήστες να συνδέονται με passkeys (WebAuthn). Απενεργοποιημένο από προεπιλογή.',

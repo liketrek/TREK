@@ -312,6 +312,9 @@ const admin: TranslationStrings = {
   'admin.tabs.permissions': '권한',
   'admin.addons.catalog.journey.name': 'Journey',
   'admin.addons.catalog.journey.description': '체크인, 사진, 일별 이야기가 있는 여행 기록 및 여행 일지',
+  'admin.addons.catalog.collections.name': '컬렉션',
+  'admin.addons.catalog.collections.description':
+    '개인 장소 라이브러리 — 여행 전반의 장소를 이름이 있는 목록에 저장하고, 어떤 여행에도 복사하고, 다른 사람과 공유하세요',
   'admin.passkey.title': '패스키 로그인',
   'admin.passkey.cardHint': '사용자가 패스키(WebAuthn)로 로그인할 수 있게 합니다. 기본값은 꺼짐입니다.',
   'admin.passkey.login': '패스키 로그인 활성화',

@@ -14,6 +14,8 @@ const inspector: TranslationStrings = {
   'inspector.pendingRes': 'Очікуване бронювання',
   'inspector.google': 'Відкрити в Google Maps',
   'inspector.website': 'Відкрити сайт',
+  'inspector.saveToCollection': 'Зберегти в колекцію',
+  'inspector.savedToCollection': 'Збережено',
   'inspector.addRes': 'Бронювання',
   'inspector.editRes': 'Редагувати бронювання',
   'inspector.participants': 'Учасники',

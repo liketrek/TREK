@@ -5,6 +5,8 @@ import { mapsApi } from '../../api/client'
 import { useAuthStore } from '../../store/authStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
+import { useAddonStore } from '../../store/addonStore'
+import CollectionPicker from '../Collections/CollectionPicker'
 import { useToast } from '../shared/Toast'
 import { Search, Paperclip, X, AlertTriangle, Loader2 } from 'lucide-react'
 import { useTranslation } from '../../i18n'
@@ -33,6 +35,10 @@ interface PlaceFormModalProps {
   onCategoryCreated: (category: { name: string; color?: string; icon?: string }) => Promise<Category> | undefined
   assignmentId: number | null
   dayAssignments?: Assignment[]
+  /** Mobile keeps the untouched single-column form; desktop adds the saved-place
+   *  picker column when the Collections addon is enabled. Sourced from the trip
+   *  planner's matchMedia('(max-width:767px)'). */
+  isMobile?: boolean
 }
 
 
@@ -67,7 +73,7 @@ function findDuplicatePlace(
 function usePlaceFormModal(props: PlaceFormModalProps) {
   const {
   isOpen, onClose, onSave, place, prefillCoords, tripId, categories,
-  onCategoryCreated, assignmentId, dayAssignments = [],
+  onCategoryCreated, assignmentId, dayAssignments = [], isMobile = false,
   } = props
   const [form, setForm] = useState(DEFAULT_FORM)
   const [mapsSearch, setMapsSearch] = useState('')
@@ -90,6 +96,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   const can = useCanDo()
   const tripObj = useTripStore((s) => s.trip)
   const canUploadFiles = can('file_upload', tripObj)
+  const collectionsEnabled = useAddonStore((s) => s.isEnabled('collections'))
 
   useEffect(() => {
     if (place) {
@@ -416,6 +423,8 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     onCategoryCreated,
     assignmentId,
     dayAssignments,
+    isMobile,
+    collectionsEnabled,
     form,
     setForm,
     mapsSearch,
@@ -478,6 +487,8 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
     onCategoryCreated,
     assignmentId,
     dayAssignments,
+    isMobile,
+    collectionsEnabled,
     form,
     setForm,
     mapsSearch,
@@ -525,12 +536,15 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
     handleSubmit,
     duplicateWarning,
   } = S
+  // Desktop + Collections addon → two columns (form + saved-place picker). Mobile
+  // always keeps the original single-column form untouched.
+  const twoColumn = !isMobile && collectionsEnabled
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title={place ? t('places.editPlace') : t('places.addPlace')}
-      size="lg"
+      size={twoColumn ? '3xl' : 'lg'}
       footer={
         <div className="flex justify-end gap-3">
           <button
@@ -551,7 +565,8 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
         </div>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4" onPaste={handlePaste}>
+      <div className={twoColumn ? 'flex gap-5 items-stretch' : ''}>
+      <form onSubmit={handleSubmit} className={twoColumn ? 'flex-1 min-w-0 space-y-4' : 'space-y-4'} onPaste={handlePaste}>
         {/* Place Search */}
         <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
           {!hasMapsKey && (
@@ -811,6 +826,10 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
         )}
 
       </form>
+      {twoColumn && (
+        <CollectionPicker bias={locationBias} onSelect={handleSelectMapsResult} t={t} />
+      )}
+      </div>
     </Modal>
   )
 }

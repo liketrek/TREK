@@ -323,6 +323,9 @@ const admin: TranslationStrings = {
   'admin.tabs.notifications': 'Meldingen',
   'admin.addons.catalog.journey.name': 'Reisverslag',
   'admin.addons.catalog.journey.description': "Reistracking & reisdagboek met check-ins, foto's en dagelijkse verhalen",
+  'admin.addons.catalog.collections.name': 'Collecties',
+  'admin.addons.catalog.collections.description':
+    'Persoonlijke plekkenbibliotheek — sla plekken uit je reizen op in benoemde lijsten, kopieer ze naar elke reis en deel ze met anderen',
   'admin.passkey.title': 'Inloggen met passkey',
   'admin.passkey.cardHint': 'Laat gebruikers inloggen met passkeys (WebAuthn). Standaard uit.',
   'admin.passkey.login': 'Inloggen met passkey inschakelen',

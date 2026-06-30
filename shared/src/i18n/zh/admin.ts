@@ -306,6 +306,9 @@ const admin: TranslationStrings = {
   'admin.tabs.notifications': '通知',
   'admin.addons.catalog.journey.name': '旅程',
   'admin.addons.catalog.journey.description': '旅行追踪与旅行日志，包含签到、照片和每日故事',
+  'admin.addons.catalog.collections.name': '收藏',
+  'admin.addons.catalog.collections.description':
+    '个人地点库 — 将各行程的地点保存到命名列表中，复制到任意行程，并与他人共享',
   'admin.passkey.title': '通行密钥登录',
   'admin.passkey.cardHint': '允许用户使用通行密钥（WebAuthn）登录。默认关闭。',
   'admin.passkey.login': '启用通行密钥登录',

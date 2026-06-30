@@ -331,6 +331,9 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': 'Journey',
   'admin.addons.catalog.journey.description':
     'Trip tracking & travel journal with check-ins, photos, and daily stories',
+  'admin.addons.catalog.collections.name': 'Collections',
+  'admin.addons.catalog.collections.description':
+    'Personal place library — save places across trips into named lists, copy into any trip, share with others',
   'admin.passkey.title': 'Passkey login',
   'admin.passkey.cardHint': 'Let users sign in with passkeys (WebAuthn). Off by default.',
   'admin.passkey.login': 'Enable passkey login',

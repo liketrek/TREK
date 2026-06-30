@@ -321,6 +321,9 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': 'Journey',
   'admin.addons.catalog.journey.description':
     'Відстеження поїздок і щоденник подорожей з позначками, фото та щоденними історіями',
+  'admin.addons.catalog.collections.name': 'Колекції',
+  'admin.addons.catalog.collections.description':
+    'Особиста бібліотека місць — зберігайте місця з різних подорожей у іменовані списки, копіюйте в будь-яку подорож, діліться з іншими',
   'admin.passkey.title': 'Вхід за допомогою passkey',
   'admin.passkey.cardHint':
     'Дозволити користувачам входити за допомогою passkey (WebAuthn). За замовчуванням вимкнено.',

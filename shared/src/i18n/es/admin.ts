@@ -327,6 +327,9 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': 'Travesía',
   'admin.addons.catalog.journey.description':
     'Seguimiento de viajes y diario de viajero con registros de ubicación, fotos e historias diarias',
+  'admin.addons.catalog.collections.name': 'Colecciones',
+  'admin.addons.catalog.collections.description':
+    'Biblioteca personal de lugares: guarda lugares de tus viajes en listas con nombre, cópialos a cualquier viaje y compártelos con otros',
   'admin.passkey.title': 'Inicio de sesión con passkey',
   'admin.passkey.cardHint':
     'Permite que los usuarios inicien sesión con passkeys (WebAuthn). Desactivado de forma predeterminada.',

@@ -313,6 +313,9 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': 'Journey', // en-fallback
   'admin.addons.catalog.journey.description':
     'Trip tracking & travel journal with check-ins, photos, and daily stories', // en-fallback
+  'admin.addons.catalog.collections.name': 'المجموعات',
+  'admin.addons.catalog.collections.description':
+    'مكتبة أماكن شخصية — احفظ الأماكن عبر الرحلات في قوائم مسماة، وانسخها إلى أي رحلة، وشاركها مع الآخرين',
   'admin.passkey.title': 'تسجيل الدخول بمفتاح المرور',
   'admin.passkey.cardHint': 'اسمح للمستخدمين بتسجيل الدخول باستخدام مفاتيح المرور (WebAuthn). معطّل افتراضيًا.',
   'admin.passkey.login': 'تفعيل تسجيل الدخول بمفتاح المرور',

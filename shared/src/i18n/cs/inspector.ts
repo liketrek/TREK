@@ -14,6 +14,8 @@ const inspector: TranslationStrings = {
   'inspector.pendingRes': 'Čekající rezervace',
   'inspector.google': 'Otevřít v Google Mapách',
   'inspector.website': 'Otevřít webové stránky',
+  'inspector.saveToCollection': 'Uložit do sbírky',
+  'inspector.savedToCollection': 'Uloženo',
   'inspector.addRes': 'Rezervace',
   'inspector.editRes': 'Upravit rezervaci',
   'inspector.participants': 'Účastníci',

@@ -327,6 +327,9 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': 'Dziennik podróży',
   'admin.addons.catalog.journey.description':
     'Śledzenie podróży i dziennik z zameldowaniami, zdjęciami i codziennymi historiami',
+  'admin.addons.catalog.collections.name': 'Kolekcje',
+  'admin.addons.catalog.collections.description':
+    'Osobista biblioteka miejsc — zapisuj miejsca z podróży na nazwanych listach, kopiuj je do dowolnej podróży i udostępniaj innym',
   'admin.passkey.title': 'Logowanie kluczem dostępu',
   'admin.passkey.cardHint': 'Pozwól użytkownikom logować się kluczami dostępu (WebAuthn). Domyślnie wyłączone.',
   'admin.passkey.login': 'Włącz logowanie kluczem dostępu',

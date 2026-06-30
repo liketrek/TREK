@@ -322,6 +322,8 @@ const admin: TranslationStrings = {
   'admin.tabs.notifications': 'Benachrichtigungen',
   'admin.addons.catalog.journey.name': 'Journey',
   'admin.addons.catalog.journey.description': 'Reise-Tracking & Tagebuch mit Check-ins, Fotos und Tagesberichten',
+  'admin.addons.catalog.collections.name': 'Sammlungen',
+  'admin.addons.catalog.collections.description': 'Persönliche Orte-Bibliothek — speichere Orte aus Reisen in benannten Listen, kopiere sie in jede Reise, teile sie mit anderen',
   'admin.passkey.title': 'Passkey-Anmeldung',
   'admin.passkey.cardHint': 'Erlaube Benutzern die Anmeldung mit Passkeys (WebAuthn). Standardmäßig deaktiviert.',
   'admin.passkey.login': 'Passkey-Anmeldung aktivieren',

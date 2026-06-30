@@ -1,6 +1,6 @@
 import type React from 'react'
 import { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
-import { Pencil, Trash2, ExternalLink, Navigation, CalendarDays } from 'lucide-react'
+import { Pencil, Trash2, ExternalLink, Navigation, CalendarDays, Bookmark } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
 import { useContextMenu } from '../shared/ContextMenu'
@@ -8,6 +8,9 @@ import { placesApi } from '../../api/client'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useAuthStore } from '../../store/authStore'
+import { useAddonStore } from '../../store/addonStore'
+import { useSaveToCollectionStore } from '../../store/saveToCollectionStore'
+import { placeToSaveTarget } from '../Collections/saveTarget'
 import type { Place, Category, Day, AssignmentsMap } from '../../types'
 import { getGoogleMapsUrlForPlace } from './placeGoogleMaps'
 
@@ -52,6 +55,7 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
   const loadTrip = useTripStore((s) => s.loadTrip)
   const can = useCanDo()
   const canEditPlaces = can('place_edit', trip)
+  const collectionsEnabled = useAddonStore((s) => s.isEnabled('collections'))
   // Places-API enrichment (#886) needs a Google Maps key; gate the toggle on it.
   const canEnrichImport = useAuthStore((s) => s.hasMapsKey)
   const isNaverListImportEnabled = true
@@ -242,11 +246,12 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
       canEditPlaces && { label: t('common.edit'), icon: Pencil, onClick: () => props.onEditPlace(place) },
       selDayId && { label: t('planner.addToDay'), icon: CalendarDays, onClick: () => props.onAssignToDay(place.id, selDayId) },
       place.website && { label: t('inspector.website'), icon: ExternalLink, onClick: () => window.open(place.website, '_blank') },
-      googleMapsUrl && { label: 'Google Maps', icon: Navigation, onClick: () => window.open(googleMapsUrl, '_blank') },
+      googleMapsUrl && { label: t('inspector.google'), icon: Navigation, onClick: () => window.open(googleMapsUrl, '_blank') },
+      collectionsEnabled && { label: t('inspector.saveToCollection'), icon: Bookmark, onClick: () => useSaveToCollectionStore.getState().open(placeToSaveTarget(place)) },
       { divider: true },
       canEditPlaces && { label: t('common.delete'), icon: Trash2, danger: true, onClick: () => props.onDeletePlace(place.id) },
     ])
-  }, [ctxMenu.open, canEditPlaces, t, props.onEditPlace, props.onAssignToDay, props.onDeletePlace])
+  }, [ctxMenu.open, canEditPlaces, collectionsEnabled, t, props.onEditPlace, props.onAssignToDay, props.onDeletePlace])
 
   return {
     ...props,

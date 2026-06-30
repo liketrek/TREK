@@ -14,6 +14,8 @@ const inspector: TranslationStrings = {
   'inspector.pendingRes': '대기 중인 예약',
   'inspector.google': 'Google Maps에서 열기',
   'inspector.website': '웹사이트 열기',
+  'inspector.saveToCollection': '컬렉션에 저장',
+  'inspector.savedToCollection': '저장됨',
   'inspector.addRes': '예약',
   'inspector.editRes': '예약 편집',
   'inspector.participants': '참가자',

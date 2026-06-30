@@ -14,6 +14,8 @@ const inspector: TranslationStrings = {
   'inspector.pendingRes': 'Pending Reservation',
   'inspector.google': 'Open in Google Maps',
   'inspector.website': 'Open Website',
+  'inspector.saveToCollection': 'Save to Collection',
+  'inspector.savedToCollection': 'Saved',
   'inspector.addRes': 'Reservation',
   'inspector.editRes': 'Edit Reservation',
   'inspector.participants': 'Participants',

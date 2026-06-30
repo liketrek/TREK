@@ -17,11 +17,13 @@ import HelpPage from './pages/HelpPage'
 import AtlasPage from './pages/AtlasPage'
 import JourneyPage from './pages/JourneyPage'
 import JourneyDetailPage from './pages/JourneyDetailPage'
+import CollectionsPage from './pages/CollectionsPage'
 import JourneyPublicPage from './pages/JourneyPublicPage'
 import SharedTripPage from './pages/SharedTripPage'
 import InAppNotificationsPage from './pages/InAppNotificationsPage.tsx'
 import OAuthAuthorizePage from './pages/OAuthAuthorizePage'
 import { ToastContainer } from './components/shared/Toast'
+import SaveToCollectionModal from './components/Collections/SaveToCollectionModal'
 import BackgroundTasksWidget from './components/BackgroundTasks/BackgroundTasksWidget'
 import BottomNav from './components/Layout/BottomNav'
 import { TranslationProvider, useTranslation } from './i18n'
@@ -203,6 +205,7 @@ export default function App() {
       {!isAuthPage && <SystemNoticeHost />}
       <ToastContainer />
       {!isAuthPage && <BackgroundTasksWidget />}
+      {!isAuthPage && <SaveToCollectionModal />}
       <OfflineBanner />
       <Routes>
         <Route path="/" element={<RootRedirect />} />
@@ -299,6 +302,22 @@ export default function App() {
           element={
             <ProtectedRoute addonId="journey">
               <JourneyDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/collections"
+          element={
+            <ProtectedRoute addonId="collections">
+              <CollectionsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/collections/:id"
+          element={
+            <ProtectedRoute addonId="collections">
+              <CollectionsPage />
             </ProtectedRoute>
           }
         />

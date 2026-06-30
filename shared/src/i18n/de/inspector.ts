@@ -14,6 +14,8 @@ const inspector: TranslationStrings = {
   'inspector.pendingRes': 'Ausstehende Reservierung',
   'inspector.google': 'In Google Maps öffnen',
   'inspector.website': 'Webseite öffnen',
+  'inspector.saveToCollection': 'In Sammlung speichern',
+  'inspector.savedToCollection': 'Gespeichert',
   'inspector.addRes': 'Reservierung',
   'inspector.editRes': 'Reservierung bearbeiten',
   'inspector.participants': 'Teilnehmer',

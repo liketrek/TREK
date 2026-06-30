@@ -14,6 +14,8 @@ const inspector: TranslationStrings = {
   'inspector.pendingRes': 'Pendlande bokning',
   'inspector.google': 'Öppna i Google Maps',
   'inspector.website': 'Öppna hemsida',
+  'inspector.saveToCollection': 'Spara i samling',
+  'inspector.savedToCollection': 'Sparad',
   'inspector.addRes': 'Bokning',
   'inspector.editRes': 'Redigera bokning',
   'inspector.participants': 'Deltagare',

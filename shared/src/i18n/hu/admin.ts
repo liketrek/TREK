@@ -323,6 +323,9 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': 'Útinaplók',
   'admin.addons.catalog.journey.description':
     'Utazáskövetés és útinapló bejelentkezésekkel, fotókkal és napi történetekkel',
+  'admin.addons.catalog.collections.name': 'Gyűjtemények',
+  'admin.addons.catalog.collections.description':
+    'Személyes helykönyvtár — ments helyeket utazásokon átívelően elnevezett listákba, másold bármelyik utazásba, oszd meg másokkal',
   'admin.passkey.title': 'Passkey-bejelentkezés',
   'admin.passkey.cardHint':
     'Engedélyezd a felhasználóknak a bejelentkezést passkey-vel (WebAuthn). Alapból kikapcsolva.',

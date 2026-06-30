@@ -14,6 +14,8 @@ const inspector: TranslationStrings = {
   'inspector.pendingRes': 'Függőben lévő foglalás',
   'inspector.google': 'Megnyitás a Google Térképben',
   'inspector.website': 'Weboldal megnyitása',
+  'inspector.saveToCollection': 'Mentés gyűjteménybe',
+  'inspector.savedToCollection': 'Mentve',
   'inspector.addRes': 'Foglalás',
   'inspector.editRes': 'Foglalás szerkesztése',
   'inspector.participants': 'Résztvevők',

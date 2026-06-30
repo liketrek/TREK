@@ -331,6 +331,9 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': 'Hành trình',
   'admin.addons.catalog.journey.description':
     'Theo dõi chuyến đi & nhật ký du lịch với thông tin đăng ký, ảnh và câu chuyện hàng ngày',
+  'admin.addons.catalog.collections.name': 'Bộ sưu tập',
+  'admin.addons.catalog.collections.description':
+    'Thư viện địa điểm cá nhân — lưu địa điểm qua các chuyến đi vào danh sách có tên, sao chép vào bất kỳ chuyến đi nào, chia sẻ với người khác',
   'admin.passkey.title': 'Đăng nhập bằng mật mã',
   'admin.passkey.cardHint': 'Cho phép người dùng đăng nhập bằng mật mã (WebAuthn). Tắt theo mặc định.',
   'admin.passkey.login': 'Kích hoạt đăng nhập bằng mật mã',

@@ -324,6 +324,9 @@ const admin: TranslationStrings = {
   'admin.tabs.notifications': 'Notifications',
   'admin.addons.catalog.journey.name': 'Journal de voyage',
   'admin.addons.catalog.journey.description': 'Suivi de voyages et journal avec check-ins, photos et récits quotidiens',
+  'admin.addons.catalog.collections.name': 'Collections',
+  'admin.addons.catalog.collections.description':
+    'Bibliothèque personnelle de lieux — enregistrez des lieux de vos voyages dans des listes nommées, copiez-les dans n’importe quel voyage et partagez-les',
   'admin.passkey.title': 'Connexion par passkey',
   'admin.passkey.cardHint':
     'Permettez aux utilisateurs de se connecter avec des passkeys (WebAuthn). Désactivé par défaut.',
