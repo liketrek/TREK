@@ -16,7 +16,7 @@ import LocationButton from './LocationButton'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import type { Place, Reservation } from '../../types'
 import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
-import { buildPlacePopupHtml, buildPoiPopupHtml } from './placePopup'
+import { buildPoiPopupHtml } from './placePopup'
 
 function categoryIconSvg(iconName: string | null | undefined, size: number): string {
   const IconComponent = (iconName && CATEGORY_ICON_MAP[iconName]) || CATEGORY_ICON_MAP['MapPin']
@@ -219,6 +219,11 @@ export function MapViewGL({
   const placesPhotosEnabled = useAuthStore(s => s.placesPhotosEnabled)
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>(getAllThumbs)
   const [mapReady, setMapReady] = useState(false)
+  // Hover tooltip — a cursor-following name/category/address card, matching the
+  // Leaflet map's overlay exactly (no anchored popup, no photo thumbnail).
+  const [hoverPlace, setHoverPlace] = useState<(Place & { category_color?: string | null; category_icon?: string | null; category_name?: string | null }) | null>(null)
+  const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null)
+  const hoverIdRef = useRef<number | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapRef = useRef<any | null>(null)
@@ -615,6 +620,9 @@ export function MapViewGL({
         if (!ids.has(id)) {
           marker.remove()
           markersRef.current.delete(id)
+          // Removing a marker under the cursor (e.g. it just got clustered) never
+          // fires mouseleave, so drop its tooltip here to avoid orphaning it.
+          if (hoverIdRef.current === id) { hoverIdRef.current = null; setHoverPlace(null); setHoverPos(null) }
         }
       })
 
@@ -628,12 +636,19 @@ export function MapViewGL({
           ev.stopPropagation()
           onClickRefs.current.marker?.(place.id)
         })
-        el.addEventListener('mouseenter', () => {
-          popupRef.current?.setLngLat([place.lng, place.lat])
-            .setHTML(buildPlacePopupHtml(place as Place & { category_color?: string; category_icon?: string; category_name?: string }, photoUrl))
-            .addTo(map)
+        el.addEventListener('mouseenter', (ev) => {
+          hoverIdRef.current = place.id
+          setHoverPlace(place as Place & { category_color?: string; category_icon?: string; category_name?: string })
+          setHoverPos({ x: (ev as MouseEvent).clientX, y: (ev as MouseEvent).clientY })
         })
-        el.addEventListener('mouseleave', () => { popupRef.current?.remove() })
+        el.addEventListener('mousemove', (ev) => {
+          setHoverPos({ x: (ev as MouseEvent).clientX, y: (ev as MouseEvent).clientY })
+        })
+        el.addEventListener('mouseleave', () => {
+          hoverIdRef.current = null
+          setHoverPlace(null)
+          setHoverPos(null)
+        })
         // Recreate marker each time rather than patching internal state —
         // mapbox-gl's internal _element bookkeeping breaks under DOM swaps.
         const existing = markersRef.current.get(place.id)
@@ -904,6 +919,8 @@ export function MapViewGL({
     ? 'calc(var(--bottom-nav-h, 84px) + 20px + var(--day-panel-h, 0px) + 12px)'
     : 'calc(var(--bottom-nav-h, 84px) + 12px)'
 
+  const HoverIcon = (hoverPlace?.category_icon && CATEGORY_ICON_MAP[hoverPlace.category_icon]) || CATEGORY_ICON_MAP['MapPin']
+
   return (
     <div className="w-full h-full relative">
       <div ref={containerRef} className="w-full h-full" />
@@ -914,6 +931,39 @@ export function MapViewGL({
           onClick={cycleTrackingMode}
           bottomOffset={buttonBottom as unknown as number}
         />
+      )}
+      {/* Hover tooltip — cursor-following name/category/address card, identical to
+          the Leaflet map's overlay (no anchored popup, no photo). */}
+      {hoverPlace && hoverPos && !isMobile && (
+        <div data-testid="tooltip" style={{
+          position: 'fixed',
+          left: hoverPos.x + 14,
+          top: hoverPos.y - 10,
+          zIndex: 9999,
+          pointerEvents: 'none',
+          background: 'white',
+          borderRadius: 8,
+          boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
+          padding: '6px 10px',
+          fontFamily: 'var(--font-system)',
+          maxWidth: 220,
+          whiteSpace: 'nowrap',
+        }}>
+          <div style={{ fontWeight: 600, fontSize: 12, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {hoverPlace.name}
+          </div>
+          {hoverPlace.category_name && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 1 }}>
+              <HoverIcon size={10} style={{ color: hoverPlace.category_color || '#6b7280', flexShrink: 0 }} />
+              <span style={{ fontSize: 11, color: '#6b7280' }}>{hoverPlace.category_name}</span>
+            </div>
+          )}
+          {hoverPlace.address && (
+            <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {hoverPlace.address}
+            </div>
+          )}
+        </div>
       )}
     </div>
   )
