@@ -266,6 +266,10 @@ export async function pipeAsset(url: string, response: Response, headers?: Recor
         }
         if (resp.headers.get('content-length')) response.set('Content-Length', resp.headers.get('content-length') as string);
         if (resp.headers.get('content-disposition')) response.set('Content-Disposition', resp.headers.get('content-disposition') as string);
+        // Pass byte-range metadata through so a <video> can seek (#823). Upstream
+        // returns 206 + Content-Range when the caller forwarded a Range header.
+        if (resp.headers.get('accept-ranges')) response.set('Accept-Ranges', resp.headers.get('accept-ranges') as string);
+        if (resp.headers.get('content-range')) response.set('Content-Range', resp.headers.get('content-range') as string);
 
         if (!resp.body) {
             response.end();

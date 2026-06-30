@@ -13,7 +13,7 @@ export function ProviderPicker({ provider, userId, entries, trips, existingAsset
   trips: JourneyTrip[]
   existingAssetIds: Set<string>
   onClose: () => void
-  onAdd: (groups: Array<{ assetIds: string[]; passphrase?: string }>, entryId: number | null) => Promise<void>
+  onAdd: (groups: Array<{ assetIds: string[]; passphrase?: string; mediaTypes?: string[] }>, entryId: number | null) => Promise<void>
 }) {
   const { t } = useTranslation()
   const [filter, setFilter] = useState<'trip' | 'custom' | 'all' | 'album'>('trip')
@@ -27,7 +27,7 @@ export function ProviderPicker({ provider, userId, entries, trips, existingAsset
   const [searchPage, setSearchPage] = useState(1)
   const [searchFrom, setSearchFrom] = useState('')
   const [searchTo, setSearchTo] = useState('')
-  const [selected, setSelected] = useState<Map<string, { albumId?: string; passphrase?: string }>>(new Map())
+  const [selected, setSelected] = useState<Map<string, { albumId?: string; passphrase?: string; mediaType?: string }>>(new Map())
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
   const [targetEntryId, setTargetEntryId] = useState<number | null>(null)
@@ -123,7 +123,8 @@ export function ProviderPicker({ provider, userId, entries, trips, existingAsset
       if (next.has(id)) {
         next.delete(id)
       } else {
-        next.set(id, { albumId: selectedAlbum ?? undefined, passphrase: selectedAlbumPassphrase })
+        const mediaType = (photos as any[]).find(p => p.id === id)?.mediaType
+        next.set(id, { albumId: selectedAlbum ?? undefined, passphrase: selectedAlbumPassphrase, mediaType })
       }
       return next
     })
@@ -293,7 +294,7 @@ export function ProviderPicker({ provider, userId, entries, trips, existingAsset
                   if (allSelected) {
                     setSelected(new Map())
                   } else {
-                    setSelected(new Map(selectable.map((a: any) => [a.id, { albumId: selectedAlbum ?? undefined, passphrase: selectedAlbumPassphrase }])))
+                    setSelected(new Map(selectable.map((a: any) => [a.id, { albumId: selectedAlbum ?? undefined, passphrase: selectedAlbumPassphrase, mediaType: a.mediaType }])))
                   }
                 }}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
@@ -396,13 +397,14 @@ export function ProviderPicker({ provider, userId, entries, trips, existingAsset
             </button>
             <button
               onClick={() => {
-                const groupMap = new Map<string | undefined, string[]>()
-                for (const [assetId, { passphrase }] of selected.entries()) {
-                  const list = groupMap.get(passphrase) || []
-                  list.push(assetId)
-                  groupMap.set(passphrase, list)
+                const groupMap = new Map<string | undefined, { assetIds: string[]; mediaTypes: string[] }>()
+                for (const [assetId, { passphrase, mediaType }] of selected.entries()) {
+                  const g = groupMap.get(passphrase) || { assetIds: [], mediaTypes: [] }
+                  g.assetIds.push(assetId)
+                  g.mediaTypes.push(mediaType === 'video' ? 'video' : 'image')
+                  groupMap.set(passphrase, g)
                 }
-                const groups = [...groupMap.entries()].map(([passphrase, assetIds]) => ({ assetIds, passphrase }))
+                const groups = [...groupMap.entries()].map(([passphrase, g]) => ({ assetIds: g.assetIds, mediaTypes: g.mediaTypes, passphrase }))
                 onAdd(groups, targetEntryId)
               }}
               disabled={selected.size === 0}

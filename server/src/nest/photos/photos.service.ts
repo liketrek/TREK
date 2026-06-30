@@ -14,8 +14,8 @@ export class PhotosService {
     return canAccessTrekPhoto(userId, photoId);
   }
 
-  stream(res: Response, userId: number, photoId: number, kind: 'thumbnail' | 'original') {
-    return streamPhoto(res, userId, photoId, kind);
+  stream(res: Response, userId: number, photoId: number, kind: 'thumbnail' | 'original', range?: string) {
+    return streamPhoto(res, userId, photoId, kind, range);
   }
 
   info(userId: number, photoId: number) {

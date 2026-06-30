@@ -172,20 +172,21 @@ export class JourneyController {
   }
 
   @Post('entries/:entryId/provider-photos')
-  providerPhotos(@CurrentUser() user: User, @Param('entryId') entryId: string, @Body() body: { provider?: string; asset_id?: string; asset_ids?: unknown[]; caption?: string; passphrase?: string }) {
+  providerPhotos(@CurrentUser() user: User, @Param('entryId') entryId: string, @Body() body: { provider?: string; asset_id?: string; asset_ids?: unknown[]; caption?: string; passphrase?: string; media_type?: string; media_types?: unknown[] }) {
     const pp = body.passphrase && typeof body.passphrase === 'string' ? body.passphrase : undefined;
     if (Array.isArray(body.asset_ids) && body.provider) {
       const added: unknown[] = [];
-      for (const id of body.asset_ids) {
-        const photo = this.journey.addProviderPhoto(Number(entryId), user.id, body.provider, String(id), body.caption, pp);
+      body.asset_ids.forEach((id, i) => {
+        const mt = Array.isArray(body.media_types) && body.media_types[i] === 'video' ? 'video' : 'image';
+        const photo = this.journey.addProviderPhoto(Number(entryId), user.id, body.provider!, String(id), body.caption, pp, mt);
         if (photo) added.push(photo);
-      }
+      });
       return { photos: added, added: added.length };
     }
     if (!body.provider || !body.asset_id) {
       throw new HttpException({ error: 'provider and asset_id required' }, 400);
     }
-    const photo = this.journey.addProviderPhoto(Number(entryId), user.id, body.provider, body.asset_id, body.caption, pp);
+    const photo = this.journey.addProviderPhoto(Number(entryId), user.id, body.provider, body.asset_id, body.caption, pp, body.media_type === 'video' ? 'video' : 'image');
     if (!photo) {
       throw new HttpException({ error: 'Not allowed or duplicate' }, 403);
     }
@@ -276,20 +277,21 @@ export class JourneyController {
   }
 
   @Post(':id/gallery/provider-photos')
-  galleryProviderPhotos(@CurrentUser() user: User, @Param('id') id: string, @Body() body: { provider?: string; asset_id?: string; asset_ids?: unknown[]; passphrase?: string }) {
+  galleryProviderPhotos(@CurrentUser() user: User, @Param('id') id: string, @Body() body: { provider?: string; asset_id?: string; asset_ids?: unknown[]; passphrase?: string; media_type?: string; media_types?: unknown[] }) {
     const pp = body.passphrase && typeof body.passphrase === 'string' ? body.passphrase : undefined;
     if (Array.isArray(body.asset_ids) && body.provider) {
       const added: unknown[] = [];
-      for (const aid of body.asset_ids) {
-        const photo = this.journey.addProviderPhotoToGallery(Number(id), user.id, body.provider, String(aid), undefined, pp);
+      body.asset_ids.forEach((aid, i) => {
+        const mt = Array.isArray(body.media_types) && body.media_types[i] === 'video' ? 'video' : 'image';
+        const photo = this.journey.addProviderPhotoToGallery(Number(id), user.id, body.provider!, String(aid), undefined, pp, mt);
         if (photo) added.push(photo);
-      }
+      });
       return { photos: added, added: added.length };
     }
     if (!body.provider || !body.asset_id) {
       throw new HttpException({ error: 'provider and asset_id required' }, 400);
     }
-    const photo = this.journey.addProviderPhotoToGallery(Number(id), user.id, body.provider, body.asset_id, undefined, pp);
+    const photo = this.journey.addProviderPhotoToGallery(Number(id), user.id, body.provider, body.asset_id, undefined, pp, body.media_type === 'video' ? 'video' : 'image');
     if (!photo) {
       throw new HttpException({ error: 'Not allowed or duplicate' }, 403);
     }

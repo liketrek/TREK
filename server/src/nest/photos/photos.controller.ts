@@ -1,4 +1,4 @@
-import { Controller, Get, HttpException, Param, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Headers, HttpException, Param, Res, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
 import type { User } from '../../types';
 import { PhotosService } from './photos.service';
@@ -37,9 +37,9 @@ export class PhotosController {
   }
 
   @Get(':id/original')
-  async original(@CurrentUser() user: User, @Param('id') id: string, @Res() res: Response): Promise<void> {
+  async original(@CurrentUser() user: User, @Param('id') id: string, @Res() res: Response, @Headers('range') range?: string): Promise<void> {
     const photoId = this.requireAccess(user, id);
-    await this.photos.stream(res, user.id, photoId, 'original');
+    await this.photos.stream(res, user.id, photoId, 'original', range);
   }
 
   @Get(':id/info')

@@ -217,10 +217,10 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
             for (const group of groups) {
               try {
                 if (entryId) {
-                  const result = await journeyApi.addProviderPhotos(entryId, pickerProvider!, group.assetIds, undefined, group.passphrase)
+                  const result = await journeyApi.addProviderPhotos(entryId, pickerProvider!, group.assetIds, undefined, group.passphrase, group.mediaTypes)
                   added += result.added || 0
                 } else {
-                  const result = await journeyApi.addProviderPhotosToGallery(journeyId, pickerProvider!, group.assetIds, group.passphrase)
+                  const result = await journeyApi.addProviderPhotosToGallery(journeyId, pickerProvider!, group.assetIds, group.passphrase, group.mediaTypes)
                   added += result.added || 0
                 }
               } catch {

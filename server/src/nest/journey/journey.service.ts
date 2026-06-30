@@ -46,13 +46,13 @@ export class JourneyService {
   // Photos
   addPhoto(entryId: number, userId: number, filePath: string, thumbnailPath: string | undefined, caption: string | undefined) { return svc.addPhoto(entryId, userId, filePath, thumbnailPath, caption); }
   setPhotoProvider(photoId: number, provider: string, assetId: string, ownerId: number) { return svc.setPhotoProvider(photoId, provider, assetId, ownerId); }
-  addProviderPhoto(entryId: number, userId: number, provider: string, assetId: string, caption?: string, passphrase?: string) { return svc.addProviderPhoto(entryId, userId, provider, assetId, caption, passphrase); }
+  addProviderPhoto(entryId: number, userId: number, provider: string, assetId: string, caption?: string, passphrase?: string, mediaType?: string) { return svc.addProviderPhoto(entryId, userId, provider, assetId, caption, passphrase, mediaType); }
   linkPhotoToEntry(entryId: number, journeyPhotoId: number, userId: number) { return svc.linkPhotoToEntry(entryId, journeyPhotoId, userId); }
   unlinkPhotoFromEntry(entryId: number, journeyPhotoId: number, userId: number) { return svc.unlinkPhotoFromEntry(entryId, journeyPhotoId, userId); }
   updatePhoto(photoId: number, userId: number, data: Parameters<typeof svc.updatePhoto>[2]) { return svc.updatePhoto(photoId, userId, data); }
   deletePhoto(photoId: number, userId: number) { return svc.deletePhoto(photoId, userId); }
   uploadGalleryPhotos(id: number, userId: number, filePaths: Parameters<typeof svc.uploadGalleryPhotos>[2]) { return svc.uploadGalleryPhotos(id, userId, filePaths); }
-  addProviderPhotoToGallery(id: number, userId: number, provider: string, assetId: string, caption?: string, passphrase?: string) { return svc.addProviderPhotoToGallery(id, userId, provider, assetId, caption, passphrase); }
+  addProviderPhotoToGallery(id: number, userId: number, provider: string, assetId: string, caption?: string, passphrase?: string, mediaType?: string) { return svc.addProviderPhotoToGallery(id, userId, provider, assetId, caption, passphrase, mediaType); }
   deleteGalleryPhoto(journeyPhotoId: number, userId: number) { return svc.deleteGalleryPhoto(journeyPhotoId, userId); }
 
   // Contributors

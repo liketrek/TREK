@@ -874,12 +874,13 @@ export function addProviderPhoto(
   assetId: string,
   caption?: string,
   passphrase?: string,
+  mediaType: string = 'image',
 ): JourneyPhoto | null {
   const entry = db.prepare('SELECT * FROM journey_entries WHERE id = ?').get(entryId) as JourneyEntry | undefined;
   if (!entry) return null;
   if (!canEdit(entry.journey_id, userId)) return null;
 
-  const trekPhotoId = getOrCreateTrekPhoto(provider, assetId, userId, passphrase);
+  const trekPhotoId = getOrCreateTrekPhoto(provider, assetId, userId, passphrase, mediaType);
 
   // skip if this photo is already linked to this entry
   const alreadyLinked = db
@@ -954,9 +955,10 @@ export function addProviderPhotoToGallery(
   assetId: string,
   caption?: string,
   passphrase?: string,
+  mediaType: string = 'image',
 ): any | null {
   if (!canEdit(journeyId, userId)) return null;
-  const trekPhotoId = getOrCreateTrekPhoto(provider, assetId, userId, passphrase);
+  const trekPhotoId = getOrCreateTrekPhoto(provider, assetId, userId, passphrase, mediaType);
   const galleryId = db.transaction(() => ensureInGallery(journeyId, trekPhotoId, caption))();
   return db.prepare(`SELECT ${GALLERY_SELECT} FROM ${GALLERY_JOIN} WHERE gp.id = ?`).get(galleryId) ?? null;
 }

@@ -97,6 +97,7 @@ export async function streamPhoto(
   userId: number,
   photoId: number,
   kind: 'thumbnail' | 'original',
+  range?: string,
 ): Promise<void> {
   const photo = resolveTrekPhoto(photoId);
   if (!photo) {
@@ -156,11 +157,11 @@ export async function streamPhoto(
         await streamCachedThumbnail(
           res, photo,
           () => fetchImmichThumbnailBytes(userId, photo.asset_id!, photo.owner_id!),
-          () => streamImmichAsset(res, userId, photo.asset_id!, kind, photo.owner_id!),
+          () => streamImmichAsset(res, userId, photo.asset_id!, kind, photo.owner_id!, { mediaType: photo.media_type }),
         );
         return;
       }
-      await streamImmichAsset(res, userId, photo.asset_id!, kind, photo.owner_id!);
+      await streamImmichAsset(res, userId, photo.asset_id!, kind, photo.owner_id!, { mediaType: photo.media_type, range });
       return;
     }
     case 'synologyphotos': {

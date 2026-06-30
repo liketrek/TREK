@@ -42,6 +42,9 @@ export const journeyProviderPhotosRequestSchema = z.object({
   asset_ids: z.array(z.union([z.string(), z.number()])).optional(),
   caption: z.string().optional(),
   passphrase: z.string().optional(),
+  // Per-asset 'image' | 'video' discriminator, parallel to asset_ids (#823).
+  media_type: z.string().optional(),
+  media_types: z.array(z.string()).optional(),
 });
 export type JourneyProviderPhotosRequest = z.infer<typeof journeyProviderPhotosRequestSchema>;
 

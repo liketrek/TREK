@@ -169,7 +169,7 @@ export async function searchPhotos(
       body: JSON.stringify({
         takenAfter: from ? `${from}T00:00:00.000Z` : undefined,
         takenBefore: to ? `${to}T23:59:59.999Z` : undefined,
-        type: 'IMAGE',
+        // No type filter — surface videos alongside images (#823).
         size,
         page,
       }),
@@ -183,6 +183,7 @@ export async function searchPhotos(
       takenAt: a.fileCreatedAt || a.createdAt,
       city: a.exifInfo?.city || null,
       country: a.exifInfo?.country || null,
+      mediaType: a.type === 'VIDEO' ? 'video' : 'image',
     }));
     return { assets, hasMore: items.length >= size };
   } catch {
@@ -265,18 +266,37 @@ export async function streamImmichAsset(
   userId: number,
   assetId: string,
   kind: 'thumbnail' | 'original',
-  ownerUserId?: number
+  ownerUserId?: number,
+  opts?: { mediaType?: string | null; range?: string },
 ): Promise<{ error?: string; status?: number } | void> {
   const effectiveUserId = ownerUserId ?? userId;
   const creds = getImmichCredentials(effectiveUserId);
   if (!creds) return { error: 'Not found', status: 404 };
 
-  const timeout = kind === 'thumbnail' ? 10000 : 30000;
-  const url = kind === 'thumbnail'
-    ? `${creds.immich_url}/api/assets/${assetId}/thumbnail?size=thumbnail`
-    : `${creds.immich_url}/api/assets/${assetId}/thumbnail?size=fullsize`;
+  const isVideo = opts?.mediaType === 'video';
+  const headers: Record<string, string> = { 'x-api-key': creds.immich_api_key };
+  let url: string;
+  let timeout: number | undefined;
+  let cacheControl = 'public, max-age=86400';
 
-  await pipeAsset(url, response, { 'x-api-key': creds.immich_api_key }, AbortSignal.timeout(timeout), 'public, max-age=86400');
+  if (kind === 'thumbnail') {
+    // Immich generates a poster thumbnail for video too.
+    url = `${creds.immich_url}/api/assets/${assetId}/thumbnail?size=thumbnail`;
+    timeout = 10000;
+  } else if (isVideo) {
+    // Transcoded, broadly-compatible MP4 with byte-range support; forward the
+    // viewer's Range so the player can seek. No abort timeout — video is a long
+    // streaming response, not a quick fetch (#823).
+    url = `${creds.immich_url}/api/assets/${assetId}/video/playback`;
+    if (opts?.range) headers['Range'] = opts.range;
+    cacheControl = 'private, max-age=3600';
+    timeout = undefined;
+  } else {
+    url = `${creds.immich_url}/api/assets/${assetId}/thumbnail?size=fullsize`;
+    timeout = 30000;
+  }
+
+  await pipeAsset(url, response, headers, timeout ? AbortSignal.timeout(timeout) : undefined, cacheControl);
 }
 
 // ── Albums ──────────────────────────────────────────────────────────────────
@@ -337,11 +357,12 @@ export async function getAlbumPhotos(
     });
     if (!resp.ok) return { error: 'Failed to fetch album', status: resp.status };
     const albumData = await resp.json() as { assets?: any[] };
-    const assets = (albumData.assets || []).filter((a: any) => a.type === 'IMAGE').map((a: any) => ({
+    const assets = (albumData.assets || []).map((a: any) => ({
       id: a.id,
       takenAt: a.fileCreatedAt || a.createdAt,
       city: a.exifInfo?.city || null,
       country: a.exifInfo?.country || null,
+      mediaType: a.type === 'VIDEO' ? 'video' : 'image',
     }));
     return { assets };
   } catch {
