@@ -35,8 +35,8 @@ export class PackingService {
     return svc.createItem(tripId, data);
   }
 
-  updateItem(tripId: string, id: string, data: Parameters<typeof svc.updateItem>[2], changedKeys: string[]) {
-    return svc.updateItem(tripId, id, data, changedKeys);
+  updateItem(tripId: string, id: string, data: Parameters<typeof svc.updateItem>[2], changedKeys: string[], ifMatch?: string) {
+    return svc.updateItem(tripId, id, data, changedKeys, ifMatch);
   }
 
   deleteItem(tripId: string, id: string): boolean {

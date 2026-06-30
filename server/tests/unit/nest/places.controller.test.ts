@@ -236,6 +236,18 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
     expect(onUpdated).toHaveBeenCalledWith(9);
   });
 
+  it('PUT /:id forwards the base-version token and 409s on a conflict (#1135)', () => {
+    const update = vi.fn().mockReturnValue({ conflict: true, server: { id: 9, name: 'Theirs' } });
+    const onUpdated = vi.fn(); const broadcast = vi.fn();
+    const s = svc({ update, onUpdated, broadcast } as Partial<PlacesService>);
+    expect(thrown(() => new PlacesController(s).update(user, '5', '9', { name: 'Mine' }, 'sock', '2026-01-01 00:00:00'))).toEqual({
+      status: 409, body: { error: 'conflict', server: { id: 9, name: 'Theirs' } },
+    });
+    expect(update).toHaveBeenCalledWith('5', '9', expect.objectContaining({ name: 'Mine' }), '2026-01-01 00:00:00');
+    expect(broadcast).not.toHaveBeenCalled();
+    expect(onUpdated).not.toHaveBeenCalled();
+  });
+
   it('DELETE /:id fires the hook then 404 / success', () => {
     const onDeleted = vi.fn();
     expect(thrown(() => new PlacesController(svc({ remove: vi.fn().mockReturnValue(false), onDeleted } as Partial<PlacesService>)).remove(user, '5', '9'))).toEqual({ status: 404, body: { error: 'Place not found' } });

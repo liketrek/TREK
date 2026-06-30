@@ -758,8 +758,8 @@ export function copyTripById(sourceTripId: string | number, newOwnerId: number, 
 
     const oldPacking = db.prepare('SELECT * FROM packing_items WHERE trip_id = ?').all(sourceTripId) as any[];
     const insertPacking = db.prepare(`
-      INSERT INTO packing_items (trip_id, name, checked, category, sort_order, weight_grams, bag_id)
-      VALUES (?, ?, 0, ?, ?, ?, ?)
+      INSERT INTO packing_items (trip_id, name, checked, category, sort_order, weight_grams, bag_id, updated_at)
+      VALUES (?, ?, 0, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     `);
     for (const p of oldPacking) {
       insertPacking.run(newTripId, p.name, p.category, p.sort_order, p.weight_grams,

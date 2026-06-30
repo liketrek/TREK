@@ -49,7 +49,7 @@ describe('PackingService (wrapper delegation + helpers)', () => {
     s.verifyTripAccess('5', 1); expect(pk.verifyTripAccess).toHaveBeenCalledWith('5', 1);
     s.listItems('5'); expect(pk.listItems).toHaveBeenCalledWith('5');
     s.createItem('5', { name: 'a' }); expect(pk.createItem).toHaveBeenCalledWith('5', { name: 'a' });
-    s.updateItem('5', '2', { name: 'b' } as never, ['name']); expect(pk.updateItem).toHaveBeenCalledWith('5', '2', { name: 'b' }, ['name']);
+    s.updateItem('5', '2', { name: 'b' } as never, ['name']); expect(pk.updateItem).toHaveBeenCalledWith('5', '2', { name: 'b' }, ['name'], undefined);
     s.deleteItem('5', '2'); expect(pk.deleteItem).toHaveBeenCalledWith('5', '2');
     s.bulkImport('5', [{ name: 'x' }] as never); expect(pk.bulkImport).toHaveBeenCalledWith('5', [{ name: 'x' }]);
     s.reorderItems('5', [3, 1] as never); expect(pk.reorderItems).toHaveBeenCalledWith('5', [3, 1]);

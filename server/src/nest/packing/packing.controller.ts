@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import type { User } from '../../types';
 import { PackingService } from './packing.service';
+import { isUpdateConflict } from '../../services/conflictResult';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 
@@ -109,13 +110,18 @@ export class PackingController {
     @Param('id') id: string,
     @Body() body: Record<string, unknown>,
     @Headers('x-socket-id') socketId?: string,
+    @Headers('x-base-updated-at') ifMatch?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
     const { name, checked, category, weight_grams, bag_id, quantity } = body as Record<string, never>;
-    const updated = this.packing.updateItem(tripId, id, { name, checked, category, weight_grams, bag_id, quantity }, Object.keys(body));
+    const updated = this.packing.updateItem(tripId, id, { name, checked, category, weight_grams, bag_id, quantity }, Object.keys(body), ifMatch);
     if (!updated) {
       throw new HttpException({ error: 'Item not found' }, 404);
+    }
+    // Stale offline overwrite — surface the conflict for client-side resolution (#1135).
+    if (isUpdateConflict(updated)) {
+      throw new HttpException({ error: 'conflict', server: updated.server }, 409);
     }
     this.packing.broadcast(tripId, 'packing:updated', { item: updated }, socketId);
     return { item: updated };

@@ -1,5 +1,6 @@
 import { db } from '../db/database';
 import { avatarUrl } from './authService';
+import type { UpdateConflict } from './conflictResult';
 
 const BAG_COLORS = ['#6366f1', '#ec4899', '#f97316', '#10b981', '#06b6d4', '#8b5cf6', '#ef4444', '#f59e0b', '#3b82f6', '#84cc16', '#d946ef', '#14b8a6', '#f43f5e', '#a855f7', '#eab308', '#64748b'];
 
@@ -19,7 +20,7 @@ export function createItem(tripId: string | number, data: { name: string; catego
   const qty = Math.max(1, Math.min(999, Number(data.quantity) || 1));
 
   const result = db.prepare(
-    'INSERT INTO packing_items (trip_id, name, checked, category, sort_order, quantity) VALUES (?, ?, ?, ?, ?, ?)'
+    'INSERT INTO packing_items (trip_id, name, checked, category, sort_order, quantity, updated_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)'
   ).run(tripId, data.name, data.checked ? 1 : 0, data.category || 'Allgemein', sortOrder, qty);
 
   return db.prepare('SELECT * FROM packing_items WHERE id = ?').get(result.lastInsertRowid);
@@ -29,10 +30,17 @@ export function updateItem(
   tripId: string | number,
   id: string | number,
   data: { name?: string; checked?: number; category?: string; weight_grams?: number | null; bag_id?: number | null; quantity?: number },
-  bodyKeys: string[]
-) {
-  const item = db.prepare('SELECT * FROM packing_items WHERE id = ? AND trip_id = ?').get(id, tripId);
+  bodyKeys: string[],
+  ifMatch?: string,
+): unknown | UpdateConflict | null {
+  const item = db.prepare('SELECT * FROM packing_items WHERE id = ? AND trip_id = ?').get(id, tripId) as { updated_at?: string | null } | undefined;
   if (!item) return null;
+
+  // Optimistic concurrency (#1135): reject a stale offline overwrite. Absent
+  // token => unconditional update (back-compat with older clients).
+  if (ifMatch !== undefined && item.updated_at != null && String(item.updated_at) !== ifMatch) {
+    return { conflict: true, server: db.prepare('SELECT * FROM packing_items WHERE id = ?').get(id) };
+  }
 
   db.prepare(`
     UPDATE packing_items SET
@@ -41,7 +49,8 @@ export function updateItem(
       category = COALESCE(?, category),
       weight_grams = CASE WHEN ? THEN ? ELSE weight_grams END,
       bag_id = CASE WHEN ? THEN ? ELSE bag_id END,
-      quantity = CASE WHEN ? THEN ? ELSE quantity END
+      quantity = CASE WHEN ? THEN ? ELSE quantity END,
+      updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `).run(
     data.name || null,
@@ -83,7 +92,7 @@ export function bulkImport(tripId: string | number, items: ImportItem[]) {
   const maxOrder = db.prepare('SELECT MAX(sort_order) as max FROM packing_items WHERE trip_id = ?').get(tripId) as { max: number | null };
   let sortOrder = (maxOrder.max !== null ? maxOrder.max : -1) + 1;
 
-  const stmt = db.prepare('INSERT INTO packing_items (trip_id, name, checked, category, weight_grams, bag_id, sort_order, quantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+  const stmt = db.prepare('INSERT INTO packing_items (trip_id, name, checked, category, weight_grams, bag_id, sort_order, quantity, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)');
   const created: any[] = [];
 
   const insertAll = db.transaction(() => {
@@ -225,7 +234,7 @@ export function applyTemplate(tripId: string | number, templateId: string | numb
   const maxOrder = db.prepare('SELECT MAX(sort_order) as max FROM packing_items WHERE trip_id = ?').get(tripId) as { max: number | null };
   let sortOrder = (maxOrder.max !== null ? maxOrder.max : -1) + 1;
 
-  const insert = db.prepare('INSERT INTO packing_items (trip_id, name, checked, category, sort_order) VALUES (?, ?, 0, ?, ?)');
+  const insert = db.prepare('INSERT INTO packing_items (trip_id, name, checked, category, sort_order, updated_at) VALUES (?, ?, 0, ?, ?, CURRENT_TIMESTAMP)');
   const added: any[] = [];
   for (const ti of templateItems) {
     const result = insert.run(tripId, ti.name, ti.category, sortOrder++);

@@ -18,6 +18,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import type { User } from '../../types';
 import { PlacesService } from './places.service';
+import { isUpdateConflict } from '../../services/conflictResult';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 
@@ -288,14 +289,21 @@ export class PlacesController {
     @Param('id') id: string,
     @Body() body: Record<string, unknown>,
     @Headers('x-socket-id') socketId?: string,
+    @Headers('x-base-updated-at') ifMatch?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
     validateLengths(body);
     this.requireEdit(trip, user);
-    const place = this.places.update(tripId, id, body as never);
-    if (!place) {
+    const result = this.places.update(tripId, id, body as never, ifMatch);
+    if (!result) {
       throw new HttpException({ error: 'Place not found' }, 404);
     }
+    // The offline edit was based on a now-stale version — let the client resolve
+    // it (#1135) instead of silently overwriting the newer server state.
+    if (isUpdateConflict(result)) {
+      throw new HttpException({ error: 'conflict', server: result.server }, 409);
+    }
+    const place = result;
     this.places.broadcast(tripId, 'place:updated', { place }, socketId);
     this.places.onUpdated(place.id);
     return { place };

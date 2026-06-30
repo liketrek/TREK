@@ -3093,6 +3093,20 @@ function runMigrations(db: Database.Database): void {
       db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_trips_feed_token ON trips(feed_token) WHERE feed_token IS NOT NULL');
       db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_feed_token ON users(feed_token) WHERE feed_token IS NOT NULL');
     },
+    // Optimistic-concurrency token for offline conflict detection (#1135).
+    // packing_items had only created_at, so an offline edit could not be checked
+    // against a concurrent server change. SQLite forbids a non-constant DEFAULT on
+    // ALTER ADD COLUMN, so add it nullable and backfill from created_at; new rows
+    // set it explicitly (packingService). Additive: a request without the
+    // X-Base-Updated-At header keeps the old last-write-wins behaviour.
+    () => {
+      try {
+        db.exec('ALTER TABLE packing_items ADD COLUMN updated_at DATETIME');
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) throw err;
+      }
+      db.exec('UPDATE packing_items SET updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP) WHERE updated_at IS NULL');
+    },
   ];
 
   if (currentVersion < migrations.length) {

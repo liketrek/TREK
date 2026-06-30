@@ -119,8 +119,19 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
       const broadcast = vi.fn();
       const svc = makeService({ updateItem, broadcast } as Partial<PackingService>);
       new PackingController(svc).update(user, '5', '9', { name: 'X', checked: true }, 'sock');
-      expect(updateItem).toHaveBeenCalledWith('5', '9', expect.objectContaining({ name: 'X', checked: true }), ['name', 'checked']);
+      expect(updateItem).toHaveBeenCalledWith('5', '9', expect.objectContaining({ name: 'X', checked: true }), ['name', 'checked'], undefined);
       expect(broadcast).toHaveBeenCalledWith('5', 'packing:updated', { item: { id: 9, name: 'X' } }, 'sock');
+    });
+
+    it('forwards the X-Base-Updated-At token and 409s on a conflict (#1135)', () => {
+      const updateItem = vi.fn().mockReturnValue({ conflict: true, server: { id: 9, name: 'Theirs' } });
+      const broadcast = vi.fn();
+      const svc = makeService({ updateItem, broadcast } as Partial<PackingService>);
+      expect(thrown(() => new PackingController(svc).update(user, '5', '9', { name: 'Mine' }, 'sock', '2026-01-01 00:00:00'))).toEqual({
+        status: 409, body: { error: 'conflict', server: { id: 9, name: 'Theirs' } },
+      });
+      expect(updateItem).toHaveBeenCalledWith('5', '9', expect.objectContaining({ name: 'Mine' }), ['name'], '2026-01-01 00:00:00');
+      expect(broadcast).not.toHaveBeenCalled();
     });
   });
 

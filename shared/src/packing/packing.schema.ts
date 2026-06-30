@@ -30,6 +30,9 @@ export const packingItemSchema = z.object({
   bag_id: z.number().nullable().optional(),
   quantity: z.number().optional(),
   created_at: z.string().optional(),
+  // Optimistic-concurrency token for offline conflict detection (#1135). Added
+  // by migration 98; older rows backfill from created_at.
+  updated_at: z.string().nullable().optional(),
 });
 export type PackingItem = z.infer<typeof packingItemSchema>;
 

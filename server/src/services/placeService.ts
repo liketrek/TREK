@@ -16,6 +16,7 @@ import {
 import { enrichImportedPlaces, type EnrichablePlace } from './placeEnrichment';
 import * as placePhotoCache from './placePhotoCache';
 import { searchUnsplashPhotos } from './unsplashService';
+import { type UpdateConflict, isUpdateConflict } from './conflictResult';
 
 // Reclaim a deleted place's cached marker photo if nothing else references it.
 // The cache key is the Google place_id, or — for coordinate-only places — the
@@ -179,9 +180,17 @@ export function updatePlace(
     google_place_id?: string; google_ftid?: string; osm_id?: string; website?: string; phone?: string;
     transport_mode?: string; tags?: number[];
   },
-) {
+  ifMatch?: string,
+): ReturnType<typeof getPlaceWithTags> | UpdateConflict | null {
   const existingPlace = db.prepare('SELECT * FROM places WHERE id = ? AND trip_id = ?').get(placeId, tripId) as Place | undefined;
   if (!existingPlace) return null;
+
+  // Optimistic concurrency (#1135): when the caller sent the version it based its
+  // edit on and the row has moved on since, reject instead of clobbering. Absent
+  // token => unconditional update (back-compat — old clients keep last-write-wins).
+  if (ifMatch !== undefined && existingPlace.updated_at != null && String(existingPlace.updated_at) !== ifMatch) {
+    return { conflict: true, server: getPlaceWithTags(placeId) };
+  }
 
   const {
     name, description, lat, lng, address, category_id, price, currency,
@@ -298,13 +307,15 @@ export function updatePlacesMany(
   tripId: string,
   ids: number[],
   body: Parameters<typeof updatePlace>[2],
-): NonNullable<ReturnType<typeof updatePlace>>[] {
+): NonNullable<ReturnType<typeof getPlaceWithTags>>[] {
   if (ids.length === 0) return [];
-  const updated: NonNullable<ReturnType<typeof updatePlace>>[] = [];
+  const updated: NonNullable<ReturnType<typeof getPlaceWithTags>>[] = [];
   const run = db.transaction((list: number[]) => {
     for (const id of list) {
+      // Bulk update sends no If-Match, so updatePlace never returns a conflict
+      // here; the guard keeps the types honest.
       const place = updatePlace(tripId, String(id), body);
-      if (place) updated.push(place);
+      if (place && !isUpdateConflict(place)) updated.push(place);
     }
   });
   run(ids);
