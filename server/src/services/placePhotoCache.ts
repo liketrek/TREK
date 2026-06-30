@@ -148,9 +148,18 @@ export function serveFilePath(placeId: string): string | null {
 // Google place_id (the dedup key) or by the stable proxy URL stored in image_url
 // (covers coords: pseudo-ids, which never have a google_place_id).
 function isReferenced(placeId: string): boolean {
+  // A collection-saved place copies image_url = proxyUrl(google_place_id) and/or
+  // the google_place_id itself, so collection_places must count as a referencing
+  // table — otherwise the nightly sweep + trip-place delete would evict a photo
+  // still shown on a collection thumbnail (#1081 photo-cache pitfall).
   const row = db
-    .prepare('SELECT 1 FROM places WHERE google_place_id = ? OR image_url = ? LIMIT 1')
-    .get(placeId, proxyUrl(placeId));
+    .prepare(
+      `SELECT 1 FROM places WHERE google_place_id = ? OR image_url = ?
+       UNION ALL
+       SELECT 1 FROM collection_places WHERE google_place_id = ? OR image_url = ?
+       LIMIT 1`,
+    )
+    .get(placeId, proxyUrl(placeId), placeId, proxyUrl(placeId));
   return !!row;
 }
 

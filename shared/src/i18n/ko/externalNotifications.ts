@@ -28,6 +28,10 @@ const ko: NotificationLocale = {
       title: 'Vacay Fusion 초대',
       body: `${p.actor}이(가) 휴가 계획을 합치도록 초대했습니다. TREK을 열어 수락하거나 거절하세요.`,
     }),
+    collection_invite: (p) => ({
+      title: '컬렉션 초대',
+      body: `${p.actor}이(가) 컬렉션 공유에 초대했습니다. TREK을 열어 수락하거나 거절하세요.`,
+    }),
     photos_shared: (p) => ({
       title: `${p.count}장의 사진이 공유되었습니다`,
       body: `${p.actor}이(가) "${p.trip}"에서 ${p.count}장의 사진을 공유했습니다.`,

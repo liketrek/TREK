@@ -27,6 +27,7 @@ export type NotificationEventKey =
   | 'trip_reminder'
   | 'todo_due'
   | 'vacay_invite'
+  | 'collection_invite'
   | 'photos_shared'
   | 'collab_message'
   | 'packing_tagged'

@@ -28,6 +28,10 @@ const ru: NotificationLocale = {
       title: 'Приглашение Vacay Fusion',
       body: `${p.actor} приглашает вас объединить планы отпуска. Откройте TREK для подтверждения.`,
     }),
+    collection_invite: (p) => ({
+      title: 'Приглашение в коллекцию',
+      body: `${p.actor} приглашает вас поделиться коллекцией. Откройте TREK для подтверждения.`,
+    }),
     photos_shared: (p) => ({
       title: `${p.count} фото`,
       body: `${p.actor} поделился ${p.count} фото в "${p.trip}".`,

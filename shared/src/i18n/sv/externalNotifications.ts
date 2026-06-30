@@ -28,6 +28,10 @@ const en: NotificationLocale = {
       title: 'Vacay sammanslagnings inbjudan',
       body: `${p.actor} bjöd in dig att slå samman semesterplaner. Öppna TREK för att acceptera eller avvisa.`,
     }),
+    collection_invite: (p) => ({
+      title: 'Inbjudan till samling',
+      body: `${p.actor} bjöd in dig att dela en samling. Öppna TREK för att acceptera eller avvisa.`,
+    }),
     photos_shared: (p) => ({
       title: `${p.count} foton delade`,
       body: `${p.actor} delade ${p.count} foto(n) i "${p.trip}".`,

@@ -28,6 +28,10 @@ const zhTW: NotificationLocale = {
       title: 'Vacay 融合邀請',
       body: `${p.actor} 邀請您合併假期計畫。開啟 TREK 以接受或拒絕。`,
     }),
+    collection_invite: (p) => ({
+      title: '收藏邀請',
+      body: `${p.actor} 邀請您共享收藏。開啟 TREK 以接受或拒絕。`,
+    }),
     photos_shared: (p) => ({
       title: `已分享 ${p.count} 張照片`,
       body: `${p.actor} 在「${p.trip}」中分享了 ${p.count} 張照片。`,

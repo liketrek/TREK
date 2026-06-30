@@ -1,0 +1,228 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  HttpCode,
+  HttpException,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import type { User } from '../../types';
+import { CollectionsService } from './collections.service';
+import { CollectionsAddonGuard } from './collections-addon.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { ZodValidationPipe } from '../common/zod-validation.pipe';
+import {
+  collectionCreateRequestSchema,
+  collectionUpdateRequestSchema,
+  collectionSavePlaceRequestSchema,
+  collectionSaveFromTripRequestSchema,
+  collectionPlaceUpdateRequestSchema,
+  collectionSetStatusRequestSchema,
+  collectionCopyToTripRequestSchema,
+  collectionInviteRequestSchema,
+  collectionInviteActionRequestSchema,
+  collectionInviteCancelRequestSchema,
+  type CollectionCreateRequest,
+  type CollectionUpdateRequest,
+  type CollectionSavePlaceRequest,
+  type CollectionSaveFromTripRequest,
+  type CollectionPlaceUpdateRequest,
+  type CollectionSetStatusRequest,
+  type CollectionCopyToTripRequest,
+  type CollectionInviteRequest,
+  type CollectionInviteActionRequest,
+  type CollectionInviteCancelRequest,
+} from '@trek/shared';
+
+/**
+ * /api/addons/collections — saved-place library (lists, places, fusion sharing).
+ *
+ * The addon guard (404) runs before JwtAuthGuard so a disabled addon answers 404
+ * regardless of auth. Access control lives in the service (assertAccess / isOwner
+ * throw 404/403/400). /invite, /invite/cancel and /:id/available-users add an
+ * explicit owner check in the controller so they cannot be used to enumerate.
+ * The X-Socket-Id header is forwarded to the service so the originating client is
+ * excluded from the WS broadcast.
+ */
+@Controller('api/addons/collections')
+@UseGuards(CollectionsAddonGuard, JwtAuthGuard)
+export class CollectionsController {
+  constructor(private readonly collections: CollectionsService) {}
+
+  // ── Lists ─────────────────────────────────────────────────────────────────
+  @Get()
+  list(@CurrentUser() user: User) {
+    return this.collections.listCollections(user.id);
+  }
+
+  @Post()
+  create(@CurrentUser() user: User, @Body(new ZodValidationPipe(collectionCreateRequestSchema)) body: CollectionCreateRequest) {
+    return this.collections.createCollection(user.id, body);
+  }
+
+  @Post('reorder')
+  @HttpCode(200)
+  reorder(@CurrentUser() user: User, @Body('orderedIds') orderedIds: unknown) {
+    if (!Array.isArray(orderedIds) || !orderedIds.every((v) => Number.isFinite(Number(v)))) {
+      throw new HttpException({ error: 'orderedIds must be an array of numbers' }, 400);
+    }
+    this.collections.reorderCollections(user.id, orderedIds.map(Number));
+    return { success: true };
+  }
+
+  // ── Places (static prefixes before /:id) ────────────────────────────────────
+  @Post('places')
+  @HttpCode(200)
+  savePlace(@CurrentUser() user: User, @Body(new ZodValidationPipe(collectionSavePlaceRequestSchema)) body: CollectionSavePlaceRequest) {
+    return this.collections.savePlace(user.id, body);
+  }
+
+  @Post('places/from-trip')
+  @HttpCode(200)
+  saveFromTrip(@CurrentUser() user: User, @Body(new ZodValidationPipe(collectionSaveFromTripRequestSchema)) body: CollectionSaveFromTripRequest) {
+    return this.collections.saveFromTripPlace(user.id, body.collection_id, body.source_trip_id, body.source_place_id, body.force);
+  }
+
+  @Post('places/delete-many')
+  @HttpCode(200)
+  deleteMany(@CurrentUser() user: User, @Body('ids') ids: unknown) {
+    if (!Array.isArray(ids) || !ids.every((v) => Number.isFinite(Number(v)))) {
+      throw new HttpException({ error: 'ids must be an array of numbers' }, 400);
+    }
+    return { deleted: this.collections.deletePlacesMany(user.id, ids.map(Number)) };
+  }
+
+  @Patch('places/:pid')
+  updatePlace(
+    @CurrentUser() user: User,
+    @Param('pid') pid: string,
+    @Body(new ZodValidationPipe(collectionPlaceUpdateRequestSchema)) body: CollectionPlaceUpdateRequest,
+  ) {
+    return this.collections.updatePlace(user.id, Number(pid), body);
+  }
+
+  @Post('places/:pid/status')
+  @HttpCode(200)
+  setStatus(
+    @CurrentUser() user: User,
+    @Param('pid') pid: string,
+    @Body(new ZodValidationPipe(collectionSetStatusRequestSchema)) body: CollectionSetStatusRequest,
+  ) {
+    return this.collections.setStatus(user.id, Number(pid), body.status);
+  }
+
+  @Delete('places/:pid')
+  deletePlace(@CurrentUser() user: User, @Param('pid') pid: string) {
+    this.collections.deletePlace(user.id, Number(pid));
+    return { success: true };
+  }
+
+  // ── Copy to trip ────────────────────────────────────────────────────────────
+  @Post('copy-to-trip')
+  @HttpCode(200)
+  copyToTrip(@CurrentUser() user: User, @Body(new ZodValidationPipe(collectionCopyToTripRequestSchema)) body: CollectionCopyToTripRequest) {
+    return this.collections.copyToTrip(user.id, body);
+  }
+
+  // ── Library-wide membership lookup ──────────────────────────────────────────
+  @Get('membership')
+  membership(
+    @CurrentUser() user: User,
+    @Query('google_place_id') googlePlaceId?: string,
+    @Query('google_ftid') googleFtid?: string,
+    @Query('name') name?: string,
+    @Query('lat') lat?: string,
+    @Query('lng') lng?: string,
+  ) {
+    return this.collections.findMembership(user.id, {
+      google_place_id: googlePlaceId,
+      google_ftid: googleFtid,
+      name,
+      lat: lat != null && lat !== '' ? Number(lat) : undefined,
+      lng: lng != null && lng !== '' ? Number(lng) : undefined,
+    });
+  }
+
+  // ── Fusion invitations ──────────────────────────────────────────────────────
+  @Post('invite')
+  @HttpCode(200)
+  invite(@CurrentUser() user: User, @Body(new ZodValidationPipe(collectionInviteRequestSchema)) body: CollectionInviteRequest) {
+    this.collections.assertAccess(user.id, body.collection_id); // 404 if not visible (no enumeration)
+    if (!this.collections.isOwner(user.id, body.collection_id)) {
+      throw new HttpException({ error: 'Only the owner can invite' }, 403);
+    }
+    const result = this.collections.sendInvite(body.collection_id, user.id, user.username, user.email, body.user_id);
+    if (result.error) {
+      throw new HttpException({ error: result.error }, result.status!);
+    }
+    return { success: true };
+  }
+
+  @Post('invite/accept')
+  @HttpCode(200)
+  acceptInvite(@CurrentUser() user: User, @Body(new ZodValidationPipe(collectionInviteActionRequestSchema)) body: CollectionInviteActionRequest, @Headers('x-socket-id') socketId?: string) {
+    const result = this.collections.acceptInvite(user.id, body.collection_id, socketId);
+    if (result.error) {
+      throw new HttpException({ error: result.error }, result.status!);
+    }
+    return { success: true };
+  }
+
+  @Post('invite/decline')
+  @HttpCode(200)
+  declineInvite(@CurrentUser() user: User, @Body(new ZodValidationPipe(collectionInviteActionRequestSchema)) body: CollectionInviteActionRequest, @Headers('x-socket-id') socketId?: string) {
+    this.collections.declineInvite(user.id, body.collection_id, socketId);
+    return { success: true };
+  }
+
+  @Post('invite/cancel')
+  @HttpCode(200)
+  cancelInvite(@CurrentUser() user: User, @Body(new ZodValidationPipe(collectionInviteCancelRequestSchema)) body: CollectionInviteCancelRequest) {
+    this.collections.assertAccess(user.id, body.collection_id); // 404 if not visible
+    if (!this.collections.isOwner(user.id, body.collection_id)) {
+      throw new HttpException({ error: 'Only the owner can cancel invites' }, 403);
+    }
+    this.collections.cancelInvite(body.collection_id, user.id, body.user_id);
+    return { success: true };
+  }
+
+  @Post('leave')
+  @HttpCode(200)
+  leave(@CurrentUser() user: User, @Body(new ZodValidationPipe(collectionInviteActionRequestSchema)) body: CollectionInviteActionRequest, @Headers('x-socket-id') socketId?: string) {
+    this.collections.leaveCollection(user.id, body.collection_id, socketId);
+    return { success: true };
+  }
+
+  // ── /:id (declared last so static prefixes win) ─────────────────────────────
+  @Get(':id/available-users')
+  availableUsers(@CurrentUser() user: User, @Param('id') id: string) {
+    this.collections.assertAccess(user.id, Number(id)); // 404 if not visible (no enumeration)
+    if (!this.collections.isOwner(user.id, Number(id))) {
+      throw new HttpException({ error: 'Only the owner can manage members' }, 403);
+    }
+    return { users: this.collections.availableUsers(user.id, Number(id)) };
+  }
+
+  @Get(':id')
+  get(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.collections.getCollection(user.id, Number(id));
+  }
+
+  @Patch(':id')
+  update(@CurrentUser() user: User, @Param('id') id: string, @Body(new ZodValidationPipe(collectionUpdateRequestSchema)) body: CollectionUpdateRequest) {
+    return this.collections.updateCollection(user.id, Number(id), body);
+  }
+
+  @Delete(':id')
+  remove(@CurrentUser() user: User, @Param('id') id: string) {
+    this.collections.deleteCollection(user.id, Number(id));
+    return { success: true };
+  }
+}

@@ -1,0 +1,52 @@
+import { Injectable } from '@nestjs/common';
+import * as svc from '../../services/collectionsService';
+import type {
+  CollectionCreateRequest,
+  CollectionUpdateRequest,
+  CollectionSavePlaceRequest,
+  CollectionPlaceUpdateRequest,
+  CollectionCopyToTripRequest,
+  CollectionStatus,
+} from '@trek/shared';
+
+/**
+ * Thin Nest wrapper around services/collectionsService. All access control lives
+ * in the legacy service (assertAccess / isOwner throw, fusion returns {error});
+ * this just re-exposes the functions one-to-one.
+ */
+@Injectable()
+export class CollectionsService {
+  listCollections(userId: number) { return svc.listCollections(userId); }
+  getCollection(userId: number, id: number) { return svc.getCollection(userId, id); }
+  createCollection(userId: number, body: CollectionCreateRequest) { return svc.createCollection(userId, body); }
+  updateCollection(userId: number, id: number, body: CollectionUpdateRequest) { return svc.updateCollection(userId, id, body); }
+  deleteCollection(userId: number, id: number) { return svc.deleteCollection(userId, id); }
+  reorderCollections(userId: number, orderedIds: number[]) { return svc.reorderCollections(userId, orderedIds); }
+
+  savePlace(userId: number, body: CollectionSavePlaceRequest) { return svc.savePlace(userId, body); }
+  saveFromTripPlace(userId: number, collectionId: number, tripId: number, placeId: number, force?: boolean) {
+    return svc.saveFromTripPlace(userId, collectionId, tripId, placeId, force);
+  }
+  updatePlace(userId: number, placeId: number, body: CollectionPlaceUpdateRequest) { return svc.updatePlace(userId, placeId, body); }
+  setStatus(userId: number, placeId: number, status: CollectionStatus) { return svc.setStatus(userId, placeId, status); }
+  deletePlace(userId: number, placeId: number) { return svc.deletePlace(userId, placeId); }
+  deletePlacesMany(userId: number, ids: number[]) { return svc.deletePlacesMany(userId, ids); }
+
+  copyToTrip(userId: number, body: CollectionCopyToTripRequest) { return svc.copyToTrip(userId, body); }
+  findMembership(userId: number, query: { google_place_id?: string; google_ftid?: string; name?: string; lat?: number; lng?: number }) {
+    return svc.findMembership(userId, query);
+  }
+
+  // Access helpers used by the controller's owner guards.
+  assertAccess(userId: number, collectionId: number) { return svc.assertAccess(userId, collectionId); }
+  isOwner(userId: number, collectionId: number) { return svc.isOwner(userId, collectionId); }
+
+  sendInvite(collectionId: number, inviterId: number, inviterUsername: string, inviterEmail: string, targetUserId: number) {
+    return svc.sendInvite(collectionId, inviterId, inviterUsername, inviterEmail, targetUserId);
+  }
+  acceptInvite(userId: number, collectionId: number, socketId?: string) { return svc.acceptInvite(userId, collectionId, socketId); }
+  declineInvite(userId: number, collectionId: number, socketId?: string) { return svc.declineInvite(userId, collectionId, socketId); }
+  cancelInvite(collectionId: number, ownerId: number, targetUserId: number) { return svc.cancelInvite(collectionId, ownerId, targetUserId); }
+  leaveCollection(userId: number, collectionId: number, socketId?: string) { return svc.leaveCollection(userId, collectionId, socketId); }
+  availableUsers(ownerId: number, collectionId: number) { return svc.availableUsers(ownerId, collectionId); }
+}

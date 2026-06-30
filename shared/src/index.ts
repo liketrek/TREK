@@ -31,6 +31,7 @@ export * from './airtrail/airtrail.schema';
 export * from './day/day.schema';
 export * from './assignment/assignment.schema';
 export * from './place/place.schema';
+export * from './collection/collection.schema';
 export * from './trip/trip.schema';
 export * from './collab/collab.schema';
 export * from './file/file.schema';

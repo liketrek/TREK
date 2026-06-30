@@ -28,6 +28,10 @@ const ar: NotificationLocale = {
       title: 'دعوة دمج الإجازة',
       body: `${p.actor} يدعوك لدمج خطط الإجازة. افتح TREK للقبول أو الرفض.`,
     }),
+    collection_invite: (p) => ({
+      title: 'دعوة إلى مجموعة',
+      body: `${p.actor} يدعوك لمشاركة مجموعة. افتح TREK للقبول أو الرفض.`,
+    }),
     photos_shared: (p) => ({
       title: `${p.count} صور مشتركة`,
       body: `${p.actor} شارك ${p.count} صورة في "${p.trip}".`,

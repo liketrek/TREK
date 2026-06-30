@@ -1,0 +1,190 @@
+import { z } from 'zod';
+import { placeCategorySchema } from '../place/place.schema';
+import { tagSchema } from '../tag/tag.schema';
+
+export const COLLECTION_STATUSES = ['idea', 'want', 'visited'] as const;
+export const collectionStatusSchema = z.enum(COLLECTION_STATUSES).catch('idea').default('idea');
+export type CollectionStatus = (typeof COLLECTION_STATUSES)[number];
+
+/** A saved place — assignmentPlace minus itinerary, plus status + provenance. */
+export const collectionPlaceSchema = z.object({
+  id: z.number(),
+  collection_id: z.number(),
+  owner_id: z.number().optional(),
+  saved_by: z.number().nullable().optional(),
+  name: z.string(),
+  description: z.string().nullable().optional(),
+  lat: z.number().nullable().optional(),
+  lng: z.number().nullable().optional(),
+  address: z.string().nullable().optional(),
+  category_id: z.number().nullable().optional(),
+  price: z.number().nullable().optional(),
+  currency: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  image_url: z.string().nullable().optional(),
+  google_place_id: z.string().nullable().optional(),
+  google_ftid: z.string().nullable().optional(),
+  osm_id: z.string().nullable().optional(),
+  website: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  status: collectionStatusSchema,
+  source_trip_id: z.number().nullable().optional(),
+  source_place_id: z.number().nullable().optional(),
+  sort_order: z.number().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+  category: placeCategorySchema.optional(),
+  tags: z.array(tagSchema.partial()).optional(),
+});
+export type CollectionPlace = z.infer<typeof collectionPlaceSchema>;
+
+/** Member of a shared list (mirrors vacay person rows). */
+export const collectionMemberSchema = z.object({
+  user_id: z.number(),
+  username: z.string(),
+  email: z.string().optional(),
+  avatar: z.string().nullable().optional(),
+  status: z.enum(['pending', 'accepted']),
+  is_owner: z.boolean().optional(),
+});
+export type CollectionMember = z.infer<typeof collectionMemberSchema>;
+
+/** A list, with computed counts + membership for the current viewer. */
+export const collectionSchema = z.object({
+  id: z.number(),
+  owner_id: z.number(),
+  name: z.string(),
+  description: z.string().nullable().optional(),
+  color: z.string().nullable().optional(),
+  icon: z.string().nullable().optional(),
+  cover_image: z.string().nullable().optional(),
+  sort_order: z.number().optional(),
+  place_count: z.number().optional(),
+  is_owner: z.boolean().optional(),
+  members: z.array(collectionMemberSchema).optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+});
+export type Collection = z.infer<typeof collectionSchema>;
+
+// ── Requests ──────────────────────────────────────────────────────────────
+export const collectionCreateRequestSchema = z.object({
+  name: z.string().min(1).max(120),
+  description: z.string().max(2000).nullable().optional(),
+  color: z.string().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/).optional(),
+  icon: z.string().max(40).optional(),
+});
+export type CollectionCreateRequest = z.infer<typeof collectionCreateRequestSchema>;
+
+export const collectionUpdateRequestSchema = collectionCreateRequestSchema.partial().extend({
+  sort_order: z.number().optional(),
+});
+export type CollectionUpdateRequest = z.infer<typeof collectionUpdateRequestSchema>;
+
+/** Save a place into a list from a raw maps/manual payload (or carrying provenance). */
+export const collectionSavePlaceRequestSchema = z.object({
+  collection_id: z.number(),
+  source_place_id: z.number().nullable().optional(),
+  source_trip_id: z.number().nullable().optional(),
+  name: z.string().min(1),
+  description: z.string().nullable().optional(),
+  lat: z.number().nullable().optional(),
+  lng: z.number().nullable().optional(),
+  address: z.string().nullable().optional(),
+  category_id: z.number().nullable().optional(),
+  price: z.number().nullable().optional(),
+  currency: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  image_url: z.string().nullable().optional(),
+  google_place_id: z.string().nullable().optional(),
+  google_ftid: z.string().nullable().optional(),
+  osm_id: z.string().nullable().optional(),
+  website: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  status: collectionStatusSchema.optional(),
+  tag_ids: z.array(z.number()).optional(),
+  force: z.boolean().optional(), // "add anyway" over a dedup match
+});
+export type CollectionSavePlaceRequest = z.infer<typeof collectionSavePlaceRequestSchema>;
+
+/** DEDICATED DTO for POST /places/from-trip — the server reads the place, so no place payload. */
+export const collectionSaveFromTripRequestSchema = z.object({
+  collection_id: z.number(),
+  source_trip_id: z.number(),
+  source_place_id: z.number(),
+  force: z.boolean().optional(),
+});
+export type CollectionSaveFromTripRequest = z.infer<typeof collectionSaveFromTripRequestSchema>;
+
+export const collectionPlaceUpdateRequestSchema = z.object({
+  name: z.string().min(1).optional(),
+  notes: z.string().nullable().optional(),
+  status: collectionStatusSchema.optional(),
+  category_id: z.number().nullable().optional(),
+  collection_id: z.number().optional(), // move to another list
+  tag_ids: z.array(z.number()).optional(),
+});
+export type CollectionPlaceUpdateRequest = z.infer<typeof collectionPlaceUpdateRequestSchema>;
+
+export const collectionSetStatusRequestSchema = z.object({ status: collectionStatusSchema });
+export type CollectionSetStatusRequest = z.infer<typeof collectionSetStatusRequestSchema>;
+
+/** Copy one or many saved places INTO a trip (dedup precheck on server). */
+export const collectionCopyToTripRequestSchema = z.object({
+  trip_id: z.number(),
+  place_ids: z.array(z.number()).min(1),
+  force: z.boolean().optional(),
+});
+export type CollectionCopyToTripRequest = z.infer<typeof collectionCopyToTripRequestSchema>;
+
+// Fusion invitations. user_id is NUMERIC ONLY — the UI always sends an id from availableUsers.
+export const collectionInviteRequestSchema = z.object({
+  collection_id: z.number(),
+  user_id: z.number(),
+});
+export type CollectionInviteRequest = z.infer<typeof collectionInviteRequestSchema>;
+
+export const collectionInviteActionRequestSchema = z.object({ collection_id: z.number() });
+export type CollectionInviteActionRequest = z.infer<typeof collectionInviteActionRequestSchema>;
+
+export const collectionInviteCancelRequestSchema = z.object({
+  collection_id: z.number(),
+  user_id: z.number(),
+});
+export type CollectionInviteCancelRequest = z.infer<typeof collectionInviteCancelRequestSchema>;
+
+// ── Responses ─────────────────────────────────────────────────────────────
+export const collectionListResponseSchema = z.object({
+  collections: z.array(collectionSchema),
+  // `from` is DERIVED from collections.owner_id JOIN users (sendInvite is owner-only, so the
+  // inviter is always the list owner — collection_members has no invited_by column).
+  incomingInvites: z.array(
+    z.object({
+      collection_id: z.number(),
+      name: z.string(),
+      from: z.object({ id: z.number(), username: z.string() }),
+    }),
+  ),
+});
+export type CollectionListResponse = z.infer<typeof collectionListResponseSchema>;
+
+export const collectionDetailResponseSchema = z.object({
+  collection: collectionSchema,
+  places: z.array(collectionPlaceSchema),
+});
+export type CollectionDetailResponse = z.infer<typeof collectionDetailResponseSchema>;
+
+/** Dedup outcome envelope reused by save + copy (matches placeService dedup UX). */
+export const collectionSaveResultSchema = z.object({
+  place: collectionPlaceSchema.optional(),
+  duplicate: z.boolean().optional(),
+  duplicateOf: z.object({ id: z.number(), name: z.string() }).nullable().optional(),
+});
+export type CollectionSaveResult = z.infer<typeof collectionSaveResultSchema>;
+
+/** Library-wide "is this place already saved anywhere I can see?" lookup (inspector indicator). */
+export const collectionMembershipSchema = z.object({
+  saved: z.boolean(),
+  lists: z.array(z.object({ collection_id: z.number(), name: z.string(), place_id: z.number() })),
+});
+export type CollectionMembership = z.infer<typeof collectionMembershipSchema>;

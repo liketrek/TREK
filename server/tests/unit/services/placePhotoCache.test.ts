@@ -17,10 +17,17 @@ import Database from 'better-sqlite3';
 const TMP_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'ppc-'));
 process.env.TREK_PLACE_PHOTO_DIR = TMP_DIR;
 
-// Minimal real DB with just the two tables placePhotoCache touches.
+// Minimal real DB with just the tables placePhotoCache touches. isReferenced now
+// UNIONs collection_places (#1081 photo-cache fix), so the bare fixture must
+// declare it too or the reference check would throw "no such table".
 const testDb = new Database(':memory:');
 testDb.exec(`
   CREATE TABLE places (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    google_place_id TEXT,
+    image_url TEXT
+  );
+  CREATE TABLE collection_places (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     google_place_id TEXT,
     image_url TEXT

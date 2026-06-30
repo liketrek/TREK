@@ -2,13 +2,14 @@ import { useNavigate, useLocation, useMatch } from 'react-router-dom'
 import { useAddonStore } from '../../store/addonStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTranslation } from '../../i18n'
-import { LayoutGrid, CalendarDays, Globe, Compass, Plus } from 'lucide-react'
+import { LayoutGrid, CalendarDays, Globe, Compass, Bookmark, Plus } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 const ADDON_NAV: Record<string, { icon: LucideIcon; labelKey: string }> = {
-  vacay:   { icon: CalendarDays, labelKey: 'admin.addons.catalog.vacay.name' },
-  atlas:   { icon: Globe,        labelKey: 'admin.addons.catalog.atlas.name' },
-  journey: { icon: Compass,      labelKey: 'admin.addons.catalog.journey.name' },
+  vacay:       { icon: CalendarDays, labelKey: 'admin.addons.catalog.vacay.name' },
+  atlas:       { icon: Globe,        labelKey: 'admin.addons.catalog.atlas.name' },
+  journey:     { icon: Compass,      labelKey: 'admin.addons.catalog.journey.name' },
+  collections: { icon: Bookmark,     labelKey: 'admin.addons.catalog.collections.name' },
 }
 
 interface NavItem { to: string; label: string; icon: LucideIcon }

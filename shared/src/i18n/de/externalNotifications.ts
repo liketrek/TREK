@@ -28,6 +28,10 @@ const de: NotificationLocale = {
       title: 'Vacay Fusion-Einladung',
       body: `${p.actor} hat dich eingeladen, Urlaubspläne zu fusionieren. Öffne TREK um anzunehmen oder abzulehnen.`,
     }),
+    collection_invite: (p) => ({
+      title: 'Sammlungs-Einladung',
+      body: `${p.actor} hat dich eingeladen, eine Sammlung zu teilen. Öffne TREK um anzunehmen oder abzulehnen.`,
+    }),
     photos_shared: (p) => ({
       title: `${p.count} Fotos geteilt`,
       body: `${p.actor} hat ${p.count} Foto(s) in "${p.trip}" geteilt.`,
