@@ -25,6 +25,34 @@ function categoryIconSvg(iconName: string | null | undefined, size: number): str
   } catch { return '' }
 }
 
+// Marker grouping for the GL map (#1385): MapLibre/Mapbox can't show the rich
+// HTML photo markers *and* cluster them natively, so we feed the place points
+// into a clustered GeoJSON source. The cluster bubbles render as GL circles +
+// a count label; the individual rich HTML markers are then only drawn for the
+// points the source reports as currently unclustered. Grouping is always on,
+// matching the Leaflet map's MarkerClusterGroup.
+const PLACE_CLUSTER_SOURCE_ID = 'trip-place-clusters'
+const PLACE_CLUSTER_CIRCLE_LAYER_ID = 'trip-place-clusters-circle'
+const PLACE_CLUSTER_COUNT_LAYER_ID = 'trip-place-clusters-count'
+const PLACE_UNCLUSTERED_LAYER_ID = 'trip-place-unclustered-hit'
+
+type PlaceWithCoords = Place & { lat: number; lng: number }
+
+function hasValidCoords(place: Place): place is PlaceWithCoords {
+  return place.lat != null && place.lng != null && Number.isFinite(place.lat) && Number.isFinite(place.lng)
+}
+
+function buildPlaceClusterData(places: Place[]) {
+  return {
+    type: 'FeatureCollection' as const,
+    features: places.filter(hasValidCoords).map(place => ({
+      type: 'Feature' as const,
+      properties: { placeId: place.id },
+      geometry: { type: 'Point' as const, coordinates: [place.lng, place.lat] },
+    })),
+  }
+}
+
 interface RouteSegment {
   mid: [number, number]
   from: [number, number]
@@ -308,6 +336,89 @@ export function MapViewGL({
           layout: { 'line-cap': 'round', 'line-join': 'round' },
         })
       }
+      if (!map.getSource(PLACE_CLUSTER_SOURCE_ID)) {
+        map.addSource(PLACE_CLUSTER_SOURCE_ID, {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] },
+          cluster: true,
+          clusterRadius: 30,
+          clusterMaxZoom: 10,
+        })
+        map.addLayer({
+          id: PLACE_CLUSTER_CIRCLE_LAYER_ID,
+          type: 'circle',
+          source: PLACE_CLUSTER_SOURCE_ID,
+          filter: ['has', 'point_count'],
+          paint: {
+            'circle-color': '#111827',
+            'circle-opacity': 0.97,
+            'circle-radius': ['step', ['get', 'point_count'], 18, 10, 21, 50, 24],
+            'circle-stroke-width': 2.5,
+            'circle-stroke-color': 'rgba(255,255,255,0.9)',
+          },
+        })
+        map.addLayer({
+          id: PLACE_CLUSTER_COUNT_LAYER_ID,
+          type: 'symbol',
+          source: PLACE_CLUSTER_SOURCE_ID,
+          filter: ['has', 'point_count'],
+          layout: {
+            'text-field': ['get', 'point_count_abbreviated'],
+            'text-size': 12,
+            'text-allow-overlap': true,
+          },
+          paint: {
+            'text-color': '#ffffff',
+            'text-halo-color': 'rgba(17,24,39,0.35)',
+            'text-halo-width': 1,
+          },
+        })
+        map.addLayer({
+          id: PLACE_UNCLUSTERED_LAYER_ID,
+          type: 'circle',
+          source: PLACE_CLUSTER_SOURCE_ID,
+          filter: ['!', ['has', 'point_count']],
+          paint: {
+            'circle-radius': 24,
+            'circle-opacity': 0,
+            'circle-stroke-opacity': 0,
+          },
+        })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const zoomToCluster = (e: any) => {
+          const features = typeof map.queryRenderedFeatures === 'function'
+            ? map.queryRenderedFeatures(e.point, { layers: [PLACE_CLUSTER_CIRCLE_LAYER_ID, PLACE_CLUSTER_COUNT_LAYER_ID] })
+            : []
+          const feature = features?.[0]
+          const clusterId = feature?.properties?.cluster_id
+          const coordinates = feature?.geometry?.coordinates
+          if (clusterId == null || !Array.isArray(coordinates)) return
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const source = map.getSource(PLACE_CLUSTER_SOURCE_ID) as any
+          const easeToZoom = (nextZoom: number) => {
+            try { map.easeTo({ center: coordinates, zoom: nextZoom, duration: 350 }) } catch { /* noop */ }
+          }
+          try {
+            const maybeZoom = source?.getClusterExpansionZoom?.(clusterId, (err: Error | null, nextZoom: number) => {
+              if (!err && typeof nextZoom === 'number') easeToZoom(nextZoom)
+            })
+            if (typeof maybeZoom === 'number') easeToZoom(maybeZoom)
+            else if (maybeZoom && typeof maybeZoom.then === 'function') maybeZoom.then(easeToZoom).catch(() => {})
+          } catch { /* noop */ }
+        }
+        const setClusterCursor = () => {
+          const canvas = typeof map.getCanvas === 'function' ? map.getCanvas() : null
+          if (canvas) canvas.style.cursor = 'pointer'
+        }
+        const clearClusterCursor = () => {
+          const canvas = typeof map.getCanvas === 'function' ? map.getCanvas() : null
+          if (canvas) canvas.style.cursor = ''
+        }
+        map.on('click', PLACE_CLUSTER_CIRCLE_LAYER_ID, zoomToCluster)
+        map.on('click', PLACE_CLUSTER_COUNT_LAYER_ID, zoomToCluster)
+        map.on('mouseenter', PLACE_CLUSTER_CIRCLE_LAYER_ID, setClusterCursor)
+        map.on('mouseleave', PLACE_CLUSTER_CIRCLE_LAYER_ID, clearClusterCursor)
+      }
       // Signal that sources/layers are attached so overlay effects can
       // safely add their own sources. Style rebuilds reset this via the
       // cleanup below.
@@ -317,6 +428,14 @@ export function MapViewGL({
     map.on('click', (e) => {
       const t = e.originalEvent.target as HTMLElement
       if (t.closest('.mapboxgl-marker, .maplibregl-marker')) return // markers handle their own click
+      // A click that lands on a cluster bubble is the cluster's to handle
+      // (zoom-to-expand), not an "add place here" map click.
+      if (
+        typeof map.getLayer === 'function'
+        && map.getLayer(PLACE_CLUSTER_CIRCLE_LAYER_ID)
+        && typeof map.queryRenderedFeatures === 'function'
+        && map.queryRenderedFeatures(e.point, { layers: [PLACE_CLUSTER_CIRCLE_LAYER_ID, PLACE_CLUSTER_COUNT_LAYER_ID] }).length > 0
+      ) return
       onClickRefs.current.map?.({ latlng: { lat: e.lngLat.lat, lng: e.lngLat.lng } })
     })
     // Emit the viewport bbox (pan/zoom + once on first idle) so the POI-explore
@@ -476,56 +595,107 @@ export function MapViewGL({
     }
   }, [placeIds, placesPhotosEnabled]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Reconcile markers with places + photos. Rebuilds the DOM node when any
-  // visual input changes so photos, selection state and order badges stay
-  // in sync.
+  // Reconcile markers with places + photos. The clustered GeoJSON source decides
+  // which points are currently unclustered, and we render the existing rich HTML
+  // marker DOM only for those visible leaves — clustered points show up as the GL
+  // cluster bubble + count instead.
   useEffect(() => {
     const map = mapRef.current
-    if (!map) return
+    if (!map || !mapReady) return
     // Markers are about to be rebuilt; drop any open hover popup first. A marker
     // recreated under the pointer (e.g. when its photo streams in) never fires
     // mouseleave, which would otherwise leave the popup orphaned on the map.
     popupRef.current?.remove()
-    const ids = new Set(places.map(p => p.id))
+    const validPlaces = places.filter(hasValidCoords)
 
-    markersRef.current.forEach((marker, id) => {
-      if (!ids.has(id)) {
-        marker.remove()
-        markersRef.current.delete(id)
-      }
-    })
+    const reconcileMarkers = (visiblePlaces: PlaceWithCoords[]) => {
+      const ids = new Set(visiblePlaces.map(p => p.id))
 
-    places.forEach(place => {
-      if (!place.lat || !place.lng) return
-      const orderNumbers = dayOrderMap[place.id] ?? null
-      const pck = place.google_place_id || place.osm_id || `${place.lat},${place.lng}`
-      const photoUrl = (pck && photoUrls[pck]) || place.image_url || null
-      const selected = place.id === selectedPlaceId
-      const el = createMarkerElement(place as Place & { category_color?: string; category_icon?: string }, photoUrl, orderNumbers, selected)
-      el.addEventListener('click', (ev) => {
-        ev.stopPropagation()
-        onClickRefs.current.marker?.(place.id)
+      markersRef.current.forEach((marker, id) => {
+        if (!ids.has(id)) {
+          marker.remove()
+          markersRef.current.delete(id)
+        }
       })
-      el.addEventListener('mouseenter', () => {
-        popupRef.current?.setLngLat([place.lng, place.lat])
-          .setHTML(buildPlacePopupHtml(place as Place & { category_color?: string; category_icon?: string; category_name?: string }, photoUrl))
+
+      visiblePlaces.forEach(place => {
+        const orderNumbers = dayOrderMap[place.id] ?? null
+        const pck = place.google_place_id || place.osm_id || `${place.lat},${place.lng}`
+        const photoUrl = (pck && photoUrls[pck]) || place.image_url || null
+        const selected = place.id === selectedPlaceId
+        const el = createMarkerElement(place as Place & { category_color?: string; category_icon?: string }, photoUrl, orderNumbers, selected)
+        el.addEventListener('click', (ev) => {
+          ev.stopPropagation()
+          onClickRefs.current.marker?.(place.id)
+        })
+        el.addEventListener('mouseenter', () => {
+          popupRef.current?.setLngLat([place.lng, place.lat])
+            .setHTML(buildPlacePopupHtml(place as Place & { category_color?: string; category_icon?: string; category_name?: string }, photoUrl))
+            .addTo(map)
+        })
+        el.addEventListener('mouseleave', () => { popupRef.current?.remove() })
+        // Recreate marker each time rather than patching internal state —
+        // mapbox-gl's internal _element bookkeeping breaks under DOM swaps.
+        const existing = markersRef.current.get(place.id)
+        if (existing) existing.remove()
+        // Default (viewport-aligned) anchors keep the marker parallel to the
+        // screen so its pixel centre lines up with the route line at any
+        // pitch. Tried `pitchAlignment: 'map'` to snap markers onto terrain,
+        // but it rotates the element by the pitch angle and visually offsets
+        // the anchor by ~100px at 45° tilt, which caused the observed drift.
+        const m = new gl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([place.lng, place.lat])
           .addTo(map)
+        markersRef.current.set(place.id, m)
       })
-      el.addEventListener('mouseleave', () => { popupRef.current?.remove() })
-      // Recreate marker each time rather than patching internal state —
-      // mapbox-gl's internal _element bookkeeping breaks under DOM swaps.
-      const existing = markersRef.current.get(place.id)
-      if (existing) existing.remove()
-      // Default (viewport-aligned) anchors keep the marker parallel to the
-      // screen so its pixel centre lines up with the route line at any
-      // pitch. Tried `pitchAlignment: 'map'` to snap markers onto terrain,
-      // but it rotates the element by the pitch angle and visually offsets
-      // the anchor by ~100px at 45° tilt, which caused the observed drift.
-      const m = new gl.Marker({ element: el, anchor: 'center' })
-        .setLngLat([place.lng, place.lat])
-        .addTo(map)
-      markersRef.current.set(place.id, m)
-    })
+    }
+
+    const source = map.getSource(PLACE_CLUSTER_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined
+    if (!source || typeof map.querySourceFeatures !== 'function') {
+      // No cluster source (e.g. style without it / test env): fall back to the
+      // original behaviour and draw a marker for every place.
+      reconcileMarkers(validPlaces)
+      return
+    }
+
+    source.setData(buildPlaceClusterData(places) as any)
+    const placesById = new Map<number, PlaceWithCoords>(validPlaces.map(place => [place.id, place]))
+    let raf: number | null = null
+    const runReconcile = () => {
+      raf = null
+      const features = map.querySourceFeatures(PLACE_CLUSTER_SOURCE_ID, { filter: ['!', ['has', 'point_count']] }) || []
+      const seen = new Set<number>()
+      const visiblePlaces: PlaceWithCoords[] = []
+      for (const feature of features) {
+        const rawId = feature?.properties?.placeId
+        const id = typeof rawId === 'string' ? Number(rawId) : rawId
+        if (typeof id !== 'number' || Number.isNaN(id) || seen.has(id)) continue
+        const place = placesById.get(id)
+        if (!place) continue
+        seen.add(id)
+        visiblePlaces.push(place)
+      }
+      reconcileMarkers(visiblePlaces)
+    }
+    const scheduleReconcile = () => {
+      if (raf !== null) return
+      raf = requestAnimationFrame(runReconcile)
+    }
+
+    // Cluster membership only settles once the source has (re)indexed and the
+    // viewport stops moving, so reconcile on the next frame and on every
+    // idle/move/zoom.
+    scheduleReconcile()
+    map.once('idle', scheduleReconcile)
+    map.on('moveend', scheduleReconcile)
+    map.on('zoomend', scheduleReconcile)
+
+    return () => {
+      if (raf !== null) cancelAnimationFrame(raf)
+      map.off('moveend', scheduleReconcile)
+      map.off('zoomend', scheduleReconcile)
+      map.off('idle', scheduleReconcile)
+    }
   }, [places, selectedPlaceId, dayOrderMap, photoUrls, mapReady, glProvider])
 
   // Reconcile OSM "explore" POI markers (imperative, kept separate from the
