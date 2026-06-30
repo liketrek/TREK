@@ -2,6 +2,8 @@ import { useFileManager, type FileManagerProps } from './useFileManager'
 import { ImageLightbox } from './FileManagerImageLightbox'
 import { AssignModal } from './FileManagerAssignModal'
 import { PdfPreviewModal } from './FileManagerPdfPreviewModal'
+import { MarkdownPreviewModal } from './FileManagerMarkdownPreviewModal'
+import { isMarkdown } from './FileManager.helpers'
 import { FileManagerToolbar } from './FileManagerToolbar'
 import { TrashView } from './FileManagerTrashView'
 import { FilesView } from './FileManagerFilesView'
@@ -17,8 +19,10 @@ export default function FileManager(props: FileManagerProps) {
       {/* Assign modal */}
       {assignFileId && <AssignModal {...S} />}
 
-      {/* PDF preview modal */}
-      {previewFile && <PdfPreviewModal {...S} />}
+      {/* Document preview modal (markdown is rendered inline; everything else PDF/object) */}
+      {previewFile && (isMarkdown(previewFile.mime_type, previewFile.original_name)
+        ? <MarkdownPreviewModal {...S} />
+        : <PdfPreviewModal {...S} />)}
 
       {/* Toolbar */}
       <FileManagerToolbar {...S} />

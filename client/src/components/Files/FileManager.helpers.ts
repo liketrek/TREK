@@ -15,6 +15,17 @@ export function isMedia(mimeType?: string | null) {
   return isImage(mimeType) || isVideo(mimeType)
 }
 
+/**
+ * Markdown file (#1345). Detected by EXTENSION first — browsers often send an
+ * empty / octet-stream / text/plain MIME for .md — falling back to the markdown
+ * MIME types.
+ */
+export function isMarkdown(mimeType?: string | null, name?: string | null) {
+  const ext = (name || '').toLowerCase().split('.').pop()
+  if (ext === 'md' || ext === 'markdown') return true
+  return !!mimeType && (mimeType === 'text/markdown' || mimeType === 'text/x-markdown')
+}
+
 export function getFileIcon(mimeType?: string | null) {
   if (!mimeType) return File
   if (mimeType === 'application/pdf') return FileText

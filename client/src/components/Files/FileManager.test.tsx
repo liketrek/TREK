@@ -15,6 +15,15 @@ vi.mock('../../api/authUrl', () => ({
   getAuthUrl: vi.fn().mockResolvedValue('http://localhost/signed-url'),
 }));
 
+// Markdown pipeline mocked to render its children verbatim (the unified/ESM
+// pipeline is heavy in jsdom) — we only assert the markdown text reaches the modal.
+vi.mock('react-markdown', () => ({
+  default: ({ children }: { children: string }) => <span data-testid="md">{children}</span>,
+}));
+vi.mock('remark-gfm', () => ({ default: () => ({}) }));
+vi.mock('remark-breaks', () => ({ default: () => ({}) }));
+vi.mock('rehype-sanitize', () => ({ default: () => ({}) }));
+
 // Mock filesApi
 vi.mock('../../api/client', async (importOriginal) => {
   const original = (await importOriginal()) as any;
@@ -286,6 +295,21 @@ describe('FileManager', () => {
       // The preview modal header shows the filename
       const headers = screen.getAllByText('report.pdf');
       expect(headers.length).toBeGreaterThanOrEqual(2); // in list + in modal header
+    });
+  });
+
+  it('FE-COMP-FILEMANAGER-034: markdown file click opens an inline rendered preview (#1345)', async () => {
+    server.use(http.get('http://localhost/signed-url', () => HttpResponse.text('# Hello heading\n\nworld body')));
+    const files = [buildFile({ id: 1, mime_type: 'text/markdown', original_name: 'notes.md' })];
+    render(<FileManager {...defaultProps} files={files} />);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByText('notes.md'));
+
+    await waitFor(() => {
+      const md = screen.getByTestId('md');
+      expect(md).toBeInTheDocument();
+      expect(md.textContent).toContain('Hello heading');
     });
   });
 
