@@ -9,7 +9,7 @@ export function BagSidebar(S: PackingState) {
     showAddBag, setShowAddBag, newBagName, setNewBagName, handleCreateBag,
   } = S
   return (
-    <div className="hidden xl:block" style={{ width: 260, borderLeft: '1px solid var(--border-secondary)', overflowY: 'auto', padding: 16, flexShrink: 0 }}>
+    <div className="hidden xl:block" style={{ width: 260, marginLeft: 16, borderLeft: '1px solid var(--border-secondary)', overflowY: 'auto', padding: 16, flexShrink: 0 }}>
       <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)', marginBottom: 12 }}>
         {t('packing.bags')}
       </div>
