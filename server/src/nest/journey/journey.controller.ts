@@ -15,7 +15,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor, FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -25,7 +25,7 @@ import { JourneyService } from './journey.service';
 import { JourneyAddonGuard } from './journey-addon.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { getAllowedExtensions } from '../../services/fileService';
+import { getAllowedExtensions, isVideoMime, isVideoExtension, MAX_VIDEO_SIZE } from '../../services/fileService';
 
 const uploadsBase = path.join(__dirname, '../../../uploads/journey');
 const IMAGE_UPLOAD = {
@@ -47,6 +47,33 @@ const IMAGE_UPLOAD = {
       err.statusCode = 400;
       return cb(err, false);
     }
+    cb(null, true);
+  },
+};
+
+// Gallery video upload (#823): one video plus an optional client-captured poster
+// image, written to the same uploads/journey store. Larger cap than images since
+// phone clips are big; videos are stored as-is and streamed with HTTP Range.
+const VIDEO_UPLOAD = {
+  storage: diskStorage({
+    destination: (_req, _file, cb) => { if (!fs.existsSync(uploadsBase)) fs.mkdirSync(uploadsBase, { recursive: true }); cb(null, uploadsBase); },
+    filename: (_req, file, cb) => cb(null, `${crypto.randomUUID()}${path.extname(file.originalname).toLowerCase() || (file.fieldname === 'poster' ? '.jpg' : '.mp4')}`),
+  }),
+  limits: { fileSize: MAX_VIDEO_SIZE },
+  fileFilter: (_req: unknown, file: Express.Multer.File, cb: (err: Error | null, accept: boolean) => void) => {
+    const reject = (msg: string) => {
+      const err: Error & { statusCode?: number } = new Error(msg);
+      err.statusCode = 400;
+      cb(err, false);
+    };
+    if (file.fieldname === 'poster') {
+      if (!file.mimetype.startsWith('image/') || file.mimetype.includes('svg')) return reject('Poster must be an image');
+      return cb(null, true);
+    }
+    // 'video' field
+    const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
+    if (!isVideoMime(file.mimetype)) return reject('Only video files are allowed');
+    if (!isVideoExtension(ext)) return reject(`Video type .${ext} is not allowed`);
     cb(null, true);
   },
 };
@@ -216,6 +243,32 @@ export class JourneyController {
     }
     const filePaths = files.map((f) => ({ path: `journey/${f.filename}` }));
     const photos = this.journey.uploadGalleryPhotos(Number(id), user.id, filePaths);
+    if (!photos.length) {
+      throw new HttpException({ error: 'Not allowed' }, 403);
+    }
+    return { photos };
+  }
+
+  @Post(':id/gallery/video')
+  @UseInterceptors(FileFieldsInterceptor([{ name: 'video', maxCount: 1 }, { name: 'poster', maxCount: 1 }], VIDEO_UPLOAD))
+  uploadGalleryVideo(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @UploadedFiles() files: { video?: Express.Multer.File[]; poster?: Express.Multer.File[] } | undefined,
+    @Body() body: { duration_ms?: string },
+  ) {
+    const video = files?.video?.[0];
+    if (!video) {
+      throw new HttpException({ error: 'No video uploaded' }, 400);
+    }
+    const poster = files?.poster?.[0];
+    const durationMs = body?.duration_ms != null ? Number(body.duration_ms) : null;
+    const photos = this.journey.uploadGalleryPhotos(Number(id), user.id, [{
+      path: `journey/${video.filename}`,
+      thumbnail: poster ? `journey/${poster.filename}` : undefined,
+      mediaType: 'video',
+      durationMs: durationMs != null && Number.isFinite(durationMs) ? durationMs : null,
+    }]);
     if (!photos.length) {
       throw new HttpException({ error: 'Not allowed' }, 403);
     }

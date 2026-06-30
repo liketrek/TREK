@@ -387,6 +387,10 @@ export interface TrekPhoto {
   width?: number | null;
   height?: number | null;
   passphrase?: string | null;
+  /** 'image' (default) or 'video' — discriminates how the asset is served/played (#823). */
+  media_type?: string | null;
+  /** Optional video duration in milliseconds. */
+  duration_ms?: number | null;
   created_at: string;
 }
 

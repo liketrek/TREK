@@ -3107,6 +3107,22 @@ function runMigrations(db: Database.Database): void {
       }
       db.exec('UPDATE packing_items SET updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP) WHERE updated_at IS NULL');
     },
+    // Video support (#823): the trek_photos registry held only images. media_type
+    // discriminates image vs video so the gallery, lightbox and provider proxy can
+    // branch; duration_ms is optional metadata for the player. Additive — existing
+    // rows default to 'image'.
+    () => {
+      for (const stmt of [
+        "ALTER TABLE trek_photos ADD COLUMN media_type TEXT NOT NULL DEFAULT 'image'",
+        'ALTER TABLE trek_photos ADD COLUMN duration_ms INTEGER',
+      ]) {
+        try {
+          db.exec(stmt);
+        } catch (err: any) {
+          if (!err.message?.includes('duplicate column name')) throw err;
+        }
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {

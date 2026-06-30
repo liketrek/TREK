@@ -16,7 +16,8 @@ function ts(): number {
 // id = gp.id (gallery photo id) — used by clients for linkPhoto/updatePhoto/unlink/delete.
 const JP_SELECT = `
   gp.id, jep.entry_id, gp.photo_id, gp.caption, jep.sort_order, gp.shared, gp.created_at,
-  tp.provider, tp.asset_id, tp.owner_id, tp.file_path, tp.thumbnail_path, tp.width, tp.height
+  tp.provider, tp.asset_id, tp.owner_id, tp.file_path, tp.thumbnail_path, tp.width, tp.height,
+  tp.media_type, tp.duration_ms
 `;
 const JP_JOIN = `journey_entry_photos jep
   JOIN journey_photos gp ON gp.id  = jep.journey_photo_id
@@ -25,7 +26,8 @@ const JP_JOIN = `journey_entry_photos jep
 // Per-journey gallery view: journey_photos → trek_photos (no entry context).
 const GALLERY_SELECT = `
   gp.id, gp.journey_id, gp.photo_id, gp.caption, gp.shared, gp.sort_order, gp.created_at,
-  tp.provider, tp.asset_id, tp.owner_id, tp.file_path, tp.thumbnail_path, tp.width, tp.height
+  tp.provider, tp.asset_id, tp.owner_id, tp.file_path, tp.thumbnail_path, tp.width, tp.height,
+  tp.media_type, tp.duration_ms
 `;
 const GALLERY_JOIN = 'journey_photos gp JOIN trek_photos tp ON tp.id = gp.photo_id';
 
@@ -918,7 +920,7 @@ export function linkPhotoToEntry(entryId: number, journeyPhotoId: number, userId
 export function uploadGalleryPhotos(
   journeyId: number,
   userId: number,
-  filePaths: { path: string; thumbnail?: string }[],
+  filePaths: { path: string; thumbnail?: string; mediaType?: string; durationMs?: number | null }[],
 ): JourneyPhoto[] {
   if (!canEdit(journeyId, userId)) return [];
   const results: any[] = [];
@@ -929,7 +931,7 @@ export function uploadGalleryPhotos(
   let nextOrder = (maxOrderRow?.m ?? -1) + 1;
 
   for (const f of filePaths) {
-    const trekPhotoId = getOrCreateLocalTrekPhoto(f.path, f.thumbnail);
+    const trekPhotoId = getOrCreateLocalTrekPhoto(f.path, f.thumbnail, null, null, f.mediaType || 'image', f.durationMs ?? null);
     db.prepare(
       `
       INSERT OR IGNORE INTO journey_photos (journey_id, photo_id, shared, sort_order, created_at)

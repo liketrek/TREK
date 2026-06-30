@@ -56,6 +56,9 @@ export interface JourneyPhoto {
   thumbnail_path?: string | null
   width?: number | null
   height?: number | null
+  // 'image' (default) or 'video' (#823)
+  media_type?: string | null
+  duration_ms?: number | null
 }
 
 export interface GalleryPhoto {
@@ -74,6 +77,9 @@ export interface GalleryPhoto {
   thumbnail_path?: string | null
   width?: number | null
   height?: number | null
+  // 'image' (default) or 'video' (#823)
+  media_type?: string | null
+  duration_ms?: number | null
 }
 
 export interface JourneyTrip {
