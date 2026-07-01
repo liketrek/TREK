@@ -1,6 +1,19 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.editListTitle': 'Chỉnh sửa danh sách',
+  'collections.coverImage': 'Ảnh bìa',
+  'collections.addCover': 'Thêm ảnh bìa',
+  'collections.changeCover': 'Đổi ảnh bìa',
+  'collections.description': 'Mô tả',
+  'collections.descriptionPlaceholder': 'Thêm mô tả…',
+  'collections.links': 'Liên kết',
+  'collections.linkLabel': 'Nhãn',
+  'collections.addLink': 'Thêm liên kết',
+  'collections.addDetails': 'Thêm chi tiết',
+  'collections.addPlace': 'Thêm địa điểm',
+  'collections.addPlaceSearch': 'Tìm địa điểm…',
+  'collections.addPlaceHint': 'Tìm để thêm địa điểm vào danh sách này',
   'collections.showList': 'Hiện danh sách',
   'collections.expandMap': 'Mở rộng bản đồ',
   'collections.hero.mine': 'Bộ sưu tập của tôi',

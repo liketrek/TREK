@@ -1,20 +1,20 @@
 import React from 'react'
-import { List as ListIcon, Map as MapIcon, Search, Bookmark, CheckSquare, X, Trash2, Copy } from 'lucide-react'
+import { List as ListIcon, Map as MapIcon, Search, Bookmark, CheckSquare, X, Trash2, Copy, Plus } from 'lucide-react'
 import Navbar from '../components/Layout/Navbar'
 import Modal from '../components/shared/Modal'
 import ListsRail from '../components/Collections/ListsRail'
+import ListEditorModal from '../components/Collections/ListEditorModal'
 import CollectionHero from '../components/Collections/CollectionHero'
 import CollectionList from '../components/Collections/CollectionList'
 import CollectionMapPanel from '../components/Collections/CollectionMapPanel'
 import CopyToTripModal from '../components/Collections/CopyToTripModal'
 import ShareCollectionModal from '../components/Collections/ShareCollectionModal'
-import PlaceInspector from '../components/Planner/PlaceInspector'
+import AddPlaceToCollectionModal from '../components/Collections/AddPlaceToCollectionModal'
+import CollectionPlaceDetail from '../components/Collections/CollectionPlaceDetail'
 import { mappablePlaces } from './collections/collectionsModel'
 import { useCollections } from './collections/useCollections'
 import '../styles/dashboard.css'
 import '../styles/collections.css'
-
-const SWATCHES = ['#6366f1', '#ec4899', '#14b8a6', '#f97316', '#8b5cf6', '#ef4444', '#3b82f6', '#22c55e']
 
 function EmptyState({ icon, title, text, action }: { icon: React.ReactNode; title: string; text: string; action?: React.ReactNode }): React.ReactElement {
   return (
@@ -53,6 +53,7 @@ export default function CollectionsPage(): React.ReactElement {
   const desktopSplit = c.isWide && mappable.length > 0
   const mapShown = mappable.length > 0 && (c.view === 'map' || c.isWide)
   const mapOverlay = c.isWide && mapShown // the map carries the toggle + search
+  const canAddPlace = typeof c.activeId === 'number' // a real list, not "All saved"
 
   const listEl = (
     <CollectionList
@@ -76,6 +77,11 @@ export default function CollectionsPage(): React.ReactElement {
       overlay={overlay}
       view={c.view}
       onToggleView={toggleView}
+      showSelect={showSelect}
+      selectMode={c.selectMode}
+      onToggleSelect={() => c.setSelectMode(!c.selectMode)}
+      canAddPlace={canAddPlace}
+      onAddPlace={() => c.setShowAddPlace(true)}
       search={c.search}
       onSearch={c.setSearch}
       t={t}
@@ -108,13 +114,9 @@ export default function CollectionsPage(): React.ReactElement {
       sharedLists={c.sharedLists}
       activeId={c.activeId}
       incomingInvites={c.incomingInvites}
-      editingListId={c.editingListId}
-      editingName={c.editingName}
-      setEditingName={c.setEditingName}
       onSelect={c.handleSelectList}
-      onNewList={() => { c.setMobileRailOpen(false); c.setShowNewList(true) }}
-      onStartRename={c.handleStartRename}
-      onCommitRename={c.handleCommitRename}
+      onNewList={() => { c.setMobileRailOpen(false); c.setEditorTarget('new') }}
+      onEdit={list => { c.setMobileRailOpen(false); c.setEditorTarget(list) }}
       onSetColor={c.handleSetColor}
       onRequestDelete={c.setConfirmDeleteList}
       onAcceptInvite={c.handleAcceptInvite}
@@ -137,7 +139,7 @@ export default function CollectionsPage(): React.ReactElement {
                 title={t('collections.empty.firstTitle')}
                 text={t('collections.empty.firstText')}
                 action={
-                  <button type="button" onClick={() => c.setShowNewList(true)} className="col-cta">
+                  <button type="button" onClick={() => c.setEditorTarget('new')} className="col-cta">
                     <Bookmark size={16} /> {t('collections.newList')}
                   </button>
                 }
@@ -150,6 +152,8 @@ export default function CollectionsPage(): React.ReactElement {
                     title={title}
                     color={heroColor}
                     coverImage={heroCover}
+                    description={c.isAllSaved ? null : (c.activeCollection?.description ?? null)}
+                    links={c.isAllSaved ? undefined : c.activeCollection?.links}
                     counts={c.counts}
                     statusFilter={c.statusFilter}
                     onStatusFilter={c.setStatusFilter}
@@ -158,12 +162,12 @@ export default function CollectionsPage(): React.ReactElement {
                     isOwner={c.isOwner}
                     shareMemberCount={c.shareMemberCount}
                     onShare={() => c.setShowShare(true)}
-                    onNewList={() => c.setShowNewList(true)}
+                    onNewList={() => c.setEditorTarget('new')}
                     t={t}
                   />
                 </div>
 
-                {(!c.isWide || showSelect || !mapOverlay) && (
+                {!mapOverlay && (
                   <div className="col-toolbar">
                     <button type="button" className="col-rail-toggle" onClick={() => c.setMobileRailOpen(true)}>
                       <Bookmark size={15} /> {t('collections.title')}
@@ -187,6 +191,11 @@ export default function CollectionsPage(): React.ReactElement {
                         title={t('collections.selectMode')}
                       >
                         <CheckSquare size={16} />
+                      </button>
+                    )}
+                    {canAddPlace && (
+                      <button type="button" onClick={() => c.setShowAddPlace(true)} className="col-iconbtn" aria-label={t('collections.addPlace')} title={t('collections.addPlace')}>
+                        <Plus size={16} />
                       </button>
                     )}
                     <div className="col-toolbar-spacer" />
@@ -232,29 +241,34 @@ export default function CollectionsPage(): React.ReactElement {
             <div className="col-drawer">{rail}</div>
           </>
         )}
+
+        {/* Place detail — a bottom sheet (no backdrop, so the map behind stays
+            visible + interactive). Clicking another place / the map background
+            re-points or clears the selection. */}
+        {c.selectedPlace && (
+          <CollectionPlaceDetail
+            place={c.selectedPlace}
+            canEdit
+            onClose={c.handleCloseDetail}
+            onSetStatus={c.handleDetailStatus}
+            onSave={patch => c.updatePlace(c.selectedPlace!.id, patch)}
+            onCopyToTrip={c.openCopyForSelectedPlace}
+            onRemove={c.handleDetailRemove}
+            t={t}
+          />
+        )}
       </div>
 
-      {/* Detail panel — re-pointed PlaceInspector in collection mode. Kept outside
-          .trek-dash (it's a shared component on the app's own tokens). The outer
-          layer is click-through so the grid behind stays interactive; only the
-          floating card re-enables pointer events. */}
-      {c.detailPlace && !mapShown && (
-        <div className="fixed inset-0 z-[150]" style={{ pointerEvents: 'none', paddingTop: 'var(--nav-h)' }}>
-          <div className="relative w-full h-full">
-            <div style={{ pointerEvents: 'auto' }}>
-              <PlaceInspector
-                mode="collection"
-                place={c.detailPlace}
-                categories={c.detailCategories}
-                collectionStatus={c.selectedPlace?.status}
-                onClose={c.handleCloseDetail}
-                onCopyToTrip={c.openCopyForSelectedPlace}
-                onSetStatus={c.handleDetailStatus}
-                onRemoveFromList={c.handleDetailRemove}
-              />
-            </div>
-          </div>
-        </div>
+      {/* Add a place to the current list */}
+      {typeof c.activeId === 'number' && c.activeCollection && (
+        <AddPlaceToCollectionModal
+          isOpen={c.showAddPlace}
+          collectionId={c.activeId}
+          collectionName={c.activeCollection.name}
+          onClose={() => c.setShowAddPlace(false)}
+          onAdded={c.handlePlaceAdded}
+          t={t}
+        />
       )}
 
       {/* Copy to trip */}
@@ -280,52 +294,8 @@ export default function CollectionsPage(): React.ReactElement {
         />
       )}
 
-      {/* New list modal */}
-      <Modal
-        isOpen={c.showNewList}
-        onClose={() => c.setShowNewList(false)}
-        title={t('collections.newList')}
-        size="sm"
-        footer={
-          <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => c.setShowNewList(false)} className="px-3 py-1.5 rounded-lg border border-edge text-content-secondary text-[13px] hover:bg-surface-hover">
-              {t('common.cancel')}
-            </button>
-            <button type="button" onClick={c.handleCreateList} disabled={!c.newListName.trim() || c.creating} className="px-3 py-1.5 rounded-lg bg-accent text-accent-text text-[13px] font-semibold disabled:opacity-50">
-              {t('collections.create')}
-            </button>
-          </div>
-        }
-      >
-        <div className="flex flex-col gap-4">
-          <div>
-            <label className="block text-[12px] font-medium text-content-secondary mb-1.5">{t('collections.listName')}</label>
-            <input
-              autoFocus
-              value={c.newListName}
-              onChange={e => c.setNewListName(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && c.newListName.trim()) c.handleCreateList() }}
-              placeholder={t('collections.listNamePlaceholder')}
-              className="w-full px-3 py-2 rounded-lg border border-edge bg-surface-input text-content text-[14px] outline-none focus:border-accent"
-            />
-          </div>
-          <div>
-            <label className="block text-[12px] font-medium text-content-secondary mb-2">{t('collections.listColor')}</label>
-            <div className="flex gap-2 flex-wrap">
-              {SWATCHES.map(col => (
-                <button
-                  key={col}
-                  type="button"
-                  onClick={() => c.setNewListColor(col)}
-                  className="w-7 h-7 rounded-full flex items-center justify-center transition-transform hover:scale-110"
-                  style={{ background: col, outline: c.newListColor === col ? '2px solid var(--accent)' : 'none', outlineOffset: 2 }}
-                  aria-label={col}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      </Modal>
+      {/* Create / edit a list — name, colour, cover, description, links */}
+      <ListEditorModal target={c.editorTarget} onClose={() => c.setEditorTarget(null)} onCreated={c.handleEditorCreated} t={t} />
 
       {/* Delete-list confirm */}
       <Modal

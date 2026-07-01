@@ -1,6 +1,19 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.editListTitle': '編輯清單',
+  'collections.coverImage': '封面圖片',
+  'collections.addCover': '新增封面',
+  'collections.changeCover': '更換封面',
+  'collections.description': '描述',
+  'collections.descriptionPlaceholder': '新增描述…',
+  'collections.links': '連結',
+  'collections.linkLabel': '標籤',
+  'collections.addLink': '新增連結',
+  'collections.addDetails': '新增詳情',
+  'collections.addPlace': '新增地點',
+  'collections.addPlaceSearch': '搜尋地點…',
+  'collections.addPlaceHint': '搜尋以將地點加入此清單',
   'collections.showList': '顯示清單',
   'collections.expandMap': '展開地圖',
   'collections.hero.mine': '我的收藏',

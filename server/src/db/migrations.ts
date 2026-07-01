@@ -3255,6 +3255,12 @@ function runMigrations(db: Database.Database): void {
         CREATE INDEX IF NOT EXISTS idx_collection_place_tags_tag ON collection_place_tags(tag_id);
       `);
     },
+
+    // Migration 151: user-added links on collections + saved places (JSON text)
+    () => {
+      try { db.exec('ALTER TABLE collections ADD COLUMN links TEXT'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try { db.exec('ALTER TABLE collection_places ADD COLUMN links TEXT'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+    },
   ];
 
   if (currentVersion < migrations.length) {

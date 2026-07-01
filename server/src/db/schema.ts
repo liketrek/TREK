@@ -380,6 +380,7 @@ function createTables(db: Database.Database): void {
       color TEXT DEFAULT '#6366f1',
       icon TEXT DEFAULT 'Bookmark',
       cover_image TEXT,
+      links TEXT,
       sort_order INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -417,6 +418,7 @@ function createTables(db: Database.Database): void {
       status TEXT NOT NULL DEFAULT 'idea',
       source_trip_id INTEGER,
       source_place_id INTEGER,
+      links TEXT,
       sort_order INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP

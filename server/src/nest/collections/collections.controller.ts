@@ -10,8 +10,16 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { Request } from 'express';
+import { diskStorage } from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { v4 as uuidv4 } from 'uuid';
 import type { User } from '../../types';
 import { CollectionsService } from './collections.service';
 import { CollectionsAddonGuard } from './collections-addon.guard';
@@ -29,6 +37,7 @@ import {
   collectionInviteRequestSchema,
   collectionInviteActionRequestSchema,
   collectionInviteCancelRequestSchema,
+  collectionRemoveMemberRequestSchema,
   type CollectionCreateRequest,
   type CollectionUpdateRequest,
   type CollectionSavePlaceRequest,
@@ -39,7 +48,27 @@ import {
   type CollectionInviteRequest,
   type CollectionInviteActionRequest,
   type CollectionInviteCancelRequest,
+  type CollectionRemoveMemberRequest,
 } from '@trek/shared';
+
+const MAX_COVER_SIZE = 20 * 1024 * 1024;
+const coversDir = path.join(__dirname, '../../../uploads/covers');
+const COVER_UPLOAD = {
+  storage: diskStorage({
+    destination: (_req, _file, cb) => {
+      if (!fs.existsSync(coversDir)) fs.mkdirSync(coversDir, { recursive: true });
+      cb(null, coversDir);
+    },
+    filename: (_req, file, cb) => cb(null, `${uuidv4()}${path.extname(file.originalname)}`),
+  }),
+  limits: { fileSize: MAX_COVER_SIZE },
+  fileFilter: (_req: Request, file: Express.Multer.File, cb: (err: Error | null, accept: boolean) => void) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const allowed = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    if (file.mimetype.startsWith('image/') && !file.mimetype.includes('svg') && allowed.includes(ext)) cb(null, true);
+    else cb(new Error('Only jpg, png, gif, webp images allowed'), false);
+  },
+};
 
 /**
  * /api/addons/collections — saved-place library (lists, places, fusion sharing).
@@ -200,6 +229,17 @@ export class CollectionsController {
     return { success: true };
   }
 
+  @Post('members/remove')
+  @HttpCode(200)
+  removeMember(@CurrentUser() user: User, @Body(new ZodValidationPipe(collectionRemoveMemberRequestSchema)) body: CollectionRemoveMemberRequest) {
+    this.collections.assertAccess(user.id, body.collection_id); // 404 if not visible
+    if (!this.collections.isOwner(user.id, body.collection_id)) {
+      throw new HttpException({ error: 'Only the owner can remove members' }, 403);
+    }
+    this.collections.removeMember(user.id, body.collection_id, body.user_id);
+    return { success: true };
+  }
+
   // ── /:id (declared last so static prefixes win) ─────────────────────────────
   @Get(':id/available-users')
   availableUsers(@CurrentUser() user: User, @Param('id') id: string) {
@@ -208,6 +248,14 @@ export class CollectionsController {
       throw new HttpException({ error: 'Only the owner can manage members' }, 403);
     }
     return { users: this.collections.availableUsers(user.id, Number(id)) };
+  }
+
+  @Post(':id/cover')
+  @UseInterceptors(FileInterceptor('cover', COVER_UPLOAD))
+  uploadCover(@CurrentUser() user: User, @Param('id') id: string, @UploadedFile() file: Express.Multer.File | undefined) {
+    if (!file) throw new HttpException({ error: 'No image uploaded' }, 400);
+    const coverUrl = `/uploads/covers/${file.filename}`;
+    return this.collections.setCollectionCover(user.id, Number(id), coverUrl);
   }
 
   @Get(':id')

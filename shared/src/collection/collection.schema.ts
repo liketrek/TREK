@@ -6,6 +6,14 @@ export const COLLECTION_STATUSES = ['idea', 'want', 'visited'] as const;
 export const collectionStatusSchema = z.enum(COLLECTION_STATUSES).catch('idea').default('idea');
 export type CollectionStatus = (typeof COLLECTION_STATUSES)[number];
 
+/** A user-added link on a list or a saved place (stored as a JSON array). */
+export const collectionLinkSchema = z.object({
+  label: z.string().max(120).optional(),
+  url: z.string().trim().url().max(2000),
+});
+export type CollectionLink = z.infer<typeof collectionLinkSchema>;
+export const collectionLinksSchema = z.array(collectionLinkSchema).max(30);
+
 /** A saved place — assignmentPlace minus itinerary, plus status + provenance. */
 export const collectionPlaceSchema = z.object({
   id: z.number(),
@@ -33,6 +41,7 @@ export const collectionPlaceSchema = z.object({
   sort_order: z.number().optional(),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
+  links: collectionLinksSchema.optional(),
   category: placeCategorySchema.optional(),
   tags: z.array(tagSchema.partial()).optional(),
 });
@@ -58,6 +67,7 @@ export const collectionSchema = z.object({
   color: z.string().nullable().optional(),
   icon: z.string().nullable().optional(),
   cover_image: z.string().nullable().optional(),
+  links: collectionLinksSchema.optional(),
   sort_order: z.number().optional(),
   place_count: z.number().optional(),
   is_owner: z.boolean().optional(),
@@ -73,6 +83,8 @@ export const collectionCreateRequestSchema = z.object({
   description: z.string().max(2000).nullable().optional(),
   color: z.string().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/).optional(),
   icon: z.string().max(40).optional(),
+  cover_image: z.string().max(500).nullable().optional(),
+  links: collectionLinksSchema.optional(),
 });
 export type CollectionCreateRequest = z.infer<typeof collectionCreateRequestSchema>;
 
@@ -102,6 +114,7 @@ export const collectionSavePlaceRequestSchema = z.object({
   website: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
   status: collectionStatusSchema.optional(),
+  links: collectionLinksSchema.optional(),
   tag_ids: z.array(z.number()).optional(),
   force: z.boolean().optional(), // "add anyway" over a dedup match
 });
@@ -118,10 +131,12 @@ export type CollectionSaveFromTripRequest = z.infer<typeof collectionSaveFromTri
 
 export const collectionPlaceUpdateRequestSchema = z.object({
   name: z.string().min(1).optional(),
+  description: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   status: collectionStatusSchema.optional(),
   category_id: z.number().nullable().optional(),
   collection_id: z.number().optional(), // move to another list
+  links: collectionLinksSchema.optional(),
   tag_ids: z.array(z.number()).optional(),
 });
 export type CollectionPlaceUpdateRequest = z.infer<typeof collectionPlaceUpdateRequestSchema>;
@@ -152,6 +167,13 @@ export const collectionInviteCancelRequestSchema = z.object({
   user_id: z.number(),
 });
 export type CollectionInviteCancelRequest = z.infer<typeof collectionInviteCancelRequestSchema>;
+
+/** Owner removes an ALREADY-ACCEPTED member (kick). */
+export const collectionRemoveMemberRequestSchema = z.object({
+  collection_id: z.number(),
+  user_id: z.number(),
+});
+export type CollectionRemoveMemberRequest = z.infer<typeof collectionRemoveMemberRequestSchema>;
 
 // ── Responses ─────────────────────────────────────────────────────────────
 export const collectionListResponseSchema = z.object({

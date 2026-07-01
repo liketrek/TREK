@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { db, canAccessTrip } from '../db/database';
 import { broadcastToUser } from '../websocket';
 import { checkPermission } from './permissions';
@@ -8,6 +10,7 @@ import type {
   CollectionMember,
   CollectionMembership,
   CollectionPlace,
+  CollectionLink,
   CollectionCreateRequest,
   CollectionUpdateRequest,
   CollectionSavePlaceRequest,
@@ -15,6 +18,33 @@ import type {
   CollectionCopyToTripRequest,
   CollectionStatus,
 } from '@trek/shared';
+
+/** Links are stored as a JSON TEXT column; parse on read, stringify on write. */
+function parseLinks(raw: unknown): CollectionLink[] | undefined {
+  if (typeof raw !== 'string' || !raw) return undefined;
+  try {
+    const v = JSON.parse(raw);
+    return Array.isArray(v) ? (v as CollectionLink[]) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function serializeLinks(links: CollectionLink[] | undefined): string | null {
+  return links && links.length ? JSON.stringify(links) : null;
+}
+
+/**
+ * Reclaim a replaced cover file. Path-confined to uploads/covers (mirrors
+ * tripService.deleteOldCover — kept local so this service doesn't pull the
+ * trips import graph). Collection + trip covers share the same directory.
+ */
+function deleteOldCollectionCover(coverImage: string | null | undefined): void {
+  if (!coverImage) return;
+  const coversDir = path.resolve(__dirname, '../../uploads/covers');
+  const resolved = path.resolve(path.join(coversDir, path.basename(coverImage)));
+  if (resolved.startsWith(coversDir + path.sep) && fs.existsSync(resolved)) fs.unlinkSync(resolved);
+}
 
 // ---------------------------------------------------------------------------
 // Errors — thrown as plain Errors carrying a status; TrekExceptionFilter maps
@@ -100,6 +130,7 @@ function hydratePlaces(rows: PlaceRow[]): CollectionPlace[] {
     const { category_name, category_color, category_icon, ...rest } = r;
     return {
       ...rest,
+      links: parseLinks((r as { links?: unknown }).links),
       category: r.category_id
         ? { id: r.category_id, name: category_name ?? '', color: category_color ?? null, icon: category_icon ?? null }
         : undefined,
@@ -144,10 +175,10 @@ function buildMembers(collectionId: number): CollectionMember[] {
 }
 
 function getCollectionRow(id: number): Collection {
-  const col = db.prepare('SELECT * FROM collections WHERE id = ?').get(id) as Collection | undefined;
+  const col = db.prepare('SELECT * FROM collections WHERE id = ?').get(id) as (Collection & { links?: unknown }) | undefined;
   if (!col) httpError(404, 'Collection not found');
   const placeCount = (db.prepare('SELECT COUNT(*) AS n FROM collection_places WHERE collection_id = ?').get(id) as { n: number }).n;
-  return { ...col, place_count: placeCount, members: buildMembers(id) };
+  return { ...col, links: parseLinks(col.links), place_count: placeCount, members: buildMembers(id) };
 }
 
 // ---------------------------------------------------------------------------
@@ -191,14 +222,16 @@ export function getCollection(userId: number, id: number): CollectionDetailRespo
 export function createCollection(userId: number, body: CollectionCreateRequest): Collection {
   const max = (db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM collections WHERE owner_id = ?').get(userId) as { m: number }).m;
   const result = db.prepare(`
-    INSERT INTO collections (owner_id, name, description, color, icon, sort_order)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO collections (owner_id, name, description, color, icon, cover_image, links, sort_order)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     userId,
     body.name,
     body.description ?? null,
     body.color ?? '#6366f1',
     body.icon ?? 'Bookmark',
+    body.cover_image ?? null,
+    serializeLinks(body.links),
     max + 1,
   );
   const col = getCollectionRow(Number(result.lastInsertRowid));
@@ -213,12 +246,25 @@ export function updateCollection(userId: number, id: number, body: CollectionUpd
   if (body.description !== undefined) { updates.push('description = ?'); params.push(body.description ?? null); }
   if (body.color !== undefined) { updates.push('color = ?'); params.push(body.color ?? null); }
   if (body.icon !== undefined) { updates.push('icon = ?'); params.push(body.icon ?? null); }
+  if (body.cover_image !== undefined) { updates.push('cover_image = ?'); params.push(body.cover_image ?? null); }
+  if (body.links !== undefined) { updates.push('links = ?'); params.push(serializeLinks(body.links)); }
   if (body.sort_order !== undefined) { updates.push('sort_order = ?'); params.push(body.sort_order); }
   if (updates.length > 0) {
     updates.push("updated_at = CURRENT_TIMESTAMP");
     params.push(id);
     db.prepare(`UPDATE collections SET ${updates.join(', ')} WHERE id = ?`).run(...params);
   }
+  notifyCollectionUsers(id, undefined, 'collections:updated');
+  const col = getCollectionRow(id);
+  return { ...col, is_owner: col.owner_id === userId };
+}
+
+/** Set (or clear) a list's cover image, reclaiming the previous file. */
+export function setCollectionCover(userId: number, id: number, coverUrl: string | null): Collection {
+  assertAccess(userId, id);
+  const prev = (db.prepare('SELECT cover_image FROM collections WHERE id = ?').get(id) as { cover_image: string | null } | undefined)?.cover_image ?? null;
+  db.prepare('UPDATE collections SET cover_image = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(coverUrl, id);
+  if (prev && prev !== coverUrl) deleteOldCollectionCover(prev);
   notifyCollectionUsers(id, undefined, 'collections:updated');
   const col = getCollectionRow(id);
   return { ...col, is_owner: col.owner_id === userId };
@@ -333,8 +379,8 @@ export function savePlace(userId: number, body: CollectionSavePlaceRequest): Col
     INSERT INTO collection_places (
       collection_id, owner_id, saved_by, name, description, lat, lng, address,
       category_id, price, currency, notes, image_url, google_place_id, google_ftid,
-      osm_id, website, phone, status, source_trip_id, source_place_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      osm_id, website, phone, status, source_trip_id, source_place_id, links
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     body.collection_id, ownerId, userId,
     body.name, body.description ?? null, body.lat ?? null, body.lng ?? null, body.address ?? null,
@@ -342,6 +388,7 @@ export function savePlace(userId: number, body: CollectionSavePlaceRequest): Col
     body.image_url ?? null, body.google_place_id ?? null, body.google_ftid ?? null,
     body.osm_id ?? null, body.website ?? null, body.phone ?? null,
     body.status ?? 'idea', body.source_trip_id ?? null, body.source_place_id ?? null,
+    serializeLinks(body.links),
   );
 
   const placeId = Number(result.lastInsertRowid);
@@ -389,9 +436,11 @@ export function updatePlace(userId: number, placeId: number, body: import('@trek
   const updates: string[] = [];
   const params: (string | number | null)[] = [];
   if (body.name !== undefined) { updates.push('name = ?'); params.push(body.name); }
+  if (body.description !== undefined) { updates.push('description = ?'); params.push(body.description ?? null); }
   if (body.notes !== undefined) { updates.push('notes = ?'); params.push(body.notes ?? null); }
   if (body.status !== undefined) { updates.push('status = ?'); params.push(body.status); }
   if (body.category_id !== undefined) { updates.push('category_id = ?'); params.push(body.category_id ?? null); }
+  if (body.links !== undefined) { updates.push('links = ?'); params.push(serializeLinks(body.links)); }
 
   let movedTo: number | null = null;
   if (body.collection_id !== undefined && body.collection_id !== currentCollection) {
@@ -527,7 +576,11 @@ export function findMembership(
   const params: (string | number)[] = [...ids];
   if (query.google_place_id) { conditions.push('cp.google_place_id = ?'); params.push(query.google_place_id); }
   if (query.google_ftid) { conditions.push('cp.google_ftid = ?'); params.push(query.google_ftid); }
-  if (query.name && query.name.trim()) { conditions.push('lower(trim(cp.name)) = ?'); params.push(query.name.trim().toLowerCase()); }
+  // Coordinate proximity is the location signal. A bare NAME match is deliberately
+  // NOT a condition on its own — "Starbucks" (or any repeated name) would otherwise
+  // false-positive the inspector's "already saved" bookmark. When coords are given
+  // the name still effectively matches via the same-location row below; without an
+  // id or coords there is nothing strong enough to claim it's the same place.
   if (query.lat != null && query.lng != null) {
     conditions.push('(cp.lat IS NOT NULL AND cp.lng IS NOT NULL AND abs(cp.lat - ?) <= ? AND abs(cp.lng - ?) <= ?)');
     params.push(query.lat, COORD_DEDUP_TOLERANCE, query.lng, COORD_DEDUP_TOLERANCE);
@@ -610,6 +663,16 @@ export function leaveCollection(userId: number, collectionId: number, socketId: 
   if (isOwner(userId, collectionId)) httpError(400, 'Owner cannot leave; delete the list');
   db.prepare("DELETE FROM collection_members WHERE collection_id = ? AND user_id = ? AND status = 'accepted'").run(collectionId, userId);
   notifyCollectionUsers(collectionId, socketId, 'collections:left');
+}
+
+/** Owner removes an already-accepted member (a "kick"). */
+export function removeMember(ownerId: number, collectionId: number, targetUserId: number): void {
+  if (!isOwner(ownerId, collectionId)) httpError(403, 'Not allowed');
+  if (targetUserId === ownerId) httpError(400, 'Owner cannot be removed');
+  const res = db.prepare("DELETE FROM collection_members WHERE collection_id = ? AND user_id = ? AND status = 'accepted'").run(collectionId, targetUserId);
+  if (res.changes === 0) httpError(404, 'Member not found');
+  notifyCollectionUsers(collectionId, undefined, 'collections:left'); // refresh remaining members
+  broadcastToUser(targetUserId, { type: 'collections:removed', collectionId }); // bounce the removed user
 }
 
 export function availableUsers(ownerId: number, collectionId: number): { id: number; username: string }[] {

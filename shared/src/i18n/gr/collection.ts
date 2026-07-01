@@ -1,6 +1,19 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.editListTitle': 'Επεξεργασία λίστας',
+  'collections.coverImage': 'Εικόνα εξωφύλλου',
+  'collections.addCover': 'Προσθήκη εξωφύλλου',
+  'collections.changeCover': 'Αλλαγή εξωφύλλου',
+  'collections.description': 'Περιγραφή',
+  'collections.descriptionPlaceholder': 'Προσθέστε μια περιγραφή…',
+  'collections.links': 'Σύνδεσμοι',
+  'collections.linkLabel': 'Ετικέτα',
+  'collections.addLink': 'Προσθήκη συνδέσμου',
+  'collections.addDetails': 'Προσθήκη λεπτομερειών',
+  'collections.addPlace': 'Προσθήκη τόπου',
+  'collections.addPlaceSearch': 'Αναζήτηση τόπου…',
+  'collections.addPlaceHint': 'Αναζητήστε για να προσθέσετε έναν τόπο σε αυτήν τη λίστα',
   'collections.showList': 'Εμφάνιση λίστας',
   'collections.expandMap': 'Μεγέθυνση χάρτη',
   'collections.hero.mine': 'Η συλλογή μου',

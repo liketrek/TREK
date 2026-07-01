@@ -1,26 +1,22 @@
 import React, { useEffect, useState } from 'react'
-import { Bookmark, ArrowRight } from 'lucide-react'
+import { Bookmark, ArrowRight, MapPin } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from '../../i18n'
-import PlaceAvatar from '../shared/PlaceAvatar'
 import { collectionsApi } from '../../api/collections'
-import type { CollectionPlace } from '@trek/shared'
+import { entityGradient } from '../../utils/gradients'
+import type { Collection } from '@trek/shared'
 
 /**
- * Dashboard sidebar widget — a glassy `.tool` card (cloned from the dashboard's
- * UpcomingTool) that surfaces the user's saved-places library: a total count
- * plus the most recently saved places. Every row and the header "→" jump to
- * /collections.
- *
- * Self-contained on purpose: it fetches its own data on mount, and it is only
- * ever mounted when BOTH gates are satisfied (admin addon enabled AND the
- * per-user widget flag on — see DashboardPage `showCollections`). That keeps the
- * data fetch strictly "only when shown" and means the dashboard never hits
- * /api/addons/collections while the addon is disabled.
+ * Dashboard sidebar widget — a glassy `.tool` card that surfaces the user's
+ * saved-place LISTS as compact colour-washed badges (a mini version of the
+ * collections hero): each badge shows the list's cover image (tinted with its
+ * colour) or a colour gradient, its name and place count, and jumps to that
+ * list. Fetches only list() (per-list place_count), so no N+1.
  */
 export default function CollectionsWidget({ onOpen }: { onOpen: () => void }): React.ReactElement {
   const { t } = useTranslation()
-  const [places, setPlaces] = useState<CollectionPlace[]>([])
-  const [count, setCount] = useState(0)
+  const navigate = useNavigate()
+  const [lists, setLists] = useState<Collection[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -28,27 +24,9 @@ export default function CollectionsWidget({ onOpen }: { onOpen: () => void }): R
     ;(async () => {
       try {
         const data = await collectionsApi.list()
-        if (cancelled) return
-        // Union every list the user owns or co-owns, deduped, newest first —
-        // mirrors the store's "All saved" pseudo-list so the widget shows the
-        // same recent saves the page does.
-        const results = await Promise.all(data.collections.map(c => collectionsApi.get(c.id).catch(() => null)))
-        if (cancelled) return
-        const seen = new Set<number>()
-        const merged: CollectionPlace[] = []
-        for (const res of results) {
-          if (!res) continue
-          for (const p of res.places) {
-            if (seen.has(p.id)) continue
-            seen.add(p.id)
-            merged.push(p)
-          }
-        }
-        merged.sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''))
-        setCount(merged.length)
-        setPlaces(merged.slice(0, 4))
+        if (!cancelled) setLists(data.collections)
       } catch {
-        if (!cancelled) { setPlaces([]); setCount(0) }
+        if (!cancelled) setLists([])
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -64,27 +42,28 @@ export default function CollectionsWidget({ onOpen }: { onOpen: () => void }): R
           <ArrowRight size={14} />
         </button>
       </div>
-      {loading ? null : places.length === 0 ? (
+      {loading ? null : lists.length === 0 ? (
         <div className="col-empty">{t('collections.widget.empty')}</div>
       ) : (
-        <>
-          <div className="col-count">{t('collections.widget.savedCount', { count })}</div>
-          <div className="col-list">
-            {places.map(p => (
-              <button key={p.id} className="col-item" onClick={onOpen}>
-                <PlaceAvatar
-                  place={p}
-                  size={36}
-                  category={p.category ? { color: p.category.color ?? undefined, icon: p.category.icon ?? undefined } : null}
-                />
-                <div className="col-info">
-                  <div className="t">{p.name}</div>
-                  <div className="s">{p.category?.name || p.address || ''}</div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </>
+        <div className="col-badges">
+          {lists.slice(0, 6).map(list => (
+            <button
+              key={list.id}
+              className="col-badge"
+              style={{ ['--badge-color' as string]: list.color || '#6366f1' }}
+              onClick={() => navigate(`/collections/${list.id}`)}
+            >
+              {list.cover_image
+                ? <img className="col-badge-media" src={list.cover_image} alt="" />
+                : <div className="col-badge-media" style={{ backgroundImage: entityGradient(list.id) }} />}
+              <div className="col-badge-tint" />
+              <div className="col-badge-body">
+                <span className="col-badge-name">{list.name}</span>
+                <span className="col-badge-count"><MapPin size={11} /> {list.place_count ?? 0}</span>
+              </div>
+            </button>
+          ))}
+        </div>
       )}
     </div>
   )

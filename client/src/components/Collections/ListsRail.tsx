@@ -13,13 +13,9 @@ interface ListsRailProps {
   sharedLists: Collection[]
   activeId: ActiveCollectionId
   incomingInvites: IncomingCollectionInvite[]
-  editingListId: number | null
-  editingName: string
-  setEditingName: (v: string) => void
   onSelect: (id: ActiveCollectionId) => void
   onNewList: () => void
-  onStartRename: (id: number, name: string) => void
-  onCommitRename: () => void
+  onEdit: (list: Collection) => void
   onSetColor: (id: number, color: string) => void
   onRequestDelete: (id: number) => void
   onAcceptInvite: (id: number) => void
@@ -30,26 +26,16 @@ interface ListsRailProps {
 interface ListRowProps {
   list: Collection
   active: boolean
-  editing: boolean
-  editingName: string
-  setEditingName: (v: string) => void
   onSelect: (id: number) => void
-  onStartRename: (id: number, name: string) => void
-  onCommitRename: () => void
+  onEdit: (list: Collection) => void
   onSetColor: (id: number, color: string) => void
   onRequestDelete: (id: number) => void
   t: TranslationFn
 }
 
-function ListRow({
-  list, active, editing, editingName, setEditingName,
-  onSelect, onStartRename, onCommitRename, onSetColor, onRequestDelete, t,
-}: ListRowProps): React.ReactElement {
+function ListRow({ list, active, onSelect, onEdit, onSetColor, onRequestDelete, t }: ListRowProps): React.ReactElement {
   const [menuOpen, setMenuOpen] = useState(false)
   const [colorOpen, setColorOpen] = useState(false)
-  // Anchor rect for the portalled popover (fixed to the viewport). The popover
-  // is portalled to document.body so the rail's `overflow-y:auto` +
-  // `backdrop-filter` can't clip it.
   const [anchor, setAnchor] = useState<{ top: number; right: number } | null>(null)
   const rowRef = useRef<HTMLDivElement>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
@@ -79,7 +65,6 @@ function ListRow({
     document.addEventListener('mousedown', onDown, true)
     document.addEventListener('keydown', onKey)
     window.addEventListener('resize', close)
-    // Any scroll (page or rail) invalidates the anchor rect → just close.
     window.addEventListener('scroll', close, true)
     return () => {
       document.removeEventListener('mousedown', onDown, true)
@@ -89,21 +74,6 @@ function ListRow({
     }
   }, [open])
 
-  if (editing) {
-    return (
-      <div className="col-row">
-        <input
-          autoFocus
-          value={editingName}
-          onChange={e => setEditingName(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') onCommitRename() }}
-          onBlur={onCommitRename}
-          className="col-row-edit"
-        />
-      </div>
-    )
-  }
-
   const popover = open && anchor && ReactDOM.createPortal(
     <div
       data-list-pop
@@ -112,7 +82,7 @@ function ListRow({
     >
       {menuOpen && !colorOpen && (
         <>
-          <button type="button" onClick={() => { setMenuOpen(false); onStartRename(list.id, list.name) }} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-content-secondary hover:bg-surface-hover">
+          <button type="button" onClick={() => { setMenuOpen(false); onEdit(list) }} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-content-secondary hover:bg-surface-hover">
             <Pencil size={14} /> {t('collections.editList')}
           </button>
           <button type="button" onClick={() => setColorOpen(true)} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-content-secondary hover:bg-surface-hover">
@@ -170,16 +140,15 @@ function ListRow({
 
 /**
  * Left rail of the user's lists: a "New list" action, the "All saved" union
- * pseudo-list, owned lists (colour dot + count + rename/colour/delete menu), a
+ * pseudo-list, owned lists (colour dot + count + edit/colour/delete menu), a
  * shared section, and an incoming-invites block. Styled with the collections
  * glass tokens (`.col-*`); rendered both in the desktop rail and the mobile
- * drawer.
+ * drawer. Editing a list opens the shared ListEditorModal via onEdit.
  */
 export default function ListsRail(props: ListsRailProps): React.ReactElement {
   const {
     ownedLists, sharedLists, activeId, incomingInvites,
-    editingListId, editingName, setEditingName,
-    onSelect, onNewList, onStartRename, onCommitRename, onSetColor, onRequestDelete,
+    onSelect, onNewList, onEdit, onSetColor, onRequestDelete,
     onAcceptInvite, onDeclineInvite, t,
   } = props
 
@@ -198,40 +167,14 @@ export default function ListsRail(props: ListsRailProps): React.ReactElement {
 
       {ownedLists.length > 0 && <div className="col-rail-sep" />}
       {ownedLists.map(list => (
-        <ListRow
-          key={list.id}
-          list={list}
-          active={activeId === list.id}
-          editing={editingListId === list.id}
-          editingName={editingName}
-          setEditingName={setEditingName}
-          onSelect={onSelect}
-          onStartRename={onStartRename}
-          onCommitRename={onCommitRename}
-          onSetColor={onSetColor}
-          onRequestDelete={onRequestDelete}
-          t={t}
-        />
+        <ListRow key={list.id} list={list} active={activeId === list.id} onSelect={onSelect} onEdit={onEdit} onSetColor={onSetColor} onRequestDelete={onRequestDelete} t={t} />
       ))}
 
       {sharedLists.length > 0 && (
         <>
           <div className="col-rail-label"><Users size={12} /> {t('collections.shared')}</div>
           {sharedLists.map(list => (
-            <ListRow
-              key={list.id}
-              list={list}
-              active={activeId === list.id}
-              editing={editingListId === list.id}
-              editingName={editingName}
-              setEditingName={setEditingName}
-              onSelect={onSelect}
-              onStartRename={onStartRename}
-              onCommitRename={onCommitRename}
-              onSetColor={onSetColor}
-              onRequestDelete={onRequestDelete}
-              t={t}
-            />
+            <ListRow key={list.id} list={list} active={activeId === list.id} onSelect={onSelect} onEdit={onEdit} onSetColor={onSetColor} onRequestDelete={onRequestDelete} t={t} />
           ))}
         </>
       )}

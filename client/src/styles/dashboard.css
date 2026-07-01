@@ -541,15 +541,27 @@
 .trek-dash .upc-type.other { background: var(--bg-2); color: var(--ink-2); }
 .trek-dash .upc-type svg { width: 16px; height: 16px; }
 
-/* ----------------- collections widget ----------------- */
-.trek-dash .col-count { font-size: 12px; color: var(--ink-3); font-weight: 500; margin-bottom: 12px; }
+/* ----------------- collections widget (list badges) ----------------- */
 .trek-dash .col-empty { font-size: 13px; color: var(--ink-3); }
-.trek-dash .col-list { display: flex; flex-direction: column; gap: 4px; }
-.trek-dash .col-item { display: grid; grid-template-columns: 36px 1fr; gap: 12px; padding: 8px; border-radius: 12px; align-items: center; transition: background .12s; cursor: pointer; width: 100%; text-align: left; }
-.trek-dash .col-item:hover { background: var(--surface-2); }
-.trek-dash .col-info { min-width: 0; }
-.trek-dash .col-info .t { font-size: 14px; font-weight: 500; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.trek-dash .col-info .s { font-size: 12px; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trek-dash .col-badges { display: flex; flex-direction: column; gap: 9px; }
+.trek-dash .col-badge {
+  position: relative; display: block; width: 100%; height: 56px; border-radius: 14px; overflow: hidden;
+  cursor: pointer; text-align: left; box-shadow: var(--sh-sm); transition: transform .15s cubic-bezier(.2,.7,.2,1), box-shadow .2s;
+}
+.trek-dash .col-badge:hover { transform: translateY(-2px); box-shadow: var(--sh-md); }
+.trek-dash .col-badge-media { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background-size: cover; background-position: center; }
+.trek-dash .col-badge-tint {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(90deg, color-mix(in oklch, var(--badge-color, #6366f1) 62%, black 8%) 0%, color-mix(in oklch, var(--badge-color, #6366f1) 34%, transparent) 58%, rgba(0,0,0,.28) 100%),
+    linear-gradient(180deg, rgba(0,0,0,0) 45%, rgba(0,0,0,.35) 100%);
+}
+.trek-dash .col-badge-body { position: relative; z-index: 1; height: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 14px; color: #fff; }
+.trek-dash .col-badge-name { font-size: 14.5px; font-weight: 600; letter-spacing: -.01em; text-shadow: 0 1px 4px rgba(0,0,0,.4); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trek-dash .col-badge-count {
+  flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums;
+  padding: 4px 9px; border-radius: 999px; background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.28); backdrop-filter: blur(6px);
+}
 
 /* ----------------- responsive ----------------- */
 @media (max-width: 1280px) {

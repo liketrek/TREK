@@ -51,6 +51,8 @@ export const collectionsApi = {
     ax.post(base, body satisfies CollectionCreateRequest).then((r: AxiosResponse) => r.data),
   update: (id: number, body: CollectionUpdateRequest): Promise<{ collection: Collection }> =>
     ax.patch(`${base}/${id}`, body satisfies CollectionUpdateRequest).then((r: AxiosResponse) => r.data),
+  uploadCover: (id: number, formData: FormData): Promise<Collection> =>
+    ax.post(`${base}/${id}/cover`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then((r: AxiosResponse) => r.data),
   remove: (id: number): Promise<unknown> =>
     ax.delete(`${base}/${id}`).then((r: AxiosResponse) => r.data),
   reorder: (orderedIds: number[]): Promise<unknown> =>
@@ -84,6 +86,8 @@ export const collectionsApi = {
     ax.post(`${base}/invite/cancel`, { collection_id: collectionId, user_id: userId } satisfies CollectionInviteCancelRequest).then((r: AxiosResponse) => r.data),
   leave: (collectionId: number): Promise<unknown> =>
     ax.post(`${base}/leave`, { collection_id: collectionId }).then((r: AxiosResponse) => r.data),
+  removeMember: (collectionId: number, userId: number): Promise<unknown> =>
+    ax.post(`${base}/members/remove`, { collection_id: collectionId, user_id: userId }).then((r: AxiosResponse) => r.data),
   availableUsers: (id: number): Promise<{ users: { id: number; username: string }[] }> =>
     ax.get(`${base}/${id}/available-users`).then((r: AxiosResponse) => r.data),
 }

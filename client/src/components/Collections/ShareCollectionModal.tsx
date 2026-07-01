@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { UserPlus, Loader2, Clock, Check, Crown, LogOut } from 'lucide-react'
+import { UserPlus, UserMinus, Loader2, Clock, Check, Crown, LogOut } from 'lucide-react'
 import type { CollectionMember } from '@trek/shared'
 import Modal from '../shared/Modal'
 import CustomSelect from '../shared/CustomSelect'
@@ -56,12 +56,14 @@ export default function ShareCollectionModal({
   const currentUserId = useAuthStore(s => s.user?.id)
   const invite = useCollectionStore(s => s.invite)
   const cancelInvite = useCollectionStore(s => s.cancelInvite)
+  const removeMember = useCollectionStore(s => s.removeMember)
   const leave = useCollectionStore(s => s.leave)
 
   const [availableUsers, setAvailableUsers] = useState<{ id: number; username: string }[]>([])
   const [selectedUserId, setSelectedUserId] = useState<number | ''>('')
   const [inviting, setInviting] = useState(false)
   const [cancellingId, setCancellingId] = useState<number | null>(null)
+  const [removingId, setRemovingId] = useState<number | null>(null)
   const [confirmLeave, setConfirmLeave] = useState(false)
   const [leaving, setLeaving] = useState(false)
 
@@ -114,6 +116,18 @@ export default function ShareCollectionModal({
       toast.error(getApiErrorMessage(err, t('common.error')))
     } finally {
       setCancellingId(null)
+    }
+  }
+
+  const handleRemove = async (userId: number) => {
+    if (removingId != null) return
+    setRemovingId(userId)
+    try {
+      await removeMember(collectionId, userId)
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('common.error')))
+    } finally {
+      setRemovingId(null)
     }
   }
 
@@ -183,6 +197,18 @@ export default function ShareCollectionModal({
                       className="shrink-0 text-[11px] font-medium px-2 py-1 rounded-md text-content-faint hover:text-danger hover:bg-danger-soft transition-colors disabled:opacity-50"
                     >
                       {cancellingId === member.user_id ? <Loader2 size={12} className="animate-spin" /> : t('collections.share.cancel')}
+                    </button>
+                  )}
+                  {isOwner && !member.is_owner && member.status === 'accepted' && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemove(member.user_id)}
+                      disabled={removingId === member.user_id}
+                      title={t('collections.share.remove')}
+                      aria-label={t('collections.share.remove')}
+                      className="shrink-0 p-1 rounded-md text-content-faint hover:text-danger hover:bg-danger-soft transition-colors disabled:opacity-50"
+                    >
+                      {removingId === member.user_id ? <Loader2 size={12} className="animate-spin" /> : <UserMinus size={13} />}
                     </button>
                   )}
                 </div>

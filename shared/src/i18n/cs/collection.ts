@@ -1,6 +1,19 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.editListTitle': 'Upravit seznam',
+  'collections.coverImage': 'Obrázek na obálku',
+  'collections.addCover': 'Přidat obálku',
+  'collections.changeCover': 'Změnit obálku',
+  'collections.description': 'Popis',
+  'collections.descriptionPlaceholder': 'Přidejte popis…',
+  'collections.links': 'Odkazy',
+  'collections.linkLabel': 'Popisek',
+  'collections.addLink': 'Přidat odkaz',
+  'collections.addDetails': 'Přidat podrobnosti',
+  'collections.addPlace': 'Přidat místo',
+  'collections.addPlaceSearch': 'Hledat místo…',
+  'collections.addPlaceHint': 'Vyhledejte a přidejte místo do tohoto seznamu',
   'collections.showList': 'Zobrazit seznam',
   'collections.expandMap': 'Zvětšit mapu',
   'collections.hero.mine': 'Moje sbírka',

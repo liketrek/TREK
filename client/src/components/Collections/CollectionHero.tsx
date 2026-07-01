@@ -1,6 +1,6 @@
 import React from 'react'
-import { Share2, Users, Plus } from 'lucide-react'
-import type { CollectionMember } from '@trek/shared'
+import { Share2, Users, Plus, Link2 } from 'lucide-react'
+import type { CollectionMember, CollectionLink } from '@trek/shared'
 import type { TranslationFn } from '../../types'
 import type { StatusFilter } from '../../store/collectionStore'
 import { STATUS_META, STATUS_ORDER } from '../../pages/collections/collectionsModel'
@@ -14,9 +14,11 @@ function initials(name: string): string {
 interface CollectionHeroProps {
   eyebrow: string
   title: string
-  /** List colour — drives the gradient wash when there is no cover image. */
+  /** List colour — drives the gradient wash (or tints the cover image). */
   color: string
   coverImage?: string | null
+  description?: string | null
+  links?: CollectionLink[]
   counts: Record<StatusFilter, number>
   statusFilter: StatusFilter
   onStatusFilter: (f: StatusFilter) => void
@@ -37,8 +39,12 @@ interface CollectionHeroProps {
  * (All / Idea / Want / Visited with live counts). Share + New-list actions sit
  * top-right. Modelled on the dashboard hero-trip.
  */
+function linkHost(url: string): string {
+  try { return new URL(url).hostname.replace(/^www\./, '') } catch { return url }
+}
+
 export default function CollectionHero({
-  eyebrow, title, color, coverImage, counts, statusFilter, onStatusFilter,
+  eyebrow, title, color, coverImage, description, links, counts, statusFilter, onStatusFilter,
   members, canShare, isOwner, shareMemberCount, onShare, onNewList, t,
 }: CollectionHeroProps): React.ReactElement {
   const accepted = members.filter(m => m.status === 'accepted' || m.is_owner)
@@ -53,9 +59,14 @@ export default function CollectionHero({
 
   return (
     <header className="col-hero" style={{ ['--hero-color' as string]: color }}>
-      {coverImage
-        ? <img className="col-hero-img" src={coverImage} alt="" />
-        : <div className="col-hero-bg" />}
+      {coverImage ? (
+        <>
+          <img className="col-hero-img" src={coverImage} alt="" />
+          <div className="col-hero-tint" />
+        </>
+      ) : (
+        <div className="col-hero-bg" />
+      )}
       <div className="col-hero-scrim" />
 
       <div className="col-hero-actions">
@@ -94,6 +105,8 @@ export default function CollectionHero({
 
         <h1 className="col-hero-title">{title}</h1>
 
+        {description && <p className="col-hero-desc">{description}</p>}
+
         <div className="col-hero-stats">
           {chips.map(chip => (
             <button
@@ -108,6 +121,16 @@ export default function CollectionHero({
             </button>
           ))}
         </div>
+
+        {links && links.length > 0 && (
+          <div className="col-hero-links">
+            {links.map((l, i) => (
+              <a key={i} href={l.url} target="_blank" rel="noopener noreferrer" className="col-hero-link" onClick={e => e.stopPropagation()}>
+                <Link2 size={12} /> {l.label || linkHost(l.url)}
+              </a>
+            ))}
+          </div>
+        )}
       </div>
     </header>
   )

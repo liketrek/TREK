@@ -6,6 +6,9 @@ import type {
   CollectionMember,
   CollectionStatus,
   CollectionListResponse,
+  CollectionCreateRequest,
+  CollectionUpdateRequest,
+  CollectionPlaceUpdateRequest,
 } from '@trek/shared'
 
 /** A pending invitation the current user has received (derived server-side). */
@@ -38,12 +41,14 @@ interface CollectionState {
   setActive: (id: ActiveCollectionId) => Promise<void>
   refreshActive: () => Promise<void>
 
-  createCollection: (name: string, color?: string, icon?: string) => Promise<Collection | null>
-  updateCollection: (id: number, updates: { name?: string; color?: string; icon?: string; description?: string | null }) => Promise<void>
+  createCollection: (payload: CollectionCreateRequest) => Promise<Collection | null>
+  updateCollection: (id: number, updates: CollectionUpdateRequest) => Promise<void>
+  uploadCover: (id: number, file: File) => Promise<void>
   deleteCollection: (id: number) => Promise<void>
   reorderCollections: (orderedIds: number[]) => Promise<void>
 
   setStatus: (placeId: number, status: CollectionStatus) => Promise<void>
+  updatePlace: (placeId: number, body: CollectionPlaceUpdateRequest) => Promise<void>
   deletePlace: (placeId: number) => Promise<void>
   deleteMany: (ids: number[]) => Promise<void>
   copyToTrip: (tripId: number, placeIds: number[], force?: boolean) => Promise<{ copied: number; skipped: { id: number; name: string }[] }>
@@ -52,6 +57,7 @@ interface CollectionState {
   acceptInvite: (collectionId: number) => Promise<void>
   declineInvite: (collectionId: number) => Promise<void>
   cancelInvite: (collectionId: number, userId: number) => Promise<void>
+  removeMember: (collectionId: number, userId: number) => Promise<void>
   leave: (collectionId: number) => Promise<void>
 
   setView: (view: CollectionView) => void
@@ -97,6 +103,12 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
         places: data.places,
         members: data.collection.members ?? [],
       })
+    } catch {
+      // The list may have been left / removed / deleted out from under us (a WS
+      // event or the URL sync can re-request an id we just lost access to). Clear
+      // it instead of leaving an uncaught 403/404 rejection; the route sync then
+      // bounces to /collections.
+      if (get().activeId === id) set({ activeId: null, places: [], members: [] })
     } finally {
       set({ placesLoading: false })
     }
@@ -139,14 +151,22 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
     await get().setActive(activeId)
   },
 
-  createCollection: async (name: string, color?: string, icon?: string) => {
-    const data = await collectionsApi.create({ name, color, icon })
+  createCollection: async (payload) => {
+    const data = await collectionsApi.create(payload)
     await get().loadAll()
     return data.collection ?? null
   },
 
   updateCollection: async (id, updates) => {
     await collectionsApi.update(id, updates)
+    await get().loadAll()
+    if (get().activeId === id) await get().loadCollection(id)
+  },
+
+  uploadCover: async (id: number, file: File) => {
+    const fd = new FormData()
+    fd.append('cover', file)
+    await collectionsApi.uploadCover(id, fd)
     await get().loadAll()
     if (get().activeId === id) await get().loadCollection(id)
   },
@@ -177,6 +197,11 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
     } catch {
       await get().refreshActive()
     }
+  },
+
+  updatePlace: async (placeId, body) => {
+    const res = await collectionsApi.updatePlace(placeId, body)
+    set({ places: get().places.map(p => (p.id === placeId ? res.place : p)) })
   },
 
   deletePlace: async (placeId: number) => {
@@ -214,6 +239,11 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
 
   cancelInvite: async (collectionId: number, userId: number) => {
     await collectionsApi.cancelInvite(collectionId, userId)
+    if (get().activeId === collectionId) await get().loadCollection(collectionId)
+  },
+
+  removeMember: async (collectionId: number, userId: number) => {
+    await collectionsApi.removeMember(collectionId, userId)
     if (get().activeId === collectionId) await get().loadCollection(collectionId)
   },
 

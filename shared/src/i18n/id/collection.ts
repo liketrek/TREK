@@ -1,6 +1,19 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.editListTitle': 'Edit daftar',
+  'collections.coverImage': 'Gambar sampul',
+  'collections.addCover': 'Tambah sampul',
+  'collections.changeCover': 'Ubah sampul',
+  'collections.description': 'Deskripsi',
+  'collections.descriptionPlaceholder': 'Tambahkan deskripsi…',
+  'collections.links': 'Tautan',
+  'collections.linkLabel': 'Label',
+  'collections.addLink': 'Tambah tautan',
+  'collections.addDetails': 'Tambah detail',
+  'collections.addPlace': 'Tambah tempat',
+  'collections.addPlaceSearch': 'Cari tempat…',
+  'collections.addPlaceHint': 'Cari untuk menambahkan tempat ke daftar ini',
   'collections.showList': 'Tampilkan daftar',
   'collections.expandMap': 'Perbesar peta',
   'collections.hero.mine': 'Koleksi saya',

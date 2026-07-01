@@ -1,6 +1,19 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.editListTitle': 'Modifier la liste',
+  'collections.coverImage': 'Image de couverture',
+  'collections.addCover': 'Ajouter une couverture',
+  'collections.changeCover': 'Changer la couverture',
+  'collections.description': 'Description',
+  'collections.descriptionPlaceholder': 'Ajouter une description…',
+  'collections.links': 'Liens',
+  'collections.linkLabel': 'Libellé',
+  'collections.addLink': 'Ajouter un lien',
+  'collections.addDetails': 'Ajouter des détails',
+  'collections.addPlace': 'Ajouter un lieu',
+  'collections.addPlaceSearch': 'Rechercher un lieu…',
+  'collections.addPlaceHint': 'Recherchez pour ajouter un lieu à cette liste',
   'collections.showList': 'Afficher la liste',
   'collections.expandMap': 'Agrandir la carte',
   'collections.hero.mine': 'Ma collection',

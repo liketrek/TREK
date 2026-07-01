@@ -1,6 +1,19 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.editListTitle': 'Редагувати список',
+  'collections.coverImage': 'Обкладинка',
+  'collections.addCover': 'Додати обкладинку',
+  'collections.changeCover': 'Змінити обкладинку',
+  'collections.description': 'Опис',
+  'collections.descriptionPlaceholder': 'Додайте опис…',
+  'collections.links': 'Посилання',
+  'collections.linkLabel': 'Підпис',
+  'collections.addLink': 'Додати посилання',
+  'collections.addDetails': 'Додати деталі',
+  'collections.addPlace': 'Додати місце',
+  'collections.addPlaceSearch': 'Пошук місця…',
+  'collections.addPlaceHint': 'Знайдіть, щоб додати місце до цього списку',
   'collections.showList': 'Показати список',
   'collections.expandMap': 'Розгорнути карту',
   'collections.hero.mine': 'Моя колекція',

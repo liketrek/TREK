@@ -1,6 +1,19 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.editListTitle': 'Lista szerkesztése',
+  'collections.coverImage': 'Borítókép',
+  'collections.addCover': 'Borító hozzáadása',
+  'collections.changeCover': 'Borító módosítása',
+  'collections.description': 'Leírás',
+  'collections.descriptionPlaceholder': 'Adjon hozzá leírást…',
+  'collections.links': 'Hivatkozások',
+  'collections.linkLabel': 'Címke',
+  'collections.addLink': 'Hivatkozás hozzáadása',
+  'collections.addDetails': 'Részletek hozzáadása',
+  'collections.addPlace': 'Hely hozzáadása',
+  'collections.addPlaceSearch': 'Hely keresése…',
+  'collections.addPlaceHint': 'Keressen, hogy helyet adjon a listához',
   'collections.showList': 'Lista megjelenítése',
   'collections.expandMap': 'Térkép nagyítása',
   'collections.hero.mine': 'Saját gyűjtemény',

@@ -20,6 +20,7 @@ export class CollectionsService {
   getCollection(userId: number, id: number) { return svc.getCollection(userId, id); }
   createCollection(userId: number, body: CollectionCreateRequest) { return svc.createCollection(userId, body); }
   updateCollection(userId: number, id: number, body: CollectionUpdateRequest) { return svc.updateCollection(userId, id, body); }
+  setCollectionCover(userId: number, id: number, coverUrl: string | null) { return svc.setCollectionCover(userId, id, coverUrl); }
   deleteCollection(userId: number, id: number) { return svc.deleteCollection(userId, id); }
   reorderCollections(userId: number, orderedIds: number[]) { return svc.reorderCollections(userId, orderedIds); }
 
@@ -48,5 +49,6 @@ export class CollectionsService {
   declineInvite(userId: number, collectionId: number, socketId?: string) { return svc.declineInvite(userId, collectionId, socketId); }
   cancelInvite(collectionId: number, ownerId: number, targetUserId: number) { return svc.cancelInvite(collectionId, ownerId, targetUserId); }
   leaveCollection(userId: number, collectionId: number, socketId?: string) { return svc.leaveCollection(userId, collectionId, socketId); }
+  removeMember(ownerId: number, collectionId: number, targetUserId: number) { return svc.removeMember(ownerId, collectionId, targetUserId); }
   availableUsers(ownerId: number, collectionId: number) { return svc.availableUsers(ownerId, collectionId); }
 }

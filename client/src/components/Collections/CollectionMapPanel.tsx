@@ -1,5 +1,5 @@
 import React from 'react'
-import { PanelLeftClose, PanelLeftOpen, Search } from 'lucide-react'
+import { PanelLeftClose, PanelLeftOpen, Search, CheckSquare, Plus } from 'lucide-react'
 import type { CollectionPlace } from '@trek/shared'
 import type { TranslationFn } from '../../types'
 import CollectionMap from './CollectionMap'
@@ -15,6 +15,13 @@ interface CollectionMapPanelProps {
   /** 'list' = split (map can be expanded); 'map' = full (list collapsed). */
   view: 'list' | 'map'
   onToggleView: () => void
+  /** Bulk-select toggle — hidden for the "All saved" view. */
+  showSelect: boolean
+  selectMode: boolean
+  onToggleSelect: () => void
+  /** Show a "+" to add a place to the current list (real lists only). */
+  canAddPlace: boolean
+  onAddPlace: () => void
   search: string
   onSearch: (v: string) => void
   t: TranslationFn
@@ -22,11 +29,12 @@ interface CollectionMapPanelProps {
 
 /**
  * The map surface for the collections page — the map plus its floating controls:
- * a top-left toggle that collapses/expands the list (animating the split) and a
- * top-right search box. Used both in the desktop split and full-map view.
+ * a top-left cluster (collapse/expand the list, toggle bulk-select) and a
+ * top-right search box. Used both in the desktop split and the full-map view.
  */
 export default function CollectionMapPanel({
-  places, selectedPlaceId, onSelect, onDeselect, dark, overlay, view, onToggleView, search, onSearch, t,
+  places, selectedPlaceId, onSelect, onDeselect, dark, overlay, view, onToggleView,
+  showSelect, selectMode, onToggleSelect, canAddPlace, onAddPlace, search, onSearch, t,
 }: CollectionMapPanelProps): React.ReactElement {
   return (
     <div className="col-map-shell">
@@ -39,18 +47,38 @@ export default function CollectionMapPanel({
       />
       {overlay && (
         <>
-          <button
-            type="button"
-            onClick={onToggleView}
-            className="col-map-toggle"
-            aria-label={view === 'map' ? t('collections.showList') : t('collections.expandMap')}
-            title={view === 'map' ? t('collections.showList') : t('collections.expandMap')}
-          >
-            {view === 'map' ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
-          </button>
-          <div className="col-map-search">
-            <Search size={15} />
-            <input value={search} onChange={e => onSearch(e.target.value)} placeholder={t('collections.search')} />
+          <div className="col-map-controls">
+            <button
+              type="button"
+              onClick={onToggleView}
+              className="col-map-btn"
+              aria-label={view === 'map' ? t('collections.showList') : t('collections.expandMap')}
+              title={view === 'map' ? t('collections.showList') : t('collections.expandMap')}
+            >
+              {view === 'map' ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
+            </button>
+            {showSelect && (
+              <button
+                type="button"
+                onClick={onToggleSelect}
+                className={`col-map-btn${selectMode ? ' on' : ''}`}
+                aria-label={t('collections.selectMode')}
+                title={t('collections.selectMode')}
+              >
+                <CheckSquare size={16} />
+              </button>
+            )}
+          </div>
+          <div className="col-map-topright">
+            {canAddPlace && (
+              <button type="button" onClick={onAddPlace} className="col-map-btn" aria-label={t('collections.addPlace')} title={t('collections.addPlace')}>
+                <Plus size={17} />
+              </button>
+            )}
+            <div className="col-map-search">
+              <Search size={15} />
+              <input value={search} onChange={e => onSearch(e.target.value)} placeholder={t('collections.search')} />
+            </div>
           </div>
         </>
       )}

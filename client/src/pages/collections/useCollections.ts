@@ -8,7 +8,7 @@ import { getApiErrorMessage } from '../../types'
 import { addListener, removeListener } from '../../api/websocket'
 import { useCollectionStore, ALL_SAVED } from '../../store/collectionStore'
 import type { ActiveCollectionId } from '../../store/collectionStore'
-import type { CollectionStatus } from '@trek/shared'
+import type { Collection, CollectionStatus } from '@trek/shared'
 import type { Category, Place } from '../../types'
 import { filterPlaces, sortPlaces, statusCounts } from './collectionsModel'
 
@@ -46,23 +46,20 @@ export function useCollections() {
     collections, activeId, places, members, incomingInvites,
     view, statusFilter, search, selectedPlaceId, selectMode, selectedIds,
     loading, placesLoading,
-    loadAll, setActive,
-    createCollection, updateCollection, deleteCollection,
-    setStatus, deletePlace, deleteMany, copyToTrip, clearSelection,
+    loadAll, setActive, refreshActive,
+    updateCollection, deleteCollection,
+    setStatus, updatePlace, deletePlace, deleteMany, copyToTrip, clearSelection,
     acceptInvite, declineInvite,
     setView, setStatusFilter, setSearch, setSelectedPlaceId, setSelectMode, toggleSelect,
   } = store
 
   // ── Page-local UI state ─────────────────────────────────────────────
-  const [showNewList, setShowNewList] = useState(false)
-  const [newListName, setNewListName] = useState('')
-  const [newListColor, setNewListColor] = useState('#6366f1')
-  const [editingListId, setEditingListId] = useState<number | null>(null)
-  const [editingName, setEditingName] = useState('')
+  // The list editor modal: null = closed, 'new' = create, a Collection = edit it.
+  const [editorTarget, setEditorTarget] = useState<Collection | 'new' | null>(null)
   const [confirmDeleteList, setConfirmDeleteList] = useState<number | null>(null)
   const [mobileRailOpen, setMobileRailOpen] = useState(false)
-  const [creating, setCreating] = useState(false)
   const [showShare, setShowShare] = useState(false)
+  const [showAddPlace, setShowAddPlace] = useState(false)
   // The place ids the Copy-to-trip modal is open for (null = closed). Single
   // place from the detail panel, or the select-mode set for a bulk copy.
   const [copyIds, setCopyIds] = useState<number[] | null>(null)
@@ -98,11 +95,11 @@ export function useCollections() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeId, collections.length])
 
-  // Live sync via WebSocket. collections:deleted must bounce a member off a
-  // list that was removed under them.
+  // Live sync via WebSocket. collections:deleted / :removed must bounce a member
+  // off a list that was removed (or that they were kicked from) under them.
   const handleWsMessage = useCallback((msg: { type: string; collectionId?: number }) => {
     if (!msg.type?.startsWith('collections:')) return
-    if (msg.type === 'collections:deleted') {
+    if (msg.type === 'collections:deleted' || msg.type === 'collections:removed') {
       if (msg.collectionId != null && activeId === msg.collectionId) {
         navigate('/collections')
       }
@@ -153,41 +150,13 @@ export function useCollections() {
     navigate(id === ALL_SAVED || id === null ? '/collections' : `/collections/${id}`)
   }, [navigate])
 
-  const handleCreateList = useCallback(async () => {
-    const name = newListName.trim()
-    if (!name) return
-    setCreating(true)
-    try {
-      const created = await createCollection(name, newListColor)
-      setShowNewList(false)
-      setNewListName('')
-      setNewListColor('#6366f1')
-      if (created) navigate(`/collections/${created.id}`)
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, t('common.error')))
-    } finally {
-      setCreating(false)
-    }
-  }, [newListName, newListColor, createCollection, navigate, toast, t])
+  // The editor modal owns its own form + create/update/upload calls; the hook
+  // just opens it and navigates to a freshly created list.
+  const handleEditorCreated = useCallback((id: number) => {
+    navigate(`/collections/${id}`)
+  }, [navigate])
 
-  const handleStartRename = useCallback((id: number, currentName: string) => {
-    setEditingListId(id)
-    setEditingName(currentName)
-  }, [])
-
-  const handleCommitRename = useCallback(async () => {
-    if (editingListId == null) return
-    const name = editingName.trim()
-    if (name) {
-      try {
-        await updateCollection(editingListId, { name })
-      } catch (err) {
-        toast.error(getApiErrorMessage(err, t('common.error')))
-      }
-    }
-    setEditingListId(null)
-    setEditingName('')
-  }, [editingListId, editingName, updateCollection, toast, t])
+  const handlePlaceAdded = useCallback(() => { refreshActive() }, [refreshActive])
 
   const handleSetColor = useCallback(async (id: number, color: string) => {
     try {
@@ -318,9 +287,10 @@ export function useCollections() {
     loading, placesLoading,
     // store setters
     setView, setStatusFilter, setSearch, setSelectedPlaceId, setSelectMode, toggleSelect,
+    updatePlace,
     // local UI state
-    showNewList, setShowNewList, newListName, setNewListName, newListColor, setNewListColor, creating,
-    editingListId, editingName, setEditingName,
+    editorTarget, setEditorTarget, handleEditorCreated,
+    showAddPlace, setShowAddPlace, handlePlaceAdded,
     confirmDeleteList, setConfirmDeleteList,
     mobileRailOpen, setMobileRailOpen,
     showShare, setShowShare, handleAfterLeave,
@@ -329,8 +299,7 @@ export function useCollections() {
     handleDetailStatus, handleDetailRemove,
     copyIds, openCopyForSelectedPlace, openCopyForSelection, closeCopy, handleCopyToTrip,
     // handlers
-    handleSelectList, handleCreateList,
-    handleStartRename, handleCommitRename, handleSetColor, handleDeleteList,
+    handleSelectList, handleSetColor, handleDeleteList,
     handleStatusChange, handleDeletePlace, handleDeleteSelected,
     handleAcceptInvite, handleDeclineInvite,
   }
