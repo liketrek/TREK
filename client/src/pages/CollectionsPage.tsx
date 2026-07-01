@@ -6,12 +6,12 @@ import ListsRail from '../components/Collections/ListsRail'
 import ListEditorModal from '../components/Collections/ListEditorModal'
 import CollectionHero from '../components/Collections/CollectionHero'
 import CollectionList from '../components/Collections/CollectionList'
+import CollectionFilterBar from '../components/Collections/CollectionFilterBar'
 import CollectionMapPanel from '../components/Collections/CollectionMapPanel'
 import CopyToTripModal from '../components/Collections/CopyToTripModal'
 import ShareCollectionModal from '../components/Collections/ShareCollectionModal'
 import AddPlaceToCollectionModal from '../components/Collections/AddPlaceToCollectionModal'
 import CollectionPlaceDetail from '../components/Collections/CollectionPlaceDetail'
-import { mappablePlaces } from './collections/collectionsModel'
 import { useCollections } from './collections/useCollections'
 import '../styles/dashboard.css'
 import '../styles/collections.css'
@@ -45,7 +45,7 @@ export default function CollectionsPage(): React.ReactElement {
   // clears it. Below the desktop breakpoint the list and map are separate views;
   // above it the list view is a split with a persistent map that pans to the
   // selection (the map stays mounted across the list↔map toggle so it animates).
-  const mappable = mappablePlaces(c.visiblePlaces)
+  const mappable = c.mappable
   const openPlace = (id: number) => c.setSelectedPlaceId(c.selectedPlaceId === id ? null : id)
   const deselect = () => c.setSelectedPlaceId(null)
   const toggleView = () => {
@@ -95,24 +95,44 @@ export default function CollectionsPage(): React.ReactElement {
     />
   )
 
+  // Filter row + the list (or a "no match" note when a filter hides everything).
+  // Kept together so the filters stay reachable even when nothing matches.
+  const filterBar = hasPlaces ? (
+    <CollectionFilterBar
+      statusFilter={c.statusFilter}
+      counts={c.counts}
+      categoryFilter={c.categoryFilter}
+      categoryOptions={c.categoryOptions}
+      onStatusFilter={c.setStatusFilter}
+      onCategoryFilter={c.setCategoryFilter}
+      t={t}
+    />
+  ) : null
+  const listColumn = (
+    <>
+      {filterBar}
+      {c.visiblePlaces.length > 0
+        ? listEl
+        : <EmptyState icon={<Search size={26} />} title={t('collections.empty.noMatchTitle')} text={t('collections.empty.noMatchText')} />}
+    </>
+  )
+
   let body: React.ReactElement
   if (c.placesLoading && !hasPlaces) {
     body = <div className="col-loading"><div className="col-spinner" /></div>
   } else if (!hasPlaces) {
     body = <EmptyState icon={<Bookmark size={26} />} title={t('collections.empty.title')} text={t('collections.empty.text')} />
-  } else if (c.visiblePlaces.length === 0) {
-    body = <EmptyState icon={<Search size={26} />} title={t('collections.empty.noMatchTitle')} text={t('collections.empty.noMatchText')} />
   } else if (desktopSplit) {
     body = (
       <div className={`col-split${c.view === 'map' ? ' map-full' : ''}`}>
-        <div className="col-split-list" ref={c.listColRef}>{listEl}</div>
+        <div className="col-split-list" ref={c.listColRef}>{listColumn}</div>
         <div className="col-split-map">{mapPanel(true)}</div>
       </div>
     )
   } else if (c.view === 'map' && mappable.length > 0) {
     body = <div className="col-mapwrap">{mapPanel(false)}</div>
   } else {
-    body = listEl
+    body = listColumn
   }
 
   const rail = (
@@ -160,9 +180,6 @@ export default function CollectionsPage(): React.ReactElement {
                     coverImage={heroCover}
                     description={c.isAllSaved ? null : (c.activeCollection?.description ?? null)}
                     links={c.isAllSaved ? undefined : c.activeCollection?.links}
-                    counts={c.counts}
-                    statusFilter={c.statusFilter}
-                    onStatusFilter={c.setStatusFilter}
                     members={c.members}
                     canShare={c.canShare}
                     isOwner={c.isOwner}

@@ -68,6 +68,7 @@ interface Props {
   routeSegments?: RouteSegment[]
   selectedPlaceId?: number | null
   onMarkerClick?: (id: number) => void
+  hoverDisabled?: boolean
   onMapClick?: (info: { latlng: { lat: number; lng: number } }) => void
   onMapContextMenu?: ((e: { latlng: { lat: number; lng: number }; originalEvent: MouseEvent }) => void) | null
   center?: [number, number]
@@ -184,6 +185,7 @@ export function MapViewGL({
   route = null,
   routeSegments = [],
   selectedPlaceId = null,
+  hoverDisabled = false,
   onMarkerClick,
   onMapClick,
   onMapContextMenu = null,
@@ -264,6 +266,8 @@ export function MapViewGL({
   onClickRefs.current.marker = onMarkerClick
   onClickRefs.current.map = onMapClick
   onClickRefs.current.context = onMapContextMenu
+  const hoverDisabledRef = useRef(hoverDisabled)
+  hoverDisabledRef.current = hoverDisabled
 
   // Build/rebuild the map on provider/style/token/3d change
   useEffect(() => {
@@ -649,14 +653,17 @@ export function MapViewGL({
           onClickRefs.current.marker?.(place.id)
         })
         el.addEventListener('mouseenter', (ev) => {
+          if (hoverDisabledRef.current) return
           hoverIdRef.current = place.id
           setHoverPlace(place as Place & { category_color?: string; category_icon?: string; category_name?: string })
           setHoverPos({ x: (ev as MouseEvent).clientX, y: (ev as MouseEvent).clientY })
         })
         el.addEventListener('mousemove', (ev) => {
+          if (hoverDisabledRef.current) return
           setHoverPos({ x: (ev as MouseEvent).clientX, y: (ev as MouseEvent).clientY })
         })
         el.addEventListener('mouseleave', () => {
+          if (hoverDisabledRef.current) return
           hoverIdRef.current = null
           setHoverPlace(null)
           setHoverPos(null)
@@ -946,7 +953,7 @@ export function MapViewGL({
       )}
       {/* Hover tooltip — cursor-following name/category/address card, identical to
           the Leaflet map's overlay (no anchored popup, no photo). */}
-      {hoverPlace && hoverPos && !isMobile && (
+      {!hoverDisabled && hoverPlace && hoverPos && !isMobile && (
         <div data-testid="tooltip" style={{
           position: 'fixed',
           left: hoverPos.x + 14,

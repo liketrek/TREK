@@ -12,7 +12,7 @@ import type { ActiveCollectionId } from '../../store/collectionStore'
 import { categoriesApi } from '../../api/client'
 import type { Collection, CollectionStatus } from '@trek/shared'
 import type { Category, Place } from '../../types'
-import { filterPlaces, sortPlaces, statusCounts } from './collectionsModel'
+import { filterPlaces, sortPlaces, statusCounts, mappablePlaces, presentCategories } from './collectionsModel'
 
 /**
  * Collections page logic — owns the page-local UI state (new/edit-list forms,
@@ -48,13 +48,13 @@ export function useCollections() {
   const store = useCollectionStore()
   const {
     collections, activeId, places, members, incomingInvites,
-    view, statusFilter, search, selectedPlaceId, selectMode, selectedIds,
+    view, statusFilter, categoryFilter, search, selectedPlaceId, selectMode, selectedIds,
     loading, placesLoading,
     loadAll, setActive, refreshActive, loadCollection,
     deleteCollection,
     setStatus, updatePlace, deletePlace, deleteMany, copyToTrip, clearSelection,
     acceptInvite, declineInvite,
-    setView, setStatusFilter, setSearch, setSelectedPlaceId, setSelectMode, toggleSelect,
+    setView, setStatusFilter, setCategoryFilter, setSearch, setSelectedPlaceId, setSelectMode, toggleSelect,
   } = store
 
   // ── Page-local UI state ─────────────────────────────────────────────
@@ -150,9 +150,14 @@ export function useCollections() {
   const sharedLists = useMemo(() => collections.filter(c => c.is_owner === false), [collections])
 
   const visiblePlaces = useMemo(
-    () => sortPlaces(filterPlaces(places, statusFilter, search)),
-    [places, statusFilter, search],
+    () => sortPlaces(filterPlaces(places, statusFilter, search, categoryFilter)),
+    [places, statusFilter, search, categoryFilter],
   )
+  // Categories actually present in this list, for the category filter dropdown.
+  const categoryOptions = useMemo(() => presentCategories(places), [places])
+  // Stable reference so the map doesn't tear down + rebuild every marker on each
+  // unrelated re-render (which would swallow marker clicks mid-rebuild).
+  const mappable = useMemo(() => mappablePlaces(visiblePlaces), [visiblePlaces])
   const counts = useMemo(() => statusCounts(places), [places])
 
   // ── Handlers ────────────────────────────────────────────────────────
@@ -286,11 +291,11 @@ export function useCollections() {
     // store data
     collections, ownedLists, sharedLists, activeCollection, isAllSaved, isOwner,
     canShare, shareMemberCount,
-    activeId, places, visiblePlaces, members, incomingInvites, counts,
-    view, statusFilter, search, selectedPlaceId, selectMode, selectedIds,
+    activeId, places, visiblePlaces, mappable, members, incomingInvites, counts,
+    view, statusFilter, categoryFilter, categoryOptions, search, selectedPlaceId, selectMode, selectedIds,
     loading, placesLoading,
     // store setters
-    setView, setStatusFilter, setSearch, setSelectedPlaceId, setSelectMode, toggleSelect,
+    setView, setStatusFilter, setCategoryFilter, setSearch, setSelectedPlaceId, setSelectMode, toggleSelect,
     updatePlace,
     // local UI state
     editorTarget, setEditorTarget, handleEditorCreated,

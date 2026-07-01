@@ -100,6 +100,11 @@ export default function CollectionPlaceDetail({
       <div className="col-detail-cover" style={banner ? undefined : { backgroundImage: entityGradient(place.id) }}>
         {banner && <img src={banner} alt="" />}
         <div className="col-detail-cover-scrim" />
+        {place.category?.name && (
+          <span className="col-detail-cover-cat" style={{ ['--cat' as string]: place.category.color || '#6366f1' }}>
+            <CatIcon size={12} /> {place.category.name}
+          </span>
+        )}
         <button type="button" className="col-detail-close" onClick={onClose} aria-label={t('common.close')}><X size={16} /></button>
         <div className="col-detail-head">
           {editing
@@ -110,14 +115,9 @@ export default function CollectionPlaceDetail({
 
       <div className="col-detail-body">
         {/* Meta (view only) */}
-        {!editing && (place.category?.name || place.address) && (
+        {!editing && place.address && (
           <div className="col-detail-meta">
-            {place.category?.name && (
-              <span className="col-detail-catchip" style={{ ['--cat' as string]: place.category.color || '#6366f1' }}>
-                <CatIcon size={12} /> {place.category.name}
-              </span>
-            )}
-            {place.address && <span className="col-detail-addr"><MapPin size={12} /> {place.address}</span>}
+            <span className="col-detail-addr"><MapPin size={12} /> {place.address}</span>
           </div>
         )}
 

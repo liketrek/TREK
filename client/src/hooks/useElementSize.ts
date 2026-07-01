@@ -19,7 +19,11 @@ export function useElementSize<T extends HTMLElement = HTMLElement>(): {
     obs.current?.disconnect()
     obs.current = null
     if (!el) return
-    const measure = () => setSize({ width: el.offsetWidth, height: el.offsetHeight })
+    // Only update state when the size actually changed — avoids re-render churn.
+    const measure = () => setSize(prev => {
+      const w = el.offsetWidth, h = el.offsetHeight
+      return prev.width === w && prev.height === h ? prev : { width: w, height: h }
+    })
     measure()
     obs.current = new ResizeObserver(measure)
     obs.current.observe(el)
