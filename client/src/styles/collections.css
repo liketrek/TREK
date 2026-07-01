@@ -13,7 +13,7 @@
 
 /* Sticky left list rail + fluid body. */
 .trek-dash .col-page {
-  max-width: 1720px; margin: 0 auto; padding: 30px 44px 110px;
+  max-width: min(2100px, 95vw); margin: 0 auto; padding: 30px 44px 110px;
   display: grid; grid-template-columns: 272px minmax(0, 1fr); gap: 30px; align-items: start;
 }
 .trek-dash .col-body { min-width: 0; }
@@ -113,7 +113,8 @@
   position: relative; z-index: 2; width: 100%; padding: 18px 28px 20px;
   display: flex; flex-direction: column; justify-content: flex-end; gap: 9px; color: #fff;
 }
-.trek-dash .col-hero-actions { position: absolute; top: 20px; right: 22px; z-index: 3; display: flex; gap: 8px; }
+.trek-dash .col-hero-titlerow { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.trek-dash .col-hero-actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; margin-bottom: 3px; }
 .trek-dash .col-glass-btn {
   display: inline-flex; align-items: center; gap: 7px; height: 38px; padding: 0 15px; border-radius: 999px;
   background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.24); color: #fff;
@@ -248,7 +249,7 @@
 /* ----------------- list view ----------------- */
 .trek-dash .col-listview { display: flex; flex-direction: column; gap: 7px; }
 .trek-dash .col-lrow {
-  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center;
+  display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 14px; align-items: center;
   padding: 10px 14px; border-radius: var(--r-md);
   background: var(--glass-bg); border: 1px solid var(--glass-border); box-shadow: var(--sh-xs);
   cursor: pointer; transition: transform .12s, box-shadow .15s, border-color .15s;

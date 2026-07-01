@@ -6,6 +6,7 @@ import { X, Pencil, Copy, Trash2, MapPin, Link2, Plus, ExternalLink, Check, Tag 
 import type { CollectionPlace, CollectionStatus, CollectionLink } from '@trek/shared'
 import type { Category, TranslationFn } from '../../types'
 import MarkdownToolbar from '../Journey/MarkdownToolbar'
+import { mapsApi } from '../../api/client'
 import { entityGradient } from '../../utils/gradients'
 import { getCategoryIcon } from '../shared/categoryIcons'
 import { STATUS_META, STATUS_ORDER, normalizeLinkUrl } from '../../pages/collections/collectionsModel'
@@ -63,6 +64,9 @@ export default function CollectionPlaceDetail({
   const [description, setDescription] = useState(place.description ?? '')
   const [links, setLinks] = useState<CollectionLink[]>(place.links ?? [])
   const [saving, setSaving] = useState(false)
+  // A higher-res photo pulled from the maps provider when the place has none of
+  // its own — the list avatar's little thumbnail is too low-res for the cover.
+  const [fetchedPhoto, setFetchedPhoto] = useState<string | null>(null)
   const descRef = useRef<HTMLTextAreaElement>(null)
 
   // Reset only when a DIFFERENT place is opened (keyed on id, not on every field).
@@ -75,7 +79,21 @@ export default function CollectionPlaceDetail({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [place.id])
 
-  const banner = place.image_url
+  // Fetch a cover photo when the place doesn't carry its own image.
+  useEffect(() => {
+    setFetchedPhoto(null)
+    if (place.image_url) return
+    const photoId = place.google_place_id || place.osm_id || (place.lat != null && place.lng != null ? `${place.lat},${place.lng}` : null)
+    if (!photoId) return
+    let cancelled = false
+    mapsApi.placePhoto(photoId, place.lat ?? undefined, place.lng ?? undefined, place.name)
+      .then(res => { if (!cancelled && res?.photoUrl) setFetchedPhoto(res.photoUrl) })
+      .catch(() => {})
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [place.id])
+
+  const banner = place.image_url || fetchedPhoto
   const setLink = (i: number, patch: Partial<CollectionLink>) => setLinks(links.map((l, idx) => (idx === i ? { ...l, ...patch } : l)))
   const resetForm = () => { setEditing(false); setName(place.name); setCategoryId(place.category_id ?? null); setDescription(place.description ?? ''); setLinks(place.links ?? []) }
 

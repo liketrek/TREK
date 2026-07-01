@@ -15,6 +15,8 @@ interface ListEditorModalProps {
   target: Collection | 'new' | null
   onClose: () => void
   onCreated: (id: number) => void
+  /** Owner-only: hand off to the delete-confirm flow when editing a list. */
+  onRequestDelete: (id: number) => void
   t: TranslationFn
 }
 
@@ -23,7 +25,7 @@ interface ListEditorModalProps {
  * list colour in the hero), a description and a set of links. On create it makes
  * the list then uploads the cover to the new id; on edit it patches + re-uploads.
  */
-export default function ListEditorModal({ target, onClose, onCreated, t }: ListEditorModalProps): React.ReactElement | null {
+export default function ListEditorModal({ target, onClose, onCreated, onRequestDelete, t }: ListEditorModalProps): React.ReactElement | null {
   const createCollection = useCollectionStore(s => s.createCollection)
   const updateCollection = useCollectionStore(s => s.updateCollection)
   const uploadCover = useCollectionStore(s => s.uploadCover)
@@ -113,13 +115,24 @@ export default function ListEditorModal({ target, onClose, onCreated, t }: ListE
       title={editing ? t('collections.editListTitle') : t('collections.newList')}
       size="md"
       footer={
-        <div className="flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="px-3 py-1.5 rounded-lg border border-edge text-content-secondary text-[13px] hover:bg-surface-hover">
-            {t('common.cancel')}
-          </button>
-          <button type="button" onClick={save} disabled={!name.trim() || saving} className="px-3 py-1.5 rounded-lg bg-accent text-accent-text text-[13px] font-semibold disabled:opacity-50">
-            {editing ? t('common.save') : t('collections.create')}
-          </button>
+        <div className="flex items-center gap-2">
+          {editing && editing.is_owner !== false && (
+            <button
+              type="button"
+              onClick={() => { onClose(); onRequestDelete(editing.id) }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-danger text-[13px] font-medium hover:bg-danger-soft"
+            >
+              <Trash2 size={14} /> {t('collections.deleteList')}
+            </button>
+          )}
+          <div className="flex justify-end gap-2 ml-auto">
+            <button type="button" onClick={onClose} className="px-3 py-1.5 rounded-lg border border-edge text-content-secondary text-[13px] hover:bg-surface-hover">
+              {t('common.cancel')}
+            </button>
+            <button type="button" onClick={save} disabled={!name.trim() || saving} className="px-3 py-1.5 rounded-lg bg-accent text-accent-text text-[13px] font-semibold disabled:opacity-50">
+              {editing ? t('common.save') : t('collections.create')}
+            </button>
+          </div>
         </div>
       }
     >

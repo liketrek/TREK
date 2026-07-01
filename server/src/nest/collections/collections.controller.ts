@@ -110,8 +110,8 @@ export class CollectionsController {
   // ── Places (static prefixes before /:id) ────────────────────────────────────
   @Post('places')
   @HttpCode(200)
-  savePlace(@CurrentUser() user: User, @Body(new ZodValidationPipe(collectionSavePlaceRequestSchema)) body: CollectionSavePlaceRequest) {
-    return this.collections.savePlace(user.id, body);
+  savePlace(@CurrentUser() user: User, @Body(new ZodValidationPipe(collectionSavePlaceRequestSchema)) body: CollectionSavePlaceRequest, @Headers('x-socket-id') socketId?: string) {
+    return this.collections.savePlace(user.id, body, socketId);
   }
 
   @Post('places/from-trip')
@@ -122,11 +122,11 @@ export class CollectionsController {
 
   @Post('places/delete-many')
   @HttpCode(200)
-  deleteMany(@CurrentUser() user: User, @Body('ids') ids: unknown) {
+  deleteMany(@CurrentUser() user: User, @Body('ids') ids: unknown, @Headers('x-socket-id') socketId?: string) {
     if (!Array.isArray(ids) || !ids.every((v) => Number.isFinite(Number(v)))) {
       throw new HttpException({ error: 'ids must be an array of numbers' }, 400);
     }
-    return { deleted: this.collections.deletePlacesMany(user.id, ids.map(Number)) };
+    return { deleted: this.collections.deletePlacesMany(user.id, ids.map(Number), socketId) };
   }
 
   @Patch('places/:pid')
@@ -134,8 +134,9 @@ export class CollectionsController {
     @CurrentUser() user: User,
     @Param('pid') pid: string,
     @Body(new ZodValidationPipe(collectionPlaceUpdateRequestSchema)) body: CollectionPlaceUpdateRequest,
+    @Headers('x-socket-id') socketId?: string,
   ) {
-    return this.collections.updatePlace(user.id, Number(pid), body);
+    return this.collections.updatePlace(user.id, Number(pid), body, socketId);
   }
 
   @Post('places/:pid/status')
@@ -144,13 +145,14 @@ export class CollectionsController {
     @CurrentUser() user: User,
     @Param('pid') pid: string,
     @Body(new ZodValidationPipe(collectionSetStatusRequestSchema)) body: CollectionSetStatusRequest,
+    @Headers('x-socket-id') socketId?: string,
   ) {
-    return this.collections.setStatus(user.id, Number(pid), body.status);
+    return this.collections.setStatus(user.id, Number(pid), body.status, socketId);
   }
 
   @Delete('places/:pid')
-  deletePlace(@CurrentUser() user: User, @Param('pid') pid: string) {
-    this.collections.deletePlace(user.id, Number(pid));
+  deletePlace(@CurrentUser() user: User, @Param('pid') pid: string, @Headers('x-socket-id') socketId?: string) {
+    this.collections.deletePlace(user.id, Number(pid), socketId);
     return { success: true };
   }
 
@@ -253,13 +255,13 @@ export class CollectionsController {
 
   @Post(':id/cover')
   @UseInterceptors(FileInterceptor('cover', COVER_UPLOAD))
-  uploadCover(@CurrentUser() user: User, @Param('id') id: string, @UploadedFile() file: Express.Multer.File | undefined) {
+  uploadCover(@CurrentUser() user: User, @Param('id') id: string, @UploadedFile() file: Express.Multer.File | undefined, @Headers('x-socket-id') socketId?: string) {
     if (process.env.DEMO_MODE?.toLowerCase() === 'true' && isDemoEmail(user.email)) {
       throw new HttpException({ error: 'Uploads are disabled in demo mode. Self-host TREK for full functionality.' }, 403);
     }
     if (!file) throw new HttpException({ error: 'No image uploaded' }, 400);
     const coverUrl = `/uploads/covers/${file.filename}`;
-    return this.collections.setCollectionCover(user.id, Number(id), coverUrl);
+    return this.collections.setCollectionCover(user.id, Number(id), coverUrl, socketId);
   }
 
   @Get(':id')
@@ -268,8 +270,8 @@ export class CollectionsController {
   }
 
   @Patch(':id')
-  update(@CurrentUser() user: User, @Param('id') id: string, @Body(new ZodValidationPipe(collectionUpdateRequestSchema)) body: CollectionUpdateRequest) {
-    return this.collections.updateCollection(user.id, Number(id), body);
+  update(@CurrentUser() user: User, @Param('id') id: string, @Body(new ZodValidationPipe(collectionUpdateRequestSchema)) body: CollectionUpdateRequest, @Headers('x-socket-id') socketId?: string) {
+    return this.collections.updateCollection(user.id, Number(id), body, socketId);
   }
 
   @Delete(':id')

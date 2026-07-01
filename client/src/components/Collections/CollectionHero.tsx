@@ -1,5 +1,5 @@
 import React from 'react'
-import { Share2, Users, Link2 } from 'lucide-react'
+import { Share2, Users, Link2, Pencil } from 'lucide-react'
 import type { CollectionMember, CollectionLink } from '@trek/shared'
 import type { TranslationFn } from '../../types'
 
@@ -21,6 +21,8 @@ interface CollectionHeroProps {
   members: CollectionMember[]
   canShare: boolean
   isOwner: boolean
+  canEdit: boolean
+  onEdit: () => void
   shareMemberCount: number
   onShare: () => void
   t: TranslationFn
@@ -39,7 +41,7 @@ function linkHost(url: string): string {
 
 export default function CollectionHero({
   eyebrow, title, color, coverImage, description, links,
-  members, canShare, isOwner, shareMemberCount, onShare, t,
+  members, canShare, isOwner, canEdit, onEdit, shareMemberCount, onShare, t,
 }: CollectionHeroProps): React.ReactElement {
   const accepted = members.filter(m => m.status === 'accepted' || m.is_owner)
   const showAvatars = accepted.length > 1
@@ -57,22 +59,6 @@ export default function CollectionHero({
         <div className="col-hero-bg" />
       )}
       <div className="col-hero-scrim" />
-
-      <div className="col-hero-actions">
-        {canShare && (
-          <button
-            type="button"
-            onClick={onShare}
-            aria-label={isOwner ? t('collections.share.button') : t('collections.shared')}
-            title={isOwner ? t('collections.share.button') : t('collections.shared')}
-            className={`col-glass-btn${isOwner && shareMemberCount > 0 ? ' has-count' : ''}`}
-          >
-            {isOwner ? <Share2 size={15} /> : <Users size={15} />}
-            <span className="txt">{isOwner ? t('collections.share.button') : t('collections.shared')}</span>
-            {isOwner && shareMemberCount > 0 && <span className="cnt">{shareMemberCount}</span>}
-          </button>
-        )}
-      </div>
 
       <div className="col-hero-content">
         <div className="col-hero-eyebrow">
@@ -98,7 +84,30 @@ export default function CollectionHero({
           )}
         </div>
 
-        <h1 className="col-hero-title">{title}</h1>
+        <div className="col-hero-titlerow">
+          <h1 className="col-hero-title">{title}</h1>
+          <div className="col-hero-actions">
+            {canEdit && (
+              <button type="button" onClick={onEdit} aria-label={t('common.edit')} title={t('common.edit')} className="col-glass-btn">
+                <Pencil size={15} />
+                <span className="txt">{t('common.edit')}</span>
+              </button>
+            )}
+            {canShare && (
+              <button
+                type="button"
+                onClick={onShare}
+                aria-label={isOwner ? t('collections.share.button') : t('collections.shared')}
+                title={isOwner ? t('collections.share.button') : t('collections.shared')}
+                className={`col-glass-btn${isOwner && shareMemberCount > 0 ? ' has-count' : ''}`}
+              >
+                {isOwner ? <Share2 size={15} /> : <Users size={15} />}
+                <span className="txt">{isOwner ? t('collections.share.button') : t('collections.shared')}</span>
+                {isOwner && shareMemberCount > 0 && <span className="cnt">{shareMemberCount}</span>}
+              </button>
+            )}
+          </div>
+        </div>
 
         {description && <p className="col-hero-desc">{description}</p>}
       </div>
