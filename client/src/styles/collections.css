@@ -263,6 +263,8 @@
 .trek-dash .col-lrow .li .t { font-size: 14px; font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .trek-dash .col-lrow .li .s { font-size: 12px; color: var(--ink-3); margin-top: 2px; display: flex; align-items: center; gap: 5px; overflow: hidden; }
 .trek-dash .col-lrow .li .s span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The pin before the address must not be squeezed by a long address. */
+.trek-dash .col-lrow .li .s svg { flex-shrink: 0; }
 .trek-dash .col-lrow-end { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .trek-dash .col-lrow-cat { display: inline-flex; align-items: center; gap: 5px; max-width: 130px; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; color: var(--cat, var(--accent)); background: color-mix(in oklch, var(--cat, var(--accent)) 14%, transparent); }
 .trek-dash .col-lrow-cat svg { flex-shrink: 0; }
