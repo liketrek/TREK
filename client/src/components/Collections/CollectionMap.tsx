@@ -32,6 +32,7 @@ export default function CollectionMap({ places, selectedPlaceId, onOpenPlace, on
       <MapViewAuto
         places={pts}
         selectedPlaceId={selectedPlaceId}
+        hoverDisabled
         onMarkerClick={onOpenPlace}
         onMapClick={onDeselect ? () => onDeselect() : undefined}
         center={center}

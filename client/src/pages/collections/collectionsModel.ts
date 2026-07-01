@@ -49,10 +49,12 @@ export function filterPlaces(
   places: CollectionPlace[],
   statusFilter: StatusFilter,
   search: string,
+  categoryFilter: number | 'all' = 'all',
 ): CollectionPlace[] {
   const q = search.trim().toLowerCase()
   return places.filter(p => {
     if (statusFilter !== 'all' && p.status !== statusFilter) return false
+    if (categoryFilter !== 'all' && (p.category_id ?? null) !== categoryFilter) return false
     if (!q) return true
     return (
       p.name.toLowerCase().includes(q) ||
@@ -67,6 +69,20 @@ export function statusCounts(places: CollectionPlace[]): Record<StatusFilter, nu
   const counts: Record<StatusFilter, number> = { all: places.length, idea: 0, want: 0, visited: 0 }
   for (const p of places) counts[p.status] += 1
   return counts
+}
+
+export interface CategoryOption { id: number; name: string; color: string | null; icon: string | null; count: number }
+
+/** Distinct categories actually present across the given places, with counts. */
+export function presentCategories(places: CollectionPlace[]): CategoryOption[] {
+  const byId = new Map<number, CategoryOption>()
+  for (const p of places) {
+    if (p.category_id == null || !p.category) continue
+    const existing = byId.get(p.category_id)
+    if (existing) existing.count += 1
+    else byId.set(p.category_id, { id: p.category_id, name: p.category.name, color: p.category.color ?? null, icon: p.category.icon ?? null, count: 1 })
+  }
+  return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name))
 }
 
 /** Only the places that can render on a map. */

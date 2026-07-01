@@ -3,6 +3,7 @@ import { Check, MapPin } from 'lucide-react'
 import type { CollectionPlace, CollectionStatus } from '@trek/shared'
 import type { TranslationFn } from '../../types'
 import PlaceAvatar from '../shared/PlaceAvatar'
+import { getCategoryIcon } from '../shared/categoryIcons'
 import StatusBadge from './StatusBadge'
 
 interface CollectionListProps {
@@ -52,14 +53,27 @@ export default function CollectionList({
             )}
             <div className="li">
               <div className="t">{place.name}</div>
-              {(place.category?.name || place.address) && (
+              {place.address && (
                 <div className="s">
-                  {!place.category?.name && <MapPin size={11} />}
-                  <span>{place.category?.name || place.address}</span>
+                  <MapPin size={11} />
+                  <span>{place.address}</span>
                 </div>
               )}
             </div>
-            <StatusBadge status={place.status} onChange={selectMode ? undefined : next => onStatusChange(place.id, next)} t={t} />
+            <div className="col-lrow-end">
+              {place.category?.name && (() => {
+                const CatIcon = getCategoryIcon(place.category.icon ?? undefined)
+                return (
+                  <>
+                    <span className="col-lrow-cat" style={{ ['--cat' as string]: place.category.color || '#6366f1' }}>
+                      <CatIcon size={11} /> {place.category.name}
+                    </span>
+                    <span className="col-lrow-div" aria-hidden />
+                  </>
+                )
+              })()}
+              <StatusBadge status={place.status} onChange={selectMode ? undefined : next => onStatusChange(place.id, next)} t={t} />
+            </div>
           </div>
         )
       })}

@@ -29,6 +29,7 @@ interface CollectionState {
   incomingInvites: IncomingCollectionInvite[]
   view: CollectionView
   statusFilter: StatusFilter
+  categoryFilter: number | 'all'
   search: string
   selectedPlaceId: number | null
   selectMode: boolean
@@ -62,6 +63,7 @@ interface CollectionState {
 
   setView: (view: CollectionView) => void
   setStatusFilter: (filter: StatusFilter) => void
+  setCategoryFilter: (filter: number | 'all') => void
   setSearch: (search: string) => void
   setSelectedPlaceId: (id: number | null) => void
   setSelectMode: (on: boolean) => void
@@ -77,6 +79,7 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
   incomingInvites: [],
   view: 'list',
   statusFilter: 'all',
+  categoryFilter: 'all',
   search: '',
   selectedPlaceId: null,
   selectMode: false,
@@ -255,6 +258,7 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
 
   setView: (view: CollectionView) => set({ view }),
   setStatusFilter: (filter: StatusFilter) => set({ statusFilter: filter }),
+  setCategoryFilter: (filter: number | 'all') => set({ categoryFilter: filter }),
   setSearch: (search: string) => set({ search }),
   setSelectedPlaceId: (id: number | null) => set({ selectedPlaceId: id }),
   setSelectMode: (on: boolean) => set({ selectMode: on, selectedIds: on ? get().selectedIds : [] }),

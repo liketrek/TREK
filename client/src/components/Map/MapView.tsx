@@ -412,6 +412,7 @@ export const MapView = memo(function MapView({
   route = null,
   routeSegments = [],
   selectedPlaceId = null,
+  hoverDisabled = false,
   onMarkerClick,
   onMapClick,
   onMapContextMenu = null,
@@ -464,9 +465,10 @@ export const MapView = memo(function MapView({
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null)
 
   const handleMarkerHover = useCallback((place: any, x: number, y: number) => {
+    if (hoverDisabled) return
     setHoveredPlace(place)
     setTooltipPos({ x, y })
-  }, [])
+  }, [hoverDisabled])
 
   const handleMarkerHoverOut = useCallback(() => {
     setHoveredPlace(null)
@@ -601,7 +603,7 @@ export const MapView = memo(function MapView({
     } catch { return [] }
   }), [places])
 
-  const TooltipOverlay = hoveredPlace && tooltipPos && !isTouchDevice
+  const TooltipOverlay = !hoverDisabled && hoveredPlace && tooltipPos && !isTouchDevice
   const CatIcon = TooltipOverlay ? getCategoryIcon(hoveredPlace.category_icon) : null
 
   const { position: userPosition, mode: trackingMode, error: trackingError, cycleMode: cycleTrackingMode } = useGeolocation()

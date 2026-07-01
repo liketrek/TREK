@@ -2,8 +2,6 @@ import React from 'react'
 import { Share2, Users, Link2 } from 'lucide-react'
 import type { CollectionMember, CollectionLink } from '@trek/shared'
 import type { TranslationFn } from '../../types'
-import type { StatusFilter } from '../../store/collectionStore'
-import { STATUS_META, STATUS_ORDER } from '../../pages/collections/collectionsModel'
 
 const AV_COLORS = ['#6366f1', '#ec4899', '#14b8a6', '#f97316', '#8b5cf6', '#3b82f6', '#ef4444', '#22c55e']
 
@@ -19,9 +17,6 @@ interface CollectionHeroProps {
   coverImage?: string | null
   description?: string | null
   links?: CollectionLink[]
-  counts: Record<StatusFilter, number>
-  statusFilter: StatusFilter
-  onStatusFilter: (f: StatusFilter) => void
   /** Accepted members (owner first) — shown as an avatar stack when shared. */
   members: CollectionMember[]
   canShare: boolean
@@ -34,27 +29,22 @@ interface CollectionHeroProps {
 /**
  * The page header — a colour-washed (or cover-image) glass hero that gives the
  * active list an identity: an eyebrow with the sharing state + member avatars,
- * the big list name, and a row of stat chips that double as the status filter
- * (All / Idea / Want / Visited with live counts). Share + New-list actions sit
- * top-right. Modelled on the dashboard hero-trip.
+ * the big list name, an optional description + link chips, and a Share action
+ * top-right. Filtering lives in the toolbar above the places, not here.
+ * Modelled on the dashboard hero-trip.
  */
 function linkHost(url: string): string {
   try { return new URL(url).hostname.replace(/^www\./, '') } catch { return url }
 }
 
 export default function CollectionHero({
-  eyebrow, title, color, coverImage, description, links, counts, statusFilter, onStatusFilter,
+  eyebrow, title, color, coverImage, description, links,
   members, canShare, isOwner, shareMemberCount, onShare, t,
 }: CollectionHeroProps): React.ReactElement {
   const accepted = members.filter(m => m.status === 'accepted' || m.is_owner)
   const showAvatars = accepted.length > 1
   const shown = accepted.slice(0, 5)
   const extra = accepted.length - shown.length
-
-  const chips: { key: StatusFilter; label: string; color?: string }[] = [
-    { key: 'all', label: t('collections.status.filterAll') },
-    ...STATUS_ORDER.map(s => ({ key: s as StatusFilter, label: t(STATUS_META[s].labelKey), color: STATUS_META[s].color })),
-  ]
 
   return (
     <header className="col-hero" style={{ ['--hero-color' as string]: color }}>
@@ -97,36 +87,20 @@ export default function CollectionHero({
               {extra > 0 && <span className="col-av" style={{ background: 'rgba(255,255,255,.28)' }}>+{extra}</span>}
             </span>
           )}
+          {links && links.length > 0 && (
+            <span className="col-hero-links">
+              {links.map((l, i) => (
+                <a key={i} href={l.url} target="_blank" rel="noopener noreferrer" className="col-hero-link" onClick={e => e.stopPropagation()}>
+                  <Link2 size={12} /> {l.label || linkHost(l.url)}
+                </a>
+              ))}
+            </span>
+          )}
         </div>
 
         <h1 className="col-hero-title">{title}</h1>
 
         {description && <p className="col-hero-desc">{description}</p>}
-
-        <div className="col-hero-stats">
-          {chips.map(chip => (
-            <button
-              key={chip.key}
-              type="button"
-              onClick={() => onStatusFilter(chip.key)}
-              className={`col-chip${statusFilter === chip.key ? ' on' : ''}`}
-            >
-              {chip.color && <span className="sw" style={{ background: chip.color }} />}
-              {chip.label}
-              <span className="n">{counts[chip.key]}</span>
-            </button>
-          ))}
-        </div>
-
-        {links && links.length > 0 && (
-          <div className="col-hero-links">
-            {links.map((l, i) => (
-              <a key={i} href={l.url} target="_blank" rel="noopener noreferrer" className="col-hero-link" onClick={e => e.stopPropagation()}>
-                <Link2 size={12} /> {l.label || linkHost(l.url)}
-              </a>
-            ))}
-          </div>
-        )}
       </div>
     </header>
   )
