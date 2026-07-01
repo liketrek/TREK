@@ -238,7 +238,7 @@ export function createCollection(userId: number, body: CollectionCreateRequest):
   return { ...col, is_owner: true };
 }
 
-export function updateCollection(userId: number, id: number, body: CollectionUpdateRequest): Collection {
+export function updateCollection(userId: number, id: number, body: CollectionUpdateRequest, socketId?: string): Collection {
   assertAccess(userId, id);
   const updates: string[] = [];
   const params: (string | number | null)[] = [];
@@ -254,18 +254,18 @@ export function updateCollection(userId: number, id: number, body: CollectionUpd
     params.push(id);
     db.prepare(`UPDATE collections SET ${updates.join(', ')} WHERE id = ?`).run(...params);
   }
-  notifyCollectionUsers(id, undefined, 'collections:updated');
+  notifyCollectionUsers(id, socketId, 'collections:updated');
   const col = getCollectionRow(id);
   return { ...col, is_owner: col.owner_id === userId };
 }
 
 /** Set (or clear) a list's cover image, reclaiming the previous file. */
-export function setCollectionCover(userId: number, id: number, coverUrl: string | null): Collection {
+export function setCollectionCover(userId: number, id: number, coverUrl: string | null, socketId?: string): Collection {
   assertAccess(userId, id);
   const prev = (db.prepare('SELECT cover_image FROM collections WHERE id = ?').get(id) as { cover_image: string | null } | undefined)?.cover_image ?? null;
   db.prepare('UPDATE collections SET cover_image = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(coverUrl, id);
   if (prev && prev !== coverUrl) deleteOldCollectionCover(prev);
-  notifyCollectionUsers(id, undefined, 'collections:updated');
+  notifyCollectionUsers(id, socketId, 'collections:updated');
   const col = getCollectionRow(id);
   return { ...col, is_owner: col.owner_id === userId };
 }
@@ -366,7 +366,7 @@ function attachTags(collectionPlaceId: number, tagIds: number[] | undefined): vo
   for (const tid of tagIds) stmt.run(collectionPlaceId, tid);
 }
 
-export function savePlace(userId: number, body: CollectionSavePlaceRequest): CollectionSaveResult {
+export function savePlace(userId: number, body: CollectionSavePlaceRequest, socketId?: string): CollectionSaveResult {
   assertAccess(userId, body.collection_id);
 
   if (!body.force) {
@@ -393,7 +393,7 @@ export function savePlace(userId: number, body: CollectionSavePlaceRequest): Col
 
   const placeId = Number(result.lastInsertRowid);
   attachTags(placeId, body.tag_ids);
-  notifyCollectionUsers(body.collection_id, undefined, 'collections:updated');
+  notifyCollectionUsers(body.collection_id, socketId, 'collections:updated');
   return { place: getPlaceById(placeId) };
 }
 
@@ -429,7 +429,7 @@ export function saveFromTripPlace(
   });
 }
 
-export function updatePlace(userId: number, placeId: number, body: import('@trek/shared').CollectionPlaceUpdateRequest): CollectionPlace {
+export function updatePlace(userId: number, placeId: number, body: import('@trek/shared').CollectionPlaceUpdateRequest, socketId?: string): CollectionPlace {
   const currentCollection = collectionIdOfPlace(placeId);
   assertAccess(userId, currentCollection);
 
@@ -461,27 +461,27 @@ export function updatePlace(userId: number, placeId: number, body: import('@trek
     attachTags(placeId, body.tag_ids);
   }
 
-  notifyCollectionUsers(currentCollection, undefined, 'collections:updated');
-  if (movedTo) notifyCollectionUsers(movedTo, undefined, 'collections:updated');
+  notifyCollectionUsers(currentCollection, socketId, 'collections:updated');
+  if (movedTo) notifyCollectionUsers(movedTo, socketId, 'collections:updated');
   return getPlaceById(placeId);
 }
 
-export function setStatus(userId: number, placeId: number, status: CollectionStatus): CollectionPlace {
+export function setStatus(userId: number, placeId: number, status: CollectionStatus, socketId?: string): CollectionPlace {
   const collectionId = collectionIdOfPlace(placeId);
   assertAccess(userId, collectionId);
   db.prepare("UPDATE collection_places SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(status, placeId);
-  notifyCollectionUsers(collectionId, undefined, 'collections:updated');
+  notifyCollectionUsers(collectionId, socketId, 'collections:updated');
   return getPlaceById(placeId);
 }
 
-export function deletePlace(userId: number, placeId: number): void {
+export function deletePlace(userId: number, placeId: number, socketId?: string): void {
   const collectionId = collectionIdOfPlace(placeId);
   assertAccess(userId, collectionId);
   db.prepare('DELETE FROM collection_places WHERE id = ?').run(placeId); // CASCADE drops tags. NO photo-cache reclaim.
-  notifyCollectionUsers(collectionId, undefined, 'collections:updated');
+  notifyCollectionUsers(collectionId, socketId, 'collections:updated');
 }
 
-export function deletePlacesMany(userId: number, ids: number[]): number[] {
+export function deletePlacesMany(userId: number, ids: number[], socketId?: string): number[] {
   const deleted: number[] = [];
   const touched = new Set<number>();
   for (const id of ids) {
@@ -491,7 +491,7 @@ export function deletePlacesMany(userId: number, ids: number[]): number[] {
     deleted.push(id);
     touched.add(collectionId);
   }
-  touched.forEach(cid => notifyCollectionUsers(cid, undefined, 'collections:updated'));
+  touched.forEach(cid => notifyCollectionUsers(cid, socketId, 'collections:updated'));
   return deleted;
 }
 

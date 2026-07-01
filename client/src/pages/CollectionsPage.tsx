@@ -143,8 +143,6 @@ export default function CollectionsPage(): React.ReactElement {
       incomingInvites={c.incomingInvites}
       onSelect={c.handleSelectList}
       onNewList={() => { c.setMobileRailOpen(false); c.setEditorTarget('new') }}
-      onEdit={list => { c.setMobileRailOpen(false); c.setEditorTarget(list) }}
-      onRequestDelete={c.setConfirmDeleteList}
       onAcceptInvite={c.handleAcceptInvite}
       onDeclineInvite={c.handleDeclineInvite}
       t={t}
@@ -183,6 +181,8 @@ export default function CollectionsPage(): React.ReactElement {
                     members={c.members}
                     canShare={c.canShare}
                     isOwner={c.isOwner}
+                    canEdit={!c.isAllSaved && c.isOwner && c.activeCollection != null}
+                    onEdit={() => { if (c.activeCollection) c.setEditorTarget(c.activeCollection) }}
                     shareMemberCount={c.shareMemberCount}
                     onShare={() => c.setShowShare(true)}
                     t={t}
@@ -321,7 +321,7 @@ export default function CollectionsPage(): React.ReactElement {
       )}
 
       {/* Create / edit a list — name, colour, cover, description, links */}
-      <ListEditorModal target={c.editorTarget} onClose={() => c.setEditorTarget(null)} onCreated={c.handleEditorCreated} t={t} />
+      <ListEditorModal target={c.editorTarget} onClose={() => c.setEditorTarget(null)} onCreated={c.handleEditorCreated} onRequestDelete={c.setConfirmDeleteList} t={t} />
 
       {/* Delete-list confirm */}
       <Modal
