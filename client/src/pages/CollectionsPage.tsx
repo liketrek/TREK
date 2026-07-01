@@ -48,7 +48,11 @@ export default function CollectionsPage(): React.ReactElement {
   const mappable = mappablePlaces(c.visiblePlaces)
   const openPlace = (id: number) => c.setSelectedPlaceId(c.selectedPlaceId === id ? null : id)
   const deselect = () => c.setSelectedPlaceId(null)
-  const toggleView = () => c.setView(c.view === 'map' ? 'list' : 'map')
+  const toggleView = () => {
+    // Going to the full-map view closes the (list-docked) detail sheet.
+    if (c.view !== 'map') c.setSelectedPlaceId(null)
+    c.setView(c.view === 'map' ? 'list' : 'map')
+  }
   // Clicking a marker in the full-map view drops back to the split so the list
   // + detail come into view alongside the map.
   const onMapSelect = (id: number) => { openPlace(id); if (c.view === 'map') c.setView('list') }
@@ -247,11 +251,12 @@ export default function CollectionsPage(): React.ReactElement {
             visible + interactive). On the desktop split it docks over the list
             column so the map stays clear; otherwise it's a full-width sheet.
             Clicking another place / the map background re-points the selection. */}
-        {c.selectedPlace && (
+        {c.selectedPlace && c.view !== 'map' && (
           <CollectionPlaceDetail
             place={c.selectedPlace}
             canEdit
-            anchorRect={desktopSplit && c.view === 'list' ? c.listColRect : null}
+            categories={c.categories}
+            anchorRect={desktopSplit ? c.listColRect : null}
             onClose={c.handleCloseDetail}
             onSetStatus={c.handleDetailStatus}
             onSave={patch => c.updatePlace(c.selectedPlace!.id, patch)}
@@ -268,6 +273,7 @@ export default function CollectionsPage(): React.ReactElement {
           isOpen={c.showAddPlace}
           collectionId={c.activeId}
           collectionName={c.activeCollection.name}
+          categories={c.categories}
           onClose={() => c.setShowAddPlace(false)}
           onAdded={c.handlePlaceAdded}
           t={t}

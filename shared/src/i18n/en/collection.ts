@@ -1,6 +1,8 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.category': 'Category',
+  'collections.noCategory': 'No category',
   'collections.editListTitle': 'Edit list',
   'collections.coverImage': 'Cover image',
   'collections.addCover': 'Add cover',

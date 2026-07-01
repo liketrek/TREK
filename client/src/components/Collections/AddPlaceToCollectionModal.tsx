@@ -10,8 +10,9 @@ import { collectionsApi } from '../../api/collections'
 import { useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
 import { getApiErrorMessage } from '../../types'
+import { getCategoryIcon } from '../shared/categoryIcons'
 import { normalizeLinkUrl, STATUS_META, STATUS_ORDER } from '../../pages/collections/collectionsModel'
-import type { TranslationFn } from '../../types'
+import type { Category, TranslationFn } from '../../types'
 import type { CollectionLink, CollectionStatus } from '@trek/shared'
 
 type MapsPlace = Record<string, unknown>
@@ -22,6 +23,7 @@ interface AddPlaceToCollectionModalProps {
   isOpen: boolean
   collectionId: number
   collectionName: string
+  categories: Category[]
   onClose: () => void
   onAdded: () => void
   t: TranslationFn
@@ -33,7 +35,7 @@ interface AddPlaceToCollectionModalProps {
  * status) prefilled from the pick, then save. Stays open after each add so
  * several places can be added in a row.
  */
-export default function AddPlaceToCollectionModal({ isOpen, collectionId, collectionName, onClose, onAdded, t }: AddPlaceToCollectionModalProps): React.ReactElement {
+export default function AddPlaceToCollectionModal({ isOpen, collectionId, collectionName, categories, onClose, onAdded, t }: AddPlaceToCollectionModalProps): React.ReactElement {
   const { language } = useTranslation()
   const toast = useToast()
   const [query, setQuery] = useState('')
@@ -41,6 +43,7 @@ export default function AddPlaceToCollectionModal({ isOpen, collectionId, collec
   const [searching, setSearching] = useState(false)
   // Step 2 draft — the picked place plus the editable detail fields.
   const [draft, setDraft] = useState<MapsPlace | null>(null)
+  const [categoryId, setCategoryId] = useState<number | null>(null)
   const [description, setDescription] = useState('')
   const [links, setLinks] = useState<CollectionLink[]>([])
   const [status, setStatus] = useState<CollectionStatus>('idea')
@@ -64,7 +67,7 @@ export default function AddPlaceToCollectionModal({ isOpen, collectionId, collec
     }
   }
 
-  const pick = (r: MapsPlace) => { setDraft(r); setDescription(''); setLinks([]); setStatus('idea') }
+  const pick = (r: MapsPlace) => { setDraft(r); setDescription(''); setLinks([]); setStatus('idea'); setCategoryId(null) }
   const setLink = (i: number, patch: Partial<CollectionLink>) => setLinks(links.map((l, idx) => (idx === i ? { ...l, ...patch } : l)))
 
   const save = async () => {
@@ -85,6 +88,7 @@ export default function AddPlaceToCollectionModal({ isOpen, collectionId, collec
         osm_id: str(draft.osm_id) ?? null,
         website: str(draft.website) ?? null,
         phone: str(draft.phone) ?? null,
+        category_id: categoryId,
         description: description.trim() || null,
         links: cleanLinks,
         status,
@@ -160,6 +164,34 @@ export default function AddPlaceToCollectionModal({ isOpen, collectionId, collec
               )
             })}
           </div>
+
+          {/* Category */}
+          {categories.length > 0 && (
+            <div>
+              <label className="block text-[12px] font-medium text-content-secondary mb-1.5">{t('collections.category')}</label>
+              <div className="flex flex-wrap gap-1.5">
+                <button type="button" onClick={() => setCategoryId(null)} className={`px-3 py-1.5 rounded-full text-[12px] font-medium border transition-colors ${categoryId == null ? 'bg-inverse text-inverse-text border-transparent' : 'bg-surface-card text-content-secondary border-edge hover:bg-surface-hover'}`}>
+                  {t('collections.noCategory')}
+                </button>
+                {categories.map(cat => {
+                  const Icon = getCategoryIcon(cat.icon ?? undefined)
+                  const on = categoryId === cat.id
+                  const col = cat.color || '#6366f1'
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setCategoryId(cat.id)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium border transition-colors bg-surface-card border-edge hover:bg-surface-hover"
+                      style={on ? { color: col, background: `color-mix(in oklch, ${col} 15%, transparent)`, borderColor: `color-mix(in oklch, ${col} 40%, transparent)` } : undefined}
+                    >
+                      <Icon size={13} /> {cat.name}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Description */}
           <div>

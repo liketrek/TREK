@@ -2,13 +2,13 @@ import React, { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
-import { X, Pencil, Copy, Trash2, MapPin, Link2, Plus, ExternalLink, Check } from 'lucide-react'
+import { X, Pencil, Copy, Trash2, MapPin, Link2, Plus, ExternalLink, Check, Tag } from 'lucide-react'
 import type { CollectionPlace, CollectionStatus, CollectionLink } from '@trek/shared'
-import type { TranslationFn } from '../../types'
+import type { Category, TranslationFn } from '../../types'
 import MarkdownToolbar from '../Journey/MarkdownToolbar'
-import StatusBadge from './StatusBadge'
 import { entityGradient } from '../../utils/gradients'
-import { normalizeLinkUrl } from '../../pages/collections/collectionsModel'
+import { getCategoryIcon } from '../shared/categoryIcons'
+import { STATUS_META, STATUS_ORDER, normalizeLinkUrl } from '../../pages/collections/collectionsModel'
 import { useToast } from '../shared/Toast'
 import { getApiErrorMessage } from '../../types'
 
@@ -19,55 +19,71 @@ function linkHost(url: string): string {
 interface CollectionPlaceDetailProps {
   place: CollectionPlace
   canEdit: boolean
+  categories: Category[]
   /** When set, dock the sheet over that column (desktop split) instead of centred. */
   anchorRect?: { left: number; width: number } | null
   onClose: () => void
   onSetStatus: (status: CollectionStatus) => void
-  onSave: (patch: { name?: string; description?: string | null; links?: CollectionLink[] }) => Promise<void>
+  onSave: (patch: { name?: string; description?: string | null; links?: CollectionLink[]; category_id?: number | null }) => Promise<void>
   onCopyToTrip: () => void
   onRemove: () => void
   t: TranslationFn
 }
 
+function StatusSegment({ status, onSet, t }: { status: CollectionStatus; onSet: (s: CollectionStatus) => void; t: TranslationFn }): React.ReactElement {
+  return (
+    <div className="col-detail-seg" role="group">
+      {STATUS_ORDER.map(s => {
+        const Icon = STATUS_META[s].icon
+        const on = status === s
+        return (
+          <button key={s} type="button" aria-pressed={on} onClick={() => onSet(s)} className={on ? 'on' : ''}>
+            <Icon size={14} style={{ color: on ? STATUS_META[s].color : undefined }} /> {t(STATUS_META[s].labelKey)}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 /**
- * Bottom detail sheet for a saved place — a glassy card docked to the bottom
- * (full-width on mobile). Read mode renders the description as markdown + link
- * chips; edit mode swaps in a name field, a markdown editor (toolbar + textarea)
- * and a links editor, saving via collectionsApi.updatePlace. Also cycles the
- * status, copies the place to a trip and removes it from the list.
+ * Bottom detail sheet for a saved place — an opaque, clearly-sectioned card
+ * (cover → meta → status → description → links) docked over the list column.
+ * Read mode renders the description as markdown + link chips; edit mode swaps in
+ * name / category / markdown description / links, saving via updatePlace. Status
+ * is an always-live segmented control (auto-saves).
  */
 export default function CollectionPlaceDetail({
-  place, canEdit, anchorRect, onClose, onSetStatus, onSave, onCopyToTrip, onRemove, t,
+  place, canEdit, categories, anchorRect, onClose, onSetStatus, onSave, onCopyToTrip, onRemove, t,
 }: CollectionPlaceDetailProps): React.ReactElement {
   const toast = useToast()
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(place.name)
+  const [categoryId, setCategoryId] = useState<number | null>(place.category_id ?? null)
   const [description, setDescription] = useState(place.description ?? '')
   const [links, setLinks] = useState<CollectionLink[]>(place.links ?? [])
   const [saving, setSaving] = useState(false)
   const descRef = useRef<HTMLTextAreaElement>(null)
 
-  // Reset the form only when a DIFFERENT place is opened (keyed on id, not on
-  // every field change — otherwise a save would clobber in-flight edits).
+  // Reset only when a DIFFERENT place is opened (keyed on id, not on every field).
   useEffect(() => {
     setEditing(false)
     setName(place.name)
+    setCategoryId(place.category_id ?? null)
     setDescription(place.description ?? '')
     setLinks(place.links ?? [])
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [place.id])
 
-  const sub = place.category?.name || place.address
   const banner = place.image_url
-
-  const setLink = (i: number, patch: Partial<CollectionLink>) =>
-    setLinks(links.map((l, idx) => (idx === i ? { ...l, ...patch } : l)))
+  const setLink = (i: number, patch: Partial<CollectionLink>) => setLinks(links.map((l, idx) => (idx === i ? { ...l, ...patch } : l)))
+  const resetForm = () => { setEditing(false); setName(place.name); setCategoryId(place.category_id ?? null); setDescription(place.description ?? ''); setLinks(place.links ?? []) }
 
   const save = async () => {
     const cleanLinks = links.map(l => ({ label: l.label?.trim() || undefined, url: normalizeLinkUrl(l.url) })).filter(l => l.url)
     setSaving(true)
     try {
-      await onSave({ name: name.trim() || place.name, description: description.trim() || null, links: cleanLinks })
+      await onSave({ name: name.trim() || place.name, description: description.trim() || null, links: cleanLinks, category_id: categoryId })
       setEditing(false)
     } catch (err) {
       toast.error(getApiErrorMessage(err, t('common.error')))
@@ -77,6 +93,7 @@ export default function CollectionPlaceDetail({
   }
 
   const dockStyle = anchorRect ? { left: anchorRect.left, width: anchorRect.width, transform: 'none' as const } : undefined
+  const CatIcon = getCategoryIcon(place.category?.icon)
 
   return (
     <div className={`col-detail${anchorRect ? ' docked' : ''}`} style={dockStyle} onClick={e => e.stopPropagation()}>
@@ -85,56 +102,65 @@ export default function CollectionPlaceDetail({
         <div className="col-detail-cover-scrim" />
         <button type="button" className="col-detail-close" onClick={onClose} aria-label={t('common.close')}><X size={16} /></button>
         <div className="col-detail-head">
-          {editing ? (
-            <input value={name} onChange={e => setName(e.target.value)} className="col-detail-name-input" autoFocus />
-          ) : (
-            <h2 className="col-detail-name">{place.name}</h2>
-          )}
-          {sub && <div className="col-detail-sub">{!place.category?.name && <MapPin size={12} />}{sub}</div>}
+          {editing
+            ? <input value={name} onChange={e => setName(e.target.value)} className="col-detail-name-input" autoFocus aria-label={t('collections.listName')} />
+            : <h2 className="col-detail-name">{place.name}</h2>}
         </div>
       </div>
 
       <div className="col-detail-body">
-        <div className="col-detail-actions">
-          <StatusBadge status={place.status} onChange={onSetStatus} t={t} />
-          <div className="col-detail-actions-spacer" />
-          {canEdit && !editing && (
-            <button type="button" className="col-detail-btn" onClick={() => setEditing(true)}><Pencil size={14} /> {t('common.edit')}</button>
-          )}
-          <button type="button" className="col-detail-btn" onClick={onCopyToTrip}><Copy size={14} /> {t('collections.copyToTrip')}</button>
-          {canEdit && (
-            <button type="button" className="col-detail-btn danger" onClick={onRemove}><Trash2 size={14} /> {t('collections.removeFromList')}</button>
-          )}
-        </div>
+        {/* Meta (view only) */}
+        {!editing && (place.category?.name || place.address) && (
+          <div className="col-detail-meta">
+            {place.category?.name && (
+              <span className="col-detail-catchip" style={{ ['--cat' as string]: place.category.color || '#6366f1' }}>
+                <CatIcon size={12} /> {place.category.name}
+              </span>
+            )}
+            {place.address && <span className="col-detail-addr"><MapPin size={12} /> {place.address}</span>}
+          </div>
+        )}
+
+        {/* Status — always live */}
+        <StatusSegment status={place.status} onSet={onSetStatus} t={t} />
 
         {editing ? (
           <div className="col-detail-edit">
-            <label className="col-detail-label">{t('collections.description')}</label>
-            <MarkdownToolbar textareaRef={descRef} onUpdate={setDescription} />
-            <textarea
-              ref={descRef}
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              rows={5}
-              placeholder={t('collections.descriptionPlaceholder')}
-              className="col-detail-textarea"
-            />
-
-            <label className="col-detail-label">{t('collections.links')}</label>
-            <div className="col-detail-links-edit">
-              {links.map((l, i) => (
-                <div key={i} className="col-detail-link-row">
-                  <input value={l.label ?? ''} onChange={e => setLink(i, { label: e.target.value })} placeholder={t('collections.linkLabel')} className="col-detail-input w-28" />
-                  <input value={l.url} onChange={e => setLink(i, { url: e.target.value })} placeholder="https://…" className="col-detail-input flex-1" />
-                  <button type="button" onClick={() => setLinks(links.filter((_, idx) => idx !== i))} className="col-detail-icon-btn" aria-label={t('common.delete')}><Trash2 size={14} /></button>
-                </div>
-              ))}
-              <button type="button" onClick={() => setLinks([...links, { url: '' }])} className="col-detail-add-link"><Plus size={13} /> <Link2 size={12} /> {t('collections.addLink')}</button>
+            {/* Category */}
+            <div className="col-detail-field">
+              <div className="col-detail-label"><Tag size={12} /> {t('collections.category')}</div>
+              <div className="col-detail-cats">
+                <button type="button" onClick={() => setCategoryId(null)} className={`col-detail-cat${categoryId == null ? ' on' : ''}`}>{t('collections.noCategory')}</button>
+                {categories.map(cat => {
+                  const Icon = getCategoryIcon(cat.icon ?? undefined)
+                  const on = categoryId === cat.id
+                  return (
+                    <button key={cat.id} type="button" onClick={() => setCategoryId(cat.id)} className={`col-detail-cat${on ? ' on' : ''}`} style={{ ['--cat' as string]: cat.color || '#6366f1' }}>
+                      <Icon size={12} /> {cat.name}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
-
-            <div className="col-detail-edit-actions">
-              <button type="button" onClick={() => { setEditing(false); setName(place.name); setDescription(place.description ?? ''); setLinks(place.links ?? []) }} className="col-detail-btn">{t('common.cancel')}</button>
-              <button type="button" onClick={save} disabled={saving} className="col-detail-btn primary"><Check size={14} /> {t('common.save')}</button>
+            {/* Description */}
+            <div className="col-detail-field">
+              <div className="col-detail-label">{t('collections.description')}</div>
+              <MarkdownToolbar textareaRef={descRef} onUpdate={setDescription} />
+              <textarea ref={descRef} value={description} onChange={e => setDescription(e.target.value)} rows={4} placeholder={t('collections.descriptionPlaceholder')} className="col-detail-textarea" />
+            </div>
+            {/* Links */}
+            <div className="col-detail-field">
+              <div className="col-detail-label">{t('collections.links')}</div>
+              <div className="col-detail-links-edit">
+                {links.map((l, i) => (
+                  <div key={i} className="col-detail-link-row">
+                    <input value={l.label ?? ''} onChange={e => setLink(i, { label: e.target.value })} placeholder={t('collections.linkLabel')} className="col-detail-input w-28" />
+                    <input value={l.url} onChange={e => setLink(i, { url: e.target.value })} placeholder="https://…" className="col-detail-input flex-1" />
+                    <button type="button" onClick={() => setLinks(links.filter((_, idx) => idx !== i))} className="col-detail-icon-btn" aria-label={t('common.delete')}><Trash2 size={14} /></button>
+                  </div>
+                ))}
+                <button type="button" onClick={() => setLinks([...links, { url: '' }])} className="col-detail-add-link"><Plus size={13} /> <Link2 size={12} /> {t('collections.addLink')}</button>
+              </div>
             </div>
           </div>
         ) : (
@@ -153,11 +179,22 @@ export default function CollectionPlaceDetail({
                 ))}
               </div>
             )}
-            {!place.description && (!place.links || place.links.length === 0) && canEdit && (
-              <button type="button" className="col-detail-empty" onClick={() => setEditing(true)}>
-                <Plus size={14} /> {t('collections.addDetails')}
-              </button>
-            )}
+          </>
+        )}
+      </div>
+
+      <div className="col-detail-footer">
+        {editing ? (
+          <>
+            <button type="button" onClick={resetForm} className="col-detail-btn">{t('common.cancel')}</button>
+            <button type="button" onClick={save} disabled={saving} className="col-detail-btn primary"><Check size={14} /> {t('common.save')}</button>
+          </>
+        ) : (
+          <>
+            {canEdit && <button type="button" onClick={() => setEditing(true)} className="col-detail-btn"><Pencil size={14} /> {t('common.edit')}</button>}
+            <button type="button" onClick={onCopyToTrip} className="col-detail-btn"><Copy size={14} /> {t('collections.copyToTrip')}</button>
+            <div className="col-detail-footer-spacer" />
+            {canEdit && <button type="button" onClick={onRemove} className="col-detail-btn danger"><Trash2 size={14} /> {t('collections.removeFromList')}</button>}
           </>
         )}
       </div>

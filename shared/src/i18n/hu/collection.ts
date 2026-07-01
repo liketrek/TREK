@@ -1,6 +1,8 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.category': 'Kategória',
+  'collections.noCategory': 'Nincs kategória',
   'collections.editListTitle': 'Lista szerkesztése',
   'collections.coverImage': 'Borítókép',
   'collections.addCover': 'Borító hozzáadása',

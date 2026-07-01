@@ -1,6 +1,8 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.category': 'Κατηγορία',
+  'collections.noCategory': 'Χωρίς κατηγορία',
   'collections.editListTitle': 'Επεξεργασία λίστας',
   'collections.coverImage': 'Εικόνα εξωφύλλου',
   'collections.addCover': 'Προσθήκη εξωφύλλου',

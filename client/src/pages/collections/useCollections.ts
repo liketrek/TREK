@@ -9,6 +9,7 @@ import { getApiErrorMessage } from '../../types'
 import { addListener, removeListener } from '../../api/websocket'
 import { useCollectionStore, ALL_SAVED } from '../../store/collectionStore'
 import type { ActiveCollectionId } from '../../store/collectionStore'
+import { categoriesApi } from '../../api/client'
 import type { Collection, CollectionStatus } from '@trek/shared'
 import type { Category, Place } from '../../types'
 import { filterPlaces, sortPlaces, statusCounts } from './collectionsModel'
@@ -69,6 +70,10 @@ export function useCollections() {
 
   // Initial load.
   useEffect(() => { loadAll() }, [])
+
+  // Central admin-defined categories, for assigning a category to a saved place.
+  const [categories, setCategories] = useState<Category[]>([])
+  useEffect(() => { categoriesApi.list().then((d: { categories: Category[] }) => setCategories(d.categories ?? [])).catch(() => {}) }, [])
 
   // When the list↔map split toggles, its grid columns animate; keep nudging the
   // mounted map to re-layout during the transition (Leaflet's trackResize hooks
@@ -277,7 +282,7 @@ export function useCollections() {
   return {
     t, language, dark, navigate,
     isWide, heroRef: hero.ref, heroHeight: hero.height,
-    listColRef: listCol.ref, listColRect: listCol.rect,
+    listColRef: listCol.ref, listColRect: listCol.rect, categories,
     // store data
     collections, ownedLists, sharedLists, activeCollection, isAllSaved, isOwner,
     canShare, shareMemberCount,
