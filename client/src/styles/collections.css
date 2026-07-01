@@ -40,7 +40,7 @@
 }
 .trek-dash .col-rail-label .badge {
   margin-left: auto; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
-  display: grid; place-items: center; background: var(--accent); color: #fff; font-size: 10px; letter-spacing: 0;
+  display: grid; place-items: center; background: var(--accent); color: var(--accent-text); font-size: 10px; letter-spacing: 0;
 }
 .trek-dash .col-rail-sep { height: 1px; background: var(--line); margin: 8px 6px; }
 
@@ -85,7 +85,7 @@
 .trek-dash .col-invite .s { font-size: 11px; color: var(--ink-3); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .trek-dash .col-invite-actions { display: flex; gap: 7px; margin-top: 9px; }
 .trek-dash .col-invite-actions button { flex: 1; padding: 6px 8px; border-radius: 8px; font-size: 11.5px; font-weight: 600; transition: background .12s, opacity .12s; }
-.trek-dash .col-invite-accept { background: var(--accent); color: #fff; }
+.trek-dash .col-invite-accept { background: var(--accent); color: var(--accent-text); }
 .trek-dash .col-invite-accept:hover { opacity: .9; }
 .trek-dash .col-invite-decline { border: 1px solid var(--line-2); color: var(--ink-2); }
 .trek-dash .col-invite-decline:hover { background: var(--surface); }
@@ -198,7 +198,7 @@
   border: 1px solid var(--line-2); background: var(--surface); color: var(--ink-2); transition: background .12s, color .12s, border-color .12s;
 }
 .trek-dash .col-iconbtn:hover { background: var(--surface-2); color: var(--ink); }
-.trek-dash .col-iconbtn.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.trek-dash .col-iconbtn.on { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
 .trek-dash .col-viewseg { display: flex; padding: 3px; border-radius: var(--r-sm); background: oklch(0.94 0.008 70); }
 .dark .trek-dash .col-viewseg { background: var(--bg-2); }
 .trek-dash .col-viewseg button { width: 34px; height: 32px; border-radius: 8px; display: grid; place-items: center; color: var(--ink-2); transition: background .12s, color .12s; }
@@ -232,7 +232,7 @@
   transition: transform .12s, background .15s, color .15s;
 }
 .trek-dash .col-map-btn:hover { transform: translateY(-1px); background: var(--surface); }
-.trek-dash .col-map-btn.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.trek-dash .col-map-btn.on { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
 .trek-dash .col-map-btn:disabled { opacity: .45; cursor: default; transform: none; }
 .trek-dash .col-map-search {
   display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px; border-radius: 11px; color: var(--ink-3);
@@ -274,8 +274,8 @@
 .trek-dash .col-filterbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .trek-dash .col-filter { position: relative; }
 .trek-dash .col-filter-select { margin-left: auto; }
-.trek-dash .col-filter-select.open { background: var(--accent); border-color: var(--accent); color: #fff; }
-.trek-dash .col-filter-select.open:hover { background: var(--accent); color: #fff; }
+.trek-dash .col-filter-select.open { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.trek-dash .col-filter-select.open:hover { background: var(--accent); color: var(--accent-text); }
 .trek-dash .col-filter-btn { display: inline-flex; align-items: center; gap: 7px; padding: 7px 11px; border-radius: 10px; font-size: 12.5px; font-weight: 600; color: var(--ink-2); background: var(--surface); border: 1px solid var(--line-2); transition: background .12s, border-color .12s, color .12s; }
 .trek-dash .col-filter-btn:hover { background: var(--surface-2); color: var(--ink); }
 .trek-dash .col-filter-btn.open { border-color: var(--accent); color: var(--ink); }
@@ -292,7 +292,7 @@
 .trek-dash .col-filter-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .trek-dash .col-filter-dot.ghost { background: var(--line-2); }
 .trek-dash .col-lcheck { width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; background: var(--surface-2); border: 1px solid var(--line-2); color: transparent; flex-shrink: 0; }
-.trek-dash .col-lcheck.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.trek-dash .col-lcheck.on { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
 
 /* map view fills the body */
 .trek-dash .col-mapwrap {
@@ -399,7 +399,7 @@
 .trek-dash .col-detail-footer-spacer { flex: 1 1 auto; }
 .trek-dash .col-detail-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 10px; font-size: 12.5px; font-weight: 600; color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line-2); transition: background .12s, color .12s; }
 .trek-dash .col-detail-btn:hover { background: var(--surface); color: var(--ink); }
-.trek-dash .col-detail-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.trek-dash .col-detail-btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
 .trek-dash .col-detail-btn.danger { color: oklch(0.6 0.2 25); border-color: transparent; background: transparent; }
 .trek-dash .col-detail-btn.danger:hover { background: oklch(0.6 0.2 25 / .12); }
 

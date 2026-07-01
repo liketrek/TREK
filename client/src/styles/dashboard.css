@@ -18,9 +18,12 @@
   --ink-3: oklch(0.62 0.01 65);
   --line: oklch(0.92 0.008 70);
   --line-2: oklch(0.88 0.01 70);
-  --accent: oklch(0.66 0.17 38);
-  --accent-ink: oklch(0.32 0.13 38);
-  --accent-soft: oklch(0.95 0.04 50);
+  /* Accent follows the user's theme (index.css --accent*): monochrome black/white
+     by default, coloured per data-scheme / custom accent. --accent itself is
+     inherited from the theme; the ink/soft aliases map onto the theme tokens.
+     Category colours are set explicitly per element and are unaffected. */
+  --accent-ink: var(--accent-on, var(--accent));
+  --accent-soft: var(--accent-subtle, color-mix(in oklch, var(--accent) 12%, transparent));
   --success: oklch(0.58 0.12 155);
   --warn: oklch(0.74 0.14 75);
 
@@ -52,7 +55,7 @@
   --glass-blur: blur(22px) saturate(1.7);
 }
 
-/* dark variant — same geometry, dark surfaces, accent kept */
+/* dark variant — same geometry, dark surfaces, theme-driven accent */
 .dark .trek-dash {
   --bg: oklch(0.17 0 0);
   --bg-2: oklch(0.21 0 0);
@@ -63,9 +66,9 @@
   --ink-3: oklch(0.6 0 0);
   --line: oklch(0.32 0 0);
   --line-2: oklch(0.38 0 0);
-  --accent: oklch(0.7 0.16 40);
-  --accent-ink: oklch(0.82 0.13 50);
-  --accent-soft: oklch(0.32 0.07 45);
+  /* Dark: same theme-driven accent (inherited --accent + mapped aliases). */
+  --accent-ink: var(--accent-on, var(--accent));
+  --accent-soft: var(--accent-subtle, color-mix(in oklch, var(--accent) 22%, transparent));
   --success: oklch(0.7 0.13 155);
   --warn: oklch(0.78 0.14 75);
 
