@@ -1,6 +1,17 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.select': '선택',
+  'collections.selectAll': '모두 선택',
+  'collections.deselectAll': '선택 해제',
+  'collections.moveToList': '목록으로 이동',
+  'collections.duplicateToList': '목록에 복제',
+  'collections.moveToListTitle': '{count}개를 다른 목록으로 이동',
+  'collections.duplicateToListTitle': '{count}개를 다른 목록에 복제',
+  'collections.noOtherLists': '다른 목록이 아직 없습니다',
+  'collections.movedCount': '{count}개 장소 이동됨',
+  'collections.duplicatedCount': '{count}개 장소 복제됨',
+  'collections.placeCount': '장소 {count}개',
   'collections.category': '카테고리',
   'collections.noCategory': '카테고리 없음',
   'collections.editListTitle': '목록 편집',

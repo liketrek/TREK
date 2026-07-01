@@ -1,6 +1,17 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.select': 'Επιλογή',
+  'collections.selectAll': 'Επιλογή όλων',
+  'collections.deselectAll': 'Κατάργηση επιλογής',
+  'collections.moveToList': 'Μετακίνηση σε λίστα',
+  'collections.duplicateToList': 'Αντιγραφή σε λίστα',
+  'collections.moveToListTitle': 'Μετακίνηση {count} σε άλλη λίστα',
+  'collections.duplicateToListTitle': 'Αντιγραφή {count} σε άλλη λίστα',
+  'collections.noOtherLists': 'Δεν υπάρχουν άλλες λίστες',
+  'collections.movedCount': 'Μετακινήθηκαν {count} τοποθεσίες',
+  'collections.duplicatedCount': 'Αντιγράφηκαν {count} τοποθεσίες',
+  'collections.placeCount': '{count} τοποθεσίες',
   'collections.category': 'Κατηγορία',
   'collections.noCategory': 'Χωρίς κατηγορία',
   'collections.editListTitle': 'Επεξεργασία λίστας',

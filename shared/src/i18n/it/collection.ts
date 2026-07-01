@@ -1,6 +1,17 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.select': 'Seleziona',
+  'collections.selectAll': 'Seleziona tutto',
+  'collections.deselectAll': 'Deseleziona tutto',
+  'collections.moveToList': 'Sposta in lista',
+  'collections.duplicateToList': 'Duplica in lista',
+  'collections.moveToListTitle': 'Sposta {count} in un\'altra lista',
+  'collections.duplicateToListTitle': 'Duplica {count} in un\'altra lista',
+  'collections.noOtherLists': 'Nessun\'altra lista',
+  'collections.movedCount': 'Spostati {count} luoghi',
+  'collections.duplicatedCount': 'Duplicati {count} luoghi',
+  'collections.placeCount': '{count} luoghi',
   'collections.category': 'Categoria',
   'collections.noCategory': 'Nessuna categoria',
   'collections.editListTitle': 'Modifica elenco',

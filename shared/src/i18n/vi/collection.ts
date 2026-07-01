@@ -1,6 +1,17 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.select': 'Chọn',
+  'collections.selectAll': 'Chọn tất cả',
+  'collections.deselectAll': 'Bỏ chọn tất cả',
+  'collections.moveToList': 'Chuyển vào danh sách',
+  'collections.duplicateToList': 'Sao chép vào danh sách',
+  'collections.moveToListTitle': 'Chuyển {count} sang danh sách khác',
+  'collections.duplicateToListTitle': 'Sao chép {count} sang danh sách khác',
+  'collections.noOtherLists': 'Chưa có danh sách nào khác',
+  'collections.movedCount': 'Đã chuyển {count} địa điểm',
+  'collections.duplicatedCount': 'Đã sao chép {count} địa điểm',
+  'collections.placeCount': '{count} địa điểm',
   'collections.category': 'Danh mục',
   'collections.noCategory': 'Không có danh mục',
   'collections.editListTitle': 'Chỉnh sửa danh sách',

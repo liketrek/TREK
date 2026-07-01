@@ -53,6 +53,8 @@ interface CollectionState {
   deletePlace: (placeId: number) => Promise<void>
   deleteMany: (ids: number[]) => Promise<void>
   copyToTrip: (tripId: number, placeIds: number[], force?: boolean) => Promise<{ copied: number; skipped: { id: number; name: string }[] }>
+  moveToList: (placeIds: number[], targetId: number) => Promise<void>
+  duplicateToList: (placeIds: number[], targetId: number) => Promise<void>
 
   invite: (collectionId: number, userId: number) => Promise<void>
   acceptInvite: (collectionId: number) => Promise<void>
@@ -68,6 +70,7 @@ interface CollectionState {
   setSelectedPlaceId: (id: number | null) => void
   setSelectMode: (on: boolean) => void
   toggleSelect: (id: number) => void
+  setSelectedIds: (ids: number[]) => void
   clearSelection: () => void
 }
 
@@ -226,6 +229,49 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
     return res
   },
 
+  // Move the selected places into another list (re-point collection_id). They
+  // leave the current list, so drop them locally + refresh.
+  moveToList: async (placeIds: number[], targetId: number) => {
+    for (const id of placeIds) await collectionsApi.updatePlace(id, { collection_id: targetId })
+    const idSet = new Set(placeIds)
+    set({ places: get().places.filter(p => !idSet.has(p.id)), selectedIds: [], selectMode: false })
+    await get().loadAll()
+    const active = get().activeId
+    if (typeof active === 'number') await get().loadCollection(active)
+  },
+
+  // Duplicate the selected places into another list (re-save each place's data).
+  duplicateToList: async (placeIds: number[], targetId: number) => {
+    const byId = new Map(get().places.map(p => [p.id, p]))
+    for (const id of placeIds) {
+      const p = byId.get(id)
+      if (!p) continue
+      await collectionsApi.savePlace({
+        collection_id: targetId,
+        name: p.name,
+        description: p.description ?? null,
+        lat: p.lat ?? null,
+        lng: p.lng ?? null,
+        address: p.address ?? null,
+        category_id: p.category_id ?? null,
+        price: p.price ?? null,
+        currency: p.currency ?? null,
+        notes: p.notes ?? null,
+        image_url: p.image_url ?? null,
+        google_place_id: p.google_place_id ?? null,
+        google_ftid: p.google_ftid ?? null,
+        osm_id: p.osm_id ?? null,
+        website: p.website ?? null,
+        phone: p.phone ?? null,
+        status: p.status,
+        links: p.links ?? [],
+        force: true,
+      })
+    }
+    set({ selectedIds: [], selectMode: false })
+    await get().loadAll()
+  },
+
   invite: async (collectionId: number, userId: number) => {
     await collectionsApi.invite(collectionId, userId)
     if (get().activeId === collectionId) await get().loadCollection(collectionId)
@@ -267,5 +313,6 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
     const selected = get().selectedIds
     set({ selectedIds: selected.includes(id) ? selected.filter(x => x !== id) : [...selected, id] })
   },
+  setSelectedIds: (ids: number[]) => set({ selectedIds: ids }),
   clearSelection: () => set({ selectedIds: [], selectMode: false }),
 }))

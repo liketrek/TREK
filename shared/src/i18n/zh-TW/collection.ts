@@ -1,6 +1,17 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.select': '選擇',
+  'collections.selectAll': '全選',
+  'collections.deselectAll': '取消全選',
+  'collections.moveToList': '移動到清單',
+  'collections.duplicateToList': '複製到清單',
+  'collections.moveToListTitle': '將 {count} 個移動到其他清單',
+  'collections.duplicateToListTitle': '將 {count} 個複製到其他清單',
+  'collections.noOtherLists': '尚無其他清單',
+  'collections.movedCount': '已移動 {count} 個地點',
+  'collections.duplicatedCount': '已複製 {count} 個地點',
+  'collections.placeCount': '{count} 個地點',
   'collections.category': '類別',
   'collections.noCategory': '無類別',
   'collections.editListTitle': '編輯清單',

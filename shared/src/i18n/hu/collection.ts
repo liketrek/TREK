@@ -1,6 +1,17 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.select': 'Kijelölés',
+  'collections.selectAll': 'Összes kijelölése',
+  'collections.deselectAll': 'Kijelölés megszüntetése',
+  'collections.moveToList': 'Áthelyezés listába',
+  'collections.duplicateToList': 'Másolás listába',
+  'collections.moveToListTitle': '{count} áthelyezése másik listába',
+  'collections.duplicateToListTitle': '{count} másolása másik listába',
+  'collections.noOtherLists': 'Nincs még másik lista',
+  'collections.movedCount': '{count} hely áthelyezve',
+  'collections.duplicatedCount': '{count} hely másolva',
+  'collections.placeCount': '{count} hely',
   'collections.category': 'Kategória',
   'collections.noCategory': 'Nincs kategória',
   'collections.editListTitle': 'Lista szerkesztése',

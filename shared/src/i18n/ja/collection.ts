@@ -1,6 +1,17 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.select': '選択',
+  'collections.selectAll': 'すべて選択',
+  'collections.deselectAll': '選択を解除',
+  'collections.moveToList': 'リストに移動',
+  'collections.duplicateToList': 'リストに複製',
+  'collections.moveToListTitle': '{count} 件を別のリストに移動',
+  'collections.duplicateToListTitle': '{count} 件を別のリストに複製',
+  'collections.noOtherLists': '他のリストはまだありません',
+  'collections.movedCount': '{count} 件の場所を移動しました',
+  'collections.duplicatedCount': '{count} 件の場所を複製しました',
+  'collections.placeCount': '{count} 件の場所',
   'collections.category': 'カテゴリ',
   'collections.noCategory': 'カテゴリなし',
   'collections.editListTitle': 'リストを編集',

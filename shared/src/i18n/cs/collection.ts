@@ -1,6 +1,17 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.select': 'Vybrat',
+  'collections.selectAll': 'Vybrat vše',
+  'collections.deselectAll': 'Zrušit výběr',
+  'collections.moveToList': 'Přesunout do seznamu',
+  'collections.duplicateToList': 'Duplikovat do seznamu',
+  'collections.moveToListTitle': 'Přesunout {count} do jiného seznamu',
+  'collections.duplicateToListTitle': 'Duplikovat {count} do jiného seznamu',
+  'collections.noOtherLists': 'Zatím žádné další seznamy',
+  'collections.movedCount': 'Přesunuto {count} míst',
+  'collections.duplicatedCount': 'Duplikováno {count} míst',
+  'collections.placeCount': '{count} míst',
   'collections.category': 'Kategorie',
   'collections.noCategory': 'Bez kategorie',
   'collections.editListTitle': 'Upravit seznam',

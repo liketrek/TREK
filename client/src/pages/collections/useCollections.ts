@@ -53,6 +53,7 @@ export function useCollections() {
     loadAll, setActive, refreshActive, loadCollection,
     deleteCollection,
     setStatus, updatePlace, deletePlace, deleteMany, copyToTrip, clearSelection,
+    moveToList, duplicateToList, setSelectedIds,
     acceptInvite, declineInvite,
     setView, setStatusFilter, setCategoryFilter, setSearch, setSelectedPlaceId, setSelectMode, toggleSelect,
   } = store
@@ -211,6 +212,35 @@ export function useCollections() {
     }
   }, [selectedIds, deleteMany, toast, t])
 
+  // Select-all toggles between every visible place and none.
+  const allVisibleSelected = visiblePlaces.length > 0 && visiblePlaces.every(p => selectedIds.includes(p.id))
+  const handleSelectAll = useCallback(() => {
+    setSelectedIds(allVisibleSelected ? [] : visiblePlaces.map(p => p.id))
+  }, [allVisibleSelected, visiblePlaces, setSelectedIds])
+
+  // Move / duplicate the selection into another list (a list-picker modal).
+  const [listPickerMode, setListPickerMode] = useState<'move' | 'copy' | null>(null)
+  const handleMoveToList = useCallback(async (targetId: number) => {
+    if (selectedIds.length === 0) return
+    try {
+      await moveToList(selectedIds, targetId)
+      toast.success(t('collections.movedCount', { count: selectedIds.length }))
+      setListPickerMode(null)
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('common.error')))
+    }
+  }, [selectedIds, moveToList, toast, t])
+  const handleDuplicateToList = useCallback(async (targetId: number) => {
+    if (selectedIds.length === 0) return
+    try {
+      await duplicateToList(selectedIds, targetId)
+      toast.success(t('collections.duplicatedCount', { count: selectedIds.length }))
+      setListPickerMode(null)
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('common.error')))
+    }
+  }, [selectedIds, duplicateToList, toast, t])
+
   const handleAcceptInvite = useCallback(async (collectionId: number) => {
     try {
       await acceptInvite(collectionId)
@@ -311,5 +341,7 @@ export function useCollections() {
     handleSelectList, handleDeleteList,
     handleStatusChange, handleDeletePlace, handleDeleteSelected,
     handleAcceptInvite, handleDeclineInvite,
+    allVisibleSelected, handleSelectAll,
+    listPickerMode, setListPickerMode, handleMoveToList, handleDuplicateToList,
   }
 }

@@ -1,6 +1,17 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.select': 'Pilih',
+  'collections.selectAll': 'Pilih semua',
+  'collections.deselectAll': 'Batalkan pilihan',
+  'collections.moveToList': 'Pindahkan ke daftar',
+  'collections.duplicateToList': 'Duplikat ke daftar',
+  'collections.moveToListTitle': 'Pindahkan {count} ke daftar lain',
+  'collections.duplicateToListTitle': 'Duplikat {count} ke daftar lain',
+  'collections.noOtherLists': 'Belum ada daftar lain',
+  'collections.movedCount': '{count} tempat dipindahkan',
+  'collections.duplicatedCount': '{count} tempat diduplikat',
+  'collections.placeCount': '{count} tempat',
   'collections.category': 'Kategori',
   'collections.noCategory': 'Tanpa kategori',
   'collections.editListTitle': 'Edit daftar',

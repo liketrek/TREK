@@ -273,6 +273,9 @@
 /* ----------------- filter bar (status + category dropdowns) ----------------- */
 .trek-dash .col-filterbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .trek-dash .col-filter { position: relative; }
+.trek-dash .col-filter-select { margin-left: auto; }
+.trek-dash .col-filter-select.open { background: var(--accent); border-color: var(--accent); color: #fff; }
+.trek-dash .col-filter-select.open:hover { background: var(--accent); color: #fff; }
 .trek-dash .col-filter-btn { display: inline-flex; align-items: center; gap: 7px; padding: 7px 11px; border-radius: 10px; font-size: 12.5px; font-weight: 600; color: var(--ink-2); background: var(--surface); border: 1px solid var(--line-2); transition: background .12s, border-color .12s, color .12s; }
 .trek-dash .col-filter-btn:hover { background: var(--surface-2); color: var(--ink); }
 .trek-dash .col-filter-btn.open { border-color: var(--accent); color: var(--ink); }

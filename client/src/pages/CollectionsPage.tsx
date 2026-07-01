@@ -1,5 +1,5 @@
 import React from 'react'
-import { List as ListIcon, Map as MapIcon, Search, Bookmark, CheckSquare, X, Trash2, Copy, Plus } from 'lucide-react'
+import { List as ListIcon, Map as MapIcon, Search, Bookmark, CheckCheck, X, Trash2, Copy, CopyPlus, FolderInput, Plus } from 'lucide-react'
 import Navbar from '../components/Layout/Navbar'
 import Modal from '../components/shared/Modal'
 import ListsRail from '../components/Collections/ListsRail'
@@ -9,6 +9,7 @@ import CollectionList from '../components/Collections/CollectionList'
 import CollectionFilterBar from '../components/Collections/CollectionFilterBar'
 import CollectionMapPanel from '../components/Collections/CollectionMapPanel'
 import CopyToTripModal from '../components/Collections/CopyToTripModal'
+import MoveToListModal from '../components/Collections/MoveToListModal'
 import ShareCollectionModal from '../components/Collections/ShareCollectionModal'
 import AddPlaceToCollectionModal from '../components/Collections/AddPlaceToCollectionModal'
 import CollectionPlaceDetail from '../components/Collections/CollectionPlaceDetail'
@@ -105,6 +106,9 @@ export default function CollectionsPage(): React.ReactElement {
       categoryOptions={c.categoryOptions}
       onStatusFilter={c.setStatusFilter}
       onCategoryFilter={c.setCategoryFilter}
+      showSelect={showSelect}
+      selectMode={c.selectMode}
+      onToggleSelect={() => c.setSelectMode(!c.selectMode)}
       t={t}
     />
   ) : null
@@ -204,17 +208,6 @@ export default function CollectionsPage(): React.ReactElement {
                         </button>
                       </div>
                     )}
-                    {showSelect && (
-                      <button
-                        type="button"
-                        onClick={() => c.setSelectMode(!c.selectMode)}
-                        className={`col-iconbtn${c.selectMode ? ' on' : ''}`}
-                        aria-label={t('collections.selectMode')}
-                        title={t('collections.selectMode')}
-                      >
-                        <CheckSquare size={16} />
-                      </button>
-                    )}
                     {canAddPlace && (
                       <button type="button" onClick={() => c.setShowAddPlace(true)} className="col-iconbtn" aria-label={t('collections.addPlace')} title={t('collections.addPlace')}>
                         <Plus size={16} />
@@ -234,14 +227,23 @@ export default function CollectionsPage(): React.ReactElement {
                   </div>
                 )}
 
-                {c.selectMode && c.selectedIds.length > 0 && (
+                {c.selectMode && (
                   <div className="col-selbar">
+                    <button type="button" onClick={c.handleSelectAll} className="col-selbar-btn">
+                      <CheckCheck size={14} /> {c.allVisibleSelected ? t('collections.deselectAll') : t('collections.selectAll')}
+                    </button>
                     <span className="lbl">{t('collections.selectedCount', { count: c.selectedIds.length })}</span>
                     <div className="col-toolbar-spacer" />
-                    <button type="button" onClick={c.openCopyForSelection} className="col-selbar-btn">
-                      <Copy size={14} /> {t('collections.copyN', { count: c.selectedIds.length })}
+                    <button type="button" onClick={() => c.setListPickerMode('move')} disabled={c.selectedIds.length === 0} className="col-selbar-btn">
+                      <FolderInput size={14} /> {t('collections.moveToList')}
                     </button>
-                    <button type="button" onClick={c.handleDeleteSelected} className="col-selbar-btn danger">
+                    <button type="button" onClick={() => c.setListPickerMode('copy')} disabled={c.selectedIds.length === 0} className="col-selbar-btn">
+                      <CopyPlus size={14} /> {t('collections.duplicateToList')}
+                    </button>
+                    <button type="button" onClick={c.openCopyForSelection} disabled={c.selectedIds.length === 0} className="col-selbar-btn">
+                      <Copy size={14} /> {t('collections.copyToTrip')}
+                    </button>
+                    <button type="button" onClick={c.handleDeleteSelected} disabled={c.selectedIds.length === 0} className="col-selbar-btn danger">
                       <Trash2 size={14} /> {t('common.delete')}
                     </button>
                     <button type="button" onClick={() => c.setSelectMode(false)} className="col-selbar-btn" aria-label={t('common.cancel')}>
@@ -305,6 +307,18 @@ export default function CollectionsPage(): React.ReactElement {
         onCopy={c.handleCopyToTrip}
         t={t}
       />
+
+      {/* Move / duplicate the selection into another list */}
+      {c.listPickerMode && (
+        <MoveToListModal
+          mode={c.listPickerMode}
+          lists={c.ownedLists.filter(l => l.id !== c.activeId)}
+          count={c.selectedIds.length}
+          onPick={c.listPickerMode === 'move' ? c.handleMoveToList : c.handleDuplicateToList}
+          onClose={() => c.setListPickerMode(null)}
+          t={t}
+        />
+      )}
 
       {/* Share / fusion */}
       {c.canShare && typeof c.activeId === 'number' && c.activeCollection && (

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { ChevronDown, Check, Layers, Tag } from 'lucide-react'
+import { ChevronDown, Check, Layers, Tag, CheckSquare } from 'lucide-react'
 import type { StatusFilter } from '../../store/collectionStore'
 import type { TranslationFn } from '../../types'
 import { getCategoryIcon } from '../shared/categoryIcons'
@@ -69,6 +69,9 @@ interface CollectionFilterBarProps {
   categoryOptions: CategoryOption[]
   onStatusFilter: (f: StatusFilter) => void
   onCategoryFilter: (f: number | 'all') => void
+  showSelect: boolean
+  selectMode: boolean
+  onToggleSelect: () => void
   t: TranslationFn
 }
 
@@ -78,7 +81,8 @@ interface CollectionFilterBarProps {
  * Custom compact dropdowns so they barely take any space.
  */
 export default function CollectionFilterBar({
-  statusFilter, counts, categoryFilter, categoryOptions, onStatusFilter, onCategoryFilter, t,
+  statusFilter, counts, categoryFilter, categoryOptions, onStatusFilter, onCategoryFilter,
+  showSelect, selectMode, onToggleSelect, t,
 }: CollectionFilterBarProps): React.ReactElement {
   const statusOpts: Opt[] = [
     { key: 'all', label: t('common.all'), count: counts.all },
@@ -102,6 +106,11 @@ export default function CollectionFilterBar({
       <Dropdown current={statusFilter} options={statusOpts} onSelect={k => onStatusFilter(k as StatusFilter)} lead={<Layers size={13} />} />
       {categoryOptions.length > 0 && (
         <Dropdown current={categoryFilter} options={catOpts} onSelect={k => onCategoryFilter(k as number | 'all')} lead={<Tag size={13} />} />
+      )}
+      {showSelect && (
+        <button type="button" onClick={onToggleSelect} className={`col-filter-btn col-filter-select${selectMode ? ' open' : ''}`} aria-pressed={selectMode}>
+          <CheckSquare size={14} /> <span className="col-filter-lbl">{t('collections.select')}</span>
+        </button>
       )}
     </div>
   )

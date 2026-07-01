@@ -1,6 +1,17 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.select': 'Seç',
+  'collections.selectAll': 'Tümünü seç',
+  'collections.deselectAll': 'Seçimi kaldır',
+  'collections.moveToList': 'Listeye taşı',
+  'collections.duplicateToList': 'Listeye çoğalt',
+  'collections.moveToListTitle': '{count} öğeyi başka listeye taşı',
+  'collections.duplicateToListTitle': '{count} öğeyi başka listeye çoğalt',
+  'collections.noOtherLists': 'Henüz başka liste yok',
+  'collections.movedCount': '{count} yer taşındı',
+  'collections.duplicatedCount': '{count} yer çoğaltıldı',
+  'collections.placeCount': '{count} yer',
   'collections.category': 'Kategori',
   'collections.noCategory': 'Kategori yok',
   'collections.editListTitle': 'Listeyi düzenle',
