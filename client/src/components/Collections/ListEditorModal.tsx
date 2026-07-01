@@ -4,6 +4,7 @@ import Modal from '../shared/Modal'
 import { useCollectionStore } from '../../store/collectionStore'
 import { useToast } from '../shared/Toast'
 import { getApiErrorMessage } from '../../types'
+import { normalizeLinkUrl } from '../../pages/collections/collectionsModel'
 import type { TranslationFn } from '../../types'
 import type { Collection, CollectionLink } from '@trek/shared'
 
@@ -37,6 +38,12 @@ export default function ListEditorModal({ target, onClose, onCreated, t }: ListE
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [coverPreview, setCoverPreview] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  // Remembers a freshly created list id so a retry after a cover-upload failure
+  // updates it instead of creating a duplicate list.
+  const [createdId, setCreatedId] = useState<number | null>(null)
+  const objectUrl = useRef<string | null>(null)
+
+  const dropObjectUrl = () => { if (objectUrl.current) { URL.revokeObjectURL(objectUrl.current); objectUrl.current = null } }
 
   // (Re)seed the form whenever the target changes.
   useEffect(() => {
@@ -46,16 +53,24 @@ export default function ListEditorModal({ target, onClose, onCreated, t }: ListE
     setDescription(editing?.description ?? '')
     setLinks(editing?.links ?? [])
     setCoverFile(null)
+    dropObjectUrl()
     setCoverPreview(editing?.cover_image ?? null)
+    setCreatedId(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target])
+
+  // Revoke the last preview blob on unmount.
+  useEffect(() => () => dropObjectUrl(), [])
 
   if (!target) return null
 
   const pickCover = (file: File | undefined) => {
     if (!file) return
+    dropObjectUrl()
+    const url = URL.createObjectURL(file)
+    objectUrl.current = url
     setCoverFile(file)
-    setCoverPreview(URL.createObjectURL(file))
+    setCoverPreview(url)
   }
 
   const setLink = (i: number, patch: Partial<CollectionLink>) =>
@@ -64,18 +79,22 @@ export default function ListEditorModal({ target, onClose, onCreated, t }: ListE
   const save = async () => {
     const trimmed = name.trim()
     if (!trimmed) return
-    // Keep only links with a url; drop blank rows.
+    // Normalise + keep only links with a url; drop blank rows.
     const cleanLinks = links
-      .map(l => ({ label: l.label?.trim() || undefined, url: l.url.trim() }))
+      .map(l => ({ label: l.label?.trim() || undefined, url: normalizeLinkUrl(l.url) }))
       .filter(l => l.url)
+    const payload = { name: trimmed, color, description: description.trim() || null, links: cleanLinks }
     setSaving(true)
     try {
-      let id = editing?.id
-      if (editing) {
-        await updateCollection(editing.id, { name: trimmed, color, description: description.trim() || null, links: cleanLinks })
+      // A prior create that failed at the cover step left `createdId` set — reuse
+      // it so a retry updates that list instead of creating a duplicate.
+      let id = editing?.id ?? createdId
+      if (id != null) {
+        await updateCollection(id, payload)
       } else {
-        const created = await createCollection({ name: trimmed, color, description: description.trim() || null, links: cleanLinks })
-        id = created?.id
+        const created = await createCollection(payload)
+        id = created?.id ?? null
+        setCreatedId(id)
       }
       if (id != null && coverFile) await uploadCover(id, coverFile)
       if (!editing && id != null) onCreated(id)

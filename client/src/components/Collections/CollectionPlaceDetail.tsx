@@ -8,6 +8,9 @@ import type { TranslationFn } from '../../types'
 import MarkdownToolbar from '../Journey/MarkdownToolbar'
 import StatusBadge from './StatusBadge'
 import { entityGradient } from '../../utils/gradients'
+import { normalizeLinkUrl } from '../../pages/collections/collectionsModel'
+import { useToast } from '../shared/Toast'
+import { getApiErrorMessage } from '../../types'
 
 function linkHost(url: string): string {
   try { return new URL(url).hostname.replace(/^www\./, '') } catch { return url }
@@ -34,6 +37,7 @@ interface CollectionPlaceDetailProps {
 export default function CollectionPlaceDetail({
   place, canEdit, onClose, onSetStatus, onSave, onCopyToTrip, onRemove, t,
 }: CollectionPlaceDetailProps): React.ReactElement {
+  const toast = useToast()
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(place.name)
   const [description, setDescription] = useState(place.description ?? '')
@@ -58,11 +62,13 @@ export default function CollectionPlaceDetail({
     setLinks(links.map((l, idx) => (idx === i ? { ...l, ...patch } : l)))
 
   const save = async () => {
-    const cleanLinks = links.map(l => ({ label: l.label?.trim() || undefined, url: l.url.trim() })).filter(l => l.url)
+    const cleanLinks = links.map(l => ({ label: l.label?.trim() || undefined, url: normalizeLinkUrl(l.url) })).filter(l => l.url)
     setSaving(true)
     try {
       await onSave({ name: name.trim() || place.name, description: description.trim() || null, links: cleanLinks })
       setEditing(false)
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('common.error')))
     } finally {
       setSaving(false)
     }

@@ -26,6 +26,7 @@ import { CollectionsAddonGuard } from './collections-addon.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
+import { isDemoEmail } from '../../services/demo';
 import {
   collectionCreateRequestSchema,
   collectionUpdateRequestSchema,
@@ -253,6 +254,9 @@ export class CollectionsController {
   @Post(':id/cover')
   @UseInterceptors(FileInterceptor('cover', COVER_UPLOAD))
   uploadCover(@CurrentUser() user: User, @Param('id') id: string, @UploadedFile() file: Express.Multer.File | undefined) {
+    if (process.env.DEMO_MODE?.toLowerCase() === 'true' && isDemoEmail(user.email)) {
+      throw new HttpException({ error: 'Uploads are disabled in demo mode. Self-host TREK for full functionality.' }, 403);
+    }
     if (!file) throw new HttpException({ error: 'No image uploaded' }, 400);
     const coverUrl = `/uploads/covers/${file.filename}`;
     return this.collections.setCollectionCover(user.id, Number(id), coverUrl);

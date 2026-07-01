@@ -73,3 +73,15 @@ export function statusCounts(places: CollectionPlace[]): Record<StatusFilter, nu
 export function mappablePlaces(places: CollectionPlace[]): CollectionPlace[] {
   return places.filter(p => typeof p.lat === 'number' && typeof p.lng === 'number')
 }
+
+/**
+ * Normalise a user-typed link: prepend https:// when there's no scheme so the
+ * href is absolute (a bare "booking.com" would otherwise resolve relative to the
+ * SPA route and 404). Returns '' for blanks. The server further restricts to
+ * http/https.
+ */
+export function normalizeLinkUrl(url: string): string {
+  const u = url.trim()
+  if (!u) return ''
+  return /^https?:\/\//i.test(u) ? u : `https://${u.replace(/^\/+/, '')}`
+}

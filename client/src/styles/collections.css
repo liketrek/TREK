@@ -218,23 +218,29 @@
 
 /* ----------------- map panel + floating controls ----------------- */
 .trek-dash .col-map-shell { position: relative; width: 100%; height: 100%; }
-.trek-dash .col-map-controls { position: absolute; top: 12px; left: 12px; z-index: 20; display: flex; gap: 8px; }
+/* One top bar so the left cluster (collapse / select) and the right cluster
+   (add / search) share the width and never overlap on a narrow split map — the
+   search shrinks instead. */
+.trek-dash .col-map-topbar { position: absolute; top: 12px; left: 12px; right: 12px; z-index: 20; display: flex; align-items: center; gap: 10px; }
+.trek-dash .col-map-group { display: flex; align-items: center; gap: 8px; }
+.trek-dash .col-map-group.right { margin-left: auto; min-width: 0; }
 .trek-dash .col-map-btn {
-  width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; color: var(--ink);
+  width: 38px; height: 38px; flex-shrink: 0; border-radius: 11px; display: grid; place-items: center; color: var(--ink);
   background: var(--glass-bg); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow);
   backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
   transition: transform .12s, background .15s, color .15s;
 }
 .trek-dash .col-map-btn:hover { transform: translateY(-1px); background: var(--surface); }
 .trek-dash .col-map-btn.on { background: var(--accent); border-color: var(--accent); color: #fff; }
-.trek-dash .col-map-topright { position: absolute; top: 12px; right: 12px; z-index: 20; display: flex; gap: 8px; align-items: center; }
 .trek-dash .col-map-search {
-  display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px 0 12px; border-radius: 11px; color: var(--ink-3);
+  display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px; border-radius: 11px; color: var(--ink-3);
   background: var(--glass-bg); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow);
   backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+  flex: 0 1 auto; min-width: 0;
 }
+.trek-dash .col-map-search svg { flex-shrink: 0; }
 .trek-dash .col-map-search input {
-  width: 180px; background: none; border: 0; outline: none; color: var(--ink); font-size: 13.5px; font-family: inherit;
+  flex: 1 1 auto; width: 150px; min-width: 0; background: none; border: 0; outline: none; color: var(--ink); font-size: 13.5px; font-family: inherit;
 }
 .trek-dash .col-map-search input::placeholder { color: var(--ink-3); }
 

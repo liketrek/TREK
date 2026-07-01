@@ -46,8 +46,8 @@ export default function CollectionMapPanel({
         dark={dark}
       />
       {overlay && (
-        <>
-          <div className="col-map-controls">
+        <div className="col-map-topbar">
+          <div className="col-map-group">
             <button
               type="button"
               onClick={onToggleView}
@@ -69,7 +69,7 @@ export default function CollectionMapPanel({
               </button>
             )}
           </div>
-          <div className="col-map-topright">
+          <div className="col-map-group right">
             {canAddPlace && (
               <button type="button" onClick={onAddPlace} className="col-map-btn" aria-label={t('collections.addPlace')} title={t('collections.addPlace')}>
                 <Plus size={17} />
@@ -80,7 +80,7 @@ export default function CollectionMapPanel({
               <input value={search} onChange={e => onSearch(e.target.value)} placeholder={t('collections.search')} />
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   )

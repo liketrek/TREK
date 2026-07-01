@@ -9,7 +9,8 @@ export type CollectionStatus = (typeof COLLECTION_STATUSES)[number];
 /** A user-added link on a list or a saved place (stored as a JSON array). */
 export const collectionLinkSchema = z.object({
   label: z.string().max(120).optional(),
-  url: z.string().trim().url().max(2000),
+  // http/https only — blocks javascript:/data: hrefs and forces an absolute link.
+  url: z.string().trim().max(2000).regex(/^https?:\/\/.+/i),
 });
 export type CollectionLink = z.infer<typeof collectionLinkSchema>;
 export const collectionLinksSchema = z.array(collectionLinkSchema).max(30);
