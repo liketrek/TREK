@@ -203,8 +203,9 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
   },
 
   updatePlace: async (placeId, body) => {
-    const res = await collectionsApi.updatePlace(placeId, body)
-    set({ places: get().places.map(p => (p.id === placeId ? res.place : p)) })
+    // The endpoint returns the updated place directly (not wrapped in { place }).
+    const updated = await collectionsApi.updatePlace(placeId, body)
+    if (updated) set({ places: get().places.map(p => (p.id === placeId ? updated : p)) })
   },
 
   deletePlace: async (placeId: number) => {

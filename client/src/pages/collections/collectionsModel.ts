@@ -53,6 +53,7 @@ export function filterPlaces(
 ): CollectionPlace[] {
   const q = search.trim().toLowerCase()
   return places.filter(p => {
+    if (!p) return false
     if (statusFilter !== 'all' && p.status !== statusFilter) return false
     if (categoryFilter !== 'all' && (p.category_id ?? null) !== categoryFilter) return false
     if (!q) return true
@@ -66,8 +67,8 @@ export function filterPlaces(
 
 /** Count places per status for the filter chips. */
 export function statusCounts(places: CollectionPlace[]): Record<StatusFilter, number> {
-  const counts: Record<StatusFilter, number> = { all: places.length, idea: 0, want: 0, visited: 0 }
-  for (const p of places) counts[p.status] += 1
+  const counts: Record<StatusFilter, number> = { all: 0, idea: 0, want: 0, visited: 0 }
+  for (const p of places) { if (!p) continue; counts.all += 1; counts[p.status] += 1 }
   return counts
 }
 
@@ -77,7 +78,7 @@ export interface CategoryOption { id: number; name: string; color: string | null
 export function presentCategories(places: CollectionPlace[]): CategoryOption[] {
   const byId = new Map<number, CategoryOption>()
   for (const p of places) {
-    if (p.category_id == null || !p.category) continue
+    if (!p || p.category_id == null || !p.category) continue
     const existing = byId.get(p.category_id)
     if (existing) existing.count += 1
     else byId.set(p.category_id, { id: p.category_id, name: p.category.name, color: p.category.color ?? null, icon: p.category.icon ?? null, count: 1 })
@@ -87,7 +88,7 @@ export function presentCategories(places: CollectionPlace[]): CategoryOption[] {
 
 /** Only the places that can render on a map. */
 export function mappablePlaces(places: CollectionPlace[]): CollectionPlace[] {
-  return places.filter(p => typeof p.lat === 'number' && typeof p.lng === 'number')
+  return places.filter(p => p && typeof p.lat === 'number' && typeof p.lng === 'number')
 }
 
 /**
