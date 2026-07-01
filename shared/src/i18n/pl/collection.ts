@@ -1,6 +1,10 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.saveNToList': 'Zapisz {count} na liście',
+  'collections.addedNToList': 'Zapisano {count} w {name}',
+  'collections.noOwnLists': 'Nie masz jeszcze list',
+  'collections.saveToListHint': 'Duplikaty są pomijane automatycznie',
   'collections.role.label': 'Rola',
   'collections.role.viewer': 'Widz',
   'collections.role.editor': 'Edytor',

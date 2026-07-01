@@ -1,6 +1,10 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.saveNToList': '将 {count} 个保存到列表',
+  'collections.addedNToList': '已将 {count} 个保存到 {name}',
+  'collections.noOwnLists': '你还没有列表',
+  'collections.saveToListHint': '重复项会被自动跳过',
   'collections.role.label': '角色',
   'collections.role.viewer': '查看者',
   'collections.role.editor': '编辑者',

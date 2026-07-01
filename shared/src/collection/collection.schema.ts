@@ -138,6 +138,15 @@ export const collectionSaveFromTripRequestSchema = z.object({
 });
 export type CollectionSaveFromTripRequest = z.infer<typeof collectionSaveFromTripRequestSchema>;
 
+/** Bulk: copy several selected trip places into a list at once. */
+export const collectionSaveFromTripManyRequestSchema = z.object({
+  collection_id: z.number(),
+  source_trip_id: z.number(),
+  source_place_ids: z.array(z.number()).min(1).max(1000),
+  force: z.boolean().optional(),
+});
+export type CollectionSaveFromTripManyRequest = z.infer<typeof collectionSaveFromTripManyRequestSchema>;
+
 export const collectionPlaceUpdateRequestSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().nullable().optional(),

@@ -453,6 +453,49 @@ export function saveFromTripPlace(
   });
 }
 
+/** Bulk copy of several trip places into a list in one shot — one access check,
+ *  one WS notify (vs saving each place individually). Mirrors saveFromTripPlace's
+ *  field mapping + dedup; skips duplicates unless force. Status starts at 'idea'. */
+export function saveFromTripPlaces(
+  userId: number, collectionId: number, tripId: number, placeIds: number[], force?: boolean,
+): { copied: number; skipped: { id: number; name: string }[] } {
+  assertCanEdit(userId, collectionId);
+  if (!canAccessTrip(tripId, userId)) httpError(404, 'Trip not found');
+
+  const ownerId = ownerOf(collectionId);
+  const insert = db.prepare(`
+    INSERT INTO collection_places (
+      collection_id, owner_id, saved_by, name, description, lat, lng, address,
+      category_id, price, currency, notes, image_url, google_place_id, google_ftid,
+      osm_id, website, phone, status, source_trip_id, source_place_id, links
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'idea', ?, ?, NULL)
+  `);
+  let copied = 0;
+  const skipped: { id: number; name: string }[] = [];
+  for (const placeId of placeIds) {
+    const p = db.prepare('SELECT * FROM places WHERE id = ? AND trip_id = ?').get(placeId, tripId) as Record<string, unknown> | undefined;
+    if (!p) continue;
+    const name = p.name as string;
+    const lat = (p.lat as number | null) ?? null;
+    const lng = (p.lng as number | null) ?? null;
+    if (!force && findDuplicateCollectionPlace(collectionId, { name, lat, lng })) {
+      skipped.push({ id: placeId, name });
+      continue;
+    }
+    insert.run(
+      collectionId, ownerId, userId,
+      name, (p.description as string | null) ?? null, lat, lng, (p.address as string | null) ?? null,
+      (p.category_id as number | null) ?? null, (p.price as number | null) ?? null, (p.currency as string | null) ?? null, (p.notes as string | null) ?? null,
+      (p.image_url as string | null) ?? null, (p.google_place_id as string | null) ?? null, (p.google_ftid as string | null) ?? null,
+      (p.osm_id as string | null) ?? null, (p.website as string | null) ?? null, (p.phone as string | null) ?? null,
+      tripId, placeId,
+    );
+    copied++;
+  }
+  if (copied > 0) notifyCollectionUsers(collectionId, undefined, 'collections:updated');
+  return { copied, skipped };
+}
+
 export function updatePlace(userId: number, placeId: number, body: import('@trek/shared').CollectionPlaceUpdateRequest, socketId?: string): CollectionPlace {
   const currentCollection = collectionIdOfPlace(placeId);
   assertCanEdit(userId, currentCollection);

@@ -153,6 +153,7 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [pendingDeleteIds, setPendingDeleteIds] = useState<number[] | null>(null)
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false)
+  const [saveToListOpen, setSaveToListOpen] = useState(false)
 
   const exitSelectMode = () => { setSelectMode(false); setSelectedIds(new Set()) }
 
@@ -266,6 +267,7 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
     search, setSearch, filter, setFilter, categoryFilters, setCategoryFiltersLocal,
     selectMode, setSelectMode, selectedIds, setSelectedIds, pendingDeleteIds, setPendingDeleteIds,
     categoryPickerOpen, setCategoryPickerOpen,
+    saveToListOpen, setSaveToListOpen, collectionsEnabled, tripId,
     exitSelectMode, toggleSelected, toggleCategoryFilter, dayPickerPlace, setDayPickerPlace,
     catDropOpen, setCatDropOpen, mobileShowDays, setMobileShowDays,
     hasTracks, plannedIds, filtered, registerPlaceRow, isAssignedToSelectedDay, inDaySet, openContextMenu,

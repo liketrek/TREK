@@ -32,6 +32,7 @@ import {
   collectionUpdateRequestSchema,
   collectionSavePlaceRequestSchema,
   collectionSaveFromTripRequestSchema,
+  collectionSaveFromTripManyRequestSchema,
   collectionPlaceUpdateRequestSchema,
   collectionSetStatusRequestSchema,
   collectionCopyToTripRequestSchema,
@@ -44,6 +45,7 @@ import {
   type CollectionUpdateRequest,
   type CollectionSavePlaceRequest,
   type CollectionSaveFromTripRequest,
+  type CollectionSaveFromTripManyRequest,
   type CollectionPlaceUpdateRequest,
   type CollectionSetStatusRequest,
   type CollectionCopyToTripRequest,
@@ -120,6 +122,12 @@ export class CollectionsController {
   @HttpCode(200)
   saveFromTrip(@CurrentUser() user: User, @Body(new ZodValidationPipe(collectionSaveFromTripRequestSchema)) body: CollectionSaveFromTripRequest) {
     return this.collections.saveFromTripPlace(user.id, body.collection_id, body.source_trip_id, body.source_place_id, body.force);
+  }
+
+  @Post('places/from-trip-many')
+  @HttpCode(200)
+  saveFromTripMany(@CurrentUser() user: User, @Body(new ZodValidationPipe(collectionSaveFromTripManyRequestSchema)) body: CollectionSaveFromTripManyRequest) {
+    return this.collections.saveFromTripPlaces(user.id, body.collection_id, body.source_trip_id, body.source_place_ids, body.force);
   }
 
   @Post('places/delete-many')

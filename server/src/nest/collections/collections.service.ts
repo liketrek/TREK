@@ -28,6 +28,9 @@ export class CollectionsService {
   saveFromTripPlace(userId: number, collectionId: number, tripId: number, placeId: number, force?: boolean) {
     return svc.saveFromTripPlace(userId, collectionId, tripId, placeId, force);
   }
+  saveFromTripPlaces(userId: number, collectionId: number, tripId: number, placeIds: number[], force?: boolean) {
+    return svc.saveFromTripPlaces(userId, collectionId, tripId, placeIds, force);
+  }
   updatePlace(userId: number, placeId: number, body: CollectionPlaceUpdateRequest, socketId?: string) { return svc.updatePlace(userId, placeId, body, socketId); }
   setStatus(userId: number, placeId: number, status: CollectionStatus, socketId?: string) { return svc.setStatus(userId, placeId, status, socketId); }
   deletePlace(userId: number, placeId: number, socketId?: string) { return svc.deletePlace(userId, placeId, socketId); }

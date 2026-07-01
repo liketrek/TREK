@@ -1,6 +1,10 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.saveNToList': 'Uložit {count} do seznamu',
+  'collections.addedNToList': 'Uloženo {count} do {name}',
+  'collections.noOwnLists': 'Zatím nemáte žádné seznamy',
+  'collections.saveToListHint': 'Duplikáty se automaticky přeskočí',
   'collections.role.label': 'Role',
   'collections.role.viewer': 'Divák',
   'collections.role.editor': 'Editor',

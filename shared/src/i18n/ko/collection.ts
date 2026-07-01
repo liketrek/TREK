@@ -1,6 +1,10 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.saveNToList': '{count}개를 목록에 저장',
+  'collections.addedNToList': '{count}개를 {name}에 저장함',
+  'collections.noOwnLists': '아직 목록이 없습니다',
+  'collections.saveToListHint': '중복 항목은 자동으로 건너뜁니다',
   'collections.role.label': '역할',
   'collections.role.viewer': '뷰어',
   'collections.role.editor': '편집자',

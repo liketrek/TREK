@@ -1,6 +1,10 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.saveNToList': 'Spara {count} i en lista',
+  'collections.addedNToList': 'Sparade {count} i {name}',
+  'collections.noOwnLists': 'Du har inga listor än',
+  'collections.saveToListHint': 'Dubbletter hoppas över automatiskt',
   'collections.role.label': 'Roll',
   'collections.role.viewer': 'Läsare',
   'collections.role.editor': 'Redigerare',

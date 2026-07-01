@@ -1,6 +1,10 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.saveNToList': '{count} öğeyi bir listeye kaydet',
+  'collections.addedNToList': '{count} öğe {name} listesine kaydedildi',
+  'collections.noOwnLists': 'Henüz listeniz yok',
+  'collections.saveToListHint': 'Yinelenenler otomatik olarak atlanır',
   'collections.role.label': 'Rol',
   'collections.role.viewer': 'Görüntüleyici',
   'collections.role.editor': 'Editör',

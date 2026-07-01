@@ -1,6 +1,10 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.saveNToList': '{count} 件をリストに保存',
+  'collections.addedNToList': '{count} 件を {name} に保存しました',
+  'collections.noOwnLists': 'リストがまだありません',
+  'collections.saveToListHint': '重複は自動的にスキップされます',
   'collections.role.label': '役割',
   'collections.role.viewer': '閲覧者',
   'collections.role.editor': '編集者',

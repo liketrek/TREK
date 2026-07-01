@@ -1,6 +1,10 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.saveNToList': '{count} mentése listába',
+  'collections.addedNToList': '{count} mentve ide: {name}',
+  'collections.noOwnLists': 'Még nincsenek listáid',
+  'collections.saveToListHint': 'A duplikátumok automatikusan kimaradnak',
   'collections.role.label': 'Szerep',
   'collections.role.viewer': 'Néző',
   'collections.role.editor': 'Szerkesztő',

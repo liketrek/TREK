@@ -1,6 +1,10 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.saveNToList': 'Lưu {count} vào danh sách',
+  'collections.addedNToList': 'Đã lưu {count} vào {name}',
+  'collections.noOwnLists': 'Bạn chưa có danh sách nào',
+  'collections.saveToListHint': 'Các mục trùng lặp được bỏ qua tự động',
   'collections.role.label': 'Vai trò',
   'collections.role.viewer': 'Người xem',
   'collections.role.editor': 'Người sửa',

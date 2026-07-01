@@ -1,6 +1,10 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.saveNToList': 'Αποθήκευση {count} σε λίστα',
+  'collections.addedNToList': 'Αποθηκεύτηκαν {count} στο {name}',
+  'collections.noOwnLists': 'Δεν έχετε λίστες ακόμη',
+  'collections.saveToListHint': 'Τα διπλότυπα παραλείπονται αυτόματα',
   'collections.role.label': 'Ρόλος',
   'collections.role.viewer': 'Θεατής',
   'collections.role.editor': 'Συντάκτης',

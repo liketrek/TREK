@@ -1,6 +1,10 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.saveNToList': 'Simpan {count} ke daftar',
+  'collections.addedNToList': '{count} disimpan ke {name}',
+  'collections.noOwnLists': 'Kamu belum punya daftar',
+  'collections.saveToListHint': 'Duplikat dilewati otomatis',
   'collections.role.label': 'Peran',
   'collections.role.viewer': 'Peninjau',
   'collections.role.editor': 'Editor',

@@ -1,6 +1,10 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.saveNToList': 'حفظ {count} في قائمة',
+  'collections.addedNToList': 'تم حفظ {count} في {name}',
+  'collections.noOwnLists': 'ليس لديك قوائم بعد',
+  'collections.saveToListHint': 'يتم تخطي التكرارات تلقائيًا',
   'collections.role.label': 'الدور',
   'collections.role.viewer': 'مشاهد',
   'collections.role.editor': 'محرر',
