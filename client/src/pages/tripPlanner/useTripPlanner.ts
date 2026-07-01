@@ -6,7 +6,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { getCached, fetchPhoto } from '../../services/photoService'
 import { useToast } from '../../components/shared/Toast'
 import { Map, Ticket, PackageCheck, Wallet, FolderOpen, Users, Train } from 'lucide-react'
-import { useTranslation } from '../../i18n'
+import { useTranslation, translateApiError } from '../../i18n'
 import { addonsApi, accommodationsApi, authApi, tripsApi, assignmentsApi, healthApi, airtrailApi, mapsApi, placesApi } from '../../api/client'
 import { parsedItemToDraft, isTransportItem, type BookingReviewDraft } from '../../components/Planner/parsedItemToDraft'
 import type { BookingImportPreviewItem } from '@trek/shared'
@@ -426,7 +426,7 @@ export function useTripPlanner() {
           const fd = new FormData()
           fd.append('file', file)
           fd.append('place_id', String(editingPlace.id))
-          try { await tripActions.addFile(tripId, fd) } catch { toast.error(t('files.uploadError')) }
+          try { await tripActions.addFile(tripId, fd) } catch (err) { toast.error(translateApiError(t, err, 'files.uploadError')) }
         }
       }
       toast.success(t('trip.toast.placeUpdated'))
@@ -437,7 +437,7 @@ export function useTripPlanner() {
           const fd = new FormData()
           fd.append('file', file)
           fd.append('place_id', String(place.id))
-          try { await tripActions.addFile(tripId, fd) } catch { toast.error(t('files.uploadError')) }
+          try { await tripActions.addFile(tripId, fd) } catch (err) { toast.error(translateApiError(t, err, 'files.uploadError')) }
         }
       }
       toast.success(t('trip.toast.placeAdded'))

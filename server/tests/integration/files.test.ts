@@ -126,6 +126,8 @@ describe('Upload file', () => {
         .set('Cookie', authCookie(user.id))
         .attach('file', svgPath);
       expect(res.status).toBe(400);
+      // The error is an i18n key the client resolves via t() (issue #1363).
+      expect(res.body.error).toBe('files.uploadErrorType');
     } finally {
       if (fs.existsSync(svgPath)) fs.unlinkSync(svgPath);
     }

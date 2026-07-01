@@ -11,6 +11,7 @@ const files: TranslationStrings = {
   'files.countSingular': '1 个文件',
   'files.uploaded': '已上传 {count} 个',
   'files.uploadError': '上传失败',
+  'files.uploadErrorType': '不支持此文件类型',
   'files.dropzone': '将文件拖放到此处',
   'files.dropzoneHint': '或点击浏览',
   'files.allowedTypes': '图片、PDF、DOC、DOCX、XLS、XLSX、TXT、CSV · 最大 50 MB',

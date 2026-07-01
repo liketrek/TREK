@@ -11,6 +11,7 @@ const files: TranslationStrings = {
   'files.countSingular': 'ملف واحد',
   'files.uploaded': 'تم رفع {count}',
   'files.uploadError': 'فشل الرفع',
+  'files.uploadErrorType': 'نوع الملف هذا غير مدعوم',
   'files.dropzone': 'أسقط الملفات هنا',
   'files.dropzoneHint': 'أو انقر للتصفح',
   'files.allowedTypes': 'صور، PDF، DOC، DOCX، XLS، XLSX، TXT، CSV · حد أقصى 50 ميغابايت',

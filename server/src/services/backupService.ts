@@ -184,9 +184,21 @@ export async function createBackup(): Promise<BackupInfo> {
         // Exclude the place-photo and trek-memory caches: both are re-derivable
         // (re-fetched on demand, keyed on stable ids) and would otherwise dominate
         // backup size. Restores self-heal — the cache dirs are recreated at startup.
+        //
+        // Also exclude backups/ and restore-*/: these live under data/, not uploads/,
+        // but when an install maps data and uploads to the SAME directory (a
+        // misconfiguration, but a catastrophic one) the glob would otherwise sweep
+        // every prior backup zip into the new archive — each run embedding all
+        // previous runs, so size compounds without bound (see issue #1358). Ignoring
+        // them keeps the backup bounded regardless of how the volumes are mounted.
         archive.glob(
           '**/*',
-          { cwd: uploadsDir, ignore: ['photos/google/**', 'photos/trek/**'], nodir: true, dot: true },
+          {
+            cwd: uploadsDir,
+            ignore: ['photos/google/**', 'photos/trek/**', 'backups/**', 'restore-*/**'],
+            nodir: true,
+            dot: true,
+          },
           { prefix: 'uploads' },
         );
       }

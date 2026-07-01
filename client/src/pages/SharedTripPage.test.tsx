@@ -509,4 +509,67 @@ describe('SharedTripPage', () => {
       await waitFor(() => expect(screen.getByText('Tag 1')).toBeInTheDocument());
     });
   });
+
+  describe('FE-PAGE-SHARED-019: budget renders in the owner\'s baseCurrency, not the EUR trip fallback (#1361)', () => {
+    it('labels totals with the payload baseCurrency even when the trip currency is EUR', async () => {
+      server.use(
+        // No FX needed when the expense is already in the base; stub frankfurter so
+        // the live-rate fetch never hits the network in tests.
+        http.get('https://api.frankfurter.dev/v2/rates', () => HttpResponse.json([])),
+        http.get('/api/shared/:token', ({ params }) => {
+          if (params.token !== 'cad-token') return;
+          return HttpResponse.json({
+            trip: { id: 1, title: 'Shared Paris Trip', start_date: '2026-07-01', end_date: '2026-07-05', currency: 'EUR' },
+            baseCurrency: 'CAD',
+            days: [], assignments: {}, dayNotes: {}, places: [], reservations: [], accommodations: [], packing: [],
+            budget: [{ id: 1, name: 'Hotel', total_price: '200', category: 'Accommodation', currency: 'CAD' }],
+            categories: [],
+            permissions: { share_bookings: false, share_packing: false, share_budget: true, share_collab: false },
+            collab: [],
+          });
+        }),
+      );
+
+      renderSharedTrip('cad-token');
+      await waitFor(() => expect(screen.getByText('Shared Paris Trip')).toBeInTheDocument());
+      fireEvent.click(screen.getByRole('button', { name: /budget/i }));
+
+      await waitFor(() => expect(screen.getByText('Hotel')).toBeInTheDocument());
+      // Total + per-row labelled CAD; never the EUR fallback.
+      expect(screen.getAllByText(/200\.00 CAD/).length).toBeGreaterThan(0);
+      expect(screen.queryByText(/EUR/)).toBeNull();
+    });
+  });
+
+  describe('FE-PAGE-SHARED-020: mixed-currency expenses convert into baseCurrency via live FX (#1361)', () => {
+    it('converts a EUR expense into the base using fetched rates', async () => {
+      // Distinct base (NZD) so this test can't read the cached CAD rates seeded by
+      // FE-PAGE-SHARED-019 (useExchangeRates caches per base in module memory).
+      server.use(
+        // rates[X] = units of X per 1 base(NZD); 0.8 EUR per NZD → 100 EUR = 125.00 NZD
+        // (a clean 2-decimal result, distinct from the unconverted 100).
+        http.get('https://api.frankfurter.dev/v2/rates', () => HttpResponse.json([{ quote: 'EUR', rate: 0.8 }])),
+        http.get('/api/shared/:token', ({ params }) => {
+          if (params.token !== 'mixed-token') return;
+          return HttpResponse.json({
+            trip: { id: 1, title: 'Shared Paris Trip', start_date: '2026-07-01', end_date: '2026-07-05', currency: 'EUR' },
+            baseCurrency: 'NZD',
+            days: [], assignments: {}, dayNotes: {}, places: [], reservations: [], accommodations: [], packing: [],
+            budget: [{ id: 1, name: 'Dinner', total_price: '100', category: 'Food', currency: 'EUR' }],
+            categories: [],
+            permissions: { share_bookings: false, share_packing: false, share_budget: true, share_collab: false },
+            collab: [],
+          });
+        }),
+      );
+
+      renderSharedTrip('mixed-token');
+      await waitFor(() => expect(screen.getByText('Shared Paris Trip')).toBeInTheDocument());
+      fireEvent.click(screen.getByRole('button', { name: /budget/i }));
+
+      await waitFor(() => expect(screen.getByText('Dinner')).toBeInTheDocument());
+      // 100 EUR / 0.8 = 125.00 NZD once the rate resolves.
+      await waitFor(() => expect(screen.getAllByText(/125\.00 NZD/).length).toBeGreaterThan(0));
+    });
+  });
 });

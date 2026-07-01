@@ -354,6 +354,56 @@ describe('Shared trip — ordering parity (issue #981)', () => {
   });
 });
 
+describe('Shared trip — display currency (issue #1361)', () => {
+  it('SHARE-021 — baseCurrency resolves from the share owner\'s default_currency setting', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    // Trip keeps the EUR default; the owner's Costs display currency is CAD.
+    testDb.prepare("INSERT INTO settings (user_id, key, value) VALUES (?, 'default_currency', ?)")
+      .run(user.id, JSON.stringify('CAD'));
+
+    const { body: { token } } = await request(app)
+      .post(`/api/trips/${trip.id}/share-link`)
+      .set('Cookie', authCookie(user.id))
+      .send({ share_budget: true });
+
+    const res = await request(app).get(`/api/shared/${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.baseCurrency).toBe('CAD');
+  });
+
+  it('SHARE-022 — baseCurrency falls back to the trip currency when the owner has no setting', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    testDb.prepare('UPDATE trips SET currency = ? WHERE id = ?').run('GBP', trip.id);
+
+    const { body: { token } } = await request(app)
+      .post(`/api/trips/${trip.id}/share-link`)
+      .set('Cookie', authCookie(user.id))
+      .send({ share_budget: true });
+
+    const res = await request(app).get(`/api/shared/${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.baseCurrency).toBe('GBP');
+  });
+
+  it('SHARE-023 — baseCurrency uses the admin instance default when the owner has no per-user setting', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id); // EUR trip default, no user setting
+    testDb.prepare("INSERT INTO app_settings (key, value) VALUES ('default_user_setting_default_currency', ?)")
+      .run(JSON.stringify('USD'));
+
+    const { body: { token } } = await request(app)
+      .post(`/api/trips/${trip.id}/share-link`)
+      .set('Cookie', authCookie(user.id))
+      .send({ share_budget: true });
+
+    const res = await request(app).get(`/api/shared/${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.baseCurrency).toBe('USD');
+  });
+});
+
 describe('Shared trip — place photos in shared links (issue #1100)', () => {
   const PLACE_ID = 'ChIJsharedPhoto1100';
   const PROXY_URL = `/api/maps/place-photo/${encodeURIComponent(PLACE_ID)}/bytes`;

@@ -11,6 +11,7 @@ const files: TranslationStrings = {
   'files.countSingular': '1 bestand',
   'files.uploaded': '{count} geüpload',
   'files.uploadError': 'Uploaden mislukt',
+  'files.uploadErrorType': 'Dit bestandstype wordt niet ondersteund',
   'files.dropzone': 'Sleep bestanden hierheen',
   'files.dropzoneHint': 'of klik om te bladeren',
   'files.allowedTypes': 'Afbeeldingen, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Max 50 MB',

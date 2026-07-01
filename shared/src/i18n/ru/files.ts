@@ -11,6 +11,7 @@ const files: TranslationStrings = {
   'files.countSingular': '1 файл',
   'files.uploaded': '{count} загружено',
   'files.uploadError': 'Ошибка загрузки',
+  'files.uploadErrorType': 'Этот тип файла не поддерживается',
   'files.dropzone': 'Перетащите файлы сюда',
   'files.dropzoneHint': 'или нажмите для выбора',
   'files.allowedTypes': 'Изображения, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Макс. 50 МБ',

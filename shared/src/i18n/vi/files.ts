@@ -1,6 +1,7 @@
 import type { TranslationStrings } from '../types';
 
 const files: TranslationStrings = {
+  'files.uploadErrorType': 'Loại tập tin này không được hỗ trợ',
   'files.title': 'Tập tin',
   'files.pageTitle': 'Tập tin & Tài liệu',
   'files.subtitle': '{count} tệp cho {trip}',

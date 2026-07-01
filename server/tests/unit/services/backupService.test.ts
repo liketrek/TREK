@@ -475,12 +475,44 @@ describe('BACKUP-036 createBackup', () => {
       '**/*',
       expect.objectContaining({
         cwd: expect.stringContaining('uploads'),
-        ignore: ['photos/google/**', 'photos/trek/**'],
+        ignore: ['photos/google/**', 'photos/trek/**', 'backups/**', 'restore-*/**'],
       }),
       { prefix: 'uploads' },
     );
     // The re-derivable caches must not be archived verbatim.
     expect(archiverInstanceMock.directory).not.toHaveBeenCalled();
+  });
+
+  it('BACKUP-036h — never sweeps backups/ or restore-* into the archive (issue #1358)', async () => {
+    // Regression guard: when data and uploads map to the same directory, the
+    // uploads glob would otherwise pick up the backups/ dir and recursively
+    // embed every prior backup zip, compounding size without bound.
+    fsMock.existsSync.mockImplementation((p: string) => String(p).endsWith('uploads'));
+    fsMock.mkdirSync.mockReturnValue(undefined);
+
+    const writableEvents: Record<string, Function> = {};
+    const fakeWriteStream = {
+      on: vi.fn((event: string, cb: Function) => {
+        writableEvents[event] = cb;
+      }),
+    };
+    fsMock.createWriteStream.mockReturnValue(fakeWriteStream);
+
+    archiverInstanceMock.on.mockImplementation((_e: string, _cb: Function) => {});
+    archiverInstanceMock.pipe.mockReturnValue(undefined);
+    archiverInstanceMock.finalize.mockImplementation(() => {
+      if (writableEvents['close']) writableEvents['close']();
+    });
+    archiverMock.mockReturnValue(archiverInstanceMock);
+
+    fsMock.statSync.mockReturnValue({ size: 1024, birthtime: new Date('2026-04-06T12:00:00Z') });
+
+    await createBackup();
+
+    const globCall = archiverInstanceMock.glob.mock.calls.at(-1);
+    const ignore: string[] = globCall?.[1]?.ignore ?? [];
+    expect(ignore).toContain('backups/**');
+    expect(ignore).toContain('restore-*/**');
   });
 
   it('BACKUP-036f — bundles .encryption_key when present and ENCRYPTION_KEY env is unset', async () => {

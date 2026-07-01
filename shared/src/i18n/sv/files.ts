@@ -11,6 +11,7 @@ const files: TranslationStrings = {
   'files.countSingular': '1 fil',
   'files.uploaded': '{count} uppladdade',
   'files.uploadError': 'Uppladdning misslyckades',
+  'files.uploadErrorType': 'Den här filtypen stöds inte',
   'files.dropzone': 'Släpp filer här',
   'files.dropzoneHint': 'eller klicka för att bläddra',
   'files.allowedTypes': 'Foton, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Högst 50 MB',

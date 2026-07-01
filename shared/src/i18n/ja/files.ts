@@ -11,6 +11,7 @@ const files: TranslationStrings = {
   'files.countSingular': '1件のファイル',
   'files.uploaded': '{count}件アップロード',
   'files.uploadError': 'アップロードに失敗しました',
+  'files.uploadErrorType': 'このファイル形式はサポートされていません',
   'files.dropzone': 'ここにファイルをドロップ',
   'files.dropzoneHint': 'またはクリックして参照',
   'files.allowedTypes': '画像、PDF、DOC、DOCX、XLS、XLSX、TXT、CSV · 最大50MB',

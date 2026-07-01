@@ -11,6 +11,7 @@ const files: TranslationStrings = {
   'files.countSingular': '1 fájl',
   'files.uploaded': '{count} feltöltve',
   'files.uploadError': 'Feltöltés sikertelen',
+  'files.uploadErrorType': 'Ez a fájltípus nem támogatott',
   'files.dropzone': 'Húzd ide a fájlokat',
   'files.dropzoneHint': 'vagy kattints a böngészéshez',
   'files.allowedTypes': 'Képek, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Max 50 MB',
