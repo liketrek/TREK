@@ -63,6 +63,7 @@
 - [[Vacay]]
 - [[Atlas]]
 - [[Journey Journal|Journey-Journal]]
+- [[Collections]]
 - [[Dashboard Widgets|Dashboard-Widgets]]
 
 ## AI / MCP

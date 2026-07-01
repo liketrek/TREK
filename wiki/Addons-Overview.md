@@ -22,6 +22,7 @@ The following addons are registered in the system (defined in `server/src/db/see
 | `atlas` | global | Interactive world map showing countries and regions you have visited, plus a bucket list. See [Atlas](Atlas). |
 | `collab` | trip | Notes, polls, and live chat for trip collaboration. See [Real-Time-Collaboration](Real-Time-Collaboration). |
 | `journey` | global | Trip tracking and travel journal — check-ins, photos, and daily stories. See [Journey-Journal](Journey-Journal). |
+| `collections` | global | A personal, server-wide library of saved places in named lists, with idea/want/visited status, categories, and fusion sharing with per-member roles. See [Collections](Collections). |
 | `naver_list_import` | trip | Import places from shared Naver Maps lists directly into a trip. |
 
 
