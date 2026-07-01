@@ -15,7 +15,7 @@ export type IncomingCollectionInvite = CollectionListResponse['incomingInvites']
 export const ALL_SAVED = 'all' as const
 export type ActiveCollectionId = number | typeof ALL_SAVED | null
 
-export type CollectionView = 'grid' | 'list' | 'map'
+export type CollectionView = 'list' | 'map'
 export type StatusFilter = CollectionStatus | 'all'
 
 interface CollectionState {
@@ -69,7 +69,7 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
   places: [],
   members: [],
   incomingInvites: [],
-  view: 'grid',
+  view: 'list',
   statusFilter: 'all',
   search: '',
   selectedPlaceId: null,

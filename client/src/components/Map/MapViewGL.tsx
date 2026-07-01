@@ -224,6 +224,18 @@ export function MapViewGL({
   const [hoverPlace, setHoverPlace] = useState<(Place & { category_color?: string | null; category_icon?: string | null; category_name?: string | null }) | null>(null)
   const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null)
   const hoverIdRef = useRef<number | null>(null)
+
+  // Selecting a place rebuilds its marker element, so the browser never fires
+  // mouseleave on the removed node and the fixed-position hover card gets
+  // orphaned (it stays put and drifts with page scroll). Clear it on selection
+  // change and on any scroll so it can't get stuck.
+  useEffect(() => { hoverIdRef.current = null; setHoverPlace(null); setHoverPos(null) }, [selectedPlaceId])
+  useEffect(() => {
+    if (!hoverPlace) return
+    const clear = () => { hoverIdRef.current = null; setHoverPlace(null); setHoverPos(null) }
+    window.addEventListener('scroll', clear, true)
+    return () => window.removeEventListener('scroll', clear, true)
+  }, [hoverPlace])
   const containerRef = useRef<HTMLDivElement>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapRef = useRef<any | null>(null)

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from '../../i18n'
 import { useElementSize } from '../../hooks/useElementSize'
@@ -69,6 +69,24 @@ export function useCollections() {
 
   // Initial load.
   useEffect(() => { loadAll() }, [])
+
+  // When the list↔map split toggles, its grid columns animate; keep nudging the
+  // mounted map to re-layout during the transition (Leaflet's trackResize hooks
+  // window resize; MapLibre observes its own box). Skip the initial mount — the
+  // map already sizes itself there, and nudging would fight its first fit.
+  const firstViewRun = useRef(true)
+  useEffect(() => {
+    if (firstViewRun.current) { firstViewRun.current = false; return }
+    if (!isWide) return
+    const start = performance.now()
+    let raf = 0
+    const tick = () => {
+      window.dispatchEvent(new Event('resize'))
+      if (performance.now() - start < 440) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [view, isWide])
 
   // Keep the active list in sync with the URL (/collections/:id, or the
   // "All saved" union at /collections).

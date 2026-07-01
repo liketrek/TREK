@@ -1,47 +1,20 @@
 import React from 'react'
-import { LayoutGrid, List as ListIcon, Map as MapIcon, Search, Bookmark, CheckSquare, X, Trash2, Copy } from 'lucide-react'
+import { List as ListIcon, Map as MapIcon, Search, Bookmark, CheckSquare, X, Trash2, Copy } from 'lucide-react'
 import Navbar from '../components/Layout/Navbar'
 import Modal from '../components/shared/Modal'
 import ListsRail from '../components/Collections/ListsRail'
 import CollectionHero from '../components/Collections/CollectionHero'
-import CollectionGrid from '../components/Collections/CollectionGrid'
 import CollectionList from '../components/Collections/CollectionList'
-import CollectionMap from '../components/Collections/CollectionMap'
+import CollectionMapPanel from '../components/Collections/CollectionMapPanel'
 import CopyToTripModal from '../components/Collections/CopyToTripModal'
 import ShareCollectionModal from '../components/Collections/ShareCollectionModal'
 import PlaceInspector from '../components/Planner/PlaceInspector'
-import type { TranslationFn } from '../types'
-import type { CollectionView } from '../store/collectionStore'
 import { mappablePlaces } from './collections/collectionsModel'
 import { useCollections } from './collections/useCollections'
 import '../styles/dashboard.css'
 import '../styles/collections.css'
 
 const SWATCHES = ['#6366f1', '#ec4899', '#14b8a6', '#f97316', '#8b5cf6', '#ef4444', '#3b82f6', '#22c55e']
-const VIEW_ICONS: Record<CollectionView, typeof LayoutGrid> = { grid: LayoutGrid, list: ListIcon, map: MapIcon }
-
-function ViewSwitch({ view, onChange, t }: { view: CollectionView; onChange: (v: CollectionView) => void; t: TranslationFn }): React.ReactElement {
-  return (
-    <div className="col-viewseg" role="group" aria-label={t('collections.title')}>
-      {(['grid', 'list', 'map'] as CollectionView[]).map(v => {
-        const Icon = VIEW_ICONS[v]
-        return (
-          <button
-            key={v}
-            type="button"
-            aria-pressed={view === v}
-            onClick={() => onChange(v)}
-            aria-label={t(`collections.view.${v}`)}
-            title={t(`collections.view.${v}`)}
-            className={view === v ? 'on' : ''}
-          >
-            <Icon size={16} />
-          </button>
-        )
-      })}
-    </div>
-  )
-}
 
 function EmptyState({ icon, title, text, action }: { icon: React.ReactNode; title: string; text: string; action?: React.ReactNode }): React.ReactElement {
   return (
@@ -68,10 +41,46 @@ export default function CollectionsPage(): React.ReactElement {
   const noLists = !c.loading && c.collections.length === 0
   const showSelect = !c.isAllSaved && c.activeCollection != null
 
-  // On a wide screen the list view splits into list + persistent map; clicking a
-  // place pans the map instead of opening the (map-covering) inspector.
+  // Selecting a place toggles it, so clicking it again — or the map background —
+  // clears it. Below the desktop breakpoint the list and map are separate views;
+  // above it the list view is a split with a persistent map that pans to the
+  // selection (the map stays mounted across the list↔map toggle so it animates).
   const mappable = mappablePlaces(c.visiblePlaces)
-  const inSplit = c.isWide && c.view === 'list' && mappable.length > 0
+  const openPlace = (id: number) => c.setSelectedPlaceId(c.selectedPlaceId === id ? null : id)
+  const deselect = () => c.setSelectedPlaceId(null)
+  const toggleView = () => c.setView(c.view === 'map' ? 'list' : 'map')
+
+  const desktopSplit = c.isWide && mappable.length > 0
+  const mapShown = mappable.length > 0 && (c.view === 'map' || c.isWide)
+  const mapOverlay = c.isWide && mapShown // the map carries the toggle + search
+
+  const listEl = (
+    <CollectionList
+      places={c.visiblePlaces}
+      selectedPlaceId={c.selectedPlaceId}
+      selectMode={c.selectMode}
+      selectedIds={c.selectedIds}
+      onOpenPlace={openPlace}
+      onStatusChange={c.handleStatusChange}
+      onToggleSelect={c.toggleSelect}
+      t={t}
+    />
+  )
+  const mapPanel = (overlay: boolean) => (
+    <CollectionMapPanel
+      places={mappable}
+      selectedPlaceId={c.selectedPlaceId}
+      onSelect={openPlace}
+      onDeselect={deselect}
+      dark={c.dark}
+      overlay={overlay}
+      view={c.view}
+      onToggleView={toggleView}
+      search={c.search}
+      onSearch={c.setSearch}
+      t={t}
+    />
+  )
 
   let body: React.ReactElement
   if (c.placesLoading && !hasPlaces) {
@@ -80,48 +89,17 @@ export default function CollectionsPage(): React.ReactElement {
     body = <EmptyState icon={<Bookmark size={26} />} title={t('collections.empty.title')} text={t('collections.empty.text')} />
   } else if (c.visiblePlaces.length === 0) {
     body = <EmptyState icon={<Search size={26} />} title={t('collections.empty.noMatchTitle')} text={t('collections.empty.noMatchText')} />
-  } else if (c.view === 'grid') {
+  } else if (desktopSplit) {
     body = (
-      <CollectionGrid
-        places={c.visiblePlaces}
-        selectedPlaceId={c.selectedPlaceId}
-        selectMode={c.selectMode}
-        selectedIds={c.selectedIds}
-        onOpenPlace={c.setSelectedPlaceId}
-        onStatusChange={c.handleStatusChange}
-        onToggleSelect={c.toggleSelect}
-        t={t}
-      />
-    )
-  } else if (c.view === 'list') {
-    const listEl = (
-      <CollectionList
-        places={c.visiblePlaces}
-        selectedPlaceId={c.selectedPlaceId}
-        selectMode={c.selectMode}
-        selectedIds={c.selectedIds}
-        onOpenPlace={c.setSelectedPlaceId}
-        onStatusChange={c.handleStatusChange}
-        onToggleSelect={c.toggleSelect}
-        t={t}
-      />
-    )
-    body = inSplit ? (
-      <div className="col-split">
+      <div className={`col-split${c.view === 'map' ? ' map-full' : ''}`}>
         <div className="col-split-list">{listEl}</div>
-        <div className="col-split-map">
-          <CollectionMap places={mappable} selectedPlaceId={c.selectedPlaceId} onOpenPlace={c.setSelectedPlaceId} dark={c.dark} />
-        </div>
-      </div>
-    ) : listEl
-  } else {
-    body = mappable.length === 0 ? (
-      <EmptyState icon={<Search size={26} />} title={t('collections.empty.noMatchTitle')} text={t('collections.empty.noMatchText')} />
-    ) : (
-      <div className="col-mapwrap">
-        <CollectionMap places={mappable} selectedPlaceId={c.selectedPlaceId} onOpenPlace={c.setSelectedPlaceId} dark={c.dark} />
+        <div className="col-split-map">{mapPanel(true)}</div>
       </div>
     )
+  } else if (c.view === 'map' && mappable.length > 0) {
+    body = <div className="col-mapwrap">{mapPanel(false)}</div>
+  } else {
+    body = listEl
   }
 
   const rail = (
@@ -185,32 +163,45 @@ export default function CollectionsPage(): React.ReactElement {
                   />
                 </div>
 
-                <div className="col-toolbar">
-                  <button type="button" className="col-rail-toggle" onClick={() => c.setMobileRailOpen(true)}>
-                    <Bookmark size={15} /> {t('collections.title')}
-                  </button>
-                  <ViewSwitch view={c.view} onChange={c.setView} t={t} />
-                  {showSelect && (
-                    <button
-                      type="button"
-                      onClick={() => c.setSelectMode(!c.selectMode)}
-                      className={`col-iconbtn${c.selectMode ? ' on' : ''}`}
-                      aria-label={t('collections.selectMode')}
-                      title={t('collections.selectMode')}
-                    >
-                      <CheckSquare size={16} />
+                {(!c.isWide || showSelect || !mapOverlay) && (
+                  <div className="col-toolbar">
+                    <button type="button" className="col-rail-toggle" onClick={() => c.setMobileRailOpen(true)}>
+                      <Bookmark size={15} /> {t('collections.title')}
                     </button>
-                  )}
-                  <div className="col-toolbar-spacer" />
-                  <div className="col-search">
-                    <Search size={15} />
-                    <input
-                      value={c.search}
-                      onChange={e => c.setSearch(e.target.value)}
-                      placeholder={t('collections.search')}
-                    />
+                    {!c.isWide && mappable.length > 0 && (
+                      <div className="col-viewseg" role="group" aria-label={t('collections.title')}>
+                        <button type="button" aria-pressed={c.view === 'list'} onClick={() => c.setView('list')} aria-label={t('collections.view.list')} title={t('collections.view.list')} className={c.view === 'list' ? 'on' : ''}>
+                          <ListIcon size={16} />
+                        </button>
+                        <button type="button" aria-pressed={c.view === 'map'} onClick={() => c.setView('map')} aria-label={t('collections.view.map')} title={t('collections.view.map')} className={c.view === 'map' ? 'on' : ''}>
+                          <MapIcon size={16} />
+                        </button>
+                      </div>
+                    )}
+                    {showSelect && (
+                      <button
+                        type="button"
+                        onClick={() => c.setSelectMode(!c.selectMode)}
+                        className={`col-iconbtn${c.selectMode ? ' on' : ''}`}
+                        aria-label={t('collections.selectMode')}
+                        title={t('collections.selectMode')}
+                      >
+                        <CheckSquare size={16} />
+                      </button>
+                    )}
+                    <div className="col-toolbar-spacer" />
+                    {!mapOverlay && (
+                      <div className="col-search">
+                        <Search size={15} />
+                        <input
+                          value={c.search}
+                          onChange={e => c.setSearch(e.target.value)}
+                          placeholder={t('collections.search')}
+                        />
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
 
                 {c.selectMode && c.selectedIds.length > 0 && (
                   <div className="col-selbar">
@@ -247,7 +238,7 @@ export default function CollectionsPage(): React.ReactElement {
           .trek-dash (it's a shared component on the app's own tokens). The outer
           layer is click-through so the grid behind stays interactive; only the
           floating card re-enables pointer events. */}
-      {c.detailPlace && !inSplit && (
+      {c.detailPlace && !mapShown && (
         <div className="fixed inset-0 z-[150]" style={{ pointerEvents: 'none', paddingTop: 'var(--nav-h)' }}>
           <div className="relative w-full h-full">
             <div style={{ pointerEvents: 'auto' }}>

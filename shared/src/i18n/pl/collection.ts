@@ -1,6 +1,8 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.showList': 'Pokaż listę',
+  'collections.expandMap': 'Powiększ mapę',
   'collections.hero.mine': 'Moja kolekcja',
   'collections.hero.shared': 'Udostępniono Tobie',
   'collections.hero.all': 'Twoja biblioteka',

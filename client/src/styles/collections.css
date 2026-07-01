@@ -195,40 +195,26 @@
 .trek-dash .col-selbar-btn.danger { color: oklch(0.6 0.2 25); }
 .trek-dash .col-selbar-btn.danger:hover { background: oklch(0.6 0.2 25 / .12); }
 
-/* ----------------- place grid + cards ----------------- */
-.trek-dash .col-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(214px, 1fr)); gap: 20px; }
-.trek-dash .col-card {
-  position: relative; isolation: isolate; overflow: hidden; cursor: pointer; text-align: left; width: 100%;
-  border-radius: var(--r-xl); background: var(--glass-bg); border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow), var(--glass-highlight);
-  transition: transform .25s cubic-bezier(.2,.7,.2,1), box-shadow .25s, border-color .25s;
+/* ----------------- map panel + floating controls ----------------- */
+.trek-dash .col-map-shell { position: relative; width: 100%; height: 100%; }
+.trek-dash .col-map-toggle {
+  position: absolute; top: 12px; left: 12px; z-index: 20;
+  width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; color: var(--ink);
+  background: var(--glass-bg); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow);
+  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+  transition: transform .12s, background .15s;
 }
-.trek-dash .col-card:hover { transform: translateY(-4px); box-shadow: var(--glass-shadow-hover), var(--glass-highlight); border-color: oklch(0.8 0.01 70 / .8); }
-.dark .trek-dash .col-card:hover { border-color: oklch(1 0 0 / .2); }
-.trek-dash .col-card.sel { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent), var(--glass-shadow); }
-.trek-dash .col-cover { position: relative; aspect-ratio: 4 / 3; overflow: hidden; }
-.trek-dash .col-cover-media { position: absolute; inset: 0; width: 100%; height: 100%; }
-.trek-dash .col-cover-media img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s cubic-bezier(.2,.7,.2,1); }
-.trek-dash .col-card:hover .col-cover-media img { transform: scale(1.05); }
-.trek-dash .col-cover-fallback { background-size: cover; background-position: center; }
-.trek-dash .col-cover::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 44%, rgba(0,0,0,.58) 100%); }
-.trek-dash .col-card-name {
-  position: absolute; left: 14px; right: 14px; bottom: 11px; z-index: 1; color: #fff;
-  font-size: 15px; font-weight: 600; letter-spacing: -.01em; line-height: 1.18;
-  text-shadow: 0 1px 6px rgba(0,0,0,.42), 0 1px 2px rgba(0,0,0,.5);
-  overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+.trek-dash .col-map-toggle:hover { transform: translateY(-1px); background: var(--surface); }
+.trek-dash .col-map-search {
+  position: absolute; top: 12px; right: 12px; z-index: 20;
+  display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px 0 12px; border-radius: 11px; color: var(--ink-3);
+  background: var(--glass-bg); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow);
+  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
 }
-.trek-dash .col-card-status { position: absolute; top: 10px; right: 10px; z-index: 2; }
-.trek-dash .col-card-check {
-  position: absolute; top: 10px; left: 10px; z-index: 2; width: 22px; height: 22px; border-radius: 7px;
-  display: grid; place-items: center; background: rgba(255,255,255,.86); border: 1px solid rgba(0,0,0,.1); color: transparent;
+.trek-dash .col-map-search input {
+  width: 180px; background: none; border: 0; outline: none; color: var(--ink); font-size: 13.5px; font-family: inherit;
 }
-.trek-dash .col-card-check.on { background: var(--accent); border-color: var(--accent); color: #fff; }
-.trek-dash .col-card-body { display: flex; align-items: center; gap: 8px; padding: 11px 13px; min-width: 0; }
-.trek-dash .col-card-cat { display: inline-flex; align-items: center; gap: 7px; min-width: 0; font-size: 12px; color: var(--ink-2); font-weight: 500; }
-.trek-dash .col-card-cat .cdot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.trek-dash .col-card-cat span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.trek-dash .col-card-cat svg { flex-shrink: 0; color: var(--ink-3); }
+.trek-dash .col-map-search input::placeholder { color: var(--ink-3); }
 
 /* ----------------- list view ----------------- */
 .trek-dash .col-listview { display: flex; flex-direction: column; gap: 7px; }
@@ -255,9 +241,16 @@
 
 /* list + map split (list view on wide screens): scrollable list left, sticky
    map right. Clicking a place pans the map (selectedPlaceId drives it). Only
-   rendered above 1024px (the page gates it in JS), so no mobile override needed. */
-.trek-dash .col-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 1.06fr); gap: 20px; align-items: start; }
-.trek-dash .col-split-list { min-width: 0; }
+   rendered above 1024px (the page gates it in JS). The columns animate between
+   the split and the collapsed-list "map full" state; the map stays mounted so
+   the grow/shrink is smooth (the page nudges it to re-layout during the anim). */
+.trek-dash .col-split {
+  display: grid; grid-template-columns: 1fr 1.05fr; gap: 20px; align-items: start;
+  transition: grid-template-columns .4s cubic-bezier(.2,.7,.2,1), gap .4s cubic-bezier(.2,.7,.2,1);
+}
+.trek-dash .col-split.map-full { grid-template-columns: 0fr 1fr; gap: 0; }
+.trek-dash .col-split-list { min-width: 0; overflow: hidden; transition: opacity .25s; }
+.trek-dash .col-split.map-full .col-split-list { opacity: 0; pointer-events: none; }
 .trek-dash .col-split-map {
   position: sticky; top: calc(var(--nav-h) + 22px);
   height: calc(100vh - var(--nav-h) - 210px); min-height: 440px;
@@ -314,8 +307,6 @@
   .trek-dash .col-hero-stats { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -18px; padding: 0 18px; }
   .trek-dash .col-hero-stats::-webkit-scrollbar { display: none; }
   .trek-dash .col-chip { flex-shrink: 0; }
-  .trek-dash .col-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-  .trek-dash .col-card-name { font-size: 13.5px; }
   .trek-dash .col-search input { width: 100%; }
   .trek-dash .col-search { flex: 1; }
   .trek-dash .col-mapwrap { height: calc(100vh - 260px); min-height: 320px; }
