@@ -13,6 +13,7 @@ const inspector: TranslationStrings = {
   'inspector.confirmedRes': 'Megerősített foglalás',
   'inspector.pendingRes': 'Függőben lévő foglalás',
   'inspector.google': 'Megnyitás a Google Térképben',
+  'inspector.openStreetMap': 'Megnyitás az OpenStreetMapben',
   'inspector.website': 'Weboldal megnyitása',
   'inspector.saveToCollection': 'Mentés gyűjteménybe',
   'inspector.savedToCollection': 'Mentve',

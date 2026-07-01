@@ -13,6 +13,7 @@ const inspector: TranslationStrings = {
   'inspector.confirmedRes': '已確認預訂',
   'inspector.pendingRes': '待確認預訂',
   'inspector.google': '在 Google Maps 中開啟',
+  'inspector.openStreetMap': '在 OpenStreetMap 中開啟',
   'inspector.website': '開啟網站',
   'inspector.saveToCollection': '儲存到收藏',
   'inspector.savedToCollection': '已儲存',

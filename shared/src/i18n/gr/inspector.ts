@@ -13,6 +13,7 @@ const inspector: TranslationStrings = {
   'inspector.confirmedRes': 'Επιβεβαιωμένη Κράτηση',
   'inspector.pendingRes': 'Εκκρεμής Κράτηση',
   'inspector.google': 'Άνοιγμα στο Google Maps',
+  'inspector.openStreetMap': 'Άνοιγμα στο OpenStreetMap',
   'inspector.saveToCollection': 'Αποθήκευση στη Συλλογή',
   'inspector.savedToCollection': 'Αποθηκεύτηκε',
   'inspector.website': 'Άνοιγμα Ιστοσελίδας',

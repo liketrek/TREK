@@ -13,6 +13,7 @@ const inspector: TranslationStrings = {
   'inspector.confirmedRes': 'Bekräftad bokning',
   'inspector.pendingRes': 'Pendlande bokning',
   'inspector.google': 'Öppna i Google Maps',
+  'inspector.openStreetMap': 'Öppna i OpenStreetMap',
   'inspector.website': 'Öppna hemsida',
   'inspector.saveToCollection': 'Spara i samling',
   'inspector.savedToCollection': 'Sparad',

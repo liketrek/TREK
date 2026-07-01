@@ -3,7 +3,7 @@ import { openFile } from '../../utils/fileDownload'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
-import { X, Clock, MapPin, ExternalLink, Phone, Euro, Edit2, Trash2, Plus, Minus, ChevronDown, ChevronUp, FileText, Upload, File, FileImage, Star, Navigation, Users, Mountain, TrendingUp, Bookmark, BookmarkCheck, Copy } from 'lucide-react'
+import { X, Clock, MapPin, ExternalLink, Phone, Euro, Edit2, Trash2, Plus, Minus, ChevronDown, ChevronUp, FileText, Upload, File, FileImage, Star, Navigation, Map as MapIcon, Users, Mountain, TrendingUp, Bookmark, BookmarkCheck, Copy } from 'lucide-react'
 import PlaceAvatar from '../shared/PlaceAvatar'
 import GuestBadge from '../shared/GuestBadge'
 import StatusBadge from '../Collections/StatusBadge'
@@ -20,6 +20,7 @@ import type { CollectionStatus } from '@trek/shared'
 import { splitReservationDateTime, formatTime } from '../../utils/formatters'
 import { formatDistance, formatElevation } from '../../utils/units'
 import { getGoogleMapsUrlForPlace } from './placeGoogleMaps'
+import { getOpenStreetMapUrlForPlace } from './placeOpenStreetMap'
 
 const detailsCache = new Map()
 
@@ -236,6 +237,7 @@ export default function PlaceInspector({
     place ? { ...place, google_ftid: place.google_ftid || googleDetails?.google_ftid || null } : null,
     googleDetails?.google_maps_url,
   )
+  const openStreetMapUrl = getOpenStreetMapUrlForPlace(place)
   const selectedDay = days?.find(d => d.id === selectedDayId)
   const weekdayIndex = getWeekdayIndex(selectedDay?.date)
 
@@ -383,6 +385,10 @@ export default function PlaceInspector({
           {googleMapsUrl && (
             <ActionButton onClick={() => window.open(googleMapsUrl, '_blank')} variant="ghost" icon={<Navigation size={13} />}
               label={<span className="hidden sm:inline">{t('inspector.google')}</span>} />
+          )}
+          {openStreetMapUrl && (
+            <ActionButton onClick={() => window.open(openStreetMapUrl, '_blank')} variant="ghost" icon={<MapIcon size={13} />}
+              label={<span className="hidden sm:inline">{t('inspector.openStreetMap')}</span>} />
           )}
           {(place.website || googleDetails?.website) && (
             <ActionButton onClick={() => window.open(place.website || googleDetails?.website, '_blank')} variant="ghost" icon={<ExternalLink size={13} />}

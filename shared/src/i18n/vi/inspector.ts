@@ -13,6 +13,7 @@ const inspector: TranslationStrings = {
   'inspector.confirmedRes': 'Đã xác nhận đặt chỗ',
   'inspector.pendingRes': 'Đang chờ đặt chỗ',
   'inspector.google': 'Mở trong Google Maps',
+  'inspector.openStreetMap': 'Mở trong OpenStreetMap',
   'inspector.saveToCollection': 'Lưu vào Bộ sưu tập',
   'inspector.savedToCollection': 'Đã lưu',
   'inspector.website': 'Mở trang web',
