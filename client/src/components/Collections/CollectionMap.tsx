@@ -13,6 +13,8 @@ interface CollectionMapProps {
 /**
  * Map view — reuses the trip map stack (MapViewAuto → Leaflet / GL with marker
  * clustering). One of the three list views; clicking a marker selects the place.
+ * The parent `.col-mapwrap` supplies the rounded, bordered box + height, so this
+ * just fills it.
  */
 export default function CollectionMap({ places, selectedPlaceId, onOpenPlace, dark }: CollectionMapProps): React.ReactElement {
   const pts = mappablePlaces(places)
@@ -24,7 +26,7 @@ export default function CollectionMap({ places, selectedPlaceId, onOpenPlace, da
     : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
 
   return (
-    <div className="rounded-xl overflow-hidden border border-edge" style={{ height: 'calc(100vh - var(--nav-h) - 180px)', minHeight: 360 }}>
+    <div style={{ width: '100%', height: '100%' }}>
       <MapViewAuto
         places={pts}
         selectedPlaceId={selectedPlaceId}

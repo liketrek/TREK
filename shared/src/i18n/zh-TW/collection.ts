@@ -1,6 +1,9 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.hero.mine': '我的收藏',
+  'collections.hero.shared': '與你共享',
+  'collections.hero.all': '你的收藏庫',
   'collections.title': '收藏',
   'collections.subtitle': '你儲存的地點，依清單整理',
 

@@ -17,14 +17,15 @@ interface CollectionListProps {
 }
 
 /**
- * Dense list view — one row per saved place with a one-tap status cycle on the
- * badge. Click the row to open the place (or toggle in select mode).
+ * List view — one glass row per saved place with a photo avatar, name +
+ * category/address, and a one-tap status cycle on the badge. Click the row to
+ * open the place (or toggle it in select mode).
  */
 export default function CollectionList({
   places, selectedPlaceId, selectMode, selectedIds, onOpenPlace, onStatusChange, onToggleSelect, t,
 }: CollectionListProps): React.ReactElement {
   return (
-    <div className="flex flex-col rounded-xl border border-edge bg-surface-card overflow-hidden divide-y divide-edge-faint">
+    <div className="col-listview">
       {places.map(place => {
         const selected = selectedIds.includes(place.id)
         const active = selectedPlaceId === place.id
@@ -34,25 +35,24 @@ export default function CollectionList({
             role="button"
             tabIndex={0}
             onClick={() => (selectMode ? onToggleSelect(place.id) : onOpenPlace(place.id))}
-            onKeyDown={e => { if (e.key === 'Enter') onOpenPlace(place.id) }}
-            className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors hover:bg-surface-hover ${active ? 'bg-surface-selected' : ''}`}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (selectMode) onToggleSelect(place.id); else onOpenPlace(place.id) } }}
+            className={`col-lrow${active || selected ? ' sel' : ''}`}
           >
-            {selectMode && (
-              <div className={`w-5 h-5 rounded-md flex items-center justify-center border shrink-0 ${selected ? 'bg-accent border-accent' : 'bg-surface-card border-edge'}`}>
-                {selected && <Check size={13} className="text-accent-text" strokeWidth={3} />}
-              </div>
+            {selectMode ? (
+              <span className={`col-lcheck${selected ? ' on' : ''}`}>{selected && <Check size={14} strokeWidth={3} />}</span>
+            ) : (
+              <PlaceAvatar place={place} size={40} category={place.category ? { color: place.category.color ?? undefined, icon: place.category.icon ?? undefined } : null} />
             )}
-            <PlaceAvatar place={place} size={36} category={place.category ? { color: place.category.color ?? undefined, icon: place.category.icon ?? undefined } : null} />
-            <div className="flex flex-col min-w-0 flex-1">
-              <span className="text-[13px] font-semibold text-content truncate">{place.name}</span>
+            <div className="li">
+              <div className="t">{place.name}</div>
               {(place.category?.name || place.address) && (
-                <span className="text-[11px] text-content-faint truncate flex items-center gap-1">
-                  {!place.category?.name && <MapPin size={10} />}
-                  {place.category?.name || place.address}
-                </span>
+                <div className="s">
+                  {!place.category?.name && <MapPin size={11} />}
+                  <span>{place.category?.name || place.address}</span>
+                </div>
               )}
             </div>
-            <StatusBadge status={place.status} onChange={next => onStatusChange(place.id, next)} t={t} />
+            <StatusBadge status={place.status} onChange={selectMode ? undefined : next => onStatusChange(place.id, next)} t={t} />
           </div>
         )
       })}

@@ -1,8 +1,8 @@
 import React from 'react'
-import { Check } from 'lucide-react'
+import { Check, MapPin } from 'lucide-react'
 import type { CollectionPlace, CollectionStatus } from '@trek/shared'
 import type { TranslationFn } from '../../types'
-import PlaceAvatar from '../shared/PlaceAvatar'
+import PlaceCover from '../shared/PlaceCover'
 import StatusBadge from './StatusBadge'
 
 interface CollectionGridProps {
@@ -17,52 +17,60 @@ interface CollectionGridProps {
 }
 
 /**
- * Grid view — PlaceAvatar thumb cards (rounded-xl) with the status badge in the
- * top-right corner. In select mode a tap toggles the checkbox; otherwise it
- * opens the place.
+ * Grid view — gradient/photo cover cards modelled on the dashboard trip cards.
+ * The place name sits over the cover with a scrim; the status pill (top-right)
+ * cycles idea→want→visited on tap; a compact body carries the category. In
+ * select mode a tap toggles the checkbox instead of opening the place.
  */
 export default function CollectionGrid({
   places, selectedPlaceId, selectMode, selectedIds, onOpenPlace, onStatusChange, onToggleSelect, t,
 }: CollectionGridProps): React.ReactElement {
   return (
-    <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(160px,1fr))]">
+    <div className="col-grid">
       {places.map(place => {
         const selected = selectedIds.includes(place.id)
         const active = selectedPlaceId === place.id
+        const sub = place.category?.name || place.address
+        const activate = () => (selectMode ? onToggleSelect(place.id) : onOpenPlace(place.id))
         return (
-          <button
+          <div
             key={place.id}
-            type="button"
-            onClick={() => (selectMode ? onToggleSelect(place.id) : onOpenPlace(place.id))}
-            className={`group relative flex flex-col rounded-xl border bg-surface-card text-left overflow-hidden transition-all hover:shadow-card hover:-translate-y-0.5 ${active || selected ? 'border-accent ring-1 ring-accent' : 'border-edge'}`}
+            role="button"
+            tabIndex={0}
+            aria-label={place.name}
+            onClick={activate}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate() } }}
+            className={`col-card${active || selected ? ' sel' : ''}`}
           >
-            {/* Photo band */}
-            <div className="relative flex items-center justify-center h-28 bg-surface-secondary">
-              <PlaceAvatar place={place} size={64} category={place.category ? { color: place.category.color ?? undefined, icon: place.category.icon ?? undefined } : null} />
-              <div className="absolute top-2 right-2">
+            <div className="col-cover">
+              <PlaceCover place={place} />
+              {selectMode && (
+                <span className={`col-card-check${selected ? ' on' : ''}`}>
+                  {selected && <Check size={14} strokeWidth={3} />}
+                </span>
+              )}
+              <span className="col-card-status">
                 <StatusBadge
                   status={place.status}
                   showLabel={false}
+                  onCover
                   onChange={selectMode ? undefined : next => onStatusChange(place.id, next)}
                   t={t}
                 />
-              </div>
-              {selectMode && (
-                <div className={`absolute top-2 left-2 w-5 h-5 rounded-md flex items-center justify-center border ${selected ? 'bg-accent border-accent' : 'bg-surface-card/90 border-edge'}`}>
-                  {selected && <Check size={13} className="text-accent-text" strokeWidth={3} />}
-                </div>
-              )}
+              </span>
+              <span className="col-card-name">{place.name}</span>
             </div>
-            {/* Body */}
-            <div className="flex flex-col gap-0.5 px-3 py-2.5 min-w-0">
-              <span className="text-[13px] font-semibold text-content truncate">{place.name}</span>
-              {(place.category?.name || place.address) && (
-                <span className="text-[11px] text-content-faint truncate">
-                  {place.category?.name || place.address}
+            {sub && (
+              <div className="col-card-body">
+                <span className="col-card-cat">
+                  {place.category?.name
+                    ? <span className="cdot" style={{ background: place.category.color || '#6366f1' }} />
+                    : <MapPin size={13} />}
+                  <span>{sub}</span>
                 </span>
-              )}
-            </div>
-          </button>
+              </div>
+            )}
+          </div>
         )
       })}
     </div>

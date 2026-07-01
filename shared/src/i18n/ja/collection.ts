@@ -1,6 +1,9 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.hero.mine': 'マイコレクション',
+  'collections.hero.shared': '共有されています',
+  'collections.hero.all': 'ライブラリ',
   'collections.title': 'コレクション',
   'collections.subtitle': '保存した場所をリストごとに整理',
 
