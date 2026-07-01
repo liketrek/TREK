@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from '../../i18n'
 import { useElementSize } from '../../hooks/useElementSize'
+import { useElementRect } from '../../hooks/useElementRect'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useToast } from '../../components/shared/Toast'
 import { getApiErrorMessage } from '../../types'
@@ -40,14 +41,16 @@ export function useCollections() {
 
   // Measure the hero so the list rail can be kept at least as tall as it.
   const hero = useElementSize<HTMLDivElement>()
+  // Measure the split's list column so the place-detail sheet can dock over it.
+  const listCol = useElementRect<HTMLDivElement>()
 
   const store = useCollectionStore()
   const {
     collections, activeId, places, members, incomingInvites,
     view, statusFilter, search, selectedPlaceId, selectMode, selectedIds,
     loading, placesLoading,
-    loadAll, setActive, refreshActive,
-    updateCollection, deleteCollection,
+    loadAll, setActive, refreshActive, loadCollection,
+    deleteCollection,
     setStatus, updatePlace, deletePlace, deleteMany, copyToTrip, clearSelection,
     acceptInvite, declineInvite,
     setView, setStatusFilter, setSearch, setSelectedPlaceId, setSelectMode, toggleSelect,
@@ -109,9 +112,12 @@ export function useCollections() {
     if (msg.type === 'collections:invite') {
       toast.info(t('collections.invites.received'))
     }
-    // invite / accepted / declined / cancelled / left / updated → reload.
+    // invite / accepted / declined / cancelled / left / updated → refresh the
+    // rail, and refresh the active list WITHOUT clearing the current selection or
+    // select-mode (setActive would reset selectedPlaceId → close the open detail).
     loadAll()
-    if (typeof activeId === 'number') setActive(activeId)
+    if (typeof activeId === 'number') loadCollection(activeId)
+    else if (activeId === ALL_SAVED) setActive(ALL_SAVED)
   }, [activeId])
 
   useEffect(() => {
@@ -157,14 +163,6 @@ export function useCollections() {
   }, [navigate])
 
   const handlePlaceAdded = useCallback(() => { refreshActive() }, [refreshActive])
-
-  const handleSetColor = useCallback(async (id: number, color: string) => {
-    try {
-      await updateCollection(id, { color })
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, t('common.error')))
-    }
-  }, [updateCollection, toast, t])
 
   const handleDeleteList = useCallback(async () => {
     if (confirmDeleteList == null) return
@@ -279,6 +277,7 @@ export function useCollections() {
   return {
     t, language, dark, navigate,
     isWide, heroRef: hero.ref, heroHeight: hero.height,
+    listColRef: listCol.ref, listColRect: listCol.rect,
     // store data
     collections, ownedLists, sharedLists, activeCollection, isAllSaved, isOwner,
     canShare, shareMemberCount,
@@ -299,7 +298,7 @@ export function useCollections() {
     handleDetailStatus, handleDetailRemove,
     copyIds, openCopyForSelectedPlace, openCopyForSelection, closeCopy, handleCopyToTrip,
     // handlers
-    handleSelectList, handleSetColor, handleDeleteList,
+    handleSelectList, handleDeleteList,
     handleStatusChange, handleDeletePlace, handleDeleteSelected,
     handleAcceptInvite, handleDeclineInvite,
   }

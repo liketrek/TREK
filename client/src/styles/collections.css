@@ -56,19 +56,17 @@
 .trek-dash .col-row-btn .ico { color: var(--ink-3); flex-shrink: 0; display: grid; place-items: center; }
 .trek-dash .col-row-btn.on .ico { color: var(--ink-2); }
 .trek-dash .col-row-btn .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.trek-dash .col-row-btn .ct { font-size: 11.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; flex-shrink: 0; transition: opacity .12s; }
-/* On hover / while its menu is open the count fades out (keeping its layout
-   space) so the kebab button can take the same slot without overlapping it. */
-.trek-dash .col-row:hover .col-row-btn .ct,
-.trek-dash .col-row.menu-open .col-row-btn .ct { opacity: 0; }
+.trek-dash .col-row-btn .ct { font-size: 11.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+/* The kebab lives to the right of the count and is always visible (just dimmed)
+   so it is easy to hit — no hover-to-reveal timing. Reserve space for it. */
+.trek-dash .col-row:has(.col-row-menu) .col-row-btn { padding-right: 34px; }
 .trek-dash .col-row-menu {
-  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
-  width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center;
-  color: var(--ink-3); opacity: 0; transition: opacity .12s, background .12s;
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+  width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center;
+  color: var(--ink-3); opacity: .5; transition: opacity .12s, background .12s, color .12s;
 }
-.trek-dash .col-row:hover .col-row-menu,
-.trek-dash .col-row.menu-open .col-row-menu { opacity: 1; }
-.trek-dash .col-row-menu:hover { background: var(--bg-2); color: var(--ink); }
+.trek-dash .col-row:hover .col-row-menu, .trek-dash .col-row-menu:hover { opacity: 1; }
+.trek-dash .col-row-menu:hover, .trek-dash .col-row.menu-open .col-row-menu { background: var(--bg-2); color: var(--ink); opacity: 1; }
 
 /* rename inline input */
 .trek-dash .col-row-edit {
@@ -226,16 +224,17 @@
 .trek-dash .col-map-group.right { margin-left: auto; min-width: 0; }
 .trek-dash .col-map-btn {
   width: 38px; height: 38px; flex-shrink: 0; border-radius: 11px; display: grid; place-items: center; color: var(--ink);
-  background: var(--glass-bg); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow);
-  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+  background: color-mix(in oklch, var(--surface) 92%, transparent); border: 1px solid var(--glass-border); box-shadow: var(--sh-md);
+  backdrop-filter: blur(8px) saturate(1.2); -webkit-backdrop-filter: blur(8px) saturate(1.2);
   transition: transform .12s, background .15s, color .15s;
 }
 .trek-dash .col-map-btn:hover { transform: translateY(-1px); background: var(--surface); }
 .trek-dash .col-map-btn.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.trek-dash .col-map-btn:disabled { opacity: .45; cursor: default; transform: none; }
 .trek-dash .col-map-search {
   display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px; border-radius: 11px; color: var(--ink-3);
-  background: var(--glass-bg); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow);
-  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+  background: color-mix(in oklch, var(--surface) 92%, transparent); border: 1px solid var(--glass-border); box-shadow: var(--sh-md);
+  backdrop-filter: blur(8px) saturate(1.2); -webkit-backdrop-filter: blur(8px) saturate(1.2);
   flex: 0 1 auto; min-width: 0;
 }
 .trek-dash .col-map-search svg { flex-shrink: 0; }
@@ -303,11 +302,11 @@
 /* ----------------- place detail bottom sheet ----------------- */
 .trek-dash .col-detail {
   position: fixed; left: 50%; transform: translateX(-50%); bottom: 20px; z-index: 150;
-  width: min(760px, calc(100% - 32px)); max-height: 64vh; display: flex; flex-direction: column; overflow: hidden;
-  border-radius: var(--r-xl); background: var(--glass-bg); border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow-hover), var(--glass-highlight);
-  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+  width: min(720px, calc(100% - 32px)); max-height: 66vh; display: flex; flex-direction: column; overflow: hidden;
+  border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--line);
+  box-shadow: var(--sh-lg);
 }
+.trek-dash .col-detail.docked { max-height: min(66vh, calc(100vh - var(--nav-h) - 60px)); }
 .trek-dash .col-detail-cover { position: relative; height: 116px; flex-shrink: 0; background-size: cover; background-position: center; }
 .trek-dash .col-detail-cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .trek-dash .col-detail-cover-scrim { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.12) 0%, rgba(0,0,0,.55) 100%); }

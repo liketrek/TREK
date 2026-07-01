@@ -19,6 +19,8 @@ function linkHost(url: string): string {
 interface CollectionPlaceDetailProps {
   place: CollectionPlace
   canEdit: boolean
+  /** When set, dock the sheet over that column (desktop split) instead of centred. */
+  anchorRect?: { left: number; width: number } | null
   onClose: () => void
   onSetStatus: (status: CollectionStatus) => void
   onSave: (patch: { name?: string; description?: string | null; links?: CollectionLink[] }) => Promise<void>
@@ -35,7 +37,7 @@ interface CollectionPlaceDetailProps {
  * status, copies the place to a trip and removes it from the list.
  */
 export default function CollectionPlaceDetail({
-  place, canEdit, onClose, onSetStatus, onSave, onCopyToTrip, onRemove, t,
+  place, canEdit, anchorRect, onClose, onSetStatus, onSave, onCopyToTrip, onRemove, t,
 }: CollectionPlaceDetailProps): React.ReactElement {
   const toast = useToast()
   const [editing, setEditing] = useState(false)
@@ -74,8 +76,10 @@ export default function CollectionPlaceDetail({
     }
   }
 
+  const dockStyle = anchorRect ? { left: anchorRect.left, width: anchorRect.width, transform: 'none' as const } : undefined
+
   return (
-    <div className="col-detail" onClick={e => e.stopPropagation()}>
+    <div className={`col-detail${anchorRect ? ' docked' : ''}`} style={dockStyle} onClick={e => e.stopPropagation()}>
       <div className="col-detail-cover" style={banner ? undefined : { backgroundImage: entityGradient(place.id) }}>
         {banner && <img src={banner} alt="" />}
         <div className="col-detail-cover-scrim" />

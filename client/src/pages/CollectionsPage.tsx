@@ -49,6 +49,9 @@ export default function CollectionsPage(): React.ReactElement {
   const openPlace = (id: number) => c.setSelectedPlaceId(c.selectedPlaceId === id ? null : id)
   const deselect = () => c.setSelectedPlaceId(null)
   const toggleView = () => c.setView(c.view === 'map' ? 'list' : 'map')
+  // Clicking a marker in the full-map view drops back to the split so the list
+  // + detail come into view alongside the map.
+  const onMapSelect = (id: number) => { openPlace(id); if (c.view === 'map') c.setView('list') }
 
   const desktopSplit = c.isWide && mappable.length > 0
   const mapShown = mappable.length > 0 && (c.view === 'map' || c.isWide)
@@ -71,7 +74,7 @@ export default function CollectionsPage(): React.ReactElement {
     <CollectionMapPanel
       places={mappable}
       selectedPlaceId={c.selectedPlaceId}
-      onSelect={openPlace}
+      onSelect={onMapSelect}
       onDeselect={deselect}
       dark={c.dark}
       overlay={overlay}
@@ -98,7 +101,7 @@ export default function CollectionsPage(): React.ReactElement {
   } else if (desktopSplit) {
     body = (
       <div className={`col-split${c.view === 'map' ? ' map-full' : ''}`}>
-        <div className="col-split-list">{listEl}</div>
+        <div className="col-split-list" ref={c.listColRef}>{listEl}</div>
         <div className="col-split-map">{mapPanel(true)}</div>
       </div>
     )
@@ -117,7 +120,6 @@ export default function CollectionsPage(): React.ReactElement {
       onSelect={c.handleSelectList}
       onNewList={() => { c.setMobileRailOpen(false); c.setEditorTarget('new') }}
       onEdit={list => { c.setMobileRailOpen(false); c.setEditorTarget(list) }}
-      onSetColor={c.handleSetColor}
       onRequestDelete={c.setConfirmDeleteList}
       onAcceptInvite={c.handleAcceptInvite}
       onDeclineInvite={c.handleDeclineInvite}
@@ -162,7 +164,6 @@ export default function CollectionsPage(): React.ReactElement {
                     isOwner={c.isOwner}
                     shareMemberCount={c.shareMemberCount}
                     onShare={() => c.setShowShare(true)}
-                    onNewList={() => c.setEditorTarget('new')}
                     t={t}
                   />
                 </div>
@@ -243,12 +244,14 @@ export default function CollectionsPage(): React.ReactElement {
         )}
 
         {/* Place detail — a bottom sheet (no backdrop, so the map behind stays
-            visible + interactive). Clicking another place / the map background
-            re-points or clears the selection. */}
+            visible + interactive). On the desktop split it docks over the list
+            column so the map stays clear; otherwise it's a full-width sheet.
+            Clicking another place / the map background re-points the selection. */}
         {c.selectedPlace && (
           <CollectionPlaceDetail
             place={c.selectedPlace}
             canEdit
+            anchorRect={desktopSplit && c.view === 'list' ? c.listColRect : null}
             onClose={c.handleCloseDetail}
             onSetStatus={c.handleDetailStatus}
             onSave={patch => c.updatePlace(c.selectedPlace!.id, patch)}

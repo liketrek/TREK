@@ -1,5 +1,5 @@
 import React from 'react'
-import { Share2, Users, Plus, Link2 } from 'lucide-react'
+import { Share2, Users, Link2 } from 'lucide-react'
 import type { CollectionMember, CollectionLink } from '@trek/shared'
 import type { TranslationFn } from '../../types'
 import type { StatusFilter } from '../../store/collectionStore'
@@ -28,7 +28,6 @@ interface CollectionHeroProps {
   isOwner: boolean
   shareMemberCount: number
   onShare: () => void
-  onNewList: () => void
   t: TranslationFn
 }
 
@@ -45,7 +44,7 @@ function linkHost(url: string): string {
 
 export default function CollectionHero({
   eyebrow, title, color, coverImage, description, links, counts, statusFilter, onStatusFilter,
-  members, canShare, isOwner, shareMemberCount, onShare, onNewList, t,
+  members, canShare, isOwner, shareMemberCount, onShare, t,
 }: CollectionHeroProps): React.ReactElement {
   const accepted = members.filter(m => m.status === 'accepted' || m.is_owner)
   const showAvatars = accepted.length > 1
@@ -83,9 +82,6 @@ export default function CollectionHero({
             {isOwner && shareMemberCount > 0 && <span className="cnt">{shareMemberCount}</span>}
           </button>
         )}
-        <button type="button" onClick={onNewList} aria-label={t('collections.newList')} title={t('collections.newList')} className="col-glass-btn">
-          <Plus size={15} /> <span className="txt">{t('collections.newList')}</span>
-        </button>
       </div>
 
       <div className="col-hero-content">

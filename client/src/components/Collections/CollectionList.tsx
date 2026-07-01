@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { Check, MapPin } from 'lucide-react'
 import type { CollectionPlace, CollectionStatus } from '@trek/shared'
 import type { TranslationFn } from '../../types'
@@ -24,6 +24,12 @@ interface CollectionListProps {
 export default function CollectionList({
   places, selectedPlaceId, selectMode, selectedIds, onOpenPlace, onStatusChange, onToggleSelect, t,
 }: CollectionListProps): React.ReactElement {
+  // Bring the selected row into view — e.g. when it was picked from the map.
+  const selectedRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    selectedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [selectedPlaceId])
+
   return (
     <div className="col-listview">
       {places.map(place => {
@@ -32,6 +38,7 @@ export default function CollectionList({
         return (
           <div
             key={place.id}
+            ref={active ? selectedRef : undefined}
             role="button"
             tabIndex={0}
             onClick={() => (selectMode ? onToggleSelect(place.id) : onOpenPlace(place.id))}

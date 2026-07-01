@@ -61,6 +61,7 @@ export default function CollectionMapPanel({
               <button
                 type="button"
                 onClick={onToggleSelect}
+                disabled={view === 'map'}
                 className={`col-map-btn${selectMode ? ' on' : ''}`}
                 aria-label={t('collections.selectMode')}
                 title={t('collections.selectMode')}

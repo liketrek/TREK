@@ -154,39 +154,40 @@ export default function ShareCollectionModal({
       <div className="flex flex-col gap-5">
         {/* Member roster */}
         <div>
-          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-content-faint mb-2">
+          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-content-faint mb-2.5 flex items-center gap-2">
             {t('collections.share.members')}
+            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-surface-secondary text-content-secondary text-[10px] font-bold tabular-nums">{sortedMembers.length}</span>
           </h3>
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1.5">
             {sortedMembers.map(member => {
               const isSelf = member.user_id === currentUserId
               const pending = member.status === 'pending'
               return (
                 <div
                   key={member.user_id}
-                  className={`flex items-center gap-2.5 px-2 py-1.5 rounded-lg ${pending ? 'opacity-80' : ''}`}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border border-edge bg-surface-secondary/50 ${pending ? 'opacity-90' : ''}`}
                 >
                   <MemberAvatar member={member} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-medium text-content truncate flex items-center gap-1.5">
+                    <p className="text-[13.5px] font-semibold text-content truncate flex items-center gap-1.5">
                       {member.username}
-                      {isSelf && <span className="text-content-faint font-normal">({t('collections.share.you')})</span>}
+                      {isSelf && <span className="text-content-faint font-normal text-[12px]">({t('collections.share.you')})</span>}
                     </p>
                     {member.email && !pending && (
-                      <p className="text-[11px] text-content-faint truncate">{member.email}</p>
+                      <p className="text-[11.5px] text-content-faint truncate">{member.email}</p>
                     )}
                   </div>
                   {member.is_owner ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-content-faint shrink-0">
-                      <Crown size={12} /> {t('collections.share.owner')}
+                    <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold uppercase tracking-wide px-2 py-1 rounded-full bg-amber-500/12 text-amber-600 dark:text-amber-400 shrink-0">
+                      <Crown size={11} /> {t('collections.share.owner')}
                     </span>
                   ) : pending ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-500 shrink-0">
-                      <Clock size={12} /> {t('collections.share.pending')}
+                    <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold uppercase tracking-wide px-2 py-1 rounded-full bg-amber-500/12 text-amber-600 dark:text-amber-400 shrink-0">
+                      <Clock size={11} /> {t('collections.share.pending')}
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-500 shrink-0">
-                      <Check size={12} /> {t('collections.share.accepted')}
+                    <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold uppercase tracking-wide px-2 py-1 rounded-full bg-emerald-500/12 text-emerald-600 dark:text-emerald-400 shrink-0">
+                      <Check size={11} /> {t('collections.share.accepted')}
                     </span>
                   )}
                   {isOwner && pending && (
