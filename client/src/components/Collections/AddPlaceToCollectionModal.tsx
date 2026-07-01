@@ -135,7 +135,7 @@ export default function AddPlaceToCollectionModal({ isOpen, collectionId, collec
               </div>
               {results.map((r, i) => (
                 <button key={i} type="button" onClick={() => pick(r)} className="flex items-center gap-3 px-2.5 py-2 rounded-lg text-left hover:bg-surface-hover transition-colors">
-                  <div className="w-8 h-8 rounded-lg bg-surface-secondary flex items-center justify-center text-content-faint shrink-0"><MapPin size={15} /></div>
+                  <div className="w-8 h-8 min-w-[32px] rounded-lg bg-surface-secondary flex items-center justify-center text-content-faint shrink-0"><MapPin size={15} /></div>
                   <div className="flex flex-col min-w-0 flex-1">
                     <span className="text-[13px] font-semibold text-content truncate">{str(r.name)}</span>
                     {str(r.address) && <span className="text-[11.5px] text-content-faint truncate">{str(r.address)}</span>}

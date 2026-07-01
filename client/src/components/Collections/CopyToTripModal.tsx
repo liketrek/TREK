@@ -1,14 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Search, MapPin, Loader2, Copy } from 'lucide-react'
+import { Search, MapPin, Loader2, Copy, CalendarDays } from 'lucide-react'
 import Modal from '../shared/Modal'
 import { useToast } from '../shared/Toast'
 import { tripsApi } from '../../api/client'
 import { getApiErrorMessage } from '../../utils/apiError'
+import { formatDate } from '../../utils/formatters'
+import { useTranslation } from '../../i18n'
 import type { TranslationFn } from '../../types'
 
 interface TripOption {
   id: number
-  name: string
+  title: string
   start_date?: string | null
   end_date?: string | null
   cover_image?: string | null
@@ -32,6 +34,7 @@ interface CopyToTripModalProps {
  */
 export default function CopyToTripModal({ isOpen, onClose, placeIds, onCopy, t }: CopyToTripModalProps): React.ReactElement | null {
   const toast = useToast()
+  const { language } = useTranslation()
   const [trips, setTrips] = useState<TripOption[]>([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
@@ -52,8 +55,15 @@ export default function CopyToTripModal({ isOpen, onClose, placeIds, onCopy, t }
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     if (!q) return trips
-    return trips.filter(tr => tr.name.toLowerCase().includes(q))
+    return trips.filter(tr => (tr.title ?? '').toLowerCase().includes(q))
   }, [trips, search])
+
+  const dateRange = (tr: TripOption): string => {
+    const s = formatDate(tr.start_date, language)
+    const e = formatDate(tr.end_date, language)
+    if (s && e) return `${s} – ${e}`
+    return s || e || ''
+  }
 
   if (!isOpen) return null
 
@@ -115,10 +125,17 @@ export default function CopyToTripModal({ isOpen, onClose, placeIds, onCopy, t }
                   disabled={busy}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-edge bg-surface-card text-left hover:bg-surface-hover transition-colors disabled:opacity-60"
                 >
-                  <span className="w-8 h-8 rounded-lg bg-surface-secondary flex items-center justify-center shrink-0 overflow-hidden text-content-faint">
+                  <span className="w-9 h-9 rounded-lg bg-surface-secondary flex items-center justify-center shrink-0 overflow-hidden text-content-faint">
                     {trip.cover_image ? <img src={trip.cover_image} alt="" className="w-full h-full object-cover" /> : <MapPin size={15} />}
                   </span>
-                  <span className="flex-1 min-w-0 text-[13px] font-medium text-content truncate">{trip.name}</span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-[13px] font-medium text-content truncate">{trip.title}</span>
+                    {dateRange(trip) && (
+                      <span className="flex items-center gap-1 text-[11.5px] text-content-faint truncate">
+                        <CalendarDays size={11} className="shrink-0" /> {dateRange(trip)}
+                      </span>
+                    )}
+                  </span>
                   {busy ? <Loader2 size={15} className="animate-spin text-content-faint shrink-0" /> : <Copy size={15} className="text-content-faint shrink-0" />}
                 </button>
               )
