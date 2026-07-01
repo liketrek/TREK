@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Plus, Bookmark, Layers, MoreHorizontal, Pencil, Trash2, Users, Check } from 'lucide-react'
+import { Plus, Layers, MoreHorizontal, Pencil, Trash2, Users, Check, Palette } from 'lucide-react'
 import type { Collection } from '@trek/shared'
 import type { TranslationFn } from '../../types'
 import { ALL_SAVED } from '../../store/collectionStore'
@@ -24,10 +24,6 @@ interface ListsRailProps {
   onAcceptInvite: (id: number) => void
   onDeclineInvite: (id: number) => void
   t: TranslationFn
-}
-
-function ColorDot({ color }: { color?: string | null }): React.ReactElement {
-  return <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: color || '#6366f1' }} />
 }
 
 interface ListRowProps {
@@ -66,66 +62,62 @@ function ListRow({
 
   if (editing) {
     return (
-      <div className="px-2 py-1.5">
+      <div className="col-row">
         <input
           autoFocus
           value={editingName}
           onChange={e => setEditingName(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') onCommitRename(); if (e.key === 'Escape') onCommitRename() }}
+          onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') onCommitRename() }}
           onBlur={onCommitRename}
-          className="w-full px-2 py-1.5 rounded-lg border border-accent bg-surface-input text-content text-[13px] outline-none"
+          className="col-row-edit"
         />
       </div>
     )
   }
 
   return (
-    <div ref={rowRef} className="relative group">
-      <button
-        type="button"
-        onClick={() => onSelect(list.id)}
-        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-colors ${active ? 'bg-surface-selected text-content' : 'text-content-secondary hover:bg-surface-hover'}`}
-      >
-        <ColorDot color={list.color} />
-        <span className="flex-1 text-[13px] font-medium truncate">{list.name}</span>
-        <span className="text-[11px] tabular-nums text-content-faint shrink-0">{list.place_count ?? 0}</span>
+    <div ref={rowRef} className="col-row">
+      <button type="button" onClick={() => onSelect(list.id)} className={`col-row-btn${active ? ' on' : ''}`}>
+        <span className="dot" style={{ background: list.color || '#6366f1' }} />
+        <span className="nm">{list.name}</span>
+        <span className="ct">{list.place_count ?? 0}</span>
       </button>
       <button
         type="button"
         onClick={e => { e.stopPropagation(); setMenuOpen(o => !o); setColorOpen(false) }}
-        className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded-md text-content-faint opacity-0 group-hover:opacity-100 hover:bg-surface-hover transition-opacity"
+        className="col-row-menu"
         aria-label={t('collections.listMenu')}
       >
         <MoreHorizontal size={15} />
       </button>
       {menuOpen && !colorOpen && (
-        <div className="absolute right-1 top-9 z-20 w-40 py-1 rounded-lg border border-edge bg-surface-card shadow-dropdown">
-          <button type="button" onClick={() => { setMenuOpen(false); onStartRename(list.id, list.name) }} className="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-content-secondary hover:bg-surface-hover">
-            <Pencil size={13} /> {t('collections.editList')}
+        <div className="col-pop">
+          <button type="button" onClick={() => { setMenuOpen(false); onStartRename(list.id, list.name) }} className="col-pop-item">
+            <Pencil size={14} /> {t('collections.editList')}
           </button>
-          <button type="button" onClick={() => setColorOpen(true)} className="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-content-secondary hover:bg-surface-hover">
-            <ColorDot color={list.color} /> {t('collections.listColor')}
+          <button type="button" onClick={() => setColorOpen(true)} className="col-pop-item">
+            <Palette size={14} /> {t('collections.listColor')}
           </button>
           {canDelete && (
-            <button type="button" onClick={() => { setMenuOpen(false); onRequestDelete(list.id) }} className="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-danger hover:bg-surface-hover">
-              <Trash2 size={13} /> {t('collections.deleteList')}
+            <button type="button" onClick={() => { setMenuOpen(false); onRequestDelete(list.id) }} className="col-pop-item danger">
+              <Trash2 size={14} /> {t('collections.deleteList')}
             </button>
           )}
         </div>
       )}
       {colorOpen && (
-        <div className="absolute right-1 top-9 z-20 p-2 rounded-lg border border-edge bg-surface-card shadow-dropdown">
-          <div className="grid grid-cols-4 gap-1.5">
+        <div className="col-pop">
+          <div className="col-pop-swatches">
             {SWATCHES.map(c => (
               <button
                 key={c}
                 type="button"
                 onClick={() => { onSetColor(list.id, c); setColorOpen(false); setMenuOpen(false) }}
-                className="w-6 h-6 rounded-full flex items-center justify-center"
+                className="col-swatch"
                 style={{ background: c }}
                 aria-label={c}
               >
-                {list.color === c && <Check size={13} className="text-white" strokeWidth={3} />}
+                {list.color === c && <Check size={13} strokeWidth={3} />}
               </button>
             ))}
           </div>
@@ -137,8 +129,10 @@ function ListRow({
 
 /**
  * Left rail of the user's lists: a "New list" action, the "All saved" union
- * pseudo-list, owned lists (colour dot + count + rename/colour/delete menu),
- * a shared section, and an incoming-invites block.
+ * pseudo-list, owned lists (colour dot + count + rename/colour/delete menu), a
+ * shared section, and an incoming-invites block. Styled with the collections
+ * glass tokens (`.col-*`); rendered both in the desktop rail and the mobile
+ * drawer.
  */
 export default function ListsRail(props: ListsRailProps): React.ReactElement {
   const {
@@ -149,25 +143,19 @@ export default function ListsRail(props: ListsRailProps): React.ReactElement {
   } = props
 
   return (
-    <div className="flex flex-col gap-1">
-      <button
-        type="button"
-        onClick={onNewList}
-        className="flex items-center gap-2 px-3 py-2 mb-1 rounded-lg border border-dashed border-edge text-content-secondary hover:bg-surface-hover hover:text-content transition-colors text-[13px] font-medium"
-      >
-        <Plus size={15} /> {t('collections.newList')}
+    <>
+      <button type="button" onClick={onNewList} className="col-rail-new">
+        <Plus size={16} /> {t('collections.newList')}
       </button>
 
-      <button
-        type="button"
-        onClick={() => onSelect(ALL_SAVED)}
-        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-colors ${activeId === ALL_SAVED ? 'bg-surface-selected text-content' : 'text-content-secondary hover:bg-surface-hover'}`}
-      >
-        <Layers size={15} className="shrink-0 text-content-faint" />
-        <span className="flex-1 text-[13px] font-medium">{t('collections.allSaved')}</span>
-      </button>
+      <div className="col-row">
+        <button type="button" onClick={() => onSelect(ALL_SAVED)} className={`col-row-btn${activeId === ALL_SAVED ? ' on' : ''}`}>
+          <span className="ico"><Layers size={16} /></span>
+          <span className="nm">{t('collections.allSaved')}</span>
+        </button>
+      </div>
 
-      {ownedLists.length > 0 && <div className="h-px bg-edge-faint my-1.5" />}
+      {ownedLists.length > 0 && <div className="col-rail-sep" />}
       {ownedLists.map(list => (
         <ListRow
           key={list.id}
@@ -187,9 +175,7 @@ export default function ListsRail(props: ListsRailProps): React.ReactElement {
 
       {sharedLists.length > 0 && (
         <>
-          <div className="flex items-center gap-1.5 px-3 mt-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-content-faint">
-            <Users size={11} /> {t('collections.shared')}
-          </div>
+          <div className="col-rail-label"><Users size={12} /> {t('collections.shared')}</div>
           {sharedLists.map(list => (
             <ListRow
               key={list.id}
@@ -211,18 +197,19 @@ export default function ListsRail(props: ListsRailProps): React.ReactElement {
 
       {incomingInvites.length > 0 && (
         <>
-          <div className="flex items-center gap-1.5 px-3 mt-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-content-faint">
-            <Bookmark size={11} /> {t('collections.invites.title')} ({incomingInvites.length})
+          <div className="col-rail-label">
+            {t('collections.invites.title')}
+            <span className="badge">{incomingInvites.length}</span>
           </div>
           {incomingInvites.map(inv => (
-            <div key={inv.collection_id} className="px-3 py-2 rounded-lg bg-surface-secondary">
-              <p className="text-[12px] font-semibold text-content truncate">{inv.name}</p>
-              <p className="text-[11px] text-content-faint truncate">{t('collections.invites.from')} {inv.from.username}</p>
-              <div className="flex gap-1.5 mt-1.5">
-                <button type="button" onClick={() => onAcceptInvite(inv.collection_id)} className="flex-1 px-2 py-1 rounded-md bg-accent text-accent-text text-[11px] font-semibold hover:bg-accent-hover">
+            <div key={inv.collection_id} className="col-invite">
+              <div className="t">{inv.name}</div>
+              <div className="s">{t('collections.invites.from')} {inv.from.username}</div>
+              <div className="col-invite-actions">
+                <button type="button" onClick={() => onAcceptInvite(inv.collection_id)} className="col-invite-accept">
                   {t('collections.invites.accept')}
                 </button>
-                <button type="button" onClick={() => onDeclineInvite(inv.collection_id)} className="flex-1 px-2 py-1 rounded-md border border-edge text-content-secondary text-[11px] font-semibold hover:bg-surface-hover">
+                <button type="button" onClick={() => onDeclineInvite(inv.collection_id)} className="col-invite-decline">
                   {t('collections.invites.decline')}
                 </button>
               </div>
@@ -230,6 +217,6 @@ export default function ListsRail(props: ListsRailProps): React.ReactElement {
           ))}
         </>
       )}
-    </div>
+    </>
   )
 }

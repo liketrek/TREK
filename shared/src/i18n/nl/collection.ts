@@ -1,6 +1,9 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.hero.mine': 'Mijn collectie',
+  'collections.hero.shared': 'Gedeeld met jou',
+  'collections.hero.all': 'Jouw bibliotheek',
   'collections.title': 'Collecties',
   'collections.subtitle': 'Je opgeslagen plekken, geordend in lijsten',
 

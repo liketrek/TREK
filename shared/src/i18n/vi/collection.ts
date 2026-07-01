@@ -1,6 +1,9 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.hero.mine': 'Bộ sưu tập của tôi',
+  'collections.hero.shared': 'Được chia sẻ với bạn',
+  'collections.hero.all': 'Thư viện của bạn',
   'collections.title': 'Bộ sưu tập',
   'collections.subtitle': 'Những địa điểm bạn đã lưu, sắp xếp thành danh sách',
 
