@@ -165,7 +165,7 @@ export default function ShareCollectionModal({
       isOpen
       onClose={onClose}
       title={t('collections.share.titleNamed', { name: collectionName })}
-      size="sm"
+      size="xl"
     >
       <div className="flex flex-col gap-5">
         {/* Member roster */}
