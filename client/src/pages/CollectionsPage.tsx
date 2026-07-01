@@ -68,6 +68,11 @@ export default function CollectionsPage(): React.ReactElement {
   const noLists = !c.loading && c.collections.length === 0
   const showSelect = !c.isAllSaved && c.activeCollection != null
 
+  // On a wide screen the list view splits into list + persistent map; clicking a
+  // place pans the map instead of opening the (map-covering) inspector.
+  const mappable = mappablePlaces(c.visiblePlaces)
+  const inSplit = c.isWide && c.view === 'list' && mappable.length > 0
+
   let body: React.ReactElement
   if (c.placesLoading && !hasPlaces) {
     body = <div className="col-loading"><div className="col-spinner" /></div>
@@ -89,7 +94,7 @@ export default function CollectionsPage(): React.ReactElement {
       />
     )
   } else if (c.view === 'list') {
-    body = (
+    const listEl = (
       <CollectionList
         places={c.visiblePlaces}
         selectedPlaceId={c.selectedPlaceId}
@@ -101,8 +106,15 @@ export default function CollectionsPage(): React.ReactElement {
         t={t}
       />
     )
+    body = inSplit ? (
+      <div className="col-split">
+        <div className="col-split-list">{listEl}</div>
+        <div className="col-split-map">
+          <CollectionMap places={mappable} selectedPlaceId={c.selectedPlaceId} onOpenPlace={c.setSelectedPlaceId} dark={c.dark} />
+        </div>
+      </div>
+    ) : listEl
   } else {
-    const mappable = mappablePlaces(c.visiblePlaces)
     body = mappable.length === 0 ? (
       <EmptyState icon={<Search size={26} />} title={t('collections.empty.noMatchTitle')} text={t('collections.empty.noMatchText')} />
     ) : (
@@ -138,7 +150,7 @@ export default function CollectionsPage(): React.ReactElement {
       <Navbar />
       <div className="trek-dash col-root">
         <div className="col-page">
-          <aside className="col-rail">{rail}</aside>
+          <aside className="col-rail" style={{ minHeight: c.heroHeight || undefined }}>{rail}</aside>
 
           <div className="col-body">
             {noLists ? (
@@ -154,22 +166,24 @@ export default function CollectionsPage(): React.ReactElement {
               />
             ) : (
               <>
-                <CollectionHero
-                  eyebrow={eyebrow}
-                  title={title}
-                  color={heroColor}
-                  coverImage={heroCover}
-                  counts={c.counts}
-                  statusFilter={c.statusFilter}
-                  onStatusFilter={c.setStatusFilter}
-                  members={c.members}
-                  canShare={c.canShare}
-                  isOwner={c.isOwner}
-                  shareMemberCount={c.shareMemberCount}
-                  onShare={() => c.setShowShare(true)}
-                  onNewList={() => c.setShowNewList(true)}
-                  t={t}
-                />
+                <div ref={c.heroRef}>
+                  <CollectionHero
+                    eyebrow={eyebrow}
+                    title={title}
+                    color={heroColor}
+                    coverImage={heroCover}
+                    counts={c.counts}
+                    statusFilter={c.statusFilter}
+                    onStatusFilter={c.setStatusFilter}
+                    members={c.members}
+                    canShare={c.canShare}
+                    isOwner={c.isOwner}
+                    shareMemberCount={c.shareMemberCount}
+                    onShare={() => c.setShowShare(true)}
+                    onNewList={() => c.setShowNewList(true)}
+                    t={t}
+                  />
+                </div>
 
                 <div className="col-toolbar">
                   <button type="button" className="col-rail-toggle" onClick={() => c.setMobileRailOpen(true)}>
@@ -233,7 +247,7 @@ export default function CollectionsPage(): React.ReactElement {
           .trek-dash (it's a shared component on the app's own tokens). The outer
           layer is click-through so the grid behind stays interactive; only the
           floating card re-enables pointer events. */}
-      {c.detailPlace && (
+      {c.detailPlace && !inSplit && (
         <div className="fixed inset-0 z-[150]" style={{ pointerEvents: 'none', paddingTop: 'var(--nav-h)' }}>
           <div className="relative w-full h-full">
             <div style={{ pointerEvents: 'auto' }}>

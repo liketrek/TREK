@@ -56,13 +56,18 @@
 .trek-dash .col-row-btn .ico { color: var(--ink-3); flex-shrink: 0; display: grid; place-items: center; }
 .trek-dash .col-row-btn.on .ico { color: var(--ink-2); }
 .trek-dash .col-row-btn .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.trek-dash .col-row-btn .ct { font-size: 11.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.trek-dash .col-row-btn .ct { font-size: 11.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; flex-shrink: 0; transition: opacity .12s; }
+/* On hover / while its menu is open the count fades out (keeping its layout
+   space) so the kebab button can take the same slot without overlapping it. */
+.trek-dash .col-row:hover .col-row-btn .ct,
+.trek-dash .col-row.menu-open .col-row-btn .ct { opacity: 0; }
 .trek-dash .col-row-menu {
   position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
   width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center;
   color: var(--ink-3); opacity: 0; transition: opacity .12s, background .12s;
 }
-.trek-dash .col-row:hover .col-row-menu { opacity: 1; }
+.trek-dash .col-row:hover .col-row-menu,
+.trek-dash .col-row.menu-open .col-row-menu { opacity: 1; }
 .trek-dash .col-row-menu:hover { background: var(--bg-2); color: var(--ink); }
 
 /* rename inline input */
@@ -72,21 +77,9 @@
   font-size: 13.5px; font-weight: 500; outline: none;
 }
 
-/* row popover (menu / colour) */
-.trek-dash .col-pop {
-  position: absolute; right: 4px; top: calc(50% + 16px); z-index: 30; min-width: 168px;
-  padding: 5px; border-radius: var(--r-sm); background: var(--surface); border: 1px solid var(--line);
-  box-shadow: var(--sh-lg);
-}
-.trek-dash .col-pop-item {
-  display: flex; align-items: center; gap: 9px; width: 100%; padding: 8px 10px;
-  border-radius: 9px; font-size: 12.5px; color: var(--ink-2); font-weight: 500; transition: background .12s;
-}
-.trek-dash .col-pop-item:hover { background: var(--surface-2); color: var(--ink); }
-.trek-dash .col-pop-item.danger { color: oklch(0.6 0.2 25); }
-.dark .trek-dash .col-pop-item.danger { color: oklch(0.72 0.17 25); }
-.trek-dash .col-pop-swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; padding: 6px; }
-.trek-dash .col-swatch { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; color: #fff; }
+/* The list row's kebab menu / colour picker is a Tailwind-styled popover
+   portalled to document.body (see ListsRail), so nothing here — keeping it in
+   the rail would let the rail's overflow + backdrop-filter clip it. */
 
 /* incoming-invite card */
 .trek-dash .col-invite { padding: 11px; border-radius: var(--r-sm); background: var(--surface-2); margin: 2px 0; }
@@ -258,6 +251,18 @@
 .trek-dash .col-mapwrap {
   border-radius: var(--r-xl); overflow: hidden; border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow);
   height: calc(100vh - var(--nav-h) - 320px); min-height: 380px;
+}
+
+/* list + map split (list view on wide screens): scrollable list left, sticky
+   map right. Clicking a place pans the map (selectedPlaceId drives it). Only
+   rendered above 1024px (the page gates it in JS), so no mobile override needed. */
+.trek-dash .col-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 1.06fr); gap: 20px; align-items: start; }
+.trek-dash .col-split-list { min-width: 0; }
+.trek-dash .col-split-map {
+  position: sticky; top: calc(var(--nav-h) + 22px);
+  height: calc(100vh - var(--nav-h) - 210px); min-height: 440px;
+  border-radius: var(--r-xl); overflow: hidden;
+  border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow);
 }
 
 /* The status pill itself (idea/want/visited) is the StatusBadge component,

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import ReactDOM from 'react-dom'
 import { Plus, Layers, MoreHorizontal, Pencil, Trash2, Users, Check, Palette } from 'lucide-react'
 import type { Collection } from '@trek/shared'
 import type { TranslationFn } from '../../types'
@@ -46,19 +47,47 @@ function ListRow({
 }: ListRowProps): React.ReactElement {
   const [menuOpen, setMenuOpen] = useState(false)
   const [colorOpen, setColorOpen] = useState(false)
+  // Anchor rect for the portalled popover (fixed to the viewport). The popover
+  // is portalled to document.body so the rail's `overflow-y:auto` +
+  // `backdrop-filter` can't clip it.
+  const [anchor, setAnchor] = useState<{ top: number; right: number } | null>(null)
   const rowRef = useRef<HTMLDivElement>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const open = menuOpen || colorOpen
   // Owner or accepted member may rename/recolour any accessible list; only the
   // owner may delete it.
   const canDelete = list.is_owner !== false
 
+  const openMenu = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (open) { setMenuOpen(false); setColorOpen(false); return }
+    const r = btnRef.current?.getBoundingClientRect()
+    if (r) setAnchor({ top: r.bottom + 6, right: Math.max(8, window.innerWidth - r.right) })
+    setColorOpen(false)
+    setMenuOpen(true)
+  }
+
   useEffect(() => {
-    if (!menuOpen && !colorOpen) return
+    if (!open) return
+    const close = () => { setMenuOpen(false); setColorOpen(false) }
     const onDown = (e: MouseEvent) => {
-      if (rowRef.current && !rowRef.current.contains(e.target as Node)) { setMenuOpen(false); setColorOpen(false) }
+      const el = e.target as HTMLElement
+      if (rowRef.current?.contains(el) || el.closest?.('[data-list-pop]')) return
+      close()
     }
-    document.addEventListener('mousedown', onDown)
-    return () => document.removeEventListener('mousedown', onDown)
-  }, [menuOpen, colorOpen])
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close() }
+    document.addEventListener('mousedown', onDown, true)
+    document.addEventListener('keydown', onKey)
+    window.addEventListener('resize', close)
+    // Any scroll (page or rail) invalidates the anchor rect → just close.
+    window.addEventListener('scroll', close, true)
+    return () => {
+      document.removeEventListener('mousedown', onDown, true)
+      document.removeEventListener('keydown', onKey)
+      window.removeEventListener('resize', close)
+      window.removeEventListener('scroll', close, true)
+    }
+  }, [open])
 
   if (editing) {
     return (
@@ -75,54 +104,66 @@ function ListRow({
     )
   }
 
+  const popover = open && anchor && ReactDOM.createPortal(
+    <div
+      data-list-pop
+      className="fixed z-[300] min-w-[176px] p-1.5 rounded-xl bg-surface-card border border-edge shadow-dropdown"
+      style={{ top: anchor.top, right: anchor.right }}
+    >
+      {menuOpen && !colorOpen && (
+        <>
+          <button type="button" onClick={() => { setMenuOpen(false); onStartRename(list.id, list.name) }} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-content-secondary hover:bg-surface-hover">
+            <Pencil size={14} /> {t('collections.editList')}
+          </button>
+          <button type="button" onClick={() => setColorOpen(true)} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-content-secondary hover:bg-surface-hover">
+            <Palette size={14} /> {t('collections.listColor')}
+          </button>
+          {canDelete && (
+            <button type="button" onClick={() => { setMenuOpen(false); onRequestDelete(list.id) }} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-danger hover:bg-danger-soft">
+              <Trash2 size={14} /> {t('collections.deleteList')}
+            </button>
+          )}
+        </>
+      )}
+      {colorOpen && (
+        <div className="grid grid-cols-4 gap-1.5 p-1">
+          {SWATCHES.map(col => (
+            <button
+              key={col}
+              type="button"
+              onClick={() => { onSetColor(list.id, col); setColorOpen(false); setMenuOpen(false) }}
+              className="w-7 h-7 rounded-full flex items-center justify-center text-white"
+              style={{ background: col }}
+              aria-label={col}
+            >
+              {list.color === col && <Check size={13} strokeWidth={3} />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>,
+    document.body,
+  )
+
   return (
-    <div ref={rowRef} className="col-row">
+    <div ref={rowRef} className={`col-row${open ? ' menu-open' : ''}`}>
       <button type="button" onClick={() => onSelect(list.id)} className={`col-row-btn${active ? ' on' : ''}`}>
         <span className="dot" style={{ background: list.color || '#6366f1' }} />
         <span className="nm">{list.name}</span>
         <span className="ct">{list.place_count ?? 0}</span>
       </button>
       <button
+        ref={btnRef}
         type="button"
-        onClick={e => { e.stopPropagation(); setMenuOpen(o => !o); setColorOpen(false) }}
+        onClick={openMenu}
         className="col-row-menu"
         aria-label={t('collections.listMenu')}
+        aria-haspopup="menu"
+        aria-expanded={open}
       >
         <MoreHorizontal size={15} />
       </button>
-      {menuOpen && !colorOpen && (
-        <div className="col-pop">
-          <button type="button" onClick={() => { setMenuOpen(false); onStartRename(list.id, list.name) }} className="col-pop-item">
-            <Pencil size={14} /> {t('collections.editList')}
-          </button>
-          <button type="button" onClick={() => setColorOpen(true)} className="col-pop-item">
-            <Palette size={14} /> {t('collections.listColor')}
-          </button>
-          {canDelete && (
-            <button type="button" onClick={() => { setMenuOpen(false); onRequestDelete(list.id) }} className="col-pop-item danger">
-              <Trash2 size={14} /> {t('collections.deleteList')}
-            </button>
-          )}
-        </div>
-      )}
-      {colorOpen && (
-        <div className="col-pop">
-          <div className="col-pop-swatches">
-            {SWATCHES.map(c => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => { onSetColor(list.id, c); setColorOpen(false); setMenuOpen(false) }}
-                className="col-swatch"
-                style={{ background: c }}
-                aria-label={c}
-              >
-                {list.color === c && <Check size={13} strokeWidth={3} />}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {popover}
     </div>
   )
 }

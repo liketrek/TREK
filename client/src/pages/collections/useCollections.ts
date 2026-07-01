@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from '../../i18n'
+import { useElementSize } from '../../hooks/useElementSize'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useToast } from '../../components/shared/Toast'
 import { getApiErrorMessage } from '../../types'
@@ -26,6 +27,19 @@ export function useCollections() {
 
   const dm = useSettingsStore(s => s.settings.dark_mode)
   const dark = dm === true || dm === 'dark' || (dm === 'auto' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+
+  // Desktop breakpoint for the list+map split (list view only). Below it the
+  // list stays single-column and the map is its own view.
+  const [isWide, setIsWide] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches)
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)')
+    const on = () => setIsWide(mq.matches)
+    mq.addEventListener('change', on)
+    return () => mq.removeEventListener('change', on)
+  }, [])
+
+  // Measure the hero so the list rail can be kept at least as tall as it.
+  const hero = useElementSize<HTMLDivElement>()
 
   const store = useCollectionStore()
   const {
@@ -277,6 +291,7 @@ export function useCollections() {
 
   return {
     t, language, dark, navigate,
+    isWide, heroRef: hero.ref, heroHeight: hero.height,
     // store data
     collections, ownedLists, sharedLists, activeCollection, isAllSaved, isOwner,
     canShare, shareMemberCount,
