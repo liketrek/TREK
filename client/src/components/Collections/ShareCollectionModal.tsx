@@ -202,15 +202,15 @@ export default function ShareCollectionModal({
                       <Clock size={11} /> {t('collections.share.pending')}
                     </span>
                   ) : isOwner ? (
-                    <select
-                      value={member.role ?? 'editor'}
-                      onChange={e => handleSetRole(member.user_id, e.target.value as CollectionRole)}
-                      disabled={settingRoleId === member.user_id}
-                      aria-label={t('collections.role.label')}
-                      className="shrink-0 text-[11.5px] font-medium rounded-md border border-edge bg-surface-input text-content-secondary px-1.5 py-1 outline-none focus:border-accent disabled:opacity-50"
-                    >
-                      {ROLE_ORDER.map(r => <option key={r} value={r}>{t(`collections.role.${r}`)}</option>)}
-                    </select>
+                    <div className="w-[118px] shrink-0">
+                      <CustomSelect
+                        size="sm"
+                        value={member.role ?? 'editor'}
+                        onChange={v => handleSetRole(member.user_id, v as CollectionRole)}
+                        options={ROLE_ORDER.map(r => ({ value: r, label: t(`collections.role.${r}`) }))}
+                        disabled={settingRoleId === member.user_id}
+                      />
+                    </div>
                   ) : (
                     <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold uppercase tracking-wide px-2 py-1 rounded-full bg-surface-secondary text-content-secondary shrink-0">
                       {t(`collections.role.${member.role ?? 'editor'}`)}
@@ -264,14 +264,14 @@ export default function ShareCollectionModal({
                     searchable
                   />
                 </div>
-                <select
-                  value={inviteRole}
-                  onChange={e => setInviteRole(e.target.value as CollectionRole)}
-                  aria-label={t('collections.role.label')}
-                  className="shrink-0 text-[12.5px] font-medium rounded-lg border border-edge bg-surface-input text-content-secondary px-2 outline-none focus:border-accent"
-                >
-                  {ROLE_ORDER.map(r => <option key={r} value={r}>{t(`collections.role.${r}`)}</option>)}
-                </select>
+                <div className="w-[128px] shrink-0">
+                  <CustomSelect
+                    size="sm"
+                    value={inviteRole}
+                    onChange={v => setInviteRole(v as CollectionRole)}
+                    options={ROLE_ORDER.map(r => ({ value: r, label: t(`collections.role.${r}`) }))}
+                  />
+                </div>
                 <button
                   type="button"
                   onClick={handleInvite}
