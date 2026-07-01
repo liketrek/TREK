@@ -444,6 +444,22 @@ export async function getStats(userId: number) {
     }
   }
 
+  // Merge countries reached only by a transport booking. Those store geocoded from/to
+  // coordinates in reservation_endpoints but create no place row, so they never show up
+  // via resolvePlaceCountries above and would otherwise be missed (#1366).
+  const endpoints = db.prepare(`
+    SELECT DISTINCT e.lat, e.lng
+    FROM reservation_endpoints e
+    JOIN reservations r ON e.reservation_id = r.id
+    WHERE r.trip_id IN (${tripIds.map(() => '?').join(',')})
+  `).all(...tripIds) as { lat: number; lng: number }[];
+  for (const e of endpoints) {
+    const code = getCountryFromCoords(e.lat, e.lng);
+    if (code && !countries.find(c => c.code === code)) {
+      countries.push({ code, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null });
+    }
+  }
+
   const mostVisited = countries.length > 0 ? countries.reduce((a, b) => a.placeCount > b.placeCount ? a : b) : null;
 
   const continents: Record<string, number> = {};

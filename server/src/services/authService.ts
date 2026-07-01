@@ -17,6 +17,7 @@ import { revokeUserSessions } from '../mcp';
 import { startTripReminders } from '../scheduler';
 import { deleteUserCompletely } from './userCleanupService';
 import { getFlightDistanceKm } from './distanceService';
+import { getCountryFromCoords } from './atlasService';
 import { verifyJwtAndLoadUser } from '../middleware/auth';
 import { User } from '../types';
 import { DEMO_EMAIL_PRIMARY, isDemoEmail } from './demo';
@@ -981,6 +982,23 @@ export function getTravelStats(userId: number) {
     WHERE (t.user_id = ? OR tm.user_id = ?) AND pr.country_code IS NOT NULL
   `).all(userId, userId) as { country_code: string }[];
   placeRegionCodes.forEach(r => { if (r.country_code) countryCodes.add(r.country_code.toUpperCase()); });
+
+  // Transport bookings don't create a place row, so their geocoded endpoints never
+  // reached place_regions — a country reached only by a flight/train (no lodging or
+  // planned place there) was never counted as visited (#1366). Resolve each endpoint
+  // coordinate to a country and fold it in too.
+  const endpoints = db.prepare(`
+    SELECT DISTINCT e.lat, e.lng
+    FROM reservation_endpoints e
+    JOIN reservations r ON e.reservation_id = r.id
+    JOIN trips t ON r.trip_id = t.id
+    LEFT JOIN trip_members tm ON t.id = tm.trip_id
+    WHERE (t.user_id = ? OR tm.user_id = ?)
+  `).all(userId, userId) as { lat: number; lng: number }[];
+  for (const e of endpoints) {
+    const code = getCountryFromCoords(e.lat, e.lng);
+    if (code) countryCodes.add(code.toUpperCase());
+  }
 
   return {
     countries: [...countryCodes],

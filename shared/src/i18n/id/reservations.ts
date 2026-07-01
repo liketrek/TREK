@@ -45,6 +45,8 @@ const reservations: TranslationStrings = {
   'reservations.meta.pickAccommodation': 'Hubungkan ke akomodasi',
   'reservations.meta.noAccommodation': 'Tidak ada',
   'reservations.meta.hotelPlace': 'Akomodasi',
+  'reservations.meta.linkPlace': 'Tempat / Aktivitas',
+  'reservations.meta.pickPlace': 'Pilih tempat / aktivitas',
   'reservations.meta.pickHotel': 'Pilih akomodasi',
   'reservations.meta.fromDay': 'Dari',
   'reservations.meta.toDay': 'Sampai',

@@ -44,6 +44,8 @@ const reservations: TranslationStrings = {
   'reservations.meta.pickAccommodation': '關聯住宿',
   'reservations.meta.noAccommodation': '無',
   'reservations.meta.hotelPlace': '住宿',
+  'reservations.meta.linkPlace': '地點 / 活動',
+  'reservations.meta.pickPlace': '選擇地點 / 活動',
   'reservations.meta.pickHotel': '選擇住宿',
   'reservations.meta.fromDay': '從',
   'reservations.meta.toDay': '到',

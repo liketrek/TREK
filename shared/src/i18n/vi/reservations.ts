@@ -44,6 +44,8 @@ const reservations: TranslationStrings = {
   'reservations.meta.pickAccommodation': 'Liên kết chỗ ở',
   'reservations.meta.noAccommodation': 'Không có',
   'reservations.meta.hotelPlace': 'Chỗ ở',
+  'reservations.meta.linkPlace': 'Địa điểm / Hoạt động',
+  'reservations.meta.pickPlace': 'Chọn địa điểm / hoạt động',
   'reservations.meta.pickHotel': 'Chọn chỗ ở',
   'reservations.meta.fromDay': 'Từ',
   'reservations.meta.toDay': 'ĐẾN',

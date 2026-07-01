@@ -201,7 +201,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   // Remember which assignment we last auto-scrolled into view so we don't
   // keep yanking the user back whenever they scroll away while the same
   // place stays selected.
-  const lastAutoScrolledIdRef = useRef<number | null>(null)
+  const lastAutoScrolledIdRef = useRef<string | number | null>(null)
   useEffect(() => {
     // Reset the scroll-lock whenever selection moves, so the next selected
     // row triggers a fresh scroll-into-view on its ref.
@@ -392,9 +392,15 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     const merged = mergedItemsMap[selectedDayId] || []
     const runs: { id: number; lat: number; lng: number }[][] = []
     let cur: { id: number; lat: number; lng: number }[] = []
+    // A run is only a real drive when it holds an actual place. Two back-to-back
+    // transports (e.g. two flights on one day) would otherwise pair the first's
+    // arrival with the second's departure into a phantom airport→airport leg — the
+    // flight, not a drive — and surface it as a bogus connector distance (#1394).
+    let curHasPlace = false
     for (const it of merged) {
       if (it.type === 'place' && it.data.place?.lat && it.data.place?.lng) {
         cur.push({ id: it.data.id, lat: it.data.place.lat, lng: it.data.place.lng })
+        curHasPlace = true
       } else if (it.type === 'transport') {
         const r = it.data
         const { from, to } = getTransportRouteEndpoints(r, selectedDayId)
@@ -402,8 +408,9 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
           // Located transport: route to its departure point, break the run (the
           // flight/train itself isn't driven), and let its arrival start the next.
           if (from) cur.push({ id: r.id, lat: from.lat, lng: from.lng })
-          if (cur.length >= 2) runs.push(cur)
+          if (cur.length >= 2 && curHasPlace) runs.push(cur)
           cur = []
+          curHasPlace = false
           if (to) cur.push({ id: r.id, lat: to.lat, lng: to.lng })
         } else if (cur.length > 0) {
           // No location: ignore for routing, but attribute the through-leg to the
@@ -412,7 +419,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
         }
       }
     }
-    if (cur.length >= 2) runs.push(cur)
+    if (cur.length >= 2 && curHasPlace) runs.push(cur)
 
     // Hotel bookend legs: the drive from the day's accommodation to the first located
     // waypoint of the day (morning) and from the last one back to it (evening). Only when
@@ -1058,6 +1065,12 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
 
 const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarProps) {
   const S = useDayPlanSidebar(props)
+  // A stable key for the current selection. A multi-day place renders one row per
+  // day (same place_id, different assignment ids); selecting it by place_id alone
+  // (e.g. clicking an accommodation) marks every one of those rows selected, so a
+  // per-assignment scroll-lock would let each day's row scroll the list in turn.
+  // Keying the lock on the selection identity makes only the first row scroll (#1375).
+  const selectionScrollKey = S.selectedAssignmentId != null ? `a${S.selectedAssignmentId}` : S.selectedPlaceId != null ? `p${S.selectedPlaceId}` : null
   // Needed by the route-tools visibility gate in the render below (#1330); the hook
   // keeps its own copy, so read it reactively here in the component scope too.
   const optimizeFromAccommodation = useSettingsStore(s => s.settings.optimize_from_accommodation)
@@ -1609,14 +1622,14 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                               // the transition "just became selected". Once we've
                               // scrolled for this assignment id, we won't scroll
                               // again until selection actually moves somewhere else.
-                              if (el && isPlaceSelected && lastAutoScrolledIdRef.current !== assignment.id) {
+                              if (el && isPlaceSelected && selectionScrollKey != null && lastAutoScrolledIdRef.current !== selectionScrollKey) {
                                 const rect = el.getBoundingClientRect()
                                 const nearTop = rect.top < 80
                                 const nearBottom = rect.bottom > window.innerHeight - 80
                                 if (nearTop || nearBottom) {
                                   el.scrollIntoView({ behavior: 'smooth', block: 'center' })
                                 }
-                                lastAutoScrolledIdRef.current = assignment.id
+                                lastAutoScrolledIdRef.current = selectionScrollKey
                               }
                             }}
                             onDragEnd={() => { setDraggingId(null); setDragOverDayId(null); setDropTargetKey(null); dragDataRef.current = null }}
@@ -2186,8 +2199,15 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                     <div style={{ padding: '10px 16px 12px', borderTop: '1px solid var(--border-faint)', display: 'flex', flexDirection: 'column', gap: 7 }}>
                       <div style={{ display: 'flex', gap: 6, alignItems: 'stretch' }}>
                         <button
-                          onClick={() => onToggleRoute?.()}
-                          className={routeShown ? 'bg-accent text-accent-text' : 'bg-transparent text-content-secondary'}
+                          onClick={() => {
+                            // The route is computed for the globally selected day, so on
+                            // mobile (where an expanded non-selected day also shows this
+                            // footer) tapping Route must first point the selection at this
+                            // day — otherwise it toggles the previously selected day (#1392).
+                            if (isSelected) { onToggleRoute?.() }
+                            else { onSelectDay(day.id, true); if (!routeShown) onToggleRoute?.() }
+                          }}
+                          className={routeShown && isSelected ? 'bg-accent text-accent-text' : 'bg-transparent text-content-secondary'}
                           style={{
                             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                             padding: '6px 0', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, borderRadius: 8,
@@ -2201,7 +2221,16 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                         {/* Open the day's stops as a route in Google Maps (planned order). #1255 */}
                         <button
                           onClick={() => {
-                            const url = generateGoogleMapsUrl(getDayAssignments(day.id).map(a => a.place).filter(p => p?.lat != null && p?.lng != null) as { lat: number; lng: number }[])
+                            // Bookend the Google Maps route with the day's accommodation the
+                            // same way the drawn map route does (routeBookends is null when
+                            // "optimize from accommodation" is off), so hotels aren't dropped
+                            // from the exported route (#1372).
+                            const stops = getDayAssignments(day.id).map(a => a.place).filter(p => p?.lat != null && p?.lng != null) as { lat: number; lng: number }[]
+                            const morning = routeBookends?.morning?.place_lat != null && routeBookends?.morning?.place_lng != null
+                              ? { lat: routeBookends.morning.place_lat, lng: routeBookends.morning.place_lng } : null
+                            const evening = routeBookends?.evening?.place_lat != null && routeBookends?.evening?.place_lng != null
+                              ? { lat: routeBookends.evening.place_lat, lng: routeBookends.evening.place_lng } : null
+                            const url = generateGoogleMapsUrl([...(morning ? [morning] : []), ...stops, ...(evening ? [evening] : [])])
                             if (url) window.open(url, '_blank', 'noopener,noreferrer')
                           }}
                           aria-label={t('planner.openGoogleMaps')}

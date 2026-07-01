@@ -44,6 +44,8 @@ const reservations: TranslationStrings = {
   'reservations.meta.pickAccommodation': '숙박 연결',
   'reservations.meta.noAccommodation': '없음',
   'reservations.meta.hotelPlace': '숙박',
+  'reservations.meta.linkPlace': '장소 / 활동',
+  'reservations.meta.pickPlace': '장소 / 활동 선택',
   'reservations.meta.pickHotel': '숙박 선택',
   'reservations.meta.fromDay': '부터',
   'reservations.meta.toDay': '까지',

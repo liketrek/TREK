@@ -46,6 +46,8 @@ const reservations: TranslationStrings = {
   'reservations.meta.pickAccommodation': 'Szállás hozzárendelése',
   'reservations.meta.noAccommodation': 'Nincs',
   'reservations.meta.hotelPlace': 'Szálloda',
+  'reservations.meta.linkPlace': 'Hely / Tevékenység',
+  'reservations.meta.pickPlace': 'Hely / tevékenység kiválasztása',
   'reservations.meta.pickHotel': 'Szálloda kiválasztása',
   'reservations.meta.fromDay': 'Ettől',
   'reservations.meta.toDay': 'Eddig',

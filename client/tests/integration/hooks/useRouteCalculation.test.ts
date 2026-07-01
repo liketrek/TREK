@@ -414,4 +414,30 @@ describe('useRouteCalculation', () => {
       [[p1.lat, p1.lng], [p2.lat, p2.lng], [p3.lat, p3.lng]],
     ]);
   });
+
+  it('FE-HOOK-ROUTE-018: two flights on one day are not road-routed airport→airport (#1394)', async () => {
+    // Two single-day flights, no place between them. The arrival of the first and the
+    // departure of the second must NOT be joined into a phantom driving run — that leg
+    // is the flight itself, not a drive.
+    const store = buildMockStore({ '5': [] });
+    useTripStore.setState({
+      reservations: [
+        { id: 1, type: 'flight', day_id: 5, end_day_id: 5, day_positions: { 5: 0 },
+          endpoints: [{ role: 'from', lat: 52.5, lng: 13.4 }, { role: 'to', lat: 42.4, lng: 18.7 }] },
+        { id: 2, type: 'flight', day_id: 5, end_day_id: 5, day_positions: { 5: 1 },
+          endpoints: [{ role: 'from', lat: 50.1, lng: 14.3 }, { role: 'to', lat: 42.4, lng: 18.9 }] },
+      ],
+      days: [{ id: 5, day_number: 1 }],
+    } as any);
+
+    const { result } = renderHook(() =>
+      useRouteCalculation(store as TripStoreState, 5)
+    );
+    await act(async () => {});
+
+    // No real place anywhere on the day → nothing is a drive → no route is drawn.
+    // Before the fix this produced a bogus [flight1.arrival → flight2.departure] leg.
+    expect(result.current.route).toBeNull();
+    expect(result.current.routeSegments).toEqual([]);
+  });
 });

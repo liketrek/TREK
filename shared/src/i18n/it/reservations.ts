@@ -45,6 +45,8 @@ const reservations: TranslationStrings = {
   'reservations.meta.pickAccommodation': 'Collega a un alloggio',
   'reservations.meta.noAccommodation': 'Nessuno',
   'reservations.meta.hotelPlace': 'Alloggio',
+  'reservations.meta.linkPlace': 'Luogo / Attività',
+  'reservations.meta.pickPlace': 'Seleziona luogo / attività',
   'reservations.meta.pickHotel': 'Seleziona alloggio',
   'reservations.meta.fromDay': 'Da',
   'reservations.meta.toDay': 'A',

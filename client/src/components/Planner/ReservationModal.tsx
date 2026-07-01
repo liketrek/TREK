@@ -87,6 +87,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
     title: '', type: 'other', status: 'pending',
     reservation_time: '', reservation_end_time: '', end_date: '', location: '', confirmation_number: '',
     notes: '', url: '', assignment_id: '' as string | number, accommodation_id: '' as string | number,
+    place_id: '' as string | number,
     meta_check_in_time: '', meta_check_in_end_time: '', meta_check_out_time: '',
     hotel_place_id: '' as string | number, hotel_start_day: '' as string | number, hotel_end_day: '' as string | number,
     hotel_address: '',
@@ -139,6 +140,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
         url: reservation.url || '',
         assignment_id: reservation.assignment_id || '',
         accommodation_id: reservation.accommodation_id || '',
+        place_id: reservation.place_id || '',
         meta_check_in_time: meta.check_in_time || '',
         meta_check_in_end_time: meta.check_in_end_time || '',
         meta_check_out_time: meta.check_out_time || '',
@@ -168,6 +170,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
         url: (prefill as { url?: string }).url || '',
         assignment_id: defaultAssignmentId ?? '',
         accommodation_id: '',
+        place_id: '',
         meta_check_in_time: meta.check_in_time || '',
         meta_check_in_end_time: meta.check_in_end_time || '',
         meta_check_out_time: meta.check_out_time || '',
@@ -182,7 +185,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
       setForm({
         title: '', type: 'other', status: 'pending',
         reservation_time: '', reservation_end_time: '', end_date: '', location: '', confirmation_number: '',
-        notes: '', url: '', assignment_id: defaultAssignmentId ?? '', accommodation_id: '',
+        notes: '', url: '', assignment_id: defaultAssignmentId ?? '', accommodation_id: '', place_id: '',
         meta_check_in_time: '', meta_check_in_end_time: '', meta_check_out_time: '',
         hotel_place_id: '', hotel_start_day: '', hotel_end_day: '', hotel_address: '',
       })
@@ -242,6 +245,9 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
         url: form.url,
         assignment_id: (form.type === 'hotel' && !form.accommodation_id) ? null : (form.assignment_id || null),
         accommodation_id: form.type === 'hotel' ? (form.accommodation_id || null) : null,
+        // Hotels link a place through the accommodation record; every other type links
+        // the picked trip place/activity directly on the reservation (#1353).
+        place_id: form.type === 'hotel' ? null : (form.place_id || null),
         metadata: Object.keys(metadata).length > 0 ? metadata : null,
         endpoints: [],
         needs_review: false,
@@ -466,6 +472,35 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
         )}
 
         {/* Location */}
+        {/* Link an existing trip place/activity to any non-hotel booking (#1353). Hotels
+            keep their own accommodation-based place picker below. */}
+        {form.type !== 'hotel' && (
+          <div>
+            <label className={labelClass}>{t('reservations.meta.linkPlace')}</label>
+            <CustomSelect
+              value={form.place_id}
+              onChange={value => {
+                const p = places.find(pl => pl.id === value)
+                setForm(prev => {
+                  const next = { ...prev, place_id: value }
+                  if (value && p) {
+                    if (!prev.title) next.title = p.name
+                    if (!prev.location && p.address) next.location = p.address
+                  }
+                  return next
+                })
+              }}
+              placeholder={t('reservations.meta.pickPlace')}
+              options={[
+                { value: '', label: '—' },
+                ...places.map(p => ({ value: p.id, label: p.name })),
+              ]}
+              searchable
+              size="sm"
+            />
+          </div>
+        )}
+
         {form.type !== 'hotel' && (
           <div>
             <label className={labelClass}>{t('reservations.locationAddress')}</label>

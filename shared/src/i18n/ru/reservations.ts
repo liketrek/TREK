@@ -44,6 +44,8 @@ const reservations: TranslationStrings = {
   'reservations.meta.pickAccommodation': 'Привязать к жилью',
   'reservations.meta.noAccommodation': 'Нет',
   'reservations.meta.hotelPlace': 'Жильё',
+  'reservations.meta.linkPlace': 'Место / Активность',
+  'reservations.meta.pickPlace': 'Выбрать место / активность',
   'reservations.meta.pickHotel': 'Выбрать жильё',
   'reservations.meta.fromDay': 'С',
   'reservations.meta.toDay': 'По',

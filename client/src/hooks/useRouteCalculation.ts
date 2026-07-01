@@ -89,19 +89,26 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
     //   arrival point starts the next run.
     // - A transport WITHOUT a location is ignored entirely — the places around it
     //   connect directly, as if the booking weren't there.
+    // A run is only a real drive when it contains at least one actual place. Two
+    // back-to-back transports (e.g. two flights on one day) would otherwise pair the
+    // first's arrival point with the second's departure point into a phantom
+    // [airport → airport] road route — that is the flight itself, not a drive (#1394).
     const runs: { lat: number; lng: number }[][] = []
     let currentRun: { lat: number; lng: number }[] = []
+    let runHasPlace = false
     for (const entry of entries) {
       if (entry.kind === 'place') {
         currentRun.push({ lat: entry.lat, lng: entry.lng })
+        runHasPlace = true
       } else if (entry.from || entry.to) {
         if (entry.from) currentRun.push(entry.from)
-        if (currentRun.length >= 2) runs.push(currentRun)
+        if (currentRun.length >= 2 && runHasPlace) runs.push(currentRun)
         currentRun = []
+        runHasPlace = false
         if (entry.to) currentRun.push(entry.to)
       }
     }
-    if (currentRun.length >= 2) runs.push(currentRun)
+    if (currentRun.length >= 2 && runHasPlace) runs.push(currentRun)
 
     // Bookend the route with the day's accommodation: a hotel → first-stop run and
     // a last-stop → hotel run, so the drawn line matches the sidebar's hotel legs.

@@ -44,6 +44,8 @@ const reservations: TranslationStrings = {
   'reservations.meta.pickAccommodation': '宿泊先にリンク',
   'reservations.meta.noAccommodation': 'なし',
   'reservations.meta.hotelPlace': '宿泊先',
+  'reservations.meta.linkPlace': '場所 / アクティビティ',
+  'reservations.meta.pickPlace': '場所 / アクティビティを選択',
   'reservations.meta.pickHotel': '宿泊先を選択',
   'reservations.meta.fromDay': '開始',
   'reservations.meta.toDay': '終了',

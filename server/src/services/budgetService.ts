@@ -374,22 +374,34 @@ export function calculateSettlement(
   const base = (opts.base || opts.tripCurrency || 'EUR').toUpperCase();
   const tripCurrency = (opts.tripCurrency || base).toUpperCase();
   const rates = opts.rates ?? null;
-  // Amount in some currency → base. Pre-rework rows store currency = NULL, which
-  // means "the trip's own currency". rates[X] = units of X per 1 base.
-  const toBase = (amount: number, itemCurrency: string | null | undefined, itemRate?: number | null): number => {
+  // Net the whole settlement in the trip's canonical currency and convert the final
+  // totals to the display currency once, instead of netting in the (moving) display
+  // currency. Otherwise per-expense rounding shifts as live FX drifts and the greedy
+  // debt-simplifier reshuffles it into phantom third-party micro-flows (#1382). When
+  // the display currency IS the trip currency (the common case) every conversion below
+  // is the identity, so behaviour is unchanged.
+  // rates[X] = units of X per 1 base; the frozen exchange_rate is units of item-currency
+  // per 1 trip-currency. Pre-rework rows store currency = NULL = "the trip's own currency".
+  const toTrip = (amount: number, itemCurrency: string | null | undefined, itemRate?: number | null): number => {
     const cur = (itemCurrency || tripCurrency).toUpperCase();
-    if (cur === base) return amount;
-    // Prefer the FX rate frozen at entry time (#1335): a settled expense keeps the rate it
-    // was booked at, so a later live-rate drift doesn't re-open it with a few-cent residual.
-    // The stored rate is units of item-currency per 1 trip-currency, so it only applies when
-    // converting to the trip's own currency; otherwise (and for legacy rows) use live rates.
-    if (base === tripCurrency && itemRate != null && itemRate > 0 && itemRate !== 1) {
-      return amount / itemRate;
-    }
+    if (cur === tripCurrency) return amount;
+    // Prefer the FX rate frozen at entry time (#1335): a settled expense keeps the rate
+    // it was booked at, so a later live-rate drift doesn't re-open it with a residual.
+    if (itemRate != null && itemRate > 0 && itemRate !== 1) return amount / itemRate;
+    // Legacy rows without a frozen rate: convert via base with live rates.
     if (!rates) return amount;
-    const r = rates[cur];
-    return r && r > 0 ? amount / r : amount;
+    const rCur = rates[cur];
+    const rTrip = rates[tripCurrency];
+    if (rCur && rCur > 0 && rTrip && rTrip > 0) return (amount / rCur) * rTrip;
+    return amount;
   };
+  // trip-currency → display currency, applied once to the final netted totals.
+  const toDisplay = (v: number): number =>
+    base === tripCurrency ? v : (rates && rates[tripCurrency] > 0 ? v / rates[tripCurrency] : v);
+  // A recorded settle-up amount is entered in whatever display currency the payer was
+  // viewing (the table has no currency column), so bring it into trip currency to net.
+  const settleToTrip = (v: number): number =>
+    base === tripCurrency ? v : (rates && rates[tripCurrency] > 0 ? v * rates[tripCurrency] : v);
 
   const items = db.prepare('SELECT * FROM budget_items WHERE trip_id = ?').all(tripId) as BudgetItem[];
   const allMembers = db.prepare(`
@@ -419,17 +431,17 @@ export function calculateSettlement(
     const payers = allPayers.filter(p => p.budget_item_id === item.id);
     if (members.length === 0) continue; // planning-only entry → doesn't affect balances
 
-    // Payers are credited what they actually paid (converted to base with the
-    // item's stored exchange rate)…
-    for (const p of payers) ensure(p.user_id, p).balance += toBase(p.amount > 0 ? p.amount : 0, item.currency, item.exchange_rate);
+    // Payers are credited what they actually paid (converted to trip currency with
+    // the item's stored exchange rate)…
+    for (const p of payers) ensure(p.user_id, p).balance += toTrip(p.amount > 0 ? p.amount : 0, item.currency, item.exchange_rate);
     // …and each split participant owes their share — a custom per-member amount
     // when one is set, otherwise an equal share of the expense total.
     const hasCustomSplit = members.some(m => m.amount !== null && m.amount !== undefined);
     const equalShares = !hasCustomSplit ? splitEqualShares(item.total_price, members, item.id) : {};
     for (const m of members) {
       const memberShare = hasCustomSplit && m.amount !== null && m.amount !== undefined
-        ? toBase(m.amount, item.currency, item.exchange_rate)
-        : toBase(equalShares[m.user_id] || 0, item.currency, item.exchange_rate);
+        ? toTrip(m.amount, item.currency, item.exchange_rate)
+        : toTrip(equalShares[m.user_id] || 0, item.currency, item.exchange_rate);
       ensure(m.user_id, m).balance -= memberShare;
     }
   }
@@ -445,8 +457,8 @@ export function calculateSettlement(
     return balances[id];
   };
   for (const s of settlements) {
-    ensureSettled(s.from_user_id, s.from_username, s.from_avatar_url).balance += s.amount;
-    ensureSettled(s.to_user_id, s.to_username, s.to_avatar_url).balance -= s.amount;
+    ensureSettled(s.from_user_id, s.from_username, s.from_avatar_url).balance += settleToTrip(s.amount);
+    ensureSettled(s.to_user_id, s.to_username, s.to_avatar_url).balance -= settleToTrip(s.amount);
   }
 
   // Calculate optimized payment flows (greedy algorithm)
@@ -467,7 +479,7 @@ export function calculateSettlement(
       flows.push({
         from: { user_id: debtors[di].user_id, username: debtors[di].username, avatar_url: debtors[di].avatar_url },
         to: { user_id: creditors[ci].user_id, username: creditors[ci].username, avatar_url: creditors[ci].avatar_url },
-        amount: Math.round(transfer * 100) / 100,
+        amount: Math.round(toDisplay(transfer) * 100) / 100,
       });
     }
     debtors[di].amount -= transfer;
@@ -477,7 +489,7 @@ export function calculateSettlement(
   }
 
   return {
-    balances: Object.values(balances).map(b => ({ ...b, balance: Math.round(b.balance * 100) / 100 })),
+    balances: Object.values(balances).map(b => ({ ...b, balance: Math.round(toDisplay(b.balance) * 100) / 100 })),
     flows,
     settlements,
   };

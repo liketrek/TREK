@@ -44,6 +44,8 @@ const reservations: TranslationStrings = {
   'reservations.meta.pickAccommodation': 'ربط بالإقامة',
   'reservations.meta.noAccommodation': 'لا يوجد',
   'reservations.meta.hotelPlace': 'الإقامة',
+  'reservations.meta.linkPlace': 'مكان / نشاط',
+  'reservations.meta.pickPlace': 'اختر مكانًا / نشاطًا',
   'reservations.meta.pickHotel': 'اختر الإقامة',
   'reservations.meta.fromDay': 'من',
   'reservations.meta.toDay': 'إلى',

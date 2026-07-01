@@ -45,6 +45,8 @@ const reservations: TranslationStrings = {
   'reservations.meta.pickAccommodation': 'Konaklama bağlantısı',
   'reservations.meta.noAccommodation': 'Hiçbiri',
   'reservations.meta.hotelPlace': 'Konaklama',
+  'reservations.meta.linkPlace': 'Yer / Etkinlik',
+  'reservations.meta.pickPlace': 'Yer / etkinlik seç',
   'reservations.meta.pickHotel': 'Konaklama seçin',
   'reservations.meta.fromDay': 'İtibaren',
   'reservations.meta.toDay': 'İle',

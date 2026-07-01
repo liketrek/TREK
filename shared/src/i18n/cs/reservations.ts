@@ -44,6 +44,8 @@ const reservations: TranslationStrings = {
   'reservations.meta.pickAccommodation': 'Propojit s ubytováním',
   'reservations.meta.noAccommodation': 'Nic',
   'reservations.meta.hotelPlace': 'Ubytování',
+  'reservations.meta.linkPlace': 'Místo / Aktivita',
+  'reservations.meta.pickPlace': 'Vybrat místo / aktivitu',
   'reservations.meta.pickHotel': 'Vybrat ubytování',
   'reservations.meta.fromDay': 'Od dne',
   'reservations.meta.toDay': 'Do dne',

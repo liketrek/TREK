@@ -46,6 +46,8 @@ const reservations: TranslationStrings = {
   'reservations.meta.pickAccommodation': 'Σύνδεση με κατάλυμα',
   'reservations.meta.noAccommodation': 'Κανένα',
   'reservations.meta.hotelPlace': 'Κατάλυμα',
+  'reservations.meta.linkPlace': 'Τοποθεσία / Δραστηριότητα',
+  'reservations.meta.pickPlace': 'Επιλογή τοποθεσίας / δραστηριότητας',
   'reservations.meta.pickHotel': 'Επιλογή καταλύματος',
   'reservations.meta.fromDay': 'Από',
   'reservations.meta.toDay': 'Προς',

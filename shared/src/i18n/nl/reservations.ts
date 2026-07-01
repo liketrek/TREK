@@ -45,6 +45,8 @@ const reservations: TranslationStrings = {
   'reservations.meta.pickAccommodation': 'Koppel aan accommodatie',
   'reservations.meta.noAccommodation': 'Geen',
   'reservations.meta.hotelPlace': 'Accommodatie',
+  'reservations.meta.linkPlace': 'Plaats / Activiteit',
+  'reservations.meta.pickPlace': 'Kies plaats / activiteit',
   'reservations.meta.pickHotel': 'Selecteer accommodatie',
   'reservations.meta.fromDay': 'Van',
   'reservations.meta.toDay': 'Tot',

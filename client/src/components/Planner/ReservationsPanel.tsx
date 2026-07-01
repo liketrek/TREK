@@ -112,11 +112,14 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
   const TRANSPORT_TYPES_SET = new Set(['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transport_other'])
   const isTransportType = TRANSPORT_TYPES_SET.has(r.type)
   const isHotel = r.type === 'hotel'
-  const startDay = r.day_id ? days.find(d => d.id === r.day_id)
-    : (isHotel && r.accommodation_start_day_id) ? days.find(d => d.id === r.accommodation_start_day_id)
+  // For a hotel linked to an accommodation, the accommodation's own start/end days are
+  // the source of truth for the stay range: a stale day_id left behind by a range edit
+  // would otherwise mislabel the card, so prefer the accommodation ids here (#1383).
+  const startDay = (isHotel && r.accommodation_start_day_id) ? days.find(d => d.id === r.accommodation_start_day_id)
+    : r.day_id ? days.find(d => d.id === r.day_id)
     : undefined
-  const endDay = r.end_day_id ? days.find(d => d.id === r.end_day_id)
-    : (isHotel && r.accommodation_end_day_id) ? days.find(d => d.id === r.accommodation_end_day_id)
+  const endDay = (isHotel && r.accommodation_end_day_id) ? days.find(d => d.id === r.accommodation_end_day_id)
+    : r.end_day_id ? days.find(d => d.id === r.end_day_id)
     : undefined
   const DayLabel = ({ day }: { day: typeof startDay }) => {
     if (!day) return null
@@ -234,8 +237,10 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
             </div>
           </div>
         )}
-        {/* Date / Time row */}
-        {(hasDate || hasTime) && (
+        {/* Date / Time row — hidden for a hotel linked to an accommodation: its stay
+            already shows as the day-range label above, and a reservation_time stamped
+            on the auto-created reservation would otherwise duplicate it (#1383). */}
+        {(hasDate || hasTime) && !(isHotel && (r.accommodation_start_day_id || r.accommodation_end_day_id)) && (
           <div style={{ display: 'grid', gap: 10, gridTemplateColumns: hasDate && hasTime ? '1fr 1fr' : '1fr' }}>
             {hasDate && (
               <div>
