@@ -40,7 +40,7 @@ export default function CollectionsPage(): React.ReactElement {
 
   const hasPlaces = c.places.length > 0
   const noLists = !c.loading && c.collections.length === 0
-  const showSelect = !c.isAllSaved && c.activeCollection != null
+  const showSelect = c.isAllSaved || c.activeCollection != null
 
   // Selecting a place toggles it, so clicking it again — or the map background —
   // clears it. Below the desktop breakpoint the list and map are separate views;
@@ -85,9 +85,6 @@ export default function CollectionsPage(): React.ReactElement {
       overlay={overlay}
       view={c.view}
       onToggleView={toggleView}
-      showSelect={showSelect}
-      selectMode={c.selectMode}
-      onToggleSelect={() => c.setSelectMode(!c.selectMode)}
       canAddPlace={canAddPlace}
       onAddPlace={() => c.setShowAddPlace(true)}
       search={c.search}

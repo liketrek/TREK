@@ -1,5 +1,5 @@
 import React from 'react'
-import { PanelLeftClose, PanelLeftOpen, Search, CheckSquare, Plus } from 'lucide-react'
+import { PanelLeftClose, PanelLeftOpen, Search, Plus } from 'lucide-react'
 import type { CollectionPlace } from '@trek/shared'
 import type { TranslationFn } from '../../types'
 import CollectionMap from './CollectionMap'
@@ -15,10 +15,6 @@ interface CollectionMapPanelProps {
   /** 'list' = split (map can be expanded); 'map' = full (list collapsed). */
   view: 'list' | 'map'
   onToggleView: () => void
-  /** Bulk-select toggle — hidden for the "All saved" view. */
-  showSelect: boolean
-  selectMode: boolean
-  onToggleSelect: () => void
   /** Show a "+" to add a place to the current list (real lists only). */
   canAddPlace: boolean
   onAddPlace: () => void
@@ -34,7 +30,7 @@ interface CollectionMapPanelProps {
  */
 export default function CollectionMapPanel({
   places, selectedPlaceId, onSelect, onDeselect, dark, overlay, view, onToggleView,
-  showSelect, selectMode, onToggleSelect, canAddPlace, onAddPlace, search, onSearch, t,
+  canAddPlace, onAddPlace, search, onSearch, t,
 }: CollectionMapPanelProps): React.ReactElement {
   return (
     <div className="col-map-shell">
@@ -57,18 +53,6 @@ export default function CollectionMapPanel({
             >
               {view === 'map' ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
             </button>
-            {showSelect && (
-              <button
-                type="button"
-                onClick={onToggleSelect}
-                disabled={view === 'map'}
-                className={`col-map-btn${selectMode ? ' on' : ''}`}
-                aria-label={t('collections.selectMode')}
-                title={t('collections.selectMode')}
-              >
-                <CheckSquare size={16} />
-              </button>
-            )}
           </div>
           <div className="col-map-group right">
             {canAddPlace && (
