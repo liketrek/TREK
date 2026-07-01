@@ -1,6 +1,8 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.showList': 'Lista megjelenítése',
+  'collections.expandMap': 'Térkép nagyítása',
   'collections.hero.mine': 'Saját gyűjtemény',
   'collections.hero.shared': 'Megosztva veled',
   'collections.hero.all': 'A könyvtárad',

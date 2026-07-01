@@ -1,6 +1,8 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.showList': '목록 표시',
+  'collections.expandMap': '지도 확대',
   'collections.hero.mine': '내 컬렉션',
   'collections.hero.shared': '나와 공유됨',
   'collections.hero.all': '내 라이브러리',

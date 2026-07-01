@@ -470,7 +470,21 @@ export const MapView = memo(function MapView({
 
   const handleMarkerHoverOut = useCallback(() => {
     setHoveredPlace(null)
+    setTooltipPos(null)
   }, [])
+
+  // A marker's DOM node is replaced when it becomes selected (its icon grows
+  // 36→44px, and the cluster group re-adds it), so the browser never fires
+  // mouseout on the old node and the fixed-position hover tooltip gets orphaned
+  // — it hangs on screen and drifts with page scroll. Drop it on any selection
+  // change and on any scroll so it can never get stuck.
+  useEffect(() => { setHoveredPlace(null); setTooltipPos(null) }, [selectedPlaceId])
+  useEffect(() => {
+    if (!hoveredPlace) return
+    const clear = () => { setHoveredPlace(null); setTooltipPos(null) }
+    window.addEventListener('scroll', clear, true)
+    return () => window.removeEventListener('scroll', clear, true)
+  }, [hoveredPlace])
 
   const handleMarkerClick = useCallback((id: number) => {
     onMarkerClick?.(id)

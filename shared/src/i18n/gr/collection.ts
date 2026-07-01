@@ -1,6 +1,8 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.showList': 'Εμφάνιση λίστας',
+  'collections.expandMap': 'Μεγέθυνση χάρτη',
   'collections.hero.mine': 'Η συλλογή μου',
   'collections.hero.shared': 'Κοινή χρήση με εσάς',
   'collections.hero.all': 'Η βιβλιοθήκη σας',
