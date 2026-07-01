@@ -282,7 +282,7 @@
 .trek-dash .col-filter-btn .col-filter-chev { color: var(--ink-3); transition: transform .15s; }
 .trek-dash .col-filter-btn.open .col-filter-chev { transform: rotate(180deg); }
 .trek-dash .col-filter-lbl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
-.trek-dash .col-filter-pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 40; min-width: 190px; max-height: 320px; overflow-y: auto; padding: 6px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--sh-lg); display: flex; flex-direction: column; gap: 2px; }
+.trek-dash .col-filter-pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 40; min-width: 190px; max-width: min(280px, calc(100vw - 28px)); max-height: 320px; overflow-y: auto; padding: 6px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--sh-lg); display: flex; flex-direction: column; gap: 2px; }
 .trek-dash .col-filter-opt { display: flex; align-items: center; gap: 9px; width: 100%; padding: 7px 9px; border-radius: 8px; font-size: 13px; color: var(--ink-2); text-align: left; transition: background .12s; }
 .trek-dash .col-filter-opt:hover { background: var(--surface-2); }
 .trek-dash .col-filter-opt.on { color: var(--ink); font-weight: 600; }
@@ -404,7 +404,11 @@
 .trek-dash .col-detail-btn.danger:hover { background: oklch(0.6 0.2 25 / .12); }
 
 @media (max-width: 720px) {
-  .trek-dash .col-detail { left: 0; right: 0; bottom: 0; transform: none; width: 100%; max-height: 84vh; border-radius: var(--r-xl) var(--r-xl) 0 0; }
+  .trek-dash .col-detail { left: 0; right: 0; bottom: 0; transform: none; width: 100%; max-height: 84dvh; border-radius: var(--r-xl) var(--r-xl) 0 0; }
+  /* the read-mode footer (Edit · Copy · Remove) would otherwise clip its last
+     button — let it wrap, drop the growing spacer, and clear the home indicator */
+  .trek-dash .col-detail-footer { flex-wrap: wrap; padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+  .trek-dash .col-detail-footer-spacer { display: none; }
 }
 
 /* ----------------- empty / loading ----------------- */
@@ -430,21 +434,35 @@
   .trek-dash .col-rail-toggle:hover { background: var(--surface-2); color: var(--ink); }
 }
 @media (max-width: 720px) {
-  .trek-dash.col-root { padding-top: 0; }
-  .trek-dash .col-page { padding: 14px 14px 130px; }
+  .trek-dash.col-root { padding-top: env(safe-area-inset-top, 0px); }
+  .trek-dash .col-page { max-width: none; padding: 14px 14px 130px; }
   .trek-dash .col-hero { min-height: 128px; border-radius: var(--r-xl); margin-bottom: 16px; }
   .trek-dash .col-hero-content { padding: 14px 16px 15px; gap: 8px; }
   .trek-dash .col-hero-title { font-size: 28px; }
-  .trek-dash .col-hero-actions { top: 14px; right: 14px; }
   .trek-dash .col-glass-btn span.txt { display: none; }
   .trek-dash .col-glass-btn { padding: 0; width: 38px; justify-content: center; }
   .trek-dash .col-glass-btn.has-count { width: auto; padding: 0 12px; }
-  .trek-dash .col-hero-stats { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -18px; padding: 0 18px; }
-  .trek-dash .col-hero-stats::-webkit-scrollbar { display: none; }
-  .trek-dash .col-chip { flex-shrink: 0; }
   .trek-dash .col-search input { width: 100%; }
   .trek-dash .col-search { flex: 1; }
-  .trek-dash .col-mapwrap { height: calc(100vh - 260px); min-height: 320px; }
+  .trek-dash .col-mapwrap { height: calc(100dvh - 260px); min-height: 320px; }
+
+  /* bigger touch targets on phones (visuals unchanged on desktop) */
+  .trek-dash .col-viewseg button { width: 44px; height: 38px; }
+  .trek-dash .col-filter-btn { min-height: 40px; }
+  .trek-dash .col-filter-opt { min-height: 40px; }
+  .trek-dash .col-selbar-btn { min-height: 40px; }
+  .trek-dash .col-detail-close { width: 40px; height: 40px; }
+  .trek-dash .col-detail-btn { min-height: 40px; }
+  .trek-dash .col-detail-icon-btn { min-width: 40px; min-height: 40px; }
+  .trek-dash .col-drawer .col-row-btn { min-height: 44px; }
+  .trek-dash .col-drawer .col-rail-new { min-height: 44px; }
+  /* enlarge the interactive status badge's tap area without changing its look */
+  .trek-dash .col-lrow-end > [role="button"] { position: relative; }
+  .trek-dash .col-lrow-end > [role="button"]::after { content: ''; position: absolute; inset: -9px -6px; }
+
+  /* select action bar: break the bulk actions onto their own line instead of
+     stranding them behind a growing spacer */
+  .trek-dash .col-selbar .col-toolbar-spacer { flex-basis: 100%; height: 0; }
 }
 
 /* ----------------- mobile rail drawer ----------------- */
@@ -453,5 +471,9 @@
   position: fixed; left: 0; top: 0; bottom: 0; z-index: 151; width: 288px; max-width: 82vw;
   background: var(--surface); border-right: 1px solid var(--line); padding: 12px; overflow-y: auto;
   padding-top: calc(var(--nav-h) + 12px);
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
 }
-@media (max-width: 720px) { .trek-dash .col-drawer { padding-top: 16px; } }
+.trek-dash .col-drawer-head { display: flex; justify-content: flex-end; margin-bottom: 6px; }
+.trek-dash .col-drawer-head button { width: 40px; height: 40px; display: grid; place-items: center; border-radius: var(--r-sm); color: var(--ink-2); }
+.trek-dash .col-drawer-head button:hover { background: var(--surface-2); color: var(--ink); }
+@media (max-width: 720px) { .trek-dash .col-drawer { padding-top: calc(16px + env(safe-area-inset-top, 0px)); } }

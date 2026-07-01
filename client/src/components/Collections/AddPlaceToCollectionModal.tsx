@@ -106,7 +106,20 @@ export default function AddPlaceToCollectionModal({ isOpen, collectionId, collec
   const address = picked ? str(picked.address) : undefined
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={t('collections.addPlace')} size="md">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={t('collections.addPlace')}
+      size="md"
+      footer={
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="px-3 py-1.5 rounded-lg border border-edge text-content-secondary text-[13px] hover:bg-surface-hover">{t('common.cancel')}</button>
+          <button type="button" onClick={save} disabled={saving || !name.trim()} className="px-3 py-1.5 rounded-lg bg-accent text-accent-text text-[13px] font-semibold disabled:opacity-50 inline-flex items-center gap-1.5">
+            {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />} {t('common.add')}
+          </button>
+        </div>
+      }
+    >
       <div className="flex flex-col gap-4">
         {/* Search — picking a result fills the location below */}
         <div className="relative">
@@ -155,7 +168,7 @@ export default function AddPlaceToCollectionModal({ isOpen, collectionId, collec
 
         {/* Status */}
         <div>
-          <div className="flex gap-1.5">
+          <div className="flex flex-wrap gap-1.5">
             {STATUS_ORDER.map(s => {
               const Icon = STATUS_META[s].icon
               const on = status === s
@@ -221,13 +234,6 @@ export default function AddPlaceToCollectionModal({ isOpen, collectionId, collec
               <Plus size={14} /> <Link2 size={13} /> {t('collections.addLink')}
             </button>
           </div>
-        </div>
-
-        <div className="flex justify-end gap-2 pt-1">
-          <button type="button" onClick={onClose} className="px-3 py-1.5 rounded-lg border border-edge text-content-secondary text-[13px] hover:bg-surface-hover">{t('common.cancel')}</button>
-          <button type="button" onClick={save} disabled={saving || !name.trim()} className="px-3 py-1.5 rounded-lg bg-accent text-accent-text text-[13px] font-semibold disabled:opacity-50 inline-flex items-center gap-1.5">
-            {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />} {t('common.add')}
-          </button>
         </div>
       </div>
     </Modal>
