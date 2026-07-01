@@ -1,6 +1,18 @@
 import type { TranslationStrings } from '../types';
 
 const common: TranslationStrings = {
+  'common.datepicker.prevMonth': 'Tháng trước',
+  'common.datepicker.nextMonth': 'Tháng sau',
+  'common.datepicker.prevYear': 'Năm trước',
+  'common.datepicker.nextYear': 'Năm sau',
+  'common.datepicker.prevYears': 'Các năm trước',
+  'common.datepicker.nextYears': 'Các năm sau',
+  'common.datepicker.selectMonth': 'Chọn tháng',
+  'common.datepicker.selectYear': 'Chọn năm',
+  'common.datepicker.enterManually': 'Nhập ngày thủ công',
+  'common.datepicker.typeDate': 'Nhập một ngày',
+  'common.datepicker.dialog': 'Bộ chọn ngày',
+  'common.datepicker.clearDate': 'Xóa ngày',
   'common.save': 'Lưu',
   'common.showMore': 'Hiển thị thêm',
   'common.showLess': 'Hiển thị ít hơn',

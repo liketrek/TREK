@@ -1,6 +1,18 @@
 import type { TranslationStrings } from '../types';
 
 const common: TranslationStrings = {
+  'common.datepicker.prevMonth': 'Föregående månad',
+  'common.datepicker.nextMonth': 'Nästa månad',
+  'common.datepicker.prevYear': 'Föregående år',
+  'common.datepicker.nextYear': 'Nästa år',
+  'common.datepicker.prevYears': 'Tidigare år',
+  'common.datepicker.nextYears': 'Senare år',
+  'common.datepicker.selectMonth': 'Välj månad',
+  'common.datepicker.selectYear': 'Välj år',
+  'common.datepicker.enterManually': 'Ange datum manuellt',
+  'common.datepicker.typeDate': 'Skriv ett datum',
+  'common.datepicker.dialog': 'Datumväljare',
+  'common.datepicker.clearDate': 'Rensa datum',
   'common.save': 'Spara',
   'common.showMore': 'Visa mer',
   'common.showLess': 'Visa mindre',
