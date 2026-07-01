@@ -1,6 +1,7 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.picker.allLists': 'Toutes les listes',
   'collections.select': 'Sélectionner',
   'collections.selectAll': 'Tout sélectionner',
   'collections.deselectAll': 'Tout désélectionner',

@@ -130,7 +130,10 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
       set({ activeId: ALL_SAVED, members: [], placesLoading: true })
       try {
         // Client-side union of every list the user owns or co-owns (no server change).
-        const lists = get().collections
+        // On first load the lists may not be fetched yet (loadAll still in flight),
+        // which would union nothing — make sure they're loaded first.
+        let lists = get().collections
+        if (lists.length === 0) { await get().loadAll(); lists = get().collections }
         const results = await Promise.all(lists.map(l => collectionsApi.get(l.id).catch(() => null)))
         const seen = new Set<number>()
         const merged: CollectionPlace[] = []

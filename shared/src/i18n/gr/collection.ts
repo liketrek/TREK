@@ -1,6 +1,7 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.picker.allLists': 'Όλες οι λίστες',
   'collections.select': 'Επιλογή',
   'collections.selectAll': 'Επιλογή όλων',
   'collections.deselectAll': 'Κατάργηση επιλογής',
