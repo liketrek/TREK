@@ -42,13 +42,14 @@ export class CollectionsService {
   assertAccess(userId: number, collectionId: number) { return svc.assertAccess(userId, collectionId); }
   isOwner(userId: number, collectionId: number) { return svc.isOwner(userId, collectionId); }
 
-  sendInvite(collectionId: number, inviterId: number, inviterUsername: string, inviterEmail: string, targetUserId: number) {
-    return svc.sendInvite(collectionId, inviterId, inviterUsername, inviterEmail, targetUserId);
+  sendInvite(collectionId: number, inviterId: number, inviterUsername: string, inviterEmail: string, targetUserId: number, role?: 'viewer' | 'editor' | 'admin') {
+    return svc.sendInvite(collectionId, inviterId, inviterUsername, inviterEmail, targetUserId, role);
   }
   acceptInvite(userId: number, collectionId: number, socketId?: string) { return svc.acceptInvite(userId, collectionId, socketId); }
   declineInvite(userId: number, collectionId: number, socketId?: string) { return svc.declineInvite(userId, collectionId, socketId); }
   cancelInvite(collectionId: number, ownerId: number, targetUserId: number) { return svc.cancelInvite(collectionId, ownerId, targetUserId); }
   leaveCollection(userId: number, collectionId: number, socketId?: string) { return svc.leaveCollection(userId, collectionId, socketId); }
   removeMember(ownerId: number, collectionId: number, targetUserId: number) { return svc.removeMember(ownerId, collectionId, targetUserId); }
+  setMemberRole(ownerId: number, collectionId: number, targetUserId: number, role: 'viewer' | 'editor' | 'admin') { return svc.setMemberRole(ownerId, collectionId, targetUserId, role); }
   availableUsers(ownerId: number, collectionId: number) { return svc.availableUsers(ownerId, collectionId); }
 }

@@ -1,6 +1,10 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.role.label': 'Ρόλος',
+  'collections.role.viewer': 'Θεατής',
+  'collections.role.editor': 'Συντάκτης',
+  'collections.role.admin': 'Διαχειριστής',
   'collections.picker.allLists': 'Όλες οι λίστες',
   'collections.select': 'Επιλογή',
   'collections.selectAll': 'Επιλογή όλων',

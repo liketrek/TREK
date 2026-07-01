@@ -5,6 +5,7 @@ import type {
   CollectionPlace,
   CollectionMember,
   CollectionStatus,
+  CollectionRole,
   CollectionListResponse,
   CollectionCreateRequest,
   CollectionUpdateRequest,
@@ -56,7 +57,8 @@ interface CollectionState {
   moveToList: (placeIds: number[], targetId: number) => Promise<void>
   duplicateToList: (placeIds: number[], targetId: number) => Promise<void>
 
-  invite: (collectionId: number, userId: number) => Promise<void>
+  invite: (collectionId: number, userId: number, role?: CollectionRole) => Promise<void>
+  setMemberRole: (collectionId: number, userId: number, role: CollectionRole) => Promise<void>
   acceptInvite: (collectionId: number) => Promise<void>
   declineInvite: (collectionId: number) => Promise<void>
   cancelInvite: (collectionId: number, userId: number) => Promise<void>
@@ -275,8 +277,13 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
     await get().loadAll()
   },
 
-  invite: async (collectionId: number, userId: number) => {
-    await collectionsApi.invite(collectionId, userId)
+  invite: async (collectionId: number, userId: number, role?: CollectionRole) => {
+    await collectionsApi.invite(collectionId, userId, role)
+    if (get().activeId === collectionId) await get().loadCollection(collectionId)
+  },
+
+  setMemberRole: async (collectionId: number, userId: number, role: CollectionRole) => {
+    await collectionsApi.setMemberRole(collectionId, userId, role)
     if (get().activeId === collectionId) await get().loadCollection(collectionId)
   },
 

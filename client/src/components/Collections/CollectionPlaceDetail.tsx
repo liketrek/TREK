@@ -20,6 +20,7 @@ function linkHost(url: string): string {
 interface CollectionPlaceDetailProps {
   place: CollectionPlace
   canEdit: boolean
+  canDelete: boolean
   categories: Category[]
   /** When set, dock the sheet over that column (desktop split) instead of centred. */
   anchorRect?: { left: number; width: number } | null
@@ -55,7 +56,7 @@ function StatusSegment({ status, onSet, t }: { status: CollectionStatus; onSet: 
  * is an always-live segmented control (auto-saves).
  */
 export default function CollectionPlaceDetail({
-  place, canEdit, categories, anchorRect, onClose, onSetStatus, onSave, onCopyToTrip, onRemove, t,
+  place, canEdit, canDelete, categories, anchorRect, onClose, onSetStatus, onSave, onCopyToTrip, onRemove, t,
 }: CollectionPlaceDetailProps): React.ReactElement {
   const toast = useToast()
   const [editing, setEditing] = useState(false)
@@ -139,8 +140,8 @@ export default function CollectionPlaceDetail({
           </div>
         )}
 
-        {/* Status — always live */}
-        <StatusSegment status={place.status} onSet={onSetStatus} t={t} />
+        {/* Status — live for editors, read-only for viewers */}
+        <StatusSegment status={place.status} onSet={canEdit ? onSetStatus : () => {}} t={t} />
 
         {editing ? (
           <div className="col-detail-edit">
@@ -212,7 +213,7 @@ export default function CollectionPlaceDetail({
             {canEdit && <button type="button" onClick={() => setEditing(true)} className="col-detail-btn"><Pencil size={14} /> {t('common.edit')}</button>}
             <button type="button" onClick={onCopyToTrip} className="col-detail-btn"><Copy size={14} /> {t('collections.copyToTrip')}</button>
             <div className="col-detail-footer-spacer" />
-            {canEdit && <button type="button" onClick={onRemove} className="col-detail-btn danger"><Trash2 size={14} /> {t('collections.removeFromList')}</button>}
+            {canDelete && <button type="button" onClick={onRemove} className="col-detail-btn danger"><Trash2 size={14} /> {t('collections.removeFromList')}</button>}
           </>
         )}
       </div>

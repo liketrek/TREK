@@ -90,6 +90,30 @@ export function isOwner(userId: number, collectionId: number): boolean {
   return !!row;
 }
 
+export type EffectiveRole = 'owner' | 'admin' | 'editor' | 'viewer' | null;
+/** The viewer's effective permission on a list: owner (full), or their accepted
+ *  member role, or null when they have no access. */
+export function roleOf(userId: number, collectionId: number): EffectiveRole {
+  if (isOwner(userId, collectionId)) return 'owner';
+  const row = db.prepare("SELECT role FROM collection_members WHERE collection_id = ? AND user_id = ? AND status = 'accepted'")
+    .get(collectionId, userId) as { role: string } | undefined;
+  if (!row) return null;
+  return row.role === 'admin' || row.role === 'viewer' ? row.role : 'editor';
+}
+/** Add/edit a place — owner, admin or editor. 404 hides lists you can't see,
+ *  403 for a read-only (viewer) member. */
+export function assertCanEdit(userId: number, collectionId: number): void {
+  const r = roleOf(userId, collectionId);
+  if (r === null) httpError(404, 'Collection not found');
+  if (r === 'viewer') httpError(403, 'You have read-only access to this list');
+}
+/** Delete a place — owner or admin only. */
+export function assertCanDelete(userId: number, collectionId: number): void {
+  const r = roleOf(userId, collectionId);
+  if (r === null) httpError(404, 'Collection not found');
+  if (r !== 'owner' && r !== 'admin') httpError(403, 'Only an admin can delete places from this list');
+}
+
 function ownerOf(collectionId: number): number {
   const row = db.prepare('SELECT owner_id FROM collections WHERE id = ?').get(collectionId) as { owner_id: number } | undefined;
   if (!row) httpError(404, 'Collection not found');
@@ -163,13 +187,13 @@ function buildMembers(collectionId: number): CollectionMember[] {
     WHERE col.id = ?
   `).get(collectionId) as Omit<CollectionMember, 'status' | 'is_owner'> | undefined;
   const members = db.prepare(`
-    SELECT u.id AS user_id, u.username, u.email, u.avatar, cm.status
+    SELECT u.id AS user_id, u.username, u.email, u.avatar, cm.status, cm.role
     FROM collection_members cm JOIN users u ON u.id = cm.user_id
     WHERE cm.collection_id = ?
     ORDER BY u.username
   `).all(collectionId) as Omit<CollectionMember, 'is_owner'>[];
   const result: CollectionMember[] = [];
-  if (owner) result.push({ ...owner, status: 'accepted', is_owner: true });
+  if (owner) result.push({ ...owner, status: 'accepted', role: 'admin', is_owner: true });
   for (const m of members) result.push({ ...m, is_owner: false });
   return result;
 }
@@ -239,7 +263,7 @@ export function createCollection(userId: number, body: CollectionCreateRequest):
 }
 
 export function updateCollection(userId: number, id: number, body: CollectionUpdateRequest, socketId?: string): Collection {
-  assertAccess(userId, id);
+  assertCanEdit(userId, id);
   const updates: string[] = [];
   const params: (string | number | null)[] = [];
   if (body.name !== undefined) { updates.push('name = ?'); params.push(body.name); }
@@ -261,7 +285,7 @@ export function updateCollection(userId: number, id: number, body: CollectionUpd
 
 /** Set (or clear) a list's cover image, reclaiming the previous file. */
 export function setCollectionCover(userId: number, id: number, coverUrl: string | null, socketId?: string): Collection {
-  assertAccess(userId, id);
+  assertCanEdit(userId, id);
   const prev = (db.prepare('SELECT cover_image FROM collections WHERE id = ?').get(id) as { cover_image: string | null } | undefined)?.cover_image ?? null;
   db.prepare('UPDATE collections SET cover_image = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(coverUrl, id);
   if (prev && prev !== coverUrl) deleteOldCollectionCover(prev);
@@ -367,7 +391,7 @@ function attachTags(collectionPlaceId: number, tagIds: number[] | undefined): vo
 }
 
 export function savePlace(userId: number, body: CollectionSavePlaceRequest, socketId?: string): CollectionSaveResult {
-  assertAccess(userId, body.collection_id);
+  assertCanEdit(userId, body.collection_id);
 
   if (!body.force) {
     const dup = findDuplicateCollectionPlace(body.collection_id, { name: body.name, lat: body.lat, lng: body.lng });
@@ -400,7 +424,7 @@ export function savePlace(userId: number, body: CollectionSavePlaceRequest, sock
 export function saveFromTripPlace(
   userId: number, collectionId: number, tripId: number, placeId: number, force?: boolean,
 ): CollectionSaveResult {
-  assertAccess(userId, collectionId);
+  assertCanEdit(userId, collectionId);
   if (!canAccessTrip(tripId, userId)) httpError(404, 'Trip not found');
 
   const place = db.prepare('SELECT * FROM places WHERE id = ? AND trip_id = ?').get(placeId, tripId) as Record<string, unknown> | undefined;
@@ -431,7 +455,7 @@ export function saveFromTripPlace(
 
 export function updatePlace(userId: number, placeId: number, body: import('@trek/shared').CollectionPlaceUpdateRequest, socketId?: string): CollectionPlace {
   const currentCollection = collectionIdOfPlace(placeId);
-  assertAccess(userId, currentCollection);
+  assertCanEdit(userId, currentCollection);
 
   const updates: string[] = [];
   const params: (string | number | null)[] = [];
@@ -444,7 +468,7 @@ export function updatePlace(userId: number, placeId: number, body: import('@trek
 
   let movedTo: number | null = null;
   if (body.collection_id !== undefined && body.collection_id !== currentCollection) {
-    assertAccess(userId, body.collection_id);
+    assertCanEdit(userId, body.collection_id);
     updates.push('collection_id = ?'); params.push(body.collection_id);
     updates.push('owner_id = ?'); params.push(ownerOf(body.collection_id));
     movedTo = body.collection_id;
@@ -468,7 +492,7 @@ export function updatePlace(userId: number, placeId: number, body: import('@trek
 
 export function setStatus(userId: number, placeId: number, status: CollectionStatus, socketId?: string): CollectionPlace {
   const collectionId = collectionIdOfPlace(placeId);
-  assertAccess(userId, collectionId);
+  assertCanEdit(userId, collectionId);
   db.prepare("UPDATE collection_places SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(status, placeId);
   notifyCollectionUsers(collectionId, socketId, 'collections:updated');
   return getPlaceById(placeId);
@@ -476,7 +500,7 @@ export function setStatus(userId: number, placeId: number, status: CollectionSta
 
 export function deletePlace(userId: number, placeId: number, socketId?: string): void {
   const collectionId = collectionIdOfPlace(placeId);
-  assertAccess(userId, collectionId);
+  assertCanDelete(userId, collectionId);
   db.prepare('DELETE FROM collection_places WHERE id = ?').run(placeId); // CASCADE drops tags. NO photo-cache reclaim.
   notifyCollectionUsers(collectionId, socketId, 'collections:updated');
 }
@@ -486,7 +510,7 @@ export function deletePlacesMany(userId: number, ids: number[], socketId?: strin
   const touched = new Set<number>();
   for (const id of ids) {
     const collectionId = collectionIdOfPlace(id);
-    assertAccess(userId, collectionId);
+    assertCanDelete(userId, collectionId);
     db.prepare('DELETE FROM collection_places WHERE id = ?').run(id);
     deleted.push(id);
     touched.add(collectionId);
@@ -616,6 +640,7 @@ export function notifyCollectionUsers(collectionId: number, excludeSid: string |
 
 export function sendInvite(
   collectionId: number, inviterId: number, inviterUsername: string, inviterEmail: string, targetUserId: number,
+  role: 'viewer' | 'editor' | 'admin' = 'editor',
 ): { error?: string; status?: number } {
   if (!isOwner(inviterId, collectionId)) return { error: 'Not allowed', status: 403 };
   if (targetUserId === inviterId) return { error: 'Cannot invite yourself', status: 400 };
@@ -629,7 +654,7 @@ export function sendInvite(
     if (existing.status === 'pending') return { error: 'Invite already pending', status: 400 };
   }
 
-  db.prepare("INSERT INTO collection_members (collection_id, user_id, status) VALUES (?, ?, 'pending')").run(collectionId, targetUserId);
+  db.prepare("INSERT INTO collection_members (collection_id, user_id, status, role) VALUES (?, ?, 'pending', ?)").run(collectionId, targetUserId, role);
 
   broadcastToUser(targetUserId, { type: 'collections:invite', from: { id: inviterId, username: inviterUsername }, collectionId });
 
@@ -673,6 +698,15 @@ export function removeMember(ownerId: number, collectionId: number, targetUserId
   if (res.changes === 0) httpError(404, 'Member not found');
   notifyCollectionUsers(collectionId, undefined, 'collections:left'); // refresh remaining members
   broadcastToUser(targetUserId, { type: 'collections:removed', collectionId }); // bounce the removed user
+}
+
+/** Owner changes an accepted member's permission role (viewer/editor/admin). */
+export function setMemberRole(ownerId: number, collectionId: number, targetUserId: number, role: 'viewer' | 'editor' | 'admin'): void {
+  if (!isOwner(ownerId, collectionId)) httpError(403, 'Not allowed');
+  const res = db.prepare("UPDATE collection_members SET role = ? WHERE collection_id = ? AND user_id = ? AND status = 'accepted'").run(role, collectionId, targetUserId);
+  if (res.changes === 0) httpError(404, 'Member not found');
+  notifyCollectionUsers(collectionId, undefined, 'collections:updated'); // re-gate the member live
+  broadcastToUser(targetUserId, { type: 'collections:updated', collectionId });
 }
 
 export function availableUsers(ownerId: number, collectionId: number): { id: number; username: string }[] {

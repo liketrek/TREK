@@ -1,6 +1,10 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.role.label': '역할',
+  'collections.role.viewer': '뷰어',
+  'collections.role.editor': '편집자',
+  'collections.role.admin': '관리자',
   'collections.picker.allLists': '모든 목록',
   'collections.select': '선택',
   'collections.selectAll': '모두 선택',

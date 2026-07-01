@@ -1,6 +1,10 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.role.label': 'Ruolo',
+  'collections.role.viewer': 'Visualizzatore',
+  'collections.role.editor': 'Editore',
+  'collections.role.admin': 'Admin',
   'collections.picker.allLists': 'Tutte le liste',
   'collections.select': 'Seleziona',
   'collections.selectAll': 'Seleziona tutto',

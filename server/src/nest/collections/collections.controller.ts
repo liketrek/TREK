@@ -39,6 +39,7 @@ import {
   collectionInviteActionRequestSchema,
   collectionInviteCancelRequestSchema,
   collectionRemoveMemberRequestSchema,
+  collectionSetMemberRoleRequestSchema,
   type CollectionCreateRequest,
   type CollectionUpdateRequest,
   type CollectionSavePlaceRequest,
@@ -50,6 +51,7 @@ import {
   type CollectionInviteActionRequest,
   type CollectionInviteCancelRequest,
   type CollectionRemoveMemberRequest,
+  type CollectionSetMemberRoleRequest,
 } from '@trek/shared';
 
 const MAX_COVER_SIZE = 20 * 1024 * 1024;
@@ -190,7 +192,7 @@ export class CollectionsController {
     if (!this.collections.isOwner(user.id, body.collection_id)) {
       throw new HttpException({ error: 'Only the owner can invite' }, 403);
     }
-    const result = this.collections.sendInvite(body.collection_id, user.id, user.username, user.email, body.user_id);
+    const result = this.collections.sendInvite(body.collection_id, user.id, user.username, user.email, body.user_id, body.role);
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status!);
     }
@@ -240,6 +242,17 @@ export class CollectionsController {
       throw new HttpException({ error: 'Only the owner can remove members' }, 403);
     }
     this.collections.removeMember(user.id, body.collection_id, body.user_id);
+    return { success: true };
+  }
+
+  @Post('members/role')
+  @HttpCode(200)
+  setMemberRole(@CurrentUser() user: User, @Body(new ZodValidationPipe(collectionSetMemberRoleRequestSchema)) body: CollectionSetMemberRoleRequest) {
+    this.collections.assertAccess(user.id, body.collection_id); // 404 if not visible
+    if (!this.collections.isOwner(user.id, body.collection_id)) {
+      throw new HttpException({ error: 'Only the owner can change member roles' }, 403);
+    }
+    this.collections.setMemberRole(user.id, body.collection_id, body.user_id, body.role);
     return { success: true };
   }
 

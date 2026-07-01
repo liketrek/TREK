@@ -12,6 +12,7 @@ import type {
   CollectionPlaceUpdateRequest,
   CollectionCopyToTripRequest,
   CollectionInviteRequest,
+  CollectionRole,
   CollectionInviteActionRequest,
   CollectionInviteCancelRequest,
   CollectionStatus,
@@ -76,8 +77,10 @@ export const collectionsApi = {
   membership: (params: MembershipQuery): Promise<CollectionMembership> =>
     ax.get(`${base}/membership`, { params }).then((r: AxiosResponse) => r.data),
 
-  invite: (collectionId: number, userId: number): Promise<unknown> =>
-    ax.post(`${base}/invite`, { collection_id: collectionId, user_id: userId } satisfies CollectionInviteRequest).then((r: AxiosResponse) => r.data),
+  invite: (collectionId: number, userId: number, role?: CollectionRole): Promise<unknown> =>
+    ax.post(`${base}/invite`, { collection_id: collectionId, user_id: userId, role } satisfies CollectionInviteRequest).then((r: AxiosResponse) => r.data),
+  setMemberRole: (collectionId: number, userId: number, role: CollectionRole): Promise<unknown> =>
+    ax.post(`${base}/members/role`, { collection_id: collectionId, user_id: userId, role }).then((r: AxiosResponse) => r.data),
   acceptInvite: (collectionId: number): Promise<unknown> =>
     ax.post(`${base}/invite/accept`, { collection_id: collectionId } satisfies CollectionInviteActionRequest).then((r: AxiosResponse) => r.data),
   declineInvite: (collectionId: number): Promise<unknown> =>

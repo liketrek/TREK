@@ -61,7 +61,7 @@ export default function CollectionsPage(): React.ReactElement {
   const desktopSplit = c.isWide && mappable.length > 0
   const mapShown = mappable.length > 0 && (c.view === 'map' || c.isWide)
   const mapOverlay = c.isWide && mapShown // the map carries the toggle + search
-  const canAddPlace = typeof c.activeId === 'number' // a real list, not "All saved"
+  const canAddPlace = typeof c.activeId === 'number' && c.canEdit // a real list you can edit
 
   const listEl = (
     <CollectionList
@@ -70,7 +70,7 @@ export default function CollectionsPage(): React.ReactElement {
       selectMode={c.selectMode}
       selectedIds={c.selectedIds}
       onOpenPlace={openPlace}
-      onStatusChange={c.handleStatusChange}
+      onStatusChange={c.canEdit ? c.handleStatusChange : undefined}
       onToggleSelect={c.toggleSelect}
       t={t}
     />
@@ -234,18 +234,22 @@ export default function CollectionsPage(): React.ReactElement {
                     </button>
                     <span className="lbl">{t('collections.selectedCount', { count: c.selectedIds.length })}</span>
                     <div className="col-toolbar-spacer" />
-                    <button type="button" onClick={() => c.setListPickerMode('move')} disabled={c.selectedIds.length === 0} className="col-selbar-btn">
-                      <FolderInput size={14} /> {t('collections.moveToList')}
-                    </button>
+                    {c.canEdit && (
+                      <button type="button" onClick={() => c.setListPickerMode('move')} disabled={c.selectedIds.length === 0} className="col-selbar-btn">
+                        <FolderInput size={14} /> {t('collections.moveToList')}
+                      </button>
+                    )}
                     <button type="button" onClick={() => c.setListPickerMode('copy')} disabled={c.selectedIds.length === 0} className="col-selbar-btn">
                       <CopyPlus size={14} /> {t('collections.duplicateToList')}
                     </button>
                     <button type="button" onClick={c.openCopyForSelection} disabled={c.selectedIds.length === 0} className="col-selbar-btn">
                       <Copy size={14} /> {t('collections.copyToTrip')}
                     </button>
-                    <button type="button" onClick={c.handleDeleteSelected} disabled={c.selectedIds.length === 0} className="col-selbar-btn danger">
-                      <Trash2 size={14} /> {t('common.delete')}
-                    </button>
+                    {c.canDelete && (
+                      <button type="button" onClick={c.handleDeleteSelected} disabled={c.selectedIds.length === 0} className="col-selbar-btn danger">
+                        <Trash2 size={14} /> {t('common.delete')}
+                      </button>
+                    )}
                     <button type="button" onClick={() => c.setSelectMode(false)} className="col-selbar-btn" aria-label={t('common.cancel')}>
                       <X size={15} />
                     </button>
@@ -278,7 +282,8 @@ export default function CollectionsPage(): React.ReactElement {
         {c.selectedPlace && c.view !== 'map' && (
           <CollectionPlaceDetail
             place={c.selectedPlace}
-            canEdit
+            canEdit={c.canEdit}
+            canDelete={c.canDelete}
             categories={c.categories}
             anchorRect={desktopSplit ? c.listColRect : null}
             onClose={c.handleCloseDetail}

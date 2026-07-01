@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { UserPlus, UserMinus, Loader2, Clock, Check, Crown, LogOut } from 'lucide-react'
-import type { CollectionMember } from '@trek/shared'
+import { UserPlus, UserMinus, Loader2, Clock, Crown, LogOut } from 'lucide-react'
+import type { CollectionMember, CollectionRole } from '@trek/shared'
 import Modal from '../shared/Modal'
 import CustomSelect from '../shared/CustomSelect'
 import { useToast } from '../shared/Toast'
@@ -21,6 +21,8 @@ interface ShareCollectionModalProps {
   onAfterLeave: () => void
   t: TranslationFn
 }
+
+const ROLE_ORDER: CollectionRole[] = ['viewer', 'editor', 'admin']
 
 function MemberAvatar({ member }: { member: CollectionMember }): React.ReactElement {
   const initial = (member.username || '?').charAt(0).toUpperCase()
@@ -57,10 +59,13 @@ export default function ShareCollectionModal({
   const invite = useCollectionStore(s => s.invite)
   const cancelInvite = useCollectionStore(s => s.cancelInvite)
   const removeMember = useCollectionStore(s => s.removeMember)
+  const setMemberRole = useCollectionStore(s => s.setMemberRole)
   const leave = useCollectionStore(s => s.leave)
 
   const [availableUsers, setAvailableUsers] = useState<{ id: number; username: string }[]>([])
   const [selectedUserId, setSelectedUserId] = useState<number | ''>('')
+  const [inviteRole, setInviteRole] = useState<CollectionRole>('editor')
+  const [settingRoleId, setSettingRoleId] = useState<number | null>(null)
   const [inviting, setInviting] = useState(false)
   const [cancellingId, setCancellingId] = useState<number | null>(null)
   const [removingId, setRemovingId] = useState<number | null>(null)
@@ -97,13 +102,24 @@ export default function ShareCollectionModal({
     if (selectedUserId === '' || inviting) return
     setInviting(true)
     try {
-      await invite(collectionId, Number(selectedUserId))
+      await invite(collectionId, Number(selectedUserId), inviteRole)
       toast.success(t('collections.invite.sent'))
       setSelectedUserId('')
     } catch (err) {
       toast.error(getApiErrorMessage(err, t('collections.invite.error')))
     } finally {
       setInviting(false)
+    }
+  }
+
+  const handleSetRole = async (userId: number, role: CollectionRole) => {
+    setSettingRoleId(userId)
+    try {
+      await setMemberRole(collectionId, userId, role)
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('common.error')))
+    } finally {
+      setSettingRoleId(null)
     }
   }
 
@@ -185,9 +201,19 @@ export default function ShareCollectionModal({
                     <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold uppercase tracking-wide px-2 py-1 rounded-full bg-amber-500/12 text-amber-600 dark:text-amber-400 shrink-0">
                       <Clock size={11} /> {t('collections.share.pending')}
                     </span>
+                  ) : isOwner ? (
+                    <select
+                      value={member.role ?? 'editor'}
+                      onChange={e => handleSetRole(member.user_id, e.target.value as CollectionRole)}
+                      disabled={settingRoleId === member.user_id}
+                      aria-label={t('collections.role.label')}
+                      className="shrink-0 text-[11.5px] font-medium rounded-md border border-edge bg-surface-input text-content-secondary px-1.5 py-1 outline-none focus:border-accent disabled:opacity-50"
+                    >
+                      {ROLE_ORDER.map(r => <option key={r} value={r}>{t(`collections.role.${r}`)}</option>)}
+                    </select>
                   ) : (
-                    <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold uppercase tracking-wide px-2 py-1 rounded-full bg-emerald-500/12 text-emerald-600 dark:text-emerald-400 shrink-0">
-                      <Check size={11} /> {t('collections.share.accepted')}
+                    <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold uppercase tracking-wide px-2 py-1 rounded-full bg-surface-secondary text-content-secondary shrink-0">
+                      {t(`collections.role.${member.role ?? 'editor'}`)}
                     </span>
                   )}
                   {isOwner && pending && (
@@ -238,6 +264,14 @@ export default function ShareCollectionModal({
                     searchable
                   />
                 </div>
+                <select
+                  value={inviteRole}
+                  onChange={e => setInviteRole(e.target.value as CollectionRole)}
+                  aria-label={t('collections.role.label')}
+                  className="shrink-0 text-[12.5px] font-medium rounded-lg border border-edge bg-surface-input text-content-secondary px-2 outline-none focus:border-accent"
+                >
+                  {ROLE_ORDER.map(r => <option key={r} value={r}>{t(`collections.role.${r}`)}</option>)}
+                </select>
                 <button
                   type="button"
                   onClick={handleInvite}

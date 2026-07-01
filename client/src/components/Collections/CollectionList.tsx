@@ -12,7 +12,7 @@ interface CollectionListProps {
   selectMode: boolean
   selectedIds: number[]
   onOpenPlace: (id: number) => void
-  onStatusChange: (placeId: number, status: CollectionStatus) => void
+  onStatusChange?: (placeId: number, status: CollectionStatus) => void
   onToggleSelect: (id: number) => void
   t: TranslationFn
 }
@@ -72,7 +72,7 @@ export default function CollectionList({
                   </>
                 )
               })()}
-              <StatusBadge status={place.status} onChange={selectMode ? undefined : next => onStatusChange(place.id, next)} t={t} />
+              <StatusBadge status={place.status} onChange={selectMode || !onStatusChange ? undefined : next => onStatusChange(place.id, next)} t={t} />
             </div>
           </div>
         )

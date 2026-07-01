@@ -3261,6 +3261,11 @@ function runMigrations(db: Database.Database): void {
       try { db.exec('ALTER TABLE collections ADD COLUMN links TEXT'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
       try { db.exec('ALTER TABLE collection_places ADD COLUMN links TEXT'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
     },
+    // Migration 152: per-member permission role on a shared list. Existing
+    // accepted members default to 'editor' so nothing regresses.
+    () => {
+      try { db.exec("ALTER TABLE collection_members ADD COLUMN role TEXT NOT NULL DEFAULT 'editor'"); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+    },
   ];
 
   if (currentVersion < migrations.length) {

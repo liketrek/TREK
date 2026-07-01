@@ -391,6 +391,7 @@ function createTables(db: Database.Database): void {
       collection_id INTEGER NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       status TEXT NOT NULL DEFAULT 'pending',
+      role TEXT NOT NULL DEFAULT 'editor',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(collection_id, user_id)
     );

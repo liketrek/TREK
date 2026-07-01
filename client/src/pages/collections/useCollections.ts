@@ -4,6 +4,7 @@ import { useTranslation } from '../../i18n'
 import { useElementSize } from '../../hooks/useElementSize'
 import { useElementRect } from '../../hooks/useElementRect'
 import { useSettingsStore } from '../../store/settingsStore'
+import { useAuthStore } from '../../store/authStore'
 import { useToast } from '../../components/shared/Toast'
 import { getApiErrorMessage } from '../../types'
 import { addListener, removeListener } from '../../api/websocket'
@@ -138,6 +139,18 @@ export function useCollections() {
   )
   const isAllSaved = activeId === ALL_SAVED
   const isOwner = activeCollection?.is_owner ?? false
+
+  // The current user's permission on the active list drives what the UI offers.
+  // "All saved" spans many lists (each enforced per-place on the server), so it
+  // stays permissive on the client; a viewer of a shared list loses add/edit/delete.
+  const currentUserId = useAuthStore(s => s.user?.id)
+  const myRole = useMemo(() => {
+    if (isOwner) return 'owner' as const
+    const me = members.find(m => m.user_id === currentUserId && !m.is_owner)
+    return me?.role ?? null
+  }, [isOwner, members, currentUserId])
+  const canEdit = isAllSaved || myRole === 'owner' || myRole === 'admin' || myRole === 'editor'
+  const canDelete = isAllSaved || myRole === 'owner' || myRole === 'admin'
 
   // Sharing is offered on any real (non "All saved") list the user can see. The
   // badge counts everyone but the owner — accepted collaborators + pending invites.
@@ -320,6 +333,7 @@ export function useCollections() {
     listColRef: listCol.ref, listColRect: listCol.rect, categories,
     // store data
     collections, ownedLists, sharedLists, activeCollection, isAllSaved, isOwner,
+    myRole, canEdit, canDelete,
     canShare, shareMemberCount,
     activeId, places, visiblePlaces, mappable, members, incomingInvites, counts,
     view, statusFilter, categoryFilter, categoryOptions, search, selectedPlaceId, selectMode, selectedIds,

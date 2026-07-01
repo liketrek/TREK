@@ -1,6 +1,10 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.role.label': '角色',
+  'collections.role.viewer': '檢視者',
+  'collections.role.editor': '編輯者',
+  'collections.role.admin': '管理員',
   'collections.picker.allLists': '所有清單',
   'collections.select': '選擇',
   'collections.selectAll': '全選',

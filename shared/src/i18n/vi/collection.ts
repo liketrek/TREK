@@ -1,6 +1,10 @@
 import type { TranslationStrings } from '../types';
 
 const collection: TranslationStrings = {
+  'collections.role.label': 'Vai trò',
+  'collections.role.viewer': 'Người xem',
+  'collections.role.editor': 'Người sửa',
+  'collections.role.admin': 'Quản trị',
   'collections.picker.allLists': 'Tất cả danh sách',
   'collections.select': 'Chọn',
   'collections.selectAll': 'Chọn tất cả',

@@ -6,6 +6,13 @@ export const COLLECTION_STATUSES = ['idea', 'want', 'visited'] as const;
 export const collectionStatusSchema = z.enum(COLLECTION_STATUSES).catch('idea').default('idea');
 export type CollectionStatus = (typeof COLLECTION_STATUSES)[number];
 
+/** Per-member permission on a shared list. viewer = read + copy-to-trip only;
+ *  editor (default) = add + edit places; admin = full incl. delete. The owner
+ *  is always full and is not a member row. */
+export const COLLECTION_ROLES = ['viewer', 'editor', 'admin'] as const;
+export const collectionRoleSchema = z.enum(COLLECTION_ROLES).catch('editor').default('editor');
+export type CollectionRole = (typeof COLLECTION_ROLES)[number];
+
 /** A user-added link on a list or a saved place (stored as a JSON array). */
 export const collectionLinkSchema = z.object({
   label: z.string().max(120).optional(),
@@ -55,6 +62,7 @@ export const collectionMemberSchema = z.object({
   email: z.string().optional(),
   avatar: z.string().nullable().optional(),
   status: z.enum(['pending', 'accepted']),
+  role: collectionRoleSchema.optional(),
   is_owner: z.boolean().optional(),
 });
 export type CollectionMember = z.infer<typeof collectionMemberSchema>;
@@ -157,6 +165,7 @@ export type CollectionCopyToTripRequest = z.infer<typeof collectionCopyToTripReq
 export const collectionInviteRequestSchema = z.object({
   collection_id: z.number(),
   user_id: z.number(),
+  role: collectionRoleSchema.optional(),
 });
 export type CollectionInviteRequest = z.infer<typeof collectionInviteRequestSchema>;
 
@@ -175,6 +184,14 @@ export const collectionRemoveMemberRequestSchema = z.object({
   user_id: z.number(),
 });
 export type CollectionRemoveMemberRequest = z.infer<typeof collectionRemoveMemberRequestSchema>;
+
+/** Owner changes an accepted member's permission role. */
+export const collectionSetMemberRoleRequestSchema = z.object({
+  collection_id: z.number(),
+  user_id: z.number(),
+  role: collectionRoleSchema,
+});
+export type CollectionSetMemberRoleRequest = z.infer<typeof collectionSetMemberRoleRequestSchema>;
 
 // ── Responses ─────────────────────────────────────────────────────────────
 export const collectionListResponseSchema = z.object({
