@@ -1,18 +1,21 @@
-import { useEffect, useState } from 'react'
-import { ArrowRight, Footprints, Pencil, RefreshCw, TramFront, Trash2 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import Markdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
+import { ArrowRight, ArrowRightLeft, Clock, Footprints, Pencil, RefreshCw, TramFront, Trash2 } from 'lucide-react'
 import Modal from '../shared/Modal'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import { useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
 import { splitReservationDateTime, formatTime } from '../../utils/formatters'
+import { TransitTitle } from './transitDisplay'
 import type { Reservation } from '../../types'
 
 /**
  * The journey view for an automated public-transit entry (#1065): a roomy modal
- * that shows the full itinerary (summary + stop-by-stop legs) together with the
- * editable booking fields — the generic transport form never opens for transit.
- * "Change route" re-enters the transit search pre-seeded with this journey's
- * origin/destination and replaces the itinerary on save.
+ * around the stop-by-stop itinerary. The title renames inline right in the
+ * header, notes get the full width with markdown support, and "Change route"
+ * re-enters the transit search pre-seeded with this journey's route.
  */
 
 interface TransitLegMeta {
@@ -31,8 +34,8 @@ interface TransitLegMeta {
 interface TransitJourneyModalProps {
   reservation: Reservation
   onClose: () => void
-  /** Partial field update (title/status/confirmation/notes) — endpoints + itinerary stay untouched. */
-  onSave: (fields: { title: string; status: string; confirmation_number: string | null; notes: string | null }) => Promise<unknown>
+  /** Partial field update — endpoints + itinerary stay untouched. */
+  onSave: (fields: { title: string; notes: string | null }) => Promise<unknown>
   onDelete: () => Promise<unknown>
   onChangeRoute: () => void
   canEdit: boolean
@@ -46,27 +49,28 @@ export default function TransitJourneyModal({ reservation, onClose, onSave, onDe
   const transit = meta.transit && Array.isArray(meta.transit.legs) ? meta.transit : null
 
   const [title, setTitle] = useState(res.title || '')
-  const [status, setStatus] = useState(res.status || 'confirmed')
-  const [confirmation, setConfirmation] = useState(res.confirmation_number || '')
+  const [editingTitle, setEditingTitle] = useState(false)
   const [notes, setNotes] = useState(res.notes || '')
+  const [notesTab, setNotesTab] = useState<'write' | 'preview'>('write')
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const titleInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
     setTitle(res.title || '')
-    setStatus(res.status || 'confirmed')
-    setConfirmation(res.confirmation_number || '')
     setNotes(res.notes || '')
+    setEditingTitle(false)
   }, [res.id])
 
-  const dirty = title !== (res.title || '') || status !== (res.status || 'confirmed')
-    || confirmation !== (res.confirmation_number || '') || notes !== (res.notes || '')
+  useEffect(() => { if (editingTitle) titleInputRef.current?.focus() }, [editingTitle])
+
+  const dirty = title !== (res.title || '') || notes !== (res.notes || '')
 
   const save = async () => {
     if (!title.trim()) return
     setSaving(true)
     try {
-      await onSave({ title: title.trim(), status, confirmation_number: confirmation.trim() || null, notes: notes.trim() || null })
+      await onSave({ title: title.trim(), notes: notes.trim() || null })
       onClose()
     } finally { setSaving(false) }
   }
@@ -75,8 +79,19 @@ export default function TransitJourneyModal({ reservation, onClose, onSave, onDe
   const { time: endTime } = splitReservationDateTime(res.reservation_end_time)
   const dateStr = date ? new Date(date + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }) : ''
 
-  const inputClass = 'w-full border border-edge rounded-[10px] px-[12px] py-[9px] text-[13px] font-[inherit] outline-none box-border text-content bg-surface-input'
-  const labelClass = 'block text-[11px] font-semibold text-content-faint mb-[5px] uppercase tracking-[0.03em]'
+  const fmtDuration = (seconds: number) => {
+    const mins = Math.round(seconds / 60)
+    if (mins < 60) return t('transit.min', { count: mins })
+    const h = Math.floor(mins / 60)
+    const m = mins % 60
+    return m > 0 ? `${h} h ${m} min` : `${h} h`
+  }
+
+  const statTiles = transit ? [
+    { Icon: Clock, value: transit.duration > 0 ? fmtDuration(transit.duration) : '—', label: t('transit.durationLabel') },
+    { Icon: ArrowRightLeft, value: String(transit.transfers ?? 0), label: t('transit.transfersLabel') },
+    { Icon: Footprints, value: transit.walk_seconds > 59 ? t('transit.min', { count: Math.round(transit.walk_seconds / 60) }) : '—', label: t('transit.walkLabel') },
+  ] : []
 
   return (
     <Modal
@@ -122,40 +137,57 @@ export default function TransitJourneyModal({ reservation, onClose, onSave, onDe
       }
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18, fontFamily: 'var(--font-system)' }}>
-        {/* header: route + date/time + status badge */}
+        {/* header: icon + inline-renamable title + date/time */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 46, height: 46, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 14, background: '#7c3aed18' }}>
-            <TramFront size={22} strokeWidth={1.8} color="#7c3aed" />
+          <div style={{ width: 48, height: 48, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 14, background: '#7c3aed18' }}>
+            <TramFront size={23} strokeWidth={1.8} color="#7c3aed" />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="text-content" style={{ fontSize: 'calc(17px * var(--fs-scale-subtitle, 1))', fontWeight: 700, letterSpacing: '-0.015em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{res.title}</div>
-            <div className="text-content-muted" style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', marginTop: 2 }}>
+            {editingTitle ? (
+              <input
+                ref={titleInputRef}
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                onBlur={() => setEditingTitle(false)}
+                onKeyDown={e => { if (e.key === 'Enter') setEditingTitle(false); if (e.key === 'Escape') { setTitle(res.title || ''); setEditingTitle(false) } }}
+                className="text-content"
+                aria-label={t('reservations.titleLabel')}
+                style={{ width: '100%', border: 'none', outline: 'none', background: 'transparent', padding: 0, fontFamily: 'inherit', fontSize: 'calc(17px * var(--fs-scale-subtitle, 1))', fontWeight: 700, letterSpacing: '-0.015em', borderBottom: '1.5px solid var(--text-primary)' }}
+              />
+            ) : (
+              <div className="text-content" style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 'calc(17px * var(--fs-scale-subtitle, 1))', fontWeight: 700, letterSpacing: '-0.015em', minWidth: 0 }}>
+                <span style={{ minWidth: 0, overflow: 'hidden' }}><TransitTitle title={title} iconSize={15} /></span>
+                {canEdit && (
+                  <button onClick={() => setEditingTitle(true)} aria-label={t('common.edit')} title={t('common.edit')} className="text-content-faint" style={{ border: 'none', background: 'none', padding: 3, cursor: 'pointer', display: 'flex', flexShrink: 0 }}>
+                    <Pencil size={13} strokeWidth={1.8} />
+                  </button>
+                )}
+              </div>
+            )}
+            <div className="text-content-muted" style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', marginTop: 3 }}>
               {[dateStr, time ? `${formatTime(time, locale, timeFormat)}${endTime ? ` – ${formatTime(endTime, locale, timeFormat)}` : ''}` : ''].filter(Boolean).join(' · ')}
             </div>
-          </div>
-          <div className={status === 'confirmed' ? 'bg-[rgba(22,163,74,0.1)] text-[#16a34a]' : 'bg-[rgba(217,119,6,0.1)] text-[#d97706]'} style={{ padding: '4px 10px', borderRadius: 7, fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, flexShrink: 0 }}>
-            {(status === 'confirmed' ? t('planner.resConfirmed') : t('planner.resPending')).replace(/\s*·\s*$/, '')}
           </div>
         </div>
 
         {transit && (
           <>
-            {/* journey summary */}
-            <div className="bg-surface-tertiary text-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '11px 14px', borderRadius: 10, fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600, flexWrap: 'wrap' }}>
-              {transit.duration > 0 && (
-                <span>{Math.floor(transit.duration / 3600) > 0 ? `${Math.floor(transit.duration / 3600)} h ${Math.round((transit.duration % 3600) / 60)} min` : t('transit.min', { count: Math.round(transit.duration / 60) })}</span>
-              )}
-              <span className="text-content-faint">·</span>
-              <span>{transit.transfers > 0 ? t('transit.transfers', { count: transit.transfers }) : t('transit.direct')}</span>
-              {transit.walk_seconds > 59 && (
-                <>
-                  <span className="text-content-faint">·</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Footprints size={14} /> {t('transit.min', { count: Math.round(transit.walk_seconds / 60) })}</span>
-                </>
-              )}
+            {/* journey stats — three full-width tiles */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+              {statTiles.map(({ Icon, value, label }, i) => (
+                <div key={i} className="bg-surface-tertiary" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderRadius: 12 }}>
+                  <div className="bg-surface-card" style={{ width: 34, height: 34, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 10 }}>
+                    <Icon size={16} strokeWidth={1.9} className="text-content-muted" />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="text-content" style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 700, letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>{value}</div>
+                    <div className="text-content-faint" style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
+                  </div>
+                </div>
+              ))}
             </div>
 
-            {/* stop-by-stop itinerary — roomy */}
+            {/* stop-by-stop itinerary */}
             <div className="bg-surface-tertiary" style={{ padding: '14px 16px', borderRadius: 12 }}>
               <div className="text-content-faint" style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 12 }}>
                 {t('transit.itinerary')}
@@ -207,41 +239,38 @@ export default function TransitJourneyModal({ reservation, onClose, onSave, onDe
           </>
         )}
 
-        {/* editable booking fields */}
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
-          <div>
-            <label className={labelClass}>{t('reservations.titleLabel')} *</label>
-            <input value={title} onChange={e => setTitle(e.target.value)} disabled={!canEdit} className={inputClass} />
+        {/* notes — full width, markdown */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+            <label className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{t('reservations.notes')}</label>
+            {canEdit && (
+              <div className="bg-surface-secondary" style={{ display: 'flex', borderRadius: 8, padding: 2, gap: 2 }}>
+                {([['write', t('common.edit')], ['preview', t('common.preview')]] as const).map(([tab, label]) => (
+                  <button key={tab} type="button" onClick={() => setNotesTab(tab)}
+                    className={notesTab === tab ? 'bg-surface-card text-content' : 'text-content-muted'}
+                    style={{ padding: '4px 12px', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500, borderRadius: 6, border: 0, cursor: 'pointer', fontFamily: 'inherit', background: notesTab === tab ? undefined : 'transparent' }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-          <div>
-            <label className={labelClass}>{t('reservations.status')}</label>
-            <div className="bg-surface-secondary" style={{ display: 'flex', borderRadius: 10, padding: 3, gap: 2 }}>
-              {(['pending', 'confirmed'] as const).map(sv => (
-                <button key={sv} type="button" disabled={!canEdit} onClick={() => setStatus(sv)}
-                  className={status === sv ? 'bg-surface-card text-content' : 'text-content-muted'}
-                  style={{ flex: 1, padding: '7px 4px', fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 500, borderRadius: 8, border: 0, cursor: canEdit ? 'pointer' : 'default', fontFamily: 'inherit', background: status === sv ? undefined : 'transparent', whiteSpace: 'nowrap' }}>
-                  {(sv === 'confirmed' ? t('planner.resConfirmed') : t('planner.resPending')).replace(/\s*·\s*$/, '')}
-                </button>
-              ))}
+          {canEdit && notesTab === 'write' ? (
+            <textarea
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              placeholder={t('reservations.notesPlaceholder')}
+              className="w-full border border-edge rounded-[10px] px-[12px] py-[10px] text-[13px] font-[inherit] outline-none box-border text-content bg-surface-input"
+              style={{ minHeight: 130, resize: 'vertical', lineHeight: 1.55 }}
+            />
+          ) : (
+            <div className="bg-surface-tertiary" style={{ borderRadius: 10, padding: '12px 14px', minHeight: canEdit ? 130 : undefined }}>
+              {notes.trim()
+                ? <div className="collab-note-md text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', wordBreak: 'break-word', overflowWrap: 'anywhere' }}><Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{notes}</Markdown></div>
+                : <span className="text-content-faint" style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))' }}>{t('reservations.notesPlaceholder')}</span>}
             </div>
-          </div>
+          )}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12 }}>
-          <div>
-            <label className={labelClass}>{t('reservations.confirmationCode')}</label>
-            <input value={confirmation} onChange={e => setConfirmation(e.target.value)} disabled={!canEdit} className={inputClass} />
-          </div>
-          <div>
-            <label className={labelClass}>{t('reservations.notes')}</label>
-            <input value={notes} onChange={e => setNotes(e.target.value)} disabled={!canEdit} placeholder={canEdit ? t('reservations.notesPlaceholder') : undefined} className={inputClass} />
-          </div>
-        </div>
-
-        {canEdit && !transit && (
-          <div className="text-content-faint" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))' }}>
-            <Pencil size={11} /> {t('transit.noItinerary')}
-          </div>
-        )}
       </div>
 
       <ConfirmDialog

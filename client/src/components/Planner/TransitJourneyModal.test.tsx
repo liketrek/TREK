@@ -49,22 +49,39 @@ describe('TransitJourneyModal', () => {
   it('FE-PLANNER-TRANSITJOURNEY-001: shows summary, line badge, platform and legs', () => {
     render(<TransitJourneyModal {...makeProps()} />)
     expect(screen.getByText('U2')).toBeInTheDocument()
-    expect(screen.getByText('1 transfers')).toBeInTheDocument()
+    // stat tiles: value + caption
+    expect(screen.getByText('Transfers')).toBeInTheDocument()
+    expect(screen.getByText('Walking')).toBeInTheDocument()
     expect(screen.getByText(/Platform 2/)).toBeInTheDocument()
     expect(screen.getByText(/Ruhleben/)).toBeInTheDocument()
     expect(screen.getByText(/BVG/)).toBeInTheDocument()
   })
 
-  it('FE-PLANNER-TRANSITJOURNEY-002: saving edited fields calls onSave with the field payload only', async () => {
+  it('FE-PLANNER-TRANSITJOURNEY-002: inline title rename + notes save as a minimal field payload', async () => {
     const user = userEvent.setup()
     const onSave = vi.fn().mockResolvedValue({})
     render(<TransitJourneyModal {...makeProps({ onSave })} />)
+    // The title renames inline in the header via its pencil.
+    await user.click(screen.getByLabelText('Edit'))
     const titleInput = screen.getByDisplayValue('Fernsehturm → Zoo')
     await user.clear(titleInput)
     await user.type(titleInput, 'Zum Zoo')
+    await user.keyboard('{Enter}')
+    await user.type(screen.getByPlaceholderText(/notes/i), 'Take **coffee**')
     await user.click(screen.getByRole('button', { name: /^Save$/ }))
     await waitFor(() => expect(onSave).toHaveBeenCalled())
-    expect(onSave).toHaveBeenCalledWith({ title: 'Zum Zoo', status: 'confirmed', confirmation_number: null, notes: null })
+    expect(onSave).toHaveBeenCalledWith({ title: 'Zum Zoo', notes: 'Take **coffee**' })
+  })
+
+  it('FE-PLANNER-TRANSITJOURNEY-006: no status or booking-code fields; notes support a markdown preview', async () => {
+    const user = userEvent.setup()
+    render(<TransitJourneyModal {...makeProps()} />)
+    expect(screen.queryByText('Status')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Booking code|Confirmation/i)).not.toBeInTheDocument()
+    await user.type(screen.getByPlaceholderText(/notes/i), '**bold** note')
+    await user.click(screen.getByRole('button', { name: 'Preview' }))
+    const bold = document.querySelector('.collab-note-md strong')
+    expect(bold?.textContent).toBe('bold')
   })
 
   it('FE-PLANNER-TRANSITJOURNEY-003: change route triggers onChangeRoute', async () => {

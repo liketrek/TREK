@@ -76,5 +76,9 @@ const trip: TranslationStrings = {
   'transit.journey': 'Toplu taşıma yolculuğu',
   'transit.pickDay': 'Bağlantı aramak için bir gün seçin.',
   'transit.noItinerary': 'Bu kaydın kayıtlı bir güzergâhı yok — bir tane aramak için "Rotayı değiştir" seçeneğini kullanın.',
+  'transit.durationLabel': 'Süre',
+  'transit.transfersLabel': 'Aktarma',
+  'transit.walkLabel': 'Yürüyüş',
+  'transit.searchHint': 'Gerçek bağlantıları ara ve doğrudan güne ekle — veriler Transitous üzerinden.',
 };
 export default trip;

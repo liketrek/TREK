@@ -340,15 +340,16 @@ describe('DayPlanSidebar', () => {
         },
       },
     }
-    render(<DayPlanSidebar {...makeDefaultProps({ days: [day], reservations: [res as any], onEditTransport })} />)
-    // Line chip + transfer summary render inline in the timeline row.
+    const onOpenTransit = vi.fn()
+    render(<DayPlanSidebar {...makeDefaultProps({ days: [day], reservations: [res as any], onEditTransport, onOpenTransit })} />)
+    // Line chip + transfer summary render inline in the timeline row; the
+    // title uses an arrow icon, so its parts are separate text nodes.
     expect(screen.getByText('U2')).toBeInTheDocument()
     expect(screen.getByText(/1 transfers/)).toBeInTheDocument()
-    // Clicking the row opens the itinerary detail view — not the edit form.
-    await user.click(screen.getByText('Fernsehturm → Zoo'))
+    // Clicking the row opens the journey view — not the edit form.
+    await user.click(screen.getByText('Fernsehturm'))
     expect(onEditTransport).not.toHaveBeenCalled()
-    expect(await screen.findByText('Itinerary')).toBeInTheDocument()
-    expect(screen.getByText(/Ruhleben/)).toBeInTheDocument()
+    expect(onOpenTransit).toHaveBeenCalledWith(expect.objectContaining({ id: 300 }))
   })
 
   // ── Day info button ─────────────────────────────────────────────────────

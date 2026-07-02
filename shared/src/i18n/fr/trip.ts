@@ -76,5 +76,9 @@ const trip: TranslationStrings = {
   'transit.journey': 'Trajet en transports en commun',
   'transit.pickDay': 'Choisissez un jour pour rechercher des connexions.',
   'transit.noItinerary': 'Cette entrée n\'a aucun itinéraire enregistré — utilisez « Modifier l\'itinéraire » pour en rechercher un.',
+  'transit.durationLabel': 'Durée',
+  'transit.transfersLabel': 'Correspondances',
+  'transit.walkLabel': 'Marche',
+  'transit.searchHint': 'Recherchez de vraies liaisons et ajoutez-les directement au jour — données via Transitous.',
 };
 export default trip;

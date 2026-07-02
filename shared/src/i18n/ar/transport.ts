@@ -5,6 +5,6 @@ const transport: TranslationStrings = {
   'transport.modalTitle.create': 'إضافة وسيلة نقل',
   'transport.modalTitle.edit': 'تعديل وسيلة النقل',
   'transport.title': 'المواصلات',
-  'transport.addManual': 'نقل يدوي',
+  'transport.addManual': 'وسيلة نقل',
 };
 export default transport;

@@ -7,6 +7,7 @@ const common: TranslationStrings = {
   'common.cancel': 'Mégse',
   'common.clear': 'Törlés',
   'common.delete': 'Törlés',
+  'common.preview': 'Előnézet',
   'common.edit': 'Szerkesztés',
   'common.add': 'Hozzáadás',
   'common.loading': 'Betöltés...',

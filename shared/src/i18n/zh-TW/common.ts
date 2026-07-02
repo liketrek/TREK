@@ -7,6 +7,7 @@ const common: TranslationStrings = {
   'common.cancel': '取消',
   'common.clear': '清除',
   'common.delete': '刪除',
+  'common.preview': '預覽',
   'common.edit': '編輯',
   'common.add': '新增',
   'common.loading': '載入中...',

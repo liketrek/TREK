@@ -76,5 +76,9 @@ const trip: TranslationStrings = {
   'transit.journey': 'Perjalanan transportasi umum',
   'transit.pickDay': 'Pilih hari untuk mencari koneksi.',
   'transit.noItinerary': 'Entri ini tidak memiliki rencana perjalanan tersimpan — gunakan "Ubah rute" untuk mencarinya.',
+  'transit.durationLabel': 'Durasi',
+  'transit.transfersLabel': 'Transit',
+  'transit.walkLabel': 'Jalan kaki',
+  'transit.searchHint': 'Cari koneksi nyata dan tambahkan langsung ke hari itu — data melalui Transitous.',
 };
 export default trip;

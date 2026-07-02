@@ -76,5 +76,9 @@ const trip: TranslationStrings = {
   'transit.journey': 'ÖPNV-Verbindung',
   'transit.pickDay': 'Wähle einen Tag, für den Verbindungen gesucht werden sollen.',
   'transit.noItinerary': 'Dieser Eintrag hat keine gespeicherte Verbindung — über „Route ändern" eine suchen.',
+  'transit.durationLabel': 'Dauer',
+  'transit.transfersLabel': 'Umstiege',
+  'transit.walkLabel': 'Fußweg',
+  'transit.searchHint': 'Echte Verbindungen suchen und direkt zum Tag hinzufügen — Daten via Transitous.',
 };
 export default trip;

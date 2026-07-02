@@ -7,6 +7,7 @@ const common: TranslationStrings = {
   'common.cancel': '취소',
   'common.clear': '지우기',
   'common.delete': '삭제',
+  'common.preview': '미리보기',
   'common.edit': '편집',
   'common.add': '추가',
   'common.loading': '로딩 중...',

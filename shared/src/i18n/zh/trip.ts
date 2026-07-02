@@ -76,5 +76,9 @@ const trip: TranslationStrings = {
   'transit.journey': '公共交通行程',
   'transit.pickDay': '请选择要查询班次的日期。',
   'transit.noItinerary': '此条目尚未保存行程 — 请使用"更改路线"查询班次。',
+  'transit.durationLabel': '时长',
+  'transit.transfersLabel': '换乘',
+  'transit.walkLabel': '步行',
+  'transit.searchHint': '搜索真实班次并直接添加到当天行程 — 数据来自 Transitous。',
 };
 export default trip;

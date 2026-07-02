@@ -76,5 +76,9 @@ const trip: TranslationStrings = {
   'transit.journey': 'Tömegközlekedési útvonal',
   'transit.pickDay': 'Válassz egy napot a kapcsolatok kereséséhez.',
   'transit.noItinerary': 'Ehhez a bejegyzéshez nincs mentett útiterv – az „Útvonal módosítása” gombbal kereshetsz egyet.',
+  'transit.durationLabel': 'Időtartam',
+  'transit.transfersLabel': 'Átszállások',
+  'transit.walkLabel': 'Gyaloglás',
+  'transit.searchHint': 'Keress valós összeköttetéseket, és add hozzá őket közvetlenül a naphoz – adatok a Transitous révén.',
 };
 export default trip;

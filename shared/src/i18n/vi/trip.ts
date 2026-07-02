@@ -76,5 +76,9 @@ const trip: TranslationStrings = {
   'transit.journey': 'Hành trình giao thông công cộng',
   'transit.pickDay': 'Chọn một ngày để tìm chuyến kết nối.',
   'transit.noItinerary': 'Mục này chưa có lộ trình được lưu — dùng “Đổi tuyến” để tìm một lộ trình.',
+  'transit.durationLabel': 'Thời lượng',
+  'transit.transfersLabel': 'Chuyển tuyến',
+  'transit.walkLabel': 'Đi bộ',
+  'transit.searchHint': 'Tìm các kết nối thực tế và thêm thẳng vào ngày — dữ liệu qua Transitous.',
 };
 export default trip;

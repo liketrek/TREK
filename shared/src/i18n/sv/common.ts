@@ -19,6 +19,7 @@ const common: TranslationStrings = {
   'common.cancel': 'Avbryt',
   'common.clear': 'Rensa',
   'common.delete': 'Ta bort',
+  'common.preview': 'Förhandsvisning',
   'common.edit': 'Redigera',
   'common.add': 'Lägg till',
   'common.loading': 'Laddar...',

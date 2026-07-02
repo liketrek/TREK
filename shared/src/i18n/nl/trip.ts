@@ -76,5 +76,9 @@ const trip: TranslationStrings = {
   'transit.journey': 'Reis met openbaar vervoer',
   'transit.pickDay': 'Kies een dag om verbindingen voor te zoeken.',
   'transit.noItinerary': 'Deze invoer heeft geen opgeslagen reisplan — gebruik "Route wijzigen" om er een te zoeken.',
+  'transit.durationLabel': 'Duur',
+  'transit.transfersLabel': 'Overstappen',
+  'transit.walkLabel': 'Lopen',
+  'transit.searchHint': 'Zoek echte verbindingen en voeg ze direct toe aan de dag — gegevens via Transitous.',
 };
 export default trip;

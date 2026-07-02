@@ -5,6 +5,6 @@ const transport: TranslationStrings = {
   'transport.modalTitle.create': 'Προσθήκη μεταφοράς',
   'transport.modalTitle.edit': 'Επεξεργασία μεταφοράς',
   'transport.title': 'Μεταφορές',
-  'transport.addManual': 'Χειροκίνητη Μεταφορά',
+  'transport.addManual': 'Μεταφορά',
 };
 export default transport;

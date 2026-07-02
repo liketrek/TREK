@@ -19,6 +19,7 @@ const common: TranslationStrings = {
   'common.cancel': 'Hủy',
   'common.clear': 'Xóa',
   'common.delete': 'Xóa bỏ',
+  'common.preview': 'Xem trước',
   'common.edit': 'Chỉnh sửa',
   'common.add': 'Thêm',
   'common.loading': 'Đang tải...',

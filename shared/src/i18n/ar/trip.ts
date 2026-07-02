@@ -76,5 +76,9 @@ const trip: TranslationStrings = {
   'transit.journey': 'رحلة بالنقل العام',
   'transit.pickDay': 'اختر يومًا للبحث عن الرحلات المتاحة.',
   'transit.noItinerary': 'لا يحتوي هذا الإدخال على خط سير محفوظ — استخدم "تغيير المسار" للبحث عن أحدها.',
+  'transit.durationLabel': 'المدة',
+  'transit.transfersLabel': 'التحويلات',
+  'transit.walkLabel': 'المشي',
+  'transit.searchHint': 'ابحث عن رحلات فعلية وأضفها مباشرة إلى اليوم — البيانات عبر Transitous.',
 };
 export default trip;

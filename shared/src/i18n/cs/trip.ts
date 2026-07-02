@@ -76,5 +76,9 @@ const trip: TranslationStrings = {
   'transit.journey': 'Cesta veřejnou dopravou',
   'transit.pickDay': 'Vyberte den, pro který chcete vyhledat spojení.',
   'transit.noItinerary': 'Tato položka nemá uložené spojení – vyhledejte ho pomocí tlačítka „Změnit trasu“.',
+  'transit.durationLabel': 'Doba trvání',
+  'transit.transfersLabel': 'Přestupy',
+  'transit.walkLabel': 'Chůze',
+  'transit.searchHint': 'Vyhledejte reálná spojení a přidejte je rovnou do dne — data přes Transitous.',
 };
 export default trip;

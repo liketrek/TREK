@@ -76,5 +76,9 @@ const trip: TranslationStrings = {
   'transit.journey': '대중교통 경로',
   'transit.pickDay': '연결편을 검색할 날짜를 선택하세요.',
   'transit.noItinerary': '이 항목에는 저장된 경로가 없습니다. "경로 변경"을 사용하여 검색하세요.',
+  'transit.durationLabel': '소요 시간',
+  'transit.transfersLabel': '환승',
+  'transit.walkLabel': '도보',
+  'transit.searchHint': '실제 연결편을 검색하고 바로 일정에 추가하세요 — 데이터 제공: Transitous.',
 };
 export default trip;

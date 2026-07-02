@@ -12,6 +12,7 @@ import {
   TramFront, Footprints,
 } from 'lucide-react'
 import { openFile } from '../../utils/fileDownload'
+import { TransitTitle, TransitLegChips } from './transitDisplay'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
@@ -307,38 +308,6 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
           )
         })()}
 
-        {/* Transit itinerary chips (#1065) — the journey at a glance */}
-        {(() => {
-          if (r.type !== 'transit') return null
-          const meta = typeof r.metadata === 'string' ? (() => { try { return JSON.parse(r.metadata || '{}') } catch { return {} } })() : (r.metadata || {})
-          const transit = meta.transit
-          if (!transit || !Array.isArray(transit.legs) || transit.legs.length === 0) return null
-          return (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, flexWrap: 'wrap' }}>
-              {transit.legs.map((leg: { mode?: string; line?: string | null; line_color?: string | null; line_text_color?: string | null }, li: number) => (
-                <span key={li} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                  {li > 0 && <span className="text-content-faint" style={{ fontSize: 10 }}>›</span>}
-                  {leg.mode === 'WALK'
-                    ? <Footprints size={12} className="text-content-faint" />
-                    : (
-                      <span style={{
-                        display: 'inline-flex', alignItems: 'center', borderRadius: 5, padding: '1px 7px',
-                        fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', fontWeight: 700,
-                        background: leg.line_color || 'var(--bg-tertiary)',
-                        color: leg.line_color ? (leg.line_text_color || '#fff') : 'var(--text-primary)',
-                      }}>
-                        {leg.line || leg.mode}
-                      </span>
-                    )}
-                </span>
-              ))}
-              <span className="text-content-faint" style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', marginLeft: 3 }}>
-                {transit.transfers > 0 ? t('transit.transfers', { count: transit.transfers }) : t('transit.direct')}
-              </span>
-            </div>
-          )
-        })()}
-
         {/* Type-specific metadata */}
         {(() => {
           const meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata || '{}') : (r.metadata || {})
@@ -520,6 +489,87 @@ function Section({ title, count, children, defaultOpen = true, accent, storageKe
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(max(33.33% - 14px, 340px), 1fr))', gap: 14, alignItems: 'stretch' }}>
           {children}
         </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * A transit journey's own card (#1065) — leg chips + journey stats instead of
+ * the generic booking layout. Clicking anywhere opens the journey view.
+ */
+function TransitJourneyCard({ r, days, onOpen, onDelete, canEdit }: {
+  r: Reservation
+  days: Day[]
+  onOpen: (r: Reservation) => void
+  onDelete: (id: number) => void
+  canEdit: boolean
+}) {
+  const { t, locale } = useTranslation()
+  const timeFormat = useSettingsStore(st => st.settings.time_format) || '24h'
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const meta = typeof r.metadata === 'string' ? (() => { try { return JSON.parse(r.metadata || '{}') } catch { return {} } })() : (r.metadata || {})
+  const transit = meta.transit && Array.isArray(meta.transit.legs) ? meta.transit : null
+  const { date, time } = splitReservationDateTime(r.reservation_time)
+  const { time: endTime } = splitReservationDateTime(r.reservation_end_time)
+  const day = r.day_id ? days.find(d => d.id === r.day_id) : undefined
+  const dateStr = date ? new Date(date + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }) : null
+  const mins = transit?.duration ? Math.round(transit.duration / 60) : null
+  return (
+    <div
+      className="bg-surface-card"
+      onClick={() => onOpen(r)}
+      style={{ borderRadius: 12, border: '1px solid rgba(124,58,237,0.22)', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 9, cursor: 'pointer', transition: 'box-shadow 0.15s ease' }}
+      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.06)'}
+      onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ width: 34, height: 34, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 10, background: 'rgba(124,58,237,0.1)' }}>
+          <TramFront size={16} strokeWidth={1.8} color="#7c3aed" />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="text-content" style={{ fontSize: 'calc(13.5px * var(--fs-scale-body, 1))', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <TransitTitle title={r.title} iconSize={12} />
+          </div>
+          <div className="text-content-faint" style={{ fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', marginTop: 2 }}>
+            {[
+              day ? (day.title || t('dayplan.dayN', { n: day.day_number })) : null,
+              dateStr,
+              time ? `${formatTime(time, locale, timeFormat)}${endTime ? ` – ${formatTime(endTime, locale, timeFormat)}` : ''}` : null,
+              mins ? t('transit.min', { count: mins }) : null,
+            ].filter(Boolean).join(' · ')}
+          </div>
+        </div>
+        {canEdit && (
+          <button
+            onClick={e => { e.stopPropagation(); setConfirmOpen(true) }}
+            title={t('common.delete')}
+            className="bg-transparent text-content-faint"
+            style={{ appearance: 'none', border: 'none', width: 26, height: 26, borderRadius: 6, display: 'grid', placeItems: 'center', cursor: 'pointer', flexShrink: 0 }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.color = '#ef4444' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-faint)' }}
+          >
+            <Trash2 size={13} />
+          </button>
+        )}
+      </div>
+      {transit && (
+        <div style={{ paddingLeft: 44 }}>
+          <TransitLegChips legs={transit.legs} transfers={transit.transfers} size="md" t={t} />
+        </div>
+      )}
+      {confirmOpen && ReactDOM.createPortal(
+        <div className="bg-[rgba(0,0,0,0.35)]" style={{ position: 'fixed', inset: 0, zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={e => { e.stopPropagation(); setConfirmOpen(false) }}>
+          <div className="bg-surface-card" style={{ borderRadius: 14, padding: 20, width: 340, boxShadow: '0 16px 48px rgba(0,0,0,0.22)' }} onClick={e => e.stopPropagation()}>
+            <div className="text-content" style={{ fontWeight: 600, fontSize: 'calc(14px * var(--fs-scale-body, 1))', marginBottom: 6 }}>{t('reservations.confirm.deleteTitle')}</div>
+            <div className="text-content-muted" style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', marginBottom: 14 }}>{t('reservations.confirm.deleteBody', { name: r.title })}</div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button onClick={e => { e.stopPropagation(); setConfirmOpen(false) }} className="text-content-muted" style={{ padding: '7px 14px', borderRadius: 9, border: '1px solid var(--border-primary)', background: 'none', fontSize: 'calc(12px * var(--fs-scale-body, 1))', cursor: 'pointer', fontFamily: 'inherit' }}>{t('common.cancel')}</button>
+              <button onClick={e => { e.stopPropagation(); setConfirmOpen(false); onDelete(r.id) }} style={{ padding: '7px 14px', borderRadius: 9, border: 'none', background: '#ef4444', color: '#fff', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{t('common.delete')}</button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   )
@@ -718,7 +768,7 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
           <>
             {transitEntries.length > 0 && (
               <Section title={t('transit.sectionTitle')} count={transitEntries.length} accent="gray" storageKey={`trek:bookings-transit-open:${tripId}`}>
-                {transitEntries.map(r => <ReservationCard key={r.id} r={r} tripId={tripId} onEdit={onEdit} onDelete={onDelete} files={files} onNavigateToFiles={onNavigateToFiles} assignmentLookup={assignmentLookup} canEdit={canEdit} days={days} />)}
+                {transitEntries.map(r => <TransitJourneyCard key={r.id} r={r} days={days} onOpen={onEdit} onDelete={onDelete} canEdit={canEdit} />)}
               </Section>
             )}
             {allPending.length > 0 && (

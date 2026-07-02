@@ -76,5 +76,9 @@ const trip: TranslationStrings = {
   'transit.journey': 'Διαδρομή με δημόσιες συγκοινωνίες',
   'transit.pickDay': 'Επιλέξτε μια ημέρα για αναζήτηση συνδέσεων.',
   'transit.noItinerary': 'Αυτή η καταχώριση δεν έχει αποθηκευμένο δρομολόγιο — χρησιμοποιήστε την «Αλλαγή διαδρομής» για να αναζητήσετε ένα.',
+  'transit.durationLabel': 'Διάρκεια',
+  'transit.transfersLabel': 'Μετεπιβιβάσεις',
+  'transit.walkLabel': 'Περπάτημα',
+  'transit.searchHint': 'Αναζητήστε πραγματικές συνδέσεις και προσθέστε τις απευθείας στην ημέρα — δεδομένα μέσω Transitous.',
 };
 export default trip;

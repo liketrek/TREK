@@ -37,6 +37,7 @@ import { DayPlanSidebarToolbar } from './DayPlanSidebarToolbar'
 import { DayPlanSidebarNoteModal } from './DayPlanSidebarNoteModal'
 import { DayPlanSidebarTimeConfirmModal } from './DayPlanSidebarTimeConfirmModal'
 import { DayPlanSidebarTransportDetailModal } from './DayPlanSidebarTransportDetailModal'
+import { TransitTitle, TransitLegChips } from './transitDisplay'
 import { DayPlanSidebarFooter } from './DayPlanSidebarFooter'
 import type { Trip, Day, Place, Category, Assignment, Accommodation, Reservation, AssignmentsMap, RouteResult, RouteSegment, DayNote } from '../../types'
 import { getGoogleMapsUrlForPlace } from './placeGoogleMaps'
@@ -2068,8 +2069,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                     {spanLabel}
                                   </span>
                                 )}
-                                <span style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {res.title}
+                                <span style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+                                  {transitMeta ? <TransitTitle title={res.title} iconSize={11} /> : res.title}
                                 </span>
                                 {(() => {
                                   const { time: dispTime } = splitReservationDateTime(displayTime)
@@ -2087,28 +2088,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                 })()}
                               </div>
                               {transitMeta ? (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3, flexWrap: 'wrap' }}>
-                                  {transitMeta.legs.map((leg: { mode?: string; line?: string | null; line_color?: string | null; line_text_color?: string | null }, li: number) => (
-                                    <React.Fragment key={li}>
-                                      {li > 0 && <span style={{ fontSize: 9, color: 'var(--text-faint)' }}>›</span>}
-                                      {leg.mode === 'WALK'
-                                        ? <Footprints size={10} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
-                                        : (
-                                          <span style={{
-                                            display: 'inline-flex', alignItems: 'center', borderRadius: 4, padding: '0 5px',
-                                            fontSize: 'calc(9.5px * var(--fs-scale-caption, 1))', fontWeight: 700, lineHeight: '15px',
-                                            background: leg.line_color || 'var(--bg-tertiary)',
-                                            color: leg.line_color ? (leg.line_text_color || '#fff') : 'var(--text-primary)',
-                                          }}>
-                                            {leg.line || leg.mode}
-                                          </span>
-                                        )}
-                                    </React.Fragment>
-                                  ))}
-                                  <span style={{ fontSize: 'calc(9.5px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginLeft: 2 }}>
-                                    {transitMeta.transfers > 0 ? t('transit.transfers', { count: transitMeta.transfers }) : t('transit.direct')}
-                                    {transitMeta.walk_seconds > 59 && <> · <Footprints size={9} style={{ display: 'inline', verticalAlign: '-1px' }} /> {t('transit.min', { count: Math.round(transitMeta.walk_seconds / 60) })}</>}
-                                  </span>
+                                <div style={{ display: 'flex', alignItems: 'center', marginTop: 3 }}>
+                                  <TransitLegChips legs={transitMeta.legs} transfers={transitMeta.transfers} size="sm" t={t} />
                                 </div>
                               ) : subtitle && (
                                 <div style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

@@ -76,5 +76,9 @@ const trip: TranslationStrings = {
   'transit.journey': 'Kollektivtrafikresa',
   'transit.pickDay': 'Välj en dag att söka förbindelser för.',
   'transit.noItinerary': 'Den här posten har ingen sparad resplan – använd ”Ändra resväg” för att söka en.',
+  'transit.durationLabel': 'Restid',
+  'transit.transfersLabel': 'Byten',
+  'transit.walkLabel': 'Gång',
+  'transit.searchHint': 'Sök verkliga förbindelser och lägg till dem direkt i dagen – data via Transitous.',
 };
 export default trip;

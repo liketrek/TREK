@@ -510,14 +510,23 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
 
       {automated ? (
         /* ── Automated: public transit search (#1065) ── */
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ maxWidth: 280 }}>
-            <label className={labelClass}>{t('reservations.departureDate')}</label>
-            <CustomSelect value={form.start_day_id} onChange={v => set('start_day_id', v)} placeholder={t('dayplan.dayN', { n: '?' })} options={dayOptions} size="sm" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          {/* search header: what this is + the day it plans for */}
+          <div className="bg-surface-tertiary" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 14, flexWrap: 'wrap' }}>
+            <div style={{ width: 42, height: 42, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, background: '#7c3aed18' }}>
+              <TramFront size={20} strokeWidth={1.8} color="#7c3aed" />
+            </div>
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <div className="text-content" style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 700, letterSpacing: '-0.01em' }}>{t('transit.title')}</div>
+              <div className="text-content-faint" style={{ fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', marginTop: 1 }}>{t('transit.searchHint')}</div>
+            </div>
+            <div style={{ width: 210, flexShrink: 0 }}>
+              <CustomSelect value={form.start_day_id} onChange={v => set('start_day_id', v)} placeholder={t('dayplan.dayN', { n: '?' })} options={dayOptions} size="sm" />
+            </div>
           </div>
           {(() => {
             const transitDay = days.find(d => d.id === Number(form.start_day_id))
-            if (!transitDay) return <div className="text-content-faint" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', padding: '12px 0' }}>{t('transit.pickDay')}</div>
+            if (!transitDay) return <div className="text-content-faint" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', padding: '4px 2px 12px' }}>{t('transit.pickDay')}</div>
             return (
               <TransitSearchPanel
                 day={transitDay}

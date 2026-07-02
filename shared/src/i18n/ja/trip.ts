@@ -76,5 +76,9 @@ const trip: TranslationStrings = {
   'transit.journey': '公共交通機関の経路',
   'transit.pickDay': '接続を検索する日を選択してください。',
   'transit.noItinerary': 'この項目には保存された行程がありません。「経路を変更」から検索してください。',
+  'transit.durationLabel': '所要時間',
+  'transit.transfersLabel': '乗り換え',
+  'transit.walkLabel': '徒歩',
+  'transit.searchHint': '実際の経路を検索して、そのまま日程に追加できます — データは Transitous 提供。',
 };
 export default trip;

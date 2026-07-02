@@ -5,6 +5,6 @@ const transport: TranslationStrings = {
   'transport.modalTitle.create': 'Додати транспорт',
   'transport.modalTitle.edit': 'Змінити транспорт',
   'transport.title': 'Транспорт',
-  'transport.addManual': 'Ручний транспорт',
+  'transport.addManual': 'Транспорт',
 };
 export default transport;

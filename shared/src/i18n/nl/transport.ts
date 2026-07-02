@@ -5,6 +5,6 @@ const transport: TranslationStrings = {
   'transport.modalTitle.create': 'Vervoer toevoegen',
   'transport.modalTitle.edit': 'Vervoer bewerken',
   'transport.title': 'Transport',
-  'transport.addManual': 'Handmatig transport',
+  'transport.addManual': 'Vervoer',
 };
 export default transport;

@@ -5,6 +5,6 @@ const transport: TranslationStrings = {
   'transport.modalTitle.create': 'Thêm phương tiện di chuyển',
   'transport.modalTitle.edit': 'Chỉnh sửa phương tiện đi lại',
   'transport.title': 'Di chuyển',
-  'transport.addManual': 'Thêm di chuyển',
+  'transport.addManual': 'Phương tiện',
 };
 export default transport;

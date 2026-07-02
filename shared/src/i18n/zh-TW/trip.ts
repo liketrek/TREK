@@ -76,5 +76,9 @@ const trip: TranslationStrings = {
   'transit.journey': '大眾運輸行程',
   'transit.pickDay': '請選擇要查詢班次的日期。',
   'transit.noItinerary': '此項目尚未儲存行程——請使用「變更路線」查詢。',
+  'transit.durationLabel': '行程時間',
+  'transit.transfersLabel': '轉乘次數',
+  'transit.walkLabel': '步行',
+  'transit.searchHint': '搜尋實際交通連線，並直接加入當天行程 — 資料由 Transitous 提供。',
 };
 export default trip;

@@ -76,5 +76,9 @@ const trip: TranslationStrings = {
   'transit.journey': 'Поездка на общественном транспорте',
   'transit.pickDay': 'Выберите день для поиска соединений.',
   'transit.noItinerary': 'Для этой записи нет сохранённого маршрута — нажмите «Изменить маршрут», чтобы найти его.',
+  'transit.durationLabel': 'Длительность',
+  'transit.transfersLabel': 'Пересадки',
+  'transit.walkLabel': 'Пешком',
+  'transit.searchHint': 'Ищите реальные маршруты и добавляйте их прямо в день — данные от Transitous.',
 };
 export default trip;

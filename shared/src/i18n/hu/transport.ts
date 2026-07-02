@@ -5,6 +5,6 @@ const transport: TranslationStrings = {
   'transport.modalTitle.create': 'Közlekedés hozzáadása',
   'transport.modalTitle.edit': 'Közlekedés szerkesztése',
   'transport.title': 'Közlekedés',
-  'transport.addManual': 'Kézi közlekedés',
+  'transport.addManual': 'Közlekedés',
 };
 export default transport;
