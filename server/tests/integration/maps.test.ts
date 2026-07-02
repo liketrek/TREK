@@ -57,6 +57,8 @@ vi.mock('../../src/services/mapsService', () => ({
   resolveGoogleMapsUrl: vi.fn().mockRejectedValue(
     Object.assign(new Error('SSRF or invalid URL'), { status: 400 })
   ),
+  // Imported at module load by transitService (pulled in via app.module).
+  buildUserAgent: () => 'TREK-Test-UA',
 }));
 
 import { buildApp } from '../../src/bootstrap';
