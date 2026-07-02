@@ -800,9 +800,9 @@ export function MapViewGL({
   // DayPlanSidebar — nothing is rendered until the user enables a
   // booking's route, matching the Leaflet MapView's behaviour.
   const visibleReservations = useMemo(() => {
-    if (!visibleConnectionIds || visibleConnectionIds.length === 0) return []
-    const set = new Set(visibleConnectionIds)
-    return reservations.filter(r => set.has(r.id))
+    const set = new Set(visibleConnectionIds || [])
+    // Transit journeys are part of the plan itself — always on the map (#1065).
+    return reservations.filter(r => r.type === 'transit' || set.has(r.id))
   }, [reservations, visibleConnectionIds])
 
   useEffect(() => {

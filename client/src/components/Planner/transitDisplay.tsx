@@ -32,7 +32,7 @@ export function TransitWalkDivider({ leg, t, size = 'md' }: {
   size?: 'sm' | 'md'
 }) {
   const mins = leg.duration ? Math.round(leg.duration / 60) : null
-  const ruleStyle: React.CSSProperties = { flex: 1, borderTop: '1px dashed var(--border-primary)', opacity: 0.6, minWidth: 12 }
+  const ruleStyle: React.CSSProperties = { flex: 1, borderTop: '1.5px dashed var(--text-faint)', opacity: 0.75, minWidth: 12 }
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: size === 'sm' ? '1px 0' : '2px 0' }}>
       <span style={ruleStyle} />

@@ -51,7 +51,8 @@ export default function TransitJourneyModal({ reservation, onClose, onSave, onDe
   const [title, setTitle] = useState(res.title || '')
   const [editingTitle, setEditingTitle] = useState(false)
   const [notes, setNotes] = useState(res.notes || '')
-  const [notesTab, setNotesTab] = useState<'write' | 'preview'>('write')
+  // Existing notes open rendered; the write tab is for editing.
+  const [notesTab, setNotesTab] = useState<'write' | 'preview'>(() => (res.notes ? 'preview' : 'write'))
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const titleInputRef = useRef<HTMLInputElement | null>(null)
@@ -105,6 +106,7 @@ export default function TransitJourneyModal({ reservation, onClose, onSave, onDe
     setTitle(res.title || '')
     setNotes(res.notes || '')
     setEditingTitle(false)
+    setNotesTab(res.notes ? 'preview' : 'write')
   }, [res.id])
 
   useEffect(() => { if (editingTitle) titleInputRef.current?.focus() }, [editingTitle])

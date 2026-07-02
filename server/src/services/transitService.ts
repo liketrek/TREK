@@ -129,6 +129,9 @@ export interface TransitLeg {
   lineTextColor: string | null;
   agency: string | null;
   intermediateStops: number;
+  /** Encoded polyline of the leg's real path (Google encoding) + its precision. */
+  geometry: string | null;
+  geometryPrecision: number;
 }
 
 export interface TransitItinerary {
@@ -216,6 +219,7 @@ export async function plan(q: PlanQuery): Promise<{ itineraries: TransitItinerar
         routeShortName?: string; displayName?: string; routeColor?: string; routeTextColor?: string;
         agencyName?: string; from?: MotisPlaceRaw; to?: MotisPlaceRaw;
         intermediateStops?: unknown[];
+        legGeometry?: { points?: string; precision?: number };
       }>;
     }>;
   };
@@ -234,6 +238,8 @@ export async function plan(q: PlanQuery): Promise<{ itineraries: TransitItinerar
       lineTextColor: safeColor(leg.routeTextColor),
       agency: leg.agencyName || null,
       intermediateStops: Array.isArray(leg.intermediateStops) ? leg.intermediateStops.length : 0,
+      geometry: leg.legGeometry?.points || null,
+      geometryPrecision: leg.legGeometry?.precision ?? 6,
     }));
     const walkSeconds = legs.filter((l) => l.mode === 'WALK').reduce((a, l) => a + l.duration, 0);
     return [{

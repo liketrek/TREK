@@ -10,6 +10,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import type mapboxgl from 'mapbox-gl'
 import { Plane, Train, Ship, Car, Bus, Sailboat, Bike, CarTaxiFront, Route, TramFront } from 'lucide-react'
+import { getTransitMapSegments } from './transitGeometry'
 import { escapeHtml } from '@trek/shared'
 import type { Reservation, ReservationEndpoint } from '../../types'
 
@@ -276,16 +277,25 @@ export class ReservationMapboxOverlay {
     const map = this.map
     if (map.getSource(RESERVATION_SOURCE_ID)) return
     map.addSource(RESERVATION_SOURCE_ID, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+    // White casing under real transit paths so the colored lines read cleanly.
+    map.addLayer({
+      id: RESERVATION_LINE_LAYER_ID + '-transit-casing',
+      type: 'line',
+      source: RESERVATION_SOURCE_ID,
+      filter: ['all', ['==', ['get', 'transitPath'], true], ['!=', ['get', 'walk'], true]] as any,
+      paint: { 'line-color': '#ffffff', 'line-width': 6, 'line-opacity': 0.85 },
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+    })
     map.addLayer({
       id: RESERVATION_LINE_LAYER_ID,
       type: 'line',
       source: RESERVATION_SOURCE_ID,
       paint: {
-        'line-color': TRANSPORT_COLOR,
-        'line-width': 2.5,
-        // Confirmed = solid + 0.75; pending = dashed + 0.55.
-        'line-opacity': ['case', ['==', ['get', 'status'], 'confirmed'], 0.75, 0.55] as any,
-        'line-dasharray': ['case', ['==', ['get', 'status'], 'confirmed'], ['literal', [1, 0]], ['literal', [3, 3]]] as any,
+        'line-color': ['coalesce', ['get', 'color'], TRANSPORT_COLOR] as any,
+        'line-width': ['case', ['==', ['get', 'transitPath'], true], ['case', ['==', ['get', 'walk'], true], 3, 3.5], 2.5] as any,
+        // Confirmed = solid + 0.75; pending = dashed + 0.55; walks always dotted.
+        'line-opacity': ['case', ['==', ['get', 'transitPath'], true], 0.95, ['case', ['==', ['get', 'status'], 'confirmed'], 0.75, 0.55]] as any,
+        'line-dasharray': ['case', ['==', ['get', 'walk'], true], ['literal', [0.1, 2.5]], ['case', ['==', ['get', 'status'], 'confirmed'], ['literal', [1, 0]], ['literal', [3, 3]]]] as any,
       },
       layout: { 'line-cap': 'round', 'line-join': 'round' },
     })
@@ -328,18 +338,41 @@ export class ReservationMapboxOverlay {
     }
 
     // ── line features ───────────────────────────────────────────────
-    const features = visibleItems.flatMap(item => item.arcs.map(seg => ({
-      type: 'Feature' as const,
-      properties: {
-        resId: item.res.id,
-        type: item.type,
-        status: item.res.status ?? 'pending',
-      },
-      geometry: {
-        type: 'LineString' as const,
-        coordinates: seg.map(([lat, lng]) => [lng, lat]),
-      },
-    })))
+    const features = visibleItems.flatMap(item => {
+      const transitSegs = item.type === 'transit' ? getTransitMapSegments(item.res) : []
+      if (transitSegs.length > 0) {
+        return transitSegs.map(seg => ({
+          type: 'Feature' as const,
+          properties: {
+            resId: item.res.id,
+            type: item.type,
+            status: item.res.status ?? 'pending',
+            transitPath: true,
+            walk: seg.walk,
+            color: seg.walk ? '#64748b' : (seg.color || '#7c3aed'),
+          },
+          geometry: {
+            type: 'LineString' as const,
+            coordinates: seg.coords.map(([lat, lng]) => [lng, lat]),
+          },
+        }))
+      }
+      return item.arcs.map(seg => ({
+        type: 'Feature' as const,
+        properties: {
+          resId: item.res.id,
+          type: item.type,
+          status: item.res.status ?? 'pending',
+          transitPath: false,
+          walk: false,
+          color: null as string | null,
+        },
+        geometry: {
+          type: 'LineString' as const,
+          coordinates: seg.map(([lat, lng]) => [lng, lat]),
+        },
+      }))
+    })
     const src = map.getSource(RESERVATION_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined
     src?.setData({ type: 'FeatureCollection', features })
 

@@ -26,6 +26,7 @@ interface TransitLeg {
   mode: string; from: TransitLegStop; to: TransitLegStop; duration: number; distance: number | null
   headsign: string | null; line: string | null; lineColor: string | null; lineTextColor: string | null
   agency: string | null; intermediateStops: number
+  geometry?: string | null; geometryPrecision?: number
 }
 export interface TransitItinerary {
   startTime: string; endTime: string; duration: number; transfers: number; walkSeconds: number; legs: TransitLeg[]
@@ -370,7 +371,18 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
       const allModes = activeModes.size === MODE_GROUPS.length
       const modes = allModes ? undefined : MODE_GROUPS.filter(m => activeModes.has(m.key)).map(m => m.modes).join(',')
       const d = await transitApi.plan({ from: `${from.lat},${from.lng}`, to: `${to.lat},${to.lng}`, time: timeIso, arriveBy, modes })
-      setItineraries(d.itineraries || [])
+      // MOTIS names the request coordinates START/END — swap in the places the
+      // user actually picked so walks read "Walk to Zoologischer Garten".
+      const cleanStop = (n: string) => (n === 'START' ? from.name : n === 'END' ? to.name : n)
+      const cleaned = (d.itineraries || []).map((it: TransitItinerary) => ({
+        ...it,
+        legs: it.legs.map(l => ({
+          ...l,
+          from: { ...l.from, name: cleanStop(l.from.name) },
+          to: { ...l.to, name: cleanStop(l.to.name) },
+        })),
+      }))
+      setItineraries(cleaned)
     } catch {
       toast.error(t('transit.searchError'))
       setItineraries([])
@@ -444,6 +456,8 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
               stops: l.intermediateStops,
               from: { name: l.from.name, time: l.from.time ? timeHHmmInTz(l.from.time, tzAt(l.from.lat, l.from.lng)) : null, track: l.from.track },
               to: { name: l.to.name, time: l.to.time ? timeHHmmInTz(l.to.time, tzAt(l.to.lat, l.to.lng)) : null, track: l.to.track },
+              geometry: l.geometry || null,
+              geometry_precision: l.geometryPrecision ?? 6,
             })),
           },
         },

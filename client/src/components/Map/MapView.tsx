@@ -445,9 +445,9 @@ export const MapView = memo(function MapView({
     </Marker>
   )), [pois, onPoiClick])
   const visibleReservations = useMemo(() => {
-    if (!visibleConnectionIds || visibleConnectionIds.length === 0) return []
-    const set = new Set(visibleConnectionIds)
-    return reservations.filter((r: Reservation) => set.has(r.id))
+    const set = new Set(visibleConnectionIds || [])
+    // Transit journeys are part of the plan itself — always on the map (#1065).
+    return reservations.filter((r: Reservation) => r.type === 'transit' || set.has(r.id))
   }, [reservations, visibleConnectionIds])
   // Dynamic padding: account for sidebars + bottom inspector + day detail panel
   const paddingOpts = useMemo((): L.FitBoundsOptions => {
