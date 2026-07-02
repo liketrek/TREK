@@ -1093,3 +1093,36 @@ img[alt="TREK"] {
   .dp-day-header:hover .dp-day-actions,
   .dp-day-header[data-selected="true"] .dp-day-actions { opacity: 1; }
 }
+
+/* ── TREK range slider — thin filled track + soft round thumb ─────────────── */
+.trek-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 5px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--accent) var(--fill, 50%), var(--border-faint) var(--fill, 50%));
+  outline: none;
+  cursor: pointer;
+}
+.trek-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--bg-card, #fff);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  transition: transform 0.12s ease;
+}
+.trek-range::-webkit-slider-thumb:hover { transform: scale(1.1); }
+.trek-range::-webkit-slider-thumb:active { transform: scale(1.18); }
+.trek-range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--bg-card, #fff);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+.trek-range::-moz-range-track { height: 5px; border-radius: 999px; background: transparent; }
