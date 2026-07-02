@@ -120,5 +120,8 @@ const budget: TranslationStrings = {
   'costs.splitEqually': "Equally",
   'costs.splitCustom': "Custom",
   'costs.splitTicket': "Ticket",
+  'costs.filter.allCategories': 'Wszystkie kategorie',
+  'costs.filter.allDays': 'Wszystkie dni',
+  'costs.expensesCount': '{count} wydatków',
 };
 export default budget;

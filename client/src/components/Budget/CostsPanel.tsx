@@ -131,6 +131,8 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
   const [settlement, setSettlement] = useState<SettlementData | null>(null)
   const [filter, setFilter] = useState<'all' | 'mine' | 'owed'>('all')
   const [search, setSearch] = useState('')
+  const [catFilter, setCatFilter] = useState('')   // '' = all categories
+  const [dayFilter, setDayFilter] = useState('')   // '' = all days, else YYYY-MM-DD
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<BudgetItem | null>(null)
   const [editingSettlement, setEditingSettlement] = useState<Settlement | null>(null)
@@ -192,21 +194,27 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     let list = budgetItems.slice()
     if (filter === 'mine') list = list.filter(e => myPaidOf(e) > 0)
     if (filter === 'owed') list = list.filter(e => round2(myPaidOf(e) - myShareOf(e)) > 0)
+    // catMeta normalises legacy/free-text categories to the fixed keys, so the
+    // filter matches rows saved before the category rework too.
+    if (catFilter) list = list.filter(e => catMeta(e.category).key === catFilter)
+    if (dayFilter) list = list.filter(e => (e.expense_date || '') === dayFilter)
     const q = search.trim().toLowerCase()
     if (q) list = list.filter(e => e.name.toLowerCase().includes(q))
     return list
-  }, [budgetItems, filter, search, me])
+  }, [budgetItems, filter, search, catFilter, dayFilter, me])
 
   // Settlements ("payments") shown inline in the ledger. They have no name, so a
   // text search hides them; they're excluded from the "owed" expense filter and,
   // under "mine", only show transfers I'm part of.
   const filteredSettlements = useMemo(() => {
-    if (search.trim()) return []
+    // Payments carry no name or category, so a text/category filter hides them.
+    if (search.trim() || catFilter) return []
     if (filter === 'owed') return []
     let list = settlement?.settlements || []
     if (filter === 'mine') list = list.filter(s => s.from_user_id === me || s.to_user_id === me)
+    if (dayFilter) list = list.filter(s => (s.created_at || '').slice(0, 10) === dayFilter)
     return list
-  }, [settlement, filter, search, me])
+  }, [settlement, filter, search, catFilter, dayFilter, me])
 
   const dayGroups = useMemo(() => {
     const entries: LedgerEntry[] = [
@@ -228,6 +236,20 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     }
     return groups
   }, [filtered, filteredSettlements, locale, t])
+
+  // ── filter dropdown options (category + single day) ──────────────────────
+  const categoryOptions = useMemo(() => [
+    { value: '', label: t('costs.filter.allCategories') },
+    ...COST_CATEGORY_LIST.map(c => ({ value: c.key, label: t(c.labelKey), icon: <c.Icon size={14} style={{ color: c.color }} /> })),
+  ], [t])
+
+  const dayOptions = useMemo(() => {
+    const days = Array.from(new Set(budgetItems.map(e => e.expense_date).filter(Boolean) as string[])).sort((a, b) => b.localeCompare(a))
+    const fmtDay = (d: string) => {
+      try { return new Date(d + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }) } catch { return d }
+    }
+    return [{ value: '', label: t('costs.filter.allDays') }, ...days.map(d => ({ value: d, label: fmtDay(d) }))]
+  }, [budgetItems, locale, t])
 
   // ── settle actions ──────────────────────────────────────────────────────
   const settleFlow = async (fromId: number, toId: number, amount: number) => {
@@ -282,6 +304,29 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     const isBig = (p: Intl.NumberFormatPart) => p.type === 'integer' || p.type === 'group' || p.type === 'minusSign'
     return <>{parts.map((p, i) => <span key={i} style={isBig(p) ? undefined : { fontSize: smallSize, fontWeight: 500, color: mutedColor }}>{p.value}</span>)}</>
   }
+
+  // ── category + day filter controls (shared by both layouts) ──────────────
+  const filterControls = (
+    <>
+      <CustomSelect value={catFilter} onChange={v => setCatFilter(String(v))} options={categoryOptions} size="sm" style={{ minWidth: 148 }} />
+      <CustomSelect value={dayFilter} onChange={v => setDayFilter(String(v))} options={dayOptions} size="sm" searchable style={{ minWidth: 140 }} />
+    </>
+  )
+
+  // A prominent summary shown when a single day is selected: the day + its total.
+  const dayFilterTotal = dayFilter ? filtered.reduce((a, e) => a + baseTotal(e), 0) : 0
+  const dayFilterLabel = dayFilter
+    ? (() => { try { return new Date(dayFilter + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }) } catch { return dayFilter } })()
+    : ''
+  const dayBanner = dayFilter ? (
+    <div className={cardCls} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, borderRadius: 16, padding: '16px 20px', marginBottom: 16 }}>
+      <div style={{ minWidth: 0 }}>
+        <div className="text-content" style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 700, letterSpacing: '-0.01em' }}>{dayFilterLabel}</div>
+        <div className="text-content-muted" style={{ marginTop: 3, fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}>{t('costs.expensesCount', { count: filtered.length })}</div>
+      </div>
+      <div className="text-content" style={{ fontSize: 'calc(26px * var(--fs-scale-title, 1))', fontWeight: 700, letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>{bigMoney(dayFilterTotal, 15, 'var(--text-muted)')}</div>
+    </div>
+  ) : null
 
   return (
     <div className="costs-root" style={{ minHeight: '100%', background: 'var(--c-bg)', padding: isMobile ? '6px 14px 28px' : '40px 24px 48px' }}>
@@ -348,12 +393,13 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
             <h3 className="text-content" style={{ fontSize: 'calc(24px * var(--fs-scale-title, 1))', fontWeight: 600, letterSpacing: '-0.025em', margin: 0 }}>
               {t('costs.expenses')}
             </h3>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <div className="bg-surface-input border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 6, borderRadius: 10, padding: '0 10px', height: 34 }}>
                 <Search size={15} className="text-content-faint" />
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('costs.searchPlaceholder')}
                   className="text-content" style={{ border: 0, background: 'none', outline: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', width: 150, fontFamily: 'inherit' }} />
               </div>
+              {filterControls}
               <div className="bg-surface-secondary" style={{ display: 'flex', borderRadius: 9, padding: 3 }}>
                 {(['all', 'mine', 'owed'] as const).map(f => (
                   <button key={f} onClick={() => setFilter(f)}
@@ -366,6 +412,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
             </div>
           </div>
 
+          {dayBanner}
           {dayGroups.length === 0 ? (
             <div className="text-content-faint" style={{ textAlign: 'center', padding: '60px 20px' }}>
               {search ? t('costs.noMatch') : t('costs.emptyText')}
@@ -374,9 +421,11 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
             const dtot = g.entries.reduce((a, en) => en.kind === 'expense' ? a + baseTotal(en.e) : a, 0)
             return (
               <div key={g.day} style={{ marginBottom: 22 }}>
+                {!dayFilter && (
                 <div className={labelCls} style={{ display: 'flex', alignItems: 'center', margin: '0 0 10px 4px' }}>
                   {g.day}<span className="text-content-muted" style={{ marginLeft: 'auto', textTransform: 'none', letterSpacing: 0, fontWeight: 500, fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}>{t('costs.spent', { amount: fmt(dtot) })}</span>
                 </div>
+                )}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {g.entries.map(en => en.kind === 'expense'
                     ? <ExpenseRow key={'e' + en.e.id} e={en.e} />
@@ -554,13 +603,18 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
               <button key={f} onClick={() => setFilter(f)} className={filter === f ? 'bg-surface-card text-content' : 'text-content-muted'} style={{ flex: 1, padding: '8px 6px', fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 500, borderRadius: 8, border: 0, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>{t('costs.filter.' + f)}</button>
             ))}
           </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <CustomSelect value={catFilter} onChange={v => setCatFilter(String(v))} options={categoryOptions} size="sm" style={{ flex: 1, minWidth: 0 }} />
+            <CustomSelect value={dayFilter} onChange={v => setDayFilter(String(v))} options={dayOptions} size="sm" searchable style={{ flex: 1, minWidth: 0 }} />
+          </div>
+          {dayBanner}
           {dayGroups.length === 0
             ? <div className="text-content-faint" style={{ textAlign: 'center', padding: '36px 16px', fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>{search ? t('costs.noMatch') : t('costs.emptyText')}</div>
             : dayGroups.map(g => {
                 const dtot = g.entries.reduce((a, en) => en.kind === 'expense' ? a + baseTotal(en.e) : a, 0)
                 return (
                   <div key={g.day} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <div className={labelCls} style={{ display: 'flex', alignItems: 'center', padding: '0 2px' }}>{g.day}<span className="text-content-muted" style={{ marginLeft: 'auto', textTransform: 'none', letterSpacing: 0, fontWeight: 500, fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))' }}>{t('costs.spent', { amount: fmt(dtot) })}</span></div>
+                    {!dayFilter && <div className={labelCls} style={{ display: 'flex', alignItems: 'center', padding: '0 2px' }}>{g.day}<span className="text-content-muted" style={{ marginLeft: 'auto', textTransform: 'none', letterSpacing: 0, fontWeight: 500, fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))' }}>{t('costs.spent', { amount: fmt(dtot) })}</span></div>}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{g.entries.map(en => en.kind === 'expense'
                       ? <ExpenseRow key={'e' + en.e.id} e={en.e} />
                       : <SettlementRow key={'s' + en.s.id} s={en.s} />)}</div>

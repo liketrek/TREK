@@ -120,6 +120,9 @@ const budget: TranslationStrings = {
   'costs.splitEqually': 'Chia đều',
   'costs.splitCustom': 'Tùy chỉnh',
   'costs.splitTicket': 'Hóa đơn',
+  'costs.filter.allCategories': 'Tất cả danh mục',
+  'costs.filter.allDays': 'Tất cả các ngày',
+  'costs.expensesCount': '{count} chi phí',
 };
 
 export default budget;

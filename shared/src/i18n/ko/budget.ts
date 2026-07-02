@@ -120,5 +120,8 @@ const budget: TranslationStrings = {
   'costs.splitEqually': "Equally",
   'costs.splitCustom': "Custom",
   'costs.splitTicket': "Ticket",
+  'costs.filter.allCategories': '모든 카테고리',
+  'costs.filter.allDays': '모든 날짜',
+  'costs.expensesCount': '지출 {count}건',
 };
 export default budget;

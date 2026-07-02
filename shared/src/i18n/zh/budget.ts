@@ -119,5 +119,8 @@ const budget: TranslationStrings = {
   'costs.splitEqually': "Equally",
   'costs.splitCustom': "Custom",
   'costs.splitTicket': "Ticket",
+  'costs.filter.allCategories': '所有类别',
+  'costs.filter.allDays': '所有日期',
+  'costs.expensesCount': '{count} 笔支出',
 };
 export default budget;

@@ -120,5 +120,8 @@ const budget: TranslationStrings = {
   'costs.splitEqually': "Equally",
   'costs.splitCustom': "Custom",
   'costs.splitTicket': "Ticket",
+  'costs.filter.allCategories': 'すべてのカテゴリー',
+  'costs.filter.allDays': 'すべての日',
+  'costs.expensesCount': '{count}件の支出',
 };
 export default budget;
