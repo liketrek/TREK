@@ -9,7 +9,7 @@ import {
   Plane, Hotel, Utensils, Train, Car, Ship, Bus, Sailboat, Bike, CarTaxiFront, Route, Ticket, FileText, MapPin,
   Calendar, Hash, CheckCircle2, Circle, Pencil, Trash2, Plus, ChevronDown, ChevronRight, Users,
   ExternalLink, BookMarked, Lightbulb, Link2, Clock, ArrowRight, AlertCircle, Download,
-  TramFront, Footprints,
+  TramFront, Footprints, StickyNote,
 } from 'lucide-react'
 import { openFile } from '../../utils/fileDownload'
 import { TransitTitle, TransitLegChips, TransitMetaBadges, fmtTransitDuration } from './transitDisplay'
@@ -531,7 +531,7 @@ function TransitJourneyCard({ r, days, onOpen, onDelete, canEdit }: {
           <div className="text-content" style={{ fontSize: 'calc(13.5px * var(--fs-scale-body, 1))', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             <TransitTitle title={r.title} iconSize={12} />
           </div>
-          <div style={{ marginTop: 4 }}>
+          <div style={{ marginTop: 2 }}>
             <TransitMetaBadges size="sm" items={[
               { text: day ? (day.title || t('dayplan.dayN', { n: day.day_number })) : '' },
               { icon: Calendar, text: dateStr || '' },
@@ -556,6 +556,12 @@ function TransitJourneyCard({ r, days, onOpen, onDelete, canEdit }: {
       {transit && (
         <div style={{ paddingLeft: 44 }}>
           <TransitLegChips legs={transit.legs} size="md" t={t} />
+        </div>
+      )}
+      {r.notes && (
+        <div className="text-content-faint" style={{ paddingLeft: 44, display: 'flex', alignItems: 'center', gap: 5, fontSize: 'calc(11px * var(--fs-scale-caption, 1))', minWidth: 0 }}>
+          <StickyNote size={11} style={{ flexShrink: 0 }} />
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.notes.split('\n')[0]}</span>
         </div>
       )}
       {confirmOpen && ReactDOM.createPortal(
