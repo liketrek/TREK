@@ -724,7 +724,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
       {/* Journey view for a saved public-transit entry (#1065) */}
       {transitJourney && (
         <TransitJourneyModal
-          reservation={transitJourney}
+          reservation={reservations.find(r => r.id === transitJourney.id) ?? transitJourney}
           canEdit={can('day_edit', trip)}
           onClose={() => setTransitJourney(null)}
           onSave={async (fields) => { await tripActions.updateReservation(tripId, transitJourney.id, fields); setTransitJourney(null) }}

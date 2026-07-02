@@ -20,6 +20,31 @@ export interface TransitLegDisplay {
   to?: { name?: string; time?: string | null; track?: string | null }
 }
 
+
+/**
+ * A walk leg as a one-line centred divider — dashed rules left and right,
+ * the walk itself in the middle (🚶 Walk to X · 4 min). Used by the journey
+ * modal and the day-plan inline itinerary.
+ */
+export function TransitWalkDivider({ leg, t, size = 'md' }: {
+  leg: TransitLegDisplay
+  t: (k: string, p?: Record<string, string | number>) => string
+  size?: 'sm' | 'md'
+}) {
+  const mins = leg.duration ? Math.round(leg.duration / 60) : null
+  const ruleStyle: React.CSSProperties = { flex: 1, borderTop: '1px dashed var(--border-primary)', opacity: 0.6, minWidth: 12 }
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: size === 'sm' ? '1px 0' : '2px 0' }}>
+      <span style={ruleStyle} />
+      <span className="text-content-faint" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: size === 'sm' ? 'calc(10px * var(--fs-scale-caption, 1))' : 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '75%' }}>
+        <Footprints size={size === 'sm' ? 11 : 12} style={{ flexShrink: 0 }} />
+        {t('transit.walkTo', { name: leg.to?.name || '' })}{mins ? ` · ${t('transit.min', { count: mins })}` : ''}
+      </span>
+      <span style={ruleStyle} />
+    </div>
+  )
+}
+
 /**
  * The itinerary folded out right inside the day-plan row (#1065): one compact
  * line per leg — time, badge or foot icon, stations — sized for the sidebar.
@@ -31,40 +56,32 @@ export function TransitItineraryInline({ legs, t }: {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
       {legs.map((leg, i) => {
-        const isWalk = leg.mode === 'WALK'
+        if (leg.mode === 'WALK') return <TransitWalkDivider key={i} leg={leg} t={t} size="sm" />
         const mins = leg.duration ? Math.round(leg.duration / 60) : null
         return (
           <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 7 }}>
             <span className="text-content-muted" style={{ width: 34, flexShrink: 0, textAlign: 'right', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, paddingTop: 1 }}>
-              {!isWalk && leg.from?.time ? leg.from.time : ''}
+              {leg.from?.time || ''}
             </span>
-            {isWalk ? (
-              <Footprints size={11} className="text-content-faint" style={{ flexShrink: 0, marginTop: 2 }} />
-            ) : (
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', borderRadius: 4, padding: '0 5px',
-                fontSize: 'calc(9.5px * var(--fs-scale-caption, 1))', fontWeight: 700, lineHeight: '15px', flexShrink: 0,
-                background: leg.line_color || 'var(--bg-tertiary)',
-                color: leg.line_color ? (leg.line_text_color || '#fff') : 'var(--text-primary)',
-              }}>
-                {leg.line || leg.mode}
-              </span>
-            )}
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', borderRadius: 4, padding: '0 5px',
+              fontSize: 'calc(9.5px * var(--fs-scale-caption, 1))', fontWeight: 700, lineHeight: '15px', flexShrink: 0,
+              background: leg.line_color || 'var(--bg-tertiary)',
+              color: leg.line_color ? (leg.line_text_color || '#fff') : 'var(--text-primary)',
+            }}>
+              {leg.line || leg.mode}
+            </span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="text-content" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
-                {isWalk
-                  ? <span className="text-content-muted">{t('transit.walkTo', { name: leg.to?.name || '' })}</span>
-                  : <>
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{leg.from?.name}</span>
-                      <MoveRight size={10} className="text-content-faint" style={{ flexShrink: 0 }} />
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{leg.to?.name}</span>
-                    </>}
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{leg.from?.name}</span>
+                <MoveRight size={10} className="text-content-faint" style={{ flexShrink: 0 }} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{leg.to?.name}</span>
               </div>
               <div className="text-content-faint" style={{ fontSize: 'calc(9.5px * var(--fs-scale-caption, 1))', marginTop: 1 }}>
                 {[
                   mins ? t('transit.min', { count: mins }) : null,
-                  !isWalk && leg.stops ? t('transit.stops', { count: leg.stops }) : null,
-                  !isWalk && leg.from?.track ? t('transit.platform', { track: leg.from.track }) : null,
+                  leg.stops ? t('transit.stops', { count: leg.stops }) : null,
+                  leg.from?.track ? t('transit.platform', { track: leg.from.track }) : null,
                 ].filter(Boolean).join(' · ')}
               </div>
             </div>
