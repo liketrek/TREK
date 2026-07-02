@@ -1,8 +1,6 @@
-import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
 import { Users, Check, X } from 'lucide-react'
-import { tripInviteApi } from '../api/client'
 import { useTranslation } from '../i18n'
+import { useJoinTrip } from './join/useJoinTrip'
 
 /**
  * /join/:token — accept a trip invite as an existing, logged-in user (#1143).
@@ -14,29 +12,8 @@ import { useTranslation } from '../i18n'
  * (or the owner) is simply taken straight to the trip.
  */
 export default function JoinTripPage() {
-  const { token } = useParams<{ token: string }>()
-  const navigate = useNavigate()
   const { t } = useTranslation()
-
-  const [state, setState] = useState<'loading' | 'ready' | 'joining' | 'invalid'>('loading')
-  const [title, setTitle] = useState('')
-
-  useEffect(() => {
-    let cancelled = false
-    if (!token) { setState('invalid'); return }
-    tripInviteApi.preview(token)
-      .then((data: { title: string }) => { if (!cancelled) { setTitle(data.title); setState('ready') } })
-      .catch(() => { if (!cancelled) setState('invalid') })
-    return () => { cancelled = true }
-  }, [token])
-
-  const accept = () => {
-    if (!token) return
-    setState('joining')
-    tripInviteApi.accept(token)
-      .then((data: { trip_id: number }) => navigate(`/trips/${data.trip_id}`, { replace: true }))
-      .catch(() => setState('invalid'))
-  }
+  const { state, title, accept, goToDashboard } = useJoinTrip()
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface" style={{ padding: 24 }}>
@@ -58,7 +35,7 @@ export default function JoinTripPage() {
             <h1 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{t('trip.invite.invalidTitle')}</h1>
             <p className="text-content-secondary" style={{ fontSize: 14, marginBottom: 20 }}>{t('trip.invite.invalid')}</p>
             <button
-              onClick={() => navigate('/dashboard', { replace: true })}
+              onClick={goToDashboard}
               className="bg-surface-hover text-content"
               style={{ border: 'none', borderRadius: 10, padding: '10px 18px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
             >
@@ -73,7 +50,7 @@ export default function JoinTripPage() {
             </p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
               <button
-                onClick={() => navigate('/dashboard', { replace: true })}
+                onClick={goToDashboard}
                 className="bg-surface-hover text-content"
                 style={{ border: 'none', borderRadius: 10, padding: '10px 18px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
               >
