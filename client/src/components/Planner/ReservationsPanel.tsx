@@ -561,7 +561,9 @@ function TransitJourneyCard({ r, days, onOpen, onDelete, canEdit }: {
       {r.notes && (
         <div className="text-content-faint" style={{ paddingLeft: 44, display: 'flex', alignItems: 'center', gap: 5, fontSize: 'calc(11px * var(--fs-scale-caption, 1))', minWidth: 0 }}>
           <StickyNote size={11} style={{ flexShrink: 0 }} />
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.notes.split('\n')[0]}</span>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <Markdown remarkPlugins={[remarkGfm]} allowedElements={['strong', 'em', 'del', 'code', 'a']} unwrapDisallowed>{r.notes.split('\n')[0]}</Markdown>
+          </span>
         </div>
       )}
       {confirmOpen && ReactDOM.createPortal(
