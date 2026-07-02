@@ -48,6 +48,13 @@ vi.mock('../Map/RouteCalculator', () => ({
   calculateRoute: vi.fn().mockResolvedValue({ distanceText: '5 km', durationText: '1h', coordinates: [] }),
   generateGoogleMapsUrl: vi.fn().mockReturnValue('https://maps.google.com/...'),
   optimizeRoute: vi.fn().mockImplementation((places) => places),
+  // One leg per waypoint gap; the connector between two stops reads distanceText.
+  calculateRouteWithLegs: vi.fn().mockImplementation((waypoints) => Promise.resolve({
+    distanceText: '2 km', durationText: '10 min',
+    legs: Array.from({ length: Math.max(0, (waypoints?.length ?? 0) - 1) }, () => ({
+      distanceText: '2 km', durationText: '10 min', drivingText: '10 min', walkingText: '25 min',
+    })),
+  })),
 }))
 
 // PlaceAvatar needs IntersectionObserver
@@ -1783,5 +1790,99 @@ describe('DayPlanSidebar', () => {
     const optimizeBtn = screen.getByRole('button', { name: /optimize/i })
     await user.click(optimizeBtn)
     await waitFor(() => expect(onReorder).toHaveBeenCalledWith(10, expect.any(Array)))
+  })
+
+  it('FE-PLANNER-DAYPLAN-101: mobile Route toggle shows inline leg distances without selecting the day (#1374)', async () => {
+    const user = userEvent.setup()
+    const onSelectDay = vi.fn()
+    const onToggleRoute = vi.fn()
+    const places = [
+      buildPlace({ id: 1, name: 'A', lat: 48.85, lng: 2.35 }),
+      buildPlace({ id: 2, name: 'B', lat: 48.86, lng: 2.36 }),
+    ]
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    const assigns = {
+      '10': [
+        buildAssignment({ id: 1, day_id: 10, order_index: 0, place: places[0] }),
+        buildAssignment({ id: 2, day_id: 10, order_index: 1, place: places[1] }),
+      ],
+    }
+    render(<DayPlanSidebar {...makeDefaultProps({
+      days: [day], places, assignments: assigns, selectedDayId: null,
+      showRouteToolsWhenExpanded: true, onSelectDay, onToggleRoute,
+    })} />)
+    // Distances are hidden until the user asks for them.
+    expect(screen.queryByText('2 km')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Route' }))
+    // The leg distance appears inline…
+    expect(await screen.findByText('2 km')).toBeInTheDocument()
+    // …and the day was never selected, so on mobile the sheet stays open.
+    expect(onSelectDay).not.toHaveBeenCalled()
+    expect(onToggleRoute).not.toHaveBeenCalled()
+  })
+
+  it('FE-PLANNER-DAYPLAN-102: mobile Route toggle hides the distances again on second tap (#1374)', async () => {
+    const user = userEvent.setup()
+    const places = [
+      buildPlace({ id: 1, name: 'A', lat: 48.85, lng: 2.35 }),
+      buildPlace({ id: 2, name: 'B', lat: 48.86, lng: 2.36 }),
+    ]
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    const assigns = {
+      '10': [
+        buildAssignment({ id: 1, day_id: 10, order_index: 0, place: places[0] }),
+        buildAssignment({ id: 2, day_id: 10, order_index: 1, place: places[1] }),
+      ],
+    }
+    render(<DayPlanSidebar {...makeDefaultProps({
+      days: [day], places, assignments: assigns, selectedDayId: null, showRouteToolsWhenExpanded: true,
+    })} />)
+    const routeBtn = screen.getByRole('button', { name: 'Route' })
+    await user.click(routeBtn)
+    expect(await screen.findByText('2 km')).toBeInTheDocument()
+    await user.click(routeBtn)
+    await waitFor(() => expect(screen.queryByText('2 km')).not.toBeInTheDocument())
+  })
+
+  it('FE-PLANNER-DAYPLAN-103: two route-toggled days keep separate leg distances despite id overlap (#1374)', async () => {
+    const user = userEvent.setup()
+    const { calculateRouteWithLegs } = await import('../Map/RouteCalculator')
+    // Distance derived from the first waypoint's latitude, so each day yields a
+    // distinct text. With a flat (non-per-day) leg map, the shared first-place id (5)
+    // would let the last day overwrite the other — this guards that regression.
+    vi.mocked(calculateRouteWithLegs as any).mockImplementation((wp: any) => {
+      const lat = wp?.[0]?.lat ?? 0
+      const txt = `${Math.round(lat * 100)} m`
+      return Promise.resolve({
+        distanceText: txt, durationText: '1 min',
+        legs: Array.from({ length: Math.max(0, (wp?.length ?? 0) - 1) }, () => ({
+          distanceText: txt, durationText: '1 min', drivingText: '1 min', walkingText: '1 min',
+        })),
+      })
+    })
+    const dayA = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    const dayB = buildDay({ id: 11, date: '2025-06-02', title: 'Day 2' })
+    // Both days start with an assignment whose id is 5 (the leg is keyed on the first
+    // place's id) — the collision the per-day nesting must keep apart.
+    const assigns = {
+      '10': [
+        buildAssignment({ id: 5, day_id: 10, order_index: 0, place: buildPlace({ id: 1, name: 'A1', lat: 10.0, lng: 2.0 }) }),
+        buildAssignment({ id: 6, day_id: 10, order_index: 1, place: buildPlace({ id: 2, name: 'A2', lat: 10.01, lng: 2.01 }) }),
+      ],
+      '11': [
+        buildAssignment({ id: 5, day_id: 11, order_index: 0, place: buildPlace({ id: 3, name: 'B1', lat: 20.0, lng: 3.0 }) }),
+        buildAssignment({ id: 7, day_id: 11, order_index: 1, place: buildPlace({ id: 4, name: 'B2', lat: 20.01, lng: 3.01 }) }),
+      ],
+    }
+    render(<DayPlanSidebar {...makeDefaultProps({
+      days: [dayA, dayB],
+      places: [], assignments: assigns, selectedDayId: null, showRouteToolsWhenExpanded: true,
+    })} />)
+    const routeBtns = screen.getAllByRole('button', { name: 'Route' })
+    await user.click(routeBtns[0]) // Day 1
+    await user.click(routeBtns[1]) // Day 2
+    // Each day shows its own distance, not the other's — proves per-day isolation.
+    expect(await screen.findByText('1000 m')).toBeInTheDocument()
+    expect(await screen.findByText('2000 m')).toBeInTheDocument()
   })
 })
