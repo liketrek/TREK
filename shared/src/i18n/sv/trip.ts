@@ -69,5 +69,12 @@ const trip: TranslationStrings = {
   'transit.addToDay': 'Lägg till dag',
   'transit.itinerary': 'Reseplan',
   'transit.attribution': 'Ruttdata via',
+  'transport.modeManual': 'Manuell transport',
+  'transport.modeAutomated': 'Automatisk transport',
+  'transit.sectionTitle': 'Automatisk kollektivtrafik',
+  'transit.changeRoute': 'Ändra resväg',
+  'transit.journey': 'Kollektivtrafikresa',
+  'transit.pickDay': 'Välj en dag att söka förbindelser för.',
+  'transit.noItinerary': 'Den här posten har ingen sparad resplan – använd ”Ändra resväg” för att söka en.',
 };
 export default trip;

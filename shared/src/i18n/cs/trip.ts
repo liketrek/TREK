@@ -69,5 +69,12 @@ const trip: TranslationStrings = {
   'transit.addToDay': 'Přidat ke dni',
   'transit.itinerary': 'Itinerář',
   'transit.attribution': 'Data o spojení přes',
+  'transport.modeManual': 'Ruční doprava',
+  'transport.modeAutomated': 'Automatická doprava',
+  'transit.sectionTitle': 'Automatické spojení MHD',
+  'transit.changeRoute': 'Změnit trasu',
+  'transit.journey': 'Cesta veřejnou dopravou',
+  'transit.pickDay': 'Vyberte den, pro který chcete vyhledat spojení.',
+  'transit.noItinerary': 'Tato položka nemá uložené spojení – vyhledejte ho pomocí tlačítka „Změnit trasu“.',
 };
 export default trip;

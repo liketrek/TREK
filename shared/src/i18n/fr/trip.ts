@@ -69,5 +69,12 @@ const trip: TranslationStrings = {
   'transit.addToDay': 'Ajouter au jour',
   'transit.itinerary': 'Itinéraire',
   'transit.attribution': 'Données d\'itinéraire via',
+  'transport.modeManual': 'Transport manuel',
+  'transport.modeAutomated': 'Transport automatisé',
+  'transit.sectionTitle': 'Transports en commun automatisés',
+  'transit.changeRoute': 'Modifier l\'itinéraire',
+  'transit.journey': 'Trajet en transports en commun',
+  'transit.pickDay': 'Choisissez un jour pour rechercher des connexions.',
+  'transit.noItinerary': 'Cette entrée n\'a aucun itinéraire enregistré — utilisez « Modifier l\'itinéraire » pour en rechercher un.',
 };
 export default trip;

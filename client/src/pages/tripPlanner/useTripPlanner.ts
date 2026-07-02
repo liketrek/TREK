@@ -162,8 +162,11 @@ export function useTripPlanner() {
   const [showTransportModal, setShowTransportModal] = useState<boolean>(false)
   const [editingTransport, setEditingTransport] = useState<Reservation | null>(null)
   const [transportModalDayId, setTransportModalDayId] = useState<number | null>(null)
-  // Public transit route search (#1065) — non-null while the modal is open for that day.
-  const [transitModalDayId, setTransitModalDayId] = useState<number | null>(null)
+  // Public transit (#1065): open the TransportModal in its Automated mode, seed
+  // the search (change-route), and show the journey view for a saved entry.
+  const [transportModalAutomated, setTransportModalAutomated] = useState<boolean>(false)
+  const [transitPrefill, setTransitPrefill] = useState<{ from?: { name: string; lat: number; lng: number } | null; to?: { name: string; lat: number; lng: number } | null } | null>(null)
+  const [transitJourney, setTransitJourney] = useState<Reservation | null>(null)
 
   // The bottom-nav "+" is context-aware per tab: on the Bookings / Transports tabs
   // it opens the booking / transport modal via ?create=reservation|transport
@@ -691,14 +694,6 @@ export function useTripPlanner() {
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
   }
 
-  // A chosen transit itinerary is persisted as a regular transport reservation,
-  // so it slots into the timeline by time and inherits edit/delete/drag (#1065).
-  const handleAddTransitRoute = async (payload: Record<string, unknown> & { title: string }) => {
-    const r = await tripActions.addReservation(tripId, payload)
-    toast.success(t('trip.toast.reservationAdded'))
-    return r
-  }
-
   const handleDeleteReservation = async (id) => {
     try {
       await tripActions.deleteReservation(tripId, id)
@@ -869,7 +864,7 @@ export function useTripPlanner() {
     bookingForAssignmentId, setBookingForAssignmentId,
     showTransportModal, setShowTransportModal, editingTransport, setEditingTransport,
     transportModalDayId, setTransportModalDayId,
-    transitModalDayId, setTransitModalDayId, handleAddTransitRoute,
+    transportModalAutomated, setTransportModalAutomated, transitPrefill, setTransitPrefill, transitJourney, setTransitJourney,
     reservationPrefill, transportPrefill, importReviewActive, startImportReview, advanceImportReview,
     routeShown, setRouteShown, routeProfile, setRouteProfile, fitKey, setFitKey,
     mobileSidebarOpen, setMobileSidebarOpen, mobilePlanScrollTopRef, mobilePlacesScrollTopRef,

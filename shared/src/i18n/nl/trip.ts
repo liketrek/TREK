@@ -69,5 +69,12 @@ const trip: TranslationStrings = {
   'transit.addToDay': 'Toevoegen aan dag',
   'transit.itinerary': 'Reisplan',
   'transit.attribution': 'Routegegevens via',
+  'transport.modeManual': 'Handmatig vervoer',
+  'transport.modeAutomated': 'Automatisch vervoer',
+  'transit.sectionTitle': 'Automatisch openbaar vervoer',
+  'transit.changeRoute': 'Route wijzigen',
+  'transit.journey': 'Reis met openbaar vervoer',
+  'transit.pickDay': 'Kies een dag om verbindingen voor te zoeken.',
+  'transit.noItinerary': 'Deze invoer heeft geen opgeslagen reisplan — gebruik "Route wijzigen" om er een te zoeken.',
 };
 export default trip;

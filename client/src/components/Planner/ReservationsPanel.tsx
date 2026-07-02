@@ -9,6 +9,7 @@ import {
   Plane, Hotel, Utensils, Train, Car, Ship, Bus, Sailboat, Bike, CarTaxiFront, Route, Ticket, FileText, MapPin,
   Calendar, Hash, CheckCircle2, Circle, Pencil, Trash2, Plus, ChevronDown, ChevronRight, Users,
   ExternalLink, BookMarked, Lightbulb, Link2, Clock, ArrowRight, AlertCircle, Download,
+  TramFront, Footprints,
 } from 'lucide-react'
 import { openFile } from '../../utils/fileDownload'
 import Markdown from 'react-markdown'
@@ -37,6 +38,7 @@ const TYPE_OPTIONS = [
   { value: 'bicycle',     labelKey: 'reservations.type.bicycle',     Icon: Bike, color: '#84cc16' },
   { value: 'cruise',      labelKey: 'reservations.type.cruise',      Icon: Ship, color: '#0ea5e9' },
   { value: 'ferry',       labelKey: 'reservations.type.ferry',       Icon: Sailboat, color: '#0d9488' },
+  { value: 'transit',     labelKey: 'reservations.type.transit',     Icon: TramFront, color: '#7c3aed' },
   { value: 'transport_other', labelKey: 'reservations.type.transport_other', Icon: Route, color: '#6b7280' },
   { value: 'event',       labelKey: 'reservations.type.event',       Icon: Ticket, color: '#f59e0b' },
   { value: 'tour',        labelKey: 'reservations.type.tour',        Icon: Users, color: '#10b981' },
@@ -305,6 +307,38 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
           )
         })()}
 
+        {/* Transit itinerary chips (#1065) — the journey at a glance */}
+        {(() => {
+          if (r.type !== 'transit') return null
+          const meta = typeof r.metadata === 'string' ? (() => { try { return JSON.parse(r.metadata || '{}') } catch { return {} } })() : (r.metadata || {})
+          const transit = meta.transit
+          if (!transit || !Array.isArray(transit.legs) || transit.legs.length === 0) return null
+          return (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, flexWrap: 'wrap' }}>
+              {transit.legs.map((leg: { mode?: string; line?: string | null; line_color?: string | null; line_text_color?: string | null }, li: number) => (
+                <span key={li} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  {li > 0 && <span className="text-content-faint" style={{ fontSize: 10 }}>›</span>}
+                  {leg.mode === 'WALK'
+                    ? <Footprints size={12} className="text-content-faint" />
+                    : (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', borderRadius: 5, padding: '1px 7px',
+                        fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', fontWeight: 700,
+                        background: leg.line_color || 'var(--bg-tertiary)',
+                        color: leg.line_color ? (leg.line_text_color || '#fff') : 'var(--text-primary)',
+                      }}>
+                        {leg.line || leg.mode}
+                      </span>
+                    )}
+                </span>
+              ))}
+              <span className="text-content-faint" style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', marginLeft: 3 }}>
+                {transit.transfers > 0 ? t('transit.transfers', { count: transit.transfers }) : t('transit.direct')}
+              </span>
+            </div>
+          )
+        })()}
+
         {/* Type-specific metadata */}
         {(() => {
           const meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata || '{}') : (r.metadata || {})
@@ -539,8 +573,12 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
     typeFilters.size === 0 ? reservations : reservations.filter(r => typeFilters.has(r.type)),
   [reservations, typeFilters])
 
-  const allPending = filtered.filter(r => r.status !== 'confirmed')
-  const allConfirmed = filtered.filter(r => r.status === 'confirmed')
+  // Automated public transit (#1065) gets its own section — journeys planned via
+  // the transit search live alongside manual transports without mixing in.
+  const transitEntries = filtered.filter(r => r.type === 'transit')
+  const nonTransit = filtered.filter(r => r.type !== 'transit')
+  const allPending = nonTransit.filter(r => r.status !== 'confirmed')
+  const allConfirmed = nonTransit.filter(r => r.status === 'confirmed')
   const total = filtered.length
 
   const usedTypes = useMemo(() => new Set(reservations.map(r => r.type)), [reservations])
@@ -678,6 +716,11 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
           </div>
         ) : (
           <>
+            {transitEntries.length > 0 && (
+              <Section title={t('transit.sectionTitle')} count={transitEntries.length} accent="gray" storageKey={`trek:bookings-transit-open:${tripId}`}>
+                {transitEntries.map(r => <ReservationCard key={r.id} r={r} tripId={tripId} onEdit={onEdit} onDelete={onDelete} files={files} onNavigateToFiles={onNavigateToFiles} assignmentLookup={assignmentLookup} canEdit={canEdit} days={days} />)}
+              </Section>
+            )}
             {allPending.length > 0 && (
               <Section title={t('reservations.pending')} count={allPending.length} accent="gray" storageKey={`trek:bookings-pending-open:${tripId}`}>
                 {allPending.map(r => <ReservationCard key={r.id} r={r} tripId={tripId} onEdit={onEdit} onDelete={onDelete} files={files} onNavigateToFiles={onNavigateToFiles} assignmentLookup={assignmentLookup} canEdit={canEdit} days={days} />)}

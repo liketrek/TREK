@@ -8,12 +8,12 @@ Open the **Transports** tab in the trip planner and click **Add**, or open the p
 
 ## Public transit search
 
-Each day header in the plan sidebar has a **transit button** (tram icon) that opens a public-transit route search, powered by [Transitous](https://transitous.org/) — free, open data, no API key or paid provider. (The rename pencil this button replaced moved next to the day name in the day detail panel.)
+The **Add transport** dialog has two modes: **Manual transport** (the classic form) and **Automated transport** — a public-transit route search powered by [Transitous](https://transitous.org/), free open data with no API key or paid provider. The **transit button** (tram icon) on each day header opens the dialog straight in the Automated mode. (The rename pencil this button replaced moved next to the day name in the day detail panel.)
 
 - Pick **from** and **to** (stop/station search; the day's own places and hotels appear as quick picks), a **depart/arrive** time, and filter by mode: train, subway, tram, bus, ferry, cable car.
 - Rank the results by **best route**, **fewer transfers**, or **less walking**.
 - Each result shows local departure/arrival times, duration, transfers, walking time and the line badges in their official colors; expand it for the stop-by-stop breakdown.
-- **Add to day** saves the chosen connection as a first-class **transit** entry. It slots into the day timeline at its departure time and shows its line badges, transfers and walking time right in the plan; clicking it opens the full stop-by-stop itinerary (with an Edit action for times/notes). It can be deleted and drag-reordered like any other transport, and editing keeps the stored itinerary as long as the origin and destination are unchanged.
+- **Add to day** saves the chosen connection as a first-class **transit** entry. It slots into the day timeline at its departure time and shows its line badges, transfers and walking time right in the plan. Clicking it opens the **journey view**: the full stop-by-stop itinerary together with the editable booking fields (title, status, confirmation code, notes), a **Change route** action that re-runs the search and replaces the itinerary, and delete. In the Transports tab these journeys appear in their own **Automated public transit** section.
 
 Self-hosters can point the `TRANSIT_API_URL` environment variable at their own MOTIS instance.
 

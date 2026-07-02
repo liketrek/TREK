@@ -13,11 +13,12 @@ import { useAddonStore } from '../../store/addonStore'
 import { formatDate, splitReservationDateTime, resolveDayId } from '../../utils/formatters'
 import { openFile } from '../../utils/fileDownload'
 import apiClient from '../../api/client'
-import type { Day, Reservation, ReservationEndpoint, TripFile, BudgetItem } from '../../types'
+import type { Day, Place, Accommodation, Reservation, ReservationEndpoint, TripFile, BudgetItem } from '../../types'
 import { parseReservationMetadata, orderedEndpoints } from '../../utils/flightLegs'
 import { BookingCostsSection } from './BookingCostsSection'
 import type { BookingExpenseRequest } from './BookingCostsSection.types'
 import type { BookingReviewDraft } from './parsedItemToDraft'
+import TransitSearchPanel, { type PickedPlace } from './TransitSearchPanel'
 import { typeToCostCategory } from '@trek/shared'
 
 const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transit', 'transport_other'] as const
@@ -96,7 +97,6 @@ const TYPE_OPTIONS = [
   { value: 'bicycle',         labelKey: 'reservations.type.bicycle',         Icon: Bike },
   { value: 'cruise',          labelKey: 'reservations.type.cruise',          Icon: Ship },
   { value: 'ferry',           labelKey: 'reservations.type.ferry',           Icon: Sailboat },
-  { value: 'transit',         labelKey: 'reservations.type.transit',         Icon: TramFront },
   { value: 'transport_other', labelKey: 'reservations.type.transport_other', Icon: Route },
 ]
 
@@ -131,9 +131,16 @@ interface TransportModalProps {
   // Pre-fill a brand-new transport booking from a parsed import item (review-
   // before-save); like `reservation` for the form but stays in create mode.
   prefill?: BookingReviewDraft | null
+  /** Data for the Automated (public transit) mode's quick picks. */
+  places?: Place[]
+  accommodations?: Accommodation[]
+  /** Open directly in the Automated public-transit mode (day-header tram button, "change route"). */
+  initialAutomated?: boolean
+  /** Pre-seed the transit search — used by "change route" on an existing journey. */
+  transitPrefill?: { from?: PickedPlace | null; to?: PickedPlace | null } | null
 }
 
-export function TransportModal({ isOpen, onClose, onSave, reservation, days, selectedDayId, files = [], onFileUpload, onFileDelete, onOpenExpense, prefill = null }: TransportModalProps) {
+export function TransportModal({ isOpen, onClose, onSave, reservation, days, selectedDayId, files = [], onFileUpload, onFileDelete, onOpenExpense, prefill = null, places = [], accommodations = [], initialAutomated = false, transitPrefill = null }: TransportModalProps) {
   const { t, locale } = useTranslation()
   const toast = useToast()
   const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
@@ -145,6 +152,8 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
   // the post-save handler knows to open the Costs editor for the saved booking.
   const expenseIntentRef = useRef<{ editItem?: BudgetItem; create?: boolean } | null>(null)
   const [form, setForm] = useState({ ...defaultForm })
+  // Manual vs Automated (public transit search) creation mode (#1065).
+  const [automated, setAutomated] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [fromPick, setFromPick] = useState<EndpointPick>({})
   const [toPick, setToPick] = useState<EndpointPick>({})
@@ -162,6 +171,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
     // Either way the init reads the same fields — `reservation` still decides
     // edit-vs-create at submit time.
     const src = (reservation ?? prefill) as Reservation | null
+    if (src) setAutomated(initialAutomated)
     // On a review-import, seed the booking's Files with the parsed source document.
     setPendingFiles(!reservation && prefill?._sourceFiles ? prefill._sourceFiles : [])
     if (src) {
@@ -233,6 +243,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
       }
     } else {
       setForm({ ...defaultForm, start_day_id: selectedDayId ?? '', end_day_id: selectedDayId ?? '' })
+      setAutomated(initialAutomated)
       setFromPick({})
       setToPick({})
       setWaypoints([emptyWaypoint(selectedDayId ?? ''), emptyWaypoint(selectedDayId ?? '')])
@@ -465,19 +476,62 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={reservation ? t('transport.modalTitle.edit') : t('transport.modalTitle.create')}
+      title={automated ? t('transit.title') : reservation ? t('transport.modalTitle.edit') : t('transport.modalTitle.create')}
       size="2xl"
       footer={
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
           <button type="button" onClick={onClose} className="text-content-muted" style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', fontSize: 'calc(12px * var(--fs-scale-body, 1))', cursor: 'pointer', fontFamily: 'inherit' }}>
             {t('common.cancel')}
           </button>
+          {!automated && (
           <button type="button" onClick={handleSubmit} disabled={isSaving || !form.title.trim()} className="bg-[var(--text-primary)] text-[var(--bg-primary)]" style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: isSaving || !form.title.trim() ? 0.5 : 1 }}>
             {isSaving ? t('common.saving') : reservation ? t('common.update') : t('common.add')}
           </button>
+          )}
         </div>
       }
     >
+      {/* Manual vs Automated creation switch (#1065) — creating only; editing a
+          journey re-enters via "change route" with the switch hidden. */}
+      {!reservation && (
+        <div className="bg-surface-secondary" style={{ display: 'flex', borderRadius: 11, padding: 3, gap: 2, marginBottom: 14 }}>
+          {([['manual', t('transport.modeManual')], ['automated', t('transport.modeAutomated')]] as const).map(([m, label]) => {
+            const active = (m === 'automated') === automated
+            return (
+              <button key={m} type="button" onClick={() => setAutomated(m === 'automated')}
+                className={active ? 'bg-surface-card text-content' : 'text-content-muted'}
+                style={{ flex: 1, padding: '8px 6px', fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 500, borderRadius: 8, border: 0, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', background: active ? undefined : 'transparent', boxShadow: active ? '0 1px 4px rgba(0,0,0,0.08)' : 'none' }}>
+                {label}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {automated ? (
+        /* ── Automated: public transit search (#1065) ── */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ maxWidth: 280 }}>
+            <label className={labelClass}>{t('reservations.departureDate')}</label>
+            <CustomSelect value={form.start_day_id} onChange={v => set('start_day_id', v)} placeholder={t('dayplan.dayN', { n: '?' })} options={dayOptions} size="sm" />
+          </div>
+          {(() => {
+            const transitDay = days.find(d => d.id === Number(form.start_day_id))
+            if (!transitDay) return <div className="text-content-faint" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', padding: '12px 0' }}>{t('transit.pickDay')}</div>
+            return (
+              <TransitSearchPanel
+                day={transitDay}
+                days={days}
+                places={places}
+                accommodations={accommodations}
+                onAdd={(payload) => onSave(payload as Record<string, any> & { title: string })}
+                initialFrom={transitPrefill?.from ?? null}
+                initialTo={transitPrefill?.to ?? null}
+              />
+            )
+          })()}
+        </div>
+      ) : (
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
         {/* Type selector */}
@@ -781,6 +835,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         )}
 
       </form>
+      )}
     </Modal>
   )
 }

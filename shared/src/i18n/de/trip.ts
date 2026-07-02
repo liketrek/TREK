@@ -69,5 +69,12 @@ const trip: TranslationStrings = {
   'transit.addToDay': 'Zum Tag hinzufügen',
   'transit.itinerary': 'Verbindung',
   'transit.attribution': 'Routing-Daten via',
+  'transport.modeManual': 'Manueller Transport',
+  'transport.modeAutomated': 'Automatischer Transport',
+  'transit.sectionTitle': 'Automatische ÖPNV-Verbindungen',
+  'transit.changeRoute': 'Route ändern',
+  'transit.journey': 'ÖPNV-Verbindung',
+  'transit.pickDay': 'Wähle einen Tag, für den Verbindungen gesucht werden sollen.',
+  'transit.noItinerary': 'Dieser Eintrag hat keine gespeicherte Verbindung — über „Route ändern" eine suchen.',
 };
 export default trip;

@@ -69,5 +69,12 @@ const trip: TranslationStrings = {
   'transit.addToDay': 'Tambahkan ke hari',
   'transit.itinerary': 'Itinerari',
   'transit.attribution': 'Data rute melalui',
+  'transport.modeManual': 'Transportasi manual',
+  'transport.modeAutomated': 'Transportasi otomatis',
+  'transit.sectionTitle': 'Transportasi umum otomatis',
+  'transit.changeRoute': 'Ubah rute',
+  'transit.journey': 'Perjalanan transportasi umum',
+  'transit.pickDay': 'Pilih hari untuk mencari koneksi.',
+  'transit.noItinerary': 'Entri ini tidak memiliki rencana perjalanan tersimpan — gunakan "Ubah rute" untuk mencarinya.',
 };
 export default trip;

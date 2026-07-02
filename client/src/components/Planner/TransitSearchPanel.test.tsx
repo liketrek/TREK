@@ -1,11 +1,12 @@
-// FE-PLANNER-TRANSIT-001 to FE-PLANNER-TRANSIT-006
+// FE-PLANNER-TRANSIT-001 to FE-PLANNER-TRANSIT-006 — the transit search panel
+// (embedded as the TransportModal's Automated mode).
 import { render, screen, waitFor } from '../../../tests/helpers/render'
 import userEvent from '@testing-library/user-event'
 import { resetAllStores, seedStore } from '../../../tests/helpers/store'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { buildUser, buildDay, buildPlace } from '../../../tests/helpers/factories'
-import TransitSearchModal from './TransitSearchModal'
+import TransitSearchPanel from './TransitSearchPanel'
 
 const { transitApiMock } = vi.hoisted(() => ({
   transitApiMock: { geocode: vi.fn(), plan: vi.fn() },
@@ -35,8 +36,6 @@ const day = buildDay({ id: 10, trip_id: 1, date: '2025-06-01', title: 'Berlin Da
 
 function makeProps(overrides = {}) {
   return {
-    isOpen: true,
-    onClose: vi.fn(),
     day,
     days: [day],
     places: [buildPlace({ id: 1, name: 'Fernsehturm', lat: 52.5208, lng: 13.4094 })],
@@ -65,10 +64,9 @@ beforeEach(() => {
   seedStore(useSettingsStore, { settings: { time_format: '24h' } } as any)
 })
 
-describe('TransitSearchModal', () => {
+describe('TransitSearchPanel', () => {
   it('FE-PLANNER-TRANSIT-001: renders from/to pickers, modes and preferences', () => {
-    render(<TransitSearchModal {...makeProps()} />)
-    expect(screen.getByText('Public transit')).toBeInTheDocument()
+    render(<TransitSearchPanel {...makeProps()} />)
     expect(screen.getAllByPlaceholderText('Search stop or station…')).toHaveLength(2)
     expect(screen.getByText('Subway')).toBeInTheDocument()
     expect(screen.getByText('Fewer transfers')).toBeInTheDocument()
@@ -77,7 +75,7 @@ describe('TransitSearchModal', () => {
   it('FE-PLANNER-TRANSIT-002: searching lists itineraries with times, transfers and line badges', async () => {
     const user = userEvent.setup()
     transitApiMock.plan.mockResolvedValueOnce({ itineraries: [ITINERARY] })
-    render(<TransitSearchModal {...makeProps()} />)
+    render(<TransitSearchPanel {...makeProps()} />)
     await pickFromAndTo(user)
     await user.click(screen.getByRole('button', { name: /^Search$/ }))
     // Local Berlin times, U2 badge, 1 transfer.
@@ -90,7 +88,7 @@ describe('TransitSearchModal', () => {
     const user = userEvent.setup()
     const onAdd = vi.fn().mockResolvedValue({})
     transitApiMock.plan.mockResolvedValueOnce({ itineraries: [ITINERARY] })
-    render(<TransitSearchModal {...makeProps({ onAdd })} />)
+    render(<TransitSearchPanel {...makeProps({ onAdd })} />)
     await pickFromAndTo(user)
     await user.click(screen.getByRole('button', { name: /^Search$/ }))
     await user.click(await screen.findByText(/08:30 – 09:00/))
@@ -117,7 +115,7 @@ describe('TransitSearchModal', () => {
   it('FE-PLANNER-TRANSIT-004: search failure shows the empty state, not a crash', async () => {
     const user = userEvent.setup()
     transitApiMock.plan.mockRejectedValueOnce(new Error('boom'))
-    render(<TransitSearchModal {...makeProps()} />)
+    render(<TransitSearchPanel {...makeProps()} />)
     await pickFromAndTo(user)
     await user.click(screen.getByRole('button', { name: /^Search$/ }))
     expect(await screen.findByText(/No connections found/)).toBeInTheDocument()
@@ -127,7 +125,7 @@ describe('TransitSearchModal', () => {
     const user = userEvent.setup()
     const direct = { ...ITINERARY, startTime: '2025-06-01T06:40:00Z', endTime: '2025-06-01T07:20:00Z', duration: 2400, transfers: 0 }
     transitApiMock.plan.mockResolvedValueOnce({ itineraries: [ITINERARY, direct] })
-    render(<TransitSearchModal {...makeProps()} />)
+    render(<TransitSearchPanel {...makeProps()} />)
     await pickFromAndTo(user)
     await user.click(screen.getByRole('button', { name: /^Search$/ }))
     await screen.findByText(/08:30 – 09:00/)
@@ -139,7 +137,7 @@ describe('TransitSearchModal', () => {
 
   it('FE-PLANNER-TRANSIT-006: swap exchanges from and to', async () => {
     const user = userEvent.setup()
-    render(<TransitSearchModal {...makeProps()} />)
+    render(<TransitSearchPanel {...makeProps()} />)
     const [fromInput] = screen.getAllByPlaceholderText('Search stop or station…')
     await user.click(fromInput)
     await user.click(await screen.findByText('Fernsehturm'))

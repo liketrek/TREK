@@ -69,5 +69,12 @@ const trip: TranslationStrings = {
   'transit.addToDay': 'Güne ekle',
   'transit.itinerary': 'Güzergah',
   'transit.attribution': 'Rota verileri:',
+  'transport.modeManual': 'Manuel ulaşım',
+  'transport.modeAutomated': 'Otomatik ulaşım',
+  'transit.sectionTitle': 'Otomatik toplu taşıma',
+  'transit.changeRoute': 'Rotayı değiştir',
+  'transit.journey': 'Toplu taşıma yolculuğu',
+  'transit.pickDay': 'Bağlantı aramak için bir gün seçin.',
+  'transit.noItinerary': 'Bu kaydın kayıtlı bir güzergâhı yok — bir tane aramak için "Rotayı değiştir" seçeneğini kullanın.',
 };
 export default trip;

@@ -69,5 +69,12 @@ const trip: TranslationStrings = {
   'transit.addToDay': '加入當日行程',
   'transit.itinerary': '行程',
   'transit.attribution': '路線資料來自',
+  'transport.modeManual': '手動交通',
+  'transport.modeAutomated': '自動交通',
+  'transit.sectionTitle': '自動大眾運輸',
+  'transit.changeRoute': '變更路線',
+  'transit.journey': '大眾運輸行程',
+  'transit.pickDay': '請選擇要查詢班次的日期。',
+  'transit.noItinerary': '此項目尚未儲存行程——請使用「變更路線」查詢。',
 };
 export default trip;

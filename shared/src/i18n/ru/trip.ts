@@ -69,5 +69,12 @@ const trip: TranslationStrings = {
   'transit.addToDay': 'Добавить в день',
   'transit.itinerary': 'Маршрут',
   'transit.attribution': 'Данные о маршрутах через',
+  'transport.modeManual': 'Транспорт вручную',
+  'transport.modeAutomated': 'Автоматический транспорт',
+  'transit.sectionTitle': 'Автоматический общественный транспорт',
+  'transit.changeRoute': 'Изменить маршрут',
+  'transit.journey': 'Поездка на общественном транспорте',
+  'transit.pickDay': 'Выберите день для поиска соединений.',
+  'transit.noItinerary': 'Для этой записи нет сохранённого маршрута — нажмите «Изменить маршрут», чтобы найти его.',
 };
 export default trip;

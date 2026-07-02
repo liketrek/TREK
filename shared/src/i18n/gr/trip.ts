@@ -69,5 +69,12 @@ const trip: TranslationStrings = {
   'transit.addToDay': 'Προσθήκη στην ημέρα',
   'transit.itinerary': 'Δρομολόγιο',
   'transit.attribution': 'Δεδομένα διαδρομών μέσω',
+  'transport.modeManual': 'Χειροκίνητη μεταφορά',
+  'transport.modeAutomated': 'Αυτόματη μεταφορά',
+  'transit.sectionTitle': 'Αυτόματες δημόσιες συγκοινωνίες',
+  'transit.changeRoute': 'Αλλαγή διαδρομής',
+  'transit.journey': 'Διαδρομή με δημόσιες συγκοινωνίες',
+  'transit.pickDay': 'Επιλέξτε μια ημέρα για αναζήτηση συνδέσεων.',
+  'transit.noItinerary': 'Αυτή η καταχώριση δεν έχει αποθηκευμένο δρομολόγιο — χρησιμοποιήστε την «Αλλαγή διαδρομής» για να αναζητήσετε ένα.',
 };
 export default trip;

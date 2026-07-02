@@ -69,5 +69,12 @@ const trip: TranslationStrings = {
   'transit.addToDay': 'Hozzáadás a naphoz',
   'transit.itinerary': 'Útiterv',
   'transit.attribution': 'Útvonaladatok innen:',
+  'transport.modeManual': 'Kézi közlekedés',
+  'transport.modeAutomated': 'Automatikus közlekedés',
+  'transit.sectionTitle': 'Automatikus tömegközlekedés',
+  'transit.changeRoute': 'Útvonal módosítása',
+  'transit.journey': 'Tömegközlekedési útvonal',
+  'transit.pickDay': 'Válassz egy napot a kapcsolatok kereséséhez.',
+  'transit.noItinerary': 'Ehhez a bejegyzéshez nincs mentett útiterv – az „Útvonal módosítása” gombbal kereshetsz egyet.',
 };
 export default trip;

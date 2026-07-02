@@ -69,5 +69,12 @@ const trip: TranslationStrings = {
   'transit.addToDay': 'إضافة إلى اليوم',
   'transit.itinerary': 'خط سير الرحلة',
   'transit.attribution': 'بيانات المسارات عبر',
+  'transport.modeManual': 'نقل يدوي',
+  'transport.modeAutomated': 'نقل تلقائي',
+  'transit.sectionTitle': 'النقل العام التلقائي',
+  'transit.changeRoute': 'تغيير المسار',
+  'transit.journey': 'رحلة بالنقل العام',
+  'transit.pickDay': 'اختر يومًا للبحث عن الرحلات المتاحة.',
+  'transit.noItinerary': 'لا يحتوي هذا الإدخال على خط سير محفوظ — استخدم "تغيير المسار" للبحث عن أحدها.',
 };
 export default trip;

@@ -69,5 +69,12 @@ const trip: TranslationStrings = {
   'transit.addToDay': '일정에 추가',
   'transit.itinerary': '여정',
   'transit.attribution': '경로 데이터 제공:',
+  'transport.modeManual': '수동 교통편',
+  'transport.modeAutomated': '자동 교통편',
+  'transit.sectionTitle': '자동 대중교통',
+  'transit.changeRoute': '경로 변경',
+  'transit.journey': '대중교통 경로',
+  'transit.pickDay': '연결편을 검색할 날짜를 선택하세요.',
+  'transit.noItinerary': '이 항목에는 저장된 경로가 없습니다. "경로 변경"을 사용하여 검색하세요.',
 };
 export default trip;

@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import tzlookup from 'tz-lookup'
 import { ArrowLeftRight, ArrowRight, Bus, CableCar, ChevronDown, ChevronUp, Clock, Footprints, MapPin, Sailboat, Search, Train, TramFront, TrainFront } from 'lucide-react'
-import Modal from '../shared/Modal'
 import CustomTimePicker from '../shared/CustomTimePicker'
 import { transitApi } from '../../api/client'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -33,7 +32,7 @@ export interface TransitItinerary {
 
 interface TransitPlaceResult { name: string; lat: number; lng: number; type: string; area: string | null }
 
-interface PickedPlace { name: string; lat: number; lng: number }
+export interface PickedPlace { name: string; lat: number; lng: number }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -294,26 +293,30 @@ function ItineraryCard({ it, tzFrom, tzTo, is12h, expanded, onToggle, onAdd, add
   )
 }
 
-// ── the modal ────────────────────────────────────────────────────────────────
+// ── the search panel ─────────────────────────────────────────────────────────
+// Modal-less on purpose: it renders as the "Automated transport" mode inside
+// the TransportModal (and could embed anywhere else). The host owns the modal
+// chrome and closes itself once onAdd resolves.
 
-interface TransitSearchModalProps {
-  isOpen: boolean
-  onClose: () => void
+interface TransitSearchPanelProps {
   day: Day
   days: Day[]
   places: Place[]
   accommodations?: Accommodation[]
   /** Persist the built reservation payload; resolves when saved. */
   onAdd: (payload: Record<string, unknown>) => Promise<unknown>
+  /** Pre-seed from/to — used by "change route" on an existing journey. */
+  initialFrom?: PickedPlace | null
+  initialTo?: PickedPlace | null
 }
 
-export default function TransitSearchModal({ isOpen, onClose, day, days, places, accommodations = [], onAdd }: TransitSearchModalProps) {
+export default function TransitSearchPanel({ day, days, places, accommodations = [], onAdd, initialFrom = null, initialTo = null }: TransitSearchPanelProps) {
   const { t } = useTranslation()
   const toast = useToast()
   const is12h = useSettingsStore(s => s.settings.time_format) === '12h'
 
-  const [from, setFrom] = useState<PickedPlace | null>(null)
-  const [to, setTo] = useState<PickedPlace | null>(null)
+  const [from, setFrom] = useState<PickedPlace | null>(initialFrom)
+  const [to, setTo] = useState<PickedPlace | null>(initialTo)
   const [time, setTime] = useState('09:00')
   const [arriveBy, setArriveBy] = useState(false)
   const [activeModes, setActiveModes] = useState<Set<string>>(() => new Set(MODE_GROUPS.map(m => m.key)))
@@ -442,7 +445,6 @@ export default function TransitSearchModal({ isOpen, onClose, day, days, places,
       }
 
       await onAdd(payload)
-      onClose()
     } catch {
       toast.error(t('common.unknownError'))
     } finally {
@@ -461,8 +463,7 @@ export default function TransitSearchModal({ isOpen, onClose, day, days, places,
   })
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={t('transit.title')} size="lg">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontFamily: 'var(--font-system)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, fontFamily: 'var(--font-system)' }}>
         {/* from / to */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
           <StopPicker label={t('transit.from')} value={from} onPick={setFrom} quickPicks={quickPicks} near={near} placeholder={t('transit.searchStop')} />
@@ -568,6 +569,5 @@ export default function TransitSearchModal({ isOpen, onClose, day, days, places,
           </div>
         )}
       </div>
-    </Modal>
   )
 }

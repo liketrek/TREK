@@ -86,6 +86,8 @@ interface DayPlanSidebarProps {
   onAddTransport?: (dayId: number) => void
   /** Opens the public-transit route search for a day (#1065). */
   onPlanTransit?: (dayId: number) => void
+  /** Opens the journey view for a saved transit entry (#1065). */
+  onOpenTransit?: (reservation: Reservation) => void
   onEditTransport?: (reservation: Reservation) => void
   onEditReservation?: (reservation: Reservation) => void
   onAddBookingToAssignment?: (dayId: number, assignmentId: number) => void
@@ -130,6 +132,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   onRouteRefresh,
   onAddTransport,
   onPlanTransit,
+  onOpenTransit,
   onEditTransport,
   onEditReservation,
   onAddBookingToAssignment,
@@ -1004,6 +1007,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     onRouteRefresh,
     onAddTransport,
     onPlanTransit,
+    onOpenTransit,
     onEditTransport,
     onEditReservation,
     onAddBookingToAssignment,
@@ -1166,6 +1170,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
     onRouteRefresh,
     onAddTransport,
     onPlanTransit,
+    onOpenTransit,
     onEditTransport,
     onEditReservation,
     onAddBookingToAssignment,
@@ -1971,10 +1976,14 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                           <div
                             onClick={() => {
                               const target = reservations.find(x => x.id === res.id) ?? res
-                              // A transit journey opens its itinerary view — the rich
-                              // stop-by-stop breakdown, not the generic edit form (#1065).
-                              // Editing stays reachable from inside that view.
-                              if (transitMeta) { setTransportDetail(target); return }
+                              // A transit journey opens its own journey view — the rich
+                              // stop-by-stop breakdown with its booking fields, never the
+                              // generic edit form (#1065).
+                              if (transitMeta) {
+                                if (onOpenTransit) onOpenTransit(target)
+                                else setTransportDetail(target)
+                                return
+                              }
                               if (!canEditDays) return
                               if (TRANSPORT_TYPES.has(res.type)) onEditTransport?.(target)
                               else onEditReservation?.(target)

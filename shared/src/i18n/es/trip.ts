@@ -69,5 +69,12 @@ const trip: TranslationStrings = {
   'transit.addToDay': 'Añadir al día',
   'transit.itinerary': 'Itinerario',
   'transit.attribution': 'Datos de rutas vía',
+  'transport.modeManual': 'Transporte manual',
+  'transport.modeAutomated': 'Transporte automático',
+  'transit.sectionTitle': 'Transporte público automático',
+  'transit.changeRoute': 'Cambiar ruta',
+  'transit.journey': 'Trayecto en transporte público',
+  'transit.pickDay': 'Elige un día para buscar conexiones.',
+  'transit.noItinerary': 'Esta entrada no tiene ningún itinerario guardado: usa «Cambiar ruta» para buscar uno.',
 };
 export default trip;

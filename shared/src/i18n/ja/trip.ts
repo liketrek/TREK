@@ -69,5 +69,12 @@ const trip: TranslationStrings = {
   'transit.addToDay': '日程に追加',
   'transit.itinerary': '行程',
   'transit.attribution': 'ルートデータ提供:',
+  'transport.modeManual': '手動で入力',
+  'transport.modeAutomated': '自動で検索',
+  'transit.sectionTitle': '公共交通機関の自動検索',
+  'transit.changeRoute': '経路を変更',
+  'transit.journey': '公共交通機関の経路',
+  'transit.pickDay': '接続を検索する日を選択してください。',
+  'transit.noItinerary': 'この項目には保存された行程がありません。「経路を変更」から検索してください。',
 };
 export default trip;

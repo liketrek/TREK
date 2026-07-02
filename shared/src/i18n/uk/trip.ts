@@ -69,5 +69,12 @@ const trip: TranslationStrings = {
   'transit.addToDay': 'Додати до дня',
   'transit.itinerary': 'Маршрут',
   'transit.attribution': 'Дані маршрутизації через',
+  'transport.modeManual': 'Транспорт вручну',
+  'transport.modeAutomated': 'Автоматичний транспорт',
+  'transit.sectionTitle': 'Автоматичний громадський транспорт',
+  'transit.changeRoute': 'Змінити маршрут',
+  'transit.journey': 'Поїздка громадським транспортом',
+  'transit.pickDay': 'Виберіть день для пошуку сполучень.',
+  'transit.noItinerary': 'Для цього запису немає збереженого маршруту — натисніть «Змінити маршрут», щоб знайти його.',
 };
 export default trip;
