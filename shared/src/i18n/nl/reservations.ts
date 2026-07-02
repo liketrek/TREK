@@ -64,6 +64,7 @@ const reservations: TranslationStrings = {
   'reservations.type.ferry': 'Veerboot',
   'reservations.type.bicycle': 'Fiets',
   'reservations.type.taxi': 'Taxi',
+  'reservations.type.transit': 'Openbaar vervoer',
   'reservations.type.transport_other': 'Overig',
   'reservations.confirm.delete': 'Weet je zeker dat je de reservering "{name}" wilt verwijderen?',
   'reservations.confirm.deleteTitle': 'Boeking verwijderen?',

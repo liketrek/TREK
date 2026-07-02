@@ -63,6 +63,7 @@ const reservations: TranslationStrings = {
   'reservations.type.ferry': '페리',
   'reservations.type.bicycle': '자전거',
   'reservations.type.taxi': '택시',
+  'reservations.type.transit': '대중교통',
   'reservations.type.transport_other': '기타',
   'reservations.confirm.delete': '예약 "{name}"을(를) 삭제할까요?',
   'reservations.confirm.deleteTitle': '예약을 삭제할까요?',

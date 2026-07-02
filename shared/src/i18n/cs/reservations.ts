@@ -63,6 +63,7 @@ const reservations: TranslationStrings = {
   'reservations.type.ferry': 'Trajekt',
   'reservations.type.bicycle': 'Kolo',
   'reservations.type.taxi': 'Taxi',
+  'reservations.type.transit': 'Veřejná doprava',
   'reservations.type.transport_other': 'Ostatní',
   'reservations.confirm.delete': 'Opravdu chcete smazat rezervaci „{name}”?',
   'reservations.confirm.deleteTitle': 'Smazat rezervaci?',

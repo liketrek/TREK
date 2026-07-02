@@ -43,7 +43,7 @@ export function parsedItemToDraft(item: BookingImportPreviewItem): BookingReview
 }
 
 /** Transport types route to the TransportModal; everything else to the ReservationModal. */
-const TRANSPORT_TYPES = new Set(['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transport_other'])
+const TRANSPORT_TYPES = new Set(['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transit', 'transport_other'])
 export function isTransportItem(item: BookingImportPreviewItem): boolean {
   return TRANSPORT_TYPES.has(item.type)
 }

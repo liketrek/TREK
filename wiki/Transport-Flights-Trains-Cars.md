@@ -13,7 +13,7 @@ Each day header in the plan sidebar has a **transit button** (tram icon) that op
 - Pick **from** and **to** (stop/station search; the day's own places and hotels appear as quick picks), a **depart/arrive** time, and filter by mode: train, subway, tram, bus, ferry, cable car.
 - Rank the results by **best route**, **fewer transfers**, or **less walking**.
 - Each result shows local departure/arrival times, duration, transfers, walking time and the line badges in their official colors; expand it for the stop-by-stop breakdown.
-- **Add to day** saves the chosen connection as a regular transport (typed by its dominant leg — train, bus, ferry …). It slots into the day timeline at its departure time and can be edited, deleted and drag-reordered like any other transport. The full itinerary stays visible in the transport's detail view; editing the transport keeps it as long as the origin and destination are unchanged.
+- **Add to day** saves the chosen connection as a first-class **transit** entry. It slots into the day timeline at its departure time and shows its line badges, transfers and walking time right in the plan; clicking it opens the full stop-by-stop itinerary (with an Edit action for times/notes). It can be deleted and drag-reordered like any other transport, and editing keeps the stored itinerary as long as the origin and destination are unchanged.
 
 Self-hosters can point the `TRANSIT_API_URL` environment variable at their own MOTIS instance.
 

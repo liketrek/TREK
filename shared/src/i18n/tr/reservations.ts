@@ -64,6 +64,7 @@ const reservations: TranslationStrings = {
   'reservations.type.ferry': 'Feribot',
   'reservations.type.bicycle': 'Bisiklet',
   'reservations.type.taxi': 'Taksi',
+  'reservations.type.transit': 'Toplu taşıma',
   'reservations.type.transport_other': 'Diğer',
   'reservations.confirm.delete': '"{name}" rezervasyonunu silmek istediğinizden emin misiniz?',
   'reservations.confirm.deleteTitle': 'Rezervasyon silinsin mi?',

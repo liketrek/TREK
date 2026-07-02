@@ -64,6 +64,7 @@ const reservations: TranslationStrings = {
   'reservations.type.ferry': 'Feri',
   'reservations.type.bicycle': 'Sepeda',
   'reservations.type.taxi': 'Taksi',
+  'reservations.type.transit': 'Transportasi umum',
   'reservations.type.transport_other': 'Lainnya',
   'reservations.confirm.delete': 'Yakin ingin menghapus reservasi "{name}"?',
   'reservations.confirm.deleteTitle': 'Hapus pemesanan?',

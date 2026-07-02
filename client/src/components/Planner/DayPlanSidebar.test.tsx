@@ -321,6 +321,36 @@ describe('DayPlanSidebar', () => {
     expect(screen.queryByLabelText('Edit')).not.toBeInTheDocument()
   })
 
+  it('FE-PLANNER-DAYPLAN-104: a transit journey renders line chips and opens its itinerary view, not the edit form (#1065)', async () => {
+    const user = userEvent.setup()
+    const onEditTransport = vi.fn()
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    const res = {
+      ...buildReservation({
+        id: 300, type: 'transit', title: 'Fernsehturm → Zoo',
+        reservation_time: '2025-06-01T08:30:00', day_id: 10,
+      }),
+      metadata: {
+        transit: {
+          provider: 'transitous', duration: 1800, transfers: 1, walk_seconds: 240,
+          legs: [
+            { mode: 'WALK', duration: 240, from: { name: 'Start' }, to: { name: 'Alexanderplatz' } },
+            { mode: 'SUBWAY', line: 'U2', line_color: '#FF3300', line_text_color: '#FFFFFF', headsign: 'Ruhleben', duration: 1440, stops: 6, from: { name: 'Alexanderplatz', time: '08:36' }, to: { name: 'Zoo', time: '09:00' } },
+          ],
+        },
+      },
+    }
+    render(<DayPlanSidebar {...makeDefaultProps({ days: [day], reservations: [res as any], onEditTransport })} />)
+    // Line chip + transfer summary render inline in the timeline row.
+    expect(screen.getByText('U2')).toBeInTheDocument()
+    expect(screen.getByText(/1 transfers/)).toBeInTheDocument()
+    // Clicking the row opens the itinerary detail view — not the edit form.
+    await user.click(screen.getByText('Fernsehturm → Zoo'))
+    expect(onEditTransport).not.toHaveBeenCalled()
+    expect(await screen.findByText('Itinerary')).toBeInTheDocument()
+    expect(screen.getByText(/Ruhleben/)).toBeInTheDocument()
+  })
+
   // ── Day info button ─────────────────────────────────────────────────────
 
   it('FE-PLANNER-DAYPLAN-018: clicking day header calls onDayDetail', async () => {

@@ -63,6 +63,7 @@ const reservations: TranslationStrings = {
   'reservations.type.ferry': '渡轮',
   'reservations.type.bicycle': '自行车',
   'reservations.type.taxi': '出租车',
+  'reservations.type.transit': '公共交通',
   'reservations.type.transport_other': '其他',
   'reservations.confirm.delete': '确定要删除预订「{name}」吗？',
   'reservations.confirm.deleteTitle': '删除预订？',

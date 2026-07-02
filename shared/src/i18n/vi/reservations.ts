@@ -63,6 +63,7 @@ const reservations: TranslationStrings = {
   'reservations.type.ferry': 'Phà',
   'reservations.type.bicycle': 'Xe đạp',
   'reservations.type.taxi': 'Taxi',
+  'reservations.type.transit': 'Giao thông công cộng',
   'reservations.type.transport_other': 'Khác',
   'reservations.confirm.delete': 'Bạn có chắc chắn muốn xóa đặt chỗ "{name}" không?',
   'reservations.confirm.deleteTitle': 'Xóa đặt chỗ?',

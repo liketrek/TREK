@@ -98,7 +98,7 @@ describe('TransitSearchModal', () => {
 
     await waitFor(() => expect(onAdd).toHaveBeenCalled())
     const payload = onAdd.mock.calls[0][0]
-    expect(payload.type).toBe('train') // dominant leg = SUBWAY → train
+    expect(payload.type).toBe('transit') // first-class transit type (#1065)
     expect(payload.title).toBe('Fernsehturm → Zoologischer Garten')
     expect(payload.day_id).toBe(10)
     expect(payload.reservation_time).toBe('2025-06-01T08:30')

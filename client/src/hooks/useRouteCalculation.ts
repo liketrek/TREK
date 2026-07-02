@@ -7,7 +7,7 @@ import { getDayBookendHotels } from '../utils/dayOrder'
 import type { TripStoreState } from '../store/tripStore'
 import type { RouteSegment, RouteResult, Accommodation } from '../types'
 
-const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transport_other']
+const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transit', 'transport_other']
 
 const NO_ACCOMMODATIONS: Accommodation[] = []
 

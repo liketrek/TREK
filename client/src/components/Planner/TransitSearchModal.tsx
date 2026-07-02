@@ -56,20 +56,6 @@ function legIcon(mode: string) {
   return Train
 }
 
-/** TREK reservation type for the itinerary's dominant (longest) transit leg. */
-function dominantType(legs: TransitLeg[]): 'train' | 'bus' | 'ferry' | 'transport_other' {
-  let best: TransitLeg | null = null
-  for (const l of legs) {
-    if (l.mode === 'WALK') continue
-    if (!best || l.duration > best.duration) best = l
-  }
-  if (!best) return 'transport_other'
-  if (best.mode === 'BUS' || best.mode === 'COACH') return 'bus'
-  if (best.mode === 'FERRY') return 'ferry'
-  if (best.mode === 'FUNICULAR' || best.mode === 'AERIAL_LIFT') return 'transport_other'
-  return 'train'
-}
-
 function tzAt(lat: number, lng: number): string {
   try { return tzlookup(lat, lng) } catch { return 'UTC' }
 }
@@ -419,7 +405,10 @@ export default function TransitSearchModal({ isOpen, onClose, day, days, places,
 
       const payload = {
         title: `${from.name} → ${to.name}`,
-        type: dominantType(it.legs),
+        // Its own first-class type: transit journeys get their own icon, their
+        // rich timeline row and the itinerary detail view instead of the
+        // generic transport rendering.
+        type: 'transit',
         status: 'confirmed',
         day_id: day.id,
         end_day_id: endDay ? endDay.id : day.id,

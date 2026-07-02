@@ -63,6 +63,7 @@ const reservations: TranslationStrings = {
   'reservations.type.ferry': 'フェリー',
   'reservations.type.bicycle': '自転車',
   'reservations.type.taxi': 'タクシー',
+  'reservations.type.transit': '公共交通機関',
   'reservations.type.transport_other': 'その他',
   'reservations.confirm.delete': '予約「{name}」を削除しますか？',
   'reservations.confirm.deleteTitle': '予約を削除しますか？',

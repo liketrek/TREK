@@ -2,7 +2,7 @@ import { createElement, useEffect, useMemo, useRef, useState } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { Marker, Polyline, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
-import { Plane, Train, Ship, Car, Bus, Sailboat, Bike, CarTaxiFront, Route } from 'lucide-react'
+import { Plane, Train, Ship, Car, Bus, Sailboat, Bike, CarTaxiFront, Route, TramFront } from 'lucide-react'
 import { escapeHtml } from '@trek/shared'
 import { useSettingsStore } from '../../store/settingsStore'
 import type { Reservation, ReservationEndpoint } from '../../types'
@@ -11,8 +11,8 @@ const ENDPOINT_PANE = 'reservation-endpoints'
 const AIRPORT_BADGE_HALF_PX = 16
 const BADGE_GAP_PX = 5
 
-type TransportType = 'flight' | 'train' | 'cruise' | 'car' | 'bus' | 'taxi' | 'bicycle' | 'ferry' | 'transport_other'
-const TRANSPORT_TYPES: TransportType[] = ['flight', 'train', 'cruise', 'car', 'bus', 'taxi', 'bicycle', 'ferry', 'transport_other']
+type TransportType = 'flight' | 'train' | 'cruise' | 'car' | 'bus' | 'taxi' | 'bicycle' | 'ferry' | 'transit' | 'transport_other'
+const TRANSPORT_TYPES: TransportType[] = ['flight', 'train', 'cruise', 'car', 'bus', 'taxi', 'bicycle', 'ferry', 'transit', 'transport_other']
 
 const TRANSPORT_COLOR = '#3b82f6'
 
@@ -25,6 +25,7 @@ const TYPE_META: Record<TransportType, { color: string; icon: typeof Plane; geod
   taxi: { color: TRANSPORT_COLOR, icon: CarTaxiFront, geodesic: false },
   bicycle: { color: TRANSPORT_COLOR, icon: Bike, geodesic: false },
   ferry: { color: TRANSPORT_COLOR, icon: Sailboat, geodesic: true },
+  transit: { color: TRANSPORT_COLOR, icon: TramFront, geodesic: false },
   transport_other: { color: TRANSPORT_COLOR, icon: Route, geodesic: false },
 }
 

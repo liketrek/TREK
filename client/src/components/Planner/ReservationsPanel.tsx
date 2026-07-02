@@ -109,7 +109,7 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
   const hasCode = !!r.confirmation_number
   const dateCols = [hasDate, hasTime, hasCode].filter(Boolean).length
 
-  const TRANSPORT_TYPES_SET = new Set(['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transport_other'])
+  const TRANSPORT_TYPES_SET = new Set(['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transit', 'transport_other'])
   const isTransportType = TRANSPORT_TYPES_SET.has(r.type)
   const isHotel = r.type === 'hotel'
   // For a hotel linked to an accommodation, the accommodation's own start/end days are

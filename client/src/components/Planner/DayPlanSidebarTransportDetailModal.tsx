@@ -1,5 +1,5 @@
 import ReactDOM from 'react-dom'
-import { Ticket, FileText, ExternalLink, Footprints, ArrowRight } from 'lucide-react'
+import { Ticket, FileText, ExternalLink, Footprints, ArrowRight, Pencil } from 'lucide-react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
@@ -13,13 +13,15 @@ interface DayPlanSidebarTransportDetailModalProps {
   transportDetail: Reservation | null
   setTransportDetail: (v: Reservation | null) => void
   onNavigateToFiles?: () => void
+  /** Opens the edit form for this reservation (shown as a footer action). */
+  onEdit?: (res: Reservation) => void
   t: (key: string, params?: Record<string, any>) => string
   locale: string
   timeFormat: string
 }
 
 export function DayPlanSidebarTransportDetailModal({
-  transportDetail, setTransportDetail, onNavigateToFiles, t, locale, timeFormat,
+  transportDetail, setTransportDetail, onNavigateToFiles, onEdit, t, locale, timeFormat,
 }: DayPlanSidebarTransportDetailModalProps) {
   if (!transportDetail) return null
   return ReactDOM.createPortal(
@@ -119,10 +121,24 @@ export function DayPlanSidebarTransportDetailModal({
 
               {/* Public-transit itinerary (#1065) — legs from the transit search */}
               {meta.transit?.legs && Array.isArray(meta.transit.legs) && meta.transit.legs.length > 0 && (
+                <>
+                {/* journey summary: duration · transfers · walking */}
+                <div className="bg-surface-tertiary text-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, flexWrap: 'wrap' }}>
+                  {meta.transit.duration > 0 && (
+                    <span>{Math.floor(meta.transit.duration / 3600) > 0 ? `${Math.floor(meta.transit.duration / 3600)} h ${Math.round((meta.transit.duration % 3600) / 60)} min` : t('transit.min', { count: Math.round(meta.transit.duration / 60) })}</span>
+                  )}
+                  <span className="text-content-faint">·</span>
+                  <span>{meta.transit.transfers > 0 ? t('transit.transfers', { count: meta.transit.transfers }) : t('transit.direct')}</span>
+                  {meta.transit.walk_seconds > 59 && (
+                    <>
+                      <span className="text-content-faint">·</span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Footprints size={13} /> {t('transit.min', { count: Math.round(meta.transit.walk_seconds / 60) })}</span>
+                    </>
+                  )}
+                </div>
                 <div className="bg-surface-tertiary" style={{ padding: '10px 12px', borderRadius: 8 }}>
                   <div className="text-content-faint" style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 8 }}>
                     {t('transit.itinerary')}
-                    {typeof meta.transit.transfers === 'number' && meta.transit.transfers > 0 && ` · ${t('transit.transfers', { count: meta.transit.transfers })}`}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {meta.transit.legs.map((leg: { mode?: string; line?: string | null; line_color?: string | null; line_text_color?: string | null; headsign?: string | null; duration?: number; stops?: number; from?: { name?: string; time?: string | null }; to?: { name?: string; time?: string | null } }, i: number) => {
@@ -163,6 +179,7 @@ export function DayPlanSidebarTransportDetailModal({
                     })}
                   </div>
                 </div>
+                </>
               )}
 
               {/* Notizen */}
@@ -210,8 +227,17 @@ export function DayPlanSidebarTransportDetailModal({
                 )
               })()}
 
-              {/* Schließen */}
-              <div style={{ textAlign: 'right' }}>
+              {/* Aktionen */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                {onEdit && (
+                  <button onClick={() => onEdit(res)} className="bg-surface-tertiary text-content" style={{
+                    fontSize: 'calc(12px * var(--fs-scale-body, 1))',
+                    border: 'none', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                  }}>
+                    <Pencil size={12} /> {t('common.edit')}
+                  </button>
+                )}
                 <button onClick={() => setTransportDetail(null)} className="bg-accent text-accent-text" style={{
                   fontSize: 'calc(12px * var(--fs-scale-body, 1))',
                   border: 'none', borderRadius: 8, padding: '6px 16px', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',

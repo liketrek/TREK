@@ -63,6 +63,7 @@ const reservations: TranslationStrings = {
   'reservations.type.ferry': 'Färja',
   'reservations.type.bicycle': 'Cyckel',
   'reservations.type.taxi': 'Taxi',
+  'reservations.type.transit': 'Kollektivtrafik',
   'reservations.type.transport_other': 'Annat',
   'reservations.confirm.delete': 'Är du säker på att du vill ta bort bokningen "{name}"?',
   'reservations.confirm.deleteTitle': 'Ta bort bokningen?',

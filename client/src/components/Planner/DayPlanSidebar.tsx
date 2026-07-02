@@ -1955,6 +1955,11 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                           subtitle = [meta.train_number, meta.platform ? `Gl. ${meta.platform}` : '', meta.seat ? `Sitz ${meta.seat}` : ''].filter(Boolean).join(' · ')
                         }
 
+                        // A transit journey (#1065) renders its itinerary inline —
+                        // line badges in their colors instead of a plain subtitle,
+                        // so the connection is recognisable at a glance.
+                        const transitMeta = res.type === 'transit' && meta.transit && Array.isArray(meta.transit.legs) ? meta.transit : null
+
                         // Multi-day span phase (single-leg / non-flight only — a
                         // multi-leg flight is shown as one row per leg, see below).
                         const spanLabel = res.__leg ? null : getSpanLabel(res, spanPhase)
@@ -1965,8 +1970,12 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                           <React.Fragment key={`transport-${res.id}-${legKey}-${day.id}`}>
                           <div
                             onClick={() => {
-                              if (!canEditDays) return
                               const target = reservations.find(x => x.id === res.id) ?? res
+                              // A transit journey opens its itinerary view — the rich
+                              // stop-by-stop breakdown, not the generic edit form (#1065).
+                              // Editing stays reachable from inside that view.
+                              if (transitMeta) { setTransportDetail(target); return }
+                              if (!canEditDays) return
                               if (TRANSPORT_TYPES.has(res.type)) onEditTransport?.(target)
                               else onEditReservation?.(target)
                             }}
@@ -2024,7 +2033,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                               borderTop: showDropLine ? '2px solid var(--text-primary)' : undefined,
                               borderBottom: showDropLineAfter ? '2px solid var(--text-primary)' : undefined,
                               background: `${color}08`,
-                              cursor: canEditDays && onEditTransport ? 'pointer' : 'default', userSelect: 'none',
+                              cursor: (transitMeta || (canEditDays && onEditTransport)) ? 'pointer' : 'default', userSelect: 'none',
                               transition: 'background 0.1s',
                               opacity: draggingId === res.id ? 0.4 : spanPhase === 'middle' ? 0.65 : 1,
                             }}
@@ -2068,7 +2077,31 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                   )
                                 })()}
                               </div>
-                              {subtitle && (
+                              {transitMeta ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3, flexWrap: 'wrap' }}>
+                                  {transitMeta.legs.map((leg: { mode?: string; line?: string | null; line_color?: string | null; line_text_color?: string | null }, li: number) => (
+                                    <React.Fragment key={li}>
+                                      {li > 0 && <span style={{ fontSize: 9, color: 'var(--text-faint)' }}>›</span>}
+                                      {leg.mode === 'WALK'
+                                        ? <Footprints size={10} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
+                                        : (
+                                          <span style={{
+                                            display: 'inline-flex', alignItems: 'center', borderRadius: 4, padding: '0 5px',
+                                            fontSize: 'calc(9.5px * var(--fs-scale-caption, 1))', fontWeight: 700, lineHeight: '15px',
+                                            background: leg.line_color || 'var(--bg-tertiary)',
+                                            color: leg.line_color ? (leg.line_text_color || '#fff') : 'var(--text-primary)',
+                                          }}>
+                                            {leg.line || leg.mode}
+                                          </span>
+                                        )}
+                                    </React.Fragment>
+                                  ))}
+                                  <span style={{ fontSize: 'calc(9.5px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginLeft: 2 }}>
+                                    {transitMeta.transfers > 0 ? t('transit.transfers', { count: transitMeta.transfers }) : t('transit.direct')}
+                                    {transitMeta.walk_seconds > 59 && <> · <Footprints size={9} style={{ display: 'inline', verticalAlign: '-1px' }} /> {t('transit.min', { count: Math.round(transitMeta.walk_seconds / 60) })}</>}
+                                  </span>
+                                </div>
+                              ) : subtitle && (
                                 <div style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {subtitle}
                                 </div>
@@ -2400,6 +2433,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
         transportDetail={transportDetail}
         setTransportDetail={setTransportDetail}
         onNavigateToFiles={onNavigateToFiles}
+        onEdit={canEditDays && onEditTransport ? (res) => { setTransportDetail(null); onEditTransport(res) } : undefined}
         t={t}
         locale={locale}
         timeFormat={timeFormat}

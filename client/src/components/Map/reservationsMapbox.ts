@@ -9,15 +9,15 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import type mapboxgl from 'mapbox-gl'
-import { Plane, Train, Ship, Car, Bus, Sailboat, Bike, CarTaxiFront, Route } from 'lucide-react'
+import { Plane, Train, Ship, Car, Bus, Sailboat, Bike, CarTaxiFront, Route, TramFront } from 'lucide-react'
 import { escapeHtml } from '@trek/shared'
 import type { Reservation, ReservationEndpoint } from '../../types'
 
 export const RESERVATION_SOURCE_ID = 'trek-reservations'
 export const RESERVATION_LINE_LAYER_ID = 'trek-reservations-lines'
 
-type TransportType = 'flight' | 'train' | 'cruise' | 'car' | 'bus' | 'taxi' | 'bicycle' | 'ferry' | 'transport_other'
-const TRANSPORT_TYPES: TransportType[] = ['flight', 'train', 'cruise', 'car', 'bus', 'taxi', 'bicycle', 'ferry', 'transport_other']
+type TransportType = 'flight' | 'train' | 'cruise' | 'car' | 'bus' | 'taxi' | 'bicycle' | 'ferry' | 'transit' | 'transport_other'
+const TRANSPORT_TYPES: TransportType[] = ['flight', 'train', 'cruise', 'car', 'bus', 'taxi', 'bicycle', 'ferry', 'transit', 'transport_other']
 const TRANSPORT_COLOR = '#3b82f6'
 
 const TYPE_META: Record<TransportType, { icon: typeof Plane; geodesic: boolean }> = {
@@ -29,6 +29,7 @@ const TYPE_META: Record<TransportType, { icon: typeof Plane; geodesic: boolean }
   taxi: { icon: CarTaxiFront, geodesic: false },
   bicycle: { icon: Bike, geodesic: false },
   ferry: { icon: Sailboat, geodesic: true },
+  transit: { icon: TramFront, geodesic: false },
   transport_other: { icon: Route, geodesic: false },
 }
 
