@@ -102,7 +102,7 @@ describe('BottomNav', () => {
     const user = userEvent.setup();
     sessionStorage.setItem('trip-tab-42', 'transports');
     render(<BottomNav />, { initialEntries: ['/trips/42'] });
-    await user.click(screen.getByRole('button', { name: 'Manual Transport' }));
+    await user.click(screen.getByRole('button', { name: 'Transport' }));
     expect(mockNavigate).toHaveBeenCalledWith('/trips/42?create=transport');
   });
 
