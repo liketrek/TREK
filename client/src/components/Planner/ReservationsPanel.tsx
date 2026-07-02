@@ -12,7 +12,7 @@ import {
   TramFront, Footprints,
 } from 'lucide-react'
 import { openFile } from '../../utils/fileDownload'
-import { TransitTitle, TransitLegChips } from './transitDisplay'
+import { TransitTitle, TransitLegChips, TransitMetaBadges, fmtTransitDuration } from './transitDisplay'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
@@ -531,13 +531,13 @@ function TransitJourneyCard({ r, days, onOpen, onDelete, canEdit }: {
           <div className="text-content" style={{ fontSize: 'calc(13.5px * var(--fs-scale-body, 1))', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             <TransitTitle title={r.title} iconSize={12} />
           </div>
-          <div className="text-content-faint" style={{ fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', marginTop: 2 }}>
-            {[
-              day ? (day.title || t('dayplan.dayN', { n: day.day_number })) : null,
-              dateStr,
-              time ? `${formatTime(time, locale, timeFormat)}${endTime ? ` – ${formatTime(endTime, locale, timeFormat)}` : ''}` : null,
-              mins ? t('transit.min', { count: mins }) : null,
-            ].filter(Boolean).join(' · ')}
+          <div style={{ marginTop: 4 }}>
+            <TransitMetaBadges size="sm" items={[
+              { text: day ? (day.title || t('dayplan.dayN', { n: day.day_number })) : '' },
+              { icon: Calendar, text: dateStr || '' },
+              { icon: Clock, text: time ? `${formatTime(time, locale, timeFormat)}${endTime ? ` – ${formatTime(endTime, locale, timeFormat)}` : ''}` : '' },
+              { text: transit?.duration ? fmtTransitDuration(transit.duration, t) : '' },
+            ]} />
           </div>
         </div>
         {canEdit && (
@@ -555,7 +555,7 @@ function TransitJourneyCard({ r, days, onOpen, onDelete, canEdit }: {
       </div>
       {transit && (
         <div style={{ paddingLeft: 44 }}>
-          <TransitLegChips legs={transit.legs} transfers={transit.transfers} size="md" t={t} />
+          <TransitLegChips legs={transit.legs} size="md" t={t} />
         </div>
       )}
       {confirmOpen && ReactDOM.createPortal(

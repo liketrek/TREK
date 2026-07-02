@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
-import { ArrowRight, ArrowRightLeft, Bold, Clock, Code, Footprints, Heading2, Italic, Link2, List, ListChecks, Pencil, RefreshCw, Strikethrough, TramFront, Trash2 } from 'lucide-react'
+import { ArrowRight, ArrowRightLeft, Bold, Clock, Code, Footprints, Heading2, Italic, Link2, List, ListChecks, MoveRight, Pencil, RefreshCw, Strikethrough, TramFront, Trash2 } from 'lucide-react'
 import Modal from '../shared/Modal'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import { useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
 import { splitReservationDateTime, formatTime } from '../../utils/formatters'
-import { TransitTitle } from './transitDisplay'
+import { TransitTitle, TransitMetaBadges, fmtTransitDuration } from './transitDisplay'
 import type { Reservation } from '../../types'
 
 /**
@@ -124,16 +124,8 @@ export default function TransitJourneyModal({ reservation, onClose, onSave, onDe
   const { time: endTime } = splitReservationDateTime(res.reservation_end_time)
   const dateStr = date ? new Date(date + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }) : ''
 
-  const fmtDuration = (seconds: number) => {
-    const mins = Math.round(seconds / 60)
-    if (mins < 60) return t('transit.min', { count: mins })
-    const h = Math.floor(mins / 60)
-    const m = mins % 60
-    return m > 0 ? `${h} h ${m} min` : `${h} h`
-  }
-
   const statTiles = transit ? [
-    { Icon: Clock, value: transit.duration > 0 ? fmtDuration(transit.duration) : '—', label: t('transit.durationLabel') },
+    { Icon: Clock, value: transit.duration > 0 ? fmtTransitDuration(transit.duration, t) : '—', label: t('transit.durationLabel') },
     { Icon: ArrowRightLeft, value: String(transit.transfers ?? 0), label: t('transit.transfersLabel') },
     { Icon: Footprints, value: transit.walk_seconds > 59 ? t('transit.min', { count: Math.round(transit.walk_seconds / 60) }) : '—', label: t('transit.walkLabel') },
   ] : []
@@ -266,14 +258,14 @@ export default function TransitJourneyModal({ reservation, onClose, onSave, onDe
                                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{leg.to?.name}</span>
                               </>}
                         </div>
-                        <div className="text-content-faint" style={{ fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', marginTop: 3 }}>
-                          {[
-                            !isWalk && leg.from?.time ? `${leg.from.time}${leg.to?.time ? ` – ${leg.to.time}` : ''}` : null,
-                            mins ? t('transit.min', { count: mins }) : null,
-                            !isWalk && leg.stops ? t('transit.stops', { count: leg.stops }) : null,
-                            !isWalk && leg.headsign ? `→ ${leg.headsign}` : null,
-                            !isWalk ? leg.agency : null,
-                          ].filter(Boolean).join(' · ')}
+                        <div style={{ marginTop: 5 }}>
+                          <TransitMetaBadges items={[
+                            { icon: Clock, text: !isWalk && leg.from?.time ? `${leg.from.time}${leg.to?.time ? ` – ${leg.to.time}` : ''}` : '' },
+                            { text: mins ? t('transit.min', { count: mins }) : '' },
+                            { text: !isWalk && leg.stops ? t('transit.stops', { count: leg.stops }) : '' },
+                            { icon: MoveRight, text: !isWalk && leg.headsign ? leg.headsign : '' },
+                            { text: !isWalk && leg.agency ? leg.agency : '', dim: true },
+                          ]} />
                         </div>
                       </div>
                     </div>

@@ -37,7 +37,7 @@ import { DayPlanSidebarToolbar } from './DayPlanSidebarToolbar'
 import { DayPlanSidebarNoteModal } from './DayPlanSidebarNoteModal'
 import { DayPlanSidebarTimeConfirmModal } from './DayPlanSidebarTimeConfirmModal'
 import { DayPlanSidebarTransportDetailModal } from './DayPlanSidebarTransportDetailModal'
-import { TransitTitle, TransitLegChips } from './transitDisplay'
+import { TransitTitle, TransitLegChips, TransitItineraryInline } from './transitDisplay'
 import { DayPlanSidebarFooter } from './DayPlanSidebarFooter'
 import type { Trip, Day, Place, Category, Assignment, Accommodation, Reservation, AssignmentsMap, RouteResult, RouteSegment, DayNote } from '../../types'
 import { getGoogleMapsUrlForPlace } from './placeGoogleMaps'
@@ -187,6 +187,8 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   const [pdfHover, setPdfHover] = useState(false)
   const [icsHover, setIcsHover] = useState(false)
   const [hoveredAssignmentId, setHoveredAssignmentId] = useState<number | null>(null)
+  // Transit rows fold their itinerary out inline (#1065).
+  const [expandedTransitIds, setExpandedTransitIds] = useState<Set<number>>(new Set())
   const [dropTargetKey, _setDropTargetKey] = useState(null)
   const dropTargetRef = useRef(null)
   const setDropTargetKey = (key) => { dropTargetRef.current = key; _setDropTargetKey(key) }
@@ -1010,6 +1012,8 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     onPlanTransit,
     onOpenTransit,
     onEditTransport,
+    expandedTransitIds,
+    setExpandedTransitIds,
     onEditReservation,
     onAddBookingToAssignment,
     initialScrollTop,
@@ -1173,6 +1177,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
     onPlanTransit,
     onOpenTransit,
     onEditTransport,
+    expandedTransitIds,
+    setExpandedTransitIds,
     onEditReservation,
     onAddBookingToAssignment,
     initialScrollTop,
@@ -2097,7 +2103,34 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                 </div>
                               )}
                             </div>
-                            {onToggleConnection && (!res.__leg || res.__leg.index === 0) && (res.endpoints || []).length >= 2 && (() => {
+                            {transitMeta && (() => {
+                              const expanded = expandedTransitIds.has(res.id)
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={e => {
+                                    e.stopPropagation()
+                                    setExpandedTransitIds(prev => {
+                                      const next = new Set(prev)
+                                      if (next.has(res.id)) next.delete(res.id); else next.add(res.id)
+                                      return next
+                                    })
+                                  }}
+                                  title={t(expanded ? 'common.collapse' : 'common.expand')}
+                                  aria-label={t(expanded ? 'common.collapse' : 'common.expand')}
+                                  style={{
+                                    flexShrink: 0, appearance: 'none', width: 26, height: 26, borderRadius: 6,
+                                    display: 'grid', placeItems: 'center', cursor: 'pointer', border: 'none',
+                                    background: 'transparent', color: 'var(--text-faint)',
+                                  }}
+                                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)' }}
+                                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-faint)' }}
+                                >
+                                  {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                </button>
+                              )
+                            })()}
+                            {!transitMeta && onToggleConnection && (!res.__leg || res.__leg.index === 0) && (res.endpoints || []).length >= 2 && (() => {
                               const active = visibleConnectionIds.includes(res.id)
                               return (
                                 <button
@@ -2121,6 +2154,11 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                               )
                             })()}
                           </div>
+                          {transitMeta && expandedTransitIds.has(res.id) && (
+                            <div style={{ margin: '2px 8px 4px', padding: '9px 10px 9px 12px', borderRadius: 6, border: `1px solid ${color}26`, background: `${color}05` }}>
+                              <TransitItineraryInline legs={transitMeta.legs} t={t} />
+                            </div>
+                          )}
                           {routeLegs[day.id]?.[res.id] && <RouteConnector seg={routeLegs[day.id]![res.id]} profile={routeProfile} />}
                           </React.Fragment>
                         )

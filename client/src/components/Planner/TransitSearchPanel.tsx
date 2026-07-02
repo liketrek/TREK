@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import tzlookup from 'tz-lookup'
 import { ArrowLeftRight, ArrowRight, Bus, CableCar, ChevronDown, ChevronUp, Clock, Footprints, MapPin, Sailboat, Search, Train, TramFront, TrainFront } from 'lucide-react'
 import CustomTimePicker from '../shared/CustomTimePicker'
+import { TransitMetaBadges } from './transitDisplay'
 import { transitApi } from '../../api/client'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
@@ -246,14 +247,20 @@ function ItineraryCard({ it, tzFrom, tzTo, is12h, expanded, onToggle, onAdd, add
                       {leg.mode === 'WALK' ? t('transit.walkTo', { name: leg.to.name }) : leg.from.name}
                       {leg.from.track && leg.mode !== 'WALK' && <span className="text-content-faint" style={{ fontWeight: 500 }}> · {t('transit.platform', { track: leg.from.track })}</span>}
                     </div>
-                    <div className="text-content-muted" style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3, fontSize: 'calc(12px * var(--fs-scale-body, 1))', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
                       {leg.mode === 'WALK' ? (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Footprints size={12} />{fmtDuration(leg.duration, t)}{leg.distance ? ` · ${leg.distance >= 1000 ? `${(leg.distance / 1000).toFixed(1)} km` : `${leg.distance} m`}` : ''}</span>
+                        <TransitMetaBadges size="sm" items={[
+                          { icon: Footprints, text: fmtDuration(leg.duration, t) },
+                          { text: leg.distance ? (leg.distance >= 1000 ? `${(leg.distance / 1000).toFixed(1)} km` : `${leg.distance} m`) : '' },
+                        ]} />
                       ) : (
                         <>
                           <LineBadge leg={leg} />
-                          {leg.headsign && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><ArrowRight size={11} />{leg.headsign}</span>}
-                          <span className="text-content-faint">{fmtDuration(leg.duration, t)}{leg.intermediateStops > 0 ? ` · ${t('transit.stops', { count: leg.intermediateStops })}` : ''}</span>
+                          <TransitMetaBadges size="sm" items={[
+                            { icon: ArrowRight, text: leg.headsign || '' },
+                            { text: fmtDuration(leg.duration, t) },
+                            { text: leg.intermediateStops > 0 ? t('transit.stops', { count: leg.intermediateStops }) : '' },
+                          ]} />
                         </>
                       )}
                     </div>

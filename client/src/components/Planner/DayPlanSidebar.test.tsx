@@ -353,6 +353,38 @@ describe('DayPlanSidebar', () => {
     expect(onOpenTransit).toHaveBeenCalledWith(expect.objectContaining({ id: 300 }))
   })
 
+  it('FE-PLANNER-DAYPLAN-105: the transit row folds its itinerary out inline (#1065)', async () => {
+    const user = userEvent.setup()
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    const res = {
+      ...buildReservation({ id: 301, type: 'transit', title: 'A → B', reservation_time: '2025-06-01T08:30:00', day_id: 10 }),
+      metadata: {
+        transit: {
+          provider: 'transitous', duration: 1800, transfers: 1, walk_seconds: 240,
+          legs: [
+            { mode: 'WALK', duration: 240, from: { name: 'Start' }, to: { name: 'Alexanderplatz' } },
+            { mode: 'SUBWAY', line: 'U2', line_color: '#FF3300', headsign: 'Ruhleben', duration: 1440, stops: 6, from: { name: 'Alexanderplatz', time: '08:36', track: '2' }, to: { name: 'Zoo', time: '09:00' } },
+          ],
+        },
+      },
+      endpoints: [
+        { role: 'from', sequence: 0, name: 'A', code: null, lat: 1, lng: 2, timezone: null, local_date: null, local_time: null },
+        { role: 'to', sequence: 1, name: 'B', code: null, lat: 3, lng: 4, timezone: null, local_date: null, local_time: null },
+      ],
+    }
+    const onToggleConnection = vi.fn()
+    render(<DayPlanSidebar {...makeDefaultProps({ days: [day], reservations: [res as any], onOpenTransit: vi.fn(), onToggleConnection, visibleConnectionIds: [] })} />)
+    // No map-connections toggle on transit rows — the expander replaces it.
+    expect(screen.queryByTitle(/connections/i)).not.toBeInTheDocument()
+    // Collapsed: no stop names beyond the chips.
+    expect(screen.queryByText('Alexanderplatz')).not.toBeInTheDocument()
+    await user.click(screen.getByLabelText('Expand'))
+    expect(await screen.findByText('Alexanderplatz')).toBeInTheDocument()
+    expect(screen.getByText(/Platform 2/)).toBeInTheDocument()
+    await user.click(screen.getByLabelText('Collapse'))
+    expect(screen.queryByText('Alexanderplatz')).not.toBeInTheDocument()
+  })
+
   // ── Day info button ─────────────────────────────────────────────────────
 
   it('FE-PLANNER-DAYPLAN-018: clicking day header calls onDayDetail', async () => {
