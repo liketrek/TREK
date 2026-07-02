@@ -214,7 +214,7 @@ export function MapViewGL({
   const mapboxToken = useSettingsStore(s => s.settings.mapbox_access_token || '')
   const mapbox3d = useSettingsStore(s => s.settings.mapbox_3d_enabled !== false)
   const mapboxQuality = useSettingsStore(s => s.settings.mapbox_quality_mode === true)
-  const showEndpointLabels = useSettingsStore(s => s.settings.map_booking_labels) !== false
+  const showEndpointLabels = useSettingsStore(s => s.settings.map_booking_labels) === true
   const mapLang = useSettingsStore(s => s.settings.language)
   const isMapLibre = glProvider === 'maplibre-gl'
   const gl = (isMapLibre ? maplibregl : mapboxgl) as any

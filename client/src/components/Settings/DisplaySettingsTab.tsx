@@ -247,8 +247,8 @@ export default function DisplaySettingsTab(): React.ReactElement {
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
                 fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 500,
-                border: (settings.map_booking_labels !== false) === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
-                background: (settings.map_booking_labels !== false) === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)',
+                border: (settings.map_booking_labels === true) === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
+                background: (settings.map_booking_labels === true) === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)',
                 color: 'var(--text-primary)',
                 transition: 'all 0.15s',
               }}

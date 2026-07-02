@@ -351,7 +351,7 @@ export default function ReservationOverlay({ reservations, showConnections, show
   useMapEvents({
     zoomend: () => setZoom(map.getZoom()),
   })
-  const showEndpointLabels = useSettingsStore(s => s.settings.map_booking_labels) !== false
+  const showEndpointLabels = useSettingsStore(s => s.settings.map_booking_labels) === true
 
   const items = useMemo<TransportItem[]>(() => {
     const out: TransportItem[] = []
