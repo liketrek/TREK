@@ -81,6 +81,7 @@ interface Props {
   hasDayDetail?: boolean
   reservations?: Reservation[]
   visibleConnectionIds?: number[]
+  showTransitRoutes?: boolean
   showReservationStats?: boolean
   onReservationClick?: (reservationId: number) => void
   pois?: Poi[]
@@ -199,6 +200,7 @@ export function MapViewGL({
   hasDayDetail = false,
   reservations = [],
   visibleConnectionIds = [],
+  showTransitRoutes = true,
   showReservationStats = false,
   onReservationClick,
   pois = [],
@@ -801,9 +803,10 @@ export function MapViewGL({
   // booking's route, matching the Leaflet MapView's behaviour.
   const visibleReservations = useMemo(() => {
     const set = new Set(visibleConnectionIds || [])
-    // Transit journeys are part of the plan itself — always on the map (#1065).
-    return reservations.filter(r => r.type === 'transit' || set.has(r.id))
-  }, [reservations, visibleConnectionIds])
+    // Transit journeys ride the route toggle — they are part of the computed
+    // day route, so hiding the route hides them too (#1065).
+    return reservations.filter(r => (r.type === 'transit' && showTransitRoutes) || set.has(r.id))
+  }, [reservations, visibleConnectionIds, showTransitRoutes])
 
   useEffect(() => {
     const map = mapRef.current

@@ -304,6 +304,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
               places={mapPlaces}
               dayPlaces={dayPlaces}
               route={route}
+              showTransitRoutes={routeShown}
               routeSegments={routeSegments}
               selectedPlaceId={selectedPlaceId}
               onMarkerClick={handleMarkerClick}

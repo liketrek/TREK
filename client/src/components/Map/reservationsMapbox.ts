@@ -331,7 +331,7 @@ export class ReservationMapboxOverlay {
           const toPx = map.project([item.to.lng, item.to.lat])
           const dx = fromPx.x - toPx.x, dy = fromPx.y - toPx.y
           const dist = Math.sqrt(dx * dx + dy * dy)
-          const minPx = item.type === 'flight' ? 50 : item.type === 'cruise' ? 300 : item.type === 'car' ? 150 : 400
+          const minPx = item.type === 'flight' ? 50 : item.type === 'cruise' ? 300 : item.type === 'car' ? 150 : item.type === 'transit' ? 900 : 400
           if (dist >= minPx) labelVisibleIds.add(item.res.id)
         } catch { /* ignore */ }
       }

@@ -414,7 +414,7 @@ export default function ReservationOverlay({ reservations, showConnections, show
     for (const item of visibleItems) {
       const fromPx = map.latLngToContainerPoint([item.from.lat, item.from.lng])
       const toPx = map.latLngToContainerPoint([item.to.lat, item.to.lng])
-      const minPx = item.type === 'flight' ? 50 : item.type === 'cruise' ? 300 : item.type === 'car' ? 150 : 400
+      const minPx = item.type === 'flight' ? 50 : item.type === 'cruise' ? 300 : item.type === 'car' ? 150 : item.type === 'transit' ? 900 : 400
       if (fromPx.distanceTo(toPx) >= minPx) set.add(item.res.id)
     }
     return set
