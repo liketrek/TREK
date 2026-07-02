@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import { avatarUrl } from './avatarUrl';
 import crypto from 'crypto';
 import path from 'path';
 import fs from 'fs';
@@ -71,7 +72,7 @@ export function listUsers() {
   } catch { /* */ }
   return users.map(u => ({
     ...u,
-    avatar_url: u.avatar ? `/uploads/avatars/${u.avatar}` : null,
+    avatar_url: avatarUrl(u),
     created_at: utcSuffix(u.created_at),
     updated_at: utcSuffix(u.updated_at as string),
     last_login: utcSuffix(u.last_login),

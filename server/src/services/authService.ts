@@ -711,7 +711,9 @@ export function getSettings(userId: number): { error?: string; status?: number; 
 
 export async function saveAvatar(userId: number, filename: string) {
   const current = db.prepare('SELECT avatar FROM users WHERE id = ?').get(userId) as { avatar: string | null } | undefined;
-  if (current && current.avatar) {
+  // Only a locally uploaded file has something to clean up. An OIDC picture URL
+  // (#1399) has no file on disk, so skip the rm — path.join on a URL is meaningless.
+  if (current?.avatar && !/^https:\/\//i.test(current.avatar)) {
     // Fire-and-forget: leftover files are harmless; the DB update is
     // the source of truth for which avatar is current.
     const oldPath = path.join(avatarDir, current.avatar);
@@ -726,7 +728,8 @@ export async function saveAvatar(userId: number, filename: string) {
 
 export async function deleteAvatar(userId: number) {
   const current = db.prepare('SELECT avatar FROM users WHERE id = ?').get(userId) as { avatar: string | null } | undefined;
-  if (current && current.avatar) {
+  // An OIDC picture URL (#1399) has no local file — only rm an uploaded one.
+  if (current?.avatar && !/^https:\/\//i.test(current.avatar)) {
     const filePath = path.join(avatarDir, current.avatar);
     await fs.promises.rm(filePath, { force: true }).catch(() => {});
   }

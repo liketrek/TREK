@@ -1,4 +1,5 @@
 import path from 'path';
+import { avatarUrl } from './avatarUrl';
 import fs from 'fs';
 import { randomUUID } from 'crypto';
 import { db, isOwner } from '../db/database';
@@ -365,8 +366,8 @@ export function listMembers(tripId: string | number, tripOwnerId: number) {
   const owner = db.prepare('SELECT id, username, email, avatar FROM users WHERE id = ?').get(tripOwnerId) as Pick<User, 'id' | 'username' | 'email' | 'avatar'>;
 
   return {
-    owner: { ...owner, role: 'owner', is_guest: false, avatar_url: owner.avatar ? `/uploads/avatars/${owner.avatar}` : null },
-    members: members.map(m => ({ ...m, is_guest: !!m.is_guest, avatar_url: m.avatar ? `/uploads/avatars/${m.avatar}` : null })),
+    owner: { ...owner, role: 'owner', is_guest: false, avatar_url: avatarUrl(owner) },
+    members: members.map(m => ({ ...m, is_guest: !!m.is_guest, avatar_url: avatarUrl(m) })),
   };
 }
 
@@ -398,7 +399,7 @@ export function addMember(tripId: string | number, identifier: string, tripOwner
   const tripInfo = db.prepare('SELECT title FROM trips WHERE id = ?').get(tripId) as { title: string } | undefined;
 
   return {
-    member: { ...target, role: 'member', avatar_url: target.avatar ? `/uploads/avatars/${target.avatar}` : null },
+    member: { ...target, role: 'member', avatar_url: avatarUrl(target) },
     targetUserId: target.id,
     tripTitle: tripInfo?.title || 'Untitled',
   };

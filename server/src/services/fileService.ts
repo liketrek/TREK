@@ -1,4 +1,5 @@
 import path from 'path';
+import { avatarUrl } from './avatarUrl';
 import fs from 'fs';
 import type { Request } from 'express';
 import { db } from '../db/database';
@@ -66,7 +67,7 @@ export function formatFile(file: TripFile & { trip_id?: number; uploaded_by_avat
   return {
     ...file,
     url: `/api/trips/${tripId}/files/${file.id}/download`,
-    uploaded_by_avatar: file.uploaded_by_avatar ? `/uploads/avatars/${file.uploaded_by_avatar}` : null,
+    uploaded_by_avatar: avatarUrl({ avatar: file.uploaded_by_avatar }),
   };
 }
 

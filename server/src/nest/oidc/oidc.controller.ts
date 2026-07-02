@@ -128,6 +128,12 @@ export class OidcController {
         return f('/login?oidc_error=subject_mismatch');
       }
 
+      // Some IdPs put `picture` only in the id_token, not the userinfo response —
+      // fall back to it so the avatar (#1399) still populates.
+      if (!userInfo.picture && typeof idVerify.claims.picture === 'string') {
+        userInfo.picture = idVerify.claims.picture;
+      }
+
       const result = this.oidc.findOrCreateUser(userInfo, config, pending.inviteToken);
       if ('error' in result) return f('/login?oidc_error=' + result.error);
 

@@ -464,6 +464,63 @@ describe('findOrCreateUser', () => {
     const token = testDb.prepare("SELECT used_count FROM invite_tokens WHERE token = 'tok-full'").get() as any;
     expect(token.used_count).toBe(1);
   });
+
+  // ── OIDC picture claim → avatar (#1399) ──────────────────────────────────
+
+  it('OIDC-SVC-040: new user stores the https picture claim as their avatar', () => {
+    const result = findOrCreateUser(
+      { sub: 'sub-pic-1', email: 'pic1@example.com', name: 'Pic One', picture: 'https://idp.example.com/u/pic1.png' },
+      MOCK_CONFIG
+    );
+    expect('user' in result).toBe(true);
+    const row = testDb.prepare("SELECT avatar FROM users WHERE email = 'pic1@example.com'").get() as any;
+    expect(row.avatar).toBe('https://idp.example.com/u/pic1.png');
+  });
+
+  it('OIDC-SVC-041: new user with a non-https picture claim stores no avatar', () => {
+    findOrCreateUser(
+      { sub: 'sub-pic-2', email: 'pic2@example.com', name: 'Pic Two', picture: 'http://idp.example.com/u/pic2.png' },
+      MOCK_CONFIG
+    );
+    const row = testDb.prepare("SELECT avatar FROM users WHERE email = 'pic2@example.com'").get() as any;
+    expect(row.avatar).toBeNull();
+  });
+
+  it('OIDC-SVC-042: existing user with no avatar gets the OIDC picture', () => {
+    const { user } = createUser(testDb, { email: 'pic3@example.com' });
+    testDb.prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ?, avatar = NULL WHERE id = ?')
+      .run('sub-pic-3', MOCK_CONFIG.issuer, user.id);
+    findOrCreateUser(
+      { sub: 'sub-pic-3', email: 'pic3@example.com', name: 'Pic Three', picture: 'https://idp.example.com/u/pic3.png' },
+      MOCK_CONFIG
+    );
+    const row = testDb.prepare('SELECT avatar FROM users WHERE id = ?').get(user.id) as any;
+    expect(row.avatar).toBe('https://idp.example.com/u/pic3.png');
+  });
+
+  it('OIDC-SVC-043: a custom uploaded avatar is never overwritten by the OIDC picture', () => {
+    const { user } = createUser(testDb, { email: 'pic4@example.com' });
+    testDb.prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ?, avatar = ? WHERE id = ?')
+      .run('sub-pic-4', MOCK_CONFIG.issuer, 'uploaded-abc.jpg', user.id);
+    findOrCreateUser(
+      { sub: 'sub-pic-4', email: 'pic4@example.com', name: 'Pic Four', picture: 'https://idp.example.com/u/pic4.png' },
+      MOCK_CONFIG
+    );
+    const row = testDb.prepare('SELECT avatar FROM users WHERE id = ?').get(user.id) as any;
+    expect(row.avatar).toBe('uploaded-abc.jpg');
+  });
+
+  it('OIDC-SVC-044: a previously stored OIDC picture URL is refreshed on next login', () => {
+    const { user } = createUser(testDb, { email: 'pic5@example.com' });
+    testDb.prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ?, avatar = ? WHERE id = ?')
+      .run('sub-pic-5', MOCK_CONFIG.issuer, 'https://idp.example.com/u/old.png', user.id);
+    findOrCreateUser(
+      { sub: 'sub-pic-5', email: 'pic5@example.com', name: 'Pic Five', picture: 'https://idp.example.com/u/new.png' },
+      MOCK_CONFIG
+    );
+    const row = testDb.prepare('SELECT avatar FROM users WHERE id = ?').get(user.id) as any;
+    expect(row.avatar).toBe('https://idp.example.com/u/new.png');
+  });
 });
 
 // ── exchangeCodeForToken ──────────────────────────────────────────────────────

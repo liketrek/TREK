@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
+import { avatarSrc } from '../../utils/avatarSrc'
 import ReactDOM from 'react-dom'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
@@ -481,7 +482,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
                 value: String(m.id),
                 label: m.is_guest ? `${m.username} · ${t('members.guest')}` : m.username,
                 icon: m.avatar ? (
-                  <img src={`/uploads/avatars/${m.avatar}`} style={{ width: 18, height: 18, borderRadius: '50%', objectFit: 'cover' as const }} alt="" />
+                  <img src={avatarSrc(m.avatar)!} style={{ width: 18, height: 18, borderRadius: '50%', objectFit: 'cover' as const }} alt="" />
                 ) : (
                   <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'var(--border-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', fontWeight: 600 }}>
                     {m.username.charAt(0).toUpperCase()}
@@ -671,7 +672,7 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
               ...members.map(m => ({
                 value: String(m.id), label: m.username,
                 icon: m.avatar ? (
-                  <img src={`/uploads/avatars/${m.avatar}`} style={{ width: 18, height: 18, borderRadius: '50%', objectFit: 'cover' as const }} alt="" />
+                  <img src={avatarSrc(m.avatar)!} style={{ width: 18, height: 18, borderRadius: '50%', objectFit: 'cover' as const }} alt="" />
                 ) : (
                   <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'var(--border-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', fontWeight: 600 }}>
                     {m.username.charAt(0).toUpperCase()}

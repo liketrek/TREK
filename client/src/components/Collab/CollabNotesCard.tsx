@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { avatarSrc } from '../../utils/avatarSrc'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
@@ -28,7 +29,7 @@ interface NoteCardProps {
 export function NoteCard({ note, currentUser, canEdit, onUpdate, onDelete, onEdit, onView, onPreviewFile, getCategoryColor, tripId, t }: NoteCardProps) {
   const [hovered, setHovered] = useState(false)
 
-  const author = note.author || note.user || { username: note.username, avatar: note.avatar_url || (note.avatar ? `/uploads/avatars/${note.avatar}` : null) }
+  const author = note.author || note.user || { username: note.username, avatar: note.avatar_url || avatarSrc(note.avatar) }
   const color = getCategoryColor ? getCategoryColor(note.category) : (note.color || '#6366f1')
 
   const handleTogglePin = useCallback(() => {

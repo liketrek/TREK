@@ -1,4 +1,5 @@
 import { db } from '../db/database';
+import { avatarUrl } from './avatarUrl';
 import { broadcastToUser } from '../websocket';
 import { getAction } from './inAppNotificationActions';
 import { isEnabledForEvent, type NotifEventType } from './notificationPreferencesService';
@@ -171,7 +172,7 @@ function createNotification(input: NotificationInput): number[] {
       notification: {
         ...row,
         sender_username: sender?.username ?? null,
-        sender_avatar: sender?.avatar ? `/uploads/avatars/${sender.avatar}` : null,
+        sender_avatar: avatarUrl({ avatar: sender?.avatar }),
       },
     });
   }
@@ -232,7 +233,7 @@ export function createNotificationForRecipient(
       ...row,
       created_at: toUtcIso(row.created_at),
       sender_username: sender?.username ?? null,
-      sender_avatar: sender?.avatar ? `/uploads/avatars/${sender.avatar}` : null,
+      sender_avatar: avatarUrl({ avatar: sender?.avatar }),
     },
   });
 
@@ -265,7 +266,7 @@ function getNotifications(
   const mapped = rows.map(r => ({
     ...r,
     created_at: toUtcIso(r.created_at),
-    sender_avatar: r.sender_avatar ? `/uploads/avatars/${r.sender_avatar}` : null,
+    sender_avatar: avatarUrl({ avatar: r.sender_avatar }),
   }));
 
   return { notifications: mapped, total, unread_count };
@@ -347,7 +348,7 @@ async function respondToBoolean(
 
   const mappedUpdated = {
     ...updated,
-    sender_avatar: updated.sender_avatar ? `/uploads/avatars/${updated.sender_avatar}` : null,
+    sender_avatar: avatarUrl({ avatar: updated.sender_avatar }),
   };
 
   broadcastToUser(userId, { type: 'notification:updated', notification: mappedUpdated });

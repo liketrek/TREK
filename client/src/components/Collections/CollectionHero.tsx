@@ -1,4 +1,5 @@
 import React from 'react'
+import { avatarSrc } from '../../utils/avatarSrc'
 import { Share2, Users, Link2, Pencil } from 'lucide-react'
 import type { CollectionMember, CollectionLink } from '@trek/shared'
 import type { TranslationFn } from '../../types'
@@ -67,7 +68,7 @@ export default function CollectionHero({
             <span className="members">
               {shown.map(m => (
                 m.avatar
-                  ? <img key={m.user_id} className="col-av" src={m.avatar} alt={m.username} />
+                  ? <img key={m.user_id} className="col-av" src={avatarSrc(m.avatar)!} alt={m.username} />
                   : <span key={m.user_id} className="col-av" style={{ background: AV_COLORS[m.user_id % AV_COLORS.length] }}>{initials(m.username)}</span>
               ))}
               {extra > 0 && <span className="col-av" style={{ background: 'rgba(255,255,255,.28)' }}>+{extra}</span>}

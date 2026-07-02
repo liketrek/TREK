@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { avatarSrc } from '../../utils/avatarSrc'
 import { UserPlus, UserMinus, Loader2, Clock, Crown, LogOut } from 'lucide-react'
 import type { CollectionMember, CollectionRole } from '@trek/shared'
 import Modal from '../shared/Modal'
@@ -29,7 +30,7 @@ function MemberAvatar({ member }: { member: CollectionMember }): React.ReactElem
   return (
     <span className="w-8 h-8 rounded-full shrink-0 overflow-hidden flex items-center justify-center bg-surface-secondary text-content-secondary text-[12px] font-semibold">
       {member.avatar ? (
-        <img src={`/uploads/avatars/${member.avatar}`} alt="" className="w-full h-full object-cover" />
+        <img src={avatarSrc(member.avatar)!} alt="" className="w-full h-full object-cover" />
       ) : (
         initial
       )}

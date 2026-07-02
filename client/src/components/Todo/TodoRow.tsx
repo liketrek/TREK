@@ -1,4 +1,5 @@
 import { CheckSquare, Square, ChevronRight, Flag, Calendar, GripVertical, UserRound } from 'lucide-react'
+import { avatarSrc } from '../../utils/avatarSrc'
 import type { TodoItem } from '../../types'
 import { katColor, PRIO_CONFIG, type Member } from './todoListModel'
 
@@ -125,7 +126,7 @@ export default function TodoRow({ item, members, categories, today, isSelected, 
               border: '1px solid var(--border-faint)',
             }}>
               {assignedUser.avatar ? (
-                <img src={`/uploads/avatars/${assignedUser.avatar}`} style={{ width: 13, height: 13, borderRadius: '50%', objectFit: 'cover' }} alt="" />
+                <img src={avatarSrc(assignedUser.avatar)!} style={{ width: 13, height: 13, borderRadius: '50%', objectFit: 'cover' }} alt="" />
               ) : (
                 <span style={{ width: 13, height: 13, borderRadius: '50%', background: 'var(--border-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(7px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', fontWeight: 700 }}>
                   {assignedUser.username.charAt(0).toUpperCase()}

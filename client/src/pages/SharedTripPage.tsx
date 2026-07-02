@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { avatarSrc } from '../utils/avatarSrc'
 import { MapContainer, TileLayer, Marker, Tooltip, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { useTranslation, SUPPORTED_LANGUAGES } from '../i18n'
@@ -380,7 +381,7 @@ export default function SharedTripPage() {
                     )}
                     <div style={{ display: 'flex', gap: 10 }}>
                       <div className="bg-[#e5e7eb] text-[#6b7280]" style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 700, flexShrink: 0, overflow: 'hidden' }}>
-                        {msg.avatar ? <img src={`/uploads/avatars/${msg.avatar}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (msg.username || '?')[0].toUpperCase()}
+                        {msg.avatar ? <img src={avatarSrc(msg.avatar)!} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (msg.username || '?')[0].toUpperCase()}
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>

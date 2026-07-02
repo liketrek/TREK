@@ -1,4 +1,5 @@
 import { db, canAccessTrip } from '../db/database';
+import { avatarUrl } from './avatarUrl';
 import type { Journey, JourneyEntry, JourneyPhoto, JourneyContributor } from '../types';
 import { broadcastToUser } from '../websocket';
 import {
@@ -214,7 +215,7 @@ export function getJourneyFull(journeyId: number, userId: number) {
     .all(journeyId) as any[];
   const contributors = contributorsRaw.map((c) => ({
     ...c,
-    avatar_url: c.avatar ? `/uploads/avatars/${c.avatar}` : null,
+    avatar_url: avatarUrl(c),
   }));
 
   // stats
