@@ -43,6 +43,7 @@ interface TransitJourneyModalProps {
 
 export default function TransitJourneyModal({ reservation, onClose, onSave, onDelete, onChangeRoute, canEdit }: TransitJourneyModalProps) {
   const { t, locale } = useTranslation()
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
   const timeFormat = useSettingsStore(st => st.settings.time_format) || '24h'
   const res = reservation
   const meta = typeof res.metadata === 'string' ? (() => { try { return JSON.parse(res.metadata || '{}') } catch { return {} } })() : (res.metadata || {})
@@ -139,14 +140,14 @@ export default function TransitJourneyModal({ reservation, onClose, onSave, onDe
       title={t('transit.journey')}
       size="2xl"
       footer={
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           {canEdit && (
-            <button onClick={() => setConfirmDelete(true)} style={{
-              display: 'inline-flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: 10,
+            <button onClick={() => setConfirmDelete(true)} aria-label={t('common.delete')} title={t('common.delete')} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5, padding: isMobile ? '9px 11px' : '8px 14px', borderRadius: 10,
               border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.06)', color: '#ef4444',
               fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
             }}>
-              <Trash2 size={13} /> {t('common.delete')}
+              <Trash2 size={13} /> {!isMobile && t('common.delete')}
             </button>
           )}
           <div style={{ flex: 1 }} />
@@ -178,8 +179,8 @@ export default function TransitJourneyModal({ reservation, onClose, onSave, onDe
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18, fontFamily: 'var(--font-system)' }}>
         {/* header: icon + inline-renamable title + date/time */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 48, height: 48, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 14, background: '#7c3aed18' }}>
-            <TramFront size={23} strokeWidth={1.8} color="#7c3aed" />
+          <div style={{ width: isMobile ? 40 : 48, height: isMobile ? 40 : 48, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 13, background: '#7c3aed18' }}>
+            <TramFront size={isMobile ? 19 : 23} strokeWidth={1.8} color="#7c3aed" />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             {editingTitle ? (
@@ -212,22 +213,30 @@ export default function TransitJourneyModal({ reservation, onClose, onSave, onDe
         {transit && (
           <>
             {/* journey stats — three full-width tiles */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: isMobile ? 6 : 10 }}>
               {statTiles.map(({ Icon, value, label }, i) => (
-                <div key={i} className="bg-surface-tertiary" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderRadius: 12 }}>
-                  <div className="bg-surface-card" style={{ width: 34, height: 34, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 10 }}>
-                    <Icon size={16} strokeWidth={1.9} className="text-content-muted" />
+                isMobile ? (
+                  <div key={i} className="bg-surface-tertiary" style={{ padding: '10px 6px', borderRadius: 11, textAlign: 'center', minWidth: 0 }}>
+                    <Icon size={14} strokeWidth={1.9} className="text-content-muted" style={{ marginBottom: 3 }} />
+                    <div className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 700, letterSpacing: '-0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
+                    <div className="text-content-faint" style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
                   </div>
-                  <div style={{ minWidth: 0 }}>
-                    <div className="text-content" style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 700, letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>{value}</div>
-                    <div className="text-content-faint" style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
+                ) : (
+                  <div key={i} className="bg-surface-tertiary" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderRadius: 12 }}>
+                    <div className="bg-surface-card" style={{ width: 34, height: 34, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 10 }}>
+                      <Icon size={16} strokeWidth={1.9} className="text-content-muted" />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div className="text-content" style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 700, letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>{value}</div>
+                      <div className="text-content-faint" style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
+                    </div>
                   </div>
-                </div>
+                )
               ))}
             </div>
 
             {/* stop-by-stop itinerary */}
-            <div className="bg-surface-tertiary" style={{ padding: '14px 16px', borderRadius: 12 }}>
+            <div className="bg-surface-tertiary" style={{ padding: isMobile ? '11px 10px' : '14px 16px', borderRadius: 12 }}>
               <div className="text-content-faint" style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 12 }}>
                 {t('transit.itinerary')}
               </div>
@@ -236,8 +245,8 @@ export default function TransitJourneyModal({ reservation, onClose, onSave, onDe
                   if (leg.mode === 'WALK') return <TransitWalkDivider key={i} leg={leg} t={t} />
                   const mins = leg.duration ? Math.round(leg.duration / 60) : null
                   return (
-                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                      <div className="text-content-muted" style={{ width: 44, flexShrink: 0, textAlign: 'right', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, paddingTop: 1 }}>
+                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: isMobile ? 8 : 12 }}>
+                      <div className="text-content-muted" style={{ width: isMobile ? 36 : 44, flexShrink: 0, textAlign: 'right', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, paddingTop: 1 }}>
                         {leg.from?.time || ''}
                       </div>
                       <span style={{ display: 'inline-flex', alignItems: 'center', background: leg.line_color || 'var(--bg-hover)', color: leg.line_color ? (leg.line_text_color || '#fff') : 'var(--text-primary)', borderRadius: 6, padding: '2px 8px', fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 700, flexShrink: 0 }}>

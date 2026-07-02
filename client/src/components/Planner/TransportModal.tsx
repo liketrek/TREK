@@ -520,7 +520,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
               <div className="text-content" style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 700, letterSpacing: '-0.01em' }}>{t('transit.title')}</div>
               <div className="text-content-faint" style={{ fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', marginTop: 1 }}>{t('transit.searchHint')}</div>
             </div>
-            <div style={{ width: 210, flexShrink: 0 }}>
+            <div style={{ width: typeof window !== 'undefined' && window.innerWidth < 768 ? '100%' : 210, flexShrink: 0 }}>
               <CustomSelect value={form.start_day_id} onChange={v => set('start_day_id', v)} placeholder={t('dayplan.dayN', { n: '?' })} options={dayOptions} size="sm" />
             </div>
           </div>

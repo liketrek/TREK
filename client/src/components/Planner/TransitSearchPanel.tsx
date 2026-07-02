@@ -322,6 +322,7 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
   const { t } = useTranslation()
   const toast = useToast()
   const is12h = useSettingsStore(s => s.settings.time_format) === '12h'
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
 
   const [from, setFrom] = useState<PickedPlace | null>(initialFrom)
   const [to, setTo] = useState<PickedPlace | null>(initialTo)
@@ -485,15 +486,15 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
 
   return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, fontFamily: 'var(--font-system)' }}>
-        {/* from / to */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+        {/* from / to — stacked on mobile with the swap between the fields */}
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 6 : 8, alignItems: isMobile ? 'stretch' : 'flex-end' }}>
           <StopPicker label={t('transit.from')} value={from} onPick={setFrom} quickPicks={quickPicks} near={near} placeholder={t('transit.searchStop')} />
           <button
             onClick={() => { const f = from; setFrom(to); setTo(f) }}
             aria-label={t('transit.swap')}
             title={t('transit.swap')}
             className="bg-surface-secondary text-content-muted"
-            style={{ border: 'none', borderRadius: 10, width: 38, height: 38, display: 'grid', placeItems: 'center', cursor: 'pointer', flexShrink: 0 }}
+            style={{ border: 'none', borderRadius: 10, width: isMobile ? 34 : 38, height: isMobile ? 30 : 38, display: 'grid', placeItems: 'center', cursor: 'pointer', flexShrink: 0, alignSelf: isMobile ? 'center' : undefined, transform: isMobile ? 'rotate(90deg)' : undefined, margin: isMobile ? '-2px 0' : undefined }}
           >
             <ArrowLeftRight size={15} />
           </button>
@@ -518,10 +519,10 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
                 </span>
               )}
             </div>
-            <div className="bg-surface-secondary" style={{ display: 'flex', borderRadius: 9, padding: 3 }}>
-              <button onClick={() => setPref('best')} style={segBtn(pref === 'best')}>{t('transit.pref.best')}</button>
-              <button onClick={() => setPref('transfers')} style={segBtn(pref === 'transfers')}>{t('transit.pref.transfers')}</button>
-              <button onClick={() => setPref('walking')} style={segBtn(pref === 'walking')}>{t('transit.pref.walking')}</button>
+            <div className="bg-surface-secondary" style={{ display: 'flex', borderRadius: 9, padding: 3, width: isMobile ? '100%' : undefined }}>
+              <button onClick={() => setPref('best')} style={{ ...segBtn(pref === 'best'), flex: isMobile ? 1 : undefined }}>{t('transit.pref.best')}</button>
+              <button onClick={() => setPref('transfers')} style={{ ...segBtn(pref === 'transfers'), flex: isMobile ? 1 : undefined }}>{t('transit.pref.transfers')}</button>
+              <button onClick={() => setPref('walking')} style={{ ...segBtn(pref === 'walking'), flex: isMobile ? 1 : undefined }}>{t('transit.pref.walking')}</button>
             </div>
           </div>
 
@@ -553,7 +554,7 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
               onClick={search}
               disabled={!from || !to || loading}
               className="bg-accent text-accent-text"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 600, fontSize: 'calc(13px * var(--fs-scale-body, 1))', cursor: (!from || !to || loading) ? 'default' : 'pointer', fontFamily: 'inherit', opacity: (!from || !to || loading) ? 0.55 : 1, flexShrink: 0 }}
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 600, fontSize: 'calc(13px * var(--fs-scale-body, 1))', cursor: (!from || !to || loading) ? 'default' : 'pointer', fontFamily: 'inherit', opacity: (!from || !to || loading) ? 0.55 : 1, flexShrink: 0, width: isMobile ? '100%' : undefined }}
             >
               <Search size={14} strokeWidth={2.2} />
               {loading ? t('transit.searching') : t('transit.search')}
