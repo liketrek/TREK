@@ -2089,7 +2089,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                               </div>
                               {transitMeta ? (
                                 <div style={{ display: 'flex', alignItems: 'center', marginTop: 3 }}>
-                                  <TransitLegChips legs={transitMeta.legs} transfers={transitMeta.transfers} size="sm" t={t} />
+                                  <TransitLegChips legs={transitMeta.legs} size="sm" t={t} />
                                 </div>
                               ) : subtitle && (
                                 <div style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

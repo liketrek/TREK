@@ -345,7 +345,8 @@ describe('DayPlanSidebar', () => {
     // Line chip + transfer summary render inline in the timeline row; the
     // title uses an arrow icon, so its parts are separate text nodes.
     expect(screen.getByText('U2')).toBeInTheDocument()
-    expect(screen.getByText(/1 transfers/)).toBeInTheDocument()
+    // Transfer counts stay out of the compact row — the chips say it all.
+    expect(screen.queryByText(/1 transfers/)).not.toBeInTheDocument()
     // Clicking the row opens the journey view — not the edit form.
     await user.click(screen.getByText('Fernsehturm'))
     expect(onEditTransport).not.toHaveBeenCalled()

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
-import { ArrowRight, ArrowRightLeft, Clock, Footprints, Pencil, RefreshCw, TramFront, Trash2 } from 'lucide-react'
+import { ArrowRight, ArrowRightLeft, Bold, Clock, Code, Footprints, Heading2, Italic, Link2, List, ListChecks, Pencil, RefreshCw, Strikethrough, TramFront, Trash2 } from 'lucide-react'
 import Modal from '../shared/Modal'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import { useTranslation } from '../../i18n'
@@ -55,6 +55,51 @@ export default function TransitJourneyModal({ reservation, onClose, onSave, onDe
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const titleInputRef = useRef<HTMLInputElement | null>(null)
+  const notesRef = useRef<HTMLTextAreaElement | null>(null)
+
+  // Markdown toolbar: wrap the selection / prefix the current lines, then
+  // restore focus and a sensible cursor.
+  const applyMd = (action: { wrap?: [string, string]; linePrefix?: string }) => {
+    const el = notesRef.current
+    if (!el) return
+    const start = el.selectionStart ?? 0
+    const end = el.selectionEnd ?? 0
+    const value = notes
+    let next = value
+    let selStart = start
+    let selEnd = end
+    if (action.wrap) {
+      const [pre, post] = action.wrap
+      const selected = value.slice(start, end)
+      next = value.slice(0, start) + pre + selected + post + value.slice(end)
+      selStart = start + pre.length
+      selEnd = selStart + selected.length
+    } else if (action.linePrefix) {
+      const prefix = action.linePrefix
+      const lineStart = value.lastIndexOf('\n', start - 1) + 1
+      const block = value.slice(lineStart, end)
+      const prefixed = block.split('\n').map(l => prefix + l).join('\n')
+      next = value.slice(0, lineStart) + prefixed + value.slice(end)
+      selStart = start + prefix.length
+      selEnd = end + (prefixed.length - block.length)
+    }
+    setNotes(next)
+    requestAnimationFrame(() => {
+      el.focus()
+      el.setSelectionRange(selStart, selEnd)
+    })
+  }
+
+  const MD_TOOLS: { Icon: typeof Bold; label: string; action: { wrap?: [string, string]; linePrefix?: string } }[] = [
+    { Icon: Bold, label: 'Bold', action: { wrap: ['**', '**'] } },
+    { Icon: Italic, label: 'Italic', action: { wrap: ['*', '*'] } },
+    { Icon: Strikethrough, label: 'Strikethrough', action: { wrap: ['~~', '~~'] } },
+    { Icon: Heading2, label: 'Heading', action: { linePrefix: '## ' } },
+    { Icon: List, label: 'List', action: { linePrefix: '- ' } },
+    { Icon: ListChecks, label: 'Checklist', action: { linePrefix: '- [ ] ' } },
+    { Icon: Link2, label: 'Link', action: { wrap: ['[', '](https://)'] } },
+    { Icon: Code, label: 'Code', action: { wrap: ['`', '`'] } },
+  ]
 
   useEffect(() => {
     setTitle(res.title || '')
@@ -241,22 +286,38 @@ export default function TransitJourneyModal({ reservation, onClose, onSave, onDe
 
         {/* notes — full width, markdown */}
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, gap: 8, flexWrap: 'wrap' }}>
             <label className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{t('reservations.notes')}</label>
             {canEdit && (
-              <div className="bg-surface-secondary" style={{ display: 'flex', borderRadius: 8, padding: 2, gap: 2 }}>
-                {([['write', t('common.edit')], ['preview', t('common.preview')]] as const).map(([tab, label]) => (
-                  <button key={tab} type="button" onClick={() => setNotesTab(tab)}
-                    className={notesTab === tab ? 'bg-surface-card text-content' : 'text-content-muted'}
-                    style={{ padding: '4px 12px', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500, borderRadius: 6, border: 0, cursor: 'pointer', fontFamily: 'inherit', background: notesTab === tab ? undefined : 'transparent' }}>
-                    {label}
-                  </button>
-                ))}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {notesTab === 'write' && (
+                  <div className="bg-surface-secondary" style={{ display: 'flex', borderRadius: 8, padding: 2, gap: 1 }}>
+                    {MD_TOOLS.map(({ Icon, label, action }) => (
+                      <button key={label} type="button" onClick={() => applyMd(action)} title={label} aria-label={label}
+                        className="text-content-muted"
+                        style={{ width: 26, height: 24, display: 'grid', placeItems: 'center', borderRadius: 6, border: 0, background: 'transparent', cursor: 'pointer' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-card)' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
+                        <Icon size={13} strokeWidth={2} />
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div className="bg-surface-secondary" style={{ display: 'flex', borderRadius: 8, padding: 2, gap: 2 }}>
+                  {([['write', t('common.edit')], ['preview', t('common.preview')]] as const).map(([tab, label]) => (
+                    <button key={tab} type="button" onClick={() => setNotesTab(tab)}
+                      className={notesTab === tab ? 'bg-surface-card text-content' : 'text-content-muted'}
+                      style={{ padding: '4px 12px', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500, borderRadius: 6, border: 0, cursor: 'pointer', fontFamily: 'inherit', background: notesTab === tab ? undefined : 'transparent' }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
           {canEdit && notesTab === 'write' ? (
             <textarea
+              ref={notesRef}
               value={notes}
               onChange={e => setNotes(e.target.value)}
               placeholder={t('reservations.notesPlaceholder')}

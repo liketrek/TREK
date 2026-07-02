@@ -84,6 +84,18 @@ describe('TransitJourneyModal', () => {
     expect(bold?.textContent).toBe('bold')
   })
 
+  it('FE-PLANNER-TRANSITJOURNEY-007: the markdown toolbar wraps the note text', async () => {
+    const user = userEvent.setup()
+    render(<TransitJourneyModal {...makeProps()} />)
+    const area = screen.getByPlaceholderText(/notes/i) as HTMLTextAreaElement
+    await user.type(area, 'coffee')
+    area.setSelectionRange(0, 6)
+    await user.click(screen.getByRole('button', { name: 'Bold' }))
+    expect(area.value).toBe('**coffee**')
+    await user.click(screen.getByRole('button', { name: 'Checklist' }))
+    expect((screen.getByPlaceholderText(/notes/i) as HTMLTextAreaElement).value).toMatch(/^- \[ \] /)
+  })
+
   it('FE-PLANNER-TRANSITJOURNEY-003: change route triggers onChangeRoute', async () => {
     const user = userEvent.setup()
     const onChangeRoute = vi.fn()

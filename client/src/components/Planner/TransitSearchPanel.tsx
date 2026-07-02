@@ -479,60 +479,65 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
           <StopPicker label={t('transit.to')} value={to} onPick={setTo} quickPicks={quickPicks} near={near} placeholder={t('transit.searchStop')} />
         </div>
 
-        {/* time + depart/arrive */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div className="bg-surface-secondary" style={{ display: 'flex', borderRadius: 9, padding: 3 }}>
-            <button onClick={() => setArriveBy(false)} style={segBtn(!arriveBy)}>{t('transit.depart')}</button>
-            <button onClick={() => setArriveBy(true)} style={segBtn(arriveBy)}>{t('transit.arrive')}</button>
+        {/* search options — one calm card: when + how on top, modes + go below */}
+        <div className="bg-surface-tertiary" style={{ borderRadius: 14, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <div className="bg-surface-secondary" style={{ display: 'flex', borderRadius: 9, padding: 3 }}>
+                <button onClick={() => setArriveBy(false)} style={segBtn(!arriveBy)}>{t('transit.depart')}</button>
+                <button onClick={() => setArriveBy(true)} style={segBtn(arriveBy)}>{t('transit.arrive')}</button>
+              </div>
+              <div style={{ width: 110 }}>
+                <CustomTimePicker value={time} onChange={setTime} />
+              </div>
+              {day.date && (
+                <span className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <Clock size={12} />
+                  {new Date(day.date + 'T00:00:00Z').toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })}
+                </span>
+              )}
+            </div>
+            <div className="bg-surface-secondary" style={{ display: 'flex', borderRadius: 9, padding: 3 }}>
+              <button onClick={() => setPref('best')} style={segBtn(pref === 'best')}>{t('transit.pref.best')}</button>
+              <button onClick={() => setPref('transfers')} style={segBtn(pref === 'transfers')}>{t('transit.pref.transfers')}</button>
+              <button onClick={() => setPref('walking')} style={segBtn(pref === 'walking')}>{t('transit.pref.walking')}</button>
+            </div>
           </div>
-          <div style={{ width: 110 }}>
-            <CustomTimePicker value={time} onChange={setTime} />
-          </div>
-          {day.date && (
-            <span className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-              <Clock size={12} />
-              {new Date(day.date + 'T00:00:00Z').toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })}
-            </span>
-          )}
-        </div>
 
-        {/* mode chips */}
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {MODE_GROUPS.map(m => {
-            const active = activeModes.has(m.key)
-            return (
-              <button key={m.key} onClick={() => toggleMode(m.key)}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 99,
-                  border: '1.5px solid', fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 600,
-                  cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s',
-                  background: active ? 'var(--text-primary)' : 'transparent',
-                  borderColor: active ? 'var(--text-primary)' : 'var(--border-primary)',
-                  color: active ? 'var(--bg-primary)' : 'var(--text-muted)',
-                }}>
-                <m.Icon size={12} strokeWidth={2} />
-                {t(m.labelKey)}
-              </button>
-            )
-          })}
-        </div>
+          <div style={{ height: 1, background: 'var(--border-faint)' }} />
 
-        {/* preference + search */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div className="bg-surface-secondary" style={{ display: 'flex', borderRadius: 9, padding: 3 }}>
-            <button onClick={() => setPref('best')} style={segBtn(pref === 'best')}>{t('transit.pref.best')}</button>
-            <button onClick={() => setPref('transfers')} style={segBtn(pref === 'transfers')}>{t('transit.pref.transfers')}</button>
-            <button onClick={() => setPref('walking')} style={segBtn(pref === 'walking')}>{t('transit.pref.walking')}</button>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+              {MODE_GROUPS.map(m => {
+                const active = activeModes.has(m.key)
+                return (
+                  <button key={m.key} onClick={() => toggleMode(m.key)}
+                    className={active ? 'bg-surface-card text-content' : 'text-content-faint'}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 99,
+                      border: '1px solid', fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 500,
+                      cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s',
+                      background: active ? undefined : 'transparent',
+                      borderColor: active ? 'var(--border-primary)' : 'transparent',
+                      boxShadow: active ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                      opacity: active ? 1 : 0.75,
+                    }}>
+                    <m.Icon size={12} strokeWidth={2} />
+                    {t(m.labelKey)}
+                  </button>
+                )
+              })}
+            </div>
+            <button
+              onClick={search}
+              disabled={!from || !to || loading}
+              className="bg-accent text-accent-text"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 600, fontSize: 'calc(13px * var(--fs-scale-body, 1))', cursor: (!from || !to || loading) ? 'default' : 'pointer', fontFamily: 'inherit', opacity: (!from || !to || loading) ? 0.55 : 1, flexShrink: 0 }}
+            >
+              <Search size={14} strokeWidth={2.2} />
+              {loading ? t('transit.searching') : t('transit.search')}
+            </button>
           </div>
-          <button
-            onClick={search}
-            disabled={!from || !to || loading}
-            className="bg-accent text-accent-text"
-            style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 600, fontSize: 'calc(13px * var(--fs-scale-body, 1))', cursor: (!from || !to || loading) ? 'default' : 'pointer', fontFamily: 'inherit', opacity: (!from || !to || loading) ? 0.55 : 1 }}
-          >
-            <Search size={14} strokeWidth={2.2} />
-            {loading ? t('transit.searching') : t('transit.search')}
-          </button>
         </div>
 
         {/* results */}
