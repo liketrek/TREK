@@ -1,5 +1,5 @@
 import ReactDOM from 'react-dom'
-import { Ticket, FileText, ExternalLink } from 'lucide-react'
+import { Ticket, FileText, ExternalLink, Footprints, ArrowRight } from 'lucide-react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
@@ -114,6 +114,54 @@ export function DayPlanSidebarTransportDetailModal({
                       </div>
                     )
                   })}
+                </div>
+              )}
+
+              {/* Public-transit itinerary (#1065) — legs from the transit search */}
+              {meta.transit?.legs && Array.isArray(meta.transit.legs) && meta.transit.legs.length > 0 && (
+                <div className="bg-surface-tertiary" style={{ padding: '10px 12px', borderRadius: 8 }}>
+                  <div className="text-content-faint" style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 8 }}>
+                    {t('transit.itinerary')}
+                    {typeof meta.transit.transfers === 'number' && meta.transit.transfers > 0 && ` · ${t('transit.transfers', { count: meta.transit.transfers })}`}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {meta.transit.legs.map((leg: { mode?: string; line?: string | null; line_color?: string | null; line_text_color?: string | null; headsign?: string | null; duration?: number; stops?: number; from?: { name?: string; time?: string | null }; to?: { name?: string; time?: string | null } }, i: number) => {
+                      const isWalk = leg.mode === 'WALK'
+                      const mins = leg.duration ? Math.round(leg.duration / 60) : null
+                      return (
+                        <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                          {isWalk ? (
+                            <span className="text-content-faint" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0, paddingTop: 1 }}>
+                              <Footprints size={12} />
+                            </span>
+                          ) : (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', background: leg.line_color || 'var(--bg-hover)', color: leg.line_color ? (leg.line_text_color || '#fff') : 'var(--text-primary)', borderRadius: 5, padding: '1px 6px', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700, flexShrink: 0 }}>
+                              {leg.line || leg.mode}
+                            </span>
+                          )}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div className="text-content" style={{ fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                              {isWalk
+                                ? <span className="text-content-muted">{t('transit.walkTo', { name: leg.to?.name || '' })}</span>
+                                : <>
+                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{leg.from?.name}</span>
+                                    <ArrowRight size={10} className="text-content-faint" style={{ flexShrink: 0 }} />
+                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{leg.to?.name}</span>
+                                  </>}
+                            </div>
+                            <div className="text-content-faint" style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', marginTop: 1 }}>
+                              {[
+                                leg.from?.time && !isWalk ? `${leg.from.time}${leg.to?.time ? ` – ${leg.to.time}` : ''}` : null,
+                                mins ? t('transit.min', { count: mins }) : null,
+                                !isWalk && leg.stops ? t('transit.stops', { count: leg.stops }) : null,
+                                !isWalk && leg.headsign ? `→ ${leg.headsign}` : null,
+                              ].filter(Boolean).join(' · ')}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
               )}
 

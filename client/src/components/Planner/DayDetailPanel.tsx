@@ -60,9 +60,11 @@ interface DayDetailPanelProps {
   collapsed?: boolean
   onToggleCollapse?: () => void
   mobile?: boolean
+  /** Rename the day from here — the sidebar pencil moved to the transit search (#1065). */
+  onUpdateDayTitle?: (dayId: number, title: string) => void
 }
 
-export default function DayDetailPanel({ day, days, places, categories = [], tripId, assignments, reservations = [], lat, lng, onClose, onAccommodationChange, leftWidth = 0, rightWidth = 0, collapsed: collapsedProp = false, onToggleCollapse, mobile = false }: DayDetailPanelProps) {
+export default function DayDetailPanel({ day, days, places, categories = [], tripId, assignments, reservations = [], lat, lng, onClose, onAccommodationChange, leftWidth = 0, rightWidth = 0, collapsed: collapsedProp = false, onToggleCollapse, mobile = false, onUpdateDayTitle }: DayDetailPanelProps) {
   const { t, language, locale } = useTranslation()
   const can = useCanDo()
   const tripObj = useTripStore((s) => s.trip)
@@ -78,6 +80,22 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
   const unit = isFahrenheit ? '°F' : '°C'
   const collapsed = collapsedProp
   const toggleCollapse = () => onToggleCollapse?.()
+
+  // Inline day rename (#1065) — took over from the sidebar's pencil, which the
+  // transit search button replaced.
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [titleDraft, setTitleDraft] = useState('')
+  const titleInputRef = useRef<HTMLInputElement | null>(null)
+  useEffect(() => { if (editingTitle) titleInputRef.current?.focus() }, [editingTitle])
+  const startRename = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setTitleDraft(day?.title || '')
+    setEditingTitle(true)
+  }
+  const commitRename = () => {
+    setEditingTitle(false)
+    if (day && onUpdateDayTitle) onUpdateDayTitle(day.id, titleDraft.trim())
+  }
   const {
     weather, loading, accommodation, setAccommodation, dayAccommodations, setDayAccommodations,
     accommodations, setAccommodations, showHotelPicker, setShowHotelPicker,
@@ -133,10 +151,35 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
             <Calendar size={collapsed ? 16 : 20} className="text-content" />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="text-content" style={{ fontSize: collapsed ? 13 : 15, fontWeight: 700, transition: 'font-size 0.15s ease' }}>
-              {day.title || t('planner.dayN', { n: (days.indexOf(day) + 1) || '?' })}
-              {collapsed && formattedDate && <span className="text-content-muted" style={{ fontWeight: 500, marginLeft: 8 }}>{formattedDate}</span>}
-            </div>
+            {editingTitle ? (
+              <input
+                ref={titleInputRef}
+                value={titleDraft}
+                onChange={e => setTitleDraft(e.target.value)}
+                onClick={e => e.stopPropagation()}
+                onBlur={commitRename}
+                onKeyDown={e => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setEditingTitle(false) }}
+                placeholder={t('planner.dayN', { n: (days.indexOf(day) + 1) || '?' })}
+                className="text-content"
+                style={{ width: '100%', border: 'none', outline: 'none', background: 'transparent', padding: 0, fontFamily: 'inherit', fontSize: 15, fontWeight: 700, borderBottom: '1.5px solid var(--text-primary)' }}
+              />
+            ) : collapsed ? (
+              <div className="text-content" style={{ fontSize: 13, fontWeight: 700, transition: 'font-size 0.15s ease' }}>
+                {day.title || t('planner.dayN', { n: (days.indexOf(day) + 1) || '?' })}
+                {formattedDate && <span className="text-content-muted" style={{ fontWeight: 500, marginLeft: 8 }}>{formattedDate}</span>}
+              </div>
+            ) : (
+              <div className="text-content" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 15, fontWeight: 700, transition: 'font-size 0.15s ease', minWidth: 0 }}>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {day.title || t('planner.dayN', { n: (days.indexOf(day) + 1) || '?' })}
+                </span>
+                {canEditDays && onUpdateDayTitle && (
+                  <button onClick={startRename} aria-label={t('common.edit')} title={t('common.edit')} className="text-content-faint" style={{ border: 'none', background: 'none', padding: 3, cursor: 'pointer', display: 'flex', flexShrink: 0 }}>
+                    <Pencil size={12} strokeWidth={1.8} />
+                  </button>
+                )}
+              </div>
+            )}
             {!collapsed && formattedDate && <div className="text-content-muted" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', marginTop: 1 }}>{formattedDate}</div>}
           </div>
           <button onClick={(e) => { e.stopPropagation(); toggleCollapse() }} title={collapsed ? t('common.expand') : t('common.collapse')}

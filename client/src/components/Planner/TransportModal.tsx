@@ -300,6 +300,22 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         if (form.meta_platform) metadata.platform = form.meta_platform
         if (form.meta_seat) metadata.seat = form.meta_seat
       }
+
+      // A transit itinerary (#1065) lives in metadata.transit + 'stop' endpoints,
+      // neither of which this form shows or edits — so re-saving must not wipe
+      // them. They're kept only while from/to are unchanged: picking a different
+      // origin or destination invalidates the stored connection.
+      const prevMeta = reservation ? parseReservationMetadata(reservation) : {}
+      const prevEndpointsAll = reservation?.endpoints || []
+      const prevFrom = prevEndpointsAll.find(ep => ep.role === 'from')
+      const prevTo = prevEndpointsAll.find(ep => ep.role === 'to')
+      const near = (a?: number | null, b?: number | null) => a != null && b != null && Math.abs(a - b) < 1e-6
+      const keepTransit = !!(prevMeta.transit && form.type !== 'flight' &&
+        prevFrom && prevTo && fromPick.location && toPick.location &&
+        near(prevFrom.lat, fromPick.location.lat) && near(prevFrom.lng, fromPick.location.lng) &&
+        near(prevTo.lat, toPick.location.lat) && near(prevTo.lng, toPick.location.lng))
+      if (keepTransit) metadata.transit = prevMeta.transit
+
       const startDate = startDay?.date ?? null
       const endDate = (endDay ?? startDay)?.date ?? null
       const endpoints: ReturnType<typeof endpointFromAirport>[] = []
@@ -314,7 +330,16 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         })
       } else {
         if (fromPick.location) endpoints.push(endpointFromLocation(fromPick.location, 'from', 0, startDate, form.departure_time || null))
-        if (toPick.location) endpoints.push(endpointFromLocation(toPick.location, 'to', 1, endDate, form.arrival_time || null))
+        // Keep the itinerary's transfer stops while the route is unchanged (#1065).
+        const stops = keepTransit
+          ? prevEndpointsAll.filter(ep => ep.role === 'stop').slice().sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
+          : []
+        stops.forEach((s, i) => endpoints.push({
+          role: 'stop', sequence: i + 1, name: s.name, code: s.code ?? null,
+          lat: s.lat, lng: s.lng, timezone: s.timezone ?? null,
+          local_date: s.local_date ?? null, local_time: s.local_time ?? null,
+        }))
+        if (toPick.location) endpoints.push(endpointFromLocation(toPick.location, 'to', stops.length + 1, endDate, form.arrival_time || null))
       }
 
       // Flights derive their span from the first/last waypoint; other transports

@@ -324,4 +324,46 @@ describe('TransportModal', () => {
     expect(fd.get('reservation_id')).toBe('99');
     expect(fd.get('file')).toBeTruthy();
   });
+
+  // ── Transit itinerary preservation (#1065) ─────────────────────────────────
+
+  it('FE-PLANNER-TRANSMODAL-020: re-saving a transit reservation keeps metadata.transit + stop endpoints', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const res = buildReservation({ title: 'Fernsehturm → Zoo', type: 'bus' }) as any;
+    res.metadata = { transit: { provider: 'transitous', transfers: 1, legs: [{ mode: 'BUS', line: '100' }] } };
+    res.endpoints = [
+      { role: 'from', sequence: 0, name: 'Fernsehturm', code: null, lat: 52.5208, lng: 13.4094, timezone: 'Europe/Berlin', local_date: '2025-06-01', local_time: '08:30' },
+      { role: 'stop', sequence: 1, name: 'Alexanderplatz', code: null, lat: 52.521, lng: 13.41, timezone: 'Europe/Berlin', local_date: '2025-06-01', local_time: '08:40' },
+      { role: 'to', sequence: 2, name: 'Zoologischer Garten', code: null, lat: 52.507, lng: 13.332, timezone: 'Europe/Berlin', local_date: '2025-06-01', local_time: '09:00' },
+    ];
+    render(<TransportModal {...defaultProps} reservation={res} onSave={onSave} />);
+    // Save without touching the route — the itinerary must survive.
+    await userEvent.click(screen.getByRole('button', { name: /^Update$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    const payload = onSave.mock.calls[0][0];
+    expect(payload.metadata?.transit?.provider).toBe('transitous');
+    expect(payload.metadata?.transit?.legs).toHaveLength(1);
+    expect(payload.endpoints.map((e: { role: string }) => e.role)).toEqual(['from', 'stop', 'to']);
+    expect(payload.endpoints[1]).toMatchObject({ name: 'Alexanderplatz', lat: 52.521 });
+  });
+
+  it('FE-PLANNER-TRANSMODAL-021: changing the destination drops the stale transit itinerary', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const res = buildReservation({ title: 'Fernsehturm → Zoo', type: 'bus' }) as any;
+    res.metadata = { transit: { provider: 'transitous', legs: [{ mode: 'BUS' }] } };
+    res.endpoints = [
+      { role: 'from', sequence: 0, name: 'Fernsehturm', code: null, lat: 52.5208, lng: 13.4094, timezone: 'Europe/Berlin', local_date: null, local_time: null },
+      { role: 'stop', sequence: 1, name: 'Alexanderplatz', code: null, lat: 52.521, lng: 13.41, timezone: 'Europe/Berlin', local_date: null, local_time: null },
+      { role: 'to', sequence: 2, name: 'Zoologischer Garten', code: null, lat: 52.507, lng: 13.332, timezone: 'Europe/Berlin', local_date: null, local_time: null },
+    ];
+    render(<TransportModal {...defaultProps} reservation={res} onSave={onSave} />);
+    // Pick a different destination (mocked LocationSelect emits lat/lng 0,0).
+    const locationInputs = screen.getAllByTestId('location-select');
+    fireEvent.change(locationInputs[1], { target: { value: 'Somewhere Else' } });
+    await userEvent.click(screen.getByRole('button', { name: /^Update$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    const payload = onSave.mock.calls[0][0];
+    expect(payload.metadata?.transit).toBeUndefined();
+    expect(payload.endpoints.map((e: { role: string }) => e.role)).toEqual(['from', 'to']);
+  });
 });

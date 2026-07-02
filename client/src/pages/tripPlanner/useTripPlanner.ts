@@ -162,6 +162,8 @@ export function useTripPlanner() {
   const [showTransportModal, setShowTransportModal] = useState<boolean>(false)
   const [editingTransport, setEditingTransport] = useState<Reservation | null>(null)
   const [transportModalDayId, setTransportModalDayId] = useState<number | null>(null)
+  // Public transit route search (#1065) — non-null while the modal is open for that day.
+  const [transitModalDayId, setTransitModalDayId] = useState<number | null>(null)
 
   // The bottom-nav "+" is context-aware per tab: on the Bookings / Transports tabs
   // it opens the booking / transport modal via ?create=reservation|transport
@@ -689,6 +691,14 @@ export function useTripPlanner() {
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
   }
 
+  // A chosen transit itinerary is persisted as a regular transport reservation,
+  // so it slots into the timeline by time and inherits edit/delete/drag (#1065).
+  const handleAddTransitRoute = async (payload: Record<string, unknown> & { title: string }) => {
+    const r = await tripActions.addReservation(tripId, payload)
+    toast.success(t('trip.toast.reservationAdded'))
+    return r
+  }
+
   const handleDeleteReservation = async (id) => {
     try {
       await tripActions.deleteReservation(tripId, id)
@@ -859,6 +869,7 @@ export function useTripPlanner() {
     bookingForAssignmentId, setBookingForAssignmentId,
     showTransportModal, setShowTransportModal, editingTransport, setEditingTransport,
     transportModalDayId, setTransportModalDayId,
+    transitModalDayId, setTransitModalDayId, handleAddTransitRoute,
     reservationPrefill, transportPrefill, importReviewActive, startImportReview, advanceImportReview,
     routeShown, setRouteShown, routeProfile, setRouteProfile, fitKey, setFitKey,
     mobileSidebarOpen, setMobileSidebarOpen, mobilePlanScrollTopRef, mobilePlacesScrollTopRef,

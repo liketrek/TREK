@@ -813,6 +813,14 @@ export const shareApi = {
   getSharedTrip: (token: string) => apiClient.get(`/shared/${token}`).then(r => r.data),
 }
 
+// Public transit routing (#1065) — Transitous/MOTIS proxied through the server.
+export const transitApi = {
+  geocode: (q: string, opts?: { lang?: string; near?: string }) =>
+    apiClient.get('/transit/geocode', { params: { q, lang: opts?.lang, near: opts?.near } }).then(r => r.data),
+  plan: (params: { from: string; to: string; time?: string; arriveBy?: boolean; modes?: string; maxTransfers?: number }) =>
+    apiClient.get('/transit/plan', { params }).then(r => r.data),
+}
+
 // Trip invite links (#1143) — join a trip as an existing, logged-in user.
 export const tripInviteApi = {
   getLink: (tripId: number | string) => apiClient.get(`/trips/${tripId}/invite-link`).then(r => r.data),

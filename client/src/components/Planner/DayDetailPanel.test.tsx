@@ -71,6 +71,36 @@ describe('DayDetailPanel', () => {
     expect(screen.getByText('Day in Paris')).toBeInTheDocument();
   });
 
+  // ── Inline rename (#1065 — moved here from the sidebar pencil) ──────────────
+
+  it('FE-PLANNER-DAYDETAIL-064: pencil next to the title renames the day (Enter commits)', async () => {
+    const user = userEvent.setup();
+    const onUpdateDayTitle = vi.fn();
+    render(<DayDetailPanel {...defaultProps} onUpdateDayTitle={onUpdateDayTitle} />);
+    await user.click(screen.getByLabelText('Edit'));
+    const input = await screen.findByDisplayValue('Day in Paris');
+    await user.clear(input);
+    await user.type(input, 'New Title');
+    await user.keyboard('{Enter}');
+    expect(onUpdateDayTitle).toHaveBeenCalledWith(1, 'New Title');
+  });
+
+  it('FE-PLANNER-DAYDETAIL-065: Escape cancels the rename without saving', async () => {
+    const user = userEvent.setup();
+    const onUpdateDayTitle = vi.fn();
+    render(<DayDetailPanel {...defaultProps} onUpdateDayTitle={onUpdateDayTitle} />);
+    await user.click(screen.getByLabelText('Edit'));
+    await screen.findByDisplayValue('Day in Paris');
+    await user.keyboard('{Escape}');
+    expect(onUpdateDayTitle).not.toHaveBeenCalled();
+    expect(screen.getByText('Day in Paris')).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-DAYDETAIL-066: no rename pencil without the onUpdateDayTitle prop', () => {
+    render(<DayDetailPanel {...defaultProps} />);
+    expect(screen.queryByLabelText('Edit')).not.toBeInTheDocument();
+  });
+
   it('FE-PLANNER-DAYDETAIL-004: shows day number when title is null', () => {
     const untitled = buildDay({ id: 1, trip_id: 1, date: '2025-06-15', title: null });
     render(<DayDetailPanel {...defaultProps} day={untitled} days={[untitled]} />);

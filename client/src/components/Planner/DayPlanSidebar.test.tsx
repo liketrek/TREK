@@ -297,41 +297,28 @@ describe('DayPlanSidebar', () => {
     expect(screen.getByText('Louvre Museum')).toBeInTheDocument()
   })
 
-  // ── Day title editing ───────────────────────────────────────────────────
+  // ── Transit search button (#1065 — replaced the rename pencil; renaming
+  //    moved next to the day name in the day detail panel) ─────────────────
 
-  it('FE-PLANNER-DAYPLAN-015: clicking edit button enters edit mode', async () => {
+  it('FE-PLANNER-DAYPLAN-015: transit button opens the route search for the day', async () => {
     const user = userEvent.setup()
-    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Original Title' })
-    render(<DayPlanSidebar {...makeDefaultProps({ days: [day] })} />)
-    await user.click(screen.getByLabelText('Edit'))
-    await waitFor(() => {
-      expect(screen.getByDisplayValue('Original Title')).toBeInTheDocument()
-    })
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    const onPlanTransit = vi.fn()
+    render(<DayPlanSidebar {...makeDefaultProps({ days: [day], onPlanTransit })} />)
+    await user.click(screen.getByLabelText('Public transit'))
+    expect(onPlanTransit).toHaveBeenCalledWith(10)
   })
 
-  it('FE-PLANNER-DAYPLAN-016: pressing Enter commits title', async () => {
-    const user = userEvent.setup()
-    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Original Title' })
-    const onUpdateDayTitle = vi.fn()
-    render(<DayPlanSidebar {...makeDefaultProps({ days: [day], onUpdateDayTitle })} />)
-    // Enter edit mode
-    await user.click(screen.getByLabelText('Edit'))
-    const input = await screen.findByDisplayValue('Original Title')
-    await user.clear(input)
-    await user.type(input, 'New Title')
-    await user.keyboard('{Enter}')
-    expect(onUpdateDayTitle).toHaveBeenCalledWith(10, 'New Title')
+  it('FE-PLANNER-DAYPLAN-016: transit button is absent without the onPlanTransit prop', () => {
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    render(<DayPlanSidebar {...makeDefaultProps({ days: [day] })} />)
+    expect(screen.queryByLabelText('Public transit')).not.toBeInTheDocument()
   })
 
-  it('FE-PLANNER-DAYPLAN-017: pressing Escape cancels edit', async () => {
-    const user = userEvent.setup()
+  it('FE-PLANNER-DAYPLAN-017: the day header no longer has a rename pencil (#1065)', () => {
     const day = buildDay({ id: 10, date: '2025-06-01', title: 'Original Title' })
-    render(<DayPlanSidebar {...makeDefaultProps({ days: [day] })} />)
-    await user.click(screen.getByLabelText('Edit'))
-    const input = await screen.findByDisplayValue('Original Title')
-    await user.keyboard('{Escape}')
-    expect(screen.queryByDisplayValue('Original Title')).not.toBeInTheDocument()
-    expect(screen.getByText('Original Title')).toBeInTheDocument()
+    render(<DayPlanSidebar {...makeDefaultProps({ days: [day], onPlanTransit: vi.fn() })} />)
+    expect(screen.queryByLabelText('Edit')).not.toBeInTheDocument()
   })
 
   // ── Day info button ─────────────────────────────────────────────────────
@@ -642,20 +629,7 @@ describe('DayPlanSidebar', () => {
     await waitFor(() => expect(onReorder).toHaveBeenCalledWith(10, expect.any(Array)))
   })
 
-  // ── Title blur commits ───────────────────────────────────────────────────
-
-  it('FE-PLANNER-DAYPLAN-042: blurring title input commits the edit', async () => {
-    const user = userEvent.setup()
-    const onUpdateDayTitle = vi.fn()
-    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Old Title' })
-    render(<DayPlanSidebar {...makeDefaultProps({ days: [day], onUpdateDayTitle })} />)
-    await user.click(screen.getByLabelText('Edit'))
-    const input = await screen.findByDisplayValue('Old Title')
-    await user.clear(input)
-    await user.type(input, 'New Title')
-    fireEvent.blur(input)
-    await waitFor(() => expect(onUpdateDayTitle).toHaveBeenCalledWith(10, 'New Title'))
-  })
+  // Day-title renaming moved to DayDetailPanel (#1065) — covered there.
 
   // ── ICS export button ────────────────────────────────────────────────────
 
