@@ -84,6 +84,15 @@ describe('TransitJourneyModal', () => {
     expect(bold?.textContent).toBe('bold')
   })
 
+  it('FE-PLANNER-TRANSITJOURNEY-008: existing notes open rendered as markdown, not raw text', () => {
+    const res = { ...makeReservation(), notes: 'bring **wefwe** along' }
+    render(<TransitJourneyModal {...makeProps({ reservation: res })} />)
+    // Preview tab is active on open: bold is rendered, no raw asterisks visible.
+    const bold = document.querySelector('.collab-note-md strong')
+    expect(bold?.textContent).toBe('wefwe')
+    expect(screen.queryByDisplayValue(/\*\*wefwe\*\*/)).not.toBeInTheDocument()
+  })
+
   it('FE-PLANNER-TRANSITJOURNEY-007: the markdown toolbar wraps the note text', async () => {
     const user = userEvent.setup()
     render(<TransitJourneyModal {...makeProps()} />)

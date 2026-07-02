@@ -32,15 +32,20 @@ export function TransitWalkDivider({ leg, t, size = 'md' }: {
   size?: 'sm' | 'md'
 }) {
   const mins = leg.duration ? Math.round(leg.duration / 60) : null
-  const ruleStyle: React.CSSProperties = { flex: 1, borderTop: '1.5px dashed var(--text-faint)', opacity: 0.75, minWidth: 12 }
+  // Hairlines that fade towards the outer edges — strongest next to the text.
+  const rule = (dir: 'left' | 'right'): React.CSSProperties => ({
+    flex: 1, height: 1, minWidth: 12, borderRadius: 1,
+    background: `linear-gradient(to ${dir}, var(--text-faint), transparent)`,
+    opacity: 0.55,
+  })
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: size === 'sm' ? '1px 0' : '2px 0' }}>
-      <span style={ruleStyle} />
+      <span style={rule('left')} />
       <span className="text-content-faint" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: size === 'sm' ? 'calc(10px * var(--fs-scale-caption, 1))' : 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '75%' }}>
         <Footprints size={size === 'sm' ? 11 : 12} style={{ flexShrink: 0 }} />
         {t('transit.walkTo', { name: leg.to?.name || '' })}{mins ? ` · ${t('transit.min', { count: mins })}` : ''}
       </span>
-      <span style={ruleStyle} />
+      <span style={rule('right')} />
     </div>
   )
 }
