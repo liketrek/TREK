@@ -25,7 +25,12 @@ npx trek-plugin validate .
 This runs the exact checks the registry CI runs — a local pass predicts a CI
 pass.
 
-## 4. Open a PR against the registry
+## 4. Fork the registry and open a PR
+
+You don't have write access to the registry, so **fork
+[TREK-Plugins](https://github.com/mauriceboe/TREK-Plugins)** to your own account,
+add your entry there, and open a pull request from your fork back to the
+registry's `main` branch.
 
 Add one file, `registry/plugins/<id>.json`:
 
