@@ -3358,7 +3358,9 @@ function runMigrations(db: Database.Database): void {
     // Boot now retries every enabled plugin regardless of last status.
     () => {
       db.exec("ALTER TABLE plugins ADD COLUMN enabled INTEGER NOT NULL DEFAULT 0;");
-      db.exec("UPDATE plugins SET enabled = 1 WHERE status = 'active';");
+      // Anything not explicitly deactivated was meant to be on ('inactive' is the
+      // only status deactivate() sets; a crash/shutdown could leave error/stopped/starting).
+      db.exec("UPDATE plugins SET enabled = 1 WHERE status != 'inactive';");
     },
   ];
 
