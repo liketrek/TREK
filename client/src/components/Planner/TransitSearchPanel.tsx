@@ -486,18 +486,20 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
 
   return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, fontFamily: 'var(--font-system)' }}>
-        {/* from / to — stacked on mobile with the swap between the fields */}
-        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 6 : 8, alignItems: isMobile ? 'stretch' : 'flex-end' }}>
+        {/* from / to — stacked tight on mobile, swap button on desktop only */}
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 8, alignItems: isMobile ? 'stretch' : 'flex-end' }}>
           <StopPicker label={t('transit.from')} value={from} onPick={setFrom} quickPicks={quickPicks} near={near} placeholder={t('transit.searchStop')} />
-          <button
-            onClick={() => { const f = from; setFrom(to); setTo(f) }}
-            aria-label={t('transit.swap')}
-            title={t('transit.swap')}
-            className="bg-surface-secondary text-content-muted"
-            style={{ border: 'none', borderRadius: 10, width: isMobile ? 34 : 38, height: isMobile ? 30 : 38, display: 'grid', placeItems: 'center', cursor: 'pointer', flexShrink: 0, alignSelf: isMobile ? 'center' : undefined, transform: isMobile ? 'rotate(90deg)' : undefined, margin: isMobile ? '-2px 0' : undefined }}
-          >
-            <ArrowLeftRight size={15} />
-          </button>
+          {!isMobile && (
+            <button
+              onClick={() => { const f = from; setFrom(to); setTo(f) }}
+              aria-label={t('transit.swap')}
+              title={t('transit.swap')}
+              className="bg-surface-secondary text-content-muted"
+              style={{ border: 'none', borderRadius: 10, width: 38, height: 38, display: 'grid', placeItems: 'center', cursor: 'pointer', flexShrink: 0 }}
+            >
+              <ArrowLeftRight size={15} />
+            </button>
+          )}
           <StopPicker label={t('transit.to')} value={to} onPick={setTo} quickPicks={quickPicks} near={near} placeholder={t('transit.searchStop')} />
         </div>
 

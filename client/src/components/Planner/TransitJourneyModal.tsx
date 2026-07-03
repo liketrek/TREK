@@ -212,14 +212,13 @@ export default function TransitJourneyModal({ reservation, onClose, onSave, onDe
 
         {transit && (
           <>
-            {/* journey stats — three full-width tiles */}
+            {/* journey stats — three full-width tiles; iconless and flat on mobile */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: isMobile ? 6 : 10 }}>
               {statTiles.map(({ Icon, value, label }, i) => (
                 isMobile ? (
-                  <div key={i} className="bg-surface-tertiary" style={{ padding: '10px 6px', borderRadius: 11, textAlign: 'center', minWidth: 0 }}>
-                    <Icon size={14} strokeWidth={1.9} className="text-content-muted" style={{ marginBottom: 3 }} />
+                  <div key={i} className="bg-surface-tertiary" style={{ padding: '7px 6px 6px', borderRadius: 11, textAlign: 'center', minWidth: 0 }}>
                     <div className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 700, letterSpacing: '-0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
-                    <div className="text-content-faint" style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
+                    <div className="text-content-faint" style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 1 }}>{label}</div>
                   </div>
                 ) : (
                   <div key={i} className="bg-surface-tertiary" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderRadius: 12 }}>
@@ -244,9 +243,66 @@ export default function TransitJourneyModal({ reservation, onClose, onSave, onDe
                 {(transit.legs as TransitLegMeta[]).map((leg, i) => {
                   if (leg.mode === 'WALK') return <TransitWalkDivider key={i} leg={leg} t={t} />
                   const mins = leg.duration ? Math.round(leg.duration / 60) : null
+                  if (isMobile) {
+                    // The wide from → to line plus the chip row doesn't fit a
+                    // phone: each leg becomes a depart / ride / arrive rail in
+                    // the line's color, meta as one quiet text line.
+                    const color = leg.line_color || 'var(--text-muted)'
+                    const metaLine = [
+                      mins ? t('transit.min', { count: mins }) : null,
+                      leg.stops ? t('transit.stops', { count: leg.stops }) : null,
+                      leg.agency || null,
+                    ].filter(Boolean).join(' · ')
+                    const stopName = (stop: TransitLegMeta['from']) => (
+                      <div className="text-content" style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 600, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {stop?.name}
+                        {stop?.track && <span className="text-content-faint" style={{ fontWeight: 500 }}> · {t('transit.platform', { track: stop.track })}</span>}
+                      </div>
+                    )
+                    const timeCell = (time?: string | null) => (
+                      <div className="text-content-muted" style={{ fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 600, textAlign: 'right', paddingTop: 1 }}>
+                        {time || ''}
+                      </div>
+                    )
+                    return (
+                      <div key={i} style={{ display: 'grid', gridTemplateColumns: '34px 14px 1fr', columnGap: 8 }}>
+                        {timeCell(leg.from?.time)}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <span style={{ width: 9, height: 9, borderRadius: '50%', border: `2.5px solid ${color}`, background: 'var(--bg-tertiary)', flexShrink: 0, marginTop: 3 }} />
+                          <span style={{ flex: 1, width: 3, borderRadius: 2, background: color, marginTop: 2 }} />
+                        </div>
+                        {stopName(leg.from)}
+                        <div />
+                        <div style={{ display: 'flex', justifyContent: 'center' }}>
+                          <span style={{ width: 3, borderRadius: 2, background: color }} />
+                        </div>
+                        <div style={{ padding: '6px 0 8px', minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', background: leg.line_color || 'var(--bg-hover)', color: leg.line_color ? (leg.line_text_color || '#fff') : 'var(--text-primary)', borderRadius: 6, padding: '1px 7px', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 700, flexShrink: 0 }}>
+                              {leg.line || leg.mode}
+                            </span>
+                            {leg.headsign && (
+                              <span className="text-content-faint" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 'calc(11px * var(--fs-scale-caption, 1))', minWidth: 0 }}>
+                                <MoveRight size={10} style={{ flexShrink: 0 }} />
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{leg.headsign}</span>
+                              </span>
+                            )}
+                          </div>
+                          {metaLine && (
+                            <div className="text-content-faint" style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', marginTop: 3 }}>{metaLine}</div>
+                          )}
+                        </div>
+                        {timeCell(leg.to?.time)}
+                        <div style={{ display: 'flex', justifyContent: 'center' }}>
+                          <span style={{ width: 9, height: 9, borderRadius: '50%', border: `2.5px solid ${color}`, background: 'var(--bg-tertiary)', marginTop: 3 }} />
+                        </div>
+                        {stopName(leg.to)}
+                      </div>
+                    )
+                  }
                   return (
-                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: isMobile ? 8 : 12 }}>
-                      <div className="text-content-muted" style={{ width: isMobile ? 36 : 44, flexShrink: 0, textAlign: 'right', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, paddingTop: 1 }}>
+                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                      <div className="text-content-muted" style={{ width: 44, flexShrink: 0, textAlign: 'right', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, paddingTop: 1 }}>
                         {leg.from?.time || ''}
                       </div>
                       <span style={{ display: 'inline-flex', alignItems: 'center', background: leg.line_color || 'var(--bg-hover)', color: leg.line_color ? (leg.line_text_color || '#fff') : 'var(--text-primary)', borderRadius: 6, padding: '2px 8px', fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 700, flexShrink: 0 }}>
