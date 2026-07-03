@@ -86,8 +86,8 @@ describe('scaffold + validate CLIs', () => {
   });
 });
 
-describe('reference plugin (examples/trip-countdown)', () => {
-  const dir = path.resolve(import.meta.dirname, '..', 'examples', 'trip-countdown');
+describe('reference plugin (examples/koffi)', () => {
+  const dir = path.resolve(import.meta.dirname, '..', 'examples', 'koffi');
 
   it('passes the same validation authors run', () => {
     const r = validatePluginDir(dir);
@@ -95,10 +95,13 @@ describe('reference plugin (examples/trip-countdown)', () => {
     expect(r.ok).toBe(true);
   });
 
-  it('has a valid, minimal-permission manifest', () => {
-    const manifest = JSON.parse(fs.readFileSync(path.join(dir, 'trek-plugin.json'), 'utf8'));
+  it('has a valid, minimal-permission hero-widget manifest', () => {
+    const manifest = JSON.parse(fs.readFileSync(path.join(dir, 'trek-plugin.json'), 'utf8')) as {
+      capabilities?: { widget?: { slot?: string } };
+    };
     const res = validateManifest(manifest);
     expect(res.ok).toBe(true);
     expect(res.manifest?.permissions).toEqual(['db:read:trips']);
+    expect(manifest.capabilities?.widget?.slot).toBe('hero');
   });
 });

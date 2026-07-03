@@ -45,13 +45,13 @@ function upsert(db: BetterSqlite3.Database, m: PluginManifest): void {
   if (existing) {
     db.prepare(
       `UPDATE plugins SET name = ?, description = ?, type = ?, icon = ?, version = ?, api_version = ?,
-         min_trek_version = ?, permissions = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-    ).run(m.name, m.description ?? null, m.type, m.icon ?? 'Blocks', m.version, m.apiVersion, m.minTrekVersion ?? null, JSON.stringify(m.permissions), m.id);
+         min_trek_version = ?, permissions = ?, capabilities = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    ).run(m.name, m.description ?? null, m.type, m.icon ?? 'Blocks', m.version, m.apiVersion, m.minTrekVersion ?? null, JSON.stringify(m.permissions), JSON.stringify(m.capabilities), m.id);
   } else {
     db.prepare(
-      `INSERT INTO plugins (id, name, description, type, icon, version, api_version, min_trek_version, permissions, granted_permissions, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', 'inactive')`,
-    ).run(m.id, m.name, m.description ?? null, m.type, m.icon ?? 'Blocks', m.version, m.apiVersion, m.minTrekVersion ?? null, JSON.stringify(m.permissions));
+      `INSERT INTO plugins (id, name, description, type, icon, version, api_version, min_trek_version, permissions, capabilities, granted_permissions, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', 'inactive')`,
+    ).run(m.id, m.name, m.description ?? null, m.type, m.icon ?? 'Blocks', m.version, m.apiVersion, m.minTrekVersion ?? null, JSON.stringify(m.permissions), JSON.stringify(m.capabilities));
   }
 
   // Refresh the settings-field descriptors from the manifest.

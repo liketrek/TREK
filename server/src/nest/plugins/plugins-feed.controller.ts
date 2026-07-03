@@ -15,6 +15,7 @@ interface ActivePlugin {
   name: string;
   type: string;
   icon: string | null;
+  slot: 'sidebar' | 'hero';
 }
 
 @Controller('api/plugins')
@@ -23,9 +24,19 @@ export class PluginsFeedController {
   @Get()
   list(): { plugins: ActivePlugin[] } {
     if (!pluginsEnabled()) return { plugins: [] };
-    const plugins = db
-      .prepare("SELECT id, name, type, icon FROM plugins WHERE status = 'active' ORDER BY sort_order, name")
-      .all() as ActivePlugin[];
+    const rows = db
+      .prepare("SELECT id, name, type, icon, capabilities FROM plugins WHERE status = 'active' ORDER BY sort_order, name")
+      .all() as Array<Omit<ActivePlugin, 'slot'> & { capabilities: string }>;
+    const plugins = rows.map(({ capabilities, ...p }) => ({ ...p, slot: slotOf(capabilities) }));
     return { plugins };
+  }
+}
+
+function slotOf(capabilities: string): 'sidebar' | 'hero' {
+  try {
+    const c = JSON.parse(capabilities || '{}') as { widget?: { slot?: string } };
+    return c.widget?.slot === 'hero' ? 'hero' : 'sidebar';
+  } catch {
+    return 'sidebar';
   }
 }

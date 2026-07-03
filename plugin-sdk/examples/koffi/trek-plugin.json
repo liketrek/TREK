@@ -1,0 +1,21 @@
+{
+  "id": "koffi",
+  "name": "Koffi",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "author": "TREK",
+  "description": "Koffi, the tiny suitcase mascot, lives on your boarding pass — strolling, rolling, collecting stickers, and getting more excited the closer your trip gets.",
+  "homepage": "https://github.com/mauriceboe/trek-plugin-koffi",
+  "license": "MIT",
+  "icon": "Luggage",
+  "type": "widget",
+  "trek": ">=3.2.0 <4.0.0",
+  "nativeModules": false,
+  "permissions": ["db:read:trips"],
+  "capabilities": {
+    "widget": { "title": "Koffi", "slot": "hero" }
+  },
+  "routes": [
+    { "method": "GET", "path": "/state", "auth": true }
+  ]
+}

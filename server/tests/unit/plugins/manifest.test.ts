@@ -47,3 +47,17 @@ describe('parseManifest', () => {
     expect(() => parseManifest(input)).toThrow(re as RegExp);
   });
 });
+
+describe('parseManifest capabilities', () => {
+  it('parses a hero widget slot and defaults to sidebar', () => {
+    const hero = parseManifest({ ...base, capabilities: { widget: { slot: 'hero', title: 'T' } } });
+    expect(hero.capabilities.widget?.slot).toBe('hero');
+    const plain = parseManifest({ ...base, capabilities: { widget: {} } });
+    expect(plain.capabilities.widget?.slot).toBe('sidebar');
+    expect(parseManifest(base).capabilities).toEqual({});
+  });
+
+  it('rejects an unknown widget slot', () => {
+    expect(() => parseManifest({ ...base, capabilities: { widget: { slot: 'floating' } } })).toThrow(ManifestError);
+  });
+});

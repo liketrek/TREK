@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Koffi</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    background: transparent;
+  }
+
+  /* ---- moving root: JS drives translate3d(x) ---- */
+  #mascot {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 72px;
+    height: 79px;
+    will-change: transform;
+    perspective: 340px; /* gives the rotateY spin a little depth */
+    pointer-events: none;
+    --step: 0.72s; /* walk stride duration, set per mood by JS */
+  }
+
+  #jumper, #flip { position: absolute; inset: 0; }
+  #jumper { transform-origin: 50% 100%; }
+  #flip   { transition: transform .26s ease; transform-origin: 50% 50%; }
+
+  #koffi {
+    display: block;
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    overflow: visible;
+    /* rim: dark shadow + faint light halo so Koffi reads on any hero image */
+    filter: drop-shadow(0 1px 1px rgba(2,6,23,.35)) drop-shadow(0 0 1px rgba(248,250,252,.3));
+  }
+
+  /* ---- ground shadow ---- */
+  #shadow {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    margin-left: -33px;
+    opacity: .17;
+    filter: blur(1.1px);
+    transform-origin: 50% 100%;
+    transition: transform .4s ease, opacity .4s ease;
+  }
+  .pose-sit #shadow { transform: scaleX(1.12); opacity: .21; }
+  .roll-out #shadow { transform: scaleX(1.3); opacity: .2; }
+
+  /* ---- SVG group plumbing: CSS transforms in viewBox units ---- */
+  #root, #trunk, #breathe, #face, #legL, #legR, #lid, #tag, #pupils, #lids,
+  #armF, #armB, #map, #postcard, #tele, #tagCard, #stamp, #stampAnim,
+  #puffS, #squint { transform-box: view-box; }
+
+  #root   { transform-origin: 32px 70px; transition: transform .55s cubic-bezier(.4,0,.3,1); }
+  #trunk  { transform-origin: 32px 60px; transition: transform .48s cubic-bezier(.34,1.4,.64,1); }
+  #breathe{ transform-origin: 32px 58px; animation: kfBreathe 3.4s ease-in-out infinite; }
+  #legL   { transform-origin: 25px 53px; transition: transform .45s cubic-bezier(.34,1.4,.64,1); }
+  #legR   { transform-origin: 39px 53px; transition: transform .45s cubic-bezier(.34,1.4,.64,1); }
+  #lid    { transform-origin: 9px 29px;  transition: transform .35s cubic-bezier(.34,1.5,.64,1); }
+  #tag    { transform-origin: 37.5px 16px; animation: kfTagIdle 3.8s ease-in-out infinite; }
+  #armF   { transform-origin: 54.3px 38px; transform: rotate(-8deg); transition: transform .3s ease; }
+  #armB   { transform-origin: 10.5px 38px; transform: rotate(8deg);  transition: transform .3s ease; }
+  #lids   { transform-origin: 32px 35.4px; transform: scaleY(0); transition: transform .09s ease-out; }
+  #pupils { transition: transform .3s ease, opacity .12s ease; animation: kfDrift 9s ease-in-out infinite; }
+  #map    { transform-origin: 36px 55px; transform: scale(.2,.06); opacity: 0;
+            transition: transform .55s cubic-bezier(.3,1.4,.4,1), opacity .2s ease; }
+  #postcard { transition: transform .5s cubic-bezier(.25,1.35,.4,1) .12s; }
+  #shades { transform: translateY(-15px); opacity: 0;
+            transition: transform .65s cubic-bezier(.34,1.56,.64,1) .1s, opacity .3s ease .1s; }
+  #flag   { opacity: 0; transition: opacity .25s ease .25s; }
+
+  /* trolley kit: telescope handle + pop-out wheels, tucked by default */
+  #tele   { transform-origin: 13px 20.5px; transform: scaleY(0);
+            transition: transform .16s cubic-bezier(.55,-.35,.65,1.2); }
+  .wheel  { transform: scale(0); transition: transform .18s cubic-bezier(.55,-.35,.65,1.2); }
+
+  /* split-flap tag card + unmirrored number */
+  #tagCard { transform-origin: 40.6px 26.3px; }
+  #tagNum  { opacity: 0; transform-box: fill-box; transform-origin: center; transition: opacity .18s ease; }
+  #tagLines{ transition: opacity .18s ease; }
+  .flipped #tagNum { transform: scaleX(-1); } /* counter-flip: glyphs never mirror */
+  .tag-num #tagNum  { opacity: 1; }
+  .tag-num #tagLines{ opacity: 0; }
+
+  /* stamp rig sits above Koffi, slides along --sx/--sy to the target sticker slot */
+  #stampAnim { opacity: 0; transform-origin: 32px 45.5px; }
+  #stamp, #puffS { transform: translate(var(--sx, 0px), var(--sy, 0px)); }
+
+  /* stamped stickers: hidden until earned, then persist for the session */
+  .stk { opacity: 0; transform: scale(.2);
+         transition: transform .5s cubic-bezier(.3,1.5,.5,1), opacity .25s ease; }
+  .stk-on-1 #stk1, .stk-on-2 #stk2, .stk-on-3 #stk3, .stk-on-4 #stk4 { opacity: .95; transform: scale(1); }
+  .stk-b1 #stk1, .stk-b2 #stk2, .stk-b3 #stk3, .stk-b4 #stk4 { animation: kfStkPop .6s ease-in-out; }
+
+  #squint { opacity: 0; transition: opacity .12s ease; }
+  .conf, .streak, .pg, .ps { opacity: 0; }
+  .conf, .stk, .wheel, .wspin, .pg, .ps { transform-box: fill-box; transform-origin: center; }
+  .streak { transform-box: view-box; }
+
+  /* ---- eyes ---- */
+  .blink #lids, .st-sleep #lids, .eyes-closed #lids { transform: scaleY(1); }
+  .look-down #pupils { animation: none; transform: translate(.9px, 2.1px); }
+  .look-up   #pupils { animation: none; transform: translate(.6px, -2.2px); }
+  .look-l    #pupils { animation: none; transform: translate(-1.5px, .2px); }
+  .look-r    #pupils { animation: none; transform: translate(1.5px, .2px); }
+  .squint #pupils { opacity: 0; }
+  .squint #squint { opacity: 1; }
+
+  /* ---- tag twitch (idle micro-motion) ---- */
+  .twitch #tag { animation: kfTagTwitch .55s ease-in-out; }
+
+  /* ---- walk cycle ---- */
+  .st-walk #legL { animation: kfStep var(--step) ease-in-out infinite; }
+  .st-walk #legR { animation: kfStep var(--step) ease-in-out infinite; animation-delay: calc(var(--step) / -2); }
+  .st-walk #trunk{ animation: kfBob calc(var(--step) / 2) ease-in-out infinite; }
+  .st-walk #face { animation: kfCounter calc(var(--step) / 2) ease-in-out infinite; animation-delay: calc(var(--step) / -10); }
+  .st-walk #tag  { animation: kfTagWalk var(--step) ease-in-out infinite; animation-delay: calc(var(--step) / -7); }
+  .st-walk #lid  { animation: kfLidJig calc(var(--step) / 2) ease-in-out infinite; animation-delay: calc(var(--step) / -14); }
+  .st-walk #armF { animation: kfArmF var(--step) ease-in-out infinite; }
+  .st-walk #armB { animation: kfArmB var(--step) ease-in-out infinite; }
+
+  /* tag flutter on turn-around (after walk rules so it wins for its .6s) */
+  .flutter #tag { animation: kfTagFlutter .6s ease-in-out; }
+
+  /* ---- sit / sleep pose ---- */
+  .pose-sit #trunk { transform: translateY(11px); }
+  .pose-sit #legL  { transform: translate(18px, 11px) rotate(86deg); }
+  .pose-sit #legR  { transform: translate(15px, 11px) rotate(74deg); }
+  .st-sleep #trunk { transform: translateY(11px) rotate(-4deg); }
+  .st-sleep #breathe { animation-name: kfBreatheDeep; animation-duration: 4.6s; }
+
+  /* ---- sleep z's (outside the flip wrapper: glyphs never mirror) ---- */
+  #fx { position: absolute; inset: 0; pointer-events: none; }
+  .zz {
+    position: absolute; top: 6px; opacity: 0;
+    font: italic 700 13px/1 "Trebuchet MS", "Segoe UI", sans-serif;
+    color: #EEF2FF;
+    text-shadow: 0 1px 2px rgba(30,27,75,.75);
+  }
+  .z1 { left: 38px; } .z2 { left: 29px; } .z3 { left: 46px; }
+  .st-sleep .z1 { animation: kfZ 2.7s ease-in-out infinite; }
+  .st-sleep .z2 { animation: kfZ 2.7s ease-in-out .9s infinite; }
+  .st-sleep .z3 { animation: kfZ 2.7s ease-in-out 1.8s infinite; }
+
+  /* ---- state one-shots ---- */
+  .st-wave #armF { animation: kfWave 1.9s ease-in-out; }
+  .mood-hype.st-wave #flag { opacity: 1; }
+
+  .st-jump #jumper { animation: kfJump .95s cubic-bezier(.4,0,.4,1); }
+  .st-jump #shadow { animation: kfShadowJump .95s cubic-bezier(.4,0,.4,1); }
+  .lid-crack #lid  { transform: rotate(-8deg); }
+
+  .st-spin #jumper { animation: kfSpin .9s cubic-bezier(.45,.05,.55,.95); }
+  .st-spin #shadow { animation: kfShadowSpin .9s ease-in-out; }
+
+  .hop #jumper { animation: kfHop .45s ease-in-out; }
+  .hop #shadow { animation: kfShadowHop .45s ease-in-out; }
+
+  .st-peek #root { transform: rotate(9deg) translateX(1.5px); }
+
+  .st-stretch #root { animation: kfStretch 1.7s ease-in-out; }
+  .st-stretch #armF { animation: kfArmStretchF 1.7s ease-in-out; }
+  .st-stretch #armB { animation: kfArmStretchB 1.7s ease-in-out; }
+
+  .map-open #map  { transform: scale(1); opacity: 1; }
+  .lid-open #lid  { transform: rotate(-17deg); }
+  .lid-open #postcard { transform: translateY(-13px); }
+  .shades-on #shades  { transform: translateY(0); opacity: 1; }
+
+  .burst .conf { animation: kfConf .8s ease-out forwards; }
+  .burst .conf:nth-child(2n) { animation-duration: .95s; }
+
+  /* ---- trolley roll ---- */
+  .roll-out #root { transform: rotate(-17deg); }
+  .roll-out #legL { transform: translate(2px, -9px) rotate(55deg); }
+  .roll-out #legR { transform: translate(0, -4px) rotate(46deg); }
+  .roll-out #tele { transform: scaleY(1); transition: transform .38s cubic-bezier(.34,1.45,.64,1) .06s; }
+  .roll-out .wheel { transform: scale(1); transition: transform .3s cubic-bezier(.34,1.6,.64,1); }
+  .rolling .wspin { animation: kfWheelSpin .45s linear infinite; }
+
+  /* ---- passport stamp ---- */
+  .stamping #stampAnim { animation: kfStamp 2.5s ease-in-out; }
+  .stamp-hit #trunk { animation: kfStampHit .5s ease-out; }
+
+  /* ---- split-flap tag ---- */
+  .flapping #tagCard { animation: kfFlap .82s ease-in-out; }
+
+  /* ---- specular shine sweeps ---- */
+  .sh1 #shineStk { animation: kfShine .95s ease-in-out; }
+  .sh2 #shineBkL, .sh3 #shineBkR { animation: kfShine .8s ease-in-out; }
+
+  /* ---- dust puffs ---- */
+  .puffG .pg { animation: kfPuff .6s ease-out; }
+  .puffS .ps { animation: kfPuff .55s ease-out; }
+
+  /* ---- keyframes ---- */
+  @keyframes kfStep    { 0%,100% { transform: rotate(20deg); } 50% { transform: rotate(-20deg); } }
+  @keyframes kfBob     { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-1.7px); } }
+  @keyframes kfCounter { 0%,100% { transform: translateY(0); } 50% { transform: translateY(1px); } }
+  @keyframes kfTagWalk { 0%,100% { transform: rotate(11deg); } 50% { transform: rotate(-13deg); } }
+  @keyframes kfTagIdle { 0%,100% { transform: rotate(-2.5deg); } 50% { transform: rotate(3deg); } }
+  @keyframes kfTagTwitch { 0%,100% { transform: rotate(0); } 25% { transform: rotate(10deg); } 55% { transform: rotate(-7deg); } 80% { transform: rotate(4deg); } }
+  @keyframes kfTagFlutter { 0%,100% { transform: rotate(0); } 20% { transform: rotate(14deg); } 45% { transform: rotate(-11deg); } 70% { transform: rotate(7deg); } 88% { transform: rotate(-3deg); } }
+  @keyframes kfLidJig  { 0%,100% { transform: rotate(0); } 50% { transform: rotate(-1.2deg); } }
+  @keyframes kfArmF    { 0%,100% { transform: rotate(-16deg); } 50% { transform: rotate(4deg); } }
+  @keyframes kfArmB    { 0%,100% { transform: rotate(14deg); } 50% { transform: rotate(-4deg); } }
+  @keyframes kfBreathe     { 0%,100% { transform: scale(1); } 50% { transform: scale(1.008, 1.022); } }
+  @keyframes kfBreatheDeep { 0%,100% { transform: scale(1); } 50% { transform: scale(1.015, 1.04); } }
+  @keyframes kfDrift {
+    0%,100% { transform: translate(0,0); }
+    22%     { transform: translate(.8px,.3px); }
+    48%     { transform: translate(-.7px,.5px); }
+    72%     { transform: translate(.3px,-.3px); }
+  }
+  @keyframes kfZ {
+    0%   { opacity: 0; transform: translate(0, 6px) scale(.6); }
+    25%  { opacity: .9; }
+    100% { opacity: 0; transform: translate(11px, -26px) scale(1.35); }
+  }
+  @keyframes kfJump {
+    0%   { transform: translateY(0)     scale(1); }
+    16%  { transform: translateY(0)     scale(1.1, .84); }   /* anticipation squash */
+    28%  { transform: translateY(-10px) scale(.95, 1.08); }  /* launch stretch */
+    50%  { transform: translateY(-30px) scale(1, 1.02); }
+    72%  { transform: translateY(-2px)  scale(.98, 1.02); }
+    82%  { transform: translateY(0)     scale(1.12, .84); }  /* landing squash */
+    92%  { transform: translateY(0)     scale(.97, 1.03); }
+    100% { transform: translateY(0)     scale(1); }
+  }
+  @keyframes kfShadowJump {
+    0%   { transform: scale(1); opacity: .17; }
+    16%  { transform: scale(1.08, 1); opacity: .2; }
+    50%  { transform: scale(.55); opacity: .06; }
+    82%  { transform: scale(1.14, 1); opacity: .22; }
+    100% { transform: scale(1); opacity: .17; }
+  }
+  @keyframes kfSpin {
+    0%   { transform: rotateY(0)      translateY(0); }
+    45%  { transform: rotateY(180deg) translateY(-8px); }
+    100% { transform: rotateY(360deg) translateY(0); }
+  }
+  @keyframes kfShadowSpin { 0%,100% { transform: scale(1); opacity: .17; } 45% { transform: scale(.8); opacity: .11; } }
+  @keyframes kfHop {
+    0%   { transform: translateY(0)    scale(1); }
+    25%  { transform: translateY(0)    scale(1.06, .9); }
+    55%  { transform: translateY(-8px) scale(.98, 1.04); }
+    85%  { transform: translateY(0)    scale(1.05, .94); }
+    100% { transform: translateY(0)    scale(1); }
+  }
+  @keyframes kfShadowHop { 0%,100% { transform: scale(1); opacity: .17; } 55% { transform: scale(.85); opacity: .12; } }
+  @keyframes kfWave {
+    0%   { transform: rotate(-8deg); }
+    18%  { transform: rotate(-152deg); }
+    32%  { transform: rotate(-132deg); }
+    46%  { transform: rotate(-158deg); }
+    60%  { transform: rotate(-132deg); }
+    74%  { transform: rotate(-155deg); }
+    100% { transform: rotate(-8deg); }
+  }
+  @keyframes kfStretch {
+    0%   { transform: scale(1); }
+    30%  { transform: scale(.965, 1.06); }
+    62%  { transform: scale(.965, 1.065); }
+    82%  { transform: scale(1.035, .955); }
+    100% { transform: scale(1); }
+  }
+  @keyframes kfArmStretchF { 0%,100% { transform: rotate(-8deg); } 30%,65% { transform: rotate(-168deg); } }
+  @keyframes kfArmStretchB { 0%,100% { transform: rotate(8deg); }  30%,65% { transform: rotate(168deg); } }
+  @keyframes kfConf {
+    0%   { opacity: 0; transform: translate(0,0) scale(.4) rotate(0); }
+    12%  { opacity: 1; }
+    100% { opacity: 0; transform: translate(var(--cx), var(--cy)) scale(1.1) rotate(var(--cr)); }
+  }
+  @keyframes kfWheelSpin { to { transform: rotate(360deg); } }
+  @keyframes kfStamp {
+    0%   { transform: translate(0,-44px) scale(1); opacity: 0; }
+    9%   { transform: translate(0,-24px) scale(1); opacity: 1; }
+    26%  { transform: translate(0,-28px) scale(1); }          /* anticipation rise */
+    36%  { transform: translate(0,1px)   scale(1.05,.88); }   /* slam + squash */
+    44%  { transform: translate(0,0)     scale(1); }
+    58%  { transform: translate(0,0)     scale(1); }          /* press-and-hold */
+    68%  { transform: translate(0,-10px) scale(1); }
+    82%  { transform: translate(0,-42px) scale(1); opacity: .9; }
+    100% { transform: translate(0,-46px) scale(1); opacity: 0; }
+  }
+  @keyframes kfStampHit { 0% { transform: scale(1); } 30% { transform: scale(1.08,.9); } 60% { transform: scale(.97,1.05); } 100% { transform: scale(1); } }
+  @keyframes kfStkPop { 0%,100% { transform: scale(1); } 35% { transform: scale(1.4); } 65% { transform: scale(.88); } }
+  @keyframes kfFlap {
+    0%,25%,50%,75%,100%        { transform: scaleY(1); }
+    12.5%,37.5%,62.5%,87.5%    { transform: scaleY(.08); }
+  }
+  @keyframes kfShine {
+    0%   { opacity: 0; transform: translateX(-7px); }
+    20%  { opacity: .85; }
+    100% { opacity: 0; transform: translateX(11px); }
+  }
+  @keyframes kfPuff {
+    0%   { opacity: 0; transform: translate(0,0) scale(.4); }
+    18%  { opacity: .55; }
+    100% { opacity: 0; transform: translate(var(--px), var(--py)) scale(1.25); }
+  }
+
+  /* ---- reduced motion: single static sitting pose ---- */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div id="mascot" class="mood-chill">
+  <svg id="shadow" width="66" height="10" viewBox="0 0 66 10" aria-hidden="true">
+    <ellipse cx="33" cy="5" rx="29" ry="4" fill="#000"/>
+  </svg>
+
+  <div id="jumper">
+    <div id="flip">
+      <svg id="koffi" width="72" height="78.75" viewBox="0 0 64 70" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+        <title>Koffi the travel suitcase</title>
+        <defs>
+          <clipPath id="cpTop"><rect x="0" y="0" width="64" height="30"/></clipPath>
+          <clipPath id="cpStk"><rect x="25" y="20.5" width="8.5" height="5.5" rx="1.4" transform="rotate(-7 29 23)"/></clipPath>
+          <clipPath id="cpBkL"><rect x="15.9" y="33" width="6.2" height="3.4" rx=".8"/></clipPath>
+          <clipPath id="cpBkR"><rect x="41.9" y="33" width="6.2" height="3.4" rx=".8"/></clipPath>
+        </defs>
+        <g id="root">
+          <!-- stubby legs -->
+          <g id="legL">
+            <rect x="21.5" y="52" width="7" height="14" rx="3.5" fill="#3730A3" stroke="#1E1B4B" stroke-width=".8"/>
+            <ellipse cx="26.5" cy="67.6" rx="5" ry="2.4" fill="#312E81" stroke="#1E1B4B" stroke-width=".8"/>
+          </g>
+          <g id="legR">
+            <rect x="35.5" y="52" width="7" height="14" rx="3.5" fill="#3730A3" stroke="#1E1B4B" stroke-width=".8"/>
+            <ellipse cx="40.5" cy="67.6" rx="5" ry="2.4" fill="#312E81" stroke="#1E1B4B" stroke-width=".8"/>
+          </g>
+
+          <!-- trolley wheels: pop out for the roll, tucked otherwise -->
+          <g id="wheels">
+            <g class="wheel"><g class="wspin">
+              <circle cx="17.5" cy="62.5" r="3" fill="#1E1B4B" stroke="#0F172A" stroke-width=".6"/>
+              <line x1="17.5" y1="60.2" x2="17.5" y2="64.8" stroke="#475569" stroke-width=".7"/>
+              <line x1="15.2" y1="62.5" x2="19.8" y2="62.5" stroke="#475569" stroke-width=".7"/>
+              <circle cx="17.5" cy="62.5" r="1" fill="#64748B"/>
+            </g></g>
+            <g class="wheel"><g class="wspin">
+              <circle cx="46.5" cy="62.5" r="3" fill="#1E1B4B" stroke="#0F172A" stroke-width=".6"/>
+              <line x1="46.5" y1="60.2" x2="46.5" y2="64.8" stroke="#475569" stroke-width=".7"/>
+              <line x1="44.2" y1="62.5" x2="48.8" y2="62.5" stroke="#475569" stroke-width=".7"/>
+              <circle cx="46.5" cy="62.5" r="1" fill="#64748B"/>
+            </g></g>
+          </g>
+
+          <g id="trunk">
+            <g id="breathe">
+              <!-- telescope handle (behind everything, extends up-and-back) -->
+              <g id="tele">
+                <rect x="10.6" y="4.8" width="1.7" height="16" fill="#334155" stroke="#1E1B4B" stroke-width=".6"/>
+                <rect x="14.2" y="4.8" width="1.7" height="16" fill="#334155" stroke="#1E1B4B" stroke-width=".6"/>
+                <rect x="9.4" y="3.2" width="7.6" height="3" rx="1.5" fill="#4338CA" stroke="#1E1B4B" stroke-width=".8"/>
+              </g>
+
+              <!-- back arm (painted behind the case) -->
+              <g id="armB">
+                <rect x="8" y="36" width="5" height="12" rx="2.5" fill="#4338CA" stroke="#312E81" stroke-width="1"/>
+              </g>
+
+              <!-- case lower body -->
+              <path d="M8,30 L56,30 L56,50 Q56,58 48,58 L16,58 Q8,58 8,50 Z"
+                    fill="#4F46E5" stroke="#312E81" stroke-width="1.5" stroke-linejoin="round"/>
+              <rect x="11.5" y="33" width="41" height="21.5" rx="5" fill="#6366F1" opacity=".28"/>
+
+              <!-- leather straps + buckles (body part) -->
+              <rect x="16.5" y="29.5" width="5" height="28.3" fill="#B45309" stroke="#7C2D12" stroke-width=".8"/>
+              <rect x="42.5" y="29.5" width="5" height="28.3" fill="#B45309" stroke="#7C2D12" stroke-width=".8"/>
+              <rect x="15.9" y="33" width="6.2" height="3.4" rx=".8" fill="#FCD34D" stroke="#B45309" stroke-width=".8"/>
+              <rect x="41.9" y="33" width="6.2" height="3.4" rx=".8" fill="#FCD34D" stroke="#B45309" stroke-width=".8"/>
+
+              <!-- buckle shine sweeps -->
+              <g clip-path="url(#cpBkL)"><g id="shineBkL" class="streak">
+                <rect x="17.8" y="30.5" width="1.6" height="8" fill="#FFFFFF" transform="rotate(24 18.6 34.5)"/>
+              </g></g>
+              <g clip-path="url(#cpBkR)"><g id="shineBkR" class="streak">
+                <rect x="43.8" y="30.5" width="1.6" height="8" fill="#FFFFFF" transform="rotate(24 44.6 34.5)"/>
+              </g></g>
+
+              <!-- pastel travel stickers -->
+              <circle cx="12.8" cy="45" r="3.4" fill="#F9A8D4" stroke="#DB2777" stroke-width=".6" opacity=".95"/>
+              <circle cx="51" cy="50.5" r="3.2" fill="#FCD34D" stroke="#D97706" stroke-width=".6" opacity=".95"/>
+              <rect x="31" y="51" width="6.4" height="4.6" rx="1" fill="#FDA4AF" stroke="#E11D48" stroke-width=".6"
+                    opacity=".95" transform="rotate(5 34 53)"/>
+
+              <!-- stamped stickers: earned via passportStamp, persist for the session -->
+              <g id="stk1" class="stk"><g transform="rotate(-8 26.5 51.2)">
+                <circle cx="26.5" cy="51.2" r="2.7" fill="#93C5FD" stroke="#2563EB" stroke-width=".6"/>
+                <path d="M24.9,51.9 L28.2,50.4 M26.4,50.2 L27,52.4" fill="none" stroke="#1D4ED8" stroke-width=".7" stroke-linecap="round"/>
+              </g></g>
+              <g id="stk2" class="stk"><g transform="rotate(7 44.9 43.5)">
+                <rect x="42.4" y="41.2" width="5" height="4.6" rx="1" fill="#6EE7B7" stroke="#059669" stroke-width=".6"/>
+                <path d="M43.4,44.9 L44.5,42.6 L45.4,44.1 L46.1,43.2" fill="none" stroke="#047857" stroke-width=".7" stroke-linecap="round" stroke-linejoin="round"/>
+              </g></g>
+              <g id="stk3" class="stk"><g transform="rotate(-10 13.2 52.5)">
+                <path d="M13.2,49.9 L14,51.6 L15.8,51.8 L14.5,53 L14.8,54.8 L13.2,53.9 L11.6,54.8 L11.9,53 L10.6,51.8 L12.4,51.6 Z"
+                      fill="#C4B5FD" stroke="#7C3AED" stroke-width=".5" stroke-linejoin="round"/>
+              </g></g>
+              <g id="stk4" class="stk"><g transform="rotate(9 48.6 42.3)">
+                <circle cx="48.6" cy="42.3" r="2.3" fill="#FDBA74" stroke="#EA580C" stroke-width=".6"/>
+                <circle cx="48.6" cy="42.3" r="1" fill="#FED7AA"/>
+                <path d="M48.6,39.3 L48.6,38.6 M48.6,45.3 L48.6,46 M45.6,42.3 L44.9,42.3 M51.6,42.3 L52.3,42.3"
+                      stroke="#EA580C" stroke-width=".6" stroke-linecap="round"/>
+              </g></g>
+
+              <!-- postcard hiding inside the case (clipped above the lid seam) -->
+              <g clip-path="url(#cpTop)">
+                <g id="postcard">
+                  <g transform="rotate(-6 46 39)">
+                    <rect x="41" y="32" width="10.5" height="14" rx="1" fill="#FFF7ED" stroke="#C2410C" stroke-width="1"/>
+                    <rect x="41.6" y="32.6" width="9.3" height="2.6" fill="#FDA4AF"/>
+                    <rect x="47.8" y="36.4" width="2.6" height="2.6" fill="#93C5FD" stroke="#3B82F6" stroke-width=".5"/>
+                    <line x1="42.4" y1="41" x2="47" y2="41" stroke="#FDBA74" stroke-width=".9" stroke-linecap="round"/>
+                    <line x1="42.4" y1="43" x2="45.6" y2="43" stroke="#FDBA74" stroke-width=".9" stroke-linecap="round"/>
+                  </g>
+                </g>
+              </g>
+
+              <!-- lid (hinged at the back top corner) -->
+              <g id="lid">
+                <path d="M8,30 L8,26 A8,8 0 0 1 16,18 L48,18 A8,8 0 0 1 56,26 L56,30 Z"
+                      fill="#4F46E5" stroke="#312E81" stroke-width="1.5" stroke-linejoin="round"/>
+                <rect x="16.5" y="17.8" width="5" height="12.4" fill="#B45309" stroke="#7C2D12" stroke-width=".8"/>
+                <rect x="42.5" y="17.8" width="5" height="12.4" fill="#B45309" stroke="#7C2D12" stroke-width=".8"/>
+                <rect x="25" y="20.5" width="8.5" height="5.5" rx="1.4" fill="#6EE7B7" stroke="#059669" stroke-width=".6"
+                      opacity=".95" transform="rotate(-7 29 23)"/>
+                <!-- sticker shine sweep (clipped to the mint sticker, rides the lid) -->
+                <g clip-path="url(#cpStk)"><g id="shineStk" class="streak">
+                  <rect x="26.5" y="17.5" width="2" height="10" fill="#FFFFFF" transform="rotate(24 27.5 22.5)"/>
+                </g></g>
+                <path d="M26,17.5 L26,15 A3.5,3.5 0 0 1 29.5,11.5 L34.5,11.5 A3.5,3.5 0 0 1 38,15 L38,17.5"
+                      fill="none" stroke="#92400E" stroke-width="2.6" stroke-linecap="round"/>
+                <!-- luggage tag: swings from the handle; inner card does the split-flap -->
+                <g id="tag">
+                  <path d="M37.5,16 Q39.5,19 39,21.5" fill="none" stroke="#92400E" stroke-width=".9"/>
+                  <g id="tagCard">
+                    <g transform="rotate(-10 40 22)">
+                      <rect x="36.8" y="21.5" width="7.6" height="9.6" rx="1.4" fill="#FEF3C7" stroke="#B45309" stroke-width="1"/>
+                      <circle cx="40.6" cy="23.6" r=".9" fill="none" stroke="#B45309" stroke-width=".8"/>
+                      <g id="tagLines">
+                        <line x1="38.3" y1="26.6" x2="43" y2="26.6" stroke="#D97706" stroke-width=".9" stroke-linecap="round"/>
+                        <line x1="38.3" y1="28.5" x2="41.8" y2="28.5" stroke="#D97706" stroke-width=".9" stroke-linecap="round"/>
+                      </g>
+                      <text id="tagNum" x="40.6" y="29.6" text-anchor="middle"
+                            font-family="'Trebuchet MS','Segoe UI',sans-serif" font-size="6.5" font-weight="700"
+                            fill="#B45309">7</text>
+                    </g>
+                  </g>
+                </g>
+              </g>
+
+              <!-- face -->
+              <g id="face">
+                <ellipse cx="26.5" cy="40" rx="4.2" ry="4.7" fill="#FFFFFF" stroke="#312E81" stroke-width="1"/>
+                <ellipse cx="37.5" cy="40" rx="4.2" ry="4.7" fill="#FFFFFF" stroke="#312E81" stroke-width="1"/>
+                <g id="pupils">
+                  <circle cx="27.3" cy="40.6" r="2" fill="#1E1B4B"/>
+                  <circle cx="38.3" cy="40.6" r="2" fill="#1E1B4B"/>
+                  <circle cx="28" cy="39.7" r=".7" fill="#FFFFFF"/>
+                  <circle cx="39" cy="39.7" r=".7" fill="#FFFFFF"/>
+                </g>
+                <g id="lids">
+                  <rect x="22.1" y="35" width="8.8" height="10.4" rx="4.4" fill="#4F46E5" stroke="#312E81" stroke-width=".6"/>
+                  <rect x="33.1" y="35" width="8.8" height="10.4" rx="4.4" fill="#4F46E5" stroke="#312E81" stroke-width=".6"/>
+                </g>
+                <!-- happy squint ^ ^ overlay -->
+                <g id="squint">
+                  <path d="M23.2,41.2 Q26.5,37.8 29.8,41.2" fill="none" stroke="#1E1B4B" stroke-width="1.5" stroke-linecap="round"/>
+                  <path d="M34.2,41.2 Q37.5,37.8 40.8,41.2" fill="none" stroke="#1E1B4B" stroke-width="1.5" stroke-linecap="round"/>
+                </g>
+                <path d="M29.5,46.5 Q32,48.8 34.5,46.5" fill="none" stroke="#1E1B4B" stroke-width="1.3" stroke-linecap="round"/>
+                <ellipse cx="24" cy="44.6" rx="1.9" ry="1.2" fill="#F9A8D4" opacity=".5"/>
+                <ellipse cx="40" cy="44.6" rx="1.9" ry="1.2" fill="#F9A8D4" opacity=".5"/>
+                <!-- sunglasses: slide down once in live mood -->
+                <g id="shades">
+                  <line x1="21.6" y1="38.2" x2="9.5" y2="37" stroke="#0F172A" stroke-width="1.2"/>
+                  <line x1="42.4" y1="38.2" x2="55" y2="37.2" stroke="#0F172A" stroke-width="1.2"/>
+                  <line x1="31" y1="38.6" x2="33" y2="38.6" stroke="#0F172A" stroke-width="1.4"/>
+                  <rect x="21.6" y="36" width="9.8" height="6.8" rx="2.8" fill="#0F172A" stroke="#334155" stroke-width=".8"/>
+                  <rect x="32.6" y="36" width="9.8" height="6.8" rx="2.8" fill="#0F172A" stroke="#334155" stroke-width=".8"/>
+                  <line x1="24" y1="38" x2="26.5" y2="40.5" stroke="#F8FAFC" stroke-width=".8" opacity=".45" stroke-linecap="round"/>
+                </g>
+              </g>
+
+              <!-- front arm + pennant (pennant only shows on hype waves) -->
+              <g id="armF">
+                <rect x="51.8" y="36.5" width="5" height="12" rx="2.5" fill="#4F46E5" stroke="#312E81" stroke-width="1"/>
+                <g id="flag">
+                  <rect x="53.6" y="47" width="1.4" height="10" fill="#92400E"/>
+                  <polygon points="55,49 63.5,51.5 55,54" fill="#F472B6" stroke="#DB2777" stroke-width=".6"/>
+                </g>
+              </g>
+
+              <!-- tiny fold-out map -->
+              <g id="map">
+                <g transform="rotate(-5 36 49.5)">
+                  <rect x="27" y="44" width="18" height="11.5" rx="1" fill="#ECFDF5" stroke="#047857" stroke-width="1"/>
+                  <line x1="33" y1="44" x2="33" y2="55.5" stroke="#A7F3D0" stroke-width="1"/>
+                  <line x1="39" y1="44" x2="39" y2="55.5" stroke="#A7F3D0" stroke-width="1"/>
+                  <path d="M29.5,52 Q33,46.5 36.5,50 T43,47.5" fill="none" stroke="#EF4444" stroke-width="1"
+                        stroke-dasharray="2 1.4" stroke-linecap="round"/>
+                  <circle cx="43" cy="47.5" r="1.1" fill="#EF4444"/>
+                </g>
+              </g>
+
+              <!-- confetti puff (hype landings + lid pop) -->
+              <g id="confetti">
+                <circle class="conf" cx="32" cy="14" r="1.6" fill="#F9A8D4" style="--cx:-14px;--cy:-20px;--cr:120deg"/>
+                <rect class="conf" x="30" y="12" width="3" height="3" fill="#6EE7B7" style="--cx:10px;--cy:-24px;--cr:200deg"/>
+                <circle class="conf" cx="33" cy="13" r="1.3" fill="#FCD34D" style="--cx:18px;--cy:-14px;--cr:90deg"/>
+                <rect class="conf" x="31" y="13" width="2.6" height="2.6" fill="#A5B4FC" style="--cx:-18px;--cy:-10px;--cr:-160deg"/>
+                <circle class="conf" cx="31" cy="12" r="1.2" fill="#FDA4AF" style="--cx:-6px;--cy:-24px;--cr:60deg"/>
+                <rect class="conf" x="32.5" y="12" width="2.4" height="2.4" fill="#7DD3FC" style="--cx:22px;--cy:-20px;--cr:240deg"/>
+              </g>
+            </g>
+          </g>
+        </g>
+
+        <!-- ground dust puff (feet level, outside #jumper's airborne groups) -->
+        <g id="puffG">
+          <circle class="pg" cx="26" cy="66.5" r="1.7" fill="#E2E8F0" style="--px:-9px;--py:-3px"/>
+          <circle class="pg" cx="38" cy="66.5" r="1.5" fill="#F1F5F9" style="--px:9px;--py:-4px"/>
+          <circle class="pg" cx="30" cy="67" r="1.2" fill="#CBD5E1" style="--px:-4px;--py:-7px"/>
+          <circle class="pg" cx="35" cy="67" r="1.3" fill="#E2E8F0" style="--px:5px;--py:-6px"/>
+        </g>
+
+        <!-- stamp-impact puff (follows --sx/--sy to the sticker slot) -->
+        <g id="puffS">
+          <circle class="ps" cx="30" cy="44" r="1.2" fill="#FDE68A" style="--px:-6px;--py:-5px"/>
+          <circle class="ps" cx="34" cy="43.5" r="1" fill="#F1F5F9" style="--px:6px;--py:-4px"/>
+          <path class="ps" d="M32,40.6 L32.7,42.1 L34.2,42.4 L33.1,43.4 L33.4,45 L32,44.2 L30.6,45 L30.9,43.4 L29.8,42.4 L31.3,42.1 Z"
+                fill="#FCD34D" style="--px:1px;--py:-8px"/>
+          <circle class="ps" cx="31" cy="45" r=".9" fill="#E2E8F0" style="--px:-3px;--py:-7px"/>
+        </g>
+
+        <!-- passport stamp rig: descends from above the strip -->
+        <g id="stamp"><g id="stampAnim">
+          <rect x="28.4" y="24" width="7.2" height="6.6" rx="3" fill="#B45309" stroke="#7C2D12" stroke-width=".9"/>
+          <rect x="30.4" y="29.8" width="3.2" height="7.4" fill="#D97706" stroke="#7C2D12" stroke-width=".8"/>
+          <rect x="29.2" y="36.6" width="5.6" height="3" fill="#4F46E5" stroke="#312E81" stroke-width=".7"/>
+          <path d="M25,45.5 L25,42.5 Q25,39.6 27.9,39.6 L36.1,39.6 Q39,39.6 39,42.5 L39,45.5 Z"
+                fill="#312E81" stroke="#1E1B4B" stroke-width=".9"/>
+        </g></g>
+      </svg>
+    </div>
+  </div>
+
+  <!-- z glyphs live outside #flip so they never get mirrored -->
+  <div id="fx">
+    <span class="zz z1">z</span>
+    <span class="zz z2">z</span>
+    <span class="zz z3">z</span>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var DEBUG = false;
+  function log() { if (DEBUG && window.console) console.log.apply(console, ['[koffi]'].concat([].slice.call(arguments))); }
+
+  var CONFIG = {
+    width: 72,
+    edgePad: 6,
+    turnPad: 20,          // start turning this far before an edge
+    peekSnap: 34,         // close enough to an edge to peek right away
+    speed: { chill: 26, soon: 38, hype: 62, live: 33 },     // px/s
+    rollBoost: 1.5,       // trolley glides faster than walking
+    step:  { chill: '0.72s', soon: '0.56s', hype: '0.38s', live: '0.66s' },
+    pollMs: 600000,
+    waveEveryMs: 90000,
+    invokeTimeoutMs: 15000,
+    dur: {
+      walk: [2600, 7200], idle: [1500, 3400], sit: [3200, 7500], sleep: [6500, 12000],
+      stretch: [1750, 1750], wave: [2050, 2050], jump: [1050, 1050], spin: [980, 980],
+      peek: [2000, 3400], map: [3900, 3900], lid: [3000, 3000],
+      roll: [4600, 4600], stamp: [3550, 3550], flap: [3300, 3300]
+    },
+    weights: {
+      chill: { walk: 5, idle: 4,   sit: 3,   map: 2.2, wave: .7,  jump: .5,  peek: 1.2, lid: 1.2, spin: 0,   roll: .3,  stamp: .3,  flap: 0 },
+      soon:  { walk: 6, idle: 3,   sit: 1.6, map: 1.6, wave: 1,   jump: 1.7, peek: 1.2, lid: 1.4, spin: .2,  roll: .45, stamp: .35, flap: 0 },
+      hype:  { walk: 7, idle: 1.4, sit: .4,  map: .7,  wave: 2,   jump: 3.4, peek: 1.2, lid: 1.8, spin: .9,  roll: .6,  stamp: .4,  flap: 1.15 },
+      live:  { walk: 5, idle: 3,   sit: 2.2, map: 1,   wave: 1.2, jump: 1.2, peek: 1,   lid: 1.2, spin: 1.9, roll: 1.15, stamp: .45, flap: 0 }
+    },
+    sleepFromSit: { chill: 2.6, soon: 1.2, hype: 0, live: 1 }
+  };
+
+  // stamped-sticker slots: [--sx, --sy] offsets steering the stamp + puff to each spot
+  var STICKER_SLOTS = [[-5.5, 7.2], [12.9, -.5], [-18.8, 8.5], [16.6, -1.7]];
+
+  var mascot = document.getElementById('mascot');
+  var flip = document.getElementById('flip');
+  var tagNum = document.getElementById('tagNum');
+  var reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var STATE_CLASSES = ['st-walk', 'st-idle', 'st-sit', 'st-sleep', 'st-stretch', 'st-wave', 'st-jump',
+    'st-spin', 'st-peek', 'st-map', 'st-lid', 'st-roll', 'st-stamp', 'st-flap',
+    'pose-sit', 'lid-open', 'lid-crack', 'map-open',
+    'look-down', 'look-up', 'look-l', 'look-r', 'eyes-closed', 'hop', 'burst', 'twitch',
+    'roll-out', 'rolling', 'stamping', 'stamp-hit', 'squint', 'flapping', 'tag-num',
+    'puffG', 'puffS', 'stk-b1', 'stk-b2', 'stk-b3', 'stk-b4'];
+
+  var mood = 'chill', ctx = null, seq = 0, pending = {};
+  var x = 0, dir = 1, vx = 0, minX = CONFIG.edgePad, maxX = 100;
+  var state = '', walkTarget = null, afterWalk = null, forceNext = null;
+  var lastWave = performance.now(), shadesOn = false, lastDays = null;
+  var rollMoving = false, rollTucked = true, stampCount = 0, booted = false;
+  var timers = [];
+
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+  function later(fn, ms) { var t = setTimeout(fn, ms); timers.push(t); return t; }
+  function clearTimers() { for (var i = 0; i < timers.length; i++) clearTimeout(timers[i]); timers.length = 0; }
+  function addC(c) { mascot.classList.add(c); }
+  function remC(c) { mascot.classList.remove(c); }
+  function hasC(c) { return mascot.classList.contains(c); }
+
+  function layout() {
+    maxX = Math.max(minX, window.innerWidth - CONFIG.width - CONFIG.edgePad);
+    x = clamp(x, minX, maxX);
+  }
+  window.addEventListener('resize', layout);
+
+  function setDir(d) {
+    if (booted && d !== dir && !reduced) flutterTag(); // tag flutters on turn-around
+    dir = d;
+    flip.style.transform = 'scaleX(' + (d < 0 ? -1 : 1) + ')';
+    mascot.classList.toggle('flipped', d < 0); // counter-flips tag glyphs
+  }
+
+  function pick(w) {
+    var sum = 0, k;
+    for (k in w) sum += w[k];
+    var r = Math.random() * sum;
+    for (k in w) { r -= w[k]; if (r <= 0) return k; }
+    return 'idle';
+  }
+
+  function chooseNext() {
+    var now = performance.now();
+    if (state === 'sleep') return 'stretch';        // always shake it off after a nap
+    if (state === 'stretch') return 'idle';
+    if (now - lastWave > CONFIG.waveEveryMs && state !== 'wave') return 'wave';
+    if (forceNext) { var f = forceNext; forceNext = null; return f; }
+    if (state === 'sit') return pick({ walk: 3, idle: 2, sleep: CONFIG.sleepFromSit[mood] || 0 });
+    var base = CONFIG.weights[mood], w = {}, k;
+    for (k in base) if (base[k] > 0) w[k] = base[k];
+    if (!(mood === 'hype' && lastDays != null)) delete w.flap;  // split-flap needs a real countdown
+    if (maxX - minX < 130) delete w.roll;                       // trolley needs runway
+    if (state !== 'walk') delete w[state];          // no immediate repeats except walking
+    return pick(w);
+  }
+
+  function burst() { remC('burst'); void mascot.offsetWidth; addC('burst'); }
+  function twitchTag() { addC('twitch'); later(function () { remC('twitch'); }, 600); }
+  function flutterTag() {
+    remC('flutter'); void mascot.offsetWidth; addC('flutter');
+    setTimeout(function () { remC('flutter'); }, 640);
+  }
+  function puffGround() {
+    remC('puffG'); void mascot.offsetWidth; addC('puffG');
+    later(function () { remC('puffG'); }, 800);
+  }
+  function tuckRoll() {
+    if (rollTucked) return;
+    rollTucked = true;
+    rollMoving = false;
+    remC('rolling');
+    remC('roll-out');
+    later(puffGround, 150);
+  }
+
+  var ENTER = {
+    walk: function () { if (Math.random() < .3) setDir(-dir); },
+    idle: function () {
+      if (Math.random() < .8) later(function () {
+        addC(Math.random() < .5 ? 'look-l' : 'look-r');
+        later(function () { remC('look-l'); remC('look-r'); }, rand(500, 900));
+      }, rand(300, 1200));
+      if (Math.random() < .5) later(twitchTag, rand(600, 1800));
+    },
+    sit: function () {
+      addC('pose-sit');
+      if (Math.random() < .6) later(twitchTag, rand(1000, 3000));
+    },
+    sleep: function () { addC('pose-sit'); },
+    stretch: function () { addC('eyes-closed'); later(function () { remC('eyes-closed'); }, 650); },
+    wave: function () {
+      lastWave = performance.now();
+      later(function () { addC('squint'); }, 450);
+      later(function () { remC('squint'); }, 1550);
+    },
+    jump: function () {
+      later(function () { addC('squint'); }, 300);
+      later(function () { remC('squint'); }, 700);
+      later(puffGround, 770);                      // dust on landing
+      if (mood === 'hype') {
+        later(function () { addC('lid-crack'); }, 140);
+        later(function () { remC('lid-crack'); }, 620);
+        later(burst, 640);                         // confetti pops on the way down, never at apex
+      }
+    },
+    spin: function () {},
+    peek: function () {
+      setDir(x - minX < maxX - x ? -1 : 1);
+      later(function () { addC('look-down'); }, 380);
+    },
+    map: function () {
+      later(function () { addC('map-open'); }, 260);
+      later(function () { addC('look-down'); }, 620);
+      later(function () { remC('look-down'); addC('look-up'); }, 2150);
+      later(function () { remC('look-up'); addC('look-down'); }, 2800);
+      later(function () { remC('map-open'); remC('look-down'); }, 3350);
+    },
+    // signature move: the Lid Pop — postcard peeks out of the cracked lid
+    lid: function () {
+      later(function () { addC('lid-open'); addC('look-up'); if (mood === 'hype') burst(); }, 220);
+      later(function () { remC('lid-open'); }, 2150);
+      later(function () { remC('look-up'); addC('hop'); }, 2400);
+    },
+    // trolley mode: wheels pop, handle telescopes out, lean back and glide
+    roll: function () {
+      setDir(x - minX < maxX - x ? 1 : -1);        // roll toward the long side
+      forceNext = 'walk';                          // always resume walking after
+      rollTucked = false;
+      addC('roll-out');
+      later(function () { rollMoving = true; addC('rolling'); }, 430);
+      later(function () {                          // bump over an imaginary crack
+        if (rollMoving) { addC('hop'); later(function () { remC('hop'); }, 470); }
+      }, rand(1500, 2700));
+      later(tuckRoll, 3550);                       // snap everything away, dust settles
+    },
+    // passport control: a chunky stamp descends and awards a sticker
+    stamp: function () {
+      var n = stampCount < 4 ? stampCount + 1 : 1 + Math.floor(Math.random() * 4);
+      var slot = STICKER_SLOTS[n - 1];
+      mascot.style.setProperty('--sx', slot[0] + 'px');
+      mascot.style.setProperty('--sy', slot[1] + 'px');
+      later(function () { addC('stamping'); }, 120);
+      later(function () { addC('look-up'); }, 320);
+      later(function () {                          // impact frame
+        remC('look-up');
+        addC('stamp-hit');
+        remC('puffS'); void mascot.offsetWidth; addC('puffS');
+        if (stampCount < 4) { addC('stk-on-' + n); stampCount++; }
+        else { addC('stk-b' + n); later(function () { remC('stk-b' + n); }, 650); }
+      }, 1030);
+      later(function () { remC('stamp-hit'); remC('puffS'); }, 1700);
+      later(function () { addC('look-down'); }, 2000);   // admire the new sticker
+      later(function () { addC('squint'); }, 2250);
+      later(function () { addC('hop'); }, 2450);
+      later(function () { remC('hop'); }, 2950);
+      later(function () { remC('squint'); remC('look-down'); }, 3150);
+    },
+    // airport split-flap: the tag flips and shows days-until-trip (hype only)
+    flap: function () {
+      var d = clamp(Math.round(lastDays == null ? 0 : lastDays), 0, 99);
+      later(function () { addC('look-up'); }, 200);
+      later(function () { addC('flapping'); }, 350);
+      later(function () {                          // swap content mid-flap
+        if (tagNum) tagNum.textContent = String(d);
+        addC('tag-num');
+      }, 760);
+      later(function () { remC('flapping'); }, 1250);
+      later(function () { addC('squint'); }, 1500);
+      later(function () { addC('hop'); }, 1600);
+      later(function () { remC('hop'); remC('squint'); }, 2150);
+      later(function () { remC('look-up'); }, 2600);
+    }
+  };
+
+  function setState(name) {
+    clearTimers();
+    rollMoving = false;
+    rollTucked = true;
+    for (var i = 0; i < STATE_CLASSES.length; i++) remC(STATE_CLASSES[i]);
+
+    // peek needs an edge: walk over first if we're mid-strip
+    if (name === 'peek') {
+      var edge = (x - minX < maxX - x) ? minX : maxX;
+      if (Math.abs(x - edge) > CONFIG.peekSnap) {
+        walkTarget = edge;
+        afterWalk = 'peek';
+        setDir(edge < x ? -1 : 1);
+        state = 'walk';
+        addC('st-walk');
+        later(end, Math.abs(x - edge) / CONFIG.speed[mood] * 1000 + 4000); // safety net
+        return;
+      }
+    }
+
+    state = name;
+    walkTarget = null;
+    addC('st-' + name);
+    if (ENTER[name]) ENTER[name]();
+    var d = CONFIG.dur[name] || [2000, 3000];
+    later(end, rand(d[0], d[1]));
+    log('state:', name, 'mood:', mood);
+  }
+
+  function end() {
+    var q = afterWalk;
+    afterWalk = null;
+    setState(q || chooseNext());
+  }
+
+  /* ---- locomotion ---- */
+  var lastT = performance.now();
+  var lastTurnT = -1e9;
+  function frame(t) {
+    var dt = Math.min(.05, (t - lastT) / 1000);
+    lastT = t;
+    var moving = state === 'walk' || (state === 'roll' && rollMoving);
+    var tv = moving ? dir * CONFIG.speed[mood] * (state === 'roll' ? CONFIG.rollBoost : 1) : 0;
+    vx += (tv - vx) * Math.min(1, dt * (moving ? 4.5 : 9));
+    x = clamp(x + vx * dt, minX, maxX);
+    if (state === 'walk') {
+      if (walkTarget == null) {
+        // Early-turn only when the strip is wide enough for two pads, and never
+        // twice within 500ms — a tiny iframe otherwise flip-thrashes every frame.
+        var pad = maxX - minX > CONFIG.turnPad * 2 + 8 ? CONFIG.turnPad : 0;
+        if (t - lastTurnT > 500) {
+          if (dir < 0 && x <= minX + pad) { lastTurnT = t; setDir(1); }
+          else if (dir > 0 && x >= maxX - pad) { lastTurnT = t; setDir(-1); }
+        }
+      } else if (Math.abs(x - walkTarget) < 3 || x <= minX || x >= maxX) {
+        walkTarget = null;
+        end();
+      }
+    } else if (state === 'roll' && rollMoving) {
+      if ((dir < 0 && x <= minX + 4) || (dir > 0 && x >= maxX - 4)) tuckRoll(); // never roll off the edge
+    }
+    mascot.style.transform = 'translate3d(' + x.toFixed(2) + 'px,0,0)';
+    requestAnimationFrame(frame);
+  }
+
+  /* ---- blinking (independent of the FSM) ---- */
+  function doBlink() {
+    mascot.classList.add('blink');
+    setTimeout(function () { mascot.classList.remove('blink'); }, 130);
+  }
+  (function blinkLoop() {
+    setTimeout(function () {
+      if (state !== 'sleep' && !reduced && !hasC('squint')) {
+        doBlink();
+        if (Math.random() < .3) setTimeout(doBlink, 250); // double blink
+      }
+      blinkLoop();
+    }, rand(2300, 5600));
+  })();
+
+  /* ---- specular shine sweeps (independent micro-life) ---- */
+  (function shineLoop() {
+    setTimeout(function () {
+      if (!reduced && state !== 'sleep') {
+        var c = ['sh1', 'sh2', 'sh3'][Math.floor(Math.random() * 3)];
+        addC(c);
+        setTimeout(function () { remC(c); }, 1100);
+      }
+      shineLoop();
+    }, rand(9000, 22000));
+  })();
+
+  /* ---- mood ---- */
+  function setMood(m) {
+    if (!CONFIG.weights[m]) m = 'chill';
+    var changed = m !== mood;
+    mood = m;
+    mascot.classList.remove('mood-chill', 'mood-soon', 'mood-hype', 'mood-live');
+    mascot.classList.add('mood-' + m);
+    mascot.style.setProperty('--step', CONFIG.step[m]);
+    if (m === 'live') {
+      if (!shadesOn) { shadesOn = true; setTimeout(function () { if (shadesOn) addC('shades-on'); }, 700); }
+    } else if (shadesOn) {
+      shadesOn = false;
+      remC('shades-on');
+    }
+    if (changed && m === 'hype' && !reduced && (state === 'sleep' || state === 'sit')) {
+      setState(state === 'sleep' ? 'stretch' : 'jump');
+    }
+    log('mood:', m);
+  }
+
+  /* ---- trekBridge ---- */
+  function post(msg) { try { if (window.parent) window.parent.postMessage(msg, '*'); } catch (e) {} }
+
+  function requestState() {
+    if (!ctx || ctx.tripId == null || ctx.tripId === '') return;
+    var id = 'koffi-' + (++seq) + '-' + Date.now().toString(36);
+    pending[id] = true;
+    setTimeout(function () { delete pending[id]; }, CONFIG.invokeTimeoutMs);
+    post({ type: 'trek:invoke', requestId: id, sub: '/state?tripId=' + ctx.tripId, method: 'GET' });
+  }
+
+  function applyTripState(d) {
+    if (!d || typeof d !== 'object') return;
+    var days = (typeof d.days === 'number' && isFinite(d.days)) ? d.days : null;
+    lastDays = days;
+    var m = 'chill';
+    if (d.ongoing === true) m = 'live';
+    else if (days !== null && days >= 0 && days <= 7) m = 'hype';
+    else if (days !== null && days > 7 && days <= 14) m = 'soon';
+    setMood(m);
+  }
+
+  window.addEventListener('message', function (e) {
+    var m = e && e.data;
+    if (!m || typeof m !== 'object') return;
+    if (m.type === 'trek:context') {
+      ctx = m;
+      requestState();
+    } else if (m.type === 'trek:response' && pending[m.requestId]) {
+      delete pending[m.requestId];
+      applyTripState(m.data);
+    } else if (m.type === 'trek:error' && pending[m.requestId]) {
+      delete pending[m.requestId];
+      log('invoke failed, keeping current mood');
+    }
+  });
+
+  setInterval(requestState, CONFIG.pollMs);
+  post({ type: 'trek:ready' });
+
+  /* ---- boot ---- */
+  layout();
+  x = clamp(minX + (maxX - minX) * rand(.3, .7), minX, maxX);
+  setDir(Math.random() < .5 ? -1 : 1);
+  setMood('chill');
+  mascot.style.transform = 'translate3d(' + x.toFixed(2) + 'px,0,0)';
+  booted = true;
+
+  if (reduced) {
+    addC('pose-sit'); // single static cute pose, eyes open, shadow stays
+  } else {
+    setState('idle');
+    requestAnimationFrame(frame);
+  }
+})();
+</script>
+</body>
+</html>

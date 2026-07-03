@@ -262,6 +262,19 @@
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none;
 }
+
+/* Hero-slot plugin overlay: a transparent strip whose bottom edge sits on the
+   pass's top edge, so a plugin (e.g. the mascot) appears to stand ON the bar.
+   pointer-events none — it must never block the pass or hero interactions. */
+.trek-dash .hero-pass-wrap { position: relative; }
+.trek-dash .hero-pass-overlay {
+  position: absolute; left: 16px; right: 16px; bottom: 100%; height: 110px;
+  pointer-events: none; z-index: 3; overflow: hidden;
+}
+.trek-dash .hero-overlay-frame {
+  position: absolute; inset: 0; width: 100%; height: 100% !important;
+  border: 0; background: transparent; color-scheme: light;
+}
 .trek-dash .pass-cell {
   padding: 4px 18px; position: relative; display: flex; flex-direction: column;
   justify-content: center; align-items: center; text-align: center; gap: 6px; flex: 1; min-width: 0;

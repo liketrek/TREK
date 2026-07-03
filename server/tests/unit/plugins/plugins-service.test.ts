@@ -9,7 +9,7 @@ const { testDb } = vi.hoisted(() => {
   const db = new Database(':memory:');
   db.exec(`CREATE TABLE plugins (
     id TEXT PRIMARY KEY, name TEXT, description TEXT, type TEXT, icon TEXT, version TEXT,
-    status TEXT, enabled INTEGER DEFAULT 0, last_error TEXT, reviewed_at TEXT, source_repo TEXT, config TEXT DEFAULT '{}', updated_at TEXT,
+    status TEXT, enabled INTEGER DEFAULT 0, last_error TEXT, reviewed_at TEXT, source_repo TEXT, config TEXT DEFAULT '{}', capabilities TEXT DEFAULT '{}', updated_at TEXT,
     sort_order INTEGER DEFAULT 0);
     CREATE TABLE plugin_settings_fields (plugin_id TEXT, field_key TEXT, scope TEXT, secret INTEGER);
     CREATE TABLE plugin_error_log (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, level TEXT, message TEXT, ts TEXT DEFAULT '2026-01-01');`);
@@ -66,10 +66,19 @@ describe('PluginsFeedController (client feed)', () => {
 
     process.env.TREK_PLUGINS_ENABLED = 'true';
     const active = feed.list();
-    expect(active.plugins).toEqual([{ id: 'w', name: 'W', type: 'widget', icon: 'Box' }]);
+    expect(active.plugins).toEqual([{ id: 'w', name: 'W', type: 'widget', icon: 'Box', slot: 'sidebar' }]);
 
     process.env.TREK_PLUGINS_ENABLED = 'false';
     expect(feed.list().plugins).toEqual([]);
+  });
+
+  it('exposes the widget slot from capabilities (hero) and defaults on bad JSON', () => {
+    testDb.prepare("INSERT INTO plugins (id, name, type, icon, status, capabilities) VALUES ('h','H','widget','Box','active','{\"widget\":{\"slot\":\"hero\"}}')").run();
+    testDb.prepare("INSERT INTO plugins (id, name, type, icon, status, capabilities) VALUES ('b','B','widget','Box','active','not-json')").run();
+    process.env.TREK_PLUGINS_ENABLED = 'true';
+    const out = new PluginsFeedController().list();
+    expect(out.plugins.find((p) => p.id === 'h')?.slot).toBe('hero');
+    expect(out.plugins.find((p) => p.id === 'b')?.slot).toBe('sidebar');
   });
 });
 

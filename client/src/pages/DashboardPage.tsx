@@ -21,6 +21,7 @@ import {
 import { IcsSubscribeModal } from '../components/Planner/IcsSubscribeModal'
 import CollectionsWidget from '../components/Dashboard/CollectionsWidget'
 import PluginWidgets from '../components/Plugins/PluginWidgets'
+import PluginFrame from '../components/Plugins/PluginFrame'
 import { usePluginStore } from '../store/pluginStore'
 import { formatTime, splitReservationDateTime } from '../utils/formatters'
 import { convertDistance, getDistanceUnitLabel } from '../utils/units'
@@ -127,7 +128,7 @@ export default function DashboardPage(): React.ReactElement {
   const isAddonEnabled = useAddonStore(s => s.isEnabled)
   const showCollections = isAddonEnabled('collections') && sideWidgets.collections
   // Desktop has a master toggle for the whole right column; off → centered layout.
-  const widgetPlugins = usePluginStore(s => s.plugins).filter(p => p.type === 'widget')
+  const widgetPlugins = usePluginStore(s => s.plugins).filter(p => p.type === 'widget' && p.slot !== 'hero')
   const sidebarVisible = (isMobile || dashCfg.desktop.sidebar) && (showCurrency || showCollections || showTimezones || showUpcoming || widgetPlugins.length > 0)
 
   return (
@@ -293,6 +294,7 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
 }): React.ReactElement {
   const { t } = useTranslation()
   const mobile = useIsMobile()
+  const heroPlugins = usePluginStore(s => s.plugins).filter(p => p.type === 'widget' && p.slot === 'hero')
   const stop = (e: React.MouseEvent, fn: () => void) => { e.stopPropagation(); fn() }
   const status = getTripStatus(trip)
   const start = splitDate(trip.start_date, locale)
@@ -408,7 +410,16 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
         </div>
 
         {!mobile && (
-          <div className="hero-pass" onClick={(e) => { e.stopPropagation(); onOpen() }}>{passCells}</div>
+          <div className="hero-pass-wrap">
+            {heroPlugins.length > 0 && (
+              <div className="hero-pass-overlay" aria-hidden="true">
+                {heroPlugins.map(p => (
+                  <PluginFrame key={p.id} pluginId={p.id} tripId={String(trip.id)} title={p.name} className="hero-overlay-frame" />
+                ))}
+              </div>
+            )}
+            <div className="hero-pass" onClick={(e) => { e.stopPropagation(); onOpen() }}>{passCells}</div>
+          </div>
         )}
       </div>
     </section>

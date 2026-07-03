@@ -20,6 +20,17 @@ export interface ManifestSettingField {
   oauth?: { initPath?: string; callbackPath?: string };
 }
 
+export interface WidgetCapability {
+  title?: string;
+  defaultSize?: string;
+  /** Where the widget mounts: dashboard sidebar (default) or as a hero-bar overlay. */
+  slot?: 'sidebar' | 'hero';
+}
+
+export interface PluginCapabilities {
+  widget?: WidgetCapability;
+}
+
 export interface PluginManifest {
   id: string;
   name: string;
@@ -36,6 +47,7 @@ export interface PluginManifest {
   permissions: string[];
   egress: string[];
   settings: ManifestSettingField[];
+  capabilities: PluginCapabilities;
 }
 
 const ID_RE = /^[a-z][a-z0-9-]{2,39}$/;
@@ -84,7 +96,25 @@ export function parseManifest(raw: unknown): PluginManifest {
     permissions,
     egress,
     settings: parseSettings(m.settings),
+    capabilities: parseCapabilities(m.capabilities),
   };
+}
+
+function parseCapabilities(raw: unknown): PluginCapabilities {
+  if (!raw || typeof raw !== 'object') return {};
+  const c = raw as Record<string, unknown>;
+  const out: PluginCapabilities = {};
+  if (c.widget && typeof c.widget === 'object') {
+    const w = c.widget as Record<string, unknown>;
+    const slot = optStr(w.slot);
+    if (slot && slot !== 'sidebar' && slot !== 'hero') throw new ManifestError(`invalid widget slot "${slot}"`);
+    out.widget = {
+      title: optStr(w.title),
+      defaultSize: optStr(w.defaultSize),
+      slot: (slot as WidgetCapability['slot']) ?? 'sidebar',
+    };
+  }
+  return out;
 }
 
 function parseSettings(raw: unknown): ManifestSettingField[] {

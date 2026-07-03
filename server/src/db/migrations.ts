@@ -3357,10 +3357,18 @@ function runMigrations(db: Database.Database): void {
     // erased the "keep it on" intent, so the plugin never rebooted after a deploy.
     // Boot now retries every enabled plugin regardless of last status.
     () => {
-      db.exec("ALTER TABLE plugins ADD COLUMN enabled INTEGER NOT NULL DEFAULT 0;");
-      // Anything not explicitly deactivated was meant to be on ('inactive' is the
-      // only status deactivate() sets; a crash/shutdown could leave error/stopped/starting).
-      db.exec("UPDATE plugins SET enabled = 1 WHERE status != 'inactive';");
+      try {
+        db.exec("ALTER TABLE plugins ADD COLUMN enabled INTEGER NOT NULL DEFAULT 0;");
+        // Anything not explicitly deactivated was meant to be on ('inactive' is the
+        // only status deactivate() sets; a crash/shutdown could leave error/stopped/starting).
+        db.exec("UPDATE plugins SET enabled = 1 WHERE status != 'inactive';");
+      } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+    },
+    // Migration 157: plugin capabilities (from trek-plugin.json) — the client
+    // needs them to place widgets (e.g. widget.slot 'hero' renders as an overlay
+    // on the boarding-pass bar instead of the dashboard sidebar).
+    () => {
+      try { db.exec("ALTER TABLE plugins ADD COLUMN capabilities TEXT NOT NULL DEFAULT '{}';"); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
     },
   ];
 

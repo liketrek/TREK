@@ -56,6 +56,11 @@ export function validateManifest(raw: unknown): ValidationResult {
   if (wantsOutbound && egress.length === 0) errors.push('http:outbound declared but egress[] is empty');
   if (egress.includes('*')) errors.push('egress[] must not contain a bare "*"');
 
+  const widget = (m.capabilities as { widget?: { slot?: unknown } } | undefined)?.widget;
+  if (widget?.slot !== undefined && widget.slot !== 'sidebar' && widget.slot !== 'hero') {
+    errors.push(`widget slot must be "sidebar" or "hero", got "${String(widget.slot)}"`);
+  }
+
   if (errors.length) return { ok: false, errors };
   return {
     ok: true,
