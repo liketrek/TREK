@@ -241,7 +241,7 @@ export default function TransitJourneyModal({ reservation, onClose, onSave, onDe
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {(transit.legs as TransitLegMeta[]).map((leg, i) => {
-                  if (leg.mode === 'WALK') return <TransitWalkDivider key={i} leg={leg} t={t} />
+                  if (leg.mode === 'WALK') return <TransitWalkDivider key={i} leg={leg} t={t} size={isMobile ? 'sm' : 'md'} />
                   const mins = leg.duration ? Math.round(leg.duration / 60) : null
                   if (isMobile) {
                     // The wide from → to line plus the chip row doesn't fit a
@@ -253,10 +253,18 @@ export default function TransitJourneyModal({ reservation, onClose, onSave, onDe
                       leg.stops ? t('transit.stops', { count: leg.stops }) : null,
                       leg.agency || null,
                     ].filter(Boolean).join(' · ')
+                    // Names wrap instead of clipping; the platform gets its
+                    // own quiet line below so it never pushes the name out.
                     const stopName = (stop: TransitLegMeta['from']) => (
-                      <div className="text-content" style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 600, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {stop?.name}
-                        {stop?.track && <span className="text-content-faint" style={{ fontWeight: 500 }}> · {t('transit.platform', { track: stop.track })}</span>}
+                      <div style={{ minWidth: 0 }}>
+                        <div className="text-content" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, lineHeight: 1.35, overflowWrap: 'anywhere' }}>
+                          {stop?.name}
+                        </div>
+                        {stop?.track && (
+                          <div className="text-content-faint" style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', fontWeight: 500, marginTop: 1 }}>
+                            {t('transit.platform', { track: stop.track })}
+                          </div>
+                        )}
                       </div>
                     )
                     const timeCell = (time?: string | null) => (

@@ -478,7 +478,7 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
   const tzTo = to ? tzAt(to.lat, to.lng) : tzFrom
 
   const segBtn = (active: boolean): React.CSSProperties => ({
-    padding: '6px 11px', fontSize: 'calc(12px * var(--fs-scale-body, 1))', borderRadius: 7, fontWeight: 500,
+    padding: isMobile ? '6px 5px' : '6px 11px', fontSize: isMobile ? 'calc(11px * var(--fs-scale-body, 1))' : 'calc(12px * var(--fs-scale-body, 1))', borderRadius: 7, fontWeight: 500,
     border: 0, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
     background: active ? 'var(--bg-card)' : 'transparent', color: active ? 'var(--text-primary)' : 'var(--text-muted)',
     boxShadow: active ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',

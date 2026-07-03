@@ -32,18 +32,23 @@ export function TransitWalkDivider({ leg, t, size = 'md' }: {
   size?: 'sm' | 'md'
 }) {
   const mins = leg.duration ? Math.round(leg.duration / 60) : null
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
   // Hairlines that fade towards the outer edges — strongest next to the text.
   const rule = (dir: 'left' | 'right'): React.CSSProperties => ({
     flex: 1, height: 1, minWidth: 12, borderRadius: 1,
     background: `linear-gradient(to ${dir}, var(--text-faint), transparent)`,
     opacity: 0.55,
   })
+  // On phones the minutes lead so a long stop name only ever clips the name.
+  const text = isMobile
+    ? `${mins ? `${t('transit.min', { count: mins })} · ` : ''}${t('transit.walkTo', { name: leg.to?.name || '' })}`
+    : `${t('transit.walkTo', { name: leg.to?.name || '' })}${mins ? ` · ${t('transit.min', { count: mins })}` : ''}`
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: size === 'sm' ? '1px 0' : '2px 0' }}>
       <span style={rule('left')} />
-      <span className="text-content-faint" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: size === 'sm' ? 'calc(10px * var(--fs-scale-caption, 1))' : 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '75%' }}>
+      <span className="text-content-faint" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: size === 'sm' ? 'calc(10px * var(--fs-scale-caption, 1))' : 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: isMobile ? '85%' : '75%' }}>
         <Footprints size={size === 'sm' ? 11 : 12} style={{ flexShrink: 0 }} />
-        {t('transit.walkTo', { name: leg.to?.name || '' })}{mins ? ` · ${t('transit.min', { count: mins })}` : ''}
+        {text}
       </span>
       <span style={rule('right')} />
     </div>
