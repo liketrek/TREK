@@ -5,6 +5,7 @@ import { decrypt_api_key } from '../../services/apiKeyCrypto';
 import { PluginSupervisor, type PluginRouteInfo } from './supervisor/plugin-supervisor';
 import { createRealRpcHost, closePluginDataDb } from './host/create-rpc-host';
 import { isKnownPermission } from './protocol/envelope';
+import { discoverPlugins } from './install/discovery';
 
 /**
  * Owns the isolated-plugin runtime lifecycle inside NestJS (#plugins, M2).
@@ -41,12 +42,24 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit(): void {
     if (!pluginsEnabled()) return;
+    // Discover plugins placed on the volume (registers new ones inactive), then
+    // boot the ones an admin had already activated.
+    try {
+      discoverPlugins(db);
+    } catch {
+      /* discovery must never block boot */
+    }
     const active = db.prepare("SELECT id FROM plugins WHERE status = 'active'").all() as Array<{ id: string }>;
     for (const { id } of active) {
       this.activate(id).catch(() => {
         /* status is persisted as error by the supervisor hook */
       });
     }
+  }
+
+  /** Re-scan the plugins volume on demand (admin action). */
+  rescan(): { discovered: string[]; skipped: string[] } {
+    return discoverPlugins(db);
   }
 
   async onModuleDestroy(): Promise<void> {
@@ -60,9 +73,12 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
       | undefined;
     if (!row) throw new Error(`plugin ${id} not found`);
 
-    const granted = new Set(parseArray(row.granted_permissions).filter(isKnownPermission));
+    // Activating IS the consent gate: grant the plugin's DECLARED permissions
+    // (the admin reviewed them on the consent screen), persist, then spawn.
+    const declared = parseArray(row.permissions).filter(isKnownPermission);
+    db.prepare('UPDATE plugins SET granted_permissions = ? WHERE id = ?').run(JSON.stringify(declared), id);
     const config = decryptConfig(parseObject(row.config));
-    await this.supervisor.activate(id, granted, config);
+    await this.supervisor.activate(id, new Set(declared), config);
   }
 
   async deactivate(id: string): Promise<void> {
