@@ -222,6 +222,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:photo-provider': "Foto's aanleveren voor de Foto's-sectie",
   'admin.plugins.perm.hook:calendar-source': 'Evenementen aanleveren voor de kalender',
   'admin.plugins.perm.http:outbound': 'Uitgaande verzoeken doen naar de opgegeven hosts',
+  'admin.plugins.riskTitle': 'Installeren op eigen risico',
+  'admin.plugins.riskBody': 'Plugins zijn code van derden. Ook na een eerdere korte beoordeling kan een plugin nog steeds schadelijke inhoud bevatten — controleer een plugin bij twijfel zelf voordat je deze installeert. TREK aanvaardt geen enkele verantwoordelijkheid.',
   'admin.addons.title': 'Add-ons',
   'admin.addons.subtitle': 'Schakel functies in of uit om je TREK-ervaring aan te passen.',
   'admin.addons.catalog.memories.name': "Foto's (Immich)",

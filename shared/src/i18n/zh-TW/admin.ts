@@ -256,6 +256,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:photo-provider': '為「回憶」提供照片',
   'admin.plugins.perm.hook:calendar-source': '為行事曆提供事件',
   'admin.plugins.perm.http:outbound': '向其宣告的主機發出對外請求',
+  'admin.plugins.riskTitle': '安裝風險自負',
+  'admin.plugins.riskBody': '外掛屬於第三方程式碼。即使事先經過快速審核，外掛仍可能包含有害內容——如有疑慮，請在安裝前自行檢查外掛。TREK 概不承擔任何責任。',
   'admin.addons.title': '擴充套件',
   'admin.addons.subtitle': '啟用或停用功能以自定義你的 TREK 體驗。',
   'admin.addons.catalog.memories.name': '照片 (Immich)',

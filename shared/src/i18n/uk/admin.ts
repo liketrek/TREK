@@ -222,6 +222,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:photo-provider': 'Надавати фотографії для Спогадів',
   'admin.plugins.perm.hook:calendar-source': 'Надавати події для календаря',
   'admin.plugins.perm.http:outbound': 'Виконувати вихідні запити до заявлених хостів',
+  'admin.plugins.riskTitle': 'Встановлюйте на власний ризик',
+  'admin.plugins.riskBody': 'Плагіни — це сторонній код. Навіть після попередньої швидкої перевірки плагін усе ще може містити шкідливий вміст — у разі сумнівів перевірте плагін самостійно перед встановленням. TREK не несе жодної відповідальності.',
   'admin.addons.title': 'Доповнення',
   'admin.addons.subtitle': 'Увімкніть або вимкніть функції, щоб налаштувати TREK під себе.',
   'admin.addons.catalog.memories.name': 'Фото (Immich)',

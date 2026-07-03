@@ -274,6 +274,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:photo-provider': 'Cung cấp ảnh cho tính năng Ảnh',
   'admin.plugins.perm.hook:calendar-source': 'Cung cấp sự kiện cho lịch',
   'admin.plugins.perm.http:outbound': 'Gửi yêu cầu ra ngoài đến các máy chủ đã khai báo',
+  'admin.plugins.riskTitle': 'Cài đặt và tự chịu rủi ro',
+  'admin.plugins.riskBody': 'Plugin là mã của bên thứ ba. Ngay cả khi đã được xem xét sơ bộ trước đó, một plugin vẫn có thể chứa nội dung độc hại — nếu nghi ngờ, hãy tự kiểm tra plugin trước khi cài đặt. TREK hoàn toàn không chịu bất kỳ trách nhiệm nào.',
   'admin.addons.title': 'Tiện ích bổ sung',
   'admin.addons.subtitle': 'Bật hoặc tắt các tính năng để tùy chỉnh trải nghiệm TREK của bạn.',
   'admin.addons.catalog.packing.name': 'Danh sách',

@@ -274,6 +274,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:photo-provider': 'Tillhandahålla foton till Minnen',
   'admin.plugins.perm.hook:calendar-source': 'Tillhandahålla händelser till kalendern',
   'admin.plugins.perm.http:outbound': 'Göra utgående anrop till sina deklarerade värdar',
+  'admin.plugins.riskTitle': 'Installera på egen risk',
+  'admin.plugins.riskBody': 'Plugins är tredjepartskod. Även efter en tidigare snabbgranskning kan ett plugin fortfarande innehålla skadligt innehåll – granska vid tveksamhet pluginet själv innan du installerar. TREK tar inget som helst ansvar.',
   'admin.addons.title': 'Tillägg',
   'admin.addons.subtitle': 'Aktivera eller inaktivera funktioner för att anpassa din TREK-upplevelse.',
   'admin.addons.catalog.packing.name': 'Listor',

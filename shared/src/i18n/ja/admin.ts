@@ -253,6 +253,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:photo-provider': '「写真」機能への写真の提供',
   'admin.plugins.perm.hook:calendar-source': 'カレンダーへの予定の提供',
   'admin.plugins.perm.http:outbound': '宣言済みホストへの外部リクエストの送信',
+  'admin.plugins.riskTitle': 'インストールは自己責任で行ってください',
+  'admin.plugins.riskBody': 'プラグインはサードパーティ製のコードです。事前に簡易レビューが行われていても、プラグインに有害な内容が含まれている可能性は残ります。少しでも疑わしい場合は、インストール前にご自身でプラグインの内容を確認してください。TREKは一切の責任を負いません。',
   'admin.addons.title': 'アドオン',
   'admin.addons.subtitle': '機能を有効／無効にしてTREKをカスタマイズします。',
   'admin.addons.catalog.packing.name': 'リスト',

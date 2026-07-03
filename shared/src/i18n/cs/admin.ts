@@ -220,6 +220,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:photo-provider': 'Poskytovat fotky do sekce Fotky',
   'admin.plugins.perm.hook:calendar-source': 'Poskytovat události do kalendáře',
   'admin.plugins.perm.http:outbound': 'Odesílat odchozí požadavky na deklarované hostitele',
+  'admin.plugins.riskTitle': 'Instalace na vlastní riziko',
+  'admin.plugins.riskBody': 'Pluginy jsou kód třetích stran. I po předchozí rychlé kontrole může plugin stále obsahovat škodlivý obsah — v případě pochybností si plugin před instalací sami prohlédněte. TREK nenese žádnou odpovědnost.',
   'admin.addons.title': 'Doplňky',
   'admin.addons.subtitle': 'Zapněte nebo vypněte funkce a přizpůsobte si TREK.',
   'admin.addons.catalog.memories.name': 'Fotky (Immich)',
