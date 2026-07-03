@@ -51,6 +51,9 @@ export interface PluginManifest {
 }
 
 const ID_RE = /^[a-z][a-z0-9-]{2,39}$/;
+// Static path segments under /api/admin/plugins — a plugin id must never shadow them
+// (id "registry" would collide with GET registry/:id vs :id/errors routing).
+const RESERVED_IDS = new Set(['registry', 'install', 'rescan']);
 const SEMVER_RE = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 const TYPES = new Set(['integration', 'page', 'widget']);
 
@@ -62,6 +65,7 @@ export function parseManifest(raw: unknown): PluginManifest {
 
   const id = str(m.id, 'id');
   if (!ID_RE.test(id)) throw new ManifestError(`invalid id "${id}" (lowercase slug, 3–40 chars)`);
+  if (RESERVED_IDS.has(id)) throw new ManifestError(`reserved id "${id}"`);
   const version = str(m.version, 'version');
   if (!SEMVER_RE.test(version)) throw new ManifestError(`invalid version "${version}"`);
   const type = str(m.type, 'type');

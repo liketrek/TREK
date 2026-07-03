@@ -34,6 +34,7 @@ describe('parseManifest', () => {
 
   it.each([
     ['Bad-Id', { ...base, id: 'Bad-Id' }, /invalid id/],
+    ['reserved id', { ...base, id: 'registry' }, /reserved id/],
     ['bad version', { ...base, version: '1.x' }, /invalid version/],
     ['bad type', { ...base, type: 'thing' }, /invalid type/],
     ['native', { ...base, nativeModules: true }, /native modules/],

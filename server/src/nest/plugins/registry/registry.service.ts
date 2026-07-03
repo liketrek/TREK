@@ -22,6 +22,7 @@ const REGISTRY_URL =
   process.env.TREK_PLUGIN_REGISTRY_URL ||
   'https://raw.githubusercontent.com/mauriceboe/TREK-Plugins/main/dist/index.json';
 const CACHE_TTL = 30 * 60 * 1000;
+const MANIFEST_MAX_BYTES = 256 * 1024;
 
 interface RegistryVersion {
   version: string;
@@ -34,6 +35,7 @@ interface RegistryVersion {
   size?: number;
   apiVersion?: number;
   nativeModules?: boolean;
+  publishedAt?: string;
 }
 export interface RegistryEntry {
   id: string;
@@ -53,11 +55,22 @@ interface Registry {
   plugins: RegistryEntry[];
 }
 
+/** Anzeige-only preview of a plugin's live manifest (fetched at the reviewed commit). */
+export interface ManifestPreview {
+  permissions: string[];
+  egress: string[];
+  settings: Array<{ key: string; label: string; inputType: string; scope: string; required: boolean }>;
+  license: string | null;
+  icon: string | null;
+}
+
 let _cache: { data: Registry; expiresAt: number } | null = null;
+const _detailCache = new Map<string, { data: unknown; expiresAt: number }>();
 
 /** Test hook: drop the in-memory registry cache. */
 export function __clearRegistryCacheForTests(): void {
   _cache = null;
+  _detailCache.clear();
 }
 
 export class RegistryError extends Error {}
@@ -80,7 +93,7 @@ export class PluginRegistryService {
   }
 
   /** The browse list the admin UI renders (metadata only, no code). */
-  async browse(): Promise<Array<Omit<RegistryEntry, 'versions'> & { latest: string | null; minTrekVersion: string | null }>> {
+  async browse(): Promise<Array<Omit<RegistryEntry, 'versions'> & { latest: string | null; minTrekVersion: string | null; screenshotUrl: string | null }>> {
     const reg = await this.fetchRegistry();
     return reg.plugins.map((p) => {
       const latest = p.versions[0] ?? null;
@@ -88,8 +101,51 @@ export class PluginRegistryService {
         id: p.id, name: p.name, author: p.author, description: p.description, repo: p.repo,
         homepage: p.homepage, tags: p.tags, type: p.type, reviewedAt: p.reviewedAt ?? null,
         latest: latest?.version ?? null, minTrekVersion: latest?.minTrekVersion ?? null,
+        screenshotUrl: latest ? rawFileUrl(p.repo, latest.commitSha, 'docs/screenshot.png') : null,
       };
     });
+  }
+
+  /**
+   * Everything the browse detail view shows for one plugin: the registry entry
+   * plus a preview of its live manifest (permissions, egress, settings) fetched
+   * from the author repo at the pinned/reviewed commit. Display-only — the
+   * install pipeline re-validates the manifest inside the downloaded artifact.
+   * Cached per plugin (30 min) and only fetched when a detail view opens, never
+   * for the whole grid (the HACS rate-limit lesson).
+   */
+  async detail(id: string): Promise<Record<string, unknown>> {
+    const hit = _detailCache.get(id);
+    if (hit && Date.now() < hit.expiresAt) return hit.data as Record<string, unknown>;
+
+    const reg = await this.fetchRegistry();
+    const entry = reg.plugins.find((p) => p.id === id);
+    if (!entry) throw new RegistryError(`plugin ${id} not in registry`);
+    const latest = entry.versions[0] ?? null;
+
+    let manifest: ManifestPreview | null = null;
+    if (latest) {
+      try {
+        const { bytes } = await safeDownload(rawFileUrl(entry.repo, latest.commitSha, 'trek-plugin.json'), MANIFEST_MAX_BYTES);
+        manifest = previewManifest(JSON.parse(bytes.toString('utf8')));
+      } catch {
+        // Soft-fail: the detail view still renders from registry metadata alone.
+      }
+    }
+
+    const data = {
+      id: entry.id, name: entry.name, author: entry.author, description: entry.description,
+      repo: entry.repo, homepage: entry.homepage ?? null, tags: entry.tags ?? [], type: entry.type,
+      reviewedAt: entry.reviewedAt ?? null,
+      latest: latest?.version ?? null, minTrekVersion: latest?.minTrekVersion ?? null,
+      size: latest?.size ?? null, publishedAt: latest?.publishedAt ?? null,
+      screenshotUrl: latest ? rawFileUrl(entry.repo, latest.commitSha, 'docs/screenshot.png') : null,
+      manifest,
+    };
+    // Don't negative-cache a transiently failed manifest fetch — the next
+    // detail open should retry instead of hiding the preview for 30 minutes.
+    if (manifest || !latest) _detailCache.set(id, { data, expiresAt: Date.now() + CACHE_TTL });
+    return data;
   }
 
   /** Install a pinned version from the registry. Returns the installed plugin id. */
@@ -132,6 +188,40 @@ export class PluginRegistryService {
       fs.rmSync(staging, { recursive: true, force: true });
     }
   }
+}
+
+function rawFileUrl(repo: string, commitSha: string, file: string): string {
+  return `https://raw.githubusercontent.com/${repo}/${commitSha}/${file}`;
+}
+
+/**
+ * Tolerant projection of a live manifest for display. Unknown shapes degrade to
+ * empty lists instead of throwing — a future manifest field must never break
+ * browsing (strict validation happens against the downloaded artifact instead).
+ */
+function previewManifest(raw: unknown): ManifestPreview {
+  const m = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const strings = (v: unknown): string[] =>
+    Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+  const settings = Array.isArray(m.settings)
+    ? m.settings
+        .filter((s): s is Record<string, unknown> => !!s && typeof s === 'object')
+        .map((s) => ({
+          key: typeof s.key === 'string' ? s.key : '',
+          label: typeof s.label === 'string' ? s.label : typeof s.key === 'string' ? s.key : '',
+          inputType: typeof s.input_type === 'string' ? s.input_type : 'text',
+          scope: s.scope === 'user' ? 'user' : 'instance',
+          required: s.required === true,
+        }))
+        .filter((s) => s.key)
+    : [];
+  return {
+    permissions: strings(m.permissions),
+    egress: strings(m.egress),
+    settings,
+    license: typeof m.license === 'string' ? m.license : null,
+    icon: typeof m.icon === 'string' ? m.icon : null,
+  };
 }
 
 /** The extracted plugin root: staging itself, or its single wrapper subdir (codeload archives wrap in {repo}-{sha}/). */

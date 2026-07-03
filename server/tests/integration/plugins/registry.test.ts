@@ -100,6 +100,73 @@ describe('PluginRegistryService', () => {
     ]);
   });
 
+  it('browse exposes a screenshot url pinned at the reviewed commit', async () => {
+    const list = await svc.browse();
+    expect(list[0].screenshotUrl).toBe(`https://raw.githubusercontent.com/acme/trek-flight/${'a'.repeat(40)}/docs/screenshot.png`);
+  });
+
+  it('detail merges registry metadata with a live manifest preview', async () => {
+    safeDownload.mockResolvedValue({
+      bytes: Buffer.from(JSON.stringify({
+        id: 'flight-tracker', permissions: ['db:read:trips', 'http:outbound'], egress: ['api.example.com'],
+        settings: [{ key: 'api_key', label: 'API Key', input_type: 'password', scope: 'instance', required: true, secret: true }],
+        license: 'MIT', icon: 'Plane',
+      })),
+      sha256: 'unused',
+    });
+    const d = await svc.detail('flight-tracker');
+    expect(safeDownload).toHaveBeenCalledWith(
+      `https://raw.githubusercontent.com/acme/trek-flight/${'a'.repeat(40)}/trek-plugin.json`,
+      expect.any(Number),
+    );
+    expect(d).toMatchObject({
+      id: 'flight-tracker', repo: 'acme/trek-flight', latest: '1.0.0', reviewedAt: '2026-06-20',
+      screenshotUrl: `https://raw.githubusercontent.com/acme/trek-flight/${'a'.repeat(40)}/docs/screenshot.png`,
+      manifest: {
+        permissions: ['db:read:trips', 'http:outbound'],
+        egress: ['api.example.com'],
+        settings: [{ key: 'api_key', label: 'API Key', inputType: 'password', scope: 'instance', required: true }],
+        license: 'MIT', icon: 'Plane',
+      },
+    });
+  });
+
+  it('detail soft-fails the manifest fetch (registry metadata still renders)', async () => {
+    safeDownload.mockRejectedValue(new Error('offline'));
+    const d = await svc.detail('flight-tracker');
+    expect(d).toMatchObject({ id: 'flight-tracker', manifest: null });
+  });
+
+  it('detail tolerates a malformed manifest shape', async () => {
+    safeDownload.mockResolvedValue({
+      bytes: Buffer.from(JSON.stringify({ permissions: 'not-an-array', settings: [{ label: 'no key' }], egress: [7, 'ok.host'] })),
+      sha256: 'unused',
+    });
+    const d = (await svc.detail('flight-tracker')) as { manifest: { permissions: string[]; egress: string[]; settings: unknown[] } };
+    expect(d.manifest).toMatchObject({ permissions: [], egress: ['ok.host'], settings: [] });
+  });
+
+  it('detail is cached per plugin (one manifest fetch across calls)', async () => {
+    safeDownload.mockResolvedValue({ bytes: Buffer.from('{}'), sha256: 'unused' });
+    await svc.detail('flight-tracker');
+    await svc.detail('flight-tracker');
+    expect(safeDownload).toHaveBeenCalledTimes(1);
+  });
+
+  it('detail does not negative-cache a failed manifest fetch (next open retries)', async () => {
+    safeDownload.mockRejectedValueOnce(new Error('github hiccup'));
+    const first = (await svc.detail('flight-tracker')) as { manifest: unknown };
+    expect(first.manifest).toBeNull();
+    safeDownload.mockResolvedValue({ bytes: Buffer.from(JSON.stringify({ permissions: ['db:own'] })), sha256: 'unused' });
+    const second = (await svc.detail('flight-tracker')) as { manifest: { permissions: string[] } };
+    expect(second.manifest).toMatchObject({ permissions: ['db:own'] });
+    expect(safeDownload).toHaveBeenCalledTimes(2);
+  });
+
+  it('detail rejects an unknown plugin id', async () => {
+    await expect(svc.detail('ghost')).rejects.toThrow(RegistryError);
+  });
+
   it('fetchRegistry soft-fails to an empty registry on a cold cache', async () => {
     __clearRegistryCacheForTests();
     vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('offline'); }));

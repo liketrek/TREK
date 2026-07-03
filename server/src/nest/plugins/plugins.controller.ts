@@ -33,6 +33,15 @@ export class PluginsController {
     return this.registry.browse();
   }
 
+  @Get('registry/:id')
+  async registryDetail(@Param('id') id: string) {
+    try {
+      return await this.registry.detail(id);
+    } catch (e) {
+      throw new HttpException({ error: e instanceof Error ? e.message : 'not found' }, 404);
+    }
+  }
+
   @Post('install')
   @HttpCode(200)
   async install(@Body() body: { id?: string; version?: string }) {
