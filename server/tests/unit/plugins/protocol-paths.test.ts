@@ -5,7 +5,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { isKnownPermission, METHOD_PERMISSION, KNOWN_METHODS } from '../../../src/nest/plugins/protocol/envelope';
 import path from 'node:path';
-import { pluginsCodeRoot, pluginsDataRoot, pluginCodeDir, pluginDbFile, resolveChildEntry, serverCodeRoot, pluginPermissionArgs } from '../../../src/nest/plugins/paths';
+import { pluginsCodeRoot, pluginsDataRoot, pluginCodeDir, pluginDbFile, resolveChildEntry, serverCodeRoot, pluginPermissionArgs, pluginRealCodeDir, ensurePluginModuleType } from '../../../src/nest/plugins/paths';
 
 afterEach(() => {
   delete process.env.TREK_PLUGINS_DIR;
@@ -67,5 +67,27 @@ describe('paths', () => {
     process.env.TREK_PLUGIN_PERMISSIONS = 'off';
     expect(pluginPermissionArgs('flight-tracker')).toEqual([]);
     delete process.env.TREK_PLUGIN_PERMISSIONS;
+  });
+
+  it('pluginRealCodeDir falls back to the lexical path when the dir is absent', () => {
+    // no such plugin installed -> realpathSync throws -> lexical path returned
+    expect(pluginRealCodeDir('does-not-exist')).toBe(pluginCodeDir('does-not-exist'));
+  });
+
+  it('ensurePluginModuleType writes a commonjs package.json only when absent', () => {
+    const fs = require('node:fs');
+    const os = require('node:os');
+    const path = require('node:path');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'plug-mod-'));
+    try {
+      ensurePluginModuleType(dir);
+      expect(JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8'))).toEqual({ type: 'commonjs' });
+      // an author-provided package.json is left untouched
+      fs.writeFileSync(path.join(dir, 'package.json'), '{"type":"module"}');
+      ensurePluginModuleType(dir);
+      expect(JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8'))).toEqual({ type: 'module' });
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
