@@ -51,7 +51,7 @@ beforeAll(() => {
     };`,
   );
 
-  testDb.prepare("INSERT INTO plugins (id, status, granted_permissions, config) VALUES ('counter','active','[\"db:own\"]','{}')").run();
+  testDb.prepare("INSERT INTO plugins (id, status, permissions, config) VALUES ('counter','active','[\"db:own\"]','{}')").run();
   runtime = new PluginRuntimeService();
 });
 
@@ -124,7 +124,7 @@ describe('PluginRuntimeService (M2 end-to-end)', () => {
   it('tolerates malformed granted_permissions / config JSON on activate', async () => {
     fs.mkdirSync(path.join(codeRoot, 'messy', 'server'), { recursive: true });
     fs.writeFileSync(path.join(codeRoot, 'messy', 'server', 'index.js'), 'module.exports = { async onLoad() {} };');
-    testDb.prepare("INSERT INTO plugins (id, status, granted_permissions, config) VALUES ('messy','inactive','not-json','not-json')").run();
+    testDb.prepare("INSERT INTO plugins (id, status, permissions, config) VALUES ('messy','inactive','not-json','not-json')").run();
     const rt = new PluginRuntimeService();
     await rt.activate('messy'); // must not throw despite the garbage JSON
     expect(rt.isActive('messy')).toBe(true);

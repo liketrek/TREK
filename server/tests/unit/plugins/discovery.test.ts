@@ -1,0 +1,90 @@
+/**
+ * Plugin discovery (#plugins, M4, install-from-disk): scans the volume, upserts
+ * rows as inactive, refreshes settings fields, keeps an existing plugin's status,
+ * and skips invalid or native-carrying plugins (logging the reason).
+ */
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import Database from 'better-sqlite3';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { discoverPlugins } from '../../../src/nest/plugins/install/discovery';
+
+let db: Database.Database;
+let codeRoot: string;
+
+function writePlugin(id: string, manifest: Record<string, unknown>, extra?: () => void) {
+  const dir = path.join(codeRoot, id, 'server');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(codeRoot, id, 'trek-plugin.json'), JSON.stringify({ id, name: id, version: '1.0.0', type: 'integration', ...manifest }));
+  fs.writeFileSync(path.join(dir, 'index.js'), 'module.exports={}');
+  extra?.()
+}
+
+beforeEach(() => {
+  codeRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'disc-'));
+  process.env.TREK_PLUGINS_DIR = codeRoot;
+  db = new Database(':memory:');
+  db.exec(`
+    CREATE TABLE plugins (id TEXT PRIMARY KEY, name TEXT, description TEXT, type TEXT, icon TEXT, version TEXT,
+      api_version INTEGER, min_trek_version TEXT, permissions TEXT, granted_permissions TEXT, status TEXT, config TEXT, updated_at TEXT);
+    CREATE TABLE plugin_settings_fields (plugin_id TEXT, field_key TEXT, label TEXT, input_type TEXT, placeholder TEXT, hint TEXT,
+      required INTEGER, secret INTEGER, scope TEXT, options TEXT, oauth_config TEXT, sort_order INTEGER);
+    CREATE TABLE plugin_error_log (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, level TEXT, message TEXT, ts TEXT);`);
+});
+afterEach(() => {
+  delete process.env.TREK_PLUGINS_DIR;
+  db.close();
+  fs.rmSync(codeRoot, { recursive: true, force: true });
+});
+
+describe('discoverPlugins', () => {
+  it('registers a new plugin inactive with its settings fields', () => {
+    writePlugin('flight-tracker', {
+      name: 'Flight',
+      type: 'widget',
+      permissions: ['db:own'],
+      settings: [{ key: 'api_key', input_type: 'password', scope: 'instance', secret: true }],
+    });
+    const res = discoverPlugins(db);
+    expect(res.discovered).toEqual(['flight-tracker']);
+
+    const row = db.prepare("SELECT status, type, permissions FROM plugins WHERE id='flight-tracker'").get() as { status: string; type: string; permissions: string };
+    expect(row.status).toBe('inactive');
+    expect(row.type).toBe('widget');
+    expect(JSON.parse(row.permissions)).toEqual(['db:own']);
+
+    const field = db.prepare("SELECT field_key, secret FROM plugin_settings_fields WHERE plugin_id='flight-tracker'").get() as { field_key: string; secret: number };
+    expect(field).toMatchObject({ field_key: 'api_key', secret: 1 });
+  });
+
+  it('keeps an existing plugin status + granted permissions on re-discovery', () => {
+    db.prepare("INSERT INTO plugins (id, name, type, status, granted_permissions) VALUES ('keep','Keep','page','active','[\"db:own\"]')").run();
+    writePlugin('keep', { name: 'Keep v2', type: 'page', version: '2.0.0' });
+    discoverPlugins(db);
+    const row = db.prepare("SELECT status, version, granted_permissions FROM plugins WHERE id='keep'").get() as { status: string; version: string; granted_permissions: string };
+    expect(row.status).toBe('active'); // not downgraded
+    expect(row.version).toBe('2.0.0'); // metadata refreshed
+    expect(JSON.parse(row.granted_permissions)).toEqual(['db:own']); // grants preserved
+  });
+
+  it('skips an invalid manifest and logs the reason', () => {
+    writePlugin('bad', { type: 'not-a-type' });
+    const res = discoverPlugins(db);
+    expect(res.skipped).toEqual(['bad']);
+    expect(db.prepare("SELECT COUNT(*) c FROM plugins WHERE id='bad'").get()).toMatchObject({ c: 0 });
+    expect((db.prepare("SELECT message FROM plugin_error_log WHERE plugin_id='bad'").get() as { message: string }).message).toContain('discovery');
+  });
+
+  it('skips a plugin that ships native binaries', () => {
+    writePlugin('native', { type: 'integration' }, () => {
+      fs.writeFileSync(path.join(codeRoot, 'native', 'server', 'addon.node'), '\0');
+    });
+    expect(discoverPlugins(db).skipped).toEqual(['native']);
+  });
+
+  it('is a no-op when the plugins dir is absent', () => {
+    process.env.TREK_PLUGINS_DIR = path.join(codeRoot, 'does-not-exist');
+    expect(discoverPlugins(db)).toEqual({ discovered: [], skipped: [] });
+  });
+});

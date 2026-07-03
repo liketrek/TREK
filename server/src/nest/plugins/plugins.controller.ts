@@ -54,4 +54,11 @@ export class PluginsController {
     await this.runtime.deactivate(id);
     return { status: 'inactive' };
   }
+
+  @Post('rescan')
+  @HttpCode(200)
+  rescan() {
+    if (!pluginsEnabled()) throw new HttpException({ error: 'Plugins are disabled by server configuration' }, 503);
+    return this.runtime.rescan();
+  }
 }
