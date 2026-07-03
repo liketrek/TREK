@@ -221,8 +221,17 @@ export default function AdminPluginsPanel() {
         ) : error ? (
           <div className="py-10 text-center text-sm text-rose-600">{t('admin.plugins.loadError')}</div>
         ) : view === 'browse' ? (
-          <RegistryGrid items={registry} busy={busy} t={t} installedIds={installedIds}
-            onInstall={install} onOpenDetail={setDetailFor} />
+          <>
+            <div className="mb-4 p-4 rounded-xl border-2 border-amber-500/60 bg-amber-500/10 flex items-start gap-3">
+              <AlertTriangle size={22} className="text-amber-600 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-bold uppercase tracking-wide text-amber-700">{t('admin.plugins.riskTitle')}</p>
+                <p className="text-xs text-amber-700/90 mt-1 leading-relaxed">{t('admin.plugins.riskBody')}</p>
+              </div>
+            </div>
+            <RegistryGrid items={registry} busy={busy} t={t} installedIds={installedIds}
+              onInstall={install} onOpenDetail={setDetailFor} />
+          </>
         ) : plugins.length === 0 ? (
           <div className="py-14 text-center">
             <div className="w-14 h-14 rounded-2xl bg-surface-tertiary grid place-items-center mx-auto mb-4">
@@ -401,29 +410,31 @@ function RegistryGrid({ items, onInstall, onOpenDetail, busy, t, installedIds }:
   if (!items) return <div className="py-10 text-center text-sm text-content-faint">{t('common.loading')}</div>
   if (items.length === 0) return <div className="py-10 text-center text-sm text-content-faint">{t('admin.plugins.registryEmpty')}</div>
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
       {items.map(item => {
         const installed = installedIds.has(item.id)
         return (
           <div key={item.id} role="button" tabIndex={0} onClick={() => onOpenDetail(item)}
             onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenDetail(item) } }}
             className="border border-edge rounded-xl bg-surface-secondary/40 overflow-hidden flex flex-col cursor-pointer hover:border-accent/50 transition-colors">
-            <Screenshot url={item.screenshotUrl} className="aspect-video" />
-            <div className="p-4 flex flex-col flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-semibold text-content truncate">{item.name}</span>
+            <Screenshot url={item.screenshotUrl} className="aspect-video" iconSize={22} />
+            <div className="p-3 flex flex-col flex-1">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[13px] font-semibold text-content truncate">{item.name}</span>
                 {item.latest && <span className="text-[10px] text-content-faint">v{item.latest}</span>}
+              </div>
+              <div className="flex items-center gap-1.5 flex-wrap mt-1">
                 <TypeBadge type={item.type} t={t} />
                 {item.reviewedAt && <ReviewedBadge t={t} />}
               </div>
-              <span className="text-[11px] text-content-faint mt-0.5">{item.author}</span>
-              <p className="text-xs text-content-faint mt-2 line-clamp-2 flex-1">{item.description}</p>
-              <div className="flex items-center justify-between mt-3">
+              <span className="text-[11px] text-content-faint mt-1">{item.author}</span>
+              <p className="text-xs text-content-faint mt-1.5 line-clamp-2 flex-1">{item.description}</p>
+              <div className="flex items-center justify-between gap-2 mt-2.5">
                 <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-accent">
                   {t('admin.plugins.details')} <ChevronRight size={12} />
                 </span>
                 <button onClick={e => { e.stopPropagation(); onInstall(item.id) }} disabled={busy === item.id || installed}
-                  className="text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-accent text-accent-text disabled:opacity-50 disabled:bg-surface-tertiary disabled:text-content-faint">
+                  className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-accent text-accent-text disabled:opacity-50 disabled:bg-surface-tertiary disabled:text-content-faint">
                   {installed ? t('admin.plugins.installed') : t('admin.plugins.install')}
                 </button>
               </div>

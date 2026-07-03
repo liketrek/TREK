@@ -266,6 +266,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:photo-provider': 'Fotoğraflar bölümüne fotoğraf sağlar',
   'admin.plugins.perm.hook:calendar-source': 'Takvime etkinlik sağlar',
   'admin.plugins.perm.http:outbound': 'Bildirdiği ana bilgisayarlara giden istekler yapar',
+  'admin.plugins.riskTitle': 'Riski size ait olmak üzere yükleyin',
+  'admin.plugins.riskBody': 'Eklentiler üçüncü taraf kodlardır. Önceden yapılan hızlı bir incelemeye rağmen bir eklenti yine de zararlı içerik barındırabilir — şüpheye düştüğünüzde, yüklemeden önce eklentiyi kendiniz inceleyin. TREK hiçbir sorumluluk kabul etmez.',
   'admin.addons.title': 'Eklentiler',
   'admin.addons.subtitle': 'TREK deneyiminizi özelleştirmek için özellikleri etkinleştirin veya devre dışı bırakın.',
   'admin.addons.catalog.packing.name': 'Listeler',

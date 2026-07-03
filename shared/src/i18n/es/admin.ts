@@ -221,6 +221,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:photo-provider': 'Proporcionar fotos a la sección Fotos',
   'admin.plugins.perm.hook:calendar-source': 'Proporcionar eventos al calendario',
   'admin.plugins.perm.http:outbound': 'Realizar solicitudes salientes a sus hosts declarados',
+  'admin.plugins.riskTitle': 'Instala bajo tu propio riesgo',
+  'admin.plugins.riskBody': 'Los plugins son código de terceros. Incluso con una revisión rápida previa, un plugin puede contener contenido dañino — en caso de duda, inspecciona el plugin tú mismo antes de instalarlo. TREK no asume ninguna responsabilidad.',
   'admin.addons.title': 'Complementos',
   'admin.addons.subtitle': 'Activa o desactiva funciones para personalizar tu experiencia en TREK.',
   'admin.addons.subtitleBefore': 'Activa o desactiva funciones para personalizar tu experiencia en ',

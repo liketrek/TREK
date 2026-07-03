@@ -264,6 +264,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:photo-provider': 'Menyediakan foto untuk Memories',
   'admin.plugins.perm.hook:calendar-source': 'Menyediakan acara untuk kalender',
   'admin.plugins.perm.http:outbound': 'Membuat permintaan keluar ke host yang telah dideklarasikannya',
+  'admin.plugins.riskTitle': 'Pasang dengan risiko ditanggung sendiri',
+  'admin.plugins.riskBody': 'Plugin adalah kode pihak ketiga. Meskipun sudah melewati tinjauan singkat sebelumnya, sebuah plugin tetap bisa mengandung konten berbahaya — jika ragu, periksa sendiri plugin tersebut sebelum memasangnya. TREK sama sekali tidak bertanggung jawab.',
   'admin.addons.title': 'Addon',
   'admin.addons.subtitle': 'Aktifkan atau nonaktifkan fitur untuk menyesuaikan pengalaman TREK kamu.',
   'admin.addons.catalog.packing.name': 'Daftar',

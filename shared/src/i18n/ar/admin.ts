@@ -240,6 +240,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:photo-provider': 'توفير الصور لميزة الذكريات',
   'admin.plugins.perm.hook:calendar-source': 'توفير الأحداث للتقويم',
   'admin.plugins.perm.http:outbound': 'إجراء طلبات صادرة إلى المضيفات المُعلنة الخاصة بها',
+  'admin.plugins.riskTitle': 'التثبيت على مسؤوليتك الخاصة',
+  'admin.plugins.riskBody': 'الإضافات هي شيفرة برمجية من جهات خارجية. وحتى مع مراجعة سريعة مسبقة، قد تظل الإضافة تحتوي على محتوى ضار — وعند الشك، افحص الإضافة بنفسك قبل تثبيتها. لا يتحمل TREK أي مسؤولية على الإطلاق.',
   'admin.addons.title': 'الإضافات',
   'admin.addons.subtitle': 'فعّل أو عطّل الميزات لتخصيص تجربة TREK.',
   'admin.addons.catalog.packing.name': 'القوائم',

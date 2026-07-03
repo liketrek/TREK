@@ -259,6 +259,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:photo-provider': '사진 기능에 사진 제공',
   'admin.plugins.perm.hook:calendar-source': '캘린더에 일정 제공',
   'admin.plugins.perm.http:outbound': '선언된 호스트로 아웃바운드 요청 전송',
+  'admin.plugins.riskTitle': '설치에 따른 위험은 본인 부담입니다',
+  'admin.plugins.riskBody': '플러그인은 서드파티 코드입니다. 사전에 간단한 검토를 거쳤더라도 플러그인에 유해한 내용이 포함되어 있을 수 있습니다 — 의심스러운 경우 설치하기 전에 직접 플러그인을 확인하세요. TREK은 어떠한 책임도 지지 않습니다.',
   'admin.addons.title': '애드온',
   'admin.addons.subtitle': '기능을 활성화 또는 비활성화하여 TREK 경험을 맞춤 설정하세요.',
   'admin.addons.catalog.packing.name': '목록',

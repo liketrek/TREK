@@ -222,6 +222,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:photo-provider': 'Fotók biztosítása az Emlékek funkcióhoz',
   'admin.plugins.perm.hook:calendar-source': 'Események biztosítása a naptárhoz',
   'admin.plugins.perm.http:outbound': 'Kimenő kérések küldése a bejelentett kiszolgálók felé',
+  'admin.plugins.riskTitle': 'Telepítés csak saját felelősségre',
+  'admin.plugins.riskBody': 'A pluginok harmadik féltől származó kódok. Egy plugin még előzetes gyors ellenőrzés után is tartalmazhat káros tartalmat — kétség esetén telepítés előtt vizsgáld meg magad a plugint. A TREK semmilyen felelősséget nem vállal.',
   'admin.addons.title': 'Bővítmények',
   'admin.addons.subtitle': 'Funkciók engedélyezése vagy letiltása a TREK testreszabásához.',
   'admin.addons.catalog.packing.name': 'Listák',

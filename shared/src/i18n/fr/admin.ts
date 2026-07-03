@@ -223,6 +223,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:photo-provider': 'Fournir des photos à Photos',
   'admin.plugins.perm.hook:calendar-source': 'Fournir des événements au calendrier',
   'admin.plugins.perm.http:outbound': 'Effectuer des requêtes sortantes vers ses hôtes déclarés',
+  'admin.plugins.riskTitle': 'Installation à vos risques et périls',
+  'admin.plugins.riskBody': "Les plugins sont du code tiers. Même après un examen rapide préalable, un plugin peut toujours contenir du contenu malveillant — en cas de doute, inspectez vous-même un plugin avant de l'installer. TREK décline toute responsabilité.",
   'admin.addons.title': 'Extensions',
   'admin.addons.subtitle': 'Activez ou désactivez des fonctionnalités pour personnaliser votre expérience TREK.',
   'admin.addons.catalog.memories.name': 'Photos (Immich)',

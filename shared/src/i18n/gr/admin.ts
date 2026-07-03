@@ -268,6 +268,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:photo-provider': 'Παροχή φωτογραφιών στις Αναμνήσεις',
   'admin.plugins.perm.hook:calendar-source': 'Παροχή συμβάντων στο ημερολόγιο',
   'admin.plugins.perm.http:outbound': 'Εκτέλεση εξερχόμενων αιτημάτων προς τους δηλωμένους hosts του',
+  'admin.plugins.riskTitle': 'Εγκατάσταση με δική σας ευθύνη',
+  'admin.plugins.riskBody': 'Τα plugins είναι κώδικας τρίτων. Ακόμη και μετά από έναν προηγούμενο σύντομο έλεγχο, ένα plugin μπορεί να περιέχει επιβλαβές περιεχόμενο — σε περίπτωση αμφιβολίας, ελέγξτε ένα plugin μόνοι σας πριν την εγκατάσταση. Το TREK δεν αναλαμβάνει καμία απολύτως ευθύνη.',
   'admin.addons.title': 'Πρόσθετα',
   'admin.addons.subtitle':
     'Ενεργοποιήστε ή απενεργοποιήστε λειτουργίες για να εξατομικεύσετε την εμπειρία σας στο TREK.',
