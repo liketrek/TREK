@@ -1,7 +1,15 @@
+import { randomUUID } from 'node:crypto';
 import { fork, type ChildProcess } from 'node:child_process';
 import { resolveChildEntry, pluginCodeDir } from '../paths';
-import type { Envelope, RpcRequest } from '../protocol/envelope';
+import type { Envelope, RpcError, RpcRequest } from '../protocol/envelope';
 import type { PluginRpcHost } from '../host/rpc-host';
+
+export interface PluginRouteInfo {
+  i: number;
+  method: string;
+  path: string;
+  auth: boolean;
+}
 
 /**
  * Owns the lifecycle of every running plugin child (#plugins, M1): spawn on
@@ -21,6 +29,12 @@ export interface SupervisorHooks {
   onEvent?(id: string, topic: string, data: unknown): void;
 }
 
+interface Pending {
+  resolve: (v: unknown) => void;
+  reject: (e: Error) => void;
+  timer: ReturnType<typeof setTimeout>;
+}
+
 interface Supervised {
   id: string;
   granted: ReadonlySet<string>;
@@ -30,6 +44,9 @@ interface Supervised {
   status: PluginStatus;
   crashes: number[]; // crash timestamps (ms)
   lastBeat: number;
+  routes: PluginRouteInfo[];
+  jobs: string[];
+  pending: Map<string, Pending>; // host→child invokes awaiting a response
   activation?: { resolve: () => void; reject: (e: Error) => void };
 }
 
@@ -74,6 +91,9 @@ export class PluginSupervisor {
       status: 'starting',
       crashes: [],
       lastBeat: Date.now(),
+      routes: [],
+      jobs: [],
+      pending: new Map(),
     };
     this.running.set(id, sup);
     this.ensureSweep();
@@ -98,6 +118,28 @@ export class PluginSupervisor {
   }
   statusOf(id: string): PluginStatus | null {
     return this.running.get(id)?.status ?? null;
+  }
+  /** The plugin's declared HTTP routes (populated once it reports `loaded`). */
+  routesOf(id: string): PluginRouteInfo[] {
+    return this.running.get(id)?.routes ?? [];
+  }
+
+  /** Send a host→child request (invoke a route or job) and await its response. */
+  invoke(id: string, method: string, params: Record<string, unknown>, timeoutMs = 30_000): Promise<unknown> {
+    const sup = this.running.get(id);
+    if (!sup || sup.status !== 'active' || !sup.child) {
+      return Promise.reject(new Error(`plugin ${id} is not active`));
+    }
+    return new Promise((resolve, reject) => {
+      const reqId = randomUUID();
+      const timer = setTimeout(() => {
+        sup.pending.delete(reqId);
+        reject(new Error('plugin invoke timed out'));
+      }, timeoutMs);
+      timer.unref?.();
+      sup.pending.set(reqId, { resolve, reject, timer });
+      sup.child!.send({ k: 'req', id: reqId, method, params } satisfies Envelope);
+    });
   }
 
   async shutdownAll(): Promise<void> {
@@ -145,6 +187,17 @@ export class PluginSupervisor {
       return;
     }
 
+    if (msg.k === 'res') {
+      // A response to a host→child invoke (route/job).
+      const p = sup.pending.get(msg.id);
+      if (!p) return;
+      sup.pending.delete(msg.id);
+      clearTimeout(p.timer);
+      if (msg.ok) p.resolve(msg.result);
+      else p.reject(new Error((msg as RpcError).error.message));
+      return;
+    }
+
     if (msg.k === 'evt') {
       switch (msg.topic) {
         case 'hello':
@@ -153,12 +206,16 @@ export class PluginSupervisor {
         case 'heartbeat':
           sup.lastBeat = Date.now();
           break;
-        case 'loaded':
+        case 'loaded': {
           sup.lastBeat = Date.now();
+          const d = msg.data as { routes?: PluginRouteInfo[]; jobs?: string[] };
+          sup.routes = d.routes ?? [];
+          sup.jobs = d.jobs ?? [];
           this.setStatus(sup, 'active');
           sup.activation?.resolve();
           sup.activation = undefined;
           break;
+        }
         case 'load-error': {
           const message = (msg.data as { message?: string })?.message || 'plugin load failed';
           this.setStatus(sup, 'error', message);
@@ -179,9 +236,18 @@ export class PluginSupervisor {
     }
   }
 
+  private rejectPending(sup: Supervised, reason: string): void {
+    for (const p of sup.pending.values()) {
+      clearTimeout(p.timer);
+      p.reject(new Error(reason));
+    }
+    sup.pending.clear();
+  }
+
   private onExit(sup: Supervised, code: number | null, signal: string | null): void {
-    // Reject any pending ctx calls implicitly by killing the child; the child is gone.
     sup.child = null;
+    // In-flight host→child invokes can never complete now.
+    this.rejectPending(sup, 'plugin exited');
     // A clean stop we asked for isn't a crash.
     if (sup.status === 'stopped' || sup.status === 'error') return;
     if (!this.running.has(sup.id)) return;

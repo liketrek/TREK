@@ -151,4 +151,24 @@ describe('PluginRpcHost — capability enforcement', () => {
     expect((res as RpcError).error.code).toBe('HOST_ERROR');
     expect((res as RpcError).error.message).toBe('disk gone');
   });
+
+  it('a non-Error thrown by a handler still maps to HOST_ERROR', async () => {
+    (deps.data.query as ReturnType<typeof vi.fn>).mockImplementation(() => {
+      throw 'raw string';
+    });
+    const host = new PluginRpcHost('p', new Set(['db:own']), deps);
+    const res = await host.dispatch(req('db.query', { sql: 'SELECT 1' }));
+    expect((res as RpcError).error.code).toBe('HOST_ERROR');
+    expect((res as RpcError).error.message).toBe('internal error');
+  });
+
+  it('coerces numeric string params and tolerates a missing params object', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:read:trips', 'db:own']), deps);
+    // tripId/asUserId as strings -> coerced to numbers
+    const res = await host.dispatch(req('trips.getById', { tripId: '1', asUserId: '42' }));
+    expect(ok(res)).toBe(true);
+    // a request with no params object at all -> BAD_PARAMS (sql missing), not a crash
+    const noParams = await host.dispatch({ k: 'req', id: 'y', method: 'db.query', params: undefined });
+    expect((noParams as RpcError).error.code).toBe('BAD_PARAMS');
+  });
 });

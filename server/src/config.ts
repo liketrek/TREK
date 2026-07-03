@@ -174,14 +174,3 @@ export const SESSION_DURATION_REMEMBER =
 export const SESSION_DURATION_REMEMBER_MS = parsedRememberMs ?? parseDurationMs(DEFAULT_SESSION_DURATION_REMEMBER)!;
 /** "Remember me" session length in seconds — passed to `jwt.sign({ expiresIn })`. */
 export const SESSION_DURATION_REMEMBER_SECONDS = Math.floor(SESSION_DURATION_REMEMBER_MS / 1000);
-
-/**
- * Plugin-system kill switch (#plugins). Off by default — a brand-new, high-risk
- * surface an instance owner must deliberately opt into. When false, the plugin
- * module serves its admin listing (so the tab isn't a dead end) but never spawns
- * a plugin process and refuses install/activate. Read at call time so tests and
- * runtime env changes take effect without re-import.
- */
-export function pluginsEnabled(): boolean {
-  return (process.env.TREK_PLUGINS_ENABLED || '').trim().toLowerCase() === 'true';
-}

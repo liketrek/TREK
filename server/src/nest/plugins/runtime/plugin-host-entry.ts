@@ -51,11 +51,46 @@ async function boot(config: Record<string, unknown>): Promise<void> {
     def = mod && mod.default ? (mod.default as PluginDefinition) : (mod as PluginDefinition);
     ctx = createPluginContext(pluginId, config, transport);
     if (typeof def.onLoad === 'function') await def.onLoad(ctx);
-    send({ k: 'evt', topic: 'loaded', data: {} });
+    // Report the declared routes (with their index = routeId) and job ids so the
+    // host can proxy HTTP and schedule jobs without re-parsing the manifest.
+    const routes = (def.routes ?? []).map((r, i) => ({ i, method: r.method, path: r.path, auth: r.auth !== false }));
+    const jobs = (def.jobs ?? []).map((j) => j.id);
+    send({ k: 'evt', topic: 'loaded', data: { routes, jobs } });
     // An immediate first heartbeat confirms liveness without waiting a full interval.
     send({ k: 'evt', topic: 'heartbeat', data: { rss: process.memoryUsage().rss } });
   } catch (e) {
     send({ k: 'evt', topic: 'load-error', data: { message: errMsg(e), stack: errStack(e) } });
+  }
+}
+
+/** Handle a host→child request: run a declared route or job with the plugin ctx. */
+async function handleInvoke(req: { id: string; method: string; params: Record<string, unknown> }): Promise<void> {
+  const respond = (ok: boolean, payload: unknown) =>
+    send(
+      ok
+        ? { k: 'res', id: req.id, ok: true, result: payload }
+        : { k: 'res', id: req.id, ok: false, error: { code: 'PLUGIN_ERROR', message: String(payload) } },
+    );
+  try {
+    if (!def || !ctx) throw new Error('plugin not loaded');
+    if (req.method === 'invoke.route') {
+      const routeId = req.params.routeId as number;
+      const route = def.routes?.[routeId];
+      if (!route) throw new Error(`no route ${routeId}`);
+      const pluginReq = req.params.req as Parameters<NonNullable<typeof route.handler>>[0];
+      const result = await route.handler(pluginReq, ctx);
+      respond(true, result);
+    } else if (req.method === 'invoke.job') {
+      const jobId = req.params.jobId as string;
+      const job = def.jobs?.find((j) => j.id === jobId);
+      if (!job) throw new Error(`no job ${jobId}`);
+      await job.handler(ctx);
+      respond(true, { ok: true });
+    } else {
+      respond(false, `unknown invoke ${req.method}`);
+    }
+  } catch (e) {
+    respond(false, errMsg(e));
   }
 }
 
@@ -72,6 +107,11 @@ async function shutdown(): Promise<void> {
 process.on('message', (raw: unknown) => {
   const msg = raw as Envelope;
   if (!msg || typeof msg !== 'object') return;
+  if (msg.k === 'req') {
+    // A host→child invoke (route / job).
+    void handleInvoke({ id: msg.id, method: msg.method, params: (msg.params ?? {}) as Record<string, unknown> });
+    return;
+  }
   if (msg.k === 'res') {
     const p = pending.get(msg.id);
     if (!p) return;
