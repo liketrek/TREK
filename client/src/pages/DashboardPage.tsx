@@ -237,7 +237,7 @@ export default function DashboardPage(): React.ReactElement {
               {showCollections && <CollectionsWidget onOpen={() => navigate('/collections')} />}
               {showTimezones && <TimezoneTool locale={locale} />}
               {showUpcoming && <UpcomingTool items={upcoming} locale={locale} onOpen={(tripId) => navigate(`/trips/${tripId}`)} />}
-              <PluginWidgets plugins={widgetPlugins} />
+              <PluginWidgets plugins={widgetPlugins} tripId={spotlight ? String(spotlight.id) : null} />
             </aside>
           )}
         </main>
