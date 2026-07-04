@@ -105,7 +105,11 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     const declared = parseArray(row.permissions).filter(isKnownPermission);
     const granted = parseArray(row.granted_permissions);
     const newGrants = declared.filter((p) => !granted.includes(p));
-    if (granted.length > 0 && newGrants.length > 0 && !consentWiden) {
+    // "Ever consented" is a non-empty granted_permissions string (even '[]' — the
+    // consent to zero perms). Only the very first activation (marker '') may grant
+    // the declared set without an explicit consent; any later widening needs one.
+    const everConsented = !!row.granted_permissions;
+    if (everConsented && newGrants.length > 0 && !consentWiden) {
       const newEgress = newGrants.filter((p) => p.startsWith(HTTP_OUTBOUND)).map((p) => p.slice(HTTP_OUTBOUND.length)).filter(Boolean);
       const newPermissions = newGrants.filter((p) => !p.startsWith(HTTP_OUTBOUND));
       throw new PluginConsentRequired(`plugin ${id} requests new permissions; explicit re-consent is required`, newPermissions, newEgress);

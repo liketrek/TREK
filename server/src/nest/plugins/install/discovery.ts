@@ -49,8 +49,10 @@ function upsert(db: BetterSqlite3.Database, m: PluginManifest): void {
     ).run(m.name, m.description ?? null, m.type, m.icon ?? 'Blocks', m.version, m.apiVersion, m.minTrekVersion ?? null, JSON.stringify(m.permissions), JSON.stringify(m.capabilities), m.id);
   } else {
     db.prepare(
+      // granted_permissions '' (empty, not '[]') marks "never consented" so the
+      // first activation is distinguishable from a plugin consented to zero perms.
       `INSERT INTO plugins (id, name, description, type, icon, version, api_version, min_trek_version, permissions, capabilities, granted_permissions, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', 'inactive')`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', 'inactive')`,
     ).run(m.id, m.name, m.description ?? null, m.type, m.icon ?? 'Blocks', m.version, m.apiVersion, m.minTrekVersion ?? null, JSON.stringify(m.permissions), JSON.stringify(m.capabilities));
   }
 

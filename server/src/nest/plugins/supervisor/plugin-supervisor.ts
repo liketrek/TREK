@@ -118,14 +118,16 @@ export class PluginSupervisor {
       sup.activation = { resolve, reject };
       // Deadline: if the plugin never reports 'loaded' (stuck onLoad), reject the
       // activation and kill the child rather than hanging + leaking a busy core.
-      sup.activationTimer = setTimeout(() => {
+      sup.activationTimer = setTimeout(async () => {
         if (sup.status === 'active') return;
         this.hooks.onLog?.(sup.id, 'error', 'activation timed out; killing');
         this.setStatus(sup, 'error', 'activation timed out');
         sup.activation?.reject(new Error('plugin did not finish loading in time'));
         sup.activation = undefined;
         this.running.delete(sup.id);
-        void this.kill(sup);
+        // await the kill (SIGTERM grace) before closing the plugin db, so a ctx.*
+        // RPC from the dying child can't hit an already-disposed handle.
+        await this.kill(sup);
         sup.rpcHost.dispose();
       }, this.tuning.activationTimeoutMs);
       sup.activationTimer.unref?.();
@@ -382,8 +384,10 @@ export class PluginSupervisor {
     const pid = sup.child?.pid;
     if (pid) {
       try {
-        const resident = Number(fs.readFileSync(`/proc/${pid}/statm`, 'utf8').split(' ')[1]);
-        if (Number.isFinite(resident)) return resident * 4096; // pages → bytes
+        // VmRSS is reported in kB and is page-size-independent (statm pages would
+        // undercount on 16K/64K-page kernels, loosening the cap).
+        const m = fs.readFileSync(`/proc/${pid}/status`, 'utf8').match(/^VmRSS:\s+(\d+)\s+kB/m);
+        if (m) return Number(m[1]) * 1024;
       } catch {
         /* not Linux / process gone — fall back */
       }

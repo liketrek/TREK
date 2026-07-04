@@ -25,9 +25,10 @@ const ID_RE = /^[a-z][a-z0-9-]{2,39}$/;
 // install loader, so surface it locally too.
 const RESERVED_IDS = new Set(['registry', 'install', 'rescan']);
 const SEMVER_RE = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
-// An outbound host: exact FQDN or `*.`-wildcard, always multi-label. No `*`, no
-// `*.`, no whole-TLD `*.com`, no spaces (mirrors the server manifest validator).
-const HOST_RE = /^(\*\.)?([a-z0-9-]+\.)+[a-z0-9-]+$/i;
+// An outbound host: exact hostname (single-label sibling or dotted FQDN) or a
+// `*.`-wildcard with a multi-label suffix. No `*`, no `*.`, no whole-TLD `*.com`,
+// no spaces (mirrors the server manifest validator).
+const HOST_RE = /^(\*\.[a-z0-9-]+(\.[a-z0-9-]+)+|[a-z0-9-]+(\.[a-z0-9-]+)*)$/i;
 const TYPES = ['integration', 'page', 'widget'];
 const KNOWN_PERMISSIONS = [
   'db:own', 'db:read:trips', 'db:read:users', 'ws:broadcast:trip', 'ws:broadcast:user',

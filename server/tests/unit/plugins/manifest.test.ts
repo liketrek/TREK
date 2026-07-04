@@ -32,9 +32,10 @@ describe('parseManifest', () => {
     expect(m.settings[0]).toMatchObject({ key: 'api_key', secret: true, scope: 'instance' });
   });
 
-  it('accepts a valid exact + wildcard outbound host', () => {
-    const m = parseManifest({ ...base, permissions: ['http:outbound:api.x.com', 'http:outbound:*.example.com'], egress: ['api.x.com', '*.example.com'] });
+  it('accepts exact, single-label (self-hoster sibling), and wildcard outbound hosts', () => {
+    const m = parseManifest({ ...base, permissions: ['http:outbound:api.x.com', 'http:outbound:*.example.com', 'http:outbound:redis'], egress: ['api.x.com', '*.example.com', 'redis'] });
     expect(m.permissions).toContain('http:outbound:*.example.com');
+    expect(m.permissions).toContain('http:outbound:redis');
   });
 
   it.each([

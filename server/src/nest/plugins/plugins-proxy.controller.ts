@@ -72,18 +72,32 @@ export class PluginsProxyController {
         user?.id,
       )) as { status?: number; headers?: Record<string, string>; body?: unknown };
 
-      // A plugin may not choose a 3xx (open redirect via the reflected Location);
-      // clamp the status to a non-redirect range.
       const status = reply?.status ?? 200;
-      res.status(status >= 300 && status < 400 ? 502 : status);
-      for (const [k, v] of Object.entries(reply?.headers ?? {})) {
+      const headers = reply?.headers ?? {};
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+
+      // A genuine redirect (301/302/303/307/308) may only target a RELATIVE in-app
+      // path — never an external URL (open redirect / phishing). This still lets an
+      // OAuth-callback route bounce the user back into the app. 300/304 aren't
+      // redirects and fall through to the normal path.
+      if ([301, 302, 303, 307, 308].includes(status)) {
+        const loc = Object.entries(headers).find(([k]) => k.toLowerCase() === 'location')?.[1];
+        if (typeof loc !== 'string' || !/^\/(?!\/)/.test(loc)) {
+          res.status(502).json({ error: 'Plugin error', detail: 'unsafe redirect target' });
+          return;
+        }
+        res.status(status).setHeader('Location', loc);
+        res.end();
+        return;
+      }
+
+      for (const [k, v] of Object.entries(headers)) {
         if (SAFE_RESPONSE_HEADERS.has(k.toLowerCase())) res.setHeader(k, v);
       }
-      // Neutralize the "render plugin HTML at TREK's origin" sandbox-escape: never
-      // let the response be treated as a document, and never MIME-sniff it.
-      res.setHeader('X-Content-Type-Options', 'nosniff');
+      // Never let a non-redirect reply render as a document at TREK's origin
+      // (that would run plugin script at our real origin, outside the sandbox).
       res.setHeader('Content-Disposition', 'attachment');
-      res.send(reply?.body ?? '');
+      res.status(status).send(reply?.body ?? '');
     } catch (e) {
       res.status(502).json({ error: 'Plugin error', detail: e instanceof Error ? e.message : 'unknown' });
     }

@@ -35,10 +35,14 @@ type Inbound =
 
 export default function PluginFrame({ pluginId, tripId = null, className, title }: PluginFrameProps) {
   const frameRef = useRef<HTMLIFrameElement | null>(null)
-  // A sandboxed frame may navigate ITSELF (connect-src can't stop that). If the
-  // plugin's document navigates away, its window identity still matches our
-  // iframe, so we'd keep answering trek:invoke/context to the new (possibly
-  // attacker) origin. Track loads: after the initial document, refuse the bridge.
+  // A sandboxed frame may navigate ITSELF (connect-src can't stop that), and its
+  // window identity keeps matching our iframe afterwards. Track loads and refuse
+  // the bridge once a second document loads. NOTE: this is best-effort — the load
+  // event fires at end-of-document, so a navigated attacker doc that posts during
+  // its own load (or holds it open) can still reach the bridge for one exchange.
+  // The exposure is bounded (only this plugin's own routes + the trek:context
+  // ids the plugin already had; never the httpOnly cookie); fully closing it
+  // would require not running plugin client JS at all.
   const loadsRef = useRef(0)
   const { locale } = useTranslation()
   const navigate = useNavigate()

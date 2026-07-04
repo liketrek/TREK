@@ -36,12 +36,26 @@ describe('PluginDataDb', () => {
     expect(fs.existsSync(path.join(tmp, 'notes', 'plugin.db'))).toBe(true);
   });
 
-  it('rejects statements that would escape the plugin file, and bad sql', () => {
+  it('rejects statements that would escape the plugin file, DoS, or exceed limits', () => {
     const db = new PluginDataDb('guard');
     expect(() => db.exec("ATTACH DATABASE 'trek.db' AS core")).toThrow(/not allowed/);
     expect(() => db.query('PRAGMA table_info(x)')).toThrow(/not allowed/);
+    // WITH RECURSIVE is the unbounded-CPU vector on the synchronous host — refused
+    expect(() => db.query('WITH RECURSIVE r(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM r) SELECT x FROM r')).toThrow(/not allowed/);
+    expect(() => db.exec('WITH RECURSIVE r(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM r) INSERT INTO t SELECT x FROM r')).toThrow(/not allowed/);
     expect(() => db.exec(123 as unknown as string)).toThrow(/must be a string/);
     expect(() => db.query('x'.repeat(100_001))).toThrow(/too long/);
+    db.close();
+  });
+
+  it('row-caps a query so it cannot materialize an unbounded result set', () => {
+    const db = new PluginDataDb('rowcap');
+    db.exec('CREATE TABLE seq (n INTEGER)');
+    // Insert a modest table and a self-cross-join that would explode past the cap.
+    const insert = 'INSERT INTO seq (n) VALUES ' + Array.from({ length: 400 }, (_, i) => `(${i})`).join(',');
+    db.exec(insert);
+    // 400 * 400 = 160k rows > MAX_ROWS (100k) → must throw, not return them all
+    expect(() => db.query('SELECT a.n FROM seq a, seq b')).toThrow(/more than/);
     db.close();
   });
 

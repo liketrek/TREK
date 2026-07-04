@@ -12,7 +12,7 @@ const { testDb } = vi.hoisted(() => {
   const Database = require('better-sqlite3');
   const db = new Database(':memory:');
   db.exec(`CREATE TABLE plugins (
-    id TEXT PRIMARY KEY, status TEXT, enabled INTEGER DEFAULT 0, permissions TEXT DEFAULT '[]', granted_permissions TEXT DEFAULT '[]',
+    id TEXT PRIMARY KEY, status TEXT, enabled INTEGER DEFAULT 0, permissions TEXT DEFAULT '[]', granted_permissions TEXT DEFAULT '',
     config TEXT DEFAULT '{}', last_error TEXT, updated_at TEXT);
     CREATE TABLE plugin_error_log (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, level TEXT, message TEXT, ts TEXT);
     CREATE TABLE plugin_settings_fields (plugin_id TEXT, field_key TEXT, scope TEXT, secret INTEGER);
@@ -107,6 +107,18 @@ describe('PluginRuntimeService (M2 end-to-end)', () => {
 
   it('activate throws for an unknown plugin id', async () => {
     await expect(runtime.activate('ghost')).rejects.toThrow(/not found/);
+  });
+
+  it('re-consent gate: activating a consented plugin with WIDER permissions is refused without consent', async () => {
+    // consented to db:own; a version now declaring db:read:users too must not auto-grant
+    testDb.prepare("INSERT INTO plugins (id, status, permissions, granted_permissions, config) VALUES ('widener','inactive','[\"db:own\",\"db:read:users\"]','[\"db:own\"]','{}')").run();
+    await expect(runtime.activate('widener')).rejects.toThrow(/re-consent|new permissions/);
+    // the key case: a plugin consented to ZERO perms ('[]') is still "consented" —
+    // a later widening to db:own is blocked, not silently granted.
+    testDb.prepare("INSERT INTO plugins (id, status, permissions, granted_permissions, config) VALUES ('zeroperm','inactive','[\"db:own\"]','[]','{}')").run();
+    await expect(runtime.activate('zeroperm')).rejects.toThrow(/re-consent|new permissions/);
+    // (a NEVER-consented plugin — granted '' — consenting to its declared set on
+    // first activate is covered by the 'counter' happy-path test above.)
   });
 
   it('onModuleInit is a no-op when the runtime is disabled', () => {

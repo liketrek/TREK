@@ -278,14 +278,20 @@ function installEgressGuard(egress: string[]): void {
   // A dgram HOSTNAME target is resolved via the socket's `lookup` before the packet
   // is sent; force the IP-vetting guardedLookup so a declared name that resolves to
   // a private/metadata address is refused (the TCP path's rebind backstop, for UDP).
-  const dgramApi = dgram as unknown as { createSocket: (...a: unknown[]) => unknown };
+  const injectLookup = (arg: unknown): { type?: unknown; lookup: unknown } =>
+    typeof arg === 'string' ? { type: arg, lookup: guardedLookup } : { ...(arg as object), lookup: guardedLookup };
+  const dgramApi = dgram as unknown as { createSocket: (...a: unknown[]) => unknown; Socket: new (o?: unknown, cb?: unknown) => unknown };
   const realCreateSocket = dgramApi.createSocket;
   dgramApi.createSocket = function (this: unknown, ...args: unknown[]): unknown {
-    const first = args[0];
-    if (first && typeof first === 'object') (first as { lookup?: unknown }).lookup = guardedLookup;
-    else if (typeof first === 'string') args[0] = { type: first, lookup: guardedLookup };
+    args[0] = injectLookup(args[0]);
     return realCreateSocket.apply(this, args);
   };
+  // Also cover `new dgram.Socket(...)`, which bypasses createSocket entirely.
+  const RealDgramSocket = dgramApi.Socket;
+  const GuardedDgramSocket = function (options?: unknown, cb?: unknown): unknown {
+    return new RealDgramSocket(injectLookup(options), cb);
+  } as unknown as new (o?: unknown, cb?: unknown) => unknown;
+  (GuardedDgramSocket as unknown as { prototype: unknown }).prototype = RealDgramSocket.prototype;
 
   // Lock the wrapped choke points so a plugin can't restore the originals.
   const lock = (obj: object, key: string, value: unknown) => {
@@ -294,6 +300,8 @@ function installEgressGuard(egress: string[]): void {
   lock(proto, 'connect', proto.connect);
   lock(dgramProto, 'send', dgramProto.send);
   lock(dgramProto, 'connect', dgramProto.connect);
+  lock(dgramApi as unknown as object, 'createSocket', dgramApi.createSocket);
+  lock(dgramApi as unknown as object, 'Socket', GuardedDgramSocket);
 
   // Gate the dns resolver family: a forward lookup for an undeclared name is a
   // DNS-tunnel exfiltration channel even when no socket is ever opened. The name

@@ -16,7 +16,12 @@ import { pluginDataDir, pluginDbFile } from '../paths';
  */
 
 const MAX_SQL_LENGTH = 100_000;
-const FORBIDDEN = /\b(ATTACH|DETACH|VACUUM|PRAGMA)\b/i;
+// RECURSIVE is the one construct that generates unbounded rows/CPU independent of
+// the (capped) data size — a `WITH RECURSIVE …` can spin the synchronous host
+// forever even with an empty database, which neither the size quota nor the
+// result-row cap can stop (an aggregate over it never yields a first row). Refuse
+// it outright; the row/size caps below bound everything else.
+const FORBIDDEN = /\b(ATTACH|DETACH|VACUUM|PRAGMA|RECURSIVE)\b/i;
 // Per-plugin on-disk quota. better-sqlite3 is synchronous and runs in the HOST
 // process, so an unbounded plugin DB is both a disk-exhaustion DoS on the shared
 // trek.db volume and (via a huge scan) an event-loop stall. max_page_count caps

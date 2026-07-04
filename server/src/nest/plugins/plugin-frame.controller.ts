@@ -72,7 +72,7 @@ export class PluginFrameController {
     // (a stray space or `*` would inject an extra CSP source token).
     const outbound = this.runtime
       .outboundHostsOf(pluginId)
-      .filter((h) => /^(\*\.)?[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(h));
+      .filter((h) => /^(\*\.[a-z0-9-]+(\.[a-z0-9-]+)+|[a-z0-9-]+(\.[a-z0-9-]+)*)$/i.test(h));
     const connect = ["'self'", ...outbound.map((h) => `https://${h}`)].join(' ');
     return [
       "default-src 'none'",
