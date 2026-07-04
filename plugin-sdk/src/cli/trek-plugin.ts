@@ -15,9 +15,11 @@
  *         [--sign [key]] [--registry o/n] [--draft]
  *   release [dir] --repo o/n --tag vX           pack -> gh release -> print entry
  *         [--sign [key]] [--merge entry.json]
+ *   publish [dir] --repo o/n --tag vX           the lot: pack -> tag+release ->
+ *         [--sign [key]] [--no-preflight]        preflight -> open the registry PR
  *
- * The goal: create -> dev -> release/submit, and never hand-compute sha256/size/
- * commitSha or hand-write the registry JSON.
+ * The goal: create -> dev -> publish, and never hand-compute sha256/size/commitSha
+ * or hand-write the registry JSON.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -29,6 +31,7 @@ import { scaffold, interactiveScaffold } from './create.js';
 import { runDev } from './dev.js';
 import { preflight } from './preflight.js';
 import { submitEntry } from './submit.js';
+import { publishPlugin } from './publish.js';
 import { generateKeypair, loadPrivateKey, signArtifact, publicKeyBase64, defaultKeyPath } from './sign.js';
 
 const [cmd, ...args] = process.argv.slice(2);
@@ -131,6 +134,15 @@ async function main(): Promise<void> {
     for (const f of rep.failures) console.error('  ✗ ' + f);
     if (!rep.ok) { console.error(`\n${rep.failures.length} check(s) would fail CI — fix these before submitting.`); process.exit(1); }
     console.error('\n✓ all checks passed — this entry should sail through CI.');
+  } else if (cmd === 'publish') {
+    if (!flags.repo || !flags.tag) fail('publish needs --repo <owner/name> and --tag <vX.Y.Z>');
+    const { prUrl } = await publishPlugin({
+      dir: pos[0] || '.', repo: flags.repo, tag: flags.tag,
+      signKeyPath: signKey(), registry: flags.registry, draft: !!flags.draft,
+      notes: flags.notes, skipPreflight: !!flags['no-preflight'], now: new Date().toISOString(),
+    });
+    console.error('\n✓ published — registry PR:');
+    console.log(prUrl);
   } else if (cmd === 'submit') {
     if (!flags.repo || !flags.tag) fail('submit needs --repo <owner/name> and --tag <vX.Y.Z>');
     const entry = buildEntry({
@@ -153,7 +165,7 @@ async function main(): Promise<void> {
     console.error('\nRegistry entry (add as registry/plugins/' + entry.id + '.json in a TREK-Plugins PR, or run `trek-plugin submit`):\n');
     process.stdout.write(JSON.stringify(entry, null, 2) + '\n');
   } else {
-    console.error('usage: trek-plugin <create|dev|validate|pack|keygen|sign|entry|preflight|submit|release> [...]');
+    console.error('usage: trek-plugin <create|dev|validate|pack|keygen|sign|entry|preflight|submit|release|publish> [...]');
     process.exit(2);
   }
 }

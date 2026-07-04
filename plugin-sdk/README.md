@@ -59,33 +59,26 @@ const { ctx, broadcasts } = createMockHost({
 // degrades gracefully when a permission is missing.
 ```
 
-## Publish
+## Publish — one command
 
-The SDK does the fiddly parts (zipping, hashing, sizing, writing the registry
-entry, opening the PR) so you don't compute anything by hand. The short path:
-
-```bash
-git tag v1.0.0 && git push --tags
-npx trek-plugin-sdk release --repo you/repo --tag v1.0.0   # pack -> GitHub release -> entry
-npx trek-plugin-sdk submit  --repo you/repo --tag v1.0.0   # opens the registry PR for you
-```
-
-`submit` forks [TREK-Plugins](https://github.com/mauriceboe/TREK-Plugins),
-branches off the current main, writes (or merges into) `registry/plugins/<id>.json`,
-and opens the PR — the last manual step is gone. Prefer to paste it yourself?
-`entry` just prints the JSON.
-
-**Check before you submit** — run the exact registry CI checks locally so you
-don't round-trip through review:
+Commit and push your plugin to its public GitHub repo, then:
 
 ```bash
-npx trek-plugin-sdk preflight --repo you/repo --tag v1.0.0
-# verifies the tag→commit, manifest parity, artifact sha256/size, native scan,
-# and the README quality gate — over the network, against your pushed release.
+npx trek-plugin-sdk publish --repo you/repo --tag v1.0.0
 ```
 
-**Updating** a listed plugin: bump `version`, tag, and re-run `submit` — it
-detects the existing entry and prepends the new version, newest-first.
+`publish` does the whole release in one go: **pack** → **tag + GitHub release**
+→ **preflight** (runs the registry CI checks locally) → **open the registry PR**.
+If preflight finds a problem it stops *before* submitting, so a broken entry
+never becomes a doomed PR. It prints the PR URL at the end.
+
+**Updating** a listed plugin: bump `version` in the manifest, commit, and run
+`publish` again with the new tag — it detects the existing entry and prepends the
+new version, newest-first.
+
+Prefer to drive the steps yourself? They still exist individually — `pack`,
+`release` (pack → GitHub release → entry), `preflight`, `submit` (opens the PR),
+and `entry` (just prints the JSON).
 
 ### Sign your releases (optional, recommended)
 
@@ -94,8 +87,7 @@ Give your plugin a stable identity. TREK pins your key on first install
 
 ```bash
 npx trek-plugin-sdk keygen                                  # once — writes ~/.trek-plugin/signing.key
-npx trek-plugin-sdk release --repo you/repo --tag v1.1.0 --sign
-npx trek-plugin-sdk submit  --repo you/repo --tag v1.1.0 --sign
+npx trek-plugin-sdk publish --repo you/repo --tag v1.1.0 --sign
 ```
 
 Signing is dependency-free Ed25519 over the artifact bytes. **Back up the key** —
@@ -123,5 +115,6 @@ bin if you install the package):
 - `preflight --repo o/n --tag vX` (or `--entry f`) — run the registry CI checks locally, over the network.
 - `submit --repo o/n --tag vX [--sign [key]] [--draft]` — open the registry PR for you.
 - `release [dir] --repo o/n --tag vX [--sign [key]] [--merge f]` — pack → GitHub release → entry, in one go.
+- `publish [dir] --repo o/n --tag vX [--sign [key]] [--no-preflight]` — **the lot**: pack → tag + release → preflight → open the PR.
 
 The SDK tooling in this repo is MIT. Your plugin is your own code under your own license.

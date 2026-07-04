@@ -8,21 +8,23 @@ attach a built `plugin.zip` to a release, and list it with a pull request.
 The `trek-plugin` CLI (shipped in the `trek-plugin-sdk` package) does almost all
 the mechanical work — you rarely hand-type a hash, size, commit, or JSON field.
 
-## The short version
+## The short version — one command
+
+Commit and push your plugin to its public GitHub repo, then:
 
 ```bash
-git tag v1.0.0 && git push --tags
-npx trek-plugin-sdk release   --repo you/trek-plugin-flight-tracker --tag v1.0.0  # pack → GitHub release → entry
-npx trek-plugin-sdk preflight --repo you/trek-plugin-flight-tracker --tag v1.0.0  # the CI checks, locally
-npx trek-plugin-sdk submit    --repo you/trek-plugin-flight-tracker --tag v1.0.0  # opens the registry PR
+npx trek-plugin-sdk publish --repo you/trek-plugin-flight-tracker --tag v1.0.0
 ```
 
-`release` builds the artifact, creates the GitHub release, and prints the
-registry entry. `preflight` runs the exact registry CI checks against your
-pushed release so you don't round-trip through review. `submit` forks
-**TREK-Plugins**, writes `registry/plugins/<id>.json`, and opens the PR for you.
-Prefer to do the last step by hand? `entry --out registry/plugins/<id>.json`
-prints the file and you open the PR yourself.
+`publish` runs the whole release: **pack** → **tag + GitHub release** →
+**preflight** (the registry CI checks, locally) → **open the registry PR**. If
+preflight finds a problem it stops *before* submitting, so a broken entry never
+becomes a doomed PR. It prints the PR URL at the end. Sign it with `--sign`.
+
+The individual steps below still exist for when you want one by hand — `release`
+(pack → GitHub release → entry), `preflight`, and `submit` (opens the PR) — or
+`entry --out registry/plugins/<id>.json` to write the file and open the PR
+yourself.
 
 ## 1. Host and build your plugin
 
