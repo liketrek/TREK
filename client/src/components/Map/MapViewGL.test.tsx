@@ -6,7 +6,10 @@ import { resetAllStores } from '../../../tests/helpers/store'
 import { buildPlace } from '../../../tests/helpers/factories'
 import { useSettingsStore } from '../../store/settingsStore'
 
-// Stable fake map so fitBounds call counts survive re-renders.
+// Stable fake map so fitBounds call counts survive re-renders. The canvas
+// container is a single element so listeners registered by the component are
+// reachable from tests via dispatchEvent.
+const glCanvasContainer = vi.hoisted(() => document.createElement('div'))
 const glMap = vi.hoisted(() => ({
   on: vi.fn(),
   off: vi.fn(),
@@ -25,10 +28,12 @@ const glMap = vi.hoisted(() => ({
   setLayoutProperty: vi.fn(),
   getStyle: vi.fn().mockReturnValue({ layers: [] }),
   isStyleLoaded: vi.fn().mockReturnValue(true),
-  getCanvasContainer: vi.fn(() => document.createElement('div')),
+  getCanvasContainer: vi.fn(() => glCanvasContainer),
   getLayer: vi.fn().mockReturnValue(null),
   queryRenderedFeatures: vi.fn().mockReturnValue([]),
   querySourceFeatures: vi.fn().mockReturnValue([]),
+  unproject: vi.fn(() => ({ lng: 2.3522, lat: 48.8566 })),
+  getBounds: vi.fn(() => ({ getSouth: () => 0, getWest: () => 0, getNorth: () => 1, getEast: () => 1 })),
   easeTo: vi.fn(),
 }))
 
@@ -264,5 +269,128 @@ describe('MapViewGL', () => {
     }))
     expect(glMap.addLayer).toHaveBeenCalledWith(expect.objectContaining({ id: 'trip-place-clusters-circle' }))
     expect(glMap.addLayer).toHaveBeenCalledWith(expect.objectContaining({ id: 'trip-place-clusters-count' }))
+  })
+
+  function touchEvent(type: string, touches: Array<{ clientX: number; clientY: number }>) {
+    const ev = new Event(type, { bubbles: true })
+    Object.defineProperty(ev, 'touches', { value: touches })
+    return ev
+  }
+
+  it('FE-COMP-MAPVIEWGL-006: touch long-press opens Add-Place at the held position (#1398)', async () => {
+    vi.useFakeTimers()
+    try {
+      const onContext = vi.fn()
+      render(<MapViewGL places={[]} fitKey={1} onMapContextMenu={onContext} />)
+      await act(async () => {})
+      act(() => {
+        glCanvasContainer.dispatchEvent(touchEvent('touchstart', [{ clientX: 30, clientY: 40 }]))
+        vi.advanceTimersByTime(650)
+      })
+      expect(onContext).toHaveBeenCalledTimes(1)
+      expect(onContext.mock.calls[0][0].latlng).toEqual({ lat: 48.8566, lng: 2.3522 })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('FE-COMP-MAPVIEWGL-007: a moving finger (pan) cancels the long-press (#1398)', async () => {
+    vi.useFakeTimers()
+    try {
+      const onContext = vi.fn()
+      render(<MapViewGL places={[]} fitKey={1} onMapContextMenu={onContext} />)
+      await act(async () => {})
+      act(() => {
+        glCanvasContainer.dispatchEvent(touchEvent('touchstart', [{ clientX: 30, clientY: 40 }]))
+        glCanvasContainer.dispatchEvent(touchEvent('touchmove', [{ clientX: 60, clientY: 90 }]))
+        vi.advanceTimersByTime(650)
+      })
+      expect(onContext).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('FE-COMP-MAPVIEWGL-008: a second finger (pinch) cancels the long-press (#1398)', async () => {
+    vi.useFakeTimers()
+    try {
+      const onContext = vi.fn()
+      render(<MapViewGL places={[]} fitKey={1} onMapContextMenu={onContext} />)
+      await act(async () => {})
+      act(() => {
+        glCanvasContainer.dispatchEvent(touchEvent('touchstart', [{ clientX: 30, clientY: 40 }]))
+        glCanvasContainer.dispatchEvent(touchEvent('touchstart', [{ clientX: 30, clientY: 40 }, { clientX: 80, clientY: 40 }]))
+        vi.advanceTimersByTime(650)
+      })
+      expect(onContext).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('FE-COMP-MAPVIEWGL-009: a plain right-click (map contextmenu event) opens Add-Place, deduped (#1398)', async () => {
+    const onContext = vi.fn()
+    render(<MapViewGL places={[]} fitKey={1} onMapContextMenu={onContext} />)
+    await act(async () => {})
+    const handler = glMap.on.mock.calls.find(c => c[0] === 'contextmenu')?.[1] as (e: unknown) => void
+    expect(handler).toBeTypeOf('function')
+    act(() => {
+      handler({ lngLat: { lat: 48.8566, lng: 2.3522 }, originalEvent: new MouseEvent('contextmenu') })
+      // Android long-press fires the native contextmenu on top of our timer —
+      // a second event inside the dedupe window must not open a second form.
+      handler({ lngLat: { lat: 48.8566, lng: 2.3522 }, originalEvent: new MouseEvent('contextmenu') })
+    })
+    expect(onContext).toHaveBeenCalledTimes(1)
+    expect(onContext.mock.calls[0][0].latlng).toEqual({ lat: 48.8566, lng: 2.3522 })
+  })
+
+  it('FE-COMP-MAPVIEWGL-010: middle-click still opens Add-Place (#1398 regression guard)', async () => {
+    const onContext = vi.fn()
+    render(<MapViewGL places={[]} fitKey={1} onMapContextMenu={onContext} />)
+    await act(async () => {})
+    act(() => {
+      glCanvasContainer.dispatchEvent(new MouseEvent('mousedown', { button: 1, bubbles: true }))
+    })
+    expect(onContext).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-COMP-MAPVIEWGL-011: clicking a marker clears the hover card; movestart clears + suppresses it (#1404)', async () => {
+    // Markers are only reconciled once the style has loaded — fire 'load' like GL-005 does.
+    glMap.on.mockImplementation((event: string, handlerOrLayer: unknown) => {
+      if (event === 'load' && typeof handlerOrLayer === 'function') (handlerOrLayer as () => void)()
+      return glMap
+    })
+    const mapboxgl = (await import('mapbox-gl')).default
+    const places = [buildMapPlace({ id: 7, lat: 48.8584, lng: 2.2945, name: 'Tour Eiffel' })]
+    const { queryByTestId } = render(<MapViewGL places={places} fitKey={1} onMarkerClick={vi.fn()} />)
+    await act(async () => {})
+
+    const markerCall = (mapboxgl.Marker as unknown as ReturnType<typeof vi.fn>).mock.calls
+      .find(c => c[0]?.element)
+    expect(markerCall).toBeTruthy()
+    const el = markerCall![0].element as HTMLElement
+
+    // hover shows the card
+    act(() => { el.dispatchEvent(new MouseEvent('mouseenter', { clientX: 10, clientY: 10 })) })
+    expect(queryByTestId('tooltip')).toBeTruthy()
+
+    // click clears it (the flyTo that follows moves the marker away, no mouseleave will come)
+    act(() => { el.dispatchEvent(new MouseEvent('click', { bubbles: false })) })
+    expect(queryByTestId('tooltip')).toBeNull()
+
+    // hover again, then camera movement clears + suppresses
+    act(() => { el.dispatchEvent(new MouseEvent('mouseenter', { clientX: 10, clientY: 10 })) })
+    expect(queryByTestId('tooltip')).toBeTruthy()
+    const moveStart = glMap.on.mock.calls.find(c => c[0] === 'movestart')?.[1] as () => void
+    const moveEnds = glMap.on.mock.calls.filter(c => c[0] === 'moveend').map(c => c[1] as () => void)
+    act(() => { moveStart() })
+    expect(queryByTestId('tooltip')).toBeNull()
+    // while the camera is moving, a re-fired mouseenter must not bring it back
+    act(() => { el.dispatchEvent(new MouseEvent('mouseenter', { clientX: 10, clientY: 10 })) })
+    expect(queryByTestId('tooltip')).toBeNull()
+    // after the move ends, hover works again
+    act(() => { moveEnds.forEach(fn => fn()) })
+    act(() => { el.dispatchEvent(new MouseEvent('mouseenter', { clientX: 10, clientY: 10 })) })
+    expect(queryByTestId('tooltip')).toBeTruthy()
   })
 })

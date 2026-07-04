@@ -70,7 +70,7 @@ interface Props {
   onMarkerClick?: (id: number) => void
   hoverDisabled?: boolean
   onMapClick?: (info: { latlng: { lat: number; lng: number } }) => void
-  onMapContextMenu?: ((e: { latlng: { lat: number; lng: number }; originalEvent: MouseEvent }) => void) | null
+  onMapContextMenu?: ((e: { latlng: { lat: number; lng: number }; originalEvent: MouseEvent | TouchEvent }) => void) | null
   center?: [number, number]
   zoom?: number
   fitKey?: number | null
@@ -228,6 +228,10 @@ export function MapViewGL({
   const [hoverPlace, setHoverPlace] = useState<(Place & { category_color?: string | null; category_icon?: string | null; category_name?: string | null }) | null>(null)
   const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null)
   const hoverIdRef = useRef<number | null>(null)
+  // True while the camera is moving (flyTo after a click, pan, zoom). Marker
+  // elements get rebuilt during the move and re-fire mouseenter under a
+  // stationary cursor, which would re-show the card we just cleared (#1404).
+  const camMovingRef = useRef(false)
 
   // Selecting a place rebuilds its marker element, so the browser never fires
   // mouseleave on the removed node and the fixed-position hover card gets
@@ -448,7 +452,13 @@ export function MapViewGL({
       setMapReady(true)
     })
 
+    // Set by the long-press handler below: the touchend tap that follows a
+    // long-press must not count as a normal map click (#1398).
+    let suppressNextClick = false
     map.on('click', (e) => {
+      // The tap that ends a long-press would otherwise land here and clear
+      // the selection right after the Add-Place form opened (#1398).
+      if (suppressNextClick) { suppressNextClick = false; return }
       const t = e.originalEvent.target as HTMLElement
       if (t.closest('.mapboxgl-marker, .maplibregl-marker')) return // markers handle their own click
       // A click that lands on a cluster bubble is the cluster's to handle
@@ -469,19 +479,41 @@ export function MapViewGL({
     }
     map.on('moveend', emitViewport)
     map.once('idle', emitViewport)
-    // In the GL map the right mouse button is reserved for the
-    // built-in rotate/pitch gesture, so we bind the "add place" action
-    // to the middle mouse button (button === 1) instead.
+    // Clear the hover card (and the anchored POI popup) as soon as the camera
+    // starts moving, and keep hover suppressed until it stops: the marker
+    // slides away under a stationary cursor, so mouseleave never fires (#1404).
+    const onCamStart = () => {
+      camMovingRef.current = true
+      hoverIdRef.current = null
+      setHoverPlace(null)
+      setHoverPos(null)
+      popupRef.current?.remove()
+    }
+    const onCamEnd = () => { camMovingRef.current = false }
+    map.on('movestart', onCamStart)
+    map.on('moveend', onCamEnd)
+    // "Add place here" on the GL map (#1398). Three routes into one handler:
+    // middle-click (the original binding), a plain right-click via the map's
+    // own contextmenu event — both GL libs suppress that event while the
+    // right-button rotate/pitch drag is active, so it can't fight the gesture,
+    // and it also covers Mac ctrl-click / two-finger tap — and a touch
+    // long-press, which neither GL lib synthesizes into contextmenu (Leaflet
+    // does, which is why the OSM map already worked on mobile).
     const canvas = map.getCanvasContainer()
+    let lastContextFire = 0
+    const fireContext = (lngLat: { lat: number; lng: number }, originalEvent: MouseEvent | TouchEvent) => {
+      // Android fires a native contextmenu for a long-press on top of our own
+      // timer — dedupe so the form doesn't open twice.
+      if (Date.now() - lastContextFire < 700) return
+      lastContextFire = Date.now()
+      onClickRefs.current.context?.({ latlng: { lat: lngLat.lat, lng: lngLat.lng }, originalEvent })
+    }
     const onAuxDown = (ev: MouseEvent) => {
       if (ev.button !== 1) return
       ev.preventDefault()
       const rect = canvas.getBoundingClientRect()
       const lngLat = map.unproject([ev.clientX - rect.left, ev.clientY - rect.top])
-      onClickRefs.current.context?.({
-        latlng: { lat: lngLat.lat, lng: lngLat.lng },
-        originalEvent: ev,
-      })
+      fireContext({ lat: lngLat.lat, lng: lngLat.lng }, ev)
     }
     // Also suppress the browser's native auxclick menu on middle-click.
     const onAuxClick = (ev: MouseEvent) => {
@@ -489,6 +521,41 @@ export function MapViewGL({
     }
     canvas.addEventListener('mousedown', onAuxDown)
     canvas.addEventListener('auxclick', onAuxClick)
+    map.on('contextmenu', (e: { lngLat: { lat: number; lng: number }; originalEvent: MouseEvent }) => {
+      fireContext(e.lngLat, e.originalEvent)
+    })
+    // Touch long-press: 600 ms hold (Leaflet's tapHold feel) with a 10 px
+    // move tolerance so slow pans and pinches don't open the form.
+    let lpTimer: number | null = null
+    let lpStart: { x: number; y: number } | null = null
+    const cancelLongPress = () => {
+      if (lpTimer !== null) window.clearTimeout(lpTimer)
+      lpTimer = null
+      lpStart = null
+    }
+    const onTouchStart = (ev: TouchEvent) => {
+      if (ev.touches.length !== 1) { cancelLongPress(); return }
+      if ((ev.target as HTMLElement).closest('.mapboxgl-marker, .maplibregl-marker')) return
+      const t = ev.touches[0]
+      lpStart = { x: t.clientX, y: t.clientY }
+      lpTimer = window.setTimeout(() => {
+        lpTimer = null
+        if (!lpStart) return
+        const rect = canvas.getBoundingClientRect()
+        const lngLat = map.unproject([lpStart.x - rect.left, lpStart.y - rect.top])
+        lpStart = null
+        suppressNextClick = true
+        fireContext({ lat: lngLat.lat, lng: lngLat.lng }, ev)
+      }, 600)
+    }
+    const onTouchMove = (ev: TouchEvent) => {
+      const t = ev.touches[0]
+      if (lpStart && (!t || Math.hypot(t.clientX - lpStart.x, t.clientY - lpStart.y) > 10)) cancelLongPress()
+    }
+    canvas.addEventListener('touchstart', onTouchStart, { passive: true })
+    canvas.addEventListener('touchmove', onTouchMove, { passive: true })
+    canvas.addEventListener('touchend', cancelLongPress)
+    canvas.addEventListener('touchcancel', cancelLongPress)
 
     // Drop follow mode if the user pans the map manually — matches the
     // Apple Maps behaviour where the blue dot stays but the map no longer
@@ -537,6 +604,11 @@ export function MapViewGL({
     return () => {
       canvas.removeEventListener('mousedown', onAuxDown)
       canvas.removeEventListener('auxclick', onAuxClick)
+      canvas.removeEventListener('touchstart', onTouchStart)
+      canvas.removeEventListener('touchmove', onTouchMove)
+      canvas.removeEventListener('touchend', cancelLongPress)
+      canvas.removeEventListener('touchcancel', cancelLongPress)
+      cancelLongPress()
       markersRef.current.forEach(m => m.remove())
       markersRef.current.clear()
       if (popupRef.current) { popupRef.current.remove(); popupRef.current = null }
@@ -652,16 +724,21 @@ export function MapViewGL({
         const el = createMarkerElement(place as Place & { category_color?: string; category_icon?: string }, photoUrl, orderNumbers, selected)
         el.addEventListener('click', (ev) => {
           ev.stopPropagation()
+          // Clear the card right away — the flyTo that follows moves the marker
+          // out from under the cursor and mouseleave never fires (#1404).
+          hoverIdRef.current = null
+          setHoverPlace(null)
+          setHoverPos(null)
           onClickRefs.current.marker?.(place.id)
         })
         el.addEventListener('mouseenter', (ev) => {
-          if (hoverDisabledRef.current) return
+          if (hoverDisabledRef.current || camMovingRef.current) return
           hoverIdRef.current = place.id
           setHoverPlace(place as Place & { category_color?: string; category_icon?: string; category_name?: string })
           setHoverPos({ x: (ev as MouseEvent).clientX, y: (ev as MouseEvent).clientY })
         })
         el.addEventListener('mousemove', (ev) => {
-          if (hoverDisabledRef.current) return
+          if (hoverDisabledRef.current || camMovingRef.current) return
           setHoverPos({ x: (ev as MouseEvent).clientX, y: (ev as MouseEvent).clientY })
         })
         el.addEventListener('mouseleave', () => {
