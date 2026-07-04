@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { splitReservationDateTime, resolveDayId } from './formatters'
+import { splitReservationDateTime, resolveDayId, formatMoney } from './formatters'
+import { CURRENCIES, SYMBOLS } from '../components/Budget/BudgetPanel.constants'
 import type { Day } from '../types'
 
 const days = [
@@ -22,6 +23,19 @@ describe('resolveDayId', () => {
     expect(resolveDayId(days, null)).toBe('')
     expect(resolveDayId(days, 'not a date')).toBe('')
     expect(resolveDayId([], '2026-05-04')).toBe('')
+  })
+})
+
+describe('KGS currency (#1400)', () => {
+  it('is selectable everywhere the shared currency list feeds', () => {
+    expect(CURRENCIES).toContain('KGS')
+    expect(SYMBOLS.KGS).toBeTruthy()
+  })
+  it('formats without throwing', () => {
+    // Lenient: older ICU builds may lack ru-KG/KGS display data and fall back.
+    const out = formatMoney(1234.56, 'KGS', 'en')
+    expect(out).toMatch(/сом|KGS/)
+    expect(out).toContain('234')
   })
 })
 
