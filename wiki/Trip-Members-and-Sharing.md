@@ -31,6 +31,50 @@ If you click the remove icon next to **your own** name, the action is labeled **
 
 The trip owner cannot be removed through this panel.
 
+## Guest Members
+
+Not everyone on a trip has — or wants — a TREK account. **Guests** let you add travel companions by name only, so you can assign them to costs, packing and tasks just like a real member, without creating a login for them.
+
+Guests appear in their own **Guests** section below the members list, each with a **Guest** badge:
+
+> People without an account. They can be assigned to costs, packing and tasks, but cannot sign in.
+
+### Adding a guest
+
+Only the **trip owner** can manage guests (this is stricter than inviting members, which uses the `member_manage` permission). In the owner's view, the Guests section has a **Guest name** field and an **Add guest** button — type a name and click Add. A guest has a display name only: no email, no password, and no way to sign in.
+
+Other members see the Guests section too (when guests exist) but cannot add, rename or remove them.
+
+> If two guests share a name, TREK keeps them distinct internally (the second "Anna" becomes "Anna 2"), so assignments never get confused.
+
+### What a guest can be assigned to
+
+Once added, a guest can be picked anywhere a member can:
+
+- **Costs** — added to expense splits (see [Budget-Tracking](Budget-Tracking)).
+- **Packing** — assigned to packing items and categories (see [Packing-Lists](Packing-Lists)).
+- **To-dos** — set as a task assignee.
+- **Day plan** — added as a participant on activities and places.
+
+### What a guest can never do
+
+Guests are firmly scoped to the one trip. A guest can **never**:
+
+- sign in (they have no credentials — password, SSO and password-reset all ignore guest accounts);
+- receive notifications (no email and no in-app notifications are ever sent to a guest);
+- appear anywhere outside the trip (they are excluded from the global user directory, the admin user list, invite pickers, and search);
+- be made the trip owner.
+
+These limits are enforced on the server, not just hidden in the UI.
+
+### Renaming and removing
+
+In the owner's Guests section, each guest row has a **Rename** (pencil) and a **Remove access** (trash) button. Removing a guest is **destructive and cascading**:
+
+> Remove this guest? Their assignments and cost shares will be removed too.
+
+There is no limit on the number of guests per trip.
+
 ## Public Share Link
 
 The right column is only visible to users with the `share_manage` permission (default: trip owner).

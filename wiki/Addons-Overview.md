@@ -23,6 +23,8 @@ The following addons are registered in the system (defined in `server/src/db/see
 | `collab` | trip | Notes, polls, and live chat for trip collaboration. See [Real-Time-Collaboration](Real-Time-Collaboration). |
 | `journey` | global | Trip tracking and travel journal — check-ins, photos, and daily stories. See [Journey-Journal](Journey-Journal). |
 | `collections` | global | A personal, server-wide library of saved places in named lists, with idea/want/visited status, categories, and fusion sharing with per-member roles. See [Collections](Collections). |
+| `airtrail` | integration | Sync flights from your self-hosted AirTrail instance into trips. |
+| `llm_parsing` | integration | AI Parsing — an LLM fallback that extracts bookings from confirmation files KDE Itinerary can't read. See [AI-Booking-Import](AI-Booking-Import). |
 | `naver_list_import` | trip | Import places from shared Naver Maps lists directly into a trip. |
 
 

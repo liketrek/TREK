@@ -64,7 +64,7 @@ Setting `ENCRYPTION_KEY` explicitly is recommended so you can back it up indepen
 
 ### `DEFAULT_LANGUAGE` — Supported Codes
 
-You can set `DEFAULT_LANGUAGE` to any of the 20 languages TREK ships. The currently supported codes are:
+You can set `DEFAULT_LANGUAGE` to any of the 22 languages TREK ships. The currently supported codes are:
 
 | Code    | Language           |
 |---------|--------------------|
@@ -88,6 +88,8 @@ You can set `DEFAULT_LANGUAGE` to any of the 20 languages TREK ships. The curren
 | `ko`    | 한국어                |
 | `uk`    | Українська         |
 | `gr`    | Ελληνικά           |
+| `sv`    | Svenska            |
+| `vi`    | Tiếng Việt         |
 
 If you set a code that isn't supported, TREK falls back to English (`en`). This list grows as new
 translations are added to TREK.
@@ -198,6 +200,20 @@ running TREK from source, install `libkitinerary-bin` (Debian trixie / Ubuntu 25
 directly and place it anywhere on `PATH`. The `GET /api/health/features` endpoint returns `{ "bookingImport": true }`
 when the binary is found, and the Import button in the Reservations panel is hidden when it is not.
 
+Booking import can also fall back to an AI model for documents KDE Itinerary can't read. That feature (the **AI Parsing** addon) is configured entirely in the UI and needs no environment variables — see [AI-Booking-Import](AI-Booking-Import).
+
+---
+
+## Public Transit (Transitous)
+
+Public-transit routing in the planner is powered by [Transitous](https://transitous.org/), a free community MOTIS service — no API key is required. See [Transport: Flights, Trains, Cars](Transport-Flights-Trains-Cars) for the feature itself.
+
+| Variable          | Description                                                                                                                                                                                                                             | Default                     |
+|-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------|
+| `TRANSIT_API_URL` | Base URL of the transit routing API. TREK's server proxies requests to it. Point this at your own self-hosted [MOTIS](https://github.com/motis-project/motis) instance if you want zero third-party egress. A trailing slash is stripped. | `https://api.transitous.org` |
+
+When left at the default, using the transit feature makes the TREK **server** send outbound HTTPS requests to `api.transitous.org` (with an identifying User-Agent, as the Transitous usage policy asks). No transit request is made until a user actually searches for a journey.
+
 ---
 
 ## Storage & Paths
@@ -232,6 +248,24 @@ Demo mode runs TREK as a public, self-resetting sandbox. Not intended for regula
 
 The `DEMO_ADMIN_*` variables only take effect when `DEMO_MODE=true`, and only at the moment the demo data is first
 seeded.
+
+---
+
+## Plugins
+
+The plugin runtime is **off unless you opt in**. It only starts when `TREK_PLUGINS_ENABLED` is exactly `true`; otherwise the Admin → Plugins panel shows a disabled banner and no plugin code runs. See [Plugins](Plugins) for the full system and [Plugin-Permissions](Plugin-Permissions) for the isolation model.
+
+| Variable                          | Description                                                                                                                                                                                                           | Default                                                                             |
+|-----------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
+| `TREK_PLUGINS_ENABLED`            | Master switch for the plugin runtime. Must be exactly `true` (case-insensitive) to enable. Setting it back to `false` is a kill switch — installed plugins stay on disk but nothing runs.                             | `false`                                                                             |
+| `TREK_PLUGINS_DIR`                | Directory where installed plugin **code** is stored. Persist it as a volume if you use plugins.                                                                                                                       | `<data>/plugins`                                                                    |
+| `TREK_PLUGINS_DATA_DIR`           | Directory for each plugin's own **data** (its private SQLite file). Kept separate from the code tree; persist it as a volume too.                                                                                     | `<data>/plugins-data`                                                               |
+| `TREK_PLUGIN_REGISTRY_URL`        | Override the plugin registry index the *Discover* tab browses. Point it at your own fork or mirror of the registry.                                                                                                  | `https://raw.githubusercontent.com/mauriceboe/TREK-Plugins/main/dist/index.json` |
+| `TREK_PLUGIN_MAX_RSS_MB`          | Per-plugin memory ceiling in MB. A plugin process that exceeds it is stopped.                                                                                                                                         | `300`                                                                               |
+| `TREK_PLUGIN_PERMISSIONS`         | Set to `off` to opt **out** of the Node.js OS-level permission sandbox for plugin child processes (not recommended). Any other value keeps the sandbox on.                                                            | `on`                                                                                |
+| `TREK_PLUGIN_ALLOW_PRIVATE_EGRESS`| Set to `on` to let a plugin's declared outbound hosts resolve to private/internal addresses (e.g. a service on your LAN). By default connections to private, loopback, link-local and metadata addresses are refused. | off (private egress blocked)                                                        |
+
+All of these are optional — the defaults are safe, and only `TREK_PLUGINS_ENABLED` is needed to turn the system on.
 
 ---
 

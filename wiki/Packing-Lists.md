@@ -50,6 +50,44 @@ Each item row contains:
 
 Hovering over an item reveals a **category picker** (colored dot), a **rename** button (pencil icon), and a **delete** button. Add new items using the inline "add item" row at the bottom of each category.
 
+## Sharing packing items
+
+Every packing item has a sharing tier that controls who sees it and who is bringing it. By default everything sits in the shared group pool, exactly as before — the tiers are opt-in per item.
+
+### The two views
+
+Two pills at the top of the list switch what you're looking at:
+
+- **Shared** — the group pool: items everyone on the trip can see.
+- **My list** — your own items: your personal items, things you've been asked to bring, and things you shared with specific people.
+
+Each pill shows a count of the items in it.
+
+### The three tiers
+
+Open an item's **Sharing** control (the share icon on the row) to move it between tiers:
+
+- **Shared** — *In the group pool, visible to everyone.* This is where every item starts.
+- **Personal** — *Private — only you can see it.*
+- **Shared with…** — pick specific trip members below the two tier options. The item then shows only on your list and on theirs. (If you're the only one on the trip, this reads *No one else on this trip yet*.)
+
+New items inherit the view you add them in: adding an item while in **My list** makes it Personal, adding it in **Shared** makes it Common. To share an item with specific people, add it first, then open its Sharing control and choose them.
+
+Only the item's owner (the person bringing it) can change its sharing. Someone you shared an item *with* just sees it on their **My list** with a **by {name}** badge and can tick it off — they don't manage who else it's shared with.
+
+### Who's bringing what
+
+Every item in the **Shared** pool shows who is bringing it. For an item someone else added, other members see two quick actions instead of the Sharing control:
+
+- **I can bring that too** — pledge to co-bring it. The item's badge then shows a **+1** next to the original bringer. Tap again (*I'm not bringing it*) to withdraw.
+- **Copy to my list** — clone the item onto your own personal list as a separate private copy, leaving the shared one untouched.
+
+> Items created before this feature have no assigned bringer, so they show no "brought by" badge until someone edits their sharing.
+
+> **Note:** this per-item sharing is separate from assigning **members to a category** (above). Category assignments only send a packing notification — they don't change who can see an item.
+
+All of this is still gated by the `packing_edit` permission; there is no extra addon or admin toggle.
+
 ## Bag tracking
 
 Bag tracking is only available when an admin has enabled it.
