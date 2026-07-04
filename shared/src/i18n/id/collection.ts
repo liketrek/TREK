@@ -144,6 +144,16 @@ const collection: TranslationStrings = {
   'collections.widget.title': 'Koleksi',
   'collections.widget.empty': 'Belum ada tempat tersimpan',
   'collections.widget.savedCount': '{count} tersimpan',
+  'collections.labels.title': 'Label',
+  'collections.labels.manage': 'Kelola label',
+  'collections.labels.add': 'Tambah label',
+  'collections.labels.name': 'Nama label',
+  'collections.labels.namePlaceholder': 'mis. Berlin',
+  'collections.labels.assign': 'Beri label',
+  'collections.labels.assignN': 'Beri label ke {count} tempat',
+  'collections.labels.assignedCount': '{count} tempat diberi label',
+  'collections.labels.empty': 'Belum ada label',
+  'collections.labels.emptyHint': 'Buat label dulu untuk mengelompokkan tempat di daftar ini.',
 };
 
 export default collection;

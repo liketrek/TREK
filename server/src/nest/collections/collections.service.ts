@@ -41,6 +41,11 @@ export class CollectionsService {
     return svc.findMembership(userId, query);
   }
 
+  createLabel(userId: number, collectionId: number, name: string, color: string | undefined, socketId?: string) { return svc.createLabel(userId, collectionId, name, color, socketId); }
+  updateLabel(userId: number, labelId: number, body: { name?: string; color?: string; sort_order?: number }, socketId?: string) { return svc.updateLabel(userId, labelId, body, socketId); }
+  deleteLabel(userId: number, labelId: number, socketId?: string) { return svc.deleteLabel(userId, labelId, socketId); }
+  assignLabels(userId: number, labelIds: number[], placeIds: number[], remove: boolean, socketId?: string) { return svc.assignLabels(userId, labelIds, placeIds, remove, socketId); }
+
   // Access helpers used by the controller's owner guards.
   assertAccess(userId: number, collectionId: number) { return svc.assertAccess(userId, collectionId); }
   isOwner(userId: number, collectionId: number) { return svc.isOwner(userId, collectionId); }

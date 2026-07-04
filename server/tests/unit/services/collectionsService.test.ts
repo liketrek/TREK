@@ -47,6 +47,8 @@ import { removeIfUnreferenced } from '../../../src/services/placePhotoCache';
 
 function clearCollections() {
   testDb.exec(`
+    DELETE FROM collection_place_labels;
+    DELETE FROM collection_labels;
     DELETE FROM collection_place_tags;
     DELETE FROM collection_places;
     DELETE FROM collection_members;
@@ -480,5 +482,89 @@ describe('photo-cache widening', () => {
     removeIfUnreferenced('gp-orphan');
     const meta = testDb.prepare('SELECT 1 FROM google_place_photo_meta WHERE place_id = ?').get('gp-orphan');
     expect(meta).toBeUndefined();
+  });
+});
+
+// ── Labels ───────────────────────────────────────────────────────────────────
+
+function addMember(colId: number, userId: number, role: 'viewer' | 'editor' | 'admin') {
+  testDb.prepare("INSERT INTO collection_members (collection_id, user_id, status, role) VALUES (?, ?, 'accepted', ?)").run(colId, userId, role);
+}
+
+describe('collection labels', () => {
+  it('COLLECTIONS-SVC-050: createLabel is returned by getCollection; duplicate name is 409', () => {
+    const u = createUser(testDb).user;
+    const col = svc.createCollection(u.id, { name: 'Germany' });
+    const label = svc.createLabel(u.id, col.id, 'Berlin', '#ff0000');
+    expect(label.name).toBe('Berlin');
+    expect(label.collection_id).toBe(col.id);
+    expect(svc.getCollection(u.id, col.id).collection.labels).toHaveLength(1);
+
+    expect(() => svc.createLabel(u.id, col.id, 'berlin')).toThrow(); // case-insensitive dup
+    try { svc.createLabel(u.id, col.id, 'berlin'); } catch (e) { expect((e as { status: number }).status).toBe(409); }
+  });
+
+  it('COLLECTIONS-SVC-051: a viewer cannot manage labels (403); an editor can', () => {
+    const owner = createUser(testDb).user;
+    const viewer = createUser(testDb).user;
+    const col = svc.createCollection(owner.id, { name: 'Trip' });
+    addMember(col.id, viewer.id, 'viewer');
+    try { svc.createLabel(viewer.id, col.id, 'X'); } catch (e) { expect((e as { status: number }).status).toBe(403); }
+
+    const editor = createUser(testDb).user;
+    addMember(col.id, editor.id, 'editor');
+    expect(svc.createLabel(editor.id, col.id, 'Museums').id).toBeGreaterThan(0);
+  });
+
+  it('COLLECTIONS-SVC-052: updatePlace label_ids sets labels; a label from another list is ignored', () => {
+    const u = createUser(testDb).user;
+    const col = svc.createCollection(u.id, { name: 'DE' });
+    const other = svc.createCollection(u.id, { name: 'Other' });
+    const l1 = svc.createLabel(u.id, col.id, 'Berlin');
+    const foreign = svc.createLabel(u.id, other.id, 'Paris');
+    const place = svc.savePlace(u.id, { collection_id: col.id, name: 'Gate' }).place!;
+    svc.updatePlace(u.id, place.id, { label_ids: [l1.id, foreign.id] });
+    const stored = svc.getCollection(u.id, col.id).places.find(p => p.id === place.id)!;
+    expect(stored.label_ids).toEqual([l1.id]);
+  });
+
+  it('COLLECTIONS-SVC-053: assignLabels bulk-adds then unassigns across places', () => {
+    const u = createUser(testDb).user;
+    const col = svc.createCollection(u.id, { name: 'DE' });
+    const l = svc.createLabel(u.id, col.id, 'Coast');
+    const p1 = svc.savePlace(u.id, { collection_id: col.id, name: 'A' }).place!;
+    const p2 = svc.savePlace(u.id, { collection_id: col.id, name: 'B' }).place!;
+
+    expect(svc.assignLabels(u.id, [l.id], [p1.id, p2.id], false).changed).toBe(2);
+    expect(svc.getCollection(u.id, col.id).places.every(p => p.label_ids?.includes(l.id))).toBe(true);
+
+    svc.assignLabels(u.id, [l.id], [p1.id], true);
+    const after = svc.getCollection(u.id, col.id).places;
+    expect(after.find(p => p.id === p1.id)!.label_ids).toEqual([]);
+    expect(after.find(p => p.id === p2.id)!.label_ids).toEqual([l.id]);
+  });
+
+  it('COLLECTIONS-SVC-054: deleteLabel removes it and cascades its place assignments', () => {
+    const u = createUser(testDb).user;
+    const col = svc.createCollection(u.id, { name: 'DE' });
+    const l = svc.createLabel(u.id, col.id, 'Berlin');
+    const p = svc.savePlace(u.id, { collection_id: col.id, name: 'Gate' }).place!;
+    svc.updatePlace(u.id, p.id, { label_ids: [l.id] });
+
+    svc.deleteLabel(u.id, l.id);
+    expect(svc.getCollection(u.id, col.id).collection.labels).toHaveLength(0);
+    expect(svc.getCollection(u.id, col.id).places.find(x => x.id === p.id)!.label_ids).toEqual([]);
+  });
+
+  it('COLLECTIONS-SVC-055: moving a place to another list drops its labels', () => {
+    const u = createUser(testDb).user;
+    const a = svc.createCollection(u.id, { name: 'A' });
+    const b = svc.createCollection(u.id, { name: 'B' });
+    const l = svc.createLabel(u.id, a.id, 'Berlin');
+    const p = svc.savePlace(u.id, { collection_id: a.id, name: 'Gate' }).place!;
+    svc.updatePlace(u.id, p.id, { label_ids: [l.id] });
+
+    svc.updatePlace(u.id, p.id, { collection_id: b.id });
+    expect(svc.getCollection(u.id, b.id).places.find(x => x.id === p.id)!.label_ids).toEqual([]);
   });
 });

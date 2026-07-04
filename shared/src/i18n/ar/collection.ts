@@ -144,6 +144,16 @@ const collection: TranslationStrings = {
   'collections.widget.title': 'المجموعات',
   'collections.widget.empty': 'لا توجد أماكن محفوظة بعد',
   'collections.widget.savedCount': '{count} محفوظة',
+  'collections.labels.title': 'التسميات',
+  'collections.labels.manage': 'إدارة التسميات',
+  'collections.labels.add': 'إضافة تسمية',
+  'collections.labels.name': 'اسم التسمية',
+  'collections.labels.namePlaceholder': 'مثال: برلين',
+  'collections.labels.assign': 'تعيين تسمية',
+  'collections.labels.assignN': 'إضافة تسميات إلى {count} أماكن',
+  'collections.labels.assignedCount': 'تمت تسمية {count} أماكن',
+  'collections.labels.empty': 'لا توجد تسميات بعد',
+  'collections.labels.emptyHint': 'أنشئ تسمية أولًا لتجميع الأماكن في هذه القائمة.',
 };
 
 export default collection;

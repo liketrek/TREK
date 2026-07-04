@@ -270,6 +270,20 @@
 .trek-dash .col-lrow-cat svg { flex-shrink: 0; }
 .trek-dash .col-lrow-div { width: 1px; height: 18px; flex-shrink: 0; background: var(--line-2); }
 
+/* Per-collection label chips — list rows, filter bar and detail read view */
+.trek-dash .col-lrow-label { display: inline-flex; align-items: center; gap: 5px; max-width: 120px; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; color: var(--label, var(--accent)); background: color-mix(in oklch, var(--label, var(--accent)) 14%, transparent); }
+.trek-dash .col-lrow-label.more { color: var(--ink-3); background: var(--surface-2); }
+.trek-dash .col-labelchip-dot { width: 8px; height: 8px; border-radius: 999px; flex-shrink: 0; background: var(--label, var(--accent)); }
+.trek-dash .col-labelfilter { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.trek-dash .col-labelchip { display: inline-flex; align-items: center; gap: 6px; max-width: 180px; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; color: var(--ink-2); background: var(--surface); border: 1px solid var(--line-2); transition: background .12s, border-color .12s, color .12s; }
+.trek-dash .col-labelchip:hover { background: var(--surface-2); color: var(--ink); }
+.trek-dash .col-labelchip .col-filter-lbl { overflow: hidden; text-overflow: ellipsis; }
+.trek-dash .col-labelchip.on { color: var(--label, var(--accent)); background: color-mix(in oklch, var(--label, var(--accent)) 16%, transparent); border-color: color-mix(in oklch, var(--label, var(--accent)) 42%, transparent); }
+.trek-dash .col-labelchip.on .col-labelchip-dot { background: var(--label, var(--accent)); }
+.trek-dash .col-labelchip.static { cursor: default; color: var(--label, var(--accent)); background: color-mix(in oklch, var(--label, var(--accent)) 14%, transparent); border-color: transparent; }
+.trek-dash .col-labelchip-manage { color: var(--ink-3); border-style: dashed; }
+.trek-dash .col-detail-labels { display: flex; flex-wrap: wrap; gap: 7px; margin: 2px 0 10px; }
+
 /* ----------------- filter bar (status + category dropdowns) ----------------- */
 .trek-dash .col-filterbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .trek-dash .col-filter { position: relative; }

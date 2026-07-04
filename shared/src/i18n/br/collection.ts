@@ -144,6 +144,16 @@ const collection: TranslationStrings = {
   'collections.widget.title': 'Coleções',
   'collections.widget.empty': 'Nenhum lugar salvo ainda',
   'collections.widget.savedCount': '{count} salvos',
+  'collections.labels.title': 'Rótulos',
+  'collections.labels.manage': 'Gerenciar rótulos',
+  'collections.labels.add': 'Adicionar rótulo',
+  'collections.labels.name': 'Nome do rótulo',
+  'collections.labels.namePlaceholder': 'ex.: Berlin',
+  'collections.labels.assign': 'Atribuir rótulo',
+  'collections.labels.assignN': 'Adicionar rótulos a {count} lugares',
+  'collections.labels.assignedCount': '{count} lugares rotulados',
+  'collections.labels.empty': 'Nenhum rótulo ainda',
+  'collections.labels.emptyHint': 'Crie um rótulo primeiro para agrupar lugares nesta lista.',
 };
 
 export default collection;

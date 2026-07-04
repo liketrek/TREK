@@ -144,6 +144,16 @@ const collection: TranslationStrings = {
   'collections.widget.title': 'Sammlungen',
   'collections.widget.empty': 'Noch keine gespeicherten Orte',
   'collections.widget.savedCount': '{count} gespeichert',
+  'collections.labels.title': 'Labels',
+  'collections.labels.manage': 'Labels verwalten',
+  'collections.labels.add': 'Label hinzufügen',
+  'collections.labels.name': 'Labelname',
+  'collections.labels.namePlaceholder': 'z. B. Berlin',
+  'collections.labels.assign': 'Label zuweisen',
+  'collections.labels.assignN': 'Labels zu {count} Orten hinzufügen',
+  'collections.labels.assignedCount': '{count} Orte gelabelt',
+  'collections.labels.empty': 'Noch keine Labels',
+  'collections.labels.emptyHint': 'Erstelle zuerst ein Label, um Orte in dieser Liste zu gruppieren.',
 };
 
 export default collection;

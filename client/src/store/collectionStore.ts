@@ -10,6 +10,8 @@ import type {
   CollectionCreateRequest,
   CollectionUpdateRequest,
   CollectionPlaceUpdateRequest,
+  CollectionLabel,
+  CollectionLabelUpdateRequest,
 } from '@trek/shared'
 
 /** A pending invitation the current user has received (derived server-side). */
@@ -27,10 +29,12 @@ interface CollectionState {
   activeId: ActiveCollectionId
   places: CollectionPlace[]
   members: CollectionMember[]
+  labels: CollectionLabel[]
   incomingInvites: IncomingCollectionInvite[]
   view: CollectionView
   statusFilter: StatusFilter
   categoryFilter: number | 'all'
+  labelFilter: number[]
   search: string
   selectedPlaceId: number | null
   selectMode: boolean
@@ -57,6 +61,11 @@ interface CollectionState {
   moveToList: (placeIds: number[], targetId: number) => Promise<void>
   duplicateToList: (placeIds: number[], targetId: number) => Promise<void>
 
+  createLabel: (name: string, color?: string) => Promise<void>
+  updateLabel: (labelId: number, body: CollectionLabelUpdateRequest) => Promise<void>
+  deleteLabel: (labelId: number) => Promise<void>
+  assignLabels: (labelIds: number[], placeIds: number[], remove?: boolean) => Promise<void>
+
   invite: (collectionId: number, userId: number, role?: CollectionRole) => Promise<void>
   setMemberRole: (collectionId: number, userId: number, role: CollectionRole) => Promise<void>
   acceptInvite: (collectionId: number) => Promise<void>
@@ -68,6 +77,7 @@ interface CollectionState {
   setView: (view: CollectionView) => void
   setStatusFilter: (filter: StatusFilter) => void
   setCategoryFilter: (filter: number | 'all') => void
+  setLabelFilter: (labelIds: number[]) => void
   setSearch: (search: string) => void
   setSelectedPlaceId: (id: number | null) => void
   setSelectMode: (on: boolean) => void
@@ -81,10 +91,12 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
   activeId: null,
   places: [],
   members: [],
+  labels: [],
   incomingInvites: [],
   view: 'list',
   statusFilter: 'all',
   categoryFilter: 'all',
+  labelFilter: [],
   search: '',
   selectedPlaceId: null,
   selectMode: false,
@@ -110,26 +122,28 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
         activeId: id,
         places: data.places,
         members: data.collection.members ?? [],
+        labels: data.collection.labels ?? [],
       })
     } catch {
       // The list may have been left / removed / deleted out from under us (a WS
       // event or the URL sync can re-request an id we just lost access to). Clear
       // it instead of leaving an uncaught 403/404 rejection; the route sync then
       // bounces to /collections.
-      if (get().activeId === id) set({ activeId: null, places: [], members: [] })
+      if (get().activeId === id) set({ activeId: null, places: [], members: [], labels: [] })
     } finally {
       set({ placesLoading: false })
     }
   },
 
   setActive: async (id: ActiveCollectionId) => {
-    set({ selectMode: false, selectedIds: [], selectedPlaceId: null })
+    // Labels are per-collection, so their filter can't carry across lists.
+    set({ selectMode: false, selectedIds: [], selectedPlaceId: null, labelFilter: [] })
     if (id === null) {
-      set({ activeId: null, places: [], members: [] })
+      set({ activeId: null, places: [], members: [], labels: [] })
       return
     }
     if (id === ALL_SAVED) {
-      set({ activeId: ALL_SAVED, members: [], placesLoading: true })
+      set({ activeId: ALL_SAVED, members: [], labels: [], placesLoading: true })
       try {
         // Client-side union of every list the user owns or co-owns (no server change).
         // On first load the lists may not be fetched yet (loadAll still in flight),
@@ -277,6 +291,51 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
     await get().loadAll()
   },
 
+  createLabel: async (name: string, color?: string) => {
+    const active = get().activeId
+    if (typeof active !== 'number') return
+    await collectionsApi.createLabel(active, name, color)
+    await get().loadCollection(active)
+  },
+
+  updateLabel: async (labelId: number, body: CollectionLabelUpdateRequest) => {
+    // optimistic recolor/rename
+    set({ labels: get().labels.map(l => (l.id === labelId ? { ...l, ...body } : l)) })
+    await collectionsApi.updateLabel(labelId, body)
+    const active = get().activeId
+    if (typeof active === 'number') await get().loadCollection(active)
+  },
+
+  deleteLabel: async (labelId: number) => {
+    // optimistic: drop the label + its assignments + any active filter on it
+    set({
+      labels: get().labels.filter(l => l.id !== labelId),
+      labelFilter: get().labelFilter.filter(id => id !== labelId),
+      places: get().places.map(p => ({ ...p, label_ids: (p.label_ids ?? []).filter(id => id !== labelId) })),
+    })
+    await collectionsApi.deleteLabel(labelId)
+    const active = get().activeId
+    if (typeof active === 'number') await get().loadCollection(active)
+  },
+
+  assignLabels: async (labelIds: number[], placeIds: number[], remove = false) => {
+    const idSet = new Set(placeIds)
+    // optimistic per-place label_ids update
+    set({
+      places: get().places.map(p => {
+        if (!idSet.has(p.id)) return p
+        const current = new Set(p.label_ids ?? [])
+        if (remove) labelIds.forEach(id => current.delete(id))
+        else labelIds.forEach(id => current.add(id))
+        return { ...p, label_ids: [...current] }
+      }),
+    })
+    if (remove) await collectionsApi.unassignLabels(labelIds, placeIds)
+    else await collectionsApi.assignLabels(labelIds, placeIds)
+    const active = get().activeId
+    if (typeof active === 'number') await get().loadCollection(active)
+  },
+
   invite: async (collectionId: number, userId: number, role?: CollectionRole) => {
     await collectionsApi.invite(collectionId, userId, role)
     if (get().activeId === collectionId) await get().loadCollection(collectionId)
@@ -316,6 +375,7 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
   setView: (view: CollectionView) => set({ view }),
   setStatusFilter: (filter: StatusFilter) => set({ statusFilter: filter }),
   setCategoryFilter: (filter: number | 'all') => set({ categoryFilter: filter }),
+  setLabelFilter: (labelIds: number[]) => set({ labelFilter: labelIds }),
   setSearch: (search: string) => set({ search }),
   setSelectedPlaceId: (id: number | null) => set({ selectedPlaceId: id }),
   setSelectMode: (on: boolean) => set({ selectMode: on, selectedIds: on ? get().selectedIds : [] }),

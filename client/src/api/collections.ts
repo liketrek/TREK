@@ -18,6 +18,9 @@ import type {
   CollectionStatus,
   Collection,
   CollectionPlace,
+  CollectionLabel,
+  CollectionLabelCreateRequest,
+  CollectionLabelUpdateRequest,
 } from '@trek/shared'
 
 const ax = apiClient
@@ -95,4 +98,15 @@ export const collectionsApi = {
     ax.post(`${base}/members/remove`, { collection_id: collectionId, user_id: userId }).then((r: AxiosResponse) => r.data),
   availableUsers: (id: number): Promise<{ users: { id: number; username: string }[] }> =>
     ax.get(`${base}/${id}/available-users`).then((r: AxiosResponse) => r.data),
+
+  createLabel: (collectionId: number, name: string, color?: string): Promise<CollectionLabel> =>
+    ax.post(`${base}/labels`, { collection_id: collectionId, name, color } satisfies CollectionLabelCreateRequest).then((r: AxiosResponse) => r.data),
+  updateLabel: (labelId: number, body: CollectionLabelUpdateRequest): Promise<CollectionLabel> =>
+    ax.patch(`${base}/labels/${labelId}`, body satisfies CollectionLabelUpdateRequest).then((r: AxiosResponse) => r.data),
+  deleteLabel: (labelId: number): Promise<unknown> =>
+    ax.delete(`${base}/labels/${labelId}`).then((r: AxiosResponse) => r.data),
+  assignLabels: (labelIds: number[], placeIds: number[]): Promise<{ changed: number }> =>
+    ax.post(`${base}/labels/assign`, { label_ids: labelIds, place_ids: placeIds }).then((r: AxiosResponse) => r.data),
+  unassignLabels: (labelIds: number[], placeIds: number[]): Promise<{ changed: number }> =>
+    ax.post(`${base}/labels/unassign`, { label_ids: labelIds, place_ids: placeIds }).then((r: AxiosResponse) => r.data),
 }

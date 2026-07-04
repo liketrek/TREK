@@ -41,6 +41,12 @@ import {
   collectionInviteCancelRequestSchema,
   collectionRemoveMemberRequestSchema,
   collectionSetMemberRoleRequestSchema,
+  collectionLabelCreateRequestSchema,
+  collectionLabelUpdateRequestSchema,
+  collectionLabelAssignRequestSchema,
+  type CollectionLabelCreateRequest,
+  type CollectionLabelUpdateRequest,
+  type CollectionLabelAssignRequest,
   type CollectionCreateRequest,
   type CollectionUpdateRequest,
   type CollectionSavePlaceRequest,
@@ -171,6 +177,53 @@ export class CollectionsController {
   @HttpCode(200)
   copyToTrip(@CurrentUser() user: User, @Body(new ZodValidationPipe(collectionCopyToTripRequestSchema)) body: CollectionCopyToTripRequest) {
     return this.collections.copyToTrip(user.id, body);
+  }
+
+  // ── Labels (per-collection custom labels; static prefixes before /:id) ───────
+  @Post('labels')
+  @HttpCode(200)
+  createLabel(
+    @CurrentUser() user: User,
+    @Body(new ZodValidationPipe(collectionLabelCreateRequestSchema)) body: CollectionLabelCreateRequest,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    return this.collections.createLabel(user.id, body.collection_id, body.name, body.color, socketId);
+  }
+
+  @Patch('labels/:lid')
+  updateLabel(
+    @CurrentUser() user: User,
+    @Param('lid') lid: string,
+    @Body(new ZodValidationPipe(collectionLabelUpdateRequestSchema)) body: CollectionLabelUpdateRequest,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    return this.collections.updateLabel(user.id, Number(lid), body, socketId);
+  }
+
+  @Delete('labels/:lid')
+  deleteLabel(@CurrentUser() user: User, @Param('lid') lid: string, @Headers('x-socket-id') socketId?: string) {
+    this.collections.deleteLabel(user.id, Number(lid), socketId);
+    return { success: true };
+  }
+
+  @Post('labels/assign')
+  @HttpCode(200)
+  assignLabels(
+    @CurrentUser() user: User,
+    @Body(new ZodValidationPipe(collectionLabelAssignRequestSchema)) body: CollectionLabelAssignRequest,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    return this.collections.assignLabels(user.id, body.label_ids, body.place_ids, false, socketId);
+  }
+
+  @Post('labels/unassign')
+  @HttpCode(200)
+  unassignLabels(
+    @CurrentUser() user: User,
+    @Body(new ZodValidationPipe(collectionLabelAssignRequestSchema)) body: CollectionLabelAssignRequest,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    return this.collections.assignLabels(user.id, body.label_ids, body.place_ids, true, socketId);
   }
 
   // ── Library-wide membership lookup ──────────────────────────────────────────

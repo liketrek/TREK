@@ -144,6 +144,17 @@ const collection: TranslationStrings = {
   'collections.widget.title': '收藏',
   'collections.widget.empty': '尚無已儲存的地點',
   'collections.widget.savedCount': '已儲存 {count} 個',
+
+  'collections.labels.title': '標籤',
+  'collections.labels.manage': '管理標籤',
+  'collections.labels.add': '新增標籤',
+  'collections.labels.name': '標籤名稱',
+  'collections.labels.namePlaceholder': '例如：柏林',
+  'collections.labels.assign': '指派標籤',
+  'collections.labels.assignN': '為 {count} 個地點新增標籤',
+  'collections.labels.assignedCount': '已為 {count} 個地點加上標籤',
+  'collections.labels.empty': '尚無標籤',
+  'collections.labels.emptyHint': '請先建立標籤，以將此清單中的地點分組。',
 };
 
 export default collection;

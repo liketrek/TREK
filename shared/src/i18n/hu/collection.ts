@@ -144,6 +144,16 @@ const collection: TranslationStrings = {
   'collections.widget.title': 'Gyűjtemények',
   'collections.widget.empty': 'Még nincsenek mentett helyek',
   'collections.widget.savedCount': '{count} mentve',
+  'collections.labels.title': 'Címkék',
+  'collections.labels.manage': 'Címkék kezelése',
+  'collections.labels.add': 'Címke hozzáadása',
+  'collections.labels.name': 'Címke neve',
+  'collections.labels.namePlaceholder': 'pl. Berlin',
+  'collections.labels.assign': 'Címke hozzárendelése',
+  'collections.labels.assignN': 'Címkék hozzáadása {count} helyhez',
+  'collections.labels.assignedCount': '{count} hely felcímkézve',
+  'collections.labels.empty': 'Még nincsenek címkék',
+  'collections.labels.emptyHint': 'Előbb hozz létre egy címkét a helyek csoportosításához ebben a listában.',
 };
 
 export default collection;

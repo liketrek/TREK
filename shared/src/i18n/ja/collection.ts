@@ -144,6 +144,16 @@ const collection: TranslationStrings = {
   'collections.widget.title': 'コレクション',
   'collections.widget.empty': 'まだ保存した場所がありません',
   'collections.widget.savedCount': '{count}件保存済み',
+  'collections.labels.title': 'ラベル',
+  'collections.labels.manage': 'ラベルを管理',
+  'collections.labels.add': 'ラベルを追加',
+  'collections.labels.name': 'ラベル名',
+  'collections.labels.namePlaceholder': '例: Berlin',
+  'collections.labels.assign': 'ラベルを割り当て',
+  'collections.labels.assignN': '{count} 件の場所にラベルを追加',
+  'collections.labels.assignedCount': '{count} 件の場所にラベルを付けました',
+  'collections.labels.empty': 'ラベルがまだありません',
+  'collections.labels.emptyHint': 'まずラベルを作成して、このリスト内の場所をグループ化しましょう。',
 };
 
 export default collection;

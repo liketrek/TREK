@@ -17,6 +17,7 @@ import type {
   CollectionSaveResult,
   CollectionCopyToTripRequest,
   CollectionStatus,
+  CollectionLabel,
 } from '@trek/shared';
 
 /** Links are stored as a JSON TEXT column; parse on read, stringify on write. */
@@ -147,9 +148,32 @@ function loadTagsByCollectionPlaceIds(placeIds: number[]): Record<number, { id: 
   return out;
 }
 
+/** A list's own label definitions, in display order. */
+function loadLabelsByCollection(collectionId: number): CollectionLabel[] {
+  return db.prepare(
+    'SELECT id, collection_id, name, color, sort_order FROM collection_labels WHERE collection_id = ? ORDER BY sort_order, id',
+  ).all(collectionId) as CollectionLabel[];
+}
+
+/** Assigned label ids per place, batched (mirrors loadTagsByCollectionPlaceIds). */
+function loadLabelIdsByPlaceIds(placeIds: number[]): Record<number, number[]> {
+  const out: Record<number, number[]> = {};
+  if (placeIds.length === 0) return out;
+  const placeholders = placeIds.map(() => '?').join(',');
+  const rows = db.prepare(
+    `SELECT collection_place_id AS pid, label_id FROM collection_place_labels WHERE collection_place_id IN (${placeholders})`,
+  ).all(...placeIds) as { pid: number; label_id: number }[];
+  for (const r of rows) {
+    if (!out[r.pid]) out[r.pid] = [];
+    out[r.pid].push(r.label_id);
+  }
+  return out;
+}
+
 function hydratePlaces(rows: PlaceRow[]): CollectionPlace[] {
   const ids = rows.map(r => r.id);
   const tagsByPlace = loadTagsByCollectionPlaceIds(ids);
+  const labelsByPlace = loadLabelIdsByPlaceIds(ids);
   return rows.map(r => {
     const { category_name, category_color, category_icon, ...rest } = r;
     return {
@@ -159,6 +183,7 @@ function hydratePlaces(rows: PlaceRow[]): CollectionPlace[] {
         ? { id: r.category_id, name: category_name ?? '', color: category_color ?? null, icon: category_icon ?? null }
         : undefined,
       tags: tagsByPlace[r.id] || [],
+      label_ids: labelsByPlace[r.id] || [],
     } as CollectionPlace;
   });
 }
@@ -240,7 +265,10 @@ export function getCollection(userId: number, id: number): CollectionDetailRespo
     WHERE cp.collection_id = ?
     ORDER BY cp.sort_order, cp.created_at
   `).all(id) as PlaceRow[];
-  return { collection: { ...collection, is_owner: collection.owner_id === userId }, places: hydratePlaces(rows) };
+  return {
+    collection: { ...collection, is_owner: collection.owner_id === userId, labels: loadLabelsByCollection(id) },
+    places: hydratePlaces(rows),
+  };
 }
 
 export function createCollection(userId: number, body: CollectionCreateRequest): Collection {
@@ -528,6 +556,11 @@ export function updatePlace(userId: number, placeId: number, body: import('@trek
     attachTags(placeId, body.tag_ids);
   }
 
+  // Labels are collection-scoped: a move invalidates the source list's labels;
+  // a provided label_ids set replaces them against the (target) collection.
+  if (movedTo) db.prepare('DELETE FROM collection_place_labels WHERE collection_place_id = ?').run(placeId);
+  if (body.label_ids !== undefined) setPlaceLabels(placeId, movedTo ?? currentCollection, body.label_ids);
+
   notifyCollectionUsers(currentCollection, socketId, 'collections:updated');
   if (movedTo) notifyCollectionUsers(movedTo, socketId, 'collections:updated');
   return getPlaceById(placeId);
@@ -675,6 +708,106 @@ export function notifyCollectionUsers(collectionId: number, excludeSid: string |
   const members = db.prepare("SELECT user_id FROM collection_members WHERE collection_id = ? AND status = 'accepted'").all(collectionId) as { user_id: number }[];
   members.forEach(m => userIds.push(m.user_id));
   userIds.forEach(id => broadcastToUser(id, { type: event, collectionId }, excludeSid));
+}
+
+// ---------------------------------------------------------------------------
+// Labels — per-collection custom labels. Managing + assigning both require edit
+// rights (owner/admin/editor); filtering is a read available to every member.
+// ---------------------------------------------------------------------------
+
+const MAX_LABELS_PER_COLLECTION = 50;
+
+function collectionIdOfLabel(labelId: number): number {
+  const row = db.prepare('SELECT collection_id FROM collection_labels WHERE id = ?').get(labelId) as { collection_id: number } | undefined;
+  if (!row) httpError(404, 'Label not found');
+  return row.collection_id;
+}
+
+function getLabelById(labelId: number): CollectionLabel {
+  return db.prepare('SELECT id, collection_id, name, color, sort_order FROM collection_labels WHERE id = ?').get(labelId) as CollectionLabel;
+}
+
+/** Replace a place's label assignments, keeping only labels of `collectionId`. */
+function setPlaceLabels(placeId: number, collectionId: number, labelIds: number[]): void {
+  db.prepare('DELETE FROM collection_place_labels WHERE collection_place_id = ?').run(placeId);
+  if (labelIds.length === 0) return;
+  const valid = new Set(loadLabelsByCollection(collectionId).map(l => l.id));
+  const stmt = db.prepare('INSERT OR IGNORE INTO collection_place_labels (collection_place_id, label_id) VALUES (?, ?)');
+  for (const id of labelIds) if (valid.has(id)) stmt.run(placeId, id);
+}
+
+export function createLabel(userId: number, collectionId: number, name: string, color?: string, socketId?: string): CollectionLabel {
+  assertCanEdit(userId, collectionId);
+  const trimmed = name.trim();
+  if (!trimmed) httpError(400, 'Label name is required');
+  const count = (db.prepare('SELECT COUNT(*) AS n FROM collection_labels WHERE collection_id = ?').get(collectionId) as { n: number }).n;
+  if (count >= MAX_LABELS_PER_COLLECTION) httpError(400, `A list can have at most ${MAX_LABELS_PER_COLLECTION} labels`);
+  if (db.prepare('SELECT 1 FROM collection_labels WHERE collection_id = ? AND lower(name) = lower(?)').get(collectionId, trimmed)) {
+    httpError(409, 'A label with this name already exists');
+  }
+  const nextSort = (db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM collection_labels WHERE collection_id = ?').get(collectionId) as { m: number }).m + 1;
+  const res = db.prepare('INSERT INTO collection_labels (collection_id, name, color, sort_order) VALUES (?, ?, ?, ?)')
+    .run(collectionId, trimmed, color ?? '#6366f1', nextSort);
+  notifyCollectionUsers(collectionId, socketId, 'collections:updated');
+  return getLabelById(Number(res.lastInsertRowid));
+}
+
+export function updateLabel(userId: number, labelId: number, body: { name?: string; color?: string; sort_order?: number }, socketId?: string): CollectionLabel {
+  const collectionId = collectionIdOfLabel(labelId);
+  assertCanEdit(userId, collectionId);
+  const updates: string[] = [];
+  const params: (string | number)[] = [];
+  if (body.name !== undefined) {
+    const trimmed = body.name.trim();
+    if (!trimmed) httpError(400, 'Label name is required');
+    if (db.prepare('SELECT 1 FROM collection_labels WHERE collection_id = ? AND lower(name) = lower(?) AND id != ?').get(collectionId, trimmed, labelId)) {
+      httpError(409, 'A label with this name already exists');
+    }
+    updates.push('name = ?'); params.push(trimmed);
+  }
+  if (body.color !== undefined) { updates.push('color = ?'); params.push(body.color); }
+  if (body.sort_order !== undefined) { updates.push('sort_order = ?'); params.push(body.sort_order); }
+  if (updates.length > 0) {
+    params.push(labelId);
+    db.prepare(`UPDATE collection_labels SET ${updates.join(', ')} WHERE id = ?`).run(...params);
+  }
+  notifyCollectionUsers(collectionId, socketId, 'collections:updated');
+  return getLabelById(labelId);
+}
+
+export function deleteLabel(userId: number, labelId: number, socketId?: string): void {
+  const collectionId = collectionIdOfLabel(labelId);
+  assertCanEdit(userId, collectionId);
+  db.prepare('DELETE FROM collection_labels WHERE id = ?').run(labelId); // CASCADE clears place assignments
+  notifyCollectionUsers(collectionId, socketId, 'collections:updated');
+}
+
+/** Bulk add (or remove) one or more labels across a selection of places.
+ *  Places are grouped by list so each list is permission-checked once, and only
+ *  labels that belong to that list are applied. */
+export function assignLabels(userId: number, labelIds: number[], placeIds: number[], remove: boolean, socketId?: string): { changed: number } {
+  const byCollection = new Map<number, number[]>();
+  for (const pid of placeIds) {
+    const cid = collectionIdOfPlace(pid);
+    if (!byCollection.has(cid)) byCollection.set(cid, []);
+    byCollection.get(cid)!.push(pid);
+  }
+  let changed = 0;
+  for (const [cid, pids] of byCollection) {
+    assertCanEdit(userId, cid);
+    const valid = new Set(loadLabelsByCollection(cid).map(l => l.id));
+    const applicable = labelIds.filter(id => valid.has(id));
+    if (applicable.length === 0) continue;
+    if (remove) {
+      const del = db.prepare('DELETE FROM collection_place_labels WHERE collection_place_id = ? AND label_id = ?');
+      for (const pid of pids) for (const lid of applicable) changed += del.run(pid, lid).changes;
+    } else {
+      const ins = db.prepare('INSERT OR IGNORE INTO collection_place_labels (collection_place_id, label_id) VALUES (?, ?)');
+      for (const pid of pids) for (const lid of applicable) changed += ins.run(pid, lid).changes;
+    }
+    notifyCollectionUsers(cid, socketId, 'collections:updated');
+  }
+  return { changed };
 }
 
 // ---------------------------------------------------------------------------

@@ -144,6 +144,16 @@ const collection: TranslationStrings = {
   'collections.widget.title': 'Samlingar',
   'collections.widget.empty': 'Inga sparade platser ännu',
   'collections.widget.savedCount': '{count} sparade',
+  'collections.labels.title': 'Etiketter',
+  'collections.labels.manage': 'Hantera etiketter',
+  'collections.labels.add': 'Lägg till etikett',
+  'collections.labels.name': 'Etikettnamn',
+  'collections.labels.namePlaceholder': 't.ex. Berlin',
+  'collections.labels.assign': 'Tilldela etikett',
+  'collections.labels.assignN': 'Lägg till etiketter på {count} platser',
+  'collections.labels.assignedCount': 'Etiketterade {count} platser',
+  'collections.labels.empty': 'Inga etiketter ännu',
+  'collections.labels.emptyHint': 'Skapa en etikett först för att gruppera platser i den här listan.',
 };
 
 export default collection;

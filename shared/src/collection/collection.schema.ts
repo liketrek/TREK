@@ -22,6 +22,17 @@ export const collectionLinkSchema = z.object({
 export type CollectionLink = z.infer<typeof collectionLinkSchema>;
 export const collectionLinksSchema = z.array(collectionLinkSchema).max(30);
 
+/** A custom label defined per-collection (distinct from the instance-wide tags).
+ *  Members group and filter a list's places by these. */
+export const collectionLabelSchema = z.object({
+  id: z.number(),
+  collection_id: z.number(),
+  name: z.string(),
+  color: z.string().nullable().optional(),
+  sort_order: z.number().optional(),
+});
+export type CollectionLabel = z.infer<typeof collectionLabelSchema>;
+
 /** A saved place — assignmentPlace minus itinerary, plus status + provenance. */
 export const collectionPlaceSchema = z.object({
   id: z.number(),
@@ -52,6 +63,8 @@ export const collectionPlaceSchema = z.object({
   links: collectionLinksSchema.optional(),
   category: placeCategorySchema.optional(),
   tags: z.array(tagSchema.partial()).optional(),
+  /** Ids of the per-collection labels assigned to this place. */
+  label_ids: z.array(z.number()).optional(),
 });
 export type CollectionPlace = z.infer<typeof collectionPlaceSchema>;
 
@@ -81,6 +94,7 @@ export const collectionSchema = z.object({
   place_count: z.number().optional(),
   is_owner: z.boolean().optional(),
   members: z.array(collectionMemberSchema).optional(),
+  labels: z.array(collectionLabelSchema).optional(),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
 });
@@ -156,6 +170,8 @@ export const collectionPlaceUpdateRequestSchema = z.object({
   collection_id: z.number().optional(), // move to another list
   links: collectionLinksSchema.optional(),
   tag_ids: z.array(z.number()).optional(),
+  // Replace the place's per-collection label assignments (omit to leave unchanged).
+  label_ids: z.array(z.number()).optional(),
 });
 export type CollectionPlaceUpdateRequest = z.infer<typeof collectionPlaceUpdateRequestSchema>;
 
@@ -201,6 +217,32 @@ export const collectionSetMemberRoleRequestSchema = z.object({
   role: collectionRoleSchema,
 });
 export type CollectionSetMemberRoleRequest = z.infer<typeof collectionSetMemberRoleRequestSchema>;
+
+// ── Labels ──────────────────────────────────────────────────────────────────
+const labelColorSchema = z.string().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
+
+/** Create a custom label in a list. */
+export const collectionLabelCreateRequestSchema = z.object({
+  collection_id: z.number(),
+  name: z.string().trim().min(1).max(60),
+  color: labelColorSchema.optional(),
+});
+export type CollectionLabelCreateRequest = z.infer<typeof collectionLabelCreateRequestSchema>;
+
+/** Rename / recolor a label (all fields optional). */
+export const collectionLabelUpdateRequestSchema = z.object({
+  name: z.string().trim().min(1).max(60).optional(),
+  color: labelColorSchema.optional(),
+  sort_order: z.number().optional(),
+});
+export type CollectionLabelUpdateRequest = z.infer<typeof collectionLabelUpdateRequestSchema>;
+
+/** Bulk add or remove one/several labels across many selected places. */
+export const collectionLabelAssignRequestSchema = z.object({
+  label_ids: z.array(z.number()).min(1).max(50),
+  place_ids: z.array(z.number()).min(1).max(1000),
+});
+export type CollectionLabelAssignRequest = z.infer<typeof collectionLabelAssignRequestSchema>;
 
 // ── Responses ─────────────────────────────────────────────────────────────
 export const collectionListResponseSchema = z.object({

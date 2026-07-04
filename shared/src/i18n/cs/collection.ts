@@ -144,6 +144,16 @@ const collection: TranslationStrings = {
   'collections.widget.title': 'Sbírky',
   'collections.widget.empty': 'Zatím žádná uložená místa',
   'collections.widget.savedCount': 'Uloženo: {count}',
+  'collections.labels.title': 'Štítky',
+  'collections.labels.manage': 'Spravovat štítky',
+  'collections.labels.add': 'Přidat štítek',
+  'collections.labels.name': 'Název štítku',
+  'collections.labels.namePlaceholder': 'např. Berlin',
+  'collections.labels.assign': 'Přiřadit štítek',
+  'collections.labels.assignN': 'Přidat štítky k {count} místům',
+  'collections.labels.assignedCount': 'Označeno {count} míst',
+  'collections.labels.empty': 'Zatím žádné štítky',
+  'collections.labels.emptyHint': 'Nejprve vytvořte štítek, abyste mohli seskupit místa v tomto seznamu.',
 };
 
 export default collection;

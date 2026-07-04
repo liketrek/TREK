@@ -436,6 +436,27 @@ function createTables(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_collection_place_tags_place ON collection_place_tags(collection_place_id);
     CREATE INDEX IF NOT EXISTS idx_collection_place_tags_tag ON collection_place_tags(tag_id);
 
+    -- Per-collection custom labels (distinct from the instance-wide tags table):
+    -- each list defines its own labels and every place can carry several.
+    CREATE TABLE IF NOT EXISTS collection_labels (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      collection_id INTEGER NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      color TEXT DEFAULT '#6366f1',
+      sort_order INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS collection_place_labels (
+      collection_place_id INTEGER NOT NULL REFERENCES collection_places(id) ON DELETE CASCADE,
+      label_id INTEGER NOT NULL REFERENCES collection_labels(id) ON DELETE CASCADE,
+      PRIMARY KEY (collection_place_id, label_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_collection_labels_collection ON collection_labels(collection_id);
+    CREATE INDEX IF NOT EXISTS idx_collection_place_labels_place ON collection_place_labels(collection_place_id);
+    CREATE INDEX IF NOT EXISTS idx_collection_place_labels_label ON collection_place_labels(label_id);
+
     CREATE TABLE IF NOT EXISTS day_accommodations (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,

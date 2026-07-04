@@ -144,6 +144,16 @@ const collection: TranslationStrings = {
   'collections.widget.title': 'Collections',
   'collections.widget.empty': 'Aucun lieu enregistré pour le moment',
   'collections.widget.savedCount': '{count} enregistrés',
+  'collections.labels.title': 'Libellés',
+  'collections.labels.manage': 'Gérer les libellés',
+  'collections.labels.add': 'Ajouter un libellé',
+  'collections.labels.name': 'Nom du libellé',
+  'collections.labels.namePlaceholder': 'p. ex. Berlin',
+  'collections.labels.assign': 'Attribuer un libellé',
+  'collections.labels.assignN': 'Ajouter des libellés à {count} lieux',
+  'collections.labels.assignedCount': 'Libellés ajoutés à {count} lieux',
+  'collections.labels.empty': 'Aucun libellé pour le moment',
+  'collections.labels.emptyHint': 'Créez d’abord un libellé pour regrouper les lieux de cette liste.',
 };
 
 export default collection;

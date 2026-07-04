@@ -144,6 +144,16 @@ const collection: TranslationStrings = {
   'collections.widget.title': '컬렉션',
   'collections.widget.empty': '아직 저장한 장소가 없습니다',
   'collections.widget.savedCount': '{count}개 저장됨',
+  'collections.labels.title': '레이블',
+  'collections.labels.manage': '레이블 관리',
+  'collections.labels.add': '레이블 추가',
+  'collections.labels.name': '레이블 이름',
+  'collections.labels.namePlaceholder': '예: Berlin',
+  'collections.labels.assign': '레이블 지정',
+  'collections.labels.assignN': '{count}개 장소에 레이블 추가',
+  'collections.labels.assignedCount': '{count}개 장소에 레이블 지정됨',
+  'collections.labels.empty': '아직 레이블이 없습니다',
+  'collections.labels.emptyHint': '먼저 레이블을 만들어 이 목록의 장소를 그룹화하세요.',
 };
 
 export default collection;

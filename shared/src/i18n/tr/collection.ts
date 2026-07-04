@@ -144,6 +144,16 @@ const collection: TranslationStrings = {
   'collections.widget.title': 'Koleksiyonlar',
   'collections.widget.empty': 'Henüz kaydedilmiş yer yok',
   'collections.widget.savedCount': '{count} kayıtlı',
+  'collections.labels.title': 'Etiketler',
+  'collections.labels.manage': 'Etiketleri yönet',
+  'collections.labels.add': 'Etiket ekle',
+  'collections.labels.name': 'Etiket adı',
+  'collections.labels.namePlaceholder': 'örn. Berlin',
+  'collections.labels.assign': 'Etiket ata',
+  'collections.labels.assignN': '{count} yere etiket ekle',
+  'collections.labels.assignedCount': '{count} yer etiketlendi',
+  'collections.labels.empty': 'Henüz etiket yok',
+  'collections.labels.emptyHint': 'Bu listedeki yerleri gruplamak için önce bir etiket oluştur.',
 };
 
 export default collection;

@@ -2,8 +2,8 @@ import React, { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
-import { X, Pencil, Copy, Trash2, MapPin, Link2, Plus, ExternalLink, Check, Tag } from 'lucide-react'
-import type { CollectionPlace, CollectionStatus, CollectionLink } from '@trek/shared'
+import { X, Pencil, Copy, Trash2, MapPin, Link2, Plus, ExternalLink, Check, Tag, Tags } from 'lucide-react'
+import type { CollectionPlace, CollectionStatus, CollectionLink, CollectionLabel } from '@trek/shared'
 import type { Category, TranslationFn } from '../../types'
 import MarkdownToolbar from '../Journey/MarkdownToolbar'
 import { mapsApi } from '../../api/client'
@@ -22,11 +22,13 @@ interface CollectionPlaceDetailProps {
   canEdit: boolean
   canDelete: boolean
   categories: Category[]
+  /** The active list's custom labels, for the assign chips. */
+  labels: CollectionLabel[]
   /** When set, dock the sheet over that column (desktop split) instead of centred. */
   anchorRect?: { left: number; width: number } | null
   onClose: () => void
   onSetStatus: (status: CollectionStatus) => void
-  onSave: (patch: { name?: string; description?: string | null; links?: CollectionLink[]; category_id?: number | null }) => Promise<void>
+  onSave: (patch: { name?: string; description?: string | null; links?: CollectionLink[]; category_id?: number | null; label_ids?: number[] }) => Promise<void>
   onCopyToTrip: () => void
   onRemove: () => void
   t: TranslationFn
@@ -56,7 +58,7 @@ function StatusSegment({ status, onSet, t }: { status: CollectionStatus; onSet: 
  * is an always-live segmented control (auto-saves).
  */
 export default function CollectionPlaceDetail({
-  place, canEdit, canDelete, categories, anchorRect, onClose, onSetStatus, onSave, onCopyToTrip, onRemove, t,
+  place, canEdit, canDelete, categories, labels, anchorRect, onClose, onSetStatus, onSave, onCopyToTrip, onRemove, t,
 }: CollectionPlaceDetailProps): React.ReactElement {
   const toast = useToast()
   const [editing, setEditing] = useState(false)
@@ -64,6 +66,7 @@ export default function CollectionPlaceDetail({
   const [categoryId, setCategoryId] = useState<number | null>(place.category_id ?? null)
   const [description, setDescription] = useState(place.description ?? '')
   const [links, setLinks] = useState<CollectionLink[]>(place.links ?? [])
+  const [labelIds, setLabelIds] = useState<number[]>(place.label_ids ?? [])
   const [saving, setSaving] = useState(false)
   // A higher-res photo pulled from the maps provider when the place has none of
   // its own — the list avatar's little thumbnail is too low-res for the cover.
@@ -77,6 +80,7 @@ export default function CollectionPlaceDetail({
     setCategoryId(place.category_id ?? null)
     setDescription(place.description ?? '')
     setLinks(place.links ?? [])
+    setLabelIds(place.label_ids ?? [])
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [place.id])
 
@@ -96,13 +100,15 @@ export default function CollectionPlaceDetail({
 
   const banner = place.image_url || fetchedPhoto
   const setLink = (i: number, patch: Partial<CollectionLink>) => setLinks(links.map((l, idx) => (idx === i ? { ...l, ...patch } : l)))
-  const resetForm = () => { setEditing(false); setName(place.name); setCategoryId(place.category_id ?? null); setDescription(place.description ?? ''); setLinks(place.links ?? []) }
+  const toggleLabel = (id: number) => setLabelIds(labelIds.includes(id) ? labelIds.filter(x => x !== id) : [...labelIds, id])
+  const resetForm = () => { setEditing(false); setName(place.name); setCategoryId(place.category_id ?? null); setDescription(place.description ?? ''); setLinks(place.links ?? []); setLabelIds(place.label_ids ?? []) }
+  const assignedLabels = labels.filter(l => (place.label_ids ?? []).includes(l.id))
 
   const save = async () => {
     const cleanLinks = links.map(l => ({ label: l.label?.trim() || undefined, url: normalizeLinkUrl(l.url) })).filter(l => l.url)
     setSaving(true)
     try {
-      await onSave({ name: name.trim() || place.name, description: description.trim() || null, links: cleanLinks, category_id: categoryId })
+      await onSave({ name: name.trim() || place.name, description: description.trim() || null, links: cleanLinks, category_id: categoryId, label_ids: labelIds })
       setEditing(false)
     } catch (err) {
       toast.error(getApiErrorMessage(err, t('common.error')))
@@ -161,6 +167,22 @@ export default function CollectionPlaceDetail({
                 })}
               </div>
             </div>
+            {/* Labels */}
+            {labels.length > 0 && (
+              <div className="col-detail-field">
+                <div className="col-detail-label"><Tags size={12} /> {t('collections.labels.title')}</div>
+                <div className="col-detail-cats">
+                  {labels.map(l => {
+                    const on = labelIds.includes(l.id)
+                    return (
+                      <button key={l.id} type="button" onClick={() => toggleLabel(l.id)} className={`col-detail-cat${on ? ' on' : ''}`} style={{ ['--cat' as string]: l.color || '#6366f1' }}>
+                        <span className="col-labelchip-dot" /> {l.name}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
             {/* Description */}
             <div className="col-detail-field">
               <div className="col-detail-label">{t('collections.description')}</div>
@@ -184,6 +206,15 @@ export default function CollectionPlaceDetail({
           </div>
         ) : (
           <>
+            {assignedLabels.length > 0 && (
+              <div className="col-detail-labels">
+                {assignedLabels.map(l => (
+                  <span key={l.id} className="col-labelchip on static" style={{ ['--label' as string]: l.color || 'var(--accent)' }}>
+                    <span className="col-labelchip-dot" /> {l.name}
+                  </span>
+                ))}
+              </div>
+            )}
             {place.description && (
               <div className="col-detail-md collab-note-md">
                 <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{place.description}</Markdown>

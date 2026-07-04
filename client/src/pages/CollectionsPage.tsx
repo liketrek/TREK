@@ -1,5 +1,5 @@
 import React from 'react'
-import { List as ListIcon, Map as MapIcon, Search, Bookmark, CheckCheck, X, Trash2, Copy, CopyPlus, FolderInput, Plus } from 'lucide-react'
+import { List as ListIcon, Map as MapIcon, Search, Bookmark, CheckCheck, X, Trash2, Copy, CopyPlus, FolderInput, Plus, Tags } from 'lucide-react'
 import Navbar from '../components/Layout/Navbar'
 import Modal from '../components/shared/Modal'
 import ListsRail from '../components/Collections/ListsRail'
@@ -13,6 +13,8 @@ import MoveToListModal from '../components/Collections/MoveToListModal'
 import ShareCollectionModal from '../components/Collections/ShareCollectionModal'
 import AddPlaceToCollectionModal from '../components/Collections/AddPlaceToCollectionModal'
 import CollectionPlaceDetail from '../components/Collections/CollectionPlaceDetail'
+import LabelManager from '../components/Collections/LabelManager'
+import BulkAssignLabelModal from '../components/Collections/BulkAssignLabelModal'
 import { useCollections } from './collections/useCollections'
 import '../styles/dashboard.css'
 import '../styles/collections.css'
@@ -41,6 +43,9 @@ export default function CollectionsPage(): React.ReactElement {
   const hasPlaces = c.places.length > 0
   const noLists = !c.loading && c.collections.length === 0
   const showSelect = c.isAllSaved || c.activeCollection != null
+  // Labels are per-collection, so only on a real (non "All saved") list.
+  const isRealList = !c.isAllSaved && typeof c.activeId === 'number'
+  const canManageLabels = isRealList && c.canEdit
 
   // Selecting a place toggles it, so clicking it again — or the map background —
   // clears it. Below the desktop breakpoint the list and map are separate views;
@@ -66,6 +71,7 @@ export default function CollectionsPage(): React.ReactElement {
   const listEl = (
     <CollectionList
       places={c.visiblePlaces}
+      labels={c.labels}
       selectedPlaceId={c.selectedPlaceId}
       selectMode={c.selectMode}
       selectedIds={c.selectedIds}
@@ -103,6 +109,12 @@ export default function CollectionsPage(): React.ReactElement {
       categoryOptions={c.categoryOptions}
       onStatusFilter={c.setStatusFilter}
       onCategoryFilter={c.setCategoryFilter}
+      showLabels={isRealList}
+      labelOptions={c.labelOptions}
+      labelFilter={c.labelFilter}
+      onLabelFilter={c.setLabelFilter}
+      canManageLabels={canManageLabels}
+      onManageLabels={() => c.setShowLabelManager(true)}
       showSelect={showSelect}
       selectMode={c.selectMode}
       onToggleSelect={() => c.setSelectMode(!c.selectMode)}
@@ -231,6 +243,11 @@ export default function CollectionsPage(): React.ReactElement {
                     </button>
                     <span className="lbl">{t('collections.selectedCount', { count: c.selectedIds.length })}</span>
                     <div className="col-toolbar-spacer" />
+                    {c.canEdit && isRealList && (
+                      <button type="button" onClick={() => c.setLabelPickerOpen(true)} disabled={c.selectedIds.length === 0} className="col-selbar-btn">
+                        <Tags size={14} /> {t('collections.labels.assign')}
+                      </button>
+                    )}
                     {c.canEdit && (
                       <button type="button" onClick={() => c.setListPickerMode('move')} disabled={c.selectedIds.length === 0} className="col-selbar-btn">
                         <FolderInput size={14} /> {t('collections.moveToList')}
@@ -282,6 +299,7 @@ export default function CollectionsPage(): React.ReactElement {
             canEdit={c.canEdit}
             canDelete={c.canDelete}
             categories={c.categories}
+            labels={c.labels}
             anchorRect={desktopSplit ? c.listColRect : null}
             onClose={c.handleCloseDetail}
             onSetStatus={c.handleDetailStatus}
@@ -343,6 +361,32 @@ export default function CollectionsPage(): React.ReactElement {
 
       {/* Create / edit a list — name, colour, cover, description, links */}
       <ListEditorModal target={c.editorTarget} onClose={() => c.setEditorTarget(null)} onCreated={c.handleEditorCreated} onRequestDelete={c.setConfirmDeleteList} t={t} />
+
+      {/* Manage the list's custom labels (editor+) */}
+      {canManageLabels && (
+        <LabelManager
+          isOpen={c.showLabelManager}
+          labels={c.labels}
+          onCreate={c.handleCreateLabel}
+          onUpdate={c.handleUpdateLabel}
+          onDelete={c.handleDeleteLabel}
+          onClose={() => c.setShowLabelManager(false)}
+          t={t}
+        />
+      )}
+
+      {/* Bulk-assign labels to the current selection */}
+      {canManageLabels && (
+        <BulkAssignLabelModal
+          isOpen={c.labelPickerOpen}
+          labels={c.labels}
+          count={c.selectedIds.length}
+          onAssign={c.handleBulkAssignLabels}
+          onManage={() => { c.setLabelPickerOpen(false); c.setShowLabelManager(true) }}
+          onClose={() => c.setLabelPickerOpen(false)}
+          t={t}
+        />
+      )}
 
       {/* Delete-list confirm */}
       <Modal

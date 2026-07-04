@@ -3398,6 +3398,27 @@ function runMigrations(db: Database.Database): void {
         db.exec('CREATE INDEX IF NOT EXISTS idx_plugin_audit_plugin ON plugin_capability_audit (plugin_id, id);');
       } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
     },
+    // Migration 160: per-collection custom labels (#collections). Each list owns
+    // its own label set (unlike the instance-wide `tags` table), and a place can
+    // carry several labels. Used for grouping + filtering places within a list.
+    () => {
+      db.exec(`CREATE TABLE IF NOT EXISTS collection_labels (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        collection_id INTEGER NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        color TEXT DEFAULT '#6366f1',
+        sort_order INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );`);
+      db.exec(`CREATE TABLE IF NOT EXISTS collection_place_labels (
+        collection_place_id INTEGER NOT NULL REFERENCES collection_places(id) ON DELETE CASCADE,
+        label_id INTEGER NOT NULL REFERENCES collection_labels(id) ON DELETE CASCADE,
+        PRIMARY KEY (collection_place_id, label_id)
+      );`);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_collection_labels_collection ON collection_labels(collection_id);');
+      db.exec('CREATE INDEX IF NOT EXISTS idx_collection_place_labels_place ON collection_place_labels(collection_place_id);');
+      db.exec('CREATE INDEX IF NOT EXISTS idx_collection_place_labels_label ON collection_place_labels(label_id);');
+    },
   ];
 
   if (currentVersion < migrations.length) {

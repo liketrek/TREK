@@ -144,6 +144,16 @@ const collection: TranslationStrings = {
   'collections.widget.title': 'Kolekcje',
   'collections.widget.empty': 'Brak zapisanych miejsc',
   'collections.widget.savedCount': '{count} zapisanych',
+  'collections.labels.title': 'Etykiety',
+  'collections.labels.manage': 'Zarządzaj etykietami',
+  'collections.labels.add': 'Dodaj etykietę',
+  'collections.labels.name': 'Nazwa etykiety',
+  'collections.labels.namePlaceholder': 'np. Berlin',
+  'collections.labels.assign': 'Przypisz etykietę',
+  'collections.labels.assignN': 'Dodaj etykiety do {count} miejsc',
+  'collections.labels.assignedCount': 'Oznaczono {count} miejsc',
+  'collections.labels.empty': 'Brak etykiet',
+  'collections.labels.emptyHint': 'Najpierw utwórz etykietę, aby pogrupować miejsca na tej liście.',
 };
 
 export default collection;

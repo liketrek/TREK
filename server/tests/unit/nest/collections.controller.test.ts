@@ -33,6 +33,10 @@ function makeService(overrides: Partial<Record<keyof CollectionsService, unknown
     leaveCollection: vi.fn(),
     removeMember: vi.fn(),
     availableUsers: vi.fn().mockReturnValue([{ id: 2 }]),
+    createLabel: vi.fn().mockReturnValue({ id: 5, collection_id: 3, name: 'Berlin' }),
+    updateLabel: vi.fn().mockReturnValue({ id: 5, collection_id: 3, name: 'Hamburg' }),
+    deleteLabel: vi.fn(),
+    assignLabels: vi.fn().mockReturnValue({ changed: 2 }),
     ...overrides,
   } as unknown as CollectionsService;
 }
@@ -189,6 +193,28 @@ describe('CollectionsController', () => {
       const svc = makeService();
       expect(new CollectionsController(svc).uploadCover(user, '3', file, 'sid')).toEqual({ id: 3 });
       expect(svc.setCollectionCover).toHaveBeenCalledWith(1, 3, '/uploads/covers/x.jpg', 'sid');
+    });
+  });
+
+  describe('labels', () => {
+    it('create / update / delete / assign / unassign forward user + socket id', () => {
+      const svc = makeService();
+      const c = new CollectionsController(svc);
+
+      c.createLabel(user, { collection_id: 3, name: 'Berlin', color: '#ff0000' } as never, 'sock');
+      expect(svc.createLabel).toHaveBeenCalledWith(1, 3, 'Berlin', '#ff0000', 'sock');
+
+      c.updateLabel(user, '5', { name: 'Hamburg' } as never, 'sock');
+      expect(svc.updateLabel).toHaveBeenCalledWith(1, 5, { name: 'Hamburg' }, 'sock');
+
+      expect(c.deleteLabel(user, '5', 'sock')).toEqual({ success: true });
+      expect(svc.deleteLabel).toHaveBeenCalledWith(1, 5, 'sock');
+
+      c.assignLabels(user, { label_ids: [5], place_ids: [9, 10] } as never, 'sock');
+      expect(svc.assignLabels).toHaveBeenCalledWith(1, [5], [9, 10], false, 'sock');
+
+      c.unassignLabels(user, { label_ids: [5], place_ids: [9] } as never, 'sock');
+      expect(svc.assignLabels).toHaveBeenCalledWith(1, [5], [9], true, 'sock');
     });
   });
 });

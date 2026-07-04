@@ -144,6 +144,16 @@ const collection: TranslationStrings = {
   'collections.widget.title': 'Bộ sưu tập',
   'collections.widget.empty': 'Chưa có địa điểm đã lưu',
   'collections.widget.savedCount': 'Đã lưu {count}',
+  'collections.labels.title': 'Nhãn',
+  'collections.labels.manage': 'Quản lý nhãn',
+  'collections.labels.add': 'Thêm nhãn',
+  'collections.labels.name': 'Tên nhãn',
+  'collections.labels.namePlaceholder': 'vd. Berlin',
+  'collections.labels.assign': 'Gán nhãn',
+  'collections.labels.assignN': 'Thêm nhãn cho {count} địa điểm',
+  'collections.labels.assignedCount': 'Đã gán nhãn {count} địa điểm',
+  'collections.labels.empty': 'Chưa có nhãn nào',
+  'collections.labels.emptyHint': 'Tạo một nhãn trước để nhóm các địa điểm trong danh sách này.',
 };
 
 export default collection;

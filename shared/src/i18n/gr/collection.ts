@@ -144,6 +144,17 @@ const collection: TranslationStrings = {
   'collections.widget.title': 'Συλλογές',
   'collections.widget.empty': 'Δεν υπάρχουν αποθηκευμένα μέρη ακόμα',
   'collections.widget.savedCount': '{count} αποθηκευμένα',
+
+  'collections.labels.title': 'Ετικέτες',
+  'collections.labels.manage': 'Διαχείριση ετικετών',
+  'collections.labels.add': 'Προσθήκη ετικέτας',
+  'collections.labels.name': 'Όνομα ετικέτας',
+  'collections.labels.namePlaceholder': 'π.χ. Berlin',
+  'collections.labels.assign': 'Αντιστοίχιση ετικέτας',
+  'collections.labels.assignN': 'Προσθήκη ετικετών σε {count} μέρη',
+  'collections.labels.assignedCount': 'Προστέθηκαν ετικέτες σε {count} μέρη',
+  'collections.labels.empty': 'Δεν υπάρχουν ετικέτες ακόμα',
+  'collections.labels.emptyHint': 'Δημιούργησε πρώτα μια ετικέτα για να ομαδοποιήσεις μέρη σε αυτή τη λίστα.',
 };
 
 export default collection;

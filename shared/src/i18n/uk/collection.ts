@@ -144,6 +144,16 @@ const collection: TranslationStrings = {
   'collections.widget.title': 'Колекції',
   'collections.widget.empty': 'Поки немає збережених місць',
   'collections.widget.savedCount': 'Збережено: {count}',
+  'collections.labels.title': 'Мітки',
+  'collections.labels.manage': 'Керувати мітками',
+  'collections.labels.add': 'Додати мітку',
+  'collections.labels.name': 'Назва мітки',
+  'collections.labels.namePlaceholder': 'напр., Berlin',
+  'collections.labels.assign': 'Призначити мітку',
+  'collections.labels.assignN': 'Додати мітки до {count} місць',
+  'collections.labels.assignedCount': 'Позначено місць: {count}',
+  'collections.labels.empty': 'Поки немає міток',
+  'collections.labels.emptyHint': 'Спершу створіть мітку, щоб групувати місця в цьому списку.',
 };
 
 export default collection;

@@ -190,6 +190,39 @@ describe('Collections e2e (real auth guard + real service + temp SQLite)', () =>
     expect(res.status).toBe(403); // visible (member) but not owner
   });
 
+  // ── Labels ─────────────────────────────────────────────────────────────────
+  it('COLLECTIONS-E2E-060: a label route is addon-gated (404 when disabled)', async () => {
+    isAddonEnabled.mockReturnValue(false);
+    expect((await request(server).post('/api/addons/collections/labels').send({ collection_id: 1, name: 'X' })).status).toBe(404);
+  });
+
+  it('COLLECTIONS-E2E-061: create a label, assign it to a place, read it back on the detail', async () => {
+    const col = (await request(server).post('/api/addons/collections').set('Cookie', sessionCookie(ownerId)).send({ name: 'Germany' })).body;
+    const place = (await request(server).post('/api/addons/collections/places')
+      .set('Cookie', sessionCookie(ownerId)).send({ collection_id: col.id, name: 'Gate' })).body.place;
+
+    const label = await request(server).post('/api/addons/collections/labels')
+      .set('Cookie', sessionCookie(ownerId)).set('X-Socket-Id', 'sock-2').send({ collection_id: col.id, name: 'Berlin', color: '#ff0000' });
+    expect(label.status).toBe(200);
+    expect(label.body.name).toBe('Berlin');
+
+    const assign = await request(server).post('/api/addons/collections/labels/assign')
+      .set('Cookie', sessionCookie(ownerId)).send({ label_ids: [label.body.id], place_ids: [place.id] });
+    expect(assign.status).toBe(200);
+    expect(assign.body.changed).toBe(1);
+
+    const detail = await request(server).get(`/api/addons/collections/${col.id}`).set('Cookie', sessionCookie(ownerId));
+    expect(detail.body.collection.labels.map((l: { name: string }) => l.name)).toContain('Berlin');
+    expect(detail.body.places.find((p: { id: number }) => p.id === place.id).label_ids).toContain(label.body.id);
+  });
+
+  it('COLLECTIONS-E2E-062: a stranger cannot create a label on someone else’s list (404)', async () => {
+    const col = (await request(server).post('/api/addons/collections').set('Cookie', sessionCookie(ownerId)).send({ name: 'Secret' })).body;
+    const res = await request(server).post('/api/addons/collections/labels')
+      .set('Cookie', sessionCookie(otherId)).send({ collection_id: col.id, name: 'Nope' });
+    expect(res.status).toBe(404);
+  });
+
   // ── delete ───────────────────────────────────────────────────────────────
   it('COLLECTIONS-E2E-050: owner deletes; non-owner member cannot (403)', async () => {
     const col = (await request(server).post('/api/addons/collections').set('Cookie', sessionCookie(ownerId)).send({ name: 'Doomed' })).body;

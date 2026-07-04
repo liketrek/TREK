@@ -144,6 +144,17 @@ const collection: TranslationStrings = {
   'collections.widget.title': 'Raccolte',
   'collections.widget.empty': 'Ancora nessun luogo salvato',
   'collections.widget.savedCount': '{count} salvati',
+
+  'collections.labels.title': 'Etichette',
+  'collections.labels.manage': 'Gestisci etichette',
+  'collections.labels.add': 'Aggiungi etichetta',
+  'collections.labels.name': 'Nome etichetta',
+  'collections.labels.namePlaceholder': 'es. Berlin',
+  'collections.labels.assign': 'Assegna etichetta',
+  'collections.labels.assignN': 'Aggiungi etichette a {count} luoghi',
+  'collections.labels.assignedCount': 'Etichettati {count} luoghi',
+  'collections.labels.empty': 'Ancora nessuna etichetta',
+  'collections.labels.emptyHint': 'Crea prima un\'etichetta per raggruppare i luoghi in questa lista.',
 };
 
 export default collection;

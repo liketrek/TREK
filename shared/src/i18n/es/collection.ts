@@ -144,6 +144,16 @@ const collection: TranslationStrings = {
   'collections.widget.title': 'Colecciones',
   'collections.widget.empty': 'Aún no hay lugares guardados',
   'collections.widget.savedCount': '{count} guardados',
+  'collections.labels.title': 'Etiquetas',
+  'collections.labels.manage': 'Gestionar etiquetas',
+  'collections.labels.add': 'Añadir etiqueta',
+  'collections.labels.name': 'Nombre de la etiqueta',
+  'collections.labels.namePlaceholder': 'p. ej. Berlin',
+  'collections.labels.assign': 'Asignar etiqueta',
+  'collections.labels.assignN': 'Añadir etiquetas a {count} lugares',
+  'collections.labels.assignedCount': 'Etiquetados {count} lugares',
+  'collections.labels.empty': 'Aún no hay etiquetas',
+  'collections.labels.emptyHint': 'Crea primero una etiqueta para agrupar lugares en esta lista.',
 };
 
 export default collection;

@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { ChevronDown, Check, Layers, Tag, CheckSquare } from 'lucide-react'
+import { ChevronDown, Check, Layers, Tag, Tags, CheckSquare } from 'lucide-react'
 import type { StatusFilter } from '../../store/collectionStore'
 import type { TranslationFn } from '../../types'
 import { getCategoryIcon } from '../shared/categoryIcons'
 import { STATUS_META, STATUS_ORDER } from '../../pages/collections/collectionsModel'
-import type { CategoryOption } from '../../pages/collections/collectionsModel'
+import type { CategoryOption, LabelOption } from '../../pages/collections/collectionsModel'
 
 interface Opt {
   key: string | number
@@ -69,6 +69,13 @@ interface CollectionFilterBarProps {
   categoryOptions: CategoryOption[]
   onStatusFilter: (f: StatusFilter) => void
   onCategoryFilter: (f: number | 'all') => void
+  // Per-collection labels (hidden on the "All saved" union).
+  showLabels: boolean
+  labelOptions: LabelOption[]
+  labelFilter: number[]
+  onLabelFilter: (ids: number[]) => void
+  canManageLabels: boolean
+  onManageLabels: () => void
   showSelect: boolean
   selectMode: boolean
   onToggleSelect: () => void
@@ -82,6 +89,7 @@ interface CollectionFilterBarProps {
  */
 export default function CollectionFilterBar({
   statusFilter, counts, categoryFilter, categoryOptions, onStatusFilter, onCategoryFilter,
+  showLabels, labelOptions, labelFilter, onLabelFilter, canManageLabels, onManageLabels,
   showSelect, selectMode, onToggleSelect, t,
 }: CollectionFilterBarProps): React.ReactElement {
   const statusOpts: Opt[] = [
@@ -111,6 +119,33 @@ export default function CollectionFilterBar({
         <button type="button" onClick={onToggleSelect} className={`col-filter-btn col-filter-select${selectMode ? ' open' : ''}`} aria-pressed={selectMode}>
           <CheckSquare size={14} /> <span className="col-filter-lbl">{t('collections.select')}</span>
         </button>
+      )}
+      {showLabels && (labelOptions.length > 0 || canManageLabels) && (
+        <div className="col-labelfilter">
+          {labelOptions.map(l => {
+            const on = labelFilter.includes(l.id)
+            return (
+              <button
+                key={l.id}
+                type="button"
+                className={`col-labelchip${on ? ' on' : ''}`}
+                style={{ ['--label' as string]: l.color ?? 'var(--accent)' }}
+                onClick={() => onLabelFilter(on ? labelFilter.filter(id => id !== l.id) : [...labelFilter, l.id])}
+                aria-pressed={on}
+              >
+                <span className="col-labelchip-dot" />
+                <span className="col-filter-lbl">{l.name}</span>
+                {l.count > 0 && <span className="col-filter-count">{l.count}</span>}
+              </button>
+            )
+          })}
+          {canManageLabels && (
+            <button type="button" className="col-labelchip col-labelchip-manage" onClick={onManageLabels} title={t('collections.labels.manage')}>
+              <Tags size={13} />
+              <span className="col-filter-lbl">{labelOptions.length ? t('collections.labels.manage') : t('collections.labels.add')}</span>
+            </button>
+          )}
+        </div>
       )}
     </div>
   )

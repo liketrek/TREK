@@ -144,6 +144,17 @@ const collection: TranslationStrings = {
   'collections.widget.title': 'Collections',
   'collections.widget.empty': 'No saved places yet',
   'collections.widget.savedCount': '{count} saved',
+
+  'collections.labels.title': 'Labels',
+  'collections.labels.manage': 'Manage labels',
+  'collections.labels.add': 'Add label',
+  'collections.labels.name': 'Label name',
+  'collections.labels.namePlaceholder': 'e.g. Berlin',
+  'collections.labels.assign': 'Assign label',
+  'collections.labels.assignN': 'Add labels to {count} places',
+  'collections.labels.assignedCount': 'Labelled {count} places',
+  'collections.labels.empty': 'No labels yet',
+  'collections.labels.emptyHint': 'Create a label first to group places in this list.',
 };
 
 export default collection;

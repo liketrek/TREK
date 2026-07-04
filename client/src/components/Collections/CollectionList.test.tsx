@@ -65,6 +65,7 @@ function renderList(over: Partial<{
   render(
     <CollectionList
       places={places}
+      labels={[]}
       selectedPlaceId={over.selectedPlaceId ?? null}
       selectMode={over.selectMode ?? false}
       selectedIds={over.selectedIds ?? []}

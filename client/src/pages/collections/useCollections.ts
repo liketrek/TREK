@@ -13,7 +13,8 @@ import type { ActiveCollectionId } from '../../store/collectionStore'
 import { categoriesApi } from '../../api/client'
 import type { Collection, CollectionStatus } from '@trek/shared'
 import type { Category, Place } from '../../types'
-import { filterPlaces, sortPlaces, statusCounts, mappablePlaces, presentCategories } from './collectionsModel'
+import { filterPlaces, sortPlaces, statusCounts, mappablePlaces, presentCategories, presentLabels } from './collectionsModel'
+import type { CollectionLabelUpdateRequest } from '@trek/shared'
 
 /**
  * Collections page logic — owns the page-local UI state (new/edit-list forms,
@@ -48,15 +49,16 @@ export function useCollections() {
 
   const store = useCollectionStore()
   const {
-    collections, activeId, places, members, incomingInvites,
-    view, statusFilter, categoryFilter, search, selectedPlaceId, selectMode, selectedIds,
+    collections, activeId, places, members, labels, incomingInvites,
+    view, statusFilter, categoryFilter, labelFilter, search, selectedPlaceId, selectMode, selectedIds,
     loading, placesLoading,
     loadAll, setActive, refreshActive, loadCollection,
     deleteCollection,
     setStatus, updatePlace, deletePlace, deleteMany, copyToTrip, clearSelection,
     moveToList, duplicateToList, setSelectedIds,
+    createLabel, updateLabel, deleteLabel, assignLabels,
     acceptInvite, declineInvite,
-    setView, setStatusFilter, setCategoryFilter, setSearch, setSelectedPlaceId, setSelectMode, toggleSelect,
+    setView, setStatusFilter, setCategoryFilter, setLabelFilter, setSearch, setSelectedPlaceId, setSelectMode, toggleSelect,
   } = store
 
   // ── Page-local UI state ─────────────────────────────────────────────
@@ -163,12 +165,15 @@ export function useCollections() {
   const ownedLists = useMemo(() => collections.filter(c => c.is_owner !== false), [collections])
   const sharedLists = useMemo(() => collections.filter(c => c.is_owner === false), [collections])
 
+  // Labels are per-collection, so never apply them on the "All saved" union.
   const visiblePlaces = useMemo(
-    () => sortPlaces(filterPlaces(places, statusFilter, search, categoryFilter)),
-    [places, statusFilter, search, categoryFilter],
+    () => sortPlaces(filterPlaces(places, statusFilter, search, categoryFilter, isAllSaved ? [] : labelFilter)),
+    [places, statusFilter, search, categoryFilter, isAllSaved, labelFilter],
   )
   // Categories actually present in this list, for the category filter dropdown.
   const categoryOptions = useMemo(() => presentCategories(places), [places])
+  // The active list's labels (with per-label counts) for the filter + manager.
+  const labelOptions = useMemo(() => presentLabels(labels, places), [labels, places])
   // Stable reference so the map doesn't tear down + rebuild every marker on each
   // unrelated re-render (which would swallow marker clicks mid-rebuild).
   const mappable = useMemo(() => mappablePlaces(visiblePlaces), [visiblePlaces])
@@ -254,6 +259,43 @@ export function useCollections() {
     }
   }, [selectedIds, duplicateToList, toast, t])
 
+  // ── Labels ──────────────────────────────────────────────────────────
+  const [showLabelManager, setShowLabelManager] = useState(false)
+  const [labelPickerOpen, setLabelPickerOpen] = useState(false)
+
+  const handleCreateLabel = useCallback(async (name: string, color?: string) => {
+    try { await createLabel(name, color) }
+    catch (err) { toast.error(getApiErrorMessage(err, t('common.error'))) }
+  }, [createLabel, toast, t])
+
+  const handleUpdateLabel = useCallback(async (labelId: number, body: CollectionLabelUpdateRequest) => {
+    try { await updateLabel(labelId, body) }
+    catch (err) { toast.error(getApiErrorMessage(err, t('common.error'))) }
+  }, [updateLabel, toast, t])
+
+  const handleDeleteLabel = useCallback(async (labelId: number) => {
+    try { await deleteLabel(labelId) }
+    catch (err) { toast.error(getApiErrorMessage(err, t('common.error'))) }
+  }, [deleteLabel, toast, t])
+
+  // Bulk-assign one or more labels to the current selection.
+  const handleBulkAssignLabels = useCallback(async (labelIds: number[]) => {
+    if (selectedIds.length === 0 || labelIds.length === 0) return
+    try {
+      await assignLabels(labelIds, selectedIds)
+      toast.success(t('collections.labels.assignedCount', { count: selectedIds.length }))
+      setLabelPickerOpen(false)
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('common.error')))
+    }
+  }, [assignLabels, selectedIds, toast, t])
+
+  // Replace a single place's labels (from the detail sheet chips).
+  const handleAssignPlaceLabels = useCallback(async (placeId: number, labelIds: number[]) => {
+    try { await updatePlace(placeId, { label_ids: labelIds }) }
+    catch (err) { toast.error(getApiErrorMessage(err, t('common.error'))) }
+  }, [updatePlace, toast, t])
+
   const handleAcceptInvite = useCallback(async (collectionId: number) => {
     try {
       await acceptInvite(collectionId)
@@ -337,10 +379,14 @@ export function useCollections() {
     canShare, shareMemberCount,
     activeId, places, visiblePlaces, mappable, members, incomingInvites, counts,
     view, statusFilter, categoryFilter, categoryOptions, search, selectedPlaceId, selectMode, selectedIds,
+    labels, labelFilter, labelOptions,
     loading, placesLoading,
     // store setters
-    setView, setStatusFilter, setCategoryFilter, setSearch, setSelectedPlaceId, setSelectMode, toggleSelect,
+    setView, setStatusFilter, setCategoryFilter, setLabelFilter, setSearch, setSelectedPlaceId, setSelectMode, toggleSelect,
     updatePlace,
+    // labels
+    showLabelManager, setShowLabelManager, labelPickerOpen, setLabelPickerOpen,
+    handleCreateLabel, handleUpdateLabel, handleDeleteLabel, handleBulkAssignLabels, handleAssignPlaceLabels,
     // local UI state
     editorTarget, setEditorTarget, handleEditorCreated,
     showAddPlace, setShowAddPlace, handlePlaceAdded,

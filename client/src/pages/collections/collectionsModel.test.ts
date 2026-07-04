@@ -7,9 +7,11 @@ import {
   sortPlaces,
   statusCounts,
   presentCategories,
+  presentLabels,
   mappablePlaces,
   normalizeLinkUrl,
 } from './collectionsModel';
+import type { CollectionLabel } from '@trek/shared';
 
 // ── Inline CollectionPlace-ish builder ────────────────────────────────────────
 // Only the fields the helpers actually read are meaningful; the rest satisfy the
@@ -32,6 +34,7 @@ interface PlaceLike {
   notes?: string | null;
   sort_order?: number;
   created_at?: string;
+  label_ids?: number[];
 }
 function cp(overrides: PlaceLike): CollectionPlace {
   return {
@@ -317,6 +320,48 @@ describe('collectionsModel', () => {
     it('FE-COLLECTIONS-MODEL-030: trims and strips leading slashes before prefixing', () => {
       expect(normalizeLinkUrl('  booking.com  ')).toBe('https://booking.com');
       expect(normalizeLinkUrl('//booking.com')).toBe('https://booking.com');
+    });
+  });
+
+  describe('labels', () => {
+    const places = [
+      cp({ id: 1, name: 'Berlin gate', status: 'idea', label_ids: [10] }),
+      cp({ id: 2, name: 'Hamburg port', status: 'idea', label_ids: [11] }),
+      cp({ id: 3, name: 'Both', status: 'idea', label_ids: [10, 11] }),
+      cp({ id: 4, name: 'None', status: 'idea', label_ids: [] }),
+    ];
+    const labels: CollectionLabel[] = [
+      { id: 10, collection_id: 1, name: 'Berlin', color: '#f00' },
+      { id: 11, collection_id: 1, name: 'Hamburg', color: '#00f' },
+      { id: 12, collection_id: 1, name: 'Unused', color: null },
+    ];
+
+    it('FE-COLLECTIONS-MODEL-031: an empty label filter keeps every place', () => {
+      expect(filterPlaces(places, 'all', '', 'all', [])).toHaveLength(4);
+    });
+
+    it('FE-COLLECTIONS-MODEL-032: a single label keeps places carrying it (incl. multi-label)', () => {
+      const out = filterPlaces(places, 'all', '', 'all', [10]).map(p => p.id);
+      expect(out).toEqual([1, 3]);
+    });
+
+    it('FE-COLLECTIONS-MODEL-033: multiple labels are OR — any match passes', () => {
+      const out = filterPlaces(places, 'all', '', 'all', [10, 11]).map(p => p.id);
+      expect(out).toEqual([1, 2, 3]);
+    });
+
+    it('FE-COLLECTIONS-MODEL-034: the label filter composes with status + search', () => {
+      const mixed = [
+        cp({ id: 5, name: 'Museum', status: 'visited', label_ids: [10] }),
+        cp({ id: 6, name: 'Museum', status: 'idea', label_ids: [10] }),
+      ];
+      const out = filterPlaces(mixed, 'visited', 'mus', 'all', [10]).map(p => p.id);
+      expect(out).toEqual([5]);
+    });
+
+    it('FE-COLLECTIONS-MODEL-035: presentLabels keeps definition order with per-label counts, incl. zero', () => {
+      const opts = presentLabels(labels, places);
+      expect(opts.map(o => [o.id, o.count])).toEqual([[10, 2], [11, 2], [12, 0]]);
     });
   });
 });

@@ -144,6 +144,16 @@ const collection: TranslationStrings = {
   'collections.widget.title': 'Collecties',
   'collections.widget.empty': 'Nog geen opgeslagen plekken',
   'collections.widget.savedCount': '{count} opgeslagen',
+  'collections.labels.title': 'Labels',
+  'collections.labels.manage': 'Labels beheren',
+  'collections.labels.add': 'Label toevoegen',
+  'collections.labels.name': 'Labelnaam',
+  'collections.labels.namePlaceholder': 'bijv. Berlin',
+  'collections.labels.assign': 'Label toewijzen',
+  'collections.labels.assignN': 'Labels toevoegen aan {count} plaatsen',
+  'collections.labels.assignedCount': '{count} plaatsen gelabeld',
+  'collections.labels.empty': 'Nog geen labels',
+  'collections.labels.emptyHint': 'Maak eerst een label om plekken in deze lijst te groeperen.',
 };
 
 export default collection;
