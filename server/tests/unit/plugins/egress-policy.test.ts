@@ -5,7 +5,9 @@
  */
 import { describe, it, expect } from 'vitest';
 import net from 'node:net';
-import { isBlockedIp, makeHostAllow, classifyConnect } from '../../../src/nest/plugins/runtime/egress-policy';
+import {
+  isBlockedIp, makeHostAllow, classifyConnect, dgramSendTarget, dgramConnectTarget,
+} from '../../../src/nest/plugins/runtime/egress-policy';
 
 const isIP = (s: string) => net.isIP(s) !== 0;
 
@@ -67,5 +69,33 @@ describe('classifyConnect', () => {
 
   it('defaults a port-only connect to localhost', () => {
     expect(classifyConnect([8080], isIP)).toEqual({ kind: 'hostname', host: 'localhost' });
+  });
+});
+
+describe('dgramSendTarget', () => {
+  const msg = Buffer.from('x');
+  it('reads the address from send(msg, port, address)', () => {
+    expect(dgramSendTarget([msg, 53, 'attacker.com'])).toBe('attacker.com');
+  });
+  it('reads the address from the send(msg, offset, length, port, address) form', () => {
+    expect(dgramSendTarget([msg, 0, 1, 53, 'attacker.com'])).toBe('attacker.com');
+  });
+  it('is null when no explicit address is given (connected / localhost default)', () => {
+    expect(dgramSendTarget([msg, 53])).toBeNull();
+    expect(dgramSendTarget([msg])).toBeNull();
+    expect(dgramSendTarget([msg, 0, 1, 53])).toBeNull();
+  });
+  it('ignores a trailing callback in the address slot', () => {
+    expect(dgramSendTarget([msg, 53, () => {}])).toBeNull();
+  });
+});
+
+describe('dgramConnectTarget', () => {
+  it('reads the address from connect(port, address)', () => {
+    expect(dgramConnectTarget([53, 'attacker.com'])).toBe('attacker.com');
+  });
+  it('is null for connect(port) or connect(port, cb)', () => {
+    expect(dgramConnectTarget([53])).toBeNull();
+    expect(dgramConnectTarget([53, () => {}])).toBeNull();
   });
 });

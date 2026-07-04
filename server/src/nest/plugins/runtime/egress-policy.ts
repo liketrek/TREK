@@ -52,6 +52,28 @@ export interface ConnectTarget {
 }
 
 /**
+ * Destination host of a `dgram.Socket.send(msg[, offset, length], port[, address][, cb])`
+ * call, or null when no explicit address is given (Node then uses the socket's
+ * connected remote or the localhost default — the connect() wrapper already
+ * vetted that, and a localhost default is not an exfil vector). Only an explicit
+ * address string is a target we must allowlist. Mirrors both send() overloads:
+ * the (offset, length) form pushes port/address two slots right.
+ */
+export function dgramSendTarget(args: unknown[]): string | null {
+  const offsetForm = typeof args[1] === 'number' && typeof args[2] === 'number';
+  const address = args[offsetForm ? 4 : 2];
+  return typeof address === 'string' ? address : null;
+}
+
+/**
+ * Destination host of a `dgram.Socket.connect(port[, address][, cb])` call, or
+ * null when no address is given (localhost default — not an exfil vector).
+ */
+export function dgramConnectTarget(args: unknown[]): string | null {
+  return typeof args[1] === 'string' ? (args[1] as string) : null;
+}
+
+/**
  * Classify a `net.Socket.connect(...)` argument list into what we must check:
  * a unix-socket/pipe (local, allowed), a literal IP (checked synchronously), or
  * a hostname (allowlist + a DNS-resolving guard). Mirrors Node's connect

