@@ -501,14 +501,25 @@ export function MapViewGL({
     // does, which is why the OSM map already worked on mobile).
     const canvas = map.getCanvasContainer()
     let lastContextFire = 0
-    const fireContext = (lngLat: { lat: number; lng: number }, originalEvent: MouseEvent | TouchEvent) => {
+    const fireContext = (lngLat: { lat: number; lng: number }, originalEvent: MouseEvent | TouchEvent): boolean => {
       // Android fires a native contextmenu for a long-press on top of our own
       // timer — dedupe so the form doesn't open twice.
-      if (Date.now() - lastContextFire < 700) return
+      if (Date.now() - lastContextFire < 700) return false
       lastContextFire = Date.now()
       onClickRefs.current.context?.({ latlng: { lat: lngLat.lat, lng: lngLat.lng }, originalEvent })
+      return true
     }
+    // MapLibre swallows the map contextmenu at the end of a right-button
+    // rotate/pitch drag, but mapbox-gl does NOT — and on Windows the DOM
+    // contextmenu arrives after mouseup, so every rotate would end by opening
+    // the Add-Place form. Track the right-button press position and drop a
+    // contextmenu whose pointer travelled like a drag rather than a click.
+    let rightDownAt: { x: number; y: number } | null = null
     const onAuxDown = (ev: MouseEvent) => {
+      if (ev.button === 2) {
+        rightDownAt = { x: ev.clientX, y: ev.clientY }
+        return
+      }
       if (ev.button !== 1) return
       ev.preventDefault()
       const rect = canvas.getBoundingClientRect()
@@ -522,6 +533,9 @@ export function MapViewGL({
     canvas.addEventListener('mousedown', onAuxDown)
     canvas.addEventListener('auxclick', onAuxClick)
     map.on('contextmenu', (e: { lngLat: { lat: number; lng: number }; originalEvent: MouseEvent }) => {
+      const down = rightDownAt
+      rightDownAt = null
+      if (down && Math.hypot(e.originalEvent.clientX - down.x, e.originalEvent.clientY - down.y) > 5) return
       fireContext(e.lngLat, e.originalEvent)
     })
     // Touch long-press: 600 ms hold (Leaflet's tapHold feel) with a 10 px
@@ -534,6 +548,10 @@ export function MapViewGL({
       lpStart = null
     }
     const onTouchStart = (ev: TouchEvent) => {
+      // A fresh gesture clears a stale suppression flag: not every long-press
+      // is followed by a click (finger drag after the hold, Android's native
+      // contextmenu path), and the flag must never swallow a later real tap.
+      suppressNextClick = false
       if (ev.touches.length !== 1) { cancelLongPress(); return }
       if ((ev.target as HTMLElement).closest('.mapboxgl-marker, .maplibregl-marker')) return
       const t = ev.touches[0]
@@ -544,8 +562,9 @@ export function MapViewGL({
         const rect = canvas.getBoundingClientRect()
         const lngLat = map.unproject([lpStart.x - rect.left, lpStart.y - rect.top])
         lpStart = null
-        suppressNextClick = true
-        fireContext({ lat: lngLat.lat, lng: lngLat.lng }, ev)
+        // Only suppress the tap when OUR fire opened the form — if the native
+        // contextmenu beat us to it (dedupe), no click needs swallowing.
+        if (fireContext({ lat: lngLat.lat, lng: lngLat.lng }, ev)) suppressNextClick = true
       }, 600)
     }
     const onTouchMove = (ev: TouchEvent) => {

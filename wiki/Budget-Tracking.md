@@ -16,7 +16,7 @@ Open the **Budget** tab inside the trip planner. The tab is only visible when th
 
 ## Currency
 
-Use the currency picker in the Budget toolbar to select one currency for the entire trip. 46 currencies are supported (EUR, USD, GBP, JPY, CHF, CZK, PLN, SEK, NOK, DKK, TRY, THB, AUD, CAD, NZD, BRL, MXN, INR, IDR, MYR, PHP, SGD, KRW, CNY, HKD, TWD, ZAR, AED, SAR, ILS, EGP, MAD, HUF, RON, BGN, HRK, ISK, RUB, UAH, BDT, LKR, VND, CLP, COP, PEN, ARS). All amounts are displayed in this currency.
+Use the currency picker in the Budget toolbar to select one currency for the entire trip. 47 currencies are supported (EUR, USD, GBP, JPY, CHF, CZK, PLN, SEK, NOK, DKK, TRY, THB, AUD, CAD, NZD, BRL, MXN, INR, IDR, MYR, PHP, SGD, KRW, CNY, HKD, TWD, ZAR, AED, SAR, ILS, EGP, MAD, HUF, RON, BGN, HRK, ISK, RUB, UAH, KGS, BDT, LKR, VND, CLP, COP, PEN, ARS). All amounts are displayed in this currency.
 
 ## Categories
 

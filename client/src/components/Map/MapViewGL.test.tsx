@@ -344,6 +344,52 @@ describe('MapViewGL', () => {
     expect(onContext.mock.calls[0][0].latlng).toEqual({ lat: 48.8566, lng: 2.3522 })
   })
 
+  it('FE-COMP-MAPVIEWGL-012: a right-button rotate/pitch drag does not open Add-Place on release (#1398)', async () => {
+    const onContext = vi.fn()
+    render(<MapViewGL places={[]} fitKey={1} onMapContextMenu={onContext} />)
+    await act(async () => {})
+    const handler = glMap.on.mock.calls.find(c => c[0] === 'contextmenu')?.[1] as (e: unknown) => void
+    act(() => {
+      // mapbox-gl (unlike maplibre) still emits contextmenu after a right-drag
+      // on Windows — the movement guard must drop it.
+      glCanvasContainer.dispatchEvent(new MouseEvent('mousedown', { button: 2, clientX: 10, clientY: 10, bubbles: true }))
+      handler({ lngLat: { lat: 1, lng: 2 }, originalEvent: new MouseEvent('contextmenu', { clientX: 140, clientY: 90 }) })
+    })
+    expect(onContext).not.toHaveBeenCalled()
+    // ...while a stationary right-click still fires.
+    act(() => {
+      glCanvasContainer.dispatchEvent(new MouseEvent('mousedown', { button: 2, clientX: 10, clientY: 10, bubbles: true }))
+      handler({ lngLat: { lat: 1, lng: 2 }, originalEvent: new MouseEvent('contextmenu', { clientX: 11, clientY: 10 }) })
+    })
+    expect(onContext).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-COMP-MAPVIEWGL-013: a stale long-press suppression never swallows a later real tap (#1398)', async () => {
+    vi.useFakeTimers()
+    try {
+      const onContext = vi.fn()
+      const onMapClick = vi.fn()
+      render(<MapViewGL places={[]} fitKey={1} onMapContextMenu={onContext} onMapClick={onMapClick} />)
+      await act(async () => {})
+      // Long-press fires (arms the suppression), but no click follows.
+      act(() => {
+        glCanvasContainer.dispatchEvent(touchEvent('touchstart', [{ clientX: 30, clientY: 40 }]))
+        vi.advanceTimersByTime(650)
+      })
+      expect(onContext).toHaveBeenCalledTimes(1)
+      // The NEXT gesture starts fresh: its tap must reach the map click handler.
+      const clickHandler = glMap.on.mock.calls.find(c => c[0] === 'click')?.[1] as (e: unknown) => void
+      act(() => {
+        glCanvasContainer.dispatchEvent(touchEvent('touchstart', [{ clientX: 80, clientY: 90 }]))
+        glCanvasContainer.dispatchEvent(touchEvent('touchend', []))
+        clickHandler({ lngLat: { lat: 3, lng: 4 }, originalEvent: { target: glCanvasContainer } })
+      })
+      expect(onMapClick).toHaveBeenCalledWith({ latlng: { lat: 3, lng: 4 } })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('FE-COMP-MAPVIEWGL-010: middle-click still opens Add-Place (#1398 regression guard)', async () => {
     const onContext = vi.fn()
     render(<MapViewGL places={[]} fitKey={1} onMapContextMenu={onContext} />)
