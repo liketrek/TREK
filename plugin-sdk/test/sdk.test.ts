@@ -126,6 +126,13 @@ describe('scaffold + validate CLIs', () => {
     expect(() => scaffold('Bad Name', 'widget', tmp)).toThrow(/invalid plugin id/);
   });
 
+  it('tolerates a UTF-8 BOM in trek-plugin.json (Windows editors add one)', () => {
+    scaffold('bom-plug', 'integration', tmp);
+    const mp = path.join(tmp, 'bom-plug', 'trek-plugin.json');
+    fs.writeFileSync(mp, '\uFEFF' + fs.readFileSync(mp, 'utf8'));
+    expect(validatePluginDir(path.join(tmp, 'bom-plug')).ok).toBe(true);
+  });
+
   it('validatePluginDir flags a missing manifest', () => {
     expect(validatePluginDir(tmp).ok).toBe(false);
   });

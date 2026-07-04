@@ -8,6 +8,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { validateManifest } from '../manifest.js';
+import { readJsonFile } from './json.js';
 
 export interface ValidateReport {
   ok: boolean;
@@ -24,7 +25,7 @@ export function validatePluginDir(dir: string): ValidateReport {
 
   let manifestId = '';
   try {
-    const raw = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    const raw = readJsonFile<Record<string, unknown>>(manifestPath);
     const res = validateManifest(raw);
     errors.push(...res.errors);
     manifestId = res.manifest?.id ?? String(raw.id ?? '');

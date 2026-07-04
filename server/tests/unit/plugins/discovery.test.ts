@@ -72,6 +72,13 @@ describe('discoverPlugins', () => {
     expect(JSON.parse(row.granted_permissions)).toEqual(['db:own']); // grants preserved
   });
 
+  it('tolerates a UTF-8 BOM in trek-plugin.json (Windows-authored plugins)', () => {
+    writePlugin('bom-plug', { type: 'integration' });
+    const mp = path.join(codeRoot, 'bom-plug', 'trek-plugin.json');
+    fs.writeFileSync(mp, '\uFEFF' + fs.readFileSync(mp, 'utf8'));
+    expect(discoverPlugins(db).discovered).toEqual(['bom-plug']);
+  });
+
   it('skips an invalid manifest and logs the reason', () => {
     writePlugin('bad', { type: 'not-a-type' });
     const res = discoverPlugins(db);

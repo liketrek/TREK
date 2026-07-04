@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type BetterSqlite3 from 'better-sqlite3';
 import { pluginsCodeRoot, pluginCodeDir } from '../paths';
-import { parseManifest, type PluginManifest } from './manifest';
+import { parseJsonText, parseManifest, type PluginManifest } from './manifest';
 import { scanForNativeBinaries } from './native-scan';
 
 /**
@@ -26,7 +26,7 @@ export function discoverPlugins(db: BetterSqlite3.Database): { discovered: strin
     if (!fs.existsSync(manifestPath)) continue;
 
     try {
-      const manifest = parseManifest(JSON.parse(fs.readFileSync(manifestPath, 'utf8')));
+      const manifest = parseManifest(parseJsonText(fs.readFileSync(manifestPath, 'utf8')));
       if (manifest.id !== entry.name) throw new Error(`manifest id "${manifest.id}" != directory "${entry.name}"`);
       if (scanForNativeBinaries(dir).length) throw new Error('directory contains native binaries');
       upsert(db, manifest);

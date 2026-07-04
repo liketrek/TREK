@@ -14,6 +14,7 @@ import path from 'node:path';
 import http from 'node:http';
 import { createRequire } from 'node:module';
 import * as sdk from '../index.js';
+import { readJsonFile } from './json.js';
 
 interface Fixtures {
   config?: Record<string, unknown>;
@@ -123,7 +124,7 @@ export function installSdkInjection(): void {
 
 function loadFixtures(dir: string): Fixtures {
   const p = path.join(dir, 'dev-fixtures.json');
-  if (fs.existsSync(p)) { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { console.warn('warning: dev-fixtures.json is not valid JSON — ignoring'); } }
+  if (fs.existsSync(p)) { try { return readJsonFile<Fixtures>(p); } catch { console.warn('warning: dev-fixtures.json is not valid JSON — ignoring'); } }
   return {};
 }
 
@@ -143,7 +144,7 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
   const abs = path.resolve(dir);
   const manifestPath = path.join(abs, 'trek-plugin.json');
   if (!fs.existsSync(manifestPath)) throw new Error(`no trek-plugin.json in ${abs}`);
-  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as Record<string, unknown>;
+  const manifest = readJsonFile<Record<string, unknown>>(manifestPath);
   const id = String(manifest.id);
   const grants = new Set(Array.isArray(manifest.permissions) ? (manifest.permissions as string[]) : []);
   const fx = loadFixtures(abs);

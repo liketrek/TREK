@@ -65,6 +65,11 @@ const TYPES = new Set(['integration', 'page', 'widget']);
 
 export class ManifestError extends Error {}
 
+/** JSON.parse that tolerates a UTF-8 BOM (0xFEFF) — manifests written on Windows often carry one. */
+export function parseJsonText(text: string): unknown {
+  return JSON.parse(text.charCodeAt(0) === 0xfeff ? text.slice(1) : text);
+}
+
 export function parseManifest(raw: unknown): PluginManifest {
   if (!raw || typeof raw !== 'object') throw new ManifestError('manifest is not an object');
   const m = raw as Record<string, unknown>;

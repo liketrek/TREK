@@ -14,6 +14,7 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { loadPrivateKey, signArtifact, publicKeyBase64 } from './sign.js';
+import { readJsonFile } from './json.js';
 
 interface Version {
   version: string; gitTag: string; commitSha: string; downloadUrl: string;
@@ -47,7 +48,7 @@ export function buildEntry(opts: {
   /** Optional Ed25519 private-key file — signs the artifact and pins the author key. */
   signKeyPath?: string;
 }): Entry {
-  const manifest = JSON.parse(fs.readFileSync(path.join(opts.dir, 'trek-plugin.json'), 'utf8')) as Record<string, unknown>;
+  const manifest = readJsonFile<Record<string, unknown>>(path.join(opts.dir, 'trek-plugin.json'));
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(opts.repo)) throw new Error(`--repo must be "owner/name", got "${opts.repo}"`);
   const minTrek = minTrekFrom(manifest.trek);
   if (!minTrek) throw new Error('manifest has no "trek" version range to derive minTrekVersion from (e.g. "trek": ">=3.2.0 <4.0.0")');
@@ -77,7 +78,7 @@ export function buildEntry(opts: {
   }
 
   if (opts.mergePath) {
-    const existing = JSON.parse(fs.readFileSync(opts.mergePath, 'utf8')) as Entry;
+    const existing = readJsonFile<Entry>(opts.mergePath);
     if (authorPublicKey && existing.authorPublicKey && existing.authorPublicKey !== authorPublicKey) {
       throw new Error('this signing key differs from the one already published for this plugin — TREK would reject the update. Use the original key.');
     }

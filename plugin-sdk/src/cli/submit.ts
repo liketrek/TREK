@@ -10,6 +10,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { readJsonFile } from './json.js';
 
 const DEFAULT_REGISTRY = 'mauriceboe/TREK-Plugins';
 
@@ -69,7 +70,7 @@ export function submitEntry(entry: EntryLike, opts: { registry?: string; branch?
     let toWrite = entry;
     let action = 'add';
     if (fs.existsSync(abs)) {
-      const existing = JSON.parse(fs.readFileSync(abs, 'utf8')) as EntryLike;
+      const existing = readJsonFile<EntryLike>(abs);
       toWrite = mergeOnto(existing, entry);
       action = 'update';
     }

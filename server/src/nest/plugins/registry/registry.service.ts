@@ -7,7 +7,7 @@ import { safeDownload, sha256Matches } from '../install/safe-fetch';
 import { verifyAuthorSignature } from '../install/verify-signature';
 import { extractArchive } from '../install/safe-extract';
 import { scanForNativeBinaries } from '../install/native-scan';
-import { parseManifest } from '../install/manifest';
+import { parseJsonText, parseManifest } from '../install/manifest';
 import { discoverPlugins } from '../install/discovery';
 
 /**
@@ -132,7 +132,7 @@ export class PluginRegistryService {
     if (latest) {
       try {
         const { bytes } = await safeDownload(rawFileUrl(entry.repo, latest.commitSha, 'trek-plugin.json'), MANIFEST_MAX_BYTES);
-        manifest = previewManifest(JSON.parse(bytes.toString('utf8')));
+        manifest = previewManifest(parseJsonText(bytes.toString('utf8')));
       } catch {
         // Soft-fail: the detail view still renders from registry metadata alone.
       }
@@ -178,7 +178,7 @@ export class PluginRegistryService {
       if (!pluginRoot) throw new RegistryError('archive contains no trek-plugin.json');
 
       // 4. re-validate the bundled manifest + 5. native re-scan
-      const manifest = parseManifest(JSON.parse(fs.readFileSync(path.join(pluginRoot, 'trek-plugin.json'), 'utf8')));
+      const manifest = parseManifest(parseJsonText(fs.readFileSync(path.join(pluginRoot, 'trek-plugin.json'), 'utf8')));
       if (manifest.id !== id) throw new RegistryError(`manifest id "${manifest.id}" != "${id}"`);
       if (scanForNativeBinaries(pluginRoot).length) throw new RegistryError('artifact contains native binaries');
 

@@ -33,6 +33,7 @@ import { preflight } from './preflight.js';
 import { submitEntry } from './submit.js';
 import { publishPlugin } from './publish.js';
 import { generateKeypair, loadPrivateKey, signArtifact, publicKeyBase64, defaultKeyPath } from './sign.js';
+import { readJsonFile } from './json.js';
 
 const [cmd, ...args] = process.argv.slice(2);
 
@@ -124,7 +125,7 @@ async function main(): Promise<void> {
     }
   } else if (cmd === 'preflight') {
     const entry = flags.entry
-      ? JSON.parse(fs.readFileSync(flags.entry, 'utf8'))
+      ? readJsonFile<ReturnType<typeof buildEntry>>(flags.entry)
       : (flags.repo && flags.tag
         ? buildEntry({ dir: pos[0] || '.', repo: flags.repo, tag: flags.tag, zipPath: flags.zip || 'plugin.zip', commit: flags.commit, signKeyPath: signKey(), now: new Date().toISOString() })
         : fail('preflight needs --repo <owner/name> --tag <vX>, or --entry <file.json>'));
