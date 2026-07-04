@@ -263,7 +263,7 @@ export default function AdminPluginsPanel() {
   const anyFilter = q.trim() !== '' || typeFilter !== 'all' || statusFilter !== 'all'
 
   return (
-    <div className="relative bg-surface-card border border-edge rounded-2xl shadow-card">
+    <div className="relative bg-surface-card border border-edge rounded-2xl shadow-card mb-24 sm:mb-0">
       {/* Click-away layer for any open dropdown (filters or a row's ⋯ menu). */}
       {menu && <div className="fixed inset-0 z-20" onClick={() => setMenu(null)} />}
       {/* Header */}
@@ -472,12 +472,17 @@ function FilterMenu({ id, label, valueLabel, options, onPick, value, menu, setMe
   menu: string | null; setMenu: (v: string | null) => void; icon?: React.ReactNode
 }) {
   const open = menu === id
+  const active = value !== options[0]?.[0]
   return (
     <div className="relative">
-      <button onClick={() => setMenu(open ? null : id)}
-        className="h-[38px] px-2.5 sm:px-3 inline-flex items-center gap-1.5 rounded-xl border border-edge bg-surface-card text-[13px] text-content-secondary hover:border-content-faint transition-colors whitespace-nowrap">
-        {icon}<span className="hidden sm:inline">{label}: </span><span className="font-semibold text-content">{valueLabel}</span>
-        <ChevronDown size={13} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+      <button onClick={() => setMenu(open ? null : id)} title={`${label}: ${valueLabel}`}
+        className={`relative h-[38px] w-[38px] sm:w-auto px-0 sm:px-3 inline-flex items-center justify-center sm:justify-start gap-1.5 rounded-xl border bg-surface-card text-[13px] text-content-secondary transition-colors whitespace-nowrap hover:border-content-faint ${
+          active ? 'border-content-faint' : 'border-edge'}`}>
+        {icon}
+        <span className="hidden sm:inline">{label}: </span>
+        <span className="hidden sm:inline font-semibold text-content">{valueLabel}</span>
+        <ChevronDown size={13} className={`hidden sm:block transition-transform ${open ? 'rotate-180' : ''}`} />
+        {active && <span className="sm:hidden absolute -top-1 -right-1 w-2 h-2 rounded-full bg-accent ring-2 ring-surface-card" />}
       </button>
       {open && (
         <div className="absolute top-11 right-0 z-30 min-w-[180px] max-w-[calc(100vw-2rem)] p-1.5 rounded-xl border border-edge bg-surface-card shadow-elevated">
@@ -537,7 +542,7 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, onToggl
             <AlertTriangle size={13} className="shrink-0" /><span className="truncate">{p.last_error}</span>
           </div>
         ) : caps.length > 0 && (
-          <div className="flex items-center gap-1.5 flex-wrap mt-2">
+          <div className="hidden sm:flex items-center gap-1.5 flex-wrap mt-2">
             {caps.map((c, i) => (
               <span key={i} className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-[3px] rounded-md border ${
                 c.net ? 'text-info border-info/25 bg-info-soft' : 'text-content-secondary border-edge-secondary bg-surface-tertiary'}`}>
@@ -699,7 +704,7 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div className="bg-surface-card border border-edge rounded-2xl w-full max-w-xl max-h-[88vh] overflow-auto shadow-modal" onClick={e => e.stopPropagation()}>
         <div className="relative">
-          <Screenshot url={item.screenshotUrl} className="aspect-[16/9] max-h-64" iconSize={36} />
+          <Screenshot url={item.screenshotUrl} className="w-full aspect-[16/9]" iconSize={36} />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
           <button onClick={onClose} className="absolute top-3 right-3 w-8 h-8 grid place-items-center rounded-lg bg-black/40 text-white hover:bg-black/60 transition-colors"><X size={16} /></button>
         </div>
