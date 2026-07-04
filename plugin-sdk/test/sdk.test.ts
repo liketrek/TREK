@@ -164,6 +164,26 @@ describe('dev-server SDK injection', () => {
   });
 });
 
+describe('dev db bind shapes', () => {
+  let tmp: string;
+  beforeEach(() => { tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'devdb-')); });
+  afterEach(() => { fs.rmSync(tmp, { recursive: true, force: true }); });
+
+  it('accepts spread args AND a single array of them, like the real host', async () => {
+    const { createDevDb } = await import('../src/cli/dev.js');
+    const { db, close } = createDevDb(path.join(tmp, 'db.sqlite'));
+    try {
+      await db.migrate('001', 'CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT)');
+      await db.exec('INSERT INTO kv (k, v) VALUES (?, ?)', ['a', '1']); // array form (better-sqlite3 style)
+      await db.exec('INSERT INTO kv (k, v) VALUES (?, ?)', 'b', '2'); // spread form
+      expect(await db.query('SELECT v FROM kv WHERE k = ?', ['a'])).toEqual([{ v: '1' }]);
+      expect(await db.query('SELECT v FROM kv WHERE k = ?', 'b')).toEqual([{ v: '2' }]);
+    } finally {
+      close();
+    }
+  });
+});
+
 describe('reference plugin (examples/koffi)', () => {
   const dir = path.resolve(import.meta.dirname, '..', 'examples', 'koffi');
 

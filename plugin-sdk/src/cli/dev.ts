@@ -26,8 +26,17 @@ interface PluginLike { onLoad?: (ctx: unknown) => unknown; routes?: PluginRouteL
 
 class PermissionDenied extends Error {}
 
+/**
+ * Accept both bind shapes the real host accepts: spread positional args AND a
+ * single array of them (better-sqlite3 binds an array; node:sqlite does not,
+ * so a plugin using the array form would fail only in dev).
+ */
+function flatBind(args: unknown[]): unknown[] {
+  return args.length === 1 && Array.isArray(args[0]) ? (args[0] as unknown[]) : args;
+}
+
 /** A dev db backed by node:sqlite if available, else an in-memory recorder that returns []. */
-function createDevDb(dbFile: string): { db: PluginContextDb; note: string; close: () => void } {
+export function createDevDb(dbFile: string): { db: PluginContextDb; note: string; close: () => void } {
   try {
     // node:sqlite is available on Node 22.5+ (experimental). Fall back gracefully if not.
     const { DatabaseSync } = createRequire(import.meta.url)('node:sqlite') as { DatabaseSync: new (p: string) => SqliteDb };
@@ -38,9 +47,9 @@ function createDevDb(dbFile: string): { db: PluginContextDb; note: string; close
       note: `db:own → real SQLite at ${dbFile}`,
       close: () => { try { sq.close(); } catch { /* ignore */ } },
       db: {
-        async query(sql: string, ...args: unknown[]) { return sq.prepare(sql).all(...args) as unknown[]; },
+        async query(sql: string, ...args: unknown[]) { return sq.prepare(sql).all(...flatBind(args)) as unknown[]; },
         async exec(sql: string, ...args: unknown[]) {
-          if (args.length) { const r = sq.prepare(sql).run(...args); return { changes: Number(r.changes ?? 0) }; }
+          if (args.length) { const r = sq.prepare(sql).run(...flatBind(args)); return { changes: Number(r.changes ?? 0) }; }
           sq.exec(sql); return { changes: 0 };
         },
         async migrate(id: string, sql: string) { if (applied.has(id)) return { applied: false }; sq.exec(sql); applied.add(id); return { applied: true }; },
@@ -167,7 +176,12 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
       await plugin.onLoad?.(ctx);
       version++;
       console.log(`  ↻ loaded ${plugin.routes?.length ?? 0} route(s)`);
-    } catch (e) { console.error('  ✗ plugin failed to load:', e instanceof Error ? e.message : e); }
+    } catch (e) {
+      // A plugin whose load/onLoad throws would fail activation in TREK — don't
+      // keep serving its routes here, or dev would hide exactly that failure.
+      plugin = {};
+      console.error('  ✗ plugin failed to load:', e instanceof Error ? e.message : e);
+    }
   };
   await load();
 
