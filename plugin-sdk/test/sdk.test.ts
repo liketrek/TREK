@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import zlib from 'node:zlib';
+import { createRequire } from 'node:module';
 import { definePlugin, PLUGIN_API_VERSION, validateManifest, createMockHost } from '../src/index.js';
 import { scaffold } from '../src/cli/create.js';
 import { validatePluginDir } from '../src/cli/validate.js';
@@ -169,7 +170,13 @@ describe('dev db bind shapes', () => {
   beforeEach(() => { tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'devdb-')); });
   afterEach(() => { fs.rmSync(tmp, { recursive: true, force: true }); });
 
-  it('accepts spread args AND a single array of them, like the real host', async () => {
+  // Without node:sqlite (Node < 22.5) createDevDb falls back to the [] stub and
+  // there is no bind behaviour to test.
+  const hasNodeSqlite = (() => {
+    try { createRequire(import.meta.url)('node:sqlite'); return true; } catch { return false; }
+  })();
+
+  it.runIf(hasNodeSqlite)('accepts spread args AND a single array of them, like the real host', async () => {
     const { createDevDb } = await import('../src/cli/dev.js');
     const { db, close } = createDevDb(path.join(tmp, 'db.sqlite'));
     try {

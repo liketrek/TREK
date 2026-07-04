@@ -22,7 +22,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # 22 matches the TREK server runtime and has node:sqlite, which the
+          # dev-server tests exercise.
+          node-version: 22
           registry-url: 'https://registry.npmjs.org'
       - run: npm ci
       - run: npm publish
