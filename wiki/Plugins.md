@@ -151,7 +151,7 @@ registry entry, so you never hand-compute a SHA-256 or hand-write registry JSON:
 | `trek-plugin entry --repo <o/n> --tag <vX> [--zip z] [--merge entry.json] [--out f]` | Emits the registry entry — `commitSha`, `downloadUrl`, `sha256`, `size` and `minTrekVersion` (derived from the manifest `trek` range) all filled in. `--merge` prepends the new version onto an existing entry for updates. |
 | `trek-plugin release [dir] --repo <o/n> --tag <vX>` | The one-shot: `pack` → create the GitHub release → print the entry. |
 
-Run them via `npx trek-plugin …`. See [[Plugin Development|Plugin-Development]]
+Run them via `npx trek-plugin-sdk …`. See [[Plugin Development|Plugin-Development]]
 for the SDK and manifest, and [[Publishing a Plugin|Plugin-Publishing]] for the
 registry PR flow. Publishing no longer reserves any namespaces — any unique slug
 is fine — but an `id` stays bound to the GitHub owner who first registered it, so

@@ -9,7 +9,7 @@ child process** and reaches it only over RPC; the browser part runs in a
 ## Scaffold
 
 ```bash
-npx create-trek-plugin my-plugin --type integration|page|widget
+npx trek-plugin-sdk create my-plugin --type integration|page|widget
 cd my-plugin
 ```
 

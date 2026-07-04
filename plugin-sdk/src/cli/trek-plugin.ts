@@ -17,6 +17,7 @@ import { execFileSync } from 'node:child_process';
 import { validatePluginDir } from './validate.js';
 import { packPluginDir } from './pack.js';
 import { buildEntry } from './entry.js';
+import { scaffold } from './create.js';
 
 const [cmd, ...args] = process.argv.slice(2);
 
@@ -41,7 +42,12 @@ function fail(msg: string): never {
 const { flags, pos } = parse(args);
 
 try {
-  if (cmd === 'validate') {
+  if (cmd === 'create') {
+    const name = pos[0];
+    if (!name) fail('create needs a plugin name, e.g. `create my-plugin --type widget`');
+    scaffold(name, flags.type || 'integration', process.cwd());
+    console.log(`Created ${name}/ — build server/index.js, add docs/screenshot.png, fill in the README, then \`trek-plugin validate ${name}\`.`);
+  } else if (cmd === 'validate') {
     const r = validatePluginDir(pos[0] || '.');
     for (const w of r.warnings) console.warn('warning: ' + w);
     if (!r.ok) { for (const e of r.errors) console.error('error: ' + e); process.exit(1); }
@@ -84,7 +90,7 @@ try {
     console.error('\nRegistry entry (add as registry/plugins/' + entry.id + '.json in a TREK-Plugins PR):\n');
     process.stdout.write(JSON.stringify(entry, null, 2) + '\n');
   } else {
-    console.error('usage: trek-plugin <validate|pack|entry|release> [...]');
+    console.error('usage: trek-plugin <create|validate|pack|entry|release> [...]');
     process.exit(2);
   }
 } catch (e) {

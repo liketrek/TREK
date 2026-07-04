@@ -72,7 +72,7 @@ is refused if it resolves to a loopback / private / link-local / metadata addres
 
 The `trek-plugin-sdk` package ships a `trek-plugin` CLI that builds the release
 artifact and the registry entry for you, so you never hand-compute a sha256,
-size, or commit sha. Run it with `npx trek-plugin <command>`. The full submission
+size, or commit sha. Run it with `npx trek-plugin-sdk <command>`. The full submission
 flow is in [[Publishing a Plugin|Plugin-Publishing]].
 
 | Command | What it does |

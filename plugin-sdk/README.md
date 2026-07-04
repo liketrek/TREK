@@ -5,10 +5,10 @@ The SDK for building [TREK](https://github.com/mauriceboe/TREK) plugins.
 ## Scaffold a plugin
 
 ```bash
-npx create-trek-plugin my-plugin --type integration|page|widget
+npx trek-plugin-sdk create my-plugin --type integration|page|widget
 cd my-plugin
 # build server/index.js, fill in the README
-npx trek-plugin validate .
+npx trek-plugin-sdk validate .
 ```
 
 ## Write a plugin
@@ -51,14 +51,14 @@ The SDK does the fiddly parts (zipping, hashing, sizing, writing the registry
 entry) so you don't compute anything by hand:
 
 ```bash
-npx trek-plugin validate                 # manifest + layout OK?
-npx trek-plugin pack                      # -> plugin.zip, prints sha256 + size
+npx trek-plugin-sdk validate                 # manifest + layout OK?
+npx trek-plugin-sdk pack                      # -> plugin.zip, prints sha256 + size
 gh release create v1.0.0 plugin.zip       # attach the artifact to your tag
-npx trek-plugin entry --repo you/repo --tag v1.0.0
+npx trek-plugin-sdk entry --repo you/repo --tag v1.0.0
                                           # -> the ready-to-PR registry entry JSON
 ```
 
-Or in one step: `npx trek-plugin release --repo you/repo --tag v1.0.0` packs,
+Or in one step: `npx trek-plugin-sdk release --repo you/repo --tag v1.0.0` packs,
 creates the GitHub release, and prints the entry. Then paste the entry into a PR
 against [TREK-Plugins](https://github.com/mauriceboe/TREK-Plugins) as
 `registry/plugins/<id>.json`.

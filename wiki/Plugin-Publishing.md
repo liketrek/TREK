@@ -11,10 +11,10 @@ the mechanical work — you rarely hand-type a hash, size, commit, or JSON field
 ## The short version
 
 ```bash
-npx trek-plugin validate .                       # manifest + layout sanity
-npx trek-plugin pack .                            # build plugin.zip, print sha256 + size
+npx trek-plugin-sdk validate .                       # manifest + layout sanity
+npx trek-plugin-sdk pack .                            # build plugin.zip, print sha256 + size
 gh release create v1.0.0 plugin.zip --repo you/trek-plugin-flight-tracker
-npx trek-plugin entry --repo you/trek-plugin-flight-tracker --tag v1.0.0 \
+npx trek-plugin-sdk entry --repo you/trek-plugin-flight-tracker --tag v1.0.0 \
   --out registry/plugins/flight-tracker.json     # the ready-to-PR entry
 ```
 
@@ -28,7 +28,7 @@ Put your plugin in a **public GitHub repo** (convention: `trek-plugin-<id>`).
 `create-trek-plugin` scaffolds the layout:
 
 ```bash
-npx create-trek-plugin flight-tracker --type widget   # integration | page | widget
+npx trek-plugin-sdk create flight-tracker --type widget   # integration | page | widget
 ```
 
 A publishable plugin has, at the repo root:
@@ -42,7 +42,7 @@ A publishable plugin has, at the repo root:
 ## 2. Validate
 
 ```bash
-npx trek-plugin validate .
+npx trek-plugin-sdk validate .
 ```
 
 `validate` runs the manifest checks plus a light layout/README sanity pass:
@@ -56,9 +56,9 @@ CI run but doesn't replace it.
 ## 3. Pack
 
 ```bash
-npx trek-plugin pack .                 # writes ./plugin.zip
-npx trek-plugin pack . --out dist.zip  # custom output path
-npx trek-plugin pack . --json          # machine-readable result
+npx trek-plugin-sdk pack .                 # writes ./plugin.zip
+npx trek-plugin-sdk pack . --out dist.zip  # custom output path
+npx trek-plugin-sdk pack . --json          # machine-readable result
 ```
 
 `pack` validates first, then builds `plugin.zip` in the installer's exact layout
@@ -89,7 +89,7 @@ they aren't the installer layout and their bytes aren't stable.
 ## 5. Generate the registry entry
 
 ```bash
-npx trek-plugin entry \
+npx trek-plugin-sdk entry \
   --repo you/trek-plugin-flight-tracker \
   --tag v1.0.0 \
   --out registry/plugins/flight-tracker.json
@@ -106,7 +106,7 @@ to name a differently-named release asset, `--merge` for updates (below), and
 ### One-shot: `release`
 
 ```bash
-npx trek-plugin release . --repo you/trek-plugin-flight-tracker --tag v1.0.0
+npx trek-plugin-sdk release . --repo you/trek-plugin-flight-tracker --tag v1.0.0
 ```
 
 `release` does **pack → `gh release create` → entry** in one go and prints the
@@ -211,7 +211,7 @@ Bump `version` in the manifest, re-`pack`, cut a new `vX.Y.Z` release, then fold
 the new version onto your existing entry with `--merge`:
 
 ```bash
-npx trek-plugin entry --repo you/trek-plugin-flight-tracker --tag v1.1.0 \
+npx trek-plugin-sdk entry --repo you/trek-plugin-flight-tracker --tag v1.1.0 \
   --merge registry/plugins/flight-tracker.json \
   --out registry/plugins/flight-tracker.json
 ```

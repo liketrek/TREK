@@ -4,6 +4,12 @@
   "description": "SDK for building TREK plugins: types, definePlugin, a mock host, manifest validation, and the create-trek-plugin / trek-plugin CLIs.",
   "type": "module",
   "license": "MIT",
+  "author": "mauriceboe",
+  "homepage": "https://github.com/mauriceboe/TREK/wiki/Plugin-Development",
+  "repository": { "type": "git", "url": "git+https://github.com/mauriceboe/TREK.git", "directory": "plugin-sdk" },
+  "bugs": { "url": "https://github.com/mauriceboe/TREK/issues" },
+  "engines": { "node": ">=18" },
+  "publishConfig": { "access": "public" },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -11,14 +17,16 @@
     "./testing": { "types": "./dist/mock-host.d.ts", "import": "./dist/mock-host.js" }
   },
   "bin": {
-    "create-trek-plugin": "./dist/cli/create.js",
-    "trek-plugin": "./dist/cli/trek-plugin.js"
+    "trek-plugin-sdk": "./dist/cli/trek-plugin.js",
+    "trek-plugin": "./dist/cli/trek-plugin.js",
+    "create-trek-plugin": "./dist/cli/create.js"
   },
   "files": ["dist"],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "npm run build && npm test"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
