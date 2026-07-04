@@ -29,6 +29,28 @@ function crc32(buf: Buffer): number {
   return (c ^ 0xffffffff) >>> 0;
 }
 
+/** List the entry names of a ZIP by walking its central directory (reader for `preflight`). */
+export function listZipNames(buf: Buffer): string[] {
+  // Find the End-Of-Central-Directory record (scan back from the end past any comment).
+  let eocd = -1;
+  for (let i = buf.length - 22; i >= 0 && i >= buf.length - 22 - 0xffff; i--) {
+    if (buf.readUInt32LE(i) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('not a ZIP archive (no EOCD record)');
+  const count = buf.readUInt16LE(eocd + 10);
+  let p = buf.readUInt32LE(eocd + 16); // central directory offset
+  const names: string[] = [];
+  for (let i = 0; i < count; i++) {
+    if (buf.readUInt32LE(p) !== 0x02014b50) throw new Error('corrupt central directory');
+    const nameLen = buf.readUInt16LE(p + 28);
+    const extraLen = buf.readUInt16LE(p + 30);
+    const commentLen = buf.readUInt16LE(p + 32);
+    names.push(buf.toString('utf8', p + 46, p + 46 + nameLen));
+    p += 46 + nameLen + extraLen + commentLen;
+  }
+  return names;
+}
+
 /** Build a ZIP buffer from a flat list of file entries (no directory entries). */
 export function makeZip(files: ZipInput[]): Buffer {
   const local: Buffer[] = [];

@@ -6,8 +6,15 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import readline from 'node:readline';
 
-export function scaffold(name: string, type: string, targetDir: string): void {
+export interface ScaffoldOptions {
+  author?: string;
+  description?: string;
+  permissions?: string[];
+}
+
+export function scaffold(name: string, type: string, targetDir: string, opts: ScaffoldOptions = {}): void {
   if (!/^[a-z][a-z0-9-]{2,39}$/.test(name)) throw new Error(`invalid plugin id "${name}" (lowercase slug, 3–40 chars)`);
   if (!['integration', 'page', 'widget'].includes(type)) throw new Error(`invalid type "${type}"`);
 
@@ -15,17 +22,18 @@ export function scaffold(name: string, type: string, targetDir: string): void {
   if (fs.existsSync(root)) throw new Error(`${root} already exists`);
   fs.mkdirSync(path.join(root, 'server'), { recursive: true });
 
+  const perms = opts.permissions?.length ? opts.permissions : ['db:own'];
   const manifest: Record<string, unknown> = {
     id: name,
     name: name.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
     version: '1.0.0',
     apiVersion: 1,
-    author: 'Your Name',
-    description: 'Describe what your plugin does.',
+    author: opts.author || 'Your Name',
+    description: opts.description || 'Describe what your plugin does.',
     type,
     trek: '>=3.2.0 <4.0.0',
     nativeModules: false,
-    permissions: ['db:own'],
+    permissions: perms,
     routes: [{ method: 'GET', path: '/hello', auth: true }],
   };
   if (type === 'page') manifest.capabilities = { nav: { label: manifest.name, icon: 'Blocks', position: 'main' } };
@@ -108,6 +116,38 @@ How to configure it.
 Your plugin is your own code — license it however you like; TREK does not impose
 one. Replace this line with your license (for example, MIT).
 `;
+}
+
+const KNOWN_PERMISSIONS = [
+  'db:own', 'db:read:trips', 'db:read:users', 'ws:broadcast:trip', 'ws:broadcast:user',
+  'hook:photo-provider', 'hook:calendar-source', 'http:outbound',
+];
+
+/** Interactive scaffold: prompt for the details, then create the plugin. Returns the chosen name. */
+export async function interactiveScaffold(targetDir: string, presetName?: string): Promise<string> {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const ask = (q: string, def?: string) =>
+    new Promise<string>((resolve) => rl.question(def ? `${q} (${def}) ` : `${q} `, (a) => resolve(a.trim() || def || '')));
+  try {
+    let name = presetName || '';
+    while (!/^[a-z][a-z0-9-]{2,39}$/.test(name)) {
+      name = await ask('Plugin id (lowercase-slug):');
+      if (!/^[a-z][a-z0-9-]{2,39}$/.test(name)) console.log('  → must be a lowercase slug, 3–40 chars (e.g. flight-tracker)');
+    }
+    let type = '';
+    while (!['integration', 'page', 'widget'].includes(type)) {
+      type = (await ask('Type — integration | page | widget:', 'integration')).toLowerCase();
+    }
+    const author = await ask('Author:', 'Your Name');
+    const description = await ask('One-line description:', 'Describe what your plugin does.');
+    console.log(`\n  Permissions (space/comma separated). Available:\n    ${KNOWN_PERMISSIONS.join(', ')}`);
+    const permsRaw = await ask('Permissions:', 'db:own');
+    const permissions = permsRaw.split(/[\s,]+/).filter(Boolean).filter((p) => KNOWN_PERMISSIONS.includes(p) || p.startsWith('http:outbound:'));
+    scaffold(name, type, targetDir, { author, description, permissions });
+    return name;
+  } finally {
+    rl.close();
+  }
 }
 
 // CLI entry

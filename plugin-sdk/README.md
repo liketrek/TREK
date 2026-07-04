@@ -5,11 +5,25 @@ The SDK for building [TREK](https://github.com/mauriceboe/TREK) plugins.
 ## Scaffold a plugin
 
 ```bash
-npx trek-plugin-sdk create my-plugin --type integration|page|widget
+npx trek-plugin-sdk create                # interactive wizard (id, type, permissions)
+npx trek-plugin-sdk create my-plugin --type widget   # or non-interactive
 cd my-plugin
-# build server/index.js, fill in the README
-npx trek-plugin-sdk validate .
 ```
+
+## Develop with a live reload loop
+
+`dev` runs your plugin locally — no full TREK needed. It injects a `ctx` that
+enforces exactly the permissions your manifest grants (an ungranted call throws
+`PERMISSION_DENIED`, so you catch missing grants), backs `db:own` with a real
+SQLite file, serves your routes and your page/widget UI, and reloads on save.
+
+```bash
+npx trek-plugin-sdk dev        # http://localhost:4317 — dashboard, routes, UI
+```
+
+Hit a route as an unauthenticated request with `?_anon=1`. Drop a
+`dev-fixtures.json` (trips, users, config) next to your manifest to feed
+`ctx.trips` / `ctx.users`.
 
 ## Write a plugin
 
@@ -48,24 +62,44 @@ const { ctx, broadcasts } = createMockHost({
 ## Publish
 
 The SDK does the fiddly parts (zipping, hashing, sizing, writing the registry
-entry) so you don't compute anything by hand:
+entry, opening the PR) so you don't compute anything by hand. The short path:
 
 ```bash
-npx trek-plugin-sdk validate                 # manifest + layout OK?
-npx trek-plugin-sdk pack                      # -> plugin.zip, prints sha256 + size
-gh release create v1.0.0 plugin.zip       # attach the artifact to your tag
-npx trek-plugin-sdk entry --repo you/repo --tag v1.0.0
-                                          # -> the ready-to-PR registry entry JSON
+git tag v1.0.0 && git push --tags
+npx trek-plugin-sdk release --repo you/repo --tag v1.0.0   # pack -> GitHub release -> entry
+npx trek-plugin-sdk submit  --repo you/repo --tag v1.0.0   # opens the registry PR for you
 ```
 
-Or in one step: `npx trek-plugin-sdk release --repo you/repo --tag v1.0.0` packs,
-creates the GitHub release, and prints the entry. Then paste the entry into a PR
-against [TREK-Plugins](https://github.com/mauriceboe/TREK-Plugins) as
-`registry/plugins/<id>.json`.
+`submit` forks [TREK-Plugins](https://github.com/mauriceboe/TREK-Plugins),
+branches off the current main, writes (or merges into) `registry/plugins/<id>.json`,
+and opens the PR — the last manual step is gone. Prefer to paste it yourself?
+`entry` just prints the JSON.
 
-**Updating** an already-listed plugin: bump `version`, tag, and pass
-`--merge registry/plugins/<id>.json` to `entry` — it prepends the new version,
-keeping the array newest-first.
+**Check before you submit** — run the exact registry CI checks locally so you
+don't round-trip through review:
+
+```bash
+npx trek-plugin-sdk preflight --repo you/repo --tag v1.0.0
+# verifies the tag→commit, manifest parity, artifact sha256/size, native scan,
+# and the README quality gate — over the network, against your pushed release.
+```
+
+**Updating** a listed plugin: bump `version`, tag, and re-run `submit` — it
+detects the existing entry and prepends the new version, newest-first.
+
+### Sign your releases (optional, recommended)
+
+Give your plugin a stable identity. TREK pins your key on first install
+(trust-on-first-use); afterwards an unsigned or wrong-key update is refused.
+
+```bash
+npx trek-plugin-sdk keygen                                  # once — writes ~/.trek-plugin/signing.key
+npx trek-plugin-sdk release --repo you/repo --tag v1.1.0 --sign
+npx trek-plugin-sdk submit  --repo you/repo --tag v1.1.0 --sign
+```
+
+Signing is dependency-free Ed25519 over the artifact bytes. **Back up the key** —
+losing it means you can't ship signed updates.
 
 ## Exports
 
@@ -74,12 +108,20 @@ keeping the array newest-first.
 - `validateManifest(json)` — the manifest rules the server loader uses.
 - `createMockHost(opts)` (from `trek-plugin-sdk/testing`).
 
-## CLIs
+## Commands
 
-- `create-trek-plugin <name> --type …` — scaffold a working plugin.
-- `trek-plugin validate [dir]` — check the manifest + layout locally (the manifest rules the registry CI also runs; CI additionally verifies the release, artifact hash and README over the network).
-- `trek-plugin pack [dir] [--out plugin.zip] [--json]` — build the artifact, print `sha256` + `size`.
-- `trek-plugin entry --repo o/n --tag vX [--zip z] [--merge entry.json] [--out f]` — emit the registry entry.
-- `trek-plugin release [dir] --repo o/n --tag vX` — pack → GitHub release → entry, in one go.
+Run any of these with `npx trek-plugin-sdk <command>` (or the short `trek-plugin`
+bin if you install the package):
+
+- `create [name] [--type t] [--interactive]` — scaffold a plugin; a wizard if you omit the name.
+- `dev [dir] [--port 4317]` — run locally with a real request loop, SQLite `db:own`, and hot reload.
+- `validate [dir]` — manifest + layout checks (a subset of registry CI, offline).
+- `pack [dir] [--out plugin.zip] [--json]` — build the artifact, print `sha256` + `size`.
+- `keygen [--key file]` — create an Ed25519 signing key.
+- `sign [zip] [--key file]` — print a signature + public key for an artifact.
+- `entry --repo o/n --tag vX [--merge f] [--sign [key]] [--out f]` — emit the registry entry JSON.
+- `preflight --repo o/n --tag vX` (or `--entry f`) — run the registry CI checks locally, over the network.
+- `submit --repo o/n --tag vX [--sign [key]] [--draft]` — open the registry PR for you.
+- `release [dir] --repo o/n --tag vX [--sign [key]] [--merge f]` — pack → GitHub release → entry, in one go.
 
 The SDK tooling in this repo is MIT. Your plugin is your own code under your own license.

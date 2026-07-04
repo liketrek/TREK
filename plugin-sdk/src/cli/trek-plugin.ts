@@ -2,14 +2,22 @@
 /**
  * `trek-plugin <command>` — the plugin author CLI (#plugins).
  *
- *   validate [dir]                          check the manifest + layout
- *   pack [dir] [--out plugin.zip] [--json]  build plugin.zip, print sha256 + size
- *   entry --repo o/n --tag vX [--zip z]     print the ready-to-PR registry entry
- *         [--merge entry.json] [--out f]
- *   release [dir] --repo o/n --tag vX       pack -> gh release -> print entry
+ *   create [name] [--type t] [--interactive]   scaffold a plugin (wizard if no name)
+ *   dev [dir] [--port 4317]                     run locally with hot reload
+ *   validate [dir]                              check the manifest + layout
+ *   pack [dir] [--out plugin.zip] [--json]      build plugin.zip, print sha256 + size
+ *   keygen [--key file]                         create an Ed25519 signing key
+ *   sign [zip] [--key file]                      print a signature + public key for an artifact
+ *   entry --repo o/n --tag vX [--zip z]         print the ready-to-PR registry entry
+ *         [--merge entry.json] [--sign [key]] [--out f]
+ *   preflight [dir] --repo o/n --tag vX         run the registry CI checks locally
+ *   submit [dir] --repo o/n --tag vX            open the registry PR for you
+ *         [--sign [key]] [--registry o/n] [--draft]
+ *   release [dir] --repo o/n --tag vX           pack -> gh release -> print entry
+ *         [--sign [key]] [--merge entry.json]
  *
- * The goal: an author runs `pack` then `entry` (or a single `release`) and never
- * hand-computes sha256/size/commitSha or hand-writes the registry JSON.
+ * The goal: create -> dev -> release/submit, and never hand-compute sha256/size/
+ * commitSha or hand-write the registry JSON.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -17,7 +25,11 @@ import { execFileSync } from 'node:child_process';
 import { validatePluginDir } from './validate.js';
 import { packPluginDir } from './pack.js';
 import { buildEntry } from './entry.js';
-import { scaffold } from './create.js';
+import { scaffold, interactiveScaffold } from './create.js';
+import { runDev } from './dev.js';
+import { preflight } from './preflight.js';
+import { submitEntry } from './submit.js';
+import { generateKeypair, loadPrivateKey, signArtifact, publicKeyBase64, defaultKeyPath } from './sign.js';
 
 const [cmd, ...args] = process.argv.slice(2);
 
@@ -41,12 +53,27 @@ function fail(msg: string): never {
 
 const { flags, pos } = parse(args);
 
-try {
+/** --sign, --sign <keyfile>, or absent → the key path to sign with (or undefined). */
+function signKey(): string | undefined {
+  if (!flags.sign) return undefined;
+  return flags.sign === 'true' ? (flags.key || defaultKeyPath()) : flags.sign;
+}
+
+async function main(): Promise<void> {
   if (cmd === 'create') {
     const name = pos[0];
-    if (!name) fail('create needs a plugin name, e.g. `create my-plugin --type widget`');
-    scaffold(name, flags.type || 'integration', process.cwd());
-    console.log(`Created ${name}/ — build server/index.js, add docs/screenshot.png, fill in the README, then \`trek-plugin validate ${name}\`.`);
+    if (!name || flags.interactive) {
+      const created = await interactiveScaffold(process.cwd(), name);
+      console.log(`\nCreated ${created}/ — build server/index.js, add docs/screenshot.png, then \`trek-plugin dev ${created}\`.`);
+      return;
+    }
+    scaffold(name, flags.type || 'integration', process.cwd(), {
+      author: flags.author, description: flags.description,
+      permissions: flags.permissions ? flags.permissions.split(/[\s,]+/).filter(Boolean) : undefined,
+    });
+    console.log(`Created ${name}/ — build server/index.js, add docs/screenshot.png, then \`trek-plugin dev ${name}\`.`);
+  } else if (cmd === 'dev') {
+    await runDev(pos[0] || '.', { port: flags.port ? Number(flags.port) : undefined });
   } else if (cmd === 'validate') {
     const r = validatePluginDir(pos[0] || '.');
     for (const w of r.warnings) console.warn('warning: ' + w);
@@ -62,6 +89,19 @@ try {
       console.log(`\nsha256: ${r.sha256}\nsize:   ${r.size}`);
       console.log('\nUpload this plugin.zip to your release, then run `trek-plugin entry` to generate the registry entry.');
     }
+  } else if (cmd === 'keygen') {
+    const keyPath = flags.key || defaultKeyPath();
+    const { publicKey } = generateKeypair(keyPath);
+    console.log(`Signing key written to ${keyPath} (keep it safe + BACK IT UP — losing it means you can't ship signed updates).`);
+    console.log(`\nauthorPublicKey (goes in your registry entry): ${publicKey}`);
+    console.log('\nSign releases with `trek-plugin release --sign` (or `entry --sign`).');
+  } else if (cmd === 'sign') {
+    const zip = pos[0] || 'plugin.zip';
+    if (!fs.existsSync(zip)) fail(`artifact not found: ${zip} — run \`trek-plugin pack\` first`);
+    const key = loadPrivateKey(flags.key || defaultKeyPath());
+    const buf = fs.readFileSync(zip);
+    console.log(`signature:        ${signArtifact(buf, key)}`);
+    console.log(`authorPublicKey:  ${publicKeyBase64(key)}`);
   } else if (cmd === 'entry') {
     if (!flags.repo || !flags.tag) fail('entry needs --repo <owner/name> and --tag <vX.Y.Z>');
     const entry = buildEntry({
@@ -69,6 +109,7 @@ try {
       repo: flags.repo, tag: flags.tag,
       zipPath: flags.zip || 'plugin.zip',
       commit: flags.commit, asset: flags.asset, mergePath: flags.merge,
+      signKeyPath: signKey(),
       now: new Date().toISOString(),
     });
     const json = JSON.stringify(entry, null, 2) + '\n';
@@ -78,6 +119,28 @@ try {
     } else {
       process.stdout.write(json);
     }
+  } else if (cmd === 'preflight') {
+    const entry = flags.entry
+      ? JSON.parse(fs.readFileSync(flags.entry, 'utf8'))
+      : (flags.repo && flags.tag
+        ? buildEntry({ dir: pos[0] || '.', repo: flags.repo, tag: flags.tag, zipPath: flags.zip || 'plugin.zip', commit: flags.commit, signKeyPath: signKey(), now: new Date().toISOString() })
+        : fail('preflight needs --repo <owner/name> --tag <vX>, or --entry <file.json>'));
+    console.error('Running registry CI checks over the network…\n');
+    const rep = await preflight(entry, { all: !!flags.all });
+    for (const p of rep.passed) console.error('  ✓ ' + p);
+    for (const f of rep.failures) console.error('  ✗ ' + f);
+    if (!rep.ok) { console.error(`\n${rep.failures.length} check(s) would fail CI — fix these before submitting.`); process.exit(1); }
+    console.error('\n✓ all checks passed — this entry should sail through CI.');
+  } else if (cmd === 'submit') {
+    if (!flags.repo || !flags.tag) fail('submit needs --repo <owner/name> and --tag <vX.Y.Z>');
+    const entry = buildEntry({
+      dir: pos[0] || '.', repo: flags.repo, tag: flags.tag,
+      zipPath: flags.zip || 'plugin.zip', commit: flags.commit, signKeyPath: signKey(),
+      now: new Date().toISOString(),
+    });
+    console.error(`Opening a registry PR for ${entry.id} ${entry.versions[0].version}…`);
+    const { prUrl } = submitEntry(entry, { registry: flags.registry, branch: flags.branch, draft: !!flags.draft, keep: !!flags.keep });
+    console.log(prUrl);
   } else if (cmd === 'release') {
     if (!flags.repo || !flags.tag) fail('release needs --repo <owner/name> and --tag <vX.Y.Z>');
     const dir = pos[0] || '.';
@@ -86,13 +149,13 @@ try {
     console.error(`Packed ${packed.files.length} files (${packed.size} bytes).`);
     console.error(`Creating GitHub release ${flags.tag} on ${flags.repo}…`);
     execFileSync('gh', ['release', 'create', flags.tag, packed.artifact, '--repo', flags.repo, '--title', flags.tag, '--notes', flags.notes || `Release ${flags.tag}`], { stdio: 'inherit' });
-    const entry = buildEntry({ dir, repo: flags.repo, tag: flags.tag, zipPath: packed.artifact, commit: flags.commit, mergePath: flags.merge, now: new Date().toISOString() });
-    console.error('\nRegistry entry (add as registry/plugins/' + entry.id + '.json in a TREK-Plugins PR):\n');
+    const entry = buildEntry({ dir, repo: flags.repo, tag: flags.tag, zipPath: packed.artifact, commit: flags.commit, mergePath: flags.merge, signKeyPath: signKey(), now: new Date().toISOString() });
+    console.error('\nRegistry entry (add as registry/plugins/' + entry.id + '.json in a TREK-Plugins PR, or run `trek-plugin submit`):\n');
     process.stdout.write(JSON.stringify(entry, null, 2) + '\n');
   } else {
-    console.error('usage: trek-plugin <create|validate|pack|entry|release> [...]');
+    console.error('usage: trek-plugin <create|dev|validate|pack|keygen|sign|entry|preflight|submit|release> [...]');
     process.exit(2);
   }
-} catch (e) {
-  fail(e instanceof Error ? e.message : String(e));
 }
+
+main().catch((e) => fail(e instanceof Error ? e.message : String(e)));

@@ -13,15 +13,16 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
+import { loadPrivateKey, signArtifact, publicKeyBase64 } from './sign.js';
 
 interface Version {
   version: string; gitTag: string; commitSha: string; downloadUrl: string;
   sha256: string; minTrekVersion: string; size: number; apiVersion: number;
-  nativeModules: false; publishedAt: string;
+  nativeModules: false; publishedAt: string; signature?: string;
 }
 interface Entry {
   id: string; name: string; author: string; description: string; repo: string;
-  homepage?: string; tags?: string[]; type: string; versions: Version[];
+  homepage?: string; tags?: string[]; type: string; authorPublicKey?: string; versions: Version[];
 }
 
 /** Lower bound of a `trek` range like ">=3.2.0 <4.0.0" -> "3.2.0" (matches the server). */
@@ -43,6 +44,8 @@ function resolveCommit(dir: string, tag: string, override?: string): string {
 export function buildEntry(opts: {
   dir: string; repo: string; tag: string; zipPath: string;
   commit?: string; asset?: string; mergePath?: string; now: string;
+  /** Optional Ed25519 private-key file — signs the artifact and pins the author key. */
+  signKeyPath?: string;
 }): Entry {
   const manifest = JSON.parse(fs.readFileSync(path.join(opts.dir, 'trek-plugin.json'), 'utf8')) as Record<string, unknown>;
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(opts.repo)) throw new Error(`--repo must be "owner/name", got "${opts.repo}"`);
@@ -65,10 +68,24 @@ export function buildEntry(opts: {
     publishedAt: opts.now,
   };
 
+  // Optional author signature over the exact artifact bytes.
+  let authorPublicKey: string | undefined;
+  if (opts.signKeyPath) {
+    const key = loadPrivateKey(opts.signKeyPath);
+    version.signature = signArtifact(buf, key);
+    authorPublicKey = publicKeyBase64(key);
+  }
+
   if (opts.mergePath) {
     const existing = JSON.parse(fs.readFileSync(opts.mergePath, 'utf8')) as Entry;
+    if (authorPublicKey && existing.authorPublicKey && existing.authorPublicKey !== authorPublicKey) {
+      throw new Error('this signing key differs from the one already published for this plugin — TREK would reject the update. Use the original key.');
+    }
+    if (existing.authorPublicKey && !authorPublicKey) {
+      throw new Error('this plugin was published signed — sign the update too (pass --sign) or TREK will refuse it.');
+    }
     const versions = [version, ...existing.versions.filter((v) => v.version !== version.version)];
-    return { ...existing, versions };
+    return { ...existing, authorPublicKey: authorPublicKey ?? existing.authorPublicKey, versions };
   }
 
   const entry: Entry = {
@@ -82,5 +99,6 @@ export function buildEntry(opts: {
   };
   if (typeof manifest.homepage === 'string') entry.homepage = manifest.homepage;
   if (Array.isArray(manifest.tags)) entry.tags = manifest.tags.map(String).slice(0, 8);
+  if (authorPublicKey) entry.authorPublicKey = authorPublicKey;
   return entry;
 }

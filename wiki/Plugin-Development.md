@@ -9,9 +9,13 @@ child process** and reaches it only over RPC; the browser part runs in a
 ## Scaffold
 
 ```bash
-npx trek-plugin-sdk create my-plugin --type integration|page|widget
+npx trek-plugin-sdk create                # interactive wizard
+npx trek-plugin-sdk create my-plugin --type integration|page|widget   # or direct
 cd my-plugin
 ```
+
+The wizard (run `create` with no name) asks for the id, type, author and
+permissions; the direct form takes them as flags.
 
 This emits:
 
@@ -22,6 +26,25 @@ my-plugin/
   client/index.html     # page/widget iframe (page/widget only)
   README.md             # fill this in — the registry requires a screenshot
 ```
+
+## Run it locally with hot reload
+
+```bash
+npx trek-plugin-sdk dev        # http://localhost:4317
+```
+
+`dev` loads your `server/index.js` through the same `definePlugin` contract the
+host uses and gives you a **real request loop without a full TREK**: a dashboard
+listing your routes, the routes served under `/api/<path>`, your page/widget UI
+at `/ui`, and a reload on every save. The injected `ctx` **enforces exactly the
+permissions your manifest grants** — an ungranted call throws `PERMISSION_DENIED`,
+so you catch a missing grant here rather than after install. `db:own` is backed
+by a real SQLite file (`.trek-dev/db.sqlite`) when the runtime has `node:sqlite`.
+
+- Hit a route as an unauthenticated request with `?_anon=1` (an `auth: true`
+  route then returns 401, mirroring the host).
+- Feed `ctx.trips` / `ctx.users` by dropping a `dev-fixtures.json` next to the
+  manifest: `{ "trips": { "1": { "members": [1], "data": { … } } }, "users": {} }`.
 
 ## The three plugin types
 

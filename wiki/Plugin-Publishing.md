@@ -11,16 +11,18 @@ the mechanical work — you rarely hand-type a hash, size, commit, or JSON field
 ## The short version
 
 ```bash
-npx trek-plugin-sdk validate .                       # manifest + layout sanity
-npx trek-plugin-sdk pack .                            # build plugin.zip, print sha256 + size
-gh release create v1.0.0 plugin.zip --repo you/trek-plugin-flight-tracker
-npx trek-plugin-sdk entry --repo you/trek-plugin-flight-tracker --tag v1.0.0 \
-  --out registry/plugins/flight-tracker.json     # the ready-to-PR entry
+git tag v1.0.0 && git push --tags
+npx trek-plugin-sdk release   --repo you/trek-plugin-flight-tracker --tag v1.0.0  # pack → GitHub release → entry
+npx trek-plugin-sdk preflight --repo you/trek-plugin-flight-tracker --tag v1.0.0  # the CI checks, locally
+npx trek-plugin-sdk submit    --repo you/trek-plugin-flight-tracker --tag v1.0.0  # opens the registry PR
 ```
 
-…then open a PR to **TREK-Plugins** adding that one
-`registry/plugins/<id>.json` file. `trek-plugin release` collapses the middle
-three steps into one command (see below).
+`release` builds the artifact, creates the GitHub release, and prints the
+registry entry. `preflight` runs the exact registry CI checks against your
+pushed release so you don't round-trip through review. `submit` forks
+**TREK-Plugins**, writes `registry/plugins/<id>.json`, and opens the PR for you.
+Prefer to do the last step by hand? `entry --out registry/plugins/<id>.json`
+prints the file and you open the PR yourself.
 
 ## 1. Host and build your plugin
 
@@ -113,12 +115,39 @@ npx trek-plugin-sdk release . --repo you/trek-plugin-flight-tracker --tag v1.0.0
 entry to stdout. It accepts `--out`, `--notes`, `--commit`, and `--merge`. (It
 requires the `gh` CLI, authenticated.)
 
-## 6. Open a registry PR
+## 6. Preflight — run the CI checks locally
 
-You don't have write access, so **fork
-[TREK-Plugins](https://github.com/mauriceboe/TREK-Plugins)**, add your generated
-file as `registry/plugins/<id>.json`, and open a PR back to `main`. Add **only**
-that file — `dist/` is generated on merge, and CI rejects manual edits to it.
+Before you open the PR, run the exact registry CI checks against your pushed
+release, so you catch what CI would reject without a review round-trip:
+
+```bash
+npx trek-plugin-sdk preflight --repo you/trek-plugin-flight-tracker --tag v1.0.0
+```
+
+`preflight` mirrors both CI scripts over the network: the tag resolves to the
+pinned `commitSha`, the manifest at that commit matches the entry, the released
+artifact's **sha256 + size** match and it carries **no native binaries**, and the
+README passes the quality gate (required sections, real prose, a resolving
+screenshot, permission parity). It also accepts `--entry <file.json>` to check a
+hand-written entry. A green preflight predicts a green CI.
+
+## 7. Open the registry PR
+
+The fast path — `submit` does the whole fork/branch/commit/PR dance for you:
+
+```bash
+npx trek-plugin-sdk submit --repo you/trek-plugin-flight-tracker --tag v1.0.0
+```
+
+It forks [TREK-Plugins](https://github.com/mauriceboe/TREK-Plugins) (once),
+branches off the current `main`, writes (or, for an update, merges into)
+`registry/plugins/<id>.json`, pushes, and opens the PR — printing its URL. Add
+`--draft` for a draft PR, `--registry <owner/name>` for a mirror. (Requires `gh`,
+authenticated.)
+
+**By hand instead:** fork the registry, add your generated file as
+`registry/plugins/<id>.json`, and open a PR back to `main`. Add **only** that
+file — `dist/` is generated on merge, and CI rejects manual edits to it.
 
 The entry follows [`schema/plugin-entry.schema.json`](https://github.com/mauriceboe/TREK-Plugins/blob/main/schema/plugin-entry.schema.json);
 [`schema/example-entry.json`](https://github.com/mauriceboe/TREK-Plugins/blob/main/schema/example-entry.json)
@@ -171,16 +200,28 @@ TREK verifies the signature offline (minisign / Ed25519, no external service) an
 pins your key on first install (trust-on-first-use): a later release signed with a
 different key is refused until an admin re-trusts it.
 
-**One-time — create a key:**
+**The easy way — let the SDK do it** (dependency-free Ed25519, no minisign needed):
+
+```bash
+npx trek-plugin-sdk keygen                                     # once: writes ~/.trek-plugin/signing.key
+npx trek-plugin-sdk release --repo you/repo --tag v1.2.0 --sign
+npx trek-plugin-sdk submit  --repo you/repo --tag v1.2.0 --sign
+```
+
+`--sign` signs the exact artifact bytes and fills both `authorPublicKey` (entry)
+and `signature` (version) for you; `submit --sign` even refuses to publish an
+update signed with a *different* key than the one already listed, so you can't
+lock yourself out by accident. **Back up `~/.trek-plugin/signing.key`** — losing
+it means you can't ship signed updates.
+
+**By hand with minisign**, if you prefer:
 
 ```bash
 minisign -G            # writes minisign.key (keep secret) + minisign.pub
 ```
 
 Put the base64 payload line from `minisign.pub` in your entry as
-`authorPublicKey` (stable across versions).
-
-**Each release — sign the artifact:**
+`authorPublicKey` (stable across versions), then per release:
 
 ```bash
 minisign -Sm plugin.zip   # writes plugin.zip.minisig

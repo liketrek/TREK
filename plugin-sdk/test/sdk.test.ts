@@ -6,9 +6,10 @@ import zlib from 'node:zlib';
 import { definePlugin, PLUGIN_API_VERSION, validateManifest, createMockHost } from '../src/index.js';
 import { scaffold } from '../src/cli/create.js';
 import { validatePluginDir } from '../src/cli/validate.js';
-import { makeZip } from '../src/zip.js';
+import { makeZip, listZipNames } from '../src/zip.js';
 import { packPluginDir } from '../src/cli/pack.js';
 import { buildEntry } from '../src/cli/entry.js';
+import { generateKeypair, signArtifact, publicKeyBase64, verifyArtifact, loadPrivateKey } from '../src/cli/sign.js';
 
 /** A central-directory zip reader mirroring the TREK server's, to prove round-trip. */
 function readZip(buf: Buffer): Record<string, Buffer> {
@@ -102,6 +103,14 @@ describe('scaffold + validate CLIs', () => {
     const r = validatePluginDir(dir);
     expect(r.ok).toBe(true); // manifest + files valid
     expect(r.warnings.some((w) => /placeholder|screenshot/.test(w))).toBe(true); // README is the unfilled template
+  });
+
+  it('applies author, description, and permissions from options', () => {
+    scaffold('opt-plug', 'integration', tmp, { author: 'Jane', description: 'Does X', permissions: ['db:own', 'db:read:trips'] });
+    const m = JSON.parse(fs.readFileSync(path.join(tmp, 'opt-plug', 'trek-plugin.json'), 'utf8'));
+    expect(m.author).toBe('Jane');
+    expect(m.description).toBe('Does X');
+    expect(m.permissions).toEqual(['db:own', 'db:read:trips']);
   });
 
   it('rejects an invalid plugin name', () => {
@@ -206,5 +215,63 @@ describe('pack + entry (publishing automation)', () => {
       commit: 'a'.repeat(40), mergePath: existingPath, now: '2026-07-04T00:00:00.000Z',
     });
     expect(merged.versions.map((v) => v.version)).toEqual(['1.0.0', '0.9.0']);
+  });
+});
+
+describe('listZipNames', () => {
+  it('lists central-directory entries of a makeZip archive', () => {
+    const zip = makeZip([{ name: 'a.js', data: Buffer.from('x') }, { name: 'server/b.js', data: Buffer.from('y'.repeat(100)) }]);
+    expect(listZipNames(zip).sort()).toEqual(['a.js', 'server/b.js']);
+  });
+});
+
+describe('sign + keygen (author signatures, TOFU)', () => {
+  const koffi = path.resolve(import.meta.dirname, '..', 'examples', 'koffi');
+  let tmp: string;
+  beforeEach(() => { tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'sign-')); });
+  afterEach(() => { fs.rmSync(tmp, { recursive: true, force: true }); });
+
+  it('keygen writes a private key and returns a schema-length public key', () => {
+    const keyPath = path.join(tmp, 'k.pem');
+    const { publicKey } = generateKeypair(keyPath);
+    expect(fs.existsSync(keyPath)).toBe(true);
+    expect(publicKey.length).toBeGreaterThanOrEqual(40); // registry schema minLength
+    expect(() => generateKeypair(keyPath)).toThrow(/already exists/); // never clobbers a key
+  });
+
+  it('a signature round-trips through the server-shaped verifier', () => {
+    const keyPath = path.join(tmp, 'k.pem');
+    generateKeypair(keyPath);
+    const key = loadPrivateKey(keyPath);
+    const bytes = Buffer.from('the exact plugin.zip bytes ' + 'x'.repeat(60));
+    const sig = signArtifact(bytes, key);
+    expect(sig.length).toBeGreaterThanOrEqual(40);
+    expect(verifyArtifact(bytes, sig, publicKeyBase64(key))).toBe(true);
+    expect(verifyArtifact(Buffer.concat([bytes, Buffer.from('!')]), sig, publicKeyBase64(key))).toBe(false);
+  });
+
+  it('entry --sign fills signature + authorPublicKey that verify against the artifact', () => {
+    const out = path.join(tmp, 'plugin.zip');
+    packPluginDir(koffi, out);
+    const keyPath = path.join(tmp, 'k.pem');
+    const { publicKey } = generateKeypair(keyPath);
+    const entry = buildEntry({ dir: koffi, repo: 'mauriceboe/trek-plugin-koffi', tag: 'v1.0.0', zipPath: out, commit: 'a'.repeat(40), signKeyPath: keyPath, now: '2026-07-04T00:00:00.000Z' });
+    expect(entry.authorPublicKey).toBe(publicKey);
+    const sig = entry.versions[0].signature;
+    expect(sig).toBeTruthy();
+    expect(verifyArtifact(fs.readFileSync(out), sig!, entry.authorPublicKey!)).toBe(true);
+  });
+
+  it('refuses to sign an update with a different key than the one already published', () => {
+    const out = path.join(tmp, 'plugin.zip');
+    packPluginDir(koffi, out);
+    const key1 = path.join(tmp, 'k1.pem');
+    generateKeypair(key1);
+    const existing = buildEntry({ dir: koffi, repo: 'mauriceboe/trek-plugin-koffi', tag: 'v1.0.0', zipPath: out, commit: 'a'.repeat(40), signKeyPath: key1, now: '2026-07-04T00:00:00.000Z' });
+    const existingPath = path.join(tmp, 'koffi.json');
+    fs.writeFileSync(existingPath, JSON.stringify({ ...existing, versions: existing.versions.map((v) => ({ ...v, version: '0.9.0', gitTag: 'v0.9.0' })) }));
+    const key2 = path.join(tmp, 'k2.pem');
+    generateKeypair(key2);
+    expect(() => buildEntry({ dir: koffi, repo: 'mauriceboe/trek-plugin-koffi', tag: 'v1.1.0', zipPath: out, commit: 'a'.repeat(40), mergePath: existingPath, signKeyPath: key2, now: '2026-07-04T00:00:00.000Z' })).toThrow(/differs from the one already published/);
   });
 });
