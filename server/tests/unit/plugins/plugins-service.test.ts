@@ -9,7 +9,7 @@ const { testDb } = vi.hoisted(() => {
   const db = new Database(':memory:');
   db.exec(`CREATE TABLE plugins (
     id TEXT PRIMARY KEY, name TEXT, description TEXT, type TEXT, icon TEXT, version TEXT,
-    status TEXT, enabled INTEGER DEFAULT 0, last_error TEXT, reviewed_at TEXT, source_repo TEXT, config TEXT DEFAULT '{}', capabilities TEXT DEFAULT '{}', updated_at TEXT,
+    status TEXT, enabled INTEGER DEFAULT 0, last_error TEXT, reviewed_at TEXT, source_repo TEXT, config TEXT DEFAULT '{}', permissions TEXT DEFAULT '[]', capabilities TEXT DEFAULT '{}', updated_at TEXT,
     sort_order INTEGER DEFAULT 0);
     CREATE TABLE plugin_settings_fields (plugin_id TEXT, field_key TEXT, scope TEXT, secret INTEGER);
     CREATE TABLE plugin_error_log (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, level TEXT, message TEXT, ts TEXT DEFAULT '2026-01-01');`);

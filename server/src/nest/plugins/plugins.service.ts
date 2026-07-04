@@ -25,6 +25,10 @@ export interface PluginListItem {
   last_error: string | null;
   reviewed_at: string | null;
   source_repo: string | null;
+  /** Declared permissions (JSON string) — drives the "what this can access" chips. */
+  permissions: string;
+  /** Declared capabilities (JSON string) — e.g. widget slot. */
+  capabilities: string;
 }
 
 @Injectable()
@@ -32,7 +36,8 @@ export class PluginsService {
   list(): { enabled: boolean; plugins: PluginListItem[] } {
     const plugins = db
       .prepare(
-        `SELECT id, name, description, type, icon, version, status, enabled, last_error, reviewed_at, source_repo
+        `SELECT id, name, description, type, icon, version, status, enabled, last_error, reviewed_at, source_repo,
+                permissions, capabilities
          FROM plugins
          ORDER BY sort_order, name`,
       )
