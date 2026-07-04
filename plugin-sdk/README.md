@@ -45,16 +45,41 @@ const { ctx, broadcasts } = createMockHost({
 // degrades gracefully when a permission is missing.
 ```
 
+## Publish
+
+The SDK does the fiddly parts (zipping, hashing, sizing, writing the registry
+entry) so you don't compute anything by hand:
+
+```bash
+npx trek-plugin validate                 # manifest + layout OK?
+npx trek-plugin pack                      # -> plugin.zip, prints sha256 + size
+gh release create v1.0.0 plugin.zip       # attach the artifact to your tag
+npx trek-plugin entry --repo you/repo --tag v1.0.0
+                                          # -> the ready-to-PR registry entry JSON
+```
+
+Or in one step: `npx trek-plugin release --repo you/repo --tag v1.0.0` packs,
+creates the GitHub release, and prints the entry. Then paste the entry into a PR
+against [TREK-Plugins](https://github.com/mauriceboe/TREK-Plugins) as
+`registry/plugins/<id>.json`.
+
+**Updating** an already-listed plugin: bump `version`, tag, and pass
+`--merge registry/plugins/<id>.json` to `entry` — it prepends the new version,
+keeping the array newest-first.
+
 ## Exports
 
 - `definePlugin(def)` + all the plugin types (`PluginContext`, `PluginRoute`, `PluginJob`, `PhotoProvider`, `CalendarSource`).
 - `PLUGIN_API_VERSION` — embed as `apiVersion` in your manifest.
-- `validateManifest(json)` — the same checks the registry CI runs.
+- `validateManifest(json)` — the manifest rules the server loader uses.
 - `createMockHost(opts)` (from `trek-plugin-sdk/testing`).
 
 ## CLIs
 
-- `create-trek-plugin <name> --type …` — scaffold.
-- `trek-plugin validate [dir]` — validate the manifest + README locally (predicts the registry CI result).
+- `create-trek-plugin <name> --type …` — scaffold a working plugin.
+- `trek-plugin validate [dir]` — check the manifest + layout locally (the manifest rules the registry CI also runs; CI additionally verifies the release, artifact hash and README over the network).
+- `trek-plugin pack [dir] [--out plugin.zip] [--json]` — build the artifact, print `sha256` + `size`.
+- `trek-plugin entry --repo o/n --tag vX [--zip z] [--merge entry.json] [--out f]` — emit the registry entry.
+- `trek-plugin release [dir] --repo o/n --tag vX` — pack → GitHub release → entry, in one go.
 
-MIT.
+The SDK tooling in this repo is MIT. Your plugin is your own code under your own license.

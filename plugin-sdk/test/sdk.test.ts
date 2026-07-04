@@ -2,9 +2,36 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { definePlugin, PLUGIN_API_VERSION, validateManifest, createMockHost } from '../src/index.js';
 import { scaffold } from '../src/cli/create.js';
 import { validatePluginDir } from '../src/cli/validate.js';
+import { makeZip } from '../src/zip.js';
+import { packPluginDir } from '../src/cli/pack.js';
+import { buildEntry } from '../src/cli/entry.js';
+
+/** A central-directory zip reader mirroring the TREK server's, to prove round-trip. */
+function readZip(buf: Buffer): Record<string, Buffer> {
+  let e = -1;
+  for (let i = buf.length - 22; i >= 0; i--) if (buf.readUInt32LE(i) === 0x06054b50) { e = i; break; }
+  const count = buf.readUInt16LE(e + 8);
+  let p = buf.readUInt32LE(e + 16);
+  const out: Record<string, Buffer> = {};
+  for (let i = 0; i < count; i++) {
+    const method = buf.readUInt16LE(p + 10);
+    const compSize = buf.readUInt32LE(p + 20);
+    const nameLen = buf.readUInt16LE(p + 28);
+    const extraLen = buf.readUInt16LE(p + 30);
+    const commentLen = buf.readUInt16LE(p + 32);
+    const lho = buf.readUInt32LE(p + 42);
+    const name = buf.subarray(p + 46, p + 46 + nameLen).toString('utf8');
+    const dataStart = lho + 30 + buf.readUInt16LE(lho + 26) + buf.readUInt16LE(lho + 28);
+    const comp = buf.subarray(dataStart, dataStart + compSize);
+    out[name] = method === 0 ? Buffer.from(comp) : zlib.inflateRawSync(comp);
+    p += 46 + nameLen + extraLen + commentLen;
+  }
+  return out;
+}
 
 describe('definePlugin + api version', () => {
   it('returns the definition and exposes the api version', () => {
@@ -103,5 +130,81 @@ describe('reference plugin (examples/koffi)', () => {
     expect(res.ok).toBe(true);
     expect(res.manifest?.permissions).toEqual(['db:read:trips']);
     expect(manifest.capabilities?.widget?.slot).toBe('hero');
+  });
+});
+
+describe('makeZip', () => {
+  it('round-trips through a central-directory reader (installer-compatible)', () => {
+    const files = [
+      { name: 'trek-plugin.json', data: Buffer.from('{"id":"x"}') },
+      { name: 'server/index.js', data: Buffer.from('module.exports={}\n'.repeat(200)) },
+    ];
+    const zip = makeZip(files);
+    expect(zip.subarray(0, 2).toString()).toBe('PK'); // local file header magic
+    const back = readZip(zip);
+    expect(Object.keys(back).sort()).toEqual(['server/index.js', 'trek-plugin.json']);
+    expect(back['trek-plugin.json'].toString()).toBe('{"id":"x"}');
+    expect(back['server/index.js'].length).toBe(files[1].data.length);
+  });
+});
+
+describe('pack + entry (publishing automation)', () => {
+  const koffi = path.resolve(import.meta.dirname, '..', 'examples', 'koffi');
+  let tmp: string;
+  beforeEach(() => { tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pack-')); });
+  afterEach(() => { fs.rmSync(tmp, { recursive: true, force: true }); });
+
+  it('packs the canonical layout, excludes docs/, and reports sha256 + size', () => {
+    const out = path.join(tmp, 'plugin.zip');
+    const r = packPluginDir(koffi, out);
+    expect(r.files).toEqual(['README.md', 'client/index.html', 'server/index.js', 'trek-plugin.json']);
+    expect(r.sha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(r.size).toBeGreaterThan(0);
+    const back = readZip(fs.readFileSync(out));
+    expect(back['trek-plugin.json']).toBeTruthy();
+    expect(Object.keys(back).some((n) => n.startsWith('docs/'))).toBe(false); // screenshot served from repo, not shipped
+  });
+
+  it('refuses a plugin that ships a native binary', () => {
+    const bad = path.join(tmp, 'bad');
+    fs.mkdirSync(path.join(bad, 'server'), { recursive: true });
+    fs.writeFileSync(path.join(bad, 'trek-plugin.json'), JSON.stringify({ id: 'bad-plug', name: 'Bad', version: '1.0.0', type: 'integration', permissions: [], egress: [] }));
+    fs.writeFileSync(path.join(bad, 'server', 'index.js'), 'module.exports={}');
+    fs.writeFileSync(path.join(bad, 'server', 'thing.node'), Buffer.from([1, 2, 3]));
+    fs.writeFileSync(path.join(bad, 'README.md'), '# Bad\n![x](x.png)\ncontent');
+    expect(() => packPluginDir(bad, path.join(tmp, 'x.zip'))).toThrow(/native binaries/);
+  });
+
+  it('builds a registry entry with sha256/size/commit/minTrekVersion filled in', () => {
+    const out = path.join(tmp, 'plugin.zip');
+    const packed = packPluginDir(koffi, out);
+    const entry = buildEntry({
+      dir: koffi, repo: 'mauriceboe/trek-plugin-koffi', tag: 'v1.0.0', zipPath: out,
+      commit: 'a'.repeat(40), now: '2026-07-04T00:00:00.000Z',
+    });
+    expect(entry.id).toBe('koffi');
+    expect(entry.type).toBe('widget');
+    const v = entry.versions[0];
+    expect(v.sha256).toBe(packed.sha256);
+    expect(v.size).toBe(packed.size);
+    expect(v.commitSha).toBe('a'.repeat(40));
+    expect(v.minTrekVersion).toBe('3.2.0');
+    expect(v.downloadUrl).toBe('https://github.com/mauriceboe/trek-plugin-koffi/releases/download/v1.0.0/plugin.zip');
+    expect(v.nativeModules).toBe(false);
+  });
+
+  it('--merge prepends the new version onto an existing entry, newest-first', () => {
+    const out = path.join(tmp, 'plugin.zip');
+    packPluginDir(koffi, out);
+    const existingPath = path.join(tmp, 'koffi.json');
+    fs.writeFileSync(existingPath, JSON.stringify({
+      id: 'koffi', name: 'Koffi', author: 'TREK', description: 'x', repo: 'mauriceboe/trek-plugin-koffi', type: 'widget',
+      versions: [{ version: '0.9.0', gitTag: 'v0.9.0', commitSha: 'b'.repeat(40), downloadUrl: 'https://github.com/x/y/releases/download/v0.9.0/plugin.zip', sha256: 'c'.repeat(64), minTrekVersion: '3.2.0', size: 10, apiVersion: 1, nativeModules: false, publishedAt: '2026-01-01T00:00:00.000Z' }],
+    }));
+    const merged = buildEntry({
+      dir: koffi, repo: 'mauriceboe/trek-plugin-koffi', tag: 'v1.0.0', zipPath: out,
+      commit: 'a'.repeat(40), mergePath: existingPath, now: '2026-07-04T00:00:00.000Z',
+    });
+    expect(merged.versions.map((v) => v.version)).toEqual(['1.0.0', '0.9.0']);
   });
 });

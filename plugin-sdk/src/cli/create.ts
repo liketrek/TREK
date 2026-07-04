@@ -81,7 +81,7 @@ function readme(name: string): string {
 
 > One sentence: what this plugin does.
 
-![screenshot](./docs/screenshot-1.png)
+![screenshot](./docs/screenshot.png)
 
 ## What it does
 
@@ -89,7 +89,9 @@ Describe the feature this plugin adds to TREK.
 
 ## Screenshots
 
-Show it in context (at least one image).
+Show it in context. Commit a \`docs/screenshot.png\` — it's what the store card
+shows. A 16:9 image (e.g. 1600×900) with your plugin centred and some margin
+looks best (the card crops the edges).
 
 ## Permissions
 
@@ -103,7 +105,8 @@ How to configure it.
 
 ## License
 
-MIT
+Your plugin is your own code — license it however you like; TREK does not impose
+one. Replace this line with your license (for example, MIT).
 `;
 }
 
