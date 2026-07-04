@@ -1953,8 +1953,10 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                         // Subtitle aus Metadaten zusammensetzen
                         let subtitle = ''
                         if (res.__leg) {
-                          // One leg of a multi-leg flight — show this segment's own route.
-                          const parts = [res.__leg.airline, res.__leg.flight_number].filter(Boolean)
+                          // One leg of a multi-leg flight/train — show this segment's own detail.
+                          const parts = res.type === 'train'
+                            ? [res.__leg.train_number, res.__leg.platform ? `Gl. ${res.__leg.platform}` : '', res.__leg.seat ? `Sitz ${res.__leg.seat}` : ''].filter(Boolean)
+                            : [res.__leg.airline, res.__leg.flight_number].filter(Boolean)
                           if (res.__leg.from || res.__leg.to)
                             parts.push([res.__leg.from, res.__leg.to].filter(Boolean).join(' → '))
                           subtitle = parts.join(' · ')

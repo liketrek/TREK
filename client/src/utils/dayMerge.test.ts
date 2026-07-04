@@ -128,6 +128,32 @@ describe('getTransportForDay', () => {
     expect(getTransportForDay({ reservations, dayId: 1, dayAssignmentIds: [42], days })).toHaveLength(0)
     expect(getTransportForDay({ reservations, dayId: 1, dayAssignmentIds: [99], days })).toHaveLength(1)
   })
+
+  it('expands a multi-leg TRAIN into one row per leg with train detail on __leg (#1150)', () => {
+    const reservations = [{
+      id: 40, type: 'train', day_id: 1, end_day_id: 2,
+      metadata: JSON.stringify({
+        train_number: 'ICE 100',
+        legs: [
+          { from: 'Berlin', to: 'Frankfurt', train_number: 'ICE 100', platform: '5', dep_day_id: 1, dep_time: '08:00', arr_day_id: 1, arr_time: '12:00' },
+          { from: 'Frankfurt', to: 'München', train_number: 'ICE 500', platform: '9', dep_day_id: 2, dep_time: '09:00', arr_day_id: 2, arr_time: '12:00' },
+        ],
+      }),
+    }]
+    const day1 = getTransportForDay({ reservations, dayId: 1, dayAssignmentIds: [], days })
+    expect(day1).toHaveLength(1)
+    expect(day1[0].__leg).toMatchObject({ index: 0, total: 2, from: 'Berlin', to: 'Frankfurt', train_number: 'ICE 100', platform: '5' })
+    const day2 = getTransportForDay({ reservations, dayId: 2, dayAssignmentIds: [], days })
+    expect(day2).toHaveLength(1)
+    expect(day2[0].__leg).toMatchObject({ index: 1, from: 'Frankfurt', to: 'München', train_number: 'ICE 500', platform: '9' })
+  })
+
+  it('leaves a single-leg train untouched (no __leg)', () => {
+    const reservations = [{ id: 41, type: 'train', day_id: 1, end_day_id: 1, metadata: JSON.stringify({ train_number: 'RE 1' }) }]
+    const rows = getTransportForDay({ reservations, dayId: 1, dayAssignmentIds: [], days })
+    expect(rows).toHaveLength(1)
+    expect(rows[0].__leg).toBeUndefined()
+  })
 })
 
 describe('getMergedItems', () => {

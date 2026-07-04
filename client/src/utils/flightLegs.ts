@@ -84,9 +84,69 @@ export function getFlightLegs(r: Reservation): FlightLeg[] {
   }]
 }
 
+/**
+ * A train booking mirrors the flight leg model (#1150), but its stops are
+ * STATIONS (labels, not IATA codes) and each leg carries a train number +
+ * platform instead of an airline + flight number.
+ */
+export interface TrainLeg {
+  from: string | null // station label (or null)
+  to: string | null
+  train_number?: string
+  platform?: string
+  seat?: string
+  dep_day_id?: number | null
+  dep_time?: string | null
+  arr_day_id?: number | null
+  arr_time?: string | null
+}
+
+/**
+ * Ordered legs of a train booking. Prefers `metadata.legs`; otherwise derives a
+ * single leg from the endpoints + flat metadata, so single-leg trains — and
+ * trains created before this feature — still work.
+ */
+export function getTrainLegs(r: Reservation): TrainLeg[] {
+  const meta = parseReservationMetadata(r)
+  if (Array.isArray(meta.legs) && meta.legs.length > 0) {
+    return meta.legs.map((l: any): TrainLeg => ({
+      from: l.from ?? null,
+      to: l.to ?? null,
+      train_number: l.train_number || undefined,
+      platform: l.platform || undefined,
+      seat: l.seat || undefined,
+      dep_day_id: l.dep_day_id ?? null,
+      dep_time: l.dep_time ?? null,
+      arr_day_id: l.arr_day_id ?? null,
+      arr_time: l.arr_time ?? null,
+    }))
+  }
+  const eps = orderedEndpoints(r)
+  const first = eps[0]
+  const last = eps[eps.length - 1]
+  const fromLabel = first ? (first.code || first.name) : null
+  const toLabel = last ? (last.code || last.name) : null
+  if (!fromLabel && !toLabel && !meta.train_number) return []
+  return [{
+    from: fromLabel,
+    to: toLabel,
+    train_number: meta.train_number || undefined,
+    platform: meta.platform || undefined,
+    seat: meta.seat || undefined,
+    dep_day_id: r.day_id ?? null,
+    dep_time: first?.local_time ?? null,
+    arr_day_id: r.end_day_id ?? r.day_id ?? null,
+    arr_time: last?.local_time ?? null,
+  }]
+}
+
 /** Number of flight segments. 1 for a simple from -> to booking. */
 export function legCount(r: Reservation): number {
   return getFlightLegs(r).length
+}
+
+export function isMultiLegTrain(r: Reservation): boolean {
+  return r.type === 'train' && getTrainLegs(r).length > 1
 }
 
 export function isMultiLegFlight(r: Reservation): boolean {

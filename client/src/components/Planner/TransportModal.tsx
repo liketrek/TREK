@@ -41,7 +41,7 @@ function endpointFromAirport(a: Airport, role: 'from' | 'to' | 'stop', sequence:
   }
 }
 
-function endpointFromLocation(l: LocationPoint, role: 'from' | 'to', sequence: number, date: string | null, time: string | null): Omit<ReservationEndpoint, 'id' | 'reservation_id'> {
+function endpointFromLocation(l: LocationPoint, role: 'from' | 'to' | 'stop', sequence: number, date: string | null, time: string | null): Omit<ReservationEndpoint, 'id' | 'reservation_id'> {
   return {
     role, sequence,
     name: l.name,
@@ -86,6 +86,24 @@ interface WaypointForm {
 }
 function emptyWaypoint(dayId: string | number = ''): WaypointForm {
   return { airport: null, arrDayId: dayId, arrTime: '', depDayId: dayId, depTime: '', airline: '', flight_number: '', seat: '' }
+}
+
+// ── Multi-leg train stations ───────────────────────────────────────────────
+// A train mirrors the flight route model, but its waypoints are STATIONS
+// (location search, no timezone) and each leg carries a train number + platform
+// instead of an airline + flight number. N stations = N-1 legs.
+interface StationWaypointForm {
+  location: LocationPoint | null
+  arrDayId: string | number
+  arrTime: string
+  depDayId: string | number
+  depTime: string
+  train_number: string
+  platform: string
+  seat: string
+}
+function emptyStationWaypoint(dayId: string | number = ''): StationWaypointForm {
+  return { location: null, arrDayId: dayId, arrTime: '', depDayId: dayId, depTime: '', train_number: '', platform: '', seat: '' }
 }
 
 const TYPE_OPTIONS = [
@@ -159,6 +177,8 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
   const [toPick, setToPick] = useState<EndpointPick>({})
   // Flight route as an ordered list of airports (origin .. stops .. destination).
   const [waypoints, setWaypoints] = useState<WaypointForm[]>([emptyWaypoint(), emptyWaypoint()])
+  // Train route as an ordered list of stations (origin .. stops .. destination).
+  const [trainWaypoints, setTrainWaypoints] = useState<StationWaypointForm[]>([emptyStationWaypoint(), emptyStationWaypoint()])
   const [uploadingFile, setUploadingFile] = useState(false)
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [showFilePicker, setShowFilePicker] = useState(false)
@@ -237,6 +257,46 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
           wps = [dep, arr]
         }
         setWaypoints(wps)
+      } else if (type === 'train') {
+        // Mirror the flight seeding with stations + per-leg train fields. A
+        // current single-leg train (2 endpoints, no metadata.legs) round-trips
+        // through the >=2 branch: the flat train_number/platform/seat land on
+        // the first station, dep/arr day+time from src.day_id/end_day_id.
+        const orderedEps = orderedEndpoints(src)
+        const metaLegs: any[] = Array.isArray(meta.legs) ? meta.legs : []
+        let wps: StationWaypointForm[]
+        if (orderedEps.length >= 2) {
+          wps = orderedEps.map((ep, i) => {
+            const legInto = metaLegs[i - 1]
+            const legOut = metaLegs[i]
+            const isFirst = i === 0
+            const isLast = i === orderedEps.length - 1
+            return {
+              location: locationFromEndpoint(ep),
+              arrDayId: legInto?.arr_day_id ?? (isLast ? (src.end_day_id ?? '') : ''),
+              arrTime: legInto?.arr_time ?? (!isFirst ? (ep.local_time ?? '') : ''),
+              depDayId: legOut?.dep_day_id ?? (isFirst ? (src.day_id ?? '') : ''),
+              depTime: legOut?.dep_time ?? (!isLast ? (ep.local_time ?? '') : ''),
+              train_number: legOut?.train_number ?? (isFirst ? (meta.train_number ?? '') : ''),
+              platform: legOut?.platform ?? (isFirst ? (meta.platform ?? '') : ''),
+              seat: legOut?.seat ?? (isFirst ? (meta.seat ?? '') : ''),
+            }
+          })
+        } else {
+          const dep = emptyStationWaypoint(src.day_id ?? '')
+          dep.location = locationFromEndpoint(from)
+          dep.depTime = splitReservationDateTime(src.reservation_time).time ?? ''
+          dep.train_number = meta.train_number ?? ''
+          dep.platform = meta.platform ?? ''
+          dep.seat = meta.seat ?? ''
+          const arr = emptyStationWaypoint(src.end_day_id ?? src.day_id ?? '')
+          arr.location = locationFromEndpoint(to)
+          arr.arrTime = splitReservationDateTime(src.reservation_end_time).time ?? ''
+          wps = [dep, arr]
+        }
+        setTrainWaypoints(wps)
+        setFromPick({})
+        setToPick({})
       } else {
         setFromPick({ location: locationFromEndpoint(from) || undefined })
         setToPick({ location: locationFromEndpoint(to) || undefined })
@@ -247,6 +307,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
       setFromPick({})
       setToPick({})
       setWaypoints([emptyWaypoint(selectedDayId ?? ''), emptyWaypoint(selectedDayId ?? '')])
+      setTrainWaypoints([emptyStationWaypoint(selectedDayId ?? ''), emptyStationWaypoint(selectedDayId ?? '')])
     }
   }, [isOpen, reservation, prefill, selectedDayId, budgetItems])
 
@@ -270,6 +331,15 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
       const flightWps = form.type === 'flight' ? waypoints.filter(w => w.airport) : []
       const firstWp = flightWps[0]
       const lastWp = flightWps[flightWps.length - 1]
+      // Train route: the first/last waypoint drive the span + flat metadata
+      // (day/time/train number are entered independently of geocoding, exactly
+      // like the old form fields, so a train with no map-picked station still
+      // saves its day/time/train number). Only geocoded stations become map
+      // endpoints + legs, mirroring the old "push only if the location is set".
+      const trainWps = form.type === 'train' ? trainWaypoints : []
+      const firstTrainWp = trainWps[0]
+      const lastTrainWp = trainWps[trainWps.length - 1]
+      const trainStations = form.type === 'train' ? trainWaypoints.filter(w => w.location) : []
       // Per-leg day-plan positions are owned by the day planner, not this form — keep
       // them when re-saving so editing a flight doesn't reset where its legs sit.
       const origLegs: any[] = reservation ? (parseReservationMetadata(reservation).legs || []) : []
@@ -308,9 +378,31 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         }
         if (firstWp?.seat) metadata.seat = firstWp.seat
       } else if (form.type === 'train') {
-        if (form.meta_train_number) metadata.train_number = form.meta_train_number
-        if (form.meta_platform) metadata.platform = form.meta_platform
-        if (form.meta_seat) metadata.seat = form.meta_seat
+        // Flat keys mirror the first leg so legacy readers keep working; a
+        // 2-station train emits exactly {train_number?,platform?,seat?} — the
+        // same shape it saved before this feature.
+        if (firstTrainWp?.train_number) metadata.train_number = firstTrainWp.train_number
+        if (firstTrainWp?.platform) metadata.platform = firstTrainWp.platform
+        if (firstTrainWp?.seat) metadata.seat = firstTrainWp.seat
+        // Per-leg detail only for a true multi-leg train (>2 geocoded stations);
+        // a simple train keeps the same flat metadata it saved before.
+        if (trainStations.length > 2) {
+          metadata.legs = trainStations.slice(0, -1).map((w, i) => {
+            const next = trainStations[i + 1]
+            return {
+              from: w.location!.name,
+              to: next.location!.name,
+              ...(w.train_number ? { train_number: w.train_number } : {}),
+              ...(w.platform ? { platform: w.platform } : {}),
+              ...(w.seat ? { seat: w.seat } : {}),
+              dep_day_id: w.depDayId ? Number(w.depDayId) : null,
+              dep_time: w.depTime || null,
+              arr_day_id: next.arrDayId ? Number(next.arrDayId) : null,
+              arr_time: next.arrTime || null,
+              ...(origLegs[i]?.day_positions ? { day_positions: origLegs[i].day_positions } : {}),
+            }
+          })
+        }
       }
 
       // A transit itinerary (#1065) lives in metadata.transit + 'stop' endpoints,
@@ -340,6 +432,18 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
           const time = isLast ? w.arrTime : w.depTime
           endpoints.push(endpointFromAirport(w.airport!, role, i, dayDate(dId), time || null))
         })
+      } else if (form.type === 'train') {
+        trainStations.forEach((w, i) => {
+          const isFirst = i === 0
+          const isLast = i === trainStations.length - 1
+          const role: 'from' | 'to' | 'stop' = isFirst ? 'from' : isLast ? 'to' : 'stop'
+          const dId = isLast ? w.arrDayId : w.depDayId
+          const time = isLast ? w.arrTime : w.depTime
+          // The destination date falls back to the departure day (as the old flat
+          // path did via `endDay ?? startDay`) when the arrival day is left blank.
+          const date = dayDate(dId) ?? (isLast ? dayDate(firstTrainWp?.depDayId ?? '') : null)
+          endpoints.push(endpointFromLocation(w.location!, role, i, date, time || null))
+        })
       } else {
         if (fromPick.location) endpoints.push(endpointFromLocation(fromPick.location, 'from', 0, startDate, form.departure_time || null))
         // Keep the itinerary's transfer stops while the route is unchanged (#1065).
@@ -354,22 +458,30 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         if (toPick.location) endpoints.push(endpointFromLocation(toPick.location, 'to', stops.length + 1, endDate, form.arrival_time || null))
       }
 
-      // Flights derive their span from the first/last waypoint; other transports
-      // keep using the single departure/arrival form fields unchanged.
+      // Flights and trains derive their span from the first/last waypoint; other
+      // transports keep using the single departure/arrival form fields unchanged.
       const flightDepDay = firstWp && firstWp.depDayId ? Number(firstWp.depDayId) : null
       const flightArrDay = lastWp && lastWp.arrDayId ? Number(lastWp.arrDayId) : null
+      const trainDepDay = firstTrainWp && firstTrainWp.depDayId ? Number(firstTrainWp.depDayId) : null
+      const trainArrDay = lastTrainWp && lastTrainWp.arrDayId ? Number(lastTrainWp.arrDayId) : null
       const payload = {
         title: form.title,
         type: form.type,
         status: form.status,
-        day_id: form.type === 'flight' ? flightDepDay : (form.start_day_id ? Number(form.start_day_id) : null),
-        end_day_id: form.type === 'flight' ? flightArrDay : (form.end_day_id ? Number(form.end_day_id) : null),
+        day_id: form.type === 'flight' ? flightDepDay : form.type === 'train' ? trainDepDay : (form.start_day_id ? Number(form.start_day_id) : null),
+        end_day_id: form.type === 'flight' ? flightArrDay : form.type === 'train' ? trainArrDay : (form.end_day_id ? Number(form.end_day_id) : null),
         reservation_time: form.type === 'flight'
           ? buildTime(days.find(d => d.id === flightDepDay), firstWp?.depTime || '')
-          : buildTime(startDay, form.departure_time),
+          : form.type === 'train'
+            ? buildTime(days.find(d => d.id === trainDepDay), firstTrainWp?.depTime || '')
+            : buildTime(startDay, form.departure_time),
         reservation_end_time: form.type === 'flight'
           ? buildTime(days.find(d => d.id === flightArrDay), lastWp?.arrTime || '')
-          : buildTime(endDay ?? startDay, form.arrival_time),
+          : form.type === 'train'
+            // Fall back to the departure day so a same-day train (arrival day left
+            // blank) still gets its date, matching the non-flight `endDay ?? startDay`.
+            ? buildTime(days.find(d => d.id === trainArrDay) ?? days.find(d => d.id === trainDepDay), lastTrainWp?.arrTime || '')
+            : buildTime(endDay ?? startDay, form.arrival_time),
         location: null,
         confirmation_number: form.confirmation_number || null,
         notes: form.notes || null,
@@ -653,6 +765,80 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
               )
             })}
           </div>
+        ) : form.type === 'train' ? (
+          /* ── Train route: ordered stations (origin · stops · destination) ── */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <label className={labelClass}>{t('reservations.layover.route')}</label>
+            {trainWaypoints.map((wp, i) => {
+              const isFirst = i === 0
+              const isLast = i === trainWaypoints.length - 1
+              const updateWp = (patch: Partial<StationWaypointForm>) => setTrainWaypoints(prev => prev.map((w, j) => (j === i ? { ...w, ...patch } : w)))
+              const roleLabel = isFirst ? t('reservations.meta.from') : isLast ? t('reservations.meta.to') : t('reservations.layover.stop')
+              return (
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div className="bg-surface-card" style={{ border: '1px solid var(--border-primary)', borderRadius: 10, padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span className="text-content-faint" style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em', flexShrink: 0 }}>{roleLabel}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <LocationSelect value={wp.location} onChange={l => updateWp({ location: l || null })} />
+                      </div>
+                      {!isFirst && !isLast && (
+                        <button type="button" onClick={() => setTrainWaypoints(prev => prev.filter((_, j) => j !== i))} aria-label={t('common.delete')} className="text-content-faint" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 4, flexShrink: 0 }}>
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                    {!isFirst && (
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <label className={labelClass}>{t('reservations.arrivalDate')}</label>
+                          <CustomSelect value={wp.arrDayId} onChange={v => updateWp({ arrDayId: v })} placeholder={t('dayplan.dayN', { n: '?' })} options={dayOptions} size="sm" />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <label className={labelClass}>{t('reservations.arrivalTime')}</label>
+                          <CustomTimePicker value={wp.arrTime} onChange={v => updateWp({ arrTime: v })} />
+                        </div>
+                      </div>
+                    )}
+                    {!isLast && (
+                      <>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <label className={labelClass}>{t('reservations.departureDate')}</label>
+                            <CustomSelect value={wp.depDayId} onChange={v => updateWp({ depDayId: v })} placeholder={t('dayplan.dayN', { n: '?' })} options={dayOptions} size="sm" />
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <label className={labelClass}>{t('reservations.departureTime')}</label>
+                            <CustomTimePicker value={wp.depTime} onChange={v => updateWp({ depTime: v })} />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div>
+                            <label className={labelClass}>{t('reservations.meta.trainNumber')}</label>
+                            <input type="text" value={wp.train_number} onChange={e => updateWp({ train_number: e.target.value })} placeholder="ICE 123" className={inputClass} />
+                          </div>
+                          <div>
+                            <label className={labelClass}>{t('reservations.meta.platform')}</label>
+                            <input type="text" value={wp.platform} onChange={e => updateWp({ platform: e.target.value })} placeholder="12" className={inputClass} />
+                          </div>
+                          <div>
+                            <label className={labelClass}>{t('reservations.meta.seat')}</label>
+                            <input type="text" value={wp.seat} onChange={e => updateWp({ seat: e.target.value })} placeholder="42A" className={inputClass} />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  {!isLast && (
+                    <button type="button" onClick={() => setTrainWaypoints(prev => [...prev.slice(0, i + 1), emptyStationWaypoint(prev[i]?.depDayId || ''), ...prev.slice(i + 1)])}
+                      className="text-content-faint hover:text-content-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '6px 10px', border: '1px dashed var(--border-primary)', borderRadius: 8, background: 'none', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', cursor: 'pointer', fontFamily: 'inherit' }}>
+                      <Plus size={12} /> {t('reservations.layover.addStop')}
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         ) : (
           <>
             {/* From / To endpoints (non-flight) */}
@@ -694,25 +880,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         )}
 
         {/* Train-specific fields */}
-        {form.type === 'train' && (
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className={labelClass}>{t('reservations.meta.trainNumber')}</label>
-              <input type="text" value={form.meta_train_number} onChange={e => set('meta_train_number', e.target.value)}
-                placeholder="ICE 123" className={inputClass} />
-            </div>
-            <div>
-              <label className={labelClass}>{t('reservations.meta.platform')}</label>
-              <input type="text" value={form.meta_platform} onChange={e => set('meta_platform', e.target.value)}
-                placeholder="12" className={inputClass} />
-            </div>
-            <div>
-              <label className={labelClass}>{t('reservations.meta.seat')}</label>
-              <input type="text" value={form.meta_seat} onChange={e => set('meta_seat', e.target.value)}
-                placeholder="42A" className={inputClass} />
-            </div>
-          </div>
-        )}
+        {/* Train number / platform / seat are per-leg now (in the route above). */}
 
         {/* Booking Code + Status */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

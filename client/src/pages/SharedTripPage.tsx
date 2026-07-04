@@ -12,7 +12,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { Clock, MapPin, FileText, Train, Plane, Bus, Car, Ship, Ticket, Hotel, Map, Luggage, Wallet, MessageCircle } from 'lucide-react'
 import { isDayInAccommodationRange } from '../utils/dayOrder'
 import { getTransportForDay, getMergedItems } from '../utils/dayMerge'
-import { getFlightLegs } from '../utils/flightLegs'
+import { getFlightLegs, getTrainLegs } from '../utils/flightLegs'
 import { splitReservationDateTime } from '../utils/formatters'
 
 const TRANSPORT_ICONS = { flight: Plane, train: Train, bus: Bus, car: Car, cruise: Ship }
@@ -226,7 +226,14 @@ export default function SharedTripPage() {
                             sub = [meta.airline, meta.flight_number, meta.departure_airport && meta.arrival_airport ? `${meta.departure_airport} → ${meta.arrival_airport}` : ''].filter(Boolean).join(' · ')
                           }
                         }
-                        else if (r.type === 'train') sub = [meta.train_number, meta.platform ? `Gl. ${meta.platform}` : ''].filter(Boolean).join(' · ')
+                        else if (r.type === 'train') {
+                          if (r.__leg) {
+                            // One leg of a multi-leg train — show this segment's own train/route.
+                            sub = [r.__leg.train_number, r.__leg.platform ? `Gl. ${r.__leg.platform}` : '', (r.__leg.from || r.__leg.to) ? [r.__leg.from, r.__leg.to].filter(Boolean).join(' → ') : ''].filter(Boolean).join(' · ')
+                          } else {
+                            sub = [meta.train_number, meta.platform ? `Gl. ${meta.platform}` : ''].filter(Boolean).join(' · ')
+                          }
+                        }
                         return (
                           <div key={r.__leg ? `t-${r.id}-leg${r.__leg.index}` : `t-${r.id}`} className="bg-[rgba(59,130,246,0.06)]" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, border: '1px solid rgba(59,130,246,0.15)' }}>
                             <div className="bg-[rgba(59,130,246,0.12)]" style={{ width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -298,8 +305,11 @@ export default function SharedTripPage() {
                         ? getFlightLegs(r).map((leg, i) => (
                             <span key={i}>{[leg.airline, leg.flight_number, (leg.from || leg.to) ? [leg.from, leg.to].filter(Boolean).join(' → ') : ''].filter(Boolean).join(' ')}</span>
                           ))
-                        : meta.airline && <span>{meta.airline} {meta.flight_number || ''}</span>}
-                      {meta.train_number && <span>{meta.train_number}</span>}
+                        : r.type === 'train'
+                          ? getTrainLegs(r).map((leg, i) => (
+                              <span key={i}>{[leg.train_number, leg.platform ? `${t('reservations.meta.platform')} ${leg.platform}` : '', (leg.from || leg.to) ? [leg.from, leg.to].filter(Boolean).join(' → ') : ''].filter(Boolean).join(' ')}</span>
+                            ))
+                          : meta.airline && <span>{meta.airline} {meta.flight_number || ''}</span>}
                     </div>
                   </div>
                   <span className={r.status === 'confirmed' ? 'bg-[rgba(22,163,74,0.1)] text-[#16a34a]' : 'bg-[rgba(217,119,6,0.1)] text-[#d97706]'} style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', padding: '2px 8px', borderRadius: 20, fontWeight: 600 }}>

@@ -6,7 +6,7 @@ import { accommodationsApi, mapsApi } from '../../api/client'
 import type { Trip, Day, Place, Category, AssignmentsMap, DayNote } from '../../types'
 import { isDayInAccommodationRange, getDayOrder } from '../../utils/dayOrder'
 import { splitReservationDateTime } from '../../utils/formatters'
-import { getFlightLegs } from '../../utils/flightLegs'
+import { getFlightLegs, getTrainLegs } from '../../utils/flightLegs'
 
 function renderLucideIcon(icon:LucideIcon, props = {}) {
   if (!_renderToStaticMarkup) return ''
@@ -243,7 +243,21 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
                 subtitle = [meta.airline, meta.flight_number, route].filter(Boolean).join(' · ')
               }
             }
-            else if (r.type === 'train') subtitle = [meta.train_number, meta.platform ? `Gl. ${meta.platform}` : '', meta.seat ? `Seat ${meta.seat}` : ''].filter(Boolean).join(' · ')
+            else if (r.type === 'train') {
+              const legs = getTrainLegs(r)
+              if (legs.length > 1) {
+                // Multi-leg: one line per leg so every train number + segment route shows.
+                subtitleLines = legs.map(l =>
+                  [l.train_number, l.platform ? `Gl. ${l.platform}` : '',
+                   (l.from || l.to) ? [l.from, l.to].filter(Boolean).join(' → ') : '']
+                    .filter(Boolean).join(' · '))
+                  .filter(Boolean)
+              } else {
+                const stops = (r.endpoints || []).slice().sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0)).map(e => e.code || e.name)
+                const route = stops.length >= 2 ? stops.join(' → ') : ''
+                subtitle = [meta.train_number, meta.platform ? `Gl. ${meta.platform}` : '', meta.seat ? `Seat ${meta.seat}` : '', route].filter(Boolean).join(' · ')
+              }
+            }
             else if (r.type === 'restaurant') subtitle = [meta.party_size ? `${meta.party_size} guests` : ''].filter(Boolean).join(' · ')
             else if (r.type === 'event') subtitle = [meta.venue].filter(Boolean).join(' · ')
             else if (r.type === 'tour') subtitle = [meta.operator].filter(Boolean).join(' · ')

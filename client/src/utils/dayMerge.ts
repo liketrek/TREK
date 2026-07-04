@@ -66,23 +66,23 @@ export function getDisplayTimeForDay(
   return r.reservation_time || null
 }
 
-/** Per-leg detail of a multi-leg flight, or null for single-leg / non-flight. */
-function parseFlightLegs(r: any): any[] | null {
-  if (r?.type !== 'flight') return null
+/** Per-leg detail of a multi-leg flight or train, or null for single-leg / other. */
+function parseMultiLegs(r: any): any[] | null {
+  if (r?.type !== 'flight' && r?.type !== 'train') return null
   let meta = r.metadata
   if (typeof meta === 'string') { try { meta = JSON.parse(meta || '{}') } catch { meta = {} } }
   // Defensive: recover metadata that was accidentally double-encoded by an earlier
-  // bug (a JSON string of a JSON string) so already-saved flights heal on read.
+  // bug (a JSON string of a JSON string) so already-saved bookings heal on read.
   if (typeof meta === 'string') { try { meta = JSON.parse(meta || '{}') } catch { meta = {} } }
   if (meta && Array.isArray(meta.legs) && meta.legs.length > 1) return meta.legs
   return null
 }
 
 /**
- * Expand a multi-leg flight into one synthetic reservation per leg that touches
- * `dayId`, each with its own day span + departure/arrival time so it slots into
- * the timeline independently. A single-leg flight (or any other reservation) is
- * returned untouched, so existing behaviour is unchanged.
+ * Expand a multi-leg flight/train into one synthetic reservation per leg that
+ * touches `dayId`, each with its own day span + departure/arrival time so it
+ * slots into the timeline independently. A single-leg booking (or any other
+ * reservation) is returned untouched, so existing behaviour is unchanged.
  */
 export function expandFlightLegsForDay(
   r: any,
@@ -90,7 +90,7 @@ export function expandFlightLegsForDay(
   getDayOrder: (id: number) => number,
   days: Array<{ id: number; date?: string | null }>
 ): any[] {
-  const legs = parseFlightLegs(r)
+  const legs = parseMultiLegs(r)
   if (!legs) return [r]
   const dateOf = (id: number | null): string | null => (id == null ? null : (days.find(d => d.id === id)?.date ?? null))
   const thisOrder = getDayOrder(dayId)
@@ -114,7 +114,14 @@ export function expandFlightLegsForDay(
       // dropped between legs and persist; absent → falls back to time ordering.
       day_positions: leg.day_positions || undefined,
       day_plan_position: undefined,
-      __leg: { index: i, total: legs.length, from: leg.from ?? null, to: leg.to ?? null, airline: leg.airline ?? null, flight_number: leg.flight_number ?? null },
+      __leg: {
+        index: i, total: legs.length,
+        from: leg.from ?? null, to: leg.to ?? null,
+        airline: leg.airline ?? null, flight_number: leg.flight_number ?? null,
+        // Train legs carry their own per-leg detail; added only for trains so a
+        // flight's __leg object stays byte-identical to before.
+        ...(r.type === 'train' ? { train_number: leg.train_number ?? null, platform: leg.platform ?? null, seat: leg.seat ?? null } : {}),
+      },
     })
   })
   return out
