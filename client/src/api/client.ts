@@ -466,6 +466,7 @@ export const adminApi = {
   pluginInstall: (id: string, version?: string) => apiClient.post('/admin/plugins/install', { id, version }).then(r => r.data),
   pluginActivate: (id: string) => apiClient.post(`/admin/plugins/${id}/activate`).then(r => r.data),
   pluginDeactivate: (id: string) => apiClient.post(`/admin/plugins/${id}/deactivate`).then(r => r.data),
+  pluginUpdate: (id: string) => apiClient.post(`/admin/plugins/${id}/update`).then(r => r.data),
   pluginUninstall: (id: string, deleteData: boolean) => apiClient.post(`/admin/plugins/${id}/uninstall`, { deleteData }).then(r => r.data),
   pluginRescan: () => apiClient.post('/admin/plugins/rescan').then(r => r.data),
   pluginErrors: (id: string) => apiClient.get(`/admin/plugins/${id}/errors`).then(r => r.data),

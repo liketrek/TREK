@@ -200,3 +200,57 @@ describe('PluginRuntimeService (M2 end-to-end)', () => {
     await expect(new PluginRuntimeService().onModuleDestroy()).resolves.toBeUndefined();
   });
 });
+
+describe('PluginRuntimeService.update (re-consent gate)', () => {
+  const fakeRegistry = (impl: () => void) =>
+    ({ install: vi.fn(async () => { impl(); return { id: 'x', version: '2.0.0' }; }) }) as unknown as import('../../../src/nest/plugins/registry/registry.service').PluginRegistryService;
+
+  const seed = (id: string, enabled: number, permissions: string[], granted: string[]) => {
+    fs.mkdirSync(path.join(codeRoot, id, 'server'), { recursive: true });
+    fs.writeFileSync(path.join(codeRoot, id, 'server', 'index.js'), 'module.exports = { async onLoad() {} };');
+    testDb.prepare('INSERT INTO plugins (id, status, enabled, permissions, granted_permissions, config) VALUES (?,?,?,?,?,?)')
+      .run(id, enabled ? 'active' : 'inactive', enabled, JSON.stringify(permissions), JSON.stringify(granted), '{}');
+  };
+
+  it('restarts transparently when the new version requests no new permissions', async () => {
+    seed('upd-same', 1, ['db:own'], ['db:own']);
+    const rt = new PluginRuntimeService(fakeRegistry(() => {})); // declared perms unchanged
+    await rt.activate('upd-same');
+    const res = await rt.update('upd-same');
+    expect(res).toMatchObject({ activated: true, newPermissions: [], newEgress: [] });
+    expect(rt.isActive('upd-same')).toBe(true);
+    await rt.deactivate('upd-same');
+  });
+
+  it('leaves the plugin inactive and reports the delta when new rights are requested', async () => {
+    seed('upd-wider', 1, ['db:own'], ['db:own']);
+    const rt = new PluginRuntimeService(
+      fakeRegistry(() => {
+        testDb.prepare("UPDATE plugins SET permissions = ? WHERE id = 'upd-wider'")
+          .run(JSON.stringify(['db:own', 'db:read:trips', 'http:outbound:api.new.com']));
+      }),
+    );
+    await rt.activate('upd-wider');
+    const res = await rt.update('upd-wider');
+    expect(res.activated).toBe(false);
+    expect(res.newPermissions).toEqual(['db:read:trips']);
+    expect(res.newEgress).toEqual(['api.new.com']);
+    expect(rt.isActive('upd-wider')).toBe(false);
+    expect(testDb.prepare("SELECT enabled FROM plugins WHERE id='upd-wider'").get()).toMatchObject({ enabled: 0 });
+  });
+
+  it('a disabled plugin stays disabled even with no new permissions', async () => {
+    seed('upd-off', 0, ['db:own'], ['db:own']);
+    const res = await new PluginRuntimeService(fakeRegistry(() => {})).update('upd-off');
+    expect(res).toMatchObject({ activated: false, newPermissions: [], newEgress: [] });
+  });
+
+  it('throws for an unknown plugin id', async () => {
+    await expect(new PluginRuntimeService(fakeRegistry(() => {})).update('ghost-upd')).rejects.toThrow(/not found/);
+  });
+
+  it('throws if no registry service is wired', async () => {
+    seed('upd-noreg', 0, ['db:own'], ['db:own']);
+    await expect(new PluginRuntimeService().update('upd-noreg')).rejects.toThrow(/registry service unavailable/);
+  });
+});

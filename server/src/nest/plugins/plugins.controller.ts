@@ -83,6 +83,17 @@ export class PluginsController {
     return { status: 'inactive' };
   }
 
+  @Post(':id/update')
+  @HttpCode(200)
+  async update(@Param('id') id: string) {
+    if (!pluginsEnabled()) throw new HttpException({ error: 'Plugins are disabled by server configuration' }, 503);
+    try {
+      return await this.runtime.update(id);
+    } catch (e) {
+      throw new HttpException({ error: e instanceof Error ? e.message : 'update failed' }, 400);
+    }
+  }
+
   @Post(':id/uninstall')
   @HttpCode(200)
   async uninstall(@Param('id') id: string, @Body() body: { deleteData?: boolean }) {

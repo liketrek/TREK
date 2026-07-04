@@ -9,6 +9,9 @@ import { removePluginData } from './host/plugin-data.service';
 import { isKnownPermission } from './protocol/envelope';
 import { discoverPlugins } from './install/discovery';
 import { pluginCodeDir } from './paths';
+import { PluginRegistryService } from './registry/registry.service';
+
+const HTTP_OUTBOUND = 'http:outbound:';
 
 /**
  * Owns the isolated-plugin runtime lifecycle inside NestJS (#plugins, M2).
@@ -42,6 +45,10 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
       }
     },
   });
+
+  // Optional at the type level so tests can `new PluginRuntimeService()` without a
+  // registry; Nest always injects the real one (the provider is in the module).
+  constructor(private readonly registry?: PluginRegistryService) {}
 
   onModuleInit(): void {
     if (!pluginsEnabled()) return;
@@ -93,6 +100,45 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     await this.supervisor.disable(id);
     closePluginDataDb(id);
     db.prepare("UPDATE plugins SET status = 'inactive', enabled = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(id);
+  }
+
+  /**
+   * Update a plugin to the registry's latest version with a re-consent gate: the
+   * new version's declared permissions are diffed against what the admin already
+   * granted. Nothing new → the plugin is transparently restarted on the new code.
+   * Anything new (a permission or an outbound host) → the plugin is left INACTIVE
+   * and the delta is returned, so the caller can show it and only re-activate on
+   * an explicit admin click. An update never silently widens what a plugin may do.
+   *
+   * Install runs first so a failed download/signature/integrity check leaves the
+   * currently-running child untouched (it keeps serving the old code from memory).
+   */
+  async update(id: string): Promise<{ version: string; activated: boolean; newPermissions: string[]; newEgress: string[] }> {
+    const before = db.prepare('SELECT enabled, granted_permissions FROM plugins WHERE id = ?').get(id) as
+      | { enabled: number; granted_permissions: string }
+      | undefined;
+    if (!before) throw new Error(`plugin ${id} not found`);
+    if (!this.registry) throw new Error('registry service unavailable');
+    const wasEnabled = before.enabled === 1;
+    const granted = new Set(parseArray(before.granted_permissions));
+
+    const res = await this.registry.install(id); // swaps code + refreshes declared permissions; keeps granted
+
+    const declared = parseArray(
+      (db.prepare('SELECT permissions FROM plugins WHERE id = ?').get(id) as { permissions: string }).permissions,
+    ).filter(isKnownPermission);
+    const newGrants = declared.filter((p) => !granted.has(p));
+    const newEgress = newGrants.filter((p) => p.startsWith(HTTP_OUTBOUND)).map((p) => p.slice(HTTP_OUTBOUND.length)).filter(Boolean);
+    const newPermissions = newGrants.filter((p) => !p.startsWith(HTTP_OUTBOUND));
+
+    if (wasEnabled) await this.deactivate(id); // stop the old child now that new code is in place
+    if (newGrants.length === 0 && wasEnabled) {
+      await this.activate(id); // no wider rights → transparent restart on the new code
+      return { version: res.version, activated: true, newPermissions, newEgress };
+    }
+    // New rights requested (or it was already disabled): leave it inactive until
+    // an admin explicitly consents by activating it.
+    return { version: res.version, activated: false, newPermissions, newEgress };
   }
 
   /** Stop the plugin, remove its code, and optionally delete all its data. */
