@@ -464,7 +464,7 @@ export const adminApi = {
   pluginBrowse: () => apiClient.get('/admin/plugins/registry').then(r => r.data),
   pluginDetail: (id: string) => apiClient.get(`/admin/plugins/registry/${encodeURIComponent(id)}`).then(r => r.data),
   pluginInstall: (id: string, version?: string) => apiClient.post('/admin/plugins/install', { id, version }).then(r => r.data),
-  pluginActivate: (id: string) => apiClient.post(`/admin/plugins/${id}/activate`).then(r => r.data),
+  pluginActivate: (id: string, consent?: boolean) => apiClient.post(`/admin/plugins/${id}/activate`, consent ? { consent: true } : {}).then(r => r.data),
   pluginDeactivate: (id: string) => apiClient.post(`/admin/plugins/${id}/deactivate`).then(r => r.data),
   pluginUpdate: (id: string) => apiClient.post(`/admin/plugins/${id}/update`).then(r => r.data),
   pluginUninstall: (id: string, deleteData: boolean) => apiClient.post(`/admin/plugins/${id}/uninstall`, { deleteData }).then(r => r.data),

@@ -29,19 +29,52 @@ export function isBlockedIp(ip: string): boolean {
       a >= 224 // multicast + reserved
     );
   }
-  const h = ip.toLowerCase().replace(/^\[/, '').replace(/\]$/, '');
-  if (h === '::' || h === '::1' || h === '0:0:0:0:0:0:0:0' || h === '0:0:0:0:0:0:0:1') return true;
-  if (h.startsWith('fe80') || h.startsWith('fc') || h.startsWith('fd')) return true; // link-local + ULA
-  const mapped = h.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-  if (mapped) return isBlockedIp(mapped[1]);
+  // IPv6: expand to 8 hextets so EVERY spelling is checked (compressed `::`,
+  // hex IPv4-mapped `::ffff:a9fe:a9fe`, dotted `::ffff:169.254.169.254`, `0::1`).
+  const g = expandV6(ip.replace(/^\[/, '').replace(/\]$/, ''));
+  if (g) {
+    if (g.every((x) => x === 0)) return true; // ::  (unspecified)
+    // IPv4-mapped (::ffff:x) and IPv4-compatible (::x) → check the embedded IPv4.
+    if (g.slice(0, 5).every((x) => x === 0) && (g[5] === 0xffff || g[5] === 0)) {
+      return isBlockedIp(`${g[6] >> 8}.${g[6] & 0xff}.${g[7] >> 8}.${g[7] & 0xff}`);
+    }
+    if ((g[0] & 0xffc0) === 0xfe80) return true; // fe80::/10 link-local
+    if ((g[0] & 0xfe00) === 0xfc00) return true; // fc00::/7 ULA
+  }
   return false;
+}
+
+/** Expand an IPv6 literal into its 8 numeric hextets, or null if not a valid IPv6. */
+function expandV6(ip: string): number[] | null {
+  let h = ip.toLowerCase().replace(/%.*$/, '');
+  if (!h.includes(':')) return null;
+  const dotted = h.match(/^(.*:)(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
+  if (dotted) {
+    const v4 = dotted[2].split('.').map(Number);
+    if (v4.some((n) => n > 255)) return null;
+    h = dotted[1] + ((v4[0] << 8) | v4[1]).toString(16) + ':' + ((v4[2] << 8) | v4[3]).toString(16);
+  }
+  const halves = h.split('::');
+  if (halves.length > 2) return null;
+  const head = halves[0] ? halves[0].split(':') : [];
+  const tail = halves.length === 2 && halves[1] ? halves[1].split(':') : [];
+  const groups =
+    halves.length === 2 ? [...head, ...Array(8 - head.length - tail.length).fill('0'), ...tail] : head;
+  if (groups.length !== 8) return null;
+  const nums = groups.map((x) => (x === '' ? NaN : parseInt(x, 16)));
+  return nums.some((n) => !Number.isInteger(n) || n < 0 || n > 0xffff) ? null : nums;
 }
 
 /** Build a declared-egress host matcher (exact host or `*.suffix` wildcard). */
 export function makeHostAllow(egress: string[]): (host: string) => boolean {
-  const patterns = egress.map((h) => h.trim().toLowerCase()).filter(Boolean);
+  const patterns = egress
+    .map((h) => h.trim().toLowerCase().replace(/\.$/, '')) // drop a trailing dot (FQDN trick)
+    .filter((p) => p && p !== '*')
+    // A wildcard must have a real multi-label suffix — reject the degenerate
+    // `*.` (matched any trailing-dot host = allow-all) and whole-TLD `*.com`.
+    .filter((p) => !p.startsWith('*.') || p.slice(2).includes('.'));
   return (host: string) => {
-    const h = host.toLowerCase();
+    const h = host.toLowerCase().replace(/\.$/, '');
     return patterns.some((p) => (p.startsWith('*.') ? h === p.slice(2) || h.endsWith(p.slice(1)) : h === p));
   };
 }

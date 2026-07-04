@@ -149,7 +149,7 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
 
   async function handle(request: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
     const url = new URL(request.url || '/', 'http://localhost');
-    const send = (status: number, body: string, type = 'text/plain; charset=utf-8', headers: Record<string, string> = {}) => {
+    const send = (status: number, body: string | Buffer, type = 'text/plain; charset=utf-8', headers: Record<string, string> = {}) => {
       res.writeHead(status, { 'content-type': type, ...headers }); res.end(body);
     };
 
@@ -162,10 +162,14 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
       const file = path.join(abs, 'client', relFile);
       if (!file.startsWith(path.join(abs, 'client'))) return send(403, 'forbidden');
       if (!fs.existsSync(file) || !fs.statSync(file).isFile()) return send(404, 'not found — build your client/ bundle');
-      let data: Buffer | string = fs.readFileSync(file);
+      const raw = fs.readFileSync(file);
       const type = contentType(file);
-      if (type.startsWith('text/html')) data = String(data).replace('</body>', `${LIVE_RELOAD}</body>`);
-      return send(200, data.toString(), type);
+      // Only the HTML doc is rewritten (live-reload inject) as a string; every other
+      // asset is sent as the raw Buffer — a UTF-8 round-trip corrupts binary files.
+      const body: string | Buffer = type.startsWith('text/html')
+        ? String(raw).replace('</body>', `${LIVE_RELOAD}</body>`)
+        : raw;
+      return send(200, body, type);
     }
 
     // Plugin API routes mounted under /api/<route path>
@@ -191,7 +195,11 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
   }
 
   const port = opts.port ?? 4317;
-  await new Promise<void>((resolve) => server.listen(port, resolve));
+  await new Promise<void>((resolve, reject) => {
+    server.once('error', (e: NodeJS.ErrnoException) =>
+      reject(e.code === 'EADDRINUSE' ? new Error(`port ${port} is already in use — pass --port <n> to pick another`) : e));
+    server.listen(port, resolve);
+  });
   const routes = plugin.routes ?? [];
   console.log(`\n  trek-plugin dev — ${id} (${String(manifest.type)})`);
   console.log(`  ${dbNote}`);

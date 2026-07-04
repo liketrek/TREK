@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpException, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { PluginsService } from './plugins.service';
-import { PluginRuntimeService } from './plugin-runtime.service';
+import { PluginRuntimeService, PluginConsentRequired } from './plugin-runtime.service';
 import { PluginRegistryService } from './registry/registry.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
@@ -66,11 +66,16 @@ export class PluginsController {
 
   @Post(':id/activate')
   @HttpCode(200)
-  async activate(@Param('id') id: string) {
+  async activate(@Param('id') id: string, @Body() body: { consent?: boolean } = {}) {
     if (!pluginsEnabled()) throw new HttpException({ error: 'Plugins are disabled by server configuration' }, 503);
     try {
-      await this.runtime.activate(id);
+      await this.runtime.activate(id, !!body?.consent);
     } catch (e) {
+      // Re-enabling a plugin whose update widened its permissions must NOT grant
+      // them silently — surface a distinct code so the UI opens the consent dialog.
+      if (e instanceof PluginConsentRequired) {
+        throw new HttpException({ error: e.message, code: 'CONSENT_REQUIRED', newPermissions: e.newPermissions, newEgress: e.newEgress }, 409);
+      }
       throw new HttpException({ error: e instanceof Error ? e.message : 'activation failed' }, 400);
     }
     return { status: this.runtime.isActive(id) ? 'active' : 'error' };

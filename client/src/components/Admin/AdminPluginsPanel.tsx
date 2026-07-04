@@ -157,7 +157,9 @@ export default function AdminPluginsPanel() {
   const [detailFor, setDetailFor] = useState<RegistryItem | null>(null)
   const [errorsFor, setErrorsFor] = useState<{ id: string; rows: Array<{ ts: string; level: string; message: string }> } | null>(null)
   const [confirmUninstall, setConfirmUninstall] = useState<PluginRow | null>(null)
-  const [consentUpdate, setConsentUpdate] = useState<{ plugin: PluginRow; version: string; newPermissions: string[]; newEgress: string[] } | null>(null)
+  // A QUEUE, not one slot: "Update All" can produce several re-consent prompts —
+  // each must be shown, not silently overwritten by the last one.
+  const [consentQueue, setConsentQueue] = useState<Array<{ plugin: PluginRow; version: string; newPermissions: string[]; newEgress: string[] }>>([])
   const [menu, setMenu] = useState<string | null>(null)
 
   // Toolbar state.
@@ -209,12 +211,32 @@ export default function AdminPluginsPanel() {
   const restart = (id: string) => act(id, async () => { await adminApi.pluginDeactivate(id); await adminApi.pluginActivate(id) }, t('admin.plugins.restarted'))
   const installedIds = new Set(plugins.map(p => p.id))
 
+  // Enable/disable a plugin. Re-enabling one whose update widened its permissions
+  // must NOT grant them silently — the server answers 409 CONSENT_REQUIRED and we
+  // route through the same consent dialog the Update button uses.
+  const toggle = (p: PluginRow) => {
+    if (busy === p.id) return
+    if (p.enabled === 1) { void act(p.id, () => adminApi.pluginDeactivate(p.id), t('admin.plugins.deactivated')); return }
+    setBusy(p.id); setMenu(null)
+    adminApi.pluginActivate(p.id)
+      .then(() => toast.success(t('admin.plugins.activated')))
+      .catch((e: { response?: { status?: number; data?: { code?: string; error?: string; newPermissions?: string[]; newEgress?: string[] } } }) => {
+        const d = e?.response?.data
+        if (e?.response?.status === 409 && d?.code === 'CONSENT_REQUIRED') {
+          setConsentQueue(qq => [...qq, { plugin: p, version: latest[p.id] ?? p.version ?? '', newPermissions: d.newPermissions ?? [], newEgress: d.newEgress ?? [] }])
+        } else {
+          toast.error(d?.error || t('admin.plugins.actionError'))
+        }
+      })
+      .finally(() => { setBusy(null); refresh() })
+  }
+
   const runUpdate = (p: PluginRow) => {
     setBusy(p.id); setMenu(null)
     adminApi.pluginUpdate(p.id)
       .then((r: { version: string; activated: boolean; newPermissions: string[]; newEgress: string[] }) => {
         if (r.activated || (r.newPermissions.length === 0 && r.newEgress.length === 0)) toast.success(t('admin.plugins.updated'))
-        else setConsentUpdate({ plugin: p, version: r.version, newPermissions: r.newPermissions, newEgress: r.newEgress })
+        else setConsentQueue(qq => [...qq, { plugin: p, version: r.version, newPermissions: r.newPermissions, newEgress: r.newEgress }])
       })
       .catch(e => toast.error((e as { response?: { data?: { error?: string } } })?.response?.data?.error || t('admin.plugins.actionError')))
       .finally(() => { setBusy(null); refresh() })
@@ -380,8 +402,7 @@ export default function AdminPluginsPanel() {
             ) : shownInstalled.map(p => (
               <InstalledRow key={p.id} p={p} t={t} busy={busy} menu={menu} setMenu={setMenu}
                 hasUpdate={updateAvailable(p)} latestVer={latest[p.id]}
-                onToggle={() => busy !== p.id && act(p.id, () => p.enabled === 1 ? adminApi.pluginDeactivate(p.id) : adminApi.pluginActivate(p.id),
-                  p.enabled === 1 ? t('admin.plugins.deactivated') : t('admin.plugins.activated'))}
+                onToggle={() => toggle(p)}
                 onUpdate={() => runUpdate(p)} onRestart={() => restart(p.id)}
                 onErrors={() => openErrors(p.id)} onUninstall={() => { setMenu(null); setConfirmUninstall(p) }} />
             ))}
@@ -430,14 +451,15 @@ export default function AdminPluginsPanel() {
         message={t('admin.plugins.uninstallBody')}
       />
 
-      {consentUpdate && (
+      {consentQueue[0] && (
         <UpdateConsentDialog
-          data={consentUpdate} t={t}
+          data={consentQueue[0]} t={t}
           onApprove={async () => {
-            const c = consentUpdate; setConsentUpdate(null)
-            await act(c.plugin.id, () => adminApi.pluginActivate(c.plugin.id), t('admin.plugins.updated'))
+            const c = consentQueue[0]; setConsentQueue(qq => qq.slice(1))
+            // consent:true — the ONLY path that may widen a plugin's granted rights.
+            await act(c.plugin.id, () => adminApi.pluginActivate(c.plugin.id, true), t('admin.plugins.updated'))
           }}
-          onLater={() => { setConsentUpdate(null); toast.success(t('admin.plugins.updateKeptOff')) }}
+          onLater={() => { setConsentQueue(qq => qq.slice(1)); toast.success(t('admin.plugins.updateKeptOff')) }}
         />
       )}
     </div>

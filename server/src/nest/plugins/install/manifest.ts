@@ -51,6 +51,11 @@ export interface PluginManifest {
 }
 
 const ID_RE = /^[a-z][a-z0-9-]{2,39}$/;
+// An outbound host: an exact FQDN or a `*.`-prefixed wildcard, always with a real
+// multi-label suffix. Rejects `*`, `*.`, whole-TLD `*.com`, schemes, and any
+// embedded space — all of which would otherwise widen egress or inject a CSP
+// source token when the host is interpolated into connect-src.
+const HOST_RE = /^(\*\.)?([a-z0-9-]+\.)+[a-z0-9-]+$/i;
 // Static path segments under /api/admin/plugins — a plugin id must never shadow them
 // (id "registry" would collide with GET registry/:id vs :id/errors routing).
 const RESERVED_IDS = new Set(['registry', 'install', 'rescan']);
@@ -77,11 +82,21 @@ export function parseManifest(raw: unknown): PluginManifest {
   const unknown = permissions.filter((p) => !isKnownPermission(p));
   if (unknown.length) throw new ManifestError(`unknown permission(s): ${unknown.join(', ')}`);
 
+  // Validate the host portion of every per-host outbound permission: this is the
+  // string the runtime egress guard AND the iframe CSP connect-src are built from.
+  const badOutbound = permissions
+    .filter((p) => p.startsWith('http:outbound:'))
+    .map((p) => p.slice('http:outbound:'.length))
+    .find((h) => !HOST_RE.test(h));
+  if (badOutbound !== undefined) throw new ManifestError(`invalid http:outbound host "${badOutbound}"`);
+
   const egress = arr(m.egress).map(String);
   if (permissions.some((p) => p === 'http:outbound' || p.startsWith('http:outbound:')) && egress.length === 0) {
     throw new ManifestError('http:outbound declared but egress[] is empty');
   }
   if (egress.includes('*')) throw new ManifestError('egress[] must not contain a bare "*"');
+  const badEgress = egress.find((h) => !HOST_RE.test(h));
+  if (badEgress !== undefined) throw new ManifestError(`invalid egress host "${badEgress}"`);
 
   const trek = optStr(m.trek);
   return {

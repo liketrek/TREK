@@ -174,6 +174,20 @@ function installEgressGuard(egress: string[]): void {
   const allowed = makeHostAllow(egress);
   const blockPrivate = (process.env.TREK_PLUGIN_ALLOW_PRIVATE_EGRESS ?? '').toLowerCase() !== 'on';
 
+  // The wrappers below are the ONLY egress choke point (the OS --permission model
+  // does not restrict the network). Deny the low-level escape hatch a plugin could
+  // use to build a raw socket handle BELOW those wrappers. node:net/dns/dgram/http
+  // are already imported above, so they keep their captured bindings; only fresh
+  // access via process.binding is cut off.
+  for (const name of ['binding', '_linkedBinding'] as const) {
+    try {
+      Object.defineProperty(process, name, {
+        value: () => { throw new Error(`egress: process.${name} is disabled for plugins`); },
+        writable: false, configurable: false,
+      });
+    } catch { /* already locked / non-configurable */ }
+  }
+
   const realFetch = globalThis.fetch;
   if (typeof realFetch === 'function') {
     globalThis.fetch = ((input: unknown, init?: unknown) => {
@@ -261,6 +275,25 @@ function installEgressGuard(egress: string[]): void {
     guardDatagram(dgramConnectTarget(args));
     return realDgramConnect.apply(this, args);
   };
+  // A dgram HOSTNAME target is resolved via the socket's `lookup` before the packet
+  // is sent; force the IP-vetting guardedLookup so a declared name that resolves to
+  // a private/metadata address is refused (the TCP path's rebind backstop, for UDP).
+  const dgramApi = dgram as unknown as { createSocket: (...a: unknown[]) => unknown };
+  const realCreateSocket = dgramApi.createSocket;
+  dgramApi.createSocket = function (this: unknown, ...args: unknown[]): unknown {
+    const first = args[0];
+    if (first && typeof first === 'object') (first as { lookup?: unknown }).lookup = guardedLookup;
+    else if (typeof first === 'string') args[0] = { type: first, lookup: guardedLookup };
+    return realCreateSocket.apply(this, args);
+  };
+
+  // Lock the wrapped choke points so a plugin can't restore the originals.
+  const lock = (obj: object, key: string, value: unknown) => {
+    try { Object.defineProperty(obj, key, { value, writable: false, configurable: false }); } catch { /* noop */ }
+  };
+  lock(proto, 'connect', proto.connect);
+  lock(dgramProto, 'send', dgramProto.send);
+  lock(dgramProto, 'connect', dgramProto.connect);
 
   // Gate the dns resolver family: a forward lookup for an undeclared name is a
   // DNS-tunnel exfiltration channel even when no socket is ever opened. The name

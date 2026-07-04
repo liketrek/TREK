@@ -13,6 +13,13 @@ import { PluginRegistryService } from './registry/registry.service';
 
 const HTTP_OUTBOUND = 'http:outbound:';
 
+/** Thrown when (re-)activating would grant permissions the admin hasn't consented to. */
+export class PluginConsentRequired extends Error {
+  constructor(message: string, readonly newPermissions: string[] = [], readonly newEgress: string[] = []) {
+    super(message);
+  }
+}
+
 /**
  * Owns the isolated-plugin runtime lifecycle inside NestJS (#plugins, M2).
  * Bridges the DB registry (`plugins` rows) to the process supervisor: activate
@@ -79,16 +86,30 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     await this.supervisor.shutdownAll();
   }
 
-  /** Spawn a plugin from its DB row (granted permissions + decrypted config). */
-  async activate(id: string): Promise<void> {
+  /**
+   * Spawn a plugin from its DB row (granted permissions + decrypted config).
+   *
+   * A plain activate may NEVER widen what the admin already consented to — that is
+   * what stops a plugin left off pending an update's re-consent from silently
+   * gaining the new rights via the row's enable toggle. The FIRST activation of a
+   * freshly-installed plugin (no prior grant) is itself the consent for its
+   * declared set; widening an already-consented set requires `consentWiden` (the
+   * update consent dialog), and otherwise throws PluginConsentRequired.
+   */
+  async activate(id: string, consentWiden = false): Promise<void> {
     const row = db.prepare('SELECT id, status, permissions, granted_permissions, config FROM plugins WHERE id = ?').get(id) as
       | PluginRow
       | undefined;
     if (!row) throw new Error(`plugin ${id} not found`);
 
-    // Activating IS the consent gate: grant the plugin's DECLARED permissions
-    // (the admin reviewed them on the consent screen), persist, then spawn.
     const declared = parseArray(row.permissions).filter(isKnownPermission);
+    const granted = parseArray(row.granted_permissions);
+    const newGrants = declared.filter((p) => !granted.includes(p));
+    if (granted.length > 0 && newGrants.length > 0 && !consentWiden) {
+      const newEgress = newGrants.filter((p) => p.startsWith(HTTP_OUTBOUND)).map((p) => p.slice(HTTP_OUTBOUND.length)).filter(Boolean);
+      const newPermissions = newGrants.filter((p) => !p.startsWith(HTTP_OUTBOUND));
+      throw new PluginConsentRequired(`plugin ${id} requests new permissions; explicit re-consent is required`, newPermissions, newEgress);
+    }
     // Mark it enabled (admin intent) so it reboots after restarts/crashes.
     db.prepare('UPDATE plugins SET granted_permissions = ?, enabled = 1 WHERE id = ?').run(JSON.stringify(declared), id);
     const config = decryptConfig(parseObject(row.config));

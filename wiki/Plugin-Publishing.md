@@ -171,8 +171,9 @@ and resolves to `commitSha` · manifest parity at that commit (`id`, `version`,
 `type`, `apiVersion`, and `nativeModules` must not be `true`) · **the downloaded
 artifact's SHA-256 matches the pin** and its size is within bounds · **no native
 binaries** in the archive · `egress[]` present (and no bare `*`) when
-`http:outbound` is declared. Any unique slug is fine — **there are no reserved
-namespaces**.
+`http:outbound` is declared. Any unique slug is fine **except `registry`,
+`install` and `rescan`**, which the install loader refuses (they collide with
+admin API route segments).
 
 **README** (`check-readme.mjs`, fetched at the pinned commit): must exist at the
 repo root, contain the sections **What it does / Screenshots / Permissions /

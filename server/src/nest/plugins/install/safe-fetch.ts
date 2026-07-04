@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import dns from 'node:dns/promises';
+import { isBlockedIp } from '../runtime/egress-policy';
 
 /**
  * SSRF-hardened download for the plugin installer (#plugins, M4). The primary
@@ -27,20 +28,9 @@ function isAllowedHost(hostname: string): boolean {
 }
 
 export function isPrivateIp(ip: string): boolean {
-  const v4 = ip.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
-  if (v4) {
-    const [a, b] = [Number(v4[1]), Number(v4[2])];
-    return (
-      a === 10 ||
-      a === 127 ||
-      (a === 172 && b >= 16 && b <= 31) ||
-      (a === 192 && b === 168) ||
-      (a === 169 && b === 254) ||
-      a === 0
-    );
-  }
-  const v6 = ip.toLowerCase();
-  return v6 === '::1' || v6.startsWith('fc') || v6.startsWith('fd') || v6.startsWith('fe80') || v6.startsWith('::ffff:127.');
+  // Reuse the egress guard's canonicalizing check so non-canonical IPv6 forms
+  // (hex IPv4-mapped, compressed) and CGNAT/multicast are all covered here too.
+  return isBlockedIp(ip);
 }
 
 async function assertSafeHost(urlStr: string): Promise<void> {
@@ -73,11 +63,36 @@ export async function safeDownload(urlStr: string, maxBytes = MAX_BYTES): Promis
     if (!resp.ok) throw new DownloadError(`download failed: ${resp.status}`);
     const declared = Number(resp.headers.get('content-length') || 0);
     if (declared && declared > maxBytes) throw new DownloadError('artifact exceeds size limit');
-    const bytes = Buffer.from(await resp.arrayBuffer());
-    if (bytes.length > maxBytes) throw new DownloadError('artifact exceeds size limit');
+    // Stream the body and abort the moment it crosses the cap — a chunked response
+    // (e.g. codeload archives) carries no content-length, so buffering the whole
+    // body first (arrayBuffer) could OOM the server before any post-check fires.
+    const bytes = await readCapped(resp, maxBytes);
     return { bytes, sha256: createHash('sha256').update(bytes).digest('hex') };
   }
   throw new DownloadError('too many redirects');
+}
+
+/** Read a response body into a Buffer, throwing once it exceeds maxBytes. */
+async function readCapped(resp: Response, maxBytes: number): Promise<Buffer> {
+  const reader = resp.body?.getReader();
+  if (!reader) {
+    const b = Buffer.from(await resp.arrayBuffer());
+    if (b.length > maxBytes) throw new DownloadError('artifact exceeds size limit');
+    return b;
+  }
+  const chunks: Buffer[] = [];
+  let received = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    received += value.length;
+    if (received > maxBytes) {
+      await reader.cancel().catch(() => {});
+      throw new DownloadError('artifact exceeds size limit');
+    }
+    chunks.push(Buffer.from(value));
+  }
+  return Buffer.concat(chunks);
 }
 
 /** Constant-time compare of two hex digests. */

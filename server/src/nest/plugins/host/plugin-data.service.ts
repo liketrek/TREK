@@ -17,6 +17,14 @@ import { pluginDataDir, pluginDbFile } from '../paths';
 
 const MAX_SQL_LENGTH = 100_000;
 const FORBIDDEN = /\b(ATTACH|DETACH|VACUUM|PRAGMA)\b/i;
+// Per-plugin on-disk quota. better-sqlite3 is synchronous and runs in the HOST
+// process, so an unbounded plugin DB is both a disk-exhaustion DoS on the shared
+// trek.db volume and (via a huge scan) an event-loop stall. max_page_count caps
+// the file (writes past it fail SQLITE_FULL, contained to the plugin) and bounds
+// the worst-case scan cost. Result sets are additionally row-capped below so a
+// recursive CTE / cartesian product can't materialize an unbounded array.
+const QUOTA_BYTES = 256 * 1024 * 1024;
+const MAX_ROWS = 100_000;
 
 export class PluginDataDb {
   private db: Db;
@@ -26,6 +34,9 @@ export class PluginDataDb {
     this.db = new Database(pluginDbFile(pluginId));
     this.db.pragma('journal_mode = WAL');
     this.db.pragma('foreign_keys = ON');
+    // Cap the file size (per-connection; not persisted, so set on every open).
+    const pageSize = Number(this.db.pragma('page_size', { simple: true })) || 4096;
+    this.db.pragma(`max_page_count = ${Math.max(1, Math.floor(QUOTA_BYTES / pageSize))}`);
     // Track applied migrations so db.migrate is idempotent per (plugin, id).
     this.db.exec(
       `CREATE TABLE IF NOT EXISTS _plugin_migrations (id TEXT PRIMARY KEY, applied_at INTEGER)`,
@@ -38,10 +49,17 @@ export class PluginDataDb {
     if (FORBIDDEN.test(sql)) throw new Error('statement type not allowed for plugin databases');
   }
 
-  /** Read query — returns all rows. Single statement only (better-sqlite3 prepare). */
+  /** Read query — returns rows up to MAX_ROWS. Single statement only. */
   query(sql: string, args: unknown[] = []): unknown[] {
     this.guard(sql);
-    return this.db.prepare(sql).all(...(args as never[]));
+    // iterate() pulls one row at a time, so a recursive CTE that would yield
+    // unboundedly is halted at the cap instead of materializing via all().
+    const rows: unknown[] = [];
+    for (const row of this.db.prepare(sql).iterate(...(args as never[]))) {
+      rows.push(row);
+      if (rows.length > MAX_ROWS) throw new Error(`query returned more than ${MAX_ROWS} rows`);
+    }
+    return rows;
   }
 
   /** Write statement(s). exec() allows multiple statements (e.g. a small setup script). */
