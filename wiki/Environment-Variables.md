@@ -179,10 +179,12 @@ randomly generated password that is printed to the server log. Once any user exi
 
 For setup instructions, see [MCP-Overview](MCP-Overview).
 
-| Variable                   | Description                              | Default |
-|----------------------------|------------------------------------------|---------|
-| `MCP_RATE_LIMIT`           | Max MCP API requests per user per minute | `300`   |
-| `MCP_MAX_SESSION_PER_USER` | Max concurrent MCP sessions per user     | `20`    |
+| Variable                   | Description                                                                                             | Default |
+|----------------------------|---------------------------------------------------------------------------------------------------------|---------|
+| `MCP_RATE_LIMIT`           | Max MCP API requests per user per minute                                                                 | `300`   |
+| `MCP_MAX_SESSION_PER_USER` | Max concurrent MCP sessions per user                                                                     | `20`    |
+| `MCP_SESSION_TTL`          | Session idle timeout in seconds (max 86400)                                                              | `3600`  |
+| `MCP_SSE_KEEPALIVE`        | SSE keep-alive ping interval in seconds — keeps the stream alive through reverse proxies; `0` disables it | `25`    |
 
 ---
 

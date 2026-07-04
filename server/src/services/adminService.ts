@@ -552,11 +552,17 @@ export function getCollabFeatures() {
 
 export function updateCollabFeatures(features: { chat?: boolean; notes?: boolean; polls?: boolean; whatsnext?: boolean }) {
   const mapping: Record<string, string> = { chat: 'collab_chat_enabled', notes: 'collab_notes_enabled', polls: 'collab_polls_enabled', whatsnext: 'collab_whatsnext_enabled' };
+  const before = getCollabFeatures();
   const stmt = db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)");
   for (const [feat, key] of Object.entries(mapping)) {
     if (features[feat] !== undefined) stmt.run(key, features[feat] ? 'true' : 'false');
   }
-  return getCollabFeatures();
+  const after = getCollabFeatures();
+  // Collab flags gate MCP tool/resource registration, so callers must know
+  // whether anything actually flipped — a no-op save must not tear down every
+  // live MCP session (#1414).
+  const changed = (Object.keys(after) as Array<keyof typeof after>).some(k => after[k] !== before[k]);
+  return { features: after, changed };
 }
 
 // ── Packing Templates ──────────────────────────────────────────────────────
@@ -766,8 +772,19 @@ export function updateAddon(id: string, data: { enabled?: boolean; config?: Reco
       }
       : null;
 
+  // Only these addons gate MCP tool/resource/prompt registration (see
+  // registerTools/registerResources) — and only a real enabled-flip changes
+  // what a session would register. Config-only saves, photo providers and
+  // MCP-irrelevant addons must not tear down every live session (#1414).
+  const MCP_RELEVANT_ADDONS = new Set<string>([
+    ADDON_IDS.MCP, ADDON_IDS.PACKING, ADDON_IDS.BUDGET, ADDON_IDS.COLLAB,
+    ADDON_IDS.ATLAS, ADDON_IDS.VACAY, ADDON_IDS.JOURNEY,
+  ]);
+  const enabledChanged = !!addon && data.enabled !== undefined && (data.enabled ? 1 : 0) !== addon.enabled;
+
   return {
     addon: updated,
+    mcpAffected: enabledChanged && MCP_RELEVANT_ADDONS.has(id),
     auditDetails: { enabled: data.enabled !== undefined ? !!data.enabled : undefined, config_changed: data.config !== undefined },
   };
 }

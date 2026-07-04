@@ -78,6 +78,7 @@ import {
   checkVersion,
   listAddons,
   updateAddon,
+  updateCollabFeatures,
   listMcpTokens,
   deleteMcpToken,
 } from '../../../src/services/adminService';
@@ -677,6 +678,33 @@ describe('updateAddon', () => {
     const result = updateAddon('nonexistent-addon-xyz', { enabled: true }) as any;
     expect(result.status).toBe(404);
     expect(result.error).toBeDefined();
+  });
+
+  it('ADMIN-SVC-069 — mcpAffected only fires on a real enabled-flip of an MCP-relevant addon (#1414)', () => {
+    updateAddon('packing', { enabled: true });
+    // no-op save (enabled already true) → sessions survive
+    expect((updateAddon('packing', { enabled: true }) as any).mcpAffected).toBe(false);
+    // config-only save → sessions survive
+    expect((updateAddon('packing', { config: { foo: 'bar' } }) as any).mcpAffected).toBe(false);
+    // real flip of an MCP-relevant addon → invalidate
+    expect((updateAddon('packing', { enabled: false }) as any).mcpAffected).toBe(true);
+    expect((updateAddon('packing', { enabled: true }) as any).mcpAffected).toBe(true);
+    // real flip of an addon with no MCP surface → sessions survive
+    const docsFlip = updateAddon('documents', { enabled: false }) as any;
+    if (!docsFlip.error) expect(docsFlip.mcpAffected).toBe(false);
+  });
+});
+
+describe('updateCollabFeatures', () => {
+  it('ADMIN-SVC-070 — reports whether a flag actually flipped (#1414)', () => {
+    const first = updateCollabFeatures({ chat: false });
+    expect(first.changed).toBe(true);
+    expect(first.features.chat).toBe(false);
+    // identical save → no change, MCP sessions must survive
+    const second = updateCollabFeatures({ chat: false });
+    expect(second.changed).toBe(false);
+    const third = updateCollabFeatures({ chat: true });
+    expect(third.changed).toBe(true);
   });
 });
 

@@ -203,10 +203,12 @@ export class AdminController {
 
   @Put('collab-features')
   updateCollabFeatures(@CurrentUser() user: User, @Body() body: unknown, @Req() req: Request) {
-    const result = this.admin.updateCollabFeatures(body);
-    this.admin.invalidateMcpSessions();
-    writeAudit({ userId: user.id, action: 'admin.collab_features', ip: getClientIp(req), details: result });
-    return result;
+    const { features, changed } = this.admin.updateCollabFeatures(body);
+    // Collab flags gate MCP registration, but a no-op save must not tear down
+    // every live MCP session (#1414).
+    if (changed) this.admin.invalidateMcpSessions();
+    writeAudit({ userId: user.id, action: 'admin.collab_features', ip: getClientIp(req), details: features });
+    return features;
   }
 
   // ── Packing templates ──
@@ -272,7 +274,10 @@ export class AdminController {
   updateAddon(@CurrentUser() user: User, @Param('id') id: string, @Body() body: unknown, @Req() req: Request) {
     const result = ok(this.admin.updateAddon(id, body));
     writeAudit({ userId: user.id, action: 'admin.addon_update', resource: String(id), ip: getClientIp(req), details: result.auditDetails });
-    this.admin.invalidateMcpSessions();
+    // Sessions only need re-creating when the registered MCP surface can
+    // actually change — an enabled-flip of an MCP-relevant addon. Config-only
+    // saves and photo-provider toggles used to kill every session (#1414).
+    if (result.mcpAffected) this.admin.invalidateMcpSessions();
     return { addon: result.addon };
   }
 
