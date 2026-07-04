@@ -9,6 +9,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import { mapsApi } from '../../api/client'
 import { getCategoryIcon, CATEGORY_ICON_MAP } from '../shared/categoryIcons'
 import ReservationOverlay from './ReservationOverlay'
+import { useTransportRoutes } from '../../hooks/useTransportRoutes'
 import type { Reservation } from '../../types'
 import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
 
@@ -468,6 +469,8 @@ export const MapView = memo(function MapView({
     // day route, so hiding the route hides them too (#1065).
     return reservations.filter((r: Reservation) => (r.type === 'transit' && showTransitRoutes) || set.has(r.id))
   }, [reservations, visibleConnectionIds, showTransitRoutes])
+  // Real road geometry for car/bus/taxi/bicycle bookings (straight line until it loads/if it fails).
+  const transportRoutes = useTransportRoutes(visibleReservations)
   // Dynamic padding: account for sidebars + bottom inspector + day detail panel
   const paddingOpts = useMemo((): L.FitBoundsOptions => {
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
@@ -712,6 +715,7 @@ export const MapView = memo(function MapView({
         showConnections
         showStats={showReservationStats}
         onEndpointClick={onReservationClick}
+        roadRoutes={transportRoutes}
       />
 
       {poiMarkers}

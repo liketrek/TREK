@@ -203,6 +203,7 @@ type MarkerConstructor = new (options?: { element?: HTMLElement; anchor?: string
 export class ReservationMapboxOverlay {
   private map: mapboxgl.Map
   private items: TransportItem[] = []
+  private roadRoutes: Map<number, [number, number][]> = new Map()
   private opts: ReservationOverlayOptions
   private MarkerCtor: MarkerConstructor
   private endpointMarkers: GlMarker[] = []
@@ -221,9 +222,10 @@ export class ReservationMapboxOverlay {
     map.on('render', this.updateStatsRotation)
   }
 
-  update(reservations: Reservation[], opts: ReservationOverlayOptions) {
+  update(reservations: Reservation[], opts: ReservationOverlayOptions, roadRoutes?: Map<number, [number, number][]>) {
     this.opts = opts
     this.items = buildItems(reservations)
+    this.roadRoutes = roadRoutes ?? new Map()
     this.render()
   }
 
@@ -326,7 +328,10 @@ export class ReservationMapboxOverlay {
           },
         }))
       }
-      return item.arcs.map(seg => ({
+      // Prefer the real road route (car/bus/taxi/bicycle) over the straight arc.
+      const road = this.roadRoutes.get(item.res.id)
+      const lines = road && road.length >= 2 ? [road] : item.arcs
+      return lines.map(seg => ({
         type: 'Feature' as const,
         properties: {
           resId: item.res.id,

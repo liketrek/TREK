@@ -308,9 +308,12 @@ interface Props {
   showConnections: boolean
   showStats: boolean
   onEndpointClick?: (reservationId: number) => void
+  // Real road-network geometry for car/bus/taxi/bicycle bookings, keyed by
+  // reservation id. When present it is drawn instead of the straight arc.
+  roadRoutes?: Map<number, [number, number][]>
 }
 
-export default function ReservationOverlay({ reservations, showConnections, showStats, onEndpointClick }: Props) {
+export default function ReservationOverlay({ reservations, showConnections, showStats, onEndpointClick, roadRoutes }: Props) {
   useEndpointPane()
   const map = useMap()
   const [zoom, setZoom] = useState(() => map.getZoom())
@@ -390,35 +393,41 @@ export default function ReservationOverlay({ reservations, showConnections, show
 
   return (
     <>
-      {visibleItems.map(item => item.transitSegs.length > 0
-        ? item.transitSegs.map((seg, segIdx) => (
-          <Fragment key={`transit-${item.res.id}-${segIdx}`}>
-            {!seg.walk && (
+      {visibleItems.map(item => {
+        if (item.transitSegs.length > 0) {
+          return item.transitSegs.map((seg, segIdx) => (
+            <Fragment key={`transit-${item.res.id}-${segIdx}`}>
+              {!seg.walk && (
+                <Polyline
+                  positions={seg.coords}
+                  pathOptions={{ color: '#ffffff', weight: 6, opacity: 0.85, lineCap: 'round', lineJoin: 'round' }}
+                />
+              )}
               <Polyline
                 positions={seg.coords}
-                pathOptions={{ color: '#ffffff', weight: 6, opacity: 0.85, lineCap: 'round', lineJoin: 'round' }}
+                pathOptions={seg.walk
+                  ? { color: '#64748b', weight: 3, opacity: 0.8, dashArray: '1, 7', lineCap: 'round' }
+                  : { color: seg.color || TYPE_META.transit.color, weight: 3.5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }}
               />
-            )}
-            <Polyline
-              positions={seg.coords}
-              pathOptions={seg.walk
-                ? { color: '#64748b', weight: 3, opacity: 0.8, dashArray: '1, 7', lineCap: 'round' }
-                : { color: seg.color || TYPE_META.transit.color, weight: 3.5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }}
-            />
-          </Fragment>
+            </Fragment>
+          ))
+        }
+        // Prefer the real road route (car/bus/taxi/bicycle) over the straight arc.
+        const road = roadRoutes?.get(item.res.id)
+        const lines = road && road.length >= 2 ? [road] : item.arcs
+        return lines.map((seg, segIdx) => (
+          <Polyline
+            key={`line-${item.res.id}-${segIdx}`}
+            positions={seg}
+            pathOptions={{
+              color: TYPE_META[item.type].color,
+              weight: 2.5,
+              opacity: item.res.status === 'confirmed' ? 0.75 : 0.55,
+              dashArray: item.res.status === 'confirmed' ? undefined : '6, 6',
+            }}
+          />
         ))
-        : item.arcs.map((seg, segIdx) => (
-        <Polyline
-          key={`line-${item.res.id}-${segIdx}`}
-          positions={seg}
-          pathOptions={{
-            color: TYPE_META[item.type].color,
-            weight: 2.5,
-            opacity: item.res.status === 'confirmed' ? 0.75 : 0.55,
-            dashArray: item.res.status === 'confirmed' ? undefined : '6, 6',
-          }}
-        />
-      )))}
+      })}
 
       {visibleItems.flatMap(item => item.waypoints.map((wp, wi) => (
         <Marker

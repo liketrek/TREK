@@ -11,6 +11,7 @@ import { CATEGORY_ICON_MAP } from '../shared/categoryIcons'
 import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings, addTerrainAndSky } from './mapboxSetup'
 import { attachLocationMarker, type LocationMarkerHandle } from './locationMarkerMapbox'
 import { ReservationMapboxOverlay } from './reservationsMapbox'
+import { useTransportRoutes } from '../../hooks/useTransportRoutes'
 import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from './glProviders'
 import LocationButton from './LocationButton'
 import { useGeolocation } from '../../hooks/useGeolocation'
@@ -903,6 +904,8 @@ export function MapViewGL({
     // day route, so hiding the route hides them too (#1065).
     return reservations.filter(r => (r.type === 'transit' && showTransitRoutes) || set.has(r.id))
   }, [reservations, visibleConnectionIds, showTransitRoutes])
+  // Real road geometry for car/bus/taxi/bicycle bookings (straight line until it loads/if it fails).
+  const transportRoutes = useTransportRoutes(visibleReservations)
 
   useEffect(() => {
     const map = mapRef.current
@@ -920,8 +923,8 @@ export function MapViewGL({
       showStats: showReservationStats,
       showEndpointLabels,
       onEndpointClick: (id) => onReservationClickRef.current?.(id),
-    })
-  }, [visibleReservations, showReservationStats, showEndpointLabels, mapReady, glProvider])
+    }, transportRoutes)
+  }, [visibleReservations, transportRoutes, showReservationStats, showEndpointLabels, mapReady, glProvider])
 
   // Fit bounds on fitKey change — matches the Leaflet BoundsController
   const paddingOpts = useMemo(() => {
