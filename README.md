@@ -49,12 +49,12 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 
 <div align="center">
   <a href="docs/screenshots/dashboard.png"><img src="docs/screenshots/dashboard.png" alt="Dashboard" width="49%" /></a>
-  <a href="docs/screenshots/trip-planner.png"><img src="docs/screenshots/trip-planner.png" alt="Trip planner with 3D map" width="49%" /></a>
+  <a href="docs/screenshots/trip-planner.png"><img src="docs/screenshots/trip-planner.png" alt="Trip planner · day plan & route" width="49%" /></a>
   <a href="docs/screenshots/journey.png"><img src="docs/screenshots/journey.png" alt="Journey journal" width="49%" /></a>
   <a href="docs/screenshots/budget.png"><img src="docs/screenshots/budget.png" alt="Costs · expense splitting" width="49%" /></a>
   <a href="docs/screenshots/atlas.png"><img src="docs/screenshots/atlas.png" alt="Atlas · visited countries" width="49%" /></a>
   <a href="docs/screenshots/vacay.png"><img src="docs/screenshots/vacay.png" alt="Vacay planner" width="49%" /></a>
-  <a href="docs/screenshots/trip-iceland.png"><img src="docs/screenshots/trip-iceland.png" alt="Trip planner · day plan and route" width="49%" /></a>
+  <a href="docs/screenshots/collections.png"><img src="docs/screenshots/collections.png" alt="Collections · saved place lists" width="49%" /></a>
   <a href="docs/screenshots/admin.png"><img src="docs/screenshots/admin.png" alt="Admin panel" width="49%" /></a>
 </div>
 
