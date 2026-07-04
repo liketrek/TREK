@@ -139,6 +139,23 @@ function createPoiIcon(category: string) {
   return icon
 }
 
+// Clears the hover tooltip the moment the camera starts moving and suppresses
+// re-showing it until the move ends: after a click-recenter the marker slides
+// away under a stationary cursor, so the browser never fires mouseout — and
+// mouseover/mousemove during the pan animation would immediately re-set the
+// tooltip we just cleared (#1404).
+function CameraHoverGuard({ movingRef, onMoveStart }: { movingRef: { current: boolean }; onMoveStart: () => void }) {
+  const map = useMap()
+  useEffect(() => {
+    const start = () => { movingRef.current = true; onMoveStart() }
+    const end = () => { movingRef.current = false }
+    map.on('movestart zoomstart', start)
+    map.on('moveend zoomend', end)
+    return () => { map.off('movestart zoomstart', start); map.off('moveend zoomend', end) }
+  }, [map, movingRef, onMoveStart])
+  return null
+}
+
 // Emits the current viewport bbox on pan/zoom so the POI-explore pill can fetch
 // OSM places for the visible area.
 function ViewportController({ onViewportChange }: { onViewportChange?: (b: { south: number; west: number; north: number; east: number }) => void }) {
@@ -465,9 +482,10 @@ export const MapView = memo(function MapView({
   // Hover state for the single tooltip overlay (replaces per-marker <Tooltip>)
   const [hoveredPlace, setHoveredPlace] = useState<any>(null)
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null)
+  const mapMovingRef = useRef(false)
 
   const handleMarkerHover = useCallback((place: any, x: number, y: number) => {
-    if (hoverDisabled) return
+    if (hoverDisabled || mapMovingRef.current) return
     setHoveredPlace(place)
     setTooltipPos({ x, y })
   }, [hoverDisabled])
@@ -491,8 +509,17 @@ export const MapView = memo(function MapView({
   }, [hoveredPlace])
 
   const handleMarkerClick = useCallback((id: number) => {
+    // Clear the hover card right away: the recenter that follows moves the
+    // marker out from under the cursor, so no mouseout will ever fire (#1404).
+    setHoveredPlace(null)
+    setTooltipPos(null)
     onMarkerClick?.(id)
   }, [onMarkerClick])
+
+  const clearHover = useCallback(() => {
+    setHoveredPlace(null)
+    setTooltipPos(null)
+  }, [])
 
   // photoUrls: only base64 thumbs for smooth map zoom
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>(getAllThumbs)
@@ -644,6 +671,7 @@ export const MapView = memo(function MapView({
       <SelectionController places={places} selectedPlaceId={selectedPlaceId} dayPlaces={dayPlaces} paddingOpts={paddingOpts} />
       <MapClickHandler onClick={onMapClick} />
       <MapContextMenuHandler onContextMenu={onMapContextMenu} />
+      <CameraHoverGuard movingRef={mapMovingRef} onMoveStart={clearHover} />
       <ViewportController onViewportChange={onViewportChange} />
       <LeafletLocationLayer position={userPosition} mode={trackingMode} />
 

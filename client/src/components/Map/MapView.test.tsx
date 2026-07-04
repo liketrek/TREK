@@ -29,7 +29,9 @@ vi.mock('react-leaflet', () => ({
     >
       <button
         data-testid="marker-hover-trigger"
-        onClick={() => eventHandlers?.mouseover?.({ originalEvent: { clientX: 100, clientY: 100 } })}
+        // A real mouseover never bubbles as a click to the marker, so the
+        // hover-simulation must not trigger the marker's click handler.
+        onClick={(e: any) => { e.stopPropagation(); eventHandlers?.mouseover?.({ originalEvent: { clientX: 100, clientY: 100 } }) }}
       />
       {children}
     </div>
@@ -243,6 +245,44 @@ describe('MapView', () => {
 
     rerender(<MapView places={places} fitKey={2} />)
     expect(mapMock.fitBounds.mock.calls.length).toBeGreaterThan(afterFirst)
+  })
+
+  it('FE-COMP-MAPVIEW-021: clicking a marker clears the hover tooltip (#1404)', async () => {
+    const user = userEvent.setup()
+    const places = [buildMapPlace({ id: 3, name: 'Eiffel Tower', lat: 48.8584, lng: 2.2945 })]
+    render(<MapView places={places} onMarkerClick={vi.fn()} />)
+    await user.click(screen.getByTestId('marker-hover-trigger'))
+    expect(screen.getByTestId('tooltip')).toBeTruthy()
+    // The recenter that follows the click moves the marker out from under the
+    // cursor — no mouseout will ever fire, so the click itself must clear.
+    fireEvent.click(screen.getByTestId('marker'))
+    expect(screen.queryByTestId('tooltip')).toBeNull()
+  })
+
+  it('FE-COMP-MAPVIEW-022: camera movement clears the tooltip and suppresses re-show until it ends (#1404)', async () => {
+    const user = userEvent.setup()
+    const places = [buildMapPlace({ id: 4, name: 'Louvre', lat: 48.86, lng: 2.337 })]
+    render(<MapView places={places} />)
+    await user.click(screen.getByTestId('marker-hover-trigger'))
+    expect(screen.getByTestId('tooltip')).toBeTruthy()
+
+    const findHandler = (event: string) =>
+      mapMock.on.mock.calls.find(c => c[0] === event)?.[1] as (() => void) | undefined
+    const start = findHandler('movestart zoomstart')
+    const end = findHandler('moveend zoomend')
+    expect(start).toBeTypeOf('function')
+    expect(end).toBeTypeOf('function')
+
+    fireEvent.click(screen.getByTestId('marker-hover-trigger')) // ensure hover is showing
+    start!()
+    await waitFor(() => expect(screen.queryByTestId('tooltip')).toBeNull())
+    // during the pan animation a mouseover must not re-show the card
+    fireEvent.click(screen.getByTestId('marker-hover-trigger'))
+    expect(screen.queryByTestId('tooltip')).toBeNull()
+    // once the move ends, hover works again
+    end!()
+    await user.click(screen.getByTestId('marker-hover-trigger'))
+    expect(screen.getByTestId('tooltip')).toBeTruthy()
   })
 
   it('FE-COMP-MAPVIEW-020: a day fit expands to include the route once it arrives (#1128)', async () => {
