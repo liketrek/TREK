@@ -39,6 +39,7 @@ function renderDetail(overrides: Partial<Omit<DetailProps, 't'>> = {}) {
     canEdit: true,
     canDelete: true,
     categories: [],
+    labels: [],
     anchorRect: null,
     onClose: vi.fn(),
     onSetStatus: vi.fn(),
