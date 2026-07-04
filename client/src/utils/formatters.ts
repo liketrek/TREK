@@ -52,9 +52,9 @@ const CURRENCY_LOCALE: Record<string, string> = {
   PHP: 'en-PH', SGD: 'en-SG', KRW: 'ko-KR', CNY: 'zh-CN', HKD: 'en-HK',
   TWD: 'zh-TW', ZAR: 'en-ZA', AED: 'en-AE', SAR: 'en-SA', ILS: 'he-IL',
   EGP: 'en-EG', MAD: 'fr-MA', HUF: 'hu-HU', RON: 'ro-RO', BGN: 'bg-BG',
-  HRK: 'hr-HR', ISK: 'is-IS', RUB: 'ru-RU', UAH: 'uk-UA', BDT: 'en-BD',
-  LKR: 'en-LK', VND: 'vi-VN', CLP: 'es-CL', COP: 'es-CO', PEN: 'es-PE',
-  ARS: 'es-AR',
+  HRK: 'hr-HR', ISK: 'is-IS', RUB: 'ru-RU', UAH: 'uk-UA', KGS: 'ru-KG',
+  BDT: 'en-BD', LKR: 'en-LK', VND: 'vi-VN', CLP: 'es-CL', COP: 'es-CO',
+  PEN: 'es-PE', ARS: 'es-AR',
 }
 
 export function currencyLocale(currency: string): string {
