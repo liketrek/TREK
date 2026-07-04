@@ -16,6 +16,8 @@ describe('isBlockedIp', () => {
     '0.0.0.0', '10.1.2.3', '127.0.0.1', '172.16.0.1', '172.31.255.255',
     '192.168.1.1', '169.254.169.254', '100.64.0.1', '224.0.0.1', '255.255.255.255',
     '::1', '::', 'fe80::1', 'fc00::1', 'fd12:3456::1', '::ffff:127.0.0.1', '::ffff:10.0.0.1',
+    // non-canonical IPv6 spellings must be blocked too (canonicalization)
+    '0::1', '::ffff:a9fe:a9fe', '::ffff:169.254.169.254', '0:0:0:0:0:0:0:1', 'fD00::1', '::ffff:7f00:1',
   ])('blocks %s', (ip) => {
     expect(isBlockedIp(ip)).toBe(true);
   });
@@ -42,6 +44,21 @@ describe('makeHostAllow', () => {
   it('an empty egress list allows nothing', () => {
     const allow = makeHostAllow([]);
     expect(allow('anything.com')).toBe(false);
+  });
+
+  it('rejects degenerate wildcards that would be allow-all', () => {
+    // `*.` matched any trailing-dot host; `*.com`/`*` are whole-TLD/allow-all.
+    expect(makeHostAllow(['*.'])('evil.com')).toBe(false);
+    expect(makeHostAllow(['*.'])('evil.com.')).toBe(false);
+    expect(makeHostAllow(['*.com'])('evil.com')).toBe(false);
+    expect(makeHostAllow(['*'])('evil.com')).toBe(false);
+  });
+
+  it('normalizes a trailing dot so an FQDN host cannot dodge an exact match', () => {
+    const allow = makeHostAllow(['api.example.com']);
+    expect(allow('api.example.com.')).toBe(true); // trailing-dot FQDN still matches
+    // and the FQDN trick can't turn a real wildcard into allow-all
+    expect(makeHostAllow(['*.example.com'])('sink.attacker.com.')).toBe(false);
   });
 });
 

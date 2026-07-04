@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { fork, type ChildProcess } from 'node:child_process';
 import { resolveChildEntry, pluginCodeDir, pluginRealCodeDir, pluginPermissionArgs, ensurePluginModuleType } from '../paths';
@@ -51,6 +52,7 @@ interface Supervised {
   pending: Map<string, Pending>; // host→child invokes awaiting a response
   invocations: Map<string, number | undefined>; // reqId -> acting user of that invoke (undefined = no user, e.g. a job)
   activation?: { resolve: () => void; reject: (e: Error) => void };
+  activationTimer?: ReturnType<typeof setTimeout>; // deadline for the plugin to reach 'active'
 }
 
 export interface SupervisorTuning {
@@ -60,6 +62,7 @@ export interface SupervisorTuning {
   backoffCapMs?: number;
   killGraceMs?: number;
   maxRssBytes?: number;
+  activationTimeoutMs?: number;
 }
 
 const DEFAULTS: Required<SupervisorTuning> = {
@@ -68,6 +71,9 @@ const DEFAULTS: Required<SupervisorTuning> = {
   crashLimit: 5,
   backoffCapMs: 30_000,
   killGraceMs: 3000,
+  // A plugin that never reaches 'loaded' (e.g. a synchronous infinite loop in
+  // onLoad) must not hang the admin's activate() forever nor peg a core unreaped.
+  activationTimeoutMs: 30_000,
   // Hard RSS ceiling — the real memory cap. --max-old-space-size only bounds the
   // V8 heap; Buffers/ArrayBuffers/native allocations sail past it, so a plugin
   // could OOM the box while staying "under" the heap limit. Overridable via env.
@@ -110,8 +116,28 @@ export class PluginSupervisor {
     this.ensureSweep();
     return new Promise<void>((resolve, reject) => {
       sup.activation = { resolve, reject };
+      // Deadline: if the plugin never reports 'loaded' (stuck onLoad), reject the
+      // activation and kill the child rather than hanging + leaking a busy core.
+      sup.activationTimer = setTimeout(() => {
+        if (sup.status === 'active') return;
+        this.hooks.onLog?.(sup.id, 'error', 'activation timed out; killing');
+        this.setStatus(sup, 'error', 'activation timed out');
+        sup.activation?.reject(new Error('plugin did not finish loading in time'));
+        sup.activation = undefined;
+        this.running.delete(sup.id);
+        void this.kill(sup);
+        sup.rpcHost.dispose();
+      }, this.tuning.activationTimeoutMs);
+      sup.activationTimer.unref?.();
       this.spawn(sup);
     });
+  }
+
+  private clearActivationTimer(sup: Supervised): void {
+    if (sup.activationTimer) {
+      clearTimeout(sup.activationTimer);
+      sup.activationTimer = undefined;
+    }
   }
 
   /** Stop a plugin: ask it to unload, then kill. Idempotent. */
@@ -119,6 +145,7 @@ export class PluginSupervisor {
     const sup = this.running.get(id);
     if (!sup) return;
     this.running.delete(id);
+    this.clearActivationTimer(sup);
     this.setStatus(sup, 'stopped');
     await this.kill(sup);
     sup.rpcHost.dispose();
@@ -254,6 +281,7 @@ export class PluginSupervisor {
           const d = msg.data as { routes?: PluginRouteInfo[]; jobs?: string[] };
           sup.routes = d.routes ?? [];
           sup.jobs = d.jobs ?? [];
+          this.clearActivationTimer(sup);
           this.setStatus(sup, 'active');
           sup.activation?.resolve();
           sup.activation = undefined;
@@ -261,6 +289,7 @@ export class PluginSupervisor {
         }
         case 'load-error': {
           const message = (msg.data as { message?: string })?.message || 'plugin load failed';
+          this.clearActivationTimer(sup);
           this.setStatus(sup, 'error', message);
           sup.activation?.reject(new Error(message));
           sup.activation = undefined;
@@ -299,6 +328,7 @@ export class PluginSupervisor {
     sup.crashes.push(Date.now());
     const recent = sup.crashes.filter((t) => t > Date.now() - this.tuning.crashWindowMs);
     if (recent.length >= this.tuning.crashLimit) {
+      this.clearActivationTimer(sup);
       this.setStatus(sup, 'error', `auto-disabled after ${recent.length} crashes`);
       sup.activation?.reject(new Error('plugin crashed repeatedly'));
       sup.activation = undefined;
@@ -327,18 +357,38 @@ export class PluginSupervisor {
   reapStale(now = Date.now()): void {
     for (const sup of this.running.values()) {
       if (sup.status !== 'active') continue;
+      const rss = this.childRss(sup);
       if (now - sup.lastBeat > this.tuning.heartbeatTimeoutMs) {
         this.hooks.onLog?.(sup.id, 'warn', 'missed heartbeats; killing');
         sup.child?.kill('SIGKILL');
-      } else if (sup.lastRss > this.tuning.maxRssBytes) {
+      } else if (rss > this.tuning.maxRssBytes) {
         this.hooks.onLog?.(
           sup.id,
           'warn',
-          `exceeded memory ceiling (${Math.round(sup.lastRss / 1048576)}MB > ${Math.round(this.tuning.maxRssBytes / 1048576)}MB); killing`,
+          `exceeded memory ceiling (${Math.round(rss / 1048576)}MB > ${Math.round(this.tuning.maxRssBytes / 1048576)}MB); killing`,
         );
         sup.child?.kill('SIGKILL');
       }
     }
+  }
+
+  /**
+   * Resident memory of the child, measured HOST-side from the OS — never trusting
+   * the child's self-reported heartbeat rss (a malicious plugin can spoof it).
+   * On Linux (prod runs in a Linux container) this reads /proc/<pid>/statm; where
+   * that isn't available (dev on win/mac) it falls back to the reported value.
+   */
+  private childRss(sup: Supervised): number {
+    const pid = sup.child?.pid;
+    if (pid) {
+      try {
+        const resident = Number(fs.readFileSync(`/proc/${pid}/statm`, 'utf8').split(' ')[1]);
+        if (Number.isFinite(resident)) return resident * 4096; // pages → bytes
+      } catch {
+        /* not Linux / process gone — fall back */
+      }
+    }
+    return sup.lastRss;
   }
 
   private async kill(sup: Supervised): Promise<void> {

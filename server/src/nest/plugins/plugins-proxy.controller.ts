@@ -14,7 +14,13 @@ import { PluginRuntimeService } from './plugin-runtime.service';
  * isolated child over RPC. The plugin never sees raw headers or the session
  * cookie, so it cannot replay the user's credentials.
  */
-const SAFE_RESPONSE_HEADERS = new Set(['content-type', 'cache-control', 'content-disposition', 'location']);
+// A plugin fully controls the reply's content-type + body, and this route is on
+// TREK's REAL origin, so we must never let the browser RENDER it as a document
+// (that would run plugin script at our origin, outside the iframe sandbox) nor
+// follow a plugin-chosen redirect. `location` / `content-disposition` are NOT
+// passthrough; every reply is forced to nosniff + attachment below. fetch-based
+// consumers (the plugin's own client) are unaffected — fetch ignores both.
+const SAFE_RESPONSE_HEADERS = new Set(['content-type', 'cache-control']);
 
 @Controller('api/plugins/:pluginId')
 export class PluginsProxyController {
@@ -66,10 +72,17 @@ export class PluginsProxyController {
         user?.id,
       )) as { status?: number; headers?: Record<string, string>; body?: unknown };
 
-      res.status(reply?.status ?? 200);
+      // A plugin may not choose a 3xx (open redirect via the reflected Location);
+      // clamp the status to a non-redirect range.
+      const status = reply?.status ?? 200;
+      res.status(status >= 300 && status < 400 ? 502 : status);
       for (const [k, v] of Object.entries(reply?.headers ?? {})) {
         if (SAFE_RESPONSE_HEADERS.has(k.toLowerCase())) res.setHeader(k, v);
       }
+      // Neutralize the "render plugin HTML at TREK's origin" sandbox-escape: never
+      // let the response be treated as a document, and never MIME-sniff it.
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Content-Disposition', 'attachment');
       res.send(reply?.body ?? '');
     } catch (e) {
       res.status(502).json({ error: 'Plugin error', detail: e instanceof Error ? e.message : 'unknown' });

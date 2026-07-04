@@ -41,12 +41,14 @@ describe('create-rpc-host wiring', () => {
     const migrated = await host.dispatch({ k: 'req', id: '1', method: 'db.migrate', params: { id: '001', sql: 'CREATE TABLE t (v TEXT)' } });
     expect(migrated.ok).toBe(true);
 
-    await host.dispatch({ k: 'req', id: '2', method: 'ws.broadcastToTrip', params: { tripId: 1, event: 'ping', data: { a: 1 } } });
+    // acting user 5 is a member of trip 1 (mocked canAccessTrip) → broadcast allowed + namespaced
+    await host.dispatch({ k: 'req', id: '2', method: 'ws.broadcastToTrip', params: { tripId: 1, event: 'ping', data: { a: 1 } } }, 5);
     expect(broadcast).toHaveBeenCalledWith(1, 'plugin:wired:ping', { a: 1 });
 
     const bcastUser = createRealRpcHost('wired', new Set(['ws:broadcast:user']));
-    await bcastUser.dispatch({ k: 'req', id: '3', method: 'ws.broadcastToUser', params: { userId: 7, event: 'hi', data: {} } });
-    expect(broadcastToUser).toHaveBeenCalledWith(7, { type: 'plugin:wired', event: 'hi' });
+    // a per-user broadcast may only target the acting user themselves
+    await bcastUser.dispatch({ k: 'req', id: '3', method: 'ws.broadcastToUser', params: { userId: 5, event: 'hi', data: {} } }, 5);
+    expect(broadcastToUser).toHaveBeenCalledWith(5, { type: 'plugin:wired', event: 'hi' });
   });
 
   it('closePluginDataDb closes and drops the cached handle', () => {

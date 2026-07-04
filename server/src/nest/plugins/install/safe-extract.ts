@@ -47,7 +47,7 @@ export function extractArchive(buf: Buffer, dest: string, limits: ExtractLimits 
   const lim = { ...DEFAULTS, ...limits };
   const isGzip = buf[0] === 0x1f && buf[1] === 0x8b;
   const isZip = buf[0] === 0x50 && buf[1] === 0x4b;
-  const members = isGzip ? readTarGz(buf) : isZip ? readZip(buf) : null;
+  const members = isGzip ? readTarGz(buf, lim) : isZip ? readZip(buf, lim) : null;
   if (!members) throw new ExtractError('unsupported archive format (expected .tar.gz or .zip)');
 
   let total = 0;
@@ -72,8 +72,8 @@ export function extractArchive(buf: Buffer, dest: string, limits: ExtractLimits 
 }
 
 // ── minimal tar.gz reader ────────────────────────────────────────────────────
-function readTarGz(buf: Buffer): Member[] {
-  const tar = zlib.gunzipSync(buf, { maxOutputLength: DEFAULTS.maxTotalBytes + 1024 * 1024 });
+function readTarGz(buf: Buffer, lim: Required<ExtractLimits>): Member[] {
+  const tar = zlib.gunzipSync(buf, { maxOutputLength: lim.maxTotalBytes + 1024 * 1024 });
   const members: Member[] = [];
   let off = 0;
   while (off + 512 <= tar.length) {
@@ -96,7 +96,7 @@ function readTarGz(buf: Buffer): Member[] {
 }
 
 // ── minimal ZIP reader (central directory) ───────────────────────────────────
-function readZip(buf: Buffer): Member[] {
+function readZip(buf: Buffer, lim: Required<ExtractLimits>): Member[] {
   // Find End Of Central Directory.
   let eocd = -1;
   for (let i = buf.length - 22; i >= 0 && i > buf.length - 22 - 65536; i--) {
@@ -104,8 +104,14 @@ function readZip(buf: Buffer): Member[] {
   }
   if (eocd < 0) throw new ExtractError('invalid zip (no EOCD)');
   const count = buf.readUInt16LE(eocd + 10);
+  // Bound the entry count from the EOCD (up to 65535) BEFORE inflating anything.
+  if (count > lim.maxEntries) throw new ExtractError('too many entries');
   let p = buf.readUInt32LE(eocd + 16); // central dir offset
   const members: Member[] = [];
+  // Enforce the cumulative uncompressed budget AS WE GO, so a decompression bomb
+  // (many entries each inflating to ~maxFileBytes) can't materialize gigabytes in
+  // memory before the caller's write loop ever runs.
+  let total = 0;
   for (let i = 0; i < count; i++) {
     if (buf.readUInt32LE(p) !== 0x02014b50) throw new ExtractError('invalid zip (central header)');
     const method = buf.readUInt16LE(p + 10);
@@ -128,9 +134,14 @@ function readZip(buf: Buffer): Member[] {
     if (isSymlink) { members.push({ name, type: 'other' }); continue; }
     if (name.endsWith('/')) { members.push({ name, type: 'dir' }); continue; }
     let data: Buffer;
-    if (method === 0) data = Buffer.from(comp);
-    else if (method === 8) data = zlib.inflateRawSync(comp, { maxOutputLength: DEFAULTS.maxFileBytes + 1024 });
-    else throw new ExtractError(`unsupported zip compression method ${method}`);
+    if (method === 0) {
+      if (compSize > lim.maxFileBytes) throw new ExtractError(`file too large: ${name}`);
+      data = Buffer.from(comp);
+    } else if (method === 8) {
+      data = zlib.inflateRawSync(comp, { maxOutputLength: lim.maxFileBytes + 1024 });
+    } else throw new ExtractError(`unsupported zip compression method ${method}`);
+    total += data.length;
+    if (total > lim.maxTotalBytes) throw new ExtractError('archive exceeds size limit');
     members.push({ name, type: 'file', data });
   }
   return members;

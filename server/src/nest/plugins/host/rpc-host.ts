@@ -36,6 +36,8 @@ export interface HostDeps {
   db: CoreDb;
   /** Returns the trip row if the user may access it, else undefined. */
   canAccessTrip(tripId: number, userId: number): unknown;
+  /** True if the target user is the acting user or co-members a trip with them. */
+  canSeeUser(actingUserId: number, targetUserId: number): boolean;
   /** Namespaced trip broadcast (host forces the plugin:{id}:{event} event type). */
   broadcastToTrip(tripId: number, eventType: string, payload: Record<string, unknown>): void;
   /** Namespaced per-user broadcast. */
@@ -86,22 +88,37 @@ export class PluginRpcHost {
     }
 
     if (has('db:read:users')) {
-      this.methods.set('users.getById', (p) =>
-        deps.db
-          .prepare('SELECT id, username, display_name, avatar FROM users WHERE id = ?')
-          .get(num(p.id, 'id')),
-      );
+      // Scope to people the acting user can actually see (self or a trip they
+      // share) so a plugin can't enumerate every account's profile by looping ids.
+      this.methods.set('users.getById', (p, uid) => {
+        const id = num(p.id, 'id');
+        if (uid === undefined) throw new ForbiddenResource('user reads require an authenticated user context');
+        if (id !== uid && !this.deps.canSeeUser(uid, id)) throw new ForbiddenResource(`no access to user ${id}`);
+        return deps.db.prepare('SELECT id, username, display_name, avatar FROM users WHERE id = ?').get(id);
+      });
     }
 
     if (has('ws:broadcast:trip')) {
-      this.methods.set('ws.broadcastToTrip', (p) => {
-        deps.broadcastToTrip(num(p.tripId, 'tripId'), str(p.event, 'event'), asPayload(p.data));
+      // Gate the TARGET the same way reads are gated: a plugin may only push to a
+      // trip room the acting user is a member of — never an arbitrary/other-tenant
+      // trip. (Event-type namespacing alone doesn't cross the membership boundary.)
+      this.methods.set('ws.broadcastToTrip', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        if (uid === undefined) throw new ForbiddenResource('broadcasts require an authenticated user context');
+        if (!this.deps.canAccessTrip(tripId, uid)) throw new ForbiddenResource(`no access to trip ${tripId}`);
+        deps.broadcastToTrip(tripId, str(p.event, 'event'), asPayload(p.data));
         return { ok: true };
       });
     }
     if (has('ws:broadcast:user')) {
-      this.methods.set('ws.broadcastToUser', (p) => {
-        deps.broadcastToUser(num(p.userId, 'userId'), { event: str(p.event, 'event'), ...asPayload(p.data) });
+      // Restrict to the acting user's own connections — a plugin may not push to
+      // an arbitrary user it has no relationship to.
+      this.methods.set('ws.broadcastToUser', (p, uid) => {
+        const userId = num(p.userId, 'userId');
+        if (uid === undefined || userId !== uid) {
+          throw new ForbiddenResource('a plugin may only broadcast to the acting user');
+        }
+        deps.broadcastToUser(userId, { event: str(p.event, 'event'), ...asPayload(p.data) });
         return { ok: true };
       });
     }

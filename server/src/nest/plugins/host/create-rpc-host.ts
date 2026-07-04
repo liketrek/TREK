@@ -32,6 +32,18 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>): Plu
     data: getPluginDataDb(id),
     db,
     canAccessTrip: (tripId, userId) => canAccessTrip(tripId, userId),
+    // Two users "share a trip" when both are owner-or-member of the same trip.
+    canSeeUser: (actingUserId, targetUserId) =>
+      !!db
+        .prepare(
+          `SELECT 1 FROM trips t
+             LEFT JOIN trip_members m1 ON m1.trip_id = t.id AND m1.user_id = ?
+             LEFT JOIN trip_members m2 ON m2.trip_id = t.id AND m2.user_id = ?
+            WHERE (t.user_id = ? OR m1.user_id IS NOT NULL)
+              AND (t.user_id = ? OR m2.user_id IS NOT NULL)
+            LIMIT 1`,
+        )
+        .get(actingUserId, targetUserId, actingUserId, targetUserId),
     broadcastToTrip: (tripId, event, payload) => broadcast(tripId, `plugin:${id}:${event}`, payload),
     broadcastToUser: (userId, payload) => broadcastToUser(userId, { type: `plugin:${id}`, ...payload }),
     audit: (entry) => appendAudit(db, entry),

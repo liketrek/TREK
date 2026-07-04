@@ -32,6 +32,11 @@ describe('parseManifest', () => {
     expect(m.settings[0]).toMatchObject({ key: 'api_key', secret: true, scope: 'instance' });
   });
 
+  it('accepts a valid exact + wildcard outbound host', () => {
+    const m = parseManifest({ ...base, permissions: ['http:outbound:api.x.com', 'http:outbound:*.example.com'], egress: ['api.x.com', '*.example.com'] });
+    expect(m.permissions).toContain('http:outbound:*.example.com');
+  });
+
   it.each([
     ['Bad-Id', { ...base, id: 'Bad-Id' }, /invalid id/],
     ['reserved id', { ...base, id: 'registry' }, /reserved id/],
@@ -41,6 +46,11 @@ describe('parseManifest', () => {
     ['unknown perm', { ...base, permissions: ['fs:read'] }, /unknown permission/],
     ['outbound no egress', { ...base, permissions: ['http:outbound'] }, /egress\[\] is empty/],
     ['wildcard egress', { ...base, permissions: ['http:outbound'], egress: ['*'] }, /bare "\*"/],
+    ['allow-all outbound host', { ...base, permissions: ['http:outbound:*'], egress: ['x.com'] }, /invalid http:outbound host/],
+    ['degenerate wildcard host', { ...base, permissions: ['http:outbound:*.'], egress: ['x.com'] }, /invalid http:outbound host/],
+    ['whole-TLD outbound host', { ...base, permissions: ['http:outbound:*.com'], egress: ['x.com'] }, /invalid http:outbound host/],
+    ['host with a space', { ...base, permissions: ['http:outbound:legit.com x'], egress: ['legit.com'] }, /invalid http:outbound host/],
+    ['bad egress host', { ...base, permissions: ['http:outbound:api.x.com'], egress: ['api.x.com', 'no spaces here'] }, /invalid egress host/],
     ['not an object', 'nope', /not an object/],
     ['missing name', { id: 'x-plugin', version: '1.0.0', type: 'page' }, /missing\/invalid "name"/],
   ])('rejects: %s', (_label, input, re) => {

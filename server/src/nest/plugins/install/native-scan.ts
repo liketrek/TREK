@@ -21,7 +21,9 @@ export function scanForNativeBinaries(dir: string): string[] {
       return;
     }
     for (const e of entries) {
-      if (++seen > MAX_ENTRIES) return;
+      // Never silently stop scanning — an artifact padded past the cap must be
+      // rejected, not passed clean (it could hide a .node past the limit).
+      if (++seen > MAX_ENTRIES) throw new Error('artifact has too many files to scan for native binaries');
       const childRel = rel ? `${rel}/${e.name}` : e.name;
       if (e.isSymbolicLink()) continue; // never follow symlinks
       if (e.isDirectory()) {

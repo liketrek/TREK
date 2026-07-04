@@ -67,8 +67,13 @@ export class PluginFrameController {
 
   /** Per-plugin, locked-down CSP for the sandboxed frame document. */
   private frameCsp(pluginId: string): string {
-    const outbound = this.runtime.outboundHostsOf(pluginId);
-    const connect = ["'self'", ...outbound.map((h) => (h.includes('://') ? h : `https://${h}`))].join(' ');
+    // Defense in depth: the manifest validator already constrains these hosts, but
+    // never interpolate anything that isn't a clean host/wildcard into connect-src
+    // (a stray space or `*` would inject an extra CSP source token).
+    const outbound = this.runtime
+      .outboundHostsOf(pluginId)
+      .filter((h) => /^(\*\.)?[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(h));
+    const connect = ["'self'", ...outbound.map((h) => `https://${h}`)].join(' ');
     return [
       "default-src 'none'",
       // The frame runs at an OPAQUE origin (sandbox without allow-same-origin),

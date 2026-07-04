@@ -153,8 +153,9 @@ registry entry, so you never hand-compute a SHA-256 or hand-write registry JSON:
 
 Run them via `npx trek-plugin-sdk …`. See [[Plugin Development|Plugin-Development]]
 for the SDK and manifest, and [[Publishing a Plugin|Plugin-Publishing]] for the
-registry PR flow. Publishing no longer reserves any namespaces — any unique slug
-is fine — but an `id` stays bound to the GitHub owner who first registered it, so
+registry PR flow. Any unique slug works — only `registry`, `install` and `rescan`
+are refused (they'd collide with admin API routes) — and an `id` stays bound to
+the GitHub owner who first registered it, so
 nobody can repoint an existing plugin. Entries may optionally carry an author
 signing key (`authorPublicKey` + a per-version `signature`) for offline signature
 verification on top of the SHA-256 pin.

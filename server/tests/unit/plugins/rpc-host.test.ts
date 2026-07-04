@@ -28,6 +28,8 @@ function makeDeps(): HostDeps {
     },
     // trip 1 is accessible to user 42; everything else is not
     canAccessTrip: vi.fn((tripId: number, userId: number) => (tripId === 1 && userId === 42 ? { id: 1 } : undefined)),
+    // user 42 may see user 3 (they share a trip); nobody else
+    canSeeUser: vi.fn((actingUserId: number, targetUserId: number) => actingUserId === 42 && targetUserId === 3),
     broadcastToTrip: vi.fn(),
     broadcastToUser: vi.fn(),
   };
@@ -97,20 +99,39 @@ describe('PluginRpcHost — capability enforcement', () => {
     expect((allowed as RpcResponse).result).toEqual([{ id: 7, name: 'Place' }]);
   });
 
-  it('db:read:users returns only the public projection', async () => {
+  it('db:read:users returns only the public projection for a visible user', async () => {
     const host = new PluginRpcHost('p', new Set(['db:read:users']), deps);
-    const res = await host.dispatch(req('users.getById', { id: 3 }));
+    const res = await host.dispatch(req('users.getById', { id: 3 }), 42);
     expect(ok(res)).toBe(true);
     expect((res as RpcResponse).result).toEqual({ id: 3, username: 'ada', display_name: 'Ada', avatar: null });
     // the SELECT column list is host-controlled — no password/token columns
     expect(deps.db.prepare).toHaveBeenCalledWith(expect.stringContaining('id, username, display_name, avatar'));
   });
 
-  it('ws:broadcast:trip forwards to the (namespaced) broadcaster', async () => {
+  it('db:read:users is RESOURCE_FORBIDDEN for a user the acting user cannot see (no enumeration)', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:read:users']), deps);
+    const forbidden = await host.dispatch(req('users.getById', { id: 999 }), 42);
+    expect((forbidden as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    // and with no bound acting user (job / forged call), also denied
+    const noUser = await host.dispatch(req('users.getById', { id: 3 }), undefined);
+    expect((noUser as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+  });
+
+  it('ws:broadcast:trip forwards to the (namespaced) broadcaster for a member', async () => {
     const host = new PluginRpcHost('p', new Set(['ws:broadcast:trip']), deps);
-    const res = await host.dispatch(req('ws.broadcastToTrip', { tripId: 1, event: 'ping', data: { a: 1 } }));
+    const res = await host.dispatch(req('ws.broadcastToTrip', { tripId: 1, event: 'ping', data: { a: 1 } }), 42);
     expect(ok(res)).toBe(true);
     expect(deps.broadcastToTrip).toHaveBeenCalledWith(1, 'ping', { a: 1 });
+  });
+
+  it('ws:broadcast:trip is RESOURCE_FORBIDDEN for a non-member trip (no cross-tenant push)', async () => {
+    const host = new PluginRpcHost('p', new Set(['ws:broadcast:trip']), deps);
+    const forbidden = await host.dispatch(req('ws.broadcastToTrip', { tripId: 999, event: 'x', data: {} }), 42);
+    expect((forbidden as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect(deps.broadcastToTrip).not.toHaveBeenCalled();
+    // and a broadcast with no bound acting user is denied too
+    const noUser = await host.dispatch(req('ws.broadcastToTrip', { tripId: 1, event: 'x', data: {} }), undefined);
+    expect((noUser as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
   });
 
   it('bad params are BAD_PARAMS', async () => {
@@ -127,11 +148,14 @@ describe('PluginRpcHost — capability enforcement', () => {
     }
   });
 
-  it('ws:broadcast:user forwards to the per-user broadcaster', async () => {
+  it('ws:broadcast:user forwards only to the acting user (never an arbitrary one)', async () => {
     const host = new PluginRpcHost('p', new Set(['ws:broadcast:user']), deps);
-    const res = await host.dispatch(req('ws.broadcastToUser', { userId: 9, event: 'poke', data: { x: 2 } }));
+    const res = await host.dispatch(req('ws.broadcastToUser', { userId: 42, event: 'poke', data: { x: 2 } }), 42);
     expect(ok(res)).toBe(true);
-    expect(deps.broadcastToUser).toHaveBeenCalledWith(9, { event: 'poke', x: 2 });
+    expect(deps.broadcastToUser).toHaveBeenCalledWith(42, { event: 'poke', x: 2 });
+    // broadcasting to a DIFFERENT user is refused
+    const forbidden = await host.dispatch(req('ws.broadcastToUser', { userId: 9, event: 'poke', data: {} }), 42);
+    expect((forbidden as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
   });
 
   it('non-array db args are BAD_PARAMS; a primitive ws payload is wrapped', async () => {
@@ -139,7 +163,7 @@ describe('PluginRpcHost — capability enforcement', () => {
     const bad = await host.dispatch(req('db.query', { sql: 'SELECT 1', args: 'nope' }));
     expect((bad as RpcError).error.code).toBe('BAD_PARAMS');
 
-    await host.dispatch(req('ws.broadcastToTrip', { tripId: 1, event: 'ping', data: 'primitive' }));
+    await host.dispatch(req('ws.broadcastToTrip', { tripId: 1, event: 'ping', data: 'primitive' }), 42);
     expect(deps.broadcastToTrip).toHaveBeenCalledWith(1, 'ping', { value: 'primitive' });
   });
 

@@ -35,6 +35,11 @@ type Inbound =
 
 export default function PluginFrame({ pluginId, tripId = null, className, title }: PluginFrameProps) {
   const frameRef = useRef<HTMLIFrameElement | null>(null)
+  // A sandboxed frame may navigate ITSELF (connect-src can't stop that). If the
+  // plugin's document navigates away, its window identity still matches our
+  // iframe, so we'd keep answering trek:invoke/context to the new (possibly
+  // attacker) origin. Track loads: after the initial document, refuse the bridge.
+  const loadsRef = useRef(0)
   const { locale } = useTranslation()
   const navigate = useNavigate()
   const toast = useToast()
@@ -59,6 +64,9 @@ export default function PluginFrame({ pluginId, tripId = null, className, title 
     const onMessage = async (ev: MessageEvent) => {
       // The ONLY trusted identity: the message came from OUR iframe's window.
       if (ev.source !== frame.contentWindow) return
+      // …AND that window still holds the original plugin document (loaded once).
+      // A 2nd load means the frame navigated elsewhere — stop bridging to it.
+      if (loadsRef.current > 1) return
       const msg = ev.data as Inbound
       if (!msg || typeof msg !== 'object') return
 
@@ -104,6 +112,7 @@ export default function PluginFrame({ pluginId, tripId = null, className, title 
     <iframe
       ref={frameRef}
       src={`/plugin-frame/${pluginId}/index.html`}
+      onLoad={() => { loadsRef.current += 1 }}
       sandbox="allow-scripts allow-forms"
       referrerPolicy="no-referrer"
       loading="lazy"
