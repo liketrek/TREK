@@ -110,7 +110,12 @@ const KEEPALIVE_MS = resolveKeepaliveMs(process.env.MCP_SSE_KEEPALIVE);
  * stream is still connected.
  */
 function armSseKeepalive(res: Response, touch?: () => void): void {
-  if (KEEPALIVE_MS <= 0) return;
+  // With pings disabled (MCP_SSE_KEEPALIVE=0) an open stream must STILL count
+  // as session activity, or the sweep would evict a live idle client — keep
+  // the interval for touch() and only skip the writes.
+  const writePings = KEEPALIVE_MS > 0;
+  if (!writePings && !touch) return;
+  const intervalMs = writePings ? KEEPALIVE_MS : 25_000;
   const timer = setInterval(() => {
     if (!res.headersSent) return;
     const ct = String(res.getHeader('content-type') ?? '');
@@ -118,9 +123,9 @@ function armSseKeepalive(res: Response, touch?: () => void): void {
       clearInterval(timer);
       return;
     }
-    res.write(': keepalive\n\n');
+    if (writePings) res.write(': keepalive\n\n');
     touch?.();
-  }, KEEPALIVE_MS);
+  }, intervalMs);
   timer.unref();
   res.once('close', () => clearInterval(timer));
 }

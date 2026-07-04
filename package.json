@@ -28,6 +28,10 @@
     "concurrently": "^10.0.3",
     "unrun": "^0.3.1"
   },
+  "comment:scarfSettings": "swagger-ui-dist ships @scarf/scarf install-time analytics; TREK sends no telemetry, so it stays off.",
+  "scarfSettings": {
+    "enabled": false
+  },
   "comment:overrides": "Force a single React 19 across the workspace so the test renderer (@testing-library/react) and the app share one react-dom.",
   "overrides": {
     "react": "19.2.6",
