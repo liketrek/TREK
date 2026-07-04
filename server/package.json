@@ -26,6 +26,7 @@
     "@nestjs/common": "^11.1.24",
     "@nestjs/core": "^11.1.24",
     "@nestjs/platform-express": "^11.1.24",
+    "@nestjs/swagger": "^11.4.5",
     "@simplewebauthn/server": "^13.1.2",
     "@trek/shared": "*",
     "archiver": "^6.0.1",

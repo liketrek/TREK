@@ -11,7 +11,9 @@ import type { ZodType } from 'zod';
  */
 @Injectable()
 export class ZodValidationPipe implements PipeTransform {
-  constructor(private readonly schema: ZodType) {}
+  // Public so the API-docs enricher can lift the schema into the OpenAPI
+  // document (#1412) — the pipe stays the single source of truth.
+  constructor(readonly schema: ZodType) {}
 
   transform(value: unknown, _metadata: ArgumentMetadata): unknown {
     const result = this.schema.safeParse(value);

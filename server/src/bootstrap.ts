@@ -4,6 +4,8 @@ import type { INestApplication } from '@nestjs/common';
 import { AppModule } from './nest/app.module';
 import { applyGlobalMiddleware } from './middleware/globalMiddleware';
 import { applyPlatformUploads, applyPlatformTransport, applyPlatformStatic } from './nest/platform/platform.routes';
+import { apiDocsEnabled } from './nest/common/api-docs.kill-switch';
+import { setupApiDocs } from './nest/platform/api-docs';
 
 /**
  * Builds the unified TREK NestJS application that serves the ENTIRE surface — the
@@ -27,6 +29,8 @@ import { applyPlatformUploads, applyPlatformTransport, applyPlatformStatic } fro
  *      metadata, the /mcp routes, the /oauth/consent COOP header.
  *   4. applyPlatformStatic — the production built-client static assets (so a real
  *      asset request returns the file before the Nest router 404s it).
+ *   4b. setupApiDocs — Swagger UI/spec at /api/docs* when TREK_API_DOCS_ENABLED;
+ *      also Express-level, so it must precede init for the same reason.
  *   5. app.init() — registers every migrated /api domain (the Nest controllers).
  *
  * The SPA index.html fallback (unmatched GET → index.html in production) is the
@@ -40,6 +44,7 @@ export async function buildApp(): Promise<INestApplication> {
   applyPlatformUploads(instance);
   applyPlatformTransport(instance);
   applyPlatformStatic(instance);
+  if (apiDocsEnabled()) setupApiDocs(app);
   await app.init();
   return app;
 }

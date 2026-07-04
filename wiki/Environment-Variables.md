@@ -188,6 +188,18 @@ For setup instructions, see [MCP-Overview](MCP-Overview).
 
 ---
 
+## API Docs
+
+| Variable                | Description                                                                                                                                             | Default |
+|-------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `TREK_API_DOCS_ENABLED` | Serve interactive OpenAPI/Swagger docs at `/api/docs` (raw spec at `/api/docs-json`). The spec enumerates every route including the admin surface, so it is off by default. | `false` |
+
+With the flag on, `/api/docs` lists every REST endpoint with try-it-out; authorize with a session JWT
+via the Bearer button (the API accepts `Authorization: Bearer <jwt>` everywhere as the cookie fallback).
+Request bodies validated with Zod are documented automatically from the same schemas.
+
+---
+
 ## Booking Import (KDE Itinerary)
 
 | Variable                    | Description                                                                                                                                                                                             | Default       |
