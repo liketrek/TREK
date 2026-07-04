@@ -5,6 +5,7 @@ import L from 'leaflet'
 import { Plane, Train, Ship, Car, Bus, Sailboat, Bike, CarTaxiFront, Route, TramFront } from 'lucide-react'
 import { escapeHtml } from '@trek/shared'
 import { getTransitMapSegments, type TransitMapSegment } from './transitGeometry'
+import { geodesicArcs } from './flightGeodesy'
 import { useSettingsStore } from '../../store/settingsStore'
 import type { Reservation, ReservationEndpoint } from '../../types'
 
@@ -64,41 +65,6 @@ function endpointIcon(type: TransportType, label: string | null): L.DivIcon {
 }
 
 function toRad(d: number) { return d * Math.PI / 180 }
-function toDeg(r: number) { return r * 180 / Math.PI }
-
-function greatCircle(a: [number, number], b: [number, number], steps = 256): [number, number][] {
-  const [lat1, lng1] = [toRad(a[0]), toRad(a[1])]
-  const [lat2, lng2] = [toRad(b[0]), toRad(b[1])]
-  const d = 2 * Math.asin(Math.sqrt(Math.sin((lat2 - lat1) / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin((lng2 - lng1) / 2) ** 2))
-  if (d === 0) return [a, b]
-  const pts: [number, number][] = []
-  for (let i = 0; i <= steps; i++) {
-    const f = i / steps
-    const A = Math.sin((1 - f) * d) / Math.sin(d)
-    const B = Math.sin(f * d) / Math.sin(d)
-    const x = A * Math.cos(lat1) * Math.cos(lng1) + B * Math.cos(lat2) * Math.cos(lng2)
-    const y = A * Math.cos(lat1) * Math.sin(lng1) + B * Math.cos(lat2) * Math.sin(lng2)
-    const z = A * Math.sin(lat1) + B * Math.sin(lat2)
-    const lat = Math.atan2(z, Math.sqrt(x * x + y * y))
-    const lng = Math.atan2(y, x)
-    pts.push([toDeg(lat), toDeg(lng)])
-  }
-  return pts
-}
-
-function splitAntimeridian(points: [number, number][]): [number, number][][] {
-  const segments: [number, number][][] = []
-  let cur: [number, number][] = []
-  for (let i = 0; i < points.length; i++) {
-    if (i > 0 && Math.abs(points[i][1] - points[i - 1][1]) > 180) {
-      if (cur.length > 1) segments.push(cur)
-      cur = []
-    }
-    cur.push(points[i])
-  }
-  if (cur.length > 1) segments.push(cur)
-  return segments
-}
 
 function cleanName(name: string): string {
   return name.replace(/\s*\([^)]*\)/g, '').trim()
@@ -375,7 +341,7 @@ export default function ReservationOverlay({ reservations, showConnections, show
         const a = waypoints[i]
         const b = waypoints[i + 1]
         const segArcs = isGeo
-          ? splitAntimeridian(greatCircle([a.lat, a.lng], [b.lat, b.lng]))
+          ? geodesicArcs([a.lat, a.lng], [b.lat, b.lng], true)
           : [[[a.lat, a.lng], [b.lat, b.lng]] as [number, number][]]
         arcs.push(...segArcs)
         distanceKm += haversineKm([a.lat, a.lng], [b.lat, b.lng])
