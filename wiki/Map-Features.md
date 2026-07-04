@@ -43,8 +43,9 @@ At zoom level 12 or higher, small pill-shaped labels appear between consecutive 
 Flights, trains, cars, and cruises can be drawn as overlays between their endpoint places. Overlays are **off by default** — activate each reservation individually by clicking the small **Route** icon next to the booking row in the day sidebar. The selection is remembered per trip in your browser. Click the icon again to hide it.
 
 - **Flights and cruises** — geodesic great-circle arcs
-- **Trains and cars** — straight lines
-- **Antimeridian crossings** — arcs that would cross the date line are split into sub-arcs to avoid wrapping across the map
+- **Cars, buses, taxis and bicycles** — real routed lines that follow actual roads, fetched on demand from a public OSRM router (driving for car/bus/taxi, cycling for bicycle). A straight line is shown while the route loads and kept if routing fails or the trip is very long (~2000 km+)
+- **Trains** — a straight line between the endpoints; a multi-leg train draws its whole station chain (from → stop → to)
+- **Antimeridian crossings** — routes that cross the date line now draw as one continuous arc instead of splitting into disconnected segments at the map edges
 - **Endpoint markers** — pill-shaped labels with the transport icon and the endpoint code (e.g. IATA airport code) or location name
 - **Flight stats** — a floating label on the arc shows departure code → arrival code and, when times are available, the duration and great-circle distance. Stats labels are only rendered for flights and require Settings → Display → **Route calculation** to be ON.
 - **Confirmed reservations** — solid line; **Pending** — dashed line

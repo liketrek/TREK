@@ -46,16 +46,27 @@ Places can be assigned a **category** from the same admin-defined set used acros
 
 ## Place detail
 
-Clicking a saved place opens a detail sheet showing a cover photo (fetched automatically when the place has none of its own), its category, a live status control, a markdown description, and links. From there you can edit the place, **copy it into a trip**, or remove it from the list.
+Clicking a saved place opens a detail sheet showing a cover photo (fetched automatically when the place has none of its own), its category, its [labels](#custom-labels), a live status control, a markdown description, and links. Editing the place also lets you assign its labels. From there you can edit the place, **copy it into a trip**, or remove it from the list.
 
 ## Filtering and bulk actions
 
-Above the places sit two compact filters — by **status** and by **category** — plus a **Select** toggle. In select mode you can:
+Above the places sit compact filters — by **status**, by **category**, and by [**label**](#custom-labels) — plus a **Select** toggle. In select mode you can:
 
 - **Select all** the currently filtered places.
+- **Assign label** — add one or more of the list's labels to every selected place at once.
 - **Copy to trip** — copies the selected places into any of your trips (carrying their name, description, category, notes, price, coordinates, photo and tags).
 - **Move** or **Duplicate** the selection into another of your lists.
 - **Delete** the selection.
+
+## Custom labels
+
+Each list can define its own **labels** — for example *Berlin*, *Hamburg* and *Ostsee* inside a "Germany 2026" list — to group its saved places beyond the shared category set. Labels belong to the one list they're created in and are shared with everyone on it.
+
+- **Manage** — a label manager (reachable from the filter bar) lets you create, rename, recolour and delete labels.
+- **Assign** — set a place's labels from its detail sheet, or add labels to many places at once with **Assign label** in the selection bar.
+- **Filter** — pick one or more labels in the filter bar to narrow **both the place list and the map** to places carrying any of them.
+
+Managing and assigning labels needs edit rights (Editor or Admin); **filtering by label is available to every member, including Viewers**. Moving a place to another list drops its labels, since labels belong to the source list.
 
 ## Sharing a list (fusion)
 
@@ -67,8 +78,8 @@ When sharing, the owner assigns each member a permission role, and can change it
 
 | Role | Can do |
 |---|---|
-| **Viewer** | View the list and copy its places into their own trips — no changes to the list. |
-| **Editor** *(default)* | Add new places and edit existing ones. |
+| **Viewer** | View the list and copy its places into their own trips, and filter by label — no changes to the list. |
+| **Editor** *(default)* | Add new places and edit existing ones, and manage + assign the list's labels. |
 | **Admin** | Everything an editor can, plus delete places. |
 
 The owner always has full control. The owner can also remove a member, and a member can leave a shared list themselves. Permissions are enforced on the server, so a role can only ever do what it is allowed to.
