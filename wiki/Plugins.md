@@ -24,17 +24,21 @@ A plugin declares one `type` in its manifest, which decides where it surfaces:
 
 ## Enabling plugins
 
-The plugin runtime is **off by default**. To turn it on, set the environment
-variable to exactly `true` and restart:
+The plugin system is **on by default** — the runtime and the **Admin → Plugins**
+tab are available out of the box. Installed plugins still have to be activated
+one by one, so nothing third-party runs until you turn a specific plugin on.
+
+To switch the whole system off, set the environment variable to `false` and
+restart:
 
 ```yaml
 environment:
-  - TREK_PLUGINS_ENABLED=true
+  - TREK_PLUGINS_ENABLED=false
 ```
 
 When it's off, the **Admin → Plugins** tab shows a "turned off
-(TREK_PLUGINS_ENABLED)" banner and nothing runs. Setting it back to `false` is a
-kill switch — installed plugins stay on disk, deactivated and harmless.
+(TREK_PLUGINS_ENABLED)" banner and nothing runs. Installed plugins stay on disk,
+deactivated and harmless, until you turn the system back on.
 
 ## The isolation model — what a plugin can and can't do
 

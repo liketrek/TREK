@@ -253,11 +253,11 @@ seeded.
 
 ## Plugins
 
-The plugin runtime is **off unless you opt in**. It only starts when `TREK_PLUGINS_ENABLED` is exactly `true`; otherwise the Admin → Plugins panel shows a disabled banner and no plugin code runs. See [Plugins](Plugins) for the full system and [Plugin-Permissions](Plugin-Permissions) for the isolation model.
+The plugin system is **on by default**. The runtime and the Admin → Plugins panel are available out of the box, but installed plugins still have to be activated one by one — so no third-party code runs until an admin turns a specific plugin on. Set `TREK_PLUGINS_ENABLED=false` to switch the whole system off. See [Plugins](Plugins) for the full system and [Plugin-Permissions](Plugin-Permissions) for the isolation model.
 
 | Variable                          | Description                                                                                                                                                                                                           | Default                                                                             |
 |-----------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
-| `TREK_PLUGINS_ENABLED`            | Master switch for the plugin runtime. Must be exactly `true` (case-insensitive) to enable. Setting it back to `false` is a kill switch — installed plugins stay on disk but nothing runs.                             | `false`                                                                             |
+| `TREK_PLUGINS_ENABLED`            | Master switch for the plugin system. Enabled unless set to `false` (also accepts `0`, `off`, `no`, case-insensitive). Turning it off is a kill switch — installed plugins stay on disk but nothing runs.               | enabled                                                                             |
 | `TREK_PLUGINS_DIR`                | Directory where installed plugin **code** is stored. Persist it as a volume if you use plugins.                                                                                                                       | `<data>/plugins`                                                                    |
 | `TREK_PLUGINS_DATA_DIR`           | Directory for each plugin's own **data** (its private SQLite file). Kept separate from the code tree; persist it as a volume too.                                                                                     | `<data>/plugins-data`                                                               |
 | `TREK_PLUGIN_REGISTRY_URL`        | Override the plugin registry index the *Discover* tab browses. Point it at your own fork or mirror of the registry.                                                                                                  | `https://raw.githubusercontent.com/mauriceboe/TREK-Plugins/main/dist/index.json` |
@@ -265,7 +265,7 @@ The plugin runtime is **off unless you opt in**. It only starts when `TREK_PLUGI
 | `TREK_PLUGIN_PERMISSIONS`         | Set to `off` to opt **out** of the Node.js OS-level permission sandbox for plugin child processes (not recommended). Any other value keeps the sandbox on.                                                            | `on`                                                                                |
 | `TREK_PLUGIN_ALLOW_PRIVATE_EGRESS`| Set to `on` to let a plugin's declared outbound hosts resolve to private/internal addresses (e.g. a service on your LAN). By default connections to private, loopback, link-local and metadata addresses are refused. | off (private egress blocked)                                                        |
 
-All of these are optional — the defaults are safe, and only `TREK_PLUGINS_ENABLED` is needed to turn the system on.
+All of these are optional — the defaults are safe. Set `TREK_PLUGINS_ENABLED=false` if you want to switch the plugin system off entirely.
 
 ---
 

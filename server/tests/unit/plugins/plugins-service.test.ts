@@ -43,7 +43,18 @@ describe('PluginsService.list', () => {
     expect(out.plugins[0]).toMatchObject({ id: 'flight', name: 'Flight', status: 'inactive' });
   });
 
-  it('reports disabled when the kill switch is off (default)', () => {
+  it('reports enabled by default (no kill switch set)', () => {
+    testDb
+      .prepare('INSERT INTO plugins (id, name, description, type, status, version) VALUES (?,?,?,?,?,?)')
+      .run('flight', 'Flight', 'desc', 'widget', 'inactive', '1.0.0');
+
+    const out = new PluginsService().list();
+    expect(out.enabled).toBe(true);
+    expect(out.plugins).toHaveLength(1);
+  });
+
+  it('reports disabled when the kill switch is off (TREK_PLUGINS_ENABLED=false)', () => {
+    process.env.TREK_PLUGINS_ENABLED = 'false';
     const out = new PluginsService().list();
     expect(out.enabled).toBe(false);
     expect(out.plugins).toEqual([]);
