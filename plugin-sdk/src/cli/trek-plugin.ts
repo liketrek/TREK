@@ -67,14 +67,14 @@ async function main(): Promise<void> {
     const name = pos[0];
     if (!name || flags.interactive) {
       const created = await interactiveScaffold(process.cwd(), name);
-      console.log(`\nCreated ${created}/ — build server/index.js, add docs/screenshot.png, then \`trek-plugin dev ${created}\`.`);
+      console.log(`\nCreated ${created}/ — build server/index.js, add docs/screenshot.png, then \`npx trek-plugin-sdk dev ${created}\`.`);
       return;
     }
     scaffold(name, flags.type || 'integration', process.cwd(), {
       author: flags.author, description: flags.description,
       permissions: flags.permissions ? flags.permissions.split(/[\s,]+/).filter(Boolean) : undefined,
     });
-    console.log(`Created ${name}/ — build server/index.js, add docs/screenshot.png, then \`trek-plugin dev ${name}\`.`);
+    console.log(`Created ${name}/ — build server/index.js, add docs/screenshot.png, then \`npx trek-plugin-sdk dev ${name}\`.`);
   } else if (cmd === 'dev') {
     await runDev(pos[0] || '.', { port: flags.port ? Number(flags.port) : undefined });
   } else if (cmd === 'validate') {
@@ -90,17 +90,17 @@ async function main(): Promise<void> {
       console.log(`Packed ${r.files.length} files -> ${path.relative(process.cwd(), r.artifact) || r.artifact}`);
       for (const f of r.files) console.log('  ' + f);
       console.log(`\nsha256: ${r.sha256}\nsize:   ${r.size}`);
-      console.log('\nUpload this plugin.zip to your release, then run `trek-plugin entry` to generate the registry entry.');
+      console.log('\nUpload this plugin.zip to your release, then run `npx trek-plugin-sdk entry` to generate the registry entry.');
     }
   } else if (cmd === 'keygen') {
     const keyPath = flags.key || defaultKeyPath();
     const { publicKey } = generateKeypair(keyPath);
     console.log(`Signing key written to ${keyPath} (keep it safe + BACK IT UP — losing it means you can't ship signed updates).`);
     console.log(`\nauthorPublicKey (goes in your registry entry): ${publicKey}`);
-    console.log('\nSign releases with `trek-plugin release --sign` (or `entry --sign`).');
+    console.log('\nSign releases with `npx trek-plugin-sdk release --sign` (or `entry --sign`).');
   } else if (cmd === 'sign') {
     const zip = pos[0] || 'plugin.zip';
-    if (!fs.existsSync(zip)) fail(`artifact not found: ${zip} — run \`trek-plugin pack\` first`);
+    if (!fs.existsSync(zip)) fail(`artifact not found: ${zip} — run \`npx trek-plugin-sdk pack\` first`);
     const key = loadPrivateKey(flags.key || defaultKeyPath());
     const buf = fs.readFileSync(zip);
     console.log(`signature:        ${signArtifact(buf, key)}`);
@@ -162,7 +162,7 @@ async function main(): Promise<void> {
     console.error(`Creating GitHub release ${flags.tag} on ${flags.repo}…`);
     execFileSync('gh', ['release', 'create', flags.tag, packed.artifact, '--repo', flags.repo, '--title', flags.tag, '--notes', flags.notes || `Release ${flags.tag}`], { stdio: 'inherit' });
     const entry = buildEntry({ dir, repo: flags.repo, tag: flags.tag, zipPath: packed.artifact, commit: flags.commit, mergePath: flags.merge, signKeyPath: signKey(), now: new Date().toISOString() });
-    console.error('\nRegistry entry (add as registry/plugins/' + entry.id + '.json in a TREK-Plugins PR, or run `trek-plugin submit`):\n');
+    console.error('\nRegistry entry (add as registry/plugins/' + entry.id + '.json in a TREK-Plugins PR, or run `npx trek-plugin-sdk submit`):\n');
     process.stdout.write(JSON.stringify(entry, null, 2) + '\n');
   } else {
     console.error('usage: trek-plugin <create|dev|validate|pack|keygen|sign|entry|preflight|submit|release|publish> [...]');

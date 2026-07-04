@@ -1,6 +1,6 @@
 {
   "name": "trek-plugin-sdk",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "SDK for building TREK plugins: types, definePlugin, a mock host, manifest validation, and the create-trek-plugin / trek-plugin CLIs.",
   "type": "module",
   "license": "MIT",
@@ -13,8 +13,14 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
-    "./testing": { "types": "./dist/mock-host.d.ts", "import": "./dist/mock-host.js" }
+    ".": {
+      "import": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+      "require": { "types": "./dist/cjs/index.d.ts", "default": "./dist/cjs/index.js" }
+    },
+    "./testing": {
+      "import": { "types": "./dist/mock-host.d.ts", "default": "./dist/mock-host.js" },
+      "require": { "types": "./dist/cjs/mock-host.d.ts", "default": "./dist/cjs/mock-host.js" }
+    }
   },
   "bin": {
     "trek-plugin-sdk": "./dist/cli/trek-plugin.js",
@@ -23,7 +29,7 @@
   },
   "files": ["dist"],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.cjs.json && node scripts/finish-cjs.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "prepublishOnly": "npm run build && npm test"

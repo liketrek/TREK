@@ -92,6 +92,33 @@ describe('PluginSupervisor — isolated runtime', () => {
     expect(events.some((e) => e.topic === '__log')).toBe(true);
   });
 
+  it('injects require(trek-plugin-sdk) — a scaffold-style plugin loads with no node_modules', async () => {
+    const events: Array<{ topic: string; data: unknown }> = [];
+    sup = makeSupervisor(events);
+
+    writePlugin(
+      'scaffolded',
+      `const { definePlugin, PLUGIN_API_VERSION } = require('trek-plugin-sdk');
+      let testingError = '';
+      try { require('trek-plugin-sdk/testing'); } catch (e) { testingError = e.message; }
+      module.exports = definePlugin({
+        async onLoad() {
+          process.send({ k: 'evt', topic: 'diag', data: { api: PLUGIN_API_VERSION, fn: typeof definePlugin, testingError } });
+        },
+        routes: [{ method: 'GET', path: '/hello', auth: true, async handler() { return { status: 200 }; } }],
+      });`,
+    );
+
+    await sup.activate('scaffolded', new Set(['db:own']), {});
+    expect(sup.isActive('scaffolded')).toBe(true);
+
+    const diag = events.find((e) => e.topic === 'diag')?.data as { api: number; fn: string; testingError: string };
+    expect(diag).toBeTruthy();
+    expect(diag.api).toBe(1); // the injected shim, not a vendored copy
+    expect(diag.fn).toBe('function');
+    expect(diag.testingError).toMatch(/build\/test-time/); // subpaths fail with a pointed message
+  });
+
   it('a plugin that throws in onLoad fails activation and is marked error — the host survives', async () => {
     const events: Array<{ topic: string; data: unknown }> = [];
     sup = makeSupervisor(events);

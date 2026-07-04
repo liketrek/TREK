@@ -22,6 +22,7 @@ This emits:
 ```
 my-plugin/
   trek-plugin.json      # manifest
+  package.json          # CommonJS marker + the SDK as a devDependency
   server/index.js       # your plugin code (built, plain JS)
   client/index.html     # page/widget iframe (page/widget only)
   README.md             # fill this in — the registry requires a screenshot
@@ -33,8 +34,11 @@ my-plugin/
 npx trek-plugin-sdk dev        # http://localhost:4317
 ```
 
-`dev` loads your `server/index.js` through the same `definePlugin` contract the
-host uses and gives you a **real request loop without a full TREK**: a dashboard
+`dev` works straight after `create` — no `npm install` needed, because it
+injects `require('trek-plugin-sdk')` from the CLI itself, exactly like TREK
+injects it in production. It loads your `server/index.js` through the same
+`definePlugin` contract the host uses and gives you a **real request loop
+without a full TREK**: a dashboard
 listing your routes, the routes served under `/api/<path>`, your page/widget UI
 at `/ui`, and a reload on every save. The injected `ctx` **enforces exactly the
 permissions your manifest grants** — an ungranted call throws `PERMISSION_DENIED`,

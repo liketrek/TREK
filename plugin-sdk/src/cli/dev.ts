@@ -13,6 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import http from 'node:http';
 import { createRequire } from 'node:module';
+import * as sdk from '../index.js';
 
 interface Fixtures {
   config?: Record<string, unknown>;
@@ -92,6 +93,34 @@ function createDevContext(id: string, grants: Set<string>, fx: Fixtures, db: Plu
   };
 }
 
+/**
+ * Serve `require('trek-plugin-sdk')` from THIS package, exactly like the TREK
+ * child process does at runtime — so `dev` works on a fresh scaffold with no
+ * npm install, and what loads here is what loads in production. That parity is
+ * the point: the injected surface is the SAME minimal frozen shim the prod
+ * child serves (definePlugin + PLUGIN_API_VERSION), and subpaths fail with the
+ * same pointed error. validateManifest/createMockHost stay available where they
+ * belong — in your tests, which load the installed package without this patch.
+ */
+let sdkInjected = false;
+export function installSdkInjection(): void {
+  if (sdkInjected) return;
+  const nodeModule = createRequire(import.meta.url)('node:module') as {
+    _load: (request: string, parent: unknown, isMain: boolean) => unknown;
+  };
+  const realLoad = nodeModule._load;
+  if (typeof realLoad !== 'function') return;
+  sdkInjected = true;
+  const shim = Object.freeze({ definePlugin: sdk.definePlugin, PLUGIN_API_VERSION: sdk.PLUGIN_API_VERSION });
+  nodeModule._load = function (request: string, parent: unknown, isMain: boolean): unknown {
+    if (request === 'trek-plugin-sdk') return shim;
+    if (request.startsWith('trek-plugin-sdk/')) {
+      throw new Error(`${request} is a build/test-time module — only 'trek-plugin-sdk' itself is injected inside TREK`);
+    }
+    return realLoad.call(this, request, parent, isMain);
+  };
+}
+
 function loadFixtures(dir: string): Fixtures {
   const p = path.join(dir, 'dev-fixtures.json');
   if (fs.existsSync(p)) { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { console.warn('warning: dev-fixtures.json is not valid JSON — ignoring'); } }
@@ -120,6 +149,7 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
   const fx = loadFixtures(abs);
   const { db, note: dbNote, close: closeDb } = createDevDb(path.join(abs, '.trek-dev', 'db.sqlite'));
   const broadcasts: unknown[] = [];
+  installSdkInjection();
   const req = createRequire(path.join(abs, 'server', 'index.js'));
 
   let plugin: PluginLike = {};

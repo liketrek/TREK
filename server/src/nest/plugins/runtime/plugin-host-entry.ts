@@ -15,7 +15,7 @@ import net from 'node:net';
 import dns from 'node:dns';
 import dgram from 'node:dgram';
 import { createRequire } from 'node:module';
-import { createPluginContext, type ChildTransport, type PluginContext, type PluginDefinition } from './plugin-sdk';
+import { createPluginContext, definePlugin, PLUGIN_API_VERSION, type ChildTransport, type PluginContext, type PluginDefinition } from './plugin-sdk';
 import { isBlockedIp, makeHostAllow, classifyConnect, dgramSendTarget, dgramConnectTarget } from './egress-policy';
 import type { Envelope, RpcError } from '../protocol/envelope';
 
@@ -47,12 +47,37 @@ const transport: ChildTransport = {
 let def: PluginDefinition | null = null;
 let ctx: PluginContext | null = null;
 
+/**
+ * Make `require('trek-plugin-sdk')` resolve inside the child WITHOUT the plugin
+ * vendoring the package: the shim below is served from memory for every require
+ * of that name, anywhere in the plugin's module graph. This is what lets `pack`
+ * strip node_modules and still keep the scaffold's
+ * `const { definePlugin } = require('trek-plugin-sdk')` working in production.
+ * Subpaths (`trek-plugin-sdk/testing`) are build/test-time tools and fail with a
+ * pointed message instead of a confusing MODULE_NOT_FOUND.
+ */
+function installSdkInjection(requirePlugin: NodeJS.Require): void {
+  const nodeModule = requirePlugin('node:module') as {
+    _load: (request: string, parent: unknown, isMain: boolean) => unknown;
+  };
+  const realLoad = nodeModule._load;
+  const shim = Object.freeze({ definePlugin, PLUGIN_API_VERSION });
+  nodeModule._load = function (request: string, parent: unknown, isMain: boolean): unknown {
+    if (request === 'trek-plugin-sdk') return shim;
+    if (request.startsWith('trek-plugin-sdk/')) {
+      throw new Error(`${request} is a build/test-time module — only 'trek-plugin-sdk' itself is injected inside TREK`);
+    }
+    return realLoad.call(this, request, parent, isMain);
+  };
+}
+
 async function boot(config: Record<string, unknown>): Promise<void> {
   try {
     // createRequire works whether this bootstrap runs as CJS (prod dist) or ESM
     // (tsx in tests), so `require` being undefined in ESM never bites us.
     const entry = path.join(pluginDir, 'server', 'index.js');
     const requirePlugin = createRequire(entry);
+    installSdkInjection(requirePlugin);
     const mod = requirePlugin(entry);
     def = mod && mod.default ? (mod.default as PluginDefinition) : (mod as PluginDefinition);
     ctx = createPluginContext(pluginId, config, transport);

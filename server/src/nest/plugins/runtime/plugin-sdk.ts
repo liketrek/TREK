@@ -8,6 +8,9 @@
  * child holds no db handle, no secrets, no network by default.
  */
 
+/** Mirrors the published package's constant — bumped on any breaking API change. */
+export const PLUGIN_API_VERSION = 1 as const;
+
 export interface PluginContext {
   readonly id: string;
   readonly config: Readonly<Record<string, unknown>>;

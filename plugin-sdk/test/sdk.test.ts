@@ -105,6 +105,15 @@ describe('scaffold + validate CLIs', () => {
     expect(r.warnings.some((w) => /placeholder|screenshot/.test(w))).toBe(true); // README is the unfilled template
   });
 
+  it('scaffolds a CommonJS package.json with the SDK as a devDependency only', () => {
+    scaffold('my-widget', 'widget', tmp);
+    const pkg = JSON.parse(fs.readFileSync(path.join(tmp, 'my-widget', 'package.json'), 'utf8'));
+    expect(pkg.type).toBe('commonjs');
+    expect(pkg.private).toBe(true);
+    expect(pkg.devDependencies['trek-plugin-sdk']).toMatch(/^\^\d/);
+    expect(pkg.dependencies).toBeUndefined(); // runtime deps are the author's call; the SDK never is one
+  });
+
   it('applies author, description, and permissions from options', () => {
     scaffold('opt-plug', 'integration', tmp, { author: 'Jane', description: 'Does X', permissions: ['db:own', 'db:read:trips'] });
     const m = JSON.parse(fs.readFileSync(path.join(tmp, 'opt-plug', 'trek-plugin.json'), 'utf8'));
@@ -119,6 +128,32 @@ describe('scaffold + validate CLIs', () => {
 
   it('validatePluginDir flags a missing manifest', () => {
     expect(validatePluginDir(tmp).ok).toBe(false);
+  });
+});
+
+describe('dev-server SDK injection', () => {
+  let tmp: string;
+  beforeEach(() => { tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'inject-')); });
+  afterEach(() => { fs.rmSync(tmp, { recursive: true, force: true }); });
+
+  it('makes require(trek-plugin-sdk) resolve from the package itself — no npm install', async () => {
+    const { installSdkInjection } = await import('../src/cli/dev.js');
+    const { createRequire } = await import('node:module');
+    installSdkInjection();
+    // A scaffold-shaped CJS entry that requires the SDK without any node_modules.
+    // The injected surface must MATCH the prod child shim: definePlugin +
+    // PLUGIN_API_VERSION only, subpaths throw the same pointed error.
+    fs.writeFileSync(path.join(tmp, 'entry.cjs'),
+      "const sdkShim = require('trek-plugin-sdk');\n" +
+      "let testingError = '';\n" +
+      "try { require('trek-plugin-sdk/testing'); } catch (e) { testingError = e.message; }\n" +
+      'module.exports = { def: sdkShim.definePlugin({ routes: [] }), api: sdkShim.PLUGIN_API_VERSION, keys: Object.keys(sdkShim).sort(), testingError };\n');
+    const req = createRequire(path.join(tmp, 'entry.cjs'));
+    const mod = req(path.join(tmp, 'entry.cjs')) as { def: unknown; api: number; keys: string[]; testingError: string };
+    expect(mod.def).toEqual({ routes: [] });
+    expect(mod.api).toBe(1);
+    expect(mod.keys).toEqual(['PLUGIN_API_VERSION', 'definePlugin']); // prod parity — no dev-only extras
+    expect(mod.testingError).toMatch(/build\/test-time/);
   });
 });
 

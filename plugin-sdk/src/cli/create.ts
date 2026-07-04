@@ -7,6 +7,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline';
+import { createRequire } from 'node:module';
+
+/** This package's own version, for the scaffold's devDependency range. */
+function sdkVersionRange(): string {
+  try {
+    const pkg = createRequire(import.meta.url)('../../package.json') as { version?: string };
+    return pkg.version ? `^${pkg.version}` : '^1';
+  } catch {
+    return '^1';
+  }
+}
 
 export interface ScaffoldOptions {
   author?: string;
@@ -42,6 +53,17 @@ export function scaffold(name: string, type: string, targetDir: string, opts: Sc
   fs.writeFileSync(path.join(root, 'trek-plugin.json'), JSON.stringify(manifest, null, 2) + '\n');
   fs.writeFileSync(path.join(root, 'server', 'index.js'), SERVER_JS);
   fs.writeFileSync(path.join(root, 'README.md'), readme(name));
+  // `type: commonjs` pins how the entry is parsed everywhere (dev, tests, TREK);
+  // the SDK is a devDependency ONLY (types + mock host) — at runtime both the
+  // dev server and TREK inject it, so it is never vendored into the artifact.
+  fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify({
+    name,
+    version: '1.0.0',
+    private: true,
+    type: 'commonjs',
+    scripts: { dev: 'npx -y trek-plugin-sdk dev', pack: 'npx -y trek-plugin-sdk pack' },
+    devDependencies: { 'trek-plugin-sdk': sdkVersionRange() },
+  }, null, 2) + '\n');
   if (type !== 'integration') {
     fs.mkdirSync(path.join(root, 'client'), { recursive: true });
     fs.writeFileSync(path.join(root, 'client', 'index.html'), CLIENT_HTML);
@@ -162,7 +184,7 @@ if (process.argv[1] && process.argv[1].endsWith('create.js')) {
   }
   try {
     scaffold(name, type, process.cwd());
-    console.log(`Created ${name}/ — fill in the README, build server/index.js, then \`npx trek-plugin validate ${name}\`.`);
+    console.log(`Created ${name}/ — fill in the README, build server/index.js, then \`npx trek-plugin-sdk validate ${name}\`.`);
   } catch (e) {
     console.error(e instanceof Error ? e.message : e);
     process.exit(1);

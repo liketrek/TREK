@@ -38,6 +38,7 @@ npx trek-plugin-sdk create flight-tracker --type widget   # integration | page |
 A publishable plugin has, at the repo root:
 
 - `trek-plugin.json` — the manifest (see [[Plugin Development|Plugin-Development]])
+- `package.json` — the CommonJS marker (`"type": "commonjs"`), with the SDK as a devDependency at most
 - `server/index.js` — the built server entry (required)
 - `client/` — the built frontend (only for `page`/`widget` plugins)
 - `README.md` — filled in, with a real screenshot (the quality gate is strict — see below)
