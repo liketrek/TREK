@@ -14,6 +14,7 @@ import path from 'node:path';
 import http from 'node:http';
 import { createRequire } from 'node:module';
 import * as sdk from '../index.js';
+import { injectTrekUi } from '../ui/kit.js';
 import { readJsonFile } from './json.js';
 
 interface Fixtures {
@@ -209,10 +210,11 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
       if (!fs.existsSync(file) || !fs.statSync(file).isFile()) return send(404, 'not found — build your client/ bundle');
       const raw = fs.readFileSync(file);
       const type = contentType(file);
-      // Only the HTML doc is rewritten (live-reload inject) as a string; every other
-      // asset is sent as the raw Buffer — a UTF-8 round-trip corrupts binary files.
+      // Only the HTML doc is rewritten (expand the `<!-- trek:ui -->` marker into the
+      // design kit, then inject live-reload) as a string; every other asset is sent as
+      // the raw Buffer — a UTF-8 round-trip corrupts binary files.
       const body: string | Buffer = type.startsWith('text/html')
-        ? String(raw).replace('</body>', `${LIVE_RELOAD}</body>`)
+        ? injectTrekUi(String(raw)).replace('</body>', `${LIVE_RELOAD}</body>`)
         : raw;
       return send(200, body, type);
     }

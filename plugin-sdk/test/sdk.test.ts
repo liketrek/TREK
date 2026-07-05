@@ -136,6 +136,24 @@ describe('scaffold + validate CLIs', () => {
     expect(r.warnings.some((w) => /placeholder|screenshot/.test(w))).toBe(true); // README is the unfilled template
   });
 
+  it('scaffolds a client that opts into the design kit via the marker (source stays one line)', () => {
+    scaffold('kit-plug', 'widget', tmp);
+    const html = fs.readFileSync(path.join(tmp, 'kit-plug', 'client', 'index.html'), 'utf8');
+    expect(html).toContain('<!-- trek:ui -->'); // the one-line opt-in
+    expect(html).toContain('trek.onContext');   // uses the bridge the marker installs
+    expect(html).not.toContain('--glass-bg');    // kit is NOT pre-inlined in the source
+  });
+
+  it('pack expands the design-kit marker into the archived client HTML', () => {
+    scaffold('kit-plug', 'widget', tmp);
+    const out = path.join(tmp, 'kit-plug.zip');
+    packPluginDir(path.join(tmp, 'kit-plug'), out);
+    const html = readZip(fs.readFileSync(out))['client/index.html'].toString('utf8');
+    expect(html).not.toContain('<!-- trek:ui -->'); // expanded away
+    expect(html).toContain('.trek-glass');          // kit CSS inlined
+    expect(html).toContain('window.trek');          // bridge inlined
+  });
+
   it('scaffolds a CommonJS package.json with the SDK as a devDependency only', () => {
     scaffold('my-widget', 'widget', tmp);
     const pkg = JSON.parse(fs.readFileSync(path.join(tmp, 'my-widget', 'package.json'), 'utf8'));

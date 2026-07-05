@@ -99,20 +99,43 @@ module.exports = definePlugin({
 });
 `;
 
+// The `<!-- trek:ui -->` marker is expanded by `dev` and `pack` into the inlined
+// design kit (native styles + a `window.trek` bridge). The source stays this one
+// line, so the starter is already themed, glassy and wired on first run.
 const CLIENT_HTML = `<!doctype html>
-<html><head><meta charset="utf-8" /><title>Plugin</title></head>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plugin</title>
+  <!-- trek:ui -->
+</head>
 <body>
-  <h1>Hello from your plugin</h1>
+  <div class="trek-glass trek-stack" style="margin: 16px">
+    <div class="trek-title">Your plugin</div>
+    <p class="trek-muted" id="hello">Click below to call your /hello route.</p>
+    <div class="trek-cluster">
+      <button class="trek-btn trek-btn--primary" id="ping">Say hello</button>
+      <span class="trek-chip trek-chip--accent" id="who">not connected</span>
+    </div>
+  </div>
   <script>
-    // The frame is sandboxed (opaque origin) — talk to TREK only via postMessage.
-    window.parent.postMessage({ type: 'trek:ready' }, '*');
-    window.addEventListener('message', (e) => {
-      if (e.data && e.data.type === 'trek:context') {
-        document.body.dataset.theme = e.data.theme;
+    // The design kit is inlined above (window.trek + native styles). The frame is
+    // sandboxed at an opaque origin — reach TREK only through window.trek.
+    trek.onContext(function (ctx) {
+      document.getElementById('who').textContent = (ctx.user ? ctx.user.name + ' \\u00b7 ' : '') + ctx.theme;
+    });
+    document.getElementById('ping').addEventListener('click', async function () {
+      try {
+        var data = await trek.invoke('/hello');
+        document.getElementById('hello').textContent = 'Hello, ' + ((data && data.hello) || 'traveller') + '!';
+      } catch (e) {
+        trek.notify('error', e.message);
       }
     });
   </script>
-</body></html>
+</body>
+</html>
 `;
 
 /** One markdown table row per granted scope, with the catalog's description as the "Why". */

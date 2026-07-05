@@ -12,6 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { makeZip, type ZipInput } from '../zip.js';
+import { injectTrekUi } from '../ui/kit.js';
 import { validatePluginDir } from './validate.js';
 
 const MAX_TOTAL = 50 * 1024 * 1024;
@@ -41,7 +42,14 @@ function walk(base: string, rel: string, out: ZipInput[]): void {
       walk(base, childRel, out);
     } else if (entry.isFile()) {
       if (entry.name.endsWith('.map') || entry.name.endsWith('.ts')) continue;
-      out.push({ name: childRel, data: fs.readFileSync(path.join(base, childRel)) });
+      // Expand the `<!-- trek:ui -->` marker into the inlined design kit as the file
+      // enters the archive, so the source stays a one-line opt-in. A no-op on HTML
+      // without the marker, so it's safe to run over every .html.
+      if (entry.name.endsWith('.html')) {
+        out.push({ name: childRel, data: Buffer.from(injectTrekUi(fs.readFileSync(path.join(base, childRel), 'utf8')), 'utf8') });
+      } else {
+        out.push({ name: childRel, data: fs.readFileSync(path.join(base, childRel)) });
+      }
     }
     // symlinks and other non-regular entries are skipped (never shipped)
   }
