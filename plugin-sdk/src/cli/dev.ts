@@ -202,6 +202,14 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
     if (url.pathname === '/__dev/version') return send(200, String(version));
     if (url.pathname === '/') return send(200, dashboard(id, String(manifest.type), plugin.routes ?? [], dbNote, broadcasts.length), 'text/html; charset=utf-8');
 
+    // Faithful host preview: embeds /ui in a sandboxed opaque-origin iframe (exactly
+    // like TREK) and plays the host — posts trek:context (with a theme/accent toggle),
+    // proxies trek:invoke to your /api routes, and honours resize/notify/navigate. This
+    // is where the design kit actually renders themed.
+    if (url.pathname === '/preview' && String(manifest.type) !== 'integration') {
+      return send(200, preview(id, String(manifest.type)), 'text/html; charset=utf-8');
+    }
+
     // Static plugin UI at /ui (page/widget client bundle)
     if (url.pathname === '/ui' || url.pathname.startsWith('/ui/')) {
       const relFile = url.pathname === '/ui' ? 'index.html' : url.pathname.slice('/ui/'.length);
@@ -252,7 +260,10 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
   console.log(`  ${dbNote}`);
   console.log(`  granted: ${[...grants].join(', ') || '(none)'}`);
   console.log(`\n  ▸ http://localhost:${port}/        dashboard`);
-  if (String(manifest.type) !== 'integration') console.log(`  ▸ http://localhost:${port}/ui      your plugin UI`);
+  if (String(manifest.type) !== 'integration') {
+    console.log(`  ▸ http://localhost:${port}/preview themed host preview`);
+    console.log(`  ▸ http://localhost:${port}/ui      your plugin UI (raw)`);
+  }
   for (const r of routes) console.log(`  ▸ ${r.method.padEnd(4)} http://localhost:${port}/api${r.path}${r.auth === false ? '  (public)' : ''}`);
   console.log('\n  editing server/ or client/ hot-reloads. Ctrl+C to stop.\n');
 
@@ -286,7 +297,9 @@ function dashboard(id: string, type: string, routes: PluginRouteLike[], dbNote: 
   const rows = routes.length
     ? routes.map((r) => `<tr><td><code>${r.method}</code></td><td><a href="/api${r.path}">/api${r.path}</a></td><td>${r.auth === false ? 'public' : 'auth'}</td></tr>`).join('')
     : '<tr><td colspan="3" style="opacity:.6">no routes declared</td></tr>';
-  const ui = type !== 'integration' ? `<p><a href="/ui">▸ open your plugin UI (/ui)</a></p>` : '';
+  const ui = type !== 'integration'
+    ? `<p><a href="/preview">▸ open the themed host preview (/preview)</a> &nbsp;·&nbsp; <a href="/ui">raw /ui</a></p>`
+    : '';
   return `<!doctype html><meta charset="utf-8"><title>${id} · trek-plugin dev</title>
 <style>body{font:15px/1.5 system-ui,sans-serif;max-width:720px;margin:3rem auto;padding:0 1rem;color:#111}
 h1{font-size:1.4rem}code{background:#f3f4f6;padding:.1em .35em;border-radius:4px}
@@ -298,4 +311,90 @@ ${ui}
 <table><tr><th>Method</th><th>URL</th><th>Auth</th></tr>${rows}</table>
 <p class="muted">Add <code>?_anon=1</code> to a route to hit it as an unauthenticated request. Edit <code>server/</code> or <code>client/</code> and this reloads.</p>
 ${LIVE_RELOAD}`;
+}
+
+/**
+ * A faithful host preview for a page/widget plugin. Loads /ui in a sandboxed,
+ * opaque-origin iframe (no allow-same-origin — exactly TREK's isolation) and plays
+ * the host over postMessage: it sends trek:context (with a theme/accent/appearance
+ * toggle), proxies trek:invoke to the dev server's /api routes with the dev user,
+ * and surfaces resize/notify/navigate. This is where the design kit renders themed.
+ */
+function preview(id: string, type: string): string {
+  const maxW = type === 'widget' ? '440px' : '1000px';
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>${id} · preview</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.5 system-ui,-apple-system,sans-serif;background:#f4f5f7;color:#111827}
+body.dark{background:#0e0e11;color:#e5e7eb}
+header{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid #e5e7eb;position:sticky;top:0;background:inherit;z-index:2}
+body.dark header{border-color:#27272a}
+header strong{font-weight:600}.sp{flex:1}
+label{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;opacity:.85}
+select,button{font:inherit;font-size:13px;padding:5px 10px;border-radius:8px;border:1px solid #d1d5db;background:#fff;color:inherit;cursor:pointer}
+body.dark select,body.dark button{background:#1c1c21;border-color:#3f3f46;color:#e5e7eb}
+.stage{padding:28px 20px;display:flex;justify-content:center}
+.wrap{width:100%;max-width:${maxW}}
+iframe{width:100%;border:0;background:transparent;min-height:120px;display:block}
+.hint{font-size:12px;opacity:.55;text-align:center;padding:0 16px 20px}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:9px 16px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:3}
+.toast.on{opacity:.96}
+</style></head>
+<body>
+<header>
+  <strong>${id}</strong><span style="opacity:.5">· ${type} preview</span>
+  <span class="sp"></span>
+  <label>Theme <select id="theme"><option value="light">light</option><option value="dark">dark</option></select></label>
+  <label>Accent <select id="accent"><option value="default">default</option><option value="indigo">indigo</option><option value="teal">teal</option><option value="rose">rose</option></select></label>
+  <label><input type="checkbox" id="rm"> reduce motion</label>
+  <label><input type="checkbox" id="nt"> no transparency</label>
+  <label><input type="checkbox" id="trip" checked> trip context</label>
+</header>
+<div class="stage"><div class="wrap"><iframe id="f" src="/ui" sandbox="allow-scripts allow-forms" referrerpolicy="no-referrer" title="${id}"></iframe></div></div>
+<p class="hint">The frame runs sandboxed at an opaque origin, exactly like TREK — <code>trek.invoke()</code> is proxied to your /api routes as the dev user.</p>
+<div class="toast" id="toast"></div>
+<script>
+var f=document.getElementById('f');
+var LA={"default":{"--accent":"#111827","--accent-text":"#fff","--accent-hover":"#1f2937","--accent-subtle":"#f1f5f9"},
+indigo:{"--accent":"#4f46e5","--accent-text":"#fff","--accent-hover":"#4338ca","--accent-subtle":"#eef2ff"},
+teal:{"--accent":"#0d9488","--accent-text":"#fff","--accent-hover":"#0f766e","--accent-subtle":"#f0fdfa"},
+rose:{"--accent":"#e11d48","--accent-text":"#fff","--accent-hover":"#be123c","--accent-subtle":"#fff1f2"}};
+var DA={"default":{"--accent":"#e4e4e7","--accent-text":"#09090b","--accent-hover":"#d4d4d8","--accent-subtle":"rgba(255,255,255,.08)"},
+indigo:{"--accent":"#818cf8","--accent-text":"#09090b","--accent-hover":"#a5b4fc","--accent-subtle":"rgba(129,140,248,.18)"},
+teal:{"--accent":"#2dd4bf","--accent-text":"#09090b","--accent-hover":"#5eead4","--accent-subtle":"rgba(45,212,191,.18)"},
+rose:{"--accent":"#fb7185","--accent-text":"#09090b","--accent-hover":"#fda4af","--accent-subtle":"rgba(251,113,133,.18)"}};
+function val(id){return document.getElementById(id);}
+function ctx(){
+  var theme=val("theme").value, accent=val("accent").value;
+  document.body.classList.toggle("dark", theme==="dark");
+  var tokens={}; var src=theme==="dark"?DA[accent]:LA[accent]; for(var k in src){tokens[k]=src[k];}
+  return {type:"trek:context",theme:theme,locale:"en",hostOrigin:location.origin,
+    tripId: val("trip").checked?42:null, userId:"1",
+    user:{name:"Dev User",avatar:null,isAdmin:true},
+    appearance:{scheme:accent,density:"comfortable",reducedMotion:val("rm").checked,noTransparency:val("nt").checked},
+    formats:{locale:"en",currency:"EUR",timeFormat:"24h",distanceUnit:"metric",temperatureUnit:"celsius",timezone:Intl.DateTimeFormat().resolvedOptions().timeZone},
+    tokens:tokens};
+}
+function postCtx(){ if(f.contentWindow) f.contentWindow.postMessage(ctx(),"*"); }
+var tt; function toast(msg){var el=document.getElementById("toast");el.textContent=msg;el.classList.add("on");clearTimeout(tt);tt=setTimeout(function(){el.classList.remove("on");},2200);}
+window.addEventListener("message", function(ev){
+  if(ev.source!==f.contentWindow) return;
+  var m=ev.data; if(!m||typeof m!=="object") return;
+  if(m.type==="trek:ready"||m.type==="trek:context:request"){ postCtx(); }
+  else if(m.type==="trek:resize"){ if(m.height>0) f.style.height=Math.min(m.height,2000)+"px"; }
+  else if(m.type==="trek:notify"){ toast((m.level?("["+m.level+"] "):"")+(m.message||"")); }
+  else if(m.type==="trek:navigate"){ toast("navigate \\u2192 "+m.to); }
+  else if(m.type==="trek:invoke"){
+    fetch("/api"+m.sub,{method:m.method||"GET",headers:{"content-type":"application/json"},body:m.body!=null?JSON.stringify(m.body):undefined})
+      .then(function(r){var ct=r.headers.get("content-type")||"";return (ct.indexOf("json")>=0?r.json():r.text());})
+      .then(function(data){ f.contentWindow.postMessage({type:"trek:response",requestId:m.requestId,data:data},"*"); })
+      .catch(function(e){ f.contentWindow.postMessage({type:"trek:error",requestId:m.requestId,code:"error",message:String(e&&e.message||e)},"*"); });
+  }
+});
+["theme","accent","rm","nt","trip"].forEach(function(id){ val(id).addEventListener("change",postCtx); });
+f.addEventListener("load", function(){ f.style.height="120px"; postCtx(); });
+var __v; setInterval(function(){ fetch("/__dev/version").then(function(r){return r.text();}).then(function(v){ if(__v&&v!==__v){ f.src=f.src; } __v=v; }).catch(function(){}); },1000);
+</script>
+</body></html>`;
 }
