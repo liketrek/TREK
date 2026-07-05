@@ -22,6 +22,30 @@ import { PluginRuntimeService } from './plugin-runtime.service';
 // consumers (the plugin's own client) are unaffected — fetch ignores both.
 const SAFE_RESPONSE_HEADERS = new Set(['content-type', 'cache-control']);
 
+// Origin used only to parse a plugin-supplied redirect target. Any host works as
+// long as it can never match a real one, so a target that stays "same-origin"
+// after WHATWG URL parsing is provably a relative in-app path.
+const REDIRECT_BASE = 'https://trek.invalid';
+
+/**
+ * Return a plugin redirect `Location` ONLY if it is a same-origin (relative)
+ * target, normalised to path+query+hash; otherwise `null`. Parsing (rather than
+ * regex-matching the raw string) is what makes this safe against the open-redirect
+ * bypasses browsers introduce for special schemes: `\` normalised to `/`, stripped
+ * tab/newline, protocol-relative `//host`, and fully-qualified/other-scheme URLs
+ * all resolve to a different origin and are rejected.
+ */
+function toRelativeLocation(loc: unknown): string | null {
+  if (typeof loc !== 'string' || loc === '') return null;
+  try {
+    const u = new URL(loc, REDIRECT_BASE);
+    if (u.origin !== REDIRECT_BASE) return null;
+    return u.pathname + u.search + u.hash;
+  } catch {
+    return null;
+  }
+}
+
 @Controller('api/plugins/:pluginId')
 export class PluginsProxyController {
   constructor(private readonly runtime: PluginRuntimeService) {}
@@ -82,11 +106,17 @@ export class PluginsProxyController {
       // redirects and fall through to the normal path.
       if ([301, 302, 303, 307, 308].includes(status)) {
         const loc = Object.entries(headers).find(([k]) => k.toLowerCase() === 'location')?.[1];
-        if (typeof loc !== 'string' || !/^\/(?!\/)/.test(loc)) {
+        // Resolve against a throwaway origin and require the result to stay on it:
+        // only a same-origin (relative) target survives. A string check can't do
+        // this safely — browsers normalise `\` to `/` and strip tab/newline for
+        // http(s), so `/\evil.com`, `/<tab>/evil.com`, `//evil.com`, and any
+        // absolute URL all resolve off-origin and must be rejected.
+        const safeLoc = toRelativeLocation(loc);
+        if (!safeLoc) {
           res.status(502).json({ error: 'Plugin error', detail: 'unsafe redirect target' });
           return;
         }
-        res.status(status).setHeader('Location', loc);
+        res.status(status).setHeader('Location', safeLoc);
         res.end();
         return;
       }

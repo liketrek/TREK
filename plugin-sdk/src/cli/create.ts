@@ -50,7 +50,7 @@ export function scaffold(name: string, type: string, targetDir: string, opts: Sc
     author: opts.author || 'Your Name',
     description: opts.description || 'Describe what your plugin does.',
     type,
-    trek: '>=3.2.0 <4.0.0',
+    trek: '>=3.2.1 <4.0.0',
     nativeModules: false,
     permissions: perms,
     routes: [{ method: 'GET', path: '/hello', auth: true }],

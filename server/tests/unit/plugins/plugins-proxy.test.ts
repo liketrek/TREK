@@ -25,6 +25,7 @@ function fakeRes() {
     setHeader(k: string, v: string) { res.headers[k] = v; },
     json(b: unknown) { res.body = b; return res; },
     send(b: unknown) { res.body = b; return res; },
+    end() { return res; },
   };
   return res;
 }
@@ -113,6 +114,47 @@ describe('PluginsProxyController', () => {
 
   it('502 when the plugin invoke throws', async () => {
     const runtime = makeRuntime({ invoke: vi.fn(async () => { throw new Error('down'); }) } as never);
+    const res = fakeRes();
+    await new PluginsProxyController(runtime).proxy('p', fakeReq('GET', '/status'), res as never);
+    expect(res.statusCode).toBe(502);
+  });
+
+  it('follows a relative in-app redirect', async () => {
+    const runtime = makeRuntime({
+      invoke: vi.fn(async () => ({ status: 302, headers: { location: '/trips/5?tab=plan' } })),
+    } as never);
+    const res = fakeRes();
+    await new PluginsProxyController(runtime).proxy('p', fakeReq('GET', '/status'), res as never);
+    expect(res.statusCode).toBe(302);
+    // normalised to path+query, still same-origin
+    expect(res.headers['Location']).toBe('/trips/5?tab=plan');
+  });
+
+  // Every one of these is an open-redirect target a naive `starts with / but not
+  // //` check would let through; each must be rejected as 502.
+  it.each([
+    ['//evil.com', 'protocol-relative'],
+    ['/\\evil.com', 'backslash normalised to / by browsers'],
+    ['/\t/evil.com', 'tab stripped by browsers'],
+    ['https://evil.com', 'absolute url'],
+    ['http:/evil.com', 'scheme-relative'],
+    ['javascript:alert(1)', 'javascript scheme'],
+    ['', 'empty'],
+  ])('502 on an unsafe redirect target (%s — %s)', async (loc) => {
+    const runtime = makeRuntime({
+      invoke: vi.fn(async () => ({ status: 302, headers: { location: loc } })),
+    } as never);
+    const res = fakeRes();
+    await new PluginsProxyController(runtime).proxy('p', fakeReq('GET', '/status'), res as never);
+    expect(res.statusCode).toBe(502);
+    expect(res.body).toMatchObject({ detail: 'unsafe redirect target' });
+    expect(res.headers['Location']).toBeUndefined();
+  });
+
+  it('502 on a redirect status with no Location header', async () => {
+    const runtime = makeRuntime({
+      invoke: vi.fn(async () => ({ status: 301, headers: {} })),
+    } as never);
     const res = fakeRes();
     await new PluginsProxyController(runtime).proxy('p', fakeReq('GET', '/status'), res as never);
     expect(res.statusCode).toBe(502);
