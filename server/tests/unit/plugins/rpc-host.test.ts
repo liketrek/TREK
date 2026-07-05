@@ -56,7 +56,7 @@ function makeDeps(): HostDeps {
     updateTrip: vi.fn((tripId: number, _userId: number, input: unknown) => ({ id: tripId, ...(input as object) })),
     // Metadata — trip 1 and place 7 resolve to trip 1 (accessible to 42); else undefined.
     metaEntityTrip: vi.fn((entityType: string, entityId: number) =>
-      (entityType === 'trip' && entityId === 1) || (entityType === 'place' && entityId === 7) ? 1 : undefined),
+      (entityType === 'trip' && entityId === 1) || (entityType === 'place' && entityId === 7) || (entityType === 'day' && entityId === 3) ? 1 : undefined),
     metaGet: vi.fn(() => ({ hello: 'world' })),
     metaSet: vi.fn((_et: string, _eid: number, key: string, value: unknown) => ({ key, value })),
     metaList: vi.fn(() => ({ a: 1 })),
@@ -407,6 +407,17 @@ describe('PluginRpcHost — capability enforcement', () => {
     const host = new PluginRpcHost('p', new Set(['db:meta']), deps);
     const res = await host.dispatch(req('meta.set', { entityType: 'user', entityId: 1, key: 'x', value: 1 }), 42);
     expect((res as RpcError).error.code).toBe('BAD_PARAMS');
+  });
+
+  it('meta writes resolve the entity edit permission per type (place→place_edit, day→day_edit) and refuse no-user', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:meta']), deps);
+    expect(ok(await host.dispatch(req('meta.set', { entityType: 'place', entityId: 7, key: 'k', value: 1 }), 42))).toBe(true);
+    expect(deps.canEditPlaces).toHaveBeenCalled();
+    expect(ok(await host.dispatch(req('meta.set', { entityType: 'day', entityId: 3, key: 'k', value: 1 }), 42))).toBe(true);
+    expect(deps.canEditDays).toHaveBeenCalled();
+    // no host-bound acting user (a job / forged call) → refused
+    const noUser = await host.dispatch(req('meta.get', { entityType: 'trip', entityId: 1, key: 'k' }), undefined);
+    expect((noUser as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
   });
 
   it('meta WRITES need the entity edit permission — a read-only member is RESOURCE_FORBIDDEN', async () => {
