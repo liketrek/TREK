@@ -1,0 +1,23 @@
+{
+  "id": "trip-doctor",
+  "name": "Trip Doctor",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "author": "TREK",
+  "description": "Checks a trip for common gaps (places with no map location, no bookings yet) and lets you pin a private note on any place. A hooks-only plugin — it has no UI of its own; TREK renders everything natively.",
+  "homepage": "https://github.com/mauriceboe/trek-plugin-trip-doctor",
+  "license": "MIT",
+  "icon": "Stethoscope",
+  "type": "integration",
+  "trek": ">=3.2.0 <4.0.0",
+  "nativeModules": false,
+  "permissions": [
+    "db:read:trips",
+    "db:meta",
+    "hook:trip-warning-provider",
+    "hook:place-detail-provider"
+  ],
+  "routes": [
+    { "method": "POST", "path": "/pin", "auth": true }
+  ]
+}
