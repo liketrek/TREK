@@ -157,7 +157,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
 
   const [expandedDays, setExpandedDays] = useState(() => {
     try {
-      const saved = sessionStorage.getItem(`day-expanded-${tripId}`)
+      const saved = localStorage.getItem(`day-expanded-${tripId}`)
       if (saved) return new Set<number>(JSON.parse(saved) as number[])
     } catch {}
     return new Set<number>(days.map(d => d.id))
@@ -264,7 +264,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
       setExpandedDays(prev => {
         const n = new Set(prev)
         days.forEach(d => { if (!prev.has(d.id)) n.add(d.id) })
-        try { sessionStorage.setItem(`day-expanded-${tripId}`, JSON.stringify([...n])) } catch {}
+        try { localStorage.setItem(`day-expanded-${tripId}`, JSON.stringify([...n])) } catch {}
         return n
       })
     }
@@ -297,7 +297,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     setExpandedDays(prev => {
       const n = new Set(prev)
       n.has(dayId) ? n.delete(dayId) : n.add(dayId)
-      try { sessionStorage.setItem(`day-expanded-${tripId}`, JSON.stringify([...n])) } catch {}
+      try { localStorage.setItem(`day-expanded-${tripId}`, JSON.stringify([...n])) } catch {}
       return n
     })
   }

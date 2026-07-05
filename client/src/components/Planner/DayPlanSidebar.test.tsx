@@ -129,6 +129,7 @@ beforeEach(() => {
   resetAllStores()
   vi.clearAllMocks()
   sessionStorage.clear()
+  localStorage.clear()
   // Reset mutable day-notes state
   mockDayNotesState.noteUi = {}
   mockDayNotesState.dayNotes = {}
