@@ -26,6 +26,18 @@ export function isMarkdown(mimeType?: string | null, name?: string | null) {
   return !!mimeType && (mimeType === 'text/markdown' || mimeType === 'text/x-markdown')
 }
 
+/**
+ * Apple Wallet pass (#1447). Detected by EXTENSION first — browsers often send an
+ * empty / octet-stream MIME for .pkpass — falling back to the wallet MIME types.
+ * Wallet passes must be downloaded so the OS hands them to Apple Wallet rather
+ * than rendered in the in-app PDF preview.
+ */
+export function isWalletPass(mimeType?: string | null, name?: string | null) {
+  const ext = (name || '').toLowerCase().split('.').pop()
+  if (ext === 'pkpass' || ext === 'pkpasses') return true
+  return !!mimeType && (mimeType === 'application/vnd.apple.pkpass' || mimeType === 'application/vnd.apple.pkpasses')
+}
+
 export function getFileIcon(mimeType?: string | null) {
   if (!mimeType) return File
   if (mimeType === 'application/pdf') return FileText

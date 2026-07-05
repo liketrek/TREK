@@ -946,7 +946,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
                 </button>
               </div>
             ))}
-            <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt,image/*" style={{ display: 'none' }} onChange={handleFileChange} />
+            <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt,.pkpass,.pkpasses,image/*,application/vnd.apple.pkpass,application/vnd.apple.pkpasses" style={{ display: 'none' }} onChange={handleFileChange} />
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {onFileUpload && <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingFile} className="text-content-faint" style={{
                 display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px',

@@ -409,6 +409,12 @@ describe('ReservationModal', () => {
     expect(screen.getByRole('button', { name: /Attach file/i })).toBeInTheDocument();
   });
 
+  it('FE-PLANNER-RESMODAL-029b: file input accepts pkpass (#1448)', () => {
+    render(<ReservationModal {...defaultProps} />);
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    expect(fileInput.accept).toContain('.pkpass');
+  });
+
   it('FE-PLANNER-RESMODAL-030: hotel type — saving calls onSave with correct hotel shape', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     render(<ReservationModal {...defaultProps} onSave={onSave} />);

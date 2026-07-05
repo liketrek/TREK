@@ -7,7 +7,8 @@ import type { Place, Reservation, TripFile, Day, AssignmentsMap } from '../../ty
 import { useCanDo } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
 import { getAuthUrl } from '../../api/authUrl'
-import { isImage, isMedia } from './FileManager.helpers'
+import { isImage, isMedia, isWalletPass } from './FileManager.helpers'
+import { openFile as openFileInTab } from '../../utils/fileDownload'
 
 export interface FileManagerProps {
   files?: TripFile[]
@@ -191,6 +192,10 @@ export function useFileManager({ files = [], onUpload, onDelete, onUpdate, place
     if (isMedia(file.mime_type)) {
       const idx = mediaFiles.findIndex(f => f.id === file.id)
       setLightboxIndex(idx >= 0 ? idx : 0)
+    } else if (isWalletPass(file.mime_type, file.original_name)) {
+      // Download so the OS hands the pass to Apple Wallet (#1447) rather than
+      // forcing it into the in-app PDF preview.
+      openFileInTab(file.url, file.original_name).catch(() => {})
     } else {
       setPreviewFile(file)
     }

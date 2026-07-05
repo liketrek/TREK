@@ -71,6 +71,12 @@ describe('TransportModal', () => {
     expect(screen.getByText(/Add transport/i)).toBeInTheDocument();
   });
 
+  it('FE-PLANNER-TRANSMODAL-002b: file input accepts pkpass (#1448)', () => {
+    render(<TransportModal {...defaultProps} />);
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    expect(fileInput.accept).toContain('.pkpass');
+  });
+
   it('FE-PLANNER-TRANSMODAL-003: shows "Edit transport" title when editing', () => {
     const res = buildReservation({ title: 'Paris Flight', type: 'flight' });
     render(<TransportModal {...defaultProps} reservation={res} />);
