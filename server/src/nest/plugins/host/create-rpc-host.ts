@@ -95,7 +95,7 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>): Plu
     },
     // --- Read scopes (packing/files). Membership is checked by the host (tripRead);
     // these just delegate to the same services the REST paths use. ---
-    listPackingItems: (tripId) => listPackingItemsSvc(tripId),
+    listPackingItems: (tripId, userId) => listPackingItemsSvc(tripId, userId),
     listTripFiles: (tripId) => listFiles(tripId, false),
     listCostsForTrip: (tripId) => listBudgetItems(tripId),
     // Cross-trip: every accessible trip's budget items (membership predicate is

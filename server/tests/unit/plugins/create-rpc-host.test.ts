@@ -85,7 +85,7 @@ vi.mock('../../../src/services/assignmentService', () => ({
   getAssignmentForTrip: vi.fn((id: number) => (id === 99 ? undefined : { id })),
 }));
 vi.mock('../../../src/services/budgetService', () => ({ listBudgetItems: vi.fn(() => []) }));
-vi.mock('../../../src/services/packingService', () => ({ listItems: vi.fn((tid: number) => [{ id: 1, trip_id: tid, name: 'Socks' }]) }));
+vi.mock('../../../src/services/packingService', () => ({ listItems: vi.fn((tid: number, userId: number) => [{ id: 1, trip_id: tid, name: 'Socks', _uid: userId }]) }));
 vi.mock('../../../src/services/fileService', () => ({ listFiles: vi.fn((tid: number, trash: boolean) => [{ id: 2, trip_id: tid, trash }]) }));
 
 import { createRealRpcHost, getPluginDataDb, closePluginDataDb } from '../../../src/nest/plugins/host/create-rpc-host';
@@ -226,7 +226,8 @@ describe('create-rpc-host — planner write + metadata deps', () => {
 
   it('packing/files read deps delegate to their services (trash excluded for files)', async () => {
     const h = host('db:read:packing', 'db:read:files');
-    expect((await call(h, 'packing.list', { tripId: 1 })).result).toEqual([{ id: 1, trip_id: 1, name: 'Socks' }]);
+    // acting user 5 is threaded to the packing service (#858 private-item filter); _uid proves it
+    expect((await call(h, 'packing.list', { tripId: 1 })).result).toEqual([{ id: 1, trip_id: 1, name: 'Socks', _uid: 5 }]);
     expect((await call(h, 'files.list', { tripId: 1 })).result).toEqual([{ id: 2, trip_id: 1, trash: false }]);
   });
 

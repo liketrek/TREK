@@ -55,8 +55,8 @@ export interface HostDeps {
   budgetAddonEnabled(): boolean;
   /** True if the acting user may create costs on the trip (the 'budget_edit' permission). */
   canEditCosts(tripId: number, userId: number): boolean;
-  /** All packing items of a trip (hydrated bags/assignees), for `packing.list`. */
-  listPackingItems(tripId: number): unknown[];
+  /** A trip's packing items visible to `userId` (#858 private-item filter), for `packing.list`. */
+  listPackingItems(tripId: number, userId: number): unknown[];
   /** A trip's files (trash excluded), for `files.list`. */
   listTripFiles(tripId: number): unknown[];
   /** All budget items of one trip, hydrated with members/payers. */
@@ -136,9 +136,10 @@ export class PluginRpcHost {
       );
     }
     if (has('db:read:packing')) {
-      // Delegate to the packing service so bags/assignees hydration matches the app.
+      // Delegate to the packing service, scoped to the acting user so its #858 private-
+      // item visibility filter applies (a plugin must not see other members' private items).
       this.methods.set('packing.list', (p, uid) =>
-        this.tripRead(p, uid, () => deps.listPackingItems(num(p.tripId, 'tripId'))),
+        this.tripRead(p, uid, (userId) => deps.listPackingItems(num(p.tripId, 'tripId'), userId)),
       );
     }
     if (has('db:read:files')) {
@@ -354,7 +355,7 @@ export class PluginRpcHost {
    * could set to any id to read another user's trips. If no acting user is bound
    * (a job / onLoad, or a forged call), the read is forbidden.
    */
-  private tripRead(p: Record<string, unknown>, actingUserId: number | undefined, read: () => unknown): unknown {
+  private tripRead(p: Record<string, unknown>, actingUserId: number | undefined, read: (userId: number) => unknown): unknown {
     const tripId = num(p.tripId, 'tripId');
     if (actingUserId === undefined) {
       throw new ForbiddenResource('trip reads require an authenticated user context');
@@ -362,7 +363,9 @@ export class PluginRpcHost {
     if (!this.deps.canAccessTrip(tripId, actingUserId)) {
       throw new ForbiddenResource(`no access to trip ${tripId}`);
     }
-    return read();
+    // The read runs only for a bound, membership-checked user — hand it through so
+    // per-user visibility filters (e.g. packing's #858 private items) can apply.
+    return read(actingUserId);
   }
 
   /** Refuse costs.* calls when the Costs (budget) addon is disabled. */
