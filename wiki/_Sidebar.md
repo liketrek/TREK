@@ -70,6 +70,7 @@
 ## Plugins
 - [[Plugins Overview|Plugins]]
 - [[Plugin Development|Plugin-Development]]
+- [[Plugin Cookbook|Plugin-Cookbook]]
 - [[Plugin Permissions|Plugin-Permissions]]
 - [[Publishing a Plugin|Plugin-Publishing]]
 
