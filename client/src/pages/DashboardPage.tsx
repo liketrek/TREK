@@ -618,10 +618,15 @@ function CurrencyTool(): React.ReactElement {
     const lf = localStorage.getItem('trek_fx_from')
     const lt = localStorage.getItem('trek_fx_to')
     if (!lf && !lt) return
-    if (lf) updateSetting('dashboard_fx_from', lf).catch(() => {})
-    if (lt) updateSetting('dashboard_fx_to', lt).catch(() => {})
-    localStorage.removeItem('trek_fx_from')
-    localStorage.removeItem('trek_fx_to')
+    const writes: Promise<void>[] = []
+    if (lf) writes.push(updateSetting('dashboard_fx_from', lf))
+    if (lt) writes.push(updateSetting('dashboard_fx_to', lt))
+    // Only drop the localStorage source once the server has durably stored the values, so a
+    // failed write during a (docker) upgrade can't destroy the only copy (#1311). Retry next load.
+    Promise.all(writes).then(() => {
+      localStorage.removeItem('trek_fx_from')
+      localStorage.removeItem('trek_fx_to')
+    }).catch(() => { /* keep localStorage; retry on next load */ })
   }, [isLoaded, updateSetting])
 
   const currencies = rates ? Object.keys(rates).sort() : FX_FALLBACK
@@ -697,11 +702,15 @@ function TimezoneTool({ locale }: { locale: string }): React.ReactElement {
     if (!isLoaded) return
     const raw = localStorage.getItem('trek_dashboard_tz')
     if (!raw) return
-    try {
-      const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed)) updateSetting('dashboard_timezones', parsed).catch(() => {})
-    } catch { /* ignore malformed storage */ }
-    localStorage.removeItem('trek_dashboard_tz')
+    let parsed: unknown
+    // A malformed/non-array value can never be written, so drop it now to avoid retrying forever.
+    try { parsed = JSON.parse(raw) } catch { localStorage.removeItem('trek_dashboard_tz'); return }
+    if (!Array.isArray(parsed)) { localStorage.removeItem('trek_dashboard_tz'); return }
+    // Only drop the localStorage source once the server has durably stored the value, so a failed
+    // write during a (docker) upgrade can't destroy the only copy (#1311). Retry next load.
+    updateSetting('dashboard_timezones', parsed)
+      .then(() => { localStorage.removeItem('trek_dashboard_tz') })
+      .catch(() => { /* keep localStorage; retry on next load */ })
   }, [isLoaded, updateSetting])
 
   const allZones = React.useMemo<string[]>(() => {
