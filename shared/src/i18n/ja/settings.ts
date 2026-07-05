@@ -29,7 +29,8 @@ const settings: TranslationStrings = {
   'settings.mapStylePlaceholder': 'Mapboxスタイルを選択',
   'settings.mapStyleHint': 'プリセットまたは mapbox://styles/USER/ID のURL',
   'settings.mapOpenFreeMapStylePlaceholder': 'OpenFreeMapスタイルを選択',
-  'settings.mapOpenFreeMapStyleHint': 'プリセットまたは OpenFreeMap スタイルのURL。OpenFreeMap スタイルはトークンなしで動作します。',
+  'settings.mapOpenFreeMapStyleHint':
+    'プリセットまたは OpenFreeMap スタイルのURL。OpenFreeMap スタイルはトークンなしで動作します。',
   'settings.map3dBuildings': '3D建物・地形',
   'settings.map3dHint': 'ピッチ＋実際の3D押し出し表示。衛星含む全スタイルで動作。',
   'settings.mapHighQuality': '高品質モード',
@@ -306,7 +307,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.success': '接続成功 — {count} 件のフライトが見つかりました',
   'settings.airtrail.test.failed': '接続に失敗しました',
   'settings.aiParsing.title': 'AI解析',
-  'settings.aiParsing.hint': 'アップロードしたファイルから予約情報を抽出するために、自分のAIモデルを使用します。これは、管理者がインスタンス全体のモデルを設定していない場合にのみ適用されます。',
+  'settings.aiParsing.hint':
+    'アップロードしたファイルから予約情報を抽出するために、自分のAIモデルを使用します。これは、管理者がインスタンス全体のモデルを設定していない場合にのみ適用されます。',
   'settings.aiParsing.provider': 'プロバイダー',
   'settings.aiParsing.providerLocal': 'ローカル (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
@@ -336,7 +338,8 @@ const settings: TranslationStrings = {
   'settings.appearance.contrastLow': 'Low contrast',
   'settings.appearance.readability': 'Readability',
   'settings.appearance.transparency': 'Transparency',
-  'settings.appearance.transparencyHint': 'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
+  'settings.appearance.transparencyHint':
+    'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
   'settings.appearance.reduceMotion': 'Reduce motion',
   'settings.appearance.reduceMotionHint': 'Minimize animations and transitions.',
   'settings.appearance.density': 'Density',
@@ -366,7 +369,8 @@ const settings: TranslationStrings = {
   'settings.appearance.group.belowHero': 'Below the hero',
   'settings.appearance.group.bottomOfPage': 'Bottom of page',
   'settings.appearance.sidebarHint': 'The whole right column. Turn off and the dashboard centers.',
-  'settings.appearance.densityHint': 'Compact tightens spacing and padding for a denser layout that fits more on screen.',
+  'settings.appearance.densityHint':
+    'Compact tightens spacing and padding for a denser layout that fits more on screen.',
   'settings.appearance.textSizeAll': 'Everything',
   'settings.appearance.perSize': 'Adjust each size separately',
   'settings.appearance.size.large': 'Large',
@@ -389,10 +393,12 @@ const settings: TranslationStrings = {
   'settings.offline.cache.title': 'オフラインキャッシュ',
   'settings.offline.mode.title': 'オフラインモード',
   'settings.offline.mode.force': 'オフラインモードを強制',
-  'settings.offline.mode.forceHint': 'キャッシュ済みのデータのみで作業し、変更はキューに保存します。オフにすると再接続して同期します。',
+  'settings.offline.mode.forceHint':
+    'キャッシュ済みのデータのみで作業し、変更はキューに保存します。オフにすると再接続して同期します。',
   'settings.offline.mode.active': 'オフラインモードがオンです — 変更はキューに保存され、オフにすると同期されます。',
   'settings.offline.prepare.title': 'オフラインの準備',
-  'settings.offline.prepare.hint': '接続が切れる前に、必要なもの — 旅行データ、ドキュメント、地図タイル — をすべてダウンロードします。',
+  'settings.offline.prepare.hint':
+    '接続が切れる前に、必要なもの — 旅行データ、ドキュメント、地図タイル — をすべてダウンロードします。',
   'settings.offline.prepare.button': 'オフライン用にダウンロード',
   'settings.offline.prepare.running': 'ダウンロード中…',
   'settings.offline.prepare.done': 'オフラインで利用できます',
@@ -403,7 +409,8 @@ const settings: TranslationStrings = {
   'settings.offline.resyncing': '同期中…',
   'settings.offline.storage.title': 'オフラインで保存する内容',
   'settings.offline.storage.tiles': '地図タイルをオフラインで保存',
-  'settings.offline.storage.tilesHint': '地図タイルは最も多くのストレージを使用します。これをオフにすると、旅行データとドキュメントのみをオフラインで保存します。',
+  'settings.offline.storage.tilesHint':
+    '地図タイルは最も多くのストレージを使用します。これをオフにすると、旅行データとドキュメントのみをオフラインで保存します。',
   'settings.offline.storage.tripsTitle': '旅行',
   'settings.offline.storage.tripOn': 'オフラインで保存済み',
   'settings.offline.storage.tripOff': '未保存',
@@ -416,7 +423,8 @@ const settings: TranslationStrings = {
   'settings.offline.empty': 'キャッシュされた旅行はまだありません。インターネットに接続して同期してください。',
   'settings.offline.loading': '読み込み中…',
   'settings.offline.conflicts.title': '同期の競合',
-  'settings.offline.conflicts.hint': 'オフラインで行った変更が、サーバー上の新しい変更と競合しています。どちらのバージョンを保持するか選択してください。',
+  'settings.offline.conflicts.hint':
+    'オフラインで行った変更が、サーバー上の新しい変更と競合しています。どちらのバージョンを保持するか選択してください。',
   'settings.offline.conflicts.keepMine': '自分の変更を保持',
   'settings.offline.conflicts.keepServer': 'サーバーの変更を保持',
   'settings.offline.conflicts.mine': 'あなたのバージョン',

@@ -96,6 +96,8 @@ const admin: TranslationStrings = {
   'admin.recommended': 'Рекомендується',
   'admin.weatherKey': 'API-ключ OpenWeatherMap',
   'admin.weatherKeyHint': 'Для даних про погоду. Безкоштовно на openweathermap.org',
+  'admin.unsplashKey': 'Ключ API Unsplash',
+  'admin.unsplashKeyHint': 'Для пошуку зображень. Безкоштовно на unsplash.com/developers',
   'admin.validateKey': 'Перевірити',
   'admin.keyValid': 'Підключено',
   'admin.keyInvalid': 'Недійсний',
@@ -195,10 +197,12 @@ const admin: TranslationStrings = {
   'admin.plugins.title': 'Плагіни',
   'admin.plugins.subtitle': 'Встановлюйте сторонні плагіни та керуйте ними на вашому інстансі.',
   'admin.plugins.disabledTitle': 'Плагіни вимкнено',
-  'admin.plugins.disabledBody': 'Середовище виконання плагінів вимкнено (TREK_PLUGINS_ENABLED). Жоден плагін не зможе запуститися, доки адміністратор не ввімкне його в конфігурації сервера.',
+  'admin.plugins.disabledBody':
+    'Середовище виконання плагінів вимкнено (TREK_PLUGINS_ENABLED). Жоден плагін не зможе запуститися, доки адміністратор не ввімкне його в конфігурації сервера.',
   'admin.plugins.empty': 'Плагіни ще не встановлені.',
   'admin.plugins.loadError': 'Не вдалося завантажити плагіни.',
-  'admin.plugins.scaffoldNote': 'Встановлення та активація плагінів з’являться в наступному оновленні. Наразі ця панель лише показує встановлені плагіни.',
+  'admin.plugins.scaffoldNote':
+    'Встановлення та активація плагінів з’являться в наступному оновленні. Наразі ця панель лише показує встановлені плагіни.',
   'admin.plugins.status.active': 'Активний',
   'admin.plugins.status.inactive': 'Неактивний',
   'admin.plugins.status.disabled': 'Вимкнено',
@@ -224,19 +228,27 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:costs': 'Читати витрати (статті бюджету), до яких має доступ поточний користувач',
   'admin.plugins.perm.db:read:packing': 'Читати списки речей подорожей, до яких має доступ поточний користувач',
   'admin.plugins.perm.db:read:files': 'Читати файли подорожей, до яких має доступ поточний користувач',
-  'admin.plugins.perm.db:write:costs': 'Створювати витрати (статті бюджету) у подорожах, які може редагувати поточний користувач',
-  'admin.plugins.perm.db:write:places': 'Додавати, редагувати та видаляти місця в подорожах, які може редагувати поточний користувач',
-  'admin.plugins.perm.db:write:days': 'Додавати, редагувати та видаляти дні в подорожах, які може редагувати поточний користувач',
-  'admin.plugins.perm.db:write:itinerary': 'Призначати та видаляти місця в днях подорожей, які може редагувати поточний користувач',
-  'admin.plugins.perm.db:write:trips': 'Редагувати деталі подорожі (назва, дати, валюта…) у подорожах, які може редагувати поточний користувач',
-  'admin.plugins.perm.db:meta': 'Прикріплювати власні приватні дані до подорожей, місць і днів, до яких має доступ поточний користувач',
+  'admin.plugins.perm.db:write:costs':
+    'Створювати витрати (статті бюджету) у подорожах, які може редагувати поточний користувач',
+  'admin.plugins.perm.db:write:places':
+    'Додавати, редагувати та видаляти місця в подорожах, які може редагувати поточний користувач',
+  'admin.plugins.perm.db:write:days':
+    'Додавати, редагувати та видаляти дні в подорожах, які може редагувати поточний користувач',
+  'admin.plugins.perm.db:write:itinerary':
+    'Призначати та видаляти місця в днях подорожей, які може редагувати поточний користувач',
+  'admin.plugins.perm.db:write:trips':
+    'Редагувати деталі подорожі (назва, дати, валюта…) у подорожах, які може редагувати поточний користувач',
+  'admin.plugins.perm.db:meta':
+    'Прикріплювати власні приватні дані до подорожей, місць і днів, до яких має доступ поточний користувач',
   'admin.plugins.perm.ws:broadcast:trip': 'Надсилати оновлення в реальному часі учасникам подорожі',
   'admin.plugins.perm.ws:broadcast:user': 'Надсилати оновлення в реальному часі окремим користувачам',
   'admin.plugins.perm.hook:photo-provider': 'Надавати фотографії для Спогадів',
   'admin.plugins.perm.hook:calendar-source': 'Надавати події для календаря',
   'admin.plugins.perm.hook:place-detail-provider': 'Додавати додаткові деталі (відгуки, оцінки, посилання) до місця',
-  'admin.plugins.perm.hook:trip-warning-provider': 'Створювати попередження перевірки для подорожі (показуються в планувальнику)',
-  'admin.plugins.perm.events:subscribe': 'Реагувати на основні події активності (лише назва події + подорож, ніколи вміст)',
+  'admin.plugins.perm.hook:trip-warning-provider':
+    'Створювати попередження перевірки для подорожі (показуються в планувальнику)',
+  'admin.plugins.perm.events:subscribe':
+    'Реагувати на основні події активності (лише назва події + подорож, ніколи вміст)',
   'admin.plugins.perm.http:outbound': 'Виконувати вихідні запити до заявлених хостів',
   'admin.plugins.updateConsentTitle': 'Це оновлення потребує нових дозволів',
   'admin.plugins.updateConsentBody':

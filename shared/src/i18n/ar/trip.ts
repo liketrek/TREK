@@ -28,7 +28,8 @@ const trip: TranslationStrings = {
   'trip.confirm.deletePlaces': 'حذف {count} أماكن؟',
   'trip.toast.placesDeleted': 'تم حذف {count} أماكن',
   'trip.invite.linkTitle': 'رابط دعوة الرحلة',
-  'trip.invite.linkHint': 'أي شخص لديه حساب TREK ويفتح هذا الرابط ينضم إلى الرحلة كعضو. أعد الإنشاء لإبطال الرابط القديم.',
+  'trip.invite.linkHint':
+    'أي شخص لديه حساب TREK ويفتح هذا الرابط ينضم إلى الرحلة كعضو. أعد الإنشاء لإبطال الرابط القديم.',
   'trip.invite.create': 'إنشاء رابط دعوة',
   'trip.invite.regenerate': 'إعادة الإنشاء',
   'trip.invite.disable': 'تعطيل',

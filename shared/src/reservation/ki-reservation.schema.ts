@@ -30,9 +30,7 @@ export const KI_RESERVATION_TYPES = [
 ] as const;
 
 /** Lenient validator: require a string `@type`, allow any other keys through. */
-export const kiReservationSchema = z
-  .object({ '@type': z.string() })
-  .catchall(z.unknown());
+export const kiReservationSchema = z.object({ '@type': z.string() }).catchall(z.unknown());
 export type KiReservationDto = z.infer<typeof kiReservationSchema>;
 
 /** Top-level wrapper the providers return: `{ reservations: KiReservation[] }`. */

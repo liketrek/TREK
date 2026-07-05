@@ -12,8 +12,10 @@ const backup: TranslationStrings = {
   'backup.createFirst': 'Tạo bản sao lưu đầu tiên',
   'backup.download': 'Tải xuống',
   'backup.restore': 'Khôi phục',
-  'backup.confirm.restore': 'Khôi phục bản sao lưu "{name}"?\n\nTất cả dữ liệu hiện tại sẽ được thay thế bằng bản sao lưu.',
-  'backup.confirm.uploadRestore': 'Tải lên và khôi phục tập tin sao lưu "{name}"?\n\nTất cả dữ liệu hiện tại sẽ bị ghi đè.',
+  'backup.confirm.restore':
+    'Khôi phục bản sao lưu "{name}"?\n\nTất cả dữ liệu hiện tại sẽ được thay thế bằng bản sao lưu.',
+  'backup.confirm.uploadRestore':
+    'Tải lên và khôi phục tập tin sao lưu "{name}"?\n\nTất cả dữ liệu hiện tại sẽ bị ghi đè.',
   'backup.confirm.delete': 'Xóa bản sao lưu "{name}"?',
   'backup.toast.loadError': 'Không tải được bản sao lưu',
   'backup.toast.created': 'Sao lưu được tạo thành công',

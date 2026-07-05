@@ -329,18 +329,21 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.success': 'Terhubung — {count} penerbangan ditemukan',
   'settings.airtrail.test.failed': 'Koneksi gagal',
   'settings.aiParsing.title': 'Penguraian AI',
-  'settings.aiParsing.hint': 'Gunakan model AI milikmu sendiri untuk mengekstrak pemesanan dari file yang diunggah. Ini hanya berlaku jika administrator belum mengonfigurasi model untuk seluruh instance.',
+  'settings.aiParsing.hint':
+    'Gunakan model AI milikmu sendiri untuk mengekstrak pemesanan dari file yang diunggah. Ini hanya berlaku jika administrator belum mengonfigurasi model untuk seluruh instance.',
   'settings.aiParsing.provider': 'Penyedia',
   'settings.aiParsing.providerLocal': 'Lokal (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
   'settings.aiParsing.model': 'Model',
   'settings.aiParsing.baseUrl': 'URL Dasar',
-  'settings.aiParsing.baseUrlHint': 'Tempat model berjalan — server Ollama lokal atau endpoint yang kompatibel dengan OpenAI.',
+  'settings.aiParsing.baseUrlHint':
+    'Tempat model berjalan — server Ollama lokal atau endpoint yang kompatibel dengan OpenAI.',
   'settings.aiParsing.apiKey': 'Kunci API',
   'settings.aiParsing.apiKeyHint': 'Disimpan secara terenkripsi. Biarkan kosong untuk mempertahankan kunci saat ini.',
   'settings.aiParsing.multimodal': 'Kirim dokumen sebagai gambar',
-  'settings.aiParsing.multimodalHint': 'Untuk model yang mendukung visi — mengirim PDF asli alih-alih teks yang diekstrak.',
+  'settings.aiParsing.multimodalHint':
+    'Untuk model yang mendukung visi — mengirim PDF asli alih-alih teks yang diekstrak.',
   'settings.aiParsing.toast.saved': 'Pengaturan AI disimpan',
   'settings.aiParsing.toast.saveError': 'Tidak dapat menyimpan pengaturan AI',
   'settings.tabs.appearance': 'Appearance',
@@ -359,7 +362,8 @@ const settings: TranslationStrings = {
   'settings.appearance.contrastLow': 'Low contrast',
   'settings.appearance.readability': 'Readability',
   'settings.appearance.transparency': 'Transparency',
-  'settings.appearance.transparencyHint': 'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
+  'settings.appearance.transparencyHint':
+    'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
   'settings.appearance.reduceMotion': 'Reduce motion',
   'settings.appearance.reduceMotionHint': 'Minimize animations and transitions.',
   'settings.appearance.density': 'Density',
@@ -389,7 +393,8 @@ const settings: TranslationStrings = {
   'settings.appearance.group.belowHero': 'Below the hero',
   'settings.appearance.group.bottomOfPage': 'Bottom of page',
   'settings.appearance.sidebarHint': 'The whole right column. Turn off and the dashboard centers.',
-  'settings.appearance.densityHint': 'Compact tightens spacing and padding for a denser layout that fits more on screen.',
+  'settings.appearance.densityHint':
+    'Compact tightens spacing and padding for a denser layout that fits more on screen.',
   'settings.appearance.textSizeAll': 'Everything',
   'settings.appearance.perSize': 'Adjust each size separately',
   'settings.appearance.size.large': 'Large',
@@ -412,10 +417,13 @@ const settings: TranslationStrings = {
   'settings.offline.cache.title': 'Cache offline',
   'settings.offline.mode.title': 'Mode offline',
   'settings.offline.mode.force': 'Paksa mode offline',
-  'settings.offline.mode.forceHint': 'Bekerja hanya dari data cache dan antrekan perubahanmu. Matikan untuk terhubung kembali dan menyinkronkan.',
-  'settings.offline.mode.active': 'Mode offline aktif — perubahanmu diantrekan dan akan disinkronkan saat kamu mematikannya.',
+  'settings.offline.mode.forceHint':
+    'Bekerja hanya dari data cache dan antrekan perubahanmu. Matikan untuk terhubung kembali dan menyinkronkan.',
+  'settings.offline.mode.active':
+    'Mode offline aktif — perubahanmu diantrekan dan akan disinkronkan saat kamu mematikannya.',
   'settings.offline.prepare.title': 'Persiapkan untuk offline',
-  'settings.offline.prepare.hint': 'Unduh semua yang kamu perlukan — data perjalanan, dokumen, dan tile peta — sebelum kehilangan koneksi.',
+  'settings.offline.prepare.hint':
+    'Unduh semua yang kamu perlukan — data perjalanan, dokumen, dan tile peta — sebelum kehilangan koneksi.',
   'settings.offline.prepare.button': 'Unduh untuk penggunaan offline',
   'settings.offline.prepare.running': 'Mengunduh…',
   'settings.offline.prepare.done': 'Siap untuk penggunaan offline',
@@ -426,12 +434,14 @@ const settings: TranslationStrings = {
   'settings.offline.resyncing': 'Menyinkronkan…',
   'settings.offline.storage.title': 'Apa yang disimpan offline',
   'settings.offline.storage.tiles': 'Simpan tile peta offline',
-  'settings.offline.storage.tilesHint': 'Tile peta menggunakan penyimpanan paling banyak. Matikan ini untuk hanya menyimpan data perjalanan dan dokumen secara offline.',
+  'settings.offline.storage.tilesHint':
+    'Tile peta menggunakan penyimpanan paling banyak. Matikan ini untuk hanya menyimpan data perjalanan dan dokumen secara offline.',
   'settings.offline.storage.tripsTitle': 'Perjalanan',
   'settings.offline.storage.tripOn': 'Disimpan offline',
   'settings.offline.storage.tripOff': 'Tidak disimpan',
   'settings.offline.clear': 'Hapus cache',
-  'settings.offline.clearConfirm': 'Hapus semua data perjalanan offline? Kamu bisa menyinkronkan ulang kapan saja saat online.',
+  'settings.offline.clearConfirm':
+    'Hapus semua data perjalanan offline? Kamu bisa menyinkronkan ulang kapan saja saat online.',
   'settings.offline.stats.trips': 'Perjalanan di cache',
   'settings.offline.stats.pending': 'Perubahan tertunda',
   'settings.offline.stats.failed': 'Perubahan gagal',
@@ -439,7 +449,8 @@ const settings: TranslationStrings = {
   'settings.offline.empty': 'Belum ada perjalanan di cache. Sambungkan ke internet untuk menyinkronkan.',
   'settings.offline.loading': 'Memuat…',
   'settings.offline.conflicts.title': 'Konflik sinkronisasi',
-  'settings.offline.conflicts.hint': 'Perubahan yang kamu buat secara offline bentrok dengan perubahan yang lebih baru di server. Pilih versi mana yang ingin disimpan.',
+  'settings.offline.conflicts.hint':
+    'Perubahan yang kamu buat secara offline bentrok dengan perubahan yang lebih baru di server. Pilih versi mana yang ingin disimpan.',
   'settings.offline.conflicts.keepMine': 'Simpan punyaku',
   'settings.offline.conflicts.keepServer': 'Simpan punya server',
   'settings.offline.conflicts.mine': 'Versimu',

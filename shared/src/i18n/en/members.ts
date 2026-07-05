@@ -25,7 +25,8 @@ const members: TranslationStrings = {
   'members.transferError': 'Failed to transfer ownership',
   'members.guests': 'Guests',
   'members.guest': 'Guest',
-  'members.guestsHint': 'People without an account. They can be assigned to costs, packing and tasks, but cannot sign in.',
+  'members.guestsHint':
+    'People without an account. They can be assigned to costs, packing and tasks, but cannot sign in.',
   'members.addGuest': 'Add guest',
   'members.guestNamePlaceholder': 'Guest name',
   'members.guestAdded': 'Guest added',

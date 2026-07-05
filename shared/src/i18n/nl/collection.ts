@@ -49,7 +49,8 @@ const collection: TranslationStrings = {
   'collections.editList': 'Hernoemen',
   'collections.listMenu': 'Lijstopties',
   'collections.deleteList': 'Lijst verwijderen',
-  'collections.deleteListConfirm': 'Hiermee worden de lijst en alle opgeslagen plekken definitief verwijderd. Dit kan niet ongedaan worden gemaakt.',
+  'collections.deleteListConfirm':
+    'Hiermee worden de lijst en alle opgeslagen plekken definitief verwijderd. Dit kan niet ongedaan worden gemaakt.',
   'collections.listName': 'Lijstnaam',
   'collections.listNamePlaceholder': 'bijv. Tokio 2025',
   'collections.listColor': 'Kleur',
@@ -127,7 +128,8 @@ const collection: TranslationStrings = {
   'collections.share.memberHint': 'Alleen de eigenaar van de lijst kan personen uitnodigen of verwijderen.',
   'collections.share.cancel': 'Annuleren',
   'collections.share.leave': 'Lijst verlaten',
-  'collections.share.leaveConfirm': 'Deze gedeelde lijst verlaten? Je verliest de toegang totdat je opnieuw wordt uitgenodigd.',
+  'collections.share.leaveConfirm':
+    'Deze gedeelde lijst verlaten? Je verliest de toegang totdat je opnieuw wordt uitgenodigd.',
   'collections.share.left': 'Je hebt de lijst verlaten',
   'collections.share.remove': 'Verwijderen',
 

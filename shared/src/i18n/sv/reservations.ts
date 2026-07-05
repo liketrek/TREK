@@ -6,7 +6,8 @@ const reservations: TranslationStrings = {
   'reservations.emptyHint': 'Lägg till bokningar av flyg, hotell och annat',
   'reservations.add': 'Lägg till bokning',
   'reservations.addManual': 'Manuell bokning',
-  'reservations.placeHint': 'Tips: Det är bäst att göra bokningar direkt från en plats för att koppla dem till din dagsplan.',
+  'reservations.placeHint':
+    'Tips: Det är bäst att göra bokningar direkt från en plats för att koppla dem till din dagsplan.',
   'reservations.confirmed': 'Bekräftat',
   'reservations.pending': 'Väntar på beslut',
   'reservations.summary': '{confirmed} bekräftat, {pending} väntar på beslut',
@@ -126,7 +127,8 @@ const reservations: TranslationStrings = {
   'reservations.import.cta': 'Importera från fil',
   'reservations.import.dropHere': 'Dra och släpp bokningsbekräftelser här, eller klicka för att välja',
   'reservations.import.dropActive': 'Dra och släpp filerna som ska importeras',
-  'reservations.import.acceptedFormats': 'Godkända filformat: EML, PDF, PKPass, HTML, TXT (högst 10 MB per fil, upp till 5 filer)',
+  'reservations.import.acceptedFormats':
+    'Godkända filformat: EML, PDF, PKPass, HTML, TXT (högst 10 MB per fil, upp till 5 filer)',
   'reservations.import.parsing': 'Analyserar filer…',
   'reservations.import.previewHeading': '{count} reservation(er) hittades',
   'reservations.import.previewEmpty': 'Inga bokningar kunde extraheras från de uppladdade filerna.',

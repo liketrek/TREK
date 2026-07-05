@@ -96,6 +96,8 @@ const admin: TranslationStrings = {
   'admin.recommended': 'Empfohlen',
   'admin.weatherKey': 'OpenWeatherMap API-Schlüssel',
   'admin.weatherKeyHint': 'Für Wetterdaten. Kostenlos unter openweathermap.org',
+  'admin.unsplashKey': 'Unsplash-API-Schlüssel',
+  'admin.unsplashKeyHint': 'Für die Bildsuche. Kostenlos unter unsplash.com/developers',
   'admin.validateKey': 'Test',
   'admin.keyValid': 'Verbunden',
   'admin.keyInvalid': 'Ungültig',
@@ -181,7 +183,8 @@ const admin: TranslationStrings = {
   'admin.plugins.noErrors': 'Keine Fehler protokolliert.',
   'admin.plugins.uninstalled': 'Plugin deinstalliert',
   'admin.plugins.uninstallTitle': 'Plugin deinstallieren?',
-  'admin.plugins.uninstallBody': 'Das stoppt das Plugin, entfernt seinen Code und löscht alle seine Daten. Das kann nicht rückgängig gemacht werden.',
+  'admin.plugins.uninstallBody':
+    'Das stoppt das Plugin, entfernt seinen Code und löscht alle seine Daten. Das kann nicht rückgängig gemacht werden.',
   'admin.plugins.status.starting': 'Startet…',
   'admin.plugins.type.widget': 'Widget',
   'admin.plugins.type.page': 'Seite',
@@ -195,10 +198,12 @@ const admin: TranslationStrings = {
   'admin.plugins.title': 'Plugins',
   'admin.plugins.subtitle': 'Plugins von Drittanbietern auf deiner Instanz installieren und verwalten.',
   'admin.plugins.disabledTitle': 'Plugins sind deaktiviert',
-  'admin.plugins.disabledBody': 'Die Plugin-Laufzeit ist ausgeschaltet (TREK_PLUGINS_ENABLED). Es kann kein Plugin laufen, bis ein Admin sie in der Serverkonfiguration aktiviert.',
+  'admin.plugins.disabledBody':
+    'Die Plugin-Laufzeit ist ausgeschaltet (TREK_PLUGINS_ENABLED). Es kann kein Plugin laufen, bis ein Admin sie in der Serverkonfiguration aktiviert.',
   'admin.plugins.empty': 'Noch keine Plugins installiert.',
   'admin.plugins.loadError': 'Plugins konnten nicht geladen werden.',
-  'admin.plugins.scaffoldNote': 'Installation und Aktivierung von Plugins folgen in einem späteren Update. Dieses Panel zeigt derzeit nur installierte Plugins an.',
+  'admin.plugins.scaffoldNote':
+    'Installation und Aktivierung von Plugins folgen in einem späteren Update. Dieses Panel zeigt derzeit nur installierte Plugins an.',
   'admin.plugins.status.active': 'Aktiv',
   'admin.plugins.status.inactive': 'Inaktiv',
   'admin.plugins.status.disabled': 'Deaktiviert',
@@ -224,41 +229,58 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:costs': 'Ausgaben (Budgetposten) lesen, auf die der handelnde Nutzer Zugriff hat',
   'admin.plugins.perm.db:read:packing': 'Packlisten von Reisen lesen, auf die der handelnde Nutzer Zugriff hat',
   'admin.plugins.perm.db:read:files': 'Dateien von Reisen lesen, auf die der handelnde Nutzer Zugriff hat',
-  'admin.plugins.perm.db:write:costs': 'Ausgaben (Budgetposten) auf Reisen erstellen, die der handelnde Nutzer bearbeiten kann',
-  'admin.plugins.perm.db:write:places': 'Orte auf Reisen anlegen, bearbeiten und löschen, die der handelnde Nutzer bearbeiten kann',
-  'admin.plugins.perm.db:write:days': 'Tage auf Reisen anlegen, bearbeiten und löschen, die der handelnde Nutzer bearbeiten kann',
-  'admin.plugins.perm.db:write:itinerary': 'Orte den Tagen von Reisen zuordnen und entfernen, die der handelnde Nutzer bearbeiten kann',
-  'admin.plugins.perm.db:write:trips': 'Reisedetails (Titel, Daten, Währung …) auf Reisen bearbeiten, die der handelnde Nutzer bearbeiten kann',
-  'admin.plugins.perm.db:meta': 'Eigene private Daten an Reisen, Orte und Tage anhängen, auf die der handelnde Nutzer Zugriff hat',
+  'admin.plugins.perm.db:write:costs':
+    'Ausgaben (Budgetposten) auf Reisen erstellen, die der handelnde Nutzer bearbeiten kann',
+  'admin.plugins.perm.db:write:places':
+    'Orte auf Reisen anlegen, bearbeiten und löschen, die der handelnde Nutzer bearbeiten kann',
+  'admin.plugins.perm.db:write:days':
+    'Tage auf Reisen anlegen, bearbeiten und löschen, die der handelnde Nutzer bearbeiten kann',
+  'admin.plugins.perm.db:write:itinerary':
+    'Orte den Tagen von Reisen zuordnen und entfernen, die der handelnde Nutzer bearbeiten kann',
+  'admin.plugins.perm.db:write:trips':
+    'Reisedetails (Titel, Daten, Währung …) auf Reisen bearbeiten, die der handelnde Nutzer bearbeiten kann',
+  'admin.plugins.perm.db:meta':
+    'Eigene private Daten an Reisen, Orte und Tage anhängen, auf die der handelnde Nutzer Zugriff hat',
   'admin.plugins.perm.ws:broadcast:trip': 'Echtzeit-Updates an Reisemitglieder senden',
   'admin.plugins.perm.ws:broadcast:user': 'Echtzeit-Updates an einzelne Nutzer senden',
   'admin.plugins.perm.hook:photo-provider': 'Fotos für Erinnerungen bereitstellen',
   'admin.plugins.perm.hook:calendar-source': 'Termine für den Kalender bereitstellen',
-  'admin.plugins.perm.hook:place-detail-provider': 'Zusatzdetails (Bewertungen, Ratings, Links) zu einem Ort beisteuern',
-  'admin.plugins.perm.hook:trip-warning-provider': 'Validierungswarnungen zu einer Reise ausgeben (im Planer angezeigt)',
-  'admin.plugins.perm.events:subscribe': 'Auf Kern-Aktivitäts-Events reagieren (nur Event-Name + Reise, nie der Inhalt)',
+  'admin.plugins.perm.hook:place-detail-provider':
+    'Zusatzdetails (Bewertungen, Ratings, Links) zu einem Ort beisteuern',
+  'admin.plugins.perm.hook:trip-warning-provider':
+    'Validierungswarnungen zu einer Reise ausgeben (im Planer angezeigt)',
+  'admin.plugins.perm.events:subscribe':
+    'Auf Kern-Aktivitäts-Events reagieren (nur Event-Name + Reise, nie der Inhalt)',
   'admin.plugins.perm.http:outbound': 'Ausgehende Anfragen an deklarierte Hosts stellen',
   'admin.plugins.updateConsentTitle': 'Dieses Update braucht neue Berechtigungen',
-  'admin.plugins.updateConsentBody': '{name} v{version} verlangt Rechte, die du bisher nicht freigegeben hast. Die neue Version ist installiert, bleibt aber aus, bis du sie freigibst.',
+  'admin.plugins.updateConsentBody':
+    '{name} v{version} verlangt Rechte, die du bisher nicht freigegeben hast. Die neue Version ist installiert, bleibt aber aus, bis du sie freigibst.',
   'admin.plugins.updateNewPermissions': 'Neu verlangte Berechtigungen',
   'admin.plugins.updateNewEgress': 'Neue ausgehende Verbindungen',
   'admin.plugins.updateApprove': 'Freigeben & einschalten',
   'admin.plugins.updateLater': 'Vorerst aus lassen',
   'admin.plugins.updateKeptOff': 'Update installiert — bleibt aus, bis du die neuen Berechtigungen freigibst',
-  'admin.plugins.reviewedMeaning': '„Geprüft" heißt: Ein TREK-Maintainer hat den Code dieses Plugins bei jeder Version manuell auf Schadsoftware gescannt — nicht auf Qualität oder Funktion. Es ist keine Garantie, dass ein Plugin harmlos ist.',
+  'admin.plugins.reviewedMeaning':
+    '„Geprüft" heißt: Ein TREK-Maintainer hat den Code dieses Plugins bei jeder Version manuell auf Schadsoftware gescannt — nicht auf Qualität oder Funktion. Es ist keine Garantie, dass ein Plugin harmlos ist.',
   'admin.plugins.security.title': 'Wie Plugins eingesperrt werden — und wo die Grenzen liegen',
   'admin.plugins.security.isolationTitle': 'Jedes Plugin läuft abgeschottet',
-  'admin.plugins.security.isolationBody': 'Ein Plugin läuft als eigener, abgeriegelter Prozess, der nur seine eigenen Dateien lesen darf. Es kann weder deine Datenbank noch deinen Login-Schlüssel oder deinen Verschlüsselungsschlüssel lesen, keine anderen Programme starten und nirgends Dateien schreiben. Seine Oberfläche läuft in einem versiegelten Browser-Rahmen, der dein Sitzungs-Cookie nicht lesen und die TREK-Seite drumherum nicht anfassen kann.',
+  'admin.plugins.security.isolationBody':
+    'Ein Plugin läuft als eigener, abgeriegelter Prozess, der nur seine eigenen Dateien lesen darf. Es kann weder deine Datenbank noch deinen Login-Schlüssel oder deinen Verschlüsselungsschlüssel lesen, keine anderen Programme starten und nirgends Dateien schreiben. Seine Oberfläche läuft in einem versiegelten Browser-Rahmen, der dein Sitzungs-Cookie nicht lesen und die TREK-Seite drumherum nicht anfassen kann.',
   'admin.plugins.security.permsTitle': 'Was die Berechtigungen bedeuten',
-  'admin.plugins.security.permsBody': 'Die Berechtigungen, die dir vor der Installation angezeigt werden, sind eine harte Obergrenze, die TREK zur Laufzeit durchsetzt — ein Plugin kann buchstäblich nichts tun, was nicht auf der Liste steht. Aber sie sagen dir, was ein Plugin kann, nicht was es tatsächlich tut. Ein Plugin, das deine Reisen lesen und einen Server erreichen darf, kann deine Reisen an diesen Server schicken — lies also die Berechtigungen und die Zielhosts, nicht nur die Beschreibung.',
+  'admin.plugins.security.permsBody':
+    'Die Berechtigungen, die dir vor der Installation angezeigt werden, sind eine harte Obergrenze, die TREK zur Laufzeit durchsetzt — ein Plugin kann buchstäblich nichts tun, was nicht auf der Liste steht. Aber sie sagen dir, was ein Plugin kann, nicht was es tatsächlich tut. Ein Plugin, das deine Reisen lesen und einen Server erreichen darf, kann deine Reisen an diesen Server schicken — lies also die Berechtigungen und die Zielhosts, nicht nur die Beschreibung.',
   'admin.plugins.security.limitsTitle': 'Was wir nicht garantieren können',
-  'admin.plugins.security.limitsBody': 'Die Isolation ist eine starke Software-Grenze, keine absolute. Ein Plugin handelt mit genau den Rechten, die du freigibst — innerhalb dieser Rechte kann es sich anders verhalten als seine Beschreibung nahelegt, und es kann Daten, die es legitim hat, an die von ihm deklarierten Hosts senden. TREK liest oder bewertet nicht, was der Code eines Plugins tatsächlich tut.',
+  'admin.plugins.security.limitsBody':
+    'Die Isolation ist eine starke Software-Grenze, keine absolute. Ein Plugin handelt mit genau den Rechten, die du freigibst — innerhalb dieser Rechte kann es sich anders verhalten als seine Beschreibung nahelegt, und es kann Daten, die es legitim hat, an die von ihm deklarierten Hosts senden. TREK liest oder bewertet nicht, was der Code eines Plugins tatsächlich tut.',
   'admin.plugins.security.worstTitle': 'Der schlimmste Fall',
-  'admin.plugins.security.worstBody': 'Ein bösartiges Plugin, das du einschaltest, kann die Daten und Verbindungen missbrauchen, die du ihm gegeben hast — etwa die Reisen abgreifen, die es lesen darf. Es kann keine Passwörter stehlen, keinen Admin-Login fälschen, keine Befehle auf deinem Server ausführen und keine Daten erreichen, die du nicht freigegeben hast. Der Schaden bleibt in dem, was du freigegeben hast, und das Ausschalten des Plugins stoppt ihn.',
+  'admin.plugins.security.worstBody':
+    'Ein bösartiges Plugin, das du einschaltest, kann die Daten und Verbindungen missbrauchen, die du ihm gegeben hast — etwa die Reisen abgreifen, die es lesen darf. Es kann keine Passwörter stehlen, keinen Admin-Login fälschen, keine Befehle auf deinem Server ausführen und keine Daten erreichen, die du nicht freigegeben hast. Der Schaden bleibt in dem, was du freigegeben hast, und das Ausschalten des Plugins stoppt ihn.',
   'admin.plugins.security.reviewedTitle': 'Was „Geprüft" bedeutet',
-  'admin.plugins.security.reviewedBody': 'Ein geprüftes Plugin wurde bei jeder Version von einem TREK-Maintainer manuell auf Schadsoftware gescannt — geprüft auf feindlichen Code, nicht darauf, ob es gut funktioniert. Es ist kein Versprechen, dass das Plugin harmlos ist.',
+  'admin.plugins.security.reviewedBody':
+    'Ein geprüftes Plugin wurde bei jeder Version von einem TREK-Maintainer manuell auf Schadsoftware gescannt — geprüft auf feindlichen Code, nicht darauf, ob es gut funktioniert. Es ist kein Versprechen, dass das Plugin harmlos ist.',
   'admin.plugins.security.trustTitle': 'Das Fazit',
-  'admin.plugins.security.trustBody': 'Ein Plugin zu installieren ist wie jede fremde App zu installieren: Füge nur Code von Autoren hinzu, denen du vertraust, und prüfe ihn im Zweifel zuerst selbst. TREK übernimmt keine Verantwortung für Plugins von Drittanbietern.',
+  'admin.plugins.security.trustBody':
+    'Ein Plugin zu installieren ist wie jede fremde App zu installieren: Füge nur Code von Autoren hinzu, denen du vertraust, und prüfe ihn im Zweifel zuerst selbst. TREK übernimmt keine Verantwortung für Plugins von Drittanbietern.',
   'admin.plugins.runtimeOn': 'Laufzeit aktiv',
   'admin.plugins.tabDiscover': 'Entdecken',
   'admin.plugins.searchPlaceholder': 'Plugins durchsuchen…',
@@ -470,7 +492,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': 'Journey',
   'admin.addons.catalog.journey.description': 'Reise-Tracking & Tagebuch mit Check-ins, Fotos und Tagesberichten',
   'admin.addons.catalog.collections.name': 'Sammlungen',
-  'admin.addons.catalog.collections.description': 'Persönliche Orte-Bibliothek — speichere Orte aus Reisen in benannten Listen, kopiere sie in jede Reise, teile sie mit anderen',
+  'admin.addons.catalog.collections.description':
+    'Persönliche Orte-Bibliothek — speichere Orte aus Reisen in benannten Listen, kopiere sie in jede Reise, teile sie mit anderen',
   'admin.passkey.title': 'Passkey-Anmeldung',
   'admin.passkey.cardHint': 'Erlaube Benutzern die Anmeldung mit Passkeys (WebAuthn). Standardmäßig deaktiviert.',
   'admin.passkey.login': 'Passkey-Anmeldung aktivieren',
@@ -508,7 +531,8 @@ const admin: TranslationStrings = {
   'admin.group.maintenance': 'Wartung',
   'admin.invite.tripLabel': 'Zu Trip hinzufügen (optional)',
   'admin.invite.tripNone': 'Kein Trip',
-  'admin.invite.tripHint': 'Der neue Nutzer wird automatisch zu diesem Trip hinzugefügt, wenn er sich über den Link registriert.',
+  'admin.invite.tripHint':
+    'Der neue Nutzer wird automatisch zu diesem Trip hinzugefügt, wenn er sich über den Link registriert.',
   'admin.invite.boundTo': 'fügt zu {trip} hinzu',
 };
 export default admin;

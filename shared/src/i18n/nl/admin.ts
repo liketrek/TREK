@@ -96,6 +96,8 @@ const admin: TranslationStrings = {
   'admin.recommended': 'Aanbevolen',
   'admin.weatherKey': 'OpenWeatherMap API-sleutel',
   'admin.weatherKeyHint': 'Voor weergegevens. Gratis op openweathermap.org',
+  'admin.unsplashKey': 'Unsplash API-sleutel',
+  'admin.unsplashKeyHint': 'Voor het zoeken naar afbeeldingen. Gratis op unsplash.com/developers',
   'admin.validateKey': 'Testen',
   'admin.keyValid': 'Verbonden',
   'admin.keyInvalid': 'Ongeldig',
@@ -181,7 +183,8 @@ const admin: TranslationStrings = {
   'admin.plugins.noErrors': 'Geen fouten geregistreerd.',
   'admin.plugins.uninstalled': 'Plugin verwijderd',
   'admin.plugins.uninstallTitle': 'Plugin verwijderen?',
-  'admin.plugins.uninstallBody': 'Dit stopt de plugin, verwijdert de code en wist alle bijbehorende gegevens. Dit kan niet ongedaan worden gemaakt.',
+  'admin.plugins.uninstallBody':
+    'Dit stopt de plugin, verwijdert de code en wist alle bijbehorende gegevens. Dit kan niet ongedaan worden gemaakt.',
   'admin.plugins.status.starting': 'Wordt gestart…',
   'admin.plugins.type.widget': 'Widget',
   'admin.plugins.type.page': 'Pagina',
@@ -195,10 +198,12 @@ const admin: TranslationStrings = {
   'admin.plugins.title': 'Plugins',
   'admin.plugins.subtitle': 'Installeer en beheer plugins van derden op je instantie.',
   'admin.plugins.disabledTitle': 'Plugins zijn uitgeschakeld',
-  'admin.plugins.disabledBody': 'De plugin-runtime staat uit (TREK_PLUGINS_ENABLED). Er kan geen plugin draaien totdat een beheerder dit inschakelt in de serverconfiguratie.',
+  'admin.plugins.disabledBody':
+    'De plugin-runtime staat uit (TREK_PLUGINS_ENABLED). Er kan geen plugin draaien totdat een beheerder dit inschakelt in de serverconfiguratie.',
   'admin.plugins.empty': 'Nog geen plugins geïnstalleerd.',
   'admin.plugins.loadError': 'Plugins konden niet worden geladen.',
-  'admin.plugins.scaffoldNote': 'Plugininstallatie en -activatie volgen in een latere update. Dit paneel toont momenteel alleen geïnstalleerde plugins.',
+  'admin.plugins.scaffoldNote':
+    'Plugininstallatie en -activatie volgen in een latere update. Dit paneel toont momenteel alleen geïnstalleerde plugins.',
   'admin.plugins.status.active': 'Actief',
   'admin.plugins.status.inactive': 'Inactief',
   'admin.plugins.status.disabled': 'Uitgeschakeld',
@@ -224,19 +229,28 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:costs': 'Uitgaven (budgetposten) lezen waartoe de actieve gebruiker toegang heeft',
   'admin.plugins.perm.db:read:packing': 'Paklijsten lezen van reizen waartoe de actieve gebruiker toegang heeft',
   'admin.plugins.perm.db:read:files': 'Bestanden lezen van reizen waartoe de actieve gebruiker toegang heeft',
-  'admin.plugins.perm.db:write:costs': 'Uitgaven (budgetposten) aanmaken op reizen die de actieve gebruiker mag bewerken',
-  'admin.plugins.perm.db:write:places': 'Plaatsen toevoegen, bewerken en verwijderen op reizen die de actieve gebruiker mag bewerken',
-  'admin.plugins.perm.db:write:days': 'Dagen toevoegen, bewerken en verwijderen op reizen die de actieve gebruiker mag bewerken',
-  'admin.plugins.perm.db:write:itinerary': 'Plaatsen toewijzen aan en verwijderen uit dagen van reizen die de actieve gebruiker mag bewerken',
-  'admin.plugins.perm.db:write:trips': 'Reisgegevens bewerken (titel, datums, valuta…) op reizen die de actieve gebruiker mag bewerken',
-  'admin.plugins.perm.db:meta': 'Eigen privégegevens koppelen aan reizen, plaatsen en dagen waartoe de actieve gebruiker toegang heeft',
+  'admin.plugins.perm.db:write:costs':
+    'Uitgaven (budgetposten) aanmaken op reizen die de actieve gebruiker mag bewerken',
+  'admin.plugins.perm.db:write:places':
+    'Plaatsen toevoegen, bewerken en verwijderen op reizen die de actieve gebruiker mag bewerken',
+  'admin.plugins.perm.db:write:days':
+    'Dagen toevoegen, bewerken en verwijderen op reizen die de actieve gebruiker mag bewerken',
+  'admin.plugins.perm.db:write:itinerary':
+    'Plaatsen toewijzen aan en verwijderen uit dagen van reizen die de actieve gebruiker mag bewerken',
+  'admin.plugins.perm.db:write:trips':
+    'Reisgegevens bewerken (titel, datums, valuta…) op reizen die de actieve gebruiker mag bewerken',
+  'admin.plugins.perm.db:meta':
+    'Eigen privégegevens koppelen aan reizen, plaatsen en dagen waartoe de actieve gebruiker toegang heeft',
   'admin.plugins.perm.ws:broadcast:trip': 'Realtime updates sturen naar reisleden',
   'admin.plugins.perm.ws:broadcast:user': 'Realtime updates sturen naar individuele gebruikers',
   'admin.plugins.perm.hook:photo-provider': "Foto's aanleveren voor de Foto's-sectie",
   'admin.plugins.perm.hook:calendar-source': 'Evenementen aanleveren voor de kalender',
-  'admin.plugins.perm.hook:place-detail-provider': 'Extra details (reviews, beoordelingen, links) aan een plek toevoegen',
-  'admin.plugins.perm.hook:trip-warning-provider': 'Validatiewaarschuwingen tonen bij een reis (zichtbaar in de planner)',
-  'admin.plugins.perm.events:subscribe': 'Reageert op kernactiviteitsgebeurtenissen (alleen gebeurtenisnaam + reis, nooit de inhoud)',
+  'admin.plugins.perm.hook:place-detail-provider':
+    'Extra details (reviews, beoordelingen, links) aan een plek toevoegen',
+  'admin.plugins.perm.hook:trip-warning-provider':
+    'Validatiewaarschuwingen tonen bij een reis (zichtbaar in de planner)',
+  'admin.plugins.perm.events:subscribe':
+    'Reageert op kernactiviteitsgebeurtenissen (alleen gebeurtenisnaam + reis, nooit de inhoud)',
   'admin.plugins.perm.http:outbound': 'Uitgaande verzoeken doen naar de opgegeven hosts',
   'admin.plugins.updateConsentTitle': 'Deze update vereist nieuwe machtigingen',
   'admin.plugins.updateConsentBody':
@@ -518,7 +532,8 @@ const admin: TranslationStrings = {
   'admin.group.maintenance': 'Maintenance',
   'admin.invite.tripLabel': 'Toevoegen aan reis (optioneel)',
   'admin.invite.tripNone': 'Geen reis',
-  'admin.invite.tripHint': 'De nieuwe gebruiker wordt automatisch aan deze reis toegevoegd wanneer hij zich via de link registreert.',
+  'admin.invite.tripHint':
+    'De nieuwe gebruiker wordt automatisch aan deze reis toegevoegd wanneer hij zich via de link registreert.',
   'admin.invite.boundTo': 'voegt toe aan {trip}',
 };
 export default admin;

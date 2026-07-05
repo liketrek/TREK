@@ -9,7 +9,7 @@ const undo: TranslationStrings = {
   'undo.optimize': 'Η διαδρομή βελτιστοποιήθηκε',
   'undo.deletePlace': 'Η τοποθεσία διαγράφηκε',
   'undo.deletePlaces': 'Οι τοποθεσίες διαγράφηκαν',
-  'undo.changeCategory': "Category changed",
+  'undo.changeCategory': 'Category changed',
   'undo.moveDay': 'Η τοποθεσία μεταφέρθηκε σε άλλη ημέρα',
   'undo.lock': 'Το κλείδωμα τοποθεσίας εναλλάχθηκε',
   'undo.importGpx': 'Εισαγωγή GPX',

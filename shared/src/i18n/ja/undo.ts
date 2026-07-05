@@ -9,7 +9,7 @@ const undo: TranslationStrings = {
   'undo.optimize': 'ルートを最適化',
   'undo.deletePlace': '場所を削除',
   'undo.deletePlaces': '場所を削除',
-  'undo.changeCategory': "Category changed",
+  'undo.changeCategory': 'Category changed',
   'undo.moveDay': '場所を別の日に移動',
   'undo.lock': '場所のロックを切り替え',
   'undo.importGpx': 'GPXをインポート',

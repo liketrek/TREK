@@ -4,14 +4,25 @@ import fs from 'fs';
 import path from 'path';
 
 // safeFetch is mocked so saveUnsplashCover never hits the network.
-const { safeFetch } = vi.hoisted(() => ({ safeFetch: vi.fn() }));
+// db is mocked so getUnsplashKey resolves from a controllable stub, and
+// decrypt_api_key is a passthrough so stored values compare as plaintext.
+const { safeFetch, mockDbGet } = vi.hoisted(() => ({ safeFetch: vi.fn(), mockDbGet: vi.fn(() => undefined as unknown) }));
 vi.mock('../../../src/utils/ssrfGuard', () => ({ safeFetch }));
+vi.mock('../../../src/db/database', () => ({
+  db: { prepare: () => ({ get: mockDbGet, all: vi.fn(() => []), run: vi.fn() }) },
+}));
+vi.mock('../../../src/services/apiKeyCrypto', () => ({ decrypt_api_key: (v: string | null) => v }));
 
-import { searchUnsplashPhotos, saveUnsplashCover, isUnsplashCoverUrl } from '../../../src/services/unsplashService';
+import { searchUnsplashPhotos, getUnsplashKey, saveUnsplashCover, isUnsplashCoverUrl } from '../../../src/services/unsplashService';
+
+const ORIGINAL_UNSPLASH_ENV = process.env.UNSPLASH_ACCESS_KEY;
 
 afterEach(() => {
   vi.clearAllMocks();
   vi.unstubAllGlobals();
+  mockDbGet.mockReturnValue(undefined);
+  if (ORIGINAL_UNSPLASH_ENV === undefined) delete process.env.UNSPLASH_ACCESS_KEY;
+  else process.env.UNSPLASH_ACCESS_KEY = ORIGINAL_UNSPLASH_ENV;
 });
 
 function fakeRes(init: { ok: boolean; status?: number; type?: string; bytes?: number; json?: unknown }): Response {
@@ -58,6 +69,53 @@ describe('unsplashService.searchUnsplashPhotos', () => {
     const res = await searchUnsplashPhotos('paris') as { photos: { id: string }[] };
     expect(res.photos).toHaveLength(1);
     expect(res.photos[0]).toMatchObject({ id: 'a', photographer: 'Alice', link: 'https://unsplash.com/a' });
+  });
+
+  it('UNSPLASH-010: hits the unauthenticated web endpoint when no access key is given', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(fakeRes({ ok: true, type: 'application/json', json: { results: [] } }));
+    vi.stubGlobal('fetch', fetchMock);
+    await searchUnsplashPhotos('paris');
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toContain('unsplash.com/napi/search/photos');
+    expect((init.headers as Record<string, string>).Authorization).toBeUndefined();
+  });
+
+  it('UNSPLASH-011: hits the official API with a Client-ID header when an access key is given', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(fakeRes({ ok: true, type: 'application/json', json: { results: [] } }));
+    vi.stubGlobal('fetch', fetchMock);
+    await searchUnsplashPhotos('paris', 9, 'my-access-key');
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toContain('api.unsplash.com/search/photos');
+    expect((init.headers as Record<string, string>).Authorization).toBe('Client-ID my-access-key');
+    expect((init.headers as Record<string, string>)['Accept-Version']).toBe('v1');
+  });
+});
+
+describe('unsplashService.getUnsplashKey', () => {
+  it('UNSPLASH-012: prefers the UNSPLASH_ACCESS_KEY env var over any stored key', () => {
+    process.env.UNSPLASH_ACCESS_KEY = 'env-key';
+    mockDbGet.mockReturnValue({ unsplash_api_key: 'user-key' });
+    expect(getUnsplashKey(1)).toBe('env-key');
+    expect(mockDbGet).not.toHaveBeenCalled();
+  });
+
+  it('UNSPLASH-013: returns the user key when set and no env var', () => {
+    delete process.env.UNSPLASH_ACCESS_KEY;
+    mockDbGet.mockReturnValueOnce({ unsplash_api_key: 'user-key' });
+    expect(getUnsplashKey(1)).toBe('user-key');
+  });
+
+  it('UNSPLASH-014: falls back to the admin key when the user has none', () => {
+    delete process.env.UNSPLASH_ACCESS_KEY;
+    mockDbGet.mockReturnValueOnce({ unsplash_api_key: null });
+    mockDbGet.mockReturnValueOnce({ unsplash_api_key: 'admin-key' });
+    expect(getUnsplashKey(1)).toBe('admin-key');
+  });
+
+  it('UNSPLASH-015: returns null when neither env, user, nor admin has a key', () => {
+    delete process.env.UNSPLASH_ACCESS_KEY;
+    mockDbGet.mockReturnValue(undefined);
+    expect(getUnsplashKey(1)).toBeNull();
   });
 });
 

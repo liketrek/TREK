@@ -54,7 +54,8 @@ const admin: TranslationStrings = {
   'admin.smtp.title': 'Email & Thông báo',
   'admin.smtp.hint': 'Cấu hình SMTP để gửi thông báo qua email.',
   'admin.smtp.testButton': 'Gửi email kiểm tra',
-  'admin.webhook.hint': 'Cho phép người dùng định cấu hình URL webhook của riêng họ để nhận thông báo (Discord, Slack, v.v.).',
+  'admin.webhook.hint':
+    'Cho phép người dùng định cấu hình URL webhook của riêng họ để nhận thông báo (Discord, Slack, v.v.).',
   'admin.smtp.testSuccess': 'Email kiểm tra đã được gửi thành công',
   'admin.smtp.testFailed': 'Email kiểm tra không thành công',
   'admin.title': 'Sự quản lý',
@@ -136,28 +137,32 @@ const admin: TranslationStrings = {
   'admin.recommended': 'Khuyến khích',
   'admin.weatherKey': 'OpenWeatherMap API Chìa khóa',
   'admin.weatherKeyHint': 'Đối với dữ liệu thời tiết. Miễn phí tại openweathermap.org',
+  'admin.unsplashKey': 'Khóa API Unsplash',
+  'admin.unsplashKeyHint': 'Đối với tìm kiếm hình ảnh. Miễn phí tại unsplash.com/developers',
   'admin.validateKey': 'Bài kiểm tra',
   'admin.keyValid': 'Đã kết nối',
   'admin.keyInvalid': 'Không hợp lệ',
   'admin.keySaved': 'Đã lưu khóa API',
   'admin.oidcTitle': 'Đăng nhập một lần (OIDC)',
-  'admin.oidcSubtitle': 'Cho phép đăng nhập thông qua các nhà cung cấp bên ngoài như Google, Apple, Authentik hoặc Keycloak.',
+  'admin.oidcSubtitle':
+    'Cho phép đăng nhập thông qua các nhà cung cấp bên ngoài như Google, Apple, Authentik hoặc Keycloak.',
   'admin.oidcDisplayName': 'Tên hiển thị',
   'admin.oidcIssuer': 'Nhà phát hành URL',
   'admin.oidcIssuerHint': 'Nhà phát hành kết nối OpenID URL của nhà cung cấp. ví dụ. https://accounts.google.com',
   'admin.oidcSaved': 'Đã lưu cấu hình OIDC',
   'admin.oidcOnlyMode': 'Vô hiệu hóa xác thực mật khẩu',
-  'admin.oidcOnlyModeHint':
-    'Khi được bật, chỉ cho phép đăng nhập SSO. Đăng nhập và đăng ký dựa trên mật khẩu bị chặn.',
+  'admin.oidcOnlyModeHint': 'Khi được bật, chỉ cho phép đăng nhập SSO. Đăng nhập và đăng ký dựa trên mật khẩu bị chặn.',
   'admin.fileTypes': 'Các loại tệp được phép',
   'admin.fileTypesHint': 'Định cấu hình loại tệp mà người dùng có thể tải lên.',
-  'admin.fileTypesFormat': 'Các phần mở rộng được phân tách bằng dấu phẩy (ví dụ: jpg,png,pdf,doc). Sử dụng * để cho phép tất cả các loại.',
+  'admin.fileTypesFormat':
+    'Các phần mở rộng được phân tách bằng dấu phẩy (ví dụ: jpg,png,pdf,doc). Sử dụng * để cho phép tất cả các loại.',
   'admin.fileTypesSaved': 'Đã lưu cài đặt loại tệp',
   'admin.placesPhotos.title': 'Đặt ảnh',
   'admin.placesPhotos.subtitle':
     'Tìm nạp ảnh từ Google Địa điểm API. Tắt để lưu hạn ngạch API. Hình ảnh của Wikimedia không bị ảnh hưởng.',
   'admin.placesAutocomplete.title': 'Đặt Tự động hoàn thành',
-  'admin.placesAutocomplete.subtitle': 'Sử dụng Google Địa điểm API để có các đề xuất tìm kiếm. Tắt để lưu hạn ngạch API.',
+  'admin.placesAutocomplete.subtitle':
+    'Sử dụng Google Địa điểm API để có các đề xuất tìm kiếm. Tắt để lưu hạn ngạch API.',
   'admin.placesDetails.title': 'Chi tiết địa điểm',
   'admin.placesDetails.subtitle':
     'Tìm nạp thông tin chi tiết về địa điểm (giờ, xếp hạng, trang web) từ Google Địa điểm API. Tắt để lưu hạn ngạch API.',
@@ -233,7 +238,8 @@ const admin: TranslationStrings = {
   'admin.plugins.noErrors': 'Chưa ghi nhận lỗi nào.',
   'admin.plugins.uninstalled': 'Đã gỡ cài đặt plugin',
   'admin.plugins.uninstallTitle': 'Gỡ cài đặt plugin?',
-  'admin.plugins.uninstallBody': 'Thao tác này sẽ dừng plugin, xóa mã nguồn và toàn bộ dữ liệu của nó. Không thể hoàn tác.',
+  'admin.plugins.uninstallBody':
+    'Thao tác này sẽ dừng plugin, xóa mã nguồn và toàn bộ dữ liệu của nó. Không thể hoàn tác.',
   'admin.plugins.status.starting': 'Đang khởi động…',
   'admin.plugins.type.widget': 'Widget',
   'admin.plugins.type.page': 'Trang',
@@ -247,10 +253,12 @@ const admin: TranslationStrings = {
   'admin.plugins.title': 'Plugins',
   'admin.plugins.subtitle': 'Cài đặt và quản lý các plugin bên thứ ba trên hệ thống của bạn.',
   'admin.plugins.disabledTitle': 'Plugin đang bị tắt',
-  'admin.plugins.disabledBody': 'Môi trường chạy plugin đang bị tắt (TREK_PLUGINS_ENABLED). Không plugin nào có thể chạy cho đến khi quản trị viên bật nó trong cấu hình máy chủ.',
+  'admin.plugins.disabledBody':
+    'Môi trường chạy plugin đang bị tắt (TREK_PLUGINS_ENABLED). Không plugin nào có thể chạy cho đến khi quản trị viên bật nó trong cấu hình máy chủ.',
   'admin.plugins.empty': 'Chưa cài đặt plugin nào.',
   'admin.plugins.loadError': 'Không thể tải danh sách plugin.',
-  'admin.plugins.scaffoldNote': 'Tính năng cài đặt và kích hoạt plugin sẽ có trong bản cập nhật sau. Hiện bảng này chỉ liệt kê các plugin đã cài đặt.',
+  'admin.plugins.scaffoldNote':
+    'Tính năng cài đặt và kích hoạt plugin sẽ có trong bản cập nhật sau. Hiện bảng này chỉ liệt kê các plugin đã cài đặt.',
   'admin.plugins.status.active': 'Đang hoạt động',
   'admin.plugins.status.inactive': 'Không hoạt động',
   'admin.plugins.status.disabled': 'Đã tắt',
@@ -272,23 +280,34 @@ const admin: TranslationStrings = {
   'admin.plugins.reviewedOn': 'Đã kiểm duyệt {date}',
   'admin.plugins.perm.db:own': 'Lưu trữ dữ liệu riêng trong một cơ sở dữ liệu cách ly',
   'admin.plugins.perm.db:read:trips': 'Đọc các chuyến đi mà người dùng hiện tại có quyền truy cập',
-  'admin.plugins.perm.db:read:users': 'Đọc thông tin hồ sơ cơ bản (tên, ảnh đại diện — không bao giờ là thông tin đăng nhập)',
+  'admin.plugins.perm.db:read:users':
+    'Đọc thông tin hồ sơ cơ bản (tên, ảnh đại diện — không bao giờ là thông tin đăng nhập)',
   'admin.plugins.perm.db:read:costs': 'Đọc chi phí (mục ngân sách) mà người dùng hiện tại có quyền truy cập',
-  'admin.plugins.perm.db:read:packing': 'Đọc danh sách hành lý của các chuyến đi mà người dùng hiện tại có quyền truy cập',
+  'admin.plugins.perm.db:read:packing':
+    'Đọc danh sách hành lý của các chuyến đi mà người dùng hiện tại có quyền truy cập',
   'admin.plugins.perm.db:read:files': 'Đọc tệp của các chuyến đi mà người dùng hiện tại có quyền truy cập',
-  'admin.plugins.perm.db:write:costs': 'Tạo chi phí (mục ngân sách) trên các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa',
-  'admin.plugins.perm.db:write:places': 'Thêm, chỉnh sửa và xóa địa điểm trên các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa',
-  'admin.plugins.perm.db:write:days': 'Thêm, chỉnh sửa và xóa ngày trên các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa',
-  'admin.plugins.perm.db:write:itinerary': 'Gán và xóa địa điểm vào các ngày của chuyến đi mà người dùng hiện tại có quyền chỉnh sửa',
-  'admin.plugins.perm.db:write:trips': 'Chỉnh sửa chi tiết chuyến đi (tiêu đề, ngày, tiền tệ…) trên các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa',
-  'admin.plugins.perm.db:meta': 'Đính kèm dữ liệu riêng của nó vào các chuyến đi, địa điểm và ngày mà người dùng đang thao tác có quyền truy cập',
+  'admin.plugins.perm.db:write:costs':
+    'Tạo chi phí (mục ngân sách) trên các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa',
+  'admin.plugins.perm.db:write:places':
+    'Thêm, chỉnh sửa và xóa địa điểm trên các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa',
+  'admin.plugins.perm.db:write:days':
+    'Thêm, chỉnh sửa và xóa ngày trên các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa',
+  'admin.plugins.perm.db:write:itinerary':
+    'Gán và xóa địa điểm vào các ngày của chuyến đi mà người dùng hiện tại có quyền chỉnh sửa',
+  'admin.plugins.perm.db:write:trips':
+    'Chỉnh sửa chi tiết chuyến đi (tiêu đề, ngày, tiền tệ…) trên các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa',
+  'admin.plugins.perm.db:meta':
+    'Đính kèm dữ liệu riêng của nó vào các chuyến đi, địa điểm và ngày mà người dùng đang thao tác có quyền truy cập',
   'admin.plugins.perm.ws:broadcast:trip': 'Gửi cập nhật thời gian thực đến các thành viên chuyến đi',
   'admin.plugins.perm.ws:broadcast:user': 'Gửi cập nhật thời gian thực đến từng người dùng',
   'admin.plugins.perm.hook:photo-provider': 'Cung cấp ảnh cho tính năng Ảnh',
   'admin.plugins.perm.hook:calendar-source': 'Cung cấp sự kiện cho lịch',
-  'admin.plugins.perm.hook:place-detail-provider': 'Đóng góp thêm thông tin chi tiết (đánh giá, xếp hạng, liên kết) cho một địa điểm',
-  'admin.plugins.perm.hook:trip-warning-provider': 'Đưa ra cảnh báo xác thực trên một chuyến đi (hiển thị trong trình lập kế hoạch)',
-  'admin.plugins.perm.events:subscribe': 'Phản hồi các sự kiện hoạt động cốt lõi (chỉ tên sự kiện + chuyến đi, không bao giờ là nội dung)',
+  'admin.plugins.perm.hook:place-detail-provider':
+    'Đóng góp thêm thông tin chi tiết (đánh giá, xếp hạng, liên kết) cho một địa điểm',
+  'admin.plugins.perm.hook:trip-warning-provider':
+    'Đưa ra cảnh báo xác thực trên một chuyến đi (hiển thị trong trình lập kế hoạch)',
+  'admin.plugins.perm.events:subscribe':
+    'Phản hồi các sự kiện hoạt động cốt lõi (chỉ tên sự kiện + chuyến đi, không bao giờ là nội dung)',
   'admin.plugins.perm.http:outbound': 'Gửi yêu cầu ra ngoài đến các máy chủ đã khai báo',
   'admin.plugins.updateConsentTitle': 'Bản cập nhật này cần các quyền mới',
   'admin.plugins.updateConsentBody':
@@ -379,7 +398,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.name': 'Bản đồ',
   'admin.addons.catalog.atlas.description': 'Bản đồ thế giới với các quốc gia đã ghé thăm và số liệu thống kê du lịch',
   'admin.addons.catalog.collab.name': 'Cộng tác',
-  'admin.addons.catalog.collab.description': 'Ghi chú, thăm dò ý kiến ​​và trò chuyện theo thời gian thực để lập kế hoạch chuyến đi',
+  'admin.addons.catalog.collab.description':
+    'Ghi chú, thăm dò ý kiến ​​và trò chuyện theo thời gian thực để lập kế hoạch chuyến đi',
   'admin.addons.catalog.memories.name': 'Hình ảnh (Immich)',
   'admin.addons.catalog.memories.description': 'Chia sẻ ảnh chuyến đi qua phiên bản Immich của bạn',
   'admin.addons.catalog.mcp.name': 'MCP',
@@ -467,7 +487,8 @@ const admin: TranslationStrings = {
   'admin.update.confirmTitle': 'Cài đặt bản cập nhật?',
   'admin.update.confirmText':
     'TREK sẽ được cập nhật từ {current} lên {version}. Máy chủ sẽ tự động khởi động lại sau đó.',
-  'admin.update.dataInfo': 'Tất cả dữ liệu của bạn (chuyến đi, người dùng, khóa API, nội dung tải lên, Vacay, Atlas, ngân sách) sẽ được giữ nguyên.',
+  'admin.update.dataInfo':
+    'Tất cả dữ liệu của bạn (chuyến đi, người dùng, khóa API, nội dung tải lên, Vacay, Atlas, ngân sách) sẽ được giữ nguyên.',
   'admin.update.warning': 'Ứng dụng sẽ không khả dụng trong thời gian ngắn khi khởi động lại.',
   'admin.update.confirm': 'Cập nhật ngay',
   'admin.update.installing': 'Đang cập nhật…',
@@ -492,7 +513,8 @@ const admin: TranslationStrings = {
   'admin.passkey.title': 'Đăng nhập bằng mật mã',
   'admin.passkey.cardHint': 'Cho phép người dùng đăng nhập bằng mật mã (WebAuthn). Tắt theo mặc định.',
   'admin.passkey.login': 'Kích hoạt đăng nhập bằng mật mã',
-  'admin.passkey.loginHint': 'Hiển thị tùy chọn "Đăng nhập bằng mật mã" và cho phép người dùng đăng ký mật mã trong cài đặt của họ.',
+  'admin.passkey.loginHint':
+    'Hiển thị tùy chọn "Đăng nhập bằng mật mã" và cho phép người dùng đăng ký mật mã trong cài đặt của họ.',
   'admin.passkey.notConfigured':
     'Chưa có miền WebAuthn nào giải quyết được việc triển khai này. Đặt APP_URL hoặc Relying Party ID bên dưới — mật mã sẽ được ẩn cho đến lúc đó.',
   'admin.passkey.rpId': 'Đảng dựa vào ID (miền)',

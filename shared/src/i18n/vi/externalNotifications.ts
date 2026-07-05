@@ -59,7 +59,8 @@ const en: NotificationLocale = {
     body: 'Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu cho tài khoản TREK của bạn. Nhấp vào nút bên dưới để đặt mật khẩu mới.',
     ctaIntro: 'Đặt lại mật khẩu',
     expiry: 'Liên kết này sẽ hết hạn sau 60 phút.',
-    ignore: "Nếu bạn không yêu cầu điều này, bạn có thể bỏ qua email này một cách an toàn — mật khẩu của bạn sẽ không thay đổi.",
+    ignore:
+      'Nếu bạn không yêu cầu điều này, bạn có thể bỏ qua email này một cách an toàn — mật khẩu của bạn sẽ không thay đổi.',
   },
 };
 

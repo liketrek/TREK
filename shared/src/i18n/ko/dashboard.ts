@@ -42,7 +42,8 @@ const dashboard: TranslationStrings = {
   'dashboard.status.past': '지난 여행',
   'dashboard.status.daysLeft': '{count}일 남음',
   'dashboard.toast.loadError': '여행 불러오기 실패',
-  'dashboard.loadErrorBanner': '서버에 연결할 수 없습니다. 여행 정보는 안전하게 보관되어 있으니 잠시 후 다시 시도해 주세요.',
+  'dashboard.loadErrorBanner':
+    '서버에 연결할 수 없습니다. 여행 정보는 안전하게 보관되어 있으니 잠시 후 다시 시도해 주세요.',
   'dashboard.retry': '다시 시도',
   'dashboard.toast.created': '여행이 생성되었습니다!',
   'dashboard.toast.createError': '여행 생성 실패',

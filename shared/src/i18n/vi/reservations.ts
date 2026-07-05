@@ -6,7 +6,8 @@ const reservations: TranslationStrings = {
   'reservations.emptyHint': 'Thêm đặt chỗ cho chuyến bay, khách sạn và hơn thế nữa',
   'reservations.add': 'Thêm đặt chỗ',
   'reservations.addManual': 'Thêm đặt chỗ',
-  'reservations.placeHint': 'Mẹo: Tốt nhất bạn nên tạo đặt chỗ trực tiếp từ một nơi để liên kết chúng với kế hoạch trong ngày của bạn.',
+  'reservations.placeHint':
+    'Mẹo: Tốt nhất bạn nên tạo đặt chỗ trực tiếp từ một nơi để liên kết chúng với kế hoạch trong ngày của bạn.',
   'reservations.confirmed': 'Đã xác nhận',
   'reservations.pending': 'Chưa giải quyết',
   'reservations.summary': '{confirmed} đã xác nhận, {pending} đang chờ xử lý',
@@ -126,7 +127,8 @@ const reservations: TranslationStrings = {
   'reservations.import.cta': 'Nhập từ tập tin',
   'reservations.import.dropHere': 'Thả file xác nhận đặt phòng tại đây, hoặc bấm để chọn',
   'reservations.import.dropActive': 'Thả tập tin để nhập',
-  'reservations.import.acceptedFormats': 'Đã chấp nhận: EML, PDF, PKPass, HTML, TXT (tối đa 10 MB mỗi cái, tối đa 5 tệp)',
+  'reservations.import.acceptedFormats':
+    'Đã chấp nhận: EML, PDF, PKPass, HTML, TXT (tối đa 10 MB mỗi cái, tối đa 5 tệp)',
   'reservations.import.parsing': 'Đang phân tích tệp…',
   'reservations.import.previewHeading': '{count} đã tìm thấy (các) đặt chỗ',
   'reservations.import.previewEmpty': 'Không thể trích xuất đặt chỗ nào từ các tập tin đã tải lên.',
@@ -138,14 +140,16 @@ const reservations: TranslationStrings = {
   'reservations.import.back': 'Quay lại',
   'reservations.import.success': '{count} đặt chỗ đã được nhập',
   'reservations.import.partialFailure': '{created} đã được nhập, {failed} không thành công',
-  'reservations.import.error': 'Phân tích cú pháp không thành công. Hãy chắc chắn rằng tập tin này là một xác nhận đặt phòng hợp lệ.',
+  'reservations.import.error':
+    'Phân tích cú pháp không thành công. Hãy chắc chắn rằng tập tin này là một xác nhận đặt phòng hợp lệ.',
   'reservations.import.unavailable': 'Nhập đăng ký không có sẵn trên máy chủ này.',
   'reservations.import.unsupportedFormat': 'Định dạng tệp không được hỗ trợ. Sử dụng EML, PDF, PKPass, HTML hoặc TXT.',
   'reservations.import.fileTooLarge': 'Tệp "{name}" vượt quá giới hạn 10 MB.',
   'reservations.airtrail.title': 'Nhập từ AirTrail',
   'reservations.airtrail.cta': 'AirTrail',
   'reservations.airtrail.synced': 'AirTrail',
-  'reservations.airtrail.syncedHint': 'Đã đồng bộ hóa từ AirTrail — các chỉnh sửa vẫn được đồng bộ hóa theo cả hai cách.',
+  'reservations.airtrail.syncedHint':
+    'Đã đồng bộ hóa từ AirTrail — các chỉnh sửa vẫn được đồng bộ hóa theo cả hai cách.',
   'reservations.airtrail.notSynced': 'Chưa được đồng bộ hóa',
   'reservations.airtrail.notSyncedHint': 'Chuyến bay này đã bị xóa trong AirTrail và không còn đồng bộ hóa nữa.',
   'reservations.airtrail.loadError': 'Không thể tải chuyến bay AirTrail của bạn.',

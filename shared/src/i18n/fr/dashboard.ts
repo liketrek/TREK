@@ -42,8 +42,7 @@ const dashboard: TranslationStrings = {
   'dashboard.status.past': 'Passé',
   'dashboard.status.daysLeft': '{count} jours restants',
   'dashboard.toast.loadError': 'Impossible de charger les voyages',
-  'dashboard.loadErrorBanner':
-    "Impossible de joindre le serveur. Vos voyages sont en sécurité — veuillez réessayer.",
+  'dashboard.loadErrorBanner': 'Impossible de joindre le serveur. Vos voyages sont en sécurité — veuillez réessayer.',
   'dashboard.retry': 'Réessayer',
   'dashboard.toast.created': 'Voyage créé avec succès !',
   'dashboard.toast.createError': 'Impossible de créer le voyage',

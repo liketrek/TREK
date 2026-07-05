@@ -49,7 +49,8 @@ const collection: TranslationStrings = {
   'collections.editList': 'Átnevezés',
   'collections.listMenu': 'Lista beállításai',
   'collections.deleteList': 'Lista törlése',
-  'collections.deleteListConfirm': 'Ez véglegesen törli a listát és az összes benne mentett helyet. Ez nem vonható vissza.',
+  'collections.deleteListConfirm':
+    'Ez véglegesen törli a listát és az összes benne mentett helyet. Ez nem vonható vissza.',
   'collections.listName': 'Lista neve',
   'collections.listNamePlaceholder': 'pl. Tokió 2025',
   'collections.listColor': 'Szín',
@@ -61,7 +62,8 @@ const collection: TranslationStrings = {
   'collections.empty.noMatchTitle': 'Nincs találat',
   'collections.empty.noMatchText': 'Egyetlen mentett hely sem felel meg a szűrőnek vagy a keresésnek.',
   'collections.empty.firstTitle': 'Kezdd el az első gyűjteményed',
-  'collections.empty.firstText': 'Hozz létre egy listát, hogy elmenthesd a helyeket, amelyekre utazásokon átívelően emlékezni szeretnél.',
+  'collections.empty.firstText':
+    'Hozz létre egy listát, hogy elmenthesd a helyeket, amelyekre utazásokon átívelően emlékezni szeretnél.',
 
   'collections.view.grid': 'Rács',
   'collections.view.list': 'Lista',
@@ -127,7 +129,8 @@ const collection: TranslationStrings = {
   'collections.share.memberHint': 'Csak a lista tulajdonosa hívhat meg vagy távolíthat el embereket.',
   'collections.share.cancel': 'Mégse',
   'collections.share.leave': 'Lista elhagyása',
-  'collections.share.leaveConfirm': 'Elhagyod ezt a megosztott listát? Elveszíted a hozzáférést, amíg újra meg nem hívnak.',
+  'collections.share.leaveConfirm':
+    'Elhagyod ezt a megosztott listát? Elveszíted a hozzáférést, amíg újra meg nem hívnak.',
   'collections.share.left': 'Elhagytad a listát',
   'collections.share.remove': 'Eltávolítás',
 

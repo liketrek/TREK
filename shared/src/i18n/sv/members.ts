@@ -25,7 +25,8 @@ const members: TranslationStrings = {
   'members.transferError': 'Det gick inte att överföra ägarskapet',
   'members.guests': 'Gäster',
   'members.guest': 'Gäst',
-  'members.guestsHint': 'Personer utan konto. De kan tilldelas kostnader, packning och uppgifter, men kan inte logga in.',
+  'members.guestsHint':
+    'Personer utan konto. De kan tilldelas kostnader, packning och uppgifter, men kan inte logga in.',
   'members.addGuest': 'Lägg till gäst',
   'members.guestNamePlaceholder': 'Gästens namn',
   'members.guestAdded': 'Gäst tillagd',

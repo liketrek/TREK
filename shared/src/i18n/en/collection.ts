@@ -49,7 +49,8 @@ const collection: TranslationStrings = {
   'collections.editList': 'Rename',
   'collections.listMenu': 'List options',
   'collections.deleteList': 'Delete list',
-  'collections.deleteListConfirm': 'This permanently deletes the list and all of its saved places. This cannot be undone.',
+  'collections.deleteListConfirm':
+    'This permanently deletes the list and all of its saved places. This cannot be undone.',
   'collections.listName': 'List name',
   'collections.listNamePlaceholder': 'e.g. Tokyo 2025',
   'collections.listColor': 'Colour',

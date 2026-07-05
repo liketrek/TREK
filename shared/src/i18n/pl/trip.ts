@@ -28,7 +28,8 @@ const trip: TranslationStrings = {
   'trip.toast.placesDeleted': '{count} miejsc usunięto',
   'trip.loadingPhotos': 'Ładowanie zdjęć...',
   'trip.invite.linkTitle': 'Link zaproszenia do podróży',
-  'trip.invite.linkHint': 'Każda osoba z kontem TREK, która otworzy ten link, dołączy do podróży jako członek. Wygeneruj ponownie, aby unieważnić stary link.',
+  'trip.invite.linkHint':
+    'Każda osoba z kontem TREK, która otworzy ten link, dołączy do podróży jako członek. Wygeneruj ponownie, aby unieważnić stary link.',
   'trip.invite.create': 'Utwórz link zaproszenia',
   'trip.invite.regenerate': 'Wygeneruj ponownie',
   'trip.invite.disable': 'Wyłącz',

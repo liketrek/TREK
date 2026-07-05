@@ -63,4 +63,5 @@
   <Config Name="DEMO_MODE" Target="DEMO_MODE" Default="false" Mode="" Description="Enable demo mode (resets all data hourly). Not intended for regular use." Type="Variable" Display="advanced" Required="false" Mask="false">false</Config>
   <Config Name="MCP_RATE_LIMIT" Target="MCP_RATE_LIMIT" Default="300" Mode="" Description="Max MCP API requests per user per minute." Type="Variable" Display="advanced" Required="false" Mask="false">300</Config>
   <Config Name="MCP_MAX_SESSION_PER_USER" Target="MCP_MAX_SESSION_PER_USER" Default="20" Mode="" Description="Max concurrent MCP sessions per user." Type="Variable" Display="advanced" Required="false" Mask="false">20</Config>
+  <Config Name="UNSPLASH_ACCESS_KEY" Target="UNSPLASH_ACCESS_KEY" Default="" Mode="" Description="Optional Unsplash Access Key for trip-cover and place-image search. Without one, TREK uses Unsplash's unauthenticated endpoint, which some datacenter/VPS IPs are blocked from. Get a free key at unsplash.com/developers. Can also be set per-admin in Admin &gt; Settings; this env var overrides that." Type="Variable" Display="advanced" Required="false" Mask="true"/>
 </Container>

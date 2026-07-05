@@ -29,7 +29,8 @@ const settings: TranslationStrings = {
   'settings.mapStylePlaceholder': 'Bir Mapbox stili seçin',
   'settings.mapStyleHint': 'Ön ayar veya kendi mapbox://styles/KULLANICI/ID adresiniz',
   'settings.mapOpenFreeMapStylePlaceholder': 'Bir OpenFreeMap stili seçin',
-  'settings.mapOpenFreeMapStyleHint': "Ön ayar veya OpenFreeMap stil URL'si. OpenFreeMap stilleri anahtar gerektirmeden çalışır.",
+  'settings.mapOpenFreeMapStyleHint':
+    "Ön ayar veya OpenFreeMap stil URL'si. OpenFreeMap stilleri anahtar gerektirmeden çalışır.",
   'settings.map3dBuildings': '3D Binalar ve Arazi',
   'settings.map3dHint': 'Eğim + gerçek 3D bina çıkıntıları — uydu dahil her stilde çalışır.',
   'settings.mapHighQuality': 'Yüksek Kalite Modu',
@@ -326,18 +327,21 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.success': 'Bağlandı — {count} uçuş bulundu',
   'settings.airtrail.test.failed': 'Bağlantı başarısız',
   'settings.aiParsing.title': 'Yapay zekâ ayrıştırma',
-  'settings.aiParsing.hint': 'Yüklenen dosyalardan rezervasyonları çıkarmak için kendi yapay zekâ modelini kullan. Bu yalnızca yöneticin tüm uygulama geneli için bir model yapılandırmadığında geçerlidir.',
+  'settings.aiParsing.hint':
+    'Yüklenen dosyalardan rezervasyonları çıkarmak için kendi yapay zekâ modelini kullan. Bu yalnızca yöneticin tüm uygulama geneli için bir model yapılandırmadığında geçerlidir.',
   'settings.aiParsing.provider': 'Sağlayıcı',
   'settings.aiParsing.providerLocal': 'Yerel (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
   'settings.aiParsing.model': 'Model',
   'settings.aiParsing.baseUrl': 'Temel URL',
-  'settings.aiParsing.baseUrlHint': 'Modelin çalıştığı yer — yerel bir Ollama sunucusu veya OpenAI uyumlu bir uç nokta.',
+  'settings.aiParsing.baseUrlHint':
+    'Modelin çalıştığı yer — yerel bir Ollama sunucusu veya OpenAI uyumlu bir uç nokta.',
   'settings.aiParsing.apiKey': 'API anahtarı',
   'settings.aiParsing.apiKeyHint': 'Şifrelenmiş olarak saklanır. Mevcut anahtarı korumak için boş bırak.',
   'settings.aiParsing.multimodal': 'Belgeleri görsel olarak gönder',
-  'settings.aiParsing.multimodalHint': 'Görüntü işleyebilen modeller için — çıkarılan metin yerine orijinal PDF\'yi gönderir.',
+  'settings.aiParsing.multimodalHint':
+    "Görüntü işleyebilen modeller için — çıkarılan metin yerine orijinal PDF'yi gönderir.",
   'settings.aiParsing.toast.saved': 'Yapay zekâ ayarları kaydedildi',
   'settings.aiParsing.toast.saveError': 'Yapay zekâ ayarları kaydedilemedi',
   'settings.tabs.appearance': 'Appearance',
@@ -356,7 +360,8 @@ const settings: TranslationStrings = {
   'settings.appearance.contrastLow': 'Low contrast',
   'settings.appearance.readability': 'Readability',
   'settings.appearance.transparency': 'Transparency',
-  'settings.appearance.transparencyHint': 'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
+  'settings.appearance.transparencyHint':
+    'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
   'settings.appearance.reduceMotion': 'Reduce motion',
   'settings.appearance.reduceMotionHint': 'Minimize animations and transitions.',
   'settings.appearance.density': 'Density',
@@ -386,7 +391,8 @@ const settings: TranslationStrings = {
   'settings.appearance.group.belowHero': 'Below the hero',
   'settings.appearance.group.bottomOfPage': 'Bottom of page',
   'settings.appearance.sidebarHint': 'The whole right column. Turn off and the dashboard centers.',
-  'settings.appearance.densityHint': 'Compact tightens spacing and padding for a denser layout that fits more on screen.',
+  'settings.appearance.densityHint':
+    'Compact tightens spacing and padding for a denser layout that fits more on screen.',
   'settings.appearance.textSizeAll': 'Everything',
   'settings.appearance.perSize': 'Adjust each size separately',
   'settings.appearance.size.large': 'Large',
@@ -409,10 +415,13 @@ const settings: TranslationStrings = {
   'settings.offline.cache.title': 'Çevrimdışı önbellek',
   'settings.offline.mode.title': 'Çevrimdışı mod',
   'settings.offline.mode.force': 'Çevrimdışı modu zorla',
-  'settings.offline.mode.forceHint': 'Yalnızca önbelleğe alınmış verilerle çalışın ve değişikliklerinizi sıraya alın. Yeniden bağlanıp senkronize etmek için kapatın.',
-  'settings.offline.mode.active': 'Çevrimdışı mod açık — değişiklikleriniz sıraya alındı ve kapattığınızda senkronize edilecek.',
+  'settings.offline.mode.forceHint':
+    'Yalnızca önbelleğe alınmış verilerle çalışın ve değişikliklerinizi sıraya alın. Yeniden bağlanıp senkronize etmek için kapatın.',
+  'settings.offline.mode.active':
+    'Çevrimdışı mod açık — değişiklikleriniz sıraya alındı ve kapattığınızda senkronize edilecek.',
   'settings.offline.prepare.title': 'Çevrimdışı için hazırlan',
-  'settings.offline.prepare.hint': 'Bağlantınızı kaybetmeden önce ihtiyacınız olan her şeyi — gezi verileri, belgeler ve harita kutucukları — indirin.',
+  'settings.offline.prepare.hint':
+    'Bağlantınızı kaybetmeden önce ihtiyacınız olan her şeyi — gezi verileri, belgeler ve harita kutucukları — indirin.',
   'settings.offline.prepare.button': 'Çevrimdışı kullanım için indir',
   'settings.offline.prepare.running': 'İndiriliyor…',
   'settings.offline.prepare.done': 'Çevrimdışı kullanıma hazır',
@@ -423,12 +432,14 @@ const settings: TranslationStrings = {
   'settings.offline.resyncing': 'Senkronize ediliyor…',
   'settings.offline.storage.title': 'Çevrimdışı olarak ne saklanacak',
   'settings.offline.storage.tiles': 'Harita kutucuklarını çevrimdışı sakla',
-  'settings.offline.storage.tilesHint': 'Harita kutucukları en fazla depolama alanını kullanır. Yalnızca gezi verilerini ve belgeleri çevrimdışı tutmak için bunu kapatın.',
+  'settings.offline.storage.tilesHint':
+    'Harita kutucukları en fazla depolama alanını kullanır. Yalnızca gezi verilerini ve belgeleri çevrimdışı tutmak için bunu kapatın.',
   'settings.offline.storage.tripsTitle': 'Geziler',
   'settings.offline.storage.tripOn': 'Çevrimdışı saklandı',
   'settings.offline.storage.tripOff': 'Saklanmadı',
   'settings.offline.clear': 'Önbelleği temizle',
-  'settings.offline.clearConfirm': 'Tüm çevrimdışı gezi verileri silinsin mi? Çevrimiçiyken istediğiniz zaman yeniden senkronize edebilirsiniz.',
+  'settings.offline.clearConfirm':
+    'Tüm çevrimdışı gezi verileri silinsin mi? Çevrimiçiyken istediğiniz zaman yeniden senkronize edebilirsiniz.',
   'settings.offline.stats.trips': 'Önbelleğe alınan geziler',
   'settings.offline.stats.pending': 'Bekleyen değişiklikler',
   'settings.offline.stats.failed': 'Başarısız değişiklikler',
@@ -436,7 +447,8 @@ const settings: TranslationStrings = {
   'settings.offline.empty': 'Henüz önbelleğe alınmış gezi yok. Senkronize etmek için internete bağlanın.',
   'settings.offline.loading': 'Yükleniyor…',
   'settings.offline.conflicts.title': 'Senkronizasyon çakışmaları',
-  'settings.offline.conflicts.hint': 'Çevrimdışıyken yaptığınız değişiklikler sunucudaki daha yeni değişikliklerle çakışıyor. Hangi sürümün saklanacağını seçin.',
+  'settings.offline.conflicts.hint':
+    'Çevrimdışıyken yaptığınız değişiklikler sunucudaki daha yeni değişikliklerle çakışıyor. Hangi sürümün saklanacağını seçin.',
   'settings.offline.conflicts.keepMine': 'Benimkini sakla',
   'settings.offline.conflicts.keepServer': 'Onlarınkini sakla',
   'settings.offline.conflicts.mine': 'Sizin sürümünüz',

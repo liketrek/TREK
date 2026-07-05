@@ -28,7 +28,8 @@ const trip: TranslationStrings = {
   'trip.confirm.deletePlaces': 'Delete {count} places?',
   'trip.toast.placesDeleted': '{count} places deleted',
   'trip.invite.linkTitle': 'Trip invite link',
-  'trip.invite.linkHint': 'Anyone with a TREK account who opens this link joins the trip as a member. Regenerate to invalidate the old link.',
+  'trip.invite.linkHint':
+    'Anyone with a TREK account who opens this link joins the trip as a member. Regenerate to invalidate the old link.',
   'trip.invite.create': 'Create invite link',
   'trip.invite.regenerate': 'Regenerate',
   'trip.invite.disable': 'Disable',

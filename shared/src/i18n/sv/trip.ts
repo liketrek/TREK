@@ -28,7 +28,8 @@ const trip: TranslationStrings = {
   'trip.confirm.deletePlaces': 'Radera {count} platser?',
   'trip.toast.placesDeleted': '{count} platser raderade',
   'trip.invite.linkTitle': 'Inbjudningslänk till resa',
-  'trip.invite.linkHint': 'Alla med ett TREK-konto som öppnar den här länken går med i resan som medlem. Skapa en ny länk för att ogiltigförklara den gamla.',
+  'trip.invite.linkHint':
+    'Alla med ett TREK-konto som öppnar den här länken går med i resan som medlem. Skapa en ny länk för att ogiltigförklara den gamla.',
   'trip.invite.create': 'Skapa inbjudningslänk',
   'trip.invite.regenerate': 'Skapa ny',
   'trip.invite.disable': 'Inaktivera',

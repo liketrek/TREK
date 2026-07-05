@@ -25,7 +25,8 @@ const members: TranslationStrings = {
   'members.transferError': 'Übertragung fehlgeschlagen',
   'members.guests': 'Gäste',
   'members.guest': 'Gast',
-  'members.guestsHint': 'Personen ohne Account. Sie können Kosten, Gepäck und Aufgaben zugewiesen bekommen, sich aber nicht anmelden.',
+  'members.guestsHint':
+    'Personen ohne Account. Sie können Kosten, Gepäck und Aufgaben zugewiesen bekommen, sich aber nicht anmelden.',
   'members.addGuest': 'Gast hinzufügen',
   'members.guestNamePlaceholder': 'Name des Gasts',
   'members.guestAdded': 'Gast hinzugefügt',

@@ -164,7 +164,7 @@ export function listFiles(tripId: string | number, showTrash: boolean) {
   const files = db.prepare(`${FILE_SELECT} WHERE ${where} ORDER BY f.starred DESC, f.created_at DESC`).all(tripId) as TripFile[];
 
   const fileIds = files.map(f => f.id);
-  let linksMap: Record<number, FileLink[]> = {};
+  const linksMap: Record<number, FileLink[]> = {};
   if (fileIds.length > 0) {
     const placeholders = fileIds.map(() => '?').join(',');
     const links = db.prepare(`SELECT file_id, reservation_id, place_id FROM file_links WHERE file_id IN (${placeholders})`).all(...fileIds) as FileLink[];

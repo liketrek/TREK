@@ -308,7 +308,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.success': '已连接——找到 {count} 个航班',
   'settings.airtrail.test.failed': '连接失败',
   'settings.aiParsing.title': 'AI 解析',
-  'settings.aiParsing.hint': '使用你自己的 AI 模型从上传的文件中提取预订信息。仅当管理员未为整个实例配置模型时才会生效。',
+  'settings.aiParsing.hint':
+    '使用你自己的 AI 模型从上传的文件中提取预订信息。仅当管理员未为整个实例配置模型时才会生效。',
   'settings.aiParsing.provider': '服务商',
   'settings.aiParsing.providerLocal': '本地 (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
@@ -338,7 +339,8 @@ const settings: TranslationStrings = {
   'settings.appearance.contrastLow': 'Low contrast',
   'settings.appearance.readability': 'Readability',
   'settings.appearance.transparency': 'Transparency',
-  'settings.appearance.transparencyHint': 'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
+  'settings.appearance.transparencyHint':
+    'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
   'settings.appearance.reduceMotion': 'Reduce motion',
   'settings.appearance.reduceMotionHint': 'Minimize animations and transitions.',
   'settings.appearance.density': 'Density',
@@ -368,7 +370,8 @@ const settings: TranslationStrings = {
   'settings.appearance.group.belowHero': 'Below the hero',
   'settings.appearance.group.bottomOfPage': 'Bottom of page',
   'settings.appearance.sidebarHint': 'The whole right column. Turn off and the dashboard centers.',
-  'settings.appearance.densityHint': 'Compact tightens spacing and padding for a denser layout that fits more on screen.',
+  'settings.appearance.densityHint':
+    'Compact tightens spacing and padding for a denser layout that fits more on screen.',
   'settings.appearance.textSizeAll': 'Everything',
   'settings.appearance.perSize': 'Adjust each size separately',
   'settings.appearance.size.large': 'Large',

@@ -12,8 +12,10 @@ const backup: TranslationStrings = {
   'backup.createFirst': 'Skapa den första säkerhetskopian',
   'backup.download': 'Ladda ner',
   'backup.restore': 'Återställ',
-  'backup.confirm.restore': 'Återställ säkerhetskopia "{name}"?\n\nAlla aktuella data kommer att ersättas med säkerhetskopian.',
-  'backup.confirm.uploadRestore': 'Ladda upp och återställ säkerhetskopian "{name}"?\n\nAlla befintliga data kommer att skrivas över.',
+  'backup.confirm.restore':
+    'Återställ säkerhetskopia "{name}"?\n\nAlla aktuella data kommer att ersättas med säkerhetskopian.',
+  'backup.confirm.uploadRestore':
+    'Ladda upp och återställ säkerhetskopian "{name}"?\n\nAlla befintliga data kommer att skrivas över.',
   'backup.confirm.delete': 'Ta bort säkerhetskopia "{name}"?',
   'backup.toast.loadError': 'Det gick inte att ladda säkerhetskopiorna',
   'backup.toast.created': 'Säkerhetskopian har skapats',

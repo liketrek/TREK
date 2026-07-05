@@ -330,18 +330,21 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.success': 'Połączono — znaleziono {count} lot(y/ów)',
   'settings.airtrail.test.failed': 'Połączenie nieudane',
   'settings.aiParsing.title': 'Analiza AI',
-  'settings.aiParsing.hint': 'Użyj własnego modelu AI, aby wyodrębniać rezerwacje z przesłanych plików. Ma to zastosowanie tylko wtedy, gdy administrator nie skonfigurował modelu dla całej instancji.',
+  'settings.aiParsing.hint':
+    'Użyj własnego modelu AI, aby wyodrębniać rezerwacje z przesłanych plików. Ma to zastosowanie tylko wtedy, gdy administrator nie skonfigurował modelu dla całej instancji.',
   'settings.aiParsing.provider': 'Dostawca',
   'settings.aiParsing.providerLocal': 'Lokalny (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
   'settings.aiParsing.model': 'Model',
   'settings.aiParsing.baseUrl': 'Bazowy adres URL',
-  'settings.aiParsing.baseUrlHint': 'Miejsce, w którym działa model — lokalny serwer Ollama lub punkt końcowy zgodny z OpenAI.',
+  'settings.aiParsing.baseUrlHint':
+    'Miejsce, w którym działa model — lokalny serwer Ollama lub punkt końcowy zgodny z OpenAI.',
   'settings.aiParsing.apiKey': 'Klucz API',
   'settings.aiParsing.apiKeyHint': 'Przechowywany w postaci zaszyfrowanej. Pozostaw puste, aby zachować bieżący klucz.',
   'settings.aiParsing.multimodal': 'Wysyłaj dokumenty jako obrazy',
-  'settings.aiParsing.multimodalHint': 'Dla modeli obsługujących obraz — wysyła oryginalny plik PDF zamiast wyodrębnionego tekstu.',
+  'settings.aiParsing.multimodalHint':
+    'Dla modeli obsługujących obraz — wysyła oryginalny plik PDF zamiast wyodrębnionego tekstu.',
   'settings.aiParsing.toast.saved': 'Zapisano ustawienia AI',
   'settings.aiParsing.toast.saveError': 'Nie udało się zapisać ustawień AI',
   'settings.tabs.appearance': 'Appearance',
@@ -360,7 +363,8 @@ const settings: TranslationStrings = {
   'settings.appearance.contrastLow': 'Low contrast',
   'settings.appearance.readability': 'Readability',
   'settings.appearance.transparency': 'Transparency',
-  'settings.appearance.transparencyHint': 'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
+  'settings.appearance.transparencyHint':
+    'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
   'settings.appearance.reduceMotion': 'Reduce motion',
   'settings.appearance.reduceMotionHint': 'Minimize animations and transitions.',
   'settings.appearance.density': 'Density',
@@ -390,7 +394,8 @@ const settings: TranslationStrings = {
   'settings.appearance.group.belowHero': 'Below the hero',
   'settings.appearance.group.bottomOfPage': 'Bottom of page',
   'settings.appearance.sidebarHint': 'The whole right column. Turn off and the dashboard centers.',
-  'settings.appearance.densityHint': 'Compact tightens spacing and padding for a denser layout that fits more on screen.',
+  'settings.appearance.densityHint':
+    'Compact tightens spacing and padding for a denser layout that fits more on screen.',
   'settings.appearance.textSizeAll': 'Everything',
   'settings.appearance.perSize': 'Adjust each size separately',
   'settings.appearance.size.large': 'Large',
@@ -413,10 +418,13 @@ const settings: TranslationStrings = {
   'settings.offline.cache.title': 'Pamięć podręczna offline',
   'settings.offline.mode.title': 'Tryb offline',
   'settings.offline.mode.force': 'Wymuś tryb offline',
-  'settings.offline.mode.forceHint': 'Pracuj wyłącznie na danych z pamięci podręcznej i kolejkuj swoje zmiany. Wyłącz, aby połączyć się ponownie i zsynchronizować.',
-  'settings.offline.mode.active': 'Tryb offline jest włączony — Twoje zmiany czekają w kolejce i zostaną zsynchronizowane po jego wyłączeniu.',
+  'settings.offline.mode.forceHint':
+    'Pracuj wyłącznie na danych z pamięci podręcznej i kolejkuj swoje zmiany. Wyłącz, aby połączyć się ponownie i zsynchronizować.',
+  'settings.offline.mode.active':
+    'Tryb offline jest włączony — Twoje zmiany czekają w kolejce i zostaną zsynchronizowane po jego wyłączeniu.',
   'settings.offline.prepare.title': 'Przygotuj do trybu offline',
-  'settings.offline.prepare.hint': 'Pobierz wszystko, czego potrzebujesz — dane podróży, dokumenty i kafelki mapy — zanim stracisz połączenie.',
+  'settings.offline.prepare.hint':
+    'Pobierz wszystko, czego potrzebujesz — dane podróży, dokumenty i kafelki mapy — zanim stracisz połączenie.',
   'settings.offline.prepare.button': 'Pobierz do użytku offline',
   'settings.offline.prepare.running': 'Pobieranie…',
   'settings.offline.prepare.done': 'Gotowe do użytku offline',
@@ -427,12 +435,14 @@ const settings: TranslationStrings = {
   'settings.offline.resyncing': 'Synchronizowanie…',
   'settings.offline.storage.title': 'Co przechowywać offline',
   'settings.offline.storage.tiles': 'Przechowuj kafelki mapy offline',
-  'settings.offline.storage.tilesHint': 'Kafelki mapy zajmują najwięcej miejsca. Wyłącz tę opcję, aby przechowywać offline tylko dane podróży i dokumenty.',
+  'settings.offline.storage.tilesHint':
+    'Kafelki mapy zajmują najwięcej miejsca. Wyłącz tę opcję, aby przechowywać offline tylko dane podróży i dokumenty.',
   'settings.offline.storage.tripsTitle': 'Podróże',
   'settings.offline.storage.tripOn': 'Przechowywane offline',
   'settings.offline.storage.tripOff': 'Nieprzechowywane',
   'settings.offline.clear': 'Wyczyść pamięć podręczną',
-  'settings.offline.clearConfirm': 'Wyczyścić wszystkie dane podróży zapisane offline? Możesz je w każdej chwili zsynchronizować ponownie, będąc online.',
+  'settings.offline.clearConfirm':
+    'Wyczyścić wszystkie dane podróży zapisane offline? Możesz je w każdej chwili zsynchronizować ponownie, będąc online.',
   'settings.offline.stats.trips': 'Podróże w pamięci podręcznej',
   'settings.offline.stats.pending': 'Oczekujące zmiany',
   'settings.offline.stats.failed': 'Nieudane zmiany',
@@ -440,7 +450,8 @@ const settings: TranslationStrings = {
   'settings.offline.empty': 'Brak podróży w pamięci podręcznej. Połącz się z internetem, aby zsynchronizować.',
   'settings.offline.loading': 'Ładowanie…',
   'settings.offline.conflicts.title': 'Konflikty synchronizacji',
-  'settings.offline.conflicts.hint': 'Zmiany wprowadzone offline kolidują z nowszymi zmianami na serwerze. Wybierz, którą wersję zachować.',
+  'settings.offline.conflicts.hint':
+    'Zmiany wprowadzone offline kolidują z nowszymi zmianami na serwerze. Wybierz, którą wersję zachować.',
   'settings.offline.conflicts.keepMine': 'Zachowaj moją',
   'settings.offline.conflicts.keepServer': 'Zachowaj serwerową',
   'settings.offline.conflicts.mine': 'Twoja wersja',

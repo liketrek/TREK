@@ -95,6 +95,8 @@ const admin: TranslationStrings = {
   'admin.recommended': '推荐',
   'admin.weatherKey': 'OpenWeatherMap API 密钥',
   'admin.weatherKeyHint': '用于天气数据。在 openweathermap.org 免费获取',
+  'admin.unsplashKey': 'Unsplash API 密钥',
+  'admin.unsplashKeyHint': '用于图片搜索。在 unsplash.com/developers 免费获取',
   'admin.validateKey': '测试',
   'admin.keyValid': '已连接',
   'admin.keyInvalid': '无效',
@@ -190,7 +192,8 @@ const admin: TranslationStrings = {
   'admin.plugins.title': '插件',
   'admin.plugins.subtitle': '在你的实例上安装和管理第三方插件。',
   'admin.plugins.disabledTitle': '插件功能已禁用',
-  'admin.plugins.disabledBody': '插件运行时已关闭（TREK_PLUGINS_ENABLED）。在管理员于服务器配置中启用之前，任何插件都无法运行。',
+  'admin.plugins.disabledBody':
+    '插件运行时已关闭（TREK_PLUGINS_ENABLED）。在管理员于服务器配置中启用之前，任何插件都无法运行。',
   'admin.plugins.empty': '尚未安装任何插件。',
   'admin.plugins.loadError': '无法加载插件。',
   'admin.plugins.scaffoldNote': '插件的安装与激活功能将在后续更新中推出。此面板目前仅列出已安装的插件。',
@@ -416,7 +419,8 @@ const admin: TranslationStrings = {
   'admin.update.backupLink': '前往备份',
   'admin.update.howTo': '如何更新',
   'admin.update.dockerText': '你的 TREK 实例运行在 Docker 中。要更新到 {version}，请在服务器上执行以下命令：',
-  'admin.update.nonDockerText': '此 TREK 实例未运行在 Docker 中。要更新到 {version}，请重新执行你当初使用的安装或更新方式——例如，在 Proxmox Community Scripts 上，从 LXC 控制台运行更新：',
+  'admin.update.nonDockerText':
+    '此 TREK 实例未运行在 Docker 中。要更新到 {version}，请重新执行你当初使用的安装或更新方式——例如，在 Proxmox Community Scripts 上，从 LXC 控制台运行更新：',
   'admin.update.wikiLink': '打开更新指南',
   'admin.update.reloadHint': '请在几秒后刷新页面。',
   'admin.tabs.permissions': '权限',

@@ -212,7 +212,7 @@ export async function sendPasswordResetEmail(
     // No SMTP configured — log the link in a visually distinct block so
     // the admin can relay it. Never log the associated user id/email
     // content at a lower level, only what's needed.
-    // eslint-disable-next-line no-console
+     
     console.log(
       `\n===== PASSWORD RESET LINK =====\n` +
       `to: ${to}\n` +

@@ -49,7 +49,8 @@ const collection: TranslationStrings = {
   'collections.editList': 'إعادة تسمية',
   'collections.listMenu': 'خيارات القائمة',
   'collections.deleteList': 'حذف القائمة',
-  'collections.deleteListConfirm': 'سيؤدي هذا إلى حذف القائمة وجميع الأماكن المحفوظة فيها نهائيًا. لا يمكن التراجع عن ذلك.',
+  'collections.deleteListConfirm':
+    'سيؤدي هذا إلى حذف القائمة وجميع الأماكن المحفوظة فيها نهائيًا. لا يمكن التراجع عن ذلك.',
   'collections.listName': 'اسم القائمة',
   'collections.listNamePlaceholder': 'مثال: طوكيو 2025',
   'collections.listColor': 'اللون',
@@ -127,7 +128,8 @@ const collection: TranslationStrings = {
   'collections.share.memberHint': 'يمكن لمالك القائمة فقط دعوة الأشخاص أو إزالتهم.',
   'collections.share.cancel': 'إلغاء',
   'collections.share.leave': 'مغادرة القائمة',
-  'collections.share.leaveConfirm': 'هل تريد مغادرة هذه القائمة المشتركة؟ ستفقد إمكانية الوصول إليها حتى تتم دعوتك مرة أخرى.',
+  'collections.share.leaveConfirm':
+    'هل تريد مغادرة هذه القائمة المشتركة؟ ستفقد إمكانية الوصول إليها حتى تتم دعوتك مرة أخرى.',
   'collections.share.left': 'لقد غادرت القائمة',
   'collections.share.remove': 'إزالة',
 

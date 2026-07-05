@@ -87,6 +87,8 @@ const admin: TranslationStrings = {
   'admin.recommended': 'Polecane',
   'admin.weatherKey': 'Klucz OpenWeatherMap API',
   'admin.weatherKeyHint': 'Do danych pogodowych. Uzyskaj go bezpłatnie na openweathermap.org',
+  'admin.unsplashKey': 'Klucz API Unsplash',
+  'admin.unsplashKeyHint': 'Do wyszukiwania obrazów. Bezpłatnie na unsplash.com/developers',
   'admin.validateKey': 'Testuj',
   'admin.keyValid': 'Połączono',
   'admin.keyInvalid': 'Niepoprawny',
@@ -174,7 +176,8 @@ const admin: TranslationStrings = {
   'admin.plugins.noErrors': 'Brak zarejestrowanych błędów.',
   'admin.plugins.uninstalled': 'Wtyczka została odinstalowana',
   'admin.plugins.uninstallTitle': 'Odinstalować wtyczkę?',
-  'admin.plugins.uninstallBody': 'Spowoduje to zatrzymanie wtyczki, usunięcie jej kodu i wszystkich jej danych. Tej operacji nie można cofnąć.',
+  'admin.plugins.uninstallBody':
+    'Spowoduje to zatrzymanie wtyczki, usunięcie jej kodu i wszystkich jej danych. Tej operacji nie można cofnąć.',
   'admin.plugins.status.starting': 'Uruchamianie…',
   'admin.plugins.type.widget': 'Widget',
   'admin.plugins.type.page': 'Strona',
@@ -188,10 +191,12 @@ const admin: TranslationStrings = {
   'admin.plugins.title': 'Wtyczki',
   'admin.plugins.subtitle': 'Instaluj wtyczki innych autorów i zarządzaj nimi na swojej instancji.',
   'admin.plugins.disabledTitle': 'Wtyczki są wyłączone',
-  'admin.plugins.disabledBody': 'Środowisko uruchomieniowe wtyczek jest wyłączone (TREK_PLUGINS_ENABLED). Żadna wtyczka nie może działać, dopóki administrator nie włączy tej opcji w konfiguracji serwera.',
+  'admin.plugins.disabledBody':
+    'Środowisko uruchomieniowe wtyczek jest wyłączone (TREK_PLUGINS_ENABLED). Żadna wtyczka nie może działać, dopóki administrator nie włączy tej opcji w konfiguracji serwera.',
   'admin.plugins.empty': 'Nie zainstalowano jeszcze żadnych wtyczek.',
   'admin.plugins.loadError': 'Nie udało się załadować wtyczek.',
-  'admin.plugins.scaffoldNote': 'Instalacja i aktywacja wtyczek pojawią się w późniejszej aktualizacji. Ten panel obecnie jedynie wyświetla zainstalowane wtyczki.',
+  'admin.plugins.scaffoldNote':
+    'Instalacja i aktywacja wtyczek pojawią się w późniejszej aktualizacji. Ten panel obecnie jedynie wyświetla zainstalowane wtyczki.',
   'admin.plugins.status.active': 'Aktywna',
   'admin.plugins.status.inactive': 'Nieaktywna',
   'admin.plugins.status.disabled': 'Wyłączona',
@@ -213,23 +218,34 @@ const admin: TranslationStrings = {
   'admin.plugins.reviewedOn': 'Zweryfikowano {date}',
   'admin.plugins.perm.db:own': 'Przechowywanie własnych danych w izolowanej bazie danych',
   'admin.plugins.perm.db:read:trips': 'Odczyt podróży, do których działający użytkownik ma dostęp',
-  'admin.plugins.perm.db:read:users': 'Odczyt podstawowych informacji profilowych (nazwa, awatar — nigdy dane logowania)',
+  'admin.plugins.perm.db:read:users':
+    'Odczyt podstawowych informacji profilowych (nazwa, awatar — nigdy dane logowania)',
   'admin.plugins.perm.db:read:costs': 'Odczyt wydatków (pozycji budżetu), do których działający użytkownik ma dostęp',
-  'admin.plugins.perm.db:read:packing': 'Odczyt list rzeczy do spakowania w podróżach, do których działający użytkownik ma dostęp',
+  'admin.plugins.perm.db:read:packing':
+    'Odczyt list rzeczy do spakowania w podróżach, do których działający użytkownik ma dostęp',
   'admin.plugins.perm.db:read:files': 'Odczyt plików w podróżach, do których działający użytkownik ma dostęp',
-  'admin.plugins.perm.db:write:costs': 'Tworzenie wydatków (pozycji budżetu) w podróżach, które działający użytkownik może edytować',
-  'admin.plugins.perm.db:write:places': 'Dodawanie, edycja i usuwanie miejsc w podróżach, które działający użytkownik może edytować',
-  'admin.plugins.perm.db:write:days': 'Dodawanie, edycja i usuwanie dni w podróżach, które działający użytkownik może edytować',
-  'admin.plugins.perm.db:write:itinerary': 'Przypisywanie i usuwanie miejsc do dni w podróżach, które działający użytkownik może edytować',
-  'admin.plugins.perm.db:write:trips': 'Edycja szczegółów podróży (tytuł, daty, waluta…) w podróżach, które działający użytkownik może edytować',
-  'admin.plugins.perm.db:meta': 'Dołączanie własnych prywatnych danych do podróży, miejsc i dni, do których działający użytkownik ma dostęp',
+  'admin.plugins.perm.db:write:costs':
+    'Tworzenie wydatków (pozycji budżetu) w podróżach, które działający użytkownik może edytować',
+  'admin.plugins.perm.db:write:places':
+    'Dodawanie, edycja i usuwanie miejsc w podróżach, które działający użytkownik może edytować',
+  'admin.plugins.perm.db:write:days':
+    'Dodawanie, edycja i usuwanie dni w podróżach, które działający użytkownik może edytować',
+  'admin.plugins.perm.db:write:itinerary':
+    'Przypisywanie i usuwanie miejsc do dni w podróżach, które działający użytkownik może edytować',
+  'admin.plugins.perm.db:write:trips':
+    'Edycja szczegółów podróży (tytuł, daty, waluta…) w podróżach, które działający użytkownik może edytować',
+  'admin.plugins.perm.db:meta':
+    'Dołączanie własnych prywatnych danych do podróży, miejsc i dni, do których działający użytkownik ma dostęp',
   'admin.plugins.perm.ws:broadcast:trip': 'Wysyłanie aktualizacji w czasie rzeczywistym do członków podróży',
   'admin.plugins.perm.ws:broadcast:user': 'Wysyłanie aktualizacji w czasie rzeczywistym do poszczególnych użytkowników',
   'admin.plugins.perm.hook:photo-provider': 'Dostarczanie zdjęć do sekcji Zdjęcia',
   'admin.plugins.perm.hook:calendar-source': 'Dostarczanie wydarzeń do kalendarza',
-  'admin.plugins.perm.hook:place-detail-provider': 'Dodawanie dodatkowych szczegółów (recenzji, ocen, linków) do miejsca',
-  'admin.plugins.perm.hook:trip-warning-provider': 'Zgłaszanie ostrzeżeń walidacyjnych dla podróży (widocznych w planerze)',
-  'admin.plugins.perm.events:subscribe': 'Reagowanie na podstawowe zdarzenia aktywności (tylko nazwa zdarzenia i podróż, nigdy treść)',
+  'admin.plugins.perm.hook:place-detail-provider':
+    'Dodawanie dodatkowych szczegółów (recenzji, ocen, linków) do miejsca',
+  'admin.plugins.perm.hook:trip-warning-provider':
+    'Zgłaszanie ostrzeżeń walidacyjnych dla podróży (widocznych w planerze)',
+  'admin.plugins.perm.events:subscribe':
+    'Reagowanie na podstawowe zdarzenia aktywności (tylko nazwa zdarzenia i podróż, nigdy treść)',
   'admin.plugins.perm.http:outbound': 'Wykonywanie wychodzących zapytań do zadeklarowanych hostów',
   'admin.plugins.updateConsentTitle': 'Ta aktualizacja wymaga nowych uprawnień',
   'admin.plugins.updateConsentBody':
@@ -238,7 +254,8 @@ const admin: TranslationStrings = {
   'admin.plugins.updateNewEgress': 'Nowe połączenia wychodzące',
   'admin.plugins.updateApprove': 'Zatwierdź i włącz',
   'admin.plugins.updateLater': 'Na razie pozostaw wyłączoną',
-  'admin.plugins.updateKeptOff': 'Aktualizacja zainstalowana — pozostaje wyłączona, dopóki nie zatwierdzisz nowych uprawnień',
+  'admin.plugins.updateKeptOff':
+    'Aktualizacja zainstalowana — pozostaje wyłączona, dopóki nie zatwierdzisz nowych uprawnień',
   'admin.plugins.reviewedMeaning':
     '„Zweryfikowana” oznacza, że opiekun TREK przeskanował tę wtyczkę pod kątem złośliwego oprogramowania w każdej wersji — nie pod kątem jakości ani tego, czy działa. To nie jest gwarancja, że wtyczka jest nieszkodliwa.',
   'admin.plugins.security.title': 'Jak wtyczki są izolowane — i jakie są tego granice',

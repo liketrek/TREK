@@ -43,7 +43,8 @@ const dashboard: TranslationStrings = {
   'dashboard.status.past': 'Múlt',
   'dashboard.status.daysLeft': 'Még {count} nap',
   'dashboard.toast.loadError': 'Nem sikerült betölteni az utazásokat',
-  'dashboard.loadErrorBanner': 'Nem sikerült elérni a kiszolgálót. Az utazásaid biztonságban vannak — kérlek, próbáld újra.',
+  'dashboard.loadErrorBanner':
+    'Nem sikerült elérni a kiszolgálót. Az utazásaid biztonságban vannak — kérlek, próbáld újra.',
   'dashboard.retry': 'Újra',
   'dashboard.toast.created': 'Utazás sikeresen létrehozva!',
   'dashboard.toast.createError': 'Nem sikerült létrehozni',

@@ -49,7 +49,8 @@ const collection: TranslationStrings = {
   'collections.editList': 'Μετονομασία',
   'collections.listMenu': 'Επιλογές λίστας',
   'collections.deleteList': 'Διαγραφή λίστας',
-  'collections.deleteListConfirm': 'Αυτό διαγράφει οριστικά τη λίστα και όλα τα αποθηκευμένα μέρη της. Δεν είναι δυνατή η αναίρεση.',
+  'collections.deleteListConfirm':
+    'Αυτό διαγράφει οριστικά τη λίστα και όλα τα αποθηκευμένα μέρη της. Δεν είναι δυνατή η αναίρεση.',
   'collections.listName': 'Όνομα λίστας',
   'collections.listNamePlaceholder': 'π.χ. Τόκιο 2025',
   'collections.listColor': 'Χρώμα',
@@ -127,7 +128,8 @@ const collection: TranslationStrings = {
   'collections.share.memberHint': 'Μόνο ο ιδιοκτήτης της λίστας μπορεί να προσκαλεί ή να αφαιρεί άτομα.',
   'collections.share.cancel': 'Άκυρο',
   'collections.share.leave': 'Αποχώρηση από τη λίστα',
-  'collections.share.leaveConfirm': 'Αποχώρηση από αυτή την κοινόχρηστη λίστα; Θα χάσεις την πρόσβαση μέχρι να προσκληθείς ξανά.',
+  'collections.share.leaveConfirm':
+    'Αποχώρηση από αυτή την κοινόχρηστη λίστα; Θα χάσεις την πρόσβαση μέχρι να προσκληθείς ξανά.',
   'collections.share.left': 'Αποχώρησες από τη λίστα',
   'collections.share.remove': 'Αφαίρεση',
 

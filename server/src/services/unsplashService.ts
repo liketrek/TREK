@@ -2,6 +2,8 @@ import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { safeFetch } from '../utils/ssrfGuard';
+import { db } from '../db/database';
+import { decrypt_api_key } from './apiKeyCrypto';
 
 interface UnsplashSearchResponse {
   results?: {
@@ -25,7 +27,24 @@ export interface UnsplashPhoto {
   link: string | null;
 }
 
-export async function searchUnsplashPhotos(query: string, perPage = 9) {
+/**
+ * Resolve an Unsplash access key for a request, in precedence order:
+ * the `UNSPLASH_ACCESS_KEY` env var (instance-wide override, matching the
+ * SMTP/OIDC env-over-DB convention) → the caller's own stored key → any
+ * admin's stored key. Mirrors `getMapsKey`. Returns null when none is set,
+ * in which case the search falls back to the unauthenticated endpoint.
+ */
+export function getUnsplashKey(userId: number): string | null {
+  const env_key = process.env.UNSPLASH_ACCESS_KEY?.trim();
+  if (env_key) return env_key;
+  const user = db.prepare('SELECT unsplash_api_key FROM users WHERE id = ?').get(userId) as { unsplash_api_key: string | null } | undefined;
+  const user_key = decrypt_api_key(user?.unsplash_api_key);
+  if (user_key) return user_key;
+  const admin = db.prepare("SELECT unsplash_api_key FROM users WHERE role = 'admin' AND unsplash_api_key IS NOT NULL AND unsplash_api_key != '' LIMIT 1").get() as { unsplash_api_key: string } | undefined;
+  return decrypt_api_key(admin?.unsplash_api_key) || null;
+}
+
+export async function searchUnsplashPhotos(query: string, perPage = 9, accessKey?: string | null) {
   const trimmed = query.trim();
   if (!trimmed) {
     return { error: 'Search query is required', status: 400 };
@@ -36,17 +55,27 @@ export async function searchUnsplashPhotos(query: string, perPage = 9) {
     query: trimmed,
     per_page: String(perPage),
   });
-  const response = await fetch(`https://unsplash.com/napi/search/photos?${params.toString()}`, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0',
-      Accept: '*/*',
-      'Accept-Language': 'en-US',
-      Referer: `https://unsplash.com/s/photos/${encodeURIComponent(trimmed)}`,
-      'client-geo-region': 'global',
-      'Sec-Fetch-Dest': 'empty',
-      'Sec-Fetch-Site': 'same-origin',
-    },
-  });
+  // With an access key, use Unsplash's official, authenticated API — datacenter
+  // (VPS) IPs get blocked on the unauthenticated web endpoint (#1449). Without
+  // one, fall back to the web endpoint so zero-config search still works.
+  const response = accessKey
+    ? await fetch(`https://api.unsplash.com/search/photos?${params.toString()}`, {
+        headers: {
+          Authorization: `Client-ID ${accessKey}`,
+          'Accept-Version': 'v1',
+        },
+      })
+    : await fetch(`https://unsplash.com/napi/search/photos?${params.toString()}`, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0',
+          Accept: '*/*',
+          'Accept-Language': 'en-US',
+          Referer: `https://unsplash.com/s/photos/${encodeURIComponent(trimmed)}`,
+          'client-geo-region': 'global',
+          'Sec-Fetch-Dest': 'empty',
+          'Sec-Fetch-Site': 'same-origin',
+        },
+      });
   let data: UnsplashSearchResponse;
   try {
     data = await response.json() as UnsplashSearchResponse;

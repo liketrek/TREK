@@ -33,7 +33,8 @@ const oauth: TranslationStrings = {
   'oauth.scope.packing:read.label': 'Xem danh sách đóng gói',
   'oauth.scope.packing:read.description': 'Đọc các mặt hàng đóng gói, túi xách và người được giao danh mục',
   'oauth.scope.packing:write.label': 'Quản lý danh sách đóng gói',
-  'oauth.scope.packing:write.description': 'Thêm, cập nhật, xóa, chuyển đổi và sắp xếp lại các mặt hàng và túi đóng gói',
+  'oauth.scope.packing:write.description':
+    'Thêm, cập nhật, xóa, chuyển đổi và sắp xếp lại các mặt hàng và túi đóng gói',
   'oauth.scope.todos:read.label': 'Xem danh sách việc cần làm',
   'oauth.scope.todos:read.description': 'Đọc các mục việc cần làm trong chuyến đi và người được giao danh mục',
   'oauth.scope.todos:write.label': 'Quản lý danh sách việc cần làm',
@@ -76,7 +77,8 @@ const oauth: TranslationStrings = {
   'oauth.authorize.loginButton': 'Đăng nhập vào TREK',
   'oauth.authorize.requestLabel': 'Yêu cầu ủy quyền',
   'oauth.authorize.requestDescription': 'Ứng dụng này đang yêu cầu quyền truy cập vào tài khoản TREK của bạn.',
-  'oauth.authorize.trustNote': 'Chỉ cấp quyền truy cập cho các ứng dụng mà bạn tin tưởng. Dữ liệu của bạn vẫn còn trên máy chủ của bạn.',
+  'oauth.authorize.trustNote':
+    'Chỉ cấp quyền truy cập cho các ứng dụng mà bạn tin tưởng. Dữ liệu của bạn vẫn còn trên máy chủ của bạn.',
   'oauth.authorize.selectScope': 'Chọn ít nhất một phạm vi',
   'oauth.authorize.approveOneScope': 'Phê duyệt (phạm vi {count})',
   'oauth.authorize.approveManyScopes': 'Phê duyệt ({count} phạm vi)',
@@ -86,6 +88,7 @@ const oauth: TranslationStrings = {
   'oauth.authorize.permissionsRequested': 'Đã yêu cầu quyền',
   'oauth.authorize.alwaysIncluded': 'Luôn bao gồm',
   'oauth.authorize.alwaysTool.listTrips': 'Liệt kê các chuyến đi của bạn để AI có thể khám phá ID chuyến đi',
-  'oauth.authorize.alwaysTool.getTripSummary': 'Đọc tổng quan về chuyến đi cần thiết để sử dụng bất kỳ công cụ nào khác',
+  'oauth.authorize.alwaysTool.getTripSummary':
+    'Đọc tổng quan về chuyến đi cần thiết để sử dụng bất kỳ công cụ nào khác',
 };
 export default oauth;

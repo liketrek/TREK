@@ -88,6 +88,7 @@ const vacay: TranslationStrings = {
   'vacay.fuseInfo2': 'Cả hai bên có thể tạo và chỉnh sửa các mục cho nhau.',
   'vacay.fuseInfo3': 'Cả hai bên đều có thể xóa các mục và thay đổi quyền lợi trong kỳ nghỉ.',
   'vacay.fuseInfo4': 'Các cài đặt như ngày nghỉ lễ và ngày nghỉ của công ty đều được chia sẻ.',
-  'vacay.fuseInfo5': 'Sự hợp nhất có thể được giải thể bất cứ lúc nào bởi một trong hai bên. Các mục của bạn sẽ được bảo tồn.',
+  'vacay.fuseInfo5':
+    'Sự hợp nhất có thể được giải thể bất cứ lúc nào bởi một trong hai bên. Các mục của bạn sẽ được bảo tồn.',
 };
 export default vacay;

@@ -29,7 +29,8 @@ const settings: TranslationStrings = {
   'settings.mapStylePlaceholder': 'Sélectionner un style Mapbox',
   'settings.mapStyleHint': 'Preset ou votre propre URL mapbox://styles/USER/ID',
   'settings.mapOpenFreeMapStylePlaceholder': 'Sélectionner un style OpenFreeMap',
-  'settings.mapOpenFreeMapStyleHint': 'Preset ou URL de style OpenFreeMap. Les styles OpenFreeMap fonctionnent sans jeton.',
+  'settings.mapOpenFreeMapStyleHint':
+    'Preset ou URL de style OpenFreeMap. Les styles OpenFreeMap fonctionnent sans jeton.',
   'settings.map3dBuildings': 'Bâtiments 3D & terrain',
   'settings.map3dHint':
     'Inclinaison + extrusions 3D réelles des bâtiments — fonctionne avec tous les styles, y compris satellite.',
@@ -336,20 +337,23 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.success': 'Connecté — {count} vol(s) trouvé(s)',
   'settings.airtrail.test.failed': 'Échec de la connexion',
   'settings.aiParsing.title': 'Analyse par IA',
-  'settings.aiParsing.hint': 'Utilisez votre propre modèle d\'IA pour extraire les réservations des fichiers importés. Cela ne s\'applique que si votre administrateur n\'a pas configuré de modèle pour l\'ensemble de l\'instance.',
+  'settings.aiParsing.hint':
+    "Utilisez votre propre modèle d'IA pour extraire les réservations des fichiers importés. Cela ne s'applique que si votre administrateur n'a pas configuré de modèle pour l'ensemble de l'instance.",
   'settings.aiParsing.provider': 'Fournisseur',
   'settings.aiParsing.providerLocal': 'Local (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
   'settings.aiParsing.model': 'Modèle',
   'settings.aiParsing.baseUrl': 'URL de base',
-  'settings.aiParsing.baseUrlHint': 'Emplacement d\'exécution du modèle — un serveur Ollama local ou un point de terminaison compatible OpenAI.',
+  'settings.aiParsing.baseUrlHint':
+    "Emplacement d'exécution du modèle — un serveur Ollama local ou un point de terminaison compatible OpenAI.",
   'settings.aiParsing.apiKey': 'Clé API',
   'settings.aiParsing.apiKeyHint': 'Stockée de façon chiffrée. Laissez vide pour conserver la clé actuelle.',
-  'settings.aiParsing.multimodal': 'Envoyer les documents sous forme d\'images',
-  'settings.aiParsing.multimodalHint': 'Pour les modèles capables d\'analyser des images — envoie le PDF d\'origine au lieu du texte extrait.',
-  'settings.aiParsing.toast.saved': 'Paramètres d\'IA enregistrés',
-  'settings.aiParsing.toast.saveError': 'Impossible d\'enregistrer les paramètres d\'IA',
+  'settings.aiParsing.multimodal': "Envoyer les documents sous forme d'images",
+  'settings.aiParsing.multimodalHint':
+    "Pour les modèles capables d'analyser des images — envoie le PDF d'origine au lieu du texte extrait.",
+  'settings.aiParsing.toast.saved': "Paramètres d'IA enregistrés",
+  'settings.aiParsing.toast.saveError': "Impossible d'enregistrer les paramètres d'IA",
   'settings.tabs.appearance': 'Appearance',
   'settings.appearance.theme': 'Theme',
   'settings.appearance.scheme': 'Color scheme',
@@ -366,7 +370,8 @@ const settings: TranslationStrings = {
   'settings.appearance.contrastLow': 'Low contrast',
   'settings.appearance.readability': 'Readability',
   'settings.appearance.transparency': 'Transparency',
-  'settings.appearance.transparencyHint': 'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
+  'settings.appearance.transparencyHint':
+    'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
   'settings.appearance.reduceMotion': 'Reduce motion',
   'settings.appearance.reduceMotionHint': 'Minimize animations and transitions.',
   'settings.appearance.density': 'Density',
@@ -396,7 +401,8 @@ const settings: TranslationStrings = {
   'settings.appearance.group.belowHero': 'Below the hero',
   'settings.appearance.group.bottomOfPage': 'Bottom of page',
   'settings.appearance.sidebarHint': 'The whole right column. Turn off and the dashboard centers.',
-  'settings.appearance.densityHint': 'Compact tightens spacing and padding for a denser layout that fits more on screen.',
+  'settings.appearance.densityHint':
+    'Compact tightens spacing and padding for a denser layout that fits more on screen.',
   'settings.appearance.textSizeAll': 'Everything',
   'settings.appearance.perSize': 'Adjust each size separately',
   'settings.appearance.size.large': 'Large',
@@ -419,10 +425,13 @@ const settings: TranslationStrings = {
   'settings.offline.cache.title': 'Cache hors ligne',
   'settings.offline.mode.title': 'Mode hors ligne',
   'settings.offline.mode.force': 'Forcer le mode hors ligne',
-  'settings.offline.mode.forceHint': "Travaillez uniquement à partir des données en cache et mettez vos modifications en file d'attente. Désactivez pour vous reconnecter et synchroniser.",
-  'settings.offline.mode.active': "Le mode hors ligne est activé — vos modifications sont en file d'attente et seront synchronisées lorsque vous le désactiverez.",
+  'settings.offline.mode.forceHint':
+    "Travaillez uniquement à partir des données en cache et mettez vos modifications en file d'attente. Désactivez pour vous reconnecter et synchroniser.",
+  'settings.offline.mode.active':
+    "Le mode hors ligne est activé — vos modifications sont en file d'attente et seront synchronisées lorsque vous le désactiverez.",
   'settings.offline.prepare.title': 'Préparer le mode hors ligne',
-  'settings.offline.prepare.hint': 'Téléchargez tout ce dont vous avez besoin — données de voyage, documents et tuiles de carte — avant de perdre la connexion.',
+  'settings.offline.prepare.hint':
+    'Téléchargez tout ce dont vous avez besoin — données de voyage, documents et tuiles de carte — avant de perdre la connexion.',
   'settings.offline.prepare.button': 'Télécharger pour une utilisation hors ligne',
   'settings.offline.prepare.running': 'Téléchargement…',
   'settings.offline.prepare.done': 'Prêt pour une utilisation hors ligne',
@@ -433,12 +442,14 @@ const settings: TranslationStrings = {
   'settings.offline.resyncing': 'Synchronisation…',
   'settings.offline.storage.title': 'Que stocker hors ligne',
   'settings.offline.storage.tiles': 'Stocker les tuiles de carte hors ligne',
-  'settings.offline.storage.tilesHint': 'Les tuiles de carte utilisent le plus de stockage. Désactivez cette option pour ne conserver hors ligne que les données de voyage et les documents.',
+  'settings.offline.storage.tilesHint':
+    'Les tuiles de carte utilisent le plus de stockage. Désactivez cette option pour ne conserver hors ligne que les données de voyage et les documents.',
   'settings.offline.storage.tripsTitle': 'Voyages',
   'settings.offline.storage.tripOn': 'Stocké hors ligne',
   'settings.offline.storage.tripOff': 'Non stocké',
   'settings.offline.clear': 'Vider le cache',
-  'settings.offline.clearConfirm': 'Vider toutes les données de voyage hors ligne ? Vous pourrez resynchroniser à tout moment lorsque vous serez en ligne.',
+  'settings.offline.clearConfirm':
+    'Vider toutes les données de voyage hors ligne ? Vous pourrez resynchroniser à tout moment lorsque vous serez en ligne.',
   'settings.offline.stats.trips': 'Voyages en cache',
   'settings.offline.stats.pending': 'Modifications en attente',
   'settings.offline.stats.failed': 'Modifications échouées',
@@ -446,7 +457,8 @@ const settings: TranslationStrings = {
   'settings.offline.empty': "Aucun voyage en cache pour l'instant. Connectez-vous à Internet pour synchroniser.",
   'settings.offline.loading': 'Chargement…',
   'settings.offline.conflicts.title': 'Conflits de synchronisation',
-  'settings.offline.conflicts.hint': 'Les modifications que vous avez faites hors ligne entrent en conflit avec des modifications plus récentes sur le serveur. Choisissez la version à conserver.',
+  'settings.offline.conflicts.hint':
+    'Les modifications que vous avez faites hors ligne entrent en conflit avec des modifications plus récentes sur le serveur. Choisissez la version à conserver.',
   'settings.offline.conflicts.keepMine': 'Conserver la mienne',
   'settings.offline.conflicts.keepServer': 'Conserver la leur',
   'settings.offline.conflicts.mine': 'Votre version',

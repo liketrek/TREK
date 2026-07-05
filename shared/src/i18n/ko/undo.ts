@@ -9,7 +9,7 @@ const undo: TranslationStrings = {
   'undo.optimize': '경로가 최적화되었습니다',
   'undo.deletePlace': '장소가 삭제되었습니다',
   'undo.deletePlaces': '장소들이 삭제되었습니다',
-  'undo.changeCategory': "Category changed",
+  'undo.changeCategory': 'Category changed',
   'undo.moveDay': '장소가 다른 날로 이동되었습니다',
   'undo.lock': '장소 잠금이 변경되었습니다',
   'undo.importGpx': 'GPX 가져오기',

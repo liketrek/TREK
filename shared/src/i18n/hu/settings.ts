@@ -29,7 +29,8 @@ const settings: TranslationStrings = {
   'settings.mapStylePlaceholder': 'Válassz Mapbox stílust',
   'settings.mapStyleHint': 'Preset vagy saját mapbox://styles/USER/ID URL',
   'settings.mapOpenFreeMapStylePlaceholder': 'Válassz OpenFreeMap stílust',
-  'settings.mapOpenFreeMapStyleHint': 'Preset vagy OpenFreeMap stílus URL. Az OpenFreeMap stílusok token nélkül működnek.',
+  'settings.mapOpenFreeMapStyleHint':
+    'Preset vagy OpenFreeMap stílus URL. Az OpenFreeMap stílusok token nélkül működnek.',
   'settings.map3dBuildings': '3D épületek és terep',
   'settings.map3dHint': 'Dőlés + valódi 3D épület-kiemelés — minden stílussal működik, beleértve a műholdast.',
   'settings.mapHighQuality': 'Magas minőség mód',
@@ -330,7 +331,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.success': 'Csatlakoztatva — {count} járat található',
   'settings.airtrail.test.failed': 'A kapcsolat sikertelen',
   'settings.aiParsing.title': 'AI-feldolgozás',
-  'settings.aiParsing.hint': 'Használd a saját AI-modelledet a foglalások kinyeréséhez a feltöltött fájlokból. Ez csak akkor érvényes, ha a rendszergazda nem állított be modellt az egész példányhoz.',
+  'settings.aiParsing.hint':
+    'Használd a saját AI-modelledet a foglalások kinyeréséhez a feltöltött fájlokból. Ez csak akkor érvényes, ha a rendszergazda nem állított be modellt az egész példányhoz.',
   'settings.aiParsing.provider': 'Szolgáltató',
   'settings.aiParsing.providerLocal': 'Helyi (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
@@ -341,7 +343,8 @@ const settings: TranslationStrings = {
   'settings.aiParsing.apiKey': 'API-kulcs',
   'settings.aiParsing.apiKeyHint': 'Titkosítva tárolva. Hagyd üresen a jelenlegi kulcs megtartásához.',
   'settings.aiParsing.multimodal': 'Dokumentumok küldése képként',
-  'settings.aiParsing.multimodalHint': 'Képfelismerésre képes modellekhez — az eredeti PDF-et küldi a kinyert szöveg helyett.',
+  'settings.aiParsing.multimodalHint':
+    'Képfelismerésre képes modellekhez — az eredeti PDF-et küldi a kinyert szöveg helyett.',
   'settings.aiParsing.toast.saved': 'AI-beállítások elmentve',
   'settings.aiParsing.toast.saveError': 'Az AI-beállítások mentése nem sikerült',
   'settings.tabs.appearance': 'Appearance',
@@ -360,7 +363,8 @@ const settings: TranslationStrings = {
   'settings.appearance.contrastLow': 'Low contrast',
   'settings.appearance.readability': 'Readability',
   'settings.appearance.transparency': 'Transparency',
-  'settings.appearance.transparencyHint': 'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
+  'settings.appearance.transparencyHint':
+    'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
   'settings.appearance.reduceMotion': 'Reduce motion',
   'settings.appearance.reduceMotionHint': 'Minimize animations and transitions.',
   'settings.appearance.density': 'Density',
@@ -390,7 +394,8 @@ const settings: TranslationStrings = {
   'settings.appearance.group.belowHero': 'Below the hero',
   'settings.appearance.group.bottomOfPage': 'Bottom of page',
   'settings.appearance.sidebarHint': 'The whole right column. Turn off and the dashboard centers.',
-  'settings.appearance.densityHint': 'Compact tightens spacing and padding for a denser layout that fits more on screen.',
+  'settings.appearance.densityHint':
+    'Compact tightens spacing and padding for a denser layout that fits more on screen.',
   'settings.appearance.textSizeAll': 'Everything',
   'settings.appearance.perSize': 'Adjust each size separately',
   'settings.appearance.size.large': 'Large',
@@ -413,10 +418,13 @@ const settings: TranslationStrings = {
   'settings.offline.cache.title': 'Offline gyorsítótár',
   'settings.offline.mode.title': 'Offline mód',
   'settings.offline.mode.force': 'Offline mód kényszerítése',
-  'settings.offline.mode.forceHint': 'Csak a gyorsítótárazott adatokból dolgozik, a módosításaidat pedig sorba állítja. Kapcsold ki az újracsatlakozáshoz és szinkronizáláshoz.',
-  'settings.offline.mode.active': 'Az offline mód be van kapcsolva — a módosításaid sorban állnak, és szinkronizálódnak, amikor kikapcsolod.',
+  'settings.offline.mode.forceHint':
+    'Csak a gyorsítótárazott adatokból dolgozik, a módosításaidat pedig sorba állítja. Kapcsold ki az újracsatlakozáshoz és szinkronizáláshoz.',
+  'settings.offline.mode.active':
+    'Az offline mód be van kapcsolva — a módosításaid sorban állnak, és szinkronizálódnak, amikor kikapcsolod.',
   'settings.offline.prepare.title': 'Felkészülés offline használatra',
-  'settings.offline.prepare.hint': 'Tölts le mindent, amire szükséged van — utazási adatok, dokumentumok és térképcsempék —, mielőtt megszakad a kapcsolat.',
+  'settings.offline.prepare.hint':
+    'Tölts le mindent, amire szükséged van — utazási adatok, dokumentumok és térképcsempék —, mielőtt megszakad a kapcsolat.',
   'settings.offline.prepare.button': 'Letöltés offline használatra',
   'settings.offline.prepare.running': 'Letöltés…',
   'settings.offline.prepare.done': 'Kész az offline használatra',
@@ -427,12 +435,14 @@ const settings: TranslationStrings = {
   'settings.offline.resyncing': 'Szinkronizálás…',
   'settings.offline.storage.title': 'Mit tároljon offline',
   'settings.offline.storage.tiles': 'Térképcsempék offline tárolása',
-  'settings.offline.storage.tilesHint': 'A térképcsempék foglalják a legtöbb tárhelyet. Kapcsold ki, hogy csak az utazási adatokat és a dokumentumokat tárold offline.',
+  'settings.offline.storage.tilesHint':
+    'A térképcsempék foglalják a legtöbb tárhelyet. Kapcsold ki, hogy csak az utazási adatokat és a dokumentumokat tárold offline.',
   'settings.offline.storage.tripsTitle': 'Utazások',
   'settings.offline.storage.tripOn': 'Offline tárolva',
   'settings.offline.storage.tripOff': 'Nincs tárolva',
   'settings.offline.clear': 'Gyorsítótár törlése',
-  'settings.offline.clearConfirm': 'Törlöd az összes offline utazási adatot? Online állapotban bármikor újraszinkronizálhatsz.',
+  'settings.offline.clearConfirm':
+    'Törlöd az összes offline utazási adatot? Online állapotban bármikor újraszinkronizálhatsz.',
   'settings.offline.stats.trips': 'Gyorsítótárazott utazások',
   'settings.offline.stats.pending': 'Függőben lévő módosítások',
   'settings.offline.stats.failed': 'Sikertelen módosítások',
@@ -440,7 +450,8 @@ const settings: TranslationStrings = {
   'settings.offline.empty': 'Még nincsenek gyorsítótárazott utazások. Csatlakozz az internethez a szinkronizáláshoz.',
   'settings.offline.loading': 'Betöltés…',
   'settings.offline.conflicts.title': 'Szinkronizálási ütközések',
-  'settings.offline.conflicts.hint': 'Az offline végzett módosításaid ütköznek a szerveren lévő újabb módosításokkal. Válaszd ki, melyik verziót szeretnéd megtartani.',
+  'settings.offline.conflicts.hint':
+    'Az offline végzett módosításaid ütköznek a szerveren lévő újabb módosításokkal. Válaszd ki, melyik verziót szeretnéd megtartani.',
   'settings.offline.conflicts.keepMine': 'Az enyém megtartása',
   'settings.offline.conflicts.keepServer': 'A szerveré megtartása',
   'settings.offline.conflicts.mine': 'A te verziód',

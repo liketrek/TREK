@@ -9,7 +9,7 @@ const undo: TranslationStrings = {
   'undo.optimize': 'Rota optimize edildi',
   'undo.deletePlace': 'Yer silindi',
   'undo.deletePlaces': 'Yerler silindi',
-  'undo.changeCategory': "Category changed",
+  'undo.changeCategory': 'Category changed',
   'undo.moveDay': 'Yer başka güne taşındı',
   'undo.lock': 'Yer kilidi değiştirildi',
   'undo.importGpx': 'GPX içe aktarma',

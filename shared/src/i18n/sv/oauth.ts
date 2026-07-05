@@ -33,11 +33,14 @@ const oauth: TranslationStrings = {
   'oauth.scope.packing:read.label': 'Visa packlistor',
   'oauth.scope.packing:read.description': 'Läs om packningsföremål, väskor och kategoritilldelningar',
   'oauth.scope.packing:write.label': 'Hantera packlistor',
-  'oauth.scope.packing:write.description': 'Lägg till, uppdatera, ta bort, växla mellan och ordna om packningsföremål och väskor',
+  'oauth.scope.packing:write.description':
+    'Lägg till, uppdatera, ta bort, växla mellan och ordna om packningsföremål och väskor',
   'oauth.scope.todos:read.label': 'Visa uppgiftslistor',
-  'oauth.scope.todos:read.description': 'Läs uppgifter som ska göras under resan och vilka som är ansvariga för respektive kategori',
+  'oauth.scope.todos:read.description':
+    'Läs uppgifter som ska göras under resan och vilka som är ansvariga för respektive kategori',
   'oauth.scope.todos:write.label': 'Hantera uppgiftslistor',
-  'oauth.scope.todos:write.description': 'Skapa, uppdatera, aktivera/inaktivera, ta bort och ändra ordningen på uppgifter',
+  'oauth.scope.todos:write.description':
+    'Skapa, uppdatera, aktivera/inaktivera, ta bort och ändra ordningen på uppgifter',
   'oauth.scope.budget:read.label': 'Visa budget',
   'oauth.scope.budget:read.description': 'Läs om budgetposter och kostnadsfördelning',
   'oauth.scope.budget:write.label': 'Hantera budgeten',
@@ -49,7 +52,8 @@ const oauth: TranslationStrings = {
   'oauth.scope.collab:read.label': 'Visa samarbete',
   'oauth.scope.collab:read.description': 'Läs samarbetsanteckningar, omröstningar och meddelanden',
   'oauth.scope.collab:write.label': 'Hantera samarbete',
-  'oauth.scope.collab:write.description': 'Skapa, uppdatera och ta bort samarbetsanteckningar, omröstningar och meddelanden',
+  'oauth.scope.collab:write.description':
+    'Skapa, uppdatera och ta bort samarbetsanteckningar, omröstningar och meddelanden',
   'oauth.scope.notifications:read.label': 'Visa meddelanden',
   'oauth.scope.notifications:read.description': 'Läsa meddelanden i appen och antalet olästa meddelanden',
   'oauth.scope.notifications:write.label': 'Hantera aviseringar',
@@ -59,7 +63,8 @@ const oauth: TranslationStrings = {
   'oauth.scope.vacay:write.label': 'Hantera semesterplaner',
   'oauth.scope.vacay:write.description': 'Skapa och hantera semesterposter, helgdagar och teamplaner',
   'oauth.scope.geo:read.label': 'Kartor och geokodning',
-  'oauth.scope.geo:read.description': 'Sök efter platser, omvandla kart-URL:er och utför omvänd geokodning av koordinater',
+  'oauth.scope.geo:read.description':
+    'Sök efter platser, omvandla kart-URL:er och utför omvänd geokodning av koordinater',
   'oauth.scope.weather:read.label': 'Väderprognoser',
   'oauth.scope.weather:read.description': 'Hämta väderprognoser för resmål och datum',
   'oauth.scope.journey:read.label': 'Visa journeys',
@@ -86,6 +91,7 @@ const oauth: TranslationStrings = {
   'oauth.authorize.permissionsRequested': 'Begärda behörigheter',
   'oauth.authorize.alwaysIncluded': 'Ingår alltid',
   'oauth.authorize.alwaysTool.listTrips': 'Lista dina resor så att AI:n kan identifiera resenummer',
-  'oauth.authorize.alwaysTool.getTripSummary': 'Läs en översikt över resan som krävs för att kunna använda något annat verktyg',
+  'oauth.authorize.alwaysTool.getTripSummary':
+    'Läs en översikt över resan som krävs för att kunna använda något annat verktyg',
 };
 export default oauth;

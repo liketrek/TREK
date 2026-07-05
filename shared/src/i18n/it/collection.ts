@@ -15,9 +15,9 @@ const collection: TranslationStrings = {
   'collections.deselectAll': 'Deseleziona tutto',
   'collections.moveToList': 'Sposta in lista',
   'collections.duplicateToList': 'Duplica in lista',
-  'collections.moveToListTitle': 'Sposta {count} in un\'altra lista',
-  'collections.duplicateToListTitle': 'Duplica {count} in un\'altra lista',
-  'collections.noOtherLists': 'Nessun\'altra lista',
+  'collections.moveToListTitle': "Sposta {count} in un'altra lista",
+  'collections.duplicateToListTitle': "Duplica {count} in un'altra lista",
+  'collections.noOtherLists': "Nessun'altra lista",
   'collections.movedCount': 'Spostati {count} luoghi',
   'collections.duplicatedCount': 'Duplicati {count} luoghi',
   'collections.placeCount': '{count} luoghi',
@@ -49,7 +49,8 @@ const collection: TranslationStrings = {
   'collections.editList': 'Rinomina',
   'collections.listMenu': 'Opzioni della lista',
   'collections.deleteList': 'Elimina lista',
-  'collections.deleteListConfirm': 'Questa azione elimina definitivamente la lista e tutti i luoghi salvati. Non può essere annullata.',
+  'collections.deleteListConfirm':
+    'Questa azione elimina definitivamente la lista e tutti i luoghi salvati. Non può essere annullata.',
   'collections.listName': 'Nome della lista',
   'collections.listNamePlaceholder': 'es. Tokyo 2025',
   'collections.listColor': 'Colore',
@@ -127,7 +128,8 @@ const collection: TranslationStrings = {
   'collections.share.memberHint': 'Solo il proprietario della lista può invitare o rimuovere persone.',
   'collections.share.cancel': 'Annulla',
   'collections.share.leave': 'Abbandona lista',
-  'collections.share.leaveConfirm': 'Abbandonare questa lista condivisa? Perderai l’accesso finché non verrai invitato di nuovo.',
+  'collections.share.leaveConfirm':
+    'Abbandonare questa lista condivisa? Perderai l’accesso finché non verrai invitato di nuovo.',
   'collections.share.left': 'Hai abbandonato la lista',
   'collections.share.remove': 'Rimuovi',
 
@@ -154,7 +156,7 @@ const collection: TranslationStrings = {
   'collections.labels.assignN': 'Aggiungi etichette a {count} luoghi',
   'collections.labels.assignedCount': 'Etichettati {count} luoghi',
   'collections.labels.empty': 'Ancora nessuna etichetta',
-  'collections.labels.emptyHint': 'Crea prima un\'etichetta per raggruppare i luoghi in questa lista.',
+  'collections.labels.emptyHint': "Crea prima un'etichetta per raggruppare i luoghi in questa lista.",
 };
 
 export default collection;

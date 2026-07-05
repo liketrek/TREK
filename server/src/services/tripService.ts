@@ -665,7 +665,7 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
       if (notes.length > 0) {
         if (desc) desc += '\n\n';
         desc += 'Notes:\n' + notes.map(n => {
-          let line = n.time ? `${n.time} — ${n.text}` : `• ${n.text}`;
+          const line = n.time ? `${n.time} — ${n.text}` : `• ${n.text}`;
           return line;
         }).join('\n');
       }

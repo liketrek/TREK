@@ -73,6 +73,7 @@ import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createAdmin, createInviteToken } from '../../helpers/factories';
 import {
   updateSettings,
+  updateApiKeys,
   getSettings,
   listUsers,
   getAppSettings,
@@ -221,6 +222,15 @@ describe('getSettings', () => {
     expect(result.settings).toBeDefined();
     expect(result.settings).toHaveProperty('maps_api_key');
     expect(result.settings).toHaveProperty('openweather_api_key');
+  });
+
+  it('AUTH-DB-010b: round-trips unsplash_api_key through updateApiKeys — masked to the client, readable via getSettings', () => {
+    const { user } = createAdmin(testDb);
+    const result = updateApiKeys(user.id, { unsplash_api_key: 'unsplash-secret-key' });
+    // Returned to the client masked, never in plaintext.
+    expect(result.user.unsplash_api_key).toBe('-----key');
+    // getSettings returns the stored key to the admin.
+    expect(getSettings(user.id).settings?.unsplash_api_key).toBe('unsplash-secret-key');
   });
 });
 

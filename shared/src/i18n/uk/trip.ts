@@ -28,7 +28,8 @@ const trip: TranslationStrings = {
   'trip.confirm.deletePlaces': 'Видалити {count} місць?',
   'trip.toast.placesDeleted': '{count} місць видалено',
   'trip.invite.linkTitle': 'Посилання-запрошення до подорожі',
-  'trip.invite.linkHint': 'Будь-хто з обліковим записом TREK, хто відкриє це посилання, приєднається до подорожі як учасник. Згенеруйте заново, щоб анулювати старе посилання.',
+  'trip.invite.linkHint':
+    'Будь-хто з обліковим записом TREK, хто відкриє це посилання, приєднається до подорожі як учасник. Згенеруйте заново, щоб анулювати старе посилання.',
   'trip.invite.create': 'Створити посилання-запрошення',
   'trip.invite.regenerate': 'Згенерувати заново',
   'trip.invite.disable': 'Вимкнути',
@@ -58,7 +59,7 @@ const trip: TranslationStrings = {
   'transit.search': 'Пошук',
   'transit.searching': 'Пошук…',
   'transit.searchError': 'Не вдалося знайти маршрут. Спробуйте ще раз.',
-  'transit.noResults': 'З\'єднань не знайдено. Спробуйте інший час або фільтри.',
+  'transit.noResults': "З'єднань не знайдено. Спробуйте інший час або фільтри.",
   'transit.direct': 'Прямий',
   'transit.transfers': 'Пересадок: {count}',
   'transit.min': '{count} хв',

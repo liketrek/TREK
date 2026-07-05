@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
 import { collectionPlaceUpdateRequestSchema } from './collection.schema';
+
+import { describe, expect, it } from 'vitest';
 
 describe('collectionPlaceUpdateRequestSchema', () => {
   // Regression for #1437: an update that omits `status` must NOT inject a default

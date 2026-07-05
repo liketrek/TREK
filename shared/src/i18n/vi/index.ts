@@ -5,6 +5,7 @@ import backup from './backup';
 import budget from './budget';
 import categories from './categories';
 import collab from './collab';
+import collection from './collection';
 import common from './common';
 import dashboard from './dashboard';
 import day from './day';
@@ -40,7 +41,6 @@ import trip from './trip';
 import trips from './trips';
 import undo from './undo';
 import vacay from './vacay';
-import collection from './collection';
 
 const locale = {
   ...common,

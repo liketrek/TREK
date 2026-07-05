@@ -94,6 +94,8 @@ const admin: TranslationStrings = {
   'admin.recommended': 'Doporučeno',
   'admin.weatherKey': 'OpenWeatherMap API klíč',
   'admin.weatherKeyHint': 'Pro data o počasí. Zdarma na openweathermap.org',
+  'admin.unsplashKey': 'Klíč API Unsplash',
+  'admin.unsplashKeyHint': 'Pro vyhledávání obrázků. Zdarma na unsplash.com/developers',
   'admin.validateKey': 'Testovat',
   'admin.keyValid': 'Připojeno',
   'admin.keyInvalid': 'Neplatný',
@@ -179,7 +181,8 @@ const admin: TranslationStrings = {
   'admin.plugins.noErrors': 'Žádné zaznamenané chyby.',
   'admin.plugins.uninstalled': 'Plugin odinstalován',
   'admin.plugins.uninstallTitle': 'Odinstalovat plugin?',
-  'admin.plugins.uninstallBody': 'Tím se plugin zastaví, odstraní se jeho kód a smažou se všechna jeho data. Tuto akci nelze vrátit zpět.',
+  'admin.plugins.uninstallBody':
+    'Tím se plugin zastaví, odstraní se jeho kód a smažou se všechna jeho data. Tuto akci nelze vrátit zpět.',
   'admin.plugins.status.starting': 'Spouští se…',
   'admin.plugins.type.widget': 'Widget',
   'admin.plugins.type.page': 'Stránka',
@@ -193,10 +196,12 @@ const admin: TranslationStrings = {
   'admin.plugins.title': 'Pluginy',
   'admin.plugins.subtitle': 'Instalujte a spravujte pluginy třetích stran na své instanci.',
   'admin.plugins.disabledTitle': 'Pluginy jsou zakázány',
-  'admin.plugins.disabledBody': 'Běhové prostředí pluginů je vypnuté (TREK_PLUGINS_ENABLED). Dokud jej administrátor nepovolí v konfiguraci serveru, nemůže běžet žádný plugin.',
+  'admin.plugins.disabledBody':
+    'Běhové prostředí pluginů je vypnuté (TREK_PLUGINS_ENABLED). Dokud jej administrátor nepovolí v konfiguraci serveru, nemůže běžet žádný plugin.',
   'admin.plugins.empty': 'Zatím nejsou nainstalovány žádné pluginy.',
   'admin.plugins.loadError': 'Nepodařilo se načíst pluginy.',
-  'admin.plugins.scaffoldNote': 'Instalace a aktivace pluginů přijdou v pozdější aktualizaci. Tento panel zatím pouze zobrazuje nainstalované pluginy.',
+  'admin.plugins.scaffoldNote':
+    'Instalace a aktivace pluginů přijdou v pozdější aktualizaci. Tento panel zatím pouze zobrazuje nainstalované pluginy.',
   'admin.plugins.status.active': 'Aktivní',
   'admin.plugins.status.inactive': 'Neaktivní',
   'admin.plugins.status.disabled': 'Zakázán',
@@ -222,19 +227,26 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:costs': 'Číst výdaje (položky rozpočtu), ke kterým má aktuální uživatel přístup',
   'admin.plugins.perm.db:read:packing': 'Číst seznamy věcí k zabalení u cest, ke kterým má aktuální uživatel přístup',
   'admin.plugins.perm.db:read:files': 'Číst soubory cest, ke kterým má aktuální uživatel přístup',
-  'admin.plugins.perm.db:write:costs': 'Vytvářet výdaje (položky rozpočtu) na cestách, které může aktuální uživatel upravovat',
-  'admin.plugins.perm.db:write:places': 'Přidávat, upravovat a odebírat místa na cestách, které může aktuální uživatel upravovat',
-  'admin.plugins.perm.db:write:days': 'Přidávat, upravovat a odebírat dny na cestách, které může aktuální uživatel upravovat',
-  'admin.plugins.perm.db:write:itinerary': 'Přiřazovat a odebírat místa ke dnům cest, které může aktuální uživatel upravovat',
-  'admin.plugins.perm.db:write:trips': 'Upravovat podrobnosti cesty (název, data, měnu…) na cestách, které může aktuální uživatel upravovat',
-  'admin.plugins.perm.db:meta': 'Připojovat vlastní soukromá data k cestám, místům a dnům, ke kterým má aktuální uživatel přístup',
+  'admin.plugins.perm.db:write:costs':
+    'Vytvářet výdaje (položky rozpočtu) na cestách, které může aktuální uživatel upravovat',
+  'admin.plugins.perm.db:write:places':
+    'Přidávat, upravovat a odebírat místa na cestách, které může aktuální uživatel upravovat',
+  'admin.plugins.perm.db:write:days':
+    'Přidávat, upravovat a odebírat dny na cestách, které může aktuální uživatel upravovat',
+  'admin.plugins.perm.db:write:itinerary':
+    'Přiřazovat a odebírat místa ke dnům cest, které může aktuální uživatel upravovat',
+  'admin.plugins.perm.db:write:trips':
+    'Upravovat podrobnosti cesty (název, data, měnu…) na cestách, které může aktuální uživatel upravovat',
+  'admin.plugins.perm.db:meta':
+    'Připojovat vlastní soukromá data k cestám, místům a dnům, ke kterým má aktuální uživatel přístup',
   'admin.plugins.perm.ws:broadcast:trip': 'Odesílat aktualizace v reálném čase členům cesty',
   'admin.plugins.perm.ws:broadcast:user': 'Odesílat aktualizace v reálném čase jednotlivým uživatelům',
   'admin.plugins.perm.hook:photo-provider': 'Poskytovat fotky do sekce Fotky',
   'admin.plugins.perm.hook:calendar-source': 'Poskytovat události do kalendáře',
   'admin.plugins.perm.hook:place-detail-provider': 'Přidávat další podrobnosti (recenze, hodnocení, odkazy) k místu',
   'admin.plugins.perm.hook:trip-warning-provider': 'Vyvolávat ověřovací upozornění u cesty (zobrazená v plánovači)',
-  'admin.plugins.perm.events:subscribe': 'Reagovat na základní události aktivity (pouze název události a cesta, nikdy obsah)',
+  'admin.plugins.perm.events:subscribe':
+    'Reagovat na základní události aktivity (pouze název události a cesta, nikdy obsah)',
   'admin.plugins.perm.http:outbound': 'Odesílat odchozí požadavky na deklarované hostitele',
   'admin.plugins.updateConsentTitle': 'Tato aktualizace vyžaduje nová oprávnění',
   'admin.plugins.updateConsentBody':

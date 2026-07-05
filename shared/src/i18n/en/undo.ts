@@ -9,7 +9,7 @@ const undo: TranslationStrings = {
   'undo.optimize': 'Route optimized',
   'undo.deletePlace': 'Place deleted',
   'undo.deletePlaces': 'Places deleted',
-  'undo.changeCategory': "Category changed",
+  'undo.changeCategory': 'Category changed',
   'undo.moveDay': 'Place moved to another day',
   'undo.lock': 'Place lock toggled',
   'undo.importGpx': 'GPX import',

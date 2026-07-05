@@ -141,6 +141,8 @@ const admin: TranslationStrings = {
   'admin.recommended': 'Συνιστάται',
   'admin.weatherKey': 'OpenWeatherMap API Key',
   'admin.weatherKeyHint': 'Για δεδομένα καιρού. Δωρεάν στο openweathermap.org',
+  'admin.unsplashKey': 'Κλειδί API Unsplash',
+  'admin.unsplashKeyHint': 'Για αναζήτηση εικόνων. Δωρεάν στο unsplash.com/developers',
   'admin.validateKey': 'Δοκιμή',
   'admin.keyValid': 'Συνδέθηκε',
   'admin.keyInvalid': 'Μη έγκυρο',
@@ -227,7 +229,8 @@ const admin: TranslationStrings = {
   'admin.plugins.noErrors': 'Δεν έχουν καταγραφεί σφάλματα.',
   'admin.plugins.uninstalled': 'Το plugin απεγκαταστάθηκε',
   'admin.plugins.uninstallTitle': 'Απεγκατάσταση plugin;',
-  'admin.plugins.uninstallBody': 'Αυτό σταματά το plugin, αφαιρεί τον κώδικά του και διαγράφει όλα τα δεδομένα του. Αυτή η ενέργεια δεν μπορεί να αναιρεθεί.',
+  'admin.plugins.uninstallBody':
+    'Αυτό σταματά το plugin, αφαιρεί τον κώδικά του και διαγράφει όλα τα δεδομένα του. Αυτή η ενέργεια δεν μπορεί να αναιρεθεί.',
   'admin.plugins.status.starting': 'Εκκίνηση…',
   'admin.plugins.type.widget': 'Widget',
   'admin.plugins.type.page': 'Σελίδα',
@@ -241,10 +244,12 @@ const admin: TranslationStrings = {
   'admin.plugins.title': 'Plugins',
   'admin.plugins.subtitle': 'Εγκαταστήστε και διαχειριστείτε plugins τρίτων στην εγκατάστασή σας.',
   'admin.plugins.disabledTitle': 'Τα plugins είναι απενεργοποιημένα',
-  'admin.plugins.disabledBody': 'Το περιβάλλον εκτέλεσης plugins είναι απενεργοποιημένο (TREK_PLUGINS_ENABLED). Κανένα plugin δεν μπορεί να εκτελεστεί μέχρι ένας διαχειριστής να το ενεργοποιήσει στη διαμόρφωση του server.',
+  'admin.plugins.disabledBody':
+    'Το περιβάλλον εκτέλεσης plugins είναι απενεργοποιημένο (TREK_PLUGINS_ENABLED). Κανένα plugin δεν μπορεί να εκτελεστεί μέχρι ένας διαχειριστής να το ενεργοποιήσει στη διαμόρφωση του server.',
   'admin.plugins.empty': 'Δεν έχουν εγκατασταθεί plugins ακόμη.',
   'admin.plugins.loadError': 'Δεν ήταν δυνατή η φόρτωση των plugins.',
-  'admin.plugins.scaffoldNote': 'Η εγκατάσταση και ενεργοποίηση plugins έρχονται σε μελλοντική ενημέρωση. Αυτός ο πίνακας εμφανίζει προς το παρόν μόνο τα εγκατεστημένα plugins.',
+  'admin.plugins.scaffoldNote':
+    'Η εγκατάσταση και ενεργοποίηση plugins έρχονται σε μελλοντική ενημέρωση. Αυτός ο πίνακας εμφανίζει προς το παρόν μόνο τα εγκατεστημένα plugins.',
   'admin.plugins.status.active': 'Ενεργό',
   'admin.plugins.status.inactive': 'Ανενεργό',
   'admin.plugins.status.disabled': 'Απενεργοποιημένο',
@@ -267,22 +272,32 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:own': 'Αποθήκευση των δικών του δεδομένων σε απομονωμένη βάση δεδομένων',
   'admin.plugins.perm.db:read:trips': 'Ανάγνωση ταξιδιών στα οποία έχει πρόσβαση ο ενεργός χρήστης',
   'admin.plugins.perm.db:read:users': 'Ανάγνωση βασικών στοιχείων προφίλ (όνομα, avatar — ποτέ διαπιστευτήρια)',
-  'admin.plugins.perm.db:read:costs': 'Ανάγνωση εξόδων (στοιχεία προϋπολογισμού) στα οποία έχει πρόσβαση ο ενεργός χρήστης',
+  'admin.plugins.perm.db:read:costs':
+    'Ανάγνωση εξόδων (στοιχεία προϋπολογισμού) στα οποία έχει πρόσβαση ο ενεργός χρήστης',
   'admin.plugins.perm.db:read:packing': 'Ανάγνωση λιστών αποσκευών ταξιδιών στα οποία έχει πρόσβαση ο ενεργός χρήστης',
   'admin.plugins.perm.db:read:files': 'Ανάγνωση αρχείων ταξιδιών στα οποία έχει πρόσβαση ο ενεργός χρήστης',
-  'admin.plugins.perm.db:write:costs': 'Δημιουργία εξόδων (στοιχεία προϋπολογισμού) σε ταξίδια που μπορεί να επεξεργαστεί ο ενεργός χρήστης',
-  'admin.plugins.perm.db:write:places': 'Προσθήκη, επεξεργασία και αφαίρεση τοποθεσιών σε ταξίδια που μπορεί να επεξεργαστεί ο ενεργός χρήστης',
-  'admin.plugins.perm.db:write:days': 'Προσθήκη, επεξεργασία και αφαίρεση ημερών σε ταξίδια που μπορεί να επεξεργαστεί ο ενεργός χρήστης',
-  'admin.plugins.perm.db:write:itinerary': 'Ανάθεση και αφαίρεση τοποθεσιών σε ημέρες ταξιδιών που μπορεί να επεξεργαστεί ο ενεργός χρήστης',
-  'admin.plugins.perm.db:write:trips': 'Επεξεργασία στοιχείων ταξιδιού (τίτλος, ημερομηνίες, νόμισμα…) σε ταξίδια που μπορεί να επεξεργαστεί ο ενεργός χρήστης',
-  'admin.plugins.perm.db:meta': 'Επισύναψη των δικών του ιδιωτικών δεδομένων σε ταξίδια, τοποθεσίες και ημέρες στις οποίες έχει πρόσβαση ο ενεργός χρήστης',
+  'admin.plugins.perm.db:write:costs':
+    'Δημιουργία εξόδων (στοιχεία προϋπολογισμού) σε ταξίδια που μπορεί να επεξεργαστεί ο ενεργός χρήστης',
+  'admin.plugins.perm.db:write:places':
+    'Προσθήκη, επεξεργασία και αφαίρεση τοποθεσιών σε ταξίδια που μπορεί να επεξεργαστεί ο ενεργός χρήστης',
+  'admin.plugins.perm.db:write:days':
+    'Προσθήκη, επεξεργασία και αφαίρεση ημερών σε ταξίδια που μπορεί να επεξεργαστεί ο ενεργός χρήστης',
+  'admin.plugins.perm.db:write:itinerary':
+    'Ανάθεση και αφαίρεση τοποθεσιών σε ημέρες ταξιδιών που μπορεί να επεξεργαστεί ο ενεργός χρήστης',
+  'admin.plugins.perm.db:write:trips':
+    'Επεξεργασία στοιχείων ταξιδιού (τίτλος, ημερομηνίες, νόμισμα…) σε ταξίδια που μπορεί να επεξεργαστεί ο ενεργός χρήστης',
+  'admin.plugins.perm.db:meta':
+    'Επισύναψη των δικών του ιδιωτικών δεδομένων σε ταξίδια, τοποθεσίες και ημέρες στις οποίες έχει πρόσβαση ο ενεργός χρήστης',
   'admin.plugins.perm.ws:broadcast:trip': 'Αποστολή ενημερώσεων σε πραγματικό χρόνο στα μέλη του ταξιδιού',
   'admin.plugins.perm.ws:broadcast:user': 'Αποστολή ενημερώσεων σε πραγματικό χρόνο σε μεμονωμένους χρήστες',
   'admin.plugins.perm.hook:photo-provider': 'Παροχή φωτογραφιών στις Αναμνήσεις',
   'admin.plugins.perm.hook:calendar-source': 'Παροχή συμβάντων στο ημερολόγιο',
-  'admin.plugins.perm.hook:place-detail-provider': 'Συνεισφορά επιπλέον λεπτομερειών (κριτικές, βαθμολογίες, σύνδεσμοι) σε ένα μέρος',
-  'admin.plugins.perm.hook:trip-warning-provider': 'Εμφάνιση προειδοποιήσεων επικύρωσης σε ένα ταξίδι (εμφανίζονται στον σχεδιαστή)',
-  'admin.plugins.perm.events:subscribe': 'Αντιδρά σε βασικά συμβάντα δραστηριότητας (όνομα συμβάντος + ταξίδι μόνο, ποτέ το περιεχόμενο)',
+  'admin.plugins.perm.hook:place-detail-provider':
+    'Συνεισφορά επιπλέον λεπτομερειών (κριτικές, βαθμολογίες, σύνδεσμοι) σε ένα μέρος',
+  'admin.plugins.perm.hook:trip-warning-provider':
+    'Εμφάνιση προειδοποιήσεων επικύρωσης σε ένα ταξίδι (εμφανίζονται στον σχεδιαστή)',
+  'admin.plugins.perm.events:subscribe':
+    'Αντιδρά σε βασικά συμβάντα δραστηριότητας (όνομα συμβάντος + ταξίδι μόνο, ποτέ το περιεχόμενο)',
   'admin.plugins.perm.http:outbound': 'Εκτέλεση εξερχόμενων αιτημάτων προς τους δηλωμένους hosts του',
   'admin.plugins.updateConsentTitle': 'Αυτή η ενημέρωση χρειάζεται νέα δικαιώματα',
   'admin.plugins.updateConsentBody':

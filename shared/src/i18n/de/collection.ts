@@ -49,7 +49,8 @@ const collection: TranslationStrings = {
   'collections.editList': 'Umbenennen',
   'collections.listMenu': 'Listenoptionen',
   'collections.deleteList': 'Liste löschen',
-  'collections.deleteListConfirm': 'Dies löscht die Liste und alle gespeicherten Orte endgültig. Das kann nicht rückgängig gemacht werden.',
+  'collections.deleteListConfirm':
+    'Dies löscht die Liste und alle gespeicherten Orte endgültig. Das kann nicht rückgängig gemacht werden.',
   'collections.listName': 'Listenname',
   'collections.listNamePlaceholder': 'z. B. Tokio 2025',
   'collections.listColor': 'Farbe',
@@ -61,7 +62,8 @@ const collection: TranslationStrings = {
   'collections.empty.noMatchTitle': 'Keine Treffer',
   'collections.empty.noMatchText': 'Keine gespeicherten Orte passen zu deinem Filter oder deiner Suche.',
   'collections.empty.firstTitle': 'Starte deine erste Sammlung',
-  'collections.empty.firstText': 'Erstelle eine Liste, um Orte zu speichern, die du dir über Reisen hinweg merken willst.',
+  'collections.empty.firstText':
+    'Erstelle eine Liste, um Orte zu speichern, die du dir über Reisen hinweg merken willst.',
 
   'collections.view.grid': 'Raster',
   'collections.view.list': 'Liste',
@@ -127,7 +129,8 @@ const collection: TranslationStrings = {
   'collections.share.memberHint': 'Nur der Listenbesitzer kann Personen einladen oder entfernen.',
   'collections.share.cancel': 'Abbrechen',
   'collections.share.leave': 'Liste verlassen',
-  'collections.share.leaveConfirm': 'Diese geteilte Liste verlassen? Du verlierst den Zugriff, bis du erneut eingeladen wirst.',
+  'collections.share.leaveConfirm':
+    'Diese geteilte Liste verlassen? Du verlierst den Zugriff, bis du erneut eingeladen wirst.',
   'collections.share.left': 'Du hast die Liste verlassen',
   'collections.share.remove': 'Entfernen',
 

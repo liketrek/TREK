@@ -122,9 +122,9 @@ const budget: TranslationStrings = {
   'costs.unfinishedHint': 'Nur Gesamtsumme — noch nicht abgerechnet',
   'costs.tapToInclude': 'Zum Einbeziehen tippen',
   'costs.amount': 'Betrag',
-  'costs.split': "Aufteilen",
-  'costs.splitEqually': "Gleichmäßig",
-  'costs.splitCustom': "Individuell",
-  'costs.splitTicket': "Beleg",
+  'costs.split': 'Aufteilen',
+  'costs.splitEqually': 'Gleichmäßig',
+  'costs.splitCustom': 'Individuell',
+  'costs.splitTicket': 'Beleg',
 };
 export default budget;

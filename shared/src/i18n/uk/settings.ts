@@ -330,7 +330,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.success': 'Підключено — знайдено {count} рейс(ів)',
   'settings.airtrail.test.failed': 'Не вдалося підключитися',
   'settings.aiParsing.title': 'Розпізнавання ШІ',
-  'settings.aiParsing.hint': 'Використовуйте власну модель ШІ для вилучення бронювань із завантажених файлів. Це діє лише тоді, коли адміністратор не налаштував модель для всього екземпляра.',
+  'settings.aiParsing.hint':
+    'Використовуйте власну модель ШІ для вилучення бронювань із завантажених файлів. Це діє лише тоді, коли адміністратор не налаштував модель для всього екземпляра.',
   'settings.aiParsing.provider': 'Постачальник',
   'settings.aiParsing.providerLocal': 'Локальний (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
@@ -339,9 +340,11 @@ const settings: TranslationStrings = {
   'settings.aiParsing.baseUrl': 'Базова URL-адреса',
   'settings.aiParsing.baseUrlHint': 'Де працює модель — локальний сервер Ollama або сумісна з OpenAI кінцева точка.',
   'settings.aiParsing.apiKey': 'Ключ API',
-  'settings.aiParsing.apiKeyHint': 'Зберігається в зашифрованому вигляді. Залиште порожнім, щоб зберегти поточний ключ.',
+  'settings.aiParsing.apiKeyHint':
+    'Зберігається в зашифрованому вигляді. Залиште порожнім, щоб зберегти поточний ключ.',
   'settings.aiParsing.multimodal': 'Надсилати документи як зображення',
-  'settings.aiParsing.multimodalHint': 'Для моделей із підтримкою зображень — надсилає оригінальний PDF замість вилученого тексту.',
+  'settings.aiParsing.multimodalHint':
+    'Для моделей із підтримкою зображень — надсилає оригінальний PDF замість вилученого тексту.',
   'settings.aiParsing.toast.saved': 'Налаштування ШІ збережено',
   'settings.aiParsing.toast.saveError': 'Не вдалося зберегти налаштування ШІ',
   'settings.tabs.appearance': 'Appearance',
@@ -360,7 +363,8 @@ const settings: TranslationStrings = {
   'settings.appearance.contrastLow': 'Low contrast',
   'settings.appearance.readability': 'Readability',
   'settings.appearance.transparency': 'Transparency',
-  'settings.appearance.transparencyHint': 'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
+  'settings.appearance.transparencyHint':
+    'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
   'settings.appearance.reduceMotion': 'Reduce motion',
   'settings.appearance.reduceMotionHint': 'Minimize animations and transitions.',
   'settings.appearance.density': 'Density',
@@ -390,7 +394,8 @@ const settings: TranslationStrings = {
   'settings.appearance.group.belowHero': 'Below the hero',
   'settings.appearance.group.bottomOfPage': 'Bottom of page',
   'settings.appearance.sidebarHint': 'The whole right column. Turn off and the dashboard centers.',
-  'settings.appearance.densityHint': 'Compact tightens spacing and padding for a denser layout that fits more on screen.',
+  'settings.appearance.densityHint':
+    'Compact tightens spacing and padding for a denser layout that fits more on screen.',
   'settings.appearance.textSizeAll': 'Everything',
   'settings.appearance.perSize': 'Adjust each size separately',
   'settings.appearance.size.large': 'Large',
@@ -413,10 +418,13 @@ const settings: TranslationStrings = {
   'settings.offline.cache.title': 'Офлайн-кеш',
   'settings.offline.mode.title': 'Офлайн-режим',
   'settings.offline.mode.force': 'Примусовий офлайн-режим',
-  'settings.offline.mode.forceHint': 'Працюйте лише з кешованими даними та ставте свої зміни в чергу. Вимкніть, щоб знову підключитися та синхронізувати.',
-  'settings.offline.mode.active': 'Офлайн-режим увімкнено — ваші зміни поставлені в чергу й синхронізуються, коли ви його вимкнете.',
+  'settings.offline.mode.forceHint':
+    'Працюйте лише з кешованими даними та ставте свої зміни в чергу. Вимкніть, щоб знову підключитися та синхронізувати.',
+  'settings.offline.mode.active':
+    'Офлайн-режим увімкнено — ваші зміни поставлені в чергу й синхронізуються, коли ви його вимкнете.',
   'settings.offline.prepare.title': 'Підготуватися до офлайну',
-  'settings.offline.prepare.hint': 'Завантажте все необхідне — дані поїздок, документи та тайли карти — перш ніж втратите зв’язок.',
+  'settings.offline.prepare.hint':
+    'Завантажте все необхідне — дані поїздок, документи та тайли карти — перш ніж втратите зв’язок.',
   'settings.offline.prepare.button': 'Завантажити для офлайн-використання',
   'settings.offline.prepare.running': 'Завантаження…',
   'settings.offline.prepare.done': 'Готово до офлайн-використання',
@@ -427,12 +435,14 @@ const settings: TranslationStrings = {
   'settings.offline.resyncing': 'Синхронізація…',
   'settings.offline.storage.title': 'Що зберігати офлайн',
   'settings.offline.storage.tiles': 'Зберігати тайли карти офлайн',
-  'settings.offline.storage.tilesHint': 'Тайли карти займають найбільше місця. Вимкніть, щоб зберігати офлайн лише дані поїздок і документи.',
+  'settings.offline.storage.tilesHint':
+    'Тайли карти займають найбільше місця. Вимкніть, щоб зберігати офлайн лише дані поїздок і документи.',
   'settings.offline.storage.tripsTitle': 'Поїздки',
   'settings.offline.storage.tripOn': 'Збережено офлайн',
   'settings.offline.storage.tripOff': 'Не збережено',
   'settings.offline.clear': 'Очистити кеш',
-  'settings.offline.clearConfirm': 'Очистити всі офлайн-дані поїздок? Ви можете синхронізувати їх будь-коли в режимі онлайн.',
+  'settings.offline.clearConfirm':
+    'Очистити всі офлайн-дані поїздок? Ви можете синхронізувати їх будь-коли в режимі онлайн.',
   'settings.offline.stats.trips': 'Кешовані поїздки',
   'settings.offline.stats.pending': 'Зміни в очікуванні',
   'settings.offline.stats.failed': 'Невдалі зміни',
@@ -440,7 +450,8 @@ const settings: TranslationStrings = {
   'settings.offline.empty': 'Поки що немає кешованих поїздок. Підключіться до інтернету, щоб синхронізувати.',
   'settings.offline.loading': 'Завантаження…',
   'settings.offline.conflicts.title': 'Конфлікти синхронізації',
-  'settings.offline.conflicts.hint': 'Зміни, які ви зробили офлайн, конфліктують із новішими змінами на сервері. Виберіть, яку версію залишити.',
+  'settings.offline.conflicts.hint':
+    'Зміни, які ви зробили офлайн, конфліктують із новішими змінами на сервері. Виберіть, яку версію залишити.',
   'settings.offline.conflicts.keepMine': 'Залишити мою',
   'settings.offline.conflicts.keepServer': 'Залишити їхню',
   'settings.offline.conflicts.mine': 'Ваша версія',

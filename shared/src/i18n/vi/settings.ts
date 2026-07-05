@@ -17,7 +17,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'Mẫu URL cho ô bản đồ',
   'settings.mapProvider': 'Nhà cung cấp bản đồ',
-  'settings.mapProviderHint': 'Ảnh hưởng tới Công cụ lập kế hoạch chuyến đi và bản đồ hành trình. Atlas luôn sử dụng Leaflet.',
+  'settings.mapProviderHint':
+    'Ảnh hưởng tới Công cụ lập kế hoạch chuyến đi và bản đồ hành trình. Atlas luôn sử dụng Leaflet.',
   'settings.mapLeafletSubtitle': '2D cổ điển, bất kỳ ô raster nào',
   'settings.mapMapboxSubtitle': 'Gạch vector, tòa nhà 3D và địa hình',
   'settings.mapMapLibreSubtitle': 'OpenFreeMap gạch vector, không có mã thông báo',
@@ -29,11 +30,13 @@ const settings: TranslationStrings = {
   'settings.mapStylePlaceholder': 'Chọn kiểu Mapbox',
   'settings.mapStyleHint': 'Đặt trước hoặc của riêng bạn mapbox://styles/USER/ID URL',
   'settings.mapOpenFreeMapStylePlaceholder': 'Chọn kiểu OpenFreeMap',
-  'settings.mapOpenFreeMapStyleHint': 'Đặt trước hoặc kiểu OpenFreeMap URL. Kiểu OpenFreeMap hoạt động mà không cần mã thông báo.',
+  'settings.mapOpenFreeMapStyleHint':
+    'Đặt trước hoặc kiểu OpenFreeMap URL. Kiểu OpenFreeMap hoạt động mà không cần mã thông báo.',
   'settings.map3dBuildings': 'Tòa nhà & địa hình 3D',
   'settings.map3dHint': 'Cao độ + ép đùn tòa nhà 3D thực - hoạt động trên mọi phong cách, bao gồm cả vệ tinh.',
   'settings.mapHighQuality': 'Chế độ chất lượng cao',
-  'settings.mapHighQualityHint': 'Khử răng cưa + chiếu hình ảnh địa cầu cho các cạnh sắc nét hơn và thế giới quan chân thực hơn.',
+  'settings.mapHighQualityHint':
+    'Khử răng cưa + chiếu hình ảnh địa cầu cho các cạnh sắc nét hơn và thế giới quan chân thực hơn.',
   'settings.mapHighQualityWarning': 'Có thể ảnh hưởng đến hiệu suất trên các thiết bị cấp thấp hơn.',
   'settings.mapTipLabel': 'Mẹo:',
   'settings.mapTip':
@@ -68,7 +71,8 @@ const settings: TranslationStrings = {
   'settings.optimizeFromAccommodationHint':
     'Khi tối ưu hóa một ngày, hãy bắt đầu lộ trình tại khách sạn nơi bạn thức dậy và kết thúc tại khách sạn bạn nhận phòng vào tối hôm đó.',
   'settings.aiAlwaysRetry': 'Luôn thử lại việc nhập đặt chỗ bằng AI.',
-  'settings.aiAlwaysRetryHint': 'Khi trình phân tích cú pháp tiêu chuẩn không thể đọc được tệp, hãy tự động thử lại bằng AI..',
+  'settings.aiAlwaysRetryHint':
+    'Khi trình phân tích cú pháp tiêu chuẩn không thể đọc được tệp, hãy tự động thử lại bằng AI..',
   'settings.notifications': 'Thông báo',
   'settings.notifyTripInvite': 'Lời mời chuyến đi',
   'settings.notifyBookingChange': 'Thay đổi đặt chỗ',
@@ -174,7 +178,8 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.clientNamePlaceholder': 'ví dụ. Claude Web, Ứng dụng MCP của tôi',
   'settings.oauth.modal.redirectUris': 'URI chuyển hướng',
   'settings.oauth.modal.redirectUrisPlaceholder': 'https://your-app.com/callback\nhttps://your-app.com/auth',
-  'settings.oauth.modal.redirectUrisHint': 'Một URI trên mỗi dòng. Yêu cầu HTTPS (miễn trừ localhost). Đối sánh chính xác được thực thi.',
+  'settings.oauth.modal.redirectUrisHint':
+    'Một URI trên mỗi dòng. Yêu cầu HTTPS (miễn trừ localhost). Đối sánh chính xác được thực thi.',
   'settings.oauth.modal.scopes': 'Phạm vi được phép',
   'settings.oauth.modal.scopesHint':
     'list_trips và get_trip_summary luôn có sẵn — không yêu cầu phạm vi. Họ cho phép AI khám phá ID chuyến đi cần thiết để sử dụng bất kỳ công cụ nào khác.',
@@ -183,7 +188,8 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.creating': 'Đang đăng ký…',
   'settings.oauth.modal.create': 'Đăng ký khách hàng',
   'settings.oauth.modal.createdTitle': 'Khách hàng đã đăng ký',
-  'settings.oauth.modal.createdWarning': 'Bí mật của khách hàng chỉ được hiển thị một lần. Sao chép nó ngay bây giờ - nó không thể phục hồi được.',
+  'settings.oauth.modal.createdWarning':
+    'Bí mật của khách hàng chỉ được hiển thị một lần. Sao chép nó ngay bây giờ - nó không thể phục hồi được.',
   'settings.oauth.toast.createError': 'Không thể đăng ký ứng dụng khách OAuth',
   'settings.oauth.toast.deleted': 'OAuth khách hàng đã bị xóa',
   'settings.oauth.toast.deleteError': 'Không xóa được ứng dụng khách OAuth',
@@ -261,7 +267,8 @@ const settings: TranslationStrings = {
   'settings.mfa.requiredByPolicy':
     'Quản trị viên của bạn yêu cầu xác thực hai yếu tố. Thiết lập ứng dụng xác thực bên dưới trước khi tiếp tục.',
   'settings.mfa.backupTitle': 'Mã dự phòng',
-  'settings.mfa.backupDescription': 'Sử dụng các mã dự phòng một lần này nếu bạn mất quyền truy cập vào ứng dụng xác thực của mình.',
+  'settings.mfa.backupDescription':
+    'Sử dụng các mã dự phòng một lần này nếu bạn mất quyền truy cập vào ứng dụng xác thực của mình.',
   'settings.mfa.backupWarning': 'Hãy lưu lại những mã này ngay bây giờ. Mỗi mã chỉ có thể được sử dụng một lần.',
   'settings.mfa.backupCopy': 'Sao chép mã',
   'settings.mfa.backupDownload': 'Tải xuống TXT',
@@ -290,7 +297,8 @@ const settings: TranslationStrings = {
     'Mật mã đã được bật nhưng chưa được định cấu hình đầy đủ trên máy chủ này. Hãy yêu cầu quản trị viên của bạn đặt miền WebAuthn.',
   'settings.passkey.add': 'Thêm mật mã',
   'settings.passkey.addTitle': 'Thêm mật mã',
-  'settings.passkey.passwordPrompt': 'Xác nhận mật khẩu hiện tại của bạn, sau đó làm theo lời nhắc trên thiết bị của bạn.',
+  'settings.passkey.passwordPrompt':
+    'Xác nhận mật khẩu hiện tại của bạn, sau đó làm theo lời nhắc trên thiết bị của bạn.',
   'settings.passkey.passwordRequired': 'Mật khẩu hiện tại của bạn là bắt buộc.',
   'settings.passkey.namePlaceholder': 'Tên (tùy chọn, ví dụ: "iPhone")',
   'settings.passkey.addedToast': 'Đã thêm mật mã',
@@ -337,7 +345,8 @@ const settings: TranslationStrings = {
   'settings.aiParsing.apiKey': 'Khóa API',
   'settings.aiParsing.apiKeyHint': 'Được lưu trữ mã hóa. Để trống để giữ khóa hiện tại.',
   'settings.aiParsing.multimodal': 'Gửi tài liệu dưới dạng hình ảnh',
-  'settings.aiParsing.multimodalHint': 'Dành cho các mô hình hỗ trợ thị giác — gửi PDF gốc thay vì văn bản đã trích xuất.',
+  'settings.aiParsing.multimodalHint':
+    'Dành cho các mô hình hỗ trợ thị giác — gửi PDF gốc thay vì văn bản đã trích xuất.',
   'settings.aiParsing.toast.saved': 'Đã lưu cài đặt AI',
   'settings.aiParsing.toast.saveError': 'Không thể lưu cài đặt AI',
   'settings.tabs.appearance': 'Giao diện',
@@ -356,8 +365,7 @@ const settings: TranslationStrings = {
   'settings.appearance.contrastLow': 'Tương phản thấp',
   'settings.appearance.readability': 'Khả năng đọc',
   'settings.appearance.transparency': 'Độ trong suốt',
-  'settings.appearance.transparencyHint':
-    'Bề mặt trong mờ kiểu kính. Tắt để có nền đặc, tương phản cao hơn.',
+  'settings.appearance.transparencyHint': 'Bề mặt trong mờ kiểu kính. Tắt để có nền đặc, tương phản cao hơn.',
   'settings.appearance.reduceMotion': 'Giảm chuyển động',
   'settings.appearance.reduceMotionHint': 'Giảm thiểu hoạt ảnh và hiệu ứng chuyển tiếp.',
   'settings.appearance.density': 'Mật độ',
@@ -387,8 +395,7 @@ const settings: TranslationStrings = {
   'settings.appearance.reset': 'Đặt lại về mặc định',
   'settings.appearance.group.belowHero': 'Dưới ảnh bìa',
   'settings.appearance.group.bottomOfPage': 'Cuối trang',
-  'settings.appearance.sidebarHint':
-    'Toàn bộ cột bên phải. Tắt đi thì bảng điều khiển sẽ căn giữa.',
+  'settings.appearance.sidebarHint': 'Toàn bộ cột bên phải. Tắt đi thì bảng điều khiển sẽ căn giữa.',
   'settings.appearance.densityHint':
     'Chế độ gọn thu hẹp khoảng cách và lề để bố cục dày đặc hơn, hiển thị được nhiều hơn trên màn hình.',
   'settings.appearance.textSizeAll': 'Tất cả',
@@ -413,10 +420,13 @@ const settings: TranslationStrings = {
   'settings.offline.cache.title': 'Bộ nhớ đệm ngoại tuyến',
   'settings.offline.mode.title': 'Chế độ ngoại tuyến',
   'settings.offline.mode.force': 'Bắt buộc chế độ ngoại tuyến',
-  'settings.offline.mode.forceHint': 'Chỉ làm việc với dữ liệu trong bộ nhớ đệm và đưa các thay đổi của bạn vào hàng đợi. Tắt để kết nối lại và đồng bộ hóa.',
-  'settings.offline.mode.active': 'Chế độ ngoại tuyến đang bật — các thay đổi của bạn đã được đưa vào hàng đợi và sẽ đồng bộ hóa khi bạn tắt nó.',
+  'settings.offline.mode.forceHint':
+    'Chỉ làm việc với dữ liệu trong bộ nhớ đệm và đưa các thay đổi của bạn vào hàng đợi. Tắt để kết nối lại và đồng bộ hóa.',
+  'settings.offline.mode.active':
+    'Chế độ ngoại tuyến đang bật — các thay đổi của bạn đã được đưa vào hàng đợi và sẽ đồng bộ hóa khi bạn tắt nó.',
   'settings.offline.prepare.title': 'Chuẩn bị cho ngoại tuyến',
-  'settings.offline.prepare.hint': 'Tải xuống mọi thứ bạn cần — dữ liệu chuyến đi, tài liệu và ô bản đồ — trước khi bạn mất kết nối.',
+  'settings.offline.prepare.hint':
+    'Tải xuống mọi thứ bạn cần — dữ liệu chuyến đi, tài liệu và ô bản đồ — trước khi bạn mất kết nối.',
   'settings.offline.prepare.button': 'Tải xuống để dùng ngoại tuyến',
   'settings.offline.prepare.running': 'Đang tải xuống…',
   'settings.offline.prepare.done': 'Sẵn sàng dùng ngoại tuyến',
@@ -427,12 +437,14 @@ const settings: TranslationStrings = {
   'settings.offline.resyncing': 'Đang đồng bộ hóa…',
   'settings.offline.storage.title': 'Lưu trữ gì khi ngoại tuyến',
   'settings.offline.storage.tiles': 'Lưu ô bản đồ ngoại tuyến',
-  'settings.offline.storage.tilesHint': 'Ô bản đồ chiếm nhiều dung lượng lưu trữ nhất. Tắt tùy chọn này để chỉ giữ dữ liệu chuyến đi và tài liệu ở chế độ ngoại tuyến.',
+  'settings.offline.storage.tilesHint':
+    'Ô bản đồ chiếm nhiều dung lượng lưu trữ nhất. Tắt tùy chọn này để chỉ giữ dữ liệu chuyến đi và tài liệu ở chế độ ngoại tuyến.',
   'settings.offline.storage.tripsTitle': 'Chuyến đi',
   'settings.offline.storage.tripOn': 'Đã lưu ngoại tuyến',
   'settings.offline.storage.tripOff': 'Chưa lưu',
   'settings.offline.clear': 'Xóa bộ nhớ đệm',
-  'settings.offline.clearConfirm': 'Xóa tất cả dữ liệu chuyến đi ngoại tuyến? Bạn có thể đồng bộ lại bất cứ lúc nào khi trực tuyến.',
+  'settings.offline.clearConfirm':
+    'Xóa tất cả dữ liệu chuyến đi ngoại tuyến? Bạn có thể đồng bộ lại bất cứ lúc nào khi trực tuyến.',
   'settings.offline.stats.trips': 'Chuyến đi trong bộ nhớ đệm',
   'settings.offline.stats.pending': 'Thay đổi đang chờ',
   'settings.offline.stats.failed': 'Thay đổi không thành công',
@@ -440,7 +452,8 @@ const settings: TranslationStrings = {
   'settings.offline.empty': 'Chưa có chuyến đi nào trong bộ nhớ đệm. Kết nối internet để đồng bộ hóa.',
   'settings.offline.loading': 'Đang tải…',
   'settings.offline.conflicts.title': 'Xung đột đồng bộ hóa',
-  'settings.offline.conflicts.hint': 'Các thay đổi bạn thực hiện khi ngoại tuyến mâu thuẫn với các thay đổi mới hơn trên máy chủ. Chọn phiên bản nào để giữ lại.',
+  'settings.offline.conflicts.hint':
+    'Các thay đổi bạn thực hiện khi ngoại tuyến mâu thuẫn với các thay đổi mới hơn trên máy chủ. Chọn phiên bản nào để giữ lại.',
   'settings.offline.conflicts.keepMine': 'Giữ của tôi',
   'settings.offline.conflicts.keepServer': 'Giữ của máy chủ',
   'settings.offline.conflicts.mine': 'Phiên bản của bạn',

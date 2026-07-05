@@ -3,7 +3,7 @@ import type { TranslationStrings } from '../types';
 const collection: TranslationStrings = {
   'collections.saveNToList': 'Enregistrer {count} dans une liste',
   'collections.addedNToList': '{count} enregistrés dans {name}',
-  'collections.noOwnLists': 'Vous n\'avez pas encore de listes',
+  'collections.noOwnLists': "Vous n'avez pas encore de listes",
   'collections.saveToListHint': 'Les doublons sont ignorés automatiquement',
   'collections.role.label': 'Rôle',
   'collections.role.viewer': 'Lecteur',
@@ -49,7 +49,8 @@ const collection: TranslationStrings = {
   'collections.editList': 'Renommer',
   'collections.listMenu': 'Options de la liste',
   'collections.deleteList': 'Supprimer la liste',
-  'collections.deleteListConfirm': 'Cela supprime définitivement la liste et tous ses lieux enregistrés. Cette action est irréversible.',
+  'collections.deleteListConfirm':
+    'Cela supprime définitivement la liste et tous ses lieux enregistrés. Cette action est irréversible.',
   'collections.listName': 'Nom de la liste',
   'collections.listNamePlaceholder': 'p. ex. Tokyo 2025',
   'collections.listColor': 'Couleur',
@@ -127,7 +128,8 @@ const collection: TranslationStrings = {
   'collections.share.memberHint': 'Seul le propriétaire de la liste peut inviter ou retirer des personnes.',
   'collections.share.cancel': 'Annuler',
   'collections.share.leave': 'Quitter la liste',
-  'collections.share.leaveConfirm': 'Quitter cette liste partagée ? Vous perdrez l’accès jusqu’à ce que vous soyez réinvité.',
+  'collections.share.leaveConfirm':
+    'Quitter cette liste partagée ? Vous perdrez l’accès jusqu’à ce que vous soyez réinvité.',
   'collections.share.left': 'Vous avez quitté la liste',
   'collections.share.remove': 'Retirer',
 

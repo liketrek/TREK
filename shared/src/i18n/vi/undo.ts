@@ -9,7 +9,7 @@ const undo: TranslationStrings = {
   'undo.optimize': 'Tuyến đường được tối ưu hóa',
   'undo.deletePlace': 'Địa điểm đã bị xóa',
   'undo.deletePlaces': 'Địa điểm đã bị xóa',
-  'undo.changeCategory': "Category changed",
+  'undo.changeCategory': 'Category changed',
   'undo.moveDay': 'Địa điểm đã chuyển sang ngày khác',
   'undo.lock': 'Đã bật khóa địa điểm',
   'undo.importGpx': 'GPX nhập khẩu',

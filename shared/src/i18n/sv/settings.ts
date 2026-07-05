@@ -22,7 +22,8 @@ const settings: TranslationStrings = {
   'settings.mapMapboxSubtitle': 'Vektorplattor, 3D-byggnader och terräng',
   'settings.mapMapLibreSubtitle': 'OpenFreeMap-vektorplattor, ingen token',
   'settings.mapOpenFreeMapStylePlaceholder': 'Välj en OpenFreeMap-stil',
-  'settings.mapOpenFreeMapStyleHint': 'Förinställning eller OpenFreeMap-stil-URL. OpenFreeMap-stilar fungerar utan token.',
+  'settings.mapOpenFreeMapStyleHint':
+    'Förinställning eller OpenFreeMap-stil-URL. OpenFreeMap-stilar fungerar utan token.',
   'settings.mapExperimental': 'Experimentell',
   'settings.mapMapboxToken': 'Mapbox-åtkomsttoken',
   'settings.mapMapboxTokenHint': 'Offentlig token (pk.*) från',
@@ -31,7 +32,8 @@ const settings: TranslationStrings = {
   'settings.mapStylePlaceholder': 'Välj en Mapbox-stil',
   'settings.mapStyleHint': 'Förinställda eller egna mapbox://styles/USER/ID länk',
   'settings.map3dBuildings': '3D-byggnader och terräng',
-  'settings.map3dHint': 'Vinkel + verklighetstrogna 3D-byggnadsextrusioner — fungerar för alla stilar, inklusive satellitstil.',
+  'settings.map3dHint':
+    'Vinkel + verklighetstrogna 3D-byggnadsextrusioner — fungerar för alla stilar, inklusive satellitstil.',
   'settings.mapHighQuality': 'Högkvalitetsläge',
   'settings.mapHighQualityHint': 'Antialiasing + globprojektion för skarpare kanter och en realistisk världsbild.',
   'settings.mapHighQualityWarning': 'Kan påverka prestandan på enheter i lägre enheter.',
@@ -59,7 +61,8 @@ const settings: TranslationStrings = {
   'settings.distance': 'Avståndsenhet',
   'settings.timeFormat': 'Tidsformat',
   'settings.bookingLabels': 'Etiketter för bokningsrutter',
-  'settings.bookingLabelsHint': 'Visa stations- och flygplatsnamn på kartan. När funktionen är avstängd visas endast ikonen.',
+  'settings.bookingLabelsHint':
+    'Visa stations- och flygplatsnamn på kartan. När funktionen är avstängd visas endast ikonen.',
   'settings.aiAlwaysRetry': 'Försök alltid importera bokningar med AI',
   'settings.aiAlwaysRetryHint': 'När en fil inte kan läsas av standardtolken görs ett nytt försök automatiskt med AI.',
   'settings.mapPoiPill': 'Utforska platser på kartan',
@@ -174,7 +177,8 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.clientNamePlaceholder': 't.ex. Claude Web, Min MCP App',
   'settings.oauth.modal.redirectUris': 'Omdirigerings-URI:er',
   'settings.oauth.modal.redirectUrisPlaceholder': 'https://din-app.com/callback\nhttps://din-app.com/auth',
-  'settings.oauth.modal.redirectUrisHint': 'En URI per rad. HTTPS krävs (med undantag för localhost). Exakt matchning krävs.',
+  'settings.oauth.modal.redirectUrisHint':
+    'En URI per rad. HTTPS krävs (med undantag för localhost). Exakt matchning krävs.',
   'settings.oauth.modal.scopes': 'Tillåtna tillämpningsområden',
   'settings.oauth.modal.scopesHint':
     'list_trips och get_trip_summary är alltid tillgängliga – inget tillämpningsområden krävs. De gör det möjligt för AI:n att hämta de res-ID:n som behövs för att använda andra verktyg.',
@@ -183,7 +187,8 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.creating': 'Registrerar...',
   'settings.oauth.modal.create': 'Registrerar klient',
   'settings.oauth.modal.createdTitle': 'Klient registrerad',
-  'settings.oauth.modal.createdWarning': 'Klienthemligheten visas endast en gång. Kopiera den nu – den går inte att återställa.',
+  'settings.oauth.modal.createdWarning':
+    'Klienthemligheten visas endast en gång. Kopiera den nu – den går inte att återställa.',
   'settings.oauth.toast.createError': 'Det gick inte att registrera OAuth-klienten',
   'settings.oauth.toast.deleted': 'OAuth-klienten har tagits bort',
   'settings.oauth.toast.deleteError': 'Det gick inte att ta bort OAuth-klienten',
@@ -206,7 +211,7 @@ const settings: TranslationStrings = {
   'settings.about.supporters.badge': 'Månatliga bidragsgivare',
   'settings.about.supporters.title': 'Resekompisar för TREK',
   'settings.about.supporters.subtitle':
-    "Medan du planerar din nästa rutt bidrar dessa personer till att forma TREK:s framtid. Deras månatliga bidrag går direkt till utveckling och faktisk arbetstid – så att TREK förblir öppen källkod.",
+    'Medan du planerar din nästa rutt bidrar dessa personer till att forma TREK:s framtid. Deras månatliga bidrag går direkt till utveckling och faktisk arbetstid – så att TREK förblir öppen källkod.',
   'settings.about.supporters.since': 'bidragsgivare sedan {date}',
   'settings.about.supporters.tierEmpty': 'Var först',
   'settings.about.supporter.tier.noReturnTicket': 'Ingen returbiljett',
@@ -234,8 +239,7 @@ const settings: TranslationStrings = {
   'settings.passwordMismatch': 'Lösenorden stämmer inte överens',
   'settings.passwordWeak': 'Lösenordet måste innehålla versaler, gemener, en siffra och ett specialtecken',
   'settings.passwordChanged': 'Lösenordet har ändrats',
-  'settings.mustChangePassword':
-    'Du måste byta lösenord innan du kan fortsätta. Välj ett nytt lösenord nedan.',
+  'settings.mustChangePassword': 'Du måste byta lösenord innan du kan fortsätta. Välj ett nytt lösenord nedan.',
   'settings.deleteAccount': 'Ta bort konto',
   'settings.deleteAccountTitle': 'Ta bort ditt konto?',
   'settings.deleteAccountWarning':
@@ -261,7 +265,8 @@ const settings: TranslationStrings = {
   'settings.mfa.requiredByPolicy':
     'Din administratör kräver tvåfaktorsautentisering. Konfigurera en autentiseringsapp nedan innan du fortsätter.',
   'settings.mfa.backupTitle': 'Säkerhetskoder',
-  'settings.mfa.backupDescription': 'Använd dessa engångskoder för säkerhetskopiering om du förlorar åtkomsten till din autentiseringsapp.',
+  'settings.mfa.backupDescription':
+    'Använd dessa engångskoder för säkerhetskopiering om du förlorar åtkomsten till din autentiseringsapp.',
   'settings.mfa.backupWarning': 'Spara dessa koder nu. Varje kod kan endast användas en gång.',
   'settings.mfa.backupCopy': 'Copy codes',
   'settings.mfa.backupDownload': 'Ladda ner TXT',
@@ -337,7 +342,8 @@ const settings: TranslationStrings = {
   'settings.aiParsing.apiKey': 'API-nyckel',
   'settings.aiParsing.apiKeyHint': 'Lagras krypterad. Lämna tomt för att behålla den nuvarande nyckeln.',
   'settings.aiParsing.multimodal': 'Skicka dokument som bilder',
-  'settings.aiParsing.multimodalHint': 'För modeller med bildstöd — skickar original-PDF:en istället för extraherad text.',
+  'settings.aiParsing.multimodalHint':
+    'För modeller med bildstöd — skickar original-PDF:en istället för extraherad text.',
   'settings.aiParsing.toast.saved': 'AI-inställningar sparade',
   'settings.aiParsing.toast.saveError': 'Kunde inte spara AI-inställningarna',
   'settings.tabs.appearance': 'Appearance',
@@ -356,7 +362,8 @@ const settings: TranslationStrings = {
   'settings.appearance.contrastLow': 'Low contrast',
   'settings.appearance.readability': 'Readability',
   'settings.appearance.transparency': 'Transparency',
-  'settings.appearance.transparencyHint': 'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
+  'settings.appearance.transparencyHint':
+    'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
   'settings.appearance.reduceMotion': 'Reduce motion',
   'settings.appearance.reduceMotionHint': 'Minimize animations and transitions.',
   'settings.appearance.density': 'Density',
@@ -386,7 +393,8 @@ const settings: TranslationStrings = {
   'settings.appearance.group.belowHero': 'Below the hero',
   'settings.appearance.group.bottomOfPage': 'Bottom of page',
   'settings.appearance.sidebarHint': 'The whole right column. Turn off and the dashboard centers.',
-  'settings.appearance.densityHint': 'Compact tightens spacing and padding for a denser layout that fits more on screen.',
+  'settings.appearance.densityHint':
+    'Compact tightens spacing and padding for a denser layout that fits more on screen.',
   'settings.appearance.textSizeAll': 'Everything',
   'settings.appearance.perSize': 'Adjust each size separately',
   'settings.appearance.size.large': 'Large',
@@ -409,10 +417,12 @@ const settings: TranslationStrings = {
   'settings.offline.cache.title': 'Offline-cache',
   'settings.offline.mode.title': 'Offlineläge',
   'settings.offline.mode.force': 'Tvinga offlineläge',
-  'settings.offline.mode.forceHint': 'Arbeta endast med cachelagrade data och köa dina ändringar. Stäng av för att återansluta och synkronisera.',
+  'settings.offline.mode.forceHint':
+    'Arbeta endast med cachelagrade data och köa dina ändringar. Stäng av för att återansluta och synkronisera.',
   'settings.offline.mode.active': 'Offlineläget är på — dina ändringar köas och synkroniseras när du stänger av det.',
   'settings.offline.prepare.title': 'Förbered för offline',
-  'settings.offline.prepare.hint': 'Ladda ner allt du behöver — resdata, dokument och kartrutor — innan du förlorar anslutningen.',
+  'settings.offline.prepare.hint':
+    'Ladda ner allt du behöver — resdata, dokument och kartrutor — innan du förlorar anslutningen.',
   'settings.offline.prepare.button': 'Ladda ner för offlineanvändning',
   'settings.offline.prepare.running': 'Laddar ner…',
   'settings.offline.prepare.done': 'Klar för offlineanvändning',
@@ -423,7 +433,8 @@ const settings: TranslationStrings = {
   'settings.offline.resyncing': 'Synkroniserar…',
   'settings.offline.storage.title': 'Vad som ska lagras offline',
   'settings.offline.storage.tiles': 'Lagra kartrutor offline',
-  'settings.offline.storage.tilesHint': 'Kartrutor använder mest lagringsutrymme. Stäng av detta för att endast behålla resdata och dokument offline.',
+  'settings.offline.storage.tilesHint':
+    'Kartrutor använder mest lagringsutrymme. Stäng av detta för att endast behålla resdata och dokument offline.',
   'settings.offline.storage.tripsTitle': 'Resor',
   'settings.offline.storage.tripOn': 'Lagrad offline',
   'settings.offline.storage.tripOff': 'Inte lagrad',
@@ -436,7 +447,8 @@ const settings: TranslationStrings = {
   'settings.offline.empty': 'Inga resor har cachelagrats ännu. Anslut till internet för att synkronisera.',
   'settings.offline.loading': 'Laddar…',
   'settings.offline.conflicts.title': 'Synkroniseringskonflikter',
-  'settings.offline.conflicts.hint': 'Ändringar du gjorde offline krockar med nyare ändringar på servern. Välj vilken version du vill behålla.',
+  'settings.offline.conflicts.hint':
+    'Ändringar du gjorde offline krockar med nyare ändringar på servern. Välj vilken version du vill behålla.',
   'settings.offline.conflicts.keepMine': 'Behåll mina',
   'settings.offline.conflicts.keepServer': 'Behåll deras',
   'settings.offline.conflicts.mine': 'Din version',

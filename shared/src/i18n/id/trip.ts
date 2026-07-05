@@ -28,7 +28,8 @@ const trip: TranslationStrings = {
   'trip.confirm.deletePlaces': 'Hapus {count} tempat?',
   'trip.toast.placesDeleted': '{count} tempat dihapus',
   'trip.invite.linkTitle': 'Tautan undangan perjalanan',
-  'trip.invite.linkHint': 'Siapa pun yang punya akun TREK dan membuka tautan ini akan bergabung ke perjalanan sebagai anggota. Buat ulang untuk membatalkan tautan lama.',
+  'trip.invite.linkHint':
+    'Siapa pun yang punya akun TREK dan membuka tautan ini akan bergabung ke perjalanan sebagai anggota. Buat ulang untuk membatalkan tautan lama.',
   'trip.invite.create': 'Buat tautan undangan',
   'trip.invite.regenerate': 'Buat ulang',
   'trip.invite.disable': 'Nonaktifkan',
@@ -75,7 +76,8 @@ const trip: TranslationStrings = {
   'transit.changeRoute': 'Ubah rute',
   'transit.journey': 'Perjalanan transportasi umum',
   'transit.pickDay': 'Pilih hari untuk mencari koneksi.',
-  'transit.noItinerary': 'Entri ini tidak memiliki rencana perjalanan tersimpan — gunakan "Ubah rute" untuk mencarinya.',
+  'transit.noItinerary':
+    'Entri ini tidak memiliki rencana perjalanan tersimpan — gunakan "Ubah rute" untuk mencarinya.',
   'transit.durationLabel': 'Durasi',
   'transit.transfersLabel': 'Transit',
   'transit.walkLabel': 'Jalan kaki',

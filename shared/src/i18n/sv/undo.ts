@@ -9,7 +9,7 @@ const undo: TranslationStrings = {
   'undo.optimize': 'Rutt optimerad',
   'undo.deletePlace': 'Plats borttagen',
   'undo.deletePlaces': 'Platser borttagna',
-  'undo.changeCategory': "Category changed",
+  'undo.changeCategory': 'Category changed',
   'undo.moveDay': 'Plats har flyttats till en annan dag',
   'undo.lock': 'Plats lås växlad',
   'undo.importGpx': 'GPX importering',

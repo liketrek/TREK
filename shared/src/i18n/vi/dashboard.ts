@@ -81,7 +81,8 @@ const dashboard: TranslationStrings = {
   'dashboard.endDate': 'Ngày kết thúc',
   'dashboard.dayCount': 'Số ngày',
   'dashboard.dayCountHint': 'Lên kế hoạch cho bao nhiêu ngày khi không có ngày đi du lịch nào được ấn định.',
-  'dashboard.noDateHint': 'Không có ngày nào được đặt - 7 ngày mặc định sẽ được tạo. Bạn có thể thay đổi điều này bất cứ lúc nào.',
+  'dashboard.noDateHint':
+    'Không có ngày nào được đặt - 7 ngày mặc định sẽ được tạo. Bạn có thể thay đổi điều này bất cứ lúc nào.',
   'dashboard.coverImage': 'Ảnh bìa',
   'dashboard.addCoverImage': 'Thêm ảnh bìa (hoặc kéo và thả)',
   'dashboard.addMembers': 'Bạn đồng hành',

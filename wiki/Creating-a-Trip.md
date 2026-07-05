@@ -35,6 +35,7 @@ The cover image is displayed on the trip card and as the background of the Spotl
 - **Drag and drop** an image file onto the dashed upload area.
 - **Paste from clipboard** — if you have an image in your clipboard, paste it anywhere in the dialog.
 - **File picker** — click the upload area to browse for a file.
+- **Search Unsplash** — type a query to pick a stock photo. If this returns *"Unsplash search unavailable"* (common on VPS/datacenter IPs), configure a free Unsplash Access Key — see [Environment-Variables → Image Search (Unsplash)](Environment-Variables#image-search-unsplash).
 
 When **creating** a new trip the cover image field is always visible. When **editing** an existing trip it is only shown if you have the `trip_cover_upload` permission. For a new trip, the image is uploaded immediately after the trip is created.
 

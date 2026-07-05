@@ -94,6 +94,8 @@ const admin: TranslationStrings = {
   'admin.recommended': 'Recomendado',
   'admin.weatherKey': 'Chave OpenWeatherMap',
   'admin.weatherKeyHint': 'Para dados meteorológicos. Grátis em openweathermap.org',
+  'admin.unsplashKey': 'Chave de API do Unsplash',
+  'admin.unsplashKeyHint': 'Para busca de imagens. Grátis em unsplash.com/developers',
   'admin.validateKey': 'Testar',
   'admin.keyValid': 'Conectado',
   'admin.keyInvalid': 'Inválida',
@@ -178,7 +180,8 @@ const admin: TranslationStrings = {
   'admin.plugins.noErrors': 'Nenhum erro registrado.',
   'admin.plugins.uninstalled': 'Plugin desinstalado',
   'admin.plugins.uninstallTitle': 'Desinstalar plugin?',
-  'admin.plugins.uninstallBody': 'Isso interrompe o plugin, remove seu código e exclui todos os dados dele. Esta ação não pode ser desfeita.',
+  'admin.plugins.uninstallBody':
+    'Isso interrompe o plugin, remove seu código e exclui todos os dados dele. Esta ação não pode ser desfeita.',
   'admin.plugins.status.starting': 'Iniciando…',
   'admin.plugins.type.widget': 'Widget',
   'admin.plugins.type.page': 'Página',
@@ -192,10 +195,12 @@ const admin: TranslationStrings = {
   'admin.plugins.title': 'Plugins',
   'admin.plugins.subtitle': 'Instale e gerencie plugins de terceiros na sua instância.',
   'admin.plugins.disabledTitle': 'Os plugins estão desativados',
-  'admin.plugins.disabledBody': 'O runtime de plugins está desligado (TREK_PLUGINS_ENABLED). Nenhum plugin pode ser executado até que um admin o ative na configuração do servidor.',
+  'admin.plugins.disabledBody':
+    'O runtime de plugins está desligado (TREK_PLUGINS_ENABLED). Nenhum plugin pode ser executado até que um admin o ative na configuração do servidor.',
   'admin.plugins.empty': 'Nenhum plugin instalado ainda.',
   'admin.plugins.loadError': 'Não foi possível carregar os plugins.',
-  'admin.plugins.scaffoldNote': 'A instalação e ativação de plugins chegarão em uma atualização futura. Este painel atualmente lista apenas os plugins instalados.',
+  'admin.plugins.scaffoldNote':
+    'A instalação e ativação de plugins chegarão em uma atualização futura. Este painel atualmente lista apenas os plugins instalados.',
   'admin.plugins.status.active': 'Ativo',
   'admin.plugins.status.inactive': 'Inativo',
   'admin.plugins.status.disabled': 'Desativado',
@@ -224,16 +229,21 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:write:costs': 'Criar despesas (itens de orçamento) em viagens que o usuário atual pode editar',
   'admin.plugins.perm.db:write:places': 'Adicionar, editar e remover locais em viagens que o usuário atual pode editar',
   'admin.plugins.perm.db:write:days': 'Adicionar, editar e remover dias em viagens que o usuário atual pode editar',
-  'admin.plugins.perm.db:write:itinerary': 'Atribuir e remover locais em dias de viagens que o usuário atual pode editar',
-  'admin.plugins.perm.db:write:trips': 'Editar detalhes da viagem (título, datas, moeda…) em viagens que o usuário atual pode editar',
-  'admin.plugins.perm.db:meta': 'Anexar seus próprios dados privados a viagens, locais e dias que o usuário atual pode acessar',
+  'admin.plugins.perm.db:write:itinerary':
+    'Atribuir e remover locais em dias de viagens que o usuário atual pode editar',
+  'admin.plugins.perm.db:write:trips':
+    'Editar detalhes da viagem (título, datas, moeda…) em viagens que o usuário atual pode editar',
+  'admin.plugins.perm.db:meta':
+    'Anexar seus próprios dados privados a viagens, locais e dias que o usuário atual pode acessar',
   'admin.plugins.perm.ws:broadcast:trip': 'Enviar atualizações em tempo real aos membros da viagem',
   'admin.plugins.perm.ws:broadcast:user': 'Enviar atualizações em tempo real a usuários individuais',
   'admin.plugins.perm.hook:photo-provider': 'Fornecer fotos para as Memórias',
   'admin.plugins.perm.hook:calendar-source': 'Fornecer eventos para o calendário',
-  'admin.plugins.perm.hook:place-detail-provider': 'Contribuir com detalhes extras (avaliações, notas, links) para um local',
+  'admin.plugins.perm.hook:place-detail-provider':
+    'Contribuir com detalhes extras (avaliações, notas, links) para um local',
   'admin.plugins.perm.hook:trip-warning-provider': 'Emitir avisos de validação em uma viagem (exibidos no planejador)',
-  'admin.plugins.perm.events:subscribe': 'Reagir a eventos de atividade do núcleo (apenas nome do evento + viagem, nunca o conteúdo)',
+  'admin.plugins.perm.events:subscribe':
+    'Reagir a eventos de atividade do núcleo (apenas nome do evento + viagem, nunca o conteúdo)',
   'admin.plugins.perm.http:outbound': 'Fazer requisições de saída para os hosts declarados',
   'admin.plugins.updateConsentTitle': 'Esta atualização precisa de novas permissões',
   'admin.plugins.updateConsentBody':

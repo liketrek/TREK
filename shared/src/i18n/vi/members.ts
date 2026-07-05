@@ -25,7 +25,8 @@ const members: TranslationStrings = {
   'members.transferError': 'Không thể chuyển quyền sở hữu',
   'members.guests': 'Khách',
   'members.guest': 'Khách',
-  'members.guestsHint': 'Người không có tài khoản. Có thể giao chi phí, hành lý và công việc cho họ, nhưng họ không thể đăng nhập.',
+  'members.guestsHint':
+    'Người không có tài khoản. Có thể giao chi phí, hành lý và công việc cho họ, nhưng họ không thể đăng nhập.',
   'members.addGuest': 'Thêm khách',
   'members.guestNamePlaceholder': 'Tên khách',
   'members.guestAdded': 'Đã thêm khách',

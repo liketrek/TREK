@@ -30,7 +30,8 @@ const settings: TranslationStrings = {
   'settings.mapStylePlaceholder': 'Επιλέξτε ένα στυλ Mapbox',
   'settings.mapStyleHint': 'Προκαθορισμένο ή δικό σας mapbox://styles/USER/ID URL',
   'settings.mapOpenFreeMapStylePlaceholder': 'Επιλέξτε ένα στυλ OpenFreeMap',
-  'settings.mapOpenFreeMapStyleHint': 'Προκαθορισμένο ή URL στυλ OpenFreeMap. Τα στυλ OpenFreeMap λειτουργούν χωρίς token.',
+  'settings.mapOpenFreeMapStyleHint':
+    'Προκαθορισμένο ή URL στυλ OpenFreeMap. Τα στυλ OpenFreeMap λειτουργούν χωρίς token.',
   'settings.map3dBuildings': '3D Κτίρια & Ανάγλυφο',
   'settings.map3dHint':
     'Κλίση + πραγματικές 3D προεξοχές κτιρίων — λειτουργεί σε κάθε στυλ, συμπεριλαμβανομένου του δορυφορικού.',
@@ -337,18 +338,21 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.success': 'Συνδέθηκε — βρέθηκαν {count} πτήση/πτήσεις',
   'settings.airtrail.test.failed': 'Η σύνδεση απέτυχε',
   'settings.aiParsing.title': 'Ανάλυση με AI',
-  'settings.aiParsing.hint': 'Χρησιμοποιήστε το δικό σας μοντέλο AI για την εξαγωγή κρατήσεων από τα αρχεία που ανεβάζετε. Ισχύει μόνο όταν ο διαχειριστής σας δεν έχει ρυθμίσει μοντέλο για ολόκληρη την εγκατάσταση.',
+  'settings.aiParsing.hint':
+    'Χρησιμοποιήστε το δικό σας μοντέλο AI για την εξαγωγή κρατήσεων από τα αρχεία που ανεβάζετε. Ισχύει μόνο όταν ο διαχειριστής σας δεν έχει ρυθμίσει μοντέλο για ολόκληρη την εγκατάσταση.',
   'settings.aiParsing.provider': 'Πάροχος',
   'settings.aiParsing.providerLocal': 'Τοπικό (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
   'settings.aiParsing.model': 'Μοντέλο',
   'settings.aiParsing.baseUrl': 'Βασικό URL',
-  'settings.aiParsing.baseUrlHint': 'Πού εκτελείται το μοντέλο — ένας τοπικός διακομιστής Ollama ή ένα τελικό σημείο συμβατό με OpenAI.',
+  'settings.aiParsing.baseUrlHint':
+    'Πού εκτελείται το μοντέλο — ένας τοπικός διακομιστής Ollama ή ένα τελικό σημείο συμβατό με OpenAI.',
   'settings.aiParsing.apiKey': 'Κλειδί API',
   'settings.aiParsing.apiKeyHint': 'Αποθηκεύεται κρυπτογραφημένο. Αφήστε το κενό για να διατηρήσετε το τρέχον κλειδί.',
   'settings.aiParsing.multimodal': 'Αποστολή εγγράφων ως εικόνες',
-  'settings.aiParsing.multimodalHint': 'Για μοντέλα με δυνατότητα όρασης — στέλνει το αρχικό PDF αντί για το εξαγόμενο κείμενο.',
+  'settings.aiParsing.multimodalHint':
+    'Για μοντέλα με δυνατότητα όρασης — στέλνει το αρχικό PDF αντί για το εξαγόμενο κείμενο.',
   'settings.aiParsing.toast.saved': 'Οι ρυθμίσεις AI αποθηκεύτηκαν',
   'settings.aiParsing.toast.saveError': 'Δεν ήταν δυνατή η αποθήκευση των ρυθμίσεων AI',
   'settings.tabs.appearance': 'Appearance',
@@ -367,7 +371,8 @@ const settings: TranslationStrings = {
   'settings.appearance.contrastLow': 'Low contrast',
   'settings.appearance.readability': 'Readability',
   'settings.appearance.transparency': 'Transparency',
-  'settings.appearance.transparencyHint': 'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
+  'settings.appearance.transparencyHint':
+    'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
   'settings.appearance.reduceMotion': 'Reduce motion',
   'settings.appearance.reduceMotionHint': 'Minimize animations and transitions.',
   'settings.appearance.density': 'Density',
@@ -397,7 +402,8 @@ const settings: TranslationStrings = {
   'settings.appearance.group.belowHero': 'Below the hero',
   'settings.appearance.group.bottomOfPage': 'Bottom of page',
   'settings.appearance.sidebarHint': 'The whole right column. Turn off and the dashboard centers.',
-  'settings.appearance.densityHint': 'Compact tightens spacing and padding for a denser layout that fits more on screen.',
+  'settings.appearance.densityHint':
+    'Compact tightens spacing and padding for a denser layout that fits more on screen.',
   'settings.appearance.textSizeAll': 'Everything',
   'settings.appearance.perSize': 'Adjust each size separately',
   'settings.appearance.size.large': 'Large',
@@ -420,10 +426,13 @@ const settings: TranslationStrings = {
   'settings.offline.cache.title': 'Προσωρινή μνήμη εκτός σύνδεσης',
   'settings.offline.mode.title': 'Λειτουργία εκτός σύνδεσης',
   'settings.offline.mode.force': 'Εξαναγκασμός λειτουργίας εκτός σύνδεσης',
-  'settings.offline.mode.forceHint': 'Εργαστείτε μόνο με τα αποθηκευμένα δεδομένα και τοποθετήστε τις αλλαγές σας σε ουρά. Απενεργοποιήστε το για επανασύνδεση και συγχρονισμό.',
-  'settings.offline.mode.active': 'Η λειτουργία εκτός σύνδεσης είναι ενεργή — οι αλλαγές σας βρίσκονται σε ουρά και θα συγχρονιστούν όταν την απενεργοποιήσετε.',
+  'settings.offline.mode.forceHint':
+    'Εργαστείτε μόνο με τα αποθηκευμένα δεδομένα και τοποθετήστε τις αλλαγές σας σε ουρά. Απενεργοποιήστε το για επανασύνδεση και συγχρονισμό.',
+  'settings.offline.mode.active':
+    'Η λειτουργία εκτός σύνδεσης είναι ενεργή — οι αλλαγές σας βρίσκονται σε ουρά και θα συγχρονιστούν όταν την απενεργοποιήσετε.',
   'settings.offline.prepare.title': 'Προετοιμασία για εκτός σύνδεσης',
-  'settings.offline.prepare.hint': 'Κατεβάστε όλα όσα χρειάζεστε — δεδομένα ταξιδιού, έγγραφα και πλακίδια χάρτη — πριν χάσετε τη σύνδεση.',
+  'settings.offline.prepare.hint':
+    'Κατεβάστε όλα όσα χρειάζεστε — δεδομένα ταξιδιού, έγγραφα και πλακίδια χάρτη — πριν χάσετε τη σύνδεση.',
   'settings.offline.prepare.button': 'Λήψη για χρήση εκτός σύνδεσης',
   'settings.offline.prepare.running': 'Λήψη…',
   'settings.offline.prepare.done': 'Έτοιμο για χρήση εκτός σύνδεσης',
@@ -434,12 +443,14 @@ const settings: TranslationStrings = {
   'settings.offline.resyncing': 'Συγχρονισμός…',
   'settings.offline.storage.title': 'Τι να αποθηκεύεται εκτός σύνδεσης',
   'settings.offline.storage.tiles': 'Αποθήκευση πλακιδίων χάρτη εκτός σύνδεσης',
-  'settings.offline.storage.tilesHint': 'Τα πλακίδια χάρτη καταναλώνουν τον περισσότερο χώρο αποθήκευσης. Απενεργοποιήστε το για να διατηρείτε εκτός σύνδεσης μόνο δεδομένα ταξιδιού και έγγραφα.',
+  'settings.offline.storage.tilesHint':
+    'Τα πλακίδια χάρτη καταναλώνουν τον περισσότερο χώρο αποθήκευσης. Απενεργοποιήστε το για να διατηρείτε εκτός σύνδεσης μόνο δεδομένα ταξιδιού και έγγραφα.',
   'settings.offline.storage.tripsTitle': 'Ταξίδια',
   'settings.offline.storage.tripOn': 'Αποθηκευμένο εκτός σύνδεσης',
   'settings.offline.storage.tripOff': 'Μη αποθηκευμένο',
   'settings.offline.clear': 'Εκκαθάριση προσωρινής μνήμης',
-  'settings.offline.clearConfirm': 'Εκκαθάριση όλων των δεδομένων ταξιδιού εκτός σύνδεσης; Μπορείτε να επανασυγχρονίσετε ανά πάσα στιγμή όσο είστε συνδεδεμένοι.',
+  'settings.offline.clearConfirm':
+    'Εκκαθάριση όλων των δεδομένων ταξιδιού εκτός σύνδεσης; Μπορείτε να επανασυγχρονίσετε ανά πάσα στιγμή όσο είστε συνδεδεμένοι.',
   'settings.offline.stats.trips': 'Ταξίδια σε προσωρινή μνήμη',
   'settings.offline.stats.pending': 'Εκκρεμείς αλλαγές',
   'settings.offline.stats.failed': 'Αποτυχημένες αλλαγές',
@@ -447,7 +458,8 @@ const settings: TranslationStrings = {
   'settings.offline.empty': 'Δεν υπάρχουν ταξίδια σε προσωρινή μνήμη ακόμη. Συνδεθείτε στο διαδίκτυο για συγχρονισμό.',
   'settings.offline.loading': 'Φόρτωση…',
   'settings.offline.conflicts.title': 'Διενέξεις συγχρονισμού',
-  'settings.offline.conflicts.hint': 'Οι αλλαγές που κάνατε εκτός σύνδεσης συγκρούονται με νεότερες αλλαγές στον διακομιστή. Επιλέξτε ποια έκδοση να διατηρήσετε.',
+  'settings.offline.conflicts.hint':
+    'Οι αλλαγές που κάνατε εκτός σύνδεσης συγκρούονται με νεότερες αλλαγές στον διακομιστή. Επιλέξτε ποια έκδοση να διατηρήσετε.',
   'settings.offline.conflicts.keepMine': 'Διατήρηση της δικής μου',
   'settings.offline.conflicts.keepServer': 'Διατήρηση του διακομιστή',
   'settings.offline.conflicts.mine': 'Η έκδοσή σας',

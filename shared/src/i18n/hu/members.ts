@@ -25,7 +25,8 @@ const members: TranslationStrings = {
   'members.transferError': 'A tulajdonjog átruházása sikertelen',
   'members.guests': 'Vendégek',
   'members.guest': 'Vendég',
-  'members.guestsHint': 'Fiók nélküli személyek. Hozzárendelhetők költségekhez, csomagoláshoz és feladatokhoz, de nem tudnak bejelentkezni.',
+  'members.guestsHint':
+    'Fiók nélküli személyek. Hozzárendelhetők költségekhez, csomagoláshoz és feladatokhoz, de nem tudnak bejelentkezni.',
   'members.addGuest': 'Vendég hozzáadása',
   'members.guestNamePlaceholder': 'Vendég neve',
   'members.guestAdded': 'Vendég hozzáadva',

@@ -89,7 +89,8 @@ const login: TranslationStrings = {
   'login.passkey.signIn': 'Σύνδεση με passkey',
   'login.passkey.failed': 'Η σύνδεση με passkey απέτυχε. Παρακαλώ δοκιμάστε ξανά.',
   'login.insecureCookie.title': "Login won't stick over HTTP",
-  'login.insecureCookie.body': "You’re connecting over plain HTTP, so your browser drops TREK’s secure session cookie — the next request fails with \"Access token required\". Fix: use HTTPS, or for a home-lab set COOKIE_SECURE=false.",
-  'login.insecureCookie.link': "Open the Troubleshooting guide",
+  'login.insecureCookie.body':
+    'You’re connecting over plain HTTP, so your browser drops TREK’s secure session cookie — the next request fails with "Access token required". Fix: use HTTPS, or for a home-lab set COOKIE_SECURE=false.',
+  'login.insecureCookie.link': 'Open the Troubleshooting guide',
 };
 export default login;

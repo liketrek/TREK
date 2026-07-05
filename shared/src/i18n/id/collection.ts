@@ -49,7 +49,8 @@ const collection: TranslationStrings = {
   'collections.editList': 'Ganti nama',
   'collections.listMenu': 'Opsi daftar',
   'collections.deleteList': 'Hapus daftar',
-  'collections.deleteListConfirm': 'Ini menghapus daftar dan semua tempat tersimpan di dalamnya secara permanen. Tindakan ini tidak dapat dibatalkan.',
+  'collections.deleteListConfirm':
+    'Ini menghapus daftar dan semua tempat tersimpan di dalamnya secara permanen. Tindakan ini tidak dapat dibatalkan.',
   'collections.listName': 'Nama daftar',
   'collections.listNamePlaceholder': 'mis. Tokyo 2025',
   'collections.listColor': 'Warna',

@@ -325,7 +325,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.success': 'Připojeno – nalezeno letů: {count}',
   'settings.airtrail.test.failed': 'Připojení selhalo',
   'settings.aiParsing.title': 'Zpracování pomocí AI',
-  'settings.aiParsing.hint': 'Použijte vlastní model AI k získání rezervací z nahraných souborů. Platí pouze tehdy, když správce nenastavil model pro celou instanci.',
+  'settings.aiParsing.hint':
+    'Použijte vlastní model AI k získání rezervací z nahraných souborů. Platí pouze tehdy, když správce nenastavil model pro celou instanci.',
   'settings.aiParsing.provider': 'Poskytovatel',
   'settings.aiParsing.providerLocal': 'Místní (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
@@ -336,7 +337,8 @@ const settings: TranslationStrings = {
   'settings.aiParsing.apiKey': 'Klíč API',
   'settings.aiParsing.apiKeyHint': 'Ukládá se šifrovaně. Ponechte prázdné pro zachování aktuálního klíče.',
   'settings.aiParsing.multimodal': 'Odesílat dokumenty jako obrázky',
-  'settings.aiParsing.multimodalHint': 'Pro modely se schopností zpracovat obraz — odešle původní PDF místo extrahovaného textu.',
+  'settings.aiParsing.multimodalHint':
+    'Pro modely se schopností zpracovat obraz — odešle původní PDF místo extrahovaného textu.',
   'settings.aiParsing.toast.saved': 'Nastavení AI uloženo',
   'settings.aiParsing.toast.saveError': 'Nastavení AI se nepodařilo uložit',
   'settings.tabs.appearance': 'Appearance',
@@ -355,7 +357,8 @@ const settings: TranslationStrings = {
   'settings.appearance.contrastLow': 'Low contrast',
   'settings.appearance.readability': 'Readability',
   'settings.appearance.transparency': 'Transparency',
-  'settings.appearance.transparencyHint': 'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
+  'settings.appearance.transparencyHint':
+    'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
   'settings.appearance.reduceMotion': 'Reduce motion',
   'settings.appearance.reduceMotionHint': 'Minimize animations and transitions.',
   'settings.appearance.density': 'Density',
@@ -385,7 +388,8 @@ const settings: TranslationStrings = {
   'settings.appearance.group.belowHero': 'Below the hero',
   'settings.appearance.group.bottomOfPage': 'Bottom of page',
   'settings.appearance.sidebarHint': 'The whole right column. Turn off and the dashboard centers.',
-  'settings.appearance.densityHint': 'Compact tightens spacing and padding for a denser layout that fits more on screen.',
+  'settings.appearance.densityHint':
+    'Compact tightens spacing and padding for a denser layout that fits more on screen.',
   'settings.appearance.textSizeAll': 'Everything',
   'settings.appearance.perSize': 'Adjust each size separately',
   'settings.appearance.size.large': 'Large',
@@ -408,10 +412,13 @@ const settings: TranslationStrings = {
   'settings.offline.cache.title': 'Offline mezipaměť',
   'settings.offline.mode.title': 'Offline režim',
   'settings.offline.mode.force': 'Vynutit offline režim',
-  'settings.offline.mode.forceHint': 'Pracujte pouze s daty z mezipaměti a změny se zařadí do fronty. Vypnutím se znovu připojíte a synchronizujete.',
-  'settings.offline.mode.active': 'Offline režim je zapnutý — vaše změny jsou ve frontě a synchronizují se, jakmile jej vypnete.',
+  'settings.offline.mode.forceHint':
+    'Pracujte pouze s daty z mezipaměti a změny se zařadí do fronty. Vypnutím se znovu připojíte a synchronizujete.',
+  'settings.offline.mode.active':
+    'Offline režim je zapnutý — vaše změny jsou ve frontě a synchronizují se, jakmile jej vypnete.',
   'settings.offline.prepare.title': 'Příprava na offline',
-  'settings.offline.prepare.hint': 'Stáhněte si vše potřebné — data cest, dokumenty a mapové dlaždice — než ztratíte připojení.',
+  'settings.offline.prepare.hint':
+    'Stáhněte si vše potřebné — data cest, dokumenty a mapové dlaždice — než ztratíte připojení.',
   'settings.offline.prepare.button': 'Stáhnout pro offline použití',
   'settings.offline.prepare.running': 'Stahování…',
   'settings.offline.prepare.done': 'Připraveno pro offline použití',
@@ -422,7 +429,8 @@ const settings: TranslationStrings = {
   'settings.offline.resyncing': 'Synchronizace…',
   'settings.offline.storage.title': 'Co ukládat offline',
   'settings.offline.storage.tiles': 'Ukládat mapové dlaždice offline',
-  'settings.offline.storage.tilesHint': 'Mapové dlaždice zabírají nejvíce místa. Vypnutím ponecháte offline pouze data cest a dokumenty.',
+  'settings.offline.storage.tilesHint':
+    'Mapové dlaždice zabírají nejvíce místa. Vypnutím ponecháte offline pouze data cest a dokumenty.',
   'settings.offline.storage.tripsTitle': 'Cesty',
   'settings.offline.storage.tripOn': 'Uloženo offline',
   'settings.offline.storage.tripOff': 'Neuloženo',
@@ -435,7 +443,8 @@ const settings: TranslationStrings = {
   'settings.offline.empty': 'Zatím žádné cesty v mezipaměti. Pro synchronizaci se připojte k internetu.',
   'settings.offline.loading': 'Načítání…',
   'settings.offline.conflicts.title': 'Konflikty synchronizace',
-  'settings.offline.conflicts.hint': 'Změny, které jste provedli offline, se střetávají s novějšími změnami na serveru. Vyberte, kterou verzi zachovat.',
+  'settings.offline.conflicts.hint':
+    'Změny, které jste provedli offline, se střetávají s novějšími změnami na serveru. Vyberte, kterou verzi zachovat.',
   'settings.offline.conflicts.keepMine': 'Zachovat moji',
   'settings.offline.conflicts.keepServer': 'Zachovat serverovou',
   'settings.offline.conflicts.mine': 'Vaše verze',

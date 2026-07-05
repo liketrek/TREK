@@ -5,8 +5,7 @@ const packing: TranslationStrings = {
   'packing.empty': 'Packlistan är tom',
   'packing.import': 'Importera',
   'packing.importTitle': 'Importera packlista',
-  'packing.importHint':
-    'Ett föremål per rad. Format: Kategori, Namn, Vikt i g (valfritt), Påse (valfritt)',
+  'packing.importHint': 'Ett föremål per rad. Format: Kategori, Namn, Vikt i g (valfritt), Påse (valfritt)',
   'packing.importPlaceholder':
     'Hygiene, tandborste\nKläder, T-shirts, 200\nDokument, pass, handbagage\nElektronik, laddare, 50, resväska',
   'packing.importCsv': 'Ladda CSV/TXT',

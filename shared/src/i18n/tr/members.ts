@@ -25,7 +25,8 @@ const members: TranslationStrings = {
   'members.transferError': 'Sahiplik devredilemedi',
   'members.guests': 'Misafirler',
   'members.guest': 'Misafir',
-  'members.guestsHint': 'Hesabı olmayan kişiler. Masraflara, valize ve görevlere atanabilirler, ancak giriş yapamazlar.',
+  'members.guestsHint':
+    'Hesabı olmayan kişiler. Masraflara, valize ve görevlere atanabilirler, ancak giriş yapamazlar.',
   'members.addGuest': 'Misafir ekle',
   'members.guestNamePlaceholder': 'Misafir adı',
   'members.guestAdded': 'Misafir eklendi',

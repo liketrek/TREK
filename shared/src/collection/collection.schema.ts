@@ -1,6 +1,7 @@
-import { z } from 'zod';
 import { placeCategorySchema } from '../place/place.schema';
 import { tagSchema } from '../tag/tag.schema';
+
+import { z } from 'zod';
 
 export const COLLECTION_STATUSES = ['idea', 'want', 'visited'] as const;
 export const collectionStatusSchema = z.enum(COLLECTION_STATUSES).catch('idea').default('idea');
@@ -17,7 +18,11 @@ export type CollectionRole = (typeof COLLECTION_ROLES)[number];
 export const collectionLinkSchema = z.object({
   label: z.string().max(120).optional(),
   // http/https only — blocks javascript:/data: hrefs and forces an absolute link.
-  url: z.string().trim().max(2000).regex(/^https?:\/\/.+/i),
+  url: z
+    .string()
+    .trim()
+    .max(2000)
+    .regex(/^https?:\/\/.+/i),
 });
 export type CollectionLink = z.infer<typeof collectionLinkSchema>;
 export const collectionLinksSchema = z.array(collectionLinkSchema).max(30);
@@ -104,7 +109,10 @@ export type Collection = z.infer<typeof collectionSchema>;
 export const collectionCreateRequestSchema = z.object({
   name: z.string().min(1).max(120),
   description: z.string().max(2000).nullable().optional(),
-  color: z.string().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/).optional(),
+  color: z
+    .string()
+    .regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/)
+    .optional(),
   icon: z.string().max(40).optional(),
   cover_image: z.string().max(500).nullable().optional(),
   links: collectionLinksSchema.optional(),

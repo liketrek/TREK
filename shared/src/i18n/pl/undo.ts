@@ -9,7 +9,7 @@ const undo: TranslationStrings = {
   'undo.optimize': 'Trasa zoptymalizowana',
   'undo.deletePlace': 'Miejsce usunięte',
   'undo.deletePlaces': 'Miejsca usunięte',
-  'undo.changeCategory': "Category changed",
+  'undo.changeCategory': 'Category changed',
   'undo.moveDay': 'Miejsce przeniesione',
   'undo.lock': 'Blokada przełączona',
   'undo.importGpx': 'Import GPX',

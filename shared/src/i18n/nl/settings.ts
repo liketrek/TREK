@@ -329,18 +329,21 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.success': 'Verbonden — {count} vlucht(en) gevonden',
   'settings.airtrail.test.failed': 'Verbinding mislukt',
   'settings.aiParsing.title': 'AI-verwerking',
-  'settings.aiParsing.hint': 'Gebruik je eigen AI-model om boekingen uit geüploade bestanden te halen. Dit geldt alleen als je beheerder geen model voor de hele instantie heeft ingesteld.',
+  'settings.aiParsing.hint':
+    'Gebruik je eigen AI-model om boekingen uit geüploade bestanden te halen. Dit geldt alleen als je beheerder geen model voor de hele instantie heeft ingesteld.',
   'settings.aiParsing.provider': 'Provider',
   'settings.aiParsing.providerLocal': 'Lokaal (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
   'settings.aiParsing.model': 'Model',
   'settings.aiParsing.baseUrl': 'Basis-URL',
-  'settings.aiParsing.baseUrlHint': 'Waar het model draait — een lokale Ollama-server of een OpenAI-compatibel endpoint.',
+  'settings.aiParsing.baseUrlHint':
+    'Waar het model draait — een lokale Ollama-server of een OpenAI-compatibel endpoint.',
   'settings.aiParsing.apiKey': 'API-sleutel',
   'settings.aiParsing.apiKeyHint': 'Versleuteld opgeslagen. Laat leeg om de huidige sleutel te behouden.',
   'settings.aiParsing.multimodal': 'Documenten als afbeeldingen versturen',
-  'settings.aiParsing.multimodalHint': 'Voor modellen met beeldherkenning — verstuurt de originele PDF in plaats van geëxtraheerde tekst.',
+  'settings.aiParsing.multimodalHint':
+    'Voor modellen met beeldherkenning — verstuurt de originele PDF in plaats van geëxtraheerde tekst.',
   'settings.aiParsing.toast.saved': 'AI-instellingen opgeslagen',
   'settings.aiParsing.toast.saveError': 'AI-instellingen konden niet worden opgeslagen',
   'settings.tabs.appearance': 'Appearance',
@@ -359,7 +362,8 @@ const settings: TranslationStrings = {
   'settings.appearance.contrastLow': 'Low contrast',
   'settings.appearance.readability': 'Readability',
   'settings.appearance.transparency': 'Transparency',
-  'settings.appearance.transparencyHint': 'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
+  'settings.appearance.transparencyHint':
+    'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
   'settings.appearance.reduceMotion': 'Reduce motion',
   'settings.appearance.reduceMotionHint': 'Minimize animations and transitions.',
   'settings.appearance.density': 'Density',
@@ -389,7 +393,8 @@ const settings: TranslationStrings = {
   'settings.appearance.group.belowHero': 'Below the hero',
   'settings.appearance.group.bottomOfPage': 'Bottom of page',
   'settings.appearance.sidebarHint': 'The whole right column. Turn off and the dashboard centers.',
-  'settings.appearance.densityHint': 'Compact tightens spacing and padding for a denser layout that fits more on screen.',
+  'settings.appearance.densityHint':
+    'Compact tightens spacing and padding for a denser layout that fits more on screen.',
   'settings.appearance.textSizeAll': 'Everything',
   'settings.appearance.perSize': 'Adjust each size separately',
   'settings.appearance.size.large': 'Large',
@@ -412,10 +417,13 @@ const settings: TranslationStrings = {
   'settings.offline.cache.title': 'Offline cache',
   'settings.offline.mode.title': 'Offlinemodus',
   'settings.offline.mode.force': 'Offlinemodus forceren',
-  'settings.offline.mode.forceHint': 'Werk alleen met gecachte gegevens en zet je wijzigingen in de wachtrij. Schakel uit om opnieuw te verbinden en te synchroniseren.',
-  'settings.offline.mode.active': 'Offlinemodus staat aan — je wijzigingen staan in de wachtrij en worden gesynchroniseerd zodra je hem uitschakelt.',
+  'settings.offline.mode.forceHint':
+    'Werk alleen met gecachte gegevens en zet je wijzigingen in de wachtrij. Schakel uit om opnieuw te verbinden en te synchroniseren.',
+  'settings.offline.mode.active':
+    'Offlinemodus staat aan — je wijzigingen staan in de wachtrij en worden gesynchroniseerd zodra je hem uitschakelt.',
   'settings.offline.prepare.title': 'Voorbereiden op offline',
-  'settings.offline.prepare.hint': 'Download alles wat je nodig hebt — reisgegevens, documenten en kaarttegels — voordat je je verbinding verliest.',
+  'settings.offline.prepare.hint':
+    'Download alles wat je nodig hebt — reisgegevens, documenten en kaarttegels — voordat je je verbinding verliest.',
   'settings.offline.prepare.button': 'Downloaden voor offline gebruik',
   'settings.offline.prepare.running': 'Downloaden…',
   'settings.offline.prepare.done': 'Klaar voor offline gebruik',
@@ -426,12 +434,14 @@ const settings: TranslationStrings = {
   'settings.offline.resyncing': 'Synchroniseren…',
   'settings.offline.storage.title': 'Wat offline opslaan',
   'settings.offline.storage.tiles': 'Kaarttegels offline opslaan',
-  'settings.offline.storage.tilesHint': 'Kaarttegels gebruiken de meeste opslag. Schakel dit uit om alleen reisgegevens en documenten offline te bewaren.',
+  'settings.offline.storage.tilesHint':
+    'Kaarttegels gebruiken de meeste opslag. Schakel dit uit om alleen reisgegevens en documenten offline te bewaren.',
   'settings.offline.storage.tripsTitle': 'Reizen',
   'settings.offline.storage.tripOn': 'Offline opgeslagen',
   'settings.offline.storage.tripOff': 'Niet opgeslagen',
   'settings.offline.clear': 'Cache wissen',
-  'settings.offline.clearConfirm': 'Alle offline reisgegevens wissen? Je kunt altijd opnieuw synchroniseren wanneer je online bent.',
+  'settings.offline.clearConfirm':
+    'Alle offline reisgegevens wissen? Je kunt altijd opnieuw synchroniseren wanneer je online bent.',
   'settings.offline.stats.trips': 'Gecachte reizen',
   'settings.offline.stats.pending': 'Wijzigingen in afwachting',
   'settings.offline.stats.failed': 'Mislukte wijzigingen',
@@ -439,7 +449,8 @@ const settings: TranslationStrings = {
   'settings.offline.empty': 'Nog geen reizen gecacht. Maak verbinding met internet om te synchroniseren.',
   'settings.offline.loading': 'Laden…',
   'settings.offline.conflicts.title': 'Synchronisatieconflicten',
-  'settings.offline.conflicts.hint': 'Wijzigingen die je offline hebt gemaakt botsen met nieuwere wijzigingen op de server. Kies welke versie je wilt behouden.',
+  'settings.offline.conflicts.hint':
+    'Wijzigingen die je offline hebt gemaakt botsen met nieuwere wijzigingen op de server. Kies welke versie je wilt behouden.',
   'settings.offline.conflicts.keepMine': 'Die van mij behouden',
   'settings.offline.conflicts.keepServer': 'Die van de server behouden',
   'settings.offline.conflicts.mine': 'Jouw versie',

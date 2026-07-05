@@ -5,11 +5,13 @@ import backup from './backup';
 import budget from './budget';
 import categories from './categories';
 import collab from './collab';
+import collection from './collection';
 import common from './common';
 import dashboard from './dashboard';
 import day from './day';
 import dayplan from './dayplan';
 import files from './files';
+import help from './help';
 import inspector from './inspector';
 import journey from './journey';
 import login from './login';
@@ -39,8 +41,6 @@ import trip from './trip';
 import trips from './trips';
 import undo from './undo';
 import vacay from './vacay';
-import collection from './collection';
-import help from './help';
 
 const locale = {
   ...common,

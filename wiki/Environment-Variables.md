@@ -230,6 +230,25 @@ When left at the default, using the transit feature makes the TREK **server** se
 
 ---
 
+## Image Search (Unsplash)
+
+TREK can search [Unsplash](https://unsplash.com/) for **trip cover images** and **place images**. By default the server queries Unsplash's public web endpoint **without an API key**, so no configuration is needed on most installs.
+
+Some hosting environments — commonly VPS and datacenter IP ranges (and many Kubernetes clusters) — are **blocked or rate-limited** by that unauthenticated endpoint, which surfaces in the UI as **"Unsplash search unavailable"**. Configuring a free Unsplash Access Key switches the server to Unsplash's official, authenticated API (`api.unsplash.com`), which is not subject to that block. See [issue #1449](https://github.com/mauriceboe/TREK/issues/1449).
+
+| Variable              | Description                                                                                                                                                                                                                                                                                                                                                                    | Default                       |
+|-----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------|
+| `UNSPLASH_ACCESS_KEY` | Unsplash **Access Key** used to authenticate cover/place image search against `https://api.unsplash.com`. When set, it takes priority over any key configured per-admin in **Admin → Settings**. When unset, the server falls back to the unauthenticated endpoint (which some datacenter/VPS IPs are blocked from). Get a free key at [unsplash.com/developers](https://unsplash.com/developers). | unauthenticated endpoint |
+
+**Two ways to configure it** — pick one; the env var wins if both are present:
+
+1. **Environment variable** (this page) — instance-wide, ideal for Docker/Helm/Unraid where you already manage config as env.
+2. **Admin → Settings → API Keys** — paste the key into the **Unsplash API Key** field. Stored encrypted at rest and used as a fallback for every user when no env var is set. This is the better option if you'd rather not restart the container to change it.
+
+To get a key: create a free account at [unsplash.com/developers](https://unsplash.com/developers), register a new application, and copy its **Access Key** (not the Secret Key). The Unsplash free tier (demo) allows 50 requests/hour, which is ample for cover search.
+
+---
+
 ## Storage & Paths
 
 | Variable                 | Description                                                                                                                                                                                                                                            | Default                 |

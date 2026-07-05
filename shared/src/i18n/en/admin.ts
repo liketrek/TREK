@@ -136,6 +136,8 @@ const admin: TranslationStrings = {
   'admin.recommended': 'Recommended',
   'admin.weatherKey': 'OpenWeatherMap API Key',
   'admin.weatherKeyHint': 'For weather data. Free at openweathermap.org',
+  'admin.unsplashKey': 'Unsplash API Key',
+  'admin.unsplashKeyHint': 'For image search. Free at unsplash.com/developers',
   'admin.validateKey': 'Test',
   'admin.keyValid': 'Connected',
   'admin.keyInvalid': 'Invalid',
@@ -233,7 +235,8 @@ const admin: TranslationStrings = {
   'admin.plugins.noErrors': 'No errors logged.',
   'admin.plugins.uninstalled': 'Plugin uninstalled',
   'admin.plugins.uninstallTitle': 'Uninstall plugin?',
-  'admin.plugins.uninstallBody': 'This stops the plugin, removes its code, and deletes all of its data. This cannot be undone.',
+  'admin.plugins.uninstallBody':
+    'This stops the plugin, removes its code, and deletes all of its data. This cannot be undone.',
   'admin.plugins.status.starting': 'Starting…',
   'admin.plugins.type.widget': 'Widget',
   'admin.plugins.type.page': 'Page',
@@ -247,10 +250,12 @@ const admin: TranslationStrings = {
   'admin.plugins.title': 'Plugins',
   'admin.plugins.subtitle': 'Install and manage third-party plugins on your instance.',
   'admin.plugins.disabledTitle': 'Plugins are disabled',
-  'admin.plugins.disabledBody': 'The plugin runtime is turned off (TREK_PLUGINS_ENABLED). No plugin can run until an admin enables it in the server configuration.',
+  'admin.plugins.disabledBody':
+    'The plugin runtime is turned off (TREK_PLUGINS_ENABLED). No plugin can run until an admin enables it in the server configuration.',
   'admin.plugins.empty': 'No plugins installed yet.',
   'admin.plugins.loadError': 'Could not load plugins.',
-  'admin.plugins.scaffoldNote': 'Plugin installation and activation are coming in a later update. This panel currently lists installed plugins only.',
+  'admin.plugins.scaffoldNote':
+    'Plugin installation and activation are coming in a later update. This panel currently lists installed plugins only.',
   'admin.plugins.status.active': 'Active',
   'admin.plugins.status.inactive': 'Inactive',
   'admin.plugins.status.disabled': 'Disabled',
@@ -291,26 +296,34 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.events:subscribe': 'React to core activity events (event name + trip only, never the content)',
   'admin.plugins.perm.http:outbound': 'Make outbound requests to its declared hosts',
   'admin.plugins.updateConsentTitle': 'This update needs new permissions',
-  'admin.plugins.updateConsentBody': '{name} v{version} is asking for rights you haven\'t granted yet. The new version is installed but stays off until you approve it.',
+  'admin.plugins.updateConsentBody':
+    "{name} v{version} is asking for rights you haven't granted yet. The new version is installed but stays off until you approve it.",
   'admin.plugins.updateNewPermissions': 'Newly requested permissions',
   'admin.plugins.updateNewEgress': 'New outbound connections',
   'admin.plugins.updateApprove': 'Approve & turn on',
   'admin.plugins.updateLater': 'Keep off for now',
   'admin.plugins.updateKeptOff': 'Update installed — left off until you approve the new permissions',
-  'admin.plugins.reviewedMeaning': '"Reviewed" means a TREK maintainer scanned this plugin for malware on each version — not for quality or whether it works. It is not a guarantee that a plugin is harmless.',
+  'admin.plugins.reviewedMeaning':
+    '"Reviewed" means a TREK maintainer scanned this plugin for malware on each version — not for quality or whether it works. It is not a guarantee that a plugin is harmless.',
   'admin.plugins.security.title': 'How plugins are contained — and the limits',
   'admin.plugins.security.isolationTitle': 'Every plugin runs boxed in',
-  'admin.plugins.security.isolationBody': 'A plugin runs as its own locked-down process that can only read its own files. It cannot read your database, your login secret or your encryption key, cannot start other programs, and cannot write files anywhere. Its interface runs in a sealed browser frame that can\'t read your session cookie or touch the TREK page around it.',
+  'admin.plugins.security.isolationBody':
+    "A plugin runs as its own locked-down process that can only read its own files. It cannot read your database, your login secret or your encryption key, cannot start other programs, and cannot write files anywhere. Its interface runs in a sealed browser frame that can't read your session cookie or touch the TREK page around it.",
   'admin.plugins.security.permsTitle': 'What the permissions mean',
-  'admin.plugins.security.permsBody': 'The permissions shown before you install are a hard limit that TREK enforces while the plugin runs — it literally cannot do anything that isn\'t on the list. But they tell you what a plugin can do, not what it actually does. A plugin allowed to read your trips and reach a server can send your trips to that server, so read the permissions and the outbound hosts, not just the description.',
-  'admin.plugins.security.limitsTitle': 'What we can\'t promise',
-  'admin.plugins.security.limitsBody': 'The isolation is a strong software boundary, not an absolute one. A plugin acts with exactly the rights you approve, so within those rights it can behave differently than its description suggests, and it can send data it legitimately holds to the hosts it declared. TREK does not read or judge what a plugin\'s code actually does.',
+  'admin.plugins.security.permsBody':
+    "The permissions shown before you install are a hard limit that TREK enforces while the plugin runs — it literally cannot do anything that isn't on the list. But they tell you what a plugin can do, not what it actually does. A plugin allowed to read your trips and reach a server can send your trips to that server, so read the permissions and the outbound hosts, not just the description.",
+  'admin.plugins.security.limitsTitle': "What we can't promise",
+  'admin.plugins.security.limitsBody':
+    "The isolation is a strong software boundary, not an absolute one. A plugin acts with exactly the rights you approve, so within those rights it can behave differently than its description suggests, and it can send data it legitimately holds to the hosts it declared. TREK does not read or judge what a plugin's code actually does.",
   'admin.plugins.security.worstTitle': 'The worst case',
-  'admin.plugins.security.worstBody': 'A hostile plugin you turn on can misuse the data and connections you granted it — for example, leak the trips it is allowed to read. It cannot steal passwords, forge an admin login, run commands on your server, or reach data you didn\'t grant. The damage stays inside what you approved, and turning the plugin off stops it.',
+  'admin.plugins.security.worstBody':
+    "A hostile plugin you turn on can misuse the data and connections you granted it — for example, leak the trips it is allowed to read. It cannot steal passwords, forge an admin login, run commands on your server, or reach data you didn't grant. The damage stays inside what you approved, and turning the plugin off stops it.",
   'admin.plugins.security.reviewedTitle': 'What "Reviewed" means',
-  'admin.plugins.security.reviewedBody': 'A reviewed plugin was manually scanned for malware by a TREK maintainer on each version — checked for hostile code, not for whether it works well. It is not a promise that the plugin is harmless.',
+  'admin.plugins.security.reviewedBody':
+    'A reviewed plugin was manually scanned for malware by a TREK maintainer on each version — checked for hostile code, not for whether it works well. It is not a promise that the plugin is harmless.',
   'admin.plugins.security.trustTitle': 'The bottom line',
-  'admin.plugins.security.trustBody': 'Installing a plugin is like installing any third-party app: only add code from authors you trust, and when in doubt, inspect it yourself first. TREK takes no responsibility for third-party plugins.',
+  'admin.plugins.security.trustBody':
+    'Installing a plugin is like installing any third-party app: only add code from authors you trust, and when in doubt, inspect it yourself first. TREK takes no responsibility for third-party plugins.',
   'admin.plugins.runtimeOn': 'Runtime on',
   'admin.plugins.tabDiscover': 'Discover',
   'admin.plugins.searchPlaceholder': 'Search plugins…',

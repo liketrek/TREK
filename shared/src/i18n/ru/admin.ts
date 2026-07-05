@@ -96,6 +96,8 @@ const admin: TranslationStrings = {
   'admin.recommended': 'Рекомендуется',
   'admin.weatherKey': 'API-ключ OpenWeatherMap',
   'admin.weatherKeyHint': 'Для данных о погоде. Бесплатно на openweathermap.org',
+  'admin.unsplashKey': 'Ключ API Unsplash',
+  'admin.unsplashKeyHint': 'Для поиска изображений. Бесплатно на unsplash.com/developers',
   'admin.validateKey': 'Проверить',
   'admin.keyValid': 'Подключено',
   'admin.keyInvalid': 'Недействителен',
@@ -181,7 +183,8 @@ const admin: TranslationStrings = {
   'admin.plugins.noErrors': 'Ошибок не зафиксировано.',
   'admin.plugins.uninstalled': 'Плагин удалён',
   'admin.plugins.uninstallTitle': 'Удалить плагин?',
-  'admin.plugins.uninstallBody': 'Плагин будет остановлен, его код удалён, а все его данные стёрты. Это действие нельзя отменить.',
+  'admin.plugins.uninstallBody':
+    'Плагин будет остановлен, его код удалён, а все его данные стёрты. Это действие нельзя отменить.',
   'admin.plugins.status.starting': 'Запуск…',
   'admin.plugins.type.widget': 'Виджет',
   'admin.plugins.type.page': 'Страница',
@@ -195,10 +198,12 @@ const admin: TranslationStrings = {
   'admin.plugins.title': 'Плагины',
   'admin.plugins.subtitle': 'Устанавливайте сторонние плагины и управляйте ими на вашем экземпляре.',
   'admin.plugins.disabledTitle': 'Плагины отключены',
-  'admin.plugins.disabledBody': 'Среда выполнения плагинов выключена (TREK_PLUGINS_ENABLED). Плагины не смогут работать, пока администратор не включит её в конфигурации сервера.',
+  'admin.plugins.disabledBody':
+    'Среда выполнения плагинов выключена (TREK_PLUGINS_ENABLED). Плагины не смогут работать, пока администратор не включит её в конфигурации сервера.',
   'admin.plugins.empty': 'Плагины пока не установлены.',
   'admin.plugins.loadError': 'Не удалось загрузить плагины.',
-  'admin.plugins.scaffoldNote': 'Установка и активация плагинов появятся в одном из следующих обновлений. Пока эта панель только показывает установленные плагины.',
+  'admin.plugins.scaffoldNote':
+    'Установка и активация плагинов появятся в одном из следующих обновлений. Пока эта панель только показывает установленные плагины.',
   'admin.plugins.status.active': 'Активен',
   'admin.plugins.status.inactive': 'Неактивен',
   'admin.plugins.status.disabled': 'Отключён',
@@ -224,19 +229,27 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:costs': 'Читать расходы (статьи бюджета), доступные текущему пользователю',
   'admin.plugins.perm.db:read:packing': 'Читать списки вещей поездок, доступных текущему пользователю',
   'admin.plugins.perm.db:read:files': 'Читать файлы поездок, доступных текущему пользователю',
-  'admin.plugins.perm.db:write:costs': 'Создавать расходы (статьи бюджета) в поездках, которые текущий пользователь может редактировать',
-  'admin.plugins.perm.db:write:places': 'Добавлять, изменять и удалять места в поездках, которые текущий пользователь может редактировать',
-  'admin.plugins.perm.db:write:days': 'Добавлять, изменять и удалять дни в поездках, которые текущий пользователь может редактировать',
-  'admin.plugins.perm.db:write:itinerary': 'Назначать и удалять места в днях поездок, которые текущий пользователь может редактировать',
-  'admin.plugins.perm.db:write:trips': 'Изменять данные поездки (название, даты, валюту…) в поездках, которые текущий пользователь может редактировать',
-  'admin.plugins.perm.db:meta': 'Прикреплять собственные приватные данные к поездкам, местам и дням, к которым у текущего пользователя есть доступ',
+  'admin.plugins.perm.db:write:costs':
+    'Создавать расходы (статьи бюджета) в поездках, которые текущий пользователь может редактировать',
+  'admin.plugins.perm.db:write:places':
+    'Добавлять, изменять и удалять места в поездках, которые текущий пользователь может редактировать',
+  'admin.plugins.perm.db:write:days':
+    'Добавлять, изменять и удалять дни в поездках, которые текущий пользователь может редактировать',
+  'admin.plugins.perm.db:write:itinerary':
+    'Назначать и удалять места в днях поездок, которые текущий пользователь может редактировать',
+  'admin.plugins.perm.db:write:trips':
+    'Изменять данные поездки (название, даты, валюту…) в поездках, которые текущий пользователь может редактировать',
+  'admin.plugins.perm.db:meta':
+    'Прикреплять собственные приватные данные к поездкам, местам и дням, к которым у текущего пользователя есть доступ',
   'admin.plugins.perm.ws:broadcast:trip': 'Отправлять обновления в реальном времени участникам поездки',
   'admin.plugins.perm.ws:broadcast:user': 'Отправлять обновления в реальном времени отдельным пользователям',
   'admin.plugins.perm.hook:photo-provider': 'Предоставлять фотографии для «Воспоминаний»',
   'admin.plugins.perm.hook:calendar-source': 'Предоставлять события для календаря',
   'admin.plugins.perm.hook:place-detail-provider': 'Добавлять дополнительные сведения (отзывы, оценки, ссылки) к месту',
-  'admin.plugins.perm.hook:trip-warning-provider': 'Выдавать предупреждения проверки для поездки (отображаются в планировщике)',
-  'admin.plugins.perm.events:subscribe': 'Реагировать на основные события активности (только название события и поездка, никогда содержимое)',
+  'admin.plugins.perm.hook:trip-warning-provider':
+    'Выдавать предупреждения проверки для поездки (отображаются в планировщике)',
+  'admin.plugins.perm.events:subscribe':
+    'Реагировать на основные события активности (только название события и поездка, никогда содержимое)',
   'admin.plugins.perm.http:outbound': 'Выполнять исходящие запросы к заявленным хостам',
   'admin.plugins.updateConsentTitle': 'Для этого обновления нужны новые разрешения',
   'admin.plugins.updateConsentBody':

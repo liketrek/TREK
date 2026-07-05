@@ -137,6 +137,8 @@ const admin: TranslationStrings = {
   'admin.recommended': 'Direkomendasikan',
   'admin.weatherKey': 'Kunci API OpenWeatherMap',
   'admin.weatherKeyHint': 'Untuk data cuaca. Gratis di openweathermap.org',
+  'admin.unsplashKey': 'Kunci API Unsplash',
+  'admin.unsplashKeyHint': 'Untuk pencarian gambar. Gratis di unsplash.com/developers',
   'admin.validateKey': 'Uji',
   'admin.keyValid': 'Terhubung',
   'admin.keyInvalid': 'Tidak valid',
@@ -223,7 +225,8 @@ const admin: TranslationStrings = {
   'admin.plugins.noErrors': 'Tidak ada error yang tercatat.',
   'admin.plugins.uninstalled': 'Plugin dihapus',
   'admin.plugins.uninstallTitle': 'Hapus plugin?',
-  'admin.plugins.uninstallBody': 'Ini akan menghentikan plugin, menghapus kodenya, dan menghapus semua datanya. Tindakan ini tidak bisa dibatalkan.',
+  'admin.plugins.uninstallBody':
+    'Ini akan menghentikan plugin, menghapus kodenya, dan menghapus semua datanya. Tindakan ini tidak bisa dibatalkan.',
   'admin.plugins.status.starting': 'Memulai…',
   'admin.plugins.type.widget': 'Widget',
   'admin.plugins.type.page': 'Halaman',
@@ -237,10 +240,12 @@ const admin: TranslationStrings = {
   'admin.plugins.title': 'Plugins',
   'admin.plugins.subtitle': 'Pasang dan kelola plugin pihak ketiga di instans kamu.',
   'admin.plugins.disabledTitle': 'Plugin dinonaktifkan',
-  'admin.plugins.disabledBody': 'Runtime plugin sedang dimatikan (TREK_PLUGINS_ENABLED). Tidak ada plugin yang bisa berjalan sampai admin mengaktifkannya di konfigurasi server.',
+  'admin.plugins.disabledBody':
+    'Runtime plugin sedang dimatikan (TREK_PLUGINS_ENABLED). Tidak ada plugin yang bisa berjalan sampai admin mengaktifkannya di konfigurasi server.',
   'admin.plugins.empty': 'Belum ada plugin yang terpasang.',
   'admin.plugins.loadError': 'Tidak dapat memuat plugin.',
-  'admin.plugins.scaffoldNote': 'Pemasangan dan aktivasi plugin akan hadir di pembaruan mendatang. Saat ini panel ini hanya menampilkan plugin yang terpasang.',
+  'admin.plugins.scaffoldNote':
+    'Pemasangan dan aktivasi plugin akan hadir di pembaruan mendatang. Saat ini panel ini hanya menampilkan plugin yang terpasang.',
   'admin.plugins.status.active': 'Aktif',
   'admin.plugins.status.inactive': 'Tidak aktif',
   'admin.plugins.status.disabled': 'Nonaktif',
@@ -263,44 +268,64 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:own': 'Menyimpan datanya sendiri di database terisolasi',
   'admin.plugins.perm.db:read:trips': 'Membaca perjalanan yang dapat diakses oleh pengguna yang bersangkutan',
   'admin.plugins.perm.db:read:users': 'Membaca info profil dasar (nama, avatar — tidak pernah kredensial)',
-  'admin.plugins.perm.db:read:costs': 'Membaca pengeluaran (item anggaran) yang dapat diakses oleh pengguna yang bersangkutan',
-  'admin.plugins.perm.db:read:packing': 'Membaca daftar barang bawaan dari perjalanan yang dapat diakses oleh pengguna yang bersangkutan',
-  'admin.plugins.perm.db:read:files': 'Membaca berkas dari perjalanan yang dapat diakses oleh pengguna yang bersangkutan',
-  'admin.plugins.perm.db:write:costs': 'Membuat pengeluaran (item anggaran) pada perjalanan yang dapat diedit oleh pengguna yang bersangkutan',
-  'admin.plugins.perm.db:write:places': 'Menambah, mengedit, dan menghapus tempat pada perjalanan yang dapat diedit oleh pengguna yang bersangkutan',
-  'admin.plugins.perm.db:write:days': 'Menambah, mengedit, dan menghapus hari pada perjalanan yang dapat diedit oleh pengguna yang bersangkutan',
-  'admin.plugins.perm.db:write:itinerary': 'Menetapkan dan menghapus tempat pada hari-hari perjalanan yang dapat diedit oleh pengguna yang bersangkutan',
-  'admin.plugins.perm.db:write:trips': 'Mengedit detail perjalanan (judul, tanggal, mata uang…) pada perjalanan yang dapat diedit oleh pengguna yang bersangkutan',
-  'admin.plugins.perm.db:meta': 'Melampirkan data pribadinya sendiri ke perjalanan, tempat, dan hari yang dapat diakses oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.db:read:costs':
+    'Membaca pengeluaran (item anggaran) yang dapat diakses oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.db:read:packing':
+    'Membaca daftar barang bawaan dari perjalanan yang dapat diakses oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.db:read:files':
+    'Membaca berkas dari perjalanan yang dapat diakses oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.db:write:costs':
+    'Membuat pengeluaran (item anggaran) pada perjalanan yang dapat diedit oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.db:write:places':
+    'Menambah, mengedit, dan menghapus tempat pada perjalanan yang dapat diedit oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.db:write:days':
+    'Menambah, mengedit, dan menghapus hari pada perjalanan yang dapat diedit oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.db:write:itinerary':
+    'Menetapkan dan menghapus tempat pada hari-hari perjalanan yang dapat diedit oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.db:write:trips':
+    'Mengedit detail perjalanan (judul, tanggal, mata uang…) pada perjalanan yang dapat diedit oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.db:meta':
+    'Melampirkan data pribadinya sendiri ke perjalanan, tempat, dan hari yang dapat diakses oleh pengguna yang bersangkutan',
   'admin.plugins.perm.ws:broadcast:trip': 'Mengirim pembaruan real-time ke anggota perjalanan',
   'admin.plugins.perm.ws:broadcast:user': 'Mengirim pembaruan real-time ke pengguna tertentu',
   'admin.plugins.perm.hook:photo-provider': 'Menyediakan foto untuk Memories',
   'admin.plugins.perm.hook:calendar-source': 'Menyediakan acara untuk kalender',
-  'admin.plugins.perm.hook:place-detail-provider': 'Menyumbangkan detail tambahan (ulasan, peringkat, tautan) untuk suatu tempat',
-  'admin.plugins.perm.hook:trip-warning-provider': 'Munculkan peringatan validasi pada perjalanan (ditampilkan di perencana)',
-  'admin.plugins.perm.events:subscribe': 'Bereaksi terhadap peristiwa aktivitas inti (hanya nama peristiwa + perjalanan, tidak pernah kontennya)',
+  'admin.plugins.perm.hook:place-detail-provider':
+    'Menyumbangkan detail tambahan (ulasan, peringkat, tautan) untuk suatu tempat',
+  'admin.plugins.perm.hook:trip-warning-provider':
+    'Munculkan peringatan validasi pada perjalanan (ditampilkan di perencana)',
+  'admin.plugins.perm.events:subscribe':
+    'Bereaksi terhadap peristiwa aktivitas inti (hanya nama peristiwa + perjalanan, tidak pernah kontennya)',
   'admin.plugins.perm.http:outbound': 'Membuat permintaan keluar ke host yang telah dideklarasikannya',
   'admin.plugins.updateConsentTitle': 'Pembaruan ini memerlukan izin baru',
-  'admin.plugins.updateConsentBody': '{name} v{version} meminta hak akses yang belum kamu berikan. Versi baru sudah terpasang tetapi tetap nonaktif sampai kamu menyetujuinya.',
+  'admin.plugins.updateConsentBody':
+    '{name} v{version} meminta hak akses yang belum kamu berikan. Versi baru sudah terpasang tetapi tetap nonaktif sampai kamu menyetujuinya.',
   'admin.plugins.updateNewPermissions': 'Izin yang baru diminta',
   'admin.plugins.updateNewEgress': 'Koneksi keluar baru',
   'admin.plugins.updateApprove': 'Setujui & aktifkan',
   'admin.plugins.updateLater': 'Biarkan nonaktif dulu',
   'admin.plugins.updateKeptOff': 'Pembaruan terpasang — dibiarkan nonaktif sampai kamu menyetujui izin baru',
-  'admin.plugins.reviewedMeaning': '"Ditinjau" berarti seorang maintainer TREK memindai plugin ini dari malware pada setiap versi — bukan untuk kualitas atau apakah plugin ini berfungsi. Ini bukan jaminan bahwa sebuah plugin tidak berbahaya.',
+  'admin.plugins.reviewedMeaning':
+    '"Ditinjau" berarti seorang maintainer TREK memindai plugin ini dari malware pada setiap versi — bukan untuk kualitas atau apakah plugin ini berfungsi. Ini bukan jaminan bahwa sebuah plugin tidak berbahaya.',
   'admin.plugins.security.title': 'Bagaimana plugin dikungkung — dan batasannya',
   'admin.plugins.security.isolationTitle': 'Setiap plugin berjalan dalam kotak terisolasi',
-  'admin.plugins.security.isolationBody': 'Sebuah plugin berjalan sebagai prosesnya sendiri yang terkunci dan hanya bisa membaca file-nya sendiri. Ia tidak bisa membaca database kamu, rahasia login kamu, atau kunci enkripsi kamu, tidak bisa menjalankan program lain, dan tidak bisa menulis file di mana pun. Antarmukanya berjalan dalam frame browser tersegel yang tidak bisa membaca cookie sesi kamu atau menyentuh halaman TREK di sekitarnya.',
+  'admin.plugins.security.isolationBody':
+    'Sebuah plugin berjalan sebagai prosesnya sendiri yang terkunci dan hanya bisa membaca file-nya sendiri. Ia tidak bisa membaca database kamu, rahasia login kamu, atau kunci enkripsi kamu, tidak bisa menjalankan program lain, dan tidak bisa menulis file di mana pun. Antarmukanya berjalan dalam frame browser tersegel yang tidak bisa membaca cookie sesi kamu atau menyentuh halaman TREK di sekitarnya.',
   'admin.plugins.security.permsTitle': 'Apa arti izin-izin ini',
-  'admin.plugins.security.permsBody': 'Izin yang ditampilkan sebelum kamu memasang adalah batas keras yang diberlakukan TREK selama plugin berjalan — secara harfiah plugin tidak bisa melakukan apa pun yang tidak ada dalam daftar. Namun izin itu memberitahumu apa yang bisa dilakukan sebuah plugin, bukan apa yang sebenarnya dilakukannya. Plugin yang diizinkan membaca perjalananmu dan menjangkau sebuah server bisa mengirimkan perjalananmu ke server itu, jadi baca izin dan host keluarnya, bukan hanya deskripsinya.',
+  'admin.plugins.security.permsBody':
+    'Izin yang ditampilkan sebelum kamu memasang adalah batas keras yang diberlakukan TREK selama plugin berjalan — secara harfiah plugin tidak bisa melakukan apa pun yang tidak ada dalam daftar. Namun izin itu memberitahumu apa yang bisa dilakukan sebuah plugin, bukan apa yang sebenarnya dilakukannya. Plugin yang diizinkan membaca perjalananmu dan menjangkau sebuah server bisa mengirimkan perjalananmu ke server itu, jadi baca izin dan host keluarnya, bukan hanya deskripsinya.',
   'admin.plugins.security.limitsTitle': 'Apa yang tidak bisa kami janjikan',
-  'admin.plugins.security.limitsBody': 'Isolasi ini adalah batas perangkat lunak yang kuat, bukan batas yang mutlak. Sebuah plugin bertindak persis dengan hak yang kamu setujui, jadi dalam batas hak itu ia bisa berperilaku berbeda dari yang disiratkan deskripsinya, dan ia bisa mengirim data yang memang dimilikinya secara sah ke host yang telah dideklarasikannya. TREK tidak membaca atau menilai apa yang sebenarnya dilakukan oleh kode sebuah plugin.',
+  'admin.plugins.security.limitsBody':
+    'Isolasi ini adalah batas perangkat lunak yang kuat, bukan batas yang mutlak. Sebuah plugin bertindak persis dengan hak yang kamu setujui, jadi dalam batas hak itu ia bisa berperilaku berbeda dari yang disiratkan deskripsinya, dan ia bisa mengirim data yang memang dimilikinya secara sah ke host yang telah dideklarasikannya. TREK tidak membaca atau menilai apa yang sebenarnya dilakukan oleh kode sebuah plugin.',
   'admin.plugins.security.worstTitle': 'Skenario terburuk',
-  'admin.plugins.security.worstBody': 'Plugin berbahaya yang kamu aktifkan bisa menyalahgunakan data dan koneksi yang kamu berikan padanya — misalnya, membocorkan perjalanan yang boleh dibacanya. Ia tidak bisa mencuri kata sandi, memalsukan login admin, menjalankan perintah di servermu, atau menjangkau data yang tidak kamu berikan. Kerusakannya tetap dalam batas yang kamu setujui, dan menonaktifkan plugin akan menghentikannya.',
+  'admin.plugins.security.worstBody':
+    'Plugin berbahaya yang kamu aktifkan bisa menyalahgunakan data dan koneksi yang kamu berikan padanya — misalnya, membocorkan perjalanan yang boleh dibacanya. Ia tidak bisa mencuri kata sandi, memalsukan login admin, menjalankan perintah di servermu, atau menjangkau data yang tidak kamu berikan. Kerusakannya tetap dalam batas yang kamu setujui, dan menonaktifkan plugin akan menghentikannya.',
   'admin.plugins.security.reviewedTitle': 'Apa arti "Ditinjau"',
-  'admin.plugins.security.reviewedBody': 'Plugin yang ditinjau telah dipindai secara manual dari malware oleh seorang maintainer TREK pada setiap versi — diperiksa untuk kode berbahaya, bukan untuk apakah plugin berfungsi dengan baik. Ini bukan janji bahwa plugin tidak berbahaya.',
+  'admin.plugins.security.reviewedBody':
+    'Plugin yang ditinjau telah dipindai secara manual dari malware oleh seorang maintainer TREK pada setiap versi — diperiksa untuk kode berbahaya, bukan untuk apakah plugin berfungsi dengan baik. Ini bukan janji bahwa plugin tidak berbahaya.',
   'admin.plugins.security.trustTitle': 'Intinya',
-  'admin.plugins.security.trustBody': 'Memasang plugin sama seperti memasang aplikasi pihak ketiga mana pun: hanya tambahkan kode dari pembuat yang kamu percaya, dan jika ragu, periksa sendiri terlebih dahulu. TREK tidak bertanggung jawab atas plugin pihak ketiga.',
+  'admin.plugins.security.trustBody':
+    'Memasang plugin sama seperti memasang aplikasi pihak ketiga mana pun: hanya tambahkan kode dari pembuat yang kamu percaya, dan jika ragu, periksa sendiri terlebih dahulu. TREK tidak bertanggung jawab atas plugin pihak ketiga.',
   'admin.plugins.runtimeOn': 'Runtime aktif',
   'admin.plugins.tabDiscover': 'Jelajahi',
   'admin.plugins.searchPlaceholder': 'Cari plugin…',

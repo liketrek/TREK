@@ -3,7 +3,8 @@ import type { TranslationStrings } from '../types';
 const login: TranslationStrings = {
   'login.error': 'Inloggningen misslyckades. Kontrollera dina inloggningsuppgifter.',
   'login.tagline': 'Dina resor.\nDin plan.',
-  'login.description': 'Planera resor tillsammans med hjälp av interaktiva kartor, budgetar och synkronisering i realtid.',
+  'login.description':
+    'Planera resor tillsammans med hjälp av interaktiva kartor, budgetar och synkronisering i realtid.',
   'login.features.maps': 'Interaktiva kartor',
   'login.features.mapsDesc': 'Google Places, rutter och klusterbildning',
   'login.features.realtime': 'Synkronisering i realtid',
@@ -32,7 +33,7 @@ const login: TranslationStrings = {
   'login.createAccount': 'Skapa konto',
   'login.createAccountHint': 'Skapa ett nytt konto.',
   'login.creating': 'Skapar…',
-  'login.noAccount': "Har du inget konto?",
+  'login.noAccount': 'Har du inget konto?',
   'login.hasAccount': 'Har du redan ett konto?',
   'login.register': 'Registrera dig',
   'login.emailPlaceholder': 'din@epost.com',
@@ -61,17 +62,17 @@ const login: TranslationStrings = {
   'login.rememberMe': 'Kom ihåg mig',
   'login.forgotPasswordTitle': 'Återställ ditt lösenord',
   'login.forgotPasswordBody':
-    "Ange den e-postadress du använde när du registrerade dig. Om det finns ett konto skickar vi en länk för att återställa lösenordet.",
+    'Ange den e-postadress du använde när du registrerade dig. Om det finns ett konto skickar vi en länk för att återställa lösenordet.',
   'login.forgotPasswordSubmit': 'Skicka återställningslänk',
   'login.forgotPasswordSentTitle': 'Kolla din e-post',
   'login.forgotPasswordSentBody':
     'Om det finns ett konto kopplat till den e-postadressen är en återställningslänk på väg. Den går ut om 60 minuter.',
   'login.forgotPasswordSmtpHintOff':
-    "Observera: din administratör har inte konfigurerat SMTP, så återställningslänken kommer att skrivas ut på serverkonsolen istället för att skickas via e-post.",
+    'Observera: din administratör har inte konfigurerat SMTP, så återställningslänken kommer att skrivas ut på serverkonsolen istället för att skickas via e-post.',
   'login.backToLogin': 'Tillbaka till inloggningen',
   'login.newPassword': 'Nytt lösenord',
   'login.confirmPassword': 'Godkänn nytt lösenord',
-  'login.passwordsDontMatch': "Lösenorden matchar inte",
+  'login.passwordsDontMatch': 'Lösenorden matchar inte',
   'login.mfaCode': '2FA kod',
   'login.resetPasswordTitle': 'Ange ett nytt lösenord',
   'login.resetPasswordBody': 'Välj ett starkt lösenord som du inte har använt här tidigare. Minst 8 tecken.',
@@ -81,12 +82,14 @@ const login: TranslationStrings = {
   'login.resetPasswordSuccessTitle': 'Lösenordet har uppdaterats',
   'login.resetPasswordSuccessBody': 'Nu kan du logga in med ditt nya lösenord.',
   'login.resetPasswordInvalidLink': 'Ogiltig återställningslänk',
-  'login.resetPasswordInvalidLinkBody': 'Den här länken saknas eller fungerar inte. Begär en ny för att kunna fortsätta.',
+  'login.resetPasswordInvalidLinkBody':
+    'Den här länken saknas eller fungerar inte. Begär en ny för att kunna fortsätta.',
   'login.resetPasswordFailed': 'Återställningen misslyckades. Länken kan ha gått ut.',
   'login.passkey.signIn': 'Logga in med en inloggningsnyckel',
   'login.passkey.failed': 'Inloggningsnyckel misslyckades. Försök igen.',
   'login.insecureCookie.title': "Login won't stick over HTTP",
-  'login.insecureCookie.body': "You’re connecting over plain HTTP, so your browser drops TREK’s secure session cookie — the next request fails with \"Access token required\". Fix: use HTTPS, or for a home-lab set COOKIE_SECURE=false.",
-  'login.insecureCookie.link': "Open the Troubleshooting guide",
+  'login.insecureCookie.body':
+    'You’re connecting over plain HTTP, so your browser drops TREK’s secure session cookie — the next request fails with "Access token required". Fix: use HTTPS, or for a home-lab set COOKIE_SECURE=false.',
+  'login.insecureCookie.link': 'Open the Troubleshooting guide',
 };
 export default login;

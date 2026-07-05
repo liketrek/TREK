@@ -28,7 +28,8 @@ const trip: TranslationStrings = {
   'trip.confirm.deletePlaces': 'Διαγραφή {count} μερών;',
   'trip.toast.placesDeleted': '{count} μέρη διαγράφηκαν',
   'trip.invite.linkTitle': 'Σύνδεσμος πρόσκλησης ταξιδιού',
-  'trip.invite.linkHint': 'Όποιος έχει λογαριασμό TREK και ανοίξει αυτόν τον σύνδεσμο, εντάσσεται στο ταξίδι ως μέλος. Δημιουργήστε ξανά τον σύνδεσμο για να ακυρώσετε τον παλιό.',
+  'trip.invite.linkHint':
+    'Όποιος έχει λογαριασμό TREK και ανοίξει αυτόν τον σύνδεσμο, εντάσσεται στο ταξίδι ως μέλος. Δημιουργήστε ξανά τον σύνδεσμο για να ακυρώσετε τον παλιό.',
   'trip.invite.create': 'Δημιουργία συνδέσμου πρόσκλησης',
   'trip.invite.regenerate': 'Δημιουργία ξανά',
   'trip.invite.disable': 'Απενεργοποίηση',
@@ -75,10 +76,12 @@ const trip: TranslationStrings = {
   'transit.changeRoute': 'Αλλαγή διαδρομής',
   'transit.journey': 'Διαδρομή με δημόσιες συγκοινωνίες',
   'transit.pickDay': 'Επιλέξτε μια ημέρα για αναζήτηση συνδέσεων.',
-  'transit.noItinerary': 'Αυτή η καταχώριση δεν έχει αποθηκευμένο δρομολόγιο — χρησιμοποιήστε την «Αλλαγή διαδρομής» για να αναζητήσετε ένα.',
+  'transit.noItinerary':
+    'Αυτή η καταχώριση δεν έχει αποθηκευμένο δρομολόγιο — χρησιμοποιήστε την «Αλλαγή διαδρομής» για να αναζητήσετε ένα.',
   'transit.durationLabel': 'Διάρκεια',
   'transit.transfersLabel': 'Μετεπιβιβάσεις',
   'transit.walkLabel': 'Περπάτημα',
-  'transit.searchHint': 'Αναζητήστε πραγματικές συνδέσεις και προσθέστε τις απευθείας στην ημέρα — δεδομένα μέσω Transitous.',
+  'transit.searchHint':
+    'Αναζητήστε πραγματικές συνδέσεις και προσθέστε τις απευθείας στην ημέρα — δεδομένα μέσω Transitous.',
 };
 export default trip;

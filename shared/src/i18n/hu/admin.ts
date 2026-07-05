@@ -95,6 +95,8 @@ const admin: TranslationStrings = {
   'admin.recommended': 'Ajánlott',
   'admin.weatherKey': 'OpenWeatherMap API kulcs',
   'admin.weatherKeyHint': 'Időjárás adatokhoz. Ingyenes: openweathermap.org',
+  'admin.unsplashKey': 'Unsplash API-kulcs',
+  'admin.unsplashKeyHint': 'Képkereséshez. Ingyenes: unsplash.com/developers',
   'admin.validateKey': 'Teszt',
   'admin.keyValid': 'Csatlakozva',
   'admin.keyInvalid': 'Érvénytelen',
@@ -181,7 +183,8 @@ const admin: TranslationStrings = {
   'admin.plugins.noErrors': 'Nincsenek naplózott hibák.',
   'admin.plugins.uninstalled': 'Plugin eltávolítva',
   'admin.plugins.uninstallTitle': 'Plugin eltávolítása?',
-  'admin.plugins.uninstallBody': 'Ez leállítja a plugint, eltávolítja a kódját, és törli az összes adatát. Ez nem vonható vissza.',
+  'admin.plugins.uninstallBody':
+    'Ez leállítja a plugint, eltávolítja a kódját, és törli az összes adatát. Ez nem vonható vissza.',
   'admin.plugins.status.starting': 'Indítás…',
   'admin.plugins.type.widget': 'Widget',
   'admin.plugins.type.page': 'Oldal',
@@ -195,10 +198,12 @@ const admin: TranslationStrings = {
   'admin.plugins.title': 'Pluginok',
   'admin.plugins.subtitle': 'Harmadik féltől származó pluginok telepítése és kezelése a példányodon.',
   'admin.plugins.disabledTitle': 'A pluginok le vannak tiltva',
-  'admin.plugins.disabledBody': 'A plugin futtatókörnyezet ki van kapcsolva (TREK_PLUGINS_ENABLED). Egyetlen plugin sem futhat, amíg egy admin nem engedélyezi a szerverkonfigurációban.',
+  'admin.plugins.disabledBody':
+    'A plugin futtatókörnyezet ki van kapcsolva (TREK_PLUGINS_ENABLED). Egyetlen plugin sem futhat, amíg egy admin nem engedélyezi a szerverkonfigurációban.',
   'admin.plugins.empty': 'Még nincsenek telepített pluginok.',
   'admin.plugins.loadError': 'Nem sikerült betölteni a pluginokat.',
-  'admin.plugins.scaffoldNote': 'A pluginok telepítése és aktiválása egy későbbi frissítésben érkezik. Ez a panel jelenleg csak a telepített pluginokat listázza.',
+  'admin.plugins.scaffoldNote':
+    'A pluginok telepítése és aktiválása egy későbbi frissítésben érkezik. Ez a panel jelenleg csak a telepített pluginokat listázza.',
   'admin.plugins.status.active': 'Aktív',
   'admin.plugins.status.inactive': 'Inaktív',
   'admin.plugins.status.disabled': 'Letiltva',
@@ -222,21 +227,31 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:trips': 'Az aktuális felhasználó számára elérhető utazások olvasása',
   'admin.plugins.perm.db:read:users': 'Alapvető profiladatok olvasása (név, profilkép — hitelesítő adatok soha)',
   'admin.plugins.perm.db:read:costs': 'Az aktuális felhasználó számára elérhető költségek (költségtételek) olvasása',
-  'admin.plugins.perm.db:read:packing': 'Az aktuális felhasználó számára elérhető utazások csomagolási listáinak olvasása',
+  'admin.plugins.perm.db:read:packing':
+    'Az aktuális felhasználó számára elérhető utazások csomagolási listáinak olvasása',
   'admin.plugins.perm.db:read:files': 'Az aktuális felhasználó számára elérhető utazások fájljainak olvasása',
-  'admin.plugins.perm.db:write:costs': 'Költségek (költségtételek) létrehozása az aktuális felhasználó által szerkeszthető utazásokon',
-  'admin.plugins.perm.db:write:places': 'Helyek hozzáadása, szerkesztése és eltávolítása az aktuális felhasználó által szerkeszthető utazásokon',
-  'admin.plugins.perm.db:write:days': 'Napok hozzáadása, szerkesztése és eltávolítása az aktuális felhasználó által szerkeszthető utazásokon',
-  'admin.plugins.perm.db:write:itinerary': 'Helyek hozzárendelése és eltávolítása az aktuális felhasználó által szerkeszthető utazások napjain',
-  'admin.plugins.perm.db:write:trips': 'Utazás adatainak szerkesztése (cím, dátumok, pénznem…) az aktuális felhasználó által szerkeszthető utazásokon',
-  'admin.plugins.perm.db:meta': 'Saját privát adatok csatolása az aktuális felhasználó által elérhető utazásokhoz, helyekhez és napokhoz',
+  'admin.plugins.perm.db:write:costs':
+    'Költségek (költségtételek) létrehozása az aktuális felhasználó által szerkeszthető utazásokon',
+  'admin.plugins.perm.db:write:places':
+    'Helyek hozzáadása, szerkesztése és eltávolítása az aktuális felhasználó által szerkeszthető utazásokon',
+  'admin.plugins.perm.db:write:days':
+    'Napok hozzáadása, szerkesztése és eltávolítása az aktuális felhasználó által szerkeszthető utazásokon',
+  'admin.plugins.perm.db:write:itinerary':
+    'Helyek hozzárendelése és eltávolítása az aktuális felhasználó által szerkeszthető utazások napjain',
+  'admin.plugins.perm.db:write:trips':
+    'Utazás adatainak szerkesztése (cím, dátumok, pénznem…) az aktuális felhasználó által szerkeszthető utazásokon',
+  'admin.plugins.perm.db:meta':
+    'Saját privát adatok csatolása az aktuális felhasználó által elérhető utazásokhoz, helyekhez és napokhoz',
   'admin.plugins.perm.ws:broadcast:trip': 'Valós idejű frissítések küldése az utazás tagjainak',
   'admin.plugins.perm.ws:broadcast:user': 'Valós idejű frissítések küldése egyes felhasználóknak',
   'admin.plugins.perm.hook:photo-provider': 'Fotók biztosítása az Emlékek funkcióhoz',
   'admin.plugins.perm.hook:calendar-source': 'Események biztosítása a naptárhoz',
-  'admin.plugins.perm.hook:place-detail-provider': 'További részletek (értékelések, minősítések, hivatkozások) hozzáadása egy helyhez',
-  'admin.plugins.perm.hook:trip-warning-provider': 'Ellenőrzési figyelmeztetések megjelenítése egy utazáson (a tervezőben látható)',
-  'admin.plugins.perm.events:subscribe': 'Reagál az alapvető tevékenységi eseményekre (csak eseménynév + utazás, soha nem a tartalom)',
+  'admin.plugins.perm.hook:place-detail-provider':
+    'További részletek (értékelések, minősítések, hivatkozások) hozzáadása egy helyhez',
+  'admin.plugins.perm.hook:trip-warning-provider':
+    'Ellenőrzési figyelmeztetések megjelenítése egy utazáson (a tervezőben látható)',
+  'admin.plugins.perm.events:subscribe':
+    'Reagál az alapvető tevékenységi eseményekre (csak eseménynév + utazás, soha nem a tartalom)',
   'admin.plugins.perm.http:outbound': 'Kimenő kérések küldése a bejelentett kiszolgálók felé',
   'admin.plugins.updateConsentTitle': 'Ez a frissítés új engedélyeket igényel',
   'admin.plugins.updateConsentBody':
@@ -519,7 +534,8 @@ const admin: TranslationStrings = {
   'admin.group.maintenance': 'Maintenance',
   'admin.invite.tripLabel': 'Hozzáadás utazáshoz (opcionális)',
   'admin.invite.tripNone': 'Nincs utazás',
-  'admin.invite.tripHint': 'Az új felhasználó automatikusan hozzáadódik ehhez az utazáshoz, amikor a linken keresztül regisztrál.',
+  'admin.invite.tripHint':
+    'Az új felhasználó automatikusan hozzáadódik ehhez az utazáshoz, amikor a linken keresztül regisztrál.',
   'admin.invite.boundTo': 'hozzáadja a következőhöz: {trip}',
 };
 export default admin;

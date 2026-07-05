@@ -318,7 +318,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.success': 'متصل — تم العثور على {count} رحلة/رحلات',
   'settings.airtrail.test.failed': 'فشل الاتصال',
   'settings.aiParsing.title': 'التحليل بالذكاء الاصطناعي',
-  'settings.aiParsing.hint': 'استخدم نموذج الذكاء الاصطناعي الخاص بك لاستخراج الحجوزات من الملفات المرفوعة. لا يسري هذا إلا عندما لا يكون المسؤول قد أعدّ نموذجًا للنظام بأكمله.',
+  'settings.aiParsing.hint':
+    'استخدم نموذج الذكاء الاصطناعي الخاص بك لاستخراج الحجوزات من الملفات المرفوعة. لا يسري هذا إلا عندما لا يكون المسؤول قد أعدّ نموذجًا للنظام بأكمله.',
   'settings.aiParsing.provider': 'المزوّد',
   'settings.aiParsing.providerLocal': 'محلي (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
@@ -348,7 +349,8 @@ const settings: TranslationStrings = {
   'settings.appearance.contrastLow': 'Low contrast',
   'settings.appearance.readability': 'Readability',
   'settings.appearance.transparency': 'Transparency',
-  'settings.appearance.transparencyHint': 'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
+  'settings.appearance.transparencyHint':
+    'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
   'settings.appearance.reduceMotion': 'Reduce motion',
   'settings.appearance.reduceMotionHint': 'Minimize animations and transitions.',
   'settings.appearance.density': 'Density',
@@ -378,7 +380,8 @@ const settings: TranslationStrings = {
   'settings.appearance.group.belowHero': 'Below the hero',
   'settings.appearance.group.bottomOfPage': 'Bottom of page',
   'settings.appearance.sidebarHint': 'The whole right column. Turn off and the dashboard centers.',
-  'settings.appearance.densityHint': 'Compact tightens spacing and padding for a denser layout that fits more on screen.',
+  'settings.appearance.densityHint':
+    'Compact tightens spacing and padding for a denser layout that fits more on screen.',
   'settings.appearance.textSizeAll': 'Everything',
   'settings.appearance.perSize': 'Adjust each size separately',
   'settings.appearance.size.large': 'Large',
@@ -401,10 +404,12 @@ const settings: TranslationStrings = {
   'settings.offline.cache.title': 'ذاكرة التخزين المؤقت دون اتصال',
   'settings.offline.mode.title': 'وضع عدم الاتصال',
   'settings.offline.mode.force': 'فرض وضع عدم الاتصال',
-  'settings.offline.mode.forceHint': 'اعمل من البيانات المخزّنة مؤقتًا فقط وضع تغييراتك في قائمة الانتظار. أوقفه لإعادة الاتصال والمزامنة.',
+  'settings.offline.mode.forceHint':
+    'اعمل من البيانات المخزّنة مؤقتًا فقط وضع تغييراتك في قائمة الانتظار. أوقفه لإعادة الاتصال والمزامنة.',
   'settings.offline.mode.active': 'وضع عدم الاتصال مفعّل — تغييراتك في قائمة الانتظار وستتم مزامنتها عند إيقافه.',
   'settings.offline.prepare.title': 'التحضير للعمل دون اتصال',
-  'settings.offline.prepare.hint': 'نزّل كل ما تحتاجه — بيانات الرحلة والمستندات وبلاطات الخريطة — قبل أن تفقد الاتصال.',
+  'settings.offline.prepare.hint':
+    'نزّل كل ما تحتاجه — بيانات الرحلة والمستندات وبلاطات الخريطة — قبل أن تفقد الاتصال.',
   'settings.offline.prepare.button': 'تنزيل للاستخدام دون اتصال',
   'settings.offline.prepare.running': 'جارٍ التنزيل…',
   'settings.offline.prepare.done': 'جاهز للاستخدام دون اتصال',
@@ -415,12 +420,14 @@ const settings: TranslationStrings = {
   'settings.offline.resyncing': 'جارٍ المزامنة…',
   'settings.offline.storage.title': 'ما يتم تخزينه دون اتصال',
   'settings.offline.storage.tiles': 'تخزين بلاطات الخريطة دون اتصال',
-  'settings.offline.storage.tilesHint': 'تستهلك بلاطات الخريطة أكبر مساحة تخزين. أوقف هذا للاحتفاظ ببيانات الرحلة والمستندات فقط دون اتصال.',
+  'settings.offline.storage.tilesHint':
+    'تستهلك بلاطات الخريطة أكبر مساحة تخزين. أوقف هذا للاحتفاظ ببيانات الرحلة والمستندات فقط دون اتصال.',
   'settings.offline.storage.tripsTitle': 'الرحلات',
   'settings.offline.storage.tripOn': 'مخزّن دون اتصال',
   'settings.offline.storage.tripOff': 'غير مخزّن',
   'settings.offline.clear': 'مسح ذاكرة التخزين المؤقت',
-  'settings.offline.clearConfirm': 'هل تريد مسح جميع بيانات الرحلة المخزّنة دون اتصال؟ يمكنك إعادة المزامنة في أي وقت أثناء الاتصال.',
+  'settings.offline.clearConfirm':
+    'هل تريد مسح جميع بيانات الرحلة المخزّنة دون اتصال؟ يمكنك إعادة المزامنة في أي وقت أثناء الاتصال.',
   'settings.offline.stats.trips': 'الرحلات المخزّنة مؤقتًا',
   'settings.offline.stats.pending': 'تغييرات معلّقة',
   'settings.offline.stats.failed': 'تغييرات فاشلة',
@@ -428,7 +435,8 @@ const settings: TranslationStrings = {
   'settings.offline.empty': 'لا توجد رحلات مخزّنة بعد. اتصل بالإنترنت للمزامنة.',
   'settings.offline.loading': 'جارٍ التحميل…',
   'settings.offline.conflicts.title': 'تعارضات المزامنة',
-  'settings.offline.conflicts.hint': 'تتعارض التغييرات التي أجريتها دون اتصال مع تغييرات أحدث على الخادم. اختر الإصدار الذي تريد الاحتفاظ به.',
+  'settings.offline.conflicts.hint':
+    'تتعارض التغييرات التي أجريتها دون اتصال مع تغييرات أحدث على الخادم. اختر الإصدار الذي تريد الاحتفاظ به.',
   'settings.offline.conflicts.keepMine': 'الاحتفاظ بنسختي',
   'settings.offline.conflicts.keepServer': 'الاحتفاظ بنسخة الخادم',
   'settings.offline.conflicts.mine': 'نسختك',

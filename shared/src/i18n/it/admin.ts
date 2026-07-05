@@ -95,6 +95,8 @@ const admin: TranslationStrings = {
   'admin.recommended': 'Consigliato',
   'admin.weatherKey': 'Chiave API OpenWeatherMap',
   'admin.weatherKeyHint': 'Per i dati meteo. Gratuita su openweathermap.org',
+  'admin.unsplashKey': 'Chiave API Unsplash',
+  'admin.unsplashKeyHint': 'Per la ricerca di immagini. Gratuita su unsplash.com/developers',
   'admin.validateKey': 'Testa',
   'admin.keyValid': 'Connessa',
   'admin.keyInvalid': 'Non valida',
@@ -180,7 +182,8 @@ const admin: TranslationStrings = {
   'admin.plugins.noErrors': 'Nessun errore registrato.',
   'admin.plugins.uninstalled': 'Plugin disinstallato',
   'admin.plugins.uninstallTitle': 'Disinstallare il plugin?',
-  'admin.plugins.uninstallBody': 'Il plugin verrà arrestato, il suo codice rimosso e tutti i suoi dati eliminati. Questa operazione non può essere annullata.',
+  'admin.plugins.uninstallBody':
+    'Il plugin verrà arrestato, il suo codice rimosso e tutti i suoi dati eliminati. Questa operazione non può essere annullata.',
   'admin.plugins.status.starting': 'Avvio in corso…',
   'admin.plugins.type.widget': 'Widget',
   'admin.plugins.type.page': 'Pagina',
@@ -194,10 +197,12 @@ const admin: TranslationStrings = {
   'admin.plugins.title': 'Plugin',
   'admin.plugins.subtitle': 'Installa e gestisci plugin di terze parti sulla tua istanza.',
   'admin.plugins.disabledTitle': 'I plugin sono disabilitati',
-  'admin.plugins.disabledBody': 'Il runtime dei plugin è disattivato (TREK_PLUGINS_ENABLED). Nessun plugin può essere eseguito finché un amministratore non lo abilita nella configurazione del server.',
+  'admin.plugins.disabledBody':
+    'Il runtime dei plugin è disattivato (TREK_PLUGINS_ENABLED). Nessun plugin può essere eseguito finché un amministratore non lo abilita nella configurazione del server.',
   'admin.plugins.empty': 'Nessun plugin ancora installato.',
   'admin.plugins.loadError': 'Impossibile caricare i plugin.',
-  'admin.plugins.scaffoldNote': "L'installazione e l'attivazione dei plugin arriveranno in un aggiornamento futuro. Al momento questo pannello elenca solo i plugin installati.",
+  'admin.plugins.scaffoldNote':
+    "L'installazione e l'attivazione dei plugin arriveranno in un aggiornamento futuro. Al momento questo pannello elenca solo i plugin installati.",
   'admin.plugins.status.active': 'Attivo',
   'admin.plugins.status.inactive': 'Inattivo',
   'admin.plugins.status.disabled': 'Disabilitato',
@@ -224,18 +229,26 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:packing': "Leggere le liste dei bagagli dei viaggi a cui l'utente attivo ha accesso",
   'admin.plugins.perm.db:read:files': "Leggere i file dei viaggi a cui l'utente attivo ha accesso",
   'admin.plugins.perm.db:write:costs': "Creare spese (voci di budget) sui viaggi che l'utente attivo può modificare",
-  'admin.plugins.perm.db:write:places': "Aggiungere, modificare e rimuovere luoghi sui viaggi che l'utente attivo può modificare",
-  'admin.plugins.perm.db:write:days': "Aggiungere, modificare e rimuovere giorni sui viaggi che l'utente attivo può modificare",
-  'admin.plugins.perm.db:write:itinerary': "Assegnare e rimuovere luoghi nei giorni dei viaggi che l'utente attivo può modificare",
-  'admin.plugins.perm.db:write:trips': "Modificare i dettagli del viaggio (titolo, date, valuta…) sui viaggi che l'utente attivo può modificare",
-  'admin.plugins.perm.db:meta': "Allegare i propri dati privati a viaggi, luoghi e giorni a cui l'utente attivo può accedere",
+  'admin.plugins.perm.db:write:places':
+    "Aggiungere, modificare e rimuovere luoghi sui viaggi che l'utente attivo può modificare",
+  'admin.plugins.perm.db:write:days':
+    "Aggiungere, modificare e rimuovere giorni sui viaggi che l'utente attivo può modificare",
+  'admin.plugins.perm.db:write:itinerary':
+    "Assegnare e rimuovere luoghi nei giorni dei viaggi che l'utente attivo può modificare",
+  'admin.plugins.perm.db:write:trips':
+    "Modificare i dettagli del viaggio (titolo, date, valuta…) sui viaggi che l'utente attivo può modificare",
+  'admin.plugins.perm.db:meta':
+    "Allegare i propri dati privati a viaggi, luoghi e giorni a cui l'utente attivo può accedere",
   'admin.plugins.perm.ws:broadcast:trip': 'Inviare aggiornamenti in tempo reale ai membri del viaggio',
   'admin.plugins.perm.ws:broadcast:user': 'Inviare aggiornamenti in tempo reale a singoli utenti',
   'admin.plugins.perm.hook:photo-provider': 'Fornire foto alla sezione Foto',
   'admin.plugins.perm.hook:calendar-source': 'Fornire eventi al calendario',
-  'admin.plugins.perm.hook:place-detail-provider': 'Fornire dettagli aggiuntivi (recensioni, valutazioni, link) a un luogo',
-  'admin.plugins.perm.hook:trip-warning-provider': 'Segnala avvisi di validazione su un viaggio (mostrati nel pianificatore)',
-  'admin.plugins.perm.events:subscribe': "Reagisce agli eventi principali dell'attività (solo nome evento e viaggio, mai il contenuto)",
+  'admin.plugins.perm.hook:place-detail-provider':
+    'Fornire dettagli aggiuntivi (recensioni, valutazioni, link) a un luogo',
+  'admin.plugins.perm.hook:trip-warning-provider':
+    'Segnala avvisi di validazione su un viaggio (mostrati nel pianificatore)',
+  'admin.plugins.perm.events:subscribe':
+    "Reagisce agli eventi principali dell'attività (solo nome evento e viaggio, mai il contenuto)",
   'admin.plugins.perm.http:outbound': 'Effettuare richieste in uscita verso gli host dichiarati',
   'admin.plugins.updateConsentTitle': 'Questo aggiornamento richiede nuovi permessi',
   'admin.plugins.updateConsentBody':
@@ -518,7 +531,8 @@ const admin: TranslationStrings = {
   'admin.group.maintenance': 'Maintenance',
   'admin.invite.tripLabel': 'Aggiungi a un viaggio (opzionale)',
   'admin.invite.tripNone': 'Nessun viaggio',
-  'admin.invite.tripHint': 'Il nuovo utente viene aggiunto automaticamente a questo viaggio quando si registra tramite il link.',
+  'admin.invite.tripHint':
+    'Il nuovo utente viene aggiunto automaticamente a questo viaggio quando si registra tramite il link.',
   'admin.invite.boundTo': 'aggiunge a {trip}',
 };
 export default admin;

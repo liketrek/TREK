@@ -42,7 +42,8 @@ const dashboard: TranslationStrings = {
   'dashboard.status.past': '過去',
   'dashboard.status.daysLeft': '残り{count}日',
   'dashboard.toast.loadError': '旅行の読み込みに失敗しました',
-  'dashboard.loadErrorBanner': 'サーバーに接続できませんでした。旅行のデータは安全に保存されています — もう一度お試しください。',
+  'dashboard.loadErrorBanner':
+    'サーバーに接続できませんでした。旅行のデータは安全に保存されています — もう一度お試しください。',
   'dashboard.retry': '再試行',
   'dashboard.toast.created': '旅行を作成しました！',
   'dashboard.toast.createError': '旅行の作成に失敗しました',

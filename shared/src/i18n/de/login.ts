@@ -86,8 +86,9 @@ const login: TranslationStrings = {
   'login.resetPasswordFailed': 'Zurücksetzen fehlgeschlagen. Der Link ist möglicherweise abgelaufen.',
   'login.passkey.signIn': 'Mit Passkey anmelden',
   'login.passkey.failed': 'Anmeldung mit Passkey fehlgeschlagen. Bitte erneut versuchen.',
-  'login.insecureCookie.title': "Login hält über HTTP nicht",
-  'login.insecureCookie.body': "Du verbindest dich über reines HTTP, daher verwirft dein Browser TREKs sicheren Session-Cookie — die nächste Anfrage scheitert mit „Access token required\". Lösung: HTTPS nutzen, oder für ein Heim-Setup COOKIE_SECURE=false setzen.",
-  'login.insecureCookie.link': "Zur Troubleshooting-Anleitung",
+  'login.insecureCookie.title': 'Login hält über HTTP nicht',
+  'login.insecureCookie.body':
+    'Du verbindest dich über reines HTTP, daher verwirft dein Browser TREKs sicheren Session-Cookie — die nächste Anfrage scheitert mit „Access token required". Lösung: HTTPS nutzen, oder für ein Heim-Setup COOKIE_SECURE=false setzen.',
+  'login.insecureCookie.link': 'Zur Troubleshooting-Anleitung',
 };
 export default login;

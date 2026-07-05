@@ -1,10 +1,11 @@
-import { describe, expect, it } from 'vitest';
 import {
   APPEARANCE_SCALE_MAX,
   APPEARANCE_SCALE_MIN,
   DEFAULT_APPEARANCE,
   normalizeAppearance,
 } from './appearance.schema';
+
+import { describe, expect, it } from 'vitest';
 
 describe('normalizeAppearance', () => {
   it('returns the neutral default for undefined / null / non-objects', () => {

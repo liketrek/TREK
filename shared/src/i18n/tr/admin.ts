@@ -138,6 +138,8 @@ const admin: TranslationStrings = {
   'admin.recommended': 'Tavsiye edilen',
   'admin.weatherKey': 'OpenWeatherMap API Anahtarı',
   'admin.weatherKeyHint': "Hava durumu verileri için. openweathermap.org'da ücretsiz",
+  'admin.unsplashKey': 'Unsplash API Anahtarı',
+  'admin.unsplashKeyHint': "Görsel araması için. unsplash.com/developers'da ücretsiz",
   'admin.validateKey': 'Test et',
   'admin.keyValid': 'Bağlı',
   'admin.keyInvalid': 'Geçersiz',
@@ -225,7 +227,8 @@ const admin: TranslationStrings = {
   'admin.plugins.noErrors': 'Kayıtlı hata yok.',
   'admin.plugins.uninstalled': 'Eklenti kaldırıldı',
   'admin.plugins.uninstallTitle': 'Eklenti kaldırılsın mı?',
-  'admin.plugins.uninstallBody': 'Bu, eklentiyi durdurur, kodunu kaldırır ve tüm verilerini siler. Bu işlem geri alınamaz.',
+  'admin.plugins.uninstallBody':
+    'Bu, eklentiyi durdurur, kodunu kaldırır ve tüm verilerini siler. Bu işlem geri alınamaz.',
   'admin.plugins.status.starting': 'Başlatılıyor…',
   'admin.plugins.type.widget': 'Widget',
   'admin.plugins.type.page': 'Sayfa',
@@ -239,10 +242,12 @@ const admin: TranslationStrings = {
   'admin.plugins.title': 'Plugins',
   'admin.plugins.subtitle': 'Örneğinizde üçüncü taraf eklentileri yükleyin ve yönetin.',
   'admin.plugins.disabledTitle': 'Eklentiler devre dışı',
-  'admin.plugins.disabledBody': 'Eklenti çalışma zamanı kapalı (TREK_PLUGINS_ENABLED). Bir yönetici sunucu yapılandırmasında etkinleştirene kadar hiçbir eklenti çalışamaz.',
+  'admin.plugins.disabledBody':
+    'Eklenti çalışma zamanı kapalı (TREK_PLUGINS_ENABLED). Bir yönetici sunucu yapılandırmasında etkinleştirene kadar hiçbir eklenti çalışamaz.',
   'admin.plugins.empty': 'Henüz eklenti yüklenmedi.',
   'admin.plugins.loadError': 'Eklentiler yüklenemedi.',
-  'admin.plugins.scaffoldNote': 'Eklenti yükleme ve etkinleştirme daha sonraki bir güncellemede gelecek. Bu panel şu anda yalnızca yüklü eklentileri listeler.',
+  'admin.plugins.scaffoldNote':
+    'Eklenti yükleme ve etkinleştirme daha sonraki bir güncellemede gelecek. Bu panel şu anda yalnızca yüklü eklentileri listeler.',
   'admin.plugins.status.active': 'Aktif',
   'admin.plugins.status.inactive': 'Pasif',
   'admin.plugins.status.disabled': 'Devre dışı',
@@ -268,19 +273,27 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:costs': 'İşlemi yapan kullanıcının erişebildiği harcamaları (bütçe kalemleri) okur',
   'admin.plugins.perm.db:read:packing': 'İşlemi yapan kullanıcının erişebildiği seyahatlerin eşya listelerini okur',
   'admin.plugins.perm.db:read:files': 'İşlemi yapan kullanıcının erişebildiği seyahatlerin dosyalarını okur',
-  'admin.plugins.perm.db:write:costs': 'İşlemi yapan kullanıcının düzenleyebildiği seyahatlerde harcamalar (bütçe kalemleri) oluşturur',
-  'admin.plugins.perm.db:write:places': 'İşlemi yapan kullanıcının düzenleyebildiği seyahatlerde yerler ekler, düzenler ve kaldırır',
-  'admin.plugins.perm.db:write:days': 'İşlemi yapan kullanıcının düzenleyebildiği seyahatlerde günler ekler, düzenler ve kaldırır',
-  'admin.plugins.perm.db:write:itinerary': 'İşlemi yapan kullanıcının düzenleyebildiği seyahatlerin günlerine yerler atar ve kaldırır',
-  'admin.plugins.perm.db:write:trips': 'İşlemi yapan kullanıcının düzenleyebildiği seyahatlerin ayrıntılarını (başlık, tarihler, para birimi…) düzenler',
-  'admin.plugins.perm.db:meta': 'İşlemi yapan kullanıcının erişebildiği seyahatlere, yerlere ve günlere kendi özel verilerini ekler',
+  'admin.plugins.perm.db:write:costs':
+    'İşlemi yapan kullanıcının düzenleyebildiği seyahatlerde harcamalar (bütçe kalemleri) oluşturur',
+  'admin.plugins.perm.db:write:places':
+    'İşlemi yapan kullanıcının düzenleyebildiği seyahatlerde yerler ekler, düzenler ve kaldırır',
+  'admin.plugins.perm.db:write:days':
+    'İşlemi yapan kullanıcının düzenleyebildiği seyahatlerde günler ekler, düzenler ve kaldırır',
+  'admin.plugins.perm.db:write:itinerary':
+    'İşlemi yapan kullanıcının düzenleyebildiği seyahatlerin günlerine yerler atar ve kaldırır',
+  'admin.plugins.perm.db:write:trips':
+    'İşlemi yapan kullanıcının düzenleyebildiği seyahatlerin ayrıntılarını (başlık, tarihler, para birimi…) düzenler',
+  'admin.plugins.perm.db:meta':
+    'İşlemi yapan kullanıcının erişebildiği seyahatlere, yerlere ve günlere kendi özel verilerini ekler',
   'admin.plugins.perm.ws:broadcast:trip': 'Seyahat üyelerine gerçek zamanlı güncellemeler gönderir',
   'admin.plugins.perm.ws:broadcast:user': 'Tek tek kullanıcılara gerçek zamanlı güncellemeler gönderir',
   'admin.plugins.perm.hook:photo-provider': 'Fotoğraflar bölümüne fotoğraf sağlar',
   'admin.plugins.perm.hook:calendar-source': 'Takvime etkinlik sağlar',
-  'admin.plugins.perm.hook:place-detail-provider': 'Bir yere ek ayrıntılar (yorumlar, puanlar, bağlantılar) katkıda bulunur',
+  'admin.plugins.perm.hook:place-detail-provider':
+    'Bir yere ek ayrıntılar (yorumlar, puanlar, bağlantılar) katkıda bulunur',
   'admin.plugins.perm.hook:trip-warning-provider': 'Bir gezide doğrulama uyarıları oluşturur (planlayıcıda gösterilir)',
-  'admin.plugins.perm.events:subscribe': 'Temel etkinlik olaylarına tepki verir (yalnızca olay adı + seyahat, asla içerik değil)',
+  'admin.plugins.perm.events:subscribe':
+    'Temel etkinlik olaylarına tepki verir (yalnızca olay adı + seyahat, asla içerik değil)',
   'admin.plugins.perm.http:outbound': 'Bildirdiği ana bilgisayarlara giden istekler yapar',
   'admin.plugins.updateConsentTitle': 'Bu güncelleme yeni izinler gerektiriyor',
   'admin.plugins.updateConsentBody':

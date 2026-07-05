@@ -134,6 +134,8 @@ const admin: TranslationStrings = {
   'admin.recommended': '권장',
   'admin.weatherKey': 'OpenWeatherMap API 키',
   'admin.weatherKeyHint': '날씨 데이터용. openweathermap.org에서 무료 발급',
+  'admin.unsplashKey': 'Unsplash API 키',
+  'admin.unsplashKeyHint': '이미지 검색용. unsplash.com/developers에서 무료 발급',
   'admin.validateKey': '테스트',
   'admin.keyValid': '연결됨',
   'admin.keyInvalid': '유효하지 않음',
@@ -218,7 +220,8 @@ const admin: TranslationStrings = {
   'admin.plugins.noErrors': '기록된 오류가 없습니다.',
   'admin.plugins.uninstalled': '플러그인이 제거되었습니다',
   'admin.plugins.uninstallTitle': '플러그인을 제거할까요?',
-  'admin.plugins.uninstallBody': '플러그인이 중지되고 코드가 제거되며 모든 데이터가 삭제됩니다. 이 작업은 되돌릴 수 없습니다.',
+  'admin.plugins.uninstallBody':
+    '플러그인이 중지되고 코드가 제거되며 모든 데이터가 삭제됩니다. 이 작업은 되돌릴 수 없습니다.',
   'admin.plugins.status.starting': '시작 중…',
   'admin.plugins.type.widget': '위젯',
   'admin.plugins.type.page': '페이지',
@@ -232,10 +235,12 @@ const admin: TranslationStrings = {
   'admin.plugins.title': '플러그인',
   'admin.plugins.subtitle': '인스턴스에 서드파티 플러그인을 설치하고 관리하세요.',
   'admin.plugins.disabledTitle': '플러그인이 비활성화되어 있습니다',
-  'admin.plugins.disabledBody': '플러그인 런타임이 꺼져 있습니다 (TREK_PLUGINS_ENABLED). 관리자가 서버 설정에서 활성화하기 전까지 어떤 플러그인도 실행할 수 없습니다.',
+  'admin.plugins.disabledBody':
+    '플러그인 런타임이 꺼져 있습니다 (TREK_PLUGINS_ENABLED). 관리자가 서버 설정에서 활성화하기 전까지 어떤 플러그인도 실행할 수 없습니다.',
   'admin.plugins.empty': '아직 설치된 플러그인이 없습니다.',
   'admin.plugins.loadError': '플러그인을 불러올 수 없습니다.',
-  'admin.plugins.scaffoldNote': '플러그인 설치 및 활성화는 이후 업데이트에서 제공됩니다. 현재 이 패널은 설치된 플러그인만 표시합니다.',
+  'admin.plugins.scaffoldNote':
+    '플러그인 설치 및 활성화는 이후 업데이트에서 제공됩니다. 현재 이 패널은 설치된 플러그인만 표시합니다.',
   'admin.plugins.status.active': '활성',
   'admin.plugins.status.inactive': '비활성',
   'admin.plugins.status.disabled': '비활성화됨',

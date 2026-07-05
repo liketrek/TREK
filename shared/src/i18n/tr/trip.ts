@@ -28,7 +28,8 @@ const trip: TranslationStrings = {
   'trip.confirm.deletePlaces': '{count} Yer silinsin mi?',
   'trip.toast.placesDeleted': '{count} yer silindi',
   'trip.invite.linkTitle': 'Seyahat davet bağlantısı',
-  'trip.invite.linkHint': 'TREK hesabı olan ve bu bağlantıyı açan herkes seyahate üye olarak katılır. Eski bağlantıyı geçersiz kılmak için yeniden oluşturun.',
+  'trip.invite.linkHint':
+    'TREK hesabı olan ve bu bağlantıyı açan herkes seyahate üye olarak katılır. Eski bağlantıyı geçersiz kılmak için yeniden oluşturun.',
   'trip.invite.create': 'Davet bağlantısı oluştur',
   'trip.invite.regenerate': 'Yeniden oluştur',
   'trip.invite.disable': 'Devre dışı bırak',
@@ -75,7 +76,8 @@ const trip: TranslationStrings = {
   'transit.changeRoute': 'Rotayı değiştir',
   'transit.journey': 'Toplu taşıma yolculuğu',
   'transit.pickDay': 'Bağlantı aramak için bir gün seçin.',
-  'transit.noItinerary': 'Bu kaydın kayıtlı bir güzergâhı yok — bir tane aramak için "Rotayı değiştir" seçeneğini kullanın.',
+  'transit.noItinerary':
+    'Bu kaydın kayıtlı bir güzergâhı yok — bir tane aramak için "Rotayı değiştir" seçeneğini kullanın.',
   'transit.durationLabel': 'Süre',
   'transit.transfersLabel': 'Aktarma',
   'transit.walkLabel': 'Yürüyüş',

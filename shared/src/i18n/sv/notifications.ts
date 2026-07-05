@@ -6,7 +6,7 @@ const notifications: TranslationStrings = {
   'notifications.deleteAll': 'Ta bort alla',
   'notifications.showAll': 'Visa alla meddelanden',
   'notifications.empty': 'Inga meddelanden',
-  'notifications.emptyDescription': "Nu är du helt uppdaterad!",
+  'notifications.emptyDescription': 'Nu är du helt uppdaterad!',
   'notifications.all': 'Alla',
   'notifications.unreadOnly': 'Olästa',
   'notifications.markRead': 'Markera som läst',

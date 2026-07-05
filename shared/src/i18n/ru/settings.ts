@@ -331,18 +331,21 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.success': 'Подключено — найдено рейсов: {count}',
   'settings.airtrail.test.failed': 'Не удалось подключиться',
   'settings.aiParsing.title': 'Распознавание с помощью ИИ',
-  'settings.aiParsing.hint': 'Используйте собственную модель ИИ для извлечения бронирований из загруженных файлов. Это работает только в том случае, если администратор не настроил модель для всего экземпляра.',
+  'settings.aiParsing.hint':
+    'Используйте собственную модель ИИ для извлечения бронирований из загруженных файлов. Это работает только в том случае, если администратор не настроил модель для всего экземпляра.',
   'settings.aiParsing.provider': 'Провайдер',
   'settings.aiParsing.providerLocal': 'Локально (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
   'settings.aiParsing.model': 'Модель',
   'settings.aiParsing.baseUrl': 'Базовый URL',
-  'settings.aiParsing.baseUrlHint': 'Где работает модель — локальный сервер Ollama или конечная точка, совместимая с OpenAI.',
+  'settings.aiParsing.baseUrlHint':
+    'Где работает модель — локальный сервер Ollama или конечная точка, совместимая с OpenAI.',
   'settings.aiParsing.apiKey': 'Ключ API',
   'settings.aiParsing.apiKeyHint': 'Хранится в зашифрованном виде. Оставьте поле пустым, чтобы сохранить текущий ключ.',
   'settings.aiParsing.multimodal': 'Отправлять документы как изображения',
-  'settings.aiParsing.multimodalHint': 'Для моделей с поддержкой изображений — отправляет исходный PDF вместо извлечённого текста.',
+  'settings.aiParsing.multimodalHint':
+    'Для моделей с поддержкой изображений — отправляет исходный PDF вместо извлечённого текста.',
   'settings.aiParsing.toast.saved': 'Настройки ИИ сохранены',
   'settings.aiParsing.toast.saveError': 'Не удалось сохранить настройки ИИ',
   'settings.tabs.appearance': 'Appearance',
@@ -361,7 +364,8 @@ const settings: TranslationStrings = {
   'settings.appearance.contrastLow': 'Low contrast',
   'settings.appearance.readability': 'Readability',
   'settings.appearance.transparency': 'Transparency',
-  'settings.appearance.transparencyHint': 'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
+  'settings.appearance.transparencyHint':
+    'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
   'settings.appearance.reduceMotion': 'Reduce motion',
   'settings.appearance.reduceMotionHint': 'Minimize animations and transitions.',
   'settings.appearance.density': 'Density',
@@ -391,7 +395,8 @@ const settings: TranslationStrings = {
   'settings.appearance.group.belowHero': 'Below the hero',
   'settings.appearance.group.bottomOfPage': 'Bottom of page',
   'settings.appearance.sidebarHint': 'The whole right column. Turn off and the dashboard centers.',
-  'settings.appearance.densityHint': 'Compact tightens spacing and padding for a denser layout that fits more on screen.',
+  'settings.appearance.densityHint':
+    'Compact tightens spacing and padding for a denser layout that fits more on screen.',
   'settings.appearance.textSizeAll': 'Everything',
   'settings.appearance.perSize': 'Adjust each size separately',
   'settings.appearance.size.large': 'Large',
@@ -414,10 +419,13 @@ const settings: TranslationStrings = {
   'settings.offline.cache.title': 'Офлайн-кэш',
   'settings.offline.mode.title': 'Офлайн-режим',
   'settings.offline.mode.force': 'Принудительный офлайн-режим',
-  'settings.offline.mode.forceHint': 'Работайте только с кэшированными данными, а ваши изменения ставятся в очередь. Выключите, чтобы снова подключиться и синхронизировать.',
-  'settings.offline.mode.active': 'Офлайн-режим включён — ваши изменения поставлены в очередь и синхронизируются, когда вы его выключите.',
+  'settings.offline.mode.forceHint':
+    'Работайте только с кэшированными данными, а ваши изменения ставятся в очередь. Выключите, чтобы снова подключиться и синхронизировать.',
+  'settings.offline.mode.active':
+    'Офлайн-режим включён — ваши изменения поставлены в очередь и синхронизируются, когда вы его выключите.',
   'settings.offline.prepare.title': 'Подготовка к работе офлайн',
-  'settings.offline.prepare.hint': 'Скачайте всё необходимое — данные поездок, документы и тайлы карты — до того, как потеряете соединение.',
+  'settings.offline.prepare.hint':
+    'Скачайте всё необходимое — данные поездок, документы и тайлы карты — до того, как потеряете соединение.',
   'settings.offline.prepare.button': 'Скачать для работы офлайн',
   'settings.offline.prepare.running': 'Скачивание…',
   'settings.offline.prepare.done': 'Готово к работе офлайн',
@@ -428,12 +436,14 @@ const settings: TranslationStrings = {
   'settings.offline.resyncing': 'Синхронизация…',
   'settings.offline.storage.title': 'Что хранить офлайн',
   'settings.offline.storage.tiles': 'Хранить тайлы карты офлайн',
-  'settings.offline.storage.tilesHint': 'Тайлы карты занимают больше всего места. Выключите, чтобы хранить офлайн только данные поездок и документы.',
+  'settings.offline.storage.tilesHint':
+    'Тайлы карты занимают больше всего места. Выключите, чтобы хранить офлайн только данные поездок и документы.',
   'settings.offline.storage.tripsTitle': 'Поездки',
   'settings.offline.storage.tripOn': 'Хранится офлайн',
   'settings.offline.storage.tripOff': 'Не хранится',
   'settings.offline.clear': 'Очистить кэш',
-  'settings.offline.clearConfirm': 'Очистить все офлайн-данные поездок? Вы сможете синхронизировать их снова в любой момент при наличии подключения.',
+  'settings.offline.clearConfirm':
+    'Очистить все офлайн-данные поездок? Вы сможете синхронизировать их снова в любой момент при наличии подключения.',
   'settings.offline.stats.trips': 'Кэшированные поездки',
   'settings.offline.stats.pending': 'Изменения в очереди',
   'settings.offline.stats.failed': 'Неудавшиеся изменения',
@@ -441,7 +451,8 @@ const settings: TranslationStrings = {
   'settings.offline.empty': 'Поездки ещё не кэшированы. Подключитесь к интернету для синхронизации.',
   'settings.offline.loading': 'Загрузка…',
   'settings.offline.conflicts.title': 'Конфликты синхронизации',
-  'settings.offline.conflicts.hint': 'Изменения, сделанные вами офлайн, конфликтуют с более новыми изменениями на сервере. Выберите, какую версию сохранить.',
+  'settings.offline.conflicts.hint':
+    'Изменения, сделанные вами офлайн, конфликтуют с более новыми изменениями на сервере. Выберите, какую версию сохранить.',
   'settings.offline.conflicts.keepMine': 'Оставить мою',
   'settings.offline.conflicts.keepServer': 'Оставить серверную',
   'settings.offline.conflicts.mine': 'Ваша версия',

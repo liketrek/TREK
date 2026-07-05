@@ -49,7 +49,8 @@ const collection: TranslationStrings = {
   'collections.editList': 'Yeniden adlandır',
   'collections.listMenu': 'Liste seçenekleri',
   'collections.deleteList': 'Listeyi sil',
-  'collections.deleteListConfirm': 'Bu, listeyi ve içindeki tüm kaydedilmiş yerleri kalıcı olarak siler. Bu işlem geri alınamaz.',
+  'collections.deleteListConfirm':
+    'Bu, listeyi ve içindeki tüm kaydedilmiş yerleri kalıcı olarak siler. Bu işlem geri alınamaz.',
   'collections.listName': 'Liste adı',
   'collections.listNamePlaceholder': 'örn. Tokyo 2025',
   'collections.listColor': 'Renk',
@@ -127,7 +128,8 @@ const collection: TranslationStrings = {
   'collections.share.memberHint': 'Yalnızca liste sahibi kişileri davet edebilir veya kaldırabilir.',
   'collections.share.cancel': 'İptal',
   'collections.share.leave': 'Listeden ayrıl',
-  'collections.share.leaveConfirm': 'Bu paylaşılan listeden ayrılmak istiyor musunuz? Tekrar davet edilene kadar erişiminizi kaybedersiniz.',
+  'collections.share.leaveConfirm':
+    'Bu paylaşılan listeden ayrılmak istiyor musunuz? Tekrar davet edilene kadar erişiminizi kaybedersiniz.',
   'collections.share.left': 'Listeden ayrıldınız',
   'collections.share.remove': 'Kaldır',
 

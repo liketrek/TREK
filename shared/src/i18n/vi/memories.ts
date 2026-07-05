@@ -3,7 +3,8 @@ import type { TranslationStrings } from '../types';
 const memories: TranslationStrings = {
   'memories.title': 'Ảnh',
   'memories.notConnected': '{provider_name} không được kết nối',
-  'memories.notConnectedHint': 'Kết nối phiên bản {provider_name} của bạn trong Cài đặt để có thể thêm ảnh vào chuyến đi này.',
+  'memories.notConnectedHint':
+    'Kết nối phiên bản {provider_name} của bạn trong Cài đặt để có thể thêm ảnh vào chuyến đi này.',
   'memories.notConnectedMultipleHint':
     'Kết nối bất kỳ nhà cung cấp ảnh nào sau đây: {provider_names} trong Cài đặt để có thể thêm ảnh vào chuyến đi này.',
   'memories.noDates': 'Thêm ngày vào chuyến đi của bạn để tải ảnh.',

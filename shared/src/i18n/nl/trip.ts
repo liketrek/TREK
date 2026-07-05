@@ -28,7 +28,8 @@ const trip: TranslationStrings = {
   'trip.confirm.deletePlaces': '{count} plaatsen verwijderen?',
   'trip.toast.placesDeleted': '{count} plaatsen verwijderd',
   'trip.invite.linkTitle': 'Uitnodigingslink voor reis',
-  'trip.invite.linkHint': 'Iedereen met een TREK-account die deze link opent, neemt als lid deel aan de reis. Genereer opnieuw om de oude link ongeldig te maken.',
+  'trip.invite.linkHint':
+    'Iedereen met een TREK-account die deze link opent, neemt als lid deel aan de reis. Genereer opnieuw om de oude link ongeldig te maken.',
   'trip.invite.create': 'Uitnodigingslink maken',
   'trip.invite.regenerate': 'Opnieuw genereren',
   'trip.invite.disable': 'Uitschakelen',

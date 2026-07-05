@@ -25,12 +25,13 @@ const members: TranslationStrings = {
   'members.transferError': 'Échec du transfert de propriété',
   'members.guests': 'Invités',
   'members.guest': 'Invité',
-  'members.guestsHint': 'Personnes sans compte. On peut leur attribuer des dépenses, des bagages et des tâches, mais elles ne peuvent pas se connecter.',
+  'members.guestsHint':
+    'Personnes sans compte. On peut leur attribuer des dépenses, des bagages et des tâches, mais elles ne peuvent pas se connecter.',
   'members.addGuest': 'Ajouter un invité',
-  'members.guestNamePlaceholder': 'Nom de l\'invité',
+  'members.guestNamePlaceholder': "Nom de l'invité",
   'members.guestAdded': 'Invité ajouté',
-  'members.guestAddError': 'Échec de l\'ajout de l\'invité',
-  'members.guestRenameError': 'Échec du renommage de l\'invité',
+  'members.guestAddError': "Échec de l'ajout de l'invité",
+  'members.guestRenameError': "Échec du renommage de l'invité",
   'members.guestRemoved': 'Invité supprimé',
   'members.confirmRemoveGuest': 'Supprimer cet invité ? Ses affectations et parts de dépenses seront aussi supprimées.',
 };

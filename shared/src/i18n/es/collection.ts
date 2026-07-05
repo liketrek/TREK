@@ -49,7 +49,8 @@ const collection: TranslationStrings = {
   'collections.editList': 'Renombrar',
   'collections.listMenu': 'Opciones de la lista',
   'collections.deleteList': 'Eliminar lista',
-  'collections.deleteListConfirm': 'Esto elimina de forma permanente la lista y todos sus lugares guardados. No se puede deshacer.',
+  'collections.deleteListConfirm':
+    'Esto elimina de forma permanente la lista y todos sus lugares guardados. No se puede deshacer.',
   'collections.listName': 'Nombre de la lista',
   'collections.listNamePlaceholder': 'p. ej. Tokio 2025',
   'collections.listColor': 'Color',
@@ -127,7 +128,8 @@ const collection: TranslationStrings = {
   'collections.share.memberHint': 'Solo el propietario de la lista puede invitar o quitar personas.',
   'collections.share.cancel': 'Cancelar',
   'collections.share.leave': 'Salir de la lista',
-  'collections.share.leaveConfirm': '¿Salir de esta lista compartida? Perderás el acceso hasta que vuelvan a invitarte.',
+  'collections.share.leaveConfirm':
+    '¿Salir de esta lista compartida? Perderás el acceso hasta que vuelvan a invitarte.',
   'collections.share.left': 'Has salido de la lista',
   'collections.share.remove': 'Quitar',
 

@@ -25,7 +25,8 @@ const members: TranslationStrings = {
   'members.transferError': 'Gagal mengalihkan kepemilikan',
   'members.guests': 'Tamu',
   'members.guest': 'Tamu',
-  'members.guestsHint': 'Orang tanpa akun. Mereka dapat ditugaskan ke biaya, kemasan, dan tugas, tetapi tidak dapat masuk.',
+  'members.guestsHint':
+    'Orang tanpa akun. Mereka dapat ditugaskan ke biaya, kemasan, dan tugas, tetapi tidak dapat masuk.',
   'members.addGuest': 'Tambah tamu',
   'members.guestNamePlaceholder': 'Nama tamu',
   'members.guestAdded': 'Tamu ditambahkan',

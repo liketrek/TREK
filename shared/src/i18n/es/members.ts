@@ -25,7 +25,8 @@ const members: TranslationStrings = {
   'members.transferError': 'Error al transferir la propiedad',
   'members.guests': 'Invitados',
   'members.guest': 'Invitado',
-  'members.guestsHint': 'Personas sin cuenta. Se les pueden asignar gastos, equipaje y tareas, pero no pueden iniciar sesión.',
+  'members.guestsHint':
+    'Personas sin cuenta. Se les pueden asignar gastos, equipaje y tareas, pero no pueden iniciar sesión.',
   'members.addGuest': 'Añadir invitado',
   'members.guestNamePlaceholder': 'Nombre del invitado',
   'members.guestAdded': 'Invitado añadido',

@@ -133,6 +133,8 @@ const admin: TranslationStrings = {
   'admin.recommended': '推薦',
   'admin.weatherKey': 'OpenWeatherMap API 金鑰',
   'admin.weatherKeyHint': '用於天氣資料。在 openweathermap.org 免費獲取',
+  'admin.unsplashKey': 'Unsplash API 金鑰',
+  'admin.unsplashKeyHint': '用於圖片搜尋。在 unsplash.com/developers 免費獲取',
   'admin.validateKey': '測試',
   'admin.keyValid': '已連線',
   'admin.keyInvalid': '無效',
@@ -229,7 +231,8 @@ const admin: TranslationStrings = {
   'admin.plugins.title': '外掛',
   'admin.plugins.subtitle': '在你的執行個體上安裝並管理第三方外掛。',
   'admin.plugins.disabledTitle': '外掛已停用',
-  'admin.plugins.disabledBody': '外掛執行環境已關閉（TREK_PLUGINS_ENABLED）。在管理員於伺服器配置中啟用之前，任何外掛都無法執行。',
+  'admin.plugins.disabledBody':
+    '外掛執行環境已關閉（TREK_PLUGINS_ENABLED）。在管理員於伺服器配置中啟用之前，任何外掛都無法執行。',
   'admin.plugins.empty': '尚未安裝任何外掛。',
   'admin.plugins.loadError': '無法載入外掛。',
   'admin.plugins.scaffoldNote': '外掛的安裝與啟用功能將在後續更新中推出。此面板目前僅列出已安裝的外掛。',
@@ -273,8 +276,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.events:subscribe': '回應核心活動事件（僅事件名稱與行程，絕不包含內容）',
   'admin.plugins.perm.http:outbound': '向其宣告的主機發出對外請求',
   'admin.plugins.updateConsentTitle': '此更新需要新的權限',
-  'admin.plugins.updateConsentBody':
-    '{name} v{version} 要求你尚未授予的權限。新版本已安裝，但在你核准之前將保持關閉。',
+  'admin.plugins.updateConsentBody': '{name} v{version} 要求你尚未授予的權限。新版本已安裝，但在你核准之前將保持關閉。',
   'admin.plugins.updateNewPermissions': '新要求的權限',
   'admin.plugins.updateNewEgress': '新的對外連線',
   'admin.plugins.updateApprove': '核准並啟用',

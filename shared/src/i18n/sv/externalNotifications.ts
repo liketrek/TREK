@@ -59,7 +59,8 @@ const en: NotificationLocale = {
     body: 'Vi har fått en begäran om att återställa lösenordet till ditt TREK konto. Klicka på knappen nedan för att ange ett nytt lösenord.',
     ctaIntro: 'Återställ lösenord',
     expiry: 'Den här länken upphör att gälla om 60 minuter.',
-    ignore: "Om du inte har begärt detta kan du lugnt strunta i det här e-postmeddelandet – ditt lösenord kommer inte att ändras.",
+    ignore:
+      'Om du inte har begärt detta kan du lugnt strunta i det här e-postmeddelandet – ditt lösenord kommer inte att ändras.',
   },
 };
 

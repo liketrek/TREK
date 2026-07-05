@@ -321,7 +321,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.success': '연결됨 — {count}개 항공편을 찾았습니다',
   'settings.airtrail.test.failed': '연결에 실패했습니다',
   'settings.aiParsing.title': 'AI 분석',
-  'settings.aiParsing.hint': '업로드한 파일에서 예약 정보를 추출할 때 직접 지정한 AI 모델을 사용하세요. 이 설정은 관리자가 인스턴스 전체에 모델을 설정하지 않은 경우에만 적용됩니다.',
+  'settings.aiParsing.hint':
+    '업로드한 파일에서 예약 정보를 추출할 때 직접 지정한 AI 모델을 사용하세요. 이 설정은 관리자가 인스턴스 전체에 모델을 설정하지 않은 경우에만 적용됩니다.',
   'settings.aiParsing.provider': '제공자',
   'settings.aiParsing.providerLocal': '로컬 (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
@@ -351,7 +352,8 @@ const settings: TranslationStrings = {
   'settings.appearance.contrastLow': 'Low contrast',
   'settings.appearance.readability': 'Readability',
   'settings.appearance.transparency': 'Transparency',
-  'settings.appearance.transparencyHint': 'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
+  'settings.appearance.transparencyHint':
+    'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
   'settings.appearance.reduceMotion': 'Reduce motion',
   'settings.appearance.reduceMotionHint': 'Minimize animations and transitions.',
   'settings.appearance.density': 'Density',
@@ -381,7 +383,8 @@ const settings: TranslationStrings = {
   'settings.appearance.group.belowHero': 'Below the hero',
   'settings.appearance.group.bottomOfPage': 'Bottom of page',
   'settings.appearance.sidebarHint': 'The whole right column. Turn off and the dashboard centers.',
-  'settings.appearance.densityHint': 'Compact tightens spacing and padding for a denser layout that fits more on screen.',
+  'settings.appearance.densityHint':
+    'Compact tightens spacing and padding for a denser layout that fits more on screen.',
   'settings.appearance.textSizeAll': 'Everything',
   'settings.appearance.perSize': 'Adjust each size separately',
   'settings.appearance.size.large': 'Large',
@@ -404,10 +407,13 @@ const settings: TranslationStrings = {
   'settings.offline.cache.title': '오프라인 캐시',
   'settings.offline.mode.title': '오프라인 모드',
   'settings.offline.mode.force': '오프라인 모드 강제 사용',
-  'settings.offline.mode.forceHint': '캐시된 데이터만 사용하고 변경 사항을 대기열에 넣습니다. 다시 연결하여 동기화하려면 끄세요.',
-  'settings.offline.mode.active': '오프라인 모드가 켜져 있습니다 — 변경 사항이 대기열에 있으며 모드를 끄면 동기화됩니다.',
+  'settings.offline.mode.forceHint':
+    '캐시된 데이터만 사용하고 변경 사항을 대기열에 넣습니다. 다시 연결하여 동기화하려면 끄세요.',
+  'settings.offline.mode.active':
+    '오프라인 모드가 켜져 있습니다 — 변경 사항이 대기열에 있으며 모드를 끄면 동기화됩니다.',
   'settings.offline.prepare.title': '오프라인 준비',
-  'settings.offline.prepare.hint': '연결이 끊기기 전에 필요한 모든 것 — 여행 데이터, 문서, 지도 타일 — 을 다운로드하세요.',
+  'settings.offline.prepare.hint':
+    '연결이 끊기기 전에 필요한 모든 것 — 여행 데이터, 문서, 지도 타일 — 을 다운로드하세요.',
   'settings.offline.prepare.button': '오프라인 사용을 위해 다운로드',
   'settings.offline.prepare.running': '다운로드 중…',
   'settings.offline.prepare.done': '오프라인 사용 준비 완료',
@@ -418,12 +424,14 @@ const settings: TranslationStrings = {
   'settings.offline.resyncing': '동기화 중…',
   'settings.offline.storage.title': '오프라인에 저장할 항목',
   'settings.offline.storage.tiles': '지도 타일을 오프라인에 저장',
-  'settings.offline.storage.tilesHint': '지도 타일은 저장 공간을 가장 많이 사용합니다. 끄면 여행 데이터와 문서만 오프라인에 저장합니다.',
+  'settings.offline.storage.tilesHint':
+    '지도 타일은 저장 공간을 가장 많이 사용합니다. 끄면 여행 데이터와 문서만 오프라인에 저장합니다.',
   'settings.offline.storage.tripsTitle': '여행',
   'settings.offline.storage.tripOn': '오프라인에 저장됨',
   'settings.offline.storage.tripOff': '저장 안 됨',
   'settings.offline.clear': '캐시 지우기',
-  'settings.offline.clearConfirm': '모든 오프라인 여행 데이터를 지울까요? 온라인일 때 언제든지 다시 동기화할 수 있습니다.',
+  'settings.offline.clearConfirm':
+    '모든 오프라인 여행 데이터를 지울까요? 온라인일 때 언제든지 다시 동기화할 수 있습니다.',
   'settings.offline.stats.trips': '캐시된 여행',
   'settings.offline.stats.pending': '대기 중인 변경 사항',
   'settings.offline.stats.failed': '실패한 변경 사항',
@@ -431,7 +439,8 @@ const settings: TranslationStrings = {
   'settings.offline.empty': '아직 캐시된 여행이 없습니다. 인터넷에 연결하여 동기화하세요.',
   'settings.offline.loading': '불러오는 중…',
   'settings.offline.conflicts.title': '동기화 충돌',
-  'settings.offline.conflicts.hint': '오프라인에서 변경한 내용이 서버의 최신 변경 내용과 충돌합니다. 보관할 버전을 선택하세요.',
+  'settings.offline.conflicts.hint':
+    '오프라인에서 변경한 내용이 서버의 최신 변경 내용과 충돌합니다. 보관할 버전을 선택하세요.',
   'settings.offline.conflicts.keepMine': '내 버전 유지',
   'settings.offline.conflicts.keepServer': '상대 버전 유지',
   'settings.offline.conflicts.mine': '내 버전',

@@ -49,7 +49,8 @@ const collection: TranslationStrings = {
   'collections.editList': 'Zmień nazwę',
   'collections.listMenu': 'Opcje listy',
   'collections.deleteList': 'Usuń listę',
-  'collections.deleteListConfirm': 'Spowoduje to trwałe usunięcie listy i wszystkich zapisanych w niej miejsc. Tej operacji nie można cofnąć.',
+  'collections.deleteListConfirm':
+    'Spowoduje to trwałe usunięcie listy i wszystkich zapisanych w niej miejsc. Tej operacji nie można cofnąć.',
   'collections.listName': 'Nazwa listy',
   'collections.listNamePlaceholder': 'np. Tokio 2025',
   'collections.listColor': 'Kolor',
@@ -127,7 +128,8 @@ const collection: TranslationStrings = {
   'collections.share.memberHint': 'Tylko właściciel listy może zapraszać lub usuwać osoby.',
   'collections.share.cancel': 'Anuluj',
   'collections.share.leave': 'Opuść listę',
-  'collections.share.leaveConfirm': 'Opuścić tę udostępnioną listę? Utracisz dostęp, dopóki nie otrzymasz ponownego zaproszenia.',
+  'collections.share.leaveConfirm':
+    'Opuścić tę udostępnioną listę? Utracisz dostęp, dopóki nie otrzymasz ponownego zaproszenia.',
   'collections.share.left': 'Opuściłeś listę',
   'collections.share.remove': 'Usuń',
 

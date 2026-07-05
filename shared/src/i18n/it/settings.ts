@@ -29,7 +29,8 @@ const settings: TranslationStrings = {
   'settings.mapStylePlaceholder': 'Seleziona uno stile Mapbox',
   'settings.mapStyleHint': 'Preset o il tuo URL mapbox://styles/USER/ID',
   'settings.mapOpenFreeMapStylePlaceholder': 'Seleziona uno stile OpenFreeMap',
-  'settings.mapOpenFreeMapStyleHint': 'Preset o URL di stile OpenFreeMap. Gli stili OpenFreeMap funzionano senza token.',
+  'settings.mapOpenFreeMapStyleHint':
+    'Preset o URL di stile OpenFreeMap. Gli stili OpenFreeMap funzionano senza token.',
   'settings.map3dBuildings': 'Edifici 3D e terreno',
   'settings.map3dHint':
     'Inclinazione + estrusioni 3D reali degli edifici — funziona con ogni stile, incluso satellite.',
@@ -329,18 +330,21 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.success': 'Connesso — {count} volo/i trovato/i',
   'settings.airtrail.test.failed': 'Connessione fallita',
   'settings.aiParsing.title': 'Analisi AI',
-  'settings.aiParsing.hint': 'Usa il tuo modello AI per estrarre le prenotazioni dai file caricati. Vale solo se l\'amministratore non ha configurato un modello per l\'intera istanza.',
+  'settings.aiParsing.hint':
+    "Usa il tuo modello AI per estrarre le prenotazioni dai file caricati. Vale solo se l'amministratore non ha configurato un modello per l'intera istanza.",
   'settings.aiParsing.provider': 'Provider',
   'settings.aiParsing.providerLocal': 'Locale (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
   'settings.aiParsing.model': 'Modello',
   'settings.aiParsing.baseUrl': 'URL di base',
-  'settings.aiParsing.baseUrlHint': 'Dove gira il modello: un server Ollama locale o un endpoint compatibile con OpenAI.',
+  'settings.aiParsing.baseUrlHint':
+    'Dove gira il modello: un server Ollama locale o un endpoint compatibile con OpenAI.',
   'settings.aiParsing.apiKey': 'Chiave API',
   'settings.aiParsing.apiKeyHint': 'Memorizzata in forma cifrata. Lascia vuoto per mantenere la chiave attuale.',
   'settings.aiParsing.multimodal': 'Invia i documenti come immagini',
-  'settings.aiParsing.multimodalHint': 'Per i modelli con capacità visive: invia il PDF originale invece del testo estratto.',
+  'settings.aiParsing.multimodalHint':
+    'Per i modelli con capacità visive: invia il PDF originale invece del testo estratto.',
   'settings.aiParsing.toast.saved': 'Impostazioni AI salvate',
   'settings.aiParsing.toast.saveError': 'Impossibile salvare le impostazioni AI',
   'settings.tabs.appearance': 'Appearance',
@@ -359,7 +363,8 @@ const settings: TranslationStrings = {
   'settings.appearance.contrastLow': 'Low contrast',
   'settings.appearance.readability': 'Readability',
   'settings.appearance.transparency': 'Transparency',
-  'settings.appearance.transparencyHint': 'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
+  'settings.appearance.transparencyHint':
+    'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
   'settings.appearance.reduceMotion': 'Reduce motion',
   'settings.appearance.reduceMotionHint': 'Minimize animations and transitions.',
   'settings.appearance.density': 'Density',
@@ -389,7 +394,8 @@ const settings: TranslationStrings = {
   'settings.appearance.group.belowHero': 'Below the hero',
   'settings.appearance.group.bottomOfPage': 'Bottom of page',
   'settings.appearance.sidebarHint': 'The whole right column. Turn off and the dashboard centers.',
-  'settings.appearance.densityHint': 'Compact tightens spacing and padding for a denser layout that fits more on screen.',
+  'settings.appearance.densityHint':
+    'Compact tightens spacing and padding for a denser layout that fits more on screen.',
   'settings.appearance.textSizeAll': 'Everything',
   'settings.appearance.perSize': 'Adjust each size separately',
   'settings.appearance.size.large': 'Large',
@@ -412,10 +418,13 @@ const settings: TranslationStrings = {
   'settings.offline.cache.title': 'Cache offline',
   'settings.offline.mode.title': 'Modalità offline',
   'settings.offline.mode.force': 'Forza la modalità offline',
-  'settings.offline.mode.forceHint': 'Lavora solo con i dati in cache e metti in coda le tue modifiche. Disattiva per riconnetterti e sincronizzare.',
-  'settings.offline.mode.active': 'La modalità offline è attiva — le tue modifiche sono in coda e verranno sincronizzate quando la disattivi.',
+  'settings.offline.mode.forceHint':
+    'Lavora solo con i dati in cache e metti in coda le tue modifiche. Disattiva per riconnetterti e sincronizzare.',
+  'settings.offline.mode.active':
+    'La modalità offline è attiva — le tue modifiche sono in coda e verranno sincronizzate quando la disattivi.',
   'settings.offline.prepare.title': "Prepara per l'offline",
-  'settings.offline.prepare.hint': 'Scarica tutto ciò che ti serve — dati del viaggio, documenti e tile della mappa — prima di perdere la connessione.',
+  'settings.offline.prepare.hint':
+    'Scarica tutto ciò che ti serve — dati del viaggio, documenti e tile della mappa — prima di perdere la connessione.',
   'settings.offline.prepare.button': "Scarica per l'uso offline",
   'settings.offline.prepare.running': 'Download in corso…',
   'settings.offline.prepare.done': "Pronto per l'uso offline",
@@ -426,12 +435,14 @@ const settings: TranslationStrings = {
   'settings.offline.resyncing': 'Sincronizzazione…',
   'settings.offline.storage.title': 'Cosa archiviare offline',
   'settings.offline.storage.tiles': 'Archivia i tile della mappa offline',
-  'settings.offline.storage.tilesHint': 'I tile della mappa usano più spazio di archiviazione. Disattiva questa opzione per conservare offline solo i dati del viaggio e i documenti.',
+  'settings.offline.storage.tilesHint':
+    'I tile della mappa usano più spazio di archiviazione. Disattiva questa opzione per conservare offline solo i dati del viaggio e i documenti.',
   'settings.offline.storage.tripsTitle': 'Viaggi',
   'settings.offline.storage.tripOn': 'Archiviato offline',
   'settings.offline.storage.tripOff': 'Non archiviato',
   'settings.offline.clear': 'Svuota la cache',
-  'settings.offline.clearConfirm': 'Cancellare tutti i dati di viaggio offline? Puoi risincronizzare in qualsiasi momento quando sei online.',
+  'settings.offline.clearConfirm':
+    'Cancellare tutti i dati di viaggio offline? Puoi risincronizzare in qualsiasi momento quando sei online.',
   'settings.offline.stats.trips': 'Viaggi in cache',
   'settings.offline.stats.pending': 'Modifiche in sospeso',
   'settings.offline.stats.failed': 'Modifiche non riuscite',
@@ -439,7 +450,8 @@ const settings: TranslationStrings = {
   'settings.offline.empty': 'Nessun viaggio ancora in cache. Connettiti a internet per sincronizzare.',
   'settings.offline.loading': 'Caricamento…',
   'settings.offline.conflicts.title': 'Conflitti di sincronizzazione',
-  'settings.offline.conflicts.hint': 'Le modifiche fatte offline sono in conflitto con modifiche più recenti sul server. Scegli quale versione mantenere.',
+  'settings.offline.conflicts.hint':
+    'Le modifiche fatte offline sono in conflitto con modifiche più recenti sul server. Scegli quale versione mantenere.',
   'settings.offline.conflicts.keepMine': 'Mantieni le mie',
   'settings.offline.conflicts.keepServer': 'Mantieni le loro',
   'settings.offline.conflicts.mine': 'La tua versione',

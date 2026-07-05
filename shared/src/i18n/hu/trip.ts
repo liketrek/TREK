@@ -28,7 +28,8 @@ const trip: TranslationStrings = {
   'trip.toast.placesDeleted': '{count} hely törölve',
   'trip.loadingPhotos': 'Helyek fotóinak betöltése...',
   'trip.invite.linkTitle': 'Meghívó link az utazáshoz',
-  'trip.invite.linkHint': 'Bárki, akinek van TREK-fiókja és megnyitja ezt a linket, tagként csatlakozik az utazáshoz. A régi link érvénytelenítéséhez hozz létre újat.',
+  'trip.invite.linkHint':
+    'Bárki, akinek van TREK-fiókja és megnyitja ezt a linket, tagként csatlakozik az utazáshoz. A régi link érvénytelenítéséhez hozz létre újat.',
   'trip.invite.create': 'Meghívó link létrehozása',
   'trip.invite.regenerate': 'Újragenerálás',
   'trip.invite.disable': 'Letiltás',
@@ -75,10 +76,12 @@ const trip: TranslationStrings = {
   'transit.changeRoute': 'Útvonal módosítása',
   'transit.journey': 'Tömegközlekedési útvonal',
   'transit.pickDay': 'Válassz egy napot a kapcsolatok kereséséhez.',
-  'transit.noItinerary': 'Ehhez a bejegyzéshez nincs mentett útiterv – az „Útvonal módosítása” gombbal kereshetsz egyet.',
+  'transit.noItinerary':
+    'Ehhez a bejegyzéshez nincs mentett útiterv – az „Útvonal módosítása” gombbal kereshetsz egyet.',
   'transit.durationLabel': 'Időtartam',
   'transit.transfersLabel': 'Átszállások',
   'transit.walkLabel': 'Gyaloglás',
-  'transit.searchHint': 'Keress valós összeköttetéseket, és add hozzá őket közvetlenül a naphoz – adatok a Transitous révén.',
+  'transit.searchHint':
+    'Keress valós összeköttetéseket, és add hozzá őket közvetlenül a naphoz – adatok a Transitous révén.',
 };
 export default trip;

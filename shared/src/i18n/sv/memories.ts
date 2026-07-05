@@ -3,12 +3,13 @@ import type { TranslationStrings } from '../types';
 const memories: TranslationStrings = {
   'memories.title': 'Foton',
   'memories.notConnected': '{provider_name} inte ansluten',
-  'memories.notConnectedHint': 'Anslut din {provider_name} instans i inställningar för att kunna lägga till foton till denna resa.',
+  'memories.notConnectedHint':
+    'Anslut din {provider_name} instans i inställningar för att kunna lägga till foton till denna resa.',
   'memories.notConnectedMultipleHint':
     'Anslut någon av följande fotoleverantörer: {provider_names} i Inställningar för att kunna lägga till foton till den här resan.',
   'memories.noDates': 'Ange datum för din resa för att ladda foton.',
   'memories.noPhotos': 'Inga foton hittades',
-  'memories.noPhotosHint': "Inga foton hittades i {provider_name} för tidsperioden för denna resa.",
+  'memories.noPhotosHint': 'Inga foton hittades i {provider_name} för tidsperioden för denna resa.',
   'memories.photosFound': 'foton',
   'memories.fromOthers': 'från andra',
   'memories.sharePhotos': 'Dela foton',

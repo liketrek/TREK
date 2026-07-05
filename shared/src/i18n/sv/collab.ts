@@ -4,7 +4,7 @@ const collab: TranslationStrings = {
   'collab.tabs.chat': 'Chatt',
   'collab.tabs.notes': 'Noteringar',
   'collab.tabs.polls': 'Omröstningar',
-  'collab.whatsNext.title': "Vad händer härnäst?",
+  'collab.whatsNext.title': 'Vad händer härnäst?',
   'collab.whatsNext.today': 'Idag',
   'collab.whatsNext.tomorrow': 'I morgon',
   'collab.whatsNext.empty': 'Inga kommande aktiviteter',

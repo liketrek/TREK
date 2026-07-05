@@ -28,7 +28,8 @@ const trip: TranslationStrings = {
   'trip.confirm.deletePlaces': '{count}개 장소를 삭제할까요?',
   'trip.toast.placesDeleted': '{count}개 장소가 삭제되었습니다',
   'trip.invite.linkTitle': '여행 초대 링크',
-  'trip.invite.linkHint': 'TREK 계정이 있는 사람이 이 링크를 열면 여행에 멤버로 참여합니다. 기존 링크를 무효화하려면 다시 생성하세요.',
+  'trip.invite.linkHint':
+    'TREK 계정이 있는 사람이 이 링크를 열면 여행에 멤버로 참여합니다. 기존 링크를 무효화하려면 다시 생성하세요.',
   'trip.invite.create': '초대 링크 만들기',
   'trip.invite.regenerate': '다시 생성',
   'trip.invite.disable': '비활성화',

@@ -339,11 +339,13 @@ const settings: TranslationStrings = {
   'settings.aiParsing.providerAnthropic': 'Anthropic',
   'settings.aiParsing.model': 'Modell',
   'settings.aiParsing.baseUrl': 'Basis-URL',
-  'settings.aiParsing.baseUrlHint': 'Wo das Modell läuft — ein lokaler Ollama-Server oder ein OpenAI-kompatibler Endpunkt.',
+  'settings.aiParsing.baseUrlHint':
+    'Wo das Modell läuft — ein lokaler Ollama-Server oder ein OpenAI-kompatibler Endpunkt.',
   'settings.aiParsing.apiKey': 'API-Schlüssel',
   'settings.aiParsing.apiKeyHint': 'Verschlüsselt gespeichert. Leer lassen, um den aktuellen Schlüssel zu behalten.',
   'settings.aiParsing.multimodal': 'Dokumente als Bilder senden',
-  'settings.aiParsing.multimodalHint': 'Für Modelle mit Bildverständnis — sendet das Original-PDF statt extrahiertem Text.',
+  'settings.aiParsing.multimodalHint':
+    'Für Modelle mit Bildverständnis — sendet das Original-PDF statt extrahiertem Text.',
   'settings.aiParsing.toast.saved': 'KI-Einstellungen gespeichert',
   'settings.aiParsing.toast.saveError': 'KI-Einstellungen konnten nicht gespeichert werden',
   'settings.tabs.appearance': 'Erscheinungsbild',
@@ -362,7 +364,8 @@ const settings: TranslationStrings = {
   'settings.appearance.contrastLow': 'Niedriger Kontrast',
   'settings.appearance.readability': 'Lesbarkeit',
   'settings.appearance.transparency': 'Transparenz',
-  'settings.appearance.transparencyHint': 'Glasige, durchscheinende Flächen. Aus = solide, kontrastreichere Hintergründe.',
+  'settings.appearance.transparencyHint':
+    'Glasige, durchscheinende Flächen. Aus = solide, kontrastreichere Hintergründe.',
   'settings.appearance.reduceMotion': 'Bewegung reduzieren',
   'settings.appearance.reduceMotionHint': 'Animationen und Übergänge minimieren.',
   'settings.appearance.density': 'Dichte',
@@ -415,10 +418,13 @@ const settings: TranslationStrings = {
   'settings.offline.cache.title': 'Offline-Cache',
   'settings.offline.mode.title': 'Offline-Modus',
   'settings.offline.mode.force': 'Offline-Modus erzwingen',
-  'settings.offline.mode.forceHint': 'Nur mit zwischengespeicherten Daten arbeiten und Änderungen in die Warteschlange legen. Zum Verbinden und Synchronisieren ausschalten.',
-  'settings.offline.mode.active': 'Offline-Modus ist an — deine Änderungen werden gesammelt und beim Ausschalten synchronisiert.',
+  'settings.offline.mode.forceHint':
+    'Nur mit zwischengespeicherten Daten arbeiten und Änderungen in die Warteschlange legen. Zum Verbinden und Synchronisieren ausschalten.',
+  'settings.offline.mode.active':
+    'Offline-Modus ist an — deine Änderungen werden gesammelt und beim Ausschalten synchronisiert.',
   'settings.offline.prepare.title': 'Für Offline vorbereiten',
-  'settings.offline.prepare.hint': 'Lade alles Nötige herunter — Reisedaten, Dokumente und Kartenkacheln — bevor du die Verbindung verlierst.',
+  'settings.offline.prepare.hint':
+    'Lade alles Nötige herunter — Reisedaten, Dokumente und Kartenkacheln — bevor du die Verbindung verlierst.',
   'settings.offline.prepare.button': 'Für Offline-Nutzung herunterladen',
   'settings.offline.prepare.running': 'Lädt herunter…',
   'settings.offline.prepare.done': 'Bereit für die Offline-Nutzung',
@@ -429,20 +435,24 @@ const settings: TranslationStrings = {
   'settings.offline.resyncing': 'Synchronisiert…',
   'settings.offline.storage.title': 'Was offline gespeichert wird',
   'settings.offline.storage.tiles': 'Kartenkacheln offline speichern',
-  'settings.offline.storage.tilesHint': 'Kartenkacheln brauchen den meisten Speicher. Schalte dies aus, um nur Reisedaten und Dokumente offline zu behalten.',
+  'settings.offline.storage.tilesHint':
+    'Kartenkacheln brauchen den meisten Speicher. Schalte dies aus, um nur Reisedaten und Dokumente offline zu behalten.',
   'settings.offline.storage.tripsTitle': 'Reisen',
   'settings.offline.storage.tripOn': 'Offline gespeichert',
   'settings.offline.storage.tripOff': 'Nicht gespeichert',
   'settings.offline.clear': 'Cache leeren',
-  'settings.offline.clearConfirm': 'Alle offline gespeicherten Reisedaten löschen? Du kannst jederzeit online neu synchronisieren.',
+  'settings.offline.clearConfirm':
+    'Alle offline gespeicherten Reisedaten löschen? Du kannst jederzeit online neu synchronisieren.',
   'settings.offline.stats.trips': 'Zwischengespeicherte Reisen',
   'settings.offline.stats.pending': 'Ausstehende Änderungen',
   'settings.offline.stats.failed': 'Fehlgeschlagene Änderungen',
   'settings.offline.stats.conflicts': 'Konflikte',
-  'settings.offline.empty': 'Noch keine Reisen zwischengespeichert. Verbinde dich mit dem Internet zum Synchronisieren.',
+  'settings.offline.empty':
+    'Noch keine Reisen zwischengespeichert. Verbinde dich mit dem Internet zum Synchronisieren.',
   'settings.offline.loading': 'Lädt…',
   'settings.offline.conflicts.title': 'Synchronisierungskonflikte',
-  'settings.offline.conflicts.hint': 'Offline vorgenommene Änderungen kollidieren mit neueren Änderungen auf dem Server. Wähle, welche Version behalten werden soll.',
+  'settings.offline.conflicts.hint':
+    'Offline vorgenommene Änderungen kollidieren mit neueren Änderungen auf dem Server. Wähle, welche Version behalten werden soll.',
   'settings.offline.conflicts.keepMine': 'Meine behalten',
   'settings.offline.conflicts.keepServer': 'Server behalten',
   'settings.offline.conflicts.mine': 'Deine Version',

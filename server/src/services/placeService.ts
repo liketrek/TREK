@@ -15,7 +15,7 @@ import {
 } from './kmlImport';
 import { enrichImportedPlaces, type EnrichablePlace } from './placeEnrichment';
 import * as placePhotoCache from './placePhotoCache';
-import { searchUnsplashPhotos } from './unsplashService';
+import { searchUnsplashPhotos, getUnsplashKey } from './unsplashService';
 import { type UpdateConflict, isUpdateConflict } from './conflictResult';
 
 // Reclaim a deleted place's cached marker photo if nothing else references it.
@@ -977,9 +977,9 @@ export async function importNaverList(
 // Search place image (Unsplash)
 // ---------------------------------------------------------------------------
 
-export async function searchPlaceImage(tripId: string, placeId: string, _userId: number) {
+export async function searchPlaceImage(tripId: string, placeId: string, userId: number) {
   const place = db.prepare('SELECT * FROM places WHERE id = ? AND trip_id = ?').get(placeId, tripId) as Place | undefined;
   if (!place) return { error: 'Place not found', status: 404 };
 
-  return searchUnsplashPhotos(place.name + (place.address ? ' ' + place.address : ''), 5);
+  return searchUnsplashPhotos(place.name + (place.address ? ' ' + place.address : ''), 5, getUnsplashKey(userId));
 }

@@ -194,7 +194,7 @@ const packing: TranslationStrings = {
   'packing.takenCareOf': 'da {name}',
   'packing.sharedWithCount': 'condiviso con {count}',
   'packing.broughtBy': 'lo porta {name}',
-  'packing.alsoBring': 'Posso portarlo anch\'io',
+  'packing.alsoBring': "Posso portarlo anch'io",
   'packing.alsoBringingStop': 'Non lo porto',
   'packing.cloneToMine': 'Copia nella mia lista',
 };

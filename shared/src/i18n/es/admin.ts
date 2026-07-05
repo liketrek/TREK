@@ -96,6 +96,8 @@ const admin: TranslationStrings = {
   'admin.recommended': 'Recomendado',
   'admin.weatherKey': 'Clave API de OpenWeatherMap',
   'admin.weatherKeyHint': 'Para datos meteorológicos. Gratis en openweathermap.org',
+  'admin.unsplashKey': 'Clave de API de Unsplash',
+  'admin.unsplashKeyHint': 'Para la búsqueda de imágenes. Gratis en unsplash.com/developers',
   'admin.validateKey': 'Probar',
   'admin.keyValid': 'Conectado',
   'admin.keyInvalid': 'No válida',
@@ -180,7 +182,8 @@ const admin: TranslationStrings = {
   'admin.plugins.noErrors': 'No hay errores registrados.',
   'admin.plugins.uninstalled': 'Plugin desinstalado',
   'admin.plugins.uninstallTitle': '¿Desinstalar el plugin?',
-  'admin.plugins.uninstallBody': 'Esto detiene el plugin, elimina su código y borra todos sus datos. No se puede deshacer.',
+  'admin.plugins.uninstallBody':
+    'Esto detiene el plugin, elimina su código y borra todos sus datos. No se puede deshacer.',
   'admin.plugins.status.starting': 'Iniciando…',
   'admin.plugins.type.widget': 'Widget',
   'admin.plugins.type.page': 'Página',
@@ -194,10 +197,12 @@ const admin: TranslationStrings = {
   'admin.plugins.title': 'Plugins',
   'admin.plugins.subtitle': 'Instala y gestiona plugins de terceros en tu instancia.',
   'admin.plugins.disabledTitle': 'Los plugins están desactivados',
-  'admin.plugins.disabledBody': 'El entorno de ejecución de plugins está apagado (TREK_PLUGINS_ENABLED). Ningún plugin puede ejecutarse hasta que un administrador lo active en la configuración del servidor.',
+  'admin.plugins.disabledBody':
+    'El entorno de ejecución de plugins está apagado (TREK_PLUGINS_ENABLED). Ningún plugin puede ejecutarse hasta que un administrador lo active en la configuración del servidor.',
   'admin.plugins.empty': 'Aún no hay plugins instalados.',
   'admin.plugins.loadError': 'No se pudieron cargar los plugins.',
-  'admin.plugins.scaffoldNote': 'La instalación y activación de plugins llegarán en una actualización posterior. Por ahora este panel solo muestra los plugins instalados.',
+  'admin.plugins.scaffoldNote':
+    'La instalación y activación de plugins llegarán en una actualización posterior. Por ahora este panel solo muestra los plugins instalados.',
   'admin.plugins.status.active': 'Activo',
   'admin.plugins.status.inactive': 'Inactivo',
   'admin.plugins.status.disabled': 'Desactivado',
@@ -220,22 +225,32 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:own': 'Almacenar sus propios datos en una base de datos aislada',
   'admin.plugins.perm.db:read:trips': 'Leer los viajes a los que el usuario activo tiene acceso',
   'admin.plugins.perm.db:read:users': 'Leer información básica del perfil (nombre, avatar — nunca credenciales)',
-  'admin.plugins.perm.db:read:costs': 'Leer los gastos (partidas de presupuesto) a los que el usuario activo tiene acceso',
-  'admin.plugins.perm.db:read:packing': 'Leer las listas de equipaje de los viajes a los que el usuario activo tiene acceso',
+  'admin.plugins.perm.db:read:costs':
+    'Leer los gastos (partidas de presupuesto) a los que el usuario activo tiene acceso',
+  'admin.plugins.perm.db:read:packing':
+    'Leer las listas de equipaje de los viajes a los que el usuario activo tiene acceso',
   'admin.plugins.perm.db:read:files': 'Leer los archivos de los viajes a los que el usuario activo tiene acceso',
-  'admin.plugins.perm.db:write:costs': 'Crear gastos (partidas de presupuesto) en los viajes que el usuario activo puede editar',
-  'admin.plugins.perm.db:write:places': 'Añadir, editar y eliminar lugares en los viajes que el usuario activo puede editar',
+  'admin.plugins.perm.db:write:costs':
+    'Crear gastos (partidas de presupuesto) en los viajes que el usuario activo puede editar',
+  'admin.plugins.perm.db:write:places':
+    'Añadir, editar y eliminar lugares en los viajes que el usuario activo puede editar',
   'admin.plugins.perm.db:write:days': 'Añadir, editar y eliminar días en los viajes que el usuario activo puede editar',
-  'admin.plugins.perm.db:write:itinerary': 'Asignar y quitar lugares en los días de los viajes que el usuario activo puede editar',
-  'admin.plugins.perm.db:write:trips': 'Editar los detalles del viaje (título, fechas, moneda…) en los viajes que el usuario activo puede editar',
-  'admin.plugins.perm.db:meta': 'Adjuntar sus propios datos privados a los viajes, lugares y días a los que el usuario activo tiene acceso',
+  'admin.plugins.perm.db:write:itinerary':
+    'Asignar y quitar lugares en los días de los viajes que el usuario activo puede editar',
+  'admin.plugins.perm.db:write:trips':
+    'Editar los detalles del viaje (título, fechas, moneda…) en los viajes que el usuario activo puede editar',
+  'admin.plugins.perm.db:meta':
+    'Adjuntar sus propios datos privados a los viajes, lugares y días a los que el usuario activo tiene acceso',
   'admin.plugins.perm.ws:broadcast:trip': 'Enviar actualizaciones en tiempo real a los miembros del viaje',
   'admin.plugins.perm.ws:broadcast:user': 'Enviar actualizaciones en tiempo real a usuarios individuales',
   'admin.plugins.perm.hook:photo-provider': 'Proporcionar fotos a la sección Fotos',
   'admin.plugins.perm.hook:calendar-source': 'Proporcionar eventos al calendario',
-  'admin.plugins.perm.hook:place-detail-provider': 'Aportar detalles adicionales (reseñas, valoraciones, enlaces) a un lugar',
-  'admin.plugins.perm.hook:trip-warning-provider': 'Generar advertencias de validación en un viaje (mostradas en el planificador)',
-  'admin.plugins.perm.events:subscribe': 'Reaccionar a eventos de actividad del núcleo (solo el nombre del evento y el viaje, nunca el contenido)',
+  'admin.plugins.perm.hook:place-detail-provider':
+    'Aportar detalles adicionales (reseñas, valoraciones, enlaces) a un lugar',
+  'admin.plugins.perm.hook:trip-warning-provider':
+    'Generar advertencias de validación en un viaje (mostradas en el planificador)',
+  'admin.plugins.perm.events:subscribe':
+    'Reaccionar a eventos de actividad del núcleo (solo el nombre del evento y el viaje, nunca el contenido)',
   'admin.plugins.perm.http:outbound': 'Realizar solicitudes salientes a sus hosts declarados',
   'admin.plugins.updateConsentTitle': 'Esta actualización necesita nuevos permisos',
   'admin.plugins.updateConsentBody':
@@ -523,7 +538,8 @@ const admin: TranslationStrings = {
   'admin.group.maintenance': 'Maintenance',
   'admin.invite.tripLabel': 'Añadir a un viaje (opcional)',
   'admin.invite.tripNone': 'Sin viaje',
-  'admin.invite.tripHint': 'El nuevo usuario se añade automáticamente a este viaje cuando se registra mediante el enlace.',
+  'admin.invite.tripHint':
+    'El nuevo usuario se añade automáticamente a este viaje cuando se registra mediante el enlace.',
   'admin.invite.boundTo': 'se añade a {trip}',
 };
 export default admin;

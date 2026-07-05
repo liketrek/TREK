@@ -189,12 +189,12 @@ const packing: TranslationStrings = {
   'packing.tierPersonal': 'Personnel',
   'packing.tierPersonalHint': 'Privé — vous seul le voyez',
   'packing.tierShared': 'Partager avec…',
-  'packing.noOneToShare': 'Personne d\'autre sur ce voyage pour l\'instant',
+  'packing.noOneToShare': "Personne d'autre sur ce voyage pour l'instant",
   'packing.takenCareOf': 'par {name}',
   'packing.sharedWithCount': 'partagé avec {count}',
   'packing.broughtBy': 'apporté par {name}',
-  'packing.alsoBring': 'Je peux l\'apporter aussi',
-  'packing.alsoBringingStop': 'Je ne l\'apporte pas',
+  'packing.alsoBring': "Je peux l'apporter aussi",
+  'packing.alsoBringingStop': "Je ne l'apporte pas",
   'packing.cloneToMine': 'Copier dans ma liste',
 };
 export default packing;

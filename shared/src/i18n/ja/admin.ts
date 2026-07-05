@@ -129,6 +129,8 @@ const admin: TranslationStrings = {
   'admin.recommended': '推奨',
   'admin.weatherKey': 'OpenWeatherMap APIキー',
   'admin.weatherKeyHint': '天気データ用。openweathermap.org で無料',
+  'admin.unsplashKey': 'Unsplash APIキー',
+  'admin.unsplashKeyHint': '画像検索用。unsplash.com/developers で無料',
   'admin.validateKey': 'テスト',
   'admin.keyValid': '接続済み',
   'admin.keyInvalid': '無効',
@@ -212,7 +214,8 @@ const admin: TranslationStrings = {
   'admin.plugins.noErrors': '記録されたエラーはありません。',
   'admin.plugins.uninstalled': 'プラグインをアンインストールしました',
   'admin.plugins.uninstallTitle': 'プラグインをアンインストールしますか？',
-  'admin.plugins.uninstallBody': 'プラグインを停止してコードを削除し、そのすべてのデータを消去します。この操作は元に戻せません。',
+  'admin.plugins.uninstallBody':
+    'プラグインを停止してコードを削除し、そのすべてのデータを消去します。この操作は元に戻せません。',
   'admin.plugins.status.starting': '起動中…',
   'admin.plugins.type.widget': 'ウィジェット',
   'admin.plugins.type.page': 'ページ',
@@ -226,10 +229,12 @@ const admin: TranslationStrings = {
   'admin.plugins.title': 'プラグイン',
   'admin.plugins.subtitle': 'サードパーティ製プラグインをインスタンスにインストール・管理します。',
   'admin.plugins.disabledTitle': 'プラグインは無効になっています',
-  'admin.plugins.disabledBody': 'プラグインランタイムがオフになっています（TREK_PLUGINS_ENABLED）。管理者がサーバー設定で有効にするまで、プラグインは実行できません。',
+  'admin.plugins.disabledBody':
+    'プラグインランタイムがオフになっています（TREK_PLUGINS_ENABLED）。管理者がサーバー設定で有効にするまで、プラグインは実行できません。',
   'admin.plugins.empty': 'インストール済みのプラグインはまだありません。',
   'admin.plugins.loadError': 'プラグインを読み込めませんでした。',
-  'admin.plugins.scaffoldNote': 'プラグインのインストールと有効化は今後のアップデートで提供予定です。現在このパネルにはインストール済みのプラグインのみが表示されます。',
+  'admin.plugins.scaffoldNote':
+    'プラグインのインストールと有効化は今後のアップデートで提供予定です。現在このパネルにはインストール済みのプラグインのみが表示されます。',
   'admin.plugins.status.active': '有効',
   'admin.plugins.status.inactive': '停止中',
   'admin.plugins.status.disabled': '無効',
@@ -260,14 +265,16 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:write:days': '操作中のユーザーが編集できる旅行の日程の追加・編集・削除',
   'admin.plugins.perm.db:write:itinerary': '操作中のユーザーが編集できる旅行の各日への場所の割り当てと解除',
   'admin.plugins.perm.db:write:trips': '操作中のユーザーが編集できる旅行の詳細（タイトル・日付・通貨など）の編集',
-  'admin.plugins.perm.db:meta': '操作中のユーザーがアクセスできる旅行・場所・日程に、プラグイン独自の非公開データを付加',
+  'admin.plugins.perm.db:meta':
+    '操作中のユーザーがアクセスできる旅行・場所・日程に、プラグイン独自の非公開データを付加',
   'admin.plugins.perm.ws:broadcast:trip': '旅行メンバーへのリアルタイム更新の送信',
   'admin.plugins.perm.ws:broadcast:user': '個々のユーザーへのリアルタイム更新の送信',
   'admin.plugins.perm.hook:photo-provider': '「写真」機能への写真の提供',
   'admin.plugins.perm.hook:calendar-source': 'カレンダーへの予定の提供',
   'admin.plugins.perm.hook:place-detail-provider': '場所に追加の詳細情報（レビュー、評価、リンク）を提供',
   'admin.plugins.perm.hook:trip-warning-provider': '旅程に検証警告を表示（プランナー内に表示）',
-  'admin.plugins.perm.events:subscribe': 'コアのアクティビティイベントに反応（イベント名と旅程のみで、内容には一切アクセスしません）',
+  'admin.plugins.perm.events:subscribe':
+    'コアのアクティビティイベントに反応（イベント名と旅程のみで、内容には一切アクセスしません）',
   'admin.plugins.perm.http:outbound': '宣言済みホストへの外部リクエストの送信',
   'admin.plugins.updateConsentTitle': 'このアップデートには新しい権限が必要です',
   'admin.plugins.updateConsentBody':

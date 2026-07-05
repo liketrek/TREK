@@ -63,6 +63,12 @@ spec:
                   name: {{ default (printf "%s-secret" (include "trek.fullname" .)) .Values.existingSecret }}
                   key: OIDC_CLIENT_SECRET
                   optional: true
+            - name: UNSPLASH_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ default (printf "%s-secret" (include "trek.fullname" .)) .Values.existingSecret }}
+                  key: UNSPLASH_ACCESS_KEY
+                  optional: true
           volumeMounts:
             - name: data
               mountPath: /app/data

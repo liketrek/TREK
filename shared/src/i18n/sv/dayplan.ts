@@ -11,7 +11,8 @@ const dayplan: TranslationStrings = {
   'dayplan.confirmDeleteNoteTitle': 'Ta bort notering?',
   'dayplan.confirmDeleteNoteBody': 'Denna anteckning kommer att raderas permanent.',
   'dayplan.cannotDropOnTimed': 'Objekt kan inte placeras mellan tidsbundna poster',
-  'dayplan.cannotBreakChronology': 'Detta skulle störa den kronologiska ordningen för tidsbestämda poster och bokningar',
+  'dayplan.cannotBreakChronology':
+    'Detta skulle störa den kronologiska ordningen för tidsbestämda poster och bokningar',
   'dayplan.addNote': 'Lägg till notering',
   'dayplan.expandAll': 'Expandera alla dagar',
   'dayplan.collapseAll': 'Dölj alla dagar',
@@ -44,7 +45,7 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.createNew': 'Skapa ny plats',
   'dayplan.reorderDays': 'Sortera om dagar',
   'dayplan.reorderTitle': 'Sortera om dagar',
-  'dayplan.reorderHint': "Dagens platser, anteckningar och bokningar följer med.",
+  'dayplan.reorderHint': 'Dagens platser, anteckningar och bokningar följer med.',
   'dayplan.addDay': 'Lägg till dag',
   'dayplan.moveUp': 'Flytta upp',
   'dayplan.moveDown': 'Flytta ner',

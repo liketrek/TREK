@@ -49,7 +49,8 @@ const collection: TranslationStrings = {
   'collections.editList': 'Đổi tên',
   'collections.listMenu': 'Tùy chọn danh sách',
   'collections.deleteList': 'Xóa danh sách',
-  'collections.deleteListConfirm': 'Thao tác này xóa vĩnh viễn danh sách và tất cả địa điểm đã lưu trong đó. Không thể hoàn tác.',
+  'collections.deleteListConfirm':
+    'Thao tác này xóa vĩnh viễn danh sách và tất cả địa điểm đã lưu trong đó. Không thể hoàn tác.',
   'collections.listName': 'Tên danh sách',
   'collections.listNamePlaceholder': 'vd. Tokyo 2025',
   'collections.listColor': 'Màu',
@@ -127,7 +128,8 @@ const collection: TranslationStrings = {
   'collections.share.memberHint': 'Chỉ chủ sở hữu danh sách mới có thể mời hoặc xóa người.',
   'collections.share.cancel': 'Hủy',
   'collections.share.leave': 'Rời khỏi danh sách',
-  'collections.share.leaveConfirm': 'Rời khỏi danh sách được chia sẻ này? Bạn sẽ mất quyền truy cập cho đến khi được mời lại.',
+  'collections.share.leaveConfirm':
+    'Rời khỏi danh sách được chia sẻ này? Bạn sẽ mất quyền truy cập cho đến khi được mời lại.',
   'collections.share.left': 'Bạn đã rời khỏi danh sách',
   'collections.share.remove': 'Xóa',
 

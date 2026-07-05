@@ -356,7 +356,8 @@ const settings: TranslationStrings = {
   'settings.appearance.contrastLow': 'Low contrast',
   'settings.appearance.readability': 'Readability',
   'settings.appearance.transparency': 'Transparency',
-  'settings.appearance.transparencyHint': 'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
+  'settings.appearance.transparencyHint':
+    'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.',
   'settings.appearance.reduceMotion': 'Reduce motion',
   'settings.appearance.reduceMotionHint': 'Minimize animations and transitions.',
   'settings.appearance.density': 'Density',
@@ -386,7 +387,8 @@ const settings: TranslationStrings = {
   'settings.appearance.group.belowHero': 'Below the hero',
   'settings.appearance.group.bottomOfPage': 'Bottom of page',
   'settings.appearance.sidebarHint': 'The whole right column. Turn off and the dashboard centers.',
-  'settings.appearance.densityHint': 'Compact tightens spacing and padding for a denser layout that fits more on screen.',
+  'settings.appearance.densityHint':
+    'Compact tightens spacing and padding for a denser layout that fits more on screen.',
   'settings.appearance.textSizeAll': 'Everything',
   'settings.appearance.perSize': 'Adjust each size separately',
   'settings.appearance.size.large': 'Large',
@@ -409,10 +411,12 @@ const settings: TranslationStrings = {
   'settings.offline.cache.title': 'Offline cache',
   'settings.offline.mode.title': 'Offline mode',
   'settings.offline.mode.force': 'Force offline mode',
-  'settings.offline.mode.forceHint': 'Work from cached data only and queue your changes. Turn off to reconnect and sync.',
+  'settings.offline.mode.forceHint':
+    'Work from cached data only and queue your changes. Turn off to reconnect and sync.',
   'settings.offline.mode.active': 'Offline mode is on — your changes are queued and will sync when you turn it off.',
   'settings.offline.prepare.title': 'Prepare for offline',
-  'settings.offline.prepare.hint': 'Download everything you need — trip data, documents and map tiles — before you lose connection.',
+  'settings.offline.prepare.hint':
+    'Download everything you need — trip data, documents and map tiles — before you lose connection.',
   'settings.offline.prepare.button': 'Download for offline use',
   'settings.offline.prepare.running': 'Downloading…',
   'settings.offline.prepare.done': 'Ready for offline use',
@@ -423,7 +427,8 @@ const settings: TranslationStrings = {
   'settings.offline.resyncing': 'Syncing…',
   'settings.offline.storage.title': 'What to store offline',
   'settings.offline.storage.tiles': 'Store map tiles offline',
-  'settings.offline.storage.tilesHint': 'Map tiles use the most storage. Turn this off to keep only trip data and documents offline.',
+  'settings.offline.storage.tilesHint':
+    'Map tiles use the most storage. Turn this off to keep only trip data and documents offline.',
   'settings.offline.storage.tripsTitle': 'Trips',
   'settings.offline.storage.tripOn': 'Stored offline',
   'settings.offline.storage.tripOff': 'Not stored',
@@ -436,7 +441,8 @@ const settings: TranslationStrings = {
   'settings.offline.empty': 'No trips cached yet. Connect to the internet to sync.',
   'settings.offline.loading': 'Loading…',
   'settings.offline.conflicts.title': 'Sync conflicts',
-  'settings.offline.conflicts.hint': 'Changes you made offline clash with newer changes on the server. Choose which version to keep.',
+  'settings.offline.conflicts.hint':
+    'Changes you made offline clash with newer changes on the server. Choose which version to keep.',
   'settings.offline.conflicts.keepMine': 'Keep mine',
   'settings.offline.conflicts.keepServer': 'Keep theirs',
   'settings.offline.conflicts.mine': 'Your version',

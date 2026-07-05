@@ -25,7 +25,8 @@ const members: TranslationStrings = {
   'members.transferError': 'Overdracht van eigenaarschap mislukt',
   'members.guests': 'Gasten',
   'members.guest': 'Gast',
-  'members.guestsHint': 'Mensen zonder account. Ze kunnen worden toegewezen aan kosten, bagage en taken, maar kunnen niet inloggen.',
+  'members.guestsHint':
+    'Mensen zonder account. Ze kunnen worden toegewezen aan kosten, bagage en taken, maar kunnen niet inloggen.',
   'members.addGuest': 'Gast toevoegen',
   'members.guestNamePlaceholder': 'Naam van gast',
   'members.guestAdded': 'Gast toegevoegd',

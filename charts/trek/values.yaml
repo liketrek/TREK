@@ -92,6 +92,12 @@ secretEnv:
   ADMIN_PASSWORD: ""
   # OIDC client secret — set together with env.OIDC_ISSUER and env.OIDC_CLIENT_ID.
   OIDC_CLIENT_SECRET: ""
+  # Optional Unsplash Access Key for trip-cover and place-image search.
+  # Without one, TREK uses Unsplash's unauthenticated endpoint, which some
+  # datacenter/VPS IPs (including many Kubernetes clusters) are blocked from.
+  # Get a free key at https://unsplash.com/developers. Can also be set per-admin
+  # in Admin > Settings; this value overrides that. Leave empty to disable.
+  UNSPLASH_ACCESS_KEY: ""
 
 # If true, a random ENCRYPTION_KEY is generated at install and preserved across upgrades
 generateEncryptionKey: false
