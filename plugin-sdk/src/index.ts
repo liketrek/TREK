@@ -106,3 +106,7 @@ export function definePlugin(def: PluginDefinition): PluginDefinition {
 
 export { validateManifest, type PluginManifest, type ValidationResult } from './manifest.js';
 export { createMockHost, type MockHostOptions } from './mock-host.js';
+// The design kit for page/widget UIs: inline these into your client/index.html
+// (or drop a `<!-- trek:ui -->` marker and let `dev`/`pack` expand it) to get the
+// native TREK look — glass, hover, buttons, inputs — plus a `window.trek` bridge.
+export { TREK_UI_CSS, TREK_THEME_JS, TREK_UI_MARKER, injectTrekUi } from './ui/kit.js';
