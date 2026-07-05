@@ -556,9 +556,27 @@ export const addonsApi = {
 export const pluginsApi = {
   // Active plugins the client renders (page nav entries, dashboard widgets).
   active: () => apiClient.get('/plugins').then(r => r.data),
-  // Call one of a plugin's own declared routes through the host proxy.
-  invoke: (id: string, sub: string, init?: { method?: string; body?: unknown }) =>
-    apiClient.request({ url: `/plugins/${id}${sub}`, method: init?.method || 'GET', data: init?.body }).then(r => r.data),
+  // Call one of a plugin's own declared routes through the host proxy. `sub` is
+  // supplied by untrusted plugin code (the trekBridge forwards it verbatim), so it
+  // MUST stay inside the plugin's own /plugins/:id/ namespace. We resolve it with
+  // the URL parser — which normalizes `../`, encoded traversal and backslashes the
+  // same way the browser would before sending — and reject anything that escapes
+  // the prefix or points off-origin. Without this a plugin could send
+  // sub='/../../auth/me' and drive arbitrary authenticated /api routes as the user.
+  invoke: (id: string, sub: string, init?: { method?: string; body?: unknown }) => {
+    const prefix = `/api/plugins/${id}/`
+    let resolved: URL
+    try {
+      resolved = new URL(String(sub).replace(/^\/+/, ''), window.location.origin + prefix)
+    } catch {
+      return Promise.reject(new Error('invalid plugin route'))
+    }
+    if (resolved.origin !== window.location.origin || !resolved.pathname.startsWith(prefix)) {
+      return Promise.reject(new Error('plugin route escapes its namespace'))
+    }
+    const url = resolved.pathname.slice('/api'.length) + resolved.search
+    return apiClient.request({ url, method: init?.method || 'GET', data: init?.body }).then(r => r.data)
+  },
 }
 
 export const airtrailApi = {

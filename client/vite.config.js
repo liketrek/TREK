@@ -1,6 +1,6 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import { VitePWA } from 'vite-plugin-pwa'
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite';
+import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
   plugins: [
@@ -11,7 +11,14 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
         globPatterns: ['**/*.{js,css,html,svg,png,woff,woff2,ttf}'],
         navigateFallback: 'index.html',
-        navigateFallbackDenylist: [/^\/api/, /^\/uploads/, /^\/mcp/, /^\/oauth\//, /^\/.well-known\//, /^\/plugin-frame\//],
+        navigateFallbackDenylist: [
+          /^\/api/,
+          /^\/uploads/,
+          /^\/mcp/,
+          /^\/oauth\//,
+          /^\/.well-known\//,
+          /^\/plugin-frame\//,
+        ],
         runtimeCaching: [
           {
             // Carto map tiles (default provider)
@@ -129,6 +136,10 @@ export default defineConfig({
         target: 'http://localhost:3001',
         changeOrigin: true,
       },
+      '/plugin-frame': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
       '/uploads': {
         target: 'http://localhost:3001',
         changeOrigin: true,
@@ -164,6 +175,6 @@ export default defineConfig({
         target: 'http://localhost:3001',
         changeOrigin: true,
       },
-    }
-  }
-})
+    },
+  },
+});
