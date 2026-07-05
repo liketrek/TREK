@@ -115,15 +115,23 @@ export async function freezeForeignRate(
   tripId: string | number,
   data: { currency?: string | null; exchange_rate?: number },
   existingItemId?: string | number,
+  existingCurrency?: string | null,
 ): Promise<void> {
   if (data.exchange_rate != null) return; // an explicit rate from the caller wins
   const cur = (data.currency || '').toUpperCase();
   if (!cur) return; // currency not being set in this request
-  if (existingItemId != null) {
+  // Skip the re-freeze when the currency isn't actually changing, so an unrelated
+  // edit never moves money. Items resolve the prior currency from budget_items; a
+  // settlement lives in a different table, so its caller passes it in directly.
+  let prior: string | undefined;
+  if (existingCurrency !== undefined) {
+    prior = (existingCurrency || '').toUpperCase();
+  } else if (existingItemId != null) {
     const existing = db.prepare('SELECT currency FROM budget_items WHERE id = ?')
       .get(existingItemId) as { currency?: string } | undefined;
-    if (existing && (existing.currency || '').toUpperCase() === cur) return; // currency unchanged
+    if (existing) prior = (existing.currency || '').toUpperCase();
   }
+  if (prior !== undefined && prior === cur) return; // currency unchanged
   const trip = db.prepare('SELECT currency FROM trips WHERE id = ?')
     .get(tripId) as { currency?: string } | undefined;
   const tripCur = (trip?.currency || 'EUR').toUpperCase();
