@@ -7,15 +7,33 @@ import { useToast } from '../shared/Toast'
 import { pluginsApi } from '../../api/client'
 
 // The design-token contract handed to plugins (#4 richer context): non-secret CSS
-// values, resolved for the CURRENT theme, so a widget can match TREK exactly (and
-// re-match on a theme toggle) instead of hard-coding a mirror of the palette. Names
-// mirror index.css so a plugin can apply them verbatim as CSS variables.
+// values, resolved for the CURRENT theme, so a plugin can match TREK exactly (and
+// re-match on a theme toggle / accent change) instead of hard-coding a mirror of
+// the palette that drifts. Names mirror index.css so a plugin can apply them
+// verbatim as CSS variables. This is the whole GLOBAL (:root/.dark) palette — the
+// part that a user can recolour via appearance settings (accent scheme, custom
+// accent, high-contrast) flows through here live. The glassy `.trek-dash` layer
+// (--glass-*/--r-*/--sh-*) is intentionally NOT read here: it is scoped to the
+// dashboard subtree, so it resolves EMPTY at documentElement — the SDK design kit
+// bakes those values instead (they don't vary with the accent, only light/dark).
 const TOKEN_VARS = [
-  '--bg-card', '--bg-hover', '--surface-2',
-  '--text-primary', '--text-secondary', '--text-muted', '--text-faint',
-  '--border-primary', '--border-faint',
-  '--accent', '--accent-text', '--accent-hover', '--accent-subtle', '--danger',
-  '--font-system', '--radius-sm', '--radius-md', '--radius-lg', '--radius-xl',
+  // surfaces
+  '--bg-primary', '--bg-secondary', '--bg-tertiary', '--bg-elevated',
+  '--bg-card', '--bg-input', '--bg-hover', '--bg-selected', '--bg-inverse',
+  // text
+  '--text-primary', '--text-secondary', '--text-muted', '--text-faint', '--text-inverse',
+  // borders
+  '--border-primary', '--border-secondary', '--border-faint',
+  // accent (recoloured by the chosen scheme / custom accent)
+  '--accent', '--accent-text', '--accent-on', '--accent-hover', '--accent-subtle',
+  // semantic + soft fills
+  '--success', '--success-soft', '--danger', '--danger-soft',
+  '--warning', '--warning-soft', '--info', '--info-soft',
+  // shadows
+  '--shadow-card', '--shadow-elevated', '--shadow-sm', '--shadow-md', '--shadow-lg',
+  // radii, type, misc
+  '--radius-sm', '--radius-md', '--radius-lg', '--radius-xl',
+  '--font-system', '--font-subtext', '--overlay', '--ease-out-quint',
 ]
 function readThemeTokens(): Record<string, string> {
   const cs = getComputedStyle(document.documentElement)
@@ -25,6 +43,24 @@ function readThemeTokens(): Record<string, string> {
     if (val) out[v] = val
   }
   return out
+}
+
+/**
+ * The host's current appearance state, mirrored from the attributes applyAppearance
+ * writes on <html>, so a plugin can honour the same accessibility/appearance choices
+ * inside its own sandboxed document (it can't read the parent DOM). All booleans/enums
+ * — nothing secret.
+ */
+function readAppearance() {
+  const el = document.documentElement
+  return {
+    scheme: el.dataset.scheme || 'default',
+    density: el.dataset.density === 'compact' ? 'compact' : 'comfortable',
+    noTransparency: el.hasAttribute('data-no-transparency'),
+    reducedMotion:
+      el.hasAttribute('data-reduce-motion') ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  }
 }
 
 /**
@@ -90,8 +126,11 @@ export default function PluginFrame({ pluginId, tripId = null, className, title 
     hostOrigin: window.location.origin,
     // #4 richer context — non-secret display data so plugins render natively:
     // who the user is (name/avatar/isAdmin — never email/role beyond a boolean),
-    // how TREK formats things, and the resolved theme tokens.
+    // how TREK formats things, the resolved theme tokens, and the appearance state
+    // (accent scheme, density, reduced-motion / no-transparency) so a plugin can
+    // mirror the same look and accessibility choices as the host.
     user: userName != null ? { name: userName, avatar: userAvatar, isAdmin } : null,
+    appearance: readAppearance(),
     formats: {
       locale,
       currency: settings.default_currency,
@@ -156,18 +195,36 @@ export default function PluginFrame({ pluginId, tripId = null, className, title 
     window.addEventListener('message', onMessage)
 
     // The frame is opaque-origin and can't read our DOM, and we otherwise send the
-    // context (incl. theme) only once on trek:ready — so a plugin can't follow the
-    // in-app dark-mode toggle. Watch the <html> `dark` class and re-post the context
-    // when it flips, so widgets restyle live. (Plugins re-apply theme on trek:context.)
+    // context (incl. theme + tokens) only once on trek:ready — so a plugin can't
+    // follow an in-app appearance change. Watch the <html> element for anything
+    // applyAppearance touches (the `dark` class, the data-* appearance attributes,
+    // and inline style for the custom-accent vars) and re-post the context when the
+    // resulting look actually changes, so plugins restyle live. A compact signature
+    // dedupes: unrelated mutations don't trigger a repost. (Plugins re-apply on
+    // trek:context.)
     const htmlEl = document.documentElement
-    let prevDark = htmlEl.classList.contains('dark')
+    const appearanceSig = () => {
+      const cs = getComputedStyle(htmlEl)
+      return [
+        htmlEl.classList.contains('dark'),
+        htmlEl.dataset.scheme || '',
+        htmlEl.dataset.density || '',
+        htmlEl.hasAttribute('data-no-transparency'),
+        htmlEl.hasAttribute('data-reduce-motion'),
+        cs.getPropertyValue('--accent').trim(),
+      ].join('|')
+    }
+    let prevSig = appearanceSig()
     const themeObserver = new MutationObserver(() => {
-      const dark = htmlEl.classList.contains('dark')
-      if (dark === prevDark) return
-      prevDark = dark
+      const sig = appearanceSig()
+      if (sig === prevSig) return
+      prevSig = sig
       if (loadsRef.current <= 1) post(context())
     })
-    themeObserver.observe(htmlEl, { attributes: true, attributeFilter: ['class'] })
+    themeObserver.observe(htmlEl, {
+      attributes: true,
+      attributeFilter: ['class', 'style', 'data-scheme', 'data-density', 'data-no-transparency', 'data-reduce-motion'],
+    })
 
     return () => { window.removeEventListener('message', onMessage); themeObserver.disconnect() }
   }, [pluginId, navigate, toast, postFrame, buildContext])

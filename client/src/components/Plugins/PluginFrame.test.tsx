@@ -82,4 +82,23 @@ describe('PluginFrame', () => {
     expect(ctx!.user).toMatchObject({ name: 'ada', isAdmin: true });
     expect(JSON.stringify(ctx)).not.toContain('@'); // no email leaked
   });
+
+  it('FE-PLUGINS-FRAME-006: context mirrors the host appearance state (scheme/density/flags)', () => {
+    const { container } = render(<PluginFrame pluginId="demo" />);
+    const iframe = container.querySelector('iframe')!;
+    const posted: Array<Record<string, unknown>> = [];
+    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) => posted.push(m as Record<string, unknown>);
+
+    fromFrame(iframe, { type: 'trek:context:request' });
+
+    const ctx = posted.find((m) => m.type === 'trek:context') as Record<string, unknown> | undefined;
+    expect(ctx).toBeTruthy();
+    // A plugin can honour the same accent/density/accessibility choices as the host.
+    expect(ctx!.appearance).toMatchObject({
+      scheme: 'default',
+      density: 'comfortable',
+      noTransparency: false,
+      reducedMotion: false,
+    });
+  });
 });
