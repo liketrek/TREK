@@ -87,6 +87,36 @@ describe('createMockHost', () => {
     ctx.log.info('hi');
     expect(logs).toEqual([{ level: 'info', msg: 'hi' }]);
   });
+
+  it('gates costs reads/writes on the grant, addon, membership and edit permission', async () => {
+    const { ctx } = createMockHost({
+      grants: ['db:read:costs', 'db:write:costs'],
+      actingUserId: 42,
+      trips: {
+        1: { members: [42], costs: [{ id: 5, name: 'Hotel' }] },
+        2: { members: [42], costs: [{ id: 6, name: 'Food' }], canEditCosts: false },
+      },
+    });
+    // read: trip-scoped + cross-trip aggregate
+    expect(await ctx.costs.getByTrip(1)).toEqual([{ id: 5, name: 'Hotel' }]);
+    expect(await ctx.costs.listMine()).toEqual([{ id: 5, name: 'Hotel' }, { id: 6, name: 'Food' }]);
+    // write: allowed where the user may edit, refused where they may not
+    expect(await ctx.costs.create(1, { name: 'Taxi' })).toMatchObject({ trip_id: 1, name: 'Taxi' });
+    await expect(ctx.costs.create(2, { name: 'Nope' })).rejects.toThrow(/RESOURCE_FORBIDDEN/);
+  });
+
+  it('refuses costs when the permission is missing or the addon is disabled', async () => {
+    const ungranted = createMockHost({ grants: [], actingUserId: 42, trips: { 1: { members: [42] } } });
+    await expect(ungranted.ctx.costs.getByTrip(1)).rejects.toThrow(/PERMISSION_DENIED/);
+
+    const addonOff = createMockHost({
+      grants: ['db:read:costs'],
+      actingUserId: 42,
+      budgetAddonEnabled: false,
+      trips: { 1: { members: [42], costs: [] } },
+    });
+    await expect(addonOff.ctx.costs.getByTrip(1)).rejects.toThrow(/RESOURCE_FORBIDDEN/);
+  });
 });
 
 describe('scaffold + validate CLIs', () => {

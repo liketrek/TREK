@@ -31,7 +31,8 @@ const SEMVER_RE = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 const HOST_RE = /^(\*\.[a-z0-9-]+(\.[a-z0-9-]+)+|[a-z0-9-]+(\.[a-z0-9-]+)*)$/i;
 const TYPES = ['integration', 'page', 'widget'];
 const KNOWN_PERMISSIONS = [
-  'db:own', 'db:read:trips', 'db:read:users', 'ws:broadcast:trip', 'ws:broadcast:user',
+  'db:own', 'db:read:trips', 'db:read:users', 'db:read:costs', 'db:write:costs',
+  'ws:broadcast:trip', 'ws:broadcast:user',
   'hook:photo-provider', 'hook:calendar-source', 'http:outbound',
 ];
 

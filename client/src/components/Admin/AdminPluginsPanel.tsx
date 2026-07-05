@@ -83,7 +83,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: 
 
 // Known permissions → human-readable i18n key; unknown ones render as raw code.
 const PERM_KEYS = [
-  'db:own', 'db:read:trips', 'db:read:users', 'ws:broadcast:trip', 'ws:broadcast:user',
+  'db:own', 'db:read:trips', 'db:read:users', 'db:read:costs', 'db:write:costs', 'ws:broadcast:trip', 'ws:broadcast:user',
   'hook:photo-provider', 'hook:calendar-source', 'http:outbound',
 ]
 
@@ -111,6 +111,8 @@ function deriveCaps(perms: string[], caps: { widget?: { slot?: string } }, t: T)
   const out: Cap[] = []
   if (perms.includes('db:read:trips')) out.push({ icon: Database, label: t('admin.plugins.cap.readsTrips') })
   if (perms.includes('db:read:users')) out.push({ icon: Users, label: t('admin.plugins.cap.readsUsers') })
+  if (perms.includes('db:write:costs')) out.push({ icon: Wallet, label: t('admin.plugins.cap.writesCosts') })
+  else if (perms.includes('db:read:costs')) out.push({ icon: Wallet, label: t('admin.plugins.cap.readsCosts') })
   if (caps.widget) out.push({ icon: LayoutDashboard, label: t(caps.widget.slot === 'hero' ? 'admin.plugins.cap.heroWidget' : 'admin.plugins.cap.widget') })
   if (perms.some(p => p.startsWith('ws:broadcast'))) out.push({ icon: Radio, label: t('admin.plugins.cap.realtime') })
   if (perms.includes('hook:photo-provider')) out.push({ icon: Image, label: t('admin.plugins.cap.photos') })

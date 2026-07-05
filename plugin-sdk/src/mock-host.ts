@@ -12,11 +12,22 @@ import type { PluginContext } from './index.js';
 export interface MockHostOptions {
   grants?: string[];
   config?: Record<string, unknown>;
-  /** Fixtures keyed by trip id; `members` gates access like the real host. */
-  trips?: Record<number, { members: number[]; data?: unknown; places?: unknown[]; reservations?: unknown[] }>;
+  /**
+   * Fixtures keyed by trip id; `members` gates access like the real host.
+   * `costs` seeds budget items; `canEditCosts` (default true) models the
+   * 'budget_edit' permission for `costs.create`.
+   */
+  trips?: Record<
+    number,
+    { members: number[]; data?: unknown; places?: unknown[]; reservations?: unknown[]; costs?: unknown[]; canEditCosts?: boolean }
+  >;
   users?: Record<number, unknown>;
   /** Optional canned db.query results, keyed by the exact sql string. */
   queryResults?: Record<string, unknown[]>;
+  /** The host-bound acting user for costs.* (a job/onLoad has none → refused). */
+  actingUserId?: number;
+  /** Whether the Costs (budget) addon is enabled; gates all costs.* (default true). */
+  budgetAddonEnabled?: boolean;
 }
 
 export interface MockHost {
@@ -43,6 +54,13 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
     const t = opts.trips?.[tripId];
     if (!t || !t.members.includes(asUserId)) throw new Error(`RESOURCE_FORBIDDEN: no access to trip ${tripId}`);
     return t;
+  };
+  const requireBudgetAddon = () => {
+    if (opts.budgetAddonEnabled === false) throw new Error('RESOURCE_FORBIDDEN: the costs addon is disabled');
+  };
+  const requireActingUser = (): number => {
+    if (opts.actingUserId === undefined) throw new Error('RESOURCE_FORBIDDEN: costs calls require an authenticated user context');
+    return opts.actingUserId;
   };
 
   const ctx: PluginContext = {
@@ -74,6 +92,32 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
       async getReservations(tripId, asUserId) {
         need('db:read:trips', 'trips.getReservations');
         return assertMember(tripId, asUserId).reservations ?? [];
+      },
+    },
+    costs: {
+      async getByTrip(tripId) {
+        need('db:read:costs', 'costs.getByTrip');
+        requireBudgetAddon();
+        return assertMember(tripId, requireActingUser()).costs ?? [];
+      },
+      async listMine() {
+        need('db:read:costs', 'costs.listMine');
+        requireBudgetAddon();
+        const uid = requireActingUser();
+        return Object.values(opts.trips ?? {})
+          .filter((t) => t.members.includes(uid))
+          .flatMap((t) => t.costs ?? []);
+      },
+      async create(tripId, input) {
+        need('db:write:costs', 'costs.create');
+        requireBudgetAddon();
+        const t = assertMember(tripId, requireActingUser());
+        if (t.canEditCosts === false) {
+          throw new Error(`RESOURCE_FORBIDDEN: no permission to edit costs on trip ${tripId}`);
+        }
+        const item = { id: (t.costs?.length ?? 0) + 1, trip_id: tripId, ...input };
+        (t.costs ??= []).push(item);
+        return item;
       },
     },
     users: {

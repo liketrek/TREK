@@ -81,6 +81,8 @@ export const PERMISSION_CATALOG: { value: string; label: string; hint: string }[
   { value: 'db:own', label: 'db:own', hint: 'A private database only this plugin can read/write' },
   { value: 'db:read:trips', label: 'db:read:trips', hint: 'Read trips the requesting user can access' },
   { value: 'db:read:users', label: 'db:read:users', hint: 'Read basic user profiles' },
+  { value: 'db:read:costs', label: 'db:read:costs', hint: 'Read costs (budget items) the requesting user can access' },
+  { value: 'db:write:costs', label: 'db:write:costs', hint: 'Create costs (budget items) on trips the user can edit' },
   { value: 'ws:broadcast:trip', label: 'ws:broadcast:trip', hint: 'Push realtime events to everyone on a trip' },
   { value: 'ws:broadcast:user', label: 'ws:broadcast:user', hint: 'Push realtime events to a single user' },
   { value: 'hook:photo-provider', label: 'hook:photo-provider', hint: 'Supply place photos to TREK' },

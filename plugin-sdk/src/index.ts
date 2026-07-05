@@ -22,6 +22,13 @@ export interface PluginContext {
     getPlaces(tripId: number, asUserId: number): Promise<unknown[]>;
     getReservations(tripId: number, asUserId: number): Promise<unknown[]>;
   };
+  // "Costs" = budget items. The acting user is bound by the host to the current
+  // invocation; `create` also needs 'budget_edit' and the Costs addon enabled.
+  costs: {
+    getByTrip(tripId: number): Promise<unknown[]>;
+    listMine(): Promise<unknown[]>;
+    create(tripId: number, input: Record<string, unknown>): Promise<unknown>;
+  };
   users: { getById(id: number): Promise<unknown> };
   ws: {
     broadcastToTrip(tripId: number, event: string, data: Record<string, unknown>): Promise<void>;

@@ -1,8 +1,18 @@
 import { db, canAccessTrip } from '../../../db/database';
 import { broadcast, broadcastToUser } from '../../../websocket';
+import { listBudgetItems } from '../../../services/budgetService';
+import { checkPermission } from '../../../services/permissions';
+import { listTrips } from '../../../services/tripService';
+import { isAddonEnabled } from '../../../services/adminService';
+import { ADDON_IDS } from '../../../addons';
+import { BudgetService } from '../../budget/budget.service';
 import { PluginDataDb } from './plugin-data.service';
 import { PluginRpcHost } from './rpc-host';
 import { appendAudit } from './plugin-audit';
+
+// Reused for costs.create so a plugin write frozen-FX and members/payers logic
+// matches a normal web-app budget write exactly (it has no injected deps).
+const budgetSvc = new BudgetService();
 
 /**
  * Wires a plugin's capability host to the REAL privileged modules (#plugins,
@@ -47,5 +57,31 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>): Plu
     broadcastToTrip: (tripId, event, payload) => broadcast(tripId, `plugin:${id}:${event}`, payload),
     broadcastToUser: (userId, payload) => broadcastToUser(userId, { type: `plugin:${id}`, ...payload }),
     audit: (entry) => appendAudit(db, entry),
+    // --- Costs (budget items) ---
+    budgetAddonEnabled: () => isAddonEnabled(ADDON_IDS.BUDGET),
+    // Same gate as a REST/MCP budget mutation: the acting user must have trip
+    // access AND the 'budget_edit' permission for their global role.
+    canEditCosts: (tripId, userId) => {
+      const trip = canAccessTrip(tripId, userId) as { user_id: number } | undefined;
+      if (!trip) return false;
+      const u = db.prepare('SELECT role FROM users WHERE id = ?').get(userId) as { role?: string } | undefined;
+      if (!u) return false;
+      return checkPermission('budget_edit', u.role ?? 'user', trip.user_id, userId, trip.user_id !== userId);
+    },
+    listCostsForTrip: (tripId) => listBudgetItems(tripId),
+    // Cross-trip: every accessible trip's budget items (membership predicate is
+    // baked into listTrips). Reuses the hydrated list so members/payers come too.
+    listCostsForUser: (userId) => {
+      const trips = listTrips(userId, null) as Array<{ id: number }>;
+      return trips.flatMap((t) => listBudgetItems(t.id));
+    },
+    // Reuses BudgetService.create (frozen FX + members/payers), then broadcasts
+    // the same 'budget:created' event the controller emits so the web app updates
+    // live. No X-Socket-Id — a plugin has no originating socket.
+    createCost: async (tripId, input) => {
+      const item = await budgetSvc.create(String(tripId), input);
+      broadcast(tripId, 'budget:created', { item });
+      return item;
+    },
   });
 }

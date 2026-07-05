@@ -32,6 +32,15 @@ function makeDeps(): HostDeps {
     canSeeUser: vi.fn((actingUserId: number, targetUserId: number) => actingUserId === 42 && targetUserId === 3),
     broadcastToTrip: vi.fn(),
     broadcastToUser: vi.fn(),
+    // Costs (budget) — addon on; user 42 may edit trip 1's costs.
+    budgetAddonEnabled: vi.fn(() => true),
+    canEditCosts: vi.fn((tripId: number, userId: number) => tripId === 1 && userId === 42),
+    listCostsForTrip: vi.fn((tripId: number) => [{ id: 5, trip_id: tripId, name: 'Hotel', total_price: 100 }]),
+    listCostsForUser: vi.fn(() => [
+      { id: 5, trip_id: 1, name: 'Hotel' },
+      { id: 6, trip_id: 2, name: 'Food' },
+    ]),
+    createCost: vi.fn((tripId: number, input: unknown) => ({ id: 9, trip_id: tripId, ...(input as object) })),
   };
 }
 
@@ -208,5 +217,98 @@ describe('PluginRpcHost — capability enforcement', () => {
     // a request with no params object at all -> BAD_PARAMS (sql missing), not a crash
     const noParams = await host.dispatch({ k: 'req', id: 'y', method: 'db.query', params: undefined });
     expect((noParams as RpcError).error.code).toBe('BAD_PARAMS');
+  });
+
+  // ── Costs (budget items): db:read:costs / db:write:costs ────────────────────
+
+  it('db:read:costs reads a trip the acting user can access', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:read:costs']), deps);
+    const res = await host.dispatch(req('costs.getByTrip', { tripId: 1 }), 42);
+    expect(ok(res)).toBe(true);
+    expect((res as RpcResponse).result).toEqual([{ id: 5, trip_id: 1, name: 'Hotel', total_price: 100 }]);
+    expect(deps.listCostsForTrip).toHaveBeenCalledWith(1);
+  });
+
+  it('db:read:costs is membership-checked before the read (non-member → RESOURCE_FORBIDDEN)', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:read:costs']), deps);
+    const res = await host.dispatch(req('costs.getByTrip', { tripId: 1 }), 99);
+    expect((res as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect(deps.listCostsForTrip).not.toHaveBeenCalled();
+  });
+
+  it('costs are RESOURCE_FORBIDDEN when the Costs addon is disabled', async () => {
+    (deps.budgetAddonEnabled as ReturnType<typeof vi.fn>).mockReturnValue(false);
+    const host = new PluginRpcHost('p', new Set(['db:read:costs']), deps);
+    const res = await host.dispatch(req('costs.getByTrip', { tripId: 1 }), 42);
+    expect((res as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect(deps.listCostsForTrip).not.toHaveBeenCalled();
+  });
+
+  it('costs.listMine returns costs across every accessible trip', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:read:costs']), deps);
+    const res = await host.dispatch(req('costs.listMine', {}), 42);
+    expect(ok(res)).toBe(true);
+    expect((res as RpcResponse).result).toEqual([
+      { id: 5, trip_id: 1, name: 'Hotel' },
+      { id: 6, trip_id: 2, name: 'Food' },
+    ]);
+    expect(deps.listCostsForUser).toHaveBeenCalledWith(42);
+  });
+
+  it('costs.listMine with no bound acting user is RESOURCE_FORBIDDEN (jobs / forged calls)', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:read:costs']), deps);
+    const res = await host.dispatch(req('costs.listMine', {}), undefined);
+    expect((res as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect(deps.listCostsForUser).not.toHaveBeenCalled();
+  });
+
+  it('costs.getByTrip is PERMISSION_DENIED without db:read:costs', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:read:trips']), deps);
+    const res = await host.dispatch(req('costs.getByTrip', { tripId: 1 }), 42);
+    expect((res as RpcError).error.code).toBe('PERMISSION_DENIED');
+  });
+
+  it('db:write:costs creates a cost when the user may edit the trip', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:costs']), deps);
+    const res = await host.dispatch(req('costs.create', { tripId: 1, input: { name: 'Hotel', total_price: 120 } }), 42);
+    expect(ok(res)).toBe(true);
+    expect((res as RpcResponse).result).toMatchObject({ id: 9, trip_id: 1, name: 'Hotel', total_price: 120 });
+    expect(deps.createCost).toHaveBeenCalledWith(1, expect.objectContaining({ name: 'Hotel', total_price: 120 }));
+  });
+
+  it('db:write:costs is RESOURCE_FORBIDDEN without the budget_edit permission', async () => {
+    (deps.canEditCosts as ReturnType<typeof vi.fn>).mockReturnValue(false);
+    const host = new PluginRpcHost('p', new Set(['db:write:costs']), deps);
+    const res = await host.dispatch(req('costs.create', { tripId: 1, input: { name: 'Hotel' } }), 42);
+    expect((res as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect(deps.createCost).not.toHaveBeenCalled();
+  });
+
+  it('db:write:costs on a trip the user cannot access is RESOURCE_FORBIDDEN', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:costs']), deps);
+    const res = await host.dispatch(req('costs.create', { tripId: 1, input: { name: 'Hotel' } }), 99);
+    expect((res as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect(deps.createCost).not.toHaveBeenCalled();
+  });
+
+  it('db:write:costs with an invalid payload is BAD_PARAMS', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:costs']), deps);
+    // name is required (min length 1) by budgetCreateItemRequestSchema
+    const res = await host.dispatch(req('costs.create', { tripId: 1, input: { total_price: 5 } }), 42);
+    expect((res as RpcError).error.code).toBe('BAD_PARAMS');
+    expect(deps.createCost).not.toHaveBeenCalled();
+  });
+
+  it('db:write:costs with no bound acting user is RESOURCE_FORBIDDEN', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:costs']), deps);
+    const res = await host.dispatch(req('costs.create', { tripId: 1, input: { name: 'Hotel' } }), undefined);
+    expect((res as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect(deps.createCost).not.toHaveBeenCalled();
+  });
+
+  it('costs.create is PERMISSION_DENIED without db:write:costs', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:read:costs']), deps);
+    const res = await host.dispatch(req('costs.create', { tripId: 1, input: { name: 'Hotel' } }), 42);
+    expect((res as RpcError).error.code).toBe('PERMISSION_DENIED');
   });
 });

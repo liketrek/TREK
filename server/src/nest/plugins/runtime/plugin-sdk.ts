@@ -29,6 +29,14 @@ export interface PluginContext {
     getPlaces(tripId: number, asUserId?: number): Promise<unknown[]>;
     getReservations(tripId: number, asUserId?: number): Promise<unknown[]>;
   };
+  // "Costs" = budget items. Reads are membership-checked against the current
+  // invocation's user (like `trips`); `create` additionally needs the acting
+  // user's 'budget_edit' permission and the Costs addon enabled.
+  costs: {
+    getByTrip(tripId: number): Promise<unknown[]>;
+    listMine(): Promise<unknown[]>;
+    create(tripId: number, input: Record<string, unknown>): Promise<unknown>;
+  };
   users: {
     getById(id: number): Promise<unknown>;
   };
@@ -110,6 +118,11 @@ export function createPluginContext(
       getById: (tripId) => t.rpc('trips.getById', { tripId, _inv: invocationId }),
       getPlaces: (tripId) => t.rpc('trips.getPlaces', { tripId, _inv: invocationId }) as Promise<unknown[]>,
       getReservations: (tripId) => t.rpc('trips.getReservations', { tripId, _inv: invocationId }) as Promise<unknown[]>,
+    },
+    costs: {
+      getByTrip: (tripId) => t.rpc('costs.getByTrip', { tripId, _inv: invocationId }) as Promise<unknown[]>,
+      listMine: () => t.rpc('costs.listMine', { _inv: invocationId }) as Promise<unknown[]>,
+      create: (tripId, input) => t.rpc('costs.create', { tripId, input, _inv: invocationId }),
     },
     users: {
       getById: (uid) => t.rpc('users.getById', { id: uid }),

@@ -1,3 +1,4 @@
+import { budgetCreateItemRequestSchema, type BudgetCreateItemRequest } from '@trek/shared';
 import {
   KNOWN_METHODS,
   type KnownMethod,
@@ -44,6 +45,16 @@ export interface HostDeps {
   broadcastToUser(userId: number, payload: Record<string, unknown>): void;
   /** Optional sink for the capability audit log (host-side, hash-chained). */
   audit?(entry: { pluginId: string; actingUserId?: number; method: string; resource: string | null; code: string }): void;
+  /** True when the Costs (budget) addon is enabled — gates all costs.* methods. */
+  budgetAddonEnabled(): boolean;
+  /** True if the acting user may create costs on the trip (the 'budget_edit' permission). */
+  canEditCosts(tripId: number, userId: number): boolean;
+  /** All budget items of one trip, hydrated with members/payers. */
+  listCostsForTrip(tripId: number): unknown[];
+  /** All budget items across every trip the acting user can access. */
+  listCostsForUser(userId: number): unknown[];
+  /** Create a budget item on a trip (and broadcast); returns the created item. */
+  createCost(tripId: number, input: BudgetCreateItemRequest): unknown;
 }
 
 type Handler = (params: Record<string, unknown>, actingUserId: number | undefined) => unknown;
@@ -85,6 +96,41 @@ export class PluginRpcHost {
       this.methods.set('trips.getReservations', (p, uid) =>
         this.tripRead(p, uid, () => deps.db.prepare('SELECT * FROM reservations WHERE trip_id = ? ORDER BY reservation_time').all(num(p.tripId, 'tripId'))),
       );
+    }
+
+    if (has('db:read:costs')) {
+      // "Costs" = budget items (trip-scoped). Same membership gate as trip reads;
+      // additionally requires the Costs addon to be enabled (parity with the app,
+      // where a disabled addon means there is nothing to read).
+      this.methods.set('costs.getByTrip', (p, uid) =>
+        this.tripRead(p, uid, () => {
+          this.requireBudgetAddon();
+          return deps.listCostsForTrip(num(p.tripId, 'tripId'));
+        }),
+      );
+      // Cross-trip aggregate: every cost the acting user can access. The acting
+      // user is host-bound; a job/onLoad (no user) is refused, same as tripRead.
+      this.methods.set('costs.listMine', (p, uid) => {
+        if (uid === undefined) throw new ForbiddenResource('cost reads require an authenticated user context');
+        this.requireBudgetAddon();
+        return deps.listCostsForUser(uid);
+      });
+    }
+
+    if (has('db:write:costs')) {
+      // The first plugin path that MUTATES core data. Gate it exactly like a
+      // normal web-app/MCP budget write: addon enabled + trip access + the
+      // 'budget_edit' permission for the host-bound acting user.
+      this.methods.set('costs.create', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        if (uid === undefined) throw new ForbiddenResource('cost writes require an authenticated user context');
+        this.requireBudgetAddon();
+        const parsed = budgetCreateItemRequestSchema.safeParse(p.input);
+        if (!parsed.success) throw new BadParams(`invalid cost: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
+        if (!this.deps.canAccessTrip(tripId, uid)) throw new ForbiddenResource(`no access to trip ${tripId}`);
+        if (!this.deps.canEditCosts(tripId, uid)) throw new ForbiddenResource(`no permission to edit costs on trip ${tripId}`);
+        return deps.createCost(tripId, parsed.data);
+      });
     }
 
     if (has('db:read:users')) {
@@ -140,6 +186,13 @@ export class PluginRpcHost {
       throw new ForbiddenResource(`no access to trip ${tripId}`);
     }
     return read();
+  }
+
+  /** Refuse costs.* calls when the Costs (budget) addon is disabled. */
+  private requireBudgetAddon(): void {
+    if (!this.deps.budgetAddonEnabled()) {
+      throw new ForbiddenResource('the costs addon is disabled');
+    }
   }
 
   async dispatch(req: RpcRequest, actingUserId?: number): Promise<RpcResponse | RpcError> {

@@ -30,6 +30,8 @@ export interface AuditEntry {
 /** The methods worth auditing: core-data reads + broadcasts, not own-db noise. */
 export function auditResource(method: string, params: Record<string, unknown>): string | null {
   if (method.startsWith('trips.')) return `trip:${params.tripId ?? '?'}`;
+  if (method === 'costs.listMine') return 'costs:all';
+  if (method.startsWith('costs.')) return `trip:${params.tripId ?? '?'}`;
   if (method === 'users.getById') return `user:${params.id ?? '?'}`;
   if (method === 'ws.broadcastToTrip') return `trip:${params.tripId ?? '?'}`;
   if (method === 'ws.broadcastToUser') return `user:${params.userId ?? '?'}`;
@@ -38,7 +40,12 @@ export function auditResource(method: string, params: Record<string, unknown>): 
 
 /** True for calls we record (core data + ws); a plugin's own-db calls are skipped. */
 export function isAuditable(method: string): boolean {
-  return method.startsWith('trips.') || method.startsWith('users.') || method.startsWith('ws.');
+  return (
+    method.startsWith('trips.') ||
+    method.startsWith('costs.') ||
+    method.startsWith('users.') ||
+    method.startsWith('ws.')
+  );
 }
 
 /** Append one entry to the per-plugin hash chain. Synchronous (better-sqlite3). */

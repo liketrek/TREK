@@ -3,7 +3,6 @@
   "compilerOptions": {
     "module": "CommonJS",
     "moduleResolution": "Node",
-    "ignoreDeprecations": "6.0",
     "outDir": "dist/cjs"
   },
   "include": ["src/index.ts", "src/manifest.ts", "src/mock-host.ts"]
