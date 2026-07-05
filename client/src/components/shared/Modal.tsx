@@ -51,7 +51,7 @@ export default function Modal({
 
   return ReactDOM.createPortal(
     <div
-      className="fixed inset-0 z-[200] flex items-start sm:items-center justify-center px-4 trek-modal-backdrop trek-backdrop-enter bg-[rgba(15,23,42,0.5)]"
+      className="fixed inset-0 z-[10000] flex items-start sm:items-center justify-center px-4 trek-modal-backdrop trek-backdrop-enter bg-[rgba(15,23,42,0.5)]"
       style={{ paddingTop: 70, paddingBottom: 'calc(20px + var(--bottom-nav-h))', overflow: 'hidden' }}
       onMouseDown={e => { mouseDownTarget.current = e.target }}
       onClick={e => {
