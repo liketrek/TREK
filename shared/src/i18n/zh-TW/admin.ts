@@ -266,6 +266,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.ws:broadcast:user': '向個別使用者傳送即時更新',
   'admin.plugins.perm.hook:photo-provider': '為「回憶」提供照片',
   'admin.plugins.perm.hook:calendar-source': '為行事曆提供事件',
+  'admin.plugins.perm.hook:place-detail-provider': '為地點提供額外資訊（評論、評分、連結）',
   'admin.plugins.perm.http:outbound': '向其宣告的主機發出對外請求',
   'admin.plugins.updateConsentTitle': '此更新需要新的權限',
   'admin.plugins.updateConsentBody':
@@ -330,6 +331,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.realtime': '即時更新',
   'admin.plugins.cap.photos': '提供照片',
   'admin.plugins.cap.calendar': '提供行事曆事件',
+  'admin.plugins.cap.placeDetails': '豐富地點',
   'admin.plugins.accessTitle': '可存取的內容',
   'admin.plugins.connectsTitle': '連線至',
   'admin.plugins.detailsTitle': '詳細資訊',

@@ -263,6 +263,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.ws:broadcast:user': '個々のユーザーへのリアルタイム更新の送信',
   'admin.plugins.perm.hook:photo-provider': '「写真」機能への写真の提供',
   'admin.plugins.perm.hook:calendar-source': 'カレンダーへの予定の提供',
+  'admin.plugins.perm.hook:place-detail-provider': '場所に追加の詳細情報（レビュー、評価、リンク）を提供',
   'admin.plugins.perm.http:outbound': '宣言済みホストへの外部リクエストの送信',
   'admin.plugins.updateConsentTitle': 'このアップデートには新しい権限が必要です',
   'admin.plugins.updateConsentBody':
@@ -327,6 +328,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.realtime': 'リアルタイム更新',
   'admin.plugins.cap.photos': '写真を提供',
   'admin.plugins.cap.calendar': 'カレンダー予定を提供',
+  'admin.plugins.cap.placeDetails': '場所を充実',
   'admin.plugins.accessTitle': 'アクセスできるもの',
   'admin.plugins.connectsTitle': '接続先',
   'admin.plugins.detailsTitle': '詳細',

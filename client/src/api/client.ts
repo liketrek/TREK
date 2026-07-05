@@ -557,6 +557,10 @@ export const addonsApi = {
 export const pluginsApi = {
   // Active plugins the client renders (page nav entries, dashboard widgets).
   active: () => apiClient.get('/plugins').then(r => r.data),
+  // Extra place info contributed by placeDetailProvider plugins (#1429). Fail-safe:
+  // the server skips any slow/failing provider, so this only ever adds rows.
+  placeDetails: (placeId: number) =>
+    apiClient.get(`/place-details/${placeId}`).then(r => r.data as { providers: Array<{ pluginId: string; items: Array<{ label: string; value?: string; url?: string }> }> }),
   // Call one of a plugin's own declared routes through the host proxy. `sub` is
   // supplied by untrusted plugin code (the trekBridge forwards it verbatim), so it
   // MUST stay inside the plugin's own /plugins/:id/ namespace. We resolve it with

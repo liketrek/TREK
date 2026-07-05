@@ -49,6 +49,7 @@ interface Supervised {
   lastRss: number; // last reported resident set size (bytes)
   routes: PluginRouteInfo[];
   jobs: string[];
+  hooks: string[]; // provider hooks the plugin implements (e.g. 'placeDetailProvider')
   pending: Map<string, Pending>; // host→child invokes awaiting a response
   invocations: Map<string, number | undefined>; // reqId -> acting user of that invoke (undefined = no user, e.g. a job)
   activation?: { resolve: () => void; reject: (e: Error) => void };
@@ -109,6 +110,7 @@ export class PluginSupervisor {
       lastRss: 0,
       routes: [],
       jobs: [],
+      hooks: [],
       pending: new Map(),
       invocations: new Map(),
     };
@@ -162,6 +164,15 @@ export class PluginSupervisor {
   /** The plugin's declared HTTP routes (populated once it reports `loaded`). */
   routesOf(id: string): PluginRouteInfo[] {
     return this.running.get(id)?.routes ?? [];
+  }
+
+  /** Ids of ACTIVE plugins that implement a given provider hook (e.g. 'placeDetailProvider'). */
+  providersOf(hook: string): string[] {
+    const out: string[] = [];
+    for (const [id, sup] of this.running) {
+      if (sup.status === 'active' && sup.hooks.includes(hook)) out.push(id);
+    }
+    return out;
   }
 
   /**
@@ -283,9 +294,10 @@ export class PluginSupervisor {
           // not be able to re-register its route table once it is live.
           if (sup.status === 'active') break;
           sup.lastBeat = Date.now();
-          const d = msg.data as { routes?: PluginRouteInfo[]; jobs?: string[] };
+          const d = msg.data as { routes?: PluginRouteInfo[]; jobs?: string[]; hooks?: string[] };
           sup.routes = d.routes ?? [];
           sup.jobs = d.jobs ?? [];
+          sup.hooks = d.hooks ?? [];
           this.clearActivationTimer(sup);
           this.setStatus(sup, 'active');
           sup.activation?.resolve();

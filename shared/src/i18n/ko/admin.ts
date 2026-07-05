@@ -269,6 +269,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.ws:broadcast:user': '개별 사용자에게 실시간 업데이트 전송',
   'admin.plugins.perm.hook:photo-provider': '사진 기능에 사진 제공',
   'admin.plugins.perm.hook:calendar-source': '캘린더에 일정 제공',
+  'admin.plugins.perm.hook:place-detail-provider': '장소에 추가 정보(리뷰, 평점, 링크)를 제공',
   'admin.plugins.perm.http:outbound': '선언된 호스트로 아웃바운드 요청 전송',
   'admin.plugins.updateConsentTitle': '이 업데이트에는 새로운 권한이 필요합니다',
   'admin.plugins.updateConsentBody':
@@ -333,6 +334,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.realtime': '실시간 업데이트',
   'admin.plugins.cap.photos': '사진 제공',
   'admin.plugins.cap.calendar': '캘린더 일정 제공',
+  'admin.plugins.cap.placeDetails': '장소 정보 강화',
   'admin.plugins.accessTitle': '접근할 수 있는 항목',
   'admin.plugins.connectsTitle': '연결 대상',
   'admin.plugins.detailsTitle': '상세 정보',

@@ -284,6 +284,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.ws:broadcast:user': 'Skicka realtidsuppdateringar till enskilda användare',
   'admin.plugins.perm.hook:photo-provider': 'Tillhandahålla foton till Minnen',
   'admin.plugins.perm.hook:calendar-source': 'Tillhandahålla händelser till kalendern',
+  'admin.plugins.perm.hook:place-detail-provider': 'Bidra med extra detaljer (recensioner, betyg, länkar) till en plats',
   'admin.plugins.perm.http:outbound': 'Göra utgående anrop till sina deklarerade värdar',
   'admin.plugins.updateConsentTitle': 'Den här uppdateringen kräver nya behörigheter',
   'admin.plugins.updateConsentBody':
@@ -348,6 +349,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.realtime': 'Realtidsuppdateringar',
   'admin.plugins.cap.photos': 'Tillhandahåller foton',
   'admin.plugins.cap.calendar': 'Tillhandahåller kalenderhändelser',
+  'admin.plugins.cap.placeDetails': 'Berikar platser',
   'admin.plugins.accessTitle': 'Vad det har åtkomst till',
   'admin.plugins.connectsTitle': 'Ansluter till',
   'admin.plugins.detailsTitle': 'Detaljer',
