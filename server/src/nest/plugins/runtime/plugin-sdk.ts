@@ -38,6 +38,8 @@ export interface PluginContext {
     getByTrip(tripId: number): Promise<unknown[]>;
     listMine(): Promise<unknown[]>;
     create(tripId: number, input: Record<string, unknown>): Promise<unknown>;
+    update(tripId: number, itemId: number, input: Record<string, unknown>): Promise<unknown>;
+    delete(tripId: number, itemId: number): Promise<{ deleted: boolean }>;
   };
   // Core planner writes (#1429). Each is membership-checked against the current
   // invocation's user and needs the matching write scope + the app's edit
@@ -152,6 +154,8 @@ export function createPluginContext(
       getByTrip: (tripId) => t.rpc('costs.getByTrip', { tripId, _inv: invocationId }) as Promise<unknown[]>,
       listMine: () => t.rpc('costs.listMine', { _inv: invocationId }) as Promise<unknown[]>,
       create: (tripId, input) => t.rpc('costs.create', { tripId, input, _inv: invocationId }),
+      update: (tripId, itemId, input) => t.rpc('costs.update', { tripId, itemId, input, _inv: invocationId }),
+      delete: (tripId, itemId) => t.rpc('costs.delete', { tripId, itemId, _inv: invocationId }) as Promise<{ deleted: boolean }>,
     },
     places: {
       create: (tripId, input) => t.rpc('places.create', { tripId, input, _inv: invocationId }),

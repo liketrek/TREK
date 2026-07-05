@@ -1,5 +1,6 @@
 import {
   budgetCreateItemRequestSchema, type BudgetCreateItemRequest,
+  budgetUpdateItemRequestSchema, type BudgetUpdateItemRequest,
   placeCreateRequestSchema, placeUpdateRequestSchema,
   dayCreateRequestSchema, dayUpdateRequestSchema,
   tripUpdateRequestSchema,
@@ -60,6 +61,10 @@ export interface HostDeps {
   listCostsForUser(userId: number): unknown[];
   /** Create a budget item on a trip (and broadcast); returns the created item. */
   createCost(tripId: number, input: BudgetCreateItemRequest): unknown;
+  /** Update a budget item on a trip (and broadcast); returns the updated item. */
+  updateCost(tripId: number, itemId: number, input: BudgetUpdateItemRequest): unknown;
+  /** Delete a budget item from a trip (and broadcast); returns { deleted: true }. */
+  deleteCost(tripId: number, itemId: number): unknown;
   // --- Places (the 'place_edit' permission) ---
   canEditPlaces(tripId: number, userId: number): boolean;
   createPlace(tripId: number, input: Record<string, unknown>): unknown;
@@ -159,6 +164,31 @@ export class PluginRpcHost {
         if (!this.deps.canAccessTrip(tripId, uid)) throw new ForbiddenResource(`no access to trip ${tripId}`);
         if (!this.deps.canEditCosts(tripId, uid)) throw new ForbiddenResource(`no permission to edit costs on trip ${tripId}`);
         return deps.createCost(tripId, parsed.data);
+      });
+      // Same gate as costs.create — addon + trip access + the acting user's
+      // 'budget_edit' permission — plus the item id. updateCost re-freezes the FX
+      // rate through BudgetService.update exactly like the create path.
+      this.methods.set('costs.update', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const itemId = num(p.itemId, 'itemId');
+        if (uid === undefined) throw new ForbiddenResource('cost writes require an authenticated user context');
+        this.requireBudgetAddon();
+        const parsed = budgetUpdateItemRequestSchema.safeParse(p.input);
+        if (!parsed.success) throw new BadParams(`invalid cost: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
+        if (!this.deps.canAccessTrip(tripId, uid)) throw new ForbiddenResource(`no access to trip ${tripId}`);
+        if (!this.deps.canEditCosts(tripId, uid)) throw new ForbiddenResource(`no permission to edit costs on trip ${tripId}`);
+        return deps.updateCost(tripId, itemId, parsed.data);
+      });
+      // Deleting a cost is a budget write too: gated by db:write:costs and, per the
+      // app, the acting user's 'budget_edit' permission on the trip.
+      this.methods.set('costs.delete', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const itemId = num(p.itemId, 'itemId');
+        if (uid === undefined) throw new ForbiddenResource('cost writes require an authenticated user context');
+        this.requireBudgetAddon();
+        if (!this.deps.canAccessTrip(tripId, uid)) throw new ForbiddenResource(`no access to trip ${tripId}`);
+        if (!this.deps.canEditCosts(tripId, uid)) throw new ForbiddenResource(`no permission to edit costs on trip ${tripId}`);
+        return deps.deleteCost(tripId, itemId);
       });
     }
 

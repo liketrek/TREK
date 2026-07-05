@@ -22,6 +22,7 @@ const { budget } = vi.hoisted(() => ({
     listBudgetItems: vi.fn(),
     getPerPersonSummary: vi.fn(),
     calculateSettlement: vi.fn(),
+    freezeForeignRate: vi.fn(),
     createBudgetItem: vi.fn(),
     updateBudgetItem: vi.fn(),
     deleteBudgetItem: vi.fn(),
@@ -30,6 +31,7 @@ const { budget } = vi.hoisted(() => ({
     setItemPayers: vi.fn(),
     listSettlements: vi.fn(),
     createSettlement: vi.fn(),
+    updateSettlement: vi.fn(),
     deleteSettlement: vi.fn(),
     reorderBudgetItems: vi.fn(),
     reorderBudgetCategories: vi.fn(),
@@ -118,11 +120,15 @@ describe('BudgetService', () => {
     expect(budget.setItemPayers).toHaveBeenCalledWith('9', '5', [{ user_id: 2, amount: 10 }]);
   });
 
-  it('settlement ledger + reorder delegate', () => {
+  it('settlement ledger + reorder delegate', async () => {
     svc().listSettlements('5');
     expect(budget.listSettlements).toHaveBeenCalledWith('5');
-    svc().createSettlement('5', { from_user_id: 1, to_user_id: 2, amount: 10 }, 3);
+    // createSettlement freezes the FX rate (await) before delegating.
+    await svc().createSettlement('5', { from_user_id: 1, to_user_id: 2, amount: 10 }, 3);
+    expect(budget.freezeForeignRate).toHaveBeenCalledWith('5', { from_user_id: 1, to_user_id: 2, amount: 10 });
     expect(budget.createSettlement).toHaveBeenCalledWith('5', { from_user_id: 1, to_user_id: 2, amount: 10 }, 3);
+    await svc().updateSettlement('7', '5', { from_user_id: 1, to_user_id: 2, amount: 12 });
+    expect(budget.updateSettlement).toHaveBeenCalledWith('7', '5', { from_user_id: 1, to_user_id: 2, amount: 12 });
     svc().deleteSettlement('7', '5');
     expect(budget.deleteSettlement).toHaveBeenCalledWith('7', '5');
     svc().reorderItems('5', [3, 1]);

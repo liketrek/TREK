@@ -25,11 +25,14 @@ export interface PluginContext {
     update(tripId: number, input: Record<string, unknown>): Promise<unknown>;
   };
   // "Costs" = budget items. The acting user is bound by the host to the current
-  // invocation; `create` also needs 'budget_edit' and the Costs addon enabled.
+  // invocation; create/update/delete also need 'budget_edit' and the Costs addon
+  // enabled.
   costs: {
     getByTrip(tripId: number): Promise<unknown[]>;
     listMine(): Promise<unknown[]>;
     create(tripId: number, input: Record<string, unknown>): Promise<unknown>;
+    update(tripId: number, itemId: number, input: Record<string, unknown>): Promise<unknown>;
+    delete(tripId: number, itemId: number): Promise<{ deleted: boolean }>;
   };
   // Core planner writes (#1429). Membership-checked against the invocation's user;
   // each needs the matching write scope + the app's place_edit/day_edit permission.

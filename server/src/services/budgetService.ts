@@ -1,6 +1,7 @@
 import { db } from '../db/database';
 import { BudgetItem, BudgetItemMember, BudgetItemPayer } from '../types';
 import { avatarUrl } from './avatarUrl';
+import { getRates } from './exchangeRateService';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -96,6 +97,40 @@ export function listBudgetItems(tripId: string | number) {
     item.payers = payersByItem[item.id] || [];
   });
   return items;
+}
+
+/**
+ * Freeze the live FX rate at entry time into `exchange_rate` so a settled position
+ * isn't re-opened when live rates drift later (#1335 / #1445). The stored rate is
+ * "units of the item/display currency per 1 trip currency" — the settlement
+ * converts with it via `amount / rate`.
+ *
+ * Only freezes for a foreign currency with no explicit rate; degrades to live
+ * rates if the fetch fails. On update it (re)freezes only when the currency
+ * changes (checked against `budget_items`), so an unrelated edit never moves
+ * money. Callers must invoke this *before* the (synchronous) DB write — the raw
+ * create/update stay sync because better-sqlite3 transactions can't await.
+ */
+export async function freezeForeignRate(
+  tripId: string | number,
+  data: { currency?: string | null; exchange_rate?: number },
+  existingItemId?: string | number,
+): Promise<void> {
+  if (data.exchange_rate != null) return; // an explicit rate from the caller wins
+  const cur = (data.currency || '').toUpperCase();
+  if (!cur) return; // currency not being set in this request
+  if (existingItemId != null) {
+    const existing = db.prepare('SELECT currency FROM budget_items WHERE id = ?')
+      .get(existingItemId) as { currency?: string } | undefined;
+    if (existing && (existing.currency || '').toUpperCase() === cur) return; // currency unchanged
+  }
+  const trip = db.prepare('SELECT currency FROM trips WHERE id = ?')
+    .get(tripId) as { currency?: string } | undefined;
+  const tripCur = (trip?.currency || 'EUR').toUpperCase();
+  if (cur === tripCur) return; // same as the trip currency → no conversion to freeze
+  const rates = await getRates(tripCur);
+  const r = rates?.[cur];
+  if (r && r > 0) data.exchange_rate = r;
 }
 
 export function createBudgetItem(
@@ -398,10 +433,27 @@ export function calculateSettlement(
   // trip-currency → display currency, applied once to the final netted totals.
   const toDisplay = (v: number): number =>
     base === tripCurrency ? v : (rates && rates[tripCurrency] > 0 ? v / rates[tripCurrency] : v);
-  // A recorded settle-up amount is entered in whatever display currency the payer was
-  // viewing (the table has no currency column), so bring it into trip currency to net.
-  const settleToTrip = (v: number): number =>
-    base === tripCurrency ? v : (rates && rates[tripCurrency] > 0 ? v * rates[tripCurrency] : v);
+  // A recorded settle-up amount is entered in whatever display currency the payer
+  // was viewing. New rows capture that currency and the rate frozen at settle time
+  // (#1445), so a settled position stays balanced when live rates drift — mirroring
+  // toTrip for expenses. Legacy rows (currency = NULL) have no frozen rate, so fall
+  // back to the old behaviour: assume they were entered in the current display base
+  // and convert with live rates.
+  const settleToTrip = (amount: number, sCurrency?: string | null, sRate?: number | null): number => {
+    if (sCurrency) {
+      const cur = sCurrency.toUpperCase();
+      if (cur === tripCurrency) return amount;
+      if (sRate != null && sRate > 0 && sRate !== 1) return amount / sRate;
+      // Frozen currency but no usable rate (fetch failed at settle time): live fallback.
+      if (rates) {
+        const rCur = rates[cur];
+        const rTrip = rates[tripCurrency];
+        if (rCur && rCur > 0 && rTrip && rTrip > 0) return (amount / rCur) * rTrip;
+      }
+      return amount;
+    }
+    return base === tripCurrency ? amount : (rates && rates[tripCurrency] > 0 ? amount * rates[tripCurrency] : amount);
+  };
 
   const items = db.prepare('SELECT * FROM budget_items WHERE trip_id = ?').all(tripId) as BudgetItem[];
   const allMembers = db.prepare(`
@@ -457,8 +509,9 @@ export function calculateSettlement(
     return balances[id];
   };
   for (const s of settlements) {
-    ensureSettled(s.from_user_id, s.from_username, s.from_avatar_url).balance += settleToTrip(s.amount);
-    ensureSettled(s.to_user_id, s.to_username, s.to_avatar_url).balance -= settleToTrip(s.amount);
+    const inTrip = settleToTrip(s.amount, s.currency, s.exchange_rate);
+    ensureSettled(s.from_user_id, s.from_username, s.from_avatar_url).balance += inTrip;
+    ensureSettled(s.to_user_id, s.to_username, s.to_avatar_url).balance -= inTrip;
   }
 
   // Calculate optimized payment flows (greedy algorithm)
@@ -501,7 +554,7 @@ export function calculateSettlement(
 
 export function listSettlements(tripId: string | number) {
   const rows = db.prepare(`
-    SELECT s.id, s.trip_id, s.from_user_id, s.to_user_id, s.amount, s.created_at, s.created_by_user_id,
+    SELECT s.id, s.trip_id, s.from_user_id, s.to_user_id, s.amount, s.currency, s.exchange_rate, s.created_at, s.created_by_user_id,
            fu.username AS from_username, fu.avatar AS from_avatar,
            tu.username AS to_username,   tu.avatar AS to_avatar
     FROM budget_settlements s
@@ -513,7 +566,8 @@ export function listSettlements(tripId: string | number) {
   return rows.map(r => ({
     id: r.id, trip_id: r.trip_id,
     from_user_id: r.from_user_id, to_user_id: r.to_user_id,
-    amount: r.amount, created_at: r.created_at, created_by_user_id: r.created_by_user_id,
+    amount: r.amount, currency: r.currency ?? null, exchange_rate: r.exchange_rate ?? 1,
+    created_at: r.created_at, created_by_user_id: r.created_by_user_id,
     from_username: r.from_username, from_avatar_url: avatarUrl({ avatar: r.from_avatar }),
     to_username: r.to_username, to_avatar_url: avatarUrl({ avatar: r.to_avatar }),
   }));
@@ -521,25 +575,39 @@ export function listSettlements(tripId: string | number) {
 
 export function createSettlement(
   tripId: string | number,
-  data: { from_user_id: number; to_user_id: number; amount: number },
+  data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null; exchange_rate?: number },
   createdByUserId?: number,
 ) {
   const result = db.prepare(
-    'INSERT INTO budget_settlements (trip_id, from_user_id, to_user_id, amount, created_by_user_id) VALUES (?, ?, ?, ?, ?)'
-  ).run(tripId, data.from_user_id, data.to_user_id, Math.round(data.amount * 100) / 100, createdByUserId ?? null);
+    'INSERT INTO budget_settlements (trip_id, from_user_id, to_user_id, amount, currency, exchange_rate, created_by_user_id) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).run(
+    tripId, data.from_user_id, data.to_user_id, Math.round(data.amount * 100) / 100,
+    data.currency ? data.currency.toUpperCase() : null,
+    data.exchange_rate != null ? data.exchange_rate : 1,
+    createdByUserId ?? null,
+  );
   return listSettlements(tripId).find(s => s.id === Number(result.lastInsertRowid)) || null;
 }
 
 export function updateSettlement(
   id: string | number,
   tripId: string | number,
-  data: { from_user_id: number; to_user_id: number; amount: number },
+  data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null; exchange_rate?: number },
 ) {
   const row = db.prepare('SELECT id FROM budget_settlements WHERE id = ? AND trip_id = ?').get(id, tripId);
   if (!row) return null;
-  db.prepare(
-    'UPDATE budget_settlements SET from_user_id = ?, to_user_id = ?, amount = ? WHERE id = ?'
-  ).run(data.from_user_id, data.to_user_id, Math.round(data.amount * 100) / 100, id);
+  db.prepare(`
+    UPDATE budget_settlements SET
+      from_user_id = ?, to_user_id = ?, amount = ?,
+      currency = CASE WHEN ? THEN ? ELSE currency END,
+      exchange_rate = CASE WHEN ? IS NOT NULL THEN ? ELSE exchange_rate END
+    WHERE id = ?
+  `).run(
+    data.from_user_id, data.to_user_id, Math.round(data.amount * 100) / 100,
+    data.currency !== undefined ? 1 : 0, data.currency ? data.currency.toUpperCase() : null,
+    data.exchange_rate !== undefined ? 1 : null, data.exchange_rate !== undefined ? data.exchange_rate : 1,
+    id,
+  );
   return listSettlements(tripId).find(s => s.id === Number(id)) || null;
 }
 

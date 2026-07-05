@@ -35,7 +35,13 @@ vi.mock('../../../src/db/database', () => {
 vi.mock('../../../src/websocket', () => ({ broadcast, broadcastToUser }));
 vi.mock('../../../src/services/adminService', () => ({ isAddonEnabled: () => true }));
 vi.mock('../../../src/nest/budget/budget.service', () => ({
-  BudgetService: class { async create(tid: string, input: Record<string, unknown>) { return { id: 1, trip_id: Number(tid), ...input }; } },
+  BudgetService: class {
+    async create(tid: string, input: Record<string, unknown>) { return { id: 1, trip_id: Number(tid), ...input }; }
+    async update(id: string, tid: string, input: Record<string, unknown>) {
+      return id === '404' ? null : { id: Number(id), trip_id: Number(tid), ...input };
+    }
+    remove(id: string, _tid: string) { return id !== '404'; }
+  },
 }));
 
 // Edit permission — flip per test to exercise the gates.
@@ -190,6 +196,30 @@ describe('create-rpc-host — planner write + metadata deps', () => {
     expect(broadcast).toHaveBeenCalledWith(1, 'budget:created', expect.anything());
     expect((await call(h, 'costs.getByTrip', { tripId: 1 })).ok).toBe(true);
     expect((await call(h, 'costs.listMine', {})).ok).toBe(true);
+  });
+
+  it('costs deps: update wired through BudgetService.update + broadcasts budget:updated', async () => {
+    const h = host('db:write:costs');
+    expect((await call(h, 'costs.update', { tripId: 1, itemId: 9, input: { name: 'Hostel' } })).ok).toBe(true);
+    expect(broadcast).toHaveBeenCalledWith(1, 'budget:updated', expect.anything());
+  });
+
+  it('costs deps: update of a missing item is RESOURCE_FORBIDDEN', async () => {
+    const h = host('db:write:costs');
+    expect((await call(h, 'costs.update', { tripId: 1, itemId: 404, input: { name: 'X' } })).error.code).toBe('RESOURCE_FORBIDDEN');
+  });
+
+  it('costs deps: delete wired through BudgetService.remove + broadcasts budget:deleted', async () => {
+    const h = host('db:write:costs');
+    const res = await call(h, 'costs.delete', { tripId: 1, itemId: 9 });
+    expect(res.ok).toBe(true);
+    expect(res.result).toMatchObject({ deleted: true });
+    expect(broadcast).toHaveBeenCalledWith(1, 'budget:deleted', { itemId: 9 });
+  });
+
+  it('costs deps: delete of a missing item is RESOURCE_FORBIDDEN', async () => {
+    const h = host('db:write:costs');
+    expect((await call(h, 'costs.delete', { tripId: 1, itemId: 404 })).error.code).toBe('RESOURCE_FORBIDDEN');
   });
 
   it('users.getById is scoped to people the acting user shares a trip with', async () => {

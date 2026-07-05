@@ -41,6 +41,8 @@ function makeDeps(): HostDeps {
       { id: 6, trip_id: 2, name: 'Food' },
     ]),
     createCost: vi.fn((tripId: number, input: unknown) => ({ id: 9, trip_id: tripId, ...(input as object) })),
+    updateCost: vi.fn((tripId: number, itemId: number, input: unknown) => ({ id: itemId, trip_id: tripId, ...(input as object) })),
+    deleteCost: vi.fn(() => ({ deleted: true })),
     // Planner writes — user 42 may edit trip 1 only (mirrors canAccessTrip).
     canEditPlaces: vi.fn((tripId: number, userId: number) => tripId === 1 && userId === 42),
     createPlace: vi.fn((tripId: number, input: unknown) => ({ id: 10, trip_id: tripId, ...(input as object) })),
@@ -329,6 +331,86 @@ describe('PluginRpcHost — capability enforcement', () => {
   it('costs.create is PERMISSION_DENIED without db:write:costs', async () => {
     const host = new PluginRpcHost('p', new Set(['db:read:costs']), deps);
     const res = await host.dispatch(req('costs.create', { tripId: 1, input: { name: 'Hotel' } }), 42);
+    expect((res as RpcError).error.code).toBe('PERMISSION_DENIED');
+  });
+
+  it('db:write:costs updates a cost when the user may edit the trip', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:costs']), deps);
+    const res = await host.dispatch(req('costs.update', { tripId: 1, itemId: 5, input: { name: 'Hostel' } }), 42);
+    expect(ok(res)).toBe(true);
+    expect((res as RpcResponse).result).toMatchObject({ id: 5, trip_id: 1, name: 'Hostel' });
+    expect(deps.updateCost).toHaveBeenCalledWith(1, 5, expect.objectContaining({ name: 'Hostel' }));
+  });
+
+  it('costs.update is RESOURCE_FORBIDDEN without the budget_edit permission', async () => {
+    (deps.canEditCosts as ReturnType<typeof vi.fn>).mockReturnValue(false);
+    const host = new PluginRpcHost('p', new Set(['db:write:costs']), deps);
+    const res = await host.dispatch(req('costs.update', { tripId: 1, itemId: 5, input: { name: 'X' } }), 42);
+    expect((res as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect(deps.updateCost).not.toHaveBeenCalled();
+  });
+
+  it('costs.update on a trip the user cannot access is RESOURCE_FORBIDDEN', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:costs']), deps);
+    const res = await host.dispatch(req('costs.update', { tripId: 1, itemId: 5, input: { name: 'X' } }), 99);
+    expect((res as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect(deps.updateCost).not.toHaveBeenCalled();
+  });
+
+  it('costs.update with an invalid payload is BAD_PARAMS', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:costs']), deps);
+    // total_price must be a number per budgetUpdateItemRequestSchema.
+    const res = await host.dispatch(req('costs.update', { tripId: 1, itemId: 5, input: { total_price: 'nope' } }), 42);
+    expect((res as RpcError).error.code).toBe('BAD_PARAMS');
+    expect(deps.updateCost).not.toHaveBeenCalled();
+  });
+
+  it('costs.update with no bound acting user is RESOURCE_FORBIDDEN', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:costs']), deps);
+    const res = await host.dispatch(req('costs.update', { tripId: 1, itemId: 5, input: { name: 'X' } }), undefined);
+    expect((res as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect(deps.updateCost).not.toHaveBeenCalled();
+  });
+
+  it('costs.update is PERMISSION_DENIED without db:write:costs', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:read:costs']), deps);
+    const res = await host.dispatch(req('costs.update', { tripId: 1, itemId: 5, input: { name: 'X' } }), 42);
+    expect((res as RpcError).error.code).toBe('PERMISSION_DENIED');
+  });
+
+  it('db:write:costs deletes a cost when the user may edit the trip', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:costs']), deps);
+    const res = await host.dispatch(req('costs.delete', { tripId: 1, itemId: 5 }), 42);
+    expect(ok(res)).toBe(true);
+    expect((res as RpcResponse).result).toMatchObject({ deleted: true });
+    expect(deps.deleteCost).toHaveBeenCalledWith(1, 5);
+  });
+
+  it('costs.delete is RESOURCE_FORBIDDEN without the budget_edit permission', async () => {
+    (deps.canEditCosts as ReturnType<typeof vi.fn>).mockReturnValue(false);
+    const host = new PluginRpcHost('p', new Set(['db:write:costs']), deps);
+    const res = await host.dispatch(req('costs.delete', { tripId: 1, itemId: 5 }), 42);
+    expect((res as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect(deps.deleteCost).not.toHaveBeenCalled();
+  });
+
+  it('costs.delete on a trip the user cannot access is RESOURCE_FORBIDDEN', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:costs']), deps);
+    const res = await host.dispatch(req('costs.delete', { tripId: 1, itemId: 5 }), 99);
+    expect((res as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect(deps.deleteCost).not.toHaveBeenCalled();
+  });
+
+  it('costs.delete with no bound acting user is RESOURCE_FORBIDDEN', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:costs']), deps);
+    const res = await host.dispatch(req('costs.delete', { tripId: 1, itemId: 5 }), undefined);
+    expect((res as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect(deps.deleteCost).not.toHaveBeenCalled();
+  });
+
+  it('costs.delete is PERMISSION_DENIED without db:write:costs', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:read:costs']), deps);
+    const res = await host.dispatch(req('costs.delete', { tripId: 1, itemId: 5 }), 42);
     expect((res as RpcError).error.code).toBe('PERMISSION_DENIED');
   });
 

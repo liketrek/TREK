@@ -4,7 +4,7 @@ import { checkPermission } from '../../services/permissions';
 import { verifyTripAccess } from '../../services/tripAccess';
 import { createReservation } from '../../services/reservationService';
 import { createPlace } from '../../services/placeService';
-import { createBudgetItem } from '../../services/budgetService';
+import { createBudgetItem, freezeForeignRate } from '../../services/budgetService';
 import { isAddonEnabled } from '../../services/adminService';
 import { ADDON_IDS } from '../../addons';
 import { searchNominatim } from '../../services/mapsService';
@@ -235,13 +235,17 @@ export class BookingImportService {
           const price = meta && meta.price != null ? Number(meta.price) : NaN;
           if (Number.isFinite(price) && price > 0) {
             try {
-              const budgetItem = createBudgetItem(tripId, {
+              const budgetData = {
                 category: typeToCostCategory(item.type),
                 name: item.title,
                 total_price: price,
                 currency: meta && typeof meta.priceCurrency === 'string' ? meta.priceCurrency : null,
                 reservation_id: reservation.id,
-              });
+              };
+              // Freeze the live FX rate for a foreign-currency booking price so a
+              // settled position isn't re-opened when live rates drift (#1445).
+              await freezeForeignRate(tripId, budgetData);
+              const budgetItem = createBudgetItem(tripId, budgetData);
               broadcast(tripId, 'budget:created', { item: budgetItem }, socketId);
             } catch (err) {
               console.error(

@@ -74,10 +74,10 @@ export class BudgetController {
   }
 
   @Post('settlements')
-  createSettlement(
+  async createSettlement(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body() body: { from_user_id?: number; to_user_id?: number; amount?: number },
+    @Body() body: { from_user_id?: number; to_user_id?: number; amount?: number; currency?: string | null },
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
@@ -85,9 +85,9 @@ export class BudgetController {
     if (body.from_user_id == null || body.to_user_id == null || body.amount == null) {
       throw new HttpException({ error: 'from_user_id, to_user_id and amount are required' }, 400);
     }
-    const settlement = this.budget.createSettlement(
+    const settlement = await this.budget.createSettlement(
       tripId,
-      { from_user_id: body.from_user_id, to_user_id: body.to_user_id, amount: body.amount },
+      { from_user_id: body.from_user_id, to_user_id: body.to_user_id, amount: body.amount, currency: body.currency },
       user.id,
     );
     this.budget.broadcast(tripId, 'budget:settlement-created', { settlement }, socketId);
@@ -95,11 +95,11 @@ export class BudgetController {
   }
 
   @Put('settlements/:settlementId')
-  updateSettlement(
+  async updateSettlement(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Param('settlementId') settlementId: string,
-    @Body() body: { from_user_id?: number; to_user_id?: number; amount?: number },
+    @Body() body: { from_user_id?: number; to_user_id?: number; amount?: number; currency?: string | null },
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
@@ -107,10 +107,11 @@ export class BudgetController {
     if (body.from_user_id == null || body.to_user_id == null || body.amount == null) {
       throw new HttpException({ error: 'from_user_id, to_user_id and amount are required' }, 400);
     }
-    const settlement = this.budget.updateSettlement(settlementId, tripId, {
+    const settlement = await this.budget.updateSettlement(settlementId, tripId, {
       from_user_id: body.from_user_id,
       to_user_id: body.to_user_id,
       amount: body.amount,
+      currency: body.currency,
     });
     if (!settlement) {
       throw new HttpException({ error: 'Settlement not found' }, 404);

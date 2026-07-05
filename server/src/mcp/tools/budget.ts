@@ -5,7 +5,7 @@ import { isDemoUser } from '../../services/authService';
 import {
   createBudgetItem, updateBudgetItem, deleteBudgetItem,
   updateMembers as updateBudgetMembers,
-  toggleMemberPaid, getBudgetItem,
+  toggleMemberPaid, getBudgetItem, freezeForeignRate,
   calculateSettlement, listSettlements, createSettlement, updateSettlement, deleteSettlement,
 } from '../../services/budgetService';
 import { getRates } from '../../services/exchangeRateService';
@@ -68,7 +68,11 @@ export function registerBudgetTools(server: McpServer, userId: number, scopes: s
       if (!canAccessTrip(tripId, userId)) return noAccess();
       if (!hasTripPermission('budget_edit', tripId, userId)) return permissionDenied();
       const members = resolveMemberIds(tripId, member_ids);
-      const item = createBudgetItem(tripId, { category, name, total_price, currency, member_ids: members, payers, expense_date, note });
+      const itemData = { category, name, total_price, currency, member_ids: members, payers, expense_date, note };
+      // Freeze the live FX rate at entry time so a settled position isn't re-opened
+      // when live rates drift (#1445) — same as the REST create path.
+      await freezeForeignRate(tripId, itemData);
+      const item = createBudgetItem(tripId, itemData);
       safeBroadcast(tripId, 'budget:created', { item });
       return ok({ item });
     }

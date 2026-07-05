@@ -103,6 +103,15 @@ describe('createMockHost', () => {
     // write: allowed where the user may edit, refused where they may not
     expect(await ctx.costs.create(1, { name: 'Taxi' })).toMatchObject({ trip_id: 1, name: 'Taxi' });
     await expect(ctx.costs.create(2, { name: 'Nope' })).rejects.toThrow(/RESOURCE_FORBIDDEN/);
+    // update: edits an existing item where allowed, refused without edit permission
+    expect(await ctx.costs.update(1, 5, { name: 'Hostel' })).toMatchObject({ id: 5, name: 'Hostel' });
+    await expect(ctx.costs.update(2, 6, { name: 'Nope' })).rejects.toThrow(/RESOURCE_FORBIDDEN/);
+    // update: a missing item is refused
+    await expect(ctx.costs.update(1, 999, { name: 'X' })).rejects.toThrow(/RESOURCE_FORBIDDEN/);
+    // delete: removes where allowed, refused without edit permission / when missing
+    expect(await ctx.costs.delete(1, 5)).toEqual({ deleted: true });
+    await expect(ctx.costs.delete(2, 6)).rejects.toThrow(/RESOURCE_FORBIDDEN/);
+    await expect(ctx.costs.delete(1, 999)).rejects.toThrow(/RESOURCE_FORBIDDEN/);
   });
 
   it('gates planner writes (places/days/itinerary/trips) on grant, membership and edit permission', async () => {

@@ -106,6 +106,23 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>): Plu
       broadcast(tripId, 'budget:created', { item });
       return item;
     },
+    // Reuses BudgetService.update (re-frozen FX on a currency change), then
+    // broadcasts the same 'budget:updated' event the REST controller emits. A
+    // missing item is a clean RESOURCE_FORBIDDEN (parity with updatePlace).
+    updateCost: async (tripId, itemId, input) => {
+      const item = await budgetSvc.update(String(itemId), String(tripId), input);
+      if (item == null) throw new ForbiddenResource(`no cost ${itemId} on trip ${tripId}`);
+      broadcast(tripId, 'budget:updated', { item });
+      return item;
+    },
+    // Reuses BudgetService.remove, then broadcasts 'budget:deleted' with the
+    // numeric id — same payload the REST controller sends.
+    deleteCost: (tripId, itemId) => {
+      const deleted = budgetSvc.remove(String(itemId), String(tripId));
+      if (!deleted) throw new ForbiddenResource(`no cost ${itemId} on trip ${tripId}`);
+      broadcast(tripId, 'budget:deleted', { itemId });
+      return { deleted: true };
+    },
     // --- Places (place_edit). Delegate to the same placeService the REST/MCP paths
     // use, then broadcast the same events so open web sessions update live. ---
     canEditPlaces: (tripId, userId) => canEditTripAs('place_edit', tripId, userId),

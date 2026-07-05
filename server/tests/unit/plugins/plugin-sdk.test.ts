@@ -53,6 +53,12 @@ describe('createPluginContext', () => {
     await ctx.costs.create(1, { name: 'Hotel' });
     expect(rpc).toHaveBeenCalledWith('costs.create', { tripId: 1, input: { name: 'Hotel' }, _inv: 'inv-1' });
 
+    await ctx.costs.update(1, 5, { name: 'Hostel' });
+    expect(rpc).toHaveBeenCalledWith('costs.update', { tripId: 1, itemId: 5, input: { name: 'Hostel' }, _inv: 'inv-1' });
+
+    await ctx.costs.delete(1, 5);
+    expect(rpc).toHaveBeenCalledWith('costs.delete', { tripId: 1, itemId: 5, _inv: 'inv-1' });
+
     await ctx.ws.broadcastToUser(9, 'poke', { x: 2 });
     expect(rpc).toHaveBeenCalledWith('ws.broadcastToUser', { userId: 9, event: 'poke', data: { x: 2 } });
   });

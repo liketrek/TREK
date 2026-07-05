@@ -179,8 +179,11 @@ export type BudgetUpdatePayersRequest = z.infer<typeof budgetUpdatePayersRequest
 
 /**
  * A persisted settle-up transfer (budget_settlements row): "from paid to" a
- * given amount in the trip base currency. Creating one marks a suggested flow as
- * paid; deleting it (undo) brings the flow back. Names joined for display.
+ * given amount, entered in the payer's display `currency`. `exchange_rate` is the
+ * live rate frozen at settle time (units of that currency per 1 trip currency), so
+ * a settled position stays balanced when live rates drift (#1445). Legacy rows
+ * have currency = null / exchange_rate = 1 and convert with live rates. Creating
+ * one marks a suggested flow as paid; deleting it (undo) brings the flow back.
  */
 export const budgetSettlementSchema = z.object({
   id: z.number(),
@@ -188,6 +191,8 @@ export const budgetSettlementSchema = z.object({
   from_user_id: z.number(),
   to_user_id: z.number(),
   amount: z.number(),
+  currency: z.string().nullable().optional(),
+  exchange_rate: z.number().optional(),
   created_at: z.string().optional(),
   created_by_user_id: z.number().nullable().optional(),
   from_username: z.string().optional(),
@@ -201,6 +206,8 @@ export const budgetCreateSettlementRequestSchema = z.object({
   from_user_id: z.number(),
   to_user_id: z.number(),
   amount: z.number(),
+  // The display currency the amount was entered in; the server freezes its FX rate.
+  currency: z.string().nullable().optional(),
 });
 export type BudgetCreateSettlementRequest = z.infer<typeof budgetCreateSettlementRequestSchema>;
 
@@ -209,6 +216,7 @@ export const budgetUpdateSettlementRequestSchema = z.object({
   from_user_id: z.number(),
   to_user_id: z.number(),
   amount: z.number(),
+  currency: z.string().nullable().optional(),
 });
 export type BudgetUpdateSettlementRequest = z.infer<typeof budgetUpdateSettlementRequestSchema>;
 

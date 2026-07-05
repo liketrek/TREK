@@ -259,7 +259,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
   // ── settle actions ──────────────────────────────────────────────────────
   const settleFlow = async (fromId: number, toId: number, amount: number) => {
     try {
-      await budgetApi.createSettlement(tripId, { from_user_id: fromId, to_user_id: toId, amount })
+      await budgetApi.createSettlement(tripId, { from_user_id: fromId, to_user_id: toId, amount, currency: base })
       loadSettlement()
     } catch { toast.error(t('common.unknownError')) }
   }
@@ -270,7 +270,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     const flows = settlement?.flows || []
     if (!flows.length) return
     try {
-      for (const f of flows) await budgetApi.createSettlement(tripId, { from_user_id: f.from.user_id, to_user_id: f.to.user_id, amount: f.amount })
+      for (const f of flows) await budgetApi.createSettlement(tripId, { from_user_id: f.from.user_id, to_user_id: f.to.user_id, amount: f.amount, currency: base })
       loadSettlement()
     } catch { toast.error(t('common.unknownError')) }
   }
@@ -485,7 +485,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
       )}
 
       {(editingSettlement || addingPayment) && (
-        <SettlementModal tripId={tripId} people={people} me={me} editing={editingSettlement}
+        <SettlementModal tripId={tripId} people={people} me={me} editing={editingSettlement} currency={base}
           onClose={() => { setEditingSettlement(null); setAddingPayment(false) }}
           onSaved={() => { setEditingSettlement(null); setAddingPayment(false); loadSettlement() }} />
       )}
@@ -858,8 +858,8 @@ function FlowPills({ ids, lead, Avatar, name }: { ids: number[]; lead: string; A
 // Add or edit a settle-up payment (from / to / amount). Reachable inline from the
 // ledger row and from a manual "Add payment" button, so recording "I sent money to
 // X" works the same whether or not there's an outstanding expense behind it.
-function SettlementModal({ tripId, people, me, editing, onClose, onSaved }: {
-  tripId: number; people: TripMember[]; me: number; editing: Settlement | null; onClose: () => void; onSaved: () => void
+function SettlementModal({ tripId, people, me, editing, currency, onClose, onSaved }: {
+  tripId: number; people: TripMember[]; me: number; editing: Settlement | null; currency: string; onClose: () => void; onSaved: () => void
 }) {
   const { t } = useTranslation()
   const toast = useToast()
@@ -876,7 +876,7 @@ function SettlementModal({ tripId, people, me, editing, onClose, onSaved }: {
   const save = async () => {
     if (!valid) return
     setSaving(true)
-    const data = { from_user_id: Number(fromId), to_user_id: Number(toId), amount: amt }
+    const data = { from_user_id: Number(fromId), to_user_id: Number(toId), amount: amt, currency }
     try {
       if (editing) await budgetApi.updateSettlement(tripId, editing.id, data)
       else await budgetApi.createSettlement(tripId, data)

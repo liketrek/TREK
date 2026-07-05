@@ -149,6 +149,31 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
         (t.costs ??= []).push(item);
         return item;
       },
+      async update(tripId, itemId, input) {
+        need('db:write:costs', 'costs.update');
+        requireBudgetAddon();
+        const t = assertMember(tripId, requireActingUser());
+        if (t.canEditCosts === false) {
+          throw new Error(`RESOURCE_FORBIDDEN: no permission to edit costs on trip ${tripId}`);
+        }
+        const item = rows(t.costs).find((x) => x.id === itemId);
+        if (!item) throw new Error(`RESOURCE_FORBIDDEN: no cost ${itemId} on trip ${tripId}`);
+        Object.assign(item, input);
+        return item;
+      },
+      async delete(tripId, itemId) {
+        need('db:write:costs', 'costs.delete');
+        requireBudgetAddon();
+        const t = assertMember(tripId, requireActingUser());
+        if (t.canEditCosts === false) {
+          throw new Error(`RESOURCE_FORBIDDEN: no permission to edit costs on trip ${tripId}`);
+        }
+        const list = rows((t.costs ??= []));
+        const i = list.findIndex((x) => x.id === itemId);
+        if (i < 0) throw new Error(`RESOURCE_FORBIDDEN: no cost ${itemId} on trip ${tripId}`);
+        list.splice(i, 1);
+        return { deleted: true };
+      },
     },
     places: {
       async create(tripId, input) {

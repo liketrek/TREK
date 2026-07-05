@@ -3438,6 +3438,26 @@ function runMigrations(db: Database.Database): void {
       );`);
       db.exec('CREATE INDEX IF NOT EXISTS idx_plugin_meta_entity ON plugin_entity_metadata (plugin_id, entity_type, entity_id);');
     },
+
+    // Freeze the FX rate on settle-up transfers too (#1445). budget_settlements
+    // stored only a bare `amount` in whatever display currency the payer was
+    // viewing, so a later live-rate drift re-opened an already-settled position
+    // with a few-cent residual. Capture the display `currency` and the rate frozen
+    // at settle time (units of that currency per 1 trip currency), mirroring the
+    // budget_items columns. Legacy rows keep currency = NULL / rate = 1 and stay on
+    // live rates until re-edited.
+    () => {
+      try {
+        db.exec('ALTER TABLE budget_settlements ADD COLUMN currency TEXT');
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) throw err;
+      }
+      try {
+        db.exec('ALTER TABLE budget_settlements ADD COLUMN exchange_rate REAL NOT NULL DEFAULT 1');
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) throw err;
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {
