@@ -34,6 +34,7 @@ const budgetSvc = new BudgetService();
 // Quotas for plugin entity metadata (db:meta) — a cheap disk-DoS guard on the
 // shared trek.db volume. Generous for real use, small enough to bound abuse.
 const META_VALUE_MAX = 64 * 1024; // serialized JSON bytes per value
+const META_KEY_MAX = 256; // key string length (the key is attacker-controlled too)
 const META_KEYS_MAX = 100; // keys per (plugin, entity)
 
 /**
@@ -167,6 +168,15 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>): Plu
     // NotFound/Validation errors are mapped to clean RPC codes. ---
     canEditTrip: (tripId, userId) => canEditTripAs('trip_edit', tripId, userId),
     updateTrip: (tripId, userId, input) => {
+      // The REST controller gates two fields behind their OWN admin-configurable
+      // permissions, separate from trip_edit — reproduce that here so a plugin (or
+      // its member user) can't archive or re-cover a trip it may only edit.
+      if ('is_archived' in input && !canEditTripAs('trip_archive', tripId, userId)) {
+        throw new ForbiddenResource(`no permission to archive trip ${tripId}`);
+      }
+      if ('cover_image' in input && !canEditTripAs('trip_cover_upload', tripId, userId)) {
+        throw new ForbiddenResource(`no permission to change the cover of trip ${tripId}`);
+      }
       const u = db.prepare('SELECT role FROM users WHERE id = ?').get(userId) as { role?: string } | undefined;
       try {
         const result = updateTrip(tripId, userId, input as Parameters<typeof updateTrip>[2], u?.role ?? 'user');
@@ -194,6 +204,7 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>): Plu
       try { return JSON.parse(row.value); } catch { return null; }
     },
     metaSet: (entityType, entityId, key, value) => {
+      if (key.length > META_KEY_MAX) throw new BadParams(`metadata key too long (>${META_KEY_MAX} chars)`);
       const json = JSON.stringify(value ?? null);
       if (json.length > META_VALUE_MAX) throw new BadParams(`metadata value too large (>${META_VALUE_MAX} bytes)`);
       const exists = db.prepare('SELECT 1 FROM plugin_entity_metadata WHERE plugin_id=? AND entity_type=? AND entity_id=? AND key=?')

@@ -16,7 +16,8 @@ const { testDb } = vi.hoisted(() => {
     config TEXT DEFAULT '{}', last_error TEXT, updated_at TEXT);
     CREATE TABLE plugin_error_log (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, level TEXT, message TEXT, ts TEXT);
     CREATE TABLE plugin_settings_fields (plugin_id TEXT, field_key TEXT, scope TEXT, secret INTEGER);
-    CREATE TABLE settings (user_id INTEGER, key TEXT, value TEXT);`);
+    CREATE TABLE settings (user_id INTEGER, key TEXT, value TEXT);
+    CREATE TABLE plugin_entity_metadata (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, entity_type TEXT, entity_id INTEGER, key TEXT, value TEXT, updated_at TEXT);`);
   return { testDb: db };
 });
 vi.mock('../../../src/db/database', () => ({ db: testDb, canAccessTrip: () => undefined }));

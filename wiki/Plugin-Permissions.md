@@ -18,8 +18,8 @@ ungranted capability is physically unreachable**, not just disallowed. See
 | `db:write:places` | Create/update/delete places via `ctx.places` | Trip access **+** the `place_edit` permission. Input validated against TREK's schema; every write audited. |
 | `db:write:days` | Create/update/delete days via `ctx.days` | Trip access **+** the `day_edit` permission. |
 | `db:write:itinerary` | Assign/remove places on days via `ctx.itinerary` | Trip access **+** the `day_edit` permission (it's a day edit). |
-| `db:write:trips` | Update trip details via `ctx.trips.update` | Trip access **+** the `trip_edit` permission. Only schema-writable fields (title, dates, currency, reminder_days, …). |
-| `db:meta` | Store the plugin's **own** private key/value data on a trip/place/day via `ctx.meta` | Namespaced per plugin (a plugin only sees its own rows); the entity must belong to a trip the acting user can **access**. Quotas: ≤64 KB per value, ≤100 keys per entity. Purged when the plugin is uninstalled with "delete data". |
+| `db:write:trips` | Update trip details via `ctx.trips.update` | Trip access **+** `trip_edit`. Only schema-writable fields; **archiving** additionally needs `trip_archive` and **cover_image** needs `trip_cover_upload` (same split as the web UI). |
+| `db:meta` | Store the plugin's **own** private key/value data on a trip/place/day via `ctx.meta` | Namespaced per plugin (a plugin only sees its own rows). Reads need trip **access**; **writes** additionally need the entity's edit permission (`place_edit`/`day_edit`/`trip_edit`). Quotas: ≤256-char key, ≤64 KB value, ≤100 keys per entity. Purged on uninstall-with-delete-data. |
 | `ws:broadcast:trip` | Push a real-time event to a trip room via `ctx.ws.broadcastToTrip` | Event types are force-namespaced `plugin:<id>:<event>` — a plugin can't forge a core event. |
 | `ws:broadcast:user` | Push a real-time event to a user's connections | Same namespacing. |
 | `hook:photo-provider` | Register as a photo provider in Memories | Implement the `PhotoProvider` interface. |

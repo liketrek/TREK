@@ -408,4 +408,17 @@ describe('PluginRpcHost — capability enforcement', () => {
     const res = await host.dispatch(req('meta.set', { entityType: 'user', entityId: 1, key: 'x', value: 1 }), 42);
     expect((res as RpcError).error.code).toBe('BAD_PARAMS');
   });
+
+  it('meta WRITES need the entity edit permission — a read-only member is RESOURCE_FORBIDDEN', async () => {
+    // Member can access the trip but not edit it (viewer role).
+    (deps.canEditTrip as ReturnType<typeof vi.fn>).mockReturnValue(false);
+    const host = new PluginRpcHost('p', new Set(['db:meta']), deps);
+    const write = await host.dispatch(req('meta.set', { entityType: 'trip', entityId: 1, key: 'x', value: 1 }), 42);
+    expect((write as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect(deps.metaSet).not.toHaveBeenCalled();
+    // …but a READ is only access-gated, so it still works.
+    const read = await host.dispatch(req('meta.get', { entityType: 'trip', entityId: 1, key: 'x' }), 42);
+    expect(ok(read)).toBe(true);
+    expect(deps.metaGet).toHaveBeenCalled();
+  });
 });

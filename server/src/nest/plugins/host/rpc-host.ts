@@ -258,10 +258,10 @@ export class PluginRpcHost {
       // A plugin's OWN namespaced key/value store attached to a core entity. Not
       // core data — but the entity must belong to a trip the acting user can
       // ACCESS, so a plugin can't stash/read metadata against another tenant's rows.
-      this.methods.set('meta.get', (p, uid) => { const e = this.metaEntity(p, uid); return deps.metaGet(e.entityType, e.entityId, str(p.key, 'key')); });
-      this.methods.set('meta.set', (p, uid) => { const e = this.metaEntity(p, uid); return deps.metaSet(e.entityType, e.entityId, str(p.key, 'key'), p.value); });
-      this.methods.set('meta.list', (p, uid) => { const e = this.metaEntity(p, uid); return deps.metaList(e.entityType, e.entityId); });
-      this.methods.set('meta.delete', (p, uid) => { const e = this.metaEntity(p, uid); return deps.metaDelete(e.entityType, e.entityId, str(p.key, 'key')); });
+      this.methods.set('meta.get', (p, uid) => { const e = this.metaEntity(p, uid, false); return deps.metaGet(e.entityType, e.entityId, str(p.key, 'key')); });
+      this.methods.set('meta.set', (p, uid) => { const e = this.metaEntity(p, uid, true); return deps.metaSet(e.entityType, e.entityId, str(p.key, 'key'), p.value); });
+      this.methods.set('meta.list', (p, uid) => { const e = this.metaEntity(p, uid, false); return deps.metaList(e.entityType, e.entityId); });
+      this.methods.set('meta.delete', (p, uid) => { const e = this.metaEntity(p, uid, true); return deps.metaDelete(e.entityType, e.entityId, str(p.key, 'key')); });
     }
 
     if (has('db:read:users')) {
@@ -346,7 +346,7 @@ export class PluginRpcHost {
    * Validate a metadata target and gate it: the entity type must be one we support,
    * and the trip it belongs to must be accessible to the host-bound acting user.
    */
-  private metaEntity(p: Record<string, unknown>, uid: number | undefined): { entityType: string; entityId: number } {
+  private metaEntity(p: Record<string, unknown>, uid: number | undefined, write: boolean): { entityType: string; entityId: number } {
     const entityType = str(p.entityType, 'entityType');
     if (entityType !== 'trip' && entityType !== 'place' && entityType !== 'day') {
       throw new BadParams(`invalid entityType "${entityType}" (trip|place|day)`);
@@ -356,6 +356,15 @@ export class PluginRpcHost {
     const tripId = this.deps.metaEntityTrip(entityType, entityId);
     if (tripId === undefined || !this.deps.canAccessTrip(tripId, uid)) {
       throw new ForbiddenResource(`no access to ${entityType} ${entityId}`);
+    }
+    // Reads need trip access; WRITES additionally need the entity's edit permission
+    // — so a read-only member can't overwrite/delete metadata an editor created
+    // (matches how core writes are gated).
+    if (write) {
+      const canEdit = entityType === 'trip' ? this.deps.canEditTrip
+        : entityType === 'place' ? this.deps.canEditPlaces
+        : this.deps.canEditDays;
+      if (!canEdit(tripId, uid)) throw new ForbiddenResource(`no permission to edit ${entityType} ${entityId}`);
     }
     return { entityType, entityId };
   }
