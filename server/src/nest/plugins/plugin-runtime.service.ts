@@ -240,6 +240,12 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
    * the acting user is host-bound so any trip read the hook makes is membership-checked.
    */
   invokeHook(id: string, hook: string, fn: string, args: unknown[], actingUserId?: number, timeoutMs = 5000): Promise<unknown> {
+    // Defense-in-depth: only a plugin that both implements the hook AND holds the
+    // hook:* grant (providersOf enforces both) may be invoked, even if a caller
+    // passes an id directly rather than one returned by providersOf.
+    if (!this.supervisor.providersOf(hook).includes(id)) {
+      return Promise.reject(new Error(`plugin ${id} is not a granted provider of ${hook}`));
+    }
     return this.supervisor.invoke(id, 'invoke.hook', { hook, fn, args }, { actingUserId, timeoutMs });
   }
 }

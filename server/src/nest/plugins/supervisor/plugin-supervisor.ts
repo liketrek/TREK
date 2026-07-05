@@ -81,6 +81,17 @@ const DEFAULTS: Required<SupervisorTuning> = {
   maxRssBytes: (Number(process.env.TREK_PLUGIN_MAX_RSS_MB) || 300) * 1024 * 1024,
 };
 
+// A plugin may only act as a provider for a hook it BOTH implements (reported by
+// the child at load) AND was granted the matching hook:* permission for. The child
+// reports Object.keys(def.hooks) with no knowledge of grants, so the grant check
+// must happen host-side here — otherwise the hook:* consent is never enforced.
+const HOOK_PERMISSION: Readonly<Record<string, string>> = {
+  photoProvider: 'hook:photo-provider',
+  calendarSource: 'hook:calendar-source',
+  placeDetailProvider: 'hook:place-detail-provider',
+  warningProvider: 'hook:trip-warning-provider',
+};
+
 export class PluginSupervisor {
   private running = new Map<string, Supervised>();
   private sweep: ReturnType<typeof setInterval> | null = null;
@@ -166,11 +177,17 @@ export class PluginSupervisor {
     return this.running.get(id)?.routes ?? [];
   }
 
-  /** Ids of ACTIVE plugins that implement a given provider hook (e.g. 'placeDetailProvider'). */
+  /**
+   * Ids of ACTIVE plugins that may act as a given provider hook — they implement it
+   * (reported at load) AND hold the matching hook:* grant the admin consented to.
+   * An unknown hook, or one with no permission mapping, resolves to nobody.
+   */
   providersOf(hook: string): string[] {
+    const perm = HOOK_PERMISSION[hook];
+    if (!perm) return [];
     const out: string[] = [];
     for (const [id, sup] of this.running) {
-      if (sup.status === 'active' && sup.hooks.includes(hook)) out.push(id);
+      if (sup.status === 'active' && sup.hooks.includes(hook) && sup.granted.has(perm)) out.push(id);
     }
     return out;
   }
