@@ -28,6 +28,8 @@ export interface PluginContext {
     getById(tripId: number, asUserId?: number): Promise<unknown>;
     getPlaces(tripId: number, asUserId?: number): Promise<unknown[]>;
     getReservations(tripId: number, asUserId?: number): Promise<unknown[]>;
+    /** Update trip fields (title/dates/currency/reminder_days/...); needs 'db:write:trips' + the acting user's 'trip_edit' permission. */
+    update(tripId: number, input: Record<string, unknown>): Promise<unknown>;
   };
   // "Costs" = budget items. Reads are membership-checked against the current
   // invocation's user (like `trips`); `create` additionally needs the acting
@@ -36,6 +38,23 @@ export interface PluginContext {
     getByTrip(tripId: number): Promise<unknown[]>;
     listMine(): Promise<unknown[]>;
     create(tripId: number, input: Record<string, unknown>): Promise<unknown>;
+  };
+  // Core planner writes (#1429). Each is membership-checked against the current
+  // invocation's user and needs the matching write scope + the app's edit
+  // permission (place_edit / day_edit / trip_edit). Route context only.
+  places: {
+    create(tripId: number, input: Record<string, unknown>): Promise<unknown>;
+    update(tripId: number, placeId: number, input: Record<string, unknown>): Promise<unknown>;
+    delete(tripId: number, placeId: number): Promise<{ deleted: boolean }>;
+  };
+  days: {
+    create(tripId: number, input: Record<string, unknown>): Promise<unknown>;
+    update(tripId: number, dayId: number, input: Record<string, unknown>): Promise<unknown>;
+    delete(tripId: number, dayId: number): Promise<{ deleted: boolean }>;
+  };
+  itinerary: {
+    assign(tripId: number, dayId: number, placeId: number, notes?: string | null): Promise<unknown>;
+    unassign(tripId: number, assignmentId: number): Promise<{ deleted: boolean }>;
   };
   users: {
     getById(id: number): Promise<unknown>;
@@ -118,11 +137,26 @@ export function createPluginContext(
       getById: (tripId) => t.rpc('trips.getById', { tripId, _inv: invocationId }),
       getPlaces: (tripId) => t.rpc('trips.getPlaces', { tripId, _inv: invocationId }) as Promise<unknown[]>,
       getReservations: (tripId) => t.rpc('trips.getReservations', { tripId, _inv: invocationId }) as Promise<unknown[]>,
+      update: (tripId, input) => t.rpc('trips.update', { tripId, input, _inv: invocationId }),
     },
     costs: {
       getByTrip: (tripId) => t.rpc('costs.getByTrip', { tripId, _inv: invocationId }) as Promise<unknown[]>,
       listMine: () => t.rpc('costs.listMine', { _inv: invocationId }) as Promise<unknown[]>,
       create: (tripId, input) => t.rpc('costs.create', { tripId, input, _inv: invocationId }),
+    },
+    places: {
+      create: (tripId, input) => t.rpc('places.create', { tripId, input, _inv: invocationId }),
+      update: (tripId, placeId, input) => t.rpc('places.update', { tripId, placeId, input, _inv: invocationId }),
+      delete: (tripId, placeId) => t.rpc('places.delete', { tripId, placeId, _inv: invocationId }) as Promise<{ deleted: boolean }>,
+    },
+    days: {
+      create: (tripId, input) => t.rpc('days.create', { tripId, input, _inv: invocationId }),
+      update: (tripId, dayId, input) => t.rpc('days.update', { tripId, dayId, input, _inv: invocationId }),
+      delete: (tripId, dayId) => t.rpc('days.delete', { tripId, dayId, _inv: invocationId }) as Promise<{ deleted: boolean }>,
+    },
+    itinerary: {
+      assign: (tripId, dayId, placeId, notes) => t.rpc('itinerary.assign', { tripId, dayId, placeId, notes, _inv: invocationId }),
+      unassign: (tripId, assignmentId) => t.rpc('itinerary.unassign', { tripId, assignmentId, _inv: invocationId }) as Promise<{ deleted: boolean }>,
     },
     users: {
       getById: (uid) => t.rpc('users.getById', { id: uid }),

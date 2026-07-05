@@ -4,7 +4,7 @@ import {
   ArrowUpCircle, Github, ExternalLink, ChevronDown, Check, Lock, Search,
   SlidersHorizontal, ArrowUpDown, CircleDot, MoreHorizontal, RotateCw, ArrowRight, Database, Users, LayoutDashboard,
   Radio, Luggage, Plane, Globe, Image, CalendarDays, Map, Bell, Cloud, Camera, Compass,
-  BookOpen, Wallet, Puzzle,
+  BookOpen, Wallet, Puzzle, MapPin, ListChecks, Pencil,
 } from 'lucide-react'
 import { adminApi } from '../../api/client'
 import { useTranslation } from '../../i18n'
@@ -83,7 +83,9 @@ const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: 
 
 // Known permissions → human-readable i18n key; unknown ones render as raw code.
 const PERM_KEYS = [
-  'db:own', 'db:read:trips', 'db:read:users', 'db:read:costs', 'db:write:costs', 'ws:broadcast:trip', 'ws:broadcast:user',
+  'db:own', 'db:read:trips', 'db:read:users', 'db:read:costs', 'db:write:costs',
+  'db:write:places', 'db:write:days', 'db:write:itinerary', 'db:write:trips',
+  'ws:broadcast:trip', 'ws:broadcast:user',
   'hook:photo-provider', 'hook:calendar-source', 'http:outbound',
 ]
 
@@ -113,6 +115,10 @@ function deriveCaps(perms: string[], caps: { widget?: { slot?: string } }, t: T)
   if (perms.includes('db:read:users')) out.push({ icon: Users, label: t('admin.plugins.cap.readsUsers') })
   if (perms.includes('db:write:costs')) out.push({ icon: Wallet, label: t('admin.plugins.cap.writesCosts') })
   else if (perms.includes('db:read:costs')) out.push({ icon: Wallet, label: t('admin.plugins.cap.readsCosts') })
+  if (perms.includes('db:write:places')) out.push({ icon: MapPin, label: t('admin.plugins.cap.writesPlaces') })
+  if (perms.includes('db:write:days')) out.push({ icon: CalendarDays, label: t('admin.plugins.cap.writesDays') })
+  if (perms.includes('db:write:itinerary')) out.push({ icon: ListChecks, label: t('admin.plugins.cap.writesItinerary') })
+  if (perms.includes('db:write:trips')) out.push({ icon: Pencil, label: t('admin.plugins.cap.writesTrips') })
   if (caps.widget) out.push({ icon: LayoutDashboard, label: t(caps.widget.slot === 'hero' ? 'admin.plugins.cap.heroWidget' : 'admin.plugins.cap.widget') })
   if (perms.some(p => p.startsWith('ws:broadcast'))) out.push({ icon: Radio, label: t('admin.plugins.cap.realtime') })
   if (perms.includes('hook:photo-provider')) out.push({ icon: Image, label: t('admin.plugins.cap.photos') })

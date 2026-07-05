@@ -18,9 +18,11 @@ export interface PluginContext {
     migrate(id: string, sql: string): Promise<{ applied: boolean }>;
   };
   trips: {
-    getById(tripId: number, asUserId: number): Promise<unknown>;
-    getPlaces(tripId: number, asUserId: number): Promise<unknown[]>;
-    getReservations(tripId: number, asUserId: number): Promise<unknown[]>;
+    getById(tripId: number, asUserId?: number): Promise<unknown>;
+    getPlaces(tripId: number, asUserId?: number): Promise<unknown[]>;
+    getReservations(tripId: number, asUserId?: number): Promise<unknown[]>;
+    /** Update trip fields; needs `db:write:trips` + the acting user's trip_edit permission. Route context only. */
+    update(tripId: number, input: Record<string, unknown>): Promise<unknown>;
   };
   // "Costs" = budget items. The acting user is bound by the host to the current
   // invocation; `create` also needs 'budget_edit' and the Costs addon enabled.
@@ -28,6 +30,22 @@ export interface PluginContext {
     getByTrip(tripId: number): Promise<unknown[]>;
     listMine(): Promise<unknown[]>;
     create(tripId: number, input: Record<string, unknown>): Promise<unknown>;
+  };
+  // Core planner writes (#1429). Membership-checked against the invocation's user;
+  // each needs the matching write scope + the app's place_edit/day_edit permission.
+  places: {
+    create(tripId: number, input: Record<string, unknown>): Promise<unknown>;
+    update(tripId: number, placeId: number, input: Record<string, unknown>): Promise<unknown>;
+    delete(tripId: number, placeId: number): Promise<{ deleted: boolean }>;
+  };
+  days: {
+    create(tripId: number, input: Record<string, unknown>): Promise<unknown>;
+    update(tripId: number, dayId: number, input: Record<string, unknown>): Promise<unknown>;
+    delete(tripId: number, dayId: number): Promise<{ deleted: boolean }>;
+  };
+  itinerary: {
+    assign(tripId: number, dayId: number, placeId: number, notes?: string | null): Promise<unknown>;
+    unassign(tripId: number, assignmentId: number): Promise<{ deleted: boolean }>;
   };
   users: { getById(id: number): Promise<unknown> };
   ws: {

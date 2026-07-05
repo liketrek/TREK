@@ -128,6 +128,11 @@ declaration for readers — the manifest parser does not consume it.
 |---|---|---|
 | `ctx.db` | `query(sql, …args)` / `exec(sql, …args)` / `migrate(id, sql)` against your **own** SQLite file | `db:own` |
 | `ctx.trips` | `getById` / `getPlaces` / `getReservations` (membership-checked) | `db:read:trips` |
+| `ctx.trips.update(tripId, fields)` | update trip fields (title/dates/currency/reminder_days/…) | `db:write:trips` |
+| `ctx.costs` | `getByTrip` / `listMine` (read) · `create(tripId, item)` (write) — needs the Costs addon | `db:read:costs` / `db:write:costs` |
+| `ctx.places` | `create(tripId, fields)` / `update(tripId, placeId, fields)` / `delete(tripId, placeId)` | `db:write:places` |
+| `ctx.days` | `create(tripId, {date?, notes?})` / `update(tripId, dayId, {notes?, title?})` / `delete(tripId, dayId)` | `db:write:days` |
+| `ctx.itinerary` | `assign(tripId, dayId, placeId, notes?)` / `unassign(tripId, assignmentId)` — place↔day | `db:write:itinerary` |
 | `ctx.costs` | `getByTrip(tripId)` / `listMine()` — read budget items (membership-checked) | `db:read:costs` |
 | `ctx.costs.create(tripId, input)` | create a budget item (validated, broadcasts `budget:created`) | `db:write:costs` |
 | `ctx.users` | `getById(id)` — public profile only (`id, username, display_name, avatar`) | `db:read:users` |
@@ -146,6 +151,15 @@ from the authenticated request and membership-checks every trip read against it.
 `RESOURCE_FORBIDDEN`. The SDK's `getById(tripId, asUserId?)` signature keeps an
 `asUserId` parameter for source compatibility, but **the host ignores it** — you
 cannot read another user's trips by passing an id.
+
+**Writes (`ctx.trips.update` / `ctx.places` / `ctx.days` / `ctx.itinerary` /
+`ctx.costs.create`) are route-context only too, and doubly gated:** the host checks
+the acting user can **access** the trip AND holds the app's edit permission for that
+entity (`place_edit` / `day_edit` / `trip_edit`), exactly like the web UI. They run
+through the same services and broadcast the same events, so open sessions update
+live. Input is validated against TREK's own schemas (a bad payload is `BAD_PARAMS`),
+and every write is recorded in the tamper-evident capability audit log against the
+acting user. A plugin can only change what its user could change by hand.
 
 **`ctx.costs` ("costs" = budget items)** behaves exactly like `ctx.trips`: reads are
 membership-checked against the request's user and only work **inside a route handler**

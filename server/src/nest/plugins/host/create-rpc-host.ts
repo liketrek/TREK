@@ -2,13 +2,30 @@ import { db, canAccessTrip } from '../../../db/database';
 import { broadcast, broadcastToUser } from '../../../websocket';
 import { listBudgetItems } from '../../../services/budgetService';
 import { checkPermission } from '../../../services/permissions';
-import { listTrips } from '../../../services/tripService';
+import { listTrips, updateTrip, NotFoundError, ValidationError } from '../../../services/tripService';
+import { createPlace, updatePlace, deletePlace } from '../../../services/placeService';
+import { createDay, getDay, updateDay, deleteDay } from '../../../services/dayService';
+import { createAssignment, deleteAssignment, dayExists, placeExists, getAssignmentForTrip } from '../../../services/assignmentService';
 import { isAddonEnabled } from '../../../services/adminService';
 import { ADDON_IDS } from '../../../addons';
 import { BudgetService } from '../../budget/budget.service';
 import { PluginDataDb } from './plugin-data.service';
-import { PluginRpcHost } from './rpc-host';
+import { PluginRpcHost, ForbiddenResource, BadParams } from './rpc-host';
 import { appendAudit } from './plugin-audit';
+
+/**
+ * The trip-access + role gate used by every planner write, mirroring the app's
+ * per-domain `canEdit` (canAccessTrip + checkPermission for the entity's *_edit
+ * action). Returns false — never throws — so the caller maps it to a clean
+ * RESOURCE_FORBIDDEN.
+ */
+function canEditTripAs(action: string, tripId: number, userId: number): boolean {
+  const trip = canAccessTrip(tripId, userId) as { user_id: number } | undefined;
+  if (!trip) return false;
+  const u = db.prepare('SELECT role FROM users WHERE id = ?').get(userId) as { role?: string } | undefined;
+  if (!u) return false;
+  return checkPermission(action, u.role ?? 'user', trip.user_id, userId, trip.user_id !== userId);
+}
 
 // Reused for costs.create so a plugin write frozen-FX and members/payers logic
 // matches a normal web-app budget write exactly (it has no injected deps).
@@ -82,6 +99,79 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>): Plu
       const item = await budgetSvc.create(String(tripId), input);
       broadcast(tripId, 'budget:created', { item });
       return item;
+    },
+    // --- Places (place_edit). Delegate to the same placeService the REST/MCP paths
+    // use, then broadcast the same events so open web sessions update live. ---
+    canEditPlaces: (tripId, userId) => canEditTripAs('place_edit', tripId, userId),
+    createPlace: (tripId, input) => {
+      const place = createPlace(String(tripId), input as Parameters<typeof createPlace>[1]);
+      broadcast(tripId, 'place:created', { place });
+      return place;
+    },
+    updatePlace: (tripId, placeId, input) => {
+      const place = updatePlace(String(tripId), String(placeId), input as Parameters<typeof updatePlace>[2]);
+      if (place === null) throw new ForbiddenResource(`no place ${placeId} on trip ${tripId}`);
+      broadcast(tripId, 'place:updated', { place });
+      return place;
+    },
+    deletePlace: (tripId, placeId) => {
+      const deleted = deletePlace(String(tripId), String(placeId));
+      if (!deleted) throw new ForbiddenResource(`no place ${placeId} on trip ${tripId}`);
+      broadcast(tripId, 'place:deleted', { placeId });
+      return { deleted: true };
+    },
+    // --- Days (day_edit). getDay scopes the row to the trip before any write. ---
+    canEditDays: (tripId, userId) => canEditTripAs('day_edit', tripId, userId),
+    createDay: (tripId, input) => {
+      const i = input as { date?: string; notes?: string };
+      const day = createDay(tripId, i.date, i.notes);
+      broadcast(tripId, 'day:created', { day });
+      return day;
+    },
+    updateDay: (tripId, dayId, input) => {
+      const current = getDay(dayId, tripId);
+      if (!current) throw new ForbiddenResource(`no day ${dayId} on trip ${tripId}`);
+      const day = updateDay(dayId, current, input as { notes?: string; title?: string | null });
+      broadcast(tripId, 'day:updated', { day });
+      return day;
+    },
+    deleteDay: (tripId, dayId) => {
+      const current = getDay(dayId, tripId);
+      if (!current) throw new ForbiddenResource(`no day ${dayId} on trip ${tripId}`);
+      deleteDay(dayId);
+      broadcast(tripId, 'day:deleted', { dayId });
+      return { deleted: true };
+    },
+    // --- Itinerary (day_edit). Both the day AND the place must belong to the trip,
+    // so a plugin can't cross-link another trip's rows (assignmentService doesn't
+    // self-check this — the controllers do, so we reproduce it here). ---
+    assignPlaceToDay: (tripId, dayId, placeId, notes) => {
+      if (!dayExists(dayId, tripId)) throw new ForbiddenResource(`no day ${dayId} on trip ${tripId}`);
+      if (!placeExists(placeId, tripId)) throw new ForbiddenResource(`no place ${placeId} on trip ${tripId}`);
+      const assignment = createAssignment(dayId, placeId, notes);
+      broadcast(tripId, 'assignment:created', { assignment });
+      return assignment;
+    },
+    unassignPlace: (tripId, assignmentId) => {
+      if (!getAssignmentForTrip(assignmentId, tripId)) throw new ForbiddenResource(`no assignment ${assignmentId} on trip ${tripId}`);
+      deleteAssignment(assignmentId);
+      broadcast(tripId, 'assignment:deleted', { assignmentId });
+      return { deleted: true };
+    },
+    // --- Trip (trip_edit). Only the schema-writable fields reach updateTrip; its
+    // NotFound/Validation errors are mapped to clean RPC codes. ---
+    canEditTrip: (tripId, userId) => canEditTripAs('trip_edit', tripId, userId),
+    updateTrip: (tripId, userId, input) => {
+      const u = db.prepare('SELECT role FROM users WHERE id = ?').get(userId) as { role?: string } | undefined;
+      try {
+        const result = updateTrip(tripId, userId, input as Parameters<typeof updateTrip>[2], u?.role ?? 'user');
+        broadcast(tripId, 'trip:updated', { trip: result.updatedTrip });
+        return result.updatedTrip;
+      } catch (e) {
+        if (e instanceof ValidationError) throw new BadParams(e.message);
+        if (e instanceof NotFoundError) throw new ForbiddenResource(e.message);
+        throw e;
+      }
     },
   });
 }

@@ -32,6 +32,7 @@ const HOST_RE = /^(\*\.[a-z0-9-]+(\.[a-z0-9-]+)+|[a-z0-9-]+(\.[a-z0-9-]+)*)$/i;
 const TYPES = ['integration', 'page', 'widget', 'trip-page'];
 const KNOWN_PERMISSIONS = [
   'db:own', 'db:read:trips', 'db:read:users', 'db:read:costs', 'db:write:costs',
+  'db:write:places', 'db:write:days', 'db:write:itinerary', 'db:write:trips',
   'ws:broadcast:trip', 'ws:broadcast:user',
   'hook:photo-provider', 'hook:calendar-source', 'http:outbound',
 ];

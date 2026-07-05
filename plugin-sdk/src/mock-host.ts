@@ -19,7 +19,12 @@ export interface MockHostOptions {
    */
   trips?: Record<
     number,
-    { members: number[]; data?: unknown; places?: unknown[]; reservations?: unknown[]; costs?: unknown[]; canEditCosts?: boolean }
+    {
+      members: number[]; data?: unknown; places?: unknown[]; reservations?: unknown[]; costs?: unknown[];
+      days?: unknown[]; assignments?: unknown[];
+      /** Default true — model the place_edit / day_edit / trip_edit permission for writes. */
+      canEditCosts?: boolean; canEditPlaces?: boolean; canEditDays?: boolean; canEditTrip?: boolean;
+    }
   >;
   users?: Record<number, unknown>;
   /** Optional canned db.query results, keyed by the exact sql string. */
@@ -59,9 +64,17 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
     if (opts.budgetAddonEnabled === false) throw new Error('RESOURCE_FORBIDDEN: the costs addon is disabled');
   };
   const requireActingUser = (): number => {
-    if (opts.actingUserId === undefined) throw new Error('RESOURCE_FORBIDDEN: costs calls require an authenticated user context');
+    if (opts.actingUserId === undefined) throw new Error('RESOURCE_FORBIDDEN: this call requires an authenticated user context');
     return opts.actingUserId;
   };
+  const assertEdit = (
+    t: { canEditPlaces?: boolean; canEditDays?: boolean; canEditTrip?: boolean },
+    flag: 'canEditPlaces' | 'canEditDays' | 'canEditTrip',
+    tripId: number,
+  ) => {
+    if (t[flag] === false) throw new Error(`RESOURCE_FORBIDDEN: no permission to edit trip ${tripId}`);
+  };
+  const rows = (arr: unknown[] | undefined): Array<Record<string, unknown>> => (arr ?? []) as Array<Record<string, unknown>>;
 
   const ctx: PluginContext = {
     id: 'mock-plugin',
@@ -83,15 +96,23 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
     trips: {
       async getById(tripId, asUserId) {
         need('db:read:trips', 'trips.getById');
-        return assertMember(tripId, asUserId).data ?? null;
+        return assertMember(tripId, asUserId ?? requireActingUser()).data ?? null;
       },
       async getPlaces(tripId, asUserId) {
         need('db:read:trips', 'trips.getPlaces');
-        return assertMember(tripId, asUserId).places ?? [];
+        return assertMember(tripId, asUserId ?? requireActingUser()).places ?? [];
       },
       async getReservations(tripId, asUserId) {
         need('db:read:trips', 'trips.getReservations');
-        return assertMember(tripId, asUserId).reservations ?? [];
+        return assertMember(tripId, asUserId ?? requireActingUser()).reservations ?? [];
+      },
+      async update(tripId, input) {
+        need('db:write:trips', 'trips.update');
+        const t = assertMember(tripId, requireActingUser());
+        assertEdit(t, 'canEditTrip', tripId);
+        const data = (t.data ??= {}) as Record<string, unknown>;
+        Object.assign(data, input);
+        return data;
       },
     },
     costs: {
@@ -118,6 +139,84 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
         const item = { id: (t.costs?.length ?? 0) + 1, trip_id: tripId, ...input };
         (t.costs ??= []).push(item);
         return item;
+      },
+    },
+    places: {
+      async create(tripId, input) {
+        need('db:write:places', 'places.create');
+        const t = assertMember(tripId, requireActingUser());
+        assertEdit(t, 'canEditPlaces', tripId);
+        const place = { id: (t.places?.length ?? 0) + 1, trip_id: tripId, ...input };
+        (t.places ??= []).push(place);
+        return place;
+      },
+      async update(tripId, placeId, input) {
+        need('db:write:places', 'places.update');
+        const t = assertMember(tripId, requireActingUser());
+        assertEdit(t, 'canEditPlaces', tripId);
+        const place = rows(t.places).find((x) => x.id === placeId);
+        if (!place) throw new Error(`RESOURCE_FORBIDDEN: no place ${placeId} on trip ${tripId}`);
+        Object.assign(place, input);
+        return place;
+      },
+      async delete(tripId, placeId) {
+        need('db:write:places', 'places.delete');
+        const t = assertMember(tripId, requireActingUser());
+        assertEdit(t, 'canEditPlaces', tripId);
+        const list = rows((t.places ??= []));
+        const i = list.findIndex((x) => x.id === placeId);
+        if (i < 0) throw new Error(`RESOURCE_FORBIDDEN: no place ${placeId} on trip ${tripId}`);
+        list.splice(i, 1);
+        return { deleted: true };
+      },
+    },
+    days: {
+      async create(tripId, input) {
+        need('db:write:days', 'days.create');
+        const t = assertMember(tripId, requireActingUser());
+        assertEdit(t, 'canEditDays', tripId);
+        const day = { id: (t.days?.length ?? 0) + 1, trip_id: tripId, ...input };
+        (t.days ??= []).push(day);
+        return day;
+      },
+      async update(tripId, dayId, input) {
+        need('db:write:days', 'days.update');
+        const t = assertMember(tripId, requireActingUser());
+        assertEdit(t, 'canEditDays', tripId);
+        const day = rows(t.days).find((x) => x.id === dayId);
+        if (!day) throw new Error(`RESOURCE_FORBIDDEN: no day ${dayId} on trip ${tripId}`);
+        Object.assign(day, input);
+        return day;
+      },
+      async delete(tripId, dayId) {
+        need('db:write:days', 'days.delete');
+        const t = assertMember(tripId, requireActingUser());
+        assertEdit(t, 'canEditDays', tripId);
+        const list = rows((t.days ??= []));
+        const i = list.findIndex((x) => x.id === dayId);
+        if (i < 0) throw new Error(`RESOURCE_FORBIDDEN: no day ${dayId} on trip ${tripId}`);
+        list.splice(i, 1);
+        return { deleted: true };
+      },
+    },
+    itinerary: {
+      async assign(tripId, dayId, placeId, notes) {
+        need('db:write:itinerary', 'itinerary.assign');
+        const t = assertMember(tripId, requireActingUser());
+        assertEdit(t, 'canEditDays', tripId);
+        const assignment = { id: (t.assignments?.length ?? 0) + 1, day_id: dayId, place_id: placeId, notes: notes ?? null };
+        (t.assignments ??= []).push(assignment);
+        return assignment;
+      },
+      async unassign(tripId, assignmentId) {
+        need('db:write:itinerary', 'itinerary.unassign');
+        const t = assertMember(tripId, requireActingUser());
+        assertEdit(t, 'canEditDays', tripId);
+        const list = rows((t.assignments ??= []));
+        const i = list.findIndex((x) => x.id === assignmentId);
+        if (i < 0) throw new Error(`RESOURCE_FORBIDDEN: no assignment ${assignmentId} on trip ${tripId}`);
+        list.splice(i, 1);
+        return { deleted: true };
       },
     },
     users: {

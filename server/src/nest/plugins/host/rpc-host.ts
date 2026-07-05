@@ -1,4 +1,9 @@
-import { budgetCreateItemRequestSchema, type BudgetCreateItemRequest } from '@trek/shared';
+import {
+  budgetCreateItemRequestSchema, type BudgetCreateItemRequest,
+  placeCreateRequestSchema, placeUpdateRequestSchema,
+  dayCreateRequestSchema, dayUpdateRequestSchema,
+  tripUpdateRequestSchema,
+} from '@trek/shared';
 import {
   KNOWN_METHODS,
   type KnownMethod,
@@ -55,6 +60,23 @@ export interface HostDeps {
   listCostsForUser(userId: number): unknown[];
   /** Create a budget item on a trip (and broadcast); returns the created item. */
   createCost(tripId: number, input: BudgetCreateItemRequest): unknown;
+  // --- Places (the 'place_edit' permission) ---
+  canEditPlaces(tripId: number, userId: number): boolean;
+  createPlace(tripId: number, input: Record<string, unknown>): unknown;
+  updatePlace(tripId: number, placeId: number, input: Record<string, unknown>): unknown;
+  deletePlace(tripId: number, placeId: number): unknown;
+  // --- Days + itinerary (the 'day_edit' permission) ---
+  canEditDays(tripId: number, userId: number): boolean;
+  createDay(tripId: number, input: Record<string, unknown>): unknown;
+  updateDay(tripId: number, dayId: number, input: Record<string, unknown>): unknown;
+  deleteDay(tripId: number, dayId: number): unknown;
+  /** Assign a place to a day (both trip-scoped by the wiring); returns the assignment. */
+  assignPlaceToDay(tripId: number, dayId: number, placeId: number, notes: string | null): unknown;
+  /** Remove a day-assignment (trip-scoped by the wiring). */
+  unassignPlace(tripId: number, assignmentId: number): unknown;
+  // --- Trip (the 'trip_edit' permission) ---
+  canEditTrip(tripId: number, userId: number): boolean;
+  updateTrip(tripId: number, userId: number, input: Record<string, unknown>): unknown;
 }
 
 type Handler = (params: Record<string, unknown>, actingUserId: number | undefined) => unknown;
@@ -68,7 +90,7 @@ const str = (v: unknown, name: string): string => {
   if (typeof v !== 'string') throw new BadParams(`${name} must be a string`);
   return v;
 };
-class BadParams extends Error {}
+export class BadParams extends Error {}
 
 export class PluginRpcHost {
   private methods = new Map<string, Handler>();
@@ -133,6 +155,98 @@ export class PluginRpcHost {
       });
     }
 
+    // --- Core planner writes (#1429). Each mirrors costs.create: validate the
+    // input against the SAME @trek/shared schema the web app uses, then gate on
+    // trip access + the entity's edit permission for the HOST-bound acting user
+    // (a job/onLoad has no user, so its writes are refused). The delegating deps
+    // reuse the real services + broadcast the same events, so the app stays live. ---
+    if (has('db:write:places')) {
+      this.methods.set('places.create', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const actor = this.requireActor(uid, 'place');
+        const parsed = placeCreateRequestSchema.safeParse(p.input);
+        if (!parsed.success) throw new BadParams(`invalid place: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
+        this.requireTripEdit(tripId, actor, deps.canEditPlaces);
+        return deps.createPlace(tripId, parsed.data as Record<string, unknown>);
+      });
+      this.methods.set('places.update', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const placeId = num(p.placeId, 'placeId');
+        const actor = this.requireActor(uid, 'place');
+        const parsed = placeUpdateRequestSchema.safeParse(p.input);
+        if (!parsed.success) throw new BadParams(`invalid place: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
+        this.requireTripEdit(tripId, actor, deps.canEditPlaces);
+        return deps.updatePlace(tripId, placeId, parsed.data as Record<string, unknown>);
+      });
+      this.methods.set('places.delete', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const placeId = num(p.placeId, 'placeId');
+        const actor = this.requireActor(uid, 'place');
+        this.requireTripEdit(tripId, actor, deps.canEditPlaces);
+        return deps.deletePlace(tripId, placeId);
+      });
+    }
+
+    if (has('db:write:days')) {
+      this.methods.set('days.create', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const actor = this.requireActor(uid, 'day');
+        const parsed = dayCreateRequestSchema.safeParse(p.input);
+        if (!parsed.success) throw new BadParams(`invalid day: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
+        this.requireTripEdit(tripId, actor, deps.canEditDays);
+        return deps.createDay(tripId, parsed.data as Record<string, unknown>);
+      });
+      this.methods.set('days.update', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const dayId = num(p.dayId, 'dayId');
+        const actor = this.requireActor(uid, 'day');
+        const parsed = dayUpdateRequestSchema.safeParse(p.input);
+        if (!parsed.success) throw new BadParams(`invalid day: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
+        this.requireTripEdit(tripId, actor, deps.canEditDays);
+        return deps.updateDay(tripId, dayId, parsed.data as Record<string, unknown>);
+      });
+      this.methods.set('days.delete', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const dayId = num(p.dayId, 'dayId');
+        const actor = this.requireActor(uid, 'day');
+        this.requireTripEdit(tripId, actor, deps.canEditDays);
+        return deps.deleteDay(tripId, dayId);
+      });
+    }
+
+    if (has('db:write:itinerary')) {
+      // Assigning/removing a place on a day is a DAY edit in the app (day_edit), so
+      // gate it with canEditDays; the wiring also checks the day AND place belong to
+      // the trip so a plugin can't cross-link another trip's rows.
+      this.methods.set('itinerary.assign', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const dayId = num(p.dayId, 'dayId');
+        const placeId = num(p.placeId, 'placeId');
+        const actor = this.requireActor(uid, 'itinerary');
+        const notes = p.notes === undefined || p.notes === null ? null : str(p.notes, 'notes');
+        this.requireTripEdit(tripId, actor, deps.canEditDays);
+        return deps.assignPlaceToDay(tripId, dayId, placeId, notes);
+      });
+      this.methods.set('itinerary.unassign', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const assignmentId = num(p.assignmentId, 'assignmentId');
+        const actor = this.requireActor(uid, 'itinerary');
+        this.requireTripEdit(tripId, actor, deps.canEditDays);
+        return deps.unassignPlace(tripId, assignmentId);
+      });
+    }
+
+    if (has('db:write:trips')) {
+      this.methods.set('trips.update', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const actor = this.requireActor(uid, 'trip');
+        const parsed = tripUpdateRequestSchema.safeParse(p.input);
+        if (!parsed.success) throw new BadParams(`invalid trip: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
+        this.requireTripEdit(tripId, actor, deps.canEditTrip);
+        return deps.updateTrip(tripId, actor, parsed.data as Record<string, unknown>);
+      });
+    }
+
     if (has('db:read:users')) {
       // Scope to people the acting user can actually see (self or a trip they
       // share) so a plugin can't enumerate every account's profile by looping ids.
@@ -193,6 +307,22 @@ export class PluginRpcHost {
     if (!this.deps.budgetAddonEnabled()) {
       throw new ForbiddenResource('the costs addon is disabled');
     }
+  }
+
+  /**
+   * Every write needs a HOST-bound acting user. A job / onLoad (no user) or a call
+   * with a forged/unknown invocation id resolves to undefined and is refused — a
+   * plugin can never write "as" an arbitrary user.
+   */
+  private requireActor(uid: number | undefined, noun: string): number {
+    if (uid === undefined) throw new ForbiddenResource(`${noun} writes require an authenticated user context`);
+    return uid;
+  }
+
+  /** A write is allowed only if the acting user can access AND edit the trip. */
+  private requireTripEdit(tripId: number, uid: number, canEdit: (t: number, u: number) => boolean): void {
+    if (!this.deps.canAccessTrip(tripId, uid)) throw new ForbiddenResource(`no access to trip ${tripId}`);
+    if (!canEdit(tripId, uid)) throw new ForbiddenResource(`no permission to edit trip ${tripId}`);
   }
 
   async dispatch(req: RpcRequest, actingUserId?: number): Promise<RpcResponse | RpcError> {

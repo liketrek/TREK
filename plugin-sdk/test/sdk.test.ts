@@ -105,6 +105,31 @@ describe('createMockHost', () => {
     await expect(ctx.costs.create(2, { name: 'Nope' })).rejects.toThrow(/RESOURCE_FORBIDDEN/);
   });
 
+  it('gates planner writes (places/days/itinerary/trips) on grant, membership and edit permission', async () => {
+    const { ctx } = createMockHost({
+      grants: ['db:write:places', 'db:write:days', 'db:write:itinerary', 'db:write:trips'],
+      actingUserId: 42,
+      trips: {
+        1: { members: [42], data: { id: 1, title: 'Japan' } },
+        2: { members: [42], canEditPlaces: false },
+      },
+    });
+    // create + assign on a trip the user may edit
+    const place = await ctx.places.create(1, { name: 'Fushimi Inari' });
+    expect(place).toMatchObject({ trip_id: 1, name: 'Fushimi Inari' });
+    const day = await ctx.days.create(1, { notes: 'Day 1' });
+    expect(await ctx.itinerary.assign(1, (day as { id: number }).id, (place as { id: number }).id))
+      .toMatchObject({ day_id: (day as { id: number }).id });
+    expect(await ctx.trips.update(1, { title: 'Renamed' })).toMatchObject({ title: 'Renamed' });
+    // refused where the user may not edit
+    await expect(ctx.places.create(2, { name: 'Nope' })).rejects.toThrow(/RESOURCE_FORBIDDEN/);
+  });
+
+  it('refuses a planner write without the matching write scope', async () => {
+    const { ctx } = createMockHost({ grants: ['db:read:trips'], actingUserId: 42, trips: { 1: { members: [42] } } });
+    await expect(ctx.places.create(1, { name: 'X' })).rejects.toThrow(/PERMISSION_DENIED/);
+  });
+
   it('refuses costs when the permission is missing or the addon is disabled', async () => {
     const ungranted = createMockHost({ grants: [], actingUserId: 42, trips: { 1: { members: [42] } } });
     await expect(ungranted.ctx.costs.getByTrip(1)).rejects.toThrow(/PERMISSION_DENIED/);
