@@ -24,7 +24,7 @@ my-plugin/
   trek-plugin.json      # manifest
   package.json          # CommonJS marker + the SDK as a devDependency
   server/index.js       # your plugin code (built, plain JS)
-  client/index.html     # page/widget iframe (page/widget only)
+  client/index.html     # native page/widget UI via the design kit (page/widget only)
   README.md             # fill this in — the registry requires a screenshot
 ```
 
@@ -40,7 +40,9 @@ injects it in production. It loads your `server/index.js` through the same
 `definePlugin` contract the host uses and gives you a **real request loop
 without a full TREK**: a dashboard
 listing your routes, the routes served under `/api/<path>`, your page/widget UI
-at `/ui`, and a reload on every save. The injected `ctx` **enforces exactly the
+at `/ui`, a **themed host preview at `/preview`** (a real sandboxed frame with a
+theme/accent/appearance toggle, `trek.invoke()` proxied to your routes), and a reload
+on every save. The injected `ctx` **enforces exactly the
 permissions your manifest grants** — an ungranted call throws `PERMISSION_DENIED`,
 so you catch a missing grant here rather than after install. `db:own` is backed
 by a real SQLite file (`.trek-dev/db.sqlite`) when the runtime has `node:sqlite`.
@@ -149,31 +151,106 @@ raw headers or the session cookie.
 
 The iframe is served same-origin from `/plugin-frame/<id>/…` but sandboxed
 **without `allow-same-origin`**, so it runs at an **opaque origin**: it can't read
-cookies or the parent DOM. It talks to TREK only via `postMessage` (target origin
-must be `'*'` — an opaque frame has no nameable origin).
+cookies or the parent DOM, and the CSP forbids external `<link>`/`<script src>` — so
+**everything must be inlined** into your `index.html`. It talks to TREK only via
+`postMessage` (target origin must be `'*'` — an opaque frame has no nameable origin).
+
+### The design kit (recommended)
+
+Because the frame can't load TREK's stylesheet, we ship it. Drop **one line** in your
+`client/index.html` `<head>`:
+
+```html
+<!-- trek:ui -->
+```
+
+`dev` and `pack` expand that marker into the inlined **TREK design kit** — a
+token-driven stylesheet plus a `window.trek` bridge. It costs nothing to keep the
+source a one-liner, and a rebuild always ships the current kit. The kit:
+
+- gives you native components — **glass panels, cards, buttons, inputs, chips, list
+  rows, hover** — that swap correctly between light and dark;
+- follows the user's live **accent scheme, custom accent and high-contrast** (it
+  applies the tokens TREK sends);
+- mirrors the host's **appearance flags** (reduced-motion, no-transparency, density);
+- **auto-reports your height** (widgets/pages self-size — no manual `trek:resize`);
+- installs `window.trek` so you never hand-roll `postMessage`.
+
+The scaffold seeds a working example. A minimal client:
+
+```html
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- trek:ui -->
+</head>
+<body>
+  <div class="trek-glass trek-stack" style="margin:16px">
+    <div class="trek-title">Your plugin</div>
+    <p class="trek-muted" id="hello">…</p>
+    <button class="trek-btn trek-btn--primary" id="go">Say hello</button>
+  </div>
+  <script>
+    trek.onContext((ctx) => { document.getElementById('hello').textContent = 'theme: ' + ctx.theme })
+    document.getElementById('go').addEventListener('click', async () => {
+      try { const data = await trek.invoke('/hello'); document.getElementById('hello').textContent = 'Hello ' + data.hello }
+      catch (e) { trek.notify('error', e.message) }
+    })
+  </script>
+</body>
+</html>
+```
+
+**Component classes** (the bootstrap adds `trek-ui` to `<body>`):
+
+| Class | What |
+|---|---|
+| `.trek-glass` | the signature frosted-glass surface |
+| `.trek-card` | a solid card |
+| `.trek-interactive` | add to a glass/card for the native hover-lift |
+| `.trek-btn` + `--primary` / `--secondary` / `--ghost` / `--danger` | buttons |
+| `.trek-input` / `.trek-textarea` / `.trek-select` / `.trek-label` | form controls |
+| `.trek-chip` + `--accent` / `--success` / `--danger` / `--warning` / `--info` | chips / badges |
+| `.trek-row` | a hover-highlight list row |
+| `.trek-title` / `.trek-muted` / `.trek-faint` | text helpers |
+| `.trek-stack` / `.trek-cluster` | vertical / horizontal flex with gap |
+
+**The `window.trek` bridge:**
+
+| Call | Does |
+|---|---|
+| `trek.onContext(cb)` | run `cb(context)` now (if already received) and on every update; returns an unsubscribe fn |
+| `trek.context` | the last context (or `null`) |
+| `trek.invoke(sub, { method, body })` | call your own route; returns a `Promise` (rejects with an `Error`, `.code` = HTTP status) |
+| `trek.notify(level, message)` | toast (`info`/`success`/`warning`/`error`) |
+| `trek.navigate(to)` | in-app navigation (relative paths only) |
+| `trek.resize(px)` | override the auto height |
+| `trek.ready()` / `trek.requestContext()` | re-handshake / re-request the context |
+
+**Preview it:** `npx trek-plugin-sdk dev`, then open **`/preview`** — it renders your UI
+in a real sandboxed frame with a theme/accent/appearance toggle and proxies
+`trek.invoke()` to your routes.
+
+### The raw bridge (without the kit)
+
+If you'd rather not use the kit, talk to the frame yourself. Announce readiness and
+handle messages:
 
 ```js
-// Announce readiness — TREK replies with trek:context.
-window.parent.postMessage({ type: 'trek:ready' }, '*')
-
+window.parent.postMessage({ type: 'trek:ready' }, '*') // TREK replies with trek:context
 window.addEventListener('message', (e) => {
+  if (e.source !== window.parent) return          // opaque frame: trust the parent window
   const m = e.data
-  if (m.type === 'trek:context') {
-    // m.tripId, m.userId (string|null), m.theme ('light'|'dark'), m.locale, m.hostOrigin
-    // m.tokens  — TREK's resolved CSS design tokens for the current theme (see below)
-    // m.formats — { locale, currency, timeFormat, distanceUnit, temperatureUnit, timezone }
-    // m.user    — { name, avatar, isAdmin } or null (never an email; role only as a boolean)
-    // TREK re-sends trek:context whenever the theme flips, so re-apply on every one.
-  }
-  if (m.type === 'trek:response' && m.requestId === '1') { /* m.data */ }
-  if (m.type === 'trek:error'   && m.requestId === '1') { /* m.code, m.message */ }
+  if (m.type === 'trek:context') { /* m.theme, m.tokens, m.appearance, … (below) */ }
+  if (m.type === 'trek:response') { /* m.requestId, m.data */ }
+  if (m.type === 'trek:error')    { /* m.requestId, m.code, m.message */ }
 })
-
-// Call one of your OWN server routes — TREK proxies it with the user's session:
 window.parent.postMessage({ type: 'trek:invoke', requestId: '1', sub: '/status', method: 'GET' }, '*')
 ```
 
-**Messages you send to TREK (inbound bridge):**
+**Messages you send to TREK:**
 
 | Message | Payload | Effect |
 |---|---|---|
@@ -184,36 +261,60 @@ window.parent.postMessage({ type: 'trek:invoke', requestId: '1', sub: '/status',
 | `trek:resize` | `{ height }` | set the iframe height (capped at 2000px) |
 | `trek:invoke` | `{ requestId, sub, method, body }` | call your own route; resolves as `trek:response` or `trek:error` |
 
-**Messages TREK sends you (host bridge):**
+**Messages TREK sends you:**
 
 | Message | Payload |
 |---|---|
-| `trek:context` | `{ tripId, userId, theme, locale, hostOrigin, tokens, formats, user }` — `userId` is a **string** or `null`; re-sent on every theme toggle |
+| `trek:context` | `{ tripId, userId, theme, locale, hostOrigin, user, formats, tokens, appearance }` (see below) — re-sent whenever the theme **or appearance** changes |
 | `trek:response` | `{ requestId, data }` — a successful `trek:invoke` |
 | `trek:error` | `{ requestId, code, message }` — a failed `trek:invoke` (`code` is the HTTP status or `"error"`) |
 
-The frame's CSP is locked down per plugin: `default-src 'none'`, own scripts/styles
-only, `connect-src` limited to your declared `egress[]` hosts, no popups.
+The frame's CSP is locked down per plugin: `default-src 'none'`, own inline
+scripts/styles only, `connect-src` limited to your declared `egress[]` hosts, no popups.
 
-### Matching the TREK look (`m.tokens`)
+### The context payload
 
-`trek:context` carries `tokens` — a map of TREK's resolved CSS design tokens for the
-**current** theme (`--bg-card`, `--text-primary`, `--accent`, `--border-primary`,
-`--font-system`, `--radius-*`, …). Apply them as CSS variables and your widget matches
-the host exactly, in both themes, even if the instance uses a custom appearance —
-instead of hard-coding a palette that drifts:
+| Field | Type |
+|---|---|
+| `tripId` | `number \| null` — the trip in view (widgets on a trip), else `null` |
+| `userId` | `string \| null` |
+| `theme` | `'light' \| 'dark'` |
+| `locale` | e.g. `'en'` |
+| `hostOrigin` | the app origin |
+| `user` | `{ name, avatar, isAdmin } \| null` — **never** an email; role only as a boolean |
+| `formats` | `{ locale, currency, timeFormat, distanceUnit, temperatureUnit, timezone }` |
+| `tokens` | TREK's resolved CSS design tokens for the current theme (see below) |
+| `appearance` | `{ scheme, density: 'comfortable'\|'compact', reducedMotion, noTransparency }` |
+
+### Matching the TREK look by hand (`m.tokens`)
+
+`tokens` is the whole global palette resolved for the **current** theme — surfaces
+(`--bg-card`, `--bg-hover`, …), text (`--text-primary`/`-secondary`/`-muted`/`-faint`),
+borders, the **accent family** (`--accent`, `--accent-text`, `--accent-hover`,
+`--accent-subtle`), semantic + soft fills (`--success`/`--danger`/`--warning`/`--info`
+`-soft`), shadows (`--shadow-*`), radii (`--radius-*`) and fonts (`--font-system`).
+Apply them as CSS variables and your UI matches the host exactly — in both themes and
+under a custom accent or high-contrast — instead of hard-coding a palette that drifts:
 
 ```js
-function applyTokens(tokens) {
-  for (const k in tokens) document.body.style.setProperty(k, tokens[k])
+function applyContext(m) {
+  document.documentElement.dataset.theme = m.theme                 // for your dark rules
+  for (const k in m.tokens) document.documentElement.style.setProperty(k, m.tokens[k])
+  const a = m.appearance || {}
+  document.documentElement.toggleAttribute('data-reduce-motion', !!a.reducedMotion)
+  document.documentElement.toggleAttribute('data-no-transparency', !!a.noTransparency)
 }
-// in your trek:context handler: applyTokens(m.tokens)
+// in your trek:context handler: applyContext(m)
 ```
 
-`tokens` are non-secret display values only; TREK sends them (and re-sends on a theme
-toggle) so plugins feel native rather than bolted-on. Dashboard widgets are already
-wrapped in the native glassy tool card and auto-size to the height you report via
-`trek:resize`, so render your content flush and transparent.
+`tokens`/`appearance` are non-secret display values only, re-sent on every theme or
+appearance change so plugins feel native rather than bolted-on. (The glassy tokens the
+dashboard uses — `--glass-*`, `--r-*`, `--sh-*` — aren't in `tokens`; the design kit
+bakes those, since they only change with light/dark, not the accent.) Honour
+`appearance.reducedMotion` / `noTransparency`, and the frame also inherits the OS
+`prefers-reduced-motion`. Dashboard widgets are wrapped in the native glassy tool card
+and auto-size to the height you report via `trek:resize`, so render flush and
+transparent — the design kit reports your height for you.
 
 ## Settings
 

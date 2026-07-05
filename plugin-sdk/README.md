@@ -27,9 +27,34 @@ SQLite file, serves your routes and your page/widget UI, and reloads on save.
 npx trek-plugin-sdk dev        # http://localhost:4317 — dashboard, routes, UI
 ```
 
-Hit a route as an unauthenticated request with `?_anon=1`. Drop a
-`dev-fixtures.json` (trips, users, config) next to your manifest to feed
-`ctx.trips` / `ctx.users`.
+Open **`/preview`** to see a page/widget rendered in a real sandboxed frame with a
+theme/accent/appearance toggle (`trek.invoke()` is proxied to your routes). Hit a route
+as an unauthenticated request with `?_anon=1`. Drop a `dev-fixtures.json` (trips, users,
+config) next to your manifest to feed `ctx.trips` / `ctx.users`.
+
+## Build a native UI (page / widget)
+
+The UI is a sandboxed, opaque-origin iframe that can't load TREK's stylesheet — so the
+SDK ships it. Put **one line** in your `client/index.html` `<head>`:
+
+```html
+<!-- trek:ui -->
+```
+
+`dev` and `pack` expand it into the inlined **design kit**: token-driven styles that
+follow the host's theme and accent (glass, cards, `.trek-btn`, `.trek-input`,
+`.trek-chip`, `.trek-row`, hover), plus a `window.trek` bridge:
+
+```js
+trek.onContext((ctx) => { /* ctx.theme, ctx.tokens, ctx.appearance, ctx.user, ctx.tripId */ })
+const data = await trek.invoke('/status')   // calls your own route, host-proxied
+trek.notify('success', 'Saved')
+```
+
+The kit applies the theme, mirrors the appearance flags (reduced-motion,
+no-transparency) and auto-reports your height. See the
+[Plugin Development wiki](https://github.com/mauriceboe/TREK/wiki/Plugin-Development)
+for the full component + token reference.
 
 ## Write a plugin
 
@@ -105,6 +130,7 @@ losing it means you can't ship signed updates.
 - `PLUGIN_API_VERSION` — embed as `apiVersion` in your manifest.
 - `validateManifest(json)` — the manifest rules the server loader uses.
 - `createMockHost(opts)` (from `trek-plugin-sdk/testing`).
+- `TREK_UI_CSS`, `TREK_THEME_JS`, `TREK_UI_MARKER`, `injectTrekUi(html)` — the design kit, for authors who inline it themselves (a bundler, a custom build). Most plugins just use the `<!-- trek:ui -->` marker instead.
 
 ## Commands
 
