@@ -129,6 +129,22 @@ describe('Collections e2e (real auth guard + real service + temp SQLite)', () =>
     expect(placed.reservation_status).toBe('none'); // itinerary defaults
   });
 
+  // Regression for #1437: editing a place (PATCH without a status field) must NOT
+  // reset a 'want'/'visited' place back to 'idea'.
+  it('COLLECTIONS-E2E-012: PATCH without status leaves the saved status unchanged', async () => {
+    const col = (await request(server).post('/api/addons/collections').set('Cookie', sessionCookie(ownerId)).send({ name: 'Statuses' })).body;
+    const saved = await request(server).post('/api/addons/collections/places')
+      .set('Cookie', sessionCookie(ownerId)).send({ collection_id: col.id, name: 'Colosseum', status: 'want' });
+    expect(saved.status).toBe(200);
+    const placeId = saved.body.place.id;
+    expect(db.prepare('SELECT status FROM collection_places WHERE id = ?').get(placeId)).toEqual({ status: 'want' });
+
+    const patched = await request(server).patch(`/api/addons/collections/places/${placeId}`)
+      .set('Cookie', sessionCookie(ownerId)).send({ name: 'Colosseo' });
+    expect(patched.status).toBe(200);
+    expect(db.prepare('SELECT status FROM collection_places WHERE id = ?').get(placeId)).toEqual({ status: 'want' });
+  });
+
   // ── Cross-user isolation ─────────────────────────────────────────────────
   it('COLLECTIONS-E2E-020: a stranger gets 404 on someone else’s collection', async () => {
     const col = (await request(server).post('/api/addons/collections').set('Cookie', sessionCookie(ownerId)).send({ name: 'Private' })).body;

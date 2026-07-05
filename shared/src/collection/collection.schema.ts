@@ -165,7 +165,10 @@ export const collectionPlaceUpdateRequestSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
-  status: collectionStatusSchema.optional(),
+  // .removeDefault() strips the inner .default('idea') so an ABSENT status parses to
+  // undefined (left unchanged) instead of being injected as 'idea' (see #1437). The
+  // .catch('idea') guard against invalid values is preserved.
+  status: collectionStatusSchema.removeDefault().optional(),
   category_id: z.number().nullable().optional(),
   collection_id: z.number().optional(), // move to another list
   links: collectionLinksSchema.optional(),
