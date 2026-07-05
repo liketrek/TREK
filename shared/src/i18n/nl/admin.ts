@@ -232,6 +232,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.ws:broadcast:user': 'Realtime updates sturen naar individuele gebruikers',
   'admin.plugins.perm.hook:photo-provider': "Foto's aanleveren voor de Foto's-sectie",
   'admin.plugins.perm.hook:calendar-source': 'Evenementen aanleveren voor de kalender',
+  'admin.plugins.perm.hook:place-detail-provider': 'Extra details (reviews, beoordelingen, links) aan een plek toevoegen',
   'admin.plugins.perm.http:outbound': 'Uitgaande verzoeken doen naar de opgegeven hosts',
   'admin.plugins.updateConsentTitle': 'Deze update vereist nieuwe machtigingen',
   'admin.plugins.updateConsentBody':
@@ -296,6 +297,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.realtime': 'Realtime updates',
   'admin.plugins.cap.photos': "Levert foto's",
   'admin.plugins.cap.calendar': 'Levert kalenderevenementen',
+  'admin.plugins.cap.placeDetails': 'Verrijkt plekken',
   'admin.plugins.accessTitle': 'Waartoe hij toegang heeft',
   'admin.plugins.connectsTitle': 'Maakt verbinding met',
   'admin.plugins.detailsTitle': 'Details',

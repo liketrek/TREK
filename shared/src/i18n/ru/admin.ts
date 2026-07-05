@@ -232,6 +232,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.ws:broadcast:user': 'Отправлять обновления в реальном времени отдельным пользователям',
   'admin.plugins.perm.hook:photo-provider': 'Предоставлять фотографии для «Воспоминаний»',
   'admin.plugins.perm.hook:calendar-source': 'Предоставлять события для календаря',
+  'admin.plugins.perm.hook:place-detail-provider': 'Добавлять дополнительные сведения (отзывы, оценки, ссылки) к месту',
   'admin.plugins.perm.http:outbound': 'Выполнять исходящие запросы к заявленным хостам',
   'admin.plugins.updateConsentTitle': 'Для этого обновления нужны новые разрешения',
   'admin.plugins.updateConsentBody':
@@ -296,6 +297,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.realtime': 'Обновления в реальном времени',
   'admin.plugins.cap.photos': 'Предоставляет фото',
   'admin.plugins.cap.calendar': 'Предоставляет события календаря',
+  'admin.plugins.cap.placeDetails': 'Обогащает места',
   'admin.plugins.accessTitle': 'К чему есть доступ',
   'admin.plugins.connectsTitle': 'Подключается к',
   'admin.plugins.detailsTitle': 'Подробности',

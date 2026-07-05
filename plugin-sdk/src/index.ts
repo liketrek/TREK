@@ -120,13 +120,19 @@ export interface CalendarSource {
   getName(): string;
   getEvents(userId: number, start: Date, end: Date): Promise<CalendarEvent[]>;
 }
+/** One row of extra place info TREK renders natively (reviews/ratings/links/…). */
+export interface PlaceDetailItem { label: string; value?: string; url?: string; }
+export interface PlaceDetailProvider {
+  /** Extra info for a place; core calls this for a `place-detail` panel. Needs `hook:place-detail-provider`. */
+  getDetails(placeId: number, ctx: PluginContext): Promise<PlaceDetailItem[]>;
+}
 
 export interface PluginDefinition {
   onLoad?(ctx: PluginContext): Promise<void> | void;
   onUnload?(ctx: PluginContext): Promise<void> | void;
   routes?: PluginRoute[];
   jobs?: PluginJob[];
-  hooks?: { photoProvider?: PhotoProvider; calendarSource?: CalendarSource };
+  hooks?: { photoProvider?: PhotoProvider; calendarSource?: CalendarSource; placeDetailProvider?: PlaceDetailProvider };
 }
 
 /** Define a plugin. Gives you types; the returned object is what TREK loads. */

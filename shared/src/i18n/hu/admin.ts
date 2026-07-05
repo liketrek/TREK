@@ -232,6 +232,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.ws:broadcast:user': 'Valós idejű frissítések küldése egyes felhasználóknak',
   'admin.plugins.perm.hook:photo-provider': 'Fotók biztosítása az Emlékek funkcióhoz',
   'admin.plugins.perm.hook:calendar-source': 'Események biztosítása a naptárhoz',
+  'admin.plugins.perm.hook:place-detail-provider': 'További részletek (értékelések, minősítések, hivatkozások) hozzáadása egy helyhez',
   'admin.plugins.perm.http:outbound': 'Kimenő kérések küldése a bejelentett kiszolgálók felé',
   'admin.plugins.updateConsentTitle': 'Ez a frissítés új engedélyeket igényel',
   'admin.plugins.updateConsentBody':
@@ -296,6 +297,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.realtime': 'Valós idejű frissítések',
   'admin.plugins.cap.photos': 'Fotókat biztosít',
   'admin.plugins.cap.calendar': 'Naptáreseményeket biztosít',
+  'admin.plugins.cap.placeDetails': 'Helyeket gazdagít',
   'admin.plugins.accessTitle': 'Mihez fér hozzá',
   'admin.plugins.connectsTitle': 'Kapcsolódik ehhez',
   'admin.plugins.detailsTitle': 'Részletek',

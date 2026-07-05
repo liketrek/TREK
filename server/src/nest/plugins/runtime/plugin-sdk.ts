@@ -104,12 +104,35 @@ export interface PluginJob {
   schedule: string;
   handler(ctx: PluginContext): Promise<void>;
 }
+// ── Provider hooks (host→plugin): core asks a hook the plugin implements for data,
+// gated by the matching hook:* permission. Each method also receives the per-
+// invocation ctx, so any trip reads it makes bind to the authenticated user. ──
+export interface Photo { id: string; title?: string; thumbnailUrl: string; fullUrl: string; takenAt?: string; }
+export interface PhotoProvider {
+  search(query: string, opts: { page: number; limit: number }): Promise<{ photos: Photo[]; total: number; hasMore: boolean }>;
+  getById(id: string): Promise<Photo | null>;
+}
+export interface CalendarEvent { id: string; title: string; start: string; end: string; allDay: boolean; }
+export interface CalendarSource {
+  getName(): string;
+  getEvents(userId: number, start: string, end: string): Promise<CalendarEvent[]>;
+}
+/** One row of extra place info TREK renders natively (reviews/ratings/links/…). */
+export interface PlaceDetailItem { label: string; value?: string; url?: string; }
+export interface PlaceDetailProvider {
+  getDetails(placeId: number, ctx: PluginContext): Promise<PlaceDetailItem[]>;
+}
+
 export interface PluginDefinition {
   onLoad?(ctx: PluginContext): Promise<void> | void;
   onUnload?(ctx: PluginContext): Promise<void> | void;
   routes?: PluginRoute[];
   jobs?: PluginJob[];
-  // hooks (photo/calendar) land in M2
+  hooks?: {
+    photoProvider?: PhotoProvider;
+    calendarSource?: CalendarSource;
+    placeDetailProvider?: PlaceDetailProvider;
+  };
 }
 
 /** Identity helper: gives authors types + a stable shape. A plain object works too. */

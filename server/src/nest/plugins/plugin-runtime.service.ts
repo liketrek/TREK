@@ -230,6 +230,18 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
   invoke(id: string, method: string, params: Record<string, unknown>, actingUserId?: number): Promise<unknown> {
     return this.supervisor.invoke(id, method, params, { actingUserId });
   }
+  /** Ids of active plugins implementing a provider hook (e.g. 'placeDetailProvider'). */
+  providersOf(hook: string): string[] {
+    return this.supervisor.providersOf(hook);
+  }
+  /**
+   * Ask ONE plugin's provider hook for data (host→plugin). A tighter default
+   * timeout than a route call so a slow provider can't delay the core response;
+   * the acting user is host-bound so any trip read the hook makes is membership-checked.
+   */
+  invokeHook(id: string, hook: string, fn: string, args: unknown[], actingUserId?: number, timeoutMs = 5000): Promise<unknown> {
+    return this.supervisor.invoke(id, 'invoke.hook', { hook, fn, args }, { actingUserId, timeoutMs });
+  }
 }
 
 function parseArray(json: string): string[] {

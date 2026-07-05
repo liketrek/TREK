@@ -56,7 +56,8 @@ by a real SQLite file (`.trek-dev/db.sqlite`) when the runtime has `node:sqlite`
 
 - **integration** — background logic (jobs, routes) with no UI of its own. Photo-
   provider / calendar-source hook types exist in the SDK but are **not yet wired
-  into the host** — see [Integration hooks](#integration-hooks-not-yet-functional).
+  into the host** — see [Provider hooks](#provider-hooks). The `placeDetailProvider`
+  hook IS wired.
 - **page** — adds a nav entry that opens a full-page sandboxed iframe.
 - **widget** — adds a card to the dashboard (`sidebar` slot), a hero-bar overlay
   (`hero` slot), or a panel inside the trip planner's **place-detail** view
@@ -361,14 +362,32 @@ settings are per-user. `secret: true` fields are stored encrypted and delivered
 decrypted through `ctx.config` (server-side only) — never to the iframe. Resolved
 values arrive in `ctx.config`.
 
-## Integration hooks (not yet functional)
+## Provider hooks
 
-The SDK exports `PhotoProvider` / `CalendarSource` interfaces and a
-`hooks: { photoProvider, calendarSource }` field on the plugin definition, and the
-`hook:photo-provider` / `hook:calendar-source` permissions validate. **However the
-host runtime does not consume `hooks` yet** — it only invokes `onLoad`, `onUnload`,
-`routes` and `jobs`. Treat these as a reserved surface: you can declare them, but
-TREK will not call them today. Build integrations with routes + jobs for now.
+A hook is core calling **into** your plugin for data (host→plugin). Declare it on
+the plugin definition and grant the matching `hook:*` permission:
+
+```js
+module.exports = definePlugin({
+  hooks: {
+    placeDetailProvider: {
+      // Return extra rows TREK renders natively on a place. Runs with the current
+      // user bound, on a short timeout — a slow/failing call is skipped, never fatal.
+      async getDetails(placeId, ctx) {
+        return [{ label: 'Crowd', value: 'Quiet now' }, { label: 'Guide', url: 'https://…' }]
+      },
+    },
+  },
+})
+```
+
+| Hook | Permission | Status |
+|---|---|---|
+| `placeDetailProvider.getDetails(placeId, ctx)` → `{ label, value?, url? }[]` | `hook:place-detail-provider` | **live** — shown in the place-detail panel; also `GET /api/place-details/:placeId` |
+| `photoProvider` / `calendarSource` | `hook:photo-provider` / `hook:calendar-source` | reserved — declared + the `invoke.hook` transport exists, but no core consumer calls them yet |
+
+Each hook method receives its args plus the per-invocation `ctx`, so any `ctx.trips.*`
+read it makes is membership-checked against the current user (like a route handler).
 
 ## Testing without a running TREK
 
@@ -433,7 +452,8 @@ integration test for real SQL.
 | `ws:broadcast:trip` | `ctx.ws.broadcastToTrip` |
 | `ws:broadcast:user` | `ctx.ws.broadcastToUser` |
 | `http:outbound` or `http:outbound:<host>` | outbound HTTP to `egress[]` hosts |
-| `hook:photo-provider` / `hook:calendar-source` | reserved (see [Integration hooks](#integration-hooks-not-yet-functional)) |
+| `hook:place-detail-provider` | `hooks.placeDetailProvider` — extra place rows TREK renders (see [Provider hooks](#provider-hooks)) |
+| `hook:photo-provider` / `hook:calendar-source` | reserved (see [Provider hooks](#provider-hooks)) |
 
 > There is **no `ws:broadcast:*`** — use `ws:broadcast:trip` and/or
 > `ws:broadcast:user` explicitly.

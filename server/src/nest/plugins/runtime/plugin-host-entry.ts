@@ -98,7 +98,8 @@ async function boot(config: Record<string, unknown>): Promise<void> {
     // host can proxy HTTP and schedule jobs without re-parsing the manifest.
     const routes = (def.routes ?? []).map((r, i) => ({ i, method: r.method, path: r.path, auth: r.auth !== false }));
     const jobs = (def.jobs ?? []).map((j) => j.id);
-    send({ k: 'evt', topic: 'loaded', data: { routes, jobs } });
+    const hooks = Object.keys((def.hooks ?? {}) as Record<string, unknown>);
+    send({ k: 'evt', topic: 'loaded', data: { routes, jobs, hooks } });
     // An immediate first heartbeat confirms liveness without waiting a full interval.
     send({ k: 'evt', topic: 'heartbeat', data: { rss: process.memoryUsage().rss } });
   } catch (e) {
@@ -132,6 +133,18 @@ async function handleInvoke(req: { id: string; method: string; params: Record<st
       if (!job) throw new Error(`no job ${jobId}`);
       await job.handler(invCtx);
       respond(true, { ok: true });
+    } else if (req.method === 'invoke.hook') {
+      // Host→plugin provider call: core asks a hook the plugin implements (e.g.
+      // placeDetailProvider) for data. The hook method gets its args + the per-
+      // invocation ctx (so any trip reads it makes bind to the authenticated user).
+      const hookName = req.params.hook as string;
+      const fnName = req.params.fn as string;
+      const args = (req.params.args as unknown[]) ?? [];
+      const hooks = def.hooks as Record<string, Record<string, (...a: unknown[]) => unknown> | undefined> | undefined;
+      const impl = hooks?.[hookName];
+      if (!impl || typeof impl[fnName] !== 'function') throw new Error(`no hook ${hookName}.${fnName}`);
+      const result = await impl[fnName](...args, invCtx);
+      respond(true, result);
     } else {
       respond(false, `unknown invoke ${req.method}`);
     }

@@ -229,6 +229,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.ws:broadcast:user': 'Enviar atualizações em tempo real a usuários individuais',
   'admin.plugins.perm.hook:photo-provider': 'Fornecer fotos para as Memórias',
   'admin.plugins.perm.hook:calendar-source': 'Fornecer eventos para o calendário',
+  'admin.plugins.perm.hook:place-detail-provider': 'Contribuir com detalhes extras (avaliações, notas, links) para um local',
   'admin.plugins.perm.http:outbound': 'Fazer requisições de saída para os hosts declarados',
   'admin.plugins.updateConsentTitle': 'Esta atualização precisa de novas permissões',
   'admin.plugins.updateConsentBody':
@@ -293,6 +294,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.realtime': 'Atualizações em tempo real',
   'admin.plugins.cap.photos': 'Fornece fotos',
   'admin.plugins.cap.calendar': 'Fornece eventos de calendário',
+  'admin.plugins.cap.placeDetails': 'Enriquece locais',
   'admin.plugins.accessTitle': 'O que ele pode acessar',
   'admin.plugins.connectsTitle': 'Conecta-se a',
   'admin.plugins.detailsTitle': 'Detalhes',

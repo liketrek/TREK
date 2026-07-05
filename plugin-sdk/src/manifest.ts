@@ -35,7 +35,7 @@ const KNOWN_PERMISSIONS = [
   'db:write:places', 'db:write:days', 'db:write:itinerary', 'db:write:trips',
   'db:meta',
   'ws:broadcast:trip', 'ws:broadcast:user',
-  'hook:photo-provider', 'hook:calendar-source', 'http:outbound',
+  'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider', 'http:outbound',
 ];
 
 function isKnownPermission(p: string): boolean {
