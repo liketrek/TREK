@@ -113,7 +113,7 @@ export default function PlaceDetailsCard({ name, details, photo, loading }: {
       <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span className="text-content" style={{ fontWeight: 600, fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', flex: 1, minWidth: 0 }}>{name}</span>
-          {loading && <Loader2 size={14} color="var(--text-faint)" style={{ flexShrink: 0, animation: 'spin 1s linear infinite' }} />}
+          {loading && <Loader2 size={14} className="animate-spin" style={{ flexShrink: 0, color: 'var(--text-faint)' }} />}
         </div>
 
         {/* Rating chip */}
