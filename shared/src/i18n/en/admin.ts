@@ -336,6 +336,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.metadata': 'Adds metadata',
   'admin.plugins.cap.widget': 'Dashboard widget',
   'admin.plugins.cap.heroWidget': 'Boarding-pass widget',
+  'admin.plugins.cap.placeSlot': 'Place detail',
   'admin.plugins.cap.realtime': 'Real-time updates',
   'admin.plugins.cap.photos': 'Provides photos',
   'admin.plugins.cap.calendar': 'Provides calendar events',

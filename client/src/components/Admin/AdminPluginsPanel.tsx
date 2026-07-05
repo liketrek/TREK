@@ -121,7 +121,12 @@ function deriveCaps(perms: string[], caps: { widget?: { slot?: string } }, t: T)
   if (perms.includes('db:write:itinerary')) out.push({ icon: ListChecks, label: t('admin.plugins.cap.writesItinerary') })
   if (perms.includes('db:write:trips')) out.push({ icon: Pencil, label: t('admin.plugins.cap.writesTrips') })
   if (perms.includes('db:meta')) out.push({ icon: Tag, label: t('admin.plugins.cap.metadata') })
-  if (caps.widget) out.push({ icon: LayoutDashboard, label: t(caps.widget.slot === 'hero' ? 'admin.plugins.cap.heroWidget' : 'admin.plugins.cap.widget') })
+  if (caps.widget) {
+    const slotKey = caps.widget.slot === 'hero' ? 'admin.plugins.cap.heroWidget'
+      : caps.widget.slot === 'place-detail' ? 'admin.plugins.cap.placeSlot'
+      : 'admin.plugins.cap.widget'
+    out.push({ icon: LayoutDashboard, label: t(slotKey as never) })
+  }
   if (perms.some(p => p.startsWith('ws:broadcast'))) out.push({ icon: Radio, label: t('admin.plugins.cap.realtime') })
   if (perms.includes('hook:photo-provider')) out.push({ icon: Image, label: t('admin.plugins.cap.photos') })
   if (perms.includes('hook:calendar-source')) out.push({ icon: CalendarDays, label: t('admin.plugins.cap.calendar') })

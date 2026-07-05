@@ -338,6 +338,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.metadata': 'Προσθέτει μεταδεδομένα',
   'admin.plugins.cap.widget': 'Widget πίνακα',
   'admin.plugins.cap.heroWidget': 'Widget κάρτας επιβίβασης',
+  'admin.plugins.cap.placeSlot': 'Λεπτομέρειες τόπου',
   'admin.plugins.cap.realtime': 'Ενημερώσεις σε πραγματικό χρόνο',
   'admin.plugins.cap.photos': 'Παρέχει φωτογραφίες',
   'admin.plugins.cap.calendar': 'Παρέχει συμβάντα ημερολογίου',

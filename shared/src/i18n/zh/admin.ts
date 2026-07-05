@@ -287,6 +287,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.metadata': '添加元数据',
   'admin.plugins.cap.widget': '仪表盘小组件',
   'admin.plugins.cap.heroWidget': '登机牌小组件',
+  'admin.plugins.cap.placeSlot': '地点详情',
   'admin.plugins.cap.realtime': '实时更新',
   'admin.plugins.cap.photos': '提供照片',
   'admin.plugins.cap.calendar': '提供日历事件',

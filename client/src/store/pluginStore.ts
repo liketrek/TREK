@@ -12,7 +12,7 @@ export interface ActivePlugin {
   name: string
   type: 'integration' | 'page' | 'widget' | 'trip-page'
   icon: string | null
-  slot?: 'sidebar' | 'hero'
+  slot?: 'sidebar' | 'hero' | 'place-detail'
 }
 
 interface PluginState {
@@ -24,6 +24,7 @@ interface PluginState {
   widgets: () => ActivePlugin[]
   heroWidgets: () => ActivePlugin[]
   tripPages: () => ActivePlugin[]
+  placeDetailWidgets: () => ActivePlugin[]
 }
 
 export const usePluginStore = create<PluginState>((set, get) => ({
@@ -41,7 +42,8 @@ export const usePluginStore = create<PluginState>((set, get) => ({
 
   getById: (id) => get().plugins.find((p) => p.id === id),
   pages: () => get().plugins.filter((p) => p.type === 'page'),
-  widgets: () => get().plugins.filter((p) => p.type === 'widget' && p.slot !== 'hero'),
+  widgets: () => get().plugins.filter((p) => p.type === 'widget' && p.slot !== 'hero' && p.slot !== 'place-detail'),
   heroWidgets: () => get().plugins.filter((p) => p.type === 'widget' && p.slot === 'hero'),
   tripPages: () => get().plugins.filter((p) => p.type === 'trip-page'),
+  placeDetailWidgets: () => get().plugins.filter((p) => p.type === 'widget' && p.slot === 'place-detail'),
 }))

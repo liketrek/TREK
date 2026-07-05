@@ -329,6 +329,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.metadata': '메타데이터 추가',
   'admin.plugins.cap.widget': '대시보드 위젯',
   'admin.plugins.cap.heroWidget': '탑승권 위젯',
+  'admin.plugins.cap.placeSlot': '장소 상세',
   'admin.plugins.cap.realtime': '실시간 업데이트',
   'admin.plugins.cap.photos': '사진 제공',
   'admin.plugins.cap.calendar': '캘린더 일정 제공',

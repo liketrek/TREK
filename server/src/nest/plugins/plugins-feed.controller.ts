@@ -15,7 +15,7 @@ interface ActivePlugin {
   name: string;
   type: string;
   icon: string | null;
-  slot: 'sidebar' | 'hero';
+  slot: 'sidebar' | 'hero' | 'place-detail';
 }
 
 @Controller('api/plugins')
@@ -32,10 +32,11 @@ export class PluginsFeedController {
   }
 }
 
-function slotOf(capabilities: string): 'sidebar' | 'hero' {
+function slotOf(capabilities: string): 'sidebar' | 'hero' | 'place-detail' {
   try {
     const c = JSON.parse(capabilities || '{}') as { widget?: { slot?: string } };
-    return c.widget?.slot === 'hero' ? 'hero' : 'sidebar';
+    const slot = c.widget?.slot;
+    return slot === 'hero' || slot === 'place-detail' ? slot : 'sidebar';
   } catch {
     return 'sidebar';
   }

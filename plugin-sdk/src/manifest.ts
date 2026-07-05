@@ -74,8 +74,8 @@ export function validateManifest(raw: unknown): ValidationResult {
   for (const h of egress) if (!HOST_RE.test(h)) errors.push(`invalid egress host "${h}"`);
 
   const widget = (m.capabilities as { widget?: { slot?: unknown } } | undefined)?.widget;
-  if (widget?.slot !== undefined && widget.slot !== 'sidebar' && widget.slot !== 'hero') {
-    errors.push(`widget slot must be "sidebar" or "hero", got "${String(widget.slot)}"`);
+  if (widget?.slot !== undefined && widget.slot !== 'sidebar' && widget.slot !== 'hero' && widget.slot !== 'place-detail') {
+    errors.push(`widget slot must be "sidebar", "hero" or "place-detail", got "${String(widget.slot)}"`);
   }
 
   if (errors.length) return { ok: false, errors };

@@ -79,6 +79,8 @@ function readAppearance() {
 interface PluginFrameProps {
   pluginId: string
   tripId?: string | null
+  /** The place in view — set for a place-detail slot so the plugin can scope to it. */
+  placeId?: string | null
   className?: string
   title?: string
 }
@@ -91,7 +93,7 @@ type Inbound =
   | { type: 'trek:resize'; height?: number }
   | { type: 'trek:invoke'; requestId: string; sub: string; method?: string; body?: unknown }
 
-export default function PluginFrame({ pluginId, tripId = null, className, title }: PluginFrameProps) {
+export default function PluginFrame({ pluginId, tripId = null, placeId = null, className, title }: PluginFrameProps) {
   const frameRef = useRef<HTMLIFrameElement | null>(null)
   // A sandboxed frame may navigate ITSELF (connect-src can't stop that), and its
   // window identity keeps matching our iframe afterwards. Track loads and refuse
@@ -120,6 +122,7 @@ export default function PluginFrame({ pluginId, tripId = null, className, title 
   const buildContext = useCallback(() => ({
     type: 'trek:context',
     tripId,
+    placeId,
     userId: userId != null ? String(userId) : null,
     theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
     locale,
@@ -140,7 +143,7 @@ export default function PluginFrame({ pluginId, tripId = null, className, title 
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     },
     tokens: readThemeTokens(),
-  }), [tripId, userId, locale, userName, userAvatar, isAdmin, settings])
+  }), [tripId, placeId, userId, locale, userName, userAvatar, isAdmin, settings])
 
   useEffect(() => {
     const frame = frameRef.current

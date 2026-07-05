@@ -291,6 +291,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.metadata': 'Aggiunge metadati',
   'admin.plugins.cap.widget': 'Widget dashboard',
   'admin.plugins.cap.heroWidget': "Widget carta d'imbarco",
+  'admin.plugins.cap.placeSlot': 'Dettaglio luogo',
   'admin.plugins.cap.realtime': 'Aggiornamenti in tempo reale',
   'admin.plugins.cap.photos': 'Fornisce foto',
   'admin.plugins.cap.calendar': 'Fornisce eventi calendario',

@@ -292,6 +292,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.metadata': 'Metaadatot ad',
   'admin.plugins.cap.widget': 'Irányítópult-widget',
   'admin.plugins.cap.heroWidget': 'Beszállókártya-widget',
+  'admin.plugins.cap.placeSlot': 'Hely részletei',
   'admin.plugins.cap.realtime': 'Valós idejű frissítések',
   'admin.plugins.cap.photos': 'Fotókat biztosít',
   'admin.plugins.cap.calendar': 'Naptáreseményeket biztosít',

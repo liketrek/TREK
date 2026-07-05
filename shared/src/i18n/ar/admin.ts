@@ -302,6 +302,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.metadata': 'يضيف بيانات وصفية',
   'admin.plugins.cap.widget': 'أداة لوحة التحكم',
   'admin.plugins.cap.heroWidget': 'أداة بطاقة الصعود',
+  'admin.plugins.cap.placeSlot': 'تفاصيل المكان',
   'admin.plugins.cap.realtime': 'تحديثات فورية',
   'admin.plugins.cap.photos': 'يوفّر الصور',
   'admin.plugins.cap.calendar': 'يوفّر أحداث التقويم',

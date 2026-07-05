@@ -16,6 +16,8 @@ import { useSaveToCollectionStore } from '../../store/saveToCollectionStore'
 import { getCategoryIcon } from '../shared/categoryIcons'
 import { useToast } from '../shared/Toast'
 import { useTranslation, translateApiError } from '../../i18n'
+import { usePluginStore } from '../../store/pluginStore'
+import PluginFrame from '../Plugins/PluginFrame'
 import type { Place, Category, Day, Assignment, Reservation, TripFile, AssignmentsMap } from '../../types'
 import type { CollectionStatus } from '@trek/shared'
 import { splitReservationDateTime, formatTime } from '../../utils/formatters'
@@ -142,6 +144,9 @@ export default function PlaceInspector({
   leftWidth = 0, rightWidth = 0,
   collectionStatus, onCopyToTrip, onSetStatus, onRemoveFromList,
 }: PlaceInspectorProps) {
+  // Plugins that declared a place-detail slot mount at the bottom of this panel,
+  // scoped to the open place (trip mode only). Inline-filter like the other sites.
+  const placeDetailPlugins = usePluginStore((s) => s.plugins).filter((p) => p.type === 'widget' && p.slot === 'place-detail')
   const { t, locale, language } = useTranslation()
   const toast = useToast()
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
@@ -355,6 +360,20 @@ export default function PlaceInspector({
             onFileUpload={onFileUpload} filesExpanded={filesExpanded} setFilesExpanded={setFilesExpanded}
             fileInputRef={fileInputRef} handleFileUpload={handleFileUpload} isUploading={isUploading}
             distanceUnit={distanceUnit} />
+
+          {/* Place-detail plugin slots (#1429): sandboxed, scoped to this place. */}
+          {mode === 'trip' && placeDetailPlugins.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {placeDetailPlugins.map((p) => {
+                const tid = (place as { trip_id?: number | string }).trip_id
+                return (
+                  <div key={p.id} className="bg-surface-hover" style={{ borderRadius: 10, overflow: 'hidden' }}>
+                    <PluginFrame pluginId={p.id} tripId={tid != null ? String(tid) : null} placeId={String(place.id)} title={p.name} />
+                  </div>
+                )
+              })}
+            </div>
+          )}
 
         </div>
 

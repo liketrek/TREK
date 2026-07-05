@@ -294,6 +294,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.metadata': 'Ajoute des métadonnées',
   'admin.plugins.cap.widget': 'Widget de tableau de bord',
   'admin.plugins.cap.heroWidget': "Widget carte d'embarquement",
+  'admin.plugins.cap.placeSlot': 'Détail du lieu',
   'admin.plugins.cap.realtime': 'Mises à jour en temps réel',
   'admin.plugins.cap.photos': 'Fournit des photos',
   'admin.plugins.cap.calendar': 'Fournit des événements de calendrier',

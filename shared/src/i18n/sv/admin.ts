@@ -344,6 +344,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.metadata': 'Lägger till metadata',
   'admin.plugins.cap.widget': 'Dashboard-widget',
   'admin.plugins.cap.heroWidget': 'Boardingkort-widget',
+  'admin.plugins.cap.placeSlot': 'Platsdetalj',
   'admin.plugins.cap.realtime': 'Realtidsuppdateringar',
   'admin.plugins.cap.photos': 'Tillhandahåller foton',
   'admin.plugins.cap.calendar': 'Tillhandahåller kalenderhändelser',

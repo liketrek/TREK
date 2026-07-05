@@ -73,6 +73,11 @@ describe('parseManifest capabilities', () => {
     expect(parseManifest(base).capabilities).toEqual({});
   });
 
+  it('accepts the place-detail widget slot (mounts in the place inspector)', () => {
+    const pd = parseManifest({ ...base, capabilities: { widget: { slot: 'place-detail' } } });
+    expect(pd.capabilities.widget?.slot).toBe('place-detail');
+  });
+
   it('rejects an unknown widget slot', () => {
     expect(() => parseManifest({ ...base, capabilities: { widget: { slot: 'floating' } } })).toThrow(ManifestError);
   });

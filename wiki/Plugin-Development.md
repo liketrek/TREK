@@ -58,8 +58,11 @@ by a real SQLite file (`.trek-dev/db.sqlite`) when the runtime has `node:sqlite`
   provider / calendar-source hook types exist in the SDK but are **not yet wired
   into the host** — see [Integration hooks](#integration-hooks-not-yet-functional).
 - **page** — adds a nav entry that opens a full-page sandboxed iframe.
-- **widget** — adds a card to the dashboard (`sidebar` slot) or a hero-bar
-  overlay (`hero` slot).
+- **widget** — adds a card to the dashboard (`sidebar` slot), a hero-bar overlay
+  (`hero` slot), or a panel inside the trip planner's **place-detail** view
+  (`place-detail` slot — the frame also receives the open `placeId` in
+  `trek:context`, so it can show place-specific info like reviews or ratings). Set
+  the slot in `capabilities.widget.slot`.
 - **trip-page** — adds a tab **inside every trip planner**, so your UI lives in the
   trip alongside Plan / Transports / Files. The frame is the same sandboxed iframe as
   a `page`, but it receives the current `tripId` in `trek:context` (so you can scope
@@ -129,7 +132,6 @@ declaration for readers — the manifest parser does not consume it.
 | `ctx.db` | `query(sql, …args)` / `exec(sql, …args)` / `migrate(id, sql)` against your **own** SQLite file | `db:own` |
 | `ctx.trips` | `getById` / `getPlaces` / `getReservations` (membership-checked) | `db:read:trips` |
 | `ctx.trips.update(tripId, fields)` | update trip fields (title/dates/currency/reminder_days/…) | `db:write:trips` |
-| `ctx.costs` | `getByTrip` / `listMine` (read) · `create(tripId, item)` (write) — needs the Costs addon | `db:read:costs` / `db:write:costs` |
 | `ctx.places` | `create(tripId, fields)` / `update(tripId, placeId, fields)` / `delete(tripId, placeId)` | `db:write:places` |
 | `ctx.days` | `create(tripId, {date?, notes?})` / `update(tripId, dayId, {notes?, title?})` / `delete(tripId, dayId)` | `db:write:days` |
 | `ctx.itinerary` | `assign(tripId, dayId, placeId, notes?)` / `unassign(tripId, assignmentId)` — place↔day | `db:write:itinerary` |
@@ -311,6 +313,7 @@ scripts/styles only, `connect-src` limited to your declared `egress[]` hosts, no
 | Field | Type |
 |---|---|
 | `tripId` | `number \| null` — the trip in view (a `trip-page` tab, or a widget on a trip), else `null` |
+| `placeId` | `number \| null` — the place in view (a `place-detail` slot), else `null` |
 | `userId` | `string \| null` |
 | `theme` | `'light' \| 'dark'` |
 | `locale` | e.g. `'en'` |
