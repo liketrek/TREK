@@ -4,6 +4,7 @@ import { http, HttpResponse } from 'msw'
 import { server } from '../../../tests/helpers/msw/server'
 import { useAuthStore } from '../../store/authStore'
 import { useTripStore } from '../../store/tripStore'
+import { useSettingsStore } from '../../store/settingsStore'
 import { resetAllStores, seedStore } from '../../../tests/helpers/store'
 import { buildUser, buildTrip, buildBudgetItem } from '../../../tests/helpers/factories'
 import CostsPanel from './CostsPanel'
@@ -162,6 +163,28 @@ describe('CostsPanel — settlements in the ledger', () => {
     render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
     await screen.findByText('Hotel')
     expect(screen.getByText('Unfinished')).toBeInTheDocument()
+  })
+
+  it('sums only unfinished expenses in the Outstanding amount card', async () => {
+    // Display in the trip's own currency so FX conversion is an identity — keeps the asserted sum deterministic.
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } })
+    const paid = { ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Dinner' }), total_price: 60, payers: [{ user_id: 1, amount: 60, username: 'alice' }], members: [{ user_id: 1, username: 'alice', paid: 1 }] }
+    const unfinishedA = { ...buildBudgetItem({ trip_id: 1, category: 'lodging', name: 'Hotel' }), total_price: 90, payers: [], members: [{ user_id: 1, username: 'alice', paid: 0 }] }
+    const unfinishedB = { ...buildBudgetItem({ trip_id: 1, category: 'transport', name: 'Taxi' }), total_price: 30, payers: [], members: [{ user_id: 1, username: 'alice', paid: 0 }] }
+    const zero = { ...buildBudgetItem({ trip_id: 1, category: 'misc', name: 'Freebie' }), total_price: 0, payers: [], members: [{ user_id: 1, username: 'alice', paid: 0 }] }
+    server.use(
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [paid, unfinishedA, unfinishedB, zero] })),
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
+    )
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+
+    // Footer only shows the count once unfinished expenses have loaded.
+    const foot = await screen.findByText('expenses need a payer')
+    expect(foot).toHaveTextContent('2 expenses need a payer') // the two payer-less, non-zero expenses
+    // Sum is 90 + 30 = 120 — the paid (60) and zero-total items are excluded.
+    // Sum is 90 + 30 = 120 — the paid (60) and zero-total items are excluded.
+    const card = screen.getByText('Outstanding amount').closest('div[style*="border-radius: 22"]')
+    expect(card).toHaveTextContent('120') // 120,00 € (locale separator), i.e. 90 + 30
   })
 
   it('records a recorded-total expense with nobody to split with (#1286)', async () => {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ArrowDown, ArrowUp, BarChart3, Plus, Search, ArrowRight, ArrowLeftRight, Check, RotateCcw, Pencil, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, BarChart3, Plus, Search, ArrowRight, ArrowLeftRight, Check, RotateCcw, Pencil, Trash2, AlertCircle } from 'lucide-react'
 import { useTripStore } from '../../store/tripStore'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -179,6 +179,9 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     const myShare = shares[me] || 0
     return convert(myShare, curOf(e))
   }
+  // "Unfinished": a recorded total nobody has paid yet — counts toward the trip
+  // total but stays out of settlements until who-paid is filled in.
+  const isUnfinished = (e: BudgetItem) => baseTotal(e) > 0 && (e.payers || []).filter(p => p.amount > 0).length === 0
 
   const totals = useMemo(() => {
     const totalSpend = budgetItems.reduce((a, e) => a + baseTotal(e), 0)
@@ -186,7 +189,9 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     const myShare = budgetItems.reduce((a, e) => a + myShareOf(e), 0)
     const owe = (settlement?.flows || []).filter(f => f.from.user_id === me).reduce((a, f) => a + f.amount, 0)
     const owed = (settlement?.flows || []).filter(f => f.to.user_id === me).reduce((a, f) => a + f.amount, 0)
-    return { totalSpend, myPaid, myShare, owe, owed }
+    const outstanding = budgetItems.reduce((a, e) => (isUnfinished(e) ? a + baseTotal(e) : a), 0)
+    const outstandingCount = budgetItems.filter(isUnfinished).length
+    return { totalSpend, myPaid, myShare, owe, owed, outstanding, outstandingCount }
   }, [budgetItems, settlement, me])
 
   // ── filtering + day grouping ────────────────────────────────────────────
@@ -369,7 +374,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
       </div>
 
       {/* ── Summary cards ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.15fr', gap: 16, marginBottom: 36 }} className="costs-summary">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 36 }} className="costs-summary">
         <SummaryCard label={t('costs.youOwe')} sub={t('costs.youOweSub')} amount={totals.owe} currency={base} locale={locale}
           icon={<ArrowDown size={18} />} tone="owe"
           foot={totals.owe > 0.01
@@ -380,6 +385,11 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
           foot={totals.owed > 0.01
             ? <FlowPills ids={(settlement?.flows || []).filter(f => f.to.user_id === me).map(f => f.from.user_id)} lead={t('costs.from')} Avatar={Avatar} name={personName} />
             : <span className="text-content-faint">{t('costs.nothingOwed')}</span>} />
+        <SummaryCard label={t('costs.outstanding')} sub={t('costs.outstandingSub')} amount={totals.outstanding} currency={base} locale={locale}
+          icon={<AlertCircle size={18} />} tone="unfinished"
+          foot={totals.outstandingCount > 0
+            ? <span><b>{totals.outstandingCount}</b> {t('costs.outstandingItems')}</span>
+            : <span className="text-content-faint">{t('costs.allSettled')}</span>} />
         <SummaryCard label={t('costs.totalSpend')} sub={t('costs.totalSpendSub')} amount={totals.totalSpend} currency={base} locale={locale}
           icon={<BarChart3 size={18} />} tone="total"
           foot={<span style={{ display: 'flex', gap: 16 }}><span>{t('costs.yourShare')} · <b>{fmt0(totals.myShare)}</b></span><span>{t('costs.youPaid')} · <b>{fmt0(totals.myPaid)}</b></span></span>} />
@@ -511,8 +521,11 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
         .costs-root .text-content-faint { color: var(--c-ink3) !important; }
         .costs-root .exp-actions { opacity: 1; }
         @media (max-width: 1100px) {
-          .costs-root .costs-summary { grid-template-columns: 1fr !important; }
+          .costs-root .costs-summary { grid-template-columns: 1fr 1fr !important; }
           .costs-root .costs-grid { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 640px) {
+          .costs-root .costs-summary { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </div>
@@ -577,6 +590,18 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
             <div className="text-content" style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{t('costs.youreOwed')}</div>
             <div className="text-content-faint" style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))' }}>{t('costs.youreOwedSub')}</div>
             <div style={{ fontSize: 'calc(27px * var(--fs-scale-title, 1))', fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1, marginTop: 12, display: 'flex', alignItems: 'baseline', color: '#16a34a' }}>{bigMoney(totals.owed, 16, 'var(--c-ink3)')}</div>
+          </div>
+        </div>
+
+        {/* Outstanding */}
+        <div className={cardCls} style={{ borderRadius: 18, padding: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 10, display: 'grid', placeItems: 'center', background: '#d9770622', color: '#d97706', flexShrink: 0 }}><AlertCircle size={17} /></div>
+            <div style={{ minWidth: 0 }}>
+              <div className="text-content" style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{t('costs.outstanding')}</div>
+              <div className="text-content-faint" style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))' }}>{t('costs.outstandingSub')}</div>
+            </div>
+            <div style={{ marginLeft: 'auto', fontSize: 'calc(27px * var(--fs-scale-title, 1))', fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1, display: 'flex', alignItems: 'baseline', color: '#d97706' }}>{bigMoney(totals.outstanding, 16, 'var(--c-ink3)')}</div>
           </div>
         </div>
 
@@ -645,21 +670,19 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     const cur = curOf(e)
     const payers = (e.payers || []).filter(p => p.amount > 0)
     const net = round2(myPaidOf(e) - myShareOf(e))
-    // "Unfinished": a recorded total nobody has paid yet — counts toward the trip
-    // total but stays out of settlements until who-paid is filled in.
-    const isUnfinished = baseTotal(e) > 0 && payers.length === 0
+    const unfinished = isUnfinished(e)
     return (
       <div className="bg-surface-card border border-edge exp-row" style={{ display: 'grid', gridTemplateColumns: '46px 1fr auto', gap: 16, alignItems: 'center', borderRadius: 18, padding: '16px 20px' }}>
         <span style={{ position: 'relative', width: 46, height: 46, borderRadius: 13, display: 'grid', placeItems: 'center', background: c.color + '22', color: c.color }}>
           <Icon size={21} />
-          {isMobile && isUnfinished && (
+          {isMobile && unfinished && (
             <span title={t('costs.unfinishedHint')} style={{ position: 'absolute', bottom: -4, right: -4, width: 20, height: 20, borderRadius: '50%', background: '#d97706', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 800, lineHeight: 1, border: '2px solid var(--bg-card)' }}>!</span>
           )}
         </span>
         <div style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
             <span className="text-content" style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600 }}>{e.name}</span>
-            {isUnfinished && !isMobile && (
+            {unfinished && !isMobile && (
               <span title={t('costs.unfinishedHint')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px 2px 6px', borderRadius: 999, background: 'rgba(217,119,6,0.14)', color: '#d97706', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 700, flexShrink: 0 }}>
                 <span style={{ width: 14, height: 14, borderRadius: '50%', background: '#d97706', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 800 }}>!</span>
                 {t('costs.unfinished')}
@@ -786,9 +809,9 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
 }
 
 // ── pure subcomponents ─────────────────────────────────────────────────────
-function SummaryCard({ label, sub, amount, currency, locale, icon, foot, tone }: { label: string; sub: string; amount: number; currency: string; locale: string; icon: React.ReactNode; foot: React.ReactNode; tone: 'owe' | 'owed' | 'total' }) {
+function SummaryCard({ label, sub, amount, currency, locale, icon, foot, tone }: { label: string; sub: string; amount: number; currency: string; locale: string; icon: React.ReactNode; foot: React.ReactNode; tone: 'owe' | 'owed' | 'total' | 'unfinished' }) {
   const total = tone === 'total'
-  const accent = tone === 'owe' ? '#dc2626' : tone === 'owed' ? '#16a34a' : undefined
+  const accent = tone === 'owe' ? '#dc2626' : tone === 'owed' ? '#16a34a' : tone === 'unfinished' ? '#d97706' : undefined
   const muted = total ? 'rgba(255,255,255,0.55)' : 'var(--text-faint)'
   // formatToParts keeps the design's "big integer + muted symbol/decimals" styling
   // while letting Intl place the symbol and pick separators per locale + currency.
