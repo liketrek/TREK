@@ -35,6 +35,8 @@ function makeDeps(): HostDeps {
     // Costs (budget) — addon on; user 42 may edit trip 1's costs.
     budgetAddonEnabled: vi.fn(() => true),
     canEditCosts: vi.fn((tripId: number, userId: number) => tripId === 1 && userId === 42),
+    listPackingItems: vi.fn((tripId: number) => [{ id: 1, trip_id: tripId, name: 'Socks' }]),
+    listTripFiles: vi.fn((tripId: number) => [{ id: 2, trip_id: tripId, filename: 'visa.pdf' }]),
     listCostsForTrip: vi.fn((tripId: number) => [{ id: 5, trip_id: tripId, name: 'Hotel', total_price: 100 }]),
     listCostsForUser: vi.fn(() => [
       { id: 5, trip_id: 1, name: 'Hotel' },
@@ -128,6 +130,22 @@ describe('PluginRpcHost — capability enforcement', () => {
     const allowed = await host.dispatch(req('trips.getPlaces', { tripId: 1 }), 42);
     expect(ok(allowed)).toBe(true);
     expect((allowed as RpcResponse).result).toEqual([{ id: 7, name: 'Place' }]);
+  });
+
+  it('db:read:packing / db:read:files delegate to the service, membership-checked, and stay separate scopes', async () => {
+    const packing = new PluginRpcHost('p', new Set(['db:read:packing']), deps);
+    // no access to trip 2 → refused before the service is called
+    expect(((await packing.dispatch(req('packing.list', { tripId: 2 }), 42)) as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect(deps.listPackingItems).not.toHaveBeenCalled();
+    const okP = await packing.dispatch(req('packing.list', { tripId: 1 }), 42);
+    expect(ok(okP)).toBe(true);
+    expect(deps.listPackingItems).toHaveBeenCalledWith(1);
+    // the packing scope does NOT unlock files
+    expect(((await packing.dispatch(req('files.list', { tripId: 1 }), 42)) as RpcError).error.code).toBe('PERMISSION_DENIED');
+
+    const files = new PluginRpcHost('p', new Set(['db:read:files']), deps);
+    const okF = await files.dispatch(req('files.list', { tripId: 1 }), 42);
+    expect((okF as RpcResponse).result).toEqual([{ id: 2, trip_id: 1, filename: 'visa.pdf' }]);
   });
 
   it('db:read:users returns only the public projection for a visible user', async () => {

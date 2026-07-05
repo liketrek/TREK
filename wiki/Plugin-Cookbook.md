@@ -28,6 +28,17 @@ async handler(req, ctx) {
 }
 ```
 
+## Read the packing list or files of a trip
+
+**Needs:** `db:read:packing` · `db:read:files` (declare only what you use)
+
+```js
+const packing = await ctx.packing.list(tripId)   // hydrated bags/assignees
+const files   = await ctx.files.list(tripId)      // trash excluded
+```
+
+Both are membership-checked against the current user — same gate as `ctx.trips.*`.
+
 ## Add / move something on the itinerary
 
 **Needs:** `db:write:places` · `db:write:days` · `db:write:itinerary` (declare only what you use)

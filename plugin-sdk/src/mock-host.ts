@@ -21,7 +21,7 @@ export interface MockHostOptions {
     number,
     {
       members: number[]; data?: unknown; places?: unknown[]; reservations?: unknown[]; costs?: unknown[];
-      days?: unknown[]; assignments?: unknown[];
+      days?: unknown[]; assignments?: unknown[]; packing?: unknown[]; files?: unknown[];
       /** Default true — model the place_edit / day_edit / trip_edit permission for writes. */
       canEditCosts?: boolean; canEditPlaces?: boolean; canEditDays?: boolean; canEditTrip?: boolean;
     }
@@ -122,6 +122,18 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
         const data = (t.data ??= {}) as Record<string, unknown>;
         Object.assign(data, input);
         return data;
+      },
+    },
+    packing: {
+      async list(tripId) {
+        need('db:read:packing', 'packing.list');
+        return assertMember(tripId, requireActingUser()).packing ?? [];
+      },
+    },
+    files: {
+      async list(tripId) {
+        need('db:read:files', 'files.list');
+        return assertMember(tripId, requireActingUser()).files ?? [];
       },
     },
     costs: {

@@ -55,6 +55,10 @@ export interface HostDeps {
   budgetAddonEnabled(): boolean;
   /** True if the acting user may create costs on the trip (the 'budget_edit' permission). */
   canEditCosts(tripId: number, userId: number): boolean;
+  /** All packing items of a trip (hydrated bags/assignees), for `packing.list`. */
+  listPackingItems(tripId: number): unknown[];
+  /** A trip's files (trash excluded), for `files.list`. */
+  listTripFiles(tripId: number): unknown[];
   /** All budget items of one trip, hydrated with members/payers. */
   listCostsForTrip(tripId: number): unknown[];
   /** All budget items across every trip the acting user can access. */
@@ -129,6 +133,18 @@ export class PluginRpcHost {
       );
       this.methods.set('trips.getReservations', (p, uid) =>
         this.tripRead(p, uid, () => deps.db.prepare('SELECT * FROM reservations WHERE trip_id = ? ORDER BY reservation_time').all(num(p.tripId, 'tripId'))),
+      );
+    }
+    if (has('db:read:packing')) {
+      // Delegate to the packing service so bags/assignees hydration matches the app.
+      this.methods.set('packing.list', (p, uid) =>
+        this.tripRead(p, uid, () => deps.listPackingItems(num(p.tripId, 'tripId'))),
+      );
+    }
+    if (has('db:read:files')) {
+      // Trip files, trash excluded — same view the files tab shows.
+      this.methods.set('files.list', (p, uid) =>
+        this.tripRead(p, uid, () => deps.listTripFiles(num(p.tripId, 'tripId'))),
       );
     }
 

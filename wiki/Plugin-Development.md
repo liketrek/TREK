@@ -447,6 +447,8 @@ integration test for real SQL.
 |---|---|
 | `db:own` | `ctx.db` — your own SQLite file |
 | `db:read:trips` | `ctx.trips.*` (membership-checked, route handlers only) |
+| `db:read:packing` | `ctx.packing.list(tripId)` — a trip's packing items (membership-checked) |
+| `db:read:files` | `ctx.files.list(tripId)` — a trip's files, trash excluded (membership-checked) |
 | `db:read:costs` | `ctx.costs.getByTrip` / `ctx.costs.listMine` (Costs addon, route handlers only) |
 | `db:write:costs` | `ctx.costs.create` (Costs addon + acting user's `budget_edit`) |
 | `db:read:users` | `ctx.users.getById` |

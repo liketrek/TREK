@@ -1,6 +1,8 @@
 import { db, canAccessTrip } from '../../../db/database';
 import { broadcast, broadcastToUser } from '../../../websocket';
 import { listBudgetItems } from '../../../services/budgetService';
+import { listItems as listPackingItemsSvc } from '../../../services/packingService';
+import { listFiles } from '../../../services/fileService';
 import { checkPermission } from '../../../services/permissions';
 import { listTrips, updateTrip, NotFoundError, ValidationError } from '../../../services/tripService';
 import { createPlace, updatePlace, deletePlace } from '../../../services/placeService';
@@ -91,6 +93,10 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>): Plu
       if (!u) return false;
       return checkPermission('budget_edit', u.role ?? 'user', trip.user_id, userId, trip.user_id !== userId);
     },
+    // --- Read scopes (packing/files). Membership is checked by the host (tripRead);
+    // these just delegate to the same services the REST paths use. ---
+    listPackingItems: (tripId) => listPackingItemsSvc(tripId),
+    listTripFiles: (tripId) => listFiles(tripId, false),
     listCostsForTrip: (tripId) => listBudgetItems(tripId),
     // Cross-trip: every accessible trip's budget items (membership predicate is
     // baked into listTrips). Reuses the hydrated list so members/payers come too.

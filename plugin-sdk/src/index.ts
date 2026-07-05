@@ -24,6 +24,16 @@ export interface PluginContext {
     /** Update trip fields; needs `db:write:trips` + the acting user's trip_edit permission. Route context only. */
     update(tripId: number, input: Record<string, unknown>): Promise<unknown>;
   };
+  // Read-only views of other trip subsystems (#1429 eco). Membership-checked against
+  // the current user; each needs its own db:read:* scope.
+  packing: {
+    /** A trip's packing items (hydrated bags/assignees). Needs `db:read:packing`. */
+    list(tripId: number): Promise<unknown[]>;
+  };
+  files: {
+    /** A trip's files, trash excluded. Needs `db:read:files`. */
+    list(tripId: number): Promise<unknown[]>;
+  };
   // "Costs" = budget items. The acting user is bound by the host to the current
   // invocation; create/update/delete also need 'budget_edit' and the Costs addon
   // enabled.

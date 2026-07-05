@@ -85,6 +85,8 @@ vi.mock('../../../src/services/assignmentService', () => ({
   getAssignmentForTrip: vi.fn((id: number) => (id === 99 ? undefined : { id })),
 }));
 vi.mock('../../../src/services/budgetService', () => ({ listBudgetItems: vi.fn(() => []) }));
+vi.mock('../../../src/services/packingService', () => ({ listItems: vi.fn((tid: number) => [{ id: 1, trip_id: tid, name: 'Socks' }]) }));
+vi.mock('../../../src/services/fileService', () => ({ listFiles: vi.fn((tid: number, trash: boolean) => [{ id: 2, trip_id: tid, trash }]) }));
 
 import { createRealRpcHost, getPluginDataDb, closePluginDataDb } from '../../../src/nest/plugins/host/create-rpc-host';
 
@@ -220,6 +222,12 @@ describe('create-rpc-host — planner write + metadata deps', () => {
   it('costs deps: delete of a missing item is RESOURCE_FORBIDDEN', async () => {
     const h = host('db:write:costs');
     expect((await call(h, 'costs.delete', { tripId: 1, itemId: 404 })).error.code).toBe('RESOURCE_FORBIDDEN');
+  });
+
+  it('packing/files read deps delegate to their services (trash excluded for files)', async () => {
+    const h = host('db:read:packing', 'db:read:files');
+    expect((await call(h, 'packing.list', { tripId: 1 })).result).toEqual([{ id: 1, trip_id: 1, name: 'Socks' }]);
+    expect((await call(h, 'files.list', { tripId: 1 })).result).toEqual([{ id: 2, trip_id: 1, trash: false }]);
   });
 
   it('users.getById is scoped to people the acting user shares a trip with', async () => {

@@ -4,7 +4,7 @@ import {
   ArrowUpCircle, Github, ExternalLink, ChevronDown, Check, Lock, Search,
   SlidersHorizontal, ArrowUpDown, CircleDot, MoreHorizontal, RotateCw, ArrowRight, Database, Users, LayoutDashboard,
   Radio, Luggage, Plane, Globe, Image, CalendarDays, Map, Bell, Cloud, Camera, Compass,
-  BookOpen, Wallet, Puzzle, MapPin, ListChecks, Pencil, Tag,
+  BookOpen, Wallet, Puzzle, MapPin, ListChecks, Pencil, Tag, FileText,
 } from 'lucide-react'
 import { adminApi } from '../../api/client'
 import { useTranslation } from '../../i18n'
@@ -83,7 +83,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: 
 
 // Known permissions → human-readable i18n key; unknown ones render as raw code.
 const PERM_KEYS = [
-  'db:own', 'db:read:trips', 'db:read:users', 'db:read:costs', 'db:write:costs',
+  'db:own', 'db:read:trips', 'db:read:users', 'db:read:costs', 'db:read:packing', 'db:read:files', 'db:write:costs',
   'db:write:places', 'db:write:days', 'db:write:itinerary', 'db:write:trips',
   'db:meta',
   'ws:broadcast:trip', 'ws:broadcast:user',
@@ -116,6 +116,8 @@ function deriveCaps(perms: string[], caps: { widget?: { slot?: string } }, t: T)
   if (perms.includes('db:read:users')) out.push({ icon: Users, label: t('admin.plugins.cap.readsUsers') })
   if (perms.includes('db:write:costs')) out.push({ icon: Wallet, label: t('admin.plugins.cap.writesCosts') })
   else if (perms.includes('db:read:costs')) out.push({ icon: Wallet, label: t('admin.plugins.cap.readsCosts') })
+  if (perms.includes('db:read:packing')) out.push({ icon: Luggage, label: t('admin.plugins.cap.readsPacking') })
+  if (perms.includes('db:read:files')) out.push({ icon: FileText, label: t('admin.plugins.cap.readsFiles') })
   if (perms.includes('db:write:places')) out.push({ icon: MapPin, label: t('admin.plugins.cap.writesPlaces') })
   if (perms.includes('db:write:days')) out.push({ icon: CalendarDays, label: t('admin.plugins.cap.writesDays') })
   if (perms.includes('db:write:itinerary')) out.push({ icon: ListChecks, label: t('admin.plugins.cap.writesItinerary') })

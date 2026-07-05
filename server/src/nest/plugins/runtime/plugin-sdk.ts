@@ -31,6 +31,16 @@ export interface PluginContext {
     /** Update trip fields (title/dates/currency/reminder_days/...); needs 'db:write:trips' + the acting user's 'trip_edit' permission. */
     update(tripId: number, input: Record<string, unknown>): Promise<unknown>;
   };
+  // Read-only views of other trip subsystems (#1429 eco). Membership-checked like
+  // `trips`; each needs its own db:read:* scope.
+  packing: {
+    /** A trip's packing items (hydrated bags/assignees). Needs 'db:read:packing'. */
+    list(tripId: number): Promise<unknown[]>;
+  };
+  files: {
+    /** A trip's files, trash excluded. Needs 'db:read:files'. */
+    list(tripId: number): Promise<unknown[]>;
+  };
   // "Costs" = budget items. Reads are membership-checked against the current
   // invocation's user (like `trips`); `create` additionally needs the acting
   // user's 'budget_edit' permission and the Costs addon enabled.
@@ -178,6 +188,12 @@ export function createPluginContext(
       getPlaces: (tripId) => t.rpc('trips.getPlaces', { tripId, _inv: invocationId }) as Promise<unknown[]>,
       getReservations: (tripId) => t.rpc('trips.getReservations', { tripId, _inv: invocationId }) as Promise<unknown[]>,
       update: (tripId, input) => t.rpc('trips.update', { tripId, input, _inv: invocationId }),
+    },
+    packing: {
+      list: (tripId) => t.rpc('packing.list', { tripId, _inv: invocationId }) as Promise<unknown[]>,
+    },
+    files: {
+      list: (tripId) => t.rpc('files.list', { tripId, _inv: invocationId }) as Promise<unknown[]>,
     },
     costs: {
       getByTrip: (tripId) => t.rpc('costs.getByTrip', { tripId, _inv: invocationId }) as Promise<unknown[]>,
