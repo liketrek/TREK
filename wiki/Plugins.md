@@ -143,6 +143,30 @@ appears in the top navigation; a widget appears on the dashboard. There is no
 separate "Activate" button or second consent screen — you reviewed the permissions
 before installing.
 
+## Dependencies between plugins and addons
+
+A plugin can require **other plugins** or **addons** to be present before it runs.
+This is enforced when you **activate** — installing never fails on a dependency, so
+you can always install first and resolve after. The installed row shows a plugin's
+dependencies as chips (amber when one is missing, out of range, or its addon is off).
+
+- **Requires an addon that's off** — activation is blocked with a message naming the
+  addon. Turn it on in **Admin → Addons**, then flip the plugin on. Turning a required
+  addon back **off** while the plugin runs disables the plugin automatically.
+- **Missing a plugin it depends on** — activation opens a **dependency dialog** listing
+  what's missing; each has a **Download** button that fetches the newest compatible
+  version from the registry (and its own dependencies) and then enables your plugin. A
+  dependency that's installed but the *wrong version* shows an **Update** button instead.
+- **Depends on a plugin that's installed but off** — enabling your plugin
+  **auto-enables its dependencies first**, in order.
+- **Disabling a plugin others depend on disables those dependents too** — a plugin
+  can't keep running with a dependency that's gone.
+
+Plugins that declare a dependency can also **call each other's functions and exchange
+events** at runtime — always mediated by TREK, and only along a declared dependency (a
+plugin can't reach one it didn't declare). See
+[[Plugin Development|Plugin-Development#talking-to-other-plugins]].
+
 ## Managing a plugin
 
 The **⋯** menu on each row:

@@ -113,6 +113,18 @@ flow is in [[Publishing a Plugin|Plugin-Publishing]].
   installs on `sha256` alone — but once a plugin has shipped signed, an unsigned
   update for it is refused. See [[Publishing a Plugin|Plugin-Publishing]].
 
+## Not a permission — inter-plugin calls & events
+
+Calling another plugin (`ctx.plugins.call`) and exchanging events
+(`ctx.events.emit` / `subscriptions`) are **not** gated by a permission. Their grant
+is the **dependency declaration**: a plugin may call or subscribe to another only if
+it lists it as a satisfied `pluginDependency`, and only for the function/event names
+that plugin publicly declares in `capabilities.provides` / `capabilities.emits`.
+Calls run mediated by the host, carry the caller's acting user (so trip reads stay
+membership-checked), and are recorded in the capability audit log. See
+[[Plugin Development|Plugin-Development#talking-to-other-plugins]] and
+[[Plugin Development|Plugin-Development#dependencies]].
+
 ## What is NOT covered
 
 Isolation bounds *what* a plugin can touch, not its intent within a grant. A

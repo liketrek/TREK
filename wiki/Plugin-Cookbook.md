@@ -142,6 +142,40 @@ Fire-and-forget on a short timeout — never blocks a core write. Trip reads are
 refused (no user); use `ctx.db`, `ctx.ws.*`, or an outbound call. Your own
 `plugin:*` broadcasts are never re-delivered, so handlers can't loop.
 
+## Depend on another plugin — call it and hear its events
+
+**Needs:** a `pluginDependencies` entry for the other plugin (no permission).
+
+Expose a contract from the **dependency** (declare the names in
+`capabilities.provides` / `capabilities.emits`):
+
+```js
+// plugin "koffi"  ·  manifest: "capabilities": { "provides": ["convert"], "emits": ["rate.updated"] }
+exports: {
+  async convert({ amount, from, to }) { return { amount: amount * rate(from, to), to } },
+},
+async onLoad(ctx) { ctx.events.emit('rate.updated', { pair: 'USD/EUR' }) },
+```
+
+Consume it from the **dependent** (declare koffi as a dependency):
+
+```js
+// manifest: "pluginDependencies": [{ "id": "koffi", "version": ">=1.0.0 <2.0.0" }]
+routes: [
+  { method: 'GET', path: '/price', async handler(_req, ctx) {
+      const out = await ctx.plugins.call('koffi', 'convert', { amount: 10, from: 'USD', to: 'EUR' })
+      return { status: 200, body: JSON.stringify(out) }
+  } },
+],
+subscriptions: [
+  { plugin: 'koffi', event: 'rate.updated', async handler(payload, ctx) { ctx.log.info('rates changed', payload) } },
+],
+```
+
+TREK auto-enables koffi before your plugin, routes the call (as your acting user),
+and refuses it if koffi isn't a satisfied dependency or doesn't export `convert`. See
+[[Plugin Development#talking-to-other-plugins|Plugin-Development]].
+
 ## Match the TREK look
 
 Add `<!-- trek:ui -->` to your widget's `<head>`. The dev server and `pack` inline

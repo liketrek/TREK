@@ -144,6 +144,8 @@ declaration for readers — the manifest parser does not consume it.
 | `ctx.users` | `getById(id)` — public profile only (`id, username, display_name, avatar`) | `db:read:users` |
 | `ctx.ws.broadcastToTrip(tripId, event, data)` | broadcast to a trip's members (event forced to `plugin:<id>:<event>`) | `ws:broadcast:trip` |
 | `ctx.ws.broadcastToUser(userId, event, data)` | broadcast to one user | `ws:broadcast:user` |
+| `ctx.plugins.call(id, fn, args?)` | call a function another plugin **exposes** and get its result — `id` must be a declared, satisfied `pluginDependency` that lists `fn` in its `capabilities.provides` | a plugin dependency (no permission) |
+| `ctx.events.emit(name, payload?)` | publish an event to dependents that subscribed — `name` must be in your `capabilities.emits` | — (no permission) |
 | `ctx.config` | your resolved settings (secrets delivered decrypted) | — |
 | `ctx.log` | `info` / `warn` / `error` → your error log | — |
 | `ctx.id` | your plugin id (string) | — |
@@ -430,6 +432,124 @@ handler — use the plugin's own `ctx.db`, `ctx.ws.*`, or an outbound call. A pl
 own `plugin:*` broadcasts are never delivered back, so handlers can't loop. Common
 events: `place:*`, `day:*`, `assignment:*`, `budget:*`, `file:*`, `accommodation:*`.
 
+## Dependencies
+
+A plugin can declare that it needs certain **addons** enabled, or other **plugins**
+installed, before it will run. Both are top-level manifest arrays, and both are
+enforced at **activation** — installing always succeeds, so a missing dependency is a
+fixable state, never a broken download.
+
+### `requiredAddons`
+
+```json
+"requiredAddons": ["budget", "journey"]
+```
+
+Addon ids (see [[Addons Overview|Addons-Overview]]) that must be **enabled** for the
+plugin to activate. If one is off, enabling the plugin is refused and the admin panel
+names the addon to turn on. Turning a required addon **off** while the plugin is
+running **auto-disables the plugin** (and anything that depends on it) — a plugin
+never runs against a disabled addon. Ids are validated for shape only, so a plugin may
+name an addon a given TREK build doesn't have; it just stays un-activatable there.
+
+### `pluginDependencies`
+
+```json
+"pluginDependencies": [
+  { "id": "koffi", "version": ">=1.2.0 <2.0.0" }
+]
+```
+
+Other plugins that must be **installed and version-satisfied** (a standard semver
+range) before this one activates. That range is the real contract for anything you
+call on the dependency (see [Talking to other plugins](#talking-to-other-plugins)).
+
+Enforcement, all at activation time:
+
+- **Missing** dependency → activation is blocked and the panel offers a one-click
+  **download** that fetches the newest registry version satisfying your range (pulling
+  *its* own dependencies too), then retries.
+- **Installed but out of range** → same block; the panel offers to update it.
+- **Installed but disabled** → enabling your plugin **auto-enables the dependency
+  first**, transitively (deepest dependency first).
+- **Disabling a dependency** cascades: every plugin that (transitively) depends on it
+  is disabled too.
+- A dependency **cycle** (A → B → A) is refused with a clear error.
+
+Dependencies are also resolved deps-first at boot, so a plugin's dependencies are
+already up before it starts.
+
+## Talking to other plugins
+
+Isolation is the default — plugins can't see each other. To let a plugin be *used* by
+the plugins that depend on it, it opts in by declaring a surface in its manifest
+`capabilities`, and the host routes calls/events between the two child processes.
+There is **no permission** for this: authorization is the dependency edge itself —
+plugin A may call or subscribe to plugin B only if A declares B as a satisfied
+`pluginDependency`, and only for the names B publicly declares.
+
+### Exports — request / response
+
+The **dependency** (B) exposes named functions and lists them in `capabilities.provides`:
+
+```js
+// plugin "koffi"
+module.exports = definePlugin({
+  exports: {
+    // `args` is whatever the caller passed; `ctx` is a per-call context.
+    async convert({ amount, from, to }, ctx) {
+      return { amount: amount * rate(from, to), to }
+    },
+  },
+})
+// manifest: "capabilities": { "provides": ["convert"] }
+```
+
+The **dependent** (A) declares koffi as a dependency and calls it:
+
+```js
+// manifest: "pluginDependencies": [{ "id": "koffi", "version": ">=1.0.0 <2.0.0" }]
+const out = await ctx.plugins.call('koffi', 'convert', { amount: 10, from: 'USD', to: 'EUR' })
+```
+
+- A call is refused (`RESOURCE_FORBIDDEN`) if the target isn't a satisfied dependency,
+  isn't currently active, or the function isn't in the target's `provides`.
+- **The acting user is propagated:** B's export runs as A's current user, so any
+  `ctx.trips.*` read B makes is membership-checked against that user — B can't be
+  tricked into reading data the calling user couldn't see.
+- The call is bounded by a timeout and recorded in the capability audit log
+  (`plugin:<target>#<fn>`), attributed to A and the acting user.
+- B owns its contract: only functions in `provides` are reachable — routes, jobs and
+  helpers stay private. Because your `pluginDependencies` range pins B's version, B can
+  refactor internals freely and only breaks you on a major bump.
+
+### Events — publish / subscribe
+
+The **emitter** (B) declares event names in `capabilities.emits` and publishes them:
+
+```js
+// manifest: "capabilities": { "emits": ["rate.updated"] }
+ctx.events.emit('rate.updated', { pair: 'USD/EUR', rate: 0.92 })   // fire-and-forget
+```
+
+A **dependent** (A) subscribes by naming the source plugin + event:
+
+```js
+module.exports = definePlugin({
+  subscriptions: [
+    { plugin: 'koffi', event: 'rate.updated', async handler(payload, ctx) {
+        await ctx.db.exec('UPDATE cache SET rate = ?', payload.rate)
+    } },
+  ],
+})
+```
+
+- An event reaches A only if A declares `koffi` as a satisfied dependency **and**
+  subscribed to that `(plugin, event)`. Emitting an event not in your `emits` is refused.
+- Like core [event subscriptions](#event-subscriptions), handlers run **without a
+  user** — but unlike them they **do** receive the emitter's payload. Delivery is
+  fire-and-forget on a short timeout; a slow subscriber never blocks the emitter.
+
 ## Testing without a running TREK
 
 `createMockHost` gives you a `ctx` that enforces the **same** permission model, so
@@ -448,7 +568,9 @@ await expect(ctx.db.query('SELECT 1')).rejects…       // PERMISSION_DENIED (no
 ```
 
 The mock db is a recorder — set `queryResults` for canned rows, or use an
-integration test for real SQL.
+integration test for real SQL. To test inter-plugin calls, pass
+`pluginExports: { koffi: { convert: (args) => … } }` and assert on `mock.emitted`
+for anything your plugin publishes via `ctx.events.emit`.
 
 ## Rules
 
@@ -479,6 +601,10 @@ integration test for real SQL.
 | `permissions` | string[] | see below. |
 | `egress` | string[] | allowed outbound hosts; required (non-empty, no bare `*`) when any `http:outbound` permission is present. |
 | `capabilities.widget` | object | `{ title, slot, defaultSize }` — `slot` is `sidebar` (default), `hero`, or `place-detail`. |
+| `capabilities.provides` | string[] | function names this plugin exposes to its dependents via `ctx.plugins.call` (see [Talking to other plugins](#talking-to-other-plugins)). |
+| `capabilities.emits` | string[] | event names this plugin publishes to its dependents via `ctx.events.emit`. |
+| `requiredAddons` | string[] | addon ids that must be **enabled** for the plugin to activate (see [Dependencies](#dependencies)). |
+| `pluginDependencies` | `{ id, version }[]` | other plugins (semver range) that must be installed + version-satisfied to activate. |
 | `settings` | array | setting fields (below). |
 
 **Permissions** (unknown values are rejected):
