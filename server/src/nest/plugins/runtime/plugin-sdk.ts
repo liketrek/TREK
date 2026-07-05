@@ -56,6 +56,15 @@ export interface PluginContext {
     assign(tripId: number, dayId: number, placeId: number, notes?: string | null): Promise<unknown>;
     unassign(tripId: number, assignmentId: number): Promise<{ deleted: boolean }>;
   };
+  // Your OWN namespaced key/value store attached to a trip/place/day (#1429), so
+  // you can enrich core entities without forking the schema. The entity must belong
+  // to a trip the current user can access. Values are JSON-serialisable.
+  meta: {
+    get(entityType: 'trip' | 'place' | 'day', entityId: number, key: string): Promise<unknown>;
+    set(entityType: 'trip' | 'place' | 'day', entityId: number, key: string, value: unknown): Promise<unknown>;
+    list(entityType: 'trip' | 'place' | 'day', entityId: number): Promise<Record<string, unknown>>;
+    delete(entityType: 'trip' | 'place' | 'day', entityId: number, key: string): Promise<{ deleted: boolean }>;
+  };
   users: {
     getById(id: number): Promise<unknown>;
   };
@@ -157,6 +166,12 @@ export function createPluginContext(
     itinerary: {
       assign: (tripId, dayId, placeId, notes) => t.rpc('itinerary.assign', { tripId, dayId, placeId, notes, _inv: invocationId }),
       unassign: (tripId, assignmentId) => t.rpc('itinerary.unassign', { tripId, assignmentId, _inv: invocationId }) as Promise<{ deleted: boolean }>,
+    },
+    meta: {
+      get: (entityType, entityId, key) => t.rpc('meta.get', { entityType, entityId, key, _inv: invocationId }),
+      set: (entityType, entityId, key, value) => t.rpc('meta.set', { entityType, entityId, key, value, _inv: invocationId }),
+      list: (entityType, entityId) => t.rpc('meta.list', { entityType, entityId, _inv: invocationId }) as Promise<Record<string, unknown>>,
+      delete: (entityType, entityId, key) => t.rpc('meta.delete', { entityType, entityId, key, _inv: invocationId }) as Promise<{ deleted: boolean }>,
     },
     users: {
       getById: (uid) => t.rpc('users.getById', { id: uid }),

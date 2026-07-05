@@ -54,6 +54,13 @@ function makeDeps(): HostDeps {
     unassignPlace: vi.fn(() => ({ deleted: true })),
     canEditTrip: vi.fn((tripId: number, userId: number) => tripId === 1 && userId === 42),
     updateTrip: vi.fn((tripId: number, _userId: number, input: unknown) => ({ id: tripId, ...(input as object) })),
+    // Metadata — trip 1 and place 7 resolve to trip 1 (accessible to 42); else undefined.
+    metaEntityTrip: vi.fn((entityType: string, entityId: number) =>
+      (entityType === 'trip' && entityId === 1) || (entityType === 'place' && entityId === 7) ? 1 : undefined),
+    metaGet: vi.fn(() => ({ hello: 'world' })),
+    metaSet: vi.fn((_et: string, _eid: number, key: string, value: unknown) => ({ key, value })),
+    metaList: vi.fn(() => ({ a: 1 })),
+    metaDelete: vi.fn(() => ({ deleted: true })),
   };
 }
 
@@ -371,5 +378,34 @@ describe('PluginRpcHost — capability enforcement', () => {
     const res = await host.dispatch(req('trips.update', { tripId: 1, input: { title: 'Renamed' } }), 42);
     expect(ok(res)).toBe(true);
     expect(deps.updateTrip).toHaveBeenCalledWith(1, 42, expect.objectContaining({ title: 'Renamed' }));
+  });
+
+  // --- Plugin metadata (db:meta) ---
+  it('db:meta stores and reads namespaced metadata on an accessible entity', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:meta']), deps);
+    const set = await host.dispatch(req('meta.set', { entityType: 'trip', entityId: 1, key: 'rating', value: 5 }), 42);
+    expect(ok(set)).toBe(true);
+    expect(deps.metaSet).toHaveBeenCalledWith('trip', 1, 'rating', 5);
+    const placeOk = await host.dispatch(req('meta.get', { entityType: 'place', entityId: 7, key: 'x' }), 42);
+    expect(ok(placeOk)).toBe(true); // place 7 resolves to accessible trip 1
+  });
+
+  it('meta.set is PERMISSION_DENIED without db:meta', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:read:trips']), deps);
+    const res = await host.dispatch(req('meta.set', { entityType: 'trip', entityId: 1, key: 'x', value: 1 }), 42);
+    expect((res as RpcError).error.code).toBe('PERMISSION_DENIED');
+  });
+
+  it('meta is RESOURCE_FORBIDDEN on an entity the acting user cannot access', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:meta']), deps);
+    const res = await host.dispatch(req('meta.set', { entityType: 'trip', entityId: 2, key: 'x', value: 1 }), 42);
+    expect((res as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect(deps.metaSet).not.toHaveBeenCalled();
+  });
+
+  it('meta with an unknown entityType is BAD_PARAMS', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:meta']), deps);
+    const res = await host.dispatch(req('meta.set', { entityType: 'user', entityId: 1, key: 'x', value: 1 }), 42);
+    expect((res as RpcError).error.code).toBe('BAD_PARAMS');
   });
 });

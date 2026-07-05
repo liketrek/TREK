@@ -75,6 +75,15 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
     if (t[flag] === false) throw new Error(`RESOURCE_FORBIDDEN: no permission to edit trip ${tripId}`);
   };
   const rows = (arr: unknown[] | undefined): Array<Record<string, unknown>> => (arr ?? []) as Array<Record<string, unknown>>;
+  // In-memory namespaced metadata store for ctx.meta (per mock plugin).
+  const metaStore: Record<string, unknown> = {};
+  const metaKey = (et: string, eid: number, key: string) => `${et}:${eid}:${key}`;
+  const metaGate = (entityType: string, entityId: number) => {
+    // The real host resolves place/day → trip; the mock only membership-checks the
+    // 'trip' entity type and otherwise just requires an acting user.
+    if (entityType === 'trip') assertMember(entityId, requireActingUser());
+    else requireActingUser();
+  };
 
   const ctx: PluginContext = {
     id: 'mock-plugin',
@@ -217,6 +226,35 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
         if (i < 0) throw new Error(`RESOURCE_FORBIDDEN: no assignment ${assignmentId} on trip ${tripId}`);
         list.splice(i, 1);
         return { deleted: true };
+      },
+    },
+    meta: {
+      async get(entityType, entityId, key) {
+        need('db:meta', 'meta.get');
+        metaGate(entityType, entityId);
+        return metaStore[metaKey(entityType, entityId, key)] ?? null;
+      },
+      async set(entityType, entityId, key, value) {
+        need('db:meta', 'meta.set');
+        metaGate(entityType, entityId);
+        metaStore[metaKey(entityType, entityId, key)] = value ?? null;
+        return { key, value: value ?? null };
+      },
+      async list(entityType, entityId) {
+        need('db:meta', 'meta.list');
+        metaGate(entityType, entityId);
+        const prefix = `${entityType}:${entityId}:`;
+        const out: Record<string, unknown> = {};
+        for (const k of Object.keys(metaStore)) if (k.startsWith(prefix)) out[k.slice(prefix.length)] = metaStore[k];
+        return out;
+      },
+      async delete(entityType, entityId, key) {
+        need('db:meta', 'meta.delete');
+        metaGate(entityType, entityId);
+        const k = metaKey(entityType, entityId, key);
+        const had = k in metaStore;
+        delete metaStore[k];
+        return { deleted: had };
       },
     },
     users: {

@@ -47,6 +47,15 @@ export interface PluginContext {
     assign(tripId: number, dayId: number, placeId: number, notes?: string | null): Promise<unknown>;
     unassign(tripId: number, assignmentId: number): Promise<{ deleted: boolean }>;
   };
+  // Your OWN namespaced key/value store on a trip/place/day (#1429) — enrich core
+  // entities without forking the schema. Needs `db:meta`; the entity must belong to
+  // a trip the current user can access. Values are JSON-serialisable.
+  meta: {
+    get(entityType: 'trip' | 'place' | 'day', entityId: number, key: string): Promise<unknown>;
+    set(entityType: 'trip' | 'place' | 'day', entityId: number, key: string, value: unknown): Promise<unknown>;
+    list(entityType: 'trip' | 'place' | 'day', entityId: number): Promise<Record<string, unknown>>;
+    delete(entityType: 'trip' | 'place' | 'day', entityId: number, key: string): Promise<{ deleted: boolean }>;
+  };
   users: { getById(id: number): Promise<unknown> };
   ws: {
     broadcastToTrip(tripId: number, event: string, data: Record<string, unknown>): Promise<void>;

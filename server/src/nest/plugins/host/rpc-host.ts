@@ -77,6 +77,13 @@ export interface HostDeps {
   // --- Trip (the 'trip_edit' permission) ---
   canEditTrip(tripId: number, userId: number): boolean;
   updateTrip(tripId: number, userId: number, input: Record<string, unknown>): unknown;
+  // --- Plugin metadata on core entities (db:meta) ---
+  /** The trip a trip/place/day belongs to (for the membership gate), or undefined. */
+  metaEntityTrip(entityType: string, entityId: number): number | undefined;
+  metaGet(entityType: string, entityId: number, key: string): unknown;
+  metaSet(entityType: string, entityId: number, key: string, value: unknown): unknown;
+  metaList(entityType: string, entityId: number): unknown;
+  metaDelete(entityType: string, entityId: number, key: string): unknown;
 }
 
 type Handler = (params: Record<string, unknown>, actingUserId: number | undefined) => unknown;
@@ -247,6 +254,16 @@ export class PluginRpcHost {
       });
     }
 
+    if (has('db:meta')) {
+      // A plugin's OWN namespaced key/value store attached to a core entity. Not
+      // core data — but the entity must belong to a trip the acting user can
+      // ACCESS, so a plugin can't stash/read metadata against another tenant's rows.
+      this.methods.set('meta.get', (p, uid) => { const e = this.metaEntity(p, uid); return deps.metaGet(e.entityType, e.entityId, str(p.key, 'key')); });
+      this.methods.set('meta.set', (p, uid) => { const e = this.metaEntity(p, uid); return deps.metaSet(e.entityType, e.entityId, str(p.key, 'key'), p.value); });
+      this.methods.set('meta.list', (p, uid) => { const e = this.metaEntity(p, uid); return deps.metaList(e.entityType, e.entityId); });
+      this.methods.set('meta.delete', (p, uid) => { const e = this.metaEntity(p, uid); return deps.metaDelete(e.entityType, e.entityId, str(p.key, 'key')); });
+    }
+
     if (has('db:read:users')) {
       // Scope to people the acting user can actually see (self or a trip they
       // share) so a plugin can't enumerate every account's profile by looping ids.
@@ -323,6 +340,24 @@ export class PluginRpcHost {
   private requireTripEdit(tripId: number, uid: number, canEdit: (t: number, u: number) => boolean): void {
     if (!this.deps.canAccessTrip(tripId, uid)) throw new ForbiddenResource(`no access to trip ${tripId}`);
     if (!canEdit(tripId, uid)) throw new ForbiddenResource(`no permission to edit trip ${tripId}`);
+  }
+
+  /**
+   * Validate a metadata target and gate it: the entity type must be one we support,
+   * and the trip it belongs to must be accessible to the host-bound acting user.
+   */
+  private metaEntity(p: Record<string, unknown>, uid: number | undefined): { entityType: string; entityId: number } {
+    const entityType = str(p.entityType, 'entityType');
+    if (entityType !== 'trip' && entityType !== 'place' && entityType !== 'day') {
+      throw new BadParams(`invalid entityType "${entityType}" (trip|place|day)`);
+    }
+    const entityId = num(p.entityId, 'entityId');
+    if (uid === undefined) throw new ForbiddenResource('metadata requires an authenticated user context');
+    const tripId = this.deps.metaEntityTrip(entityType, entityId);
+    if (tripId === undefined || !this.deps.canAccessTrip(tripId, uid)) {
+      throw new ForbiddenResource(`no access to ${entityType} ${entityId}`);
+    }
+    return { entityType, entityId };
   }
 
   async dispatch(req: RpcRequest, actingUserId?: number): Promise<RpcResponse | RpcError> {

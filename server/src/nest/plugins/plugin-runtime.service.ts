@@ -205,6 +205,7 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
       removePluginData(id);
       db.prepare('DELETE FROM plugin_error_log WHERE plugin_id = ?').run(id);
       db.prepare("DELETE FROM settings WHERE key LIKE ?").run(`plugin:${id}:%`);
+      db.prepare('DELETE FROM plugin_entity_metadata WHERE plugin_id = ?').run(id);
     }
   }
 

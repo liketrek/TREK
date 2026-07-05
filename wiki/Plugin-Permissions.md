@@ -19,6 +19,7 @@ ungranted capability is physically unreachable**, not just disallowed. See
 | `db:write:days` | Create/update/delete days via `ctx.days` | Trip access **+** the `day_edit` permission. |
 | `db:write:itinerary` | Assign/remove places on days via `ctx.itinerary` | Trip access **+** the `day_edit` permission (it's a day edit). |
 | `db:write:trips` | Update trip details via `ctx.trips.update` | Trip access **+** the `trip_edit` permission. Only schema-writable fields (title, dates, currency, reminder_days, …). |
+| `db:meta` | Store the plugin's **own** private key/value data on a trip/place/day via `ctx.meta` | Namespaced per plugin (a plugin only sees its own rows); the entity must belong to a trip the acting user can **access**. Quotas: ≤64 KB per value, ≤100 keys per entity. Purged when the plugin is uninstalled with "delete data". |
 | `ws:broadcast:trip` | Push a real-time event to a trip room via `ctx.ws.broadcastToTrip` | Event types are force-namespaced `plugin:<id>:<event>` — a plugin can't forge a core event. |
 | `ws:broadcast:user` | Push a real-time event to a user's connections | Same namespacing. |
 | `hook:photo-provider` | Register as a photo provider in Memories | Implement the `PhotoProvider` interface. |
