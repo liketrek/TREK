@@ -183,6 +183,7 @@ const admin: TranslationStrings = {
   'admin.plugins.type.widget': '小组件',
   'admin.plugins.type.page': '页面',
   'admin.plugins.type.integration': '集成',
+  'admin.plugins.type.trip-page': '行程页面',
   'admin.plugins.reviewed': '已审核',
   'admin.plugins.unreviewed': '未审核',
   'admin.plugins.updated': '插件已更新',

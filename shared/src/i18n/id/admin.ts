@@ -231,6 +231,7 @@ const admin: TranslationStrings = {
   'admin.plugins.type.widget': 'Widget',
   'admin.plugins.type.page': 'Halaman',
   'admin.plugins.type.integration': 'Integrasi',
+  'admin.plugins.type.trip-page': 'Halaman perjalanan',
   'admin.plugins.reviewed': 'Ditinjau',
   'admin.plugins.unreviewed': 'Belum ditinjau',
   'admin.plugins.updated': 'Plugin diperbarui',

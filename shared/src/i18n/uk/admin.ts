@@ -188,6 +188,7 @@ const admin: TranslationStrings = {
   'admin.plugins.type.widget': 'Віджет',
   'admin.plugins.type.page': 'Сторінка',
   'admin.plugins.type.integration': 'Інтеграція',
+  'admin.plugins.type.trip-page': 'Сторінка подорожі',
   'admin.plugins.reviewed': 'Перевірено',
   'admin.plugins.unreviewed': 'Не перевірено',
   'admin.plugins.updated': 'Плагін оновлено',

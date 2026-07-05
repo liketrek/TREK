@@ -235,6 +235,7 @@ const admin: TranslationStrings = {
   'admin.plugins.type.widget': 'Widget',
   'admin.plugins.type.page': 'Σελίδα',
   'admin.plugins.type.integration': 'Ενσωμάτωση',
+  'admin.plugins.type.trip-page': 'Σελίδα ταξιδιού',
   'admin.plugins.reviewed': 'Ελεγμένο',
   'admin.plugins.unreviewed': 'Μη ελεγμένο',
   'admin.plugins.updated': 'Το plugin ενημερώθηκε',

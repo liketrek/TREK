@@ -182,6 +182,7 @@ const admin: TranslationStrings = {
   'admin.plugins.type.widget': 'Widget',
   'admin.plugins.type.page': 'Strona',
   'admin.plugins.type.integration': 'Integracja',
+  'admin.plugins.type.trip-page': 'Strona podróży',
   'admin.plugins.reviewed': 'Zweryfikowana',
   'admin.plugins.unreviewed': 'Niezweryfikowana',
   'admin.plugins.updated': 'Wtyczka została zaktualizowana',

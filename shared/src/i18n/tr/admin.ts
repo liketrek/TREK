@@ -233,6 +233,7 @@ const admin: TranslationStrings = {
   'admin.plugins.type.widget': 'Widget',
   'admin.plugins.type.page': 'Sayfa',
   'admin.plugins.type.integration': 'Entegrasyon',
+  'admin.plugins.type.trip-page': 'Gezi sayfası',
   'admin.plugins.reviewed': 'İncelendi',
   'admin.plugins.unreviewed': 'İncelenmedi',
   'admin.plugins.updated': 'Eklenti güncellendi',

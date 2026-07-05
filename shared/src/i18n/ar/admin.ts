@@ -207,6 +207,7 @@ const admin: TranslationStrings = {
   'admin.plugins.type.widget': 'Widget',
   'admin.plugins.type.page': 'صفحة',
   'admin.plugins.type.integration': 'تكامل',
+  'admin.plugins.type.trip-page': 'صفحة الرحلة',
   'admin.plugins.reviewed': 'تمت مراجعتها',
   'admin.plugins.unreviewed': 'لم تتم مراجعتها',
   'admin.plugins.updated': 'تم تحديث الإضافة',

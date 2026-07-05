@@ -108,6 +108,10 @@ const str = (v: unknown, name: string): string => {
 };
 export class BadParams extends Error {}
 
+// Mirrors the STRING_LIMITS the places REST controller enforces (the @trek/shared
+// schema doesn't), so the plugin write path rejects the same oversized fields.
+const PLACE_STR_LIMITS: Record<string, number> = { name: 200, description: 2000, address: 500, notes: 2000 };
+
 export class PluginRpcHost {
   private methods = new Map<string, Handler>();
 
@@ -220,6 +224,7 @@ export class PluginRpcHost {
         const actor = this.requireActor(uid, 'place');
         const parsed = placeCreateRequestSchema.safeParse(p.input);
         if (!parsed.success) throw new BadParams(`invalid place: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
+        this.capStrings(parsed.data as Record<string, unknown>, PLACE_STR_LIMITS);
         this.requireTripEdit(tripId, actor, deps.canEditPlaces);
         return deps.createPlace(tripId, parsed.data as Record<string, unknown>);
       });
@@ -229,6 +234,7 @@ export class PluginRpcHost {
         const actor = this.requireActor(uid, 'place');
         const parsed = placeUpdateRequestSchema.safeParse(p.input);
         if (!parsed.success) throw new BadParams(`invalid place: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
+        this.capStrings(parsed.data as Record<string, unknown>, PLACE_STR_LIMITS);
         this.requireTripEdit(tripId, actor, deps.canEditPlaces);
         return deps.updatePlace(tripId, placeId, parsed.data as Record<string, unknown>);
       });
@@ -383,6 +389,18 @@ export class PluginRpcHost {
   private requireActor(uid: number | undefined, noun: string): number {
     if (uid === undefined) throw new ForbiddenResource(`${noun} writes require an authenticated user context`);
     return uid;
+  }
+
+  /**
+   * The @trek/shared write schemas don't carry the string-length caps the REST
+   * controllers add, so mirror those caps here — otherwise a plugin could write a
+   * field the web app would reject with 400 (e.g. a 100k-char place name).
+   */
+  private capStrings(input: Record<string, unknown>, limits: Record<string, number>): void {
+    for (const [field, max] of Object.entries(limits)) {
+      const v = input[field];
+      if (typeof v === 'string' && v.length > max) throw new BadParams(`${field} must be ${max} characters or fewer`);
+    }
   }
 
   /** A write is allowed only if the acting user can access AND edit the trip. */

@@ -62,7 +62,7 @@ interface RegistryDetail extends RegistryItem {
 }
 
 type T = (k: string, p?: Record<string, unknown>) => string
-type TypeFilter = 'all' | 'widget' | 'page' | 'integration'
+type TypeFilter = 'all' | 'widget' | 'page' | 'integration' | 'trip-page'
 type StatusFilter = 'all' | 'on' | 'off' | 'update' | 'err'
 type SortKey = 'name' | 'recent' | 'updates'
 
@@ -91,7 +91,7 @@ const PERM_KEYS = [
   'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider', 'hook:trip-warning-provider', 'http:outbound',
 ]
 
-const KNOWN_TYPES = ['widget', 'page', 'integration']
+const KNOWN_TYPES = ['widget', 'page', 'integration', 'trip-page']
 
 function isNewer(a: string, b: string): boolean {
   const nums = (v: string) => v.split('-')[0].split('.').map(n => parseInt(n, 10) || 0)
@@ -434,6 +434,7 @@ export default function AdminPluginsPanel() {
               options={[
                 ['all', t('admin.plugins.allTypes')], ['widget', t('admin.plugins.type.widget')],
                 ['integration', t('admin.plugins.type.integration')], ['page', t('admin.plugins.type.page')],
+                ['trip-page', t('admin.plugins.type.trip-page')],
               ]}
               valueLabel={typeFilter === 'all' ? t('admin.plugins.allTypes') : t(`admin.plugins.type.${typeFilter}` as never)}
               onPick={v => setTypeFilter(v as TypeFilter)} />

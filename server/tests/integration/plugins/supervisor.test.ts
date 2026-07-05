@@ -102,6 +102,33 @@ describe('PluginSupervisor — isolated runtime', () => {
     expect(events.some((e) => e.topic === '__log')).toBe(true);
   });
 
+  it('dispatches invoke.hook + invoke.event across the fork (provider hooks + event subscriptions)', async () => {
+    const events: Array<{ topic: string; data: unknown }> = [];
+    sup = makeSupervisor(events);
+    writePlugin(
+      'provider',
+      `module.exports = {
+        hooks: {
+          placeDetailProvider: { async getDetails(placeId, ctx) { return [{ label: 'placeId', value: String(placeId) }]; } },
+        },
+        events: [
+          { on: 'place:created', async handler(e, ctx) { ctx.log.info('got-event', e); } },
+          { on: 'other:thing', handler() { throw new Error('non-matching subscription must not run'); } },
+        ],
+      };`,
+    );
+    await sup.activate('provider', new Set(['hook:place-detail-provider', 'events:subscribe']), {});
+
+    // host->plugin hook: the child runs getDetails(7, ctx) and returns its result
+    const hookRes = await sup.invoke('provider', 'invoke.hook', { hook: 'placeDetailProvider', fn: 'getDetails', args: [7] }, { actingUserId: 5 });
+    expect(hookRes).toEqual([{ label: 'placeId', value: '7' }]);
+
+    // host->plugin event: ONLY the matching subscription runs (the 'other:thing' one throws if hit)
+    await sup.invoke('provider', 'invoke.event', { event: 'place:created', tripId: 3 }, { actingUserId: undefined });
+    const got = logMeta<{ event: string; tripId: number }>(events, 'got-event');
+    expect(got).toEqual({ event: 'place:created', tripId: 3 });
+  });
+
   it('seals the raw IPC surface: a plugin cannot forge/sniff over process.send/on(message), and a forged init cannot reopen egress', async () => {
     const events: Array<{ topic: string; data: unknown }> = [];
     sup = makeSupervisor(events);

@@ -45,8 +45,9 @@ Both are membership-checked against the current user — same gate as `ctx.trips
 
 ```js
 const place = await ctx.places.create(tripId, { name: 'Teamlab', lat: 35.62, lng: 139.78 })
-const day   = await ctx.days.create(tripId, { date: '2027-04-02', title: 'Odaiba' })
+const day   = await ctx.days.create(tripId, { date: '2027-04-02', notes: 'Odaiba' })
 await ctx.itinerary.assign(tripId, day.id, place.id, 'buy tickets first')
+// days.create accepts { date?, notes?, position? }; set a day title later with ctx.days.update(tripId, day.id, { title: 'Odaiba' }).
 ```
 
 Updates and deletes mirror the REST app exactly (`ctx.places.update/delete`,
@@ -117,7 +118,7 @@ hooks: {
 
 ```js
 ctx.ws.broadcastToTrip(tripId, 'doctor:rechecked', { count })   // → plugin:<id>:doctor:rechecked
-ctx.ws.broadcastToUser(userId, { event: 'nudge', text: '…' })   // only the acting user
+ctx.ws.broadcastToUser(userId, 'nudge', { text: '…' })          // (userId, event, data) — only that user
 ```
 
 Events are automatically namespaced to `plugin:<your-id>:…` so they can't collide
@@ -146,7 +147,8 @@ refused (no user); use `ctx.db`, `ctx.ws.*`, or an outbound call. Your own
 Add `<!-- trek:ui -->` to your widget's `<head>`. The dev server and `pack` inline
 TREK's token-driven kit (glass surfaces, buttons, inputs, dark-mode) and a
 `window.trek` bridge with the live theme + tokens. See
-[[Plugin Development#the-trek-ui-design-kit|Plugin-Development]].
+[[Plugin Development#the-design-kit-recommended|Plugin-Development]]. `window.trek.ui`
+gives you bundler-free, kit-styled DOM builders (`ui.el/button/card/chip/input/mount`).
 
 ---
 

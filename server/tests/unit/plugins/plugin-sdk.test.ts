@@ -33,7 +33,7 @@ describe('createPluginContext', () => {
     expect(rpc).toHaveBeenCalledWith('ws.broadcastToTrip', { tripId: 1, event: 'ping', data: { a: 1 } });
 
     await ctx.users.getById(3);
-    expect(rpc).toHaveBeenCalledWith('users.getById', { id: 3 });
+    expect(rpc).toHaveBeenCalledWith('users.getById', { id: 3, _inv: 'inv-1' });
 
     await ctx.db.exec('DELETE FROM t');
     expect(rpc).toHaveBeenCalledWith('db.exec', { sql: 'DELETE FROM t', args: [] });

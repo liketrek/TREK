@@ -13,6 +13,8 @@ ungranted capability is physically unreachable**, not just disallowed. See
 | `db:own` | Read/write the plugin's **own** SQLite file via `ctx.db` — `db.query`, `db.exec`, **and `db.migrate`** | A separate file per plugin — never `trek.db`. `db.migrate` runs a keyed, idempotent migration (schema/table creation, e.g. `CREATE TABLE`) once per id. `ATTACH`/`DETACH`/`VACUUM`/`PRAGMA` are refused. |
 | `db:read:trips` | Read-only trip data via `ctx.trips` (`getById`, `getPlaces`, `getReservations`) | Every call is **membership-checked** against the acting user — a plugin can't read a trip that user can't see. |
 | `db:read:users` | Read-only public profile via `ctx.users.getById` | Returns id, username, display name, avatar only — **never** password hashes, tokens, or secrets. |
+| `db:read:packing` | Read-only packing items of a trip via `ctx.packing.list(tripId)` | Membership-checked, and scoped to the acting user's visibility — a plugin never sees another member's private packing items. |
+| `db:read:files` | Read-only files of a trip via `ctx.files.list(tripId)` | Membership-checked; trashed files excluded. |
 | `db:read:costs` | Read-only costs (budget items) via `ctx.costs` (`getByTrip`, `listMine`) | Membership-checked; needs the Costs addon enabled. |
 | `db:write:costs` | Create costs via `ctx.costs.create` | Trip access **+** the `budget_edit` permission **+** the Costs addon. |
 | `db:write:places` | Create/update/delete places via `ctx.places` | Trip access **+** the `place_edit` permission. Input validated against TREK's schema; every write audited. |
@@ -22,10 +24,11 @@ ungranted capability is physically unreachable**, not just disallowed. See
 | `db:meta` | Store the plugin's **own** private key/value data on a trip/place/day via `ctx.meta` | Namespaced per plugin (a plugin only sees its own rows). Reads need trip **access**; **writes** additionally need the entity's edit permission (`place_edit`/`day_edit`/`trip_edit`). Quotas: ≤256-char key, ≤64 KB value, ≤100 keys per entity. Purged on uninstall-with-delete-data. |
 | `ws:broadcast:trip` | Push a real-time event to a trip room via `ctx.ws.broadcastToTrip` | Event types are force-namespaced `plugin:<id>:<event>` — a plugin can't forge a core event. |
 | `ws:broadcast:user` | Push a real-time event to a user's connections | Same namespacing. |
+| `events:subscribe` | React to core activity via `events: [{ on, handler }]` on the plugin definition | The handler gets only the **event name + tripId** (never the payload) and runs with **no user** (like a job), so it can't read trip data — it reacts to the fact. Fire-and-forget on a short timeout; `plugin:*` re-broadcasts are never delivered back. |
 | `hook:photo-provider` | Register as a photo provider in Memories | Implement the `PhotoProvider` interface. |
 | `hook:calendar-source` | Register as a calendar source | Implement the `CalendarSource` interface. |
-| `hook:place-detail-provider` | Contribute extra details (reviews, ratings, links) to a place via `ctx.placeDetailProvider` | Implement the `PlaceDetailProvider` interface — shown in the place-detail panel; also exposed at `GET /api/place-details/:placeId`. |
-| `hook:trip-warning-provider` | Raise validation warnings on a trip via `ctx.warningProvider` | Implement the `WarningProvider` interface — shown as a non-blocking banner in the planner; also exposed at `GET /api/trip-warnings/:tripId`. |
+| `hook:place-detail-provider` | Contribute extra details (reviews, ratings, links) to a place via the `hooks.placeDetailProvider` provider hook | Implement `PlaceDetailProvider` in `hooks` on the plugin definition (not on `ctx`) — shown in the place-detail panel; also exposed at `GET /api/place-details/:placeId`. |
+| `hook:trip-warning-provider` | Raise validation warnings on a trip via the `hooks.warningProvider` provider hook | Implement `WarningProvider` in `hooks` on the plugin definition (not on `ctx`) — shown as a non-blocking banner in the planner; also exposed at `GET /api/trip-warnings/:tripId`. |
 | `http:outbound` / `http:outbound:<host>` | Make outbound network requests | **Requires** a non-empty `egress[]`. Only a **per-host** `http:outbound:<host>` actually opens a host at runtime — see below. |
 
 ## Outbound network — `http:outbound` vs `http:outbound:<host>`
