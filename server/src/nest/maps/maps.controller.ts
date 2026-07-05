@@ -93,6 +93,35 @@ export class MapsController {
     }
   }
 
+  // Details for an OSM explore-POI marker: try to enrich via Google (photos,
+  // rating, reviews) and fall back to OSM data. Shares the details kill-switch.
+  @Get('poi-details')
+  async poiDetails(
+    @CurrentUser() user: User,
+    @Query('osm_id') osmId?: string,
+    @Query('name') name?: string,
+    @Query('lat') lat?: string,
+    @Query('lng') lng?: string,
+    @Query('lang') lang?: string,
+  ) {
+    if (this.maps.detailsDisabled()) {
+      return { place: null, disabled: true };
+    }
+    if (!osmId || !osmId.includes(':') || !name) {
+      throw new HttpException({ error: 'osm_id and name are required' }, 400);
+    }
+    const nlat = Number(lat), nlng = Number(lng);
+    if (!Number.isFinite(nlat) || !Number.isFinite(nlng)) {
+      throw new HttpException({ error: 'Valid lat and lng are required' }, 400);
+    }
+    try {
+      return await this.maps.poiDetails(user.id, osmId, name, nlat, nlng, lang);
+    } catch (err: unknown) {
+      console.error('Maps poi-details error:', err);
+      throw toHttpException(err, 'Error fetching POI details', 500);
+    }
+  }
+
   @Post('autocomplete')
   @HttpCode(200)
   async autocomplete(

@@ -10,6 +10,7 @@ const { maps } = vi.hoisted(() => ({
     reverseGeocode: vi.fn(),
     resolveGoogleMapsUrl: vi.fn(),
     searchOverpassPois: vi.fn(),
+    getPoiDetails: vi.fn(),
   },
 }));
 vi.mock('../../../src/services/mapsService', () => maps);
@@ -113,6 +114,14 @@ describe('MapsService', () => {
       const bbox = { south: 1, west: 2, north: 3, east: 4 };
       svc().pois('cafe', bbox);
       expect(maps.searchOverpassPois).toHaveBeenCalledWith('cafe', bbox);
+    });
+
+    it('poiDetails delegates to getPoiDetails with parsed args', async () => {
+      const { getPoiDetails } = await import('../../../src/services/mapsService');
+      (getPoiDetails as ReturnType<typeof vi.fn>).mockResolvedValue({ place: { name: 'X' }, matched: true });
+      const res = await svc().poiDetails(7, 'node:42', 'X', 48.1, 11.5, 'en');
+      expect(getPoiDetails).toHaveBeenCalledWith(7, 'node:42', 'X', 48.1, 11.5, 'en');
+      expect(res).toEqual({ place: { name: 'X' }, matched: true });
     });
   });
 
