@@ -82,11 +82,20 @@ export class RegistryError extends Error {}
 
 @Injectable()
 export class PluginRegistryService {
-  /** Fetch the aggregated registry (cached, soft-fail, stale-serve). */
-  async fetchRegistry(): Promise<Registry> {
-    if (_cache && Date.now() < _cache.expiresAt) return _cache.data;
+  /**
+   * Fetch the aggregated registry (cached, soft-fail, stale-serve). Pass
+   * force=true (the admin "rescan" button) to bypass the 30-min cache and also
+   * bust GitHub's raw CDN edge cache (max-age=300), so a just-merged registry
+   * entry shows up right away instead of up to ~35 min later.
+   */
+  async fetchRegistry(force = false): Promise<Registry> {
+    if (!force && _cache && Date.now() < _cache.expiresAt) return _cache.data;
+    if (force) _detailCache.clear();
     try {
-      const resp = await fetch(REGISTRY_URL, { headers: { 'User-Agent': 'TREK-Server' } });
+      const url = force ? `${REGISTRY_URL}${REGISTRY_URL.includes('?') ? '&' : '?'}_=${Date.now()}` : REGISTRY_URL;
+      const headers: Record<string, string> = { 'User-Agent': 'TREK-Server' };
+      if (force) { headers['Cache-Control'] = 'no-cache'; headers.Pragma = 'no-cache'; }
+      const resp = await fetch(url, { headers });
       if (!resp.ok) throw new Error(`registry ${resp.status}`);
       const data = (await resp.json()) as Registry;
       if (!data || !Array.isArray(data.plugins)) throw new Error('malformed registry');
@@ -98,8 +107,8 @@ export class PluginRegistryService {
   }
 
   /** The browse list the admin UI renders (metadata only, no code). */
-  async browse(): Promise<Array<Omit<RegistryEntry, 'versions'> & { latest: string | null; minTrekVersion: string | null; screenshotUrl: string | null }>> {
-    const reg = await this.fetchRegistry();
+  async browse(force = false): Promise<Array<Omit<RegistryEntry, 'versions'> & { latest: string | null; minTrekVersion: string | null; screenshotUrl: string | null }>> {
+    const reg = await this.fetchRegistry(force);
     return reg.plugins.map((p) => {
       const latest = p.versions[0] ?? null;
       return {
