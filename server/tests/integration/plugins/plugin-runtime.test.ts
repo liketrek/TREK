@@ -327,6 +327,20 @@ describe('PluginRuntimeService dependency gating', () => {
     expect((testDb.prepare('SELECT enabled FROM plugins WHERE id = ?').get('unrelated-b') as { enabled: number }).enabled).toBe(1);
     cleanup('base-b', 'dependent-b', 'unrelated-b');
   });
+
+  it('deactivateWithDependents cascades to (transitive) dependents, dependents first', async () => {
+    insertPlugin('lib-x', deps({}), 1);
+    insertPlugin('mid-x', deps({ pluginDependencies: [{ id: 'lib-x', version: '*' }] }), 1);
+    insertPlugin('top-x', deps({ pluginDependencies: [{ id: 'mid-x', version: '*' }] }), 1);
+    insertPlugin('other-x', deps({}), 1);
+    const disabled = await runtime.deactivateWithDependents('lib-x');
+    expect(disabled).toEqual(['top-x', 'mid-x', 'lib-x']); // deepest dependent first, root last
+    for (const id of ['lib-x', 'mid-x', 'top-x']) {
+      expect((testDb.prepare('SELECT enabled FROM plugins WHERE id = ?').get(id) as { enabled: number }).enabled).toBe(0);
+    }
+    expect((testDb.prepare('SELECT enabled FROM plugins WHERE id = ?').get('other-x') as { enabled: number }).enabled).toBe(1);
+    cleanup('lib-x', 'mid-x', 'top-x', 'other-x');
+  });
 });
 
 describe('PluginRuntimeService inter-plugin (exports + events)', () => {

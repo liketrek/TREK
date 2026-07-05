@@ -241,6 +241,26 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Admin-initiated deactivation: turn `id` off AND every plugin that (transitively)
+   * depends on it — a dependent can't run without its dependency (its ctx.plugins.call
+   * would fail), so it must not be left enabled. Dependents are stopped before the
+   * dependency. Returns every id actually deactivated (dependents first, then `id`).
+   *
+   * This is separate from the low-level `deactivate()` so the internal stop-then-
+   * restart of update()/sideload() never disables a plugin's dependents.
+   */
+  async deactivateWithDependents(id: string): Promise<string[]> {
+    const rows = db.prepare('SELECT id, version, enabled, dependencies FROM plugins').all() as PluginDepRow[];
+    const enabledById = new Map(rows.map((r) => [r.id, r.enabled]));
+    // findDependentsTransitive returns nearest-first; reverse so the deepest dependent
+    // (the furthest caller) stops before the plugin it depends on.
+    const dependents = findDependentsTransitive(id, rows).filter((d) => enabledById.get(d)).reverse();
+    const order = [...dependents, id];
+    for (const pid of order) await this.deactivate(pid).catch(() => {});
+    return order;
+  }
+
+  /**
    * Update a plugin to the registry's latest version with a re-consent gate: the
    * new version's declared permissions are diffed against what the admin already
    * granted. Nothing new → the plugin is transparently restarted on the new code.

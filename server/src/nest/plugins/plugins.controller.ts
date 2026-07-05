@@ -112,7 +112,9 @@ export class PluginsController {
   @Post(':id/deactivate')
   @HttpCode(200)
   async deactivate(@Param('id') id: string) {
-    await this.runtime.deactivate(id);
+    // Cascade: disabling a plugin also disables everything that depends on it (a
+    // dependent can't run without its dependency). The client refresh reflects it.
+    await this.runtime.deactivateWithDependents(id);
     return { status: 'inactive' };
   }
 

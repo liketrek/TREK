@@ -129,9 +129,11 @@ describe('PluginsController M2 endpoints', () => {
     await expect(new PluginsController(svc, rt, {} as never).activate('x')).rejects.toMatchObject({ status: 400 });
   });
 
-  it('deactivate stops the plugin', async () => {
-    const rt = { deactivate: vi.fn(async () => {}) } as never;
+  it('deactivate stops the plugin (and cascades to dependents)', async () => {
+    const deactivateWithDependents = vi.fn(async () => ['x']);
+    const rt = { deactivateWithDependents } as never;
     expect(await new PluginsController(svc, rt, {} as never).deactivate('x')).toEqual({ status: 'inactive' });
+    expect(deactivateWithDependents).toHaveBeenCalledWith('x');
   });
 });
 
