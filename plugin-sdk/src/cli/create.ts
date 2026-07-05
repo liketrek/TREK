@@ -60,8 +60,8 @@ export function scaffold(name: string, type: string, targetDir: string, opts: Sc
   if (type === 'widget') manifest.capabilities = { widget: { title: manifest.name, defaultSize: 'medium' } };
 
   fs.writeFileSync(path.join(root, 'trek-plugin.json'), JSON.stringify(manifest, null, 2) + '\n');
-  fs.writeFileSync(path.join(root, 'server', 'index.js'), SERVER_JS);
-  fs.writeFileSync(path.join(root, 'README.md'), readme(name));
+  fs.writeFileSync(path.join(root, 'server', 'index.js'), SERVER_JS(perms.includes('db:own')));
+  fs.writeFileSync(path.join(root, 'README.md'), readme(name, opts.description ?? '> One sentence: what this plugin does.', perms));
   // `type: commonjs` pins how the entry is parsed everywhere (dev, tests, TREK);
   // the SDK is a devDependency ONLY (types + mock host) — at runtime both the
   // dev server and TREK inject it, so it is never vendored into the artifact.
@@ -79,12 +79,12 @@ export function scaffold(name: string, type: string, targetDir: string, opts: Sc
   }
 }
 
-const SERVER_JS = `// Built plugin entry — runs in an isolated child process.
+const SERVER_JS = (has_db: boolean) => `// Built plugin entry — runs in an isolated child process.
 const { definePlugin } = require('trek-plugin-sdk');
 
 module.exports = definePlugin({
   async onLoad(ctx) {
-    await ctx.db.migrate('001_init', 'CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT)');
+    ${has_db ? 'await ctx.db.migrate(\'001_init\', \'CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT)\')' : ''} ;
     ctx.log.info('plugin loaded');
   },
   routes: [
@@ -115,10 +115,19 @@ const CLIENT_HTML = `<!doctype html>
 </body></html>
 `;
 
-function readme(name: string): string {
+/** One markdown table row per granted scope, with the catalog's description as the "Why". */
+function permissionRows(scopes: string[]): string {
+  const why = new Map(PERMISSION_CATALOG.map((p) => [p.value, p.hint]));
+  const rows = (scopes.length ? scopes : ['db:own']).map(
+    (s) => `| \`${s}\` | ${why.get(s) ?? 'Describe why this plugin needs it.'} |`,
+  );
+  return rows.join('\n');
+}
+
+function readme(name: string, description: string, scopes: string[]): string {
   return `# ${name}
 
-> One sentence: what this plugin does.
+${description}
 
 ![screenshot](./docs/screenshot.png)
 
@@ -136,7 +145,7 @@ looks best (the card crops the edges).
 
 | Permission | Why |
 |---|---|
-| \`db:own\` | store the plugin's own data |
+${permissionRows(scopes)}
 
 ## Setup
 
