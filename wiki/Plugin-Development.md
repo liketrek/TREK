@@ -10,7 +10,7 @@ child process** and reaches it only over RPC; the browser part runs in a
 
 ```bash
 npx trek-plugin-sdk create                # interactive wizard
-npx trek-plugin-sdk create my-plugin --type integration|page|widget   # or direct
+npx trek-plugin-sdk create my-plugin --type integration|page|widget|trip-page   # or direct
 cd my-plugin
 ```
 
@@ -24,7 +24,7 @@ my-plugin/
   trek-plugin.json      # manifest
   package.json          # CommonJS marker + the SDK as a devDependency
   server/index.js       # your plugin code (built, plain JS)
-  client/index.html     # native page/widget UI via the design kit (page/widget only)
+  client/index.html     # native UI via the design kit (page / widget / trip-page only)
   README.md             # fill this in — the registry requires a screenshot
 ```
 
@@ -128,6 +128,8 @@ declaration for readers — the manifest parser does not consume it.
 |---|---|---|
 | `ctx.db` | `query(sql, …args)` / `exec(sql, …args)` / `migrate(id, sql)` against your **own** SQLite file | `db:own` |
 | `ctx.trips` | `getById` / `getPlaces` / `getReservations` (membership-checked) | `db:read:trips` |
+| `ctx.costs` | `getByTrip(tripId)` / `listMine()` — read budget items (membership-checked) | `db:read:costs` |
+| `ctx.costs.create(tripId, input)` | create a budget item (validated, broadcasts `budget:created`) | `db:write:costs` |
 | `ctx.users` | `getById(id)` — public profile only (`id, username, display_name, avatar`) | `db:read:users` |
 | `ctx.ws.broadcastToTrip(tripId, event, data)` | broadcast to a trip's members (event forced to `plugin:<id>:<event>`) | `ws:broadcast:trip` |
 | `ctx.ws.broadcastToUser(userId, event, data)` | broadcast to one user | `ws:broadcast:user` |
@@ -144,6 +146,18 @@ from the authenticated request and membership-checks every trip read against it.
 `RESOURCE_FORBIDDEN`. The SDK's `getById(tripId, asUserId?)` signature keeps an
 `asUserId` parameter for source compatibility, but **the host ignores it** — you
 cannot read another user's trips by passing an id.
+
+**`ctx.costs` ("costs" = budget items)** behaves exactly like `ctx.trips`: reads are
+membership-checked against the request's user and only work **inside a route handler**
+(`onLoad`/`jobs` have no user → `RESOURCE_FORBIDDEN`). `getByTrip(tripId)` returns one
+trip's budget items (hydrated with members/payers); `listMine()` aggregates budget items
+across every trip the acting user can access. `create(tripId, input)` is the **first and
+only plugin path that mutates core TREK data** — it is gated exactly like a normal budget
+write: the acting user needs the **`budget_edit`** permission on that trip, the input is
+validated against TREK's budget schema, and a successful create broadcasts the same
+`budget:created` event the app emits. **Every `ctx.costs.*` call also requires the Costs
+(budget) addon to be enabled** — if the admin has turned it off, the call is refused with
+`RESOURCE_FORBIDDEN`.
 
 ### Route auth
 
@@ -281,7 +295,7 @@ scripts/styles only, `connect-src` limited to your declared `egress[]` hosts, no
 
 | Field | Type |
 |---|---|
-| `tripId` | `number \| null` — the trip in view (widgets on a trip), else `null` |
+| `tripId` | `number \| null` — the trip in view (a `trip-page` tab, or a widget on a trip), else `null` |
 | `userId` | `string \| null` |
 | `theme` | `'light' \| 'dark'` |
 | `locale` | e.g. `'en'` |
@@ -376,7 +390,7 @@ integration test for real SQL.
 | `name` | string, **required** | display name; also the page nav label. |
 | `version` | string, **required** | semver (`1.2.3`, optional pre-release). |
 | `apiVersion` | number | plugin API version (currently `1`; `PLUGIN_API_VERSION`). Defaults to `1`. |
-| `type` | string, **required** | `integration` \| `page` \| `widget`. |
+| `type` | string, **required** | `integration` \| `page` \| `widget` \| `trip-page`. |
 | `trek` | string | supported TREK range, e.g. `">=3.2.0 <4.0.0"`. Its lower bound becomes `minTrekVersion` in the registry entry. |
 | `author` | string | shown in the store. |
 | `description` | string | one-line summary for the store. |
@@ -395,6 +409,8 @@ integration test for real SQL.
 |---|---|
 | `db:own` | `ctx.db` — your own SQLite file |
 | `db:read:trips` | `ctx.trips.*` (membership-checked, route handlers only) |
+| `db:read:costs` | `ctx.costs.getByTrip` / `ctx.costs.listMine` (Costs addon, route handlers only) |
+| `db:write:costs` | `ctx.costs.create` (Costs addon + acting user's `budget_edit`) |
 | `db:read:users` | `ctx.users.getById` |
 | `ws:broadcast:trip` | `ctx.ws.broadcastToTrip` |
 | `ws:broadcast:user` | `ctx.ws.broadcastToUser` |
@@ -426,6 +442,12 @@ to control the nav entry.
 See [[Plugin Permissions|Plugin-Permissions]] for the full permission model.
 
 ## The `trek-plugin` CLI
+
+Run `npx trek-plugin-sdk` **with no command** in a terminal and you get an
+interactive menu (create / dev / validate / pack / publish, with signing and
+registry-entry commands under **Advanced…**); it just picks which command to run,
+then that command prompts for whatever it needs. Pass a command explicitly to skip
+the menu (and for scripts/CI).
 
 Author commands (from `trek-plugin-sdk`):
 

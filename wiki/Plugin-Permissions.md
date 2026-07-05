@@ -12,7 +12,9 @@ ungranted capability is physically unreachable**, not just disallowed. See
 |---|---|---|
 | `db:own` | Read/write the plugin's **own** SQLite file via `ctx.db` — `db.query`, `db.exec`, **and `db.migrate`** | A separate file per plugin — never `trek.db`. `db.migrate` runs a keyed, idempotent migration (schema/table creation, e.g. `CREATE TABLE`) once per id. `ATTACH`/`DETACH`/`VACUUM`/`PRAGMA` are refused. |
 | `db:read:trips` | Read-only trip data via `ctx.trips` (`getById`, `getPlaces`, `getReservations`) | Every call is **membership-checked** against the acting user — a plugin can't read a trip that user can't see. |
-| `db:read:users` | Read-only public profile via `ctx.users.getById` | Returns id, username, display name, avatar only — **never** password hashes, tokens, or secrets. |
+| `db:read:costs` | Read-only budget items via `ctx.costs` (`getByTrip`, `listMine`) | "Costs" = budget items. Same **membership check** and **route-handler-only** rule as `db:read:trips`, and additionally **requires the Costs (budget) addon** to be enabled. |
+| `db:write:costs` | Create a budget item via `ctx.costs.create` | The **only** capability that mutates core TREK data. Requires the Costs addon **and** the acting user's **`budget_edit`** permission on the trip; input is validated against TREK's budget schema and a successful write broadcasts `budget:created`. |
+| `db:read:users` | Read-only public profile via `ctx.users.getById` | Returns id, username, display name, avatar only — **never** password hashes, tokens, or secrets. Scoped to users the acting user can see (self or a shared trip). |
 | `ws:broadcast:trip` | Push a real-time event to a trip room via `ctx.ws.broadcastToTrip` | Event types are force-namespaced `plugin:<id>:<event>` — a plugin can't forge a core event. |
 | `ws:broadcast:user` | Push a real-time event to a user's connections | Same namespacing. |
 | `hook:photo-provider` | Register as a photo provider in Memories | Implement the `PhotoProvider` interface. |

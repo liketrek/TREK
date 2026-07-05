@@ -32,7 +32,7 @@ Put your plugin in a **public GitHub repo** (convention: `trek-plugin-<id>`).
 `create-trek-plugin` scaffolds the layout:
 
 ```bash
-npx trek-plugin-sdk create flight-tracker --type widget   # integration | page | widget
+npx trek-plugin-sdk create flight-tracker --type widget   # integration | page | widget | trip-page
 ```
 
 A publishable plugin has, at the repo root:
@@ -40,7 +40,7 @@ A publishable plugin has, at the repo root:
 - `trek-plugin.json` — the manifest (see [[Plugin Development|Plugin-Development]])
 - `package.json` — the CommonJS marker (`"type": "commonjs"`), with the SDK as a devDependency at most
 - `server/index.js` — the built server entry (required)
-- `client/` — the built frontend (only for `page`/`widget` plugins)
+- `client/` — the built frontend (only for `page`/`widget`/`trip-page` plugins)
 - `README.md` — filled in, with a real screenshot (the quality gate is strict — see below)
 - `docs/screenshot.png` — the store card image, committed to the repo
 
@@ -77,6 +77,12 @@ installer (25 MB per file, 50 MB total, 4000 entries).
 > **`docs/` is intentionally not shipped.** The store fetches your
 > `docs/screenshot.png` straight from the repo at the pinned commit, so keep it
 > committed to GitHub but out of the zip — `pack` handles this for you.
+
+The `plugin.zip` `pack` produces is also the artifact for **sideloading**: hand it
+to an instance admin (or drag it onto **Admin → Plugins**) to install without the
+registry at all — no PR, no review, no SHA-256/signature pin. Sideloaded plugins
+are flagged as such and never auto-update, so the registry PR below is still the
+path for anything you want discoverable and updatable. See [[Plugins|Plugins]].
 
 ## 4. Create the GitHub release
 

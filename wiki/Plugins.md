@@ -20,6 +20,7 @@ A plugin declares one `type` in its manifest, which decides where it surfaces:
 |---|---|---|
 | **widget** | On the dashboard — in the sidebar, or (with `slot: "hero"`) as a boarding-pass style hero overlay | At-a-glance info like flight status or weather |
 | **page** | As its own entry in the top navigation | A full self-contained tool |
+| **trip-page** | As a tab **inside every trip planner** (alongside Plan / Transports / Files), scoped to the open trip | A tool that works against one trip at a time |
 | **integration** | Nowhere visible — registers into TREK via hooks (e.g. a photo provider or calendar source) | Feed data into existing TREK features |
 
 ## Enabling plugins
@@ -79,14 +80,20 @@ plus a toolbar:
 - **Type** filter — All / Widget / Integration / Page.
 - **Status** filter (Installed view only) — All / Active / Off / Update available / Error.
 - **Sort** — Name / Recently updated / Updates first.
-- **Rescan** — re-reads the on-disk plugins directory (see [Installing](#installing-a-plugin)).
+- **Upload** — sideload a plugin from a `.zip`/`.tar.gz` (see [Installing](#installing-a-plugin)).
+- **Rescan** — rediscovers the on-disk plugins directory **and** force-pulls the
+  remote registry, bypassing the 30-minute server cache and GitHub's CDN so a
+  just-published plugin (or update) shows up immediately rather than up to ~35
+  minutes later (see [Installing](#installing-a-plugin)).
 
 Each installed row shows an icon tile with a **health dot** (green = active,
 blue pulse = starting, red = error, amber = disabled/incompatible, faint = inactive),
-the name and version, a **Reviewed** shield if applicable, and **capability
-chips** derived from its declared permissions — "Reads your trips", "Dashboard
-widget", "Real-time updates", "Provides photos", outbound hosts, and so on — so a
-plugin's real reach is legible without opening anything.
+the name and version, a **Reviewed** shield if applicable, a **Sideloaded** tag
+for manually-uploaded plugins (see [Installing](#installing-a-plugin)), and
+**capability chips** derived from its declared permissions — "Reads your trips",
+"Reads costs" / "Writes costs", "Dashboard widget", "Real-time updates",
+"Provides photos", outbound hosts, and so on — so a plugin's real reach is
+legible without opening anything.
 
 ## Reviewing a plugin before install
 
@@ -107,14 +114,23 @@ guarantee. Read the access list and outbound hosts, not just the description.
 
 ## Installing a plugin
 
-Two ways, both from **Admin → Plugins**:
+Three ways, all from **Admin → Plugins**:
 
 1. **From the registry.** In **Discover**, open a plugin and click **Install**
    (also available directly on the card). TREK downloads the pinned version, verifies
    its SHA-256 against the registry (and an author signature if the plugin ships one),
    safely unpacks it, re-validates the manifest, and registers it — **inactive**.
    Nothing runs yet.
-2. **From disk.** Drop a plugin directory into the plugins code directory
+2. **By upload (sideload).** Drag a plugin `.zip`/`.tar.gz` onto the panel, or use
+   the **Upload** button. TREK extracts it into staging with the same hard guards as
+   a registry install (slip/bomb-safe extract, strict manifest, no native binaries —
+   only the registry SHA-256/signature checks don't apply, since there's no registry
+   entry) and registers it **inactive**. A sideloaded plugin is marked **Sideloaded**,
+   is unsigned and not registry-reviewed, has **no auto-update** and no "Source
+   repository" link. Uploading over an existing id force-stops and deactivates the old
+   code first, so the replacement never keeps running without a fresh activation.
+   (Max 50 MB, same ceiling as the SDK's `pack`.)
+3. **From disk.** Drop a plugin directory into the plugins code directory
    (`server/data/plugins`, or your `TREK_PLUGINS_DIR` volume) and click **Rescan**
    (or restart). TREK discovers it and registers it inactive.
 
