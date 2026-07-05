@@ -3,7 +3,7 @@ import type { TranslationStrings } from '../types';
 const admin: TranslationStrings = {
   'admin.notifications.title': 'Thông báo',
   'admin.notifications.hint': 'Chọn một kênh thông báo. Chỉ có một người có thể hoạt động tại một thời điểm.',
-  'admin.notifications.none': 'Tàn tật',
+  'admin.notifications.none': 'Tắt',
   'admin.notifications.email': 'Email (SMTP)',
   'admin.notifications.webhook': 'Webhook',
   'admin.notifications.ntfy': 'Ntfy',
@@ -357,7 +357,7 @@ const admin: TranslationStrings = {
   'admin.addons.subtitleBefore': 'Bật hoặc tắt các tính năng để tùy chỉnh',
   'admin.addons.subtitleAfter': 'kinh nghiệm.',
   'admin.addons.enabled': 'Đã bật',
-  'admin.addons.disabled': 'Tàn tật',
+  'admin.addons.disabled': 'Tắt',
   'admin.addons.type.trip': 'Chuyến đi',
   'admin.addons.type.global': 'Toàn cầu',
   'admin.addons.type.integration': 'Tích hợp',
