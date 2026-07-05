@@ -13,5 +13,13 @@ const map: TranslationStrings = {
   'poi.cat.museums': '美術館・文化施設',
   'poi.cat.nature': '自然・公園',
   'poi.cat.activities': 'アクティビティ',
+  'poi.details.addToTrip': '旅行に追加',
+  'poi.details.openNow': '営業中',
+  'poi.details.closed': '閉店',
+  'poi.details.hours': '営業時間',
+  'poi.details.reviews': 'レビュー',
+  'poi.details.website': 'ウェブサイト',
+  'poi.details.viewOnGoogleMaps': 'Google Maps で見る',
+  'poi.details.noDetails': '追加の詳細はありません',
 };
 export default map;

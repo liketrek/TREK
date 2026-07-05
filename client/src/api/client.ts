@@ -6,7 +6,7 @@ import {
   unreadCountResultSchema, type UnreadCountResult,
   channelTestResultSchema,
   mapsSearchResultSchema, mapsAutocompleteResultSchema, mapsPlaceDetailsResultSchema,
-  mapsPlacePhotoResultSchema, mapsReverseResultSchema, mapsResolveUrlResultSchema,
+  mapsPoiDetailsResultSchema, mapsPlacePhotoResultSchema, mapsReverseResultSchema, mapsResolveUrlResultSchema,
   type NotificationRespondRequest,
   type SettingUpsertRequest, type SettingsBulkRequest,
   type JourneyCreateRequest, type JourneyAddTripRequest,
@@ -649,7 +649,9 @@ export const mapsApi = {
   search: (query: string, lang?: string) => apiClient.post(`/maps/search?lang=${lang || 'en'}`, { query }).then(r => checkInDev(mapsSearchResultSchema, r.data, 'maps.search')),
   autocomplete: (input: string, lang?: string, locationBias?: { low: { lat: number; lng: number }; high: { lat: number; lng: number } }, signal?: AbortSignal) =>
       apiClient.post('/maps/autocomplete', { input, lang, locationBias }, { signal }).then(r => checkInDev(mapsAutocompleteResultSchema, r.data, 'maps.autocomplete')),
-  details: (placeId: string, lang?: string) => apiClient.get(`/maps/details/${encodeURIComponent(placeId)}`, { params: { lang } }).then(r => checkInDev(mapsPlaceDetailsResultSchema, r.data, 'maps.details')),
+  details: (placeId: string, lang?: string, expand?: boolean) =>
+    apiClient.get(`/maps/details/${encodeURIComponent(placeId)}`, { params: { lang, expand: expand ? 1 : undefined } })
+      .then(r => checkInDev(mapsPlaceDetailsResultSchema, r.data, 'maps.details')),
   placePhoto: (placeId: string, lat?: number, lng?: number, name?: string) => apiClient.get(`/maps/place-photo/${encodeURIComponent(placeId)}`, { params: { lat, lng, name } }).then(r => checkInDev(mapsPlacePhotoResultSchema, r.data, 'maps.placePhoto')),
   reverse: (lat: number, lng: number, lang?: string) => apiClient.get('/maps/reverse', { params: { lat, lng, lang } }).then(r => checkInDev(mapsReverseResultSchema, r.data, 'maps.reverse')),
   resolveUrl: (url: string) => apiClient.post('/maps/resolve-url', { url }).then(r => checkInDev(mapsResolveUrlResultSchema, r.data, 'maps.resolveUrl')),
@@ -658,6 +660,10 @@ export const mapsApi = {
   // timeout than the global default instead of aborting at 8s and showing nothing.
   pois: (category: string, bbox: { south: number; west: number; north: number; east: number }, signal?: AbortSignal) =>
     apiClient.get('/maps/pois', { params: { category, ...bbox }, signal, timeout: 20000 }).then(r => r.data as { pois: import('../components/Map/poiCategories').Poi[]; source: string; truncated: boolean; clamped?: boolean }),
+  // OSM explore-POI → Google-enriched details (server falls back to OSM data).
+  poiDetails: (osmId: string, name: string, lat: number, lng: number, lang?: string, signal?: AbortSignal) =>
+    apiClient.get('/maps/poi-details', { params: { osm_id: osmId, name, lat, lng, lang }, signal })
+      .then(r => checkInDev(mapsPoiDetailsResultSchema, r.data, 'maps.poiDetails')),
 }
 
 export const airportsApi = {

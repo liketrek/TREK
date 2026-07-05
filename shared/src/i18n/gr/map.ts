@@ -13,5 +13,13 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Μουσεία & πολιτισμός',
   'poi.cat.nature': 'Φύση & πάρκα',
   'poi.cat.activities': 'Δραστηριότητες',
+  'poi.details.addToTrip': 'Προσθήκη στο ταξίδι',
+  'poi.details.openNow': 'Ανοιχτό τώρα',
+  'poi.details.closed': 'Κλειστό',
+  'poi.details.hours': 'Ώρες λειτουργίας',
+  'poi.details.reviews': 'Κριτικές',
+  'poi.details.website': 'Ιστότοπος',
+  'poi.details.viewOnGoogleMaps': 'Προβολή στο Google Maps',
+  'poi.details.noDetails': 'Δεν υπάρχουν πρόσθετες λεπτομέρειες',
 };
 export default map;

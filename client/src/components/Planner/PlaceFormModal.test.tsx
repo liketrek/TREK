@@ -563,4 +563,58 @@ describe('PlaceFormModal', () => {
     expect(screen.getByDisplayValue('48.8566')).toBeInTheDocument();
     expect(screen.getByDisplayValue('2.3522')).toBeInTheDocument();
   });
+
+  // ── Details dock (Task 6) ──────────────────────────────────────────────────────
+
+  it('FE-PLANNER-PLACEFORM-037: shows the details dock after selecting a search result with a google_place_id', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post('/api/maps/search', () =>
+        HttpResponse.json({
+          places: [{ name: 'Eiffel Tower', address: 'Paris', lat: '48.8584', lng: '2.2945', google_place_id: 'ChIJLU7jZClu5kcR4PcOOO6p3I0' }],
+        }),
+      ),
+      http.get('/api/maps/details/:placeId', () =>
+        HttpResponse.json({ place: { name: 'Eiffel Tower', lat: 48.8584, lng: 2.2945, rating: 4.7, rating_count: 1000 } }),
+      ),
+      http.get('/api/maps/place-photo/:placeId', () =>
+        HttpResponse.json({ photoUrl: null, attribution: null }),
+      ),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    const searchInput = screen.getByPlaceholderText('Search places...');
+    await user.type(searchInput, 'Eiffel Tower');
+    const searchRow = searchInput.closest('.flex') as HTMLElement;
+    const searchBtn = within(searchRow).getByRole('button');
+    await user.click(searchBtn);
+
+    const resultBtn = await screen.findByText('Eiffel Tower');
+    await user.click(resultBtn);
+
+    await waitFor(() => expect(screen.getByTestId('place-details-dock')).toBeInTheDocument());
+  });
+
+  it('FE-PLANNER-PLACEFORM-038: does not show the dock for results without a google_place_id', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post('/api/maps/search', () =>
+        HttpResponse.json({
+          places: [{ name: 'Eiffel Tower', address: 'Paris', lat: '48.8584', lng: '2.2945' }],
+        }),
+      ),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    const searchInput = screen.getByPlaceholderText('Search places...');
+    await user.type(searchInput, 'Eiffel Tower');
+    const searchRow = searchInput.closest('.flex') as HTMLElement;
+    const searchBtn = within(searchRow).getByRole('button');
+    await user.click(searchBtn);
+
+    const resultBtn = await screen.findByText('Eiffel Tower');
+    await user.click(resultBtn);
+
+    expect(screen.queryByTestId('place-details-dock')).toBeNull();
+  });
 });

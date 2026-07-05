@@ -13,5 +13,13 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Müzeler ve kültür',
   'poi.cat.nature': 'Doğa ve parklar',
   'poi.cat.activities': 'Aktiviteler',
+  'poi.details.addToTrip': 'Geziye ekle',
+  'poi.details.openNow': 'Şu an açık',
+  'poi.details.closed': 'Kapalı',
+  'poi.details.hours': 'Açılış saatleri',
+  'poi.details.reviews': 'Yorumlar',
+  'poi.details.website': 'Web sitesi',
+  'poi.details.viewOnGoogleMaps': 'Google Maps\'te görüntüle',
+  'poi.details.noDetails': 'Ek ayrıntı mevcut değil',
 };
 export default map;

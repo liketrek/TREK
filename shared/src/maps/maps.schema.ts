@@ -67,6 +67,13 @@ export const mapsPlaceDetailsResultSchema = z.object({
 });
 export type MapsPlaceDetailsResult = z.infer<typeof mapsPlaceDetailsResultSchema>;
 
+export const mapsPoiDetailsResultSchema = z.object({
+  place: placeRecord.nullable(),
+  matched: z.boolean().optional(),
+  disabled: z.boolean().optional(),
+});
+export type MapsPoiDetailsResult = z.infer<typeof mapsPoiDetailsResultSchema>;
+
 export const mapsPlacePhotoResultSchema = z.object({
   photoUrl: z.string().nullable(),
   attribution: z.string().nullable().optional(),

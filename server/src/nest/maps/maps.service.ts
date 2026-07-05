@@ -17,6 +17,7 @@ import {
   reverseGeocode,
   resolveGoogleMapsUrl,
   searchOverpassPois,
+  getPoiDetails,
 } from '../../services/mapsService';
 import { serveFilePath } from '../../services/placePhotoCache';
 
@@ -91,5 +92,10 @@ export class MapsService {
   // OSM-only POI search by category within a viewport bbox (never calls Google).
   pois(category: string, bbox: { south: number; west: number; north: number; east: number }) {
     return searchOverpassPois(category, bbox);
+  }
+
+  // OSM POI → Google-enriched details (falls back to OSM when unavailable).
+  poiDetails(userId: number, osmId: string, name: string, lat: number, lng: number, lang?: string) {
+    return getPoiDetails(userId, osmId, name, lat, lng, lang);
   }
 }

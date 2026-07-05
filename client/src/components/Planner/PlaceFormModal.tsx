@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import Modal from '../shared/Modal'
 import CustomSelect from '../shared/CustomSelect'
+import PlaceDetailsCard from './PlaceDetailsCard'
 import { mapsApi } from '../../api/client'
 import { useAuthStore } from '../../store/authStore'
 import { useCanDo } from '../../store/permissionsStore'
@@ -29,7 +30,7 @@ interface PlaceFormModalProps {
   onClose: () => void
   onSave: (data: PlaceSubmitData, files?: File[]) => Promise<void> | void
   place: Place | null
-  prefillCoords?: { lat: number; lng: number; name?: string; address?: string; website?: string; phone?: string; osm_id?: string } | null
+  prefillCoords?: { lat: number; lng: number; name?: string; address?: string; website?: string; phone?: string; osm_id?: string; google_place_id?: string } | null
   tripId: number
   categories: Category[]
   onCategoryCreated: (category: { name: string; color?: string; icon?: string }) => Promise<Category> | undefined
@@ -128,6 +129,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
         website: prefillCoords.website || '',
         phone: prefillCoords.phone || '',
         osm_id: prefillCoords.osm_id,
+        google_place_id: prefillCoords.google_place_id,
       })
     } else {
       setForm(DEFAULT_FORM)
@@ -376,6 +378,26 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     }
   }
 
+  // Dock: fetch details + photo keyed on google_place_id; failures degrade gracefully
+  const [dockDetails, setDockDetails] = useState<Record<string, unknown> | null>(null)
+  const [dockPhoto, setDockPhoto] = useState<{ photoUrl: string | null; attribution?: string | null } | null>(null)
+  const [dockLoading, setDockLoading] = useState(false)
+  useEffect(() => {
+    const pid = form.google_place_id
+    if (!pid) { setDockDetails(null); setDockPhoto(null); return }
+    let cancelled = false
+    setDockLoading(true)
+    ;(async () => {
+      let details: Record<string, unknown> | null = null
+      try { details = (await mapsApi.details(pid, language, true)).place } catch { /* degrade to no dock content */ }
+      let photo = null
+      try { photo = await mapsApi.placePhoto(pid, Number(form.lat), Number(form.lng), form.name) } catch { /* no photo */ }
+      if (cancelled) return
+      setDockDetails(details); setDockPhoto(photo); setDockLoading(false)
+    })()
+    return () => { cancelled = true }
+  }, [form.google_place_id, language])
+
   const hasTimeError = place && form.place_time && form.end_time && form.place_time.length >= 5 && form.end_time.length >= 5 && form.end_time <= form.place_time
 
   const handleSubmit = async (e) => {
@@ -471,6 +493,9 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     hasTimeError,
     handleSubmit,
     duplicateWarning,
+    dockDetails,
+    dockPhoto,
+    dockLoading,
   }
 }
 
@@ -535,16 +560,20 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
     hasTimeError,
     handleSubmit,
     duplicateWarning,
+    dockDetails,
+    dockPhoto,
+    dockLoading,
   } = S
   // Desktop + Collections addon → two columns (form + saved-place picker). Mobile
   // always keeps the original single-column form untouched.
   const twoColumn = !isMobile && collectionsEnabled
+  const showDock = !!form.google_place_id && (!!dockDetails || dockLoading)
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title={place ? t('places.editPlace') : t('places.addPlace')}
-      size={twoColumn ? '3xl' : 'lg'}
+      size={twoColumn || (!isMobile && showDock) ? '3xl' : 'lg'}
       footer={
         <div className="flex justify-end gap-3">
           <button
@@ -565,8 +594,9 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
         </div>
       }
     >
-      <div className={twoColumn ? 'flex gap-5 items-stretch' : ''}>
-      <form onSubmit={handleSubmit} className={twoColumn ? 'flex-1 min-w-0 space-y-4' : 'space-y-4'} onPaste={handlePaste}>
+      <div className={twoColumn || showDock ? 'flex gap-5 items-start' : ''}>
+      <div className={twoColumn || showDock ? 'flex-1 min-w-0' : ''}>
+      <form onSubmit={handleSubmit} className="space-y-4" onPaste={handlePaste}>
         {/* Place Search */}
         <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
           {!hasMapsKey && (
@@ -826,6 +856,21 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
         )}
 
       </form>
+      </div>
+      {/* Details dock: desktop = right column (hidden on mobile), mobile = stacked below (hidden on md+).
+          A single testid wrapper ensures getByTestId works in tests regardless of which variant is visible. */}
+      {form.google_place_id && (dockDetails || dockLoading) && (
+        <div data-testid="place-details-dock">
+          {/* Desktop: right column */}
+          <div className="hidden md:block" style={{ width: 320, flexShrink: 0, overflowY: 'auto', borderLeft: '1px solid var(--border-color, rgba(0,0,0,0.08))', paddingLeft: 16 }}>
+            <PlaceDetailsCard name={form.name} details={dockDetails} photo={dockPhoto} loading={dockLoading} />
+          </div>
+          {/* Mobile: stacked below form */}
+          <div className="md:hidden" style={{ borderTop: '1px solid var(--border-color, rgba(0,0,0,0.08))', paddingTop: 16, marginTop: 16 }}>
+            <PlaceDetailsCard name={form.name} details={dockDetails} photo={dockPhoto} loading={dockLoading} />
+          </div>
+        </div>
+      )}
       {twoColumn && (
         <CollectionPicker bias={locationBias} onSelect={handleSelectMapsResult} t={t} />
       )}
