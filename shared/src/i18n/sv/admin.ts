@@ -288,6 +288,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'Tillhandahålla händelser till kalendern',
   'admin.plugins.perm.hook:place-detail-provider': 'Bidra med extra detaljer (recensioner, betyg, länkar) till en plats',
   'admin.plugins.perm.hook:trip-warning-provider': 'Visa valideringsvarningar på en resa (visas i planeraren)',
+  'admin.plugins.perm.events:subscribe': 'Reagera på grundläggande aktivitetshändelser (endast händelsenamn + resa, aldrig innehållet)',
   'admin.plugins.perm.http:outbound': 'Göra utgående anrop till sina deklarerade värdar',
   'admin.plugins.updateConsentTitle': 'Den här uppdateringen kräver nya behörigheter',
   'admin.plugins.updateConsentBody':
@@ -356,6 +357,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Tillhandahåller kalenderhändelser',
   'admin.plugins.cap.placeDetails': 'Berikar platser',
   'admin.plugins.cap.warnings': 'Flaggar problem',
+  'admin.plugins.cap.events': 'Reagerar på aktivitet',
   'admin.plugins.accessTitle': 'Vad det har åtkomst till',
   'admin.plugins.connectsTitle': 'Ansluter till',
   'admin.plugins.detailsTitle': 'Detaljer',

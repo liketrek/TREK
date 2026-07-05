@@ -282,6 +282,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'Παροχή συμβάντων στο ημερολόγιο',
   'admin.plugins.perm.hook:place-detail-provider': 'Συνεισφορά επιπλέον λεπτομερειών (κριτικές, βαθμολογίες, σύνδεσμοι) σε ένα μέρος',
   'admin.plugins.perm.hook:trip-warning-provider': 'Εμφάνιση προειδοποιήσεων επικύρωσης σε ένα ταξίδι (εμφανίζονται στον σχεδιαστή)',
+  'admin.plugins.perm.events:subscribe': 'Αντιδρά σε βασικά συμβάντα δραστηριότητας (όνομα συμβάντος + ταξίδι μόνο, ποτέ το περιεχόμενο)',
   'admin.plugins.perm.http:outbound': 'Εκτέλεση εξερχόμενων αιτημάτων προς τους δηλωμένους hosts του',
   'admin.plugins.updateConsentTitle': 'Αυτή η ενημέρωση χρειάζεται νέα δικαιώματα',
   'admin.plugins.updateConsentBody':
@@ -350,6 +351,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Παρέχει συμβάντα ημερολογίου',
   'admin.plugins.cap.placeDetails': 'Εμπλουτίζει μέρη',
   'admin.plugins.cap.warnings': 'Επισημαίνει ζητήματα',
+  'admin.plugins.cap.events': 'Αντιδρά σε δραστηριότητα',
   'admin.plugins.accessTitle': 'Σε τι έχει πρόσβαση',
   'admin.plugins.connectsTitle': 'Συνδέεται σε',
   'admin.plugins.detailsTitle': 'Λεπτομέρειες',

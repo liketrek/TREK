@@ -99,7 +99,8 @@ async function boot(config: Record<string, unknown>): Promise<void> {
     const routes = (def.routes ?? []).map((r, i) => ({ i, method: r.method, path: r.path, auth: r.auth !== false }));
     const jobs = (def.jobs ?? []).map((j) => j.id);
     const hooks = Object.keys((def.hooks ?? {}) as Record<string, unknown>);
-    send({ k: 'evt', topic: 'loaded', data: { routes, jobs, hooks } });
+    const events = (def.events ?? []).map((e) => e.on);
+    send({ k: 'evt', topic: 'loaded', data: { routes, jobs, hooks, events } });
     // An immediate first heartbeat confirms liveness without waiting a full interval.
     send({ k: 'evt', topic: 'heartbeat', data: { rss: process.memoryUsage().rss } });
   } catch (e) {
@@ -145,6 +146,17 @@ async function handleInvoke(req: { id: string; method: string; params: Record<st
       if (!impl || typeof impl[fnName] !== 'function') throw new Error(`no hook ${hookName}.${fnName}`);
       const result = await impl[fnName](...args, invCtx);
       respond(true, result);
+    } else if (req.method === 'invoke.event') {
+      // A core event fired for a trip. Run every matching subscription. invCtx carries
+      // NO user (delivered like a job), so trip reads are refused — the handler reacts
+      // to the fact of the event, using the plugin's own db / outbound / broadcasts.
+      const eventName = req.params.event as string;
+      const tripId = req.params.tripId as number;
+      const payload = { event: eventName, tripId };
+      for (const sub of def.events ?? []) {
+        if (sub.on === '*' || sub.on === eventName) await sub.handler(payload, invCtx);
+      }
+      respond(true, { ok: true });
     } else {
       respond(false, `unknown invoke ${req.method}`);
     }

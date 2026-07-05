@@ -390,6 +390,29 @@ module.exports = definePlugin({
 Each hook method receives its args plus the per-invocation `ctx`, so any `ctx.trips.*`
 read it makes is membership-checked against the current user (like a route handler).
 
+## Event subscriptions
+
+React to core activity with `events` + the `events:subscribe` permission. Handlers
+fire **without a user** (like a job) and receive only the **event name + tripId** —
+never the payload — so a plugin can react to activity without seeing content:
+
+```js
+module.exports = definePlugin({
+  events: [
+    { on: 'place:created', async handler({ event, tripId }, ctx) {
+        await ctx.db.exec('INSERT INTO activity (trip, evt) VALUES (?, ?)', tripId, event)
+    } },
+    { on: '*', handler(e) { /* firehose: every core event */ } },
+  ],
+})
+```
+
+Delivery is fire-and-forget on a short timeout, so a slow subscriber never blocks a
+core write. Because there's no user, trip reads (`ctx.trips.*`) are refused inside a
+handler — use the plugin's own `ctx.db`, `ctx.ws.*`, or an outbound call. A plugin's
+own `plugin:*` broadcasts are never delivered back, so handlers can't loop. Common
+events: `place:*`, `day:*`, `assignment:*`, `budget:*`, `file:*`, `accommodation:*`.
+
 ## Testing without a running TREK
 
 `createMockHost` gives you a `ctx` that enforces the **same** permission model, so
@@ -452,6 +475,7 @@ integration test for real SQL.
 | `db:read:costs` | `ctx.costs.getByTrip` / `ctx.costs.listMine` (Costs addon, route handlers only) |
 | `db:write:costs` | `ctx.costs.create` (Costs addon + acting user's `budget_edit`) |
 | `db:read:users` | `ctx.users.getById` |
+| `events:subscribe` | receive core activity events via `events: [...]` (name + tripId only) |
 | `ws:broadcast:trip` | `ctx.ws.broadcastToTrip` |
 | `ws:broadcast:user` | `ctx.ws.broadcastToUser` |
 | `http:outbound` or `http:outbound:<host>` | outbound HTTP to `egress[]` hosts |

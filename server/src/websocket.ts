@@ -1,6 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { db, canAccessTrip } from './db/database';
 import { consumeEphemeralTokenWithMeta } from './services/ephemeralTokens';
+import { emitPluginEvent } from './plugin-event-sink';
 import { User } from './types';
 import http from 'node:http';
 
@@ -192,6 +193,10 @@ function leaveRoom(ws: NomadWebSocket, tripId: number): void {
  */
 function broadcast(tripId: number | string, eventType: string, payload: Record<string, unknown>, excludeSid?: number | string, onlyUserId?: number): void {
   tripId = Number(tripId);
+  // Announce every CORE trip event (name only, never the payload) to subscribed
+  // plugins — before the room check so it fires even with no connected viewers, and
+  // skipping plugin:* re-broadcasts so a plugin's own events can't loop back.
+  if (!eventType.startsWith('plugin:')) emitPluginEvent(tripId, eventType);
   const room = rooms.get(tripId);
   if (!room || room.size === 0) return;
 

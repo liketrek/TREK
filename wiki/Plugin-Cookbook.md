@@ -123,6 +123,24 @@ ctx.ws.broadcastToUser(userId, { event: 'nudge', text: '…' })   // only the ac
 Events are automatically namespaced to `plugin:<your-id>:…` so they can't collide
 with core events.
 
+## React to core activity
+
+**Needs:** `events:subscribe`
+
+Handlers run with no user and get the event name + tripId only (never the payload).
+
+```js
+events: [
+  { on: 'file:created', async handler({ tripId }, ctx) {
+      await notifySlack(`New file on trip ${tripId}`)   // needs http:outbound
+  } },
+]
+```
+
+Fire-and-forget on a short timeout — never blocks a core write. Trip reads are
+refused (no user); use `ctx.db`, `ctx.ws.*`, or an outbound call. Your own
+`plugin:*` broadcasts are never re-delivered, so handlers can't loop.
+
 ## Match the TREK look
 
 Add `<!-- trek:ui -->` to your widget's `<head>`. The dev server and `pack` inline

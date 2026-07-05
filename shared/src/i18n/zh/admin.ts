@@ -231,6 +231,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': '为日历提供事件',
   'admin.plugins.perm.hook:place-detail-provider': '为地点补充额外信息（评论、评分、链接）',
   'admin.plugins.perm.hook:trip-warning-provider': '对行程发出校验警告（显示在规划器中）',
+  'admin.plugins.perm.events:subscribe': '响应核心活动事件（仅事件名称和行程，绝不包含内容）',
   'admin.plugins.perm.http:outbound': '向其声明的主机发出出站请求',
   'admin.plugins.updateConsentTitle': '此次更新需要新的权限',
   'admin.plugins.updateConsentBody':
@@ -299,6 +300,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': '提供日历事件',
   'admin.plugins.cap.placeDetails': '丰富地点信息',
   'admin.plugins.cap.warnings': '标记问题',
+  'admin.plugins.cap.events': '响应活动',
   'admin.plugins.accessTitle': '可访问的内容',
   'admin.plugins.connectsTitle': '连接到',
   'admin.plugins.detailsTitle': '详情',

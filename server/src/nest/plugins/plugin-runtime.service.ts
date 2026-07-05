@@ -1,6 +1,7 @@
 import { Injectable, type OnModuleInit, type OnModuleDestroy } from '@nestjs/common';
 import { db } from '../../db/database';
 import { pluginsEnabled } from './kill-switch';
+import { setPluginEventSink } from '../../plugin-event-sink';
 import { decrypt_api_key } from '../../services/apiKeyCrypto';
 import { PluginSupervisor, type PluginRouteInfo } from './supervisor/plugin-supervisor';
 import fs from 'node:fs';
@@ -59,6 +60,9 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit(): void {
     if (!pluginsEnabled()) return;
+    // Forward core trip events to plugins that subscribed (events:subscribe). The
+    // sink is name-only + fire-and-forget, so it can never block a core broadcast.
+    setPluginEventSink((tripId, event) => this.supervisor.deliverEvent(tripId, event));
     // Discover plugins placed on the volume (registers new ones inactive), then
     // boot the ones an admin had already activated.
     try {
@@ -83,6 +87,7 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy(): Promise<void> {
+    setPluginEventSink(null);
     await this.supervisor.shutdownAll();
   }
 

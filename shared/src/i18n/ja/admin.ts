@@ -267,6 +267,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'カレンダーへの予定の提供',
   'admin.plugins.perm.hook:place-detail-provider': '場所に追加の詳細情報（レビュー、評価、リンク）を提供',
   'admin.plugins.perm.hook:trip-warning-provider': '旅程に検証警告を表示（プランナー内に表示）',
+  'admin.plugins.perm.events:subscribe': 'コアのアクティビティイベントに反応（イベント名と旅程のみで、内容には一切アクセスしません）',
   'admin.plugins.perm.http:outbound': '宣言済みホストへの外部リクエストの送信',
   'admin.plugins.updateConsentTitle': 'このアップデートには新しい権限が必要です',
   'admin.plugins.updateConsentBody':
@@ -335,6 +336,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'カレンダー予定を提供',
   'admin.plugins.cap.placeDetails': '場所を充実',
   'admin.plugins.cap.warnings': '問題を検出',
+  'admin.plugins.cap.events': 'アクティビティに反応',
   'admin.plugins.accessTitle': 'アクセスできるもの',
   'admin.plugins.connectsTitle': '接続先',
   'admin.plugins.detailsTitle': '詳細',

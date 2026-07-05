@@ -288,6 +288,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'Cung cấp sự kiện cho lịch',
   'admin.plugins.perm.hook:place-detail-provider': 'Đóng góp thêm thông tin chi tiết (đánh giá, xếp hạng, liên kết) cho một địa điểm',
   'admin.plugins.perm.hook:trip-warning-provider': 'Đưa ra cảnh báo xác thực trên một chuyến đi (hiển thị trong trình lập kế hoạch)',
+  'admin.plugins.perm.events:subscribe': 'Phản hồi các sự kiện hoạt động cốt lõi (chỉ tên sự kiện + chuyến đi, không bao giờ là nội dung)',
   'admin.plugins.perm.http:outbound': 'Gửi yêu cầu ra ngoài đến các máy chủ đã khai báo',
   'admin.plugins.updateConsentTitle': 'Bản cập nhật này cần các quyền mới',
   'admin.plugins.updateConsentBody':
@@ -356,6 +357,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Cung cấp sự kiện lịch',
   'admin.plugins.cap.placeDetails': 'Làm phong phú địa điểm',
   'admin.plugins.cap.warnings': 'Gắn cờ vấn đề',
+  'admin.plugins.cap.events': 'Phản hồi hoạt động',
   'admin.plugins.accessTitle': 'Những gì có thể truy cập',
   'admin.plugins.connectsTitle': 'Kết nối tới',
   'admin.plugins.detailsTitle': 'Chi tiết',

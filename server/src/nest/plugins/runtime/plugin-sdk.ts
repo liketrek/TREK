@@ -138,11 +138,19 @@ export interface WarningProvider {
   getWarnings(tripId: number, ctx: PluginContext): Promise<TripWarning[]>;
 }
 
+/** A core-event subscription (#1429 eco). Handlers run with NO user (like a job)
+ * and receive only the event name + tripId — never the payload. Needs 'events:subscribe'. */
+export interface PluginEventSubscription {
+  on: string; // a core event name (e.g. 'place:created', 'day:updated') or '*' for all
+  handler(payload: { event: string; tripId: number }, ctx: PluginContext): Promise<void> | void;
+}
+
 export interface PluginDefinition {
   onLoad?(ctx: PluginContext): Promise<void> | void;
   onUnload?(ctx: PluginContext): Promise<void> | void;
   routes?: PluginRoute[];
   jobs?: PluginJob[];
+  events?: PluginEventSubscription[];
   hooks?: {
     photoProvider?: PhotoProvider;
     calendarSource?: CalendarSource;

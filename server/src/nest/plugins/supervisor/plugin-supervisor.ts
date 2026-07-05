@@ -50,6 +50,7 @@ interface Supervised {
   routes: PluginRouteInfo[];
   jobs: string[];
   hooks: string[]; // provider hooks the plugin implements (e.g. 'placeDetailProvider')
+  events: string[]; // core events the plugin subscribes to (names or '*')
   pending: Map<string, Pending>; // host→child invokes awaiting a response
   invocations: Map<string, number | undefined>; // reqId -> acting user of that invoke (undefined = no user, e.g. a job)
   activation?: { resolve: () => void; reject: (e: Error) => void };
@@ -122,6 +123,7 @@ export class PluginSupervisor {
       routes: [],
       jobs: [],
       hooks: [],
+      events: [],
       pending: new Map(),
       invocations: new Map(),
     };
@@ -190,6 +192,22 @@ export class PluginSupervisor {
       if (sup.status === 'active' && sup.hooks.includes(hook) && sup.granted.has(perm)) out.push(id);
     }
     return out;
+  }
+
+  /**
+   * Announce a core event to every plugin that subscribed to it (or to '*') AND holds
+   * the 'events:subscribe' grant. Fire-and-forget: the invoke is NOT awaited (a core
+   * broadcast must never block on a plugin) and carries no user (trip reads refused).
+   * Only the event name + tripId are sent — never the payload.
+   */
+  deliverEvent(tripId: number, event: string): void {
+    for (const [id, sup] of this.running) {
+      if (sup.status !== 'active' || !sup.granted.has('events:subscribe')) continue;
+      if (!sup.events.includes(event) && !sup.events.includes('*')) continue;
+      this.invoke(id, 'invoke.event', { event, tripId }, { actingUserId: undefined, timeoutMs: 5000 }).catch(() => {
+        /* a subscriber that errors or times out is ignored — events are best-effort */
+      });
+    }
   }
 
   /**
@@ -311,10 +329,11 @@ export class PluginSupervisor {
           // not be able to re-register its route table once it is live.
           if (sup.status === 'active') break;
           sup.lastBeat = Date.now();
-          const d = msg.data as { routes?: PluginRouteInfo[]; jobs?: string[]; hooks?: string[] };
+          const d = msg.data as { routes?: PluginRouteInfo[]; jobs?: string[]; hooks?: string[]; events?: string[] };
           sup.routes = d.routes ?? [];
           sup.jobs = d.jobs ?? [];
           sup.hooks = d.hooks ?? [];
+          sup.events = d.events ?? [];
           this.clearActivationTimer(sup);
           this.setStatus(sup, 'active');
           sup.activation?.resolve();

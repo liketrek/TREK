@@ -236,6 +236,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'Események biztosítása a naptárhoz',
   'admin.plugins.perm.hook:place-detail-provider': 'További részletek (értékelések, minősítések, hivatkozások) hozzáadása egy helyhez',
   'admin.plugins.perm.hook:trip-warning-provider': 'Ellenőrzési figyelmeztetések megjelenítése egy utazáson (a tervezőben látható)',
+  'admin.plugins.perm.events:subscribe': 'Reagál az alapvető tevékenységi eseményekre (csak eseménynév + utazás, soha nem a tartalom)',
   'admin.plugins.perm.http:outbound': 'Kimenő kérések küldése a bejelentett kiszolgálók felé',
   'admin.plugins.updateConsentTitle': 'Ez a frissítés új engedélyeket igényel',
   'admin.plugins.updateConsentBody':
@@ -304,6 +305,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Naptáreseményeket biztosít',
   'admin.plugins.cap.placeDetails': 'Helyeket gazdagít',
   'admin.plugins.cap.warnings': 'Problémákat jelez',
+  'admin.plugins.cap.events': 'Reagál a tevékenységre',
   'admin.plugins.accessTitle': 'Mihez fér hozzá',
   'admin.plugins.connectsTitle': 'Kapcsolódik ehhez',
   'admin.plugins.detailsTitle': 'Részletek',

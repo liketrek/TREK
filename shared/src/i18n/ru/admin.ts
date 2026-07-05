@@ -236,6 +236,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'Предоставлять события для календаря',
   'admin.plugins.perm.hook:place-detail-provider': 'Добавлять дополнительные сведения (отзывы, оценки, ссылки) к месту',
   'admin.plugins.perm.hook:trip-warning-provider': 'Выдавать предупреждения проверки для поездки (отображаются в планировщике)',
+  'admin.plugins.perm.events:subscribe': 'Реагировать на основные события активности (только название события и поездка, никогда содержимое)',
   'admin.plugins.perm.http:outbound': 'Выполнять исходящие запросы к заявленным хостам',
   'admin.plugins.updateConsentTitle': 'Для этого обновления нужны новые разрешения',
   'admin.plugins.updateConsentBody':
@@ -304,6 +305,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Предоставляет события календаря',
   'admin.plugins.cap.placeDetails': 'Обогащает места',
   'admin.plugins.cap.warnings': 'Отмечает проблемы',
+  'admin.plugins.cap.events': 'Реагирует на активность',
   'admin.plugins.accessTitle': 'К чему есть доступ',
   'admin.plugins.connectsTitle': 'Подключается к',
   'admin.plugins.detailsTitle': 'Подробности',

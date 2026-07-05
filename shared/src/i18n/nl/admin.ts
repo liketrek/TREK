@@ -236,6 +236,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'Evenementen aanleveren voor de kalender',
   'admin.plugins.perm.hook:place-detail-provider': 'Extra details (reviews, beoordelingen, links) aan een plek toevoegen',
   'admin.plugins.perm.hook:trip-warning-provider': 'Validatiewaarschuwingen tonen bij een reis (zichtbaar in de planner)',
+  'admin.plugins.perm.events:subscribe': 'Reageert op kernactiviteitsgebeurtenissen (alleen gebeurtenisnaam + reis, nooit de inhoud)',
   'admin.plugins.perm.http:outbound': 'Uitgaande verzoeken doen naar de opgegeven hosts',
   'admin.plugins.updateConsentTitle': 'Deze update vereist nieuwe machtigingen',
   'admin.plugins.updateConsentBody':
@@ -304,6 +305,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Levert kalenderevenementen',
   'admin.plugins.cap.placeDetails': 'Verrijkt plekken',
   'admin.plugins.cap.warnings': 'Signaleert problemen',
+  'admin.plugins.cap.events': 'Reageert op activiteit',
   'admin.plugins.accessTitle': 'Waartoe hij toegang heeft',
   'admin.plugins.connectsTitle': 'Maakt verbinding met',
   'admin.plugins.detailsTitle': 'Details',
