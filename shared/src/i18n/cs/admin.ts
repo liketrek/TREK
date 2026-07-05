@@ -231,6 +231,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:photo-provider': 'Poskytovat fotky do sekce Fotky',
   'admin.plugins.perm.hook:calendar-source': 'Poskytovat události do kalendáře',
   'admin.plugins.perm.hook:place-detail-provider': 'Přidávat další podrobnosti (recenze, hodnocení, odkazy) k místu',
+  'admin.plugins.perm.hook:trip-warning-provider': 'Vyvolávat ověřovací upozornění u cesty (zobrazená v plánovači)',
   'admin.plugins.perm.http:outbound': 'Odesílat odchozí požadavky na deklarované hostitele',
   'admin.plugins.updateConsentTitle': 'Tato aktualizace vyžaduje nová oprávnění',
   'admin.plugins.updateConsentBody':
@@ -296,6 +297,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.photos': 'Poskytuje fotky',
   'admin.plugins.cap.calendar': 'Poskytuje události kalendáře',
   'admin.plugins.cap.placeDetails': 'Obohacuje místa',
+  'admin.plugins.cap.warnings': 'Označuje problémy',
   'admin.plugins.accessTitle': 'K čemu má přístup',
   'admin.plugins.connectsTitle': 'Připojuje se k',
   'admin.plugins.detailsTitle': 'Podrobnosti',

@@ -561,6 +561,9 @@ export const pluginsApi = {
   // the server skips any slow/failing provider, so this only ever adds rows.
   placeDetails: (placeId: number) =>
     apiClient.get(`/place-details/${placeId}`).then(r => r.data as { providers: Array<{ pluginId: string; items: Array<{ label: string; value?: string; url?: string }> }> }),
+  // Validation/warning contributions from warningProvider plugins (#1429). Fail-safe.
+  tripWarnings: (tripId: number) =>
+    apiClient.get(`/trip-warnings/${tripId}`).then(r => r.data as { warnings: Array<{ pluginId: string; level: 'info' | 'warning' | 'error'; message: string; dayId?: number; placeId?: number }> }),
   // Call one of a plugin's own declared routes through the host proxy. `sub` is
   // supplied by untrusted plugin code (the trekBridge forwards it verbatim), so it
   // MUST stay inside the plugin's own /plugins/:id/ namespace. We resolve it with

@@ -31,6 +31,7 @@ import type { BookingExpenseRequest } from '../components/Planner/BookingCostsSe
 import type { BudgetItem } from '../types'
 import CollabPanel from '../components/Collab/CollabPanel'
 import PluginFrame from '../components/Plugins/PluginFrame'
+import TripWarningsBanner from '../components/Planner/TripWarningsBanner'
 import Navbar from '../components/Layout/Navbar'
 import { useToast } from '../components/shared/Toast'
 import { Map, X, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Ticket, PackageCheck, Wallet, FolderOpen, Users, Train } from 'lucide-react'
@@ -298,6 +299,9 @@ export default function TripPlannerPage(): React.ReactElement | null {
 
       {/* Offset by navbar + tab bar (44px) */}
       <div style={{ position: 'fixed', top: 'calc(var(--nav-h) + 44px)', left: 0, right: 0, bottom: 0, overflow: 'hidden', overscrollBehavior: 'contain' }}>
+
+        {/* Plugin validation/warning contributions (#1429) — non-blocking overlay. */}
+        <TripWarningsBanner tripId={tripId} />
 
         {activeTab === 'plan' && (
           <div style={{ position: 'absolute', inset: 0 }}>

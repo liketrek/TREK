@@ -125,6 +125,7 @@ export const KNOWN_PERMISSIONS = [
   'hook:photo-provider',
   'hook:calendar-source',
   'hook:place-detail-provider',
+  'hook:trip-warning-provider',
   'http:outbound',
 ] as const;
 

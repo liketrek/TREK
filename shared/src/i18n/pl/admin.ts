@@ -226,6 +226,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:photo-provider': 'Dostarczanie zdjęć do sekcji Zdjęcia',
   'admin.plugins.perm.hook:calendar-source': 'Dostarczanie wydarzeń do kalendarza',
   'admin.plugins.perm.hook:place-detail-provider': 'Dodawanie dodatkowych szczegółów (recenzji, ocen, linków) do miejsca',
+  'admin.plugins.perm.hook:trip-warning-provider': 'Zgłaszanie ostrzeżeń walidacyjnych dla podróży (widocznych w planerze)',
   'admin.plugins.perm.http:outbound': 'Wykonywanie wychodzących zapytań do zadeklarowanych hostów',
   'admin.plugins.updateConsentTitle': 'Ta aktualizacja wymaga nowych uprawnień',
   'admin.plugins.updateConsentBody':
@@ -291,6 +292,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.photos': 'Dostarcza zdjęcia',
   'admin.plugins.cap.calendar': 'Dostarcza wydarzenia kalendarza',
   'admin.plugins.cap.placeDetails': 'Wzbogaca miejsca',
+  'admin.plugins.cap.warnings': 'Zgłasza problemy',
   'admin.plugins.accessTitle': 'Do czego ma dostęp',
   'admin.plugins.connectsTitle': 'Łączy się z',
   'admin.plugins.detailsTitle': 'Szczegóły',

@@ -122,6 +122,11 @@ export interface PlaceDetailItem { label: string; value?: string; url?: string; 
 export interface PlaceDetailProvider {
   getDetails(placeId: number, ctx: PluginContext): Promise<PlaceDetailItem[]>;
 }
+/** A validation/warning a plugin raises on a trip; TREK surfaces it in the planner. */
+export interface TripWarning { level: 'info' | 'warning' | 'error'; message: string; dayId?: number; placeId?: number; }
+export interface WarningProvider {
+  getWarnings(tripId: number, ctx: PluginContext): Promise<TripWarning[]>;
+}
 
 export interface PluginDefinition {
   onLoad?(ctx: PluginContext): Promise<void> | void;
@@ -132,6 +137,7 @@ export interface PluginDefinition {
     photoProvider?: PhotoProvider;
     calendarSource?: CalendarSource;
     placeDetailProvider?: PlaceDetailProvider;
+    warningProvider?: WarningProvider;
   };
 }
 

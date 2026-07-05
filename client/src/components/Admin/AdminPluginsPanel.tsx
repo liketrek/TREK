@@ -87,7 +87,7 @@ const PERM_KEYS = [
   'db:write:places', 'db:write:days', 'db:write:itinerary', 'db:write:trips',
   'db:meta',
   'ws:broadcast:trip', 'ws:broadcast:user',
-  'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider', 'http:outbound',
+  'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider', 'hook:trip-warning-provider', 'http:outbound',
 ]
 
 const KNOWN_TYPES = ['widget', 'page', 'integration']
@@ -131,6 +131,7 @@ function deriveCaps(perms: string[], caps: { widget?: { slot?: string } }, t: T)
   if (perms.includes('hook:photo-provider')) out.push({ icon: Image, label: t('admin.plugins.cap.photos') })
   if (perms.includes('hook:calendar-source')) out.push({ icon: CalendarDays, label: t('admin.plugins.cap.calendar') })
   if (perms.includes('hook:place-detail-provider')) out.push({ icon: MapPin, label: t('admin.plugins.cap.placeDetails') })
+  if (perms.includes('hook:trip-warning-provider')) out.push({ icon: AlertTriangle, label: t('admin.plugins.cap.warnings') })
   for (const h of perms.filter(p => p.startsWith('http:outbound:')).map(p => p.slice('http:outbound:'.length)).filter(Boolean)) {
     out.push({ icon: ArrowRight, label: h, net: true })
   }

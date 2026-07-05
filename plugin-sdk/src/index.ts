@@ -126,13 +126,24 @@ export interface PlaceDetailProvider {
   /** Extra info for a place; core calls this for a `place-detail` panel. Needs `hook:place-detail-provider`. */
   getDetails(placeId: number, ctx: PluginContext): Promise<PlaceDetailItem[]>;
 }
+/** A validation/warning a plugin raises on a trip; TREK surfaces it in the planner. */
+export interface TripWarning { level: 'info' | 'warning' | 'error'; message: string; dayId?: number; placeId?: number; }
+export interface WarningProvider {
+  /** Problems/warnings for a trip (e.g. overpacked day, place closed). Needs `hook:trip-warning-provider`. */
+  getWarnings(tripId: number, ctx: PluginContext): Promise<TripWarning[]>;
+}
 
 export interface PluginDefinition {
   onLoad?(ctx: PluginContext): Promise<void> | void;
   onUnload?(ctx: PluginContext): Promise<void> | void;
   routes?: PluginRoute[];
   jobs?: PluginJob[];
-  hooks?: { photoProvider?: PhotoProvider; calendarSource?: CalendarSource; placeDetailProvider?: PlaceDetailProvider };
+  hooks?: {
+    photoProvider?: PhotoProvider;
+    calendarSource?: CalendarSource;
+    placeDetailProvider?: PlaceDetailProvider;
+    warningProvider?: WarningProvider;
+  };
 }
 
 /** Define a plugin. Gives you types; the returned object is what TREK loads. */

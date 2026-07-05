@@ -277,6 +277,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:photo-provider': 'Fotoğraflar bölümüne fotoğraf sağlar',
   'admin.plugins.perm.hook:calendar-source': 'Takvime etkinlik sağlar',
   'admin.plugins.perm.hook:place-detail-provider': 'Bir yere ek ayrıntılar (yorumlar, puanlar, bağlantılar) katkıda bulunur',
+  'admin.plugins.perm.hook:trip-warning-provider': 'Bir gezide doğrulama uyarıları oluşturur (planlayıcıda gösterilir)',
   'admin.plugins.perm.http:outbound': 'Bildirdiği ana bilgisayarlara giden istekler yapar',
   'admin.plugins.updateConsentTitle': 'Bu güncelleme yeni izinler gerektiriyor',
   'admin.plugins.updateConsentBody':
@@ -342,6 +343,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.photos': 'Fotoğraf sağlar',
   'admin.plugins.cap.calendar': 'Takvim etkinlikleri sağlar',
   'admin.plugins.cap.placeDetails': 'Yerleri zenginleştirir',
+  'admin.plugins.cap.warnings': 'Sorunları işaretler',
   'admin.plugins.accessTitle': 'Neye erişebilir',
   'admin.plugins.connectsTitle': 'Şuraya bağlanır',
   'admin.plugins.detailsTitle': 'Detaylar',

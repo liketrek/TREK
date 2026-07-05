@@ -384,6 +384,7 @@ module.exports = definePlugin({
 | Hook | Permission | Status |
 |---|---|---|
 | `placeDetailProvider.getDetails(placeId, ctx)` → `{ label, value?, url? }[]` | `hook:place-detail-provider` | **live** — shown in the place-detail panel; also `GET /api/place-details/:placeId` |
+| `warningProvider.getWarnings(tripId, ctx)` → `{ level, message, dayId?, placeId? }[]` | `hook:trip-warning-provider` | **live** — validation warnings shown as a non-blocking banner in the trip planner; also `GET /api/trip-warnings/:tripId` |
 | `photoProvider` / `calendarSource` | `hook:photo-provider` / `hook:calendar-source` | reserved — declared + the `invoke.hook` transport exists, but no core consumer calls them yet |
 
 Each hook method receives its args plus the per-invocation `ctx`, so any `ctx.trips.*`
