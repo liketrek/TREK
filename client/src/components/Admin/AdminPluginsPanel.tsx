@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 import {
-  Blocks, AlertTriangle, PackageOpen, RefreshCw, Trash2, Download, Bug, X, ShieldCheck,
+  Blocks, AlertTriangle, PackageOpen, RefreshCw, Trash2, Download, Bug, X, ShieldCheck, UploadCloud,
   ArrowUpCircle, Github, ExternalLink, ChevronDown, Check, Lock, Search,
   SlidersHorizontal, ArrowUpDown, CircleDot, MoreHorizontal, RotateCw, ArrowRight, Database, Users, LayoutDashboard,
   Radio, Luggage, Plane, Globe, Image, CalendarDays, Map, Bell, Cloud, Camera, Compass,
@@ -135,6 +135,16 @@ function ReviewedBadge({ t, compact }: { t: T; compact?: boolean }) {
   )
 }
 
+/** Marks a manually-uploaded (sideloaded) plugin: no registry, unsigned, not reviewed. */
+function SideloadedBadge({ t }: { t: T }) {
+  return (
+    <span className="inline-flex items-center gap-1 px-1.5 py-[2px] rounded-md text-[11px] font-medium bg-warning-soft text-warning border border-warning/25"
+      title={t('admin.plugins.sideloadedHint')}>
+      <UploadCloud size={11} /> {t('admin.plugins.sideloaded')}
+    </span>
+  )
+}
+
 function TypeBadge({ type, t }: { type: string; t: T }) {
   return (
     <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wide bg-accent-subtle text-content-muted">
@@ -167,6 +177,11 @@ export default function AdminPluginsPanel() {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [sort, setSort] = useState<SortKey>('name')
+
+  // Sideload upload: drag a plugin .zip onto the panel or use the toolbar button.
+  const [dragActive, setDragActive] = useState(false)
+  const uploadInputRef = useRef<HTMLInputElement>(null)
+  const dragDepth = useRef(0)
 
   const refresh = () => {
     adminApi.plugins()
@@ -210,6 +225,32 @@ export default function AdminPluginsPanel() {
     items.forEach((i) => { if (i.latest) map[i.id] = i.latest })
     setLatest(map)
   }, t('admin.plugins.rescanned'))
+
+  // Sideload a plugin archive (installs INACTIVE — the admin still consents on activation).
+  const uploadPlugin = async (file: File) => {
+    setBusy('__upload'); setMenu(null)
+    try {
+      const res = await adminApi.pluginUpload(file)
+      setView('installed')
+      toast.success(t('admin.plugins.uploaded', { name: res.id }))
+    } catch (e) {
+      toast.error((e as { response?: { data?: { error?: string } } })?.response?.data?.error || t('admin.plugins.actionError'))
+    } finally {
+      setBusy(null); refresh()
+    }
+  }
+  const pickUpload = () => uploadInputRef.current?.click()
+  const onDragEnter = (e: DragEvent) => {
+    if (!runtimeOn || !Array.from(e.dataTransfer.types).includes('Files')) return
+    e.preventDefault(); dragDepth.current++; setDragActive(true)
+  }
+  const onDragLeave = () => { if (--dragDepth.current <= 0) { dragDepth.current = 0; setDragActive(false) } }
+  const onDrop = (e: DragEvent) => {
+    e.preventDefault(); dragDepth.current = 0; setDragActive(false)
+    if (!runtimeOn) return
+    const f = e.dataTransfer.files?.[0]
+    if (f) void uploadPlugin(f)
+  }
   const openErrors = (id: string) => {
     setMenu(null)
     adminApi.pluginErrors(id)
@@ -296,7 +337,18 @@ export default function AdminPluginsPanel() {
   const anyFilter = q.trim() !== '' || typeFilter !== 'all' || statusFilter !== 'all'
 
   return (
-    <div className="relative bg-surface-card border border-edge rounded-2xl shadow-card mb-24 sm:mb-0">
+    <div className="relative bg-surface-card border border-edge rounded-2xl shadow-card mb-24 sm:mb-0"
+      onDragEnter={onDragEnter} onDragOver={e => { if (dragActive) e.preventDefault() }} onDragLeave={onDragLeave} onDrop={onDrop}>
+      {/* Hidden input for the toolbar "Upload plugin" button (drag-drop uses the same handler). */}
+      <input ref={uploadInputRef} type="file" accept=".zip,.tgz,.tar.gz" className="hidden"
+        onChange={e => { const f = e.target.files?.[0]; if (f) void uploadPlugin(f); e.target.value = '' }} />
+      {/* Drag-to-install overlay */}
+      {dragActive && (
+        <div className="absolute inset-0 z-40 rounded-2xl border-2 border-dashed border-accent bg-accent-soft/70 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2.5 pointer-events-none">
+          <UploadCloud size={34} className="text-accent" />
+          <span className="text-sm font-semibold text-accent">{t('admin.plugins.dropToUpload')}</span>
+        </div>
+      )}
       {/* Click-away layer for any open dropdown (filters or a row's ⋯ menu). */}
       {menu && <div className="fixed inset-0 z-20" onClick={() => setMenu(null)} />}
       {/* Header */}
@@ -335,10 +387,16 @@ export default function AdminPluginsPanel() {
               <SegBtn active={view === 'installed'} onClick={() => setView('installed')} label={t('admin.plugins.installed')} count={plugins.length} />
               <SegBtn active={view === 'discover'} onClick={openDiscover} label={t('admin.plugins.tabDiscover')} count={registry?.length} />
             </div>
-            <button onClick={rescan} title={t('admin.plugins.rescan')}
-              className="sm:hidden h-[38px] w-[38px] grid place-items-center rounded-xl border border-edge bg-surface-card text-content-muted hover:text-content hover:border-content-faint transition-colors shrink-0">
-              <RefreshCw size={15} />
-            </button>
+            <div className="sm:hidden flex items-center gap-2 shrink-0">
+              <button onClick={pickUpload} title={t('admin.plugins.upload')}
+                className="h-[38px] w-[38px] grid place-items-center rounded-xl border border-edge bg-surface-card text-content-muted hover:text-content hover:border-content-faint transition-colors">
+                <UploadCloud size={15} />
+              </button>
+              <button onClick={rescan} title={t('admin.plugins.rescan')}
+                className="h-[38px] w-[38px] grid place-items-center rounded-xl border border-edge bg-surface-card text-content-muted hover:text-content hover:border-content-faint transition-colors">
+                <RefreshCw size={15} />
+              </button>
+            </div>
           </div>
 
           <div className="relative w-full sm:flex-1 sm:min-w-[160px]">
@@ -374,6 +432,10 @@ export default function AdminPluginsPanel() {
               valueLabel={sortLabel(sort, t)}
               onPick={v => setSort(v as SortKey)} />
 
+            <button onClick={pickUpload} title={t('admin.plugins.upload')}
+              className="hidden sm:grid h-[38px] w-[38px] place-items-center rounded-xl border border-edge bg-surface-card text-content-muted hover:text-content hover:border-content-faint transition-colors">
+              <UploadCloud size={15} />
+            </button>
             <button onClick={rescan} title={t('admin.plugins.rescan')}
               className="hidden sm:grid h-[38px] w-[38px] place-items-center rounded-xl border border-edge bg-surface-card text-content-muted hover:text-content hover:border-content-faint transition-colors">
               <RefreshCw size={15} />
@@ -568,6 +630,7 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, onToggl
           <span className="text-[14.5px] font-semibold tracking-[-.006em] text-content">{p.name}</span>
           {p.version && <span className="text-[11.5px] text-content-faint font-medium tabular-nums">v{p.version}</span>}
           {p.reviewed_at && <ReviewedBadge t={t} compact />}
+          {p.source_repo === 'local:upload' && <SideloadedBadge t={t} />}
         </div>
         {p.description && <p className="text-[12.5px] text-content-muted mt-0.5 truncate">{p.description}</p>}
         {p.status === 'error' && p.last_error ? (
@@ -608,7 +671,7 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, onToggl
                 <MenuItem icon={<RotateCw size={14} />} label={t('admin.plugins.restart')} onClick={onRestart} />
               )}
               <MenuItem icon={<Bug size={14} />} label={t('admin.plugins.viewErrors')} onClick={onErrors} />
-              {p.source_repo && (
+              {p.source_repo && p.source_repo !== 'local:upload' && (
                 <a href={`https://github.com/${p.source_repo}`} target="_blank" rel="noreferrer" onClick={() => setMenu(null)}
                   className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-content-secondary hover:bg-surface-tertiary transition-colors">
                   <Github size={14} /> {t('admin.plugins.sourceRepo')}

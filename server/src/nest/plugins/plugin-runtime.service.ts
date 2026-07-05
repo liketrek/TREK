@@ -166,6 +166,33 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     return { version: res.version, activated: false, newPermissions, newEgress };
   }
 
+  /**
+   * Sideload a plugin from an uploaded archive (admin "Upload plugin"). Extracts +
+   * validates into staging first, stops any running child of the same id (its code
+   * dir is about to be replaced, and on Windows the child holds file locks), then
+   * commits it as an INACTIVE sideloaded plugin. Never auto-activates — the admin
+   * re-activates (and re-consents to permissions) explicitly.
+   */
+  async sideload(bytes: Buffer): Promise<{ id: string; version: string; replaced: boolean }> {
+    if (!this.registry) throw new Error('registry service unavailable');
+    const staged = this.registry.stageUpload(bytes);
+    try {
+      const replaced = !!db.prepare('SELECT id FROM plugins WHERE id = ?').get(staged.id);
+      // Force any replaced plugin INACTIVE before the swap: stop a running child
+      // (it holds file locks and would keep executing stale code) AND clear the
+      // active flag, so replaced code can never keep running — or even show active
+      // — without a fresh activation + permission consent. deactivate() no-ops on
+      // a plugin that isn't running.
+      if (replaced) await this.deactivate(staged.id);
+      this.registry.commitUpload(staged); // moves code + registers INACTIVE, then clears staging
+      return { id: staged.id, version: staged.version, replaced };
+    } catch (e) {
+      // A failure before commitUpload leaves staging behind — clean it up.
+      try { fs.rmSync(staged.stagingDir, { recursive: true, force: true }); } catch {}
+      throw e;
+    }
+  }
+
   /** Stop the plugin, remove its code, and optionally delete all its data. */
   async uninstall(id: string, deleteData: boolean): Promise<void> {
     await this.supervisor.disable(id);

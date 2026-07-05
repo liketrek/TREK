@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpException, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpException, Param, Post, Put, Query, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { PluginsService } from './plugins.service';
 import { PluginRuntimeService, PluginConsentRequired } from './plugin-runtime.service';
 import { PluginRegistryService } from './registry/registry.service';
@@ -51,6 +52,20 @@ export class PluginsController {
       return await this.registry.install(body.id, body.version);
     } catch (e) {
       throw new HttpException({ error: e instanceof Error ? e.message : 'install failed' }, 400);
+    }
+  }
+
+  /** Sideload a plugin from an uploaded .zip/.tar.gz (registers INACTIVE). */
+  @Post('upload')
+  @HttpCode(200)
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 50 * 1024 * 1024 + 4096 } }))
+  async upload(@UploadedFile() file?: Express.Multer.File) {
+    if (!pluginsEnabled()) throw new HttpException({ error: 'Plugins are disabled by server configuration' }, 503);
+    if (!file?.buffer?.length) throw new HttpException({ error: 'no file uploaded' }, 400);
+    try {
+      return await this.runtime.sideload(file.buffer);
+    } catch (e) {
+      throw new HttpException({ error: e instanceof Error ? e.message : 'upload failed' }, 400);
     }
   }
 
