@@ -24,6 +24,8 @@ const REGISTRY_URL =
   'https://raw.githubusercontent.com/mauriceboe/TREK-Plugins/main/dist/index.json';
 const CACHE_TTL = 30 * 60 * 1000;
 const MANIFEST_MAX_BYTES = 256 * 1024;
+// Sideload upload ceiling — matches the SDK `pack` limit (50 MB) plus zip overhead.
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024 + 4096;
 
 interface RegistryVersion {
   version: string;
@@ -209,6 +211,55 @@ export class PluginRegistryService {
       return { id, version: ver.version };
     } finally {
       fs.rmSync(staging, { recursive: true, force: true });
+    }
+  }
+
+  /**
+   * Sideload step 1: extract + validate an uploaded archive into a staging dir,
+   * WITHOUT touching the live plugin. Returns the manifest id/version + the staged
+   * path so the caller can stop a running child before the swap. Same hard guards
+   * as a registry install (slip/bomb-safe extract, strict manifest, no native
+   * binaries) — only the registry sha256/signature checks are absent, because a
+   * sideload has no registry entry. Throws (and self-cleans staging) on failure.
+   */
+  stageUpload(bytes: Buffer): { id: string; version: string; root: string; stagingDir: string } {
+    if (bytes.length > MAX_UPLOAD_BYTES) throw new RegistryError('archive exceeds the 50MB limit');
+    const stagingDir = path.join(pluginsDataRoot(), '.staging', `upload-${Date.now()}`);
+    try {
+      extractArchive(bytes, stagingDir);
+      const root = locateManifestDir(stagingDir);
+      if (!root) throw new RegistryError('archive contains no trek-plugin.json');
+      const manifest = parseManifest(parseJsonText(fs.readFileSync(path.join(root, 'trek-plugin.json'), 'utf8')));
+      if (scanForNativeBinaries(root).length) throw new RegistryError('artifact contains native binaries');
+      return { id: manifest.id, version: manifest.version, root, stagingDir };
+    } catch (e) {
+      fs.rmSync(stagingDir, { recursive: true, force: true });
+      throw e;
+    }
+  }
+
+  /**
+   * Sideload step 2: move a staged upload into place and register it INACTIVE as a
+   * sideloaded plugin — source "local:upload", unsigned, not registry-reviewed, so
+   * the UI flags it and offers no auto-update. The caller MUST have stopped any
+   * running child of this id first (the code dir is replaced).
+   */
+  commitUpload(staged: { id: string; root: string; stagingDir: string }): void {
+    try {
+      const dest = pluginCodeDir(staged.id);
+      fs.mkdirSync(pluginsCodeRoot(), { recursive: true });
+      fs.rmSync(dest, { recursive: true, force: true });
+      fs.renameSync(staged.root, dest);
+      discoverPlugins(db);
+      // Provenance for a sideload, plus a hard INACTIVE floor: discoverPlugins keeps
+      // an existing row's status, so replacing a plugin that was active must not
+      // leave the new code marked active — the admin re-activates (and re-consents
+      // to permissions) explicitly.
+      db.prepare("UPDATE plugins SET source_repo = ?, source_commit = ?, sha256 = ?, reviewed_at = ?, author_pubkey = NULL, status = 'inactive', enabled = 0 WHERE id = ?").run(
+        'local:upload', null, null, null, staged.id,
+      );
+    } finally {
+      fs.rmSync(staged.stagingDir, { recursive: true, force: true });
     }
   }
 
