@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from '../../i18n'
 import { useAuthStore } from '../../store/authStore'
@@ -50,20 +50,26 @@ export default function PluginFrame({ pluginId, tripId = null, className, title 
   const userId = useAuthStore((s) => s.user?.id)
   const [height, setHeight] = useState<number | null>(null)
 
+  // opaque frame -> targetOrigin must be '*'. Hoisted so the iframe's onLoad can
+  // deliver the context too: the trek:ready handshake alone is racy — if the frame
+  // boots before the effect's listener attaches, the plugin never learns the theme
+  // and falls back to the OS scheme (dark mode looking "off" until a toggle).
+  const postFrame = useCallback((msg: unknown) => frameRef.current?.contentWindow?.postMessage(msg, '*'), [])
+  const buildContext = useCallback(() => ({
+    type: 'trek:context',
+    tripId,
+    userId: userId != null ? String(userId) : null,
+    theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
+    locale,
+    hostOrigin: window.location.origin,
+  }), [tripId, userId, locale])
+
   useEffect(() => {
     const frame = frameRef.current
     if (!frame) return
 
-    const post = (msg: unknown) => frame.contentWindow?.postMessage(msg, '*') // opaque frame -> targetOrigin must be '*'
-
-    const context = () => ({
-      type: 'trek:context',
-      tripId,
-      userId: userId != null ? String(userId) : null,
-      theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
-      locale,
-      hostOrigin: window.location.origin,
-    })
+    const post = postFrame
+    const context = buildContext
 
     const onMessage = async (ev: MessageEvent) => {
       // The ONLY trusted identity: the message came from OUR iframe's window.
@@ -125,13 +131,16 @@ export default function PluginFrame({ pluginId, tripId = null, className, title 
     themeObserver.observe(htmlEl, { attributes: true, attributeFilter: ['class'] })
 
     return () => { window.removeEventListener('message', onMessage); themeObserver.disconnect() }
-  }, [pluginId, tripId, userId, locale, navigate, toast])
+  }, [pluginId, navigate, toast, postFrame, buildContext])
 
   return (
     <iframe
       ref={frameRef}
       src={`/plugin-frame/${pluginId}/index.html`}
-      onLoad={() => { loadsRef.current += 1 }}
+      // Deliver the context as soon as the document is parsed (the plugin sets up its
+      // message listener during parse), closing the trek:ready race so the theme is
+      // right on first paint. A 2nd load is a self-navigation — don't bridge to it.
+      onLoad={() => { loadsRef.current += 1; if (loadsRef.current === 1) postFrame(buildContext()) }}
       sandbox="allow-scripts allow-forms"
       referrerPolicy="no-referrer"
       loading="lazy"
