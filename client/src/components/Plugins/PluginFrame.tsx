@@ -109,7 +109,22 @@ export default function PluginFrame({ pluginId, tripId = null, className, title 
     }
 
     window.addEventListener('message', onMessage)
-    return () => window.removeEventListener('message', onMessage)
+
+    // The frame is opaque-origin and can't read our DOM, and we otherwise send the
+    // context (incl. theme) only once on trek:ready — so a plugin can't follow the
+    // in-app dark-mode toggle. Watch the <html> `dark` class and re-post the context
+    // when it flips, so widgets restyle live. (Plugins re-apply theme on trek:context.)
+    const htmlEl = document.documentElement
+    let prevDark = htmlEl.classList.contains('dark')
+    const themeObserver = new MutationObserver(() => {
+      const dark = htmlEl.classList.contains('dark')
+      if (dark === prevDark) return
+      prevDark = dark
+      if (loadsRef.current <= 1) post(context())
+    })
+    themeObserver.observe(htmlEl, { attributes: true, attributeFilter: ['class'] })
+
+    return () => { window.removeEventListener('message', onMessage); themeObserver.disconnect() }
   }, [pluginId, tripId, userId, locale, navigate, toast])
 
   return (
