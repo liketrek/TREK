@@ -5,10 +5,16 @@ The SDK for building [TREK](https://github.com/mauriceboe/TREK) plugins.
 ## Scaffold a plugin
 
 ```bash
-npx trek-plugin-sdk create                # interactive wizard (id, type, permissions)
+npx trek-plugin-sdk                        # no command? a guided menu of everything below
+npx trek-plugin-sdk create                 # interactive wizard (id, location, type, permissions)
 npx trek-plugin-sdk create my-plugin --type widget   # or non-interactive
 cd my-plugin
 ```
+
+The wizard also offers to initialize a git repo and install dependencies for you.
+In a non-interactive shell (CI, pipes) every command stays flag-driven with plain
+output — no prompts, and machine output (`entry` JSON, `pack --json`, PR URLs) stays
+on stdout.
 
 ## Develop with a live reload loop
 

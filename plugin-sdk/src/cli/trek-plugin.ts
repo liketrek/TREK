@@ -34,6 +34,11 @@ import { submitEntry } from './submit.js';
 import { publishPlugin } from './publish.js';
 import { generateKeypair, loadPrivateKey, signArtifact, publicKeyBase64, defaultKeyPath } from './sign.js';
 import { readJsonFile } from './json.js';
+import {
+  isInteractive, intro, outro, note, logInfo, logSuccess, logWarn, logError, spinner,
+  promptText, promptConfirm, clackLogSink, missingArgs,
+} from './ui.js';
+import { runMenu } from './menu.js';
 
 const [cmd, ...args] = process.argv.slice(2);
 
@@ -57,116 +62,210 @@ function fail(msg: string): never {
 
 const { flags, pos } = parse(args);
 
+type Flags = Record<string, string>;
+
 /** --sign, --sign <keyfile>, or absent → the key path to sign with (or undefined). */
-function signKey(): string | undefined {
-  if (!flags.sign) return undefined;
-  return flags.sign === 'true' ? (flags.key || defaultKeyPath()) : flags.sign;
+function signKey(f: Flags): string | undefined {
+  if (!f.sign) return undefined;
+  return f.sign === 'true' ? (f.key || defaultKeyPath()) : f.sign;
 }
 
+/**
+ * Resolve the repo + tag every publishing command needs. Interactive: prompt for
+ * whatever is missing. Non-interactive: reproduce the command's exact error so
+ * scripts/CI behave exactly as before.
+ */
+async function ensureRepoTag(f: Flags, failMsg: string): Promise<{ repo: string; tag: string }> {
+  if (missingArgs(f, ['repo', 'tag']).length === 0) return { repo: f.repo, tag: f.tag };
+  if (!isInteractive()) fail(failMsg);
+  const repo = f.repo || await promptText({
+    message: 'GitHub repo (owner/name)', placeholder: 'you/trek-plugin-thing',
+    validate: (v) => (/^[^/\s]+\/[^/\s]+$/.test((v ?? '').trim()) ? undefined : 'format: owner/name'),
+  });
+  const tag = f.tag || await promptText({
+    message: 'Release tag', placeholder: 'v1.0.0',
+    validate: (v) => (/^v\d+\.\d+\.\d+/.test((v ?? '').trim()) ? undefined : 'format: vX.Y.Z'),
+  });
+  return { repo: repo.trim(), tag: tag.trim() };
+}
+
+const USAGE = 'usage: trek-plugin <create|dev|validate|pack|keygen|sign|entry|preflight|submit|release|publish> [...]';
+
 async function main(): Promise<void> {
-  if (cmd === 'create') {
-    const name = pos[0];
-    if (!name || flags.interactive) {
-      const created = await interactiveScaffold(process.cwd(), name);
-      console.log(`\nCreated ${created}/ — build server/index.js, add docs/screenshot.png, then \`npx trek-plugin-sdk dev ${created}\`.`);
+  if (!cmd) {
+    // Bare invocation: a menu in a terminal, the usage line for scripts.
+    if (!isInteractive()) { console.error(USAGE); process.exit(2); }
+    const chosen = await runMenu();
+    if (chosen) await dispatch(chosen, {}, []);
+    return;
+  }
+  await dispatch(cmd, flags, pos);
+}
+
+async function dispatch(command: string, f: Flags, positional: string[]): Promise<void> {
+  const tui = isInteractive();
+  if (command === 'create') {
+    const name = positional[0];
+    if (!name || f.interactive) {
+      if (!tui) fail('create needs a plugin name in non-interactive mode: create <name> [--type integration|page|widget]');
+      await interactiveScaffold(process.cwd(), name);
       return;
     }
-    scaffold(name, flags.type || 'integration', process.cwd(), {
-      author: flags.author, description: flags.description,
-      permissions: flags.permissions ? flags.permissions.split(/[\s,]+/).filter(Boolean) : undefined,
+    scaffold(name, f.type || 'integration', process.cwd(), {
+      author: f.author, description: f.description,
+      permissions: f.permissions ? f.permissions.split(/[\s,]+/).filter(Boolean) : undefined,
     });
     console.log(`Created ${name}/ — build server/index.js, add docs/screenshot.png, then \`npx trek-plugin-sdk dev ${name}\`.`);
-  } else if (cmd === 'dev') {
-    await runDev(pos[0] || '.', { port: flags.port ? Number(flags.port) : undefined });
-  } else if (cmd === 'validate') {
-    const r = validatePluginDir(pos[0] || '.');
-    for (const w of r.warnings) console.warn('warning: ' + w);
-    if (!r.ok) { for (const e of r.errors) console.error('error: ' + e); process.exit(1); }
-    console.log('✓ plugin is valid');
-  } else if (cmd === 'pack') {
-    const r = packPluginDir(pos[0] || '.', flags.out || 'plugin.zip');
-    if (flags.json) {
-      console.log(JSON.stringify(r, null, 2));
+  } else if (command === 'dev') {
+    if (tui) intro(`trek-plugin dev — ${positional[0] || '.'}`);
+    await runDev(positional[0] || '.', { port: f.port ? Number(f.port) : undefined });
+  } else if (command === 'validate') {
+    const r = validatePluginDir(positional[0] || '.');
+    if (tui) {
+      for (const w of r.warnings) logWarn(w);
+      if (!r.ok) { for (const e of r.errors) logError(e); outro('✗ plugin has errors'); process.exit(1); }
+      outro('✓ plugin is valid');
     } else {
-      console.log(`Packed ${r.files.length} files -> ${path.relative(process.cwd(), r.artifact) || r.artifact}`);
-      for (const f of r.files) console.log('  ' + f);
+      for (const w of r.warnings) console.warn('warning: ' + w);
+      if (!r.ok) { for (const e of r.errors) console.error('error: ' + e); process.exit(1); }
+      console.log('✓ plugin is valid');
+    }
+  } else if (command === 'pack') {
+    const r = packPluginDir(positional[0] || '.', f.out || 'plugin.zip');
+    const rel = path.relative(process.cwd(), r.artifact) || r.artifact;
+    if (f.json) {
+      console.log(JSON.stringify(r, null, 2)); // machine output — never decorated
+    } else if (tui) {
+      note([...r.files, '', `sha256: ${r.sha256}`, `size:   ${r.size}`].join('\n'), `Packed ${r.files.length} files → ${rel}`);
+      logInfo('Upload plugin.zip to your release, then run `npx trek-plugin-sdk entry`.');
+    } else {
+      console.log(`Packed ${r.files.length} files -> ${rel}`);
+      for (const file of r.files) console.log('  ' + file);
       console.log(`\nsha256: ${r.sha256}\nsize:   ${r.size}`);
       console.log('\nUpload this plugin.zip to your release, then run `npx trek-plugin-sdk entry` to generate the registry entry.');
     }
-  } else if (cmd === 'keygen') {
-    const keyPath = flags.key || defaultKeyPath();
+  } else if (command === 'keygen') {
+    const keyPath = f.key || defaultKeyPath();
     const { publicKey } = generateKeypair(keyPath);
-    console.log(`Signing key written to ${keyPath} (keep it safe + BACK IT UP — losing it means you can't ship signed updates).`);
-    console.log(`\nauthorPublicKey (goes in your registry entry): ${publicKey}`);
-    console.log('\nSign releases with `npx trek-plugin-sdk release --sign` (or `entry --sign`).');
-  } else if (cmd === 'sign') {
-    const zip = pos[0] || 'plugin.zip';
+    if (tui) {
+      note(`Signing key written to ${keyPath}\nKeep it safe + BACK IT UP — losing it means you can't ship signed updates.\n\nauthorPublicKey (goes in your registry entry):\n${publicKey}`, 'Signing key');
+      logInfo('Sign releases with `npx trek-plugin-sdk release --sign` (or `entry --sign`).');
+    } else {
+      console.log(`Signing key written to ${keyPath} (keep it safe + BACK IT UP — losing it means you can't ship signed updates).`);
+      console.log(`\nauthorPublicKey (goes in your registry entry): ${publicKey}`);
+      console.log('\nSign releases with `npx trek-plugin-sdk release --sign` (or `entry --sign`).');
+    }
+  } else if (command === 'sign') {
+    const zip = positional[0] || 'plugin.zip';
     if (!fs.existsSync(zip)) fail(`artifact not found: ${zip} — run \`npx trek-plugin-sdk pack\` first`);
-    const key = loadPrivateKey(flags.key || defaultKeyPath());
+    const key = loadPrivateKey(f.key || defaultKeyPath());
     const buf = fs.readFileSync(zip);
-    console.log(`signature:        ${signArtifact(buf, key)}`);
-    console.log(`authorPublicKey:  ${publicKeyBase64(key)}`);
-  } else if (cmd === 'entry') {
-    if (!flags.repo || !flags.tag) fail('entry needs --repo <owner/name> and --tag <vX.Y.Z>');
+    if (tui) {
+      note(`signature:        ${signArtifact(buf, key)}\nauthorPublicKey:  ${publicKeyBase64(key)}`, `Signed ${zip}`);
+    } else {
+      console.log(`signature:        ${signArtifact(buf, key)}`);
+      console.log(`authorPublicKey:  ${publicKeyBase64(key)}`);
+    }
+  } else if (command === 'entry') {
+    const { repo, tag } = await ensureRepoTag(f, 'entry needs --repo <owner/name> and --tag <vX.Y.Z>');
     const entry = buildEntry({
-      dir: flags.dir || pos[0] || '.',
-      repo: flags.repo, tag: flags.tag,
-      zipPath: flags.zip || 'plugin.zip',
-      commit: flags.commit, asset: flags.asset, mergePath: flags.merge,
-      signKeyPath: signKey(),
-      now: new Date().toISOString(),
+      dir: f.dir || positional[0] || '.', repo, tag,
+      zipPath: f.zip || 'plugin.zip',
+      commit: f.commit, asset: f.asset, mergePath: f.merge,
+      signKeyPath: signKey(f), now: new Date().toISOString(),
     });
     const json = JSON.stringify(entry, null, 2) + '\n';
-    if (flags.out) {
-      fs.writeFileSync(flags.out, json);
-      console.error(`Wrote ${flags.out} — add it as registry/plugins/${entry.id}.json in a TREK-Plugins PR.`);
+    if (f.out) {
+      fs.writeFileSync(f.out, json);
+      const msg = `Wrote ${f.out} — add it as registry/plugins/${entry.id}.json in a TREK-Plugins PR.`;
+      if (tui) logSuccess(msg); else console.error(msg);
     } else {
-      process.stdout.write(json);
+      process.stdout.write(json); // machine output on stdout — never decorated
     }
-  } else if (cmd === 'preflight') {
-    const entry = flags.entry
-      ? readJsonFile<ReturnType<typeof buildEntry>>(flags.entry)
-      : (flags.repo && flags.tag
-        ? buildEntry({ dir: pos[0] || '.', repo: flags.repo, tag: flags.tag, zipPath: flags.zip || 'plugin.zip', commit: flags.commit, signKeyPath: signKey(), now: new Date().toISOString() })
-        : fail('preflight needs --repo <owner/name> --tag <vX>, or --entry <file.json>'));
-    console.error('Running registry CI checks over the network…\n');
-    const rep = await preflight(entry, { all: !!flags.all });
-    for (const p of rep.passed) console.error('  ✓ ' + p);
-    for (const f of rep.failures) console.error('  ✗ ' + f);
-    if (!rep.ok) { console.error(`\n${rep.failures.length} check(s) would fail CI — fix these before submitting.`); process.exit(1); }
-    console.error('\n✓ all checks passed — this entry should sail through CI.');
-  } else if (cmd === 'publish') {
-    if (!flags.repo || !flags.tag) fail('publish needs --repo <owner/name> and --tag <vX.Y.Z>');
+  } else if (command === 'preflight') {
+    let entry: ReturnType<typeof buildEntry>;
+    if (f.entry) {
+      entry = readJsonFile<ReturnType<typeof buildEntry>>(f.entry);
+    } else {
+      const { repo, tag } = await ensureRepoTag(f, 'preflight needs --repo <owner/name> --tag <vX>, or --entry <file.json>');
+      entry = buildEntry({ dir: positional[0] || '.', repo, tag, zipPath: f.zip || 'plugin.zip', commit: f.commit, signKeyPath: signKey(f), now: new Date().toISOString() });
+    }
+    if (tui) {
+      const s = spinner(); s.start('Running the registry CI checks over the network');
+      const rep = await preflight(entry, { all: !!f.all });
+      s.stop('Checks complete');
+      for (const p of rep.passed) logSuccess(p);
+      for (const fa of rep.failures) logError(fa);
+      if (!rep.ok) { outro(`${rep.failures.length} check(s) would fail CI — fix these before submitting.`); process.exit(1); }
+      outro('✓ all checks passed — this entry should sail through CI.');
+    } else {
+      console.error('Running registry CI checks over the network…\n');
+      const rep = await preflight(entry, { all: !!f.all });
+      for (const p of rep.passed) console.error('  ✓ ' + p);
+      for (const fa of rep.failures) console.error('  ✗ ' + fa);
+      if (!rep.ok) { console.error(`\n${rep.failures.length} check(s) would fail CI — fix these before submitting.`); process.exit(1); }
+      console.error('\n✓ all checks passed — this entry should sail through CI.');
+    }
+  } else if (command === 'publish') {
+    const { repo, tag } = await ensureRepoTag(f, 'publish needs --repo <owner/name> and --tag <vX.Y.Z>');
+    if (tui) {
+      note(`repo   ${repo}\ntag    ${tag}\ndir    ${positional[0] || '.'}`, 'Publish');
+      const ok = await promptConfirm({ message: 'Create the GitHub release and open the registry PR?', initialValue: true });
+      if (!ok) { outro('Cancelled — nothing was published.'); return; }
+    }
     const { prUrl } = await publishPlugin({
-      dir: pos[0] || '.', repo: flags.repo, tag: flags.tag,
-      signKeyPath: signKey(), registry: flags.registry, draft: !!flags.draft,
-      notes: flags.notes, skipPreflight: !!flags['no-preflight'], now: new Date().toISOString(),
+      dir: positional[0] || '.', repo, tag,
+      signKeyPath: signKey(f), registry: f.registry, draft: !!f.draft,
+      notes: f.notes, skipPreflight: !!f['no-preflight'], now: new Date().toISOString(),
+      log: tui ? clackLogSink : undefined,
     });
-    console.error('\n✓ published — registry PR:');
-    console.log(prUrl);
-  } else if (cmd === 'submit') {
-    if (!flags.repo || !flags.tag) fail('submit needs --repo <owner/name> and --tag <vX.Y.Z>');
+    if (tui) logSuccess('Published — registry PR:'); else console.error('\n✓ published — registry PR:');
+    console.log(prUrl); // machine output on stdout
+  } else if (command === 'submit') {
+    const { repo, tag } = await ensureRepoTag(f, 'submit needs --repo <owner/name> and --tag <vX.Y.Z>');
     const entry = buildEntry({
-      dir: pos[0] || '.', repo: flags.repo, tag: flags.tag,
-      zipPath: flags.zip || 'plugin.zip', commit: flags.commit, signKeyPath: signKey(),
-      now: new Date().toISOString(),
+      dir: positional[0] || '.', repo, tag,
+      zipPath: f.zip || 'plugin.zip', commit: f.commit, signKeyPath: signKey(f), now: new Date().toISOString(),
     });
-    console.error(`Opening a registry PR for ${entry.id} ${entry.versions[0].version}…`);
-    const { prUrl } = submitEntry(entry, { registry: flags.registry, branch: flags.branch, draft: !!flags.draft, keep: !!flags.keep });
-    console.log(prUrl);
-  } else if (cmd === 'release') {
-    if (!flags.repo || !flags.tag) fail('release needs --repo <owner/name> and --tag <vX.Y.Z>');
-    const dir = pos[0] || '.';
-    const zip = path.resolve(dir, flags.out || 'plugin.zip');
-    const packed = packPluginDir(dir, zip);
-    console.error(`Packed ${packed.files.length} files (${packed.size} bytes).`);
-    console.error(`Creating GitHub release ${flags.tag} on ${flags.repo}…`);
-    execFileSync('gh', ['release', 'create', flags.tag, packed.artifact, '--repo', flags.repo, '--title', flags.tag, '--notes', flags.notes || `Release ${flags.tag}`], { stdio: 'inherit' });
-    const entry = buildEntry({ dir, repo: flags.repo, tag: flags.tag, zipPath: packed.artifact, commit: flags.commit, mergePath: flags.merge, signKeyPath: signKey(), now: new Date().toISOString() });
-    console.error('\nRegistry entry (add as registry/plugins/' + entry.id + '.json in a TREK-Plugins PR, or run `npx trek-plugin-sdk submit`):\n');
-    process.stdout.write(JSON.stringify(entry, null, 2) + '\n');
+    if (tui) {
+      note(`${entry.id} ${entry.versions[0].version}\nrepo ${repo}`, 'Submit registry PR');
+      const ok = await promptConfirm({ message: 'Open the registry PR now?', initialValue: true });
+      if (!ok) { outro('Cancelled — no PR opened.'); return; }
+      const s = spinner(); s.start('Opening the registry PR');
+      const { prUrl } = submitEntry(entry, { registry: f.registry, branch: f.branch, draft: !!f.draft, keep: !!f.keep });
+      s.stop('Registry PR opened');
+      console.log(prUrl);
+    } else {
+      console.error(`Opening a registry PR for ${entry.id} ${entry.versions[0].version}…`);
+      const { prUrl } = submitEntry(entry, { registry: f.registry, branch: f.branch, draft: !!f.draft, keep: !!f.keep });
+      console.log(prUrl);
+    }
+  } else if (command === 'release') {
+    const { repo, tag } = await ensureRepoTag(f, 'release needs --repo <owner/name> and --tag <vX.Y.Z>');
+    const dir = positional[0] || '.';
+    const zip = path.resolve(dir, f.out || 'plugin.zip');
+    if (tui) {
+      const packed = packPluginDir(dir, zip);
+      note(`packed ${packed.files.length} files (${packed.size} bytes)\nrepo ${repo}\ntag  ${tag}`, 'Release');
+      const ok = await promptConfirm({ message: `Create GitHub release ${tag} on ${repo}?`, initialValue: true });
+      if (!ok) { outro('Cancelled — no release created.'); return; }
+      const s = spinner(); s.start(`Creating GitHub release ${tag}`);
+      execFileSync('gh', ['release', 'create', tag, packed.artifact, '--repo', repo, '--title', tag, '--notes', f.notes || `Release ${tag}`], { stdio: 'pipe' });
+      s.stop(`Released ${tag} on ${repo}`);
+      const entry = buildEntry({ dir, repo, tag, zipPath: packed.artifact, commit: f.commit, mergePath: f.merge, signKeyPath: signKey(f), now: new Date().toISOString() });
+      logInfo(`Registry entry (add as registry/plugins/${entry.id}.json, or run \`npx trek-plugin-sdk submit\`):`);
+      process.stdout.write(JSON.stringify(entry, null, 2) + '\n');
+    } else {
+      const packed = packPluginDir(dir, zip);
+      console.error(`Packed ${packed.files.length} files (${packed.size} bytes).`);
+      console.error(`Creating GitHub release ${tag} on ${repo}…`);
+      execFileSync('gh', ['release', 'create', tag, packed.artifact, '--repo', repo, '--title', tag, '--notes', f.notes || `Release ${tag}`], { stdio: 'inherit' });
+      const entry = buildEntry({ dir, repo, tag, zipPath: packed.artifact, commit: f.commit, mergePath: f.merge, signKeyPath: signKey(f), now: new Date().toISOString() });
+      console.error('\nRegistry entry (add as registry/plugins/' + entry.id + '.json in a TREK-Plugins PR, or run `npx trek-plugin-sdk submit`):\n');
+      process.stdout.write(JSON.stringify(entry, null, 2) + '\n');
+    }
   } else {
-    console.error('usage: trek-plugin <create|dev|validate|pack|keygen|sign|entry|preflight|submit|release|publish> [...]');
+    console.error(USAGE);
     process.exit(2);
   }
 }

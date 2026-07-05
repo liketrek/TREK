@@ -6,8 +6,14 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import readline from 'node:readline';
+import os from 'node:os';
+import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
+import {
+  intro, outro, note, logSuccess, logWarn, spinner,
+  promptText, promptSelect, promptMultiselect, promptConfirm,
+  PERMISSION_CATALOG,
+} from './ui.js';
 
 /** This package's own version, for the scaffold's devDependency range. */
 function sdkVersionRange(): string {
@@ -23,6 +29,8 @@ export interface ScaffoldOptions {
   author?: string;
   description?: string;
   permissions?: string[];
+  /** External hosts the plugin may call — required by the manifest when `http:outbound` is granted. */
+  egress?: string[];
 }
 
 export function scaffold(name: string, type: string, targetDir: string, opts: ScaffoldOptions = {}): void {
@@ -47,6 +55,7 @@ export function scaffold(name: string, type: string, targetDir: string, opts: Sc
     permissions: perms,
     routes: [{ method: 'GET', path: '/hello', auth: true }],
   };
+  if (opts.egress?.length) manifest.egress = opts.egress;
   if (type === 'page') manifest.capabilities = { nav: { label: manifest.name, icon: 'Blocks', position: 'main' } };
   if (type === 'widget') manifest.capabilities = { widget: { title: manifest.name, defaultSize: 'medium' } };
 
@@ -140,36 +149,136 @@ one. Replace this line with your license (for example, MIT).
 `;
 }
 
-const KNOWN_PERMISSIONS = [
-  'db:own', 'db:read:trips', 'db:read:users', 'ws:broadcast:trip', 'ws:broadcast:user',
-  'hook:photo-provider', 'hook:calendar-source', 'http:outbound',
-];
+const SLUG = /^[a-z][a-z0-9-]{2,39}$/;
 
-/** Interactive scaffold: prompt for the details, then create the plugin. Returns the chosen name. */
-export async function interactiveScaffold(targetDir: string, presetName?: string): Promise<string> {
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  const ask = (q: string, def?: string) =>
-    new Promise<string>((resolve) => rl.question(def ? `${q} (${def}) ` : `${q} `, (a) => resolve(a.trim() || def || '')));
+/** Resolve a user-typed directory: expand a leading `~`, then make it absolute. */
+function resolveDir(input: string): string {
+  const raw = (input || '.').trim();
+  const expanded = raw === '~' || raw.startsWith('~/') ? path.join(os.homedir(), raw.slice(1)) : raw;
+  return path.resolve(expanded);
+}
+
+/** True when `dir` sits inside an existing git work tree (so we don't offer to nest a repo). */
+function insideGitRepo(dir: string): boolean {
   try {
-    let name = presetName || '';
-    while (!/^[a-z][a-z0-9-]{2,39}$/.test(name)) {
-      name = await ask('Plugin id (lowercase-slug):');
-      if (!/^[a-z][a-z0-9-]{2,39}$/.test(name)) console.log('  → must be a lowercase slug, 3–40 chars (e.g. flight-tracker)');
-    }
-    let type = '';
-    while (!['integration', 'page', 'widget'].includes(type)) {
-      type = (await ask('Type — integration | page | widget:', 'integration')).toLowerCase();
-    }
-    const author = await ask('Author:', 'Your Name');
-    const description = await ask('One-line description:', 'Describe what your plugin does.');
-    console.log(`\n  Permissions (space/comma separated). Available:\n    ${KNOWN_PERMISSIONS.join(', ')}`);
-    const permsRaw = await ask('Permissions:', 'db:own');
-    const permissions = permsRaw.split(/[\s,]+/).filter(Boolean).filter((p) => KNOWN_PERMISSIONS.includes(p) || p.startsWith('http:outbound:'));
-    scaffold(name, type, targetDir, { author, description, permissions });
-    return name;
-  } finally {
-    rl.close();
+    execFileSync('git', ['rev-parse', '--is-inside-work-tree'], { cwd: dir, stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
   }
+}
+
+/**
+ * Interactive scaffold: a Clack wizard that collects the details, writes the
+ * plugin, and offers to set up git + install deps. Returns the created plugin id.
+ * Only ever called when stdout is a TTY (the dispatcher guards this).
+ */
+export async function interactiveScaffold(defaultDir: string, presetName?: string): Promise<string> {
+  intro('create-trek-plugin');
+
+  const id = presetName && SLUG.test(presetName)
+    ? presetName
+    : await promptText({
+        message: 'Plugin id',
+        placeholder: 'flight-tracker',
+        initialValue: presetName ?? '',
+        validate: (v) => (SLUG.test((v ?? '').trim()) ? undefined : 'lowercase slug, 3–40 chars (e.g. flight-tracker)'),
+      }).then((v) => v.trim());
+
+  const location = await promptText({
+    message: 'Where should the plugin be created?',
+    placeholder: `. (creates ./${id}/ here)`,
+    defaultValue: defaultDir,
+    validate: (v) => (fs.existsSync(path.join(resolveDir(v || defaultDir), id))
+      ? `${path.join(v || '.', id)} already exists`
+      : undefined),
+  });
+  const parentDir = resolveDir(location || defaultDir);
+  const dest = path.join(parentDir, id);
+
+  const type = await promptSelect<string>({
+    message: 'What kind of plugin is this?',
+    initialValue: 'integration',
+    options: [
+      { value: 'integration', label: 'integration', hint: 'server-only: routes, hooks, background work' },
+      { value: 'page', label: 'page', hint: 'adds a full navigation page (sandboxed iframe UI)' },
+      { value: 'widget', label: 'widget', hint: 'adds a dashboard widget (sandboxed iframe UI)' },
+    ],
+  });
+
+  const author = await promptText({ message: 'Author', placeholder: 'Your Name', defaultValue: 'Your Name' });
+  const description = await promptText({
+    message: 'One-line description',
+    placeholder: 'Describe what your plugin does.',
+    defaultValue: 'Describe what your plugin does.',
+  });
+
+  const permissions = await promptMultiselect<string>({
+    message: 'Which permissions does it need?',
+    options: PERMISSION_CATALOG.map((p) => ({ value: p.value, label: p.label, hint: p.hint })),
+    initialValues: ['db:own'],
+    required: false,
+  });
+
+  let egress: string[] | undefined;
+  if (permissions.includes('http:outbound')) {
+    const raw = await promptText({
+      message: 'External hosts it may call (comma-separated)',
+      placeholder: 'api.example.com, api.other.com',
+      validate: (v) => ((v ?? '').split(',').map((s) => s.trim()).filter(Boolean).length ? undefined : 'list at least one host'),
+    });
+    egress = raw.split(',').map((s) => s.trim()).filter(Boolean);
+  }
+
+  note(
+    [
+      `id           ${id}`,
+      `type         ${type}`,
+      `location     ${dest}`,
+      `author       ${author}`,
+      `permissions  ${permissions.join(', ') || '(none)'}`,
+      egress ? `egress       ${egress.join(', ')}` : undefined,
+    ].filter(Boolean).join('\n'),
+    'Review',
+  );
+
+  const confirmed = await promptConfirm({ message: `Create the plugin at ${dest}?`, initialValue: true });
+  if (!confirmed) {
+    outro('Cancelled — nothing was written.');
+    process.exit(0);
+  }
+
+  scaffold(id, type, parentDir, { author, description, permissions, egress });
+  logSuccess(`Created ${dest}`);
+
+  if (!insideGitRepo(parentDir)) {
+    const doGit = await promptConfirm({ message: 'Initialize a git repository?', initialValue: true });
+    if (doGit) {
+      try {
+        execFileSync('git', ['init'], { cwd: dest, stdio: 'ignore' });
+        logSuccess('Initialized a git repository');
+      } catch {
+        logWarn('Could not initialize git — run `git init` yourself later.');
+      }
+    }
+  }
+
+  const doInstall = await promptConfirm({ message: 'Install dependencies now?', initialValue: true });
+  if (doInstall) {
+    const s = spinner();
+    s.start('Installing dependencies');
+    try {
+      execFileSync('npm', ['install'], { cwd: dest, stdio: 'ignore' });
+      s.stop('Dependencies installed');
+    } catch {
+      s.stop('Could not install dependencies');
+      logWarn('Run `npm install` in the plugin directory later.');
+    }
+  }
+
+  const cd = path.relative(process.cwd(), dest) || dest;
+  outro(`Next steps:\n  cd ${cd}\n  npx trek-plugin-sdk dev`);
+  return id;
 }
 
 // CLI entry

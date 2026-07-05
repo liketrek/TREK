@@ -14,6 +14,7 @@ import { packPluginDir } from './pack.js';
 import { buildEntry } from './entry.js';
 import { preflight } from './preflight.js';
 import { submitEntry } from './submit.js';
+import { plainLog, type LogSink } from './ui.js';
 
 function git(dir: string, args: string[], quiet = true): string {
   return execFileSync('git', ['-C', dir, ...args], { encoding: 'utf8', stdio: quiet ? 'pipe' : 'inherit' }).toString().trim();
@@ -25,15 +26,18 @@ function tagExists(dir: string, tag: string): boolean {
 export async function publishPlugin(opts: {
   dir: string; repo: string; tag: string; now: string;
   signKeyPath?: string; registry?: string; draft?: boolean; notes?: string; skipPreflight?: boolean;
+  /** Progress sink. Defaults to the plain console.error lines (CI parity). */
+  log?: LogSink;
 }): Promise<{ prUrl: string }> {
   const dir = path.resolve(opts.dir);
-  const step = (n: number, msg: string) => console.error(`[${n}/4] ${msg}`);
+  const log = opts.log ?? plainLog;
+  const step = (n: number, msg: string) => log(`[${n}/4] ${msg}`);
 
   // 1. Pack
   step(1, 'Packing the artifact…');
   const zip = path.join(dir, 'plugin.zip');
   const packed = packPluginDir(dir, zip);
-  console.error(`      ✓ ${packed.files.length} files, ${packed.size} bytes`);
+  log(`      ✓ ${packed.files.length} files, ${packed.size} bytes`);
 
   // 2. Tag (if needed) + push + GitHub release with the artifact attached
   step(2, `Tagging ${opts.tag} + creating the GitHub release…`);
@@ -47,24 +51,24 @@ export async function publishPlugin(opts: {
     // Release already exists — (re)upload the packed artifact so its bytes match the pin.
     execFileSync('gh', ['release', 'upload', opts.tag, packed.artifact, '--repo', opts.repo, '--clobber'], { stdio: 'pipe' });
   }
-  console.error(`      ✓ release ${opts.tag} on ${opts.repo}`);
+  log(`      ✓ release ${opts.tag} on ${opts.repo}`);
 
   // 3. Build the entry, then run the registry CI checks locally
   const entry = buildEntry({ dir, repo: opts.repo, tag: opts.tag, zipPath: packed.artifact, signKeyPath: opts.signKeyPath, now: opts.now });
   if (opts.skipPreflight) {
-    console.error('[3/4] Preflight skipped (--no-preflight).');
+    log('[3/4] Preflight skipped (--no-preflight).');
   } else {
     step(3, 'Preflight — running the registry CI checks…');
     const rep = await preflight(entry);
-    for (const f of rep.failures) console.error('      ✗ ' + f);
+    for (const f of rep.failures) log('      ✗ ' + f);
     if (!rep.ok) throw new Error(`preflight found ${rep.failures.length} problem(s) — fix these and re-run (nothing was submitted). Did you push your code to ${opts.repo} before publishing?`);
-    console.error(`      ✓ all ${rep.passed.length} checks passed`);
+    log(`      ✓ all ${rep.passed.length} checks passed`);
   }
 
   // 4. Open the registry PR
   step(4, 'Opening the registry PR…');
   const { prUrl } = submitEntry(entry, { registry: opts.registry, draft: opts.draft });
-  console.error('      ✓ done');
+  log('      ✓ done');
   fs.rmSync(zip, { force: true });
   return { prUrl };
 }
