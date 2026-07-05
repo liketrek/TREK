@@ -259,8 +259,8 @@ describe('PlaceInspector', () => {
         onRemoveAssignment={onRemoveAssignment}
       />
     );
-    // Find the remove button — it has "Remove" text (sm:hidden span)
-    const removeBtn = screen.getByText('Remove').closest('button')!;
+    // Find the remove button — it carries the "Remove from Day" label
+    const removeBtn = screen.getByText('Remove from Day').closest('button')!;
     await user.click(removeBtn);
     // Component calls onRemoveAssignment(selectedDayId, assignmentInDay.id)
     expect(onRemoveAssignment).toHaveBeenCalledWith(1, 99);
