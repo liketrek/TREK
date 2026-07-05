@@ -29,7 +29,7 @@ interface PlaceFormModalProps {
   onClose: () => void
   onSave: (data: PlaceSubmitData, files?: File[]) => Promise<void> | void
   place: Place | null
-  prefillCoords?: { lat: number; lng: number; name?: string; address?: string; website?: string; phone?: string; osm_id?: string } | null
+  prefillCoords?: { lat: number; lng: number; name?: string; address?: string; website?: string; phone?: string; osm_id?: string; google_place_id?: string } | null
   tripId: number
   categories: Category[]
   onCategoryCreated: (category: { name: string; color?: string; icon?: string }) => Promise<Category> | undefined
@@ -128,6 +128,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
         website: prefillCoords.website || '',
         phone: prefillCoords.phone || '',
         osm_id: prefillCoords.osm_id,
+        google_place_id: prefillCoords.google_place_id,
       })
     } else {
       setForm(DEFAULT_FORM)

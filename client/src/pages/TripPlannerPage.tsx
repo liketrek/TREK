@@ -10,6 +10,7 @@ import { getCached, fetchPhoto } from '../services/photoService'
 import DayPlanSidebar from '../components/Planner/DayPlanSidebar'
 import PlacesSidebar from '../components/Planner/PlacesSidebar'
 import PlaceInspector from '../components/Planner/PlaceInspector'
+import PoiDetailPanel from '../components/Planner/PoiDetailPanel'
 import DayDetailPanel from '../components/Planner/DayDetailPanel'
 import PlaceFormModal from '../components/Planner/PlaceFormModal'
 import TripFormModal from '../components/Trips/TripFormModal'
@@ -204,6 +205,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
     isMobile, mapCategoryFilter, setMapCategoryFilter, mapPlacesFilter, setMapPlacesFilter,
     expandedDayIds, setExpandedDayIds, mapPlaces,
     route, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay,
+    selectedPoi, setSelectedPoi, handlePoiClick,
     handleSelectDay, handlePlaceClick, handleMarkerClick, handleMapClick, handleMapContextMenu, openAddPlaceFromPoi,
     handleSavePlace, openPlaceEditor, handleDeletePlace, confirmDeletePlace, confirmDeletePlaces, confirmChangeCategory,
     handleAssignToDay, handleRemoveAssignment, handleReorder, handleReorderDays, handleAddDay, handleUpdateDayTitle,
@@ -327,7 +329,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
                 if (r) setMapTransportDetail(r)
               }}
               pois={poi.pois}
-              onPoiClick={openAddPlaceFromPoi}
+              onPoiClick={handlePoiClick}
               onViewportChange={poi.onViewportChange}
               onMapReady={setGlMap}
             />
@@ -612,6 +614,25 @@ export default function TripPlannerPage(): React.ReactElement | null {
               </div>,
               document.body
             )}
+
+            {selectedPoi && !selectedPlace && !isMobile && (
+              <PoiDetailPanel
+                poi={selectedPoi}
+                onAddToTrip={(poi, googlePlaceId) => openAddPlaceFromPoi({ ...poi, google_place_id: googlePlaceId })}
+                onClose={() => setSelectedPoi(null)}
+                leftWidth={(isMobile || window.innerWidth < 900) ? 0 : (leftCollapsed ? 0 : leftWidth)}
+                rightWidth={(isMobile || window.innerWidth < 900) ? 0 : (rightCollapsed ? 0 : rightWidth)}
+              />
+            )}
+
+            {selectedPoi && !selectedPlace && isMobile && ReactDOM.createPortal(
+              <div className="bg-[rgba(0,0,0,0.3)]" style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 'var(--bottom-nav-h)' }} onClick={() => setSelectedPoi(null)}>
+                <div style={{ width: '100%', maxHeight: '85vh' }} onClick={e => e.stopPropagation()}>
+                  <PoiDetailPanel poi={selectedPoi} mobile
+                    onAddToTrip={(poi, googlePlaceId) => openAddPlaceFromPoi({ ...poi, google_place_id: googlePlaceId })}
+                    onClose={() => setSelectedPoi(null)} />
+                </div>
+              </div>, document.body)}
 
             {mobileSidebarOpen && ReactDOM.createPortal(
               <div className="bg-[rgba(0,0,0,0.3)]" style={{ position: 'fixed', inset: 0, zIndex: 9999 }} onClick={() => setMobileSidebarOpen(null)}>
