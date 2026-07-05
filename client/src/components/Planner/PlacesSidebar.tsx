@@ -23,13 +23,13 @@ const PlacesSidebar = React.memo(function PlacesSidebar(props: PlacesSidebarProp
   } = S
   return (
     <div
-      onDragEnter={handleSidebarDragEnter}
-      onDragOver={handleSidebarDragOver}
-      onDragLeave={handleSidebarDragLeave}
-      onDrop={handleSidebarDrop}
+      onDragEnter={isMobile ? undefined : handleSidebarDragEnter}
+      onDragOver={isMobile ? undefined : handleSidebarDragOver}
+      onDragLeave={isMobile ? undefined : handleSidebarDragLeave}
+      onDrop={isMobile ? undefined : handleSidebarDrop}
       style={{ display: 'flex', flexDirection: 'column', height: '100%', fontFamily: "var(--font-system)", position: 'relative' }}
     >
-      {sidebarDragOver && <PlacesDropOverlay {...S} />}
+      {!isMobile && sidebarDragOver && <PlacesDropOverlay {...S} />}
       {/* Kopfbereich */}
       <PlacesHeader {...S} />
 
