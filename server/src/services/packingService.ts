@@ -22,7 +22,7 @@ function enrichItems(items: any[]): any[] {
   const ownerName = new Map(owners.map(o => [o.id, o.username]));
 
   const recipientRows = db.prepare(`
-    SELECT r.item_id, r.user_id, u.username
+    SELECT r.item_id, r.user_id, COALESCE(u.display_name, u.username) AS username
     FROM packing_item_recipients r JOIN users u ON u.id = r.user_id
     WHERE r.item_id IN (${placeholders})
   `).all(...ids) as { item_id: number; user_id: number; username: string }[];
@@ -33,7 +33,7 @@ function enrichItems(items: any[]): any[] {
   }
 
   const contributorRows = db.prepare(`
-    SELECT c.item_id, c.user_id, c.status, u.username
+    SELECT c.item_id, c.user_id, c.status, COALESCE(u.display_name, u.username) AS username
     FROM packing_item_contributors c JOIN users u ON u.id = c.user_id
     WHERE c.item_id IN (${placeholders})
   `).all(...ids) as { item_id: number; user_id: number; status: string; username: string }[];
@@ -290,7 +290,7 @@ export function bulkImport(tripId: string | number, items: ImportItem[], ownerId
 export function listBags(tripId: string | number) {
   const bags = db.prepare('SELECT * FROM packing_bags WHERE trip_id = ? ORDER BY sort_order, id').all(tripId) as any[];
   const members = db.prepare(`
-    SELECT bm.bag_id, bm.user_id, u.username, u.avatar
+    SELECT bm.bag_id, bm.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar
     FROM packing_bag_members bm
     JOIN users u ON bm.user_id = u.id
     JOIN packing_bags b ON bm.bag_id = b.id
@@ -314,7 +314,7 @@ export function setBagMembers(tripId: string | number, bagId: string | number, u
   const ins = db.prepare('INSERT OR IGNORE INTO packing_bag_members (bag_id, user_id) VALUES (?, ?)');
   for (const uid of userIds) ins.run(bagId, uid);
   const rows = db.prepare(`
-    SELECT bm.user_id, u.username, u.avatar
+    SELECT bm.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar
     FROM packing_bag_members bm JOIN users u ON bm.user_id = u.id
     WHERE bm.bag_id = ?
   `).all(bagId) as { user_id: number; username: string; avatar: string | null }[];
@@ -351,7 +351,7 @@ export function updateBag(
     data.user_id ?? null,
     bagId
   );
-  return db.prepare('SELECT b.*, u.username as assigned_username FROM packing_bags b LEFT JOIN users u ON b.user_id = u.id WHERE b.id = ?').get(bagId);
+  return db.prepare('SELECT b.*, COALESCE(u.display_name, u.username) as assigned_username FROM packing_bags b LEFT JOIN users u ON b.user_id = u.id WHERE b.id = ?').get(bagId);
 }
 
 export function deleteBag(tripId: string | number, bagId: string | number) {
@@ -440,7 +440,7 @@ export function saveAsTemplate(tripId: string | number, userId: number, template
 
 export function getCategoryAssignees(tripId: string | number) {
   const rows = db.prepare(`
-    SELECT pca.category_name, pca.user_id, u.username, u.avatar
+    SELECT pca.category_name, pca.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar
     FROM packing_category_assignees pca
     JOIN users u ON pca.user_id = u.id
     WHERE pca.trip_id = ?
@@ -465,7 +465,7 @@ export function updateCategoryAssignees(tripId: string | number, categoryName: s
   }
 
   const updated = db.prepare(`
-    SELECT pca.user_id, u.username, u.avatar
+    SELECT pca.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar
     FROM packing_category_assignees pca
     JOIN users u ON pca.user_id = u.id
     WHERE pca.trip_id = ? AND pca.category_name = ?

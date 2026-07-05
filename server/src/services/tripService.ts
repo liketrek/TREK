@@ -352,10 +352,10 @@ export function listMembers(tripId: string | number, tripOwnerId: number) {
   // u.is_guest rides along (#1362) so guests stay assignable everywhere a member is,
   // while the UI can badge them and suppress owner-only actions. The owner is never a guest.
   const members = db.prepare(`
-    SELECT u.id, u.username, u.email, u.avatar, u.is_guest,
+    SELECT u.id, COALESCE(u.display_name, u.username) AS username, u.email, u.avatar, u.is_guest,
       CASE WHEN u.id = ? THEN 'owner' ELSE 'member' END as role,
       m.added_at,
-      ib.username as invited_by_username
+      COALESCE(ib.display_name, ib.username) as invited_by_username
     FROM trip_members m
     JOIN users u ON u.id = m.user_id
     LEFT JOIN users ib ON ib.id = m.invited_by
@@ -473,37 +473,28 @@ export interface GuestMember {
 
 /** username is UNIQUE across all users — keep the typed name but disambiguate guests
  *  that happen to share it (e.g. two "Anna"s) with a numeric suffix. */
-function uniqueGuestUsername(name: string, excludeId?: number): string {
-  let candidate = name;
-  let n = 2;
-  const probe = excludeId != null
-    ? db.prepare('SELECT id FROM users WHERE LOWER(username) = LOWER(?) AND id != ?')
-    : db.prepare('SELECT id FROM users WHERE LOWER(username) = LOWER(?)');
-  while (excludeId != null ? probe.get(candidate, excludeId) : probe.get(candidate)) {
-    candidate = `${name} ${n++}`;
-  }
-  return candidate;
-}
-
 export function createGuest(tripId: string | number, name: string, invitedByUserId: number): { member: GuestMember } {
   const display = (name || '').trim();
   if (!display) throw new ValidationError('Guest name is required');
   if (display.length > 50) throw new ValidationError('Guest name must be 50 characters or fewer');
 
+  // The human name lives in display_name (not unique — two trips can each have a
+  // "Jake", #1446); username is a uuid handle only for the UNIQUE constraint and is
+  // never shown (member views COALESCE display_name over it).
   const email = `guest-${randomUUID()}@guests.invalid`;
-  const username = uniqueGuestUsername(display);
+  const username = `guest-${randomUUID()}`;
 
   const create = db.transaction(() => {
     const res = db.prepare(
-      "INSERT INTO users (username, email, password_hash, role, is_guest) VALUES (?, ?, '', 'user', 1)"
-    ).run(username, email);
+      "INSERT INTO users (username, email, password_hash, role, is_guest, display_name) VALUES (?, ?, '', 'user', 1, ?)"
+    ).run(username, email, display);
     const guestId = Number(res.lastInsertRowid);
     db.prepare('INSERT INTO trip_members (trip_id, user_id, invited_by) VALUES (?, ?, ?)').run(tripId, guestId, invitedByUserId);
     return guestId;
   });
   const guestId = create();
 
-  return { member: { id: guestId, username, email, role: 'member', is_guest: true, avatar_url: null } };
+  return { member: { id: guestId, username: display, email, role: 'member', is_guest: true, avatar_url: null } };
 }
 
 /** Confirms a user id is a guest of THIS trip, so guest mutations stay trip-scoped. */
@@ -519,8 +510,9 @@ export function renameGuest(tripId: string | number, guestUserId: number, name: 
   if (display.length > 50) throw new ValidationError('Guest name must be 50 characters or fewer');
   if (!guestOfTrip(tripId, guestUserId)) return false;
 
-  const username = uniqueGuestUsername(display, guestUserId);
-  db.prepare('UPDATE users SET username = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND is_guest = 1').run(username, guestUserId);
+  // Rename only the display name — no global-uniqueness dedup, so a rename to a name
+  // another trip's guest already uses no longer produces "Name 2" (#1446).
+  db.prepare('UPDATE users SET display_name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND is_guest = 1').run(display, guestUserId);
   return true;
 }
 

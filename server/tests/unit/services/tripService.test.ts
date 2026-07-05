@@ -576,13 +576,17 @@ describe('guest members (#1362)', () => {
     expect(guest.is_guest).toBe(true);
   });
 
-  it('TRIP-SVC-031: a duplicate guest name is disambiguated with a numeric suffix', () => {
+  it('TRIP-SVC-031: the same guest name is allowed, not suffixed (#1446)', () => {
     const { user: owner } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
     const a = createGuest(trip.id, 'Sam', owner.id);
     const b = createGuest(trip.id, 'Sam', owner.id);
+    // both keep the plain display name; only the internal (uuid) username differs
     expect(a.member.username).toBe('Sam');
-    expect(b.member.username).toBe('Sam 2');
+    expect(b.member.username).toBe('Sam');
+    expect(b.member.id).not.toBe(a.member.id);
+    const usernames = testDb.prepare('SELECT username FROM users WHERE id IN (?, ?)').all(a.member.id, b.member.id) as { username: string }[];
+    expect(usernames[0].username).not.toBe(usernames[1].username);
   });
 
   it('TRIP-SVC-032: renameGuest updates the display name (trip-scoped, guest-only)', () => {
@@ -593,7 +597,7 @@ describe('guest members (#1362)', () => {
     const { member } = createGuest(trip.id, 'Bob', owner.id);
 
     expect(renameGuest(trip.id, member.id, 'Robert')).toBe(true);
-    expect((testDb.prepare('SELECT username FROM users WHERE id = ?').get(member.id) as any).username).toBe('Robert');
+    expect((testDb.prepare('SELECT display_name FROM users WHERE id = ?').get(member.id) as any).display_name).toBe('Robert');
 
     // A real user cannot be renamed through the guest path…
     expect(renameGuest(trip.id, owner.id, 'Hacked')).toBe(false);

@@ -12,7 +12,7 @@ export { verifyTripAccess } from './tripAccess';
 
 function loadItemMembers(itemId: number | string) {
   const rows = db.prepare(`
-    SELECT bm.user_id, bm.paid, bm.amount, u.username, u.avatar
+    SELECT bm.user_id, bm.paid, bm.amount, COALESCE(u.display_name, u.username) AS username, u.avatar
     FROM budget_item_members bm
     JOIN users u ON bm.user_id = u.id
     WHERE bm.budget_item_id = ?
@@ -22,7 +22,7 @@ function loadItemMembers(itemId: number | string) {
 
 function loadItemPayers(itemId: number | string) {
   const rows = db.prepare(`
-    SELECT bp.user_id, bp.amount, u.username, u.avatar
+    SELECT bp.user_id, bp.amount, COALESCE(u.display_name, u.username) AS username, u.avatar
     FROM budget_item_payers bp
     JOIN users u ON bp.user_id = u.id
     WHERE bp.budget_item_id = ?
@@ -61,7 +61,7 @@ export function listBudgetItems(tripId: string | number) {
 
   if (itemIds.length > 0) {
     const allMembers = db.prepare(`
-      SELECT bm.budget_item_id, bm.user_id, bm.paid, bm.amount, u.username, u.avatar
+      SELECT bm.budget_item_id, bm.user_id, bm.paid, bm.amount, COALESCE(u.display_name, u.username) AS username, u.avatar
       FROM budget_item_members bm
       JOIN users u ON bm.user_id = u.id
       WHERE bm.budget_item_id IN (${itemIds.map(() => '?').join(',')})
@@ -78,7 +78,7 @@ export function listBudgetItems(tripId: string | number) {
   const payersByItem: Record<number, (BudgetItemPayer & { avatar_url: string | null })[]> = {};
   if (itemIds.length > 0) {
     const allPayers = db.prepare(`
-      SELECT bp.budget_item_id, bp.user_id, bp.amount, u.username, u.avatar
+      SELECT bp.budget_item_id, bp.user_id, bp.amount, COALESCE(u.display_name, u.username) AS username, u.avatar
       FROM budget_item_payers bp
       JOIN users u ON bp.user_id = u.id
       WHERE bp.budget_item_id IN (${itemIds.map(() => '?').join(',')})
@@ -353,7 +353,7 @@ export function toggleMemberPaid(id: string | number, tripId: string | number, u
     .run(paid ? 1 : 0, id, userId);
 
   const member = db.prepare(`
-    SELECT bm.user_id, bm.paid, u.username, u.avatar
+    SELECT bm.user_id, bm.paid, COALESCE(u.display_name, u.username) AS username, u.avatar
     FROM budget_item_members bm JOIN users u ON bm.user_id = u.id
     WHERE bm.budget_item_id = ? AND bm.user_id = ?
   `).get(id, userId) as BudgetItemMember | undefined;
@@ -367,7 +367,7 @@ export function toggleMemberPaid(id: string | number, tripId: string | number, u
 
 export function getPerPersonSummary(tripId: string | number) {
   const summary = db.prepare(`
-    SELECT bm.user_id, u.username, u.avatar,
+    SELECT bm.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar,
       SUM(COALESCE(bm.amount, bi.total_price * 1.0 / (SELECT COUNT(*) FROM budget_item_members WHERE budget_item_id = bi.id))) as total_assigned,
       SUM(CASE WHEN bm.paid = 1 THEN COALESCE(bm.amount, bi.total_price * 1.0 / (SELECT COUNT(*) FROM budget_item_members WHERE budget_item_id = bi.id)) ELSE 0 END) as total_paid,
       COUNT(bi.id) as items_count
@@ -457,13 +457,13 @@ export function calculateSettlement(
 
   const items = db.prepare('SELECT * FROM budget_items WHERE trip_id = ?').all(tripId) as BudgetItem[];
   const allMembers = db.prepare(`
-    SELECT bm.budget_item_id, bm.user_id, u.username, u.avatar
+    SELECT bm.budget_item_id, bm.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar
     FROM budget_item_members bm
     JOIN users u ON bm.user_id = u.id
     WHERE bm.budget_item_id IN (SELECT id FROM budget_items WHERE trip_id = ?)
   `).all(tripId) as (BudgetItemMember & { budget_item_id: number })[];
   const allPayers = db.prepare(`
-    SELECT bp.budget_item_id, bp.user_id, bp.amount, u.username, u.avatar
+    SELECT bp.budget_item_id, bp.user_id, bp.amount, COALESCE(u.display_name, u.username) AS username, u.avatar
     FROM budget_item_payers bp
     JOIN users u ON bp.user_id = u.id
     WHERE bp.budget_item_id IN (SELECT id FROM budget_items WHERE trip_id = ?)

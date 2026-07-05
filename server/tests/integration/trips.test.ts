@@ -813,6 +813,28 @@ describe('Trip members', () => {
     expect(login.status).toBe(401);
   });
 
+  it('TRIP-GUEST-004 — the same guest name is allowed on two trips (no "Name 2", #1446)', async () => {
+    const { user: owner } = createUser(testDb);
+    const tripA = createTrip(testDb, owner.id, { title: 'Trip A' });
+    const tripB = createTrip(testDb, owner.id, { title: 'Trip B' });
+
+    const addJake = (tripId: number) => request(app)
+      .post(`/api/trips/${tripId}/guests`).set('Cookie', authCookie(owner.id)).send({ name: 'Jake' });
+
+    const a = await addJake(tripA.id);
+    const b = await addJake(tripB.id);
+    expect(a.status).toBe(201);
+    expect(b.status).toBe(201);
+    // both keep the plain name — the second is NOT auto-renamed to "Jake 2"
+    expect(a.body.member.username).toBe('Jake');
+    expect(b.body.member.username).toBe('Jake');
+    expect(b.body.member.id).not.toBe(a.body.member.id);
+
+    // and each trip's member list shows "Jake" (not the internal uuid handle)
+    const membersB = await request(app).get(`/api/trips/${tripB.id}/members`).set('Cookie', authCookie(owner.id));
+    expect(membersB.body.members.find((m: any) => m.id === b.body.member.id).username).toBe('Jake');
+  });
+
   it('TRIP-GUEST-002 — guest CRUD is owner-only', async () => {
     const { user: owner } = createUser(testDb);
     const { user: member } = createUser(testDb);
@@ -838,7 +860,8 @@ describe('Trip members', () => {
       .set('Cookie', authCookie(owner.id))
       .send({ name: 'Junior' });
     expect(renamed.status).toBe(200);
-    expect((testDb.prepare('SELECT username FROM users WHERE id = ?').get(guestId) as any).username).toBe('Junior');
+    // #1446: the human name lives in display_name now (username is a non-shown uuid handle)
+    expect((testDb.prepare('SELECT display_name FROM users WHERE id = ?').get(guestId) as any).display_name).toBe('Junior');
 
     const removed = await request(app)
       .delete(`/api/trips/${trip.id}/guests/${guestId}`)

@@ -26,7 +26,7 @@ export function getAssignmentWithPlace(assignmentId: number | bigint) {
   `).all(a.place_id);
 
   const participants = db.prepare(`
-    SELECT ap.user_id, u.username, u.avatar
+    SELECT ap.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar
     FROM assignment_participants ap
     JOIN users u ON ap.user_id = u.id
     WHERE ap.assignment_id = ?
@@ -159,7 +159,7 @@ export function moveAssignment(id: string | number, newDayId: string | number, o
 
 export function getParticipants(assignmentId: string | number) {
   return db.prepare(`
-    SELECT ap.user_id, u.username, u.avatar
+    SELECT ap.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar
     FROM assignment_participants ap
     JOIN users u ON ap.user_id = u.id
     WHERE ap.assignment_id = ?
@@ -208,7 +208,7 @@ export function setParticipants(assignmentId: string | number, userIds: number[]
   }
 
   return db.prepare(`
-    SELECT ap.user_id, u.username, u.avatar
+    SELECT ap.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar
     FROM assignment_participants ap
     JOIN users u ON ap.user_id = u.id
     WHERE ap.assignment_id = ?

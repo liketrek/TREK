@@ -3458,6 +3458,18 @@ function runMigrations(db: Database.Database): void {
         if (!err.message?.includes('duplicate column name')) throw err;
       }
     },
+
+    // #1446: guests are per-trip people, but their display name lived in the globally
+    // UNIQUE users.username, so a second "Jake" on another trip was auto-renamed to
+    // "Jake 2". Add a non-unique display_name; new guests store the human name here and
+    // get a uuid-based username that is never shown (the member views COALESCE to it).
+    () => {
+      try {
+        db.exec('ALTER TABLE users ADD COLUMN display_name TEXT');
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) throw err;
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {
