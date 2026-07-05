@@ -54,6 +54,12 @@ code:
 - It talks to TREK exclusively over an internal RPC channel, and TREK only
   answers the capabilities the plugin's manifest **declares and you approve**.
   An ungranted call is refused, not merely ignored.
+- The RPC channel itself is **sealed off from plugin code**: even though the
+  plugin runs in a forked process, its raw IPC primitives (`process.send`,
+  `process.on('message')`) are revoked before its code loads — just like
+  `process.binding`. So a plugin can neither forge host messages (fake its route
+  table, spoof another request's identity) nor eavesdrop on other in-flight
+  requests. Every interaction is forced through the capability-checked SDK.
 - A page/widget's interface runs in a **sealed browser frame** that can't read
   your session cookie or touch the surrounding TREK page.
 - If a plugin crashes, hangs, or runs out of memory, only *its* process dies —

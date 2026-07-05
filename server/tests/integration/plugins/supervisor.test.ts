@@ -40,9 +40,19 @@ function makeSupervisor(events: Array<{ topic: string; data: unknown }>, tuning:
   };
   const hooks: SupervisorHooks = {
     onEvent: (_id, topic, data) => events.push({ topic, data }),
-    onLog: (_id, level, msg) => events.push({ topic: '__log', data: { level, msg } }),
+    onLog: (_id, level, msg, meta) => events.push({ topic: '__log', data: { level, msg, meta } }),
   };
   return new PluginSupervisor(createRpcHost, hooks, tuning);
+}
+
+/**
+ * Pull the `meta` of a named `ctx.log.info(msg, meta)` call. Fixtures report
+ * structured diagnostics this way now that the child's raw `process.send` is
+ * sealed off (installIpcGuard) — the SDK log channel is the only route out.
+ */
+function logMeta<T = Record<string, unknown>>(events: Array<{ topic: string; data: unknown }>, msg: string): T {
+  const hit = events.find((e) => e.topic === '__log' && (e.data as { msg?: string }).msg === msg);
+  return (hit && (hit.data as { meta?: unknown }).meta) as T;
 }
 
 beforeAll(() => {
@@ -76,7 +86,7 @@ describe('PluginSupervisor — isolated runtime', () => {
           let tripsDenied = false;
           try { await ctx.trips.getById(1, 42); } catch (e) { tripsDenied = /PERMISSION_DENIED/.test(e.message); }
           ctx.log.info('selftest complete');
-          process.send({ k: 'evt', topic: 'diag', data: { value: rows[0] && rows[0].v, tripsDenied } });
+          ctx.log.info('diag', { value: rows[0] && rows[0].v, tripsDenied });
         }
       };`,
     );
@@ -84,12 +94,92 @@ describe('PluginSupervisor — isolated runtime', () => {
     await sup.activate('hello', new Set(['db:own']), { greeting: 'hi there' });
     expect(sup.isActive('hello')).toBe(true);
 
-    const diag = events.find((e) => e.topic === 'diag')?.data as { value: string; tripsDenied: boolean };
+    const diag = logMeta<{ value: string; tripsDenied: boolean }>(events, 'diag');
     expect(diag).toBeTruthy();
     expect(diag.value).toBe('hi there'); // instance config reached the child, db round-trip worked
     expect(diag.tripsDenied).toBe(true); // ungranted db:read:trips was refused across the fork boundary
     // the plugin's ctx.log surfaced through the supervisor's log hook
     expect(events.some((e) => e.topic === '__log')).toBe(true);
+  });
+
+  it('seals the raw IPC surface: a plugin cannot forge/sniff over process.send/on(message), and a forged init cannot reopen egress', async () => {
+    const events: Array<{ topic: string; data: unknown }> = [];
+    sup = makeSupervisor(events);
+
+    // The plugin runs each raw-IPC attack in try/catch and reports the outcome
+    // over the ONLY channel it still has — the SDK log (ctx.log → realSend).
+    // No egress is granted, so a fetch to an undeclared host must fail with an
+    // `egress:` error; if a forged `init` reopened egress, the second fetch would
+    // instead fail with a network error (or succeed) — that is the discriminator.
+    writePlugin(
+      'attacker',
+      `module.exports = {
+        async onLoad(ctx) {
+          const results = {};
+          const probe = (name, fn) => { try { fn(); results[name] = 'NOT_BLOCKED'; } catch { results[name] = 'blocked'; } };
+          probe('send_evt', () => process.send({ k: 'evt', topic: 'loaded', data: { routes: [{ i: 0, method: 'GET', path: '/pwned', auth: false }] } }));
+          probe('on_message', () => process.on('message', () => {}));
+          probe('once_message', () => process.once('message', () => {}));
+          probe('prepend_message', () => process.prependListener('message', () => {}));
+          probe('removeAll_message', () => process.removeAllListeners('message'));
+          probe('removeAll_bare', () => process.removeAllListeners());
+          probe('forged_req', () => process.send({ k: 'req', method: 'trips.getById', params: { tripId: 1, _inv: 'forged' } }));
+          probe('disconnect', () => process.disconnect());
+
+          const fetchOutcome = async () => {
+            try { await fetch('https://blocked.example/x'); return 'NO_ERROR'; }
+            catch (e) { return /egress/.test(e.message) ? 'egress' : 'other'; }
+          };
+          const egressBefore = await fetchOutcome();
+          // process.emit is intentionally NOT sealed (Node delivers inbound IPC
+          // through it); the one-shot init guard must make this forged init a no-op.
+          let emitThrew = false;
+          try { process.emit('message', { k: 'evt', topic: 'init', data: { egress: ['*'] } }); }
+          catch { emitThrew = true; }
+          const egressAfter = await fetchOutcome();
+
+          // the legit SDK channel must still round-trip through the captured realSend
+          const legit = await ctx.db.query('SELECT 1 AS ok');
+
+          ctx.log.info('attacks', { results, egressBefore, egressAfter, emitThrew, legit: legit[0] && legit[0].ok });
+        },
+      };`,
+    );
+
+    await sup.activate('attacker', new Set(['db:own']), {});
+    // Sealing the IPC surface must NOT prevent a benign plugin from loading.
+    expect(sup.isActive('attacker')).toBe(true);
+
+    const a = logMeta<{
+      results: Record<string, string>;
+      egressBefore: string;
+      egressAfter: string;
+      emitThrew: boolean;
+      legit: number;
+    }>(events, 'attacks');
+    expect(a).toBeTruthy();
+
+    // Every raw-IPC operation is blocked.
+    expect(a.results.send_evt).toBe('blocked'); // can't forge lifecycle/evt envelopes
+    expect(a.results.on_message).toBe('blocked'); // can't add a 'message' listener to eavesdrop
+    expect(a.results.once_message).toBe('blocked');
+    expect(a.results.prepend_message).toBe('blocked');
+    expect(a.results.removeAll_message).toBe('blocked'); // can't unhook the trusted handler
+    expect(a.results.removeAll_bare).toBe('blocked');
+    expect(a.results.forged_req).toBe('blocked'); // can't forge a req with someone else's _inv
+    expect(a.results.disconnect).toBe('blocked');
+
+    // The forged `init` (via the un-sealed process.emit) is a no-op: egress stays sealed.
+    expect(a.egressBefore).toBe('egress');
+    expect(a.egressAfter).toBe('egress');
+    expect(a.emitThrew).toBe(false);
+
+    // The legitimate transport still works — the seal (incl. the channel lock)
+    // did not break realSend.
+    expect(a.legit).toBe(1);
+
+    // The host never registered the forged route table (the real plugin declares none).
+    expect(sup.routesOf('attacker').some((r) => r.path === '/pwned')).toBe(false);
   });
 
   it('injects require(trek-plugin-sdk) — a scaffold-style plugin loads with no node_modules', async () => {
@@ -102,8 +192,8 @@ describe('PluginSupervisor — isolated runtime', () => {
       let testingError = '';
       try { require('trek-plugin-sdk/testing'); } catch (e) { testingError = e.message; }
       module.exports = definePlugin({
-        async onLoad() {
-          process.send({ k: 'evt', topic: 'diag', data: { api: PLUGIN_API_VERSION, fn: typeof definePlugin, testingError } });
+        async onLoad(ctx) {
+          ctx.log.info('diag', { api: PLUGIN_API_VERSION, fn: typeof definePlugin, testingError });
         },
         routes: [{ method: 'GET', path: '/hello', auth: true, async handler() { return { status: 200 }; } }],
       });`,
@@ -112,7 +202,7 @@ describe('PluginSupervisor — isolated runtime', () => {
     await sup.activate('scaffolded', new Set(['db:own']), {});
     expect(sup.isActive('scaffolded')).toBe(true);
 
-    const diag = events.find((e) => e.topic === 'diag')?.data as { api: number; fn: string; testingError: string };
+    const diag = logMeta<{ api: number; fn: string; testingError: string }>(events, 'diag');
     expect(diag).toBeTruthy();
     expect(diag.api).toBe(1); // the injected shim, not a vendored copy
     expect(diag.fn).toBe('function');

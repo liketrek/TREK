@@ -279,6 +279,9 @@ export class PluginSupervisor {
           break;
         }
         case 'loaded': {
+          // Ignore a duplicate/forged `loaded` after activation — a plugin must
+          // not be able to re-register its route table once it is live.
+          if (sup.status === 'active') break;
           sup.lastBeat = Date.now();
           const d = msg.data as { routes?: PluginRouteInfo[]; jobs?: string[] };
           sup.routes = d.routes ?? [];
@@ -305,7 +308,13 @@ export class PluginSupervisor {
           break;
         }
         default:
-          this.hooks.onEvent?.(sup.id, msg.topic, msg.data);
+          // Strict inbound whitelist: the legitimate child→host `evt` topics all
+          // have explicit cases above. Anything else is a compromised/buggy child
+          // (or, historically, code that reached the raw channel) — drop it rather
+          // than forward it blindly. `onEvent` stays on SupervisorHooks, reserved
+          // for a future SDK-sanctioned custom-event channel, but is not invoked
+          // for arbitrary topics.
+          this.hooks.onLog?.(sup.id, 'warn', `dropped unknown plugin event topic: ${msg.topic}`);
       }
     }
   }
