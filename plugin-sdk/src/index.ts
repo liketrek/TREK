@@ -142,7 +142,9 @@ export interface CalendarEvent {
 }
 export interface CalendarSource {
   getName(): string;
-  getEvents(userId: number, start: Date, end: Date): Promise<CalendarEvent[]>;
+  // start/end are ISO strings — the host->plugin boundary is JSON, so a Date would
+  // arrive as a string anyway (kept in lockstep with the runtime SDK copy).
+  getEvents(userId: number, start: string, end: string): Promise<CalendarEvent[]>;
 }
 /** One row of extra place info TREK renders natively (reviews/ratings/links/…). */
 export interface PlaceDetailItem { label: string; value?: string; url?: string; }

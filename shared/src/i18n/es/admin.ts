@@ -185,6 +185,7 @@ const admin: TranslationStrings = {
   'admin.plugins.type.widget': 'Widget',
   'admin.plugins.type.page': 'Página',
   'admin.plugins.type.integration': 'Integración',
+  'admin.plugins.type.trip-page': 'Página de viaje',
   'admin.plugins.reviewed': 'Revisado',
   'admin.plugins.unreviewed': 'No revisado',
   'admin.plugins.updated': 'Plugin actualizado',

@@ -27,9 +27,16 @@ describe('auditResource + isAuditable', () => {
   it('audits core-data + ws, not a plugin own-db call', () => {
     expect(isAuditable('trips.getReservations')).toBe(true);
     expect(isAuditable('users.getById')).toBe(true);
+    expect(isAuditable('packing.list')).toBe(true);
+    expect(isAuditable('files.list')).toBe(true);
     expect(isAuditable('ws.broadcastToTrip')).toBe(true);
     expect(isAuditable('db.query')).toBe(false);
     expect(isAuditable('db.migrate')).toBe(false);
+  });
+
+  it('resolves packing/files reads to their trip resource', () => {
+    expect(auditResource('packing.list', { tripId: 3 })).toBe('trip:3');
+    expect(auditResource('files.list', { tripId: 3 })).toBe('trip:3');
   });
 });
 

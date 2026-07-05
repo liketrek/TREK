@@ -441,6 +441,13 @@ describe('PluginRpcHost — capability enforcement', () => {
     expect(deps.createPlace).toHaveBeenCalledWith(1, expect.objectContaining({ name: 'Fushimi Inari' }));
   });
 
+  it('places.create rejects an over-long string field (mirrors the REST STRING_LIMITS)', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:places']), deps);
+    const res = await host.dispatch(req('places.create', { tripId: 1, input: { name: 'A'.repeat(201) } }), 42);
+    expect((res as RpcError).error.code).toBe('BAD_PARAMS');
+    expect(deps.createPlace).not.toHaveBeenCalled();
+  });
+
   it('places.create is PERMISSION_DENIED without db:write:places', async () => {
     const host = new PluginRpcHost('p', new Set(['db:read:trips']), deps);
     const res = await host.dispatch(req('places.create', { tripId: 1, input: { name: 'X' } }), 42);

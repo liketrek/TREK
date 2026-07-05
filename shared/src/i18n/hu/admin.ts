@@ -186,6 +186,7 @@ const admin: TranslationStrings = {
   'admin.plugins.type.widget': 'Widget',
   'admin.plugins.type.page': 'Oldal',
   'admin.plugins.type.integration': 'Integráció',
+  'admin.plugins.type.trip-page': 'Útvonal-oldal',
   'admin.plugins.reviewed': 'Ellenőrizve',
   'admin.plugins.unreviewed': 'Nem ellenőrzött',
   'admin.plugins.updated': 'Plugin frissítve',

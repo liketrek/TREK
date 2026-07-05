@@ -223,6 +223,7 @@ const admin: TranslationStrings = {
   'admin.plugins.type.widget': '위젯',
   'admin.plugins.type.page': '페이지',
   'admin.plugins.type.integration': '통합',
+  'admin.plugins.type.trip-page': '여행 페이지',
   'admin.plugins.reviewed': '검토됨',
   'admin.plugins.unreviewed': '검토되지 않음',
   'admin.plugins.updated': '플러그인이 업데이트되었습니다',

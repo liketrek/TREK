@@ -220,6 +220,7 @@ const admin: TranslationStrings = {
   'admin.plugins.type.widget': '小工具',
   'admin.plugins.type.page': '頁面',
   'admin.plugins.type.integration': '整合',
+  'admin.plugins.type.trip-page': '行程頁面',
   'admin.plugins.reviewed': '已審核',
   'admin.plugins.unreviewed': '未審核',
   'admin.plugins.updated': '外掛已更新',

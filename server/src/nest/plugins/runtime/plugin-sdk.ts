@@ -231,7 +231,7 @@ export function createPluginContext(
       delete: (entityType, entityId, key) => t.rpc('meta.delete', { entityType, entityId, key, _inv: invocationId }) as Promise<{ deleted: boolean }>,
     },
     users: {
-      getById: (uid) => t.rpc('users.getById', { id: uid }),
+      getById: (uid) => t.rpc('users.getById', { id: uid, _inv: invocationId }),
     },
     ws: {
       broadcastToTrip: async (tripId, event, data) => {

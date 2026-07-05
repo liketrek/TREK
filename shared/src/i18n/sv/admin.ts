@@ -238,6 +238,7 @@ const admin: TranslationStrings = {
   'admin.plugins.type.widget': 'Widget',
   'admin.plugins.type.page': 'Sida',
   'admin.plugins.type.integration': 'Integration',
+  'admin.plugins.type.trip-page': 'Ressida',
   'admin.plugins.reviewed': 'Granskad',
   'admin.plugins.unreviewed': 'Ej granskad',
   'admin.plugins.updated': 'Pluginet har uppdaterats',

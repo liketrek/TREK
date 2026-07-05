@@ -184,6 +184,7 @@ const admin: TranslationStrings = {
   'admin.plugins.type.widget': 'Widget',
   'admin.plugins.type.page': 'Stránka',
   'admin.plugins.type.integration': 'Integrace',
+  'admin.plugins.type.trip-page': 'Stránka cesty',
   'admin.plugins.reviewed': 'Zkontrolováno',
   'admin.plugins.unreviewed': 'Nezkontrolováno',
   'admin.plugins.updated': 'Plugin aktualizován',

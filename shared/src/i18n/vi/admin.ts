@@ -238,6 +238,7 @@ const admin: TranslationStrings = {
   'admin.plugins.type.widget': 'Widget',
   'admin.plugins.type.page': 'Trang',
   'admin.plugins.type.integration': 'Tích hợp',
+  'admin.plugins.type.trip-page': 'Trang chuyến đi',
   'admin.plugins.reviewed': 'Đã kiểm duyệt',
   'admin.plugins.unreviewed': 'Chưa kiểm duyệt',
   'admin.plugins.updated': 'Đã cập nhật plugin',

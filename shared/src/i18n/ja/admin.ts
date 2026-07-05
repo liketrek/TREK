@@ -217,6 +217,7 @@ const admin: TranslationStrings = {
   'admin.plugins.type.widget': 'ウィジェット',
   'admin.plugins.type.page': 'ページ',
   'admin.plugins.type.integration': '連携',
+  'admin.plugins.type.trip-page': '旅程ページ',
   'admin.plugins.reviewed': 'レビュー済み',
   'admin.plugins.unreviewed': '未レビュー',
   'admin.plugins.updated': 'プラグインを更新しました',

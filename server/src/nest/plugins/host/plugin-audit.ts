@@ -33,6 +33,7 @@ export function auditResource(method: string, params: Record<string, unknown>): 
   if (method === 'costs.listMine') return 'costs:all';
   if (method.startsWith('costs.')) return `trip:${params.tripId ?? '?'}`;
   if (method.startsWith('places.') || method.startsWith('days.') || method.startsWith('itinerary.')) return `trip:${params.tripId ?? '?'}`;
+  if (method.startsWith('packing.') || method.startsWith('files.')) return `trip:${params.tripId ?? '?'}`;
   if (method.startsWith('meta.')) return `${params.entityType ?? '?'}:${params.entityId ?? '?'}`;
   if (method === 'users.getById') return `user:${params.id ?? '?'}`;
   if (method === 'ws.broadcastToTrip') return `trip:${params.tripId ?? '?'}`;
@@ -48,6 +49,8 @@ export function isAuditable(method: string): boolean {
     method.startsWith('places.') ||
     method.startsWith('days.') ||
     method.startsWith('itinerary.') ||
+    method.startsWith('packing.') ||
+    method.startsWith('files.') ||
     method.startsWith('meta.') ||
     method.startsWith('users.') ||
     method.startsWith('ws.')
