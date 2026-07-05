@@ -1593,3 +1593,116 @@ describe('searchOverpassPois all-endpoints-down', () => {
     errSpy.mockRestore();
   });
 });
+
+// ── getPoiDetails ─────────────────────────────────────────────────────────────
+
+describe('getPoiDetails (POI-001…)', () => {
+  const svc = () => import('../../../src/services/mapsService');
+
+  it('POI-001 returns cached payload without any fetch', async () => {
+    mockDbGet.mockReturnValueOnce({ maps_api_key: 'test-google-key' }); // getMapsKey user read
+    mockDbGet.mockReturnValueOnce({
+      payload_json: JSON.stringify({ place: { name: 'Cached Cafe' }, matched: true }),
+      fetched_at: Date.now(),
+    });
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const { getPoiDetails } = await svc();
+    const res = await getPoiDetails(1, 'node:42', 'Cached Cafe', 48.1, 11.5, 'en');
+    expect(res).toEqual({ place: { name: 'Cached Cafe' }, matched: true });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('POI-002 matches a nearby same-named Google place and returns expanded details', async () => {
+    // DB call order: getPoiDetails getMapsKey, poi cache miss,
+    // searchPlaces getMapsKey, getPlaceDetailsExpanded getMapsKey, expanded cache miss
+    mockDbGet.mockReturnValueOnce({ maps_api_key: 'test-google-key' }); // getPoiDetails getMapsKey
+    mockDbGet.mockReturnValueOnce(undefined);                            // poi cache miss
+    mockDbGet.mockReturnValueOnce({ maps_api_key: 'test-google-key' }); // searchPlaces getMapsKey
+    mockDbGet.mockReturnValueOnce({ maps_api_key: 'test-google-key' }); // getPlaceDetailsExpanded getMapsKey
+    mockDbGet.mockReturnValueOnce(undefined);                            // expanded cache miss
+    const searchResponse = {
+      ok: true,
+      json: async () => ({ places: [{
+        id: 'ChIJ123', displayName: { text: 'Blue Bottle Coffee' },
+        location: { latitude: 48.10005, longitude: 11.50005 },
+      }] }),
+    };
+    const detailsResponse = {
+      ok: true,
+      json: async () => ({
+        id: 'ChIJ123', displayName: { text: 'Blue Bottle Coffee' },
+        formattedAddress: '1 Main St', location: { latitude: 48.1, longitude: 11.5 },
+        rating: 4.5, userRatingCount: 100,
+        editorialSummary: { text: 'Nice coffee.' }, reviews: [],
+      }),
+    };
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(searchResponse as any)   // places:searchText
+      .mockResolvedValueOnce(detailsResponse as any); // places/ChIJ123
+    const { getPoiDetails } = await svc();
+    const res = await getPoiDetails(1, 'node:42', 'Blue Bottle Coffee', 48.1, 11.5, 'en');
+    expect(res.matched).toBe(true);
+    expect(res.place.google_place_id).toBe('ChIJ123');
+    expect(res.place.rating).toBe(4.5);
+    expect(mockDbRun).toHaveBeenCalled(); // cached
+  });
+
+  it('POI-003 rejects a Google candidate that is too far away and falls back to OSM', async () => {
+    mockDbGet.mockReturnValueOnce({ maps_api_key: 'test-google-key' }); // getPoiDetails getMapsKey
+    mockDbGet.mockReturnValueOnce(undefined);                            // poi cache miss
+    mockDbGet.mockReturnValueOnce({ maps_api_key: 'test-google-key' }); // searchPlaces getMapsKey
+    const searchResponse = {
+      ok: true,
+      json: async () => ({ places: [{
+        id: 'ChIJfar', displayName: { text: 'Blue Bottle Coffee' },
+        location: { latitude: 48.2, longitude: 11.6 }, // ~13 km away
+      }] }),
+    };
+    const overpassResponse = {
+      ok: true,
+      json: async () => ({ elements: [{ type: 'node', id: 42, tags: { name: 'Blue Bottle Coffee', website: 'https://bb.example' } }] }),
+    };
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(searchResponse as any)
+      .mockResolvedValueOnce(overpassResponse as any); // fetchOverpassDetails
+    const { getPoiDetails } = await svc();
+    const res = await getPoiDetails(1, 'node:42', 'Blue Bottle Coffee', 48.1, 11.5, 'en');
+    expect(res.matched).toBe(false);
+    expect(res.place.source).toBe('openstreetmap');
+    expect(res.place.website).toBe('https://bb.example');
+    expect(res.place.name).toBe('Blue Bottle Coffee');
+  });
+
+  it('POI-004 falls back to OSM when no Google key is configured (no Google fetch)', async () => {
+    // getMapsKey: user read → undefined, admin read → undefined (both fall through to mockReturnValue(undefined))
+    const overpassResponse = { ok: true, json: async () => ({ elements: [{ type: 'node', id: 42, tags: { name: 'X' } }] }) };
+    const fetchMock = vi.fn().mockResolvedValueOnce(overpassResponse as any);
+    vi.stubGlobal('fetch', fetchMock);
+    const { getPoiDetails } = await svc();
+    const res = await getPoiDetails(1, 'node:42', 'X', 48.1, 11.5, 'en');
+    expect(res.matched).toBe(false);
+    const urls = fetchMock.mock.calls.map((c: unknown[]) => String(c[0]));
+    expect(urls.some((u: string) => u.includes('places.googleapis.com'))).toBe(false);
+  });
+
+  it('POI-005 name mismatch is rejected even when nearby', async () => {
+    mockDbGet.mockReturnValueOnce({ maps_api_key: 'test-google-key' }); // getPoiDetails getMapsKey
+    mockDbGet.mockReturnValueOnce(undefined);                            // poi cache miss
+    mockDbGet.mockReturnValueOnce({ maps_api_key: 'test-google-key' }); // searchPlaces getMapsKey
+    const searchResponse = {
+      ok: true,
+      json: async () => ({ places: [{
+        id: 'ChIJother', displayName: { text: 'Completely Different Restaurant' },
+        location: { latitude: 48.10001, longitude: 11.50001 },
+      }] }),
+    };
+    const overpassResponse = { ok: true, json: async () => ({ elements: [] }) };
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(searchResponse as any)
+      .mockResolvedValueOnce(overpassResponse as any);
+    const { getPoiDetails } = await svc();
+    const res = await getPoiDetails(1, 'node:42', 'Blue Bottle Coffee', 48.1, 11.5, 'en');
+    expect(res.matched).toBe(false);
+  });
+});

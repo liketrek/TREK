@@ -1026,6 +1026,93 @@ export async function getPlacePhoto(
   return { photoUrl: `/api/maps/place-photo/${encodeURIComponent(placeId)}/bytes`, attribution: result.attribution };
 }
 
+// ── POI details (OSM explore marker → Google enrichment with OSM fallback) ───
+// Resolves an OSM POI (from the map explore pill) to a Google place by
+// searching the POI's name biased to its coordinates, and returns the same
+// expanded payload as getPlaceDetailsExpanded. When there is no key, no
+// confident match, or Google errors, it degrades to OSM-only details.
+// Cached in place_details_cache under 'poi:<osm_id>' (expanded=1, 7-day TTL) —
+// including negative matches, so a clicked POI costs Google quota at most
+// once per TTL.
+
+const POI_MATCH_MAX_METERS = 150;
+const POI_DETAILS_TTL = 7 * 24 * 60 * 60 * 1000;
+
+export function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+// Loose token-overlap name check: at least half of the shorter name's tokens
+// must appear in the other name. Case/diacritic-insensitive.
+export function poiNamesMatch(a: string, b: string): boolean {
+  const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter(w => w.length > 1);
+  const ta = norm(a), tb = norm(b);
+  if (!ta.length || !tb.length) return false;
+  const [short, long] = ta.length <= tb.length ? [ta, tb] : [tb, ta];
+  const hits = short.filter(w => long.includes(w)).length;
+  return hits >= Math.ceil(short.length / 2);
+}
+
+async function osmFallbackDetails(osmId: string, name: string, lat: number, lng: number): Promise<Record<string, unknown>> {
+  const [osmType, rawId] = osmId.split(':');
+  const element = await fetchOverpassDetails(osmType, rawId).catch(() => null);
+  const details = buildOsmDetails(element?.tags || {}, osmType, rawId);
+  return { ...details, name: element?.tags?.name || name, address: null, lat, lng, osm_id: osmId };
+}
+
+export async function getPoiDetails(
+  userId: number, osmId: string, name: string, lat: number, lng: number, lang?: string,
+): Promise<{ place: Record<string, unknown>; matched: boolean }> {
+  const langKey = toApiLang(lang, 'de');
+  const apiKey = getMapsKey(userId);
+  const cacheId = `poi:${osmId}`;
+
+  const cached = db.prepare(
+    'SELECT payload_json, fetched_at FROM place_details_cache WHERE place_id = ? AND lang = ? AND expanded = 1'
+  ).get(cacheId, langKey) as { payload_json: string; fetched_at: number } | undefined;
+  if (cached && Date.now() - cached.fetched_at < POI_DETAILS_TTL) {
+    return JSON.parse(cached.payload_json);
+  }
+
+  let result: { place: Record<string, unknown>; matched: boolean } | null = null;
+
+  if (apiKey) {
+    try {
+      const search = await searchPlaces(userId, name, lang, { lat, lng, radius: 500 });
+      const candidate = (search.places || []).find(p =>
+        typeof p.lat === 'number' && typeof p.lng === 'number'
+        && haversineMeters(lat, lng, p.lat as number, p.lng as number) <= POI_MATCH_MAX_METERS
+        && poiNamesMatch(name, String(p.name || '')));
+      if (candidate?.google_place_id) {
+        const expanded = await getPlaceDetailsExpanded(userId, String(candidate.google_place_id), lang);
+        result = { place: { ...expanded.place, osm_id: osmId }, matched: true };
+      }
+    } catch (err) {
+      console.error('POI Google enrichment failed, falling back to OSM:', err);
+    }
+  }
+
+  if (!result) {
+    result = { place: await osmFallbackDetails(osmId, name, lat, lng), matched: false };
+  }
+
+  try {
+    db.prepare(
+      'INSERT OR REPLACE INTO place_details_cache (place_id, lang, expanded, payload_json, fetched_at) VALUES (?, ?, 1, ?, ?)'
+    ).run(cacheId, langKey, JSON.stringify(result), Date.now());
+  } catch (dbErr) {
+    console.error('Failed to cache POI details:', dbErr);
+  }
+
+  return result;
+}
+
 // ── Reverse geocoding ────────────────────────────────────────────────────────
 
 export async function reverseGeocode(lat: string, lng: string, lang?: string): Promise<{ name: string | null; address: string | null }> {
