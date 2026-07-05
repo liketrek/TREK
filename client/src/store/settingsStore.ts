@@ -4,6 +4,7 @@ import type { Settings } from '../types'
 import { DEFAULT_APPEARANCE } from '@trek/shared'
 import { getApiErrorMessage } from '../types'
 import { SUPPORTED_LANGUAGE_CODES } from '../i18n/supportedLanguages'
+import { DEFAULT_MAP_LAT, DEFAULT_MAP_LNG, DEFAULT_MAP_ZOOM } from '../constants/mapDefaults'
 
 interface SettingsState {
   settings: Settings
@@ -24,9 +25,9 @@ export const hasStoredLanguage = (): boolean =>
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   settings: {
     map_tile_url: '',
-    default_lat: 48.8566,
-    default_lng: 2.3522,
-    default_zoom: 10,
+    default_lat: DEFAULT_MAP_LAT,
+    default_lng: DEFAULT_MAP_LNG,
+    default_zoom: DEFAULT_MAP_ZOOM,
     dark_mode: false,
     default_currency: 'USD',
     language: localStorage.getItem('app_language') || 'en',

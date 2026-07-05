@@ -184,4 +184,16 @@ describe('MapSettingsTab', () => {
       expect(screen.getByDisplayValue('40')).toBeInTheDocument();
     });
   });
+
+  it('keeps zero coordinates as the world-view default instead of falling back to Paris', () => {
+    seedStore(useSettingsStore, {
+      settings: buildSettings({ default_lat: 0, default_lng: 0, default_zoom: 2 }),
+    });
+
+    render(<MapSettingsTab />);
+
+    expect(screen.getAllByDisplayValue('0')).toHaveLength(2);
+    expect(screen.queryByDisplayValue('48.8566')).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue('2.3522')).not.toBeInTheDocument();
+  });
 });

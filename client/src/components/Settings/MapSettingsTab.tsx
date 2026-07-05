@@ -18,6 +18,7 @@ import {
   normalizeStyleForProvider,
   type GlMapProvider,
 } from '../Map/glProviders'
+import { DEFAULT_MAP_LAT, DEFAULT_MAP_LNG, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
 
 interface MapPreset {
   name: string
@@ -143,6 +144,16 @@ function slotStyle(provider: Provider, s: { mapbox_style?: string; maplibre_styl
   return provider === 'maplibre-gl' ? s.maplibre_style : s.mapbox_style
 }
 
+function parseNumberOr(value: number | string, fallback: number): number {
+  const parsed = parseFloat(String(value))
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function parseIntegerOr(value: number | string, fallback: number): number {
+  const parsed = parseInt(String(value), 10)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
 export default function MapSettingsTab(): React.ReactElement {
   const { settings, updateSettings } = useSettingsStore()
   const { t } = useTranslation()
@@ -155,9 +166,9 @@ export default function MapSettingsTab(): React.ReactElement {
   const [mapboxStyle, setMapboxStyle] = useState<string>(styleForProvider(initialProvider, slotStyle(initialProvider, settings)))
   const [mapbox3d, setMapbox3d] = useState<boolean>(settings.mapbox_3d_enabled !== false)
   const [mapboxQuality, setMapboxQuality] = useState<boolean>(settings.mapbox_quality_mode === true)
-  const [defaultLat, setDefaultLat] = useState<number | string>(settings.default_lat || 48.8566)
-  const [defaultLng, setDefaultLng] = useState<number | string>(settings.default_lng || 2.3522)
-  const [defaultZoom, setDefaultZoom] = useState<number | string>(settings.default_zoom || 10)
+  const [defaultLat, setDefaultLat] = useState<number | string>(settings.default_lat ?? DEFAULT_MAP_LAT)
+  const [defaultLng, setDefaultLng] = useState<number | string>(settings.default_lng ?? DEFAULT_MAP_LNG)
+  const [defaultZoom, setDefaultZoom] = useState<number | string>(settings.default_zoom ?? DEFAULT_MAP_ZOOM)
 
   useEffect(() => {
     const nextProvider = normalizeProvider(settings.map_provider)
@@ -167,9 +178,9 @@ export default function MapSettingsTab(): React.ReactElement {
     setMapboxStyle(styleForProvider(nextProvider, slotStyle(nextProvider, settings)))
     setMapbox3d(settings.mapbox_3d_enabled !== false)
     setMapboxQuality(settings.mapbox_quality_mode === true)
-    setDefaultLat(settings.default_lat || 48.8566)
-    setDefaultLng(settings.default_lng || 2.3522)
-    setDefaultZoom(settings.default_zoom || 10)
+    setDefaultLat(settings.default_lat ?? DEFAULT_MAP_LAT)
+    setDefaultLng(settings.default_lng ?? DEFAULT_MAP_LNG)
+    setDefaultZoom(settings.default_zoom ?? DEFAULT_MAP_ZOOM)
   }, [settings])
 
   const handleMapClick = useCallback((mapInfo) => {
@@ -182,8 +193,8 @@ export default function MapSettingsTab(): React.ReactElement {
     trip_id: 1,
     name: 'Default map center',
     description: '',
-    lat: defaultLat as number,
-    lng: defaultLng as number,
+    lat: parseNumberOr(defaultLat, DEFAULT_MAP_LAT),
+    lng: parseNumberOr(defaultLng, DEFAULT_MAP_LNG),
     address: '',
     category_id: 0,
     price: null,
@@ -210,9 +221,9 @@ export default function MapSettingsTab(): React.ReactElement {
         ...stylePatch,
         mapbox_3d_enabled: mapbox3d,
         mapbox_quality_mode: mapboxQuality,
-        default_lat: parseFloat(String(defaultLat)),
-        default_lng: parseFloat(String(defaultLng)),
-        default_zoom: parseInt(String(defaultZoom)),
+        default_lat: parseNumberOr(defaultLat, DEFAULT_MAP_LAT),
+        default_lng: parseNumberOr(defaultLng, DEFAULT_MAP_LNG),
+        default_zoom: parseIntegerOr(defaultZoom, DEFAULT_MAP_ZOOM),
       })
       toast.success(t('settings.toast.mapSaved'))
     } catch (err: unknown) {
@@ -431,11 +442,11 @@ export default function MapSettingsTab(): React.ReactElement {
               provider={provider}
               token={mapboxToken}
               style={mapboxStyle}
-              lat={parseFloat(String(defaultLat)) || 48.8566}
-              lng={parseFloat(String(defaultLng)) || 2.3522}
+              lat={parseNumberOr(defaultLat, DEFAULT_MAP_LAT)}
+              lng={parseNumberOr(defaultLng, DEFAULT_MAP_LNG)}
               // Zoom in close so the style's character (3D buildings,
               // satellite texture, label density) is immediately visible.
-              zoom={Math.max(parseInt(String(defaultZoom)) || 10, 16)}
+              zoom={Math.max(parseIntegerOr(defaultZoom, DEFAULT_MAP_ZOOM), 16)}
               enable3d={provider === 'mapbox-gl' && mapbox3d && supports3d}
               quality={provider === 'mapbox-gl' && mapboxQuality}
               onClick={(ll) => { setDefaultLat(ll.lat); setDefaultLng(ll.lng) }}
@@ -451,7 +462,7 @@ export default function MapSettingsTab(): React.ReactElement {
               onMarkerClick: null,
               onMapClick: handleMapClick,
               onMapContextMenu: null,
-              center: [settings.default_lat, settings.default_lng],
+              center: [parseNumberOr(defaultLat, DEFAULT_MAP_LAT), parseNumberOr(defaultLng, DEFAULT_MAP_LNG)],
               zoom: defaultZoom,
               tileUrl: mapTileUrl,
               fitKey: null,
