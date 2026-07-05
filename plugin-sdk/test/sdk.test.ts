@@ -446,3 +446,38 @@ describe('sign + keygen (author signatures, TOFU)', () => {
     expect(() => buildEntry({ dir: koffi, repo: 'mauriceboe/trek-plugin-koffi', tag: 'v1.1.0', zipPath: out, commit: 'a'.repeat(40), mergePath: existingPath, signKeyPath: key2, now: '2026-07-04T00:00:00.000Z' })).toThrow(/differs from the one already published/);
   });
 });
+
+describe('mock-host inter-plugin (plugins.call + events.emit)', () => {
+  it('calls a configured dependency export and records the call', async () => {
+    const { ctx, calls } = createMockHost({
+      pluginExports: { 'dep-lib': { greet: (args: any) => ({ hi: args?.who }) } },
+    });
+    const r = await ctx.plugins.call('dep-lib', 'greet', { who: 'ada' });
+    expect(r).toEqual({ hi: 'ada' });
+    expect(calls.some((c) => c.method === 'plugins.call')).toBe(true);
+  });
+
+  it('throws RESOURCE_FORBIDDEN calling an export that is not configured', async () => {
+    const { ctx } = createMockHost({ pluginExports: { 'dep-lib': {} } });
+    await expect(ctx.plugins.call('dep-lib', 'nope', {})).rejects.toThrow(/RESOURCE_FORBIDDEN/);
+    await expect(ctx.plugins.call('other', 'greet', {})).rejects.toThrow(/RESOURCE_FORBIDDEN/);
+  });
+
+  it('records emitted events', () => {
+    const { ctx, emitted } = createMockHost({});
+    ctx.events.emit('rate.updated', { pair: 'USD/EUR' });
+    expect(emitted).toEqual([{ name: 'rate.updated', payload: { pair: 'USD/EUR' } }]);
+  });
+});
+
+describe('validateManifest capabilities.provides/emits', () => {
+  const base = { id: 'my-plug', name: 'My Plug', version: '1.0.0', type: 'integration', permissions: ['db:own'] };
+  it('accepts well-formed provides + emits', () => {
+    const r = validateManifest({ ...base, capabilities: { provides: ['computeRate'], emits: ['rate.updated'] } });
+    expect(r.ok).toBe(true);
+  });
+  it('rejects a malformed export/event name and a non-array', () => {
+    expect(validateManifest({ ...base, capabilities: { provides: ['bad name!'] } }).ok).toBe(false);
+    expect(validateManifest({ ...base, capabilities: { emits: 'nope' } }).ok).toBe(false);
+  });
+});

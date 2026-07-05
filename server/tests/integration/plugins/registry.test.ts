@@ -21,7 +21,7 @@ const { testDb } = vi.hoisted(() => {
   const db = new Database(':memory:');
   db.exec(`
     CREATE TABLE plugins (id TEXT PRIMARY KEY, name TEXT, description TEXT, type TEXT, icon TEXT, version TEXT,
-      api_version INTEGER, min_trek_version TEXT, permissions TEXT, capabilities TEXT DEFAULT '{}', granted_permissions TEXT, status TEXT, enabled INTEGER DEFAULT 0, config TEXT,
+      api_version INTEGER, min_trek_version TEXT, permissions TEXT, capabilities TEXT DEFAULT '{}', dependencies TEXT DEFAULT '{}', granted_permissions TEXT, status TEXT, enabled INTEGER DEFAULT 0, config TEXT,
       source_repo TEXT, source_commit TEXT, sha256 TEXT, reviewed_at TEXT, author_pubkey TEXT, updated_at TEXT);
     CREATE TABLE plugin_settings_fields (plugin_id TEXT, field_key TEXT, label TEXT, input_type TEXT, placeholder TEXT, hint TEXT, required INTEGER, secret INTEGER, scope TEXT, options TEXT, oauth_config TEXT, sort_order INTEGER);
     CREATE TABLE plugin_error_log (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, level TEXT, message TEXT, ts TEXT);`);
@@ -287,7 +287,7 @@ describe('PluginRegistryService', () => {
   });
 
   it('rejects a version that is not listed', async () => {
-    await expect(svc.install('flight-tracker', '9.9.9')).rejects.toThrow(/not found/);
+    await expect(svc.install('flight-tracker', { version: '9.9.9' })).rejects.toThrow(/not found/);
   });
 
   it('rejects an archive without a manifest', async () => {
@@ -347,5 +347,40 @@ describe('PluginRegistryService', () => {
     delete (REGISTRY.plugins[0].versions[0] as { signature?: string }).signature;
     safeDownload.mockResolvedValue({ bytes: artifact, sha256: REGISTRY.plugins[0].versions[0].sha256 });
     await expect(svc.install('flight-tracker')).rejects.toThrow(/unsigned/);
+  });
+});
+
+describe('PluginRegistryService.resolveVersion (latest compatible)', () => {
+  const MULTI = {
+    schemaVersion: 1,
+    plugins: [{
+      id: 'multi', name: 'Multi', author: 'a', description: 'many versions', repo: 'a/b', type: 'integration',
+      versions: [
+        { version: '2.1.0', gitTag: 'v2.1.0', commitSha: 'a'.repeat(40), downloadUrl: 'https://codeload.github.com/a/b/tar.gz/x', sha256: '', minTrekVersion: '3.4.0' },
+        { version: '2.0.0', gitTag: 'v2.0.0', commitSha: 'a'.repeat(40), downloadUrl: 'https://codeload.github.com/a/b/tar.gz/y', sha256: '', minTrekVersion: '3.2.0' },
+        { version: '1.5.0', gitTag: 'v1.5.0', commitSha: 'a'.repeat(40), downloadUrl: 'https://codeload.github.com/a/b/tar.gz/z', sha256: '', minTrekVersion: '3.0.0' },
+      ],
+    }],
+  };
+  const stub = () => { __clearRegistryCacheForTests(); vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => MULTI }) as unknown as Response)); };
+
+  it('picks the highest version compatible with the running TREK', async () => {
+    process.env.APP_VERSION = '3.3.0'; stub();
+    expect((await svc.resolveVersion('multi')).version).toBe('2.0.0'); // 2.1.0 needs 3.4.0 > host
+    delete process.env.APP_VERSION;
+  });
+  it('picks the highest version satisfying a semver range', async () => {
+    process.env.APP_VERSION = '3.3.0'; stub();
+    expect((await svc.resolveVersion('multi', '>=1.0.0 <2.0.0')).version).toBe('1.5.0');
+    delete process.env.APP_VERSION;
+  });
+  it('throws when nothing satisfies the constraint', async () => {
+    process.env.APP_VERSION = '3.3.0'; stub();
+    await expect(svc.resolveVersion('multi', '>=9.0.0')).rejects.toThrow(RegistryError);
+    delete process.env.APP_VERSION;
+  });
+  it('throws for a plugin not in the registry', async () => {
+    stub();
+    await expect(svc.resolveVersion('nope')).rejects.toThrow(/not in registry/);
   });
 });

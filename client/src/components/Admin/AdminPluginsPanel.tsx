@@ -21,6 +21,12 @@ import ToggleSwitch from '../Settings/ToggleSwitch'
  * tile; the security section at the bottom explains the model honestly.
  */
 
+interface PluginDep { id: string; version: string }
+interface VersionMismatch { id: string; wanted: string; installed: string }
+type DependencyStatus = 'ok' | 'addonDisabled' | 'missingPlugin'
+interface PluginDependencies { requiredAddons: string[]; pluginDependencies: PluginDep[] }
+interface DependencyIssues { disabledAddons: string[]; missing: PluginDep[]; versionMismatch: VersionMismatch[] }
+
 interface PluginRow {
   id: string
   name: string
@@ -35,6 +41,9 @@ interface PluginRow {
   source_repo: string | null
   permissions: string
   capabilities: string
+  dependencies?: PluginDependencies
+  dependencyStatus?: DependencyStatus
+  dependencyIssues?: DependencyIssues
 }
 interface RegistryItem {
   id: string
@@ -48,6 +57,8 @@ interface RegistryItem {
   minTrekVersion: string | null
   reviewedAt: string | null
   screenshotUrl: string | null
+  requiredAddons?: string[]
+  pluginDependencies?: PluginDep[]
 }
 interface RegistryDetail extends RegistryItem {
   size: number | null
@@ -58,7 +69,17 @@ interface RegistryDetail extends RegistryItem {
     settings: Array<{ key: string; label: string; inputType: string; scope: string; required: boolean }>
     license: string | null
     icon: string | null
+    requiredAddons?: string[]
+    pluginDependencies?: PluginDep[]
   } | null
+}
+
+/** 409 error-body shape from POST /activate when a dependency blocks activation. */
+interface ActivateErr {
+  response?: {
+    status?: number
+    data?: { code?: string; error?: string; newPermissions?: string[]; newEgress?: string[]; addons?: string[]; missing?: PluginDep[]; versionMismatch?: VersionMismatch[] }
+  }
 }
 
 type T = (k: string, p?: Record<string, unknown>) => string
@@ -142,6 +163,23 @@ function deriveCaps(perms: string[], caps: { widget?: { slot?: string } }, t: T)
   return out
 }
 
+interface DepChip { icon: React.ComponentType<{ size?: number; className?: string }>; label: string; blocked: boolean }
+
+// A plugin's declared dependencies as chips — a required addon (amber when that
+// addon is disabled) or a plugin dependency (amber when missing / version-mismatched).
+function deriveDeps(p: PluginRow, t: T): DepChip[] {
+  const out: DepChip[] = []
+  const issues = p.dependencyIssues
+  for (const a of p.dependencies?.requiredAddons ?? []) {
+    out.push({ icon: Blocks, label: t('admin.plugins.cap.requiresAddon', { addon: a }), blocked: !!issues?.disabledAddons.includes(a) })
+  }
+  for (const d of p.dependencies?.pluginDependencies ?? []) {
+    const blocked = !!(issues?.missing.some(m => m.id === d.id) || issues?.versionMismatch.some(m => m.id === d.id))
+    out.push({ icon: Puzzle, label: t('admin.plugins.cap.dependsOn', { id: d.id, version: d.version }), blocked })
+  }
+  return out
+}
+
 function PluginIcon({ name, size = 20, className }: { name: string | null; size?: number; className?: string }) {
   const Icon = (name && Object.prototype.hasOwnProperty.call(ICON_MAP, name) && ICON_MAP[name]) || Blocks
   return <Icon size={size} className={className} />
@@ -191,6 +229,8 @@ export default function AdminPluginsPanel() {
   // A QUEUE, not one slot: "Update All" can produce several re-consent prompts —
   // each must be shown, not silently overwritten by the last one.
   const [consentQueue, setConsentQueue] = useState<Array<{ plugin: PluginRow; version: string; newPermissions: string[]; newEgress: string[] }>>([])
+  // Open when enabling a plugin is blocked by missing/outdated plugin dependencies.
+  const [depResolve, setDepResolve] = useState<{ plugin: PluginRow; missing: PluginDep[]; versionMismatch: VersionMismatch[] } | null>(null)
   const [menu, setMenu] = useState<string | null>(null)
 
   // Toolbar state.
@@ -284,23 +324,63 @@ export default function AdminPluginsPanel() {
   const restart = (id: string) => act(id, async () => { await adminApi.pluginDeactivate(id); await adminApi.pluginActivate(id) }, t('admin.plugins.restarted'))
   const installedIds = new Set(plugins.map(p => p.id))
 
+  // Installed-but-disabled direct deps that enabling `p` will auto-enable first.
+  const autoEnabledDeps = (p: PluginRow) =>
+    (p.dependencies?.pluginDependencies ?? [])
+      .map(d => plugins.find(x => x.id === d.id))
+      .filter((x): x is PluginRow => !!x && x.enabled === 0)
+      .map(x => x.name)
+
+  // Shared handling for a failed activation: route each 409 code to the right fix
+  // (consent dialog, download-dependency dialog, or a clear toast).
+  const onActivateError = (p: PluginRow, e: ActivateErr) => {
+    const d = e?.response?.data
+    if (e?.response?.status === 409 && d?.code === 'CONSENT_REQUIRED') {
+      setConsentQueue(qq => [...qq, { plugin: p, version: latest[p.id] ?? p.version ?? '', newPermissions: d.newPermissions ?? [], newEgress: d.newEgress ?? [] }])
+    } else if (e?.response?.status === 409 && d?.code === 'ADDON_DISABLED') {
+      toast.error(t('admin.plugins.dep.addonDisabledToast', { addons: (d.addons ?? []).join(', ') }))
+    } else if (e?.response?.status === 409 && d?.code === 'DEPENDENCY_MISSING') {
+      setDepResolve({ plugin: p, missing: d.missing ?? [], versionMismatch: d.versionMismatch ?? [] })
+    } else {
+      // DEPENDENCY_CYCLE and everything else surface their server message.
+      toast.error(d?.error || t('admin.plugins.actionError'))
+    }
+  }
+
+  const attemptActivate = (p: PluginRow) => {
+    const cascaded = autoEnabledDeps(p)
+    return adminApi.pluginActivate(p.id)
+      .then(() => {
+        toast.success(t('admin.plugins.activated'))
+        if (cascaded.length) toast.success(t('admin.plugins.dep.autoEnabled', { plugins: cascaded.join(', ') }))
+        setDepResolve(null)
+      })
+      .catch((e: ActivateErr) => onActivateError(p, e))
+  }
+
   // Enable/disable a plugin. Re-enabling one whose update widened its permissions
-  // must NOT grant them silently — the server answers 409 CONSENT_REQUIRED and we
-  // route through the same consent dialog the Update button uses.
+  // must NOT grant them silently (409 CONSENT_REQUIRED → consent dialog); a disabled
+  // required addon or a missing plugin dependency (409 ADDON_DISABLED /
+  // DEPENDENCY_MISSING) routes to the right remedy.
   const toggle = (p: PluginRow) => {
     if (busy === p.id) return
     if (p.enabled === 1) { void act(p.id, () => adminApi.pluginDeactivate(p.id), t('admin.plugins.deactivated')); return }
     setBusy(p.id); setMenu(null)
-    adminApi.pluginActivate(p.id)
-      .then(() => toast.success(t('admin.plugins.activated')))
-      .catch((e: { response?: { status?: number; data?: { code?: string; error?: string; newPermissions?: string[]; newEgress?: string[] } } }) => {
-        const d = e?.response?.data
-        if (e?.response?.status === 409 && d?.code === 'CONSENT_REQUIRED') {
-          setConsentQueue(qq => [...qq, { plugin: p, version: latest[p.id] ?? p.version ?? '', newPermissions: d.newPermissions ?? [], newEgress: d.newEgress ?? [] }])
-        } else {
-          toast.error(d?.error || t('admin.plugins.actionError'))
-        }
+    attemptActivate(p).finally(() => { setBusy(null); refresh() })
+  }
+
+  // Download a missing/outdated plugin dependency (latest compatible for its range,
+  // transitively), then retry enabling the plugin that needed it.
+  const resolveDependency = (parent: PluginRow, depId: string, constraint?: string) => {
+    if (busy === parent.id) return
+    setBusy(parent.id)
+    adminApi.pluginInstall(depId, { constraint, withDependencies: true })
+      .then((r: { installed?: string[]; requiredAddons?: string[] }) => {
+        toast.success(t('admin.plugins.dep.downloaded', { id: depId }))
+        if (r?.requiredAddons?.length) toast.error(t('admin.plugins.dep.addonDisabledToast', { addons: r.requiredAddons.join(', ') }))
+        return attemptActivate(parent)
       })
+      .catch((e: ActivateErr) => onActivateError(parent, e))
       .finally(() => { setBusy(null); refresh() })
   }
 
@@ -557,6 +637,14 @@ export default function AdminPluginsPanel() {
           onLater={() => { setConsentQueue(qq => qq.slice(1)); toast.success(t('admin.plugins.updateKeptOff')) }}
         />
       )}
+
+      {depResolve && (
+        <DependencyResolveDialog
+          data={depResolve} t={t} busy={busy === depResolve.plugin.id} installedIds={installedIds}
+          onDownload={(depId, constraint) => resolveDependency(depResolve.plugin, depId, constraint)}
+          onClose={() => setDepResolve(null)}
+        />
+      )}
     </div>
   )
 }
@@ -636,6 +724,7 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, onToggl
   onToggle: () => void; onUpdate: () => void; onRestart: () => void; onErrors: () => void; onUninstall: () => void
 }) {
   const caps = deriveCaps(parseJson<string[]>(p.permissions, []), parseJson<{ widget?: { slot?: string } }>(p.capabilities, {}), t)
+  const deps = deriveDeps(p, t)
   const menuOpen = menu === `row:${p.id}`
   return (
     <div className="group relative flex items-center gap-3 sm:gap-4 px-2.5 sm:px-3 py-3.5 rounded-2xl hover:bg-surface-secondary transition-colors">
@@ -665,6 +754,16 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, onToggl
               <span key={i} className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-[3px] rounded-md border ${
                 c.net ? 'text-info border-info/25 bg-info-soft' : 'text-content-secondary border-edge-secondary bg-surface-tertiary'}`}>
                 <c.icon size={12} className={c.net ? 'text-info' : 'text-content-muted'} />{c.label}
+              </span>
+            ))}
+          </div>
+        )}
+        {deps.length > 0 && (
+          <div className="hidden sm:flex items-center gap-1.5 flex-wrap mt-1.5">
+            {deps.map((d, i) => (
+              <span key={i} className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-[3px] rounded-md border ${
+                d.blocked ? 'text-warning border-warning/30 bg-warning-soft' : 'text-content-secondary border-edge-secondary bg-surface-tertiary'}`}>
+                <d.icon size={12} className={d.blocked ? 'text-warning' : 'text-content-muted'} />{d.label}
               </span>
             ))}
           </div>
@@ -965,6 +1064,57 @@ function UpdateConsentDialog({ data, t, onApprove, onLater }: {
         <div className="px-5 py-3.5 border-t border-edge-secondary bg-surface-secondary flex items-center justify-end gap-2">
           <button onClick={onLater} className="text-xs font-medium px-3.5 py-2 rounded-lg border border-edge text-content-muted hover:text-content hover:bg-surface-tertiary transition-colors">{t('admin.plugins.updateLater')}</button>
           <button onClick={onApprove} className="text-xs font-semibold px-4 py-2 rounded-lg bg-accent text-accent-text hover:bg-accent-hover transition-colors">{t('admin.plugins.updateApprove')}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Shown when enabling a plugin is blocked by missing/outdated plugin dependencies.
+// Each dependency gets a one-click download (latest version satisfying its range,
+// transitively) that then retries enabling the plugin.
+function DependencyResolveDialog({ data, t, busy, installedIds, onDownload, onClose }: {
+  data: { plugin: PluginRow; missing: PluginDep[]; versionMismatch: VersionMismatch[] }
+  t: T; busy: boolean; installedIds: Set<string>
+  onDownload: (depId: string, constraint?: string) => void; onClose: () => void
+}) {
+  const rows: Array<{ id: string; constraint: string; installed?: string }> = [
+    ...data.missing.map(d => ({ id: d.id, constraint: d.version })),
+    ...data.versionMismatch.map(d => ({ id: d.id, constraint: d.wanted, installed: d.installed })),
+  ]
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div className="bg-surface-card border border-edge rounded-2xl w-full max-w-md shadow-modal overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="px-5 py-4 border-b border-edge-secondary flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg bg-warning-soft grid place-items-center shrink-0"><Puzzle size={18} className="text-warning" /></div>
+          <div>
+            <h3 className="text-sm font-semibold text-content">{t('admin.plugins.dep.resolveTitle')}</h3>
+            <p className="text-xs text-content-muted mt-1">{t('admin.plugins.dep.resolveBody', { name: data.plugin.name })}</p>
+          </div>
+        </div>
+        <div className="p-5 space-y-2.5">
+          {rows.map(r => (
+            <div key={r.id} className="flex items-center gap-3 p-3 rounded-xl border border-edge-secondary bg-surface-tertiary">
+              <div className="min-w-0 flex-1">
+                <div className="text-[13px] font-semibold text-content truncate">{r.id}</div>
+                <div className="text-[11.5px] text-content-muted mt-0.5">
+                  {r.installed
+                    ? t('admin.plugins.dep.mismatch', { wanted: r.constraint, installed: r.installed })
+                    : t('admin.plugins.dep.requires', { version: r.constraint })}
+                </div>
+              </div>
+              <button onClick={() => onDownload(r.id, r.constraint)} disabled={busy}
+                className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold px-3 py-1.5 rounded-full bg-accent text-accent-text hover:bg-accent-hover transition-colors disabled:opacity-50 shrink-0">
+                <Download size={13} /> {r.installed ? t('admin.plugins.dep.update') : t('admin.plugins.dep.download')}
+              </button>
+            </div>
+          ))}
+          {rows.some(r => !installedIds.has(r.id)) && (
+            <p className="text-[11.5px] text-content-faint pt-1">{t('admin.plugins.dep.resolveHint')}</p>
+          )}
+        </div>
+        <div className="px-5 py-3.5 border-t border-edge-secondary bg-surface-secondary flex items-center justify-end">
+          <button onClick={onClose} className="text-xs font-medium px-3.5 py-2 rounded-lg border border-edge text-content-muted hover:text-content hover:bg-surface-tertiary transition-colors">{t('common.cancel')}</button>
         </div>
       </div>
     </div>

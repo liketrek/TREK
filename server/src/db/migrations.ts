@@ -3470,6 +3470,19 @@ function runMigrations(db: Database.Database): void {
         if (!err.message?.includes('duplicate column name')) throw err;
       }
     },
+
+    // Plugin dependencies (#plugins): a plugin's trek-plugin.json can now declare
+    // `requiredAddons` (addon ids that must be enabled to activate) and
+    // `pluginDependencies` ({id, version-range} of other plugins that must be
+    // installed + satisfied). Stored as one JSON blob and populated by the
+    // discovery upsert on every install path. Legacy rows default to '{}' (no deps).
+    () => {
+      try {
+        db.exec("ALTER TABLE plugins ADD COLUMN dependencies TEXT NOT NULL DEFAULT '{}'");
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) throw err;
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {

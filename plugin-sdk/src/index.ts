@@ -93,6 +93,17 @@ export interface PluginContext {
     warn(msg: string, meta?: Record<string, unknown>): void;
     error(msg: string, meta?: Record<string, unknown>): void;
   };
+  /** Call a function another plugin exposes. `pluginId` must be a declared, version-
+   * satisfied dependency that lists `fn` in its manifest `capabilities.provides`. The
+   * call runs as the current acting user. */
+  plugins: {
+    call(pluginId: string, fn: string, args?: unknown): Promise<unknown>;
+  };
+  /** Publish an event to dependents that subscribed to it. `name` must be declared in
+   * this plugin's manifest `capabilities.emits`. Fire-and-forget. */
+  events: {
+    emit(name: string, payload?: unknown): void;
+  };
 }
 
 export interface PluginRequest {
@@ -167,6 +178,17 @@ export interface PluginEventSubscription {
   handler(payload: { event: string; tripId: number }, ctx: PluginContext): Promise<void> | void;
 }
 
+/** A function this plugin exposes to its dependents (declared in `capabilities.provides`). */
+export type PluginExport = (args: unknown, ctx: PluginContext) => Promise<unknown> | unknown;
+
+/** A subscription to another plugin's event. Authorized by declaring that plugin as a
+ * `pluginDependency`; the handler runs with NO user and receives the emitter's payload. */
+export interface PluginSubscription {
+  plugin: string;
+  event: string;
+  handler(payload: unknown, ctx: PluginContext): Promise<void> | void;
+}
+
 export interface PluginDefinition {
   onLoad?(ctx: PluginContext): Promise<void> | void;
   onUnload?(ctx: PluginContext): Promise<void> | void;
@@ -179,6 +201,10 @@ export interface PluginDefinition {
     placeDetailProvider?: PlaceDetailProvider;
     warningProvider?: WarningProvider;
   };
+  /** Functions exposed to dependents (names must match manifest `capabilities.provides`). */
+  exports?: Record<string, PluginExport>;
+  /** Subscriptions to other plugins' events (each `plugin` must be a declared dependency). */
+  subscriptions?: PluginSubscription[];
 }
 
 /** Define a plugin. Gives you types; the returned object is what TREK loads. */

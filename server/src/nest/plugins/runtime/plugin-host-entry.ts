@@ -100,7 +100,11 @@ async function boot(config: Record<string, unknown>): Promise<void> {
     const jobs = (def.jobs ?? []).map((j) => j.id);
     const hooks = Object.keys((def.hooks ?? {}) as Record<string, unknown>);
     const events = (def.events ?? []).map((e) => e.on);
-    send({ k: 'evt', topic: 'loaded', data: { routes, jobs, hooks, events } });
+    // Inter-plugin surface: the callable exports this plugin implements, and the
+    // other-plugin events it subscribes to (so the host can route fan-out).
+    const exportNames = Object.keys((def.exports ?? {}) as Record<string, unknown>);
+    const subscriptions = (def.subscriptions ?? []).map((s) => ({ plugin: s.plugin, event: s.event }));
+    send({ k: 'evt', topic: 'loaded', data: { routes, jobs, hooks, events, exports: exportNames, subscriptions } });
     // An immediate first heartbeat confirms liveness without waiting a full interval.
     send({ k: 'evt', topic: 'heartbeat', data: { rss: process.memoryUsage().rss } });
   } catch (e) {
@@ -155,6 +159,27 @@ async function handleInvoke(req: { id: string; method: string; params: Record<st
       const payload = { event: eventName, tripId };
       for (const sub of def.events ?? []) {
         if (sub.on === '*' || sub.on === eventName) await sub.handler(payload, invCtx);
+      }
+      respond(true, { ok: true });
+    } else if (req.method === 'invoke.export') {
+      // Another plugin (a declared dependent) called one of our exports. The host has
+      // already authorized the caller + the export name; run it with the per-invocation
+      // ctx so any trip reads bind to the CALLER's acting user (propagated by the host).
+      const fnName = req.params.fn as string;
+      const args = req.params.args;
+      const impl = (def.exports ?? {})[fnName];
+      if (typeof impl !== 'function') throw new Error(`no export ${fnName}`);
+      const result = await impl(args, invCtx);
+      respond(true, result);
+    } else if (req.method === 'invoke.pluginEvent') {
+      // Another plugin (a declared dependency of ours) emitted an event we subscribed
+      // to. Run every matching subscription. invCtx carries NO user (fire-and-forget),
+      // like a core event, but delivers the emitter's payload.
+      const source = req.params.source as string;
+      const eventName = req.params.event as string;
+      const payload = req.params.payload;
+      for (const sub of def.subscriptions ?? []) {
+        if (sub.plugin === source && sub.event === eventName) await sub.handler(payload, invCtx);
       }
       respond(true, { ok: true });
     } else {

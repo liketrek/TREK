@@ -51,6 +51,8 @@ interface Supervised {
   jobs: string[];
   hooks: string[]; // provider hooks the plugin implements (e.g. 'placeDetailProvider')
   events: string[]; // core events the plugin subscribes to (names or '*')
+  exports: string[]; // functions the plugin exposes to dependents (ctx.plugins.call)
+  subscriptions: Array<{ plugin: string; event: string }>; // other-plugin events it listens to
   pending: Map<string, Pending>; // host→child invokes awaiting a response
   invocations: Map<string, number | undefined>; // reqId -> acting user of that invoke (undefined = no user, e.g. a job)
   activation?: { resolve: () => void; reject: (e: Error) => void };
@@ -124,6 +126,8 @@ export class PluginSupervisor {
       jobs: [],
       hooks: [],
       events: [],
+      exports: [],
+      subscriptions: [],
       pending: new Map(),
       invocations: new Map(),
     };
@@ -190,6 +194,21 @@ export class PluginSupervisor {
     const out: string[] = [];
     for (const [id, sup] of this.running) {
       if (sup.status === 'active' && sup.hooks.includes(hook) && sup.granted.has(perm)) out.push(id);
+    }
+    return out;
+  }
+
+  /** Callable export names an ACTIVE plugin reported at load (ctx.plugins.call target). */
+  exportsOf(id: string): string[] {
+    const sup = this.running.get(id);
+    return sup && sup.status === 'active' ? sup.exports : [];
+  }
+
+  /** Ids of ACTIVE plugins that subscribed to `event` emitted by `sourceId`. */
+  subscribersOf(sourceId: string, event: string): string[] {
+    const out: string[] = [];
+    for (const [id, sup] of this.running) {
+      if (sup.status === 'active' && sup.subscriptions.some((s) => s.plugin === sourceId && s.event === event)) out.push(id);
     }
     return out;
   }
@@ -329,11 +348,18 @@ export class PluginSupervisor {
           // not be able to re-register its route table once it is live.
           if (sup.status === 'active') break;
           sup.lastBeat = Date.now();
-          const d = msg.data as { routes?: PluginRouteInfo[]; jobs?: string[]; hooks?: string[]; events?: string[] };
+          const d = msg.data as {
+            routes?: PluginRouteInfo[]; jobs?: string[]; hooks?: string[]; events?: string[];
+            exports?: string[]; subscriptions?: Array<{ plugin: string; event: string }>;
+          };
           sup.routes = d.routes ?? [];
           sup.jobs = d.jobs ?? [];
           sup.hooks = d.hooks ?? [];
           sup.events = d.events ?? [];
+          sup.exports = Array.isArray(d.exports) ? d.exports.filter((e): e is string => typeof e === 'string') : [];
+          sup.subscriptions = Array.isArray(d.subscriptions)
+            ? d.subscriptions.filter((s): s is { plugin: string; event: string } => !!s && typeof s.plugin === 'string' && typeof s.event === 'string')
+            : [];
           this.clearActivationTimer(sup);
           this.setStatus(sup, 'active');
           sup.activation?.resolve();

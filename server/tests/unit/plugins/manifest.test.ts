@@ -82,3 +82,35 @@ describe('parseManifest capabilities', () => {
     expect(() => parseManifest({ ...base, capabilities: { widget: { slot: 'floating' } } })).toThrow(ManifestError);
   });
 });
+
+describe('parseManifest dependencies', () => {
+  it('defaults to empty dependency lists', () => {
+    const m = parseManifest({ ...base });
+    expect(m.requiredAddons).toEqual([]);
+    expect(m.pluginDependencies).toEqual([]);
+  });
+
+  it('parses + de-duplicates requiredAddons', () => {
+    const m = parseManifest({ ...base, requiredAddons: ['budget', 'journey', 'budget'] });
+    expect(m.requiredAddons).toEqual(['budget', 'journey']);
+  });
+
+  it('rejects a malformed addon id', () => {
+    expect(() => parseManifest({ ...base, requiredAddons: ['Budget!'] })).toThrow(ManifestError);
+  });
+
+  it('parses pluginDependencies with semver ranges', () => {
+    const m = parseManifest({ ...base, pluginDependencies: [{ id: 'koffi', version: '>=1.2.0 <2.0.0' }] });
+    expect(m.pluginDependencies).toEqual([{ id: 'koffi', version: '>=1.2.0 <2.0.0' }]);
+  });
+
+  it('rejects an invalid dependency version range', () => {
+    expect(() => parseManifest({ ...base, pluginDependencies: [{ id: 'koffi', version: 'not-a-range' }] })).toThrow(ManifestError);
+  });
+
+  it('rejects a self dependency, a reserved id, and duplicates', () => {
+    expect(() => parseManifest({ ...base, pluginDependencies: [{ id: base.id, version: '*' }] })).toThrow(/itself/);
+    expect(() => parseManifest({ ...base, pluginDependencies: [{ id: 'registry', version: '*' }] })).toThrow(/reserved/);
+    expect(() => parseManifest({ ...base, pluginDependencies: [{ id: 'koffi', version: '*' }, { id: 'koffi', version: '^1' }] })).toThrow(/duplicate/);
+  });
+});

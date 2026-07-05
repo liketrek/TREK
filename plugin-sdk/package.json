@@ -63,7 +63,8 @@
     "dist"
   ],
   "dependencies": {
-    "@clack/prompts": "^1.7.0"
+    "@clack/prompts": "^1.7.0",
+    "semver": "^7.7.4"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.cjs.json && node scripts/finish-cjs.mjs",
@@ -73,6 +74,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.20.0",
+    "@types/semver": "^7.7.1",
     "typescript": "^5.9.3",
     "vitest": "^4.1.9"
   },

@@ -7,7 +7,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { validateManifest } from '../manifest.js';
+import { validateManifest, KNOWN_ADDONS } from '../manifest.js';
 import { readJsonFile } from './json.js';
 
 export interface ValidateReport {
@@ -32,6 +32,11 @@ export function validatePluginDir(dir: string): ValidateReport {
     // dir name should match the id
     if (manifestId && path.basename(path.resolve(dir)) !== manifestId) {
       warnings.push(`directory name should equal the plugin id "${manifestId}"`);
+    }
+    // A well-formed but unrecognised addon id is not an error (the plugin may target
+    // a newer TREK), but it can never enable here — surface it as a warning.
+    for (const a of res.manifest?.requiredAddons ?? []) {
+      if (!KNOWN_ADDONS.includes(a)) warnings.push(`requiredAddons: "${a}" is not a known TREK addon on this SDK version`);
     }
   } catch (e) {
     errors.push('trek-plugin.json is not valid JSON: ' + (e instanceof Error ? e.message : e));

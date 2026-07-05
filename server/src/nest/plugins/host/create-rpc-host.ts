@@ -62,11 +62,20 @@ export function closePluginDataDb(id: string): void {
   dataDbs.delete(id);
 }
 
-export function createRealRpcHost(id: string, granted: ReadonlySet<string>): PluginRpcHost {
+/** Routes inter-plugin calls/events; supplied by PluginRuntimeService (owns the supervisor). */
+export interface PluginCallRouter {
+  callPlugin(callerId: string, targetId: string, fn: string, args: unknown, actingUserId: number | undefined): Promise<unknown>;
+  emitPluginEvent(sourceId: string, event: string, payload: unknown): void;
+}
+
+export function createRealRpcHost(id: string, granted: ReadonlySet<string>, router: PluginCallRouter): PluginRpcHost {
   return new PluginRpcHost(id, granted, {
     data: getPluginDataDb(id),
     db,
     canAccessTrip: (tripId, userId) => canAccessTrip(tripId, userId),
+    // The router binds this host's plugin id as the caller/source.
+    callPlugin: (targetId, fn, args, actingUserId) => router.callPlugin(id, targetId, fn, args, actingUserId),
+    emitPluginEvent: (event, payload) => router.emitPluginEvent(id, event, payload),
     // Two users "share a trip" when both are owner-or-member of the same trip.
     canSeeUser: (actingUserId, targetUserId) =>
       !!db

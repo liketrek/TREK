@@ -51,6 +51,11 @@ export interface HostDeps {
   broadcastToUser(userId: number, payload: Record<string, unknown>): void;
   /** Optional sink for the capability audit log (host-side, hash-chained). */
   audit?(entry: { pluginId: string; actingUserId?: number; method: string; resource: string | null; code: string }): void;
+  /** Call an export on another plugin (this host's plugin is the caller). Authorizes
+   * the dependency edge + the target's `provides` allowlist, forwards the acting user. */
+  callPlugin(targetId: string, fn: string, args: unknown, actingUserId: number | undefined): Promise<unknown>;
+  /** Publish an event from this host's plugin to its subscribed dependents. */
+  emitPluginEvent(event: string, payload: unknown): void;
   /** True when the Costs (budget) addon is enabled — gates all costs.* methods. */
   budgetAddonEnabled(): boolean;
   /** True if the acting user may create costs on the trip (the 'budget_edit' permission). */
@@ -352,6 +357,18 @@ export class PluginRpcHost {
         return { ok: true };
       });
     }
+
+    // Inter-plugin capabilities (#plugins deps). Registered UNCONDITIONALLY — there
+    // is no permission for these; the router authorizes each call against the
+    // declared dependency edge + the target's `provides`/`emits` allowlist. The
+    // acting user is forwarded so the target's export runs as the caller's user.
+    this.methods.set('plugins.call', (p, uid) =>
+      deps.callPlugin(str(p.targetId, 'targetId'), str(p.fn, 'fn'), p.args, uid),
+    );
+    this.methods.set('events.emit', (p) => {
+      deps.emitPluginEvent(str(p.event, 'event'), p.payload);
+      return { ok: true };
+    });
   }
 
   /**

@@ -83,3 +83,40 @@ describe('isInteractive', () => {
     }
   });
 });
+
+describe('scaffold + validate dependencies', () => {
+  let tmp: string;
+  beforeEach(() => { tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'deps-')); });
+  afterEach(() => { fs.rmSync(tmp, { recursive: true, force: true }); });
+
+  it('scaffolds empty dependency arrays that validate', () => {
+    scaffold('dep-plug', 'integration', tmp, { permissions: ['db:own'] });
+    const m = JSON.parse(fs.readFileSync(path.join(tmp, 'dep-plug', 'trek-plugin.json'), 'utf8'));
+    expect(m.requiredAddons).toEqual([]);
+    expect(m.pluginDependencies).toEqual([]);
+    expect(validateManifest(m).ok).toBe(true);
+  });
+
+  it('scaffolds requiredAddons passed as an option', () => {
+    scaffold('addon-plug', 'integration', tmp, { permissions: ['db:own'], requiredAddons: ['budget'] });
+    const m = JSON.parse(fs.readFileSync(path.join(tmp, 'addon-plug', 'trek-plugin.json'), 'utf8'));
+    expect(m.requiredAddons).toEqual(['budget']);
+    expect(validateManifest(m).ok).toBe(true);
+  });
+});
+
+describe('validateManifest dependency rules', () => {
+  const base = { id: 'my-plug', name: 'My Plug', version: '1.0.0', type: 'integration', permissions: ['db:own'] };
+  it('accepts valid requiredAddons + pluginDependencies', () => {
+    const r = validateManifest({ ...base, requiredAddons: ['budget', 'journey'], pluginDependencies: [{ id: 'koffi', version: '>=1.0.0 <2.0.0' }] });
+    expect(r.ok).toBe(true);
+    expect(r.manifest?.requiredAddons).toEqual(['budget', 'journey']);
+    expect(r.manifest?.pluginDependencies).toEqual([{ id: 'koffi', version: '>=1.0.0 <2.0.0' }]);
+  });
+  it('rejects a bad addon id, bad dep range, self-dependency, and duplicates', () => {
+    expect(validateManifest({ ...base, requiredAddons: ['Nope!'] }).ok).toBe(false);
+    expect(validateManifest({ ...base, pluginDependencies: [{ id: 'koffi', version: 'nope' }] }).ok).toBe(false);
+    expect(validateManifest({ ...base, pluginDependencies: [{ id: 'my-plug', version: '*' }] }).ok).toBe(false);
+    expect(validateManifest({ ...base, pluginDependencies: [{ id: 'koffi', version: '*' }, { id: 'koffi', version: '^1' }] }).ok).toBe(false);
+  });
+});

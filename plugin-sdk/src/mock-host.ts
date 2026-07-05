@@ -33,6 +33,10 @@ export interface MockHostOptions {
   actingUserId?: number;
   /** Whether the Costs (budget) addon is enabled; gates all costs.* (default true). */
   budgetAddonEnabled?: boolean;
+  /** Exports of the plugins this one depends on, keyed by plugin id then fn name.
+   * `ctx.plugins.call(id, fn, args)` invokes the matching function; a missing entry
+   * throws RESOURCE_FORBIDDEN (models "not a satisfied dependency / not exported"). */
+  pluginExports?: Record<string, Record<string, (args: unknown) => unknown>>;
 }
 
 export interface MockHost {
@@ -41,6 +45,8 @@ export interface MockHost {
   calls: { method: string; args: unknown[] }[];
   logs: { level: string; msg: string }[];
   broadcasts: { kind: 'trip' | 'user'; target: number; event: string; data: unknown }[];
+  /** Events the plugin published via ctx.events.emit, for assertions. */
+  emitted: { name: string; payload: unknown }[];
 }
 
 class PermissionDenied extends Error {}
@@ -50,6 +56,7 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
   const calls: MockHost['calls'] = [];
   const logs: MockHost['logs'] = [];
   const broadcasts: MockHost['broadcasts'] = [];
+  const emitted: MockHost['emitted'] = [];
 
   const need = (perm: string, method: string) => {
     calls.push({ method, args: [] });
@@ -315,7 +322,21 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
       warn: (msg) => logs.push({ level: 'warn', msg }),
       error: (msg) => logs.push({ level: 'error', msg }),
     },
+    plugins: {
+      async call(pluginId, fn, args) {
+        calls.push({ method: 'plugins.call', args: [pluginId, fn, args] });
+        const impl = opts.pluginExports?.[pluginId]?.[fn];
+        if (typeof impl !== 'function') throw new Error(`RESOURCE_FORBIDDEN: plugin ${pluginId} does not export "${fn}"`);
+        return impl(args);
+      },
+    },
+    events: {
+      emit(name, payload) {
+        calls.push({ method: 'events.emit', args: [name, payload] });
+        emitted.push({ name, payload });
+      },
+    },
   };
 
-  return { ctx, calls, logs, broadcasts };
+  return { ctx, calls, logs, broadcasts, emitted };
 }

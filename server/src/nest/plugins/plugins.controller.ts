@@ -1,7 +1,8 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpException, Param, Post, Put, Query, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PluginsService } from './plugins.service';
-import { PluginRuntimeService, PluginConsentRequired } from './plugin-runtime.service';
+import { PluginRuntimeService, PluginConsentRequired, PluginDependencyError } from './plugin-runtime.service';
+import { DependencyCycleError } from './dependencies';
 import { PluginRegistryService } from './registry/registry.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
@@ -45,11 +46,15 @@ export class PluginsController {
 
   @Post('install')
   @HttpCode(200)
-  async install(@Body() body: { id?: string; version?: string }) {
+  async install(@Body() body: { id?: string; version?: string; constraint?: string; withDependencies?: boolean }) {
     if (!pluginsEnabled()) throw new HttpException({ error: 'Plugins are disabled by server configuration' }, 503);
     if (!body?.id) throw new HttpException({ error: 'id is required' }, 400);
     try {
-      return await this.registry.install(body.id, body.version);
+      // withDependencies (used by the "resolve missing dependency" admin flow) pulls
+      // the target + its transitive plugin deps, resolving each to its latest
+      // compatible version and reporting addons the admin still has to enable.
+      if (body.withDependencies) return await this.registry.installWithDependencies(body.id, body.constraint);
+      return await this.registry.install(body.id, { version: body.version, constraint: body.constraint });
     } catch (e) {
       throw new HttpException({ error: e instanceof Error ? e.message : 'install failed' }, 400);
     }
@@ -90,6 +95,14 @@ export class PluginsController {
       // them silently — surface a distinct code so the UI opens the consent dialog.
       if (e instanceof PluginConsentRequired) {
         throw new HttpException({ error: e.message, code: 'CONSENT_REQUIRED', newPermissions: e.newPermissions, newEgress: e.newEgress }, 409);
+      }
+      // Unmet dependency (disabled addon / missing / version-mismatched plugin) —
+      // the UI offers the right fix (enable addon, or download the dependency).
+      if (e instanceof PluginDependencyError) {
+        throw new HttpException({ error: e.message, code: e.code, ...e.detail }, 409);
+      }
+      if (e instanceof DependencyCycleError) {
+        throw new HttpException({ error: e.message, code: 'DEPENDENCY_CYCLE', cyclePath: e.cyclePath }, 409);
       }
       throw new HttpException({ error: e instanceof Error ? e.message : 'activation failed' }, 400);
     }

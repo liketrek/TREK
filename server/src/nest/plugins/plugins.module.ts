@@ -19,5 +19,8 @@ import { PluginRegistryService } from './registry/registry.service';
 @Module({
   controllers: [PluginsController, PluginsFeedController, PluginsProxyController, PluginFrameController, PlaceDetailsController, TripWarningsController],
   providers: [PluginsService, PluginRuntimeService, PluginRegistryService],
+  // Exported so the admin addon-toggle handler can cascade-disable plugins whose
+  // required addon was just turned off (#plugins dependencies).
+  exports: [PluginRuntimeService],
 })
 export class PluginsModule {}

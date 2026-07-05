@@ -38,6 +38,8 @@ export function auditResource(method: string, params: Record<string, unknown>): 
   if (method === 'users.getById') return `user:${params.id ?? '?'}`;
   if (method === 'ws.broadcastToTrip') return `trip:${params.tripId ?? '?'}`;
   if (method === 'ws.broadcastToUser') return `user:${params.userId ?? '?'}`;
+  if (method === 'plugins.call') return `plugin:${params.targetId ?? '?'}#${params.fn ?? '?'}`;
+  if (method === 'events.emit') return `event:${params.event ?? '?'}`;
   return null;
 }
 
@@ -53,7 +55,9 @@ export function isAuditable(method: string): boolean {
     method.startsWith('files.') ||
     method.startsWith('meta.') ||
     method.startsWith('users.') ||
-    method.startsWith('ws.')
+    method.startsWith('ws.') ||
+    method.startsWith('plugins.') ||
+    method.startsWith('events.')
   );
 }
 

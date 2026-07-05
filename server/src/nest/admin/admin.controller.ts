@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpException, NotFoundException, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import { AdminService } from './admin.service';
+import { PluginRuntimeService } from '../plugins/plugin-runtime.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -30,7 +31,10 @@ function ok<T>(result: T): Exclude<T, { error: string }> {
 @Controller('api/admin')
 @UseGuards(JwtAuthGuard, AdminGuard)
 export class AdminController {
-  constructor(private readonly admin: AdminService) {}
+  constructor(
+    private readonly admin: AdminService,
+    private readonly pluginRuntime: PluginRuntimeService,
+  ) {}
 
   // ── Users ──
   @Get('users')
@@ -271,13 +275,19 @@ export class AdminController {
   listAddons() { return { addons: this.admin.listAddons() }; }
 
   @Put('addons/:id')
-  updateAddon(@CurrentUser() user: User, @Param('id') id: string, @Body() body: unknown, @Req() req: Request) {
+  async updateAddon(@CurrentUser() user: User, @Param('id') id: string, @Body() body: unknown, @Req() req: Request) {
     const result = ok(this.admin.updateAddon(id, body));
     writeAudit({ userId: user.id, action: 'admin.addon_update', resource: String(id), ip: getClientIp(req), details: result.auditDetails });
     // Sessions only need re-creating when the registered MCP surface can
     // actually change — an enabled-flip of an MCP-relevant addon. Config-only
     // saves and photo-provider toggles used to kill every session (#1414).
     if (result.mcpAffected) this.admin.invalidateMcpSessions();
+    // Disabling an addon cascades to plugins that require it: stop them (and any
+    // plugin that transitively depends on them) so a plugin never runs against a
+    // disabled addon (#plugins dependencies).
+    if (result.addon && result.addon.enabled === false && (body as { enabled?: boolean })?.enabled === false) {
+      await this.pluginRuntime.deactivateForDisabledAddon(id);
+    }
     return { addon: result.addon };
   }
 

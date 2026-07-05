@@ -12,18 +12,20 @@ const { testDb } = vi.hoisted(() => {
   const Database = require('better-sqlite3');
   const db = new Database(':memory:');
   db.exec(`CREATE TABLE plugins (
-    id TEXT PRIMARY KEY, status TEXT, enabled INTEGER DEFAULT 0, permissions TEXT DEFAULT '[]', granted_permissions TEXT DEFAULT '',
-    config TEXT DEFAULT '{}', last_error TEXT, updated_at TEXT);
+    id TEXT PRIMARY KEY, status TEXT, enabled INTEGER DEFAULT 0, version TEXT, permissions TEXT DEFAULT '[]', granted_permissions TEXT DEFAULT '',
+    config TEXT DEFAULT '{}', dependencies TEXT DEFAULT '{}', capabilities TEXT DEFAULT '{}', last_error TEXT, updated_at TEXT);
     CREATE TABLE plugin_error_log (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, level TEXT, message TEXT, ts TEXT);
     CREATE TABLE plugin_settings_fields (plugin_id TEXT, field_key TEXT, scope TEXT, secret INTEGER);
     CREATE TABLE settings (user_id INTEGER, key TEXT, value TEXT);
-    CREATE TABLE plugin_entity_metadata (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, entity_type TEXT, entity_id INTEGER, key TEXT, value TEXT, updated_at TEXT);`);
+    CREATE TABLE plugin_entity_metadata (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, entity_type TEXT, entity_id INTEGER, key TEXT, value TEXT, updated_at TEXT);
+    CREATE TABLE addons (id TEXT PRIMARY KEY, enabled INTEGER DEFAULT 0);`);
   return { testDb: db };
 });
 vi.mock('../../../src/db/database', () => ({ db: testDb, canAccessTrip: () => undefined }));
 vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 
-import { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
+import { PluginRuntimeService, PluginDependencyError } from '../../../src/nest/plugins/plugin-runtime.service';
+import { DependencyCycleError } from '../../../src/nest/plugins/dependencies';
 
 let codeRoot: string;
 let dataRoot: string;
@@ -265,5 +267,118 @@ describe('PluginRuntimeService.update (re-consent gate)', () => {
   it('throws if no registry service is wired', async () => {
     seed('upd-noreg', 0, ['db:own'], ['db:own']);
     await expect(new PluginRuntimeService().update('upd-noreg')).rejects.toThrow(/registry service unavailable/);
+  });
+});
+
+describe('PluginRuntimeService dependency gating', () => {
+  const deps = (d: { requiredAddons?: string[]; pluginDependencies?: { id: string; version: string }[] }) =>
+    JSON.stringify({ requiredAddons: d.requiredAddons ?? [], pluginDependencies: d.pluginDependencies ?? [] });
+  const insertPlugin = (id: string, dependencies: string, enabled = 0, version = '1.0.0') =>
+    testDb.prepare("INSERT INTO plugins (id, status, enabled, version, permissions, granted_permissions, config, dependencies) VALUES (?, 'inactive', ?, ?, '[]', '[]', '{}', ?)")
+      .run(id, enabled, version, dependencies);
+  const cleanup = (...ids: string[]) => { for (const id of ids) testDb.prepare('DELETE FROM plugins WHERE id = ?').run(id); };
+
+  it('blocks activation when a required addon is disabled', async () => {
+    testDb.prepare("INSERT OR REPLACE INTO addons (id, enabled) VALUES ('budget', 0)").run();
+    insertPlugin('needs-budget', deps({ requiredAddons: ['budget'] }));
+    await expect(runtime.activate('needs-budget')).rejects.toMatchObject({ code: 'ADDON_DISABLED' });
+    expect((testDb.prepare('SELECT enabled FROM plugins WHERE id = ?').get('needs-budget') as { enabled: number }).enabled).toBe(0);
+    cleanup('needs-budget');
+  });
+
+  it('activates once the required addon is enabled', async () => {
+    testDb.prepare("INSERT OR REPLACE INTO addons (id, enabled) VALUES ('budget', 1)").run();
+    insertPlugin('needs-budget2', deps({ requiredAddons: ['budget'] }));
+    // No code on disk → the supervisor spawn fails, but the addon gate passed (it did
+    // not throw PluginDependencyError). Assert it got past the gate to the spawn.
+    await expect(runtime.activate('needs-budget2')).rejects.not.toBeInstanceOf(PluginDependencyError);
+    cleanup('needs-budget2');
+  });
+
+  it('blocks activation when a plugin dependency is missing', async () => {
+    insertPlugin('needs-ghost', deps({ pluginDependencies: [{ id: 'ghost', version: '*' }] }));
+    await expect(runtime.activate('needs-ghost')).rejects.toMatchObject({ code: 'DEPENDENCY_MISSING' });
+    cleanup('needs-ghost');
+  });
+
+  it('blocks activation when a dependency version does not satisfy the range', async () => {
+    insertPlugin('dep-lib', deps({}), 1, '1.0.0');
+    insertPlugin('needs-v2', deps({ pluginDependencies: [{ id: 'dep-lib', version: '>=2.0.0' }] }));
+    const err = await runtime.activate('needs-v2').catch((e) => e);
+    expect(err).toBeInstanceOf(PluginDependencyError);
+    expect(err.detail.versionMismatch).toEqual([{ id: 'dep-lib', wanted: '>=2.0.0', installed: '1.0.0' }]);
+    cleanup('needs-v2', 'dep-lib');
+  });
+
+  it('refuses a dependency cycle', async () => {
+    insertPlugin('cyc-a', deps({ pluginDependencies: [{ id: 'cyc-b', version: '*' }] }));
+    insertPlugin('cyc-b', deps({ pluginDependencies: [{ id: 'cyc-a', version: '*' }] }));
+    await expect(runtime.activate('cyc-a')).rejects.toBeInstanceOf(DependencyCycleError);
+    cleanup('cyc-a', 'cyc-b');
+  });
+
+  it('deactivateForDisabledAddon disables plugins requiring the addon and their dependents', async () => {
+    insertPlugin('base-b', deps({ requiredAddons: ['budget'] }), 1);
+    insertPlugin('dependent-b', deps({ pluginDependencies: [{ id: 'base-b', version: '*' }] }), 1);
+    insertPlugin('unrelated-b', deps({}), 1);
+    const disabled = await runtime.deactivateForDisabledAddon('budget');
+    expect(disabled.sort()).toEqual(['base-b', 'dependent-b']);
+    expect((testDb.prepare('SELECT enabled FROM plugins WHERE id = ?').get('base-b') as { enabled: number }).enabled).toBe(0);
+    expect((testDb.prepare('SELECT enabled FROM plugins WHERE id = ?').get('unrelated-b') as { enabled: number }).enabled).toBe(1);
+    cleanup('base-b', 'dependent-b', 'unrelated-b');
+  });
+});
+
+describe('PluginRuntimeService inter-plugin (exports + events)', () => {
+  beforeAll(async () => {
+    fs.mkdirSync(path.join(codeRoot, 'lib', 'server'), { recursive: true });
+    fs.writeFileSync(
+      path.join(codeRoot, 'lib', 'server', 'index.js'),
+      `module.exports = {
+        async onLoad(ctx) { ctx.events.emit('ping', { hi: true }); },
+        exports: { async greet(args) { return { greeting: 'hi ' + (args && args.who), from: 'lib' }; } },
+        routes: [],
+      };`,
+    );
+    fs.mkdirSync(path.join(codeRoot, 'consumer', 'server'), { recursive: true });
+    fs.writeFileSync(
+      path.join(codeRoot, 'consumer', 'server', 'index.js'),
+      `module.exports = {
+        subscriptions: [{ plugin: 'lib', event: 'ping', async handler(payload, ctx) { ctx.log.info('got ping', payload); } }],
+        routes: [{ method: 'GET', path: '/call', auth: false, async handler(_req, ctx) {
+          const r = await ctx.plugins.call('lib', 'greet', { who: 'consumer' });
+          return { status: 200, headers: { 'content-type': 'application/json' }, body: JSON.stringify(r) };
+        } }],
+      };`,
+    );
+    testDb.prepare("INSERT INTO plugins (id, status, version, permissions, config, capabilities, dependencies) VALUES ('lib','inactive','1.5.0','[]','{}',?,'{}')")
+      .run(JSON.stringify({ provides: ['greet'], emits: ['ping'] }));
+    testDb.prepare("INSERT INTO plugins (id, status, version, permissions, config, capabilities, dependencies) VALUES ('consumer','inactive','1.0.0','[]','{}','{}',?)")
+      .run(JSON.stringify({ requiredAddons: [], pluginDependencies: [{ id: 'lib', version: '>=1.0.0 <2.0.0' }] }));
+    await runtime.activate('lib');
+    await runtime.activate('consumer');
+  });
+  afterAll(async () => {
+    await runtime.deactivate('consumer').catch(() => {});
+    await runtime.deactivate('lib').catch(() => {});
+  });
+
+  it('routes ctx.plugins.call through the host to the dependency export', async () => {
+    const res = (await runtime.invoke('consumer', 'invoke.route', {
+      routeId: 0,
+      req: { method: 'GET', path: '/call', query: {}, body: null, user: { id: 7, username: 'x', isAdmin: false } },
+    })) as { status: number; body: string };
+    expect(res.status).toBe(200);
+    expect(JSON.parse(res.body)).toEqual({ greeting: 'hi consumer', from: 'lib' });
+  });
+
+  it('refuses a call from a non-dependent and to an undeclared export', async () => {
+    await expect(runtime.callPlugin('lib', 'consumer', 'anything', {}, 7)).rejects.toThrow(/does not declare|not active|does not export/);
+    await expect(runtime.callPlugin('consumer', 'lib', 'nope', {}, 7)).rejects.toThrow(/does not export/);
+  });
+
+  it('emitPluginEvent validates the declared event and fans out without throwing', () => {
+    expect(() => runtime.emitPluginEvent('lib', 'ping', { x: 1 })).not.toThrow();
+    expect(() => runtime.emitPluginEvent('lib', 'not-declared', {})).toThrow(/does not declare event/);
   });
 });

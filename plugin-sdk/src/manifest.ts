@@ -4,6 +4,12 @@
  * result (no throw) so the CLI can print every problem at once.
  */
 
+import { validRange } from 'semver';
+
+export interface PluginDependency {
+  id: string;
+  version: string;
+}
 export interface PluginManifest {
   id: string;
   name: string;
@@ -13,6 +19,8 @@ export interface PluginManifest {
   permissions: string[];
   egress: string[];
   nativeModules?: boolean;
+  requiredAddons: string[];
+  pluginDependencies: PluginDependency[];
 }
 export interface ValidationResult {
   ok: boolean;
@@ -25,6 +33,14 @@ const ID_RE = /^[a-z][a-z0-9-]{2,39}$/;
 // install loader, so surface it locally too.
 const RESERVED_IDS = new Set(['registry', 'install', 'rescan']);
 const SEMVER_RE = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+// Addon-id format (lowercase slug, underscores allowed e.g. `llm_parsing`).
+const ADDON_ID_RE = /^[a-z][a-z0-9_]{1,39}$/;
+// Mirror of the server's ADDON_IDS (server/src/addons.ts). Kept in sync so
+// `trek-plugin validate` can WARN on an addon id TREK doesn't know — never a hard
+// error (a plugin built for a newer TREK may reference an addon this SDK predates).
+export const KNOWN_ADDONS = [
+  'mcp', 'packing', 'budget', 'documents', 'vacay', 'atlas', 'collab', 'journey', 'airtrail', 'llm_parsing', 'collections',
+];
 // An outbound host: exact hostname (single-label sibling or dotted FQDN) or a
 // `*.`-wildcard with a multi-label suffix. No `*`, no `*.`, no whole-TLD `*.com`,
 // no spaces (mirrors the server manifest validator).
@@ -73,10 +89,16 @@ export function validateManifest(raw: unknown): ValidationResult {
   if (egress.includes('*')) errors.push('egress[] must not contain a bare "*"');
   for (const h of egress) if (!HOST_RE.test(h)) errors.push(`invalid egress host "${h}"`);
 
-  const widget = (m.capabilities as { widget?: { slot?: unknown } } | undefined)?.widget;
+  const capabilities = (m.capabilities ?? undefined) as { widget?: { slot?: unknown }; provides?: unknown; emits?: unknown } | undefined;
+  const widget = capabilities?.widget;
   if (widget?.slot !== undefined && widget.slot !== 'sidebar' && widget.slot !== 'hero' && widget.slot !== 'place-detail') {
     errors.push(`widget slot must be "sidebar", "hero" or "place-detail", got "${String(widget.slot)}"`);
   }
+  validateCapabilityNames(capabilities?.provides, 'provides', errors);
+  validateCapabilityNames(capabilities?.emits, 'emits', errors);
+
+  const requiredAddons = validateRequiredAddons(m.requiredAddons, errors);
+  const pluginDependencies = validatePluginDependencies(m.pluginDependencies, typeof m.id === 'string' ? m.id : '', errors);
 
   if (errors.length) return { ok: false, errors };
   return {
@@ -91,6 +113,66 @@ export function validateManifest(raw: unknown): ValidationResult {
       permissions,
       egress,
       nativeModules: false,
+      requiredAddons,
+      pluginDependencies,
     },
   };
+}
+
+// Export/event names exposed to other plugins (dots allowed for event names).
+const CAPABILITY_NAME_RE = /^[a-zA-Z][a-zA-Z0-9._-]{0,63}$/;
+
+function validateCapabilityNames(raw: unknown, field: string, errors: string[]): void {
+  if (raw === undefined) return;
+  if (!Array.isArray(raw)) {
+    errors.push(`capabilities.${field} must be an array of names`);
+    return;
+  }
+  for (const v of raw) {
+    if (typeof v !== 'string' || !CAPABILITY_NAME_RE.test(v)) errors.push(`invalid capabilities.${field} entry "${String(v)}"`);
+  }
+}
+
+function validateRequiredAddons(raw: unknown, errors: string[]): string[] {
+  if (raw === undefined) return [];
+  if (!Array.isArray(raw)) {
+    errors.push('requiredAddons must be an array of addon ids');
+    return [];
+  }
+  const out: string[] = [];
+  for (const v of raw) {
+    if (typeof v !== 'string' || !ADDON_ID_RE.test(v)) {
+      errors.push(`invalid requiredAddons entry "${String(v)}"`);
+      continue;
+    }
+    if (!out.includes(v)) out.push(v);
+  }
+  return out;
+}
+
+function validatePluginDependencies(raw: unknown, selfId: string, errors: string[]): PluginDependency[] {
+  if (raw === undefined) return [];
+  if (!Array.isArray(raw)) {
+    errors.push('pluginDependencies must be an array of { id, version }');
+    return [];
+  }
+  const out: PluginDependency[] = [];
+  for (const v of raw) {
+    if (!v || typeof v !== 'object') {
+      errors.push('each pluginDependencies entry must be an object');
+      continue;
+    }
+    const d = v as Record<string, unknown>;
+    const id = typeof d.id === 'string' ? d.id : '';
+    const version = typeof d.version === 'string' ? d.version : '';
+    if (!ID_RE.test(id)) errors.push(`invalid pluginDependencies id "${id}"`);
+    else if (RESERVED_IDS.has(id)) errors.push(`pluginDependencies id "${id}" is reserved`);
+    else if (id === selfId) errors.push(`plugin "${selfId}" cannot depend on itself`);
+    else if (out.some((e) => e.id === id)) errors.push(`duplicate pluginDependencies id "${id}"`);
+    if (!version || validRange(version) === null) errors.push(`invalid pluginDependencies version range "${version}" for "${id || '?'}"`);
+    if (ID_RE.test(id) && !RESERVED_IDS.has(id) && id !== selfId && version && validRange(version) !== null && !out.some((e) => e.id === id)) {
+      out.push({ id, version });
+    }
+  }
+  return out;
 }

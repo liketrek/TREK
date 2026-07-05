@@ -3,8 +3,13 @@ import { db } from '../../db/database';
 import { pluginsEnabled } from './kill-switch';
 import { maybe_encrypt_api_key } from '../../services/apiKeyCrypto';
 import { readAudit } from './host/plugin-audit';
+import { isAddonEnabled } from '../../services/adminService';
+import { parseDependencies, disabledRequiredAddons, resolveDependencyState, type PluginDepRow, type PluginDependencies, type VersionMismatch } from './dependencies';
+import type { PluginDependency } from './install/manifest';
 
 const SECRET_MASK = '••••••••';
+
+export type PluginDependencyStatus = 'ok' | 'addonDisabled' | 'missingPlugin';
 
 /**
  * Read side of the plugin system (#plugins), M0 scaffold. Lists installed
@@ -12,6 +17,23 @@ const SECRET_MASK = '••••••••';
  * enabled (TREK_PLUGINS_ENABLED). No execution here — the isolated runtime,
  * install pipeline and registry fetch land in later milestones.
  */
+
+interface PluginRawRow {
+  id: string;
+  name: string;
+  description: string | null;
+  type: string;
+  icon: string | null;
+  version: string | null;
+  status: string;
+  enabled: number;
+  last_error: string | null;
+  reviewed_at: string | null;
+  source_repo: string | null;
+  permissions: string;
+  capabilities: string;
+  dependencies: string | null;
+}
 
 export interface PluginListItem {
   id: string;
@@ -29,19 +51,45 @@ export interface PluginListItem {
   permissions: string;
   /** Declared capabilities (JSON string) — e.g. widget slot. */
   capabilities: string;
+  /** Declared dependencies (parsed) — required addons + plugin deps. */
+  dependencies: PluginDependencies;
+  /** Whether this plugin can currently activate, and why not if it can't. */
+  dependencyStatus: PluginDependencyStatus;
+  /** The concrete blockers, so the UI can render chips + the resolve dialog. */
+  dependencyIssues: { disabledAddons: string[]; missing: PluginDependency[]; versionMismatch: VersionMismatch[] };
 }
 
 @Injectable()
 export class PluginsService {
   list(): { enabled: boolean; plugins: PluginListItem[] } {
-    const plugins = db
+    const rows = db
       .prepare(
         `SELECT id, name, description, type, icon, version, status, enabled, last_error, reviewed_at, source_repo,
-                permissions, capabilities
+                permissions, capabilities, dependencies
          FROM plugins
          ORDER BY sort_order, name`,
       )
-      .all() as PluginListItem[];
+      .all() as PluginRawRow[];
+    const installed = new Map<string, PluginDepRow>(
+      rows.map((r) => [r.id, { id: r.id, version: r.version, enabled: r.enabled, dependencies: r.dependencies }]),
+    );
+    const plugins: PluginListItem[] = rows.map((r) => {
+      const deps = parseDependencies(r.dependencies);
+      const disabledAddons = disabledRequiredAddons(deps, isAddonEnabled);
+      const state = resolveDependencyState(deps, installed);
+      const dependencyStatus: PluginDependencyStatus = disabledAddons.length
+        ? 'addonDisabled'
+        : state.missing.length || state.versionMismatch.length
+          ? 'missingPlugin'
+          : 'ok';
+      const { dependencies: _raw, ...rest } = r;
+      return {
+        ...rest,
+        dependencies: deps,
+        dependencyStatus,
+        dependencyIssues: { disabledAddons, missing: state.missing, versionMismatch: state.versionMismatch },
+      };
+    });
     return { enabled: pluginsEnabled(), plugins };
   }
 

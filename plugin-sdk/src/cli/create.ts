@@ -14,6 +14,7 @@ import {
   promptText, promptSelect, promptMultiselect, promptConfirm,
   PERMISSION_CATALOG,
 } from './ui.js';
+import { KNOWN_ADDONS } from '../manifest.js';
 
 /** This package's own version, for the scaffold's devDependency range. */
 function sdkVersionRange(): string {
@@ -31,6 +32,10 @@ export interface ScaffoldOptions {
   permissions?: string[];
   /** External hosts the plugin may call — required by the manifest when `http:outbound` is granted. */
   egress?: string[];
+  /** Addon ids that must be enabled for this plugin to activate. */
+  requiredAddons?: string[];
+  /** Other plugins this one depends on, each pinned by a semver range. */
+  pluginDependencies?: Array<{ id: string; version: string }>;
 }
 
 export function scaffold(name: string, type: string, targetDir: string, opts: ScaffoldOptions = {}): void {
@@ -53,6 +58,11 @@ export function scaffold(name: string, type: string, targetDir: string, opts: Sc
     trek: '>=3.2.1 <4.0.0',
     nativeModules: false,
     permissions: perms,
+    // Dependency declarations (empty by default). `requiredAddons` lists addon ids
+    // that must be enabled to activate; `pluginDependencies` lists other plugins
+    // ({ id, version-range }) that must be installed + satisfied first.
+    requiredAddons: opts.requiredAddons ?? [],
+    pluginDependencies: opts.pluginDependencies ?? [],
     routes: [{ method: 'GET', path: '/hello', auth: true }],
   };
   if (opts.egress?.length) manifest.egress = opts.egress;
@@ -262,6 +272,13 @@ export async function interactiveScaffold(defaultDir: string, presetName?: strin
     egress = raw.split(',').map((s) => s.trim()).filter(Boolean);
   }
 
+  const requiredAddons = await promptMultiselect<string>({
+    message: 'Requires any TREK addons enabled? (optional — the plugin can only activate when these are on)',
+    options: KNOWN_ADDONS.map((a) => ({ value: a, label: a })),
+    initialValues: [],
+    required: false,
+  });
+
   note(
     [
       `id           ${id}`,
@@ -270,6 +287,7 @@ export async function interactiveScaffold(defaultDir: string, presetName?: strin
       `author       ${author}`,
       `permissions  ${permissions.join(', ') || '(none)'}`,
       egress ? `egress       ${egress.join(', ')}` : undefined,
+      requiredAddons.length ? `addons       ${requiredAddons.join(', ')}` : undefined,
     ].filter(Boolean).join('\n'),
     'Review',
   );
@@ -280,7 +298,7 @@ export async function interactiveScaffold(defaultDir: string, presetName?: strin
     process.exit(0);
   }
 
-  scaffold(id, type, parentDir, { author, description, permissions, egress });
+  scaffold(id, type, parentDir, { author, description, permissions, egress, requiredAddons });
   logSuccess(`Created ${dest}`);
 
   if (!insideGitRepo(parentDir)) {

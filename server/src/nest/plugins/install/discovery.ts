@@ -41,19 +41,20 @@ export function discoverPlugins(db: BetterSqlite3.Database): { discovered: strin
 }
 
 function upsert(db: BetterSqlite3.Database, m: PluginManifest): void {
+  const dependencies = JSON.stringify({ requiredAddons: m.requiredAddons, pluginDependencies: m.pluginDependencies });
   const existing = db.prepare('SELECT id FROM plugins WHERE id = ?').get(m.id) as { id: string } | undefined;
   if (existing) {
     db.prepare(
       `UPDATE plugins SET name = ?, description = ?, type = ?, icon = ?, version = ?, api_version = ?,
-         min_trek_version = ?, permissions = ?, capabilities = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-    ).run(m.name, m.description ?? null, m.type, m.icon ?? 'Blocks', m.version, m.apiVersion, m.minTrekVersion ?? null, JSON.stringify(m.permissions), JSON.stringify(m.capabilities), m.id);
+         min_trek_version = ?, permissions = ?, capabilities = ?, dependencies = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    ).run(m.name, m.description ?? null, m.type, m.icon ?? 'Blocks', m.version, m.apiVersion, m.minTrekVersion ?? null, JSON.stringify(m.permissions), JSON.stringify(m.capabilities), dependencies, m.id);
   } else {
     db.prepare(
       // granted_permissions '' (empty, not '[]') marks "never consented" so the
       // first activation is distinguishable from a plugin consented to zero perms.
-      `INSERT INTO plugins (id, name, description, type, icon, version, api_version, min_trek_version, permissions, capabilities, granted_permissions, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', 'inactive')`,
-    ).run(m.id, m.name, m.description ?? null, m.type, m.icon ?? 'Blocks', m.version, m.apiVersion, m.minTrekVersion ?? null, JSON.stringify(m.permissions), JSON.stringify(m.capabilities));
+      `INSERT INTO plugins (id, name, description, type, icon, version, api_version, min_trek_version, permissions, capabilities, dependencies, granted_permissions, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', 'inactive')`,
+    ).run(m.id, m.name, m.description ?? null, m.type, m.icon ?? 'Blocks', m.version, m.apiVersion, m.minTrekVersion ?? null, JSON.stringify(m.permissions), JSON.stringify(m.capabilities), dependencies);
   }
 
   // Refresh the settings-field descriptors from the manifest.
