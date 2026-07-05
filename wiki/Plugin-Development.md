@@ -133,6 +133,7 @@ declaration for readers — the manifest parser does not consume it.
 | `ctx.places` | `create(tripId, fields)` / `update(tripId, placeId, fields)` / `delete(tripId, placeId)` | `db:write:places` |
 | `ctx.days` | `create(tripId, {date?, notes?})` / `update(tripId, dayId, {notes?, title?})` / `delete(tripId, dayId)` | `db:write:days` |
 | `ctx.itinerary` | `assign(tripId, dayId, placeId, notes?)` / `unassign(tripId, assignmentId)` — place↔day | `db:write:itinerary` |
+| `ctx.meta` | `get` / `set` / `list` / `delete` your **own** namespaced data on a `trip`/`place`/`day` (enrich core entities without forking the schema) | `db:meta` |
 | `ctx.costs` | `getByTrip(tripId)` / `listMine()` — read budget items (membership-checked) | `db:read:costs` |
 | `ctx.costs.create(tripId, input)` | create a budget item (validated, broadcasts `budget:created`) | `db:write:costs` |
 | `ctx.users` | `getById(id)` — public profile only (`id, username, display_name, avatar`) | `db:read:users` |

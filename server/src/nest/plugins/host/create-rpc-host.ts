@@ -31,6 +31,11 @@ function canEditTripAs(action: string, tripId: number, userId: number): boolean 
 // matches a normal web-app budget write exactly (it has no injected deps).
 const budgetSvc = new BudgetService();
 
+// Quotas for plugin entity metadata (db:meta) — a cheap disk-DoS guard on the
+// shared trek.db volume. Generous for real use, small enough to bound abuse.
+const META_VALUE_MAX = 64 * 1024; // serialized JSON bytes per value
+const META_KEYS_MAX = 100; // keys per (plugin, entity)
+
 /**
  * Wires a plugin's capability host to the REAL privileged modules (#plugins,
  * M1). This is the ONLY plugin file that imports db/websocket — it runs in the
@@ -172,6 +177,50 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>): Plu
         if (e instanceof NotFoundError) throw new ForbiddenResource(e.message);
         throw e;
       }
+    },
+    // --- Plugin metadata (db:meta). A per-plugin namespaced key/value store keyed
+    // to a core entity; the plugin only ever sees rows tagged with its own id. ---
+    metaEntityTrip: (entityType, entityId) => {
+      if (entityType === 'trip') {
+        return (db.prepare('SELECT id FROM trips WHERE id = ?').get(entityId) as { id: number } | undefined)?.id;
+      }
+      const table = entityType === 'place' ? 'places' : 'days';
+      return (db.prepare(`SELECT trip_id FROM ${table} WHERE id = ?`).get(entityId) as { trip_id: number } | undefined)?.trip_id;
+    },
+    metaGet: (entityType, entityId, key) => {
+      const row = db.prepare('SELECT value FROM plugin_entity_metadata WHERE plugin_id=? AND entity_type=? AND entity_id=? AND key=?')
+        .get(id, entityType, entityId, key) as { value: string } | undefined;
+      if (!row) return null;
+      try { return JSON.parse(row.value); } catch { return null; }
+    },
+    metaSet: (entityType, entityId, key, value) => {
+      const json = JSON.stringify(value ?? null);
+      if (json.length > META_VALUE_MAX) throw new BadParams(`metadata value too large (>${META_VALUE_MAX} bytes)`);
+      const exists = db.prepare('SELECT 1 FROM plugin_entity_metadata WHERE plugin_id=? AND entity_type=? AND entity_id=? AND key=?')
+        .get(id, entityType, entityId, key);
+      if (!exists) {
+        const { n } = db.prepare('SELECT COUNT(*) AS n FROM plugin_entity_metadata WHERE plugin_id=? AND entity_type=? AND entity_id=?')
+          .get(id, entityType, entityId) as { n: number };
+        if (n >= META_KEYS_MAX) throw new BadParams(`too many metadata keys on this ${entityType} (max ${META_KEYS_MAX})`);
+      }
+      db.prepare(`INSERT INTO plugin_entity_metadata (plugin_id, entity_type, entity_id, key, value, updated_at)
+                  VALUES (?, ?, ?, ?, ?, datetime('now'))
+                  ON CONFLICT(plugin_id, entity_type, entity_id, key)
+                  DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`)
+        .run(id, entityType, entityId, key, json);
+      return { key, value: value ?? null };
+    },
+    metaList: (entityType, entityId) => {
+      const list = db.prepare('SELECT key, value FROM plugin_entity_metadata WHERE plugin_id=? AND entity_type=? AND entity_id=? ORDER BY key')
+        .all(id, entityType, entityId) as Array<{ key: string; value: string }>;
+      const out: Record<string, unknown> = {};
+      for (const r of list) { try { out[r.key] = JSON.parse(r.value); } catch { out[r.key] = null; } }
+      return out;
+    },
+    metaDelete: (entityType, entityId, key) => {
+      const res = db.prepare('DELETE FROM plugin_entity_metadata WHERE plugin_id=? AND entity_type=? AND entity_id=? AND key=?')
+        .run(id, entityType, entityId, key);
+      return { deleted: res.changes > 0 };
     },
   });
 }

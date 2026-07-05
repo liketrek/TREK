@@ -33,6 +33,7 @@ const TYPES = ['integration', 'page', 'widget', 'trip-page'];
 const KNOWN_PERMISSIONS = [
   'db:own', 'db:read:trips', 'db:read:users', 'db:read:costs', 'db:write:costs',
   'db:write:places', 'db:write:days', 'db:write:itinerary', 'db:write:trips',
+  'db:meta',
   'ws:broadcast:trip', 'ws:broadcast:user',
   'hook:photo-provider', 'hook:calendar-source', 'http:outbound',
 ];

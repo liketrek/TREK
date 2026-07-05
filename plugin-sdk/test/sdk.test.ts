@@ -130,6 +130,17 @@ describe('createMockHost', () => {
     await expect(ctx.places.create(1, { name: 'X' })).rejects.toThrow(/PERMISSION_DENIED/);
   });
 
+  it('ctx.meta stores/reads/lists/deletes namespaced metadata, gated on db:meta', async () => {
+    const { ctx } = createMockHost({ grants: ['db:meta'], actingUserId: 42, trips: { 1: { members: [42] } } });
+    await ctx.meta.set('trip', 1, 'rating', 5);
+    expect(await ctx.meta.get('trip', 1, 'rating')).toBe(5);
+    expect(await ctx.meta.list('trip', 1)).toEqual({ rating: 5 });
+    expect(await ctx.meta.delete('trip', 1, 'rating')).toEqual({ deleted: true });
+    expect(await ctx.meta.get('trip', 1, 'rating')).toBe(null);
+    const ungranted = createMockHost({ grants: [], actingUserId: 42, trips: { 1: { members: [42] } } });
+    await expect(ungranted.ctx.meta.get('trip', 1, 'x')).rejects.toThrow(/PERMISSION_DENIED/);
+  });
+
   it('refuses costs when the permission is missing or the addon is disabled', async () => {
     const ungranted = createMockHost({ grants: [], actingUserId: 42, trips: { 1: { members: [42] } } });
     await expect(ungranted.ctx.costs.getByTrip(1)).rejects.toThrow(/PERMISSION_DENIED/);
