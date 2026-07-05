@@ -9,6 +9,20 @@
 /** Bumped on any breaking change to the plugin API surface. Embed as `apiVersion` in your manifest. */
 export const PLUGIN_API_VERSION = 1 as const;
 
+// Core entity shapes returned by ctx reads/writes. Only `id` is guaranteed; the rest
+// are the fields plugins most commonly use (typed for autocomplete), left optional
+// because they mirror raw DB rows — and every shape keeps an index signature, so no
+// column is ever hidden from you.
+export interface Trip { id: number; user_id?: number; title?: string; start_date?: string | null; end_date?: string | null; currency?: string | null; [k: string]: unknown }
+export interface Place { id: number; trip_id?: number; name?: string; lat?: number | null; lng?: number | null; day_id?: number | null; category_id?: number | null; notes?: string | null; [k: string]: unknown }
+export interface Day { id: number; trip_id?: number; date?: string | null; title?: string | null; [k: string]: unknown }
+export interface Reservation { id: number; trip_id?: number; type?: string; [k: string]: unknown }
+export interface PackingItem { id: number; trip_id?: number; name?: string; [k: string]: unknown }
+export interface TripFile { id: number; trip_id?: number; filename?: string; [k: string]: unknown }
+export interface BudgetItem { id: number; trip_id?: number; name?: string; total_price?: number | null; currency?: string | null; [k: string]: unknown }
+export interface Assignment { id: number; day_id?: number; place_id?: number; notes?: string | null; [k: string]: unknown }
+export interface User { id: number; username?: string; display_name?: string | null; avatar?: string | null; [k: string]: unknown }
+
 export interface PluginContext {
   readonly id: string;
   readonly config: Readonly<Record<string, unknown>>;
@@ -18,46 +32,46 @@ export interface PluginContext {
     migrate(id: string, sql: string): Promise<{ applied: boolean }>;
   };
   trips: {
-    getById(tripId: number, asUserId?: number): Promise<unknown>;
-    getPlaces(tripId: number, asUserId?: number): Promise<unknown[]>;
-    getReservations(tripId: number, asUserId?: number): Promise<unknown[]>;
+    getById(tripId: number, asUserId?: number): Promise<Trip | null>;
+    getPlaces(tripId: number, asUserId?: number): Promise<Place[]>;
+    getReservations(tripId: number, asUserId?: number): Promise<Reservation[]>;
     /** Update trip fields; needs `db:write:trips` + the acting user's trip_edit permission. Route context only. */
-    update(tripId: number, input: Record<string, unknown>): Promise<unknown>;
+    update(tripId: number, input: Record<string, unknown>): Promise<Trip>;
   };
   // Read-only views of other trip subsystems (#1429 eco). Membership-checked against
   // the current user; each needs its own db:read:* scope.
   packing: {
     /** A trip's packing items (hydrated bags/assignees). Needs `db:read:packing`. */
-    list(tripId: number): Promise<unknown[]>;
+    list(tripId: number): Promise<PackingItem[]>;
   };
   files: {
     /** A trip's files, trash excluded. Needs `db:read:files`. */
-    list(tripId: number): Promise<unknown[]>;
+    list(tripId: number): Promise<TripFile[]>;
   };
   // "Costs" = budget items. The acting user is bound by the host to the current
   // invocation; create/update/delete also need 'budget_edit' and the Costs addon
   // enabled.
   costs: {
-    getByTrip(tripId: number): Promise<unknown[]>;
-    listMine(): Promise<unknown[]>;
-    create(tripId: number, input: Record<string, unknown>): Promise<unknown>;
-    update(tripId: number, itemId: number, input: Record<string, unknown>): Promise<unknown>;
+    getByTrip(tripId: number): Promise<BudgetItem[]>;
+    listMine(): Promise<BudgetItem[]>;
+    create(tripId: number, input: Record<string, unknown>): Promise<BudgetItem>;
+    update(tripId: number, itemId: number, input: Record<string, unknown>): Promise<BudgetItem>;
     delete(tripId: number, itemId: number): Promise<{ deleted: boolean }>;
   };
   // Core planner writes (#1429). Membership-checked against the invocation's user;
   // each needs the matching write scope + the app's place_edit/day_edit permission.
   places: {
-    create(tripId: number, input: Record<string, unknown>): Promise<unknown>;
-    update(tripId: number, placeId: number, input: Record<string, unknown>): Promise<unknown>;
+    create(tripId: number, input: Record<string, unknown>): Promise<Place>;
+    update(tripId: number, placeId: number, input: Record<string, unknown>): Promise<Place>;
     delete(tripId: number, placeId: number): Promise<{ deleted: boolean }>;
   };
   days: {
-    create(tripId: number, input: Record<string, unknown>): Promise<unknown>;
-    update(tripId: number, dayId: number, input: Record<string, unknown>): Promise<unknown>;
+    create(tripId: number, input: Record<string, unknown>): Promise<Day>;
+    update(tripId: number, dayId: number, input: Record<string, unknown>): Promise<Day>;
     delete(tripId: number, dayId: number): Promise<{ deleted: boolean }>;
   };
   itinerary: {
-    assign(tripId: number, dayId: number, placeId: number, notes?: string | null): Promise<unknown>;
+    assign(tripId: number, dayId: number, placeId: number, notes?: string | null): Promise<Assignment>;
     unassign(tripId: number, assignmentId: number): Promise<{ deleted: boolean }>;
   };
   // Your OWN namespaced key/value store on a trip/place/day (#1429) — enrich core
@@ -69,7 +83,7 @@ export interface PluginContext {
     list(entityType: 'trip' | 'place' | 'day', entityId: number): Promise<Record<string, unknown>>;
     delete(entityType: 'trip' | 'place' | 'day', entityId: number, key: string): Promise<{ deleted: boolean }>;
   };
-  users: { getById(id: number): Promise<unknown> };
+  users: { getById(id: number): Promise<User | null> };
   ws: {
     broadcastToTrip(tripId: number, event: string, data: Record<string, unknown>): Promise<void>;
     broadcastToUser(userId: number, event: string, data: Record<string, unknown>): Promise<void>;

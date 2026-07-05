@@ -213,6 +213,19 @@ source a one-liner, and a rebuild always ships the current kit. The kit:
 - **auto-reports your height** (widgets/pages self-size — no manual `trek:resize`);
 - installs `window.trek` so you never hand-roll `postMessage`.
 
+`window.trek` also carries **`trek.ui`** — tiny DOM builders that emit kit-styled
+elements, so you can build UI with no bundler and no CSS:
+
+```js
+const { ui } = trek
+ui.mount(ui.card([
+  ui.el('div', { class: 'trek-title', text: 'Nearby' }),
+  ui.button('Refresh', { variant: 'primary', onClick: refresh }),
+  ui.chip('open now', 'success'),
+]))
+// ui.el(tag, props, children) is the general builder; props take class/text/html/on:{event}.
+```
+
 The scaffold seeds a working example. A minimal client:
 
 ```html

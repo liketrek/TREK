@@ -1,4 +1,4 @@
-import type { PluginContext } from './index.js';
+import type { PluginContext, Trip, Place, Day, Reservation, PackingItem, TripFile, BudgetItem, User } from './index.js';
 
 /**
  * A mock PluginContext for unit-testing a plugin without a running TREK
@@ -105,15 +105,15 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
     trips: {
       async getById(tripId, asUserId) {
         need('db:read:trips', 'trips.getById');
-        return assertMember(tripId, asUserId ?? requireActingUser()).data ?? null;
+        return (assertMember(tripId, asUserId ?? requireActingUser()).data ?? null) as Trip | null;
       },
       async getPlaces(tripId, asUserId) {
         need('db:read:trips', 'trips.getPlaces');
-        return assertMember(tripId, asUserId ?? requireActingUser()).places ?? [];
+        return (assertMember(tripId, asUserId ?? requireActingUser()).places ?? []) as Place[];
       },
       async getReservations(tripId, asUserId) {
         need('db:read:trips', 'trips.getReservations');
-        return assertMember(tripId, asUserId ?? requireActingUser()).reservations ?? [];
+        return (assertMember(tripId, asUserId ?? requireActingUser()).reservations ?? []) as Reservation[];
       },
       async update(tripId, input) {
         need('db:write:trips', 'trips.update');
@@ -121,26 +121,26 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
         assertEdit(t, 'canEditTrip', tripId);
         const data = (t.data ??= {}) as Record<string, unknown>;
         Object.assign(data, input);
-        return data;
+        return data as Trip;
       },
     },
     packing: {
       async list(tripId) {
         need('db:read:packing', 'packing.list');
-        return assertMember(tripId, requireActingUser()).packing ?? [];
+        return (assertMember(tripId, requireActingUser()).packing ?? []) as PackingItem[];
       },
     },
     files: {
       async list(tripId) {
         need('db:read:files', 'files.list');
-        return assertMember(tripId, requireActingUser()).files ?? [];
+        return (assertMember(tripId, requireActingUser()).files ?? []) as TripFile[];
       },
     },
     costs: {
       async getByTrip(tripId) {
         need('db:read:costs', 'costs.getByTrip');
         requireBudgetAddon();
-        return assertMember(tripId, requireActingUser()).costs ?? [];
+        return (assertMember(tripId, requireActingUser()).costs ?? []) as BudgetItem[];
       },
       async listMine() {
         need('db:read:costs', 'costs.listMine');
@@ -148,7 +148,7 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
         const uid = requireActingUser();
         return Object.values(opts.trips ?? {})
           .filter((t) => t.members.includes(uid))
-          .flatMap((t) => t.costs ?? []);
+          .flatMap((t) => t.costs ?? []) as BudgetItem[];
       },
       async create(tripId, input) {
         need('db:write:costs', 'costs.create');
@@ -171,7 +171,7 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
         const item = rows(t.costs).find((x) => x.id === itemId);
         if (!item) throw new Error(`RESOURCE_FORBIDDEN: no cost ${itemId} on trip ${tripId}`);
         Object.assign(item, input);
-        return item;
+        return item as BudgetItem;
       },
       async delete(tripId, itemId) {
         need('db:write:costs', 'costs.delete');
@@ -203,7 +203,7 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
         const place = rows(t.places).find((x) => x.id === placeId);
         if (!place) throw new Error(`RESOURCE_FORBIDDEN: no place ${placeId} on trip ${tripId}`);
         Object.assign(place, input);
-        return place;
+        return place as Place;
       },
       async delete(tripId, placeId) {
         need('db:write:places', 'places.delete');
@@ -232,7 +232,7 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
         const day = rows(t.days).find((x) => x.id === dayId);
         if (!day) throw new Error(`RESOURCE_FORBIDDEN: no day ${dayId} on trip ${tripId}`);
         Object.assign(day, input);
-        return day;
+        return day as Day;
       },
       async delete(tripId, dayId) {
         need('db:write:days', 'days.delete');
@@ -297,7 +297,7 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
     users: {
       async getById(id) {
         need('db:read:users', 'users.getById');
-        return opts.users?.[id] ?? null;
+        return (opts.users?.[id] ?? null) as User | null;
       },
     },
     ws: {

@@ -252,8 +252,44 @@ export const TREK_THEME_JS = `(function () {
     }
   });
 
+  // Native DOM helpers so a widget can build kit-styled UI with no bundler and no
+  // hand-written CSS — every element carries the same trek-* classes the kit ships.
+  function mkEl(tag, props, children) {
+    var node = document.createElement(tag);
+    props = props || {};
+    for (var k in props) {
+      if (!Object.prototype.hasOwnProperty.call(props, k)) { continue; }
+      var v = props[k];
+      if (v == null) { continue; }
+      if (k === 'class' || k === 'className') { node.className = v; }
+      else if (k === 'text') { node.textContent = v; }
+      else if (k === 'html') { node.innerHTML = v; }
+      else if (k === 'on') { for (var ev in v) { if (Object.prototype.hasOwnProperty.call(v, ev)) { node.addEventListener(ev, v[ev]); } } }
+      else { node.setAttribute(k, v); }
+    }
+    var kids = children == null ? [] : (typeof children === 'string' || children.nodeType ? [children] : children);
+    for (var i = 0; i < kids.length; i++) {
+      var c = kids[i];
+      if (c == null) { continue; }
+      node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+    }
+    return node;
+  }
+  var ui = {
+    el: mkEl,
+    button: function (label, opts) {
+      opts = opts || {};
+      return mkEl('button', { class: 'trek-btn' + (opts.variant ? ' trek-btn--' + opts.variant : ''), type: 'button', text: label, on: opts.onClick ? { click: opts.onClick } : null }, null);
+    },
+    card: function (children) { return mkEl('div', { class: 'trek-card' }, children); },
+    chip: function (text, variant) { return mkEl('span', { class: 'trek-chip' + (variant ? ' trek-chip--' + variant : ''), text: text }, null); },
+    input: function (opts) { opts = opts || {}; return mkEl('input', { class: 'trek-input', type: opts.type || 'text', placeholder: opts.placeholder || '', value: opts.value || '' }, null); },
+    mount: function (node, target) { (target || document.body).appendChild(node); return node; }
+  };
+
   var api = {
     context: null,
+    ui: ui,
     ready: function () { send({ type: 'trek:ready' }); },
     requestContext: function () { send({ type: 'trek:context:request' }); },
     onContext: function (cb) {
