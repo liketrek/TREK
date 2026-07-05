@@ -79,7 +79,11 @@ export class BudgetService {
   }
 
   async updateSettlement(id: string, tripId: string, data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null }) {
-    await svc.freezeForeignRate(tripId, data);
+    // Pass the settlement's stored currency so an edit that doesn't change it keeps
+    // the already-frozen rate (#1445) — otherwise a live-rate drift would re-open a
+    // settled position on an unrelated edit.
+    const existing = svc.listSettlements(tripId).find((s) => s.id === Number(id));
+    await svc.freezeForeignRate(tripId, data, undefined, existing?.currency ?? null);
     return svc.updateSettlement(id, tripId, data);
   }
 

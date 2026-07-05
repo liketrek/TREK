@@ -344,6 +344,25 @@ describe('freezeForeignRate', () => {
     expect(mockRates.getRates).not.toHaveBeenCalled();
     expect(data.exchange_rate).toBeUndefined();
   });
+
+  it('does not re-freeze a settlement edit when its stored currency is unchanged (#1445)', async () => {
+    mockDb.db.prepare.mockImplementation((sql: string) =>
+      sql.includes('FROM trips') ? tripRow('EUR') : { get: vi.fn(), all: vi.fn(() => []), run: vi.fn() });
+    const data: { currency?: string | null; exchange_rate?: number } = { currency: 'USD' };
+    // the settlement already holds USD — pass it as existingCurrency → keep the frozen rate
+    await freezeForeignRate(1, data, undefined, 'USD');
+    expect(mockRates.getRates).not.toHaveBeenCalled();
+    expect(data.exchange_rate).toBeUndefined();
+  });
+
+  it('re-freezes a settlement edit when its currency actually changes', async () => {
+    mockDb.db.prepare.mockImplementation((sql: string) =>
+      sql.includes('FROM trips') ? tripRow('EUR') : { get: vi.fn(), all: vi.fn(() => []), run: vi.fn() });
+    mockRates.getRates.mockResolvedValue({ EUR: 1, USD: 1.25 });
+    const data: { currency?: string | null; exchange_rate?: number } = { currency: 'USD' };
+    await freezeForeignRate(1, data, undefined, 'GBP'); // was GBP → now USD → re-freeze
+    expect(data.exchange_rate).toBe(1.25);
+  });
 });
 
 // ── updateSettlement ──────────────────────────────────────────────────────────
