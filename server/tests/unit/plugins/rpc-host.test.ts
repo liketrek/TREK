@@ -35,7 +35,7 @@ function makeDeps(): HostDeps {
     // Costs (budget) — addon on; user 42 may edit trip 1's costs.
     budgetAddonEnabled: vi.fn(() => true),
     canEditCosts: vi.fn((tripId: number, userId: number) => tripId === 1 && userId === 42),
-    listPackingItems: vi.fn((tripId: number) => [{ id: 1, trip_id: tripId, name: 'Socks' }]),
+    listPackingItems: vi.fn((tripId: number, _userId: number) => [{ id: 1, trip_id: tripId, name: 'Socks' }]),
     listTripFiles: vi.fn((tripId: number) => [{ id: 2, trip_id: tripId, filename: 'visa.pdf' }]),
     listCostsForTrip: vi.fn((tripId: number) => [{ id: 5, trip_id: tripId, name: 'Hotel', total_price: 100 }]),
     listCostsForUser: vi.fn(() => [
@@ -139,7 +139,8 @@ describe('PluginRpcHost — capability enforcement', () => {
     expect(deps.listPackingItems).not.toHaveBeenCalled();
     const okP = await packing.dispatch(req('packing.list', { tripId: 1 }), 42);
     expect(ok(okP)).toBe(true);
-    expect(deps.listPackingItems).toHaveBeenCalledWith(1);
+    // the acting user is threaded through so packing's #858 private-item filter applies
+    expect(deps.listPackingItems).toHaveBeenCalledWith(1, 42);
     // the packing scope does NOT unlock files
     expect(((await packing.dispatch(req('files.list', { tripId: 1 }), 42)) as RpcError).error.code).toBe('PERMISSION_DENIED');
 
