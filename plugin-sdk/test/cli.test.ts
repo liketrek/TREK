@@ -37,8 +37,10 @@ describe('permission catalog', () => {
   it('covers exactly the known permission ids (none lost in the move to ui.ts)', () => {
     expect(KNOWN_PERMISSIONS).toEqual([
       'db:own', 'db:read:trips', 'db:read:users', 'db:read:costs', 'db:write:costs',
+      'db:write:places', 'db:write:days', 'db:write:itinerary', 'db:write:trips',
+      'db:meta',
       'ws:broadcast:trip', 'ws:broadcast:user',
-      'hook:photo-provider', 'hook:calendar-source', 'http:outbound',
+      'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider', 'hook:trip-warning-provider', 'http:outbound',
     ]);
     for (const p of PERMISSION_CATALOG) expect(p.hint.length).toBeGreaterThan(0); // every option is described
   });

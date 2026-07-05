@@ -74,8 +74,9 @@ export const promptConfirm = async (opts: Omit<ConfirmOptions, 'output'>): Promi
 
 /**
  * The permissions an author can grant, each with a human hint for the multiselect.
- * Single source of truth: the non-interactive `create` path imports KNOWN_PERMISSIONS
- * from here too, so the two never drift.
+ * This list must stay in lockstep with the host's `KNOWN_PERMISSIONS`
+ * (server `src/nest/plugins/protocol/envelope.ts`) — same strings, same order.
+ * The manifest validator's `KNOWN_PERMISSIONS` (`../manifest.ts`) mirrors it too.
  */
 export const PERMISSION_CATALOG: { value: string; label: string; hint: string }[] = [
   { value: 'db:own', label: 'db:own', hint: 'A private database only this plugin can read/write' },
@@ -83,10 +84,17 @@ export const PERMISSION_CATALOG: { value: string; label: string; hint: string }[
   { value: 'db:read:users', label: 'db:read:users', hint: 'Read basic user profiles' },
   { value: 'db:read:costs', label: 'db:read:costs', hint: 'Read costs (budget items) the requesting user can access' },
   { value: 'db:write:costs', label: 'db:write:costs', hint: 'Create costs (budget items) on trips the user can edit' },
+  { value: 'db:write:places', label: 'db:write:places', hint: 'Add, edit and remove places on trips the user can edit' },
+  { value: 'db:write:days', label: 'db:write:days', hint: 'Add, edit and remove days on trips the user can edit' },
+  { value: 'db:write:itinerary', label: 'db:write:itinerary', hint: 'Assign and remove places on days of trips the user can edit' },
+  { value: 'db:write:trips', label: 'db:write:trips', hint: 'Edit trip details (title, dates, currency…) on trips the user can edit' },
+  { value: 'db:meta', label: 'db:meta', hint: 'Attach its own private data to trips, places and days the user can access' },
   { value: 'ws:broadcast:trip', label: 'ws:broadcast:trip', hint: 'Push realtime events to everyone on a trip' },
   { value: 'ws:broadcast:user', label: 'ws:broadcast:user', hint: 'Push realtime events to a single user' },
   { value: 'hook:photo-provider', label: 'hook:photo-provider', hint: 'Supply place photos to TREK' },
   { value: 'hook:calendar-source', label: 'hook:calendar-source', hint: 'Supply calendar events to TREK' },
+  { value: 'hook:place-detail-provider', label: 'hook:place-detail-provider', hint: 'Contribute extra details (reviews, ratings, links) to a place' },
+  { value: 'hook:trip-warning-provider', label: 'hook:trip-warning-provider', hint: 'Raise validation warnings on a trip (shown in the planner)' },
   { value: 'http:outbound', label: 'http:outbound', hint: 'Call external HTTP hosts (needs an egress allow-list)' },
 ];
 

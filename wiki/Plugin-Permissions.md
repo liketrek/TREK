@@ -24,6 +24,8 @@ ungranted capability is physically unreachable**, not just disallowed. See
 | `ws:broadcast:user` | Push a real-time event to a user's connections | Same namespacing. |
 | `hook:photo-provider` | Register as a photo provider in Memories | Implement the `PhotoProvider` interface. |
 | `hook:calendar-source` | Register as a calendar source | Implement the `CalendarSource` interface. |
+| `hook:place-detail-provider` | Contribute extra details (reviews, ratings, links) to a place via `ctx.placeDetailProvider` | Implement the `PlaceDetailProvider` interface — shown in the place-detail panel; also exposed at `GET /api/place-details/:placeId`. |
+| `hook:trip-warning-provider` | Raise validation warnings on a trip via `ctx.warningProvider` | Implement the `WarningProvider` interface — shown as a non-blocking banner in the planner; also exposed at `GET /api/trip-warnings/:tripId`. |
 | `http:outbound` / `http:outbound:<host>` | Make outbound network requests | **Requires** a non-empty `egress[]`. Only a **per-host** `http:outbound:<host>` actually opens a host at runtime — see below. |
 
 ## Outbound network — `http:outbound` vs `http:outbound:<host>`

@@ -140,9 +140,8 @@ const CLIENT_HTML = `<!doctype html>
 
 /** One markdown table row per granted scope, with the catalog's description as the "Why". */
 function permissionRows(scopes: string[]): string {
-  const why = new Map(PERMISSION_CATALOG.map((p) => [p.value, p.hint]));
   const rows = (scopes.length ? scopes : ['db:own']).map(
-    (s) => `| \`${s}\` | ${why.get(s) ?? 'Describe why this plugin needs it.'} |`,
+    (s) => `| \`${s}\` | 'Describe why this plugin needs it.' |`,
   );
   return rows.join('\n');
 }
