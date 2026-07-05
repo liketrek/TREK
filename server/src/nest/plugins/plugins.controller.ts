@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpException, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpException, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { PluginsService } from './plugins.service';
 import { PluginRuntimeService, PluginConsentRequired } from './plugin-runtime.service';
 import { PluginRegistryService } from './registry/registry.service';
@@ -29,8 +29,8 @@ export class PluginsController {
   }
 
   @Get('registry')
-  browse() {
-    return this.registry.browse();
+  browse(@Query('refresh') refresh?: string) {
+    return this.registry.browse(refresh === '1' || refresh === 'true');
   }
 
   @Get('registry/:id')

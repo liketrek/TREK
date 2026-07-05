@@ -199,6 +199,17 @@ export default function AdminPluginsPanel() {
     setView('discover')
     if (!registry) adminApi.pluginBrowse().then(setRegistry).catch(() => setRegistry([]))
   }
+  // The rescan/reload button rediscovers locally-installed plugins AND force-pulls
+  // the remote registry (bypassing the 30-min server cache + GitHub's CDN), so a
+  // just-published plugin shows up right away instead of up to ~35 min later.
+  const rescan = () => act('__rescan', async () => {
+    await adminApi.pluginRescan()
+    const items: RegistryItem[] = await adminApi.pluginBrowse(true)
+    setRegistry(items)
+    const map: Record<string, string> = {}
+    items.forEach((i) => { if (i.latest) map[i.id] = i.latest })
+    setLatest(map)
+  }, t('admin.plugins.rescanned'))
   const openErrors = (id: string) => {
     setMenu(null)
     adminApi.pluginErrors(id)
@@ -324,7 +335,7 @@ export default function AdminPluginsPanel() {
               <SegBtn active={view === 'installed'} onClick={() => setView('installed')} label={t('admin.plugins.installed')} count={plugins.length} />
               <SegBtn active={view === 'discover'} onClick={openDiscover} label={t('admin.plugins.tabDiscover')} count={registry?.length} />
             </div>
-            <button onClick={() => act('__rescan', adminApi.pluginRescan, t('admin.plugins.rescanned'))} title={t('admin.plugins.rescan')}
+            <button onClick={rescan} title={t('admin.plugins.rescan')}
               className="sm:hidden h-[38px] w-[38px] grid place-items-center rounded-xl border border-edge bg-surface-card text-content-muted hover:text-content hover:border-content-faint transition-colors shrink-0">
               <RefreshCw size={15} />
             </button>
@@ -363,7 +374,7 @@ export default function AdminPluginsPanel() {
               valueLabel={sortLabel(sort, t)}
               onPick={v => setSort(v as SortKey)} />
 
-            <button onClick={() => act('__rescan', adminApi.pluginRescan, t('admin.plugins.rescanned'))} title={t('admin.plugins.rescan')}
+            <button onClick={rescan} title={t('admin.plugins.rescan')}
               className="hidden sm:grid h-[38px] w-[38px] place-items-center rounded-xl border border-edge bg-surface-card text-content-muted hover:text-content hover:border-content-faint transition-colors">
               <RefreshCw size={15} />
             </button>

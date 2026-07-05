@@ -230,6 +230,18 @@ describe('PluginRegistryService', () => {
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
+  it('force refresh bypasses the cache and busts the CDN', async () => {
+    const spy = vi.fn(async () => ({ ok: true, json: async () => REGISTRY }) as unknown as Response);
+    vi.stubGlobal('fetch', spy);
+    __clearRegistryCacheForTests();
+    await svc.fetchRegistry();       // primes the 30-min cache (fetch #1)
+    await svc.fetchRegistry(true);   // force → refetches despite the warm cache
+    expect(spy).toHaveBeenCalledTimes(2);
+    const [url, opts] = spy.mock.calls[1] as unknown as [string | URL, { headers?: Record<string, string> }];
+    expect(String(url)).toMatch(/[?&]_=\d+/);            // cache-buster query
+    expect(opts.headers?.['Cache-Control']).toBe('no-cache');
+  });
+
   it('soft-fails on a non-ok registry response', async () => {
     __clearRegistryCacheForTests();
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 500 }) as unknown as Response));

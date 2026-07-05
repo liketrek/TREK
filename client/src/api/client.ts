@@ -461,7 +461,7 @@ export const adminApi = {
   addons: () => apiClient.get('/admin/addons').then(r => r.data),
   updateAddon: (id: number | string, data: Record<string, unknown>) => apiClient.put(`/admin/addons/${id}`, data).then(r => r.data),
   plugins: () => apiClient.get('/admin/plugins').then(r => r.data),
-  pluginBrowse: () => apiClient.get('/admin/plugins/registry').then(r => r.data),
+  pluginBrowse: (refresh?: boolean) => apiClient.get('/admin/plugins/registry', { params: refresh ? { refresh: 1 } : undefined }).then(r => r.data),
   pluginDetail: (id: string) => apiClient.get(`/admin/plugins/registry/${encodeURIComponent(id)}`).then(r => r.data),
   pluginInstall: (id: string, version?: string) => apiClient.post('/admin/plugins/install', { id, version }).then(r => r.data),
   pluginActivate: (id: string, consent?: boolean) => apiClient.post(`/admin/plugins/${id}/activate`, consent ? { consent: true } : {}).then(r => r.data),
