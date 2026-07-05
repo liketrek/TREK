@@ -341,6 +341,7 @@ export function useTripPlanner() {
   }, [selectAssignment, setSelectedPlaceId])
 
   const handleMarkerClick = useCallback((placeId?: number) => {
+    setSelectedPoi(null)
     if (placeId === undefined) {
       setSelectedPlaceId(null)
       return
