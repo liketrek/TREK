@@ -42,9 +42,17 @@ export class FilesDownloadController {
     }
 
     // Serve Apple Wallet passes inline with the canonical MIME type so Safari
-    // (iOS/macOS) hands them to Wallet instead of downloading as a blob.
-    if (path.extname(resolved).toLowerCase() === '.pkpass') {
-      res.setHeader('Content-Type', 'application/vnd.apple.pkpass');
+    // (iOS/macOS) hands them to Wallet instead of downloading as a blob. A
+    // `.pkpasses` bundle (a ZIP of multiple passes) is a distinct type with its
+    // own plural MIME type — without it Wallet won't offer to add the passes.
+    const walletMime =
+      path.extname(resolved).toLowerCase() === '.pkpass'
+        ? 'application/vnd.apple.pkpass'
+        : path.extname(resolved).toLowerCase() === '.pkpasses'
+          ? 'application/vnd.apple.pkpasses'
+          : null;
+    if (walletMime) {
+      res.setHeader('Content-Type', walletMime);
       res.setHeader('Content-Disposition', `inline; filename="${path.basename(file.original_name || resolved)}"`);
     }
 

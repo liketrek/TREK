@@ -12,7 +12,7 @@ import { TripFile } from '../types';
 // ---------------------------------------------------------------------------
 
 export const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
-export const DEFAULT_ALLOWED_EXTENSIONS = 'jpg,jpeg,png,gif,webp,heic,pdf,doc,docx,xls,xlsx,txt,csv,pkpass,md,markdown';
+export const DEFAULT_ALLOWED_EXTENSIONS = 'jpg,jpeg,png,gif,webp,heic,pdf,doc,docx,xls,xlsx,txt,csv,pkpass,pkpasses,md,markdown';
 
 // Video support (#823). Gallery/media uploads accept these in addition to images,
 // independent of the admin doc-types allowlist. Videos are stored as-is and

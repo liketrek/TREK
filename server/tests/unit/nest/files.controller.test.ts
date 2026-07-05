@@ -218,6 +218,24 @@ describe('FilesDownloadController', () => {
     }
   });
 
+  it('serves a .pkpasses bundle inline with its own Wallet MIME type', () => {
+    const real = path.join(os.tmpdir(), `trek-pass-${Date.now()}.pkpasses`);
+    fs.writeFileSync(real, 'x');
+    try {
+      const setHeader = vi.fn();
+      const localRes = { setHeader, sendFile: vi.fn() } as unknown as Response;
+      const s = dsvc({
+        getFileById: vi.fn().mockReturnValue({ filename: 'passes.pkpasses', original_name: 'BoardingPasses.pkpasses' }),
+        resolveFilePath: vi.fn().mockReturnValue({ resolved: real, safe: true }),
+      });
+      new FilesDownloadController(s).download(req, localRes, '5', '9');
+      expect(setHeader).toHaveBeenCalledWith('Content-Type', 'application/vnd.apple.pkpasses');
+      expect(setHeader).toHaveBeenCalledWith('Content-Disposition', 'inline; filename="BoardingPasses.pkpasses"');
+    } finally {
+      fs.unlinkSync(real);
+    }
+  });
+
   it('falls back to the resolved basename when a .pkpass has no original name', () => {
     const real = path.join(os.tmpdir(), `trek-pass-${Date.now()}.pkpass`);
     fs.writeFileSync(real, 'x');
