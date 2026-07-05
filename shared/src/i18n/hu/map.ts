@@ -13,5 +13,13 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Múzeumok és kultúra',
   'poi.cat.nature': 'Természet és parkok',
   'poi.cat.activities': 'Programok',
+  'poi.details.addToTrip': 'Hozzáadás az utazáshoz',
+  'poi.details.openNow': 'Most nyitva',
+  'poi.details.closed': 'Zárva',
+  'poi.details.hours': 'Nyitvatartás',
+  'poi.details.reviews': 'Vélemények',
+  'poi.details.website': 'Weboldal',
+  'poi.details.viewOnGoogleMaps': 'Megtekintés a Google Maps-en',
+  'poi.details.noDetails': 'Nem áll rendelkezésre további részlet',
 };
 export default map;

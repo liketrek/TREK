@@ -13,5 +13,13 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Bảo tàng & văn hóa',
   'poi.cat.nature': 'Thiên nhiên & công viên',
   'poi.cat.activities': 'Các hoạt động',
+  'poi.details.addToTrip': 'Thêm vào chuyến đi',
+  'poi.details.openNow': 'Đang mở cửa',
+  'poi.details.closed': 'Đã đóng cửa',
+  'poi.details.hours': 'Giờ mở cửa',
+  'poi.details.reviews': 'Đánh giá',
+  'poi.details.website': 'Trang web',
+  'poi.details.viewOnGoogleMaps': 'Xem trên Google Maps',
+  'poi.details.noDetails': 'Không có thông tin chi tiết bổ sung',
 };
 export default map;

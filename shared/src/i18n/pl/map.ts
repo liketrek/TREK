@@ -13,5 +13,13 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Muzea i kultura',
   'poi.cat.nature': 'Przyroda i parki',
   'poi.cat.activities': 'Aktywności',
+  'poi.details.addToTrip': 'Dodaj do podróży',
+  'poi.details.openNow': 'Teraz otwarte',
+  'poi.details.closed': 'Zamknięte',
+  'poi.details.hours': 'Godziny otwarcia',
+  'poi.details.reviews': 'Opinie',
+  'poi.details.website': 'Strona internetowa',
+  'poi.details.viewOnGoogleMaps': 'Zobacz na Google Maps',
+  'poi.details.noDetails': 'Brak dodatkowych szczegółów',
 };
 export default map;
