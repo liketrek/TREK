@@ -84,7 +84,7 @@ const { definePlugin } = require('trek-plugin-sdk');
 
 module.exports = definePlugin({
   async onLoad(ctx) {
-    ${has_db ? 'await ctx.db.migrate(\'001_init\', \'CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT)\')' : ''} ;
+    ${has_db ? 'await ctx.db.migrate(\'001_init\', \'CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT)\');' : ''}
     ctx.log.info('plugin loaded');
   },
   routes: [
