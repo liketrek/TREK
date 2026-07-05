@@ -2,8 +2,30 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from '../../i18n'
 import { useAuthStore } from '../../store/authStore'
+import { useSettingsStore } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
 import { pluginsApi } from '../../api/client'
+
+// The design-token contract handed to plugins (#4 richer context): non-secret CSS
+// values, resolved for the CURRENT theme, so a widget can match TREK exactly (and
+// re-match on a theme toggle) instead of hard-coding a mirror of the palette. Names
+// mirror index.css so a plugin can apply them verbatim as CSS variables.
+const TOKEN_VARS = [
+  '--bg-card', '--bg-hover', '--surface-2',
+  '--text-primary', '--text-secondary', '--text-muted', '--text-faint',
+  '--border-primary', '--border-faint',
+  '--accent', '--accent-text', '--accent-hover', '--accent-subtle', '--danger',
+  '--font-system', '--radius-sm', '--radius-md', '--radius-lg', '--radius-xl',
+]
+function readThemeTokens(): Record<string, string> {
+  const cs = getComputedStyle(document.documentElement)
+  const out: Record<string, string> = {}
+  for (const v of TOKEN_VARS) {
+    const val = cs.getPropertyValue(v).trim()
+    if (val) out[v] = val
+  }
+  return out
+}
 
 /**
  * Renders a plugin's sandboxed page/widget iframe and hosts the trekBridge
@@ -48,6 +70,10 @@ export default function PluginFrame({ pluginId, tripId = null, className, title 
   const navigate = useNavigate()
   const toast = useToast()
   const userId = useAuthStore((s) => s.user?.id)
+  const userName = useAuthStore((s) => s.user?.username ?? null)
+  const userAvatar = useAuthStore((s) => s.user?.avatar_url ?? null)
+  const isAdmin = useAuthStore((s) => s.user?.role === 'admin')
+  const settings = useSettingsStore((s) => s.settings)
   const [height, setHeight] = useState<number | null>(null)
 
   // opaque frame -> targetOrigin must be '*'. Hoisted so the iframe's onLoad can
@@ -62,7 +88,20 @@ export default function PluginFrame({ pluginId, tripId = null, className, title 
     theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
     locale,
     hostOrigin: window.location.origin,
-  }), [tripId, userId, locale])
+    // #4 richer context — non-secret display data so plugins render natively:
+    // who the user is (name/avatar/isAdmin — never email/role beyond a boolean),
+    // how TREK formats things, and the resolved theme tokens.
+    user: userName != null ? { name: userName, avatar: userAvatar, isAdmin } : null,
+    formats: {
+      locale,
+      currency: settings.default_currency,
+      timeFormat: settings.time_format,
+      distanceUnit: settings.distance_unit,
+      temperatureUnit: settings.temperature_unit,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    },
+    tokens: readThemeTokens(),
+  }), [tripId, userId, locale, userName, userAvatar, isAdmin, settings])
 
   useEffect(() => {
     const frame = frameRef.current

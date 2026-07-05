@@ -9,7 +9,8 @@ const invoke = vi.fn((..._args: unknown[]) => Promise.resolve({ ok: true }));
 vi.mock('react-router-dom', () => ({ useNavigate: () => navigate }));
 vi.mock('../shared/Toast', () => ({ useToast: () => toast }));
 vi.mock('../../i18n', () => ({ useTranslation: () => ({ locale: 'en' }) }));
-vi.mock('../../store/authStore', () => ({ useAuthStore: (sel: (s: unknown) => unknown) => sel({ user: { id: 7 } }) }));
+vi.mock('../../store/authStore', () => ({ useAuthStore: (sel: (s: unknown) => unknown) => sel({ user: { id: 7, username: 'ada', avatar_url: null, role: 'admin' } }) }));
+vi.mock('../../store/settingsStore', () => ({ useSettingsStore: (sel: (s: unknown) => unknown) => sel({ settings: { default_currency: 'EUR', time_format: '24h', distance_unit: 'metric', temperature_unit: 'celsius' } }) }));
 vi.mock('../../api/client', () => ({ pluginsApi: { invoke: (id: string, sub: string, init?: unknown) => invoke(id, sub, init) } }));
 
 function fromFrame(frame: HTMLIFrameElement, data: unknown) {
@@ -63,5 +64,22 @@ describe('PluginFrame', () => {
     fromFrame(iframe, { type: 'trek:invoke', requestId: 'r1', sub: '/status', method: 'GET' });
     await waitFor(() => expect(invoke).toHaveBeenCalledWith('demo', '/status', { method: 'GET', body: undefined }));
     await waitFor(() => expect(posted.some((m) => (m as { type?: string }).type === 'trek:response')).toBe(true));
+  });
+
+  it('FE-PLUGINS-FRAME-005: context carries theme tokens, formats and non-secret display identity', () => {
+    const { container } = render(<PluginFrame pluginId="demo" />);
+    const iframe = container.querySelector('iframe')!;
+    const posted: Array<Record<string, unknown>> = [];
+    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) => posted.push(m as Record<string, unknown>);
+
+    fromFrame(iframe, { type: 'trek:context:request' });
+
+    const ctx = posted.find((m) => m.type === 'trek:context') as Record<string, unknown> | undefined;
+    expect(ctx).toBeTruthy();
+    expect(ctx!.tokens).toBeTruthy(); // resolved design tokens (empty {} in jsdom, but present)
+    expect(ctx!.formats).toMatchObject({ currency: 'EUR', timeFormat: '24h', distanceUnit: 'metric' });
+    // Display identity is present but carries NO secret (no email, role only as a boolean).
+    expect(ctx!.user).toMatchObject({ name: 'ada', isAdmin: true });
+    expect(JSON.stringify(ctx)).not.toContain('@'); // no email leaked
   });
 });

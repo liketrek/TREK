@@ -160,6 +160,10 @@ window.addEventListener('message', (e) => {
   const m = e.data
   if (m.type === 'trek:context') {
     // m.tripId, m.userId (string|null), m.theme ('light'|'dark'), m.locale, m.hostOrigin
+    // m.tokens  — TREK's resolved CSS design tokens for the current theme (see below)
+    // m.formats — { locale, currency, timeFormat, distanceUnit, temperatureUnit, timezone }
+    // m.user    — { name, avatar, isAdmin } or null (never an email; role only as a boolean)
+    // TREK re-sends trek:context whenever the theme flips, so re-apply on every one.
   }
   if (m.type === 'trek:response' && m.requestId === '1') { /* m.data */ }
   if (m.type === 'trek:error'   && m.requestId === '1') { /* m.code, m.message */ }
@@ -184,12 +188,32 @@ window.parent.postMessage({ type: 'trek:invoke', requestId: '1', sub: '/status',
 
 | Message | Payload |
 |---|---|
-| `trek:context` | `{ tripId, userId, theme, locale, hostOrigin }` — `userId` is a **string** or `null` |
+| `trek:context` | `{ tripId, userId, theme, locale, hostOrigin, tokens, formats, user }` — `userId` is a **string** or `null`; re-sent on every theme toggle |
 | `trek:response` | `{ requestId, data }` — a successful `trek:invoke` |
 | `trek:error` | `{ requestId, code, message }` — a failed `trek:invoke` (`code` is the HTTP status or `"error"`) |
 
 The frame's CSP is locked down per plugin: `default-src 'none'`, own scripts/styles
 only, `connect-src` limited to your declared `egress[]` hosts, no popups.
+
+### Matching the TREK look (`m.tokens`)
+
+`trek:context` carries `tokens` — a map of TREK's resolved CSS design tokens for the
+**current** theme (`--bg-card`, `--text-primary`, `--accent`, `--border-primary`,
+`--font-system`, `--radius-*`, …). Apply them as CSS variables and your widget matches
+the host exactly, in both themes, even if the instance uses a custom appearance —
+instead of hard-coding a palette that drifts:
+
+```js
+function applyTokens(tokens) {
+  for (const k in tokens) document.body.style.setProperty(k, tokens[k])
+}
+// in your trek:context handler: applyTokens(m.tokens)
+```
+
+`tokens` are non-secret display values only; TREK sends them (and re-sends on a theme
+toggle) so plugins feel native rather than bolted-on. Dashboard widgets are already
+wrapped in the native glassy tool card and auto-size to the height you report via
+`trek:resize`, so render your content flush and transparent.
 
 ## Settings
 
