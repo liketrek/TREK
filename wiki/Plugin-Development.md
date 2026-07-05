@@ -52,7 +52,7 @@ by a real SQLite file (`.trek-dev/db.sqlite`) when the runtime has `node:sqlite`
 - Feed `ctx.trips` / `ctx.users` by dropping a `dev-fixtures.json` next to the
   manifest: `{ "trips": { "1": { "members": [1], "data": { … } } }, "users": {} }`.
 
-## The three plugin types
+## The plugin types
 
 - **integration** — background logic (jobs, routes) with no UI of its own. Photo-
   provider / calendar-source hook types exist in the SDK but are **not yet wired
@@ -60,6 +60,11 @@ by a real SQLite file (`.trek-dev/db.sqlite`) when the runtime has `node:sqlite`
 - **page** — adds a nav entry that opens a full-page sandboxed iframe.
 - **widget** — adds a card to the dashboard (`sidebar` slot) or a hero-bar
   overlay (`hero` slot).
+- **trip-page** — adds a tab **inside every trip planner**, so your UI lives in the
+  trip alongside Plan / Transports / Files. The frame is the same sandboxed iframe as
+  a `page`, but it receives the current `tripId` in `trek:context` (so you can scope
+  data to the open trip) and it has no dashboard nav entry. The tab shows on desktop
+  and mobile.
 
 ## The SDK package
 

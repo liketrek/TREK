@@ -17,6 +17,7 @@ describe('pluginStore', () => {
           plugins: [
             { id: 'flights', name: 'Flights', type: 'widget', icon: 'Plane' },
             { id: 'report', name: 'Report', type: 'page', icon: 'FileText' },
+            { id: 'diary', name: 'Diary', type: 'trip-page', icon: 'Book' },
           ],
         }),
       ),
@@ -26,9 +27,10 @@ describe('pluginStore', () => {
 
     const s = usePluginStore.getState();
     expect(s.loaded).toBe(true);
-    expect(s.plugins).toHaveLength(2);
+    expect(s.plugins).toHaveLength(3);
     expect(s.pages().map((p) => p.id)).toEqual(['report']);
     expect(s.widgets().map((p) => p.id)).toEqual(['flights']);
+    expect(s.tripPages().map((p) => p.id)).toEqual(['diary']);
     expect(s.getById('flights')?.name).toBe('Flights');
     expect(s.getById('nope')).toBeUndefined();
   });

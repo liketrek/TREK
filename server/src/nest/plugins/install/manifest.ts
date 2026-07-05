@@ -40,7 +40,7 @@ export interface PluginManifest {
   description?: string;
   homepage?: string;
   icon?: string;
-  type: 'integration' | 'page' | 'widget';
+  type: 'integration' | 'page' | 'widget' | 'trip-page';
   trek?: string;
   minTrekVersion?: string;
   nativeModules: boolean;
@@ -61,7 +61,9 @@ const HOST_RE = /^(\*\.[a-z0-9-]+(\.[a-z0-9-]+)+|[a-z0-9-]+(\.[a-z0-9-]+)*)$/i;
 // (id "registry" would collide with GET registry/:id vs :id/errors routing).
 const RESERVED_IDS = new Set(['registry', 'install', 'rescan']);
 const SEMVER_RE = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
-const TYPES = new Set(['integration', 'page', 'widget']);
+// 'trip-page' mounts the plugin's sandboxed UI as a tab inside every trip planner
+// (tripId-scoped), with no dashboard presence — unlike 'page' (dashboard nav).
+const TYPES = new Set(['integration', 'page', 'widget', 'trip-page']);
 
 export class ManifestError extends Error {}
 

@@ -10,7 +10,7 @@ import { pluginsApi } from '../api/client'
 export interface ActivePlugin {
   id: string
   name: string
-  type: 'integration' | 'page' | 'widget'
+  type: 'integration' | 'page' | 'widget' | 'trip-page'
   icon: string | null
   slot?: 'sidebar' | 'hero'
 }
@@ -23,6 +23,7 @@ interface PluginState {
   pages: () => ActivePlugin[]
   widgets: () => ActivePlugin[]
   heroWidgets: () => ActivePlugin[]
+  tripPages: () => ActivePlugin[]
 }
 
 export const usePluginStore = create<PluginState>((set, get) => ({
@@ -42,4 +43,5 @@ export const usePluginStore = create<PluginState>((set, get) => ({
   pages: () => get().plugins.filter((p) => p.type === 'page'),
   widgets: () => get().plugins.filter((p) => p.type === 'widget' && p.slot !== 'hero'),
   heroWidgets: () => get().plugins.filter((p) => p.type === 'widget' && p.slot === 'hero'),
+  tripPages: () => get().plugins.filter((p) => p.type === 'trip-page'),
 }))

@@ -5,7 +5,7 @@ import { useCanDo } from '../../store/permissionsStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { getCached, fetchPhoto } from '../../services/photoService'
 import { useToast } from '../../components/shared/Toast'
-import { Map, Ticket, PackageCheck, Wallet, FolderOpen, Users, Train } from 'lucide-react'
+import { Map, Ticket, PackageCheck, Wallet, FolderOpen, Users, Train, Blocks } from 'lucide-react'
 import { useTranslation, translateApiError } from '../../i18n'
 import { addonsApi, accommodationsApi, authApi, tripsApi, assignmentsApi, healthApi, airtrailApi, mapsApi, placesApi } from '../../api/client'
 import { parsedItemToDraft, isTransportItem, type BookingReviewDraft } from '../../components/Planner/parsedItemToDraft'
@@ -21,6 +21,7 @@ import { useRouteCalculation } from '../../hooks/useRouteCalculation'
 import { usePlaceSelection } from '../../hooks/usePlaceSelection'
 import { usePlannerHistory } from '../../hooks/usePlannerHistory'
 import { useAirtrailConnection } from '../../hooks/useAirtrailConnection'
+import { usePluginStore } from '../../store/pluginStore'
 import type { Accommodation, TripMember, Day, Place, Reservation } from '../../types'
 import { resolvePoolAssignmentId } from './tripPlannerModel'
 
@@ -42,6 +43,9 @@ export function useTripPlanner() {
   const toast = useToast()
   const { t, language } = useTranslation()
   const { settings } = useSettingsStore()
+  // trip-page plugins mount as tabs inside this trip planner (tripId-scoped).
+  const allPlugins = usePluginStore(s => s.plugins)
+  const pluginsLoaded = usePluginStore(s => s.loaded)
   const placesPhotosEnabled = useAuthStore(s => s.placesPhotosEnabled)
   const trip = useTripStore(s => s.trip)
   const days = useTripStore(s => s.days)
@@ -94,6 +98,9 @@ export function useTripPlanner() {
 
   const TRANSPORT_TYPES = new Set(['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transit', 'transport_other'])
 
+  const tripPagePlugins = allPlugins.filter(p => p.type === 'trip-page')
+  const tripPluginIds = tripPagePlugins.map(p => p.id).join(',')
+
   const TRIP_TABS = [
     { id: 'plan', label: t('trip.tabs.plan'), icon: Map },
     { id: 'transports', label: t('trip.tabs.transports'), icon: Train },
@@ -102,6 +109,7 @@ export function useTripPlanner() {
     ...(enabledAddons.budget ? [{ id: 'finanzplan', label: t('trip.tabs.budget'), icon: Wallet }] : []),
     ...(enabledAddons.documents ? [{ id: 'dateien', label: t('trip.tabs.files'), icon: FolderOpen }] : []),
     ...(enabledAddons.collab ? [{ id: 'collab', label: t('admin.addons.catalog.collab.name'), icon: Users }] : []),
+    ...tripPagePlugins.map(p => ({ id: `plugin:${p.id}`, label: p.name, icon: Blocks })),
   ]
 
   const [activeTab, setActiveTab] = useState<string>(() => {
@@ -110,12 +118,14 @@ export function useTripPlanner() {
   })
 
   useEffect(() => {
+    // Don't evict a saved plugin tab before the plugin feed has loaded.
+    if (activeTab.startsWith('plugin:') && !pluginsLoaded) return
     const validTabIds = TRIP_TABS.map(t => t.id)
     if (!validTabIds.includes(activeTab)) {
       setActiveTab('plan')
       sessionStorage.setItem(`trip-tab-${tripId}`, 'plan')
     }
-  }, [enabledAddons])
+  }, [enabledAddons, tripPluginIds, pluginsLoaded])
 
   const handleTabChange = (tabId: string): void => {
     setActiveTab(tabId)

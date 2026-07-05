@@ -20,6 +20,10 @@ describe('parseManifest', () => {
     expect(parseManifest({ ...base, trek: '>=3.2.0 <4.0.0' }).minTrekVersion).toBe('3.2.0');
   });
 
+  it('accepts the trip-page type (mounts as a tab inside the trip planner)', () => {
+    expect(parseManifest({ ...base, type: 'trip-page' }).type).toBe('trip-page');
+  });
+
   it('keeps known permissions + parses settings', () => {
     const m = parseManifest({
       ...base,

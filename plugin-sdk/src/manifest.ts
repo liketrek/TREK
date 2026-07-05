@@ -9,7 +9,7 @@ export interface PluginManifest {
   name: string;
   version: string;
   apiVersion: number;
-  type: 'integration' | 'page' | 'widget';
+  type: 'integration' | 'page' | 'widget' | 'trip-page';
   permissions: string[];
   egress: string[];
   nativeModules?: boolean;
@@ -29,7 +29,7 @@ const SEMVER_RE = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 // `*.`-wildcard with a multi-label suffix. No `*`, no `*.`, no whole-TLD `*.com`,
 // no spaces (mirrors the server manifest validator).
 const HOST_RE = /^(\*\.[a-z0-9-]+(\.[a-z0-9-]+)+|[a-z0-9-]+(\.[a-z0-9-]+)*)$/i;
-const TYPES = ['integration', 'page', 'widget'];
+const TYPES = ['integration', 'page', 'widget', 'trip-page'];
 const KNOWN_PERMISSIONS = [
   'db:own', 'db:read:trips', 'db:read:users', 'db:read:costs', 'db:write:costs',
   'ws:broadcast:trip', 'ws:broadcast:user',

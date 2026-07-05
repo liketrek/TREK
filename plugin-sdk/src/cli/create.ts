@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * create-trek-plugin <name> [--type integration|page|widget] (#plugins, M6).
+ * create-trek-plugin <name> [--type integration|page|widget|trip-page] (#plugins, M6).
  * Scaffolds a working plugin: manifest, an isolated server entry using
  * definePlugin, a README you must fill in, and (page/widget) a starter iframe.
  */
@@ -35,7 +35,7 @@ export interface ScaffoldOptions {
 
 export function scaffold(name: string, type: string, targetDir: string, opts: ScaffoldOptions = {}): void {
   if (!/^[a-z][a-z0-9-]{2,39}$/.test(name)) throw new Error(`invalid plugin id "${name}" (lowercase slug, 3–40 chars)`);
-  if (!['integration', 'page', 'widget'].includes(type)) throw new Error(`invalid type "${type}"`);
+  if (!['integration', 'page', 'widget', 'trip-page'].includes(type)) throw new Error(`invalid type "${type}"`);
 
   const root = path.join(targetDir, name);
   if (fs.existsSync(root)) throw new Error(`${root} already exists`);
@@ -235,6 +235,7 @@ export async function interactiveScaffold(defaultDir: string, presetName?: strin
       { value: 'integration', label: 'integration', hint: 'server-only: routes, hooks, background work' },
       { value: 'page', label: 'page', hint: 'adds a full navigation page (sandboxed iframe UI)' },
       { value: 'widget', label: 'widget', hint: 'adds a dashboard widget (sandboxed iframe UI)' },
+      { value: 'trip-page', label: 'trip-page', hint: 'adds a tab inside every trip (sandboxed iframe UI)' },
     ],
   });
 
@@ -320,7 +321,7 @@ if (process.argv[1] && process.argv[1].endsWith('create.js')) {
   const typeIdx = args.indexOf('--type');
   const type = typeIdx >= 0 ? args[typeIdx + 1] : 'integration';
   if (!name) {
-    console.error('usage: create-trek-plugin <name> [--type integration|page|widget]');
+    console.error('usage: create-trek-plugin <name> [--type integration|page|widget|trip-page]');
     process.exit(2);
   }
   try {

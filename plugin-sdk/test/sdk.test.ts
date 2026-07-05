@@ -144,6 +144,15 @@ describe('scaffold + validate CLIs', () => {
     expect(html).not.toContain('--glass-bg');    // kit is NOT pre-inlined in the source
   });
 
+  it('scaffolds a trip-page plugin (a tab inside the trip) with a client UI', () => {
+    scaffold('trip-diary', 'trip-page', tmp);
+    const dir = path.join(tmp, 'trip-diary');
+    const m = JSON.parse(fs.readFileSync(path.join(dir, 'trek-plugin.json'), 'utf8'));
+    expect(m.type).toBe('trip-page');
+    expect(fs.existsSync(path.join(dir, 'client', 'index.html'))).toBe(true); // non-integration → gets a UI
+    expect(validatePluginDir(dir).ok).toBe(true);
+  });
+
   it('pack expands the design-kit marker into the archived client HTML', () => {
     scaffold('kit-plug', 'widget', tmp);
     const out = path.join(tmp, 'kit-plug.zip');

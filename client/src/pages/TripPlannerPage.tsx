@@ -30,6 +30,7 @@ import CostsPanel, { ExpenseModal, type ExpensePrefill } from '../components/Bud
 import type { BookingExpenseRequest } from '../components/Planner/BookingCostsSection.types'
 import type { BudgetItem } from '../types'
 import CollabPanel from '../components/Collab/CollabPanel'
+import PluginFrame from '../components/Plugins/PluginFrame'
 import Navbar from '../components/Layout/Navbar'
 import { useToast } from '../components/shared/Toast'
 import { Map, X, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Ticket, PackageCheck, Wallet, FolderOpen, Users, Train } from 'lucide-react'
@@ -708,6 +709,12 @@ export default function TripPlannerPage(): React.ReactElement | null {
         {activeTab === 'collab' && (
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 'var(--bottom-nav-h)', overflow: 'hidden' }}>
             <CollabPanel tripId={tripId} tripMembers={tripMembers} collabFeatures={collabFeatures} />
+          </div>
+        )}
+
+        {activeTab.startsWith('plugin:') && (
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 'var(--bottom-nav-h)', overflow: 'hidden' }}>
+            <PluginFrame pluginId={activeTab.slice('plugin:'.length)} tripId={String(tripId)} className="w-full h-full" />
           </div>
         )}
       </div>
