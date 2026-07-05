@@ -137,8 +137,10 @@ declaration for readers — the manifest parser does not consume it.
 | `ctx.days` | `create(tripId, {date?, notes?})` / `update(tripId, dayId, {notes?, title?})` / `delete(tripId, dayId)` | `db:write:days` |
 | `ctx.itinerary` | `assign(tripId, dayId, placeId, notes?)` / `unassign(tripId, assignmentId)` — place↔day | `db:write:itinerary` |
 | `ctx.meta` | `get` / `set` / `list` / `delete` your **own** namespaced data on a `trip`/`place`/`day` (enrich core entities without forking the schema) | `db:meta` |
+| `ctx.packing` | `list(tripId)` — a trip's packing items (membership-checked, respects private-item visibility) | `db:read:packing` |
+| `ctx.files` | `list(tripId)` — a trip's files, trash excluded (membership-checked) | `db:read:files` |
 | `ctx.costs` | `getByTrip(tripId)` / `listMine()` — read budget items (membership-checked) | `db:read:costs` |
-| `ctx.costs.create(tripId, input)` | create a budget item (validated, broadcasts `budget:created`) | `db:write:costs` |
+| `ctx.costs` (write) | `create(tripId, input)` / `update(tripId, itemId, input)` / `delete(tripId, itemId)` — broadcasts `budget:*` | `db:write:costs` |
 | `ctx.users` | `getById(id)` — public profile only (`id, username, display_name, avatar`) | `db:read:users` |
 | `ctx.ws.broadcastToTrip(tripId, event, data)` | broadcast to a trip's members (event forced to `plugin:<id>:<event>`) | `ws:broadcast:trip` |
 | `ctx.ws.broadcastToUser(userId, event, data)` | broadcast to one user | `ws:broadcast:user` |
@@ -169,9 +171,10 @@ acting user. A plugin can only change what its user could change by hand.
 membership-checked against the request's user and only work **inside a route handler**
 (`onLoad`/`jobs` have no user → `RESOURCE_FORBIDDEN`). `getByTrip(tripId)` returns one
 trip's budget items (hydrated with members/payers); `listMine()` aggregates budget items
-across every trip the acting user can access. `create(tripId, input)` is the **first and
-only plugin path that mutates core TREK data** — it is gated exactly like a normal budget
-write: the acting user needs the **`budget_edit`** permission on that trip, the input is
+across every trip the acting user can access. `create/update/delete(tripId, …)` mutate a
+trip's budget items — gated exactly like a normal budget write (the same model the planner
+write scopes `db:write:places`/`days`/`itinerary`/`trips` use): the acting user needs the
+**`budget_edit`** permission on that trip, the input is
 validated against TREK's budget schema, and a successful create broadcasts the same
 `budget:created` event the app emits. **Every `ctx.costs.*` call also requires the Costs
 (budget) addon to be enabled** — if the admin has turned it off, the call is refused with
@@ -320,7 +323,8 @@ window.parent.postMessage({ type: 'trek:invoke', requestId: '1', sub: '/status',
 | `trek:error` | `{ requestId, code, message }` — a failed `trek:invoke` (`code` is the HTTP status or `"error"`) |
 
 The frame's CSP is locked down per plugin: `default-src 'none'`, own inline
-scripts/styles only, `connect-src` limited to your declared `egress[]` hosts, no popups.
+scripts/styles only, `connect-src` limited to the hosts you were **granted** via
+`http:outbound:<host>` permissions (not merely the `egress[]` you declared), no popups.
 
 ### The context payload
 
@@ -474,7 +478,7 @@ integration test for real SQL.
 | `nativeModules` | boolean | must be `false`/absent — `true` is rejected. |
 | `permissions` | string[] | see below. |
 | `egress` | string[] | allowed outbound hosts; required (non-empty, no bare `*`) when any `http:outbound` permission is present. |
-| `capabilities.widget` | object | `{ title, slot, defaultSize }` — `slot` is `sidebar` (default) or `hero`. |
+| `capabilities.widget` | object | `{ title, slot, defaultSize }` — `slot` is `sidebar` (default), `hero`, or `place-detail`. |
 | `settings` | array | setting fields (below). |
 
 **Permissions** (unknown values are rejected):
@@ -486,13 +490,19 @@ integration test for real SQL.
 | `db:read:packing` | `ctx.packing.list(tripId)` — a trip's packing items (membership-checked) |
 | `db:read:files` | `ctx.files.list(tripId)` — a trip's files, trash excluded (membership-checked) |
 | `db:read:costs` | `ctx.costs.getByTrip` / `ctx.costs.listMine` (Costs addon, route handlers only) |
-| `db:write:costs` | `ctx.costs.create` (Costs addon + acting user's `budget_edit`) |
+| `db:write:costs` | `ctx.costs.create/update/delete` (Costs addon + acting user's `budget_edit`) |
+| `db:write:places` | `ctx.places.create/update/delete` (acting user's `place_edit`) |
+| `db:write:days` | `ctx.days.create/update/delete` (acting user's `day_edit`) |
+| `db:write:itinerary` | `ctx.itinerary.assign/unassign` (acting user's `day_edit`) |
+| `db:write:trips` | `ctx.trips.update` (acting user's `trip_edit`) |
+| `db:meta` | `ctx.meta.*` — your own namespaced data on a trip/place/day |
 | `db:read:users` | `ctx.users.getById` |
 | `events:subscribe` | receive core activity events via `events: [...]` (name + tripId only) |
 | `ws:broadcast:trip` | `ctx.ws.broadcastToTrip` |
 | `ws:broadcast:user` | `ctx.ws.broadcastToUser` |
 | `http:outbound` or `http:outbound:<host>` | outbound HTTP to `egress[]` hosts |
 | `hook:place-detail-provider` | `hooks.placeDetailProvider` — extra place rows TREK renders (see [Provider hooks](#provider-hooks)) |
+| `hook:trip-warning-provider` | `hooks.warningProvider` — validation warnings in the planner (see [Provider hooks](#provider-hooks)) |
 | `hook:photo-provider` / `hook:calendar-source` | reserved (see [Provider hooks](#provider-hooks)) |
 
 > There is **no `ws:broadcast:*`** — use `ws:broadcast:trip` and/or
