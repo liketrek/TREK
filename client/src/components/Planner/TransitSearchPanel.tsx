@@ -7,7 +7,7 @@ import { transitApi } from '../../api/client'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
-import type { Day, Place, Accommodation } from '../../types'
+import type { Day, Accommodation, AssignmentsMap } from '../../types'
 
 /**
  * Public transit route search (#1065), backed by Transitous (MOTIS) through the
@@ -309,7 +309,7 @@ function ItineraryCard({ it, tzFrom, tzTo, is12h, expanded, onToggle, onAdd, add
 interface TransitSearchPanelProps {
   day: Day
   days: Day[]
-  places: Place[]
+  assignments: AssignmentsMap
   accommodations?: Accommodation[]
   /** Persist the built reservation payload; resolves when saved. */
   onAdd: (payload: Record<string, unknown>) => Promise<unknown>
@@ -318,7 +318,7 @@ interface TransitSearchPanelProps {
   initialTo?: PickedPlace | null
 }
 
-export default function TransitSearchPanel({ day, days, places, accommodations = [], onAdd, initialFrom = null, initialTo = null }: TransitSearchPanelProps) {
+export default function TransitSearchPanel({ day, days, assignments, accommodations = [], onAdd, initialFrom = null, initialTo = null }: TransitSearchPanelProps) {
   const { t } = useTranslation()
   const toast = useToast()
   const is12h = useSettingsStore(s => s.settings.time_format) === '12h'
@@ -335,10 +335,11 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null)
   const [addingIdx, setAddingIdx] = useState<number | null>(null)
 
-  // Quick picks: the day's located places, plus the trip's located accommodations.
+  // Quick picks: the day's assigned places, plus the trip's located accommodations.
   const quickPicks = useMemo<PickedPlace[]>(() => {
     const picks: PickedPlace[] = []
-    for (const p of places) {
+    for (const asn of assignments[String(day.id)] || []) {
+      const p = asn.place
       if (p.lat != null && p.lng != null) picks.push({ name: p.name, lat: p.lat, lng: p.lng })
     }
     for (const a of accommodations) {
@@ -349,7 +350,7 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
     }
     const seen = new Set<string>()
     return picks.filter(p => { const k = `${p.name}:${p.lat}`; if (seen.has(k)) return false; seen.add(k); return true }).slice(0, 8)
-  }, [places, accommodations])
+  }, [assignments, day.id, accommodations])
 
   const near = quickPicks.length > 0 ? `${quickPicks[0].lat},${quickPicks[0].lng}` : null
 

@@ -13,7 +13,7 @@ import { useAddonStore } from '../../store/addonStore'
 import { formatDate, splitReservationDateTime, resolveDayId } from '../../utils/formatters'
 import { openFile } from '../../utils/fileDownload'
 import apiClient from '../../api/client'
-import type { Day, Place, Accommodation, Reservation, ReservationEndpoint, TripFile, BudgetItem } from '../../types'
+import type { Day, AssignmentsMap, Accommodation, Reservation, ReservationEndpoint, TripFile, BudgetItem } from '../../types'
 import { parseReservationMetadata, orderedEndpoints } from '../../utils/flightLegs'
 import { BookingCostsSection } from './BookingCostsSection'
 import type { BookingExpenseRequest } from './BookingCostsSection.types'
@@ -149,8 +149,8 @@ interface TransportModalProps {
   // Pre-fill a brand-new transport booking from a parsed import item (review-
   // before-save); like `reservation` for the form but stays in create mode.
   prefill?: BookingReviewDraft | null
-  /** Data for the Automated (public transit) mode's quick picks. */
-  places?: Place[]
+  /** Day-place assignments for the Automated (public transit) mode's quick picks. */
+  assignments?: AssignmentsMap
   accommodations?: Accommodation[]
   /** Open directly in the Automated public-transit mode (day-header tram button, "change route"). */
   initialAutomated?: boolean
@@ -158,7 +158,7 @@ interface TransportModalProps {
   transitPrefill?: { from?: PickedPlace | null; to?: PickedPlace | null } | null
 }
 
-export function TransportModal({ isOpen, onClose, onSave, reservation, days, selectedDayId, files = [], onFileUpload, onFileDelete, onOpenExpense, prefill = null, places = [], accommodations = [], initialAutomated = false, transitPrefill = null }: TransportModalProps) {
+export function TransportModal({ isOpen, onClose, onSave, reservation, days, selectedDayId, files = [], onFileUpload, onFileDelete, onOpenExpense, prefill = null, assignments = {}, accommodations = [], initialAutomated = false, transitPrefill = null }: TransportModalProps) {
   const { t, locale } = useTranslation()
   const toast = useToast()
   const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
@@ -643,7 +643,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
               <TransitSearchPanel
                 day={transitDay}
                 days={days}
-                places={places}
+                assignments={assignments}
                 accommodations={accommodations}
                 onAdd={(payload) => onSave(payload as Record<string, any> & { title: string })}
                 initialFrom={transitPrefill?.from ?? null}

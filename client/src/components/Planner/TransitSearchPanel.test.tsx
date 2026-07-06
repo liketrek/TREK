@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event'
 import { resetAllStores, seedStore } from '../../../tests/helpers/store'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
-import { buildUser, buildDay, buildPlace } from '../../../tests/helpers/factories'
+import { buildUser, buildDay, buildPlace, buildAssignment } from '../../../tests/helpers/factories'
 import TransitSearchPanel from './TransitSearchPanel'
 
 const { transitApiMock } = vi.hoisted(() => ({
@@ -38,7 +38,9 @@ function makeProps(overrides = {}) {
   return {
     day,
     days: [day],
-    places: [buildPlace({ id: 1, name: 'Fernsehturm', lat: 52.5208, lng: 13.4094 })],
+    assignments: {
+      '10': [buildAssignment({ day_id: 10, place: buildPlace({ id: 1, name: 'Fernsehturm', lat: 52.5208, lng: 13.4094 }) })],
+    },
     accommodations: [],
     onAdd: vi.fn().mockResolvedValue({}),
     ...overrides,
@@ -145,5 +147,19 @@ describe('TransitSearchPanel', () => {
     const inputs = screen.getAllByPlaceholderText('Search stop or station…')
     expect((inputs[0] as HTMLInputElement).value).toBe('')
     expect((inputs[1] as HTMLInputElement).value).toBe('Fernsehturm')
+  })
+
+  it('FE-PLANNER-TRANSIT-007: quick picks only include the selected day\'s assigned places (#1460)', async () => {
+    const user = userEvent.setup()
+    render(<TransitSearchPanel {...makeProps({
+      assignments: {
+        '10': [buildAssignment({ day_id: 10, place: buildPlace({ id: 1, name: 'Fernsehturm', lat: 52.5208, lng: 13.4094 }) })],
+        '20': [buildAssignment({ day_id: 20, place: buildPlace({ id: 2, name: 'Sanssouci', lat: 52.4041, lng: 13.0384 }) })],
+      },
+    })} />)
+    const [fromInput] = screen.getAllByPlaceholderText('Search stop or station…')
+    await user.click(fromInput)
+    expect(await screen.findByText('Fernsehturm')).toBeInTheDocument()
+    expect(screen.queryByText('Sanssouci')).not.toBeInTheDocument()
   })
 })

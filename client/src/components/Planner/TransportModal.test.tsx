@@ -370,7 +370,7 @@ describe('TransportModal', () => {
   // ── Manual / Automated creation switch (#1065) ─────────────────────────────
 
   it('FE-PLANNER-TRANSMODAL-022: creating shows the Manual/Automated switch; Automated opens the transit search', async () => {
-    render(<TransportModal {...defaultProps} places={[]} accommodations={[]} />);
+    render(<TransportModal {...defaultProps} assignments={{}} accommodations={[]} />);
     expect(screen.getByRole('button', { name: 'Manual transport' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Automated transport' }));
     // No day selected in defaultProps (days: []) — the pick-day hint shows.
@@ -381,7 +381,7 @@ describe('TransportModal', () => {
 
   it('FE-PLANNER-TRANSMODAL-023: initialAutomated opens straight in the transit search with the day preset', () => {
     const days = [{ id: 10, trip_id: 1, day_number: 1, date: '2025-06-01', title: 'Day 1' }] as any;
-    render(<TransportModal {...defaultProps} days={days} selectedDayId={10} initialAutomated places={[]} accommodations={[]} />);
+    render(<TransportModal {...defaultProps} days={days} selectedDayId={10} initialAutomated assignments={{}} accommodations={[]} />);
     expect(screen.getAllByPlaceholderText('Search stop or station…')).toHaveLength(2);
   });
 
