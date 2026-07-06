@@ -1,6 +1,6 @@
 {
   "name": "trek-plugin-sdk",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "description": "SDK for building TREK plugins: types, definePlugin, a mock host, manifest validation, and the create-trek-plugin / trek-plugin CLIs.",
   "type": "module",
   "license": "MIT",

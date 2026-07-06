@@ -178,6 +178,101 @@ body.trek-ui {
 .trek-stack { display: flex; flex-direction: column; gap: 12px; }
 .trek-cluster { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 
+/* Motion library — the host's animation vocabulary, mirrored 1:1 from
+   index.css so plugin UI moves exactly like TREK does. ---------------------- */
+@keyframes trek-menu-enter {
+  from { opacity: 0; transform: scale(0.95) translateY(-4px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes trek-popover-enter {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes trek-modal-enter {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes trek-backdrop-enter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes trek-toast-enter {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes trek-progress-fill {
+  from { width: 0%; }
+  to   { width: var(--trek-progress-to, 0%); }
+}
+@keyframes trek-pie-reveal {
+  from { opacity: 0; transform: rotate(-90deg) scale(0.85); }
+  to   { opacity: 1; transform: rotate(0deg) scale(1); }
+}
+@keyframes trek-bar-fill {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+@keyframes trek-page-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes trek-shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position: 200% 0; }
+}
+@keyframes trek-drawer-enter {
+  from { opacity: 0; transform: translateY(100%); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes trek-fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.trek-menu-enter {
+  animation: trek-menu-enter 200ms var(--trek-ease-quint);
+  transform-origin: top right; will-change: transform, opacity;
+}
+.trek-menu-enter-left {
+  animation: trek-menu-enter 200ms var(--trek-ease-quint);
+  transform-origin: top left; will-change: transform, opacity;
+}
+.trek-popover-enter { animation: trek-popover-enter 180ms var(--trek-ease-quint); will-change: transform, opacity; }
+.trek-modal-enter { animation: trek-modal-enter 220ms var(--trek-ease-quint); will-change: transform, opacity; }
+@media (max-width: 639px) {
+  .trek-modal-enter { animation: trek-drawer-enter 320ms cubic-bezier(0.32, 0.72, 0, 1); }
+}
+.trek-backdrop-enter { animation: trek-backdrop-enter 180ms var(--trek-ease-quint); }
+.trek-toast-enter { animation: trek-toast-enter 260ms var(--trek-ease-quint); will-change: transform, opacity; }
+.trek-pie-reveal {
+  animation: trek-pie-reveal 900ms var(--trek-ease-quint) both;
+  transform-origin: center; will-change: transform, opacity;
+}
+.trek-bar-fill {
+  animation: trek-bar-fill 700ms var(--trek-ease-quint) both;
+  transform-origin: left center; will-change: transform;
+}
+.trek-page-enter { animation: trek-page-enter 220ms var(--trek-ease-quint) both; }
+.trek-skeleton {
+  background: linear-gradient(90deg, var(--bg-tertiary) 0%, var(--bg-hover) 50%, var(--bg-tertiary) 100%);
+  background-size: 200% 100%;
+  animation: trek-shimmer 1.6s linear infinite;
+  border-radius: 8px; color: transparent; user-select: none;
+}
+[data-theme="dark"] .trek-skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 100%);
+  background-size: 200% 100%;
+}
+.trek-stagger > * { animation: trek-fade-up 280ms var(--trek-ease-quint) both; }
+.trek-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.trek-stagger > *:nth-child(2) { animation-delay: 40ms; }
+.trek-stagger > *:nth-child(3) { animation-delay: 80ms; }
+.trek-stagger > *:nth-child(4) { animation-delay: 120ms; }
+.trek-stagger > *:nth-child(5) { animation-delay: 160ms; }
+.trek-stagger > *:nth-child(6) { animation-delay: 200ms; }
+.trek-stagger > *:nth-child(7) { animation-delay: 240ms; }
+.trek-stagger > *:nth-child(8) { animation-delay: 280ms; }
+.trek-stagger > *:nth-child(n+9) { animation-delay: 320ms; }
+
 /* Accessibility: mirror the host's own graceful-degrade rules. -------------- */
 [data-no-transparency] .trek-glass {
   background: var(--bg-card); border-color: var(--border-primary);
@@ -189,9 +284,25 @@ body.trek-ui {
 [data-reduce-motion] .trek-row { transition: none; }
 [data-reduce-motion] .trek-interactive:hover,
 [data-reduce-motion] .trek-btn:active { transform: none; }
+[data-reduce-motion] .trek-menu-enter, [data-reduce-motion] .trek-menu-enter-left,
+[data-reduce-motion] .trek-popover-enter, [data-reduce-motion] .trek-modal-enter,
+[data-reduce-motion] .trek-toast-enter, [data-reduce-motion] .trek-stagger > *,
+[data-reduce-motion] .trek-page-enter {
+  animation: trek-backdrop-enter 120ms ease-out;
+}
+[data-reduce-motion] .trek-pie-reveal, [data-reduce-motion] .trek-bar-fill {
+  animation: trek-backdrop-enter 120ms ease-out both;
+}
+[data-reduce-motion] .trek-skeleton { animation: none; background: var(--bg-tertiary); }
 @media (prefers-reduced-motion: reduce) {
   .trek-interactive, .trek-btn, .trek-row, .trek-input, .trek-textarea, .trek-select { transition: none; }
   .trek-interactive:hover, .trek-btn:active { transform: none; }
+  .trek-menu-enter, .trek-menu-enter-left, .trek-popover-enter,
+  .trek-modal-enter, .trek-toast-enter, .trek-stagger > *, .trek-page-enter {
+    animation: trek-backdrop-enter 120ms ease-out;
+  }
+  .trek-pie-reveal, .trek-bar-fill { animation: trek-backdrop-enter 120ms ease-out both; }
+  .trek-skeleton { animation: none; background: var(--bg-tertiary); }
 }`;
 
 /**
@@ -205,8 +316,10 @@ export const TREK_THEME_JS = `(function () {
   'use strict';
   var docEl = document.documentElement;
   var ctxHandlers = [];
+  var evtHandlers = [];
   var lastCtx = null;
   var pending = {};
+  var pendingConfirms = {};
   var seq = 0;
   var lastH = -1;
 
@@ -215,6 +328,8 @@ export const TREK_THEME_JS = `(function () {
 
   function applyContext(m) {
     if (m.theme) { docEl.setAttribute('data-theme', m.theme); }
+    if (m.locale) { docEl.setAttribute('lang', m.locale); }
+    docEl.setAttribute('dir', m.dir === 'rtl' ? 'rtl' : 'ltr');
     var t = m.tokens || {};
     for (var k in t) {
       if (Object.prototype.hasOwnProperty.call(t, k) && t[k]) { docEl.style.setProperty(k, t[k]); }
@@ -249,6 +364,11 @@ export const TREK_THEME_JS = `(function () {
     } else if (m.type === 'trek:error') {
       var q = pending[m.requestId];
       if (q) { delete pending[m.requestId]; var err = new Error(m.message || 'invoke failed'); err.code = m.code; q.reject(err); }
+    } else if (m.type === 'trek:confirm:result') {
+      var c = pendingConfirms[m.requestId];
+      if (c) { delete pendingConfirms[m.requestId]; c(!!m.confirmed); }
+    } else if (m.type === 'trek:event') {
+      for (var j = 0; j < evtHandlers.length; j++) { try { evtHandlers[j](m.event, m.tripId); } catch (e) {} }
     }
   });
 
@@ -297,9 +417,26 @@ export const TREK_THEME_JS = `(function () {
       if (lastCtx) { try { cb(lastCtx); } catch (e) {} }
       return function () { var i = ctxHandlers.indexOf(cb); if (i >= 0) { ctxHandlers.splice(i, 1); } };
     },
-    notify: function (level, message) { send({ type: 'trek:notify', level: level, message: message }); },
+    notify: function (level, message, duration) { send({ type: 'trek:notify', level: level, message: message, duration: duration }); },
     navigate: function (to) { send({ type: 'trek:navigate', to: to }); },
+    openExternal: function (url) { send({ type: 'trek:openExternal', url: url }); },
     resize: function (px) { var h = px | 0; if (h > 0) { lastH = h; send({ type: 'trek:resize', height: h }); } },
+    // Host-rendered native confirm dialog; resolves true/false. The host shows one
+    // at a time — a second concurrent request resolves false immediately.
+    confirm: function (opts) {
+      opts = typeof opts === 'string' ? { message: opts } : (opts || {});
+      var id = 'c' + (++seq);
+      return new Promise(function (resolve) {
+        pendingConfirms[id] = resolve;
+        send({ type: 'trek:confirm', requestId: id, title: opts.title, message: opts.message, confirmLabel: opts.confirmLabel, cancelLabel: opts.cancelLabel, danger: opts.danger });
+      });
+    },
+    // Core-event names for the trip in view ({ event, tripId } only, no payloads) —
+    // refetch via invoke() when something relevant fires instead of polling.
+    onEvent: function (cb) {
+      evtHandlers.push(cb);
+      return function () { var i = evtHandlers.indexOf(cb); if (i >= 0) { evtHandlers.splice(i, 1); } };
+    },
     invoke: function (sub, opts) {
       opts = opts || {};
       var id = 'r' + (++seq);
