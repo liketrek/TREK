@@ -398,6 +398,7 @@ const admin: TranslationStrings = {
   'admin.plugins.metaSize': 'Kích thước',
   'admin.plugins.metaRequires': 'Yêu cầu',
   'admin.plugins.metaReviewed': 'Đã kiểm duyệt vào',
+  'admin.plugins.downloads': 'Lượt tải',
   'admin.addons.title': 'Tiện ích bổ sung',
   'admin.addons.subtitle': 'Bật hoặc tắt các tính năng để tùy chỉnh trải nghiệm TREK của bạn.',
   'admin.addons.catalog.packing.name': 'Danh sách',

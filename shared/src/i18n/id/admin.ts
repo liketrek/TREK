@@ -386,6 +386,7 @@ const admin: TranslationStrings = {
   'admin.plugins.metaSize': 'Ukuran',
   'admin.plugins.metaRequires': 'Memerlukan',
   'admin.plugins.metaReviewed': 'Ditinjau pada',
+  'admin.plugins.downloads': 'Unduhan',
   'admin.addons.title': 'Addon',
   'admin.addons.subtitle': 'Aktifkan atau nonaktifkan fitur untuk menyesuaikan pengalaman TREK kamu.',
   'admin.addons.catalog.packing.name': 'Daftar',

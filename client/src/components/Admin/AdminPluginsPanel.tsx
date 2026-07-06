@@ -56,6 +56,7 @@ interface RegistryItem {
   latest: string | null
   minTrekVersion: string | null
   reviewedAt: string | null
+  downloadCount?: number | null
   screenshotUrl: string | null
   requiredAddons?: string[]
   pluginDependencies?: PluginDep[]
@@ -876,6 +877,11 @@ function RegistryGrid({ items, onInstall, onOpenDetail, busy, t, installedIds, f
               <div className="flex items-center gap-2 mt-3">
                 <TypeBadge type={item.type} t={t} />
                 {item.latest && <span className="text-[10.5px] text-content-faint tabular-nums">v{item.latest}</span>}
+                {typeof item.downloadCount === 'number' && item.downloadCount > 0 && (
+                  <span className="inline-flex items-center gap-1 text-[10.5px] text-content-faint tabular-nums" title={t('admin.plugins.downloads')}>
+                    <Download size={11} /> {formatCompactCount(item.downloadCount)}
+                  </span>
+                )}
                 <button onClick={e => { e.stopPropagation(); onInstall(item.id) }} disabled={busy === item.id || installed}
                   className="ml-auto text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-accent text-accent-text hover:bg-accent-hover disabled:opacity-50 disabled:bg-surface-tertiary disabled:text-content-faint transition-colors">
                   {installed ? t('admin.plugins.installed') : t('admin.plugins.install')}
@@ -887,6 +893,13 @@ function RegistryGrid({ items, onInstall, onOpenDetail, busy, t, installedIds, f
       })}
     </div>
   )
+}
+
+// 1234 -> "1.2k" — GitHub-style compact download counts for the browse cards.
+function formatCompactCount(n: number): string {
+  if (n >= 1_000_000) return `${Math.round(n / 100_000) / 10}M`
+  if (n >= 1000) return `${Math.round(n / 100) / 10}k`
+  return String(n)
 }
 
 // A permission rendered human-readable when known, else as its raw code.
@@ -1002,6 +1015,9 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
               {sizeKb && <Meta k={t('admin.plugins.metaSize')} v={`${sizeKb} KB`} />}
               {item.minTrekVersion && <Meta k={t('admin.plugins.metaRequires')} v={`TREK ${item.minTrekVersion}+`} />}
               {item.reviewedAt && <Meta k={t('admin.plugins.metaReviewed')} v={new Date(item.reviewedAt).toLocaleDateString(locale)} />}
+              {typeof item.downloadCount === 'number' && item.downloadCount > 0 && (
+                <Meta k={t('admin.plugins.downloads')} v={item.downloadCount.toLocaleString(locale)} />
+              )}
             </div>
           </div>
         </div>

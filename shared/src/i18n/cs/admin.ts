@@ -337,6 +337,7 @@ const admin: TranslationStrings = {
   'admin.plugins.metaSize': 'Velikost',
   'admin.plugins.metaRequires': 'Vyžaduje',
   'admin.plugins.metaReviewed': 'Zkontrolováno',
+  'admin.plugins.downloads': 'Stažení',
   'admin.addons.title': 'Doplňky',
   'admin.addons.subtitle': 'Zapněte nebo vypněte funkce a přizpůsobte si TREK.',
   'admin.addons.catalog.memories.name': 'Fotky (Immich)',

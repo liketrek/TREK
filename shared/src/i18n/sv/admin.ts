@@ -397,6 +397,7 @@ const admin: TranslationStrings = {
   'admin.plugins.metaSize': 'Storlek',
   'admin.plugins.metaRequires': 'Kräver',
   'admin.plugins.metaReviewed': 'Granskad',
+  'admin.plugins.downloads': 'Nedladdningar',
   'admin.addons.title': 'Tillägg',
   'admin.addons.subtitle': 'Aktivera eller inaktivera funktioner för att anpassa din TREK-upplevelse.',
   'admin.addons.catalog.packing.name': 'Listor',

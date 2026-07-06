@@ -325,6 +325,7 @@ const admin: TranslationStrings = {
   'admin.plugins.metaSize': '大小',
   'admin.plugins.metaRequires': '需要',
   'admin.plugins.metaReviewed': '审核于',
+  'admin.plugins.downloads': '下载次数',
   'admin.addons.title': '扩展',
   'admin.addons.subtitle': '启用或禁用功能以自定义你的 TREK 体验。',
   'admin.addons.catalog.memories.name': '照片 (Immich)',

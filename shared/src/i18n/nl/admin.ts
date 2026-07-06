@@ -341,6 +341,7 @@ const admin: TranslationStrings = {
   'admin.plugins.metaSize': 'Grootte',
   'admin.plugins.metaRequires': 'Vereist',
   'admin.plugins.metaReviewed': 'Beoordeeld op',
+  'admin.plugins.downloads': 'Downloads',
   'admin.addons.title': 'Add-ons',
   'admin.addons.subtitle': 'Schakel functies in of uit om je TREK-ervaring aan te passen.',
   'admin.addons.catalog.memories.name': "Foto's (Immich)",

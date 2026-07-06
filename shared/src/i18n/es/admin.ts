@@ -341,6 +341,7 @@ const admin: TranslationStrings = {
   'admin.plugins.metaSize': 'Tamaño',
   'admin.plugins.metaRequires': 'Requiere',
   'admin.plugins.metaReviewed': 'Revisado el',
+  'admin.plugins.downloads': 'Descargas',
   'admin.addons.title': 'Complementos',
   'admin.addons.subtitle': 'Activa o desactiva funciones para personalizar tu experiencia en TREK.',
   'admin.addons.subtitleBefore': 'Activa o desactiva funciones para personalizar tu experiencia en ',

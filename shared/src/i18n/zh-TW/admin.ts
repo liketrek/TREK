@@ -363,6 +363,7 @@ const admin: TranslationStrings = {
   'admin.plugins.metaSize': '大小',
   'admin.plugins.metaRequires': '需要',
   'admin.plugins.metaReviewed': '審核於',
+  'admin.plugins.downloads': '下載次數',
   'admin.addons.title': '擴充套件',
   'admin.addons.subtitle': '啟用或停用功能以自定義你的 TREK 體驗。',
   'admin.addons.catalog.memories.name': '照片 (Immich)',

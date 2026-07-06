@@ -334,6 +334,7 @@ const admin: TranslationStrings = {
   'admin.plugins.metaSize': 'Tamanho',
   'admin.plugins.metaRequires': 'Requer',
   'admin.plugins.metaReviewed': 'Revisado em',
+  'admin.plugins.downloads': 'Downloads',
   'admin.addons.title': 'Complementos',
   'admin.addons.subtitle': 'Ative ou desative recursos para personalizar sua experiência no TREK.',
   'admin.addons.catalog.memories.name': 'Memórias',

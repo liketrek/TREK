@@ -339,6 +339,7 @@ const admin: TranslationStrings = {
   'admin.plugins.metaSize': 'Dimensione',
   'admin.plugins.metaRequires': 'Richiede',
   'admin.plugins.metaReviewed': 'Verificato il',
+  'admin.plugins.downloads': 'Download',
   'admin.addons.title': 'Moduli',
   'admin.addons.subtitle': 'Abilita o disabilita le funzionalità per personalizzare la tua esperienza TREK.',
   'admin.addons.catalog.packing.name': 'Liste',

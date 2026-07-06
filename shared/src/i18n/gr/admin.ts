@@ -388,6 +388,7 @@ const admin: TranslationStrings = {
   'admin.plugins.metaSize': 'Μέγεθος',
   'admin.plugins.metaRequires': 'Απαιτεί',
   'admin.plugins.metaReviewed': 'Ελέγχθηκε στις',
+  'admin.plugins.downloads': 'Λήψεις',
   'admin.addons.title': 'Πρόσθετα',
   'admin.addons.subtitle':
     'Ενεργοποιήστε ή απενεργοποιήστε λειτουργίες για να εξατομικεύσετε την εμπειρία σας στο TREK.',

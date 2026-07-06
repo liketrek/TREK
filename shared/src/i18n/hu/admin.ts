@@ -342,6 +342,7 @@ const admin: TranslationStrings = {
   'admin.plugins.metaSize': 'Méret',
   'admin.plugins.metaRequires': 'Szükséges',
   'admin.plugins.metaReviewed': 'Ellenőrizve',
+  'admin.plugins.downloads': 'Letöltések',
   'admin.addons.title': 'Bővítmények',
   'admin.addons.subtitle': 'Funkciók engedélyezése vagy letiltása a TREK testreszabásához.',
   'admin.addons.catalog.packing.name': 'Listák',

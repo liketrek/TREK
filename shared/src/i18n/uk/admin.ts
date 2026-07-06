@@ -339,6 +339,7 @@ const admin: TranslationStrings = {
   'admin.plugins.metaSize': 'Розмір',
   'admin.plugins.metaRequires': 'Потребує',
   'admin.plugins.metaReviewed': 'Перевірено',
+  'admin.plugins.downloads': 'Завантаження',
   'admin.addons.title': 'Доповнення',
   'admin.addons.subtitle': 'Увімкніть або вимкніть функції, щоб налаштувати TREK під себе.',
   'admin.addons.catalog.memories.name': 'Фото (Immich)',

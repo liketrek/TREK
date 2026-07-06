@@ -342,6 +342,7 @@ const admin: TranslationStrings = {
   'admin.plugins.metaSize': 'Taille',
   'admin.plugins.metaRequires': 'Nécessite',
   'admin.plugins.metaReviewed': 'Vérifié le',
+  'admin.plugins.downloads': 'Téléchargements',
   'admin.addons.title': 'Extensions',
   'admin.addons.subtitle': 'Activez ou désactivez des fonctionnalités pour personnaliser votre expérience TREK.',
   'admin.addons.catalog.memories.name': 'Photos (Immich)',

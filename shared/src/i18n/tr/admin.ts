@@ -384,6 +384,7 @@ const admin: TranslationStrings = {
   'admin.plugins.metaSize': 'Boyut',
   'admin.plugins.metaRequires': 'Gerektirir',
   'admin.plugins.metaReviewed': 'İncelenme tarihi',
+  'admin.plugins.downloads': 'İndirmeler',
   'admin.addons.title': 'Eklentiler',
   'admin.addons.subtitle': 'TREK deneyiminizi özelleştirmek için özellikleri etkinleştirin veya devre dışı bırakın.',
   'admin.addons.catalog.packing.name': 'Listeler',

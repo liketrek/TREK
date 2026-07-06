@@ -365,6 +365,7 @@ const admin: TranslationStrings = {
   'admin.plugins.metaSize': 'サイズ',
   'admin.plugins.metaRequires': '要件',
   'admin.plugins.metaReviewed': 'レビュー日',
+  'admin.plugins.downloads': 'ダウンロード数',
   'admin.addons.title': 'アドオン',
   'admin.addons.subtitle': '機能を有効／無効にしてTREKをカスタマイズします。',
   'admin.addons.catalog.packing.name': 'リスト',

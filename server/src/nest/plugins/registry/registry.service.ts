@@ -60,6 +60,8 @@ export interface RegistryEntry {
   reviewedAt?: string | null;
   /** base64 minisign author public key — stable across versions, TOFU-pinned. */
   authorPublicKey?: string;
+  /** Release-asset downloads across all versions, aggregated by the registry's stats cron. */
+  downloadCount?: number | null;
   versions: RegistryVersion[];
 }
 interface Registry {
@@ -124,6 +126,7 @@ export class PluginRegistryService {
       return {
         id: p.id, name: p.name, author: p.author, description: p.description, repo: p.repo,
         homepage: p.homepage, tags: p.tags, type: p.type, reviewedAt: p.reviewedAt ?? null,
+        downloadCount: p.downloadCount ?? null,
         latest: latest?.version ?? null, minTrekVersion: latest?.minTrekVersion ?? null,
         requiredAddons: latest?.requiredAddons ?? [], pluginDependencies: latest?.pluginDependencies ?? [],
         screenshotUrl: latest ? rawFileUrl(p.repo, latest.commitSha, 'docs/screenshot.png') : null,
@@ -161,7 +164,7 @@ export class PluginRegistryService {
     const data = {
       id: entry.id, name: entry.name, author: entry.author, description: entry.description,
       repo: entry.repo, homepage: entry.homepage ?? null, tags: entry.tags ?? [], type: entry.type,
-      reviewedAt: entry.reviewedAt ?? null,
+      reviewedAt: entry.reviewedAt ?? null, downloadCount: entry.downloadCount ?? null,
       latest: latest?.version ?? null, minTrekVersion: latest?.minTrekVersion ?? null,
       size: latest?.size ?? null, publishedAt: latest?.publishedAt ?? null,
       requiredAddons: latest?.requiredAddons ?? [], pluginDependencies: latest?.pluginDependencies ?? [],
