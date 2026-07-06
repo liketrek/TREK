@@ -35,6 +35,7 @@ vi.mock('../../../src/services/apiKeyCrypto', () => ({
   maybe_encrypt_api_key: (v: string) => v,
 }));
 vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn(), revokeUserSessionsForClient: vi.fn(), sessions: new Map() }));
+import { revokeUserSessionsForClient } from '../../../src/mcp/sessionManager';
 vi.mock('../../../src/demo/demo-reset', () => ({ saveBaseline: vi.fn() }));
 vi.mock('../../../src/services/adminService', () => ({
   isAddonEnabled: vi.fn().mockReturnValue(true),
@@ -422,6 +423,19 @@ describe('refreshTokens', () => {
     expect(getUserByAccessToken(access_token)).toBeNull();
   });
 
+  it('does not revoke the active MCP session on a normal (non-replayed) refresh (#1475)', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+    const rawSecret = created.client!.client_secret as string;
+
+    const { refresh_token } = issueTokens(clientId, user.id, ['trips:read']);
+    const callsBefore = vi.mocked(revokeUserSessionsForClient).mock.calls.length;
+    const result = refreshTokens(refresh_token, clientId, rawSecret);
+    expect(result.error).toBeUndefined();
+    expect(vi.mocked(revokeUserSessionsForClient).mock.calls.length).toBe(callsBefore);
+  });
+
   it('returns invalid_grant for unknown refresh token', () => {
     const { user } = createUser(testDb);
     const created = makeClient(user.id);
@@ -794,9 +808,13 @@ describe('refreshTokens — replay detection (C3)', () => {
     const { refresh_token: secondRefresh } = rotateResult.tokens!;
 
     // Replay the FIRST (now revoked) refresh token
+    const callsBefore = vi.mocked(revokeUserSessionsForClient).mock.calls.length;
     const replayResult = refreshTokens(firstRefresh, clientId, rawSecret);
     expect(replayResult.error).toBe('invalid_grant');
     expect(replayResult.status).toBe(400);
+    // Replay IS a security event — sessions must still be torn down here.
+    expect(vi.mocked(revokeUserSessionsForClient).mock.calls.length).toBe(callsBefore + 1);
+    expect(vi.mocked(revokeUserSessionsForClient)).toHaveBeenLastCalledWith(user.id, clientId);
   });
 
   it('replaying a revoked token also revokes the entire rotation chain', () => {
