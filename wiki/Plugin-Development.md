@@ -271,16 +271,16 @@ The scaffold seeds a working example. A minimal client:
 | `.trek-row` | a hover-highlight list row |
 | `.trek-title` / `.trek-muted` / `.trek-faint` | text helpers |
 | `.trek-stack` / `.trek-cluster` | vertical / horizontal flex with gap |
-| `.trek-menu-enter` / `--left` | dropdown enter (scales from its trigger corner) |
+| `.trek-menu-enter` / `.trek-menu-enter-left` | dropdown enter (scales from its trigger corner) |
 | `.trek-popover-enter` / `.trek-modal-enter` / `.trek-backdrop-enter` / `.trek-toast-enter` | the host's enter animations (`trek-modal-enter` becomes a bottom drawer below 640px) |
 | `.trek-page-enter` | subtle fade-up on mount |
 | `.trek-stagger` | children fade up with a 40ms cascade |
 | `.trek-skeleton` | shimmer loading placeholder |
 | `.trek-pie-reveal` / `.trek-bar-fill` | chart reveal animations (plus the `trek-progress-fill` keyframe, driven by `--trek-progress-to`) |
 
-All animations honour reduced motion exactly like the host: under
-`[data-reduce-motion]` or `prefers-reduced-motion` they degrade to a gentle
-120ms fade, and the skeleton stops shimmering.
+All animations honour reduced motion: under `[data-reduce-motion]` or
+`prefers-reduced-motion` they degrade to a gentle 120ms fade, and the skeleton
+stops shimmering.
 
 **The `window.trek` bridge:**
 
@@ -335,7 +335,7 @@ window.parent.postMessage({ type: 'trek:invoke', requestId: '1', sub: '/status',
 
 | Message | Payload |
 |---|---|
-| `trek:context` | `{ tripId, userId, theme, locale, dir, hostOrigin, user, formats, tokens, appearance }` (see below) — re-sent whenever the theme, appearance, **locale or formats** change |
+| `trek:context` | `{ tripId, placeId, userId, theme, locale, dir, hostOrigin, user, formats, tokens, appearance }` (see below) — re-sent whenever the theme, appearance, **locale or formats** change |
 | `trek:response` | `{ requestId, data }` — a successful `trek:invoke` |
 | `trek:error` | `{ requestId, code, message }` — a failed `trek:invoke` (`code` is the HTTP status or `"error"`) |
 | `trek:confirm:result` | `{ requestId, confirmed }` — the user's answer to your `trek:confirm` |

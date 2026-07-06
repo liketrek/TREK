@@ -896,8 +896,9 @@ function RegistryGrid({ items, onInstall, onOpenDetail, busy, t, installedIds, f
 }
 
 // 1234 -> "1.2k" — GitHub-style compact download counts for the browse cards.
+// The M threshold sits at the k-rounding boundary so 999 950 is "1M", not "1000k".
 function formatCompactCount(n: number): string {
-  if (n >= 1_000_000) return `${Math.round(n / 100_000) / 10}M`
+  if (n >= 999_500) return `${Math.round(n / 100_000) / 10}M`
   if (n >= 1000) return `${Math.round(n / 100) / 10}k`
   return String(n)
 }

@@ -127,6 +127,11 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, f
   const { locale } = useTranslation()
   const navigate = useNavigate()
   const toast = useToast()
+  // useToast returns a fresh object every render; keep it out of the effect deps
+  // (via this ref) or the bridge effect would tear down and re-post the context on
+  // EVERY parent re-render instead of only when the context inputs change.
+  const toastRef = useRef(toast)
+  toastRef.current = toast
   const userId = useAuthStore((s) => s.user?.id)
   const userName = useAuthStore((s) => s.user?.username ?? null)
   const userAvatar = useAuthStore((s) => s.user?.avatar_url ?? null)
@@ -136,7 +141,10 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, f
   // A host-rendered ConfirmDialog on the plugin's behalf: sandboxed frames have no
   // allow-modals and can't overlay the host, so destructive plugin actions get the
   // same native confirm every TREK feature uses. One at a time; extras are refused.
+  // The ref mirrors the state so the message handler can gate + answer without
+  // side effects inside a setState updater (StrictMode runs updaters twice).
   const [confirmReq, setConfirmReq] = useState<ConfirmRequest | null>(null)
+  const confirmReqRef = useRef<ConfirmRequest | null>(null)
 
   // opaque frame -> targetOrigin must be '*'. Hoisted so the iframe's onLoad can
   // deliver the context too: the trek:ready handshake alone is racy — if the frame
@@ -203,14 +211,21 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, f
           const text = String(msg.message ?? '').slice(0, 200)
           const level = msg.level ?? 'info'
           if (!text) break
-          const show = toast[level] ?? toast.info
-          // Optional duration, clamped so a plugin can neither flash nor park a toast.
-          if (typeof msg.duration === 'number') show(text, Math.min(Math.max(msg.duration, 1500), 15000))
+          const t = toastRef.current
+          const show = t[level] ?? t.info
+          // Optional duration, clamped so a plugin can neither flash nor park a
+          // toast (isFinite: NaN would slip through the clamp as duration 0 = sticky).
+          if (Number.isFinite(msg.duration)) show(text, Math.min(Math.max(msg.duration as number, 1500), 15000))
           else show(text)
           break
         }
         case 'trek:confirm': {
           if (typeof msg.requestId !== 'string' || !msg.requestId) break
+          if (confirmReqRef.current) {
+            // One dialog at a time — answer the newcomer 'not confirmed' right away.
+            post({ type: 'trek:confirm:result', requestId: msg.requestId, confirmed: false })
+            break
+          }
           const req: ConfirmRequest = {
             requestId: msg.requestId,
             title: typeof msg.title === 'string' ? msg.title.slice(0, 120) : undefined,
@@ -219,14 +234,8 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, f
             cancelLabel: typeof msg.cancelLabel === 'string' ? msg.cancelLabel.slice(0, 40) : undefined,
             danger: msg.danger !== false,
           }
-          setConfirmReq((open) => {
-            if (open) {
-              // One dialog at a time — answer the newcomer 'not confirmed' right away.
-              post({ type: 'trek:confirm:result', requestId: req.requestId, confirmed: false })
-              return open
-            }
-            return req
-          })
+          confirmReqRef.current = req
+          setConfirmReq(req)
           break
         }
         case 'trek:openExternal': {
@@ -265,16 +274,19 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, f
     // handled by onLoad; navigated frames (loads > 1) are never re-bridged.
     if (loadsRef.current === 1) post(context())
 
-    // Forward core-event *names* for the trip in view, mirroring the server-side
-    // events surface: only { event, tripId }, never payloads — the frame's user is
-    // already looking at this trip. Lets a plugin UI refresh live instead of polling.
+    // Forward event *names* for the trip in view, mirroring the server-side events
+    // surface: only { event, tripId }, never payloads — the frame's user is already
+    // looking at this trip. Core events plus the plugin's OWN namespaced broadcasts
+    // (plugin:{id}:*) pass; other plugins' broadcasts don't. Trip events only reach
+    // the socket while a planner has the trip joined, so this is a planner-side
+    // refresh signal — dashboard widgets still poll.
     let wsForward: ((ev: Record<string, unknown>) => void) | null = null
     if (tripId) {
       wsForward = (ev) => {
         if (loadsRef.current !== 1) return
-        if (ev && typeof ev.type === 'string' && ev.tripId != null && String(ev.tripId) === tripId) {
-          post({ type: 'trek:event', event: ev.type, tripId })
-        }
+        if (!ev || typeof ev.type !== 'string' || ev.tripId == null || String(ev.tripId) !== tripId) return
+        if (ev.type.startsWith('plugin:') && !ev.type.startsWith(`plugin:${pluginId}:`)) return
+        post({ type: 'trek:event', event: ev.type, tripId })
       }
       addListener(wsForward)
     }
@@ -316,18 +328,35 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, f
       themeObserver.disconnect()
       if (wsForward) removeListener(wsForward)
     }
-  }, [pluginId, tripId, fill, navigate, toast, postFrame, buildContext])
+  }, [pluginId, tripId, fill, navigate, postFrame, buildContext])
+
+  // Hosts swap pluginId in place (tab bar, /plugins/:id route) — the iframe below
+  // is keyed so the document is a fresh first load, and the per-plugin bridge
+  // state must start over with it or the new plugin would be refused as a
+  // "navigated" frame (loads > 1) and an open confirm would leak across plugins.
+  useEffect(() => {
+    loadsRef.current = 0
+    setHeight(null)
+    confirmReqRef.current = null
+    setConfirmReq(null)
+  }, [pluginId])
 
   const answerConfirm = (confirmed: boolean) => {
-    setConfirmReq((req) => {
-      if (req) postFrame({ type: 'trek:confirm:result', requestId: req.requestId, confirmed })
-      return null
-    })
+    const req = confirmReqRef.current
+    if (req) postFrame({ type: 'trek:confirm:result', requestId: req.requestId, confirmed })
+    confirmReqRef.current = null
+    setConfirmReq(null)
   }
+
+  // The dialog title always leads with the host-controlled plugin name, so a
+  // plugin cannot dress its confirm up as a TREK system dialog.
+  const pluginLabel = title || pluginId
+  const confirmTitle = confirmReq?.title ? `${pluginLabel} — ${confirmReq.title}` : pluginLabel
 
   return (
     <>
       <iframe
+        key={pluginId}
         ref={frameRef}
         src={`/plugin-frame/${pluginId}/index.html`}
         // Deliver the context as soon as the document is parsed (the plugin sets up its
@@ -345,7 +374,7 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, f
         isOpen={confirmReq != null}
         onClose={() => answerConfirm(false)}
         onConfirm={() => answerConfirm(true)}
-        title={confirmReq?.title || title || pluginId}
+        title={confirmTitle}
         message={confirmReq?.message}
         confirmLabel={confirmReq?.confirmLabel}
         cancelLabel={confirmReq?.cancelLabel}

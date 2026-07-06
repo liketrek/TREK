@@ -1,4 +1,4 @@
-// FE-PLUGINS-FRAME-001 to 010
+// FE-PLUGINS-FRAME-001 to 012
 import { render, cleanup, waitFor, fireEvent, screen, act } from '@testing-library/react';
 import PluginFrame from './PluginFrame';
 
@@ -174,5 +174,22 @@ describe('PluginFrame', () => {
     const iframe = container.querySelector('iframe')!;
     fromFrame(iframe, { type: 'trek:notify', level: 'info', message: 'hi', duration: 999999 });
     expect(toast.info).toHaveBeenCalledWith('hi', 15000);
+    // NaN must not slip through the clamp as a sticky toast.
+    fromFrame(iframe, { type: 'trek:notify', level: 'info', message: 'ho', duration: NaN });
+    expect(toast.info).toHaveBeenLastCalledWith('ho');
+  });
+
+  it('FE-PLUGINS-FRAME-013: swapping pluginId in place restarts the bridge for the new plugin', () => {
+    const { container, rerender } = render(<PluginFrame pluginId="alpha" />);
+    fireEvent.load(container.querySelector('iframe')!);
+
+    rerender(<PluginFrame pluginId="beta" />);
+    const next = container.querySelector('iframe')!; // keyed by pluginId -> fresh element
+    expect(next.getAttribute('src')).toBe('/plugin-frame/beta/index.html');
+    act(() => { fireEvent.load(next); });
+
+    // Without the per-plugin reset this would be refused as a "navigated" frame.
+    fromFrame(next, { type: 'trek:navigate', to: '/dashboard' });
+    expect(navigate).toHaveBeenCalledWith('/dashboard');
   });
 });

@@ -385,6 +385,12 @@ window.addEventListener("message", function(ev){
   else if(m.type==="trek:resize"){ if(m.height>0) f.style.height=Math.min(m.height,2000)+"px"; }
   else if(m.type==="trek:notify"){ toast((m.level?("["+m.level+"] "):"")+(m.message||"")); }
   else if(m.type==="trek:navigate"){ toast("navigate \\u2192 "+m.to); }
+  else if(m.type==="trek:openExternal"){ toast("openExternal \\u2192 "+m.url); try{ var u=new URL(String(m.url||"")); if(u.protocol==="https:"||u.protocol==="http:") window.open(u.href,"_blank","noopener,noreferrer"); }catch(e){} }
+  else if(m.type==="trek:confirm"){
+    // Mirror the host contract so trek.confirm() resolves in the preview too.
+    var ok=window.confirm((m.title?m.title+"\\n\\n":"")+(m.message||""));
+    f.contentWindow.postMessage({type:"trek:confirm:result",requestId:m.requestId,confirmed:ok},"*");
+  }
   else if(m.type==="trek:invoke"){
     fetch("/api"+m.sub,{method:m.method||"GET",headers:{"content-type":"application/json"},body:m.body!=null?JSON.stringify(m.body):undefined})
       .then(function(r){var ct=r.headers.get("content-type")||"";return (ct.indexOf("json")>=0?r.json():r.text());})
