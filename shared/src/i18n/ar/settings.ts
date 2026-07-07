@@ -477,6 +477,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.resource': 'المورد',
   'settings.pluginActivity.columns.when': 'الوقت',
   'settings.pluginActivity.columns.status': 'النتيجة',
+  'settings.alwaysShowRoutes': 'إظهار مسارات الحجوزات دائمًا',
+  'settings.alwaysShowRoutesHint': 'يعرض تلقائيًا مسار كل رحلة طيران وقطار وحجز آخر على الخريطة، دون الحاجة إلى تفعيله لكل عنصر على حدة.',
 };
 
 export default settings;

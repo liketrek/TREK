@@ -265,6 +265,37 @@ export default function DisplaySettingsTab(): React.ReactElement {
         <p className="text-xs mt-1 text-content-faint">{t('settings.bookingLabelsHint')}</p>
       </div>
 
+      {/* Always show booking routes */}
+      <div>
+        <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.alwaysShowRoutes')}</label>
+        <div className="flex gap-3">
+          {[
+            { value: true, label: t('settings.on') || 'On' },
+            { value: false, label: t('settings.off') || 'Off' },
+          ].map(opt => (
+            <button
+              key={String(opt.value)}
+              onClick={async () => {
+                try { await updateSetting('map_always_show_routes', opt.value) }
+                catch (e: unknown) { toast.error(e instanceof Error ? e.message : t('common.error')) }
+              }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
+                fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 500,
+                border: (settings.map_always_show_routes === true) === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
+                background: (settings.map_always_show_routes === true) === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)',
+                color: 'var(--text-primary)',
+                transition: 'all 0.15s',
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs mt-1 text-content-faint">{t('settings.alwaysShowRoutesHint')}</p>
+      </div>
+
       {/* Explore places on the map (POI category pill) */}
       <div>
         <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.mapPoiPill')}</label>

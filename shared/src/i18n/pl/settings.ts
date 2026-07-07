@@ -493,6 +493,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.resource': 'Zasób',
   'settings.pluginActivity.columns.when': 'Kiedy',
   'settings.pluginActivity.columns.status': 'Wynik',
+  'settings.alwaysShowRoutes': 'Zawsze pokazuj trasy rezerwacji',
+  'settings.alwaysShowRoutesHint': 'Automatycznie pokazuje na mapie trasę każdego lotu, pociągu i innej rezerwacji, bez konieczności włączania jej pojedynczo.',
 };
 
 export default settings;

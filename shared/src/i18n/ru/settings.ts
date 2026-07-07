@@ -494,6 +494,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.resource': 'Ресурс',
   'settings.pluginActivity.columns.when': 'Когда',
   'settings.pluginActivity.columns.status': 'Результат',
+  'settings.alwaysShowRoutes': 'Всегда показывать маршруты бронирований',
+  'settings.alwaysShowRoutesHint': 'Автоматически показывает на карте маршрут для каждого рейса, поезда и другого бронирования — без необходимости включать это отдельно для каждого элемента.',
 };
 
 export default settings;

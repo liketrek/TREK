@@ -495,6 +495,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.resource': 'Tài nguyên',
   'settings.pluginActivity.columns.when': 'Thời điểm',
   'settings.pluginActivity.columns.status': 'Kết quả',
+  'settings.alwaysShowRoutes': 'Luôn hiển thị tuyến đường đặt chỗ',
+  'settings.alwaysShowRoutesHint': 'Tự động hiển thị trên bản đồ tuyến đường của mỗi chuyến bay, tàu hỏa và đặt chỗ khác, không cần bật riêng từng mục.',
 };
 
 export default settings;

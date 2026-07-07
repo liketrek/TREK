@@ -464,6 +464,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.resource': '資源',
   'settings.pluginActivity.columns.when': '時間',
   'settings.pluginActivity.columns.status': '結果',
+  'settings.alwaysShowRoutes': '一律顯示訂票路線',
+  'settings.alwaysShowRoutesHint': '自動在地圖上顯示每個航班、火車及其他預訂的路線,不需要逐一手動開啟。',
 };
 
 export default settings;
