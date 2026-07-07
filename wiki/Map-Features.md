@@ -40,7 +40,7 @@ At zoom level 12 or higher, small pill-shaped labels appear between consecutive 
 
 ## Reservation and transport overlay
 
-Flights, trains, cars, and cruises can be drawn as overlays between their endpoint places. Overlays are **off by default** — activate each reservation individually by clicking the small **Route** icon next to the booking row in the day sidebar. The selection is remembered per trip in your browser. Click the icon again to hide it.
+Flights, trains, cars, and cruises can be drawn as overlays between their endpoint places. Overlays are **off by default** — activate each reservation individually by clicking the small **Route** icon next to the booking row in the day sidebar, or use one of the bulk options below. The selection is remembered per trip in your browser. Click the icon again to hide it.
 
 - **Flights and cruises** — geodesic great-circle arcs
 - **Cars, buses, taxis and bicycles** — real routed lines that follow actual roads, fetched on demand from a public OSRM router (driving for car/bus/taxi, cycling for bicycle). A straight line is shown while the route loads and kept if routing fails or the trip is very long (~2000 km+)
@@ -49,6 +49,11 @@ Flights, trains, cars, and cruises can be drawn as overlays between their endpoi
 - **Endpoint markers** — pill-shaped labels with the transport icon and the endpoint code (e.g. IATA airport code) or location name
 - **Flight stats** — a floating label on the arc shows departure code → arrival code and, when times are available, the duration and great-circle distance. Stats labels are only rendered for flights and require Settings → Display → **Route calculation** to be ON.
 - **Confirmed reservations** — solid line; **Pending** — dashed line
+
+**Bulk options**, alongside the per-booking toggle:
+
+- **Show all / hide all** — a route icon button in the day-plan toolbar (next to Undo/Reorder) flips every routable booking on the trip on or off at once, without affecting bookings you've toggled individually.
+- **Always show booking routes** (Settings → Display → Travel & map) — an account-wide default that shows every booking's route automatically on any trip you haven't touched before. It sets the *default* only — a trip where you've already used the per-booking toggle or the bulk button keeps its own choice even if you change this setting afterwards.
 
 > **Admin:** Whether endpoint text labels appear on the endpoint markers is controlled by the **Booking route labels** setting in Settings → Display (`map_booking_labels`).
 

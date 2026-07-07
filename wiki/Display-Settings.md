@@ -61,6 +61,12 @@ Toggles automatic route calculation between places on the trip map. Set to **On*
 
 Shows or hides labels on booking-related route segments on the map. Set to **On** or **Off**.
 
+## Always show booking routes
+
+When **On**, every booking that has a route (flight, train, car leg, etc.) shows its route line on the map automatically, on every trip, without needing the per-booking toggle. Set to **On** or **Off** — off by default.
+
+This only sets the *default* for a trip you haven't touched before. If you've already used the per-booking toggle or the trip's "show all / hide all" button (in the day-plan toolbar) on a given trip, that choice is remembered for that trip and isn't overridden by changing this setting afterwards.
+
 ## Blur booking codes
 
 When enabled, confirmation codes and reference numbers are blurred until you hover or tap. Set to **On** or **Off**.
