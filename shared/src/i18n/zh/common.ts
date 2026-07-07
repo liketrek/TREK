@@ -51,17 +51,17 @@ const common: TranslationStrings = {
   'common.justNow': '刚刚',
   'common.hoursAgo': '{count}小时前',
   'common.daysAgo': '{count}天前',
-  'common.datepicker.prevMonth': 'Previous month', // en-fallback
-  'common.datepicker.nextMonth': 'Next month', // en-fallback
-  'common.datepicker.prevYear': 'Previous year', // en-fallback
-  'common.datepicker.nextYear': 'Next year', // en-fallback
-  'common.datepicker.prevYears': 'Previous years', // en-fallback
-  'common.datepicker.nextYears': 'Next years', // en-fallback
-  'common.datepicker.selectMonth': 'Select month', // en-fallback
-  'common.datepicker.selectYear': 'Select year', // en-fallback
-  'common.datepicker.enterManually': 'Enter date manually', // en-fallback
-  'common.datepicker.typeDate': 'Type a date', // en-fallback
-  'common.datepicker.dialog': 'Date picker', // en-fallback
-  'common.datepicker.clearDate': 'Clear date', // en-fallback
+  'common.datepicker.prevMonth': '上个月',
+  'common.datepicker.nextMonth': '下个月',
+  'common.datepicker.prevYear': '去年',
+  'common.datepicker.nextYear': '明年',
+  'common.datepicker.prevYears': '前些年',
+  'common.datepicker.nextYears': '后些年',
+  'common.datepicker.selectMonth': '选择月份',
+  'common.datepicker.selectYear': '选择年份',
+  'common.datepicker.enterManually': '手动输入日期',
+  'common.datepicker.typeDate': '输入日期',
+  'common.datepicker.dialog': '日期选择器',
+  'common.datepicker.clearDate': '清除日期',
 };
 export default common;
