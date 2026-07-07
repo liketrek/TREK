@@ -1,10 +1,11 @@
 import React, { useState, useRef } from 'react'
-import { ChevronsDownUp, ChevronsUpDown, FileDown, Undo2, ArrowUpDown, CalendarPlus } from 'lucide-react'
+import { ChevronsDownUp, ChevronsUpDown, FileDown, Undo2, ArrowUpDown, CalendarPlus, Route as RouteIcon } from 'lucide-react'
 import { downloadTripPDF } from '../PDF/TripPDF'
 import { DayReorderPopup } from './DayReorderPopup'
 import Tooltip from '../shared/Tooltip'
 import { useToast } from '../shared/Toast'
 import { IcsSubscribeModal } from './IcsSubscribeModal'
+import { isRoutableReservation } from '../../utils/reservationRoutes'
 import type { Trip, Day, Place, Category, AssignmentsMap, Reservation, DayNote } from '../../types'
 
 interface DayPlanSidebarToolbarProps {
@@ -15,6 +16,8 @@ interface DayPlanSidebarToolbarProps {
   categories: Category[]
   assignments: AssignmentsMap
   reservations: Reservation[]
+  allConnectionsShown?: boolean
+  onToggleAllConnections?: () => void
   dayNotes: Record<string, DayNote[]>
   t: (key: string, params?: Record<string, any>) => string
   locale: string
@@ -37,6 +40,7 @@ interface DayPlanSidebarToolbarProps {
 
 export function DayPlanSidebarToolbar({
   tripId, trip, days, places, categories, assignments, reservations, dayNotes,
+  allConnectionsShown = false, onToggleAllConnections,
   t, locale, toast, pdfHover, setPdfHover, setIcsHover,
   expandedDays, setExpandedDays, onUndo, canUndo, undoHover, setUndoHover, lastActionLabel,
   canEditDays, onReorderDays, onAddDay,
@@ -295,6 +299,32 @@ export function DayPlanSidebarToolbar({
             />
           </div>
         )}
+        {onToggleAllConnections && reservations.some(isRoutableReservation) && (() => {
+          const label = t(allConnectionsShown ? 'map.hideAllConnections' : 'map.showAllConnections')
+          return (
+            <Tooltip label={label} placement="bottom">
+              <button
+                type="button"
+                onClick={onToggleAllConnections}
+                aria-label={label}
+                aria-pressed={allConnectionsShown}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 30, height: 30, borderRadius: 8,
+                  border: allConnectionsShown ? 'none' : '1px solid var(--border-primary)',
+                  background: allConnectionsShown ? '#3b82f6' : 'none',
+                  color: allConnectionsShown ? '#fff' : 'var(--text-primary)',
+                  cursor: 'pointer', fontFamily: 'inherit', padding: 0,
+                  transition: 'color 0.15s, border-color 0.15s, background 0.15s',
+                }}
+                onMouseEnter={e => { if (!allConnectionsShown) e.currentTarget.style.background = 'var(--bg-hover)' }}
+                onMouseLeave={e => { if (!allConnectionsShown) e.currentTarget.style.background = 'transparent' }}
+              >
+                <RouteIcon size={14} strokeWidth={2} />
+              </button>
+            </Tooltip>
+          )
+        })()}
       </div>
     </div>
   )

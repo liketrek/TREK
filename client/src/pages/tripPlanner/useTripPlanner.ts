@@ -27,6 +27,12 @@ import { usePluginStore } from '../../store/pluginStore'
 import type { Accommodation, TripMember, Day, Place, Reservation } from '../../types'
 import { DEFAULT_MAP_LAT, DEFAULT_MAP_LNG, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
 import { resolvePoolAssignmentId } from './tripPlannerModel'
+import { isRoutableReservation } from '../../utils/reservationRoutes'
+import {
+  parseStoredConnections, resolveEffectiveConnections, resolveVisibleConnectionIds,
+  toggleConnectionId, toggleAllConnections as flipAllConnectionsMode,
+  type StoredConnections,
+} from '../../utils/connectionsVisibility'
 
 /**
  * Trip planner page logic — the big one. Owns the trip store wiring, addon
@@ -249,20 +255,39 @@ export function useTripPlanner() {
   }, [])
 
   const connectionsStorageKey = tripId ? `trek:visible-connections:${tripId}` : null
-  const [visibleConnections, setVisibleConnections] = useState<number[]>(() => {
-    if (typeof window === 'undefined' || !connectionsStorageKey) return []
-    try {
-      const stored = window.localStorage.getItem(connectionsStorageKey)
-      return stored ? JSON.parse(stored) as number[] : []
-    } catch { return [] }
+  // Per-trip route-visibility preference — null means "never touched", which
+  // falls back to the account-wide map_always_show_routes default (see
+  // connectionsVisibility.ts). That fallback is purely computed, never
+  // written, so flipping the account setting later doesn't silently override
+  // a trip you've already made an explicit choice on.
+  const [storedConnections, setStoredConnections] = useState<StoredConnections | null>(() => {
+    if (typeof window === 'undefined' || !connectionsStorageKey) return null
+    return parseStoredConnections(window.localStorage.getItem(connectionsStorageKey))
   })
   useEffect(() => {
-    if (typeof window === 'undefined' || !connectionsStorageKey) return
-    window.localStorage.setItem(connectionsStorageKey, JSON.stringify(visibleConnections))
-  }, [connectionsStorageKey, visibleConnections])
+    if (typeof window === 'undefined' || !connectionsStorageKey || !storedConnections) return
+    window.localStorage.setItem(connectionsStorageKey, JSON.stringify(storedConnections))
+  }, [connectionsStorageKey, storedConnections])
+  const alwaysShowRoutesDefault = settings.map_always_show_routes === true
+  const routableReservationIds = useMemo(
+    () => reservations.filter(isRoutableReservation).map(r => r.id),
+    [reservations]
+  )
+  const effectiveConnections = useMemo(
+    () => resolveEffectiveConnections(storedConnections, alwaysShowRoutesDefault),
+    [storedConnections, alwaysShowRoutesDefault]
+  )
+  const visibleConnections = useMemo(
+    () => resolveVisibleConnectionIds(effectiveConnections, routableReservationIds),
+    [effectiveConnections, routableReservationIds]
+  )
+  const allConnectionsShown = effectiveConnections.mode === 'all-except'
   const toggleConnection = useCallback((id: number) => {
-    setVisibleConnections(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
-  }, [])
+    setStoredConnections(prev => toggleConnectionId(prev, alwaysShowRoutesDefault, id))
+  }, [alwaysShowRoutesDefault])
+  const toggleAllConnections = useCallback(() => {
+    setStoredConnections(prev => flipAllConnectionsMode(prev, alwaysShowRoutesDefault))
+  }, [alwaysShowRoutesDefault])
   const [mapTransportDetail, setMapTransportDetail] = useState<Reservation | null>(null)
 
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
@@ -922,7 +947,7 @@ export function useTripPlanner() {
     routeShown, setRouteShown, routeProfile, setRouteProfile, fitKey, setFitKey,
     mobileSidebarOpen, setMobileSidebarOpen, mobilePlanScrollTopRef, mobilePlacesScrollTopRef,
     deletePlaceId, setDeletePlaceId, deletePlaceIds, setDeletePlaceIds,
-    visibleConnections, setVisibleConnections, toggleConnection, mapTransportDetail, setMapTransportDetail,
+    visibleConnections, toggleConnection, allConnectionsShown, toggleAllConnections, mapTransportDetail, setMapTransportDetail,
     isMobile, isTouch,
     expandedDayIds, setExpandedDayIds, mapPlaces,
     route, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay,
