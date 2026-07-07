@@ -386,6 +386,53 @@ describe('DayPlanSidebar', () => {
     expect(screen.queryByText('Alexanderplatz')).not.toBeInTheDocument()
   })
 
+  it('FE-PLANNER-DAYPLAN-106: the toolbar button shows "show all" and calls onToggleAllConnections when not all routes are shown', async () => {
+    const user = userEvent.setup()
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    const res1 = {
+      ...buildReservation({ id: 401, type: 'flight' }),
+      endpoints: [
+        { role: 'from', sequence: 0, name: 'A', code: null, lat: 1, lng: 2, timezone: null, local_time: null, local_date: null },
+        { role: 'to', sequence: 1, name: 'B', code: null, lat: 3, lng: 4, timezone: null, local_time: null, local_date: null },
+      ],
+    }
+    const onToggleAllConnections = vi.fn()
+    render(<DayPlanSidebar {...makeDefaultProps({
+      days: [day], reservations: [res1 as any],
+      visibleConnectionIds: [], onToggleConnection: vi.fn(),
+      allConnectionsShown: false, onToggleAllConnections,
+    })} />)
+    await user.click(screen.getByLabelText('Show all booking routes'))
+    expect(onToggleAllConnections).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-PLANNER-DAYPLAN-107: the toolbar button reads "hide" once allConnectionsShown is true, and calls onToggleAllConnections on click', async () => {
+    const user = userEvent.setup()
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    const res1 = {
+      ...buildReservation({ id: 401, type: 'flight' }),
+      endpoints: [
+        { role: 'from', sequence: 0, name: 'A', code: null, lat: 1, lng: 2, timezone: null, local_time: null, local_date: null },
+        { role: 'to', sequence: 1, name: 'B', code: null, lat: 3, lng: 4, timezone: null, local_time: null, local_date: null },
+      ],
+    }
+    const onToggleAllConnections = vi.fn()
+    render(<DayPlanSidebar {...makeDefaultProps({
+      days: [day], reservations: [res1 as any],
+      visibleConnectionIds: [401], onToggleConnection: vi.fn(),
+      allConnectionsShown: true, onToggleAllConnections,
+    })} />)
+    await user.click(screen.getByLabelText('Hide all booking routes'))
+    expect(onToggleAllConnections).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-PLANNER-DAYPLAN-108: the toolbar button is absent when the trip has no routable reservation', () => {
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    render(<DayPlanSidebar {...makeDefaultProps({ days: [day], reservations: [], onToggleAllConnections: vi.fn() })} />)
+    expect(screen.queryByLabelText('Show all booking routes')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Hide all booking routes')).not.toBeInTheDocument()
+  })
+
   // ── Day info button ─────────────────────────────────────────────────────
 
   it('FE-PLANNER-DAYPLAN-018: clicking day header calls onDayDetail', async () => {
