@@ -30,8 +30,21 @@ vi.mock('../../../src/db/database', () => dbMock);
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip } from '../../helpers/factories';
+import { createUser, createTrip, createReservation } from '../../helpers/factories';
 import { getStats, getCached, setCache, getCountryFromCoords, getCountryFromAddress, reverseGeocodeCountry, getRegionGeo, getCountryGeo, getCountryPlaces, getVisitedRegions } from '../../../src/services/atlasService';
+
+function insertReservationEndpoint(
+  db: any,
+  reservationId: number,
+  role: 'from' | 'to' | 'stop',
+  sequence: number,
+  lat: number,
+  lng: number
+) {
+  db.prepare(
+    'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, lat, lng) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(reservationId, role, sequence, `Endpoint ${sequence}`, lat, lng);
+}
 
 function insertPlace(db: any, tripId: number, name: string, address: string | null = null) {
   const cat = db.prepare('SELECT id FROM categories LIMIT 1').get() as { id: number } | undefined;
@@ -119,6 +132,39 @@ describe('getStats', () => {
     expect(stats.mostVisited).not.toBeNull();
     expect(stats.mostVisited!.code).toBe('IT');
     expect(stats.mostVisited!.placeCount).toBe(1);
+  });
+
+  it('ATLAS-UNIT-022 (#1366): a country reached only via a real flight leg (from/to) counts as visited', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Tokyo Layover Trip' });
+    const reservation = createReservation(testDb, trip.id, { type: 'flight' });
+    // Tokyo: 35.6762°N, 139.6503°E — inside the JP bounding box, no place row.
+    insertReservationEndpoint(testDb, reservation.id, 'from', 0, 35.6762, 139.6503);
+    insertReservationEndpoint(testDb, reservation.id, 'to', 1, 51.4700, -0.4543);
+
+    const stats = await getStats(user.id);
+
+    const codes = stats.countries.map((c: { code: string }) => c.code);
+    expect(codes).toContain('JP');
+    expect(codes).toContain('GB');
+  });
+
+  it('ATLAS-UNIT-023 (#1366 regression): a country only touched as a connecting-flight stop does NOT count as visited', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Tokyo Connection Trip' });
+    const reservation = createReservation(testDb, trip.id, { type: 'flight' });
+    // Departs Belgium, connects through Tokyo (role: stop — never leaves the airport),
+    // lands in Australia. Only BE/AU were actually reached.
+    insertReservationEndpoint(testDb, reservation.id, 'from', 0, 50.9014, 4.4844);
+    insertReservationEndpoint(testDb, reservation.id, 'stop', 1, 35.6762, 139.6503);
+    insertReservationEndpoint(testDb, reservation.id, 'to', 2, -33.8688, 151.2093);
+
+    const stats = await getStats(user.id);
+
+    const codes = stats.countries.map((c: { code: string }) => c.code);
+    expect(codes).toContain('BE');
+    expect(codes).toContain('AU');
+    expect(codes).not.toContain('JP');
   });
 });
 
