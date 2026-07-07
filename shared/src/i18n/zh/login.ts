@@ -82,8 +82,9 @@ const login: TranslationStrings = {
   'login.demoHint': '试用演示——无需注册',
   'login.passkey.signIn': '使用通行密钥登录',
   'login.passkey.failed': '通行密钥登录失败，请重试。',
-  'login.insecureCookie.title': "Login won't stick over HTTP",
-  'login.insecureCookie.body': "You’re connecting over plain HTTP, so your browser drops TREK’s secure session cookie — the next request fails with \"Access token required\". Fix: use HTTPS, or for a home-lab set COOKIE_SECURE=false.",
-  'login.insecureCookie.link': "Open the Troubleshooting guide",
+  'login.insecureCookie.title': 'HTTP 下无法保持登录',
+  'login.insecureCookie.body':
+    '你正在通过普通 HTTP 连接，浏览器会丢弃 TREK 的安全会话 Cookie，导致下一次请求报错“Access token required”。修复方式：改用 HTTPS；如果是家庭实验室环境，可设置 COOKIE_SECURE=false。',
+  'login.insecureCookie.link': '打开故障排查指南',
 };
 export default login;
