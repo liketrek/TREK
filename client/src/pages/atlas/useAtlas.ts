@@ -5,7 +5,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import apiClient, { mapsApi, pluginsApi, type PluginAtlasLayer } from '../../api/client'
 import L from 'leaflet'
 import type { GeoJsonFeatureCollection } from '../../types'
-import { A2_TO_A3, type AtlasData, type CountryDetail, type BucketItem } from './atlasModel'
+import { A2_TO_A3, normalizeRegionName, type AtlasData, type CountryDetail, type BucketItem } from './atlasModel'
 import { continentForCountry } from '@trek/shared'
 
 function useCountryNames(language: string): (code: string) => string {
@@ -461,22 +461,25 @@ export function useAtlas() {
       const names = new Set<string>()
       for (const r of regions) {
         visitedRegionCodes.add(r.code)
-        names.add(r.name.toLowerCase())
+        names.add(normalizeRegionName(r.name))
         regionPlaceCounts[r.code] = r.placeCount
-        regionPlaceCounts[`${countryCode}:${r.name.toLowerCase()}`] = r.placeCount
+        regionPlaceCounts[`${countryCode}:${normalizeRegionName(r.name)}`] = r.placeCount
       }
       visitedRegionNamesByCountry.set(countryCode, names)
     }
 
-    // Match feature by ISO code OR region name scoped to the feature's country
+    // Match feature by ISO code OR region name scoped to the feature's country. Names are
+    // normalized (diacritics/dash variants folded) since the geocoder's cached region_name
+    // and the bundled boundaries' name don't always agree on accenting (e.g. a cached
+    // "Ile-de-France" must still match the bundle's "Île-de-France") (#atlas-region-match).
     const isVisitedFeature = (f: any) => {
       if (visitedRegionCodes.has(f.properties?.iso_3166_2)) return true
       const countryA2 = (f.properties?.iso_a2 || '').toUpperCase()
       const countryNames = visitedRegionNamesByCountry.get(countryA2)
       if (!countryNames) return false
-      const name = (f.properties?.name || '').toLowerCase()
+      const name = normalizeRegionName(f.properties?.name || '')
       if (countryNames.has(name)) return true
-      const nameEn = (f.properties?.name_en || '').toLowerCase()
+      const nameEn = normalizeRegionName(f.properties?.name_en || '')
       if (nameEn && countryNames.has(nameEn)) return true
       return false
     }
@@ -529,11 +532,11 @@ export function useAtlas() {
         const regionCode = feature?.properties?.iso_3166_2 || ''
         const countryA2 = (feature?.properties?.iso_a2 || '').toUpperCase()
         const visited = isVisitedFeature(feature)
-        const count = regionPlaceCounts[regionCode] || regionPlaceCounts[`${countryA2}:${regionName.toLowerCase()}`] || regionPlaceCounts[`${countryA2}:${regionNameEn.toLowerCase()}`] || 0
+        const count = regionPlaceCounts[regionCode] || regionPlaceCounts[`${countryA2}:${normalizeRegionName(regionName)}`] || regionPlaceCounts[`${countryA2}:${normalizeRegionName(regionNameEn)}`] || 0
         layer.on('click', () => {
           if (!countryA2) return
           if (visited) {
-            const regionEntry = visitedRegions[countryA2]?.find(r => r.code === regionCode || r.name.toLowerCase() === regionNameEn.toLowerCase())
+            const regionEntry = visitedRegions[countryA2]?.find(r => r.code === regionCode || normalizeRegionName(r.name) === normalizeRegionName(regionNameEn))
             if (regionEntry?.manuallyMarked) {
               setConfirmActionRef.current({
                 type: 'unmark-region',

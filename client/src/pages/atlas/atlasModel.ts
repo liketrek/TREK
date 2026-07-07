@@ -50,6 +50,20 @@ export interface BucketItem {
   target_date: string | null
 }
 
+// Normalize a region name for matching: strip diacritics (the geocoder and the
+// bundled boundaries don't always agree on accenting, e.g. "Ile-de-France" vs
+// "Île-de-France") and fold dash variants (en/em dash vs hyphen) to a plain
+// hyphen, then lowercase. Used to compare a place's cached region_name against
+// the admin-1 GeoJSON's name/name_en when the region code itself doesn't match.
+export function normalizeRegionName(name: string): string {
+  return name
+    .normalize('NFD').replace(/[̀-ͯ]/g, '') // strip combining diacritics
+    .replace(/[‐-―]/g, '-') // fold hyphen/dash variants to "-"
+    .replace(/\s*-\s*/g, '-') // collapse spaced dashes ("A – B" vs "A-B")
+    .toLowerCase()
+    .trim()
+}
+
 // Convert country code to flag emoji
 export function countryCodeToFlag(code: string): string {
   if (!code || code.length !== 2) return ''
