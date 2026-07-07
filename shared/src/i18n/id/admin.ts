@@ -340,6 +340,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sortName': 'Nama',
   'admin.plugins.sortRecent': 'Baru diperbarui',
   'admin.plugins.sortUpdates': 'Pembaruan dulu',
+  'admin.plugins.sortDownloads': 'Paling banyak diunduh',
   'admin.plugins.updatesAvailable': '{count} pembaruan tersedia untuk plugin kamu.',
   'admin.plugins.updateAll': 'Perbarui semua',
   'admin.plugins.noMatchInstalled': 'Tidak ada plugin terpasang yang cocok dengan pencarianmu.',

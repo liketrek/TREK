@@ -295,6 +295,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sortName': 'Nombre',
   'admin.plugins.sortRecent': 'Actualizados recientemente',
   'admin.plugins.sortUpdates': 'Actualizaciones primero',
+  'admin.plugins.sortDownloads': 'Más descargados',
   'admin.plugins.updatesAvailable': '{count} actualizaciones disponibles para tus plugins.',
   'admin.plugins.updateAll': 'Actualizar todo',
   'admin.plugins.noMatchInstalled': 'Ningún plugin instalado coincide con tu búsqueda.',

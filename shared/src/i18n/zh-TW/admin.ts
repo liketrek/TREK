@@ -317,6 +317,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sortName': '名稱',
   'admin.plugins.sortRecent': '最近更新',
   'admin.plugins.sortUpdates': '更新優先',
+  'admin.plugins.sortDownloads': '下載最多',
   'admin.plugins.updatesAvailable': '你的外掛有 {count} 項可用更新。',
   'admin.plugins.updateAll': '全部更新',
   'admin.plugins.noMatchInstalled': '沒有符合搜尋條件的已安裝外掛。',

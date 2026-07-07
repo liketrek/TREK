@@ -342,6 +342,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sortName': 'Όνομα',
   'admin.plugins.sortRecent': 'Πρόσφατα ενημερωμένα',
   'admin.plugins.sortUpdates': 'Ενημερώσεις πρώτα',
+  'admin.plugins.sortDownloads': 'Περισσότερες λήψεις',
   'admin.plugins.updatesAvailable': 'Διαθέσιμες {count} ενημερώσεις για τα plugins σας.',
   'admin.plugins.updateAll': 'Ενημέρωση όλων',
   'admin.plugins.noMatchInstalled': 'Κανένα εγκατεστημένο plugin δεν ταιριάζει με την αναζήτησή σας.',

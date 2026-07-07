@@ -294,6 +294,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sortName': 'Название',
   'admin.plugins.sortRecent': 'Недавно обновлённые',
   'admin.plugins.sortUpdates': 'Сначала с обновлениями',
+  'admin.plugins.sortDownloads': 'По загрузкам',
   'admin.plugins.updatesAvailable': 'Доступно обновлений для ваших плагинов: {count}.',
   'admin.plugins.updateAll': 'Обновить все',
   'admin.plugins.noMatchInstalled': 'Нет установленных плагинов по вашему запросу.',

@@ -86,7 +86,7 @@ interface ActivateErr {
 type T = (k: string, p?: Record<string, unknown>) => string
 type TypeFilter = 'all' | 'widget' | 'page' | 'integration' | 'trip-page'
 type StatusFilter = 'all' | 'on' | 'off' | 'update' | 'err'
-type SortKey = 'name' | 'recent' | 'updates'
+type SortKey = 'name' | 'recent' | 'updates' | 'downloads'
 
 // Runtime health → dot colour on the icon tile.
 const HEALTH: Record<string, string> = {
@@ -239,6 +239,14 @@ export default function AdminPluginsPanel() {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [sort, setSort] = useState<SortKey>('name')
+
+  // 'updates' only ranks installed plugins, 'downloads' only the registry — snap
+  // the key back to name when switching tabs so the dropdown never carries a label
+  // for an option the active tab can't offer.
+  useEffect(() => {
+    if (view === 'discover' && sort === 'updates') setSort('name')
+    else if (view === 'installed' && sort === 'downloads') setSort('name')
+  }, [view, sort])
 
   // Sideload upload: drag a plugin .zip onto the panel or use the toolbar button.
   const [dragActive, setDragActive] = useState(false)
@@ -432,9 +440,13 @@ export default function AdminPluginsPanel() {
       const matchesType = typeFilter === 'all' || r.type === typeFilter
       return matchesText && matchesType
     })
-    items = [...items].sort((a, b) => a.name.localeCompare(b.name))
+    items = [...items].sort((a, b) => {
+      if (sort === 'downloads') return (b.downloadCount ?? 0) - (a.downloadCount ?? 0) || a.name.localeCompare(b.name)
+      if (sort === 'recent') return (Date.parse(b.reviewedAt ?? '') || 0) - (Date.parse(a.reviewedAt ?? '') || 0) || a.name.localeCompare(b.name)
+      return a.name.localeCompare(b.name)
+    })
     return items
-  }, [registry, q, typeFilter])
+  }, [registry, q, typeFilter, sort])
 
   const anyFilter = q.trim() !== '' || typeFilter !== 'all' || statusFilter !== 'all'
 
@@ -531,7 +543,9 @@ export default function AdminPluginsPanel() {
             )}
 
             <FilterMenu id="sort" label={t('admin.plugins.sortBy')} value={sort} menu={menu} setMenu={setMenu} icon={<ArrowUpDown size={14} />}
-              options={[['name', t('admin.plugins.sortName')], ['recent', t('admin.plugins.sortRecent')], ['updates', t('admin.plugins.sortUpdates')]]}
+              options={view === 'discover'
+                ? [['name', t('admin.plugins.sortName')], ['recent', t('admin.plugins.sortRecent')], ['downloads', t('admin.plugins.sortDownloads')]]
+                : [['name', t('admin.plugins.sortName')], ['recent', t('admin.plugins.sortRecent')], ['updates', t('admin.plugins.sortUpdates')]]}
               valueLabel={sortLabel(sort, t)}
               onPick={v => setSort(v as SortKey)} />
 
@@ -655,7 +669,10 @@ function statusLabel(s: StatusFilter, t: T): string {
     : s === 'off' ? t('admin.plugins.stateOff') : s === 'update' ? t('admin.plugins.filterUpdate') : t('admin.plugins.status.error')
 }
 function sortLabel(s: SortKey, t: T): string {
-  return s === 'name' ? t('admin.plugins.sortName') : s === 'recent' ? t('admin.plugins.sortRecent') : t('admin.plugins.sortUpdates')
+  return s === 'name' ? t('admin.plugins.sortName')
+    : s === 'recent' ? t('admin.plugins.sortRecent')
+    : s === 'downloads' ? t('admin.plugins.sortDownloads')
+    : t('admin.plugins.sortUpdates')
 }
 
 function SegBtn({ active, onClick, label, count }: { active: boolean; onClick: () => void; label: string; count?: number }) {

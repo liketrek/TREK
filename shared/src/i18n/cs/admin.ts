@@ -291,6 +291,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sortName': 'Název',
   'admin.plugins.sortRecent': 'Naposledy aktualizované',
   'admin.plugins.sortUpdates': 'Nejdřív aktualizace',
+  'admin.plugins.sortDownloads': 'Nejstahovanější',
   'admin.plugins.updatesAvailable': 'Pro vaše pluginy je k dispozici {count} aktualizací.',
   'admin.plugins.updateAll': 'Aktualizovat vše',
   'admin.plugins.noMatchInstalled': 'Žádné nainstalované pluginy neodpovídají vašemu hledání.',

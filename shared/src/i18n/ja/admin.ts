@@ -319,6 +319,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sortName': '名前',
   'admin.plugins.sortRecent': '最近更新',
   'admin.plugins.sortUpdates': 'アップデート優先',
+  'admin.plugins.sortDownloads': 'ダウンロード数順',
   'admin.plugins.updatesAvailable': 'プラグインに{count}件のアップデートがあります。',
   'admin.plugins.updateAll': 'すべて更新',
   'admin.plugins.noMatchInstalled': '検索条件に一致するインストール済みプラグインはありません。',

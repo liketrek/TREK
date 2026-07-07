@@ -323,6 +323,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sortName': '이름',
   'admin.plugins.sortRecent': '최근 업데이트순',
   'admin.plugins.sortUpdates': '업데이트 우선',
+  'admin.plugins.sortDownloads': '다운로드순',
   'admin.plugins.updatesAvailable': '플러그인 업데이트 {count}건이 있습니다.',
   'admin.plugins.updateAll': '모두 업데이트',
   'admin.plugins.noMatchInstalled': '검색과 일치하는 설치된 플러그인이 없습니다.',

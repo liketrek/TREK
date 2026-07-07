@@ -293,6 +293,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sortName': 'Назва',
   'admin.plugins.sortRecent': 'Нещодавно оновлені',
   'admin.plugins.sortUpdates': 'Спочатку оновлення',
+  'admin.plugins.sortDownloads': 'За завантаженнями',
   'admin.plugins.updatesAvailable': 'Для ваших плагінів доступно оновлень: {count}.',
   'admin.plugins.updateAll': 'Оновити все',
   'admin.plugins.noMatchInstalled': 'Жоден встановлений плагін не відповідає вашому запиту.',

@@ -338,6 +338,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sortName': 'Ad',
   'admin.plugins.sortRecent': 'Son güncellenen',
   'admin.plugins.sortUpdates': 'Önce güncellemeler',
+  'admin.plugins.sortDownloads': 'En çok indirilen',
   'admin.plugins.updatesAvailable': 'Eklentileriniz için {count} güncelleme mevcut.',
   'admin.plugins.updateAll': 'Tümünü güncelle',
   'admin.plugins.noMatchInstalled': 'Aramanızla eşleşen yüklü eklenti yok.',

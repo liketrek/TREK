@@ -306,6 +306,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sortName': 'الاسم',
   'admin.plugins.sortRecent': 'المحدّثة حديثًا',
   'admin.plugins.sortUpdates': 'التحديثات أولًا',
+  'admin.plugins.sortDownloads': 'الأكثر تنزيلًا',
   'admin.plugins.updatesAvailable': '{count} تحديثات متاحة لإضافاتك.',
   'admin.plugins.updateAll': 'تحديث الكل',
   'admin.plugins.noMatchInstalled': 'لا توجد إضافات مثبّتة تطابق بحثك.',

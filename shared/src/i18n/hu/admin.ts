@@ -296,6 +296,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sortName': 'Név',
   'admin.plugins.sortRecent': 'Nemrég frissítve',
   'admin.plugins.sortUpdates': 'Frissítések elöl',
+  'admin.plugins.sortDownloads': 'Legtöbb letöltés',
   'admin.plugins.updatesAvailable': '{count} frissítés érhető el a pluginjaidhoz.',
   'admin.plugins.updateAll': 'Összes frissítése',
   'admin.plugins.noMatchInstalled': 'Nincs a keresésnek megfelelő telepített plugin.',

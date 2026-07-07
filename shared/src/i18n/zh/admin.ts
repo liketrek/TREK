@@ -279,6 +279,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sortName': '名称',
   'admin.plugins.sortRecent': '最近更新',
   'admin.plugins.sortUpdates': '优先显示有更新的',
+  'admin.plugins.sortDownloads': '下载最多',
   'admin.plugins.updatesAvailable': '你的插件有 {count} 个可用更新。',
   'admin.plugins.updateAll': '全部更新',
   'admin.plugins.noMatchInstalled': '没有已安装的插件与你的搜索匹配。',

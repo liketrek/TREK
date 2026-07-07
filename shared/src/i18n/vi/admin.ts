@@ -352,6 +352,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sortName': 'Tên',
   'admin.plugins.sortRecent': 'Cập nhật gần đây',
   'admin.plugins.sortUpdates': 'Ưu tiên bản cập nhật',
+  'admin.plugins.sortDownloads': 'Tải nhiều nhất',
   'admin.plugins.updatesAvailable': 'Có {count} bản cập nhật cho các plugin của bạn.',
   'admin.plugins.updateAll': 'Cập nhật tất cả',
   'admin.plugins.noMatchInstalled': 'Không có plugin đã cài đặt nào khớp với tìm kiếm của bạn.',
