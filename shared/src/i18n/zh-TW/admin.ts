@@ -253,6 +253,7 @@ const admin: TranslationStrings = {
   'admin.plugins.scope.user': '每位使用者',
   'admin.plugins.fieldRequired': '必填',
   'admin.plugins.sourceRepo': '原始碼儲存庫',
+  'admin.plugins.reportIssue': '回報問題',
   'admin.plugins.homepage': '首頁',
   'admin.plugins.requiresTrek': '需要 TREK {version}+',
   'admin.plugins.reviewedOn': '審核於 {date}',

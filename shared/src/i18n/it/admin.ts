@@ -220,6 +220,7 @@ const admin: TranslationStrings = {
   'admin.plugins.scope.user': 'Per utente',
   'admin.plugins.fieldRequired': 'Obbligatorio',
   'admin.plugins.sourceRepo': 'Repository sorgente',
+  'admin.plugins.reportIssue': 'Segnala un problema',
   'admin.plugins.homepage': 'Homepage',
   'admin.plugins.requiresTrek': 'Richiede TREK {version}+',
   'admin.plugins.reviewedOn': 'Verificato il {date}',

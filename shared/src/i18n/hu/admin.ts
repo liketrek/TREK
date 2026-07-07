@@ -221,6 +221,7 @@ const admin: TranslationStrings = {
   'admin.plugins.scope.user': 'Felhasználónként',
   'admin.plugins.fieldRequired': 'Kötelező',
   'admin.plugins.sourceRepo': 'Forráskód-tároló',
+  'admin.plugins.reportIssue': 'Probléma jelentése',
   'admin.plugins.homepage': 'Honlap',
   'admin.plugins.requiresTrek': 'TREK {version}+ szükséges',
   'admin.plugins.reviewedOn': 'Ellenőrizve: {date}',

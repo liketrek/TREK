@@ -265,6 +265,7 @@ const admin: TranslationStrings = {
   'admin.plugins.scope.user': 'Kullanıcı başına',
   'admin.plugins.fieldRequired': 'Gerekli',
   'admin.plugins.sourceRepo': 'Kaynak deposu',
+  'admin.plugins.reportIssue': 'Sorun bildir',
   'admin.plugins.homepage': 'Ana sayfa',
   'admin.plugins.requiresTrek': 'TREK {version}+ gerektirir',
   'admin.plugins.reviewedOn': '{date} tarihinde incelendi',

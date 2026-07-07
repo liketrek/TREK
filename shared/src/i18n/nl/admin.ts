@@ -221,6 +221,7 @@ const admin: TranslationStrings = {
   'admin.plugins.scope.user': 'Per gebruiker',
   'admin.plugins.fieldRequired': 'Verplicht',
   'admin.plugins.sourceRepo': 'Broncoderepository',
+  'admin.plugins.reportIssue': 'Probleem melden',
   'admin.plugins.homepage': 'Homepage',
   'admin.plugins.requiresTrek': 'Vereist TREK {version}+',
   'admin.plugins.reviewedOn': 'Beoordeeld op {date}',

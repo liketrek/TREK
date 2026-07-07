@@ -239,6 +239,7 @@ const admin: TranslationStrings = {
   'admin.plugins.scope.user': 'لكل مستخدم',
   'admin.plugins.fieldRequired': 'مطلوب',
   'admin.plugins.sourceRepo': 'مستودع المصدر',
+  'admin.plugins.reportIssue': 'الإبلاغ عن مشكلة',
   'admin.plugins.homepage': 'الصفحة الرئيسية',
   'admin.plugins.requiresTrek': 'يتطلب TREK {version}+',
   'admin.plugins.reviewedOn': 'تمت المراجعة {date}',

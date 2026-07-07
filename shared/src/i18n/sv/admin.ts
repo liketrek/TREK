@@ -277,6 +277,7 @@ const admin: TranslationStrings = {
   'admin.plugins.scope.user': 'Per användare',
   'admin.plugins.fieldRequired': 'Obligatoriskt',
   'admin.plugins.sourceRepo': 'Källkodsarkiv',
+  'admin.plugins.reportIssue': 'Rapportera ett problem',
   'admin.plugins.homepage': 'Webbplats',
   'admin.plugins.requiresTrek': 'Kräver TREK {version}+',
   'admin.plugins.reviewedOn': 'Granskad {date}',

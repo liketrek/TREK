@@ -276,6 +276,7 @@ const admin: TranslationStrings = {
   'admin.plugins.scope.user': 'Theo từng người dùng',
   'admin.plugins.fieldRequired': 'Bắt buộc',
   'admin.plugins.sourceRepo': 'Kho mã nguồn',
+  'admin.plugins.reportIssue': 'Báo cáo sự cố',
   'admin.plugins.homepage': 'Trang chủ',
   'admin.plugins.requiresTrek': 'Yêu cầu TREK {version}+',
   'admin.plugins.reviewedOn': 'Đã kiểm duyệt {date}',

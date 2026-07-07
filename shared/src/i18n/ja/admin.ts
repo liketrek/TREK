@@ -252,6 +252,7 @@ const admin: TranslationStrings = {
   'admin.plugins.scope.user': 'ユーザーごと',
   'admin.plugins.fieldRequired': '必須',
   'admin.plugins.sourceRepo': 'ソースリポジトリ',
+  'admin.plugins.reportIssue': '問題を報告',
   'admin.plugins.homepage': 'ホームページ',
   'admin.plugins.requiresTrek': 'TREK {version} 以上が必要',
   'admin.plugins.reviewedOn': 'レビュー日：{date}',

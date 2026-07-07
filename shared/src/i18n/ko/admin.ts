@@ -258,6 +258,7 @@ const admin: TranslationStrings = {
   'admin.plugins.scope.user': '사용자별',
   'admin.plugins.fieldRequired': '필수',
   'admin.plugins.sourceRepo': '소스 저장소',
+  'admin.plugins.reportIssue': '문제 신고',
   'admin.plugins.homepage': '홈페이지',
   'admin.plugins.requiresTrek': 'TREK {version} 이상 필요',
   'admin.plugins.reviewedOn': '{date} 검토됨',

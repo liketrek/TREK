@@ -811,10 +811,16 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, onToggl
               )}
               <MenuItem icon={<Bug size={14} />} label={t('admin.plugins.viewErrors')} onClick={onErrors} />
               {p.source_repo && p.source_repo !== 'local:upload' && (
-                <a href={`https://github.com/${p.source_repo}`} target="_blank" rel="noreferrer" onClick={() => setMenu(null)}
-                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-content-secondary hover:bg-surface-tertiary transition-colors">
-                  <Github size={14} /> {t('admin.plugins.sourceRepo')}
-                </a>
+                <>
+                  <a href={`https://github.com/${p.source_repo}`} target="_blank" rel="noreferrer" onClick={() => setMenu(null)}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-content-secondary hover:bg-surface-tertiary transition-colors">
+                    <Github size={14} /> {t('admin.plugins.sourceRepo')}
+                  </a>
+                  <a href={`https://github.com/${p.source_repo}/issues`} target="_blank" rel="noreferrer" onClick={() => setMenu(null)}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-content-secondary hover:bg-surface-tertiary transition-colors">
+                    <CircleDot size={14} /> {t('admin.plugins.reportIssue')}
+                  </a>
+                </>
               )}
               <div className="my-1 border-t border-edge-secondary" />
               <MenuItem icon={<Trash2 size={14} />} label={t('common.delete')} danger onClick={onUninstall} />
@@ -1044,6 +1050,10 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
           <a href={repoUrl} target="_blank" rel="noreferrer"
             className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-edge bg-surface-card text-content-secondary hover:text-content hover:border-content-faint transition-colors">
             <Github size={13} /> {t('admin.plugins.sourceRepo')}
+          </a>
+          <a href={`${repoUrl}/issues`} target="_blank" rel="noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-edge bg-surface-card text-content-secondary hover:text-content hover:border-content-faint transition-colors">
+            <CircleDot size={13} /> {t('admin.plugins.reportIssue')}
           </a>
           {homepage && (
             <a href={homepage} target="_blank" rel="noreferrer"

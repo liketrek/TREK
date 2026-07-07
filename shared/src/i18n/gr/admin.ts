@@ -267,6 +267,7 @@ const admin: TranslationStrings = {
   'admin.plugins.scope.user': 'Ανά χρήστη',
   'admin.plugins.fieldRequired': 'Υποχρεωτικό',
   'admin.plugins.sourceRepo': 'Αποθετήριο πηγαίου κώδικα',
+  'admin.plugins.reportIssue': 'Αναφορά προβλήματος',
   'admin.plugins.homepage': 'Αρχική σελίδα',
   'admin.plugins.requiresTrek': 'Απαιτεί TREK {version}+',
   'admin.plugins.reviewedOn': 'Ελέγχθηκε {date}',

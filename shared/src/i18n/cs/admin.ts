@@ -219,6 +219,7 @@ const admin: TranslationStrings = {
   'admin.plugins.scope.user': 'Pro jednotlivé uživatele',
   'admin.plugins.fieldRequired': 'Povinné',
   'admin.plugins.sourceRepo': 'Zdrojový repozitář',
+  'admin.plugins.reportIssue': 'Nahlásit problém',
   'admin.plugins.homepage': 'Domovská stránka',
   'admin.plugins.requiresTrek': 'Vyžaduje TREK {version}+',
   'admin.plugins.reviewedOn': 'Zkontrolováno {date}',

@@ -214,6 +214,7 @@ const admin: TranslationStrings = {
   'admin.plugins.scope.user': '按用户',
   'admin.plugins.fieldRequired': '必填',
   'admin.plugins.sourceRepo': '源代码仓库',
+  'admin.plugins.reportIssue': '报告问题',
   'admin.plugins.homepage': '主页',
   'admin.plugins.requiresTrek': '需要 TREK {version}+',
   'admin.plugins.reviewedOn': '审核于 {date}',

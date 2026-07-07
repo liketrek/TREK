@@ -263,6 +263,7 @@ const admin: TranslationStrings = {
   'admin.plugins.scope.user': 'Per pengguna',
   'admin.plugins.fieldRequired': 'Wajib diisi',
   'admin.plugins.sourceRepo': 'Repositori sumber',
+  'admin.plugins.reportIssue': 'Laporkan masalah',
   'admin.plugins.homepage': 'Beranda',
   'admin.plugins.requiresTrek': 'Memerlukan TREK {version}+',
   'admin.plugins.reviewedOn': 'Ditinjau {date}',
