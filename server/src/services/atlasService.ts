@@ -447,11 +447,13 @@ export async function getStats(userId: number) {
   // Merge countries reached only by a transport booking. Those store geocoded from/to
   // coordinates in reservation_endpoints but create no place row, so they never show up
   // via resolvePlaceCountries above and would otherwise be missed (#1366).
+  // Only 'from'/'to' legs count as actually reached — a 'stop' is an intermediate
+  // connection/layover (e.g. a plane change) the traveler never really visited.
   const endpoints = db.prepare(`
     SELECT DISTINCT e.lat, e.lng
     FROM reservation_endpoints e
     JOIN reservations r ON e.reservation_id = r.id
-    WHERE r.trip_id IN (${tripIds.map(() => '?').join(',')})
+    WHERE r.trip_id IN (${tripIds.map(() => '?').join(',')}) AND e.role IN ('from', 'to')
   `).all(...tripIds) as { lat: number; lng: number }[];
   for (const e of endpoints) {
     const code = getCountryFromCoords(e.lat, e.lng);
