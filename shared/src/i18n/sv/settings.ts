@@ -490,6 +490,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.resource': 'Resurs',
   'settings.pluginActivity.columns.when': 'När',
   'settings.pluginActivity.columns.status': 'Resultat',
+  'settings.alwaysShowRoutes': 'Visa alltid bokningsrutter',
+  'settings.alwaysShowRoutesHint': 'Visar automatiskt rutten för varje flyg, tåg och annan bokning på kartan, utan att du behöver aktivera det för varje bokning för sig.',
 };
 
 export default settings;

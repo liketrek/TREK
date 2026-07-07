@@ -494,6 +494,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.resource': 'Erőforrás',
   'settings.pluginActivity.columns.when': 'Mikor',
   'settings.pluginActivity.columns.status': 'Eredmény',
+  'settings.alwaysShowRoutes': 'Mindig jelenjenek meg a foglalási útvonalak',
+  'settings.alwaysShowRoutesHint': 'Automatikusan megjeleníti minden repülőjárat, vonat és egyéb foglalás útvonalát a térképen, nincs szükség egyenkénti bekapcsolásra.',
 };
 
 export default settings;

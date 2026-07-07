@@ -460,6 +460,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.resource': '资源',
   'settings.pluginActivity.columns.when': '时间',
   'settings.pluginActivity.columns.status': '结果',
+  'settings.alwaysShowRoutes': '始终显示预订路线',
+  'settings.alwaysShowRoutesHint': '自动在地图上显示每个航班、火车和其他预订的路线,无需逐个手动开启。',
 };
 
 export default settings;
