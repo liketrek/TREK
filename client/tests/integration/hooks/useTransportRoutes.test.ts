@@ -80,4 +80,35 @@ describe('useTransportRoutes (#1425 real road routes)', () => {
     await new Promise(r => setTimeout(r, 20))
     expect(calculateRouteWithLegs).toHaveBeenCalledTimes(1)
   })
+
+  it('retries a booking whose in-flight request was cancelled before completing, instead of leaving it permanently unrouted', async () => {
+    // A realistic fetch-like mock: the first call only settles when its signal
+    // fires 'abort' — this lets the test control exactly when the in-flight
+    // request is cancelled, the way React StrictMode's dev-only
+    // mount->cleanup->remount cycle cancels the first attempt before it
+    // settles (both are "this render's request got cancelled" from the
+    // hook's point of view; only the trigger differs).
+    calculateRouteWithLegs.mockImplementationOnce((_points, opts) => new Promise((_resolve, reject) => {
+      opts.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))
+    }))
+    calculateRouteWithLegs.mockResolvedValueOnce({ coordinates: [PARIS, [48.83, 2.24], VERSAILLES], distance: 20000, duration: 1500, legs: [] })
+
+    const carRes = booking(9, 'car', PARIS, VERSAILLES)
+    const unrelated = [booking(10, 'flight', PARIS, VERSAILLES)] // no routable type -> next effect run cancels the pending request and attempts nothing new
+    const { rerender, result } = renderHook(({ r }) => useTransportRoutes(r), { initialProps: { r: [carRes] } })
+    await waitFor(() => expect(calculateRouteWithLegs).toHaveBeenCalledTimes(1))
+
+    // Deps change while the request is still in flight -> the effect's cleanup
+    // must cancel it (same hook instance, same attemptedRef, so this is a
+    // deterministic stand-in for StrictMode's fake unmount).
+    rerender({ r: unrelated })
+    await new Promise(r => setTimeout(r, 10))
+
+    // The same car booking comes back -> it must be retried, not silently
+    // skipped as "already attempted".
+    rerender({ r: [carRes] })
+    await waitFor(() => expect(calculateRouteWithLegs).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(result.current.get(9)).toBeTruthy())
+    expect(result.current.get(9)).toHaveLength(3)
+  })
 })

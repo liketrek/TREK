@@ -54,13 +54,13 @@ export function useTransportRoutes(reservations: Reservation[]): Map<number, [nu
   // id → waypoint signature already fetched/attempted, so an unchanged booking
   // is never re-requested even as the reservations array identity churns.
   const attemptedRef = useRef<Map<number, string>>(new Map())
-  // Aborted only on unmount — a reservations change must not cancel an
-  // in-flight route we still want.
-  const abortRef = useRef<AbortController | null>(null)
-  if (!abortRef.current) abortRef.current = new AbortController()
-  useEffect(() => () => abortRef.current?.abort(), [])
 
   useEffect(() => {
+    // Captured once: this is the same Map instance for the hook's whole
+    // lifetime (only ever mutated in place, never reassigned), so closing over
+    // it here — rather than reading `attemptedRef.current` again inside the
+    // cleanup below — is equivalent and keeps the cleanup lint-clean.
+    const attempted = attemptedRef.current
     const jobs: { id: number; profile: 'driving' | 'cycling'; points: { lat: number; lng: number }[] }[] = []
     for (const r of reservations) {
       const profile = ROAD_PROFILE[r.type]
@@ -71,18 +71,32 @@ export function useTransportRoutes(reservations: Reservation[]): Map<number, [nu
       for (let i = 0; i < wps.length - 1; i++) dist += haversineKm(wps[i], wps[i + 1])
       if (dist > MAX_ROUTE_KM) continue
       const key = `${profile}:${wps.map(w => `${w.lat},${w.lng}`).join('|')}`
-      if (attemptedRef.current.get(r.id) === key) continue
-      attemptedRef.current.set(r.id, key)
+      if (attempted.get(r.id) === key) continue
+      attempted.set(r.id, key)
       jobs.push({ id: r.id, profile, points: wps.map(w => ({ lat: w.lat, lng: w.lng })) })
     }
     if (!jobs.length) return
 
+    // A fresh controller per effect run (never a ref-cached singleton): React
+    // StrictMode's dev-only mount->cleanup->remount cycle runs this effect's
+    // cleanup once before the real, lasting mount — a controller reused across
+    // that cleanup would already be permanently aborted by the time the real
+    // mount's fetch starts, so its request would fail instantly every time.
+    const controller = new AbortController()
+    // Ids this run's jobs have finished for (success or a genuine, non-abort
+    // failure) — checked synchronously in cleanup below, so it stays empty for
+    // a cleanup that fires before any of them settle (StrictMode's simulated
+    // cleanup always does, since it runs in the same tick, before any await
+    // resolves) and is already populated for one that fires afterward (e.g. an
+    // unrelated deps change once this run's fetches are long done).
+    const settledIds = new Set<number>()
     let cancelled = false
     void (async () => {
       // Sequential to stay gentle on the shared public router.
       for (const job of jobs) {
         try {
-          const result = await calculateRouteWithLegs(job.points, { signal: abortRef.current?.signal, profile: job.profile })
+          const result = await calculateRouteWithLegs(job.points, { signal: controller.signal, profile: job.profile })
+          settledIds.add(job.id)
           if (cancelled) return
           if (result.coordinates.length >= 2) {
             setRoutes(prev => {
@@ -92,11 +106,22 @@ export function useTransportRoutes(reservations: Reservation[]): Map<number, [nu
             })
           }
         } catch {
-          // Leave it unrouted — the overlay keeps the straight line.
+          // A genuine failure (not this run being cancelled) also counts as
+          // settled — leave it marked attempted, the overlay keeps the
+          // straight line. If it WAS the cancellation that rejected this
+          // fetch, cleanup already ran (synchronously, before this catch) and
+          // un-marked it via `settledIds` never having gained this id in time.
+          if (!cancelled) settledIds.add(job.id)
         }
       }
     })()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+      controller.abort()
+      for (const job of jobs) {
+        if (!settledIds.has(job.id)) attempted.delete(job.id)
+      }
+    }
   }, [reservations])
 
   return routes
