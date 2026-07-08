@@ -28,8 +28,24 @@ export interface PluginContext {
     getById(tripId: number, asUserId?: number): Promise<unknown>;
     getPlaces(tripId: number, asUserId?: number): Promise<unknown[]>;
     getReservations(tripId: number, asUserId?: number): Promise<unknown[]>;
+    /** Every trip the acting user owns or is a member of (for dashboards/aggregates). Needs 'db:read:trips'. */
+    listMine(): Promise<unknown[]>;
     /** Update trip fields (title/dates/currency/reminder_days/...); needs 'db:write:trips' + the acting user's 'trip_edit' permission. */
     update(tripId: number, input: Record<string, unknown>): Promise<unknown>;
+  };
+  // Reservations (bookings). `listMine` reads across every accessible trip (needs
+  // 'db:read:trips'); create/update/delete need 'db:write:reservations' + the acting
+  // user's 'reservation_edit' permission, and reuse the app's accommodation/budget/
+  // notification side effects 1:1.
+  reservations: {
+    /** Every reservation across the acting user's accessible trips. Needs 'db:read:trips'. */
+    listMine(): Promise<unknown[]>;
+    /** Create a booking on a trip. Needs 'db:write:reservations' + 'reservation_edit'. */
+    create(tripId: number, input: Record<string, unknown>): Promise<unknown>;
+    /** Update a booking on a trip. Needs 'db:write:reservations' + 'reservation_edit'. */
+    update(tripId: number, reservationId: number, input: Record<string, unknown>): Promise<unknown>;
+    /** Delete a booking from a trip. Needs 'db:write:reservations' + 'reservation_edit'. */
+    delete(tripId: number, reservationId: number): Promise<{ deleted: boolean }>;
   };
   // Read-only views of other trip subsystems (#1429 eco). Membership-checked like
   // `trips`; each needs its own db:read:* scope.
@@ -220,7 +236,14 @@ export function createPluginContext(
       getById: (tripId) => t.rpc('trips.getById', { tripId, _inv: invocationId }),
       getPlaces: (tripId) => t.rpc('trips.getPlaces', { tripId, _inv: invocationId }) as Promise<unknown[]>,
       getReservations: (tripId) => t.rpc('trips.getReservations', { tripId, _inv: invocationId }) as Promise<unknown[]>,
+      listMine: () => t.rpc('trips.listMine', { _inv: invocationId }) as Promise<unknown[]>,
       update: (tripId, input) => t.rpc('trips.update', { tripId, input, _inv: invocationId }),
+    },
+    reservations: {
+      listMine: () => t.rpc('reservations.listMine', { _inv: invocationId }) as Promise<unknown[]>,
+      create: (tripId, input) => t.rpc('reservations.create', { tripId, input, _inv: invocationId }),
+      update: (tripId, reservationId, input) => t.rpc('reservations.update', { tripId, reservationId, input, _inv: invocationId }),
+      delete: (tripId, reservationId) => t.rpc('reservations.delete', { tripId, reservationId, _inv: invocationId }) as Promise<{ deleted: boolean }>,
     },
     packing: {
       list: (tripId) => t.rpc('packing.list', { tripId, _inv: invocationId }) as Promise<unknown[]>,

@@ -58,6 +58,13 @@ function makeDeps(): HostDeps {
     unassignPlace: vi.fn(() => ({ deleted: true })),
     canEditTrip: vi.fn((tripId: number, userId: number) => tripId === 1 && userId === 42),
     updateTrip: vi.fn((tripId: number, _userId: number, input: unknown) => ({ id: tripId, ...(input as object) })),
+    // Cross-trip reads + reservations (bookings) — user 42 may edit trip 1 only.
+    listTripsForUser: vi.fn(() => [{ id: 1, title: 'Japan' }, { id: 2, title: 'Peru' }]),
+    listReservationsForUser: vi.fn(() => [{ id: 5, trip_id: 1, title: 'Hotel' }, { id: 6, trip_id: 2, title: 'Flight' }]),
+    canEditReservations: vi.fn((tripId: number, userId: number) => tripId === 1 && userId === 42),
+    createReservation: vi.fn((tripId: number, input: unknown) => ({ id: 40, trip_id: tripId, ...(input as object) })),
+    updateReservation: vi.fn((tripId: number, reservationId: number, input: unknown) => ({ id: reservationId, trip_id: tripId, ...(input as object) })),
+    deleteReservation: vi.fn(() => ({ deleted: true })),
     // Metadata — trip 1 and place 7 resolve to trip 1 (accessible to 42); else undefined.
     metaEntityTrip: vi.fn((entityType: string, entityId: number) =>
       (entityType === 'trip' && entityId === 1) || (entityType === 'place' && entityId === 7) || (entityType === 'day' && entityId === 3) ? 1 : undefined),
@@ -228,6 +235,51 @@ describe('PluginRpcHost — capability enforcement', () => {
     const res = await host.dispatch(req('trips.getReservations', { tripId: 1 }), 42);
     expect(ok(res)).toBe(true);
     expect(deps.db.prepare).toHaveBeenCalledWith(expect.stringContaining('FROM reservations'));
+  });
+
+  it('trips.listMine returns the acting user\'s trips; a job (no user) is refused', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:read:trips']), deps);
+    const res = await host.dispatch(req('trips.listMine'), 42);
+    expect(ok(res)).toBe(true);
+    expect((res as RpcResponse).result).toHaveLength(2);
+    const noUser = await host.dispatch(req('trips.listMine'), undefined);
+    expect((noUser as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+  });
+
+  it('reservations.listMine aggregates across accessible trips; refused without a user', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:read:trips']), deps);
+    const res = await host.dispatch(req('reservations.listMine'), 42);
+    expect(ok(res)).toBe(true);
+    expect((res as RpcResponse).result).toHaveLength(2);
+    expect((await host.dispatch(req('reservations.listMine'), undefined)).ok).toBe(false);
+  });
+
+  it('reservations.create needs db:write:reservations + reservation_edit, membership-checked', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:reservations']), deps);
+    const good = await host.dispatch(req('reservations.create', { tripId: 1, input: { title: 'Hotel Tokyo' } }), 42);
+    expect(ok(good)).toBe(true);
+    expect(deps.createReservation).toHaveBeenCalledWith(1, expect.objectContaining({ title: 'Hotel Tokyo' }), 42);
+    // a trip the acting user cannot edit -> forbidden, and the dep is never reached
+    const forbidden = await host.dispatch(req('reservations.create', { tripId: 2, input: { title: 'x' } }), 42);
+    expect((forbidden as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+  });
+
+  it('reservations.create refuses a job/onLoad (no acting user) and invalid input', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:reservations']), deps);
+    const noUser = await host.dispatch(req('reservations.create', { tripId: 1, input: { title: 'x' } }), undefined);
+    expect((noUser as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    const bad = await host.dispatch(req('reservations.create', { tripId: 1, input: {} }), 42);
+    expect((bad as RpcError).error.code).toBe('BAD_PARAMS');
+    expect(deps.createReservation).not.toHaveBeenCalled();
+  });
+
+  it('reservations.delete is gated the same way (edit permission + membership)', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:reservations']), deps);
+    const good = await host.dispatch(req('reservations.delete', { tripId: 1, reservationId: 40 }), 42);
+    expect(ok(good)).toBe(true);
+    expect(deps.deleteReservation).toHaveBeenCalledWith(1, 40, 42);
+    const forbidden = await host.dispatch(req('reservations.delete', { tripId: 2, reservationId: 1 }), 42);
+    expect((forbidden as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
   });
 
   it('an error thrown by a handler becomes HOST_ERROR', async () => {

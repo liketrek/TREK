@@ -131,7 +131,7 @@ declaration for readers — the manifest parser does not consume it.
 | Area | Methods | Requires |
 |---|---|---|
 | `ctx.db` | `query(sql, …args)` / `exec(sql, …args)` / `migrate(id, sql)` against your **own** SQLite file | `db:own` |
-| `ctx.trips` | `getById` / `getPlaces` / `getReservations` (membership-checked) | `db:read:trips` |
+| `ctx.trips` | `getById` / `getPlaces` / `getReservations` / `listMine()` — enumerate every trip the acting user can access (membership-checked) | `db:read:trips` |
 | `ctx.trips.update(tripId, fields)` | update trip fields (title/dates/currency/reminder_days/…) | `db:write:trips` |
 | `ctx.places` | `create(tripId, fields)` / `update(tripId, placeId, fields)` / `delete(tripId, placeId)` | `db:write:places` |
 | `ctx.days` | `create(tripId, {date?, notes?})` / `update(tripId, dayId, {notes?, title?})` / `delete(tripId, dayId)` | `db:write:days` |
@@ -141,6 +141,8 @@ declaration for readers — the manifest parser does not consume it.
 | `ctx.files` | `list(tripId)` — a trip's files, trash excluded (membership-checked) | `db:read:files` |
 | `ctx.costs` | `getByTrip(tripId)` / `listMine()` — read budget items (membership-checked) | `db:read:costs` |
 | `ctx.costs` (write) | `create(tripId, input)` / `update(tripId, itemId, input)` / `delete(tripId, itemId)` — broadcasts `budget:*` | `db:write:costs` |
+| `ctx.reservations` | `listMine()` — every booking across the acting user's accessible trips (membership-checked) | `db:read:trips` |
+| `ctx.reservations` (write) | `create(tripId, input)` / `update(tripId, reservationId, input)` / `delete(tripId, reservationId)` — full parity with the app (accommodation, budget-sync, notification, broadcasts `reservation:*`) | `db:write:reservations` |
 | `ctx.users` | `getById(id)` — public profile only (`id, username, display_name, avatar`) | `db:read:users` |
 | `ctx.ws.broadcastToTrip(tripId, event, data)` | broadcast to a trip's members (event forced to `plugin:<id>:<event>`) | `ws:broadcast:trip` |
 | `ctx.ws.broadcastToUser(userId, event, data)` | broadcast to one user | `ws:broadcast:user` |

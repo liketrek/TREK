@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { METHOD_PERMISSION } from '../protocol/envelope';
 
 /**
  * Host-side, hash-chained capability audit (#plugins, L1 hardening).
@@ -29,7 +30,9 @@ export interface AuditEntry {
 
 /** The methods worth auditing: core-data reads + broadcasts, not own-db noise. */
 export function auditResource(method: string, params: Record<string, unknown>): string | null {
-  if (method.startsWith('trips.')) return `trip:${params.tripId ?? '?'}`;
+  if (method === 'trips.listMine') return 'trips:all';
+  if (method === 'reservations.listMine') return 'reservations:all';
+  if (method.startsWith('trips.') || method.startsWith('reservations.')) return `trip:${params.tripId ?? '?'}`;
   if (method === 'costs.listMine') return 'costs:all';
   if (method.startsWith('costs.')) return `trip:${params.tripId ?? '?'}`;
   if (method.startsWith('places.') || method.startsWith('days.') || method.startsWith('itinerary.')) return `trip:${params.tripId ?? '?'}`;
@@ -43,22 +46,17 @@ export function auditResource(method: string, params: Record<string, unknown>): 
   return null;
 }
 
-/** True for calls we record (core data + ws); a plugin's own-db calls are skipped. */
+/** True for calls we record (core data + ws); a plugin's own-db calls are skipped.
+ *
+ * Derived from METHOD_PERMISSION so a NEW capability method is auto-audited: anything
+ * that unlocks via a permission other than `db:own` is core surface worth recording.
+ * `plugins.call`/`events.emit` carry no permission (registered unconditionally) but are
+ * core surface too, so they are named explicitly. This makes it impossible to add a
+ * capability that reaches core data without an audit entry by omission. */
 export function isAuditable(method: string): boolean {
-  return (
-    method.startsWith('trips.') ||
-    method.startsWith('costs.') ||
-    method.startsWith('places.') ||
-    method.startsWith('days.') ||
-    method.startsWith('itinerary.') ||
-    method.startsWith('packing.') ||
-    method.startsWith('files.') ||
-    method.startsWith('meta.') ||
-    method.startsWith('users.') ||
-    method.startsWith('ws.') ||
-    method.startsWith('plugins.') ||
-    method.startsWith('events.')
-  );
+  if (method === 'plugins.call' || method === 'events.emit') return true;
+  const perm = (METHOD_PERMISSION as Record<string, string | undefined>)[method];
+  return perm !== undefined && perm !== 'db:own';
 }
 
 /** Append one entry to the per-plugin hash chain. Synchronous (better-sqlite3). */

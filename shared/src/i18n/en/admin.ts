@@ -288,6 +288,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:write:days': 'Add, edit and remove days on trips the acting user can edit',
   'admin.plugins.perm.db:write:itinerary': 'Assign and remove places on days of trips the acting user can edit',
   'admin.plugins.perm.db:write:trips': 'Edit trip details (title, dates, currency…) on trips the acting user can edit',
+  'admin.plugins.perm.db:write:reservations': 'Create, edit and delete bookings (reservations) on trips the acting user can edit',
   'admin.plugins.perm.db:meta': 'Attach its own private data to trips, places and days the acting user can access',
   'admin.plugins.perm.ws:broadcast:trip': 'Send real-time updates to trip members',
   'admin.plugins.perm.ws:broadcast:user': 'Send real-time updates to individual users',

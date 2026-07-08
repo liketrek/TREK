@@ -11,6 +11,8 @@ import { createAssignment, deleteAssignment, dayExists, placeExists, getAssignme
 import { isAddonEnabled } from '../../../services/adminService';
 import { ADDON_IDS } from '../../../addons';
 import { BudgetService } from '../../budget/budget.service';
+import { ReservationsService } from '../../reservations/reservations.service';
+import type { User } from '../../../types';
 import { PluginDataDb } from './plugin-data.service';
 import { PluginRpcHost, ForbiddenResource, BadParams } from './rpc-host';
 import { appendAudit } from './plugin-audit';
@@ -32,6 +34,17 @@ function canEditTripAs(action: string, tripId: number, userId: number): boolean 
 // Reused for costs.create so a plugin write frozen-FX and members/payers logic
 // matches a normal web-app budget write exactly (it has no injected deps).
 const budgetSvc = new BudgetService();
+// Same idea for reservations: the Nest service (no injected deps) encapsulates the
+// accommodation/budget-sync/notification side effects 1:1 with the REST controller.
+const reservationsSvc = new ReservationsService();
+
+// The booking notification the REST controller sends after a create/update/delete
+// (services/notificationService via reservationsSvc). Needs the acting User; a plugin
+// only holds the id, so hydrate it host-side. Fire-and-forget — never blocks the write.
+function notifyBooking(actingUserId: number, tripId: number, booking: string, type: string): void {
+  const actor = db.prepare('SELECT * FROM users WHERE id = ?').get(actingUserId) as User | undefined;
+  if (actor) reservationsSvc.notifyBookingChange(String(tripId), actor, booking, type);
+}
 
 // Quotas for plugin entity metadata (db:meta) — a cheap disk-DoS guard on the
 // shared trek.db volume. Generous for real use, small enough to bound abuse.
@@ -219,6 +232,48 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
         if (e instanceof NotFoundError) throw new ForbiddenResource(e.message);
         throw e;
       }
+    },
+    // --- Cross-trip reads. The membership predicate is baked into listTrips, so a
+    // plugin only ever sees the acting user's own trips/reservations (no raw
+    // cross-tenant SELECT). Reuses the same hydrated services as the REST paths. ---
+    listTripsForUser: (userId) => listTrips(userId, null),
+    listReservationsForUser: (userId) => {
+      const trips = listTrips(userId, null) as Array<{ id: number }>;
+      return trips.flatMap((t) => reservationsSvc.list(String(t.id)));
+    },
+    // --- Reservations (bookings, reservation_edit). Delegates to ReservationsService
+    // so the accommodation/budget-sync/notification/broadcast side effects match the
+    // web app EXACTLY. socketId is undefined — a plugin has no originating socket. ---
+    canEditReservations: (tripId, userId) => canEditTripAs('reservation_edit', tripId, userId),
+    createReservation: (tripId, input, actingUserId) => {
+      const { reservation, accommodationCreated } = reservationsSvc.create(String(tripId), input as never);
+      if (accommodationCreated) broadcast(tripId, 'accommodation:created', {}, undefined);
+      const i = input as { title?: string; type?: string; create_budget_entry?: unknown };
+      reservationsSvc.syncBudgetOnCreate(String(tripId), reservation.id, i.title ?? '', i.type, i.create_budget_entry as never, undefined);
+      broadcast(tripId, 'reservation:created', { reservation }, undefined);
+      notifyBooking(actingUserId, tripId, i.title ?? '', i.type ?? '');
+      return reservation;
+    },
+    updateReservation: (tripId, reservationId, input, actingUserId) => {
+      const current = reservationsSvc.getReservation(String(reservationId), String(tripId));
+      if (!current) throw new ForbiddenResource(`no reservation ${reservationId} on trip ${tripId}`);
+      const { reservation, accommodationChanged } = reservationsSvc.update(String(reservationId), String(tripId), input as never, current as never);
+      if (accommodationChanged) broadcast(tripId, 'accommodation:updated', {}, undefined);
+      const cur = current as { title: string; type?: string };
+      const i = input as { title?: string; type?: string; create_budget_entry?: unknown };
+      reservationsSvc.syncBudgetOnUpdate(String(tripId), String(reservationId), i.title ?? '', i.type, cur.title, cur.type, i.create_budget_entry as never, undefined);
+      broadcast(tripId, 'reservation:updated', { reservation }, undefined);
+      notifyBooking(actingUserId, tripId, i.title || cur.title, i.type || cur.type || '');
+      return reservation;
+    },
+    deleteReservation: (tripId, reservationId, actingUserId) => {
+      const { deleted, accommodationDeleted, deletedBudgetItemId } = reservationsSvc.remove(String(reservationId), String(tripId));
+      if (!deleted) throw new ForbiddenResource(`no reservation ${reservationId} on trip ${tripId}`);
+      if (accommodationDeleted) broadcast(tripId, 'accommodation:deleted', { accommodationId: deleted.accommodation_id }, undefined);
+      if (deletedBudgetItemId) broadcast(tripId, 'budget:deleted', { itemId: deletedBudgetItemId }, undefined);
+      broadcast(tripId, 'reservation:deleted', { reservationId: Number(reservationId) }, undefined);
+      notifyBooking(actingUserId, tripId, deleted.title, deleted.type || '');
+      return { deleted: true };
     },
     // --- Plugin metadata (db:meta). A per-plugin namespaced key/value store keyed
     // to a core entity; the plugin only ever sees rows tagged with its own id. ---

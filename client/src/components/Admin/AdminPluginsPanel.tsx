@@ -106,7 +106,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: 
 // Known permissions → human-readable i18n key; unknown ones render as raw code.
 const PERM_KEYS = [
   'db:own', 'db:read:trips', 'db:read:users', 'db:read:costs', 'db:read:packing', 'db:read:files', 'db:write:costs',
-  'db:write:places', 'db:write:days', 'db:write:itinerary', 'db:write:trips',
+  'db:write:places', 'db:write:days', 'db:write:itinerary', 'db:write:trips', 'db:write:reservations',
   'db:meta',
   'events:subscribe',
   'ws:broadcast:trip', 'ws:broadcast:user',

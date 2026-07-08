@@ -241,6 +241,8 @@ const admin: TranslationStrings = {
     'Orte den Tagen von Reisen zuordnen und entfernen, die der handelnde Nutzer bearbeiten kann',
   'admin.plugins.perm.db:write:trips':
     'Reisedetails (Titel, Daten, Währung …) auf Reisen bearbeiten, die der handelnde Nutzer bearbeiten kann',
+  'admin.plugins.perm.db:write:reservations':
+    'Buchungen (Reservierungen) auf Reisen anlegen, bearbeiten und löschen, die der handelnde Nutzer bearbeiten kann',
   'admin.plugins.perm.db:meta':
     'Eigene private Daten an Reisen, Orte und Tage anhängen, auf die der handelnde Nutzer Zugriff hat',
   'admin.plugins.perm.ws:broadcast:trip': 'Echtzeit-Updates an Reisemitglieder senden',

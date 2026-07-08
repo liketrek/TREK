@@ -4,6 +4,7 @@ import {
   placeCreateRequestSchema, placeUpdateRequestSchema,
   dayCreateRequestSchema, dayUpdateRequestSchema,
   tripUpdateRequestSchema,
+  reservationCreateRequestSchema, reservationUpdateRequestSchema,
 } from '@trek/shared';
 import {
   KNOWN_METHODS,
@@ -91,6 +92,19 @@ export interface HostDeps {
   // --- Trip (the 'trip_edit' permission) ---
   canEditTrip(tripId: number, userId: number): boolean;
   updateTrip(tripId: number, userId: number, input: Record<string, unknown>): unknown;
+  // --- Cross-trip reads (membership baked in — every trip the acting user can access) ---
+  /** Every trip the acting user owns or is a member of (the listTrips baseline). */
+  listTripsForUser(userId: number): unknown[];
+  /** Every reservation across the acting user's accessible trips. */
+  listReservationsForUser(userId: number): unknown[];
+  // --- Reservations (the 'reservation_edit' permission) ---
+  canEditReservations(tripId: number, userId: number): boolean;
+  /** Create a reservation (accommodation/budget side effects + broadcasts, as the web app); returns it. */
+  createReservation(tripId: number, input: Record<string, unknown>, actingUserId: number): unknown;
+  /** Update a reservation on a trip (same side effects); returns it, or throws if it isn't on the trip. */
+  updateReservation(tripId: number, reservationId: number, input: Record<string, unknown>, actingUserId: number): unknown;
+  /** Delete a reservation from a trip (same side effects); returns { deleted: true }. */
+  deleteReservation(tripId: number, reservationId: number, actingUserId: number): unknown;
   // --- Plugin metadata on core entities (db:meta) ---
   /** The trip a trip/place/day belongs to (for the membership gate), or undefined. */
   metaEntityTrip(entityType: string, entityId: number): number | undefined;
@@ -143,6 +157,19 @@ export class PluginRpcHost {
       this.methods.set('trips.getReservations', (p, uid) =>
         this.tripRead(p, uid, () => deps.db.prepare('SELECT * FROM reservations WHERE trip_id = ? ORDER BY reservation_time').all(num(p.tripId, 'tripId'))),
       );
+      // Cross-trip enumeration: every trip the acting user can access. Membership is
+      // baked into listTripsForUser, so there is no tripId to check — but a job/onLoad
+      // (no bound user) is refused, exactly like costs.listMine.
+      this.methods.set('trips.listMine', (_p, uid) => {
+        if (uid === undefined) throw new ForbiddenResource('trip reads require an authenticated user context');
+        return deps.listTripsForUser(uid);
+      });
+      // Cross-trip reservations feed (dashboards): reservations across every accessible
+      // trip. Same membership predicate + no-user refusal.
+      this.methods.set('reservations.listMine', (_p, uid) => {
+        if (uid === undefined) throw new ForbiddenResource('reservation reads require an authenticated user context');
+        return deps.listReservationsForUser(uid);
+      });
     }
     if (has('db:read:packing')) {
       // Delegate to the packing service, scoped to the acting user so its #858 private-
@@ -309,6 +336,37 @@ export class PluginRpcHost {
         if (!parsed.success) throw new BadParams(`invalid trip: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
         this.requireTripEdit(tripId, actor, deps.canEditTrip);
         return deps.updateTrip(tripId, actor, parsed.data as Record<string, unknown>);
+      });
+    }
+
+    if (has('db:write:reservations')) {
+      // Bookings write. Gated exactly like the reservations REST/MCP path: trip
+      // access + the 'reservation_edit' permission for the HOST-bound acting user.
+      // The delegating deps reuse the real ReservationsService so the accommodation,
+      // budget-sync, notification and broadcast side effects match the web app 1:1.
+      this.methods.set('reservations.create', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const actor = this.requireActor(uid, 'reservation');
+        const parsed = reservationCreateRequestSchema.safeParse(p.input);
+        if (!parsed.success) throw new BadParams(`invalid reservation: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
+        this.requireTripEdit(tripId, actor, deps.canEditReservations);
+        return deps.createReservation(tripId, parsed.data as Record<string, unknown>, actor);
+      });
+      this.methods.set('reservations.update', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const reservationId = num(p.reservationId, 'reservationId');
+        const actor = this.requireActor(uid, 'reservation');
+        const parsed = reservationUpdateRequestSchema.safeParse(p.input);
+        if (!parsed.success) throw new BadParams(`invalid reservation: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
+        this.requireTripEdit(tripId, actor, deps.canEditReservations);
+        return deps.updateReservation(tripId, reservationId, parsed.data as Record<string, unknown>, actor);
+      });
+      this.methods.set('reservations.delete', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const reservationId = num(p.reservationId, 'reservationId');
+        const actor = this.requireActor(uid, 'reservation');
+        this.requireTripEdit(tripId, actor, deps.canEditReservations);
+        return deps.deleteReservation(tripId, reservationId, actor);
       });
     }
 
