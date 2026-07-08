@@ -275,6 +275,14 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:costs': 'İşlemi yapan kullanıcının erişebildiği harcamaları (bütçe kalemleri) okur',
   'admin.plugins.perm.db:read:packing': 'İşlemi yapan kullanıcının erişebildiği seyahatlerin eşya listelerini okur',
   'admin.plugins.perm.db:read:files': 'İşlemi yapan kullanıcının erişebildiği seyahatlerin dosyalarını okur',
+  'admin.plugins.perm.db:write:reservations': 'İşlemi yapan kullanıcının düzenleyebildiği seyahatlerde rezervasyonlar oluşturur, düzenler ve siler',
+  'admin.plugins.perm.db:read:journal': 'İşlemi yapan kullanıcının seyahat günlüklerini okur (Journey eklentisi gerektirir)',
+  'admin.plugins.perm.db:read:atlas': 'İşlemi yapan kullanıcının ziyaret ettiği ülkeleri ve bölgeleri okur (Atlas eklentisi gerektirir)',
+  'admin.plugins.perm.db:read:vacay': 'İşlemi yapan kullanıcının tatil planını okur (Vacay eklentisi gerektirir)',
+  'admin.plugins.perm.db:read:daynotes': 'İşlemi yapan kullanıcının erişebildiği seyahatlerin gün notlarını okur',
+  'admin.plugins.perm.db:read:collections': 'İşlemi yapan kullanıcının kaydedilen yer koleksiyonlarını okur (Collections eklentisi gerektirir)',
+  'admin.plugins.perm.db:write:daynotes': 'İşlemi yapan kullanıcının düzenleyebildiği seyahatlerde gün notları oluşturur, düzenler ve siler',
+  'admin.plugins.perm.jobs:run': 'Bildirdiği arka plan işlerini bir zamanlamaya göre çalıştırır (kullanıcı bağlamı yok — kullanıcı verilerini okuyamaz)',
   'admin.plugins.perm.db:write:costs':
     'İşlemi yapan kullanıcının düzenleyebildiği seyahatlerde harcamalar (bütçe kalemleri) oluşturur',
   'admin.plugins.perm.db:write:places':

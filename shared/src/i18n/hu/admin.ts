@@ -232,6 +232,14 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:packing':
     'Az aktuális felhasználó számára elérhető utazások csomagolási listáinak olvasása',
   'admin.plugins.perm.db:read:files': 'Az aktuális felhasználó számára elérhető utazások fájljainak olvasása',
+  'admin.plugins.perm.db:write:reservations': 'Foglalások létrehozása, szerkesztése és törlése az aktuális felhasználó által szerkeszthető utazásokon',
+  'admin.plugins.perm.db:read:journal': 'Az aktuális felhasználó úti naplóinak olvasása (a Journey bővítmény szükséges)',
+  'admin.plugins.perm.db:read:atlas': 'Az aktuális felhasználó által meglátogatott országok és régiók olvasása (az Atlas bővítmény szükséges)',
+  'admin.plugins.perm.db:read:vacay': 'Az aktuális felhasználó nyaralási tervének olvasása (a Vacay bővítmény szükséges)',
+  'admin.plugins.perm.db:read:daynotes': 'Az aktuális felhasználó számára elérhető utazások napi jegyzeteinek olvasása',
+  'admin.plugins.perm.db:read:collections': 'Az aktuális felhasználó mentett helyeinek gyűjteményeit olvasása (a Collections bővítmény szükséges)',
+  'admin.plugins.perm.db:write:daynotes': 'Napi jegyzetek létrehozása, szerkesztése és törlése az aktuális felhasználó által szerkeszthető utazásokon',
+  'admin.plugins.perm.jobs:run': 'A deklarált háttérfeladatok ütemezett futtatása (felhasználói környezet nélkül — nem olvashat felhasználói adatokat)',
   'admin.plugins.perm.db:write:costs':
     'Költségek (költségtételek) létrehozása az aktuális felhasználó által szerkeszthető utazásokon',
   'admin.plugins.perm.db:write:places':

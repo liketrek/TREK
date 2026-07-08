@@ -276,6 +276,14 @@ const admin: TranslationStrings = {
     'Membaca daftar barang bawaan dari perjalanan yang dapat diakses oleh pengguna yang bersangkutan',
   'admin.plugins.perm.db:read:files':
     'Membaca berkas dari perjalanan yang dapat diakses oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.db:write:reservations': 'Membuat, mengedit, dan menghapus pemesanan pada perjalanan yang dapat diedit oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.db:read:journal': 'Membaca jurnal perjalanan pengguna yang bersangkutan (memerlukan add-on Journey)',
+  'admin.plugins.perm.db:read:atlas': 'Membaca negara dan wilayah yang dikunjungi oleh pengguna yang bersangkutan (memerlukan add-on Atlas)',
+  'admin.plugins.perm.db:read:vacay': 'Membaca rencana liburan pengguna yang bersangkutan (memerlukan add-on Vacay)',
+  'admin.plugins.perm.db:read:daynotes': 'Membaca catatan harian dari perjalanan yang dapat diakses oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.db:read:collections': 'Membaca koleksi tempat tersimpan milik pengguna yang bersangkutan (memerlukan add-on Collections)',
+  'admin.plugins.perm.db:write:daynotes': 'Membuat, mengedit, dan menghapus catatan harian pada perjalanan yang dapat diedit oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.jobs:run': 'Menjalankan tugas latar belakang yang dideklarasikan sesuai jadwal (tanpa konteks pengguna — tidak dapat membaca data pengguna)',
   'admin.plugins.perm.db:write:costs':
     'Membuat pengeluaran (item anggaran) pada perjalanan yang dapat diedit oleh pengguna yang bersangkutan',
   'admin.plugins.perm.db:write:places':

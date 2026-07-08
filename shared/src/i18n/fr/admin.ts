@@ -232,6 +232,14 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:costs': "Lire les dépenses (postes de budget) accessibles à l'utilisateur actif",
   'admin.plugins.perm.db:read:packing': "Lire les listes de bagages des voyages accessibles à l'utilisateur actif",
   'admin.plugins.perm.db:read:files': "Lire les fichiers des voyages accessibles à l'utilisateur actif",
+  'admin.plugins.perm.db:write:reservations': "Créer, modifier et supprimer des réservations sur les voyages que l'utilisateur actif peut modifier",
+  'admin.plugins.perm.db:read:journal': "Lire les journaux de voyage de l'utilisateur actif (nécessite le module Journey)",
+  'admin.plugins.perm.db:read:atlas': "Lire les pays et régions visités par l'utilisateur actif (nécessite le module Atlas)",
+  'admin.plugins.perm.db:read:vacay': "Lire le plan de vacances de l'utilisateur actif (nécessite le module Vacay)",
+  'admin.plugins.perm.db:read:daynotes': "Lire les notes de journée des voyages accessibles à l'utilisateur actif",
+  'admin.plugins.perm.db:read:collections': "Lire les collections de lieux enregistrés de l'utilisateur actif (nécessite le module Collections)",
+  'admin.plugins.perm.db:write:daynotes': "Créer, modifier et supprimer des notes de journée sur les voyages que l'utilisateur actif peut modifier",
+  'admin.plugins.perm.jobs:run': "Exécuter ses tâches d'arrière-plan selon une planification (sans contexte utilisateur — ne peut pas lire les données utilisateur)",
   'admin.plugins.perm.db:write:costs':
     "Créer des dépenses (postes de budget) sur les voyages que l'utilisateur actif peut modifier",
   'admin.plugins.perm.db:write:places':

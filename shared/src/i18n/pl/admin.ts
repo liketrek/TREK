@@ -226,6 +226,14 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:packing':
     'Odczyt list rzeczy do spakowania w podróżach, do których działający użytkownik ma dostęp',
   'admin.plugins.perm.db:read:files': 'Odczyt plików w podróżach, do których działający użytkownik ma dostęp',
+  'admin.plugins.perm.db:write:reservations': 'Tworzenie, edytowanie i usuwanie rezerwacji w podróżach, które działający użytkownik może edytować',
+  'admin.plugins.perm.db:read:journal': 'Odczyt dzienników podróży działającego użytkownika (wymaga dodatku Journey)',
+  'admin.plugins.perm.db:read:atlas': 'Odczyt krajów i regionów odwiedzonych przez działającego użytkownika (wymaga dodatku Atlas)',
+  'admin.plugins.perm.db:read:vacay': 'Odczyt planu urlopu działającego użytkownika (wymaga dodatku Vacay)',
+  'admin.plugins.perm.db:read:daynotes': 'Odczyt notatek dziennych w podróżach, do których działający użytkownik ma dostęp',
+  'admin.plugins.perm.db:read:collections': 'Odczyt kolekcji zapisanych miejsc działającego użytkownika (wymaga dodatku Collections)',
+  'admin.plugins.perm.db:write:daynotes': 'Tworzenie, edytowanie i usuwanie notatek dziennych w podróżach, które działający użytkownik może edytować',
+  'admin.plugins.perm.jobs:run': 'Uruchamianie zadeklarowanych zadań w tle według harmonogramu (bez kontekstu użytkownika — nie może odczytywać danych użytkownika)',
   'admin.plugins.perm.db:write:costs':
     'Tworzenie wydatków (pozycji budżetu) w podróżach, które działający użytkownik może edytować',
   'admin.plugins.perm.db:write:places':

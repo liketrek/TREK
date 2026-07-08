@@ -231,6 +231,14 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:costs': 'Uitgaven (budgetposten) lezen waartoe de actieve gebruiker toegang heeft',
   'admin.plugins.perm.db:read:packing': 'Paklijsten lezen van reizen waartoe de actieve gebruiker toegang heeft',
   'admin.plugins.perm.db:read:files': 'Bestanden lezen van reizen waartoe de actieve gebruiker toegang heeft',
+  'admin.plugins.perm.db:write:reservations': 'Boekingen (reserveringen) aanmaken, bewerken en verwijderen op reizen die de actieve gebruiker mag bewerken',
+  'admin.plugins.perm.db:read:journal': 'De reisdagboeken van de actieve gebruiker lezen (vereist de Journey-add-on)',
+  'admin.plugins.perm.db:read:atlas': "De door de actieve gebruiker bezochte landen en regio's lezen (vereist de Atlas-add-on)",
+  'admin.plugins.perm.db:read:vacay': 'Het vakantieplan van de actieve gebruiker lezen (vereist de Vacay-add-on)',
+  'admin.plugins.perm.db:read:daynotes': 'De dagnotities lezen van reizen waartoe de actieve gebruiker toegang heeft',
+  'admin.plugins.perm.db:read:collections': 'De collecties met opgeslagen plaatsen van de actieve gebruiker lezen (vereist de Collections-add-on)',
+  'admin.plugins.perm.db:write:daynotes': 'Dagnotities aanmaken, bewerken en verwijderen op reizen die de actieve gebruiker mag bewerken',
+  'admin.plugins.perm.jobs:run': 'De gedeclareerde achtergrondtaken volgens een schema uitvoeren (zonder gebruikerscontext — kan geen gebruikersgegevens lezen)',
   'admin.plugins.perm.db:write:costs':
     'Uitgaven (budgetposten) aanmaken op reizen die de actieve gebruiker mag bewerken',
   'admin.plugins.perm.db:write:places':

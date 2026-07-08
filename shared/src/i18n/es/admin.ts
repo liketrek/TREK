@@ -232,6 +232,14 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:packing':
     'Leer las listas de equipaje de los viajes a los que el usuario activo tiene acceso',
   'admin.plugins.perm.db:read:files': 'Leer los archivos de los viajes a los que el usuario activo tiene acceso',
+  'admin.plugins.perm.db:write:reservations': 'Crear, editar y eliminar reservas en los viajes que el usuario activo puede editar',
+  'admin.plugins.perm.db:read:journal': 'Leer los diarios de viaje del usuario activo (requiere el complemento Journey)',
+  'admin.plugins.perm.db:read:atlas': 'Leer los países y regiones visitados por el usuario activo (requiere el complemento Atlas)',
+  'admin.plugins.perm.db:read:vacay': 'Leer el plan de vacaciones del usuario activo (requiere el complemento Vacay)',
+  'admin.plugins.perm.db:read:daynotes': 'Leer las notas del día de los viajes a los que el usuario activo tiene acceso',
+  'admin.plugins.perm.db:read:collections': 'Leer las colecciones de lugares guardados del usuario activo (requiere el complemento Collections)',
+  'admin.plugins.perm.db:write:daynotes': 'Crear, editar y eliminar notas del día en los viajes que el usuario activo puede editar',
+  'admin.plugins.perm.jobs:run': 'Ejecutar sus tareas en segundo plano de forma programada (sin contexto de usuario: no puede leer datos del usuario)',
   'admin.plugins.perm.db:write:costs':
     'Crear gastos (partidas de presupuesto) en los viajes que el usuario activo puede editar',
   'admin.plugins.perm.db:write:places':

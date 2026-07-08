@@ -33,7 +33,9 @@ vi.mock('../../../src/db/database', () => {
   return { db: d, canAccessTrip: (tripId: number, userId: number) => (tripId === 1 && (userId === 5 || userId === 6) ? { id: 1, user_id: 5 } : undefined) };
 });
 vi.mock('../../../src/websocket', () => ({ broadcast, broadcastToUser }));
-vi.mock('../../../src/services/adminService', () => ({ isAddonEnabled: () => true }));
+// Addon gate — flip per test to exercise the "addon disabled" branch of the reads.
+const { isAddonEnabled } = vi.hoisted(() => ({ isAddonEnabled: vi.fn(() => true as boolean) }));
+vi.mock('../../../src/services/adminService', () => ({ isAddonEnabled }));
 vi.mock('../../../src/nest/budget/budget.service', () => ({
   BudgetService: class {
     async create(tid: string, input: Record<string, unknown>) { return { id: 1, trip_id: Number(tid), ...input }; }
@@ -62,7 +64,7 @@ vi.mock('../../../src/services/tripService', () => {
       if (input.title === 'crash') throw new Error('unexpected');
       return { updatedTrip: { id: tripId, ...input } };
     },
-    listTrips: () => [],
+    listTrips: () => [{ id: 1 }],
     NotFoundError, ValidationError,
   };
 });
@@ -87,6 +89,45 @@ vi.mock('../../../src/services/assignmentService', () => ({
 vi.mock('../../../src/services/budgetService', () => ({ listBudgetItems: vi.fn(() => []) }));
 vi.mock('../../../src/services/packingService', () => ({ listItems: vi.fn((tid: number, userId: number) => [{ id: 1, trip_id: tid, name: 'Socks', _uid: userId }]) }));
 vi.mock('../../../src/services/fileService', () => ({ listFiles: vi.fn((tid: number, trash: boolean) => [{ id: 2, trip_id: tid, trash }]) }));
+// Reservations: the Nest service is delegated to; mock it so the create-rpc-host
+// reservation deps' side-effect branches (accommodation / budget-sync / notify) run.
+vi.mock('../../../src/nest/reservations/reservations.service', () => ({
+  ReservationsService: class {
+    create(tid: string, input: Record<string, unknown>) {
+      return { reservation: { id: 40, trip_id: Number(tid), ...input }, accommodationCreated: input.title === 'Stay' };
+    }
+    getReservation(id: string) { return id === '404' ? undefined : { id: Number(id), title: 'Old', type: 'flight' }; }
+    update(id: string, tid: string, input: Record<string, unknown>) {
+      return { reservation: { id: Number(id), trip_id: Number(tid), ...input }, accommodationChanged: input.title === 'New' };
+    }
+    remove(id: string) {
+      if (id === '404') return { deleted: undefined, accommodationDeleted: false, deletedBudgetItemId: null };
+      return { deleted: { id: Number(id), title: 'Gone', type: 'hotel', accommodation_id: 7 }, accommodationDeleted: true, deletedBudgetItemId: 9 };
+    }
+    list(tid: string) { return [{ id: 1, trip_id: Number(tid), title: 'Flight' }]; }
+    syncBudgetOnCreate() {}
+    syncBudgetOnUpdate() {}
+    notifyBookingChange() {}
+  },
+}));
+vi.mock('../../../src/services/journeyService', () => ({ listJourneys: vi.fn((uid: number) => [{ id: 1, owner: uid }]) }));
+vi.mock('../../../src/services/atlasService', () => ({
+  listVisitedCountries: vi.fn(() => [{ country_code: 'JP' }]),
+  listManuallyVisitedRegions: vi.fn(() => [{ region_code: 'JP-13' }]),
+}));
+vi.mock('../../../src/services/vacayService', () => ({ getPlanData: vi.fn((uid: number) => ({ plan: { id: 1, owner: uid } })) }));
+vi.mock('../../../src/services/collectionsService', () => ({
+  listCollections: vi.fn((uid: number) => ({ collections: [{ id: 1, owner: uid }] })),
+  getCollection: vi.fn((uid: number, id: number) => ({ id, owner: uid, places: [] })),
+}));
+vi.mock('../../../src/services/dayNoteService', () => ({
+  listNotes: vi.fn((dayId: number, tripId: number) => [{ id: 1, day_id: dayId, trip_id: tripId }]),
+  createNote: vi.fn((dayId: number, _tripId: number, text: string) => ({ id: 50, day_id: dayId, text })),
+  getNote: vi.fn((id: number) => (id === 99 ? undefined : { id, text: 'Old' })),
+  updateNote: vi.fn((id: number, _current: unknown, fields: Record<string, unknown>) => ({ id, ...fields })),
+  deleteNote: vi.fn(),
+  dayExists: vi.fn((dayId: number) => dayId === 3),
+}));
 
 import { createRealRpcHost, getPluginDataDb, closePluginDataDb } from '../../../src/nest/plugins/host/create-rpc-host';
 
@@ -235,5 +276,59 @@ describe('create-rpc-host — planner write + metadata deps', () => {
     const h = host('db:read:users');
     expect((await call(h, 'users.getById', { id: 6 }, 5)).ok).toBe(true); // 5 (owner) + 6 (member) share trip 1
     expect((await call(h, 'users.getById', { id: 999 }, 5)).error.code).toBe('RESOURCE_FORBIDDEN');
+  });
+});
+
+describe('create-rpc-host — reservations, day notes, cross-trip + addon reads (Waves 1-5)', () => {
+  const host = (...perms: string[]) => createRealRpcHost('w15', new Set(perms));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const call = async (h: ReturnType<typeof host>, method: string, params: Record<string, unknown>, uid: number | undefined = 5): Promise<any> =>
+    h.dispatch({ k: 'req', id: 'x', method, params }, uid);
+  beforeEach(() => {
+    checkPermission.mockReset(); checkPermission.mockReturnValue(true);
+    isAddonEnabled.mockReset(); isAddonEnabled.mockReturnValue(true);
+  });
+  afterAll(() => closePluginDataDb('w15'));
+
+  it('reservations create/update/delete run the real side-effect wiring; a missing one is refused', async () => {
+    const h = host('db:write:reservations');
+    expect((await call(h, 'reservations.create', { tripId: 1, input: { title: 'Flight' } })).ok).toBe(true);
+    // title 'Stay' drives the accommodationCreated branch of the wiring
+    expect((await call(h, 'reservations.create', { tripId: 1, input: { title: 'Stay' } })).ok).toBe(true);
+    expect(broadcast).toHaveBeenCalledWith(1, 'reservation:created', expect.anything(), undefined);
+    expect((await call(h, 'reservations.update', { tripId: 1, reservationId: 40, input: { title: 'New' } })).ok).toBe(true);
+    expect((await call(h, 'reservations.update', { tripId: 1, reservationId: 404, input: { title: 'X' } })).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect((await call(h, 'reservations.delete', { tripId: 1, reservationId: 40 })).ok).toBe(true);
+    expect((await call(h, 'reservations.delete', { tripId: 1, reservationId: 404 })).error.code).toBe('RESOURCE_FORBIDDEN');
+  });
+
+  it('day notes create/update/delete run the wiring; a day/note outside the trip is refused', async () => {
+    const h = host('db:write:daynotes');
+    expect((await call(h, 'daynotes.create', { tripId: 1, dayId: 3, input: { text: 'Pack' } })).ok).toBe(true);
+    expect((await call(h, 'daynotes.create', { tripId: 1, dayId: 88, input: { text: 'x' } })).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect((await call(h, 'daynotes.update', { tripId: 1, dayId: 3, noteId: 5, input: { text: 'y' } })).ok).toBe(true);
+    expect((await call(h, 'daynotes.update', { tripId: 1, dayId: 3, noteId: 99, input: {} })).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect((await call(h, 'daynotes.delete', { tripId: 1, dayId: 3, noteId: 5 })).ok).toBe(true);
+    expect((await call(h, 'daynotes.delete', { tripId: 1, dayId: 3, noteId: 99 })).error.code).toBe('RESOURCE_FORBIDDEN');
+  });
+
+  it('cross-trip reads enumerate accessible trips and reservations', async () => {
+    const h = host('db:read:trips');
+    expect((await call(h, 'trips.listMine', {})).ok).toBe(true);
+    const r = await call(h, 'reservations.listMine', {});
+    expect(r.ok).toBe(true);
+    expect(r.result).toHaveLength(1);
+  });
+
+  it('addon reads delegate, and a disabled addon is refused', async () => {
+    const h = host('db:read:journal', 'db:read:atlas', 'db:read:vacay', 'db:read:collections');
+    expect((await call(h, 'journal.listMine', {})).ok).toBe(true);
+    expect((await call(h, 'atlas.visited', {})).ok).toBe(true);
+    expect((await call(h, 'vacay.mine', {})).ok).toBe(true);
+    expect((await call(h, 'collections.listMine', {})).ok).toBe(true);
+    expect((await call(h, 'collections.get', { id: 1 })).ok).toBe(true);
+    isAddonEnabled.mockReturnValue(false);
+    expect((await call(h, 'journal.listMine', {})).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect((await call(h, 'collections.listMine', {})).error.code).toBe('RESOURCE_FORBIDDEN');
   });
 });

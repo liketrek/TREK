@@ -230,6 +230,14 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:costs': 'Читати витрати (статті бюджету), до яких має доступ поточний користувач',
   'admin.plugins.perm.db:read:packing': 'Читати списки речей подорожей, до яких має доступ поточний користувач',
   'admin.plugins.perm.db:read:files': 'Читати файли подорожей, до яких має доступ поточний користувач',
+  'admin.plugins.perm.db:write:reservations': 'Створювати, редагувати та видаляти бронювання в подорожах, які може редагувати поточний користувач',
+  'admin.plugins.perm.db:read:journal': 'Читати щоденники подорожей поточного користувача (потрібен додаток Journey)',
+  'admin.plugins.perm.db:read:atlas': 'Читати відвідані країни та регіони поточного користувача (потрібен додаток Atlas)',
+  'admin.plugins.perm.db:read:vacay': 'Читати план відпустки поточного користувача (потрібен додаток Vacay)',
+  'admin.plugins.perm.db:read:daynotes': 'Читати нотатки дня подорожей, до яких має доступ поточний користувач',
+  'admin.plugins.perm.db:read:collections': 'Читати колекції збережених місць поточного користувача (потрібен додаток Collections)',
+  'admin.plugins.perm.db:write:daynotes': 'Створювати, редагувати та видаляти нотатки дня в подорожах, які може редагувати поточний користувач',
+  'admin.plugins.perm.jobs:run': 'Запускати оголошені фонові завдання за розкладом (без контексту користувача — не може читати дані користувача)',
   'admin.plugins.perm.db:write:costs':
     'Створювати витрати (статті бюджету) у подорожах, які може редагувати поточний користувач',
   'admin.plugins.perm.db:write:places':
