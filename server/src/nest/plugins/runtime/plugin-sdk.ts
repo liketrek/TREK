@@ -71,6 +71,12 @@ export interface PluginContext {
     /** The acting user's vacation plan data. Needs 'db:read:vacay' + the vacay addon. */
     mine(): Promise<unknown>;
   };
+  collections: {
+    /** The acting user's saved-place collections. Needs 'db:read:collections' + the collections addon. */
+    listMine(): Promise<unknown>;
+    /** One of the acting user's collections by id. Needs 'db:read:collections' + the collections addon. */
+    get(id: number): Promise<unknown>;
+  };
   daynotes: {
     /** A day's notes on a trip (membership-checked). Needs 'db:read:daynotes'. */
     list(tripId: number, dayId: number): Promise<unknown[]>;
@@ -283,6 +289,10 @@ export function createPluginContext(
     },
     vacay: {
       mine: () => t.rpc('vacay.mine', { _inv: invocationId }),
+    },
+    collections: {
+      listMine: () => t.rpc('collections.listMine', { _inv: invocationId }),
+      get: (id) => t.rpc('collections.get', { id, _inv: invocationId }),
     },
     daynotes: {
       list: (tripId, dayId) => t.rpc('daynotes.list', { tripId, dayId, _inv: invocationId }) as Promise<unknown[]>,

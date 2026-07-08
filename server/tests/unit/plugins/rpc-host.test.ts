@@ -69,6 +69,8 @@ function makeDeps(): HostDeps {
     listJournalsForUser: vi.fn(() => [{ id: 1, title: 'Japan 2027' }]),
     atlasVisitedForUser: vi.fn(() => ({ countries: [{ country_code: 'JP' }], regions: [] })),
     vacayForUser: vi.fn(() => ({ plan: { id: 1 }, entries: [] })),
+    listCollectionsForUser: vi.fn(() => ({ collections: [{ id: 1, name: 'Tokyo eats' }] })),
+    getCollectionForUser: vi.fn((_userId: number, id: number) => ({ id, name: 'Tokyo eats', places: [] })),
     listDayNotes: vi.fn((tripId: number, dayId: number) => [{ id: 1, day_id: dayId, trip_id: tripId, text: 'note' }]),
     createDayNote: vi.fn((_tripId: number, dayId: number, input: unknown) => ({ id: 50, day_id: dayId, ...(input as object) })),
     updateDayNote: vi.fn((_tripId: number, dayId: number, noteId: number, input: unknown) => ({ id: noteId, day_id: dayId, ...(input as object) })),
@@ -307,6 +309,15 @@ describe('PluginRpcHost — capability enforcement', () => {
     expect(deps.listDayNotes).toHaveBeenCalledWith(1, 5);
     const forbidden = await host.dispatch(req('daynotes.list', { tripId: 999, dayId: 5 }), 42);
     expect((forbidden as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+  });
+
+  it('collections reads are user-scoped and need db:read:collections + a bound user', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:read:collections']), deps);
+    expect(ok(await host.dispatch(req('collections.listMine'), 42))).toBe(true);
+    const one = await host.dispatch(req('collections.get', { id: 1 }), 42);
+    expect(ok(one)).toBe(true);
+    expect(deps.getCollectionForUser).toHaveBeenCalledWith(42, 1);
+    expect((await host.dispatch(req('collections.listMine'), undefined)).ok).toBe(false);
   });
 
   it('daynotes.create needs db:write:daynotes + day_edit, membership-checked, text required', async () => {

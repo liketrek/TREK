@@ -145,6 +145,7 @@ declaration for readers — the manifest parser does not consume it.
 | `ctx.journal` | `listMine()` — the acting user's own travel journals | `db:read:journal` (+ Journey addon) |
 | `ctx.atlas` | `visited()` — the acting user's visited countries + regions | `db:read:atlas` (+ Atlas addon) |
 | `ctx.vacay` | `mine()` — the acting user's vacation plan | `db:read:vacay` (+ Vacay addon) |
+| `ctx.collections` | `listMine()` / `get(id)` — the acting user's saved-place collections | `db:read:collections` (+ Collections addon) |
 | `ctx.daynotes` | `list(tripId, dayId)` — a day's notes (membership-checked) | `db:read:daynotes` |
 | `ctx.daynotes` (write) | `create(tripId, dayId, {text, time?, icon?, sort_order?})` / `update(tripId, dayId, noteId, fields)` / `delete(tripId, dayId, noteId)` — broadcasts `dayNote:*` | `db:write:daynotes` |
 | `ctx.costs` | `getByTrip(tripId)` / `listMine()` — read budget items (membership-checked) | `db:read:costs` |

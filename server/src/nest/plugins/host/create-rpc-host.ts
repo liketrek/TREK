@@ -14,6 +14,7 @@ import { listJourneys } from '../../../services/journeyService';
 import { listVisitedCountries, listManuallyVisitedRegions } from '../../../services/atlasService';
 import { getPlanData } from '../../../services/vacayService';
 import { listNotes, createNote, getNote, updateNote, deleteNote, dayExists as dayNoteDayExists } from '../../../services/dayNoteService';
+import { listCollections, getCollection } from '../../../services/collectionsService';
 import { BudgetService } from '../../budget/budget.service';
 import { ReservationsService } from '../../reservations/reservations.service';
 import type { User } from '../../../types';
@@ -260,6 +261,8 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
       return { countries: listVisitedCountries(userId), regions: listManuallyVisitedRegions(userId) };
     },
     vacayForUser: (userId) => { requireAddon(ADDON_IDS.VACAY, 'vacay'); return getPlanData(userId); },
+    listCollectionsForUser: (userId) => { requireAddon(ADDON_IDS.COLLECTIONS, 'collections'); return listCollections(userId); },
+    getCollectionForUser: (userId, id) => { requireAddon(ADDON_IDS.COLLECTIONS, 'collections'); return getCollection(userId, id); },
     // Day notes are core (no addon) and trip-scoped; membership is enforced by the host.
     listDayNotes: (tripId, dayId) => listNotes(dayId, tripId),
     // --- Day notes write (day_edit). The day must belong to the trip; broadcasts the

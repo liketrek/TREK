@@ -287,6 +287,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:atlas': 'Read the visited countries and regions of the acting user (needs the Atlas addon)',
   'admin.plugins.perm.db:read:vacay': 'Read the vacation plan of the acting user (needs the Vacay addon)',
   'admin.plugins.perm.db:read:daynotes': 'Read the day notes of trips the acting user can access',
+  'admin.plugins.perm.db:read:collections': 'Read the saved-place collections of the acting user (needs the Collections addon)',
   'admin.plugins.perm.db:write:costs': 'Create costs (budget items) on trips the acting user can edit',
   'admin.plugins.perm.db:write:places': 'Add, edit and remove places on trips the acting user can edit',
   'admin.plugins.perm.db:write:days': 'Add, edit and remove days on trips the acting user can edit',

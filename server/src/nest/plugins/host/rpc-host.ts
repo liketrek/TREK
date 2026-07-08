@@ -71,6 +71,10 @@ export interface HostDeps {
   atlasVisitedForUser(userId: number): unknown;
   /** The acting user's vacation plan data (vacay addon must be enabled). */
   vacayForUser(userId: number): unknown;
+  /** The acting user's saved-place collections (collections addon must be enabled). */
+  listCollectionsForUser(userId: number): unknown;
+  /** One of the acting user's collections by id (collections addon must be enabled). */
+  getCollectionForUser(userId: number, id: number): unknown;
   /** A trip day's notes (trip-scoped), for `daynotes.list`. */
   listDayNotes(tripId: number, dayId: number): unknown[];
   /** Create a day note (the day must be on the trip); broadcasts dayNote:created. */
@@ -218,6 +222,18 @@ export class PluginRpcHost {
       this.methods.set('vacay.mine', (_p, uid) => {
         if (uid === undefined) throw new ForbiddenResource('vacay reads require an authenticated user context');
         return deps.vacayForUser(uid);
+      });
+    }
+    if (has('db:read:collections')) {
+      this.methods.set('collections.listMine', (_p, uid) => {
+        if (uid === undefined) throw new ForbiddenResource('collection reads require an authenticated user context');
+        return deps.listCollectionsForUser(uid);
+      });
+      // getCollection is user-scoped by the service (it takes the acting user), so a
+      // plugin can only fetch a collection the acting user owns.
+      this.methods.set('collections.get', (p, uid) => {
+        if (uid === undefined) throw new ForbiddenResource('collection reads require an authenticated user context');
+        return deps.getCollectionForUser(uid, num(p.id, 'id'));
       });
     }
     if (has('db:read:daynotes')) {

@@ -235,6 +235,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:atlas': 'Besuchte Länder und Regionen des handelnden Nutzers lesen (benötigt das Atlas-Addon)',
   'admin.plugins.perm.db:read:vacay': 'Urlaubsplanung des handelnden Nutzers lesen (benötigt das Vacay-Addon)',
   'admin.plugins.perm.db:read:daynotes': 'Tagesnotizen von Reisen lesen, auf die der handelnde Nutzer Zugriff hat',
+  'admin.plugins.perm.db:read:collections': 'Sammlungen gespeicherter Orte des handelnden Nutzers lesen (benötigt das Collections-Addon)',
   'admin.plugins.perm.db:write:costs':
     'Ausgaben (Budgetposten) auf Reisen erstellen, die der handelnde Nutzer bearbeiten kann',
   'admin.plugins.perm.db:write:places':
