@@ -65,6 +65,14 @@ export interface HostDeps {
   listPackingItems(tripId: number, userId: number): unknown[];
   /** A trip's files (trash excluded), for `files.list`. */
   listTripFiles(tripId: number): unknown[];
+  /** The acting user's own journals (journey addon must be enabled). */
+  listJournalsForUser(userId: number): unknown;
+  /** The acting user's visited countries + regions (atlas addon must be enabled). */
+  atlasVisitedForUser(userId: number): unknown;
+  /** The acting user's vacation plan data (vacay addon must be enabled). */
+  vacayForUser(userId: number): unknown;
+  /** A trip day's notes (trip-scoped), for `daynotes.list`. */
+  listDayNotes(tripId: number, dayId: number): unknown[];
   /** All budget items of one trip, hydrated with members/payers. */
   listCostsForTrip(tripId: number): unknown[];
   /** All budget items across every trip the acting user can access. */
@@ -182,6 +190,34 @@ export class PluginRpcHost {
       // Trip files, trash excluded — same view the files tab shows.
       this.methods.set('files.list', (p, uid) =>
         this.tripRead(p, uid, () => deps.listTripFiles(num(p.tripId, 'tripId'))),
+      );
+    }
+
+    // User-scoped addon reads: the acting user's OWN journals/atlas/vacay across all
+    // their trips (not one trip), so — like costs.listMine — they are gated on a bound
+    // acting user, not a tripId; the wiring additionally refuses a disabled addon.
+    if (has('db:read:journal')) {
+      this.methods.set('journal.listMine', (_p, uid) => {
+        if (uid === undefined) throw new ForbiddenResource('journal reads require an authenticated user context');
+        return deps.listJournalsForUser(uid);
+      });
+    }
+    if (has('db:read:atlas')) {
+      this.methods.set('atlas.visited', (_p, uid) => {
+        if (uid === undefined) throw new ForbiddenResource('atlas reads require an authenticated user context');
+        return deps.atlasVisitedForUser(uid);
+      });
+    }
+    if (has('db:read:vacay')) {
+      this.methods.set('vacay.mine', (_p, uid) => {
+        if (uid === undefined) throw new ForbiddenResource('vacay reads require an authenticated user context');
+        return deps.vacayForUser(uid);
+      });
+    }
+    if (has('db:read:daynotes')) {
+      // Day notes are trip-scoped (core, no addon), so the standard membership gate applies.
+      this.methods.set('daynotes.list', (p, uid) =>
+        this.tripRead(p, uid, () => deps.listDayNotes(num(p.tripId, 'tripId'), num(p.dayId, 'dayId'))),
       );
     }
 

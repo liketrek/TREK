@@ -65,6 +65,11 @@ function makeDeps(): HostDeps {
     createReservation: vi.fn((tripId: number, input: unknown) => ({ id: 40, trip_id: tripId, ...(input as object) })),
     updateReservation: vi.fn((tripId: number, reservationId: number, input: unknown) => ({ id: reservationId, trip_id: tripId, ...(input as object) })),
     deleteReservation: vi.fn(() => ({ deleted: true })),
+    // User-scoped addon reads + day notes.
+    listJournalsForUser: vi.fn(() => [{ id: 1, title: 'Japan 2027' }]),
+    atlasVisitedForUser: vi.fn(() => ({ countries: [{ country_code: 'JP' }], regions: [] })),
+    vacayForUser: vi.fn(() => ({ plan: { id: 1 }, entries: [] })),
+    listDayNotes: vi.fn((tripId: number, dayId: number) => [{ id: 1, day_id: dayId, trip_id: tripId, text: 'note' }]),
     // Metadata — trip 1 and place 7 resolve to trip 1 (accessible to 42); else undefined.
     metaEntityTrip: vi.fn((entityType: string, entityId: number) =>
       (entityType === 'trip' && entityId === 1) || (entityType === 'place' && entityId === 7) || (entityType === 'day' && entityId === 3) ? 1 : undefined),
@@ -280,6 +285,31 @@ describe('PluginRpcHost — capability enforcement', () => {
     expect(deps.deleteReservation).toHaveBeenCalledWith(1, 40, 42);
     const forbidden = await host.dispatch(req('reservations.delete', { tripId: 2, reservationId: 1 }), 42);
     expect((forbidden as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+  });
+
+  it('user-scoped addon reads (journal/atlas/vacay) need a bound user; a job is refused', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:read:journal', 'db:read:atlas', 'db:read:vacay']), deps);
+    expect(ok(await host.dispatch(req('journal.listMine'), 42))).toBe(true);
+    expect(ok(await host.dispatch(req('atlas.visited'), 42))).toBe(true);
+    expect(ok(await host.dispatch(req('vacay.mine'), 42))).toBe(true);
+    for (const m of ['journal.listMine', 'atlas.visited', 'vacay.mine']) {
+      expect((await host.dispatch(req(m), undefined)).ok).toBe(false);
+    }
+  });
+
+  it('daynotes.list is membership-checked (trip-scoped)', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:read:daynotes']), deps);
+    const good = await host.dispatch(req('daynotes.list', { tripId: 1, dayId: 5 }), 42);
+    expect(ok(good)).toBe(true);
+    expect(deps.listDayNotes).toHaveBeenCalledWith(1, 5);
+    const forbidden = await host.dispatch(req('daynotes.list', { tripId: 999, dayId: 5 }), 42);
+    expect((forbidden as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+  });
+
+  it('a read scope is denied without its own permission', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:read:trips']), deps);
+    expect((await host.dispatch(req('journal.listMine'), 42)).ok).toBe(false);
+    expect((await host.dispatch(req('daynotes.list', { tripId: 1, dayId: 5 }), 42)).ok).toBe(false);
   });
 
   it('an error thrown by a handler becomes HOST_ERROR', async () => {

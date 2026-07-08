@@ -10,6 +10,10 @@ import { createDay, getDay, updateDay, deleteDay } from '../../../services/daySe
 import { createAssignment, deleteAssignment, dayExists, placeExists, getAssignmentForTrip } from '../../../services/assignmentService';
 import { isAddonEnabled } from '../../../services/adminService';
 import { ADDON_IDS } from '../../../addons';
+import { listJourneys } from '../../../services/journeyService';
+import { listVisitedCountries, listManuallyVisitedRegions } from '../../../services/atlasService';
+import { getPlanData } from '../../../services/vacayService';
+import { listNotes } from '../../../services/dayNoteService';
 import { BudgetService } from '../../budget/budget.service';
 import { ReservationsService } from '../../reservations/reservations.service';
 import type { User } from '../../../types';
@@ -44,6 +48,12 @@ const reservationsSvc = new ReservationsService();
 function notifyBooking(actingUserId: number, tripId: number, booking: string, type: string): void {
   const actor = db.prepare('SELECT * FROM users WHERE id = ?').get(actingUserId) as User | undefined;
   if (actor) reservationsSvc.notifyBookingChange(String(tripId), actor, booking, type);
+}
+
+// A subsystem read is refused when its addon is off — parity with the app, where a
+// disabled addon means there is simply nothing to read (same shape as the Costs gate).
+function requireAddon(addonId: string, noun: string): void {
+  if (!isAddonEnabled(addonId)) throw new ForbiddenResource(`the ${noun} addon is disabled`);
 }
 
 // Quotas for plugin entity metadata (db:meta) — a cheap disk-DoS guard on the
@@ -241,6 +251,17 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
       const trips = listTrips(userId, null) as Array<{ id: number }>;
       return trips.flatMap((t) => reservationsSvc.list(String(t.id)));
     },
+    // --- User-scoped addon reads (the acting user's own data across all trips). Each
+    // reuses the same service the addon's REST/MCP path uses; the addon-enabled gate
+    // mirrors the app (a disabled addon has nothing to read). ---
+    listJournalsForUser: (userId) => { requireAddon(ADDON_IDS.JOURNEY, 'journey'); return listJourneys(userId); },
+    atlasVisitedForUser: (userId) => {
+      requireAddon(ADDON_IDS.ATLAS, 'atlas');
+      return { countries: listVisitedCountries(userId), regions: listManuallyVisitedRegions(userId) };
+    },
+    vacayForUser: (userId) => { requireAddon(ADDON_IDS.VACAY, 'vacay'); return getPlanData(userId); },
+    // Day notes are core (no addon) and trip-scoped; membership is enforced by the host.
+    listDayNotes: (tripId, dayId) => listNotes(dayId, tripId),
     // --- Reservations (bookings, reservation_edit). Delegates to ReservationsService
     // so the accommodation/budget-sync/notification/broadcast side effects match the
     // web app EXACTLY. socketId is undefined — a plugin has no originating socket. ---

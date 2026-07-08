@@ -57,6 +57,24 @@ export interface PluginContext {
     /** A trip's files, trash excluded. Needs 'db:read:files'. */
     list(tripId: number): Promise<unknown[]>;
   };
+  // The acting user's OWN subsystem data across all their trips (not one trip), each
+  // gated on its addon being enabled — mirrors the addon's own REST/MCP readers.
+  journal: {
+    /** The acting user's journals. Needs 'db:read:journal' + the journey addon. */
+    listMine(): Promise<unknown[]>;
+  };
+  atlas: {
+    /** The acting user's visited countries + regions. Needs 'db:read:atlas' + the atlas addon. */
+    visited(): Promise<{ countries: unknown[]; regions: unknown[] }>;
+  };
+  vacay: {
+    /** The acting user's vacation plan data. Needs 'db:read:vacay' + the vacay addon. */
+    mine(): Promise<unknown>;
+  };
+  daynotes: {
+    /** A day's notes on a trip (membership-checked). Needs 'db:read:daynotes'. */
+    list(tripId: number, dayId: number): Promise<unknown[]>;
+  };
   // "Costs" = budget items. Reads are membership-checked against the current
   // invocation's user (like `trips`); `create` additionally needs the acting
   // user's 'budget_edit' permission and the Costs addon enabled.
@@ -250,6 +268,18 @@ export function createPluginContext(
     },
     files: {
       list: (tripId) => t.rpc('files.list', { tripId, _inv: invocationId }) as Promise<unknown[]>,
+    },
+    journal: {
+      listMine: () => t.rpc('journal.listMine', { _inv: invocationId }) as Promise<unknown[]>,
+    },
+    atlas: {
+      visited: () => t.rpc('atlas.visited', { _inv: invocationId }) as Promise<{ countries: unknown[]; regions: unknown[] }>,
+    },
+    vacay: {
+      mine: () => t.rpc('vacay.mine', { _inv: invocationId }),
+    },
+    daynotes: {
+      list: (tripId, dayId) => t.rpc('daynotes.list', { tripId, dayId, _inv: invocationId }) as Promise<unknown[]>,
     },
     costs: {
       getByTrip: (tripId) => t.rpc('costs.getByTrip', { tripId, _inv: invocationId }) as Promise<unknown[]>,
