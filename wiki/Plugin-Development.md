@@ -114,7 +114,10 @@ module.exports = definePlugin({
     }},
   ],
 
-  // Scheduled jobs — TREK owns the cron and calls your handler (no user context).
+  // Scheduled jobs — TREK owns the cron and calls your handler on the schedule.
+  // Requires the `jobs:run` permission (opt-in: scheduled work runs with NO user,
+  // so its trip reads are refused — a job can only use ctx.db and declared egress).
+  // An invalid cron expression is skipped; jobs stop when the plugin is deactivated.
   jobs: [
     { id: 'refresh', schedule: '*/15 * * * *', async handler(ctx) { /* … */ } },
   ],

@@ -4,6 +4,7 @@ import { fork, type ChildProcess } from 'node:child_process';
 import { resolveChildEntry, pluginCodeDir, pluginRealCodeDir, pluginPermissionArgs, ensurePluginModuleType } from '../paths';
 import type { Envelope, RpcError, RpcRequest } from '../protocol/envelope';
 import type { PluginRpcHost } from '../host/rpc-host';
+import { scheduleJobs, stopJobs, type ScheduledJob } from '../host/plugin-jobs';
 
 export interface PluginRouteInfo {
   i: number;
@@ -48,7 +49,8 @@ interface Supervised {
   lastBeat: number;
   lastRss: number; // last reported resident set size (bytes)
   routes: PluginRouteInfo[];
-  jobs: string[];
+  jobs: ScheduledJob[]; // declared background jobs (id + cron schedule)
+  jobTasks?: ReturnType<typeof scheduleJobs>; // live node-cron tasks (only when jobs:run granted)
   hooks: string[]; // provider hooks the plugin implements (e.g. 'placeDetailProvider')
   events: string[]; // core events the plugin subscribes to (names or '*')
   exports: string[]; // functions the plugin exposes to dependents (ctx.plugins.call)
@@ -349,11 +351,13 @@ export class PluginSupervisor {
           if (sup.status === 'active') break;
           sup.lastBeat = Date.now();
           const d = msg.data as {
-            routes?: PluginRouteInfo[]; jobs?: string[]; hooks?: string[]; events?: string[];
+            routes?: PluginRouteInfo[]; jobs?: ScheduledJob[]; hooks?: string[]; events?: string[];
             exports?: string[]; subscriptions?: Array<{ plugin: string; event: string }>;
           };
           sup.routes = d.routes ?? [];
-          sup.jobs = d.jobs ?? [];
+          sup.jobs = Array.isArray(d.jobs)
+            ? d.jobs.filter((j): j is ScheduledJob => !!j && typeof j.id === 'string' && typeof j.schedule === 'string')
+            : [];
           sup.hooks = d.hooks ?? [];
           sup.events = d.events ?? [];
           sup.exports = Array.isArray(d.exports) ? d.exports.filter((e): e is string => typeof e === 'string') : [];
@@ -362,6 +366,16 @@ export class PluginSupervisor {
             : [];
           this.clearActivationTimer(sup);
           this.setStatus(sup, 'active');
+          // Start the plugin's background jobs (opt-in via jobs:run). A job carries no
+          // acting user, so its trip reads are refused; it can only touch its own db /
+          // egress. Wrapped so a scheduling hiccup can never break activation.
+          try {
+            sup.jobTasks = scheduleJobs(sup.granted, sup.jobs, (jobId) => {
+              void this.invoke(sup.id, 'invoke.job', { jobId }, { actingUserId: undefined, timeoutMs: 60_000 }).catch(() => {});
+            });
+          } catch {
+            /* a scheduler error must never stop a plugin from going live */
+          }
           sup.activation?.resolve();
           sup.activation = undefined;
           break;
@@ -479,6 +493,10 @@ export class PluginSupervisor {
   }
 
   private async kill(sup: Supervised): Promise<void> {
+    // Stop the plugin's cron jobs first so no tick fires against a dying/gone child
+    // (and nothing leaks across a deactivate/reactivate).
+    stopJobs(sup.jobTasks);
+    sup.jobTasks = undefined;
     const child = sup.child;
     if (!child) return;
     sup.child = null;

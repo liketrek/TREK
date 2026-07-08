@@ -109,7 +109,7 @@ const PERM_KEYS = [
   'db:read:journal', 'db:read:atlas', 'db:read:vacay', 'db:read:daynotes', 'db:write:costs',
   'db:write:places', 'db:write:days', 'db:write:itinerary', 'db:write:trips', 'db:write:reservations', 'db:write:daynotes',
   'db:meta',
-  'events:subscribe',
+  'events:subscribe', 'jobs:run',
   'ws:broadcast:trip', 'ws:broadcast:user',
   'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider', 'hook:trip-warning-provider', 'http:outbound',
 ]

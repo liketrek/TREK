@@ -261,6 +261,7 @@ const admin: TranslationStrings = {
     'Validierungswarnungen zu einer Reise ausgeben (im Planer angezeigt)',
   'admin.plugins.perm.events:subscribe':
     'Auf Kern-Aktivitäts-Events reagieren (nur Event-Name + Reise, nie der Inhalt)',
+  'admin.plugins.perm.jobs:run': 'Deklarierte Hintergrund-Jobs zeitgesteuert ausführen (kein Nutzerkontext — kann keine Nutzerdaten lesen)',
   'admin.plugins.perm.http:outbound': 'Ausgehende Anfragen an deklarierte Hosts stellen',
   'admin.plugins.updateConsentTitle': 'Dieses Update braucht neue Berechtigungen',
   'admin.plugins.updateConsentBody':
