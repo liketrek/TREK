@@ -143,6 +143,7 @@ declaration for readers — the manifest parser does not consume it.
 | `ctx.atlas` | `visited()` — the acting user's visited countries + regions | `db:read:atlas` (+ Atlas addon) |
 | `ctx.vacay` | `mine()` — the acting user's vacation plan | `db:read:vacay` (+ Vacay addon) |
 | `ctx.daynotes` | `list(tripId, dayId)` — a day's notes (membership-checked) | `db:read:daynotes` |
+| `ctx.daynotes` (write) | `create(tripId, dayId, {text, time?, icon?, sort_order?})` / `update(tripId, dayId, noteId, fields)` / `delete(tripId, dayId, noteId)` — broadcasts `dayNote:*` | `db:write:daynotes` |
 | `ctx.costs` | `getByTrip(tripId)` / `listMine()` — read budget items (membership-checked) | `db:read:costs` |
 | `ctx.costs` (write) | `create(tripId, input)` / `update(tripId, itemId, input)` / `delete(tripId, itemId)` — broadcasts `budget:*` | `db:write:costs` |
 | `ctx.reservations` | `listMine()` — every booking across the acting user's accessible trips (membership-checked) | `db:read:trips` |

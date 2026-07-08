@@ -70,6 +70,9 @@ function makeDeps(): HostDeps {
     atlasVisitedForUser: vi.fn(() => ({ countries: [{ country_code: 'JP' }], regions: [] })),
     vacayForUser: vi.fn(() => ({ plan: { id: 1 }, entries: [] })),
     listDayNotes: vi.fn((tripId: number, dayId: number) => [{ id: 1, day_id: dayId, trip_id: tripId, text: 'note' }]),
+    createDayNote: vi.fn((_tripId: number, dayId: number, input: unknown) => ({ id: 50, day_id: dayId, ...(input as object) })),
+    updateDayNote: vi.fn((_tripId: number, dayId: number, noteId: number, input: unknown) => ({ id: noteId, day_id: dayId, ...(input as object) })),
+    deleteDayNote: vi.fn(() => ({ deleted: true })),
     // Metadata — trip 1 and place 7 resolve to trip 1 (accessible to 42); else undefined.
     metaEntityTrip: vi.fn((entityType: string, entityId: number) =>
       (entityType === 'trip' && entityId === 1) || (entityType === 'place' && entityId === 7) || (entityType === 'day' && entityId === 3) ? 1 : undefined),
@@ -304,6 +307,26 @@ describe('PluginRpcHost — capability enforcement', () => {
     expect(deps.listDayNotes).toHaveBeenCalledWith(1, 5);
     const forbidden = await host.dispatch(req('daynotes.list', { tripId: 999, dayId: 5 }), 42);
     expect((forbidden as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+  });
+
+  it('daynotes.create needs db:write:daynotes + day_edit, membership-checked, text required', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:daynotes']), deps);
+    const good = await host.dispatch(req('daynotes.create', { tripId: 1, dayId: 5, input: { text: 'Pack sunscreen' } }), 42);
+    expect(ok(good)).toBe(true);
+    expect(deps.createDayNote).toHaveBeenCalledWith(1, 5, expect.objectContaining({ text: 'Pack sunscreen' }));
+    const bad = await host.dispatch(req('daynotes.create', { tripId: 1, dayId: 5, input: { text: '  ' } }), 42);
+    expect((bad as RpcError).error.code).toBe('BAD_PARAMS');
+    const forbidden = await host.dispatch(req('daynotes.create', { tripId: 2, dayId: 5, input: { text: 'x' } }), 42);
+    expect((forbidden as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+  });
+
+  it('daynotes.delete is gated the same way (edit + membership + bound user)', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:daynotes']), deps);
+    const good = await host.dispatch(req('daynotes.delete', { tripId: 1, dayId: 5, noteId: 50 }), 42);
+    expect(ok(good)).toBe(true);
+    expect(deps.deleteDayNote).toHaveBeenCalledWith(1, 5, 50);
+    const noUser = await host.dispatch(req('daynotes.delete', { tripId: 1, dayId: 5, noteId: 50 }), undefined);
+    expect((noUser as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
   });
 
   it('a read scope is denied without its own permission', async () => {

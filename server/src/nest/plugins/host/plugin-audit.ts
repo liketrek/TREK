@@ -40,7 +40,7 @@ export function auditResource(method: string, params: Record<string, unknown>): 
   if (method === 'journal.listMine') return 'journal:all';
   if (method === 'atlas.visited') return 'atlas:all';
   if (method === 'vacay.mine') return 'vacay:all';
-  if (method === 'daynotes.list') return `trip:${params.tripId ?? '?'}`;
+  if (method.startsWith('daynotes.')) return `trip:${params.tripId ?? '?'}`;
   if (method.startsWith('meta.')) return `${params.entityType ?? '?'}:${params.entityId ?? '?'}`;
   if (method === 'users.getById') return `user:${params.id ?? '?'}`;
   if (method === 'ws.broadcastToTrip') return `trip:${params.tripId ?? '?'}`;

@@ -13,7 +13,7 @@ import { ADDON_IDS } from '../../../addons';
 import { listJourneys } from '../../../services/journeyService';
 import { listVisitedCountries, listManuallyVisitedRegions } from '../../../services/atlasService';
 import { getPlanData } from '../../../services/vacayService';
-import { listNotes } from '../../../services/dayNoteService';
+import { listNotes, createNote, getNote, updateNote, deleteNote, dayExists as dayNoteDayExists } from '../../../services/dayNoteService';
 import { BudgetService } from '../../budget/budget.service';
 import { ReservationsService } from '../../reservations/reservations.service';
 import type { User } from '../../../types';
@@ -262,6 +262,29 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
     vacayForUser: (userId) => { requireAddon(ADDON_IDS.VACAY, 'vacay'); return getPlanData(userId); },
     // Day notes are core (no addon) and trip-scoped; membership is enforced by the host.
     listDayNotes: (tripId, dayId) => listNotes(dayId, tripId),
+    // --- Day notes write (day_edit). The day must belong to the trip; broadcasts the
+    // same dayNote:* events the REST controller emits so open sessions update live. ---
+    createDayNote: (tripId, dayId, input) => {
+      if (!dayNoteDayExists(dayId, tripId)) throw new ForbiddenResource(`no day ${dayId} on trip ${tripId}`);
+      const i = input as { text?: string; time?: string; icon?: string; sort_order?: number };
+      const note = createNote(dayId, tripId, i.text ?? '', i.time, i.icon, i.sort_order);
+      broadcast(tripId, 'dayNote:created', { dayId, note }, undefined);
+      return note;
+    },
+    updateDayNote: (tripId, dayId, noteId, input) => {
+      const current = getNote(noteId, dayId, tripId);
+      if (!current) throw new ForbiddenResource(`no note ${noteId} on day ${dayId}`);
+      const note = updateNote(noteId, current as never, input as { text?: string; time?: string; icon?: string; sort_order?: number });
+      broadcast(tripId, 'dayNote:updated', { dayId, note }, undefined);
+      return note;
+    },
+    deleteDayNote: (tripId, dayId, noteId) => {
+      const current = getNote(noteId, dayId, tripId);
+      if (!current) throw new ForbiddenResource(`no note ${noteId} on day ${dayId}`);
+      deleteNote(noteId);
+      broadcast(tripId, 'dayNote:deleted', { noteId, dayId }, undefined);
+      return { deleted: true };
+    },
     // --- Reservations (bookings, reservation_edit). Delegates to ReservationsService
     // so the accommodation/budget-sync/notification/broadcast side effects match the
     // web app EXACTLY. socketId is undefined — a plugin has no originating socket. ---

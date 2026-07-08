@@ -73,6 +73,12 @@ export interface HostDeps {
   vacayForUser(userId: number): unknown;
   /** A trip day's notes (trip-scoped), for `daynotes.list`. */
   listDayNotes(tripId: number, dayId: number): unknown[];
+  /** Create a day note (the day must be on the trip); broadcasts dayNote:created. */
+  createDayNote(tripId: number, dayId: number, input: Record<string, unknown>): unknown;
+  /** Update a day note (scoped to the day+trip); broadcasts dayNote:updated. */
+  updateDayNote(tripId: number, dayId: number, noteId: number, input: Record<string, unknown>): unknown;
+  /** Delete a day note (scoped to the day+trip); broadcasts dayNote:deleted. */
+  deleteDayNote(tripId: number, dayId: number, noteId: number): unknown;
   /** All budget items of one trip, hydrated with members/payers. */
   listCostsForTrip(tripId: number): unknown[];
   /** All budget items across every trip the acting user can access. */
@@ -372,6 +378,37 @@ export class PluginRpcHost {
         if (!parsed.success) throw new BadParams(`invalid trip: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
         this.requireTripEdit(tripId, actor, deps.canEditTrip);
         return deps.updateTrip(tripId, actor, parsed.data as Record<string, unknown>);
+      });
+    }
+
+    if (has('db:write:daynotes')) {
+      // Day notes are edited under the app's 'day_edit' permission (like days). The
+      // wiring verifies the day belongs to the trip, so a plugin can't note a day on
+      // another trip. Text is required; time/icon/sort_order are optional.
+      this.methods.set('daynotes.create', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const dayId = num(p.dayId, 'dayId');
+        const actor = this.requireActor(uid, 'day note');
+        const input = asPayload(p.input);
+        if (typeof input.text !== 'string' || input.text.trim() === '') throw new BadParams('note text is required');
+        this.requireTripEdit(tripId, actor, deps.canEditDays);
+        return deps.createDayNote(tripId, dayId, input);
+      });
+      this.methods.set('daynotes.update', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const dayId = num(p.dayId, 'dayId');
+        const noteId = num(p.noteId, 'noteId');
+        const actor = this.requireActor(uid, 'day note');
+        this.requireTripEdit(tripId, actor, deps.canEditDays);
+        return deps.updateDayNote(tripId, dayId, noteId, asPayload(p.input));
+      });
+      this.methods.set('daynotes.delete', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const dayId = num(p.dayId, 'dayId');
+        const noteId = num(p.noteId, 'noteId');
+        const actor = this.requireActor(uid, 'day note');
+        this.requireTripEdit(tripId, actor, deps.canEditDays);
+        return deps.deleteDayNote(tripId, dayId, noteId);
       });
     }
 

@@ -74,6 +74,12 @@ export interface PluginContext {
   daynotes: {
     /** A day's notes on a trip (membership-checked). Needs 'db:read:daynotes'. */
     list(tripId: number, dayId: number): Promise<unknown[]>;
+    /** Add a note to a day. Needs 'db:write:daynotes' + the acting user's 'day_edit'. */
+    create(tripId: number, dayId: number, input: Record<string, unknown>): Promise<unknown>;
+    /** Update a day note. Needs 'db:write:daynotes' + 'day_edit'. */
+    update(tripId: number, dayId: number, noteId: number, input: Record<string, unknown>): Promise<unknown>;
+    /** Delete a day note. Needs 'db:write:daynotes' + 'day_edit'. */
+    delete(tripId: number, dayId: number, noteId: number): Promise<{ deleted: boolean }>;
   };
   // "Costs" = budget items. Reads are membership-checked against the current
   // invocation's user (like `trips`); `create` additionally needs the acting
@@ -280,6 +286,9 @@ export function createPluginContext(
     },
     daynotes: {
       list: (tripId, dayId) => t.rpc('daynotes.list', { tripId, dayId, _inv: invocationId }) as Promise<unknown[]>,
+      create: (tripId, dayId, input) => t.rpc('daynotes.create', { tripId, dayId, input, _inv: invocationId }),
+      update: (tripId, dayId, noteId, input) => t.rpc('daynotes.update', { tripId, dayId, noteId, input, _inv: invocationId }),
+      delete: (tripId, dayId, noteId) => t.rpc('daynotes.delete', { tripId, dayId, noteId, _inv: invocationId }) as Promise<{ deleted: boolean }>,
     },
     costs: {
       getByTrip: (tripId) => t.rpc('costs.getByTrip', { tripId, _inv: invocationId }) as Promise<unknown[]>,
