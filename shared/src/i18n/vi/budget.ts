@@ -69,7 +69,7 @@ const budget: TranslationStrings = {
   'costs.youBorrowed': 'bạn đã mượn {amount}',
   'costs.settleUp': 'Thanh toán',
   'costs.history': 'Lịch sử',
-  'costs.everyoneSquare': 'Hình vuông của mọi người',
+  'costs.everyoneSquare': 'Chia đều',
   'costs.nothingOutstanding': 'Hiện chưa có khoản nợ nào chưa thanh toán.',
   'costs.pay': 'chi trả',
   'costs.pays': 'trả tiền',
