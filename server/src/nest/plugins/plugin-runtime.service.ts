@@ -6,11 +6,15 @@ import { setPluginEventSink } from '../../plugin-event-sink';
 import { decrypt_api_key } from '../../services/apiKeyCrypto';
 import { PluginSupervisor, type PluginRouteInfo } from './supervisor/plugin-supervisor';
 import fs from 'node:fs';
+import path from 'node:path';
 import { createRealRpcHost, closePluginDataDb } from './host/create-rpc-host';
 import { ForbiddenResource } from './host/rpc-host';
 import { removePluginData } from './host/plugin-data.service';
 import { isKnownPermission } from './protocol/envelope';
 import { discoverPlugins } from './install/discovery';
+import { parseJsonText, parseManifest } from './install/manifest';
+import { scanForNativeBinaries } from './install/native-scan';
+import { devLinkEnabled, DEV_LINK_SOURCE } from './dev-link';
 import { pluginCodeDir } from './paths';
 import { PluginRegistryService } from './registry/registry.service';
 import { isAddonEnabled } from '../../services/adminService';
@@ -19,6 +23,37 @@ import type { VersionMismatch, PluginDepRow } from './dependencies';
 import { parseDependencies, disabledRequiredAddons, resolveDependencyState, enableOrder, findDependentsTransitive, DependencyCycleError } from './dependencies';
 
 const HTTP_OUTBOUND = 'http:outbound:';
+
+/**
+ * Remove `<plugins>/<id>` whether it is a real directory, a POSIX symlink or a
+ * Windows junction — WITHOUT ever following a dev-link into (and deleting) the
+ * author's source. A symlink is unlinked; a junction (which lstats as a directory
+ * on Windows) is rmdir'd (drops the reparse point, not the target); a real dir is
+ * recursively removed. A no-op if nothing is there.
+ */
+function removePluginCodeEntry(dest: string): void {
+  let lst: fs.Stats;
+  try {
+    lst = fs.lstatSync(dest);
+  } catch {
+    return; // nothing to remove
+  }
+  if (lst.isSymbolicLink()) {
+    fs.unlinkSync(dest); // POSIX symlink -> drop the link only
+    return;
+  }
+  if (process.platform === 'win32' && lst.isDirectory()) {
+    // A junction lstats as a directory; rmdir removes the junction itself, not the
+    // target. A REAL non-empty dir throws ENOTEMPTY -> fall through to a full remove.
+    try {
+      fs.rmdirSync(dest);
+      return;
+    } catch {
+      /* real, non-empty directory */
+    }
+  }
+  fs.rmSync(dest, { recursive: true, force: true });
+}
 
 /** Thrown when (re-)activating would grant permissions the admin hasn't consented to. */
 export class PluginConsentRequired extends Error {
@@ -72,6 +107,10 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
       }
     },
   });
+
+  // Filesystem watchers for dev-linked plugins (id -> watcher), so a rebuild of the
+  // author's source auto-reloads. Empty unless dev-link is used.
+  private readonly linkWatchers = new Map<string, fs.FSWatcher>();
 
   // Optional at the type level so tests can `new PluginRuntimeService()` without a
   // registry; Nest always injects the real one (the provider is in the module).
@@ -140,6 +179,10 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleDestroy(): Promise<void> {
     setPluginEventSink(null);
+    for (const w of this.linkWatchers.values()) {
+      try { w.close(); } catch { /* ignore */ }
+    }
+    this.linkWatchers.clear();
     await this.supervisor.shutdownAll();
   }
 
@@ -326,12 +369,100 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /**
+   * DEV-ONLY: register a plugin from a LOCAL built directory and hot-reload it
+   * against this instance's REAL data. Symlinks `<plugins>/<id>` at the author's
+   * dir (so the supervisor forks the local code with ZERO loader change), validates
+   * the manifest + refuses native binaries like a sideload, registers it INACTIVE,
+   * and starts an fs.watch that re-forks on rebuild. Gated behind TREK_PLUGINS_DEV_LINK
+   * on top of the controller's admin + kill-switch gates — see dev-link.ts for why.
+   */
+  async link(sourceDir: string): Promise<{ id: string; version: string; replaced: boolean }> {
+    if (!devLinkEnabled()) throw new Error('dev-link is disabled (set TREK_PLUGINS_DEV_LINK=1)');
+    if (!path.isAbsolute(sourceDir)) throw new Error('the dev-link path must be absolute');
+    const manifestPath = path.join(sourceDir, 'trek-plugin.json');
+    if (!fs.existsSync(manifestPath)) throw new Error(`no trek-plugin.json at ${sourceDir}`);
+    const manifest = parseManifest(parseJsonText(fs.readFileSync(manifestPath, 'utf8')));
+    if (!fs.existsSync(path.join(sourceDir, 'server', 'index.js'))) {
+      throw new Error('no built server/index.js — build the plugin first (the loader runs the compiled artifact, not TS source)');
+    }
+    if (scanForNativeBinaries(sourceDir).length) throw new Error('directory contains native binaries');
+
+    const id = manifest.id;
+    const existing = db.prepare('SELECT source_repo FROM plugins WHERE id = ?').get(id) as { source_repo?: string } | undefined;
+    // Never clobber a REAL installed plugin (registry/sideload) — only re-point a link.
+    if (existing && existing.source_repo !== DEV_LINK_SOURCE) {
+      throw new Error(`a plugin '${id}' is already installed — uninstall it before dev-linking that id`);
+    }
+
+    const dest = pluginCodeDir(id);
+    const replaced = !!existing;
+    if (replaced) await this.deactivate(id); // stop the child (stale code / file locks) before re-pointing
+    this.stopWatch(id);
+    removePluginCodeEntry(dest); // drop any prior link — never follows into the author's source
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.symlinkSync(sourceDir, dest, 'junction'); // Windows junction (no elevation); POSIX ignores the type -> dir symlink
+    discoverPlugins(db); // registers/updates the row from the linked manifest, INACTIVE
+    db.prepare(
+      `UPDATE plugins SET source_repo = ?, source_commit = NULL, sha256 = NULL, author_pubkey = NULL, status = 'inactive', enabled = 0 WHERE id = ?`,
+    ).run(DEV_LINK_SOURCE, id);
+    this.watchLinked(id, sourceDir);
+    return { id, version: manifest.version, replaced };
+  }
+
+  /**
+   * DEV-ONLY: re-fork a dev-linked plugin so it picks up freshly-built code. This is
+   * the same deactivate->activate primitive the supervisor uses; the acting-user +
+   * capability gates are unchanged, so it keeps running against real, membership-gated
+   * data. Only re-activates if it was active (preserving the admin's on/off intent);
+   * a manifest that widened its permissions still requires explicit re-consent.
+   */
+  async reload(id: string): Promise<void> {
+    if (!devLinkEnabled()) throw new Error('dev-link is disabled (set TREK_PLUGINS_DEV_LINK=1)');
+    const row = db.prepare('SELECT source_repo FROM plugins WHERE id = ?').get(id) as { source_repo?: string } | undefined;
+    if (!row) throw new Error(`plugin ${id} not found`);
+    if (row.source_repo !== DEV_LINK_SOURCE) throw new Error(`plugin ${id} is not dev-linked`);
+    const wasActive = this.isActive(id);
+    await this.deactivate(id);
+    if (wasActive) await this.activate(id);
+  }
+
+  /** Best-effort fs.watch on a linked plugin's built output that debounces -> reload. */
+  private watchLinked(id: string, sourceDir: string): void {
+    this.stopWatch(id);
+    const serverDir = path.join(sourceDir, 'server'); // the loader runs server/index.js
+    try {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const watcher = fs.watch(serverDir, { recursive: true }, () => {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => {
+          if (this.isActive(id)) void this.reload(id).catch(() => {}); // only re-fork a running plugin
+        }, 400); // debounce a rebuild's write burst into one re-fork
+        timer.unref?.();
+      });
+      watcher.on('error', () => this.stopWatch(id));
+      this.linkWatchers.set(id, watcher);
+    } catch {
+      /* fs.watch(recursive) is best-effort; POST /:id/reload still works */
+    }
+  }
+
+  private stopWatch(id: string): void {
+    const w = this.linkWatchers.get(id);
+    if (w) {
+      try { w.close(); } catch { /* ignore */ }
+      this.linkWatchers.delete(id);
+    }
+  }
+
   /** Stop the plugin, remove its code, and optionally delete all its data. */
   async uninstall(id: string, deleteData: boolean): Promise<void> {
     await this.supervisor.disable(id);
+    this.stopWatch(id);
     closePluginDataDb(id);
     // Code always goes; the DB metadata + fields go so it disappears from the UI.
-    fs.rmSync(pluginCodeDir(id), { recursive: true, force: true });
+    // Link-safe: a dev-linked plugin only drops the symlink, never the author's source.
+    removePluginCodeEntry(pluginCodeDir(id));
     db.prepare('DELETE FROM plugins WHERE id = ?').run(id);
     db.prepare('DELETE FROM plugin_settings_fields WHERE plugin_id = ?').run(id);
     if (deleteData) {

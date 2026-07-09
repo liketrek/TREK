@@ -94,6 +94,21 @@ describe('discoverPlugins', () => {
     expect(discoverPlugins(db).skipped).toEqual(['native']);
   });
 
+  it('follows a symlinked plugin directory (dev-link points <root>/<id> at a local build dir)', () => {
+    const srcRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'disc-src-'));
+    try {
+      const src = path.join(srcRoot, 'linked');
+      fs.mkdirSync(path.join(src, 'server'), { recursive: true });
+      fs.writeFileSync(path.join(src, 'trek-plugin.json'), JSON.stringify({ id: 'linked', name: 'Linked', version: '1.0.0', type: 'integration', permissions: ['db:own'] }));
+      fs.writeFileSync(path.join(src, 'server', 'index.js'), 'module.exports={}');
+      fs.symlinkSync(src, path.join(codeRoot, 'linked'), 'junction'); // junction on Windows, symlink on POSIX
+      expect(discoverPlugins(db).discovered).toEqual(['linked']);
+      expect(db.prepare("SELECT status FROM plugins WHERE id='linked'").get()).toMatchObject({ status: 'inactive' });
+    } finally {
+      fs.rmSync(srcRoot, { recursive: true, force: true });
+    }
+  });
+
   it('is a no-op when the plugins dir is absent', () => {
     process.env.TREK_PLUGINS_DIR = path.join(codeRoot, 'does-not-exist');
     expect(discoverPlugins(db)).toEqual({ discovered: [], skipped: [] });

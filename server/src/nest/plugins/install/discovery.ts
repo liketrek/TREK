@@ -20,7 +20,15 @@ export function discoverPlugins(db: BetterSqlite3.Database): { discovered: strin
   if (!fs.existsSync(root)) return { discovered, skipped };
 
   for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
-    if (!entry.isDirectory() || entry.name.startsWith('.')) continue;
+    if (entry.name.startsWith('.')) continue;
+    // A dev-linked plugin is `<root>/<id>` as a symlink (POSIX) / junction (Windows)
+    // pointing at the author's build dir — follow it so it discovers like a real dir.
+    // stat() resolves the link; a dangling/broken link throws and is skipped.
+    let isDir = entry.isDirectory();
+    if (!isDir && entry.isSymbolicLink()) {
+      try { isDir = fs.statSync(path.join(root, entry.name)).isDirectory(); } catch { isDir = false; }
+    }
+    if (!isDir) continue;
     const dir = pluginCodeDir(entry.name);
     const manifestPath = path.join(dir, 'trek-plugin.json');
     if (!fs.existsSync(manifestPath)) continue;
