@@ -106,7 +106,7 @@ const budget: TranslationStrings = {
   'costs.cat.tips': 'Mẹo',
   'costs.cat.other': 'Khác',
   'costs.daysCount': '{count} ngày',
-  'costs.travelers': '{count} du khách',
+  'costs.travelers': '{count} người',
   'costs.liveRate': 'tỷ lệ trực tiếp',
   'costs.settleAll': 'Thanh toán tất cả',
   'costs.payment': 'Sự chi trả',

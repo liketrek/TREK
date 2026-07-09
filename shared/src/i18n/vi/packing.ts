@@ -33,7 +33,7 @@ const packing: TranslationStrings = {
   'packing.menuCheckAll': 'Kiểm tra tất cả',
   'packing.menuUncheckAll': 'Bỏ chọn tất cả',
   'packing.menuDeleteCat': 'Xóa danh mục',
-  'packing.noMembers': 'Không có thành viên chuyến đi',
+  'packing.noMembers': 'Không có thành viên',
   'packing.addItem': 'Thêm mục',
   'packing.addItemPlaceholder': 'Tên mặt hàng...',
   'packing.addCategory': 'Thêm danh mục',

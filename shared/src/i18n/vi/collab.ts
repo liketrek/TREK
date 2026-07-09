@@ -13,7 +13,7 @@ const collab: TranslationStrings = {
   'collab.chat.send': 'Gửi',
   'collab.chat.placeholder': 'Nhập tin nhắn...',
   'collab.chat.empty': 'Bắt đầu cuộc trò chuyện',
-  'collab.chat.emptyHint': 'Tin nhắn được chia sẻ với tất cả các thành viên chuyến đi',
+  'collab.chat.emptyHint': 'Tin nhắn được chia sẻ với tất cả các thành viên',
   'collab.chat.emptyDesc': 'Chia sẻ ý tưởng, kế hoạch và cập nhật với nhóm du lịch của bạn',
   'collab.chat.today': 'Hôm nay',
   'collab.chat.yesterday': 'Hôm qua',
