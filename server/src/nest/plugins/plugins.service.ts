@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { db } from '../../db/database';
 import { pluginsEnabled } from './kill-switch';
+import { devLinkEnabled } from './dev-link';
 import { maybe_encrypt_api_key } from '../../services/apiKeyCrypto';
 import { readAudit } from './host/plugin-audit';
 import { isAddonEnabled } from '../../services/adminService';
@@ -61,7 +62,7 @@ export interface PluginListItem {
 
 @Injectable()
 export class PluginsService {
-  list(): { enabled: boolean; plugins: PluginListItem[] } {
+  list(): { enabled: boolean; devLink: boolean; plugins: PluginListItem[] } {
     const rows = db
       .prepare(
         `SELECT id, name, description, type, icon, version, status, enabled, last_error, reviewed_at, source_repo,
@@ -90,7 +91,7 @@ export class PluginsService {
         dependencyIssues: { disabledAddons, missing: state.missing, versionMismatch: state.versionMismatch },
       };
     });
-    return { enabled: pluginsEnabled(), plugins };
+    return { enabled: pluginsEnabled(), devLink: devLinkEnabled(), plugins };
   }
 
   /**

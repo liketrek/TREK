@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 import {
   Blocks, AlertTriangle, PackageOpen, RefreshCw, Trash2, Download, Bug, X, ShieldCheck, UploadCloud,
-  ArrowUpCircle, Github, ExternalLink, ChevronDown, Check, Lock, Search,
+  ArrowUpCircle, Github, ExternalLink, ChevronDown, Check, Lock, Search, Link2,
   SlidersHorizontal, ArrowUpDown, CircleDot, MoreHorizontal, RotateCw, ArrowRight, Database, Users, LayoutDashboard,
   Radio, Luggage, Plane, Globe, Image, CalendarDays, Map, Bell, Cloud, Camera, Compass,
   BookOpen, Wallet, Puzzle, MapPin, ListChecks, Pencil, Tag, FileText,
@@ -206,6 +206,16 @@ function SideloadedBadge({ t }: { t: T }) {
   )
 }
 
+/** Marks a dev-linked plugin: loaded from a local build dir + hot-reloaded (dev only). */
+function DevLinkBadge({ t }: { t: T }) {
+  return (
+    <span className="inline-flex items-center gap-1 px-1.5 py-[2px] rounded-md text-[11px] font-medium bg-accent-soft text-accent border border-accent/25"
+      title={t('admin.plugins.devLinkHint')}>
+      <Link2 size={11} /> {t('admin.plugins.devLinkBadge')}
+    </span>
+  )
+}
+
 function TypeBadge({ type, t }: { type: string; t: T }) {
   return (
     <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wide bg-accent-subtle text-content-muted">
@@ -218,6 +228,8 @@ export default function AdminPluginsPanel() {
   const { t, locale } = useTranslation()
   const toast = useToast()
   const [runtimeOn, setRuntimeOn] = useState(false)
+  const [devLink, setDevLink] = useState(false) // dev-link enabled server-side (TREK_PLUGINS_DEV_LINK)
+  const [linkPath, setLinkPath] = useState('')
   const [plugins, setPlugins] = useState<PluginRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -256,8 +268,9 @@ export default function AdminPluginsPanel() {
 
   const refresh = () => {
     adminApi.plugins()
-      .then((d: { enabled: boolean; plugins: PluginRow[] }) => {
+      .then((d: { enabled: boolean; devLink?: boolean; plugins: PluginRow[] }) => {
         setRuntimeOn(!!d.enabled)
+        setDevLink(!!d.devLink)
         setPlugins(d.plugins || [])
         if ((d.plugins || []).length) {
           adminApi.pluginBrowse()
@@ -332,6 +345,23 @@ export default function AdminPluginsPanel() {
   const updateAvailable = (p: PluginRow) => !!(p.version && latest[p.id] && isNewer(latest[p.id], p.version))
   const install = (id: string) => act(id, () => adminApi.pluginInstall(id), t('admin.plugins.installed'))
   const restart = (id: string) => act(id, async () => { await adminApi.pluginDeactivate(id); await adminApi.pluginActivate(id) }, t('admin.plugins.restarted'))
+  // Dev-link: register a plugin from a local built directory (dev only). Reuses the
+  // same busy/toast/refresh loop as uploadPlugin; the server gates it.
+  const linkLocal = async () => {
+    const p = linkPath.trim()
+    if (!p) return
+    setBusy('__link'); setMenu(null)
+    try {
+      const res = await adminApi.pluginLink(p)
+      setView('installed')
+      setLinkPath('')
+      toast.success(t('admin.plugins.devLinkLinked', { id: res.id }))
+    } catch (e) {
+      toast.error((e as { response?: { data?: { error?: string } } })?.response?.data?.error || t('admin.plugins.actionError'))
+    } finally {
+      setBusy(null); refresh()
+    }
+  }
   const installedIds = new Set(plugins.map(p => p.id))
 
   // Installed-but-disabled direct deps that enabling `p` will auto-enable first.
@@ -490,6 +520,24 @@ export default function AdminPluginsPanel() {
             <p className="text-xs text-content-muted mt-0.5">{t('admin.plugins.disabledBody')}</p>
           </div>
         </div>
+      )}
+
+      {/* Dev-link: register + hot-reload a plugin from a local build dir (dev only). */}
+      {devLink && runtimeOn && !loading && !error && (
+        <form onSubmit={(e) => { e.preventDefault(); void linkLocal() }}
+          className="mx-4 sm:mx-6 mt-4 p-3 rounded-xl border border-accent/30 bg-accent-soft flex flex-col sm:flex-row sm:items-center gap-2.5">
+          <div className="flex items-center gap-2 shrink-0 text-accent" title={t('admin.plugins.devLinkHint')}>
+            <Link2 size={15} />
+            <span className="text-xs font-semibold">{t('admin.plugins.devLinkTitle')}</span>
+          </div>
+          <input value={linkPath} onChange={(e) => setLinkPath(e.target.value)} spellCheck={false}
+            placeholder={t('admin.plugins.devLinkPathPlaceholder')}
+            className="flex-1 min-w-0 h-[34px] px-2.5 rounded-lg border border-edge bg-surface-card text-sm text-content placeholder:text-content-faint focus:outline-none focus:border-accent" />
+          <button type="submit" disabled={!linkPath.trim() || busy === '__link'}
+            className="h-[34px] px-3.5 shrink-0 inline-flex items-center justify-center gap-1.5 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-hover disabled:opacity-50 transition-colors">
+            <Link2 size={14} /> {t('admin.plugins.devLinkButton')}
+          </button>
+        </form>
       )}
 
       {/* Toolbar — on mobile: tabs+rescan, then full-width search, then a
@@ -761,6 +809,7 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, onToggl
           {p.version && <span className="text-[11.5px] text-content-faint font-medium tabular-nums">v{p.version}</span>}
           {p.reviewed_at && <ReviewedBadge t={t} compact />}
           {p.source_repo === 'local:upload' && <SideloadedBadge t={t} />}
+          {p.source_repo === 'local:link' && <DevLinkBadge t={t} />}
         </div>
         {p.description && <p className="text-[12.5px] text-content-muted mt-0.5 truncate">{p.description}</p>}
         {p.status === 'error' && p.last_error ? (
@@ -811,7 +860,7 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, onToggl
                 <MenuItem icon={<RotateCw size={14} />} label={t('admin.plugins.restart')} onClick={onRestart} />
               )}
               <MenuItem icon={<Bug size={14} />} label={t('admin.plugins.viewErrors')} onClick={onErrors} />
-              {p.source_repo && p.source_repo !== 'local:upload' && (
+              {p.source_repo && p.source_repo !== 'local:upload' && p.source_repo !== 'local:link' && (
                 <>
                   <a href={`https://github.com/${p.source_repo}`} target="_blank" rel="noreferrer" onClick={() => setMenu(null)}
                     className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-content-secondary hover:bg-surface-tertiary transition-colors">

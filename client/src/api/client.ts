@@ -471,6 +471,9 @@ export const adminApi = {
   pluginUninstall: (id: string, deleteData: boolean) => apiClient.post(`/admin/plugins/${id}/uninstall`, { deleteData }).then(r => r.data),
   pluginRescan: () => apiClient.post('/admin/plugins/rescan').then(r => r.data),
   pluginUpload: (file: File) => { const fd = new FormData(); fd.append('file', file); return apiClient.post('/admin/plugins/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data) },
+  // Dev-link (dev-only): register a plugin from a local built dir + hot-reload it.
+  pluginLink: (path: string) => apiClient.post('/admin/plugins/link', { path }).then(r => r.data),
+  pluginReload: (id: string) => apiClient.post(`/admin/plugins/${id}/reload`).then(r => r.data),
   pluginErrors: (id: string) => apiClient.get(`/admin/plugins/${id}/errors`).then(r => r.data),
   pluginAudit: (id: string) => apiClient.get(`/admin/plugins/${id}/audit`).then(r => r.data),
   // Local LLM (Ollama) management for the AI-parsing addon.
