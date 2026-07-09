@@ -289,6 +289,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:write:members': '여행에 사용자 추가 — 여행 접근 권한 부여; 현재 사용자의 멤버 관리 권한으로 보호',
   'admin.plugins.perm.notify:send': '현재 사용자 또는 그가 속한 여행에 알림(벨 받은함 + 이메일/ntfy) 전송 — 임의의 수신자에게는 보내지 않음',
   'admin.plugins.perm.ai:invoke': '관리자가 구성한 AI 공급자(텍스트 완성 + 문서 추출)를 현재 사용자를 대신하여 실행 — 플러그인은 키를 보유하지 않음',
+  'admin.plugins.perm.oauth:client': '호스트가 중개하는 OAuth로 사용자를 대신해 타사 서비스에 연결(토큰은 호스트가 보유하며 플러그인은 볼 수 없음)',
   'admin.plugins.perm.db:read:files': '현재 사용자가 접근할 수 있는 여행의 파일 읽기',
   'admin.plugins.perm.db:write:reservations': '현재 사용자가 편집할 수 있는 여행에서 예약 만들기, 편집 및 삭제',
   'admin.plugins.perm.db:read:journal': '현재 사용자의 여행 일지 읽기(Journey 애드온 필요)',

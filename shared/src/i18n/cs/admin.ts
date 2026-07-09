@@ -250,6 +250,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:write:members': 'Přidávat uživatele do cest — uděluje přístup k cestě; chráněno právem správy členů aktuálního uživatele',
   'admin.plugins.perm.notify:send': 'Odeslat oznámení (schránka zvonku + e-mail/ntfy) aktuálnímu uživateli nebo jeho cestě — nikdy libovolnému příjemci',
   'admin.plugins.perm.ai:invoke': 'Použít poskytovatele AI nakonfigurovaného správcem (dokončení textu + extrakce z dokumentů) jménem aktuálního uživatele — doplněk nikdy nedrží klíč',
+  'admin.plugins.perm.oauth:client': 'Připojit se k službě třetí strany tvým jménem přes OAuth zprostředkované hostitelem (hostitel drží tokeny, doplněk je nikdy nevidí)',
   'admin.plugins.perm.db:read:files': 'Číst soubory cest, ke kterým má aktuální uživatel přístup',
   'admin.plugins.perm.db:write:reservations': 'Vytvářet, upravovat a mazat rezervace na cestách, které může aktuální uživatel upravovat',
   'admin.plugins.perm.db:read:journal': 'Číst cestovní deníky aktuálního uživatele (vyžaduje doplněk Journey)',

@@ -8,6 +8,8 @@ import { TripWarningsController } from './trip-warnings.controller';
 import { ViewContributionsController } from './view-contributions.controller';
 import { MapMarkersController } from './map-markers.controller';
 import { PluginUserSettingsController } from './plugin-user-settings.controller';
+import { PluginOAuthController } from './plugin-oauth.controller';
+import { PluginOAuthService } from './plugin-oauth.service';
 import { PluginsService } from './plugins.service';
 import { PluginRuntimeService } from './plugin-runtime.service';
 import { PluginRegistryService } from './registry/registry.service';
@@ -20,8 +22,8 @@ import { PluginRegistryService } from './registry/registry.service';
  * widget assets at /plugin-frame/:id/*.
  */
 @Module({
-  controllers: [PluginsController, PluginsFeedController, PluginsProxyController, PluginFrameController, PlaceDetailsController, TripWarningsController, ViewContributionsController, MapMarkersController, PluginUserSettingsController],
-  providers: [PluginsService, PluginRuntimeService, PluginRegistryService],
+  controllers: [PluginsController, PluginsFeedController, PluginsProxyController, PluginFrameController, PlaceDetailsController, TripWarningsController, ViewContributionsController, MapMarkersController, PluginUserSettingsController, PluginOAuthController],
+  providers: [PluginsService, PluginRuntimeService, PluginRegistryService, PluginOAuthService],
   // Exported so the admin addon-toggle handler can cascade-disable plugins whose
   // required addon was just turned off (#plugins dependencies).
   exports: [PluginRuntimeService],

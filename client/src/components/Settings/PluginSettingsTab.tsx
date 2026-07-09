@@ -1,9 +1,52 @@
 import { useEffect, useState } from 'react'
-import { Blocks, Save, Loader2 } from 'lucide-react'
+import { Blocks, Save, Loader2, Link2, Unlink, CheckCircle } from 'lucide-react'
 import { pluginsApi, type PluginUserSettingField } from '../../api/client'
 import { usePluginStore } from '../../store/pluginStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
+
+/** Host-brokered OAuth: a Connect/Disconnect control. The host runs the whole flow +
+ * holds the tokens; this only triggers connect (redirect to the provider) / disconnect. */
+function PluginOAuthSection({ id, state, setState }: {
+  id: string
+  state: { configured: boolean; connected: boolean } | null
+  setState: (s: { configured: boolean; connected: boolean }) => void
+}) {
+  const { t } = useTranslation()
+  const toast = useToast()
+  const [busy, setBusy] = useState(false)
+
+  if (!state?.configured) return null
+
+  const connect = async () => {
+    setBusy(true)
+    try {
+      const { authorizeUrl } = await pluginsApi.oauthConnect(id)
+      window.location.href = authorizeUrl // hand off to the provider; returns to /settings
+    } catch {
+      toast.error(t('common.error')); setBusy(false)
+    }
+  }
+  const disconnect = async () => {
+    setBusy(true)
+    try { await pluginsApi.oauthDisconnect(id); setState({ ...state, connected: false }) }
+    catch { toast.error(t('common.error')) }
+    finally { setBusy(false) }
+  }
+
+  return (
+    <div className="mt-4 flex items-center justify-between rounded-lg border border-border bg-surface-secondary px-3 py-2">
+      <span className="flex items-center gap-2 text-sm text-content-secondary">
+        {state.connected
+          ? <><CheckCircle className="w-4 h-4 text-success" /> {t('settings.plugins.oauth.connected')}</>
+          : <>{t('settings.plugins.oauth.notConnected')}</>}
+      </span>
+      {state.connected
+        ? <button onClick={disconnect} disabled={busy} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-semibold text-content disabled:opacity-60"><Unlink className="w-4 h-4" />{t('settings.plugins.oauth.disconnect')}</button>
+        : <button onClick={connect} disabled={busy} className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-60">{busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}{t('settings.plugins.oauth.connect')}</button>}
+    </div>
+  )
+}
 
 const SECRET_MASK = '••••••••'
 
@@ -19,6 +62,7 @@ function PluginSettingsForm({ id, name }: { id: string; name: string }) {
   const [fields, setFields] = useState<PluginUserSettingField[] | null>(null)
   const [values, setValues] = useState<Record<string, string | boolean>>({})
   const [saving, setSaving] = useState(false)
+  const [oauth, setOauth] = useState<{ configured: boolean; connected: boolean } | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -34,10 +78,13 @@ function PluginSettingsForm({ id, name }: { id: string; name: string }) {
         setValues(init)
       })
       .catch(() => { if (alive) setFields([]) })
+    pluginsApi.oauthStatus(id).then(s => { if (alive) setOauth(s) }).catch(() => { if (alive) setOauth(null) })
     return () => { alive = false }
   }, [id])
 
-  if (fields === null || fields.length === 0) return null
+  const hasFields = (fields?.length ?? 0) > 0
+  // Show the card if the plugin has user fields OR an OAuth connection to offer.
+  if (fields === null || (!hasFields && !oauth?.configured)) return null
 
   const save = async () => {
     setSaving(true)
@@ -71,7 +118,7 @@ function PluginSettingsForm({ id, name }: { id: string; name: string }) {
         <h3 className="text-sm font-semibold text-content">{name}</h3>
       </div>
       <div className="space-y-4">
-        {fields.map(f => (
+        {(fields ?? []).map(f => (
           <label key={f.key} className="block">
             <span className="block text-sm font-medium text-content-secondary mb-1">
               {f.label || f.key}{f.required && <span className="text-danger"> *</span>}
@@ -106,14 +153,17 @@ function PluginSettingsForm({ id, name }: { id: string; name: string }) {
           </label>
         ))}
       </div>
-      <button
-        onClick={save}
-        disabled={saving}
-        className="mt-4 inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-      >
-        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-        {t('common.save')}
-      </button>
+      {hasFields && (
+        <button
+          onClick={save}
+          disabled={saving}
+          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {t('common.save')}
+        </button>
+      )}
+      <PluginOAuthSection id={id} state={oauth} setState={setOauth} />
     </div>
   )
 }

@@ -309,6 +309,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:write:members': 'Lägga till användare i resor — ger resåtkomst; skyddas av den aktiva användarens medlemshanteringsrätt',
   'admin.plugins.perm.notify:send': 'Skicka en avisering (klockinkorg + e-post/ntfy) till den aktiva användaren eller en resa hen tillhör — aldrig till en godtycklig mottagare',
   'admin.plugins.perm.ai:invoke': 'Använda den administratörskonfigurerade AI-leverantören (textkomplettering + dokumentextraktion) å den aktiva användarens vägnar — tillägget håller aldrig en nyckel',
+  'admin.plugins.perm.oauth:client': 'Ansluta till en tredjepartstjänst för din räkning via värdförmedlad OAuth (värden håller token, tillägget ser dem aldrig)',
   'admin.plugins.perm.db:read:files': 'Läsa filer för resor som den aktiva användaren har åtkomst till',
   'admin.plugins.perm.db:write:reservations': 'Skapa, redigera och ta bort bokningar på resor som den aktiva användaren kan redigera',
   'admin.plugins.perm.db:read:journal': 'Läsa den aktiva användarens resedagböcker (kräver tillägget Journey)',

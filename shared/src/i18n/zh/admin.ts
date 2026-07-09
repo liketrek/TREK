@@ -245,6 +245,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:write:members': '向旅行添加用户 — 授予旅行访问权限；受当前用户的成员管理权限保护',
   'admin.plugins.perm.notify:send': '向当前用户或其所属的旅行发送通知（铃铛收件箱 + 邮件/ntfy）— 绝不发送给任意接收者',
   'admin.plugins.perm.ai:invoke': '代表当前用户运行管理员配置的 AI 提供商（文本补全 + 文档提取）— 插件绝不持有密钥',
+  'admin.plugins.perm.oauth:client': '通过主机代理的 OAuth 代表你连接第三方服务（令牌由主机保管，插件永远看不到）',
   'admin.plugins.perm.db:read:files': '读取当前用户可访问的旅行的文件',
   'admin.plugins.perm.db:write:reservations': '在当前用户可编辑的旅行中创建、编辑和删除预订',
   'admin.plugins.perm.db:read:journal': '读取当前用户的旅行日记（需要 Journey 插件）',

@@ -253,6 +253,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:write:members': "Ajouter des utilisateurs aux voyages — accorde l'accès au voyage ; protégé par le droit de gestion des membres de l'utilisateur actif",
   'admin.plugins.perm.notify:send': "Envoyer une notification (boîte de réception + e-mail/ntfy) à l'utilisateur actif ou à un voyage auquel il appartient — jamais à un destinataire arbitraire",
   'admin.plugins.perm.ai:invoke': "Utiliser le fournisseur d'IA configuré par l'administrateur (complétion de texte + extraction de documents) au nom de l'utilisateur actif — le module ne détient jamais de clé",
+  'admin.plugins.perm.oauth:client': "Se connecter à un service tiers en votre nom via OAuth géré par l'hôte (l'hôte détient les jetons, le module ne les voit jamais)",
   'admin.plugins.perm.db:read:files': "Lire les fichiers des voyages accessibles à l'utilisateur actif",
   'admin.plugins.perm.db:write:reservations': "Créer, modifier et supprimer des réservations sur les voyages que l'utilisateur actif peut modifier",
   'admin.plugins.perm.db:read:journal': "Lire les journaux de voyage de l'utilisateur actif (nécessite le module Journey)",

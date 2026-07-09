@@ -253,6 +253,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:write:members': 'Añadir usuarios a los viajes — concede acceso al viaje; protegido por el permiso de gestión de miembros del usuario activo',
   'admin.plugins.perm.notify:send': 'Enviar una notificación (bandeja de campana + correo/ntfy) al usuario activo o a un viaje al que pertenece — nunca a un destinatario arbitrario',
   'admin.plugins.perm.ai:invoke': 'Usar el proveedor de IA configurado por el administrador (completado de texto + extracción de documentos) en nombre del usuario activo — el complemento nunca guarda una clave',
+  'admin.plugins.perm.oauth:client': 'Conectarse a un servicio de terceros en tu nombre mediante OAuth gestionado por el host (el host guarda los tokens, el complemento nunca los ve)',
   'admin.plugins.perm.db:read:files': 'Leer los archivos de los viajes a los que el usuario activo tiene acceso',
   'admin.plugins.perm.db:write:reservations': 'Crear, editar y eliminar reservas en los viajes que el usuario activo puede editar',
   'admin.plugins.perm.db:read:journal': 'Leer los diarios de viaje del usuario activo (requiere el complemento Journey)',

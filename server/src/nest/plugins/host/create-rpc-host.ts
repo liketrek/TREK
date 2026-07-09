@@ -14,6 +14,7 @@ import { send as sendNotification } from '../../../services/notificationService'
 import { resolveLlmConfig } from '../../llm-parse/llm-config.resolver';
 import { createLlmClient } from '../../llm-parse/llm-client.factory';
 import { readUserSettingDecrypted } from '../plugins.service';
+import { PluginOAuthService } from '../plugin-oauth.service';
 import fsMod from 'node:fs';
 import pathMod from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -340,6 +341,8 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
     },
     // The acting user's own decrypted value for one of this plugin's user-scope settings.
     getUserSetting: (pluginId, userId, key) => readUserSettingDecrypted(pluginId, userId, key),
+    // A short-lived OAuth access token for the acting user (host-brokered; refreshes).
+    getOAuthToken: (pluginId, userId) => new PluginOAuthService().getAccessToken(pluginId, userId, Date.now()),
     listCostsForTrip: (tripId) => listBudgetItems(tripId),
     // Cross-trip: every accessible trip's budget items (membership predicate is
     // baked into listTrips). Reuses the hydrated list so members/payers come too.

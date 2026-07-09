@@ -137,6 +137,7 @@ export const KNOWN_METHODS = [
   'notify.send',
   'ai.complete',
   'ai.extract',
+  'oauth.getToken',
 ] as const;
 export type KnownMethod = (typeof KNOWN_METHODS)[number];
 
@@ -232,6 +233,7 @@ export const METHOD_PERMISSION: Record<KnownMethod, string> = {
   'notify.send': 'notify:send',
   'ai.complete': 'ai:invoke',
   'ai.extract': 'ai:invoke',
+  'oauth.getToken': 'oauth:client',
 };
 
 /** All permission strings the host understands (unknown ones are rejected at activation). */
@@ -282,6 +284,7 @@ export const KNOWN_PERMISSIONS = [
   'http:outbound',
   'notify:send',
   'ai:invoke',
+  'oauth:client',
 ] as const;
 
 export function isKnownPermission(p: string): boolean {

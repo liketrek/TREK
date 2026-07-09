@@ -3499,6 +3499,31 @@ function runMigrations(db: Database.Database): void {
         );
       `);
     },
+    // Host-brokered outbound OAuth (#plugins). A plugin becomes an OAuth *client* of a
+    // third-party service; the HOST runs authorize->callback->token->refresh with
+    // PKCE+state and owns the tokens — the plugin never sees the refresh token. Tokens
+    // are per-user + encrypted at rest; the in-flight PKCE verifier/state is short-lived.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS plugin_oauth_tokens (
+          plugin_id TEXT NOT NULL,
+          user_id INTEGER NOT NULL,
+          access_token TEXT,
+          refresh_token TEXT,
+          expires_at INTEGER,
+          scope TEXT,
+          updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+          PRIMARY KEY (plugin_id, user_id)
+        );
+        CREATE TABLE IF NOT EXISTS plugin_oauth_state (
+          state TEXT PRIMARY KEY,
+          plugin_id TEXT NOT NULL,
+          user_id INTEGER NOT NULL,
+          verifier TEXT NOT NULL,
+          created_at INTEGER NOT NULL
+        );
+      `);
+    },
   ];
 
   if (currentVersion < migrations.length) {

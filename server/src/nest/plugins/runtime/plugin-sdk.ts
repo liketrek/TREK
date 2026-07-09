@@ -107,6 +107,13 @@ export interface PluginContext {
     complete(prompt: string, system?: string): Promise<{ text: string }>;
     extract(text: string, jsonSchema: object, prompt?: string): Promise<{ results: Record<string, unknown>[] }>;
   };
+  /** Host-brokered outbound OAuth: a short-lived access token for the ACTING USER of a
+   * third-party service the host connected on their behalf (Settings → Plugins → Connect).
+   * Returns null when the user hasn't connected or in a userless context. The host holds
+   * the refresh token + client secret — you never see them. Needs 'oauth:client'. */
+  oauth: {
+    getAccessToken(): Promise<string | null>;
+  };
   /** Host weather cache by coordinates (+ optional YYYY-MM-DD). Tenant-free. Needs 'weather:read'. */
   weather: {
     get(lat: number, lng: number, date?: string): Promise<unknown>;
@@ -247,6 +254,11 @@ export interface PluginRequest {
   path: string;
   query: Record<string, unknown>;
   body: unknown;
+  /** Inbound headers — ONLY populated on `auth:false` routes (webhooks), and only an
+   * explicit, credential-free allowlist (signature + event headers from the common
+   * providers; never Cookie/Authorization/session). Empty on authenticated routes.
+   * Verify a provider signature against a secret you hold in `ctx.config`/`ctx.settings`. */
+  headers: Record<string, string>;
   user: { id: number; username: string; isAdmin: boolean } | null;
 }
 export interface PluginResponse {
@@ -462,6 +474,9 @@ export function createPluginContext(
     ai: {
       complete: (prompt, system) => t.rpc('ai.complete', { prompt, system, _inv: invocationId }) as Promise<{ text: string }>,
       extract: (text, jsonSchema, prompt) => t.rpc('ai.extract', { text, jsonSchema, prompt, _inv: invocationId }) as Promise<{ results: Record<string, unknown>[] }>,
+    },
+    oauth: {
+      getAccessToken: () => (t.rpc('oauth.getToken', { _inv: invocationId }) as Promise<{ accessToken: string | null }>).then((r) => r?.accessToken ?? null),
     },
     weather: {
       get: (lat, lng, date) => t.rpc('weather.get', { lat, lng, date, _inv: invocationId }),

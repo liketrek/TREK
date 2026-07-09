@@ -601,6 +601,13 @@ export const pluginsApi = {
     apiClient.get(`/plugin-settings/${id}`).then(r => r.data as { fields: PluginUserSettingField[]; config: Record<string, unknown> }),
   saveUserSettings: (id: string, config: Record<string, unknown>) =>
     apiClient.post(`/plugin-settings/${id}`, { config }).then(r => r.data as { config: Record<string, unknown> }),
+  // Host-brokered outbound OAuth (the host owns the tokens; the plugin only triggers).
+  oauthStatus: (id: string) =>
+    apiClient.get(`/plugin-oauth/${id}/status`).then(r => r.data as { configured: boolean; connected: boolean }),
+  oauthConnect: (id: string) =>
+    apiClient.post(`/plugin-oauth/${id}/connect`).then(r => r.data as { authorizeUrl: string }),
+  oauthDisconnect: (id: string) =>
+    apiClient.post(`/plugin-oauth/${id}/disconnect`).then(r => r.data as { connected: boolean }),
   // Call one of a plugin's own declared routes through the host proxy. `sub` is
   // supplied by untrusted plugin code (the trekBridge forwards it verbatim), so it
   // MUST stay inside the plugin's own /plugins/:id/ namespace. We resolve it with

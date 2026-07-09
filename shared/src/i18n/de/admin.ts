@@ -252,6 +252,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:write:members': 'Nutzer zu Reisen hinzufügen — gewährt Reise-Zugriff; über das Mitglieder-verwalten-Recht des handelnden Nutzers abgesichert',
   'admin.plugins.perm.notify:send': 'Eine Benachrichtigung (Glocken-Postfach + E-Mail/ntfy) an den handelnden Nutzer oder eine seiner Reisen senden — nie an beliebige Empfänger',
   'admin.plugins.perm.ai:invoke': 'Den vom Admin konfigurierten KI-Anbieter (Textvervollständigung + Dokumentenextraktion) im Namen des handelnden Nutzers nutzen — das Plugin hält nie einen Schlüssel',
+  'admin.plugins.perm.oauth:client': 'Über host-vermitteltes OAuth in deinem Namen mit einem Drittanbieter verbinden (der Host hält die Tokens, das Plugin sieht sie nie)',
   'admin.plugins.perm.db:read:files': 'Dateien von Reisen lesen, auf die der handelnde Nutzer Zugriff hat',
   'admin.plugins.perm.db:read:journal': 'Reisetagebücher des handelnden Nutzers lesen (benötigt das Journey-Addon)',
   'admin.plugins.perm.db:read:atlas': 'Besuchte Länder und Regionen des handelnden Nutzers lesen (benötigt das Atlas-Addon)',

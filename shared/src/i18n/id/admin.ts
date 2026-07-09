@@ -296,6 +296,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:write:members': 'Menambahkan pengguna ke perjalanan — memberikan akses perjalanan; dilindungi oleh hak kelola anggota pengguna yang bersangkutan',
   'admin.plugins.perm.notify:send': 'Mengirim notifikasi (kotak lonceng + email/ntfy) kepada pengguna yang bersangkutan atau perjalanan yang diikutinya — tidak pernah ke penerima sembarangan',
   'admin.plugins.perm.ai:invoke': 'Menjalankan penyedia AI yang dikonfigurasi admin (penyelesaian teks + ekstraksi dokumen) atas nama pengguna yang bersangkutan — plugin tidak pernah menyimpan kunci',
+  'admin.plugins.perm.oauth:client': 'Terhubung ke layanan pihak ketiga atas namamu melalui OAuth yang diperantarai host (host menyimpan token, plugin tidak pernah melihatnya)',
   'admin.plugins.perm.db:read:files':
     'Membaca berkas dari perjalanan yang dapat diakses oleh pengguna yang bersangkutan',
   'admin.plugins.perm.db:write:reservations': 'Membuat, mengedit, dan menghapus pemesanan pada perjalanan yang dapat diedit oleh pengguna yang bersangkutan',

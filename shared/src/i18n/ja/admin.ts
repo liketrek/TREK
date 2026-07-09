@@ -283,6 +283,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:write:members': '旅行にユーザーを追加 — 旅行へのアクセスを付与。操作中のユーザーのメンバー管理権限で保護',
   'admin.plugins.perm.notify:send': '操作中のユーザー、またはそのユーザーが所属する旅行に通知（ベル受信箱＋メール/ntfy）を送信 — 任意の受信者には送らない',
   'admin.plugins.perm.ai:invoke': '管理者が構成した AI プロバイダー（テキスト補完＋ドキュメント抽出）を操作中のユーザーの代わりに実行 — プラグインはキーを保持しない',
+  'admin.plugins.perm.oauth:client': 'ホスト仲介の OAuth であなたに代わってサードパーティサービスに接続（トークンはホストが保持し、プラグインは決して見ない）',
   'admin.plugins.perm.db:read:files': '操作中のユーザーがアクセスできる旅行のファイルの読み取り',
   'admin.plugins.perm.db:write:reservations': '操作中のユーザーが編集できる旅行の予約の作成・編集・削除',
   'admin.plugins.perm.db:read:journal': '操作中のユーザーの旅行日記の読み取り（Journey アドオンが必要）',

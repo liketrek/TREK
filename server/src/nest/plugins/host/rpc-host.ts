@@ -64,6 +64,9 @@ export interface HostDeps {
   aiExtract(userId: number, text: string, jsonSchema: object, prompt: string | undefined): Promise<unknown>;
   /** The acting user's own value for one of this plugin's `scope:'user'` settings (decrypted). */
   getUserSetting(pluginId: string, userId: number, key: string): unknown;
+  /** A short-lived OAuth access token for the acting user (host-brokered; refreshes if
+   * expiring). Null when the user hasn't connected. The plugin never sees the refresh token. */
+  getOAuthToken(pluginId: string, userId: number): Promise<string | null>;
   /** Optional sink for the capability audit log (host-side, hash-chained). */
   audit?(entry: { pluginId: string; actingUserId?: number; method: string; resource: string | null; code: string }): void;
   /** Call an export on another plugin (this host's plugin is the caller). Authorizes
@@ -937,6 +940,15 @@ export class PluginRpcHost {
         if (text.length > 20000) throw new BadParams('text exceeds the 20000-char cap');
         if (typeof p.jsonSchema !== 'object' || p.jsonSchema === null) throw new BadParams('jsonSchema (an object) is required');
         return deps.aiExtract(actor, text, p.jsonSchema as object, typeof p.prompt === 'string' ? p.prompt.slice(0, 4000) : undefined);
+      });
+    }
+    if (has('oauth:client')) {
+      // Host-brokered outbound OAuth: return a short-lived access token for the acting
+      // user (the host ran the flow + holds the refresh token). Never yields a token for
+      // a userless context, and the plugin can never reach the refresh token/secret.
+      this.methods.set('oauth.getToken', async (_p, uid) => {
+        const actor = this.requireActor(uid, 'OAuth');
+        return { accessToken: await deps.getOAuthToken(this.pluginId, actor) };
       });
     }
 

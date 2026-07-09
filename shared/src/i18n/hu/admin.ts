@@ -253,6 +253,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:write:members': 'Felhasználók hozzáadása utazásokhoz — utazás-hozzáférést ad; az aktuális felhasználó tagkezelési jogával védve',
   'admin.plugins.perm.notify:send': 'Értesítés küldése (csengő postaláda + e-mail/ntfy) az aktuális felhasználónak vagy egy utazásának — soha tetszőleges címzettnek',
   'admin.plugins.perm.ai:invoke': 'Az adminisztrátor által beállított MI-szolgáltató (szövegkiegészítés + dokumentumkinyerés) használata az aktuális felhasználó nevében — a bővítmény soha nem tárol kulcsot',
+  'admin.plugins.perm.oauth:client': 'Csatlakozás egy harmadik féltől származó szolgáltatáshoz a nevedben, gazdagép által közvetített OAuth-tal (a tokeneket a gazdagép tárolja, a bővítmény sosem látja)',
   'admin.plugins.perm.db:read:files': 'Az aktuális felhasználó számára elérhető utazások fájljainak olvasása',
   'admin.plugins.perm.db:write:reservations': 'Foglalások létrehozása, szerkesztése és törlése az aktuális felhasználó által szerkeszthető utazásokon',
   'admin.plugins.perm.db:read:journal': 'Az aktuális felhasználó úti naplóinak olvasása (a Journey bővítmény szükséges)',

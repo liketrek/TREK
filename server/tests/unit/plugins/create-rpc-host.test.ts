@@ -165,6 +165,9 @@ vi.mock('../../../src/nest/llm-parse/llm-config.resolver', () => ({
 }));
 const { llmExtract } = vi.hoisted(() => ({ llmExtract: vi.fn(async (input: { text?: string }) => [{ text: `answer:${input.text ?? ''}` }]) }));
 vi.mock('../../../src/nest/llm-parse/llm-client.factory', () => ({ createLlmClient: vi.fn(() => ({ extract: llmExtract })) }));
+// The per-user settings read + OAuth broker the runtime deps delegate to.
+vi.mock('../../../src/nest/plugins/plugins.service', () => ({ readUserSettingDecrypted: vi.fn((_pid: string, uid: number, key: string) => (uid === 5 && key === 'apiKey' ? 'k-5' : undefined)) }));
+vi.mock('../../../src/nest/plugins/plugin-oauth.service', () => ({ PluginOAuthService: class { async getAccessToken(_pid: string, uid: number) { return uid === 5 ? 'tok-5' : null; } } }));
 // Reservations: the Nest service is delegated to; mock it so the create-rpc-host
 // reservation deps' side-effect branches (accommodation / budget-sync / notify) run.
 vi.mock('../../../src/nest/reservations/reservations.service', () => ({
@@ -684,5 +687,28 @@ describe('create-rpc-host — Wave 4 wiring (notify / ai)', () => {
     expect(Array.isArray(e.result.results)).toBe(true)
     // user 7 has no provider → the router's aiConfigured() check trips first
     expect(((await call(h, 'ai.complete', { prompt: 'hi' }, 7)) as { error: { code: string } }).error.code).toBe('BAD_PARAMS')
+  })
+})
+
+describe('create-rpc-host — Wave 8 wiring (settings.get / oauth.getToken)', () => {
+  const host = (...perms: string[]) => createRealRpcHost('w8', new Set(perms))
+  // uid is explicit here (no default) — an undefined must stay undefined, not fall back.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const call = async (h: ReturnType<typeof host>, method: string, params: Record<string, unknown>, uid: number | undefined): Promise<any> =>
+    h.dispatch({ k: 'req', id: 'x', method, params }, uid)
+  afterAll(() => closePluginDataDb('w8'))
+
+  it('settings.get returns the acting user\'s decrypted value; userless → undefined', async () => {
+    const h = host() // no permission needed — the plugin's own settings
+    expect((await call(h, 'settings.get', { key: 'apiKey' }, 5)).result).toEqual({ value: 'k-5' })
+    expect((await call(h, 'settings.get', { key: 'apiKey' }, undefined)).result).toEqual({ value: undefined })
+  })
+
+  it('oauth.getToken returns only the acting user\'s access token, gated by oauth:client', async () => {
+    const h = host('oauth:client')
+    expect((await call(h, 'oauth.getToken', {}, 5)).result).toEqual({ accessToken: 'tok-5' })
+    expect((await call(h, 'oauth.getToken', {}, 7)).result).toEqual({ accessToken: null }) // not connected
+    expect((await call(h, 'oauth.getToken', {}, undefined)).ok).toBe(false)               // userless
+    expect((await call(host(), 'oauth.getToken', {}, 5)).ok).toBe(false)                  // no grant
   })
 })

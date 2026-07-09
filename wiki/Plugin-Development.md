@@ -197,6 +197,7 @@ declaration for readers — the manifest parser does not consume it.
 | `ctx.trips.addMember` | `addMember(tripId, userId)` — **grants trip access**; its own permission, acting user recorded as inviter | `db:write:members` (+ `member_manage`) |
 | `ctx.notify` | `send({title, body, link?, scope, targetId})` — bell inbox + email/ntfy fan-out; recipient forced to the acting user (`scope:'user'`) or a trip they belong to (`scope:'trip'`) | `notify:send` |
 | `ctx.ai` | `complete(prompt, system?)` → `{ text }`; `extract(text, jsonSchema, prompt?)` → `{ results }` — the admin/user-configured provider; host holds the key; output is DATA (no auto-writes) | `ai:invoke` |
+| `ctx.oauth` | `getAccessToken()` → a **short-lived access token** for the acting user of a third-party service the host connected on their behalf (Settings → Plugins → Connect); `null` if not connected / userless. Host holds the refresh token + client secret | `oauth:client` |
 | `ctx.settings` | `get(key)` — the **acting user's** own value for one of your `scope:'user'` settings fields (decrypted host-side). Returns `undefined` for an unset value or a userless context (job/onLoad) — fall back to `ctx.config` there. Users fill these in under **Settings → Plugins**; secrets are stored encrypted and never echoed back | none (your own settings) |
 | `ctx.daynotes` | `list(tripId, dayId)` — a day's notes (membership-checked) | `db:read:daynotes` |
 | `ctx.daynotes` (write) | `create(tripId, dayId, {text, time?, icon?, sort_order?})` / `update(tripId, dayId, noteId, fields)` / `delete(tripId, dayId, noteId)` — broadcasts `dayNote:*` | `db:write:daynotes` |
@@ -255,9 +256,17 @@ validated against TREK's budget schema, and a successful create broadcasts the s
 ### Route auth
 
 Routes are authenticated by default (`req.user` is the logged-in user). Set
-`auth: false` for OAuth callbacks or webhooks that can't carry a session. The
-proxy forwards only `{ method, path, query, body, user }` — your code never sees
-raw headers or the session cookie.
+`auth: false` for OAuth callbacks or webhooks that can't carry a session.
+
+The proxy forwards `{ method, path, query, body, headers, user }`. **`req.headers`
+is populated ONLY on `auth: false` routes** (an authenticated route gets `{}`) and
+only an explicit, credential-free **allowlist** — the common provider signature +
+event headers (`stripe-signature`, `x-hub-signature-256`, `svix-signature`,
+`x-gitlab-event`, `content-type`, `user-agent`, …). **`Cookie`, `Authorization`,
+`X-Socket-Id` and every session/forwarded-auth header are stripped** and never reach
+your code, so a forwarded header can't leak a TREK session. To trust a webhook,
+verify the provider's signature over the raw body against a secret you hold in
+`ctx.config` (admin-set instance setting) or `ctx.settings` (per-user).
 
 ## Writing the client (page / widget)
 

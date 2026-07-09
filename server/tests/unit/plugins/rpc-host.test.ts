@@ -111,6 +111,7 @@ function makeDeps(): HostDeps {
     aiComplete: vi.fn(async (_uid: number, prompt: string) => ({ text: `echo:${prompt}` })),
     aiExtract: vi.fn(async () => ({ results: [{ ok: true }] })),
     getUserSetting: vi.fn((pluginId: string, userId: number, key: string) => (userId === 42 && key === 'apiKey' ? `secret-of-${pluginId}` : undefined)),
+    getOAuthToken: vi.fn(async (_pluginId: string, userId: number) => (userId === 42 ? 'access-token-xyz' : null)),
     createCollectionForUser: vi.fn((uid: number, input: unknown) => ({ id: 100, owner_id: uid, ...(input as object) })),
     updateCollectionForUser: vi.fn((_uid: number, id: number, input: unknown) => ({ id, ...(input as object) })),
     saveCollectionPlace: vi.fn((uid: number, input: unknown) => ({ id: 101, saved_by: uid, ...(input as object) })),
@@ -571,6 +572,19 @@ describe('PluginRpcHost — capability enforcement', () => {
     expect(deps.getUserSetting).toHaveBeenCalledWith('p', 42, 'apiKey');
     const userless = await host.dispatch(req('settings.get', { key: 'apiKey' }), undefined);
     expect((userless as RpcResponse).result).toEqual({ value: undefined });
+  });
+
+  it('oauth.getToken needs the grant + a bound user; returns only the access token', async () => {
+    const host = new PluginRpcHost('p', new Set(['oauth:client']), deps);
+    const ok1 = await host.dispatch(req('oauth.getToken', {}), 42);
+    expect(ok(ok1)).toBe(true);
+    expect((ok1 as RpcResponse).result).toEqual({ accessToken: 'access-token-xyz' });
+    expect(deps.getOAuthToken).toHaveBeenCalledWith('p', 42);
+    // no bound user → refused (a job/onLoad can't act as an OAuth client)
+    expect((await host.dispatch(req('oauth.getToken', {}), undefined)).ok).toBe(false);
+    // without the grant → not reachable
+    const noGrant = new PluginRpcHost('p', new Set(), deps);
+    expect((await noGrant.dispatch(req('oauth.getToken', {}), 42)).ok).toBe(false);
   });
 
   it('a read scope is denied without its own permission', async () => {
