@@ -52,6 +52,45 @@ by a real SQLite file (`.trek-dev/db.sqlite`) when the runtime has `node:sqlite`
 - Feed `ctx.trips` / `ctx.users` by dropping a `dev-fixtures.json` next to the
   manifest: `{ "trips": { "1": { "members": [1], "data": { … } } }, "users": {} }`.
 
+### Test against a real instance's data (dev-link)
+
+`dev` above is fast but its host data is **synthetic** (fixtures / a scratch
+`db:own`). When you need your plugin to run against **real** trips, places,
+reservations, costs and real membership/permissions, link it into a running TREK
+instance instead of packing + uploading it every time.
+
+On the **server** (a local `trek-dev` or a dev instance — **never production**), set:
+
+```bash
+TREK_PLUGINS_DEV_LINK=1
+```
+
+Then, as an admin, point TREK at your **built** plugin directory (the one holding
+`trek-plugin.json` + `server/index.js` — build first, the loader runs the compiled
+artifact, not TS source):
+
+```bash
+# register the local dir as a plugin (symlinked in, registered INACTIVE)
+curl -XPOST /api/admin/plugins/link -H 'content-type: application/json' \
+  -d '{ "path": "/abs/path/to/your/plugin" }'
+```
+
+Activate it in the admin UI and consent to its permissions as usual. It now runs
+through the **same capability RPC host** as any installed plugin: real,
+membership-gated data, the acting user resolved host-side, no impersonation — code
+origin never touches the security gate.
+
+**Hot-reload:** rebuild your plugin (e.g. `tsc --watch` emitting `server/index.js`)
+and TREK re-forks it automatically (a file-watch on the linked dir). To force it,
+`POST /api/admin/plugins/:id/reload`, or just hit **Restart** in the admin UI —
+both re-fork the child, picking up the new code (a rebuilt manifest that widened
+permissions still requires explicit re-consent).
+
+> Dev-link is gated behind `TREK_PLUGINS_DEV_LINK` on top of admin + the plugin
+> kill-switch, and is **off by default**. It loads unsigned local code that mutates
+> live between restarts, and under `npm run dev` the OS permission jail is off — so
+> only ever enable it on a machine you control, pointed at a dev instance.
+
 ## The plugin types
 
 - **integration** — background logic (jobs, routes) with no UI of its own. Photo-
