@@ -281,6 +281,12 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:packing':
     'Membaca daftar barang bawaan dari perjalanan yang dapat diakses oleh pengguna yang bersangkutan',
   'admin.plugins.perm.db:write:packing': 'Membuat, mengedit, dan menghapus item daftar bawaan pada perjalanan yang dapat diedit oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.weather:read': 'Membaca prakiraan cuaca host yang di-cache (berdasarkan koordinat)',
+  'admin.plugins.perm.db:read:categories': 'Membaca daftar kategori tempat global',
+  'admin.plugins.perm.db:read:tags': 'Membaca tag pengguna yang bersangkutan',
+  'admin.plugins.perm.db:write:tags': 'Membuat, mengedit, dan menghapus tag pengguna yang bersangkutan',
+  'admin.plugins.perm.db:read:todos': 'Membaca tugas dari perjalanan yang dapat diakses oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.db:write:todos': 'Membuat, mengedit, dan menghapus tugas pada perjalanan yang dapat diedit oleh pengguna yang bersangkutan',
   'admin.plugins.perm.db:read:files':
     'Membaca berkas dari perjalanan yang dapat diakses oleh pengguna yang bersangkutan',
   'admin.plugins.perm.db:write:reservations': 'Membuat, mengedit, dan menghapus pemesanan pada perjalanan yang dapat diedit oleh pengguna yang bersangkutan',

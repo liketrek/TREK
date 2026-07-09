@@ -32,6 +32,8 @@ export interface PluginContext {
     listMine(): Promise<unknown[]>;
     /** Update trip fields (title/dates/currency/reminder_days/...); needs 'db:write:trips' + the acting user's 'trip_edit' permission. */
     update(tripId: number, input: Record<string, unknown>): Promise<unknown>;
+    /** The trip's member roster (id + display fields only). Membership-checked. Needs 'db:read:trips'. */
+    members(tripId: number): Promise<unknown[]>;
   };
   // Reservations (bookings). `listMine` reads across every accessible trip (needs
   // 'db:read:trips'); create/update/delete need 'db:write:reservations' + the acting
@@ -58,10 +60,38 @@ export interface PluginContext {
     update(tripId: number, itemId: number, input: Record<string, unknown>): Promise<unknown>;
     /** Delete a packing item. Needs 'db:write:packing' + 'packing_edit'. */
     delete(tripId: number, itemId: number): Promise<{ deleted: boolean }>;
+    /** List/create/update/delete packing bags + set members (no privacy). Needs 'db:write:packing' + 'packing_edit'. */
+    listBags(tripId: number): Promise<unknown[]>;
+    createBag(tripId: number, input: { name: string; color?: string }): Promise<unknown>;
+    updateBag(tripId: number, bagId: number, input: Record<string, unknown>): Promise<unknown>;
+    deleteBag(tripId: number, bagId: number): Promise<{ deleted: boolean }>;
+    setBagMembers(tripId: number, bagId: number, userIds: number[]): Promise<unknown>;
   };
   files: {
     /** A trip's files, trash excluded. Needs 'db:read:files'. */
     list(tripId: number): Promise<unknown[]>;
+  };
+  /** Host weather cache by coordinates (+ optional YYYY-MM-DD). Tenant-free. Needs 'weather:read'. */
+  weather: {
+    get(lat: number, lng: number, date?: string): Promise<unknown>;
+  };
+  /** The global place-category reference list (read-only). Needs 'db:read:categories'. */
+  categories: {
+    list(): Promise<unknown[]>;
+  };
+  /** The acting user's own tags. Needs 'db:read:tags' (list) / 'db:write:tags' (create/update/delete). */
+  tags: {
+    list(): Promise<unknown[]>;
+    create(input: { name: string; color?: string }): Promise<unknown>;
+    update(tagId: number, input: { name?: string; color?: string }): Promise<unknown>;
+    delete(tagId: number): Promise<{ deleted: boolean }>;
+  };
+  /** A trip's to-dos. Needs 'db:read:todos' (list) / 'db:write:todos' + 'packing_edit' (create/update/delete). */
+  todos: {
+    list(tripId: number): Promise<unknown[]>;
+    create(tripId: number, input: { name: string; category?: string; due_date?: string; description?: string; assigned_user_id?: number; priority?: number }): Promise<unknown>;
+    update(tripId: number, todoId: number, input: Record<string, unknown>): Promise<unknown>;
+    delete(tripId: number, todoId: number): Promise<{ deleted: boolean }>;
   };
   // The acting user's OWN subsystem data across all their trips (not one trip), each
   // gated on its addon being enabled — mirrors the addon's own REST/MCP readers.
@@ -311,6 +341,7 @@ export function createPluginContext(
       getReservations: (tripId) => t.rpc('trips.getReservations', { tripId, _inv: invocationId }) as Promise<unknown[]>,
       listMine: () => t.rpc('trips.listMine', { _inv: invocationId }) as Promise<unknown[]>,
       update: (tripId, input) => t.rpc('trips.update', { tripId, input, _inv: invocationId }),
+      members: (tripId) => t.rpc('trips.members', { tripId, _inv: invocationId }) as Promise<unknown[]>,
     },
     reservations: {
       listMine: () => t.rpc('reservations.listMine', { _inv: invocationId }) as Promise<unknown[]>,
@@ -323,9 +354,32 @@ export function createPluginContext(
       create: (tripId, input) => t.rpc('packing.create', { tripId, input, _inv: invocationId }),
       update: (tripId, itemId, input) => t.rpc('packing.update', { tripId, itemId, input, _inv: invocationId }),
       delete: (tripId, itemId) => t.rpc('packing.delete', { tripId, itemId, _inv: invocationId }) as Promise<{ deleted: boolean }>,
+      listBags: (tripId) => t.rpc('packing.listBags', { tripId, _inv: invocationId }) as Promise<unknown[]>,
+      createBag: (tripId, input) => t.rpc('packing.createBag', { tripId, input, _inv: invocationId }),
+      updateBag: (tripId, bagId, input) => t.rpc('packing.updateBag', { tripId, bagId, input, _inv: invocationId }),
+      deleteBag: (tripId, bagId) => t.rpc('packing.deleteBag', { tripId, bagId, _inv: invocationId }) as Promise<{ deleted: boolean }>,
+      setBagMembers: (tripId, bagId, userIds) => t.rpc('packing.setBagMembers', { tripId, bagId, userIds, _inv: invocationId }),
     },
     files: {
       list: (tripId) => t.rpc('files.list', { tripId, _inv: invocationId }) as Promise<unknown[]>,
+    },
+    weather: {
+      get: (lat, lng, date) => t.rpc('weather.get', { lat, lng, date, _inv: invocationId }),
+    },
+    categories: {
+      list: () => t.rpc('categories.list', { _inv: invocationId }) as Promise<unknown[]>,
+    },
+    tags: {
+      list: () => t.rpc('tags.list', { _inv: invocationId }) as Promise<unknown[]>,
+      create: (input) => t.rpc('tags.create', { input, _inv: invocationId }),
+      update: (tagId, input) => t.rpc('tags.update', { tagId, input, _inv: invocationId }),
+      delete: (tagId) => t.rpc('tags.delete', { tagId, _inv: invocationId }) as Promise<{ deleted: boolean }>,
+    },
+    todos: {
+      list: (tripId) => t.rpc('todos.list', { tripId, _inv: invocationId }) as Promise<unknown[]>,
+      create: (tripId, input) => t.rpc('todos.create', { tripId, input, _inv: invocationId }),
+      update: (tripId, todoId, input) => t.rpc('todos.update', { tripId, todoId, input, _inv: invocationId }),
+      delete: (tripId, todoId) => t.rpc('todos.delete', { tripId, todoId, _inv: invocationId }) as Promise<{ deleted: boolean }>,
     },
     journal: {
       listMine: () => t.rpc('journal.listMine', { _inv: invocationId }) as Promise<unknown[]>,

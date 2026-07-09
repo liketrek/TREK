@@ -232,6 +232,12 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:packing':
     'Odczyt list rzeczy do spakowania w podróżach, do których działający użytkownik ma dostęp',
   'admin.plugins.perm.db:write:packing': 'Tworzenie, edytowanie i usuwanie pozycji listy pakowania w podróżach, które działający użytkownik może edytować',
+  'admin.plugins.perm.weather:read': 'Odczyt zapisanej w pamięci prognozy pogody hosta (wg współrzędnych)',
+  'admin.plugins.perm.db:read:categories': 'Odczyt globalnej listy kategorii miejsc',
+  'admin.plugins.perm.db:read:tags': 'Odczyt tagów działającego użytkownika',
+  'admin.plugins.perm.db:write:tags': 'Tworzenie, edytowanie i usuwanie tagów działającego użytkownika',
+  'admin.plugins.perm.db:read:todos': 'Odczyt zadań w podróżach, do których działający użytkownik ma dostęp',
+  'admin.plugins.perm.db:write:todos': 'Tworzenie, edytowanie i usuwanie zadań w podróżach, które działający użytkownik może edytować',
   'admin.plugins.perm.db:read:files': 'Odczyt plików w podróżach, do których działający użytkownik ma dostęp',
   'admin.plugins.perm.db:write:reservations': 'Tworzenie, edytowanie i usuwanie rezerwacji w podróżach, które działający użytkownik może edytować',
   'admin.plugins.perm.db:read:journal': 'Odczyt dzienników podróży działającego użytkownika (wymaga dodatku Journey)',

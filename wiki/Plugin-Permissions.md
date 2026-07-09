@@ -11,7 +11,7 @@ ungranted capability is physically unreachable**, not just disallowed. See
 | Permission | Grants | Notes |
 |---|---|---|
 | `db:own` | Read/write the plugin's **own** SQLite file via `ctx.db` — `db.query`, `db.exec`, **and `db.migrate`** | A separate file per plugin — never `trek.db`. `db.migrate` runs a keyed, idempotent migration (schema/table creation, e.g. `CREATE TABLE`) once per id. `ATTACH`/`DETACH`/`VACUUM`/`PRAGMA` are refused. |
-| `db:read:trips` | Read-only trip data via `ctx.trips` (`getById`, `getPlaces`, `getReservations`) | Every call is **membership-checked** against the acting user — a plugin can't read a trip that user can't see. |
+| `db:read:trips` | Read-only trip data via `ctx.trips` (`getById`, `getPlaces`, `getReservations`, `listMine`, `members`) | Every call is **membership-checked** against the acting user — a plugin can't read a trip that user can't see. `members` returns the roster (id + display fields only). |
 | `db:read:users` | Read-only public profile via `ctx.users.getById` | Returns id, username, display name, avatar only — **never** password hashes, tokens, or secrets. |
 | `db:read:packing` | Read-only packing items of a trip via `ctx.packing.list(tripId)` | Membership-checked, and scoped to the acting user's visibility — a plugin never sees another member's private packing items. |
 | `db:read:files` | Read-only files of a trip via `ctx.files.list(tripId)` | Membership-checked; trashed files excluded. |
@@ -21,6 +21,10 @@ ungranted capability is physically unreachable**, not just disallowed. See
 | `db:read:vacay` | The acting user's vacation plan via `ctx.vacay.mine` | User-scoped; needs the Vacay addon. |
 | `db:read:daynotes` | A trip day's notes via `ctx.daynotes.list(tripId, dayId)` | Membership-checked (trip-scoped). |
 | `db:read:collections` | The acting user's saved-place collections via `ctx.collections` (`listMine`, `get`) | User-scoped; needs the Collections addon. |
+| `db:read:categories` | The global place-category list via `ctx.categories.list()` | Read-only reference; no tenant data. |
+| `db:read:tags` | The acting user's own tags via `ctx.tags.list()` | User-scoped (not trip-scoped); refuses a userless context. |
+| `db:read:todos` | A trip's to-dos via `ctx.todos.list(tripId)` | Membership-checked (trip-scoped). |
+| `weather:read` | The host's cached forecast via `ctx.weather.get(lat, lng, date?)` | Tenant-free read over the host's cache; no user needed. |
 | `db:write:costs` | Create costs via `ctx.costs.create` | Trip access **+** the `budget_edit` permission **+** the Costs addon. |
 | `db:write:places` | Create/update/delete places via `ctx.places` | Trip access **+** the `place_edit` permission. Input validated against TREK's schema; every write audited. |
 | `db:write:days` | Create/update/delete days via `ctx.days` | Trip access **+** the `day_edit` permission. |
@@ -28,7 +32,9 @@ ungranted capability is physically unreachable**, not just disallowed. See
 | `db:write:trips` | Update trip details via `ctx.trips.update` | Trip access **+** `trip_edit`. Only schema-writable fields; **archiving** additionally needs `trip_archive` and **cover_image** needs `trip_cover_upload` (same split as the web UI). |
 | `db:write:reservations` | Create/update/delete bookings via `ctx.reservations` | Trip access **+** `reservation_edit`. Full parity with the app — accommodation, budget-sync, booking notifications and `reservation:*` broadcasts all fire as they do in the web UI. |
 | `db:write:daynotes` | Create/update/delete day notes via `ctx.daynotes` | Trip access **+** `day_edit`; broadcasts `dayNote:*`. |
-| `db:write:packing` | Create/update/delete packing items via `ctx.packing` | Trip access **+** `packing_edit`. Reproduces the #858 privacy model: a **private** item's events reach only its owner (+ recipients), never the whole trip room. |
+| `db:write:packing` | Create/update/delete packing items **+ bags** via `ctx.packing` (items + `listBags`/`createBag`/`updateBag`/`deleteBag`/`setBagMembers`) | Trip access **+** `packing_edit`. Reproduces the #858 privacy model for items: a **private** item's events reach only its owner (+ recipients), never the whole trip room. Bags carry no privacy. |
+| `db:write:tags` | Create/edit/delete the acting user's own tags via `ctx.tags` | User-scoped; ownership re-checked before each write. |
+| `db:write:todos` | Create/edit/delete a trip's to-dos via `ctx.todos` | Trip access **+** `packing_edit` (the app gates to-dos with the same right). |
 | `db:meta` | Store the plugin's **own** private key/value data on a trip/place/day via `ctx.meta` | Namespaced per plugin (a plugin only sees its own rows). Reads need trip **access**; **writes** additionally need the entity's edit permission (`place_edit`/`day_edit`/`trip_edit`). Quotas: ≤256-char key, ≤64 KB value, ≤100 keys per entity. Purged on uninstall-with-delete-data. |
 | `ws:broadcast:trip` | Push a real-time event to a trip room via `ctx.ws.broadcastToTrip` | Event types are force-namespaced `plugin:<id>:<event>` — a plugin can't forge a core event. |
 | `ws:broadcast:user` | Push a real-time event to a user's connections | Same namespacing. |

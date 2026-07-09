@@ -294,6 +294,12 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:packing':
     'Đọc danh sách hành lý của các chuyến đi mà người dùng hiện tại có quyền truy cập',
   'admin.plugins.perm.db:write:packing': 'Tạo, chỉnh sửa và xóa các mục danh sách hành lý trên các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa',
+  'admin.plugins.perm.weather:read': 'Đọc dự báo thời tiết đã lưu cache của máy chủ (theo tọa độ)',
+  'admin.plugins.perm.db:read:categories': 'Đọc danh sách danh mục địa điểm toàn cục',
+  'admin.plugins.perm.db:read:tags': 'Đọc các thẻ của người dùng hiện tại',
+  'admin.plugins.perm.db:write:tags': 'Tạo, chỉnh sửa và xóa các thẻ của người dùng hiện tại',
+  'admin.plugins.perm.db:read:todos': 'Đọc công việc của các chuyến đi mà người dùng hiện tại có quyền truy cập',
+  'admin.plugins.perm.db:write:todos': 'Tạo, chỉnh sửa và xóa công việc trên các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa',
   'admin.plugins.perm.db:read:files': 'Đọc tệp của các chuyến đi mà người dùng hiện tại có quyền truy cập',
   'admin.plugins.perm.db:write:reservations': 'Tạo, chỉnh sửa và xóa đặt chỗ trên các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa',
   'admin.plugins.perm.db:read:journal': 'Đọc nhật ký du lịch của người dùng hiện tại (cần add-on Journey)',

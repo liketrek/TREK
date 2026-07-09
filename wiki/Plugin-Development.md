@@ -191,6 +191,12 @@ declaration for readers — the manifest parser does not consume it.
 | `ctx.daynotes` | `list(tripId, dayId)` — a day's notes (membership-checked) | `db:read:daynotes` |
 | `ctx.daynotes` (write) | `create(tripId, dayId, {text, time?, icon?, sort_order?})` / `update(tripId, dayId, noteId, fields)` / `delete(tripId, dayId, noteId)` — broadcasts `dayNote:*` | `db:write:daynotes` |
 | `ctx.packing` (write) | `create(tripId, {name, category?, checked?, is_private?, visibility?, recipient_ids?})` / `update(tripId, itemId, fields)` / `delete(tripId, itemId)` — broadcasts `packing:*`, private items (#858) stay owner-scoped | `db:write:packing` |
+| `ctx.packing` (bags) | `listBags(tripId)` / `createBag(tripId, {name, color?})` / `updateBag` / `deleteBag` / `setBagMembers(tripId, bagId, userIds)` — bags carry no privacy | `db:write:packing` |
+| `ctx.weather` | `get(lat, lng, date?)` — the host's cached forecast (tenant-free) | `weather:read` |
+| `ctx.categories` | `list()` — the global place-category list | `db:read:categories` |
+| `ctx.tags` | `list()` / `create({name, color?})` / `update(tagId, fields)` / `delete(tagId)` — the acting user's own tags | `db:read:tags` / `db:write:tags` |
+| `ctx.trips.members` | `members(tripId)` — the trip roster (id + display fields), membership-checked | `db:read:trips` |
+| `ctx.todos` | `list(tripId)` / `create(tripId, {name, ...})` / `update(tripId, todoId, fields)` / `delete(tripId, todoId)` — broadcasts `todo:*` | `db:read:todos` / `db:write:todos` (+ `packing_edit`) |
 | `ctx.costs` | `getByTrip(tripId)` / `listMine()` — read budget items (membership-checked) | `db:read:costs` |
 | `ctx.costs` (write) | `create(tripId, input)` / `update(tripId, itemId, input)` / `delete(tripId, itemId)` — broadcasts `budget:*` | `db:write:costs` |
 | `ctx.reservations` | `listMine()` — every booking across the acting user's accessible trips (membership-checked) | `db:read:trips` |

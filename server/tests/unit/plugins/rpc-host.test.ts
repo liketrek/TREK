@@ -79,6 +79,23 @@ function makeDeps(): HostDeps {
     createPackingItem: vi.fn((tripId: number, input: unknown) => ({ id: 70, trip_id: tripId, ...(input as object) })),
     updatePackingItem: vi.fn((tripId: number, itemId: number, input: unknown) => ({ id: itemId, trip_id: tripId, ...(input as object) })),
     deletePackingItem: vi.fn(() => ({ deleted: true })),
+    listPackingBags: vi.fn(() => [{ id: 80, name: 'Backpack' }]),
+    createPackingBag: vi.fn((tripId: number, input: unknown) => ({ id: 80, trip_id: tripId, ...(input as object) })),
+    updatePackingBag: vi.fn((_tripId: number, bagId: number, input: unknown) => ({ id: bagId, ...(input as object) })),
+    deletePackingBag: vi.fn(() => ({ deleted: true })),
+    setPackingBagMembers: vi.fn((_tripId: number, bagId: number, userIds: number[]) => ({ bagId, members: userIds })),
+    getWeather: vi.fn(() => ({ temp: 20 })),
+    listCategories: vi.fn(() => [{ id: 1, name: 'Food' }]),
+    tripMembers: vi.fn(() => [{ id: 5, username: 'ada' }, { id: 6, username: 'bob' }]),
+    listTagsForUser: vi.fn((uid: number) => [{ id: 1, user_id: uid, name: 'work' }]),
+    createTagForUser: vi.fn((uid: number, name: string) => ({ id: 9, user_id: uid, name })),
+    updateTagForUser: vi.fn((_uid: number, tagId: number, name?: string) => ({ id: tagId, name })),
+    deleteTagForUser: vi.fn(() => ({ deleted: true })),
+    canEditTodos: vi.fn((tripId: number, userId: number) => tripId === 1 && userId === 42),
+    listTodos: vi.fn(() => [{ id: 1, name: 'Pack' }]),
+    createTodo: vi.fn((tripId: number, input: unknown) => ({ id: 90, trip_id: tripId, ...(input as object) })),
+    updateTodo: vi.fn((_tripId: number, todoId: number, input: unknown) => ({ id: todoId, ...(input as object) })),
+    deleteTodo: vi.fn(() => ({ deleted: true })),
     // Metadata — trip 1 and place 7 resolve to trip 1 (accessible to 42); else undefined.
     metaEntityTrip: vi.fn((entityType: string, entityId: number) =>
       (entityType === 'trip' && entityId === 1) || (entityType === 'place' && entityId === 7) || (entityType === 'day' && entityId === 3) ? 1 : undefined),
@@ -362,6 +379,40 @@ describe('PluginRpcHost — capability enforcement', () => {
     expect(deps.deletePackingItem).toHaveBeenCalledWith(1, 70);
     const noGrant = new PluginRpcHost('p', new Set(['db:read:packing']), deps);
     expect((await noGrant.dispatch(req('packing.create', { tripId: 1, input: { name: 'x' } }), 42)).ok).toBe(false);
+  });
+
+  it('weather.get + categories.list are tenant-free (work without a user)', async () => {
+    const w = new PluginRpcHost('p', new Set(['weather:read']), deps);
+    expect(ok(await w.dispatch(req('weather.get', { lat: 48, lng: 11 }), undefined))).toBe(true);
+    const c = new PluginRpcHost('p', new Set(['db:read:categories']), deps);
+    expect(ok(await c.dispatch(req('categories.list', {}), undefined))).toBe(true);
+  });
+
+  it('tags are the acting user\'s own; a userless context + empty name are refused', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:read:tags', 'db:write:tags']), deps);
+    expect(ok(await host.dispatch(req('tags.list'), 42))).toBe(true);
+    expect(deps.listTagsForUser).toHaveBeenCalledWith(42);
+    expect(ok(await host.dispatch(req('tags.create', { input: { name: 'work' } }), 42))).toBe(true);
+    expect((await host.dispatch(req('tags.list'), undefined)).ok).toBe(false);
+    expect((await host.dispatch(req('tags.create', { input: { name: '' } }), 42)).ok).toBe(false);
+  });
+
+  it('trips.members + todos.list are trip-membership-gated', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:read:trips', 'db:read:todos']), deps);
+    expect(ok(await host.dispatch(req('trips.members', { tripId: 1 }), 42))).toBe(true);
+    expect(ok(await host.dispatch(req('todos.list', { tripId: 1 }), 42))).toBe(true);
+    expect(((await host.dispatch(req('trips.members', { tripId: 2 }), 42)) as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+  });
+
+  it('todos + packing-bags writes need the grant + edit right + a bound user', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:todos', 'db:write:packing']), deps);
+    expect(ok(await host.dispatch(req('todos.create', { tripId: 1, input: { name: 'Pack' } }), 42))).toBe(true);
+    expect((await host.dispatch(req('todos.create', { tripId: 1, input: { name: ' ' } }), 42)).ok).toBe(false);
+    expect(((await host.dispatch(req('todos.create', { tripId: 2, input: { name: 'x' } }), 42)) as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect(ok(await host.dispatch(req('packing.createBag', { tripId: 1, input: { name: 'Bag' } }), 42))).toBe(true);
+    expect(ok(await host.dispatch(req('packing.setBagMembers', { tripId: 1, bagId: 80, userIds: [5, 6] }), 42))).toBe(true);
+    expect(deps.setPackingBagMembers).toHaveBeenCalledWith(1, 80, [5, 6]);
+    expect((await host.dispatch(req('packing.createBag', { tripId: 1, input: { name: 'Bag' } }), undefined)).ok).toBe(false);
   });
 
   it('a read scope is denied without its own permission', async () => {

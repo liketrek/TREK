@@ -104,8 +104,28 @@ vi.mock('../../../src/services/packingService', () => ({
   ),
   // The raw deleted row (owner-only for a private item, no recipients — #858).
   deleteItem: vi.fn((_tid: number, id: string) => (Number(id) === 404 ? null : Number(id) === 71 ? { id: 71, is_private: 1, owner_id: 5 } : { id: Number(id), is_private: 0 })),
+  listBags: vi.fn((tid: number) => [{ id: 80, trip_id: Number(tid), name: 'Backpack' }]),
+  createBag: vi.fn((tid: number, data: { name: string }) => ({ id: 80, trip_id: Number(tid), name: data.name })),
+  updateBag: vi.fn((_tid: number, bagId: string) => (Number(bagId) === 404 ? null : { id: Number(bagId), name: 'Renamed' })),
+  deleteBag: vi.fn((_tid: number, bagId: string) => Number(bagId) !== 404),
+  setBagMembers: vi.fn((_tid: number, bagId: string, userIds: number[]) => (Number(bagId) === 404 ? null : userIds.map((u) => ({ user_id: u })))),
 }));
 vi.mock('../../../src/services/conflictResult', () => ({ isUpdateConflict: (r: unknown) => !!(r as { conflict?: boolean })?.conflict }));
+vi.mock('../../../src/services/weatherService', () => ({ getWeather: vi.fn(async (lat: string, lng: string) => ({ lat, lng, temp: 20 })) }));
+vi.mock('../../../src/services/categoryService', () => ({ listCategories: vi.fn(() => [{ id: 1, name: 'Food' }]) }));
+vi.mock('../../../src/services/tagService', () => ({
+  listTags: vi.fn((uid: number) => [{ id: 1, user_id: uid, name: 'work' }]),
+  createTag: vi.fn((uid: number, name: string, color?: string) => ({ id: 9, user_id: uid, name, color })),
+  getTagByIdAndUser: vi.fn((tagId: number, _uid: number) => (Number(tagId) === 404 ? undefined : { id: Number(tagId) })),
+  updateTag: vi.fn((tagId: number, name?: string) => ({ id: Number(tagId), name })),
+  deleteTag: vi.fn(),
+}));
+vi.mock('../../../src/services/todoService', () => ({
+  listItems: vi.fn((tid: number) => [{ id: 1, trip_id: Number(tid), name: 'Pack' }]),
+  createItem: vi.fn((tid: number, data: { name: string }) => ({ id: 90, trip_id: Number(tid), name: data.name })),
+  updateItem: vi.fn((_tid: number, id: string) => (Number(id) === 404 ? null : { id: Number(id), name: 'Done' })),
+  deleteItem: vi.fn((_tid: number, id: string) => Number(id) !== 404),
+}));
 vi.mock('../../../src/services/fileService', () => ({ listFiles: vi.fn((tid: number, trash: boolean) => [{ id: 2, trip_id: tid, trash }]) }));
 // Reservations: the Nest service is delegated to; mock it so the create-rpc-host
 // reservation deps' side-effect branches (accommodation / budget-sync / notify) run.
@@ -411,5 +431,55 @@ describe('create-rpc-host — packing write with #858 privacy-scoped broadcasts'
     expect(fanout('packing:deleted')).toEqual([undefined]) // common -> room
     const missing = await call('packing.delete', { tripId: 1, itemId: 404 })
     expect((missing as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
+  })
+})
+
+describe('create-rpc-host — Wave 1 wiring (weather/categories/tags/todos/roster/bags)', () => {
+  const host = (...perms: string[]) => createRealRpcHost('w1', new Set(perms))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const call = async (h: ReturnType<typeof host>, method: string, params: Record<string, unknown>, uid: number | undefined = 5): Promise<any> =>
+    h.dispatch({ k: 'req', id: 'x', method, params }, uid)
+  beforeEach(() => { checkPermission.mockReset(); checkPermission.mockReturnValue(true) })
+  afterAll(() => closePluginDataDb('w1'))
+
+  it('weather + categories are tenant-free reads (no user needed)', async () => {
+    expect((await call(host('weather:read'), 'weather.get', { lat: 48, lng: 11 }, undefined)).ok).toBe(true)
+    expect((await call(host('db:read:categories'), 'categories.list', {}, undefined)).ok).toBe(true)
+  })
+
+  it('tags: list/create/update/delete are the acting user\'s; a missing tag is RESOURCE_FORBIDDEN', async () => {
+    const h = host('db:read:tags', 'db:write:tags')
+    expect((await call(h, 'tags.list', {}, 5)).ok).toBe(true)
+    expect((await call(h, 'tags.create', { input: { name: 'x' } }, 5)).ok).toBe(true)
+    expect((await call(h, 'tags.update', { tagId: 1, input: { name: 'y' } }, 5)).ok).toBe(true)
+    expect((await call(h, 'tags.delete', { tagId: 1 }, 5)).ok).toBe(true)
+    expect(((await call(h, 'tags.update', { tagId: 404, input: {} }, 5)) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
+    expect(((await call(h, 'tags.delete', { tagId: 404 }, 5)) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
+  })
+
+  it('trips.members returns the roster', async () => {
+    const r = await call(host('db:read:trips'), 'trips.members', { tripId: 1 }, 5)
+    expect(r.ok).toBe(true)
+    expect(Array.isArray(r.result)).toBe(true)
+  })
+
+  it('todos list/create/update/delete run the wiring; a missing one is RESOURCE_FORBIDDEN', async () => {
+    const h = host('db:write:todos', 'db:read:todos')
+    expect((await call(h, 'todos.list', { tripId: 1 }, 5)).ok).toBe(true)
+    expect((await call(h, 'todos.create', { tripId: 1, input: { name: 'Pack' } }, 5)).ok).toBe(true)
+    expect((await call(h, 'todos.update', { tripId: 1, todoId: 90, input: { checked: 1 } }, 5)).ok).toBe(true)
+    expect((await call(h, 'todos.delete', { tripId: 1, todoId: 90 }, 5)).ok).toBe(true)
+    expect(((await call(h, 'todos.update', { tripId: 1, todoId: 404, input: {} }, 5)) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
+    expect(((await call(h, 'todos.delete', { tripId: 1, todoId: 404 }, 5)) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
+  })
+
+  it('packing bags list/create/update/delete/setMembers run the wiring', async () => {
+    const h = host('db:write:packing')
+    expect((await call(h, 'packing.listBags', { tripId: 1 }, 5)).ok).toBe(true)
+    expect((await call(h, 'packing.createBag', { tripId: 1, input: { name: 'Bag' } }, 5)).ok).toBe(true)
+    expect((await call(h, 'packing.updateBag', { tripId: 1, bagId: 80, input: { name: 'X' } }, 5)).ok).toBe(true)
+    expect((await call(h, 'packing.setBagMembers', { tripId: 1, bagId: 80, userIds: [5] }, 5)).ok).toBe(true)
+    expect((await call(h, 'packing.deleteBag', { tripId: 1, bagId: 80 }, 5)).ok).toBe(true)
+    expect(((await call(h, 'packing.deleteBag', { tripId: 1, bagId: 404 }, 5)) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
   })
 })

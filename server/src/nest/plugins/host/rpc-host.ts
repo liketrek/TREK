@@ -132,6 +132,27 @@ export interface HostDeps {
   updatePackingItem(tripId: number, itemId: number, input: Record<string, unknown>, actingUserId: number): unknown;
   /** Delete a packing item; owner+recipients-scoped packing:deleted broadcast; returns { deleted: true }. */
   deletePackingItem(tripId: number, itemId: number): unknown;
+  // --- Packing bags (packing_edit; no privacy — broadcast to the whole room) ---
+  listPackingBags(tripId: number): unknown[];
+  createPackingBag(tripId: number, input: Record<string, unknown>): unknown;
+  updatePackingBag(tripId: number, bagId: number, input: Record<string, unknown>): unknown;
+  deletePackingBag(tripId: number, bagId: number): unknown;
+  setPackingBagMembers(tripId: number, bagId: number, userIds: number[]): unknown;
+  // --- Read-convenience: weather (tenant-free), categories (global), the trip roster ---
+  getWeather(lat: number, lng: number, date: string | undefined): unknown;
+  listCategories(): unknown[];
+  tripMembers(tripId: number): unknown[];
+  // --- Tags (the acting user's own; no trip) ---
+  listTagsForUser(userId: number): unknown[];
+  createTagForUser(userId: number, name: string, color: string | undefined): unknown;
+  updateTagForUser(userId: number, tagId: number, name: string | undefined, color: string | undefined): unknown;
+  deleteTagForUser(userId: number, tagId: number): unknown;
+  // --- Todos (core, trip-scoped; the 'packing_edit' permission, like the REST path) ---
+  canEditTodos(tripId: number, userId: number): boolean;
+  listTodos(tripId: number): unknown[];
+  createTodo(tripId: number, input: Record<string, unknown>): unknown;
+  updateTodo(tripId: number, todoId: number, input: Record<string, unknown>): unknown;
+  deleteTodo(tripId: number, todoId: number): unknown;
   // --- Plugin metadata on core entities (db:meta) ---
   /** The trip a trip/place/day belongs to (for the membership gate), or undefined. */
   metaEntityTrip(entityType: string, entityId: number): number | undefined;
@@ -197,6 +218,8 @@ export class PluginRpcHost {
         if (uid === undefined) throw new ForbiddenResource('reservation reads require an authenticated user context');
         return deps.listReservationsForUser(uid);
       });
+      // The trip's member roster (ids + display fields only), membership-checked.
+      this.methods.set('trips.members', (p, uid) => this.tripRead(p, uid, () => deps.tripMembers(num(p.tripId, 'tripId'))));
     }
     if (has('db:read:packing')) {
       // Delegate to the packing service, scoped to the acting user so its #858 private-
@@ -496,6 +519,100 @@ export class PluginRpcHost {
         const actor = this.requireActor(uid, 'packing item');
         this.requireTripEdit(tripId, actor, deps.canEditPacking);
         return deps.deletePackingItem(tripId, itemId);
+      });
+      // Bags carry no privacy — a plain packing:bag-* broadcast to the whole room.
+      this.methods.set('packing.listBags', (p, uid) => this.tripRead(p, uid, () => deps.listPackingBags(num(p.tripId, 'tripId'))));
+      this.methods.set('packing.createBag', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const actor = this.requireActor(uid, 'packing bag');
+        const input = asPayload(p.input);
+        if (typeof input.name !== 'string' || input.name.trim() === '') throw new BadParams('bag name is required');
+        this.requireTripEdit(tripId, actor, deps.canEditPacking);
+        return deps.createPackingBag(tripId, input);
+      });
+      this.methods.set('packing.updateBag', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const bagId = num(p.bagId, 'bagId');
+        const actor = this.requireActor(uid, 'packing bag');
+        this.requireTripEdit(tripId, actor, deps.canEditPacking);
+        return deps.updatePackingBag(tripId, bagId, asPayload(p.input));
+      });
+      this.methods.set('packing.deleteBag', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const bagId = num(p.bagId, 'bagId');
+        const actor = this.requireActor(uid, 'packing bag');
+        this.requireTripEdit(tripId, actor, deps.canEditPacking);
+        return deps.deletePackingBag(tripId, bagId);
+      });
+      this.methods.set('packing.setBagMembers', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const bagId = num(p.bagId, 'bagId');
+        const actor = this.requireActor(uid, 'packing bag');
+        this.requireTripEdit(tripId, actor, deps.canEditPacking);
+        const raw = asPayload(p).userIds;
+        const userIds = Array.isArray(raw) ? raw.filter((x): x is number => typeof x === 'number') : [];
+        return deps.setPackingBagMembers(tripId, bagId, userIds);
+      });
+    }
+
+    if (has('weather:read')) {
+      // Tenant-free host cache: forecast by coordinates + optional date. No user needed.
+      this.methods.set('weather.get', (p) => deps.getWeather(num(p.lat, 'lat'), num(p.lng, 'lng'), typeof p.date === 'string' ? p.date : undefined));
+    }
+    if (has('db:read:categories')) {
+      // Global, read-only reference list — carries no tenant data.
+      this.methods.set('categories.list', () => deps.listCategories());
+    }
+    if (has('db:read:tags')) {
+      // The acting user's own tags (not trip-scoped) — refuse a userless context.
+      this.methods.set('tags.list', (_p, uid) => {
+        if (uid === undefined) throw new ForbiddenResource('tag reads require an authenticated user context');
+        return deps.listTagsForUser(uid);
+      });
+    }
+    if (has('db:write:tags')) {
+      this.methods.set('tags.create', (p, uid) => {
+        if (uid === undefined) throw new ForbiddenResource('tag writes require an authenticated user context');
+        const input = asPayload(p.input);
+        if (typeof input.name !== 'string' || input.name.trim() === '') throw new BadParams('tag name is required');
+        return deps.createTagForUser(uid, input.name, typeof input.color === 'string' ? input.color : undefined);
+      });
+      this.methods.set('tags.update', (p, uid) => {
+        if (uid === undefined) throw new ForbiddenResource('tag writes require an authenticated user context');
+        const input = asPayload(p.input);
+        return deps.updateTagForUser(uid, num(p.tagId, 'tagId'), typeof input.name === 'string' ? input.name : undefined, typeof input.color === 'string' ? input.color : undefined);
+      });
+      this.methods.set('tags.delete', (p, uid) => {
+        if (uid === undefined) throw new ForbiddenResource('tag writes require an authenticated user context');
+        return deps.deleteTagForUser(uid, num(p.tagId, 'tagId'));
+      });
+    }
+    if (has('db:read:todos')) {
+      this.methods.set('todos.list', (p, uid) => this.tripRead(p, uid, () => deps.listTodos(num(p.tripId, 'tripId'))));
+    }
+    if (has('db:write:todos')) {
+      // Todos are edited under the app's 'packing_edit' permission (like the REST path).
+      this.methods.set('todos.create', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const actor = this.requireActor(uid, 'todo');
+        const input = asPayload(p.input);
+        if (typeof input.name !== 'string' || input.name.trim() === '') throw new BadParams('todo name is required');
+        this.requireTripEdit(tripId, actor, deps.canEditTodos);
+        return deps.createTodo(tripId, input);
+      });
+      this.methods.set('todos.update', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const todoId = num(p.todoId, 'todoId');
+        const actor = this.requireActor(uid, 'todo');
+        this.requireTripEdit(tripId, actor, deps.canEditTodos);
+        return deps.updateTodo(tripId, todoId, asPayload(p.input));
+      });
+      this.methods.set('todos.delete', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const todoId = num(p.todoId, 'todoId');
+        const actor = this.requireActor(uid, 'todo');
+        this.requireTripEdit(tripId, actor, deps.canEditTodos);
+        return deps.deleteTodo(tripId, todoId);
       });
     }
 

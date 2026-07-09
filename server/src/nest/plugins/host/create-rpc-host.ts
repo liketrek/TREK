@@ -1,8 +1,12 @@
 import { db, canAccessTrip } from '../../../db/database';
 import { broadcast, broadcastToUser } from '../../../websocket';
 import { listBudgetItems } from '../../../services/budgetService';
-import { listItems as listPackingItemsSvc, createItem as createPackingItemSvc, updateItem as updatePackingItemSvc, deleteItem as deletePackingItemSvc } from '../../../services/packingService';
+import { listItems as listPackingItemsSvc, createItem as createPackingItemSvc, updateItem as updatePackingItemSvc, deleteItem as deletePackingItemSvc, listBags, createBag as createBagSvc, updateBag as updateBagSvc, deleteBag as deleteBagSvc, setBagMembers } from '../../../services/packingService';
 import { isUpdateConflict } from '../../../services/conflictResult';
+import { getWeather } from '../../../services/weatherService';
+import { listCategories } from '../../../services/categoryService';
+import { listTags, createTag, updateTag, deleteTag, getTagByIdAndUser } from '../../../services/tagService';
+import { listItems as listTodosSvc, createItem as createTodoSvc, updateItem as updateTodoSvc, deleteItem as deleteTodoSvc } from '../../../services/todoService';
 import { listFiles } from '../../../services/fileService';
 import { checkPermission } from '../../../services/permissions';
 import { listTrips, updateTrip, NotFoundError, ValidationError } from '../../../services/tripService';
@@ -397,6 +401,67 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
       const deleted = deletePackingItemSvc(String(tripId), String(itemId)) as PackingPrivacy | null;
       if (!deleted) throw new ForbiddenResource(`no packing item ${itemId} on trip ${tripId}`);
       emitPackingToViewers(tripId, 'packing:deleted', { itemId }, deleted);
+      return { deleted: true };
+    },
+    // --- Packing bags (no privacy — plain room broadcasts). ---
+    listPackingBags: (tripId) => listBags(String(tripId)) as unknown[],
+    createPackingBag: (tripId, input) => {
+      const i = input as { name: string; color?: string };
+      const bag = createBagSvc(String(tripId), { name: i.name, color: i.color });
+      broadcast(tripId, 'packing:bag-created', { bag }, undefined);
+      return bag;
+    },
+    updatePackingBag: (tripId, bagId, input) => {
+      const bag = updateBagSvc(String(tripId), String(bagId), input as never, Object.keys(input));
+      if (!bag) throw new ForbiddenResource(`no packing bag ${bagId} on trip ${tripId}`);
+      broadcast(tripId, 'packing:bag-updated', { bag }, undefined);
+      return bag;
+    },
+    deletePackingBag: (tripId, bagId) => {
+      if (!deleteBagSvc(String(tripId), String(bagId))) throw new ForbiddenResource(`no packing bag ${bagId} on trip ${tripId}`);
+      broadcast(tripId, 'packing:bag-deleted', { bagId }, undefined);
+      return { deleted: true };
+    },
+    setPackingBagMembers: (tripId, bagId, userIds) => {
+      const members = setBagMembers(String(tripId), String(bagId), userIds);
+      if (!members) throw new ForbiddenResource(`no packing bag ${bagId} on trip ${tripId}`);
+      broadcast(tripId, 'packing:bag-members-updated', { bagId, members }, undefined);
+      return members;
+    },
+    // --- Read-convenience: weather (host cache, tenant-free), categories (global), roster ---
+    getWeather: (lat, lng, date) => getWeather(String(lat), String(lng), date, 'en'),
+    listCategories: () => listCategories() as unknown[],
+    tripMembers: (tripId) =>
+      db.prepare('SELECT u.id, u.username, u.display_name, u.avatar FROM trip_members tm JOIN users u ON u.id = tm.user_id WHERE tm.trip_id = ?').all(tripId) as unknown[],
+    // --- Tags (the acting user's own; ownership re-checked before a write). ---
+    listTagsForUser: (userId) => listTags(userId) as unknown[],
+    createTagForUser: (userId, name, color) => createTag(userId, name, color),
+    updateTagForUser: (userId, tagId, name, color) => {
+      if (!getTagByIdAndUser(tagId, userId)) throw new ForbiddenResource(`no tag ${tagId} for this user`);
+      return updateTag(tagId, name, color);
+    },
+    deleteTagForUser: (userId, tagId) => {
+      if (!getTagByIdAndUser(tagId, userId)) throw new ForbiddenResource(`no tag ${tagId} for this user`);
+      deleteTag(tagId);
+      return { deleted: true };
+    },
+    // --- Todos (core, trip-scoped; the app's 'packing_edit' permission). ---
+    canEditTodos: (tripId, userId) => canEditTripAs('packing_edit', tripId, userId),
+    listTodos: (tripId) => listTodosSvc(String(tripId)) as unknown[],
+    createTodo: (tripId, input) => {
+      const item = createTodoSvc(String(tripId), input as never);
+      broadcast(tripId, 'todo:created', { item }, undefined);
+      return item;
+    },
+    updateTodo: (tripId, todoId, input) => {
+      const updated = updateTodoSvc(String(tripId), String(todoId), input as never, Object.keys(input));
+      if (!updated) throw new ForbiddenResource(`no todo ${todoId} on trip ${tripId}`);
+      broadcast(tripId, 'todo:updated', { item: updated }, undefined);
+      return updated;
+    },
+    deleteTodo: (tripId, todoId) => {
+      if (!deleteTodoSvc(String(tripId), String(todoId))) throw new ForbiddenResource(`no todo ${todoId} on trip ${tripId}`);
+      broadcast(tripId, 'todo:deleted', { itemId: todoId }, undefined);
       return { deleted: true };
     },
     // --- Plugin metadata (db:meta). A per-plugin namespaced key/value store keyed

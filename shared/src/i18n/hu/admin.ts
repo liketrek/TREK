@@ -238,6 +238,12 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:packing':
     'Az aktuális felhasználó számára elérhető utazások csomagolási listáinak olvasása',
   'admin.plugins.perm.db:write:packing': 'Csomagolási lista tételek létrehozása, szerkesztése és törlése az aktuális felhasználó által szerkeszthető utazásokon',
+  'admin.plugins.perm.weather:read': 'A gazdagép gyorsítótárazott időjárás-előrejelzésének olvasása (koordináták szerint)',
+  'admin.plugins.perm.db:read:categories': 'A globális helykategória-lista olvasása',
+  'admin.plugins.perm.db:read:tags': 'Az aktuális felhasználó címkéinek olvasása',
+  'admin.plugins.perm.db:write:tags': 'Az aktuális felhasználó címkéinek létrehozása, szerkesztése és törlése',
+  'admin.plugins.perm.db:read:todos': 'Az aktuális felhasználó számára elérhető utazások teendőinek olvasása',
+  'admin.plugins.perm.db:write:todos': 'Teendők létrehozása, szerkesztése és törlése az aktuális felhasználó által szerkeszthető utazásokon',
   'admin.plugins.perm.db:read:files': 'Az aktuális felhasználó számára elérhető utazások fájljainak olvasása',
   'admin.plugins.perm.db:write:reservations': 'Foglalások létrehozása, szerkesztése és törlése az aktuális felhasználó által szerkeszthető utazásokon',
   'admin.plugins.perm.db:read:journal': 'Az aktuális felhasználó úti naplóinak olvasása (a Journey bővítmény szükséges)',
