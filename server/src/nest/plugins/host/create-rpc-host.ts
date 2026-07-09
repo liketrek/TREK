@@ -15,11 +15,11 @@ import { createDay, getDay, updateDay, deleteDay } from '../../../services/daySe
 import { createAssignment, deleteAssignment, dayExists, placeExists, getAssignmentForTrip } from '../../../services/assignmentService';
 import { isAddonEnabled } from '../../../services/adminService';
 import { ADDON_IDS } from '../../../addons';
-import { listJourneys } from '../../../services/journeyService';
-import { listVisitedCountries, listManuallyVisitedRegions } from '../../../services/atlasService';
-import { getPlanData } from '../../../services/vacayService';
+import { listJourneys, createEntry as createJournalEntrySvc, updateEntry as updateJournalEntrySvc, deleteEntry as deleteJournalEntrySvc } from '../../../services/journeyService';
+import { listVisitedCountries, listManuallyVisitedRegions, markCountryVisited, unmarkCountryVisited, markRegionVisited, unmarkRegionVisited, createBucketItem as createBucketItemSvc, deleteBucketItem as deleteBucketItemSvc } from '../../../services/atlasService';
+import { getPlanData, getActivePlanId, toggleEntry as vacayToggleEntrySvc, toggleCompanyHoliday as vacayToggleCompanyHolidaySvc } from '../../../services/vacayService';
 import { listNotes, createNote, getNote, updateNote, deleteNote, dayExists as dayNoteDayExists } from '../../../services/dayNoteService';
-import { listCollections, getCollection } from '../../../services/collectionsService';
+import { listCollections, getCollection, createCollection, updateCollection, savePlace as saveCollectionPlaceSvc, copyToTrip as copyCollectionToTripSvc, deletePlace as deleteCollectionPlaceSvc } from '../../../services/collectionsService';
 import { BudgetService } from '../../budget/budget.service';
 import { ReservationsService } from '../../reservations/reservations.service';
 import type { User } from '../../../types';
@@ -60,6 +60,21 @@ function notifyBooking(actingUserId: number, tripId: number, booking: string, ty
 // disabled addon means there is simply nothing to read (same shape as the Costs gate).
 function requireAddon(addonId: string, noun: string): void {
   if (!isAddonEnabled(addonId)) throw new ForbiddenResource(`the ${noun} addon is disabled`);
+}
+
+// collectionsService self-gates per-collection role by THROWING status-tagged errors
+// (assertAccess 404, assertCanEdit 403, validation 400). Map them onto the RPC error
+// classes so a plugin sees RESOURCE_FORBIDDEN / BAD_PARAMS instead of HOST_ERROR.
+function mapCollectionError<T>(fn: () => T): T {
+  try {
+    return fn();
+  } catch (e) {
+    const status = (e as { status?: number })?.status;
+    const msg = e instanceof Error ? e.message : 'collection error';
+    if (status === 403 || status === 404) throw new ForbiddenResource(msg);
+    if (status === 400 || status === 409) throw new BadParams(msg);
+    throw e;
+  }
 }
 
 // --- #858 packing privacy: viewer-scoped fan-out replicated from packing.controller +
@@ -319,6 +334,69 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
     vacayForUser: (userId) => { requireAddon(ADDON_IDS.VACAY, 'vacay'); return getPlanData(userId); },
     listCollectionsForUser: (userId) => { requireAddon(ADDON_IDS.COLLECTIONS, 'collections'); return listCollections(userId); },
     getCollectionForUser: (userId, id) => { requireAddon(ADDON_IDS.COLLECTIONS, 'collections'); return getCollection(userId, id); },
+    // --- Collections write. The service self-gates per-collection role (assertAccess/
+    // assertCanEdit throw status-tagged errors) — map those to the RPC error codes. ---
+    createCollectionForUser: (userId, input) => {
+      requireAddon(ADDON_IDS.COLLECTIONS, 'collections');
+      return mapCollectionError(() => createCollection(userId, input as never));
+    },
+    updateCollectionForUser: (userId, id, input) => {
+      requireAddon(ADDON_IDS.COLLECTIONS, 'collections');
+      return mapCollectionError(() => updateCollection(userId, id, input as never, undefined));
+    },
+    saveCollectionPlace: (userId, input) => {
+      requireAddon(ADDON_IDS.COLLECTIONS, 'collections');
+      return mapCollectionError(() => saveCollectionPlaceSvc(userId, input as never, undefined));
+    },
+    copyCollectionToTrip: (userId, input) => {
+      requireAddon(ADDON_IDS.COLLECTIONS, 'collections');
+      return mapCollectionError(() => copyCollectionToTripSvc(userId, input as never));
+    },
+    deleteCollectionPlace: (userId, placeId) => {
+      requireAddon(ADDON_IDS.COLLECTIONS, 'collections');
+      mapCollectionError(() => deleteCollectionPlaceSvc(userId, placeId, undefined));
+      return { deleted: true };
+    },
+    // --- Atlas write: plain uid-scoped rows, no broadcasts in the service. ---
+    markCountryVisited: (userId, code) => { requireAddon(ADDON_IDS.ATLAS, 'atlas'); markCountryVisited(userId, code); return { visited: true }; },
+    unmarkCountryVisited: (userId, code) => { requireAddon(ADDON_IDS.ATLAS, 'atlas'); unmarkCountryVisited(userId, code); return { visited: false }; },
+    markRegionVisited: (userId, regionCode, regionName, countryCode) => {
+      requireAddon(ADDON_IDS.ATLAS, 'atlas');
+      markRegionVisited(userId, regionCode, regionName, countryCode);
+      return { visited: true };
+    },
+    unmarkRegionVisited: (userId, regionCode) => { requireAddon(ADDON_IDS.ATLAS, 'atlas'); unmarkRegionVisited(userId, regionCode); return { visited: false }; },
+    createBucketItem: (userId, input) => { requireAddon(ADDON_IDS.ATLAS, 'atlas'); return createBucketItemSvc(userId, input as never); },
+    deleteBucketItem: (userId, itemId) => {
+      requireAddon(ADDON_IDS.ATLAS, 'atlas');
+      if (!deleteBucketItemSvc(userId, itemId)) throw new ForbiddenResource(`no bucket item ${itemId} for this user`);
+      return { deleted: true };
+    },
+    // --- Vacay write: the plan is the ACTING USER's active plan (resolved host-side);
+    // the service broadcasts to plan users itself. ---
+    vacayToggleEntry: (userId, date) => { requireAddon(ADDON_IDS.VACAY, 'vacay'); return vacayToggleEntrySvc(userId, getActivePlanId(userId), date, undefined); },
+    vacayToggleCompanyHoliday: (userId, date, note) => {
+      requireAddon(ADDON_IDS.VACAY, 'vacay');
+      return vacayToggleCompanyHolidaySvc(getActivePlanId(userId), date, note, undefined);
+    },
+    // --- Journal write: journeyService.canEdit self-gates each call (owner/contributor). ---
+    createJournalEntry: (userId, journeyId, input) => {
+      requireAddon(ADDON_IDS.JOURNEY, 'journey');
+      const entry = createJournalEntrySvc(journeyId, userId, input as never);
+      if (!entry) throw new ForbiddenResource(`no editable journey ${journeyId} for this user`);
+      return entry;
+    },
+    updateJournalEntry: (userId, entryId, input) => {
+      requireAddon(ADDON_IDS.JOURNEY, 'journey');
+      const entry = updateJournalEntrySvc(entryId, userId, input as never);
+      if (!entry) throw new ForbiddenResource(`no editable journal entry ${entryId} for this user`);
+      return entry;
+    },
+    deleteJournalEntry: (userId, entryId) => {
+      requireAddon(ADDON_IDS.JOURNEY, 'journey');
+      if (!deleteJournalEntrySvc(entryId, userId)) throw new ForbiddenResource(`no editable journal entry ${entryId} for this user`);
+      return { deleted: true };
+    },
     // Day notes are core (no addon) and trip-scoped; membership is enforced by the host.
     listDayNotes: (tripId, dayId) => listNotes(dayId, tripId),
     // --- Day notes write (day_edit). The day must belong to the trip; broadcasts the

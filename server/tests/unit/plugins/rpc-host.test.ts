@@ -91,6 +91,22 @@ function makeDeps(): HostDeps {
     createTagForUser: vi.fn((uid: number, name: string) => ({ id: 9, user_id: uid, name })),
     updateTagForUser: vi.fn((_uid: number, tagId: number, name?: string) => ({ id: tagId, name })),
     deleteTagForUser: vi.fn(() => ({ deleted: true })),
+    createCollectionForUser: vi.fn((uid: number, input: unknown) => ({ id: 100, owner_id: uid, ...(input as object) })),
+    updateCollectionForUser: vi.fn((_uid: number, id: number, input: unknown) => ({ id, ...(input as object) })),
+    saveCollectionPlace: vi.fn((uid: number, input: unknown) => ({ id: 101, saved_by: uid, ...(input as object) })),
+    copyCollectionToTrip: vi.fn(() => ({ copied: 2, skipped: [] })),
+    deleteCollectionPlace: vi.fn(() => ({ deleted: true })),
+    markCountryVisited: vi.fn(() => ({ visited: true })),
+    unmarkCountryVisited: vi.fn(() => ({ visited: false })),
+    markRegionVisited: vi.fn(() => ({ visited: true })),
+    unmarkRegionVisited: vi.fn(() => ({ visited: false })),
+    createBucketItem: vi.fn((uid: number, input: unknown) => ({ id: 110, user_id: uid, ...(input as object) })),
+    deleteBucketItem: vi.fn(() => ({ deleted: true })),
+    vacayToggleEntry: vi.fn(() => ({ action: 'added' })),
+    vacayToggleCompanyHoliday: vi.fn(() => ({ action: 'added' })),
+    createJournalEntry: vi.fn((uid: number, journeyId: number, input: unknown) => ({ id: 120, journey_id: journeyId, created_by: uid, ...(input as object) })),
+    updateJournalEntry: vi.fn((_uid: number, entryId: number, input: unknown) => ({ id: entryId, ...(input as object) })),
+    deleteJournalEntry: vi.fn(() => ({ deleted: true })),
     canEditTodos: vi.fn((tripId: number, userId: number) => tripId === 1 && userId === 42),
     listTodos: vi.fn(() => [{ id: 1, name: 'Pack' }]),
     createTodo: vi.fn((tripId: number, input: unknown) => ({ id: 90, trip_id: tripId, ...(input as object) })),
@@ -413,6 +429,45 @@ describe('PluginRpcHost — capability enforcement', () => {
     expect(ok(await host.dispatch(req('packing.setBagMembers', { tripId: 1, bagId: 80, userIds: [5, 6] }), 42))).toBe(true);
     expect(deps.setPackingBagMembers).toHaveBeenCalledWith(1, 80, [5, 6]);
     expect((await host.dispatch(req('packing.createBag', { tripId: 1, input: { name: 'Bag' } }), undefined)).ok).toBe(false);
+  });
+
+  it('atlas writes are uid-bound (code-validated, userless refused)', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:atlas']), deps);
+    expect(ok(await host.dispatch(req('atlas.markCountry', { code: 'jp' }), 42))).toBe(true);
+    expect(deps.markCountryVisited).toHaveBeenCalledWith(42, 'JP'); // uid host-bound, code normalized
+    expect(ok(await host.dispatch(req('atlas.markRegion', { regionCode: 'JP-13', countryCode: 'JP' }), 42))).toBe(true);
+    expect(ok(await host.dispatch(req('atlas.createBucketItem', { input: { name: 'Kyoto' } }), 42))).toBe(true);
+    expect((await host.dispatch(req('atlas.markCountry', { code: 'JP' }), undefined)).ok).toBe(false); // no user
+    expect((await host.dispatch(req('atlas.markCountry', { code: 'not-a-code-way-too-long' }), 42)).ok).toBe(false);
+    expect((await host.dispatch(req('atlas.createBucketItem', { input: { name: '' } }), 42)).ok).toBe(false);
+  });
+
+  it('vacay writes validate the date and are uid-bound', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:vacay']), deps);
+    expect(ok(await host.dispatch(req('vacay.toggleEntry', { date: '2026-08-01' }), 42))).toBe(true);
+    expect(deps.vacayToggleEntry).toHaveBeenCalledWith(42, '2026-08-01');
+    expect(ok(await host.dispatch(req('vacay.toggleCompanyHoliday', { date: '2026-12-24', note: 'Xmas' }), 42))).toBe(true);
+    expect((await host.dispatch(req('vacay.toggleEntry', { date: 'tomorrow' }), 42)).ok).toBe(false);
+    expect((await host.dispatch(req('vacay.toggleEntry', { date: '2026-08-01' }), undefined)).ok).toBe(false);
+  });
+
+  it('journal writes require entry_date on create and a bound user', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:journal']), deps);
+    expect(ok(await host.dispatch(req('journal.createEntry', { journeyId: 3, input: { entry_date: '2026-08-01', story: 'x' } }), 42))).toBe(true);
+    expect(deps.createJournalEntry).toHaveBeenCalledWith(42, 3, expect.objectContaining({ entry_date: '2026-08-01' }));
+    expect((await host.dispatch(req('journal.createEntry', { journeyId: 3, input: { story: 'no date' } }), 42)).ok).toBe(false);
+    expect((await host.dispatch(req('journal.updateEntry', { entryId: 120, input: {} }), undefined)).ok).toBe(false);
+    expect(ok(await host.dispatch(req('journal.deleteEntry', { entryId: 120 }), 42))).toBe(true);
+  });
+
+  it('collections writes are schema-validated and uid-bound', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:collections']), deps);
+    expect(ok(await host.dispatch(req('collections.create', { input: { name: 'Tokyo eats' } }), 42))).toBe(true);
+    expect(deps.createCollectionForUser).toHaveBeenCalledWith(42, expect.objectContaining({ name: 'Tokyo eats' }));
+    expect(ok(await host.dispatch(req('collections.deletePlace', { placeId: 7 }), 42))).toBe(true);
+    expect((await host.dispatch(req('collections.create', { input: { name: 'x' } }), undefined)).ok).toBe(false);
+    const noGrant = new PluginRpcHost('p', new Set(['db:read:collections']), deps);
+    expect((await noGrant.dispatch(req('collections.create', { input: { name: 'x' } }), 42)).ok).toBe(false);
   });
 
   it('a read scope is denied without its own permission', async () => {

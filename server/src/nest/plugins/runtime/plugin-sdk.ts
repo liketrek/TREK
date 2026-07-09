@@ -98,20 +98,43 @@ export interface PluginContext {
   journal: {
     /** The acting user's journals. Needs 'db:read:journal' + the journey addon. */
     listMine(): Promise<unknown[]>;
+    /** Create an entry on a journey the acting user can edit. Needs 'db:write:journal'. */
+    createEntry(journeyId: number, input: { entry_date: string; [k: string]: unknown }): Promise<unknown>;
+    /** Update an entry (owner/contributor-gated). Needs 'db:write:journal'. */
+    updateEntry(entryId: number, input: Record<string, unknown>): Promise<unknown>;
+    /** Delete an entry (owner/contributor-gated). Needs 'db:write:journal'. */
+    deleteEntry(entryId: number): Promise<{ deleted: boolean }>;
   };
   atlas: {
     /** The acting user's visited countries + regions. Needs 'db:read:atlas' + the atlas addon. */
     visited(): Promise<{ countries: unknown[]; regions: unknown[] }>;
+    /** Mark/unmark the ACTING USER's own visited countries/regions + bucket list. Needs 'db:write:atlas'. */
+    markCountry(code: string): Promise<unknown>;
+    unmarkCountry(code: string): Promise<unknown>;
+    markRegion(regionCode: string, countryCode: string, regionName?: string): Promise<unknown>;
+    unmarkRegion(regionCode: string): Promise<unknown>;
+    createBucketItem(input: { name: string; lat?: number; lng?: number; country_code?: string; notes?: string; target_date?: string }): Promise<unknown>;
+    deleteBucketItem(itemId: number): Promise<{ deleted: boolean }>;
   };
   vacay: {
     /** The acting user's vacation plan data. Needs 'db:read:vacay' + the vacay addon. */
     mine(): Promise<unknown>;
+    /** Toggle the ACTING USER's own PTO day on their active plan. Needs 'db:write:vacay'. */
+    toggleEntry(date: string): Promise<{ action: string }>;
+    /** Toggle a company holiday on the acting user's active plan. Needs 'db:write:vacay'. */
+    toggleCompanyHoliday(date: string, note?: string): Promise<{ action: string }>;
   };
   collections: {
     /** The acting user's saved-place collections. Needs 'db:read:collections' + the collections addon. */
     listMine(): Promise<unknown>;
     /** One of the acting user's collections by id. Needs 'db:read:collections' + the collections addon. */
     get(id: number): Promise<unknown>;
+    /** Collections write (per-collection role enforced by the service). Needs 'db:write:collections'. */
+    create(input: Record<string, unknown>): Promise<unknown>;
+    update(id: number, input: Record<string, unknown>): Promise<unknown>;
+    savePlace(input: Record<string, unknown>): Promise<unknown>;
+    copyToTrip(input: Record<string, unknown>): Promise<unknown>;
+    deletePlace(placeId: number): Promise<{ deleted: boolean }>;
   };
   daynotes: {
     /** A day's notes on a trip (membership-checked). Needs 'db:read:daynotes'. */
@@ -383,16 +406,32 @@ export function createPluginContext(
     },
     journal: {
       listMine: () => t.rpc('journal.listMine', { _inv: invocationId }) as Promise<unknown[]>,
+      createEntry: (journeyId, input) => t.rpc('journal.createEntry', { journeyId, input, _inv: invocationId }),
+      updateEntry: (entryId, input) => t.rpc('journal.updateEntry', { entryId, input, _inv: invocationId }),
+      deleteEntry: (entryId) => t.rpc('journal.deleteEntry', { entryId, _inv: invocationId }) as Promise<{ deleted: boolean }>,
     },
     atlas: {
       visited: () => t.rpc('atlas.visited', { _inv: invocationId }) as Promise<{ countries: unknown[]; regions: unknown[] }>,
+      markCountry: (code) => t.rpc('atlas.markCountry', { code, _inv: invocationId }),
+      unmarkCountry: (code) => t.rpc('atlas.unmarkCountry', { code, _inv: invocationId }),
+      markRegion: (regionCode, countryCode, regionName) => t.rpc('atlas.markRegion', { regionCode, countryCode, regionName, _inv: invocationId }),
+      unmarkRegion: (regionCode) => t.rpc('atlas.unmarkRegion', { regionCode, _inv: invocationId }),
+      createBucketItem: (input) => t.rpc('atlas.createBucketItem', { input, _inv: invocationId }),
+      deleteBucketItem: (itemId) => t.rpc('atlas.deleteBucketItem', { itemId, _inv: invocationId }) as Promise<{ deleted: boolean }>,
     },
     vacay: {
       mine: () => t.rpc('vacay.mine', { _inv: invocationId }),
+      toggleEntry: (date) => t.rpc('vacay.toggleEntry', { date, _inv: invocationId }) as Promise<{ action: string }>,
+      toggleCompanyHoliday: (date, note) => t.rpc('vacay.toggleCompanyHoliday', { date, note, _inv: invocationId }) as Promise<{ action: string }>,
     },
     collections: {
       listMine: () => t.rpc('collections.listMine', { _inv: invocationId }),
       get: (id) => t.rpc('collections.get', { id, _inv: invocationId }),
+      create: (input) => t.rpc('collections.create', { input, _inv: invocationId }),
+      update: (id, input) => t.rpc('collections.update', { id, input, _inv: invocationId }),
+      savePlace: (input) => t.rpc('collections.savePlace', { input, _inv: invocationId }),
+      copyToTrip: (input) => t.rpc('collections.copyToTrip', { input, _inv: invocationId }),
+      deletePlace: (placeId) => t.rpc('collections.deletePlace', { placeId, _inv: invocationId }) as Promise<{ deleted: boolean }>,
     },
     daynotes: {
       list: (tripId, dayId) => t.rpc('daynotes.list', { tripId, dayId, _inv: invocationId }) as Promise<unknown[]>,

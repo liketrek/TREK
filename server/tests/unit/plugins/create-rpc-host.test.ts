@@ -148,16 +148,42 @@ vi.mock('../../../src/nest/reservations/reservations.service', () => ({
     notifyBookingChange() {}
   },
 }));
-vi.mock('../../../src/services/journeyService', () => ({ listJourneys: vi.fn((uid: number) => [{ id: 1, owner: uid }]) }));
+vi.mock('../../../src/services/journeyService', () => ({
+  listJourneys: vi.fn((uid: number) => [{ id: 1, owner: uid }]),
+  // journeyId 99 = not editable by the acting user (canEdit inside returns null/false)
+  createEntry: vi.fn((journeyId: number, uid: number, data: unknown) => (journeyId === 99 ? null : { id: 120, journey_id: journeyId, created_by: uid, ...(data as object) })),
+  updateEntry: vi.fn((entryId: number, _uid: number, data: unknown) => (entryId === 99 ? null : { id: entryId, ...(data as object) })),
+  deleteEntry: vi.fn((entryId: number) => entryId !== 99),
+}));
 vi.mock('../../../src/services/atlasService', () => ({
   listVisitedCountries: vi.fn(() => [{ country_code: 'JP' }]),
   listManuallyVisitedRegions: vi.fn(() => [{ region_code: 'JP-13' }]),
+  markCountryVisited: vi.fn(),
+  unmarkCountryVisited: vi.fn(),
+  markRegionVisited: vi.fn(),
+  unmarkRegionVisited: vi.fn(),
+  createBucketItem: vi.fn((uid: number, data: { name: string }) => ({ id: 110, user_id: uid, name: data.name })),
+  deleteBucketItem: vi.fn((_uid: number, itemId: number) => Number(itemId) !== 404),
 }));
-vi.mock('../../../src/services/vacayService', () => ({ getPlanData: vi.fn((uid: number) => ({ plan: { id: 1, owner: uid } })) }));
-vi.mock('../../../src/services/collectionsService', () => ({
-  listCollections: vi.fn((uid: number) => ({ collections: [{ id: 1, owner: uid }] })),
-  getCollection: vi.fn((uid: number, id: number) => ({ id, owner: uid, places: [] })),
+vi.mock('../../../src/services/vacayService', () => ({
+  getPlanData: vi.fn((uid: number) => ({ plan: { id: 1, owner: uid } })),
+  getActivePlanId: vi.fn(() => 77),
+  toggleEntry: vi.fn((uid: number, planId: number) => ({ action: 'added', uid, planId })),
+  toggleCompanyHoliday: vi.fn((planId: number) => ({ action: 'added', planId })),
 }));
+vi.mock('../../../src/services/collectionsService', () => {
+  const httpError = (status: number, message: string) => { const e = new Error(message) as Error & { status: number }; e.status = status; throw e; };
+  return {
+    listCollections: vi.fn((uid: number) => ({ collections: [{ id: 1, owner: uid }] })),
+    getCollection: vi.fn((uid: number, id: number) => ({ id, owner: uid, places: [] })),
+    createCollection: vi.fn((uid: number, body: unknown) => ({ id: 100, owner_id: uid, ...(body as object) })),
+    // id 99 = viewer-only (403); id 404 = invisible (404) — the service throws status-tagged errors
+    updateCollection: vi.fn((_uid: number, id: number, body: unknown) => { if (id === 99) httpError(403, 'read-only'); if (id === 404) httpError(404, 'Collection not found'); return { id, ...(body as object) }; }),
+    savePlace: vi.fn((uid: number, body: unknown) => ({ id: 101, saved_by: uid, ...(body as object) })),
+    copyToTrip: vi.fn(() => ({ copied: 2, skipped: [] })),
+    deletePlace: vi.fn((_uid: number, placeId: number) => { if (placeId === 404) httpError(404, 'Collection not found'); }),
+  };
+});
 vi.mock('../../../src/services/dayNoteService', () => ({
   listNotes: vi.fn((dayId: number, tripId: number) => [{ id: 1, day_id: dayId, trip_id: tripId }]),
   createNote: vi.fn((dayId: number, _tripId: number, text: string) => ({ id: 50, day_id: dayId, text })),
@@ -481,5 +507,56 @@ describe('create-rpc-host — Wave 1 wiring (weather/categories/tags/todos/roste
     expect((await call(h, 'packing.setBagMembers', { tripId: 1, bagId: 80, userIds: [5] }, 5)).ok).toBe(true)
     expect((await call(h, 'packing.deleteBag', { tripId: 1, bagId: 80 }, 5)).ok).toBe(true)
     expect(((await call(h, 'packing.deleteBag', { tripId: 1, bagId: 404 }, 5)) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
+  })
+})
+
+describe('create-rpc-host — Wave 2 wiring (atlas/vacay/journal/collections writes)', () => {
+  const host = (...perms: string[]) => createRealRpcHost('w2', new Set(perms))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const call = async (h: ReturnType<typeof host>, method: string, params: Record<string, unknown>, uid: number | undefined = 5): Promise<any> =>
+    h.dispatch({ k: 'req', id: 'x', method, params }, uid)
+  beforeEach(() => { checkPermission.mockReset(); checkPermission.mockReturnValue(true); isAddonEnabled.mockReset(); isAddonEnabled.mockReturnValue(true) })
+  afterAll(() => closePluginDataDb('w2'))
+
+  it('atlas writes delegate uid-scoped; disabled addon refused; missing bucket item forbidden', async () => {
+    const h = host('db:write:atlas')
+    expect((await call(h, 'atlas.markCountry', { code: 'JP' })).ok).toBe(true)
+    expect((await call(h, 'atlas.markRegion', { regionCode: 'JP-13', countryCode: 'JP' })).ok).toBe(true)
+    expect((await call(h, 'atlas.unmarkRegion', { regionCode: 'JP-13' })).ok).toBe(true)
+    expect((await call(h, 'atlas.createBucketItem', { input: { name: 'Kyoto' } })).ok).toBe(true)
+    expect((await call(h, 'atlas.deleteBucketItem', { itemId: 110 })).ok).toBe(true)
+    expect(((await call(h, 'atlas.deleteBucketItem', { itemId: 404 })) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
+    isAddonEnabled.mockReturnValue(false)
+    expect(((await call(h, 'atlas.markCountry', { code: 'JP' })) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
+  })
+
+  it('vacay writes resolve the plan host-side from the acting user', async () => {
+    const h = host('db:write:vacay')
+    const r = await call(h, 'vacay.toggleEntry', { date: '2026-08-01' })
+    expect(r.ok).toBe(true)
+    expect(r.result).toMatchObject({ uid: 5, planId: 77 }) // uid + the user's own active plan, never a plugin-named one
+    expect((await call(h, 'vacay.toggleCompanyHoliday', { date: '2026-12-24' })).ok).toBe(true)
+  })
+
+  it('journal writes map an uneditable journey/entry to RESOURCE_FORBIDDEN', async () => {
+    const h = host('db:write:journal')
+    expect((await call(h, 'journal.createEntry', { journeyId: 1, input: { entry_date: '2026-08-01' } })).ok).toBe(true)
+    expect(((await call(h, 'journal.createEntry', { journeyId: 99, input: { entry_date: '2026-08-01' } })) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
+    expect((await call(h, 'journal.updateEntry', { entryId: 120, input: { story: 'x' } })).ok).toBe(true)
+    expect(((await call(h, 'journal.updateEntry', { entryId: 99, input: {} })) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
+    expect((await call(h, 'journal.deleteEntry', { entryId: 120 })).ok).toBe(true)
+    expect(((await call(h, 'journal.deleteEntry', { entryId: 99 })) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
+  })
+
+  it('collections writes map the service 403/404 to RESOURCE_FORBIDDEN', async () => {
+    const h = host('db:write:collections')
+    expect((await call(h, 'collections.create', { input: { name: 'Tokyo eats' } })).ok).toBe(true)
+    expect((await call(h, 'collections.update', { id: 1, input: { name: 'Renamed' } })).ok).toBe(true)
+    expect(((await call(h, 'collections.update', { id: 99, input: { name: 'x' } })) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN') // viewer-only 403
+    expect(((await call(h, 'collections.update', { id: 404, input: { name: 'x' } })) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN') // invisible 404
+    expect((await call(h, 'collections.savePlace', { input: { collection_id: 1, name: 'Ramen' } })).ok).toBe(true)
+    expect((await call(h, 'collections.copyToTrip', { input: { trip_id: 1, place_ids: [101] } })).ok).toBe(true)
+    expect((await call(h, 'collections.deletePlace', { placeId: 101 })).ok).toBe(true)
+    expect(((await call(h, 'collections.deletePlace', { placeId: 404 })) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
   })
 })

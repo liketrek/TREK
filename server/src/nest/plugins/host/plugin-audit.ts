@@ -38,10 +38,13 @@ export function auditResource(method: string, params: Record<string, unknown>): 
   if (method.startsWith('places.') || method.startsWith('days.') || method.startsWith('itinerary.')) return `trip:${params.tripId ?? '?'}`;
   if (method.startsWith('packing.') || method.startsWith('files.')) return `trip:${params.tripId ?? '?'}`;
   if (method === 'journal.listMine') return 'journal:all';
+  if (method.startsWith('journal.')) return `journal:entry:${params.entryId ?? params.journeyId ?? '?'}`;
   if (method === 'atlas.visited') return 'atlas:all';
+  if (method.startsWith('atlas.')) return 'atlas:own';
   if (method === 'vacay.mine') return 'vacay:all';
+  if (method.startsWith('vacay.')) return 'vacay:own';
   if (method === 'collections.listMine') return 'collections:all';
-  if (method === 'collections.get') return `collection:${params.id ?? '?'}`;
+  if (method.startsWith('collections.')) return `collection:${params.id ?? params.placeId ?? '?'}`;
   if (method.startsWith('daynotes.')) return `trip:${params.tripId ?? '?'}`;
   if (method.startsWith('todos.')) return `trip:${params.tripId ?? '?'}`;
   if (method === 'weather.get') return 'weather:global';

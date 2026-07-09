@@ -287,6 +287,10 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:write:tags': 'Membuat, mengedit, dan menghapus tag pengguna yang bersangkutan',
   'admin.plugins.perm.db:read:todos': 'Membaca tugas dari perjalanan yang dapat diakses oleh pengguna yang bersangkutan',
   'admin.plugins.perm.db:write:todos': 'Membuat, mengedit, dan menghapus tugas pada perjalanan yang dapat diedit oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.db:write:atlas': 'Menandai negara dan wilayah sebagai sudah dikunjungi dan mengelola bucket list pengguna yang bersangkutan (memerlukan add-on Atlas)',
+  'admin.plugins.perm.db:write:vacay': 'Mengalihkan hari cuti dan libur perusahaan pada rencana aktif pengguna yang bersangkutan (memerlukan add-on Vacay)',
+  'admin.plugins.perm.db:write:journal': 'Membuat, mengedit, dan menghapus entri jurnal di jurnal yang dapat diedit oleh pengguna yang bersangkutan (memerlukan add-on Journey)',
+  'admin.plugins.perm.db:write:collections': 'Membuat dan mengedit koleksi serta menyimpan tempat ke dalamnya, dengan peran koleksi pengguna yang bersangkutan (memerlukan add-on Collections)',
   'admin.plugins.perm.db:read:files':
     'Membaca berkas dari perjalanan yang dapat diakses oleh pengguna yang bersangkutan',
   'admin.plugins.perm.db:write:reservations': 'Membuat, mengedit, dan menghapus pemesanan pada perjalanan yang dapat diedit oleh pengguna yang bersangkutan',

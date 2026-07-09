@@ -6,6 +6,8 @@ import {
   tripUpdateRequestSchema,
   reservationCreateRequestSchema, reservationUpdateRequestSchema,
   packingCreateItemRequestSchema, packingUpdateItemRequestSchema,
+  collectionCreateRequestSchema, collectionUpdateRequestSchema,
+  collectionSavePlaceRequestSchema, collectionCopyToTripRequestSchema,
 } from '@trek/shared';
 import {
   KNOWN_METHODS,
@@ -76,6 +78,26 @@ export interface HostDeps {
   listCollectionsForUser(userId: number): unknown;
   /** One of the acting user's collections by id (collections addon must be enabled). */
   getCollectionForUser(userId: number, id: number): unknown;
+  // --- Collections write (the service enforces per-collection role itself) ---
+  createCollectionForUser(userId: number, input: Record<string, unknown>): unknown;
+  updateCollectionForUser(userId: number, id: number, input: Record<string, unknown>): unknown;
+  saveCollectionPlace(userId: number, input: Record<string, unknown>): unknown;
+  copyCollectionToTrip(userId: number, input: Record<string, unknown>): unknown;
+  deleteCollectionPlace(userId: number, placeId: number): unknown;
+  // --- Atlas write (all rows are the acting user's own; atlas addon gated) ---
+  markCountryVisited(userId: number, code: string): unknown;
+  unmarkCountryVisited(userId: number, code: string): unknown;
+  markRegionVisited(userId: number, regionCode: string, regionName: string, countryCode: string): unknown;
+  unmarkRegionVisited(userId: number, regionCode: string): unknown;
+  createBucketItem(userId: number, input: Record<string, unknown>): unknown;
+  deleteBucketItem(userId: number, itemId: number): unknown;
+  // --- Vacay write (plan resolved from the acting user; vacay addon gated) ---
+  vacayToggleEntry(userId: number, date: string): unknown;
+  vacayToggleCompanyHoliday(userId: number, date: string, note: string | undefined): unknown;
+  // --- Journal write (journeyService.canEdit self-gates; journey addon gated) ---
+  createJournalEntry(userId: number, journeyId: number, input: Record<string, unknown>): unknown;
+  updateJournalEntry(userId: number, entryId: number, input: Record<string, unknown>): unknown;
+  deleteJournalEntry(userId: number, entryId: number): unknown;
   /** A trip day's notes (trip-scoped), for `daynotes.list`. */
   listDayNotes(tripId: number, dayId: number): unknown[];
   /** Create a day note (the day must be on the trip); broadcasts dayNote:created. */
@@ -267,6 +289,97 @@ export class PluginRpcHost {
         if (uid === undefined) throw new ForbiddenResource('collection reads require an authenticated user context');
         return deps.getCollectionForUser(uid, num(p.id, 'id'));
       });
+    }
+    if (has('db:write:collections')) {
+      // Collections write. The service enforces per-collection role itself
+      // (owner/admin/editor via assertCanEdit) against the HOST-bound acting user —
+      // the wiring maps its 403/404 to RESOURCE_FORBIDDEN. Inputs are schema-validated.
+      const requireUid = (uid: number | undefined): number => {
+        if (uid === undefined) throw new ForbiddenResource('collection writes require an authenticated user context');
+        return uid;
+      };
+      this.methods.set('collections.create', (p, uid) => {
+        const parsed = collectionCreateRequestSchema.safeParse(p.input);
+        if (!parsed.success) throw new BadParams(`invalid collection: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
+        return deps.createCollectionForUser(requireUid(uid), parsed.data as Record<string, unknown>);
+      });
+      this.methods.set('collections.update', (p, uid) => {
+        const parsed = collectionUpdateRequestSchema.safeParse(p.input);
+        if (!parsed.success) throw new BadParams(`invalid collection: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
+        return deps.updateCollectionForUser(requireUid(uid), num(p.id, 'id'), parsed.data as Record<string, unknown>);
+      });
+      this.methods.set('collections.savePlace', (p, uid) => {
+        const parsed = collectionSavePlaceRequestSchema.safeParse(p.input);
+        if (!parsed.success) throw new BadParams(`invalid place: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
+        return deps.saveCollectionPlace(requireUid(uid), parsed.data as Record<string, unknown>);
+      });
+      this.methods.set('collections.copyToTrip', (p, uid) => {
+        const parsed = collectionCopyToTripRequestSchema.safeParse(p.input);
+        if (!parsed.success) throw new BadParams(`invalid copy request: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
+        return deps.copyCollectionToTrip(requireUid(uid), parsed.data as Record<string, unknown>);
+      });
+      this.methods.set('collections.deletePlace', (p, uid) => deps.deleteCollectionPlace(requireUid(uid), num(p.placeId, 'placeId')));
+    }
+    if (has('db:write:atlas')) {
+      // Atlas write: every row is the acting user's own (visited_countries /
+      // visited_regions / bucket) — no trip scoping, no cross-tenant surface.
+      const requireUid = (uid: number | undefined): number => {
+        if (uid === undefined) throw new ForbiddenResource('atlas writes require an authenticated user context');
+        return uid;
+      };
+      const code = (v: unknown, name: string): string => {
+        if (typeof v !== 'string' || v.trim() === '' || v.length > 8) throw new BadParams(`${name} must be a short code`);
+        return v.trim().toUpperCase();
+      };
+      this.methods.set('atlas.markCountry', (p, uid) => deps.markCountryVisited(requireUid(uid), code(p.code, 'code')));
+      this.methods.set('atlas.unmarkCountry', (p, uid) => deps.unmarkCountryVisited(requireUid(uid), code(p.code, 'code')));
+      this.methods.set('atlas.markRegion', (p, uid) => {
+        const u = requireUid(uid);
+        const regionName = typeof p.regionName === 'string' && p.regionName ? p.regionName.slice(0, 128) : String(p.regionCode ?? '');
+        return deps.markRegionVisited(u, code(p.regionCode, 'regionCode'), regionName, code(p.countryCode, 'countryCode'));
+      });
+      this.methods.set('atlas.unmarkRegion', (p, uid) => deps.unmarkRegionVisited(requireUid(uid), code(p.regionCode, 'regionCode')));
+      this.methods.set('atlas.createBucketItem', (p, uid) => {
+        const u = requireUid(uid);
+        const input = asPayload(p.input);
+        if (typeof input.name !== 'string' || input.name.trim() === '') throw new BadParams('bucket item name is required');
+        return deps.createBucketItem(u, input);
+      });
+      this.methods.set('atlas.deleteBucketItem', (p, uid) => deps.deleteBucketItem(requireUid(uid), num(p.itemId, 'itemId')));
+    }
+    if (has('db:write:vacay')) {
+      // Vacay write: the plan is resolved host-side from the acting user's active
+      // plan — a plugin can never name another plan. toggleEntry only ever toggles
+      // the ACTING USER's own PTO day.
+      const requireUid = (uid: number | undefined): number => {
+        if (uid === undefined) throw new ForbiddenResource('vacay writes require an authenticated user context');
+        return uid;
+      };
+      const dateStr = (v: unknown): string => {
+        if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) throw new BadParams('date must be YYYY-MM-DD');
+        return v;
+      };
+      this.methods.set('vacay.toggleEntry', (p, uid) => deps.vacayToggleEntry(requireUid(uid), dateStr(p.date)));
+      this.methods.set('vacay.toggleCompanyHoliday', (p, uid) =>
+        deps.vacayToggleCompanyHoliday(requireUid(uid), dateStr(p.date), typeof p.note === 'string' ? p.note.slice(0, 256) : undefined));
+    }
+    if (has('db:write:journal')) {
+      // Journal write: journeyService.canEdit self-gates every call against the
+      // acting user (owner/contributor) — the wiring maps a refusal to
+      // RESOURCE_FORBIDDEN. Journeys are user-scoped, not trip-scoped.
+      const requireUid = (uid: number | undefined): number => {
+        if (uid === undefined) throw new ForbiddenResource('journal writes require an authenticated user context');
+        return uid;
+      };
+      this.methods.set('journal.createEntry', (p, uid) => {
+        const u = requireUid(uid);
+        const input = asPayload(p.input);
+        if (typeof input.entry_date !== 'string' || input.entry_date === '') throw new BadParams('entry_date is required');
+        return deps.createJournalEntry(u, num(p.journeyId, 'journeyId'), input);
+      });
+      this.methods.set('journal.updateEntry', (p, uid) =>
+        deps.updateJournalEntry(requireUid(uid), num(p.entryId, 'entryId'), asPayload(p.input)));
+      this.methods.set('journal.deleteEntry', (p, uid) => deps.deleteJournalEntry(requireUid(uid), num(p.entryId, 'entryId')));
     }
     if (has('db:read:daynotes')) {
       // Day notes are trip-scoped (core, no addon), so the standard membership gate applies.

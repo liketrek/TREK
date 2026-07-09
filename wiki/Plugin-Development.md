@@ -188,6 +188,10 @@ declaration for readers — the manifest parser does not consume it.
 | `ctx.atlas` | `visited()` — the acting user's visited countries + regions | `db:read:atlas` (+ Atlas addon) |
 | `ctx.vacay` | `mine()` — the acting user's vacation plan | `db:read:vacay` (+ Vacay addon) |
 | `ctx.collections` | `listMine()` / `get(id)` — the acting user's saved-place collections | `db:read:collections` (+ Collections addon) |
+| `ctx.collections` (write) | `create(input)` / `update(id, input)` / `savePlace(input)` / `copyToTrip(input)` / `deletePlace(placeId)` — per-collection role enforced by the service | `db:write:collections` (+ Collections addon) |
+| `ctx.atlas` (write) | `markCountry(code)` / `unmarkCountry` / `markRegion(regionCode, countryCode, regionName?)` / `unmarkRegion` / `createBucketItem(input)` / `deleteBucketItem(itemId)` — the acting user's own rows | `db:write:atlas` (+ Atlas addon) |
+| `ctx.vacay` (write) | `toggleEntry(date)` — the acting user's own PTO day on their active plan; `toggleCompanyHoliday(date, note?)` | `db:write:vacay` (+ Vacay addon) |
+| `ctx.journal` (write) | `createEntry(journeyId, {entry_date, ...})` / `updateEntry(entryId, fields)` / `deleteEntry(entryId)` — owner/contributor-gated | `db:write:journal` (+ Journey addon) |
 | `ctx.daynotes` | `list(tripId, dayId)` — a day's notes (membership-checked) | `db:read:daynotes` |
 | `ctx.daynotes` (write) | `create(tripId, dayId, {text, time?, icon?, sort_order?})` / `update(tripId, dayId, noteId, fields)` / `delete(tripId, dayId, noteId)` — broadcasts `dayNote:*` | `db:write:daynotes` |
 | `ctx.packing` (write) | `create(tripId, {name, category?, checked?, is_private?, visibility?, recipient_ids?})` / `update(tripId, itemId, fields)` / `delete(tripId, itemId)` — broadcasts `packing:*`, private items (#858) stay owner-scoped | `db:write:packing` |
