@@ -227,7 +227,17 @@
 .trek-dash .hero-title { font-size: 104px; font-weight: 600; line-height: 0.9; letter-spacing: -0.045em; margin: 0; text-shadow: 0 1px 12px oklch(0 0 0 / .32), 0 1px 3px oklch(0 0 0 / .4); }
 
 /* ----------------- boarding pass ----------------- */
+/* The pass is split into an outer wrapper (left notch) and an inner glass panel
+   (right notch). Each element carries a SINGLE-layer radial-gradient mask so we
+   never rely on multi-layer `mask-composite: intersect` — Safari mis-composites
+   that path and hides the whole bar (issue #1459). */
 .trek-dash .hero-pass {
+  position: relative;
+  -webkit-mask-image: radial-gradient(circle 8px at 0 50%, transparent 8px, black 8px);
+          mask-image: radial-gradient(circle 8px at 0 50%, transparent 8px, black 8px);
+  transform: translateZ(0);
+}
+.trek-dash .hero-pass-inner {
   background: linear-gradient(135deg,
     oklch(0.99 0.006 75 / .75) 0%, oklch(0.985 0.008 70 / .85) 50%, oklch(0.98 0.01 65 / .8) 100%);
   backdrop-filter: blur(40px) saturate(1.8) brightness(1.1);
@@ -239,24 +249,17 @@
     0 2px 8px -2px oklch(0 0 0 / .08), 0 8px 24px -6px oklch(0 0 0 / .12),
     0 20px 60px -16px oklch(0 0 0 / .35), inset 0 1px 1px 0 oklch(1 0 0 / .5);
   color: var(--ink); position: relative; overflow: hidden;
-  mask-image:
-    radial-gradient(circle 8px at 0 50%, transparent 8px, black 8px),
-    radial-gradient(circle 8px at 100% 50%, transparent 8px, black 8px);
-  mask-composite: intersect;
-  -webkit-mask-image:
-    radial-gradient(circle 8px at 0 50%, transparent 8px, black 8px),
-    radial-gradient(circle 8px at 100% 50%, transparent 8px, black 8px);
-  -webkit-mask-composite: source-in;
-  transform: translateZ(0);
+  -webkit-mask-image: radial-gradient(circle 8px at 100% 50%, transparent 8px, black 8px);
+          mask-image: radial-gradient(circle 8px at 100% 50%, transparent 8px, black 8px);
 }
-.dark .trek-dash .hero-pass {
+.dark .trek-dash .hero-pass-inner {
   background: linear-gradient(135deg, oklch(0.28 0 0 / .8) 0%, oklch(0.25 0 0 / .85) 50%, oklch(0.23 0 0 / .8) 100%);
   border: 1px solid oklch(1 0 0 / .1);
   box-shadow:
     0 2px 8px -2px oklch(0 0 0 / .3), 0 8px 24px -6px oklch(0 0 0 / .4),
     0 20px 60px -16px oklch(0 0 0 / .6), inset 0 1px 1px 0 oklch(1 0 0 / .08);
 }
-.trek-dash .hero-pass::before {
+.trek-dash .hero-pass-inner::before {
   content: ""; position: absolute; inset: 0; border-radius: 24px; padding: 1px;
   background: linear-gradient(135deg, oklch(1 0 0 / .25) 0%, oklch(1 0 0 / .08) 40%, oklch(1 0 0 / .02) 70%, oklch(1 0 0 / .15) 100%);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);

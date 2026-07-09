@@ -418,7 +418,9 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
                 ))}
               </div>
             )}
-            <div className="hero-pass" onClick={(e) => { e.stopPropagation(); onOpen() }}>{passCells}</div>
+            <div className="hero-pass" onClick={(e) => { e.stopPropagation(); onOpen() }}>
+              <div className="hero-pass-inner">{passCells}</div>
+            </div>
           </div>
         )}
       </div>
