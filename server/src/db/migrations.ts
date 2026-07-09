@@ -3483,6 +3483,22 @@ function runMigrations(db: Database.Database): void {
         if (!err.message?.includes('duplicate column name')) throw err;
       }
     },
+    // Per-user plugin settings (#plugins). A plugin can declare `scope:'user'`
+    // settings fields (e.g. an API key or a personal preference); each USER stores
+    // their own values here, separate from the admin-owned instance `plugins.config`.
+    // Secrets are encrypted with the same apiKeyCrypto as instance secrets and are
+    // never echoed back to the client (masked). Runtime reads the acting user's row.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS plugin_user_config (
+          plugin_id TEXT NOT NULL,
+          user_id INTEGER NOT NULL,
+          config TEXT NOT NULL DEFAULT '{}',
+          updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+          PRIMARY KEY (plugin_id, user_id)
+        );
+      `);
+    },
   ];
 
   if (currentVersion < migrations.length) {

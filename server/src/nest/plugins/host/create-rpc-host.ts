@@ -13,6 +13,7 @@ import { joinTripAsMember } from '../../../services/tripMembership';
 import { send as sendNotification } from '../../../services/notificationService';
 import { resolveLlmConfig } from '../../llm-parse/llm-config.resolver';
 import { createLlmClient } from '../../llm-parse/llm-client.factory';
+import { readUserSettingDecrypted } from '../plugins.service';
 import fsMod from 'node:fs';
 import pathMod from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -337,6 +338,8 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
       });
       return { results };
     },
+    // The acting user's own decrypted value for one of this plugin's user-scope settings.
+    getUserSetting: (pluginId, userId, key) => readUserSettingDecrypted(pluginId, userId, key),
     listCostsForTrip: (tripId) => listBudgetItems(tripId),
     // Cross-trip: every accessible trip's budget items (membership predicate is
     // baked into listTrips). Reuses the hydrated list so members/payers come too.

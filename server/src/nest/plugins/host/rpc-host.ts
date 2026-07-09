@@ -62,6 +62,8 @@ export interface HostDeps {
   aiConfigured(userId: number): boolean;
   aiComplete(userId: number, prompt: string, system: string | undefined): Promise<unknown>;
   aiExtract(userId: number, text: string, jsonSchema: object, prompt: string | undefined): Promise<unknown>;
+  /** The acting user's own value for one of this plugin's `scope:'user'` settings (decrypted). */
+  getUserSetting(pluginId: string, userId: number, key: string): unknown;
   /** Optional sink for the capability audit log (host-side, hash-chained). */
   audit?(entry: { pluginId: string; actingUserId?: number; method: string; resource: string | null; code: string }): void;
   /** Call an export on another plugin (this host's plugin is the caller). Authorizes
@@ -948,6 +950,14 @@ export class PluginRpcHost {
     this.methods.set('events.emit', (p) => {
       deps.emitPluginEvent(str(p.event, 'event'), p.payload);
       return { ok: true };
+    });
+    // The plugin's OWN per-user settings (the acting user's `scope:'user'` values,
+    // decrypted host-side). Unconditional + not sensitive cross-tenant — it only ever
+    // returns THIS plugin's config for the acting user. A userless context (job/onLoad)
+    // has no user, so it returns undefined (the plugin falls back to ctx.config).
+    this.methods.set('settings.get', (p, uid) => {
+      if (uid === undefined) return { value: undefined };
+      return { value: deps.getUserSetting(this.pluginId, uid, str(p.key, 'key')) };
     });
   }
 

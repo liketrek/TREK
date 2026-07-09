@@ -14,6 +14,12 @@ export const PLUGIN_API_VERSION = 1 as const;
 export interface PluginContext {
   readonly id: string;
   readonly config: Readonly<Record<string, unknown>>;
+  /** The ACTING USER's own value for one of this plugin's `scope:'user'` settings fields
+   * (decrypted host-side). Returns undefined for an unset value or a userless context
+   * (job/onLoad) — fall back to `config` (the admin-owned instance settings) there. */
+  settings: {
+    get(key: string): Promise<unknown>;
+  };
   db: {
     query<T = unknown>(sql: string, ...args: unknown[]): Promise<T[]>;
     exec(sql: string, ...args: unknown[]): Promise<{ changes: number }>;
@@ -403,6 +409,9 @@ export function createPluginContext(
   return {
     id,
     config: Object.freeze({ ...config }),
+    settings: {
+      get: (key) => (t.rpc('settings.get', { key, _inv: invocationId }) as Promise<{ value: unknown }>).then((r) => r?.value),
+    },
     db: {
       query: (sql, ...args) => t.rpc('db.query', { sql, args }) as Promise<never[]>,
       exec: (sql, ...args) => t.rpc('db.exec', { sql, args }) as Promise<{ changes: number }>,

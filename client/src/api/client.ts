@@ -571,6 +571,12 @@ export interface PluginMapMarker {
   tone: 'default' | 'success' | 'warn' | 'danger'
 }
 
+export interface PluginUserSettingField {
+  key: string; label?: string | null; input_type?: string; placeholder?: string | null;
+  hint?: string | null; required?: boolean; secret?: boolean;
+  options?: Array<{ value: string; label: string }>
+}
+
 export const pluginsApi = {
   // Active plugins the client renders (page nav entries, dashboard widgets).
   active: () => apiClient.get('/plugins').then(r => r.data),
@@ -589,6 +595,12 @@ export const pluginsApi = {
   // (#587). Host-normalized + range-checked; fail-safe (skips slow/failing providers).
   mapMarkers: (tripId: number | string) =>
     apiClient.get(`/map-markers/${tripId}`).then(r => r.data as { markers: PluginMapMarker[] }),
+  // A user's OWN scope:'user' settings for a plugin (API key, prefs). Secrets are
+  // masked; the write only accepts declared user-scope keys.
+  userSettings: (id: string) =>
+    apiClient.get(`/plugin-settings/${id}`).then(r => r.data as { fields: PluginUserSettingField[]; config: Record<string, unknown> }),
+  saveUserSettings: (id: string, config: Record<string, unknown>) =>
+    apiClient.post(`/plugin-settings/${id}`, { config }).then(r => r.data as { config: Record<string, unknown> }),
   // Call one of a plugin's own declared routes through the host proxy. `sub` is
   // supplied by untrusted plugin code (the trekBridge forwards it verbatim), so it
   // MUST stay inside the plugin's own /plugins/:id/ namespace. We resolve it with

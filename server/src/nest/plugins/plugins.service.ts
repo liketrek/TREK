@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { db } from '../../db/database';
 import { pluginsEnabled } from './kill-switch';
 import { devLinkEnabled } from './dev-link';
-import { maybe_encrypt_api_key } from '../../services/apiKeyCrypto';
+import { maybe_encrypt_api_key, decrypt_api_key } from '../../services/apiKeyCrypto';
 import { readAudit } from './host/plugin-audit';
 import { isAddonEnabled } from '../../services/adminService';
 import { parseDependencies, disabledRequiredAddons, resolveDependencyState, type PluginDepRow, type PluginDependencies, type VersionMismatch } from './dependencies';
@@ -124,6 +124,89 @@ export class PluginsService {
     return maskSecrets(config, secretKeys);
   }
 
+  /** The plugin's `scope:'user'` settings fields, in declared order (for the user form). */
+  userSettingsFields(id: string): Array<Record<string, unknown>> {
+    return db
+      .prepare(
+        `SELECT field_key AS key, label, input_type, placeholder, hint, required, secret, options
+         FROM plugin_settings_fields WHERE plugin_id = ? AND scope = 'user' ORDER BY sort_order, id`,
+      )
+      .all(id)
+      .map((r) => {
+        const row = r as Record<string, unknown>;
+        return {
+          key: row.key,
+          label: row.label ?? null,
+          input_type: row.input_type ?? 'text',
+          placeholder: row.placeholder ?? null,
+          hint: row.hint ?? null,
+          required: row.required === 1,
+          secret: row.secret === 1,
+          options: typeof row.options === 'string' && row.options ? safeArray(row.options as string) : undefined,
+        };
+      });
+  }
+
+  private userSecretKeys(id: string): Set<string> {
+    return new Set(
+      (
+        db
+          .prepare("SELECT field_key FROM plugin_settings_fields WHERE plugin_id = ? AND scope = 'user' AND secret = 1")
+          .all(id) as Array<{ field_key: string }>
+      ).map((r) => r.field_key),
+    );
+  }
+
+  /** A user's own config for a plugin, secrets masked (safe to send to the client). */
+  getUserConfig(id: string, userId: number): Record<string, unknown> {
+    const row = db.prepare('SELECT config FROM plugin_user_config WHERE plugin_id = ? AND user_id = ?').get(id, userId) as
+      | { config: string }
+      | undefined;
+    return maskSecrets(safeParse(row?.config ?? '{}'), this.userSecretKeys(id));
+  }
+
+  /** Merge a user's own settings, encrypting secret fields (SECRET_MASK = keep stored
+   * ciphertext). Only keys declared as `scope:'user'` fields are accepted. Returns masked. */
+  updateUserConfig(id: string, userId: number, patch: Record<string, unknown>): Record<string, unknown> {
+    const allowed = new Set(
+      (db.prepare("SELECT field_key FROM plugin_settings_fields WHERE plugin_id = ? AND scope = 'user'").all(id) as Array<{ field_key: string }>).map(
+        (r) => r.field_key,
+      ),
+    );
+    const secretKeys = this.userSecretKeys(id);
+    const existing = db.prepare('SELECT config FROM plugin_user_config WHERE plugin_id = ? AND user_id = ?').get(id, userId) as
+      | { config: string }
+      | undefined;
+    const config = safeParse(existing?.config ?? '{}');
+    for (const [k, v] of Object.entries(patch)) {
+      if (!allowed.has(k)) continue; // never store an undeclared key
+      if (secretKeys.has(k)) {
+        if (v === SECRET_MASK) continue; // unchanged secret — keep stored ciphertext
+        config[k] = maybe_encrypt_api_key(v);
+      } else {
+        config[k] = v;
+      }
+    }
+    db.prepare(
+      `INSERT INTO plugin_user_config (plugin_id, user_id, config, updated_at) VALUES (?, ?, ?, datetime('now'))
+       ON CONFLICT(plugin_id, user_id) DO UPDATE SET config = excluded.config, updated_at = excluded.updated_at`,
+    ).run(id, userId, JSON.stringify(config));
+    return maskSecrets(config, secretKeys);
+  }
+
+  /** A user's own config with secrets DECRYPTED — host-only, for runtime `ctx.settings`.
+   * Never sent to a client; the acting user is resolved host-side. */
+  getUserConfigDecrypted(id: string, userId: number): Record<string, unknown> {
+    const row = db.prepare('SELECT config FROM plugin_user_config WHERE plugin_id = ? AND user_id = ?').get(id, userId) as
+      | { config: string }
+      | undefined;
+    const config = safeParse(row?.config ?? '{}');
+    const secretKeys = this.userSecretKeys(id);
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(config)) out[k] = secretKeys.has(k) && v ? decrypt_api_key(v) : v;
+    return out;
+  }
+
   /** A plugin's error log, newest first. */
   errors(id: string): Array<{ ts: string; level: string; message: string }> {
     return db
@@ -162,6 +245,29 @@ function safeParse(json: string): Record<string, unknown> {
   } catch {
     return {};
   }
+}
+function safeArray(json: string): unknown[] | undefined {
+  try {
+    const v = JSON.parse(json);
+    return Array.isArray(v) ? v : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Host-only: one decrypted per-user setting for a plugin (for runtime `ctx.settings`).
+ * Standalone (no Nest DI) so the RPC host wiring can call it directly. */
+export function readUserSettingDecrypted(pluginId: string, userId: number, key: string): unknown {
+  const isSecret =
+    (db.prepare("SELECT secret FROM plugin_settings_fields WHERE plugin_id = ? AND field_key = ? AND scope = 'user'").get(pluginId, key) as
+      | { secret: number }
+      | undefined)?.secret === 1;
+  const row = db.prepare('SELECT config FROM plugin_user_config WHERE plugin_id = ? AND user_id = ?').get(pluginId, userId) as
+    | { config: string }
+    | undefined;
+  const v = safeParse(row?.config ?? '{}')[key];
+  if (v == null) return undefined;
+  return isSecret ? decrypt_api_key(v) : v;
 }
 function maskSecrets(config: Record<string, unknown>, secretKeys: Set<string>): Record<string, unknown> {
   const out: Record<string, unknown> = {};

@@ -110,6 +110,7 @@ function makeDeps(): HostDeps {
     aiConfigured: vi.fn((userId: number) => userId === 42),
     aiComplete: vi.fn(async (_uid: number, prompt: string) => ({ text: `echo:${prompt}` })),
     aiExtract: vi.fn(async () => ({ results: [{ ok: true }] })),
+    getUserSetting: vi.fn((pluginId: string, userId: number, key: string) => (userId === 42 && key === 'apiKey' ? `secret-of-${pluginId}` : undefined)),
     createCollectionForUser: vi.fn((uid: number, input: unknown) => ({ id: 100, owner_id: uid, ...(input as object) })),
     updateCollectionForUser: vi.fn((_uid: number, id: number, input: unknown) => ({ id, ...(input as object) })),
     saveCollectionPlace: vi.fn((uid: number, input: unknown) => ({ id: 101, saved_by: uid, ...(input as object) })),
@@ -559,6 +560,17 @@ describe('PluginRpcHost — capability enforcement', () => {
     expect((await host.dispatch(req('ai.complete', { prompt: 'hi' }), 7)).ok).toBe(false);
     // no user context at all → forbidden
     expect((await host.dispatch(req('ai.complete', { prompt: 'hi' }), undefined)).ok).toBe(false);
+  });
+
+  it('settings.get returns the acting user\'s own value; a userless context yields undefined', async () => {
+    // No permission required — it only ever returns THIS plugin's config for the acting user.
+    const host = new PluginRpcHost('p', new Set(), deps);
+    const bound = await host.dispatch(req('settings.get', { key: 'apiKey' }), 42);
+    expect(ok(bound)).toBe(true);
+    expect((bound as RpcResponse).result).toEqual({ value: 'secret-of-p' });
+    expect(deps.getUserSetting).toHaveBeenCalledWith('p', 42, 'apiKey');
+    const userless = await host.dispatch(req('settings.get', { key: 'apiKey' }), undefined);
+    expect((userless as RpcResponse).result).toEqual({ value: undefined });
   });
 
   it('a read scope is denied without its own permission', async () => {
