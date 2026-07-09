@@ -65,12 +65,15 @@ On the **server** (a local `trek-dev` or a dev instance — **never production**
 TREK_PLUGINS_DEV_LINK=1
 ```
 
-Then, as an admin, point TREK at your **built** plugin directory (the one holding
+With the flag set, the **Admin → Plugins** tab shows a **“Link a local plugin”**
+field. Paste the absolute path to your **built** plugin directory (the one holding
 `trek-plugin.json` + `server/index.js` — build first, the loader runs the compiled
-artifact, not TS source):
+artifact, not TS source) and hit **Link**. The plugin is symlinked into the plugins
+volume and registered INACTIVE, and shows a **Dev-link** badge in the list.
+
+Prefer scripting? The same thing over HTTP:
 
 ```bash
-# register the local dir as a plugin (symlinked in, registered INACTIVE)
 curl -XPOST /api/admin/plugins/link -H 'content-type: application/json' \
   -d '{ "path": "/abs/path/to/your/plugin" }'
 ```
