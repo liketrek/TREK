@@ -398,7 +398,7 @@ const admin: TranslationStrings = {
   'admin.addons.subtitle': '機能を有効／無効にしてTREKをカスタマイズします。',
   'admin.addons.catalog.packing.name': 'リスト',
   'admin.addons.catalog.packing.description': '旅行用の持ち物リストとToDo',
-  'admin.addons.catalog.budget.name': '予算',
+  'admin.addons.catalog.budget.name': 'Costs',
   'admin.addons.catalog.budget.description': '支出の管理と予算計画',
   'admin.addons.catalog.documents.name': 'ドキュメント',
   'admin.addons.catalog.documents.description': '旅行書類の保存・管理',

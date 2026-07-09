@@ -375,7 +375,7 @@ const admin: TranslationStrings = {
   'admin.addons.subtitle': 'Funkciók engedélyezése vagy letiltása a TREK testreszabásához.',
   'admin.addons.catalog.packing.name': 'Listák',
   'admin.addons.catalog.packing.description': 'Csomagolási listák és teendők az utazásaidhoz',
-  'admin.addons.catalog.budget.name': 'Költségvetés',
+  'admin.addons.catalog.budget.name': 'Costs',
   'admin.addons.catalog.budget.description': 'Kiadások nyomon követése és az utazási költségvetés tervezése',
   'admin.addons.catalog.documents.name': 'Dokumentumok',
   'admin.addons.catalog.documents.description': 'Úti dokumentumok tárolása és kezelése',

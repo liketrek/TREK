@@ -419,7 +419,7 @@ const admin: TranslationStrings = {
   'admin.addons.subtitle': 'Aktifkan atau nonaktifkan fitur untuk menyesuaikan pengalaman TREK kamu.',
   'admin.addons.catalog.packing.name': 'Daftar',
   'admin.addons.catalog.packing.description': 'Daftar packing dan tugas to-do untuk perjalananmu',
-  'admin.addons.catalog.budget.name': 'Anggaran',
+  'admin.addons.catalog.budget.name': 'Costs',
   'admin.addons.catalog.budget.description': 'Lacak pengeluaran dan rencanakan anggaran perjalananmu',
   'admin.addons.catalog.documents.name': 'Dokumen',
   'admin.addons.catalog.documents.description': 'Simpan dan kelola dokumen perjalanan',

@@ -422,7 +422,7 @@ const admin: TranslationStrings = {
     'Ενεργοποιήστε ή απενεργοποιήστε λειτουργίες για να εξατομικεύσετε την εμπειρία σας στο TREK.',
   'admin.addons.catalog.packing.name': 'Λίστες',
   'admin.addons.catalog.packing.description': 'Λίστες πακεταρίσματος και εργασίες προς εκτέλεση για τα ταξίδια σας',
-  'admin.addons.catalog.budget.name': 'Προϋπολογισμός',
+  'admin.addons.catalog.budget.name': 'Costs',
   'admin.addons.catalog.budget.description': 'Παρακολουθήστε τα έξοδα και σχεδιάστε τον προϋπολογισμό του ταξιδιού σας',
   'admin.addons.catalog.documents.name': 'Έγγραφα',
   'admin.addons.catalog.documents.description': 'Αποθηκεύστε και διαχειριστείτε ταξιδιωτικά έγγραφα',

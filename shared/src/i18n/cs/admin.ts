@@ -372,7 +372,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.memories.description': 'Sdílejte cestovní fotky přes vaši instanci Immich',
   'admin.addons.catalog.packing.name': 'Seznamy',
   'admin.addons.catalog.packing.description': 'Balicí seznamy a úkoly pro vaše výlety',
-  'admin.addons.catalog.budget.name': 'Rozpočet',
+  'admin.addons.catalog.budget.name': 'Costs',
   'admin.addons.catalog.budget.description': 'Sledování výdajů a plánování rozpočtu cesty',
   'admin.addons.catalog.documents.name': 'Dokumenty',
   'admin.addons.catalog.documents.description': 'Ukládání a správa cestovních dokladů',

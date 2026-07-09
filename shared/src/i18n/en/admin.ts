@@ -417,7 +417,7 @@ const admin: TranslationStrings = {
   'admin.addons.subtitle': 'Enable or disable features to customize your TREK experience.',
   'admin.addons.catalog.packing.name': 'Lists',
   'admin.addons.catalog.packing.description': 'Packing lists and to-do tasks for your trips',
-  'admin.addons.catalog.budget.name': 'Budget',
+  'admin.addons.catalog.budget.name': 'Costs',
   'admin.addons.catalog.budget.description': 'Track expenses and plan your trip budget',
   'admin.addons.catalog.documents.name': 'Documents',
   'admin.addons.catalog.documents.description': 'Store and manage travel documents',

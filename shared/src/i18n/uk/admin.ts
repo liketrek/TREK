@@ -376,7 +376,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.mcp.description': 'Протокол контексту моделі для інтеграції з ІІ-асистентами',
   'admin.addons.catalog.packing.name': 'Списки',
   'admin.addons.catalog.packing.description': 'Списки речей та завдання для ваших подорожей',
-  'admin.addons.catalog.budget.name': 'Бюджет',
+  'admin.addons.catalog.budget.name': 'Costs',
   'admin.addons.catalog.budget.description': 'Відстежуйте витрати та плануйте бюджет подорожі',
   'admin.addons.catalog.documents.name': 'Документи',
   'admin.addons.catalog.documents.description': 'Зберігайте та керуйте документами для подорожей',

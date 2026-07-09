@@ -400,7 +400,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.mcp.description': '用於 AI 助手整合的模型上下文協議',
   'admin.addons.catalog.packing.name': '行李',
   'admin.addons.catalog.packing.description': '每次旅行的行李準備清單',
-  'admin.addons.catalog.budget.name': '預算',
+  'admin.addons.catalog.budget.name': 'Costs',
   'admin.addons.catalog.budget.description': '跟蹤支出並規劃旅行預算',
   'admin.addons.catalog.documents.name': '文件',
   'admin.addons.catalog.documents.description': '儲存和管理旅行文件',

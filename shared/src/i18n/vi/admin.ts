@@ -431,7 +431,7 @@ const admin: TranslationStrings = {
   'admin.addons.subtitle': 'Bật hoặc tắt các tính năng để tùy chỉnh trải nghiệm TREK của bạn.',
   'admin.addons.catalog.packing.name': 'Danh sách',
   'admin.addons.catalog.packing.description': 'Danh sách đóng gói và nhiệm vụ cần làm cho chuyến đi của bạn',
-  'admin.addons.catalog.budget.name': 'Ngân sách',
+  'admin.addons.catalog.budget.name': 'Chi phí',
   'admin.addons.catalog.budget.description': 'Theo dõi chi phí và lập kế hoạch ngân sách chuyến đi của bạn',
   'admin.addons.catalog.documents.name': 'Tài liệu',
   'admin.addons.catalog.documents.description': 'Lưu trữ và quản lý tài liệu du lịch',
