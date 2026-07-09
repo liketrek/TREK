@@ -713,6 +713,7 @@ for anything your plugin publishes via `ctx.events.emit`.
 | `db:meta` | `ctx.meta.*` — your own namespaced data on a trip/place/day |
 | `db:read:users` | `ctx.users.getById` |
 | `events:subscribe` | receive core activity events via `events: [...]` (event name + tripId + a { entity, entityId } hint; never content or a user) |
+| `jobs:run` | run declared background `jobs` on their cron schedule (opt-in; no user, so trip reads are refused) |
 | `ws:broadcast:trip` | `ctx.ws.broadcastToTrip` |
 | `ws:broadcast:user` | `ctx.ws.broadcastToUser` |
 | `http:outbound` or `http:outbound:<host>` | outbound HTTP to `egress[]` hosts |
