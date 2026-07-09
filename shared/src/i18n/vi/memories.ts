@@ -54,7 +54,7 @@ const memories: TranslationStrings = {
   'memories.oldest': 'Cũ nhất đầu tiên',
   'memories.newest': 'Mới nhất đầu tiên',
   'memories.allLocations': 'Tất cả địa điểm',
-  'memories.tripDates': 'Ngày chuyến đi',
+  'memories.tripDates': 'Ngày đi',
   'memories.allPhotos': 'Tất cả ảnh',
   'memories.confirmShareTitle': 'Chia sẻ với các thành viên?',
   'memories.confirmShareHint':

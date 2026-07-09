@@ -21,7 +21,7 @@ const vacay: TranslationStrings = {
   'vacay.personNamePlaceholder': 'Nhập tên',
   'vacay.color': 'Màu sắc',
   'vacay.add': 'Thêm vào',
-  'vacay.legend': 'Huyền thoại',
+  'vacay.legend': 'Chú giải',
   'vacay.publicHoliday': 'Ngày nghỉ lễ',
   'vacay.companyHoliday': 'Kỳ nghỉ của công ty',
   'vacay.weekend': 'Ngày cuối tuần',
