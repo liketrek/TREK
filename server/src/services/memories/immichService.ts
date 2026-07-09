@@ -178,13 +178,20 @@ export async function searchPhotos(
     if (!resp.ok) return { error: 'Search failed', status: resp.status };
     const data = await resp.json() as { assets?: { items?: any[] } };
     const items = data.assets?.items || [];
-    const assets = items.map((a: any) => ({
-      id: a.id,
-      takenAt: a.fileCreatedAt || a.createdAt,
-      city: a.exifInfo?.city || null,
-      country: a.exifInfo?.country || null,
-      mediaType: a.type === 'VIDEO' ? 'video' : 'image',
-    }));
+    // Live Photo motion parts (and other hidden assets) are visibility:'hidden'
+    // in Immich and have no generated thumbnail — Immich's own timeline hides
+    // them, so don't surface them as separate (broken) tiles (#1474). Legacy
+    // Immich versions expose the same state as isVisible:false. hasMore stays on
+    // the raw page length so pagination still advances past a filtered page.
+    const assets = items
+      .filter((a: any) => a.visibility !== 'hidden' && a.isVisible !== false)
+      .map((a: any) => ({
+        id: a.id,
+        takenAt: a.fileCreatedAt || a.createdAt,
+        city: a.exifInfo?.city || null,
+        country: a.exifInfo?.country || null,
+        mediaType: a.type === 'VIDEO' ? 'video' : 'image',
+      }));
     return { assets, hasMore: items.length >= size };
   } catch {
     return { error: 'Could not reach Immich', status: 502 };
@@ -357,13 +364,17 @@ export async function getAlbumPhotos(
     });
     if (!resp.ok) return { error: 'Failed to fetch album', status: resp.status };
     const albumData = await resp.json() as { assets?: any[] };
-    const assets = (albumData.assets || []).map((a: any) => ({
-      id: a.id,
-      takenAt: a.fileCreatedAt || a.createdAt,
-      city: a.exifInfo?.city || null,
-      country: a.exifInfo?.country || null,
-      mediaType: a.type === 'VIDEO' ? 'video' : 'image',
-    }));
+    // Exclude hidden assets (e.g. Live Photo motion parts) that have no
+    // thumbnail, mirroring the search path (#1474).
+    const assets = (albumData.assets || [])
+      .filter((a: any) => a.visibility !== 'hidden' && a.isVisible !== false)
+      .map((a: any) => ({
+        id: a.id,
+        takenAt: a.fileCreatedAt || a.createdAt,
+        city: a.exifInfo?.city || null,
+        country: a.exifInfo?.country || null,
+        mediaType: a.type === 'VIDEO' ? 'video' : 'image',
+      }));
     return { assets };
   } catch {
     return { error: 'Could not reach Immich', status: 502 };

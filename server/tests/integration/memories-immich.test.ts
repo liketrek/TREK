@@ -693,6 +693,45 @@ describe('Immich searchPhotos pagination pass-through', () => {
     expect(res.body.assets.length).toBe(3);
     expect(res.body.hasMore).toBe(false);
   });
+
+  it('IMMICH-092 — POST /search filters hidden Live Photo motion assets (#1474)', async () => {
+    const { user } = createUser(testDb);
+    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+
+    // A Live Photo pair (visible still + hidden motion video) plus a legacy
+    // hidden asset — only the still should survive, but hasMore reflects the
+    // raw page count (4 >= size 4).
+    const mixedResponse = {
+      ok: true, status: 200,
+      headers: { get: () => null },
+      json: () => Promise.resolve({
+        assets: {
+          items: [
+            { id: 'still-1', type: 'IMAGE', visibility: 'timeline', fileCreatedAt: '2024-06-01T10:00:00.000Z', exifInfo: { city: 'Kyoto', country: 'Japan' }, livePhotoVideoId: 'motion-1' },
+            { id: 'motion-1', type: 'VIDEO', visibility: 'hidden', fileCreatedAt: '2024-06-01T10:00:00.000Z' },
+            { id: 'legacy-hidden', type: 'VIDEO', isVisible: false, fileCreatedAt: '2024-06-01T10:00:00.000Z' },
+            { id: 'video-visible', type: 'VIDEO', visibility: 'timeline', fileCreatedAt: '2024-06-01T10:00:00.000Z' },
+          ],
+        },
+      }),
+      body: null,
+    } as any;
+
+    vi.mocked(safeFetch).mockResolvedValue(mixedResponse);
+
+    const res = await request(app)
+      .post(`${IMMICH}/search`)
+      .set('Cookie', authCookie(user.id))
+      .send({ page: 1, size: 4 });
+
+    expect(res.status).toBe(200);
+    // motion-1 (hidden) and legacy-hidden (isVisible:false) are dropped.
+    expect(res.body.assets.map((a: any) => a.id)).toEqual(['still-1', 'video-visible']);
+    // Ordinary visible video survives, tagged as video.
+    expect(res.body.assets.find((a: any) => a.id === 'video-visible').mediaType).toBe('video');
+    // hasMore stays on raw page length so pagination advances past a filtered page.
+    expect(res.body.hasMore).toBe(true);
+  });
 });
 
 // ── saveImmichSettings clearing credentials ───────────────────────────────────
