@@ -17,6 +17,8 @@ import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import type { Reservation, Day, TripFile, AssignmentsMap } from '../../types'
+import type { ViewContribution } from '../../api/client'
+import { usePluginViewContributions, PluginColumns, PluginActions } from '../Plugins/PluginContributions'
 import { splitReservationDateTime, formatTime } from '../../utils/formatters'
 
 interface AssignmentLookupEntry {
@@ -66,6 +68,18 @@ function buildAssignmentLookup(days, assignments) {
 const fieldLabelClass = 'text-[10px] font-semibold uppercase tracking-[0.08em] text-content-faint mb-[5px]'
 const fieldValueClass = 'text-[13px] font-medium text-content px-[10px] py-[8px] bg-surface-tertiary rounded-[10px]'
 
+/** Plugin-contributed columns + actions strip, appended to the bottom of an entity
+ * card. Renders nothing (zero change to the card) when no plugin contributes. */
+function PluginCardFooter({ items, tripId }: { items: ViewContribution[]; tripId: number }) {
+  if (!items.length) return null
+  return (
+    <div className="border-t border-edge" style={{ marginTop: 8, paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <PluginColumns items={items} />
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}><PluginActions items={items} tripId={tripId} /></div>
+    </div>
+  )
+}
+
 interface ReservationCardProps {
   r: Reservation
   tripId: number
@@ -76,9 +90,10 @@ interface ReservationCardProps {
   assignmentLookup: Record<number, AssignmentLookupEntry>
   canEdit: boolean
   days?: Day[]
+  contributions?: ViewContribution[]
 }
 
-function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateToFiles, assignmentLookup, canEdit, days = [] }: ReservationCardProps) {
+function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateToFiles, assignmentLookup, canEdit, days = [], contributions = [] }: ReservationCardProps) {
   const { toggleReservationStatus } = useTripStore()
   const toast = useToast()
   const { t, locale } = useTranslation()
@@ -407,6 +422,8 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
         )}
       </div>
 
+      <PluginCardFooter items={contributions} tripId={tripId} />
+
       {/* Delete confirmation */}
       {showDeleteConfirm && ReactDOM.createPortal(
         <div className="bg-[rgba(0,0,0,0.3)]" style={{
@@ -498,12 +515,14 @@ function Section({ title, count, children, defaultOpen = true, accent, storageKe
  * A transit journey's own card (#1065) — leg chips + journey stats instead of
  * the generic booking layout. Clicking anywhere opens the journey view.
  */
-function TransitJourneyCard({ r, days, onOpen, onDelete, canEdit }: {
+function TransitJourneyCard({ r, days, onOpen, onDelete, canEdit, tripId, contributions = [] }: {
   r: Reservation
   days: Day[]
   onOpen: (r: Reservation) => void
   onDelete: (id: number) => void
   canEdit: boolean
+  tripId: number
+  contributions?: ViewContribution[]
 }) {
   const { t, locale } = useTranslation()
   const timeFormat = useSettingsStore(st => st.settings.time_format) || '24h'
@@ -566,6 +585,7 @@ function TransitJourneyCard({ r, days, onOpen, onDelete, canEdit }: {
           </span>
         </div>
       )}
+      <PluginCardFooter items={contributions} tripId={tripId} />
       {confirmOpen && ReactDOM.createPortal(
         <div className="bg-[rgba(0,0,0,0.35)]" style={{ position: 'fixed', inset: 0, zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={e => { e.stopPropagation(); setConfirmOpen(false) }}>
           <div className="bg-surface-card" style={{ borderRadius: 14, padding: 20, width: 340, boxShadow: '0 16px 48px rgba(0,0,0,0.22)' }} onClick={e => e.stopPropagation()}>
@@ -609,6 +629,8 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
   const [showHint, setShowHint] = useState(() => !localStorage.getItem('hideReservationHint'))
 
   const storageKey = `trek-reservation-filters-${tripId}`
+  // Plugin-contributed columns/actions for this view, keyed by reservation id (#plugins).
+  const contribFor = usePluginViewContributions('reservations', tripId)
   const [typeFilters, setTypeFilters] = useState<Set<string>>(() => {
     try {
       const saved = sessionStorage.getItem(storageKey)
@@ -776,17 +798,17 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
           <>
             {transitEntries.length > 0 && (
               <Section title={t('transit.sectionTitle')} count={transitEntries.length} accent="gray" storageKey={`trek:bookings-transit-open:${tripId}`}>
-                {transitEntries.map(r => <TransitJourneyCard key={r.id} r={r} days={days} onOpen={onEdit} onDelete={onDelete} canEdit={canEdit} />)}
+                {transitEntries.map(r => <TransitJourneyCard key={r.id} r={r} days={days} onOpen={onEdit} onDelete={onDelete} canEdit={canEdit} tripId={tripId} contributions={contribFor(r.id)} />)}
               </Section>
             )}
             {allPending.length > 0 && (
               <Section title={t('reservations.pending')} count={allPending.length} accent="gray" storageKey={`trek:bookings-pending-open:${tripId}`}>
-                {allPending.map(r => <ReservationCard key={r.id} r={r} tripId={tripId} onEdit={onEdit} onDelete={onDelete} files={files} onNavigateToFiles={onNavigateToFiles} assignmentLookup={assignmentLookup} canEdit={canEdit} days={days} />)}
+                {allPending.map(r => <ReservationCard key={r.id} r={r} tripId={tripId} onEdit={onEdit} onDelete={onDelete} files={files} onNavigateToFiles={onNavigateToFiles} assignmentLookup={assignmentLookup} canEdit={canEdit} days={days} contributions={contribFor(r.id)} />)}
               </Section>
             )}
             {allConfirmed.length > 0 && (
               <Section title={t('reservations.confirmed')} count={allConfirmed.length} accent="green" storageKey={`trek:bookings-confirmed-open:${tripId}`}>
-                {allConfirmed.map(r => <ReservationCard key={r.id} r={r} tripId={tripId} onEdit={onEdit} onDelete={onDelete} files={files} onNavigateToFiles={onNavigateToFiles} assignmentLookup={assignmentLookup} canEdit={canEdit} days={days} />)}
+                {allConfirmed.map(r => <ReservationCard key={r.id} r={r} tripId={tripId} onEdit={onEdit} onDelete={onDelete} files={files} onNavigateToFiles={onNavigateToFiles} assignmentLookup={assignmentLookup} canEdit={canEdit} days={days} contributions={contribFor(r.id)} />)}
               </Section>
             )}
           </>
