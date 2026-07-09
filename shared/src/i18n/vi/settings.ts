@@ -310,7 +310,7 @@ const settings: TranslationStrings = {
     'Kết nối AirTrail tự lưu trữ của bạn để nhập và đồng bộ hóa các chuyến bay. Tạo khóa API trong AirTrail trong Cài đặt → Bảo mật.',
   'settings.airtrail.url': 'Ví dụ URL',
   'settings.airtrail.apiKey': 'API Key',
-  'settings.airtrail.apiKeyPlaceholder': 'Bearer API Key',
+  'settings.airtrail.apiKeyPlaceholder': 'API Key',
   'settings.airtrail.apiKeyHint': 'Được tạo trong AirTrail trong Cài đặt → Bảo mật. Được lưu trữ được mã hóa.',
   'settings.airtrail.allowInsecureTls': 'Cho phép chứng chỉ tự ký',
   'settings.airtrail.allowInsecureTlsHint': 'Chỉ kích hoạt cho một phiên bản đáng tin cậy trên mạng của riêng bạn.',
