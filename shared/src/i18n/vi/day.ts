@@ -15,7 +15,7 @@ const day: TranslationStrings = {
   'day.hotelDayRange': 'Áp dụng cho ngày',
   'day.noPlacesForHotel': 'Thêm địa điểm vào chuyến đi của bạn trước',
   'day.allDays': 'Tất cả',
-  'day.checkIn': 'Đăng ký vào',
+  'day.checkIn': 'Nhận phòng',
   'day.checkInUntil': 'Cho đến khi',
   'day.checkOut': 'Trả phòng',
   'day.confirmation': 'Xác nhận',

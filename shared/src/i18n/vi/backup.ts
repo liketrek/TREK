@@ -3,7 +3,7 @@ import type { TranslationStrings } from '../types';
 const backup: TranslationStrings = {
   'backup.title': 'Sao lưu dữ liệu',
   'backup.subtitle': 'Cơ sở dữ liệu và tất cả các tệp được tải lên',
-  'backup.refresh': 'Làm cho khỏe lại',
+  'backup.refresh': 'Làm mới',
   'backup.upload': 'Tải lên bản sao lưu',
   'backup.uploading': 'Đang tải lên…',
   'backup.create': 'Tạo bản sao lưu',
