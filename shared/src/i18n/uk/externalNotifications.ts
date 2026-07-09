@@ -52,6 +52,7 @@ const uk: NotificationLocale = {
       title: 'Сеанс Synology скинуто',
       body: 'Ваш обліковий запис або URL Synology змінився. Ви вийшли з Synology Photos.',
     }),
+    plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {
     subject: 'Скидання пароля',

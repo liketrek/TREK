@@ -134,6 +134,9 @@ export const KNOWN_METHODS = [
   'users.getById',
   'ws.broadcastToTrip',
   'ws.broadcastToUser',
+  'notify.send',
+  'ai.complete',
+  'ai.extract',
 ] as const;
 export type KnownMethod = (typeof KNOWN_METHODS)[number];
 
@@ -226,6 +229,9 @@ export const METHOD_PERMISSION: Record<KnownMethod, string> = {
   'users.getById': 'db:read:users',
   'ws.broadcastToTrip': 'ws:broadcast:trip',
   'ws.broadcastToUser': 'ws:broadcast:user',
+  'notify.send': 'notify:send',
+  'ai.complete': 'ai:invoke',
+  'ai.extract': 'ai:invoke',
 };
 
 /** All permission strings the host understands (unknown ones are rejected at activation). */
@@ -273,6 +279,8 @@ export const KNOWN_PERMISSIONS = [
   'events:subscribe',
   'jobs:run',
   'http:outbound',
+  'notify:send',
+  'ai:invoke',
 ] as const;
 
 export function isKnownPermission(p: string): boolean {

@@ -35,6 +35,8 @@ const notif: TranslationStrings = {
   'notif.action.view': 'Görüntüle',
   'notif.action.accept': 'Kabul et',
   'notif.action.decline': 'Reddet',
+  'notif.plugin.title': '{title}',
+  'notif.plugin.text': '{body}',
   'notif.generic.title': 'Bildirim',
   'notif.generic.text': 'Yeni bir bildiriminiz var',
   'notif.dev.unknown_event.title': '[GEL] Bilinmeyen Olay',

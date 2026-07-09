@@ -251,6 +251,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:write:files': "Joindre des fichiers aux voyages que l'utilisateur actif peut modifier (limite de 10 Mo, extensions bloquées refusées) et gérer leurs liens",
   'admin.plugins.perm.db:write:collab': "Publier des notes, des sondages et des messages de chat sur les voyages que l'utilisateur actif peut modifier (nécessite le module Collab)",
   'admin.plugins.perm.db:write:members': "Ajouter des utilisateurs aux voyages — accorde l'accès au voyage ; protégé par le droit de gestion des membres de l'utilisateur actif",
+  'admin.plugins.perm.notify:send': "Envoyer une notification (boîte de réception + e-mail/ntfy) à l'utilisateur actif ou à un voyage auquel il appartient — jamais à un destinataire arbitraire",
+  'admin.plugins.perm.ai:invoke': "Utiliser le fournisseur d'IA configuré par l'administrateur (complétion de texte + extraction de documents) au nom de l'utilisateur actif — le module ne détient jamais de clé",
   'admin.plugins.perm.db:read:files': "Lire les fichiers des voyages accessibles à l'utilisateur actif",
   'admin.plugins.perm.db:write:reservations': "Créer, modifier et supprimer des réservations sur les voyages que l'utilisateur actif peut modifier",
   'admin.plugins.perm.db:read:journal': "Lire les journaux de voyage de l'utilisateur actif (nécessite le module Journey)",

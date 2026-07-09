@@ -105,6 +105,11 @@ function makeDeps(): HostDeps {
     createCollabMessage: vi.fn((tripId: number, text: string) => ({ id: 142, trip_id: tripId, text })),
     canManageMembers: vi.fn((tripId: number, userId: number) => tripId === 1 && userId === 42),
     addTripMember: vi.fn((tripId: number, targetUserId: number, invitedBy: number) => ({ joined: true, tripId, targetUserId, invitedBy })),
+    canAccessTripForNotify: vi.fn((tripId: number, userId: number) => tripId === 1 && userId === 42),
+    sendPluginNotification: vi.fn(async (pluginId: string, input: unknown) => ({ sent: true, pluginId, ...(input as object) })),
+    aiConfigured: vi.fn((userId: number) => userId === 42),
+    aiComplete: vi.fn(async (_uid: number, prompt: string) => ({ text: `echo:${prompt}` })),
+    aiExtract: vi.fn(async () => ({ results: [{ ok: true }] })),
     createCollectionForUser: vi.fn((uid: number, input: unknown) => ({ id: 100, owner_id: uid, ...(input as object) })),
     updateCollectionForUser: vi.fn((_uid: number, id: number, input: unknown) => ({ id, ...(input as object) })),
     saveCollectionPlace: vi.fn((uid: number, input: unknown) => ({ id: 101, saved_by: uid, ...(input as object) })),
@@ -525,6 +530,35 @@ describe('PluginRpcHost — capability enforcement', () => {
     // and NOT reachable via any other write grant
     const otherGrant = new PluginRpcHost('p', new Set(['db:write:trips', 'db:write:collab']), deps);
     expect((await otherGrant.dispatch(req('trips.addMember', { tripId: 1, userId: 6 }), 42)).ok).toBe(false);
+  });
+
+  it('notify.send forces the recipient to the acting user or a member trip; admin scope refused', async () => {
+    const host = new PluginRpcHost('p', new Set(['notify:send']), deps);
+    expect(ok(await host.dispatch(req('notify.send', { input: { title: 'Delay', body: 'AB123 is late', scope: 'user', targetId: 42 } }), 42))).toBe(true);
+    expect(deps.sendPluginNotification).toHaveBeenCalledWith('p', expect.objectContaining({ scope: 'user', targetId: 42 }));
+    expect(ok(await host.dispatch(req('notify.send', { input: { title: 'Trip', body: 'x', scope: 'trip', targetId: 1 } }), 42))).toBe(true);
+    // another user (scope user, foreign targetId) → forbidden
+    expect(((await host.dispatch(req('notify.send', { input: { title: 't', body: 'b', scope: 'user', targetId: 99 } }), 42)) as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    // a trip the acting user isn't in → forbidden
+    expect(((await host.dispatch(req('notify.send', { input: { title: 't', body: 'b', scope: 'trip', targetId: 2 } }), 42)) as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    // admin scope → bad params (not an allowed scope)
+    expect((await host.dispatch(req('notify.send', { input: { title: 't', body: 'b', scope: 'admin', targetId: 0 } }), 42)).ok).toBe(false);
+    // a protocol-relative / absolute link → rejected
+    expect((await host.dispatch(req('notify.send', { input: { title: 't', body: 'b', scope: 'user', targetId: 42, link: '//evil.com' } }), 42)).ok).toBe(false);
+    expect((await host.dispatch(req('notify.send', { input: { title: '', body: 'b', scope: 'user', targetId: 42 } }), 42)).ok).toBe(false);
+  });
+
+  it('ai.complete/extract require a configured provider + a bound user, with caps', async () => {
+    const host = new PluginRpcHost('p', new Set(['ai:invoke']), deps);
+    expect(ok(await host.dispatch(req('ai.complete', { prompt: 'Summarize my trip' }), 42))).toBe(true);
+    expect(ok(await host.dispatch(req('ai.extract', { text: 'AB123 JFK 10:00', jsonSchema: { type: 'object' } }), 42))).toBe(true);
+    expect((await host.dispatch(req('ai.complete', { prompt: '' }), 42)).ok).toBe(false);
+    expect((await host.dispatch(req('ai.extract', { text: 'x', jsonSchema: 'not-an-object' }), 42)).ok).toBe(false);
+    expect((await host.dispatch(req('ai.complete', { prompt: 'x'.repeat(20001) }), 42)).ok).toBe(false);
+    // user 7 has no provider configured → bad params (not a crash)
+    expect((await host.dispatch(req('ai.complete', { prompt: 'hi' }), 7)).ok).toBe(false);
+    // no user context at all → forbidden
+    expect((await host.dispatch(req('ai.complete', { prompt: 'hi' }), undefined)).ok).toBe(false);
   });
 
   it('a read scope is denied without its own permission', async () => {

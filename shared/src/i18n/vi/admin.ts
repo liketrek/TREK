@@ -307,6 +307,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:write:files': 'Đính kèm tệp vào các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa (giới hạn 10 MB, phần mở rộng bị chặn sẽ bị từ chối) và quản lý liên kết của chúng',
   'admin.plugins.perm.db:write:collab': 'Đăng ghi chú, bình chọn và tin nhắn trò chuyện trên các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa (cần add-on Collab)',
   'admin.plugins.perm.db:write:members': 'Thêm người dùng vào chuyến đi — cấp quyền truy cập chuyến đi; được bảo vệ bởi quyền quản lý thành viên của người dùng hiện tại',
+  'admin.plugins.perm.notify:send': 'Gửi thông báo (hộp chuông + email/ntfy) đến người dùng hiện tại hoặc chuyến đi mà họ thuộc về — không bao giờ đến người nhận tùy ý',
+  'admin.plugins.perm.ai:invoke': 'Chạy nhà cung cấp AI do quản trị viên cấu hình (hoàn thành văn bản + trích xuất tài liệu) thay mặt người dùng hiện tại — plugin không bao giờ giữ khóa',
   'admin.plugins.perm.db:read:files': 'Đọc tệp của các chuyến đi mà người dùng hiện tại có quyền truy cập',
   'admin.plugins.perm.db:write:reservations': 'Tạo, chỉnh sửa và xóa đặt chỗ trên các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa',
   'admin.plugins.perm.db:read:journal': 'Đọc nhật ký du lịch của người dùng hiện tại (cần add-on Journey)',

@@ -53,6 +53,15 @@ export interface HostDeps {
   broadcastToTrip(tripId: number, eventType: string, payload: Record<string, unknown>): void;
   /** Namespaced per-user broadcast. */
   broadcastToUser(userId: number, payload: Record<string, unknown>): void;
+  // --- Host-mediated notifications (recipient resolution + channel fan-out owned
+  // by the host; the plugin supplies only target + plain text). ---
+  canAccessTripForNotify(tripId: number, userId: number): boolean;
+  sendPluginNotification(pluginId: string, input: { title: string; body: string; link?: string; scope: 'user' | 'trip'; targetId: number }): Promise<unknown>;
+  // --- Host-mediated LLM (the host owns the credential; output is DATA the plugin
+  // must still push through the gated write methods). ---
+  aiConfigured(userId: number): boolean;
+  aiComplete(userId: number, prompt: string, system: string | undefined): Promise<unknown>;
+  aiExtract(userId: number, text: string, jsonSchema: object, prompt: string | undefined): Promise<unknown>;
   /** Optional sink for the capability audit log (host-side, hash-chained). */
   audit?(entry: { pluginId: string; actingUserId?: number; method: string; resource: string | null; code: string }): void;
   /** Call an export on another plugin (this host's plugin is the caller). Authorizes
@@ -875,6 +884,57 @@ export class PluginRpcHost {
         }
         deps.broadcastToUser(userId, { event: str(p.event, 'event'), ...asPayload(p.data) });
         return { ok: true };
+      });
+    }
+
+    if (has('notify:send')) {
+      // Host-mediated notification. The plugin supplies only plain text + a target;
+      // the host owns recipient resolution, channel fan-out and per-user preferences.
+      // Recipients are FORCED to the acting user (scope 'user', targetId===uid) or a
+      // trip the acting user is a member of (scope 'trip'); scope 'admin' is refused,
+      // so there is no arbitrary-recipient / admin-broadcast path (no spam, no phishing).
+      this.methods.set('notify.send', (p, uid) => {
+        const actor = this.requireActor(uid, 'notification');
+        const input = asPayload(p.input);
+        const title = typeof input.title === 'string' ? input.title.trim() : '';
+        const body = typeof input.body === 'string' ? input.body.trim() : '';
+        if (!title || title.length > 200) throw new BadParams('notification title is required (max 200 chars)');
+        if (!body || body.length > 1000) throw new BadParams('notification body is required (max 1000 chars)');
+        const scope = input.scope;
+        if (scope !== 'user' && scope !== 'trip') throw new BadParams("scope must be 'user' or 'trip'");
+        const targetId = num(input.targetId, 'targetId');
+        if (scope === 'user' && targetId !== actor) throw new ForbiddenResource('a plugin may only notify the acting user');
+        if (scope === 'trip' && !deps.canAccessTripForNotify(targetId, actor)) throw new ForbiddenResource('the acting user is not a member of that trip');
+        let link: string | undefined;
+        if (typeof input.link === 'string' && input.link !== '') {
+          // Same open-redirect-safe relative-link rule the proxy uses: an in-app path only.
+          if (!input.link.startsWith('/') || input.link.startsWith('//')) throw new BadParams('link must be an in-app path starting with /');
+          link = input.link.slice(0, 512);
+        }
+        return deps.sendPluginNotification(this.pluginId, { title, body, link, scope, targetId });
+      });
+    }
+    if (has('ai:invoke')) {
+      // Host-mediated LLM. The host holds the (encrypted) credential and runs the
+      // call under the acting user's resolved provider config; the plugin passes only
+      // a prompt / JSON-schema. Output is returned as DATA — never auto-written — so
+      // prompt-injection cannot reach a write without the plugin's own gated call.
+      this.methods.set('ai.complete', (p, uid) => {
+        const actor = this.requireActor(uid, 'AI');
+        if (!deps.aiConfigured(actor)) throw new BadParams('no AI provider is configured for this user');
+        const prompt = typeof p.prompt === 'string' ? p.prompt : '';
+        if (prompt.trim() === '') throw new BadParams('prompt is required');
+        if (prompt.length > 20000) throw new BadParams('prompt exceeds the 20000-char cap');
+        return deps.aiComplete(actor, prompt, typeof p.system === 'string' ? p.system.slice(0, 4000) : undefined);
+      });
+      this.methods.set('ai.extract', (p, uid) => {
+        const actor = this.requireActor(uid, 'AI');
+        if (!deps.aiConfigured(actor)) throw new BadParams('no AI provider is configured for this user');
+        const text = typeof p.text === 'string' ? p.text : '';
+        if (text.trim() === '') throw new BadParams('text is required');
+        if (text.length > 20000) throw new BadParams('text exceeds the 20000-char cap');
+        if (typeof p.jsonSchema !== 'object' || p.jsonSchema === null) throw new BadParams('jsonSchema (an object) is required');
+        return deps.aiExtract(actor, text, p.jsonSchema as object, typeof p.prompt === 'string' ? p.prompt.slice(0, 4000) : undefined);
       });
     }
 

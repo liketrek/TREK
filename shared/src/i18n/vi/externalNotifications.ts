@@ -52,6 +52,7 @@ const en: NotificationLocale = {
       title: 'Đã xóa phiên Synology',
       body: 'Tài khoản Synology của bạn hoặc URL đã thay đổi. Bạn đã đăng xuất khỏi Synology Photos.',
     }),
+    plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {
     subject: 'Đặt lại mật khẩu của bạn',

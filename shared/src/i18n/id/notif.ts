@@ -35,6 +35,8 @@ const notif: TranslationStrings = {
   'notif.action.view': 'Lihat',
   'notif.action.accept': 'Terima',
   'notif.action.decline': 'Tolak',
+  'notif.plugin.title': '{title}',
+  'notif.plugin.text': '{body}',
   'notif.generic.title': 'Notifikasi',
   'notif.generic.text': 'Kamu punya notifikasi baru',
   'notif.dev.unknown_event.title': '[DEV] Event Tidak Dikenal',

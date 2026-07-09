@@ -294,6 +294,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:write:files': 'İşlemi yapan kullanıcının düzenleyebildiği seyahatlere dosyalar ekler (10 MB sınırı, engellenen uzantılar reddedilir) ve bağlantılarını yönetir',
   'admin.plugins.perm.db:write:collab': 'İşlemi yapan kullanıcının düzenleyebildiği seyahatlerde notlar, anketler ve sohbet mesajları yayınlar (Collab eklentisi gerektirir)',
   'admin.plugins.perm.db:write:members': 'Seyahatlere kullanıcı ekler — seyahat erişimi verir; işlemi yapan kullanıcının üye yönetimi hakkıyla korunur',
+  'admin.plugins.perm.notify:send': 'İşlemi yapan kullanıcıya veya ait olduğu bir seyahate bildirim (zil kutusu + e-posta/ntfy) gönderir — asla rastgele bir alıcıya değil',
+  'admin.plugins.perm.ai:invoke': 'Yönetici tarafından yapılandırılan yapay zekâ sağlayıcısını (metin tamamlama + belge çıkarımı) işlemi yapan kullanıcı adına çalıştırır — eklenti asla anahtar tutmaz',
   'admin.plugins.perm.db:read:files': 'İşlemi yapan kullanıcının erişebildiği seyahatlerin dosyalarını okur',
   'admin.plugins.perm.db:write:reservations': 'İşlemi yapan kullanıcının düzenleyebildiği seyahatlerde rezervasyonlar oluşturur, düzenler ve siler',
   'admin.plugins.perm.db:read:journal': 'İşlemi yapan kullanıcının seyahat günlüklerini okur (Journey eklentisi gerektirir)',

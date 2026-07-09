@@ -88,6 +88,19 @@ export interface PluginContext {
     votePoll(tripId: number, pollId: number, optionIndex: number): Promise<unknown>;
     createMessage(tripId: number, text: string, replyTo?: number): Promise<unknown>;
   };
+  /** Host-mediated notification. The plugin supplies only target + plain text; the host
+   * owns delivery + preferences. Recipient is FORCED to the acting user (scope 'user',
+   * targetId = the acting user) or a trip they belong to (scope 'trip'). Needs 'notify:send'. */
+  notify: {
+    send(input: { title: string; body: string; link?: string; scope: 'user' | 'trip'; targetId: number }): Promise<{ sent: boolean }>;
+  };
+  /** Host-mediated LLM using the admin/user-configured provider — the plugin never holds a
+   * key. `complete` returns { text }; `extract` returns { results } for your JSON schema.
+   * Output is DATA: to persist it, push it through the gated write methods yourself. Needs 'ai:invoke'. */
+  ai: {
+    complete(prompt: string, system?: string): Promise<{ text: string }>;
+    extract(text: string, jsonSchema: object, prompt?: string): Promise<{ results: Record<string, unknown>[] }>;
+  };
   /** Host weather cache by coordinates (+ optional YYYY-MM-DD). Tenant-free. Needs 'weather:read'. */
   weather: {
     get(lat: number, lng: number, date?: string): Promise<unknown>;
@@ -413,6 +426,13 @@ export function createPluginContext(
       createPoll: (tripId, input) => t.rpc('collab.createPoll', { tripId, input, _inv: invocationId }),
       votePoll: (tripId, pollId, optionIndex) => t.rpc('collab.votePoll', { tripId, pollId, optionIndex, _inv: invocationId }),
       createMessage: (tripId, text, replyTo) => t.rpc('collab.createMessage', { tripId, text, replyTo, _inv: invocationId }),
+    },
+    notify: {
+      send: (input) => t.rpc('notify.send', { input, _inv: invocationId }) as Promise<{ sent: boolean }>,
+    },
+    ai: {
+      complete: (prompt, system) => t.rpc('ai.complete', { prompt, system, _inv: invocationId }) as Promise<{ text: string }>,
+      extract: (text, jsonSchema, prompt) => t.rpc('ai.extract', { text, jsonSchema, prompt, _inv: invocationId }) as Promise<{ results: Record<string, unknown>[] }>,
     },
     weather: {
       get: (lat, lng, date) => t.rpc('weather.get', { lat, lng, date, _inv: invocationId }),

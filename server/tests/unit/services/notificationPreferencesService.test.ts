@@ -94,14 +94,15 @@ describe('getPreferencesMatrix', () => {
     const { user } = createUser(testDb);
     const { event_types } = getPreferencesMatrix(user.id, 'user');
     expect(event_types).not.toContain('version_available');
-    expect(event_types.length).toBe(10);
+    // +1 for plugin_notification: users can mute host-mediated plugin notifications.
+    expect(event_types.length).toBe(11);
   });
 
   it('NPREF-005 — user scope excludes version_available for everyone including admins', () => {
     const { user } = createAdmin(testDb);
     const { event_types } = getPreferencesMatrix(user.id, 'admin', 'user');
     expect(event_types).not.toContain('version_available');
-    expect(event_types.length).toBe(10);
+    expect(event_types.length).toBe(11);
   });
 
   it('NPREF-005b — admin scope returns only version_available', () => {

@@ -52,6 +52,7 @@ const ar: NotificationLocale = {
       title: 'تمت إعادة تعيين جلسة Synology',
       body: 'تغيّر حسابك أو رابط Synology. تم تسجيل خروجك من Synology Photos.',
     }),
+    plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {
     subject: 'إعادة تعيين كلمة المرور',

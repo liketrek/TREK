@@ -17,7 +17,8 @@ export type NotifEventType =
   | 'collab_message'
   | 'packing_tagged'
   | 'version_available'
-  | 'synology_session_cleared';
+  | 'synology_session_cleared'
+  | 'plugin_notification';
 
 export interface AvailableChannels {
   email: boolean;
@@ -40,6 +41,7 @@ const IMPLEMENTED_COMBOS: Record<NotifEventType, NotifChannel[]> = {
   packing_tagged:    ['inapp', 'email', 'webhook', 'ntfy'],
   version_available: ['inapp', 'email', 'webhook', 'ntfy'],
   synology_session_cleared: ['inapp'],
+  plugin_notification: ['inapp', 'email', 'webhook', 'ntfy'],
 };
 
 /** Events that target admins only (shown in admin panel, not in user settings). */

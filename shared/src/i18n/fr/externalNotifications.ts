@@ -52,6 +52,7 @@ const fr: NotificationLocale = {
       title: 'Session Synology effacée',
       body: 'Votre compte ou URL Synology a changé. Vous avez été déconnecté de Synology Photos.',
     }),
+    plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {
     subject: 'Réinitialisez votre mot de passe',

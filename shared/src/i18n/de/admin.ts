@@ -250,6 +250,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:write:files': 'Dateien an Reisen anhängen, die der handelnde Nutzer bearbeiten kann (10-MB-Limit, gesperrte Endungen abgelehnt), und deren Verknüpfungen verwalten',
   'admin.plugins.perm.db:write:collab': 'Notizen, Umfragen und Chat-Nachrichten auf Reisen erstellen, die der handelnde Nutzer bearbeiten kann (benötigt das Collab-Addon)',
   'admin.plugins.perm.db:write:members': 'Nutzer zu Reisen hinzufügen — gewährt Reise-Zugriff; über das Mitglieder-verwalten-Recht des handelnden Nutzers abgesichert',
+  'admin.plugins.perm.notify:send': 'Eine Benachrichtigung (Glocken-Postfach + E-Mail/ntfy) an den handelnden Nutzer oder eine seiner Reisen senden — nie an beliebige Empfänger',
+  'admin.plugins.perm.ai:invoke': 'Den vom Admin konfigurierten KI-Anbieter (Textvervollständigung + Dokumentenextraktion) im Namen des handelnden Nutzers nutzen — das Plugin hält nie einen Schlüssel',
   'admin.plugins.perm.db:read:files': 'Dateien von Reisen lesen, auf die der handelnde Nutzer Zugriff hat',
   'admin.plugins.perm.db:read:journal': 'Reisetagebücher des handelnden Nutzers lesen (benötigt das Journey-Addon)',
   'admin.plugins.perm.db:read:atlas': 'Besuchte Länder und Regionen des handelnden Nutzers lesen (benötigt das Atlas-Addon)',

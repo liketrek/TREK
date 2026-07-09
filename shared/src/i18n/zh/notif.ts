@@ -35,6 +35,8 @@ const notif: TranslationStrings = {
   'notif.action.view': '查看',
   'notif.action.accept': '接受',
   'notif.action.decline': '拒绝',
+  'notif.plugin.title': '{title}',
+  'notif.plugin.text': '{body}',
   'notif.generic.title': '通知',
   'notif.generic.text': '您有一条新通知',
   'notif.dev.unknown_event.title': '[DEV] 未知事件',

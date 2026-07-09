@@ -55,6 +55,8 @@ export function auditResource(method: string, params: Record<string, unknown>): 
   if (method === 'users.getById') return `user:${params.id ?? '?'}`;
   if (method === 'ws.broadcastToTrip') return `trip:${params.tripId ?? '?'}`;
   if (method === 'ws.broadcastToUser') return `user:${params.userId ?? '?'}`;
+  if (method === 'notify.send') { const i = (params.input ?? {}) as Record<string, unknown>; return `notify:${i.scope ?? '?'}:${i.targetId ?? '?'}`; }
+  if (method === 'ai.complete' || method === 'ai.extract') return 'ai:invoke';
   if (method === 'plugins.call') return `plugin:${params.targetId ?? '?'}#${params.fn ?? '?'}`;
   if (method === 'events.emit') return `event:${params.event ?? '?'}`;
   return null;

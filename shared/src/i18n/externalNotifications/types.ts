@@ -32,7 +32,8 @@ export type NotificationEventKey =
   | 'collab_message'
   | 'packing_tagged'
   | 'version_available'
-  | 'synology_session_cleared';
+  | 'synology_session_cleared'
+  | 'plugin_notification';
 
 export interface NotificationLocale {
   email: EmailStrings;

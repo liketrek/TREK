@@ -52,6 +52,7 @@ const pl: NotificationLocale = {
       title: 'Sesja Synology wyczyszczona',
       body: 'Twoje konto lub URL Synology uległo zmianie. Zostałeś wylogowany z Synology Photos.',
     }),
+    plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {
     subject: 'Zresetuj hasło',

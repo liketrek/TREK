@@ -60,6 +60,16 @@ const EVENT_NOTIFICATION_CONFIG: Record<string, EventNotifConfig> = {
     navigateTextKey: 'notif.action.view',
     navigateTarget: () => '/dashboard',
   },
+  // ── Plugin-mediated notification (#plugins) — raw title/body carried as params,
+  // rendered by the passthrough keys. The plugin never picks a recipient directly;
+  // the host forces scope/target to the acting user or a trip they belong to. ──────
+  plugin_notification: {
+    inAppType: 'navigate',
+    titleKey: 'notif.plugin.title',
+    textKey: 'notif.plugin.text',
+    navigateTextKey: 'notif.action.view',
+    navigateTarget: p => p.link || null,
+  },
   // ── Production events ─────────────────────────────────────────────────────
   trip_invite: {
     inAppType: 'navigate',

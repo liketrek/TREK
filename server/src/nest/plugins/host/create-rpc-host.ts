@@ -10,6 +10,9 @@ import { listItems as listTodosSvc, createItem as createTodoSvc, updateItem as u
 import { listFiles, createFile, createFileLink, getFileById, updateFile, softDeleteFile, findForeignLinkTarget, BLOCKED_EXTENSIONS, filesDir } from '../../../services/fileService';
 import { createNote as createCollabNoteSvc, createPoll as createCollabPollSvc, votePoll as voteCollabPollSvc, createMessage as createCollabMessageSvc } from '../../../services/collabService';
 import { joinTripAsMember } from '../../../services/tripMembership';
+import { send as sendNotification } from '../../../services/notificationService';
+import { resolveLlmConfig } from '../../llm-parse/llm-config.resolver';
+import { createLlmClient } from '../../llm-parse/llm-client.factory';
 import fsMod from 'node:fs';
 import pathMod from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -292,6 +295,47 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
       const target = db.prepare('SELECT id FROM users WHERE id = ?').get(targetUserId) as { id: number } | undefined;
       if (!target) throw new ForbiddenResource(`no user ${targetUserId}`);
       return joinTripAsMember(tripId, targetUserId, invitedBy);
+    },
+    // --- Host-mediated notifications. Recipient resolution + channel fan-out +
+    // per-user preferences are all owned by notificationService.send; the plugin
+    // supplies only the target (host-scoped by the router) + plain text. actorId is
+    // null (no user sender), so the message body carries the plugin's content. ---
+    canAccessTripForNotify: (tripId, userId) => !!canAccessTrip(tripId, userId),
+    sendPluginNotification: async (_pluginId, input) => {
+      await sendNotification({
+        event: 'plugin_notification',
+        actorId: null,
+        params: { title: input.title, body: input.body, ...(input.link ? { link: input.link } : {}) },
+        scope: input.scope,
+        targetId: input.targetId,
+        inApp: input.link ? { navigateTarget: input.link } : undefined,
+      });
+      return { sent: true };
+    },
+    // --- Host-mediated LLM. The host holds the credential (resolveLlmConfig, encrypted
+    // apiKey) and runs the call under the acting user's provider config; caps + the
+    // provider-availability check live at the router. Reuses the extraction client:
+    // complete() wraps it with a {text} schema; extract() passes the plugin's schema. ---
+    aiConfigured: (userId) => resolveLlmConfig(userId) !== null,
+    aiComplete: async (userId, prompt, system) => {
+      const config = resolveLlmConfig(userId);
+      if (!config) throw new BadParams('no AI provider is configured for this user');
+      const results = await createLlmClient(config).extract({
+        prompt: system || 'You are a helpful assistant. Reply with a JSON object of the form {"text": "..."} whose "text" field holds your answer.',
+        jsonSchema: { type: 'object', properties: { text: { type: 'string' } }, required: ['text'] },
+        model: config.model, baseUrl: config.baseUrl, apiKey: config.apiKey, text: prompt,
+      });
+      const first = results[0] as { text?: unknown } | undefined;
+      return { text: typeof first?.text === 'string' ? first.text : '' };
+    },
+    aiExtract: async (userId, text, jsonSchema, prompt) => {
+      const config = resolveLlmConfig(userId);
+      if (!config) throw new BadParams('no AI provider is configured for this user');
+      const results = await createLlmClient(config).extract({
+        prompt: prompt || 'Extract structured data from the text into the given JSON schema.',
+        jsonSchema, model: config.model, baseUrl: config.baseUrl, apiKey: config.apiKey, text,
+      });
+      return { results };
     },
     listCostsForTrip: (tripId) => listBudgetItems(tripId),
     // Cross-trip: every accessible trip's budget items (membership predicate is

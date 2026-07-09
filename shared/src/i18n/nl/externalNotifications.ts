@@ -52,6 +52,7 @@ const nl: NotificationLocale = {
       title: 'Synology-sessie gewist',
       body: 'Je Synology-account of URL is gewijzigd. Je bent uitgelogd bij Synology Photos.',
     }),
+    plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {
     subject: 'Reset je wachtwoord',

@@ -52,6 +52,7 @@ const zh: NotificationLocale = {
       title: 'Synology 会话已清除',
       body: '您的 Synology 账户或 URL 已更改，您已退出 Synology Photos。',
     }),
+    plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {
     subject: '重置您的密码',

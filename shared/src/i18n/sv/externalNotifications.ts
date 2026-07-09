@@ -52,6 +52,7 @@ const en: NotificationLocale = {
       title: 'Synology session rensad',
       body: 'Ditt Synology-konto eller din webbadress har ändrats. Du har loggats ut från Synology Photos.',
     }),
+    plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {
     subject: 'Återställ ditt lösenord',

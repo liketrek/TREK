@@ -35,6 +35,8 @@ const notif: TranslationStrings = {
   'notif.action.view': '보기',
   'notif.action.accept': '수락',
   'notif.action.decline': '거절',
+  'notif.plugin.title': '{title}',
+  'notif.plugin.text': '{body}',
   'notif.generic.title': '알림',
   'notif.generic.text': '새 알림이 있습니다',
   'notif.dev.unknown_event.title': '[DEV] 알 수 없는 이벤트',

@@ -250,6 +250,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:write:files': 'Bestanden toevoegen aan reizen die de actieve gebruiker mag bewerken (limiet 10 MB, geblokkeerde extensies geweigerd) en hun koppelingen beheren',
   'admin.plugins.perm.db:write:collab': 'Notities, peilingen en chatberichten plaatsen op reizen die de actieve gebruiker mag bewerken (vereist de Collab-add-on)',
   'admin.plugins.perm.db:write:members': 'Gebruikers aan reizen toevoegen — verleent reistoegang; beveiligd door het ledenbeheer-recht van de actieve gebruiker',
+  'admin.plugins.perm.notify:send': 'Een melding (belinbox + e-mail/ntfy) sturen naar de actieve gebruiker of een reis waartoe hij behoort — nooit naar een willekeurige ontvanger',
+  'admin.plugins.perm.ai:invoke': 'De door de beheerder geconfigureerde AI-provider (tekstaanvulling + documentextractie) namens de actieve gebruiker gebruiken — de plug-in bezit nooit een sleutel',
   'admin.plugins.perm.db:read:files': 'Bestanden lezen van reizen waartoe de actieve gebruiker toegang heeft',
   'admin.plugins.perm.db:write:reservations': 'Boekingen (reserveringen) aanmaken, bewerken en verwijderen op reizen die de actieve gebruiker mag bewerken',
   'admin.plugins.perm.db:read:journal': 'De reisdagboeken van de actieve gebruiker lezen (vereist de Journey-add-on)',

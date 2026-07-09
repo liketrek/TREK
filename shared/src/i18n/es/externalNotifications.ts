@@ -52,6 +52,7 @@ const es: NotificationLocale = {
       title: 'Sesión de Synology cerrada',
       body: 'Tu cuenta o URL de Synology ha cambiado. Has cerrado sesión en Synology Photos.',
     }),
+    plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {
     subject: 'Restablecer tu contraseña',

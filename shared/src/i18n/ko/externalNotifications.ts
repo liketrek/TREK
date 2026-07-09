@@ -52,6 +52,7 @@ const ko: NotificationLocale = {
       title: 'Synology 세션이 초기화되었습니다',
       body: 'Synology 계정 또는 URL이 변경되었습니다. Synology Photos에서 로그아웃되었습니다.',
     }),
+    plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {
     subject: '비밀번호 재설정',

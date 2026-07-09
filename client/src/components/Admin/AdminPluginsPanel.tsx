@@ -112,6 +112,7 @@ const PERM_KEYS = [
   'db:write:tags', 'db:write:todos', 'db:write:atlas', 'db:write:vacay', 'db:write:journal', 'db:write:collections',
   'db:write:files', 'db:write:collab', 'db:write:members',
   'db:meta',
+  'notify:send', 'ai:invoke',
   'events:subscribe', 'jobs:run',
   'ws:broadcast:trip', 'ws:broadcast:user',
   'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider', 'hook:trip-warning-provider', 'hook:table-contributor', 'http:outbound',

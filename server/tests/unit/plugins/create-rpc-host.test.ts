@@ -157,6 +157,14 @@ vi.mock('../../../src/services/collabService', () => ({
 vi.mock('../../../src/services/tripMembership', () => ({
   joinTripAsMember: vi.fn((tripId: number, userId: number) => ({ joined: userId !== 5, tripId })), // owner add = no-op
 }));
+const { notifySend } = vi.hoisted(() => ({ notifySend: vi.fn(async () => undefined) }));
+vi.mock('../../../src/services/notificationService', () => ({ send: notifySend }));
+// userId 7 = no provider configured; everyone else resolves to a stub config.
+vi.mock('../../../src/nest/llm-parse/llm-config.resolver', () => ({
+  resolveLlmConfig: vi.fn((uid: number) => (uid === 7 ? null : { provider: 'openai', model: 'gpt-x', baseUrl: undefined, apiKey: 'sekret' })),
+}));
+const { llmExtract } = vi.hoisted(() => ({ llmExtract: vi.fn(async (input: { text?: string }) => [{ text: `answer:${input.text ?? ''}` }]) }));
+vi.mock('../../../src/nest/llm-parse/llm-client.factory', () => ({ createLlmClient: vi.fn(() => ({ extract: llmExtract })) }));
 // Reservations: the Nest service is delegated to; mock it so the create-rpc-host
 // reservation deps' side-effect branches (accommodation / budget-sync / notify) run.
 vi.mock('../../../src/nest/reservations/reservations.service', () => ({
@@ -642,5 +650,39 @@ describe('create-rpc-host — Wave 3 wiring (files write / collab / member-add)'
     const ownerAdd = await call(h, 'trips.addMember', { tripId: 1, userId: 5 }) // owner -> no-op
     expect(ownerAdd.result).toMatchObject({ joined: false })
     expect(((await call(h, 'trips.addMember', { tripId: 1, userId: 12345 })) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
+  })
+})
+
+describe('create-rpc-host — Wave 4 wiring (notify / ai)', () => {
+  const host = (...perms: string[]) => createRealRpcHost('w4', new Set(perms))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const call = async (h: ReturnType<typeof host>, method: string, params: Record<string, unknown>, uid: number | undefined = 5): Promise<any> =>
+    h.dispatch({ k: 'req', id: 'x', method, params }, uid)
+  beforeEach(() => { notifySend.mockClear(); llmExtract.mockClear() })
+  afterAll(() => closePluginDataDb('w4'))
+
+  it('notify.send delegates to notificationService with the plugin_notification event + forced target', async () => {
+    const h = host('notify:send')
+    const r = await call(h, 'notify.send', { input: { title: 'Delay', body: 'AB123 late', scope: 'user', targetId: 5, link: '/trips/1' } }, 5)
+    expect(r.ok).toBe(true)
+    expect(notifySend).toHaveBeenCalledWith(expect.objectContaining({
+      event: 'plugin_notification', actorId: null, scope: 'user', targetId: 5,
+      params: expect.objectContaining({ title: 'Delay', body: 'AB123 late', link: '/trips/1' }),
+    }))
+    // trip scope for a trip the acting user (owner 5) can access
+    expect((await call(h, 'notify.send', { input: { title: 't', body: 'b', scope: 'trip', targetId: 1 } }, 5)).ok).toBe(true)
+  })
+
+  it('ai.complete/extract run under the resolved provider; unconfigured user → BAD_PARAMS', async () => {
+    const h = host('ai:invoke')
+    const c = await call(h, 'ai.complete', { prompt: 'Summarize' }, 5)
+    expect(c.ok).toBe(true)
+    expect(c.result).toMatchObject({ text: expect.stringContaining('answer:') })
+    expect(llmExtract).toHaveBeenCalled()
+    const e = await call(h, 'ai.extract', { text: 'AB123 JFK', jsonSchema: { type: 'object' } }, 5)
+    expect(e.ok).toBe(true)
+    expect(Array.isArray(e.result.results)).toBe(true)
+    // user 7 has no provider → the router's aiConfigured() check trips first
+    expect(((await call(h, 'ai.complete', { prompt: 'hi' }, 7)) as { error: { code: string } }).error.code).toBe('BAD_PARAMS')
   })
 })

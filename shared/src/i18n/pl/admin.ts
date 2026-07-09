@@ -245,6 +245,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:write:files': 'Dołączanie plików do podróży, które działający użytkownik może edytować (limit 10 MB, zablokowane rozszerzenia odrzucane), i zarządzanie ich powiązaniami',
   'admin.plugins.perm.db:write:collab': 'Publikowanie notatek, ankiet i wiadomości czatu w podróżach, które działający użytkownik może edytować (wymaga dodatku Collab)',
   'admin.plugins.perm.db:write:members': 'Dodawanie użytkowników do podróży — przyznaje dostęp do podróży; chronione uprawnieniem zarządzania członkami działającego użytkownika',
+  'admin.plugins.perm.notify:send': 'Wysyłanie powiadomienia (skrzynka dzwonka + e-mail/ntfy) do działającego użytkownika lub jego podróży — nigdy do dowolnego odbiorcy',
+  'admin.plugins.perm.ai:invoke': 'Korzystanie ze skonfigurowanego przez administratora dostawcy AI (uzupełnianie tekstu + wyodrębnianie z dokumentów) w imieniu działającego użytkownika — wtyczka nigdy nie przechowuje klucza',
   'admin.plugins.perm.db:read:files': 'Odczyt plików w podróżach, do których działający użytkownik ma dostęp',
   'admin.plugins.perm.db:write:reservations': 'Tworzenie, edytowanie i usuwanie rezerwacji w podróżach, które działający użytkownik może edytować',
   'admin.plugins.perm.db:read:journal': 'Odczyt dzienników podróży działającego użytkownika (wymaga dodatku Journey)',

@@ -52,6 +52,7 @@ const ja: NotificationLocale = {
       title: 'Synologyセッションがクリアされました',
       body: 'SynologyアカウントまたはURLが変更されました。Synology Photosからログアウトされました。',
     }),
+    plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {
     subject: 'パスワードをリセット',

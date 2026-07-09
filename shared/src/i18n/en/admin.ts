@@ -302,6 +302,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:write:files': 'Attach files to trips the acting user can edit (10MB cap, blocked extensions refused) and manage their links',
   'admin.plugins.perm.db:write:collab': 'Post notes, polls and chat messages on trips the acting user can edit (needs the Collab addon)',
   'admin.plugins.perm.db:write:members': "Add users to trips — grants trip access; gated by the acting user's member-manage right",
+  'admin.plugins.perm.notify:send': 'Send a notification (bell inbox + email/ntfy) to the acting user or a trip they belong to — never an arbitrary recipient',
+  'admin.plugins.perm.ai:invoke': "Run the admin-configured AI provider (text completion + document extraction) on the acting user's behalf — the plugin never holds a key",
   'admin.plugins.perm.db:read:files': 'Read files of trips the acting user can access',
   'admin.plugins.perm.db:read:journal': 'Read the travel journals of the acting user (needs the Journey addon)',
   'admin.plugins.perm.db:read:atlas': 'Read the visited countries and regions of the acting user (needs the Atlas addon)',

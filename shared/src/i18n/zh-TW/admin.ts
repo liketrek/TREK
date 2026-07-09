@@ -282,6 +282,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:write:files': '向操作使用者可編輯的行程附加檔案（10MB 上限，被封鎖的副檔名將被拒絕）並管理其連結',
   'admin.plugins.perm.db:write:collab': '在操作使用者可編輯的行程中發佈筆記、投票及聊天訊息（需要 Collab 附加元件）',
   'admin.plugins.perm.db:write:members': '向行程新增使用者 — 授予行程存取權；受操作使用者的成員管理權限保護',
+  'admin.plugins.perm.notify:send': '向操作使用者或其所屬的行程傳送通知（鈴鐺收件匣 + 郵件/ntfy）— 絕不傳送給任意接收者',
+  'admin.plugins.perm.ai:invoke': '代表操作使用者執行管理員設定的 AI 供應商（文字補全 + 文件擷取）— 外掛絕不持有金鑰',
   'admin.plugins.perm.db:read:files': '讀取操作使用者可存取之行程的檔案',
   'admin.plugins.perm.db:write:reservations': '在操作使用者可編輯的行程中建立、編輯及刪除預訂',
   'admin.plugins.perm.db:read:journal': '讀取操作使用者的旅行日誌（需要 Journey 附加元件）',

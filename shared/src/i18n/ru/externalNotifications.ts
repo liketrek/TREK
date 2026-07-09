@@ -52,6 +52,7 @@ const ru: NotificationLocale = {
       title: 'Сессия Synology сброшена',
       body: 'Ваш аккаунт или URL Synology изменился. Вы вышли из Synology Photos.',
     }),
+    plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {
     subject: 'Сброс пароля',

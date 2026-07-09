@@ -35,6 +35,8 @@ const notif: TranslationStrings = {
   'notif.action.view': 'Visa',
   'notif.action.accept': 'Godkänn',
   'notif.action.decline': 'Neka',
+  'notif.plugin.title': '{title}',
+  'notif.plugin.text': '{body}',
   'notif.generic.title': 'Meddelande',
   'notif.generic.text': 'Du har fått ett nytt meddelande',
   'notif.dev.unknown_event.title': '[DEV] Okänd händelse',
