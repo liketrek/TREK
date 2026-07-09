@@ -16,7 +16,7 @@ const notif: TranslationStrings = {
   'notif.vacay_invite.title': 'Lời mời kết hợp Vacay',
   'notif.vacay_invite.text': '{actor} đã mời bạn lên kế hoạch cho kỳ nghỉ',
   'notif.collection_invite.title': 'Lời mời bộ sưu tập',
-  'notif.collection_invite.text': '{actor} đã mời bạn vào một bộ sưu tập',
+  'notif.collection_invite.text': '{actor} đã mời bạn chia sẻ bộ sưu tập',
   'notif.photos_shared.title': 'Ảnh được chia sẻ',
   'notif.photos_shared.text': '{actor} đã chia sẻ {count} ảnh trong {trip}',
   'notif.collab_message.title': 'Tin nhắn mới',

@@ -2,7 +2,7 @@ import type { TranslationStrings } from '../types';
 
 const settings: TranslationStrings = {
   'settings.title': 'Cài đặt',
-  'settings.subtitle': 'Định cấu hình cài đặt cá nhân của bạn',
+  'settings.subtitle': 'Cấu hình cài đặt cá nhân của bạn',
   'settings.tabs.display': 'Hiển thị',
   'settings.tabs.map': 'Bản đồ',
   'settings.tabs.notifications': 'Thông báo',
