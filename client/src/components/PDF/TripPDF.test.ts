@@ -151,6 +151,22 @@ describe('downloadTripPDF', () => {
     expect(iframe!.srcdoc).toContain('Day One')
   })
 
+  it('FE-COMP-TRIPPDF-005b: day is a table with a thead header that repeats on overflow pages (#1471)', async () => {
+    await downloadTripPDF(richArgs)
+    const iframe = getIframe()
+    const srcdoc = iframe!.srcdoc
+    // The day is a real <table> whose <thead> is repeated by the browser's print
+    // engine on every page an overflowing day spills onto.
+    expect(srcdoc).toContain('<table class="day-section')
+    expect(srcdoc).toContain('<thead class="day-header">')
+    expect(srcdoc).toContain('<tbody class="day-body-group">')
+    // The dark bar (background/padding/flex) lives in an inner wrapper inside the thead.
+    expect(srcdoc).toContain('class="day-header-bar"')
+    // Day content still renders inside the new structure.
+    expect(srcdoc).toContain('Rome Day')
+    expect(srcdoc).toContain('Colosseum')
+  })
+
   it('FE-COMP-TRIPPDF-006: escHtml prevents XSS in trip title', async () => {
     const args = {
       ...minimalArgs,

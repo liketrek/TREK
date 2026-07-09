@@ -375,16 +375,23 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
         </div>`
       : ''
 
+    // A real <table> so the browser repeats the <thead> day header at the top of
+    // every page an overflowing day spills onto (#1471). CSS `table-header-group`
+    // on a <div> is NOT repeated by Chromium's print engine — only real thead is.
     return `
-      <div class="day-section${di > 0 ? ' page-break' : ''}">
-        <div class="day-header">
-          <span class="day-tag">${escHtml(tr('dayplan.dayN', { n: day.day_number })).toUpperCase()}</span>
-          <span class="day-title">${escHtml(day.title || tr('dayplan.dayN', { n: day.day_number }))}</span>
-          ${day.date ? `<span class="day-date">${shortDate(day.date, loc)}</span>` : ''}
-          ${cost ? `<span class="day-cost">${cost}</span>` : ''}
-        </div>
-        <div class="day-body">${accommodationsHtml}${itemsHtml}</div>
-      </div>`  
+      <table class="day-section${di > 0 ? ' page-break' : ''}">
+        <thead class="day-header"><tr><td>
+          <div class="day-header-bar">
+            <span class="day-tag">${escHtml(tr('dayplan.dayN', { n: day.day_number })).toUpperCase()}</span>
+            <span class="day-title">${escHtml(day.title || tr('dayplan.dayN', { n: day.day_number }))}</span>
+            ${day.date ? `<span class="day-date">${shortDate(day.date, loc)}</span>` : ''}
+            ${cost ? `<span class="day-cost">${cost}</span>` : ''}
+          </div>
+        </td></tr></thead>
+        <tbody class="day-body-group"><tr><td>
+          <div class="day-body">${accommodationsHtml}${itemsHtml}</div>
+        </td></tr></tbody>
+      </table>`
   }).join('')
 
   const html = `<!DOCTYPE html>
@@ -456,8 +463,10 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
   .cover-stat-lbl { font-size: 9px; font-weight: 500; color: rgba(255,255,255,0.4); letter-spacing: 1px; margin-top: 4px; text-transform: uppercase; }
 
   /* ── Day ───────────────────────────────────────── */
+  /* .day-section is a real <table>; its <thead> day header repeats on overflow pages. */
   .page-break { page-break-before: always; }
-  .day-header {
+  .day-section { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  .day-header-bar {
     background: #0f172a; padding: 11px 28px;
     display: flex; align-items: center; gap: 8px;
   }
