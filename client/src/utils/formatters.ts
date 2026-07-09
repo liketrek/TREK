@@ -33,10 +33,20 @@ export function formatLocationName(raw: string | null | undefined): string {
   return result.join(', ')
 }
 
-const ZERO_DECIMAL_CURRENCIES = new Set(['JPY', 'KRW', 'VND', 'CLP', 'ISK', 'HUF'])
+// Currencies whose smallest unit isn't 1/100. Most currencies use 2 decimals;
+// these two sets cover the exceptions in the supported set (see CURRENCIES).
+// HUF is kept zero-decimal by app convention even though ISO lists 2.
+const ZERO_DECIMAL_CURRENCIES = new Set([
+  'JPY', 'KRW', 'VND', 'CLP', 'ISK', 'HUF',
+  'BIF', 'DJF', 'GNF', 'KMF', 'PYG', 'RWF', 'UGX', 'VUV', 'XAF', 'XOF', 'XPF',
+])
+const THREE_DECIMAL_CURRENCIES = new Set(['BHD', 'IQD', 'JOD', 'KWD', 'LYD', 'OMR', 'TND'])
 
 export function currencyDecimals(currency: string): number {
-  return ZERO_DECIMAL_CURRENCIES.has(currency.toUpperCase()) ? 0 : 2
+  const cur = currency.toUpperCase()
+  if (ZERO_DECIMAL_CURRENCIES.has(cur)) return 0
+  if (THREE_DECIMAL_CURRENCIES.has(cur)) return 3
+  return 2
 }
 
 // Each currency formats in its own home convention (symbol position, grouping and

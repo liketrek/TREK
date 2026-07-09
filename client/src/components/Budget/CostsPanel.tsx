@@ -14,7 +14,7 @@ import { formatMoney, currencyDecimals, currencyLocale } from '../../utils/forma
 import Modal from '../shared/Modal'
 import CustomSelect from '../shared/CustomSelect'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
-import { SYMBOLS, CURRENCIES, SPLIT_COLORS } from './BudgetPanel.constants'
+import { SYMBOLS, currenciesWith, SPLIT_COLORS } from './BudgetPanel.constants'
 import { COST_CATEGORY_LIST, catMeta } from './costsCategories'
 import type { BudgetItem } from '../../types'
 import type { TripMember } from './BudgetPanelMemberChips'
@@ -1161,7 +1161,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
           <div style={{ minWidth: 0 }}>
             <label className={labelCls}>{t('costs.currency')}</label>
             <CustomSelect value={currency} onChange={v => setCurrency(String(v))} searchable
-              options={CURRENCIES.map(c => ({ value: c, label: SYMBOLS[c] ? `${c}  ${SYMBOLS[c]}` : c }))}
+              options={currenciesWith(currency).map(c => ({ value: c, label: SYMBOLS[c] ? `${c}  ${SYMBOLS[c]}` : c }))}
               style={{ width: '100%' }} />
           </div>
           <div style={{ minWidth: 0 }}>

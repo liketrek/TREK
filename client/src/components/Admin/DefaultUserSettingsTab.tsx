@@ -6,7 +6,7 @@ import { useToast } from '../shared/Toast'
 import Section from '../Settings/Section'
 import CustomSelect from '../shared/CustomSelect'
 import { MapView } from '../Map/MapView'
-import { CURRENCIES, SYMBOLS } from '../Budget/BudgetPanel.constants'
+import { SYMBOLS, currenciesWith } from '../Budget/BudgetPanel.constants'
 import type { DistanceUnit, Place } from '../../types'
 import {
   MAPBOX_DEFAULT_STYLE,
@@ -286,7 +286,7 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
           onChange={(value: string) => { if (value) save({ default_currency: value }) }}
           placeholder={t('settings.currency')}
           searchable
-          options={CURRENCIES.map(c => ({ value: c, label: SYMBOLS[c] ? `${c}  ${SYMBOLS[c]}` : c }))}
+          options={currenciesWith(defaults.default_currency).map(c => ({ value: c, label: SYMBOLS[c] ? `${c}  ${SYMBOLS[c]}` : c }))}
           size="sm"
           style={{ maxWidth: 240 }}
         />

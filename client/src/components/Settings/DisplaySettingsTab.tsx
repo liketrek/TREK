@@ -4,7 +4,7 @@ import { SUPPORTED_LANGUAGES, useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
 import CustomSelect from '../shared/CustomSelect'
-import { CURRENCIES, SYMBOLS } from '../Budget/BudgetPanel.constants'
+import { SYMBOLS, currenciesWith } from '../Budget/BudgetPanel.constants'
 import Section from './Section'
 import type { DistanceUnit } from '../../types'
 
@@ -46,7 +46,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
             try { await updateSetting('default_currency', String(v)) }
             catch (e: unknown) { toast.error(e instanceof Error ? e.message : t('common.error')) }
           }}
-          options={CURRENCIES.map(c => ({ value: c, label: `${c} — ${SYMBOLS[c] || c}` }))}
+          options={currenciesWith(settings.default_currency).map(c => ({ value: c, label: `${c} — ${SYMBOLS[c] || c}` }))}
           searchable
         />
         <p className="text-xs text-content-faint mt-2">{t('settings.currencyHint')}</p>

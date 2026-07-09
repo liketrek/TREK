@@ -24,6 +24,7 @@ import PluginWidgets from '../components/Plugins/PluginWidgets'
 import PluginFrame from '../components/Plugins/PluginFrame'
 import { usePluginStore } from '../store/pluginStore'
 import { formatTime, splitReservationDateTime } from '../utils/formatters'
+import { CURRENCIES } from '../components/Budget/BudgetPanel.constants'
 import { convertDistance, getDistanceUnitLabel } from '../utils/units'
 import { useSettingsStore } from '../store/settingsStore'
 import { useAddonStore } from '../store/addonStore'
@@ -586,8 +587,6 @@ function TripCard({ trip, locale, onOpen, onEdit, onCopy, onArchive, onDelete }:
 }
 
 // ── Currency tool (self-contained, mirrors the design's fx widget) ───────────
-const FX_FALLBACK = ['EUR', 'USD', 'GBP', 'CHF', 'JPY', 'CAD', 'AUD', 'CNY', 'SEK', 'NOK', 'DKK', 'PLN', 'CZK', 'HUF', 'TRY', 'THB', 'INR', 'BRL', 'MXN', 'ZAR']
-
 function CurrencyTool(): React.ReactElement {
   const { t } = useTranslation()
   const isLoaded = useSettingsStore(s => s.isLoaded)
@@ -631,7 +630,7 @@ function CurrencyTool(): React.ReactElement {
     }).catch(() => { /* keep localStorage; retry on next load */ })
   }, [isLoaded, updateSetting])
 
-  const currencies = rates ? Object.keys(rates).sort() : FX_FALLBACK
+  const currencies = rates ? Object.keys(rates).sort() : CURRENCIES
   const ccyOptions = currencies.map(c => ({ value: c, label: c }))
   const rate = rates?.[to] ?? null
   const converted = rate != null ? (parseFloat(amount.replace(',', '.')) || 0) * rate : null
