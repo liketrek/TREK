@@ -577,7 +577,7 @@ export const pluginsApi = {
     apiClient.get(`/trip-warnings/${tripId}`).then(r => r.data as { warnings: Array<{ pluginId: string; level: 'info' | 'warning' | 'error'; message: string; dayId?: number; placeId?: number }> }),
   // Host-rendered columns/actions plugins add into a native planner view via the
   // tableContributor hook. Fetched once per view, keyed by entityId; fail-safe.
-  viewContributions: (view: 'reservations' | 'places' | 'day', tripId: number | string) =>
+  viewContributions: (view: 'reservations' | 'places' | 'day' | 'costs' | 'packing' | 'files', tripId: number | string) =>
     apiClient.get(`/view-contributions/${view}/${tripId}`).then(r => r.data as { contributions: ViewContribution[] }),
   // Call one of a plugin's own declared routes through the host proxy. `sub` is
   // supplied by untrusted plugin code (the trekBridge forwards it verbatim), so it

@@ -43,6 +43,13 @@ describe('ViewContributionsController', () => {
     expect(await x.c.get('bogus', '1', req(5))).toEqual({ contributions: [] }); // view not whitelisted
     expect(x.runtime.providersOf).not.toHaveBeenCalled();
 
+    // costs/packing/files were added to the whitelist — they must be accepted (providers consulted).
+    for (const view of ['costs', 'packing', 'files']) {
+      const y = controller(() => [col()]);
+      expect((await y.c.get(view, '1', req(5))).contributions.length).toBe(1);
+      expect(y.runtime.providersOf).toHaveBeenCalledWith('tableContributor');
+    }
+
     expect((await controller(() => [col()]).c.get('places', '1', req(undefined))).contributions).toEqual([]);
     canAccessTrip.mockReturnValue(undefined as never);
     expect((await controller(() => [col()]).c.get('day', '1', req(5))).contributions).toEqual([]);
