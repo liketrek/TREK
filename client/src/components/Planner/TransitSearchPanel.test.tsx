@@ -135,6 +135,43 @@ describe('TransitSearchPanel', () => {
     expect(cards[0].textContent).toContain('08:40')
   })
 
+  // Cross-timezone route (#1479): origin Europe/Berlin (UTC+2 in June),
+  // destination Europe/London (UTC+1). Same wall-clock 09:00 resolves to a
+  // different UTC instant depending on which end the user anchors to.
+  async function pickFromAndLondon(user: ReturnType<typeof userEvent.setup>) {
+    const [fromInput, toInput] = screen.getAllByPlaceholderText('Search stop or station…')
+    await user.click(fromInput)
+    await user.click(await screen.findByText('Fernsehturm'))
+
+    transitApiMock.geocode.mockResolvedValueOnce({ results: [{ name: 'London Victoria', lat: 51.5074, lng: -0.1278, type: 'STOP', area: 'England' }] })
+    await user.click(toInput)
+    await user.type(toInput, 'Lon')
+    await user.click(await screen.findByText(/London Victoria/))
+  }
+
+  it('FE-PLANNER-TRANSIT-007: depart-by anchors the entered time to the origin timezone', async () => {
+    const user = userEvent.setup()
+    transitApiMock.plan.mockResolvedValueOnce({ itineraries: [] })
+    render(<TransitSearchPanel {...makeProps()} />)
+    await pickFromAndLondon(user)
+    await user.click(screen.getByRole('button', { name: /^Search$/ }))
+    await waitFor(() => expect(transitApiMock.plan).toHaveBeenCalled())
+    // Default 09:00 in Berlin (UTC+2) → 07:00Z.
+    expect(transitApiMock.plan.mock.calls[0][0]).toMatchObject({ arriveBy: false, time: '2025-06-01T07:00:00.000Z' })
+  })
+
+  it('FE-PLANNER-TRANSIT-008: arrive-by anchors the entered time to the destination timezone', async () => {
+    const user = userEvent.setup()
+    transitApiMock.plan.mockResolvedValueOnce({ itineraries: [] })
+    render(<TransitSearchPanel {...makeProps()} />)
+    await pickFromAndLondon(user)
+    await user.click(screen.getByRole('button', { name: 'Arrive' }))
+    await user.click(screen.getByRole('button', { name: /^Search$/ }))
+    await waitFor(() => expect(transitApiMock.plan).toHaveBeenCalled())
+    // 09:00 arrival in London (UTC+1) → 08:00Z, not 07:00Z.
+    expect(transitApiMock.plan.mock.calls[0][0]).toMatchObject({ arriveBy: true, time: '2025-06-01T08:00:00.000Z' })
+  })
+
   it('FE-PLANNER-TRANSIT-006: swap exchanges from and to', async () => {
     const user = userEvent.setup()
     render(<TransitSearchPanel {...makeProps()} />)
