@@ -1,4 +1,5 @@
 import type { Day, Accommodation, RouteAnchors } from '../types'
+import { parseTimeToMinutes } from './dayMerge'
 
 export const getDayOrder = (day: Day, days: Day[]): number =>
   day.day_number ?? days.indexOf(day)
@@ -54,6 +55,43 @@ export const getAccommodationAnchors = (
     start: { lat: morning.place_lat as number, lng: morning.place_lng as number },
     end: { lat: evening.place_lat as number, lng: evening.place_lng as number },
   }
+}
+
+// Whether to draw the morning hotel → first-stop leg. It is a real drive when you slept in the
+// morning hotel (a normal home-base day). On that hotel's check-in day the hotel is your base
+// once you arrive, so the leg is still the default for a PLACE first stop — suppressed only when
+// that place is timed BEFORE check-in (an airport you reach before dropping your bags, #1465), or
+// when the first stop is a transport arrival (you flew in, weren't at the hotel yet, #1321).
+// Un-timed places keep the loop, avoiding over-suppression on ordinary arrival days.
+export const shouldDrawMorningLeg = (
+  bookends: { morning?: Accommodation; morningIsSleptHere?: boolean },
+  day: Day,
+  firstStop?: { isPlace: boolean; time?: string | null },
+): boolean => {
+  if (bookends.morningIsSleptHere) return true
+  const m = bookends.morning
+  if (!m || m.start_day_id !== day.id || !firstStop?.isPlace) return false
+  const checkIn = parseTimeToMinutes(m.check_in)
+  const stop = parseTimeToMinutes(firstStop.time)
+  return !(checkIn != null && stop != null && stop < checkIn)
+}
+
+// Mirror of shouldDrawMorningLeg for the last-stop → hotel evening leg. It is a real drive when
+// you sleep in the evening hotel tonight. On that hotel's check-out day you have already left, so
+// the return leg is NOT the default — drawn only when the last stop is a PLACE timed at/before
+// check-out (a swing back before checking out). A later stop (heading home, #1465), an un-timed
+// stop, or an evening transport departure (S7) all mean no return leg.
+export const shouldDrawEveningLeg = (
+  bookends: { evening?: Accommodation; eveningIsOvernight?: boolean },
+  day: Day,
+  lastStop?: { isPlace: boolean; time?: string | null },
+): boolean => {
+  if (bookends.eveningIsOvernight) return true
+  const e = bookends.evening
+  if (!e || e.end_day_id !== day.id || !lastStop?.isPlace) return false
+  const checkOut = parseTimeToMinutes(e.check_out)
+  const stop = parseTimeToMinutes(lastStop.time)
+  return checkOut != null && stop != null && stop <= checkOut
 }
 
 export const isDayInAccommodationRange = (

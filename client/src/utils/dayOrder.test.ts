@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { Day, Accommodation } from '../types'
-import { getDayOrder, isDayInAccommodationRange, getAccommodationAnchors, getDayBookendHotels } from './dayOrder'
+import { getDayOrder, isDayInAccommodationRange, getAccommodationAnchors, getDayBookendHotels, shouldDrawMorningLeg, shouldDrawEveningLeg } from './dayOrder'
 
 const days = [
   { id: 10, day_number: 1 },
@@ -152,5 +152,85 @@ describe('getDayBookendHotels', () => {
     const r = getDayBookendHotels(days[1], days, [out, into])
     expect(r.morningIsSleptHere).toBe(true)
     expect(r.eveningIsOvernight).toBe(true)
+  })
+})
+
+describe('shouldDrawMorningLeg', () => {
+  const checkInDay = days[0] // id 10
+  const into = (over: Partial<Accommodation> = {}) =>
+    hotel({ start_day_id: 10, end_day_id: 30, check_in: '15:00', ...over })
+
+  it('draws when you slept in the morning hotel, regardless of stop time', () => {
+    const bookends = { morning: into(), morningIsSleptHere: true }
+    // Mid-stay: even a stop at 06:00 is preceded by the hotel you woke in.
+    expect(shouldDrawMorningLeg(bookends, checkInDay, { isPlace: true, time: '06:00' })).toBe(true)
+  })
+
+  it('does NOT draw on a check-in day when the first place is before check-in (#1465)', () => {
+    const bookends = { morning: into({ check_in: '15:00' }), morningIsSleptHere: false }
+    // Airport place at 10:00, check-in 15:00 — you have not reached the hotel yet.
+    expect(shouldDrawMorningLeg(bookends, checkInDay, { isPlace: true, time: '10:00' })).toBe(false)
+  })
+
+  it('draws on a check-in day when the first place is at/after check-in (loop preserved)', () => {
+    const bookends = { morning: into({ check_in: '15:00' }), morningIsSleptHere: false }
+    expect(shouldDrawMorningLeg(bookends, checkInDay, { isPlace: true, time: '19:00' })).toBe(true)
+    expect(shouldDrawMorningLeg(bookends, checkInDay, { isPlace: true, time: '15:00' })).toBe(true)
+  })
+
+  it('DRAWS on a check-in day when time info is missing (home-base default, no over-suppression)', () => {
+    // Without a comparable place time or hotel check-in time, the arrival day stays a
+    // home-base loop — only a place provably before check-in suppresses the leg.
+    const bookends = { morning: into({ check_in: '15:00' }), morningIsSleptHere: false }
+    expect(shouldDrawMorningLeg(bookends, checkInDay, { isPlace: true, time: null })).toBe(true)
+    const noCheckIn = { morning: into({ check_in: null }), morningIsSleptHere: false }
+    expect(shouldDrawMorningLeg(noCheckIn, checkInDay, { isPlace: true, time: '19:00' })).toBe(true)
+  })
+
+  it('does NOT draw on a check-in day for a transport arrival (not a place, #1321)', () => {
+    const bookends = { morning: into({ check_in: '15:00' }), morningIsSleptHere: false }
+    // A late arrival (16:00) is still no morning leg — you flew in, weren't at the hotel.
+    expect(shouldDrawMorningLeg(bookends, checkInDay, { isPlace: false, time: '16:00' })).toBe(false)
+  })
+
+  it('does NOT draw when the morning hotel is not checking in today', () => {
+    // start_day_id 20 ≠ day 10, and not slept-here → no leg.
+    const bookends = { morning: into({ start_day_id: 20, check_in: '15:00' }), morningIsSleptHere: false }
+    expect(shouldDrawMorningLeg(bookends, checkInDay, { isPlace: true, time: '19:00' })).toBe(false)
+  })
+})
+
+describe('shouldDrawEveningLeg', () => {
+  const checkOutDay = days[2] // id 30
+  const out = (over: Partial<Accommodation> = {}) =>
+    hotel({ start_day_id: 10, end_day_id: 30, check_out: '11:00', ...over })
+
+  it('draws when you sleep in the evening hotel tonight, regardless of stop time', () => {
+    const bookends = { evening: out(), eveningIsOvernight: true }
+    expect(shouldDrawEveningLeg(bookends, checkOutDay, { isPlace: true, time: '23:00' })).toBe(true)
+  })
+
+  it('does NOT draw on a check-out day when the last place is after check-out (#1465)', () => {
+    const bookends = { evening: out({ check_out: '11:00' }), eveningIsOvernight: false }
+    // "home" place at 18:00, check-out 11:00 — you have already left the hotel.
+    expect(shouldDrawEveningLeg(bookends, checkOutDay, { isPlace: true, time: '18:00' })).toBe(false)
+  })
+
+  it('draws on a check-out day when the last place is at/before check-out', () => {
+    const bookends = { evening: out({ check_out: '11:00' }), eveningIsOvernight: false }
+    expect(shouldDrawEveningLeg(bookends, checkOutDay, { isPlace: true, time: '09:00' })).toBe(true)
+    expect(shouldDrawEveningLeg(bookends, checkOutDay, { isPlace: true, time: '11:00' })).toBe(true)
+  })
+
+  it('does NOT draw on a check-out day when the place or hotel has no time', () => {
+    const bookends = { evening: out({ check_out: '11:00' }), eveningIsOvernight: false }
+    expect(shouldDrawEveningLeg(bookends, checkOutDay, { isPlace: true, time: null })).toBe(false)
+    const noCheckOut = { evening: out({ check_out: null }), eveningIsOvernight: false }
+    expect(shouldDrawEveningLeg(noCheckOut, checkOutDay, { isPlace: true, time: '09:00' })).toBe(false)
+  })
+
+  it('does NOT draw on a check-out day for a transport departure (not a place, S7)', () => {
+    const bookends = { evening: out({ check_out: '11:00' }), eveningIsOvernight: false }
+    expect(shouldDrawEveningLeg(bookends, checkOutDay, { isPlace: false, time: '09:00' })).toBe(false)
   })
 })
