@@ -68,6 +68,27 @@ export interface HostDeps {
   listPackingItems(tripId: number, userId: number): unknown[];
   /** A trip's files (trash excluded), for `files.list`. */
   listTripFiles(tripId: number): unknown[];
+  // --- Files write (the app's file_upload / file_edit / file_delete permissions) ---
+  canUploadFiles(tripId: number, userId: number): boolean;
+  canEditFiles(tripId: number, userId: number): boolean;
+  canDeleteFiles(tripId: number, userId: number): boolean;
+  /** Store a bounded base64 payload as a trip file (extension + size validated); broadcasts file:created. */
+  createTripFile(tripId: number, input: Record<string, unknown>, actingUserId: number): unknown;
+  /** Link an existing trip file to a reservation/place/assignment on the SAME trip. */
+  createTripFileLink(tripId: number, fileId: number, opts: Record<string, unknown>): unknown;
+  /** Update a file's description/links (same-trip targets enforced); broadcasts file:updated. */
+  updateTripFile(tripId: number, fileId: number, input: Record<string, unknown>): unknown;
+  /** Move a trip file to the trash; broadcasts file:deleted. */
+  softDeleteTripFile(tripId: number, fileId: number): unknown;
+  // --- Collab content (the app's collab_edit permission; collab addon gated) ---
+  canEditCollab(tripId: number, userId: number): boolean;
+  createCollabNote(tripId: number, input: Record<string, unknown>, actingUserId: number): unknown;
+  createCollabPoll(tripId: number, input: Record<string, unknown>, actingUserId: number): unknown;
+  voteCollabPoll(tripId: number, pollId: number, optionIndex: number, actingUserId: number): unknown;
+  createCollabMessage(tripId: number, text: string, replyTo: number | undefined, actingUserId: number): unknown;
+  // --- Member add (the DISTINCT member_manage permission — never bundled) ---
+  canManageMembers(tripId: number, userId: number): boolean;
+  addTripMember(tripId: number, targetUserId: number, invitedBy: number): unknown;
   /** The acting user's own journals (journey addon must be enabled). */
   listJournalsForUser(userId: number): unknown;
   /** The acting user's visited countries + regions (atlas addon must be enabled). */
@@ -255,6 +276,88 @@ export class PluginRpcHost {
       this.methods.set('files.list', (p, uid) =>
         this.tripRead(p, uid, () => deps.listTripFiles(num(p.tripId, 'tripId'))),
       );
+    }
+    if (has('db:write:files')) {
+      // Files write, under the app's separate file_upload / file_edit / file_delete
+      // rights. A created file arrives as bounded base64 (10MB decoded cap — well
+      // under the app's 50MB upload limit); the wiring validates the extension
+      // against the central blocklist before anything touches disk.
+      this.methods.set('files.create', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const actor = this.requireActor(uid, 'file');
+        const input = asPayload(p.input);
+        if (typeof input.name !== 'string' || input.name.trim() === '' || input.name.length > 255) throw new BadParams('file name is required (max 255 chars)');
+        if (typeof input.content_base64 !== 'string' || input.content_base64 === '') throw new BadParams('content_base64 is required');
+        if (input.content_base64.length > 14 * 1024 * 1024) throw new BadParams('file exceeds the 10MB plugin upload cap');
+        this.requireTripEdit(tripId, actor, deps.canUploadFiles);
+        return deps.createTripFile(tripId, input, actor);
+      });
+      this.methods.set('files.createLink', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const fileId = num(p.fileId, 'fileId');
+        const actor = this.requireActor(uid, 'file link');
+        this.requireTripEdit(tripId, actor, deps.canEditFiles);
+        return deps.createTripFileLink(tripId, fileId, asPayload(p.opts));
+      });
+      this.methods.set('files.update', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const fileId = num(p.fileId, 'fileId');
+        const actor = this.requireActor(uid, 'file');
+        this.requireTripEdit(tripId, actor, deps.canEditFiles);
+        return deps.updateTripFile(tripId, fileId, asPayload(p.input));
+      });
+      this.methods.set('files.softDelete', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const fileId = num(p.fileId, 'fileId');
+        const actor = this.requireActor(uid, 'file');
+        this.requireTripEdit(tripId, actor, deps.canDeleteFiles);
+        return deps.softDeleteTripFile(tripId, fileId);
+      });
+    }
+    if (has('db:write:collab')) {
+      // Collab content (notes/polls/messages) under the app's collab_edit right.
+      this.methods.set('collab.createNote', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const actor = this.requireActor(uid, 'collab note');
+        const input = asPayload(p.input);
+        if (typeof input.title !== 'string' || input.title.trim() === '') throw new BadParams('note title is required');
+        this.requireTripEdit(tripId, actor, deps.canEditCollab);
+        return deps.createCollabNote(tripId, input, actor);
+      });
+      this.methods.set('collab.createPoll', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const actor = this.requireActor(uid, 'collab poll');
+        const input = asPayload(p.input);
+        if (typeof input.question !== 'string' || input.question.trim() === '') throw new BadParams('poll question is required');
+        if (!Array.isArray(input.options) || input.options.length < 2) throw new BadParams('a poll needs at least two options');
+        this.requireTripEdit(tripId, actor, deps.canEditCollab);
+        return deps.createCollabPoll(tripId, input, actor);
+      });
+      this.methods.set('collab.votePoll', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const actor = this.requireActor(uid, 'collab poll');
+        this.requireTripEdit(tripId, actor, deps.canEditCollab);
+        return deps.voteCollabPoll(tripId, num(p.pollId, 'pollId'), num(p.optionIndex, 'optionIndex'), actor);
+      });
+      this.methods.set('collab.createMessage', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const actor = this.requireActor(uid, 'collab message');
+        if (typeof p.text !== 'string' || p.text.trim() === '' || p.text.length > 4000) throw new BadParams('message text is required (max 4000 chars)');
+        this.requireTripEdit(tripId, actor, deps.canEditCollab);
+        return deps.createCollabMessage(tripId, p.text, typeof p.replyTo === 'number' ? p.replyTo : undefined, actor);
+      });
+    }
+    if (has('db:write:members')) {
+      // Adding a member GRANTS TRIP ACCESS — deliberately its own permission behind
+      // the app's member_manage right (default: trip owner only), never bundled with
+      // a lower-risk write. The acting user is recorded as the inviter.
+      this.methods.set('trips.addMember', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const targetUserId = num(p.userId, 'userId');
+        const actor = this.requireActor(uid, 'trip member');
+        this.requireTripEdit(tripId, actor, deps.canManageMembers);
+        return deps.addTripMember(tripId, targetUserId, actor);
+      });
     }
 
     // User-scoped addon reads: the acting user's OWN journals/atlas/vacay across all

@@ -34,6 +34,8 @@ export interface PluginContext {
     update(tripId: number, input: Record<string, unknown>): Promise<unknown>;
     /** The trip's member roster (id + display fields only). Membership-checked. Needs 'db:read:trips'. */
     members(tripId: number): Promise<unknown[]>;
+    /** Add a user to a trip (GRANTS ACCESS — its own permission). Needs 'db:write:members' + the acting user's 'member_manage'. */
+    addMember(tripId: number, userId: number): Promise<{ joined: boolean; tripId: number }>;
   };
   // Reservations (bookings). `listMine` reads across every accessible trip (needs
   // 'db:read:trips'); create/update/delete need 'db:write:reservations' + the acting
@@ -70,6 +72,21 @@ export interface PluginContext {
   files: {
     /** A trip's files, trash excluded. Needs 'db:read:files'. */
     list(tripId: number): Promise<unknown[]>;
+    /** Store base64 content as a trip file (10MB cap, blocked extensions refused). Needs 'db:write:files' + 'file_upload'. */
+    create(tripId: number, input: { name: string; content_base64: string; mimetype?: string; description?: string; place_id?: number; reservation_id?: number }): Promise<unknown>;
+    /** Link an existing file to a same-trip reservation/place/assignment. Needs 'db:write:files' + 'file_edit'. */
+    createLink(tripId: number, fileId: number, opts: { reservation_id?: number; assignment_id?: number; place_id?: number }): Promise<unknown>;
+    /** Update a file's description/links. Needs 'db:write:files' + 'file_edit'. */
+    update(tripId: number, fileId: number, input: { description?: string; place_id?: number | null; reservation_id?: number | null }): Promise<unknown>;
+    /** Move a file to the trash. Needs 'db:write:files' + 'file_delete'. */
+    softDelete(tripId: number, fileId: number): Promise<{ deleted: boolean }>;
+  };
+  /** Collab content (notes/polls/chat). Needs 'db:write:collab' + the acting user's 'collab_edit' (+ Collab addon). */
+  collab: {
+    createNote(tripId: number, input: { title: string; content?: string; category?: string; color?: string; website?: string; pinned?: boolean }): Promise<unknown>;
+    createPoll(tripId: number, input: { question: string; options: unknown[]; multiple?: boolean; deadline?: string }): Promise<unknown>;
+    votePoll(tripId: number, pollId: number, optionIndex: number): Promise<unknown>;
+    createMessage(tripId: number, text: string, replyTo?: number): Promise<unknown>;
   };
   /** Host weather cache by coordinates (+ optional YYYY-MM-DD). Tenant-free. Needs 'weather:read'. */
   weather: {
@@ -365,6 +382,7 @@ export function createPluginContext(
       listMine: () => t.rpc('trips.listMine', { _inv: invocationId }) as Promise<unknown[]>,
       update: (tripId, input) => t.rpc('trips.update', { tripId, input, _inv: invocationId }),
       members: (tripId) => t.rpc('trips.members', { tripId, _inv: invocationId }) as Promise<unknown[]>,
+      addMember: (tripId, userId) => t.rpc('trips.addMember', { tripId, userId, _inv: invocationId }) as Promise<{ joined: boolean; tripId: number }>,
     },
     reservations: {
       listMine: () => t.rpc('reservations.listMine', { _inv: invocationId }) as Promise<unknown[]>,
@@ -385,6 +403,16 @@ export function createPluginContext(
     },
     files: {
       list: (tripId) => t.rpc('files.list', { tripId, _inv: invocationId }) as Promise<unknown[]>,
+      create: (tripId, input) => t.rpc('files.create', { tripId, input, _inv: invocationId }),
+      createLink: (tripId, fileId, opts) => t.rpc('files.createLink', { tripId, fileId, opts, _inv: invocationId }),
+      update: (tripId, fileId, input) => t.rpc('files.update', { tripId, fileId, input, _inv: invocationId }),
+      softDelete: (tripId, fileId) => t.rpc('files.softDelete', { tripId, fileId, _inv: invocationId }) as Promise<{ deleted: boolean }>,
+    },
+    collab: {
+      createNote: (tripId, input) => t.rpc('collab.createNote', { tripId, input, _inv: invocationId }),
+      createPoll: (tripId, input) => t.rpc('collab.createPoll', { tripId, input, _inv: invocationId }),
+      votePoll: (tripId, pollId, optionIndex) => t.rpc('collab.votePoll', { tripId, pollId, optionIndex, _inv: invocationId }),
+      createMessage: (tripId, text, replyTo) => t.rpc('collab.createMessage', { tripId, text, replyTo, _inv: invocationId }),
     },
     weather: {
       get: (lat, lng, date) => t.rpc('weather.get', { lat, lng, date, _inv: invocationId }),

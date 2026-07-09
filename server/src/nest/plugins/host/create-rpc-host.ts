@@ -7,7 +7,12 @@ import { getWeather } from '../../../services/weatherService';
 import { listCategories } from '../../../services/categoryService';
 import { listTags, createTag, updateTag, deleteTag, getTagByIdAndUser } from '../../../services/tagService';
 import { listItems as listTodosSvc, createItem as createTodoSvc, updateItem as updateTodoSvc, deleteItem as deleteTodoSvc } from '../../../services/todoService';
-import { listFiles } from '../../../services/fileService';
+import { listFiles, createFile, createFileLink, getFileById, updateFile, softDeleteFile, findForeignLinkTarget, BLOCKED_EXTENSIONS, filesDir } from '../../../services/fileService';
+import { createNote as createCollabNoteSvc, createPoll as createCollabPollSvc, votePoll as voteCollabPollSvc, createMessage as createCollabMessageSvc } from '../../../services/collabService';
+import { joinTripAsMember } from '../../../services/tripMembership';
+import fsMod from 'node:fs';
+import pathMod from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { checkPermission } from '../../../services/permissions';
 import { listTrips, updateTrip, NotFoundError, ValidationError } from '../../../services/tripService';
 import { createPlace, updatePlace, deletePlace } from '../../../services/placeService';
@@ -201,6 +206,93 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
     // these just delegate to the same services the REST paths use. ---
     listPackingItems: (tripId, userId) => listPackingItemsSvc(tripId, userId),
     listTripFiles: (tripId) => listFiles(tripId, false),
+    // --- Files write. Bytes arrive as bounded base64; the extension is validated
+    // against the central blocklist BEFORE anything touches disk, and link targets
+    // must live on the same trip (findForeignLinkTarget). Same events as the app. ---
+    canUploadFiles: (tripId, userId) => canEditTripAs('file_upload', tripId, userId),
+    canEditFiles: (tripId, userId) => canEditTripAs('file_edit', tripId, userId),
+    canDeleteFiles: (tripId, userId) => canEditTripAs('file_delete', tripId, userId),
+    createTripFile: (tripId, input, actingUserId) => {
+      const i = input as { name: string; content_base64: string; mimetype?: string; description?: string; place_id?: number; reservation_id?: number };
+      const original = pathMod.basename(i.name);
+      const ext = pathMod.extname(original).toLowerCase();
+      if (!ext || BLOCKED_EXTENSIONS.includes(ext)) throw new BadParams(`file extension '${ext || '(none)'}' is not allowed`);
+      const buf = Buffer.from(i.content_base64, 'base64');
+      if (buf.length === 0) throw new BadParams('file content is empty');
+      if (buf.length > 10 * 1024 * 1024) throw new BadParams('file exceeds the 10MB plugin upload cap');
+      const foreign = findForeignLinkTarget(tripId, { reservation_id: i.reservation_id ?? null, place_id: i.place_id ?? null });
+      if (foreign) throw new ForbiddenResource(`${foreign} does not belong to trip ${tripId}`);
+      const filename = `${randomUUID()}${ext}`;
+      fsMod.mkdirSync(filesDir, { recursive: true });
+      fsMod.writeFileSync(pathMod.join(filesDir, filename), buf);
+      const file = createFile(
+        tripId,
+        { filename, originalname: original, size: buf.length, mimetype: i.mimetype || 'application/octet-stream' },
+        actingUserId,
+        { place_id: i.place_id != null ? String(i.place_id) : null, reservation_id: i.reservation_id != null ? String(i.reservation_id) : null, description: i.description ?? null },
+      );
+      broadcast(tripId, 'file:created', { file }, undefined);
+      return file;
+    },
+    createTripFileLink: (tripId, fileId, opts) => {
+      if (!getFileById(fileId, tripId)) throw new ForbiddenResource(`no file ${fileId} on trip ${tripId}`);
+      const o = opts as { reservation_id?: number; assignment_id?: number; place_id?: number };
+      const foreign = findForeignLinkTarget(tripId, o);
+      if (foreign) throw new ForbiddenResource(`${foreign} does not belong to trip ${tripId}`);
+      return createFileLink(fileId, { reservation_id: o.reservation_id != null ? String(o.reservation_id) : null, assignment_id: o.assignment_id != null ? String(o.assignment_id) : null, place_id: o.place_id != null ? String(o.place_id) : null });
+    },
+    updateTripFile: (tripId, fileId, input) => {
+      const current = getFileById(fileId, tripId);
+      if (!current) throw new ForbiddenResource(`no file ${fileId} on trip ${tripId}`);
+      const i = input as { description?: string; place_id?: number | null; reservation_id?: number | null };
+      const foreign = findForeignLinkTarget(tripId, { reservation_id: i.reservation_id ?? null, place_id: i.place_id ?? null });
+      if (foreign) throw new ForbiddenResource(`${foreign} does not belong to trip ${tripId}`);
+      const file = updateFile(fileId, current, { description: i.description, place_id: i.place_id != null ? String(i.place_id) : i.place_id === null ? null : undefined, reservation_id: i.reservation_id != null ? String(i.reservation_id) : i.reservation_id === null ? null : undefined });
+      broadcast(tripId, 'file:updated', { file }, undefined);
+      return file;
+    },
+    softDeleteTripFile: (tripId, fileId) => {
+      if (!getFileById(fileId, tripId)) throw new ForbiddenResource(`no file ${fileId} on trip ${tripId}`);
+      softDeleteFile(fileId);
+      broadcast(tripId, 'file:deleted', { fileId }, undefined);
+      return { deleted: true };
+    },
+    // --- Collab content (collab addon). The services validate + self-report errors. ---
+    canEditCollab: (tripId, userId) => canEditTripAs('collab_edit', tripId, userId),
+    createCollabNote: (tripId, input, actingUserId) => {
+      requireAddon(ADDON_IDS.COLLAB, 'collab');
+      const note = createCollabNoteSvc(String(tripId), actingUserId, input as never);
+      broadcast(tripId, 'collab:note:created', { note }, undefined);
+      return note;
+    },
+    createCollabPoll: (tripId, input, actingUserId) => {
+      requireAddon(ADDON_IDS.COLLAB, 'collab');
+      const poll = createCollabPollSvc(String(tripId), actingUserId, input as never);
+      broadcast(tripId, 'collab:poll:created', { poll }, undefined);
+      return poll;
+    },
+    voteCollabPoll: (tripId, pollId, optionIndex, actingUserId) => {
+      requireAddon(ADDON_IDS.COLLAB, 'collab');
+      const result = voteCollabPollSvc(String(tripId), String(pollId), actingUserId, optionIndex);
+      if (result.error) throw new BadParams(result.error);
+      broadcast(tripId, 'collab:poll:voted', { poll: result.poll }, undefined);
+      return result.poll;
+    },
+    createCollabMessage: (tripId, text, replyTo, actingUserId) => {
+      requireAddon(ADDON_IDS.COLLAB, 'collab');
+      const result = createCollabMessageSvc(String(tripId), actingUserId, text, replyTo ?? null);
+      if (result.error) throw new BadParams(result.error);
+      broadcast(tripId, 'collab:message:created', { message: result.message }, undefined);
+      return result.message;
+    },
+    // --- Member add (member_manage). Grants trip access — the target must exist;
+    // the acting user is recorded as the inviter. Owner/duplicate adds are no-ops. ---
+    canManageMembers: (tripId, userId) => canEditTripAs('member_manage', tripId, userId),
+    addTripMember: (tripId, targetUserId, invitedBy) => {
+      const target = db.prepare('SELECT id FROM users WHERE id = ?').get(targetUserId) as { id: number } | undefined;
+      if (!target) throw new ForbiddenResource(`no user ${targetUserId}`);
+      return joinTripAsMember(tripId, targetUserId, invitedBy);
+    },
     listCostsForTrip: (tripId) => listBudgetItems(tripId),
     // Cross-trip: every accessible trip's budget items (membership predicate is
     // baked into listTrips). Reuses the hydrated list so members/payers come too.

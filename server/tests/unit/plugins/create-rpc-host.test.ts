@@ -126,7 +126,37 @@ vi.mock('../../../src/services/todoService', () => ({
   updateItem: vi.fn((_tid: number, id: string) => (Number(id) === 404 ? null : { id: Number(id), name: 'Done' })),
   deleteItem: vi.fn((_tid: number, id: string) => Number(id) !== 404),
 }));
-vi.mock('../../../src/services/fileService', () => ({ listFiles: vi.fn((tid: number, trash: boolean) => [{ id: 2, trip_id: tid, trash }]) }));
+const { testFilesDir } = vi.hoisted(() => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const osm = require('node:os') as typeof import('node:os');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const pm = require('node:path') as typeof import('node:path');
+  return { testFilesDir: pm.join(osm.tmpdir(), 'trek-crh-files-test') };
+});
+vi.mock('../../../src/services/fileService', () => ({
+  listFiles: vi.fn((tid: number, trash: boolean) => [{ id: 2, trip_id: tid, trash }]),
+  filesDir: testFilesDir,
+  BLOCKED_EXTENSIONS: ['.exe', '.bat', '.sh'],
+  createFile: vi.fn((tid: number, file: { filename: string; originalname: string; size: number }, uploadedBy: number) => ({ id: 130, trip_id: Number(tid), ...file, uploaded_by: uploadedBy })),
+  createFileLink: vi.fn(() => [{ file_id: 130 }]),
+  getFileById: vi.fn((id: number) => (Number(id) === 404 ? undefined : { id: Number(id), description: 'old', place_id: null, reservation_id: null })),
+  updateFile: vi.fn((id: number, _cur: unknown, updates: unknown) => ({ id: Number(id), ...(updates as object) })),
+  softDeleteFile: vi.fn(),
+  // reservation_id/place_id 999 = belongs to another trip
+  findForeignLinkTarget: vi.fn((_tid: number, opts: { reservation_id?: number | null; place_id?: number | null }) =>
+    (Number(opts.reservation_id) === 999 ? 'reservation_id' : Number(opts.place_id) === 999 ? 'place_id' : null)),
+}));
+vi.mock('../../../src/services/collabService', () => ({
+  createNote: vi.fn((tid: number, uid: number, data: { title: string }) => ({ id: 140, trip_id: Number(tid), created_by: uid, title: data.title })),
+  createPoll: vi.fn((tid: number, _uid: number, data: { question: string }) => ({ id: 141, trip_id: Number(tid), question: data.question })),
+  votePoll: vi.fn((_tid: number, pollId: number, _uid: number, optionIndex: number) =>
+    (optionIndex > 5 ? { error: 'Invalid option' } : { poll: { id: Number(pollId), votes: 1 } })),
+  createMessage: vi.fn((tid: number, uid: number, text: string) =>
+    (text === 'toolong' ? { error: 'Message too long' } : { message: { id: 142, trip_id: Number(tid), user_id: uid, text } })),
+}));
+vi.mock('../../../src/services/tripMembership', () => ({
+  joinTripAsMember: vi.fn((tripId: number, userId: number) => ({ joined: userId !== 5, tripId })), // owner add = no-op
+}));
 // Reservations: the Nest service is delegated to; mock it so the create-rpc-host
 // reservation deps' side-effect branches (accommodation / budget-sync / notify) run.
 vi.mock('../../../src/nest/reservations/reservations.service', () => ({
@@ -558,5 +588,59 @@ describe('create-rpc-host — Wave 2 wiring (atlas/vacay/journal/collections wri
     expect((await call(h, 'collections.copyToTrip', { input: { trip_id: 1, place_ids: [101] } })).ok).toBe(true)
     expect((await call(h, 'collections.deletePlace', { placeId: 101 })).ok).toBe(true)
     expect(((await call(h, 'collections.deletePlace', { placeId: 404 })) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
+  })
+})
+
+describe('create-rpc-host — Wave 3 wiring (files write / collab / member-add)', () => {
+  const host = (...perms: string[]) => createRealRpcHost('w3', new Set(perms))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const call = async (h: ReturnType<typeof host>, method: string, params: Record<string, unknown>, uid: number | undefined = 5): Promise<any> =>
+    h.dispatch({ k: 'req', id: 'x', method, params }, uid)
+  beforeEach(() => { checkPermission.mockReset(); checkPermission.mockReturnValue(true); isAddonEnabled.mockReset(); isAddonEnabled.mockReturnValue(true); broadcast.mockClear() })
+  afterAll(() => closePluginDataDb('w3'))
+
+  it('files.create writes bytes, blocks bad extensions + foreign targets, broadcasts file:created', async () => {
+    const h = host('db:write:files')
+    const good = await call(h, 'files.create', { tripId: 1, input: { name: 'plan.pdf', content_base64: Buffer.from('hello').toString('base64') } })
+    expect(good.ok).toBe(true)
+    expect(broadcast.mock.calls.some((c) => c[1] === 'file:created')).toBe(true)
+    expect(((await call(h, 'files.create', { tripId: 1, input: { name: 'evil.exe', content_base64: 'aGk=' } })) as { error: { code: string } }).error.code).toBe('BAD_PARAMS')
+    expect(((await call(h, 'files.create', { tripId: 1, input: { name: 'noext', content_base64: 'aGk=' } })) as { error: { code: string } }).error.code).toBe('BAD_PARAMS')
+    expect(((await call(h, 'files.create', { tripId: 1, input: { name: 'a.pdf', content_base64: 'aGk=', reservation_id: 999 } })) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
+  })
+
+  it('files link/update/softDelete verify the file is on the trip + same-trip targets', async () => {
+    const h = host('db:write:files')
+    expect((await call(h, 'files.createLink', { tripId: 1, fileId: 130, opts: { place_id: 7 } })).ok).toBe(true)
+    expect(((await call(h, 'files.createLink', { tripId: 1, fileId: 404, opts: {} })) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
+    expect(((await call(h, 'files.createLink', { tripId: 1, fileId: 130, opts: { place_id: 999 } })) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
+    expect((await call(h, 'files.update', { tripId: 1, fileId: 130, input: { description: 'new' } })).ok).toBe(true)
+    expect(broadcast.mock.calls.some((c) => c[1] === 'file:updated')).toBe(true)
+    expect((await call(h, 'files.softDelete', { tripId: 1, fileId: 130 })).ok).toBe(true)
+    expect(broadcast.mock.calls.some((c) => c[1] === 'file:deleted')).toBe(true)
+    expect(((await call(h, 'files.softDelete', { tripId: 1, fileId: 404 })) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
+  })
+
+  it('collab writes delegate + broadcast; service errors map to BAD_PARAMS; addon gated', async () => {
+    const h = host('db:write:collab')
+    expect((await call(h, 'collab.createNote', { tripId: 1, input: { title: 'Ideas' } })).ok).toBe(true)
+    expect(broadcast.mock.calls.some((c) => c[1] === 'collab:note:created')).toBe(true)
+    expect((await call(h, 'collab.createPoll', { tripId: 1, input: { question: 'Where?', options: ['A', 'B'] } })).ok).toBe(true)
+    expect((await call(h, 'collab.votePoll', { tripId: 1, pollId: 141, optionIndex: 0 })).ok).toBe(true)
+    expect(((await call(h, 'collab.votePoll', { tripId: 1, pollId: 141, optionIndex: 9 })) as { error: { code: string } }).error.code).toBe('BAD_PARAMS')
+    expect((await call(h, 'collab.createMessage', { tripId: 1, text: 'hi' })).ok).toBe(true)
+    expect(((await call(h, 'collab.createMessage', { tripId: 1, text: 'toolong' })) as { error: { code: string } }).error.code).toBe('BAD_PARAMS')
+    isAddonEnabled.mockReturnValue(false)
+    expect(((await call(h, 'collab.createNote', { tripId: 1, input: { title: 'x' } })) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
+  })
+
+  it('trips.addMember verifies the target user exists and reports owner-add as joined:false', async () => {
+    const h = host('db:write:members')
+    const r = await call(h, 'trips.addMember', { tripId: 1, userId: 6 })
+    expect(r.ok).toBe(true)
+    expect(r.result).toMatchObject({ joined: true })
+    const ownerAdd = await call(h, 'trips.addMember', { tripId: 1, userId: 5 }) // owner -> no-op
+    expect(ownerAdd.result).toMatchObject({ joined: false })
+    expect(((await call(h, 'trips.addMember', { tripId: 1, userId: 12345 })) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
   })
 })

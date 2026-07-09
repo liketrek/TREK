@@ -91,6 +91,20 @@ function makeDeps(): HostDeps {
     createTagForUser: vi.fn((uid: number, name: string) => ({ id: 9, user_id: uid, name })),
     updateTagForUser: vi.fn((_uid: number, tagId: number, name?: string) => ({ id: tagId, name })),
     deleteTagForUser: vi.fn(() => ({ deleted: true })),
+    canUploadFiles: vi.fn((tripId: number, userId: number) => tripId === 1 && userId === 42),
+    canEditFiles: vi.fn((tripId: number, userId: number) => tripId === 1 && userId === 42),
+    canDeleteFiles: vi.fn((tripId: number, userId: number) => tripId === 1 && userId === 42),
+    createTripFile: vi.fn((tripId: number, input: unknown, uid: number) => ({ id: 130, trip_id: tripId, uploaded_by: uid, ...(input as object) })),
+    createTripFileLink: vi.fn(() => [{ file_id: 130 }]),
+    updateTripFile: vi.fn((_tripId: number, fileId: number, input: unknown) => ({ id: fileId, ...(input as object) })),
+    softDeleteTripFile: vi.fn(() => ({ deleted: true })),
+    canEditCollab: vi.fn((tripId: number, userId: number) => tripId === 1 && userId === 42),
+    createCollabNote: vi.fn((tripId: number, input: unknown, uid: number) => ({ id: 140, trip_id: tripId, created_by: uid, ...(input as object) })),
+    createCollabPoll: vi.fn((tripId: number, input: unknown) => ({ id: 141, trip_id: tripId, ...(input as object) })),
+    voteCollabPoll: vi.fn((_tripId: number, pollId: number) => ({ id: pollId, votes: 1 })),
+    createCollabMessage: vi.fn((tripId: number, text: string) => ({ id: 142, trip_id: tripId, text })),
+    canManageMembers: vi.fn((tripId: number, userId: number) => tripId === 1 && userId === 42),
+    addTripMember: vi.fn((tripId: number, targetUserId: number, invitedBy: number) => ({ joined: true, tripId, targetUserId, invitedBy })),
     createCollectionForUser: vi.fn((uid: number, input: unknown) => ({ id: 100, owner_id: uid, ...(input as object) })),
     updateCollectionForUser: vi.fn((_uid: number, id: number, input: unknown) => ({ id, ...(input as object) })),
     saveCollectionPlace: vi.fn((uid: number, input: unknown) => ({ id: 101, saved_by: uid, ...(input as object) })),
@@ -468,6 +482,49 @@ describe('PluginRpcHost — capability enforcement', () => {
     expect((await host.dispatch(req('collections.create', { input: { name: 'x' } }), undefined)).ok).toBe(false);
     const noGrant = new PluginRpcHost('p', new Set(['db:read:collections']), deps);
     expect((await noGrant.dispatch(req('collections.create', { input: { name: 'x' } }), 42)).ok).toBe(false);
+  });
+
+  it('files.create validates name/content/size and is gated by file_upload', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:files']), deps);
+    const good = await host.dispatch(req('files.create', { tripId: 1, input: { name: 'itinerary.pdf', content_base64: 'aGk=' } }), 42);
+    expect(ok(good)).toBe(true);
+    expect(deps.createTripFile).toHaveBeenCalledWith(1, expect.objectContaining({ name: 'itinerary.pdf' }), 42);
+    expect((await host.dispatch(req('files.create', { tripId: 1, input: { name: '', content_base64: 'aGk=' } }), 42)).ok).toBe(false);
+    expect((await host.dispatch(req('files.create', { tripId: 1, input: { name: 'a.pdf' } }), 42)).ok).toBe(false); // no content
+    expect(((await host.dispatch(req('files.create', { tripId: 2, input: { name: 'a.pdf', content_base64: 'aGk=' } }), 42)) as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect((await host.dispatch(req('files.create', { tripId: 1, input: { name: 'a.pdf', content_base64: 'aGk=' } }), undefined)).ok).toBe(false);
+  });
+
+  it('files link/update/softDelete run under file_edit / file_delete', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:files']), deps);
+    expect(ok(await host.dispatch(req('files.createLink', { tripId: 1, fileId: 130, opts: { place_id: 7 } }), 42))).toBe(true);
+    expect(ok(await host.dispatch(req('files.update', { tripId: 1, fileId: 130, input: { description: 'x' } }), 42))).toBe(true);
+    expect(ok(await host.dispatch(req('files.softDelete', { tripId: 1, fileId: 130 }), 42))).toBe(true);
+    expect(deps.canDeleteFiles).toHaveBeenCalled();
+  });
+
+  it('collab writes are gated by collab_edit and validate their inputs', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:collab']), deps);
+    expect(ok(await host.dispatch(req('collab.createNote', { tripId: 1, input: { title: 'Ideas' } }), 42))).toBe(true);
+    expect((await host.dispatch(req('collab.createNote', { tripId: 1, input: { title: '' } }), 42)).ok).toBe(false);
+    expect(ok(await host.dispatch(req('collab.createPoll', { tripId: 1, input: { question: 'Where?', options: ['A', 'B'] } }), 42))).toBe(true);
+    expect((await host.dispatch(req('collab.createPoll', { tripId: 1, input: { question: 'Where?', options: ['A'] } }), 42)).ok).toBe(false);
+    expect(ok(await host.dispatch(req('collab.votePoll', { tripId: 1, pollId: 141, optionIndex: 0 }), 42))).toBe(true);
+    expect(ok(await host.dispatch(req('collab.createMessage', { tripId: 1, text: 'hi' }), 42))).toBe(true);
+    expect((await host.dispatch(req('collab.createMessage', { tripId: 1, text: '' }), 42)).ok).toBe(false);
+    expect(((await host.dispatch(req('collab.createNote', { tripId: 2, input: { title: 'x' } }), 42)) as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+  });
+
+  it('trips.addMember is its own permission (member_manage), host-bound inviter', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:members']), deps);
+    const good = await host.dispatch(req('trips.addMember', { tripId: 1, userId: 6 }), 42);
+    expect(ok(good)).toBe(true);
+    expect(deps.addTripMember).toHaveBeenCalledWith(1, 6, 42); // inviter = HOST-bound acting user
+    expect(((await host.dispatch(req('trips.addMember', { tripId: 2, userId: 6 }), 42)) as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect((await host.dispatch(req('trips.addMember', { tripId: 1, userId: 6 }), undefined)).ok).toBe(false);
+    // and NOT reachable via any other write grant
+    const otherGrant = new PluginRpcHost('p', new Set(['db:write:trips', 'db:write:collab']), deps);
+    expect((await otherGrant.dispatch(req('trips.addMember', { tripId: 1, userId: 6 }), 42)).ok).toBe(false);
   });
 
   it('a read scope is denied without its own permission', async () => {

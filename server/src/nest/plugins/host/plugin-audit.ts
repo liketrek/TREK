@@ -46,6 +46,7 @@ export function auditResource(method: string, params: Record<string, unknown>): 
   if (method === 'collections.listMine') return 'collections:all';
   if (method.startsWith('collections.')) return `collection:${params.id ?? params.placeId ?? '?'}`;
   if (method.startsWith('daynotes.')) return `trip:${params.tripId ?? '?'}`;
+  if (method.startsWith('collab.')) return `trip:${params.tripId ?? '?'}`;
   if (method.startsWith('todos.')) return `trip:${params.tripId ?? '?'}`;
   if (method === 'weather.get') return 'weather:global';
   if (method === 'categories.list') return 'categories:all';
