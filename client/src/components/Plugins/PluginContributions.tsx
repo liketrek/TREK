@@ -67,6 +67,18 @@ export function PluginColumns({ items }: { items: ViewContribution[] }) {
   )
 }
 
+/** The plugin-contributed columns + actions strip appended to the bottom of an
+ * entity row/card. Renders nothing (zero change) when no plugin contributes. */
+export function PluginCardFooter({ items, tripId }: { items: ViewContribution[]; tripId: number }) {
+  if (!items.length) return null
+  return (
+    <div className="border-t border-edge" style={{ marginTop: 8, paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <PluginColumns items={items} />
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}><PluginActions items={items} tripId={tripId} /></div>
+    </div>
+  )
+}
+
 /** Labelled action buttons for one entity — a route action calls the plugin route;
  * a frame action opens the plugin's sandboxed UI in a modal. */
 export function PluginActions({ items, tripId, className }: { items: ViewContribution[]; tripId: string | number | null; className?: string }) {

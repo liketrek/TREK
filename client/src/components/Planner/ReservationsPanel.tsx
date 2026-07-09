@@ -18,7 +18,7 @@ import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import type { Reservation, Day, TripFile, AssignmentsMap } from '../../types'
 import type { ViewContribution } from '../../api/client'
-import { usePluginViewContributions, PluginColumns, PluginActions } from '../Plugins/PluginContributions'
+import { usePluginViewContributions, PluginCardFooter } from '../Plugins/PluginContributions'
 import { splitReservationDateTime, formatTime } from '../../utils/formatters'
 
 interface AssignmentLookupEntry {
@@ -67,18 +67,6 @@ function buildAssignmentLookup(days, assignments) {
 /* ── Shared field label/value styles ── */
 const fieldLabelClass = 'text-[10px] font-semibold uppercase tracking-[0.08em] text-content-faint mb-[5px]'
 const fieldValueClass = 'text-[13px] font-medium text-content px-[10px] py-[8px] bg-surface-tertiary rounded-[10px]'
-
-/** Plugin-contributed columns + actions strip, appended to the bottom of an entity
- * card. Renders nothing (zero change to the card) when no plugin contributes. */
-function PluginCardFooter({ items, tripId }: { items: ViewContribution[]; tripId: number }) {
-  if (!items.length) return null
-  return (
-    <div className="border-t border-edge" style={{ marginTop: 8, paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <PluginColumns items={items} />
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}><PluginActions items={items} tripId={tripId} /></div>
-    </div>
-  )
-}
 
 interface ReservationCardProps {
   r: Reservation

@@ -1,12 +1,16 @@
+import { Fragment } from 'react'
 import { MemoPlaceRow } from './PlacesSidebarRow'
 import type { SidebarState } from './usePlacesSidebar'
+import { usePluginViewContributions, PluginCardFooter } from '../Plugins/PluginContributions'
 
 export function PlacesList(S: SidebarState) {
   const {
     filtered, scrollContainerRef, onScrollTopChange, filter, t, canEditPlaces, onAddPlace,
     categories, selectedPlaceId, plannedIds, inDaySet, selectedIds, selectMode, selectedDayId,
-    isMobile, onPlaceClick, openContextMenu, onAssignToDay, toggleSelected, setDayPickerPlace, registerPlaceRow,
+    isMobile, onPlaceClick, openContextMenu, onAssignToDay, toggleSelected, setDayPickerPlace, registerPlaceRow, tripId,
   } = S
+  // Plugin-contributed columns/actions for the places view, keyed by place id (#plugins).
+  const contribFor = usePluginViewContributions('places', tripId)
   return (
     <div className="trek-stagger" style={{ flex: 1, overflowY: 'auto', minHeight: 0 }} ref={scrollContainerRef} onScroll={(e) => onScrollTopChange?.((e.currentTarget as HTMLElement).scrollTop)}>
       {filtered.length === 0 ? (
@@ -25,27 +29,32 @@ export function PlacesList(S: SidebarState) {
           const isPlanned = plannedIds.has(place.id)
           const inDay = inDaySet.has(place.id)
           const isChecked = selectedIds.has(place.id)
+          const contributions = contribFor(place.id)
           return (
-            <MemoPlaceRow
-              key={place.id}
-              place={place}
-              category={cat}
-              isSelected={isSelected}
-              isPlanned={isPlanned}
-              inDay={inDay}
-              isChecked={isChecked}
-              selectMode={selectMode}
-              selectedDayId={selectedDayId}
-              canEditPlaces={canEditPlaces}
-              isMobile={isMobile}
-              t={t}
-              onPlaceClick={onPlaceClick}
-              onContextMenu={openContextMenu}
-              onAssignToDay={onAssignToDay}
-              toggleSelected={toggleSelected}
-              setDayPickerPlace={setDayPickerPlace}
-              registerPlaceRow={registerPlaceRow}
-            />
+            <Fragment key={place.id}>
+              <MemoPlaceRow
+                place={place}
+                category={cat}
+                isSelected={isSelected}
+                isPlanned={isPlanned}
+                inDay={inDay}
+                isChecked={isChecked}
+                selectMode={selectMode}
+                selectedDayId={selectedDayId}
+                canEditPlaces={canEditPlaces}
+                isMobile={isMobile}
+                t={t}
+                onPlaceClick={onPlaceClick}
+                onContextMenu={openContextMenu}
+                onAssignToDay={onAssignToDay}
+                toggleSelected={toggleSelected}
+                setDayPickerPlace={setDayPickerPlace}
+                registerPlaceRow={registerPlaceRow}
+              />
+              {contributions.length > 0 && (
+                <div style={{ padding: '0 14px 8px 16px' }}><PluginCardFooter items={contributions} tripId={tripId} /></div>
+              )}
+            </Fragment>
           )
         })
       )}

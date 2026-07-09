@@ -5,6 +5,7 @@ import { X, Sun, Cloud, CloudRain, CloudSnow, CloudDrizzle, CloudLightning, Wind
 const RES_TYPE_ICONS = { flight: Plane, hotel: Hotel, restaurant: Utensils, train: Train, car: Car, cruise: Ship, transit: TramFront, event: Ticket, tour: Users, other: FileText }
 const RES_TYPE_COLORS = { flight: '#3b82f6', hotel: '#8b5cf6', restaurant: '#ef4444', train: '#06b6d4', car: '#6b7280', cruise: '#0ea5e9', transit: '#7c3aed', event: '#f59e0b', tour: '#10b981', other: '#6b7280' }
 import { weatherApi, accommodationsApi } from '../../api/client'
+import { usePluginViewContributions, PluginCardFooter } from '../Plugins/PluginContributions'
 import { useCanDo } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
 import CustomSelect from '../shared/CustomSelect'
@@ -103,6 +104,9 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
     hotelForm, setHotelForm, handleSelectPlace, handleSaveAccommodation,
     updateAccommodationField, handleRemoveAccommodation,
   } = useDayDetail(day, days, tripId, lat, lng, language, onAccommodationChange)
+  // Plugin-contributed columns/actions for the day view, keyed by day id (#plugins).
+  // day can be null (panel closed) and hooks must run before the early return, so guard it.
+  const dayContributions = usePluginViewContributions('day', tripId)(day?.id ?? -1)
 
   // Publish the panel's live height as a root CSS var so the map's mobile GPS
   // button can sit just above the panel instead of being hidden behind it (#1348).
@@ -274,6 +278,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
           )}
 
           {/* ── Reservations for this day's assignments ── */}
+          {dayContributions.length > 0 && <PluginCardFooter items={dayContributions} tripId={tripId} />}
           {(() => {
             const dayAssignments = assignments[String(day.id)] || []
             const dayReservations = reservations.filter(r => {
