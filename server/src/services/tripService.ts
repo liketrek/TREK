@@ -1,4 +1,5 @@
 import path from 'path';
+import tzlookup from 'tz-lookup';
 import { avatarUrl } from './avatarUrl';
 import fs from 'fs';
 import { randomUUID } from 'crypto';
@@ -551,11 +552,75 @@ function foldICS(ics: string): string {
   return ics.split('\r\n').map(foldLine).join('\r\n');
 }
 
+// ── ICS time-zone helpers ────────────────────────────────────────────────────
+// Timed events must carry an explicit IANA zone; a bare "YYYYMMDDTHHMMSS" is an
+// RFC 5545 "floating" time that clients render in the *subscriber's* zone (#1453).
+
+// Resolve an IANA zone (e.g. "Europe/Paris") from coordinates. Returns null for
+// missing/invalid coords instead of throwing — tz-lookup throws RangeError when
+// lat/lng are out of range.
+function resolveZone(lat: unknown, lng: unknown): string | null {
+  if (
+    typeof lat !== 'number' ||
+    typeof lng !== 'number' ||
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lng)
+  ) {
+    return null;
+  }
+  try {
+    return tzlookup(lat, lng);
+  } catch {
+    return null;
+  }
+}
+
+// UTC offset ("+0200") the zone uses on the given YYYYMMDD date. Only feeds the
+// fallback VTIMEZONE offset; iOS/Google resolve the named zone from their own
+// IANA database, so a single representative offset is sufficient.
+function tzOffsetString(zone: string, yyyymmdd: string): string {
+  const iso = `${yyyymmdd.slice(0, 4)}-${yyyymmdd.slice(4, 6)}-${yyyymmdd.slice(6, 8)}T12:00:00Z`;
+  const probe = new Date(iso);
+  if (Number.isNaN(probe.getTime())) return '+0000';
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: zone,
+    timeZoneName: 'longOffset',
+  }).formatToParts(probe);
+  const raw = parts.find((p) => p.type === 'timeZoneName')?.value ?? 'GMT';
+  const m = raw.match(/GMT([+-])(\d{2}):?(\d{2})?/);
+  if (!m) return '+0000'; // "GMT" (UTC) has no offset digits
+  return `${m[1]}${m[2]}${m[3] ?? '00'}`;
+}
+
+// Minimal but RFC-valid VTIMEZONE. Smart clients override it with their own tz
+// rules; dumb clients fall back to this fixed offset.
+function buildVTimezone(zone: string, yyyymmdd: string): string {
+  const off = tzOffsetString(zone, yyyymmdd);
+  return (
+    'BEGIN:VTIMEZONE\r\n' +
+    `TZID:${zone}\r\n` +
+    'BEGIN:STANDARD\r\n' +
+    'DTSTART:19700101T000000\r\n' +
+    `TZOFFSETFROM:${off}\r\n` +
+    `TZOFFSETTO:${off}\r\n` +
+    `TZNAME:${zone}\r\n` +
+    'END:STANDARD\r\n' +
+    'END:VTIMEZONE\r\n'
+  );
+}
+
 export function exportICS(tripId: string | number): { ics: string; filename: string } {
   const trip = db.prepare('SELECT * FROM trips WHERE id = ?').get(tripId) as any;
   if (!trip) throw new NotFoundError('Trip not found');
 
-  const reservations = db.prepare('SELECT * FROM reservations WHERE trip_id = ?').all(tripId) as any[];
+  const reservations = db
+    .prepare(
+      `SELECT r.*, pl.lat AS place_lat, pl.lng AS place_lng
+       FROM reservations r
+       LEFT JOIN places pl ON r.place_id = pl.id
+       WHERE r.trip_id = ?`,
+    )
+    .all(tripId) as any[];
 
   const esc = (s: string) => s
     .replace(/\\/g, '\\\\')
@@ -583,6 +648,27 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
     return d.replace(/[-:]/g, '');
   };
 
+  // Zones referenced by timed events → representative YYYYMMDD (for the fallback
+  // VTIMEZONE offset). Populated by dtLine; emitted once as VTIMEZONE blocks.
+  const usedZones = new Map<string, string>();
+
+  // Emit a DTSTART/DTEND line, attaching TZID when the event's zone is known so
+  // subscribers see the time in TREK's zone. Falls back to a floating local time
+  // (unchanged behavior) when no zone resolves or the value is not a date-time.
+  const dtLine = (
+    prop: 'DTSTART' | 'DTEND',
+    wallClock: string,
+    zone: string | null,
+    refDate?: string,
+  ): string => {
+    const val = fmtDateTime(wallClock, refDate);
+    if (zone && /^\d{8}T\d{6}$/.test(val)) {
+      if (!usedZones.has(zone)) usedZones.set(zone, val.slice(0, 8));
+      return `${prop};TZID=${zone}:${val}\r\n`;
+    }
+    return `${prop}:${val}\r\n`;
+  };
+
   let ics = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//TREK//Travel Planner//EN\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\n';
   ics += `X-WR-CALNAME:${esc(trip.title || 'TREK Trip')}\r\n`;
 
@@ -603,6 +689,7 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
 
     const assignments = db.prepare(`
       SELECT da.*, p.name as place_name, p.address as place_address,
+        p.lat as place_lat, p.lng as place_lng,
         COALESCE(da.assignment_time, p.place_time) as effective_time,
         COALESCE(da.assignment_end_time, p.end_time) as effective_end_time
       FROM day_assignments da
@@ -620,10 +707,11 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
 
     // Timed assignments → individual events
     for (const a of timed) {
+      const zone = resolveZone(a.place_lat, a.place_lng);
       ics += `BEGIN:VEVENT\r\nUID:${uid(a.id, 'assign')}\r\nDTSTAMP:${now}\r\n`;
-      ics += `DTSTART:${fmtDateTime(a.effective_time, day.date + 'T00:00')}\r\n`;
+      ics += dtLine('DTSTART', a.effective_time, zone, day.date + 'T00:00');
       if (a.effective_end_time) {
-        ics += `DTEND:${fmtDateTime(a.effective_end_time, day.date + 'T00:00')}\r\n`;
+        ics += dtLine('DTEND', a.effective_end_time, zone, day.date + 'T00:00');
       }
       ics += `SUMMARY:${esc(a.place_name)}\r\n`;
       let desc = '';
@@ -680,10 +768,12 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
       const datePart = r.reservation_time.includes('T') ? r.reservation_time.split('T')[0] : r.reservation_time;
       if (!isDate(datePart)) return null; // time-only (relative "Day N" trips)
       if (r.reservation_time.includes('T')) {
-        let out = `DTSTART:${fmtDateTime(r.reservation_time)}\r\n`;
+        // Hotels/restaurants: derive the zone from the linked place, if any.
+        const zone = resolveZone(r.place_lat, r.place_lng);
+        let out = dtLine('DTSTART', r.reservation_time, zone);
         if (r.reservation_end_time) {
           const endDt = fmtDateTime(r.reservation_end_time, r.reservation_time);
-          if (endDt.length >= 15) out += `DTEND:${endDt}\r\n`;
+          if (endDt.length >= 15) out += dtLine('DTEND', r.reservation_end_time, zone, r.reservation_time);
         }
         return out;
       }
@@ -697,9 +787,13 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
     const last = ordered[ordered.length - 1];
     if (!isDate(first.local_date)) return null;
     if (isTime(first.local_time)) {
-      let out = `DTSTART:${fmtDateTime(`${first.local_date}T${first.local_time}`)}\r\n`;
+      // Transport: departure endpoint zone drives DTSTART, arrival drives DTEND.
+      // Prefer the stored IANA zone; fall back to the endpoint's coordinates.
+      const startZone = first.timezone || resolveZone(first.lat, first.lng);
+      let out = dtLine('DTSTART', `${first.local_date}T${first.local_time}`, startZone);
       if (last !== first && isDate(last.local_date) && isTime(last.local_time)) {
-        out += `DTEND:${fmtDateTime(`${last.local_date}T${last.local_time}`)}\r\n`;
+        const endZone = last.timezone || resolveZone(last.lat, last.lng);
+        out += dtLine('DTEND', `${last.local_date}T${last.local_time}`, endZone);
       }
       return out;
     }
@@ -743,6 +837,14 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
   }
 
   ics += 'END:VCALENDAR\r\n';
+
+  // Define every referenced zone with a VTIMEZONE, inserted before the first
+  // event so TZID references resolve. No-op when no timed event carried a zone.
+  if (usedZones.size > 0) {
+    let vtz = '';
+    for (const [zone, yyyymmdd] of usedZones) vtz += buildVTimezone(zone, yyyymmdd);
+    ics = ics.replace('BEGIN:VEVENT', vtz + 'BEGIN:VEVENT');
+  }
 
   const safeFilename = (trip.title || 'trek-trip').replace(/["\r\n]/g, '').replace(/[^\w\s.-]/g, '_');
   return { ics: foldICS(ics), filename: `${safeFilename}.ics` };
