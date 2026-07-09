@@ -34,7 +34,7 @@ const notif: TranslationStrings = {
   'notif.action.view_admin': 'Đi tới quản trị viên',
   'notif.action.view': 'Xem',
   'notif.action.accept': 'Chấp nhận',
-  'notif.action.decline': 'Sự suy sụp',
+  'notif.action.decline': 'Từ chối',
   'notif.generic.title': 'Thông báo',
   'notif.generic.text': 'Bạn có thông báo mới',
   'notif.dev.unknown_event.title': '[DEV] Sự kiện không xác định',

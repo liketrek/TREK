@@ -46,8 +46,8 @@ const settings: TranslationStrings = {
   'settings.mapsKeyHint': 'Để tìm kiếm địa điểm. Yêu cầu Địa điểm API (Mới). Truy cập tại console.cloud.google.com',
   'settings.weatherKey': 'OpenWeatherMap API Key',
   'settings.weatherKeyHint': 'Đối với dữ liệu thời tiết. Miễn phí tại openweathermap.org/api',
-  'settings.keyPlaceholder': 'Nhập khóa...',
-  'settings.configured': 'Đã định cấu hình',
+  'settings.keyPlaceholder': 'Nhập API Key...',
+  'settings.configured': 'Đã cấu hình',
   'settings.saveKeys': 'Lưu chìa khóa',
   'settings.display': 'Hiển thị',
   'settings.colorMode': 'Chế độ màu',
@@ -98,7 +98,7 @@ const settings: TranslationStrings = {
   'settings.ntfyUrl.serverLabel': 'Ntfy Máy chủ URL (tùy chọn)',
   'settings.ntfyUrl.serverPlaceholder': 'https://ntfy.sh',
   'settings.ntfyUrl.hint':
-    'Nhập chủ đề ntfy của bạn để nhận thông báo đẩy. Để trống máy chủ để sử dụng cài đặt mặc định do quản trị viên của bạn định cấu hình.',
+    'Nhập chủ đề ntfy của bạn để nhận thông báo đẩy. Để trống máy chủ để sử dụng cài đặt mặc định do quản trị viên cấu hình.',
   'settings.ntfyUrl.tokenLabel': 'Mã thông báo truy cập (tùy chọn)',
   'settings.ntfyUrl.tokenHint': 'Cần thiết cho các chủ đề được bảo vệ bằng mật khẩu.',
   'settings.ntfyUrl.saved': 'Ntfy đã lưu cài đặt',
@@ -109,7 +109,7 @@ const settings: TranslationStrings = {
   'settings.notificationsDisabled':
     'Thông báo không được cấu hình. Yêu cầu quản trị viên bật thông báo qua email hoặc webhook.',
   'settings.notificationsActive': 'Kênh hoạt động',
-  'settings.notificationsManagedByAdmin': 'Các sự kiện thông báo được quản trị viên của bạn định cấu hình.',
+  'settings.notificationsManagedByAdmin': 'Các sự kiện thông báo được quản trị viên cấu hình.',
   'settings.on': 'Bật',
   'settings.off': 'Tắt',
   'settings.mcp.title': 'MCP Cấu hình',
@@ -143,13 +143,13 @@ const settings: TranslationStrings = {
   'settings.mcp.toast.deleted': 'Đã xóa mã thông báo',
   'settings.mcp.toast.deleteError': 'Không xóa được mã thông báo',
   'settings.mcp.apiTokensDeprecated':
-    'API Mã thông báo không được dùng nữa và sẽ bị xóa trong bản phát hành trong tương lai. Thay vào đó, vui lòng sử dụng Khách hàng OAuth 2.1.',
-  'settings.oauth.clients': 'OAuth 2.1 Khách hàng',
+    'API Mã thông báo không được dùng nữa và sẽ bị xóa trong bản phát hành trong tương lai. Thay vào đó, vui lòng sử dụng OAuth 2.1 Clients.',
+  'settings.oauth.clients': 'OAuth 2.1 Clients',
   'settings.oauth.clientsHint':
     'Đăng ký ứng dụng khách OAuth 2.1 để cho phép các ứng dụng MCP của bên thứ ba (Claude Web, Cursor, v.v.) kết nối mà không cần mã thông báo tĩnh.',
-  'settings.oauth.createClient': 'Khách hàng mới',
-  'settings.oauth.noClients': 'Không có khách hàng OAuth nào được đăng ký.',
-  'settings.oauth.clientId': 'Khách hàng ID',
+  'settings.oauth.createClient': 'Client mới',
+  'settings.oauth.noClients': 'Không có OAuth clients nào được đăng ký.',
+  'settings.oauth.clientId': 'Client ID',
   'settings.oauth.clientSecret': 'Bí mật khách hàng',
   'settings.oauth.deleteClient': 'Xóa khách hàng',
   'settings.oauth.deleteClientMessage':
@@ -182,7 +182,7 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.deselectAll': 'Bỏ chọn tất cả',
   'settings.oauth.modal.creating': 'Đang đăng ký…',
   'settings.oauth.modal.create': 'Đăng ký khách hàng',
-  'settings.oauth.modal.createdTitle': 'Khách hàng đã đăng ký',
+  'settings.oauth.modal.createdTitle': 'Client đã đăng ký',
   'settings.oauth.modal.createdWarning': 'Bí mật của khách hàng chỉ được hiển thị một lần. Sao chép nó ngay bây giờ - nó không thể phục hồi được.',
   'settings.oauth.toast.createError': 'Không thể đăng ký ứng dụng khách OAuth',
   'settings.oauth.toast.deleted': 'OAuth khách hàng đã bị xóa',
@@ -287,7 +287,7 @@ const settings: TranslationStrings = {
   'settings.passkey.description':
     'Đăng nhập nhanh hơn và chống lừa đảo bằng mật mã — vân tay, khuôn mặt, PIN hoặc khóa phần cứng của bạn. Mật khẩu của bạn vẫn là bản sao lưu.',
   'settings.passkey.notConfigured':
-    'Mật mã đã được bật nhưng chưa được định cấu hình đầy đủ trên máy chủ này. Hãy yêu cầu quản trị viên của bạn đặt miền WebAuthn.',
+    'Mật mã đã được bật nhưng chưa được cấu hình đầy đủ trên máy chủ này. Hãy yêu cầu quản trị viên của bạn đặt miền WebAuthn.',
   'settings.passkey.add': 'Thêm mật mã',
   'settings.passkey.addTitle': 'Thêm mật mã',
   'settings.passkey.passwordPrompt': 'Xác nhận mật khẩu hiện tại của bạn, sau đó làm theo lời nhắc trên thiết bị của bạn.',
@@ -308,7 +308,7 @@ const settings: TranslationStrings = {
   'settings.airtrail.title': 'AirTrail',
   'settings.airtrail.hint':
     'Kết nối AirTrail tự lưu trữ của bạn để nhập và đồng bộ hóa các chuyến bay. Tạo khóa API trong AirTrail trong Cài đặt → Bảo mật.',
-  'settings.airtrail.url': 'Ví dụ URL',
+  'settings.airtrail.url': 'Instance URL',
   'settings.airtrail.apiKey': 'API Key',
   'settings.airtrail.apiKeyPlaceholder': 'API Key',
   'settings.airtrail.apiKeyHint': 'Được tạo trong AirTrail trong Cài đặt → Bảo mật. Được lưu trữ được mã hóa.',

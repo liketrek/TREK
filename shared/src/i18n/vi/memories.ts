@@ -17,7 +17,7 @@ const memories: TranslationStrings = {
   'memories.reviewHint': 'Nhấp vào ảnh để loại trừ chúng khỏi việc chia sẻ.',
   'memories.shareCount': 'Chia sẻ ảnh {count}',
   'memories.providerUrl': 'Máy chủ URL',
-  'memories.providerApiKey': 'API Chìa khóa',
+  'memories.providerApiKey': 'API Key',
   'memories.providerUsername': 'Tên người dùng',
   'memories.providerPassword': 'Mật khẩu',
   'memories.providerOTP': 'Mã MFA (nếu được bật)',
@@ -68,8 +68,8 @@ const memories: TranslationStrings = {
   'memories.error.addPhotos': 'Không thể thêm ảnh',
   'memories.error.removePhoto': 'Không xóa được ảnh',
   'memories.error.toggleSharing': 'Không thể cập nhật chia sẻ',
-  'memories.saveRouteNotConfigured': 'Lưu tuyến không được định cấu hình cho nhà cung cấp này',
-  'memories.testRouteNotConfigured': 'Tuyến thử nghiệm không được định cấu hình cho nhà cung cấp này',
+  'memories.saveRouteNotConfigured': 'Lưu tuyến không được cấu hình cho nhà cung cấp này',
+  'memories.testRouteNotConfigured': 'Tuyến thử nghiệm không được cấu hình cho nhà cung cấp này',
   'memories.fillRequiredFields': 'Vui lòng điền vào tất cả các trường bắt buộc',
 };
 export default memories;

@@ -67,7 +67,7 @@ const login: TranslationStrings = {
   'login.forgotPasswordSentBody':
     'Nếu có tài khoản cho email đó thì liên kết đặt lại sẽ được gửi đến. Nó hết hạn sau 60 phút.',
   'login.forgotPasswordSmtpHintOff':
-    'Lưu ý: quản trị viên của bạn chưa định cấu hình SMTP nên liên kết đặt lại sẽ được ghi vào bảng điều khiển máy chủ thay vì được gửi qua email.',
+    'Lưu ý: quản trị viên chưa cấu hình SMTP nên liên kết đặt lại sẽ được ghi vào bảng điều khiển máy chủ thay vì được gửi qua email.',
   'login.backToLogin': 'Quay lại để đăng nhập',
   'login.newPassword': 'Mật khẩu mới',
   'login.confirmPassword': 'Xác nhận mật khẩu mới',

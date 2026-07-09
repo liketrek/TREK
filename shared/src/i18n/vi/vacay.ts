@@ -80,7 +80,7 @@ const vacay: TranslationStrings = {
   'vacay.pending': 'chưa giải quyết',
   'vacay.noUsersAvailable': 'Không có người dùng nào',
   'vacay.accept': 'Chấp nhận',
-  'vacay.decline': 'Sự suy sụp',
+  'vacay.decline': 'Từ chối',
   'vacay.acceptFusion': 'Chấp nhận & Cầu chì',
   'vacay.inviteTitle': 'Yêu cầu kết hợp',
   'vacay.inviteWantsToFuse': 'muốn chia sẻ lịch nghỉ phép với bạn.',

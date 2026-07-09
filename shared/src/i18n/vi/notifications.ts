@@ -24,7 +24,7 @@ const notifications: TranslationStrings = {
   'notifications.test.booleanTitle': '{actor} yêu cầu sự chấp thuận của bạn',
   'notifications.test.booleanText': 'Đây là thông báo boolean thử nghiệm. Chọn một hành động dưới đây.',
   'notifications.test.accept': 'Chấp thuận',
-  'notifications.test.decline': 'Sự suy sụp',
+  'notifications.test.decline': 'Từ chối',
   'notifications.test.navigateTitle': 'Kiểm tra cái gì đó',
   'notifications.test.navigateText': 'Đây là thông báo điều hướng thử nghiệm.',
   'notifications.test.goThere': 'Đến đó',
