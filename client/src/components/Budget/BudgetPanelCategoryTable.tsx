@@ -3,7 +3,7 @@ import { Trash2, Pencil, GripVertical } from 'lucide-react'
 import type { BudgetItem } from '../../types'
 import { currencyDecimals } from '../../utils/formatters'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
-import { calcPP, calcPD, calcPPD } from './BudgetPanel.helpers'
+import { calcPP, calcPD, calcPPD, hasCustomMemberSplit } from './BudgetPanel.helpers'
 import InlineEditCell from './BudgetPanelInlineEditCell'
 import AddItemRow from './BudgetPanelAddItemRow'
 import BudgetMemberChips, { type TripMember } from './BudgetPanelMemberChips'
@@ -149,9 +149,12 @@ export default function BudgetCategoryTable({ cat, grouped, categoryColor, canEd
                     </thead>
                     <tbody>
                       {items.map(item => {
-                        const pp = calcPP(item.total_price, item.persons)
+                        // A custom (uneven) split has no single per-person figure — the per-member
+                        // amounts are shown via the member chips — so blank those columns (#1458).
+                        const customSplit = hasCustomMemberSplit(item)
+                        const pp = customSplit ? null : calcPP(item.total_price, item.persons)
                         const pd = calcPD(item.total_price, item.days)
-                        const ppd = calcPPD(item.total_price, item.persons, item.days)
+                        const ppd = customSplit ? null : calcPPD(item.total_price, item.persons, item.days)
                         const hasMembers = (item.members?.length ?? 0) > 0
                         return (
                           <tr key={item.id}

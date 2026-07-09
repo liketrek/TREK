@@ -64,6 +64,12 @@ export const calcPP = (p: NumOrNull, n: NumOrNull) => (n! > 0 ? (p as number) / 
 export const calcPD = (p: NumOrNull, d: NumOrNull) => (d! > 0 ? (p as number) / (d as number) : null)
 export const calcPPD = (p: NumOrNull, n: NumOrNull, d: NumOrNull) => (n! > 0 && d! > 0 ? (p as number) / ((n as number) * (d as number)) : null)
 
+// A custom (uneven) split has no single "per person" figure — one member's share
+// differs from another's — so the averaged per-person columns are meaningless for it
+// (the per-member amounts are shown via the member chips instead). #1458
+export const hasCustomMemberSplit = (item: { members?: { amount?: number | null }[] }) =>
+  (item.members || []).some(m => m.amount != null)
+
 export function splitColorFor(userId: number, order: number) {
   return SPLIT_COLORS[order % SPLIT_COLORS.length]
 }

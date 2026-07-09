@@ -7,7 +7,7 @@ import { useTranslation } from '../../i18n'
 import { budgetApi } from '../../api/client'
 import type { BudgetItem } from '../../types'
 import { currencyDecimals } from '../../utils/formatters'
-import { widgetTheme, fmtNum, calcPP, calcPD, calcPPD } from './BudgetPanel.helpers'
+import { widgetTheme, fmtNum, calcPP, calcPD, calcPPD, hasCustomMemberSplit } from './BudgetPanel.helpers'
 import { PIE_COLORS } from './BudgetPanel.constants'
 import type { TripMember } from './BudgetPanelMemberChips'
 
@@ -167,9 +167,11 @@ export function useBudgetPanel(tripId: number, tripMembers: TripMember[]) {
 
     for (const cat of categoryNames) {
       for (const item of (grouped.get(cat) || [])) {
-        const pp = calcPP(item.total_price, item.persons)
+        // A custom (uneven) split has no single per-person figure, so leave those columns blank (#1458).
+        const customSplit = hasCustomMemberSplit(item)
+        const pp = customSplit ? null : calcPP(item.total_price, item.persons)
         const pd = calcPD(item.total_price, item.days)
-        const ppd = calcPPD(item.total_price, item.persons, item.days)
+        const ppd = customSplit ? null : calcPPD(item.total_price, item.persons, item.days)
         rows.push([
           esc(item.category), esc(item.name), esc(fmtDate(item.expense_date || '')),
           fmtPrice(item.total_price), item.persons ?? '', item.days ?? '',

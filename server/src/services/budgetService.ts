@@ -465,7 +465,7 @@ export function calculateSettlement(
 
   const items = db.prepare('SELECT * FROM budget_items WHERE trip_id = ?').all(tripId) as BudgetItem[];
   const allMembers = db.prepare(`
-    SELECT bm.budget_item_id, bm.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar
+    SELECT bm.budget_item_id, bm.user_id, bm.amount, COALESCE(u.display_name, u.username) AS username, u.avatar
     FROM budget_item_members bm
     JOIN users u ON bm.user_id = u.id
     WHERE bm.budget_item_id IN (SELECT id FROM budget_items WHERE trip_id = ?)
