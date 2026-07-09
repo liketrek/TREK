@@ -157,7 +157,14 @@ async function handleInvoke(req: { id: string; method: string; params: Record<st
       // to the fact of the event, using the plugin's own db / outbound / broadcasts.
       const eventName = req.params.event as string;
       const tripId = req.params.tripId as number;
-      const payload = { event: eventName, tripId };
+      // entity/entityId are the host-derived hint (which entity changed); no content,
+      // no user — a trip read from this handler is still refused.
+      const payload = {
+        event: eventName,
+        tripId,
+        entity: req.params.entity as string | undefined,
+        entityId: req.params.entityId as number | undefined,
+      };
       for (const sub of def.events ?? []) {
         if (sub.on === '*' || sub.on === eventName) await sub.handler(payload, invCtx);
       }

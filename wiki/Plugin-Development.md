@@ -490,19 +490,27 @@ read it makes is membership-checked against the current user (like a route handl
 ## Event subscriptions
 
 React to core activity with `events` + the `events:subscribe` permission. Handlers
-fire **without a user** (like a job) and receive only the **event name + tripId** —
-never the payload — so a plugin can react to activity without seeing content:
+fire **without a user** (like a job) and receive `{ event, tripId, entity?, entityId? }`:
+`entity` is the event family (`'reservation'`, `'place'`, …) and `entityId` says
+**which** entity changed, when known. There is still **no content and no user** — a
+trip read from the handler is refused, so the id tells you *what to react to*, not
+what it contains (refetch through your own db / an outbound call if you need more):
 
 ```js
 module.exports = definePlugin({
   events: [
-    { on: 'place:created', async handler({ event, tripId }, ctx) {
-        await ctx.db.exec('INSERT INTO activity (trip, evt) VALUES (?, ?)', tripId, event)
+    { on: 'reservation:created', async handler({ event, tripId, entity, entityId }, ctx) {
+        // knows a reservation was created on this trip AND its id — enqueue work for it
+        await ctx.db.exec('INSERT INTO todo (trip, entity, entity_id) VALUES (?, ?, ?)', tripId, entity, entityId)
     } },
     { on: '*', handler(e) { /* firehose: every core event */ } },
   ],
 })
 ```
+
+`entityId` is absent for bulk/reorder events and for events with no single entity;
+never assume it is set. It is only ever the changed entity's own id (never a parent
+or a user id).
 
 Delivery is fire-and-forget on a short timeout, so a slow subscriber never blocks a
 core write. Because there's no user, trip reads (`ctx.trips.*`) are refused inside a
@@ -701,7 +709,7 @@ for anything your plugin publishes via `ctx.events.emit`.
 | `db:write:trips` | `ctx.trips.update` (acting user's `trip_edit`) |
 | `db:meta` | `ctx.meta.*` — your own namespaced data on a trip/place/day |
 | `db:read:users` | `ctx.users.getById` |
-| `events:subscribe` | receive core activity events via `events: [...]` (name + tripId only) |
+| `events:subscribe` | receive core activity events via `events: [...]` (event name + tripId + a { entity, entityId } hint; never content or a user) |
 | `ws:broadcast:trip` | `ctx.ws.broadcastToTrip` |
 | `ws:broadcast:user` | `ctx.ws.broadcastToUser` |
 | `http:outbound` or `http:outbound:<host>` | outbound HTTP to `egress[]` hosts |

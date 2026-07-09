@@ -198,7 +198,10 @@ export interface WarningProvider {
  * and receive only the event name + tripId — never the payload. Needs 'events:subscribe'. */
 export interface PluginEventSubscription {
   on: string; // a core event name (e.g. 'place:created', 'day:updated') or '*' for all
-  handler(payload: { event: string; tripId: number }, ctx: PluginContext): Promise<void> | void;
+  // `entity` = the event family (e.g. 'reservation'); `entityId` = WHICH entity changed,
+  // when known. No content and no acting user — a trip read from the handler is refused,
+  // so the id tells you what to react to, not what it contains.
+  handler(payload: { event: string; tripId: number; entity?: string; entityId?: number }, ctx: PluginContext): Promise<void> | void;
 }
 
 /** A function this plugin exposes to its dependents (declared in capabilities.provides). */

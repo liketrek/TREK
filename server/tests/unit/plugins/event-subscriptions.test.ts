@@ -36,6 +36,19 @@ describe('supervisor.deliverEvent gating', () => {
     expect(calls[0][1]).toBe('invoke.event');
     expect(calls.every((c) => c[2].event === 'place:created' && c[2].tripId === 7)).toBe(true);
   });
+
+  it('threads { entity, entityId } into the payload while keeping actingUserId undefined', () => {
+    const s = makeSupervisor();
+    put(s, 'sub', 'active', ['reservation:created'], ['events:subscribe']);
+    const calls: Array<[string, string, Record<string, unknown>, { actingUserId?: number }]> = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).invoke = (id: string, method: string, params: Record<string, unknown>, opts: any) => { calls.push([id, method, params, opts]); return Promise.resolve(); };
+
+    s.deliverEvent(7, 'reservation:created', { entity: 'reservation', entityId: 40 });
+    expect(calls[0][2]).toEqual({ event: 'reservation:created', tripId: 7, entity: 'reservation', entityId: 40 });
+    // the no-user invariant: an enriched event still carries NO acting user
+    expect(calls[0][3].actingUserId).toBeUndefined();
+  });
 });
 
 describe('websocket broadcast → plugin event sink', () => {
@@ -48,5 +61,12 @@ describe('websocket broadcast → plugin event sink', () => {
     broadcast(42, 'place:created', { place: { id: 1 } });
     broadcast(42, 'plugin:trip-doctor:rechecked', { count: 3 }); // must be skipped
     expect(seen).toEqual([[42, 'place:created']]);
+  });
+
+  it('derives { entity, entityId } for the sink from the broadcast payload', () => {
+    const seen: Array<{ tripId: number; event: string; meta: unknown }> = [];
+    setPluginEventSink((tripId, event, meta) => seen.push({ tripId, event, meta }));
+    broadcast(42, 'reservation:updated', { reservation: { id: 40 } });
+    expect(seen).toEqual([{ tripId: 42, event: 'reservation:updated', meta: { entity: 'reservation', entityId: 40 } }]);
   });
 });

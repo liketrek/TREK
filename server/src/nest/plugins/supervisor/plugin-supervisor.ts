@@ -5,6 +5,7 @@ import { resolveChildEntry, pluginCodeDir, pluginRealCodeDir, pluginPermissionAr
 import type { Envelope, RpcError, RpcRequest } from '../protocol/envelope';
 import type { PluginRpcHost } from '../host/rpc-host';
 import { scheduleJobs, stopJobs, type ScheduledJob } from '../host/plugin-jobs';
+import type { PluginEventMeta } from '../../../plugin-event-sink';
 
 export interface PluginRouteInfo {
   i: number;
@@ -219,13 +220,16 @@ export class PluginSupervisor {
    * Announce a core event to every plugin that subscribed to it (or to '*') AND holds
    * the 'events:subscribe' grant. Fire-and-forget: the invoke is NOT awaited (a core
    * broadcast must never block on a plugin) and carries no user (trip reads refused).
-   * Only the event name + tripId are sent — never the payload.
+   * The event name + tripId + a { entity, entityId } hint are sent — never the
+   * payload/content and never a user. actingUserId stays undefined, so a handler
+   * that tries to read the named entity is still refused: the id is decorative to a
+   * userless context (it says WHICH entity changed, not its contents).
    */
-  deliverEvent(tripId: number, event: string): void {
+  deliverEvent(tripId: number, event: string, meta?: PluginEventMeta): void {
     for (const [id, sup] of this.running) {
       if (sup.status !== 'active' || !sup.granted.has('events:subscribe')) continue;
       if (!sup.events.includes(event) && !sup.events.includes('*')) continue;
-      this.invoke(id, 'invoke.event', { event, tripId }, { actingUserId: undefined, timeoutMs: 5000 }).catch(() => {
+      this.invoke(id, 'invoke.event', { event, tripId, ...(meta ?? {}) }, { actingUserId: undefined, timeoutMs: 5000 }).catch(() => {
         /* a subscriber that errors or times out is ignored — events are best-effort */
       });
     }

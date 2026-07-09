@@ -120,7 +120,7 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     if (!pluginsEnabled()) return;
     // Forward core trip events to plugins that subscribed (events:subscribe). The
     // sink is name-only + fire-and-forget, so it can never block a core broadcast.
-    setPluginEventSink((tripId, event) => this.supervisor.deliverEvent(tripId, event));
+    setPluginEventSink((tripId, event, meta) => this.supervisor.deliverEvent(tripId, event, meta));
     // Discover plugins placed on the volume (registers new ones inactive), then
     // boot the ones an admin had already activated — in dependency order so a
     // plugin's dependencies come up before it does. The whole block is defensive:
