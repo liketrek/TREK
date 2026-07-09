@@ -234,6 +234,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:users': 'Číst základní údaje profilu (jméno, avatar — nikdy přihlašovací údaje)',
   'admin.plugins.perm.db:read:costs': 'Číst výdaje (položky rozpočtu), ke kterým má aktuální uživatel přístup',
   'admin.plugins.perm.db:read:packing': 'Číst seznamy věcí k zabalení u cest, ke kterým má aktuální uživatel přístup',
+  'admin.plugins.perm.db:write:packing': 'Vytvářet, upravovat a mazat položky seznamu balení na cestách, které může aktuální uživatel upravovat',
   'admin.plugins.perm.db:read:files': 'Číst soubory cest, ke kterým má aktuální uživatel přístup',
   'admin.plugins.perm.db:write:reservations': 'Vytvářet, upravovat a mazat rezervace na cestách, které může aktuální uživatel upravovat',
   'admin.plugins.perm.db:read:journal': 'Číst cestovní deníky aktuálního uživatele (vyžaduje doplněk Journey)',

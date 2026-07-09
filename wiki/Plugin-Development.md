@@ -190,6 +190,7 @@ declaration for readers — the manifest parser does not consume it.
 | `ctx.collections` | `listMine()` / `get(id)` — the acting user's saved-place collections | `db:read:collections` (+ Collections addon) |
 | `ctx.daynotes` | `list(tripId, dayId)` — a day's notes (membership-checked) | `db:read:daynotes` |
 | `ctx.daynotes` (write) | `create(tripId, dayId, {text, time?, icon?, sort_order?})` / `update(tripId, dayId, noteId, fields)` / `delete(tripId, dayId, noteId)` — broadcasts `dayNote:*` | `db:write:daynotes` |
+| `ctx.packing` (write) | `create(tripId, {name, category?, checked?, is_private?, visibility?, recipient_ids?})` / `update(tripId, itemId, fields)` / `delete(tripId, itemId)` — broadcasts `packing:*`, private items (#858) stay owner-scoped | `db:write:packing` |
 | `ctx.costs` | `getByTrip(tripId)` / `listMine()` — read budget items (membership-checked) | `db:read:costs` |
 | `ctx.costs` (write) | `create(tripId, input)` / `update(tripId, itemId, input)` / `delete(tripId, itemId)` — broadcasts `budget:*` | `db:write:costs` |
 | `ctx.reservations` | `listMine()` — every booking across the acting user's accessible trips (membership-checked) | `db:read:trips` |
@@ -707,6 +708,7 @@ for anything your plugin publishes via `ctx.events.emit`.
 | `db:write:days` | `ctx.days.create/update/delete` (acting user's `day_edit`) |
 | `db:write:itinerary` | `ctx.itinerary.assign/unassign` (acting user's `day_edit`) |
 | `db:write:trips` | `ctx.trips.update` (acting user's `trip_edit`) |
+| `db:write:packing` | `ctx.packing.create/update/delete` (acting user's `packing_edit`; private items stay owner-scoped) |
 | `db:meta` | `ctx.meta.*` — your own namespaced data on a trip/place/day |
 | `db:read:users` | `ctx.users.getById` |
 | `events:subscribe` | receive core activity events via `events: [...]` (event name + tripId + a { entity, entityId } hint; never content or a user) |

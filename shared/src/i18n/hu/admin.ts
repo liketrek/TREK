@@ -237,6 +237,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:costs': 'Az aktuális felhasználó számára elérhető költségek (költségtételek) olvasása',
   'admin.plugins.perm.db:read:packing':
     'Az aktuális felhasználó számára elérhető utazások csomagolási listáinak olvasása',
+  'admin.plugins.perm.db:write:packing': 'Csomagolási lista tételek létrehozása, szerkesztése és törlése az aktuális felhasználó által szerkeszthető utazásokon',
   'admin.plugins.perm.db:read:files': 'Az aktuális felhasználó számára elérhető utazások fájljainak olvasása',
   'admin.plugins.perm.db:write:reservations': 'Foglalások létrehozása, szerkesztése és törlése az aktuális felhasználó által szerkeszthető utazásokon',
   'admin.plugins.perm.db:read:journal': 'Az aktuális felhasználó úti naplóinak olvasása (a Journey bővítmény szükséges)',

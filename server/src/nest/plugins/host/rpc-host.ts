@@ -5,6 +5,7 @@ import {
   dayCreateRequestSchema, dayUpdateRequestSchema,
   tripUpdateRequestSchema,
   reservationCreateRequestSchema, reservationUpdateRequestSchema,
+  packingCreateItemRequestSchema, packingUpdateItemRequestSchema,
 } from '@trek/shared';
 import {
   KNOWN_METHODS,
@@ -123,6 +124,14 @@ export interface HostDeps {
   updateReservation(tripId: number, reservationId: number, input: Record<string, unknown>, actingUserId: number): unknown;
   /** Delete a reservation from a trip (same side effects); returns { deleted: true }. */
   deleteReservation(tripId: number, reservationId: number, actingUserId: number): unknown;
+  // --- Packing (the 'packing_edit' permission; #858 privacy-scoped broadcasts) ---
+  canEditPacking(tripId: number, userId: number): boolean;
+  /** Create a packing item (owner = acting user); privacy-scoped packing:created broadcast; returns it. */
+  createPackingItem(tripId: number, input: Record<string, unknown>, actingUserId: number): unknown;
+  /** Update a packing item; four-case public<->private broadcast; throws if not on the trip. */
+  updatePackingItem(tripId: number, itemId: number, input: Record<string, unknown>, actingUserId: number): unknown;
+  /** Delete a packing item; owner+recipients-scoped packing:deleted broadcast; returns { deleted: true }. */
+  deletePackingItem(tripId: number, itemId: number): unknown;
   // --- Plugin metadata on core entities (db:meta) ---
   /** The trip a trip/place/day belongs to (for the membership gate), or undefined. */
   metaEntityTrip(entityType: string, entityId: number): number | undefined;
@@ -456,6 +465,37 @@ export class PluginRpcHost {
         const actor = this.requireActor(uid, 'reservation');
         this.requireTripEdit(tripId, actor, deps.canEditReservations);
         return deps.deleteReservation(tripId, reservationId, actor);
+      });
+    }
+
+    if (has('db:write:packing')) {
+      // Packing list write. Gated exactly like the packing REST path — trip access +
+      // the 'packing_edit' permission for the HOST-bound acting user. The deps reuse
+      // packingService and replicate the #858 privacy-scoped broadcasts 1:1, so a
+      // private item is never leaked to the whole trip room.
+      this.methods.set('packing.create', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const actor = this.requireActor(uid, 'packing item');
+        const parsed = packingCreateItemRequestSchema.safeParse(p.input);
+        if (!parsed.success) throw new BadParams(`invalid packing item: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
+        this.requireTripEdit(tripId, actor, deps.canEditPacking);
+        return deps.createPackingItem(tripId, parsed.data as Record<string, unknown>, actor);
+      });
+      this.methods.set('packing.update', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const itemId = num(p.itemId, 'itemId');
+        const actor = this.requireActor(uid, 'packing item');
+        const parsed = packingUpdateItemRequestSchema.safeParse(p.input);
+        if (!parsed.success) throw new BadParams(`invalid packing item: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
+        this.requireTripEdit(tripId, actor, deps.canEditPacking);
+        return deps.updatePackingItem(tripId, itemId, parsed.data as Record<string, unknown>, actor);
+      });
+      this.methods.set('packing.delete', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const itemId = num(p.itemId, 'itemId');
+        const actor = this.requireActor(uid, 'packing item');
+        this.requireTripEdit(tripId, actor, deps.canEditPacking);
+        return deps.deletePackingItem(tripId, itemId);
       });
     }
 

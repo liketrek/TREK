@@ -293,6 +293,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:costs': 'Đọc chi phí (mục ngân sách) mà người dùng hiện tại có quyền truy cập',
   'admin.plugins.perm.db:read:packing':
     'Đọc danh sách hành lý của các chuyến đi mà người dùng hiện tại có quyền truy cập',
+  'admin.plugins.perm.db:write:packing': 'Tạo, chỉnh sửa và xóa các mục danh sách hành lý trên các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa',
   'admin.plugins.perm.db:read:files': 'Đọc tệp của các chuyến đi mà người dùng hiện tại có quyền truy cập',
   'admin.plugins.perm.db:write:reservations': 'Tạo, chỉnh sửa và xóa đặt chỗ trên các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa',
   'admin.plugins.perm.db:read:journal': 'Đọc nhật ký du lịch của người dùng hiện tại (cần add-on Journey)',

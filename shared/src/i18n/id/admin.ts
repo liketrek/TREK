@@ -280,6 +280,7 @@ const admin: TranslationStrings = {
     'Membaca pengeluaran (item anggaran) yang dapat diakses oleh pengguna yang bersangkutan',
   'admin.plugins.perm.db:read:packing':
     'Membaca daftar barang bawaan dari perjalanan yang dapat diakses oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.db:write:packing': 'Membuat, mengedit, dan menghapus item daftar bawaan pada perjalanan yang dapat diedit oleh pengguna yang bersangkutan',
   'admin.plugins.perm.db:read:files':
     'Membaca berkas dari perjalanan yang dapat diakses oleh pengguna yang bersangkutan',
   'admin.plugins.perm.db:write:reservations': 'Membuat, mengedit, dan menghapus pemesanan pada perjalanan yang dapat diedit oleh pengguna yang bersangkutan',

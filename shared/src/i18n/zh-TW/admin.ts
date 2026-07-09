@@ -268,6 +268,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:users': '讀取基本個人資料（名稱、頭像——絕不包含憑證）',
   'admin.plugins.perm.db:read:costs': '讀取操作使用者可存取的支出（預算項）',
   'admin.plugins.perm.db:read:packing': '讀取操作使用者可存取之行程的打包清單',
+  'admin.plugins.perm.db:write:packing': '在操作使用者可編輯的行程中建立、編輯及刪除打包清單項目',
   'admin.plugins.perm.db:read:files': '讀取操作使用者可存取之行程的檔案',
   'admin.plugins.perm.db:write:reservations': '在操作使用者可編輯的行程中建立、編輯及刪除預訂',
   'admin.plugins.perm.db:read:journal': '讀取操作使用者的旅行日誌（需要 Journey 附加元件）',

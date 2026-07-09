@@ -236,6 +236,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:users': 'Basisprofielgegevens lezen (naam, avatar — nooit inloggegevens)',
   'admin.plugins.perm.db:read:costs': 'Uitgaven (budgetposten) lezen waartoe de actieve gebruiker toegang heeft',
   'admin.plugins.perm.db:read:packing': 'Paklijsten lezen van reizen waartoe de actieve gebruiker toegang heeft',
+  'admin.plugins.perm.db:write:packing': 'Paklijst-items aanmaken, bewerken en verwijderen op reizen die de actieve gebruiker mag bewerken',
   'admin.plugins.perm.db:read:files': 'Bestanden lezen van reizen waartoe de actieve gebruiker toegang heeft',
   'admin.plugins.perm.db:write:reservations': 'Boekingen (reserveringen) aanmaken, bewerken en verwijderen op reizen die de actieve gebruiker mag bewerken',
   'admin.plugins.perm.db:read:journal': 'De reisdagboeken van de actieve gebruiker lezen (vereist de Journey-add-on)',

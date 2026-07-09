@@ -293,6 +293,7 @@ const admin: TranslationStrings = {
     'Läsa grundläggande profilinformation (namn, avatar – aldrig inloggningsuppgifter)',
   'admin.plugins.perm.db:read:costs': 'Läsa kostnader (budgetposter) som den aktiva användaren har åtkomst till',
   'admin.plugins.perm.db:read:packing': 'Läsa packlistor för resor som den aktiva användaren har åtkomst till',
+  'admin.plugins.perm.db:write:packing': 'Skapa, redigera och ta bort packlisteposter på resor som den aktiva användaren kan redigera',
   'admin.plugins.perm.db:read:files': 'Läsa filer för resor som den aktiva användaren har åtkomst till',
   'admin.plugins.perm.db:write:reservations': 'Skapa, redigera och ta bort bokningar på resor som den aktiva användaren kan redigera',
   'admin.plugins.perm.db:read:journal': 'Läsa den aktiva användarens resedagböcker (kräver tillägget Journey)',

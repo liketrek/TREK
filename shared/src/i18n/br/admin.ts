@@ -233,6 +233,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:users': 'Ler informações básicas de perfil (nome, avatar — nunca credenciais)',
   'admin.plugins.perm.db:read:costs': 'Ler despesas (itens de orçamento) às quais o usuário atual tem acesso',
   'admin.plugins.perm.db:read:packing': 'Ler listas de bagagem de viagens às quais o usuário atual tem acesso',
+  'admin.plugins.perm.db:write:packing': 'Criar, editar e remover itens da lista de bagagem em viagens que o usuário atual pode editar',
   'admin.plugins.perm.db:read:files': 'Ler arquivos de viagens às quais o usuário atual tem acesso',
   'admin.plugins.perm.db:write:reservations': 'Criar, editar e remover reservas em viagens que o usuário atual pode editar',
   'admin.plugins.perm.db:read:journal': 'Ler os diários de viagem do usuário atual (requer o complemento Journey)',

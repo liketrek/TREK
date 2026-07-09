@@ -229,6 +229,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:users': '读取基本个人资料（姓名、头像——绝不包括凭据）',
   'admin.plugins.perm.db:read:costs': '读取当前用户可访问的支出（预算项）',
   'admin.plugins.perm.db:read:packing': '读取当前用户可访问的旅行的行李清单',
+  'admin.plugins.perm.db:write:packing': '在当前用户可编辑的旅行中创建、编辑和删除打包清单项',
   'admin.plugins.perm.db:read:files': '读取当前用户可访问的旅行的文件',
   'admin.plugins.perm.db:write:reservations': '在当前用户可编辑的旅行中创建、编辑和删除预订',
   'admin.plugins.perm.db:read:journal': '读取当前用户的旅行日记（需要 Journey 插件）',

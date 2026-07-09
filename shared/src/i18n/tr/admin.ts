@@ -280,6 +280,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:users': 'Temel profil bilgilerini okur (ad, avatar — asla kimlik bilgileri değil)',
   'admin.plugins.perm.db:read:costs': 'İşlemi yapan kullanıcının erişebildiği harcamaları (bütçe kalemleri) okur',
   'admin.plugins.perm.db:read:packing': 'İşlemi yapan kullanıcının erişebildiği seyahatlerin eşya listelerini okur',
+  'admin.plugins.perm.db:write:packing': 'İşlemi yapan kullanıcının düzenleyebildiği seyahatlerde bavul listesi öğeleri oluşturur, düzenler ve siler',
   'admin.plugins.perm.db:read:files': 'İşlemi yapan kullanıcının erişebildiği seyahatlerin dosyalarını okur',
   'admin.plugins.perm.db:write:reservations': 'İşlemi yapan kullanıcının düzenleyebildiği seyahatlerde rezervasyonlar oluşturur, düzenler ve siler',
   'admin.plugins.perm.db:read:journal': 'İşlemi yapan kullanıcının seyahat günlüklerini okur (Journey eklentisi gerektirir)',

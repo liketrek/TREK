@@ -231,6 +231,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:costs': 'Odczyt wydatków (pozycji budżetu), do których działający użytkownik ma dostęp',
   'admin.plugins.perm.db:read:packing':
     'Odczyt list rzeczy do spakowania w podróżach, do których działający użytkownik ma dostęp',
+  'admin.plugins.perm.db:write:packing': 'Tworzenie, edytowanie i usuwanie pozycji listy pakowania w podróżach, które działający użytkownik może edytować',
   'admin.plugins.perm.db:read:files': 'Odczyt plików w podróżach, do których działający użytkownik ma dostęp',
   'admin.plugins.perm.db:write:reservations': 'Tworzenie, edytowanie i usuwanie rezerwacji w podróżach, które działający użytkownik może edytować',
   'admin.plugins.perm.db:read:journal': 'Odczyt dzienników podróży działającego użytkownika (wymaga dodatku Journey)',

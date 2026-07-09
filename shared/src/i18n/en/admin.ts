@@ -288,6 +288,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:users': 'Read basic profile info (name, avatar — never credentials)',
   'admin.plugins.perm.db:read:costs': 'Read costs (budget items) the acting user can access',
   'admin.plugins.perm.db:read:packing': 'Read packing lists of trips the acting user can access',
+  'admin.plugins.perm.db:write:packing': 'Create, edit and delete packing items on trips the acting user can edit',
   'admin.plugins.perm.db:read:files': 'Read files of trips the acting user can access',
   'admin.plugins.perm.db:read:journal': 'Read the travel journals of the acting user (needs the Journey addon)',
   'admin.plugins.perm.db:read:atlas': 'Read the visited countries and regions of the acting user (needs the Atlas addon)',

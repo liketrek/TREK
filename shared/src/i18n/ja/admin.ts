@@ -267,6 +267,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:users': '基本プロフィール情報の読み取り（名前・アバターのみ — 認証情報は含まれません）',
   'admin.plugins.perm.db:read:costs': '操作中のユーザーがアクセスできる支出（予算項目）の読み取り',
   'admin.plugins.perm.db:read:packing': '操作中のユーザーがアクセスできる旅行の持ち物リストの読み取り',
+  'admin.plugins.perm.db:write:packing': '操作中のユーザーが編集できる旅行の持ち物リスト項目の作成・編集・削除',
   'admin.plugins.perm.db:read:files': '操作中のユーザーがアクセスできる旅行のファイルの読み取り',
   'admin.plugins.perm.db:write:reservations': '操作中のユーザーが編集できる旅行の予約の作成・編集・削除',
   'admin.plugins.perm.db:read:journal': '操作中のユーザーの旅行日記の読み取り（Journey アドオンが必要）',

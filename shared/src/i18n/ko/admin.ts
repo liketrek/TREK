@@ -273,6 +273,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:users': '기본 프로필 정보 읽기 (이름, 아바타 — 자격 증명은 제외)',
   'admin.plugins.perm.db:read:costs': '현재 사용자가 접근할 수 있는 지출(예산 항목) 읽기',
   'admin.plugins.perm.db:read:packing': '현재 사용자가 접근할 수 있는 여행의 짐 목록 읽기',
+  'admin.plugins.perm.db:write:packing': '현재 사용자가 편집할 수 있는 여행에서 짐 목록 항목 만들기, 편집 및 삭제',
   'admin.plugins.perm.db:read:files': '현재 사용자가 접근할 수 있는 여행의 파일 읽기',
   'admin.plugins.perm.db:write:reservations': '현재 사용자가 편집할 수 있는 여행에서 예약 만들기, 편집 및 삭제',
   'admin.plugins.perm.db:read:journal': '현재 사용자의 여행 일지 읽기(Journey 애드온 필요)',

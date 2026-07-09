@@ -23,8 +23,11 @@ vi.mock('../../../src/db/database', () => {
     CREATE TABLE users (id INTEGER PRIMARY KEY, role TEXT, username TEXT, display_name TEXT, avatar TEXT);
     CREATE TABLE trip_members (trip_id INTEGER, user_id INTEGER);
     CREATE TABLE plugin_entity_metadata (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, entity_type TEXT, entity_id INTEGER, key TEXT, value TEXT, updated_at TEXT, UNIQUE(plugin_id, entity_type, entity_id, key));
+    CREATE TABLE packing_items (id INTEGER PRIMARY KEY, trip_id INTEGER, is_private INTEGER, owner_id INTEGER);
   `);
   d.prepare('INSERT INTO trips (id, user_id) VALUES (1, 5)').run();
+  d.prepare('INSERT INTO packing_items (id, trip_id, is_private, owner_id) VALUES (70, 1, 0, 5)').run(); // public before an update
+  d.prepare('INSERT INTO packing_items (id, trip_id, is_private, owner_id) VALUES (71, 1, 1, 5)').run(); // private before an update
   d.prepare('INSERT INTO places (id, trip_id) VALUES (7, 1)').run();
   d.prepare('INSERT INTO days (id, trip_id) VALUES (3, 1)').run();
   d.prepare('INSERT INTO users (id, role) VALUES (5, ?)').run('trip_owner');
@@ -87,7 +90,22 @@ vi.mock('../../../src/services/assignmentService', () => ({
   getAssignmentForTrip: vi.fn((id: number) => (id === 99 ? undefined : { id })),
 }));
 vi.mock('../../../src/services/budgetService', () => ({ listBudgetItems: vi.fn(() => []) }));
-vi.mock('../../../src/services/packingService', () => ({ listItems: vi.fn((tid: number, userId: number) => [{ id: 1, trip_id: tid, name: 'Socks', _uid: userId }]) }));
+vi.mock('../../../src/services/packingService', () => ({
+  listItems: vi.fn((tid: number, userId: number) => [{ id: 1, trip_id: tid, name: 'Socks', _uid: userId }]),
+  // Return the item with the #858 privacy fields the create-rpc-host deps scope on.
+  createItem: vi.fn((tid: number, input: { name: string; visibility?: string; recipient_ids?: number[] }, ownerId?: number) => {
+    if (input.visibility === 'personal') return { id: 70, trip_id: Number(tid), name: input.name, is_private: 1, owner_id: ownerId, recipients: [] };
+    if (input.visibility === 'shared') return { id: 70, trip_id: Number(tid), name: input.name, is_private: 1, owner_id: ownerId, recipients: (input.recipient_ids || []).map((id) => ({ user_id: id })) };
+    return { id: 70, trip_id: Number(tid), name: input.name, is_private: 0, owner_id: ownerId };
+  }),
+  // itemId 99 => a stale-write conflict result; otherwise the after-state (is_private per input).
+  updateItem: vi.fn((tid: number, id: string, input: { is_private?: boolean }) =>
+    Number(id) === 99 ? { conflict: true, server: { id: 99 } } : { id: Number(id), trip_id: Number(tid), is_private: input.is_private ? 1 : 0, owner_id: 5 },
+  ),
+  // The raw deleted row (owner-only for a private item, no recipients — #858).
+  deleteItem: vi.fn((_tid: number, id: string) => (Number(id) === 404 ? null : Number(id) === 71 ? { id: 71, is_private: 1, owner_id: 5 } : { id: Number(id), is_private: 0 })),
+}));
+vi.mock('../../../src/services/conflictResult', () => ({ isUpdateConflict: (r: unknown) => !!(r as { conflict?: boolean })?.conflict }));
 vi.mock('../../../src/services/fileService', () => ({ listFiles: vi.fn((tid: number, trash: boolean) => [{ id: 2, trip_id: tid, trash }]) }));
 // Reservations: the Nest service is delegated to; mock it so the create-rpc-host
 // reservation deps' side-effect branches (accommodation / budget-sync / notify) run.
@@ -332,3 +350,66 @@ describe('create-rpc-host — reservations, day notes, cross-trip + addon reads 
     expect((await call(h, 'collections.listMine', {})).error.code).toBe('RESOURCE_FORBIDDEN');
   });
 });
+
+describe('create-rpc-host — packing write with #858 privacy-scoped broadcasts', () => {
+  const host = () => createRealRpcHost('pk', new Set(['db:write:packing']))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const call = async (method: string, params: Record<string, unknown>, uid = 5): Promise<any> =>
+    host().dispatch({ k: 'req', id: 'x', method, params }, uid)
+  // the onlyUserId (5th arg) of every broadcast for `event` since the last clear:
+  // undefined = whole trip room, a number = that user's sockets only.
+  const fanout = (event: string) => broadcast.mock.calls.filter((c) => c[1] === event).map((c) => c[4])
+  beforeEach(() => { checkPermission.mockReset(); checkPermission.mockReturnValue(true); isAddonEnabled.mockReset(); isAddonEnabled.mockReturnValue(true); broadcast.mockClear() })
+  afterAll(() => closePluginDataDb('pk'))
+
+  it('create: Common -> whole room; Personal -> owner-only; Shared -> owner + recipients', async () => {
+    expect((await call('packing.create', { tripId: 1, input: { name: 'Common', visibility: 'common' } })).ok).toBe(true)
+    expect(fanout('packing:created')).toEqual([undefined]) // whole room
+
+    broadcast.mockClear()
+    expect((await call('packing.create', { tripId: 1, input: { name: 'Mine', visibility: 'personal' } })).ok).toBe(true)
+    expect(fanout('packing:created')).toEqual([5]) // owner-only
+
+    broadcast.mockClear()
+    expect((await call('packing.create', { tripId: 1, input: { name: 'Ours', visibility: 'shared', recipient_ids: [6] } })).ok).toBe(true)
+    expect([...fanout('packing:created')].sort()).toEqual([5, 6]) // owner + recipient, never the room
+  })
+
+  it('update: the four public<->private transitions route correctly (never leaks a privatized item)', async () => {
+    await call('packing.update', { tripId: 1, itemId: 71, input: { is_private: true } }) // stays private (71 seeded private)
+    expect(fanout('packing:updated')).toEqual([5])
+    expect(fanout('packing:deleted')).toEqual([])
+    expect(fanout('packing:created')).toEqual([])
+
+    broadcast.mockClear()
+    await call('packing.update', { tripId: 1, itemId: 70, input: { is_private: true } }) // public -> private (70 seeded public)
+    expect(fanout('packing:deleted')).toEqual([undefined]) // drop from the room FIRST (the anti-leak)
+    expect(fanout('packing:created')).toEqual([5])         // then re-add owner-only
+
+    broadcast.mockClear()
+    await call('packing.update', { tripId: 1, itemId: 71, input: { is_private: false } }) // private -> public
+    expect(fanout('packing:created')).toEqual([undefined])
+    expect(fanout('packing:updated')).toEqual([undefined])
+
+    broadcast.mockClear()
+    await call('packing.update', { tripId: 1, itemId: 70, input: { is_private: false } }) // stays public
+    expect(fanout('packing:updated')).toEqual([undefined])
+    expect(fanout('packing:deleted')).toEqual([])
+  })
+
+  it('update: a stale-write conflict is BAD_PARAMS and never broadcasts', async () => {
+    const res = await call('packing.update', { tripId: 1, itemId: 99, input: { name: 'x' } })
+    expect((res as { error: { code: string } }).error.code).toBe('BAD_PARAMS')
+    expect(broadcast).not.toHaveBeenCalled()
+  })
+
+  it('delete: a private item is owner-scoped; a missing one is RESOURCE_FORBIDDEN', async () => {
+    await call('packing.delete', { tripId: 1, itemId: 71 })
+    expect(fanout('packing:deleted')).toEqual([5]) // owner-only (recipients get no packing:deleted)
+    broadcast.mockClear()
+    await call('packing.delete', { tripId: 1, itemId: 70 })
+    expect(fanout('packing:deleted')).toEqual([undefined]) // common -> room
+    const missing = await call('packing.delete', { tripId: 1, itemId: 404 })
+    expect((missing as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
+  })
+})

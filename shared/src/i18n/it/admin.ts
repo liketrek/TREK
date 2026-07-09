@@ -235,6 +235,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:users': 'Leggere le informazioni di base del profilo (nome, avatar — mai le credenziali)',
   'admin.plugins.perm.db:read:costs': "Leggere le spese (voci di budget) a cui l'utente attivo ha accesso",
   'admin.plugins.perm.db:read:packing': "Leggere le liste dei bagagli dei viaggi a cui l'utente attivo ha accesso",
+  'admin.plugins.perm.db:write:packing': "Creare, modificare ed eliminare voci della lista bagagli sui viaggi che l'utente attivo può modificare",
   'admin.plugins.perm.db:read:files': "Leggere i file dei viaggi a cui l'utente attivo ha accesso",
   'admin.plugins.perm.db:write:reservations': "Creare, modificare ed eliminare prenotazioni sui viaggi che l'utente attivo può modificare",
   'admin.plugins.perm.db:read:journal': "Leggere i diari di viaggio dell'utente attivo (richiede il componente aggiuntivo Journey)",

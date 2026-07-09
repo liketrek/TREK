@@ -75,6 +75,10 @@ function makeDeps(): HostDeps {
     createDayNote: vi.fn((_tripId: number, dayId: number, input: unknown) => ({ id: 50, day_id: dayId, ...(input as object) })),
     updateDayNote: vi.fn((_tripId: number, dayId: number, noteId: number, input: unknown) => ({ id: noteId, day_id: dayId, ...(input as object) })),
     deleteDayNote: vi.fn(() => ({ deleted: true })),
+    canEditPacking: vi.fn((tripId: number, userId: number) => tripId === 1 && userId === 42),
+    createPackingItem: vi.fn((tripId: number, input: unknown) => ({ id: 70, trip_id: tripId, ...(input as object) })),
+    updatePackingItem: vi.fn((tripId: number, itemId: number, input: unknown) => ({ id: itemId, trip_id: tripId, ...(input as object) })),
+    deletePackingItem: vi.fn(() => ({ deleted: true })),
     // Metadata — trip 1 and place 7 resolve to trip 1 (accessible to 42); else undefined.
     metaEntityTrip: vi.fn((entityType: string, entityId: number) =>
       (entityType === 'trip' && entityId === 1) || (entityType === 'place' && entityId === 7) || (entityType === 'day' && entityId === 3) ? 1 : undefined),
@@ -338,6 +342,26 @@ describe('PluginRpcHost — capability enforcement', () => {
     expect(deps.deleteDayNote).toHaveBeenCalledWith(1, 5, 50);
     const noUser = await host.dispatch(req('daynotes.delete', { tripId: 1, dayId: 5, noteId: 50 }), undefined);
     expect((noUser as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+  });
+
+  it('packing.create needs db:write:packing + packing_edit, membership-checked, name required', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:packing']), deps);
+    const good = await host.dispatch(req('packing.create', { tripId: 1, input: { name: 'Socks' } }), 42);
+    expect(ok(good)).toBe(true);
+    expect(deps.createPackingItem).toHaveBeenCalledWith(1, expect.objectContaining({ name: 'Socks' }), 42);
+    expect((await host.dispatch(req('packing.create', { tripId: 1, input: { name: '' } }), 42)).ok).toBe(false); // schema: name min 1
+    expect(((await host.dispatch(req('packing.create', { tripId: 2, input: { name: 'x' } }), 42)) as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect((await host.dispatch(req('packing.create', { tripId: 1, input: { name: 'x' } }), undefined)).ok).toBe(false); // no acting user
+  });
+
+  it('packing.update/delete are gated the same way; nothing without the grant', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:packing']), deps);
+    expect(ok(await host.dispatch(req('packing.update', { tripId: 1, itemId: 70, input: { checked: true } }), 42))).toBe(true);
+    expect(deps.updatePackingItem).toHaveBeenCalledWith(1, 70, expect.objectContaining({ checked: true }), 42);
+    expect(ok(await host.dispatch(req('packing.delete', { tripId: 1, itemId: 70 }), 42))).toBe(true);
+    expect(deps.deletePackingItem).toHaveBeenCalledWith(1, 70);
+    const noGrant = new PluginRpcHost('p', new Set(['db:read:packing']), deps);
+    expect((await noGrant.dispatch(req('packing.create', { tripId: 1, input: { name: 'x' } }), 42)).ok).toBe(false);
   });
 
   it('a read scope is denied without its own permission', async () => {

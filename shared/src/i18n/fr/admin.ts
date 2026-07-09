@@ -237,6 +237,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:users': 'Lire les informations de profil de base (nom, avatar — jamais les identifiants)',
   'admin.plugins.perm.db:read:costs': "Lire les dépenses (postes de budget) accessibles à l'utilisateur actif",
   'admin.plugins.perm.db:read:packing': "Lire les listes de bagages des voyages accessibles à l'utilisateur actif",
+  'admin.plugins.perm.db:write:packing': "Créer, modifier et supprimer des articles de la liste de bagages sur les voyages que l'utilisateur actif peut modifier",
   'admin.plugins.perm.db:read:files': "Lire les fichiers des voyages accessibles à l'utilisateur actif",
   'admin.plugins.perm.db:write:reservations': "Créer, modifier et supprimer des réservations sur les voyages que l'utilisateur actif peut modifier",
   'admin.plugins.perm.db:read:journal': "Lire les journaux de voyage de l'utilisateur actif (nécessite le module Journey)",

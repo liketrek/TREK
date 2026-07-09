@@ -1,7 +1,8 @@
 import { db, canAccessTrip } from '../../../db/database';
 import { broadcast, broadcastToUser } from '../../../websocket';
 import { listBudgetItems } from '../../../services/budgetService';
-import { listItems as listPackingItemsSvc } from '../../../services/packingService';
+import { listItems as listPackingItemsSvc, createItem as createPackingItemSvc, updateItem as updatePackingItemSvc, deleteItem as deletePackingItemSvc } from '../../../services/packingService';
+import { isUpdateConflict } from '../../../services/conflictResult';
 import { listFiles } from '../../../services/fileService';
 import { checkPermission } from '../../../services/permissions';
 import { listTrips, updateTrip, NotFoundError, ValidationError } from '../../../services/tripService';
@@ -55,6 +56,57 @@ function notifyBooking(actingUserId: number, tripId: number, booking: string, ty
 // disabled addon means there is simply nothing to read (same shape as the Costs gate).
 function requireAddon(addonId: string, noun: string): void {
   if (!isAddonEnabled(addonId)) throw new ForbiddenResource(`the ${noun} addon is disabled`);
+}
+
+// --- #858 packing privacy: viewer-scoped fan-out replicated from packing.controller +
+// packing.service (their helpers aren't exported). A private item's events reach ONLY
+// its owner (+ recipients for a shared item), never the whole trip room; passing the
+// wrong onlyUserId — or forgetting to drop a freshly-privatized item from the room —
+// leaks it. Keep in lockstep with packing.controller.broadcastUpdate/emitToViewers. ---
+type PackingPrivacy = { is_private?: number; owner_id?: number | null; recipients?: { user_id: number }[] };
+
+function packingItemPrivacy(tripId: number, itemId: number): { is_private?: number; owner_id?: number | null } | undefined {
+  return db.prepare('SELECT is_private, owner_id FROM packing_items WHERE id = ? AND trip_id = ?').get(itemId, tripId) as
+    | { is_private?: number; owner_id?: number | null }
+    | undefined;
+}
+
+function packingViewersOf(item: PackingPrivacy | null | undefined): number[] | null {
+  if (!item || !item.is_private) return null; // Common — visible to the whole room
+  return [item.owner_id, ...(item.recipients || []).map((r) => r.user_id)].filter((x): x is number => x != null);
+}
+
+/** CREATE/DELETE fan-out: whole room for a Common item, else owner + recipients only. */
+function emitPackingToViewers(tripId: number, event: string, payload: Record<string, unknown>, item: PackingPrivacy): void {
+  const viewers = packingViewersOf(item);
+  if (viewers === null) {
+    broadcast(tripId, event, payload, undefined);
+    return;
+  }
+  for (const uid of new Set(viewers)) if (uid != null) broadcast(tripId, event, payload, undefined, uid);
+}
+
+/** An item event delivered owner-only when the item is private (else to the room). */
+function broadcastPackingItem(tripId: number, event: string, payload: Record<string, unknown>, item: PackingPrivacy): void {
+  const onlyUserId = item?.is_private && item.owner_id != null ? item.owner_id : undefined;
+  broadcast(tripId, event, payload, undefined, onlyUserId);
+}
+
+/** The four public<->private transitions (packing.controller.broadcastUpdate). `wasPrivate`
+ * is read BEFORE the write — getting this wrong LEAKS a freshly-privatized item. */
+function broadcastPackingUpdate(tripId: number, itemId: number, item: PackingPrivacy, wasPrivate: boolean): void {
+  const nowPrivate = !!item.is_private;
+  if (nowPrivate) {
+    if (wasPrivate) {
+      broadcastPackingItem(tripId, 'packing:updated', { item }, item); // stays private -> owner-only
+    } else {
+      broadcast(tripId, 'packing:deleted', { itemId }, undefined); // public->private: drop from the room...
+      broadcastPackingItem(tripId, 'packing:created', { item }, item); // ...then re-add for the owner
+    }
+  } else {
+    if (wasPrivate) broadcast(tripId, 'packing:created', { item }, undefined); // private->public: add for members who lacked it
+    broadcast(tripId, 'packing:updated', { item }, undefined);
+  }
 }
 
 // Quotas for plugin entity metadata (db:meta) — a cheap disk-DoS guard on the
@@ -320,6 +372,31 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
       if (deletedBudgetItemId) broadcast(tripId, 'budget:deleted', { itemId: deletedBudgetItemId }, undefined);
       broadcast(tripId, 'reservation:deleted', { reservationId: Number(reservationId) }, undefined);
       notifyBooking(actingUserId, tripId, deleted.title, deleted.type || '');
+      return { deleted: true };
+    },
+    // --- Packing (packing_edit). Reuses packingService + replicates the #858
+    // privacy-scoped broadcasts (create/delete via emitPackingToViewers, update via
+    // the four-case broadcastPackingUpdate) so a private item never leaks room-wide. ---
+    canEditPacking: (tripId, userId) => canEditTripAs('packing_edit', tripId, userId),
+    createPackingItem: (tripId, input, actingUserId) => {
+      const i = input as { name: string; category?: string; checked?: boolean; is_private?: boolean; visibility?: 'common' | 'personal' | 'shared'; recipient_ids?: number[] };
+      const item = createPackingItemSvc(String(tripId), i, actingUserId) as PackingPrivacy;
+      emitPackingToViewers(tripId, 'packing:created', { item }, item);
+      return item;
+    },
+    updatePackingItem: (tripId, itemId, input, actingUserId) => {
+      // Privacy BEFORE the write, so a public<->private toggle routes correctly.
+      const before = packingItemPrivacy(tripId, itemId);
+      const updated = updatePackingItemSvc(String(tripId), String(itemId), input as never, Object.keys(input), undefined, actingUserId);
+      if (!updated) throw new ForbiddenResource(`no packing item ${itemId} on trip ${tripId}`);
+      if (isUpdateConflict(updated)) throw new BadParams('packing item was modified concurrently');
+      broadcastPackingUpdate(tripId, itemId, updated as PackingPrivacy, !!before?.is_private);
+      return updated;
+    },
+    deletePackingItem: (tripId, itemId) => {
+      const deleted = deletePackingItemSvc(String(tripId), String(itemId)) as PackingPrivacy | null;
+      if (!deleted) throw new ForbiddenResource(`no packing item ${itemId} on trip ${tripId}`);
+      emitPackingToViewers(tripId, 'packing:deleted', { itemId }, deleted);
       return { deleted: true };
     },
     // --- Plugin metadata (db:meta). A per-plugin namespaced key/value store keyed

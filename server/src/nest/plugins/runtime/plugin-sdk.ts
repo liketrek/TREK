@@ -52,6 +52,12 @@ export interface PluginContext {
   packing: {
     /** A trip's packing items (hydrated bags/assignees). Needs 'db:read:packing'. */
     list(tripId: number): Promise<unknown[]>;
+    /** Add a packing item (owner = acting user). Needs 'db:write:packing' + 'packing_edit'. */
+    create(tripId: number, input: { name: string; category?: string; checked?: boolean; is_private?: boolean; visibility?: 'common' | 'personal' | 'shared'; recipient_ids?: number[] }): Promise<unknown>;
+    /** Update a packing item. Needs 'db:write:packing' + 'packing_edit'. */
+    update(tripId: number, itemId: number, input: Record<string, unknown>): Promise<unknown>;
+    /** Delete a packing item. Needs 'db:write:packing' + 'packing_edit'. */
+    delete(tripId: number, itemId: number): Promise<{ deleted: boolean }>;
   };
   files: {
     /** A trip's files, trash excluded. Needs 'db:read:files'. */
@@ -280,6 +286,9 @@ export function createPluginContext(
     },
     packing: {
       list: (tripId) => t.rpc('packing.list', { tripId, _inv: invocationId }) as Promise<unknown[]>,
+      create: (tripId, input) => t.rpc('packing.create', { tripId, input, _inv: invocationId }),
+      update: (tripId, itemId, input) => t.rpc('packing.update', { tripId, itemId, input, _inv: invocationId }),
+      delete: (tripId, itemId) => t.rpc('packing.delete', { tripId, itemId, _inv: invocationId }) as Promise<{ deleted: boolean }>,
     },
     files: {
       list: (tripId) => t.rpc('files.list', { tripId, _inv: invocationId }) as Promise<unknown[]>,
