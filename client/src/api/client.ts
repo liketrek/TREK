@@ -558,6 +558,13 @@ export const addonsApi = {
   enabled: () => apiClient.get('/addons').then(r => r.data),
 }
 
+/** A host-rendered column/action a plugin contributes into a native planner view
+ * (reservations/places/day) via the tableContributor hook. Every field is bounded +
+ * normalized server-side; a column url is guaranteed http/https/mailto. */
+export type ViewContribution =
+  | { kind: 'column'; pluginId: string; entityId: number; id: string; label: string; value?: string; url?: string; icon?: string; tone: 'default' | 'success' | 'warn' | 'danger' }
+  | { kind: 'action'; pluginId: string; entityId: number; id: string; label: string; icon?: string; target: { kind: 'frame'; sub: string } | { kind: 'route'; method: 'GET' | 'POST'; sub: string } }
+
 export const pluginsApi = {
   // Active plugins the client renders (page nav entries, dashboard widgets).
   active: () => apiClient.get('/plugins').then(r => r.data),
@@ -568,6 +575,10 @@ export const pluginsApi = {
   // Validation/warning contributions from warningProvider plugins (#1429). Fail-safe.
   tripWarnings: (tripId: number) =>
     apiClient.get(`/trip-warnings/${tripId}`).then(r => r.data as { warnings: Array<{ pluginId: string; level: 'info' | 'warning' | 'error'; message: string; dayId?: number; placeId?: number }> }),
+  // Host-rendered columns/actions plugins add into a native planner view via the
+  // tableContributor hook. Fetched once per view, keyed by entityId; fail-safe.
+  viewContributions: (view: 'reservations' | 'places' | 'day', tripId: number | string) =>
+    apiClient.get(`/view-contributions/${view}/${tripId}`).then(r => r.data as { contributions: ViewContribution[] }),
   // Call one of a plugin's own declared routes through the host proxy. `sub` is
   // supplied by untrusted plugin code (the trekBridge forwards it verbatim), so it
   // MUST stay inside the plugin's own /plugins/:id/ namespace. We resolve it with

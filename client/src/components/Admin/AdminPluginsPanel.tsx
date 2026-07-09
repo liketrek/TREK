@@ -111,7 +111,7 @@ const PERM_KEYS = [
   'db:meta',
   'events:subscribe', 'jobs:run',
   'ws:broadcast:trip', 'ws:broadcast:user',
-  'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider', 'hook:trip-warning-provider', 'http:outbound',
+  'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider', 'hook:trip-warning-provider', 'hook:table-contributor', 'http:outbound',
 ]
 
 const KNOWN_TYPES = ['widget', 'page', 'integration', 'trip-page']

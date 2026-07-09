@@ -200,6 +200,39 @@ export interface WarningProvider {
   getWarnings(tripId: number, ctx: PluginContext): Promise<TripWarning[]>;
 }
 
+/** Host-rendered contributions into a native trip-planner view (reservations/places/day),
+ * keyed to an entity by id (#plugins). DECLARATIVE ONLY — a column is text/badge/link,
+ * an action is a labelled button whose target opens your sandboxed frame or calls a
+ * route. Never raw HTML/markup; the host renders + sanitizes everything. */
+export type ContributionTone = 'default' | 'success' | 'warn' | 'danger';
+/** An extra read-only cell/badge on an entity's row/card. */
+export interface TableColumnContribution {
+  kind: 'column';
+  entityId: number; // the reservation/place/day id this attaches to
+  id: string;       // stable per-contribution id (for React keys / dedupe)
+  label: string;
+  value?: string;
+  url?: string;     // http/https/mailto only — the host rejects any other scheme
+  icon?: string;    // a lucide icon name, resolved by the host
+  tone?: ContributionTone;
+}
+/** A labelled button on an entity's row/card; its target opens your sandboxed frame
+ * (`{kind:'frame', sub}`) or invokes one of your routes (`{kind:'route', method, sub}`). */
+export interface TableActionContribution {
+  kind: 'action';
+  entityId: number;
+  id: string;
+  label: string;
+  icon?: string;
+  target: { kind: 'frame'; sub: string } | { kind: 'route'; method: 'GET' | 'POST'; sub: string };
+}
+export type TableContribution = TableColumnContribution | TableActionContribution;
+export interface TableContributor {
+  /** `view` is one of 'reservations' | 'places' | 'day'. Runs with the current user
+   * bound, on a short timeout; a slow/failing call is skipped, never fatal. */
+  getContributions(view: string, tripId: number, ctx: PluginContext): Promise<TableContribution[]>;
+}
+
 /** A core-event subscription (#1429 eco). Handlers run with NO user (like a job)
  * and receive only the event name + tripId — never the payload. Needs 'events:subscribe'. */
 export interface PluginEventSubscription {
@@ -232,6 +265,7 @@ export interface PluginDefinition {
     calendarSource?: CalendarSource;
     placeDetailProvider?: PlaceDetailProvider;
     warningProvider?: WarningProvider;
+    tableContributor?: TableContributor;
   };
   /** Functions exposed to dependents (names must match manifest capabilities.provides). */
   exports?: Record<string, PluginExport>;

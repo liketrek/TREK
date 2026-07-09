@@ -96,6 +96,7 @@ const HOOK_PERMISSION: Readonly<Record<string, string>> = {
   calendarSource: 'hook:calendar-source',
   placeDetailProvider: 'hook:place-detail-provider',
   warningProvider: 'hook:trip-warning-provider',
+  tableContributor: 'hook:table-contributor',
 };
 
 export class PluginSupervisor {

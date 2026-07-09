@@ -483,6 +483,7 @@ module.exports = definePlugin({
 |---|---|---|
 | `placeDetailProvider.getDetails(placeId, ctx)` → `{ label, value?, url? }[]` | `hook:place-detail-provider` | **live** — shown in the place-detail panel; also `GET /api/place-details/:placeId` |
 | `warningProvider.getWarnings(tripId, ctx)` → `{ level, message, dayId?, placeId? }[]` | `hook:trip-warning-provider` | **live** — validation warnings shown as a non-blocking banner in the trip planner; also `GET /api/trip-warnings/:tripId` |
+| `tableContributor.getContributions(view, tripId, ctx)` → `TableContribution[]` | `hook:table-contributor` | **live** — host-rendered **columns/actions** keyed by `entityId` in the reservations/places/day views. A `column` is `{kind:'column', entityId, id, label, value?, url?, icon?, tone?}` (url is http/https/mailto only); an `action` is `{kind:'action', entityId, id, label, icon?, target}` where `target` opens your sandboxed frame (`{kind:'frame', sub}`) or calls a route (`{kind:'route', method, sub}`). All fields are bounded + normalized host-side; also `GET /api/view-contributions/:view/:tripId` |
 | `photoProvider` / `calendarSource` | `hook:photo-provider` / `hook:calendar-source` | reserved — declared + the `invoke.hook` transport exists, but no core consumer calls them yet |
 
 Each hook method receives its args plus the per-invocation `ctx`, so any `ctx.trips.*`
@@ -717,6 +718,7 @@ for anything your plugin publishes via `ctx.events.emit`.
 | `http:outbound` or `http:outbound:<host>` | outbound HTTP to `egress[]` hosts |
 | `hook:place-detail-provider` | `hooks.placeDetailProvider` — extra place rows TREK renders (see [Provider hooks](#provider-hooks)) |
 | `hook:trip-warning-provider` | `hooks.warningProvider` — validation warnings in the planner (see [Provider hooks](#provider-hooks)) |
+| `hook:table-contributor` | `hooks.tableContributor` — host-rendered columns/actions in the reservations/places/day views (see [Provider hooks](#provider-hooks)) |
 | `hook:photo-provider` / `hook:calendar-source` | reserved (see [Provider hooks](#provider-hooks)) |
 
 > There is **no `ws:broadcast:*`** — use `ws:broadcast:trip` and/or

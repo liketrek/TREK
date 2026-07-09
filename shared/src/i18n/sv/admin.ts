@@ -321,6 +321,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:place-detail-provider':
     'Bidra med extra detaljer (recensioner, betyg, länkar) till en plats',
   'admin.plugins.perm.hook:trip-warning-provider': 'Visa valideringsvarningar på en resa (visas i planeraren)',
+  'admin.plugins.perm.hook:table-contributor': 'Lägga till kolumner och åtgärder i rese­vyer (bokningar, platser, dagar)',
   'admin.plugins.perm.events:subscribe':
     'Reagera på grundläggande aktivitetshändelser (endast händelsenamn + resa, aldrig innehållet)',
   'admin.plugins.perm.http:outbound': 'Göra utgående anrop till sina deklarerade värdar',

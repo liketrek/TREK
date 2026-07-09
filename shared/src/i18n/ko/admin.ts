@@ -295,6 +295,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': '캘린더에 일정 제공',
   'admin.plugins.perm.hook:place-detail-provider': '장소에 추가 정보(리뷰, 평점, 링크)를 제공',
   'admin.plugins.perm.hook:trip-warning-provider': '여행에 검증 경고를 표시 (플래너에 표시됨)',
+  'admin.plugins.perm.hook:table-contributor': '여행 보기(예약, 장소, 일자)에 열과 작업 추가',
   'admin.plugins.perm.events:subscribe': '핵심 활동 이벤트에 반응 (이벤트 이름과 여행만, 내용은 절대 표시 안 함)',
   'admin.plugins.perm.http:outbound': '선언된 호스트로 아웃바운드 요청 전송',
   'admin.plugins.updateConsentTitle': '이 업데이트에는 새로운 권한이 필요합니다',

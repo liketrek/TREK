@@ -311,6 +311,7 @@ const admin: TranslationStrings = {
     'Menyumbangkan detail tambahan (ulasan, peringkat, tautan) untuk suatu tempat',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Munculkan peringatan validasi pada perjalanan (ditampilkan di perencana)',
+  'admin.plugins.perm.hook:table-contributor': 'Menambahkan kolom dan tindakan ke tampilan perjalanan (pemesanan, tempat, hari)',
   'admin.plugins.perm.events:subscribe':
     'Bereaksi terhadap peristiwa aktivitas inti (hanya nama peristiwa + perjalanan, tidak pernah kontennya)',
   'admin.plugins.perm.http:outbound': 'Membuat permintaan keluar ke host yang telah dideklarasikannya',

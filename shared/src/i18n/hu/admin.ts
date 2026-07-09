@@ -267,6 +267,7 @@ const admin: TranslationStrings = {
     'További részletek (értékelések, minősítések, hivatkozások) hozzáadása egy helyhez',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Ellenőrzési figyelmeztetések megjelenítése egy utazáson (a tervezőben látható)',
+  'admin.plugins.perm.hook:table-contributor': 'Oszlopok és műveletek hozzáadása az utazási nézetekhez (foglalások, helyek, napok)',
   'admin.plugins.perm.events:subscribe':
     'Reagál az alapvető tevékenységi eseményekre (csak eseménynév + utazás, soha nem a tartalom)',
   'admin.plugins.perm.http:outbound': 'Kimenő kérések küldése a bejelentett kiszolgálók felé',

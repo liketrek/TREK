@@ -278,6 +278,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'توفير الأحداث للتقويم',
   'admin.plugins.perm.hook:place-detail-provider': 'المساهمة بتفاصيل إضافية (مراجعات، تقييمات، روابط) لمكان ما',
   'admin.plugins.perm.hook:trip-warning-provider': 'إظهار تحذيرات التحقق على الرحلة (تظهر في المخطط)',
+  'admin.plugins.perm.hook:table-contributor': 'إضافة أعمدة وإجراءات إلى عروض الرحلة (الحجوزات، الأماكن، الأيام)',
   'admin.plugins.perm.events:subscribe': 'التفاعل مع أحداث النشاط الأساسية (اسم الحدث والرحلة فقط، دون المحتوى مطلقًا)',
   'admin.plugins.perm.http:outbound': 'إجراء طلبات صادرة إلى المضيفات المُعلنة الخاصة بها',
   'admin.plugins.updateConsentTitle': 'يتطلب هذا التحديث أذونات جديدة',

@@ -290,6 +290,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': '為行事曆提供事件',
   'admin.plugins.perm.hook:place-detail-provider': '為地點提供額外資訊（評論、評分、連結）',
   'admin.plugins.perm.hook:trip-warning-provider': '對行程發出驗證警告（顯示於規劃工具中）',
+  'admin.plugins.perm.hook:table-contributor': '向行程檢視（預訂、地點、日期）新增欄位與操作',
   'admin.plugins.perm.events:subscribe': '回應核心活動事件（僅事件名稱與行程，絕不包含內容）',
   'admin.plugins.perm.http:outbound': '向其宣告的主機發出對外請求',
   'admin.plugins.updateConsentTitle': '此更新需要新的權限',

@@ -266,6 +266,7 @@ const admin: TranslationStrings = {
     'Extra details (reviews, beoordelingen, links) aan een plek toevoegen',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Validatiewaarschuwingen tonen bij een reis (zichtbaar in de planner)',
+  'admin.plugins.perm.hook:table-contributor': 'Kolommen en acties toevoegen aan reisweergaven (boekingen, plaatsen, dagen)',
   'admin.plugins.perm.events:subscribe':
     'Reageert op kernactiviteitsgebeurtenissen (alleen gebeurtenisnaam + reis, nooit de inhoud)',
   'admin.plugins.perm.http:outbound': 'Uitgaande verzoeken doen naar de opgegeven hosts',

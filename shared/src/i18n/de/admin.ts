@@ -267,6 +267,7 @@ const admin: TranslationStrings = {
     'Zusatzdetails (Bewertungen, Ratings, Links) zu einem Ort beisteuern',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Validierungswarnungen zu einer Reise ausgeben (im Planer angezeigt)',
+  'admin.plugins.perm.hook:table-contributor': 'Spalten und Aktionen zu Reise-Ansichten hinzufügen (Reservierungen, Orte, Tage)',
   'admin.plugins.perm.events:subscribe':
     'Auf Kern-Aktivitäts-Events reagieren (nur Event-Name + Reise, nie der Inhalt)',
   'admin.plugins.perm.jobs:run': 'Deklarierte Hintergrund-Jobs zeitgesteuert ausführen (kein Nutzerkontext — kann keine Nutzerdaten lesen)',

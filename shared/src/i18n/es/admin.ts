@@ -266,6 +266,7 @@ const admin: TranslationStrings = {
     'Aportar detalles adicionales (reseñas, valoraciones, enlaces) a un lugar',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Generar advertencias de validación en un viaje (mostradas en el planificador)',
+  'admin.plugins.perm.hook:table-contributor': 'Añadir columnas y acciones a las vistas del viaje (reservas, lugares, días)',
   'admin.plugins.perm.events:subscribe':
     'Reaccionar a eventos de actividad del núcleo (solo el nombre del evento y el viaje, nunca el contenido)',
   'admin.plugins.perm.http:outbound': 'Realizar solicitudes salientes a sus hosts declarados',
