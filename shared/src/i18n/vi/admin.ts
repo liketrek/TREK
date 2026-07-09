@@ -339,6 +339,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:trip-warning-provider':
     'Đưa ra cảnh báo xác thực trên một chuyến đi (hiển thị trong trình lập kế hoạch)',
   'admin.plugins.perm.hook:table-contributor': 'Thêm cột và hành động vào các chế độ xem chuyến đi (đặt chỗ, địa điểm, ngày)',
+  'admin.plugins.perm.hook:map-marker-provider': 'Thêm điểm đánh dấu vào bản đồ chuyến đi (vd. hiển thị đặt chỗ hoặc POI)',
   'admin.plugins.perm.events:subscribe':
     'Phản hồi các sự kiện hoạt động cốt lõi (chỉ tên sự kiện + chuyến đi, không bao giờ là nội dung)',
   'admin.plugins.perm.http:outbound': 'Gửi yêu cầu ra ngoài đến các máy chủ đã khai báo',

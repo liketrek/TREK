@@ -9,6 +9,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import { mapsApi } from '../../api/client'
 import { getCategoryIcon, CATEGORY_ICON_MAP } from '../shared/categoryIcons'
 import ReservationOverlay from './ReservationOverlay'
+import { PluginMapMarkers } from './MapPluginMarkers'
 import { useTransportRoutes } from '../../hooks/useTransportRoutes'
 import type { Reservation } from '../../types'
 import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
@@ -451,6 +452,7 @@ export const MapView = memo(function MapView({
   pois = [] as Poi[],
   onPoiClick,
   onViewportChange,
+  tripId,
 }: any) {
   const poiMarkers = useMemo(() => (pois as Poi[]).map((poi: Poi) => (
     <Marker
@@ -719,6 +721,7 @@ export const MapView = memo(function MapView({
       />
 
       {poiMarkers}
+      <PluginMapMarkers tripId={tripId} />
     </MapContainer>
     {isMobile && <LocationButton
       mode={trackingMode}

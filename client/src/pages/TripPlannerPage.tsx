@@ -307,6 +307,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
         {activeTab === 'plan' && (
           <div style={{ position: 'absolute', inset: 0 }}>
             <MapView
+              tripId={tripId}
               places={mapPlaces}
               dayPlaces={dayPlaces}
               route={route}

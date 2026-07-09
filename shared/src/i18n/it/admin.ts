@@ -280,6 +280,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:trip-warning-provider':
     'Segnala avvisi di validazione su un viaggio (mostrati nel pianificatore)',
   'admin.plugins.perm.hook:table-contributor': 'Aggiungere colonne e azioni alle viste del viaggio (prenotazioni, luoghi, giorni)',
+  'admin.plugins.perm.hook:map-marker-provider': 'Aggiungere indicatori alla mappa del viaggio (es. mostrare prenotazioni o POI)',
   'admin.plugins.perm.events:subscribe':
     "Reagisce agli eventi principali dell'attività (solo nome evento e viaggio, mai il contenuto)",
   'admin.plugins.perm.http:outbound': 'Effettuare richieste in uscita verso gli host dichiarati',

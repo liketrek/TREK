@@ -311,9 +311,28 @@ export interface TableActionContribution {
 }
 export type TableContribution = TableColumnContribution | TableActionContribution;
 export interface TableContributor {
-  /** `view` is one of 'reservations' | 'places' | 'day'. Runs with the current user
-   * bound, on a short timeout; a slow/failing call is skipped, never fatal. */
+  /** `view` is one of 'reservations' | 'places' | 'day' | 'costs' | 'packing' | 'files'.
+   * Runs with the current user bound, on a short timeout; a slow/failing call is
+   * skipped, never fatal. */
   getContributions(view: string, tripId: number, ctx: PluginContext): Promise<TableContribution[]>;
+}
+
+/** A bounded marker the host renders onto the trip map (#587). Declarative only —
+ * the host draws a Leaflet marker + popup; plugin JS never runs on the map canvas. */
+export interface MapMarkerContribution {
+  id: string;            // stable per-marker id (React key / dedupe)
+  lat: number;           // -90..90
+  lng: number;           // -180..180
+  label?: string;        // short label shown in the popup title
+  popupText?: string;    // one line of body text (host-sanitized, plain text)
+  url?: string;          // http/https/mailto only — the host rejects any other scheme
+  icon?: string;         // a lucide icon name, resolved by the host
+  tone?: ContributionTone;
+}
+export interface MapMarkerProvider {
+  /** Return markers to overlay on a trip's map. Runs with the current user bound,
+   * on a short timeout; the host caps the marker count and skips a failing call. */
+  getMarkers(tripId: number, ctx: PluginContext): Promise<MapMarkerContribution[]>;
 }
 
 /** A core-event subscription (#1429 eco). Handlers run with NO user (like a job)
@@ -349,6 +368,7 @@ export interface PluginDefinition {
     placeDetailProvider?: PlaceDetailProvider;
     warningProvider?: WarningProvider;
     tableContributor?: TableContributor;
+    mapMarkerProvider?: MapMarkerProvider;
   };
   /** Functions exposed to dependents (names must match manifest capabilities.provides). */
   exports?: Record<string, PluginExport>;

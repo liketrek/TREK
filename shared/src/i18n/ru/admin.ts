@@ -281,6 +281,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:trip-warning-provider':
     'Выдавать предупреждения проверки для поездки (отображаются в планировщике)',
   'admin.plugins.perm.hook:table-contributor': 'Добавлять столбцы и действия в представления поездки (бронирования, места, дни)',
+  'admin.plugins.perm.hook:map-marker-provider': 'Добавлять маркеры на карту поездки (например, показывать бронирования или POI)',
   'admin.plugins.perm.events:subscribe':
     'Реагировать на основные события активности (только название события и поездка, никогда содержимое)',
   'admin.plugins.perm.http:outbound': 'Выполнять исходящие запросы к заявленным хостам',

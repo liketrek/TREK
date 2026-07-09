@@ -267,6 +267,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:place-detail-provider': '为地点补充额外信息（评论、评分、链接）',
   'admin.plugins.perm.hook:trip-warning-provider': '对行程发出校验警告（显示在规划器中）',
   'admin.plugins.perm.hook:table-contributor': '向行程视图（预订、地点、日期）添加列和操作',
+  'admin.plugins.perm.hook:map-marker-provider': '向旅行地图添加标记（例如显示预订或兴趣点）',
   'admin.plugins.perm.events:subscribe': '响应核心活动事件（仅事件名称和行程，绝不包含内容）',
   'admin.plugins.perm.http:outbound': '向其声明的主机发出出站请求',
   'admin.plugins.updateConsentTitle': '此次更新需要新的权限',

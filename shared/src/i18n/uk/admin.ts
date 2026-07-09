@@ -280,6 +280,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:trip-warning-provider':
     'Створювати попередження перевірки для подорожі (показуються в планувальнику)',
   'admin.plugins.perm.hook:table-contributor': 'Додавати стовпці та дії до подань подорожі (бронювання, місця, дні)',
+  'admin.plugins.perm.hook:map-marker-provider': 'Додавати мітки на карту подорожі (наприклад, показувати бронювання або POI)',
   'admin.plugins.perm.events:subscribe':
     'Реагувати на основні події активності (лише назва події + подорож, ніколи вміст)',
   'admin.plugins.perm.http:outbound': 'Виконувати вихідні запити до заявлених хостів',

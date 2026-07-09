@@ -325,6 +325,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:place-detail-provider': 'Contribute extra details (reviews, ratings, links) to a place',
   'admin.plugins.perm.hook:trip-warning-provider': 'Raise validation warnings on a trip (shown in the planner)',
   'admin.plugins.perm.hook:table-contributor': 'Add columns and actions to trip views (reservations, places, days)',
+  'admin.plugins.perm.hook:map-marker-provider': 'Add markers to the trip map (e.g. show bookings or POIs)',
   'admin.plugins.perm.events:subscribe': 'React to core activity events (event name + trip only, never the content)',
   'admin.plugins.perm.jobs:run': 'Run its declared background jobs on a schedule (no user context — cannot read user data)',
   'admin.plugins.perm.http:outbound': 'Make outbound requests to its declared hosts',

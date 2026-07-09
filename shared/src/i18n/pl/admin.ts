@@ -277,6 +277,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:trip-warning-provider':
     'Zgłaszanie ostrzeżeń walidacyjnych dla podróży (widocznych w planerze)',
   'admin.plugins.perm.hook:table-contributor': 'Dodawanie kolumn i akcji do widoków podróży (rezerwacje, miejsca, dni)',
+  'admin.plugins.perm.hook:map-marker-provider': 'Dodawanie znaczników do mapy podróży (np. pokazywanie rezerwacji lub POI)',
   'admin.plugins.perm.events:subscribe':
     'Reagowanie na podstawowe zdarzenia aktywności (tylko nazwa zdarzenia i podróż, nigdy treść)',
   'admin.plugins.perm.http:outbound': 'Wykonywanie wychodzących zapytań do zadeklarowanych hostów',

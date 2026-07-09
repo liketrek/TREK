@@ -97,6 +97,7 @@ const HOOK_PERMISSION: Readonly<Record<string, string>> = {
   placeDetailProvider: 'hook:place-detail-provider',
   warningProvider: 'hook:trip-warning-provider',
   tableContributor: 'hook:table-contributor',
+  mapMarkerProvider: 'hook:map-marker-provider',
 };
 
 export class PluginSupervisor {

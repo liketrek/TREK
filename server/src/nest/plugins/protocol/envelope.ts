@@ -276,6 +276,7 @@ export const KNOWN_PERMISSIONS = [
   'hook:place-detail-provider',
   'hook:trip-warning-provider',
   'hook:table-contributor',
+  'hook:map-marker-provider',
   'events:subscribe',
   'jobs:run',
   'http:outbound',
