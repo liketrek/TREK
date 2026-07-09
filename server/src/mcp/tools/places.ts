@@ -4,7 +4,7 @@ import { canAccessTrip, db } from '../../db/database';
 import { isDemoUser } from '../../services/authService';
 import { deletePlacesMany, updatePlacesMany, importGoogleList, importNaverList, listPlaces, createPlace, updatePlace, deletePlace } from '../../services/placeService';
 import { createAssignment, dayExists } from '../../services/assignmentService';
-import { onPlaceDeleted } from '../../services/journeyService';
+import { onPlaceDeleted, reconcileTripSkeletons } from '../../services/journeyService';
 import { listCategories } from '../../services/categoryService';
 import { searchPlaces } from '../../services/mapsService';
 import {
@@ -92,6 +92,7 @@ export function registerPlaceTools(server: McpServer, userId: number, scopes: st
         const result = run();
         safeBroadcast(tripId, 'place:created', { place: result.place });
         safeBroadcast(tripId, 'assignment:created', { assignment: result.assignment });
+        try { reconcileTripSkeletons(tripId); } catch { /* non-fatal */ }
         return ok(result);
       } catch {
         return { content: [{ type: 'text' as const, text: 'Failed to create place and assignment.' }], isError: true };
@@ -152,6 +153,7 @@ export function registerPlaceTools(server: McpServer, userId: number, scopes: st
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
       if (!hasTripPermission('place_edit', tripId, userId)) return permissionDenied();
+      try { onPlaceDeleted(placeId); } catch {} // sync journeys before the row is gone
       const deleted = deletePlace(String(tripId), String(placeId));
       if (!deleted) return { content: [{ type: 'text' as const, text: 'Place not found.' }], isError: true };
       safeBroadcast(tripId, 'place:deleted', { placeId });

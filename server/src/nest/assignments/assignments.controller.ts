@@ -38,7 +38,7 @@ function requireEdit(svc: AssignmentsService, trip: Trip, user: User): void {
  * Byte-identical to the legacy Express route (server/src/routes/assignments.ts):
  * trip access (404), 'day_edit' on mutations (403, GET is access-only), create
  * 201 / rest 200, the bespoke "Day not found" / "Place not found" / "Assignment
- * not found" bodies, the journey place-created hook, and WebSocket broadcasts.
+ * not found" bodies, the journey skeleton reconcile, and WebSocket broadcasts.
  */
 @Controller('api/trips/:tripId/days/:dayId/assignments')
 @UseGuards(JwtAuthGuard)
@@ -72,7 +72,7 @@ export class DayAssignmentsController {
     }
     const assignment = this.assignments.createAssignment(dayId, body.place_id, body.notes);
     this.assignments.broadcast(tripId, 'assignment:created', { assignment }, socketId);
-    this.assignments.notifyPlaceCreated(tripId, body.place_id);
+    this.assignments.reconcile(tripId, socketId);
     return { assignment };
   }
 
@@ -109,6 +109,7 @@ export class DayAssignmentsController {
     }
     this.assignments.deleteAssignment(id);
     this.assignments.broadcast(tripId, 'assignment:deleted', { assignmentId: Number(id), dayId: Number(dayId) }, socketId);
+    this.assignments.reconcile(tripId, socketId);
     return { success: true };
   }
 }
@@ -142,6 +143,7 @@ export class AssignmentOpsController {
     const oldDayId = (existing as { day_id: number }).day_id;
     const { assignment } = this.assignments.moveAssignment(id, body.new_day_id, body.order_index, oldDayId);
     this.assignments.broadcast(tripId, 'assignment:moved', { assignment, oldDayId: Number(oldDayId), newDayId: Number(body.new_day_id) }, socketId);
+    this.assignments.reconcile(tripId, socketId);
     return { assignment };
   }
 
@@ -166,6 +168,7 @@ export class AssignmentOpsController {
     }
     const assignment = this.assignments.updateTime(id, body.place_time, body.end_time);
     this.assignments.broadcast(tripId, 'assignment:updated', { assignment }, socketId);
+    this.assignments.reconcile(tripId, socketId);
     return { assignment };
   }
 
