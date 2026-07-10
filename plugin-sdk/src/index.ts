@@ -458,6 +458,25 @@ export interface AtlasLayerProvider {
   getLayers(ctx: PluginContext): Promise<AtlasLayer[]>;
 }
 
+/** One badge the host renders on a dashboard trip card. Declarative primitives only —
+ * the host draws the badge; plugin JS never runs on the dashboard. */
+export interface TripCardContribution {
+  tripId: number;        // which of the passed-in trips this badge belongs to
+  id: string;            // stable per-badge id (React key / dedupe)
+  label: string;         // short label (e.g. "Visa ✓", "3 tasks")
+  value?: string;        // optional secondary text
+  icon?: string;         // a lucide icon name, resolved by the host
+  tone?: ContributionTone;
+  url?: string;          // http/https/mailto only — the host rejects any other scheme
+}
+export interface TripCardProvider {
+  /** Return badges for the dashboard trip cards currently on screen. `tripIds` are
+   * exactly those cards (each already access-checked for the acting user). Runs with
+   * the current user bound, on a short timeout; the host caps the badge count and
+   * skips a failing call. Needs `hook:trip-card-provider`. */
+  getCards(tripIds: number[], ctx: PluginContext): Promise<TripCardContribution[]>;
+}
+
 /** One row of extra info TREK renders under a journal entry (same shape as PlaceDetailItem). */
 export interface JournalEntryRow { label: string; value?: string; url?: string; }
 export interface JournalEntryProvider {
@@ -517,6 +536,7 @@ export interface PluginDefinition {
     pdfSectionProvider?: PdfSectionProvider;
     atlasLayerProvider?: AtlasLayerProvider;
     journalEntryProvider?: JournalEntryProvider;
+    tripCardProvider?: TripCardProvider;
   };
   /** Functions exposed to dependents (names must match manifest `capabilities.provides`). */
   exports?: Record<string, PluginExport>;

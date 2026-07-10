@@ -284,6 +284,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:journal-entry-provider':
     'Adicionar linhas extras (links, estatísticas) às entradas do diário',
   'admin.plugins.perm.hook:user-data': 'Apagar ou exportar os dados que armazena sobre um usuário (LGPD/GDPR: exclusão de conta e solicitações de dados)',
+  'admin.plugins.perm.hook:trip-card-provider': 'Adicionar pequenos selos (status, contagens) aos cartões de viagem do painel',
   'admin.plugins.perm.events:subscribe':
     'Reagir a eventos de atividade do núcleo (apenas nome do evento + viagem, nunca o conteúdo)',
   'admin.plugins.perm.http:outbound': 'Fazer requisições de saída para os hosts declarados',

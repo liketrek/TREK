@@ -286,6 +286,7 @@ const admin: TranslationStrings = {
     'Zvýrazňovat země na mapě světa v Atlasu (např. seznamy přání nebo cestovní upozornění)',
   'admin.plugins.perm.hook:journal-entry-provider': 'Přidávat další řádky (odkazy, statistiky) k záznamům deníku',
   'admin.plugins.perm.hook:user-data': 'Vymazat nebo exportovat data, která o uživateli uchovává (GDPR: smazání účtu a žádosti o data)',
+  'admin.plugins.perm.hook:trip-card-provider': 'Přidávat malé odznaky (stav, počty) na karty cest na nástěnce',
   'admin.plugins.perm.events:subscribe':
     'Reagovat na základní události aktivity (pouze název události a cesta, nikdy obsah)',
   'admin.plugins.perm.http:outbound': 'Odesílat odchozí požadavky na deklarované hostitele',

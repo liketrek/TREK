@@ -557,6 +557,7 @@ module.exports = definePlugin({
 | `pdfSectionProvider.getSections(tripId, ctx)` → `PdfSection[]` | `hook:pdf-section-provider` | **live** — text-only sections appended to the trip PDF export. Each is `{title, paragraphs?, table?}`; the host escapes and lays everything out itself (no markup ever reaches the document), caps counts (≤5 sections/plugin, ≤20 paragraphs, ≤8 headers, ≤50 rows) + lengths (title 120, paragraph 2000, header 60, cell 200) and clips rows to the header width. Also `GET /api/pdf-sections/:tripId` |
 | `atlasLayerProvider.getLayers(ctx)` → `AtlasLayer[]` | `hook:atlas-layer-provider` | **live** — country tint layers drawn over the Atlas world map (wishlists, advisories, …). **User-scoped**: the host binds the acting user, the hook takes no target parameter. Each layer is `{id, name?, countries: [{code, tone?, label?}]}`; codes must be ISO-3166 alpha-2 (uppercase-coerced), tone is enum-whitelisted, counts capped (≤3 layers/plugin, ≤300 countries/layer). Declarative only — plugin JS never runs on the map canvas. Also `GET /api/atlas-layers` |
 | `journalEntryProvider.getRows(entryId, ctx)` → `{ label, value?, url? }[]` | `hook:journal-entry-provider` | **live** — extra rows rendered under a journal entry card (needs the Journey addon; the entry's journey is access-checked like the journal detail routes). Same hardening as place details plus server-side normalization: ≤12 rows/plugin, label ≤60, value ≤200, url http/https/mailto-only. Also `GET /api/journal-entry-rows/:entryId` |
+| `tripCardProvider.getCards(tripIds, ctx)` → `TripCardContribution[]` | `hook:trip-card-provider` | **live** — small badges on the dashboard trip cards. Called ONCE with all visible `tripIds` (each already access-checked for the acting user), returns `{ tripId, id, label, value?, icon?, tone?, url? }[]`; the host bounds every field (label 64, value 256, tone enum, url http/https/mailto-only), caps the count (≤40/plugin) and drops any badge whose `tripId` wasn't requested. Declarative only. Also `GET /api/trip-card-contributions?tripIds=…` |
 | `photoProvider` / `calendarSource` | `hook:photo-provider` / `hook:calendar-source` | reserved — declared + the `invoke.hook` transport exists, but no core consumer calls them yet |
 
 Each hook method receives its args plus the per-invocation `ctx`, so any `ctx.trips.*`
@@ -742,6 +743,31 @@ integration test for real SQL. To test inter-plugin calls, pass
 `pluginExports: { koffi: { convert: (args) => … } }` and assert on `mock.emitted`
 for anything your plugin publishes via `ctx.events.emit`.
 
+### Driving your plugin's handlers
+
+`createMockHost` also gives you `run(def)` — the other half of a test. Where the
+`ctx` recorders (`calls`, `broadcasts`, `emitted`, `notifications`, `scheduled`)
+capture what your plugin *read*, `run` fires each entry point so you can assert
+what it *did*, all against the same mock `ctx`:
+
+```js
+const host = createMockHost({ grants: ['jobs:run', 'hook:trip-card-provider'], actingUserId: 7 })
+const app  = host.run(myPlugin)
+
+await app.route({ method: 'GET', path: '/ping' })          // → the route's response
+await app.job('refresh')                                    // fire a background job (userless)
+await app.scheduled('daily', { tripId: 1 })                 // fire the `scheduled` handler
+await app.event('place:created', { tripId: 1, entityId: 9 })// deliver a core event to `events`
+await app.deleteUserData(42)                                // GDPR erasure handler
+const dump  = await app.exportUserData(42)                  // GDPR export handler
+const cards = await app.hook('tripCardProvider', 'getCards', [1, 2]) // any provider hook
+
+host.scheduled.get('daily')                                 // timers the plugin armed via ctx.scheduler
+```
+
+A handler your plugin didn't declare throws a clear error (not a silent no-op),
+so a test catches a missing `scheduled`/`deleteUserData`/job before release.
+
 ## Rules
 
 - **No native modules** (`.node`, `binding.gyp`, `prebuilds/`) — rejected at pack
@@ -798,6 +824,7 @@ for anything your plugin publishes via `ctx.events.emit`.
 | `db:meta` | `ctx.meta.*` — your own namespaced data on a trip/place/day/reservation/accommodation |
 | `db:read:users` | `ctx.users.getById` |
 | `events:subscribe` | receive core activity events via `events: [...]` (event name + tripId + a { entity, entityId } hint, plus a whitelisted entity **snapshot** when the plugin also holds the family's `db:read:*` grant; never a user) |
+| `hook:trip-card-provider` | `hooks.tripCardProvider` — small badges on the dashboard trip cards |
 | `jobs:run` | run declared background `jobs` on their cron schedule **and** `ctx.scheduler` runtime timers → `scheduled` handler (opt-in; no user, so trip reads are refused) |
 | `ws:broadcast:trip` | `ctx.ws.broadcastToTrip` |
 | `ws:broadcast:user` | `ctx.ws.broadcastToUser` |
@@ -809,6 +836,7 @@ for anything your plugin publishes via `ctx.events.emit`.
 | `hook:pdf-section-provider` | `hooks.pdfSectionProvider` — sections appended to the trip PDF export |
 | `hook:atlas-layer-provider` | `hooks.atlasLayerProvider` — per-user country tint layers on the Atlas map |
 | `hook:journal-entry-provider` | `hooks.journalEntryProvider` — extra rows on a journal entry card |
+| `hook:trip-card-provider` | `hooks.tripCardProvider` — small badges on the dashboard trip cards (`getCards(tripIds, ctx)` → `{ tripId, label, value?, icon?, tone?, url? }[]`; host bounds every field + access-checks each tripId) |
 | `hook:user-data` | `deleteUserData` / `exportUserData` handlers — honour GDPR erasure (durable, retried) and data-export for a deleted/requesting user (userless; own db only) |
 | `hook:photo-provider` / `hook:calendar-source` | reserved (see [Provider hooks](#provider-hooks)) |
 

@@ -274,6 +274,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:atlas-layer-provider': '在 Atlas 世界地图上高亮国家（例如愿望清单或旅行提醒）',
   'admin.plugins.perm.hook:journal-entry-provider': '向日志条目添加额外行（链接、统计）',
   'admin.plugins.perm.hook:user-data': '删除或导出其存储的某用户数据（GDPR：账户删除与数据请求）',
+  'admin.plugins.perm.hook:trip-card-provider': '在仪表盘的行程卡片上添加小徽章（状态、计数）',
   'admin.plugins.perm.events:subscribe': '响应核心活动事件（仅事件名称和行程，绝不包含内容）',
   'admin.plugins.perm.http:outbound': '向其声明的主机发出出站请求',
   'admin.plugins.perm.db:read:collab': '读取当前用户可访问的旅行的笔记、投票和聊天消息（需要 Collab 插件）',

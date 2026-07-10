@@ -565,6 +565,13 @@ export type ViewContribution =
   | { kind: 'column'; pluginId: string; entityId: number; id: string; label: string; value?: string; url?: string; icon?: string; tone: 'default' | 'success' | 'warn' | 'danger' }
   | { kind: 'action'; pluginId: string; entityId: number; id: string; label: string; icon?: string; target: { kind: 'frame'; sub: string } | { kind: 'route'; method: 'GET' | 'POST'; sub: string } }
 
+/** A badge a plugin adds to a dashboard trip card via the tripCardProvider hook.
+ * Bounded + normalized server-side; the url is guaranteed http/https/mailto. */
+export interface TripCardBadge {
+  pluginId: string; tripId: number; id: string; label: string;
+  value?: string; icon?: string; tone: 'default' | 'success' | 'warn' | 'danger'; url?: string;
+}
+
 export interface PluginMapMarker {
   pluginId: string; id: string; lat: number; lng: number;
   label?: string; popupText?: string; url?: string; icon?: string;
@@ -621,6 +628,11 @@ export const pluginsApi = {
   // Same shape + hardening as placeDetails (label/value/allowlisted url); fail-safe.
   journalEntryRows: (entryId: number) =>
     apiClient.get(`/journal-entry-rows/${entryId}`).then(r => r.data as { providers: Array<{ pluginId: string; items: Array<{ label: string; value?: string; url?: string }> }> }),
+  // Badges plugins add to the dashboard trip cards via the tripCardProvider hook.
+  // One call for all visible cards; host access-checks each tripId + bounds every
+  // field (label/value/tone/allowlisted url); fail-safe.
+  tripCardContributions: (tripIds: Array<number | string>) =>
+    apiClient.get(`/trip-card-contributions?tripIds=${tripIds.join(',')}`).then(r => r.data as { contributions: TripCardBadge[] }),
   // The signed-in user's OWN plugin activity log — every host-mediated action a
   // plugin took bound to them, across all plugins, newest first. The user-facing
   // half of the capability audit; what makes the broad read grants accountable.

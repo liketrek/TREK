@@ -291,6 +291,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:journal-entry-provider':
     'Ajouter des lignes supplémentaires (liens, statistiques) aux entrées du journal',
   'admin.plugins.perm.hook:user-data': "Effacer ou exporter les données qu'il stocke sur un utilisateur (RGPD : suppression de compte et demandes d'accès)",
+  'admin.plugins.perm.hook:trip-card-provider': 'Ajouter de petits badges (statut, compteurs) aux cartes de voyage du tableau de bord',
   'admin.plugins.perm.events:subscribe':
     'Réagir aux événements d’activité principaux (nom de l’événement et voyage uniquement, jamais le contenu)',
   'admin.plugins.perm.http:outbound': 'Effectuer des requêtes sortantes vers ses hôtes déclarés',

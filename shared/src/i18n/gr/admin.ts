@@ -338,6 +338,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:journal-entry-provider':
     'Προσθήκη επιπλέον γραμμών (σύνδεσμοι, στατιστικά) στις καταχωρίσεις του ημερολογίου',
   'admin.plugins.perm.hook:user-data': 'Διαγραφή ή εξαγωγή των δεδομένων που αποθηκεύει για έναν χρήστη (GDPR: διαγραφή λογαριασμού και αιτήματα δεδομένων)',
+  'admin.plugins.perm.hook:trip-card-provider': 'Προσθήκη μικρών σημάτων (κατάσταση, μετρήσεις) στις κάρτες ταξιδιού του πίνακα',
   'admin.plugins.perm.events:subscribe':
     'Αντιδρά σε βασικά συμβάντα δραστηριότητας (όνομα συμβάντος + ταξίδι μόνο, ποτέ το περιεχόμενο)',
   'admin.plugins.perm.http:outbound': 'Εκτέλεση εξερχόμενων αιτημάτων προς τους δηλωμένους hosts του',

@@ -290,6 +290,7 @@ const admin: TranslationStrings = {
     'Landen markeren op de Atlas-wereldkaart (bijv. wensenlijsten of reisadviezen)',
   'admin.plugins.perm.hook:journal-entry-provider': 'Extra regels (links, statistieken) toevoegen aan dagboek-items',
   'admin.plugins.perm.hook:user-data': 'De gegevens die het over een gebruiker opslaat wissen of exporteren (AVG: accountverwijdering en inzageverzoeken)',
+  'admin.plugins.perm.hook:trip-card-provider': 'Kleine badges (status, aantallen) aan je dashboard-reiskaarten toevoegen',
   'admin.plugins.perm.events:subscribe':
     'Reageert op kernactiviteitsgebeurtenissen (alleen gebeurtenisnaam + reis, nooit de inhoud)',
   'admin.plugins.perm.http:outbound': 'Uitgaande verzoeken doen naar de opgegeven hosts',

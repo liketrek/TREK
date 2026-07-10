@@ -313,6 +313,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:atlas-layer-provider': '在 Atlas 世界地圖上標示國家（例如願望清單或旅遊警示）',
   'admin.plugins.perm.hook:journal-entry-provider': '向日誌條目新增額外列（連結、統計）',
   'admin.plugins.perm.hook:user-data': '刪除或匯出其儲存的某使用者資料（GDPR：帳戶刪除與資料請求）',
+  'admin.plugins.perm.hook:trip-card-provider': '在儀表板的行程卡片上加入小徽章（狀態、計數）',
   'admin.plugins.perm.events:subscribe': '回應核心活動事件（僅事件名稱與行程，絕不包含內容）',
   'admin.plugins.perm.http:outbound': '向其宣告的主機發出對外請求',
   'admin.plugins.perm.db:read:collab': '讀取操作使用者可存取之行程的筆記、投票及聊天訊息（需要 Collab 附加元件）',

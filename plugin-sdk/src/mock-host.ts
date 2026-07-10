@@ -1,4 +1,4 @@
-import type { PluginContext, Trip, Place, Day, Reservation, PackingItem, TripFile, BudgetItem, User } from './index.js';
+import type { PluginContext, PluginDefinition, PluginRequest, PluginResponse, Trip, Place, Day, Reservation, PackingItem, TripFile, BudgetItem, User } from './index.js';
 
 /**
  * A mock PluginContext for unit-testing a plugin without a running TREK
@@ -60,6 +60,32 @@ export interface MockHostOptions {
   oauthAccessToken?: string | null;
 }
 
+/** Drives a plugin's OWN entry points against the mock ctx — the missing half of a
+ * unit test. After you've asserted what the plugin READ (via the recorders below),
+ * fire a lifecycle handler and assert what it DID. Each method injects the same mock
+ * `ctx`, so grants/fixtures configured on the host apply uniformly. */
+export interface PluginDriver {
+  /** Run onLoad / onUnload. */
+  load(): Promise<void>;
+  unload(): Promise<void>;
+  /** Call a route by index, or by { method, path }. Missing request fields default
+   * (empty query/headers, null body, the host's acting user). Returns its response. */
+  route(match: number | { method: string; path: string }, req?: Partial<PluginRequest>): Promise<PluginResponse>;
+  /** Fire a declared background job by id (userless — like the real host). */
+  job(id: string): Promise<void>;
+  /** Fire the `scheduled` handler as if a ctx.scheduler timer named `name` came due. */
+  scheduled(name: string, payload?: unknown): Promise<void>;
+  /** Deliver a core event to every matching `events` subscription. */
+  event(name: string, payload?: { tripId?: number; entity?: string; entityId?: number; snapshot?: Record<string, unknown> }): Promise<void>;
+  /** Deliver another plugin's event to every matching `subscriptions` entry. */
+  pluginEvent(plugin: string, event: string, payload: unknown): Promise<void>;
+  /** Fire the GDPR handlers (userless). */
+  deleteUserData(userId: number): Promise<void>;
+  exportUserData(userId: number): Promise<unknown>;
+  /** Invoke a provider hook, e.g. hook('tripCardProvider', 'getCards', [1, 2]). */
+  hook<T = unknown>(name: string, fn: string, ...args: unknown[]): Promise<T>;
+}
+
 export interface MockHost {
   ctx: PluginContext;
   /** Everything the plugin did, for assertions. */
@@ -70,6 +96,11 @@ export interface MockHost {
   emitted: { name: string; payload: unknown }[];
   /** Notifications the plugin sent via ctx.notify.send, for assertions. */
   notifications: { title: string; body: string; link?: string; scope: 'user' | 'trip'; targetId: number }[];
+  /** Timers the plugin armed via ctx.scheduler (name → schedule), for assertions. */
+  scheduled: Map<string, { dueAt: number; everyMs?: number; payload?: unknown }>;
+  /** Drive the plugin's own handlers against this mock ctx (routes, jobs, scheduled,
+   * events, GDPR hooks, provider hooks). */
+  run(def: PluginDefinition): PluginDriver;
 }
 
 class PermissionDenied extends Error {}
@@ -957,5 +988,56 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
     },
   };
 
-  return { ctx, calls, logs, broadcasts, emitted, notifications };
+  const run = (def: PluginDefinition): PluginDriver => ({
+    load: async () => { await def.onLoad?.(ctx); },
+    unload: async () => { await def.onUnload?.(ctx); },
+    route: async (match, req) => {
+      const routes = def.routes ?? [];
+      const r = typeof match === 'number' ? routes[match] : routes.find((x) => x.method === match.method && x.path === match.path);
+      if (!r) throw new Error(`no route ${typeof match === 'number' ? `#${match}` : `${match.method} ${match.path}`}`);
+      const full: PluginRequest = {
+        method: r.method, path: r.path, query: {}, body: null, headers: {},
+        user: opts.actingUserId != null ? { id: opts.actingUserId, username: 'mock', isAdmin: false } : null,
+        ...(req as object),
+      };
+      return r.handler(full, ctx);
+    },
+    job: async (id) => {
+      const j = (def.jobs ?? []).find((x) => x.id === id);
+      if (!j) throw new Error(`no job "${id}"`);
+      await j.handler(ctx);
+    },
+    scheduled: async (name, payload) => {
+      if (typeof def.scheduled !== 'function') throw new Error('plugin has no scheduled handler');
+      await def.scheduled({ name, payload }, ctx);
+    },
+    event: async (name, payload) => {
+      for (const s of def.events ?? []) {
+        if (s.on === name || s.on === '*') {
+          await s.handler({ event: name, tripId: payload?.tripId ?? 0, entity: payload?.entity, entityId: payload?.entityId, snapshot: payload?.snapshot }, ctx);
+        }
+      }
+    },
+    pluginEvent: async (plugin, event, payload) => {
+      for (const s of def.subscriptions ?? []) {
+        if (s.plugin === plugin && s.event === event) await s.handler(payload, ctx);
+      }
+    },
+    deleteUserData: async (userId) => {
+      if (typeof def.deleteUserData !== 'function') throw new Error('plugin has no deleteUserData handler');
+      await def.deleteUserData({ userId }, ctx);
+    },
+    exportUserData: async (userId) => {
+      if (typeof def.exportUserData !== 'function') throw new Error('plugin has no exportUserData handler');
+      return def.exportUserData({ userId }, ctx);
+    },
+    hook: async (name, fn, ...args) => {
+      const hooks = def.hooks as Record<string, Record<string, (...a: unknown[]) => unknown> | undefined> | undefined;
+      const impl = hooks?.[name];
+      if (!impl || typeof impl[fn] !== 'function') throw new Error(`no hook ${name}.${fn}`);
+      return impl[fn](...args, ctx) as never;
+    },
+  });
+
+  return { ctx, calls, logs, broadcasts, emitted, notifications, scheduled: scheduledTasks, run };
 }

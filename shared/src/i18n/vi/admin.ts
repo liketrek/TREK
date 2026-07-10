@@ -347,6 +347,7 @@ const admin: TranslationStrings = {
     'Làm nổi bật các quốc gia trên bản đồ thế giới Atlas (vd. danh sách mong muốn hoặc cảnh báo du lịch)',
   'admin.plugins.perm.hook:journal-entry-provider': 'Thêm các dòng bổ sung (liên kết, thống kê) vào các mục nhật ký',
   'admin.plugins.perm.hook:user-data': 'Xóa hoặc xuất dữ liệu mà nó lưu về một người dùng (GDPR: xóa tài khoản và yêu cầu dữ liệu)',
+  'admin.plugins.perm.hook:trip-card-provider': 'Thêm huy hiệu nhỏ (trạng thái, số đếm) vào thẻ chuyến đi trên bảng điều khiển',
   'admin.plugins.perm.events:subscribe':
     'Phản hồi các sự kiện hoạt động cốt lõi (chỉ tên sự kiện + chuyến đi, không bao giờ là nội dung)',
   'admin.plugins.perm.http:outbound': 'Gửi yêu cầu ra ngoài đến các máy chủ đã khai báo',

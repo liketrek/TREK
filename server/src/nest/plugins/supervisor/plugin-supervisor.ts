@@ -103,6 +103,7 @@ const HOOK_PERMISSION: Readonly<Record<string, string>> = {
   pdfSectionProvider: 'hook:pdf-section-provider',
   atlasLayerProvider: 'hook:atlas-layer-provider',
   journalEntryProvider: 'hook:journal-entry-provider',
+  tripCardProvider: 'hook:trip-card-provider',
 };
 
 export class PluginSupervisor {

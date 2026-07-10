@@ -456,6 +456,22 @@
 .trek-dash .trip-meta div { display: flex; flex-direction: column; gap: 3px; text-align: center; }
 .trek-dash .trip-meta .n { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
 .trek-dash .trip-meta .k { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); font-weight: 500; }
+/* Plugin-contributed badges (tripCardProvider hook) — small text chips under the meta row. */
+.trek-dash .trip-plugin-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.trek-dash .trip-plugin-badge {
+  display: inline-flex; align-items: center; gap: 5px; max-width: 100%;
+  padding: 3px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 500; line-height: 1.4;
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2); text-decoration: none;
+}
+.trek-dash a.trip-plugin-badge:hover { border-color: var(--ink-3); }
+.trek-dash .trip-plugin-badge .badge-label { color: var(--ink); font-weight: 600; }
+.trek-dash .trip-plugin-badge .badge-value { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trek-dash .trip-plugin-badge.tone-success { border-color: color-mix(in oklch, var(--success) 40%, var(--line)); }
+.trek-dash .trip-plugin-badge.tone-success .badge-label { color: var(--success); }
+.trek-dash .trip-plugin-badge.tone-warn { border-color: color-mix(in oklch, var(--warn) 45%, var(--line)); }
+.trek-dash .trip-plugin-badge.tone-warn .badge-label { color: var(--warn); }
+.trek-dash .trip-plugin-badge.tone-danger { border-color: color-mix(in oklch, oklch(0.6 0.2 25) 45%, var(--line)); }
+.trek-dash .trip-plugin-badge.tone-danger .badge-label { color: oklch(0.6 0.2 25); }
 .trek-dash .add-trip-card {
   border-radius: var(--r-xl); border: 1.5px dashed var(--line-2);
   background: var(--glass-bg); display: grid; place-items: center;

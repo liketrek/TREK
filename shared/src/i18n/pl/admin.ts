@@ -286,6 +286,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:journal-entry-provider':
     'Dodawanie dodatkowych wierszy (linki, statystyki) do wpisów dziennika',
   'admin.plugins.perm.hook:user-data': 'Usuwanie lub eksport przechowywanych danych o użytkowniku (RODO: usunięcie konta i wnioski o dane)',
+  'admin.plugins.perm.hook:trip-card-provider': 'Dodawanie małych plakietek (status, liczniki) do kart podróży na pulpicie',
   'admin.plugins.perm.events:subscribe':
     'Reagowanie na podstawowe zdarzenia aktywności (tylko nazwa zdarzenia i podróż, nigdy treść)',
   'admin.plugins.perm.http:outbound': 'Wykonywanie wychodzących zapytań do zadeklarowanych hostów',

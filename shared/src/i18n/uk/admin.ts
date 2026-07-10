@@ -289,6 +289,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:journal-entry-provider':
     'Додавати додаткові рядки (посилання, статистику) до записів щоденника',
   'admin.plugins.perm.hook:user-data': 'Видалення або експорт збережених даних про користувача (GDPR: видалення акаунта та запити даних)',
+  'admin.plugins.perm.hook:trip-card-provider': 'Додавати невеликі значки (статус, лічильники) на картки подорожей на панелі',
   'admin.plugins.perm.events:subscribe':
     'Реагувати на основні події активності (лише назва події + подорож, ніколи вміст)',
   'admin.plugins.perm.http:outbound': 'Виконувати вихідні запити до заявлених хостів',

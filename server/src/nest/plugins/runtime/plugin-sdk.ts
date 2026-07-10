@@ -444,6 +444,17 @@ export interface JournalEntryProvider {
   getRows(entryId: number, ctx: PluginContext): Promise<JournalEntryRow[]>;
 }
 
+/** One badge the host renders on a dashboard trip card (declarative primitives only). */
+export interface TripCardContribution {
+  tripId: number; id: string; label: string; value?: string; icon?: string; tone?: ContributionTone; url?: string;
+}
+export interface TripCardProvider {
+  /** Return badges for the dashboard trip cards on screen. `tripIds` are those cards
+   * (each access-checked for the acting user). Runs with the current user bound, on a
+   * short timeout; the host caps the badge count and skips a failing call. */
+  getCards(tripIds: number[], ctx: PluginContext): Promise<TripCardContribution[]>;
+}
+
 /** A core-event subscription (#1429 eco). Handlers run with NO user (like a job).
  * Needs 'events:subscribe'. */
 export interface PluginEventSubscription {
@@ -497,6 +508,7 @@ export interface PluginDefinition {
     pdfSectionProvider?: PdfSectionProvider;
     atlasLayerProvider?: AtlasLayerProvider;
     journalEntryProvider?: JournalEntryProvider;
+    tripCardProvider?: TripCardProvider;
   };
   /** Functions exposed to dependents (names must match manifest capabilities.provides). */
   exports?: Record<string, PluginExport>;

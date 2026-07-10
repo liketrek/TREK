@@ -290,6 +290,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:journal-entry-provider':
     'Добавлять дополнительные строки (ссылки, статистику) к записям дневника',
   'admin.plugins.perm.hook:user-data': 'Удаление или экспорт хранимых данных о пользователе (GDPR: удаление аккаунта и запросы данных)',
+  'admin.plugins.perm.hook:trip-card-provider': 'Добавлять небольшие значки (статус, счётчики) на карточки поездок на панели',
   'admin.plugins.perm.events:subscribe':
     'Реагировать на основные события активности (только название события и поездка, никогда содержимое)',
   'admin.plugins.perm.http:outbound': 'Выполнять исходящие запросы к заявленным хостам',

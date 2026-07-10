@@ -230,6 +230,44 @@ describe('createMockHost', () => {
     });
     await expect(addonOff.ctx.costs.getByTrip(1)).rejects.toThrow(/RESOURCE_FORBIDDEN/);
   });
+
+  it('host.run drives the plugin\'s own handlers (route, job, scheduled, event, GDPR, hook)', async () => {
+    const seen: string[] = [];
+    const def = definePlugin({
+      routes: [{ method: 'GET', path: '/ping', async handler(req) { return { status: 200, body: { user: req.user?.id } }; } }],
+      jobs: [{ id: 'refresh', schedule: '* * * * *', async handler() { seen.push('job'); } }],
+      async scheduled({ name, payload }) { seen.push(`sched:${name}:${JSON.stringify(payload)}`); },
+      events: [{ on: 'place:created', handler(p) { seen.push(`evt:${p.event}:${p.entityId}`); } }],
+      async deleteUserData({ userId }) { seen.push(`del:${userId}`); },
+      async exportUserData({ userId }) { return { userId, rows: 2 }; },
+      hooks: { tripCardProvider: { async getCards(tripIds) { return tripIds.map((id) => ({ tripId: id, id: 'b', label: 'X' })); } } },
+    });
+    const host = createMockHost({ grants: ['jobs:run', 'hook:trip-card-provider'], actingUserId: 7 });
+    const d = host.run(def);
+
+    const res = await d.route({ method: 'GET', path: '/ping' });
+    expect(res).toEqual({ status: 200, body: { user: 7 } });
+    await d.job('refresh');
+    await d.scheduled('daily', { x: 1 });
+    await d.event('place:created', { tripId: 1, entity: 'place', entityId: 9 });
+    await d.deleteUserData(42);
+    expect(await d.exportUserData(42)).toEqual({ userId: 42, rows: 2 });
+    expect(await d.hook('tripCardProvider', 'getCards', [1, 2])).toEqual([
+      { tripId: 1, id: 'b', label: 'X' }, { tripId: 2, id: 'b', label: 'X' },
+    ]);
+    expect(seen).toEqual(['job', 'sched:daily:{"x":1}', 'evt:place:created:9', 'del:42']);
+
+    // missing handlers / unknown ids throw a clear error, not a silent no-op
+    await expect(d.job('nope')).rejects.toThrow(/no job/);
+    await expect(host.run(definePlugin({})).scheduled('x')).rejects.toThrow(/no scheduled handler/);
+  });
+
+  it('exposes the scheduler timers a plugin armed via ctx.scheduler', async () => {
+    const def = definePlugin({ async onLoad(ctx) { await ctx.scheduler.every(3_600_000, 'sync', { n: 1 }); } });
+    const host = createMockHost({ grants: ['jobs:run'] });
+    await host.run(def).load();
+    expect(host.scheduled.get('sync')).toMatchObject({ everyMs: 3_600_000, payload: { n: 1 } });
+  });
 });
 
 describe('scaffold + validate CLIs', () => {

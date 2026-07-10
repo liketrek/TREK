@@ -22,6 +22,8 @@ import { IcsSubscribeModal } from '../components/Planner/IcsSubscribeModal'
 import CollectionsWidget from '../components/Dashboard/CollectionsWidget'
 import PluginWidgets from '../components/Plugins/PluginWidgets'
 import PluginFrame from '../components/Plugins/PluginFrame'
+import { TripCardBadges, useTripCardBadges } from '../components/Plugins/TripCardBadges'
+import type { TripCardBadge } from '../api/client'
 import { usePluginStore } from '../store/pluginStore'
 import { formatTime, splitReservationDateTime } from '../utils/formatters'
 import { CURRENCIES } from '../components/Budget/BudgetPanel.constants'
@@ -134,6 +136,11 @@ export default function DashboardPage(): React.ReactElement {
   const widgetPlugins = usePluginStore(s => s.plugins).filter(p => p.type === 'widget' && p.slot !== 'hero' && p.slot !== 'place-detail' && p.slot !== 'day-detail')
   const sidebarVisible = (isMobile || dashCfg.desktop.sidebar) && (showCurrency || showCollections || showTimezones || showUpcoming || widgetPlugins.length > 0)
 
+  // Plugin-contributed badges on the trip cards (tripCardProvider hook). One fetch for
+  // all visible cards; only runs when at least one plugin is active. Fail-safe.
+  const anyPluginActive = usePluginStore(s => s.plugins).length > 0
+  const badgesFor = useTripCardBadges(gridTrips.map(t => t.id), anyPluginActive)
+
   return (
     <>
       {/* Navbar lives outside .trek-dash so it keeps the app-wide font + button
@@ -215,6 +222,7 @@ export default function DashboardPage(): React.ReactElement {
                     key={trip.id}
                     trip={trip}
                     locale={locale}
+                    badges={badgesFor(trip.id)}
                     onOpen={() => navigate(`/trips/${trip.id}`)}
                     onEdit={() => { setEditingTrip(trip); setShowForm(true) }}
                     onCopy={() => setCopyTrip(trip)}
@@ -531,8 +539,8 @@ function AtlasStats({ stats }: { stats: TravelStats | null }): React.ReactElemen
 }
 
 // ── Trip card ────────────────────────────────────────────────────────────────
-function TripCard({ trip, locale, onOpen, onEdit, onCopy, onArchive, onDelete }: {
-  trip: DashboardTrip; locale: string; onOpen: () => void
+function TripCard({ trip, locale, badges, onOpen, onEdit, onCopy, onArchive, onDelete }: {
+  trip: DashboardTrip; locale: string; badges?: TripCardBadge[]; onOpen: () => void
   onEdit: () => void; onCopy: () => void; onArchive: () => void; onDelete: () => void
 }): React.ReactElement {
   const { t } = useTranslation()
@@ -583,6 +591,7 @@ function TripCard({ trip, locale, onOpen, onEdit, onCopy, onArchive, onDelete }:
           <div><span className="n mono">{trip.place_count ?? 0}</span><span className="k">{t('dashboard.places')}</span></div>
           <div><span className="n mono">{trip.shared_count ?? 0}</span><span className="k">{trip.shared_count === 1 ? t('dashboard.card.buddyOne') : t('dashboard.members')}</span></div>
         </div>
+        <TripCardBadges items={badges ?? []} />
       </div>
     </article>
   )
