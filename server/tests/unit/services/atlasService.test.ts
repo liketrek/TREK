@@ -166,6 +166,22 @@ describe('getStats', () => {
     expect(codes).toContain('AU');
     expect(codes).not.toContain('JP');
   });
+
+  it('ATLAS-UNIT-024 (#1490): a flight endpoint in southern Spain counts as ES, not DZ', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Malaga Trip' });
+    const reservation = createReservation(testDb, trip.id, { type: 'flight' });
+    // Brussels -> Malaga airport (36.6749, -4.4991). The destination sits inside both
+    // the ES and DZ bounding boxes; without the ES entry it geocoded to Algeria.
+    insertReservationEndpoint(testDb, reservation.id, 'from', 0, 50.9014, 4.4844);
+    insertReservationEndpoint(testDb, reservation.id, 'to', 1, 36.6749, -4.4991);
+
+    const stats = await getStats(user.id);
+
+    const codes = stats.countries.map((c: { code: string }) => c.code);
+    expect(codes).toContain('ES');
+    expect(codes).not.toContain('DZ');
+  });
 });
 
 // ── getCached / setCache ────────────────────────────────────────────────────
@@ -233,6 +249,20 @@ describe('getCountryFromCoords', () => {
     // HK is not a separate admin0 polygon (it falls inside CN there), so the smallest
     // bounding box still wins for it.
     expect(getCountryFromCoords(22.30, 114.17)).toBe('HK');
+  });
+
+  it('ATLAS-SVC-005e: #1490 a point in southern Spain resolves to ES, not the overlapping Algeria box', () => {
+    // The ES entry was dropped when the lookup tables were expanded, leaving DZ as the
+    // only box covering Malaga (36.72, -4.42) — so flights into southern Spain marked
+    // Algeria as visited, and it could not be removed because it was re-derived on
+    // every Atlas load.
+    expect(getCountryFromCoords(36.7213, -4.4215)).toBe('ES');
+  });
+
+  it('ATLAS-SVC-005f: #1490 Barcelona resolves to ES, not the overlapping FR box', () => {
+    // Barcelona sits inside the FR box too (lat > 41.3); with no ES entry it was
+    // assigned to France outright.
+    expect(getCountryFromCoords(41.3874, 2.1686)).toBe('ES');
   });
 });
 
