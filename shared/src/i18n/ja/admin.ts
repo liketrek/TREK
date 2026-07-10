@@ -286,6 +286,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.oauth:client': 'ホスト仲介の OAuth であなたに代わってサードパーティサービスに接続（トークンはホストが保持し、プラグインは決して見ない）',
   'admin.plugins.perm.db:read:files': '操作中のユーザーがアクセスできる旅行のファイルの読み取り',
   'admin.plugins.perm.db:write:reservations': '操作中のユーザーが編集できる旅行の予約の作成・編集・削除',
+  'admin.plugins.perm.db:write:accommodations': '操作中のユーザーが編集できる旅行の宿泊の作成・編集・削除',
   'admin.plugins.perm.db:read:journal': '操作中のユーザーの旅行日記の読み取り（Journey アドオンが必要）',
   'admin.plugins.perm.db:read:atlas': '操作中のユーザーが訪問した国と地域の読み取り（Atlas アドオンが必要）',
   'admin.plugins.perm.db:read:vacay': '操作中のユーザーの休暇プランの読み取り（Vacay アドオンが必要）',

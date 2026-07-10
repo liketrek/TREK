@@ -256,6 +256,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.oauth:client': "Se connecter à un service tiers en votre nom via OAuth géré par l'hôte (l'hôte détient les jetons, le module ne les voit jamais)",
   'admin.plugins.perm.db:read:files': "Lire les fichiers des voyages accessibles à l'utilisateur actif",
   'admin.plugins.perm.db:write:reservations': "Créer, modifier et supprimer des réservations sur les voyages que l'utilisateur actif peut modifier",
+  'admin.plugins.perm.db:write:accommodations': "Créer, modifier et supprimer des hébergements sur les voyages que l'utilisateur actif peut modifier",
   'admin.plugins.perm.db:read:journal': "Lire les journaux de voyage de l'utilisateur actif (nécessite le module Journey)",
   'admin.plugins.perm.db:read:atlas': "Lire les pays et régions visités par l'utilisateur actif (nécessite le module Atlas)",
   'admin.plugins.perm.db:read:vacay': "Lire le plan de vacances de l'utilisateur actif (nécessite le module Vacay)",

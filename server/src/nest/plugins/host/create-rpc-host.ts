@@ -21,7 +21,7 @@ import { randomUUID } from 'node:crypto';
 import { checkPermission } from '../../../services/permissions';
 import { listTrips, updateTrip, NotFoundError, ValidationError } from '../../../services/tripService';
 import { createPlace, updatePlace, deletePlace } from '../../../services/placeService';
-import { createDay, getDay, updateDay, deleteDay } from '../../../services/dayService';
+import { createDay, getDay, updateDay, deleteDay, listDays, listAccommodations, validateAccommodationRefs, createAccommodation as createAccommodationSvc, getAccommodation, updateAccommodation as updateAccommodationSvc, deleteAccommodation as deleteAccommodationSvc } from '../../../services/dayService';
 import { createAssignment, deleteAssignment, dayExists, placeExists, getAssignmentForTrip } from '../../../services/assignmentService';
 import { isAddonEnabled } from '../../../services/adminService';
 import { ADDON_IDS } from '../../../addons';
@@ -464,6 +464,49 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
     listReservationsForUser: (userId) => {
       const trips = listTrips(userId, null) as Array<{ id: number }>;
       return trips.flatMap((t) => reservationsSvc.list(String(t.id)));
+    },
+    // --- Trip-scoped hydrated reads (membership already checked by tripRead). Same
+    // services as the REST GETs, so plugins see the exact planner shapes. ---
+    listTripDays: (tripId) => (listDays(tripId) as { days: unknown[] }).days,
+    listTripReservations: (tripId) => reservationsSvc.list(String(tripId)),
+    listTripAccommodations: (tripId) => listAccommodations(tripId) as unknown[],
+    // --- Accommodations (lodging blocks, day_edit). Delegates to dayService so the
+    // partner hotel reservation, the metadata sync and the delete cascade behave
+    // exactly like the accommodations REST controller, cascade broadcasts included. ---
+    createAccommodation: (tripId, input) => {
+      const i = input as { place_id: number | string; start_day_id: number | string; end_day_id: number | string; check_in?: string | null; check_in_end?: string | null; check_out?: string | null; confirmation?: string | null; notes?: string | null };
+      const placeId = Math.trunc(Number(i.place_id));
+      const startDayId = Math.trunc(Number(i.start_day_id));
+      const endDayId = Math.trunc(Number(i.end_day_id));
+      if (!placeId || !startDayId || !endDayId) throw new BadParams('place_id, start_day_id, and end_day_id are required');
+      const errors = validateAccommodationRefs(tripId, placeId, startDayId, endDayId);
+      if (errors.length > 0) throw new ForbiddenResource(errors[0].message);
+      const accommodation = createAccommodationSvc(tripId, {
+        place_id: placeId, start_day_id: startDayId, end_day_id: endDayId,
+        check_in: i.check_in ?? undefined, check_in_end: i.check_in_end ?? undefined,
+        check_out: i.check_out ?? undefined, confirmation: i.confirmation ?? undefined, notes: i.notes ?? undefined,
+      });
+      broadcast(tripId, 'accommodation:created', { accommodation });
+      broadcast(tripId, 'reservation:created', {});
+      return accommodation;
+    },
+    updateAccommodation: (tripId, accommodationId, input) => {
+      const existing = getAccommodation(accommodationId, tripId);
+      if (!existing) throw new ForbiddenResource(`no accommodation ${accommodationId} on trip ${tripId}`);
+      const i = input as { place_id?: number; start_day_id?: number; end_day_id?: number; check_in?: string; check_in_end?: string; check_out?: string; confirmation?: string; notes?: string };
+      const errors = validateAccommodationRefs(tripId, i.place_id, i.start_day_id, i.end_day_id);
+      if (errors.length > 0) throw new ForbiddenResource(errors[0].message);
+      const accommodation = updateAccommodationSvc(accommodationId, existing, i);
+      broadcast(tripId, 'accommodation:updated', { accommodation });
+      return accommodation;
+    },
+    deleteAccommodation: (tripId, accommodationId) => {
+      if (!getAccommodation(accommodationId, tripId)) throw new ForbiddenResource(`no accommodation ${accommodationId} on trip ${tripId}`);
+      const { linkedReservationId, deletedBudgetItemId } = deleteAccommodationSvc(accommodationId);
+      if (linkedReservationId) broadcast(tripId, 'reservation:deleted', { reservationId: linkedReservationId });
+      if (deletedBudgetItemId) broadcast(tripId, 'budget:deleted', { itemId: deletedBudgetItemId });
+      broadcast(tripId, 'accommodation:deleted', { accommodationId });
+      return { deleted: true };
     },
     // --- User-scoped addon reads (the acting user's own data across all trips). Each
     // reuses the same service the addon's REST/MCP path uses; the addon-enabled gate

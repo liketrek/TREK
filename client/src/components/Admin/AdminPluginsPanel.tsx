@@ -108,7 +108,7 @@ const PERM_KEYS = [
   'db:own', 'db:read:trips', 'db:read:users', 'db:read:costs', 'db:read:packing', 'db:read:files',
   'db:read:journal', 'db:read:atlas', 'db:read:vacay', 'db:read:daynotes', 'db:read:collections',
   'db:read:categories', 'db:read:tags', 'db:read:todos', 'weather:read', 'db:write:costs',
-  'db:write:places', 'db:write:days', 'db:write:itinerary', 'db:write:trips', 'db:write:reservations', 'db:write:daynotes', 'db:write:packing',
+  'db:write:places', 'db:write:days', 'db:write:itinerary', 'db:write:trips', 'db:write:reservations', 'db:write:accommodations', 'db:write:daynotes', 'db:write:packing',
   'db:write:tags', 'db:write:todos', 'db:write:atlas', 'db:write:vacay', 'db:write:journal', 'db:write:collections',
   'db:write:files', 'db:write:collab', 'db:write:members',
   'db:meta',

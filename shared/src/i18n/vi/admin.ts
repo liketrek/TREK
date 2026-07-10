@@ -312,6 +312,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.oauth:client': 'Kết nối với dịch vụ bên thứ ba thay mặt bạn qua OAuth do máy chủ trung gian (máy chủ giữ token, plugin không bao giờ thấy)',
   'admin.plugins.perm.db:read:files': 'Đọc tệp của các chuyến đi mà người dùng hiện tại có quyền truy cập',
   'admin.plugins.perm.db:write:reservations': 'Tạo, chỉnh sửa và xóa đặt chỗ trên các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa',
+  'admin.plugins.perm.db:write:accommodations': 'Tạo, chỉnh sửa và xóa chỗ ở trên các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa',
   'admin.plugins.perm.db:read:journal': 'Đọc nhật ký du lịch của người dùng hiện tại (cần add-on Journey)',
   'admin.plugins.perm.db:read:atlas': 'Đọc các quốc gia và khu vực đã đến của người dùng hiện tại (cần add-on Atlas)',
   'admin.plugins.perm.db:read:vacay': 'Đọc kế hoạch kỳ nghỉ của người dùng hiện tại (cần add-on Vacay)',

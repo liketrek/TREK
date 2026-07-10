@@ -35,6 +35,27 @@ export const reservationEndpointSchema = z.object({
 export type ReservationEndpoint = z.infer<typeof reservationEndpointSchema>;
 
 /**
+ * Endpoints as accepted on a WRITE (create/update body `endpoints` array). The
+ * service silently drops rows without coords and defaults the rest, so the write
+ * contract pins only what it can't default: role, a name and real coordinates.
+ * Everything else is optional and may be null.
+ */
+export const reservationEndpointsInputSchema = z.array(
+  z.object({
+    role: z.enum(['from', 'to', 'stop']),
+    name: z.string().min(1),
+    lat: z.number(),
+    lng: z.number(),
+    sequence: z.number().optional(),
+    code: z.string().nullable().optional(),
+    timezone: z.string().nullable().optional(),
+    local_time: z.string().nullable().optional(),
+    local_date: z.string().nullable().optional(),
+  }),
+);
+export type ReservationEndpointsInput = z.infer<typeof reservationEndpointsInputSchema>;
+
+/**
  * Reservation entity as returned by the reservation list endpoint
  * (server/src/services/reservationService.ts -> listReservations). Columns of
  * the `reservations` table plus the joined day_number / place_name / linked

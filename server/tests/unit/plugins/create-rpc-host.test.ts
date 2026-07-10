@@ -81,6 +81,19 @@ vi.mock('../../../src/services/dayService', () => ({
   getDay: vi.fn((id: number) => (id === 99 ? undefined : { id, title: null })),
   updateDay: vi.fn((id: number) => ({ id, assignments: [] })),
   deleteDay: vi.fn(),
+  listDays: vi.fn((tid: number) => ({ days: [{ id: 3, trip_id: Number(tid), day_number: 1, assignments: [], notes_items: [] }] })),
+  listAccommodations: vi.fn((tid: number) => [{ id: 11, trip_id: Number(tid), place_name: 'Ryokan' }]),
+  // place 999 / day 88 don't belong to the trip
+  validateAccommodationRefs: vi.fn((_tid: number, placeId?: number, startDayId?: number, endDayId?: number) => {
+    const errors: { field: string; message: string }[] = [];
+    if (placeId === 999) errors.push({ field: 'place_id', message: 'Place not found' });
+    if (startDayId === 88 || endDayId === 88) errors.push({ field: 'start_day_id', message: 'Start day not found' });
+    return errors;
+  }),
+  createAccommodation: vi.fn((tid: number, data: Record<string, unknown>) => ({ id: 60, trip_id: Number(tid), ...data })),
+  getAccommodation: vi.fn((id: number) => (Number(id) === 404 ? undefined : { id: Number(id), place_id: 7, start_day_id: 3, end_day_id: 4 })),
+  updateAccommodation: vi.fn((id: number, _existing: unknown, fields: Record<string, unknown>) => ({ id: Number(id), ...fields })),
+  deleteAccommodation: vi.fn((id: number) => (Number(id) === 61 ? { linkedReservationId: 40, deletedBudgetItemId: 9 } : { linkedReservationId: null, deletedBudgetItemId: null })),
 }));
 vi.mock('../../../src/services/assignmentService', () => ({
   createAssignment: vi.fn((dayId: number, placeId: number, notes: string | null) => ({ id: 30, day_id: dayId, place_id: placeId, notes })),
@@ -423,6 +436,46 @@ describe('create-rpc-host — reservations, day notes, cross-trip + addon reads 
     const r = await call(h, 'reservations.listMine', {});
     expect(r.ok).toBe(true);
     expect(r.result).toHaveLength(1);
+  });
+
+  it('trip-scoped reads are wired to the hydrated services (days incl. assignments, reservations incl. endpoints)', async () => {
+    const h = host('db:read:trips');
+    const days = await call(h, 'trips.getDays', { tripId: 1 });
+    expect(days.ok).toBe(true);
+    // listDays returns { days: [...] }; the wiring unwraps to the bare array like getPlaces
+    expect(days.result).toEqual([{ id: 3, trip_id: 1, day_number: 1, assignments: [], notes_items: [] }]);
+    const res = await call(h, 'trips.getReservations', { tripId: 1 });
+    expect(res.ok).toBe(true);
+    expect(res.result).toEqual([{ id: 1, trip_id: 1, title: 'Flight' }]);
+    const acc = await call(h, 'trips.getAccommodations', { tripId: 1 });
+    expect(acc.ok).toBe(true);
+    expect(acc.result).toEqual([{ id: 11, trip_id: 1, place_name: 'Ryokan' }]);
+  });
+
+  it('accommodations create validates refs, creates via dayService and emits the cascade broadcasts', async () => {
+    const h = host('db:write:accommodations');
+    const good = await call(h, 'accommodations.create', { tripId: 1, input: { place_id: 7, start_day_id: 3, end_day_id: 4, check_in: '15:00' } });
+    expect(good.ok).toBe(true);
+    expect(broadcast).toHaveBeenCalledWith(1, 'accommodation:created', expect.anything());
+    // the auto-created partner hotel reservation announces itself, like the REST path
+    expect(broadcast).toHaveBeenCalledWith(1, 'reservation:created', {});
+    // a place/day of another trip is refused before anything is written
+    expect((await call(h, 'accommodations.create', { tripId: 1, input: { place_id: 999, start_day_id: 3, end_day_id: 4 } })).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect((await call(h, 'accommodations.create', { tripId: 1, input: { place_id: 7, start_day_id: 88, end_day_id: 4 } })).error.code).toBe('RESOURCE_FORBIDDEN');
+  });
+
+  it('accommodations update/delete scope the row to the trip; delete cascades reservation + budget broadcasts', async () => {
+    const h = host('db:write:accommodations');
+    expect((await call(h, 'accommodations.update', { tripId: 1, accommodationId: 60, input: { notes: 'late checkout' } })).ok).toBe(true);
+    expect(broadcast).toHaveBeenCalledWith(1, 'accommodation:updated', expect.anything());
+    expect((await call(h, 'accommodations.update', { tripId: 1, accommodationId: 404, input: {} })).error.code).toBe('RESOURCE_FORBIDDEN');
+    const del = await call(h, 'accommodations.delete', { tripId: 1, accommodationId: 61 });
+    expect(del.ok).toBe(true);
+    expect(del.result).toMatchObject({ deleted: true });
+    expect(broadcast).toHaveBeenCalledWith(1, 'reservation:deleted', { reservationId: 40 });
+    expect(broadcast).toHaveBeenCalledWith(1, 'budget:deleted', { itemId: 9 });
+    expect(broadcast).toHaveBeenCalledWith(1, 'accommodation:deleted', { accommodationId: 61 });
+    expect((await call(h, 'accommodations.delete', { tripId: 1, accommodationId: 404 })).error.code).toBe('RESOURCE_FORBIDDEN');
   });
 
   it('addon reads delegate, and a disabled addon is refused', async () => {

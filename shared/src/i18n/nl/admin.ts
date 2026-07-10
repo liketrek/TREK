@@ -255,6 +255,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.oauth:client': 'Namens jou verbinden met een externe dienst via host-bemiddelde OAuth (de host bewaart de tokens, de plug-in ziet ze nooit)',
   'admin.plugins.perm.db:read:files': 'Bestanden lezen van reizen waartoe de actieve gebruiker toegang heeft',
   'admin.plugins.perm.db:write:reservations': 'Boekingen (reserveringen) aanmaken, bewerken en verwijderen op reizen die de actieve gebruiker mag bewerken',
+  'admin.plugins.perm.db:write:accommodations': 'Accommodaties (verblijven) aanmaken, bewerken en verwijderen op reizen die de actieve gebruiker mag bewerken',
   'admin.plugins.perm.db:read:journal': 'De reisdagboeken van de actieve gebruiker lezen (vereist de Journey-add-on)',
   'admin.plugins.perm.db:read:atlas': "De door de actieve gebruiker bezochte landen en regio's lezen (vereist de Atlas-add-on)",
   'admin.plugins.perm.db:read:vacay': 'Het vakantieplan van de actieve gebruiker lezen (vereist de Vacay-add-on)',

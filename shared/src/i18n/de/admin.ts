@@ -271,6 +271,7 @@ const admin: TranslationStrings = {
     'Reisedetails (Titel, Daten, Währung …) auf Reisen bearbeiten, die der handelnde Nutzer bearbeiten kann',
   'admin.plugins.perm.db:write:reservations':
     'Buchungen (Reservierungen) auf Reisen anlegen, bearbeiten und löschen, die der handelnde Nutzer bearbeiten kann',
+  'admin.plugins.perm.db:write:accommodations': 'Unterkünfte (Übernachtungsblöcke) auf Reisen anlegen, bearbeiten und löschen, die der handelnde Nutzer bearbeiten darf',
   'admin.plugins.perm.db:write:daynotes':
     'Tagesnotizen auf Reisen anlegen, bearbeiten und löschen, die der handelnde Nutzer bearbeiten kann',
   'admin.plugins.perm.db:meta':

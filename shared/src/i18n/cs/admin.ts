@@ -253,6 +253,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.oauth:client': 'Připojit se k službě třetí strany tvým jménem přes OAuth zprostředkované hostitelem (hostitel drží tokeny, doplněk je nikdy nevidí)',
   'admin.plugins.perm.db:read:files': 'Číst soubory cest, ke kterým má aktuální uživatel přístup',
   'admin.plugins.perm.db:write:reservations': 'Vytvářet, upravovat a mazat rezervace na cestách, které může aktuální uživatel upravovat',
+  'admin.plugins.perm.db:write:accommodations': 'Vytvářet, upravovat a mazat ubytování na cestách, které může aktuální uživatel upravovat',
   'admin.plugins.perm.db:read:journal': 'Číst cestovní deníky aktuálního uživatele (vyžaduje doplněk Journey)',
   'admin.plugins.perm.db:read:atlas': 'Číst navštívené země a regiony aktuálního uživatele (vyžaduje doplněk Atlas)',
   'admin.plugins.perm.db:read:vacay': 'Číst plán dovolené aktuálního uživatele (vyžaduje doplněk Vacay)',

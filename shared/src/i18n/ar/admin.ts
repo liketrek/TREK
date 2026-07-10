@@ -274,6 +274,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.oauth:client': 'الاتصال بخدمة خارجية نيابة عنك عبر OAuth يديره المضيف (يحتفظ المضيف بالرموز، ولا تراها الإضافة أبدًا)',
   'admin.plugins.perm.db:read:files': 'قراءة ملفات الرحلات التي يمكن للمستخدم الحالي الوصول إليها',
   'admin.plugins.perm.db:write:reservations': 'إنشاء الحجوزات وتعديلها وحذفها في الرحلات التي يمكن للمستخدم الحالي تعديلها',
+  'admin.plugins.perm.db:write:accommodations': 'إنشاء أماكن الإقامة وتعديلها وحذفها في الرحلات التي يمكن للمستخدم الحالي تعديلها',
   'admin.plugins.perm.db:read:journal': 'قراءة يوميات السفر الخاصة بالمستخدم الحالي (يتطلب إضافة Journey)',
   'admin.plugins.perm.db:read:atlas': 'قراءة البلدان والمناطق التي زارها المستخدم الحالي (يتطلب إضافة Atlas)',
   'admin.plugins.perm.db:read:vacay': 'قراءة خطة الإجازة الخاصة بالمستخدم الحالي (يتطلب إضافة Vacay)',

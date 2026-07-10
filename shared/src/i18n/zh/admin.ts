@@ -248,6 +248,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.oauth:client': '通过主机代理的 OAuth 代表你连接第三方服务（令牌由主机保管，插件永远看不到）',
   'admin.plugins.perm.db:read:files': '读取当前用户可访问的旅行的文件',
   'admin.plugins.perm.db:write:reservations': '在当前用户可编辑的旅行中创建、编辑和删除预订',
+  'admin.plugins.perm.db:write:accommodations': '在当前用户可编辑的旅行中创建、编辑和删除住宿',
   'admin.plugins.perm.db:read:journal': '读取当前用户的旅行日记（需要 Journey 插件）',
   'admin.plugins.perm.db:read:atlas': '读取当前用户已访问的国家和地区（需要 Atlas 插件）',
   'admin.plugins.perm.db:read:vacay': '读取当前用户的假期计划（需要 Vacay 插件）',

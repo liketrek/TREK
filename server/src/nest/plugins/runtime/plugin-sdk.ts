@@ -33,7 +33,12 @@ export interface PluginContext {
     // no user and its trip reads are refused.
     getById(tripId: number, asUserId?: number): Promise<unknown>;
     getPlaces(tripId: number, asUserId?: number): Promise<unknown[]>;
+    /** Hydrated like the REST list: each row carries `endpoints`, `day_positions` + the day/place joins. */
     getReservations(tripId: number, asUserId?: number): Promise<unknown[]>;
+    /** The trip's days with their `assignments` + `notes_items` (the planner GET's shape). Needs 'db:read:trips'. */
+    getDays(tripId: number): Promise<unknown[]>;
+    /** The trip's lodging blocks (day_accommodations) with joined place fields. Needs 'db:read:trips'. */
+    getAccommodations(tripId: number): Promise<unknown[]>;
     /** Every trip the acting user owns or is a member of (for dashboards/aggregates). Needs 'db:read:trips'. */
     listMine(): Promise<unknown[]>;
     /** Update trip fields (title/dates/currency/reminder_days/...); needs 'db:write:trips' + the acting user's 'trip_edit' permission. */
@@ -50,12 +55,24 @@ export interface PluginContext {
   reservations: {
     /** Every reservation across the acting user's accessible trips. Needs 'db:read:trips'. */
     listMine(): Promise<unknown[]>;
-    /** Create a booking on a trip. Needs 'db:write:reservations' + 'reservation_edit'. */
+    /** Create a booking on a trip. An `endpoints` array (from/to/stop legs for flights,
+     * trains, ferries) is persisted with it. Needs 'db:write:reservations' + 'reservation_edit'. */
     create(tripId: number, input: Record<string, unknown>): Promise<unknown>;
-    /** Update a booking on a trip. Needs 'db:write:reservations' + 'reservation_edit'. */
+    /** Update a booking on a trip. `endpoints` semantics: omitted = keep, [] = delete all,
+     * array = replace (endpoint ids are NOT stable). Needs 'db:write:reservations' + 'reservation_edit'. */
     update(tripId: number, reservationId: number, input: Record<string, unknown>): Promise<unknown>;
     /** Delete a booking from a trip. Needs 'db:write:reservations' + 'reservation_edit'. */
     delete(tripId: number, reservationId: number): Promise<{ deleted: boolean }>;
+  };
+  // Lodging blocks (day_accommodations): a hotel span from a start day to an end day.
+  // Reads ride on 'db:read:trips' (ctx.trips.getAccommodations); writes need
+  // 'db:write:accommodations' + the acting user's 'day_edit' permission (like the
+  // REST path — accommodations live in the day service, not the bookings one).
+  // Creating one auto-creates its partner hotel reservation, exactly like the app.
+  accommodations: {
+    create(tripId: number, input: { place_id: number; start_day_id: number; end_day_id: number; check_in?: string | null; check_in_end?: string | null; check_out?: string | null; confirmation?: string | null; notes?: string | null }): Promise<unknown>;
+    update(tripId: number, accommodationId: number, input: Record<string, unknown>): Promise<unknown>;
+    delete(tripId: number, accommodationId: number): Promise<{ deleted: boolean }>;
   };
   // Read-only views of other trip subsystems (#1429 eco). Membership-checked like
   // `trips`; each needs its own db:read:* scope.
@@ -433,6 +450,8 @@ export function createPluginContext(
       getById: (tripId) => t.rpc('trips.getById', { tripId, _inv: invocationId }),
       getPlaces: (tripId) => t.rpc('trips.getPlaces', { tripId, _inv: invocationId }) as Promise<unknown[]>,
       getReservations: (tripId) => t.rpc('trips.getReservations', { tripId, _inv: invocationId }) as Promise<unknown[]>,
+      getDays: (tripId) => t.rpc('trips.getDays', { tripId, _inv: invocationId }) as Promise<unknown[]>,
+      getAccommodations: (tripId) => t.rpc('trips.getAccommodations', { tripId, _inv: invocationId }) as Promise<unknown[]>,
       listMine: () => t.rpc('trips.listMine', { _inv: invocationId }) as Promise<unknown[]>,
       update: (tripId, input) => t.rpc('trips.update', { tripId, input, _inv: invocationId }),
       members: (tripId) => t.rpc('trips.members', { tripId, _inv: invocationId }) as Promise<unknown[]>,
@@ -443,6 +462,11 @@ export function createPluginContext(
       create: (tripId, input) => t.rpc('reservations.create', { tripId, input, _inv: invocationId }),
       update: (tripId, reservationId, input) => t.rpc('reservations.update', { tripId, reservationId, input, _inv: invocationId }),
       delete: (tripId, reservationId) => t.rpc('reservations.delete', { tripId, reservationId, _inv: invocationId }) as Promise<{ deleted: boolean }>,
+    },
+    accommodations: {
+      create: (tripId, input) => t.rpc('accommodations.create', { tripId, input, _inv: invocationId }),
+      update: (tripId, accommodationId, input) => t.rpc('accommodations.update', { tripId, accommodationId, input, _inv: invocationId }),
+      delete: (tripId, accommodationId) => t.rpc('accommodations.delete', { tripId, accommodationId, _inv: invocationId }) as Promise<{ deleted: boolean }>,
     },
     packing: {
       list: (tripId) => t.rpc('packing.list', { tripId, _inv: invocationId }) as Promise<unknown[]>,

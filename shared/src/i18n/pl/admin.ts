@@ -250,6 +250,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.oauth:client': 'Łączenie się z usługą zewnętrzną w Twoim imieniu przez OAuth pośredniczony przez hosta (host przechowuje tokeny, wtyczka ich nie widzi)',
   'admin.plugins.perm.db:read:files': 'Odczyt plików w podróżach, do których działający użytkownik ma dostęp',
   'admin.plugins.perm.db:write:reservations': 'Tworzenie, edytowanie i usuwanie rezerwacji w podróżach, które działający użytkownik może edytować',
+  'admin.plugins.perm.db:write:accommodations': 'Tworzenie, edytowanie i usuwanie zakwaterowań w podróżach, które działający użytkownik może edytować',
   'admin.plugins.perm.db:read:journal': 'Odczyt dzienników podróży działającego użytkownika (wymaga dodatku Journey)',
   'admin.plugins.perm.db:read:atlas': 'Odczyt krajów i regionów odwiedzonych przez działającego użytkownika (wymaga dodatku Atlas)',
   'admin.plugins.perm.db:read:vacay': 'Odczyt planu urlopu działającego użytkownika (wymaga dodatku Vacay)',

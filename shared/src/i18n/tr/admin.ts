@@ -299,6 +299,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.oauth:client': 'Ana makine aracılı OAuth ile senin adına üçüncü taraf bir hizmete bağlanır (jetonları ana makine tutar, eklenti bunları hiç görmez)',
   'admin.plugins.perm.db:read:files': 'İşlemi yapan kullanıcının erişebildiği seyahatlerin dosyalarını okur',
   'admin.plugins.perm.db:write:reservations': 'İşlemi yapan kullanıcının düzenleyebildiği seyahatlerde rezervasyonlar oluşturur, düzenler ve siler',
+  'admin.plugins.perm.db:write:accommodations': 'İşlemi yapan kullanıcının düzenleyebildiği seyahatlerde konaklamalar oluşturur, düzenler ve siler',
   'admin.plugins.perm.db:read:journal': 'İşlemi yapan kullanıcının seyahat günlüklerini okur (Journey eklentisi gerektirir)',
   'admin.plugins.perm.db:read:atlas': 'İşlemi yapan kullanıcının ziyaret ettiği ülkeleri ve bölgeleri okur (Atlas eklentisi gerektirir)',
   'admin.plugins.perm.db:read:vacay': 'İşlemi yapan kullanıcının tatil planını okur (Vacay eklentisi gerektirir)',

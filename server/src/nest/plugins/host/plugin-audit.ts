@@ -32,7 +32,7 @@ export interface AuditEntry {
 export function auditResource(method: string, params: Record<string, unknown>): string | null {
   if (method === 'trips.listMine') return 'trips:all';
   if (method === 'reservations.listMine') return 'reservations:all';
-  if (method.startsWith('trips.') || method.startsWith('reservations.')) return `trip:${params.tripId ?? '?'}`;
+  if (method.startsWith('trips.') || method.startsWith('reservations.') || method.startsWith('accommodations.')) return `trip:${params.tripId ?? '?'}`;
   if (method === 'costs.listMine') return 'costs:all';
   if (method.startsWith('costs.')) return `trip:${params.tripId ?? '?'}`;
   if (method.startsWith('places.') || method.startsWith('days.') || method.startsWith('itinerary.')) return `trip:${params.tripId ?? '?'}`;

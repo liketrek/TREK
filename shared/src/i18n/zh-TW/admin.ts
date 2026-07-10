@@ -287,6 +287,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.oauth:client': '透過主機代理的 OAuth 代表你連線第三方服務（權杖由主機保管，外掛永遠看不到）',
   'admin.plugins.perm.db:read:files': '讀取操作使用者可存取之行程的檔案',
   'admin.plugins.perm.db:write:reservations': '在操作使用者可編輯的行程中建立、編輯及刪除預訂',
+  'admin.plugins.perm.db:write:accommodations': '在操作使用者可編輯的行程中建立、編輯及刪除住宿',
   'admin.plugins.perm.db:read:journal': '讀取操作使用者的旅行日誌（需要 Journey 附加元件）',
   'admin.plugins.perm.db:read:atlas': '讀取操作使用者已造訪的國家與地區（需要 Atlas 附加元件）',
   'admin.plugins.perm.db:read:vacay': '讀取操作使用者的假期計畫（需要 Vacay 附加元件）',

@@ -65,6 +65,13 @@ function makeDeps(): HostDeps {
     createReservation: vi.fn((tripId: number, input: unknown) => ({ id: 40, trip_id: tripId, ...(input as object) })),
     updateReservation: vi.fn((tripId: number, reservationId: number, input: unknown) => ({ id: reservationId, trip_id: tripId, ...(input as object) })),
     deleteReservation: vi.fn(() => ({ deleted: true })),
+    // Trip-scoped hydrated reads + accommodations (lodging blocks, day_edit-gated).
+    listTripDays: vi.fn((tripId: number) => [{ id: 3, trip_id: tripId, day_number: 1, assignments: [], notes_items: [] }]),
+    listTripReservations: vi.fn((tripId: number) => [{ id: 5, trip_id: tripId, title: 'Hotel', endpoints: [], day_positions: null }]),
+    listTripAccommodations: vi.fn((tripId: number) => [{ id: 11, trip_id: tripId, place_name: 'Ryokan' }]),
+    createAccommodation: vi.fn((tripId: number, input: unknown) => ({ id: 60, trip_id: tripId, ...(input as object) })),
+    updateAccommodation: vi.fn((tripId: number, accommodationId: number, input: unknown) => ({ id: accommodationId, trip_id: tripId, ...(input as object) })),
+    deleteAccommodation: vi.fn(() => ({ deleted: true })),
     // User-scoped addon reads + day notes.
     listJournalsForUser: vi.fn(() => [{ id: 1, title: 'Japan 2027' }]),
     atlasVisitedForUser: vi.fn(() => ({ countries: [{ country_code: 'JP' }], regions: [] })),
@@ -298,11 +305,31 @@ describe('PluginRpcHost — capability enforcement', () => {
     expect(deps.data.close).toHaveBeenCalled();
   });
 
-  it('trips.getReservations is membership-checked and reads reservations', async () => {
+  it('trips.getReservations is membership-checked and returns the hydrated list', async () => {
     const host = new PluginRpcHost('p', new Set(['db:read:trips']), deps);
     const res = await host.dispatch(req('trips.getReservations', { tripId: 1 }), 42);
     expect(ok(res)).toBe(true);
-    expect(deps.db.prepare).toHaveBeenCalledWith(expect.stringContaining('FROM reservations'));
+    // the REST-parity list (endpoints/day_positions), not a raw row scan
+    expect(deps.listTripReservations).toHaveBeenCalledWith(1);
+    expect(((res as RpcResponse).result as Array<{ endpoints: unknown[] }>)[0].endpoints).toEqual([]);
+    const forbidden = await host.dispatch(req('trips.getReservations', { tripId: 2 }), 42);
+    expect((forbidden as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+  });
+
+  it('trips.getDays / trips.getAccommodations ride on db:read:trips, membership-checked', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:read:trips']), deps);
+    const days = await host.dispatch(req('trips.getDays', { tripId: 1 }), 42);
+    expect(ok(days)).toBe(true);
+    expect(deps.listTripDays).toHaveBeenCalledWith(1);
+    const acc = await host.dispatch(req('trips.getAccommodations', { tripId: 1 }), 42);
+    expect(ok(acc)).toBe(true);
+    expect(deps.listTripAccommodations).toHaveBeenCalledWith(1);
+    for (const m of ['trips.getDays', 'trips.getAccommodations']) {
+      const forbidden = await host.dispatch(req(m, { tripId: 2 }), 42);
+      expect((forbidden as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+      const noUser = await host.dispatch(req(m, { tripId: 1 }), undefined);
+      expect((noUser as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    }
   });
 
   it('trips.listMine returns the acting user\'s trips; a job (no user) is refused', async () => {
@@ -348,6 +375,47 @@ describe('PluginRpcHost — capability enforcement', () => {
     expect(deps.deleteReservation).toHaveBeenCalledWith(1, 40, 42);
     const forbidden = await host.dispatch(req('reservations.delete', { tripId: 2, reservationId: 1 }), 42);
     expect((forbidden as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+  });
+
+  it('reservations.create/update pin the endpoints shape up front (no deep service failure)', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:reservations']), deps);
+    const goodEp = [{ role: 'from', name: 'HND', lat: 35.55, lng: 139.78, code: 'HND' }];
+    const good = await host.dispatch(req('reservations.create', { tripId: 1, input: { title: 'Flight', endpoints: goodEp } }), 42);
+    expect(ok(good)).toBe(true);
+    // bad role / missing coords never reach the service
+    for (const endpoints of [[{ role: 'banana', name: 'x', lat: 1, lng: 2 }], [{ role: 'to', name: 'x' }], 'nope']) {
+      const bad = await host.dispatch(req('reservations.update', { tripId: 1, reservationId: 40, input: { endpoints } }), 42);
+      expect((bad as RpcError).error.code).toBe('BAD_PARAMS');
+    }
+    expect(deps.updateReservation).not.toHaveBeenCalled();
+    // [] is the documented delete-all and stays valid
+    const clear = await host.dispatch(req('reservations.update', { tripId: 1, reservationId: 40, input: { endpoints: [] } }), 42);
+    expect(ok(clear)).toBe(true);
+  });
+
+  it('accommodations.* need db:write:accommodations + day_edit, membership-checked', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:accommodations']), deps);
+    const input = { place_id: 7, start_day_id: 3, end_day_id: 4 };
+    const good = await host.dispatch(req('accommodations.create', { tripId: 1, input }), 42);
+    expect(ok(good)).toBe(true);
+    expect(deps.createAccommodation).toHaveBeenCalledWith(1, expect.objectContaining(input));
+    // gated by day_edit (accommodations live in the day service), not reservation_edit
+    (deps.canEditDays as ReturnType<typeof vi.fn>).mockReturnValueOnce(false);
+    const noEdit = await host.dispatch(req('accommodations.create', { tripId: 1, input }), 42);
+    expect((noEdit as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    const forbidden = await host.dispatch(req('accommodations.update', { tripId: 2, accommodationId: 11, input: {} }), 42);
+    expect((forbidden as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    const noUser = await host.dispatch(req('accommodations.delete', { tripId: 1, accommodationId: 11 }), undefined);
+    expect((noUser as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    const bad = await host.dispatch(req('accommodations.create', { tripId: 1, input: { place_id: 7 } }), 42);
+    expect((bad as RpcError).error.code).toBe('BAD_PARAMS');
+    const del = await host.dispatch(req('accommodations.delete', { tripId: 1, accommodationId: 11 }), 42);
+    expect(ok(del)).toBe(true);
+    expect(deps.deleteAccommodation).toHaveBeenCalledWith(1, 11);
+    // and none of it is reachable without the grant
+    const ungranted = new PluginRpcHost('p', new Set(['db:write:reservations']), deps);
+    const denied = await ungranted.dispatch(req('accommodations.create', { tripId: 1, input }), 42);
+    expect((denied as RpcError).error.code).toBe('PERMISSION_DENIED');
   });
 
   it('user-scoped addon reads (journal/atlas/vacay) need a bound user; a job is refused', async () => {

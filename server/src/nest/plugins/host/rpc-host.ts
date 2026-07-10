@@ -5,6 +5,8 @@ import {
   dayCreateRequestSchema, dayUpdateRequestSchema,
   tripUpdateRequestSchema,
   reservationCreateRequestSchema, reservationUpdateRequestSchema,
+  reservationEndpointsInputSchema,
+  accommodationCreateRequestSchema, accommodationUpdateRequestSchema,
   packingCreateItemRequestSchema, packingUpdateItemRequestSchema,
   collectionCreateRequestSchema, collectionUpdateRequestSchema,
   collectionSavePlaceRequestSchema, collectionCopyToTripRequestSchema,
@@ -173,6 +175,19 @@ export interface HostDeps {
   listTripsForUser(userId: number): unknown[];
   /** Every reservation across the acting user's accessible trips. */
   listReservationsForUser(userId: number): unknown[];
+  /** A trip's days with their assignments + day notes — the planner GET's shape. */
+  listTripDays(tripId: number): unknown[];
+  /** A trip's reservations, hydrated like the REST list (endpoints, day_positions, joins). */
+  listTripReservations(tripId: number): unknown[];
+  /** A trip's lodging blocks (day_accommodations) with the joined place fields. */
+  listTripAccommodations(tripId: number): unknown[];
+  // --- Accommodations write (the 'day_edit' permission, like the accommodations REST path) ---
+  /** Create a lodging block (auto-creates its partner hotel reservation + broadcasts); returns it. */
+  createAccommodation(tripId: number, input: Record<string, unknown>): unknown;
+  /** Update a lodging block (syncs the partner reservation); throws if it isn't on the trip. */
+  updateAccommodation(tripId: number, accommodationId: number, input: Record<string, unknown>): unknown;
+  /** Delete a lodging block (cascades the partner reservation/budget row); returns { deleted: true }. */
+  deleteAccommodation(tripId: number, accommodationId: number): unknown;
   // --- Reservations (the 'reservation_edit' permission) ---
   canEditReservations(tripId: number, userId: number): boolean;
   /** Create a reservation (accommodation/budget side effects + broadcasts, as the web app); returns it. */
@@ -259,8 +274,22 @@ export class PluginRpcHost {
       this.methods.set('trips.getPlaces', (p, uid) =>
         this.tripRead(p, uid, () => deps.db.prepare('SELECT * FROM places WHERE trip_id = ? ORDER BY day_id, position').all(num(p.tripId, 'tripId'))),
       );
+      // Hydrated like the REST list (endpoints, day_positions, joins, normalized
+      // accommodation_id) — a strict superset of the raw row, so older callers
+      // only ever gain fields.
       this.methods.set('trips.getReservations', (p, uid) =>
-        this.tripRead(p, uid, () => deps.db.prepare('SELECT * FROM reservations WHERE trip_id = ? ORDER BY reservation_time').all(num(p.tripId, 'tripId'))),
+        this.tripRead(p, uid, () => deps.listTripReservations(num(p.tripId, 'tripId'))),
+      );
+      // Days with their assignments + day notes: the read half of db:write:days —
+      // without it a writer can't even discover the day ids it may edit.
+      this.methods.set('trips.getDays', (p, uid) =>
+        this.tripRead(p, uid, () => deps.listTripDays(num(p.tripId, 'tripId'))),
+      );
+      // Lodging blocks (day_accommodations) with their joined place fields. Reads
+      // ride on db:read:trips like every other trip entity: the REST GET, too,
+      // asks only for trip access.
+      this.methods.set('trips.getAccommodations', (p, uid) =>
+        this.tripRead(p, uid, () => deps.listTripAccommodations(num(p.tripId, 'tripId'))),
       );
       // Cross-trip enumeration: every trip the acting user can access. Membership is
       // baked into listTripsForUser, so there is no tripId to check — but a job/onLoad
@@ -700,6 +729,7 @@ export class PluginRpcHost {
         const actor = this.requireActor(uid, 'reservation');
         const parsed = reservationCreateRequestSchema.safeParse(p.input);
         if (!parsed.success) throw new BadParams(`invalid reservation: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
+        requireValidEndpoints((parsed.data as Record<string, unknown>).endpoints);
         this.requireTripEdit(tripId, actor, deps.canEditReservations);
         return deps.createReservation(tripId, parsed.data as Record<string, unknown>, actor);
       });
@@ -709,6 +739,7 @@ export class PluginRpcHost {
         const actor = this.requireActor(uid, 'reservation');
         const parsed = reservationUpdateRequestSchema.safeParse(p.input);
         if (!parsed.success) throw new BadParams(`invalid reservation: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
+        requireValidEndpoints((parsed.data as Record<string, unknown>).endpoints);
         this.requireTripEdit(tripId, actor, deps.canEditReservations);
         return deps.updateReservation(tripId, reservationId, parsed.data as Record<string, unknown>, actor);
       });
@@ -718,6 +749,38 @@ export class PluginRpcHost {
         const actor = this.requireActor(uid, 'reservation');
         this.requireTripEdit(tripId, actor, deps.canEditReservations);
         return deps.deleteReservation(tripId, reservationId, actor);
+      });
+    }
+
+    if (has('db:write:accommodations')) {
+      // Lodging blocks (day_accommodations). Gated exactly like the accommodations
+      // REST path: trip access + the 'day_edit' permission — NOT reservation_edit;
+      // the blocks live in the day service and REST guards them the same way. The
+      // wiring reuses dayService, so the auto-created partner hotel reservation,
+      // the metadata sync on update and the cascade broadcasts match the web app.
+      this.methods.set('accommodations.create', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const actor = this.requireActor(uid, 'accommodation');
+        const parsed = accommodationCreateRequestSchema.safeParse(p.input);
+        if (!parsed.success) throw new BadParams(`invalid accommodation: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
+        this.requireTripEdit(tripId, actor, deps.canEditDays);
+        return deps.createAccommodation(tripId, parsed.data as Record<string, unknown>);
+      });
+      this.methods.set('accommodations.update', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const accommodationId = num(p.accommodationId, 'accommodationId');
+        const actor = this.requireActor(uid, 'accommodation');
+        const parsed = accommodationUpdateRequestSchema.safeParse(p.input);
+        if (!parsed.success) throw new BadParams(`invalid accommodation: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
+        this.requireTripEdit(tripId, actor, deps.canEditDays);
+        return deps.updateAccommodation(tripId, accommodationId, parsed.data as Record<string, unknown>);
+      });
+      this.methods.set('accommodations.delete', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const accommodationId = num(p.accommodationId, 'accommodationId');
+        const actor = this.requireActor(uid, 'accommodation');
+        this.requireTripEdit(tripId, actor, deps.canEditDays);
+        return deps.deleteAccommodation(tripId, accommodationId);
       });
     }
 
@@ -1122,4 +1185,16 @@ function asArgs(v: unknown): unknown[] {
 }
 function asPayload(v: unknown): Record<string, unknown> {
   return v && typeof v === 'object' ? (v as Record<string, unknown>) : { value: v };
+}
+/**
+ * The reservation body is passthrough by contract, but a malformed `endpoints`
+ * array would otherwise fail DEEP in the service (NOT-NULL mid-transaction) or be
+ * dropped silently (missing coords) — both miserable to debug from a plugin. So
+ * the plugin path pins the endpoint shape up front; absent stays absent
+ * (update semantics: omitted = keep, [] = delete all).
+ */
+function requireValidEndpoints(v: unknown): void {
+  if (v === undefined) return;
+  const parsed = reservationEndpointsInputSchema.safeParse(v);
+  if (!parsed.success) throw new BadParams(`invalid endpoints: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
 }

@@ -300,6 +300,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:files':
     'Membaca berkas dari perjalanan yang dapat diakses oleh pengguna yang bersangkutan',
   'admin.plugins.perm.db:write:reservations': 'Membuat, mengedit, dan menghapus pemesanan pada perjalanan yang dapat diedit oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.db:write:accommodations': 'Membuat, mengedit, dan menghapus akomodasi pada perjalanan yang dapat diedit oleh pengguna yang bersangkutan',
   'admin.plugins.perm.db:read:journal': 'Membaca jurnal perjalanan pengguna yang bersangkutan (memerlukan add-on Journey)',
   'admin.plugins.perm.db:read:atlas': 'Membaca negara dan wilayah yang dikunjungi oleh pengguna yang bersangkutan (memerlukan add-on Atlas)',
   'admin.plugins.perm.db:read:vacay': 'Membaca rencana liburan pengguna yang bersangkutan (memerlukan add-on Vacay)',

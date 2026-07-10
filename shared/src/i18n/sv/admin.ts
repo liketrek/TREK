@@ -312,6 +312,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.oauth:client': 'Ansluta till en tredjepartstjänst för din räkning via värdförmedlad OAuth (värden håller token, tillägget ser dem aldrig)',
   'admin.plugins.perm.db:read:files': 'Läsa filer för resor som den aktiva användaren har åtkomst till',
   'admin.plugins.perm.db:write:reservations': 'Skapa, redigera och ta bort bokningar på resor som den aktiva användaren kan redigera',
+  'admin.plugins.perm.db:write:accommodations': 'Skapa, redigera och ta bort boenden på resor som den aktiva användaren kan redigera',
   'admin.plugins.perm.db:read:journal': 'Läsa den aktiva användarens resedagböcker (kräver tillägget Journey)',
   'admin.plugins.perm.db:read:atlas': 'Läsa den aktiva användarens besökta länder och regioner (kräver tillägget Atlas)',
   'admin.plugins.perm.db:read:vacay': 'Läsa den aktiva användarens semesterplan (kräver tillägget Vacay)',

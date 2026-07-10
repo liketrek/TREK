@@ -256,6 +256,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.oauth:client': 'Csatlakozás egy harmadik féltől származó szolgáltatáshoz a nevedben, gazdagép által közvetített OAuth-tal (a tokeneket a gazdagép tárolja, a bővítmény sosem látja)',
   'admin.plugins.perm.db:read:files': 'Az aktuális felhasználó számára elérhető utazások fájljainak olvasása',
   'admin.plugins.perm.db:write:reservations': 'Foglalások létrehozása, szerkesztése és törlése az aktuális felhasználó által szerkeszthető utazásokon',
+  'admin.plugins.perm.db:write:accommodations': 'Szállások létrehozása, szerkesztése és törlése az aktuális felhasználó által szerkeszthető utazásokon',
   'admin.plugins.perm.db:read:journal': 'Az aktuális felhasználó úti naplóinak olvasása (a Journey bővítmény szükséges)',
   'admin.plugins.perm.db:read:atlas': 'Az aktuális felhasználó által meglátogatott országok és régiók olvasása (az Atlas bővítmény szükséges)',
   'admin.plugins.perm.db:read:vacay': 'Az aktuális felhasználó nyaralási tervének olvasása (a Vacay bővítmény szükséges)',

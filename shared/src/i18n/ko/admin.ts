@@ -292,6 +292,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.oauth:client': '호스트가 중개하는 OAuth로 사용자를 대신해 타사 서비스에 연결(토큰은 호스트가 보유하며 플러그인은 볼 수 없음)',
   'admin.plugins.perm.db:read:files': '현재 사용자가 접근할 수 있는 여행의 파일 읽기',
   'admin.plugins.perm.db:write:reservations': '현재 사용자가 편집할 수 있는 여행에서 예약 만들기, 편집 및 삭제',
+  'admin.plugins.perm.db:write:accommodations': '현재 사용자가 편집할 수 있는 여행에서 숙소 만들기, 편집 및 삭제',
   'admin.plugins.perm.db:read:journal': '현재 사용자의 여행 일지 읽기(Journey 애드온 필요)',
   'admin.plugins.perm.db:read:atlas': '현재 사용자가 방문한 국가 및 지역 읽기(Atlas 애드온 필요)',
   'admin.plugins.perm.db:read:vacay': '현재 사용자의 휴가 계획 읽기(Vacay 애드온 필요)',

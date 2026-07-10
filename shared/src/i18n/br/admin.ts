@@ -252,6 +252,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.oauth:client': 'Conectar-se a um serviço de terceiros em seu nome via OAuth intermediado pelo host (o host guarda os tokens, o plugin nunca os vê)',
   'admin.plugins.perm.db:read:files': 'Ler arquivos de viagens às quais o usuário atual tem acesso',
   'admin.plugins.perm.db:write:reservations': 'Criar, editar e remover reservas em viagens que o usuário atual pode editar',
+  'admin.plugins.perm.db:write:accommodations': 'Criar, editar e remover acomodações em viagens que o usuário atual pode editar',
   'admin.plugins.perm.db:read:journal': 'Ler os diários de viagem do usuário atual (requer o complemento Journey)',
   'admin.plugins.perm.db:read:atlas': 'Ler os países e regiões visitados pelo usuário atual (requer o complemento Atlas)',
   'admin.plugins.perm.db:read:vacay': 'Ler o plano de férias do usuário atual (requer o complemento Vacay)',
