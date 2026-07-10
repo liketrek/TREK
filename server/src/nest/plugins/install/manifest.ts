@@ -25,8 +25,8 @@ export interface WidgetCapability {
   title?: string;
   defaultSize?: string;
   /** Where the widget mounts: dashboard sidebar (default), hero-bar overlay, or the
-   * trip planner's place-detail panel (scoped to the selected place). */
-  slot?: 'sidebar' | 'hero' | 'place-detail';
+   * trip planner's place-detail / day-detail panel (scoped to the open place/day). */
+  slot?: 'sidebar' | 'hero' | 'place-detail' | 'day-detail';
 }
 
 export interface PluginCapabilities {
@@ -192,7 +192,7 @@ function parseCapabilities(raw: unknown): PluginCapabilities {
   if (c.widget && typeof c.widget === 'object') {
     const w = c.widget as Record<string, unknown>;
     const slot = optStr(w.slot);
-    if (slot && slot !== 'sidebar' && slot !== 'hero' && slot !== 'place-detail') throw new ManifestError(`invalid widget slot "${slot}"`);
+    if (slot && slot !== 'sidebar' && slot !== 'hero' && slot !== 'place-detail' && slot !== 'day-detail') throw new ManifestError(`invalid widget slot "${slot}"`);
     out.widget = {
       title: optStr(w.title),
       defaultSize: optStr(w.defaultSize),

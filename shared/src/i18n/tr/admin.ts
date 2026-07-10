@@ -394,6 +394,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.widget': "Pano widget'ı",
   'admin.plugins.cap.heroWidget': "Biniş kartı widget'ı",
   'admin.plugins.cap.placeSlot': 'Yer detayı',
+  'admin.plugins.cap.daySlot': 'Gün detayı',
   'admin.plugins.cap.realtime': 'Gerçek zamanlı güncellemeler',
   'admin.plugins.cap.photos': 'Fotoğraf sağlar',
   'admin.plugins.cap.calendar': 'Takvim etkinlikleri sağlar',

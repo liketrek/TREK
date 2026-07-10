@@ -347,6 +347,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.widget': 'Widget na nástěnce',
   'admin.plugins.cap.heroWidget': 'Widget palubní vstupenky',
   'admin.plugins.cap.placeSlot': 'Detail místa',
+  'admin.plugins.cap.daySlot': 'Detail dne',
   'admin.plugins.cap.realtime': 'Aktualizace v reálném čase',
   'admin.plugins.cap.photos': 'Poskytuje fotky',
   'admin.plugins.cap.calendar': 'Poskytuje události kalendáře',

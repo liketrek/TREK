@@ -154,6 +154,7 @@ function deriveCaps(perms: string[], caps: { widget?: { slot?: string } }, t: T)
   if (caps.widget) {
     const slotKey = caps.widget.slot === 'hero' ? 'admin.plugins.cap.heroWidget'
       : caps.widget.slot === 'place-detail' ? 'admin.plugins.cap.placeSlot'
+      : caps.widget.slot === 'day-detail' ? 'admin.plugins.cap.daySlot'
       : 'admin.plugins.cap.widget'
     out.push({ icon: LayoutDashboard, label: t(slotKey as never) })
   }

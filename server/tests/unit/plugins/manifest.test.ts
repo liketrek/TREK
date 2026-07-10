@@ -78,6 +78,11 @@ describe('parseManifest capabilities', () => {
     expect(pd.capabilities.widget?.slot).toBe('place-detail');
   });
 
+  it('accepts the day-detail widget slot (mounts in the day panel)', () => {
+    const dd = parseManifest({ ...base, capabilities: { widget: { slot: 'day-detail' } } });
+    expect(dd.capabilities.widget?.slot).toBe('day-detail');
+  });
+
   it('rejects an unknown widget slot', () => {
     expect(() => parseManifest({ ...base, capabilities: { widget: { slot: 'floating' } } })).toThrow(ManifestError);
   });

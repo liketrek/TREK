@@ -350,6 +350,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.widget': 'Виджет панели',
   'admin.plugins.cap.heroWidget': 'Виджет посадочного талона',
   'admin.plugins.cap.placeSlot': 'Детали места',
+  'admin.plugins.cap.daySlot': 'Детали дня',
   'admin.plugins.cap.realtime': 'Обновления в реальном времени',
   'admin.plugins.cap.photos': 'Предоставляет фото',
   'admin.plugins.cap.calendar': 'Предоставляет события календаря',

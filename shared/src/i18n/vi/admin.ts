@@ -408,6 +408,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.widget': 'Widget bảng điều khiển',
   'admin.plugins.cap.heroWidget': 'Widget thẻ lên máy bay',
   'admin.plugins.cap.placeSlot': 'Chi tiết địa điểm',
+  'admin.plugins.cap.daySlot': 'Chi tiết ngày',
   'admin.plugins.cap.realtime': 'Cập nhật thời gian thực',
   'admin.plugins.cap.photos': 'Cung cấp ảnh',
   'admin.plugins.cap.calendar': 'Cung cấp sự kiện lịch',

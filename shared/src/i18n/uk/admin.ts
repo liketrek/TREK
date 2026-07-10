@@ -349,6 +349,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.widget': 'Віджет панелі',
   'admin.plugins.cap.heroWidget': 'Віджет посадкового талона',
   'admin.plugins.cap.placeSlot': 'Деталі місця',
+  'admin.plugins.cap.daySlot': 'Деталі дня',
   'admin.plugins.cap.realtime': 'Оновлення в реальному часі',
   'admin.plugins.cap.photos': 'Надає фотографії',
   'admin.plugins.cap.calendar': 'Надає події календаря',

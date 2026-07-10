@@ -373,6 +373,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.widget': '儀表板小工具',
   'admin.plugins.cap.heroWidget': '登機證小工具',
   'admin.plugins.cap.placeSlot': '地點詳情',
+  'admin.plugins.cap.daySlot': '日程詳情',
   'admin.plugins.cap.realtime': '即時更新',
   'admin.plugins.cap.photos': '提供照片',
   'admin.plugins.cap.calendar': '提供行事曆事件',

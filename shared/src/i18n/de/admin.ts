@@ -353,6 +353,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.widget': 'Dashboard-Widget',
   'admin.plugins.cap.heroWidget': 'Boarding-Pass-Widget',
   'admin.plugins.cap.placeSlot': 'Ortsdetails',
+  'admin.plugins.cap.daySlot': 'Tagesdetails',
   'admin.plugins.cap.realtime': 'Echtzeit-Updates',
   'admin.plugins.cap.photos': 'Liefert Fotos',
   'admin.plugins.cap.calendar': 'Liefert Kalender-Events',

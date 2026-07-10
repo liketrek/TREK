@@ -375,6 +375,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.widget': 'ダッシュボードウィジェット',
   'admin.plugins.cap.heroWidget': '搭乗券ウィジェット',
   'admin.plugins.cap.placeSlot': '場所詳細',
+  'admin.plugins.cap.daySlot': '日程詳細',
   'admin.plugins.cap.realtime': 'リアルタイム更新',
   'admin.plugins.cap.photos': '写真を提供',
   'admin.plugins.cap.calendar': 'カレンダー予定を提供',

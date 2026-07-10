@@ -396,6 +396,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.widget': 'Widget dasbor',
   'admin.plugins.cap.heroWidget': 'Widget boarding pass',
   'admin.plugins.cap.placeSlot': 'Detail tempat',
+  'admin.plugins.cap.daySlot': 'Detail hari',
   'admin.plugins.cap.realtime': 'Pembaruan real-time',
   'admin.plugins.cap.photos': 'Menyediakan foto',
   'admin.plugins.cap.calendar': 'Menyediakan acara kalender',

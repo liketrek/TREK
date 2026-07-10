@@ -102,10 +102,12 @@ permissions still requires explicit re-consent).
   hook IS wired.
 - **page** — adds a nav entry that opens a full-page sandboxed iframe.
 - **widget** — adds a card to the dashboard (`sidebar` slot), a hero-bar overlay
-  (`hero` slot), or a panel inside the trip planner's **place-detail** view
+  (`hero` slot), a panel inside the trip planner's **place-detail** view
   (`place-detail` slot — the frame also receives the open `placeId` in
-  `trek:context`, so it can show place-specific info like reviews or ratings). Set
-  the slot in `capabilities.widget.slot`.
+  `trek:context`, so it can show place-specific info like reviews or ratings), or a
+  panel inside the **day-detail** view (`day-detail` slot — receives the open `dayId`;
+  the home for per-day content like outfit planning, live flight status or logistics).
+  Set the slot in `capabilities.widget.slot`.
 - **trip-page** — adds a tab **inside every trip planner**, so your UI lives in the
   trip alongside Plan / Transports / Files. The frame is the same sandboxed iframe as
   a `page`, but it receives the current `tripId` in `trek:context` (so you can scope
@@ -438,6 +440,7 @@ scripts/styles only, `connect-src` limited to the hosts you were **granted** via
 |---|---|
 | `tripId` | `number \| null` — the trip in view (a `trip-page` tab, or a widget on a trip), else `null` |
 | `placeId` | `number \| null` — the place in view (a `place-detail` slot), else `null` |
+| `dayId` | `number \| null` — the day in view (a `day-detail` slot), else `null` |
 | `dir` | `'ltr' \| 'rtl'` — the host's text direction; the kit mirrors it onto your `<html>` so RTL hosts get RTL plugin UIs |
 | `userId` | `string \| null` |
 | `theme` | `'light' \| 'dark'` |
@@ -715,7 +718,7 @@ for anything your plugin publishes via `ctx.events.emit`.
 | `nativeModules` | boolean | must be `false`/absent — `true` is rejected. |
 | `permissions` | string[] | see below. |
 | `egress` | string[] | allowed outbound hosts; required (non-empty, no bare `*`) when any `http:outbound` permission is present. |
-| `capabilities.widget` | object | `{ title, slot, defaultSize }` — `slot` is `sidebar` (default), `hero`, or `place-detail`. |
+| `capabilities.widget` | object | `{ title, slot, defaultSize }` — `slot` is `sidebar` (default), `hero`, `place-detail`, or `day-detail`. |
 | `capabilities.provides` | string[] | function names this plugin exposes to its dependents via `ctx.plugins.call` (see [Talking to other plugins](#talking-to-other-plugins)). |
 | `capabilities.emits` | string[] | event names this plugin publishes to its dependents via `ctx.events.emit`. |
 | `requiredAddons` | string[] | addon ids that must be **enabled** for the plugin to activate (see [Dependencies](#dependencies)). |
