@@ -79,6 +79,11 @@ function installSdkInjection(requirePlugin: NodeJS.Require): void {
   };
 }
 
+// True once the plugin has loaded successfully. A subsequent async throw is then a
+// runtime crash (supervisor restarts with backoff), not a load failure — so we don't
+// send 'load-error' after activation, which the supervisor treats as a terminal disable.
+let activated = false;
+
 async function boot(config: Record<string, unknown>): Promise<void> {
   try {
     // Seal the raw IPC surface BEFORE any plugin code is required — this is the
@@ -106,6 +111,7 @@ async function boot(config: Record<string, unknown>): Promise<void> {
     const exportNames = Object.keys((def.exports ?? {}) as Record<string, unknown>);
     const subscriptions = (def.subscriptions ?? []).map((s) => ({ plugin: s.plugin, event: s.event }));
     send({ k: 'evt', topic: 'loaded', data: { routes, jobs, hooks, events, exports: exportNames, subscriptions } });
+    activated = true; // past load: a later async throw is a runtime CRASH, not a load failure
     // An immediate first heartbeat confirms liveness without waiting a full interval.
     send({ k: 'evt', topic: 'heartbeat', data: { rss: process.memoryUsage().rss } });
   } catch (e) {
@@ -430,7 +436,15 @@ function installEgressGuard(egress: string[]): void {
   const realConnect = proto.connect;
   proto.connect = function (this: unknown, ...args: unknown[]): unknown {
     const target = classifyConnect(args, (s) => net.isIP(s) !== 0);
-    if (target.kind === 'local') return realConnect.apply(this, args); // unix socket / pipe
+    if (target.kind === 'local') {
+      // A unix-socket / named-pipe connect is a host-local pivot — a malicious plugin
+      // could reach docker.sock or a local DB socket, exactly what the private-IP block
+      // exists to stop, and Node's --permission model doesn't gate socket connects.
+      // Refuse it under the SAME policy: blocked by default, allowed only when the
+      // operator explicitly opted into private egress.
+      if (blockPrivate) throw new Error(`egress: connecting to a local socket/pipe (${target.host}) is not allowed`);
+      return realConnect.apply(this, args);
+    }
     if (!allowed(target.host)) {
       throw new Error(`egress: ${target.host} is not in the plugin's declared hosts`);
     }
@@ -544,14 +558,15 @@ heartbeat.unref?.();
 
 // A plugin that throws asynchronously must not take the host down — it only
 // crashes THIS child, which the supervisor detects and restarts/disables.
-process.on('uncaughtException', (e) => {
-  send({ k: 'evt', topic: 'load-error', data: { message: errMsg(e), stack: errStack(e) } });
+const onFatal = (e: unknown) => {
+  // Before activation: a throw during load fails activation (terminal). After activation:
+  // it's a runtime crash — just exit and let the supervisor's onExit run crash/backoff,
+  // so one late async throw restarts the plugin instead of permanently disabling it.
+  if (!activated) send({ k: 'evt', topic: 'load-error', data: { message: errMsg(e), stack: errStack(e) } });
   process.exit(1);
-});
-process.on('unhandledRejection', (e) => {
-  send({ k: 'evt', topic: 'load-error', data: { message: errMsg(e), stack: errStack(e) } });
-  process.exit(1);
-});
+};
+process.on('uncaughtException', onFatal);
+process.on('unhandledRejection', onFatal);
 
 function errMsg(e: unknown): string {
   return e instanceof Error ? e.message : String(e);

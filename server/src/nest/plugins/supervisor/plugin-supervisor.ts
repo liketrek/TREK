@@ -165,23 +165,31 @@ export class PluginSupervisor {
     this.ensureSweep();
     return new Promise<void>((resolve, reject) => {
       sup.activation = { resolve, reject };
-      // Deadline: if the plugin never reports 'loaded' (stuck onLoad), reject the
-      // activation and kill the child rather than hanging + leaking a busy core.
-      sup.activationTimer = setTimeout(async () => {
-        if (sup.status === 'active') return;
-        this.hooks.onLog?.(sup.id, 'error', 'activation timed out; killing');
-        this.setStatus(sup, 'error', 'activation timed out');
-        sup.activation?.reject(new Error('plugin did not finish loading in time'));
-        sup.activation = undefined;
-        this.running.delete(sup.id);
-        // await the kill (SIGTERM grace) before closing the plugin db, so a ctx.*
-        // RPC from the dying child can't hit an already-disposed handle.
-        await this.kill(sup);
-        sup.rpcHost.dispose();
-      }, this.tuning.activationTimeoutMs);
-      sup.activationTimer.unref?.();
+      this.armActivationDeadline(sup);
       this.spawn(sup);
     });
+  }
+
+  /** Kill a plugin that never reaches 'active' within the deadline (a stuck onLoad
+   * would otherwise hang + peg a busy core with no reaper coverage — the reaper only
+   * watches ACTIVE plugins). Used for BOTH the first activation and every crash-respawn,
+   * so a plugin that hangs on load after a crash can't run away. */
+  private armActivationDeadline(sup: Supervised): void {
+    this.clearActivationTimer(sup);
+    sup.activationTimer = setTimeout(async () => {
+      if (sup.status === 'active') return;
+      this.hooks.onLog?.(sup.id, 'error', 'activation timed out; killing');
+      this.setStatus(sup, 'error', 'activation timed out');
+      sup.activation?.reject(new Error('plugin did not finish loading in time'));
+      sup.activation = undefined;
+      this.running.delete(sup.id);
+      this.pendingEvents.delete(sup.id); // don't orphan the buffered-event queue
+      // await the kill (SIGTERM grace) before closing the plugin db, so a ctx.*
+      // RPC from the dying child can't hit an already-disposed handle.
+      await this.kill(sup);
+      sup.rpcHost.dispose();
+    }, this.tuning.activationTimeoutMs);
+    sup.activationTimer.unref?.();
   }
 
   private clearActivationTimer(sup: Supervised): void {
@@ -205,6 +213,14 @@ export class PluginSupervisor {
 
   isActive(id: string): boolean {
     return this.running.get(id)?.status === 'active';
+  }
+  /** The ids of every currently-active plugin — lets a DB sweep scope its window to
+   * plugins that can actually be delivered to, so inactive plugins' rows can't starve
+   * the LIMIT out from under active ones. */
+  activeIds(): string[] {
+    const out: string[] = [];
+    for (const [id, sup] of this.running) if (sup.status === 'active') out.push(id);
+    return out;
   }
   statusOf(id: string): PluginStatus | null {
     return this.running.get(id)?.status ?? null;
@@ -327,7 +343,11 @@ export class PluginSupervisor {
    */
   async deliverUserErasure(id: string, userId: number): Promise<boolean> {
     const sup = this.running.get(id);
-    if (!sup || sup.status !== 'active' || !sup.granted.has('hook:user-data')) return false;
+    if (!sup || sup.status !== 'active') return false;
+    // NB: no grant re-check here. The row was only enqueued because the plugin held
+    // hook:user-data and may hold the user's data; if it later dropped the grant, the
+    // erasure is still a DUTY, not a gated capability — refusing it would strand the
+    // data forever. deleteUserData is userless and touches only the plugin's own db.
     try {
       await this.invoke(id, 'invoke.deleteUserData', { userId }, { actingUserId: undefined, timeoutMs: 30_000 });
       return true;
@@ -583,7 +603,12 @@ export class PluginSupervisor {
     this.hooks.onLog?.(sup.id, 'warn', `crashed (code=${code} sig=${signal}); restarting in ${delay}ms`);
     this.setStatus(sup, 'starting');
     const timer = setTimeout(() => {
-      if (this.running.has(sup.id)) this.spawn(sup);
+      if (!this.running.has(sup.id)) return;
+      this.spawn(sup);
+      // A respawn needs the SAME activation deadline as a first activation — otherwise a
+      // plugin that hangs in onLoad after a crash sits in 'starting' forever, pegging a
+      // core and buffering events that never flush (the reaper ignores non-active).
+      this.armActivationDeadline(sup);
     }, delay);
     timer.unref?.();
   }
@@ -599,6 +624,13 @@ export class PluginSupervisor {
    * ceiling (drives the crash/backoff path, so a repeat offender auto-disables).
    */
   reapStale(now = Date.now()): void {
+    // Expire buffered events whose TTL passed without a flush (a subscriber stuck in
+    // 'error'/'starting' would otherwise pin its queue until it happens to reactivate).
+    for (const [id, q] of this.pendingEvents) {
+      const live = q.filter((e) => e.expiresAt > now);
+      if (live.length === 0) this.pendingEvents.delete(id);
+      else if (live.length !== q.length) this.pendingEvents.set(id, live);
+    }
     for (const sup of this.running.values()) {
       if (sup.status !== 'active') continue;
       const rss = this.childRss(sup);

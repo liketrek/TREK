@@ -252,6 +252,7 @@ describe('PluginRuntimeService (M2 end-to-end)', () => {
     testDb.prepare("INSERT INTO plugin_meta_migrations (plugin_id, migration_id) VALUES ('gone', '001')").run();
     testDb.prepare("INSERT INTO plugin_capability_audit (plugin_id, method, code, ts, hash) VALUES ('gone', 'trips.getById', 'OK', 't', 'h')").run();
     testDb.prepare("INSERT INTO plugin_scheduled_tasks (plugin_id, name, due_at) VALUES ('gone', 'poll', 0)").run();
+    testDb.prepare("INSERT INTO plugin_user_erasure_queue (plugin_id, user_id) VALUES ('gone', 7)").run();
 
     await new PluginRuntimeService().uninstall('gone', true);
 
@@ -259,10 +260,26 @@ describe('PluginRuntimeService (M2 end-to-end)', () => {
     expect(testDb.prepare("SELECT COUNT(*) c FROM plugins WHERE id='gone'").get()).toMatchObject({ c: 0 });
     expect(testDb.prepare("SELECT COUNT(*) c FROM plugin_settings_fields WHERE plugin_id='gone'").get()).toMatchObject({ c: 0 });
     expect(testDb.prepare("SELECT COUNT(*) c FROM settings WHERE key LIKE 'plugin:gone:%'").get()).toMatchObject({ c: 0 });
-    // the secret-bearing tables must be purged too
-    for (const t of ['plugin_user_config', 'plugin_oauth_tokens', 'plugin_oauth_state', 'plugin_meta_migrations', 'plugin_capability_audit', 'plugin_scheduled_tasks']) {
+    // the secret-bearing tables + the erasure queue must be purged too (data is gone)
+    for (const t of ['plugin_user_config', 'plugin_oauth_tokens', 'plugin_oauth_state', 'plugin_meta_migrations', 'plugin_capability_audit', 'plugin_scheduled_tasks', 'plugin_user_erasure_queue']) {
       expect(testDb.prepare(`SELECT COUNT(*) c FROM ${t} WHERE plugin_id='gone'`).get()).toMatchObject({ c: 0 });
     }
+  });
+
+  it('uninstall WITHOUT deleteData keeps pending GDPR erasures (the data survives, so must the obligation)', async () => {
+    fs.mkdirSync(path.join(codeRoot, 'keepdata', 'server'), { recursive: true });
+    fs.writeFileSync(path.join(codeRoot, 'keepdata', 'server', 'index.js'), 'module.exports={}');
+    testDb.prepare("INSERT INTO plugins (id, status, permissions, config) VALUES ('keepdata','inactive','[]','{}')").run();
+    // a deleted user's erasure is still pending for this plugin
+    testDb.prepare("INSERT INTO plugin_user_erasure_queue (plugin_id, user_id) VALUES ('keepdata', 42)").run();
+
+    await new PluginRuntimeService().uninstall('keepdata', false); // keep the plugin's data
+
+    // the plugin row is gone, but the erasure obligation is retained — a reinstall of the
+    // same id will drain it and finally honour the deletion, instead of silently keeping
+    // the user's data forever.
+    expect(testDb.prepare("SELECT COUNT(*) c FROM plugins WHERE id='keepdata'").get()).toMatchObject({ c: 0 });
+    expect(testDb.prepare("SELECT COUNT(*) c FROM plugin_user_erasure_queue WHERE plugin_id='keepdata' AND user_id=42").get()).toMatchObject({ c: 1 });
   });
 
   it('the egress guard blocks a fetch to an undeclared host', async () => {

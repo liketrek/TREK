@@ -4,7 +4,7 @@ import { db } from '../../db/database';
 import { pluginsEnabled } from './kill-switch';
 import { setPluginEventSink } from '../../plugin-event-sink';
 import { setUserDeletedSink } from '../../plugin-user-lifecycle';
-import { applyStagedPluginTrees } from './plugin-backup';
+import { applyStagedPluginTrees, setStagedRestoreApplier } from './plugin-backup';
 import { decrypt_api_key } from '../../services/apiKeyCrypto';
 import { PluginSupervisor, type PluginRouteInfo } from './supervisor/plugin-supervisor';
 import fs from 'node:fs';
@@ -135,6 +135,13 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
       const applied = applyStagedPluginTrees();
       if (applied.length) console.log(`[plugins] applied staged restore: ${applied.join(', ')}`);
     } catch { /* reconcile must never stop the server from starting */ }
+    // Let a live restore apply its staged plugin trees IMMEDIATELY instead of leaving
+    // them for an arbitrary future boot: quiesce every plugin (closing its DB handles)
+    // then swap. Plugins stay down until the app restart the restore already requires.
+    setStagedRestoreApplier(async () => {
+      await this.supervisor.shutdownAll();
+      applyStagedPluginTrees();
+    });
     // Forward core trip events to plugins that subscribed (events:subscribe). The
     // sink is name-only + fire-and-forget, so it can never block a core broadcast.
     setPluginEventSink((tripId, event, meta) => this.supervisor.deliverEvent(tripId, event, meta));
@@ -188,10 +195,15 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
   private fireDueScheduled(): void {
     if (!pluginsEnabled()) return;
     try {
+      // Scope the window to ACTIVE plugins so a backlog of past-due rows belonging to
+      // inactive plugins can't fill the LIMIT and starve active plugins' timers.
+      const active = this.supervisor.activeIds();
+      if (active.length === 0) return;
       const now = Date.now();
+      const ph = active.map(() => '?').join(',');
       const due = db
-        .prepare('SELECT id, plugin_id, name, payload, every_ms FROM plugin_scheduled_tasks WHERE due_at <= ? ORDER BY due_at LIMIT 200')
-        .all(now) as Array<{ id: number; plugin_id: string; name: string; payload: string; every_ms: number | null }>;
+        .prepare(`SELECT id, plugin_id, name, payload, every_ms FROM plugin_scheduled_tasks WHERE due_at <= ? AND plugin_id IN (${ph}) ORDER BY due_at LIMIT 200`)
+        .all(now, ...active) as Array<{ id: number; plugin_id: string; name: string; payload: string; every_ms: number | null }>;
       for (const t of due) {
         if (!this.supervisor.isActive(t.plugin_id)) continue; // leave for a later sweep
         if (t.every_ms) db.prepare('UPDATE plugin_scheduled_tasks SET due_at = ? WHERE id = ?').run(now + t.every_ms, t.id);
@@ -230,9 +242,14 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
   private async drainUserErasures(): Promise<void> {
     if (!pluginsEnabled()) return;
     try {
+      // Only ACTIVE plugins can be delivered to; scope the window to them so a backlog
+      // of erasures for permanently-inactive plugins can't starve deliverable ones.
+      const active = this.supervisor.activeIds();
+      if (active.length === 0) return;
+      const ph = active.map(() => '?').join(',');
       const pending = db
-        .prepare('SELECT id, plugin_id, user_id FROM plugin_user_erasure_queue ORDER BY id LIMIT 200')
-        .all() as Array<{ id: number; plugin_id: string; user_id: number }>;
+        .prepare(`SELECT id, plugin_id, user_id FROM plugin_user_erasure_queue WHERE plugin_id IN (${ph}) ORDER BY id LIMIT 200`)
+        .all(...active) as Array<{ id: number; plugin_id: string; user_id: number }>;
       for (const row of pending) {
         if (!this.supervisor.isActive(row.plugin_id)) continue; // retry after it reactivates
         const done = await this.supervisor.deliverUserErasure(row.plugin_id, row.user_id);
@@ -245,14 +262,22 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
 
   /** GDPR portability: aggregate what every active, granted plugin holds about a user.
    * Returns one entry per plugin that returns data (plugins with nothing are omitted). */
-  async exportUserData(userId: number): Promise<Array<{ pluginId: string; data: unknown }>> {
-    const out: Array<{ pluginId: string; data: unknown }> = [];
+  async exportUserData(userId: number): Promise<Array<{ pluginId: string; data?: unknown; pending?: boolean }>> {
+    const out: Array<{ pluginId: string; data?: unknown; pending?: boolean }> = [];
     if (!pluginsEnabled()) return out;
-    const rows = db.prepare('SELECT id FROM plugins').all() as Array<{ id: string }>;
+    const rows = db.prepare('SELECT id, permissions FROM plugins').all() as Array<{ id: string; permissions: string | null }>;
     for (const r of rows) {
-      if (!this.supervisor.isActive(r.id)) continue;
-      const data = await this.supervisor.collectUserExport(r.id, userId);
-      if (data !== undefined) out.push({ pluginId: r.id, data });
+      if (this.supervisor.isActive(r.id)) {
+        const data = await this.supervisor.collectUserExport(r.id, userId);
+        if (data !== undefined) out.push({ pluginId: r.id, data });
+      } else {
+        // An inactive plugin can't export now — but if it holds hook:user-data it MAY
+        // hold this user's data. Flag it as pending (rather than silently omitting it)
+        // so the admin knows to reactivate it to complete a data-access request.
+        let perms: unknown;
+        try { perms = JSON.parse(r.permissions ?? '[]'); } catch { perms = []; }
+        if (Array.isArray(perms) && perms.includes('hook:user-data')) out.push({ pluginId: r.id, pending: true });
+      }
     }
     return out;
   }
@@ -284,6 +309,7 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
   async onModuleDestroy(): Promise<void> {
     setPluginEventSink(null);
     setUserDeletedSink(null);
+    setStagedRestoreApplier(null);
     if (this.schedulerSweep) { clearInterval(this.schedulerSweep); this.schedulerSweep = null; }
     for (const w of this.linkWatchers.values()) {
       try { w.close(); } catch { /* ignore */ }
@@ -574,9 +600,6 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     // Scheduled tasks are operational (not user data), so they go unconditionally —
     // a scheduled callback for a plugin that no longer exists must never fire.
     db.prepare('DELETE FROM plugin_scheduled_tasks WHERE plugin_id = ?').run(id);
-    // A removed plugin can no longer honour a pending erasure — drop its queue rows so
-    // they don't linger forever (its own data goes with removePluginData below anyway).
-    db.prepare('DELETE FROM plugin_user_erasure_queue WHERE plugin_id = ?').run(id);
     if (deleteData) {
       removePluginData(id);
       db.prepare('DELETE FROM plugin_error_log WHERE plugin_id = ?').run(id);
@@ -591,6 +614,11 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
       db.prepare('DELETE FROM plugin_oauth_state WHERE plugin_id = ?').run(id);
       db.prepare('DELETE FROM plugin_meta_migrations WHERE plugin_id = ?').run(id);
       db.prepare('DELETE FROM plugin_capability_audit WHERE plugin_id = ?').run(id);
+      // The plugin's data dir is gone now, so any pending GDPR erasure for it is moot.
+      // But when deleteData is FALSE we deliberately KEEP the queue rows: the data dir
+      // (which may still hold a deleted user's rows) survives, so the erasure obligation
+      // must survive too — a reinstall of the same id drains the queue and honours it.
+      db.prepare('DELETE FROM plugin_user_erasure_queue WHERE plugin_id = ?').run(id);
     }
   }
 

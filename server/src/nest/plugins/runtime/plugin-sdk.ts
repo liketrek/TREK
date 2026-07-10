@@ -708,11 +708,13 @@ export function createPluginContext(
       getById: (uid) => t.rpc('users.getById', { id: uid, _inv: invocationId }),
     },
     ws: {
+      // _inv binds the invocation's acting user host-side; without it the host can't
+      // membership-check the broadcast and refuses every call (the capability was dead).
       broadcastToTrip: async (tripId, event, data) => {
-        await t.rpc('ws.broadcastToTrip', { tripId, event, data });
+        await t.rpc('ws.broadcastToTrip', { tripId, event, data, _inv: invocationId });
       },
       broadcastToUser: async (userId, event, data) => {
-        await t.rpc('ws.broadcastToUser', { userId, event, data });
+        await t.rpc('ws.broadcastToUser', { userId, event, data, _inv: invocationId });
       },
     },
     log: {
@@ -724,7 +726,10 @@ export function createPluginContext(
       call: (pluginId, fn, args) => t.rpc('plugins.call', { targetId: pluginId, fn, args, _inv: invocationId }),
     },
     events: {
-      emit: (name, payload) => { void t.rpc('events.emit', { event: name, payload }); },
+      // Fire-and-forget by contract, but the host CAN reject (undeclared event name,
+      // rate-limit) — swallow it, otherwise the detached rejection crashes the child
+      // and terminally disables the plugin over one bad emit.
+      emit: (name, payload) => { t.rpc('events.emit', { event: name, payload }).catch(() => {}); },
     },
   };
 }

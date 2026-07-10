@@ -25,6 +25,10 @@ const MAX_SQL_LENGTH = 100_000;
 // extension loading by default (so it's inert today), but banning it in the guard
 // means a future connection-option slip can't turn it into an arbitrary-.so RCE.
 const FORBIDDEN = /\b(ATTACH|DETACH|VACUUM|PRAGMA|RECURSIVE|LOAD_EXTENSION)\b/i;
+// Transaction-control keywords, matched only at statement start (so CASE…END and
+// identifiers are unaffected). Refused inside db.tx() so a plugin can't COMMIT the
+// batch's earlier writes and then have the wrapper report failure — breaking atomicity.
+const TX_CONTROL = /^\s*(BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE|END)\b/i;
 // Per-plugin on-disk quota. better-sqlite3 is synchronous and runs in the HOST
 // process, so an unbounded plugin DB is both a disk-exhaustion DoS on the shared
 // trek.db volume and (via a huge scan) an event-loop stall. max_page_count caps
@@ -37,6 +41,20 @@ const MAX_ROWS = 100_000;
 // host — generous for real write batches, far below anything abusive.
 const MAX_TX_OPS = 100;
 
+// Every live per-plugin handle, so a backup can WAL-checkpoint them before archiving
+// (the host keeps these open, so their .db files would otherwise be copied with recent
+// commits still stranded in the -wal sidecar → a stale/torn snapshot in the backup).
+const openDbs = new Set<PluginDataDb>();
+
+/** Fold the WAL back into each open plugin.db so a subsequent file copy is a complete,
+ * consistent snapshot — mirrors the wal_checkpoint the core backup runs on travel.db.
+ * Best-effort per handle; never throws. */
+export function checkpointAllPluginDataDbs(): void {
+  for (const d of openDbs) {
+    try { d.checkpoint(); } catch { /* a busy/closed handle is skipped, not fatal */ }
+  }
+}
+
 export class PluginDataDb {
   private db: Db;
 
@@ -45,6 +63,7 @@ export class PluginDataDb {
     this.db = new Database(pluginDbFile(pluginId));
     this.db.pragma('journal_mode = WAL');
     this.db.pragma('foreign_keys = ON');
+    openDbs.add(this);
     // Cap the file size (per-connection; not persisted, so set on every open).
     const pageSize = Number(this.db.pragma('page_size', { simple: true })) || 4096;
     this.db.pragma(`max_page_count = ${Math.max(1, Math.floor(QUOTA_BYTES / pageSize))}`);
@@ -95,7 +114,15 @@ export class PluginDataDb {
     if (!Array.isArray(ops)) throw new Error('tx requires an array of { sql, args }');
     if (ops.length === 0) return { results: [] };
     if (ops.length > MAX_TX_OPS) throw new Error(`tx allows at most ${MAX_TX_OPS} statements`);
-    for (const op of ops) this.guard(op?.sql);
+    for (const op of ops) {
+      this.guard(op?.sql);
+      // Reject transaction-control statements: a raw COMMIT/ROLLBACK inside the batch
+      // would break atomicity — it commits the earlier writes even though the wrapper
+      // then reports the tx as failed. These keywords are only valid at statement start,
+      // so CASE ... END and column names are unaffected.
+      if (TX_CONTROL.test(op.sql)) throw new Error('transaction-control statements are not allowed inside tx()');
+    }
+    let batchRows = 0; // one row budget for the WHOLE batch, not per statement
     const run = this.db.transaction((batch: Array<{ sql: string; args?: unknown[] }>) => {
       const results: Array<{ changes?: number; rows?: unknown[] }> = [];
       for (const op of batch) {
@@ -105,7 +132,7 @@ export class PluginDataDb {
           const rows: unknown[] = [];
           for (const row of stmt.iterate(...args)) {
             rows.push(row);
-            if (rows.length > MAX_ROWS) throw new Error(`tx statement returned more than ${MAX_ROWS} rows`);
+            if (++batchRows > MAX_ROWS) throw new Error(`tx returned more than ${MAX_ROWS} rows in total`);
           }
           results.push({ rows });
         } else {
@@ -129,8 +156,22 @@ export class PluginDataDb {
     return { applied: true };
   }
 
+  /** Whether the underlying sqlite handle is still open (better-sqlite3 `.open`).
+   * The host uses this to detect a handle closed by a terminal-failure dispose that
+   * left the instance cached, so it can recreate it instead of throwing on reuse. */
+  isOpen(): boolean {
+    return this.db.open;
+  }
+
+  /** Fold the WAL back into the main db file (checkpoint TRUNCATE) so a file-level copy
+   * is a complete snapshot. No-op on a closed handle. */
+  checkpoint(): void {
+    if (this.db.open) this.db.pragma('wal_checkpoint(TRUNCATE)');
+  }
+
   close(): void {
     try {
+      openDbs.delete(this);
       this.db.close();
     } catch {
       /* already closed */

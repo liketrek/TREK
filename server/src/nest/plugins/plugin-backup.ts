@@ -44,11 +44,46 @@ export function stageExtractedPluginTrees(extractDir: string): boolean {
 }
 
 /**
- * If a prior restore staged plugin trees, swap them into place. Called at boot BEFORE
- * the runtime opens any plugin DB. Same-filesystem renames (staging sits beside the
- * live tree), so each swap is atomic-ish; the pre-restore tree is moved aside first and
- * only removed once the staged tree is in place. Never throws — a reconcile hiccup must
- * not stop the server booting. Returns the ids of trees it applied, for logging.
+ * Replace the CONTENTS of `live` with `staged`, entry by entry — never renaming the
+ * root itself, because a root that is a bind/volume mount point can't be renamed
+ * (EBUSY) or moved across a filesystem (EXDEV). Existing DEV-LINK entries in `live`
+ * (a plugin dir symlinked/junctioned to an author's source, which the backup deliberately
+ * excluded) are preserved, so a same-instance backup→restore round trip doesn't destroy
+ * them. Same-fs renames where possible, copy+remove for the cross-fs case.
+ */
+function swapContents(live: string, staged: string): void {
+  fs.mkdirSync(live, { recursive: true });
+  const realLive = fs.realpathSync(live);
+  // Clear the current entries, but KEEP dev-links (realpath points outside the root).
+  for (const name of fs.readdirSync(live)) {
+    const p = path.join(live, name);
+    let real: string;
+    try { real = fs.realpathSync(p); } catch { real = p; }
+    if (real !== p && !real.startsWith(realLive + path.sep)) continue; // dev-link → keep
+    fs.rmSync(p, { recursive: true, force: true });
+  }
+  // Move the staged entries in.
+  for (const name of fs.readdirSync(staged)) {
+    const from = path.join(staged, name);
+    const to = path.join(live, name);
+    fs.rmSync(to, { recursive: true, force: true });
+    try {
+      fs.renameSync(from, to);
+    } catch {
+      fs.cpSync(from, to, { recursive: true });
+      fs.rmSync(from, { recursive: true, force: true });
+    }
+  }
+  fs.rmSync(staged, { recursive: true, force: true });
+}
+
+/**
+ * If a prior restore staged plugin trees, swap them into place. Applied ONCE — either
+ * immediately by the restore (via the applier below, after it quiesces the plugins so
+ * their DB handles are closed) or, if the runtime wasn't up, at the next boot BEFORE the
+ * runtime opens any plugin DB. Content-level swap (see swapContents) so a volume-mounted
+ * root is safe and dev-links survive. Never throws — a reconcile hiccup must not stop the
+ * server booting. Returns the labels of trees it applied, for logging.
  */
 export function applyStagedPluginTrees(): string[] {
   const applied: string[] = [];
@@ -58,21 +93,36 @@ export function applyStagedPluginTrees(): string[] {
   ];
   for (const [label, live, staged] of pairs) {
     if (!fs.existsSync(staged)) continue;
-    const aside = live + '.pre-restore';
     try {
-      fs.rmSync(aside, { recursive: true, force: true }); // clear any leftover from a previous run
-      if (fs.existsSync(live)) fs.renameSync(live, aside); // move the current tree aside (atomic)
-      fs.mkdirSync(path.dirname(live), { recursive: true });
-      fs.renameSync(staged, live);                         // move the staged tree in (atomic)
-      fs.rmSync(aside, { recursive: true, force: true });  // drop the old tree
+      swapContents(live, staged);
       applied.push(label);
     } catch (err) {
-      // Best-effort recovery: if we moved `live` aside but failed to place `staged`,
-      // put the original back so the instance keeps its pre-restore data.
-      try { if (!fs.existsSync(live) && fs.existsSync(aside)) fs.renameSync(aside, live); } catch { /* leave for manual recovery */ }
       // eslint-disable-next-line no-console
       console.error(`[plugins] failed to apply staged ${label} restore:`, err);
     }
   }
   return applied;
+}
+
+// A restore can't swap the plugin trees while the runtime holds their DB handles open,
+// and it must NOT leave the swap for an arbitrary future boot (by then the live data has
+// diverged, so applying stale staged data would silently revert it and resurrect erased
+// rows). So the runtime registers an applier here that QUIESCES the plugins (closing the
+// handles) and applies the swap right away; the restore calls it the moment it finishes
+// staging. If the runtime isn't up, staging simply waits for the boot reconcile — with no
+// running plugins, there is nothing to diverge.
+let applier: (() => void | Promise<void>) | null = null;
+export function setStagedRestoreApplier(fn: (() => void | Promise<void>) | null): void {
+  applier = fn;
+}
+export async function applyStagedRestoreNow(): Promise<boolean> {
+  if (!applier) return false;
+  try {
+    await applier();
+    return true;
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[plugins] immediate staged-restore apply failed; will retry on next boot:', err);
+    return false;
+  }
 }

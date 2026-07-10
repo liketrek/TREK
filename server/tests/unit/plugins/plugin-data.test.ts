@@ -84,6 +84,19 @@ describe('PluginDataDb', () => {
     expect(() => db.tx([{ sql: "ATTACH DATABASE 'x' AS y" }])).toThrow(/not allowed/);
     expect(() => db.tx(Array.from({ length: 101 }, () => ({ sql: 'SELECT 1' })))).toThrow(/at most/);
     expect(db.tx([]).results).toEqual([]);
+
+    // a raw COMMIT inside the batch must be refused (else it breaks atomicity), but a
+    // CASE ... END expression (END not at statement start) stays allowed
+    expect(() => db.tx([
+      { sql: 'UPDATE acct SET bal = 0 WHERE id = ?', args: [1] },
+      { sql: 'COMMIT' },
+    ])).toThrow(/transaction-control/);
+    expect(db.tx([{ sql: "SELECT CASE WHEN bal > 0 THEN 'y' ELSE 'n' END AS s FROM acct WHERE id = 1" }]).results[0])
+      .toEqual({ rows: [{ s: 'y' }] });
+    // the row cap is now for the WHOLE batch, not per statement
+    db.exec('CREATE TABLE big (n INTEGER)');
+    db.exec('INSERT INTO big (n) VALUES ' + Array.from({ length: 400 }, (_, i) => `(${i})`).join(','));
+    expect(() => db.tx([{ sql: 'SELECT a.n FROM big a, big b' }])).toThrow(/more than/); // 160k > 100k
     db.close();
   });
 

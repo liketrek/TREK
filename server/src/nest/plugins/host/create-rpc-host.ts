@@ -157,7 +157,12 @@ const dataDbs = new Map<string, PluginDataDb>();
 
 export function getPluginDataDb(id: string): PluginDataDb {
   let d = dataDbs.get(id);
-  if (!d) {
+  // A cached handle can be CLOSED without being evicted: the supervisor's terminal
+  // failure paths (activation timeout / load-error / crash auto-disable) call
+  // rpcHost.dispose() → PluginDataDb.close() directly, never closePluginDataDb. A
+  // plain admin re-enable would then reuse the closed handle and every db.* call
+  // would throw 'database connection is not open'. Recreate when the handle is shut.
+  if (!d || !d.isOpen()) {
     d = new PluginDataDb(id);
     dataDbs.set(id, d);
   }

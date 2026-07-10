@@ -4,6 +4,8 @@ import { avatarUrl } from './avatarUrl';
 import fs from 'fs';
 import { randomUUID } from 'crypto';
 import { db, isOwner } from '../db/database';
+import { erasePluginUserData } from './userCleanupService';
+import { emitUserDeleted } from '../plugin-user-lifecycle';
 import { Trip, User } from '../types';
 import { listDays, listAccommodations } from './dayService';
 import { listBudgetItems } from './budgetService';
@@ -519,9 +521,14 @@ export function renameGuest(tripId: string | number, guestUserId: number, name: 
 
 export function deleteGuest(tripId: string | number, guestUserId: number): boolean {
   if (!guestOfTrip(tripId, guestUserId)) return false;
+  // A guest is still a user id a plugin may hold data for, so erase that too — the
+  // host-side per-user tables + a durable own-db erasure per granted plugin — exactly
+  // like a full account deletion (otherwise a deleted guest's plugin data lingers).
+  erasePluginUserData(guestUserId);
   // Deleting the guest's users row cascades its membership and every assignment join
   // (trip_members, budget/packing/assignment links) via the ON DELETE foreign keys.
   db.prepare('DELETE FROM users WHERE id = ? AND is_guest = 1').run(guestUserId);
+  emitUserDeleted(guestUserId); // deliver the erasure to any active plugin now
   return true;
 }
 

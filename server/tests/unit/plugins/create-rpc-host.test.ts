@@ -327,6 +327,19 @@ describe('create-rpc-host wiring', () => {
     expect(a).not.toBe(b);
     closePluginDataDb('transient');
   });
+
+  it('getPluginDataDb recreates a handle that was closed WITHOUT eviction (terminal-failure dispose)', () => {
+    const a = getPluginDataDb('closedcache');
+    expect(a.isOpen()).toBe(true);
+    // simulate the supervisor's dispose() path: close the handle but leave it cached
+    a.close();
+    expect(a.isOpen()).toBe(false);
+    const b = getPluginDataDb('closedcache'); // must NOT return the dead handle
+    expect(b).not.toBe(a);
+    expect(b.isOpen()).toBe(true);
+    expect(b.exec('CREATE TABLE t (v)').changes).toBe(0); // usable again
+    closePluginDataDb('closedcache');
+  });
 });
 
 describe('create-rpc-host — planner write + metadata deps', () => {

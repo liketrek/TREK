@@ -79,6 +79,33 @@ export function isAuditable(method: string): boolean {
   return perm !== undefined && perm !== 'db:own';
 }
 
+// Per-plugin retention cap for the audit table — it lives in the SHARED trek.db, and a
+// busy granted plugin at the sustained RPC rate could otherwise add a million rows a day
+// with no reclaim path. Default 20k rows/plugin (weeks of normal activity), env-tunable;
+// 0 disables pruning. Pruning is chain-SAFE: each retained row's hash still equals
+// sha256(its stored prev_hash + its content), so the retained window stays tamper-evident
+// — only continuity to a now-deleted genesis is lost, which is inherent to any retention.
+const MAX_AUDIT_ROWS = envInt('TREK_PLUGIN_AUDIT_MAX_ROWS', 20_000);
+const PRUNE_EVERY = 500; // amortise the COUNT/DELETE over this many appends per plugin
+const appendsSincePrune = new Map<string, number>();
+
+function envInt(name: string, def: number): number {
+  const raw = process.env[name];
+  if (raw === undefined || raw.trim() === '') return def;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : def;
+}
+
+/** Keep only the newest `MAX_AUDIT_ROWS` rows for a plugin. Called amortised from
+ * appendAudit; exported for tests. No-op when disabled or under the cap. */
+export function pruneAudit(db: AuditDb, pluginId: string, keep = MAX_AUDIT_ROWS): void {
+  if (keep <= 0) return;
+  db.prepare(
+    `DELETE FROM plugin_capability_audit WHERE plugin_id = ? AND id NOT IN
+       (SELECT id FROM plugin_capability_audit WHERE plugin_id = ? ORDER BY id DESC LIMIT ?)`,
+  ).run(pluginId, pluginId, keep);
+}
+
 /** Append one entry to the per-plugin hash chain. Synchronous (better-sqlite3). */
 export function appendAudit(db: AuditDb, e: AuditEntry): void {
   const prev =
@@ -91,6 +118,10 @@ export function appendAudit(db: AuditDb, e: AuditEntry): void {
   db.prepare(
     'INSERT INTO plugin_capability_audit (plugin_id, acting_user_id, method, resource, code, ts, prev_hash, hash) VALUES (?,?,?,?,?,?,?,?)',
   ).run(e.pluginId, e.actingUserId ?? null, e.method, e.resource ?? null, e.code, ts, prev || null, hash);
+  // Amortised retention: prune roughly every PRUNE_EVERY appends per plugin.
+  const n = (appendsSincePrune.get(e.pluginId) ?? 0) + 1;
+  if (n >= PRUNE_EVERY) { appendsSincePrune.set(e.pluginId, 0); pruneAudit(db, e.pluginId); }
+  else appendsSincePrune.set(e.pluginId, n);
 }
 
 /** Read the most recent audit rows across ALL plugins for one acting user — the

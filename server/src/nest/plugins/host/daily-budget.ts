@@ -18,11 +18,22 @@ export interface DailyBudgetConfig {
   notifyPerDay: number;
 }
 
+/** Read a non-negative integer env override, falling back to `def` only when the
+ * value is absent or malformed. A literal 0 is honoured (disable the broker), which a
+ * `Number(x) || def` would have silently turned back into the default. */
+export function envCap(name: string, def: number): number {
+  const raw = process.env[name];
+  if (raw === undefined || raw.trim() === '') return def;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : def;
+}
+
 // Generous by design — these only bite an abusive/runaway plugin, never a normal
-// one. Overridable via env for a self-hoster who wants tighter or looser caps.
+// one. Overridable via env for a self-hoster who wants tighter or looser caps
+// (set to 0 to disable a broker entirely).
 export const DEFAULT_DAILY_BUDGET: DailyBudgetConfig = {
-  aiPerDay: Number(process.env.TREK_PLUGIN_AI_PER_DAY) || 200,
-  notifyPerDay: Number(process.env.TREK_PLUGIN_NOTIFY_PER_DAY) || 100,
+  aiPerDay: envCap('TREK_PLUGIN_AI_PER_DAY', 200),
+  notifyPerDay: envCap('TREK_PLUGIN_NOTIFY_PER_DAY', 100),
 };
 
 export type BudgetKind = 'ai' | 'notify';

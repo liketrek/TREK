@@ -7,7 +7,8 @@ import { db, closeDb, reinitialize } from '../db/database';
 import * as scheduler from '../scheduler';
 import { invalidatePermissionsCache } from './permissions';
 import { pluginsCodeRoot, pluginsDataRoot } from '../nest/plugins/paths';
-import { stageExtractedPluginTrees } from '../nest/plugins/plugin-backup';
+import { stageExtractedPluginTrees, applyStagedRestoreNow } from '../nest/plugins/plugin-backup';
+import { checkpointAllPluginDataDbs } from '../nest/plugins/host/plugin-data.service';
 
 // ---------------------------------------------------------------------------
 // Paths
@@ -33,8 +34,22 @@ if (rawBackupUploadLimit) {
 }
 export const MAX_BACKUP_UPLOAD_SIZE = backupUploadLimitMb * 1024 * 1024; // compressed
 // Upper bound on the TOTAL decompressed size of a restore archive (the upload
-// limit only caps the compressed bytes). Generous enough for any real backup.
-export const MAX_BACKUP_DECOMPRESSED_SIZE = 5 * 1024 * 1024 * 1024; // 5 GB
+// limit only caps the compressed bytes). Default 5 GB, raisable via
+// BACKUP_MAX_DECOMPRESSED_MB for an instance whose own backups (now including the
+// plugin trees) legitimately grow past it — otherwise its own backups become
+// unrestorable. Invalid values warn and fall back to the default.
+const DEFAULT_BACKUP_DECOMPRESSED_MB = 5 * 1024;
+const rawDecompressedLimit = process.env.BACKUP_MAX_DECOMPRESSED_MB?.trim();
+let backupDecompressedMb = DEFAULT_BACKUP_DECOMPRESSED_MB;
+if (rawDecompressedLimit) {
+  const parsed = Number(rawDecompressedLimit);
+  if (Number.isFinite(parsed) && parsed > 0) {
+    backupDecompressedMb = parsed;
+  } else {
+    console.warn(`BACKUP_MAX_DECOMPRESSED_MB="${rawDecompressedLimit}" is not a positive number. Falling back to ${DEFAULT_BACKUP_DECOMPRESSED_MB} MB.`);
+  }
+}
+export const MAX_BACKUP_DECOMPRESSED_SIZE = backupDecompressedMb * 1024 * 1024;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -205,11 +220,14 @@ export async function createBackup(): Promise<BackupInfo> {
         );
       }
 
-      // Plugin data — each plugin's own SQLite file (+ its WAL sidecars, so SQLite
-      // recovers a consistent snapshot on restore) and any blobs. This is the ONLY
-      // copy of the user data a plugin holds, so it belongs in the backup.
+      // Plugin data — each plugin's own SQLite file and any blobs. This is the ONLY
+      // copy of the user data a plugin holds, so it belongs in the backup. Checkpoint
+      // every open handle first (the host keeps them open in WAL mode) so the archived
+      // .db files are complete snapshots and not missing recent commits stranded in a
+      // -wal sidecar — the same treatment travel.db gets above.
       const pdata = pluginsDataRoot();
       if (fs.existsSync(pdata)) {
+        checkpointAllPluginDataDbs();
         archive.directory(pdata, 'plugins-data');
       }
       // Plugin code — so a restore is self-contained (the `plugins` rows reference it).
@@ -342,12 +360,16 @@ export async function restoreFromZip(zipPath: string): Promise<RestoreResult> {
         fs.cpSync(extractedUploads, fs.realpathSync(uploadsDir), { recursive: true, force: true });
       }
 
-      // Plugin trees can't be swapped live — the runtime holds each plugin DB open —
-      // so stage them beside the live trees. applyStagedPluginTrees swaps them in at the
-      // next boot, before the runtime opens anything (like the bundled encryption key,
-      // which also only takes effect on restart). A backup without plugin trees stages
-      // nothing. Best-effort: a staging error must not fail an otherwise-good restore.
-      try { stageExtractedPluginTrees(extractDir); } catch (e) { console.error('Restore: staging plugin trees failed:', e); }
+      // Plugin trees can't be swapped while the runtime holds their DBs open, so stage
+      // them beside the live trees, then ask the runtime to quiesce its plugins and apply
+      // the swap NOW. If the runtime isn't up (plugins disabled / restore during boot),
+      // the staging waits for the boot reconcile — with nothing running, no data diverges.
+      // Best-effort: a staging error must not fail an otherwise-good core restore.
+      try {
+        if (stageExtractedPluginTrees(extractDir)) await applyStagedRestoreNow();
+      } catch (e) {
+        console.error('Restore: staging plugin trees failed:', e);
+      }
     } finally {
       // Reopening the DB must always run (even if the copy above threw) so the
       // process is never left without a connection. Capture a reopen failure

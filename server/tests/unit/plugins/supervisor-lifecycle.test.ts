@@ -175,7 +175,7 @@ describe('supervisor buffers events across a restart and replays on activation',
 describe('supervisor GDPR user-data hooks are grant- and status-gated', () => {
   const withGrant = (status: string) => ({ id: 'p', status, granted: new Set(['hook:user-data']) });
 
-  it('deliverUserErasure ACKs only for an active, granted plugin', async () => {
+  it('deliverUserErasure ACKs for an active plugin (a queued erasure is a duty, not grant-gated)', async () => {
     const { s } = makeSupervisor();
     const invoke = vi.fn(() => Promise.resolve({}));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -190,10 +190,11 @@ describe('supervisor GDPR user-data hooks are grant- and status-gated', () => {
     invoke.mockClear();
     expect(await s.deliverUserErasure('p', 42)).toBe(false);
     expect(invoke).not.toHaveBeenCalled();
-    // active but WITHOUT the grant → refused
+    // active but the grant was later DROPPED → still delivered (the row was enqueued
+    // while it held the grant; refusing would strand the user's data forever)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (s as any).running.set('p', { id: 'p', status: 'active', granted: new Set() });
-    expect(await s.deliverUserErasure('p', 42)).toBe(false);
+    expect(await s.deliverUserErasure('p', 42)).toBe(true);
   });
 
   it('deliverUserErasure resolves false when the child errors (so the row is retried)', async () => {

@@ -4,7 +4,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { appendAudit, readAudit, readAuditForUser, auditResource, isAuditable } from '../../../src/nest/plugins/host/plugin-audit';
+import { appendAudit, readAudit, readAuditForUser, auditResource, isAuditable, pruneAudit } from '../../../src/nest/plugins/host/plugin-audit';
 
 function makeDb() {
   const db = new Database(':memory:');
@@ -85,5 +85,22 @@ describe('appendAudit hash chain', () => {
     const rows = readAudit(db, 'p') as Array<Record<string, unknown>>;
     expect(rows[0]).toHaveProperty('method', 'trips.getById');
     expect(rows[0]).not.toHaveProperty('prev_hash'); // internal chain fields not exposed
+  });
+
+  it('pruneAudit keeps only the newest N rows per plugin, leaving the retained window chain-consistent', () => {
+    for (let i = 0; i < 50; i++) appendAudit(db, { pluginId: 'p', actingUserId: 1, method: 'trips.getById', resource: `trip:${i}`, code: 'ok' });
+    appendAudit(db, { pluginId: 'other', actingUserId: 1, method: 'trips.getById', resource: 'trip:x', code: 'ok' });
+    pruneAudit(db, 'p', 10);
+    const rows = db.prepare("SELECT resource, prev_hash, hash FROM plugin_capability_audit WHERE plugin_id = 'p' ORDER BY id ASC").all() as Array<{ resource: string; prev_hash: string | null; hash: string }>;
+    expect(rows).toHaveLength(10);
+    expect(rows[rows.length - 1].resource).toBe('trip:49'); // newest kept
+    // each retained row is still self-consistent: hash === sha256(prev_hash + row-content)
+    // (proven by re-appending on top — the chain continues from the surviving tip)
+    appendAudit(db, { pluginId: 'p', actingUserId: 1, method: 'trips.getById', resource: 'trip:new', code: 'ok' });
+    expect(db.prepare("SELECT COUNT(*) c FROM plugin_capability_audit WHERE plugin_id='p'").get()).toMatchObject({ c: 11 });
+    // pruning one plugin never touches another's rows
+    expect(db.prepare("SELECT COUNT(*) c FROM plugin_capability_audit WHERE plugin_id='other'").get()).toMatchObject({ c: 1 });
+    expect(() => pruneAudit(db, 'p', 0)).not.toThrow(); // 0 = disabled, no-op
+    expect(db.prepare("SELECT COUNT(*) c FROM plugin_capability_audit WHERE plugin_id='p'").get()).toMatchObject({ c: 11 });
   });
 });

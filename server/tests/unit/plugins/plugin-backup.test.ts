@@ -8,7 +8,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { stageExtractedPluginTrees, applyStagedPluginTrees } from '../../../src/nest/plugins/plugin-backup';
+import { stageExtractedPluginTrees, applyStagedPluginTrees, setStagedRestoreApplier, applyStagedRestoreNow } from '../../../src/nest/plugins/plugin-backup';
 
 let root: string;
 beforeEach(() => {
@@ -68,6 +68,36 @@ describe('plugin backup staging + boot reconcile', () => {
     expect(applyStagedPluginTrees()).toEqual(['plugins-data']);
     expect(read(path.join(root, 'plugins-data', 'newplug', 'plugin.db'))).toBe('DATA');
     expect(fs.existsSync(path.join(root, 'plugins-data.restore'))).toBe(false);
+  });
+
+  it('the swap replaces real entries but PRESERVES a dev-linked plugin the backup excluded', () => {
+    // a real plugin + a dev-linked plugin (junction to an author source outside the root)
+    const authorSrc = path.join(root, 'author-src');
+    write(path.join(authorSrc, 'server', 'index.js'), 'DEV');
+    write(path.join(root, 'plugins', 'real', 'server', 'index.js'), 'OLD-REAL');
+    fs.mkdirSync(path.join(root, 'plugins'), { recursive: true });
+    try { fs.symlinkSync(authorSrc, path.join(root, 'plugins', 'linked'), 'junction'); }
+    catch { return; } // symlink/junction not permitted in this env → skip
+    // a restore staged only the real plugin (dev-links are never in a backup)
+    const extract = path.join(root, 'restore-dl');
+    write(path.join(extract, 'plugins-code', 'real', 'server', 'index.js'), 'NEW-REAL');
+    stageExtractedPluginTrees(extract);
+    expect(applyStagedPluginTrees()).toContain('plugins-code');
+    expect(read(path.join(root, 'plugins', 'real', 'server', 'index.js'))).toBe('NEW-REAL'); // real replaced
+    expect(fs.existsSync(path.join(root, 'plugins', 'linked'))).toBe(true);                    // dev-link kept
+    expect(read(path.join(root, 'plugins', 'linked', 'server', 'index.js'))).toBe('DEV');      // still resolves
+  });
+
+  it('applyStagedRestoreNow runs the registered applier (runtime quiesce), or reports false when none', async () => {
+    expect(await applyStagedRestoreNow()).toBe(false); // no applier registered
+    let ran = false;
+    setStagedRestoreApplier(async () => { ran = true; });
+    expect(await applyStagedRestoreNow()).toBe(true);
+    expect(ran).toBe(true);
+    // an applier that throws is caught and reported as not-applied (falls back to boot reconcile)
+    setStagedRestoreApplier(() => { throw new Error('quiesce failed'); });
+    expect(await applyStagedRestoreNow()).toBe(false);
+    setStagedRestoreApplier(null);
   });
 
   it('a stale staging from an aborted prior restore is overwritten, not merged', () => {
