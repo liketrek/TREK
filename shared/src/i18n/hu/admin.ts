@@ -358,6 +358,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.heroWidget': 'Beszállókártya-widget',
   'admin.plugins.cap.placeSlot': 'Hely részletei',
   'admin.plugins.cap.daySlot': 'Nap részletei',
+  'admin.plugins.cap.replacesTabs': 'Tervező lapokat vált ki',
   'admin.plugins.cap.realtime': 'Valós idejű frissítések',
   'admin.plugins.cap.photos': 'Fotókat biztosít',
   'admin.plugins.cap.calendar': 'Naptáreseményeket biztosít',

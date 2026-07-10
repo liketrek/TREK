@@ -399,6 +399,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.heroWidget': 'Boarding-pass widget',
   'admin.plugins.cap.placeSlot': 'Place detail',
   'admin.plugins.cap.daySlot': 'Day detail',
+  'admin.plugins.cap.replacesTabs': 'Replaces planner tabs',
   'admin.plugins.cap.realtime': 'Real-time updates',
   'admin.plugins.cap.photos': 'Provides photos',
   'admin.plugins.cap.calendar': 'Provides calendar events',

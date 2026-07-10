@@ -339,6 +339,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.heroWidget': '登机牌小组件',
   'admin.plugins.cap.placeSlot': '地点详情',
   'admin.plugins.cap.daySlot': '日程详情',
+  'admin.plugins.cap.replacesTabs': '替换行程规划标签页',
   'admin.plugins.cap.realtime': '实时更新',
   'admin.plugins.cap.photos': '提供照片',
   'admin.plugins.cap.calendar': '提供日历事件',

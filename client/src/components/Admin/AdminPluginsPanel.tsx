@@ -139,7 +139,7 @@ interface Cap { icon: React.ComponentType<{ size?: number; className?: string }>
 
 // Turn a plugin's declared permissions + capabilities into the at-a-glance chips
 // that make its real reach legible without opening the detail dialog.
-function deriveCaps(perms: string[], caps: { widget?: { slot?: string } }, t: T): Cap[] {
+function deriveCaps(perms: string[], caps: { widget?: { slot?: string }; tripPage?: { replaces?: string[] } }, t: T): Cap[] {
   const out: Cap[] = []
   if (perms.includes('db:read:trips')) out.push({ icon: Database, label: t('admin.plugins.cap.readsTrips') })
   if (perms.includes('db:read:users')) out.push({ icon: Users, label: t('admin.plugins.cap.readsUsers') })
@@ -159,6 +159,8 @@ function deriveCaps(perms: string[], caps: { widget?: { slot?: string } }, t: T)
       : 'admin.plugins.cap.widget'
     out.push({ icon: LayoutDashboard, label: t(slotKey as never) })
   }
+  // Replacing planner tabs is the one capability that HIDES core UI — always chip it.
+  if (caps.tripPage?.replaces?.length) out.push({ icon: LayoutDashboard, label: t('admin.plugins.cap.replacesTabs') })
   if (perms.some(p => p.startsWith('ws:broadcast'))) out.push({ icon: Radio, label: t('admin.plugins.cap.realtime') })
   if (perms.includes('hook:photo-provider')) out.push({ icon: Image, label: t('admin.plugins.cap.photos') })
   if (perms.includes('hook:calendar-source')) out.push({ icon: CalendarDays, label: t('admin.plugins.cap.calendar') })

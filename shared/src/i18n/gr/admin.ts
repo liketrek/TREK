@@ -404,6 +404,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.heroWidget': 'Widget κάρτας επιβίβασης',
   'admin.plugins.cap.placeSlot': 'Λεπτομέρειες τόπου',
   'admin.plugins.cap.daySlot': 'Λεπτομέρειες ημέρας',
+  'admin.plugins.cap.replacesTabs': 'Αντικαθιστά καρτέλες του σχεδιαστή',
   'admin.plugins.cap.realtime': 'Ενημερώσεις σε πραγματικό χρόνο',
   'admin.plugins.cap.photos': 'Παρέχει φωτογραφίες',
   'admin.plugins.cap.calendar': 'Παρέχει συμβάντα ημερολογίου',

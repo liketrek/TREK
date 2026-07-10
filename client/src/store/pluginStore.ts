@@ -13,6 +13,10 @@ export interface ActivePlugin {
   type: 'integration' | 'page' | 'widget' | 'trip-page'
   icon: string | null
   slot?: 'sidebar' | 'hero' | 'place-detail' | 'day-detail'
+  /** How a trip-page plugin sits in the planner tab bar: which core tabs it
+   * replaces while active ('plan' never — enforced server-side) and its
+   * preferred 0-based tab index. */
+  tripPage?: { replaces?: string[]; position?: number }
 }
 
 interface PluginState {

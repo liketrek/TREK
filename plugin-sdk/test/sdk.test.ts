@@ -68,6 +68,13 @@ describe('validateManifest', () => {
     expect(r.ok).toBe(true);
     expect(r.manifest?.permissions).toEqual(permissions);
   });
+  it('validates tripPage: replaceable tabs only (never plan), position 0-50', () => {
+    const page = { ...base, type: 'trip-page' };
+    expect(validateManifest({ ...page, capabilities: { tripPage: { replaces: ['transports', 'buchungen'], position: 1 } } }).ok).toBe(true);
+    expect(validateManifest({ ...page, capabilities: { tripPage: { replaces: ['plan'] } } }).ok).toBe(false);
+    expect(validateManifest({ ...page, capabilities: { tripPage: { replaces: ['nope'] } } }).ok).toBe(false);
+    expect(validateManifest({ ...page, capabilities: { tripPage: { position: -1 } } }).ok).toBe(false);
+  });
 });
 
 describe('createMockHost', () => {

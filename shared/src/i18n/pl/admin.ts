@@ -353,6 +353,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.heroWidget': 'Widget karty pokładowej',
   'admin.plugins.cap.placeSlot': 'Szczegóły miejsca',
   'admin.plugins.cap.daySlot': 'Szczegóły dnia',
+  'admin.plugins.cap.replacesTabs': 'Zastępuje karty planera',
   'admin.plugins.cap.realtime': 'Aktualizacje na żywo',
   'admin.plugins.cap.photos': 'Dostarcza zdjęcia',
   'admin.plugins.cap.calendar': 'Dostarcza wydarzenia kalendarza',

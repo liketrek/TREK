@@ -350,6 +350,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.heroWidget': 'Widget de cartão de embarque',
   'admin.plugins.cap.placeSlot': 'Detalhe do local',
   'admin.plugins.cap.daySlot': 'Detalhe do dia',
+  'admin.plugins.cap.replacesTabs': 'Substitui abas do planejador',
   'admin.plugins.cap.realtime': 'Atualizações em tempo real',
   'admin.plugins.cap.photos': 'Fornece fotos',
   'admin.plugins.cap.calendar': 'Fornece eventos de calendário',

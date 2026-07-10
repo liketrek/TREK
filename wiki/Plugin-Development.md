@@ -112,7 +112,12 @@ permissions still requires explicit re-consent).
   trip alongside Plan / Transports / Files. The frame is the same sandboxed iframe as
   a `page`, but it receives the current `tripId` in `trek:context` (so you can scope
   data to the open trip) and it has no dashboard nav entry. The tab shows on desktop
-  and mobile.
+  and mobile. Via `capabilities.tripPage` the plugin can also **take over core tabs**:
+  `replaces: ['transports', 'buchungen', …]` hides the named tabs while the plugin is
+  active (they return the moment it's deactivated; `plan` is never replaceable), and
+  `position` picks the 0-based index of your tab in the bar instead of appending it.
+  A plugin that replaces tabs gets a "Replaces planner tabs" chip in the admin list,
+  so the takeover is visible before activation.
 
 ## The SDK package
 
@@ -739,6 +744,7 @@ for anything your plugin publishes via `ctx.events.emit`.
 | `permissions` | string[] | see below. |
 | `egress` | string[] | allowed outbound hosts; required (non-empty, no bare `*`) when any `http:outbound` permission is present. |
 | `capabilities.widget` | object | `{ title, slot, defaultSize }` — `slot` is `sidebar` (default), `hero`, `place-detail`, or `day-detail`. |
+| `capabilities.tripPage` | object | `{ replaces?, position? }` for `trip-page` plugins — `replaces` names core planner tabs to hide while active (`transports`, `buchungen`, `listen`, `finanzplan`, `dateien`, `collab`; never `plan`), `position` is the tab's 0-based index in the bar (0–50; omitted = appended). |
 | `capabilities.provides` | string[] | function names this plugin exposes to its dependents via `ctx.plugins.call` (see [Talking to other plugins](#talking-to-other-plugins)). |
 | `capabilities.emits` | string[] | event names this plugin publishes to its dependents via `ctx.events.emit`. |
 | `requiredAddons` | string[] | addon ids that must be **enabled** for the plugin to activate (see [Dependencies](#dependencies)). |

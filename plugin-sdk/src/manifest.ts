@@ -101,10 +101,24 @@ export function validateManifest(raw: unknown): ValidationResult {
   if (egress.includes('*')) errors.push('egress[] must not contain a bare "*"');
   for (const h of egress) if (!HOST_RE.test(h)) errors.push(`invalid egress host "${h}"`);
 
-  const capabilities = (m.capabilities ?? undefined) as { widget?: { slot?: unknown }; provides?: unknown; emits?: unknown } | undefined;
+  const capabilities = (m.capabilities ?? undefined) as { widget?: { slot?: unknown }; tripPage?: { replaces?: unknown; position?: unknown }; provides?: unknown; emits?: unknown } | undefined;
   const widget = capabilities?.widget;
   if (widget?.slot !== undefined && widget.slot !== 'sidebar' && widget.slot !== 'hero' && widget.slot !== 'place-detail' && widget.slot !== 'day-detail') {
     errors.push(`widget slot must be "sidebar", "hero", "place-detail" or "day-detail", got "${String(widget.slot)}"`);
+  }
+  // Mirrors the server's REPLACEABLE_TABS — 'plan' is never replaceable.
+  const tripPage = capabilities?.tripPage;
+  if (tripPage !== undefined) {
+    const REPLACEABLE = ['transports', 'buchungen', 'listen', 'finanzplan', 'dateien', 'collab'];
+    if (tripPage.replaces !== undefined) {
+      if (!Array.isArray(tripPage.replaces)) errors.push('capabilities.tripPage.replaces must be an array');
+      else for (const t of tripPage.replaces) {
+        if (typeof t !== 'string' || !REPLACEABLE.includes(t)) errors.push(`capabilities.tripPage.replaces: "${String(t)}" is not a replaceable tab (${REPLACEABLE.join(', ')})`);
+      }
+    }
+    if (tripPage.position !== undefined && (typeof tripPage.position !== 'number' || !Number.isInteger(tripPage.position) || tripPage.position < 0 || tripPage.position > 50)) {
+      errors.push('capabilities.tripPage.position must be an integer between 0 and 50');
+    }
   }
   validateCapabilityNames(capabilities?.provides, 'provides', errors);
   validateCapabilityNames(capabilities?.emits, 'emits', errors);

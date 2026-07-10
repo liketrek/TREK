@@ -101,6 +101,9 @@ export function useTripPlanner() {
   const tripPagePlugins = allPlugins.filter(p => p.type === 'trip-page')
   const tripPluginIds = tripPagePlugins.map(p => p.id).join(',')
 
+  // A trip-page plugin may replace core tabs while it's active (its manifest names
+  // them; 'plan' is never replaceable) and may pick where its own tab sits.
+  const replacedTabs = new Set(tripPagePlugins.flatMap(p => p.tripPage?.replaces ?? []))
   const TRIP_TABS = [
     { id: 'plan', label: t('trip.tabs.plan'), icon: Map },
     { id: 'transports', label: t('trip.tabs.transports'), icon: Train },
@@ -109,8 +112,12 @@ export function useTripPlanner() {
     ...(enabledAddons.budget ? [{ id: 'finanzplan', label: t('trip.tabs.budget'), icon: Wallet }] : []),
     ...(enabledAddons.documents ? [{ id: 'dateien', label: t('trip.tabs.files'), icon: FolderOpen }] : []),
     ...(enabledAddons.collab ? [{ id: 'collab', label: t('admin.addons.catalog.collab.name'), icon: Users }] : []),
-    ...tripPagePlugins.map(p => ({ id: `plugin:${p.id}`, label: p.name, icon: Blocks })),
-  ]
+  ].filter(tab => tab.id === 'plan' || !replacedTabs.has(tab.id))
+  // Positioned plugin tabs splice in ascending order so two positions stay stable;
+  // the rest append, exactly as before this capability existed.
+  const positioned = tripPagePlugins.filter(p => p.tripPage?.position != null).sort((a, b) => (a.tripPage!.position! - b.tripPage!.position!))
+  for (const p of positioned) TRIP_TABS.splice(Math.min(p.tripPage!.position!, TRIP_TABS.length), 0, { id: `plugin:${p.id}`, label: p.name, icon: Blocks })
+  for (const p of tripPagePlugins.filter(p => p.tripPage?.position == null)) TRIP_TABS.push({ id: `plugin:${p.id}`, label: p.name, icon: Blocks })
 
   const [activeTab, setActiveTab] = useState<string>(() => {
     const saved = sessionStorage.getItem(`trip-tab-${tripId}`)

@@ -6,6 +6,7 @@ import { resetAllStores, seedStore } from '../../tests/helpers/store';
 import { buildUser, buildTrip, buildDay, buildPlace, buildAssignment } from '../../tests/helpers/factories';
 import { useAuthStore } from '../store/authStore';
 import { useTripStore } from '../store/tripStore';
+import { usePluginStore } from '../store/pluginStore';
 import TripPlannerPage from './TripPlannerPage';
 import { server } from '../../tests/helpers/msw/server';
 import { http, HttpResponse } from 'msw';
@@ -1330,6 +1331,43 @@ describe('TripPlannerPage', () => {
       renderPlannerPage(42);
 
       // The useEffect should detect the invalid tab and reset it
+      await waitFor(() => {
+        expect(sessionStorage.getItem('trip-tab-42')).toBe('plan');
+      });
+    });
+  });
+
+  describe('FE-PAGE-PLANNER-048: trip-page plugins can replace core tabs and pick a position', () => {
+    afterEach(() => usePluginStore.setState({ plugins: [], loaded: false }));
+
+    it('hides the replaced core tab and splices the plugin tab at its position', async () => {
+      usePluginStore.setState({
+        plugins: [{ id: 'transit-pro', name: 'Transit Pro', type: 'trip-page', icon: null, tripPage: { replaces: ['transports'], position: 1 } }],
+        loaded: true,
+      });
+      seedTripStore({ id: 42 });
+
+      renderPlannerPage(42);
+
+      // the plugin tab is present, the replaced Transports tab is not (the splash
+      // screen holds the page for 1.5s, so give the query room)
+      const pluginTab = await screen.findByTitle('Transit Pro', {}, { timeout: 4000 });
+      expect(pluginTab).toBeInTheDocument();
+      expect(screen.queryByTitle('Transports')).not.toBeInTheDocument();
+      // an unreplaced core tab stays reachable
+      expect(screen.getByTitle('Bookings')).toBeInTheDocument();
+    });
+
+    it('a saved session tab that a plugin replaced resets to plan once plugins load', async () => {
+      sessionStorage.setItem('trip-tab-42', 'transports');
+      usePluginStore.setState({
+        plugins: [{ id: 'transit-pro', name: 'Transit Pro', type: 'trip-page', icon: null, tripPage: { replaces: ['transports'] } }],
+        loaded: true,
+      });
+      seedTripStore({ id: 42 });
+
+      renderPlannerPage(42);
+
       await waitFor(() => {
         expect(sessionStorage.getItem('trip-tab-42')).toBe('plan');
       });

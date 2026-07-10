@@ -29,8 +29,17 @@ export interface WidgetCapability {
   slot?: 'sidebar' | 'hero' | 'place-detail' | 'day-detail';
 }
 
+/** How a trip-page plugin sits in the planner's tab bar. */
+export interface TripPageCapability {
+  /** Core planner tabs hidden while this plugin is active ('plan' can never be replaced). */
+  replaces?: string[];
+  /** Preferred 0-based index for the plugin's tab; omitted = appended after the core tabs. */
+  position?: number;
+}
+
 export interface PluginCapabilities {
   widget?: WidgetCapability;
+  tripPage?: TripPageCapability;
   /** Function names this plugin exposes to its dependents via ctx.plugins.call. */
   provides?: string[];
   /** Event names this plugin publishes to its dependents via ctx.events.emit. */
@@ -199,12 +208,39 @@ function parseCapabilities(raw: unknown): PluginCapabilities {
       slot: (slot as WidgetCapability['slot']) ?? 'sidebar',
     };
   }
+  if (c.tripPage && typeof c.tripPage === 'object') {
+    const tp = c.tripPage as Record<string, unknown>;
+    const page: TripPageCapability = {};
+    if (tp.replaces !== undefined) {
+      if (!Array.isArray(tp.replaces)) throw new ManifestError('capabilities.tripPage.replaces must be an array');
+      const replaces: string[] = [];
+      for (const v of tp.replaces) {
+        if (typeof v !== 'string' || !REPLACEABLE_TABS.includes(v)) {
+          throw new ManifestError(`capabilities.tripPage.replaces: "${String(v)}" is not a replaceable tab (${REPLACEABLE_TABS.join(', ')})`);
+        }
+        if (!replaces.includes(v)) replaces.push(v);
+      }
+      if (replaces.length) page.replaces = replaces;
+    }
+    if (tp.position !== undefined) {
+      if (typeof tp.position !== 'number' || !Number.isInteger(tp.position) || tp.position < 0 || tp.position > 50) {
+        throw new ManifestError('capabilities.tripPage.position must be an integer between 0 and 50');
+      }
+      page.position = tp.position;
+    }
+    if (Object.keys(page).length) out.tripPage = page;
+  }
   const provides = parseCapabilityNames(c.provides, 'provides');
   if (provides.length) out.provides = provides;
   const emits = parseCapabilityNames(c.emits, 'emits');
   if (emits.length) out.emits = emits;
   return out;
 }
+
+// Core planner tabs a trip-page plugin may replace while it is active. 'plan' is
+// deliberately NOT in this list — a trip always keeps its planner view, so a
+// plugin can take over bookings/transports/…, never the whole trip.
+const REPLACEABLE_TABS = ['transports', 'buchungen', 'listen', 'finanzplan', 'dateien', 'collab'];
 
 /** Validate a `provides`/`emits` array: de-duplicated, well-formed names. */
 function parseCapabilityNames(raw: unknown, field: string): string[] {

@@ -367,6 +367,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.heroWidget': 'أداة بطاقة الصعود',
   'admin.plugins.cap.placeSlot': 'تفاصيل المكان',
   'admin.plugins.cap.daySlot': 'تفاصيل اليوم',
+  'admin.plugins.cap.replacesTabs': 'يستبدل تبويبات المخطط',
   'admin.plugins.cap.realtime': 'تحديثات فورية',
   'admin.plugins.cap.photos': 'يوفّر الصور',
   'admin.plugins.cap.calendar': 'يوفّر أحداث التقويم',
