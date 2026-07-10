@@ -24,6 +24,10 @@ export interface PluginContext {
     query<T = unknown>(sql: string, ...args: unknown[]): Promise<T[]>;
     exec(sql: string, ...args: unknown[]): Promise<{ changes: number }>;
     migrate(id: string, sql: string): Promise<{ applied: boolean }>;
+    /** Run several statements atomically on your OWN db — all commit or all roll
+     * back. Each op is one statement; reads see the batch's own earlier writes.
+     * A read returns `{ rows }`, a write `{ changes }`. Max 100 statements. */
+    tx(ops: Array<{ sql: string; args?: unknown[] }>): Promise<{ results: Array<{ changes?: number; rows?: unknown[] }> }>;
   };
   trips: {
     // `asUserId` is accepted for source compatibility but IGNORED by the host —
@@ -534,6 +538,7 @@ export function createPluginContext(
       query: (sql, ...args) => t.rpc('db.query', { sql, args }) as Promise<never[]>,
       exec: (sql, ...args) => t.rpc('db.exec', { sql, args }) as Promise<{ changes: number }>,
       migrate: (mid, sql) => t.rpc('db.migrate', { id: mid, sql }) as Promise<{ applied: boolean }>,
+      tx: (ops) => t.rpc('db.tx', { ops }) as Promise<{ results: Array<{ changes?: number; rows?: unknown[] }> }>,
     },
     trips: {
       getById: (tripId) => t.rpc('trips.getById', { tripId, _inv: invocationId }),

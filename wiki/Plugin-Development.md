@@ -203,7 +203,7 @@ declaration for readers — the manifest parser does not consume it.
 
 | Area | Methods | Requires |
 |---|---|---|
-| `ctx.db` | `query(sql, …args)` / `exec(sql, …args)` / `migrate(id, sql)` against your **own** SQLite file | `db:own` |
+| `ctx.db` | `query(sql, …args)` / `exec(sql, …args)` / `migrate(id, sql)` / `tx(ops)` against your **own** SQLite file. `tx([{sql, args?}, …])` runs up to 100 statements in one transaction (all commit or all roll back; reads see the batch's own earlier writes) → `{ results: [{changes?}|{rows?}, …] }` | `db:own` |
 | `ctx.trips` | `getById` / `getPlaces` / `getReservations` / `getDays` / `getAccommodations` / `listMine()` — enumerate every trip the acting user can access (membership-checked). `getDays` includes each day's `assignments` + `notes_items`; `getReservations` includes `endpoints` + `day_positions` | `db:read:trips` |
 | `ctx.trips.update(tripId, fields)` | update trip fields (title/dates/currency/reminder_days/…) | `db:write:trips` |
 | `ctx.trips.create(input)` | create a **new trip owned by the acting user** (importers) — `title` required, plus `description?`/`start_date?`/`end_date?`/`currency?`/`reminder_days?`/`day_count?` | `db:create:trips` (+ `trip_create`) |

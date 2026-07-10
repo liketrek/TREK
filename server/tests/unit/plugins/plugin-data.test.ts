@@ -59,6 +59,34 @@ describe('PluginDataDb', () => {
     db.close();
   });
 
+  it('tx runs a batch atomically — reads see earlier writes, and any error rolls the whole batch back', () => {
+    const db = new PluginDataDb('txn');
+    db.migrate('001', 'CREATE TABLE acct (id INTEGER PRIMARY KEY, bal INTEGER)');
+    db.exec('INSERT INTO acct (id, bal) VALUES (1, 100), (2, 0)');
+
+    // happy path: a transfer as one atomic batch; the SELECT sees the batch's writes
+    const out = db.tx([
+      { sql: 'UPDATE acct SET bal = bal - 40 WHERE id = ?', args: [1] },
+      { sql: 'UPDATE acct SET bal = bal + 40 WHERE id = ?', args: [2] },
+      { sql: 'SELECT id, bal FROM acct ORDER BY id' },
+    ]);
+    expect(out.results[0]).toEqual({ changes: 1 });
+    expect(out.results[2]).toEqual({ rows: [{ id: 1, bal: 60 }, { id: 2, bal: 40 }] });
+
+    // failure path: a later statement throws → the earlier write must NOT persist
+    expect(() => db.tx([
+      { sql: 'UPDATE acct SET bal = 0 WHERE id = ?', args: [1] },
+      { sql: 'INSERT INTO nonexistent (x) VALUES (1)' },
+    ])).toThrow();
+    expect(db.query('SELECT bal FROM acct WHERE id = 1')).toEqual([{ bal: 60 }]); // unchanged
+
+    // guard + caps apply inside a batch too
+    expect(() => db.tx([{ sql: "ATTACH DATABASE 'x' AS y" }])).toThrow(/not allowed/);
+    expect(() => db.tx(Array.from({ length: 101 }, () => ({ sql: 'SELECT 1' })))).toThrow(/at most/);
+    expect(db.tx([]).results).toEqual([]);
+    db.close();
+  });
+
   it('removePluginData deletes the whole data dir', () => {
     const db = new PluginDataDb('temp');
     db.migrate('001', 'CREATE TABLE t (id INTEGER)');

@@ -299,6 +299,24 @@ describe('create-rpc-host wiring', () => {
     expect(broadcastToUser).toHaveBeenCalledWith(5, { type: 'plugin:wired', event: 'hi' });
   });
 
+  it('db.tx dispatches an atomic batch through to the plugin db under db:own', async () => {
+    const host = createRealRpcHost('wtx', new Set(['db:own']));
+    await host.dispatch({ k: 'req', id: '1', method: 'db.migrate', params: { id: '001', sql: 'CREATE TABLE kv (k TEXT, n INTEGER)' } });
+    const res = await host.dispatch({ k: 'req', id: '2', method: 'db.tx', params: { ops: [
+      { sql: 'INSERT INTO kv (k, n) VALUES (?, ?)', args: ['a', 1] },
+      { sql: 'SELECT n FROM kv WHERE k = ?', args: ['a'] },
+    ] } });
+    expect(res.ok).toBe(true);
+    expect((res as { result: { results: unknown[] } }).result.results).toEqual([{ changes: 1 }, { rows: [{ n: 1 }] }]);
+    // malformed ops → BAD_PARAMS, and no db:own grant → not reachable
+    const bad = await host.dispatch({ k: 'req', id: '3', method: 'db.tx', params: { ops: [{ sql: 42 }] } });
+    expect(bad.ok).toBe(false);
+    const noGrant = createRealRpcHost('wtx2', new Set());
+    expect((await noGrant.dispatch({ k: 'req', id: '4', method: 'db.tx', params: { ops: [] } })).ok).toBe(false);
+    closePluginDataDb('wtx');
+    closePluginDataDb('wtx2');
+  });
+
   it('closePluginDataDb closes and drops the cached handle', () => {
     getPluginDataDb('transient');
     closePluginDataDb('transient');

@@ -33,6 +33,9 @@ const FORBIDDEN = /\b(ATTACH|DETACH|VACUUM|PRAGMA|RECURSIVE|LOAD_EXTENSION)\b/i;
 // recursive CTE / cartesian product can't materialize an unbounded array.
 const QUOTA_BYTES = 256 * 1024 * 1024;
 const MAX_ROWS = 100_000;
+// Cap statements per atomic batch so a single tx() can't monopolise the synchronous
+// host — generous for real write batches, far below anything abusive.
+const MAX_TX_OPS = 100;
 
 export class PluginDataDb {
   private db: Db;
@@ -79,6 +82,39 @@ export class PluginDataDb {
     }
     this.db.exec(sql);
     return { changes: 0 };
+  }
+
+  /**
+   * Atomic batch on the plugin's OWN db: every op runs in a single transaction, so
+   * they all commit or all roll back — the primitive a plugin needs for a consistent
+   * multi-write (e.g. move an item between two tables). Each op is ONE statement;
+   * a read (SELECT/RETURNING) yields `{ rows }`, a write yields `{ changes }`, and
+   * reads within the batch see the batch's own earlier writes (read-modify-write).
+   */
+  tx(ops: Array<{ sql: string; args?: unknown[] }>): { results: Array<{ changes?: number; rows?: unknown[] }> } {
+    if (!Array.isArray(ops)) throw new Error('tx requires an array of { sql, args }');
+    if (ops.length === 0) return { results: [] };
+    if (ops.length > MAX_TX_OPS) throw new Error(`tx allows at most ${MAX_TX_OPS} statements`);
+    for (const op of ops) this.guard(op?.sql);
+    const run = this.db.transaction((batch: Array<{ sql: string; args?: unknown[] }>) => {
+      const results: Array<{ changes?: number; rows?: unknown[] }> = [];
+      for (const op of batch) {
+        const stmt = this.db.prepare(op.sql);
+        const args = (op.args ?? []) as never[];
+        if (stmt.reader) {
+          const rows: unknown[] = [];
+          for (const row of stmt.iterate(...args)) {
+            rows.push(row);
+            if (rows.length > MAX_ROWS) throw new Error(`tx statement returned more than ${MAX_ROWS} rows`);
+          }
+          results.push({ rows });
+        } else {
+          results.push({ changes: stmt.run(...args).changes });
+        }
+      }
+      return results;
+    });
+    return { results: run(ops) };
   }
 
   /** Run a migration once, keyed by id. Re-running with the same id is a no-op. */

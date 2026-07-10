@@ -153,6 +153,17 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
         need('db:own', 'db.migrate');
         return { applied: true };
       },
+      async tx(ops) {
+        need('db:own', 'db.tx');
+        // Mirror the host: reads resolve from queryResults, writes report 0 changes.
+        return {
+          results: ops.map((op) =>
+            /^\s*(SELECT|WITH|VALUES)\b/i.test(op.sql)
+              ? { rows: (opts.queryResults?.[op.sql] ?? []) as unknown[] }
+              : { changes: 0 },
+          ),
+        };
+      },
     },
     trips: {
       async getById(tripId, asUserId) {

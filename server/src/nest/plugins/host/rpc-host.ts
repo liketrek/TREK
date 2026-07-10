@@ -290,6 +290,7 @@ export class PluginRpcHost {
       this.methods.set('db.query', (p) => deps.data.query(str(p.sql, 'sql'), asArgs(p.args)));
       this.methods.set('db.exec', (p) => deps.data.exec(str(p.sql, 'sql'), asArgs(p.args)));
       this.methods.set('db.migrate', (p) => deps.data.migrate(str(p.id, 'id'), str(p.sql, 'sql')));
+      this.methods.set('db.tx', (p) => deps.data.tx(asTxOps(p.ops)));
     }
 
     if (has('db:read:trips')) {
@@ -1271,6 +1272,15 @@ function asArgs(v: unknown): unknown[] {
   if (v == null) return [];
   if (Array.isArray(v)) return v;
   throw new BadParams('args must be an array');
+}
+/** Coerce a db.tx `ops` param into a validated {sql, args}[] before it reaches the
+ * data db — each op must carry a string sql and, if present, an array of args. */
+function asTxOps(v: unknown): Array<{ sql: string; args?: unknown[] }> {
+  if (!Array.isArray(v)) throw new BadParams('ops must be an array of { sql, args }');
+  return v.map((op) => {
+    const o = (op ?? {}) as Record<string, unknown>;
+    return { sql: str(o.sql, 'ops[].sql'), args: asArgs(o.args) };
+  });
 }
 function asPayload(v: unknown): Record<string, unknown> {
   return v && typeof v === 'object' ? (v as Record<string, unknown>) : { value: v };
