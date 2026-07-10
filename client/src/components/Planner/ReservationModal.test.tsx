@@ -782,4 +782,62 @@ describe('ReservationModal', () => {
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     expect(onSave.mock.calls[0][0].assignment_id).toBeNull();
   });
+
+  // ── Hotel address persistence (issue #1496) ─────────────────────────────────
+
+  it('FE-PLANNER-RESMODAL-053: editing a hotel address sends the typed value even with a place linked', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const place = buildPlace({ id: 5, name: 'Grand Hotel', address: 'Old Street 1' });
+    const days = [
+      buildDay({ id: 1, trip_id: 1, date: '2026-05-01', day_number: 1 }),
+      buildDay({ id: 2, trip_id: 1, date: '2026-05-02', day_number: 2 }),
+    ];
+    const res = buildReservation({
+      id: 3, title: 'Grand Hotel', type: 'hotel', accommodation_id: 8,
+    } as any);
+    const acc = { id: 8, trip_id: 1, place_id: 5, start_day_id: 1, end_day_id: 2 } as any;
+
+    render(
+      <ReservationModal
+        {...defaultProps}
+        onSave={onSave}
+        reservation={res}
+        days={days}
+        places={[place]}
+        accommodations={[acc]}
+      />
+    );
+
+    // Address field is pre-filled from the linked place
+    const addressInput = screen.getByPlaceholderText(/Address, Airport/i);
+    expect(addressInput).toHaveValue('Old Street 1');
+
+    await userEvent.clear(addressInput);
+    await userEvent.type(addressInput, 'New Street 2');
+    await userEvent.click(screen.getByRole('button', { name: /^Update$/i }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    const saved = onSave.mock.calls[0][0];
+    // The typed address must reach the save handler — before #1496 it was
+    // dropped whenever a place was linked and the old address reappeared.
+    expect(saved.location).toBe('New Street 2');
+    expect(saved.create_accommodation?.address).toBe('New Street 2');
+    expect(saved.create_accommodation?.place_id).toBe(5);
+  });
+
+  it('FE-PLANNER-RESMODAL-054: hotel address is kept in location when no days or place are set', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<ReservationModal {...defaultProps} onSave={onSave} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /^Accommodation$/i }));
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Hotel Test');
+    await userEvent.type(screen.getByPlaceholderText(/Address, Airport/i), 'Main Road 3');
+    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    const saved = onSave.mock.calls[0][0];
+    // No day range → no accommodation, but the address must not be lost
+    expect(saved.create_accommodation).toBeUndefined();
+    expect(saved.location).toBe('Main Road 3');
+  });
 });

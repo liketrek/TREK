@@ -663,6 +663,18 @@ export function useTripPlanner() {
         acc.place_id = (await resolveImportedPlace(acc.venue)) ?? undefined
         delete acc.venue
       }
+      // A hotel's address lives on the linked place. Write an edited address
+      // through to it, otherwise the typed value was silently dropped and the
+      // old one reappeared on the next open (#1496).
+      if (data.type === 'hotel' && acc && typeof acc.address === 'string') {
+        const address = acc.address.trim()
+        const linkedPlace = acc.place_id ? places.find(p => p.id === Number(acc.place_id)) : undefined
+        if (address && linkedPlace && (linkedPlace.address || '') !== address) {
+          try { await tripActions.updatePlace(tripId, linkedPlace.id, { address }) }
+          catch { /* keep saving the booking; the address still lands in location */ }
+        }
+        delete acc.address
+      }
       if (editingReservation) {
         // Don't force a day here. The old code pinned it to the (often empty)
         // selected day, which dropped the booking out of the Plan; preserving the
