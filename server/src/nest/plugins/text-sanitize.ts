@@ -9,11 +9,15 @@
  * plugin's own sandboxed `/ui` frame — that markup is the author's to design.
  */
 
-// Pictographic emoji + the pieces of emoji SEQUENCES: regional-indicator flag pairs,
-// ZWJ joiners, variation selectors, and combining/enclosing keycap marks. Extended_
-// Pictographic covers the emoji themselves (incl. text-presentation ones); removing the
-// joiners/selectors keeps a compound sequence from leaving stray glue behind.
-const EMOJI_RE = /[\p{Extended_Pictographic}\u{200D}\u{FE00}-\u{FE0F}\u{1F1E6}-\u{1F1FF}\u{20D0}-\u{20FF}]/gu;
+// Pictographic emoji + the pieces of emoji SEQUENCES: regional-indicator flag
+// letters, ZWJ joiners, variation selectors, and combining/enclosing keycap marks.
+// Extended_Pictographic covers the emoji themselves (incl. text-presentation ones);
+// removing the joiners/selectors keeps a compound sequence from leaving stray glue
+// behind. Each escape is an intentional, independent code point to delete — the
+// no-misleading-character-class rule assumes a class means to combine them, which
+// is the opposite of what we want here.
+// eslint-disable-next-line no-misleading-character-class
+const EMOJI_RE = /\p{Extended_Pictographic}|\p{Regional_Indicator}|[\u200D\uFE00-\uFE0F\u20D0-\u20FF]/gu;
 
 /** Remove emojis from a display string and tidy the whitespace they leave behind. */
 export function stripEmoji(s: string): string {
@@ -22,5 +26,8 @@ export function stripEmoji(s: string): string {
 
 /** True if the string contains at least one emoji — used by the dev/validate warnings. */
 export function hasEmoji(s: string): boolean {
+  // EMOJI_RE carries the `g` flag, so .test() advances lastIndex; reset it first
+  // or a second call could resume mid-string and miss a leading emoji.
+  EMOJI_RE.lastIndex = 0;
   return EMOJI_RE.test(s);
 }
