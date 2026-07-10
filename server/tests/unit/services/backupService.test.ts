@@ -351,7 +351,10 @@ describe('BACKUP-036 createBackup', () => {
     fsMock.existsSync.mockImplementation((p: string) => String(p).includes('plugins'));
     fsMock.mkdirSync.mockReturnValue(undefined);
     // Two plugin code dirs: 'notes' is real, 'devlink' resolves outside the root.
-    fsMock.readdirSync.mockReturnValue(['notes', 'devlink'] as never);
+    // The plugin-data snapshot reads with { withFileTypes: true }; hand it Dirent-likes there.
+    const dirent = (name: string) => ({ name, isDirectory: () => true });
+    fsMock.readdirSync.mockImplementation((_p: string, opts?: { withFileTypes?: boolean }) =>
+      (opts?.withFileTypes ? [dirent('notes'), dirent('devlink')] : ['notes', 'devlink']) as never);
     fsMock.realpathSync.mockImplementation((p: string) => (String(p).endsWith('devlink') ? '/somewhere/else/devlink' : p));
     fsMock.statSync.mockReturnValue({ size: 2048, birthtime: new Date('2026-04-06T12:00:00Z'), isDirectory: () => true } as never);
 
@@ -364,8 +367,8 @@ describe('BACKUP-036 createBackup', () => {
 
     await createBackup();
 
-    // whole data tree archived under plugins-data/
-    expect(archiverInstanceMock.directory).toHaveBeenCalledWith(expect.stringContaining('plugins-data'), 'plugins-data');
+    // the consistent snapshot of the data tree is archived under plugins-data/
+    expect(archiverInstanceMock.directory).toHaveBeenCalledWith(expect.stringContaining('plugins-snap'), 'plugins-data');
     // the real code dir is archived, the dev-link is skipped
     expect(archiverInstanceMock.directory).toHaveBeenCalledWith(expect.stringContaining('notes'), 'plugins-code/notes');
     expect(archiverInstanceMock.directory).not.toHaveBeenCalledWith(expect.anything(), 'plugins-code/devlink');

@@ -212,7 +212,15 @@ export interface PluginCallRouter {
 
 export function createRealRpcHost(id: string, granted: ReadonlySet<string>, router: PluginCallRouter): PluginRpcHost {
   return new PluginRpcHost(id, granted, {
-    data: getPluginDataDb(id),
+    // Resolve the data handle lazily on every access rather than capturing it once.
+    // disable()/uninstall() drop the entry from `running` BEFORE awaiting the kill grace
+    // and calling dispose(), so a re-enable in that window builds a NEW host. A captured
+    // handle would let the OLD host's dispose() close the DB out from under the NEW one
+    // (every db.* call then throws 'database connection is not open'). Resolving per call
+    // means the new host always uses the current, open handle — getPluginDataDb recreates
+    // one the moment a stale dispose closes it. Safe because db.* is synchronous, so no
+    // call is ever mid-flight when a dispose from another tick closes the handle.
+    get data() { return getPluginDataDb(id); },
     db,
     canAccessTrip: (tripId, userId) => canAccessTrip(tripId, userId),
     // The router binds this host's plugin id as the caller/source.

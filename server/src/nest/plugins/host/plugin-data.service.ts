@@ -1,7 +1,8 @@
 import fs from 'node:fs';
+import path from 'node:path';
 import Database from 'better-sqlite3';
 import type { Database as Db } from 'better-sqlite3';
-import { pluginDataDir, pluginDbFile } from '../paths';
+import { pluginDataDir, pluginDbFile, pluginsDataRoot } from '../paths';
 
 /**
  * A plugin's own sqlite database (#plugins, db:own). The HOST owns the handle;
@@ -57,8 +58,10 @@ export function checkpointAllPluginDataDbs(): void {
 
 export class PluginDataDb {
   private db: Db;
+  readonly pluginId: string;
 
   constructor(pluginId: string) {
+    this.pluginId = pluginId;
     fs.mkdirSync(pluginDataDir(pluginId), { recursive: true });
     this.db = new Database(pluginDbFile(pluginId));
     this.db.pragma('journal_mode = WAL');
@@ -171,6 +174,16 @@ export class PluginDataDb {
     if (this.db.open) this.db.pragma('wal_checkpoint(TRUNCATE)');
   }
 
+  /** Write a fully-consistent copy of this DB to `destPath` via VACUUM INTO. Unlike a
+   * file copy it folds in the WAL and reads a point-in-time snapshot, so the result is
+   * correct even while the plugin is writing — no torn page, no separate -wal to keep in
+   * sync. This is a host op on the host's own handle, not plugin SQL, so it bypasses the
+   * FORBIDDEN guard by design. */
+  snapshotInto(destPath: string): void {
+    fs.rmSync(destPath, { force: true }); // VACUUM INTO fails if the target already exists
+    this.db.exec(`VACUUM INTO '${destPath.replace(/'/g, "''")}'`);
+  }
+
   close(): void {
     try {
       openDbs.delete(this);
@@ -184,4 +197,40 @@ export class PluginDataDb {
 /** Delete a plugin's data directory (uninstall "delete data"). */
 export function removePluginData(pluginId: string): void {
   fs.rmSync(pluginDataDir(pluginId), { recursive: true, force: true });
+}
+
+/**
+ * Copy every plugin's data dir into `destRoot` as a CONSISTENT snapshot, for a backup to
+ * archive instead of the live tree. An open plugin.db is captured with VACUUM INTO (safe
+ * under concurrent writes); a plugin with no live handle is copied as-is (no writer). The
+ * -wal/-shm sidecars are never copied — the snapshot folds them in, and copying them out
+ * of step with the .db is exactly what produced torn/corrupt restores when the archiver
+ * read the live files lazily while a plugin kept writing. Blobs and any other files a
+ * plugin wrote to its dir are copied verbatim. Best-effort per file; never throws.
+ */
+export function snapshotAllPluginDataDbs(destRoot: string): void {
+  const root = pluginsDataRoot();
+  if (!fs.existsSync(root)) return;
+  const openById = new Map<string, PluginDataDb>();
+  for (const d of openDbs) if (d.isOpen()) openById.set(d.pluginId, d);
+  for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const srcDir = path.join(root, entry.name);
+    const destDir = path.join(destRoot, entry.name);
+    fs.mkdirSync(destDir, { recursive: true });
+    const open = openById.get(entry.name);
+    for (const f of fs.readdirSync(srcDir, { withFileTypes: true })) {
+      if (f.name.endsWith('-wal') || f.name.endsWith('-shm')) continue; // folded into the snapshot
+      const src = path.join(srcDir, f.name);
+      const dest = path.join(destDir, f.name);
+      try {
+        if (f.name === 'plugin.db' && open) {
+          try { open.snapshotInto(dest); continue; }
+          catch { try { open.checkpoint(); } catch { /* ignore */ } } // fall through to a checkpointed file copy
+        }
+        if (f.isDirectory()) fs.cpSync(src, dest, { recursive: true });
+        else fs.copyFileSync(src, dest);
+      } catch { /* skip an unreadable entry rather than fail the whole backup */ }
+    }
+  }
 }

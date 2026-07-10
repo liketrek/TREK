@@ -8,7 +8,7 @@ import * as scheduler from '../scheduler';
 import { invalidatePermissionsCache } from './permissions';
 import { pluginsCodeRoot, pluginsDataRoot } from '../nest/plugins/paths';
 import { stageExtractedPluginTrees, applyStagedRestoreNow } from '../nest/plugins/plugin-backup';
-import { checkpointAllPluginDataDbs } from '../nest/plugins/host/plugin-data.service';
+import { snapshotAllPluginDataDbs } from '../nest/plugins/host/plugin-data.service';
 
 // ---------------------------------------------------------------------------
 // Paths
@@ -168,6 +168,7 @@ export async function createBackup(): Promise<BackupInfo> {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const filename = `backup-${timestamp}.zip`;
   const outputPath = path.join(backupsDir, filename);
+  const pdataSnap = path.join(backupsDir, `.plugins-snap-${timestamp}`);
 
   try {
     try { db.exec('PRAGMA wal_checkpoint(TRUNCATE)'); } catch (e) {}
@@ -227,8 +228,13 @@ export async function createBackup(): Promise<BackupInfo> {
       // -wal sidecar — the same treatment travel.db gets above.
       const pdata = pluginsDataRoot();
       if (fs.existsSync(pdata)) {
-        checkpointAllPluginDataDbs();
-        archive.directory(pdata, 'plugins-data');
+        // Archive a consistent point-in-time snapshot, not the live files: the archiver
+        // reads lazily while streaming, so a plugin writing during the backup (an auto-
+        // checkpoint landing mid-read) would otherwise put a torn .db + out-of-sync -wal
+        // into the zip — the plugin's ONLY data copy, silently corrupt. This VACUUM-INTOs
+        // each open db and drops the sidecars; the snap dir is removed in the finally.
+        snapshotAllPluginDataDbs(pdataSnap);
+        archive.directory(pdataSnap, 'plugins-data');
       }
       // Plugin code — so a restore is self-contained (the `plugins` rows reference it).
       // Dev-links (a plugin dir symlinked/junctioned to an author's source) are skipped
@@ -260,6 +266,10 @@ export async function createBackup(): Promise<BackupInfo> {
     console.error('Backup error:', err);
     if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
     throw err;
+  } finally {
+    // The snapshot was a staging copy for the archiver only; drop it once streaming is done
+    // (the await above resolves on the output stream's 'close', so the archive is complete).
+    fs.rmSync(pdataSnap, { recursive: true, force: true });
   }
 }
 
@@ -366,7 +376,13 @@ export async function restoreFromZip(zipPath: string): Promise<RestoreResult> {
       // the staging waits for the boot reconcile — with nothing running, no data diverges.
       // Best-effort: a staging error must not fail an otherwise-good core restore.
       try {
-        if (stageExtractedPluginTrees(extractDir)) await applyStagedRestoreNow();
+        stageExtractedPluginTrees(extractDir);
+        // Quiesce regardless of whether trees were staged: the restored travel.db carries
+        // a different `plugins` table, so any plugin still running with its pre-restore
+        // identity/grants is now a ghost — invisible in the restored UI, unstoppable short
+        // of a process restart. applyStagedRestoreNow closes those handles; the tree swap
+        // it also performs is a no-op when nothing was staged (e.g. an older archive).
+        await applyStagedRestoreNow();
       } catch (e) {
         console.error('Restore: staging plugin trees failed:', e);
       }
