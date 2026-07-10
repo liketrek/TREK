@@ -334,7 +334,7 @@ export const tripsApi = {
   get: (id: number | string) => apiClient.get(`/trips/${id}`).then(r => r.data),
   update: (id: number | string, data: TripUpdateRequest) => apiClient.put(`/trips/${id}`, data).then(r => r.data),
   delete: (id: number | string) => apiClient.delete(`/trips/${id}`).then(r => r.data),
-  uploadCover: (id: number | string, formData: FormData) => apiClient.post(`/trips/${id}/cover`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data),
+  uploadCover: (id: number | string, formData: FormData) => apiClient.post(`/trips/${id}/cover`, formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 0 }).then(r => r.data),
   searchCoverImages: (query: string) => apiClient.get('/trips/cover-images/search', { params: { query } }).then(r => r.data),
   archive: (id: number | string) => apiClient.put(`/trips/${id}`, { is_archived: true }).then(r => r.data),
   unarchive: (id: number | string) => apiClient.put(`/trips/${id}`, { is_archived: false }).then(r => r.data),
@@ -741,7 +741,7 @@ export const journeyApi = {
   deletePhoto: (photoId: number) => apiClient.delete(`/journeys/photos/${photoId}`).then(r => r.data),
 
   // Cover
-  uploadCover: (id: number, formData: FormData) => apiClient.post(`/journeys/${id}/cover`, formData, { headers: { 'Content-Type': undefined as any } }).then(r => r.data),
+  uploadCover: (id: number, formData: FormData) => apiClient.post(`/journeys/${id}/cover`, formData, { headers: { 'Content-Type': undefined as any }, timeout: 0 }).then(r => r.data),
 
   // Contributors
   addContributor: (id: number, userId: number, role: string) => apiClient.post(`/journeys/${id}/contributors`, { user_id: userId, role }).then(r => r.data),
