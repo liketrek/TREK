@@ -60,6 +60,8 @@ export interface PluginContext {
     members(tripId: number): Promise<User[]>;
     /** Add a user to a trip (GRANTS ACCESS — its own permission). Needs `db:write:members` + the acting user's member_manage. */
     addMember(tripId: number, userId: number): Promise<{ joined: boolean; tripId: number }>;
+    /** Remove a member from a trip (not the owner). Needs `db:write:members` + member_manage. */
+    removeMember(tripId: number, userId: number): Promise<{ removed: boolean }>;
   };
   // Reservations (bookings). `listMine` reads across every accessible trip (needs
   // `db:read:trips`); create/update/delete need `db:write:reservations` + the acting
@@ -200,6 +202,10 @@ export interface PluginContext {
     getEntries(journeyId: number): Promise<unknown[]>;
     /** Create an entry on a journey the acting user can edit. Needs `db:write:journal`. */
     createEntry(journeyId: number, input: { entry_date: string; [k: string]: unknown }): Promise<unknown>;
+    /** Create a journal owned by the acting user (importers bootstrap the journal they fill). Needs `db:write:journal`. */
+    createJourney(input: { title: string; subtitle?: string; trip_ids?: number[] }): Promise<unknown>;
+    /** Delete one of the acting user's journals. Needs `db:write:journal`. */
+    deleteJourney(journeyId: number): Promise<{ deleted: boolean }>;
     /** Update an entry (owner/contributor-gated). Needs `db:write:journal`. */
     updateEntry(entryId: number, input: Record<string, unknown>): Promise<unknown>;
     /** Delete an entry (owner/contributor-gated). Needs `db:write:journal`. */

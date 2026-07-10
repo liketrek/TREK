@@ -53,6 +53,8 @@ export interface PluginContext {
     members(tripId: number): Promise<unknown[]>;
     /** Add a user to a trip (GRANTS ACCESS — its own permission). Needs 'db:write:members' + the acting user's 'member_manage'. */
     addMember(tripId: number, userId: number): Promise<{ joined: boolean; tripId: number }>;
+    /** Remove a member from a trip (not the owner). Needs `db:write:members` + member_manage. */
+    removeMember(tripId: number, userId: number): Promise<{ removed: boolean }>;
   };
   // Reservations (bookings). `listMine` reads across every accessible trip (needs
   // 'db:read:trips'); create/update/delete need 'db:write:reservations' + the acting
@@ -200,6 +202,11 @@ export interface PluginContext {
     updateEntry(entryId: number, input: Record<string, unknown>): Promise<unknown>;
     /** Delete an entry (owner/contributor-gated). Needs 'db:write:journal'. */
     deleteEntry(entryId: number): Promise<{ deleted: boolean }>;
+    /** Create a new journal owned by the acting user (an importer bootstraps the journal
+     * it then fills with entries). Needs 'db:write:journal'. */
+    createJourney(input: { title: string; subtitle?: string; trip_ids?: number[] }): Promise<unknown>;
+    /** Delete one of the acting user's journals. Needs 'db:write:journal'. */
+    deleteJourney(journeyId: number): Promise<{ deleted: boolean }>;
   };
   atlas: {
     /** The acting user's visited countries + regions. Needs 'db:read:atlas' + the atlas addon. */
@@ -563,6 +570,7 @@ export function createPluginContext(
       create: (input) => t.rpc('trips.create', { input, _inv: invocationId }),
       members: (tripId) => t.rpc('trips.members', { tripId, _inv: invocationId }) as Promise<unknown[]>,
       addMember: (tripId, userId) => t.rpc('trips.addMember', { tripId, userId, _inv: invocationId }) as Promise<{ joined: boolean; tripId: number }>,
+      removeMember: (tripId, userId) => t.rpc('trips.removeMember', { tripId, userId, _inv: invocationId }) as Promise<{ removed: boolean }>,
     },
     reservations: {
       listMine: () => t.rpc('reservations.listMine', { _inv: invocationId }) as Promise<unknown[]>,
@@ -646,6 +654,8 @@ export function createPluginContext(
       createEntry: (journeyId, input) => t.rpc('journal.createEntry', { journeyId, input, _inv: invocationId }),
       updateEntry: (entryId, input) => t.rpc('journal.updateEntry', { entryId, input, _inv: invocationId }),
       deleteEntry: (entryId) => t.rpc('journal.deleteEntry', { entryId, _inv: invocationId }) as Promise<{ deleted: boolean }>,
+      createJourney: (input) => t.rpc('journal.createJourney', { input, _inv: invocationId }),
+      deleteJourney: (journeyId) => t.rpc('journal.deleteJourney', { journeyId, _inv: invocationId }) as Promise<{ deleted: boolean }>,
     },
     atlas: {
       visited: () => t.rpc('atlas.visited', { _inv: invocationId }) as Promise<{ countries: unknown[]; regions: unknown[] }>,

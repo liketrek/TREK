@@ -115,6 +115,7 @@ export interface HostDeps {
   // --- Member add (the DISTINCT member_manage permission — never bundled) ---
   canManageMembers(tripId: number, userId: number): boolean;
   addTripMember(tripId: number, targetUserId: number, invitedBy: number): unknown;
+  removeTripMember(tripId: number, targetUserId: number, actingUserId: number): unknown;
   /** The acting user's own journals (journey addon must be enabled). */
   listJournalsForUser(userId: number): unknown;
   /** The entries of one of the acting user's journeys (journey addon; access-checked). */
@@ -149,6 +150,10 @@ export interface HostDeps {
   createJournalEntry(userId: number, journeyId: number, input: Record<string, unknown>): unknown;
   updateJournalEntry(userId: number, entryId: number, input: Record<string, unknown>): unknown;
   deleteJournalEntry(userId: number, entryId: number): unknown;
+  /** Create/delete a JOURNAL itself (owned by the acting user) — lets an importer
+   * bootstrap the journal it then fills, and clean it up. */
+  createJournal(userId: number, input: Record<string, unknown>): unknown;
+  deleteJournal(userId: number, journeyId: number): unknown;
   /** A trip day's notes (trip-scoped), for `daynotes.list`. */
   listDayNotes(tripId: number, dayId: number): unknown[];
   /** Create a day note (the day must be on the trip); broadcasts dayNote:created. */
@@ -436,6 +441,15 @@ export class PluginRpcHost {
         this.requireTripEdit(tripId, actor, deps.canManageMembers);
         return deps.addTripMember(tripId, targetUserId, actor);
       });
+      // Symmetry with addMember: a directory-sync integration must be able to reconcile
+      // DEPARTURES, not only additions. Same grant + the same manage-members gate.
+      this.methods.set('trips.removeMember', (p, uid) => {
+        const tripId = num(p.tripId, 'tripId');
+        const targetUserId = num(p.userId, 'userId');
+        const actor = this.requireActor(uid, 'trip member');
+        this.requireTripEdit(tripId, actor, deps.canManageMembers);
+        return deps.removeTripMember(tripId, targetUserId, actor);
+      });
     }
 
     // User-scoped addon reads: the acting user's OWN journals/atlas/vacay across all
@@ -580,6 +594,8 @@ export class PluginRpcHost {
       this.methods.set('journal.updateEntry', (p, uid) =>
         deps.updateJournalEntry(requireUid(uid), num(p.entryId, 'entryId'), asPayload(p.input)));
       this.methods.set('journal.deleteEntry', (p, uid) => deps.deleteJournalEntry(requireUid(uid), num(p.entryId, 'entryId')));
+      this.methods.set('journal.createJourney', (p, uid) => deps.createJournal(requireUid(uid), asPayload(p.input)));
+      this.methods.set('journal.deleteJourney', (p, uid) => deps.deleteJournal(requireUid(uid), num(p.journeyId, 'journeyId')));
     }
     if (has('db:read:daynotes')) {
       // Day notes are trip-scoped (core, no addon), so the standard membership gate applies.

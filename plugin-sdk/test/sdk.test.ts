@@ -201,6 +201,23 @@ describe('createMockHost', () => {
     await expect(ungranted.ctx.trips.getDays(1)).rejects.toThrow(/PERMISSION_DENIED/);
   });
 
+  it('removeMember + journey create/delete round out the write symmetry, grant-gated', async () => {
+    const host = createMockHost({
+      grants: ['db:write:members', 'db:write:journal'],
+      actingUserId: 42,
+      trips: { 1: { members: [42, 7] } },
+    });
+    expect(await host.ctx.trips.removeMember(1, 7)).toEqual({ removed: true });
+    expect(await host.ctx.trips.removeMember(1, 999)).toEqual({ removed: false }); // not a member
+    const j = await host.ctx.journal.createJourney({ title: 'Imported', trip_ids: [1] });
+    expect(j).toMatchObject({ title: 'Imported' });
+    expect(await host.ctx.journal.deleteJourney(1)).toEqual({ deleted: true });
+    // grants enforced identically to production
+    const ungranted = createMockHost({ grants: [], actingUserId: 42, trips: { 1: { members: [42, 7] } } });
+    await expect(ungranted.ctx.trips.removeMember(1, 7)).rejects.toThrow(/PERMISSION_DENIED/);
+    await expect(ungranted.ctx.journal.createJourney({ title: 'x' })).rejects.toThrow(/PERMISSION_DENIED/);
+  });
+
   it('creates a trip for the acting user and serves rates + collab reads against the grants', async () => {
     const { ctx } = createMockHost({
       grants: ['db:create:trips', 'rates:read', 'db:read:collab'],

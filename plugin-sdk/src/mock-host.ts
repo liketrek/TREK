@@ -263,6 +263,13 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
         if (joined) t.members.push(userId);
         return { joined, tripId };
       },
+      async removeMember(tripId, userId) {
+        need('db:write:members', 'trips.removeMember');
+        const t = assertMember(tripId, requireActingUser());
+        const i = t.members.indexOf(userId);
+        if (i >= 0) t.members.splice(i, 1);
+        return { removed: i >= 0 };
+      },
     },
     reservations: {
       async listMine() {
@@ -631,6 +638,16 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
         const entry = { id: journalEntries.length + 1, journey_id: journeyId, ...input };
         journalEntries.push(entry);
         return entry;
+      },
+      async createJourney(input) {
+        need('db:write:journal', 'journal.createJourney');
+        requireActingUser();
+        return { id: (opts.journals?.length ?? 0) + 1, ...input };
+      },
+      async deleteJourney(journeyId) {
+        need('db:write:journal', 'journal.deleteJourney');
+        requireActingUser();
+        return { deleted: journeyId > 0 };
       },
       async updateEntry(entryId, input) {
         need('db:write:journal', 'journal.updateEntry');

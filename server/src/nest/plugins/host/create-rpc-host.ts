@@ -20,13 +20,13 @@ import fsMod from 'node:fs';
 import pathMod from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { checkPermission } from '../../../services/permissions';
-import { listTrips, updateTrip, createTrip, NotFoundError, ValidationError } from '../../../services/tripService';
+import { listTrips, updateTrip, createTrip, removeMember as removeTripMemberSvc, NotFoundError, ValidationError } from '../../../services/tripService';
 import { createPlace, updatePlace, deletePlace } from '../../../services/placeService';
 import { createDay, getDay, updateDay, deleteDay, listDays, listAccommodations, validateAccommodationRefs, createAccommodation as createAccommodationSvc, getAccommodation, updateAccommodation as updateAccommodationSvc, deleteAccommodation as deleteAccommodationSvc } from '../../../services/dayService';
 import { createAssignment, deleteAssignment, dayExists, placeExists, getAssignmentForTrip } from '../../../services/assignmentService';
 import { isAddonEnabled } from '../../../services/adminService';
 import { ADDON_IDS } from '../../../addons';
-import { listJourneys, listEntries as listJournalEntriesSvc, createEntry as createJournalEntrySvc, updateEntry as updateJournalEntrySvc, deleteEntry as deleteJournalEntrySvc } from '../../../services/journeyService';
+import { listJourneys, listEntries as listJournalEntriesSvc, createEntry as createJournalEntrySvc, updateEntry as updateJournalEntrySvc, deleteEntry as deleteJournalEntrySvc, createJourney as createJourneySvc, deleteJourney as deleteJourneySvc } from '../../../services/journeyService';
 import { listVisitedCountries, listManuallyVisitedRegions, listBucketList, markCountryVisited, unmarkCountryVisited, markRegionVisited, unmarkRegionVisited, createBucketItem as createBucketItemSvc, deleteBucketItem as deleteBucketItemSvc } from '../../../services/atlasService';
 import { getPlanData, getActivePlanId, toggleEntry as vacayToggleEntrySvc, toggleCompanyHoliday as vacayToggleCompanyHolidaySvc } from '../../../services/vacayService';
 import { listNotes, createNote, getNote, updateNote, deleteNote, dayExists as dayNoteDayExists } from '../../../services/dayNoteService';
@@ -353,6 +353,14 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
       const target = db.prepare('SELECT id FROM users WHERE id = ?').get(targetUserId) as { id: number } | undefined;
       if (!target) throw new ForbiddenResource(`no user ${targetUserId}`);
       return joinTripAsMember(tripId, targetUserId, invitedBy);
+    },
+    removeTripMember: (tripId, targetUserId) => {
+      // Never remove the OWNER via this path — that would orphan the trip. Ownership
+      // transfer is a separate, deliberate action, not a member-management side effect.
+      const trip = db.prepare('SELECT user_id FROM trips WHERE id = ?').get(tripId) as { user_id: number } | undefined;
+      if (trip && trip.user_id === targetUserId) throw new ForbiddenResource('cannot remove the trip owner');
+      removeTripMemberSvc(tripId, targetUserId);
+      return { removed: true };
     },
     // --- Host-mediated notifications. Recipient resolution + channel fan-out +
     // per-user preferences are all owned by notificationService.send; the plugin
@@ -694,6 +702,17 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
     deleteJournalEntry: (userId, entryId) => {
       requireAddon(ADDON_IDS.JOURNEY, 'journey');
       if (!deleteJournalEntrySvc(entryId, userId)) throw new ForbiddenResource(`no editable journal entry ${entryId} for this user`);
+      return { deleted: true };
+    },
+    createJournal: (userId, input) => {
+      requireAddon(ADDON_IDS.JOURNEY, 'journey');
+      const title = typeof (input as { title?: unknown }).title === 'string' ? String((input as { title: string }).title).trim() : '';
+      if (!title) throw new BadParams('journal title is required');
+      return createJourneySvc(userId, { title, subtitle: (input as { subtitle?: string }).subtitle, trip_ids: (input as { trip_ids?: number[] }).trip_ids });
+    },
+    deleteJournal: (userId, journeyId) => {
+      requireAddon(ADDON_IDS.JOURNEY, 'journey');
+      if (!deleteJourneySvc(journeyId, userId)) throw new ForbiddenResource(`no deletable journal ${journeyId} for this user`);
       return { deleted: true };
     },
     // Day notes are core (no addon) and trip-scoped; membership is enforced by the host.
