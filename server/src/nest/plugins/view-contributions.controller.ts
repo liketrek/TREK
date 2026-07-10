@@ -4,6 +4,7 @@ import { canAccessTrip } from '../../db/database';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
 import { PluginRuntimeService } from './plugin-runtime.service';
+import { stripEmoji } from './text-sanitize';
 
 /**
  * GET /api/view-contributions/:view/:tripId — host-rendered columns/actions that
@@ -35,7 +36,7 @@ const ID_MAX = 64;
 const ICON_MAX = 40;
 const SUB_MAX = 512;
 
-const cap = (v: unknown, max: number): string => String(v ?? '').slice(0, max);
+const cap = (v: unknown, max: number): string => stripEmoji(String(v ?? '')).slice(0, max);
 
 /** Allow only http/https/mailto; anything else (or an unparseable value) is dropped —
  * a javascript:/data:/vbscript: URL rendered as an <a href> is click-XSS. */

@@ -4,6 +4,7 @@ import { canAccessTrip } from '../../db/database';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
 import { PluginRuntimeService } from './plugin-runtime.service';
+import { stripEmoji } from './text-sanitize';
 
 /**
  * GET /api/map-markers/:tripId — bounded markers plugins overlay on the trip map
@@ -33,7 +34,7 @@ interface MapMarker {
 
 const TONES: ReadonlySet<string> = new Set(['default', 'success', 'warn', 'danger']);
 const MAX_MARKERS = 200; // per provider — bounds the render cost
-const cap = (v: unknown, n: number): string => String(v ?? '').slice(0, n);
+const cap = (v: unknown, n: number): string => stripEmoji(String(v ?? '')).slice(0, n);
 
 function safeUrl(raw: unknown): string | undefined {
   if (typeof raw !== 'string' || raw === '') return undefined;

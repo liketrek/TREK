@@ -19,6 +19,7 @@ import {
   type RpcResponse,
 } from '../protocol/envelope';
 import type { PluginDataDb } from './plugin-data.service';
+import { stripEmoji } from '../text-sanitize';
 import { auditResource, isAuditable } from './plugin-audit';
 
 /**
@@ -1055,8 +1056,10 @@ export class PluginRpcHost {
       this.methods.set('notify.send', (p, uid) => {
         const actor = this.requireActor(uid, 'notification');
         const input = asPayload(p.input);
-        const title = typeof input.title === 'string' ? input.title.trim() : '';
-        const body = typeof input.body === 'string' ? input.body.trim() : '';
+        // Emoji-stripped so a bell/push notification matches TREK's lucide-only UI (also
+        // trims + collapses whitespace). An all-emoji title collapses to '' → rejected.
+        const title = typeof input.title === 'string' ? stripEmoji(input.title) : '';
+        const body = typeof input.body === 'string' ? stripEmoji(input.body) : '';
         if (!title || title.length > 200) throw new BadParams('notification title is required (max 200 chars)');
         if (!body || body.length > 1000) throw new BadParams('notification body is required (max 1000 chars)');
         const scope = input.scope;

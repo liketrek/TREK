@@ -4,6 +4,7 @@ import { canAccessTrip } from '../../db/database';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
 import { PluginRuntimeService } from './plugin-runtime.service';
+import { stripEmoji } from './text-sanitize';
 
 /**
  * GET /api/pdf-sections/:tripId — text-only sections plugins append to a trip's
@@ -38,7 +39,7 @@ const PARAGRAPH_MAX = 2000;
 const HEADER_MAX = 60;
 const CELL_MAX = 200;
 
-const cap = (v: unknown, n: number): string => String(v ?? '').slice(0, n);
+const cap = (v: unknown, n: number): string => stripEmoji(String(v ?? '')).slice(0, n);
 
 function normalizeTable(raw: unknown): PdfTable | undefined {
   if (!raw || typeof raw !== 'object') return undefined;

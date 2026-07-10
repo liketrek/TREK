@@ -3,6 +3,7 @@ import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
 import { PluginRuntimeService } from './plugin-runtime.service';
+import { stripEmoji } from './text-sanitize';
 
 /**
  * Calendar events contributed by plugins that implement the `calendarSource` hook
@@ -16,7 +17,7 @@ import { PluginRuntimeService } from './plugin-runtime.service';
 interface DevEvent { id: string; pluginId: string; source: string; title: string; start: string; end: string; allDay: boolean; }
 
 const MAX_EVENTS = 500;      // per source per request
-const cap = (v: unknown, n: number): string => String(v ?? '').slice(0, n);
+const cap = (v: unknown, n: number): string => stripEmoji(String(v ?? '')).slice(0, n);
 const isoish = (v: unknown): string | undefined => (typeof v === 'string' && v.length > 0 && v.length <= 40 ? v : undefined);
 
 function normalizeEvents(pluginId: string, source: string, raw: unknown): DevEvent[] {

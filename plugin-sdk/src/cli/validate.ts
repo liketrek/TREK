@@ -38,6 +38,15 @@ export function validatePluginDir(dir: string): ValidateReport {
     for (const a of res.manifest?.requiredAddons ?? []) {
       if (!KNOWN_ADDONS.includes(a)) warnings.push(`requiredAddons: "${a}" is not a known TREK addon on this SDK version`);
     }
+    // TREK renders its UI with lucide icons only. It STRIPS emojis from the declarative
+    // text your hooks return (badges, columns, warnings, PDF sections, map/calendar/photo
+    // labels) and from notifications, so emojis in that text simply vanish at render.
+    // Emojis in the manifest name/description are the tell-tale sign — nudge the author
+    // to use the `icon` field with a lucide name instead.
+    const EMOJI_RE = /[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}]/u;
+    if (EMOJI_RE.test(String(raw.name ?? '')) || EMOJI_RE.test(String(raw.description ?? ''))) {
+      warnings.push('name/description contains emojis — TREK uses lucide icons and strips emojis from plugin-rendered text + notifications. Use the declarative `icon` field (a lucide name) instead of emojis in labels.');
+    }
   } catch (e) {
     errors.push('trek-plugin.json is not valid JSON: ' + (e instanceof Error ? e.message : e));
   }

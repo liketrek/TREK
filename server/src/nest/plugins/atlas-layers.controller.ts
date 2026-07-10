@@ -3,6 +3,7 @@ import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
 import { PluginRuntimeService } from './plugin-runtime.service';
+import { stripEmoji } from './text-sanitize';
 
 /**
  * GET /api/atlas-layers — country tint layers plugins draw over the Atlas world
@@ -35,7 +36,7 @@ const TONES: ReadonlySet<string> = new Set(['default', 'success', 'warn', 'dange
 const CODE_RE = /^[A-Z]{2}$/;
 const MAX_LAYERS = 3; // per provider
 const MAX_COUNTRIES = 300; // per layer — bounds the render cost
-const cap = (v: unknown, n: number): string => String(v ?? '').slice(0, n);
+const cap = (v: unknown, n: number): string => stripEmoji(String(v ?? '')).slice(0, n);
 
 function normalizeCountries(raw: unknown): AtlasLayerCountry[] {
   const list = Array.isArray(raw) ? (raw as Array<Record<string, unknown>>) : [];

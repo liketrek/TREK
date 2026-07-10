@@ -7,6 +7,7 @@ import { ADDON_IDS } from '../../addons';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
 import { PluginRuntimeService } from './plugin-runtime.service';
+import { stripEmoji } from './text-sanitize';
 
 /**
  * GET /api/journal-entry-rows/:entryId — extra rows for a journal entry,
@@ -33,7 +34,7 @@ interface ProviderResult {
 }
 
 const MAX_ROWS = 12; // per provider — bounds the card footprint
-const cap = (v: unknown, n: number): string => String(v ?? '').slice(0, n);
+const cap = (v: unknown, n: number): string => stripEmoji(String(v ?? '')).slice(0, n);
 
 function safeUrl(raw: unknown): string | undefined {
   if (typeof raw !== 'string' || raw === '') return undefined;

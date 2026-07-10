@@ -3,6 +3,7 @@ import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
 import { PluginRuntimeService } from './plugin-runtime.service';
+import { stripEmoji } from './text-sanitize';
 
 /**
  * Photo sources contributed by plugins that implement the `photoProvider` hook
@@ -43,7 +44,8 @@ function normalizePhotos(pluginId: string, raw: unknown): DevPhoto[] {
     if (!id || !thumb || !full) continue; // an unusable photo (no id / bad urls) is dropped
     out.push({
       id, pluginId,
-      title: p.title != null ? cap(p.title, 200) : undefined,
+      // Strip emojis from the display title (but NOT the id — that round-trips to getById).
+      title: p.title != null ? stripEmoji(cap(p.title, 200)) : undefined,
       thumbnailUrl: thumb,
       fullUrl: full,
       takenAt: typeof p.takenAt === 'string' ? cap(p.takenAt, 40) : undefined,

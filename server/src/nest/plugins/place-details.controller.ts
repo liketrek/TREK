@@ -4,6 +4,7 @@ import { db, canAccessTrip } from '../../db/database';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
 import { PluginRuntimeService } from './plugin-runtime.service';
+import { stripEmoji } from './text-sanitize';
 
 /**
  * GET /api/place-details/:placeId — extra info for a place, contributed by plugins
@@ -28,7 +29,7 @@ interface ProviderResult {
 }
 
 const MAX_ITEMS = 12; // per provider — bounds the panel footprint
-const cap = (v: unknown, n: number): string => String(v ?? '').slice(0, n);
+const cap = (v: unknown, n: number): string => stripEmoji(String(v ?? '')).slice(0, n);
 
 function safeUrl(raw: unknown): string | undefined {
   if (typeof raw !== 'string' || raw === '') return undefined;
