@@ -3545,6 +3545,25 @@ function runMigrations(db: Database.Database): void {
       `);
       db.exec('CREATE INDEX IF NOT EXISTS idx_plugin_sched_due ON plugin_scheduled_tasks (due_at);');
     },
+    // Durable GDPR erasure queue (#plugins). When a TREK account is deleted, every
+    // installed plugin holding `hook:user-data` gets a pending row here so its own
+    // deleteUserData handler runs even if the plugin was offline at delete time —
+    // erasure must not be lost across a restart, so it is persisted (unlike the
+    // best-effort event buffer). The row is removed once the plugin acknowledges,
+    // and all of a plugin's rows are purged on uninstall. UNIQUE(plugin_id, user_id)
+    // makes re-enqueue idempotent.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS plugin_user_erasure_queue (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          plugin_id TEXT NOT NULL,
+          user_id INTEGER NOT NULL,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          UNIQUE (plugin_id, user_id)
+        );
+      `);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_plugin_erasure_plugin ON plugin_user_erasure_queue (plugin_id);');
+    },
   ];
 
   if (currentVersion < migrations.length) {

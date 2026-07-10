@@ -318,6 +318,40 @@ export class PluginSupervisor {
   }
 
   /**
+   * Ask an active plugin to erase its own data for a deleted user (GDPR erasure).
+   * Userless — the plugin only learns the userId and acts on its own db. Resolves
+   * true only when the plugin ACKs, which is the caller's signal to drop the durable
+   * queue row; anything else (inactive, no grant, error, timeout) resolves false so
+   * the erasure is retried on a later sweep / after the plugin reactivates.
+   */
+  async deliverUserErasure(id: string, userId: number): Promise<boolean> {
+    const sup = this.running.get(id);
+    if (!sup || sup.status !== 'active' || !sup.granted.has('hook:user-data')) return false;
+    try {
+      await this.invoke(id, 'invoke.deleteUserData', { userId }, { actingUserId: undefined, timeoutMs: 30_000 });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Collect what an active plugin holds about a user (GDPR portability). Userless,
+   * gated by the same hook:user-data grant. Returns the plugin's exported payload,
+   * or undefined if it is inactive, ungranted, doesn't implement the hook, or errors.
+   */
+  async collectUserExport(id: string, userId: number): Promise<unknown> {
+    const sup = this.running.get(id);
+    if (!sup || sup.status !== 'active' || !sup.granted.has('hook:user-data')) return undefined;
+    try {
+      const res = (await this.invoke(id, 'invoke.exportUserData', { userId }, { actingUserId: undefined, timeoutMs: 30_000 })) as { data?: unknown } | undefined;
+      return res?.data;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
    * Send a host→child request (invoke a route or job) and await its response.
    * `actingUserId` binds the authenticated user of this invocation on the HOST
    * side: any trip read the child makes while handling it is membership-checked

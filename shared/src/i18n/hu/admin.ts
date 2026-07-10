@@ -291,6 +291,7 @@ const admin: TranslationStrings = {
     'Országok kiemelése az Atlas világtérképén (pl. kívánságlisták vagy utazási figyelmeztetések)',
   'admin.plugins.perm.hook:journal-entry-provider':
     'További sorok (hivatkozások, statisztikák) hozzáadása a naplóbejegyzésekhez',
+  'admin.plugins.perm.hook:user-data': 'A felhasználóról tárolt adatok törlése vagy exportálása (GDPR: fióktörlés és adatkérések)',
   'admin.plugins.perm.events:subscribe':
     'Reagál az alapvető tevékenységi eseményekre (csak eseménynév + utazás, soha nem a tartalom)',
   'admin.plugins.perm.http:outbound': 'Kimenő kérések küldése a bejelentett kiszolgálók felé',

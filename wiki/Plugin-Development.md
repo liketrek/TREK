@@ -181,6 +181,16 @@ module.exports = definePlugin({
   async scheduled({ name, payload }, ctx) {
     if (name === 'remind') { /* … one-shot fired; re-arm if you want another */ }
   },
+
+  // GDPR data-subject rights (needs `hook:user-data`). Userless — you only get the
+  // userId and act on your OWN db. deleteUserData is delivered DURABLY (queued and
+  // retried until it succeeds, even across restarts), so make it idempotent.
+  async deleteUserData({ userId }, ctx) {
+    await ctx.db.exec('DELETE FROM my_prefs WHERE user_id = ?', userId)
+  },
+  async exportUserData({ userId }, ctx) {
+    return await ctx.db.query('SELECT * FROM my_prefs WHERE user_id = ?', userId)
+  },
 })
 ```
 
@@ -799,6 +809,7 @@ for anything your plugin publishes via `ctx.events.emit`.
 | `hook:pdf-section-provider` | `hooks.pdfSectionProvider` — sections appended to the trip PDF export |
 | `hook:atlas-layer-provider` | `hooks.atlasLayerProvider` — per-user country tint layers on the Atlas map |
 | `hook:journal-entry-provider` | `hooks.journalEntryProvider` — extra rows on a journal entry card |
+| `hook:user-data` | `deleteUserData` / `exportUserData` handlers — honour GDPR erasure (durable, retried) and data-export for a deleted/requesting user (userless; own db only) |
 | `hook:photo-provider` / `hook:calendar-source` | reserved (see [Provider hooks](#provider-hooks)) |
 
 > There is **no `ws:broadcast:*`** — use `ws:broadcast:trip` and/or

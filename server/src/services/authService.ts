@@ -16,6 +16,7 @@ import { createEphemeralToken } from './ephemeralTokens';
 import { revokeUserSessions } from '../mcp';
 import { startTripReminders } from '../scheduler';
 import { deleteUserCompletely } from './userCleanupService';
+import { emitUserDeleted } from '../plugin-user-lifecycle';
 import { getFlightDistanceKm } from './distanceService';
 import { getCountryFromCoords } from './atlasService';
 import { verifyJwtAndLoadUser } from '../middleware/auth';
@@ -606,6 +607,7 @@ export function deleteAccount(userId: number, userEmail: string, userRole: strin
     }
   }
   deleteUserCompletely(userId);
+  emitUserDeleted(userId); // let plugins erase their own per-user data
   return { success: true };
 }
 

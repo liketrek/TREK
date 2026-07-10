@@ -332,6 +332,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Atlas dünya haritasında ülkeleri vurgular (ör. istek listeleri veya seyahat uyarıları)',
   'admin.plugins.perm.hook:journal-entry-provider': 'Günlük girişlerine ek satırlar (bağlantılar, istatistikler) ekler',
+  'admin.plugins.perm.hook:user-data': 'Bir kullanıcı hakkında sakladığı verileri silme veya dışa aktarma (KVKK/GDPR: hesap silme ve veri talepleri)',
   'admin.plugins.perm.events:subscribe':
     'Temel etkinlik olaylarına tepki verir (yalnızca olay adı + seyahat, asla içerik değil)',
   'admin.plugins.perm.http:outbound': 'Bildirdiği ana bilgisayarlara giden istekler yapar',

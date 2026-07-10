@@ -3,6 +3,7 @@ import semver from 'semver';
 import { db } from '../../db/database';
 import { pluginsEnabled } from './kill-switch';
 import { setPluginEventSink } from '../../plugin-event-sink';
+import { setUserDeletedSink } from '../../plugin-user-lifecycle';
 import { decrypt_api_key } from '../../services/apiKeyCrypto';
 import { PluginSupervisor, type PluginRouteInfo } from './supervisor/plugin-supervisor';
 import fs from 'node:fs';
@@ -128,6 +129,9 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     // Forward core trip events to plugins that subscribed (events:subscribe). The
     // sink is name-only + fire-and-forget, so it can never block a core broadcast.
     setPluginEventSink((tripId, event, meta) => this.supervisor.deliverEvent(tripId, event, meta));
+    // Fan a deleted account out to plugins so they can erase their own per-user data.
+    // Enqueued durably (survives restart), so nothing is lost if a plugin is offline.
+    setUserDeletedSink((userId) => this.enqueueUserErasure(userId));
     // Discover plugins placed on the volume (registers new ones inactive), then
     // boot the ones an admin had already activated — in dependency order so a
     // plugin's dependencies come up before it does. The whole block is defensive:
@@ -161,7 +165,10 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     // Fire due scheduled tasks (persistent, userless) on a coarse tick — the
     // scheduler is minute-granularity by contract, so 30s precision is plenty and
     // cheap. Unref'd so it never holds the process open.
-    this.schedulerSweep = setInterval(() => this.fireDueScheduled(), 30_000);
+    this.schedulerSweep = setInterval(() => {
+      this.fireDueScheduled();
+      void this.drainUserErasures();
+    }, 30_000);
     this.schedulerSweep.unref?.();
   }
 
@@ -187,6 +194,58 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     } catch {
       /* a sweep must never break the runtime */
     }
+  }
+
+  /** Queue a GDPR erasure for every installed plugin that holds hook:user-data, then
+   * try to deliver immediately. Persisted first (INSERT OR IGNORE, idempotent) so the
+   * erasure survives a restart and reaches a plugin that is offline right now. Never
+   * throws — a bookkeeping error must not fail the account deletion that triggered it. */
+  private enqueueUserErasure(userId: number): void {
+    try {
+      const rows = db.prepare('SELECT id, permissions FROM plugins').all() as Array<{ id: string; permissions: string | null }>;
+      const insert = db.prepare('INSERT OR IGNORE INTO plugin_user_erasure_queue (plugin_id, user_id) VALUES (?, ?)');
+      for (const r of rows) {
+        let perms: unknown;
+        try { perms = JSON.parse(r.permissions ?? '[]'); } catch { perms = []; }
+        if (Array.isArray(perms) && perms.includes('hook:user-data')) insert.run(r.id, userId);
+      }
+    } catch {
+      /* enqueue is best-effort; a later sweep reconciles from whatever landed */
+    }
+    void this.drainUserErasures();
+  }
+
+  /** Deliver queued erasures to active plugins, dropping each row only once the plugin
+   * ACKs. Rows for inactive plugins are left for a later sweep / their reactivation.
+   * Never throws. */
+  private async drainUserErasures(): Promise<void> {
+    if (!pluginsEnabled()) return;
+    try {
+      const pending = db
+        .prepare('SELECT id, plugin_id, user_id FROM plugin_user_erasure_queue ORDER BY id LIMIT 200')
+        .all() as Array<{ id: number; plugin_id: string; user_id: number }>;
+      for (const row of pending) {
+        if (!this.supervisor.isActive(row.plugin_id)) continue; // retry after it reactivates
+        const done = await this.supervisor.deliverUserErasure(row.plugin_id, row.user_id);
+        if (done) db.prepare('DELETE FROM plugin_user_erasure_queue WHERE id = ?').run(row.id);
+      }
+    } catch {
+      /* a drain pass must never break the runtime */
+    }
+  }
+
+  /** GDPR portability: aggregate what every active, granted plugin holds about a user.
+   * Returns one entry per plugin that returns data (plugins with nothing are omitted). */
+  async exportUserData(userId: number): Promise<Array<{ pluginId: string; data: unknown }>> {
+    const out: Array<{ pluginId: string; data: unknown }> = [];
+    if (!pluginsEnabled()) return out;
+    const rows = db.prepare('SELECT id FROM plugins').all() as Array<{ id: string }>;
+    for (const r of rows) {
+      if (!this.supervisor.isActive(r.id)) continue;
+      const data = await this.supervisor.collectUserExport(r.id, userId);
+      if (data !== undefined) out.push({ pluginId: r.id, data });
+    }
+    return out;
   }
 
   /**
@@ -215,6 +274,7 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleDestroy(): Promise<void> {
     setPluginEventSink(null);
+    setUserDeletedSink(null);
     if (this.schedulerSweep) { clearInterval(this.schedulerSweep); this.schedulerSweep = null; }
     for (const w of this.linkWatchers.values()) {
       try { w.close(); } catch { /* ignore */ }
@@ -505,6 +565,9 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     // Scheduled tasks are operational (not user data), so they go unconditionally —
     // a scheduled callback for a plugin that no longer exists must never fire.
     db.prepare('DELETE FROM plugin_scheduled_tasks WHERE plugin_id = ?').run(id);
+    // A removed plugin can no longer honour a pending erasure — drop its queue rows so
+    // they don't linger forever (its own data goes with removePluginData below anyway).
+    db.prepare('DELETE FROM plugin_user_erasure_queue WHERE plugin_id = ?').run(id);
     if (deleteData) {
       removePluginData(id);
       db.prepare('DELETE FROM plugin_error_log WHERE plugin_id = ?').run(id);

@@ -10,6 +10,7 @@ import { maybe_encrypt_api_key, decrypt_api_key } from './apiKeyCrypto';
 import { getAllPermissions, savePermissions as savePerms, PERMISSION_ACTIONS } from './permissions';
 import { revokeUserSessions, revokeUserSessionsForClient } from '../mcp';
 import { deleteUserCompletely } from './userCleanupService';
+import { emitUserDeleted } from '../plugin-user-lifecycle';
 import { validatePassword } from './passwordPolicy';
 import { getPhotoProviderConfig } from './memories/helpersService';
 import { ADDON_IDS } from '../addons';
@@ -193,6 +194,7 @@ export function deleteUser(id: string, currentUserId: number) {
   if (!userToDel) return { error: 'User not found', status: 404 };
 
   deleteUserCompletely(userToDel.id);
+  emitUserDeleted(userToDel.id); // let plugins erase their own per-user data
   return { email: userToDel.email };
 }
 

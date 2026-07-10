@@ -317,6 +317,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:pdf-section-provider': '여행 PDF 내보내기에 텍스트 섹션 추가',
   'admin.plugins.perm.hook:atlas-layer-provider': 'Atlas 세계 지도에서 국가 강조 표시(예: 위시리스트 또는 여행 경보)',
   'admin.plugins.perm.hook:journal-entry-provider': '저널 항목에 추가 행(링크, 통계) 제공',
+  'admin.plugins.perm.hook:user-data': '사용자에 대해 저장한 데이터를 삭제하거나 내보내기 (GDPR: 계정 삭제 및 데이터 요청)',
   'admin.plugins.perm.events:subscribe': '핵심 활동 이벤트에 반응 (이벤트 이름과 여행만, 내용은 절대 표시 안 함)',
   'admin.plugins.perm.http:outbound': '선언된 호스트로 아웃바운드 요청 전송',
   'admin.plugins.perm.db:read:collab': '현재 사용자가 접근할 수 있는 여행의 메모, 투표 및 채팅 메시지 읽기(Collab 애드온 필요)',

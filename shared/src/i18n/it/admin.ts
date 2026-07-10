@@ -287,6 +287,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Evidenziare paesi sulla mappa del mondo di Atlas (es. liste dei desideri o avvisi di viaggio)',
   'admin.plugins.perm.hook:journal-entry-provider': 'Aggiungere righe extra (link, statistiche) alle voci del diario',
+  'admin.plugins.perm.hook:user-data': 'Cancellare o esportare i dati che memorizza su un utente (GDPR: eliminazione account e richieste dati)',
   'admin.plugins.perm.events:subscribe':
     "Reagisce agli eventi principali dell'attività (solo nome evento e viaggio, mai il contenuto)",
   'admin.plugins.perm.http:outbound': 'Effettuare richieste in uscita verso gli host dichiarati',

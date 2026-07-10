@@ -334,6 +334,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Menyorot negara di peta dunia Atlas (mis. daftar keinginan atau peringatan perjalanan)',
   'admin.plugins.perm.hook:journal-entry-provider': 'Menambahkan baris tambahan (tautan, statistik) ke entri jurnal',
+  'admin.plugins.perm.hook:user-data': 'Menghapus atau mengekspor data yang disimpannya tentang pengguna (GDPR: penghapusan akun & permintaan data)',
   'admin.plugins.perm.events:subscribe':
     'Bereaksi terhadap peristiwa aktivitas inti (hanya nama peristiwa + perjalanan, tidak pernah kontennya)',
   'admin.plugins.perm.http:outbound': 'Membuat permintaan keluar ke host yang telah dideklarasikannya',

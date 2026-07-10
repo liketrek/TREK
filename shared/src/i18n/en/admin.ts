@@ -332,6 +332,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Highlight countries on the Atlas world map (e.g. wishlists or travel advisories)',
   'admin.plugins.perm.hook:journal-entry-provider': 'Contribute extra rows (links, stats) to journal entries',
+  'admin.plugins.perm.hook:user-data': 'Erase or export the data it stores about a user (GDPR account deletion & data requests)',
   'admin.plugins.perm.events:subscribe': 'React to core activity events (event name + trip only, never the content)',
   'admin.plugins.perm.jobs:run': 'Run its declared background jobs on a schedule (no user context — cannot read user data)',
   'admin.plugins.perm.http:outbound': 'Make outbound requests to its declared hosts',

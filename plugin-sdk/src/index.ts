@@ -495,6 +495,13 @@ export interface PluginDefinition {
   /** Handles a callback registered via ctx.scheduler (userless, like a job). The
    * `name` identifies which scheduled task fired; `payload` is what you passed. */
   scheduled?(input: { name: string; payload: unknown }, ctx: PluginContext): Promise<void> | void;
+  /** GDPR erasure: a TREK account was deleted — remove everything you hold about it
+   * from your OWN db. Userless (no acting user). Needs `hook:user-data`. The host
+   * calls this durably (queued, retried until it succeeds), so make it idempotent. */
+  deleteUserData?(input: { userId: number }, ctx: PluginContext): Promise<void> | void;
+  /** GDPR portability: return the data you hold about a user (own db only), as a
+   * JSON-serialisable value the host aggregates. Userless. Needs `hook:user-data`. */
+  exportUserData?(input: { userId: number }, ctx: PluginContext): Promise<unknown> | unknown;
   events?: PluginEventSubscription[];
   hooks?: {
     photoProvider?: PhotoProvider;

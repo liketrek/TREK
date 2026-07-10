@@ -344,6 +344,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Markera länder på Atlas-världskartan (t.ex. önskelistor eller resevarningar)',
   'admin.plugins.perm.hook:journal-entry-provider': 'Lägga till extra rader (länkar, statistik) i dagboksinlägg',
+  'admin.plugins.perm.hook:user-data': 'Radera eller exportera data den lagrar om en användare (GDPR: kontoborttagning och dataförfrågningar)',
   'admin.plugins.perm.events:subscribe':
     'Reagera på grundläggande aktivitetshändelser (endast händelsenamn + resa, aldrig innehållet)',
   'admin.plugins.perm.http:outbound': 'Göra utgående anrop till sina deklarerade värdar',

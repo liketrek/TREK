@@ -192,6 +192,16 @@ export class PluginsController {
     return { budget: this.plugins.budget(id) };
   }
 
+  /** GDPR portability: aggregate everything the installed plugins hold about one
+   * user, for an admin fulfilling a data-access request. Literal-prefixed path, so it
+   * never collides with the :id routes. */
+  @Get('user-data/:userId/export')
+  async exportUserData(@Param('userId') userId: string) {
+    const id = Number(userId);
+    if (!Number.isInteger(id) || id <= 0) throw new HttpException({ error: 'invalid user id' }, 400);
+    return { userId: id, plugins: await this.runtime.exportUserData(id) };
+  }
+
   @Delete(':id/errors')
   clearErrors(@Param('id') id: string) {
     this.plugins.clearErrors(id);

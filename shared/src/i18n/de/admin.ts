@@ -290,6 +290,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Länder auf der Atlas-Weltkarte hervorheben (z. B. Wunschlisten oder Reisehinweise)',
   'admin.plugins.perm.hook:journal-entry-provider': 'Zusatzzeilen (Links, Statistiken) zu Journal-Einträgen beisteuern',
+  'admin.plugins.perm.hook:user-data': 'Von ihm gespeicherte Nutzerdaten löschen oder exportieren (DSGVO: Kontolöschung & Auskunft)',
   'admin.plugins.perm.events:subscribe':
     'Auf Kern-Aktivitäts-Events reagieren (nur Event-Name + Reise, nie der Inhalt)',
   'admin.plugins.perm.jobs:run': 'Deklarierte Hintergrund-Jobs zeitgesteuert ausführen (kein Nutzerkontext — kann keine Nutzerdaten lesen)',

@@ -117,7 +117,7 @@ const PERM_KEYS = [
   'events:subscribe', 'jobs:run',
   'ws:broadcast:trip', 'ws:broadcast:user',
   'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider', 'hook:trip-warning-provider', 'hook:table-contributor', 'hook:map-marker-provider',
-  'hook:pdf-section-provider', 'hook:atlas-layer-provider', 'hook:journal-entry-provider', 'http:outbound',
+  'hook:pdf-section-provider', 'hook:atlas-layer-provider', 'hook:journal-entry-provider', 'hook:user-data', 'http:outbound',
 ]
 
 const KNOWN_TYPES = ['widget', 'page', 'integration', 'trip-page']

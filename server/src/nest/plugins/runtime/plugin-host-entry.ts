@@ -147,6 +147,18 @@ async function handleInvoke(req: { id: string; method: string; params: Record<st
       const payload = req.params.payload;
       if (typeof def.scheduled === 'function') await def.scheduled({ name, payload }, invCtx);
       respond(true, { ok: true });
+    } else if (req.method === 'invoke.deleteUserData') {
+      // A TREK account was erased. Userless (like a job) — the handler only learns
+      // the userId and erases its OWN per-user rows. Always ACK, even with no handler,
+      // so the host can drop the durable erasure-queue row (nothing to erase == done).
+      const userId = req.params.userId as number;
+      if (typeof def.deleteUserData === 'function') await def.deleteUserData({ userId }, invCtx);
+      respond(true, { ok: true });
+    } else if (req.method === 'invoke.exportUserData') {
+      // GDPR portability: return what this plugin holds about the user (own db only).
+      const userId = req.params.userId as number;
+      const data = typeof def.exportUserData === 'function' ? await def.exportUserData({ userId }, invCtx) : undefined;
+      respond(true, { ok: true, data });
     } else if (req.method === 'invoke.hook') {
       // Host→plugin provider call: core asks a hook the plugin implements (e.g.
       // placeDetailProvider) for data. The hook method gets its args + the per-

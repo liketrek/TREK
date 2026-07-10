@@ -24,6 +24,7 @@ const { testDb } = vi.hoisted(() => {
     CREATE TABLE plugin_meta_migrations (plugin_id TEXT, migration_id TEXT, PRIMARY KEY (plugin_id, migration_id));
     CREATE TABLE plugin_capability_audit (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, acting_user_id INTEGER, method TEXT, resource TEXT, code TEXT, ts TEXT, prev_hash TEXT, hash TEXT);
     CREATE TABLE plugin_scheduled_tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT NOT NULL, name TEXT NOT NULL, due_at INTEGER NOT NULL, payload TEXT NOT NULL DEFAULT 'null', every_ms INTEGER, created_at TEXT DEFAULT (datetime('now')), UNIQUE(plugin_id, name));
+    CREATE TABLE plugin_user_erasure_queue (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT NOT NULL, user_id INTEGER NOT NULL, created_at TEXT DEFAULT (datetime('now')), UNIQUE(plugin_id, user_id));
     CREATE TABLE addons (id TEXT PRIMARY KEY, enabled INTEGER DEFAULT 0);`);
   return { testDb: db };
 });
@@ -159,6 +160,50 @@ describe('PluginRuntimeService (M2 end-to-end)', () => {
     await rt.activate('messy'); // must not throw despite the garbage JSON
     expect(rt.isActive('messy')).toBe(true);
     await rt.deactivate('messy');
+  });
+
+  it('erases and exports a user\'s own-db data through the GDPR hooks', async () => {
+    const gdir = path.join(codeRoot, 'gdpr', 'server');
+    fs.mkdirSync(gdir, { recursive: true });
+    fs.writeFileSync(path.join(gdir, 'index.js'), `module.exports = {
+      async onLoad(ctx) { await ctx.db.migrate('001', 'CREATE TABLE prefs (user_id INTEGER, v TEXT)'); },
+      routes: [{ method: 'POST', path: '/seed', auth: true, async handler(req, ctx) {
+        await ctx.db.exec('INSERT INTO prefs (user_id, v) VALUES (?, ?)', req.user.id, 'x');
+        return { status: 200, body: 'ok' };
+      }}],
+      async exportUserData({ userId }, ctx) { return await ctx.db.query('SELECT v FROM prefs WHERE user_id = ?', userId); },
+      async deleteUserData({ userId }, ctx) { await ctx.db.exec('DELETE FROM prefs WHERE user_id = ?', userId); },
+    };`);
+    testDb.prepare("INSERT INTO plugins (id, status, permissions, config) VALUES ('gdpr','active','[\"db:own\",\"hook:user-data\"]','{}')").run();
+    await runtime.activate('gdpr');
+    // seed a row for user 5
+    await runtime.invoke('gdpr', 'invoke.route', { routeId: 0, req: { method: 'POST', path: '/seed', query: {}, body: null, user: { id: 5, username: 'a', isAdmin: false } } });
+
+    // export sees the user's data, aggregated under the plugin id
+    expect(await runtime.exportUserData(5)).toEqual([{ pluginId: 'gdpr', data: [{ v: 'x' }] }]);
+
+    // erasure: enqueue (durable) + drain → the plugin deletes its rows and the queue clears
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (runtime as any).enqueueUserErasure(5);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (runtime as any).drainUserErasures();
+    expect(testDb.prepare("SELECT COUNT(*) c FROM plugin_user_erasure_queue WHERE plugin_id='gdpr'").get()).toMatchObject({ c: 0 });
+    // the export is now empty (rows gone), proving the handler ran end-to-end
+    expect(await runtime.exportUserData(5)).toEqual([{ pluginId: 'gdpr', data: [] }]);
+
+    await runtime.deactivate('gdpr');
+  });
+
+  it('leaves an erasure queued for a plugin that is offline, to run when it is back', async () => {
+    // granted the hook but NOT active → enqueue keeps the row, drain leaves it
+    testDb.prepare("INSERT INTO plugins (id, status, permissions, config) VALUES ('offliner','inactive','[\"db:own\",\"hook:user-data\"]','{}')").run();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (runtime as any).enqueueUserErasure(9);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (runtime as any).drainUserErasures();
+    expect(testDb.prepare("SELECT COUNT(*) c FROM plugin_user_erasure_queue WHERE plugin_id='offliner' AND user_id=9").get()).toMatchObject({ c: 1 });
+    // a plugin WITHOUT the grant is never enqueued in the first place
+    expect(testDb.prepare("SELECT COUNT(*) c FROM plugin_user_erasure_queue WHERE plugin_id='counter' AND user_id=9").get()).toMatchObject({ c: 0 });
   });
 
   it('onModuleInit boots every ENABLED plugin — even one left in error state', async () => {

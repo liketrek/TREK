@@ -76,7 +76,7 @@ describe('supervisor buffers events across a restart and replays on activation',
 
   it('an active subscriber gets the event immediately, nothing buffered', () => {
     const { s } = makeSupervisor();
-    const invoke = vi.fn(() => Promise.resolve());
+    const invoke = vi.fn((..._a: unknown[]) => Promise.resolve());
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (s as any).invoke = invoke;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -169,6 +169,52 @@ describe('supervisor buffers events across a restart and replays on activation',
     void s.disable('p');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((s as any).pendingEvents.get('p')).toBeUndefined();
+  });
+});
+
+describe('supervisor GDPR user-data hooks are grant- and status-gated', () => {
+  const withGrant = (status: string) => ({ id: 'p', status, granted: new Set(['hook:user-data']) });
+
+  it('deliverUserErasure ACKs only for an active, granted plugin', async () => {
+    const { s } = makeSupervisor();
+    const invoke = vi.fn(() => Promise.resolve({}));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).invoke = invoke;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).running.set('p', withGrant('active'));
+    expect(await s.deliverUserErasure('p', 42)).toBe(true);
+    expect(invoke).toHaveBeenCalledWith('p', 'invoke.deleteUserData', { userId: 42 }, expect.objectContaining({ actingUserId: undefined }));
+    // inactive → not delivered, not acked (stays queued by the caller)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).running.set('p', withGrant('starting'));
+    invoke.mockClear();
+    expect(await s.deliverUserErasure('p', 42)).toBe(false);
+    expect(invoke).not.toHaveBeenCalled();
+    // active but WITHOUT the grant → refused
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).running.set('p', { id: 'p', status: 'active', granted: new Set() });
+    expect(await s.deliverUserErasure('p', 42)).toBe(false);
+  });
+
+  it('deliverUserErasure resolves false when the child errors (so the row is retried)', async () => {
+    const { s } = makeSupervisor();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).invoke = vi.fn(() => Promise.reject(new Error('child died')));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).running.set('p', withGrant('active'));
+    expect(await s.deliverUserErasure('p', 42)).toBe(false);
+  });
+
+  it('collectUserExport returns the plugin payload, undefined when ungranted/inactive', async () => {
+    const { s } = makeSupervisor();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).invoke = vi.fn(() => Promise.resolve({ ok: true, data: [{ v: 1 }] }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).running.set('p', withGrant('active'));
+    expect(await s.collectUserExport('p', 42)).toEqual([{ v: 1 }]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).running.set('p', { id: 'p', status: 'active', granted: new Set() });
+    expect(await s.collectUserExport('p', 42)).toBeUndefined();
   });
 });
 
