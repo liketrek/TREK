@@ -13,7 +13,7 @@ import { useAddonStore } from '../../store/addonStore'
 import { formatDate, splitReservationDateTime, resolveDayId } from '../../utils/formatters'
 import { openFile } from '../../utils/fileDownload'
 import apiClient from '../../api/client'
-import type { Day, Place, Accommodation, Reservation, ReservationEndpoint, TripFile, BudgetItem } from '../../types'
+import type { Day, Place, Accommodation, Reservation, ReservationEndpoint, TripFile, BudgetItem, AssignmentsMap } from '../../types'
 import { parseReservationMetadata, orderedEndpoints } from '../../utils/flightLegs'
 import { BookingCostsSection } from './BookingCostsSection'
 import type { BookingExpenseRequest } from './BookingCostsSection.types'
@@ -151,6 +151,8 @@ interface TransportModalProps {
   prefill?: BookingReviewDraft | null
   /** Data for the Automated (public transit) mode's quick picks. */
   places?: Place[]
+  /** Day→assignments map, used to scope the quick picks to the chosen day (#1460). */
+  assignments?: AssignmentsMap
   accommodations?: Accommodation[]
   /** Open directly in the Automated public-transit mode (day-header tram button, "change route"). */
   initialAutomated?: boolean
@@ -158,7 +160,7 @@ interface TransportModalProps {
   transitPrefill?: { from?: PickedPlace | null; to?: PickedPlace | null } | null
 }
 
-export function TransportModal({ isOpen, onClose, onSave, reservation, days, selectedDayId, files = [], onFileUpload, onFileDelete, onOpenExpense, prefill = null, places = [], accommodations = [], initialAutomated = false, transitPrefill = null }: TransportModalProps) {
+export function TransportModal({ isOpen, onClose, onSave, reservation, days, selectedDayId, files = [], onFileUpload, onFileDelete, onOpenExpense, prefill = null, places = [], assignments = {}, accommodations = [], initialAutomated = false, transitPrefill = null }: TransportModalProps) {
   const { t, locale } = useTranslation()
   const toast = useToast()
   const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
@@ -639,11 +641,16 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
           {(() => {
             const transitDay = days.find(d => d.id === Number(form.start_day_id))
             if (!transitDay) return <div className="text-content-faint" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', padding: '4px 2px 12px' }}>{t('transit.pickDay')}</div>
+            // Quick picks offer the chosen day's itinerary, not the whole trip (#1460).
+            const dayPlaces = (assignments[String(transitDay.id)] || [])
+              .slice().sort((a, b) => a.order_index - b.order_index)
+              .map(a => places.find(p => p.id === a.place_id))
+              .filter((p): p is Place => p != null)
             return (
               <TransitSearchPanel
                 day={transitDay}
                 days={days}
-                places={places}
+                places={dayPlaces}
                 accommodations={accommodations}
                 onAdd={(payload) => onSave(payload as Record<string, any> & { title: string })}
                 initialFrom={transitPrefill?.from ?? null}

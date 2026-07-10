@@ -11,6 +11,8 @@ import {
   buildUser,
   buildTrip,
   buildDay,
+  buildPlace,
+  buildAssignment,
   buildReservation,
   buildTripFile,
 } from '../../../tests/helpers/factories';
@@ -389,6 +391,25 @@ describe('TransportModal', () => {
     const days = [{ id: 10, trip_id: 1, day_number: 1, date: '2025-06-01', title: 'Day 1' }] as any;
     render(<TransportModal {...defaultProps} days={days} selectedDayId={10} initialAutomated places={[]} accommodations={[]} />);
     expect(screen.getAllByPlaceholderText('Search stop or station…')).toHaveLength(2);
+  });
+
+  it('FE-PLANNER-TRANSMODAL-028: automated quick picks only offer the chosen day\'s places (#1460)', async () => {
+    const days = [
+      buildDay({ id: 10, date: '2025-06-01' }),
+      buildDay({ id: 11, date: '2025-06-02' }),
+    ];
+    const louvre = buildPlace({ id: 1, name: 'Louvre' });
+    const eiffel = buildPlace({ id: 2, name: 'Eiffel Tower' });
+    const assignments = {
+      '10': [buildAssignment({ day_id: 10, place_id: louvre.id, place: louvre })],
+      '11': [buildAssignment({ day_id: 11, place_id: eiffel.id, place: eiffel })],
+    };
+    render(<TransportModal {...defaultProps} days={days} selectedDayId={10} initialAutomated places={[louvre, eiffel]} assignments={assignments} accommodations={[]} />);
+    // Focusing the "from" field opens the quick picks — day 1's place only.
+    const [fromInput] = screen.getAllByPlaceholderText('Search stop or station…');
+    await userEvent.click(fromInput);
+    expect(screen.getByText('Louvre')).toBeInTheDocument();
+    expect(screen.queryByText('Eiffel Tower')).not.toBeInTheDocument();
   });
 
   it('FE-PLANNER-TRANSMODAL-024: editing shows no Manual/Automated switch', () => {
