@@ -410,9 +410,18 @@ export class PluginSupervisor {
     if (this.sweep) clearInterval(this.sweep);
     this.sweep = null;
     const all = [...this.running.values()];
+    // Mark every entry deliberately stopped and drop it from `running` BEFORE the kills,
+    // so the child 'exit'/'stderr' listeners take the early-return path in onExit instead
+    // of the CRASH path — which would write crash-accounting rows to the DB. That matters
+    // because a restore calls shutdownAll AFTER closeDb(): a crash-path DB write would then
+    // hit the closed connection, throw from an EventEmitter listener, and take the whole
+    // process down mid-restore. (It also stops a normal shutdown from logging phantom
+    // 'crashed' rows + persisting status 'starting'.) Set the field directly, NOT via
+    // setStatus, so no onStatus DB hook fires while the core DB may be closed.
+    for (const s of all) { s.status = 'stopped'; }
+    this.running.clear();
     await Promise.all(all.map((s) => this.kill(s)));
     for (const s of all) s.rpcHost.dispose();
-    this.running.clear();
   }
 
   // ── internals ──────────────────────────────────────────────────────────────

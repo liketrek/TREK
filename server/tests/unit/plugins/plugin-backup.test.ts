@@ -88,6 +88,27 @@ describe('plugin backup staging + boot reconcile', () => {
     expect(read(path.join(root, 'plugins', 'linked', 'server', 'index.js'))).toBe('DEV');      // still resolves
   });
 
+  it('the swap removes a live plugin absent from the backup, and re-running is idempotent (crash-safe)', () => {
+    // live has an up-to-date plugin + a plugin uninstalled since the backup was taken
+    write(path.join(root, 'plugins-data', 'keep', 'plugin.db'), 'OLD')
+    write(path.join(root, 'plugins-data', 'removed-since', 'plugin.db'), 'GONE')
+    // staged (from the backup) only has 'keep'
+    write(path.join(root, 'plugins-data.restore', 'keep', 'plugin.db'), 'NEW')
+    applyStagedPluginTrees()
+    expect(read(path.join(root, 'plugins-data', 'keep', 'plugin.db'))).toBe('NEW')     // overwritten
+    expect(fs.existsSync(path.join(root, 'plugins-data', 'removed-since'))).toBe(false) // not in backup → removed
+    expect(fs.existsSync(path.join(root, 'plugins-data.restore'))).toBe(false)          // staging consumed last
+
+    // Simulate a crash BEFORE staging was deleted: the staging dir still exists, live is
+    // already (partly) applied. Copy-not-move means re-running restores correctly, never
+    // deleting an already-restored entry it can't recreate.
+    write(path.join(root, 'plugins-data.restore', 'keep', 'plugin.db'), 'NEW')
+    write(path.join(root, 'plugins-data', 'keep', 'plugin.db'), 'NEW') // already applied
+    applyStagedPluginTrees()
+    expect(read(path.join(root, 'plugins-data', 'keep', 'plugin.db'))).toBe('NEW')      // intact, not lost
+    expect(fs.existsSync(path.join(root, 'plugins-data.restore'))).toBe(false)
+  })
+
   it('applyStagedRestoreNow runs the registered applier (runtime quiesce), or reports false when none', async () => {
     expect(await applyStagedRestoreNow()).toBe(false); // no applier registered
     let ran = false;

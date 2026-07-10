@@ -96,21 +96,25 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
   // plugin's ctx.plugins.call / ctx.events.emit resolve through callPlugin/
   // emitPluginEvent below (which own the dependency-edge authorization).
   private readonly supervisor = new PluginSupervisor((id, granted) => createRealRpcHost(id, granted, this), {
+    // Both hooks run from child lifecycle EventEmitter callbacks (exit / stderr 'data'),
+    // so a throw here becomes an uncaughtException that has no host-side handler. During a
+    // restore the core DB is briefly CLOSED (closeDb → the db proxy throws on access), so a
+    // status/log write in that window would otherwise take the whole process down mid-
+    // restore. Swallow any DB error — a missed status row / log line is never worth a crash.
     onStatus: (id, status, error) => {
-      db.prepare('UPDATE plugins SET status = ?, last_error = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(
-        status,
-        error ?? null,
-        id,
-      );
+      try {
+        db.prepare('UPDATE plugins SET status = ?, last_error = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(status, error ?? null, id);
+      } catch { /* DB unavailable (e.g. mid-restore) — a status write must never crash the host */ }
     },
     onLog: (id, level, msg) => {
-      if (level === 'error' || level === 'warn') {
+      if (level !== 'error' && level !== 'warn') return;
+      try {
         db.prepare('INSERT INTO plugin_error_log (plugin_id, level, message) VALUES (?, ?, ?)').run(id, level, msg);
         // Retention: a crash-looping plugin emits a stderr line per restart, so an
         // uncapped table grows without bound in the shared trek.db. Keep only the
         // most recent LOG_RETENTION rows per plugin (the admin view shows 200).
         pruneErrorLog(id);
-      }
+      } catch { /* DB unavailable — a log line must never crash the host */ }
     },
   });
 

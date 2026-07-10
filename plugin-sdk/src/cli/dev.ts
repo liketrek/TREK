@@ -92,7 +92,10 @@ function createDevContext(id: string, grants: Set<string>, fx: Fixtures, db: Plu
   // migrations/queries actually persist), ws broadcasts (captured for the dashboard),
   // and logging (to the dev console). The mock enforces the SAME grants, so a missing
   // permission fails identically here and in production.
-  const mock = sdk.createMockHost({ ...fx, grants: [...grants] });
+  // Default the dev acting user to 1 (like the prod invocation user) so the documented
+  // one-arg calls work on a fresh scaffold — without this, a fixtures file that omits
+  // actingUserId leaves the mock userless and every user-bound capability throws.
+  const mock = sdk.createMockHost({ ...fx, actingUserId: fx.actingUserId ?? 1, grants: [...grants] });
   const isRead = (sql: string) => /^\s*(SELECT|WITH|VALUES)\b/i.test(sql) || /\bRETURNING\b/i.test(sql);
   return {
     ...mock.ctx,

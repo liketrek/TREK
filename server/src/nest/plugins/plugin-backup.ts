@@ -54,26 +54,29 @@ export function stageExtractedPluginTrees(extractDir: string): boolean {
 function swapContents(live: string, staged: string): void {
   fs.mkdirSync(live, { recursive: true });
   const realLive = fs.realpathSync(live);
-  // Clear the current entries, but KEEP dev-links (realpath points outside the root).
+  const stagedNames = new Set(fs.readdirSync(staged));
+  // COPY (not move) each staged entry over the live one, leaving `staged` intact until the
+  // very end. This is the key to crash-safety: `staged` stays the complete source of truth
+  // for the whole operation, so if the process dies mid-swap (power loss, OOM, an exit-hook
+  // throw) the next boot re-runs swapContents and re-copies everything correctly — nothing
+  // is ever left half-deleted. (A move/rename would empty `staged` as it went, so a retry
+  // could no longer restore an already-moved entry it had just deleted from `live`.)
+  for (const name of stagedNames) {
+    const to = path.join(live, name);
+    fs.rmSync(to, { recursive: true, force: true });
+    fs.cpSync(path.join(staged, name), to, { recursive: true });
+  }
+  // Remove live entries NOT in the backup (plugins uninstalled since it was taken), keeping
+  // dev-links (realpath points outside the root). Safe now that every backup entry is in place.
   for (const name of fs.readdirSync(live)) {
+    if (stagedNames.has(name)) continue;
     const p = path.join(live, name);
     let real: string;
     try { real = fs.realpathSync(p); } catch { real = p; }
     if (real !== p && !real.startsWith(realLive + path.sep)) continue; // dev-link → keep
     fs.rmSync(p, { recursive: true, force: true });
   }
-  // Move the staged entries in.
-  for (const name of fs.readdirSync(staged)) {
-    const from = path.join(staged, name);
-    const to = path.join(live, name);
-    fs.rmSync(to, { recursive: true, force: true });
-    try {
-      fs.renameSync(from, to);
-    } catch {
-      fs.cpSync(from, to, { recursive: true });
-      fs.rmSync(from, { recursive: true, force: true });
-    }
-  }
+  // Only NOW drop staging — the single point of no return, after `live` is fully correct.
   fs.rmSync(staged, { recursive: true, force: true });
 }
 

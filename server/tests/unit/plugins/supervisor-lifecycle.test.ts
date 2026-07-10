@@ -50,6 +50,26 @@ describe('supervisor re-activation after failure', () => {
   });
 });
 
+describe('supervisor shutdownAll is a clean stop, not a crash', () => {
+  it('marks plugins stopped BEFORE killing, so a child exit during shutdown logs no phantom crash', async () => {
+    const onStatus = vi.fn(); const onLog = vi.fn();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const s = new PluginSupervisor((() => ({ dispose: vi.fn() })) as any, { onStatus, onLog }, {});
+    const sup = { id: 'p', status: 'active', child: {}, rpcHost: { dispose: vi.fn() }, crashes: [], jobTasks: undefined, pending: new Map(), invocations: new Map() };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).running.set('p', sup);
+    // kill() simulates the child actually exiting during shutdown → fires onExit
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).kill = vi.fn(async (x: any) => { (s as any).onExit(x, 0, 'SIGTERM'); });
+    await s.shutdownAll();
+    expect(sup.status).toBe('stopped');                                    // stopped before kill
+    // onExit took the early-return path — no crash bookkeeping written to the DB hooks
+    expect(onLog).not.toHaveBeenCalledWith('p', 'warn', expect.stringContaining('crashed'));
+    expect(onStatus).not.toHaveBeenCalledWith('p', 'error', expect.anything());
+    expect(onStatus).not.toHaveBeenCalledWith('p', 'starting', expect.anything());
+  });
+});
+
 describe('supervisor crash-restart does not leak cron tasks', () => {
   it('onExit stops the dead child\'s jobTasks before re-scheduling', () => {
     const { s } = makeSupervisor();
