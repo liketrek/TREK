@@ -21,6 +21,22 @@ describe('stripEmoji', () => {
     expect(stripEmoji('A, B & C (1/2)')).toBe('A, B & C (1/2)');
   });
 
+  it('keeps legitimate text symbols a plugin might render', () => {
+    expect(stripEmoji('★★★☆☆')).toBe('★★★☆☆');            // rating stars
+    expect(stripEmoji('© 2026 Acme')).toBe('© 2026 Acme'); // copyright
+    expect(stripEmoji('Acme®')).toBe('Acme®');
+    expect(stripEmoji('Product™ GmbH')).toBe('Product™ GmbH');
+  });
+
+  it('strips a skin-tone modifier so no orphan swatch is left behind', () => {
+    expect(stripEmoji('👋🏻 hi')).toBe('hi');
+  });
+
+  it('keeps newlines/paragraphs — verbatim when nothing is stripped, and when it strips', () => {
+    expect(stripEmoji('Para1\n\nPara2')).toBe('Para1\n\nPara2'); // untouched
+    expect(stripEmoji('A 🔥\n\nB')).toBe('A\n\nB');              // only the horizontal gap closes
+  });
+
   it('hasEmoji detects at least one emoji', () => {
     expect(hasEmoji('plain')).toBe(false);
     expect(hasEmoji('has 🚀')).toBe(true);

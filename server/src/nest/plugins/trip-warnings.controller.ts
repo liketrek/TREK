@@ -4,6 +4,7 @@ import { canAccessTrip } from '../../db/database';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
 import { PluginRuntimeService } from './plugin-runtime.service';
+import { stripEmoji } from './text-sanitize';
 
 /**
  * GET /api/trip-warnings/:tripId — validation/warning contributions from plugins
@@ -50,7 +51,7 @@ export class TripWarningsController {
           return list.filter((w): w is Record<string, unknown> => !!w && typeof w === 'object').slice(0, MAX_WARNINGS).map((w) => ({
             pluginId: id,
             level: w.level === 'error' || w.level === 'info' ? (w.level as Level) : 'warning',
-            message: String(w.message ?? '').slice(0, MESSAGE_MAX),
+            message: stripEmoji(String(w.message ?? '')).slice(0, MESSAGE_MAX),
             dayId: typeof w.dayId === 'number' ? w.dayId : undefined,
             placeId: typeof w.placeId === 'number' ? w.placeId : undefined,
           }));

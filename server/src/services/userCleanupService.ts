@@ -34,8 +34,8 @@ export function erasePluginUserData(userId: number): void {
     // enqueue for every orphan data dir; the row sits inert (no FK) and drains only if
     // that id is reinstalled + active (erasure delivery is a duty, not grant-gated).
     try {
-      for (const name of fs.readdirSync(pluginsDataRoot())) {
-        if (!installed.has(name)) insert.run(name, userId);
+      for (const entry of fs.readdirSync(pluginsDataRoot(), { withFileTypes: true })) {
+        if (entry.isDirectory() && !installed.has(entry.name)) insert.run(entry.name, userId);
       }
     } catch { /* no plugin data root yet */ }
   } catch { /* plugins / queue table absent (slim schema) */ }
