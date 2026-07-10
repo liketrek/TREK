@@ -24,6 +24,8 @@ vi.mock('../../../src/db/database', () => {
     CREATE TABLE trip_members (trip_id INTEGER, user_id INTEGER);
     CREATE TABLE plugin_entity_metadata (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, entity_type TEXT, entity_id INTEGER, key TEXT, value TEXT, updated_at TEXT, UNIQUE(plugin_id, entity_type, entity_id, key));
     CREATE TABLE packing_items (id INTEGER PRIMARY KEY, trip_id INTEGER, is_private INTEGER, owner_id INTEGER);
+    CREATE TABLE plugin_capability_audit (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, acting_user_id INTEGER, method TEXT, resource TEXT, code TEXT, ts TEXT, prev_hash TEXT, hash TEXT);
+    CREATE TABLE plugin_scheduled_tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT NOT NULL, name TEXT NOT NULL, due_at INTEGER NOT NULL, payload TEXT NOT NULL DEFAULT 'null', every_ms INTEGER, created_at TEXT DEFAULT (datetime('now')), UNIQUE(plugin_id, name));
   `);
   d.prepare('INSERT INTO trips (id, user_id) VALUES (1, 5)').run();
   d.prepare('INSERT INTO packing_items (id, trip_id, is_private, owner_id) VALUES (70, 1, 0, 5)').run(); // public before an update
@@ -262,6 +264,7 @@ vi.mock('../../../src/services/dayNoteService', () => ({
 }));
 
 import { createRealRpcHost, getPluginDataDb, closePluginDataDb } from '../../../src/nest/plugins/host/create-rpc-host';
+import { db as mockDb } from '../../../src/db/database';
 
 let tmp: string;
 beforeAll(() => {
@@ -785,6 +788,48 @@ describe('create-rpc-host — Wave 4 wiring (notify / ai)', () => {
     expect(Array.isArray(e.result.results)).toBe(true)
     // user 7 has no provider → the router's aiConfigured() check trips first
     expect(((await call(h, 'ai.complete', { prompt: 'hi' }, 7)) as { error: { code: string } }).error.code).toBe('BAD_PARAMS')
+  })
+
+  it('scheduler.set upserts by name with caps; cancel removes; recurring floor enforced', async () => {
+    const h = createRealRpcHost('wsched', new Set(['jobs:run']), { callPlugin: async () => undefined, emitPluginEvent: () => {} } as never);
+    const c = async (method: string, params: Record<string, unknown>): Promise<{ ok: boolean; result?: unknown; error?: { code: string; message: string } }> =>
+      h.dispatch({ k: 'req', id: 'x', method, params }, undefined) as never;
+    const due = Date.now() + 120_000;
+    expect((await c('scheduler.set', { name: 'poll', dueAt: due, payload: { a: 1 } })).ok).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const dbAny = mockDb as any;
+    expect(dbAny.prepare("SELECT COUNT(*) AS n FROM plugin_scheduled_tasks WHERE plugin_id='wsched'").get().n).toBe(1);
+    // re-set same name = upsert (still 1 row, new due)
+    expect((await c('scheduler.set', { name: 'poll', dueAt: due + 1000 })).ok).toBe(true);
+    expect(dbAny.prepare("SELECT COUNT(*) AS n FROM plugin_scheduled_tasks WHERE plugin_id='wsched'").get().n).toBe(1);
+    // recurring below the 60s floor is refused
+    expect((await c('scheduler.set', { name: 'fast', dueAt: due, everyMs: 5000 })).error?.code).toBe('BAD_PARAMS');
+    // cancel removes it
+    expect((await c('scheduler.cancel', { name: 'poll' })).result).toMatchObject({ cancelled: true });
+    expect(dbAny.prepare("SELECT COUNT(*) AS n FROM plugin_scheduled_tasks WHERE plugin_id='wsched'").get().n).toBe(0);
+    closePluginDataDb('wsched');
+  })
+
+  it('enforces the daily notify + AI budgets, seeded from today\'s audit rows', async () => {
+    // Seed the audit with a plugin that has already spent its whole day (default caps
+    // are 100 notify / 200 ai) so the budget is exhausted on first use.
+    const today = new Date().toISOString().slice(0, 10) + 'T08:00:00.000Z';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const dbAny = mockDb as any;
+    const ins = dbAny.prepare("INSERT INTO plugin_capability_audit (plugin_id, method, code, ts) VALUES (?, ?, 'ok', ?)");
+    for (let i = 0; i < 100; i++) ins.run('wbudget', 'notify.send', today);
+    for (let i = 0; i < 200; i++) ins.run('wbudget', 'ai.complete', today);
+    const h = createRealRpcHost('wbudget', new Set(['notify:send', 'ai:invoke']), { callPlugin: async () => undefined, emitPluginEvent: () => {} } as never);
+    const c = async (method: string, params: Record<string, unknown>): Promise<{ ok: boolean; error?: { code: string; message: string } }> =>
+      h.dispatch({ k: 'req', id: 'x', method, params }, 5) as never;
+    const n = await c('notify.send', { input: { title: 't', body: 'b', scope: 'user', targetId: 5 } });
+    expect(n.ok).toBe(false);
+    expect(n.error?.code).toBe('BAD_PARAMS');
+    expect(n.error?.message).toMatch(/budget/i);
+    const a = await c('ai.complete', { prompt: 'hi' });
+    expect(a.ok).toBe(false);
+    expect(a.error?.message).toMatch(/budget/i);
+    closePluginDataDb('wbudget');
   })
 })
 

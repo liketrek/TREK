@@ -116,6 +116,8 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
   const vacayEntries = new Set<string>();
   const vacayHolidays = new Set<string>();
   let collabSeq = 0;
+  // In-memory scheduled tasks for ctx.scheduler (upsert by name, like the real host).
+  const scheduledTasks = new Map<string, { dueAt: number; everyMs?: number; payload?: unknown }>();
   // In-memory namespaced metadata store for ctx.meta (per mock plugin).
   const metaStore: Record<string, unknown> = {};
   const metaKey = (et: string, eid: number, key: string) => `${et}:${eid}:${key}`;
@@ -452,6 +454,28 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
         need('oauth:client', 'oauth.getToken');
         if (opts.actingUserId === undefined) return null; // userless context — nobody to act for
         return opts.oauthAccessToken ?? null;
+      },
+    },
+    scheduler: {
+      async at(whenMs, name, payload) {
+        need('jobs:run', 'scheduler.set');
+        scheduledTasks.set(name, { dueAt: whenMs, payload });
+        return { scheduled: true };
+      },
+      async in(ms, name, payload) {
+        need('jobs:run', 'scheduler.set');
+        scheduledTasks.set(name, { dueAt: 0 + ms, payload });
+        return { scheduled: true };
+      },
+      async every(ms, name, payload) {
+        need('jobs:run', 'scheduler.set');
+        if (ms < 60_000) throw new Error('recurring interval must be >= 60000 ms');
+        scheduledTasks.set(name, { dueAt: 0 + ms, everyMs: ms, payload });
+        return { scheduled: true };
+      },
+      async cancel(name) {
+        need('jobs:run', 'scheduler.cancel');
+        return { cancelled: scheduledTasks.delete(name) };
       },
     },
     weather: {

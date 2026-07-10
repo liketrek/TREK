@@ -145,6 +145,21 @@ export interface PluginContext {
   oauth: {
     getAccessToken(): Promise<string | null>;
   };
+  /** Persistent, userless scheduling — a future callback into your `scheduled` handler
+   * that survives restarts. Same risk class + grant as background jobs: needs `jobs:run`,
+   * runs with NO acting user (trip reads refused; own db + declared egress only). Caps:
+   * up to 100 tasks/plugin, 8 KB payload, recurring interval >= 60 s, <= ~1 year out.
+   * `set` is an upsert by name; `cancel` removes it. */
+  scheduler: {
+    /** Fire once at an absolute epoch-ms time. */
+    at(whenMs: number, name: string, payload?: unknown): Promise<{ scheduled: boolean }>;
+    /** Fire once after `ms` from now. */
+    in(ms: number, name: string, payload?: unknown): Promise<{ scheduled: boolean }>;
+    /** Fire repeatedly every `ms` (first fire after `ms`). */
+    every(ms: number, name: string, payload?: unknown): Promise<{ scheduled: boolean }>;
+    /** Cancel a scheduled task by name. */
+    cancel(name: string): Promise<{ cancelled: boolean }>;
+  };
   /** Host weather cache by coordinates (+ optional YYYY-MM-DD). Tenant-free. Needs `weather:read`. */
   weather: {
     get(lat: number, lng: number, date?: string): Promise<unknown>;
@@ -477,6 +492,9 @@ export interface PluginDefinition {
   onUnload?(ctx: PluginContext): Promise<void> | void;
   routes?: PluginRoute[];
   jobs?: PluginJob[];
+  /** Handles a callback registered via ctx.scheduler (userless, like a job). The
+   * `name` identifies which scheduled task fired; `payload` is what you passed. */
+  scheduled?(input: { name: string; payload: unknown }, ctx: PluginContext): Promise<void> | void;
   events?: PluginEventSubscription[];
   hooks?: {
     photoProvider?: PhotoProvider;

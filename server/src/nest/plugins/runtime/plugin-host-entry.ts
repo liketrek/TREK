@@ -139,6 +139,14 @@ async function handleInvoke(req: { id: string; method: string; params: Record<st
       if (!job) throw new Error(`no job ${jobId}`);
       await job.handler(invCtx);
       respond(true, { ok: true });
+    } else if (req.method === 'invoke.scheduled') {
+      // A scheduled task the plugin registered via ctx.scheduler fired. Userless like
+      // a job (no acting user, so trip reads are refused). The handler gets the task
+      // name + its payload so one `scheduled` handler can route multiple timers.
+      const name = req.params.name as string;
+      const payload = req.params.payload;
+      if (typeof def.scheduled === 'function') await def.scheduled({ name, payload }, invCtx);
+      respond(true, { ok: true });
     } else if (req.method === 'invoke.hook') {
       // Host→plugin provider call: core asks a hook the plugin implements (e.g.
       // placeDetailProvider) for data. The hook method gets its args + the per-

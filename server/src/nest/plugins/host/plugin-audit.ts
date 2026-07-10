@@ -60,6 +60,7 @@ export function auditResource(method: string, params: Record<string, unknown>): 
   if (method === 'notify.send') { const i = (params.input ?? {}) as Record<string, unknown>; return `notify:${i.scope ?? '?'}:${i.targetId ?? '?'}`; }
   if (method === 'ai.complete' || method === 'ai.extract') return 'ai:invoke';
   if (method === 'oauth.getToken') return 'oauth:token';
+  if (method.startsWith('scheduler.')) return `scheduler:${params.name ?? '?'}`;
   if (method === 'plugins.call') return `plugin:${params.targetId ?? '?'}#${params.fn ?? '?'}`;
   if (method === 'events.emit') return `event:${params.event ?? '?'}`;
   return null;

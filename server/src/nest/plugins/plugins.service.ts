@@ -4,6 +4,7 @@ import { pluginsEnabled } from './kill-switch';
 import { devLinkEnabled } from './dev-link';
 import { maybe_encrypt_api_key, decrypt_api_key } from '../../services/apiKeyCrypto';
 import { readAudit } from './host/plugin-audit';
+import { pluginBudgetUsage } from './host/create-rpc-host';
 import { isAddonEnabled } from '../../services/adminService';
 import { parseDependencies, disabledRequiredAddons, resolveDependencyState, type PluginDepRow, type PluginDependencies, type VersionMismatch } from './dependencies';
 import type { PluginDependency } from './install/manifest';
@@ -221,6 +222,11 @@ export class PluginsService {
   /** A plugin's hash-chained capability audit log, newest first. */
   auditLog(id: string): unknown[] {
     return readAudit(db, id);
+  }
+
+  /** A plugin's broker budget usage for today (AI + notification counts vs caps). */
+  budget(id: string): ReturnType<typeof pluginBudgetUsage> {
+    return pluginBudgetUsage(id);
   }
 
   /** Read the instance config with secret fields masked. */

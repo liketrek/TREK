@@ -69,6 +69,10 @@ export interface HostDeps {
   /** A short-lived OAuth access token for the acting user (host-brokered; refreshes if
    * expiring). Null when the user hasn't connected. The plugin never sees the refresh token. */
   getOAuthToken(pluginId: string, userId: number): Promise<string | null>;
+  /** Schedule (upsert by name) a userless future callback; everyMs set = recurring. Caps enforced here. */
+  schedulerSet(name: string, dueAt: number, everyMs: number | undefined, payload: unknown): { scheduled: boolean };
+  /** Cancel a scheduled callback by name. */
+  schedulerCancel(name: string): { cancelled: boolean };
   /** Optional sink for the capability audit log (host-side, hash-chained). */
   audit?(entry: { pluginId: string; actingUserId?: number; method: string; resource: string | null; code: string }): void;
   /** Call an export on another plugin (this host's plugin is the caller). Authorizes
@@ -1083,6 +1087,19 @@ export class PluginRpcHost {
         const actor = this.requireActor(uid, 'OAuth');
         return { accessToken: await deps.getOAuthToken(this.pluginId, actor) };
       });
+    }
+
+    if (has('jobs:run')) {
+      // Persistent scheduler: a plugin schedules a userless future callback (once or
+      // recurring) that survives restarts. Same grant + risk class as its cron jobs.
+      // Caps are enforced in the wiring (max entries, name/payload size, min interval).
+      this.methods.set('scheduler.set', (p) => {
+        const name = str(p.name, 'name');
+        const dueAt = num(p.dueAt, 'dueAt');
+        const everyMs = p.everyMs != null ? num(p.everyMs, 'everyMs') : undefined;
+        return deps.schedulerSet(name, dueAt, everyMs, p.payload ?? null);
+      });
+      this.methods.set('scheduler.cancel', (p) => deps.schedulerCancel(str(p.name, 'name')));
     }
 
     // Inter-plugin capabilities (#plugins deps). Registered UNCONDITIONALLY — there

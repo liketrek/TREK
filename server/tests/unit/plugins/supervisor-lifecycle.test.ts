@@ -68,6 +68,110 @@ describe('supervisor crash-restart does not leak cron tasks', () => {
   });
 });
 
+describe('supervisor buffers events across a restart and replays on activation', () => {
+  // A subscriber with a grant + one subscription, at an arbitrary status.
+  const sub = (status: string) => ({
+    id: 'p', status, granted: new Set(['events:subscribe']), events: ['trip:updated'],
+  });
+
+  it('an active subscriber gets the event immediately, nothing buffered', () => {
+    const { s } = makeSupervisor();
+    const invoke = vi.fn(() => Promise.resolve());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).invoke = invoke;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).running.set('p', sub('active'));
+    s.deliverEvent(7, 'trip:updated');
+    expect(invoke).toHaveBeenCalledTimes(1);
+    expect(invoke.mock.calls[0][1]).toBe('invoke.event');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((s as any).pendingEvents.get('p')).toBeUndefined();
+  });
+
+  it('an event that fires while the subscriber is starting is buffered, then replayed on activation', () => {
+    const { s } = makeSupervisor();
+    const invoke = vi.fn(() => Promise.resolve());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).invoke = invoke;
+    const sup = sub('starting');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).running.set('p', sup);
+    s.deliverEvent(7, 'trip:updated');
+    expect(invoke).not.toHaveBeenCalled();                 // held, not delivered mid-restart
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((s as any).pendingEvents.get('p')).toHaveLength(1);
+    // plugin comes back
+    sup.status = 'active';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).flushPendingEvents(sup);
+    expect(invoke).toHaveBeenCalledTimes(1);                // replayed exactly once
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((s as any).pendingEvents.get('p')).toBeUndefined(); // buffer drained
+  });
+
+  it('a deliberately stopped subscriber neither receives nor buffers the event', () => {
+    const { s } = makeSupervisor();
+    const invoke = vi.fn(() => Promise.resolve());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).invoke = invoke;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).running.set('p', sub('stopped'));
+    s.deliverEvent(7, 'trip:updated');
+    expect(invoke).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((s as any).pendingEvents.get('p')).toBeUndefined();
+  });
+
+  it('flush drops expired events and re-checks the grant (nothing leaks if it was revoked while down)', () => {
+    const { s } = makeSupervisor();
+    const invoke = vi.fn(() => Promise.resolve());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).invoke = invoke;
+    const sup = sub('active');
+    // one fresh + one already-expired buffered event
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).pendingEvents.set('p', [
+      { tripId: 1, event: 'trip:updated', expiresAt: Date.now() + 60_000 },
+      { tripId: 2, event: 'trip:updated', expiresAt: Date.now() - 1 },
+    ]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).flushPendingEvents(sup);
+    expect(invoke).toHaveBeenCalledTimes(1);                // only the unexpired one
+    // grant revoked while down → flush delivers nothing
+    invoke.mockClear();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).pendingEvents.set('p', [{ tripId: 1, event: 'trip:updated', expiresAt: Date.now() + 60_000 }]);
+    sup.granted = new Set();                                // grant gone
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).flushPendingEvents(sup);
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it('the buffer is bounded per plugin (drop-oldest past the cap)', () => {
+    const { s } = makeSupervisor();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).invoke = vi.fn(() => Promise.resolve());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).running.set('p', sub('starting'));
+    for (let i = 0; i < 250; i++) s.deliverEvent(i, 'trip:updated');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const q = (s as any).pendingEvents.get('p');
+    expect(q).toHaveLength(200);                            // capped
+    expect(q[0].tripId).toBe(50);                           // oldest 50 dropped
+  });
+
+  it('disable() clears a plugin\'s buffered events', () => {
+    const { s } = makeSupervisor();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).running.set('p', { id: 'p', status: 'starting', granted: new Set(), events: [], jobTasks: undefined, pending: new Map(), invocations: new Map(), crashes: [], rpcHost: { dispose: vi.fn() } });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).pendingEvents.set('p', [{ tripId: 1, event: 'trip:updated', expiresAt: Date.now() + 60_000 }]);
+    void s.disable('p');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((s as any).pendingEvents.get('p')).toBeUndefined();
+  });
+});
+
 describe('supervisor rate-limits ctx.* dispatch', () => {
   it('refuses a throttled call with HOST_ERROR instead of dispatching it', async () => {
     const { s } = makeSupervisor();

@@ -128,6 +128,8 @@ function makeDeps(): HostDeps {
     aiExtract: vi.fn(async () => ({ results: [{ ok: true }] })),
     getUserSetting: vi.fn((pluginId: string, userId: number, key: string) => (userId === 42 && key === 'apiKey' ? `secret-of-${pluginId}` : undefined)),
     getOAuthToken: vi.fn(async (_pluginId: string, userId: number) => (userId === 42 ? 'access-token-xyz' : null)),
+    schedulerSet: vi.fn((name: string, dueAt: number, everyMs: number | undefined) => ({ scheduled: true, name, dueAt, everyMs })),
+    schedulerCancel: vi.fn((name: string) => ({ cancelled: name !== 'ghost' })),
     createCollectionForUser: vi.fn((uid: number, input: unknown) => ({ id: 100, owner_id: uid, ...(input as object) })),
     updateCollectionForUser: vi.fn((_uid: number, id: number, input: unknown) => ({ id, ...(input as object) })),
     saveCollectionPlace: vi.fn((uid: number, input: unknown) => ({ id: 101, saved_by: uid, ...(input as object) })),
@@ -698,6 +700,19 @@ describe('PluginRpcHost — capability enforcement', () => {
     // without the grant → not reachable
     const noGrant = new PluginRpcHost('p', new Set(), deps);
     expect((await noGrant.dispatch(req('oauth.getToken', {}), 42)).ok).toBe(false);
+  });
+
+  it('scheduler.set/cancel ride on jobs:run and are userless (no acting user needed)', async () => {
+    const host = new PluginRpcHost('p', new Set(['jobs:run']), deps);
+    // userless (no bound user) is fine — scheduled tasks are like jobs
+    const set = await host.dispatch(req('scheduler.set', { name: 'poll', dueAt: 123, everyMs: 60000, payload: { x: 1 } }), undefined);
+    expect(ok(set)).toBe(true);
+    expect(deps.schedulerSet).toHaveBeenCalledWith('poll', 123, 60000, { x: 1 });
+    const cancel = await host.dispatch(req('scheduler.cancel', { name: 'poll' }), undefined);
+    expect(ok(cancel)).toBe(true);
+    // without jobs:run → not reachable
+    const noGrant = new PluginRpcHost('p', new Set(), deps);
+    expect((await noGrant.dispatch(req('scheduler.set', { name: 'x', dueAt: 1 }), 42) as RpcError).error.code).toBe('PERMISSION_DENIED');
   });
 
   it('a read scope is denied without its own permission', async () => {

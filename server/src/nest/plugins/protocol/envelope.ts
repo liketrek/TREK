@@ -151,6 +151,8 @@ export const KNOWN_METHODS = [
   'ai.complete',
   'ai.extract',
   'oauth.getToken',
+  'scheduler.set',
+  'scheduler.cancel',
 ] as const;
 export type KnownMethod = (typeof KNOWN_METHODS)[number];
 
@@ -260,6 +262,10 @@ export const METHOD_PERMISSION: Record<KnownMethod, string> = {
   'ai.complete': 'ai:invoke',
   'ai.extract': 'ai:invoke',
   'oauth.getToken': 'oauth:client',
+  // Scheduling a userless future callback is the same risk class as a cron job, so
+  // it rides on the existing jobs:run grant (no new permission, no re-consent).
+  'scheduler.set': 'jobs:run',
+  'scheduler.cancel': 'jobs:run',
 };
 
 /** All permission strings the host understands (unknown ones are rejected at activation). */

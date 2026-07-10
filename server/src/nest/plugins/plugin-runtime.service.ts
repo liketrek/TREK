@@ -116,6 +116,9 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
   // author's source auto-reloads. Empty unless dev-link is used.
   private readonly linkWatchers = new Map<string, fs.FSWatcher>();
 
+  // Sweeps plugin_scheduled_tasks for due callbacks and fires them on active plugins.
+  private schedulerSweep: ReturnType<typeof setInterval> | null = null;
+
   // Optional at the type level so tests can `new PluginRuntimeService()` without a
   // registry; Nest always injects the real one (the provider is in the module).
   constructor(private readonly registry?: PluginRegistryService) {}
@@ -155,6 +158,35 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     } catch {
       /* discovery/boot must never block app init */
     }
+    // Fire due scheduled tasks (persistent, userless) on a coarse tick — the
+    // scheduler is minute-granularity by contract, so 30s precision is plenty and
+    // cheap. Unref'd so it never holds the process open.
+    this.schedulerSweep = setInterval(() => this.fireDueScheduled(), 30_000);
+    this.schedulerSweep.unref?.();
+  }
+
+  /** Fire every scheduled task that is due on an ACTIVE plugin; re-arm recurring
+   * ones, delete one-shots. The row is re-armed/deleted BEFORE the fire so a crash
+   * mid-callback can't double-fire; an inactive plugin's tasks are left untouched so
+   * they run on the next sweep after it reactivates. Never throws. */
+  private fireDueScheduled(): void {
+    if (!pluginsEnabled()) return;
+    try {
+      const now = Date.now();
+      const due = db
+        .prepare('SELECT id, plugin_id, name, payload, every_ms FROM plugin_scheduled_tasks WHERE due_at <= ? ORDER BY due_at LIMIT 200')
+        .all(now) as Array<{ id: number; plugin_id: string; name: string; payload: string; every_ms: number | null }>;
+      for (const t of due) {
+        if (!this.supervisor.isActive(t.plugin_id)) continue; // leave for a later sweep
+        if (t.every_ms) db.prepare('UPDATE plugin_scheduled_tasks SET due_at = ? WHERE id = ?').run(now + t.every_ms, t.id);
+        else db.prepare('DELETE FROM plugin_scheduled_tasks WHERE id = ?').run(t.id);
+        let payload: unknown = null;
+        try { payload = JSON.parse(t.payload); } catch { /* corrupt payload -> null */ }
+        this.supervisor.deliverScheduled(t.plugin_id, t.name, payload);
+      }
+    } catch {
+      /* a sweep must never break the runtime */
+    }
   }
 
   /**
@@ -183,6 +215,7 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleDestroy(): Promise<void> {
     setPluginEventSink(null);
+    if (this.schedulerSweep) { clearInterval(this.schedulerSweep); this.schedulerSweep = null; }
     for (const w of this.linkWatchers.values()) {
       try { w.close(); } catch { /* ignore */ }
     }
@@ -469,6 +502,9 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     removePluginCodeEntry(pluginCodeDir(id));
     db.prepare('DELETE FROM plugins WHERE id = ?').run(id);
     db.prepare('DELETE FROM plugin_settings_fields WHERE plugin_id = ?').run(id);
+    // Scheduled tasks are operational (not user data), so they go unconditionally —
+    // a scheduled callback for a plugin that no longer exists must never fire.
+    db.prepare('DELETE FROM plugin_scheduled_tasks WHERE plugin_id = ?').run(id);
     if (deleteData) {
       removePluginData(id);
       db.prepare('DELETE FROM plugin_error_log WHERE plugin_id = ?').run(id);

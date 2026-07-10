@@ -35,6 +35,7 @@ import { BudgetService } from '../../budget/budget.service';
 import { ReservationsService } from '../../reservations/reservations.service';
 import type { User } from '../../../types';
 import { PluginDataDb } from './plugin-data.service';
+import { DailyBudget, DEFAULT_DAILY_BUDGET } from './daily-budget';
 import { PluginRpcHost, ForbiddenResource, BadParams } from './rpc-host';
 import { appendAudit } from './plugin-audit';
 
@@ -166,6 +167,36 @@ export function getPluginDataDb(id: string): PluginDataDb {
 export function closePluginDataDb(id: string): void {
   dataDbs.get(id)?.close();
   dataDbs.delete(id);
+  budgets.delete(id);
+}
+
+// Per-plugin daily broker budgets (ai/notify). Lazily created + seeded from the
+// local capability audit — which already records every ai/notify call today — so a
+// restart continues the same UTC day instead of resetting the budget. In-memory,
+// nothing persisted or phoned home.
+const budgets = new Map<string, DailyBudget>();
+function budgetFor(id: string): DailyBudget {
+  let b = budgets.get(id);
+  if (!b) {
+    const now = Date.now();
+    const since = new Date(now).toISOString().slice(0, 10) + 'T00:00:00';
+    const rows = db
+      .prepare("SELECT method, COUNT(*) AS n FROM plugin_capability_audit WHERE plugin_id = ? AND code = 'ok' AND ts >= ? AND method IN ('ai.complete','ai.extract','notify.send') GROUP BY method")
+      .all(id, since) as Array<{ method: string; n: number }>;
+    let ai = 0, notify = 0;
+    for (const r of rows) {
+      if (r.method === 'notify.send') notify += r.n;
+      else ai += r.n; // ai.complete + ai.extract
+    }
+    b = new DailyBudget(DEFAULT_DAILY_BUDGET, now, { ai, notify });
+    budgets.set(id, b);
+  }
+  return b;
+}
+
+/** Today's broker usage for one plugin (admin view). Seeds the counter if unseen. */
+export function pluginBudgetUsage(id: string): ReturnType<DailyBudget['used']> {
+  return budgetFor(id).used(Date.now());
 }
 
 /** Routes inter-plugin calls/events; supplied by PluginRuntimeService (owns the supervisor). */
@@ -324,6 +355,7 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
     // null (no user sender), so the message body carries the plugin's content. ---
     canAccessTripForNotify: (tripId, userId) => !!canAccessTrip(tripId, userId),
     sendPluginNotification: async (_pluginId, input) => {
+      if (!budgetFor(id).take('notify', Date.now())) throw new BadParams('daily notification budget exhausted (resets at UTC midnight)');
       await sendNotification({
         event: 'plugin_notification',
         actorId: null,
@@ -342,6 +374,7 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
     aiComplete: async (userId, prompt, system) => {
       const config = resolveLlmConfig(userId);
       if (!config) throw new BadParams('no AI provider is configured for this user');
+      if (!budgetFor(id).take('ai', Date.now())) throw new BadParams('daily AI budget exhausted (resets at UTC midnight)');
       const results = await createLlmClient(config).extract({
         prompt: system || 'You are a helpful assistant. Reply with a JSON object of the form {"text": "..."} whose "text" field holds your answer.',
         jsonSchema: { type: 'object', properties: { text: { type: 'string' } }, required: ['text'] },
@@ -353,6 +386,7 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
     aiExtract: async (userId, text, jsonSchema, prompt) => {
       const config = resolveLlmConfig(userId);
       if (!config) throw new BadParams('no AI provider is configured for this user');
+      if (!budgetFor(id).take('ai', Date.now())) throw new BadParams('daily AI budget exhausted (resets at UTC midnight)');
       const results = await createLlmClient(config).extract({
         prompt: prompt || 'Extract structured data from the text into the given JSON schema.',
         jsonSchema, model: config.model, baseUrl: config.baseUrl, apiKey: config.apiKey, text,
@@ -363,6 +397,35 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
     getUserSetting: (pluginId, userId, key) => readUserSettingDecrypted(pluginId, userId, key),
     // A short-lived OAuth access token for the acting user (host-brokered; refreshes).
     getOAuthToken: (pluginId, userId) => new PluginOAuthService().getAccessToken(pluginId, userId, Date.now()),
+    // Persistent scheduler (jobs:run). Caps bound the abuse surface: a plugin can't
+    // hoard timers, name-bomb, ship a huge payload, or busy-loop a recurring task.
+    schedulerSet: (name, dueAt, everyMs, payload) => {
+      const SCHED_MAX = 100;               // entries per plugin
+      const NAME_MAX = 128;
+      const PAYLOAD_MAX = 8 * 1024;        // 8 KB JSON
+      const EVERY_MIN = 60_000;            // 1 min floor for recurring
+      const DUE_MAX = Date.now() + 366 * 24 * 60 * 60 * 1000; // <= ~1 year out
+      if (!name || name.length > NAME_MAX) throw new BadParams(`scheduler name is required (max ${NAME_MAX} chars)`);
+      if (!Number.isFinite(dueAt) || dueAt > DUE_MAX) throw new BadParams('scheduler dueAt out of range');
+      if (everyMs !== undefined && (!Number.isFinite(everyMs) || everyMs < EVERY_MIN)) throw new BadParams(`recurring interval must be >= ${EVERY_MIN} ms`);
+      const json = JSON.stringify(payload ?? null);
+      if (json.length > PAYLOAD_MAX) throw new BadParams(`scheduler payload too large (max ${PAYLOAD_MAX} bytes)`);
+      const existing = db.prepare('SELECT id FROM plugin_scheduled_tasks WHERE plugin_id = ? AND name = ?').get(id, name) as { id: number } | undefined;
+      if (!existing) {
+        const n = (db.prepare('SELECT COUNT(*) AS c FROM plugin_scheduled_tasks WHERE plugin_id = ?').get(id) as { c: number }).c;
+        if (n >= SCHED_MAX) throw new BadParams(`too many scheduled tasks (max ${SCHED_MAX})`);
+      }
+      // Upsert by (plugin, name): re-scheduling the same name replaces it.
+      db.prepare(
+        `INSERT INTO plugin_scheduled_tasks (plugin_id, name, due_at, payload, every_ms) VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT (plugin_id, name) DO UPDATE SET due_at = excluded.due_at, payload = excluded.payload, every_ms = excluded.every_ms`,
+      ).run(id, name, Math.max(dueAt, Date.now()), json, everyMs ?? null);
+      return { scheduled: true };
+    },
+    schedulerCancel: (name) => {
+      const r = db.prepare('DELETE FROM plugin_scheduled_tasks WHERE plugin_id = ? AND name = ?').run(id, name);
+      return { cancelled: r.changes > 0 };
+    },
     listCostsForTrip: (tripId) => listBudgetItems(tripId),
     // Cross-trip: every accessible trip's budget items (membership predicate is
     // baked into listTrips). Reuses the hydrated list so members/payers come too.

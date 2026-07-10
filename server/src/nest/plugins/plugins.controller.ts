@@ -187,6 +187,11 @@ export class PluginsController {
     return { audit: this.plugins.auditLog(id) };
   }
 
+  @Get(':id/budget')
+  budget(@Param('id') id: string) {
+    return { budget: this.plugins.budget(id) };
+  }
+
   @Delete(':id/errors')
   clearErrors(@Param('id') id: string) {
     this.plugins.clearErrors(id);

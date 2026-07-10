@@ -109,6 +109,15 @@ export class PluginSupervisor {
   private running = new Map<string, Supervised>();
   private sweep: ReturnType<typeof setInterval> | null = null;
   private readonly tuning: Required<SupervisorTuning>;
+  // Best-effort redelivery buffer: core events that fire while a subscriber is
+  // mid-restart ('starting'/'error') are held here and replayed once it is active
+  // again — closing the "event lost during the restart window" gap. In-memory only
+  // (no persistence, so no DB writes on the broadcast fast-path), bounded per plugin
+  // and TTL'd. Grants + snapshot gating are re-evaluated at replay time from the
+  // CURRENT grant set, never trusted from when the event was buffered.
+  private readonly pendingEvents = new Map<string, Array<{ tripId: number; event: string; meta?: PluginEventMeta; expiresAt: number }>>();
+  private static readonly EVENT_BUFFER_MAX = 200;        // events held per plugin (drop oldest past this)
+  private static readonly EVENT_BUFFER_TTL_MS = 15 * 60_000; // a buffered event older than this is dropped unreplayed
 
   constructor(
     private readonly createRpcHost: (id: string, granted: ReadonlySet<string>) => PluginRpcHost,
@@ -186,6 +195,7 @@ export class PluginSupervisor {
     const sup = this.running.get(id);
     if (!sup) return;
     this.running.delete(id);
+    this.pendingEvents.delete(id); // a deliberately-stopped plugin keeps no buffered events
     this.clearActivationTimer(sup);
     this.setStatus(sup, 'stopped');
     await this.kill(sup);
@@ -245,16 +255,66 @@ export class PluginSupervisor {
    * handler.
    */
   deliverEvent(tripId: number, event: string, meta?: PluginEventMeta): void {
+    for (const [id, sup] of this.running) {
+      if (!sup.granted.has('events:subscribe')) continue;
+      if (!sup.events.includes(event) && !sup.events.includes('*')) continue;
+      if (sup.status === 'active') {
+        this.sendEvent(sup, tripId, event, meta);
+      } else if (sup.status === 'starting' || sup.status === 'error') {
+        // Subscribed but mid-restart / recovering: hold the event and replay on activation.
+        this.bufferEvent(id, tripId, event, meta);
+      }
+      // 'stopped' is a deliberate disable — drop, exactly as before.
+    }
+  }
+
+  /** Invoke one active subscriber with an event, applying snapshot gating from its
+   * CURRENT grants. Fire-and-forget: a broadcast must never block on a plugin. */
+  private sendEvent(sup: Supervised, tripId: number, event: string, meta?: PluginEventMeta): void {
     const { snapshot, ...hint } = meta ?? {};
     const grant = hint.entity ? SNAPSHOT_GRANT[hint.entity] : undefined;
-    for (const [id, sup] of this.running) {
-      if (sup.status !== 'active' || !sup.granted.has('events:subscribe')) continue;
-      if (!sup.events.includes(event) && !sup.events.includes('*')) continue;
-      const withSnapshot = snapshot !== undefined && grant !== undefined && sup.granted.has(grant);
-      this.invoke(id, 'invoke.event', { event, tripId, ...hint, ...(withSnapshot ? { snapshot } : {}) }, { actingUserId: undefined, timeoutMs: 5000 }).catch(() => {
-        /* a subscriber that errors or times out is ignored — events are best-effort */
-      });
+    const withSnapshot = snapshot !== undefined && grant !== undefined && sup.granted.has(grant);
+    this.invoke(sup.id, 'invoke.event', { event, tripId, ...hint, ...(withSnapshot ? { snapshot } : {}) }, { actingUserId: undefined, timeoutMs: 5000 }).catch(() => {
+      /* a subscriber that errors or times out is ignored — events are best-effort */
+    });
+  }
+
+  /** Append an event to a subscriber's bounded redelivery buffer (drop-oldest past the cap). */
+  private bufferEvent(id: string, tripId: number, event: string, meta?: PluginEventMeta): void {
+    let q = this.pendingEvents.get(id);
+    if (!q) { q = []; this.pendingEvents.set(id, q); }
+    q.push({ tripId, event, meta, expiresAt: Date.now() + PluginSupervisor.EVENT_BUFFER_TTL_MS });
+    if (q.length > PluginSupervisor.EVENT_BUFFER_MAX) q.splice(0, q.length - PluginSupervisor.EVENT_BUFFER_MAX);
+  }
+
+  /** Replay buffered events to a plugin that just went active. Re-checks the grant +
+   * the current subscription list and drops anything expired, so a grant revoked or a
+   * subscription dropped while the plugin was down never leaks through. */
+  private flushPendingEvents(sup: Supervised): void {
+    const q = this.pendingEvents.get(sup.id);
+    if (!q) return;
+    this.pendingEvents.delete(sup.id);
+    if (!sup.granted.has('events:subscribe')) return;
+    const now = Date.now();
+    for (const item of q) {
+      if (item.expiresAt <= now) continue;
+      if (!sup.events.includes(item.event) && !sup.events.includes('*')) continue;
+      this.sendEvent(sup, item.tripId, item.event, item.meta);
     }
+  }
+
+  /**
+   * Fire a due scheduled task on an active plugin — userless, exactly like a cron
+   * job (no acting user, so trip reads are refused; own db + declared egress only).
+   * No-op if the plugin isn't active; the caller leaves the row so it fires on the
+   * next sweep after reactivation. Fire-and-forget with a job-length timeout.
+   */
+  deliverScheduled(id: string, name: string, payload: unknown): void {
+    const sup = this.running.get(id);
+    if (!sup || sup.status !== 'active') return;
+    void this.invoke(id, 'invoke.scheduled', { name, payload }, { actingUserId: undefined, timeoutMs: 60_000 }).catch(() => {
+      /* a scheduled task that errors/times out is ignored — best-effort like jobs */
+    });
   }
 
   /**
@@ -416,6 +476,8 @@ export class PluginSupervisor {
           } catch {
             /* a scheduler error must never stop a plugin from going live */
           }
+          // Replay any events that fired while the plugin was (re)starting.
+          this.flushPendingEvents(sup);
           sup.activation?.resolve();
           sup.activation = undefined;
           break;
