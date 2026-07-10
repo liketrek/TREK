@@ -766,6 +766,36 @@ describe('Immich syncAlbumAssets', () => {
     expect(photos[0].provider).toBe('immich');
   });
 
+  it('IMMICH-087 — POST sync does not persist hidden assets (#1474)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+    const link = addAlbumLink(testDb, trip.id, user.id, 'immich', 'album-uuid-1', 'Vacation 2024');
+
+    // A hidden IMAGE slips past the `type === 'IMAGE'` filter. Persisting it
+    // yields a permanently broken tile: nothing re-checks visibility on the
+    // render path, and Immich has no thumbnail to serve.
+    immichState.albumAssets = [
+      { id: 'visible-still', type: 'IMAGE', visibility: 'timeline', fileCreatedAt: '2024-06-01T10:00:00.000Z' },
+      { id: 'hidden-image', type: 'IMAGE', visibility: 'hidden', fileCreatedAt: '2024-06-02T10:00:00.000Z' },
+      { id: 'legacy-hidden-image', type: 'IMAGE', isVisible: false, fileCreatedAt: '2024-06-03T10:00:00.000Z' },
+    ];
+
+    const res = await request(app)
+      .post(`${IMMICH}/trips/${trip.id}/album-links/${link.id}/sync`)
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(1);
+
+    const rows = testDb.prepare(`
+      SELECT tkp.asset_id FROM trip_photos tp
+      JOIN trek_photos tkp ON tkp.id = tp.photo_id
+      WHERE tp.trip_id = ?
+    `).all(trip.id) as any[];
+    expect(rows.map((r) => r.asset_id)).toEqual(['visible-still']);
+  });
+
   it('IMMICH-086 — POST sync fetches album contents via search/metadata with albumIds', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
@@ -919,6 +949,33 @@ describe('Immich searchPhotos pagination pass-through', () => {
     expect(res.status).toBe(200);
     expect(res.body.assets.length).toBe(3);
     expect(res.body.hasMore).toBe(false);
+  });
+
+  it('IMMICH-093 — POST /search requests timeline visibility so Immich v3 never returns hidden assets (#1474)', async () => {
+    const { user } = createUser(testDb);
+    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+
+    // A sibling test installs a permanent mockResolvedValue on safeFetch, so
+    // assert on the spy's recorded call rather than immichState.searchCalls.
+    vi.mocked(safeFetch).mockClear();
+    vi.mocked(safeFetch).mockResolvedValue({
+      ok: true, status: 200,
+      headers: { get: () => null },
+      json: () => Promise.resolve({ assets: { items: [] } }),
+      body: null,
+    } as any);
+
+    await request(app)
+      .post(`${IMMICH}/search`)
+      .set('Cookie', authCookie(user.id))
+      .send({ from: '2024-06-01', to: '2024-06-14' });
+
+    // Immich v2 hard-defaulted metadata search to `timeline` visibility; v3
+    // defaults to "any except locked", which is what started surfacing Live
+    // Photo motion parts. Asking for `timeline` explicitly restores v2
+    // semantics on both, so hidden assets never cross the wire.
+    const callBody = JSON.parse(vi.mocked(safeFetch).mock.calls[0][1]!.body as string);
+    expect(callBody.visibility).toBe('timeline');
   });
 
   it('IMMICH-092 — POST /search filters hidden Live Photo motion assets (#1474)', async () => {

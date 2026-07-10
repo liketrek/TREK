@@ -21,6 +21,16 @@ export function isValidAssetId(id: string): boolean {
   return /^[a-zA-Z0-9_-]+$/.test(id) && id.length <= 100;
 }
 
+/**
+ * Hidden assets (e.g. Live Photo motion parts) have no generated thumbnail —
+ * Immich's own UI never shows them standalone. Surfacing or persisting one
+ * yields a permanently broken tile, since nothing re-checks visibility on the
+ * render path (#1474). Legacy Immich exposes the same state as `isVisible:false`.
+ */
+function isVisibleAsset(a: any): boolean {
+  return a.visibility !== 'hidden' && a.isVisible !== false;
+}
+
 // ── Connection Settings ────────────────────────────────────────────────────
 
 export function getConnectionSettings(userId: number) {
@@ -170,6 +180,12 @@ export async function searchPhotos(
         takenAfter: from ? `${from}T00:00:00.000Z` : undefined,
         takenBefore: to ? `${to}T23:59:59.999Z` : undefined,
         // No type filter — surface videos alongside images (#823).
+        // Immich v2 hard-defaulted metadata search to `timeline` visibility; v3
+        // defaults to any visibility except `locked`, which is what started
+        // surfacing Live Photo motion parts as broken tiles (#1474). Ask for
+        // `timeline` explicitly so hidden assets never cross the wire and a
+        // full page stays a full page of renderable tiles.
+        visibility: 'timeline',
         size,
         page,
       }),
@@ -178,13 +194,12 @@ export async function searchPhotos(
     if (!resp.ok) return { error: 'Search failed', status: resp.status };
     const data = await resp.json() as { assets?: { items?: any[] } };
     const items = data.assets?.items || [];
-    // Live Photo motion parts (and other hidden assets) are visibility:'hidden'
-    // in Immich and have no generated thumbnail — Immich's own timeline hides
-    // them, so don't surface them as separate (broken) tiles (#1474). Legacy
-    // Immich versions expose the same state as isVisible:false. hasMore stays on
-    // the raw page length so pagination still advances past a filtered page.
+    // Belt-and-braces: `visibility: 'timeline'` above should mean Immich never
+    // sends a hidden asset, but an older server that ignores the filter would
+    // otherwise render broken tiles. hasMore stays on the raw page length so
+    // pagination still advances past a filtered page.
     const assets = items
-      .filter((a: any) => a.visibility !== 'hidden' && a.isVisible !== false)
+      .filter(isVisibleAsset)
       .map((a: any) => ({
         id: a.id,
         takenAt: a.fileCreatedAt || a.createdAt,
@@ -433,10 +448,10 @@ export async function getAlbumPhotos(
   try {
     const result = await fetchAlbumAssets(creds, albumId);
     if (!result.assets) return { error: 'Failed to fetch album', status: result.status };
-    // Exclude hidden assets (e.g. Live Photo motion parts) that have no
-    // thumbnail, mirroring the search path (#1474).
+    // Albums legitimately contain hidden assets on both Immich versions (the v2
+    // album body and the v3 album search both return them), so filter here (#1474).
     const assets = result.assets
-      .filter((a: any) => a.visibility !== 'hidden' && a.isVisible !== false)
+      .filter(isVisibleAsset)
       .map((a: any) => ({
         id: a.id,
         takenAt: a.fileCreatedAt || a.createdAt,
@@ -465,7 +480,9 @@ export async function syncAlbumAssets(
   try {
     const albumResult = await fetchAlbumAssets(creds, response.data as string);
     if (!albumResult.assets) return { error: 'Failed to fetch album', status: albumResult.status };
-    const assets = albumResult.assets.filter((a: any) => a.type === 'IMAGE');
+    // Hidden assets must never be persisted: the render path never re-checks
+    // visibility, so a stored hidden asset is a permanently broken tile (#1474).
+    const assets = albumResult.assets.filter((a: any) => a.type === 'IMAGE' && isVisibleAsset(a));
 
     const selection: Selection = {
       provider: 'immich',
