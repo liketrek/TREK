@@ -370,14 +370,20 @@ export interface MapMarkerProvider {
   getMarkers(tripId: number, ctx: PluginContext): Promise<MapMarkerContribution[]>;
 }
 
-/** A core-event subscription (#1429 eco). Handlers run with NO user (like a job)
- * and receive only the event name + tripId — never the payload. Needs 'events:subscribe'. */
+/** A core-event subscription (#1429 eco). Handlers run with NO user (like a job).
+ * Needs 'events:subscribe'. */
 export interface PluginEventSubscription {
   on: string; // a core event name (e.g. 'place:created', 'day:updated') or '*' for all
   // `entity` = the event family (e.g. 'reservation'); `entityId` = WHICH entity changed,
-  // when known. No content and no acting user — a trip read from the handler is refused,
-  // so the id tells you what to react to, not what it contains.
-  handler(payload: { event: string; tripId: number; entity?: string; entityId?: number }, ctx: PluginContext): Promise<void> | void;
+  // when known. `snapshot` = a whitelisted field view of the changed entity, delivered
+  // ONLY when this plugin also holds the family's db:read:* grant (db:read:trips for
+  // place/day/reservation/accommodation/assignment/trip, db:read:costs for budget,
+  // db:read:packing for packing, db:read:daynotes for dayNote, db:read:files for file).
+  // It never carries user ids, private packing items or secrets; delete/reorder/bulk
+  // events have none. There is still no acting user — a trip read from the handler is
+  // refused, so beyond the snapshot the id tells you what to react to, not what it
+  // contains.
+  handler(payload: { event: string; tripId: number; entity?: string; entityId?: number; snapshot?: Record<string, unknown> }, ctx: PluginContext): Promise<void> | void;
 }
 
 /** A function this plugin exposes to its dependents (declared in capabilities.provides). */

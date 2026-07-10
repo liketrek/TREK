@@ -530,18 +530,23 @@ read it makes is membership-checked against the current user (like a route handl
 ## Event subscriptions
 
 React to core activity with `events` + the `events:subscribe` permission. Handlers
-fire **without a user** (like a job) and receive `{ event, tripId, entity?, entityId? }`:
-`entity` is the event family (`'reservation'`, `'place'`, …) and `entityId` says
-**which** entity changed, when known. There is still **no content and no user** — a
-trip read from the handler is refused, so the id tells you *what to react to*, not
-what it contains (refetch through your own db / an outbound call if you need more):
+fire **without a user** (like a job) and receive
+`{ event, tripId, entity?, entityId?, snapshot? }`: `entity` is the event family
+(`'reservation'`, `'place'`, …), `entityId` says **which** entity changed, and
+`snapshot` is a **whitelisted field view of the changed entity** — delivered only
+when your plugin *also* holds the family's read grant (`db:read:trips` for
+place/day/reservation/accommodation/assignment/trip, `db:read:costs` for budget,
+`db:read:packing` for packing, `db:read:daynotes` for dayNote, `db:read:files` for
+file). Without that grant you get exactly the id hint, as before:
 
 ```js
 module.exports = definePlugin({
+  permissions: ['events:subscribe', 'db:read:trips'],
   events: [
-    { on: 'reservation:created', async handler({ event, tripId, entity, entityId }, ctx) {
-        // knows a reservation was created on this trip AND its id — enqueue work for it
-        await ctx.db.exec('INSERT INTO todo (trip, entity, entity_id) VALUES (?, ?, ?)', tripId, entity, entityId)
+    { on: 'reservation:created', async handler({ event, tripId, entityId, snapshot }, ctx) {
+        // with db:read:trips the snapshot carries the reservation's fields
+        // (title, times, type, endpoints, ...) — no refetch needed
+        await ctx.db.exec('INSERT INTO seen (trip, res, title) VALUES (?, ?, ?)', tripId, entityId, snapshot?.title ?? '')
     } },
     { on: '*', handler(e) { /* firehose: every core event */ } },
   ],
@@ -549,14 +554,18 @@ module.exports = definePlugin({
 ```
 
 `entityId` is absent for bulk/reorder events and for events with no single entity;
-never assume it is set. It is only ever the changed entity's own id (never a parent
-or a user id).
+`snapshot` is additionally absent for **deletes** (nothing left to show) and for a
+**private packing item** (its broadcast is owner-scoped — #858). Never assume either
+is set. The snapshot whitelist never carries user ids (owner/paid-by/participants),
+`trips.feed_token` or other secrets — the id is only ever the changed entity's own
+id (never a parent or a user id).
 
 Delivery is fire-and-forget on a short timeout, so a slow subscriber never blocks a
 core write. Because there's no user, trip reads (`ctx.trips.*`) are refused inside a
-handler — use the plugin's own `ctx.db`, `ctx.ws.*`, or an outbound call. A plugin's
-own `plugin:*` broadcasts are never delivered back, so handlers can't loop. Common
-events: `place:*`, `day:*`, `assignment:*`, `budget:*`, `file:*`, `accommodation:*`.
+handler — beyond the snapshot, use the plugin's own `ctx.db`, `ctx.ws.*`, or an
+outbound call. A plugin's own `plugin:*` broadcasts are never delivered back, so
+handlers can't loop. Common events: `place:*`, `day:*`, `assignment:*`, `budget:*`,
+`file:*`, `accommodation:*`.
 
 ## Dependencies
 

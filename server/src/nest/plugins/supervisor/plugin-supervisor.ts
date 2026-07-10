@@ -5,7 +5,7 @@ import { resolveChildEntry, pluginCodeDir, pluginRealCodeDir, pluginPermissionAr
 import type { Envelope, RpcError, RpcRequest } from '../protocol/envelope';
 import type { PluginRpcHost } from '../host/rpc-host';
 import { scheduleJobs, stopJobs, type ScheduledJob } from '../host/plugin-jobs';
-import type { PluginEventMeta } from '../../../plugin-event-sink';
+import { SNAPSHOT_GRANT, type PluginEventMeta } from '../../../plugin-event-sink';
 
 export interface PluginRouteInfo {
   i: number;
@@ -222,16 +222,21 @@ export class PluginSupervisor {
    * Announce a core event to every plugin that subscribed to it (or to '*') AND holds
    * the 'events:subscribe' grant. Fire-and-forget: the invoke is NOT awaited (a core
    * broadcast must never block on a plugin) and carries no user (trip reads refused).
-   * The event name + tripId + a { entity, entityId } hint are sent — never the
-   * payload/content and never a user. actingUserId stays undefined, so a handler
-   * that tries to read the named entity is still refused: the id is decorative to a
-   * userless context (it says WHICH entity changed, not its contents).
+   * The event name + tripId + a { entity, entityId } hint are sent, plus — ONLY for
+   * a plugin whose granted set includes the family's db:read:* permission — the
+   * whitelisted field snapshot the sink derived. The grant is the authorization
+   * basis (the same fields that grant's read methods return); no acting user is
+   * ever synthesized, so nothing beyond the snapshot is dereferenceable from the
+   * handler.
    */
   deliverEvent(tripId: number, event: string, meta?: PluginEventMeta): void {
+    const { snapshot, ...hint } = meta ?? {};
+    const grant = hint.entity ? SNAPSHOT_GRANT[hint.entity] : undefined;
     for (const [id, sup] of this.running) {
       if (sup.status !== 'active' || !sup.granted.has('events:subscribe')) continue;
       if (!sup.events.includes(event) && !sup.events.includes('*')) continue;
-      this.invoke(id, 'invoke.event', { event, tripId, ...(meta ?? {}) }, { actingUserId: undefined, timeoutMs: 5000 }).catch(() => {
+      const withSnapshot = snapshot !== undefined && grant !== undefined && sup.granted.has(grant);
+      this.invoke(id, 'invoke.event', { event, tripId, ...hint, ...(withSnapshot ? { snapshot } : {}) }, { actingUserId: undefined, timeoutMs: 5000 }).catch(() => {
         /* a subscriber that errors or times out is ignored — events are best-effort */
       });
     }

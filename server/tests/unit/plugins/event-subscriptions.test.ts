@@ -49,6 +49,40 @@ describe('supervisor.deliverEvent gating', () => {
     // the no-user invariant: an enriched event still carries NO acting user
     expect(calls[0][3].actingUserId).toBeUndefined();
   });
+
+  it('delivers the snapshot ONLY to plugins holding the family read grant', () => {
+    const s = makeSupervisor();
+    put(s, 'canread', 'active', ['*'], ['events:subscribe', 'db:read:trips']);
+    put(s, 'noread', 'active', ['*'], ['events:subscribe']);
+    put(s, 'wronggrant', 'active', ['*'], ['events:subscribe', 'db:read:costs']);
+    const calls: Array<[string, Record<string, unknown>]> = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).invoke = (id: string, _m: string, params: Record<string, unknown>) => { calls.push([id, params]); return Promise.resolve(); };
+
+    const snapshot = { id: 3, trip_id: 7, day_number: 1, title: 'Kyoto' };
+    s.deliverEvent(7, 'day:updated', { entity: 'day', entityId: 3, snapshot });
+    const byId = Object.fromEntries(calls);
+    // day rides on db:read:trips — only 'canread' sees the fields
+    expect(byId.canread.snapshot).toEqual(snapshot);
+    expect(byId.noread.snapshot).toBeUndefined();
+    expect(byId.wronggrant.snapshot).toBeUndefined();
+    // the hint itself still reaches everyone subscribed
+    expect(byId.noread).toMatchObject({ event: 'day:updated', tripId: 7, entity: 'day', entityId: 3 });
+  });
+
+  it('maps budget snapshots to db:read:costs, not the trip grant', () => {
+    const s = makeSupervisor();
+    put(s, 'costs', 'active', ['*'], ['events:subscribe', 'db:read:costs']);
+    put(s, 'trips', 'active', ['*'], ['events:subscribe', 'db:read:trips']);
+    const calls: Array<[string, Record<string, unknown>]> = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).invoke = (id: string, _m: string, params: Record<string, unknown>) => { calls.push([id, params]); return Promise.resolve(); };
+
+    s.deliverEvent(7, 'budget:created', { entity: 'budget', entityId: 8, snapshot: { id: 8, name: 'Hotel' } });
+    const byId = Object.fromEntries(calls);
+    expect(byId.costs.snapshot).toEqual({ id: 8, name: 'Hotel' });
+    expect(byId.trips.snapshot).toBeUndefined();
+  });
 });
 
 describe('websocket broadcast → plugin event sink', () => {
@@ -63,10 +97,14 @@ describe('websocket broadcast → plugin event sink', () => {
     expect(seen).toEqual([[42, 'place:created']]);
   });
 
-  it('derives { entity, entityId } for the sink from the broadcast payload', () => {
+  it('derives { entity, entityId, snapshot } for the sink from the broadcast payload', () => {
     const seen: Array<{ tripId: number; event: string; meta: unknown }> = [];
     setPluginEventSink((tripId, event, meta) => seen.push({ tripId, event, meta }));
-    broadcast(42, 'reservation:updated', { reservation: { id: 40 } });
-    expect(seen).toEqual([{ tripId: 42, event: 'reservation:updated', meta: { entity: 'reservation', entityId: 40 } }]);
+    broadcast(42, 'reservation:updated', { reservation: { id: 40, title: 'Flight', status: 'confirmed' } });
+    expect(seen).toEqual([{
+      tripId: 42,
+      event: 'reservation:updated',
+      meta: { entity: 'reservation', entityId: 40, snapshot: { id: 40, title: 'Flight', status: 'confirmed' } },
+    }]);
   });
 });
