@@ -27,7 +27,6 @@ TREK uses Workbox service-worker caching plus an IndexedDB database (Dexie) for 
 | Content | Cache name | Strategy | Duration | Max entries |
 |---------|------------|----------|----------|-------------|
 | CartoDB / OpenStreetMap map tiles | `map-tiles` | CacheFirst | 30 days | 1 000 |
-| Leaflet / CDN assets (unpkg) | `cdn-libs` | CacheFirst | 365 days | 30 |
 | API responses (trips, places, bookings, etc.) | `api-data` | NetworkFirst (5 s timeout) | 24 hours | 200 |
 | Cover images and avatars (`/uploads/covers`, `/uploads/avatars`) | `user-uploads` | CacheFirst | 7 days | 300 |
 | App shell (HTML / JS / CSS) | precache | Precached | Until next deploy | — |

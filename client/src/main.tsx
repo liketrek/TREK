@@ -13,6 +13,12 @@ import '@fontsource/poppins/700.css'
 import '@fontsource/geist-sans/400.css'
 import '@fontsource/geist-sans/500.css'
 import '@fontsource/geist-sans/600.css'
+// Leaflet CSS bundled from node_modules instead of unpkg: the service worker
+// cached the CDN stylesheet as an opaque response, which the browser then
+// rejected, breaking the Atlas/trip maps (#1497). Bundling keeps it same-origin
+// and precached with the app shell. Must stay above index.css, which overrides
+// several .leaflet-* styles.
+import 'leaflet/dist/leaflet.css'
 import './index.css'
 // Native HTML5 drag-and-drop never fires on touch input, so the planner's place /
 // day reordering was dead on Android and iOS. The `drag-drop-touch` polyfill synthesises
