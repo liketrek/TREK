@@ -17,16 +17,24 @@ import * as sdk from '../index.js';
 import { injectTrekUi } from '../ui/kit.js';
 import { readJsonFile } from './json.js';
 
-interface Fixtures {
-  config?: Record<string, unknown>;
-  /** The dev acting user — bound like the invocation user in prod, so `ctx.trips.getPlaces(tripId)`
-   * works WITHOUT passing asUserId (which the real host ignores). Defaults to 1. */
-  actingUserId?: number;
-  trips?: Record<number, { members: number[]; data?: unknown; places?: unknown[]; reservations?: unknown[] }>;
-  users?: Record<number, unknown>;
-}
+// Dev fixtures ARE mock-host options — the dev ctx delegates every non-db-own
+// capability to a grant-enforcing mock host, so dev-fixtures.json can seed the full
+// surface (trips, costs, packing, files, users, settings, weather, ai, …), exactly the
+// shape a mock-host unit test uses. `actingUserId` binds the dev user (like the prod
+// invocation user), defaulting to 1.
+type Fixtures = NonNullable<Parameters<typeof sdk.createMockHost>[0]>;
 interface PluginRouteLike { method: string; path: string; auth?: boolean; handler: (req: unknown, ctx: unknown) => Promise<{ status: number; headers?: Record<string, string>; body?: unknown }>; }
-interface PluginLike { onLoad?: (ctx: unknown) => unknown; routes?: PluginRouteLike[]; }
+type Handler = (...a: unknown[]) => unknown;
+interface PluginLike {
+  onLoad?: (ctx: unknown) => unknown;
+  routes?: PluginRouteLike[];
+  jobs?: Array<{ id: string; handler: Handler }>;
+  scheduled?: Handler;
+  events?: Array<{ on: string; handler: Handler }>;
+  deleteUserData?: Handler;
+  exportUserData?: Handler;
+  hooks?: Record<string, Record<string, Handler>>;
+}
 
 class PermissionDenied extends Error {}
 
@@ -77,30 +85,34 @@ interface PluginContextDb { query(sql: string, ...a: unknown[]): Promise<unknown
 
 function createDevContext(id: string, grants: Set<string>, fx: Fixtures, db: PluginContextDb, broadcasts: unknown[]) {
   const need = (perm: string, method: string) => { if (!grants.has(perm)) throw new PermissionDenied(`PERMISSION_DENIED: ${method} requires ${perm}`); };
-  // The real host binds the acting user from the invocation and IGNORES an asUserId
-  // the plugin passes, so ctx.trips.getPlaces(tripId) is the canonical call. Mirror
-  // that here: asUserId is optional and falls back to the dev acting user, else the
-  // documented one-arg call fails with RESOURCE_FORBIDDEN only in dev.
-  const DEV_USER = fx.actingUserId ?? 1;
-  const member = (tripId: number, asUser?: number) => {
-    const t = fx.trips?.[tripId];
-    const u = asUser ?? DEV_USER;
-    if (!t || !t.members.includes(u)) throw new Error(`RESOURCE_FORBIDDEN: no access to trip ${tripId}`);
-    return t;
-  };
+  // Full parity: delegate EVERY capability to a grant-enforcing mock host (the same one
+  // used in unit tests), so ctx.costs/packing/files/notify/ai/settings/scheduler/meta/
+  // oauth/weather/rates/journal/… all work in dev instead of throwing TypeErrors — then
+  // override just the three surfaces dev does natively: db:own (real node:sqlite so your
+  // migrations/queries actually persist), ws broadcasts (captured for the dashboard),
+  // and logging (to the dev console). The mock enforces the SAME grants, so a missing
+  // permission fails identically here and in production.
+  const mock = sdk.createMockHost({ ...fx, grants: [...grants] });
+  const isRead = (sql: string) => /^\s*(SELECT|WITH|VALUES)\b/i.test(sql) || /\bRETURNING\b/i.test(sql);
   return {
-    id, config: Object.freeze({ ...(fx.config ?? {}) }),
+    ...mock.ctx,
+    id,
     db: {
       query: (sql: string, ...a: unknown[]) => { need('db:own', 'db.query'); return db.query(sql, ...a); },
       exec: (sql: string, ...a: unknown[]) => { need('db:own', 'db.exec'); return db.exec(sql, ...a); },
       migrate: (mid: string, sql: string) => { need('db:own', 'db.migrate'); return db.migrate(mid, sql); },
+      // A functional (not strictly atomic) tx over the real dev db so read-modify-write
+      // batches work in dev; production runs it in one better-sqlite3 transaction.
+      tx: async (ops: Array<{ sql: string; args?: unknown[] }>) => {
+        need('db:own', 'db.tx');
+        const results: Array<{ changes?: number; rows?: unknown[] }> = [];
+        for (const op of ops) {
+          if (isRead(op.sql)) results.push({ rows: await db.query(op.sql, ...(op.args ?? [])) as unknown[] });
+          else { const r = await db.exec(op.sql, ...(op.args ?? [])) as { changes?: number }; results.push({ changes: r?.changes ?? 0 }); }
+        }
+        return { results };
+      },
     },
-    trips: {
-      getById: async (t: number, u?: number) => { need('db:read:trips', 'trips.getById'); return member(t, u).data ?? null; },
-      getPlaces: async (t: number, u?: number) => { need('db:read:trips', 'trips.getPlaces'); return member(t, u).places ?? []; },
-      getReservations: async (t: number, u?: number) => { need('db:read:trips', 'trips.getReservations'); return member(t, u).reservations ?? []; },
-    },
-    users: { getById: async (uid: number) => { need('db:read:users', 'users.getById'); return fx.users?.[uid] ?? null; } },
     ws: {
       broadcastToTrip: async (t: number, event: string, data: unknown) => { need('ws:broadcast:trip', 'ws.broadcastToTrip'); broadcasts.push({ kind: 'trip', target: t, event, data }); },
       broadcastToUser: async (u: number, event: string, data: unknown) => { need('ws:broadcast:user', 'ws.broadcastToUser'); broadcasts.push({ kind: 'user', target: u, event, data }); },
@@ -209,6 +221,34 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
     };
 
     if (url.pathname === '/__dev/version') return send(200, String(version));
+
+    // Fire a NON-route entry point against the dev ctx — the half the dev server used to
+    // be unable to reach. GET /__dev/fire/<kind>[/<name>][/<fn>], e.g.
+    //   /__dev/fire/job/refresh · /__dev/fire/scheduled/daily · /__dev/fire/event/place:created
+    //   /__dev/fire/hook/tripCardProvider/getCards · /__dev/fire/deleteUserData
+    // Query params become the payload/args; a JSON body is used verbatim when present.
+    if (url.pathname.startsWith('/__dev/fire/')) {
+      const [kind, name, fn] = url.pathname.slice('/__dev/fire/'.length).split('/');
+      const bodyRaw = await readBody(request); // already JSON-parsed when sent as application/json
+      let payload: unknown = bodyRaw;
+      if (typeof bodyRaw === 'string') { try { payload = JSON.parse(bodyRaw); } catch { payload = bodyRaw; } }
+      if (payload === undefined) { const q: Record<string, string> = {}; url.searchParams.forEach((v, k) => { q[k] = v; }); if (Object.keys(q).length) payload = q; }
+      try {
+        let out: unknown;
+        if (kind === 'job') { const j = plugin.jobs?.find((x) => x.id === name); if (!j) return send(404, `no job "${name}"`); out = await j.handler(ctx); }
+        else if (kind === 'scheduled') { if (!plugin.scheduled) return send(404, 'plugin has no scheduled handler'); out = await plugin.scheduled({ name, payload }, ctx); }
+        else if (kind === 'event') { for (const s of plugin.events ?? []) if (s.on === name || s.on === '*') await s.handler({ event: name, tripId: 0, ...(payload as object) }, ctx); out = { delivered: true }; }
+        else if (kind === 'deleteUserData') { if (!plugin.deleteUserData) return send(404, 'no deleteUserData handler'); out = await plugin.deleteUserData({ userId: Number((payload as { userId?: unknown })?.userId ?? name ?? 0) }, ctx); }
+        else if (kind === 'exportUserData') { if (!plugin.exportUserData) return send(404, 'no exportUserData handler'); out = await plugin.exportUserData({ userId: Number((payload as { userId?: unknown })?.userId ?? name ?? 0) }, ctx); }
+        else if (kind === 'hook') { const impl = plugin.hooks?.[name]; if (!impl || typeof impl[fn] !== 'function') return send(404, `no hook ${name}.${fn}`); out = await impl[fn](...(Array.isArray(payload) ? payload : payload != null ? [payload] : []), ctx); }
+        else return send(400, `unknown fire kind "${kind}"`);
+        return send(200, JSON.stringify(out ?? { ok: true }, null, 2), 'application/json; charset=utf-8');
+      } catch (e) {
+        const denied = e instanceof PermissionDenied;
+        return send(denied ? 403 : 500, e instanceof Error ? e.message : String(e));
+      }
+    }
+
     if (url.pathname === '/') return send(200, dashboard(id, String(manifest.type), plugin.routes ?? [], dbNote, broadcasts.length), 'text/html; charset=utf-8');
 
     // Faithful host preview: embeds /ui in a sandboxed opaque-origin iframe (exactly

@@ -42,15 +42,26 @@ without a full TREK**: a dashboard
 listing your routes, the routes served under `/api/<path>`, your page/widget UI
 at `/ui`, a **themed host preview at `/preview`** (a real sandboxed frame with a
 theme/accent/appearance toggle, `trek.invoke()` proxied to your routes), and a reload
-on every save. The injected `ctx` **enforces exactly the
-permissions your manifest grants** — an ungranted call throws `PERMISSION_DENIED`,
-so you catch a missing grant here rather than after install. `db:own` is backed
-by a real SQLite file (`.trek-dev/db.sqlite`) when the runtime has `node:sqlite`.
+on every save. The injected `ctx` is the **full surface** — every capability (`costs`, `packing`,
+`files`, `notify`, `ai`, `settings`, `scheduler`, `meta`, `oauth`, `weather`, `rates`,
+`journal`, `db.tx`, …), not just routes + `db:own` — and **enforces exactly the
+permissions your manifest grants**: an ungranted call throws `PERMISSION_DENIED`, so
+you catch a missing grant here rather than after install. `db:own` is backed by a real
+SQLite file (`.trek-dev/db.sqlite`) when the runtime has `node:sqlite`; every other
+capability is served from your fixtures with the same rules as production.
 
 - Hit a route as an unauthenticated request with `?_anon=1` (an `auth: true`
   route then returns 401, mirroring the host).
-- Feed `ctx.trips` / `ctx.users` by dropping a `dev-fixtures.json` next to the
-  manifest: `{ "trips": { "1": { "members": [1], "data": { … } } }, "users": {} }`.
+- Feed the fixtures by dropping a `dev-fixtures.json` next to the manifest — it takes
+  the **same shape as `createMockHost` options**, so you can seed trips, users, costs,
+  settings, weather, canned AI results, etc.: `{ "actingUserId": 1, "trips": { "1": {
+  "members": [1], "data": { … }, "costs": [ … ] } }, "users": {} }`.
+- Fire a **non-route** entry point with `GET /__dev/fire/<kind>[/<name>][/<fn>]` (a JSON
+  body or query params become the payload/args): `/__dev/fire/job/refresh`,
+  `/__dev/fire/scheduled/daily`, `/__dev/fire/event/place:created`,
+  `/__dev/fire/hook/tripCardProvider/getCards`, `/__dev/fire/deleteUserData?userId=1` —
+  so jobs, scheduled timers, event subscriptions and provider hooks are all testable in
+  the same hot-reload loop as your routes.
 
 ### Test against a real instance's data (dev-link)
 
