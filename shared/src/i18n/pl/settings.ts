@@ -476,6 +476,15 @@ const settings: TranslationStrings = {
   'settings.offline.banner.syncing': 'Synchronizowanie {count}…',
   'settings.offline.banner.failed': 'Nie udało się zsynchronizować: {count}',
   'settings.offline.banner.conflicts': 'Konflikty: {count}',
+  'settings.pluginActivity.title': 'Aktywność wtyczek',
+  'settings.pluginActivity.description': 'Każde działanie wykonane przez wtyczkę w Twoim imieniu, od najnowszych.',
+  'settings.pluginActivity.empty': 'Brak aktywności wtyczek.',
+  'settings.pluginActivity.refresh': 'Odśwież',
+  'settings.pluginActivity.columns.plugin': 'Wtyczka',
+  'settings.pluginActivity.columns.action': 'Działanie',
+  'settings.pluginActivity.columns.resource': 'Zasób',
+  'settings.pluginActivity.columns.when': 'Kiedy',
+  'settings.pluginActivity.columns.status': 'Wynik',
 };
 
 export default settings;

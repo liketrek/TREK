@@ -92,6 +92,20 @@ export function appendAudit(db: AuditDb, e: AuditEntry): void {
   ).run(e.pluginId, e.actingUserId ?? null, e.method, e.resource ?? null, e.code, ts, prev || null, hash);
 }
 
+/** Read the most recent audit rows across ALL plugins for one acting user — the
+ * "what have plugins done in my name?" view. This is what legitimizes the broad
+ * read grants: the user, not just the admin, can see every plugin action bound to
+ * them. Joined with the plugin name for display; capped. */
+export function readAuditForUser(db: AuditDb, userId: number, limit = 200): unknown[] {
+  return db
+    .prepare(
+      `SELECT a.ts, a.plugin_id, p.name AS plugin_name, a.method, a.resource, a.code
+       FROM plugin_capability_audit a LEFT JOIN plugins p ON p.id = a.plugin_id
+       WHERE a.acting_user_id = ? ORDER BY a.id DESC LIMIT ?`,
+    )
+    .all(userId, limit);
+}
+
 /** Read the most recent audit rows for a plugin (admin view). */
 export function readAudit(db: AuditDb, pluginId: string, limit = 200): unknown[] {
   return db

@@ -12,7 +12,7 @@ import PluginFrame from './PluginFrame'
  * that opens the plugin's sandboxed frame or calls one of its routes. Plugin-authored
  * markup NEVER runs inline; it only ever runs inside the opaque-origin PluginFrame.
  */
-type ViewName = 'reservations' | 'places' | 'day' | 'costs' | 'packing' | 'files'
+export type ViewName = 'reservations' | 'transports' | 'places' | 'day' | 'costs' | 'packing' | 'files' | 'todos'
 type Column = Extract<ViewContribution, { kind: 'column' }>
 type Action = Extract<ViewContribution, { kind: 'action' }>
 

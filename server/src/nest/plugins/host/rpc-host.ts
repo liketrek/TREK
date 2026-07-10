@@ -265,6 +265,9 @@ export class BadParams extends Error {}
 // Mirrors the STRING_LIMITS the places REST controller enforces (the @trek/shared
 // schema doesn't), so the plugin write path rejects the same oversized fields.
 const PLACE_STR_LIMITS: Record<string, number> = { name: 200, description: 2000, address: 500, notes: 2000 };
+// Core entities a plugin may attach its own db:meta to. Each maps to an owning
+// trip (metaEntityTrip) so the membership + edit gates are the standard ones.
+const META_ENTITY_TYPES: ReadonlySet<string> = new Set(['trip', 'place', 'day', 'reservation', 'accommodation']);
 // Same idea for trips — the @trek/shared schema leaves the title/description open,
 // so mirror the REST controller's field limits on the plugin write path too.
 const TRIP_STR_LIMITS: Record<string, number> = { title: 200, description: 2000 };
@@ -1164,8 +1167,8 @@ export class PluginRpcHost {
    */
   private metaEntity(p: Record<string, unknown>, uid: number | undefined, write: boolean): { entityType: string; entityId: number } {
     const entityType = str(p.entityType, 'entityType');
-    if (entityType !== 'trip' && entityType !== 'place' && entityType !== 'day') {
-      throw new BadParams(`invalid entityType "${entityType}" (trip|place|day)`);
+    if (!META_ENTITY_TYPES.has(entityType)) {
+      throw new BadParams(`invalid entityType "${entityType}" (${[...META_ENTITY_TYPES].join('|')})`);
     }
     const entityId = num(p.entityId, 'entityId');
     if (uid === undefined) throw new ForbiddenResource('metadata requires an authenticated user context');
@@ -1175,11 +1178,13 @@ export class PluginRpcHost {
     }
     // Reads need trip access; WRITES additionally need the entity's edit permission
     // — so a read-only member can't overwrite/delete metadata an editor created
-    // (matches how core writes are gated).
+    // (matches how core writes are gated). Accommodations ride on day_edit (like
+    // the accommodation write path), reservations on reservation_edit.
     if (write) {
       const canEdit = entityType === 'trip' ? this.deps.canEditTrip
         : entityType === 'place' ? this.deps.canEditPlaces
-        : this.deps.canEditDays;
+        : entityType === 'reservation' ? this.deps.canEditReservations
+        : this.deps.canEditDays; // day + accommodation
       if (!canEdit(tripId, uid)) throw new ForbiddenResource(`no permission to edit ${entityType} ${entityId}`);
     }
     return { entityType, entityId };

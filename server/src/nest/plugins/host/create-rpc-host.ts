@@ -779,7 +779,12 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
       if (entityType === 'trip') {
         return (db.prepare('SELECT id FROM trips WHERE id = ?').get(entityId) as { id: number } | undefined)?.id;
       }
-      const table = entityType === 'place' ? 'places' : 'days';
+      // Each of these tables has a NOT NULL trip_id, so the metadata gate resolves to
+      // the owning trip and reuses the standard canAccessTrip / *_edit checks.
+      const table = entityType === 'place' ? 'places'
+        : entityType === 'day' ? 'days'
+        : entityType === 'reservation' ? 'reservations'
+        : 'day_accommodations'; // accommodation
       return (db.prepare(`SELECT trip_id FROM ${table} WHERE id = ?`).get(entityId) as { trip_id: number } | undefined)?.trip_id;
     },
     metaGet: (entityType, entityId, key) => {

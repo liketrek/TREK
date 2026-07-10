@@ -661,6 +661,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
               onNavigateToFiles={() => handleTabChange('dateien')}
               titleKey="transport.title"
               addManualKey="transport.addManual"
+              contributionView="transports"
             />
           </div>
         )}

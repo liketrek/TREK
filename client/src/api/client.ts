@@ -603,7 +603,7 @@ export const pluginsApi = {
     apiClient.get(`/trip-warnings/${tripId}`).then(r => r.data as { warnings: Array<{ pluginId: string; level: 'info' | 'warning' | 'error'; message: string; dayId?: number; placeId?: number }> }),
   // Host-rendered columns/actions plugins add into a native planner view via the
   // tableContributor hook. Fetched once per view, keyed by entityId; fail-safe.
-  viewContributions: (view: 'reservations' | 'places' | 'day' | 'costs' | 'packing' | 'files', tripId: number | string) =>
+  viewContributions: (view: 'reservations' | 'transports' | 'places' | 'day' | 'costs' | 'packing' | 'files' | 'todos', tripId: number | string) =>
     apiClient.get(`/view-contributions/${view}/${tripId}`).then(r => r.data as { contributions: ViewContribution[] }),
   // Bounded markers plugins overlay on the trip map via the mapMarkerProvider hook
   // (#587). Host-normalized + range-checked; fail-safe (skips slow/failing providers).
@@ -621,6 +621,11 @@ export const pluginsApi = {
   // Same shape + hardening as placeDetails (label/value/allowlisted url); fail-safe.
   journalEntryRows: (entryId: number) =>
     apiClient.get(`/journal-entry-rows/${entryId}`).then(r => r.data as { providers: Array<{ pluginId: string; items: Array<{ label: string; value?: string; url?: string }> }> }),
+  // The signed-in user's OWN plugin activity log — every host-mediated action a
+  // plugin took bound to them, across all plugins, newest first. The user-facing
+  // half of the capability audit; what makes the broad read grants accountable.
+  myActivity: (limit = 200) =>
+    apiClient.get(`/plugin-activity?limit=${limit}`).then(r => r.data as { activity: Array<{ ts: string; plugin_id: string; plugin_name: string | null; method: string; resource: string | null; code: string }> }),
   // A user's OWN scope:'user' settings for a plugin (API key, prefs). Secrets are
   // masked; the write only accepts declared user-scope keys.
   userSettings: (id: string) =>

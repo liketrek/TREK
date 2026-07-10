@@ -105,8 +105,8 @@ export function validateManifest(raw: unknown): ValidationResult {
 
   const capabilities = (m.capabilities ?? undefined) as { widget?: { slot?: unknown }; tripPage?: { replaces?: unknown; position?: unknown }; provides?: unknown; emits?: unknown } | undefined;
   const widget = capabilities?.widget;
-  if (widget?.slot !== undefined && widget.slot !== 'sidebar' && widget.slot !== 'hero' && widget.slot !== 'place-detail' && widget.slot !== 'day-detail') {
-    errors.push(`widget slot must be "sidebar", "hero", "place-detail" or "day-detail", got "${String(widget.slot)}"`);
+  if (widget?.slot !== undefined && widget.slot !== 'sidebar' && widget.slot !== 'hero' && widget.slot !== 'place-detail' && widget.slot !== 'day-detail' && widget.slot !== 'reservation-detail') {
+    errors.push(`widget slot must be "sidebar", "hero", "place-detail", "day-detail" or "reservation-detail", got "${String(widget.slot)}"`);
   }
   // Mirrors the server's REPLACEABLE_TABS — 'plan' is never replaceable.
   const tripPage = capabilities?.tripPage;

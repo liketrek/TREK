@@ -383,6 +383,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.heroWidget': '搭乗券ウィジェット',
   'admin.plugins.cap.placeSlot': '場所詳細',
   'admin.plugins.cap.daySlot': '日程詳細',
+  'admin.plugins.cap.reservationSlot': '予約詳細',
   'admin.plugins.cap.replacesTabs': 'プランナーのタブを置き換え',
   'admin.plugins.cap.realtime': 'リアルタイム更新',
   'admin.plugins.cap.photos': '写真を提供',

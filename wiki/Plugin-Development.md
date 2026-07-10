@@ -105,10 +105,12 @@ permissions still requires explicit re-consent).
 - **widget** — adds a card to the dashboard (`sidebar` slot), a hero-bar overlay
   (`hero` slot), a panel inside the trip planner's **place-detail** view
   (`place-detail` slot — the frame also receives the open `placeId` in
-  `trek:context`, so it can show place-specific info like reviews or ratings), or a
+  `trek:context`, so it can show place-specific info like reviews or ratings), a
   panel inside the **day-detail** view (`day-detail` slot — receives the open `dayId`;
-  the home for per-day content like outfit planning, live flight status or logistics).
-  Set the slot in `capabilities.widget.slot`.
+  the home for per-day content like outfit planning, live flight status or logistics),
+  or a panel at the foot of a booking card in the **reservation-detail** view
+  (`reservation-detail` slot — receives the open `reservationId`, for things like
+  live check-in status or a seat map). Set the slot in `capabilities.widget.slot`.
 - **trip-page** — adds a tab **inside every trip planner**, so your UI lives in the
   trip alongside Plan / Transports / Files. The frame is the same sandboxed iframe as
   a `page`, but it receives the current `tripId` in `trek:context` (so you can scope
@@ -440,7 +442,7 @@ window.parent.postMessage({ type: 'trek:invoke', requestId: '1', sub: '/status',
 
 | Message | Payload |
 |---|---|
-| `trek:context` | `{ tripId, placeId, dayId, userId, theme, locale, dir, hostOrigin, user, formats, tokens, appearance }` (see below) — re-sent whenever the theme, appearance, **locale or formats** change |
+| `trek:context` | `{ tripId, placeId, dayId, reservationId, userId, theme, locale, dir, hostOrigin, user, formats, tokens, appearance }` (see below) — re-sent whenever the theme, appearance, **locale or formats** change |
 | `trek:response` | `{ requestId, data }` — a successful `trek:invoke` |
 | `trek:error` | `{ requestId, code, message }` — a failed `trek:invoke` (`code` is the HTTP status or `"error"`) |
 | `trek:confirm:result` | `{ requestId, confirmed }` — the user's answer to your `trek:confirm` |
@@ -459,6 +461,7 @@ declared), no popups.
 | `tripId` | `string \| null` — the trip in view (a `trip-page` tab, or a widget on a trip), else `null`. **IDs arrive as strings** — compare with `String(id)` |
 | `placeId` | `string \| null` — the place in view (a `place-detail` slot), else `null` |
 | `dayId` | `string \| null` — the day in view (a `day-detail` slot), else `null` |
+| `reservationId` | `string \| null` — the reservation in view (a `reservation-detail` slot), else `null` |
 | `dir` | `'ltr' \| 'rtl'` — the host's text direction; the kit mirrors it onto your `<html>` so RTL hosts get RTL plugin UIs |
 | `userId` | `string \| null` |
 | `theme` | `'light' \| 'dark'` |
@@ -530,7 +533,7 @@ module.exports = definePlugin({
 |---|---|---|
 | `placeDetailProvider.getDetails(placeId, ctx)` → `{ label, value?, url? }[]` | `hook:place-detail-provider` | **live** — shown in the place-detail panel; also `GET /api/place-details/:placeId` |
 | `warningProvider.getWarnings(tripId, ctx)` → `{ level, message, dayId?, placeId? }[]` | `hook:trip-warning-provider` | **live** — validation warnings shown as a non-blocking banner in the trip planner; also `GET /api/trip-warnings/:tripId` |
-| `tableContributor.getContributions(view, tripId, ctx)` → `TableContribution[]` | `hook:table-contributor` | **live** — host-rendered **columns/actions** keyed by `entityId` in the reservations, places, day, costs, packing and files views. A `column` is `{kind:'column', entityId, id, label, value?, url?, icon?, tone?}` (url is http/https/mailto only); an `action` is `{kind:'action', entityId, id, label, icon?, target}` where `target` opens your sandboxed frame (`{kind:'frame', sub}`) or calls a route (`{kind:'route', method, sub}`). All fields are bounded + normalized host-side; also `GET /api/view-contributions/:view/:tripId` |
+| `tableContributor.getContributions(view, tripId, ctx)` → `TableContribution[]` | `hook:table-contributor` | **live** — host-rendered **columns/actions** keyed by `entityId` in the reservations, transports, places, day, costs, packing, files and todos views. A `column` is `{kind:'column', entityId, id, label, value?, url?, icon?, tone?}` (url is http/https/mailto only); an `action` is `{kind:'action', entityId, id, label, icon?, target}` where `target` opens your sandboxed frame (`{kind:'frame', sub}`) or calls a route (`{kind:'route', method, sub}`). All fields are bounded + normalized host-side; also `GET /api/view-contributions/:view/:tripId` |
 | `mapMarkerProvider.getMarkers(tripId, ctx)` → `MapMarkerContribution[]` | `hook:map-marker-provider` | **live** — bounded markers overlaid on the trip map (#587). Each is `{id, lat, lng, label?, popupText?, url?, icon?, tone?}`; coordinates are range-checked (−90..90 / −180..180), text length-capped, url http/https/mailto-only, count capped (≤200/plugin). Declarative only — plugin JS never runs on the map canvas. Also `GET /api/map-markers/:tripId` |
 | `pdfSectionProvider.getSections(tripId, ctx)` → `PdfSection[]` | `hook:pdf-section-provider` | **live** — text-only sections appended to the trip PDF export. Each is `{title, paragraphs?, table?}`; the host escapes and lays everything out itself (no markup ever reaches the document), caps counts (≤5 sections/plugin, ≤20 paragraphs, ≤8 headers, ≤50 rows) + lengths (title 120, paragraph 2000, header 60, cell 200) and clips rows to the header width. Also `GET /api/pdf-sections/:tripId` |
 | `atlasLayerProvider.getLayers(ctx)` → `AtlasLayer[]` | `hook:atlas-layer-provider` | **live** — country tint layers drawn over the Atlas world map (wishlists, advisories, …). **User-scoped**: the host binds the acting user, the hook takes no target parameter. Each layer is `{id, name?, countries: [{code, tone?, label?}]}`; codes must be ISO-3166 alpha-2 (uppercase-coerced), tone is enum-whitelisted, counts capped (≤3 layers/plugin, ≤300 countries/layer). Declarative only — plugin JS never runs on the map canvas. Also `GET /api/atlas-layers` |
@@ -748,7 +751,7 @@ for anything your plugin publishes via `ctx.events.emit`.
 | `nativeModules` | boolean | must be `false`/absent — `true` is rejected. |
 | `permissions` | string[] | see below. |
 | `egress` | string[] | allowed outbound hosts; required (non-empty, no bare `*`) when any `http:outbound` permission is present. |
-| `capabilities.widget` | object | `{ title, slot, defaultSize }` — `slot` is `sidebar` (default), `hero`, `place-detail`, or `day-detail`. |
+| `capabilities.widget` | object | `{ title, slot, defaultSize }` — `slot` is `sidebar` (default), `hero`, `place-detail`, `day-detail`, or `reservation-detail`. |
 | `capabilities.tripPage` | object | `{ replaces?, position? }` for `trip-page` plugins — `replaces` names core planner tabs to hide while active (`transports`, `buchungen`, `listen`, `finanzplan`, `dateien`, `collab`; never `plan`), `position` is the tab's 0-based index in the bar (0–50; omitted = appended). |
 | `capabilities.provides` | string[] | function names this plugin exposes to its dependents via `ctx.plugins.call` (see [Talking to other plugins](#talking-to-other-plugins)). |
 | `capabilities.emits` | string[] | event names this plugin publishes to its dependents via `ctx.events.emit`. |
@@ -773,7 +776,7 @@ for anything your plugin publishes via `ctx.events.emit`.
 | `db:write:itinerary` | `ctx.itinerary.assign/unassign` (acting user's `day_edit`) |
 | `db:write:trips` | `ctx.trips.update` (acting user's `trip_edit`) |
 | `db:write:packing` | `ctx.packing.create/update/delete` (acting user's `packing_edit`; private items stay owner-scoped) |
-| `db:meta` | `ctx.meta.*` — your own namespaced data on a trip/place/day |
+| `db:meta` | `ctx.meta.*` — your own namespaced data on a trip/place/day/reservation/accommodation |
 | `db:read:users` | `ctx.users.getById` |
 | `events:subscribe` | receive core activity events via `events: [...]` (event name + tripId + a { entity, entityId } hint, plus a whitelisted entity **snapshot** when the plugin also holds the family's `db:read:*` grant; never a user) |
 | `jobs:run` | run declared background `jobs` on their cron schedule (opt-in; no user, so trip reads are refused) |
@@ -782,7 +785,7 @@ for anything your plugin publishes via `ctx.events.emit`.
 | `http:outbound` or `http:outbound:<host>` | outbound HTTP to `egress[]` hosts |
 | `hook:place-detail-provider` | `hooks.placeDetailProvider` — extra place rows TREK renders (see [Provider hooks](#provider-hooks)) |
 | `hook:trip-warning-provider` | `hooks.warningProvider` — validation warnings in the planner (see [Provider hooks](#provider-hooks)) |
-| `hook:table-contributor` | `hooks.tableContributor` — host-rendered columns/actions in the reservations, places, day, costs, packing and files views (see [Provider hooks](#provider-hooks)) |
+| `hook:table-contributor` | `hooks.tableContributor` — host-rendered columns/actions in the reservations, transports, places, day, costs, packing, files and todos views (see [Provider hooks](#provider-hooks)) |
 | `hook:map-marker-provider` | `hooks.mapMarkerProvider` — bounded markers on the trip map |
 | `hook:pdf-section-provider` | `hooks.pdfSectionProvider` — sections appended to the trip PDF export |
 | `hook:atlas-layer-provider` | `hooks.atlasLayerProvider` — per-user country tint layers on the Atlas map |

@@ -476,6 +476,15 @@ const settings: TranslationStrings = {
   'settings.offline.banner.syncing': 'Синхронізація {count}…',
   'settings.offline.banner.failed': 'Не вдалося синхронізувати: {count}',
   'settings.offline.banner.conflicts': 'Конфлікти: {count}',
+  'settings.pluginActivity.title': 'Активність плагінів',
+  'settings.pluginActivity.description': 'Кожна дія, яку плагін виконав від вашого імені, найновіші спершу.',
+  'settings.pluginActivity.empty': 'Активності плагінів поки немає.',
+  'settings.pluginActivity.refresh': 'Оновити',
+  'settings.pluginActivity.columns.plugin': 'Плагін',
+  'settings.pluginActivity.columns.action': 'Дія',
+  'settings.pluginActivity.columns.resource': 'Ресурс',
+  'settings.pluginActivity.columns.when': 'Коли',
+  'settings.pluginActivity.columns.status': 'Результат',
 };
 
 export default settings;

@@ -360,6 +360,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.heroWidget': 'Instapkaartwidget',
   'admin.plugins.cap.placeSlot': 'Plaatsdetail',
   'admin.plugins.cap.daySlot': 'Dagdetail',
+  'admin.plugins.cap.reservationSlot': 'Reserveringsdetail',
   'admin.plugins.cap.replacesTabs': 'Vervangt planner-tabbladen',
   'admin.plugins.cap.realtime': 'Realtime updates',
   'admin.plugins.cap.photos': "Levert foto's",

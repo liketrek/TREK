@@ -4,7 +4,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { appendAudit, readAudit, auditResource, isAuditable } from '../../../src/nest/plugins/host/plugin-audit';
+import { appendAudit, readAudit, readAuditForUser, auditResource, isAuditable } from '../../../src/nest/plugins/host/plugin-audit';
 
 function makeDb() {
   const db = new Database(':memory:');
@@ -65,6 +65,19 @@ describe('appendAudit hash chain', () => {
     appendAudit(db, { pluginId: 'p', actingUserId: 99, method: 'trips.getById', resource: 'trip:1', code: 'RESOURCE_FORBIDDEN' });
     const row = readAudit(db, 'p')[0] as { code: string; method: string };
     expect(row.code).toBe('RESOURCE_FORBIDDEN');
+  });
+
+  it('readAuditForUser returns one user\'s actions across ALL plugins, newest first, with the plugin name', () => {
+    db.exec("CREATE TABLE plugins (id TEXT PRIMARY KEY, name TEXT)");
+    db.prepare("INSERT INTO plugins (id, name) VALUES ('koffi','Koffi'), ('flight','Flight Tracker')").run();
+    appendAudit(db, { pluginId: 'koffi', actingUserId: 42, method: 'trips.getById', resource: 'trip:1', code: 'ok' });
+    appendAudit(db, { pluginId: 'flight', actingUserId: 42, method: 'reservations.create', resource: 'trip:1', code: 'ok' });
+    appendAudit(db, { pluginId: 'koffi', actingUserId: 99, method: 'trips.getById', resource: 'trip:2', code: 'ok' }); // another user
+    const mine = readAuditForUser(db, 42) as Array<{ plugin_id: string; plugin_name: string; method: string }>;
+    expect(mine).toHaveLength(2);                       // only user 42's rows, across both plugins
+    expect(mine[0]).toMatchObject({ plugin_id: 'flight', plugin_name: 'Flight Tracker', method: 'reservations.create' }); // newest first
+    expect(mine[1]).toMatchObject({ plugin_id: 'koffi', plugin_name: 'Koffi' });
+    expect(mine.some((r) => r.plugin_id === 'koffi' && r.method === 'trips.getById' && (r as { resource?: string }).resource === 'trip:2')).toBe(false); // never another user's
   });
 
   it('readAudit returns newest first with the projected fields only', () => {

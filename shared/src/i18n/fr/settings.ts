@@ -483,6 +483,15 @@ const settings: TranslationStrings = {
   'settings.offline.banner.syncing': 'Synchronisation de {count}…',
   'settings.offline.banner.failed': 'Échec de la synchronisation : {count}',
   'settings.offline.banner.conflicts': 'Conflits : {count}',
+  'settings.pluginActivity.title': 'Activité des plugins',
+  'settings.pluginActivity.description': 'Chaque action qu\'un plugin a effectuée en votre nom, la plus récente en premier.',
+  'settings.pluginActivity.empty': 'Aucune activité de plugin pour le moment.',
+  'settings.pluginActivity.refresh': 'Actualiser',
+  'settings.pluginActivity.columns.plugin': 'Plugin',
+  'settings.pluginActivity.columns.action': 'Action',
+  'settings.pluginActivity.columns.resource': 'Ressource',
+  'settings.pluginActivity.columns.when': 'Quand',
+  'settings.pluginActivity.columns.status': 'Résultat',
 };
 
 export default settings;

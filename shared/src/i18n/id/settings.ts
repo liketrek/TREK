@@ -475,6 +475,15 @@ const settings: TranslationStrings = {
   'settings.offline.banner.syncing': 'Menyinkronkan {count}…',
   'settings.offline.banner.failed': 'Gagal menyinkronkan: {count}',
   'settings.offline.banner.conflicts': 'Konflik: {count}',
+  'settings.pluginActivity.title': 'Aktivitas plugin',
+  'settings.pluginActivity.description': 'Setiap tindakan yang dilakukan plugin atas nama Anda, terbaru lebih dulu.',
+  'settings.pluginActivity.empty': 'Belum ada aktivitas plugin.',
+  'settings.pluginActivity.refresh': 'Segarkan',
+  'settings.pluginActivity.columns.plugin': 'Plugin',
+  'settings.pluginActivity.columns.action': 'Tindakan',
+  'settings.pluginActivity.columns.resource': 'Sumber daya',
+  'settings.pluginActivity.columns.when': 'Waktu',
+  'settings.pluginActivity.columns.status': 'Hasil',
 };
 
 export default settings;

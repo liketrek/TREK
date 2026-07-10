@@ -416,6 +416,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.heroWidget': 'Boardingkort-widget',
   'admin.plugins.cap.placeSlot': 'Platsdetalj',
   'admin.plugins.cap.daySlot': 'Dagdetalj',
+  'admin.plugins.cap.reservationSlot': 'Bokningsdetalj',
   'admin.plugins.cap.replacesTabs': 'Ersätter planeringsflikar',
   'admin.plugins.cap.realtime': 'Realtidsuppdateringar',
   'admin.plugins.cap.photos': 'Tillhandahåller foton',

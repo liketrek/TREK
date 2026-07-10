@@ -157,6 +157,7 @@ function deriveCaps(perms: string[], caps: { widget?: { slot?: string }; tripPag
     const slotKey = caps.widget.slot === 'hero' ? 'admin.plugins.cap.heroWidget'
       : caps.widget.slot === 'place-detail' ? 'admin.plugins.cap.placeSlot'
       : caps.widget.slot === 'day-detail' ? 'admin.plugins.cap.daySlot'
+      : caps.widget.slot === 'reservation-detail' ? 'admin.plugins.cap.reservationSlot'
       : 'admin.plugins.cap.widget'
     out.push({ icon: LayoutDashboard, label: t(slotKey as never) })
   }

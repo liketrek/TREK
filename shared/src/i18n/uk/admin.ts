@@ -359,6 +359,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.heroWidget': 'Віджет посадкового талона',
   'admin.plugins.cap.placeSlot': 'Деталі місця',
   'admin.plugins.cap.daySlot': 'Деталі дня',
+  'admin.plugins.cap.reservationSlot': 'Деталі бронювання',
   'admin.plugins.cap.replacesTabs': 'Замінює вкладки планувальника',
   'admin.plugins.cap.realtime': 'Оновлення в реальному часі',
   'admin.plugins.cap.photos': 'Надає фотографії',

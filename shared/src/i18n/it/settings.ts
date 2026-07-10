@@ -476,6 +476,15 @@ const settings: TranslationStrings = {
   'settings.offline.banner.syncing': 'Sincronizzazione di {count}…',
   'settings.offline.banner.failed': 'Sincronizzazione non riuscita: {count}',
   'settings.offline.banner.conflicts': 'Conflitti: {count}',
+  'settings.pluginActivity.title': 'Attività dei plugin',
+  'settings.pluginActivity.description': 'Ogni azione eseguita da un plugin per tuo conto, dalla più recente.',
+  'settings.pluginActivity.empty': 'Nessuna attività dei plugin.',
+  'settings.pluginActivity.refresh': 'Aggiorna',
+  'settings.pluginActivity.columns.plugin': 'Plugin',
+  'settings.pluginActivity.columns.action': 'Azione',
+  'settings.pluginActivity.columns.resource': 'Risorsa',
+  'settings.pluginActivity.columns.when': 'Quando',
+  'settings.pluginActivity.columns.status': 'Esito',
 };
 
 export default settings;

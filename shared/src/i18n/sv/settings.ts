@@ -473,6 +473,15 @@ const settings: TranslationStrings = {
   'settings.offline.banner.syncing': 'Synkroniserar {count}…',
   'settings.offline.banner.failed': 'Kunde inte synkronisera: {count}',
   'settings.offline.banner.conflicts': 'Konflikter: {count}',
+  'settings.pluginActivity.title': 'Plugin-aktivitet',
+  'settings.pluginActivity.description': 'Varje åtgärd som ett plugin utfört å dina vägnar, senaste först.',
+  'settings.pluginActivity.empty': 'Ingen plugin-aktivitet ännu.',
+  'settings.pluginActivity.refresh': 'Uppdatera',
+  'settings.pluginActivity.columns.plugin': 'Plugin',
+  'settings.pluginActivity.columns.action': 'Åtgärd',
+  'settings.pluginActivity.columns.resource': 'Resurs',
+  'settings.pluginActivity.columns.when': 'När',
+  'settings.pluginActivity.columns.status': 'Resultat',
 };
 
 export default settings;

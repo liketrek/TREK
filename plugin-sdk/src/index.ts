@@ -259,10 +259,10 @@ export interface PluginContext {
   // entities without forking the schema. Needs `db:meta`; the entity must belong to
   // a trip the current user can access. Values are JSON-serialisable.
   meta: {
-    get(entityType: 'trip' | 'place' | 'day', entityId: number, key: string): Promise<unknown>;
-    set(entityType: 'trip' | 'place' | 'day', entityId: number, key: string, value: unknown): Promise<unknown>;
-    list(entityType: 'trip' | 'place' | 'day', entityId: number): Promise<Record<string, unknown>>;
-    delete(entityType: 'trip' | 'place' | 'day', entityId: number, key: string): Promise<{ deleted: boolean }>;
+    get(entityType: 'trip' | 'place' | 'day' | 'reservation' | 'accommodation', entityId: number, key: string): Promise<unknown>;
+    set(entityType: 'trip' | 'place' | 'day' | 'reservation' | 'accommodation', entityId: number, key: string, value: unknown): Promise<unknown>;
+    list(entityType: 'trip' | 'place' | 'day' | 'reservation' | 'accommodation', entityId: number): Promise<Record<string, unknown>>;
+    delete(entityType: 'trip' | 'place' | 'day' | 'reservation' | 'accommodation', entityId: number, key: string): Promise<{ deleted: boolean }>;
   };
   users: { getById(id: number): Promise<User | null> };
   ws: {

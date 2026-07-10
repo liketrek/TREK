@@ -381,6 +381,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.heroWidget': '登機證小工具',
   'admin.plugins.cap.placeSlot': '地點詳情',
   'admin.plugins.cap.daySlot': '日程詳情',
+  'admin.plugins.cap.reservationSlot': '預訂詳情',
   'admin.plugins.cap.replacesTabs': '取代行程規劃分頁',
   'admin.plugins.cap.realtime': '即時更新',
   'admin.plugins.cap.photos': '提供照片',

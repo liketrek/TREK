@@ -8,7 +8,7 @@ import { PluginRuntimeService } from './plugin-runtime.service';
 /**
  * GET /api/view-contributions/:view/:tripId — host-rendered columns/actions that
  * plugins implementing the `tableContributor` hook (#plugins) add into a native
- * planner view (reservations/places/day/costs/packing/files). Mirrors place-details.controller (#1429):
+ * planner view (reservations/transports/places/day/costs/packing/files/todos). Mirrors place-details.controller (#1429):
  * additive + fail-safe — the caller must access the trip, each provider runs
  * host->plugin on a short timeout, and one that errors/times out contributes nothing.
  *
@@ -24,7 +24,7 @@ interface Column { kind: 'column'; pluginId: string; entityId: number; id: strin
 interface Action { kind: 'action'; pluginId: string; entityId: number; id: string; label: string; icon?: string; target: ActionTarget; }
 type Contribution = Column | Action;
 
-const VIEWS: ReadonlySet<string> = new Set(['reservations', 'places', 'day', 'costs', 'packing', 'files']);
+const VIEWS: ReadonlySet<string> = new Set(['reservations', 'transports', 'places', 'day', 'costs', 'packing', 'files', 'todos']);
 const TONES: ReadonlySet<string> = new Set(['default', 'success', 'warn', 'danger']);
 const MAX_COLUMNS = 20;
 const MAX_ACTIONS = 10;

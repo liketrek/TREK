@@ -151,7 +151,8 @@ function makeDeps(): HostDeps {
     deleteTodo: vi.fn(() => ({ deleted: true })),
     // Metadata — trip 1 and place 7 resolve to trip 1 (accessible to 42); else undefined.
     metaEntityTrip: vi.fn((entityType: string, entityId: number) =>
-      (entityType === 'trip' && entityId === 1) || (entityType === 'place' && entityId === 7) || (entityType === 'day' && entityId === 3) ? 1 : undefined),
+      (entityType === 'trip' && entityId === 1) || (entityType === 'place' && entityId === 7) || (entityType === 'day' && entityId === 3)
+        || (entityType === 'reservation' && entityId === 40) || (entityType === 'accommodation' && entityId === 11) ? 1 : undefined),
     metaGet: vi.fn(() => ({ hello: 'world' })),
     metaSet: vi.fn((_et: string, _eid: number, key: string, value: unknown) => ({ key, value })),
     metaList: vi.fn(() => ({ a: 1 })),
@@ -998,6 +999,12 @@ describe('PluginRpcHost — capability enforcement', () => {
     expect(deps.canEditPlaces).toHaveBeenCalled();
     expect(ok(await host.dispatch(req('meta.set', { entityType: 'day', entityId: 3, key: 'k', value: 1 }), 42))).toBe(true);
     expect(deps.canEditDays).toHaveBeenCalled();
+    // reservation metadata uses reservation_edit; accommodation uses day_edit
+    expect(ok(await host.dispatch(req('meta.set', { entityType: 'reservation', entityId: 40, key: 'ext_id', value: 'AB1' }), 42))).toBe(true);
+    expect(deps.canEditReservations).toHaveBeenCalled();
+    expect(ok(await host.dispatch(req('meta.set', { entityType: 'accommodation', entityId: 11, key: 'k', value: 1 }), 42))).toBe(true);
+    // an entity of another trip is refused
+    expect((await host.dispatch(req('meta.get', { entityType: 'reservation', entityId: 999, key: 'k' }), 42) as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
     // no host-bound acting user (a job / forged call) → refused
     const noUser = await host.dispatch(req('meta.get', { entityType: 'trip', entityId: 1, key: 'k' }), undefined);
     expect((noUser as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');

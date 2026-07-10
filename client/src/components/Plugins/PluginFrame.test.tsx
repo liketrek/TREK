@@ -104,6 +104,22 @@ describe('PluginFrame', () => {
     expect(ctx!.placeId).toBeNull();
   });
 
+  it('FE-PLUGINS-FRAME-014: a reservation-detail host passes the open reservation (and day/place stay null)', () => {
+    const { container } = render(<PluginFrame pluginId="demo" tripId="1" reservationId="88" />);
+    const iframe = container.querySelector('iframe')!;
+    const posted: Array<Record<string, unknown>> = [];
+    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) => posted.push(m as Record<string, unknown>);
+
+    fromFrame(iframe, { type: 'trek:context:request' });
+
+    const ctx = posted.find((m) => m.type === 'trek:context') as Record<string, unknown> | undefined;
+    expect(ctx).toBeTruthy();
+    expect(ctx!.tripId).toBe('1');
+    expect(ctx!.reservationId).toBe('88');
+    expect(ctx!.dayId).toBeNull();
+    expect(ctx!.placeId).toBeNull();
+  });
+
   it('FE-PLUGINS-FRAME-006: context mirrors the host appearance state (scheme/density/flags)', () => {
     const { container } = render(<PluginFrame pluginId="demo" />);
     const iframe = container.querySelector('iframe')!;

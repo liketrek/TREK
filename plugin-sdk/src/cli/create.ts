@@ -63,10 +63,12 @@ export function scaffold(name: string, type: string, targetDir: string, opts: Sc
     // ({ id, version-range }) that must be installed + satisfied first.
     requiredAddons: opts.requiredAddons ?? [],
     pluginDependencies: opts.pluginDependencies ?? [],
-    routes: [{ method: 'GET', path: '/hello', auth: true }],
   };
   if (opts.egress?.length) manifest.egress = opts.egress;
-  if (type === 'page') manifest.capabilities = { nav: { label: manifest.name, icon: 'Blocks', position: 'main' } };
+  // Routes are declared in server/index.js (definePlugin), NOT the manifest — the
+  // host ignores a manifest `routes`. A `page` plugin gets its nav entry
+  // automatically, so there's no `capabilities.nav` either; only `widget` carries a
+  // capability worth scaffolding.
   if (type === 'widget') manifest.capabilities = { widget: { title: manifest.name, defaultSize: 'medium' } };
 
   fs.writeFileSync(path.join(root, 'trek-plugin.json'), JSON.stringify(manifest, null, 2) + '\n');

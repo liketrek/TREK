@@ -85,6 +85,8 @@ interface PluginFrameProps {
   placeId?: string | null
   /** The day in view — set for a day-detail slot so the plugin can scope to it. */
   dayId?: string | null
+  /** The reservation in view — set for a reservation-detail slot so the plugin can scope to it. */
+  reservationId?: string | null
   /**
    * Full-page hosts (trip tab, /plugins/:id) set this so the frame always fills
    * its container. Without it a kit-based plugin auto-reports its content height
@@ -115,7 +117,7 @@ interface ConfirmRequest {
   danger: boolean
 }
 
-export default function PluginFrame({ pluginId, tripId = null, placeId = null, dayId = null, fill = false, className, title }: PluginFrameProps) {
+export default function PluginFrame({ pluginId, tripId = null, placeId = null, dayId = null, reservationId = null, fill = false, className, title }: PluginFrameProps) {
   const frameRef = useRef<HTMLIFrameElement | null>(null)
   // A sandboxed frame may navigate ITSELF (connect-src can't stop that), and its
   // window identity keeps matching our iframe afterwards. Track loads and refuse
@@ -158,6 +160,7 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
     tripId,
     placeId,
     dayId,
+    reservationId,
     userId: userId != null ? String(userId) : null,
     theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
     locale,
@@ -181,7 +184,7 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     },
     tokens: readThemeTokens(),
-  }), [tripId, placeId, dayId, userId, locale, userName, userAvatar, isAdmin, settings])
+  }), [tripId, placeId, dayId, reservationId, userId, locale, userName, userAvatar, isAdmin, settings])
 
   useEffect(() => {
     const frame = frameRef.current

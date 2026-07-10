@@ -7,6 +7,7 @@ import { PlaceDetailsController } from './place-details.controller';
 import { TripWarningsController } from './trip-warnings.controller';
 import { ViewContributionsController } from './view-contributions.controller';
 import { MapMarkersController } from './map-markers.controller';
+import { PluginActivityController } from './plugin-activity.controller';
 import { PdfSectionsController } from './pdf-sections.controller';
 import { AtlasLayersController } from './atlas-layers.controller';
 import { JournalEntryRowsController } from './journal-entry-rows.controller';
@@ -25,7 +26,7 @@ import { PluginRegistryService } from './registry/registry.service';
  * widget assets at /plugin-frame/:id/*.
  */
 @Module({
-  controllers: [PluginsController, PluginsFeedController, PluginsProxyController, PluginFrameController, PlaceDetailsController, TripWarningsController, ViewContributionsController, MapMarkersController, PdfSectionsController, AtlasLayersController, JournalEntryRowsController, PluginUserSettingsController, PluginOAuthController],
+  controllers: [PluginsController, PluginsFeedController, PluginsProxyController, PluginFrameController, PlaceDetailsController, TripWarningsController, ViewContributionsController, MapMarkersController, PdfSectionsController, AtlasLayersController, JournalEntryRowsController, PluginUserSettingsController, PluginOAuthController, PluginActivityController],
   providers: [PluginsService, PluginRuntimeService, PluginRegistryService, PluginOAuthService],
   // Exported so the admin addon-toggle handler can cascade-disable plugins whose
   // required addon was just turned off (#plugins dependencies).

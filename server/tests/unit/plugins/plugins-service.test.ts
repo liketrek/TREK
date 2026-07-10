@@ -98,6 +98,12 @@ describe('PluginsFeedController (client feed)', () => {
     expect(new PluginsFeedController().list().plugins.find((p) => p.id === 'd')?.slot).toBe('day-detail');
   });
 
+  it('exposes the reservation-detail slot (a booking-card widget must not fall back to the dashboard)', () => {
+    testDb.prepare("INSERT INTO plugins (id, name, type, icon, status, capabilities) VALUES ('r','R','widget','Box','active','{\"widget\":{\"slot\":\"reservation-detail\"}}')").run();
+    process.env.TREK_PLUGINS_ENABLED = 'true';
+    expect(new PluginsFeedController().list().plugins.find((p) => p.id === 'r')?.slot).toBe('reservation-detail');
+  });
+
   it('exposes tripPage for trip-page plugins, re-validated against the replaceable-tab whitelist', () => {
     testDb.prepare("INSERT INTO plugins (id, name, type, icon, status, capabilities) VALUES ('t','T','trip-page','Box','active','{\"tripPage\":{\"replaces\":[\"transports\",\"buchungen\"],\"position\":1}}')").run();
     // a hand-edited row trying to hide 'plan' (or junk) is filtered here, not just at install

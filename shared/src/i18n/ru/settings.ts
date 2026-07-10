@@ -477,6 +477,15 @@ const settings: TranslationStrings = {
   'settings.offline.banner.syncing': 'Синхронизация {count}…',
   'settings.offline.banner.failed': 'Не удалось синхронизировать: {count}',
   'settings.offline.banner.conflicts': 'Конфликты: {count}',
+  'settings.pluginActivity.title': 'Активность плагинов',
+  'settings.pluginActivity.description': 'Все действия, которые плагин выполнил от вашего имени, сначала новые.',
+  'settings.pluginActivity.empty': 'Активности плагинов пока нет.',
+  'settings.pluginActivity.refresh': 'Обновить',
+  'settings.pluginActivity.columns.plugin': 'Плагин',
+  'settings.pluginActivity.columns.action': 'Действие',
+  'settings.pluginActivity.columns.resource': 'Ресурс',
+  'settings.pluginActivity.columns.when': 'Когда',
+  'settings.pluginActivity.columns.status': 'Результат',
 };
 
 export default settings;

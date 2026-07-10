@@ -417,6 +417,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.heroWidget': 'Widget thẻ lên máy bay',
   'admin.plugins.cap.placeSlot': 'Chi tiết địa điểm',
   'admin.plugins.cap.daySlot': 'Chi tiết ngày',
+  'admin.plugins.cap.reservationSlot': 'Chi tiết đặt chỗ',
   'admin.plugins.cap.replacesTabs': 'Thay thế các tab trình lập kế hoạch',
   'admin.plugins.cap.realtime': 'Cập nhật thời gian thực',
   'admin.plugins.cap.photos': 'Cung cấp ảnh',

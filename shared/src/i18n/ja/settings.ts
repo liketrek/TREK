@@ -449,6 +449,15 @@ const settings: TranslationStrings = {
   'settings.offline.banner.syncing': '{count} 件を同期中…',
   'settings.offline.banner.failed': '同期に失敗: {count}',
   'settings.offline.banner.conflicts': '競合: {count}',
+  'settings.pluginActivity.title': 'プラグインのアクティビティ',
+  'settings.pluginActivity.description': 'プラグインがあなたに代わって行ったすべての操作を新しい順に表示します。',
+  'settings.pluginActivity.empty': 'プラグインのアクティビティはまだありません。',
+  'settings.pluginActivity.refresh': '更新',
+  'settings.pluginActivity.columns.plugin': 'プラグイン',
+  'settings.pluginActivity.columns.action': '操作',
+  'settings.pluginActivity.columns.resource': 'リソース',
+  'settings.pluginActivity.columns.when': '日時',
+  'settings.pluginActivity.columns.status': '結果',
 };
 
 export default settings;

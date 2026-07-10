@@ -15,7 +15,7 @@ interface ActivePlugin {
   name: string;
   type: string;
   icon: string | null;
-  slot: 'sidebar' | 'hero' | 'place-detail' | 'day-detail';
+  slot: 'sidebar' | 'hero' | 'place-detail' | 'day-detail' | 'reservation-detail';
   /** How a trip-page plugin sits in the planner tab bar (replaced core tabs + position). */
   tripPage?: { replaces?: string[]; position?: number };
 }
@@ -41,7 +41,7 @@ function slotOf(capabilities: string): ActivePlugin['slot'] {
   try {
     const c = JSON.parse(capabilities || '{}') as { widget?: { slot?: string } };
     const slot = c.widget?.slot;
-    return slot === 'hero' || slot === 'place-detail' || slot === 'day-detail' ? slot : 'sidebar';
+    return slot === 'hero' || slot === 'place-detail' || slot === 'day-detail' || slot === 'reservation-detail' ? slot : 'sidebar';
   } catch {
     return 'sidebar';
   }

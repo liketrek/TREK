@@ -484,6 +484,15 @@ const settings: TranslationStrings = {
   'settings.offline.banner.syncing': 'Συγχρονισμός {count}…',
   'settings.offline.banner.failed': 'Αποτυχία συγχρονισμού: {count}',
   'settings.offline.banner.conflicts': 'Διενέξεις: {count}',
+  'settings.pluginActivity.title': 'Δραστηριότητα προσθέτων',
+  'settings.pluginActivity.description': 'Κάθε ενέργεια που εκτέλεσε ένα πρόσθετο εκ μέρους σας, με τις πιο πρόσφατες πρώτες.',
+  'settings.pluginActivity.empty': 'Δεν υπάρχει ακόμη δραστηριότητα προσθέτων.',
+  'settings.pluginActivity.refresh': 'Ανανέωση',
+  'settings.pluginActivity.columns.plugin': 'Πρόσθετο',
+  'settings.pluginActivity.columns.action': 'Ενέργεια',
+  'settings.pluginActivity.columns.resource': 'Πόρος',
+  'settings.pluginActivity.columns.when': 'Πότε',
+  'settings.pluginActivity.columns.status': 'Αποτέλεσμα',
 };
 
 export default settings;

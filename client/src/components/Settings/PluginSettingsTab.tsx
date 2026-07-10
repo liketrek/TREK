@@ -4,6 +4,7 @@ import { pluginsApi, type PluginUserSettingField } from '../../api/client'
 import { usePluginStore } from '../../store/pluginStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
+import PluginActivityPanel from './PluginActivityPanel'
 
 /** Host-brokered OAuth: a Connect/Disconnect control. The host runs the whole flow +
  * holds the tokens; this only triggers connect (redirect to the provider) / disconnect. */
@@ -181,6 +182,7 @@ export default function PluginSettingsTab() {
       {plugins.length === 0
         ? <p className="text-sm text-content-muted">{t('settings.plugins.empty')}</p>
         : plugins.map(p => <PluginSettingsForm key={p.id} id={p.id} name={p.name} />)}
+      <PluginActivityPanel />
     </div>
   )
 }

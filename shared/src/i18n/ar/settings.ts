@@ -461,6 +461,15 @@ const settings: TranslationStrings = {
   'settings.offline.banner.syncing': 'جارٍ مزامنة {count}…',
   'settings.offline.banner.failed': 'فشلت المزامنة: {count}',
   'settings.offline.banner.conflicts': 'تعارضات: {count}',
+  'settings.pluginActivity.title': 'نشاط الإضافات',
+  'settings.pluginActivity.description': 'كل إجراء نفّذته إضافة نيابةً عنك، الأحدث أولاً.',
+  'settings.pluginActivity.empty': 'لا يوجد نشاط للإضافات بعد.',
+  'settings.pluginActivity.refresh': 'تحديث',
+  'settings.pluginActivity.columns.plugin': 'الإضافة',
+  'settings.pluginActivity.columns.action': 'الإجراء',
+  'settings.pluginActivity.columns.resource': 'المورد',
+  'settings.pluginActivity.columns.when': 'الوقت',
+  'settings.pluginActivity.columns.status': 'النتيجة',
 };
 
 export default settings;

@@ -473,6 +473,15 @@ const settings: TranslationStrings = {
   'settings.offline.banner.syncing': '{count} senkronize ediliyor…',
   'settings.offline.banner.failed': 'Senkronize edilemedi: {count}',
   'settings.offline.banner.conflicts': 'Çakışmalar: {count}',
+  'settings.pluginActivity.title': 'Eklenti etkinliği',
+  'settings.pluginActivity.description': 'Bir eklentinin sizin adınıza gerçekleştirdiği her işlem, en yenisi önce.',
+  'settings.pluginActivity.empty': 'Henüz eklenti etkinliği yok.',
+  'settings.pluginActivity.refresh': 'Yenile',
+  'settings.pluginActivity.columns.plugin': 'Eklenti',
+  'settings.pluginActivity.columns.action': 'İşlem',
+  'settings.pluginActivity.columns.resource': 'Kaynak',
+  'settings.pluginActivity.columns.when': 'Ne zaman',
+  'settings.pluginActivity.columns.status': 'Sonuç',
 };
 
 export default settings;

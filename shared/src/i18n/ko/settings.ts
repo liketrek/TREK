@@ -465,6 +465,15 @@ const settings: TranslationStrings = {
   'settings.offline.banner.syncing': '{count}개 동기화 중…',
   'settings.offline.banner.failed': '동기화 실패: {count}',
   'settings.offline.banner.conflicts': '충돌: {count}',
+  'settings.pluginActivity.title': '플러그인 활동',
+  'settings.pluginActivity.description': '플러그인이 사용자를 대신해 수행한 모든 작업을 최신순으로 보여줍니다.',
+  'settings.pluginActivity.empty': '아직 플러그인 활동이 없습니다.',
+  'settings.pluginActivity.refresh': '새로고침',
+  'settings.pluginActivity.columns.plugin': '플러그인',
+  'settings.pluginActivity.columns.action': '작업',
+  'settings.pluginActivity.columns.resource': '리소스',
+  'settings.pluginActivity.columns.when': '시간',
+  'settings.pluginActivity.columns.status': '결과',
 };
 
 export default settings;

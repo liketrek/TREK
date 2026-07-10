@@ -19,6 +19,9 @@ import { readJsonFile } from './json.js';
 
 interface Fixtures {
   config?: Record<string, unknown>;
+  /** The dev acting user — bound like the invocation user in prod, so `ctx.trips.getPlaces(tripId)`
+   * works WITHOUT passing asUserId (which the real host ignores). Defaults to 1. */
+  actingUserId?: number;
   trips?: Record<number, { members: number[]; data?: unknown; places?: unknown[]; reservations?: unknown[] }>;
   users?: Record<number, unknown>;
 }
@@ -74,9 +77,15 @@ interface PluginContextDb { query(sql: string, ...a: unknown[]): Promise<unknown
 
 function createDevContext(id: string, grants: Set<string>, fx: Fixtures, db: PluginContextDb, broadcasts: unknown[]) {
   const need = (perm: string, method: string) => { if (!grants.has(perm)) throw new PermissionDenied(`PERMISSION_DENIED: ${method} requires ${perm}`); };
-  const member = (tripId: number, asUser: number) => {
+  // The real host binds the acting user from the invocation and IGNORES an asUserId
+  // the plugin passes, so ctx.trips.getPlaces(tripId) is the canonical call. Mirror
+  // that here: asUserId is optional and falls back to the dev acting user, else the
+  // documented one-arg call fails with RESOURCE_FORBIDDEN only in dev.
+  const DEV_USER = fx.actingUserId ?? 1;
+  const member = (tripId: number, asUser?: number) => {
     const t = fx.trips?.[tripId];
-    if (!t || !t.members.includes(asUser)) throw new Error(`RESOURCE_FORBIDDEN: no access to trip ${tripId}`);
+    const u = asUser ?? DEV_USER;
+    if (!t || !t.members.includes(u)) throw new Error(`RESOURCE_FORBIDDEN: no access to trip ${tripId}`);
     return t;
   };
   return {
@@ -87,9 +96,9 @@ function createDevContext(id: string, grants: Set<string>, fx: Fixtures, db: Plu
       migrate: (mid: string, sql: string) => { need('db:own', 'db.migrate'); return db.migrate(mid, sql); },
     },
     trips: {
-      getById: async (t: number, u: number) => { need('db:read:trips', 'trips.getById'); return member(t, u).data ?? null; },
-      getPlaces: async (t: number, u: number) => { need('db:read:trips', 'trips.getPlaces'); return member(t, u).places ?? []; },
-      getReservations: async (t: number, u: number) => { need('db:read:trips', 'trips.getReservations'); return member(t, u).reservations ?? []; },
+      getById: async (t: number, u?: number) => { need('db:read:trips', 'trips.getById'); return member(t, u).data ?? null; },
+      getPlaces: async (t: number, u?: number) => { need('db:read:trips', 'trips.getPlaces'); return member(t, u).places ?? []; },
+      getReservations: async (t: number, u?: number) => { need('db:read:trips', 'trips.getReservations'); return member(t, u).reservations ?? []; },
     },
     users: { getById: async (uid: number) => { need('db:read:users', 'users.getById'); return fx.users?.[uid] ?? null; } },
     ws: {

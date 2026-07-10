@@ -448,6 +448,15 @@ const settings: TranslationStrings = {
   'settings.offline.banner.syncing': '正在同步 {count} 筆…',
   'settings.offline.banner.failed': '同步失敗：{count}',
   'settings.offline.banner.conflicts': '衝突：{count}',
+  'settings.pluginActivity.title': '外掛活動',
+  'settings.pluginActivity.description': '外掛代表你執行的每項操作，最新的在前。',
+  'settings.pluginActivity.empty': '尚無外掛活動。',
+  'settings.pluginActivity.refresh': '重新整理',
+  'settings.pluginActivity.columns.plugin': '外掛',
+  'settings.pluginActivity.columns.action': '操作',
+  'settings.pluginActivity.columns.resource': '資源',
+  'settings.pluginActivity.columns.when': '時間',
+  'settings.pluginActivity.columns.status': '結果',
 };
 
 export default settings;

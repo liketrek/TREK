@@ -356,6 +356,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.heroWidget': 'Widget palubní vstupenky',
   'admin.plugins.cap.placeSlot': 'Detail místa',
   'admin.plugins.cap.daySlot': 'Detail dne',
+  'admin.plugins.cap.reservationSlot': 'Detail rezervace',
   'admin.plugins.cap.replacesTabs': 'Nahrazuje karty plánovače',
   'admin.plugins.cap.realtime': 'Aktualizace v reálném čase',
   'admin.plugins.cap.photos': 'Poskytuje fotky',

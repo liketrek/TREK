@@ -476,6 +476,15 @@ const settings: TranslationStrings = {
   'settings.offline.banner.syncing': '{count} szinkronizálása…',
   'settings.offline.banner.failed': 'Sikertelen szinkronizálás: {count}',
   'settings.offline.banner.conflicts': 'Ütközések: {count}',
+  'settings.pluginActivity.title': 'Bővítmény-tevékenység',
+  'settings.pluginActivity.description': 'Minden művelet, amelyet egy bővítmény a nevedben végzett, a legújabbtól kezdve.',
+  'settings.pluginActivity.empty': 'Még nincs bővítmény-tevékenység.',
+  'settings.pluginActivity.refresh': 'Frissítés',
+  'settings.pluginActivity.columns.plugin': 'Bővítmény',
+  'settings.pluginActivity.columns.action': 'Művelet',
+  'settings.pluginActivity.columns.resource': 'Erőforrás',
+  'settings.pluginActivity.columns.when': 'Mikor',
+  'settings.pluginActivity.columns.status': 'Eredmény',
 };
 
 export default settings;

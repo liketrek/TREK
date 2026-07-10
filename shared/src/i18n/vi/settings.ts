@@ -478,6 +478,15 @@ const settings: TranslationStrings = {
   'settings.offline.banner.syncing': 'Đang đồng bộ hóa {count}…',
   'settings.offline.banner.failed': 'Đồng bộ hóa không thành công: {count}',
   'settings.offline.banner.conflicts': 'Xung đột: {count}',
+  'settings.pluginActivity.title': 'Hoạt động của plugin',
+  'settings.pluginActivity.description': 'Mọi hành động mà plugin đã thực hiện thay bạn, mới nhất trước.',
+  'settings.pluginActivity.empty': 'Chưa có hoạt động nào của plugin.',
+  'settings.pluginActivity.refresh': 'Làm mới',
+  'settings.pluginActivity.columns.plugin': 'Plugin',
+  'settings.pluginActivity.columns.action': 'Hành động',
+  'settings.pluginActivity.columns.resource': 'Tài nguyên',
+  'settings.pluginActivity.columns.when': 'Thời điểm',
+  'settings.pluginActivity.columns.status': 'Kết quả',
 };
 
 export default settings;

@@ -83,6 +83,11 @@ describe('parseManifest capabilities', () => {
     expect(dd.capabilities.widget?.slot).toBe('day-detail');
   });
 
+  it('accepts the reservation-detail widget slot (mounts on a booking card)', () => {
+    const rd = parseManifest({ ...base, capabilities: { widget: { slot: 'reservation-detail' } } });
+    expect(rd.capabilities.widget?.slot).toBe('reservation-detail');
+  });
+
   it('rejects an unknown widget slot', () => {
     expect(() => parseManifest({ ...base, capabilities: { widget: { slot: 'floating' } } })).toThrow(ManifestError);
   });

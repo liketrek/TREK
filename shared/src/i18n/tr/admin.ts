@@ -403,6 +403,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.heroWidget': "Biniş kartı widget'ı",
   'admin.plugins.cap.placeSlot': 'Yer detayı',
   'admin.plugins.cap.daySlot': 'Gün detayı',
+  'admin.plugins.cap.reservationSlot': 'Rezervasyon detayı',
   'admin.plugins.cap.replacesTabs': 'Planlayıcı sekmelerini değiştirir',
   'admin.plugins.cap.realtime': 'Gerçek zamanlı güncellemeler',
   'admin.plugins.cap.photos': 'Fotoğraf sağlar',
