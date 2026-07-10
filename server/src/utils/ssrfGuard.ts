@@ -101,6 +101,46 @@ export async function checkSsrf(rawUrl: string, bypassInternalIpAllowed: boolean
   return { allowed: true, isPrivate: false, resolvedIp };
 }
 
+/** Link-local / cloud-metadata range (169.254.0.0/16, fe80::/10) — never a legit host. */
+function isLinkLocal(ip: string): boolean {
+  const addr = ip.startsWith('[') ? ip.slice(1, -1) : ip;
+  return addr.startsWith('169.254.') || /^fe80:/i.test(addr) || /^::ffff:169\.254\./i.test(addr);
+}
+
+/**
+ * SSRF-safe fetch for a user-configurable LLM endpoint. Unlike safeFetch() this
+ * deliberately ALLOWS loopback and private/LAN targets — a local Ollama on
+ * localhost or a model server on the LAN is the normal, supported config, so
+ * blocking them would break a legitimate setup. It blocks only the link-local /
+ * cloud-metadata range (169.254.0.0/16, fe80::/10), which is never a real LLM
+ * host but is the credential-theft SSRF target. The connection is pinned to the
+ * resolved IP, so a hostname cannot rebind to the metadata address between the
+ * check and the request.
+ */
+export async function safeFetchLlm(url: string, init?: RequestInit): Promise<Response> {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new SsrfBlockedError('Invalid URL');
+  }
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
+    throw new SsrfBlockedError('Only HTTP and HTTPS URLs are allowed');
+  }
+  let resolvedIp: string;
+  try {
+    resolvedIp = (await dns.lookup(parsed.hostname)).address;
+  } catch (error_) {
+    const code = error_ instanceof Error && 'code' in error_ ? String(error_.code) : 'unknown';
+    throw new SsrfBlockedError(`Could not resolve hostname (${code})`);
+  }
+  if (isLinkLocal(resolvedIp)) {
+    throw new SsrfBlockedError('Requests to link-local / cloud-metadata addresses are not allowed');
+  }
+  const dispatcher = createPinnedDispatcher(resolvedIp, true);
+  return fetch(url, { ...init, dispatcher } as any);
+}
+
 /**
  * Thrown by safeFetch() when the URL is blocked by the SSRF guard.
  */

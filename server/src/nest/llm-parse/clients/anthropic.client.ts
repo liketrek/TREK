@@ -1,4 +1,5 @@
 import type { LlmExtractionClient, LlmExtractionInput } from '../llm-provider.interface';
+import { safeFetchLlm } from '../../../utils/ssrfGuard';
 
 const TIMEOUT_MS = 120_000;
 const MAX_TOKENS = 8192;
@@ -48,7 +49,9 @@ export class AnthropicClient implements LlmExtractionClient {
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
     let res: Response;
     try {
-      res = await fetch(url, {
+      // baseUrl is user-configurable — guard it against pointing at the cloud
+      // metadata endpoint, while still allowing a local/LAN gateway.
+      res = await safeFetchLlm(url, {
         method: 'POST',
         signal: controller.signal,
         headers: {

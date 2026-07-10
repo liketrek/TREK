@@ -21,7 +21,7 @@ vi.mock('undici', () => ({
 }));
 
 import dns from 'dns/promises';
-import { checkSsrf, SsrfBlockedError, safeFetch, safeFetchFollow, createPinnedDispatcher } from '../../../src/utils/ssrfGuard';
+import { checkSsrf, SsrfBlockedError, safeFetch, safeFetchLlm, safeFetchFollow, createPinnedDispatcher } from '../../../src/utils/ssrfGuard';
 
 const mockLookup = vi.mocked(dns.lookup);
 
@@ -356,5 +356,55 @@ describe('createPinnedDispatcher', () => {
     const cb = vi.fn();
     lookup('example.com', { all: true }, cb);
     expect(cb).toHaveBeenCalledWith(null, [{ address: '93.184.216.34', family: 4 }]);
+  });
+});
+
+describe('safeFetchLlm', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('blocks the cloud-metadata address (169.254.169.254)', async () => {
+    mockIp('169.254.169.254');
+    const mockFetch = vi.fn();
+    vi.stubGlobal('fetch', mockFetch);
+    await expect(safeFetchLlm('http://169.254.169.254/latest/meta-data/')).rejects.toThrow(SsrfBlockedError);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('blocks a hostname that resolves to the metadata range', async () => {
+    mockIp('169.254.169.254');
+    const mockFetch = vi.fn();
+    vi.stubGlobal('fetch', mockFetch);
+    await expect(safeFetchLlm('http://ollama.evil.example/chat')).rejects.toThrow(/link-local/i);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('blocks IPv6 link-local (fe80::)', async () => {
+    mockIp('fe80::1');
+    vi.stubGlobal('fetch', vi.fn());
+    await expect(safeFetchLlm('http://[fe80::1]/chat')).rejects.toThrow(SsrfBlockedError);
+  });
+
+  it('rejects a non-http(s) protocol', async () => {
+    vi.stubGlobal('fetch', vi.fn());
+    await expect(safeFetchLlm('file:///etc/passwd')).rejects.toThrow(SsrfBlockedError);
+  });
+
+  // The whole point of the LLM-specific guard: a self-hosted Ollama on localhost
+  // must still work — unlike safeFetch(), loopback is allowed here.
+  it('allows a loopback target (local Ollama)', async () => {
+    mockIp('127.0.0.1');
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true } as Response);
+    vi.stubGlobal('fetch', mockFetch);
+    await safeFetchLlm('http://localhost:11434/v1/chat/completions', { method: 'POST' });
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(mockFetch.mock.calls[0][0]).toBe('http://localhost:11434/v1/chat/completions');
+  });
+
+  it('allows a private/LAN target (self-hosted model server)', async () => {
+    mockIp('192.168.1.50');
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true } as Response);
+    vi.stubGlobal('fetch', mockFetch);
+    await safeFetchLlm('http://192.168.1.50:8000/v1/chat/completions');
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 });

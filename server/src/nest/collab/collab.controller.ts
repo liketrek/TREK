@@ -152,7 +152,7 @@ export class CollabController {
   deleteNoteFile(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @Param('fileId') fileId: string, @Headers('x-socket-id') socketId?: string) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    if (!this.collab.deleteNoteFile(id, fileId)) {
+    if (!this.collab.deleteNoteFile(tripId, id, fileId)) {
       throw new HttpException({ error: 'File not found' }, 404);
     }
     this.collab.broadcast(tripId, 'collab:note:updated', { note: this.collab.getFormattedNoteById(id) }, socketId);

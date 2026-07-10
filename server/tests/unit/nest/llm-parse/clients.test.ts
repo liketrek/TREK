@@ -1,4 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// The clients go through safeFetchLlm (SSRF guard: blocks the cloud-metadata
+// range, allows a local/LAN Ollama). Mock it here so the tests never do a real
+// DNS lookup — the call signature (url, init) matches the raw fetch it wraps, so
+// the existing assertions on the recorded call args are unchanged.
+const { safeFetchLlmMock } = vi.hoisted(() => ({ safeFetchLlmMock: vi.fn() }));
+vi.mock('../../../../src/utils/ssrfGuard', () => ({ safeFetchLlm: safeFetchLlmMock }));
+
 import { OpenAiCompatibleClient } from '../../../../src/nest/llm-parse/clients/openai-compatible.client';
 import { AnthropicClient } from '../../../../src/nest/llm-parse/clients/anthropic.client';
 import type { LlmExtractionInput } from '../../../../src/nest/llm-parse/llm-provider.interface';
@@ -11,16 +19,15 @@ const baseInput: LlmExtractionInput = {
 };
 
 function mockFetch(impl: (url: string, init: RequestInit) => Promise<Response> | Response) {
-  const fn = vi.fn(impl as any);
-  vi.stubGlobal('fetch', fn);
-  return fn;
+  safeFetchLlmMock.mockImplementation(impl as any);
+  return safeFetchLlmMock;
 }
 
 function jsonResponse(body: unknown, ok = true, status = 200): Response {
   return { ok, status, json: async () => body, text: async () => JSON.stringify(body) } as unknown as Response;
 }
 
-beforeEach(() => vi.unstubAllGlobals());
+beforeEach(() => safeFetchLlmMock.mockReset());
 
 describe('OpenAiCompatibleClient', () => {
   it('posts to {baseUrl}/chat/completions and returns the reservations array', async () => {

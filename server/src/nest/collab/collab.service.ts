@@ -36,7 +36,7 @@ export class CollabService {
   deleteNote(tripId: string, id: string): boolean { return svc.deleteNote(tripId, id); }
   addNoteFile(tripId: string, id: string, file: Parameters<typeof svc.addNoteFile>[2]) { return svc.addNoteFile(tripId, id, file); }
   getFormattedNoteById(id: string) { return svc.getFormattedNoteById(id); }
-  deleteNoteFile(id: string, fileId: string): boolean { return svc.deleteNoteFile(id, fileId); }
+  deleteNoteFile(tripId: string, noteId: string, fileId: string): boolean { return svc.deleteNoteFile(tripId, noteId, fileId); }
 
   listPolls(tripId: string) { return svc.listPolls(tripId); }
   createPoll(tripId: string, userId: number, data: Parameters<typeof svc.createPoll>[2]) { return svc.createPoll(tripId, userId, data); }
