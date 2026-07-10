@@ -698,8 +698,10 @@ describe('PluginRpcHost — capability enforcement', () => {
     expect(ok(ok1)).toBe(true);
     expect((ok1 as RpcResponse).result).toEqual({ accessToken: 'access-token-xyz' });
     expect(deps.getOAuthToken).toHaveBeenCalledWith('p', 42);
-    // no bound user → refused (a job/onLoad can't act as an OAuth client)
-    expect((await host.dispatch(req('oauth.getToken', {}), undefined)).ok).toBe(false);
+    // no bound user (a job/onLoad) → null, matching the SDK contract, not an error
+    const userless = await host.dispatch(req('oauth.getToken', {}), undefined);
+    expect(ok(userless)).toBe(true);
+    expect((userless as RpcResponse).result).toEqual({ accessToken: null });
     // without the grant → not reachable
     const noGrant = new PluginRpcHost('p', new Set(), deps);
     expect((await noGrant.dispatch(req('oauth.getToken', {}), 42)).ok).toBe(false);

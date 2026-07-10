@@ -44,7 +44,10 @@ export class TripWarningsController {
         try {
           const raw = (await this.runtime.invokeHook(id, 'warningProvider', 'getWarnings', [tripId], userId, 5000)) as unknown;
           const list = Array.isArray(raw) ? (raw as Array<Record<string, unknown>>) : [];
-          return list.slice(0, MAX_WARNINGS).map((w) => ({
+          // Drop non-object elements BEFORE the cap — otherwise one null in the array
+          // throws inside map() and the catch below discards ALL of this provider's
+          // warnings (and the cap should count only valid entries anyway).
+          return list.filter((w): w is Record<string, unknown> => !!w && typeof w === 'object').slice(0, MAX_WARNINGS).map((w) => ({
             pluginId: id,
             level: w.level === 'error' || w.level === 'info' ? (w.level as Level) : 'warning',
             message: String(w.message ?? '').slice(0, MESSAGE_MAX),

@@ -232,10 +232,17 @@ describe('supervisor GDPR user-data hooks are grant- and status-gated', () => {
     (s as any).invoke = vi.fn(() => Promise.resolve({ ok: true, data: [{ v: 1 }] }));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (s as any).running.set('p', withGrant('active'));
-    expect(await s.collectUserExport('p', 42)).toEqual([{ v: 1 }]);
+    expect(await s.collectUserExport('p', 42)).toEqual({ ok: true, data: [{ v: 1 }] });
+    // ungranted/inactive → undefined (not applicable)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (s as any).running.set('p', { id: 'p', status: 'active', granted: new Set() });
     expect(await s.collectUserExport('p', 42)).toBeUndefined();
+    // active + granted but the export throws → { ok: false } (flagged incomplete, not omitted)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).invoke = vi.fn(() => Promise.reject(new Error('timeout')));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).running.set('p', withGrant('active'));
+    expect(await s.collectUserExport('p', 42)).toEqual({ ok: false });
   });
 });
 

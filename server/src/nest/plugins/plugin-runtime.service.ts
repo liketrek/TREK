@@ -264,16 +264,19 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /** GDPR portability: aggregate what every active, granted plugin holds about a user.
-   * Returns one entry per plugin that returns data (plugins with nothing are omitted). */
+  /** GDPR portability: aggregate what every granted plugin holds about a user. An active
+   * plugin whose export ERRORED and an inactive granted plugin are both flagged `pending`
+   * (rather than silently omitted), so the export never reads as complete while missing data. */
   async exportUserData(userId: number): Promise<Array<{ pluginId: string; data?: unknown; pending?: boolean }>> {
     const out: Array<{ pluginId: string; data?: unknown; pending?: boolean }> = [];
     if (!pluginsEnabled()) return out;
     const rows = db.prepare('SELECT id, permissions FROM plugins').all() as Array<{ id: string; permissions: string | null }>;
     for (const r of rows) {
       if (this.supervisor.isActive(r.id)) {
-        const data = await this.supervisor.collectUserExport(r.id, userId);
-        if (data !== undefined) out.push({ pluginId: r.id, data });
+        const res = await this.supervisor.collectUserExport(r.id, userId);
+        if (res === undefined) continue;                       // not granted → nothing to export
+        if (res.ok) out.push({ pluginId: r.id, data: res.data });
+        else out.push({ pluginId: r.id, pending: true });      // errored/timed out → incomplete, retryable
       } else {
         // An inactive plugin can't export now — but if it holds hook:user-data it MAY
         // hold this user's data. Flag it as pending (rather than silently omitting it)

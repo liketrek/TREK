@@ -136,18 +136,23 @@ export function createJourney(
 
   // link trips and sync skeleton entries
   if (data.trip_ids?.length) {
+    // Track the first trip that was ACTUALLY linked (addTripToJourney access-checks and
+    // returns false for a foreign/inaccessible trip). Inheriting the cover from a raw
+    // trip_ids[0] would otherwise leak an arbitrary trip's cover image cross-tenant.
+    let coverTripId: number | undefined;
     for (const tripId of data.trip_ids) {
-      addTripToJourney(journeyId, tripId, userId);
+      if (addTripToJourney(journeyId, tripId, userId) && coverTripId === undefined) coverTripId = tripId;
     }
 
-    // inherit cover image from first selected trip
-    const firstTrip = db.prepare('SELECT cover_image FROM trips WHERE id = ?').get(data.trip_ids[0]) as
-      | { cover_image: string | null }
-      | undefined;
-    if (firstTrip?.cover_image) {
-      // trip stores full path (/uploads/covers/x.jpg), journey stores relative (covers/x.jpg)
-      const relativePath = firstTrip.cover_image.replace(/^\/uploads\//, '');
-      db.prepare('UPDATE journeys SET cover_image = ? WHERE id = ?').run(relativePath, journeyId);
+    if (coverTripId !== undefined) {
+      const firstTrip = db.prepare('SELECT cover_image FROM trips WHERE id = ?').get(coverTripId) as
+        | { cover_image: string | null }
+        | undefined;
+      if (firstTrip?.cover_image) {
+        // trip stores full path (/uploads/covers/x.jpg), journey stores relative (covers/x.jpg)
+        const relativePath = firstTrip.cover_image.replace(/^\/uploads\//, '');
+        db.prepare('UPDATE journeys SET cover_image = ? WHERE id = ?').run(relativePath, journeyId);
+      }
     }
   }
 

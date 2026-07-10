@@ -882,7 +882,7 @@ describe('create-rpc-host — Wave 8 wiring (settings.get / oauth.getToken)', ()
     const h = host('oauth:client')
     expect((await call(h, 'oauth.getToken', {}, 5)).result).toEqual({ accessToken: 'tok-5' })
     expect((await call(h, 'oauth.getToken', {}, 7)).result).toEqual({ accessToken: null }) // not connected
-    expect((await call(h, 'oauth.getToken', {}, undefined)).ok).toBe(false)               // userless
+    expect((await call(h, 'oauth.getToken', {}, undefined)).result).toEqual({ accessToken: null }) // userless → null (SDK contract)
     expect((await call(host(), 'oauth.getToken', {}, 5)).ok).toBe(false)                  // no grant
   })
 })

@@ -231,6 +231,11 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
     //   /__dev/fire/hook/tripCardProvider/getCards · /__dev/fire/deleteUserData
     // Query params become the payload/args; a JSON body is used verbatim when present.
     if (url.pathname.startsWith('/__dev/fire/')) {
+      // These endpoints are side-effectful (fire a job, wipe user data, …). Even bound to
+      // loopback, a drive-by <img src="http://127.0.0.1:PORT/__dev/fire/deleteUserData?…">
+      // from an open browser tab could hit them — block a cross-site request (modern
+      // browsers stamp Sec-Fetch-Site; a same-origin devtools/curl call is fine).
+      if (request.headers['sec-fetch-site'] === 'cross-site') return send(403, 'cross-site request refused');
       const [kind, name, fn] = url.pathname.slice('/__dev/fire/'.length).split('/');
       const bodyRaw = await readBody(request); // already JSON-parsed when sent as application/json
       let payload: unknown = bodyRaw;
@@ -305,7 +310,9 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
   await new Promise<void>((resolve, reject) => {
     server.once('error', (e: NodeJS.ErrnoException) =>
       reject(e.code === 'EADDRINUSE' ? new Error(`port ${port} is already in use — pass --port <n> to pick another`) : e));
-    server.listen(port, resolve);
+    // Bind loopback only: the dev server serves the plugin's routes AND the side-effectful
+    // /__dev/fire endpoints against a real db with no auth — never expose that to the LAN.
+    server.listen(port, '127.0.0.1', resolve);
   });
   const routes = plugin.routes ?? [];
   console.log(`\n  trek-plugin dev — ${id} (${String(manifest.type)})`);

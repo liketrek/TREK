@@ -62,6 +62,7 @@ interface Supervised {
   rpcLimiter: RpcRateLimiter; // caps this plugin's ctx.* call rate + concurrency (host-loop DoS guard)
   activation?: { resolve: () => void; reject: (e: Error) => void };
   activationTimer?: ReturnType<typeof setTimeout>; // deadline for the plugin to reach 'active'
+  respawnTimer?: ReturnType<typeof setTimeout>; // crash-backoff restart timer (identity-guarded)
 }
 
 export interface SupervisorTuning {
@@ -196,6 +197,13 @@ export class PluginSupervisor {
     if (sup.activationTimer) {
       clearTimeout(sup.activationTimer);
       sup.activationTimer = undefined;
+    }
+    // The crash-backoff restart timer is cleared at the same lifecycle transitions
+    // (disable / auto-disable / activation-timeout / going active) so a pending restart
+    // can't fire after the entry is gone or replaced. It is also identity-guarded on fire.
+    if (sup.respawnTimer) {
+      clearTimeout(sup.respawnTimer);
+      sup.respawnTimer = undefined;
     }
   }
 
@@ -361,14 +369,14 @@ export class PluginSupervisor {
    * gated by the same hook:user-data grant. Returns the plugin's exported payload,
    * or undefined if it is inactive, ungranted, doesn't implement the hook, or errors.
    */
-  async collectUserExport(id: string, userId: number): Promise<unknown> {
+  async collectUserExport(id: string, userId: number): Promise<{ ok: true; data: unknown } | { ok: false } | undefined> {
     const sup = this.running.get(id);
-    if (!sup || sup.status !== 'active' || !sup.granted.has('hook:user-data')) return undefined;
+    if (!sup || sup.status !== 'active' || !sup.granted.has('hook:user-data')) return undefined; // not applicable
     try {
       const res = (await this.invoke(id, 'invoke.exportUserData', { userId }, { actingUserId: undefined, timeoutMs: 30_000 })) as { data?: unknown } | undefined;
-      return res?.data;
+      return { ok: true, data: res?.data };
     } catch {
-      return undefined;
+      return { ok: false }; // errored/timed out — the caller flags this as incomplete, not "no data"
     }
   }
 
@@ -418,7 +426,7 @@ export class PluginSupervisor {
     // process down mid-restore. (It also stops a normal shutdown from logging phantom
     // 'crashed' rows + persisting status 'starting'.) Set the field directly, NOT via
     // setStatus, so no onStatus DB hook fires while the core DB may be closed.
-    for (const s of all) { s.status = 'stopped'; }
+    for (const s of all) { s.status = 'stopped'; this.clearActivationTimer(s); }
     this.running.clear();
     await Promise.all(all.map((s) => this.kill(s)));
     for (const s of all) s.rpcHost.dispose();
@@ -611,15 +619,19 @@ export class PluginSupervisor {
     const delay = Math.min(this.tuning.backoffCapMs, 1000 * 2 ** (recent.length - 1));
     this.hooks.onLog?.(sup.id, 'warn', `crashed (code=${code} sig=${signal}); restarting in ${delay}ms`);
     this.setStatus(sup, 'starting');
-    const timer = setTimeout(() => {
-      if (!this.running.has(sup.id)) return;
+    sup.respawnTimer = setTimeout(() => {
+      // Identity + status check, not just presence: a disable + re-enable in the backoff
+      // window replaces `running[id]` with a NEW sup, so `running.has(id)` would still be
+      // true and this stale timer would respawn a GHOST child from the old entry. Only
+      // respawn when the entry is still THIS one and still awaiting its restart.
+      if (this.running.get(sup.id) !== sup || sup.status !== 'starting') return;
       this.spawn(sup);
       // A respawn needs the SAME activation deadline as a first activation — otherwise a
       // plugin that hangs in onLoad after a crash sits in 'starting' forever, pegging a
       // core and buffering events that never flush (the reaper ignores non-active).
       this.armActivationDeadline(sup);
     }, delay);
-    timer.unref?.();
+    sup.respawnTimer.unref?.();
   }
 
   private ensureSweep(): void {

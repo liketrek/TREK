@@ -118,9 +118,11 @@ export class PluginDataDb {
       this.guard(op?.sql);
       // Reject transaction-control statements: a raw COMMIT/ROLLBACK inside the batch
       // would break atomicity — it commits the earlier writes even though the wrapper
-      // then reports the tx as failed. These keywords are only valid at statement start,
-      // so CASE ... END and column names are unaffected.
-      if (TX_CONTROL.test(op.sql)) throw new Error('transaction-control statements are not allowed inside tx()');
+      // then reports the tx as failed. Strip any LEADING comments/whitespace first so a
+      // `/* */COMMIT` or `-- x\nCOMMIT` can't slip past the start-anchored check; these
+      // keywords are only valid at statement start, so CASE ... END is unaffected.
+      const head = String(op?.sql ?? '').replace(/^(?:\s|--[^\n]*\n?|\/\*[\s\S]*?\*\/)*/, '');
+      if (TX_CONTROL.test(head)) throw new Error('transaction-control statements are not allowed inside tx()');
     }
     let batchRows = 0; // one row budget for the WHOLE batch, not per statement
     const run = this.db.transaction((batch: Array<{ sql: string; args?: unknown[] }>) => {

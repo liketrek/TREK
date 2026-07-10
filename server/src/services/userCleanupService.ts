@@ -1,4 +1,6 @@
+import fs from 'node:fs';
 import { db } from '../db/database';
+import { pluginsDataRoot } from '../nest/plugins/paths';
 
 /**
  * Erase a user's PLUGIN-held data on account deletion. Two parts:
@@ -19,12 +21,23 @@ export function erasePluginUserData(userId: number): void {
   }
   try {
     const rows = db.prepare('SELECT id, permissions FROM plugins').all() as Array<{ id: string; permissions: string | null }>;
+    const installed = new Set(rows.map((r) => r.id));
     const insert = db.prepare('INSERT OR IGNORE INTO plugin_user_erasure_queue (plugin_id, user_id) VALUES (?, ?)');
     for (const r of rows) {
       let perms: unknown;
       try { perms = JSON.parse(r.permissions ?? '[]'); } catch { perms = []; }
       if (Array.isArray(perms) && perms.includes('hook:user-data')) insert.run(r.id, userId);
     }
+    // Also enqueue for plugins UNINSTALLED with their data retained (deleteData=false):
+    // their data dir still holds the user's rows and a same-id reinstall would re-adopt
+    // them. No permissions record survives uninstall, so we can't check hook:user-data —
+    // enqueue for every orphan data dir; the row sits inert (no FK) and drains only if
+    // that id is reinstalled + active (erasure delivery is a duty, not grant-gated).
+    try {
+      for (const name of fs.readdirSync(pluginsDataRoot())) {
+        if (!installed.has(name)) insert.run(name, userId);
+      }
+    } catch { /* no plugin data root yet */ }
   } catch { /* plugins / queue table absent (slim schema) */ }
 }
 

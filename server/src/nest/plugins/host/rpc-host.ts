@@ -1104,8 +1104,11 @@ export class PluginRpcHost {
       // user (the host ran the flow + holds the refresh token). Never yields a token for
       // a userless context, and the plugin can never reach the refresh token/secret.
       this.methods.set('oauth.getToken', async (_p, uid) => {
-        const actor = this.requireActor(uid, 'OAuth');
-        return { accessToken: await deps.getOAuthToken(this.pluginId, actor) };
+        // Userless context (a job/scheduled task) → null, matching the SDK contract + mock
+        // ("null when the user hasn't connected or in a userless context"), rather than
+        // throwing RESOURCE_FORBIDDEN, which a background caller can't meaningfully handle.
+        if (uid === undefined) return { accessToken: null };
+        return { accessToken: await deps.getOAuthToken(this.pluginId, uid) };
       });
     }
 
