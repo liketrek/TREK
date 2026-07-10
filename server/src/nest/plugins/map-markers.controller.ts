@@ -65,7 +65,10 @@ function normalize(pluginId: string, raw: unknown): MapMarker[] {
       popupText: m.popupText != null ? cap(m.popupText, 280) : undefined,
       url: safeUrl(m.url),
       icon: m.icon != null ? cap(m.icon, 40) : undefined,
-      tone: TONES.has(String(m.tone)) ? (m.tone as Tone) : 'default',
+      // Check the RAW value against the enum (not String(m.tone)) — otherwise an object
+      // with a matching toString() passes the guard but the raw object is emitted as the
+      // tone, and a non-string tone crashes the client that renders it.
+      tone: TONES.has(m.tone as string) ? (m.tone as Tone) : 'default',
     });
   }
   return out;

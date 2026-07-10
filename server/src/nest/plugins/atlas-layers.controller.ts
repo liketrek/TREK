@@ -47,7 +47,9 @@ function normalizeCountries(raw: unknown): AtlasLayerCountry[] {
     if (!CODE_RE.test(code)) continue; // not an alpha-2 code — nothing to tint
     out.push({
       code,
-      tone: TONES.has(String(c.tone)) ? (c.tone as Tone) : 'default',
+      // Check the raw value (not String(c.tone)) so a non-string tone can't slip through
+      // its toString() and be emitted raw through the Tone-typed API.
+      tone: TONES.has(c.tone as string) ? (c.tone as Tone) : 'default',
       label: c.label != null ? cap(c.label, 80) : undefined,
     });
   }

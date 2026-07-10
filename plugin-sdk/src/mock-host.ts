@@ -149,6 +149,14 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
   let collabSeq = 0;
   // In-memory scheduled tasks for ctx.scheduler (upsert by name, like the real host).
   const scheduledTasks = new Map<string, { dueAt: number; everyMs?: number; payload?: unknown }>();
+  // Upsert a timer, enforcing the SAME caps as the real host so a test catches a
+  // plugin that exceeds them (≤100 tasks, name ≤128 chars, payload ≤8 KB JSON).
+  const scheduleTask = (name: string, dueAt: number, everyMs: number | undefined, payload: unknown) => {
+    if (!name || name.length > 128) throw new Error(`scheduler name is required (max 128 chars)`);
+    if (JSON.stringify(payload ?? null).length > 8 * 1024) throw new Error('scheduler payload too large (max 8192 bytes)');
+    if (!scheduledTasks.has(name) && scheduledTasks.size >= 100) throw new Error('too many scheduled tasks (max 100)');
+    scheduledTasks.set(name, { dueAt, everyMs, payload });
+  };
   // In-memory namespaced metadata store for ctx.meta (per mock plugin).
   const metaStore: Record<string, unknown> = {};
   const metaKey = (et: string, eid: number, key: string) => `${et}:${eid}:${key}`;
@@ -189,7 +197,10 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
         // Mirror the host: reads resolve from queryResults, writes report 0 changes.
         return {
           results: ops.map((op) =>
-            /^\s*(SELECT|WITH|VALUES)\b/i.test(op.sql)
+            // A statement returns rows if it starts with SELECT/WITH/VALUES OR carries a
+            // RETURNING clause (an INSERT/UPDATE/DELETE … RETURNING is a reader in the
+            // real host's stmt.reader), matching how the host shapes the result.
+            (/^\s*(SELECT|WITH|VALUES)\b/i.test(op.sql) || /\bRETURNING\b/i.test(op.sql))
               ? { rows: (opts.queryResults?.[op.sql] ?? []) as unknown[] }
               : { changes: 0 },
           ),
@@ -197,17 +208,17 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
       },
     },
     trips: {
-      async getById(tripId, asUserId) {
+      async getById(tripId, _asUserId) {
         need('db:read:trips', 'trips.getById');
-        return (assertMember(tripId, asUserId ?? requireActingUser()).data ?? null) as Trip | null;
+        return (assertMember(tripId, requireActingUser()).data ?? null) as Trip | null;
       },
-      async getPlaces(tripId, asUserId) {
+      async getPlaces(tripId, _asUserId) {
         need('db:read:trips', 'trips.getPlaces');
-        return (assertMember(tripId, asUserId ?? requireActingUser()).places ?? []) as Place[];
+        return (assertMember(tripId, requireActingUser()).places ?? []) as Place[];
       },
-      async getReservations(tripId, asUserId) {
+      async getReservations(tripId, _asUserId) {
         need('db:read:trips', 'trips.getReservations');
-        return (assertMember(tripId, asUserId ?? requireActingUser()).reservations ?? []) as Reservation[];
+        return (assertMember(tripId, requireActingUser()).reservations ?? []) as Reservation[];
       },
       async getDays(tripId) {
         need('db:read:trips', 'trips.getDays');
@@ -474,10 +485,14 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
       async send(input) {
         need('notify:send', 'notify.send');
         const uid = requireActingUser();
-        // the real host forces a 'user' scope recipient to the acting user and
-        // membership-checks a 'trip' target
+        // Match the real host exactly: a 'user' target must BE the acting user — it throws
+        // rather than silently coercing, so a test can't pass on a wrong recipient that
+        // production would reject; a 'trip' target is membership-checked.
+        if (input.scope === 'user' && input.targetId !== uid) {
+          throw new Error('RESOURCE_FORBIDDEN: a plugin may only notify the acting user');
+        }
         if (input.scope === 'trip') assertMember(input.targetId, uid);
-        notifications.push(input.scope === 'user' ? { ...input, targetId: uid } : { ...input });
+        notifications.push({ ...input });
         return { sent: true };
       },
     },
@@ -501,18 +516,18 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
     scheduler: {
       async at(whenMs, name, payload) {
         need('jobs:run', 'scheduler.set');
-        scheduledTasks.set(name, { dueAt: whenMs, payload });
+        scheduleTask(name, whenMs, undefined, payload);
         return { scheduled: true };
       },
       async in(ms, name, payload) {
         need('jobs:run', 'scheduler.set');
-        scheduledTasks.set(name, { dueAt: 0 + ms, payload });
+        scheduleTask(name, Date.now() + ms, undefined, payload);
         return { scheduled: true };
       },
       async every(ms, name, payload) {
         need('jobs:run', 'scheduler.set');
         if (ms < 60_000) throw new Error('recurring interval must be >= 60000 ms');
-        scheduledTasks.set(name, { dueAt: 0 + ms, everyMs: ms, payload });
+        scheduleTask(name, Date.now() + ms, ms, payload);
         return { scheduled: true };
       },
       async cancel(name) {

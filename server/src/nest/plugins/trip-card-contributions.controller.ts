@@ -24,8 +24,9 @@ type Tone = 'default' | 'success' | 'warn' | 'danger';
 interface TripCardBadge { pluginId: string; tripId: number; id: string; label: string; value?: string; icon?: string; tone: Tone; url?: string; }
 
 const TONES: ReadonlySet<string> = new Set(['default', 'success', 'warn', 'danger']);
-const MAX_TRIP_IDS = 60;      // a dashboard never shows more cards than this
-const MAX_BADGES = 40;        // per provider, across all cards
+const MAX_TRIP_IDS = 60;         // a dashboard never shows more cards than this
+const MAX_BADGES_PER_TRIP = 4;  // per provider PER card — so one badge on every card always fits
+const MAX_BADGES_TOTAL = MAX_TRIP_IDS * MAX_BADGES_PER_TRIP; // overall abuse bound
 const LABEL_MAX = 64;
 const VALUE_MAX = 256;
 const URL_MAX = 2048;
@@ -52,13 +53,17 @@ function safeUrl(raw: unknown): string | undefined {
 function normalize(pluginId: string, raw: unknown, allowed: Set<number>): TripCardBadge[] {
   const list = Array.isArray(raw) ? (raw as Array<Record<string, unknown>>) : [];
   const out: TripCardBadge[] = [];
+  const perTrip = new Map<number, number>(); // cap PER card, not across the whole grid
   for (const c of list) {
-    if (out.length >= MAX_BADGES) break;
+    if (out.length >= MAX_BADGES_TOTAL) break;
     if (!c || typeof c !== 'object') continue;
     const tripId = typeof c.tripId === 'number' && Number.isFinite(c.tripId) ? c.tripId : undefined;
     const id = cap(c.id, ID_MAX);
     const label = cap(c.label, LABEL_MAX);
     if (tripId === undefined || !allowed.has(tripId) || !id || !label) continue;
+    const n = perTrip.get(tripId) ?? 0;
+    if (n >= MAX_BADGES_PER_TRIP) continue; // this card is full; other cards still get theirs
+    perTrip.set(tripId, n + 1);
     out.push({
       pluginId,
       tripId,

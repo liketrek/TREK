@@ -76,18 +76,22 @@ describe('TripCardContributionsController', () => {
     expect((out[3] as { tone: string }).tone).toBe('default');
   });
 
-  it('drops entries missing tripId/id/label, non-objects, and caps to <=40 per provider', async () => {
+  it('drops invalid entries and caps PER CARD (not globally) so every card keeps its badges', async () => {
     const many = [
       badge({ tripId: undefined }),
       badge({ id: '' }),
       badge({ label: '' }),
       'not-an-object',
       null,
-      ...Array.from({ length: 50 }, (_, i) => badge({ id: `b${i}` })),
+      // 50 badges all for trip 1 → capped at the per-card limit (4), NOT dropped globally
+      ...Array.from({ length: 50 }, (_, i) => badge({ tripId: 1, id: `a${i}` })),
+      // and 50 for trip 2 → its own 4, proving the cap isn't a shared budget
+      ...Array.from({ length: 50 }, (_, i) => badge({ tripId: 2, id: `b${i}` })),
     ];
     const { c } = controller(() => many);
-    const out = (await c.get('1', req(5))).contributions;
-    expect(out).toHaveLength(40); // capped; the invalid ones never counted
+    const out = (await c.get('1,2', req(5))).contributions;
+    expect(out.filter((o) => o.tripId === 1)).toHaveLength(4);
+    expect(out.filter((o) => o.tripId === 2)).toHaveLength(4); // trip 2 not starved by trip 1
   });
 
   it('merges providers and skips one that throws', async () => {

@@ -52,9 +52,14 @@ function safeUrl(raw: unknown): string | undefined {
 function normalize(pluginId: string, raw: unknown): Contribution[] {
   const list = Array.isArray(raw) ? (raw as Array<Record<string, unknown>>) : [];
   const out: Contribution[] = [];
-  let cols = 0;
-  let acts = 0;
+  // The caps are PER ENTITY (the data model is keyed by entityId) — a global cap would
+  // make columns vanish from every row past the first MAX_COLUMNS in a large table. A
+  // generous overall bound still guards against a provider returning millions of rows.
+  const colsPer = new Map<number, number>();
+  const actsPer = new Map<number, number>();
+  const MAX_TOTAL = 5000;
   for (const c of list) {
+    if (out.length >= MAX_TOTAL) break;
     if (!c || typeof c !== 'object') continue;
     const entityId = typeof c.entityId === 'number' && Number.isFinite(c.entityId) ? c.entityId : undefined;
     const id = cap(c.id, ID_MAX);
@@ -63,8 +68,8 @@ function normalize(pluginId: string, raw: unknown): Contribution[] {
     const icon = typeof c.icon === 'string' && c.icon ? cap(c.icon, ICON_MAX) : undefined;
 
     if (c.kind === 'column') {
-      if (cols >= MAX_COLUMNS) continue;
-      cols++;
+      if ((colsPer.get(entityId) ?? 0) >= MAX_COLUMNS) continue;
+      colsPer.set(entityId, (colsPer.get(entityId) ?? 0) + 1);
       out.push({
         kind: 'column',
         pluginId,
@@ -77,7 +82,7 @@ function normalize(pluginId: string, raw: unknown): Contribution[] {
         tone: (TONES.has(c.tone as string) ? c.tone : 'default') as Tone,
       });
     } else if (c.kind === 'action') {
-      if (acts >= MAX_ACTIONS) continue;
+      if ((actsPer.get(entityId) ?? 0) >= MAX_ACTIONS) continue;
       const t = c.target as Record<string, unknown> | undefined;
       let target: ActionTarget | undefined;
       if (t && t.kind === 'frame' && typeof t.sub === 'string' && t.sub) {
@@ -86,7 +91,7 @@ function normalize(pluginId: string, raw: unknown): Contribution[] {
         target = { kind: 'route', method: t.method, sub: cap(t.sub, SUB_MAX) };
       }
       if (!target) continue; // a malformed target drops the action, never renders a dead button
-      acts++;
+      actsPer.set(entityId, (actsPer.get(entityId) ?? 0) + 1);
       out.push({ kind: 'action', pluginId, entityId, id, label, icon, target });
     }
   }
