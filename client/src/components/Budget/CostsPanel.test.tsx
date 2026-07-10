@@ -222,6 +222,34 @@ describe('CostsPanel — settlements in the ledger', () => {
     expect(posted!.payers).toEqual([])
   })
 
+  it('exports the expenses as a CSV download (#1500)', async () => {
+    // Display in the trip's own currency so FX conversion is an identity.
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } })
+    let exported: Blob | null = null
+    const createObjURL = vi.spyOn(URL, 'createObjectURL').mockImplementation(b => { exported = b as Blob; return 'blob:mock' })
+    const revokeObjURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    const item = { ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Dinner; tapas' }), total_price: 90, expense_date: '2025-06-15' }
+    server.use(
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })),
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
+    )
+    const { default: userEvent } = await import('@testing-library/user-event')
+    const user = userEvent.setup()
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+
+    await screen.findByText('Dinner; tapas')
+    await user.click(screen.getByTitle('Export CSV'))
+
+    expect(exported).toBeTruthy()
+    const text = await exported!.text()
+    expect(text).toContain('Date;Name;Category;Amount;Currency;Amount (EUR);Note')
+    expect(text).toContain('"Dinner; tapas"') // separator inside the name gets quoted
+    expect(text).toContain('Food & drink')    // category label, not the raw key
+    expect(text).toContain('90.00;EUR')
+    createObjURL.mockRestore(); revokeObjURL.mockRestore(); clickSpy.mockRestore()
+  })
+
   it('supports itemized receipt ticket manual entry and split assignment', async () => {
     let posted: Record<string, unknown> | null = null
     server.use(
