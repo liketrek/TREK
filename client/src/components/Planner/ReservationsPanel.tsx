@@ -675,10 +675,37 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
     typeFilters.size === 0 ? reservations : reservations.filter(r => typeFilters.has(r.type)),
   [reservations, typeFilters])
 
+  // Chronological order (#1507): day-linked transports often carry no date in
+  // reservation_time, so resolve each entry to an effective departure datetime —
+  // the stamped date when there is one, else the linked day's date (the
+  // accommodation start day for hotels, matching the card label). Entries
+  // without any resolvable date sink to the bottom; creation order breaks ties.
+  const sorted = useMemo(() => {
+    const dayDates = new Map(days.map(d => [d.id, d.date]))
+    const sortKey = (r: Reservation): string | null => {
+      const { date, time } = splitReservationDateTime(r.reservation_time)
+      const dayId = r.type === 'hotel' ? (r.accommodation_start_day_id ?? r.day_id) : r.day_id
+      const effectiveDate = date ?? (dayId != null ? dayDates.get(dayId) : null)
+      if (!effectiveDate) return null
+      return `${effectiveDate}T${time ?? '00:00'}`
+    }
+    return filtered
+      .map(r => ({ r, key: sortKey(r) }))
+      .sort((a, b) => {
+        if (a.key !== b.key) {
+          if (a.key === null) return 1
+          if (b.key === null) return -1
+          return a.key < b.key ? -1 : 1
+        }
+        return (a.r.created_at ?? '').localeCompare(b.r.created_at ?? '')
+      })
+      .map(({ r }) => r)
+  }, [filtered, days])
+
   // Automated public transit (#1065) gets its own section — journeys planned via
   // the transit search live alongside manual transports without mixing in.
-  const transitEntries = filtered.filter(r => r.type === 'transit')
-  const nonTransit = filtered.filter(r => r.type !== 'transit')
+  const transitEntries = sorted.filter(r => r.type === 'transit')
+  const nonTransit = sorted.filter(r => r.type !== 'transit')
   const allPending = nonTransit.filter(r => r.status !== 'confirmed')
   const allConfirmed = nonTransit.filter(r => r.status === 'confirmed')
   const total = filtered.length
