@@ -1924,4 +1924,41 @@ describe('DayPlanSidebar', () => {
     expect(await screen.findByText('1000 m')).toBeInTheDocument()
     expect(await screen.findByText('2000 m')).toBeInTheDocument()
   })
+
+  it('FE-PLANNER-DAYPLAN-106: leg distance survives a car rental on its middle days (#1504)', async () => {
+    const user = userEvent.setup()
+    const { calculateRouteWithLegs } = await import('../Map/RouteCalculator')
+    vi.mocked(calculateRouteWithLegs as any).mockImplementation((wp: any) => Promise.resolve({
+      distanceText: '2 km', durationText: '10 min',
+      legs: Array.from({ length: Math.max(0, (wp?.length ?? 0) - 1) }, () => ({
+        distanceText: '2 km', durationText: '10 min', drivingText: '10 min', walkingText: '25 min',
+      })),
+    }))
+    // A rental spanning days 10–12: on day 11 (middle) its row is not rendered in
+    // the timeline, so the through-leg between the places around it must stay keyed
+    // to the place — re-keying it to the hidden car row would drop the distance.
+    const car = {
+      ...buildReservation({ id: 400, type: 'car', title: 'Rental car', day_id: 10 }),
+      end_day_id: 12,
+      day_positions: { 11: 0.5 },
+    }
+    const days = [
+      buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' }),
+      buildDay({ id: 11, date: '2025-06-02', title: 'Day 2' }),
+      buildDay({ id: 12, date: '2025-06-03', title: 'Day 3' }),
+    ]
+    const assigns = {
+      '11': [
+        buildAssignment({ id: 1, day_id: 11, order_index: 0, place: buildPlace({ id: 1, name: 'A', lat: 48.85, lng: 2.35 }) }),
+        buildAssignment({ id: 2, day_id: 11, order_index: 1, place: buildPlace({ id: 2, name: 'B', lat: 48.86, lng: 2.36 }) }),
+      ],
+    }
+    render(<DayPlanSidebar {...makeDefaultProps({
+      days, places: [], assignments: assigns, reservations: [car as any],
+      selectedDayId: null, showRouteToolsWhenExpanded: true,
+    })} />)
+    // Only day 2 has places, so it renders the sole Route toggle.
+    await user.click(screen.getByRole('button', { name: 'Route' }))
+    expect(await screen.findByText('2 km')).toBeInTheDocument()
+  })
 })

@@ -455,9 +455,11 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
             cur = []
             curHasPlace = false
             if (to) cur.push({ id: r.id, lat: to.lat, lng: to.lng })
-          } else if (cur.length > 0) {
+          } else if (cur.length > 0 && !(r.type === 'car' && getSpanPhase(r, dayId) === 'middle')) {
             // No location: ignore for routing, but attribute the through-leg to the
             // booking so its distance/duration shows under it (purely cosmetic).
+            // Not for a car rental's middle days though — that row isn't rendered
+            // in the timeline, so re-keying would drop the leg entirely (#1504).
             cur[cur.length - 1] = { ...cur[cur.length - 1], id: r.id }
           }
         }
