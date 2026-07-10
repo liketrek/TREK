@@ -7,8 +7,9 @@ import { getWeather } from '../../../services/weatherService';
 import { listCategories } from '../../../services/categoryService';
 import { listTags, createTag, updateTag, deleteTag, getTagByIdAndUser } from '../../../services/tagService';
 import { listItems as listTodosSvc, createItem as createTodoSvc, updateItem as updateTodoSvc, deleteItem as deleteTodoSvc } from '../../../services/todoService';
-import { listFiles, createFile, createFileLink, getFileById, updateFile, softDeleteFile, findForeignLinkTarget, BLOCKED_EXTENSIONS, filesDir } from '../../../services/fileService';
-import { createNote as createCollabNoteSvc, createPoll as createCollabPollSvc, votePoll as voteCollabPollSvc, createMessage as createCollabMessageSvc } from '../../../services/collabService';
+import { listFiles, createFile, createFileLink, getFileById, updateFile, softDeleteFile, findForeignLinkTarget, resolveFilePath, BLOCKED_EXTENSIONS, filesDir } from '../../../services/fileService';
+import { createNote as createCollabNoteSvc, createPoll as createCollabPollSvc, votePoll as voteCollabPollSvc, createMessage as createCollabMessageSvc, listNotes as listCollabNotesSvc, listPolls as listCollabPollsSvc, listMessages as listCollabMessagesSvc } from '../../../services/collabService';
+import { getRates as getExchangeRates } from '../../../services/exchangeRateService';
 import { joinTripAsMember } from '../../../services/tripMembership';
 import { send as sendNotification } from '../../../services/notificationService';
 import { resolveLlmConfig } from '../../llm-parse/llm-config.resolver';
@@ -19,14 +20,14 @@ import fsMod from 'node:fs';
 import pathMod from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { checkPermission } from '../../../services/permissions';
-import { listTrips, updateTrip, NotFoundError, ValidationError } from '../../../services/tripService';
+import { listTrips, updateTrip, createTrip, NotFoundError, ValidationError } from '../../../services/tripService';
 import { createPlace, updatePlace, deletePlace } from '../../../services/placeService';
 import { createDay, getDay, updateDay, deleteDay, listDays, listAccommodations, validateAccommodationRefs, createAccommodation as createAccommodationSvc, getAccommodation, updateAccommodation as updateAccommodationSvc, deleteAccommodation as deleteAccommodationSvc } from '../../../services/dayService';
 import { createAssignment, deleteAssignment, dayExists, placeExists, getAssignmentForTrip } from '../../../services/assignmentService';
 import { isAddonEnabled } from '../../../services/adminService';
 import { ADDON_IDS } from '../../../addons';
-import { listJourneys, createEntry as createJournalEntrySvc, updateEntry as updateJournalEntrySvc, deleteEntry as deleteJournalEntrySvc } from '../../../services/journeyService';
-import { listVisitedCountries, listManuallyVisitedRegions, markCountryVisited, unmarkCountryVisited, markRegionVisited, unmarkRegionVisited, createBucketItem as createBucketItemSvc, deleteBucketItem as deleteBucketItemSvc } from '../../../services/atlasService';
+import { listJourneys, listEntries as listJournalEntriesSvc, createEntry as createJournalEntrySvc, updateEntry as updateJournalEntrySvc, deleteEntry as deleteJournalEntrySvc } from '../../../services/journeyService';
+import { listVisitedCountries, listManuallyVisitedRegions, listBucketList, markCountryVisited, unmarkCountryVisited, markRegionVisited, unmarkRegionVisited, createBucketItem as createBucketItemSvc, deleteBucketItem as deleteBucketItemSvc } from '../../../services/atlasService';
 import { getPlanData, getActivePlanId, toggleEntry as vacayToggleEntrySvc, toggleCompanyHoliday as vacayToggleCompanyHolidaySvc } from '../../../services/vacayService';
 import { listNotes, createNote, getNote, updateNote, deleteNote, dayExists as dayNoteDayExists } from '../../../services/dayNoteService';
 import { listCollections, getCollection, createCollection, updateCollection, savePlace as saveCollectionPlaceSvc, copyToTrip as copyCollectionToTripSvc, deletePlace as deleteCollectionPlaceSvc } from '../../../services/collectionsService';
@@ -211,6 +212,20 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
     // these just delegate to the same services the REST paths use. ---
     listPackingItems: (tripId, userId) => listPackingItemsSvc(tripId, userId),
     listTripFiles: (tripId) => listFiles(tripId, false),
+    // A file's bytes as base64, size-capped BEFORE the read so a 500MB video can't
+    // be pulled (~667MB base64) through the IPC pipe. 10MB matches the plugin upload
+    // cap; trashed files (deleted_at set) are refused like the download path.
+    getTripFileContent: (tripId, fileId) => {
+      const CONTENT_MAX = 10 * 1024 * 1024;
+      const file = getFileById(fileId, tripId) as { filename: string; original_name: string; mime_type: string | null; file_size: number | null; deleted_at: string | null } | undefined;
+      if (!file || file.deleted_at) throw new ForbiddenResource(`no file ${fileId} on trip ${tripId}`);
+      if ((file.file_size ?? 0) > CONTENT_MAX) throw new BadParams(`file too large to read (>${CONTENT_MAX} bytes); use the download UI`);
+      const { resolved, safe } = resolveFilePath(file.filename);
+      if (!safe) throw new ForbiddenResource('file path is not accessible');
+      const buf = fsMod.readFileSync(resolved);
+      if (buf.length > CONTENT_MAX) throw new BadParams('file too large to read');
+      return { name: file.original_name, mimetype: file.mime_type ?? 'application/octet-stream', size: buf.length, content_base64: buf.toString('base64') };
+    },
     // --- Files write. Bytes arrive as bounded base64; the extension is validated
     // against the central blocklist BEFORE anything touches disk, and link targets
     // must live on the same trip (findForeignLinkTarget). Same events as the app. ---
@@ -262,6 +277,11 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
       broadcast(tripId, 'file:deleted', { fileId }, undefined);
       return { deleted: true };
     },
+    // --- Collab reads (collab addon; membership checked by the host). Same hydrated
+    // shapes as the REST GETs, so a collab plugin can finally read what it writes. ---
+    listCollabNotes: (tripId) => { requireAddon(ADDON_IDS.COLLAB, 'collab'); return listCollabNotesSvc(tripId) as unknown[]; },
+    listCollabPolls: (tripId) => { requireAddon(ADDON_IDS.COLLAB, 'collab'); return listCollabPollsSvc(tripId) as unknown[]; },
+    listCollabMessages: (tripId, before) => { requireAddon(ADDON_IDS.COLLAB, 'collab'); return listCollabMessagesSvc(tripId, before) as unknown[]; },
     // --- Collab content (collab addon). The services validate + self-report errors. ---
     canEditCollab: (tripId, userId) => canEditTripAs('collab_edit', tripId, userId),
     createCollabNote: (tripId, input, actingUserId) => {
@@ -433,6 +453,23 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
       broadcast(tripId, 'assignment:deleted', { assignmentId });
       return { deleted: true };
     },
+    // --- Trip creation (trip_create; owner = acting user). No broadcast — a new trip
+    // is only visible to its owner, who refetches (same as the REST POST). ---
+    canCreateTrip: (userId) => {
+      const u = db.prepare('SELECT role FROM users WHERE id = ?').get(userId) as { role?: string } | undefined;
+      return checkPermission('trip_create', u?.role ?? 'user', null, userId, false);
+    },
+    createTripForUser: (userId, input) => {
+      try {
+        const result = createTrip(userId, input as unknown as Parameters<typeof createTrip>[1]);
+        return result.trip;
+      } catch (e) {
+        if (e instanceof ValidationError) throw new BadParams(e.message);
+        throw e;
+      }
+    },
+    // --- Exchange rates: the same cached upstream feed the budget uses (tenant-free). ---
+    getRates: (base) => getExchangeRates(base),
     // --- Trip (trip_edit). Only the schema-writable fields reach updateTrip; its
     // NotFound/Validation errors are mapped to clean RPC codes. ---
     canEditTrip: (tripId, userId) => canEditTripAs('trip_edit', tripId, userId),
@@ -512,10 +549,19 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
     // reuses the same service the addon's REST/MCP path uses; the addon-enabled gate
     // mirrors the app (a disabled addon has nothing to read). ---
     listJournalsForUser: (userId) => { requireAddon(ADDON_IDS.JOURNEY, 'journey'); return listJourneys(userId); },
+    journalEntriesForUser: (userId, journeyId) => {
+      requireAddon(ADDON_IDS.JOURNEY, 'journey');
+      // listEntries self-gates via canAccessJourney(journeyId, userId) → null if the
+      // user can't see it (owner/contributor only).
+      const entries = listJournalEntriesSvc(journeyId, userId);
+      if (entries === null) throw new ForbiddenResource(`no access to journey ${journeyId}`);
+      return entries;
+    },
     atlasVisitedForUser: (userId) => {
       requireAddon(ADDON_IDS.ATLAS, 'atlas');
       return { countries: listVisitedCountries(userId), regions: listManuallyVisitedRegions(userId) };
     },
+    atlasBucketForUser: (userId) => { requireAddon(ADDON_IDS.ATLAS, 'atlas'); return listBucketList(userId) as unknown[]; },
     vacayForUser: (userId) => { requireAddon(ADDON_IDS.VACAY, 'vacay'); return getPlanData(userId); },
     listCollectionsForUser: (userId) => { requireAddon(ADDON_IDS.COLLECTIONS, 'collections'); return listCollections(userId); },
     getCollectionForUser: (userId, id) => { requireAddon(ADDON_IDS.COLLECTIONS, 'collections'); return getCollection(userId, id); },

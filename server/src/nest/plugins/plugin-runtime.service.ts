@@ -104,6 +104,10 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     onLog: (id, level, msg) => {
       if (level === 'error' || level === 'warn') {
         db.prepare('INSERT INTO plugin_error_log (plugin_id, level, message) VALUES (?, ?, ?)').run(id, level, msg);
+        // Retention: a crash-looping plugin emits a stderr line per restart, so an
+        // uncapped table grows without bound in the shared trek.db. Keep only the
+        // most recent LOG_RETENTION rows per plugin (the admin view shows 200).
+        pruneErrorLog(id);
       }
     },
   });
@@ -611,4 +615,15 @@ function decryptConfig(config: Record<string, unknown>): Record<string, unknown>
     out[k] = typeof v === 'string' ? decrypt_api_key(v) : v;
   }
   return out;
+}
+
+const LOG_RETENTION = 500; // rows kept per plugin (the admin view shows the newest 200)
+/** Trim a plugin's error log to the most recent LOG_RETENTION rows. Cheap: onLog
+ * only fires on warn/error, so this never runs on the hot path. */
+function pruneErrorLog(pluginId: string): void {
+  db.prepare(
+    `DELETE FROM plugin_error_log WHERE plugin_id = ? AND id NOT IN (
+       SELECT id FROM plugin_error_log WHERE plugin_id = ? ORDER BY id DESC LIMIT ${LOG_RETENTION}
+     )`,
+  ).run(pluginId, pluginId);
 }

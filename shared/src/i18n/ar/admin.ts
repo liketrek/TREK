@@ -303,6 +303,10 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:journal-entry-provider': 'إضافة صفوف إضافية (روابط، إحصاءات) إلى مدخلات اليوميات',
   'admin.plugins.perm.events:subscribe': 'التفاعل مع أحداث النشاط الأساسية (اسم الحدث والرحلة فقط، دون المحتوى مطلقًا)',
   'admin.plugins.perm.http:outbound': 'إجراء طلبات صادرة إلى المضيفات المُعلنة الخاصة بها',
+  'admin.plugins.perm.db:read:collab': 'قراءة الملاحظات والاستطلاعات ورسائل الدردشة في الرحلات التي يمكن للمستخدم الحالي الوصول إليها (يتطلب إضافة Collab)',
+  'admin.plugins.perm.db:read:files:content': 'قراءة محتوى (بايتات) ملفات الرحلات التي يمكن للمستخدم الحالي الوصول إليها',
+  'admin.plugins.perm.db:create:trips': 'إنشاء رحلات جديدة يملكها المستخدم الحالي',
+  'admin.plugins.perm.rates:read': 'قراءة أسعار صرف العملات المخزنة مؤقتًا للمضيف',
   'admin.plugins.updateConsentTitle': 'يتطلب هذا التحديث أذونات جديدة',
   'admin.plugins.updateConsentBody':
     '{name} v{version} يطلب أذونات لم تمنحها بعد. تم تثبيت الإصدار الجديد لكنه يبقى متوقفًا حتى توافق عليه.',

@@ -292,6 +292,10 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.events:subscribe':
     'Реагировать на основные события активности (только название события и поездка, никогда содержимое)',
   'admin.plugins.perm.http:outbound': 'Выполнять исходящие запросы к заявленным хостам',
+  'admin.plugins.perm.db:read:collab': 'Читать заметки, опросы и сообщения чата поездок, доступных текущему пользователю (требуется дополнение Collab)',
+  'admin.plugins.perm.db:read:files:content': 'Читать содержимое (байты) файлов поездок, доступных текущему пользователю',
+  'admin.plugins.perm.db:create:trips': 'Создавать новые поездки, принадлежащие текущему пользователю',
+  'admin.plugins.perm.rates:read': 'Читать кэшированные курсы валют хоста',
   'admin.plugins.updateConsentTitle': 'Для этого обновления нужны новые разрешения',
   'admin.plugins.updateConsentBody':
     '{name} v{version} запрашивает права, которые вы ещё не предоставили. Новая версия установлена, но остаётся выключенной, пока вы её не одобрите.',

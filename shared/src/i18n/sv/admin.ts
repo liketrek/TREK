@@ -347,6 +347,10 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.events:subscribe':
     'Reagera på grundläggande aktivitetshändelser (endast händelsenamn + resa, aldrig innehållet)',
   'admin.plugins.perm.http:outbound': 'Göra utgående anrop till sina deklarerade värdar',
+  'admin.plugins.perm.db:read:collab': 'Läsa anteckningar, omröstningar och chattmeddelanden för resor som den aktiva användaren har åtkomst till (kräver tillägget Collab)',
+  'admin.plugins.perm.db:read:files:content': 'Läsa innehållet (byte) i filer för resor som den aktiva användaren har åtkomst till',
+  'admin.plugins.perm.db:create:trips': 'Skapa nya resor som ägs av den aktiva användaren',
+  'admin.plugins.perm.rates:read': 'Läsa värdens cachade växelkurser',
   'admin.plugins.updateConsentTitle': 'Den här uppdateringen kräver nya behörigheter',
   'admin.plugins.updateConsentBody':
     '{name} v{version} begär behörigheter som du ännu inte har beviljat. Den nya versionen är installerad men förblir avstängd tills du godkänner den.',

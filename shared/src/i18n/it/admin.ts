@@ -290,6 +290,10 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.events:subscribe':
     "Reagisce agli eventi principali dell'attività (solo nome evento e viaggio, mai il contenuto)",
   'admin.plugins.perm.http:outbound': 'Effettuare richieste in uscita verso gli host dichiarati',
+  'admin.plugins.perm.db:read:collab': "Leggere note, sondaggi e messaggi di chat dei viaggi a cui l'utente attivo ha accesso (richiede il componente aggiuntivo Collab)",
+  'admin.plugins.perm.db:read:files:content': "Leggere il contenuto (byte) dei file dei viaggi a cui l'utente attivo ha accesso",
+  'admin.plugins.perm.db:create:trips': "Creare nuovi viaggi di proprietà dell'utente attivo",
+  'admin.plugins.perm.rates:read': "Leggere i tassi di cambio in cache dell'host",
   'admin.plugins.updateConsentTitle': 'Questo aggiornamento richiede nuovi permessi',
   'admin.plugins.updateConsentBody':
     '{name} v{version} richiede permessi che non hai ancora concesso. La nuova versione è installata ma resta disattivata finché non la approvi.',

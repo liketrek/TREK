@@ -349,6 +349,10 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.events:subscribe':
     'Phản hồi các sự kiện hoạt động cốt lõi (chỉ tên sự kiện + chuyến đi, không bao giờ là nội dung)',
   'admin.plugins.perm.http:outbound': 'Gửi yêu cầu ra ngoài đến các máy chủ đã khai báo',
+  'admin.plugins.perm.db:read:collab': 'Đọc ghi chú, bình chọn và tin nhắn trò chuyện của các chuyến đi mà người dùng hiện tại có quyền truy cập (cần add-on Collab)',
+  'admin.plugins.perm.db:read:files:content': 'Đọc nội dung (byte) tệp của các chuyến đi mà người dùng hiện tại có quyền truy cập',
+  'admin.plugins.perm.db:create:trips': 'Tạo chuyến đi mới thuộc sở hữu của người dùng hiện tại',
+  'admin.plugins.perm.rates:read': 'Đọc tỷ giá hối đoái đã lưu cache của máy chủ',
   'admin.plugins.updateConsentTitle': 'Bản cập nhật này cần các quyền mới',
   'admin.plugins.updateConsentBody':
     '{name} v{version} đang yêu cầu các quyền mà bạn chưa cấp. Phiên bản mới đã được cài đặt nhưng vẫn tắt cho đến khi bạn phê duyệt.',

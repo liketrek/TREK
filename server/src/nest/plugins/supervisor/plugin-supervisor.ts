@@ -6,6 +6,7 @@ import type { Envelope, RpcError, RpcRequest } from '../protocol/envelope';
 import type { PluginRpcHost } from '../host/rpc-host';
 import { scheduleJobs, stopJobs, type ScheduledJob } from '../host/plugin-jobs';
 import { SNAPSHOT_GRANT, type PluginEventMeta } from '../../../plugin-event-sink';
+import { RpcRateLimiter, DEFAULT_RPC_LIMIT } from '../host/rate-limit';
 
 export interface PluginRouteInfo {
   i: number;
@@ -58,6 +59,7 @@ interface Supervised {
   subscriptions: Array<{ plugin: string; event: string }>; // other-plugin events it listens to
   pending: Map<string, Pending>; // host→child invokes awaiting a response
   invocations: Map<string, number | undefined>; // reqId -> acting user of that invoke (undefined = no user, e.g. a job)
+  rpcLimiter: RpcRateLimiter; // caps this plugin's ctx.* call rate + concurrency (host-loop DoS guard)
   activation?: { resolve: () => void; reject: (e: Error) => void };
   activationTimer?: ReturnType<typeof setTimeout>; // deadline for the plugin to reach 'active'
 }
@@ -118,7 +120,16 @@ export class PluginSupervisor {
 
   /** Spawn a plugin and resolve once it reports `loaded` (or reject on load error). */
   activate(id: string, granted: ReadonlySet<string>, config: Record<string, unknown> = {}, egress: string[] = []): Promise<void> {
-    if (this.running.has(id)) return Promise.resolve();
+    const existing = this.running.get(id);
+    if (existing) {
+      // A live plugin (starting/active) is idempotent — already activated.
+      if (existing.status === 'starting' || existing.status === 'active') return Promise.resolve();
+      // A DEAD entry (error after a load-failure or crash-auto-disable) otherwise
+      // blocks re-activation forever, so the admin's "enable" button is a silent
+      // no-op after any failure. Drop it and re-spawn fresh — its rpcHost was
+      // already disposed on the way into that state.
+      this.running.delete(id);
+    }
     const sup: Supervised = {
       id,
       granted,
@@ -138,6 +149,7 @@ export class PluginSupervisor {
       subscriptions: [],
       pending: new Map(),
       invocations: new Map(),
+      rpcLimiter: new RpcRateLimiter(DEFAULT_RPC_LIMIT, Date.now()),
     };
     this.running.set(id, sup);
     this.ensureSweep();
@@ -329,10 +341,24 @@ export class PluginSupervisor {
       // acting user comes from the invocation the child is currently handling
       // (its `_inv` reqId → our invocation map), NOT from anything the plugin can
       // set in the call params.
-      const inv = (msg as RpcRequest).params as { _inv?: unknown } | undefined;
+      const req = msg as RpcRequest;
+      // Rate limit BEFORE dispatch: every ctx.* call runs synchronously on the host
+      // thread (better-sqlite3 + the router), so an unthrottled `while (true)` loop
+      // in a plugin freezes the whole instance — including this supervisor's reap
+      // sweep. A throttled call is refused with HOST_ERROR (retryable) rather than
+      // executed; a legitimate plugin never hits the generous burst.
+      if (!sup.rpcLimiter.tryAcquire(Date.now())) {
+        sup.child?.send({ k: 'res', id: req.id, ok: false, error: { code: 'HOST_ERROR', message: 'rate limit exceeded — slow down ctx.* calls' } } satisfies RpcError);
+        return;
+      }
+      const inv = req.params as { _inv?: unknown } | undefined;
       const actingUserId = typeof inv?._inv === 'string' ? sup.invocations.get(inv._inv) : undefined;
-      const res = await sup.rpcHost.dispatch(msg as RpcRequest, actingUserId);
-      sup.child?.send(res);
+      try {
+        const res = await sup.rpcHost.dispatch(req, actingUserId);
+        sup.child?.send(res);
+      } finally {
+        sup.rpcLimiter.release();
+      }
       return;
     }
 
@@ -447,6 +473,7 @@ export class PluginSupervisor {
 
     sup.crashes.push(Date.now());
     const recent = sup.crashes.filter((t) => t > Date.now() - this.tuning.crashWindowMs);
+    sup.crashes = recent; // trim: drop timestamps outside the window so the array can't grow unbounded
     if (recent.length >= this.tuning.crashLimit) {
       this.clearActivationTimer(sup);
       this.setStatus(sup, 'error', `auto-disabled after ${recent.length} crashes`);

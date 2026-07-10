@@ -294,6 +294,10 @@ const admin: TranslationStrings = {
     'Auf Kern-Aktivitäts-Events reagieren (nur Event-Name + Reise, nie der Inhalt)',
   'admin.plugins.perm.jobs:run': 'Deklarierte Hintergrund-Jobs zeitgesteuert ausführen (kein Nutzerkontext — kann keine Nutzerdaten lesen)',
   'admin.plugins.perm.http:outbound': 'Ausgehende Anfragen an deklarierte Hosts stellen',
+  'admin.plugins.perm.db:read:collab': 'Notizen, Umfragen und Chat-Nachrichten von Reisen lesen, auf die der handelnde Nutzer Zugriff hat (benötigt das Collab-Addon)',
+  'admin.plugins.perm.db:read:files:content': 'Dateiinhalte (Bytes) von Reisen lesen, auf die der handelnde Nutzer Zugriff hat',
+  'admin.plugins.perm.db:create:trips': 'Neue Reisen im Besitz des handelnden Nutzers anlegen',
+  'admin.plugins.perm.rates:read': 'Die zwischengespeicherten Wechselkurse des Hosts lesen',
   'admin.plugins.updateConsentTitle': 'Dieses Update braucht neue Berechtigungen',
   'admin.plugins.updateConsentBody':
     '{name} v{version} verlangt Rechte, die du bisher nicht freigegeben hast. Die neue Version ist installiert, bleibt aber aus, bis du sie freigibst.',

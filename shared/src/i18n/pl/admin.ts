@@ -288,6 +288,10 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.events:subscribe':
     'Reagowanie na podstawowe zdarzenia aktywności (tylko nazwa zdarzenia i podróż, nigdy treść)',
   'admin.plugins.perm.http:outbound': 'Wykonywanie wychodzących zapytań do zadeklarowanych hostów',
+  'admin.plugins.perm.db:read:collab': 'Odczyt notatek, ankiet i wiadomości czatu w podróżach, do których działający użytkownik ma dostęp (wymaga dodatku Collab)',
+  'admin.plugins.perm.db:read:files:content': 'Odczyt zawartości (bajtów) plików w podróżach, do których działający użytkownik ma dostęp',
+  'admin.plugins.perm.db:create:trips': 'Tworzenie nowych podróży należących do działającego użytkownika',
+  'admin.plugins.perm.rates:read': 'Odczyt zapisanych w pamięci kursów walut hosta',
   'admin.plugins.updateConsentTitle': 'Ta aktualizacja wymaga nowych uprawnień',
   'admin.plugins.updateConsentBody':
     '{name} v{version} prosi o uprawnienia, których jeszcze nie przyznałeś. Nowa wersja jest zainstalowana, ale pozostaje wyłączona, dopóki jej nie zatwierdzisz.',

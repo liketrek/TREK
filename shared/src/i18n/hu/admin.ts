@@ -294,6 +294,10 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.events:subscribe':
     'Reagál az alapvető tevékenységi eseményekre (csak eseménynév + utazás, soha nem a tartalom)',
   'admin.plugins.perm.http:outbound': 'Kimenő kérések küldése a bejelentett kiszolgálók felé',
+  'admin.plugins.perm.db:read:collab': 'Jegyzetek, szavazások és csevegőüzenetek olvasása az aktuális felhasználó számára elérhető utazásokon (a Collab bővítmény szükséges)',
+  'admin.plugins.perm.db:read:files:content': 'Az aktuális felhasználó számára elérhető utazások fájltartalmának (bájtok) olvasása',
+  'admin.plugins.perm.db:create:trips': 'Új utazások létrehozása az aktuális felhasználó tulajdonában',
+  'admin.plugins.perm.rates:read': 'A gazdagép gyorsítótárazott devizaárfolyamainak olvasása',
   'admin.plugins.updateConsentTitle': 'Ez a frissítés új engedélyeket igényel',
   'admin.plugins.updateConsentBody':
     'A(z) {name} v{version} olyan jogokat kér, amelyeket még nem adtál meg. Az új verzió telepítve van, de kikapcsolva marad, amíg jóvá nem hagyod.',

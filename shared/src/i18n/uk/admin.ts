@@ -291,6 +291,10 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.events:subscribe':
     'Реагувати на основні події активності (лише назва події + подорож, ніколи вміст)',
   'admin.plugins.perm.http:outbound': 'Виконувати вихідні запити до заявлених хостів',
+  'admin.plugins.perm.db:read:collab': 'Читати нотатки, опитування та повідомлення чату подорожей, до яких має доступ поточний користувач (потрібен додаток Collab)',
+  'admin.plugins.perm.db:read:files:content': 'Читати вміст (байти) файлів подорожей, до яких має доступ поточний користувач',
+  'admin.plugins.perm.db:create:trips': 'Створювати нові подорожі, що належать поточному користувачеві',
+  'admin.plugins.perm.rates:read': 'Читати кешовані курси валют хоста',
   'admin.plugins.updateConsentTitle': 'Це оновлення потребує нових дозволів',
   'admin.plugins.updateConsentBody':
     '{name} v{version} запитує права, які ви ще не надали. Нову версію встановлено, але вона залишається вимкненою, доки ви її не схвалите.',

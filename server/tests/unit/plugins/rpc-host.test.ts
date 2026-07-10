@@ -37,6 +37,15 @@ function makeDeps(): HostDeps {
     canEditCosts: vi.fn((tripId: number, userId: number) => tripId === 1 && userId === 42),
     listPackingItems: vi.fn((tripId: number, _userId: number) => [{ id: 1, trip_id: tripId, name: 'Socks' }]),
     listTripFiles: vi.fn((tripId: number) => [{ id: 2, trip_id: tripId, filename: 'visa.pdf' }]),
+    getTripFileContent: vi.fn((tripId: number, fileId: number) => ({ name: 'visa.pdf', mimetype: 'application/pdf', size: 3, content_base64: 'aGk=', _t: tripId, _f: fileId })),
+    listCollabNotes: vi.fn((tripId: number) => [{ id: 1, trip_id: tripId, title: 'Note' }]),
+    listCollabPolls: vi.fn((tripId: number) => [{ id: 2, trip_id: tripId, question: 'Q?' }]),
+    listCollabMessages: vi.fn((tripId: number, before: number | undefined) => [{ id: 3, trip_id: tripId, text: 'hi', _before: before ?? null }]),
+    journalEntriesForUser: vi.fn((uid: number, journeyId: number) => [{ id: 10, journey_id: journeyId, author_id: uid }]),
+    atlasBucketForUser: vi.fn((uid: number) => [{ id: 5, user_id: uid, name: 'Kyoto' }]),
+    canCreateTrip: vi.fn((userId: number) => userId === 42),
+    createTripForUser: vi.fn((userId: number, input: unknown) => ({ id: 99, user_id: userId, ...(input as object) })),
+    getRates: vi.fn(async (base: string) => ({ [base]: 1, USD: 1.08 })),
     listCostsForTrip: vi.fn((tripId: number) => [{ id: 5, trip_id: tripId, name: 'Hotel', total_price: 100 }]),
     listCostsForUser: vi.fn(() => [
       { id: 5, trip_id: 1, name: 'Hotel' },
@@ -429,6 +438,38 @@ describe('PluginRpcHost — capability enforcement', () => {
     for (const m of ['journal.listMine', 'atlas.visited', 'vacay.mine']) {
       expect((await host.dispatch(req(m), undefined)).ok).toBe(false);
     }
+  });
+
+  it('wave-13 reads: collab / journal.getEntries / atlas.bucketList / files.getContent / rates / trips.create gated correctly', async () => {
+    // collab reads: membership-checked, need db:read:collab
+    const collab = new PluginRpcHost('p', new Set(['db:read:collab']), deps);
+    expect(ok(await collab.dispatch(req('collab.listNotes', { tripId: 1 }), 42))).toBe(true);
+    expect(ok(await collab.dispatch(req('collab.listMessages', { tripId: 1, before: 5 }), 42))).toBe(true);
+    expect((await collab.dispatch(req('collab.listPolls', { tripId: 2 }), 42)).ok).toBe(false); // no access to trip 2
+    // journal.getEntries: user-bound, needs db:read:journal; a job is refused
+    const journal = new PluginRpcHost('p', new Set(['db:read:journal']), deps);
+    expect(ok(await journal.dispatch(req('journal.getEntries', { journeyId: 7 }), 42))).toBe(true);
+    expect((await journal.dispatch(req('journal.getEntries', { journeyId: 7 }), undefined)).ok).toBe(false);
+    // atlas.bucketList: user-bound, needs db:read:atlas
+    const atlas = new PluginRpcHost('p', new Set(['db:read:atlas']), deps);
+    expect(ok(await atlas.dispatch(req('atlas.bucketList'), 42))).toBe(true);
+    expect((await atlas.dispatch(req('atlas.bucketList'), undefined)).ok).toBe(false);
+    // files.getContent: separate grant from files.list, membership-checked
+    const files = new PluginRpcHost('p', new Set(['db:read:files:content']), deps);
+    expect(ok(await files.dispatch(req('files.getContent', { tripId: 1, fileId: 2 }), 42))).toBe(true);
+    expect((await files.dispatch(req('files.getContent', { tripId: 2, fileId: 2 }), 42)).ok).toBe(false);
+    // reading content is NOT unlocked by plain db:read:files
+    const filesList = new PluginRpcHost('p', new Set(['db:read:files']), deps);
+    expect((await filesList.dispatch(req('files.getContent', { tripId: 1, fileId: 2 }), 42) as RpcError).error.code).toBe('PERMISSION_DENIED');
+    // rates.get: tenant-free (works without a user), needs rates:read
+    const rates = new PluginRpcHost('p', new Set(['rates:read']), deps);
+    expect(ok(await rates.dispatch(req('rates.get', { base: 'EUR' }), undefined))).toBe(true);
+    // trips.create: needs db:create:trips + the acting user's trip_create + a bound user
+    const create = new PluginRpcHost('p', new Set(['db:create:trips']), deps);
+    expect(ok(await create.dispatch(req('trips.create', { input: { title: 'Japan' } }), 42))).toBe(true);
+    expect((await create.dispatch(req('trips.create', { input: { title: 'x' } }), 7) as RpcError).error.code).toBe('RESOURCE_FORBIDDEN'); // canCreateTrip false for 7
+    expect((await create.dispatch(req('trips.create', { input: { title: 'x' } }), undefined) as RpcError).error.code).toBe('RESOURCE_FORBIDDEN'); // no user
+    expect((await create.dispatch(req('trips.create', { input: {} }), 42) as RpcError).error.code).toBe('BAD_PARAMS'); // title required
   });
 
   it('daynotes.list is membership-checked (trip-scoped)', async () => {

@@ -51,19 +51,21 @@ const TYPES = ['integration', 'page', 'widget', 'trip-page'];
 const KNOWN_PERMISSIONS = [
   'db:own',
   'db:read:trips', 'db:read:users', 'db:read:costs', 'db:read:packing', 'db:read:files',
+  'db:read:files:content', 'db:read:collab',
   'db:read:journal', 'db:read:atlas', 'db:read:vacay', 'db:read:daynotes', 'db:read:collections',
   'db:read:categories', 'db:read:tags', 'db:read:todos',
   'db:write:costs', 'db:write:places', 'db:write:days', 'db:write:itinerary', 'db:write:trips',
   'db:write:reservations', 'db:write:accommodations', 'db:write:packing', 'db:write:files',
   'db:write:collab', 'db:write:members', 'db:write:collections', 'db:write:atlas', 'db:write:vacay',
   'db:write:journal', 'db:write:tags', 'db:write:todos', 'db:write:daynotes',
+  'db:create:trips',
   'db:meta',
   'ws:broadcast:trip', 'ws:broadcast:user',
   'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider', 'hook:trip-warning-provider',
   'hook:table-contributor', 'hook:map-marker-provider', 'hook:pdf-section-provider', 'hook:atlas-layer-provider',
   'hook:journal-entry-provider',
   'events:subscribe', 'jobs:run', 'http:outbound',
-  'weather:read', 'notify:send', 'ai:invoke', 'oauth:client',
+  'weather:read', 'rates:read', 'notify:send', 'ai:invoke', 'oauth:client',
 ];
 
 function isKnownPermission(p: string): boolean {

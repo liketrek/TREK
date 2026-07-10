@@ -50,6 +50,8 @@ export interface PluginContext {
     listMine(): Promise<Trip[]>;
     /** Update trip fields; needs `db:write:trips` + the acting user's trip_edit permission. Route context only. */
     update(tripId: number, input: Record<string, unknown>): Promise<Trip>;
+    /** Create a new trip owned by the acting user (importers). `title` required. Needs `db:create:trips` + the acting user's trip_create. */
+    create(input: { title: string; description?: string; start_date?: string; end_date?: string; currency?: string; reminder_days?: number; day_count?: number }): Promise<Trip>;
     /** The trip's member roster (id + display fields only). Membership-checked. Needs `db:read:trips`. */
     members(tripId: number): Promise<User[]>;
     /** Add a user to a trip (GRANTS ACCESS — its own permission). Needs `db:write:members` + the acting user's member_manage. */
@@ -99,6 +101,8 @@ export interface PluginContext {
   files: {
     /** A trip's files, trash excluded. Needs `db:read:files`. */
     list(tripId: number): Promise<TripFile[]>;
+    /** A file's bytes as base64 (10MB cap; trashed files refused). Needs `db:read:files:content`. */
+    getContent(tripId: number, fileId: number): Promise<{ name: string; mimetype: string; size: number; content_base64: string }>;
     /** Store base64 content as a trip file (10MB cap, blocked extensions refused). Needs `db:write:files` + file_upload. */
     create(tripId: number, input: { name: string; content_base64: string; mimetype?: string; description?: string; place_id?: number; reservation_id?: number }): Promise<TripFile>;
     /** Link an existing file to a same-trip reservation/place/assignment. Needs `db:write:files` + file_edit. */
@@ -108,8 +112,14 @@ export interface PluginContext {
     /** Move a file to the trash. Needs `db:write:files` + file_delete. */
     softDelete(tripId: number, fileId: number): Promise<{ deleted: boolean }>;
   };
-  /** Collab content (notes/polls/chat). Needs `db:write:collab` + the acting user's collab_edit (+ Collab addon). */
+  /** Collab content (notes/polls/chat). Reads need `db:read:collab`; writes need `db:write:collab` + the acting user's collab_edit. Both need the Collab addon. */
   collab: {
+    /** A trip's collab notes (hydrated with author + attachments). Needs `db:read:collab`. */
+    listNotes(tripId: number): Promise<unknown[]>;
+    /** A trip's polls (with options + voters). Needs `db:read:collab`. */
+    listPolls(tripId: number): Promise<unknown[]>;
+    /** A trip's chat messages (newest 100, oldest first; `before` = a message id to page back). Needs `db:read:collab`. */
+    listMessages(tripId: number, before?: number): Promise<unknown[]>;
     createNote(tripId: number, input: { title: string; content?: string; category?: string; color?: string; website?: string; pinned?: boolean }): Promise<unknown>;
     createPoll(tripId: number, input: { question: string; options: unknown[]; multiple?: boolean; deadline?: string }): Promise<unknown>;
     votePoll(tripId: number, pollId: number, optionIndex: number): Promise<unknown>;
@@ -139,6 +149,11 @@ export interface PluginContext {
   weather: {
     get(lat: number, lng: number, date?: string): Promise<unknown>;
   };
+  /** Exchange rates (tenant-free, cached upstream). Needs `rates:read`. */
+  rates: {
+    /** A map of quote → rate relative to `base` (e.g. base 'EUR' → { USD: 1.08, ... }). `null` on an upstream failure. */
+    get(base: string): Promise<Record<string, number> | null>;
+  };
   /** The global place-category reference list (read-only). Needs `db:read:categories`. */
   categories: {
     list(): Promise<unknown[]>;
@@ -162,6 +177,8 @@ export interface PluginContext {
   journal: {
     /** The acting user's journals. Needs `db:read:journal` + the journey addon. */
     listMine(): Promise<unknown[]>;
+    /** The entries of one of the acting user's journeys (photos/story/checkins), access-checked. Needs `db:read:journal`. */
+    getEntries(journeyId: number): Promise<unknown[]>;
     /** Create an entry on a journey the acting user can edit. Needs `db:write:journal`. */
     createEntry(journeyId: number, input: { entry_date: string; [k: string]: unknown }): Promise<unknown>;
     /** Update an entry (owner/contributor-gated). Needs `db:write:journal`. */
@@ -172,6 +189,8 @@ export interface PluginContext {
   atlas: {
     /** The acting user's visited countries + regions. Needs `db:read:atlas` + the atlas addon. */
     visited(): Promise<{ countries: unknown[]; regions: unknown[] }>;
+    /** The acting user's bucket-list items. Needs `db:read:atlas`. */
+    bucketList(): Promise<unknown[]>;
     /** Mark/unmark the ACTING USER's own visited countries/regions + bucket list. Needs `db:write:atlas`. */
     markCountry(code: string): Promise<unknown>;
     unmarkCountry(code: string): Promise<unknown>;

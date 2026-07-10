@@ -3,7 +3,7 @@ import {
   budgetUpdateItemRequestSchema, type BudgetUpdateItemRequest,
   placeCreateRequestSchema, placeUpdateRequestSchema,
   dayCreateRequestSchema, dayUpdateRequestSchema,
-  tripUpdateRequestSchema,
+  tripUpdateRequestSchema, tripCreateRequestSchema,
   reservationCreateRequestSchema, reservationUpdateRequestSchema,
   reservationEndpointsInputSchema,
   accommodationCreateRequestSchema, accommodationUpdateRequestSchema,
@@ -84,6 +84,8 @@ export interface HostDeps {
   listPackingItems(tripId: number, userId: number): unknown[];
   /** A trip's files (trash excluded), for `files.list`. */
   listTripFiles(tripId: number): unknown[];
+  /** One trip file's bytes as base64 (size-capped), for `files.getContent`. Throws if it's not on the trip or exceeds the cap. */
+  getTripFileContent(tripId: number, fileId: number): unknown;
   // --- Files write (the app's file_upload / file_edit / file_delete permissions) ---
   canUploadFiles(tripId: number, userId: number): boolean;
   canEditFiles(tripId: number, userId: number): boolean;
@@ -96,6 +98,10 @@ export interface HostDeps {
   updateTripFile(tripId: number, fileId: number, input: Record<string, unknown>): unknown;
   /** Move a trip file to the trash; broadcasts file:deleted. */
   softDeleteTripFile(tripId: number, fileId: number): unknown;
+  // --- Collab reads (membership + collab addon; no separate right, like the REST GETs) ---
+  listCollabNotes(tripId: number): unknown[];
+  listCollabPolls(tripId: number): unknown[];
+  listCollabMessages(tripId: number, before: number | undefined): unknown[];
   // --- Collab content (the app's collab_edit permission; collab addon gated) ---
   canEditCollab(tripId: number, userId: number): boolean;
   createCollabNote(tripId: number, input: Record<string, unknown>, actingUserId: number): unknown;
@@ -107,8 +113,12 @@ export interface HostDeps {
   addTripMember(tripId: number, targetUserId: number, invitedBy: number): unknown;
   /** The acting user's own journals (journey addon must be enabled). */
   listJournalsForUser(userId: number): unknown;
+  /** The entries of one of the acting user's journeys (journey addon; access-checked). */
+  journalEntriesForUser(userId: number, journeyId: number): unknown;
   /** The acting user's visited countries + regions (atlas addon must be enabled). */
   atlasVisitedForUser(userId: number): unknown;
+  /** The acting user's bucket-list items (atlas addon must be enabled). */
+  atlasBucketForUser(userId: number): unknown[];
   /** The acting user's vacation plan data (vacay addon must be enabled). */
   vacayForUser(userId: number): unknown;
   /** The acting user's saved-place collections (collections addon must be enabled). */
@@ -170,6 +180,11 @@ export interface HostDeps {
   // --- Trip (the 'trip_edit' permission) ---
   canEditTrip(tripId: number, userId: number): boolean;
   updateTrip(tripId: number, userId: number, input: Record<string, unknown>): unknown;
+  // --- Trip creation (the 'trip_create' permission; owner = acting user) ---
+  canCreateTrip(userId: number): boolean;
+  createTripForUser(userId: number, input: Record<string, unknown>): unknown;
+  // --- Exchange rates (tenant-free, like weather) ---
+  getRates(base: string): Promise<unknown>;
   // --- Cross-trip reads (membership baked in — every trip the acting user can access) ---
   /** Every trip the acting user owns or is a member of (the listTrips baseline). */
   listTripsForUser(userId: number): unknown[];
@@ -323,6 +338,15 @@ export class PluginRpcHost {
         this.tripRead(p, uid, () => deps.listTripFiles(num(p.tripId, 'tripId'))),
       );
     }
+    if (has('db:read:files:content')) {
+      // Reading a file's BYTES is a step up from its metadata (a passport scan is
+      // more sensitive than its filename), so it's a separate grant. Membership-
+      // checked like files.list; the wiring caps the size before base64-ing it
+      // through the IPC pipe.
+      this.methods.set('files.getContent', (p, uid) =>
+        this.tripRead(p, uid, () => deps.getTripFileContent(num(p.tripId, 'tripId'), num(p.fileId, 'fileId'))),
+      );
+    }
     if (has('db:write:files')) {
       // Files write, under the app's separate file_upload / file_edit / file_delete
       // rights. A created file arrives as bounded base64 (10MB decoded cap — well
@@ -409,16 +433,35 @@ export class PluginRpcHost {
     // User-scoped addon reads: the acting user's OWN journals/atlas/vacay across all
     // their trips (not one trip), so — like costs.listMine — they are gated on a bound
     // acting user, not a tripId; the wiring additionally refuses a disabled addon.
+    if (has('db:read:collab')) {
+      // Collab reads mirror the REST GETs: membership only (the addon gate lives in
+      // the wiring), no separate right — the write side already has collab_edit.
+      this.methods.set('collab.listNotes', (p, uid) => this.tripRead(p, uid, () => deps.listCollabNotes(num(p.tripId, 'tripId'))));
+      this.methods.set('collab.listPolls', (p, uid) => this.tripRead(p, uid, () => deps.listCollabPolls(num(p.tripId, 'tripId'))));
+      this.methods.set('collab.listMessages', (p, uid) =>
+        this.tripRead(p, uid, () => deps.listCollabMessages(num(p.tripId, 'tripId'), p.before != null ? num(p.before, 'before') : undefined)),
+      );
+    }
     if (has('db:read:journal')) {
       this.methods.set('journal.listMine', (_p, uid) => {
         if (uid === undefined) throw new ForbiddenResource('journal reads require an authenticated user context');
         return deps.listJournalsForUser(uid);
+      });
+      // A journey's entries (photos/story/checkins). Journeys are user-scoped, not
+      // trip-scoped, so the access check is journey membership inside the wiring.
+      this.methods.set('journal.getEntries', (p, uid) => {
+        if (uid === undefined) throw new ForbiddenResource('journal reads require an authenticated user context');
+        return deps.journalEntriesForUser(uid, num(p.journeyId, 'journeyId'));
       });
     }
     if (has('db:read:atlas')) {
       this.methods.set('atlas.visited', (_p, uid) => {
         if (uid === undefined) throw new ForbiddenResource('atlas reads require an authenticated user context');
         return deps.atlasVisitedForUser(uid);
+      });
+      this.methods.set('atlas.bucketList', (_p, uid) => {
+        if (uid === undefined) throw new ForbiddenResource('atlas reads require an authenticated user context');
+        return deps.atlasBucketForUser(uid);
       });
     }
     if (has('db:read:vacay')) {
@@ -690,6 +733,26 @@ export class PluginRpcHost {
         this.requireTripEdit(tripId, actor, deps.canEditTrip);
         return deps.updateTrip(tripId, actor, parsed.data as Record<string, unknown>);
       });
+    }
+
+    if (has('db:create:trips')) {
+      // Create a brand-new trip owned by the acting user — the capability that
+      // unlocks importers (Google MyMaps, booking dumps, calendar sync). Gated by
+      // the app's own 'trip_create' right + a bound user (a job can't create one).
+      this.methods.set('trips.create', (p, uid) => {
+        const actor = this.requireActor(uid, 'trip');
+        const parsed = tripCreateRequestSchema.safeParse(p.input);
+        if (!parsed.success) throw new BadParams(`invalid trip: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
+        this.capStrings(parsed.data as Record<string, unknown>, TRIP_STR_LIMITS);
+        if (!deps.canCreateTrip(actor)) throw new ForbiddenResource('no permission to create trips');
+        return deps.createTripForUser(actor, parsed.data as Record<string, unknown>);
+      });
+    }
+
+    if (has('rates:read')) {
+      // Exchange rates are tenant-free (like weather) — a cached upstream feed, no
+      // user or trip. Useful for any plugin that shows or converts money.
+      this.methods.set('rates.get', (p) => deps.getRates(str(p.base, 'base')));
     }
 
     if (has('db:write:daynotes')) {

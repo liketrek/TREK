@@ -23,6 +23,7 @@ export interface MockHostOptions {
       members: number[]; data?: unknown; places?: unknown[]; reservations?: unknown[]; costs?: unknown[];
       days?: unknown[]; assignments?: unknown[]; packing?: unknown[]; files?: unknown[];
       accommodations?: unknown[]; bags?: unknown[]; todos?: unknown[]; daynotes?: unknown[];
+      notes?: unknown[]; polls?: unknown[]; messages?: unknown[];
       /** Default true — model the place_edit / day_edit / trip_edit permission for writes. */
       canEditCosts?: boolean; canEditPlaces?: boolean; canEditDays?: boolean; canEditTrip?: boolean;
     }
@@ -43,12 +44,16 @@ export interface MockHostOptions {
   /** The acting user's own (non-trip) data: tags, journals, collections, atlas, vacay. */
   tags?: unknown[];
   journals?: unknown[];
+  journalEntries?: unknown[];
   collections?: unknown[];
   atlasVisited?: { countries?: unknown[]; regions?: unknown[] };
+  atlasBucketList?: unknown[];
   vacayPlan?: unknown;
-  /** Reference data + canned host answers for weather/ai. */
+  /** Reference data + canned host answers for weather/ai/rates. */
   categories?: unknown[];
   weatherResult?: unknown;
+  /** Canned map for ctx.rates.get (default null, like an upstream failure). */
+  ratesResult?: Record<string, number> | null;
   aiText?: string;
   aiResults?: Record<string, unknown>[];
   /** The acting user's connected-service token for ctx.oauth.getAccessToken (default null). */
@@ -105,8 +110,8 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
   // mutated in place by the write methods (same idea as the trip fixtures).
   const visitedCountries: unknown[] = [...(opts.atlasVisited?.countries ?? [])];
   const visitedRegions: unknown[] = [...(opts.atlasVisited?.regions ?? [])];
-  const bucketItems: unknown[] = [];
-  const journalEntries: unknown[] = [];
+  const bucketItems: unknown[] = [...(opts.atlasBucketList ?? [])];
+  const journalEntries: unknown[] = [...(opts.journalEntries ?? [])];
   const savedPlaces: unknown[] = [];
   const vacayEntries = new Set<string>();
   const vacayHolidays = new Set<string>();
@@ -183,6 +188,14 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
         const data = (t.data ??= {}) as Record<string, unknown>;
         Object.assign(data, input);
         return data as Trip;
+      },
+      async create(input) {
+        need('db:create:trips', 'trips.create');
+        const uid = requireActingUser();
+        const id = Math.max(0, ...Object.keys(opts.trips ?? {}).map(Number)) + 1;
+        const data = { id, user_id: uid, ...input } as Trip;
+        (opts.trips ??= {})[id] = { members: [uid], data };
+        return data;
       },
       async members(tripId) {
         need('db:read:trips', 'trips.members');
@@ -331,6 +344,19 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
         need('db:read:files', 'files.list');
         return (assertMember(tripId, requireActingUser()).files ?? []) as TripFile[];
       },
+      async getContent(tripId, fileId) {
+        need('db:read:files:content', 'files.getContent');
+        const t = assertMember(tripId, requireActingUser());
+        const file = rows(t.files).find((x) => x.id === fileId);
+        if (!file) throw new Error(`RESOURCE_FORBIDDEN: no file ${fileId} on trip ${tripId}`);
+        const content = typeof file.content_base64 === 'string' ? file.content_base64 : '';
+        return {
+          name: String(file.name ?? `file-${fileId}`),
+          mimetype: String(file.mimetype ?? 'application/octet-stream'),
+          size: typeof file.size === 'number' ? file.size : Buffer.from(content, 'base64').length,
+          content_base64: content,
+        };
+      },
       async create(tripId, input) {
         need('db:write:files', 'files.create');
         const t = assertMember(tripId, requireActingUser());
@@ -366,6 +392,19 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
       },
     },
     collab: {
+      async listNotes(tripId) {
+        need('db:read:collab', 'collab.listNotes');
+        return assertMember(tripId, requireActingUser()).notes ?? [];
+      },
+      async listPolls(tripId) {
+        need('db:read:collab', 'collab.listPolls');
+        return assertMember(tripId, requireActingUser()).polls ?? [];
+      },
+      async listMessages(tripId, before) {
+        need('db:read:collab', 'collab.listMessages');
+        const messages = rows(assertMember(tripId, requireActingUser()).messages);
+        return before === undefined ? messages : messages.filter((m) => typeof m.id === 'number' && m.id < before);
+      },
       async createNote(tripId, input) {
         need('db:write:collab', 'collab.createNote');
         assertMember(tripId, requireActingUser());
@@ -419,6 +458,12 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
       async get() {
         need('weather:read', 'weather.get');
         return opts.weatherResult ?? null;
+      },
+    },
+    rates: {
+      async get() {
+        need('rates:read', 'rates.get');
+        return opts.ratesResult ?? null;
       },
     },
     categories: {
@@ -494,6 +539,11 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
         requireActingUser();
         return opts.journals ?? [];
       },
+      async getEntries(journeyId) {
+        need('db:read:journal', 'journal.getEntries');
+        requireActingUser();
+        return rows(journalEntries).filter((x) => x.journey_id === journeyId);
+      },
       async createEntry(journeyId, input) {
         need('db:write:journal', 'journal.createEntry');
         requireActingUser();
@@ -523,6 +573,11 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
         need('db:read:atlas', 'atlas.visited');
         requireActingUser();
         return { countries: visitedCountries, regions: visitedRegions };
+      },
+      async bucketList() {
+        need('db:read:atlas', 'atlas.bucketList');
+        requireActingUser();
+        return bucketItems;
       },
       async markCountry(code) {
         need('db:write:atlas', 'atlas.markCountry');

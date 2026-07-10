@@ -67,10 +67,17 @@ vi.mock('../../../src/services/tripService', () => {
       if (input.title === 'crash') throw new Error('unexpected');
       return { updatedTrip: { id: tripId, ...input } };
     },
+    createTrip: (userId: number, input: Record<string, unknown>) => {
+      if (input.title === 'boom') throw new ValidationError('bad dates');
+      return { trip: { id: 99, user_id: userId, ...input }, tripId: 99, reminderDays: 3 };
+    },
     listTrips: () => [{ id: 1 }],
     NotFoundError, ValidationError,
   };
 });
+vi.mock('../../../src/services/exchangeRateService', () => ({
+  getRates: vi.fn(async (base: string) => ({ [base]: 1, USD: 1.08, GBP: 0.85 })),
+}));
 vi.mock('../../../src/services/placeService', () => ({
   createPlace: vi.fn((tid: string, body: Record<string, unknown>) => ({ id: 10, trip_id: Number(tid), ...body })),
   updatePlace: vi.fn((_tid: string, pid: string) => (pid === '99' ? null : { id: Number(pid) })),
@@ -152,7 +159,8 @@ vi.mock('../../../src/services/fileService', () => ({
   BLOCKED_EXTENSIONS: ['.exe', '.bat', '.sh'],
   createFile: vi.fn((tid: number, file: { filename: string; originalname: string; size: number }, uploadedBy: number) => ({ id: 130, trip_id: Number(tid), ...file, uploaded_by: uploadedBy })),
   createFileLink: vi.fn(() => [{ file_id: 130 }]),
-  getFileById: vi.fn((id: number) => (Number(id) === 404 ? undefined : { id: Number(id), description: 'old', place_id: null, reservation_id: null })),
+  getFileById: vi.fn((id: number) => (Number(id) === 404 ? undefined : Number(id) === 500 ? { id: 500, filename: 'huge.mp4', original_name: 'huge.mp4', mime_type: 'video/mp4', file_size: 400 * 1024 * 1024, deleted_at: null } : { id: Number(id), filename: 'visa.pdf', original_name: 'visa.pdf', mime_type: 'application/pdf', file_size: 3, deleted_at: null, description: 'old', place_id: null, reservation_id: null })),
+  resolveFilePath: vi.fn((filename: string) => ({ resolved: `${testFilesDir}/${filename}`, safe: filename !== 'evil' })),
   updateFile: vi.fn((id: number, _cur: unknown, updates: unknown) => ({ id: Number(id), ...(updates as object) })),
   softDeleteFile: vi.fn(),
   // reservation_id/place_id 999 = belongs to another trip
@@ -160,6 +168,9 @@ vi.mock('../../../src/services/fileService', () => ({
     (Number(opts.reservation_id) === 999 ? 'reservation_id' : Number(opts.place_id) === 999 ? 'place_id' : null)),
 }));
 vi.mock('../../../src/services/collabService', () => ({
+  listNotes: vi.fn((tid: number) => [{ id: 1, trip_id: Number(tid), title: 'Note' }]),
+  listPolls: vi.fn((tid: number) => [{ id: 2, trip_id: Number(tid), question: 'Q?' }]),
+  listMessages: vi.fn((tid: number, before?: number) => [{ id: 3, trip_id: Number(tid), text: 'hi', _before: before ?? null }]),
   createNote: vi.fn((tid: number, uid: number, data: { title: string }) => ({ id: 140, trip_id: Number(tid), created_by: uid, title: data.title })),
   createPoll: vi.fn((tid: number, _uid: number, data: { question: string }) => ({ id: 141, trip_id: Number(tid), question: data.question })),
   votePoll: vi.fn((_tid: number, pollId: number, _uid: number, optionIndex: number) =>
@@ -204,6 +215,8 @@ vi.mock('../../../src/nest/reservations/reservations.service', () => ({
 }));
 vi.mock('../../../src/services/journeyService', () => ({
   listJourneys: vi.fn((uid: number) => [{ id: 1, owner: uid }]),
+  // journeyId 88 = no access (listEntries self-gates to null); else returns entries
+  listEntries: vi.fn((journeyId: number, uid: number) => (journeyId === 88 ? null : [{ id: 10, journey_id: journeyId, author_id: uid }])),
   // journeyId 99 = not editable by the acting user (canEdit inside returns null/false)
   createEntry: vi.fn((journeyId: number, uid: number, data: unknown) => (journeyId === 99 ? null : { id: 120, journey_id: journeyId, created_by: uid, ...(data as object) })),
   updateEntry: vi.fn((entryId: number, _uid: number, data: unknown) => (entryId === 99 ? null : { id: entryId, ...(data as object) })),
@@ -212,6 +225,7 @@ vi.mock('../../../src/services/journeyService', () => ({
 vi.mock('../../../src/services/atlasService', () => ({
   listVisitedCountries: vi.fn(() => [{ country_code: 'JP' }]),
   listManuallyVisitedRegions: vi.fn(() => [{ region_code: 'JP-13' }]),
+  listBucketList: vi.fn((uid: number) => [{ id: 5, user_id: uid, name: 'Kyoto' }]),
   markCountryVisited: vi.fn(),
   unmarkCountryVisited: vi.fn(),
   markRegionVisited: vi.fn(),
@@ -436,6 +450,37 @@ describe('create-rpc-host — reservations, day notes, cross-trip + addon reads 
     const r = await call(h, 'reservations.listMine', {});
     expect(r.ok).toBe(true);
     expect(r.result).toHaveLength(1);
+  });
+
+  it('wave-13 wiring: collab reads, journal entries, atlas bucket, file content, trip create, rates delegate correctly', async () => {
+    // collab reads delegate to collabService and require the collab addon
+    const collab = host('db:read:collab');
+    expect((await call(collab, 'collab.listNotes', { tripId: 1 })).result).toEqual([{ id: 1, trip_id: 1, title: 'Note' }]);
+    expect((await call(collab, 'collab.listMessages', { tripId: 1, before: 9 })).result).toEqual([{ id: 3, trip_id: 1, text: 'hi', _before: 9 }]);
+    isAddonEnabled.mockReturnValueOnce(false);
+    expect((await call(collab, 'collab.listPolls', { tripId: 1 })).error.code).toBeDefined(); // addon off -> refused
+    // journal.getEntries: delegates + self-gate (journey 88 = no access)
+    const journal = host('db:read:journal');
+    expect((await call(journal, 'journal.getEntries', { journeyId: 7 })).result).toEqual([{ id: 10, journey_id: 7, author_id: 5 }]);
+    expect((await call(journal, 'journal.getEntries', { journeyId: 88 })).error.code).toBe('RESOURCE_FORBIDDEN');
+    // atlas.bucketList
+    const atlas = host('db:read:atlas');
+    expect((await call(atlas, 'atlas.bucketList', {})).result).toEqual([{ id: 5, user_id: 5, name: 'Kyoto' }]);
+    // files.getContent: size-capped (file 500 = 400MB -> BAD_PARAMS), 404 refused
+    fs.mkdirSync(testFilesDir, { recursive: true });
+    fs.writeFileSync(`${testFilesDir}/visa.pdf`, 'hi');
+    const files = host('db:read:files:content');
+    const content = await call(files, 'files.getContent', { tripId: 1, fileId: 2 });
+    expect(content.result).toMatchObject({ name: 'visa.pdf', mimetype: 'application/pdf', content_base64: Buffer.from('hi').toString('base64') });
+    expect((await call(files, 'files.getContent', { tripId: 1, fileId: 500 })).error.code).toBe('BAD_PARAMS');
+    expect((await call(files, 'files.getContent', { tripId: 1, fileId: 404 })).error.code).toBe('RESOURCE_FORBIDDEN');
+    // trips.create: owner = acting user, delegates to createTrip; validation error mapped
+    const create = host('db:create:trips');
+    expect((await call(create, 'trips.create', { input: { title: 'Japan' } })).result).toMatchObject({ id: 99, user_id: 5, title: 'Japan' });
+    expect((await call(create, 'trips.create', { input: { title: 'boom' } })).error.code).toBe('BAD_PARAMS');
+    // rates.get: tenant-free, delegates to the cached service
+    const rates = host('rates:read');
+    expect((await call(rates, 'rates.get', { base: 'EUR' })).result).toMatchObject({ EUR: 1, USD: 1.08 });
   });
 
   it('trip-scoped reads are wired to the hydrated services (days incl. assignments, reservations incl. endpoints)', async () => {

@@ -293,6 +293,10 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.events:subscribe':
     'Réagir aux événements d’activité principaux (nom de l’événement et voyage uniquement, jamais le contenu)',
   'admin.plugins.perm.http:outbound': 'Effectuer des requêtes sortantes vers ses hôtes déclarés',
+  'admin.plugins.perm.db:read:collab': "Lire les notes, sondages et messages de chat des voyages accessibles à l'utilisateur actif (nécessite le module Collab)",
+  'admin.plugins.perm.db:read:files:content': "Lire le contenu (octets) des fichiers des voyages accessibles à l'utilisateur actif",
+  'admin.plugins.perm.db:create:trips': "Créer de nouveaux voyages appartenant à l'utilisateur actif",
+  'admin.plugins.perm.rates:read': "Lire les taux de change en cache de l'hôte",
   'admin.plugins.updateConsentTitle': 'Cette mise à jour nécessite de nouvelles permissions',
   'admin.plugins.updateConsentBody':
     "{name} v{version} demande des droits que vous n'avez pas encore accordés. La nouvelle version est installée mais reste désactivée jusqu'à ce que vous l'approuviez.",

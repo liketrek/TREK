@@ -15,7 +15,9 @@ ungranted capability is physically unreachable**, not just disallowed. See
 | `db:read:users` | Read-only public profile via `ctx.users.getById` | Returns id, username, display name, avatar only — **never** password hashes, tokens, or secrets. |
 | `db:read:packing` | Read-only packing items of a trip via `ctx.packing.list(tripId)` | Membership-checked, and scoped to the acting user's visibility — a plugin never sees another member's private packing items. |
 | `db:read:files` | Read-only files of a trip via `ctx.files.list(tripId)` | Membership-checked; trashed files excluded. |
+| `db:read:files:content` | Read a file's **byte content** (base64) via `ctx.files.getContent(tripId, fileId)` | Membership-checked; 10MB cap, trashed files refused. Deliberately split from `db:read:files` — listing metadata never exposes contents. |
 | `db:read:costs` | Read-only costs (budget items) via `ctx.costs` (`getByTrip`, `listMine`) | Membership-checked; needs the Costs addon enabled. |
+| `db:read:collab` | Read a trip's collab notes, polls and chat via `ctx.collab` (`listNotes`, `listPolls`, `listMessages`) | Membership-checked; needs the Collab addon. `listMessages` returns the newest 100 (oldest first), `before` pages back. |
 | `db:read:journal` | The acting user's own travel journals via `ctx.journal.listMine` | User-scoped (across all their trips); needs the Journey addon. |
 | `db:read:atlas` | The acting user's visited countries + regions via `ctx.atlas.visited` | User-scoped; needs the Atlas addon. |
 | `db:read:vacay` | The acting user's vacation plan via `ctx.vacay.mine` | User-scoped; needs the Vacay addon. |
@@ -25,11 +27,13 @@ ungranted capability is physically unreachable**, not just disallowed. See
 | `db:read:tags` | The acting user's own tags via `ctx.tags.list()` | User-scoped (not trip-scoped); refuses a userless context. |
 | `db:read:todos` | A trip's to-dos via `ctx.todos.list(tripId)` | Membership-checked (trip-scoped). |
 | `weather:read` | The host's cached forecast via `ctx.weather.get(lat, lng, date?)` | Tenant-free read over the host's cache; no user needed. |
+| `rates:read` | The host's cached currency exchange rates via `ctx.rates.get(base)` | Tenant-free read over the host's cache (a quote → rate map relative to `base`); `null` on an upstream failure. |
 | `db:write:costs` | Create/update/delete costs via `ctx.costs.create` / `update` / `delete` | Trip access **+** the `budget_edit` permission **+** the Costs addon. |
 | `db:write:places` | Create/update/delete places via `ctx.places` | Trip access **+** the `place_edit` permission. Input validated against TREK's schema; every write audited. |
 | `db:write:days` | Create/update/delete days via `ctx.days` | Trip access **+** the `day_edit` permission. |
 | `db:write:itinerary` | Assign/remove places on days via `ctx.itinerary` | Trip access **+** the `day_edit` permission (it's a day edit). |
 | `db:write:trips` | Update trip details via `ctx.trips.update` | Trip access **+** `trip_edit`. Only schema-writable fields; **archiving** additionally needs `trip_archive` and **cover_image** needs `trip_cover_upload` (same split as the web UI). |
+| `db:create:trips` | Create a **new trip owned by the acting user** via `ctx.trips.create(input)` | The acting user needs the app's `trip_create` right, and a bound user is required (a job can't create one). `title` required; input validated against TREK's trip schema. Unlocks importers (Google MyMaps, booking dumps, calendar sync). |
 | `db:write:reservations` | Create/update/delete bookings via `ctx.reservations` | Trip access **+** `reservation_edit`. Full parity with the app — accommodation, budget-sync, booking notifications and `reservation:*` broadcasts all fire as they do in the web UI. Transport bookings take an `endpoints` array (from/to/stop legs with name + coordinates); on update, omitting the field keeps them, `[]` deletes them all. |
 | `db:write:accommodations` | Create/update/delete lodging blocks (`day_accommodations`) via `ctx.accommodations` | Trip access **+** `day_edit` (accommodations live in the day service — same gate as the REST path, *not* `reservation_edit`). Creating one auto-creates its partner hotel reservation; deleting cascades the linked reservation/budget row, broadcasts included. |
 | `db:write:daynotes` | Create/update/delete day notes via `ctx.daynotes` | Trip access **+** `day_edit`; broadcasts `dayNote:*`. |

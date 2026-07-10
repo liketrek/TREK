@@ -292,6 +292,10 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.events:subscribe':
     'Reageert op kernactiviteitsgebeurtenissen (alleen gebeurtenisnaam + reis, nooit de inhoud)',
   'admin.plugins.perm.http:outbound': 'Uitgaande verzoeken doen naar de opgegeven hosts',
+  'admin.plugins.perm.db:read:collab': 'Notities, peilingen en chatberichten lezen van reizen waartoe de actieve gebruiker toegang heeft (vereist de Collab-add-on)',
+  'admin.plugins.perm.db:read:files:content': 'De inhoud (bytes) van bestanden lezen van reizen waartoe de actieve gebruiker toegang heeft',
+  'admin.plugins.perm.db:create:trips': 'Nieuwe reizen aanmaken die eigendom zijn van de actieve gebruiker',
+  'admin.plugins.perm.rates:read': 'De gecachte wisselkoersen van de host lezen',
   'admin.plugins.updateConsentTitle': 'Deze update vereist nieuwe machtigingen',
   'admin.plugins.updateConsentBody':
     '{name} v{version} vraagt om rechten die je nog niet hebt verleend. De nieuwe versie is geïnstalleerd, maar blijft uit totdat je deze goedkeurt.',

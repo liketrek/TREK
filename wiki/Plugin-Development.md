@@ -186,14 +186,16 @@ declaration for readers — the manifest parser does not consume it.
 | `ctx.db` | `query(sql, …args)` / `exec(sql, …args)` / `migrate(id, sql)` against your **own** SQLite file | `db:own` |
 | `ctx.trips` | `getById` / `getPlaces` / `getReservations` / `getDays` / `getAccommodations` / `listMine()` — enumerate every trip the acting user can access (membership-checked). `getDays` includes each day's `assignments` + `notes_items`; `getReservations` includes `endpoints` + `day_positions` | `db:read:trips` |
 | `ctx.trips.update(tripId, fields)` | update trip fields (title/dates/currency/reminder_days/…) | `db:write:trips` |
+| `ctx.trips.create(input)` | create a **new trip owned by the acting user** (importers) — `title` required, plus `description?`/`start_date?`/`end_date?`/`currency?`/`reminder_days?`/`day_count?` | `db:create:trips` (+ `trip_create`) |
 | `ctx.places` | `create(tripId, fields)` / `update(tripId, placeId, fields)` / `delete(tripId, placeId)` | `db:write:places` |
 | `ctx.days` | `create(tripId, {date?, notes?})` / `update(tripId, dayId, {notes?, title?})` / `delete(tripId, dayId)` | `db:write:days` |
 | `ctx.itinerary` | `assign(tripId, dayId, placeId, notes?)` / `unassign(tripId, assignmentId)` — place↔day | `db:write:itinerary` |
 | `ctx.meta` | `get` / `set` / `list` / `delete` your **own** namespaced data on a `trip`/`place`/`day` (enrich core entities without forking the schema) | `db:meta` |
 | `ctx.packing` | `list(tripId)` — a trip's packing items (membership-checked, respects private-item visibility) | `db:read:packing` |
 | `ctx.files` | `list(tripId)` — a trip's files, trash excluded (membership-checked) | `db:read:files` |
-| `ctx.journal` | `listMine()` — the acting user's own travel journals | `db:read:journal` (+ Journey addon) |
-| `ctx.atlas` | `visited()` — the acting user's visited countries + regions | `db:read:atlas` (+ Atlas addon) |
+| `ctx.files.getContent` | `getContent(tripId, fileId)` → `{ name, mimetype, size, content_base64 }` — a file's bytes as base64 (10MB cap; trashed files refused) | `db:read:files:content` |
+| `ctx.journal` | `listMine()` — the acting user's own travel journals; `getEntries(journeyId)` — one journey's entries (photos/story/checkins, access-checked) | `db:read:journal` (+ Journey addon) |
+| `ctx.atlas` | `visited()` — the acting user's visited countries + regions; `bucketList()` — their bucket-list items | `db:read:atlas` (+ Atlas addon) |
 | `ctx.vacay` | `mine()` — the acting user's vacation plan | `db:read:vacay` (+ Vacay addon) |
 | `ctx.collections` | `listMine()` / `get(id)` — the acting user's saved-place collections | `db:read:collections` (+ Collections addon) |
 | `ctx.collections` (write) | `create(input)` / `update(id, input)` / `savePlace(input)` / `copyToTrip(input)` / `deletePlace(placeId)` — per-collection role enforced by the service | `db:write:collections` (+ Collections addon) |
@@ -201,7 +203,8 @@ declaration for readers — the manifest parser does not consume it.
 | `ctx.vacay` (write) | `toggleEntry(date)` — the acting user's own PTO day on their active plan; `toggleCompanyHoliday(date, note?)` | `db:write:vacay` (+ Vacay addon) |
 | `ctx.journal` (write) | `createEntry(journeyId, {entry_date, ...})` / `updateEntry(entryId, fields)` / `deleteEntry(entryId)` — owner/contributor-gated | `db:write:journal` (+ Journey addon) |
 | `ctx.files` (write) | `create(tripId, {name, content_base64, mimetype?, ...})` (10MB cap, blocked extensions refused) / `createLink(tripId, fileId, opts)` / `update` / `softDelete` — broadcasts `file:*` | `db:write:files` (+ the acting user's `file_upload`/`file_edit`/`file_delete`) |
-| `ctx.collab` | `createNote(tripId, {title, ...})` / `createPoll(tripId, {question, options})` / `votePoll(tripId, pollId, optionIndex)` / `createMessage(tripId, text, replyTo?)` — broadcasts `collab:*` | `db:write:collab` (+ `collab_edit`, Collab addon) |
+| `ctx.collab` | `listNotes(tripId)` / `listPolls(tripId)` / `listMessages(tripId, before?)` — a trip's notes, polls (with options + voters) and chat (newest 100, oldest first; `before` = a message id to page back), membership-checked | `db:read:collab` (+ Collab addon) |
+| `ctx.collab` (write) | `createNote(tripId, {title, ...})` / `createPoll(tripId, {question, options})` / `votePoll(tripId, pollId, optionIndex)` / `createMessage(tripId, text, replyTo?)` — broadcasts `collab:*` | `db:write:collab` (+ `collab_edit`, Collab addon) |
 | `ctx.trips.addMember` | `addMember(tripId, userId)` — **grants trip access**; its own permission, acting user recorded as inviter | `db:write:members` (+ `member_manage`) |
 | `ctx.notify` | `send({title, body, link?, scope, targetId})` — bell inbox + email/ntfy fan-out; recipient forced to the acting user (`scope:'user'`) or a trip they belong to (`scope:'trip'`) | `notify:send` |
 | `ctx.ai` | `complete(prompt, system?)` → `{ text }`; `extract(text, jsonSchema, prompt?)` → `{ results }` — the admin/user-configured provider; host holds the key; output is DATA (no auto-writes) | `ai:invoke` |
@@ -212,6 +215,7 @@ declaration for readers — the manifest parser does not consume it.
 | `ctx.packing` (write) | `create(tripId, {name, category?, checked?, is_private?, visibility?, recipient_ids?})` / `update(tripId, itemId, fields)` / `delete(tripId, itemId)` — broadcasts `packing:*`, private items (#858) stay owner-scoped | `db:write:packing` |
 | `ctx.packing` (bags) | `listBags(tripId)` / `createBag(tripId, {name, color?})` / `updateBag` / `deleteBag` / `setBagMembers(tripId, bagId, userIds)` — bags carry no privacy | `db:write:packing` |
 | `ctx.weather` | `get(lat, lng, date?)` — the host's cached forecast (tenant-free) | `weather:read` |
+| `ctx.rates` | `get(base)` → a map of quote → rate relative to `base` (e.g. `'EUR'` → `{ USD: 1.08, … }`; cached upstream, tenant-free); `null` on an upstream failure | `rates:read` |
 | `ctx.categories` | `list()` — the global place-category list | `db:read:categories` |
 | `ctx.tags` | `list()` / `create({name, color?})` / `update(tagId, fields)` / `delete(tagId)` — the acting user's own tags | `db:read:tags` / `db:write:tags` |
 | `ctx.trips.members` | `members(tripId)` — the trip roster (id + display fields), membership-checked | `db:read:trips` |

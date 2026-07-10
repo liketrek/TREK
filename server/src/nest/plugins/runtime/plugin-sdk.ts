@@ -43,6 +43,8 @@ export interface PluginContext {
     listMine(): Promise<unknown[]>;
     /** Update trip fields (title/dates/currency/reminder_days/...); needs 'db:write:trips' + the acting user's 'trip_edit' permission. */
     update(tripId: number, input: Record<string, unknown>): Promise<unknown>;
+    /** Create a new trip owned by the acting user (importers). `title` required. Needs 'db:create:trips' + the acting user's 'trip_create'. */
+    create(input: { title: string; description?: string; start_date?: string; end_date?: string; currency?: string; reminder_days?: number; day_count?: number }): Promise<unknown>;
     /** The trip's member roster (id + display fields only). Membership-checked. Needs 'db:read:trips'. */
     members(tripId: number): Promise<unknown[]>;
     /** Add a user to a trip (GRANTS ACCESS — its own permission). Needs 'db:write:members' + the acting user's 'member_manage'. */
@@ -95,6 +97,8 @@ export interface PluginContext {
   files: {
     /** A trip's files, trash excluded. Needs 'db:read:files'. */
     list(tripId: number): Promise<unknown[]>;
+    /** A file's bytes as base64 (10MB cap; trashed files refused). Needs 'db:read:files:content'. Returns { name, mimetype, size, content_base64 }. */
+    getContent(tripId: number, fileId: number): Promise<{ name: string; mimetype: string; size: number; content_base64: string }>;
     /** Store base64 content as a trip file (10MB cap, blocked extensions refused). Needs 'db:write:files' + 'file_upload'. */
     create(tripId: number, input: { name: string; content_base64: string; mimetype?: string; description?: string; place_id?: number; reservation_id?: number }): Promise<unknown>;
     /** Link an existing file to a same-trip reservation/place/assignment. Needs 'db:write:files' + 'file_edit'. */
@@ -104,8 +108,14 @@ export interface PluginContext {
     /** Move a file to the trash. Needs 'db:write:files' + 'file_delete'. */
     softDelete(tripId: number, fileId: number): Promise<{ deleted: boolean }>;
   };
-  /** Collab content (notes/polls/chat). Needs 'db:write:collab' + the acting user's 'collab_edit' (+ Collab addon). */
+  /** Collab content (notes/polls/chat). Reads need 'db:read:collab'; writes need 'db:write:collab' + the acting user's 'collab_edit'. Both need the Collab addon. */
   collab: {
+    /** A trip's collab notes (hydrated with author + attachments). Needs 'db:read:collab'. */
+    listNotes(tripId: number): Promise<unknown[]>;
+    /** A trip's polls (with options + voters). Needs 'db:read:collab'. */
+    listPolls(tripId: number): Promise<unknown[]>;
+    /** A trip's chat messages (newest 100, oldest first; `before` = a message id to page back). Needs 'db:read:collab'. */
+    listMessages(tripId: number, before?: number): Promise<unknown[]>;
     createNote(tripId: number, input: { title: string; content?: string; category?: string; color?: string; website?: string; pinned?: boolean }): Promise<unknown>;
     createPoll(tripId: number, input: { question: string; options: unknown[]; multiple?: boolean; deadline?: string }): Promise<unknown>;
     votePoll(tripId: number, pollId: number, optionIndex: number): Promise<unknown>;
@@ -135,6 +145,11 @@ export interface PluginContext {
   weather: {
     get(lat: number, lng: number, date?: string): Promise<unknown>;
   };
+  /** Exchange rates (tenant-free, cached upstream). Needs 'rates:read'. */
+  rates: {
+    /** A map of quote → rate relative to `base` (e.g. base 'EUR' → { USD: 1.08, ... }). `null` on an upstream failure. */
+    get(base: string): Promise<Record<string, number> | null>;
+  };
   /** The global place-category reference list (read-only). Needs 'db:read:categories'. */
   categories: {
     list(): Promise<unknown[]>;
@@ -158,6 +173,8 @@ export interface PluginContext {
   journal: {
     /** The acting user's journals. Needs 'db:read:journal' + the journey addon. */
     listMine(): Promise<unknown[]>;
+    /** The entries of one of the acting user's journeys (photos/story/checkins), access-checked. Needs 'db:read:journal'. */
+    getEntries(journeyId: number): Promise<unknown[]>;
     /** Create an entry on a journey the acting user can edit. Needs 'db:write:journal'. */
     createEntry(journeyId: number, input: { entry_date: string; [k: string]: unknown }): Promise<unknown>;
     /** Update an entry (owner/contributor-gated). Needs 'db:write:journal'. */
@@ -168,6 +185,8 @@ export interface PluginContext {
   atlas: {
     /** The acting user's visited countries + regions. Needs 'db:read:atlas' + the atlas addon. */
     visited(): Promise<{ countries: unknown[]; regions: unknown[] }>;
+    /** The acting user's bucket-list items. Needs 'db:read:atlas'. */
+    bucketList(): Promise<unknown[]>;
     /** Mark/unmark the ACTING USER's own visited countries/regions + bucket list. Needs 'db:write:atlas'. */
     markCountry(code: string): Promise<unknown>;
     unmarkCountry(code: string): Promise<unknown>;
@@ -499,6 +518,7 @@ export function createPluginContext(
       getAccommodations: (tripId) => t.rpc('trips.getAccommodations', { tripId, _inv: invocationId }) as Promise<unknown[]>,
       listMine: () => t.rpc('trips.listMine', { _inv: invocationId }) as Promise<unknown[]>,
       update: (tripId, input) => t.rpc('trips.update', { tripId, input, _inv: invocationId }),
+      create: (input) => t.rpc('trips.create', { input, _inv: invocationId }),
       members: (tripId) => t.rpc('trips.members', { tripId, _inv: invocationId }) as Promise<unknown[]>,
       addMember: (tripId, userId) => t.rpc('trips.addMember', { tripId, userId, _inv: invocationId }) as Promise<{ joined: boolean; tripId: number }>,
     },
@@ -526,12 +546,16 @@ export function createPluginContext(
     },
     files: {
       list: (tripId) => t.rpc('files.list', { tripId, _inv: invocationId }) as Promise<unknown[]>,
+      getContent: (tripId, fileId) => t.rpc('files.getContent', { tripId, fileId, _inv: invocationId }) as Promise<{ name: string; mimetype: string; size: number; content_base64: string }>,
       create: (tripId, input) => t.rpc('files.create', { tripId, input, _inv: invocationId }),
       createLink: (tripId, fileId, opts) => t.rpc('files.createLink', { tripId, fileId, opts, _inv: invocationId }),
       update: (tripId, fileId, input) => t.rpc('files.update', { tripId, fileId, input, _inv: invocationId }),
       softDelete: (tripId, fileId) => t.rpc('files.softDelete', { tripId, fileId, _inv: invocationId }) as Promise<{ deleted: boolean }>,
     },
     collab: {
+      listNotes: (tripId) => t.rpc('collab.listNotes', { tripId, _inv: invocationId }) as Promise<unknown[]>,
+      listPolls: (tripId) => t.rpc('collab.listPolls', { tripId, _inv: invocationId }) as Promise<unknown[]>,
+      listMessages: (tripId, before) => t.rpc('collab.listMessages', { tripId, before, _inv: invocationId }) as Promise<unknown[]>,
       createNote: (tripId, input) => t.rpc('collab.createNote', { tripId, input, _inv: invocationId }),
       createPoll: (tripId, input) => t.rpc('collab.createPoll', { tripId, input, _inv: invocationId }),
       votePoll: (tripId, pollId, optionIndex) => t.rpc('collab.votePoll', { tripId, pollId, optionIndex, _inv: invocationId }),
@@ -550,6 +574,9 @@ export function createPluginContext(
     weather: {
       get: (lat, lng, date) => t.rpc('weather.get', { lat, lng, date, _inv: invocationId }),
     },
+    rates: {
+      get: (base) => t.rpc('rates.get', { base, _inv: invocationId }) as Promise<Record<string, number> | null>,
+    },
     categories: {
       list: () => t.rpc('categories.list', { _inv: invocationId }) as Promise<unknown[]>,
     },
@@ -567,12 +594,14 @@ export function createPluginContext(
     },
     journal: {
       listMine: () => t.rpc('journal.listMine', { _inv: invocationId }) as Promise<unknown[]>,
+      getEntries: (journeyId) => t.rpc('journal.getEntries', { journeyId, _inv: invocationId }) as Promise<unknown[]>,
       createEntry: (journeyId, input) => t.rpc('journal.createEntry', { journeyId, input, _inv: invocationId }),
       updateEntry: (entryId, input) => t.rpc('journal.updateEntry', { entryId, input, _inv: invocationId }),
       deleteEntry: (entryId) => t.rpc('journal.deleteEntry', { entryId, _inv: invocationId }) as Promise<{ deleted: boolean }>,
     },
     atlas: {
       visited: () => t.rpc('atlas.visited', { _inv: invocationId }) as Promise<{ countries: unknown[]; regions: unknown[] }>,
+      bucketList: () => t.rpc('atlas.bucketList', { _inv: invocationId }) as Promise<unknown[]>,
       markCountry: (code) => t.rpc('atlas.markCountry', { code, _inv: invocationId }),
       unmarkCountry: (code) => t.rpc('atlas.unmarkCountry', { code, _inv: invocationId }),
       markRegion: (regionCode, countryCode, regionName) => t.rpc('atlas.markRegion', { regionCode, countryCode, regionName, _inv: invocationId }),

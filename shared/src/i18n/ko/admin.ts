@@ -319,6 +319,10 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:journal-entry-provider': '저널 항목에 추가 행(링크, 통계) 제공',
   'admin.plugins.perm.events:subscribe': '핵심 활동 이벤트에 반응 (이벤트 이름과 여행만, 내용은 절대 표시 안 함)',
   'admin.plugins.perm.http:outbound': '선언된 호스트로 아웃바운드 요청 전송',
+  'admin.plugins.perm.db:read:collab': '현재 사용자가 접근할 수 있는 여행의 메모, 투표 및 채팅 메시지 읽기(Collab 애드온 필요)',
+  'admin.plugins.perm.db:read:files:content': '현재 사용자가 접근할 수 있는 여행의 파일 내용(바이트) 읽기',
+  'admin.plugins.perm.db:create:trips': '현재 사용자 소유의 새 여행 만들기',
+  'admin.plugins.perm.rates:read': '호스트의 캐시된 환율 읽기',
   'admin.plugins.updateConsentTitle': '이 업데이트에는 새로운 권한이 필요합니다',
   'admin.plugins.updateConsentBody':
     '{name} v{version}이(가) 아직 부여하지 않은 권한을 요청합니다. 새 버전은 설치되었지만 승인하기 전까지는 꺼진 상태로 유지됩니다.',

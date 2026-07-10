@@ -68,6 +68,13 @@ describe('validateManifest', () => {
     expect(r.ok).toBe(true);
     expect(r.manifest?.permissions).toEqual(permissions);
   });
+  it('accepts the read-symmetry + broker permissions (collab, file content, trip create, rates)', () => {
+    const permissions = ['db:read:collab', 'db:create:trips', 'rates:read', 'db:read:files:content'];
+    const r = validateManifest({ ...base, permissions });
+    expect(r.errors).toEqual([]);
+    expect(r.ok).toBe(true);
+    expect(r.manifest?.permissions).toEqual(permissions);
+  });
   it('validates tripPage: replaceable tabs only (never plan), position 0-50', () => {
     const page = { ...base, type: 'trip-page' };
     expect(validateManifest({ ...page, capabilities: { tripPage: { replaces: ['transports', 'buchungen'], position: 1 } } }).ok).toBe(true);
@@ -184,6 +191,31 @@ describe('createMockHost', () => {
     // ungranted read stays refused
     const ungranted = createMockHost({ grants: [], actingUserId: 42, trips: { 1: { members: [42] } } });
     await expect(ungranted.ctx.trips.getDays(1)).rejects.toThrow(/PERMISSION_DENIED/);
+  });
+
+  it('creates a trip for the acting user and serves rates + collab reads against the grants', async () => {
+    const { ctx } = createMockHost({
+      grants: ['db:create:trips', 'rates:read', 'db:read:collab'],
+      actingUserId: 42,
+      trips: { 1: { members: [42], notes: [{ id: 1, title: 'Museum tips' }] } },
+      ratesResult: { USD: 1.08, GBP: 0.85 },
+    });
+    expect(await ctx.trips.create({ title: 'Japan 2027', currency: 'JPY' })).toMatchObject({ title: 'Japan 2027', user_id: 42 });
+    expect(await ctx.collab.listNotes(1)).toEqual([{ id: 1, title: 'Museum tips' }]);
+    expect(await ctx.rates.get('EUR')).toEqual({ USD: 1.08, GBP: 0.85 });
+    // ungranted capability (file content) stays refused
+    await expect(ctx.files.getContent(1, 1)).rejects.toThrow(/PERMISSION_DENIED/);
+  });
+
+  it('serves file bytes via files.getContent under db:read:files:content', async () => {
+    const content = Buffer.from('voucher bytes').toString('base64');
+    const { ctx } = createMockHost({
+      grants: ['db:read:files:content'],
+      actingUserId: 42,
+      trips: { 1: { members: [42], files: [{ id: 3, name: 'voucher.pdf', mimetype: 'application/pdf', content_base64: content }] } },
+    });
+    expect(await ctx.files.getContent(1, 3)).toEqual({ name: 'voucher.pdf', mimetype: 'application/pdf', size: 13, content_base64: content });
+    await expect(ctx.files.getContent(1, 99)).rejects.toThrow(/RESOURCE_FORBIDDEN/);
   });
 
   it('refuses costs when the permission is missing or the addon is disabled', async () => {

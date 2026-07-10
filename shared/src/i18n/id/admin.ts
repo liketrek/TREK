@@ -337,6 +337,10 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.events:subscribe':
     'Bereaksi terhadap peristiwa aktivitas inti (hanya nama peristiwa + perjalanan, tidak pernah kontennya)',
   'admin.plugins.perm.http:outbound': 'Membuat permintaan keluar ke host yang telah dideklarasikannya',
+  'admin.plugins.perm.db:read:collab': 'Membaca catatan, jajak pendapat, dan pesan obrolan dari perjalanan yang dapat diakses oleh pengguna yang bersangkutan (memerlukan add-on Collab)',
+  'admin.plugins.perm.db:read:files:content': 'Membaca isi (byte) berkas dari perjalanan yang dapat diakses oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.db:create:trips': 'Membuat perjalanan baru milik pengguna yang bersangkutan',
+  'admin.plugins.perm.rates:read': 'Membaca kurs mata uang host yang di-cache',
   'admin.plugins.updateConsentTitle': 'Pembaruan ini memerlukan izin baru',
   'admin.plugins.updateConsentBody':
     '{name} v{version} meminta hak akses yang belum kamu berikan. Versi baru sudah terpasang tetapi tetap nonaktif sampai kamu menyetujuinya.',

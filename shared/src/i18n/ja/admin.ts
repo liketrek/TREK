@@ -315,6 +315,10 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.events:subscribe':
     'コアのアクティビティイベントに反応（イベント名と旅程のみで、内容には一切アクセスしません）',
   'admin.plugins.perm.http:outbound': '宣言済みホストへの外部リクエストの送信',
+  'admin.plugins.perm.db:read:collab': '操作中のユーザーがアクセスできる旅行のメモ・アンケート・チャットメッセージの読み取り（Collab アドオンが必要）',
+  'admin.plugins.perm.db:read:files:content': '操作中のユーザーがアクセスできる旅行のファイル内容（バイト）の読み取り',
+  'admin.plugins.perm.db:create:trips': '操作中のユーザーが所有する新しい旅行の作成',
+  'admin.plugins.perm.rates:read': 'ホストのキャッシュされた為替レートを読み取る',
   'admin.plugins.updateConsentTitle': 'このアップデートには新しい権限が必要です',
   'admin.plugins.updateConsentBody':
     '{name} v{version} は、まだ許可していない権限を要求しています。新しいバージョンはインストール済みですが、承認するまで無効のままです。',

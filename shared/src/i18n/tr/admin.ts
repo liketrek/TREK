@@ -335,6 +335,10 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.events:subscribe':
     'Temel etkinlik olaylarına tepki verir (yalnızca olay adı + seyahat, asla içerik değil)',
   'admin.plugins.perm.http:outbound': 'Bildirdiği ana bilgisayarlara giden istekler yapar',
+  'admin.plugins.perm.db:read:collab': 'İşlemi yapan kullanıcının erişebildiği seyahatlerin notlarını, anketlerini ve sohbet mesajlarını okur (Collab eklentisi gerektirir)',
+  'admin.plugins.perm.db:read:files:content': 'İşlemi yapan kullanıcının erişebildiği seyahatlerdeki dosyaların içeriğini (baytlar) okur',
+  'admin.plugins.perm.db:create:trips': 'İşlemi yapan kullanıcıya ait yeni seyahatler oluşturur',
+  'admin.plugins.perm.rates:read': 'Ana makinenin önbelleğe alınmış döviz kurlarını okur',
   'admin.plugins.updateConsentTitle': 'Bu güncelleme yeni izinler gerektiriyor',
   'admin.plugins.updateConsentBody':
     '{name} v{version}, henüz vermediğiniz haklar istiyor. Yeni sürüm yüklendi ancak siz onaylayana kadar kapalı kalır.',

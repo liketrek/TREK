@@ -275,6 +275,10 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:journal-entry-provider': '向日志条目添加额外行（链接、统计）',
   'admin.plugins.perm.events:subscribe': '响应核心活动事件（仅事件名称和行程，绝不包含内容）',
   'admin.plugins.perm.http:outbound': '向其声明的主机发出出站请求',
+  'admin.plugins.perm.db:read:collab': '读取当前用户可访问的旅行的笔记、投票和聊天消息（需要 Collab 插件）',
+  'admin.plugins.perm.db:read:files:content': '读取当前用户可访问的旅行的文件内容（字节）',
+  'admin.plugins.perm.db:create:trips': '创建归当前用户所有的新旅行',
+  'admin.plugins.perm.rates:read': '读取主机缓存的货币汇率',
   'admin.plugins.updateConsentTitle': '此次更新需要新的权限',
   'admin.plugins.updateConsentBody':
     '{name} v{version} 请求了你尚未授予的权限。新版本已安装，但在你批准之前将保持关闭。',

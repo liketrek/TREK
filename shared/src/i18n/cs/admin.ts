@@ -288,6 +288,10 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.events:subscribe':
     'Reagovat na základní události aktivity (pouze název události a cesta, nikdy obsah)',
   'admin.plugins.perm.http:outbound': 'Odesílat odchozí požadavky na deklarované hostitele',
+  'admin.plugins.perm.db:read:collab': 'Číst poznámky, ankety a zprávy chatu cest, ke kterým má aktuální uživatel přístup (vyžaduje doplněk Collab)',
+  'admin.plugins.perm.db:read:files:content': 'Číst obsah (bajty) souborů cest, ke kterým má aktuální uživatel přístup',
+  'admin.plugins.perm.db:create:trips': 'Vytvářet nové cesty vlastněné aktuálním uživatelem',
+  'admin.plugins.perm.rates:read': 'Číst hostitelem uložené směnné kurzy měn',
   'admin.plugins.updateConsentTitle': 'Tato aktualizace vyžaduje nová oprávnění',
   'admin.plugins.updateConsentBody':
     '{name} v{version} žádá o oprávnění, která jste zatím neudělili. Nová verze je nainstalována, ale zůstane vypnutá, dokud ji neschválíte.',

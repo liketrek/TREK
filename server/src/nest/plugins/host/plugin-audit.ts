@@ -30,6 +30,7 @@ export interface AuditEntry {
 
 /** The methods worth auditing: core-data reads + broadcasts, not own-db noise. */
 export function auditResource(method: string, params: Record<string, unknown>): string | null {
+  if (method === 'trips.create') return 'trips:new';
   if (method === 'trips.listMine') return 'trips:all';
   if (method === 'reservations.listMine') return 'reservations:all';
   if (method.startsWith('trips.') || method.startsWith('reservations.') || method.startsWith('accommodations.')) return `trip:${params.tripId ?? '?'}`;
@@ -49,6 +50,7 @@ export function auditResource(method: string, params: Record<string, unknown>): 
   if (method.startsWith('collab.')) return `trip:${params.tripId ?? '?'}`;
   if (method.startsWith('todos.')) return `trip:${params.tripId ?? '?'}`;
   if (method === 'weather.get') return 'weather:global';
+  if (method === 'rates.get') return 'rates:global';
   if (method === 'categories.list') return 'categories:all';
   if (method.startsWith('tags.')) return 'tags:own';
   if (method.startsWith('meta.')) return `${params.entityType ?? '?'}:${params.entityId ?? '?'}`;
