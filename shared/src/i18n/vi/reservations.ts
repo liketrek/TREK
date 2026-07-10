@@ -38,7 +38,7 @@ const reservations: TranslationStrings = {
   'reservations.meta.trainNumber': 'Số tàu',
   'reservations.meta.platform': 'Sân ga',
   'reservations.meta.seat': 'Ghế',
-  'reservations.meta.checkIn': 'Đăng ký vào',
+  'reservations.meta.checkIn': 'Nhận phòng',
   'reservations.meta.checkInUntil': 'Nhận phòng cho đến khi',
   'reservations.meta.checkOut': 'Trả phòng',
   'reservations.meta.linkAccommodation': 'Chỗ ở',
