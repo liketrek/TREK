@@ -61,6 +61,13 @@ describe('validateManifest', () => {
     expect(validateManifest({ ...base, nativeModules: true }).ok).toBe(false);
     expect(validateManifest('nope').ok).toBe(false);
   });
+  it('accepts the newer host permissions (writes, notify, map-marker hook)', () => {
+    const permissions = ['db:write:reservations', 'db:write:accommodations', 'notify:send', 'hook:map-marker-provider'];
+    const r = validateManifest({ ...base, permissions });
+    expect(r.errors).toEqual([]);
+    expect(r.ok).toBe(true);
+    expect(r.manifest?.permissions).toEqual(permissions);
+  });
 });
 
 describe('createMockHost', () => {
@@ -148,6 +155,28 @@ describe('createMockHost', () => {
     expect(await ctx.meta.get('trip', 1, 'rating')).toBe(null);
     const ungranted = createMockHost({ grants: [], actingUserId: 42, trips: { 1: { members: [42] } } });
     await expect(ungranted.ctx.meta.get('trip', 1, 'x')).rejects.toThrow(/PERMISSION_DENIED/);
+  });
+
+  it('serves days + accommodations from the trip fixture and creates lodging blocks', async () => {
+    const { ctx } = createMockHost({
+      grants: ['db:read:trips', 'db:write:accommodations'],
+      actingUserId: 42,
+      trips: {
+        1: {
+          members: [42],
+          days: [{ id: 1, date: '2026-07-01' }, { id: 2, date: '2026-07-02' }],
+          accommodations: [{ id: 9, place_id: 3, start_day_id: 1, end_day_id: 2 }],
+        },
+      },
+    });
+    expect(await ctx.trips.getDays(1)).toEqual([{ id: 1, date: '2026-07-01' }, { id: 2, date: '2026-07-02' }]);
+    expect(await ctx.trips.getAccommodations(1)).toHaveLength(1);
+    const created = await ctx.accommodations.create(1, { place_id: 7, start_day_id: 1, end_day_id: 2 });
+    expect(created).toMatchObject({ trip_id: 1, place_id: 7 });
+    expect(await ctx.trips.getAccommodations(1)).toHaveLength(2);
+    // ungranted read stays refused
+    const ungranted = createMockHost({ grants: [], actingUserId: 42, trips: { 1: { members: [42] } } });
+    await expect(ungranted.ctx.trips.getDays(1)).rejects.toThrow(/PERMISSION_DENIED/);
   });
 
   it('refuses costs when the permission is missing or the addon is disabled', async () => {

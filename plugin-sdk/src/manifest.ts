@@ -46,12 +46,23 @@ export const KNOWN_ADDONS = [
 // no spaces (mirrors the server manifest validator).
 const HOST_RE = /^(\*\.[a-z0-9-]+(\.[a-z0-9-]+)+|[a-z0-9-]+(\.[a-z0-9-]+)*)$/i;
 const TYPES = ['integration', 'page', 'widget', 'trip-page'];
+// Mirror of the server's KNOWN_PERMISSIONS (server envelope.ts) — the host hard-rejects
+// anything not in this list at activation, so validate must know the full set.
 const KNOWN_PERMISSIONS = [
-  'db:own', 'db:read:trips', 'db:read:users', 'db:read:costs', 'db:read:packing', 'db:read:files', 'db:write:costs',
-  'db:write:places', 'db:write:days', 'db:write:itinerary', 'db:write:trips',
+  'db:own',
+  'db:read:trips', 'db:read:users', 'db:read:costs', 'db:read:packing', 'db:read:files',
+  'db:read:journal', 'db:read:atlas', 'db:read:vacay', 'db:read:daynotes', 'db:read:collections',
+  'db:read:categories', 'db:read:tags', 'db:read:todos',
+  'db:write:costs', 'db:write:places', 'db:write:days', 'db:write:itinerary', 'db:write:trips',
+  'db:write:reservations', 'db:write:accommodations', 'db:write:packing', 'db:write:files',
+  'db:write:collab', 'db:write:members', 'db:write:collections', 'db:write:atlas', 'db:write:vacay',
+  'db:write:journal', 'db:write:tags', 'db:write:todos', 'db:write:daynotes',
   'db:meta',
   'ws:broadcast:trip', 'ws:broadcast:user',
-  'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider', 'hook:trip-warning-provider', 'events:subscribe', 'http:outbound',
+  'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider', 'hook:trip-warning-provider',
+  'hook:table-contributor', 'hook:map-marker-provider',
+  'events:subscribe', 'jobs:run', 'http:outbound',
+  'weather:read', 'notify:send', 'ai:invoke', 'oauth:client',
 ];
 
 function isKnownPermission(p: string): boolean {
@@ -91,8 +102,8 @@ export function validateManifest(raw: unknown): ValidationResult {
 
   const capabilities = (m.capabilities ?? undefined) as { widget?: { slot?: unknown }; provides?: unknown; emits?: unknown } | undefined;
   const widget = capabilities?.widget;
-  if (widget?.slot !== undefined && widget.slot !== 'sidebar' && widget.slot !== 'hero' && widget.slot !== 'place-detail') {
-    errors.push(`widget slot must be "sidebar", "hero" or "place-detail", got "${String(widget.slot)}"`);
+  if (widget?.slot !== undefined && widget.slot !== 'sidebar' && widget.slot !== 'hero' && widget.slot !== 'place-detail' && widget.slot !== 'day-detail') {
+    errors.push(`widget slot must be "sidebar", "hero", "place-detail" or "day-detail", got "${String(widget.slot)}"`);
   }
   validateCapabilityNames(capabilities?.provides, 'provides', errors);
   validateCapabilityNames(capabilities?.emits, 'emits', errors);
