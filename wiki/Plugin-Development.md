@@ -275,9 +275,15 @@ verify the provider's signature over the raw body against a secret you hold in
 
 The iframe is served same-origin from `/plugin-frame/<id>/…` but sandboxed
 **without `allow-same-origin`**, so it runs at an **opaque origin**: it can't read
-cookies or the parent DOM, and the CSP forbids external `<link>`/`<script src>` — so
-**everything must be inlined** into your `index.html`. It talks to TREK only via
-`postMessage` (target origin must be `'*'` — an opaque frame has no nameable origin).
+cookies or the parent DOM. It talks to TREK only via `postMessage` (target origin
+must be `'*'` — an opaque frame has no nameable origin).
+
+Your whole `client/` directory is served (and shipped by `pack`) — not just
+`index.html`. The frame CSP allows the plugin its **own** static files (and nothing
+from any other host), so a **multi-file build works as-is**: point a bundler at
+`client/` and use **relative asset paths** (Vite: `base: './'`), drop the output in,
+done. That includes React/Vue/Svelte builds — no more inlining the bundle into
+`index.html` (inline still works, and is what the design-kit marker does).
 
 ### The design kit (recommended)
 
@@ -431,8 +437,10 @@ window.parent.postMessage({ type: 'trek:invoke', requestId: '1', sub: '/status',
 | `trek:event` | `{ event, tripId }` — a core event fired on the trip in view; **names only, never payloads** — refetch what you need via `trek:invoke` |
 
 The frame's CSP is locked down per plugin: `default-src 'none'`, own inline
-scripts/styles only, `connect-src` limited to the hosts you were **granted** via
-`http:outbound:<host>` permissions (not merely the `egress[]` you declared), no popups.
+scripts/styles + the plugin's **own** `/plugin-frame/<id>/` files only (no other
+host may serve it script/style/img), `connect-src` limited to the hosts you were
+**granted** via `http:outbound:<host>` permissions (not merely the `egress[]` you
+declared), no popups.
 
 ### The context payload
 

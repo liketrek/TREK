@@ -61,30 +61,42 @@ export class PluginFrameController {
     const ext = path.extname(resolved).toLowerCase();
     res.setHeader('Content-Type', MIME[ext] ?? 'application/octet-stream');
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Content-Security-Policy', this.frameCsp(pluginId));
+    res.setHeader('Content-Security-Policy', this.frameCsp(pluginId, req.get('host')));
     res.sendFile(resolved);
   }
 
   /** Per-plugin, locked-down CSP for the sandboxed frame document. */
-  private frameCsp(pluginId: string): string {
+  private frameCsp(pluginId: string, host: string | undefined): string {
     // Defense in depth: the manifest validator already constrains these hosts, but
     // never interpolate anything that isn't a clean host/wildcard into connect-src
     // (a stray space or `*` would inject an extra CSP source token).
     const outbound = this.runtime
       .outboundHostsOf(pluginId)
       .filter((h) => /^(\*\.[a-z0-9-]+(\.[a-z0-9-]+)+|[a-z0-9-]+(\.[a-z0-9-]+)*)$/i.test(h));
+    // The frame runs at an OPAQUE origin (sandbox without allow-same-origin), so
+    // 'self' matches nothing and the plugin's own <script src>/<link> files would
+    // be blocked — a multi-file client build (Vite/React output) only worked
+    // inlined. A scheme-less host-source pinned to THIS plugin's frame path
+    // re-allows exactly its own assets and still no other host. Both interpolated
+    // parts are charset-checked so a stray token can't widen the policy (the
+    // Host header is client-controlled; a forged one only lames the forger's own
+    // response), and a missing/odd Host just falls back to inline-only.
+    const ownAssets =
+      host && /^[a-z0-9.-]+(:\d+)?$/i.test(host) && /^[a-z][a-z0-9-]{2,39}$/.test(pluginId)
+        ? ` ${host}/plugin-frame/${pluginId}/`
+        : '';
     const connect = ["'self'", ...outbound.map((h) => `https://${h}`)].join(' ');
     return [
       "default-src 'none'",
-      // The frame runs at an OPAQUE origin (sandbox without allow-same-origin),
-      // so 'self' matches nothing — inline is the only way its own script can run.
-      // Safe here: the sandbox (not this script-src) is the isolation boundary,
-      // and the plugin author controls the frame's code either way.
-      "script-src 'self' 'unsafe-inline'",
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob:",
-      "font-src 'self' data:",
-      `connect-src ${connect}`,
+      // 'unsafe-inline' is safe here: the sandbox (not this script-src) is the
+      // isolation boundary, and the plugin author controls the frame's code
+      // either way. What script-src must keep doing is denying REMOTE hosts —
+      // a script URL is an egress channel connect-src never sees.
+      `script-src 'self' 'unsafe-inline'${ownAssets}`,
+      `style-src 'self' 'unsafe-inline'${ownAssets}`,
+      `img-src 'self' data: blob:${ownAssets}`,
+      `font-src 'self' data:${ownAssets}`,
+      `connect-src ${connect}${ownAssets}`,
       "frame-ancestors 'self'",
       "base-uri 'none'",
       "form-action 'self'",
