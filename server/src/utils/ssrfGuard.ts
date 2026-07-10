@@ -101,10 +101,19 @@ export async function checkSsrf(rawUrl: string, bypassInternalIpAllowed: boolean
   return { allowed: true, isPrivate: false, resolvedIp };
 }
 
-/** Link-local / cloud-metadata range (169.254.0.0/16, fe80::/10) — never a legit host. */
+/** Link-local / cloud-metadata addresses — never a legitimate model host. */
 function isLinkLocal(ip: string): boolean {
-  const addr = ip.startsWith('[') ? ip.slice(1, -1) : ip;
-  return addr.startsWith('169.254.') || /^fe80:/i.test(addr) || /^::ffff:169\.254\./i.test(addr);
+  const addr = (ip.startsWith('[') ? ip.slice(1, -1) : ip).toLowerCase();
+  // IPv4 link-local — AWS, GCP, Azure and OpenStack all serve credentials from 169.254.169.254.
+  if (addr.startsWith('169.254.')) return true;
+  // IPv4-mapped (::ffff:169.254.x) and IPv4-compatible (::a9fe:xxxx = ::169.254.x) spellings.
+  if (/^::ffff:169\.254\./.test(addr) || /^::(ffff:)?a9fe:/.test(addr)) return true;
+  // IPv6 link-local fe80::/10 — the whole range (fe80: … febf:), not just the fe80: prefix.
+  if (/^fe[89ab][0-9a-f]:/.test(addr)) return true;
+  // AWS IMDSv6 sits in a fixed ULA slot; block it specifically while leaving the rest of
+  // fc00::/7 reachable (a self-hosted model server may legitimately sit on a ULA address).
+  if (addr === 'fd00:ec2::254' || addr.startsWith('fd00:ec2:')) return true;
+  return false;
 }
 
 /**

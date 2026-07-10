@@ -1,12 +1,13 @@
 import { Injectable, HttpException } from '@nestjs/common';
+import { safeFetchLlm } from '../../utils/ssrfGuard';
 
 /**
  * Admin helpers for managing a local OpenAI-compatible LLM server (Ollama).
  * Talks to Ollama's *management* API (`/api/tags`, `/api/pull`), which lives at
  * the server root — not the `/v1` OpenAI-compatible path the extraction client
- * uses. Admin-only (guarded at the controller); the base URL is admin-supplied
- * and typically points at a localhost Ollama, so SSRF guarding is intentionally
- * not applied (it would block localhost) — we only validate the protocol.
+ * uses. Admin-only (guarded at the controller); the base URL is admin-supplied.
+ * Requests go through safeFetchLlm, which still allows a localhost/LAN Ollama but
+ * blocks the link-local / cloud-metadata range.
  */
 @Injectable()
 export class LlmLocalService {
@@ -30,7 +31,7 @@ export class LlmLocalService {
     const root = this.ollamaRoot(baseUrl);
     let res: Response;
     try {
-      res = await fetch(`${root}/api/tags`, { signal: AbortSignal.timeout(10_000) });
+      res = await safeFetchLlm(`${root}/api/tags`, { signal: AbortSignal.timeout(10_000) });
     } catch {
       throw new HttpException({ error: `Could not reach local LLM server at ${root}` }, 502);
     }
@@ -49,7 +50,7 @@ export class LlmLocalService {
     const root = this.ollamaRoot(baseUrl);
     let res: Response;
     try {
-      res = await fetch(`${root}/api/pull`, {
+      res = await safeFetchLlm(`${root}/api/pull`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ model: model.trim(), stream: true }),

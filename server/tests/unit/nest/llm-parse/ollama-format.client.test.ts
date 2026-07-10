@@ -1,10 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// The client goes through safeFetchLlm (SSRF guard: blocks the cloud-metadata
+// range, allows a local/LAN Ollama). Mock it so the tests never do a real DNS
+// lookup; its (url, init) signature matches the raw fetch it wraps, so the
+// recorded-call assertions are unchanged.
+const { safeFetchLlmMock } = vi.hoisted(() => ({ safeFetchLlmMock: vi.fn() }));
+vi.mock('../../../../src/utils/ssrfGuard', () => ({ safeFetchLlm: safeFetchLlmMock }));
+
 import { toNativeBase, extractEnforced } from '../../../../src/nest/llm-parse/router/ollama-format.client';
 
 function mockFetch(impl: (url: string, init: RequestInit) => Promise<Response> | Response) {
-  const fn = vi.fn(impl as unknown as typeof fetch);
-  vi.stubGlobal('fetch', fn);
-  return fn;
+  safeFetchLlmMock.mockImplementation(impl as unknown as typeof fetch);
+  return safeFetchLlmMock;
 }
 
 function jsonResponse(body: unknown, ok = true, status = 200): Response {
@@ -19,7 +26,7 @@ const INPUT = {
   schema: { type: 'object' as const },
 };
 
-beforeEach(() => vi.unstubAllGlobals());
+beforeEach(() => safeFetchLlmMock.mockReset());
 
 describe('toNativeBase', () => {
   it('strips a /v1 suffix and trailing slashes', () => {

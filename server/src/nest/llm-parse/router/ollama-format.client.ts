@@ -11,6 +11,8 @@
  * tool/response_format and keep using the existing clients.)
  */
 
+import { safeFetchLlm } from '../../../utils/ssrfGuard';
+
 const TIMEOUT_MS = 300_000;
 
 export interface EnforcedExtractInput {
@@ -71,7 +73,9 @@ export async function extractEnforced(input: EnforcedExtractInput): Promise<Reco
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   let res: Response;
   try {
-    res = await fetch(url, {
+    // baseUrl is user-configurable — guard it against the cloud-metadata range,
+    // while still allowing a local/LAN Ollama.
+    res = await safeFetchLlm(url, {
       method: 'POST',
       signal: controller.signal,
       headers: {

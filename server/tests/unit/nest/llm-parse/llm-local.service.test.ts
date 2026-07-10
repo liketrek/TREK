@@ -1,16 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { HttpException } from '@nestjs/common';
+
+// listModels/pull go through safeFetchLlm (SSRF guard: allows a local/LAN Ollama,
+// blocks the cloud-metadata range). Mock it so the tests never resolve DNS; its
+// (url, init) signature matches the raw fetch it replaced.
+const { safeFetchLlmMock } = vi.hoisted(() => ({ safeFetchLlmMock: vi.fn() }));
+vi.mock('../../../../src/utils/ssrfGuard', () => ({ safeFetchLlm: safeFetchLlmMock }));
+
 import { LlmLocalService } from '../../../../src/nest/llm-parse/llm-local.service';
 
 const svc = () => new LlmLocalService();
 
 function mockFetch(impl: any) {
-  const fn = vi.fn(impl);
-  vi.stubGlobal('fetch', fn);
-  return fn;
+  safeFetchLlmMock.mockImplementation(impl);
+  return safeFetchLlmMock;
 }
 
-beforeEach(() => vi.unstubAllGlobals());
+beforeEach(() => safeFetchLlmMock.mockReset());
 
 describe('LlmLocalService.ollamaRoot', () => {
   it('strips a trailing /v1 and slashes', () => {
@@ -38,7 +44,11 @@ describe('LlmLocalService.listModels', () => {
   });
 
   it('502s when the server is unreachable', async () => {
-    mockFetch(async () => { throw new Error('ECONNREFUSED'); });
+    // Reject only the one call listModels makes (mockImplementationOnce): vitest
+    // probes the mock a second time and a persistent rejection there would surface
+    // as an unhandled rejection and fail the test even though listModels catches
+    // the real one and maps it to a 502.
+    safeFetchLlmMock.mockImplementationOnce(() => Promise.reject(new Error('ECONNREFUSED')));
     await expect(svc().listModels('http://localhost:11434')).rejects.toThrow(HttpException);
   });
 });

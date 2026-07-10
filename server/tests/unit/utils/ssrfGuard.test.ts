@@ -384,6 +384,30 @@ describe('safeFetchLlm', () => {
     await expect(safeFetchLlm('http://[fe80::1]/chat')).rejects.toThrow(SsrfBlockedError);
   });
 
+  it('blocks the rest of the fe80::/10 range, not just the fe80: prefix', async () => {
+    mockIp('febf::1');
+    vi.stubGlobal('fetch', vi.fn());
+    await expect(safeFetchLlm('http://[febf::1]/chat')).rejects.toThrow(SsrfBlockedError);
+  });
+
+  it('blocks IPv4-mapped and IPv4-compatible metadata spellings', async () => {
+    vi.stubGlobal('fetch', vi.fn());
+    mockIp('::ffff:169.254.169.254');
+    await expect(safeFetchLlm('http://host.example/chat')).rejects.toThrow(SsrfBlockedError);
+    mockIp('::a9fe:a9fe');
+    await expect(safeFetchLlm('http://host.example/chat')).rejects.toThrow(SsrfBlockedError);
+  });
+
+  it('blocks the AWS IMDSv6 ULA endpoint but allows other ULA (a LAN model server)', async () => {
+    const okFetch = vi.fn().mockResolvedValue({ ok: true } as Response);
+    vi.stubGlobal('fetch', okFetch);
+    mockIp('fd00:ec2::254');
+    await expect(safeFetchLlm('http://imds.example/chat')).rejects.toThrow(SsrfBlockedError);
+    mockIp('fd12:3456::1');
+    await safeFetchLlm('http://lan-model.example/chat');
+    expect(okFetch).toHaveBeenCalledTimes(1);
+  });
+
   it('rejects a non-http(s) protocol', async () => {
     vi.stubGlobal('fetch', vi.fn());
     await expect(safeFetchLlm('file:///etc/passwd')).rejects.toThrow(SsrfBlockedError);
