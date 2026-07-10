@@ -4,6 +4,7 @@ import { db } from '../../db/database';
 import { pluginsEnabled } from './kill-switch';
 import { setPluginEventSink } from '../../plugin-event-sink';
 import { setUserDeletedSink } from '../../plugin-user-lifecycle';
+import { applyStagedPluginTrees } from './plugin-backup';
 import { decrypt_api_key } from '../../services/apiKeyCrypto';
 import { PluginSupervisor, type PluginRouteInfo } from './supervisor/plugin-supervisor';
 import fs from 'node:fs';
@@ -126,6 +127,14 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit(): void {
     if (!pluginsEnabled()) return;
+    // If a restore staged plugin trees, swap them into place NOW — before we open any
+    // plugin DB below. This is where a restored backup's plugin data/code actually
+    // takes effect (the restore itself only stages, since the runtime holds the DBs
+    // open). No-op when nothing was staged. Defensive: never blocks boot.
+    try {
+      const applied = applyStagedPluginTrees();
+      if (applied.length) console.log(`[plugins] applied staged restore: ${applied.join(', ')}`);
+    } catch { /* reconcile must never stop the server from starting */ }
     // Forward core trip events to plugins that subscribed (events:subscribe). The
     // sink is name-only + fire-and-forget, so it can never block a core broadcast.
     setPluginEventSink((tripId, event, meta) => this.supervisor.deliverEvent(tripId, event, meta));

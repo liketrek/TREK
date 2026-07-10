@@ -346,6 +346,31 @@ describe('BACKUP-036 createBackup', () => {
     expect(archiverInstanceMock.finalize).toHaveBeenCalled();
   });
 
+  it('BACKUP-036p — archives the plugin data + code trees when present, skipping dev-links', async () => {
+    // Only the plugin roots exist (db/uploads absent → skipped).
+    fsMock.existsSync.mockImplementation((p: string) => String(p).includes('plugins'));
+    fsMock.mkdirSync.mockReturnValue(undefined);
+    // Two plugin code dirs: 'notes' is real, 'devlink' resolves outside the root.
+    fsMock.readdirSync.mockReturnValue(['notes', 'devlink'] as never);
+    fsMock.realpathSync.mockImplementation((p: string) => (String(p).endsWith('devlink') ? '/somewhere/else/devlink' : p));
+    fsMock.statSync.mockReturnValue({ size: 2048, birthtime: new Date('2026-04-06T12:00:00Z'), isDirectory: () => true } as never);
+
+    const writableEvents: Record<string, Function> = {};
+    fsMock.createWriteStream.mockReturnValue({ on: vi.fn((e: string, cb: Function) => { writableEvents[e] = cb; }) } as never);
+    archiverInstanceMock.on.mockImplementation(() => {});
+    archiverInstanceMock.pipe.mockReturnValue(undefined);
+    archiverInstanceMock.finalize.mockImplementation(() => { writableEvents['close']?.(); });
+    archiverMock.mockReturnValue(archiverInstanceMock);
+
+    await createBackup();
+
+    // whole data tree archived under plugins-data/
+    expect(archiverInstanceMock.directory).toHaveBeenCalledWith(expect.stringContaining('plugins-data'), 'plugins-data');
+    // the real code dir is archived, the dev-link is skipped
+    expect(archiverInstanceMock.directory).toHaveBeenCalledWith(expect.stringContaining('notes'), 'plugins-code/notes');
+    expect(archiverInstanceMock.directory).not.toHaveBeenCalledWith(expect.anything(), 'plugins-code/devlink');
+  });
+
   it('BACKUP-036b — WAL checkpoint error is swallowed (non-critical)', async () => {
     // db.exec throws on WAL checkpoint
     dbMock.db.exec.mockImplementationOnce(() => { throw new Error('WAL checkpoint failed'); });

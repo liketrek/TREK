@@ -6,6 +6,8 @@ import Database from 'better-sqlite3';
 import { db, closeDb, reinitialize } from '../db/database';
 import * as scheduler from '../scheduler';
 import { invalidatePermissionsCache } from './permissions';
+import { pluginsCodeRoot, pluginsDataRoot } from '../nest/plugins/paths';
+import { stageExtractedPluginTrees } from '../nest/plugins/plugin-backup';
 
 // ---------------------------------------------------------------------------
 // Paths
@@ -203,6 +205,29 @@ export async function createBackup(): Promise<BackupInfo> {
         );
       }
 
+      // Plugin data — each plugin's own SQLite file (+ its WAL sidecars, so SQLite
+      // recovers a consistent snapshot on restore) and any blobs. This is the ONLY
+      // copy of the user data a plugin holds, so it belongs in the backup.
+      const pdata = pluginsDataRoot();
+      if (fs.existsSync(pdata)) {
+        archive.directory(pdata, 'plugins-data');
+      }
+      // Plugin code — so a restore is self-contained (the `plugins` rows reference it).
+      // Dev-links (a plugin dir symlinked/junctioned to an author's source) are skipped
+      // by realpath: we never bundle a linked source tree from outside the code root.
+      const pcode = pluginsCodeRoot();
+      if (fs.existsSync(pcode)) {
+        const realRoot = fs.realpathSync(pcode);
+        for (const entry of fs.readdirSync(pcode)) {
+          const dir = path.join(pcode, entry);
+          let real: string;
+          try { real = fs.realpathSync(dir); } catch { continue; }
+          if (!real.startsWith(realRoot + path.sep)) continue; // dev-link points outside → skip
+          try { if (!fs.statSync(dir).isDirectory()) continue; } catch { continue; }
+          archive.directory(dir, `plugins-code/${entry}`);
+        }
+      }
+
       archive.finalize();
     });
 
@@ -316,6 +341,13 @@ export async function restoreFromZip(zipPath: string): Promise<RestoreResult> {
         // is a no-op when uploadsDir is a plain directory (dev/non-Docker).
         fs.cpSync(extractedUploads, fs.realpathSync(uploadsDir), { recursive: true, force: true });
       }
+
+      // Plugin trees can't be swapped live — the runtime holds each plugin DB open —
+      // so stage them beside the live trees. applyStagedPluginTrees swaps them in at the
+      // next boot, before the runtime opens anything (like the bundled encryption key,
+      // which also only takes effect on restart). A backup without plugin trees stages
+      // nothing. Best-effort: a staging error must not fail an otherwise-good restore.
+      try { stageExtractedPluginTrees(extractDir); } catch (e) { console.error('Restore: staging plugin trees failed:', e); }
     } finally {
       // Reopening the DB must always run (even if the copy above threw) so the
       // process is never left without a connection. Capture a reopen failure
