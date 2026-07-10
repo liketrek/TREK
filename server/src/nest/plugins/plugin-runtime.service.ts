@@ -124,6 +124,8 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
 
   // Sweeps plugin_scheduled_tasks for due callbacks and fires them on active plugins.
   private schedulerSweep: ReturnType<typeof setInterval> | null = null;
+  // Coalesces overlapping erasure drains (the sweep and enqueue both trigger one).
+  private drainInFlight: Promise<void> | null = null;
 
   // Optional at the type level so tests can `new PluginRuntimeService()` without a
   // registry; Nest always injects the real one (the provider is in the module).
@@ -243,7 +245,17 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
   /** Deliver queued erasures to active plugins, dropping each row only once the plugin
    * ACKs. Rows for inactive plugins are left for a later sweep / their reactivation.
    * Never throws. */
-  private async drainUserErasures(): Promise<void> {
+  private drainUserErasures(): Promise<void> {
+    // Coalesce onto the drain already in flight. Both the 30s sweep and enqueue trigger
+    // a drain, and a pass awaits per-row delivery (up to the invoke timeout each), so
+    // running two concurrently would select the SAME rows and deliver an erasure twice.
+    // A caller that awaits still waits for a full pass (the in-flight one).
+    if (this.drainInFlight) return this.drainInFlight;
+    this.drainInFlight = this.runDrainOnce().finally(() => { this.drainInFlight = null; });
+    return this.drainInFlight;
+  }
+
+  private async runDrainOnce(): Promise<void> {
     if (!pluginsEnabled()) return;
     try {
       // Only ACTIVE plugins can be delivered to; scope the window to them so a backlog

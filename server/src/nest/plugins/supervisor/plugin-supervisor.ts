@@ -164,11 +164,18 @@ export class PluginSupervisor {
     };
     this.running.set(id, sup);
     this.ensureSweep();
-    return new Promise<void>((resolve, reject) => {
+    const promise = new Promise<void>((resolve, reject) => {
       sup.activation = { resolve, reject };
       this.armActivationDeadline(sup);
       this.spawn(sup);
     });
+    // Activation can be rejected by a timeout, a load-error, a crash-out, or a shutdown
+    // mid-start. That must reach a caller that awaits activate(), but must NOT crash the
+    // process as an unhandled rejection when a caller fires activate() without awaiting
+    // (a boot reconcile, a test). A no-op terminal handler on a SEPARATE branch marks the
+    // rejection handled; the returned promise still rejects for a real awaiter.
+    promise.catch(() => {});
+    return promise;
   }
 
   /** Kill a plugin that never reaches 'active' within the deadline (a stuck onLoad
@@ -426,8 +433,17 @@ export class PluginSupervisor {
     // process down mid-restore. (It also stops a normal shutdown from logging phantom
     // 'crashed' rows + persisting status 'starting'.) Set the field directly, NOT via
     // setStatus, so no onStatus DB hook fires while the core DB may be closed.
-    for (const s of all) { s.status = 'stopped'; this.clearActivationTimer(s); }
+    for (const s of all) {
+      s.status = 'stopped';
+      this.clearActivationTimer(s);
+      // Fail any in-flight activate() HTTP request instead of leaving it hung forever.
+      s.activation?.reject(new Error('plugin host shutting down'));
+      s.activation = undefined;
+    }
     this.running.clear();
+    // Drop every buffered event: after a live restore these carry pre-restore tripIds/
+    // snapshots, and replaying them into the restored data on a re-activation would be wrong.
+    this.pendingEvents.clear();
     await Promise.all(all.map((s) => this.kill(s)));
     for (const s of all) s.rpcHost.dispose();
   }
@@ -518,9 +534,12 @@ export class PluginSupervisor {
           break;
         }
         case 'loaded': {
-          // Ignore a duplicate/forged `loaded` after activation — a plugin must
-          // not be able to re-register its route table once it is live.
-          if (sup.status === 'active') break;
+          // Only a still-starting entry that is still THE current one may go active.
+          // A late `loaded` (child finished onLoad during the kill grace, or the IPC
+          // buffer delivered it after 'exit') must not resurrect a stopped/removed
+          // plugin or re-register routes on an active one — otherwise its jobs get
+          // scheduled against a dead/replaced supervisor and fire twice after re-enable.
+          if (this.running.get(sup.id) !== sup || sup.status !== 'starting') break;
           sup.lastBeat = Date.now();
           const d = msg.data as {
             routes?: PluginRouteInfo[]; jobs?: ScheduledJob[]; hooks?: string[]; events?: string[];
@@ -556,6 +575,10 @@ export class PluginSupervisor {
         }
         case 'load-error': {
           const message = (msg.data as { message?: string })?.message || 'plugin load failed';
+          // Same guard as `loaded`: a late load-error from a child that was already
+          // stopped/replaced must not overwrite the current entry's status or re-dispose
+          // a handle the disable path already tore down.
+          if (this.running.get(sup.id) !== sup || sup.status !== 'starting') break;
           this.clearActivationTimer(sup);
           this.setStatus(sup, 'error', message);
           sup.activation?.reject(new Error(message));
@@ -618,6 +641,11 @@ export class PluginSupervisor {
     }
     const delay = Math.min(this.tuning.backoffCapMs, 1000 * 2 ** (recent.length - 1));
     this.hooks.onLog?.(sup.id, 'warn', `crashed (code=${code} sig=${signal}); restarting in ${delay}ms`);
+    // Cancel the previous activation deadline: a crash late in the activation budget
+    // leaves it armed, and if it fired during this backoff wait it would mark the entry
+    // 'error' and silently cancel the scheduled retry. (Clears the respawnTimer slot too,
+    // which we set immediately below.)
+    this.clearActivationTimer(sup);
     this.setStatus(sup, 'starting');
     sup.respawnTimer = setTimeout(() => {
       // Identity + status check, not just presence: a disable + re-enable in the backoff

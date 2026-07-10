@@ -27,6 +27,14 @@ function codeStaging(): string { return pluginsCodeRoot() + STAGE_SUFFIX; }
  * it works even when the plugin volumes sit on a different filesystem than the extract
  * dir. A no-op for a backup that carries no plugin trees (older archives). Returns true
  * if anything was staged (so restore can tell the admin a restart is needed to finish).
+ *
+ * Staging is made atomic with a `.tmp` sibling: the (interruptible) copy lands in
+ * `<root>.restore.tmp`, and only a fully-copied tree is renamed to `<root>.restore`.
+ * The rename is same-directory (same filesystem), so it's atomic. Without this a copy
+ * that dies partway — disk full, OOM, a crash — would leave a PARTIAL `.restore`, and
+ * the next boot's swap deletes every live plugin dir not present in it: data loss, even
+ * though the restore reported success. A leftover `.tmp` is inert (the apply path only
+ * looks for `.restore`) and is cleared on the next staging.
  */
 export function stageExtractedPluginTrees(extractDir: string): boolean {
   let staged = false;
@@ -36,8 +44,11 @@ export function stageExtractedPluginTrees(extractDir: string): boolean {
   ];
   for (const [from, to] of pairs) {
     if (!fs.existsSync(from)) continue;
-    fs.rmSync(to, { recursive: true, force: true }); // drop a stale staging from an aborted prior restore
-    fs.cpSync(from, to, { recursive: true });
+    const tmp = to + '.tmp';
+    fs.rmSync(to, { recursive: true, force: true });  // drop a stale completed staging
+    fs.rmSync(tmp, { recursive: true, force: true }); // drop a stale partial staging
+    fs.cpSync(from, tmp, { recursive: true });        // may die partway → only .tmp is left, never .restore
+    fs.renameSync(tmp, to);                            // atomic: publishes a COMPLETE staging
     staged = true;
   }
   return staged;
