@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -208,7 +208,7 @@ describe('createMockHost', () => {
       trips: { 1: { members: [42, 7] } },
     });
     expect(await host.ctx.trips.removeMember(1, 7)).toEqual({ removed: true });
-    expect(await host.ctx.trips.removeMember(1, 999)).toEqual({ removed: false }); // not a member
+    expect(await host.ctx.trips.removeMember(1, 999)).toEqual({ removed: true }); // prod's DELETE reports removed:true either way
     const j = await host.ctx.journal.createJourney({ title: 'Imported', trip_ids: [1] });
     expect(j).toMatchObject({ title: 'Imported' });
     expect(await host.ctx.journal.deleteJourney(1)).toEqual({ deleted: true });
@@ -292,6 +292,86 @@ describe('createMockHost', () => {
     const host = createMockHost({ grants: ['jobs:run'] });
     await host.run(def).load();
     expect(host.scheduled.get('sync')).toMatchObject({ everyMs: 3_600_000, payload: { n: 1 } });
+  });
+
+  it('runs jobs USERLESS like production — a membership read refuses, the same read from a route works', async () => {
+    const seen: string[] = [];
+    const def = definePlugin({
+      jobs: [{ id: 'sync', schedule: '* * * * *', async handler(ctx) {
+        try { await ctx.trips.getById(1); seen.push('read-ok'); } catch (e) { seen.push((e as Error).message.split(':')[0]); }
+      } }],
+      routes: [{ method: 'GET', path: '/t', async handler(_req, ctx) { return { status: 200, body: await ctx.trips.getById(1) }; } }],
+    });
+    const host = createMockHost({ grants: ['db:read:trips', 'jobs:run'], actingUserId: 42, trips: { 1: { members: [42], data: { id: 1 } } } });
+    const d = host.run(def);
+    await d.job('sync');
+    expect(seen).toEqual(['RESOURCE_FORBIDDEN']);
+    expect(await d.route(0)).toEqual({ status: 200, body: { id: 1 } });
+  });
+
+  it('notify.send strips emojis and enforces the host caps + in-app link rule', async () => {
+    const host = createMockHost({ grants: ['notify:send'], actingUserId: 7, trips: { 1: { members: [7] } } });
+    await expect(host.ctx.notify.send({ title: '🎉🎉', body: 'x', scope: 'user', targetId: 7 })).rejects.toThrow(/title is required/);
+    await expect(host.ctx.notify.send({ title: 't', body: 'x'.repeat(1001), scope: 'user', targetId: 7 })).rejects.toThrow(/max 1000/);
+    await expect(host.ctx.notify.send({ title: 't', body: 'b', scope: 'user', targetId: 7, link: 'https://evil.example' })).rejects.toThrow(/in-app path/);
+    await host.ctx.notify.send({ title: 'Trip 🎉 ready', body: 'b', scope: 'trip', targetId: 1, link: '/trips/1' });
+    expect(host.notifications).toEqual([{ title: 'Trip ready', body: 'b', link: '/trips/1', scope: 'trip', targetId: 1 }]);
+  });
+
+  it('db guards match the host: forbidden statements, tx control, op cap', async () => {
+    const { ctx } = createMockHost({ grants: ['db:own'] });
+    await expect(ctx.db.query('PRAGMA user_version')).rejects.toThrow(/not allowed/);
+    await expect(ctx.db.tx([{ sql: '  COMMIT' }])).rejects.toThrow(/transaction-control/);
+    await expect(ctx.db.tx([{ sql: '/* x */ROLLBACK' }])).rejects.toThrow(/transaction-control/);
+    await expect(ctx.db.tx(Array.from({ length: 101 }, () => ({ sql: 'SELECT 1' })))).rejects.toThrow(/at most 100/);
+  });
+
+  it('member writes need member_manage + protect the owner; users.getById serves only public fields', async () => {
+    const host = createMockHost({
+      grants: ['db:write:members', 'db:read:users'],
+      actingUserId: 42,
+      users: { 7: { id: 7, username: 'ada', email: 'secret@example.com' }, 42: { id: 42, username: 'me' } },
+      trips: { 1: { members: [42, 7], data: { id: 1, user_id: 42 } }, 2: { members: [42], can: { member_manage: false } } },
+    });
+    await expect(host.ctx.trips.removeMember(1, 42)).rejects.toThrow(/trip owner/);
+    await expect(host.ctx.trips.addMember(2, 7)).rejects.toThrow(/RESOURCE_FORBIDDEN/);
+    await expect(host.ctx.trips.addMember(1, 999)).rejects.toThrow(/no user 999/);
+    const u = await host.ctx.users.getById(7) as Record<string, unknown>;
+    expect(u).toMatchObject({ id: 7, username: 'ada' });
+    expect('email' in u).toBe(false);
+    await expect(host.ctx.users.getById(999)).rejects.toThrow(/no access to user 999/); // no shared trip
+  });
+
+  it('addon toggles gate journal/vacay/collections like production; atlas normalizes codes', async () => {
+    const off = createMockHost({
+      grants: ['db:read:journal', 'db:read:atlas', 'db:write:atlas', 'db:read:vacay', 'db:read:collections'],
+      actingUserId: 1,
+      journeyAddonEnabled: false, vacayAddonEnabled: false, collectionsAddonEnabled: false,
+    });
+    await expect(off.ctx.journal.listMine()).rejects.toThrow(/journey addon is disabled/);
+    await expect(off.ctx.vacay.mine()).rejects.toThrow(/vacay addon is disabled/);
+    await expect(off.ctx.collections.listMine()).rejects.toThrow(/collections addon is disabled/);
+    expect(await off.ctx.atlas.markCountry('de')).toEqual({ visited: true }); // atlas stays enabled
+    expect(await off.ctx.atlas.visited()).toMatchObject({ countries: ['DE'] });
+    await expect(off.ctx.atlas.markCountry('not-a-code!')).rejects.toThrow(/short code/);
+  });
+
+  it('scheduler refuses a non-finite or >1-year dueAt, like the host', async () => {
+    const { ctx } = createMockHost({ grants: ['jobs:run'] });
+    await expect(ctx.scheduler.at(Number.NaN, 'x')).rejects.toThrow(/dueAt out of range/);
+    await expect(ctx.scheduler.at(Date.now() + 400 * 24 * 3600 * 1000, 'x')).rejects.toThrow(/dueAt out of range/);
+    await expect(ctx.scheduler.every(1000, 'x')).rejects.toThrow(/>= 60000/);
+  });
+
+  it('declaredEmits drops an undeclared emit with a warning — production refuses it', () => {
+    const host = createMockHost({ declaredEmits: ['rate.updated'] });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      host.ctx.events.emit('rate.updated', { a: 1 });
+      host.ctx.events.emit('undeclared.event', {});
+      expect(warn).toHaveBeenCalledOnce();
+    } finally { warn.mockRestore(); }
+    expect(host.emitted).toEqual([{ name: 'rate.updated', payload: { a: 1 } }]);
   });
 });
 
@@ -418,6 +498,18 @@ describe('dev db bind shapes', () => {
       await db.exec('INSERT INTO kv (k, v) VALUES (?, ?)', 'b', '2'); // spread form
       expect(await db.query('SELECT v FROM kv WHERE k = ?', ['a'])).toEqual([{ v: '1' }]);
       expect(await db.query('SELECT v FROM kv WHERE k = ?', 'b')).toEqual([{ v: '2' }]);
+    } finally {
+      close();
+    }
+  });
+
+  it.runIf(hasNodeSqlite)('refuses the statements the real host forbids for plugin databases', async () => {
+    const { createDevDb } = await import('../src/cli/dev.js');
+    const { db, close } = createDevDb(path.join(tmp, 'db.sqlite'));
+    try {
+      await expect(db.query('PRAGMA user_version')).rejects.toThrow(/not allowed/);
+      await expect(db.exec("ATTACH DATABASE 'x' AS y")).rejects.toThrow(/not allowed/);
+      await expect(db.migrate('001', 'PRAGMA journal_mode = OFF')).rejects.toThrow(/not allowed/);
     } finally {
       close();
     }
