@@ -337,13 +337,13 @@ export interface PluginJob {
 // invocation ctx, so any trip reads it makes bind to the authenticated user. ──
 export interface Photo { id: string; title?: string; thumbnailUrl: string; fullUrl: string; takenAt?: string; }
 export interface PhotoProvider {
-  search(query: string, opts: { page: number; limit: number }): Promise<{ photos: Photo[]; total: number; hasMore: boolean }>;
-  getById(id: string): Promise<Photo | null>;
+  search(query: string, opts: { page: number; limit: number }, ctx: PluginContext): Promise<{ photos: Photo[]; total: number; hasMore: boolean }>;
+  getById(id: string, ctx: PluginContext): Promise<Photo | null>;
 }
 export interface CalendarEvent { id: string; title: string; start: string; end: string; allDay: boolean; }
 export interface CalendarSource {
-  getName(): string;
-  getEvents(userId: number, start: string, end: string): Promise<CalendarEvent[]>;
+  getName(ctx: PluginContext): string;
+  getEvents(userId: number, start: string, end: string, ctx: PluginContext): Promise<CalendarEvent[]>;
 }
 /** One row of extra place info TREK renders natively (reviews/ratings/links/…). */
 export interface PlaceDetailItem { label: string; value?: string; url?: string; }

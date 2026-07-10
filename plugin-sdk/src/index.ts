@@ -346,8 +346,11 @@ export interface Photo {
   takenAt?: string;
 }
 export interface PhotoProvider {
-  search(query: string, opts: { page: number; limit: number }): Promise<{ photos: Photo[]; total: number; hasMore: boolean }>;
-  getById(id: string): Promise<Photo | null>;
+  /** Search your photo backend. `ctx` is the last arg so you can reach it via
+   * ctx.settings/oauth/http. Needs `hook:photo-provider`. Surfaced in the photo picker
+   * and at `GET /api/plugin-photos/search`; thumbnail/full URLs must be http/https. */
+  search(query: string, opts: { page: number; limit: number }, ctx: PluginContext): Promise<{ photos: Photo[]; total: number; hasMore: boolean }>;
+  getById(id: string, ctx: PluginContext): Promise<Photo | null>;
 }
 export interface CalendarEvent {
   id: string;
@@ -357,10 +360,12 @@ export interface CalendarEvent {
   allDay: boolean;
 }
 export interface CalendarSource {
-  getName(): string;
+  /** A short label for this source (shown in the calendar UI). Needs `hook:calendar-source`. */
+  getName(ctx: PluginContext): string;
   // start/end are ISO strings — the host->plugin boundary is JSON, so a Date would
-  // arrive as a string anyway (kept in lockstep with the runtime SDK copy).
-  getEvents(userId: number, start: string, end: string): Promise<CalendarEvent[]>;
+  // arrive as a string anyway (kept in lockstep with the runtime SDK copy). `ctx` is the
+  // last arg. Aggregated for the signed-in user at `GET /api/plugin-calendar`.
+  getEvents(userId: number, start: string, end: string, ctx: PluginContext): Promise<CalendarEvent[]>;
 }
 /** One row of extra place info TREK renders natively (reviews/ratings/links/…). */
 export interface PlaceDetailItem { label: string; value?: string; url?: string; }
