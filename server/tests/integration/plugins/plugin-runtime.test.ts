@@ -18,6 +18,11 @@ const { testDb } = vi.hoisted(() => {
     CREATE TABLE plugin_settings_fields (plugin_id TEXT, field_key TEXT, scope TEXT, secret INTEGER);
     CREATE TABLE settings (user_id INTEGER, key TEXT, value TEXT);
     CREATE TABLE plugin_entity_metadata (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, entity_type TEXT, entity_id INTEGER, key TEXT, value TEXT, updated_at TEXT);
+    CREATE TABLE plugin_user_config (plugin_id TEXT, user_id INTEGER, field_key TEXT, value TEXT, PRIMARY KEY (plugin_id, user_id, field_key));
+    CREATE TABLE plugin_oauth_tokens (plugin_id TEXT, user_id INTEGER, access_token TEXT, refresh_token TEXT, expires_at TEXT, scope TEXT, updated_at TEXT, PRIMARY KEY (plugin_id, user_id));
+    CREATE TABLE plugin_oauth_state (state TEXT PRIMARY KEY, plugin_id TEXT, user_id INTEGER, verifier TEXT, created_at TEXT);
+    CREATE TABLE plugin_meta_migrations (plugin_id TEXT, migration_id TEXT, PRIMARY KEY (plugin_id, migration_id));
+    CREATE TABLE plugin_capability_audit (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, acting_user_id INTEGER, method TEXT, resource TEXT, code TEXT, ts TEXT, prev_hash TEXT, hash TEXT);
     CREATE TABLE addons (id TEXT PRIMARY KEY, enabled INTEGER DEFAULT 0);`);
   return { testDb: db };
 });
@@ -192,6 +197,14 @@ describe('PluginRuntimeService (M2 end-to-end)', () => {
     testDb.prepare("INSERT INTO plugins (id, status, permissions, config) VALUES ('gone','inactive','[]','{}')").run();
     testDb.prepare("INSERT INTO plugin_settings_fields (plugin_id, field_key, scope, secret) VALUES ('gone','k','instance',0)").run();
     testDb.prepare("INSERT INTO settings (user_id, key, value) VALUES (1, 'plugin:gone:units', 'metric')").run();
+    // Per-user secrets + OAuth tokens live in their OWN tables, not under settings —
+    // a "delete all data" that leaves these behind leaks encrypted keys/tokens that a
+    // same-id reinstall silently re-adopts (audit finding).
+    testDb.prepare("INSERT INTO plugin_user_config (plugin_id, user_id, field_key, value) VALUES ('gone', 1, 'apiKey', 'enc:secret')").run();
+    testDb.prepare("INSERT INTO plugin_oauth_tokens (plugin_id, user_id, access_token, refresh_token) VALUES ('gone', 1, 'at', 'rt')").run();
+    testDb.prepare("INSERT INTO plugin_oauth_state (state, plugin_id, user_id, verifier) VALUES ('s1', 'gone', 1, 'v')").run();
+    testDb.prepare("INSERT INTO plugin_meta_migrations (plugin_id, migration_id) VALUES ('gone', '001')").run();
+    testDb.prepare("INSERT INTO plugin_capability_audit (plugin_id, method, code, ts, hash) VALUES ('gone', 'trips.getById', 'OK', 't', 'h')").run();
 
     await new PluginRuntimeService().uninstall('gone', true);
 
@@ -199,6 +212,10 @@ describe('PluginRuntimeService (M2 end-to-end)', () => {
     expect(testDb.prepare("SELECT COUNT(*) c FROM plugins WHERE id='gone'").get()).toMatchObject({ c: 0 });
     expect(testDb.prepare("SELECT COUNT(*) c FROM plugin_settings_fields WHERE plugin_id='gone'").get()).toMatchObject({ c: 0 });
     expect(testDb.prepare("SELECT COUNT(*) c FROM settings WHERE key LIKE 'plugin:gone:%'").get()).toMatchObject({ c: 0 });
+    // the secret-bearing tables must be purged too
+    for (const t of ['plugin_user_config', 'plugin_oauth_tokens', 'plugin_oauth_state', 'plugin_meta_migrations', 'plugin_capability_audit']) {
+      expect(testDb.prepare(`SELECT COUNT(*) c FROM ${t} WHERE plugin_id='gone'`).get()).toMatchObject({ c: 0 });
+    }
   });
 
   it('the egress guard blocks a fetch to an undeclared host', async () => {

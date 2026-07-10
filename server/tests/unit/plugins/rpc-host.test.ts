@@ -377,17 +377,20 @@ describe('PluginRpcHost — capability enforcement', () => {
     expect((forbidden as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
   });
 
-  it('reservations.create/update pin the endpoints shape up front (no deep service failure)', async () => {
+  it('reservations.create/update pin the endpoint STRUCTURE but stay permissive like the service', async () => {
     const host = new PluginRpcHost('p', new Set(['db:write:reservations']), deps);
     const goodEp = [{ role: 'from', name: 'HND', lat: 35.55, lng: 139.78, code: 'HND' }];
     const good = await host.dispatch(req('reservations.create', { tripId: 1, input: { title: 'Flight', endpoints: goodEp } }), 42);
     expect(ok(good)).toBe(true);
-    // bad role / missing coords never reach the service
-    for (const endpoints of [[{ role: 'banana', name: 'x', lat: 1, lng: 2 }], [{ role: 'to', name: 'x' }], 'nope']) {
+    // A structurally-wrong endpoint (bad role enum) or a non-array is refused up front.
+    for (const endpoints of [[{ role: 'banana', name: 'x', lat: 1, lng: 2 }], 'nope']) {
       const bad = await host.dispatch(req('reservations.update', { tripId: 1, reservationId: 40, input: { endpoints } }), 42);
       expect((bad as RpcError).error.code).toBe('BAD_PARAMS');
     }
-    expect(deps.updateReservation).not.toHaveBeenCalled();
+    // But a coord-less endpoint is NOT rejected — it's accepted and dropped downstream,
+    // exactly like the REST/importer path (no breaking change vs 3.2.1).
+    const coordless = await host.dispatch(req('reservations.update', { tripId: 1, reservationId: 40, input: { endpoints: [{ role: 'to', name: 'x' }] } }), 42);
+    expect(ok(coordless)).toBe(true);
     // [] is the documented delete-all and stays valid
     const clear = await host.dispatch(req('reservations.update', { tripId: 1, reservationId: 40, input: { endpoints: [] } }), 42);
     expect(ok(clear)).toBe(true);

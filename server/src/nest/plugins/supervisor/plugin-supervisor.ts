@@ -434,6 +434,13 @@ export class PluginSupervisor {
     sup.child = null;
     // In-flight host→child invokes can never complete now.
     this.rejectPending(sup, 'plugin exited');
+    // The dead child's node-cron tasks keep ticking (node-cron holds them, not the
+    // child). Stop them here — otherwise every crash-restart cycle leaks a task-set
+    // AND re-schedules a fresh one, so the job fires N+1 times per tick after N
+    // crashes (duplicate egress/db side effects). kill() already does this for the
+    // clean-stop path; the crash/auto-disable path reaches this instead.
+    stopJobs(sup.jobTasks);
+    sup.jobTasks = undefined;
     // A clean stop we asked for isn't a crash.
     if (sup.status === 'stopped' || sup.status === 'error') return;
     if (!this.running.has(sup.id)) return;

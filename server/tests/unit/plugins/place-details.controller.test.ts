@@ -58,4 +58,38 @@ describe('PlaceDetailsController', () => {
     expect(res.providers).toEqual([{ pluginId: 'p1', items: [{ label: 'Reviews', value: '12' }] }]);
     expect(runtime.invokeHook).toHaveBeenCalledWith('p1', 'placeDetailProvider', 'getDetails', [7], 5, 5000);
   });
+
+  it('normalizes rows: drops a javascript: url, caps lengths, drops non-objects + label-less rows', async () => {
+    const { c } = controller({
+      providersOf: vi.fn(() => ['p1']),
+      invokeHook: vi.fn(async () => [
+        { label: 'x'.repeat(200), value: 'y'.repeat(500), url: 'javascript:alert(1)' },
+        { label: 'Site', url: 'https://ok.example' },
+        { value: 'no label' },   // dropped
+        'not an object',         // dropped
+        { label: 'Mail', url: 'mailto:a@b.c' },
+      ]) as unknown as PluginRuntimeService['invokeHook'],
+    });
+    const items = (await c.get('7', req(5))).providers[0].items;
+    expect(items).toEqual([
+      { label: 'x'.repeat(60), value: 'y'.repeat(200), url: undefined }, // js: url stripped
+      { label: 'Site', value: undefined, url: 'https://ok.example' },
+      { label: 'Mail', value: undefined, url: 'mailto:a@b.c' },
+    ]);
+  });
+
+  it('caps the row count per provider at 12 and drops a provider that yields nothing usable', async () => {
+    const { c } = controller({
+      providersOf: vi.fn(() => ['flood', 'empty']),
+      invokeHook: vi.fn(async (id: string) =>
+        id === 'flood'
+          ? Array.from({ length: 50 }, (_v, i) => ({ label: `r${i}` }))
+          : [{ value: 'no label' }, 'junk'],
+      ) as unknown as PluginRuntimeService['invokeHook'],
+    });
+    const res = await c.get('7', req(5));
+    expect(res.providers).toHaveLength(1); // 'empty' contributes nothing -> dropped
+    expect(res.providers[0].pluginId).toBe('flood');
+    expect(res.providers[0].items).toHaveLength(12);
+  });
 });

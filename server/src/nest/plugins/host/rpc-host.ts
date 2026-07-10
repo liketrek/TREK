@@ -250,6 +250,9 @@ export class BadParams extends Error {}
 // Mirrors the STRING_LIMITS the places REST controller enforces (the @trek/shared
 // schema doesn't), so the plugin write path rejects the same oversized fields.
 const PLACE_STR_LIMITS: Record<string, number> = { name: 200, description: 2000, address: 500, notes: 2000 };
+// Same idea for trips — the @trek/shared schema leaves the title/description open,
+// so mirror the REST controller's field limits on the plugin write path too.
+const TRIP_STR_LIMITS: Record<string, number> = { title: 200, description: 2000 };
 
 export class PluginRpcHost {
   private methods = new Map<string, Handler>();
@@ -683,6 +686,7 @@ export class PluginRpcHost {
         const actor = this.requireActor(uid, 'trip');
         const parsed = tripUpdateRequestSchema.safeParse(p.input);
         if (!parsed.success) throw new BadParams(`invalid trip: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
+        this.capStrings(parsed.data as Record<string, unknown>, TRIP_STR_LIMITS);
         this.requireTripEdit(tripId, actor, deps.canEditTrip);
         return deps.updateTrip(tripId, actor, parsed.data as Record<string, unknown>);
       });

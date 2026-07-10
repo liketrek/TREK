@@ -470,6 +470,15 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
       db.prepare('DELETE FROM plugin_error_log WHERE plugin_id = ?').run(id);
       db.prepare("DELETE FROM settings WHERE key LIKE ?").run(`plugin:${id}:%`);
       db.prepare('DELETE FROM plugin_entity_metadata WHERE plugin_id = ?').run(id);
+      // Per-user secrets + OAuth tokens/state live in their own tables, NOT under
+      // settings — without these a "delete all data" leaves encrypted API keys and
+      // refresh tokens behind, silently re-adopted if a plugin with the same id is
+      // reinstalled. The migration ledger goes too, so a reinstall re-runs cleanly.
+      db.prepare('DELETE FROM plugin_user_config WHERE plugin_id = ?').run(id);
+      db.prepare('DELETE FROM plugin_oauth_tokens WHERE plugin_id = ?').run(id);
+      db.prepare('DELETE FROM plugin_oauth_state WHERE plugin_id = ?').run(id);
+      db.prepare('DELETE FROM plugin_meta_migrations WHERE plugin_id = ?').run(id);
+      db.prepare('DELETE FROM plugin_capability_audit WHERE plugin_id = ?').run(id);
     }
   }
 

@@ -129,7 +129,9 @@ export default function DashboardPage(): React.ReactElement {
   const isAddonEnabled = useAddonStore(s => s.isEnabled)
   const showCollections = isAddonEnabled('collections') && sideWidgets.collections
   // Desktop has a master toggle for the whole right column; off → centered layout.
-  const widgetPlugins = usePluginStore(s => s.plugins).filter(p => p.type === 'widget' && p.slot !== 'hero')
+  // Only true dashboard widgets belong here — hero mounts on the boarding pass, and
+  // place-detail/day-detail widgets live inside the planner panels, not the sidebar.
+  const widgetPlugins = usePluginStore(s => s.plugins).filter(p => p.type === 'widget' && p.slot !== 'hero' && p.slot !== 'place-detail' && p.slot !== 'day-detail')
   const sidebarVisible = (isMobile || dashCfg.desktop.sidebar) && (showCurrency || showCollections || showTimezones || showUpcoming || widgetPlugins.length > 0)
 
   return (

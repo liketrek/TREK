@@ -134,7 +134,11 @@ export function useTripPlanner() {
     }
   }, [enabledAddons, tripPluginIds, pluginsLoaded])
 
-  const handleTabChange = (tabId: string): void => {
+  const handleTabChange = (rawTabId: string): void => {
+    // A core tab a plugin replaced is gone from the bar, but a programmatic jump
+    // (e.g. onNavigateToFiles) could still target it and render a dead panel with
+    // no active pill — fall back to the plan view like the invalid-tab guard does.
+    const tabId = replacedTabs.has(rawTabId) ? 'plan' : rawTabId
     setActiveTab(tabId)
     sessionStorage.setItem(`trip-tab-${tripId}`, tabId)
     if (tabId === 'finanzplan') tripActions.loadBudgetItems?.(tripId)

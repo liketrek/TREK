@@ -25,7 +25,7 @@ ungranted capability is physically unreachable**, not just disallowed. See
 | `db:read:tags` | The acting user's own tags via `ctx.tags.list()` | User-scoped (not trip-scoped); refuses a userless context. |
 | `db:read:todos` | A trip's to-dos via `ctx.todos.list(tripId)` | Membership-checked (trip-scoped). |
 | `weather:read` | The host's cached forecast via `ctx.weather.get(lat, lng, date?)` | Tenant-free read over the host's cache; no user needed. |
-| `db:write:costs` | Create costs via `ctx.costs.create` | Trip access **+** the `budget_edit` permission **+** the Costs addon. |
+| `db:write:costs` | Create/update/delete costs via `ctx.costs.create` / `update` / `delete` | Trip access **+** the `budget_edit` permission **+** the Costs addon. |
 | `db:write:places` | Create/update/delete places via `ctx.places` | Trip access **+** the `place_edit` permission. Input validated against TREK's schema; every write audited. |
 | `db:write:days` | Create/update/delete days via `ctx.days` | Trip access **+** the `day_edit` permission. |
 | `db:write:itinerary` | Assign/remove places on days via `ctx.itinerary` | Trip access **+** the `day_edit` permission (it's a day edit). |

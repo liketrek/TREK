@@ -20,6 +20,9 @@ interface Warning {
   placeId?: number;
 }
 
+const MAX_WARNINGS = 20; // per provider — bounds the banner
+const MESSAGE_MAX = 300;
+
 @Controller('api/trip-warnings')
 @UseGuards(JwtAuthGuard)
 export class TripWarningsController {
@@ -41,10 +44,10 @@ export class TripWarningsController {
         try {
           const raw = (await this.runtime.invokeHook(id, 'warningProvider', 'getWarnings', [tripId], userId, 5000)) as unknown;
           const list = Array.isArray(raw) ? (raw as Array<Record<string, unknown>>) : [];
-          return list.map((w) => ({
+          return list.slice(0, MAX_WARNINGS).map((w) => ({
             pluginId: id,
             level: w.level === 'error' || w.level === 'info' ? (w.level as Level) : 'warning',
-            message: String(w.message ?? ''),
+            message: String(w.message ?? '').slice(0, MESSAGE_MAX),
             dayId: typeof w.dayId === 'number' ? w.dayId : undefined,
             placeId: typeof w.placeId === 'number' ? w.placeId : undefined,
           }));

@@ -96,10 +96,11 @@ permissions still requires explicit re-consent).
 
 ## The plugin types
 
-- **integration** — background logic (jobs, routes) with no UI of its own. Photo-
-  provider / calendar-source hook types exist in the SDK but are **not yet wired
-  into the host** — see [Provider hooks](#provider-hooks). The `placeDetailProvider`
-  hook IS wired.
+- **integration** — background logic (jobs, routes) with no UI of its own. Most
+  provider hooks are **live** (placeDetailProvider, warningProvider,
+  tableContributor, mapMarkerProvider, pdfSectionProvider, atlasLayerProvider,
+  journalEntryProvider); only `photoProvider` / `calendarSource` are declared in the
+  SDK but **not yet wired into the host** — see [Provider hooks](#provider-hooks).
 - **page** — adds a nav entry that opens a full-page sandboxed iframe.
 - **widget** — adds a card to the dashboard (`sidebar` slot), a hero-bar overlay
   (`hero` slot), a panel inside the trip planner's **place-detail** view
@@ -435,7 +436,7 @@ window.parent.postMessage({ type: 'trek:invoke', requestId: '1', sub: '/status',
 
 | Message | Payload |
 |---|---|
-| `trek:context` | `{ tripId, placeId, userId, theme, locale, dir, hostOrigin, user, formats, tokens, appearance }` (see below) — re-sent whenever the theme, appearance, **locale or formats** change |
+| `trek:context` | `{ tripId, placeId, dayId, userId, theme, locale, dir, hostOrigin, user, formats, tokens, appearance }` (see below) — re-sent whenever the theme, appearance, **locale or formats** change |
 | `trek:response` | `{ requestId, data }` — a successful `trek:invoke` |
 | `trek:error` | `{ requestId, code, message }` — a failed `trek:invoke` (`code` is the HTTP status or `"error"`) |
 | `trek:confirm:result` | `{ requestId, confirmed }` — the user's answer to your `trek:confirm` |
@@ -451,9 +452,9 @@ declared), no popups.
 
 | Field | Type |
 |---|---|
-| `tripId` | `number \| null` — the trip in view (a `trip-page` tab, or a widget on a trip), else `null` |
-| `placeId` | `number \| null` — the place in view (a `place-detail` slot), else `null` |
-| `dayId` | `number \| null` — the day in view (a `day-detail` slot), else `null` |
+| `tripId` | `string \| null` — the trip in view (a `trip-page` tab, or a widget on a trip), else `null`. **IDs arrive as strings** — compare with `String(id)` |
+| `placeId` | `string \| null` — the place in view (a `place-detail` slot), else `null` |
+| `dayId` | `string \| null` — the day in view (a `day-detail` slot), else `null` |
 | `dir` | `'ltr' \| 'rtl'` — the host's text direction; the kit mirrors it onto your `<html>` so RTL hosts get RTL plugin UIs |
 | `userId` | `string \| null` |
 | `theme` | `'light' \| 'dark'` |
@@ -751,7 +752,9 @@ for anything your plugin publishes via `ctx.events.emit`.
 | `pluginDependencies` | `{ id, version }[]` | other plugins (semver range) that must be installed + version-satisfied to activate. |
 | `settings` | array | setting fields (below). |
 
-**Permissions** (unknown values are rejected):
+**Permissions** — the commonly-used core subset below; the **full list of ~50**
+(all read/write scopes, the notify/ai/oauth brokers, every provider hook) lives in
+**[[Plugin Permissions|Plugin-Permissions]]**. Unknown values are rejected at activation.
 
 | Permission | Grants |
 |---|---|
@@ -768,7 +771,7 @@ for anything your plugin publishes via `ctx.events.emit`.
 | `db:write:packing` | `ctx.packing.create/update/delete` (acting user's `packing_edit`; private items stay owner-scoped) |
 | `db:meta` | `ctx.meta.*` — your own namespaced data on a trip/place/day |
 | `db:read:users` | `ctx.users.getById` |
-| `events:subscribe` | receive core activity events via `events: [...]` (event name + tripId + a { entity, entityId } hint; never content or a user) |
+| `events:subscribe` | receive core activity events via `events: [...]` (event name + tripId + a { entity, entityId } hint, plus a whitelisted entity **snapshot** when the plugin also holds the family's `db:read:*` grant; never a user) |
 | `jobs:run` | run declared background `jobs` on their cron schedule (opt-in; no user, so trip reads are refused) |
 | `ws:broadcast:trip` | `ctx.ws.broadcastToTrip` |
 | `ws:broadcast:user` | `ctx.ws.broadcastToUser` |
@@ -776,6 +779,10 @@ for anything your plugin publishes via `ctx.events.emit`.
 | `hook:place-detail-provider` | `hooks.placeDetailProvider` — extra place rows TREK renders (see [Provider hooks](#provider-hooks)) |
 | `hook:trip-warning-provider` | `hooks.warningProvider` — validation warnings in the planner (see [Provider hooks](#provider-hooks)) |
 | `hook:table-contributor` | `hooks.tableContributor` — host-rendered columns/actions in the reservations, places, day, costs, packing and files views (see [Provider hooks](#provider-hooks)) |
+| `hook:map-marker-provider` | `hooks.mapMarkerProvider` — bounded markers on the trip map |
+| `hook:pdf-section-provider` | `hooks.pdfSectionProvider` — sections appended to the trip PDF export |
+| `hook:atlas-layer-provider` | `hooks.atlasLayerProvider` — per-user country tint layers on the Atlas map |
+| `hook:journal-entry-provider` | `hooks.journalEntryProvider` — extra rows on a journal entry card |
 | `hook:photo-provider` / `hook:calendar-source` | reserved (see [Provider hooks](#provider-hooks)) |
 
 > There is **no `ws:broadcast:*`** — use `ws:broadcast:trip` and/or
